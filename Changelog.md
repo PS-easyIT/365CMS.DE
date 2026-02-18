@@ -135,13 +135,6 @@
 - Unterstützt: Webspace, E-Mail (nur SQL), S3-kompatible Storage
 - Backup-Verzeichnis: `ABSPATH/backups/`
 
-## 🚀 Nächste Schritte
-
-1. Upload auf Live-Server (365cms.de)
-2. Browser-Tests durchführen
-3. Analytics-Dashboard auf Fehler prüfen
-4. Backup-Service testen
-
 ## 🔐 Sicherheit
 
 - Alle User-Inputs werden sanitized (`sanitize_text_field`, `esc_html`, etc.)
