@@ -1,4 +1,4 @@
-# CMSv2 - Modernes IT-Netzwerk CMS
+# HTTPS://365CMS.DE  -  Modernes IT-Netzwerk CMS
 
 Ein sicheres, modulares und erweiterbares Content Management System mit umfassendem Plugin- und Theme-Support.
 
