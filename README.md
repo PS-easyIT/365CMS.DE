@@ -1,4 +1,5 @@
-# HTTPS://365CMS.DE  -  Modernes IT-Netzwerk CMS
+# 365CMS - sicheres, modulares und erweiterbares Content Management System
+## HTTPS://365CMS.DE  
 
 Ein sicheres, modulares und erweiterbares Content Management System mit umfassendem Plugin- und Theme-Support.
 
