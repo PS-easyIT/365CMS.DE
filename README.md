@@ -467,14 +467,6 @@ Admin → **System & Diagnose**
 - Logs leeren
 - Fehlende Tabellen erstellen
 
-## 📝 Standard-Login
-
-**Nach Installation:**
-- **Username:** `admin`
-- **Passwort:** `admin123`
-
-⚠️ **KRITISCH:** Ändern Sie dies sofort nach der ersten Anmeldung!
-
 ## 🆘 Troubleshooting
 
 ### Weißer Bildschirm (WSOD)
