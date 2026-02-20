@@ -54,62 +54,6 @@ Laden Sie alle Dateien in Ihr Webserver-Verzeichnis:
 C:/xampp/htdocs/CMSv2/
 ```
 
-### 2. Datenbank erstellen
-
-```sql
-CREATE DATABASE cms_v2 
-CHARACTER SET utf8mb4 
-COLLATE utf8mb4_unicode_ci;
-
--- Optional: Datenbank-User erstellen
-CREATE USER 'cms_user'@'localhost' IDENTIFIED BY 'sicheres_passwort';
-GRANT ALL PRIVILEGES ON cms_v2.* TO 'cms_user'@'localhost';
-FLUSH PRIVILEGES;
-```
-
-### 3. Konfiguration anpassen
-
-**Kopieren Sie `config.sample.php` zu `config.php`:**
-```bash
-cp config.sample.php config.php
-```
-
-**Bearbeiten Sie `config.php`:**
-
-```php
-<?php
-// Datenbank-Zugangsdaten
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'cms_v2');
-define('DB_USER', 'cms_user');
-define('DB_PASS', 'ihr_sicheres_passwort');
-define('DB_CHARSET', 'utf8mb4');
-define('DB_PREFIX', 'cms_');
-
-// WICHTIG: Ändern Sie diese Security Keys!
-// Generieren Sie neue Keys auf: https://api.wordpress.org/secret-key/1.1/salt/
-define('AUTH_KEY', 'generiere-einen-eindeutigen-schlüssel-hier');
-define('SECURE_AUTH_KEY', 'generiere-einen-eindeutigen-schlüssel-hier');
-define('NONCE_KEY', 'generiere-einen-eindeutigen-schlüssel-hier');
-
-// Site-URL anpassen (OHNE trailing slash!)
-define('SITE_URL', 'https://ihre-domain.de');
-define('SITE_URL_PATH', ''); // Leer wenn Root, sonst '/unterordner'
-
-// Site-Konfiguration
-define('SITE_NAME', 'IT Expert Network');
-define('ADMIN_EMAIL', 'admin@ihre-domain.de');
-
-// Sicherheit
-define('MAX_LOGIN_ATTEMPTS', 5);
-define('LOGIN_TIMEOUT', 900); // 15 Minuten
-
-// Debug (NUR in Entwicklung aktivieren!)
-define('CMS_DEBUG', false);
-```
-
-### 4. .htaccess anpassen
-
 **Wenn CMS in Unterverzeichnis:**
 ```apache
 # In .htaccess
@@ -122,7 +66,7 @@ RewriteCond %{HTTPS} off
 RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 ```
 
-### 5. Verzeichnis-Berechtigungen
+### Verzeichnis-Berechtigungen
 
 ```bash
 # Linux/Mac
@@ -139,21 +83,15 @@ logs/ → 755
 config.php → 644
 ```
 
-### 6. Installation durchführen
+### Installation durchführen
 
 1. **Browser öffnen:** `https://ihre-domain.de/install.php`
 2. **Datenbank-Tabellen werden automatisch erstellt**
-3. **Admin-User wird angelegt:** `admin` / `admin123`
+3. **Admin-User anlegen**
 4. **Weiterleitung zum Dashboard**
 
-### 7. Erste Schritte (WICHTIG!)
-
-1. ✅ **Login:** Mit `admin` / `admin123` anmelden
-2. ⚠️ **Passwort ändern:** SOFORT Admin-Passwort ändern!
-3. ✅ **System prüfen:** Admin → System & Diagnose aufrufen
-4. ✅ **Theme anpassen:** Admin → Theme Editor
-5. ✅ **Plugins aktivieren:** Admin → Plugin-Verwaltung
-6. ✅ **install.php löschen:** Nach erfolgreicher Installation!
+### Erste Schritte (WICHTIG!)
+✅ **install.php löschen:** Nach erfolgreicher Installation!
 
 ## 📁 Verzeichnisstruktur
 
@@ -707,12 +645,9 @@ Kostenpflichtig für Geschäftliche Projekte.
 
 ## 🙏 Credits
 
-**Entwickelt mit ❤️ für moderne IT-Netzwerke**
-
-- **Core-Entwicklung:** CMSv2 Team
-- **Theme-System:** Design System
+- **Core-Entwicklung:** Andreas Hepp
 - **Icons:** Dashicons
-- **Fonts:** Google Fonts
+- **Fonts:** Google Fonts with Local Font Manager
 - **Inspiration:** WordPress, Laravel, Symfony
 
 ---
