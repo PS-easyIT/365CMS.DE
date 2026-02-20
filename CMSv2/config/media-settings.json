@@ -1,0 +1,5 @@
+{
+    "max_upload_size": "64M",
+    "allowed_types": ["jpg", "jpeg", "png", "gif", "pdf", "docx"],
+    "member_uploads_enabled": true
+}

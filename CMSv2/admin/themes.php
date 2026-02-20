@@ -1,0 +1,228 @@
+<?php
+/**
+ * Admin: Theme-Verwaltung
+ *
+ * Verwaltet die installierten Themes:
+ * - Anzeigen aller installierten Themes
+ * - Aktivieren eines Themes
+ * - Löschen inaktiver Themes
+ *
+ * @package CMSv2\Admin
+ */
+
+declare(strict_types=1);
+
+require_once dirname(__DIR__) . '/config.php';
+require_once CORE_PATH . 'autoload.php';
+
+use CMS\Auth;
+use CMS\Security;
+use CMS\ThemeManager;
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+if (!Auth::instance()->isAdmin()) {
+    header('Location: ' . SITE_URL);
+    exit;
+}
+
+$security     = Security::instance();
+$themeManager = ThemeManager::instance();
+
+$message     = '';
+$messageType = '';
+
+// ─── POST Handler ────────────────────────────────────────────────────────────
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
+
+    if (!$security->verifyToken($_POST['csrf_token'] ?? '', 'admin_themes')) {
+        $message     = 'Sicherheitsüberprüfung fehlgeschlagen.';
+        $messageType = 'error';
+    } else {
+
+        $action = $_POST['action'];
+
+        // ── Theme aktivieren ────────────────────────────────────────────────
+        if ($action === 'activate_theme') {
+            $folder = basename(preg_replace('/[^a-z0-9_-]/i', '', $_POST['theme_folder'] ?? ''));
+            $result = $themeManager->switchTheme($folder);
+            if ($result === true) {
+                $message     = 'Theme "' . htmlspecialchars($folder) . '" wurde aktiviert.';
+                $messageType = 'success';
+            } else {
+                $message     = is_string($result) ? $result : 'Fehler beim Aktivieren.';
+                $messageType = 'error';
+            }
+
+        // ── Theme löschen ───────────────────────────────────────────────────
+        } elseif ($action === 'delete_theme') {
+            $folder = basename(preg_replace('/[^a-z0-9_-]/i', '', $_POST['theme_folder'] ?? ''));
+            $result = $themeManager->deleteTheme($folder);
+            if ($result === true) {
+                $message     = 'Theme wurde gelöscht.';
+                $messageType = 'success';
+            } else {
+                $message     = is_string($result) ? $result : 'Fehler beim Löschen.';
+                $messageType = 'error';
+            }
+        }
+
+        // Redirect – verhindert Formular-Resubmission
+        $redirect = SITE_URL . '/admin/themes';
+        if ($messageType) {
+            $redirect .= '?message=' . urlencode($message) . '&type=' . $messageType;
+        }
+        header('Location: ' . $redirect);
+        exit;
+    }
+}
+
+// ─── GET-Nachrichten aus Redirect ────────────────────────────────────────────
+
+if (isset($_GET['message'])) {
+    $message     = htmlspecialchars(urldecode($_GET['message']), ENT_QUOTES, 'UTF-8');
+    $messageType = ($_GET['type'] ?? '') === 'success' ? 'success' : 'error';
+}
+
+// ─── Daten laden ─────────────────────────────────────────────────────────────
+
+$csrfToken  = $security->generateToken('admin_themes');
+$allThemes  = $themeManager->getAvailableThemes();
+
+// Admin-Menü partial laden
+require_once __DIR__ . '/partials/admin-menu.php';
+
+// ─── HTML ─────────────────────────────────────────────────────────────────────
+
+?>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theme-Verwaltung – <?php echo htmlspecialchars(SITE_NAME); ?></title>
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css">
+    <?php renderAdminSidebarStyles(); ?>
+    <style>
+        /* Alerts */
+        .alert { padding: 0.875rem 1.25rem; border-radius: 6px; margin-bottom: 1.25rem; font-size: 0.875rem; }
+        .alert-success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .alert-error   { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+        /* Info box */
+        .info-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            padding: 0.875rem 1.25rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.8125rem;
+            color: #1e40af;
+        }
+        .info-box strong { display: block; margin-bottom: 0.25rem; }
+        
+        /* Button styles */
+        .btn { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; font-family: inherit; cursor: pointer; transition: all 0.15s; text-decoration: none; border: 1px solid transparent; }
+        .btn-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-secondary { background: #fff; color: #374151; border-color: #d1d5db; }
+        .btn-secondary:hover { background: #f8fafc; }
+        .btn-danger { background: #dc2626; color: #fff; border-color: #dc2626; font-size: 0.75rem; padding: 0.3rem 0.75rem; }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn-sm { padding: 0.3rem 0.625rem; font-size: 0.8rem; }
+    </style>
+</head>
+<body class="admin-body">
+
+    <?php renderAdminSidebar('themes'); ?>
+
+    <div class="admin-content">
+
+        <!-- Page Header -->
+        <div class="admin-page-header">
+            <h2>🎨 Theme-Verwaltung</h2>
+        </div>
+
+        <!-- Messages -->
+        <?php if ($message): ?>
+            <div class="alert alert-<?php echo $messageType; ?>">
+                <?php echo $message; ?>
+            </div>
+        <?php endif; ?>
+
+        <!-- ── Templates-Verwaltung ─────────────────────────────────────── -->
+        <div class="info-box">
+            <strong>Theme-Verwaltung</strong>
+            Hier siehst du alle installierten Themes. Aktiviere ein Theme oder lösche nicht mehr benötigte.
+            Das aktuell aktive Theme sowie das letzte verbliebene Theme können nicht gelöscht werden.
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;">
+            <?php foreach ($allThemes as $theme):
+                $isActive   = $theme['active'] ?? false;
+                $canDelete  = !$isActive && count($allThemes) > 1;
+                $folder     = htmlspecialchars($theme['folder'] ?? '', ENT_QUOTES);
+                $themeName  = htmlspecialchars($theme['name']   ?? $theme['folder'], ENT_QUOTES);
+                $themeDesc  = htmlspecialchars($theme['description'] ?? '', ENT_QUOTES);
+                $themeVer   = htmlspecialchars($theme['version'] ?? '', ENT_QUOTES);
+                $themeAuth  = htmlspecialchars($theme['author']  ?? '', ENT_QUOTES);
+            ?>
+            <div style="background:#fff;border:2px solid <?php echo $isActive ? '#3b82f6' : '#e2e8f0'; ?>;border-radius:10px;padding:1.25rem;position:relative;">
+                <?php if ($isActive): ?>
+                    <span style="position:absolute;top:0.75rem;right:0.75rem;background:#3b82f6;color:#fff;
+                                 font-size:0.7rem;font-weight:700;padding:0.2rem 0.6rem;border-radius:20px;
+                                 text-transform:uppercase;letter-spacing:0.05em;">Aktiv</span>
+                <?php endif; ?>
+
+                <h3 style="margin:0 0 0.25rem;font-size:1rem;font-weight:700;">
+                    🎨 <?php echo $themeName; ?>
+                </h3>
+                <?php if ($themeVer): ?>
+                    <p style="margin:0 0 0.5rem;font-size:0.75rem;color:#9ca3af;">v<?php echo $themeVer; ?> · <?php echo $themeAuth ?: 'unbekannt'; ?></p>
+                <?php endif; ?>
+                <?php if ($themeDesc): ?>
+                    <p style="margin:0 0 1rem;font-size:0.8125rem;color:#6b7280;line-height:1.4;"><?php echo $themeDesc; ?></p>
+                <?php endif; ?>
+                <p style="margin:0 0 1rem;font-size:0.75rem;color:#9ca3af;font-family:monospace;">
+                    📁 <?php echo $folder; ?>
+                </p>
+
+                <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                    <?php if (!$isActive): ?>
+                        <form method="POST" action="<?php echo SITE_URL; ?>/admin/themes">
+                            <input type="hidden" name="csrf_token"   value="<?php echo $csrfToken; ?>">
+                            <input type="hidden" name="action"       value="activate_theme">
+                            <input type="hidden" name="theme_folder" value="<?php echo $folder; ?>">
+                            <button type="submit" class="btn btn-primary btn-sm">✅ Aktivieren</button>
+                        </form>
+                    <?php endif; ?>
+
+                    <?php if ($canDelete): ?>
+                        <form method="POST" action="<?php echo SITE_URL; ?>/admin/themes"
+                              onsubmit="return confirm('Theme \"<?php echo $themeName; ?>\" wirklich löschen? Das Verzeichnis wird dauerhaft entfernt.');">
+                            <input type="hidden" name="csrf_token"   value="<?php echo $csrfToken; ?>">
+                            <input type="hidden" name="action"       value="delete_theme">
+                            <input type="hidden" name="theme_folder" value="<?php echo $folder; ?>">
+                            <button type="submit" class="btn btn-danger btn-sm">🗑 Löschen</button>
+                        </form>
+                    <?php else: ?>
+                        <button class="btn btn-danger btn-sm" disabled
+                                title="<?php echo $isActive ? 'Aktives Theme kann nicht gelöscht werden' : 'Letztes Theme – nicht löschbar'; ?>"
+                                style="opacity:0.4;cursor:not-allowed;">🗑 Löschen</button>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+
+        <?php if (empty($allThemes)): ?>
+            <div class="alert alert-error">Keine Themes gefunden. Bitte mindestens einen Theme-Ordner mit style.css im themes/-Verzeichnis anlegen.</div>
+        <?php endif; ?>
+
+    </div><!-- /.admin-content -->
+</body>
+</html>

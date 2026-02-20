@@ -1,0 +1,89 @@
+# ----------------------------------------------------------------------
+# SYSTEM & TOOLS
+# ----------------------------------------------------------------------
+# OS related
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+desktop.ini
+
+# IDE & Editors
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+*.sublime-*
+*.swp
+*.swo
+.project
+.settings/
+.classpath
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+# yarn.lock # Einkommentieren, wenn Yarn verwendet wird
+
+# ----------------------------------------------------------------------
+# PROJECT SPECIFIC - 365CMS.DE
+# ----------------------------------------------------------------------
+
+# Compiled CSS (Ausnahmen für Deployment behalten)
+!public/styles/tailwind.output.css
+!css_framework/tailwind/output.css
+
+# Dev/Local Folders (Komplette Ordner ignorieren)
+ASSETS/
+CMSv1/
+PLUGINS/
+THEMES/
+
+# ----------------------------------------------------------------------
+# CMS v2 SPECIFIC
+# ----------------------------------------------------------------------
+# Configuration
+CMSv2/config.php
+config.php
+config.local.php
+
+# Dynamic Content & Cache
+CMSv2/backups/
+CMSv2/cache/
+CMSv2/logs/
+CMSv2/uploads/
+CMSv2/media/
+CMSv2/temp/
+CMSv2/tmp/
+
+# Vendor (falls Composer genutzt wird)
+vendor/
+CMSv2/vendor/
+
+# ----------------------------------------------------------------------
+# SECURITY & SENSITIVE FILES
+# ----------------------------------------------------------------------
+*.log
+*.sql
+*.sqlite
+*.db
+*.backup
+*.bak
+*.old
+*.tmp
+.env
+.env.*
+.htpasswd
+.htaccess.local
+private/
+secrets/
