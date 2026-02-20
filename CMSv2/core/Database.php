@@ -312,6 +312,129 @@ class Database
                 INDEX idx_key (setting_key),
                 INDEX idx_user_id (user_id),
                 UNIQUE KEY unique_theme_setting (theme_slug, setting_category, setting_key, user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=" . DB_CHARSET,
+
+            // Subscription plans table
+            "CREATE TABLE IF NOT EXISTS {$this->prefix}subscription_plans (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                slug VARCHAR(100) NOT NULL UNIQUE,
+                description TEXT,
+                price_monthly DECIMAL(10,2) DEFAULT 0.00,
+                price_yearly DECIMAL(10,2) DEFAULT 0.00,
+                limit_experts INT DEFAULT -1,
+                limit_companies INT DEFAULT -1,
+                limit_events INT DEFAULT -1,
+                limit_speakers INT DEFAULT -1,
+                limit_storage_mb INT DEFAULT 1000,
+                plugin_experts BOOLEAN DEFAULT 1,
+                plugin_companies BOOLEAN DEFAULT 1,
+                plugin_events BOOLEAN DEFAULT 1,
+                plugin_speakers BOOLEAN DEFAULT 1,
+                feature_analytics BOOLEAN DEFAULT 0,
+                feature_advanced_search BOOLEAN DEFAULT 0,
+                feature_api_access BOOLEAN DEFAULT 0,
+                feature_custom_branding BOOLEAN DEFAULT 0,
+                feature_priority_support BOOLEAN DEFAULT 0,
+                feature_export_data BOOLEAN DEFAULT 0,
+                feature_integrations BOOLEAN DEFAULT 0,
+                feature_custom_domains BOOLEAN DEFAULT 0,
+                is_active BOOLEAN DEFAULT 1,
+                sort_order INT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_slug (slug),
+                INDEX idx_active (is_active),
+                INDEX idx_sort (sort_order)
+            ) ENGINE=InnoDB DEFAULT CHARSET=" . DB_CHARSET,
+
+            // User subscriptions table
+            "CREATE TABLE IF NOT EXISTS {$this->prefix}user_subscriptions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT UNSIGNED NOT NULL,
+                plan_id INT NOT NULL,
+                status ENUM('active', 'cancelled', 'expired', 'trial', 'suspended') DEFAULT 'active',
+                billing_cycle ENUM('monthly', 'yearly', 'lifetime') DEFAULT 'monthly',
+                start_date DATETIME NOT NULL,
+                end_date DATETIME,
+                next_billing_date DATETIME,
+                cancelled_at DATETIME,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_user_id (user_id),
+                INDEX idx_plan_id (plan_id),
+                INDEX idx_status (status),
+                INDEX idx_dates (start_date, end_date)
+            ) ENGINE=InnoDB DEFAULT CHARSET=" . DB_CHARSET,
+
+            // User groups table
+            "CREATE TABLE IF NOT EXISTS {$this->prefix}user_groups (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                slug VARCHAR(100) NOT NULL UNIQUE,
+                description TEXT,
+                plan_id INT,
+                is_active BOOLEAN DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_slug (slug),
+                INDEX idx_active (is_active)
+            ) ENGINE=InnoDB DEFAULT CHARSET=" . DB_CHARSET,
+
+            // User group members table
+            "CREATE TABLE IF NOT EXISTS {$this->prefix}user_group_members (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT UNSIGNED NOT NULL,
+                group_id INT NOT NULL,
+                joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_user_group (user_id, group_id),
+                INDEX idx_user_id (user_id),
+                INDEX idx_group_id (group_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=" . DB_CHARSET,
+
+            // Subscription usage table
+            "CREATE TABLE IF NOT EXISTS {$this->prefix}subscription_usage (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT UNSIGNED NOT NULL,
+                resource_type VARCHAR(50) NOT NULL,
+                current_count INT DEFAULT 0,
+                last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_user_resource (user_id, resource_type),
+                INDEX idx_user_id (user_id),
+                INDEX idx_resource (resource_type)
+            ) ENGINE=InnoDB DEFAULT CHARSET=" . DB_CHARSET,
+
+            // Orders table
+            "CREATE TABLE IF NOT EXISTS {$this->prefix}orders (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                order_number VARCHAR(64) NOT NULL UNIQUE,
+                user_id INT UNSIGNED NULL,
+                plan_id INT NOT NULL,
+                status ENUM('pending', 'confirmed', 'cancelled', 'refunded') DEFAULT 'pending',
+                total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                currency VARCHAR(3) DEFAULT 'EUR',
+                payment_method VARCHAR(50) DEFAULT NULL,
+                billing_cycle ENUM('monthly', 'yearly', 'lifetime') DEFAULT 'monthly',
+                
+                -- Contact & Billing Data
+                forename VARCHAR(100),
+                lastname VARCHAR(100),
+                company VARCHAR(100),
+                email VARCHAR(150),
+                phone VARCHAR(50),
+                street VARCHAR(255),
+                zip VARCHAR(20),
+                city VARCHAR(100),
+                country VARCHAR(100),
+                
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                
+                INDEX idx_order_number (order_number),
+                INDEX idx_user_id (user_id),
+                INDEX idx_plan_id (plan_id),
+                INDEX idx_status (status),
+                INDEX idx_created_at (created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=" . DB_CHARSET
         ];
         

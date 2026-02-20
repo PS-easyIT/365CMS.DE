@@ -589,7 +589,39 @@ function createDatabaseTables(PDO $pdo, string $prefix = 'cms_'): array {
             UNIQUE KEY unique_user_resource (user_id, resource_type),
             INDEX idx_user_id (user_id),
             INDEX idx_resource (resource_type)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Ressourcen-Nutzungszähler für Limits'"
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Ressourcen-Nutzungszähler für Limits'",
+
+        'orders' => "CREATE TABLE IF NOT EXISTS {$prefix}orders (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            order_number VARCHAR(64) NOT NULL UNIQUE,
+            user_id INT UNSIGNED NULL,
+            plan_id INT NOT NULL,
+            status ENUM('pending', 'confirmed', 'cancelled', 'refunded') DEFAULT 'pending',
+            total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+            currency VARCHAR(3) DEFAULT 'EUR',
+            payment_method VARCHAR(50) DEFAULT NULL,
+            billing_cycle ENUM('monthly', 'yearly', 'lifetime') DEFAULT 'monthly',
+            
+            -- Contact & Billing Data
+            forename VARCHAR(100),
+            lastname VARCHAR(100),
+            company VARCHAR(100),
+            email VARCHAR(150),
+            phone VARCHAR(50),
+            street VARCHAR(255),
+            zip VARCHAR(20),
+            city VARCHAR(100),
+            country VARCHAR(100),
+            
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            
+            INDEX idx_order_number (order_number),
+            INDEX idx_user_id (user_id),
+            INDEX idx_plan_id (plan_id),
+            INDEX idx_status (status),
+            INDEX idx_created_at (created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Bestellungen für Abos'"
     ];
     
     foreach ($tables as $name => $sql) {

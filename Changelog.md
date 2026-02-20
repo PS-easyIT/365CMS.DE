@@ -1,3 +1,29 @@
+# CMSv2 Changelog - 20. Februar 2026
+
+## 🚀 Neue Funktionen
+
+### Subscription & Checkout System
+**Neu:** Vollständiges Bestellsystem für Mitgliedschaften implementiert.
+- **Datenbank:** Neue Tabelle `cms_orders` für Bestellungen und Transaktionen.
+- **Frontend:** Öffentliche Checkout-Seite (`member/order_public.php`) mit Vorausfüllung von Benutzerdaten.
+- **Backend:** Admin-Oberfläche (`admin/orders.php`) zur Verwaltung von Bestellungen (Status ändern, Details einsehen).
+- **Logik:** Automatische Generierung von Bestellnummern (`BST...`) und Status-Tracking.
+
+## 🐛 Fehlerbehebungen
+
+### Admin Orders UI
+**Problem:** Fatal Error in `admin/orders.php` durch fehlende Include-Dateien (`admin-header.php`, `admin-footer.php`, `sidebar.php`).
+**Lösung:** 
+- Umstellung auf eigenständige HTML-Struktur innerhalb der PHP-Datei.
+- Integration von `admin-menu.php` für die Navigation.
+- Entfernung ungültiger `require_once`-Aufrufe.
+
+### Checkout Frontend
+**Problem:** `TypeError` in `htmlspecialchars()` bei leeren Benutzerdaten.
+**Lösung:** 
+- Implementierung von Null Coalescing (`?? ''`) und `array_walk`-Säuberung für alle Formulardaten vor der Ausgabe.
+- Korrektur des Zugriffs auf User-E-Mail (`$currentUser->email` statt `$user->user_email`).
+
 # CMSv2 Changelog - 18. Februar 2026
 
 ## 🐛 Fehlerbehebungen

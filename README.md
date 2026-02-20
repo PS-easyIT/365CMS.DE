@@ -1,5 +1,6 @@
-# 365CMS 
+# 365CMS v2.6.3
 ## - sicheres, modulares und erweiterbares Content Management System
+---
 ## HTTPS://365CMS.DE  
 
 Ein sicheres, modulares und erweiterbares Content Management System mit umfassendem Plugin- und Theme-Support.
