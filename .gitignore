@@ -65,6 +65,8 @@ CMSv2/uploads/
 CMSv2/media/
 CMSv2/temp/
 CMSv2/tmp/
+CMSv2/doc/
+doc/
 
 # Vendor (falls Composer genutzt wird)
 vendor/
