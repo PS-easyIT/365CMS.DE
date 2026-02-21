@@ -1,10 +1,10 @@
 <?php
 /**
- * CMS v2.0 - Main Bootstrap File
+ * 365CMS - Main Bootstrap File
  * 
  * Minimal entry point - all logic handled by core classes
  * 
- * @package CMSv2
+ * @package 365CMS
  * @version 2.0.0
  * @since 2026-02-17
  */

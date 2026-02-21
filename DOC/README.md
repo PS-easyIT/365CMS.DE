@@ -1,6 +1,25 @@
-# CMSv2 - Dokumentations-Übersicht
+﻿# 365CMS.DE – Dokumentations-Übersicht
 
-Willkommen bei der CMSv2-Dokumentation! Diese Datei gibt Ihnen einen Überblick über alle verfügbaren Dokumentationen.
+> **Version:** 0.26.13 | **Stand:** 21. Februar 2026 | **PHP:** 8.3+ | **Lizenz:** Proprietär
+
+Willkommen bei der Dokumentation des **365CMS**! Dieses CMS ist ein modulares, selbst gehostetes Content-Management-System – entwickelt mit PHP 8.3, PDO/MySQL und einem WordPress-ähnlichen Hook-System.
+
+---
+
+## 🆕 Neu beim 365CMS? 
+
+Lest diese Dokumente in dieser Reihenfolge:
+
+| Schritt | Datei | Was ihr lernt |
+|---------|-------|---------------|
+| 1 | [INSTALLATION.md](INSTALLATION.md) | System aufsetzen, Datenbank einrichten |
+| 2 | [core/ARCHITECTURE.md](core/ARCHITECTURE.md) | Wie das CMS intern funktioniert |
+| 3 | [admin/README.md](admin/README.md) | Admin-Panel bedienen |
+| 4 | [member/README.md](member/README.md) | Mitglieder-Bereich verstehen |
+| 5 | [plugins/PLUGIN-DEVELOPMENT.md](plugins/PLUGIN-DEVELOPMENT.md) | Eigene Plugins schreiben |
+| 6 | [theme/THEME-DEVELOPMENT.md](theme/THEME-DEVELOPMENT.md) | Themes erstellen |
+
+---
 
 ## 📚 Verfügbare Dokumentationen
 
@@ -187,21 +206,6 @@ Willkommen bei der CMSv2-Dokumentation! Diese Datei gibt Ihnen einen Überblick 
 
 ---
 
-#### [SECURITY-AUDIT-REPORT.md](SECURITY-AUDIT-REPORT.md)
-**Für:** Security-Verantwortliche, Management  
-**Inhalt:**
-- Umfassendes Security-Audit
-- OWASP Top 10 (2026) Bewertung
-- Security-Score: 9.2/10
-- Funktions-Audit: 100%
-- Priorisierte Empfehlungen
-- Production-Checkliste
-- Code-Review-Ergebnisse
-
-**Wann verwenden:** Für Security-Audits und Compliance-Checks
-
----
-
 ### 📋 Projekt-Management
 
 #### [CHANGELOG.md](CHANGELOG.md)
@@ -281,7 +285,6 @@ Willkommen bei der CMSv2-Dokumentation! Diese Datei gibt Ihnen einen Überblick 
 | THEME-DEVELOPMENT.md | Devs/Designer | Theme | Mittel | 🟡 Mittel |
 | API-REFERENCE.md | Devs | API | Hoch | 🟢 Niedrig |
 | SECURITY.md | Security/Devs | Security | Hoch | 🔴 Hoch |
-| SECURITY-AUDIT-REPORT.md | Security/PM | Audit | Hoch | 🔴 Hoch |
 | CHANGELOG.md | Alle | Historie | Einfach | 🟢 Niedrig |
 
 ---
@@ -305,7 +308,6 @@ Willkommen bei der CMSv2-Dokumentation! Diese Datei gibt Ihnen einen Überblick 
 
 **Sicherheit**
 - [SECURITY.md](SECURITY.md) - Security-Guide
-- [SECURITY-AUDIT-REPORT.md](SECURITY-AUDIT-REPORT.md) - Audit-Bericht
 - [INSTALLATION.md](INSTALLATION.md) - Production-Setup
 
 **Management**
@@ -360,28 +362,6 @@ Alle Dokumentationen folgen diesen Standards:
 - **Beispiel-Code:** `plugins/example-plugin/`
 - **Default-Theme:** `themes/default/` - Vollständiges Theme-Beispiel
 
----
-
-## ✅ Dokumentations-Vollständigkeit
-
-- ✅ Installation
-- ✅ Projekt-Status
-- ✅ Plugin-Entwicklung
-- ✅ Theme-Entwicklung
-- ✅ API-Referenz
-- ✅ Sicherheit
-- ✅ Changelog
-- ✅ Architektur (NEU)
-- ✅ Datenbank-Schema (NEU)
-- ✅ Hooks-Referenz (NEU)
-- ✅ Security-Audit (NEU)
-- ✅ Workflow-Dokumentation (NEU)
-- ✅ **Member-Bereich** (`member/`) mit 5 Dokumenten (NEU in v2.0.3)
-- ✅ Übersicht (diese Datei)
-
-**Status:** Volltzständig dokumentiert 🎉
-
----
 
 ### Member-Bereich (`member/`)
 
@@ -396,4 +376,4 @@ Alle Dokumentationen folgen diesen Standards:
 ---
 
 **Letzte Aktualisierung:** 18. Februar 2026  
-**CMSv2 Version:** 2.0.3
+**365CMS Version:** 0.26.13

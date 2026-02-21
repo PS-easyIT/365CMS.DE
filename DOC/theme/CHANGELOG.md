@@ -1,4 +1,4 @@
-# Changelog – CMS Default Theme
+﻿# Changelog – CMS Default Theme
 
 Alle wichtigen Änderungen werden in dieser Datei dokumentiert.  
 Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
@@ -24,7 +24,7 @@ Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
   - `initActiveNav()` – Automatisches Active-Marking
   - `initFlashMessages()` – Auto-dismiss mit `data-auto-dismiss`
 - **Zweibandiger Footer** – `footer-top` (Inhalte/Sektionen) + `footer-bottom` (Copyright, Badge)
-- **Footer Badge** – `⚡ CMSv2` Gold-Badge im Footer-Bottom
+- **Footer Badge** – `⚡ 365CMS` Gold-Badge im Footer-Bottom
 - **Footer Section Headings** – Goldener Unterstrich-Akzent
 - **Back-to-Top Button** – Neuimplementierung via CSS-Klasse `.visible`
 - **Card Varianten** – `.card-accent` (Gold-Rand oben), `.card-dark` (Dark-Background)
@@ -37,7 +37,7 @@ Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 - **Page Content** – `.page-content`, `.page-title`, `.breadcrumb` Klassen
 - **CSS Custom Properties Erweiterung** – `--accent-color`, `--accent-dark`, `--primary-light`, `--bg-tertiary`, `--bg-dark-alt`, `--bg-dark-card`, `--text-white`, `--border-dark`, `--border-radius-lg`, `--border-radius-xl`, `--header-height`, `--container-width`, Z-Index Scale
 - **Dokumentation** – Neue `/doc/theme/` Sektion mit README, DESIGN-SYSTEM, COMPONENTS, JAVASCRIPT, CHANGELOG
-- **theme.json v2.0.0** – Version, Beschreibung, neue Supports (`sticky_header`, `burger_menu`, `scroll_animations`, `two_band_footer`), neue Customizer-Einstellungen, aktualisierte Standardfarben
+- **theme.json v0.26.13** – Version, Beschreibung, neue Supports (`sticky_header`, `burger_menu`, `scroll_animations`, `two_band_footer`), neue Customizer-Einstellungen, aktualisierte Standardfarben
 
 #### Geändert
 - **Farbpalette** – `#2563eb` → `#1e3a5f` als primäre Farbe (Navy wie WP-Theme)

@@ -1,133 +1,230 @@
-# CMSv2 - Member-Bereich Dokumentation
+﻿# 365CMS – Mitglieder-Bereich
 
-**Version:** 2.0.2  
-**Datum:** 18. Februar 2026  
-**Status:** ✅ Produktionsreif  
-**Pfad:** `/CMS365/CMSv2/member/`
+> **Version:** 0.26.13 | **Stand:** 21. Februar 2026
+
+Der Mitglieder-Bereich ist der persönliche Bereich für eingeloggte Benutzer. Er ist vollständig von Admin-Panel und Frontend getrennt.
 
 ---
 
-## 📋 Übersicht
+## Inhaltsverzeichnis
 
-Der Member-Bereich ist das **persönliche Dashboard** für eingeloggte Mitglieder. Er bietet Verwaltung von Profil, Sicherheitseinstellungen, Benachrichtigungen, Datenschutz und optionalen Abonnements.
+1. [Überblick](#1-überblick)
+2. [Zugang & Routing](#2-zugang--routing)
+3. [Member-Seiten](#3-member-seiten)
+4. [Architektur](#4-architektur)
+5. [Plugin-Integration](#5-plugin-integration)
+6. [Entwickler-Guide](#6-entwickler-guide)
 
-### Architektur
+---
 
-Der Member-Bereich folgt einem **MVC-ähnlichen Muster** (Model-View-Controller):
+## 1. Überblick
+
+Der Member-Bereich bietet eingeloggten Nutzern:
+- **Persönliches Dashboard** mit personalisierten Widgets
+- **Profil-Verwaltung** (Name, Kontaktdaten, Avatar)
+- **Medien-Verwaltung** (eigene Dateien hochladen, verwalten)
+- **Nachrichten** (Direktnachrichten zwischen Mitgliedern)
+- **Benachrichtigungen** (System- und User-Benachrichtigungen)
+- **Abo-Verwaltung** (Plan ansehen, upgraden/kündigen)
+- **Bestellhistorie** (vergangene Käufe)
+- **Datenschutz-Center** (DSGVO, Datenlöschung)
+- **Plugin-Inhalte** (von aktivierten Plugins, z.B. Expertenprofile)
+
+---
+
+## 2. Zugang & Routing
+
+**Basis-URL:** `/member`
+
+```
+/member                 → Dashboard (member/index.php)
+/member/profile         → Profil-Verwaltung
+/member/media           → Medienbibliothek
+/member/messages        → Nachrichten
+/member/notifications   → Benachrichtigungen
+/member/subscription    → Abo & Upgrade
+/member/favorites       → Favoriten-Liste
+/member/privacy         → Datenschutz & DSGVO
+/member/security        → Sicherheitseinstellungen
+```
+
+**Zugangskontrolle:**
+```php
+// Alle member/ Dateien prüfen ob User eingeloggt ist
+$auth = CMS\Auth::instance();
+if (!$auth->isLoggedIn()) {
+    header('Location: /login?redirect=/member');
+    exit;
+}
+```
+
+---
+
+## 3. Member-Seiten
+
+### Dashboard (`member/index.php`)
+Personalisiertes Dashboard mit:
+- Willkommensnachricht mit aktuellem Abo-Plan
+- Schnellzugriff auf die wichtigsten Funktionen
+- Neueste Benachrichtigungen (max. 5)
+- Aktuelle Aktivitäten im System
+- Plugin-Widgets (von aktivierten Plugins injiziert)
+
+### Profil (`member/profile.php`)
+Profilbearbeitung:
+- Profilbild hochladen/ändern
+- Persönliche Daten (Vorname, Nachname, Bio)
+- Kontaktdaten (Telefon, Website)
+- Social-Media-Links
+- E-Mail ändern (mit Bestätigungs-E-Mail)
+- Passwort ändern
+
+### Medien (`member/media.php`)
+Persönliche Medienbibliothek:
+- Dateien hochladen
+- Eigene Bilder und Dokumente verwalten
+- Speicherplatz-Anzeige (basierend auf Abo-Limit)
+
+### Nachrichten (`member/messages.php`)
+Direktnachrichten-System:
+- Konversationsliste
+- Neue Konversation starten
+- Nachrichten lesen und senden
+- Benachrichtigung bei neuen Nachrichten
+
+### Abo (`member/subscription.php`)
+Abo-Verwaltung:
+- Aktuellen Plan anzeigen
+- Verfügbare Upgrades
+- Abrechnungshistorie
+- Abo kündigen (mit 30-Tage-Kündigungsfrist)
+
+### Datenschutz (`member/privacy.php`)
+DSGVO-konformes Datenschutz-Center:
+- Gespeicherte Daten herunterladen
+- Einzelne Datenkategorien löschen
+- Account komplett löschen anfordern
+- Cookie-Einstellungen
+
+### Sicherheit (`member/security.php`)
+Sicherheitseinstellungen:
+- Aktive Sessions anzeigen und beenden
+- Login-Verlauf
+- Passwort-Stärke-Indikator
+
+---
+
+## 4. Architektur
+
+### Dateistruktur
 
 ```
 member/
-├── index.php                           # Dashboard (Controller)
-├── profile.php                         # Profil (Controller)
-├── security.php                        # Sicherheit (Controller)
-├── notifications.php                   # Benachrichtigungen (Controller)
-├── privacy.php                         # Datenschutz (Controller)
-├── subscription.php                    # Abonnement (Controller)
-│
-├── includes/
-│   └── class-member-controller.php     # Basis-Controller (MemberController)
-│
-└── partials/
-    ├── member-menu.php                 # Sidebar-Navigation + Styles
-    ├── dashboard-view.php              # Dashboard-View
-    ├── profile-view.php                # Profil-View
-    ├── security-view.php               # Sicherheits-View
-    ├── notifications-view.php          # Benachrichtigungs-View
-    ├── privacy-view.php                # Datenschutz-View
-    └── subscription-view.php          # Abonnement-View
+├── index.php           ← Dashboard-Controller
+├── profile.php         ← Profil-Controller
+├── media.php           ← Medien-Controller
+├── media-ajax.php      ← AJAX-Handler für Medien
+├── media_handler.php   ← Datei-Upload-Logik
+├── messages.php        ← Nachrichten-Controller
+├── notifications.php   ← Benachrichtigungs-Controller
+├── favorites.php       ← Favoriten-Controller
+├── subscription.php    ← Abo-Controller
+├── privacy.php         ← Datenschutz-Controller
+├── security.php        ← Sicherheits-Controller
+├── order_public.php    ← Bestellungen-Controller
+├── plugin-section.php  ← Plugin-Integrations-Renderer
+├── debug_snippet.php   ← Debug-Hilfsmittel (nur dev)
+├── includes/           ← Wiederverwendbare Klassen
+│   └── class-member-controller.php
+└── partials/           ← Template-Fragmente (Header, Footer, Nav)
+    ├── header.php
+    ├── footer.php
+    └── navigation.php
 ```
 
----
+### MemberController
 
-## 🗺️ Seiten & URLs
-
-| URL                    | Datei                  | Beschreibung                         |
-|------------------------|------------------------|--------------------------------------|
-| `/member`             | `index.php`            | Dashboard – Übersicht & Schnellzugriff |
-| `/member/profile`     | `profile.php`          | Profil bearbeiten                    |
-| `/member/security`    | `security.php`         | Passwort, 2FA, Sessions              |
-| `/member/notifications` | `notifications.php`  | E-Mail- & Browser-Präferenzen        |
-| `/member/privacy`     | `privacy.php`          | DSGVO-Einstellungen, Datenexport     |
-| `/member/subscription` | `subscription.php`    | Abo-Übersicht (optional sichtbar)    |
-
----
-
-## 🔐 Zugriffsschutz
-
-Alle URLs werden durch den `MemberController`-Konstruktor gesichert:
+Der `MemberController` ist die Basisklasse aller Member-Seiten:
 
 ```php
-// Nicht eingeloggt → /login
-if (!Auth::instance()->isLoggedIn()) {
-    $this->redirect('/login');
+class MemberController {
+    protected object $user;
+
+    public function __construct() {
+        // Automatischer Auth-Check
+        $auth = CMS\Auth::instance();
+        if (!$auth->isLoggedIn()) {
+            header('Location: /login');
+            exit;
+        }
+        $this->user = $auth->getCurrentUser();
+    }
+
+    public function getUser(): object {
+        return $this->user;
+    }
+
+    public function render(string $view, array $data = []): void {
+        extract($data);
+        include __DIR__ . '/partials/header.php';
+        include __DIR__ . '/' . $view . '.php';
+        include __DIR__ . '/partials/footer.php';
+    }
 }
-
-// Admin → Admin-Center (nicht Member-Bereich)
-if (Auth::instance()->isAdmin()) {
-    $this->redirect('/admin');
-}
-```
-
-**Ergebnis:** Nur reguläre Mitglieder haben Zugang. Admins werden in ihr Panel geleitet.
-
----
-
-## 🔄 Request-Lifecycle
-
-```
-HTTP Request (/member/security)
-    │
-    ├─ 1. config.php + autoload.php laden
-    ├─ 2. MemberController instanziieren
-    │      └─ Auth-Check (isLoggedIn + nicht Admin)
-    │      └─ Services initialisieren
-    ├─ 3. POST prüfen → handleSecurityActions()
-    │      └─ CSRF-Token verifizieren
-    │      └─ Aktion ausführen
-    │      └─ PRG-Redirect (setSuccess/setError + redirect)
-    ├─ 4. Seitendaten aufbereiten
-    └─ 5. render('security-view', $data)
-           └─ member-menu.php includen (Funktionsdefinitionen)
-           └─ partials/security-view.php includen (mit extract($data))
 ```
 
 ---
 
-## 📦 Datenübergabe an Views
+## 5. Plugin-Integration
 
-Der `MemberController::render()` übergibt Daten via PHP `extract()`:
+Plugins können Member-Bereiche hinzufügen über `PluginDashboardRegistry`:
 
 ```php
-$controller->render('security-view', [
-    'securityData'   => $memberService->getSecurityData($user->id),
-    'activeSessions' => $memberService->getActiveSessions($user->id),
-    'csrfPassword'   => Security::instance()->generateToken('change_password'),
-    'csrf2FA'        => Security::instance()->generateToken('toggle_2fa'),
-]);
+// In eurem Plugin
+CMS\Hooks::addAction('member_dashboard_sections', function($registry) {
+    $registry->register('my-plugin-section', [
+        'title'    => 'Mein Plugin',
+        'icon'     => 'icon-my-plugin',
+        'callback' => function($userId) {
+            include PLUGIN_PATH . 'mein-plugin/member/dashboard-section.php';
+        },
+        'priority' => 20,
+    ]);
+});
 ```
 
-Zusätzlich wird `$user` immer automatisch aus `$this->user` injiziert.
+Das Plugin `plugin-section.php` rendert dann alle registrierten Sektionen im Member-Dashboard.
 
 ---
 
-## 🔌 Plugin-Integration
+## 6. Entwickler-Guide
 
-Der Member-Bereich ist vollständig erweiterbar via Hooks. Plugins können:
+### Eigene Member-Seite über Plugin hinzufügen
 
-- Menüpunkte hinzufügen (`member_menu_items`)
-- Dashboard-Widgets einfügen (`member_dashboard_widgets`)
-- Benachrichtigungsfelder ergänzen (`member_notification_settings_sections`)
-- Benachrichtigungs-Präferenzen filtern (`member_notification_preferences`)
+```php
+// 1. Route registrieren
+CMS\Hooks::addAction('routes_registered', function() {
+    CMS\Router::instance()->addRoute('GET', '/member/mein-feature', function() {
+        $auth = CMS\Auth::instance();
+        if (!$auth->isLoggedIn()) {
+            header('Location: /login');
+            exit;
+        }
+        include PLUGIN_PATH . 'mein-plugin/member/mein-feature.php';
+    });
+});
 
-→ Vollständige Hook-Referenz: [HOOKS.md](HOOKS.md)
+// 2. Navigation-Link hinzufügen
+CMS\Hooks::addFilter('member_nav_items', function(array $items): array {
+    $items[] = [
+        'label' => 'Mein Feature',
+        'url'   => '/member/mein-feature',
+        'icon'  => 'icon-star',
+    ];
+    return $items;
+});
+```
 
 ---
 
-## 📚 Weitere Dokumentation
-
-| Dokument | Beschreibung |
-|----------|-------------|
-| [CONTROLLERS.md](CONTROLLERS.md) | Alle Controller im Detail |
-| [VIEWS.md](VIEWS.md) | Alle Views mit Variablen-Referenz |
-| [HOOKS.md](HOOKS.md) | Verfügbare Hooks & Filter |
-| [SECURITY.md](SECURITY.md) | Sicherheitsmodell des Member-Bereichs |
+*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*

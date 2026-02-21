@@ -52,6 +52,8 @@ DOC/feature/
 DOC/feature
 DOC/feature/*.*
 DOC/feature/*/
+ASSETS/test_import/
+ASSETS/test_import/*
 
 # ----------------------------------------------------------------------
 # CMS v2 SPECIFIC

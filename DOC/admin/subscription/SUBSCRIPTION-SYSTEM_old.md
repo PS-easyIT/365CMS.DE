@@ -1,8 +1,8 @@
-# CMSv2 - Subscription System Dokumentation
+﻿# 365CMS - Subscription System Dokumentation
 
 ## 📋 Übersicht
 
-Das Subscription-System ist ein vollständig integriertes Abo-Management für CMSv2. Es ermöglicht flexible Benutzer- und Gruppen-Zuweisungen mit granularen Limits für alle Plugins.
+Das Subscription-System ist ein vollständig integriertes Abo-Management für 365CMS. Es ermöglicht flexible Benutzer- und Gruppen-Zuweisungen mit granularen Limits für alle Plugins.
 
 ## 🎯 Features
 

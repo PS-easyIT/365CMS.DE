@@ -1,7 +1,7 @@
 # Admin-Bereich – Vollständige Dateistruktur
 
-**Version:** 2.0.2  
-**Letztes Update:** 18. Februar 2026  
+**Version:** 0.26.13 
+**Stand:** 21. Februar 2026 
 **Autor:** Automatisch generiert nach Code-Audit
 
 ---

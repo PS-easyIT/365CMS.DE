@@ -1,4 +1,4 @@
-# 365CMS v0.21.3 — Stable
+﻿# 365CMS v0.26.13 — Stable
 ## Sicheres, modulares und erweiterbares Content Management System
 ---
 ## HTTPS://365CMS.DE
@@ -89,15 +89,15 @@ Ein sicheres, modulares und erweiterbares Content Management System — **Stable
 Laden Sie alle Dateien in Ihr Webserver-Verzeichnis:
 ```bash
 # Beispiel-Struktur
-/var/www/html/CMSv2/
+/var/www/html/365CMS/
 # oder
-C:/xampp/htdocs/CMSv2/
+C:/xampp/htdocs/365CMS/
 ```
 
 **Wenn CMS in Unterverzeichnis:**
 ```apache
 # In .htaccess
-RewriteBase /CMSv2/
+RewriteBase /365CMS/
 ```
 
 **Für HTTPS-Redirect (Produktion):**
@@ -136,7 +136,7 @@ config.php → 644
 ## 📁 Verzeichnisstruktur
 
 ```
-CMSv2/
+365CMS/
 ├── core/                      # Kern-System (PSR-4)
 │   ├── Bootstrap.php          # System-Initialisierung
 │   ├── Database.php           # PDO-Wrapper mit prepared statements
@@ -540,7 +540,7 @@ systemctl restart apache2
 ```apache
 # RewriteBase korrekt?
 RewriteBase /    # Für Root
-RewriteBase /CMSv2/    # Für Unterverzeichnis
+RewriteBase /365CMS/    # Für Unterverzeichnis
 ```
 
 **Nginx:**
@@ -611,7 +611,7 @@ Vollständiges Schema: [doc/DATABASE-SCHEMA.md](doc/DATABASE-SCHEMA.md)
 
 ## 🔄 Versions-Historie
 
-### v2.0.0 (Februar 2026) - AKTUELL
+### v0.26.13 (Februar 2026) - AKTUELL
 
 **Neu:**
 - ✅ Theme-Editor mit Live-Customization

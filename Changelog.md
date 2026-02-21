@@ -1,4 +1,4 @@
-# 365CMS Changelog
+﻿# 365CMS Changelog
 
 > **Versionierungsschema:**
 > - `x.MINOR.patch` — Minor-Sprung = neue Funktion · Patch-Sprung = Bugfix
@@ -12,7 +12,7 @@
 
 | Version | Datum | Typ | Zusammenfassung |
 |---------|-------|-----|-----------------|
-| **0.21.3** | 21.02.2026 | 🐛 Fix | orders.php Design-Unifikation, Debug-Logging nach /logs |
+| **0.26.13** | 21.02.2026 | 🐛 Fix | orders.php Design-Unifikation, Debug-Logging nach /logs |
 | 0.21.2 | 21.02.2026 | 🐛 Fix | Aboverwaltung: Pakete/Zuweisungen/Einstellungen UI-Redesign, Version-Badge |
 | 0.21.1 | 21.02.2026 | 🐛 Fix | Admin-Design vereinheitlicht (Benutzer, Gruppen, Aboverwaltung) |
 | 0.21.0 | Feb 2026 | ✨ Feat | Settings & Systemverwaltung (admin/settings.php, admin/system.php) |
@@ -41,7 +41,7 @@
 
 ---
 
-## v0.21.3 — 21. Februar 2026
+## v0.26.13 — 21. Februar 2026
 
 ### 🐛 Bugfixes & Verbesserungen
 

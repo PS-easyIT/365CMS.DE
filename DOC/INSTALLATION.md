@@ -1,468 +1,214 @@
-# CMSv2 - Installation & Einrichtung
+﻿# 365CMS – Installations-Anleitung
 
-Vollständige Anleitung zur Installation des CMSv2.
+> **Version:** 0.26.13 | **Stand:** 21. Februar 2026
 
-## 📋 System-Anforderungen
+Diese Anleitung führt euch Schritt für Schritt durch die Installation des 365CMS – von den Voraussetzungen bis zum ersten Login.
 
-### Minimum
-- **PHP:** 8.0 oder höher
-- **MySQL/MariaDB:** 5.7+ / 10.2+
-- **Webserver:** Apache 2.4+ oder Nginx
-- **PHP-Extensions:**
-  - PDO
-  - pdo_mysql
-  - mbstring
-  - session
-- **Apache-Module:**
-  - mod_rewrite
-  - mod_headers (empfohlen)
+---
 
-### Empfohlen
-- **PHP:** 8.3
-- **MySQL:** 8.0+
-- **RAM:** 512 MB
-- **Festplatte:** 100 MB freier Speicher
-- **PHP Memory Limit:** 128 MB
+## Inhaltsverzeichnis
 
-## 📦 Download & Upload
+1. [System-Voraussetzungen](#1-system-voraussetzungen)
+2. [Dateien hochladen](#2-dateien-hochladen)
+3. [Datenbank anlegen](#3-datenbank-anlegen)
+4. [config.php anpassen](#4-configphp-anpassen)
+5. [Webserver konfigurieren](#5-webserver-konfigurieren)
+6. [Erster Start](#6-erster-start)
+7. [Produktions-Checkliste](#7-produktions-checkliste)
+8. [Troubleshooting](#8-troubleshooting)
 
-### 1. Dateien hochladen
+---
 
-Laden Sie alle Dateien auf Ihren Webserver hoch:
+## 1. System-Voraussetzungen
 
-```
-/ihr-verzeichnis/
-├── core/
-├── admin/
-├── member/
-├── themes/
-├── plugins/
-├── assets/
-├── includes/
-├── uploads/
-├── index.php
-├── config.php
-├── .htaccess
-└── install.php
-```
+| Komponente | Minimum | Empfohlen |
+|------------|---------|-----------|
+| **PHP** | 8.1 | 8.3+ |
+| **MySQL** | 8.0 | 8.0+ |
+| **MariaDB** | 10.6 | 10.11+ |
+| **Webserver** | Apache 2.4 / Nginx 1.18 | latest |
+| **PHP-Extensions** | pdo_mysql, mbstring, json, openssl | + curl, gd |
+| **Speicher** | 128 MB RAM | 256 MB+ |
+| **Festplatte** | 100 MB | 1 GB+ (inkl. Uploads) |
 
-### 2. Berechtigungen setzen
-
-**Linux/Unix:**
+**PHP-Extensions prüfen:**
 ```bash
-# Standard-Berechtigungen
-find . -type f -exec chmod 644 {} \;
-find . -type d -exec chmod 755 {} \;
-
-# Uploads-Verzeichnis beschreibbar
-chmod 775 uploads/
+php -m | grep -E "pdo|mbstring|json|openssl|curl|gd"
 ```
 
-**Wichtig:** Das `uploads/` Verzeichnis muss beschreibbar sein!
+---
 
-## 🔧 Vorbereitung
+## 2. Dateien hochladen
 
-### 1. Datenbank erstellen
-
-Erstellen Sie eine neue MySQL-Datenbank:
-
-```sql
-CREATE DATABASE cms_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+### Option A: Git (empfohlen)
+```bash
+git clone https://github.com/PS-easyIT/365CMS.DE.git /var/www/html/cms
+cd /var/www/html/cms
 ```
 
-Erstellen Sie einen Datenbank-Benutzer:
+### Option B: FTP
+1. Alle Dateien aus dem `CMS/`-Ordner in euer Webroot hochladen
+2. Rechte setzen:
+   ```bash
+   chmod 755 /var/www/html/cms
+   chmod 644 /var/www/html/cms/config.php
+   chmod 777 /var/www/html/cms/uploads
+   chmod 777 /var/www/html/cms/cache
+   chmod 777 /var/www/html/cms/logs
+   ```
+
+**⚠️ Wichtig:** Die `config.php` enthält Datenbank-Zugangsdaten – **niemals** im Web-Root ohne `.htaccess`-Schutz!
+
+---
+
+## 3. Datenbank anlegen
 
 ```sql
-CREATE USER 'cms_user'@'localhost' IDENTIFIED BY 'sicheres_passwort';
-GRANT ALL PRIVILEGES ON cms_db.* TO 'cms_user'@'localhost';
+CREATE DATABASE cms365 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'cms365user'@'localhost' IDENTIFIED BY 'SICHERES_PASSWORT';
+GRANT ALL PRIVILEGES ON cms365.* TO 'cms365user'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-### 2. .htaccess prüfen
+Die Tabellen werden **automatisch** beim ersten Start über `Database::createTables()` angelegt.
 
-Stellen Sie sicher, dass `.htaccess` hochgeladen wurde und `mod_rewrite` aktiv ist.
+---
 
-**Apache-Konfiguration testen:**
+## 4. config.php anpassen
+
+Öffnet `CMS/config.php` und passt folgende Werte an:
+
+```php
+// Datenbank
+define('DB_HOST', 'localhost');       // DB-Server
+define('DB_NAME', 'cms365');          // Datenbankname
+define('DB_USER', 'cms365user');      // DB-Benutzer
+define('DB_PASS', 'SICHERES_PASSWORT'); // DB-Passwort
+
+// Website
+define('SITE_NAME', 'Meine Website');
+define('SITE_URL',  'https://meine-domain.de'); // Kein Trailing Slash!
+define('ADMIN_EMAIL', 'admin@meine-domain.de');
+
+// Sicherheitsschlüssel – UNBEDINGT ÄNDERN!
+define('AUTH_KEY',         'zufaelliger-string-min-32-zeichen');
+define('SECURE_AUTH_KEY',  'zufaelliger-string-min-32-zeichen');
+define('NONCE_KEY',        'zufaelliger-string-min-32-zeichen');
+
+// Produktionsmodus
+define('CMS_DEBUG', false); // Auf false setzen für Produktion!
+```
+
+**Sicherheitsschlüssel generieren:**
+```php
+echo bin2hex(random_bytes(32));
+```
+
+---
+
+## 5. Webserver konfigurieren
+
+### Apache (`.htaccess` bereits enthalten)
+
+Die Datei `CMS/.htaccess` ist bereits konfiguriert. Stellt sicher, dass `mod_rewrite` aktiviert ist:
+
 ```bash
-# mod_rewrite aktiv?
-apache2ctl -M | grep rewrite
+a2enmod rewrite
+systemctl restart apache2
 ```
 
-Wenn nicht aktiv:
-```bash
-sudo a2enmod rewrite
-sudo systemctl restart apache2
-```
-
-## 🚀 Installation durchführen
-
-CMSv2 verfügt über einen **intelligenten Installer**, der Sie durch die komplette Einrichtung führt.
-
-### Installation starten
-
-1. **Öffnen Sie im Browser:** `https://ihre-domain.de/install.php`
-
-Der Installer führt Sie durch 4 Schritte:
-
-### Schritt 1: System-Check
-
-Der Installer überprüft automatisch:
-- ✅ PHP Version (min. 8.0)
-- ✅ MySQL/PDO Extension
-- ✅ Schreibrechte im Verzeichnis
-- 🌐 **Automatische Domain-Erkennung**
-
-**Wichtig:** Die Domain wird automatisch erkannt. Das System läuft **NIEMALS in einem Unterverzeichnis**!
-
-### Schritt 2: Datenbank-Konfiguration
-
-Geben Sie Ihre Datenbank-Zugangsdaten ein:
-
-| Feld | Beschreibung | Beispiel |
-|------|--------------|----------|
-| **Datenbank-Host** | Meist "localhost" | `localhost` |
-| **Datenbank-Name** | Ihre Datenbank | `cms_db` |
-| **Datenbank-Benutzer** | DB-Username | `cms_user` |
-| **Datenbank-Passwort** | DB-Passwort | `sicheres_passwort` |
-
-Der Installer testet die Verbindung, bevor Sie fortfahren können.
-
-### Schritt 3: Site-Konfiguration
-
-Konfigurieren Sie Ihre Website:
-
-| Feld | Beschreibung | Beispiel |
-|------|--------------|----------|
-| **Site-Name** | Name Ihrer Website | `IT Expert Network` |
-| **Site-URL** | **Automatisch erkannt!** | `https://ihre-domain.de` |
-| **Admin E-Mail** | Ihre E-Mail-Adresse | `admin@ihre-domain.de` |
-| **Debug-Modus** | Nur für Entwicklung | ☐ Aktivieren |
-
-**Hinweis:** Die URL wurde automatisch erkannt und sollte korrekt sein. Falls nicht, können Sie sie manuell korrigieren.
-
-### Schritt 4: Administrator-Account
-
-Erstellen Sie Ihren Admin-Account:
-
-| Feld | Anforderung |
-|------|-------------|
-| **Benutzername** | Min. 4 Zeichen |
-| **E-Mail** | Gültige E-Mail-Adresse |
-| **Passwort** | Min. 8 Zeichen |
-| **Bestätigung** | Muss übereinstimmen |
-
-**WICHTIG:** Notieren Sie sich diese Zugangsdaten!
-
-### Installation abschließen
-
-Nach Klick auf "Installation starten" werden automatisch:
-
-1. ✅ **config.php erstellt** mit allen Einstellungen
-2. ✅ **Security Keys generiert** (64 Zeichen, kryptographisch sicher)
-3. ✅ **Datenbank-Tabellen erstellt** (5 Core-Tabellen)
-4. ✅ **Admin-User angelegt** mit Ihren Zugangsdaten
-5. ✅ **Standard-Einstellungen** gesetzt
-
-### Was passiert automatisch?
-
-**config.php wird generiert mit:**
-- Datenbank-Zugangsdaten
-- Automatisch generierten Security Keys (`bin2hex(random_bytes(32))`)
-- Automatisch erkannter Site-URL (KEIN Unterverzeichnis!)
-- Debug-Modus-Einstellung
-- Timezone (Europe/Berlin)
-
-**5 Datenbank-Tabellen werden erstellt:**
-- `cms_users` - Benutzer-Accounts
-- `cms_user_meta` - Benutzer-Metadaten
-- `cms_settings` - System-Einstellungen
-- `cms_sessions` - Session-Management
-- `cms_login_attempts` - Brute-Force-Schutz
-
-**Alte config.php wird gesichert:**
-Falls eine config.php bereits existiert, wird ein Backup erstellt:
-```
-config.php.backup.2026-01-15_14-30-45
-```
-
-## 👤 Erster Login
-
-Nach erfolgreicher Installation:
-
-1. **Öffnen Sie:** `https://ihre-domain.de/login`
-2. **Anmeldedaten:** Die von Ihnen in Schritt 4 festgelegten
-3. **Zugriff auf:**
-   - Frontend: `https://ihre-domain.de/`
-   - Admin: `https://ihre-domain.de/admin`
-   - Member: `https://ihre-domain.de/member`
-
-## 🔒 Sicherheits-Checkliste
-
-Nach der Installation **ZWINGEND** durchführen:
-
-### Sofort nach Installation
-
-- [ ] **`install.php` LÖSCHEN!**
-  ```bash
-  rm install.php
-  ```
-  **Kritisch:** Diese Datei ermöglicht jedem die Neuinstallation!
-
-- [ ] **Debug-Modus deaktivieren (Production)**
-  - In config.php: `define('CMS_DEBUG', false);`
-  - Fehlermeldungen werden dann in `logs/error.log` geschrieben
-
-- [ ] **HTTPS aktivieren**
-  - SSL-Zertifikat installieren (z.B. Let's Encrypt)
-  - HTTP → HTTPS Redirect in `.htaccess` aktivieren
-
-### Innerhalb der ersten Stunde
-
-- [ ] **Backup-Strategie einrichten**
-  - Datenbank: tägliche Backups
-  - Dateien: wöchentliche Backups
-  - `uploads/` Verzeichnis besonders wichtig
-
-- [ ] **Dateiberechtigungen prüfen**
-  ```bash
-  # Dateien
-  find . -type f -exec chmod 644 {} \;
-  
-  # Verzeichnisse
-  find . -type d -exec chmod 755 {} \;
-  
-  # uploads/ beschreibbar
-  chmod 775 uploads/
-  ```
-
-- [ ] **Admin-E-Mail bestätigen**
-  - Prüfen Sie, ob die E-Mail-Adresse korrekt ist
-  - Test-E-Mail senden
-
-### Innerhalb der ersten Woche
-
-- [ ] **Security Headers aktivieren** (siehe Nginx/Apache-Konfiguration unten)
-- [ ] **Fehlerlog-Monitoring einrichten**
-- [ ] **Regelmäßige Updates planen**
-- [ ] **Firewall-Regeln prüfen**
-
-## 📊 Installation überprüfen
-
-### 1. Frontend testen
-```
-✓ Homepage:      https://ihre-domain.de/
-✓ Login:         https://ihre-domain.de/login
-✓ Registrierung: https://ihre-domain.de/register
-✓ Logout:        https://ihre-domain.de/logout
-```
-
-### 2. Admin-Bereich testen
-```
-✓ Dashboard: https://ihre-domain.de/admin
-✓ Plugins:   https://ihre-domain.de/admin/plugins
-✓ Themes:    https://ihre-domain.de/admin/themes
-✓ Users:     https://ihre-domain.de/admin/users
-✓ Settings:  https://ihre-domain.de/admin/settings
-```
-
-### 3. Member-Bereich testen
-```
-✓ Dashboard: https://ihre-domain.de/member
-```
-
-### 4. Datenbank-Tabellen prüfen
-
-```sql
-SHOW TABLES LIKE 'cms_%';
-```
-
-Sollte anzeigen:
-- `cms_users`
-- `cms_user_meta`
-- `cms_settings`
-- `cms_sessions`
-- `cms_login_attempts`
-
-## 🌐 Webserver-Konfiguration
-
-### Apache
-
-Stellen Sie sicher, dass `.htaccess` funktioniert:
-
-**httpd.conf / apache2.conf:**
+**Wichtige Apache-Direktiven:**
 ```apache
-<Directory /var/www/html>
-    AllowOverride All
-    Require all granted
-</Directory>
+AllowOverride All
+Options -Indexes
 ```
 
 ### Nginx
 
-Falls Sie Nginx verwenden, hier die Konfiguration:
-
 ```nginx
 server {
     listen 80;
-    server_name ihre-domain.de;
-    root /var/www/html;
+    server_name meine-domain.de;
+    root /var/www/html/cms;
     index index.php;
 
-    # Clean URLs
     location / {
         try_files $uri $uri/ /index.php?$query_string;
     }
 
-    # PHP-FPM
     location ~ \.php$ {
         fastcgi_pass unix:/run/php/php8.3-fpm.sock;
-        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
         include fastcgi_params;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
     }
 
-    # Sicherheit
-    location ~ /\. {
-        deny all;
-    }
-
-    location ~* ^/uploads/.*\.php$ {
+    # Logs-Ordner schützen
+    location ~ ^/(logs|cache|config)/ {
         deny all;
     }
 }
 ```
 
-## 🐛 Troubleshooting
+---
 
-### Problem: Weiße Seite
+## 6. Erster Start
 
-**Lösung:**
-1. PHP Error Logs prüfen
-2. `CMS_DEBUG` auf `true` setzen
-3. PHP-Version prüfen (min. 8.0)
+1. Browser öffnen: `https://meine-domain.de`
+2. CMS erkennt die fehlende Installation und leitet zu `/install.php` weiter
+3. Installationsassistent ausfüllen:
+   - Admin-Benutzername
+   - Admin-Passwort (mind. 12 Zeichen)
+   - Admin-E-Mail
+4. Nach erfolgreicher Installation: `/install.php` löschen!
+5. Admin-Login: `https://meine-domain.de/admin`
 
-### Problem: 404 bei allen Seiten
+---
 
-**Lösung:**
-1. `.htaccess` vorhanden?
-2. `mod_rewrite` aktiviert?
-3. `AllowOverride All` in Apache-Config?
+## 7. Produktions-Checkliste
 
-### Problem: Datenbank-Verbindung fehlgeschlagen
+Vor dem Live-Gang folgendes prüfen:
 
-**Lösung:**
-1. Datenbank-Credentials in `config.php` prüfen
-2. MySQL-Service läuft?
-3. User hat Rechte auf Datenbank?
+- [ ] `CMS_DEBUG` auf `false` gesetzt
+- [ ] Sicherheitsschlüssel in `config.php` geändert
+- [ ] `install.php` gelöscht
+- [ ] HTTPS aktiviert (SSL-Zertifikat)
+- [ ] `logs/`, `cache/`, `uploads/` außerhalb des Web-Roots oder via `.htaccess` gesperrt
+- [ ] Regelmäßige Backups eingerichtet (→ Admin > Backup)
+- [ ] Starke Passwörter für alle Admin-Konten
+- [ ] Dateiberechtigungen korrekt (keine 777 in Produktion außer uploads/cache)
+- [ ] `config.php` nicht über Browser aufrufbar
 
-### Problem: "Headers already sent"
+---
 
-**Lösung:**
-1. Keine Ausgabe vor `<?php` Tags
-2. UTF-8 ohne BOM speichern
-3. Whitespace am Ende von Dateien entfernen
+## 8. Troubleshooting
 
-### Problem: Plugin aktiviert sich nicht
-
-**Lösung:**
-1. Plugin-Verzeichnis mit Hauptdatei identisch?
-2. Plugin-Header vorhanden?
-3. PHP-Fehler im Plugin-Code?
-
-### Problem: Uploads funktionieren nicht
-
-**Lösung:**
+### "500 Internal Server Error"
 ```bash
-# Berechtigungen setzen
-chmod 775 uploads/
-chown www-data:www-data uploads/
-
-# SELinux (falls aktiv)
-chcon -R -t httpd_sys_rw_content_t uploads/
+# PHP-Fehlerlog prüfen
+tail -f /var/log/apache2/error.log
+# oder
+cat /var/www/html/cms/logs/error.log
 ```
 
-## 📊 Performance-Optimierung
+Häufige Ursachen:
+- PHP-Extension fehlt (pdo_mysql!)
+- Dateiberechtigungen falsch
+- `.htaccess` nicht unterstützt (Apache: AllowOverride All)
 
-### PHP-Konfiguration
+### "Database connection failed"
+- DB-Zugangsdaten in `config.php` prüfen
+- MySQL-Dienst läuft? `systemctl status mysql`
+- DB-Benutzer hat Rechte? `SHOW GRANTS FOR 'user'@'localhost';`
 
-**php.ini:**
-```ini
-memory_limit = 128M
-upload_max_filesize = 64M
-post_max_size = 64M
-max_execution_time = 300
-max_input_time = 300
-```
+### "Page not found" für alle Seiten außer Startseite
+- `mod_rewrite` aktivieren (Apache)
+- Nginx: `try_files`-Direktive prüfen
+- `.htaccess`-Datei vorhanden?
 
-### Caching aktivieren
+### Leere Seiten (White Screen)
+- `CMS_DEBUG` temporär auf `true` setzen
+- PHP-Fehler-Ausgabe: `ini_set('display_errors', 1)` in `config.php`
 
-**OPcache aktivieren:**
-```ini
-opcache.enable=1
-opcache.memory_consumption=128
-opcache.max_accelerated_files=10000
-```
+---
 
-### Datenbank-Optimierung
-
-```sql
--- Indizes prüfen
-SHOW INDEX FROM cms_users;
-
--- Langsame Queries loggen
-SET GLOBAL slow_query_log = 'ON';
-SET GLOBAL long_query_time = 1;
-```
-
-## 🔄 Updates durchführen
-
-### 1. Backup erstellen
-
-```bash
-# Dateien
-tar -czf cms_backup_$(date +%Y%m%d).tar.gz /pfad/zum/cms/
-
-# Datenbank
-mysqldump -u cms_user -p cms_db > cms_backup_$(date +%Y%m%d).sql
-```
-
-### 2. Neue Dateien hochladen
-
-- Überschreiben Sie **NICHT** `config.php`
-- Überschreiben Sie **NICHT** `uploads/`
-
-### 3. Datenbank-Updates
-
-Falls erforderlich, führen Sie DB-Migrations-Skripte aus.
-
-## 📞 Support
-
-Bei Problemen:
-
-1. Überprüfen Sie die Logs
-2. Konsultieren Sie die Dokumentation
-3. Prüfen Sie bekannte Issues
-4. Erstellen Sie ein Backup vor Änderungen
-
-## ✨ Nächste Schritte
-
-Nach erfolgreicher Installation:
-
-1. **Inhalte anpassen**
-   - Site-Namen in Einstellungen ändern
-   - Theme anpassen oder neues installieren
-   
-2. **Plugins installieren**
-   - Siehe [PLUGIN-DEVELOPMENT.md](PLUGIN-DEVELOPMENT.md)
-   
-3. **Theme anpassen**
-   - Siehe [THEME-DEVELOPMENT.md](THEME-DEVELOPMENT.md)
-   
-4. **Backups einrichten**
-   - Automatische tägliche Backups
-   - Offsite-Speicherung
-
-5. **Monitoring einrichten**
-   - Uptime-Monitoring
-   - Error-Logging
-   - Performance-Tracking
+*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*

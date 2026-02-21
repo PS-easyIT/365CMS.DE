@@ -1,4 +1,4 @@
-# 365CMS Update-System – Konzept & Implementierung
+﻿# 365CMS Update-System – Konzept & Implementierung
 
 > **Repo:** [github.com/PS-easyIT/365CMS.DE](https://github.com/PS-easyIT/365CMS.DE)  
 > **Branch:** `main`  
@@ -474,13 +474,13 @@ Get-FileHash releases\365cms-v2.1.0.zip -Algorithm SHA256
 
 ## 6. Admin-Seite `updates.php`
 
-Die vorhandene Datei `CMSv2/admin/updates.php` nutzt den `UpdateService`.  
+Die vorhandene Datei `365CMS/admin/updates.php` nutzt den `UpdateService`.  
 Sie ist unter `System & Einstellungen → Updates` erreichbar.
 
 ### Wichtige Verhaltensregeln
 
 1. **Kein Auto-Update** – Jedes Update benötigt manuelle Admin-Bestätigung
-2. **Backup vor Installation** – Automatisch, liegt in `CMSv2/storage/backups/`
+2. **Backup vor Installation** – Automatisch, liegt in `365CMS/storage/backups/`
 3. **Rollback möglich** – Letztes Backup kann wiederhergestellt werden
 4. **Nur Free-Produkte** – Premium-Plugins/-Themes erscheinen NICHT in dieser Liste
 5. **Cache-Ablauf** – Update-Prüfungen werden 1 Stunde gecacht
@@ -521,12 +521,12 @@ jobs:
       - name: CMS-ZIP erstellen
         run: |
           mkdir -p dist
-          zip -r dist/365cms-v${{ steps.vars.outputs.VERSION }}.zip CMSv2/ \
+          zip -r dist/365cms-v${{ steps.vars.outputs.VERSION }}.zip 365CMS/ \
             -x "*.git*" \
             -x ".github/*" \
-            -x "CMSv2/cache/*" \
-            -x "CMSv2/logs/*" \
-            -x "CMSv2/uploads/*"
+            -x "365CMS/cache/*" \
+            -x "365CMS/logs/*" \
+            -x "365CMS/uploads/*"
 
       - name: SHA256 berechnen
         id: sha
@@ -674,8 +674,8 @@ Wenn GitHub Actions noch nicht eingerichtet ist:
 
 | Datei | Beschreibung |
 |-------|-------------|
-| [CMSv2/admin/updates.php](../CMSv2/admin/updates.php) | Admin-UI für Updates |
-| [CMSv2/admin/support.php](../CMSv2/admin/support.php) | Docs-Viewer (lädt /DOC aus GitHub) |
+| [365CMS/admin/updates.php](../365CMS/admin/updates.php) | Admin-UI für Updates |
+| [365CMS/admin/support.php](../365CMS/admin/support.php) | Docs-Viewer (lädt /DOC aus GitHub) |
 | [DOC/MARKETPLACE-KONZEPT.md](MARKETPLACE-KONZEPT.md) | Marketplace-Konzept (Premium) |
 | [DOC/CHANGELOG.md](CHANGELOG.md) | CMS-Changelog |
 

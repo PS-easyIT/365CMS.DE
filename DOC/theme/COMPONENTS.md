@@ -1,4 +1,4 @@
-# Komponenten-Referenz – CMS Default Theme v2.0.0
+﻿# Komponenten-Referenz – CMS Default Theme v0.26.13
 
 ## Header
 
@@ -96,7 +96,7 @@ Klassen: `.active` (aktuell), `.btn-nav-primary` (Gold CTA-Button).
     <div class="footer-bottom">
         <div class="footer-bottom-inner">
             <p>&copy; 2026 Seitenname.</p>
-            <span class="footer-badge">⚡ CMSv2</span>
+            <span class="footer-badge">⚡ 365CMS</span>
         </div>
     </div>
 </footer>

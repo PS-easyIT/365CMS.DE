@@ -1,8 +1,8 @@
-# CMS Core – Übersicht
+﻿# CMS Core – Übersicht
 
-**Version:** 2.0.0 | **PHP:** 8.x | **Namespace:** `CMS\`
+> **Version:** 0.26.13 | **Stand:** 21. Februar 2026
 
-Das `core/`-Verzeichnis enthält alle Kernklassen des CMSv2.  
+Das `core/`-Verzeichnis enthält alle Kernklassen des 365CMS.  
 Alle Klassen folgen dem **Singleton-Pattern** und sind über PSR-4 autogeladen.
 
 ---

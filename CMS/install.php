@@ -11,7 +11,7 @@
  * 
  * WICHTIG: Nach erfolgreicher Installation LÖSCHEN!
  * 
- * @package CMSv2
+ * @package 365CMS
  * @version 2.0.0
  */
 

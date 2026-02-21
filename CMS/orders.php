@@ -2,7 +2,7 @@
 /**
  * Public Order / Checkout Page
  * 
- * @package CMSv2
+ * @package 365CMS
  */
 
 declare(strict_types=1);

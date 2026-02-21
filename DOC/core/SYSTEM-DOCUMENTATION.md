@@ -64,7 +64,7 @@ Detaillierte Übersicht aller CMS-Tabellen:
 14. `cms_media` - Media-Bibliothek
 15. `cms_plugins` - Plugins
 16. `cms_plugin_meta` - Plugin-Metadaten
-17. `cms_theme_customizations` - Theme-Anpassungen (v2.0.0)
+17. `cms_theme_customizations` - Theme-Anpassungen (v0.26.13)
 
 ### 3. Dateisystem-Tab
 Überprüfung kritischer Verzeichnisse:

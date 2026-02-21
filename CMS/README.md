@@ -1,4 +1,4 @@
-# 365CMS v2.6.3
+﻿# 365CMS v2.6.3
 ## - Das sichere, modulare und erweiterbare Content Management System
 **Website:** [HTTPS://365CMS.DE](https://365cms.de)
 
@@ -138,7 +138,7 @@ Die vollständige Dokumentation finden Sie im Ordner `/doc`.
 ## 📁 Verzeichnisstruktur
 
 ```
-CMSv2/
+365CMS/
 ├── admin/                  # Backend-Controller & Views
 ├── assets/                 # Öffentliche Ressourcen (CSS, JS, Bilder)
 ├── cache/                  # Temporäre Dateien (System-generiert)

@@ -1,4 +1,4 @@
-# CMSv2 - API-Referenz
+﻿# 365CMS - API-Referenz
 
 Vollständige API-Dokumentation aller Core-Klassen und Methoden.
 

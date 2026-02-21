@@ -1,8 +1,8 @@
-# CMSv2 - Plugin-basierter Registrierungs- & Member-Workflow
+﻿# 365CMS - Plugin-basierter Registrierungs- & Member-Workflow
 
 **Version:** 1.0.0  
 **Datum:** 17. Februar 2026  
-**System:** CMS365/CMSv2 - IT Expert Hub Platform  
+**System:** CMS365/365CMS - IT Expert Hub Platform  
 **Kategorie:** Workflow-Dokumentation
 
 ---
@@ -22,7 +22,7 @@
 
 ## 🎯 Übersicht
 
-Das CMSv2-System implementiert einen **plugin-basierten Workflow** für die Registrierung und Profilverwaltung von verschiedenen Nutzertypen. Jedes Plugin ist für einen spezifischen Content-Type verantwortlich und liefert alle zugehörigen Daten, Frontend-Templates, Backend-Verwaltung und API-Endpunkte.
+Das 365CMS-System implementiert einen **plugin-basierten Workflow** für die Registrierung und Profilverwaltung von verschiedenen Nutzertypen. Jedes Plugin ist für einen spezifischen Content-Type verantwortlich und liefert alle zugehörigen Daten, Frontend-Templates, Backend-Verwaltung und API-Endpunkte.
 
 ### Plugin-Ecosystem (60 Plugins)
 
@@ -1019,4 +1019,4 @@ DYNAMISCHES MENÜ ANZEIGEN
 ---
 
 **Ende der Dokumentation**  
-*Für Fragen oder Erweiterungen, siehe: [CMSv2 Documentation Index](../INDEX.md)*
+*Für Fragen oder Erweiterungen, siehe: [365CMS Documentation Index](../INDEX.md)*

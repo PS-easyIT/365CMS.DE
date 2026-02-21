@@ -1,6 +1,6 @@
-# Theme-Entwicklung für CMSv2
+﻿# Theme-Entwicklung für 365CMS
 
-Komplette Anleitung zur Entwicklung von Themes für das CMSv2.
+Komplette Anleitung zur Entwicklung von Themes für das 365CMS.
 
 ## 📋 Inhaltsverzeichnis
 
@@ -579,11 +579,11 @@ body {
 </html>
 ```
 
-## 🎨 Theme Customizer API (v2.0.0)
+## 🎨 Theme Customizer API (v0.26.13)
 
 ### Übersicht
 
-Das CMSv2 bietet einen vollständigen Theme Customizer mit 50+ Optionen in 8 Kategorien. Themes können diese Einstellungen über die API abrufen und in Templates verwenden.
+Das 365CMS bietet einen vollständigen Theme Customizer mit 50+ Optionen in 8 Kategorien. Themes können diese Einstellungen über die API abrufen und in Templates verwenden.
 
 ### ThemeCustomizer Service
 

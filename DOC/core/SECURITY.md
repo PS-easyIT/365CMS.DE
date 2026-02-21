@@ -1,497 +1,325 @@
-# CMSv2 - Sicherheits-Leitfaden
+﻿# 365CMS – Sicherheits-Dokumentation
 
-Best Practices und Sicherheitsstandards für das CMSv2.
+> **Version:** 0.26.13 | **Stand:** 21. Februar 2026
 
-## 🔒 Übersicht
+---
 
-Das CMSv2 wurde nach den **OWASP Top 10 (2021)** Security-Standards entwickelt und implementiert umfassende Sicherheitsmaßnahmen.
+## Inhaltsverzeichnis
 
-## 🛡️ Security Features
+1. [Sicherheits-Architektur](#1-sicherheits-architektur)
+2. [CSRF-Schutz](#2-csrf-schutz)
+3. [XSS-Prävention](#3-xss-prävention)
+4. [SQL-Injection-Schutz](#4-sql-injection-schutz)
+5. [Passwort-Sicherheit](#5-passwort-sicherheit)
+6. [Rate Limiting](#6-rate-limiting)
+7. [Security-Header](#7-security-header)
+8. [Datei-Upload-Sicherheit](#8-datei-upload-sicherheit)
+9. [Session-Sicherheit](#9-session-sicherheit)
+10. [Sicherheits-Checkliste](#10-sicherheits-checkliste)
 
-### Implementierte Schutzmaßnahmen
+---
 
-| Bedrohung | Schutz | Implementierung | Status |
-|-----------|--------|-----------------|--------|
-| SQL Injection | Prepared Statements | 100% aller DB-Queries | ✅ |
-| XSS | Input/Output Escaping | Alle User-Inputs | ✅ |
-| CSRF | Token-Validierung | Alle Formulare | ✅ |
-| Brute Force | Rate Limiting | Login, Forms | ✅ |
-| Session Hijacking | Secure Cookies | HTTP-Only, Regeneration | ✅ |
-| Password Attacks | BCrypt Hashing | Cost 12 | ✅ |
-| Directory Traversal | .htaccess Rules | PHP Execution Block | ✅ |
-| Information Disclosure | Error Handling | Custom Error Pages | ✅ |
+## 1. Sicherheits-Architektur
 
-## 🚨 OWASP Top 10 Compliance
+Das 365CMS implementiert **Defense in Depth** – mehrere unabhängige Sicherheitsebenen:
 
-### 1. Broken Access Control ✅
+```
+Request
+   │
+   ▼
+Security::init()    ← Security-Header, Session-Start
+   │
+   ▼
+Auth::checkSession() ← Session-Validierung
+   │
+   ▼
+Router::dispatch()  ← URL-Validierung
+   │
+   ▼
+Controller/Admin    ← CSRF-Nonce prüfen
+   │
+   ▼
+Service/DB Layer    ← Input-Sanitization, Prepared Statements
+```
 
-**Implementierung:**
+**Implementierte Sicherheitsstandards:**
+- OWASP Top 10 (2021) adressiert
+- PHP 8.3 strict_types für Typ-Sicherheit
+- PDO Prepared Statements (kein dynamisches SQL)
+- Bcrypt für Passwort-Hashing (cost: 12)
+- Rate Limiting für Login und API
+
+---
+
+## 2. CSRF-Schutz
+
+Cross-Site Request Forgery (CSRF) verhindert, dass externe Seiten im Namen eines eingeloggten Nutzers Aktionen ausführen.
+
+### Nonce in Formularen
+
 ```php
-// Jede Admin-Seite prüft Berechtigung
-if (!CMS\Auth::instance()->isAdmin()) {
-    CMS\Router::instance()->redirect('/');
-    exit;
-}
+// Nonce im Formular erzeugen
+$security = CMS\Security::instance();
+
+echo '<form method="POST">';
+echo '<input type="hidden" name="_nonce" value="' 
+     . $security->generateNonce('profil_speichern') . '">';
+echo '<input type="text" name="username">';
+echo '<button type="submit">Speichern</button>';
+echo '</form>';
 ```
 
-**Best Practice:**
-- Immer `isAdmin()` oder `hasRole()` prüfen
-- Kein direkter Datenbankzugriff ohne Auth-Check
-- Role-Based Access Control (RBAC)
+### Nonce beim Verarbeiten prüfen
 
-### 2. Cryptographic Failures ✅
-
-**Implementierung:**
 ```php
-// BCrypt mit hohem Cost-Factor
-$hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+// Am Anfang jedes POST-Handlers
+$security = CMS\Security::instance();
 
-// Sichere Zufallsstrings
-$token = bin2hex(random_bytes(32));
-```
-
-**Best Practice:**
-- HTTPS in Production (SSL/TLS)
-- Keine Passwörter in Klartext speichern
-- Security Keys regelmäßig rotieren
-
-### 3. Injection ✅
-
-**SQL Injection Prevention:**
-```php
-// ❌ NIEMALS:
-$sql = "SELECT * FROM users WHERE id = " . $_GET['id'];
-
-// ✅ IMMER:
-$stmt = $db->prepare("SELECT * FROM {$db->prefix()}users WHERE id = ?");
-$stmt->execute([$id]);
-```
-
-**XSS Prevention:**
-```php
-// Output immer escapen
-echo CMS\Security::instance()->escape($userInput);
-echo esc_html($text);
-echo esc_url($url);
-```
-
-### 4. Insecure Design ✅
-
-**Secure Design Patterns:**
-- Singleton für zentrale Services
-- Prepared Statements als Standard
-- Hook-System für sichere Erweiterungen
-- Template-Hierarchie ohne Code-Injection
-
-### 5. Security Misconfiguration ✅
-
-**Apache Security Headers:**
-```apache
-# .htaccess
-Header always set X-Frame-Options "SAMEORIGIN"
-Header always set X-XSS-Protection "1; mode=block"
-Header always set X-Content-Type-Options "nosniff"
-Header always set Referrer-Policy "strict-origin-when-cross-origin"
-```
-
-**PHP Configuration:**
-```ini
-; php.ini
-display_errors = Off
-log_errors = On
-expose_php = Off
-session.cookie_httponly = 1
-session.cookie_secure = 1
-```
-
-### 6. Vulnerable Components ✅
-
-**Dependency Management:**
-- Minimale externe Abhängigkeiten
-- PHP 8.0+ erforderlich (Security-Updates)
-- Regelmäßige Updates planen
-
-### 7. Authentication Failures ✅
-
-**Sichere Authentifizierung:**
-```php
-// Rate Limiting
-if (!$security->checkRateLimit('login_' . $ip, 5, 300)) {
-    die('Zu viele Login-Versuche');
+if (!$security->verifyNonce($_POST['_nonce'] ?? '', 'profil_speichern')) {
+    http_response_code(403);
+    die('Sicherheitscheck fehlgeschlagen. Bitte die Seite neu laden.');
 }
 
-// Session Regeneration
-session_regenerate_id(true);
-
-// Sichere Session-Konfiguration
-ini_set('session.cookie_httponly', '1');
-ini_set('session.cookie_secure', '1');
+// Jetzt erst POST-Daten verarbeiten...
 ```
 
-### 8. Software and Data Integrity ✅
+### Wie Nonces funktionieren
 
-**Code Integrity:**
-- `declare(strict_types=1)` in allen Dateien
-- Type Hinting für alle Parameter
-- Input-Validierung vor Verarbeitung
+1. `generateNonce('aktion')` erzeugt einen zufälligen Token, der mit der Aktion und der Session verknüpft ist
+2. Der Token wird im Formular als verstecktes Feld übermittelt
+3. `verifyNonce()` prüft: Stimmt der Token? Ist er noch gültig (TTL)? Passt die Aktion?
+4. Bei falscher Nonce → 403 Forbidden
 
-### 9. Security Logging ✅
+---
 
-**Implementierung:**
-```php
-// Login-Versuche loggen
-$db->insert('login_attempts', [
-    'username' => $username,
-    'ip_address' => $security->getClientIp(),
-    'attempted_at' => date('Y-m-d H:i:s')
-]);
+## 3. XSS-Prävention
 
-// Error Logging
-if (CMS_DEBUG) {
-    error_log("Security issue: " . $message);
-}
-```
+Cross-Site Scripting (XSS) verhindert, dass Angreifer JavaScript in eure Seite einschleusen.
 
-### 10. Server-Side Request Forgery ✅
-
-**URL-Validierung:**
-```php
-// URLs validieren
-if (!$security->validateUrl($url)) {
-    throw new Exception('Ungültige URL');
-}
-
-// Externe Requests einschränken
-// (keine curl/file_get_contents ohne Whitelist)
-```
-
-## 🔐 Input-Validierung
-
-### Sanitization-Typen
+### Ausgabe escapen (PFLICHT)
 
 ```php
 $security = CMS\Security::instance();
 
-// Text
-$clean = $security->sanitize($input, 'text');
-// Entfernt HTML, SQL-Zeichen
+// Einfacher Text (kein HTML erlaubt)
+echo $security->escapeOutput($userInput);
+// Entspricht: htmlspecialchars($input, ENT_QUOTES, 'UTF-8')
 
-// E-Mail
-$email = $security->sanitize($input, 'email');
-// Validiert E-Mail-Format
+// Attribut-Wert
+echo '<input value="' . $security->escapeOutput($value) . '">';
 
 // URL
-$url = $security->sanitize($input, 'url');
-// Validiert und bereinigt URLs
-
-// Integer
-$number = $security->sanitize($input, 'int');
-// Konvertiert zu Integer
-
-// HTML (erlaubt sichere Tags)
-$html = $security->sanitize($input, 'html');
-// Erlaubt: <p>, <br>, <strong>, <em>, <a>
+echo '<a href="' . $security->escapeUrl($url) . '">';
 ```
 
-### Output-Escaping
+### Input sanitizen (beim Speichern)
 
 ```php
-// HTML-Context
-<h1><?php echo esc_html($title); ?></h1>
+$security = CMS\Security::instance();
 
-// Attribut-Context
-<input value="<?php echo esc_attr($value); ?>">
+// Einfacher Text (kein HTML)
+$name = $security->sanitize($_POST['name'] ?? '');
 
-// URL-Context
-<a href="<?php echo esc_url($link); ?>">Link</a>
+// Mit erlaubtem HTML (z.B. Editor-Inhalt)
+$content = $security->sanitizeHtml($_POST['content'] ?? '');
 
-// JavaScript-Context
-<script>
-    var data = <?php echo json_encode($data, JSON_HEX_TAG | JSON_HEX_AMP); ?>;
-</script>
+// E-Mail
+$email = filter_var($_POST['email'] ?? '', FILTER_SANITIZE_EMAIL);
+
+// URL
+$url = filter_var($_POST['url'] ?? '', FILTER_SANITIZE_URL);
 ```
 
-## 🛡️ CSRF-Protection
+### Goldene Regel
 
-### Formular-Absicherung
+> **Niemals ungefilterter User-Input direkt ausgeben!**
+>
+> Immer: Input → Sanitize → Speichern → Escapen → Ausgabe
 
-**HTML:**
+---
+
+## 4. SQL-Injection-Schutz
+
+SQL-Injection ist unmöglich, wenn **immer Prepared Statements** genutzt werden.
+
 ```php
-<form method="POST" action="/save">
-    <?php
-    $token = CMS\Security::instance()->generateToken('save_form');
-    ?>
-    <input type="hidden" name="csrf_token" value="<?php echo $token; ?>">
-    
-    <!-- Weitere Felder -->
-    <button type="submit">Speichern</button>
-</form>
+$db = CMS\Database::instance();
+
+// RICHTIG: Prepared Statement mit Platzhaltern
+$user = $db->get_row(
+    "SELECT * FROM cms_users WHERE username = ? AND status = ?",
+    [$username, 'active']  // Werte separat – werden niemals direkt in SQL eingefügt
+);
+
+// FALSCH: Dynamisches SQL – NIEMALS so!
+// $user = $db->query("SELECT * FROM cms_users WHERE username = '$username'");
 ```
 
-**Verarbeitung:**
+**Warum sind Prepared Statements sicher?**
+Die Datenbankengine trennt SQL-Struktur (Abfrage) von Daten (Parameter) – Benutzerdaten können niemals als SQL interpretiert werden.
+
+---
+
+## 5. Passwort-Sicherheit
+
+### Hashing
+
 ```php
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $security = CMS\Security::instance();
-    
-    if (!$security->verifyToken($_POST['csrf_token'], 'save_form')) {
-        die('CSRF-Token ungültig');
-    }
-    
-    // Formular verarbeiten
+$security = CMS\Security::instance();
+
+// Passwort hashen (bcrypt, cost 12)
+$hash = $security->hashPassword('MeinSicheresPasswort!');
+
+// Passwort verifizieren
+if ($security->verifyPassword($input, $hash)) {
+    // Korrekt
 }
 ```
 
-### AJAX-Requests
+**⚠️ Passwörter niemals im Klartext speichern oder loggen!**
 
-**JavaScript:**
-```javascript
-fetch('/api/endpoint', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': document.querySelector('[name="csrf_token"]').value
-    },
-    body: JSON.stringify(data)
-});
-```
+### Passwort-Anforderungen (empfohlen)
 
-**PHP:**
 ```php
-$token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-if (!$security->verifyToken($token, 'ajax_action')) {
-    http_response_code(403);
-    die(json_encode(['error' => 'Invalid token']));
+function validatePassword(string $password): bool {
+    return strlen($password) >= 12               // Mindestlänge
+        && preg_match('/[A-Z]/', $password)      // Großbuchstabe
+        && preg_match('/[a-z]/', $password)      // Kleinbuchstabe
+        && preg_match('/[0-9]/', $password)      // Zahl
+        && preg_match('/[^A-Za-z0-9]/', $password); // Sonderzeichen
 }
 ```
 
-## 🔒 Password-Security
+---
 
-### Hashing-Richtlinien
+## 6. Rate Limiting
+
+Verhindert Brute-Force-Angriffe und API-Missbrauch.
 
 ```php
-// Passwort hashen
-$hash = CMS\Security::instance()->hashPassword($password);
+$security = CMS\Security::instance();
 
-// Intern: BCrypt mit Cost 12
-password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+// Login: Max. 5 Versuche in 5 Minuten pro IP
+if (!$security->checkRateLimit(
+    'login_' . $security->getClientIp(),
+    5,    // Max. Versuche
+    300   // Zeitfenster in Sekunden
+)) {
+    http_response_code(429);
+    die('Zu viele Versuche. Bitte 5 Minuten warten.');
+}
 
-// Verifizieren
-if ($security->verifyPassword($input, $storedHash)) {
-    // Password korrekt
+// API: Max. 30 Requests pro Minute
+if (!$security->checkRateLimit('api_' . $userId, 30, 60)) {
+    http_response_code(429);
+    die('API-Rate-Limit überschritten.');
 }
 ```
 
-### Password-Policy (empfohlen)
+**Gespeichert in:** `cms_login_attempts` (für Logins) + Session-Daten
+
+---
+
+## 7. Security-Header
+
+Folgende HTTP-Header werden automatisch von `Security::setSecurityHeaders()` gesetzt:
+
+| Header | Wert | Schutz gegen |
+|--------|------|--------------|
+| `X-Frame-Options` | `SAMEORIGIN` | Clickjacking |
+| `X-Content-Type-Options` | `nosniff` | MIME-Sniffing |
+| `X-XSS-Protection` | `1; mode=block` | Reflected XSS |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Daten-Leakage |
+| `Permissions-Policy` | `geolocation=(), microphone=(), camera=()` | Sensor-Zugriff |
+| `Content-Security-Policy` | `default-src 'self'` | XSS (nur in Produktion) |
+
+**Hinweis:** CSP wird nur wenn `CMS_DEBUG = false` gesetzt (in Produktion).
+
+---
+
+## 8. Datei-Upload-Sicherheit
 
 ```php
-function validate_password($password) {
-    // Mindestlänge
-    if (strlen($password) < 8) {
-        return 'Mindestens 8 Zeichen';
+// Erlaubte Dateitypen (via Filter erweiterbar)
+$allowedTypes = CMS\Hooks::applyFilters('allowed_file_types', [
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+    'application/pdf',
+]);
+
+// Sicherer Upload-Check
+function validateUpload(array $file): bool|string {
+    // MIME-Type prüfen (nicht nur Dateiendung!)
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mimeType = $finfo->file($file['tmp_name']);
+
+    if (!in_array($mimeType, $allowedTypes)) {
+        return 'Dateityp nicht erlaubt: ' . $mimeType;
     }
-    
-    // Mindestens ein Großbuchstabe
-    if (!preg_match('/[A-Z]/', $password)) {
-        return 'Mindestens ein Großbuchstabe erforderlich';
+
+    // Dateigröße prüfen
+    $maxSize = CMS\Hooks::applyFilters('max_upload_size', 10 * 1024 * 1024); // 10 MB
+    if ($file['size'] > $maxSize) {
+        return 'Datei zu groß (Max: ' . ($maxSize / 1024 / 1024) . ' MB)';
     }
-    
-    // Mindestens eine Zahl
-    if (!preg_match('/[0-9]/', $password)) {
-        return 'Mindestens eine Zahl erforderlich';
-    }
-    
-    // Mindestens ein Sonderzeichen
-    if (!preg_match('/[^A-Za-z0-9]/', $password)) {
-        return 'Mindestens ein Sonderzeichen erforderlich';
-    }
-    
+
+    // Dateinamen bereinigen
+    $safeName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $file['name']);
+
     return true;
 }
 ```
 
-## 🚫 Rate Limiting
-
-### Login-Protection
-
-```php
-$security = CMS\Security::instance();
-$identifier = 'login_' . $security->getClientIp();
-
-// Max 5 Versuche in 5 Minuten
-if (!$security->checkRateLimit($identifier, 5, 300)) {
-    $_SESSION['error'] = 'Zu viele Login-Versuche. Bitte warten Sie 5 Minuten.';
-    CMS\Router::instance()->redirect('/login');
-    exit;
-}
-
-// Login-Versuch verarbeiten
-```
-
-### Custom Rate Limits
-
-```php
-// API-Endpoint: 30 Requests pro Minute
-if (!$security->checkRateLimit('api_' . $userId, 30, 60)) {
-    http_response_code(429);
-    die(json_encode(['error' => 'Rate limit exceeded']));
-}
-```
-
-## 📁 File Upload Security
-
-### Upload-Validierung
-
-```php
-function secure_file_upload($file) {
-    // 1. Dateigröße prüfen (max 5MB)
-    if ($file['size'] > 5 * 1024 * 1024) {
-        throw new Exception('Datei zu groß');
-    }
-    
-    // 2. MIME-Type prüfen
-    $allowed = ['image/jpeg', 'image/png', 'image/gif'];
-    $finfo = finfo_open(FILEINFO_MIME_TYPE);
-    $mime = finfo_file($finfo, $file['tmp_name']);
-    
-    if (!in_array($mime, $allowed)) {
-        throw new Exception('Dateityp nicht erlaubt');
-    }
-    
-    // 3. Extension prüfen
-    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
-        throw new Exception('Ungültige Dateiendung');
-    }
-    
-    // 4. Zufälliger Dateiname
-    $newName = bin2hex(random_bytes(16)) . '.' . $ext;
-    
-    // 5. Upload in uploads/ (PHP-Execution blockiert!)
-    $path = ABSPATH . '/uploads/' . $newName;
-    move_uploaded_file($file['tmp_name'], $path);
-    
-    return $newName;
-}
-```
-
-### .htaccess in uploads/
+**⚠️ Uploads niemals direkt ausführbar ablegen** – der `uploads/`-Ordner sollte PHP-Ausführung verbieten:
 
 ```apache
-# uploads/.htaccess (BEREITS VORHANDEN)
-<Files *.php>
-    deny from all
+# In uploads/.htaccess
+<Files "*.php">
+    Deny from all
 </Files>
 ```
 
-## 🔍 Security Auditing
+---
 
-### Security-Checkliste
-
-#### Installation
-- [ ] `install.php` gelöscht
-- [ ] Security Keys geändert
-- [ ] Admin-Passwort geändert
-- [ ] `CMS_DEBUG` auf `false`
-
-#### Konfiguration
-- [ ] HTTPS aktiviert
-- [ ] Security Headers gesetzt
-- [ ] PHP-Errors nicht angezeigt
-- [ ] FileInfo-Extension aktiv
-
-#### Dateirechte
-- [ ] Alle Dateien 644 (rw-r--r--)
-- [ ] Alle Verzeichnisse 755 (rwxr-xr-x)
-- [ ] `uploads/` 775 mit Web-User als Owner
-- [ ] `config.php` nicht öffentlich lesbar
-
-#### Code
-- [ ] Alle Inputs sanitized
-- [ ] Alle Outputs escaped
-- [ ] Prepared Statements verwendet
-- [ ] CSRF-Tokens bei Forms
-- [ ] Rate Limiting aktiv
-
-#### Datenbank
-- [ ] DB-User hat minimale Rechte
-- [ ] Kein Root-User
-- [ ] Sichere Passwörter
-- [ ] Nur localhost-Zugriff
-
-### Penetration Testing
-
-**Empfohlene Tools:**
-- **OWASP ZAP** - Automatischer Scanner
-- **Burp Suite** - Manuel Pen-Testing
-- **SQLMap** - SQL-Injection Testing
-- **XSSer** - XSS-Vulnerability Scanner
-
-### Logging & Monitoring
+## 9. Session-Sicherheit
 
 ```php
-// Custom Security Logger
-class SecurityLogger {
-    public static function log($event, $severity = 'info') {
-        $entry = sprintf(
-            "[%s] [%s] %s - IP: %s\n",
-            date('Y-m-d H:i:s'),
-            strtoupper($severity),
-            $event,
-            CMS\Security::instance()->getClientIp()
-        );
-        
-        error_log($entry, 3, ABSPATH . '/logs/security.log');
-    }
-}
-
-// Verwendung
-SecurityLogger::log('Failed login attempt for user: ' . $username, 'warning');
-SecurityLogger::log('CSRF token mismatch', 'critical');
+// Security::startSession() konfiguriert:
+session_set_cookie_params([
+    'lifetime' => 0,           // Sitzungscookie (kein Ablauf)
+    'path'     => '/',
+    'domain'   => '',
+    'secure'   => !CMS_DEBUG, // HTTPS in Produktion
+    'httponly' => true,        // Kein JavaScript-Zugriff
+    'samesite' => 'Strict',   // CSRF-Schutz
+]);
 ```
 
-## 🚨 Incident Response
+**Session-Regeneration nach Login:**  
+Nach erfolgreichem Login wird die Session-ID erneuert (`session_regenerate_id(true)`), um Session-Fixation zu verhindern.
 
-### Bei Sicherheitsvorfall
+---
 
-1. **Sofortmaßnahmen:**
-   - Site offline nehmen
-   - Alle Sessions invalidieren
-   - Admin-Passwörter ändern
-   - DB-Backup erstellen
+## 10. Sicherheits-Checkliste
 
-2. **Analyse:**
-   - Logs prüfen
-   - Betroffene Daten identifizieren
-   - Ursprung des Angriffs finden
+### Vor dem Launch
 
-3. **Bereinigung:**
-   - Backdoors entfernen
-   - Infizierte Dateien ersetzen
-   - Sicherheitslücke schließen
+- [ ] `CMS_DEBUG` auf `false` gesetzt
+- [ ] Sicherheitsschlüssel in `config.php` geändert (`bin2hex(random_bytes(32))`)
+- [ ] `install.php` gelöscht
+- [ ] HTTPS aktiviert (TLS 1.2+)
+- [ ] `logs/`, `cache/` via `.htaccess` gesperrt
+- [ ] Upload-Ordner: PHP-Ausführung deaktiviert
+- [ ] Starke Admin-Passwörter (12+ Zeichen)
+- [ ] DB-Benutzer: nur notwendige Berechtigungen (kein GRANT, kein DROP)
 
-4. **Recovery:**
-   - Sauberes Backup einspielen
-   - Security-Updates installieren
-   - Monitoring verschärfen
+### Im Betrieb
 
-5. **Post-Incident:**
-   - Incident dokumentieren
-   - Lessons Learned
-   - Security-Review durchführen
+- [ ] Regelmäßige Backups (täglich)
+- [ ] Activity-Log bei verdächtiger Aktivität prüfen
+- [ ] Login-Attempts-Tabelle regelmäßig bereinigen
+- [ ] CMS-Updates einspielen sobald verfügbar
+- [ ] Plugin-Uploads: nur vertrauenswürdige Quellen
 
-## 📚 Security Resources
+---
 
-### Leseempfehlungen
-- [OWASP Top 10](https://owasp.org/www-project-top-ten/)
-- [PHP Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/PHP_Configuration_Cheat_Sheet.html)
-- [Web Security Academy](https://portswigger.net/web-security)
-
-### Online-Tools
-- [SSL Labs](https://www.ssllabs.com/ssltest/) - SSL-Test
-- [Security Headers](https://securityheaders.com/) - Header-Check
-- [Have I Been Pwned](https://haveibeenpwned.com/) - Breach-Check
-
-### Updates & Patches
-- Abonnieren Sie PHP Security Mailingliste
-- Überwachen Sie CVE-Datenbanken
-- Planen Sie monatliche Security-Updates
+*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*

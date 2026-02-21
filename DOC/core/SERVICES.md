@@ -1,132 +1,26 @@
-# Services Referenz
+﻿# 365CMS – Service-Klassen
 
-**Namespace:** `CMS\Services\` | **Stand:** 2026-02-18
+> **Version:** 0.26.13 | **Stand:** 21. Februar 2026
 
-Alle Services liegen in `core/Services/`. Sie folgen dem Singleton-Pattern via `getInstance()`.
-
----
-
-## UserService
-
-**Datei:** `core/Services/UserService.php` · **654 Zeilen**
-
-Business-Logik für Benutzerverwaltung. Wird von AJAX-Endpoints und Admin-Views genutzt.
-
-### Methoden
-
-| Methode | Rückgabe | Beschreibung |
-|---------|----------|-------------|
-| `createUser(array $data)` | `int\|WP_Error` | Neuen Benutzer anlegen (Dupe-Check, Password-Hash) |
-| `updateUser(int $id, array $data)` | `bool\|WP_Error` | Felder aktualisieren |
-| `deleteUser(int $id)` | `bool\|WP_Error` | User löschen oder auf inactive setzen |
-| `getUserById(int $id)` | `?object` | User by ID |
-| `listUsers(array $filters, string $orderby, string $order, int $page, int $per_page)` | `array` | Paginierte User-Liste |
-| `bulkAction(string $action, array $userIds, array $data)` | `array` | activate/deactivate/change_role für mehrere User |
-| `getUserStats()` | `array` | Statistiken (total, active, roles, new_last_30_days) |
-| `getUserMeta(int $id, string $key)` | `mixed` | Meta-Wert lesen |
-| `updateUserMeta(int $id, string $key, mixed $value)` | `void` | Meta-Wert schreiben |
-| `validateUserData(array $data, string $mode)` | `bool\|WP_Error` | Validierung (mode: create/update) |
-
-### `$data`-Felder für createUser
-
-| Feld | Pflicht | Validierung |
-|------|---------|-------------|
-| `username` | Ja | alphanumeric + underscore |
-| `email` | Ja | filter_var VALIDATE_EMAIL |
-| `password` | Ja | bcrypt (cost 12) |
-| `role` | Nein | admin/editor/author/member |
-| `status` | Nein | active/inactive/banned |
-| `first_name`, `last_name` | Nein | Gespeichert als user_meta |
+Der Service-Layer enthält die **Geschäftslogik** des CMS. Alle 11 Service-Klassen sind im Namespace `CMS\Services` und befinden sich in `core/Services/`.
 
 ---
 
-## DashboardService
+## Überblick
 
-**Datei:** `core/Services/DashboardService.php` · **465 Zeilen**
-
-Dashboard-Statistiken für das Admin-Center.
-
-### Methoden
-
-| Methode | Beschreibung |
-|---------|-------------|
-| `getAllStats()` | Alle Stats: users, pages, media, sessions, security, performance, system |
-| `getUserStats()` | Benutzer-Zahlen, Rollen, Wachstumsrate |
-| `getPageStats()` | Seiten total/published/draft/private/scheduled |
-| `getMediaStats()` | Upload-Verzeichnis-Größe, Dateianzahl |
-| `getSessionStats()` | Aktive Sessions, Session-Ablauf |
-| `getSecurityStats()` | Login-Versuche, fehlgeschlagene Logins |
-| `getPerformanceStats()` | PHP-Memory, OPcache-Status, Cache-Infos |
-| `getSystemInfo()` | PHP-Version, MySQL-Version, Zeitzone etc. |
-| `getActivityFeed(int $limit = 50)` | Aktivitäts-Log mit User-Joins |
-
----
-
-## StatusService
-
-**Datei:** `core/Services/StatusService.php` · **580 Zeilen**
-
-System-Health-Checks und Reparatur-Werkzeuge.
-
-### Methoden
-
-| Methode | Beschreibung |
-|---------|-------------|
-| `getFullStatus()` | Alle Checks: database, filesystem, php, security, performance |
-| `checkDatabase()` | Verbindung, Tabellen, Charset, Overhead, Größe |
-| `checkFilesystem()` | Verzeichnisse prüfen (uploads, cache, logs, themes, plugins) |
-| `checkPHP()` | PHP-Version, Erweiterungen, Einstellungen |
-| `checkSecurity()` | Admin-User, Sessions, verwaiste Datensätze |
-| `checkPerformance()` | OPcache, APCu, Speicher |
-| `runRepair(string $action)` | Repairs: create_missing_tables, cleanup_sessions, cleanup_logs |
-
-### Required-Tables-Prüfung
-
-Prüft dynamisch via `$this->prefix . 'tablename'`:
-`users`, `user_meta`, `sessions`, `login_attempts`, `settings`, `pages`, `activity_log`
-
----
-
-## SystemService
-
-**Datei:** `core/Services/SystemService.php` · **656 Zeilen**
-
-System-Informationen und Diagnose-Tools.
-
-### Methoden
-
-| Methode | Beschreibung |
-|---------|-------------|
-| `getSystemInfo()` | PHP, MySQL, Server, Memory, Timezone, OS |
-| `getDatabaseStatus()` | DB-Verbindung, -Größe, Tabellen-Anzahl |
-
----
-
-## SEOService
-
-**Datei:** `core/Services/SEOService.php`
-
-SEO-Optimierung und Crawler-Unterstützung.
-
-| Methode | Beschreibung |
-|---------|-------------|
-| `generateSitemap()` | XML-Sitemap aller veröffentlichten Seiten |
-| `generateRobotsTxt()` | robots.txt generieren |
-| `getMetaTags(array $page)` | Meta-Tags Array (title, description, og:, twitter:) |
-
----
-
-## TrackingService
-
-**Datei:** `core/Services/TrackingService.php`
-
-Seitenaufruf-Tracking ohne externe Dienste.
-
-| Methode | Beschreibung |
-|---------|-------------|
-| `trackPageView(int\|null $pageId, string $slug, string $title, int\|null $userId)` | Aufruf protokollieren |
-
-> Wird automatisch in `ThemeManager::render()` aufgerufen (silent fail).
+| Klasse | Datei | Aufgabe |
+|--------|-------|---------|
+| `AnalyticsService` | `AnalyticsService.php` | Besucher-Statistiken & Auswertungen |
+| `BackupService` | `BackupService.php` | Datenbank- und Datei-Backups |
+| `DashboardService` | `DashboardService.php` | Dashboard-Widget-Daten |
+| `EditorService` | `EditorService.php` | Inhalts-Editor (SunEditor) |
+| `LandingPageService` | `LandingPageService.php` | Landing-Page-Builder |
+| `MediaService` | `MediaService.php` | Datei-Upload & Medienverwaltung |
+| `MemberService` | `MemberService.php` | Member-Dashboard-Logik |
+| `SEOService` | `SEOService.php` | Meta-Tags, Sitemap |
+| `StatusService` | `StatusService.php` | System-Status-Checks |
+| `ThemeCustomizer` | `ThemeCustomizer.php` | Theme-Einstellungen |
+| `UserService` | `UserService.php` | Benutzer-Verwaltung (CRUD) |
 
 ---
 
@@ -134,7 +28,20 @@ Seitenaufruf-Tracking ohne externe Dienste.
 
 **Datei:** `core/Services/AnalyticsService.php`
 
-Besucherstatistiken aus den Tracking-Daten.
+Verwaltet Besucher-Statistiken und Auswertungen.
+
+```php
+$analytics = new CMS\Services\AnalyticsService();
+
+// Besucher der letzten 30 Tage
+$stats = $analytics->getVisitorStats(30);
+
+// Top 10 Seiten
+$topPages = $analytics->getTopPages(10);
+
+// Heutiger Besuchercount
+$today = $analytics->getDailyCount();
+```
 
 ---
 
@@ -142,23 +49,171 @@ Besucherstatistiken aus den Tracking-Daten.
 
 **Datei:** `core/Services/BackupService.php`
 
-Datenbank- und Datei-Backups.
+Erstellt und verwaltet Backups.
+
+```php
+$backup = new CMS\Services\BackupService();
+
+// Datenbank-Backup erstellen
+$result = $backup->createDatabaseBackup();
+// → Gibt Pfad zur .sql.gz-Datei zurück
+
+// Datei-Backup
+$result = $backup->createFileBackup(['uploads/', 'themes/']);
+
+// Verfügbare Backups listen
+$backups = $backup->listBackups();
+
+// Backup wiederherstellen
+$backup->restore($backupFile);
+```
 
 ---
 
-## EditorService
+## MediaService
 
-**Datei:** `core/Services/EditorService.php`
+**Datei:** `core/Services/MediaService.php`
 
-Seiten-Editor Logik (Revision-Handling, Auto-Save).
+Verwaltet Datei-Uploads und die Medienbibliothek.
+
+```php
+$media = new CMS\Services\MediaService();
+
+// Datei hochladen
+$result = $media->upload($_FILES['file'], [
+    'allowed_types' => ['image/jpeg', 'image/png'],
+    'max_size'      => 5 * 1024 * 1024, // 5 MB
+]);
+
+// Medien-Bibliothek
+$files = $media->getMediaLibrary([
+    'type'  => 'image',
+    'page'  => 1,
+    'limit' => 20,
+]);
+
+// Datei löschen
+$media->delete($mediaId);
+
+// Thumbnail generieren
+$thumb = $media->generateThumbnail($filePath, 300, 200);
+```
 
 ---
 
-## LandingPageService
+## UserService
 
-**Datei:** `core/Services/LandingPageService.php`
+**Datei:** `core/Services/UserService.php`
 
-Landing-Page-Sections (Drag & Drop Builder Logik).
+Vollständige Benutzerverwaltung. Hauptschnittstelle für alle User-Operationen.
+
+```php
+$userService = CMS\Services\UserService::getInstance();
+
+// User erstellen
+$userId = $userService->createUser([
+    'username'   => 'max_mustermann',
+    'email'      => 'max@beispiel.de',
+    'password'   => 'SicheresPasswort123!',
+    'role'       => 'member',
+    'first_name' => 'Max',
+    'last_name'  => 'Mustermann',
+]);
+
+// User laden
+$user = $userService->getUserById($userId);
+
+// Alle User mit Filter
+$users = $userService->getAllUsers([
+    'role'   => 'member',
+    'status' => 'active',
+    'search' => 'max',
+    'page'   => 1,
+    'limit'  => 20,
+]);
+
+// User aktualisieren
+$userService->updateUser($userId, [
+    'display_name' => 'Max M.',
+    'status'       => 'active',
+]);
+
+// User löschen
+$userService->deleteUser($userId);
+
+// Meta-Daten
+$userService->updateUserMeta($userId, 'phone', '0123456789');
+$phone = $userService->getUserMeta($userId, 'phone');
+```
+
+---
+
+## MemberService
+
+**Datei:** `core/Services/MemberService.php`
+
+Liefert Daten für das Member-Dashboard.
+
+```php
+$memberService = CMS\Services\MemberService::getInstance();
+
+// Dashboard-Daten für User
+$data = $memberService->getMemberDashboardData($userId);
+// Enthält: notifications, recent_activity, subscription, stats
+
+// Profil aktualisieren
+$memberService->updateProfile($userId, $_POST);
+
+// Benachrichtigungen
+$notifications = $memberService->getNotifications($userId, unread: true);
+$memberService->markNotificationRead($notificationId);
+```
+
+---
+
+## SEOService
+
+**Datei:** `core/Services/SEOService.php`
+
+Verwaltet Meta-Tags und generiert Sitemaps.
+
+```php
+$seo = new CMS\Services\SEOService();
+
+// Meta-Tags für Seite setzen
+$seo->setPageMeta([
+    'title'       => 'Über uns',
+    'description' => 'Erfahrt mehr über unser Team...',
+    'keywords'    => 'team, unternehmen, kontakt',
+    'og_image'    => '/uploads/team.jpg',
+]);
+
+// Sitemap generieren
+$seo->generateSitemap(); // Schreibt /sitemap.xml
+
+// Robots.txt
+$seo->generateRobotsTxt();
+```
+
+---
+
+## DashboardService
+
+**Datei:** `core/Services/DashboardService.php`
+
+Liefert Daten für das Admin-Dashboard.
+
+```php
+$dashboard = new CMS\Services\DashboardService();
+
+// Alle Widget-Daten
+$data = $dashboard->getWidgetData();
+// Enthält: user_count, post_count, recent_logins, system_status, top_pages
+
+// Einzelne Metriken
+$userCount = $dashboard->getUserCount();
+$activePlugins = $dashboard->getActivePluginCount();
+```
 
 ---
 
@@ -166,65 +221,42 @@ Landing-Page-Sections (Drag & Drop Builder Logik).
 
 **Datei:** `core/Services/ThemeCustomizer.php`
 
-Verwaltung von Theme-Einstellungen (Farben, Fonts, Logo) in `{prefix}settings` und `{prefix}theme_customizations`.
+Verwaltet Theme-Anpassungen via UI.
+
+```php
+$customizer = new CMS\Services\ThemeCustomizer();
+
+// Einstellung lesen
+$primaryColor = $customizer->getSetting('cms-default', 'colors', 'primary', '#007bff');
+
+// Einstellung speichern
+$customizer->saveSetting('cms-default', 'colors', 'primary', '#ff6600');
+
+// Alle Theme-Einstellungen
+$settings = $customizer->getThemeSettings('cms-default');
+```
 
 ---
 
-## UpdateService
+## StatusService
 
-**Datei:** `core/Services/UpdateService.php`
+**Datei:** `core/Services/StatusService.php`
 
-Prüft auf CMS-Updates und koordiniert den Update-Prozess.
+Prüft den System-Status (für Admin-Dashboard).
+
+```php
+$status = new CMS\Services\StatusService();
+
+// Vollständiger Status-Check
+$report = $status->getSystemStatus();
+// Prüft: DB-Verbindung, PHP-Version, Extensions, Datei-Berechtigungen, Cache
+
+// Einzelne Checks
+$dbOk = $status->checkDatabase();
+$phpOk = $status->checkPhpVersion();
+$writeable = $status->checkWritePermissions(['uploads/', 'cache/', 'logs/']);
+```
 
 ---
 
-## Gemeinsame Muster
-
-### Prefix-Nutzung in Services
-
-Alle Services mit DB-Zugriff definieren:
-
-```php
-class XxxService {
-    private Database $db;
-    private string $prefix;
-    
-    private function __construct() {
-        $this->db = Database::instance();
-        $this->prefix = $this->db->getPrefix();
-    }
-}
-```
-
-### Raw SQL vs. insert/update/delete
-
-```php
-// Raw SQL → Prefix manuell:
-$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}users");
-
-// CRUD-Methoden → Prefix AUTOMATISCH hinzugefügt:
-$this->db->insert('users', $data);       // korrekt
-$this->db->delete('users', ['id' => 5]); // korrekt
-// FALSCH: $this->db->insert('cms_users', ...) → doppelter Prefix!
-```
-
-### WP_Error-Muster
-
-```php
-public function doSomething(int $id): int|WP_Error {
-    if ($id <= 0) {
-        return new WP_Error('invalid_id', 'Ungültige ID', ['status' => 400]);
-    }
-    $result = $this->db->insert('table', [...]);
-    if (!$result) {
-        return new WP_Error('db_error', 'Datenbankfehler', ['status' => 500]);
-    }
-    return $this->db->insert_id();
-}
-
-// Aufruf
-$result = $service->doSomething($id);
-if (is_wp_error($result)) {
-    wp_send_json_error(['message' => $result->get_error_message()]);
-}
-```
+*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*

@@ -2,7 +2,7 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "0.21.3",
+  "version": "0.26.13",
   "min_php": "8.1",
   "released": "2026-02-21",
   "download_url": "",
