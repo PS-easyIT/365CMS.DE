@@ -51,8 +51,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Sicherheitsüberprüfung fehlgeschlagen.';
     } else {
         $postAction = $_POST['action'] ?? '';
-        
-        if ($postAction === 'assign_subscription') {
+
+        if ($postAction === 'assign_group_plan') {
+            $groupId     = (int)($_POST['group_id']      ?? 0);
+            $groupPlanId = (int)($_POST['group_plan_id'] ?? 0);
+            if ($groupId > 0) {
+                $db2 = CMS\Database::instance();
+                $db2->query(
+                    "UPDATE {$db2->getPrefix()}user_groups SET plan_id = ? WHERE id = ?",
+                    [$groupPlanId > 0 ? $groupPlanId : null, $groupId]
+                );
+                $message = 'Gruppenpaket erfolgreich aktualisiert.';
+            }
+        } elseif ($postAction === 'assign_subscription') {
             $userId = (int)($_POST['user_id'] ?? 0);
             $planId = (int)($_POST['plan_id'] ?? 0);
             $billing = $_POST['billing_cycle'] ?? 'monthly';
@@ -170,6 +181,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $plans = $subscriptionManager->getAllPlans();
 $db = Database::instance();
 $users = $db->query("SELECT id, username, email FROM {$db->getPrefix()}users ORDER BY username")->fetchAll();
+$groups = $db->query(
+    "SELECT g.*, sp.name AS plan_name
+     FROM {$db->getPrefix()}user_groups g
+     LEFT JOIN {$db->getPrefix()}subscription_plans sp ON sp.id = g.plan_id
+     ORDER BY g.name"
+)->fetchAll();
 
 // Get specific plan for editing if requested
 $editPlan = null;
@@ -373,6 +390,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 <a href="?tab=plans" class="btn btn-sm <?php echo $activeTab === 'plans' ? 'btn-primary' : 'btn-secondary'; ?>">Pakete</a>
                 <a href="?tab=settings" class="btn btn-sm <?php echo $activeTab === 'settings' ? 'btn-primary' : 'btn-secondary'; ?>">Editor</a>
                 <a href="?tab=assignments" class="btn btn-sm <?php echo $activeTab === 'assignments' ? 'btn-primary' : 'btn-secondary'; ?>">Zuweisungen</a>
+                <a href="?tab=group-assignments" class="btn btn-sm <?php echo $activeTab === 'group-assignments' ? 'btn-primary' : 'btn-secondary'; ?>">Gruppenzuweisungen</a>
                 <a href="?tab=payments" class="btn btn-sm <?php echo $activeTab === 'payments' ? 'btn-primary' : 'btn-secondary'; ?>">Zahlungsarten</a>
             </div>
 
@@ -609,6 +627,73 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 <?php endif; ?>
             </div>
             
+        <!-- CONTENT: GRUPPENZUWEISUNGEN -->
+        <?php elseif ($activeTab === 'group-assignments'): ?>
+
+            <div class="admin-section-header">
+                <h3>Gruppen-Zuweisungen</h3>
+                <p style="color:#64748b;font-size:.9rem;">Weise jeder Gruppe ein Abo-Paket zu. Mitglieder der Gruppe erhalten damit die Rechte des Paketes.</p>
+            </div>
+
+            <?php if (empty($groups)): ?>
+                <div style="padding:2rem;text-align:center;background:#fff;border-radius:8px;border:1px solid #e2e8f0;">
+                    <p style="color:#64748b;">Noch keine Gruppen vorhanden. <a href="<?php echo SITE_URL; ?>/admin/groups">Gruppen erstellen →</a></p>
+                </div>
+            <?php else: ?>
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:auto;margin-bottom:1.5rem;">
+                <table style="width:100%;border-collapse:collapse;font-size:.875rem;">
+                    <thead><tr style="background:#f8fafc;">
+                        <th style="padding:.55rem .9rem;text-align:left;font-weight:600;color:#374151;border-bottom:2px solid #e2e8f0;">Gruppe</th>
+                        <th style="padding:.55rem .9rem;text-align:left;font-weight:600;color:#374151;border-bottom:2px solid #e2e8f0;width:100px;">Status</th>
+                        <th style="padding:.55rem .9rem;text-align:left;font-weight:600;color:#374151;border-bottom:2px solid #e2e8f0;">Aktuelles Paket</th>
+                        <th style="padding:.55rem .9rem;text-align:left;font-weight:600;color:#374151;border-bottom:2px solid #e2e8f0;width:320px;">Paket zuweisen</th>
+                    </tr></thead>
+                    <tbody>
+                    <?php foreach ($groups as $grp): ?>
+                    <tr style="border-bottom:1px solid #f1f5f9;">
+                        <td style="padding:.65rem .9rem;">
+                            <span style="font-weight:600;color:#1e293b;"><?php echo htmlspecialchars($grp->name, ENT_QUOTES); ?></span>
+                            <?php if (!empty($grp->description)): ?>
+                            <div style="font-size:.74rem;color:#94a3b8;"><?php echo htmlspecialchars(substr($grp->description, 0, 55), ENT_QUOTES) . (strlen($grp->description ?? '') > 55 ? '…' : ''); ?></div>
+                            <?php endif; ?>
+                        </td>
+                        <td style="padding:.65rem .9rem;">
+                            <span style="display:inline-flex;align-items:center;padding:.2rem .5rem;border-radius:99px;font-size:.74rem;font-weight:600;background:<?php echo $grp->is_active ? '#dcfce7' : '#fee2e2'; ?>;color:<?php echo $grp->is_active ? '#15803d' : '#b91c1c'; ?>;">
+                                <?php echo $grp->is_active ? 'Aktiv' : 'Inaktiv'; ?>
+                            </span>
+                        </td>
+                        <td style="padding:.65rem .9rem;">
+                            <?php if ($grp->plan_name): ?>
+                            <span style="display:inline-flex;align-items:center;padding:.2rem .5rem;border-radius:99px;font-size:.74rem;font-weight:600;background:#dbeafe;color:#1e40af;">
+                                📦 <?php echo htmlspecialchars($grp->plan_name, ENT_QUOTES); ?>
+                            </span>
+                            <?php else: ?>
+                            <span style="color:#94a3b8;font-size:.8rem;">Kein Paket</span>
+                            <?php endif; ?>
+                        </td>
+                        <td style="padding:.55rem .9rem;">
+                            <form method="POST" action="?tab=group-assignments" style="display:flex;gap:.5rem;align-items:center;">
+                                <input type="hidden" name="action" value="assign_group_plan">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                <input type="hidden" name="group_id" value="<?php echo (int)$grp->id; ?>">
+                                <select name="group_plan_id" style="flex:1;padding:.3rem .5rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.8rem;">
+                                    <option value="0">— Kein Paket —</option>
+                                    <?php foreach ($plans as $plan): ?>
+                                    <option value="<?php echo (int)$plan->id; ?>" <?php echo (int)($grp->plan_id ?? 0) === (int)$plan->id ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($plan->name, ENT_QUOTES); ?>
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-primary" style="white-space:nowrap;">💾 Speichern</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php endif; ?>
+
         <?php elseif ($activeTab === 'payments'): ?>
             
             <div class="admin-section-header">
