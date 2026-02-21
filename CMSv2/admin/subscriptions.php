@@ -130,47 +130,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = 'Fehler beim Löschen.';
             }
 
-        } elseif ($postAction === 'update_payments') {
-            $db = CMS\Database::instance();
-            $payments = [
-                'bank'   => $_POST['payment_bank'] ?? '',
-                'paypal' => $_POST['payment_paypal'] ?? '',
-                'note'   => $_POST['payment_note'] ?? '', 
+        } elseif ($postAction === 'update_settings') {
+            $db2 = CMS\Database::instance();
+            $settingsToSave = [
+                'subscription_enabled'    => isset($_POST['subscription_enabled']) ? '1' : '0',
+                'subscription_currency'   => in_array($_POST['subscription_currency'] ?? '', ['EUR','USD','CHF']) ? $_POST['subscription_currency'] : 'EUR',
+                'payment_info_bank'       => $_POST['payment_info_bank'] ?? '',
+                'payment_info_paypal'     => $_POST['payment_info_paypal'] ?? '',
+                'payment_info_note'       => $_POST['payment_info_note'] ?? '',
+                'order_number_format'     => sanitize_text($_POST['order_number_format'] ?? 'BST{Y}{M}-{ID}'),
+                'agb_url'                 => filter_var($_POST['agb_url'] ?? '', FILTER_SANITIZE_URL),
+                'impressum_url'           => filter_var($_POST['impressum_url'] ?? '', FILTER_SANITIZE_URL),
+                'widerruf_url'            => filter_var($_POST['widerruf_url'] ?? '', FILTER_SANITIZE_URL),
+                'company_invoice_name'    => sanitize_text($_POST['company_invoice_name'] ?? ''),
+                'company_invoice_address' => $_POST['company_invoice_address'] ?? '',
             ];
-            
-            // Save Payment Settings
-            foreach ($payments as $key => $val) {
-                $optionName = 'payment_info_' . $key;
-                $existing = $db->get_var("SELECT id FROM {$db->getPrefix()}settings WHERE option_name = ?", [$optionName]);
-                
-                if ($existing) {
-                    $db->query("UPDATE {$db->getPrefix()}settings SET option_value = ? WHERE option_name = ?", [$val, $optionName]);
+            foreach ($settingsToSave as $optName => $optVal) {
+                $exists = $db2->get_var("SELECT id FROM {$db2->getPrefix()}settings WHERE option_name = ?", [$optName]);
+                if ($exists) {
+                    $db2->query("UPDATE {$db2->getPrefix()}settings SET option_value = ? WHERE option_name = ?", [$optVal, $optName]);
                 } else {
-                    $db->query("INSERT INTO {$db->getPrefix()}settings (option_name, option_value) VALUES (?, ?)", [$optionName, $val]);
+                    $db2->query("INSERT INTO {$db2->getPrefix()}settings (option_name, option_value) VALUES (?, ?)", [$optName, $optVal]);
                 }
             }
+            $message = 'Einstellungen gespeichert.';
 
-            // Save Order Format Setting
-            $orderFormat = $_POST['order_number_format'] ?? 'ORD-{Y}-{ID}';
-            $existing_fmt = $db->get_var("SELECT id FROM {$db->getPrefix()}settings WHERE setting_key = 'order_number_format'"); 
-            // Note: Settings table usage varies. Sometimes `option_name`, sometimes `setting_key`. 
-            // In creation script I used `setting_key`. 
-            // But existing code uses `option_name`.
-            // Let's check DB schema. I don't have it.
-            // Existing code lines 128: WHERE option_name = ?
-            // My script earlier used `setting_key`. This is inconsistent.
-            // I should stick to `option_name` if that's what the CMS uses.
-            // Let's assume `cms_settings` has `option_name` and `option_value`.
-            
-            $existing_fmt = $db->get_var("SELECT id FROM {$db->getPrefix()}settings WHERE option_name = 'order_number_format'");
-            if ($existing_fmt) {
-                 $db->query("UPDATE {$db->getPrefix()}settings SET option_value = ? WHERE option_name = 'order_number_format'", [$orderFormat]);
-            } else {
-                 $db->query("INSERT INTO {$db->getPrefix()}settings (option_name, option_value) VALUES (?, ?)", ['order_number_format', $orderFormat]);
-            }
-
-            $message = 'Einstellungen erfolgreich gespeichert.';
-        
         } elseif ($postAction === 'seed_defaults') {
             $subscriptionManager->seedDefaultPlans();
             $message = '6 Standard-Pakete erfolgreich erstellt!';
@@ -191,7 +175,7 @@ $groups = $db->query(
 
 // Get specific plan for editing if requested
 $editPlan = null;
-if ($activeTab === 'settings' && isset($_GET['edit_id'])) {
+if ($activeTab === 'plans' && isset($_GET['edit_id'])) {
     foreach ($plans as $p) {
         if ($p->id == $_GET['edit_id']) {
             $editPlan = $p;
@@ -410,7 +394,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
         <?php if ($activeTab === 'plans'): ?>
             <div class="admin-section-header">
                 <h3>Verfügbare Abo-Pakete</h3>
-                <a href="?tab=settings" class="btn btn-secondary btn-sm">Konfigurieren</a>
+                <a href="#" onclick="document.getElementById('create-plan-modal').style.display='flex'; return false;" class="btn btn-primary btn-sm">+ Neues Paket</a>
             </div>
             
             <?php if (empty($plans)): ?>
@@ -460,6 +444,15 @@ require_once __DIR__ . '/partials/admin-menu.php';
                                 <?php if ($plan->feature_api_access): ?><span class="badge badge-success">API</span><?php endif; ?>
                                 <?php if ($plan->feature_priority_support): ?><span class="badge badge-success">Support</span><?php endif; ?>
                             </div>
+                            <div style="margin-top:1rem;display:flex;gap:.5rem;border-top:1px solid #f1f5f9;padding-top:.75rem;">
+                                <a href="?tab=plans&edit_id=<?php echo $plan->id; ?>" class="btn btn-sm btn-secondary" style="flex:1;text-align:center;">✏️ Bearbeiten</a>
+                                <form method="POST" style="flex:1;" onsubmit="return confirm('Paket wirklich löschen?');">
+                                    <input type="hidden" name="action" value="delete_plan">
+                                    <input type="hidden" name="plan_id" value="<?php echo $plan->id; ?>">
+                                    <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+                                    <button class="btn btn-sm btn-danger" style="width:100%;background:#fee2e2;color:#991b1b;">🗑 Löschen</button>
+                                </form>
+                            </div>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -467,70 +460,114 @@ require_once __DIR__ . '/partials/admin-menu.php';
             
         <!-- CONTENT: EINSTELLUNGEN -->
         <?php elseif ($activeTab === 'settings'): ?>
-            <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;border-bottom:2px solid #e2e8f0;padding-bottom:1rem;">
-                <a href="?tab=settings" class="btn btn-sm btn-primary">📦 Paket-Editor</a>
-                <a href="?tab=payments" class="btn btn-sm btn-secondary">💳 Zahlungsarten</a>
-            </div>
+            <?php
+            $sysSet = [
+                'subscription_enabled'    => $db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'subscription_enabled'") ?? '1',
+                'subscription_currency'   => $db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'subscription_currency'") ?? 'EUR',
+                'payment_info_bank'       => $db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'payment_info_bank'") ?? '',
+                'payment_info_paypal'     => $db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'payment_info_paypal'") ?? '',
+                'payment_info_note'       => $db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'payment_info_note'") ?? '',
+                'order_number_format'     => $db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'order_number_format'") ?? 'BST{Y}{M}-{ID}',
+                'agb_url'                 => $db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'agb_url'") ?? '',
+                'impressum_url'           => $db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'impressum_url'") ?? '',
+                'widerruf_url'            => $db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'widerruf_url'") ?? '',
+                'company_invoice_name'    => $db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'company_invoice_name'") ?? '',
+                'company_invoice_address' => $db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'company_invoice_address'") ?? '',
+            ];
+            ?>
+            <form method="POST">
+                <input type="hidden" name="action" value="update_settings">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
 
-            <div class="admin-section-header">
-                <h3>Paket-Editor</h3>
-                <a href="#" onclick="document.getElementById('create-plan-modal').style.display='flex'; return false;" class="btn btn-primary">
-                    + Neues Paket
-                </a>
-            </div>
+                <!-- Section: Abo-System Toggle -->
+                <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:1.5rem;margin-bottom:1.5rem;">
+                    <h3 style="margin-top:0;font-size:1.1rem;color:#1e293b;">🔧 Abo-System</h3>
+                    <label style="display:flex;align-items:center;gap:.75rem;font-size:.95rem;cursor:pointer;">
+                        <input type="checkbox" name="subscription_enabled" value="1" <?php echo ($sysSet['subscription_enabled'] == '1') ? 'checked' : ''; ?> style="width:18px;height:18px;">
+                        <span><strong>Abo-System aktiv</strong></span>
+                    </label>
+                    <p style="margin:.5rem 0 0 1.75rem;color:#64748b;font-size:.85rem;">Wenn deaktiviert haben alle Benutzer unbegrenzten Zugriff (Unlimited). Pakete werden nicht geprüft.</p>
+                    <div style="margin-top:1.25rem;">
+                        <label style="display:block;font-weight:600;margin-bottom:.4rem;font-size:.9rem;">Währung</label>
+                        <select name="subscription_currency" style="padding:.4rem .75rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.9rem;">
+                            <option value="EUR" <?php echo $sysSet['subscription_currency'] === 'EUR' ? 'selected' : ''; ?>>EUR (&euro;)</option>
+                            <option value="USD" <?php echo $sysSet['subscription_currency'] === 'USD' ? 'selected' : ''; ?>>USD ($)</option>
+                            <option value="CHF" <?php echo $sysSet['subscription_currency'] === 'CHF' ? 'selected' : ''; ?>>CHF (Fr.)</option>
+                        </select>
+                    </div>
+                </div>
 
-            <?php if (empty($plans)): ?>
-                <p>Keine Pakete vorhanden. <a href="#" onclick="document.getElementById('create-plan-modal').style.display='flex'; return false;">Erstellen Sie eins</a> oder nutzen Sie die Standard-Pakete (in Übersicht).</p>
-            <?php else: ?>
-                <table class="settings-table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Slug</th>
-                            <th>Preis (M/J)</th>
-                            <th>Limits (Exp/Comp/Event)</th>
-                            <th>Aktionen</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($plans as $plan): ?>
-                        <tr>
-                            <td><strong><?php echo htmlspecialchars($plan->name); ?></strong></td>
-                            <td><?php echo htmlspecialchars($plan->slug); ?></td>
-                            <td>
-                                €<?php echo number_format((float)$plan->price_monthly, 2); ?> / 
-                                €<?php echo number_format((float)$plan->price_yearly, 2); ?>
-                            </td>
-                            <td>
-                                <?php echo $plan->limit_experts == -1 ? '∞' : $plan->limit_experts; ?> / 
-                                <?php echo $plan->limit_companies == -1 ? '∞' : $plan->limit_companies; ?> / 
-                                <?php echo $plan->limit_events == -1 ? '∞' : $plan->limit_events; ?>
-                            </td>
-                            <td>
-                                <a href="?tab=settings&edit_id=<?php echo $plan->id; ?>" class="btn btn-sm btn-secondary">✏️</a>
-                                <form method="POST" style="display:inline;" onsubmit="return confirm('Paket wirklich löschen?');">
-                                    <input type="hidden" name="action" value="delete_plan">
-                                    <input type="hidden" name="plan_id" value="<?php echo $plan->id; ?>">
-                                    <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                                    <button class="btn btn-sm btn-danger" style="background:#fee2e2;color:#991b1b;">🗑</button>
-                                </form>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            <?php endif; ?>
+                <!-- Section: Zahlungsmethoden -->
+                <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:1.5rem;margin-bottom:1.5rem;">
+                    <h3 style="margin-top:0;font-size:1.1rem;color:#1e293b;">💳 Zahlungsmethoden</h3>
+                    <p style="color:#64748b;font-size:.85rem;margin-top:0;">Diese Informationen werden Mitgliedern beim Abschluss eines Abos angezeigt.</p>
+                    <div class="form-group" style="margin-bottom:1rem;">
+                        <label style="display:block;font-weight:600;margin-bottom:.4rem;font-size:.9rem;">Bankverbindung (Überweisung)</label>
+                        <textarea name="payment_info_bank" rows="3" style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.875rem;resize:vertical;" placeholder="Kontoinhaber, IBAN, BIC, Bankname..."><?php echo htmlspecialchars($sysSet['payment_info_bank']); ?></textarea>
+                    </div>
+                    <div class="form-group" style="margin-bottom:1rem;">
+                        <label style="display:block;font-weight:600;margin-bottom:.4rem;font-size:.9rem;">PayPal</label>
+                        <input type="text" name="payment_info_paypal" value="<?php echo htmlspecialchars($sysSet['payment_info_paypal']); ?>" style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.875rem;" placeholder="PayPal.Me Link oder E-Mail...">
+                    </div>
+                    <div class="form-group">
+                        <label style="display:block;font-weight:600;margin-bottom:.4rem;font-size:.9rem;">Allgemeine Zahlungshinweise</label>
+                        <textarea name="payment_info_note" rows="2" style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.875rem;resize:vertical;" placeholder="z.B. Rechnung nach Zahlungseingang..."><?php echo htmlspecialchars($sysSet['payment_info_note']); ?></textarea>
+                    </div>
+                </div>
+
+                <!-- Section: Rechtliche Seiten -->
+                <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:1.5rem;margin-bottom:1.5rem;">
+                    <h3 style="margin-top:0;font-size:1.1rem;color:#1e293b;">📄 Rechtliche Seiten</h3>
+                    <p style="color:#64748b;font-size:.85rem;margin-top:0;">URLs zu Pflichtseiten – werden im Checkout verlinkt.</p>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;">
+                        <div class="form-group">
+                            <label style="display:block;font-weight:600;margin-bottom:.4rem;font-size:.9rem;">AGB URL</label>
+                            <input type="url" name="agb_url" value="<?php echo htmlspecialchars($sysSet['agb_url']); ?>" style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.875rem;" placeholder="https://...">
+                        </div>
+                        <div class="form-group">
+                            <label style="display:block;font-weight:600;margin-bottom:.4rem;font-size:.9rem;">Impressum URL</label>
+                            <input type="url" name="impressum_url" value="<?php echo htmlspecialchars($sysSet['impressum_url']); ?>" style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.875rem;" placeholder="https://...">
+                        </div>
+                        <div class="form-group">
+                            <label style="display:block;font-weight:600;margin-bottom:.4rem;font-size:.9rem;">Widerruf URL</label>
+                            <input type="url" name="widerruf_url" value="<?php echo htmlspecialchars($sysSet['widerruf_url']); ?>" style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.875rem;" placeholder="https://...">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: Rechnungsabsender -->
+                <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:1.5rem;margin-bottom:1.5rem;">
+                    <h3 style="margin-top:0;font-size:1.1rem;color:#1e293b;">🏢 Rechnungsabsender</h3>
+                    <p style="color:#64748b;font-size:.85rem;margin-top:0;">Werden auf Rechnungen als Absender gedruckt.</p>
+                    <div class="form-group" style="margin-bottom:1rem;">
+                        <label style="display:block;font-weight:600;margin-bottom:.4rem;font-size:.9rem;">Unternehmensname</label>
+                        <input type="text" name="company_invoice_name" value="<?php echo htmlspecialchars($sysSet['company_invoice_name']); ?>" style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.875rem;" placeholder="Ihr Unternehmen GmbH">
+                    </div>
+                    <div class="form-group">
+                        <label style="display:block;font-weight:600;margin-bottom:.4rem;font-size:.9rem;">Adresse</label>
+                        <textarea name="company_invoice_address" rows="3" style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.875rem;resize:vertical;" placeholder="Straße, PLZ Stadt, Land"><?php echo htmlspecialchars($sysSet['company_invoice_address']); ?></textarea>
+                    </div>
+                </div>
+
+                <!-- Section: Bestellnummern -->
+                <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:1.5rem;margin-bottom:1.5rem;">
+                    <h3 style="margin-top:0;font-size:1.1rem;color:#1e293b;">📋 Bestellnummern</h3>
+                    <div class="form-group">
+                        <label style="display:block;font-weight:600;margin-bottom:.4rem;font-size:.9rem;">Format</label>
+                        <input type="text" name="order_number_format" value="<?php echo htmlspecialchars($sysSet['order_number_format']); ?>" style="width:100%;max-width:320px;padding:.5rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.875rem;">
+                        <p style="margin:.4rem 0 0;color:#64748b;font-size:.8rem;">Platzhalter: <code>{Y}</code> Jahr &middot; <code>{M}</code> Monat &middot; <code>{D}</code> Tag &middot; <code>{ID}</code> Bestell-ID &middot; <code>{R}</code> Zufallscode</p>
+                    </div>
+                </div>
+
+                <div class="form-actions" style="margin-top:.5rem;">
+                    <button type="submit" class="btn btn-primary">💾 Einstellungen speichern</button>
+                </div>
+            </form>
 
         <!-- CONTENT: ZUWEISUNGEN -->
         <?php elseif ($activeTab === 'assignments'): ?>
-            <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;border-bottom:2px solid #e2e8f0;padding-bottom:1rem;">
-                <a href="?tab=assignments&sub=users" class="btn btn-sm <?php echo ($activeSub !== 'groups') ? 'btn-primary' : 'btn-secondary'; ?>">👤 Benutzer</a>
-                <a href="?tab=assignments&sub=groups" class="btn btn-sm <?php echo ($activeSub === 'groups') ? 'btn-primary' : 'btn-secondary'; ?>">🫂 Gruppen</a>
-            </div>
-
-            <?php if ($activeSub !== 'groups'): ?>
             <div class="admin-section-header">
-                <h3>Benutzer-Zuweisungen</h3>
+                <h3>👤 Benutzer-Zuweisungen</h3>
             </div>
             
             <!-- Assign Form -->
@@ -629,11 +666,11 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 <?php endif; ?>
             </div>
 
-            <?php else: // sub=groups ?>
+            <div style="height:1.5rem;"></div>
 
             <div class="admin-section-header">
-                <h3>Gruppen-Zuweisungen</h3>
-                <p style="color:#64748b;font-size:.9rem;">Weise jeder Gruppe ein Abo-Paket zu. Mitglieder der Gruppe erhalten damit die Rechte des Paketes.</p>
+                <h3>🫂 Gruppen-Zuweisungen</h3>
+                <p style="color:#64748b;font-size:.9rem;">Weise jeder Gruppe ein Abo-Paket zu. Mitglieder erhalten damit die Rechte des Paketes.</p>
             </div>
 
             <?php if (empty($groups)): ?>
@@ -695,78 +732,19 @@ require_once __DIR__ . '/partials/admin-menu.php';
             </div>
             <?php endif; ?>
 
-            <?php endif; // end sub-tab (users/groups) ?>
-
-        <?php elseif ($activeTab === 'payments'): ?>
-            <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;border-bottom:2px solid #e2e8f0;padding-bottom:1rem;">
-                <a href="?tab=settings" class="btn btn-sm btn-secondary">📦 Paket-Editor</a>
-                <a href="?tab=payments" class="btn btn-sm btn-primary">💳 Zahlungsarten</a>
-            </div>
-
-            <div class="admin-section-header">
-                <h3>Zahlungsinformationen</h3>
-                <p style="color: #64748b; font-size: 0.9rem;">Diese Informationen werden Mitgliedern angezeigt, wenn sie ein Abo abschließen oder upgraden möchten.</p>
-            </div>
-            
-            <div style="background: white; padding: 2rem; border-radius: 8px; border:1px solid #e2e8f0; max-width: 800px;">
-                <form method="POST" class="admin-form">
-                    <input type="hidden" name="action" value="update_payments">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                    
-                    <?php
-                    // Fetch current values
-                    $paySettings = [
-                        'bank'   => $db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'payment_info_bank'"),
-                        'paypal' => $db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'payment_info_paypal'"),
-                        'note'   => $db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'payment_info_note'"),
-                        'order_format' => $db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'order_number_format'") ?? 'ORD-{Y}-{ID}',
-                    ];
-                    ?>
-                    
-                    <div class="form-group" style="margin-bottom:2rem; padding-bottom:2rem; border-bottom:1px dashed #e2e8f0;">
-                         <label style="font-weight:600;">Bestellnummer Format</label>
-                         <input type="text" name="order_number_format" value="<?php echo htmlspecialchars($paySettings['order_format']); ?>" style="width:100%; padding:0.5rem; border:1px solid #cbd5e1; border-radius:4px;">
-                         <small style="color:#64748b; display:block; margin-top:0.25rem;">
-                             Verfügbare Platzhalter: <code>{Y}</code> (Jahr), <code>{m}</code> (Monat), <code>{d}</code> (Tag), <code>{ID}</code> (Bestell-ID).
-                         </small>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Bankverbindung (Überweisung)</label>
-                        <textarea name="payment_bank" rows="4" style="width:100%;" placeholder="Kontoinhaber, IBAN, BIC, Bankname..."><?php echo htmlspecialchars($paySettings['bank'] ?? ''); ?></textarea>
-                        <small style="color:#64748b; display:block; margin-top:0.25rem;">Wird bei Auswahl "Überweisung" angezeigt.</small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>PayPal Informationen</label>
-                        <textarea name="payment_paypal" rows="2" style="width:100%;" placeholder="PayPal.Me Link oder E-Mail Adresse..."><?php echo htmlspecialchars($paySettings['paypal'] ?? ''); ?></textarea>
-                        <small style="color:#64748b; display:block; margin-top:0.25rem;">Link oder Anweisungen für PayPal-Zahlungen.</small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Allgemeine Hinweise zur Zahlung</label>
-                        <textarea name="payment_note" rows="3" style="width:100%;" placeholder="z.B. Rechnungsstellung erfolgt nach Zahlungseingang..."><?php echo htmlspecialchars($paySettings['note'] ?? ''); ?></textarea>
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Speichern</button>
-                    </div>
-                </form>
-            </div>
-
         <?php endif; ?>
     </div>
     
     <!-- Create/Edit Plan Modal -->
     <?php 
-    $showModal = (isset($editPlan) || ($activeTab === 'settings' && isset($_GET['new'])));
+    $showModal = (isset($editPlan) || ($activeTab === 'plans' && isset($_GET['new'])));
     // If editPlan is set, populate fields. If not, empty.
     $p = $editPlan;
     ?>
     <div id="create-plan-modal" style="display: <?php echo $showModal ? 'flex' : 'none'; ?>; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
         <div style="background: white; padding: 2rem; border-radius: 12px; max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto;">
             <h2><?php echo $p ? 'Paket bearbeiten' : 'Neues Abo-Paket erstellen'; ?></h2>
-            <form method="POST" action="?tab=settings">
+            <form method="POST" action="?tab=plans">
                 <input type="hidden" name="action" value="<?php echo $p ? 'update_plan' : 'create_plan'; ?>">
                 <?php if ($p): ?><input type="hidden" name="plan_id" value="<?php echo $p->id; ?>"><?php endif; ?>
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
@@ -850,7 +828,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 
                 <div class="form-actions" style="margin-top: 2rem;">
                     <button type="submit" class="btn btn-primary"><?php echo $p ? 'Speichern' : 'Paket erstellen'; ?></button>
-                    <a href="?tab=settings" class="btn btn-secondary" onclick="document.getElementById('create-plan-modal').style.display='none'">
+                    <a href="?tab=plans" class="btn btn-secondary" onclick="document.getElementById('create-plan-modal').style.display='none'">
                         Abbrechen
                     </a>
                 </div>
