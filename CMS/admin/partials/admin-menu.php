@@ -167,6 +167,13 @@ function getAdminMenuItems(string $currentPage = ''): array
                     'active' => _adminNavIsActive('/admin/media?tab=categories'),
                 ],
                 [
+                    'slug'   => 'site-tables',
+                    'label'  => 'Site Tables',
+                    'icon'   => '📊',
+                    'url'    => '/admin/site-tables',
+                    'active' => _adminNavIsActive('/admin/site-tables'),
+                ],
+                [
                     'slug'   => 'media-settings',
                     'label'  => 'Einstellungen',
                     'icon'   => '⚙️',
@@ -271,6 +278,13 @@ function getAdminMenuItems(string $currentPage = ''): array
                     'icon'   => '🗂️',
                     'url'    => '/admin/menus',
                     'active' => _adminNavIsActive('/admin/menus') || $currentPage === 'menus',
+                ],
+                [
+                    'slug'   => 'table-of-contents',
+                    'label'  => 'Table of Contents',
+                    'icon'   => '📑',
+                    'url'    => '/admin/table-of-contents',
+                    'active' => _adminNavIsActive('/admin/table-of-contents') || $currentPage === 'table-of-contents',
                 ],
                 [
                     'slug'   => 'theme-marketplace',
