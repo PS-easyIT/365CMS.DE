@@ -1,0 +1,13 @@
+{
+  "slug": "365cms-core",
+  "name": "365CMS",
+  "type": "core",
+  "version": "0.21.3",
+  "min_php": "8.1",
+  "released": "2026-02-21",
+  "download_url": "",
+  "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/DOC/CHANGELOG.md",
+  "checksum_sha256": "",
+  "notes": "Initial release manifest – Download-URL wird nach erstem GitHub Release gesetzt.",
+  "critical": false
+}

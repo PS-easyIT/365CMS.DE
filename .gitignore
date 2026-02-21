@@ -47,6 +47,8 @@ package-lock.json
 CMSv1/
 PLUGINS/
 THEMES/
+DOC/audits/
+DOC/feature/
 
 # ----------------------------------------------------------------------
 # CMS v2 SPECIFIC
