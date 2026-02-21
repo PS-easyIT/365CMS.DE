@@ -124,6 +124,51 @@ class Router
             ThemeManager::instance()->render('search', ['results' => $results, 'query' => $query]);
         });
         
+        // Blog Routes
+        $this->addRoute('GET', '/blog', function() {
+            $db     = Database::instance();
+            $prefix = $db->prefix;
+            $page   = max(1, (int)($_GET['p'] ?? 1));
+            $perPage = 9;
+            $offset  = ($page - 1) * $perPage;
+            $total   = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}posts WHERE status = 'published'");
+            $posts   = $db->get_results(
+                "SELECT p.*, c.name AS category_name
+                 FROM {$prefix}posts p
+                 LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
+                 WHERE p.status = 'published'
+                 ORDER BY p.published_at DESC
+                 LIMIT {$perPage} OFFSET {$offset}"
+            ) ?: [];
+            ThemeManager::instance()->render('blog', [
+                'posts'       => $posts,
+                'total'       => $total,
+                'currentPage' => $page,
+                'totalPages'  => max(1, (int)ceil($total / $perPage)),
+                'perPage'     => $perPage,
+            ]);
+        });
+        $this->addRoute('GET', '/blog/:slug', function(string $slug) {
+            $db     = Database::instance();
+            $prefix = $db->prefix;
+            $post   = $db->get_row(
+                "SELECT p.*, u.display_name AS author_name, c.name AS category_name
+                 FROM {$prefix}posts p
+                 LEFT JOIN {$prefix}users u ON u.id = p.author_id
+                 LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
+                 WHERE p.slug = ? AND p.status = 'published'",
+                [$slug]
+            );
+            if (!$post) {
+                http_response_code(404);
+                ThemeManager::instance()->render('404');
+                return;
+            }
+            // View-Counter erhöhen
+            $db->execute("UPDATE {$prefix}posts SET views = views + 1 WHERE id = ?", [(int)$post->id]);
+            ThemeManager::instance()->render('blog-single', ['post' => $post]);
+        });
+
         // SEO Routes
         $this->addRoute('GET', '/sitemap.xml', [$this, 'serveSitemap']);
         $this->addRoute('GET', '/robots.txt', [$this, 'serveRobotsTxt']);
