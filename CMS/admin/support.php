@@ -186,6 +186,20 @@ if (($_GET['refresh'] ?? '') === '1') {
 }
 
 $docList    = fetchDocList($githubToken);
+
+// INDEX.md immer an erster Stelle in $docList (garantierter Fallback)
+$indexKey = null;
+foreach ($docList as $k => $doc) {
+    if (($doc['dir'] ?? '') === '' && strtolower($doc['name']) === 'index.md') {
+        $indexKey = $k;
+        break;
+    }
+}
+if ($indexKey !== null && $indexKey !== 0) {
+    $indexEntry = array_splice($docList, $indexKey, 1);
+    array_unshift($docList, $indexEntry[0]);
+}
+
 $activeDoc  = $_GET['doc'] ?? '';
 $docContent = null;
 $docTitle   = '';
@@ -650,7 +664,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                                 $dirInfo = $dirLabels[$dir] ?? ['icon' => '📁', 'label' => ucfirst(str_replace(['-', '_'], ' ', $dir))];
                                 ?>
                                 <li class="docs-sidebar-group">
-                                    <details<?php echo $groupIsActive ? ' open' : ''; ?>>
+                                    <details>
                                         <summary>
                                             <span class="dir-icon"><?php echo $dirInfo['icon']; ?></span>
                                             <?php echo htmlspecialchars($dirInfo['label']); ?>

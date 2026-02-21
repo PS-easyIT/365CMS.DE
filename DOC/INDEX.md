@@ -1,59 +1,3 @@
-# CMSv2 - Dokumentations-Index
-
-**Version:** 2.6.2  
-**Datum:** 19. Februar 2026  
-**Status:** Vollständig dokumentiert ✅
-
-## 🚀 Neueste Updates (v2.6.x)
-
-### v2.6.2 - Landing Page Service
-- **Footer Management** - Erweiterte Footer-Steuerung
-
-### v2.6.1 - Compliance
-- **Cookie Scanner** - Automatische DSGVO-Analyse
-
-### v2.6.0 - Admin Landing
-- **Admin Landing Page** - Neues Dashboard & Theme-Manager
-
-### v2.5.5 - Core Refactoring
-- **Struktur** - Optimierung der Namespace-Architektur
-
-### v2.4.0 - Member Service
-- **Refactoring** - Zentralisierung der Mitglieder-Logik
-
-### v2.3.0 - Themes
-- **Business Theme** - Neues Enterprise-Theme
-
-### v2.2.0 - Design
-- **Redesign v2** - Sticky Header, Dark Mode, Modern UI
-
----
-
-## 🎨 Features & Module
-
-### Theme-Editor mit Live-Customization
-- **50+ Theme-Optionen** in 8 Kategorien
-- **CSS-Generator** für automatische Style-Generierung
-- **Import/Export** für Theme-Settings
-- **Google Fonts** Integration (8 Fonts)
-- **Custom CSS/JS Editor**
-- **Dokumentation:** [theme/DEVELOPMENT.md](theme/DEVELOPMENT.md)
-
-### Default Theme v2.0.0 – Redesign (2026-02-19)
-- **Sticky Header** mit Scroll-Effekt (Navy → Dunkel beim Scrollen)
-- **Burger-Menü** mit CSS-Hamburger-Animation + Mobile Overlay
-- **Dark Mode Toggle** mit localStorage-Persistenz
-- **Scroll-Animationen** via IntersectionObserver
-- **Zweibandiger Footer** (footer-top + footer-bottom)
-- **Navy/Gold Farbpalette** nach WP-Theme-Vorbild
-- **Dokumentation:** [theme/README.md](theme/README.md)
-
-### System & Diagnose
-- **System-Monitoring** - PHP, MySQL, Dateisystem
-- **Datenbank-Tools** - Reparatur, Optimierung, Backup
-- **Security-Audit** - HTTPS, Failed Logins, Security Score
-- **Performance-Metrics** - Queries, Execution Time, Memory
-
 ## 📚 Haupt-Dokumentationen
 
 ### 1. README.md (Root)
@@ -528,7 +472,7 @@ Bitte melden via:
 
 ---
 
-## 🏠 Member-Bereich Dokumentation (v2.0.3)
+## 🏠 Member-Bereich
 
 | Dokument | Beschreibung |
 |----------|-------------|
@@ -537,11 +481,3 @@ Bitte melden via:
 | [member/VIEWS.md](member/VIEWS.md) | Alle Views mit Variablen-Referenz und JS-Verhalten |
 | [member/HOOKS.md](member/HOOKS.md) | 4 erweiterbare Hooks mit Codebeispielen |
 | [member/SECURITY.md](member/SECURITY.md) | CSRF, Escaping, Auth, DSGVO, Sicherheitscheckliste |
-
----
-
-**Letzte Aktualisierung:** 18. Februar 2026  
-**Dokumentations-Version:** 2.0.3  
-**Status:** Vollständig ✅  
-**Nächstes Review:** August 2026
-
