@@ -11,8 +11,8 @@ if (!defined('SITE_URL')) {
     require_once __DIR__ . '/../config.php';
 }
 
-use CMS\Core\Security;
-use CMS\Core\Database;
+use CMS\Security;
+use CMS\Database;
 
 // Must be logged in
 if (!isset($_SESSION['user_id'])) {
@@ -139,7 +139,8 @@ foreach ($users as $u) {
 }
 
 $page_title = 'Benutzer';
-include __DIR__ . '/layout/header.php';
+require_once __DIR__ . '/partials/admin-menu.php';
+renderAdminLayoutStart('Benutzer', 'users');
 ?>
 
 <style>
@@ -261,7 +262,7 @@ include __DIR__ . '/layout/header.php';
                         </span>
                     <?php else: ?>
                         <form method="POST" action="" style="display: inline;">
-                            <input type="hidden" name="csrf_token" value="<?php echo $security->getToken('change_role'); ?>">
+                            <input type="hidden" name="csrf_token" value="<?php echo $security->generateToken('change_role'); ?>">
                             <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
                             <select name="new_role" onchange="if(confirm('Rolle wirklich ändern?')) this.form.submit();" 
                                     style="padding: 3px 8px; border-radius: 12px; border: 1px solid #e2e8f0; font-size: 0.75rem; font-weight: 600; background: <?php echo $u['role'] === 'admin' ? '#fef3c7' : '#dbeafe'; ?>; color: <?php echo $u['role'] === 'admin' ? '#92400e' : '#1e40af'; ?>;">
@@ -277,7 +278,7 @@ include __DIR__ . '/layout/header.php';
                 </td>
                 <td style="padding: 1rem; text-align: right;">
                     <?php if ($u['id'] != $current_user_id): ?>
-                        <a href="?delete=<?php echo $u['id']; ?>&token=<?php echo $security->getToken('delete_user_' . $u['id']); ?>" 
+                        <a href="?delete=<?php echo $u['id']; ?>&token=<?php echo $security->generateToken('delete_user_' . $u['id']); ?>" 
                            onclick="return confirm('Benutzer \'<?php echo htmlspecialchars($u['username']); ?>\' wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden!');" 
                            class="btn" style="color: #ef4444; padding: 0.5rem 1rem;">
                             <i class="fa-solid fa-trash"></i> Löschen
@@ -299,7 +300,7 @@ include __DIR__ . '/layout/header.php';
             <i class="fa-solid fa-user-plus"></i> Neuen Benutzer erstellen
         </h3>
         <form method="POST" action="">
-            <input type="hidden" name="csrf_token" value="<?php echo $security->getToken('create_user'); ?>">
+            <input type="hidden" name="csrf_token" value="<?php echo $security->generateToken('create_user'); ?>">
             <input type="hidden" name="create_user" value="1">
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
@@ -344,4 +345,4 @@ include __DIR__ . '/layout/header.php';
     </div>
 </div>
 
-<?php include __DIR__ . '/layout/footer.php'; ?>
+<?php renderAdminLayoutEnd(); ?>

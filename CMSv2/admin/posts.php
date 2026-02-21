@@ -292,7 +292,7 @@ renderAdminLayoutStart('Beiträge', 'posts');
 .posts-table th{background:#f8fafc;padding:.55rem .7rem;text-align:left;font-weight:600;color:#374151;border-bottom:2px solid #e2e8f0;white-space:nowrap;}
 .posts-table td{padding:.6rem .7rem;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
 .posts-table tr:hover td{background:#f8fafc;}
-.col-check{width:30px;}.col-img{width:58px;}.col-status{width:110px;}.col-cat{width:130px;}.col-date{width:140px;}.col-views{width:60px;text-align:right;}.col-actions{width:110px;text-align:right;}
+.col-check{width:30px;}.col-img{width:58px;}.col-status{width:110px;}.col-cat{width:130px;}.col-date{width:140px;}.col-views{width:60px;text-align:right;}.col-actions{width:140px;text-align:right;}
 .status-badge{display:inline-flex;align-items:center;gap:.2rem;padding:.2rem .5rem;border-radius:99px;font-size:.74rem;font-weight:600;}
 .status-published{background:#dcfce7;color:#15803d;}.status-draft{background:#fef9c3;color:#854d0e;}.status-trash{background:#fee2e2;color:#b91c1c;}
 .post-thumb{width:46px;height:34px;object-fit:cover;border-radius:4px;border:1px solid #e2e8f0;}
@@ -515,14 +515,7 @@ elseif ($view === 'edit'):
                     <?php if (!$isNew): ?>
                     <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($pd['slug']); ?>" target="_blank"
                        class="btn-sm btn-secondary" style="text-align:center;">👁️ Vorschau</a>
-                    <form method="post" action="<?php echo SITE_URL; ?>/admin/posts" style="margin:0;"
-                          onsubmit="return confirm('In Papierkorb?');">
-                        <input type="hidden" name="_csrf"       value="<?php echo $csrf; ?>">
-                        <input type="hidden" name="_action"     value="delete_post">
-                        <input type="hidden" name="post_id"     value="<?php echo (int)$pd['id']; ?>">
-                        <input type="hidden" name="delete_mode" value="trash">
-                        <button type="submit" class="btn-sm btn-danger" style="width:100%;">🗑️ In Papierkorb</button>
-                    </form>
+                    <button type="submit" form="deletePostForm" class="btn-sm btn-danger" style="width:100%;">🗑️ In Papierkorb</button>
                     <?php endif; ?>
                 </div>
             </div>
@@ -583,6 +576,15 @@ elseif ($view === 'edit'):
     </div><!-- /.post-edit-layout -->
 </form>
 
+<?php if (!$isNew): ?>
+<form id="deletePostForm" method="post" action="<?php echo SITE_URL; ?>/admin/posts" style="display:none;" onsubmit="return confirm('In Papierkorb?');">
+    <input type="hidden" name="_csrf"       value="<?php echo $csrf; ?>">
+    <input type="hidden" name="_action"     value="delete_post">
+    <input type="hidden" name="post_id"     value="<?php echo (int)$pd['id']; ?>">
+    <input type="hidden" name="delete_mode" value="trash">
+</form>
+<?php endif; ?>
+
 <?php /* ===============================================================
         LISTEN-ANSICHT
    =============================================================== */
@@ -591,18 +593,20 @@ else: // view === 'list'
     $whereParts = [];
     $params     = [];
     if ($status === 'all') {
-        $whereParts[] = "status != 'trash'";
+        $whereParts[] = "p.status != 'trash'";
     } else {
-        $whereParts[] = "status = ?";
+        $whereParts[] = "p.status = ?";
         $params[]     = $status;
     }
     if (!empty($search)) {
-        $whereParts[] = "(title LIKE ? OR excerpt LIKE ?)";
+        $whereParts[] = "(p.title LIKE ? OR p.excerpt LIKE ?)";
         $params[]     = '%' . $search . '%';
         $params[]     = '%' . $search . '%';
     }
     $where      = $whereParts ? ' WHERE ' . implode(' AND ', $whereParts) : '';
-    $total      = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}posts" . $where, $params);
+    // For COUNT query, we don't use aliases since it's just one table
+    $countWhere = str_replace(['p.status', 'p.title', 'p.excerpt'], ['status', 'title', 'excerpt'], $where);
+    $total      = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}posts" . $countWhere, $params);
     $totalPages = max(1, (int)ceil($total / $perPage));
     $page       = min($page, $totalPages);
     $offset     = ($page - 1) * $perPage;
@@ -726,23 +730,12 @@ else: // view === 'list'
                 <td class="col-views" style="color:#64748b;font-size:.8rem;"><?php echo number_format((int)$p->views); ?></td>
                 <td class="col-date" style="font-size:.78rem;color:#64748b;"><?php echo $dval; ?></td>
                 <td class="col-actions" style="white-space:nowrap;">
+                    <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($p->slug, ENT_QUOTES); ?>" target="_blank" class="btn-sm btn-secondary" title="Ansehen">👁️</a>
                     <a href="<?php echo SITE_URL; ?>/admin/posts?view=edit&id=<?php echo (int)$p->id; ?>" class="btn-sm btn-secondary" title="Bearbeiten">✏️</a>
                     <?php if ($p->status !== 'trash'): ?>
-                    <form method="post" action="<?php echo SITE_URL; ?>/admin/posts" style="display:inline;" onsubmit="return confirm('In Papierkorb?');">
-                        <input type="hidden" name="_csrf"       value="<?php echo $csrf; ?>">
-                        <input type="hidden" name="_action"     value="delete_post">
-                        <input type="hidden" name="post_id"     value="<?php echo (int)$p->id; ?>">
-                        <input type="hidden" name="delete_mode" value="trash">
-                        <button type="submit" class="btn-sm btn-danger">🗑️</button>
-                    </form>
+                    <button type="button" class="btn-sm btn-danger" onclick="deletePost(<?php echo (int)$p->id; ?>, 'trash', 'In Papierkorb?')">🗑️</button>
                     <?php else: ?>
-                    <form method="post" action="<?php echo SITE_URL; ?>/admin/posts" style="display:inline;" onsubmit="return confirm('ENDGÜLTIG löschen?');">
-                        <input type="hidden" name="_csrf"       value="<?php echo $csrf; ?>">
-                        <input type="hidden" name="_action"     value="delete_post">
-                        <input type="hidden" name="post_id"     value="<?php echo (int)$p->id; ?>">
-                        <input type="hidden" name="delete_mode" value="permanent">
-                        <button type="submit" class="btn-sm btn-danger">☠️</button>
-                    </form>
+                    <button type="button" class="btn-sm btn-danger" onclick="deletePost(<?php echo (int)$p->id; ?>, 'permanent', 'ENDGÜLTIG löschen?')">☠️</button>
                     <?php endif; ?>
                 </td>
             </tr>
@@ -767,6 +760,22 @@ else: // view === 'list'
     <?php endif; ?>
     <?php endif; // posts empty check ?>
 </form>
+
+<form id="listDeleteForm" method="post" action="<?php echo SITE_URL; ?>/admin/posts" style="display:none;">
+    <input type="hidden" name="_csrf"       value="<?php echo $csrf; ?>">
+    <input type="hidden" name="_action"     value="delete_post">
+    <input type="hidden" name="post_id"     id="listDeleteId" value="">
+    <input type="hidden" name="delete_mode" id="listDeleteMode" value="">
+</form>
+<script>
+function deletePost(id, mode, msg) {
+    if (confirm(msg)) {
+        document.getElementById('listDeleteId').value = id;
+        document.getElementById('listDeleteMode').value = mode;
+        document.getElementById('listDeleteForm').submit();
+    }
+}
+</script>
 
 <?php endif; // end views ?>
 
