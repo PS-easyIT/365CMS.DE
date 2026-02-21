@@ -1282,6 +1282,10 @@ Medien-Bibliothek
     ├─ 📁 Blog-Bilder
     ├─ 📁 Produkte
     └─ 📁 Downloads
+    └─ 📁 Experts
+    └─ 📁 Companys
+    └─ 📁 Speakers
+    └─ 📁 Events
 
 Medien-Details
 ├─ Vorschau (Thumbnail)
@@ -1319,74 +1323,6 @@ Bild-Editor
 - Mega-Menu-Support
 - Mobile-Menu-Konfiguration
 
-#### 7. Widget-System
-**Datei:** `/admin/widgets.php` (fehlt komplett)
-
-**Benötigte Funktionen:**
-- Drag & Drop Widget-Management
-- Widget-Areas definieren
-- Standard-Widgets (Text, Bild, RSS, Social, Search)
-- Custom-Widget-Builder
-- Widget-Vorschau
-- Conditional-Display
-- Widget-Export/Import
-
-#### 8. Formulare (Contact Forms)
-**Datei:** `/admin/forms.php` (fehlt komplett)
-
-**Benötigte Funktionen:**
-- Visual Form-Builder
-- Feldtypen: Text, Email, Textarea, Select, Radio, Checkbox, File-Upload
-- Spam-Protection (ReCAPTCHA, Honeypot)
-- E-Mail-Benachrichtigungen
-- Formular-Einträge speichern (DB)
-- Export (CSV, Excel)
-- Conditional-Logic (Felder ein-/ausblenden basierend auf Antworten)
-- Multi-Step-Forms
-
-#### 9. Analytics & Reporting
-**Datei:** `/admin/analytics.php` (fehlt komplett)
-
-**Benötigte Funktionen:**
-- Google Analytics Integration
-- Eigene Analytics (Pageviews, Visitors, Bounce Rate)
-- Conversion-Tracking
-- Event-Tracking
-- Custom-Reports
-- Export (PDF, CSV)
-- Dashboards mit Widgets
-- Real-Time-Stats
-
-#### 10. SEO-Tools (erweitert)
-**Datei:** `/admin/seo.php` (teilweise in Settings)
-
-**Fehlende Funktionen:**
-- Keyword-Analyse
-- Content-Optimierungs-Vorschläge
-- Readability-Score
-- Broken-Link-Checker
-- Redirect-Manager (301, 302)
-- Schema.org Markup Generator
-- Social-Media-Preview
-- XML-Sitemap-Generator (erweitert)
-
-#### 11. E-Commerce (Optional)
-**Datei:** `/admin/shop.php` (fehlt komplett)
-
-**Benötigte Funktionen (falls Shop gewünscht):**
-- Produkt-Verwaltung
-- Kategorien & Attribute
-- Varianten (Größe, Farbe)
-- Lagerbestand
-- Preise & Rabatte
-- Bestellverwaltung
-- Zahlungs-Gateways (PayPal, Stripe)
-- Versandoptionen
-- Rechnungserstellung
-- Statistiken (Umsatz, Bestseller)
-
-### 🟢 Nice-to-Have Features (Niedrige Priorität)
-
 #### 12. Rollen & Permissions (erweitert)
 **Datei:** `/admin/roles.php` (fehlt, basic in users.php)
 
@@ -1408,27 +1344,6 @@ Bild-Editor
 - RTL-Support (Arabisch, Hebräisch)
 - Automatische Übersetzung (DeepL, Google Translate API)
 - Translation-Management
-
-#### 14. Kommentar-System
-**Datei:** `/admin/comments.php` (fehlt komplett)
-
-**Benötigte Funktionen:**
-- Kommentare moderieren (Freigeben, Ablehnen, Spam)
-- Bulk-Aktionen
-- Anti-Spam (Akismet)
-- Kommentar-Notifications
-- Threaded-Comments (Antworten)
-- Kommentar-Bewertungen (Likes/Dislikes)
-
-#### 15. Revisions & Versionierung
-**Datei:** Teilweise vorhanden, nicht im Admin
-
-**Fehlende Funktionen:**
-- Revisions-Vergleich (Diff-View)
-- Restore-Funktion
-- Auto-Save
-- Revisions-Limit konfigurierbar
-- Versionshinweise beim Speichern
 
 #### 16. Cronjob-Manager
 **Datei:** `/admin/cron.php` (fehlt komplett)
@@ -1463,17 +1378,6 @@ Bild-Editor
 - Permissions ändern
 - Datei-Suche
 - Bulk-Operationen
-
-#### 19. Eingebauter Code-Editor
-**Datei:** Teilweise in Theme-Editor
-
-**Fehlende Funktionen:**
-- Syntax-Highlighting (PHP, CSS, JS)
-- Auto-Completion
-- Fehler-Anzeige (Linting)
-- Versionierung (Git-Integration)
-- Split-View (2 Dateien gleichzeitig)
-- Search & Replace (über mehrere Dateien)
 
 #### 20. Import/Export-Tools
 **Datei:** `/admin/import-export.php` (fehlt)

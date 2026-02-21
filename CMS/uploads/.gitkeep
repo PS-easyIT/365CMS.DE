@@ -1,0 +1,7 @@
+# Uploads Directory
+
+Dieser Ordner speichert User-Uploads und generierte Dateien.
+
+**Sicherheit:**
+- PHP-Ausführung ist über .htaccess deaktiviert
+- Zugriff nur auf Bild- und Dokument-Dateien

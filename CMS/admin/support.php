@@ -211,13 +211,21 @@ if ($activeDoc !== '') {
     }
 }
 
-// Wenn kein Doc gewählt → ersten aus der Liste öffnen (sofern vorhanden)
+// Wenn kein Doc gewählt → INDEX.md bevorzugen, sonst erstes Dokument
 if ($docContent === null && count($docList) > 0) {
-    $firstDoc   = $docList[0];
+    // INDEX.md im Root zuerst suchen (case-insensitive)
+    $indexDoc = null;
+    foreach ($docList as $candidate) {
+        if (($candidate['dir'] ?? '') === '' && strtolower($candidate['name']) === 'index.md') {
+            $indexDoc = $candidate;
+            break;
+        }
+    }
+    $firstDoc   = $indexDoc ?? $docList[0];
     $docContent = fetchDocContent($firstDoc['path'], $githubToken);
     $docTitle   = pathinfo($firstDoc['name'], PATHINFO_FILENAME);
     $docTitle   = str_replace(['-', '_'], ' ', $docTitle);
-    // DOC-relativer Pfad (z. B. "README.md" oder "admin/INSTALL.md")
+    // DOC-relativer Pfad (z. B. "INDEX.md" oder "admin/INSTALL.md")
     $activeDoc  = substr($firstDoc['path'], strlen(GITHUB_DOC_PATH) + 1);
 }
 
@@ -362,6 +370,21 @@ require_once __DIR__ . '/partials/admin-menu.php';
             border-left-color: #2563eb;
             font-weight: 600;
         }
+        .docs-sidebar-root-header {
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+            padding: .45rem 1rem;
+            font-size: .75rem;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            background: #f8fafc;
+            border-top: 1px solid #f1f5f9;
+        }
+        .docs-sidebar-root-header:first-child { border-top: none; }
+        .dir-icon { font-style: normal; flex-shrink: 0; }
 
         /* ── Doc Viewer ── */
         .doc-viewer {
@@ -575,24 +598,63 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     </div>
                 <?php else: ?>
                     <?php
+                    // Ordner-Kategorien mit Icons + lesbaren Labels
+                    $dirLabels = [
+                        ''         => ['icon' => '📄', 'label' => 'Übersicht'],
+                        'admin'    => ['icon' => '⚙️',  'label' => 'Admin-Bereich'],
+                        'core'     => ['icon' => '🔧', 'label' => 'Core & System'],
+                        'feature'  => ['icon' => '✨', 'label' => 'Features'],
+                        'member'   => ['icon' => '👤', 'label' => 'Mitglieder'],
+                        'plugins'  => ['icon' => '🔌', 'label' => 'Plugins'],
+                        'theme'    => ['icon' => '🎨', 'label' => 'Theme & Design'],
+                        'workflow' => ['icon' => '🔄', 'label' => 'Workflows'],
+                        'audits'   => ['icon' => '🔍', 'label' => 'Audits'],
+                    ];
+
                     // Nach Unterordner gruppieren; Root-Einträge zuerst
                     $grouped = [];
                     foreach ($docList as $doc) {
                         $grouped[$doc['dir'] ?? ''][] = $doc;
                     }
-                    uksort($grouped, function($a, $b) {
-                        if ($a === '') return -1;
-                        if ($b === '') return  1;
-                        return strcmp($a, $b);
-                    });
+
+                    // INDEX.md im Root immer ganz oben
+                    if (isset($grouped[''])) {
+                        usort($grouped[''], function($a, $b) {
+                            $aIsIndex = strtolower($a['name']) === 'index.md';
+                            $bIsIndex = strtolower($b['name']) === 'index.md';
+                            if ($aIsIndex) return -1;
+                            if ($bIsIndex) return  1;
+                            return strcmp($a['name'], $b['name']);
+                        });
+                    }
+
+                    // Reihenfolge: Root, dann bekannte Ordner in definieter Reihenfolge, dann Rest
+                    $knownOrder = ['', 'core', 'admin', 'member', 'plugins', 'theme', 'feature', 'workflow', 'audits'];
+                    $orderedGrouped = [];
+                    foreach ($knownOrder as $k) {
+                        if (isset($grouped[$k])) {
+                            $orderedGrouped[$k] = $grouped[$k];
+                            unset($grouped[$k]);
+                        }
+                    }
+                    uksort($grouped, fn($a, $b) => strcmp($a, $b));
+                    $grouped = array_merge($orderedGrouped, $grouped);
                     ?>
                     <ul class="docs-sidebar-list">
                         <?php foreach ($grouped as $dir => $dirDocs): ?>
                             <?php if ($dir !== ''): ?>
                                 <!-- Unterordner-Gruppe -->
+                                <?php
+                                // Gruppe aufklappen wenn aktives Dokument darin liegt
+                                $groupIsActive = str_starts_with($activeDoc, $dir . '/');
+                                $dirInfo = $dirLabels[$dir] ?? ['icon' => '📁', 'label' => ucfirst(str_replace(['-', '_'], ' ', $dir))];
+                                ?>
                                 <li class="docs-sidebar-group">
-                                    <details open>
-                                        <summary><?php echo htmlspecialchars(str_replace(['-', '_', '/'], [' ', ' ', ' / '], $dir)); ?></summary>
+                                    <details<?php echo $groupIsActive ? ' open' : ''; ?>>
+                                        <summary>
+                                            <span class="dir-icon"><?php echo $dirInfo['icon']; ?></span>
+                                            <?php echo htmlspecialchars($dirInfo['label']); ?>
+                                        </summary>
                                         <ul class="docs-sidebar-sublist">
                                             <?php foreach ($dirDocs as $doc):
                                                 $docRelPath = substr($doc['path'], strlen(GITHUB_DOC_PATH) + 1);
@@ -612,6 +674,11 @@ require_once __DIR__ . '/partials/admin-menu.php';
                                 </li>
                             <?php else: ?>
                                 <!-- Root-Dateien -->
+                                <?php $rootInfo = $dirLabels[''] ?? ['icon' => '📄', 'label' => 'Übersicht']; ?>
+                                <li class="docs-sidebar-root-header">
+                                    <span class="dir-icon"><?php echo $rootInfo['icon']; ?></span>
+                                    <?php echo htmlspecialchars($rootInfo['label']); ?>
+                                </li>
                                 <?php foreach ($dirDocs as $doc):
                                     $docRelPath = substr($doc['path'], strlen(GITHUB_DOC_PATH) + 1);
                                     $docLabel   = str_replace(['-', '_'], ' ', pathinfo($doc['name'], PATHINFO_FILENAME));
@@ -641,9 +708,10 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         </h1>
                         <div class="doc-actions">
                             <?php
+                            // $activeDoc enthält den DOC-relativen Pfad (z. B. "README.md" oder "admin/INSTALL.md")
                             $currentDocFile = count($docList) > 0
                                 ? ($activeDoc !== ''
-                                    ? GITHUB_DOC_PATH . '/' . basename($activeDoc)
+                                    ? GITHUB_DOC_PATH . '/' . $activeDoc
                                     : $docList[0]['path'])
                                 : '';
                             $ghUrl = $currentDocFile
