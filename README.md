@@ -1,4 +1,4 @@
-﻿# 365CMS.DE - V0.8.24 — Stable
+﻿# 365CMS.DE | V0.8.24
  ---
 ## Sicheres, modulares und erweiterbares Content Management System
 ---
