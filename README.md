@@ -1,4 +1,5 @@
-﻿# 365CMS v0.26.13 — Stable
+﻿# 365CMS.DE - V0.8.24 — Stable
+ ---
 ## Sicheres, modulares und erweiterbares Content Management System
 ---
 ## HTTPS://365CMS.DE
@@ -611,7 +612,7 @@ Vollständiges Schema: [doc/DATABASE-SCHEMA.md](doc/DATABASE-SCHEMA.md)
 
 ## 🔄 Versions-Historie
 
-### v0.26.13 (Februar 2026) - AKTUELL
+### v0.8.24 (Februar 2026) - AKTUELL
 
 **Neu:**
 - ✅ Theme-Editor mit Live-Customization
@@ -637,7 +638,7 @@ Vollständiges Schema: [doc/DATABASE-SCHEMA.md](doc/DATABASE-SCHEMA.md)
 - ✅ Tab-Wechsel im Theme-Editor
 - ✅ CSS !important für Tab-Switching
 
-### v1.0.0 (Januar 2025 - Februar 2026)
+### v0.4.0 (Januar 2025 - Februar 2026)
 
 **Initial Release - only INTERNAL used:**
 - ✅ Core-System mit PDO
