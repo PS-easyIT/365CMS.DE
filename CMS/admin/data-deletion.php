@@ -53,8 +53,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // 2. Delete Meta (Optional: keep some order meta if needed for accounting, but generally delete personal meta)
             // We delete all meta for strict GDPR "Right to be Forgotten" except maybe flags that indicate deletion
-            $db->execute("DELETE FROM {$db->getPrefix()}usermeta WHERE user_id = ?", [$uid]);
-            $db->execute("INSERT INTO {$db->getPrefix()}usermeta (user_id, meta_key, meta_value) VALUES (?, 'is_anonymized', '1')", [$uid]);
+            $db->execute("DELETE FROM {$db->getPrefix()}user_meta WHERE user_id = ?", [$uid]);
+            $db->execute("INSERT INTO {$db->getPrefix()}user_meta (user_id, meta_key, meta_value) VALUES (?, 'is_anonymized', '1')", [$uid]);
 
             // 3. Anonymize Orders (if exist)
             // Ideally we keep the order record for tax reasons but remove personal data from it if stored there

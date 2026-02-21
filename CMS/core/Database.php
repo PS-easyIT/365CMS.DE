@@ -474,6 +474,67 @@ class Database
                 INDEX idx_plan_id (plan_id),
                 INDEX idx_status (status),
                 INDEX idx_created_at (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=" . DB_CHARSET,
+
+            // Blocked IPs table
+            "CREATE TABLE IF NOT EXISTS {$this->prefix}blocked_ips (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                ip_address VARCHAR(45) NOT NULL UNIQUE,
+                reason VARCHAR(255),
+                expires_at DATETIME,
+                permanent TINYINT(1) DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_ip (ip_address),
+                INDEX idx_expires (expires_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=" . DB_CHARSET,
+
+            // Failed Logins table
+            "CREATE TABLE IF NOT EXISTS {$this->prefix}failed_logins (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                username VARCHAR(60),
+                ip_address VARCHAR(45),
+                attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                user_agent VARCHAR(255),
+                INDEX idx_username (username),
+                INDEX idx_ip (ip_address),
+                INDEX idx_time (attempted_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=" . DB_CHARSET,
+            
+            // Media table
+            "CREATE TABLE IF NOT EXISTS {$this->prefix}media (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                filename VARCHAR(255) NOT NULL,
+                filepath VARCHAR(500) NOT NULL,
+                filetype VARCHAR(50),
+                filesize INT UNSIGNED,
+                title VARCHAR(255),
+                alt_text VARCHAR(255),
+                caption TEXT,
+                uploaded_by INT UNSIGNED,
+                uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_type (filetype),
+                INDEX idx_uploader (uploaded_by)
+            ) ENGINE=InnoDB DEFAULT CHARSET=" . DB_CHARSET,
+
+            // Page Views table (Analytics)
+            "CREATE TABLE IF NOT EXISTS {$this->prefix}page_views (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                page_id INT UNSIGNED NULL,
+                page_slug VARCHAR(200),
+                page_title VARCHAR(255),
+                user_id INT UNSIGNED NULL,
+                session_id VARCHAR(128),
+                ip_address VARCHAR(45),
+                user_agent VARCHAR(500),
+                referrer VARCHAR(500),
+                visited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_page_id (page_id),
+                INDEX idx_page_slug (page_slug),
+                INDEX idx_user_id (user_id),
+                INDEX idx_session_id (session_id),
+                INDEX idx_visited_at (visited_at),
+                INDEX idx_date (visited_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=" . DB_CHARSET
         ];
         

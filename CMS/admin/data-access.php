@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ];
             
             // Meta
-            $meta = $db->execute("SELECT meta_key, meta_value FROM {$db->getPrefix()}usermeta WHERE user_id = ?", [$uid])->fetchAll();
+            $meta = $db->execute("SELECT meta_key, meta_value FROM {$db->getPrefix()}user_meta WHERE user_id = ?", [$uid])->fetchAll();
             $export['meta'] = $meta;
 
             // Orders (if exist)
@@ -83,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $userData = $db->execute("SELECT * FROM {$db->getPrefix()}users WHERE user_email = ?", [$searchEmail])->fetch();
         if ($userData) {
             // Count related items
-            $relatedData['meta_count'] = $db->execute("SELECT COUNT(*) as c FROM {$db->getPrefix()}usermeta WHERE user_id = ?", [$userData->id])->fetch()->c;
+            $relatedData['meta_count'] = $db->execute("SELECT COUNT(*) as c FROM {$db->getPrefix()}user_meta WHERE user_id = ?", [$userData->id])->fetch()->c;
             try {
                 $relatedData['order_count'] = $db->execute("SELECT COUNT(*) as c FROM {$db->getPrefix()}orders WHERE user_id = ?", [$userData->id])->fetch()->c;
             } catch (Exception $e) { $relatedData['order_count'] = 0; }

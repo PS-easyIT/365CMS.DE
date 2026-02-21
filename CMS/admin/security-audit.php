@@ -52,7 +52,7 @@ $auditResults[] = [
 ];
 
 // 4. Admin Account Check
-$admins = $db->execute("SELECT user_login FROM {$db->getPrefix()}users u JOIN {$db->getPrefix()}usermeta m ON u.id = m.user_id WHERE m.meta_key = 'role' AND m.meta_value = 'admin'")->fetchAll();
+$admins = $db->execute("SELECT user_login FROM {$db->getPrefix()}users u JOIN {$db->getPrefix()}user_meta m ON u.id = m.user_id WHERE m.meta_key = 'role' AND m.meta_value = 'admin'")->fetchAll();
 $hasDefaultAdmin = false;
 foreach ($admins as $a) {
     if (strtolower($a->user_login) === 'admin' || strtolower($a->user_login) === 'administrator') {

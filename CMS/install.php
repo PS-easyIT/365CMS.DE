@@ -277,25 +277,6 @@ function createDatabaseTables(PDO $pdo, string $prefix = 'cms_'): array {
             INDEX idx_expires (expires_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
         
-        'page_views' => "CREATE TABLE IF NOT EXISTS {$prefix}page_views (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            page_id INT UNSIGNED,
-            page_slug VARCHAR(255) NOT NULL,
-            page_title VARCHAR(255),
-            user_id INT UNSIGNED,
-            session_id VARCHAR(128),
-            ip_address VARCHAR(45),
-            user_agent VARCHAR(500),
-            referrer VARCHAR(500),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_page_id (page_id),
-            INDEX idx_page_slug (page_slug),
-            INDEX idx_user_id (user_id),
-            INDEX idx_session_id (session_id),
-            INDEX idx_created_at (created_at),
-            INDEX idx_ip_address (ip_address)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-        
         'login_attempts' => "CREATE TABLE IF NOT EXISTS {$prefix}login_attempts (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             username VARCHAR(60),
