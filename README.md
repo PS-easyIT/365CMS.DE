@@ -1,7 +1,9 @@
-# 365CMS v2.6.3
+# 365CMS v0.4.0
 ## - sicheres, modulares und erweiterbares Content Management System
 ---
-## HTTPS://365CMS.DE  
+## HTTPS://365CMS.DE
+
+> **Entwicklungsstatus:** Aktive Entwicklung · Versionierung nach [SemVer 0.x](https://semver.org/) (kein stabiles Release)
 
 Ein sicheres, modulares und erweiterbares Content Management System mit umfassendem Plugin- und Theme-Support.
 
@@ -14,8 +16,15 @@ Ein sicheres, modulares und erweiterbares Content Management System mit umfassen
 - ✅ **Theme-Editor** - Vollständiger visueller Theme-Customizer mit 50+ Optionen
 - ✅ **Sicherheit** - CSRF-Schutz, XSS-Prevention, Rate Limiting, Prepared Statements
 - ✅ **Performance** - Optimierte PDO-Datenbankabfragen, Query-Caching
-- ✅ **Benutzerverwaltung** - Login, Register, Rollen (Admin/Member)
-- ✅ **Admin-Backend** - Vollständiges Admin-Panel mit Dashboard
+- ✅ **Benutzerverwaltung** - Login, Register, Rollen (Admin/Member), Gruppen
+- ✅ **Admin-Backend** - Vollständiges Admin-Panel mit Dashboard (Version-Badge)
+
+### Abo-Verwaltung
+- 💳 **Pakete** - Übersicht mit inline Edit/Delete pro Plan-Card, Neues-Paket-Modal
+- ⚙️ **Einstellungen** - Abo-System Toggle (unlimited wenn aus), Währung, Zahlungsmethoden,
+  Rechtliche Seiten (AGB, Impressum, Widerruf), Rechnungsabsender, Bestellnummern-Format
+- 🔗 **Zuweisungen** - Benutzer-Abos & Gruppen-Pakete in einer Übersicht
+- 🛒 **Bestellungen** - Order-Management mit Status-Tracking
 
 ### Theme-System Features
 - 🎨 **Live Theme Customization** - Über 50 Anpassungsoptionen in 8 Kategorien

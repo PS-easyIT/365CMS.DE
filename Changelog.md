@@ -1,34 +1,78 @@
-# CMSv2 Changelog - 20. Februar 2026
+# 365CMS Changelog
 
-## 🚀 Neue Funktionen
+## Versionshistorie
 
-### Subscription & Checkout System
+| Version | Datum | Zusammenfassung |
+|---------|-------|-----------------|
+| 0.4.0 | 21.02.2026 | Aboverwaltung-Umbau, Pakete-Editor in Übersicht, neue Einstellungen-Seite, Version-Badge |
+| 0.3.0 | 20.02.2026 | Bestellsystem, Admin-UI Neuaufbau (users.php, groups.php), Menü-Strukturierung |
+| 0.2.0 | 18.02.2026 | Analytics-Fixes, install.php Datenbank-Tabellen |
+| 0.1.0 | 01.02.2026 | Initiales CMS-System (Core, Auth, DB, Theme, Plugin-System) |
+
+---
+
+## v0.4.0 — 21. Februar 2026
+
+### 🚀 Features
+
+#### Aboverwaltung komplett überarbeitet
+- **Pakete-Tab:** Jede Plan-Card hat jetzt direkte ✏️ Edit- und 🗑 Löschen-Buttons. Neues-Paket-Button im Header.
+  Plan-Editor-Modal wird jetzt von `?tab=plans` aus gesteuert (nicht mehr `?tab=settings`).
+- **Einstellungen-Tab (NEU):** Komplett neue Seite für Abo-System-Einstellungen:
+  - Toggle: Abo-System aktiv/inaktiv (wenn aus → Unlimited-Modus für alle Benutzer)
+  - Währung (EUR / USD / CHF)
+  - Zahlungsmethoden: Bankverbindung, PayPal, allgemeine Hinweise
+  - Rechtliche Seiten: AGB-URL, Impressum-URL, Widerruf-URL
+  - Rechnungsabsender: Unternehmensname, Adresse
+  - Bestellnummern-Format (Platzhalter: `{Y}`, `{M}`, `{D}`, `{ID}`, `{R}`)
+- **Zuweisungen-Tab:** Benutzer-Zuweisungen und Gruppen-Zuweisungen jetzt auf einer Seite ohne interne Sub-Tabs
+- **Payments-Tab entfernt** – Zahlungseinstellungen sind in Einstellungen integriert
+
+#### Dashboard
+- **Version-Badge** im Dashboard-Header: Zeigt aktuelle CMS-Version als blaues Badge neben dem Seitentitel.
+  Zieht Wert automatisch aus `CMS_VERSION`-Konstante.
+
+#### Technisches
+- `CMS_VERSION` auf `0.4.0` geändert (0.x Versionierung)
+- `update_payments` POST-Handler durch `update_settings` ersetzt (speichert alle Abo-Einstellungen)
+- `admin-menu.php`: Aboverwaltung hat 4 statt 5 Unterpunkte
+
+---
+
+## v0.3.0 — 20. Februar 2026
+
+### 🚀 Neue Funktionen
+
+#### Subscription & Checkout System
 **Neu:** Vollständiges Bestellsystem für Mitgliedschaften implementiert.
 - **Datenbank:** Neue Tabelle `cms_orders` für Bestellungen und Transaktionen.
 - **Frontend:** Öffentliche Checkout-Seite (`member/order_public.php`) mit Vorausfüllung von Benutzerdaten.
 - **Backend:** Admin-Oberfläche (`admin/orders.php`) zur Verwaltung von Bestellungen (Status ändern, Details einsehen).
 - **Logik:** Automatische Generierung von Bestellnummern (`BST...`) und Status-Tracking.
 
-## 🐛 Fehlerbehebungen
+#### Admin-UI Neuaufbau (users.php, groups.php)
+- `admin/users.php` komplett neugebaut: Stat-Cards, Rollen-Tabs, Suche, Bulk-Aktionen, Edit mit Gruppen-Checkboxes, sicheres Delete-Pattern
+- `admin/groups.php` komplett neugebaut: Gruppen-Tab + Rollen & Rechte-Tab, Member-Listen, 8 Capability-Checkboxen
+- Menü: `Rollen & Rechte` als eigenständiger Unterpunkt; Menü-Kollision zwischen Gruppen und Aboverwaltung behoben
+- Aboverwaltung: Von 5 auf 4 Unterpunkte reduziert (Zuweisungen kombiniert)
 
-### Admin Orders UI
-**Problem:** Fatal Error in `admin/orders.php` durch fehlende Include-Dateien (`admin-header.php`, `admin-footer.php`, `sidebar.php`).
-**Lösung:** 
-- Umstellung auf eigenständige HTML-Struktur innerhalb der PHP-Datei.
-- Integration von `admin-menu.php` für die Navigation.
-- Entfernung ungültiger `require_once`-Aufrufe.
+### 🐛 Fehlerbehebungen
 
-### Checkout Frontend
+#### Admin Orders UI
+**Problem:** Fatal Error in `admin/orders.php` durch fehlende Include-Dateien.
+**Lösung:** Eigenständige HTML-Struktur, Integration von `admin-menu.php`, entfernte ungültige Requires.
+
+#### Checkout Frontend
 **Problem:** `TypeError` in `htmlspecialchars()` bei leeren Benutzerdaten.
-**Lösung:** 
-- Implementierung von Null Coalescing (`?? ''`) und `array_walk`-Säuberung für alle Formulardaten vor der Ausgabe.
-- Korrektur des Zugriffs auf User-E-Mail (`$currentUser->email` statt `$user->user_email`).
+**Lösung:** Null Coalescing, `array_walk`-Säuberung, Korrektur User-Email-Zugriff.
 
-# CMSv2 Changelog - 18. Februar 2026
+---
 
-## 🐛 Fehlerbehebungen
+## v0.2.0 — 18. Februar 2026
 
-### Analytics Admin Panel
+### 🐛 Fehlerbehebungen
+
+#### Analytics Admin Panel
 **Problem:** Undefined Variable Warnungen in `admin/analytics.php`
 - `$cacheStats` nicht definiert (Zeile 668)
 - `$systemHealth` nicht definiert (Zeile 675)
