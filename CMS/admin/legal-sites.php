@@ -109,29 +109,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_legal'])) {
             $cookieContent = "<h2>Cookie-Richtlinie</h2>";
             $cookieContent .= "<p>Diese Website verwendet Cookies, um die Benutzererfahrung zu verbessern. Hier finden Sie eine Übersicht über alle verwendeten Cookies.</p>";
             
-            $cookieContent .= "<h3>Ihre Cookie-Einstellungen</h3>";
-            $cookieContent .= "<p>Sie können Ihre Zustimmung zu Cookies jederzeit ändern oder widerrufen:</p>";
-            // JS Call to open banner
-            $cookieContent .= '<p><a href="#" class="btn btn-secondary" onclick="if(window.CMS && window.CMS.Cookie) { window.CMS.Cookie.openSettings(); return false; } else { alert(\'Cookie-Banner nicht geladen.\'); return false; }">🍪 Cookie-Einstellungen bearbeiten</a></p>';
+            // Dynamic Consensus Status
+            $cookieContent .= '<div style="background:#f8fafc; padding:1.5rem; border:1px solid #e2e8f0; border-radius:8px; margin:2rem 0;">';
+            $cookieContent .= '<h3>Ihr aktueller Consent-Status</h3>';
+            $cookieContent .= '<p id="cms-cookie-status">Wird geladen...</p>';
+            $cookieContent .= '<p><button class="btn btn-primary" onclick="window.CMS.Cookie.openSettings();">Einstellungen ändern</button></p>';
+            $cookieContent .= '<script>
+                document.addEventListener("DOMContentLoaded", function() {
+                    const checkCMS = setInterval(function() {
+                        if(window.CMS && window.CMS.Cookie) {
+                            clearInterval(checkCMS);
+                            const statusEl = document.getElementById("cms-cookie-status");
+                            const consents = window.CMS.Cookie.getConsents();
+                            if(Object.keys(consents).length === 0) {
+                                statusEl.innerHTML = "Sie haben noch keine Auswahl getroffen.";
+                            } else {
+                                let text = "Sie haben folgenden Kategorien zugestimmt: ";
+                                text += Object.keys(consents).filter(k => consents[k]).map(k => "<strong>" + k.charAt(0).toUpperCase() + k.slice(1) + "</strong>").join(", ");
+                                statusEl.innerHTML = text || "Sie haben alle optionalen Cookies abgelehnt.";
+                            }
+                        }
+                    }, 500);
+                });
+            </script>';
+            $cookieContent .= '</div>';
             
             $cookieContent .= "<h3>Liste der verwendeten Cookies</h3>";
             if (!empty($allCookies)) {
-                $cookieContent .= '<table class="wp-block-table"><thead><tr><th>Name</th><th>Anbieter</th><th>Zweck / Kategorie</th><th>Laufzeit</th></tr></thead><tbody>';
+                $cookieContent .= '<table class="wp-block-table" style="width:100%; text-align:left; border-collapse:collapse;">
+                <thead><tr style="border-bottom:2px solid #e2e8f0;"><th style="padding:10px;">Name</th><th style="padding:10px;">Anbieter</th><th style="padding:10px;">Kategorie</th><th style="padding:10px;">Laufzeit</th></tr></thead>
+                <tbody>';
                 foreach ($allCookies as $c) {
                     $name = htmlspecialchars($c['name'] ?? 'Unbekannt');
-                    $provider = htmlspecialchars($c['provider'] ?? '-');
+                    $provider = htmlspecialchars($c['provider'] ?? '-'); 
                     $category = ucfirst(htmlspecialchars($c['category'] ?? 'Sonstiges'));
                     $duration = htmlspecialchars($c['duration'] ?? '-');
-                    $cookieContent .= "<tr><td>{$name}</td><td>{$provider}</td><td>{$category}</td><td>{$duration}</td></tr>";
+                    $cookieContent .= "<tr style='border-bottom:1px solid #f1f5f9;'><td style='padding:10px;'><strong>{$name}</strong></td><td style='padding:10px;'>{$provider}</td><td style='padding:10px;'>{$category}</td><td style='padding:10px;'>{$duration}</td></tr>";
                 }
                 $cookieContent .= '</tbody></table>';
             } else {
                 $cookieContent .= "<p>Aktuell sind keine Cookies erfasst.</p>";
             }
 
-            $existingCookie = $db->fetchOne("SELECT id FROM {$db->getPrefix()}posts WHERE slug = 'cookie-richtlinie'");
-            if ($existingCookie) {
-                $db->update('posts', ['content' => $cookieContent, 'updated_at' => date('Y-m-d H:i:s')], ['id' => $existingCookie['id']]);
+            // Check if page exists by slug
+            $existingPage = $db->fetchOne("SELECT id FROM {$db->getPrefix()}posts WHERE slug = 'cookie-richtlinie'");
+            $saveData = [
+                'title' => 'Cookie-Richtlinie',
+                'slug' => 'cookie-richtlinie',
+                'content' => $cookieContent,
+                'status' => 'published',
+                'type' => 'page',
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+
+            if ($existingPage) {
+                // Update
+                $db->update('posts', $saveData, ['id' => $existingPage['id']]);
             } else {
                 $db->insert('posts', [
                     'title' => 'Cookie-Richtlinie',
