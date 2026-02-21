@@ -95,7 +95,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_legal'])) {
             ]);
         }
 
-        $message = '<div class="alert alert-success">Impressum und Datenschutz wurden erfolgreich aktualisiert!</div>';
+        // 3. Generate Cookie Policy
+        if (isset($_POST['generate_cookie_policy'])) {
+            // Fetch Cookies
+            $manualListJson = $db->fetchOne("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'cookie_manual_list'");
+            $manualCookies = $manualListJson ? json_decode($manualListJson['option_value'] ?? '[]', true) : [];
+            
+            $scanResultJson = $db->fetchOne("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'cookie_scan_result'");
+            $scannedCookies = $scanResultJson ? json_decode($scanResultJson['option_value'] ?? '[]', true) : [];
+            
+            $allCookies = array_merge($manualCookies, $scannedCookies);
+
+            $cookieContent = "<h2>Cookie-Richtlinie</h2>";
+            $cookieContent .= "<p>Diese Website verwendet Cookies, um die Benutzererfahrung zu verbessern. Hier finden Sie eine Übersicht über alle verwendeten Cookies.</p>";
+            
+            $cookieContent .= "<h3>Ihre Cookie-Einstellungen</h3>";
+            $cookieContent .= "<p>Sie können Ihre Zustimmung zu Cookies jederzeit ändern oder widerrufen:</p>";
+            // JS Call to open banner
+            $cookieContent .= '<p><a href="#" class="btn btn-secondary" onclick="if(window.CMS && window.CMS.Cookie) { window.CMS.Cookie.openSettings(); return false; } else { alert(\'Cookie-Banner nicht geladen.\'); return false; }">🍪 Cookie-Einstellungen bearbeiten</a></p>';
+            
+            $cookieContent .= "<h3>Liste der verwendeten Cookies</h3>";
+            if (!empty($allCookies)) {
+                $cookieContent .= '<table class="wp-block-table"><thead><tr><th>Name</th><th>Anbieter</th><th>Zweck / Kategorie</th><th>Laufzeit</th></tr></thead><tbody>';
+                foreach ($allCookies as $c) {
+                    $name = htmlspecialchars($c['name'] ?? 'Unbekannt');
+                    $provider = htmlspecialchars($c['provider'] ?? '-');
+                    $category = ucfirst(htmlspecialchars($c['category'] ?? 'Sonstiges'));
+                    $duration = htmlspecialchars($c['duration'] ?? '-');
+                    $cookieContent .= "<tr><td>{$name}</td><td>{$provider}</td><td>{$category}</td><td>{$duration}</td></tr>";
+                }
+                $cookieContent .= '</tbody></table>';
+            } else {
+                $cookieContent .= "<p>Aktuell sind keine Cookies erfasst.</p>";
+            }
+
+            $existingCookie = $db->fetchOne("SELECT id FROM {$db->getPrefix()}posts WHERE slug = 'cookie-richtlinie'");
+            if ($existingCookie) {
+                $db->update('posts', ['content' => $cookieContent, 'updated_at' => date('Y-m-d H:i:s')], ['id' => $existingCookie['id']]);
+            } else {
+                $db->insert('posts', [
+                    'title' => 'Cookie-Richtlinie',
+                    'slug' => 'cookie-richtlinie',
+                    'content' => $cookieContent,
+                    'status' => 'published',
+                    'author_id' => Auth::instance()->getCurrentUser()->id,
+                    'published_at' => date('Y-m-d H:i:s')
+                ]);
+            }
+        }
+
+        $message = '<div class="alert alert-success">Impressum, Datenschutz und Cookie-Richtlinie wurden erfolgreich aktualisiert!</div>';
     }
 }
 
@@ -157,6 +206,16 @@ renderAdminLayoutStart('Rechtstexte Generator', 'legal-sites');
                 <label>USt-IdNr. (Optional)</label>
                 <input type="text" name="vat_id" placeholder="DE123456789">
             </div>
+        </div>
+
+        <div class="form-group">
+             <label style="display:flex; align-items:center; gap:0.5rem; font-weight:bold;">
+                <input type="checkbox" name="generate_cookie_policy" value="1" checked>
+                Cookie-Richtlinie (cookie-richtlinie) mitgenerieren
+            </label>
+            <p style="font-size:0.85rem; color:#64748b; margin-top:0.25rem;">
+                Erstellt eine Seite mit einer Tabelle aller erkannten Cookies und einem Button zum Ändern der Zustimmung.
+            </p>
         </div>
 
         <div class="form-actions">

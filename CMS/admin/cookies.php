@@ -221,6 +221,9 @@ require_once __DIR__ . '/partials/admin-menu.php';
         .tab-btn.active { color: #3b82f6; border-bottom-color: #3b82f6; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+        
+        .code-block { background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 6px; font-family: monospace; overflow-x: auto; margin:1rem 0; }
+        .copy-btn { float: right; background: #3b82f6; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem; }
     </style>
     <script>
         function switchTab(id) {
@@ -258,6 +261,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('tab-settings')">Banner Einstellungen</button>
             <button class="tab-btn" onclick="switchTab('tab-cookies')">Cookie Liste (<?php echo count($scannedCookies) + count($manualCookies); ?>)</button>
+            <button class="tab-btn" onclick="switchTab('tab-integration')">Integration & Log</button>
         </div>
 
         <!-- TAB: SETTINGS -->
@@ -423,7 +427,60 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     </tbody>
                 </table>
             </div>
+        </div>
 
+        <!-- TAB: INTEGRATION & LOG -->
+        <div id="tab-integration" class="tab-content">
+            <div class="adm-card">
+                <h3>🍪 Integration</h3>
+                <p>Der Cookie Banner wird automatisch auf allen Seiten eingebunden, wenn er aktiviert ist.</p>
+                
+                <h4 style="margin-top:1.5rem; margin-bottom:0.5rem; color:#334155;">Einstellungen öffnen</h4>
+                <p>Nutzer können ihre Einwilligung nachträglich über diesen Link ändern. Fügen Sie diesen Code in Ihre Datenschutz-Seite oder den Footer ein:</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)">Kopieren</button>
+                    <code>&lt;a href="#" onclick="window.CMS.Cookie.openSettings(); return false;"&gt;Cookie-Einstellungen&lt;/a&gt;</code>
+                </div>
+
+                <h4 style="margin-top:1.5rem; margin-bottom:0.5rem; color:#334155;">Javascript API</h4>
+                <div class="code-block">
+                    <code>
+// Prüfen ob Consent vorhanden
+if (window.CMS.Cookie.hasConsent('analytics')) {
+    // Google Analytics laden
+}
+
+// Event Listener
+window.CMS.Cookie.on('change', (consent) => {
+    console.log('Consent updated:', consent);
+});
+                    </code>
+                </div>
+            </div>
+
+            <div class="adm-card" style="margin-top:1.5rem;">
+                <h3>📜 Consent Log (Auszug letzte 20)</h3>
+                <p style="color:#64748b; font-size:0.9rem;">Hier sehen Sie anonymisierte Einwilligungen (Erfordert 'cms_cookie_consents' Tabelle).</p>
+                
+                <table class="cookie-table" style="margin-top:1rem;">
+                    <thead>
+                        <tr>
+                            <th>Zeitstempel</th>
+                            <th>Consent-ID</th>
+                            <th>Version</th>
+                            <th>Typ</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="5" style="text-align:center; padding:2rem; color:#94a3b8;">
+                                <em>Consent-Logging ist noch nicht aktiv. Aktivieren Sie die erweiterte Protokollierung in den Einstellungen.</em>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
     </div>
