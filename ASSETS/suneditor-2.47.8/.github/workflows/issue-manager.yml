@@ -1,0 +1,16 @@
+name: Issue Management Action
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  manage-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Run script to manage issues
+        run: node .github/scripts/manage-issues.js
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

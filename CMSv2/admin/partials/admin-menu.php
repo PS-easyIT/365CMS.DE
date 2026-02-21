@@ -408,13 +408,6 @@ function getAdminMenuItems(string $currentPage = ''): array
                     'active' => _adminNavIsActive('/admin/plugins') || $currentPage === 'plugins',
                 ],
                 [
-                    'slug'   => 'plugin-updates',
-                    'label'  => 'Installieren & Updates',
-                    'icon'   => '🔄',
-                    'url'    => '/admin/updates',
-                    'active' => _adminNavIsActive('/admin/updates') || $currentPage === 'updates',
-                ],
-                [
                     'slug'   => 'plugin-marketplace',
                     'label'  => 'Marketplace',
                     'icon'   => '🏪',
@@ -438,6 +431,13 @@ function getAdminMenuItems(string $currentPage = ''): array
                     'active' => _adminNavIsActive('/admin/settings') || $currentPage === 'settings',
                 ],
                 [
+                    'slug'   => 'updates',
+                    'label'  => 'Updates',
+                    'icon'   => '🔄',
+                    'url'    => '/admin/updates',
+                    'active' => _adminNavIsActive('/admin/updates') || $currentPage === 'updates',
+                ],
+                [
                     'slug'   => 'backup',
                     'label'  => 'Backup',
                     'icon'   => '💾',
@@ -450,6 +450,13 @@ function getAdminMenuItems(string $currentPage = ''): array
                     'icon'   => '🩺',
                     'url'    => '/admin/system',
                     'active' => _adminNavIsActive('/admin/system') || $currentPage === 'system',
+                ],
+                [
+                    'slug'   => 'support',
+                    'label'  => 'Support & Docs',
+                    'icon'   => '📖',
+                    'url'    => '/admin/support',
+                    'active' => _adminNavIsActive('/admin/support') || $currentPage === 'support',
                 ],
             ],
         ],

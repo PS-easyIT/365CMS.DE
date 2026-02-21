@@ -1,0 +1,18 @@
+# Created by .ignore support plugin (hsz.mobi)
+.DS_Store
+
+# project files
+.vscode/**
+.idea/**
+.out/**
+.gen/**
+.env/**
+
+# modules
+node_modules/**
+bower_components/**
+*.log
+
+#dev
+.git/**
+/.vs
