@@ -30,11 +30,7 @@ Vollständige Übersicht aller Datenbank-Tabellen des Content Management Systems
 | 16 | plugin_meta | Plugin-Metadaten | id | plugin_id → plugins.id |
 | 17 | theme_customizations | Theme-Einstellungen | id | user_id → users.id |
 | 18 | page_views | Analytics-Tracking | id | page_id, user_id |
-| 19 | subscription_plans | Abo-Pakete | id | - |
-| 20 | user_subscriptions | Benutzer-Abos | id | user_id, plan_id |
-| 21 | user_groups | Benutzer-Gruppen | id | plan_id |
-| 22 | user_group_members | Gruppen-Mitglieder | id | user_id, group_id |
-| 23 | subscription_usage | Abo-Nutzung | id | user_id |
+| 19 | orders | Bestellungen & Abos | id | user_id → users.id, plan_id |
 
 ---
 
@@ -439,163 +435,50 @@ CREATE TABLE cms_page_views (
 
 ---
 
-## 💳 Subscription-System
+## � E-Commerce & Subscriptions
 
-### cms_subscription_plans
-Abo-Pakete mit Limits und Premium-Features.
-
-```sql
-CREATE TABLE cms_subscription_plans (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    slug VARCHAR(100) NOT NULL UNIQUE,
-    description TEXT,
-    price_monthly DECIMAL(10,2) DEFAULT 0.00,
-    price_yearly DECIMAL(10,2) DEFAULT 0.00,
-    
-    -- Feature Limits (-1 = unlimited, 0 = disabled)
-    limit_experts INT DEFAULT -1,
-    limit_companies INT DEFAULT -1,
-    limit_events INT DEFAULT -1,
-    limit_speakers INT DEFAULT -1,
-    limit_storage_mb INT DEFAULT 1000,
-    
-    -- Plugin Access Control
-    plugin_experts BOOLEAN DEFAULT 1,
-    plugin_companies BOOLEAN DEFAULT 1,
-    plugin_events BOOLEAN DEFAULT 1,
-    plugin_speakers BOOLEAN DEFAULT 1,
-    
-    -- Premium Features
-    feature_analytics BOOLEAN DEFAULT 0,
-    feature_advanced_search BOOLEAN DEFAULT 0,
-    feature_api_access BOOLEAN DEFAULT 0,
-    feature_custom_branding BOOLEAN DEFAULT 0,
-    feature_priority_support BOOLEAN DEFAULT 0,
-    feature_export_data BOOLEAN DEFAULT 0,
-    feature_integrations BOOLEAN DEFAULT 0,
-    feature_custom_domains BOOLEAN DEFAULT 0,
-    
-    -- Meta
-    is_active BOOLEAN DEFAULT 1,
-    sort_order INT DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    INDEX idx_slug (slug),
-    INDEX idx_active (is_active),
-    INDEX idx_sort (sort_order)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
-
-**Standard-Pakete:**
-- `free` - 1 Expert, 1 Company, 5 Events, 100 MB
-- `basic` - 5 Experts, 3 Companies, 20 Events, 500 MB
-- `professional` - 20 Experts, 10 Companies, 100 Events, 2 GB
-- `business` - 100 Experts, 50 Companies, 500 Events, 10 GB
-- `premium` - 500 Experts, 200 Companies, 2000 Events, 50 GB
-- `enterprise` - Unlimited, 200 GB Storage
-
-### cms_user_subscriptions
-Benutzer-Abo-Zuweisungen mit Billing-Cycles.
+### cms_orders
+Verwaltung von Bestellungen und Mitgliedschaften.
 
 ```sql
-CREATE TABLE cms_user_subscriptions (
+CREATE TABLE cms_orders (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    order_number VARCHAR(50) NOT NULL UNIQUE,
     user_id INT UNSIGNED NOT NULL,
-    plan_id INT NOT NULL,
-    
-    -- Status & Billing
-    status ENUM('active', 'cancelled', 'expired', 'trial', 'suspended') DEFAULT 'active',
-    billing_cycle ENUM('monthly', 'yearly', 'lifetime') DEFAULT 'monthly',
-    
-    -- Dates
-    start_date DATETIME NOT NULL,
-    end_date DATETIME,
-    next_billing_date DATETIME,
-    cancelled_at DATETIME,
-    
-    -- Tracking
+    plan_id INT UNSIGNED NOT NULL,
+    total_amount DECIMAL(10,2) NOT NULL,
+    currency VARCHAR(3) DEFAULT 'EUR',
+    status ENUM('pending', 'completed', 'cancelled', 'refunded') DEFAULT 'pending',
+    payment_method VARCHAR(50),
+    transaction_id VARCHAR(100),
+    billing_cycle ENUM('monthly', 'yearly') DEFAULT 'monthly',
+    company VARCHAR(100),
+    forename VARCHAR(100),
+    lastname VARCHAR(100),
+    street VARCHAR(255),
+    zip VARCHAR(20),
+    city VARCHAR(100),
+    country VARCHAR(100),
+    email VARCHAR(100),
+    phone VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    FOREIGN KEY (user_id) REFERENCES cms_users(id) ON DELETE CASCADE,
-    FOREIGN KEY (plan_id) REFERENCES cms_subscription_plans(id) ON DELETE CASCADE,
     INDEX idx_user_id (user_id),
-    INDEX idx_plan_id (plan_id),
+    INDEX idx_order_number (order_number),
     INDEX idx_status (status),
-    INDEX idx_dates (start_date, end_date)
+    FOREIGN KEY (user_id) REFERENCES cms_users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
 
-### cms_user_groups
-Gruppen für kollektive Abo-Verwaltung.
-
-```sql
-CREATE TABLE cms_user_groups (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    slug VARCHAR(100) NOT NULL UNIQUE,
-    description TEXT,
-    plan_id INT,
-    is_active BOOLEAN DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    FOREIGN KEY (plan_id) REFERENCES cms_subscription_plans(id) ON DELETE SET NULL,
-    INDEX idx_slug (slug),
-    INDEX idx_active (is_active)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
-
-**Verwendung:**
-- Firmenlizenz: Alle Mitarbeiter einer Firma in einer Gruppe
-- Gruppen-Mitglieder erben automatisch das Gruppen-Abo
-
-### cms_user_group_members
-Viele-zu-Viele Beziehung User ↔ Groups.
-
-```sql
-CREATE TABLE cms_user_group_members (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT UNSIGNED NOT NULL,
-    group_id INT NOT NULL,
-    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
-    FOREIGN KEY (user_id) REFERENCES cms_users(id) ON DELETE CASCADE,
-    FOREIGN KEY (group_id) REFERENCES cms_user_groups(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_user_group (user_id, group_id),
-    INDEX idx_user_id (user_id),
-    INDEX idx_group_id (group_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
-
-### cms_subscription_usage
-Ressourcen-Nutzungszähler für Limit-Checks.
-
-```sql
-CREATE TABLE cms_subscription_usage (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT UNSIGNED NOT NULL,
-    resource_type VARCHAR(50) NOT NULL,      -- experts, companies, events, speakers, storage
-    current_count INT DEFAULT 0,
-    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    FOREIGN KEY (user_id) REFERENCES cms_users(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_user_resource (user_id, resource_type),
-    INDEX idx_user_id (user_id),
-    INDEX idx_resource (resource_type)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
-
-**Verwendung:**
-- Automatisches Tracking bei Create/Delete von Ressourcen
-- Helper-Funktionen: `user_can_create_resource('experts')`
-- Limit-Warnungen bei 80% Auslastung
+**Zweck:**
+- Speicherung aller Bestellvorgänge
+- Verknüpfung von Benutzern mit Abonnement-Plänen
+- Rechnungsinformationen und Zahlungsstatus
+- Historie aller Transaktionen
 
 ---
 
-## 🔄 Wartung & Best Practices
+## �🔄 Wartung & Best Practices
 
 ### Auto-Cleanup Empfehlungen
 
@@ -633,6 +516,6 @@ Alle Tabellen haben relevante Indizes für:
 
 ---
 
-**Zuletzt aktualisiert:** 18. Februar 2026  
-**Version:** CMSv2 2.0.2  
-**Gesamt-Tabellen:** 23
+**Zuletzt aktualisiert:** 20. Februar 2026  
+**Version:** CMSv2 2.6.3  
+**Gesamt-Tabellen:** 19

@@ -614,15 +614,30 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     <?php
                     // Ordner-Kategorien mit Icons + lesbaren Labels
                     $dirLabels = [
-                        ''         => ['icon' => '📄', 'label' => 'Übersicht'],
-                        'admin'    => ['icon' => '⚙️',  'label' => 'Admin-Bereich'],
-                        'core'     => ['icon' => '🔧', 'label' => 'Core & System'],
-                        'feature'  => ['icon' => '✨', 'label' => 'Features'],
-                        'member'   => ['icon' => '👤', 'label' => 'Mitglieder'],
-                        'plugins'  => ['icon' => '🔌', 'label' => 'Plugins'],
-                        'theme'    => ['icon' => '🎨', 'label' => 'Theme & Design'],
-                        'workflow' => ['icon' => '🔄', 'label' => 'Workflows'],
-                        'audits'   => ['icon' => '🔍', 'label' => 'Audits'],
+                        // ── Root ────────────────────────────────────────────
+                        ''                        => ['icon' => '📄', 'label' => 'Übersicht'],
+                        // ── Top-Level DOC-Ordner ─────────────────────────────
+                        'admin'                   => ['icon' => '⚙️',  'label' => 'Admin-Bereich'],
+                        'core'                    => ['icon' => '🔧', 'label' => 'Core & System'],
+                        'feature'                 => ['icon' => '✨', 'label' => 'Features'],
+                        'member'                  => ['icon' => '👤', 'label' => 'Mitglieder'],
+                        'plugins'                 => ['icon' => '🔌', 'label' => 'Plugins'],
+                        'theme'                   => ['icon' => '🎨', 'label' => 'Theme & Design'],
+                        'workflow'                => ['icon' => '🔄', 'label' => 'Workflows'],
+                        'audits'                  => ['icon' => '🔍', 'label' => 'Audits'],
+                        'screenshots'             => ['icon' => '🖼️',  'label' => 'Screenshots'],
+                        // ── DOC/admin Unterordner (1:1 Admin-Menü) ───────────
+                        'admin/dashboard'         => ['icon' => '📊', 'label' => 'Dashboard'],
+                        'admin/landing page'      => ['icon' => '🏠', 'label' => 'Landing Page'],
+                        'admin/pages & posts'     => ['icon' => '📄', 'label' => 'Seiten & Beiträge'],
+                        'admin/media'             => ['icon' => '📷', 'label' => 'Medienverwaltung'],
+                        'admin/users & groups'    => ['icon' => '👥', 'label' => 'Benutzer & Gruppen'],
+                        'admin/subscription'      => ['icon' => '💳', 'label' => 'Aboverwaltung'],
+                        'admin/themes & design'   => ['icon' => '🎨', 'label' => 'Themes & Design'],
+                        'admin/seo & performance' => ['icon' => '📈', 'label' => 'SEO & Performance'],
+                        'admin/recht & sicherheit'=> ['icon' => '⚖️',  'label' => 'Recht & Sicherheit'],
+                        'admin/plugins'           => ['icon' => '🔌', 'label' => 'Plugins'],
+                        'admin/system & settings' => ['icon' => '⚙️',  'label' => 'System & Einstellungen'],
                     ];
 
                     // Nach Unterordner gruppieren; Root-Einträge zuerst
@@ -643,7 +658,14 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     }
 
                     // Reihenfolge: Root, dann bekannte Ordner in definieter Reihenfolge, dann Rest
-                    $knownOrder = ['', 'core', 'admin', 'member', 'plugins', 'theme', 'feature', 'workflow', 'audits'];
+                    $knownOrder = [
+                        '', 'core', 'admin',
+                        'admin/dashboard', 'admin/landing page', 'admin/pages & posts',
+                        'admin/media', 'admin/users & groups', 'admin/subscription',
+                        'admin/themes & design', 'admin/seo & performance',
+                        'admin/recht & sicherheit', 'admin/plugins', 'admin/system & settings',
+                        'member', 'plugins', 'theme', 'feature', 'workflow', 'audits', 'screenshots',
+                    ];
                     $orderedGrouped = [];
                     foreach ($knownOrder as $k) {
                         if (isset($grouped[$k])) {
