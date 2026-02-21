@@ -37,6 +37,7 @@ $subscriptionManager = SubscriptionManager::instance();
 // Handle Actions
 $action = $_GET['action'] ?? 'list';
 $activeTab = $_GET['tab'] ?? 'plans';
+$activeSub = $_GET['sub'] ?? 'users';
 $message = '';
 $error = '';
 
@@ -385,14 +386,6 @@ require_once __DIR__ . '/partials/admin-menu.php';
         <!-- Header -->
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1.5rem;">
             <h2 style="margin:0;">💳 Abo-Verwaltung</h2>
-            
-            <div class="admin-tabs" style="display: flex; gap: 0.5rem;">
-                <a href="?tab=plans" class="btn btn-sm <?php echo $activeTab === 'plans' ? 'btn-primary' : 'btn-secondary'; ?>">Pakete</a>
-                <a href="?tab=settings" class="btn btn-sm <?php echo $activeTab === 'settings' ? 'btn-primary' : 'btn-secondary'; ?>">Editor</a>
-                <a href="?tab=assignments" class="btn btn-sm <?php echo $activeTab === 'assignments' ? 'btn-primary' : 'btn-secondary'; ?>">Zuweisungen</a>
-                <a href="?tab=group-assignments" class="btn btn-sm <?php echo $activeTab === 'group-assignments' ? 'btn-primary' : 'btn-secondary'; ?>">Gruppenzuweisungen</a>
-                <a href="?tab=payments" class="btn btn-sm <?php echo $activeTab === 'payments' ? 'btn-primary' : 'btn-secondary'; ?>">Zahlungsarten</a>
-            </div>
 
             <?php if (empty($plans) && $activeTab === 'plans'): ?>
              <form method="POST" style="display: inline;">
@@ -472,11 +465,15 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 </div>
             <?php endif; ?>
             
-        <!-- CONTENT: EINSTELLUNGEN (Pakete bearbeiten) -->
+        <!-- CONTENT: EINSTELLUNGEN -->
         <?php elseif ($activeTab === 'settings'): ?>
-            
+            <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;border-bottom:2px solid #e2e8f0;padding-bottom:1rem;">
+                <a href="?tab=settings" class="btn btn-sm btn-primary">📦 Paket-Editor</a>
+                <a href="?tab=payments" class="btn btn-sm btn-secondary">💳 Zahlungsarten</a>
+            </div>
+
             <div class="admin-section-header">
-                <h3>Paketeinstellungen</h3>
+                <h3>Paket-Editor</h3>
                 <a href="#" onclick="document.getElementById('create-plan-modal').style.display='flex'; return false;" class="btn btn-primary">
                     + Neues Paket
                 </a>
@@ -524,9 +521,14 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 </table>
             <?php endif; ?>
 
-        <!-- CONTENT: BENUTZERZUWEISUNGEN -->
+        <!-- CONTENT: ZUWEISUNGEN -->
         <?php elseif ($activeTab === 'assignments'): ?>
-            
+            <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;border-bottom:2px solid #e2e8f0;padding-bottom:1rem;">
+                <a href="?tab=assignments&sub=users" class="btn btn-sm <?php echo ($activeSub !== 'groups') ? 'btn-primary' : 'btn-secondary'; ?>">👤 Benutzer</a>
+                <a href="?tab=assignments&sub=groups" class="btn btn-sm <?php echo ($activeSub === 'groups') ? 'btn-primary' : 'btn-secondary'; ?>">🫂 Gruppen</a>
+            </div>
+
+            <?php if ($activeSub !== 'groups'): ?>
             <div class="admin-section-header">
                 <h3>Benutzer-Zuweisungen</h3>
             </div>
@@ -626,9 +628,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     </div>
                 <?php endif; ?>
             </div>
-            
-        <!-- CONTENT: GRUPPENZUWEISUNGEN -->
-        <?php elseif ($activeTab === 'group-assignments'): ?>
+
+            <?php else: // sub=groups ?>
 
             <div class="admin-section-header">
                 <h3>Gruppen-Zuweisungen</h3>
@@ -672,7 +673,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                             <?php endif; ?>
                         </td>
                         <td style="padding:.55rem .9rem;">
-                            <form method="POST" action="?tab=group-assignments" style="display:flex;gap:.5rem;align-items:center;">
+                            <form method="POST" action="?tab=assignments&sub=groups" style="display:flex;gap:.5rem;align-items:center;">
                                 <input type="hidden" name="action" value="assign_group_plan">
                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                 <input type="hidden" name="group_id" value="<?php echo (int)$grp->id; ?>">
@@ -694,8 +695,14 @@ require_once __DIR__ . '/partials/admin-menu.php';
             </div>
             <?php endif; ?>
 
+            <?php endif; // end sub-tab (users/groups) ?>
+
         <?php elseif ($activeTab === 'payments'): ?>
-            
+            <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;border-bottom:2px solid #e2e8f0;padding-bottom:1rem;">
+                <a href="?tab=settings" class="btn btn-sm btn-secondary">📦 Paket-Editor</a>
+                <a href="?tab=payments" class="btn btn-sm btn-primary">💳 Zahlungsarten</a>
+            </div>
+
             <div class="admin-section-header">
                 <h3>Zahlungsinformationen</h3>
                 <p style="color: #64748b; font-size: 0.9rem;">Diese Informationen werden Mitgliedern angezeigt, wenn sie ein Abo abschließen oder upgraden möchten.</p>

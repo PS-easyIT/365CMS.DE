@@ -192,31 +192,26 @@ function getAdminMenuItems(string $currentPage = ''): array
                 ],
                 [
                     'slug'   => 'subscriptions',
-                    'label'  => 'Paketübersicht',
+                    'label'  => 'Pakete',
                     'icon'   => '📦',
                     'url'    => '/admin/subscriptions',
                     'active' => (_adminNavIsActive('/admin/subscriptions') && empty($_GET['tab'])) || $currentPage === 'subscriptions',
                 ],
                 [
+                    'slug'   => 'subscriptions-assignments',
+                    'label'  => 'Zuweisungen',
+                    'icon'   => '🔗',
+                    'url'    => '/admin/subscriptions?tab=assignments',
+                    'active' => (rtrim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/') === '/admin/subscriptions'
+                                 && in_array($_GET['tab'] ?? '', ['assignments', 'group-assignments'])) || $currentPage === 'subscriptions-assignments',
+                ],
+                [
                     'slug'   => 'subscriptions-settings',
-                    'label'  => 'Paketeinstellungen',
+                    'label'  => 'Einstellungen',
                     'icon'   => '⚙️',
                     'url'    => '/admin/subscriptions?tab=settings',
-                    'active' => _adminNavIsActive('/admin/subscriptions?tab=settings') || $currentPage === 'subscriptions-settings',
-                ],
-                [
-                    'slug'   => 'subscriptions-users',
-                    'label'  => 'Benutzerzuweisungen',
-                    'icon'   => '👤',
-                    'url'    => '/admin/subscriptions?tab=assignments',
-                    'active' => _adminNavIsActive('/admin/subscriptions?tab=assignments') || $currentPage === 'subscriptions-users',
-                ],
-                [
-                    'slug'   => 'subscriptions-groups',
-                    'label'  => 'Gruppenzuweisungen',
-                    'icon'   => '🫂',
-                    'url'    => '/admin/subscriptions?tab=group-assignments',
-                    'active' => _adminNavIsActive('/admin/subscriptions?tab=group-assignments') || $currentPage === 'subscriptions-groups',
+                    'active' => (rtrim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/') === '/admin/subscriptions'
+                                 && in_array($_GET['tab'] ?? '', ['settings', 'payments'])) || $currentPage === 'subscriptions-settings',
                 ],
             ],
         ],
