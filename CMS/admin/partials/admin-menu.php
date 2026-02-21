@@ -402,7 +402,7 @@ function getAdminMenuItems(string $currentPage = ''): array
             'children' => [
                 [
                     'slug'   => 'legal-sites',
-                    'label'  => 'Rechtstexte',
+                    'label'  => 'Legal Sites',
                     'icon'   => '§',
                     'url'    => '/admin/legal-sites', 
                     'active' => _adminNavIsActive('/admin/legal-sites') || $currentPage === 'legal-sites',

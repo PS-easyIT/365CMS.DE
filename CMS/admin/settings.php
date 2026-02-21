@@ -96,69 +96,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $message = 'Fehler beim Speichern: ' . $e->getMessage();
                 $messageType = 'error';
             }
-        } elseif ($_POST['action'] === 'generate_legal') {
-            try {
-                // Collect Data
-                $company = $_POST['company_name'] ?? '';
-                $address = $_POST['company_address'] ?? '';
-                $zipCity = $_POST['company_zip_city'] ?? '';
-                $email   = $_POST['company_email'] ?? '';
-                $phone   = $_POST['company_phone'] ?? '';
-                $director = $_POST['company_director'] ?? '';
-                $vatId   = $_POST['company_vat'] ?? '';
-                $register = $_POST['company_register'] ?? '';
-                
-                $authorId = $user->id ?? 1;
-                
-                // 1. Generate Imprint
-                $imprintContent = "<h1>Impressum</h1><p>Angaben gemäß § 5 TMG</p>";
-                $imprintContent .= "<p><strong>{$company}</strong><br>{$address}<br>{$zipCity}</p>";
-                $imprintContent .= "<p><strong>Vertreten durch:</strong><br>{$director}</p>";
-                $imprintContent .= "<p><strong>Kontakt:</strong><br>Telefon: {$phone}<br>E-Mail: {$email}</p>";
-                if ($register) {
-                    $imprintContent .= "<p><strong>Registereintrag:</strong><br>{$register}</p>";
-                }
-                if ($vatId) {
-                    $imprintContent .= "<p><strong>Umsatzsteuer-ID:</strong><br>{$vatId}</p>";
-                }
-
-                $imprintId = $db->insert('posts', [
-                    'title' => 'Impressum',
-                    'slug' => 'impressum-' . time(), // unique slug
-                    'content' => $imprintContent,
-                    'status' => 'published',
-                    'author_id' => $authorId,
-                    'created_at' => date('Y-m-d H:i:s')
-                ]);
-
-                // 2. Generate Privacy
-                $privacyContent = "<h1>Datenschutzerklärung</h1>";
-                $privacyContent .= "<h2>1. Datenschutz auf einen Blick</h2><p>Allgemeine Hinweise...</p>";
-                $privacyContent .= "<h2>2. Allgemeine Hinweise und Pflichtinformationen</h2>";
-                $privacyContent .= "<p><strong>Verantwortliche Stelle:</strong><br>{$company}<br>{$address}<br>{$zipCity}</p>";
-                // (Shortened for brevity, in real app this would be much longer)
-
-                $privacyId = $db->insert('posts', [
-                    'title' => 'Datenschutz',
-                    'slug' => 'datenschutz-' . time(),
-                    'content' => $privacyContent,
-                    'status' => 'published',
-                    'author_id' => $authorId,
-                    'created_at' => date('Y-m-d H:i:s')
-                ]);
-
-                // Update Settings to point to these new pages
-                $db->execute("UPDATE {$db->getPrefix()}settings SET option_value = ? WHERE option_name = 'setting_legal_page_id'", [$imprintId]);
-                $db->execute("UPDATE {$db->getPrefix()}settings SET option_value = ? WHERE option_name = 'setting_privacy_page_id'", [$privacyId]);
-
-                $message = 'Rechtstexte wurden generiert und verknüpft.';
-                $messageType = 'success';
-                $activeTab = 'legal'; // Stay on tab
-
-            } catch (\Exception $e) {
-                $message = 'Fehler beim Generieren: ' . $e->getMessage();
-                $messageType = 'error';
-            }
         }
     }
 }
@@ -239,113 +176,10 @@ require_once __DIR__ . '/partials/admin-menu.php';
         <!-- Tabs -->
         <div class="analytics-tabs" style="margin-bottom: 2rem;">
             <a href="?tab=general" class="tab-button <?php echo $activeTab === 'general' ? 'active' : ''; ?>">⚙️ Allgemein</a>
-            <a href="?tab=legal" class="tab-button <?php echo $activeTab === 'legal' ? 'active' : ''; ?>">§ Rechtstexte</a>
+            <a href="/admin/legal-sites" class="tab-button">➡️ Zu Legal Sites</a>
         </div>
         
-        <?php if ($activeTab === 'legal'): ?>
-            <!-- Legal Generator Form -->
-            <form method="POST" action="/admin/settings?tab=legal" class="settings-form">
-                <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                <input type="hidden" name="action" value="generate_legal">
-
-                <div class="settings-grid">
-                    <div class="settings-card">
-                        <div class="card-header">
-                            <h3>🏢 Firmendaten</h3>
-                            <p>Diese Daten werden in die Rechtstexte eingefügt.</p>
-                        </div>
-                        <div class="card-body">
-                            <div class="form-group">
-                                <label>Firmenname / Inhaber (Vollständig)</label>
-                                <input type="text" name="company_name" class="form-control" placeholder="z.B. Musterfirma GmbH" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Straße & Hausnummer</label>
-                                <input type="text" name="company_address" class="form-control" placeholder="Musterstraße 1" required>
-                            </div>
-                            <div class="form-group">
-                                <label>PLZ & Ort</label>
-                                <input type="text" name="company_zip_city" class="form-control" placeholder="12345 Musterstadt" required>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="settings-card">
-                        <div class="card-header">
-                            <h3>📞 Kontakt & Vertretung</h3>
-                            <p>Pflichtangaben für das Impressum.</p>
-                        </div>
-                        <div class="card-body">
-                            <div class="form-group">
-                                <label>Vertretungsberechtigte/r (Geschäftsführer)</label>
-                                <input type="text" name="company_director" class="form-control" placeholder="Max Mustermann" required>
-                            </div>
-                            <div class="split-group">
-                                <div class="form-group">
-                                    <label>E-Mail Adresse</label>
-                                    <input type="email" name="company_email" class="form-control" placeholder="info@..." required>
-                                </div>
-                                <div class="form-group">
-                                    <label>Telefonnummer</label>
-                                    <input type="text" name="company_phone" class="form-control" placeholder="+49..." required>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="settings-card">
-                        <div class="card-header">
-                            <h3>⚖️ Register & Steuern</h3>
-                            <p>Falls vorhanden (sonst leer lassen).</p>
-                        </div>
-                        <div class="card-body">
-                            <div class="form-group">
-                                <label>Umsatzsteuer-ID (USt-IdNr.)</label>
-                                <input type="text" name="company_vat" class="form-control" placeholder="DE...">
-                            </div>
-                            <div class="form-group">
-                                <label>Registergericht</label>
-                                <input type="text" name="company_register_court" class="form-control" placeholder="Amtsgericht...">
-                            </div>
-                            <div class="form-group">
-                                <label>Registernummer</label>
-                                <input type="text" name="company_register" class="form-control" placeholder="HRB...">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="settings-card" style="border: 2px solid #3b82f6;">
-                        <div class="card-header" style="background: #eff6ff;">
-                            <h3 style="color: #1d4ed8;">🚀 Generierung</h3>
-                            <p>Erstellt neue Seiten "Impressum" und "Datenschutz".</p>
-                        </div>
-                        <div class="card-body">
-                            <ul class="status-list" style="margin-bottom: 1.5rem;">
-                                <li>
-                                    <span>Impressum erstellen</span>
-                                    <span class="status-icon check">✓</span>
-                                </li>
-                                <li>
-                                    <span>Datenschutzerklärung erstellen</span>
-                                    <span class="status-icon check">✓</span>
-                                </li>
-                                <li>
-                                    <span>Automatisch verknüpfen</span>
-                                    <span class="status-icon check">✓</span>
-                                </li>
-                            </ul>
-                            <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 1rem;">
-                                ⚠️ Bestehende Seiten werden nicht überschrieben, es werden neue Seiten angelegt.
-                            </p>
-                            <button type="submit" class="btn-large" style="width: 100%; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                                ✨ Rechtstexte jetzt generieren
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </form>
-
-        <?php else: ?>
+        <?php if ($activeTab === 'general'): ?>
 
         <form method="POST" action="/admin/settings" class="settings-form">
             <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
@@ -678,19 +512,10 @@ require_once __DIR__ . '/partials/admin-menu.php';
         .info-list-item { display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid #f1f5f9; }
         .info-list-item:last-child { border-bottom: none; }
     </style>
+
+    <?php endif; // End of tabs ?>
     
-    <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
-    
-</body>
-</html>
-        </div>
-        
-        <!-- Plugin Settings Hook -->
-        <?php Hooks::doAction('admin_settings_page'); ?>
-        
-    </div>
-    
-    <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
-    
-</body>
-</html>
+    <!-- Plugin Settings Hook -->
+    <?php Hooks::doAction('admin_settings_page'); ?>
+
+    <?php renderAdminLayoutEnd(); ?>

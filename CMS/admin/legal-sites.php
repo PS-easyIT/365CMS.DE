@@ -166,20 +166,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_legal'])) {
                 // Update
                 $db->update('posts', $saveData, ['id' => $existingPage['id']]);
             } else {
-                $db->insert('posts', [
-                    'title' => 'Cookie-Richtlinie',
-                    'slug' => 'cookie-richtlinie',
-                    'content' => $cookieContent,
-                    'status' => 'published',
-                    'author_id' => Auth::instance()->getCurrentUser()->id,
-                    'published_at' => date('Y-m-d H:i:s')
-                ]);
+                // Insert
+                $saveData['author_id'] = Auth::instance()->getCurrentUser()->id;
+                $saveData['published_at'] = date('Y-m-d H:i:s');
+                $db->insert('posts', $saveData);
             }
-        }
+        } // End of generate_cookie_policy block
 
-        $message = '<div class="alert alert-success">Impressum, Datenschutz und Cookie-Richtlinie wurden erfolgreich aktualisiert!</div>';
-    }
-}
+        $message = '<div class="alert alert-success">Rechtstexte wurden erfolgreich aktualisiert!</div>';
+    } // End of nonce check
+} // End of POST request
 
 // Load existing settings if available (from settings table mostly)
 $settings = $db->fetchAll("SELECT option_name, option_value FROM {$db->getPrefix()}settings");
