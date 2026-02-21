@@ -64,7 +64,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
         
         <!-- Page Header -->
         <div class="admin-page-header">
-            <h2>Dashboard</h2>
+            <h2>Dashboard <span style="display:inline-block;margin-left:.6rem;padding:.2rem .65rem;background:#3b82f6;color:#fff;border-radius:9999px;font-size:.7rem;font-weight:700;vertical-align:middle;letter-spacing:.04em;">v<?php echo htmlspecialchars(CMS_VERSION); ?></span></h2>
             <div class="admin-user">
                 <span>Willkommen, <strong><?php echo htmlspecialchars($user->username); ?></strong></span>
             </div>
