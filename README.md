@@ -366,21 +366,6 @@ Vollständige Hook-Referenz: [doc/HOOKS-REFERENCE.md](doc/HOOKS-REFERENCE.md)
 
 ## 🔒 Sicherheit
 
-### Produktiv-Umgebung Checkliste
-
-- [ ] **Debug deaktivieren:** `define('CMS_DEBUG', false);`
-- [ ] **Security Keys ändern:** Neue eindeutige Keys generieren
-- [ ] **HTTPS erzwingen:** SSL-Zertifikat installieren + .htaccess Redirect
-- [ ] **config.php schützen:** Außerhalb Web-Root verschieben (wenn möglich)
-- [ ] **install.php löschen:** Nach Installation entfernen!
-- [ ] **Starke Passwörter:** Alle User-Accounts überprüfen
-- [ ] **DB-User Rechte:** Nur nötige Berechtigungen vergeben
-- [ ] **Regelmäßige Updates:** PHP, MySQL, CMS aktuell halten
-- [ ] **Backups:** Automatische Datenbank- und File-Backups einrichten
-- [ ] **Firewall:** Serverseitige Firewall konfigurieren
-
-### Security-Features
-
 - ✅ **CSRF Protection:** Token-basiert für alle State-Changes
 - ✅ **XSS Prevention:** Input-Sanitization + Output-Escaping
 - ✅ **SQL Injection Prevention:** Prepared Statements (PDO)
@@ -630,18 +615,14 @@ Kostenpflichtig für Geschäftliche Projekte.
 
 ## 👨‍💻 Support & Community
 
-- **Dokumentation:** [doc/INDEX.md](doc/INDEX.md)
 - **Issue Tracker:** GitHub Issues
-- **Discord:** [Community-Server](#)
 - **Email:** support@365cms.de
 
 ## 🙏 Credits
 
-- **Core-Entwicklung:** Andreas Hepp
+- **Entwicklung:** Andreas Hepp
+- **Website:** PhinIT.DE & 365CMS.DE
 - **Icons:** Dashicons
 - **Fonts:** Google Fonts with Local Font Manager
+- **Editor:** Suneditor is based on pure JavaScript, no dependencies. 
 - **Inspiration:** WordPress, Laravel, Symfony
-
----
-
-**Made in Germany 🇩🇪 | Built with PHP 8.3+ 🐘 | Powered by MySQL 🗄️**
