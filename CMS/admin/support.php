@@ -253,6 +253,210 @@ function fetchDocContent(string $filePath, string $token = ''): ?string
     return $content;
 }
 
+// ─── PHP Markdown Renderer (kein CDN, kein JS) ───────────────────────────────
+
+/**
+ * Wandelt Markdown-Text in sicheres HTML um.
+ * Unterstützt: Überschriften, Fettschrift, Kursiv, Durchgestrichen,
+ * Code-Blöcke (fenced + inline), Tabellen, Listen, Blockquotes,
+ * Links, Bilder, horizontale Linien, Zeilenumbrüche.
+ */
+function renderMarkdown(string $text): string
+{
+    // Zeilenenden normalisieren
+    $text = str_replace(["\r\n", "\r"], "\n", $text);
+
+    // ── 1. Fenced Code Blocks sichern (vor allen anderen Ersetzungen) ──────
+    $codeBlocks = [];
+    $text = preg_replace_callback(
+        '/^```(\w*)\n(.*?)^```/ms',
+        static function (array $m) use (&$codeBlocks): string {
+            $lang  = htmlspecialchars($m[1], ENT_QUOTES);
+            $code  = htmlspecialchars($m[2], ENT_QUOTES);
+            $label = $lang !== '' ? "<span class=\"md-code-lang\">{$lang}</span>" : '';
+            $html  = "<pre>{$label}<code class=\"language-{$lang}\">{$code}</code></pre>";
+            $key   = "\x02CODE" . count($codeBlocks) . "\x03";
+            $codeBlocks[$key] = $html;
+            return $key;
+        },
+        $text
+    );
+
+    // ── 2. Inline Code sichern ─────────────────────────────────────────────
+    $inlineCodes = [];
+    $text = preg_replace_callback(
+        '/`([^`\n]+)`/',
+        static function (array $m) use (&$inlineCodes): string {
+            $html = '<code>' . htmlspecialchars($m[1], ENT_QUOTES) . '</code>';
+            $key  = "\x02IC" . count($inlineCodes) . "\x03";
+            $inlineCodes[$key] = $html;
+            return $key;
+        },
+        $text
+    );
+
+    // ── 3. Zeilenweise Block-Elemente verarbeiten ──────────────────────────
+    $lines  = explode("\n", $text);
+    $output = '';
+    $i      = 0;
+    $total  = count($lines);
+
+    while ($i < $total) {
+        $line = $lines[$i];
+
+        // Leerzeile
+        if (trim($line) === '') {
+            $output .= "\n";
+            $i++;
+            continue;
+        }
+
+        // Überschriften
+        if (preg_match('/^(#{1,6})\s+(.+)$/', $line, $m)) {
+            $level = strlen($m[1]);
+            $content = inlineMarkdown($m[2]);
+            $id = preg_replace('/[^a-z0-9-]/', '-', strtolower(strip_tags($content)));
+            $output .= "<h{$level} id=\"{$id}\">{$content}</h{$level}>\n";
+            $i++;
+            continue;
+        }
+
+        // Horizontale Linie
+        if (preg_match('/^[-*_]{3,}\s*$/', trim($line))) {
+            $output .= "<hr>\n";
+            $i++;
+            continue;
+        }
+
+        // Blockquote
+        if (str_starts_with($line, '> ')) {
+            $quoteLines = [];
+            while ($i < $total && str_starts_with($lines[$i], '>')) {
+                $quoteLines[] = ltrim($lines[$i], '> ');
+                $i++;
+            }
+            $inner = renderMarkdown(implode("\n", $quoteLines));
+            $output .= "<blockquote>{$inner}</blockquote>\n";
+            continue;
+        }
+
+        // Tabelle
+        if (str_contains($line, '|') && isset($lines[$i + 1]) && preg_match('/^\|?[\s\-:|]+\|/', $lines[$i + 1])) {
+            $tableRows = [];
+            while ($i < $total && str_contains($lines[$i], '|')) {
+                $tableRows[] = $lines[$i];
+                $i++;
+            }
+            $output .= buildMarkdownTable($tableRows);
+            continue;
+        }
+
+        // Ungeordnete Liste
+        if (preg_match('/^(\s*)([-*+])\s+/', $line, $m)) {
+            $indent = strlen($m[1]);
+            $output .= "<ul>\n";
+            while ($i < $total && preg_match('/^(\s*)([-*+])\s+(.*)/', $lines[$i], $lm)) {
+                $output .= '<li>' . inlineMarkdown($lm[3]) . "</li>\n";
+                $i++;
+            }
+            $output .= "</ul>\n";
+            continue;
+        }
+
+        // Geordnete Liste
+        if (preg_match('/^\d+\.\s+/', $line)) {
+            $output .= "<ol>\n";
+            while ($i < $total && preg_match('/^\d+\.\s+(.*)/', $lines[$i], $lm)) {
+                $output .= '<li>' . inlineMarkdown($lm[1]) . "</li>\n";
+                $i++;
+            }
+            $output .= "</ol>\n";
+            continue;
+        }
+
+        // Paragraph – collect until blank line
+        $paraLines = [];
+        while ($i < $total && trim($lines[$i]) !== '' &&
+               !preg_match('/^#{1,6}\s/', $lines[$i]) &&
+               !str_starts_with($lines[$i], '> ') &&
+               !preg_match('/^(\s*)([-*+])\s/', $lines[$i]) &&
+               !preg_match('/^\d+\.\s/', $lines[$i]) &&
+               !preg_match('/^[-*_]{3,}\s*$/', trim($lines[$i])) &&
+               !str_contains($lines[$i], "\x02CODE")
+        ) {
+            $paraLines[] = $lines[$i];
+            $i++;
+        }
+        if (!empty($paraLines)) {
+            $para = inlineMarkdown(implode(' ', $paraLines));
+            $output .= "<p>{$para}</p>\n";
+        }
+    }
+
+    // ── 4. Sicherheits-Wrap: nur erlaubte Tags ─────────────────────────────
+    // Platzhalter wieder einsetzen
+    $output = strtr($output, $codeBlocks);
+    $output = strtr($output, $inlineCodes);
+
+    return $output;
+}
+
+/**
+ * Verarbeitet Inline-Markdown (fett, kursiv, links, bilder, strikethrough).
+ */
+function inlineMarkdown(string $text): string
+{
+    // Bilder vor Links (beides nutzt [])
+    $text = preg_replace('/!\[([^\]]*)\]\(([^)]+)\)/', '<img src="$2" alt="$1" loading="lazy">', $text);
+    // Links
+    $text = preg_replace('/\[([^\]]+)\]\(([^)]+)\)/', '<a href="$2" target="_blank" rel="noopener">$1</a>', $text);
+    // Fett+Kursiv
+    $text = preg_replace('/\*\*\*(.+?)\*\*\*/', '<strong><em>$1</em></strong>', $text);
+    // Fett
+    $text = preg_replace('/\*\*(.+?)\*\*/', '<strong>$1</strong>', $text);
+    $text = preg_replace('/__(.+?)__/', '<strong>$1</strong>', $text);
+    // Kursiv
+    $text = preg_replace('/\*(.+?)\*/', '<em>$1</em>', $text);
+    $text = preg_replace('/_(.+?)_/', '<em>$1</em>', $text);
+    // Durchgestrichen
+    $text = preg_replace('/~~(.+?)~~/', '<del>$1</del>', $text);
+
+    return $text;
+}
+
+/**
+ * Baut eine HTML-Tabelle aus Markdown-Tabellenzeilen.
+ * @param string[] $rows
+ */
+function buildMarkdownTable(array $rows): string
+{
+    $html    = "<table>\n";
+    $isFirst = true;
+    foreach ($rows as $row) {
+        // Trennzeile (---|---) überspringen
+        if (preg_match('/^\|?[\s\-:|]+\|/', $row)) {
+            continue;
+        }
+        $cells = array_map('trim', explode('|', trim($row, '| ')));
+        if ($isFirst) {
+            $html .= "<thead><tr>";
+            foreach ($cells as $cell) {
+                $html .= '<th>' . inlineMarkdown($cell) . '</th>';
+            }
+            $html .= "</tr></thead>\n<tbody>\n";
+            $isFirst = false;
+        } else {
+            $html .= "<tr>";
+            foreach ($cells as $cell) {
+                $html .= '<td>' . inlineMarkdown($cell) . '</td>';
+            }
+            $html .= "</tr>\n";
+        }
+    }
+    $html .= "</tbody></table>\n";
+    return $html;
+}
+
 // ─── Verarbeitung ────────────────────────────────────────────────────────────
 
 // Cache-Invalidierung via GET ?refresh=1 (nur Admin)
@@ -341,10 +545,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
     <title>Support & Docs – <?php echo htmlspecialchars(SITE_NAME); ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css">
-    <!-- Markdown-Renderer (marked.js + highlight.js für Code-Blöcke) -->
-    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
-    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/highlight.min.js"></script>
+    <!-- Kein CDN – Markdown wird serverseitig in PHP gerendert -->
     <?php renderAdminSidebarStyles(); ?>
     <style>
         /* ── Layout ── */
@@ -571,6 +772,15 @@ require_once __DIR__ . '/partials/admin-menu.php';
             padding: 0;
             border-radius: 0;
             font-size: inherit;
+        }
+        .md-code-lang {
+            display: block;
+            font-size: .7rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            margin-bottom: .5rem;
+            font-family: 'Consolas', 'Monaco', monospace;
         }
         .md-content table {
             width: 100%;
@@ -925,10 +1135,9 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         </div>
                     </div>
 
-                    <!-- Markdown-Inhalt wird via JS gerendert -->
-                    <div id="md-raw" style="display:none;"><?php echo htmlspecialchars($docContent, ENT_QUOTES, 'UTF-8'); ?></div>
-                    <div id="md-output" class="md-content">
-                        <div class="doc-spinner">⏳ Dokument wird gerendert...</div>
+                    <!-- Markdown serverseitig gerendert -->
+                    <div class="md-content">
+                        <?php echo renderMarkdown($docContent); ?>
                     </div>
 
                 <?php else: ?>
@@ -954,56 +1163,10 @@ require_once __DIR__ . '/partials/admin-menu.php';
     </div><!-- /.admin-content -->
 
     <script>
-    // ── Markdown rendern ─────────────────────────────────────────────────────
-    document.addEventListener('DOMContentLoaded', function () {
-        const rawEl = document.getElementById('md-raw');
-        const outEl = document.getElementById('md-output');
-        if (!rawEl || !outEl) return;
-
-        // marked.js konfigurieren
-        if (typeof marked !== 'undefined') {
-            marked.setOptions({
-                breaks:  true,
-                gfm:     true,
-                pedantic: false,
-                // Code-Highlighting via highlight.js
-                highlight: typeof hljs !== 'undefined'
-                    ? function(code, lang) {
-                        if (lang && hljs.getLanguage(lang)) {
-                            return hljs.highlight(code, { language: lang }).value;
-                        }
-                        return hljs.highlightAuto(code).value;
-                    }
-                    : null,
-            });
-
-            // HTML-Entitäten rückgängig machen (PHP hat escaped)
-            const raw = rawEl.textContent
-                .replace(/&amp;/g,  '&')
-                .replace(/&lt;/g,   '<')
-                .replace(/&gt;/g,   '>')
-                .replace(/&quot;/g, '"')
-                .replace(/&#039;/g, "'");
-
-            outEl.innerHTML = marked.parse(raw);
-
-            // highlight.js auf bereits gerendertem Code anwenden
-            if (typeof hljs !== 'undefined') {
-                outEl.querySelectorAll('pre code').forEach(function(el) {
-                    hljs.highlightElement(el);
-                });
-            }
-        } else {
-            // Fallback: Pre-formatted plain text
-            outEl.innerHTML = '<pre style="white-space:pre-wrap;font-size:.85rem;">'
-                + rawEl.textContent + '</pre>';
-        }
-    });
-
     // ── Aktiver Link in Sidebar highlighten ──────────────────────────────────
-    document.querySelectorAll('.docs-sidebar-list a').forEach(function(link) {
+    document.querySelectorAll('.docs-sidebar-list a, .docs-sidebar-sublist a').forEach(function(link) {
         link.addEventListener('click', function() {
-            document.querySelectorAll('.docs-sidebar-list a').forEach(function(l) {
+            document.querySelectorAll('.docs-sidebar-list a, .docs-sidebar-sublist a').forEach(function(l) {
                 l.classList.remove('active');
             });
             this.classList.add('active');
