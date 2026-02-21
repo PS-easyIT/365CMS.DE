@@ -60,56 +60,63 @@ function githubGet(string $url, string $token = ''): ?string
         curl_setopt_array($ch, [
             CURLOPT_URL            => $url,
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 10,
-            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_TIMEOUT        => 15,
+            CURLOPT_CONNECTTIMEOUT => 8,
             CURLOPT_HTTPHEADER     => $headers,
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS      => 3,
             CURLOPT_ENCODING       => '',
+            CURLOPT_USERAGENT      => '365CMS-Admin/2.0',
         ]);
         $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error    = curl_error($ch);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr  = curl_error($ch);
         curl_close($ch);
 
-        if ($response !== false && $error === '' && $httpCode < 400) {
+        if ($response !== false && $curlErr === '' && $httpCode >= 200 && $httpCode < 400) {
             return (string) $response;
         }
-        // Bei SSL-Fehler einmal ohne Peer-Verify versuchen (Self-Signed-Umgebungen)
-        if ($error !== '' && str_contains($error, 'SSL')) {
+        // Fehler loggen für Debug-Modus
+        $GLOBALS['_github_last_error'] = "cURL: HTTP {$httpCode}, Error: {$curlErr}, URL: {$url}";
+
+        // SSL-Fallback für lokale/Self-Signed-Umgebungen
+        if ($curlErr !== '' && str_contains(strtolower($curlErr), 'ssl')) {
             $ch2 = curl_init();
             curl_setopt_array($ch2, [
                 CURLOPT_URL            => $url,
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT        => 10,
-                CURLOPT_CONNECTTIMEOUT => 5,
+                CURLOPT_TIMEOUT        => 15,
+                CURLOPT_CONNECTTIMEOUT => 8,
                 CURLOPT_HTTPHEADER     => $headers,
                 CURLOPT_SSL_VERIFYPEER => false,
                 CURLOPT_SSL_VERIFYHOST => 0,
                 CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_MAXREDIRS      => 3,
             ]);
-            $response2 = curl_exec($ch2);
-            $code2     = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+            $r2   = curl_exec($ch2);
+            $c2   = (int) curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+            $e2   = curl_error($ch2);
             curl_close($ch2);
-            if ($response2 !== false && $code2 < 400) {
-                return (string) $response2;
+            if ($r2 !== false && $e2 === '' && $c2 >= 200 && $c2 < 400) {
+                return (string) $r2;
             }
+            $GLOBALS['_github_last_error'] .= " | SSL-Fallback: HTTP {$c2}, Error: {$e2}";
         }
         return null;
     }
 
-    // ── Fallback: file_get_contents (benötigt allow_url_fopen = On) ──────────
+    // ── Fallback: file_get_contents ───────────────────────────────────────────
     if (!ini_get('allow_url_fopen')) {
-        return null; // Keine Möglichkeit, externe URLs abzurufen
+        $GLOBALS['_github_last_error'] = 'cURL nicht verfügbar und allow_url_fopen=Off';
+        return null;
     }
 
     $ctx = stream_context_create([
         'http' => [
             'header'        => implode("\r\n", $headers),
-            'timeout'       => 10,
+            'timeout'       => 15,
             'ignore_errors' => true,
         ],
         'ssl' => [
@@ -119,7 +126,24 @@ function githubGet(string $url, string $token = ''): ?string
     ]);
 
     $response = @file_get_contents($url, false, $ctx);
-    return $response === false ? null : $response;
+    if ($response === false) {
+        $GLOBALS['_github_last_error'] = 'file_get_contents fehlgeschlagen für: ' . $url;
+        return null;
+    }
+    // HTTP-Status aus Response-Headern prüfen
+    $httpStatus = 200;
+    if (isset($http_response_header)) {
+        foreach ($http_response_header as $h) {
+            if (preg_match('#HTTP/\S+\s+(\d+)#', $h, $m)) {
+                $httpStatus = (int) $m[1];
+            }
+        }
+    }
+    if ($httpStatus >= 400) {
+        $GLOBALS['_github_last_error'] = "file_get_contents: HTTP {$httpStatus}";
+        return null;
+    }
+    return $response;
 }
 
 /**
@@ -196,7 +220,10 @@ function fetchDocList(string $token = ''): array
 
     $docs = fetchDocTree(GITHUB_DOC_PATH, $token);
 
-    file_put_contents($cacheFile, json_encode($docs));
+    // Leere Ergebnisse NICHT cachen (verhindert dauerhaften Offline-Cache)
+    if (count($docs) > 0) {
+        file_put_contents($cacheFile, json_encode($docs));
+    }
     return $docs;
 }
 
@@ -242,6 +269,10 @@ if (($_GET['refresh'] ?? '') === '1') {
     exit;
 }
 
+// Debug-Modus via GET ?debug=1 (nur Admin) – zeigt Serverdiagnose
+$debugMode = (($_GET['debug'] ?? '') === '1');
+
+$GLOBALS['_github_last_error'] = '';
 $docList    = fetchDocList($githubToken);
 
 // INDEX.md immer an erster Stelle in $docList (garantierter Fallback)
@@ -660,6 +691,40 @@ require_once __DIR__ . '/partials/admin-menu.php';
             </div>
         </div>
 
+        <?php if ($debugMode): ?>
+        <!-- ── Debug-Panel (?debug=1) ──────────────────────────────────── -->
+        <div style="background:#0f172a;color:#e2e8f0;border-radius:10px;padding:1.5rem;margin-bottom:1.5rem;font-family:monospace;font-size:.8rem;line-height:1.8;">
+            <div style="color:#f59e0b;font-weight:700;margin-bottom:.75rem;font-size:.9rem;">🔧 Server-Diagnose (debug=1)</div>
+            <table style="width:100%;border-collapse:collapse;">
+                <tr><td style="color:#94a3b8;padding:.2rem .75rem .2rem 0;white-space:nowrap;">PHP Version</td><td><?php echo PHP_VERSION; ?></td></tr>
+                <tr><td style="color:#94a3b8;padding:.2rem .75rem .2rem 0;">cURL verfügbar</td><td><?php echo function_exists('curl_init') ? '<span style="color:#4ade80">✓ Ja (' . (curl_version()['version'] ?? '?') . ')</span>' : '<span style="color:#f87171">✗ Nein</span>'; ?></td></tr>
+                <tr><td style="color:#94a3b8;padding:.2rem .75rem .2rem 0;">allow_url_fopen</td><td><?php echo ini_get('allow_url_fopen') ? '<span style="color:#4ade80">✓ On</span>' : '<span style="color:#f87171">✗ Off</span>'; ?></td></tr>
+                <tr><td style="color:#94a3b8;padding:.2rem .75rem .2rem 0;">GitHub Token</td><td><?php echo $githubToken !== '' ? '<span style="color:#4ade80">✓ Gesetzt (' . strlen($githubToken) . ' Zeichen)</span>' : '<span style="color:#fbbf24">– Nicht gesetzt (nur public Repos)</span>'; ?></td></tr>
+                <tr><td style="color:#94a3b8;padding:.2rem .75rem .2rem 0;">sys_get_temp_dir</td><td><?php echo htmlspecialchars(sys_get_temp_dir()); ?></td></tr>
+                <tr><td style="color:#94a3b8;padding:.2rem .75rem .2rem 0;">Cache schreibbar</td><td><?php echo is_writable(sys_get_temp_dir()) ? '<span style="color:#4ade80">✓ Ja</span>' : '<span style="color:#f87171">✗ Nein</span>'; ?></td></tr>
+                <tr><td style="color:#94a3b8;padding:.2rem .75rem .2rem 0;">GitHub DOC-URL</td><td><?php echo htmlspecialchars(GITHUB_API_BASE . GITHUB_DOC_PATH . '?ref=' . GITHUB_BRANCH); ?></td></tr>
+                <?php
+                // Testanfrage live durchführen
+                $testUrl  = GITHUB_API_BASE . GITHUB_DOC_PATH . '?ref=' . GITHUB_BRANCH;
+                $testBody = githubGet($testUrl, $githubToken);
+                $lastErr  = $GLOBALS['_github_last_error'] ?? '';
+                ?>
+                <tr><td style="color:#94a3b8;padding:.2rem .75rem .2rem 0;">Live-Test API</td><td>
+                    <?php if ($testBody !== null): ?>
+                        <span style="color:#4ade80">✓ HTTP 200 · <?php echo strlen($testBody); ?> Bytes</span>
+                        <?php $j = json_decode($testBody, true); ?>
+                        <?php if (is_array($j)): ?> · <?php echo count($j); ?> Einträge<?php endif; ?>
+                    <?php else: ?>
+                        <span style="color:#f87171">✗ Fehlgeschlagen</span>
+                        <?php if ($lastErr !== ''): ?><br><span style="color:#fca5a5"><?php echo htmlspecialchars($lastErr); ?></span><?php endif; ?>
+                    <?php endif; ?>
+                </td></tr>
+                <tr><td style="color:#94a3b8;padding:.2rem .75rem .2rem 0;">Letzter Fehler</td><td><?php echo $lastErr !== '' ? '<span style="color:#fca5a5">' . htmlspecialchars($lastErr) . '</span>' : '<span style="color:#4ade80">–</span>'; ?></td></tr>
+                <tr><td style="color:#94a3b8;padding:.2rem .75rem .2rem 0;">Docs geladen</td><td><?php echo count($docList); ?> Dokumente</td></tr>
+            </table>
+        </div>
+        <?php endif; ?>
+
         <!-- Main Layout -->
         <div class="support-layout">
 
@@ -687,17 +752,17 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         // ── Admin (entspricht 1:1 dem Admin-Menü) ───────────
                         'admin'                                 => ['icon' => '⚙️',  'label' => 'Admin-Bereich'],
                         'admin/dashboard'                       => ['icon' => '📊', 'label' => 'Dashboard'],
-                        'admin/landing page'                    => ['icon' => '🏠', 'label' => 'Landing Page'],
-                        'admin/pages & posts'                   => ['icon' => '📄', 'label' => 'Seiten & Beiträge'],
+                        'admin/landing-page'                    => ['icon' => '🏠', 'label' => 'Landing Page'],
+                        'admin/pages-posts'                     => ['icon' => '📄', 'label' => 'Seiten & Beiträge'],
                         'admin/media'                           => ['icon' => '📷', 'label' => 'Medienverwaltung'],
-                        'admin/users & groups'                  => ['icon' => '👥', 'label' => 'Benutzer & Gruppen'],
+                        'admin/users-groups'                    => ['icon' => '👥', 'label' => 'Benutzer & Gruppen'],
                         'admin/subscription'                    => ['icon' => '💳', 'label' => 'Aboverwaltung'],
-                        'admin/themes & design'                 => ['icon' => '🎨', 'label' => 'Themes & Design'],
-                        'admin/seo & performance'               => ['icon' => '📈', 'label' => 'SEO & Performance'],
-                        'admin/seo & performance/analytics'     => ['icon' => '📊', 'label' => 'Analytics'],
-                        'admin/recht & sicherheit'              => ['icon' => '⚖️',  'label' => 'Recht & Sicherheit'],
+                        'admin/themes-design'                   => ['icon' => '🎨', 'label' => 'Themes & Design'],
+                        'admin/seo-performance'                 => ['icon' => '📈', 'label' => 'SEO & Performance'],
+                        'admin/seo-performance/analytics'       => ['icon' => '📊', 'label' => 'Analytics'],
+                        'admin/legal-security'                  => ['icon' => '⚖️',  'label' => 'Recht & Sicherheit'],
                         'admin/plugins'                         => ['icon' => '🔌', 'label' => 'Plugins'],
-                        'admin/system & settings'               => ['icon' => '⚙️',  'label' => 'System & Einstellungen'],
+                        'admin/system-settings'                 => ['icon' => '⚙️',  'label' => 'System & Einstellungen'],
                         // ── Member ──────────────────────────────────────────
                         'member'                                => ['icon' => '👤', 'label' => 'Mitglieder'],
                         'member/general'                        => ['icon' => '👤', 'label' => 'Allgemein'],
@@ -738,17 +803,17 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         // Admin + alle Unterordner in Admin-Menü-Reihenfolge
                         'admin',
                         'admin/dashboard',
-                        'admin/landing page',
-                        'admin/pages & posts',
+                        'admin/landing-page',
+                        'admin/pages-posts',
                         'admin/media',
-                        'admin/users & groups',
+                        'admin/users-groups',
                         'admin/subscription',
-                        'admin/themes & design',
-                        'admin/seo & performance',
-                        'admin/seo & performance/analytics',
-                        'admin/recht & sicherheit',
+                        'admin/themes-design',
+                        'admin/seo-performance',
+                        'admin/seo-performance/analytics',
+                        'admin/legal-security',
                         'admin/plugins',
-                        'admin/system & settings',
+                        'admin/system-settings',
                         // Member
                         'member',
                         'member/general',
