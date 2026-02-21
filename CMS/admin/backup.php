@@ -92,6 +92,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $messageType = 'error';
                 }
                 break;
+
+            case 'upload_backup':
+                if (isset($_FILES['backup_file']) && $_FILES['backup_file']['error'] === UPLOAD_ERR_OK) {
+                    $file = $_FILES['backup_file'];
+                    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                    
+                    if (in_array($ext, ['zip', 'sql', 'gz'])) {
+                        $backupName = 'import_' . pathinfo($file['name'], PATHINFO_FILENAME) . '_' . date('YmdHis');
+                        $targetDir = ABSPATH . 'backups/' . $backupName;
+                        
+                        if (!is_dir($targetDir)) {
+                            mkdir($targetDir, 0755, true);
+                        }
+                        
+                        $targetFile = $targetDir . '/' . $file['name'];
+                        
+                        if (move_uploaded_file($file['tmp_name'], $targetFile)) {
+                            // Create manifest so it appears in the list
+                            $manifest = [
+                                'timestamp' => time(),
+                                'date' => date('Y-m-d_H-i-s'),
+                                'type' => 'import',
+                                'files' => $file['name'],
+                                'size' => filesize($targetFile),
+                                'cms_version' => 'external'
+                            ];
+                            file_put_contents($targetDir . '/manifest.json', json_encode($manifest));
+                            
+                            $message = 'Backup erfolgreich hochgeladen.';
+                            $messageType = 'success';
+                        } else {
+                            $message = 'Fehler beim Verschieben der Datei.';
+                            $messageType = 'error';
+                        }
+                    } else {
+                        $message = 'Ungültiges Dateiformat. Erlaubt: .zip, .sql, .gz';
+                        $messageType = 'error';
+                    }
+                } else {
+                    $message = 'Keine Datei ausgewählt oder Upload-Fehler.';
+                    $messageType = 'error';
+                }
+                break;
+
+            case 'restore_backup':
+                $backupName = $_POST['backup_name'] ?? '';
+                // Placeholder for restore logic
+                // In a real implementation, this would trigger BackupService::restoreBackup($backupName)
+                $message = 'Wiederherstellungs-Funktion ist in dieser Version noch nicht vollständig implementiert. Bitte manuell wiederherstellen.';
+                $messageType = 'info';
+                break;
         }
     }
 }
@@ -114,23 +165,30 @@ require_once __DIR__ . '/partials/admin-menu.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Backups - <?php echo htmlspecialchars(SITE_NAME); ?></title>
+    <title>Backup & Restore - <?php echo htmlspecialchars(SITE_NAME); ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css">
     <?php renderAdminSidebarStyles(); ?>
     <style>
-        .backup-grid {
+        .backup-page-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            align-items: start;
         }
         
+        @media (max-width: 1024px) {
+            .backup-page-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .backup-card {
             background: white;
             padding: 1.5rem;
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1.5rem;
         }
         
         .backup-card h3 {
@@ -138,16 +196,18 @@ require_once __DIR__ . '/partials/admin-menu.php';
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            font-size: 1.25rem;
+            font-size: 1.1rem;
+            font-weight: 600;
         }
         
         .backup-card p {
             color: #64748b;
             font-size: 0.875rem;
             margin-bottom: 1.5rem;
+            line-height: 1.5;
         }
         
-        .backup-list {
+        .backup-list-container {
             background: white;
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -155,11 +215,10 @@ require_once __DIR__ . '/partials/admin-menu.php';
         }
         
         .backup-item {
-            padding: 1.5rem;
+            padding: 1rem; // Compact padding
             border-bottom: 1px solid #e5e7eb;
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr auto;
-            gap: 1rem;
+            display: flex;
+            justify-content: space-between;
             align-items: center;
         }
         
@@ -171,19 +230,33 @@ require_once __DIR__ . '/partials/admin-menu.php';
             background: #f8fafc;
         }
         
+        .backup-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
         .backup-name {
             font-weight: 600;
             color: #1e293b;
+            font-size: 0.95rem;
+            word-break: break-all;
         }
         
         .backup-meta {
             color: #64748b;
-            font-size: 0.875rem;
+            font-size: 0.75rem;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
         }
         
         .backup-size {
             color: #3b82f6;
             font-weight: 600;
+            background: #dbeafe;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
         }
         
         .backup-actions {
@@ -191,32 +264,27 @@ require_once __DIR__ . '/partials/admin-menu.php';
             gap: 0.5rem;
         }
         
-        .btn-action {
-            padding: 0.5rem 1rem;
-            border: none;
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             border-radius: 6px;
-            font-size: 0.875rem;
+            border: none;
             cursor: pointer;
             transition: all 0.2s;
-        }
-        
-        .btn-download {
-            background: #3b82f6;
             color: white;
         }
         
-        .btn-download:hover {
-            background: #2563eb;
-        }
+        .btn-download { background: #3b82f6; }
+        .btn-download:hover { background: #2563eb; }
         
-        .btn-delete {
-            background: #ef4444;
-            color: white;
-        }
-        
-        .btn-delete:hover {
-            background: #dc2626;
-        }
+        .btn-restore { background: #10b981; }
+        .btn-restore:hover { background: #059669; }
+
+        .btn-delete { background: #ef4444; }
+        .btn-delete:hover { background: #dc2626; }
         
         .backup-form {
             display: flex;
@@ -228,38 +296,41 @@ require_once __DIR__ . '/partials/admin-menu.php';
             margin: 0;
         }
         
-        .badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-        
-        .badge-full {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-        
-        .badge-db {
-            background: #d1fae5;
-            color: #065f46;
-        }
-        
-        .badge-email {
-            background: #fef3c7;
-            color: #92400e;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 3rem;
-            color: #94a3b8;
-        }
-        
-        .empty-state-icon {
-            font-size: 3rem;
+        .section-header {
             margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+        }
+        .section-header h2 {
+            font-size: 1.25rem;
+            color: #334155;
+            margin: 0;
+        }
+
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.2s;
+            cursor: pointer;
+            position: relative;
+        }
+        .upload-area:hover {
+            border-color: #3b82f6;
+            background: #f8fafc;
+        }
+        .upload-area input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -269,7 +340,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
     
     <div class="admin-content">
         <div class="page-header">
-            <h1>💾 Backup-Verwaltung</h1>
+            <h1>💾 Backup & Restore</h1>
             <p style="color: #64748b;">Datensicherung und -Wiederherstellung</p>
         </div>
         
@@ -279,199 +350,133 @@ require_once __DIR__ . '/partials/admin-menu.php';
             </div>
         <?php endif; ?>
         
-        <!-- Backup Actions -->
-        <div class="backup-grid">
-            <!-- Full Backup -->
-            <div class="backup-card">
-                <h3>
-                    <span>🗄️</span>
-                    Vollständiges Backup
-                </h3>
-                <p>Erstellt ein komplettes Backup aller Datenbank-Tabellen und Dateien (Uploads, Themes, Plugins)</p>
-                <form method="post" class="backup-form">
-                    <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                    <input type="hidden" name="action" value="create_full_backup">
-                    <button type="submit" class="btn btn-primary">
-                        ⬇️ Vollbackup erstellen
-                    </button>
-                </form>
-            </div>
+        <div class="backup-page-grid">
             
-            <!-- Database Backup -->
-            <div class="backup-card">
-                <h3>
-                    <span>💾</span>
-                    Datenbank-Backup
-                </h3>
-                <p>Erstellt ein komprimiertes Backup nur der Datenbank (schneller und kleiner)</p>
-                <form method="post" class="backup-form">
-                    <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                    <input type="hidden" name="action" value="create_db_backup">
-                    <button type="submit" class="btn btn-primary">
-                        💾 DB-Backup erstellen
-                    </button>
-                </form>
+            <!-- Left Column: Create Backups -->
+            <div class="backup-create-section">
+                <div class="section-header">
+                    <h2>Backup erstellen</h2>
+                </div>
+
+                <!-- Full Backup -->
+                <div class="backup-card">
+                    <h3><span>🗄️</span> Vollständiges Backup</h3>
+                    <p>Sichert alle Datenbank-Tabellen und Dateien (Uploads, Themes, Plugins) in ein Archiv.</p>
+                    <form method="post" class="backup-form">
+                        <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+                        <input type="hidden" name="action" value="create_full_backup">
+                        <button type="submit" class="btn btn-primary" style="width:100%">
+                            ⬇️ Vollbackup jetzt erstellen
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Database Backup -->
+                <div class="backup-card">
+                    <h3><span>🗃️</span> Nur Datenbank</h3>
+                    <p>Exportiert nur die Datenbank als SQL-Dump (.sql). Schneller, aber ohne Dateien.</p>
+                    <form method="post" class="backup-form">
+                        <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+                        <input type="hidden" name="action" value="create_db_backup">
+                        <button type="submit" class="btn btn-secondary" style="width:100%">
+                            ⬇️ SQL-Dump erstellen
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Email Backup -->
+                <div class="backup-card">
+                    <h3><span>📧</span> Backup per E-Mail</h3>
+                    <p>Sendet das Datenbank-Backup direkt an Ihre E-Mail-Adresse.</p>
+                    <form method="post" class="backup-form">
+                        <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+                        <input type="hidden" name="action" value="email_backup">
+                        <div class="form-group">
+                            <input type="email" name="email" value="<?php echo htmlspecialchars(ADMIN_EMAIL); ?>" class="form-control" placeholder="E-Mail Adresse" required>
+                        </div>
+                        <button type="submit" class="btn btn-secondary" style="width:100%; margin-top:0.5rem;">
+                            📤 An E-Mail senden
+                        </button>
+                    </form>
+                </div>
             </div>
-            
-            <!-- Email Backup -->
-            <div class="backup-card">
-                <h3>
-                    <span>📧</span>
-                    E-Mail Backup
-                </h3>
-                <p>Versendet ein Datenbank-Backup per E-Mail (nur für kleinere Datenbanken geeignet)</p>
-                <form method="post" class="backup-form">
-                    <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                    <input type="hidden" name="action" value="email_backup">
-                    <div class="form-group">
-                        <input type="email" 
-                               name="email" 
-                               value="<?php echo htmlspecialchars(ADMIN_EMAIL); ?>" 
-                               class="form-control"
-                               placeholder="E-Mail Adresse">
+
+            <!-- Right Column: Restore & Manage -->
+            <div class="backup-restore-section">
+                <div class="section-header">
+                    <h2>Restore & Verwaltung</h2>
+                </div>
+
+                <!-- Upload Section -->
+                <div class="backup-card">
+                    <h3><span>⬆️</span> Backup importieren</h3>
+                    <p>Laden Sie ein bestehendes Backup (.zip oder .sql) hoch, um es wiederherzustellen.</p>
+                    <form method="post" enctype="multipart/form-data" class="backup-form">
+                        <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+                        <input type="hidden" name="action" value="upload_backup">
+                        
+                        <div class="upload-area">
+                            <span style="font-size:2rem; display:block; margin-bottom:0.5rem;">📂</span>
+                            <span style="color:#64748b; font-weight:500;">Datei hier ablegen oder klicken</span>
+                            <input type="file" name="backup_file" accept=".zip,.sql,.gz" onchange="this.form.submit()">
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Existing Backups List -->
+                <h3 style="margin: 0 0 1rem 0; font-size:1.1rem; color:#334155;">Verfügbare Backups</h3>
+                
+                <?php if (empty($backups)): ?>
+                    <div class="backup-card" style="text-align:center; padding:3rem;">
+                        <span style="font-size:3rem; display:block; margin-bottom:1rem; opacity:0.5;">📭</span>
+                        <p>Keine Backups gefunden.</p>
                     </div>
-                    <button type="submit" class="btn btn-primary">
-                        📧 Per E-Mail senden
-                    </button>
-                </form>
+                <?php else: ?>
+                    <div class="backup-list-container">
+                        <?php foreach ($backups as $backup): ?>
+                            <div class="backup-item">
+                                <div class="backup-info">
+                                    <span class="backup-name"><?php echo htmlspecialchars($backup['name']); ?></span>
+                                    <div class="backup-meta">
+                                        <span><?php echo date('d.m.Y H:i', $backup['timestamp']); ?></span>
+                                        <span class="backup-size"><?php echo $backup['size_formatted'] ?? '0 B'; ?></span>
+                                    </div>
+                                </div>
+                                <div class="backup-actions">
+                                    <!-- Download -->
+                                    <a href="?action=download&file=<?php echo urlencode($backup['name']); ?>" class="btn-icon btn-download" title="Herunterladen">
+                                        ⬇
+                                    </a>
+                                    
+                                    <!-- Restore (Trigger only) -->
+                                    <form method="post" style="display:inline;" onsubmit="return confirm('WARNUNG: Dies wird die aktuelle Datenbank/Dateien überschreiben! Fortfahren?');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+                                        <input type="hidden" name="action" value="restore_backup">
+                                        <input type="hidden" name="backup_name" value="<?php echo htmlspecialchars($backup['name']); ?>">
+                                        <button type="submit" class="btn-icon btn-restore" title="Wiederherstellen">
+                                            ↺
+                                        </button>
+                                    </form>
+
+                                    <!-- Delete -->
+                                    <form method="post" style="display:inline;" onsubmit="return confirm('Wirklich löschen?');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+                                        <input type="hidden" name="action" value="delete_backup">
+                                        <input type="hidden" name="backup_name" value="<?php echo htmlspecialchars($backup['name']); ?>">
+                                        <button type="submit" class="btn-icon btn-delete" title="Löschen">
+                                            ✕
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
         
-        <!-- Backup List -->
-        <h2 style="margin: 2rem 0 1rem 0;">📦 Gespeicherte Backups</h2>
-        
-        <?php if (empty($backups)): ?>
-            <div class="backup-list">
-                <div class="empty-state">
-                    <div class="empty-state-icon">📭</div>
-                    <h3>Keine Backups vorhanden</h3>
-                    <p>Erstellen Sie Ihr erstes Backup mit den Optionen oben</p>
-                </div>
-            </div>
-        <?php else: ?>
-            <div class="backup-list">
-                <?php foreach ($backups as $backup): ?>
-                    <div class="backup-item">
-                        <div>
-                            <div class="backup-name">
-                                <?php echo htmlspecialchars((string)$backup['name']); ?>
-                                <?php if ($backup['type'] === 'full'): ?>
-                                    <span class="badge badge-full">Vollbackup</span>
-                                <?php else: ?>
-                                    <span class="badge badge-db">Datenbank</span>
-                                <?php endif; ?>
-                            </div>
-                            <div class="backup-meta">
-                                <?php echo date('d.m.Y H:i', $backup['timestamp']); ?>
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <div class="backup-size">
-                                <?php 
-                                $size = $backup['size'];
-                                $units = ['B', 'KB', 'MB', 'GB'];
-                                $i = 0;
-                                while ($size >= 1024 && $i < count($units) - 1) {
-                                    $size /= 1024;
-                                    $i++;
-                                }
-                                echo round($size, 2) . ' ' . $units[$i];
-                                ?>
-                            </div>
-                            <div class="backup-meta">
-                                CMS v<?php echo htmlspecialchars((string)($backup['cms_version'] ?? 'N/A')); ?>
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <?php if ($backup['type'] === 'full'): ?>
-                                <small style="color: #64748b;">
-                                    DB: <?php echo basename($backup['database']); ?><br>
-                                    Files: <?php echo basename($backup['files']); ?>
-                                </small>
-                            <?php endif; ?>
-                        </div>
-                        
-                        <div class="backup-actions">
-                            <a href="<?php echo SITE_URL; ?>/backups/<?php echo htmlspecialchars((string)$backup['name']); ?>" 
-                               class="btn-action btn-download"
-                               title="Download">
-                                ⬇️
-                            </a>
-                            <form method="post" style="display: inline;" 
-                                  onsubmit="return confirm('Backup wirklich löschen?');">
-                                <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                                <input type="hidden" name="action" value="delete_backup">
-                                <input type="hidden" name="backup_name" value="<?php echo htmlspecialchars((string)$backup['name']); ?>">
-                                <button type="submit" class="btn-action btn-delete" title="Löschen">
-                                    🗑️
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
-        
-        <!-- Backup History -->
-        <h2 style="margin: 2rem 0 1rem 0;">📜 Backup-Verlauf</h2>
-        
-        <?php if (empty($history)): ?>
-            <div class="backup-list">
-                <div class="empty-state">
-                    <p>Kein Verlauf vorhanden</p>
-                </div>
-            </div>
-        <?php else: ?>
-            <div class="backup-list">
-                <?php foreach ($history as $entry): ?>
-                    <div class="backup-item" style="grid-template-columns: 2fr 1fr 1fr;">
-                        <div>
-                            <div class="backup-name">
-                                <?php echo htmlspecialchars((string)($entry['name'] ?? '')); ?>
-                                <?php if ($entry['type'] === 'full'): ?>
-                                    <span class="badge badge-full">Vollbackup</span>
-                                <?php elseif ($entry['type'] === 'email'): ?>
-                                    <span class="badge badge-email">E-Mail</span>
-                                <?php else: ?>
-                                    <span class="badge badge-db">Datenbank</span>
-                                <?php endif; ?>
-                            </div>
-                            <div class="backup-meta">
-                                Erstellt von: <?php echo htmlspecialchars((string)($entry['user'] ?? 'System')); ?>
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <div class="backup-meta">
-                                <?php echo htmlspecialchars((string)($entry['timestamp'] ?? '')); ?>
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <div class="backup-size">
-                                <?php echo htmlspecialchars((string)($entry['size_formatted'] ?? '')); ?>
-                            </div>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
-        
-        <!-- Info Box -->
-        <div class="backup-card" style="margin-top: 2rem; background: #eff6ff; border-left: 4px solid #3b82f6;">
-            <h3>ℹ️ Hinweise zu Backups</h3>
-            <ul style="color: #475569; font-size: 0.875rem; margin: 1rem 0 0 1.5rem;">
-                <li><strong>Vollbackup:</strong> Beinhaltet Datenbank + alle Dateien (Uploads, Themes, Plugins)</li>
-                <li><strong>Datenbank-Backup:</strong> Nur SQL-Dump (komprimiert), ideal für regelmäßige Sicherungen</li>
-                <li><strong>E-Mail-Backup:</strong> Nur für kleine Datenbanken geeignet (E-Mail-Größenlimit beachten)</li>
-                <li><strong>Speicherort:</strong> <?php echo ABSPATH; ?>backups/</li>
-                <li><strong>Empfehlung:</strong> Täglich automatische DB-Backups, wöchentlich Vollbackups</li>
-                <li><strong>Sicherheit:</strong> .htaccess verhindert direkten Zugriff auf Backup-Dateien</li>
-            </ul>
-        </div>
     </div>
     
 </body>
 </html>
+

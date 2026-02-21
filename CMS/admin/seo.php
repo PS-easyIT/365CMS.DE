@@ -99,6 +99,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $message = 'Fehler beim Speichern: ' . $e->getMessage();
                 $messageType = 'error';
             }
+        } elseif ($_POST['action'] === 'regenerate_assets') {
+             try {
+                $seoService->saveRobotsTxt();
+                $seoService->saveSitemap();
+                $message = 'Sitemap.xml und robots.txt wurden erfolgreich neu generiert.';
+                $messageType = 'success';
+             } catch (\Exception $e) {
+                $message = 'Fehler beim Generieren: ' . $e->getMessage();
+                $messageType = 'error';
+             }
         }
     }
 }
@@ -429,6 +439,13 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         <label for="robots_txt_content">Robots.txt Inhalt</label>
                         <textarea name="robots_txt_content" id="robots_txt_content" rows="6" style="font-family: monospace;"><?php echo htmlspecialchars($currentSettings['seo_robots_txt_content'] ?: "User-agent: *\nDisallow: /admin/\nDisallow: /includes/\nAllow: /"); ?></textarea>
                         <div class="help-text">Dieser Inhalt wird unter <?php echo SITE_URL; ?>/robots.txt ausgegeben.</div>
+                    </div>
+
+                    <div class="form-group full-width" style="margin-top: 1rem;">
+                        <button type="submit" name="action" value="regenerate_assets" class="btn btn-secondary" style="margin-left: 0;">
+                            🔄 Assets neu generieren
+                        </button>
+                        <span class="help-text" style="margin-left: 0.5rem; display: inline-block;">(Sitemap.xml & robots.txt physisch neu schreiben)</span>
                     </div>
                 </div>
             </div>

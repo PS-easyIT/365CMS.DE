@@ -41,7 +41,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $message = 'Sicherheitsüberprüfung fehlgeschlagen';
         $messageType = 'error';
     } else {
-        if ($_POST['action'] === 'save_performance') {
+        if ($_POST['action'] === 'clear_cache') {
+            // Clear Cache Action
+            try {
+                // Clear DB Cache Table
+                $db->execute("TRUNCATE TABLE {$db->getPrefix()}cache");
+                
+                // Clear File Cache (if any)
+                $cacheDir = ABSPATH . 'cache/';
+                $files = glob($cacheDir . '*');
+                foreach ($files as $file) {
+                    if (is_file($file) && basename($file) !== '.htaccess' && basename($file) !== 'index.php') {
+                        @unlink($file);
+                    }
+                }
+                
+                $message = 'Cache erfolgreich geleert (DB + Dateien)';
+                $messageType = 'success';
+            } catch (\Exception $e) {
+                $message = 'Fehler beim Leeren des Caches: ' . $e->getMessage();
+                $messageType = 'error';
+            }
+        } elseif ($_POST['action'] === 'save_performance') {
             // Save performance settings
             $perfSettings = [
                 'perf_enable_lazy_loading' => isset($_POST['enable_lazy_loading']) ? '1' : '0',
@@ -309,7 +330,12 @@ require_once __DIR__ . '/partials/admin-menu.php';
             
             <!-- Caching -->
             <div class="perf-section">
-                <h3>Caching <span class="performance-badge">KRITISCH</span></h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3>Caching <span class="performance-badge">KRITISCH</span></h3>
+                    <button type="submit" name="action" value="clear_cache" class="btn-save" style="padding: 0.5rem 1rem; font-size: 0.875rem; background: #ef4444;">
+                        🗑️ Cache leeren
+                    </button>
+                </div>
                 <div class="form-grid">
                     <div class="checkbox-group">
                         <input type="checkbox" id="enable_browser_cache" name="enable_browser_cache" <?php echo $currentSettings['perf_enable_browser_cache'] === '1' ? 'checked' : ''; ?>>

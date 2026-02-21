@@ -52,10 +52,10 @@ $auditResults[] = [
 ];
 
 // 4. Admin Account Check
-$admins = $db->execute("SELECT user_login FROM {$db->getPrefix()}users u JOIN {$db->getPrefix()}user_meta m ON u.id = m.user_id WHERE m.meta_key = 'role' AND m.meta_value = 'admin'")->fetchAll();
+$admins = $db->execute("SELECT username FROM {$db->getPrefix()}users WHERE role = 'admin'")->fetchAll();
 $hasDefaultAdmin = false;
 foreach ($admins as $a) {
-    if (strtolower($a->user_login) === 'admin' || strtolower($a->user_login) === 'administrator') {
+    if (strtolower($a->username) === 'admin' || strtolower($a->username) === 'administrator') {
         $hasDefaultAdmin = true;
     }
 }
@@ -68,15 +68,18 @@ $auditResults[] = [
 
 // 5. Database Prefix
 $prefix = $db->getPrefix();
+$isDefaultWP = ($prefix === 'wp_');
+$isDefaultCMS = ($prefix === 'cms_');
+
 $auditResults[] = [
     'category' => 'Database',
     'title' => 'Table Prefix',
-    'status' => ($prefix === 'wp_' || $prefix === 'cms_') ? 'warning' : 'pass',
-    'message' => "Current prefix: {$prefix}" . (($prefix === 'wp_' || $prefix === 'cms_') ? ' (Default prefixes are easier to guess)' : '')
+    'status' => $isDefaultWP ? 'fail' : ($isDefaultCMS ? 'info' : 'pass'), 
+    'message' => "Current prefix: {$prefix}" . ($isDefaultWP ? ' (High Risk: "wp_" is targeted by bots)' : ($isDefaultCMS ? ' (Standard prefix, acceptable but custom is better)' : ' (Custom prefix, good)'))
 ];
 
 // 6. Uploads Directory Protection
-$uploadsDir = UPLOADS_PATH;
+$uploadsDir = UPLOAD_PATH;
 $isWritable = is_writable($uploadsDir);
 // Just checking write permissions isn't enough, we want to know if execution is prevented, but we can't test that easily.
 $auditResults[] = [
@@ -114,6 +117,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
         .status-pass { background: #dcfce7; color: #166534; }
         .status-fail { background: #fee2e2; color: #991b1b; }
         .status-warning { background: #fef3c7; color: #92400e; }
+        .status-info { background: #dbeafe; color: #1e40af; }
         
         .score-card { background: #1e293b; color: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; }
         .score-circle { width: 80px; height: 80px; border-radius: 50%; border: 4px solid #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; }
@@ -154,10 +158,22 @@ require_once __DIR__ . '/partials/admin-menu.php';
         <div class="audit-grid">
             <?php foreach($auditResults as $check): ?>
             <div class="audit-card" style="border-left: 4px solid <?php 
-                echo match($check['status']) { 'pass' => '#22c55e', 'fail' => '#ef4444', 'warning' => '#eab308' }; 
+                echo match($check['status']) { 
+                    'pass' => '#22c55e', 
+                    'fail' => '#ef4444', 
+                    'warning' => '#eab308',
+                    'info' => '#3b82f6',
+                    default => '#94a3b8'
+                }; 
             ?>;">
                 <div class="audit-icon <?php echo 'status-' . $check['status']; ?>">
-                    <?php echo match($check['status']) { 'pass' => '✓', 'fail' => '✕', 'warning' => '!' }; ?>
+                    <?php echo match($check['status']) { 
+                        'pass' => '✓', 
+                        'fail' => '✕', 
+                        'warning' => '!', 
+                        'info' => 'i',
+                        default => '?'
+                    }; ?>
                 </div>
                 <div>
                     <span style="font-size:0.75rem; text-transform:uppercase; color:#64748b; font-weight:600; letter-spacing:0.5px;">

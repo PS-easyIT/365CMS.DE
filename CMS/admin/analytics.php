@@ -274,32 +274,47 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         <div class="metric-value"><?php echo number_format((int)($visitorStats['total'] ?? 0)); ?></div>
                         <div class="metric-label">Seitenaufrufe (30 Tage)</div>
                     </div>
-                    
+                   
                     <div class="metric-card">
                         <div class="metric-icon">👤</div>
                         <div class="metric-value"><?php echo number_format((int)($visitorStats['unique'] ?? 0)); ?></div>
                         <div class="metric-label">Eindeutige Besucher</div>
                     </div>
-                    
+                   
                     <div class="metric-card">
                         <div class="metric-icon">⚡</div>
                         <div class="metric-value"><?php echo number_format((int)($visitorStats['active_now'] ?? 0)); ?></div>
                         <div class="metric-label">Aktive Besucher</div>
-                        <div class="metric-change">Aktuell online</div>
+                        <div class="metric-change" style="color:#10b981;">● Online</div>
                     </div>
-                    
+                   
                     <div class="metric-card">
                         <div class="metric-icon">📈</div>
                         <div class="metric-value"><?php echo number_format((float)($visitorStats['bounce_rate'] ?? 0), 1); ?>%</div>
                         <div class="metric-label">Absprungrate</div>
                     </div>
                 </div>
-                
-                <!-- Chart Placeholder -->
+
+                <!-- CSS Only Chart -->
                 <div class="chart-container">
-                    <h3 style="margin-bottom: 1rem;">📈 Besucher-Verlauf (30 Tage)</h3>
-                    <div style="height: 300px; display: flex; align-items: center; justify-content: center; background: #f8fafc; border-radius: 8px;">
-                        <p style="color: #94a3b8;">Chart wird hier angezeigt (Chart.js Integration)</p>
+                    <h3 style="margin-bottom: 1.5rem;">📈 Besucher-Verlauf (Letzte 30 Tage)</h3>
+                    <div style="display: flex; align-items: flex-end; justify-content: space-between; height: 300px; gap: 4px; padding-bottom: 2rem;">
+                        <?php 
+                        $maxViews = 1;
+                        foreach ($pageViews as $views) {
+                            if ($views > $maxViews) $maxViews = $views;
+                        }
+                        
+                        foreach ($pageViews as $date => $views): 
+                            $height = max(4, round(($views / $maxViews) * 100));
+                            $day = date('d', strtotime($date));
+                        ?>
+                        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; group: date-col;">
+                            <div style="width: 100%; text-align: center; font-size: 0.7rem; color: #64748b; margin-bottom: 4px; opacity: 0;" title="<?php echo $views; ?> Aufrufe"><?php echo $views; ?></div>
+                            <div style="width: 100%; border-radius: 4px 4px 0 0; background: #3b82f6; height: <?php echo $height; ?>%; transition: height 0.3s;" title="<?php echo $date; ?>: <?php echo $views; ?> Aufrufe"></div>
+                            <div style="margin-top: 8px; font-size: 0.7rem; color: #94a3b8;"><?php echo $day; ?></div>
+                        </div>
+                        <?php endforeach; ?>
                     </div>
                 </div>
                 
@@ -422,9 +437,26 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 </div>
                 
                 <div class="chart-container">
-                    <h3 style="margin-bottom: 1rem;">📈 Besucher-Trend</h3>
-                    <div style="height: 400px; display: flex; align-items: center; justify-content: center; background: #f8fafc; border-radius: 8px;">
-                        <p style="color: #94a3b8;">Detaillierter Trend-Chart (Chart.js)</p>
+                    <h3 style="margin-bottom: 1.5rem;">📈 Besucher-Trend (Letzte 30 Tage)</h3>
+                    <!-- Reusing chart logic -->
+                    <div style="display: flex; align-items: flex-end; justify-content: space-between; height: 300px; gap: 4px; padding-bottom: 2rem;">
+                         <?php 
+                        $maxViews = 1;
+                        if (!empty($pageViews)) {
+                            foreach ($pageViews as $views) {
+                                if ($views > $maxViews) $maxViews = $views;
+                            }
+                        }
+                        
+                        foreach ($pageViews as $date => $views): 
+                            $height = max(4, round(($views / $maxViews) * 100));
+                            $day = date('d', strtotime($date));
+                        ?>
+                        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; group: date-col;">
+                            <div style="width: 100%; border-radius: 4px 4px 0 0; background: #6366f1; height: <?php echo $height; ?>%; transition: height 0.3s;" title="<?php echo $date; ?>: <?php echo $views; ?> Aufrufe"></div>
+                            <div style="margin-top: 8px; font-size: 0.7rem; color: #94a3b8;"><?php echo $day; ?></div>
+                        </div>
+                        <?php endforeach; ?>
                     </div>
                 </div>
                 
@@ -466,21 +498,65 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         <div class="empty-state">
                             <div class="empty-state-icon">📄</div>
                             <p>Noch keine Seitenaufrufe vorhanden</p>
+                            <p style="font-size: 0.875rem; margin-top: 0.5rem; color: #94a3b8;">Tracking beginnt automatisch</p>
                         </div>
                     <?php endif; ?>
                 </div>
-                
             <?php elseif ($activeTab === 'sources'): ?>
                 <!-- Traffic Sources Tab -->
-                <div class="empty-state" style="background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);">
-                    <div class="empty-state-icon">🔗</div>
-                    <h3>Traffic-Quellen Analyse</h3>
-                    <p style="margin-top: 1rem;">Diese Funktion zeigt woher Ihre Besucher kommen</p>
-                    <p style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.5rem;">
-                        Referrer-Tracking ist aktiviert und sammelt Daten
-                    </p>
+                <h3 style="margin-bottom: 1rem;">🔗 Traffic Quellen (Top 10)</h3>
+                <div class="page-list">
+                    <?php 
+                    // Direct DB Query for Referrers until added to Service
+                    $db = \CMS\Database::instance();
+                    $stmt = $db->prepare("
+                        SELECT referrer, COUNT(*) as count 
+                        FROM {$db->getPrefix()}page_views 
+                        WHERE visited_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) 
+                        AND referrer != '' 
+                        AND referrer NOT LIKE ?
+                        GROUP BY referrer 
+                        ORDER BY count DESC 
+                        LIMIT 10
+                    ");
+                    $stmt->execute(['%' . parse_url(SITE_URL, PHP_URL_HOST) . '%']);
+                    $referrers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    ?>
+
+                    <?php if (!empty($referrers)): ?>
+                        <?php 
+                        $maxRef = $referrers[0]['count']; 
+                        foreach ($referrers as $ref): 
+                            $percent = round(($ref['count'] / $maxRef) * 100);
+                        ?>
+                            <div class="page-item">
+                                <div style="flex: 1;">
+                                    <strong><?php echo htmlspecialchars(parse_url($ref['referrer'], PHP_URL_HOST) ?? $ref['referrer']); ?></strong>
+                                    <div style="color: #64748b; font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 400px;">
+                                        <?php echo htmlspecialchars($ref['referrer']); ?>
+                                    </div>
+                                    <div style="margin-top: 5px; background: #f1f5f9; height: 6px; border-radius: 3px; width: 100%;">
+                                        <div style="background: #3b82f6; height: 100%; border-radius: 3px; width: <?php echo $percent; ?>%;"></div>
+                                    </div>
+                                </div>
+                                <div style="text-align: right; min-width: 80px;">
+                                    <div style="font-weight: 600; color: #3b82f6;">
+                                        <?php echo number_format($ref['count']); ?>
+                                    </div>
+                                    <div style="font-size: 0.75rem; color: #64748b;">Besuche</div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🔗</div>
+                            <p>Keine externen Traffic-Quellen gefunden</p>
+                            <p style="font-size: 0.875rem; margin-top: 0.5rem; color: #94a3b8;">
+                                Traffic wird überwiegend direkt oder intern generiert
+                            </p>
+                        </div>
+                    <?php endif; ?>
                 </div>
-                
             <?php endif; ?>
     </div>
 </body>
