@@ -391,6 +391,13 @@ function getAdminMenuItems(string $currentPage = ''): array
                     'url'    => '/admin/data-deletion', // Neu
                     'active' => _adminNavIsActive('/admin/data-deletion') || $currentPage === 'data-deletion',
                 ],
+                [
+                    'slug'   => 'security-audit',
+                    'label'  => 'Security Audit',
+                    'icon'   => '🛡️',
+                    'url'    => '/admin/security-audit', // Neu
+                    'active' => _adminNavIsActive('/admin/security-audit') || $currentPage === 'security-audit',
+                ],
             ],
         ],
 
