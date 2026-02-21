@@ -70,10 +70,62 @@ function githubGet(string $url, string $token = ''): ?string
 }
 
 /**
- * Listet alle .md-Dateien im /DOC-Verzeichnis des Repos.
+ * Rekursiv alle .md-Dateien in einem GitHub-Verzeichnispfad laden.
+ * Wird intern von fetchDocList() aufgerufen – kein eigenes Caching.
+ *
+ * @param string $apiPath  Pfad relativ zum Repo-Root (z. B. "DOC" oder "DOC/admin")
+ * @param string $token    Optionaler GitHub-Token
+ * @param string $relDir   Aktueller Unterordner relativ zu DOC ('' = Root)
+ * @return array<array{name:string, path:string, dir:string, sha:string, download_url:string}>
+ */
+function fetchDocTree(string $apiPath, string $token = '', string $relDir = ''): array
+{
+    $body = githubGet(GITHUB_API_BASE . $apiPath . '?ref=' . GITHUB_BRANCH, $token);
+    if ($body === null) return [];
+
+    $items = json_decode($body, true);
+    if (!is_array($items)) return [];
+
+    $files = [];
+    $dirs  = [];
+
+    foreach ($items as $item) {
+        $type = $item['type'] ?? '';
+        $name = $item['name'] ?? '';
+
+        if ($type === 'file' && str_ends_with(strtolower($name), '.md')) {
+            $files[] = [
+                'name'         => $name,
+                'path'         => $item['path'],
+                'dir'          => $relDir,
+                'sha'          => $item['sha'] ?? '',
+                'download_url' => $item['download_url'] ?? '',
+            ];
+        } elseif ($type === 'dir') {
+            $dirs[] = $item;
+        }
+    }
+
+    // Dateien im aktuellen Verzeichnis alphabetisch sortieren
+    usort($files, fn($a, $b) => strcmp($a['name'], $b['name']));
+    // Unterordner alphabetisch sortieren
+    usort($dirs, fn($a, $b) => strcmp($a['name'], $b['name']));
+
+    // Rekursiv in Unterordner abtauchen
+    foreach ($dirs as $dir) {
+        $subRelDir = $relDir === '' ? $dir['name'] : $relDir . '/' . $dir['name'];
+        $subFiles  = fetchDocTree($dir['path'], $token, $subRelDir);
+        $files     = array_merge($files, $subFiles);
+    }
+
+    return $files;
+}
+
+/**
+ * Listet alle .md-Dateien im /DOC-Verzeichnis des Repos (inkl. Unterordner).
  * Ergebnis wird 10 Minuten gecacht (file-based).
  *
- * @return array<array{name:string, path:string, sha:string, download_url:string}>
+ * @return array<array{name:string, path:string, dir:string, sha:string, download_url:string}>
  */
 function fetchDocList(string $token = ''): array
 {
@@ -82,34 +134,12 @@ function fetchDocList(string $token = ''): array
 
     if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < $cacheTTL) {
         $cached = json_decode((string) file_get_contents($cacheFile), true);
-        if (is_array($cached)) return $cached;
-    }
-
-    $url  = GITHUB_API_BASE . GITHUB_DOC_PATH . '?ref=' . GITHUB_BRANCH;
-    $body = githubGet($url, $token);
-
-    if ($body === null) return [];
-
-    $items = json_decode($body, true);
-    if (!is_array($items)) return [];
-
-    $docs = [];
-    foreach ($items as $item) {
-        if (
-            ($item['type'] ?? '') === 'file' &&
-            str_ends_with(strtolower($item['name'] ?? ''), '.md')
-        ) {
-            $docs[] = [
-                'name'         => $item['name'],
-                'path'         => $item['path'],
-                'sha'          => $item['sha'] ?? '',
-                'download_url' => $item['download_url'] ?? '',
-            ];
+        if (is_array($cached) && count($cached) > 0 && isset($cached[0]['dir'])) {
+            return $cached;
         }
     }
 
-    // Alphabetisch sortieren
-    usort($docs, fn($a, $b) => strcmp($a['name'], $b['name']));
+    $docs = fetchDocTree(GITHUB_DOC_PATH, $token);
 
     file_put_contents($cacheFile, json_encode($docs));
     return $docs;

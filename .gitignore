@@ -44,7 +44,7 @@ package-lock.json
 !css_framework/tailwind/output.css
 
 # Dev/Local Folders (Komplette Ordner ignorieren)
-CMSv1/
+BACKUP/
 PLUGINS/
 THEMES/
 DOC/audits/
