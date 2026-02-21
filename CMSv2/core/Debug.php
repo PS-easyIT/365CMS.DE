@@ -64,18 +64,36 @@ class Debug {
         
         self::$logs[] = $entry;
         
-        // Auch ins Error-Log schreiben
-        $log_message = sprintf(
-            '[CMS Debug %s] %s',
-            strtoupper($type),
-            $message
-        );
-        
-        if ($data !== null) {
-            $log_message .= ' | Data: ' . json_encode($data);
+        // In /logs/debug-YYYY-MM-DD.log schreiben (nur wenn DEBUG aktiv)
+        self::writeToFile($type, $message, $data);
+    }
+    
+    /**
+     * Schreibt einen Log-Eintrag in /logs/debug-YYYY-MM-DD.log
+     */
+    private static function writeToFile(string $type, string $message, mixed $data = null): void {
+        if (!self::$enabled) {
+            return;
         }
         
-        error_log($log_message);
+        $logDir = defined('ABSPATH') ? ABSPATH . 'logs' : sys_get_temp_dir();
+        
+        // Verzeichnis anlegen falls nicht vorhanden
+        if (!is_dir($logDir)) {
+            @mkdir($logDir, 0750, true);
+        }
+        
+        $logFile = $logDir . '/debug-' . date('Y-m-d') . '.log';
+        
+        $line = '[' . date('Y-m-d H:i:s') . '] [' . strtoupper($type) . '] ' . $message;
+        
+        if ($data !== null) {
+            $line .= ' | ' . json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
+        
+        $line .= PHP_EOL;
+        
+        file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX);
     }
     
     /**
