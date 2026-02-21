@@ -2,9 +2,8 @@
 /**
  * Support & Dokumentation
  *
- * Lädt .md-Dateien ausschließlich aus dem öffentlichen GitHub-Repository.
- * Dateiliste: GitHub API  → api.github.com  (kein Token nötig, public Repo)
- * Inhalt:     GitHub Raw  → raw.githubusercontent.com
+ * Zeigt eine Übersichtsseite je DOC-Bereich mit direkten GitHub-Links.
+ * Kein Laden von Dateiinhalten – kein Hängen.
  *
  * @package CMSv2\Admin
  */
@@ -26,81 +25,21 @@ if (!Auth::instance()->isAdmin()) {
     exit;
 }
 
-// ─── GitHub-Konstanten ────────────────────────────────────────────────────────
+// ─── Konstanten ───────────────────────────────────────────────────────────────
 
 const GITHUB_OWNER    = 'PS-easyIT';
 const GITHUB_REPO     = '365CMS.DE';
 const GITHUB_BRANCH   = 'main';
 const GITHUB_DOC_PATH = 'DOC';
-const GITHUB_RAW_BASE      = 'https://raw.githubusercontent.com/' . GITHUB_OWNER . '/' . GITHUB_REPO . '/' . GITHUB_BRANCH . '/';
-const GITHUB_API_TREE      = 'https://api.github.com/repos/' . GITHUB_OWNER . '/' . GITHUB_REPO . '/git/trees/' . GITHUB_BRANCH . '?recursive=1';
-const GITHUB_API_CONTENTS  = 'https://api.github.com/repos/' . GITHUB_OWNER . '/' . GITHUB_REPO . '/contents/';
+const GITHUB_API_TREE = 'https://api.github.com/repos/' . GITHUB_OWNER . '/' . GITHUB_REPO . '/git/trees/' . GITHUB_BRANCH . '?recursive=1';
+const GITHUB_BROWSE   = 'https://github.com/' . GITHUB_OWNER . '/' . GITHUB_REPO . '/blob/' . GITHUB_BRANCH . '/';
 
-// ─── HTTP-Hilfsfunktion ───────────────────────────────────────────────────────
+// ─── Dateiliste (gecacht, 5 min) ──────────────────────────────────────────────
 
-/**
- * Lädt eine URL via cURL (Primär) oder file_get_contents (Fallback).
- * Timeout bewusst kurz (4 s) um den Admin nicht zu blockieren.
- */
-function supportHttpGet(string $url, array $headers = []): ?string
-{
-    if (function_exists('curl_init')) {
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL            => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_CONNECTTIMEOUT => 4,
-            CURLOPT_TIMEOUT        => 6,
-            CURLOPT_USERAGENT      => '365CMS-Support/2.0',
-            CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTPHEADER     => $headers,
-        ]);
-        $body = curl_exec($ch);
-        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $err  = curl_error($ch);
-        curl_close($ch);
-
-        if ($body !== false && $code === 200) {
-            return (string) $body;
-        }
-        $GLOBALS['_support_last_error'] = "HTTP {$code}" . ($err ? " – {$err}" : '') . " · {$url}";
-        return null;
-    }
-
-    if (ini_get('allow_url_fopen')) {
-        $context = stream_context_create([
-            'http' => [
-                'header'     => implode("\r\n", array_merge(['User-Agent: 365CMS-Support/2.0'], $headers)),
-                'timeout'    => 6,
-            ],
-        ]);
-        $body = @file_get_contents($url, false, $context);
-        if ($body !== false) {
-            return $body;
-        }
-        $GLOBALS['_support_last_error'] = "file_get_contents fehlgeschlagen · {$url}";
-        return null;
-    }
-
-    $GLOBALS['_support_last_error'] = 'Weder cURL noch allow_url_fopen verfügbar';
-    return null;
-}
-
-// ─── Dateiliste aus GitHub API ────────────────────────────────────────────────
-
-/**
- * Holt alle .md-Dateien unterhalb von DOC/ aus dem GitHub-Repository.
- * Ergebnis wird 5 Minuten im tmp-Verzeichnis gecacht, damit nicht jeder
- * Seitenaufruf eine API-Anfrage auslöst.
- *
- * @return array<array{name:string, path:string, dir:string}>
- */
 function fetchDocList(): array
 {
-    // ── Cache prüfen ──────────────────────────────────────────────────────────
     $cacheFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . '365cms_doclist_' . md5(GITHUB_REPO) . '.json';
-    $cacheTTL  = 300; // 5 Minuten
+    $cacheTTL  = 300;
 
     if (is_file($cacheFile) && (time() - filemtime($cacheFile)) < $cacheTTL) {
         $cached = json_decode((string) file_get_contents($cacheFile), true);
@@ -109,9 +48,34 @@ function fetchDocList(): array
         }
     }
 
-    $body = supportHttpGet(GITHUB_API_TREE, ['Accept: application/vnd.github+json']);
+    // HTTP-Request
+    $body = null;
+    $url  = GITHUB_API_TREE;
+    $hdrs = ['Accept: application/vnd.github+json', 'User-Agent: 365CMS-Support/2.0'];
+
+    if (function_exists('curl_init')) {
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL            => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 4,
+            CURLOPT_TIMEOUT        => 6,
+            CURLOPT_HTTPHEADER     => $hdrs,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+        ]);
+        $resp = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($resp !== false && $code === 200) $body = $resp;
+    } elseif (ini_get('allow_url_fopen')) {
+        $ctx  = stream_context_create(['http' => ['header' => implode("\r\n", $hdrs), 'timeout' => 6]]);
+        $resp = @file_get_contents($url, false, $ctx);
+        if ($resp !== false) $body = $resp;
+    }
+
     if ($body === null) {
-        // Falls Cache abgelaufen aber vorhanden → lieber veraltet als leer
+        // Abgelaufener Cache besser als nichts
         if (is_file($cacheFile)) {
             $cached = json_decode((string) file_get_contents($cacheFile), true);
             if (is_array($cached)) return $cached;
@@ -119,256 +83,57 @@ function fetchDocList(): array
         return [];
     }
 
-    $data = json_decode($body, true);
-    if (!is_array($data) || !isset($data['tree'])) {
-        $GLOBALS['_support_last_error'] = 'Ungültige API-Antwort (kein "tree"-Schlüssel)';
-        return [];
-    }
-
+    $data   = json_decode($body, true);
     $docs   = [];
     $prefix = GITHUB_DOC_PATH . '/';
 
-    foreach ($data['tree'] as $node) {
+    foreach (($data['tree'] ?? []) as $node) {
         if (($node['type'] ?? '') !== 'blob') continue;
         $path = $node['path'] ?? '';
         if (!str_starts_with($path, $prefix)) continue;
         if (!str_ends_with(strtolower($path), '.md')) continue;
 
-        $relPath = substr($path, strlen($prefix)); // z. B. "INDEX.md" | "admin/README.md"
+        $relPath = substr($path, strlen($prefix));
         $dir     = str_contains($relPath, '/') ? dirname($relPath) : '';
-        $name    = basename($relPath);
-
-        $docs[] = [
-            'name' => $name,
-            'path' => $path,
-            'dir'  => $dir,
-        ];
+        $docs[]  = ['name' => basename($relPath), 'path' => $path, 'dir' => $dir];
     }
 
-    // ── Cache speichern ──────────────────────────────────────────────────────
     if (!empty($docs)) {
         @file_put_contents($cacheFile, json_encode($docs, JSON_UNESCAPED_UNICODE));
     }
 
-    // INDEX.md im Root immer an erster Stelle
-    usort($docs, static function (array $a, array $b): int {
-        $aIsIndex = $a['dir'] === '' && strtolower($a['name']) === 'index.md';
-        $bIsIndex = $b['dir'] === '' && strtolower($b['name']) === 'index.md';
-        if ($aIsIndex) return -1;
-        if ($bIsIndex) return  1;
-        $dirCmp = strcmp($a['dir'], $b['dir']);
-        return $dirCmp !== 0 ? $dirCmp : strcmp($a['name'], $b['name']);
-    });
-
     return $docs;
 }
 
-// ─── Dateiinhalt via GitHub Contents-API ────────────────────────────────────────
+// ─── Bereichs-Konfiguration ───────────────────────────────────────────────────
 
-/**
- * Lädt den Inhalt einer .md-Datei über die GitHub Contents-API (api.github.com).
- * Nutzt bewusst dieselbe Domain wie fetchDocList(), da raw.githubusercontent.com
- * auf manchen Servern geblockt sein kann.
- *
- * @param string $repoPath  Vollständiger Repo-Pfad, z. B. "DOC/admin/README.md"
- */
-function fetchDocContent(string $repoPath): ?string
-{
-    $encoded = implode('/', array_map('rawurlencode', explode('/', $repoPath)));
-    $url     = GITHUB_API_CONTENTS . $encoded . '?ref=' . GITHUB_BRANCH;
-
-    $body = supportHttpGet($url, ['Accept: application/vnd.github+json']);
-    if ($body === null) {
-        return null;
-    }
-
-    $data = json_decode($body, true);
-    if (!is_array($data) || !isset($data['content'])) {
-        $GLOBALS['_support_last_error'] = 'Contents-API: kein "content"-Feld in Antwort';
-        return null;
-    }
-    if (($data['encoding'] ?? '') !== 'base64') {
-        $GLOBALS['_support_last_error'] = 'Contents-API: unbekanntes Encoding "' . ($data['encoding'] ?? '?') . '"';
-        return null;
-    }
-
-    $decoded = base64_decode(str_replace(["\n", "\r"], '', $data['content']));
-    return $decoded !== false ? $decoded : null;
-}
-
-// ─── PHP-Markdown-Renderer (kein CDN, kein JS) ───────────────────────────────
-
-function inlineMarkdown(string $text): string
-{
-    $text = preg_replace('/!\[([^\]]*)\]\(([^)]+)\)/', '<img src="$2" alt="$1" style="max-width:100%;">', $text);
-    $text = preg_replace('/\[([^\]]+)\]\(([^)]+)\)/', '<a href="$2" target="_blank" rel="noopener">$1</a>', $text);
-    $text = preg_replace('/\*\*\*(.+?)\*\*\*/', '<strong><em>$1</em></strong>', $text);
-    $text = preg_replace('/\*\*(.+?)\*\*/',     '<strong>$1</strong>', $text);
-    $text = preg_replace('/\*(.+?)\*/',          '<em>$1</em>', $text);
-    $text = preg_replace('/~~(.+?)~~/',           '<del>$1</del>', $text);
-    return $text;
-}
-
-function buildMarkdownTable(array $rows): string
-{
-    if (count($rows) < 2) return '';
-    $header = array_shift($rows);
-    array_shift($rows); // Trennzeile entfernen
-    $cols = array_map('trim', explode('|', trim($header, '|')));
-    $html = '<div class="md-table-wrap"><table class="md-table"><thead><tr>';
-    foreach ($cols as $c) {
-        $html .= '<th>' . inlineMarkdown(htmlspecialchars($c, ENT_QUOTES)) . '</th>';
-    }
-    $html .= '</tr></thead><tbody>';
-    foreach ($rows as $row) {
-        if (trim($row) === '' || preg_match('/^\|?[\s\-:|]+\|/', $row)) continue;
-        $cells = array_map('trim', explode('|', trim($row, '|')));
-        $html .= '<tr>';
-        foreach ($cells as $cell) {
-            $html .= '<td>' . inlineMarkdown(htmlspecialchars($cell, ENT_QUOTES)) . '</td>';
-        }
-        $html .= '</tr>';
-    }
-    return $html . '</tbody></table></div>';
-}
-
-function renderMarkdown(string $text): string
-{
-    $text = str_replace(["\r\n", "\r"], "\n", $text);
-
-    $codeBlocks = [];
-    $text = preg_replace_callback(
-        '/^```(\w*)\n(.*?)^```/ms',
-        static function (array $m) use (&$codeBlocks): string {
-            $lang  = htmlspecialchars($m[1], ENT_QUOTES);
-            $code  = htmlspecialchars($m[2], ENT_QUOTES);
-            $label = $lang !== '' ? "<span class=\"md-lang\">{$lang}</span>" : '';
-            $html  = "<pre class=\"md-pre\">{$label}<code class=\"language-{$lang}\">{$code}</code></pre>";
-            $key   = "\x02CODE" . count($codeBlocks) . "\x03";
-            $codeBlocks[$key] = $html;
-            return $key;
-        },
-        $text
-    );
-
-    $inlineCodes = [];
-    $text = preg_replace_callback(
-        '/`([^`\n]+)`/',
-        static function (array $m) use (&$inlineCodes): string {
-            $html = '<code class="md-inline-code">' . htmlspecialchars($m[1], ENT_QUOTES) . '</code>';
-            $key  = "\x02IC" . count($inlineCodes) . "\x03";
-            $inlineCodes[$key] = $html;
-            return $key;
-        },
-        $text
-    );
-
-    $lines  = explode("\n", $text);
-    $output = '';
-    $i      = 0;
-    $total  = count($lines);
-
-    while ($i < $total) {
-        $line = $lines[$i];
-
-        if (trim($line) === '') { $output .= "\n"; $i++; continue; }
-
-        if (preg_match('/^(#{1,6})\s+(.+)$/', $line, $m)) {
-            $lvl     = strlen($m[1]);
-            $content = inlineMarkdown($m[2]);
-            $id      = preg_replace('/[^a-z0-9-]/', '-', strtolower(strip_tags($content)));
-            $output .= "<h{$lvl} id=\"{$id}\">{$content}</h{$lvl}>\n";
-            $i++; continue;
-        }
-
-        if (preg_match('/^[-*_]{3,}\s*$/', trim($line))) {
-            $output .= "<hr>\n"; $i++; continue;
-        }
-
-        if (str_starts_with($line, '> ')) {
-            $bq = [];
-            while ($i < $total && str_starts_with($lines[$i], '>')) {
-                $bq[] = ltrim($lines[$i], '> '); $i++;
-            }
-            $output .= '<blockquote class="md-blockquote">' . renderMarkdown(implode("\n", $bq)) . '</blockquote>';
-            continue;
-        }
-
-        if (str_contains($line, '|') && isset($lines[$i + 1]) && preg_match('/^\|?[\s\-:|]+\|/', $lines[$i + 1])) {
-            $rows = [];
-            while ($i < $total && str_contains($lines[$i], '|')) {
-                $rows[] = $lines[$i++];
-            }
-            $output .= buildMarkdownTable($rows);
-            continue;
-        }
-
-        if (preg_match('/^(\s*)([-*+])\s+/', $line)) {
-            $output .= "<ul>\n";
-            while ($i < $total && preg_match('/^(\s*)([-*+])\s+(.*)/', $lines[$i], $lm)) {
-                $output .= '<li>' . inlineMarkdown($lm[3]) . "</li>\n"; $i++;
-            }
-            $output .= "</ul>\n"; continue;
-        }
-
-        if (preg_match('/^\d+\.\s+/', $line)) {
-            $output .= "<ol>\n";
-            while ($i < $total && preg_match('/^\d+\.\s+(.*)/', $lines[$i], $lm)) {
-                $output .= '<li>' . inlineMarkdown($lm[1]) . "</li>\n"; $i++;
-            }
-            $output .= "</ol>\n"; continue;
-        }
-
-        $para = [];
-        while ($i < $total && trim($lines[$i]) !== '' &&
-               !preg_match('/^#{1,6}\s/', $lines[$i]) &&
-               !str_starts_with($lines[$i], '> ') &&
-               !preg_match('/^(\s*)([-*+])\s/', $lines[$i]) &&
-               !preg_match('/^\d+\.\s/', $lines[$i]) &&
-               !preg_match('/^[-*_]{3,}\s*$/', trim($lines[$i])) &&
-               !str_contains($lines[$i], "\x02CODE")
-        ) {
-            $para[] = $lines[$i]; $i++;
-        }
-        if (!empty($para)) {
-            $output .= '<p>' . inlineMarkdown(htmlspecialchars(implode(' ', $para), ENT_QUOTES)) . "</p>\n";
-        }
-    }
-
-    $output = strtr($output, $codeBlocks);
-    $output = strtr($output, $inlineCodes);
-    return $output;
-}
-
-// ─── Verzeichnis-Labels & Sortierung ─────────────────────────────────────────
-
-$dirLabels = [
-    ''                               => ['label' => 'Allgemein',              'icon' => '📄'],
-    'admin'                          => ['label' => 'Administration',         'icon' => '🔧'],
-    'admin/dashboard'                => ['label' => 'Dashboard',              'icon' => '🏠'],
-    'admin/landing-page'             => ['label' => 'Landing Page',           'icon' => '🎯'],
-    'admin/pages-posts'              => ['label' => 'Seiten & Beiträge',      'icon' => '📝'],
-    'admin/media'                    => ['label' => 'Medien',                 'icon' => '🖼️'],
-    'admin/users-groups'             => ['label' => 'Benutzer & Gruppen',     'icon' => '👥'],
-    'admin/subscription'             => ['label' => 'Subscriptions',          'icon' => '💳'],
-    'admin/themes-design'            => ['label' => 'Themes & Design',        'icon' => '🎨'],
-    'admin/seo-performance'          => ['label' => 'SEO & Performance',      'icon' => '📈'],
-    'admin/seo-performance/analytics'=> ['label' => 'Analytics',              'icon' => '📊'],
-    'admin/legal-security'           => ['label' => 'Recht & Sicherheit',     'icon' => '⚖️'],
-    'admin/plugins'                  => ['label' => 'Plugins',                'icon' => '🔌'],
-    'admin/system-settings'          => ['label' => 'System & Einstellungen', 'icon' => '⚙️'],
-    'member'                         => ['label' => 'Mitglieder',             'icon' => '👤'],
-    'member/general'                 => ['label' => 'Mitglieder Allgemein',   'icon' => '👤'],
-    'plugins'                        => ['label' => 'Plugin-Entwicklung',     'icon' => '🔌'],
-    'theme'                          => ['label' => 'Theme-Entwicklung',      'icon' => '🎨'],
-    'feature'                        => ['label' => 'Feature-Guides',         'icon' => '✨'],
-    'workflow'                       => ['label' => 'Workflows',              'icon' => '🔄'],
-    'audits'                         => ['label' => 'Audits',                 'icon' => '🔍'],
-    'screenshots'                    => ['label' => 'Screenshots',            'icon' => '📷'],
+$areaConfig = [
+    '__root__'                       => ['label' => 'Allgemein',              'icon' => '📄', 'desc' => 'Allgemeine Projektdokumentation'],
+    'admin'                          => ['label' => 'Administration',         'icon' => '🔧', 'desc' => 'Dokumentation des Admin-Bereichs'],
+    'admin/dashboard'                => ['label' => 'Dashboard',              'icon' => '🏠', 'desc' => 'Dashboard & Widgets'],
+    'admin/landing-page'             => ['label' => 'Landing Page',           'icon' => '🎯', 'desc' => 'Landing Page Builder'],
+    'admin/pages-posts'              => ['label' => 'Seiten & Beiträge',      'icon' => '📝', 'desc' => 'Seitenmanagement und Beiträge'],
+    'admin/media'                    => ['label' => 'Medien',                 'icon' => '🖼️', 'desc' => 'Medienverwaltung'],
+    'admin/users-groups'             => ['label' => 'Benutzer & Gruppen',     'icon' => '👥', 'desc' => 'Benutzerverwaltung und Gruppen'],
+    'admin/subscription'             => ['label' => 'Subscriptions',          'icon' => '💳', 'desc' => 'Abonnement-Verwaltung'],
+    'admin/themes-design'            => ['label' => 'Themes & Design',        'icon' => '🎨', 'desc' => 'Themes, Design und Customizer'],
+    'admin/seo-performance'          => ['label' => 'SEO & Performance',      'icon' => '📈', 'desc' => 'Suchmaschinenoptimierung und Performance'],
+    'admin/seo-performance/analytics'=> ['label' => 'Analytics',              'icon' => '📊', 'desc' => 'Besucherstatistiken und Analytics'],
+    'admin/legal-security'           => ['label' => 'Recht & Sicherheit',     'icon' => '⚖️', 'desc' => 'Rechtliches, Datenschutz und Sicherheit'],
+    'admin/plugins'                  => ['label' => 'Plugins',                'icon' => '🔌', 'desc' => 'Plugin-Verwaltung'],
+    'admin/system-settings'          => ['label' => 'System & Einstellungen', 'icon' => '⚙️', 'desc' => 'Systemkonfiguration und Einstellungen'],
+    'member'                         => ['label' => 'Mitglieder',             'icon' => '👤', 'desc' => 'Mitglieder-Bereich'],
+    'member/general'                 => ['label' => 'Mitglieder Allgemein',   'icon' => '👤', 'desc' => 'Allgemeine Mitglieder-Dokumentation'],
+    'plugins'                        => ['label' => 'Plugin-Entwicklung',     'icon' => '🔌', 'desc' => 'Plugin-Entwicklung und API'],
+    'theme'                          => ['label' => 'Theme-Entwicklung',      'icon' => '🎨', 'desc' => 'Theme-Entwicklung und Templates'],
+    'feature'                        => ['label' => 'Feature-Guides',         'icon' => '✨', 'desc' => 'Feature-Dokumentation und Guides'],
+    'workflow'                       => ['label' => 'Workflows',              'icon' => '🔄', 'desc' => 'Entwicklungs-Workflows'],
+    'audits'                         => ['label' => 'Audits',                 'icon' => '🔍', 'desc' => 'Code- und Sicherheitsaudits'],
+    'screenshots'                    => ['label' => 'Screenshots',            'icon' => '📷', 'desc' => 'Screenshots und Medien'],
 ];
 
-$knownOrder = [
-    '', 'admin', 'admin/dashboard', 'admin/landing-page', 'admin/pages-posts',
+$sidebarOrder = [
+    '__root__', 'admin', 'admin/dashboard', 'admin/landing-page', 'admin/pages-posts',
     'admin/media', 'admin/users-groups', 'admin/subscription',
     'admin/themes-design', 'admin/seo-performance', 'admin/seo-performance/analytics',
     'admin/legal-security', 'admin/plugins', 'admin/system-settings',
@@ -377,56 +142,36 @@ $knownOrder = [
 
 // ─── Verarbeitung ─────────────────────────────────────────────────────────────
 
-$GLOBALS['_support_last_error'] = '';
-$debugMode  = (($_GET['debug'] ?? '') === '1');
-
-// ?refresh=1 → Cache löschen und neu laden
+// ?refresh=1 → Cache löschen
 if (($_GET['refresh'] ?? '') === '1') {
-    $cacheFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . '365cms_doclist_' . md5(GITHUB_REPO) . '.json';
-    if (is_file($cacheFile)) {
-        @unlink($cacheFile);
-    }
+    $cf = sys_get_temp_dir() . DIRECTORY_SEPARATOR . '365cms_doclist_' . md5(GITHUB_REPO) . '.json';
+    if (is_file($cf)) @unlink($cf);
     header('Location: ' . SITE_URL . '/admin/support');
     exit;
 }
 
-$docList    = fetchDocList();
-$activeDoc  = $_GET['doc'] ?? '';
-$docContent = null;
-$docTitle   = '';
-
-// Sicherheitsprüfung: nur DOC/-relative Pfade, kein Path-Traversal
-if ($activeDoc !== '') {
-    $clean    = str_replace(['..', '\\', "\0"], '', $activeDoc);
-    $clean    = trim($clean, '/');
-    $safePath = GITHUB_DOC_PATH . '/' . $clean;
-
-    if (
-        str_starts_with($safePath, GITHUB_DOC_PATH . '/') &&
-        str_ends_with(strtolower($safePath), '.md') &&
-        !str_contains($safePath, '//')
-    ) {
-        $docContent = fetchDocContent($safePath);
-        $docTitle   = str_replace(['-', '_'], ' ', pathinfo(basename($safePath), PATHINFO_FILENAME));
-        $activeDoc  = $clean;
-    } else {
-        $activeDoc = '';
-    }
-}
-
-// Kein Dokument gewählt → INDEX.md bevorzugen (steht nach usort an Position 0)
-if ($docContent === null && count($docList) > 0) {
-    $firstDoc   = $docList[0];
-    $docContent = fetchDocContent($firstDoc['path']);
-    $docTitle   = str_replace(['-', '_'], ' ', pathinfo($firstDoc['name'], PATHINFO_FILENAME));
-    $activeDoc  = substr($firstDoc['path'], strlen(GITHUB_DOC_PATH) + 1);
-}
+$allDocs   = fetchDocList();
+$activeArea = $_GET['area'] ?? '__root__';
 
 // Dokumente nach Verzeichnis gruppieren
 $groups = [];
-foreach ($docList as $doc) {
-    $groups[$doc['dir']][] = $doc;
+foreach ($allDocs as $doc) {
+    $key          = $doc['dir'] === '' ? '__root__' : $doc['dir'];
+    $groups[$key][] = $doc;
 }
+
+// Alle vorhandenen Bereiche (für Sidebar)
+$availableDirs = array_keys($groups);
+
+// Aktiven Bereich bestimmen → erster vorhandener als Fallback
+if (!isset($groups[$activeArea])) {
+    $activeArea = !empty($availableDirs) ? $availableDirs[0] : '__root__';
+}
+
+$activeDocs  = $groups[$activeArea] ?? [];
+$activeLabel = $areaConfig[$activeArea]['label']  ?? ucfirst(basename($activeArea));
+$activeIcon  = $areaConfig[$activeArea]['icon']   ?? '📁';
+$activeDesc  = $areaConfig[$activeArea]['desc']   ?? '';
 
 require_once __DIR__ . '/partials/admin-menu.php';
 ?>
@@ -440,10 +185,10 @@ require_once __DIR__ . '/partials/admin-menu.php';
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css">
     <?php renderAdminSidebarStyles(); ?>
     <style>
-        /* ── Layout ─────────────────────────────────────────────────────── */
+        /* ── Layout ───────────────────────────────────────────────────── */
         .support-layout {
             display: grid;
-            grid-template-columns: 260px 1fr;
+            grid-template-columns: 240px 1fr;
             gap: 1.5rem;
             align-items: start;
         }
@@ -452,7 +197,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
             .docs-sidebar   { display: none; }
         }
 
-        /* ── Sidebar ─────────────────────────────────────────────────────── */
+        /* ── Sidebar ──────────────────────────────────────────────────── */
         .docs-sidebar {
             background: #fff;
             border: 1px solid #e2e8f0;
@@ -467,119 +212,170 @@ require_once __DIR__ . '/partials/admin-menu.php';
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: .75rem 1rem;
+            padding: .7rem 1rem;
             background: #f8fafc;
             border-bottom: 1px solid #e2e8f0;
             font-weight: 600;
-            font-size: .85rem;
+            font-size: .83rem;
             color: #374151;
             position: sticky;
             top: 0;
             z-index: 1;
         }
-        .docs-sidebar-empty {
-            padding: 1.5rem 1rem;
-            color: #94a3b8;
-            font-size: .85rem;
-            text-align: center;
-        }
-        .docs-group {
+        .docs-nav-group {
             border-bottom: 1px solid #f1f5f9;
         }
-        .docs-group:last-child { border-bottom: none; }
-        .docs-group > summary {
+        .docs-nav-group:last-child { border-bottom: none; }
+        .docs-nav-group > summary {
             display: flex;
             align-items: center;
             gap: .4rem;
-            padding: .55rem 1rem;
+            padding: .5rem 1rem;
             cursor: pointer;
-            font-size: .8rem;
+            font-size: .79rem;
             font-weight: 600;
             color: #475569;
             background: #f8fafc;
             list-style: none;
             user-select: none;
         }
-        .docs-group > summary::-webkit-details-marker { display: none; }
-        .docs-group > summary::before {
+        .docs-nav-group > summary::-webkit-details-marker { display: none; }
+        .docs-nav-group > summary::before {
             content: '▶';
-            font-size: .6rem;
+            font-size: .58rem;
             color: #94a3b8;
             transition: transform .2s;
             flex-shrink: 0;
         }
-        .docs-group[open] > summary::before { transform: rotate(90deg); }
-        .docs-group > summary:hover { background: #f1f5f9; color: #1e293b; }
-        .docs-nav-item {
+        .docs-nav-group[open] > summary::before { transform: rotate(90deg); }
+        .docs-nav-group > summary:hover { background: #f1f5f9; color: #1e293b; }
+        .docs-nav-link {
             display: block;
-            padding: .4rem 1rem .4rem 2.25rem;
-            font-size: .82rem;
+            padding: .38rem 1rem .38rem 2.1rem;
+            font-size: .8rem;
             color: #64748b;
             text-decoration: none;
             border-left: 3px solid transparent;
-            transition: background .15s, color .15s;
+            transition: background .12s, color .12s;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .docs-nav-item:hover { background: #f1f5f9; color: #1e293b; }
-        .docs-nav-item.active {
+        .docs-nav-link:hover { background: #f1f5f9; color: #1e293b; }
+        .docs-nav-link.active {
             background: #eff6ff;
             color: #2563eb;
             border-left-color: #2563eb;
             font-weight: 600;
         }
-        .docs-root-item {
+        .docs-nav-root {
             display: block;
-            padding: .45rem 1rem;
-            font-size: .82rem;
+            padding: .42rem 1rem;
+            font-size: .8rem;
             color: #64748b;
             text-decoration: none;
             border-left: 3px solid transparent;
-            transition: background .15s, color .15s;
+            transition: background .12s, color .12s;
         }
-        .docs-root-item:hover { background: #f1f5f9; color: #1e293b; }
-        .docs-root-item.active {
+        .docs-nav-root:hover { background: #f1f5f9; color: #1e293b; }
+        .docs-nav-root.active {
             background: #eff6ff;
             color: #2563eb;
             border-left-color: #2563eb;
             font-weight: 600;
         }
 
-        /* ── Content ─────────────────────────────────────────────────────── */
+        /* ── Content ──────────────────────────────────────────────────── */
         .docs-content {
             background: #fff;
             border: 1px solid #e2e8f0;
             border-radius: 10px;
-            padding: 2rem 2.5rem;
+            padding: 1.75rem 2rem;
             min-height: 400px;
         }
-        .docs-content-header {
+        .docs-area-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            gap: .75rem;
             margin-bottom: 1.5rem;
             padding-bottom: 1rem;
             border-bottom: 1px solid #e2e8f0;
-            gap: 1rem;
         }
-        .docs-content-title {
-            font-size: 1.3rem;
+        .docs-area-icon {
+            font-size: 1.8rem;
+            line-height: 1;
+        }
+        .docs-area-title {
+            margin: 0;
+            font-size: 1.25rem;
             font-weight: 700;
             color: #1e293b;
-            text-transform: capitalize;
-            margin: 0;
         }
-        .docs-source-badge {
-            font-size: .72rem;
+        .docs-area-desc {
+            margin: .2rem 0 0;
+            font-size: .83rem;
             color: #64748b;
+        }
+        .docs-area-meta {
+            margin-left: auto;
+            font-size: .72rem;
+            color: #94a3b8;
             background: #f1f5f9;
             border: 1px solid #e2e8f0;
             border-radius: 20px;
             padding: .2rem .7rem;
             white-space: nowrap;
-            flex-shrink: 0;
         }
+
+        /* ── Datei-Kacheln ────────────────────────────────────────────── */
+        .docs-file-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 1rem;
+        }
+        .docs-file-card {
+            display: flex;
+            flex-direction: column;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem 1.1rem;
+            text-decoration: none;
+            color: inherit;
+            transition: border-color .15s, box-shadow .15s, background .15s;
+        }
+        .docs-file-card:hover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            box-shadow: 0 2px 8px rgba(59,130,246,.1);
+        }
+        .docs-file-card-icon {
+            font-size: 1.6rem;
+            margin-bottom: .5rem;
+        }
+        .docs-file-card-name {
+            font-size: .9rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: .25rem;
+            word-break: break-word;
+        }
+        .docs-file-card-path {
+            font-size: .72rem;
+            color: #94a3b8;
+            font-family: monospace;
+            word-break: break-all;
+        }
+        .docs-file-card-badge {
+            margin-top: .6rem;
+            font-size: .7rem;
+            color: #2563eb;
+            display: flex;
+            align-items: center;
+            gap: .3rem;
+        }
+
+        /* ── Leer-Zustand ─────────────────────────────────────────────── */
         .docs-empty {
             text-align: center;
             padding: 4rem 2rem;
@@ -587,102 +383,40 @@ require_once __DIR__ . '/partials/admin-menu.php';
         }
         .docs-empty-icon { font-size: 3rem; margin-bottom: 1rem; }
 
-        /* ── Markdown Styles ─────────────────────────────────────────────── */
-        .md-body { color: #1e293b; line-height: 1.75; font-size: .93rem; }
-        .md-body h1, .md-body h2, .md-body h3,
-        .md-body h4, .md-body h5, .md-body h6 {
-            margin: 1.5rem 0 .5rem;
-            color: #0f172a;
-            line-height: 1.3;
+        /* ── Gesamt-Übersicht (kein Bereich gewählt) ─────────────────── */
+        .docs-overview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
         }
-        .md-body h1 { font-size: 1.8rem; border-bottom: 2px solid #e2e8f0; padding-bottom: .4rem; }
-        .md-body h2 { font-size: 1.4rem; border-bottom: 1px solid #f1f5f9; padding-bottom: .3rem; }
-        .md-body h3 { font-size: 1.15rem; }
-        .md-body p  { margin: .75rem 0; }
-        .md-body ul, .md-body ol { margin: .75rem 0; padding-left: 1.75rem; }
-        .md-body li { margin: .25rem 0; }
-        .md-body a  { color: #2563eb; text-decoration: none; }
-        .md-body a:hover { text-decoration: underline; }
-        .md-body hr { border: none; border-top: 1px solid #e2e8f0; margin: 1.5rem 0; }
-        .md-body blockquote.md-blockquote {
-            margin: 1rem 0;
-            padding: .75rem 1rem;
-            border-left: 4px solid #3b82f6;
-            background: #eff6ff;
-            border-radius: 0 6px 6px 0;
-            color: #1e40af;
-        }
-        .md-body pre.md-pre {
-            background: #0f172a;
-            color: #e2e8f0;
-            border-radius: 8px;
-            padding: 1.25rem 1.5rem;
-            overflow-x: auto;
-            margin: 1rem 0;
-            font-size: .82rem;
-            line-height: 1.6;
-            position: relative;
-        }
-        .md-body .md-lang {
-            position: absolute;
-            top: .5rem;
-            right: .75rem;
-            font-size: .65rem;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: .05em;
-        }
-        .md-body code.md-inline-code {
-            background: #f1f5f9;
-            color: #e11d48;
-            padding: .1em .35em;
-            border-radius: 4px;
-            font-size: .85em;
-        }
-        .md-body .md-table-wrap { overflow-x: auto; margin: 1rem 0; }
-        .md-body table.md-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: .87rem;
-        }
-        .md-body table.md-table th {
+        .docs-overview-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
             background: #f8fafc;
             border: 1px solid #e2e8f0;
-            padding: .5rem .75rem;
-            text-align: left;
-            font-weight: 600;
-            color: #374151;
-        }
-        .md-body table.md-table td {
-            border: 1px solid #e2e8f0;
-            padding: .45rem .75rem;
-            color: #4b5563;
-        }
-        .md-body table.md-table tr:nth-child(even) td { background: #f9fafb; }
-
-        /* ── Debug Panel ─────────────────────────────────────────────────── */
-        .debug-panel {
-            background: #0f172a;
-            color: #e2e8f0;
             border-radius: 10px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            font-family: monospace;
-            font-size: .8rem;
-            line-height: 1.8;
+            padding: 1.25rem 1rem;
+            text-decoration: none;
+            color: inherit;
+            transition: border-color .15s, box-shadow .15s, background .15s;
         }
-        .debug-panel-title {
-            color: #f59e0b;
-            font-weight: 700;
-            margin-bottom: .75rem;
-            font-size: .9rem;
+        .docs-overview-card:hover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            box-shadow: 0 2px 10px rgba(59,130,246,.1);
         }
-        .debug-panel table { width: 100%; border-collapse: collapse; }
-        .debug-panel td:first-child {
-            color: #94a3b8;
-            padding: .2rem .75rem .2rem 0;
-            white-space: nowrap;
-            width: 220px;
+        .docs-overview-card-icon { font-size: 2rem; margin-bottom: .5rem; }
+        .docs-overview-card-label {
+            font-size: .88rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: .25rem;
+        }
+        .docs-overview-card-count {
+            font-size: .75rem;
+            color: #64748b;
         }
     </style>
 </head>
@@ -698,168 +432,160 @@ require_once __DIR__ . '/partials/admin-menu.php';
             <h2>Support & Dokumentation</h2>
         </div>
 
-        <?php if ($debugMode): ?>
-        <!-- ── Debug-Panel (?debug=1) ─────────────────────────────────── -->
-        <div class="debug-panel">
-            <div class="debug-panel-title">🔧 Server-Diagnose (debug=1)</div>
-            <table>
-                <tr>
-                    <td>PHP Version</td>
-                    <td><?php echo PHP_VERSION; ?></td>
-                </tr>
-                <tr>
-                    <td>cURL verfügbar</td>
-                    <td><?php echo function_exists('curl_init')
-                        ? '<span style="color:#4ade80">✓ Ja (' . (curl_version()['version'] ?? '?') . ')</span>'
-                        : '<span style="color:#f87171">✗ Nein</span>'; ?>
-                    </td>
-                </tr>
-                <tr>
-                    <td>allow_url_fopen</td>
-                    <td><?php echo ini_get('allow_url_fopen')
-                        ? '<span style="color:#4ade80">✓ On</span>'
-                        : '<span style="color:#f87171">✗ Off</span>'; ?>
-                    </td>
-                </tr>
-                <tr>
-                    <td>GitHub API Tree</td>
-                    <td><span style="color:#94a3b8"><?php echo htmlspecialchars(GITHUB_API_TREE); ?></span></td>
-                </tr>
-                <tr>
-                    <td>GitHub Contents-API</td>
-                    <td><span style="color:#94a3b8"><?php echo htmlspecialchars(GITHUB_API_CONTENTS); ?></span></td>
-                </tr>
-                <tr>
-                    <td>Docs geladen</td>
-                    <td><?php echo count($docList); ?> Dokumente</td>
-                </tr>
-                <?php
-                $dbgCacheFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . '365cms_doclist_' . md5(GITHUB_REPO) . '.json';
-                $dbgCacheAge  = is_file($dbgCacheFile) ? (time() - filemtime($dbgCacheFile)) : -1;
-                ?>
-                <tr>
-                    <td>Cache (5 min)</td>
-                    <td><?php if ($dbgCacheAge >= 0): ?>
-                        <span style="color:#4ade80">✓ <?php echo $dbgCacheAge; ?> s alt</span>
-                        &nbsp;<a href="?refresh=1" style="color:#fbbf24;font-size:.75rem;">[leeren]</a>
-                    <?php else: ?>
-                        <span style="color:#f87171">✗ kein Cache</span>
-                    <?php endif; ?></td>
-                </tr>
-                <?php $lastErr = $GLOBALS['_support_last_error'] ?? ''; ?>
-                <tr>
-                    <td>Letzter Fehler</td>
-                    <td><?php echo $lastErr !== ''
-                        ? '<span style="color:#fca5a5">' . htmlspecialchars($lastErr) . '</span>'
-                        : '<span style="color:#4ade80">–</span>'; ?>
-                    </td>
-                </tr>
-            </table>
-        </div>
-        <?php endif; ?>
-
-        <!-- Main Layout -->
         <div class="support-layout">
 
-            <!-- ── Sidebar ────────────────────────────────────────────────── -->
+            <!-- ── Sidebar ──────────────────────────────────────────────── -->
             <aside class="docs-sidebar">
                 <div class="docs-sidebar-header">
-                    <span>📄 Dokumente</span>
-                    <span style="display:flex;align-items:center;gap:.5rem;">
-                        <span style="font-weight:400;color:#94a3b8;"><?php echo count($docList); ?></span>
-                        <a href="?refresh=1" title="Liste neu laden" style="color:#94a3b8;font-size:.75rem;text-decoration:none;" onclick="this.textContent='…'">↻</a>
-                    </span>
+                    <span>📚 Bereiche</span>
+                    <a href="?refresh=1" title="Liste aktualisieren"
+                       style="color:#94a3b8;font-size:.75rem;text-decoration:none;"
+                       onclick="this.textContent='…'">↻</a>
                 </div>
 
-                <?php if (count($docList) === 0): ?>
-                    <div class="docs-sidebar-empty">
-                        Keine Dokumente gefunden.<br>
-                        <small style="color:#cbd5e1;">
-                            <?php echo htmlspecialchars(GITHUB_OWNER . '/' . GITHUB_REPO . '/' . GITHUB_DOC_PATH); ?>
-                        </small>
+                <?php if (empty($availableDirs)): ?>
+                    <div style="padding:1.5rem 1rem;color:#94a3b8;font-size:.83rem;text-align:center;">
+                        Keine Dokumente gefunden.
                     </div>
-                <?php else: ?>
-                    <?php
-                    // Gruppen nach $knownOrder sortiert ausgeben; unbekannte ans Ende
-                    $allDirs    = array_keys($groups);
-                    $sortedDirs = array_merge(
-                        array_filter($knownOrder, fn($d) => isset($groups[$d])),
-                        array_diff($allDirs, $knownOrder)
-                    );
+                <?php else:
+                    // Bereiche strukturiert ausgeben: Root direkt, Sub-Bereiche unter "admin", "member" etc.
+                    $rootDirs     = array_filter($availableDirs, fn($d) => $d === '__root__');
+                    $topLevelDirs = array_filter($availableDirs, fn($d) => $d !== '__root__' && !str_contains($d, '/'));
+                    $subDirs      = array_filter($availableDirs, fn($d) => $d !== '__root__' && str_contains($d, '/'));
 
-                    foreach ($sortedDirs as $dir):
-                        $dirDocs = $groups[$dir] ?? [];
-                        if (empty($dirDocs)) continue;
-                        $label   = $dirLabels[$dir]['label'] ?? ucfirst(basename((string)$dir));
-                        $icon    = $dirLabels[$dir]['icon']  ?? '📁';
-
-                        if ($dir === ''):
-                            // Root-Dateien direkt (keine <details>)
-                            foreach ($dirDocs as $doc):
-                                $relPath  = substr($doc['path'], strlen(GITHUB_DOC_PATH) + 1);
-                                $isActive = ($activeDoc === $relPath);
+                    // Root
+                    foreach ($rootDirs as $dir):
+                        $lbl = $areaConfig[$dir]['label'] ?? 'Allgemein';
+                        $ico = $areaConfig[$dir]['icon']  ?? '📄';
                     ?>
-                        <a href="?doc=<?php echo rawurlencode($relPath); ?>"
-                           class="docs-root-item<?php echo $isActive ? ' active' : ''; ?>">
-                            <?php echo htmlspecialchars($doc['name']); ?>
+                        <a href="?area=<?php echo rawurlencode($dir); ?>"
+                           class="docs-nav-root<?php echo $activeArea === $dir ? ' active' : ''; ?>">
+                            <?php echo $ico . ' ' . htmlspecialchars($lbl); ?>
                         </a>
-                    <?php
-                            endforeach;
-                        else:
-                            // Prüfen ob ein Doc der Gruppe aktiv ist
-                            $groupIsActive = false;
-                            foreach ($dirDocs as $doc) {
-                                if ($activeDoc === substr($doc['path'], strlen(GITHUB_DOC_PATH) + 1)) {
-                                    $groupIsActive = true;
-                                    break;
-                                }
-                            }
+                    <?php endforeach;
+
+                    // Top-Level-Bereiche und ihre Unterordner
+                    foreach ($sidebarOrder as $dir):
+                        if ($dir === '__root__') continue;
+                        if (!in_array($dir, $availableDirs, true)) continue;
+
+                        $lbl      = $areaConfig[$dir]['label'] ?? ucfirst(basename($dir));
+                        $ico      = $areaConfig[$dir]['icon']  ?? '📁';
+                        $isChild  = str_contains($dir, '/');
+                        $isActive = $activeArea === $dir;
+
+                        if (!$isChild):
                     ?>
-                        <details class="docs-group"<?php echo $groupIsActive ? ' open' : ''; ?>>
-                            <summary><?php echo $icon . ' ' . htmlspecialchars($label); ?></summary>
-                            <?php foreach ($dirDocs as $doc):
-                                $relPath  = substr($doc['path'], strlen(GITHUB_DOC_PATH) + 1);
-                                $isActive = ($activeDoc === $relPath);
-                            ?>
-                                <a href="?doc=<?php echo rawurlencode($relPath); ?>"
-                                   class="docs-nav-item<?php echo $isActive ? ' active' : ''; ?>">
-                                    <?php echo htmlspecialchars($doc['name']); ?>
-                                </a>
-                            <?php endforeach; ?>
-                        </details>
-                    <?php endif; endforeach; ?>
+                        <a href="?area=<?php echo rawurlencode($dir); ?>"
+                           class="docs-nav-root<?php echo $isActive ? ' active' : ''; ?>">
+                            <?php echo $ico . ' ' . htmlspecialchars($lbl); ?>
+                        </a>
+                    <?php else: ?>
+                        <a href="?area=<?php echo rawurlencode($dir); ?>"
+                           class="docs-nav-link<?php echo $isActive ? ' active' : ''; ?>">
+                            <?php echo $ico . ' ' . htmlspecialchars($lbl); ?>
+                        </a>
+                    <?php endif; endforeach;
+
+                    // Beliebige weitere Dirs die nicht im sidebarOrder sind
+                    $extraDirs = array_diff($availableDirs, $sidebarOrder, ['__root__']);
+                    foreach ($extraDirs as $dir):
+                        $lbl      = $areaConfig[$dir]['label'] ?? ucfirst(basename($dir));
+                        $ico      = $areaConfig[$dir]['icon']  ?? '📁';
+                        $isActive = $activeArea === $dir;
+                    ?>
+                        <a href="?area=<?php echo rawurlencode($dir); ?>"
+                           class="docs-nav-link<?php echo $isActive ? ' active' : ''; ?>">
+                            <?php echo $ico . ' ' . htmlspecialchars($lbl); ?>
+                        </a>
+                    <?php endforeach; ?>
                 <?php endif; ?>
             </aside>
 
-            <!-- ── Dokument-Inhalt ────────────────────────────────────────── -->
+            <!-- ── Bereichs-Inhalt ───────────────────────────────────────── -->
             <main class="docs-content">
-                <?php if ($docContent !== null): ?>
-                    <div class="docs-content-header">
-                        <h1 class="docs-content-title"><?php echo htmlspecialchars($docTitle); ?></h1>
-                        <span class="docs-source-badge">
-                            🌐 <?php echo htmlspecialchars(GITHUB_OWNER . '/' . GITHUB_REPO); ?>
-                        </span>
-                    </div>
-                    <div class="md-body">
-                        <?php echo renderMarkdown($docContent); ?>
-                    </div>
-                <?php else: ?>
+
+                <?php if (empty($allDocs)): ?>
                     <div class="docs-empty">
                         <div class="docs-empty-icon">📭</div>
-                        <p>Kein Dokument verfügbar.</p>
-                        <p style="font-size:.85rem;color:#cbd5e1;">
-                            Repository: <code><?php echo htmlspecialchars(GITHUB_OWNER . '/' . GITHUB_REPO); ?></code>
-                            &nbsp;/&nbsp;
-                            Pfad: <code><?php echo htmlspecialchars(GITHUB_DOC_PATH . '/'); ?></code>
+                        <p>Keine Dokumente gefunden.</p>
+                        <p style="font-size:.83rem;color:#94a3b8;">
+                            Repo: <code><?php echo GITHUB_OWNER . '/' . GITHUB_REPO; ?></code>
+                            &nbsp;/ Pfad: <code><?php echo GITHUB_DOC_PATH . '/'; ?></code>
                         </p>
-                        <?php $lastErr = $GLOBALS['_support_last_error'] ?? ''; ?>
-                        <?php if ($lastErr !== ''): ?>
-                            <p style="font-size:.8rem;color:#f87171;margin-top:1rem;">
-                                <?php echo htmlspecialchars($lastErr); ?>
-                            </p>
-                        <?php endif; ?>
+                        <a href="?refresh=1" style="font-size:.83rem;color:#2563eb;">↻ Erneut versuchen</a>
+                    </div>
+
+                <?php elseif ($activeArea === '' || empty($activeDocs)): ?>
+                    <!-- Gesamt-Übersicht aller Bereiche -->
+                    <div class="docs-area-header">
+                        <span class="docs-area-icon">📚</span>
+                        <div>
+                            <h1 class="docs-area-title">Dokumentation</h1>
+                            <p class="docs-area-desc">Wähle einen Bereich in der Seitenleiste</p>
+                        </div>
+                        <span class="docs-area-meta"><?php echo count($allDocs); ?> Dateien</span>
+                    </div>
+                    <div class="docs-overview-grid">
+                        <?php foreach ($sidebarOrder as $dir):
+                            if (!isset($groups[$dir])) continue;
+                            $lbl = $areaConfig[$dir]['label'] ?? ucfirst(basename($dir));
+                            $ico = $areaConfig[$dir]['icon']  ?? '📁';
+                            $cnt = count($groups[$dir]);
+                        ?>
+                            <a href="?area=<?php echo rawurlencode($dir); ?>" class="docs-overview-card">
+                                <span class="docs-overview-card-icon"><?php echo $ico; ?></span>
+                                <div class="docs-overview-card-label"><?php echo htmlspecialchars($lbl); ?></div>
+                                <div class="docs-overview-card-count"><?php echo $cnt; ?> Datei<?php echo $cnt !== 1 ? 'en' : ''; ?></div>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+
+                <?php else: ?>
+                    <!-- Bereichs-Übersicht -->
+                    <div class="docs-area-header">
+                        <span class="docs-area-icon"><?php echo $activeIcon; ?></span>
+                        <div>
+                            <h1 class="docs-area-title"><?php echo htmlspecialchars($activeLabel); ?></h1>
+                            <?php if ($activeDesc): ?>
+                                <p class="docs-area-desc"><?php echo htmlspecialchars($activeDesc); ?></p>
+                            <?php endif; ?>
+                        </div>
+                        <span class="docs-area-meta">
+                            <?php echo count($activeDocs); ?> Datei<?php echo count($activeDocs) !== 1 ? 'en' : ''; ?>
+                        </span>
+                    </div>
+
+                    <div class="docs-file-grid">
+                        <?php foreach ($activeDocs as $doc):
+                            // Schöner Anzeigename (ohne .md, Bindestriche als Leerzeichen)
+                            $displayName = str_replace(['-', '_'], ' ', pathinfo($doc['name'], PATHINFO_FILENAME));
+                            $displayName = ucwords($displayName);
+                            // GitHub-Link zum Anzeigen der Datei
+                            $ghLink = GITHUB_BROWSE . implode('/', array_map('rawurlencode', explode('/', $doc['path'])));
+                        ?>
+                            <a href="<?php echo $ghLink; ?>" target="_blank" rel="noopener" class="docs-file-card">
+                                <span class="docs-file-card-icon">📄</span>
+                                <div class="docs-file-card-name"><?php echo htmlspecialchars($displayName); ?></div>
+                                <div class="docs-file-card-path"><?php echo htmlspecialchars($doc['path']); ?></div>
+                                <div class="docs-file-card-badge">
+                                    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38
+                                                 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13
+                                                 -.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66
+                                                 .07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15
+                                                 -.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27
+                                                 .68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12
+                                                 .51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48
+                                                 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                                    </svg>
+                                    Auf GitHub öffnen
+                                </div>
+                            </a>
+                        <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
+
             </main>
 
         </div><!-- /.support-layout -->
