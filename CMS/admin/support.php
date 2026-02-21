@@ -32,8 +32,9 @@ const GITHUB_OWNER    = 'PS-easyIT';
 const GITHUB_REPO     = '365CMS.DE';
 const GITHUB_BRANCH   = 'main';
 const GITHUB_DOC_PATH = 'DOC';
-const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/' . GITHUB_OWNER . '/' . GITHUB_REPO . '/' . GITHUB_BRANCH . '/';
-const GITHUB_API_TREE = 'https://api.github.com/repos/' . GITHUB_OWNER . '/' . GITHUB_REPO . '/git/trees/' . GITHUB_BRANCH . '?recursive=1';
+const GITHUB_RAW_BASE      = 'https://raw.githubusercontent.com/' . GITHUB_OWNER . '/' . GITHUB_REPO . '/' . GITHUB_BRANCH . '/';
+const GITHUB_API_TREE      = 'https://api.github.com/repos/' . GITHUB_OWNER . '/' . GITHUB_REPO . '/git/trees/' . GITHUB_BRANCH . '?recursive=1';
+const GITHUB_API_CONTENTS  = 'https://api.github.com/repos/' . GITHUB_OWNER . '/' . GITHUB_REPO . '/contents/';
 
 // ─── HTTP-Hilfsfunktion ───────────────────────────────────────────────────────
 
@@ -137,18 +138,37 @@ function fetchDocList(): array
     return $docs;
 }
 
-// ─── Dateiinhalt aus GitHub Raw ───────────────────────────────────────────────
+// ─── Dateiinhalt via GitHub Contents-API ────────────────────────────────────────
 
 /**
- * Lädt den Inhalt einer .md-Datei von raw.githubusercontent.com.
+ * Lädt den Inhalt einer .md-Datei über die GitHub Contents-API (api.github.com).
+ * Nutzt bewusst dieselbe Domain wie fetchDocList(), da raw.githubusercontent.com
+ * auf manchen Servern geblockt sein kann.
  *
  * @param string $repoPath  Vollständiger Repo-Pfad, z. B. "DOC/admin/README.md"
  */
 function fetchDocContent(string $repoPath): ?string
 {
     $encoded = implode('/', array_map('rawurlencode', explode('/', $repoPath)));
-    $url     = GITHUB_RAW_BASE . $encoded;
-    return supportHttpGet($url);
+    $url     = GITHUB_API_CONTENTS . $encoded . '?ref=' . GITHUB_BRANCH;
+
+    $body = supportHttpGet($url, ['Accept: application/vnd.github+json']);
+    if ($body === null) {
+        return null;
+    }
+
+    $data = json_decode($body, true);
+    if (!is_array($data) || !isset($data['content'])) {
+        $GLOBALS['_support_last_error'] = 'Contents-API: kein "content"-Feld in Antwort';
+        return null;
+    }
+    if (($data['encoding'] ?? '') !== 'base64') {
+        $GLOBALS['_support_last_error'] = 'Contents-API: unbekanntes Encoding "' . ($data['encoding'] ?? '?') . '"';
+        return null;
+    }
+
+    $decoded = base64_decode(str_replace(["\n", "\r"], '', $data['content']));
+    return $decoded !== false ? $decoded : null;
 }
 
 // ─── PHP-Markdown-Renderer (kein CDN, kein JS) ───────────────────────────────
@@ -670,8 +690,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     <td><span style="color:#94a3b8"><?php echo htmlspecialchars(GITHUB_API_TREE); ?></span></td>
                 </tr>
                 <tr>
-                    <td>GitHub Raw Base</td>
-                    <td><span style="color:#94a3b8"><?php echo htmlspecialchars(GITHUB_RAW_BASE); ?></span></td>
+                    <td>GitHub Contents-API</td>
+                    <td><span style="color:#94a3b8"><?php echo htmlspecialchars(GITHUB_API_CONTENTS); ?></span></td>
                 </tr>
                 <tr>
                     <td>Docs geladen</td>
