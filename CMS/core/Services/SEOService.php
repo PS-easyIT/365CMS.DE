@@ -165,7 +165,7 @@ class SEOService
     public function generateRobotsTxt(): string
     {
         // Check for custom robots.txt content
-        $customContent = $this->getSetting('robots_txt_custom');
+        $customContent = $this->getSetting('robots_txt_content');
         
         if (!empty($customContent)) {
             return $customContent;

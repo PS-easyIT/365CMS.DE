@@ -2,7 +2,7 @@
 /**
  * WP_Error Class - Simple Error Handling
  * 
- * WordPress-kompatible Fehlerklasse für CMSv2
+ * WordPress-kompatible Fehlerklasse für 365CMS
  * 
  * @package CMSv2\Core
  * @version 2.0.0

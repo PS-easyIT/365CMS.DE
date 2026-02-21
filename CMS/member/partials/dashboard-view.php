@@ -147,6 +147,14 @@ $colSpan = match($layoutCols) {
     default => 4 // 3 Columns
 };
 
+// Begrüßung & Willkommenstext laden
+$greetingTpl = $db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'member_dashboard_greeting'") ?: 'Guten Tag, {name}!';
+$welcomeText = $db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'member_dashboard_welcome_text'") ?: '';
+$showWelcome = $db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'member_dashboard_show_welcome'") ?: '1';
+
+// Platzhalter ersetzen
+$greeting = str_replace('{name}', $firstName, $greetingTpl);
+
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -201,6 +209,18 @@ $colSpan = match($layoutCols) {
             color: #94a3b8;
             text-align: right;
         }
+        
+        /* Welcome Banner */
+        .member-welcome-banner {
+            background: var(--member-surface);
+            border: 1px solid var(--member-border);
+            border-left: 4px solid var(--member-primary);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .member-welcome-banner p { margin: 0; color: var(--member-text); line-height: 1.6; }
 
         /* ── 4-Col Grid for Top Stats ── */
         .member-stats-grid {
