@@ -19,6 +19,7 @@ if (!Auth::instance()->isAdmin()) { header('Location: ' . SITE_URL); exit; }
 
 $auth = Auth::instance();
 $db = Database::instance();
+$security = Security::instance();
 
 // --- AUDIT LOGIC ---
 $auditResults = [];
@@ -194,5 +195,37 @@ require_once __DIR__ . '/partials/admin-menu.php';
         </div>
         
     </div>
+    
+    <style>
+        .settings-form { max-width: 100%; }
+        .settings-card {
+            background: white; border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+            overflow: hidden; display: flex; flex-direction: column;
+        }
+        .card-header {
+            background: #f8fafc; padding: 1.25rem 1.5rem; border-bottom: 1px solid #e2e8f0;
+        }
+        .card-header h3 { margin: 0; font-size: 1.1rem; color: #1e293b; }
+        .card-header p { margin: 0.25rem 0 0 0; font-size: 0.85rem; color: #64748b; }
+        .card-body { padding: 1.5rem; flex: 1; }
+        .toggle-group { display: flex; align-items: flex-start; gap: 1rem; }
+        .toggle-switch { position: relative; width: 48px; height: 26px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #3b82f6; }
+        input:checked + .slider:before { transform: translateX(22px); }
+        .toggle-label strong { display: block; color: #334155; }
+        .toggle-label p { margin: 0; font-size: 0.85rem; color: #64748b; }
+        .form-control { width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px; }
+        .sticky-footer {
+            margin-top: 2rem; background: white; padding: 1rem; border-radius: 8px; text-align: right;
+            border: 1px solid #e2e8f0; position: sticky; bottom: 20px; z-index: 10;
+        }
+        .btn-large { padding: 0.75rem 2rem; background: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+        .btn-large:hover { background: #2563eb; }
+    </style>
 </body>
 </html>

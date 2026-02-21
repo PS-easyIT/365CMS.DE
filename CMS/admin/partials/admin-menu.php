@@ -334,18 +334,25 @@ function getAdminMenuItems(string $currentPage = ''): array
             'icon'     => '📈',
             'children' => [
                 [
-                    'slug'   => 'analytics',
-                    'label'  => 'Analytics',
-                    'icon'   => '📊',
-                    'url'    => '/admin/analytics',
-                    'active' => _adminNavIsActive('/admin/analytics') || $currentPage === 'analytics',
-                ],
-                [
                     'slug'   => 'seo',
-                    'label'  => 'SEO',
+                    'label'  => 'SEO Dashboard',
                     'icon'   => '🔍',
                     'url'    => '/admin/seo',
-                    'active' => _adminNavIsActive('/admin/seo') || $currentPage === 'seo',
+                    'active' => (_adminNavIsActive('/admin/seo') && empty($_GET['tab'])) || $currentPage === 'seo',
+                ],
+                [
+                    'slug'   => 'seo-permalinks',
+                    'label'  => 'Permalinks',
+                    'icon'   => '🔗',
+                    'url'    => '/admin/seo?tab=permalinks',
+                    'active' => _adminNavIsActive('/admin/seo?tab=permalinks'),
+                ],
+                [
+                    'slug'   => 'seo-indexing',
+                    'label'  => 'Indexierung',
+                    'icon'   => '📡',
+                    'url'    => '/admin/seo?tab=indexing',
+                    'active' => _adminNavIsActive('/admin/seo?tab=indexing'),
                 ],
                 [
                     'slug'   => 'performance',
@@ -353,6 +360,36 @@ function getAdminMenuItems(string $currentPage = ''): array
                     'icon'   => '⚡',
                     'url'    => '/admin/performance',
                     'active' => _adminNavIsActive('/admin/performance') || $currentPage === 'performance',
+                ],
+            ],
+        ],
+        
+        // ── Analytics ────────────────────────────────────────────────────────
+        [
+            'type'     => 'group',
+            'label'    => 'Analytics',
+            'icon'     => '📊',
+            'children' => [
+                [
+                    'slug'   => 'analytics',
+                    'label'  => 'Übersicht',
+                    'icon'   => '📉',
+                    'url'    => '/admin/analytics',
+                    'active' => (_adminNavIsActive('/admin/analytics') && empty($_GET['tab'])) || $currentPage === 'analytics',
+                ],
+                 [
+                    'slug'   => 'analytics-404',
+                    'label'  => '404 Monitor',
+                    'icon'   => '🚫',
+                    'url'    => '/admin/analytics?tab=404-monitor',
+                    'active' => _adminNavIsActive('/admin/analytics?tab=404-monitor'),
+                ],
+                [
+                    'slug'   => 'analytics-seo',
+                    'label'  => 'SEO Analyse',
+                    'icon'   => '📑',
+                    'url'    => '/admin/analytics?tab=seo-analyzer',
+                    'active' => _adminNavIsActive('/admin/analytics?tab=seo-analyzer'),
                 ],
             ],
         ],
@@ -364,11 +401,25 @@ function getAdminMenuItems(string $currentPage = ''): array
             'icon'     => '⚖️',
             'children' => [
                 [
+                    'slug'   => 'legal-sites',
+                    'label'  => 'Rechtstexte',
+                    'icon'   => '§',
+                    'url'    => '/admin/legal-sites', 
+                    'active' => _adminNavIsActive('/admin/legal-sites') || $currentPage === 'legal-sites',
+                ],
+                [
                     'slug'   => 'cookies',
                     'label'  => 'Cookie Managed',
                     'icon'   => '🍪',
-                    'url'    => '/admin/cookies', // Neu
+                    'url'    => '/admin/cookies',
                     'active' => _adminNavIsActive('/admin/cookies') || $currentPage === 'cookies',
+                ],
+                [
+                    'slug'   => 'antispam',
+                    'label'  => 'AntiSpam',
+                    'icon'   => '🛡️',
+                    'url'    => '/admin/antispam',
+                    'active' => _adminNavIsActive('/admin/antispam') || $currentPage === 'antispam',
                 ],
                 [
                     'slug'   => 'fonts-local',
@@ -381,22 +432,22 @@ function getAdminMenuItems(string $currentPage = ''): array
                     'slug'   => 'data-access',
                     'label'  => 'Recht auf Auskunft',
                     'icon'   => '👤',
-                    'url'    => '/admin/data-access', // Neu
+                    'url'    => '/admin/data-access',
                     'active' => _adminNavIsActive('/admin/data-access') || $currentPage === 'data-access',
                 ],
                 [
                     'slug'   => 'data-deletion',
                     'label'  => 'Löschanträge',
                     'icon'   => '🗑️',
-                    'url'    => '/admin/data-deletion', // Neu
+                    'url'    => '/admin/data-deletion', 
                     'active' => _adminNavIsActive('/admin/data-deletion') || $currentPage === 'data-deletion',
                 ],
                 [
                     'slug'   => 'security-audit',
                     'label'  => 'Security Audit',
                     'icon'   => '🛡️',
-                    'url'    => '/admin/security-audit', // Neu
-                    'active' => _adminNavIsActive('/admin/security-audit') || $currentPage === 'security-audit',
+                    'url'    => '/admin/security-audit',
+                    'active' => (_adminNavIsActive('/admin/security-audit') && empty($_GET['tab'])) || $currentPage === 'security-audit',
                 ],
             ],
         ],

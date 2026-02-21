@@ -36,6 +36,7 @@ $user = $auth->getCurrentUser();
 $security = Security::instance();
 
 // Initialize services
+$db = \CMS\Database::instance();
 $analytics = AnalyticsService::getInstance();
 $tracking = TrackingService::getInstance();
 
@@ -246,27 +247,23 @@ require_once __DIR__ . '/partials/admin-menu.php';
     
     <div class="admin-content">
         <div class="admin-page-header">
-            <h1>📊 Analytics & Monitoring</h1>
-            <p>Besucher-Statistiken und Traffic-Analyse</p>
+            <?php 
+                $pageTitle = '📊 Analytics & Monitoring';
+                $pageSub = 'Besucher-Statistiken und Traffic-Analyse';
+                
+                if ($activeTab === '404-monitor') {
+                    $pageTitle = '🚫 404 Monitor';
+                    $pageSub = 'Fehlerhafte Aufrufe und fehlende Seiten';
+                } elseif ($activeTab === 'seo-analyzer') {
+                    $pageTitle = '📑 SEO Analyse';
+                    $pageSub = 'Technische Prüfung und Optimierung';
+                }
+            ?>
+            <h1><?php echo htmlspecialchars($pageTitle); ?></h1>
+            <p><?php echo htmlspecialchars($pageSub); ?></p>
         </div>
         
-        <!-- Tabs -->
-        <div class="analytics-tabs">
-            <a href="?tab=overview" class="tab-button <?php echo $activeTab === 'overview' ? 'active' : ''; ?>">
-                📊 Übersicht
-            </a>
-            <a href="?tab=visitors" class="tab-button <?php echo $activeTab === 'visitors' ? 'active' : ''; ?>">
-                👥 Besucher
-            </a>
-            <a href="?tab=pages" class="tab-button <?php echo $activeTab === 'pages' ? 'active' : ''; ?>">
-                📄 Seiten
-            </a>
-            <a href="?tab=sources" class="tab-button <?php echo $activeTab === 'sources' ? 'active' : ''; ?>">
-                🔗 Traffic-Quellen
-            </a>
-        </div>
-        
-        <?php if ($activeTab === 'overview'): ?>
+        <?php if ($activeTab === 'overview' || $activeTab === 'visitors' || $activeTab === 'pages' || $activeTab === 'sources'): ?>
             <!-- Overview Tab -->
             <div class="metrics-grid">
                     <div class="metric-card">
@@ -557,6 +554,133 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         </div>
                     <?php endif; ?>
                 </div>
+            
+            <?php elseif ($activeTab === '404-monitor'): ?>
+                <!-- 404 Monitor Tab -->
+                <h3 style="margin-bottom: 1rem;">🚫 404 Fehler Protokoll</h3>
+                <div class="page-list">
+                    <?php 
+                    $pageViews404 = [];
+                    // Check if page_title '404' exists in tracking
+                    $stmt = $db->prepare("
+                        SELECT page_slug, COUNT(*) as count, MAX(visited_at) as last_seen 
+                        FROM {$db->getPrefix()}page_views 
+                        WHERE page_title LIKE '%404%' OR page_title LIKE '%Not Found%'
+                        GROUP BY page_slug 
+                        ORDER BY count DESC 
+                        LIMIT 50
+                    ");
+                    $stmt->execute();
+                    $pageViews404 = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    ?>
+
+                    <?php if (!empty($pageViews404)): ?>
+                        <?php foreach ($pageViews404 as $p404): ?>
+                            <div class="page-item">
+                                <div>
+                                    <strong style="color: #ef4444;">/<?php echo htmlspecialchars($p404['page_slug']); ?></strong>
+                                    <div style="color: #64748b; font-size: 0.875rem;">
+                                        Zuletzt: <?php echo date('d.m.Y H:i', strtotime($p404['last_seen'])); ?>
+                                    </div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-weight: 600; color: #ef4444;">
+                                        <?php echo number_format($p404['count']); ?>
+                                    </div>
+                                    <div style="font-size: 0.75rem; color: #64748b;">Fehler</div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="empty-state">
+                            <div class="empty-state-icon">✅</div>
+                            <p>Keine 404-Fehler gefunden</p>
+                            <p style="font-size: 0.875rem; margin-top: 0.5rem; color: #94a3b8;">
+                                Großartig! Alle Links scheinen zu funktionieren.
+                            </p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+            <?php elseif ($activeTab === 'seo-analyzer'): ?>
+                <!-- SEO Analyzer Tab -->
+                <?php
+                // Basic SEO Checks
+                $score = 0;
+                $checks = [];
+                
+                // 1. Site Title & Desc
+                $siteDesc = $db->fetchOne("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'setting_site_description'");
+                if (!empty($siteDesc['option_value'])) {
+                    $score += 20;
+                    $checks[] = ['label' => 'Meta Description gesetzt', 'status' => true];
+                } else {
+                    $checks[] = ['label' => 'Meta Description fehlt', 'status' => false];
+                }
+
+                // 2. Permalinks
+                $permalinks = $db->fetchOne("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'setting_permalink_structure'");
+                if ($permalinks && strpos($permalinks['option_value'], '%') !== false) {
+                     $score += 20;
+                     $checks[] = ['label' => 'Sprechende Permalinks aktiv', 'status' => true];
+                } else {
+                     $checks[] = ['label' => 'Standard-Permalinks in Verwendung', 'status' => false];
+                }
+
+                // 3. Sitemap
+                $sitemap = $db->fetchOne("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'seo_sitemap_enabled'");
+                if ($sitemap && $sitemap['option_value'] == '1') {
+                     $score += 20;
+                     $checks[] = ['label' => 'XML Sitemap aktiviert', 'status' => true];
+                } else {
+                     $checks[] = ['label' => 'XML Sitemap deaktiviert', 'status' => false];
+                }
+
+                // 4. Content Check (Pages with Meta Desc)
+                $pagesCount = $db->fetchOne("SELECT COUNT(*) as c FROM {$db->getPrefix()}posts WHERE status = 'published'");
+                $pagesWithMeta = $db->fetchOne("SELECT COUNT(*) as c FROM {$db->getPrefix()}posts WHERE status = 'published' AND meta_description != '' AND meta_description IS NOT NULL");
+                
+                $ratio = ($pagesCount['c'] > 0) ? ($pagesWithMeta['c'] / $pagesCount['c']) : 1;
+                $score += round($ratio * 20);
+                $checks[] = ['label' => "{$pagesWithMeta['c']} von {$pagesCount['c']} Seiten haben Meta-Descriptions", 'status' => ($ratio > 0.5)];
+
+                // 5. SSL (Simple check)
+                $isSSL = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443;
+                if ($isSSL) {
+                    $score += 20;
+                    $checks[] = ['label' => 'SSL/HTTPS aktiv', 'status' => true];
+                } else {
+                    $checks[] = ['label' => 'Kein SSL erkannt', 'status' => false];
+                }
+                ?>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card" style="border-left-color: <?php echo $score >= 80 ? '#10b981' : ($score >= 50 ? '#f59e0b' : '#ef4444'); ?>;">
+                        <div class="metric-icon">🎯</div>
+                        <div class="metric-value"><?php echo $score; ?>/100</div>
+                        <div class="metric-label">SEO Gesamt-Score</div>
+                    </div>
+                </div>
+
+                <div class="admin-card" style="margin-top: 2rem;">
+                    <h3 style="margin-bottom: 1.5rem;">Prüfbericht</h3>
+                    <div class="page-list">
+                        <?php foreach ($checks as $check): ?>
+                            <div class="page-item">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="font-size: 1.2rem;"><?php echo $check['status'] ? '✅' : '⚠️'; ?></span>
+                                    <span style="<?php echo $check['status'] ? '' : 'color: #ea580c; font-weight: 500;'; ?>">
+                                        <?php echo htmlspecialchars($check['label']); ?>
+                                    </span>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                     <div style="margin-top: 20px; text-align: right;">
+                        <a href="/admin/seo" class="btn btn-primary">SEO Einstellungen öffnen</a>
+                    </div>
+                </div>
+
             <?php endif; ?>
     </div>
 </body>

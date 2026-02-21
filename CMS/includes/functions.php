@@ -723,7 +723,8 @@ function wp_kses_post(string $content): string {
  */
 function wp_create_nonce(string|int $action = -1): string {
     // In a real WP environment, $action is used to salt the nonce
-    return \CMS\Security::instance()->createToken();
+    // We cast to string because our Security::createToken expects a string
+    return \CMS\Security::instance()->createNonce((string)$action);
 }
 
 /**
