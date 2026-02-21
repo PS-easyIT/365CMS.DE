@@ -1,4 +1,4 @@
-# 365CMS v0.4.0
+# 365CMS v0.4.1
 ## - sicheres, modulares und erweiterbares Content Management System
 ---
 ## HTTPS://365CMS.DE

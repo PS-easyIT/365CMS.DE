@@ -4,10 +4,26 @@
 
 | Version | Datum | Zusammenfassung |
 |---------|-------|-----------------|
+| 0.4.1 | 22.02.2026 | Design-Unifikation Aboverwaltung: einheitliches Layout wie Benutzer & Gruppen |
 | 0.4.0 | 21.02.2026 | Aboverwaltung-Umbau, Pakete-Editor in Übersicht, neue Einstellungen-Seite, Version-Badge |
 | 0.3.0 | 20.02.2026 | Bestellsystem, Admin-UI Neuaufbau (users.php, groups.php), Menü-Strukturierung |
 | 0.2.0 | 18.02.2026 | Analytics-Fixes, install.php Datenbank-Tabellen |
 | 0.1.0 | 01.02.2026 | Initiales CMS-System (Core, Auth, DB, Theme, Plugin-System) |
+
+---
+
+## v0.4.1 — 22. Februar 2026
+
+### 🎨 Design & UI
+
+#### Aboverwaltung: Admin-Design vereinheitlicht
+- **Layout-Basis:** `renderAdminLayoutStart` / `renderAdminLayoutEnd` als einheitliches Wrapper-System (wie `users.php`, `groups.php`)
+- **Pakete-Tab:** Karten mit `.sub-plans-grid` + `.plan-card`; Aktions-Buttons (Bearbeiten, Löschen) als `.btn-sm .btn-secondary` / `.btn-sm .btn-danger`
+- **Einstellungen-Tab:** Zweispalten-Grid (`.settings-grid-2col`) mit 5 `.post-card`-Sections: Abo-System, Zahlungsmethoden, Rechtliche Seiten, Rechnungsabsender, Bestellnummern
+  - Responsive: auf Mobilgeräten (< 900px) einspaltig
+- **Zuweisungen-Tab:** Formular als `.post-card`, Benutzerliste als `.usr-adm-grid`, Gruppen-Tabelle als einheitliche `.posts-table`
+- **Notices:** `.notice`, `.notice-success`, `.notice-error` lokal definiert (analog zu users.php)
+- **Alle Inline-Styles entfernt** – vollständig durch CSS-Klassen ersetzt
 
 ---
 
