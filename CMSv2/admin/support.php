@@ -190,16 +190,24 @@ $activeDoc  = $_GET['doc'] ?? '';
 $docContent = null;
 $docTitle   = '';
 
-// Sicherheitsprüfung: Pfad darf nur im /DOC-Verzeichnis liegen
+// Sicherheitsprüfung: Pfad darf nur im /DOC-Verzeichnis liegen, kein Path-Traversal
 if ($activeDoc !== '') {
-    $safePath = GITHUB_DOC_PATH . '/' . basename($activeDoc);
+    // Bereinigen: kein "..", kein Backslash, kein Null-Byte
+    $cleanDoc = str_replace(['..', '\\', "\0"], '', $activeDoc);
+    $cleanDoc = trim($cleanDoc, '/');
+    $safePath = GITHUB_DOC_PATH . '/' . $cleanDoc;
+
     if (
         str_starts_with($safePath, GITHUB_DOC_PATH . '/') &&
-        str_ends_with(strtolower($safePath), '.md')
+        str_ends_with(strtolower($safePath), '.md') &&
+        !str_contains($safePath, '//')
     ) {
         $docContent = fetchDocContent($safePath, $githubToken);
         $docTitle   = pathinfo(basename($safePath), PATHINFO_FILENAME);
         $docTitle   = str_replace(['-', '_'], ' ', $docTitle);
+        $activeDoc  = $cleanDoc; // normalisierter Pfad relativ zu DOC/
+    } else {
+        $activeDoc = '';
     }
 }
 
@@ -209,7 +217,8 @@ if ($docContent === null && count($docList) > 0) {
     $docContent = fetchDocContent($firstDoc['path'], $githubToken);
     $docTitle   = pathinfo($firstDoc['name'], PATHINFO_FILENAME);
     $docTitle   = str_replace(['-', '_'], ' ', $docTitle);
-    $activeDoc  = $firstDoc['name'];
+    // DOC-relativer Pfad (z. B. "README.md" oder "admin/INSTALL.md")
+    $activeDoc  = substr($firstDoc['path'], strlen(GITHUB_DOC_PATH) + 1);
 }
 
 require_once __DIR__ . '/partials/admin-menu.php';
@@ -294,6 +303,64 @@ require_once __DIR__ . '/partials/admin-menu.php';
             font-size: .8125rem;
             color: #94a3b8;
             text-align: center;
+        }
+
+        /* ── Sidebar-Gruppen (Unterordner) ── */
+        .docs-sidebar-group {
+            list-style: none;
+        }
+        .docs-sidebar-group details > summary {
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+            padding: .45rem 1rem;
+            font-size: .75rem;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            cursor: pointer;
+            user-select: none;
+            list-style: none;
+            background: #f8fafc;
+            border-top: 1px solid #f1f5f9;
+        }
+        .docs-sidebar-group details > summary::-webkit-details-marker { display: none; }
+        .docs-sidebar-group details > summary::before {
+            content: '▶';
+            font-size: .6rem;
+            transition: transform .15s;
+            color: #cbd5e1;
+        }
+        .docs-sidebar-group details[open] > summary::before {
+            transform: rotate(90deg);
+        }
+        .docs-sidebar-sublist {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .docs-sidebar-sublist li a {
+            display: block;
+            padding: .5rem 1rem .5rem 1.75rem;
+            font-size: .8125rem;
+            color: #475569;
+            text-decoration: none;
+            border-left: 3px solid transparent;
+            transition: all .12s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .docs-sidebar-sublist li a:hover {
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+        .docs-sidebar-sublist li a.active {
+            background: #eff6ff;
+            color: #2563eb;
+            border-left-color: #2563eb;
+            font-weight: 600;
         }
 
         /* ── Doc Viewer ── */
@@ -507,19 +574,58 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         <small>Lade /<?php echo GITHUB_DOC_PATH; ?> ins GitHub-Repo hoch.</small>
                     </div>
                 <?php else: ?>
+                    <?php
+                    // Nach Unterordner gruppieren; Root-Einträge zuerst
+                    $grouped = [];
+                    foreach ($docList as $doc) {
+                        $grouped[$doc['dir'] ?? ''][] = $doc;
+                    }
+                    uksort($grouped, function($a, $b) {
+                        if ($a === '') return -1;
+                        if ($b === '') return  1;
+                        return strcmp($a, $b);
+                    });
+                    ?>
                     <ul class="docs-sidebar-list">
-                        <?php foreach ($docList as $doc):
-                            $docName  = htmlspecialchars(pathinfo($doc['name'], PATHINFO_FILENAME));
-                            $docLabel = str_replace(['-', '_'], ' ', $docName);
-                            $isActive = basename($activeDoc) === $doc['name'];
-                        ?>
-                        <li>
-                            <a href="?doc=<?php echo urlencode($doc['name']); ?>"
-                               class="<?php echo $isActive ? 'active' : ''; ?>"
-                               title="<?php echo $docLabel; ?>">
-                                <?php echo htmlspecialchars($docLabel); ?>
-                            </a>
-                        </li>
+                        <?php foreach ($grouped as $dir => $dirDocs): ?>
+                            <?php if ($dir !== ''): ?>
+                                <!-- Unterordner-Gruppe -->
+                                <li class="docs-sidebar-group">
+                                    <details open>
+                                        <summary><?php echo htmlspecialchars(str_replace(['-', '_', '/'], [' ', ' ', ' / '], $dir)); ?></summary>
+                                        <ul class="docs-sidebar-sublist">
+                                            <?php foreach ($dirDocs as $doc):
+                                                $docRelPath = substr($doc['path'], strlen(GITHUB_DOC_PATH) + 1);
+                                                $docLabel   = str_replace(['-', '_'], ' ', pathinfo($doc['name'], PATHINFO_FILENAME));
+                                                $isActive   = ($activeDoc === $docRelPath);
+                                            ?>
+                                            <li>
+                                                <a href="?doc=<?php echo urlencode($docRelPath); ?>"
+                                                   class="<?php echo $isActive ? 'active' : ''; ?>"
+                                                   title="<?php echo htmlspecialchars($docLabel); ?>">
+                                                    <?php echo htmlspecialchars($docLabel); ?>
+                                                </a>
+                                            </li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    </details>
+                                </li>
+                            <?php else: ?>
+                                <!-- Root-Dateien -->
+                                <?php foreach ($dirDocs as $doc):
+                                    $docRelPath = substr($doc['path'], strlen(GITHUB_DOC_PATH) + 1);
+                                    $docLabel   = str_replace(['-', '_'], ' ', pathinfo($doc['name'], PATHINFO_FILENAME));
+                                    $isActive   = ($activeDoc === $docRelPath);
+                                ?>
+                                <li>
+                                    <a href="?doc=<?php echo urlencode($docRelPath); ?>"
+                                       class="<?php echo $isActive ? 'active' : ''; ?>"
+                                       title="<?php echo htmlspecialchars($docLabel); ?>">
+                                        <?php echo htmlspecialchars($docLabel); ?>
+                                    </a>
+                                </li>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     </ul>
                 <?php endif; ?>

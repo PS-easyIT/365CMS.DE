@@ -49,6 +49,9 @@ PLUGINS/
 THEMES/
 DOC/audits/
 DOC/feature/
+DOC/feature
+DOC/feature/*.*
+DOC/feature/*/
 
 # ----------------------------------------------------------------------
 # CMS v2 SPECIFIC
