@@ -245,32 +245,46 @@ function getAdminMenuItems(string $currentPage = ''): array
             ],
         ],
 
-        // ── Design ───────────────────────────────────────────────────────────
+        // ── Themes & Design ───────────────────────────────────────────────────
         [
             'type'     => 'group',
-            'label'    => 'Design',
+            'label'    => 'Themes & Design',
             'icon'     => '🎨',
             'children' => [
                 [
                     'slug'   => 'themes',
-                    'label'  => 'Themeverwaltung',
+                    'label'  => 'Themes',
                     'icon'   => '🖼️',
                     'url'    => '/admin/themes',
                     'active' => (_adminNavIsActive('/admin/themes') && empty($_GET['tab'])) || $currentPage === 'themes',
                 ],
                 [
                     'slug'   => 'theme-customizer',
-                    'label'  => 'Themedesign',
+                    'label'  => 'Design Editor',
                     'icon'   => '🎨',
                     'url'    => '/admin/theme-customizer',
                     'active' => _adminNavIsActive('/admin/theme-customizer') || $currentPage === 'theme-customizer',
                 ],
                 [
                     'slug'   => 'menus',
-                    'label'  => 'Menü Verwaltung',
+                    'label'  => 'Menü Editor',
                     'icon'   => '🗂️',
                     'url'    => '/admin/menus',
                     'active' => _adminNavIsActive('/admin/menus') || $currentPage === 'menus',
+                ],
+                [
+                    'slug'   => 'theme-marketplace',
+                    'label'  => 'Marketplace',
+                    'icon'   => '🏪',
+                    'url'    => '/admin/theme-marketplace',
+                    'active' => _adminNavIsActive('/admin/theme-marketplace') || $currentPage === 'theme-marketplace',
+                ],
+                [
+                    'slug'   => 'theme-settings',
+                    'label'  => 'Einstellungen',
+                    'icon'   => '⚙️',
+                    'url'    => '/admin/theme-settings',
+                    'active' => _adminNavIsActive('/admin/theme-settings') || $currentPage === 'theme-settings',
                 ],
             ],
         ],
@@ -380,6 +394,36 @@ function getAdminMenuItems(string $currentPage = ''): array
             ],
         ],
 
+        // ── Plugins ──────────────────────────────────────────────────────────
+        [
+            'type'     => 'group',
+            'label'    => 'Plugins',
+            'icon'     => '🔌',
+            'children' => [
+                [
+                    'slug'   => 'plugins',
+                    'label'  => 'Verwalten',
+                    'icon'   => '🔌',
+                    'url'    => '/admin/plugins',
+                    'active' => _adminNavIsActive('/admin/plugins') || $currentPage === 'plugins',
+                ],
+                [
+                    'slug'   => 'plugin-updates',
+                    'label'  => 'Installieren & Updates',
+                    'icon'   => '🔄',
+                    'url'    => '/admin/updates',
+                    'active' => _adminNavIsActive('/admin/updates') || $currentPage === 'updates',
+                ],
+                [
+                    'slug'   => 'plugin-marketplace',
+                    'label'  => 'Marketplace',
+                    'icon'   => '🏪',
+                    'url'    => '/admin/plugin-marketplace',
+                    'active' => _adminNavIsActive('/admin/plugin-marketplace') || $currentPage === 'plugin-marketplace',
+                ],
+            ],
+        ],
+
         // ── System & Einstellungen ────────────────────────────────────────────
         [
             'type'     => 'group',
@@ -392,20 +436,6 @@ function getAdminMenuItems(string $currentPage = ''): array
                     'icon'   => '⚙️',
                     'url'    => '/admin/settings',
                     'active' => _adminNavIsActive('/admin/settings') || $currentPage === 'settings',
-                ],
-                [
-                    'slug'   => 'plugins',
-                    'label'  => 'Plugins',
-                    'icon'   => '🔌',
-                    'url'    => '/admin/plugins',
-                    'active' => _adminNavIsActive('/admin/plugins') || $currentPage === 'plugins',
-                ],
-                [
-                    'slug'   => 'updates',
-                    'label'  => 'Updates',
-                    'icon'   => '🔄',
-                    'url'    => '/admin/updates',
-                    'active' => _adminNavIsActive('/admin/updates') || $currentPage === 'updates',
                 ],
                 [
                     'slug'   => 'backup',
