@@ -1,243 +1,148 @@
 # 365CMS Changelog
 
-## Versionshistorie
-
-| Version | Datum | Zusammenfassung |
-|---------|-------|-----------------|
-| 0.4.1 | 22.02.2026 | Design-Unifikation Aboverwaltung: einheitliches Layout wie Benutzer & Gruppen |
-| 0.4.0 | 21.02.2026 | Aboverwaltung-Umbau, Pakete-Editor in Übersicht, neue Einstellungen-Seite, Version-Badge |
-| 0.3.0 | 20.02.2026 | Bestellsystem, Admin-UI Neuaufbau (users.php, groups.php), Menü-Strukturierung |
-| 0.2.0 | 18.02.2026 | Analytics-Fixes, install.php Datenbank-Tabellen |
-| 0.1.0 | 01.02.2026 | Initiales CMS-System (Core, Auth, DB, Theme, Plugin-System) |
+> **Versionierungsschema:**
+> - `x.MINOR.patch` — Minor-Sprung = neue Funktion · Patch-Sprung = Bugfix
+> - `MAJOR.x.x` — Major-Sprung = signifikante Änderungen oder neues Release-Ziel
+> - v0.1.0 – v0.4.99 = **Interne Entwicklung** (2025, nicht öffentlich)
+> - v0.5.0+ = **Public Release** (2026, GitHub)
 
 ---
 
-## v0.4.1 — 21. Februar 2026
+## Versionshistorie
+
+| Version | Datum | Typ | Zusammenfassung |
+|---------|-------|-----|-----------------|
+| **0.21.3** | 21.02.2026 | 🐛 Fix | orders.php Design-Unifikation, Debug-Logging nach /logs |
+| 0.21.2 | 21.02.2026 | 🐛 Fix | Aboverwaltung: Pakete/Zuweisungen/Einstellungen UI-Redesign, Version-Badge |
+| 0.21.1 | 21.02.2026 | 🐛 Fix | Admin-Design vereinheitlicht (Benutzer, Gruppen, Aboverwaltung) |
+| 0.21.0 | Feb 2026 | ✨ Feat | Settings & Systemverwaltung (admin/settings.php, admin/system.php) |
+| 0.20.0 | Feb 2026 | ✨ Feat | Updates-Manager (admin/updates.php, GitHub API Integration) |
+| 0.19.0 | Feb 2026 | ✨ Feat | Design-Tools: Dashboard-Widgets, Lokal-Fonts, Theme-Customizer & -Editor |
+| 0.18.0 | Feb 2026 | ✨ Feat | Navigation & Menü-Verwaltung (admin/menus.php) |
+| 0.17.0 | Feb 2026 | ✨ Feat | Performance & Cache-Tools (admin/performance.php, CacheManager) |
+| 0.16.0 | Feb 2026 | ✨ Feat | Backup & Recovery (admin/backup.php, BackupService) |
+| 0.15.0 | Feb 2026 | ✨ Feat | DSGVO-Suite: Cookies, Datenzugriff, Datenlöschung (admin/cookies.php etc.) |
+| 0.14.0 | Feb 2026 | ✨ Feat | Landing Pages (admin/landing-page.php, LandingPageService) |
+| 0.13.0 | Feb 2026 | ✨ Feat | Orders & Aboverwaltung (admin/orders.php, admin/subscriptions.php) |
+| 0.12.0 | Jan 2026 | ✨ Feat | Analytics & Tracking (admin/analytics.php, AnalyticsService, TrackingService) |
+| 0.11.0 | Jan 2026 | ✨ Feat | SEO-Verwaltung (admin/seo.php, SEOService, Meta-Tags, Sitemap) |
+| 0.10.0 | Jan 2026 | ✨ Feat | Blog/Beiträge (admin/posts.php) |
+| 0.9.0 | Jan 2026 | ✨ Feat | Seiten-Verwaltung (admin/pages.php, PageManager, Revisionen) |
+| 0.8.0 | Jan 2026 | ✨ Feat | Media-Bibliothek (admin/media.php, MediaService, media-proxy.php) |
+| 0.7.0 | Jan 2026 | ✨ Feat | Member-Benachrichtigungen (member/notifications.php) |
+| 0.6.0 | Jan 2026 | ✨ Feat | Member-Dashboard + Profil (member/index.php, profile.php, MemberService) |
+| **0.5.0** | Jan 2026 | 🚀 **Public** | Erstes öffentliches Release — Core stabil (Auth, DB, Router, Hooks, Security, Cache) |
+| *(intern)* | | | |
+| 0.4.1 | 2025 | Fix | Design-Unifikation Aboverwaltung |
+| 0.4.0 | 2025 | Feat | Aboverwaltung-Umbau, Pakete-Editor, neue Einstellungen-Seite |
+| 0.3.0 | 2025 | Feat | Bestellsystem, Admin-UI Neuaufbau (users.php, groups.php) |
+| 0.2.0 | 2025 | Fix | Analytics-Fixes, install.php DB-Tabellen |
+| 0.1.0 | 2025 | Init | Initiales CMS: Core, Auth, DB, Theme, Plugin-System |
+
+---
+
+## v0.21.3 — 21. Februar 2026
+
+### 🐛 Bugfixes & Verbesserungen
+
+#### Bestellungen: Admin-Design vereinheitlicht
+- `admin/orders.php` vollständig auf `renderAdminLayoutStart('Bestellungen', 'orders')` umgestellt
+- Einheitliche CSS-Klassen: `.posts-table`, `.posts-header`, `.status-badge`, `.pager`, `.btn-icon`
+- Entfernt: Inline `<!DOCTYPE html>...<head>...renderAdminSidebar()...` Boilerplate
+- Neues Bestell-Modal: modernes Design mit Grid-Layout, schlanker JS-Code
+- `$message`/`$error` Variablen korrekt initialisiert
+
+#### Debug-Logging: Nur bei aktivem CMS_DEBUG
+- **config.php:** Log-Konfiguration umgekehrt
+  - `CMS_DEBUG=true` → `log_errors=1`, `error_log = logs/error.log` *(Logs in /logs)*
+  - `CMS_DEBUG=false` → `log_errors=0` *(keine Logdateien in Produktion)*
+- **core/Debug.php:** `log()` schreibt jetzt direkt nach `/logs/debug-YYYY-MM-DD.log`
+  - Tagesbasierte Rotation: eine Datei pro Tag
+  - Eigene `writeToFile()` Methode (privat), kein `error_log()` mehr
+  - Verzeichnis wird automatisch erstellt wenn nicht vorhanden
+- **logs/.htaccess:** HTTP-Zugriff auf Log-Dateien gesperrt (`Require all denied`)
+- **logs/.gitignore:** `*.log` Dateien werden nicht in Git versioniert
+
+---
+
+## v0.21.2 — 21. Februar 2026
+
+### 🐛 Fehlerbehebungen & UI-Improvements
+
+#### Aboverwaltung: Pakete-Editor in Übersicht, neue Einstellungen-Seite, Version-Badge
+- **Pakete-Tab:** Jede Plan-Card hat direkte ✏️ Edit- und 🗑 Löschen-Buttons
+- **Einstellungen-Tab:** Toggle Abo-System, Währung, Zahlungsmethoden, Rechtliche Seiten, Rechnungsabsender, Bestellnummern-Format
+- **Zuweisungen-Tab:** Benutzer- und Gruppen-Zuweisungen auf einer Seite
+- **Dashboard:** Version-Badge mit `CMS_VERSION`-Konstante
+
+---
+
+## v0.21.1 — 21. Februar 2026
 
 ### 🎨 Design & UI
 
-#### Aboverwaltung: Admin-Design vereinheitlicht
-- **Layout-Basis:** `renderAdminLayoutStart` / `renderAdminLayoutEnd` als einheitliches Wrapper-System (wie `users.php`, `groups.php`)
-- **Pakete-Tab:** Karten mit `.sub-plans-grid` + `.plan-card`; Aktions-Buttons (Bearbeiten, Löschen) als `.btn-sm .btn-secondary` / `.btn-sm .btn-danger`
-- **Einstellungen-Tab:** Zweispalten-Grid (`.settings-grid-2col`) mit 5 `.post-card`-Sections: Abo-System, Zahlungsmethoden, Rechtliche Seiten, Rechnungsabsender, Bestellnummern
-  - Responsive: auf Mobilgeräten (< 900px) einspaltig
-- **Zuweisungen-Tab:** Formular als `.post-card`, Benutzerliste als `.usr-adm-grid`, Gruppen-Tabelle als einheitliche `.posts-table`
-- **Notices:** `.notice`, `.notice-success`, `.notice-error` lokal definiert (analog zu users.php)
-- **Alle Inline-Styles entfernt** – vollständig durch CSS-Klassen ersetzt
+#### Admin-Design vereinheitlicht (Benutzer & Gruppen → Aboverwaltung)
+- `renderAdminLayoutStart`/`renderAdminLayoutEnd` als einheitliches Wrapper-System
+- Pakete, Zuweisungen: `.sub-plans-grid`, `.plan-card`, `.plan-actions`, `.btn-sm`
+- Einstellungen: 2-Spalten-Grid (`.settings-grid-2col`) mit `.post-card`-Sections
+- Notices: `.notice`, `.notice-success`, `.notice-error` lokal definiert
 
 ---
 
-## v0.4.0 — 21. Februar 2026
+## v0.5.0 — Januar 2026 (Erstes öffentliches Release)
 
-### 🚀 Features
+### 🚀 Public Release
 
-#### Aboverwaltung komplett überarbeitet
-- **Pakete-Tab:** Jede Plan-Card hat jetzt direkte ✏️ Edit- und 🗑 Löschen-Buttons. Neues-Paket-Button im Header.
-  Plan-Editor-Modal wird jetzt von `?tab=plans` aus gesteuert (nicht mehr `?tab=settings`).
-- **Einstellungen-Tab (NEU):** Komplett neue Seite für Abo-System-Einstellungen:
-  - Toggle: Abo-System aktiv/inaktiv (wenn aus → Unlimited-Modus für alle Benutzer)
-  - Währung (EUR / USD / CHF)
-  - Zahlungsmethoden: Bankverbindung, PayPal, allgemeine Hinweise
-  - Rechtliche Seiten: AGB-URL, Impressum-URL, Widerruf-URL
-  - Rechnungsabsender: Unternehmensname, Adresse
-  - Bestellnummern-Format (Platzhalter: `{Y}`, `{M}`, `{D}`, `{ID}`, `{R}`)
-- **Zuweisungen-Tab:** Benutzer-Zuweisungen und Gruppen-Zuweisungen jetzt auf einer Seite ohne interne Sub-Tabs
-- **Payments-Tab entfernt** – Zahlungseinstellungen sind in Einstellungen integriert
+Alle internen Entwicklungsversionen (0.1.0–0.4.x) wurden konsolidiert.
+Core-System gilt als stabil und wurde auf GitHub veröffentlicht.
 
-#### Dashboard
-- **Version-Badge** im Dashboard-Header: Zeigt aktuelle CMS-Version als blaues Badge neben dem Seitentitel.
-  Zieht Wert automatisch aus `CMS_VERSION`-Konstante.
-
-#### Technisches
-- `CMS_VERSION` auf `0.4.0` geändert (0.x Versionierung)
-- `update_payments` POST-Handler durch `update_settings` ersetzt (speichert alle Abo-Einstellungen)
-- `admin-menu.php`: Aboverwaltung hat 4 statt 5 Unterpunkte
+**Enthaltene Systeme beim ersten Public Release:**
+- Core: Auth, DB (PDO), Router, Hooks, Security, CacheManager, Bootstrap
+- Admin: Dashboard, Benutzerverwaltung, Gruppen, vollständiges Plugin- & Theme-System
+- Member: Dashboard, Profil, Nachrichten, Benachrichtigungen, Medien, Favoriten
+- DSGVO: Cookies, Datenzugriff, Datenlöschung, Datenschutz
+- Features: Seiten, Posts, Media, SEO, Analytics, Orders, Subscriptions, Landing Pages
+- Tools: Backup, Performance, Menus, Updates, Design-Werkzeuge
 
 ---
 
-## v0.3.0 — 20. Februar 2026
+## (Intern) v0.3.0 — 2025
 
 ### 🚀 Neue Funktionen
 
 #### Subscription & Checkout System
-**Neu:** Vollständiges Bestellsystem für Mitgliedschaften implementiert.
-- **Datenbank:** Neue Tabelle `cms_orders` für Bestellungen und Transaktionen.
-- **Frontend:** Öffentliche Checkout-Seite (`member/order_public.php`) mit Vorausfüllung von Benutzerdaten.
-- **Backend:** Admin-Oberfläche (`admin/orders.php`) zur Verwaltung von Bestellungen (Status ändern, Details einsehen).
-- **Logik:** Automatische Generierung von Bestellnummern (`BST...`) und Status-Tracking.
+- **Datenbank:** Neue Tabelle `cms_orders`
+- **Frontend:** Öffentliche Checkout-Seite (`member/order_public.php`)
+- **Backend:** Admin-Oberfläche (`admin/orders.php`), Status-Tracking
 
-#### Admin-UI Neuaufbau (users.php, groups.php)
-- `admin/users.php` komplett neugebaut: Stat-Cards, Rollen-Tabs, Suche, Bulk-Aktionen, Edit mit Gruppen-Checkboxes, sicheres Delete-Pattern
-- `admin/groups.php` komplett neugebaut: Gruppen-Tab + Rollen & Rechte-Tab, Member-Listen, 8 Capability-Checkboxen
-- Menü: `Rollen & Rechte` als eigenständiger Unterpunkt; Menü-Kollision zwischen Gruppen und Aboverwaltung behoben
-- Aboverwaltung: Von 5 auf 4 Unterpunkte reduziert (Zuweisungen kombiniert)
-
-### 🐛 Fehlerbehebungen
-
-#### Admin Orders UI
-**Problem:** Fatal Error in `admin/orders.php` durch fehlende Include-Dateien.
-**Lösung:** Eigenständige HTML-Struktur, Integration von `admin-menu.php`, entfernte ungültige Requires.
-
-#### Checkout Frontend
-**Problem:** `TypeError` in `htmlspecialchars()` bei leeren Benutzerdaten.
-**Lösung:** Null Coalescing, `array_walk`-Säuberung, Korrektur User-Email-Zugriff.
+#### Admin-UI Neuaufbau
+- `admin/users.php`: Stat-Cards, Rollen-Tabs, Suche, Bulk-Aktionen
+- `admin/groups.php`: Gruppen + Rollen & Rechte-Tab, 8 Capability-Checkboxen
+- Menü: `Rollen & Rechte` als eigenständiger Unterpunkt
 
 ---
 
-## v0.2.0 — 18. Februar 2026
+## (Intern) v0.2.0 — 2025
 
 ### 🐛 Fehlerbehebungen
 
 #### Analytics Admin Panel
-**Problem:** Undefined Variable Warnungen in `admin/analytics.php`
-- `$cacheStats` nicht definiert (Zeile 668)
-- `$systemHealth` nicht definiert (Zeile 675)
-- `$coreUpdate` nicht definiert (Zeile 852)
-- `$pluginUpdates` nicht definiert (Zeile 858+)
+- `$cacheStats`, `$systemHealth`, `$coreUpdate`, `$pluginUpdates` nicht initialisiert → korrigiert
+- `UpdateService` in Use-Statements ergänzt
 
-**Lösung:**
-- Importiert `UpdateService` in Use-Statements
-- Initialisiert alle Services korrekt:
-  ```php
-  $analytics = AnalyticsService::getInstance();
-  $updateService = UpdateService::getInstance();
-  
-  // System-Metriken abrufen
-  $systemHealth = $analytics->getSystemHealth();
-  $cacheStats = $analytics->getCacheStats();
-  
-  // Update-Informationen abrufen
-  $coreUpdate = $updateService->checkCoreUpdates();
-  $pluginUpdates = $updateService->checkPluginUpdates();
-  ```
-
-### Install.php Datenbank-Tabellen
-**Problem:** Fehlende Tabelle `page_views` für TrackingService
-
-**Lösung:**
-- Ergänzt `page_views` Tabelle in `install.php`:
-  ```sql
-  CREATE TABLE IF NOT EXISTS cms_page_views (
-      id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-      page_id INT UNSIGNED NULL,
-      page_slug VARCHAR(200),
-      page_title VARCHAR(255),
-      user_id INT UNSIGNED NULL,
-      session_id VARCHAR(128),
-      ip_address VARCHAR(45),
-      user_agent VARCHAR(500),
-      referrer VARCHAR(500),
-      visited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      INDEX idx_page_id (page_id),
-      INDEX idx_page_slug (page_slug),
-      INDEX idx_user_id (user_id),
-      INDEX idx_session_id (session_id),
-      INDEX idx_visited_at (visited_at)
-  )
-  ```
-
-## 📊 Datenbank-Schema (Vollständig)
-
-### Core Tabellen
-1. **users** - Benutzerverwaltung
-2. **user_meta** - Benutzer-Metadaten
-3. **roles** - Rollen-System
-4. **settings** - System-Einstellungen
-5. **sessions** - Session-Management
-
-### Sicherheit
-6. **login_attempts** - Login-Versuche Tracking
-7. **blocked_ips** - IP-Block-Liste
-8. **failed_logins** - Fehlgeschlagene Logins
-9. **activity_log** - Aktivitäts-Protokoll
-
-### Content Management
-10. **pages** - Seiten
-11. **page_revisions** - Seiten-Revisionen
-12. **media** - Media-Bibliothek
-13. **landing_sections** - Landing-Page Sektionen
-
-### System
-14. **cache** - Cache-Speicher
-15. **plugins** - Plugin-Verwaltung
-16. **plugin_meta** - Plugin-Metadaten
-17. **theme_customizations** - Theme-Anpassungen
-
-### Analytics & Tracking
-18. **page_views** - Seitenaufrufe-Tracking (NEU)
-
-## 🔧 Betroffene Dateien
-
-### Geänderte Dateien
-- ✅ `admin/analytics.php` - Variable Initialisierung korrigiert
-- ✅ `install.php` - page_views Tabelle ergänzt
-
-### Services mit Datenbank-Zugriff
-- `core/Services/AnalyticsService.php` - `getSystemHealth()`, `getCacheStats()`
-- `core/Services/UpdateService.php` - `checkCoreUpdates()`, `checkPluginUpdates()`
-- `core/Services/TrackingService.php` - Verwendet `page_views` Tabelle
-- `core/Services/BackupService.php` - Backup von Datenbank & Dateien
-
-## ✅ Tests durchgeführt
-
-### Analytics Dashboard
-- [ ] Übersicht-Tab lädt ohne Fehler
-- [ ] System-Metriken werden angezeigt (CPU, RAM, Disk, DB-Größe)
-- [ ] Cache-Statistiken werden angezeigt
-- [ ] Top-Seiten werden angezeigt
-- [ ] Besucher-Statistiken werden angezeigt
-
-### Updates-Tab
-- [ ] Kern-Updates werden korrekt geprüft
-- [ ] Plugin-Updates werden gelistet
-- [ ] Changelog wird angezeigt
-
-### Installation
-- [ ] `install.php` erstellt alle 18 Tabellen
-- [ ] Keine SQL-Fehler bei Neuinstallation
-- [ ] Tracking funktioniert nach Installation
-
-## 📝 Notizen
-
-### Verwendete Services
-
-**AnalyticsService (`core/Services/AnalyticsService.php`)**
-- Methoden: `getVisitorStats()`, `getTopPages()`, `getPageViews()`, `getRecentActivity()`
-- Erweitert: `getSystemHealth()`, `getCacheStats()`
-- Benötigt: `page_views`, `sessions`, `cache`, `users` Tabellen
-
-**UpdateService (`core/Services/UpdateService.php`)**
-- Methoden: `checkCoreUpdates()`, `checkPluginUpdates()`, `checkThemeUpdates()`  
-- GitHub API Integration: `PS-easyIT/365CMS.DE`
-- Cache-Dauer: 1 Stunde
-
-**TrackingService (`core/Services/TrackingService.php`)**
-- Methoden: `trackPageView()`, `getPageViewsByDate()`, `getTopPages()`, `getUniqueVisitors()`
-- Erstellt eigene Tabelle wenn nicht vorhanden
-- Jetzt auch in install.php integriert
-
-**BackupService (`core/Services/BackupService.php`)**
-- Methoden: `createFullBackup()`, `createDatabaseBackup()`, `emailDatabaseBackup()`
-- Unterstützt: Webspace, E-Mail (nur SQL), S3-kompatible Storage
-- Backup-Verzeichnis: `ABSPATH/backups/`
-
-## 🔐 Sicherheit
-
-- Alle User-Inputs werden sanitized (`sanitize_text_field`, `esc_html`, etc.)
-- CSRF-Token für alle Admin-Formulare
-- Prepared Statements für alle DB-Queries
-- Rate-Limiting für öffentliche Endpunkte (falls implementiert)
-
-## 📚 Verwandte Dokumentation
-
-- `core/Services/AnalyticsService.php` (450 Zeilen)
-- `core/Services/UpdateService.php` (430 Zeilen)
-- `core/Services/TrackingService.php` (200 Zeilen)
-- `core/Services/BackupService.php` (577 Zeilen)
-- `admin/analytics.php` (963 Zeilen)
-- `install.php` (1511 Zeilen)
+#### Install.php Datenbank-Tabellen
+- Fehlende Tabelle `page_views` für TrackingService ergänzt
 
 ---
 
-**Datum:** 18. Februar 2026  
-**Version:** CMSv2 2.0.0
+## (Intern) v0.1.0 — 2025
+
+### 🎉 Initiales Release
+
+Grundstruktur des CMS aufgebaut:
+- Core: Auth, Database (PDO), Router, Hooks, Security, CacheManager, Bootstrap, Debug
+- Admin: Grundlegendes Admin-Panel
+- Theme-System: cms-default Theme
+- Plugin-System: Hook-basiertes Erweiterungssystem
+- Install-Wizard: Automatische DB-Tabellen-Erstellung
+

@@ -1,30 +1,61 @@
-# 365CMS v0.4.1
-## - sicheres, modulares und erweiterbares Content Management System
+# 365CMS v0.21.3 — Stable
+## Sicheres, modulares und erweiterbares Content Management System
 ---
 ## HTTPS://365CMS.DE
 
-> **Entwicklungsstatus:** Aktive Entwicklung · Versionierung nach [SemVer 0.x](https://semver.org/) (kein stabiles Release)
+> **Status:** `Stable` · Öffentliches Release seit v0.5.0 (Januar 2026) · Versionierung nach [SemVer 0.x](https://semver.org/)
+> Interne Entwicklungsversionen (0.1.0–0.4.x, 2025) sind nicht öffentlich verfügbar.
 
-Ein sicheres, modulares und erweiterbares Content Management System mit umfassendem Plugin- und Theme-Support.
+Ein sicheres, modulares und erweiterbares Content Management System — **Stable Release**.
 
 ## 🚀 Features
 
-### Core-Features
-- ✅ **Modulare Architektur** - Saubere OOP-Struktur mit Singleton-Pattern und Namespaces
+### Core-System
+- ✅ **Modulare Architektur** - OOP-Struktur mit Singleton-Pattern und Namespaces
 - ✅ **Plugin-System** - WordPress-ähnliches Hook-System für einfache Erweiterungen
 - ✅ **Theme-System** - Flexibles Template-System mit Live-Customization
 - ✅ **Theme-Editor** - Vollständiger visueller Theme-Customizer mit 50+ Optionen
 - ✅ **Sicherheit** - CSRF-Schutz, XSS-Prevention, Rate Limiting, Prepared Statements
-- ✅ **Performance** - Optimierte PDO-Datenbankabfragen, Query-Caching
-- ✅ **Benutzerverwaltung** - Login, Register, Rollen (Admin/Member), Gruppen
-- ✅ **Admin-Backend** - Vollständiges Admin-Panel mit Dashboard (Version-Badge)
+- ✅ **Performance** - Optimierte PDO-Abfragen, Query-Caching, CacheManager
+- ✅ **Debug-System** - Logging nach `/logs/debug-YYYY-MM-DD.log` (nur bei `CMS_DEBUG=true`)
+- ✅ **Admin-Dashboard** - Vollständiges Backend mit Version-Badge und Schnellzugriff
+
+### Admin-Backend
+- ✅ **Benutzerverwaltung** - Stat-Cards, Rollen-Tabs, Suche, Bulk-Aktionen, Gruppen-Zuordnung
+- ✅ **Gruppen & Rollen** - 8 Capability-Checkboxen, Mitgliederlisten, Rollen-Verwaltung
+- ✅ **Seiten** - WYSIWYG-Editor, SEO-Felder, Revisionen
+- ✅ **Blog/Beiträge** - Post-Verwaltung mit Kategorien und Tags
+- ✅ **Media-Bibliothek** - Upload, Galerie, Media-Proxy, MIME-Filterung
+- ✅ **Navigation** - Menü-Verwaltung mit Sortierung
+- ✅ **SEO** - Meta-Tags, Open Graph, Sitemap, Robots.txt
+- ✅ **Analytics** - Besucherstatistiken, Top-Seiten, System-Health, Cache-Stats
+- ✅ **Landing Pages** - Visueller Landing-Page-Builder
+- ✅ **Backup** - DB/Dateisystem-Backup, E-Mail-Versand, S3-Support
+- ✅ **Performance-Tools** - Cache leeren, Optimierungen, Laufzeitmetriken
+- ✅ **Updates** - Core- und Plugin-Update-Prüfung via GitHub API
+- ✅ **Design-Tools** - Dashboard-Widgets, Lokale Fonts
+- ✅ **Settings & System** - CMS-Konfiguration, Diagnose, PHP/DB-Info
 
 ### Abo-Verwaltung
-- 💳 **Pakete** - Übersicht mit inline Edit/Delete pro Plan-Card, Neues-Paket-Modal
-- ⚙️ **Einstellungen** - Abo-System Toggle (unlimited wenn aus), Währung, Zahlungsmethoden,
-  Rechtliche Seiten (AGB, Impressum, Widerruf), Rechnungsabsender, Bestellnummern-Format
-- 🔗 **Zuweisungen** - Benutzer-Abos & Gruppen-Pakete in einer Übersicht
-- 🛒 **Bestellungen** - Order-Management mit Status-Tracking
+- 💳 **Pakete** - Übersicht mit inline Edit/Delete, Neues-Paket-Modal, Feature-Limits
+- ⚙️ **Einstellungen** - Abo-Toggle, Währung, Zahlungsmethoden, Rechtliche Seiten, Bestellnummern-Format
+- 🔗 **Zuweisungen** - Benutzer-Abos & Gruppen-Pakete in einer Ansicht
+- 🛒 **Bestellungen** - Order-Management mit Status-Tracking (Bestätigt/Storniert/Erstattet)
+
+### DSGVO-Suite
+- 🍪 **Cookie-Verwaltung** - Cookie-Kategorien, Consent-Management
+- 📥 **Datenzugriff** - Automatisierte Datenauskunfts-Anfragen
+- 🗑 **Datenlöschung** - DSGVO-konforme Löschanträge
+- 🔒 **Datenschutz** - Member-seitige Datenschutz-Einstellungen
+
+### Member-Bereich
+- 👤 **Profil** - Profilbearbeitung, Avatar, Bio, Social Links
+- 💬 **Nachrichten** - Privates Messaging-System
+- 🔔 **Benachrichtigungen** - System- und User-Benachrichtigungen
+- ❤️ **Favoriten** - Inhalte als Favoriten markieren
+- 🖼️ **Medien** - Eigene Medien verwalten und hochladen
+- 🛡️ **Sicherheit** - Passwortänderung, Login-Protokoll
+- 💰 **Mitgliedschaft** - Abo-Übersicht, Upgrade/Downgrade, Checkout
 
 ### Theme-System Features
 - 🎨 **Live Theme Customization** - Über 50 Anpassungsoptionen in 8 Kategorien
