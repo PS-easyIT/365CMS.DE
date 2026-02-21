@@ -40,6 +40,7 @@ const GITHUB_API_CONTENTS  = 'https://api.github.com/repos/' . GITHUB_OWNER . '/
 
 /**
  * Lädt eine URL via cURL (Primär) oder file_get_contents (Fallback).
+ * Timeout bewusst kurz (4 s) um den Admin nicht zu blockieren.
  */
 function supportHttpGet(string $url, array $headers = []): ?string
 {
@@ -48,7 +49,8 @@ function supportHttpGet(string $url, array $headers = []): ?string
         curl_setopt_array($ch, [
             CURLOPT_URL            => $url,
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 15,
+            CURLOPT_CONNECTTIMEOUT => 4,
+            CURLOPT_TIMEOUT        => 6,
             CURLOPT_USERAGENT      => '365CMS-Support/2.0',
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_FOLLOWLOCATION => true,
@@ -70,7 +72,7 @@ function supportHttpGet(string $url, array $headers = []): ?string
         $context = stream_context_create([
             'http' => [
                 'header'     => implode("\r\n", array_merge(['User-Agent: 365CMS-Support/2.0'], $headers)),
-                'timeout'    => 15,
+                'timeout'    => 6,
             ],
         ]);
         $body = @file_get_contents($url, false, $context);
@@ -89,13 +91,31 @@ function supportHttpGet(string $url, array $headers = []): ?string
 
 /**
  * Holt alle .md-Dateien unterhalb von DOC/ aus dem GitHub-Repository.
+ * Ergebnis wird 5 Minuten im tmp-Verzeichnis gecacht, damit nicht jeder
+ * Seitenaufruf eine API-Anfrage auslöst.
  *
  * @return array<array{name:string, path:string, dir:string}>
  */
 function fetchDocList(): array
 {
+    // ── Cache prüfen ──────────────────────────────────────────────────────────
+    $cacheFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . '365cms_doclist_' . md5(GITHUB_REPO) . '.json';
+    $cacheTTL  = 300; // 5 Minuten
+
+    if (is_file($cacheFile) && (time() - filemtime($cacheFile)) < $cacheTTL) {
+        $cached = json_decode((string) file_get_contents($cacheFile), true);
+        if (is_array($cached) && count($cached) > 0) {
+            return $cached;
+        }
+    }
+
     $body = supportHttpGet(GITHUB_API_TREE, ['Accept: application/vnd.github+json']);
     if ($body === null) {
+        // Falls Cache abgelaufen aber vorhanden → lieber veraltet als leer
+        if (is_file($cacheFile)) {
+            $cached = json_decode((string) file_get_contents($cacheFile), true);
+            if (is_array($cached)) return $cached;
+        }
         return [];
     }
 
@@ -123,6 +143,11 @@ function fetchDocList(): array
             'path' => $path,
             'dir'  => $dir,
         ];
+    }
+
+    // ── Cache speichern ──────────────────────────────────────────────────────
+    if (!empty($docs)) {
+        @file_put_contents($cacheFile, json_encode($docs, JSON_UNESCAPED_UNICODE));
     }
 
     // INDEX.md im Root immer an erster Stelle
@@ -354,6 +379,17 @@ $knownOrder = [
 
 $GLOBALS['_support_last_error'] = '';
 $debugMode  = (($_GET['debug'] ?? '') === '1');
+
+// ?refresh=1 → Cache löschen und neu laden
+if (($_GET['refresh'] ?? '') === '1') {
+    $cacheFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . '365cms_doclist_' . md5(GITHUB_REPO) . '.json';
+    if (is_file($cacheFile)) {
+        @unlink($cacheFile);
+    }
+    header('Location: ' . SITE_URL . '/admin/support');
+    exit;
+}
+
 $docList    = fetchDocList();
 $activeDoc  = $_GET['doc'] ?? '';
 $docContent = null;
@@ -697,6 +733,19 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     <td>Docs geladen</td>
                     <td><?php echo count($docList); ?> Dokumente</td>
                 </tr>
+                <?php
+                $dbgCacheFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . '365cms_doclist_' . md5(GITHUB_REPO) . '.json';
+                $dbgCacheAge  = is_file($dbgCacheFile) ? (time() - filemtime($dbgCacheFile)) : -1;
+                ?>
+                <tr>
+                    <td>Cache (5 min)</td>
+                    <td><?php if ($dbgCacheAge >= 0): ?>
+                        <span style="color:#4ade80">✓ <?php echo $dbgCacheAge; ?> s alt</span>
+                        &nbsp;<a href="?refresh=1" style="color:#fbbf24;font-size:.75rem;">[leeren]</a>
+                    <?php else: ?>
+                        <span style="color:#f87171">✗ kein Cache</span>
+                    <?php endif; ?></td>
+                </tr>
                 <?php $lastErr = $GLOBALS['_support_last_error'] ?? ''; ?>
                 <tr>
                     <td>Letzter Fehler</td>
@@ -716,7 +765,10 @@ require_once __DIR__ . '/partials/admin-menu.php';
             <aside class="docs-sidebar">
                 <div class="docs-sidebar-header">
                     <span>📄 Dokumente</span>
-                    <span style="font-weight:400;color:#94a3b8;"><?php echo count($docList); ?></span>
+                    <span style="display:flex;align-items:center;gap:.5rem;">
+                        <span style="font-weight:400;color:#94a3b8;"><?php echo count($docList); ?></span>
+                        <a href="?refresh=1" title="Liste neu laden" style="color:#94a3b8;font-size:.75rem;text-decoration:none;" onclick="this.textContent='…'">↻</a>
+                    </span>
                 </div>
 
                 <?php if (count($docList) === 0): ?>
