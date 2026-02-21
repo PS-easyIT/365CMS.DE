@@ -195,17 +195,6 @@ config.php → 644
 ├── cache/                     # Cache-Verzeichnis
 ├── logs/                      # Log-Dateien
 ├── config/                    # Konfigurationen
-├── doc/                       # Dokumentation
-│   ├── INDEX.md               # Dokumentations-Übersicht
-│   ├── INSTALLATION.md        # Installations-Guide
-│   ├── ARCHITECTURE.md        # System-Architektur
-│   ├── DATABASE-SCHEMA.md     # Datenbank-Schema
-│   ├── HOOKS-REFERENCE.md     # Hook-Referenz
-│   ├── SECURITY.md            # Sicherheits-Guide
-│   ├── THEME-DEVELOPMENT.md   # Theme-Entwicklung
-│   ├── admin/                 # Admin-Dokumentation
-│   ├── plugins/               # Plugin-Dokumentation
-│   └── workflow/              # Workflow-Guides
 ├── index.php                  # Bootstrap-Datei
 ├── config.php                 # Konfiguration (gitignored!)
 ├── config.sample.php          # Config-Vorlage
