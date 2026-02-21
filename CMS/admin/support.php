@@ -41,6 +41,7 @@ $githubToken = defined('GITHUB_TOKEN') ? GITHUB_TOKEN : '';
 
 /**
  * HTTP GET gegen GitHub API oder Raw-Content.
+ * Nutzt cURL (bevorzugt) oder file_get_contents als Fallback.
  * Bei Fehler wird null zurückgegeben (kein Exception-Wurf).
  */
 function githubGet(string $url, string $token = ''): ?string
@@ -53,10 +54,62 @@ function githubGet(string $url, string $token = ''): ?string
         $headers[] = 'Authorization: token ' . $token;
     }
 
+    // ── cURL (bevorzugt) ─────────────────────────────────────────────────────
+    if (function_exists('curl_init')) {
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL            => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 10,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_HTTPHEADER     => $headers,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS      => 3,
+            CURLOPT_ENCODING       => '',
+        ]);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error    = curl_error($ch);
+        curl_close($ch);
+
+        if ($response !== false && $error === '' && $httpCode < 400) {
+            return (string) $response;
+        }
+        // Bei SSL-Fehler einmal ohne Peer-Verify versuchen (Self-Signed-Umgebungen)
+        if ($error !== '' && str_contains($error, 'SSL')) {
+            $ch2 = curl_init();
+            curl_setopt_array($ch2, [
+                CURLOPT_URL            => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT        => 10,
+                CURLOPT_CONNECTTIMEOUT => 5,
+                CURLOPT_HTTPHEADER     => $headers,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => 0,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_MAXREDIRS      => 3,
+            ]);
+            $response2 = curl_exec($ch2);
+            $code2     = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+            curl_close($ch2);
+            if ($response2 !== false && $code2 < 400) {
+                return (string) $response2;
+            }
+        }
+        return null;
+    }
+
+    // ── Fallback: file_get_contents (benötigt allow_url_fopen = On) ──────────
+    if (!ini_get('allow_url_fopen')) {
+        return null; // Keine Möglichkeit, externe URLs abzurufen
+    }
+
     $ctx = stream_context_create([
         'http' => [
-            'header'  => implode("\r\n", $headers),
-            'timeout' => 8,
+            'header'        => implode("\r\n", $headers),
+            'timeout'       => 10,
             'ignore_errors' => true,
         ],
         'ssl' => [
@@ -80,7 +133,9 @@ function githubGet(string $url, string $token = ''): ?string
  */
 function fetchDocTree(string $apiPath, string $token = '', string $relDir = ''): array
 {
-    $body = githubGet(GITHUB_API_BASE . $apiPath . '?ref=' . GITHUB_BRANCH, $token);
+    // Pfadsegmente enkodieren (Leerzeichen → %20), Slashes bleiben erhalten
+    $encodedPath = implode('/', array_map('rawurlencode', explode('/', $apiPath)));
+    $body = githubGet(GITHUB_API_BASE . $encodedPath . '?ref=' . GITHUB_BRANCH, $token);
     if ($body === null) return [];
 
     $items = json_decode($body, true);
@@ -159,7 +214,9 @@ function fetchDocContent(string $filePath, string $token = ''): ?string
         return (string) file_get_contents($cacheFile);
     }
 
-    $url     = GITHUB_RAW_BASE . $filePath;
+    // Pfadsegmente enkodieren (Leerzeichen → %20), Slashes bleiben erhalten
+    $encodedFilePath = implode('/', array_map('rawurlencode', explode('/', $filePath)));
+    $url     = GITHUB_RAW_BASE . $encodedFilePath;
     $content = githubGet($url, $token);
 
     if ($content !== null) {
@@ -590,7 +647,15 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     &nbsp;<span class="online-badge ok">✓ Verbunden · <?php echo count($docList); ?> Dokumente</span>
                 <?php else: ?>
                     &nbsp;<span class="online-badge offline">✗ Nicht erreichbar</span>
-                    &mdash; GitHub API nicht verfügbar oder /DOC-Ordner noch nicht hochgeladen.
+                    &mdash;
+                    <?php if (!function_exists('curl_init') && !ini_get('allow_url_fopen')): ?>
+                        <strong>cURL fehlt</strong> und <code>allow_url_fopen</code> ist deaktiviert – externe HTTP-Anfragen nicht möglich.
+                    <?php elseif (!function_exists('curl_init')): ?>
+                        cURL nicht verfügbar (nur file_get_contents-Fallback). Prüfe ob <code>allow_url_fopen = On</code>.
+                    <?php else: ?>
+                        GitHub API nicht erreichbar oder <code>/<?php echo GITHUB_DOC_PATH; ?></code>-Ordner nicht im Repo vorhanden.
+                        <a href="?refresh=1" style="color:#991b1b;font-weight:600;">Cache leeren &amp; neu versuchen</a>
+                    <?php endif; ?>
                 <?php endif; ?>
             </div>
         </div>
@@ -613,31 +678,38 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 <?php else: ?>
                     <?php
                     // Ordner-Kategorien mit Icons + lesbaren Labels
+                    // Spiegelt exakt die DOC/-Verzeichnisstruktur im GitHub-Repo.
                     $dirLabels = [
                         // ── Root ────────────────────────────────────────────
-                        ''                        => ['icon' => '📄', 'label' => 'Übersicht'],
-                        // ── Top-Level DOC-Ordner ─────────────────────────────
-                        'admin'                   => ['icon' => '⚙️',  'label' => 'Admin-Bereich'],
-                        'core'                    => ['icon' => '🔧', 'label' => 'Core & System'],
-                        'feature'                 => ['icon' => '✨', 'label' => 'Features'],
-                        'member'                  => ['icon' => '👤', 'label' => 'Mitglieder'],
-                        'plugins'                 => ['icon' => '🔌', 'label' => 'Plugins'],
-                        'theme'                   => ['icon' => '🎨', 'label' => 'Theme & Design'],
-                        'workflow'                => ['icon' => '🔄', 'label' => 'Workflows'],
-                        'audits'                  => ['icon' => '🔍', 'label' => 'Audits'],
-                        'screenshots'             => ['icon' => '🖼️',  'label' => 'Screenshots'],
-                        // ── DOC/admin Unterordner (1:1 Admin-Menü) ───────────
-                        'admin/dashboard'         => ['icon' => '📊', 'label' => 'Dashboard'],
-                        'admin/landing page'      => ['icon' => '🏠', 'label' => 'Landing Page'],
-                        'admin/pages & posts'     => ['icon' => '📄', 'label' => 'Seiten & Beiträge'],
-                        'admin/media'             => ['icon' => '📷', 'label' => 'Medienverwaltung'],
-                        'admin/users & groups'    => ['icon' => '👥', 'label' => 'Benutzer & Gruppen'],
-                        'admin/subscription'      => ['icon' => '💳', 'label' => 'Aboverwaltung'],
-                        'admin/themes & design'   => ['icon' => '🎨', 'label' => 'Themes & Design'],
-                        'admin/seo & performance' => ['icon' => '📈', 'label' => 'SEO & Performance'],
-                        'admin/recht & sicherheit'=> ['icon' => '⚖️',  'label' => 'Recht & Sicherheit'],
-                        'admin/plugins'           => ['icon' => '🔌', 'label' => 'Plugins'],
-                        'admin/system & settings' => ['icon' => '⚙️',  'label' => 'System & Einstellungen'],
+                        ''                                      => ['icon' => '📄', 'label' => 'Übersicht'],
+                        // ── Core ────────────────────────────────────────────
+                        'core'                                  => ['icon' => '🔧', 'label' => 'Core & System'],
+                        // ── Admin (entspricht 1:1 dem Admin-Menü) ───────────
+                        'admin'                                 => ['icon' => '⚙️',  'label' => 'Admin-Bereich'],
+                        'admin/dashboard'                       => ['icon' => '📊', 'label' => 'Dashboard'],
+                        'admin/landing page'                    => ['icon' => '🏠', 'label' => 'Landing Page'],
+                        'admin/pages & posts'                   => ['icon' => '📄', 'label' => 'Seiten & Beiträge'],
+                        'admin/media'                           => ['icon' => '📷', 'label' => 'Medienverwaltung'],
+                        'admin/users & groups'                  => ['icon' => '👥', 'label' => 'Benutzer & Gruppen'],
+                        'admin/subscription'                    => ['icon' => '💳', 'label' => 'Aboverwaltung'],
+                        'admin/themes & design'                 => ['icon' => '🎨', 'label' => 'Themes & Design'],
+                        'admin/seo & performance'               => ['icon' => '📈', 'label' => 'SEO & Performance'],
+                        'admin/seo & performance/analytics'     => ['icon' => '📊', 'label' => 'Analytics'],
+                        'admin/recht & sicherheit'              => ['icon' => '⚖️',  'label' => 'Recht & Sicherheit'],
+                        'admin/plugins'                         => ['icon' => '🔌', 'label' => 'Plugins'],
+                        'admin/system & settings'               => ['icon' => '⚙️',  'label' => 'System & Einstellungen'],
+                        // ── Member ──────────────────────────────────────────
+                        'member'                                => ['icon' => '👤', 'label' => 'Mitglieder'],
+                        'member/general'                        => ['icon' => '👤', 'label' => 'Allgemein'],
+                        // ── Plugins ─────────────────────────────────────────
+                        'plugins'                               => ['icon' => '🔌', 'label' => 'Plugins'],
+                        // ── Theme ───────────────────────────────────────────
+                        'theme'                                 => ['icon' => '🎨', 'label' => 'Theme & Design'],
+                        // ── Weitere ─────────────────────────────────────────
+                        'feature'                               => ['icon' => '✨', 'label' => 'Features & Konzepte'],
+                        'workflow'                              => ['icon' => '🔄', 'label' => 'Workflows'],
+                        'audits'                                => ['icon' => '🔍', 'label' => 'Audits & Berichte'],
+                        'screenshots'                           => ['icon' => '🖼️',  'label' => 'Screenshots'],
                     ];
 
                     // Nach Unterordner gruppieren; Root-Einträge zuerst
@@ -657,14 +729,36 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         });
                     }
 
-                    // Reihenfolge: Root, dann bekannte Ordner in definieter Reihenfolge, dann Rest
+                    // Reihenfolge: exakt nach DOC-Verzeichnisstruktur
                     $knownOrder = [
-                        '', 'core', 'admin',
-                        'admin/dashboard', 'admin/landing page', 'admin/pages & posts',
-                        'admin/media', 'admin/users & groups', 'admin/subscription',
-                        'admin/themes & design', 'admin/seo & performance',
-                        'admin/recht & sicherheit', 'admin/plugins', 'admin/system & settings',
-                        'member', 'plugins', 'theme', 'feature', 'workflow', 'audits', 'screenshots',
+                        // Root
+                        '',
+                        // Core
+                        'core',
+                        // Admin + alle Unterordner in Admin-Menü-Reihenfolge
+                        'admin',
+                        'admin/dashboard',
+                        'admin/landing page',
+                        'admin/pages & posts',
+                        'admin/media',
+                        'admin/users & groups',
+                        'admin/subscription',
+                        'admin/themes & design',
+                        'admin/seo & performance',
+                        'admin/seo & performance/analytics',
+                        'admin/recht & sicherheit',
+                        'admin/plugins',
+                        'admin/system & settings',
+                        // Member
+                        'member',
+                        'member/general',
+                        // Weitere Top-Level
+                        'plugins',
+                        'theme',
+                        'feature',
+                        'workflow',
+                        'audits',
+                        'screenshots',
                     ];
                     $orderedGrouped = [];
                     foreach ($knownOrder as $k) {
