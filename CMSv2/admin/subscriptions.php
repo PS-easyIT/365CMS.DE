@@ -189,187 +189,75 @@ $csrfToken = Security::instance()->generateToken('subscription_management');
 
 // Load admin menu
 require_once __DIR__ . '/partials/admin-menu.php';
-
+renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Abo-Verwaltung - <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css">
-    <?php renderAdminSidebarStyles(); ?>
-    <style>
-        .subscription-plans-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1.5rem;
-            margin: 2rem 0;
-        }
-        
-        .plan-card {
-            background: white;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 1.5rem;
-            transition: all 0.3s;
-            position: relative;
-        }
-        
-        .plan-header {
-            border-bottom: 2px solid #f1f5f9;
-            padding-bottom: 1rem;
-            margin-bottom: 1rem;
-        }
-        
-        .plan-name {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #1e293b;
-            margin: 0 0 0.5rem;
-        }
-        
-        .plan-price {
-            font-size: 1.25rem;
-            color: #3b82f6;
-            font-weight: 600;
-        }
-        
-        .plan-price small {
-            font-size: 0.875rem;
-            color: #64748b;
-            font-weight: normal;
-        }
-        
-        .plan-features {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        
-        .plan-features li {
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #f1f5f9;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .plan-features li:last-child {
-            border-bottom: none;
-        }
-        
-        .feature-label {
-            color: #475569;
-            font-size: 0.9rem;
-        }
-        
-        .feature-value {
-            font-weight: 600;
-            color: #1e293b;
-        }
-        
-        .feature-value.unlimited {
-            color: #10b981;
-        }
-        
-        .feature-value.disabled {
-            color: #ef4444;
-        }
-        
-        .badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-        
-        .badge-success {
-            background: #dcfce7;
-            color: #166534;
-        }
-        
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-        }
-        
-        .form-grid-full {
-            grid-column: span 2;
-        }
-        
-        /* User Assignment Styles (matching users.php) */
-        .usr-adm-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-        .usr-adm-card {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 1.25rem;
-            transition: all 0.2s;
-        }
-        .usr-adm-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-        }
-        .usr-adm-top { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
-        .usr-adm-avatar {
-            width: 48px; height: 48px;
-            border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 700; color: white; font-size: 1.2rem;
-        }
-        .usr-adm-ident { overflow: hidden; }
-        .usr-adm-name { margin: 0; font-weight: 600; color: #1e293b; font-size: 1.05rem; }
-        .usr-adm-email { margin: 0; color: #64748b; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .usr-adm-badges { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
-        .usr-adm-badge { padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; }
-        
-        /* Editor Styles */
-        .settings-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .settings-table th, .settings-table td {
-            text-align: left;
-            padding: 1rem;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        .settings-table th {
-            background: #f8fafc;
-            font-weight: 600;
-            color: #475569;
-        }
-        
-        .admin-section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            border-bottom: 1px solid #e2e8f0;
-            padding-bottom: 1rem;
-        }
-    </style>
-</head>
-<body class="admin-body">
-    <?php renderAdminSidebar('subscriptions'); ?>
-    
-    <div class="admin-content">
-        
-        <!-- Header -->
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1.5rem;">
-            <h2 style="margin:0;">💳 Abo-Verwaltung</h2>
+<style>
+/* ── Abo-Verwaltung (unified with Benutzer & Gruppen) ───────── */
+.post-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:1.2rem;}
+.post-card h3{font-size:.875rem;font-weight:700;color:#374151;margin:0 0 .9rem;padding-bottom:.45rem;border-bottom:1px solid #f1f5f9;}
+.posts-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1.5rem;}
+.field-group{margin-bottom:.9rem;}
+.field-group label{display:block;font-size:.8rem;font-weight:600;color:#374151;margin-bottom:.3rem;}
+.field-group input,.field-group select,.field-group textarea{width:100%;padding:.4rem .6rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.875rem;box-sizing:border-box;background:#fff;color:#1e293b;resize:vertical;}
+.btn-sm{padding:.3rem .65rem;font-size:.8rem;border-radius:5px;border:none;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:.2rem;transition:background .14s;}
+.btn-primary{background:#2563eb;color:#fff;}.btn-primary:hover{background:#1d4ed8;}
+.btn-secondary{background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;}.btn-secondary:hover{background:#e2e8f0;}
+.btn-danger{background:#fee2e2;color:#b91c1c;border:none;}.btn-danger:hover{background:#fecaca;}
+/* Settings 2-column grid */
+.settings-grid-2col{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem;align-items:start;}
+@media(max-width:900px){.settings-grid-2col{grid-template-columns:1fr;}}
+/* Plan cards */
+.sub-plans-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;margin:1.25rem 0;}
+.plan-card{background:#fff;border:2px solid #e2e8f0;border-radius:10px;padding:1.25rem;transition:all .2s;}
+.plan-card:hover{border-color:#93c5fd;box-shadow:0 4px 12px rgba(59,130,246,.12);}
+.plan-header{border-bottom:2px solid #f1f5f9;padding-bottom:.9rem;margin-bottom:.9rem;}
+.plan-name{font-size:1.1rem;font-weight:700;color:#1e293b;margin:0 0 .3rem;}
+.plan-price{font-size:1rem;color:#3b82f6;font-weight:600;line-height:1.6;}
+.plan-price small{font-size:.8rem;color:#64748b;font-weight:400;}
+.plan-features{list-style:none;padding:0;margin:0;}
+.plan-features li{padding:.35rem 0;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;font-size:.875rem;}
+.plan-features li:last-child{border-bottom:none;}
+.feature-label{color:#475569;}.feature-value{font-weight:600;color:#1e293b;}
+.feature-value.unlimited{color:#10b981;}.feature-value.disabled{color:#ef4444;}
+.sub-feat-badge{display:inline-block;padding:.2rem .55rem;border-radius:9999px;font-size:.72rem;font-weight:600;background:#dcfce7;color:#166534;}
+.plan-actions{margin-top:.9rem;display:flex;gap:.5rem;border-top:1px solid #f1f5f9;padding-top:.75rem;}
+.plan-actions a,.plan-actions button{flex:1;text-align:center;justify-content:center;}
+/* User assignment cards */
+.usr-adm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;margin-top:1rem;}
+.usr-adm-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:1.2rem;transition:all .2s;}
+.usr-adm-card:hover{transform:translateY(-2px);box-shadow:0 8px 15px -3px rgba(0,0,0,.08);}
+.usr-adm-top{display:flex;gap:.9rem;align-items:center;margin-bottom:.9rem;}
+.usr-adm-avatar{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:1.1rem;flex-shrink:0;}
+.usr-adm-ident{overflow:hidden;}
+.usr-adm-name{margin:0;font-weight:600;color:#1e293b;font-size:.95rem;}
+.usr-adm-email{margin:0;color:#64748b;font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.usr-adm-badges{display:flex;gap:.5rem;margin-bottom:.9rem;flex-wrap:wrap;}
+.usr-adm-badge{padding:.2rem .5rem;border-radius:6px;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.02em;}
+/* Table (groups) */
+.posts-table{width:100%;border-collapse:collapse;font-size:.875rem;}
+.posts-table th{background:#f8fafc;padding:.55rem .7rem;text-align:left;font-weight:600;color:#374151;border-bottom:2px solid #e2e8f0;white-space:nowrap;}
+.posts-table td{padding:.6rem .7rem;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+.posts-table tr:hover td{background:#f8fafc;}
+/* Status badge */
+.status-badge{display:inline-flex;align-items:center;padding:.2rem .5rem;border-radius:99px;font-size:.74rem;font-weight:600;}
+/* Admin section header */
+.admin-section-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;border-bottom:1px solid #e2e8f0;padding-bottom:1rem;gap:1rem;}
+/* Plan modal */
+#create-plan-modal .modal-box{background:#fff;padding:2rem;border-radius:12px;max-width:780px;width:90%;max-height:90vh;overflow-y:auto;}
+#create-plan-modal .modal-box h2{margin:0 0 1.25rem;font-size:1.2rem;color:#1e293b;padding-bottom:.75rem;border-bottom:2px solid #f1f5f9;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.form-grid-full{grid-column:1/-1;}
+.form-group{margin-bottom:.75rem;}
+.form-group label{display:block;font-size:.82rem;font-weight:600;color:#374151;margin-bottom:.3rem;}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:.4rem .6rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.875rem;box-sizing:border-box;}
+/* Notices */
+.notice{padding:.65rem .9rem;border-radius:7px;margin-bottom:1rem;font-size:.875rem;}
+.notice-success{background:#dcfce7;color:#15803d;border:1px solid #86efac;}
+.notice-error{background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;}
+</style>
+
+<div class="posts-header">
+    <h2>💳 Abo-Verwaltung</h2>
 
             <?php if (empty($plans) && $activeTab === 'plans'): ?>
              <form method="POST" style="display: inline;">
@@ -379,30 +267,28 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         Standard-Pakete erstellen
                     </button>
                 </form>
-            <?php endif; ?>
-        </div>
-        
-        <?php if ($message): ?>
-            <div class="alert alert-success"><?php echo htmlspecialchars($message); ?></div>
         <?php endif; ?>
-        
-        <?php if ($error): ?>
-            <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
-        <?php endif; ?>
+</div><!-- /.posts-header -->
+
+<?php if ($message): ?>
+    <div class="notice notice-success"><?php echo htmlspecialchars($message); ?></div>
+<?php endif; ?>
+
+<?php if ($error): ?>
+    <div class="notice notice-error"><?php echo htmlspecialchars($error); ?></div>
+<?php endif; ?>
         
         <!-- CONTENT: PAKETÜBERSICHT -->
         <?php if ($activeTab === 'plans'): ?>
             <div class="admin-section-header">
-                <h3>Verfügbare Abo-Pakete</h3>
-                <a href="#" onclick="document.getElementById('create-plan-modal').style.display='flex'; return false;" class="btn btn-primary btn-sm">+ Neues Paket</a>
+                <h3 style="margin:0;font-size:1rem;">Verfügbare Abo-Pakete</h3>
+                <a href="#" onclick="document.getElementById('create-plan-modal').style.display='flex'; return false;" class="btn-sm btn-primary">+ Neues Paket</a>
             </div>
             
             <?php if (empty($plans)): ?>
-                <div class="empty-state">
-                    <p>Noch keine Abo-Pakete vorhanden.</p>
-                </div>
+                <div class="post-card" style="text-align:center;color:#64748b;padding:2rem;">Noch keine Abo-Pakete vorhanden.</div>
             <?php else: ?>
-                <div class="subscription-plans-grid">
+                <div class="sub-plans-grid">
                     <?php foreach ($plans as $plan): ?>
                         <div class="plan-card">
                             <div class="plan-header">
@@ -439,18 +325,18 @@ require_once __DIR__ . '/partials/admin-menu.php';
                             </ul>
                             
                             <h4 style="margin-top: 1rem; margin-bottom: 0.5rem; font-size: 0.9rem; color: #64748b;">Features:</h4>
-                            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                                <?php if ($plan->feature_analytics): ?><span class="badge badge-success">Analytics</span><?php endif; ?>
-                                <?php if ($plan->feature_api_access): ?><span class="badge badge-success">API</span><?php endif; ?>
-                                <?php if ($plan->feature_priority_support): ?><span class="badge badge-success">Support</span><?php endif; ?>
+                            <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.6rem;">
+                                <?php if ($plan->feature_analytics): ?><span class="sub-feat-badge">Analytics</span><?php endif; ?>
+                                <?php if ($plan->feature_api_access): ?><span class="sub-feat-badge">API</span><?php endif; ?>
+                                <?php if ($plan->feature_priority_support): ?><span class="sub-feat-badge">Support</span><?php endif; ?>
                             </div>
-                            <div style="margin-top:1rem;display:flex;gap:.5rem;border-top:1px solid #f1f5f9;padding-top:.75rem;">
-                                <a href="?tab=plans&edit_id=<?php echo $plan->id; ?>" class="btn btn-sm btn-secondary" style="flex:1;text-align:center;">✏️ Bearbeiten</a>
-                                <form method="POST" style="flex:1;" onsubmit="return confirm('Paket wirklich löschen?');">
+                            <div class="plan-actions">
+                                <a href="?tab=plans&edit_id=<?php echo $plan->id; ?>" class="btn-sm btn-secondary">✏️ Bearbeiten</a>
+                                <form method="POST" onsubmit="return confirm('Paket wirklich löschen?');" style="flex:1;">
                                     <input type="hidden" name="action" value="delete_plan">
                                     <input type="hidden" name="plan_id" value="<?php echo $plan->id; ?>">
                                     <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                                    <button class="btn btn-sm btn-danger" style="width:100%;background:#fee2e2;color:#991b1b;">🗑 Löschen</button>
+                                    <button class="btn-sm btn-danger" style="width:100%;">🗑 Löschen</button>
                                 </form>
                             </div>
                         </div>
@@ -479,17 +365,21 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 <input type="hidden" name="action" value="update_settings">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
 
+                <div class="settings-grid-2col">
+
                 <!-- Section: Abo-System Toggle -->
-                <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:1.5rem;margin-bottom:1.5rem;">
-                    <h3 style="margin-top:0;font-size:1.1rem;color:#1e293b;">🔧 Abo-System</h3>
-                    <label style="display:flex;align-items:center;gap:.75rem;font-size:.95rem;cursor:pointer;">
-                        <input type="checkbox" name="subscription_enabled" value="1" <?php echo ($sysSet['subscription_enabled'] == '1') ? 'checked' : ''; ?> style="width:18px;height:18px;">
-                        <span><strong>Abo-System aktiv</strong></span>
-                    </label>
-                    <p style="margin:.5rem 0 0 1.75rem;color:#64748b;font-size:.85rem;">Wenn deaktiviert haben alle Benutzer unbegrenzten Zugriff (Unlimited). Pakete werden nicht geprüft.</p>
-                    <div style="margin-top:1.25rem;">
-                        <label style="display:block;font-weight:600;margin-bottom:.4rem;font-size:.9rem;">Währung</label>
-                        <select name="subscription_currency" style="padding:.4rem .75rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.9rem;">
+                <div class="post-card">
+                    <h3>🔧 Abo-System</h3>
+                    <div class="field-group">
+                        <label style="display:flex;align-items:center;gap:.6rem;font-size:.875rem;cursor:pointer;font-weight:600;">
+                            <input type="checkbox" name="subscription_enabled" value="1" <?php echo ($sysSet['subscription_enabled'] == '1') ? 'checked' : ''; ?> style="width:16px;height:16px;">
+                            Abo-System aktiv
+                        </label>
+                        <p style="margin:.4rem 0 0;color:#64748b;font-size:.8rem;">Wenn deaktiviert haben alle Benutzer unbegrenzten Zugriff (Unlimited). Pakete werden nicht geprüft.</p>
+                    </div>
+                    <div class="field-group" style="margin-bottom:0;">
+                        <label>Währung</label>
+                        <select name="subscription_currency">
                             <option value="EUR" <?php echo $sysSet['subscription_currency'] === 'EUR' ? 'selected' : ''; ?>>EUR (&euro;)</option>
                             <option value="USD" <?php echo $sysSet['subscription_currency'] === 'USD' ? 'selected' : ''; ?>>USD ($)</option>
                             <option value="CHF" <?php echo $sysSet['subscription_currency'] === 'CHF' ? 'selected' : ''; ?>>CHF (Fr.)</option>
@@ -498,110 +388,100 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 </div>
 
                 <!-- Section: Zahlungsmethoden -->
-                <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:1.5rem;margin-bottom:1.5rem;">
-                    <h3 style="margin-top:0;font-size:1.1rem;color:#1e293b;">💳 Zahlungsmethoden</h3>
-                    <p style="color:#64748b;font-size:.85rem;margin-top:0;">Diese Informationen werden Mitgliedern beim Abschluss eines Abos angezeigt.</p>
-                    <div class="form-group" style="margin-bottom:1rem;">
-                        <label style="display:block;font-weight:600;margin-bottom:.4rem;font-size:.9rem;">Bankverbindung (Überweisung)</label>
-                        <textarea name="payment_info_bank" rows="3" style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.875rem;resize:vertical;" placeholder="Kontoinhaber, IBAN, BIC, Bankname..."><?php echo htmlspecialchars($sysSet['payment_info_bank']); ?></textarea>
+                <div class="post-card">
+                    <h3>💳 Zahlungsmethoden</h3>
+                    <p style="color:#64748b;font-size:.8rem;margin-top:-.25rem;">Werden Mitgliedern beim Abo-Abschluss angezeigt.</p>
+                    <div class="field-group">
+                        <label>Bankverbindung (Überweisung)</label>
+                        <textarea name="payment_info_bank" rows="3" placeholder="Kontoinhaber, IBAN, BIC, Bankname..."><?php echo htmlspecialchars($sysSet['payment_info_bank']); ?></textarea>
                     </div>
-                    <div class="form-group" style="margin-bottom:1rem;">
-                        <label style="display:block;font-weight:600;margin-bottom:.4rem;font-size:.9rem;">PayPal</label>
-                        <input type="text" name="payment_info_paypal" value="<?php echo htmlspecialchars($sysSet['payment_info_paypal']); ?>" style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.875rem;" placeholder="PayPal.Me Link oder E-Mail...">
+                    <div class="field-group">
+                        <label>PayPal</label>
+                        <input type="text" name="payment_info_paypal" value="<?php echo htmlspecialchars($sysSet['payment_info_paypal']); ?>" placeholder="PayPal.Me Link oder E-Mail...">
                     </div>
-                    <div class="form-group">
-                        <label style="display:block;font-weight:600;margin-bottom:.4rem;font-size:.9rem;">Allgemeine Zahlungshinweise</label>
-                        <textarea name="payment_info_note" rows="2" style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.875rem;resize:vertical;" placeholder="z.B. Rechnung nach Zahlungseingang..."><?php echo htmlspecialchars($sysSet['payment_info_note']); ?></textarea>
+                    <div class="field-group" style="margin-bottom:0;">
+                        <label>Allgemeine Zahlungshinweise</label>
+                        <textarea name="payment_info_note" rows="2" placeholder="z.B. Rechnung nach Zahlungseingang..."><?php echo htmlspecialchars($sysSet['payment_info_note']); ?></textarea>
                     </div>
                 </div>
 
                 <!-- Section: Rechtliche Seiten -->
-                <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:1.5rem;margin-bottom:1.5rem;">
-                    <h3 style="margin-top:0;font-size:1.1rem;color:#1e293b;">📄 Rechtliche Seiten</h3>
-                    <p style="color:#64748b;font-size:.85rem;margin-top:0;">URLs zu Pflichtseiten – werden im Checkout verlinkt.</p>
-                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;">
-                        <div class="form-group">
-                            <label style="display:block;font-weight:600;margin-bottom:.4rem;font-size:.9rem;">AGB URL</label>
-                            <input type="url" name="agb_url" value="<?php echo htmlspecialchars($sysSet['agb_url']); ?>" style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.875rem;" placeholder="https://...">
-                        </div>
-                        <div class="form-group">
-                            <label style="display:block;font-weight:600;margin-bottom:.4rem;font-size:.9rem;">Impressum URL</label>
-                            <input type="url" name="impressum_url" value="<?php echo htmlspecialchars($sysSet['impressum_url']); ?>" style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.875rem;" placeholder="https://...">
-                        </div>
-                        <div class="form-group">
-                            <label style="display:block;font-weight:600;margin-bottom:.4rem;font-size:.9rem;">Widerruf URL</label>
-                            <input type="url" name="widerruf_url" value="<?php echo htmlspecialchars($sysSet['widerruf_url']); ?>" style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.875rem;" placeholder="https://...">
-                        </div>
+                <div class="post-card">
+                    <h3>📄 Rechtliche Seiten</h3>
+                    <p style="color:#64748b;font-size:.8rem;margin-top:-.25rem;">URLs zu Pflichtseiten – werden im Checkout verlinkt.</p>
+                    <div class="field-group">
+                        <label>AGB URL</label>
+                        <input type="url" name="agb_url" value="<?php echo htmlspecialchars($sysSet['agb_url']); ?>" placeholder="https://...">
+                    </div>
+                    <div class="field-group">
+                        <label>Impressum URL</label>
+                        <input type="url" name="impressum_url" value="<?php echo htmlspecialchars($sysSet['impressum_url']); ?>" placeholder="https://...">
+                    </div>
+                    <div class="field-group" style="margin-bottom:0;">
+                        <label>Widerruf URL</label>
+                        <input type="url" name="widerruf_url" value="<?php echo htmlspecialchars($sysSet['widerruf_url']); ?>" placeholder="https://...">
                     </div>
                 </div>
 
                 <!-- Section: Rechnungsabsender -->
-                <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:1.5rem;margin-bottom:1.5rem;">
-                    <h3 style="margin-top:0;font-size:1.1rem;color:#1e293b;">🏢 Rechnungsabsender</h3>
-                    <p style="color:#64748b;font-size:.85rem;margin-top:0;">Werden auf Rechnungen als Absender gedruckt.</p>
-                    <div class="form-group" style="margin-bottom:1rem;">
-                        <label style="display:block;font-weight:600;margin-bottom:.4rem;font-size:.9rem;">Unternehmensname</label>
-                        <input type="text" name="company_invoice_name" value="<?php echo htmlspecialchars($sysSet['company_invoice_name']); ?>" style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.875rem;" placeholder="Ihr Unternehmen GmbH">
+                <div class="post-card">
+                    <h3>🏢 Rechnungsabsender</h3>
+                    <p style="color:#64748b;font-size:.8rem;margin-top:-.25rem;">Werden auf Rechnungen als Absender gedruckt.</p>
+                    <div class="field-group">
+                        <label>Unternehmensname</label>
+                        <input type="text" name="company_invoice_name" value="<?php echo htmlspecialchars($sysSet['company_invoice_name']); ?>" placeholder="Ihr Unternehmen GmbH">
                     </div>
-                    <div class="form-group">
-                        <label style="display:block;font-weight:600;margin-bottom:.4rem;font-size:.9rem;">Adresse</label>
-                        <textarea name="company_invoice_address" rows="3" style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.875rem;resize:vertical;" placeholder="Straße, PLZ Stadt, Land"><?php echo htmlspecialchars($sysSet['company_invoice_address']); ?></textarea>
+                    <div class="field-group" style="margin-bottom:0;">
+                        <label>Adresse</label>
+                        <textarea name="company_invoice_address" rows="3" placeholder="Straße, PLZ Stadt, Land"><?php echo htmlspecialchars($sysSet['company_invoice_address']); ?></textarea>
                     </div>
                 </div>
 
                 <!-- Section: Bestellnummern -->
-                <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:1.5rem;margin-bottom:1.5rem;">
-                    <h3 style="margin-top:0;font-size:1.1rem;color:#1e293b;">📋 Bestellnummern</h3>
-                    <div class="form-group">
-                        <label style="display:block;font-weight:600;margin-bottom:.4rem;font-size:.9rem;">Format</label>
-                        <input type="text" name="order_number_format" value="<?php echo htmlspecialchars($sysSet['order_number_format']); ?>" style="width:100%;max-width:320px;padding:.5rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.875rem;">
-                        <p style="margin:.4rem 0 0;color:#64748b;font-size:.8rem;">Platzhalter: <code>{Y}</code> Jahr &middot; <code>{M}</code> Monat &middot; <code>{D}</code> Tag &middot; <code>{ID}</code> Bestell-ID &middot; <code>{R}</code> Zufallscode</p>
+                <div class="post-card">
+                    <h3>📋 Bestellnummern</h3>
+                    <div class="field-group" style="margin-bottom:0;">
+                        <label>Format</label>
+                        <input type="text" name="order_number_format" value="<?php echo htmlspecialchars($sysSet['order_number_format']); ?>">
+                        <p style="margin:.4rem 0 0;color:#64748b;font-size:.78rem;">Platzhalter: <code>{Y}</code> Jahr &middot; <code>{M}</code> Monat &middot; <code>{D}</code> Tag &middot; <code>{ID}</code> ID &middot; <code>{R}</code> Zufallscode</p>
                     </div>
                 </div>
 
-                <div class="form-actions" style="margin-top:.5rem;">
-                    <button type="submit" class="btn btn-primary">💾 Einstellungen speichern</button>
+                </div><!-- /.settings-grid-2col -->
+
+                <div style="margin-top:.25rem;">
+                    <button type="submit" class="btn-sm btn-primary" style="padding:.5rem 1.25rem;font-size:.9rem;">💾 Einstellungen speichern</button>
                 </div>
             </form>
 
         <!-- CONTENT: ZUWEISUNGEN -->
         <?php elseif ($activeTab === 'assignments'): ?>
-            <div class="admin-section-header">
-                <h3>👤 Benutzer-Zuweisungen</h3>
-            </div>
-            
-            <!-- Assign Form -->
-            <div style="background: white; padding: 2rem; border-radius: 8px; margin-bottom: 2rem; border:1px solid #e2e8f0;">
-                <h4 style="margin-top:0;">Abo einem Benutzer zuweisen</h4>
-                <form method="POST" class="admin-form">
+
+            <!-- Assign form -->
+            <div class="post-card" style="margin-bottom:1.5rem;">
+                <h3>👤 Benutzer-Abo zuweisen</h3>
+                <form method="POST">
                     <input type="hidden" name="action" value="assign_subscription">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                    
                     <div class="form-grid">
                         <div class="form-group">
                             <label>Benutzer *</label>
                             <select name="user_id" required>
                                 <option value="">-- Benutzer wählen --</option>
                                 <?php foreach ($users as $user): ?>
-                                    <option value="<?php echo $user->id; ?>">
-                                        <?php echo htmlspecialchars($user->username); ?> (<?php echo htmlspecialchars($user->email); ?>)
-                                    </option>
+                                    <option value="<?php echo $user->id; ?>"><?php echo htmlspecialchars($user->username); ?> (<?php echo htmlspecialchars($user->email); ?>)</option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        
                         <div class="form-group">
                             <label>Abo-Paket *</label>
                             <select name="plan_id" required>
                                 <option value="">-- Paket wählen --</option>
                                 <?php foreach ($plans as $plan): ?>
-                                    <option value="<?php echo $plan->id; ?>">
-                                        <?php echo htmlspecialchars($plan->name); ?> (€<?php echo number_format((float)($plan->price_monthly ?? 0), 2); ?>/Monat)
-                                    </option>
+                                    <option value="<?php echo $plan->id; ?>"><?php echo htmlspecialchars($plan->name); ?> (€<?php echo number_format((float)($plan->price_monthly ?? 0), 2); ?>/Monat)</option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        
                         <div class="form-group">
                             <label>Abrechnungszyklus *</label>
                             <select name="billing_cycle" required>
@@ -610,15 +490,16 @@ require_once __DIR__ . '/partials/admin-menu.php';
                                 <option value="lifetime">Lebenslang</option>
                             </select>
                         </div>
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Abo zuweisen</button>
+                        <div class="form-group" style="display:flex;align-items:flex-end;">
+                            <button type="submit" class="btn-sm btn-primary" style="padding:.45rem 1rem;">Abo zuweisen</button>
+                        </div>
                     </div>
                 </form>
             </div>
             
-            <h4 style="margin-bottom:1rem;">Aktive Benutzer-Abos</h4>
+            <div class="admin-section-header" style="margin-top:1.5rem;">
+                <h3 style="margin:0;font-size:1rem;">Aktive Benutzer-Abos</h3>
+            </div>
             <?php
             $activeSubscriptions = $db->query("
                 SELECT us.*, sp.name as plan_name, u.username, u.email
@@ -637,40 +518,32 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 ?>
                     <div class="usr-adm-card">
                         <div class="usr-adm-top">
-                            <div class="usr-adm-avatar" style="background: linear-gradient(135deg,#3b82f6,#2563eb);">
-                                <?php echo $initials; ?>
-                            </div>
+                            <div class="usr-adm-avatar" style="background:linear-gradient(135deg,#3b82f6,#2563eb);"><?php echo $initials; ?></div>
                             <div class="usr-adm-ident">
                                 <p class="usr-adm-name"><?php echo htmlspecialchars($sub->username); ?></p>
                                 <p class="usr-adm-email"><?php echo htmlspecialchars($sub->email); ?></p>
                             </div>
                         </div>
                         <div class="usr-adm-badges">
-                            <span class="usr-adm-badge" style="background:#dcfce7; color:#166534;">
-                                <?php echo htmlspecialchars($sub->plan_name); ?>
-                            </span>
-                            <span class="usr-adm-badge" style="background:#f1f5f9; color:#475569;">
-                                <?php echo ucfirst($sub->billing_cycle); ?>
-                            </span>
+                            <span class="usr-adm-badge" style="background:#dcfce7;color:#166534;"><?php echo htmlspecialchars($sub->plan_name); ?></span>
+                            <span class="usr-adm-badge" style="background:#f1f5f9;color:#475569;"><?php echo ucfirst($sub->billing_cycle); ?></span>
                         </div>
-                        <div style="font-size:0.85rem; color:#64748b;">
-                            Seit: <?php echo date('d.m.Y', strtotime($sub->created_at)); ?>
-                        </div>
+                        <div style="font-size:.82rem;color:#64748b;">Seit: <?php echo date('d.m.Y', strtotime($sub->created_at)); ?></div>
                     </div>
                 <?php endforeach; ?>
                 
                 <?php if (empty($activeSubscriptions)): ?>
-                    <div style="grid-column: 1/-1; padding: 2rem; text-align: center; background: white; border-radius: 8px;">
-                        <p style="color: #64748b;">Noch keine aktiven Abos.</p>
-                    </div>
+                    <div class="post-card" style="text-align:center;color:#64748b;">Noch keine aktiven Abos.</div>
                 <?php endif; ?>
             </div>
 
             <div style="height:1.5rem;"></div>
 
-            <div class="admin-section-header">
-                <h3>🫂 Gruppen-Zuweisungen</h3>
-                <p style="color:#64748b;font-size:.9rem;">Weise jeder Gruppe ein Abo-Paket zu. Mitglieder erhalten damit die Rechte des Paketes.</p>
+            <div class="admin-section-header" style="margin-top:2rem;">
+                <div>
+                    <h3 style="margin:0;font-size:1rem;">🫂 Gruppen-Zuweisungen</h3>
+                    <p style="margin:.2rem 0 0;color:#64748b;font-size:.82rem;">Weise jeder Gruppe ein Abo-Paket zu. Mitglieder erhalten damit die Rechte des Paketes.</p>
+                </div>
             </div>
 
             <?php if (empty($groups)): ?>
@@ -679,50 +552,46 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 </div>
             <?php else: ?>
             <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:auto;margin-bottom:1.5rem;">
-                <table style="width:100%;border-collapse:collapse;font-size:.875rem;">
-                    <thead><tr style="background:#f8fafc;">
-                        <th style="padding:.55rem .9rem;text-align:left;font-weight:600;color:#374151;border-bottom:2px solid #e2e8f0;">Gruppe</th>
-                        <th style="padding:.55rem .9rem;text-align:left;font-weight:600;color:#374151;border-bottom:2px solid #e2e8f0;width:100px;">Status</th>
-                        <th style="padding:.55rem .9rem;text-align:left;font-weight:600;color:#374151;border-bottom:2px solid #e2e8f0;">Aktuelles Paket</th>
-                        <th style="padding:.55rem .9rem;text-align:left;font-weight:600;color:#374151;border-bottom:2px solid #e2e8f0;width:320px;">Paket zuweisen</th>
+                <table class="posts-table">
+                    <thead><tr>
+                        <th>Gruppe</th>
+                        <th style="width:100px;">Status</th>
+                        <th>Aktuelles Paket</th>
+                        <th style="width:300px;">Paket zuweisen</th>
                     </tr></thead>
                     <tbody>
                     <?php foreach ($groups as $grp): ?>
-                    <tr style="border-bottom:1px solid #f1f5f9;">
-                        <td style="padding:.65rem .9rem;">
+                    <tr>
+                        <td>
                             <span style="font-weight:600;color:#1e293b;"><?php echo htmlspecialchars($grp->name, ENT_QUOTES); ?></span>
                             <?php if (!empty($grp->description)): ?>
                             <div style="font-size:.74rem;color:#94a3b8;"><?php echo htmlspecialchars(substr($grp->description, 0, 55), ENT_QUOTES) . (strlen($grp->description ?? '') > 55 ? '…' : ''); ?></div>
                             <?php endif; ?>
                         </td>
-                        <td style="padding:.65rem .9rem;">
-                            <span style="display:inline-flex;align-items:center;padding:.2rem .5rem;border-radius:99px;font-size:.74rem;font-weight:600;background:<?php echo $grp->is_active ? '#dcfce7' : '#fee2e2'; ?>;color:<?php echo $grp->is_active ? '#15803d' : '#b91c1c'; ?>;">
+                        <td>
+                            <span class="status-badge" style="background:<?php echo $grp->is_active ? '#dcfce7' : '#fee2e2'; ?>;color:<?php echo $grp->is_active ? '#15803d' : '#b91c1c'; ?>;">
                                 <?php echo $grp->is_active ? 'Aktiv' : 'Inaktiv'; ?>
                             </span>
                         </td>
-                        <td style="padding:.65rem .9rem;">
+                        <td>
                             <?php if ($grp->plan_name): ?>
-                            <span style="display:inline-flex;align-items:center;padding:.2rem .5rem;border-radius:99px;font-size:.74rem;font-weight:600;background:#dbeafe;color:#1e40af;">
-                                📦 <?php echo htmlspecialchars($grp->plan_name, ENT_QUOTES); ?>
-                            </span>
+                            <span class="sub-feat-badge" style="background:#dbeafe;color:#1e40af;">📦 <?php echo htmlspecialchars($grp->plan_name, ENT_QUOTES); ?></span>
                             <?php else: ?>
                             <span style="color:#94a3b8;font-size:.8rem;">Kein Paket</span>
                             <?php endif; ?>
                         </td>
-                        <td style="padding:.55rem .9rem;">
-                            <form method="POST" action="?tab=assignments&sub=groups" style="display:flex;gap:.5rem;align-items:center;">
+                        <td>
+                            <form method="POST" action="?tab=assignments&sub=groups" style="display:flex;gap:.4rem;align-items:center;">
                                 <input type="hidden" name="action" value="assign_group_plan">
                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                 <input type="hidden" name="group_id" value="<?php echo (int)$grp->id; ?>">
-                                <select name="group_plan_id" style="flex:1;padding:.3rem .5rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.8rem;">
+                                <select name="group_plan_id" style="flex:1;">
                                     <option value="0">— Kein Paket —</option>
                                     <?php foreach ($plans as $plan): ?>
-                                    <option value="<?php echo (int)$plan->id; ?>" <?php echo (int)($grp->plan_id ?? 0) === (int)$plan->id ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($plan->name, ENT_QUOTES); ?>
-                                    </option>
+                                    <option value="<?php echo (int)$plan->id; ?>" <?php echo (int)($grp->plan_id ?? 0) === (int)$plan->id ? 'selected' : ''; ?>><?php echo htmlspecialchars($plan->name, ENT_QUOTES); ?></option>
                                     <?php endforeach; ?>
                                 </select>
-                                <button type="submit" class="btn btn-sm btn-primary" style="white-space:nowrap;">💾 Speichern</button>
+                                <button type="submit" class="btn-sm btn-primary">💾</button>
                             </form>
                         </td>
                     </tr>
@@ -741,9 +610,9 @@ require_once __DIR__ . '/partials/admin-menu.php';
     // If editPlan is set, populate fields. If not, empty.
     $p = $editPlan;
     ?>
-    <div id="create-plan-modal" style="display: <?php echo $showModal ? 'flex' : 'none'; ?>; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
-        <div style="background: white; padding: 2rem; border-radius: 12px; max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto;">
-            <h2><?php echo $p ? 'Paket bearbeiten' : 'Neues Abo-Paket erstellen'; ?></h2>
+    <div id="create-plan-modal" style="display:<?php echo $showModal ? 'flex' : 'none'; ?>;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;">
+        <div style="background:#fff;padding:2rem;border-radius:12px;max-width:780px;width:90%;max-height:90vh;overflow-y:auto;">
+            <h2 style="margin:0 0 1.25rem;font-size:1.2rem;color:#1e293b;padding-bottom:.75rem;border-bottom:2px solid #f1f5f9;"><?php echo $p ? 'Paket bearbeiten' : 'Neues Abo-Paket erstellen'; ?></h2>
             <form method="POST" action="?tab=plans">
                 <input type="hidden" name="action" value="<?php echo $p ? 'update_plan' : 'create_plan'; ?>">
                 <?php if ($p): ?><input type="hidden" name="plan_id" value="<?php echo $p->id; ?>"><?php endif; ?>
@@ -837,7 +706,9 @@ require_once __DIR__ . '/partials/admin-menu.php';
     </div>
     
     <script>
-        // Modal checking logic via PHP above handles opening
+        // Modal: clicking outside closes it
+        document.getElementById('create-plan-modal').addEventListener('click', function(e){
+            if (e.target === this) this.style.display='none';
+        });
     </script>
-</body>
-</html>
+<?php renderAdminLayoutEnd(); ?>
