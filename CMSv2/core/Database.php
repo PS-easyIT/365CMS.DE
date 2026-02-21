@@ -102,7 +102,7 @@ class Database
     public function repairTables(): void
     {
         // Force-recreate tables (admin repair tool)
-        $flagFile = ABSPATH . 'cache/db_schema_v2.flag';
+        $flagFile = ABSPATH . 'cache/db_schema_v3.flag';
         @unlink($flagFile);
         $this->createTables();
     }
@@ -114,7 +114,7 @@ class Database
     private function createTables(): void
     {
         // Skip if tables were already verified this session
-        $flagFile = ABSPATH . 'cache/db_schema_v2.flag';
+        $flagFile = ABSPATH . 'cache/db_schema_v3.flag';
         if (file_exists($flagFile)) {
             return;
         }
@@ -402,6 +402,45 @@ class Database
                 UNIQUE KEY unique_user_resource (user_id, resource_type),
                 INDEX idx_user_id (user_id),
                 INDEX idx_resource (resource_type)
+            ) ENGINE=InnoDB DEFAULT CHARSET=" . DB_CHARSET,
+
+            // Blog post categories table
+            "CREATE TABLE IF NOT EXISTS {$this->prefix}post_categories (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                slug VARCHAR(100) NOT NULL UNIQUE,
+                description TEXT,
+                parent_id INT UNSIGNED DEFAULT NULL,
+                sort_order INT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_slug (slug),
+                INDEX idx_parent (parent_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=" . DB_CHARSET,
+
+            // Blog posts table
+            "CREATE TABLE IF NOT EXISTS {$this->prefix}posts (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                title VARCHAR(255) NOT NULL,
+                slug VARCHAR(255) NOT NULL UNIQUE,
+                content LONGTEXT,
+                excerpt TEXT,
+                featured_image VARCHAR(500),
+                status ENUM('draft','published','trash') NOT NULL DEFAULT 'draft',
+                author_id INT UNSIGNED NOT NULL,
+                category_id INT UNSIGNED DEFAULT NULL,
+                tags VARCHAR(500) COMMENT 'Kommagetrennte Tags',
+                views INT UNSIGNED DEFAULT 0,
+                allow_comments TINYINT(1) NOT NULL DEFAULT 1,
+                meta_title VARCHAR(255),
+                meta_description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                published_at TIMESTAMP NULL,
+                INDEX idx_slug (slug),
+                INDEX idx_status (status),
+                INDEX idx_author (author_id),
+                INDEX idx_category (category_id),
+                INDEX idx_published (published_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=" . DB_CHARSET,
 
             // Orders table
