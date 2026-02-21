@@ -1,6 +1,8 @@
-﻿# 365CMS v2.6.3
-## - Das sichere, modulare und erweiterbare Content Management System
-**Website:** [HTTPS://365CMS.DE](https://365cms.de)
+﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-0.8.24-blue.svg)](https://shields.io/)
+ ---
+## Sicheres, modulares und erweiterbares Content Management System => [WWW.365CMS.DE](HTTPS://365CMS.DE)
+![PHP](https://img.shields.io/badge/php-%23777BB4.svg?style=for-the-badge&logo=php&logoColor=white)![MySQL](https://img.shields.io/badge/mysql-4479A1.svg?style=for-the-badge&logo=mysql&logoColor=white)![MariaDB](https://img.shields.io/badge/MariaDB-003545?style=for-the-badge&logo=mariadb&logoColor=white)![HTML5](https://img.shields.io/badge/html5-%23E34F26.svg?style=for-the-badge&logo=html5&logoColor=white)![CSS3](https://img.shields.io/badge/css3-%231572B6.svg?style=for-the-badge&logo=css3&logoColor=white)
+## 
 
 365CMS ist eine moderne, PHP-basierte Plattform, entwickelt mit Fokus auf Sicherheit, Performance und einfache Erweiterbarkeit. Es bietet eine robuste Architektur für Entwickler und eine intuitive Oberfläche für Benutzer.
 

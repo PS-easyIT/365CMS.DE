@@ -1,7 +1,8 @@
-﻿# 365CMS v0.26.13 — Stable
-## Sicheres, modulares und erweiterbares Content Management System
----
-## HTTPS://365CMS.DE
+﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-0.8.24-blue.svg)](https://shields.io/)
+ ---
+## Sicheres, modulares und erweiterbares Content Management System => [WWW.365CMS.DE](HTTPS://365CMS.DE)
+![PHP](https://img.shields.io/badge/php-%23777BB4.svg?style=for-the-badge&logo=php&logoColor=white)![MySQL](https://img.shields.io/badge/mysql-4479A1.svg?style=for-the-badge&logo=mysql&logoColor=white)![MariaDB](https://img.shields.io/badge/MariaDB-003545?style=for-the-badge&logo=mariadb&logoColor=white)![HTML5](https://img.shields.io/badge/html5-%23E34F26.svg?style=for-the-badge&logo=html5&logoColor=white)![CSS3](https://img.shields.io/badge/css3-%231572B6.svg?style=for-the-badge&logo=css3&logoColor=white)
+## 
 
 > **Status:** `Stable` · Öffentliches Release seit v0.5.0 (Januar 2026) · Versionierung nach [SemVer 0.x](https://semver.org/)
 > Interne Entwicklungsversionen (0.1.0–0.4.x, 2025) sind nicht öffentlich verfügbar.
