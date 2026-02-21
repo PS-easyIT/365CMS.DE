@@ -2,7 +2,7 @@
  ---
 ## Sicheres, modulares und erweiterbares Content Management System
 ---
-## HTTPS://365CMS.DE
+## [WWW.365CMS.DE](HTTPS://365CMS.DE).
 
 > **Status:** `Stable` · Öffentliches Release seit v0.5.0 (Januar 2026) · Versionierung nach [SemVer 0.x](https://semver.org/)
 > Interne Entwicklungsversionen (0.1.0–0.4.x, 2025) sind nicht öffentlich verfügbar.
