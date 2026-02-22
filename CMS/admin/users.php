@@ -1,11 +1,11 @@
-﻿<?php
+<?php
+declare(strict_types=1);
+
 /**
  * Admin - Benutzerverwaltung (vollständig ausgebaut)
  *
  * @package CMSv2\Admin
  */
-
-declare(strict_types=1);
 
 if (!defined('SITE_URL')) {
     require_once __DIR__ . '/../config.php';

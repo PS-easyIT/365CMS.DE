@@ -1,4 +1,6 @@
-﻿<?php
+<?php
+declare(strict_types=1);
+
 /**
  * Admin: Beiträge (Blog-Posts)
  *
@@ -7,8 +9,6 @@
  *
  * @package CMSv2\Admin
  */
-
-declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/config.php';
 require_once CORE_PATH . 'autoload.php';

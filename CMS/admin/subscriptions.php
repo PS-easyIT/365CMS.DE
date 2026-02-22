@@ -1,11 +1,11 @@
-﻿<?php
+<?php
+declare(strict_types=1);
+
 /**
  * Subscription Management Admin Page
  * 
  * @package CMSv2\Admin
  */
-
-declare(strict_types=1);
 
 // Load configuration first
 require_once dirname(__DIR__) . '/config.php';

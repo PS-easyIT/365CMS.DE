@@ -636,6 +636,7 @@ function getAdminMenuItems(string $currentPage = ''): array
 function renderAdminSidebarStyles(): void
 {
     ?>
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin-sidebar.css?v=202602">
     <?php
     if (class_exists('\CMS\Services\EditorService')) {
         \CMS\Services\EditorService::getInstance()->enqueueEditorAssets();

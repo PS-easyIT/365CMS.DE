@@ -4,10 +4,22 @@
  * @package CMSv2\Assets
  */
 
+/* Sidebar-Styles automatisch mitladen (für alle Admin-Pages) */
+@import url('admin-sidebar.css');
+
 :root {
-    --admin-primary: #3b82f6;
-    --admin-primary-dark: #2563eb;
-    /* --admin-sidebar-width wird in admin-sidebar.css definiert */
+    --admin-primary:        #3b82f6;
+    --admin-primary-dark:   #2563eb;
+    --admin-primary-light:  #eff6ff;
+    --admin-sidebar-width:  260px;
+    /* Unified card design tokens */
+    --card-radius:          10px;
+    --card-border:          1px solid #e2e8f0;
+    --card-shadow:          0 1px 4px rgba(0, 0, 0, 0.06);
+    --card-shadow-hover:    0 4px 12px rgba(0, 0, 0, 0.1);
+    --card-bg:              #fff;
+    --card-header-bg:       #f8fafc;
+    --card-header-border:   #e2e8f0;
 }
 
 /* Admin Body */
@@ -86,9 +98,10 @@
    MAIN CONTENT AREA
    ═══════════════════════════════════════════════════════ */
 .admin-content {
-    margin-left: var(--admin-sidebar-width);
+    margin-left: var(--admin-sidebar-width, 260px);
     padding: 2rem;
     min-height: 100vh;
+    width: calc(100% - var(--admin-sidebar-width, 260px));
     box-sizing: border-box;
 }
 
@@ -100,20 +113,23 @@
 .admin-page-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
+    align-items: flex-start;
+    margin-bottom: 1.75rem;
     flex-wrap: wrap;
     gap: 0.75rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 2px solid #e2e8f0;
 }
 
 .admin-page-header h2 {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: 1.375rem;
     color: #1e293b;
+    font-weight: 700;
 }
 
 .admin-page-header p {
-    margin: 0.2rem 0 0;
+    margin: 0.25rem 0 0;
     color: #64748b;
     font-size: 0.875rem;
 }
@@ -149,8 +165,9 @@
 .stat-card {
     background: white;
     padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e2e8f0;
 }
 
 .stat-card h3 {
@@ -176,10 +193,11 @@
 /* Admin Section */
 .admin-section {
     background: white;
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    margin-bottom: 2rem;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e2e8f0;
+    margin-bottom: 1.5rem;
     max-width: 100%;
     box-sizing: border-box;
 }
@@ -198,10 +216,11 @@
 }
 
 .info-card {
-    background: #f8fafc;
+    background: #fff;
     padding: 1.5rem;
-    border-radius: 8px;
+    border-radius: 10px;
     border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 .info-card h4 {
@@ -234,9 +253,10 @@
 /* Quick Actions */
 .quick-actions {
     background: white;
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e2e8f0;
 }
 
 .quick-actions h3 {
@@ -509,10 +529,11 @@ textarea.form-control {
 }
 
 /* Responsive */
-@media (max-width: 768px) {
-    /* .admin-sidebar → Responsive-Styles in admin-sidebar.css */
+@media (max-width: 960px) {
+    /* Sidebar wird per .sidebar-open Toggle eingeblendet (admin-sidebar.css) */
     .admin-content {
         margin-left: 0;
+        width: 100%;
         padding: 1rem;
     }
     
@@ -636,18 +657,18 @@ textarea.form-control {
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    background: var(--admin-primary);
     transform: scaleX(0);
     transition: transform 0.3s ease;
 }
 
 .tab-btn:hover {
-    color: #667eea;
-    background: rgba(102, 126, 234, 0.05);
+    color: var(--admin-primary);
+    background: rgba(59, 130, 246, 0.05);
 }
 
 .tab-btn.active {
-    color: #667eea;
+    color: var(--admin-primary);
     font-weight: 700;
 }
 
@@ -707,7 +728,7 @@ textarea.form-control {
 }
 
 .feature-card:hover {
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.12);
     border-color: var(--admin-primary);
     transform: translateY(-2px);
 }
@@ -1088,9 +1109,9 @@ textarea.form-control {
 }
 
 .role-badge.role-admin {
-    background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
-    color: #9f1239;
-    border: 1px solid #ec4899;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #92400e;
+    border: 1px solid #f59e0b;
 }
 
 .role-badge.role-editor {
@@ -1143,13 +1164,13 @@ textarea.form-control {
 .role-card {
     background: white;
     border: 1px solid #e2e8f0;
-    border-radius: 12px;
+    border-radius: 10px;
     padding: 1.5rem;
-    transition: all 0.2s;
+    transition: box-shadow 0.2s, transform 0.2s;
 }
 
 .role-card:hover {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     transform: translateY(-2px);
 }
 
@@ -1277,9 +1298,9 @@ textarea.form-control {
     align-items: center;
     margin-bottom: 32px;
     padding: 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+    background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.2);
 }
 
 .admin-content > .admin-header h1 {
@@ -1330,13 +1351,13 @@ textarea.form-control {
 
 .system-card {
     background: white;
-    border-radius: 12px;
-    padding: 28px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
     min-width: 0;
     overflow-wrap: break-word;
-    border: 1px solid #f3f4f6;
-    transition: all 0.3s ease;
+    border: 1px solid #e2e8f0;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
     position: relative;
     overflow: hidden;
 }
@@ -1347,33 +1368,33 @@ textarea.form-control {
     top: 0;
     left: 0;
     right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    height: 3px;
+    background: var(--admin-primary);
 }
 
 .system-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 .system-card h2 {
-    margin: 0 0 24px 0;
-    font-size: 20px;
+    margin: 0 0 1.25rem 0;
+    font-size: 1.1rem;
     font-weight: 700;
-    color: #1f2937;
+    color: #1e293b;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 0.625rem;
 }
 
 .system-card h2::before {
     content: '📊';
-    font-size: 24px;
+    font-size: 1.25rem;
 }
 
 .system-card h3 {
-    margin: 24px 0 16px 0;
-    font-size: 17px;
+    margin: 1.25rem 0 0.875rem 0;
+    font-size: 0.9375rem;
     font-weight: 600;
     color: #374151;
     display: flex;
@@ -1401,7 +1422,7 @@ textarea.form-control {
 
 .info-row:hover {
     background: #f3f4f6;
-    border-left-color: #667eea;
+    border-left-color: var(--admin-primary);
 }
 
 .info-row:last-child {
@@ -1424,14 +1445,14 @@ textarea.form-control {
 }
 
 .info-value code {
-    background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+    background: #eff6ff;
     padding: 4px 10px;
     border-radius: 6px;
     font-family: monospace;
     font-size: 13px;
     word-break: break-all;
-    border: 1px solid #e5e7eb;
-    color: #667eea;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
     font-weight: 600;
 }
 
@@ -1460,40 +1481,40 @@ textarea.form-control {
 
 .tool-card {
     background: white;
-    border-radius: 12px;
-    padding: 28px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
     min-width: 0;
-    border: 1px solid #f3f4f6;
-    transition: all 0.3s ease;
+    border: 1px solid #e2e8f0;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
     position: relative;
 }
 
 .tool-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    border-color: var(--admin-primary);
 }
 
 .tool-card h3 {
-    margin: 0 0 12px 0;
-    font-size: 18px;
+    margin: 0 0 0.625rem 0;
+    font-size: 1rem;
     font-weight: 700;
-    color: #1f2937;
+    color: #1e293b;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 0.5rem;
 }
 
 .tool-card h3::before {
     content: '🛠️';
-    font-size: 22px;
+    font-size: 1.25rem;
 }
 
 .tool-card p {
-    margin: 0 0 20px 0;
-    font-size: 14px;
-    color: #6b7280;
+    margin: 0 0 1.25rem 0;
+    font-size: 0.875rem;
+    color: #64748b;
     line-height: 1.6;
 }
 
@@ -1511,28 +1532,28 @@ textarea.form-control {
 /* Logs Container */
 .logs-container {
     background: white;
-    border-radius: 12px;
-    padding: 28px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    margin-top: 24px;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    margin-top: 1.5rem;
     max-width: 100%;
     box-sizing: border-box;
-    border: 1px solid #f3f4f6;
+    border: 1px solid #e2e8f0;
 }
 
 .logs-container h2 {
-    margin: 0 0 24px 0;
-    font-size: 20px;
+    margin: 0 0 1.25rem 0;
+    font-size: 1.1rem;
     font-weight: 700;
-    color: #1f2937;
+    color: #1e293b;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 0.625rem;
 }
 
 .logs-container h2::before {
     content: '📝';
-    font-size: 24px;
+    font-size: 1.25rem;
 }
 
 .logs-list {
@@ -1553,8 +1574,7 @@ textarea.form-control {
 }
 
 .log-entry:hover {
-    transform: translateX(4px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .log-entry.log-type-error {
@@ -1657,29 +1677,29 @@ textarea.form-control {
 /* Data Table */
 .table-container {
     background: white;
-    border-radius: 12px;
-    padding: 28px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    margin-top: 24px;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    margin-top: 1.5rem;
     overflow-x: auto;
     max-width: 100%;
     box-sizing: border-box;
-    border: 1px solid #f3f4f6;
+    border: 1px solid #e2e8f0;
 }
 
 .table-container h2 {
-    margin: 0 0 24px 0;
-    font-size: 20px;
+    margin: 0 0 1.25rem 0;
+    font-size: 1.1rem;
     font-weight: 700;
-    color: #1f2937;
+    color: #1e293b;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 0.625rem;
 }
 
 .table-container h2::before {
     content: '📋';
-    font-size: 24px;
+    font-size: 1.25rem;
 }
 
 .data-table {
@@ -1689,7 +1709,7 @@ textarea.form-control {
 }
 
 .data-table thead {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
 }
 
 .data-table th {
@@ -1720,16 +1740,15 @@ textarea.form-control {
 }
 
 .data-table tbody tr {
-    transition: all 0.2s ease;
+    transition: background 0.15s;
 }
 
 .data-table tbody tr:hover {
-    background: #f9fafb !important;
-    transform: scale(1.01);
+    background: #f8fafc !important;
 }
 
 .data-table tbody tr:hover td {
-    background: #f9fafb;
+    background: #f8fafc;
 }
 
 .text-muted {
@@ -1855,16 +1874,16 @@ textarea.form-control {
 .stat-card {
     background: white;
     padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e2e8f0;
     text-align: center;
-    transition: all 0.3s;
-    border: 2px solid transparent;
+    transition: box-shadow 0.2s, transform 0.2s;
 }
 
 .stat-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     border-color: var(--admin-primary);
 }
 
@@ -1904,11 +1923,12 @@ textarea.form-control {
 .adm-card {
     background: #fff;
     border: 1px solid #e2e8f0;
-    border-radius: 12px;
+    border-radius: 10px;
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 .adm-card h3 {
     margin: 0 0 0.5rem;
@@ -1960,8 +1980,9 @@ textarea.form-control {
 .metric-card {
     background: #fff;
     padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    border: 1px solid #e2e8f0;
     border-left: 4px solid var(--admin-primary);
 }
 .metric-icon { font-size: 2rem; margin-bottom: 0.5rem; }
@@ -1989,8 +2010,8 @@ textarea.form-control {
 }
 .settings-card {
     background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
     border: 1px solid #e2e8f0;
     overflow: hidden;
     display: flex;
@@ -2326,7 +2347,7 @@ input:checked + .slider:before { transform: translateX(22px); }
 .status-banned   { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
 .status-pass     { background: #dcfce7; color: #166534; }
 .status-fail     { background: #fee2e2; color: #991b1b; }
-.status-private  { background: #f3e8ff; color: #7e22ce; border: 1px solid #d8b4fe; }
+.status-private  { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
 .status-success  { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
 .status-danger   { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
 .status-secondary{ background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }
@@ -2374,8 +2395,8 @@ input:checked + .slider:before { transform: translateX(22px); }
 .member-row  { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0; border-bottom: 1px solid #f1f5f9; font-size: 0.8125rem; }
 .cap-pill {
     padding: 0.1rem 0.5rem;
-    background: #ede9fe;
-    color: #5b21b6;
+    background: #dbeafe;
+    color: #1e40af;
     border-radius: 20px;
     font-size: 0.72rem;
     font-weight: 600;
@@ -2447,8 +2468,8 @@ input:checked + .slider:before { transform: translateX(22px); }
 .badge-functional { background: #f0fdf4; color: #166534; }
 .badge-analytics  { background: #fef3c7; color: #92400e; }
 .badge-marketing  { background: #fce7f3; color: #9d174d; }
-.badge-sc         { background: #e0e7ff; color: #3730a3; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700; }
-.badge-plan       { background: #ede9fe; color: #5b21b6; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.72rem; font-weight: 700; }
+.badge-sc         { background: #dbeafe; color: #1e40af; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700; }
+.badge-plan       { background: #dbeafe; color: #1e40af; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.72rem; font-weight: 700; }
 
 /* ── Help Text / Checkbox Group ── */
 .help-text  { font-size: 0.8rem; color: #64748b; margin-top: 0.25rem; line-height: 1.5; }
@@ -2884,7 +2905,7 @@ input:checked + .slider:before { transform: translateX(22px); }
 /* ── Subscriptions / Plans ── */
 .sub-plans-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem; }
 .plan-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
-.plan-header { padding: 1.25rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; }
+.plan-header { padding: 1.25rem; background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%); color: #fff; }
 .plan-name { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.25rem; }
 .plan-price { font-size: 1.75rem; font-weight: 800; }
 .plan-price span { font-size: 0.875rem; font-weight: 400; opacity: 0.9; }
@@ -2976,8 +2997,8 @@ input:checked + .slider:before { transform: translateX(22px); }
     border-radius: 10px;
     font-size: 0.72rem;
     font-weight: 700;
-    background: #e0e7ff;
-    color: #3730a3;
+    background: #dbeafe;
+    color: #1e40af;
 }
 
 /* ── Theme Editor ── */
@@ -3080,8 +3101,8 @@ input:checked + .slider:before { transform: translateX(22px); }
 
 /* ── Coming Soon Hero (Plugin/Theme Marketplace) ── */
 .cs-hero {
-    background: linear-gradient(135deg, #1a0533 0%, #3b1f6e 50%, #1a0533 100%);
-    border-radius: 16px;
+    background: linear-gradient(135deg, #0f1e36 0%, #1e3a5f 50%, #0f1e36 100%);
+    border-radius: 12px;
     padding: 3rem 2.5rem;
     text-align: center;
     color: #f1f5f9;
@@ -3094,7 +3115,7 @@ input:checked + .slider:before { transform: translateX(22px); }
     position: absolute;
     top: -60px; right: -60px;
     width: 220px; height: 220px;
-    background: rgba(167,139,250,0.15);
+    background: rgba(59,130,246,0.12);
     border-radius: 50%;
 }
 .cs-hero::after {
@@ -3102,14 +3123,14 @@ input:checked + .slider:before { transform: translateX(22px); }
     position: absolute;
     bottom: -40px; left: -40px;
     width: 160px; height: 160px;
-    background: rgba(236,72,153,0.1);
+    background: rgba(96,165,250,0.08);
     border-radius: 50%;
 }
 .cs-badge {
     display: inline-block;
-    background: rgba(167,139,250,0.25);
-    border: 1px solid rgba(167,139,250,0.5);
-    color: #c4b5fd;
+    background: rgba(59,130,246,0.2);
+    border: 1px solid rgba(96,165,250,0.4);
+    color: #93c5fd;
     font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.1em;
