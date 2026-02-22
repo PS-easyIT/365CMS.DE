@@ -33,7 +33,7 @@ $messages   = [];
 
 // ── Aktiver Tab ────────────────────────────────────────────────────────────────
 $activeTab   = $_GET['tab'] ?? 'general';
-$allowedTabs = ['general', 'social', 'structured', 'permalinks', 'indexing'];
+$allowedTabs = ['general', 'social', 'structured', 'permalinks', 'indexing', 'analytics'];
 if (!in_array($activeTab, $allowedTabs, true)) { $activeTab = 'general'; }
 
 // ── Helper ─────────────────────────────────────────────────────────────────────
@@ -177,6 +177,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (method_exists($seoService, 'saveSitemap'))   { $seoService->saveSitemap(); }
                 $messages[] = ['type' => 'success', 'text' => 'Indexierungs-Einstellungen gespeichert.'];
             }
+            // ── ANALYTICS CODE ────────────────────────────────────────────────
+            elseif ($action === 'save_seo_analytics') {
+                $analyticsFields = [
+                    'seo_analytics_matomo_enabled'  => isset($_POST['matomo_enabled'])   ? '1' : '0',
+                    'seo_analytics_matomo_url'      => filter_var(trim($_POST['matomo_url'] ?? ''), FILTER_SANITIZE_URL),
+                    'seo_analytics_matomo_site_id'  => $security->sanitize($_POST['matomo_site_id'] ?? '', 'text'),
+                    'seo_analytics_matomo_code'     => $_POST['matomo_code'] ?? '',
+                    'seo_analytics_ga4_enabled'     => isset($_POST['ga4_enabled'])      ? '1' : '0',
+                    'seo_analytics_ga4_id'          => $security->sanitize($_POST['ga4_id'] ?? '', 'text'),
+                    'seo_analytics_gtm_enabled'     => isset($_POST['gtm_enabled'])      ? '1' : '0',
+                    'seo_analytics_gtm_id'          => $security->sanitize($_POST['gtm_id'] ?? '', 'text'),
+                    'seo_analytics_fb_pixel_enabled'=> isset($_POST['fb_pixel_enabled']) ? '1' : '0',
+                    'seo_analytics_fb_pixel_id'     => $security->sanitize($_POST['fb_pixel_id'] ?? '', 'text'),
+                    'seo_analytics_custom_head'     => $_POST['custom_head_code'] ?? '',
+                    'seo_analytics_custom_body'     => $_POST['custom_body_code'] ?? '',
+                    'seo_analytics_exclude_admins'  => isset($_POST['exclude_admins'])   ? '1' : '0',
+                    'seo_analytics_anonymize_ip'    => isset($_POST['anonymize_ip'])     ? '1' : '0',
+                    'seo_analytics_respect_dnt'     => isset($_POST['respect_dnt'])      ? '1' : '0',
+                ];
+                foreach ($analyticsFields as $k => $v) { seo_save($db, $k, $v); }
+                $messages[] = ['type' => 'success', 'text' => 'Analytics-Einstellungen gespeichert.'];
+            }
         } catch (\Exception $e) {
             $messages[] = ['type' => 'error', 'text' => 'Fehler beim Speichern: ' . $e->getMessage()];
         }
@@ -204,6 +226,13 @@ $allKeys = [
     'seo_indexnow_enabled', 'seo_indexnow_key',
     'seo_google_site_verification', 'seo_bing_site_verification',
     'seo_yandex_verification', 'seo_baidu_verification', 'seo_robots_txt_content',
+    // Analytics
+    'seo_analytics_matomo_enabled', 'seo_analytics_matomo_url', 'seo_analytics_matomo_site_id',
+    'seo_analytics_matomo_code', 'seo_analytics_ga4_enabled', 'seo_analytics_ga4_id',
+    'seo_analytics_gtm_enabled', 'seo_analytics_gtm_id',
+    'seo_analytics_fb_pixel_enabled', 'seo_analytics_fb_pixel_id',
+    'seo_analytics_custom_head', 'seo_analytics_custom_body',
+    'seo_analytics_exclude_admins', 'seo_analytics_anonymize_ip', 'seo_analytics_respect_dnt',
 ];
 foreach ($allKeys as $k) { $s[$k] = seo_get($db, $k); }
 
@@ -222,6 +251,9 @@ $s['seo_sitemap_change_freq']      = $s['seo_sitemap_change_freq']      ?: 'week
 $s['seo_robots_txt_content']       = $s['seo_robots_txt_content'] !== ''
     ? $s['seo_robots_txt_content']
     : "User-agent: *\nDisallow: /admin/\nAllow: /";
+$s['seo_analytics_matomo_site_id'] = $s['seo_analytics_matomo_site_id'] ?: '1';
+$s['seo_analytics_anonymize_ip']   = $s['seo_analytics_anonymize_ip']   !== '' ? $s['seo_analytics_anonymize_ip'] : '1';
+$s['seo_analytics_respect_dnt']    = $s['seo_analytics_respect_dnt']    !== '' ? $s['seo_analytics_respect_dnt']  : '1';
 
 $checked = fn(string $key, string $val = '1') => $s[$key] === $val ? 'checked' : '';
 $sel     = fn(string $key, string $val)        => $s[$key] === $val ? 'selected' : '';
@@ -259,6 +291,11 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
 /* Radio-Zeilen */
 .dw-radio-row { display: flex; align-items: flex-start; gap: .75rem; padding: .75rem .5rem; border-radius: 8px; cursor: pointer; margin-bottom: .5rem; border: 1.5px solid #e2e8f0; background: #fff; transition: border-color .15s, background .15s; }
 .dw-radio-row:hover { border-color: var(--admin-primary, #3b82f6); }
+/* Card-Header mit Toggle rechts */
+.dw-card-header { display: flex; align-items: center; gap: .75rem; margin-bottom: .25rem; }
+.dw-card-header h3 { margin: 0; font-size: 1.1rem; font-weight: 700; color: #1e293b; flex: 1; }
+/* Card Sub-Beschreibung */
+.dw-card-sub { font-size: .82rem; color: #64748b; margin: 0 0 1rem; line-height: 1.5; }
 </style>
 
 <!-- Page Header -->
@@ -285,6 +322,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
         'structured' => ['icon' => '🗂️', 'label' => 'Strukturierte Daten', 'desc' => 'Schema.org, JSON-LD'],
         'permalinks' => ['icon' => '🔗',  'label' => 'Permalinks',          'desc' => 'URL-Struktur, Basis'],
         'indexing'   => ['icon' => '🤖',  'label' => 'Indexierung',         'desc' => 'Robots, Sitemap, IndexNow'],
+        'analytics'  => ['icon' => '📊',  'label' => 'Analytics Code',      'desc' => 'Matomo, GA4, GTM, Pixel'],
     ];
     foreach ($navTabs as $tid => $t):
     ?>
@@ -807,6 +845,305 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
     </div>
     </form>
     </div><!-- /indexing -->
+
+
+    <!-- ──────────────────────────────────────────────── TAB: ANALYTICS CODE -->
+    <div class="seo-panel <?php echo $activeTab==='analytics' ? 'active' : ''; ?>">
+    <form method="post" action="<?php echo SITE_URL; ?>/admin/seo?tab=analytics">
+    <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+    <input type="hidden" name="action"     value="save_seo_analytics">
+
+    <!-- Datenschutz-Hinweis -->
+    <div class="alert" style="background:#dbeafe;color:#1e40af;border-left:4px solid #3b82f6;margin-bottom:1.5rem;">
+        ℹ️ <strong>DSGVO-Hinweis:</strong> Stelle sicher, dass du Analytics-Dienste nur nach Einwilligung der Nutzer aktivierst.
+        Verwende die Optionen „DNT respektieren" und „IP anonymisieren" wo möglich.
+    </div>
+
+    <div class="seo-grid">
+
+        <!-- ─── Matomo ──────────────────────────────────────────────────────── -->
+        <div class="admin-card">
+            <div class="dw-card-header">
+                <h3>🔵 Matomo / Piwik</h3>
+                <label class="dw-toggle" style="margin-left:auto;">
+                    <input type="checkbox" name="matomo_enabled" id="matomoToggle"
+                           <?php echo $checked('seo_analytics_matomo_enabled'); ?>
+                           onchange="document.getElementById('matomoFields').style.display=this.checked?'block':'none'">
+                    <span class="dw-toggle-slider"></span>
+                </label>
+            </div>
+            <p class="dw-card-sub">Self-Hosted Analytics – DSGVO-konform ohne Cookie-Einwilligung möglich</p>
+
+            <div id="matomoFields" style="display:<?php echo $s['seo_analytics_matomo_enabled']==='1'?'block':'none'; ?>;">
+                <div class="form-group">
+                    <label class="form-label">Matomo URL <span style="color:#ef4444;">*</span></label>
+                    <input type="url" name="matomo_url" class="form-control"
+                           placeholder="https://analytics.deinedomain.de/"
+                           value="<?php echo htmlspecialchars($s['seo_analytics_matomo_url'] ?? ''); ?>">
+                    <small class="form-text">URL deiner Matomo-Instanz (mit trailing Slash)</small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Site ID <span style="color:#ef4444;">*</span></label>
+                    <input type="text" name="matomo_site_id" class="form-control"
+                           placeholder="1"
+                           value="<?php echo htmlspecialchars($s['seo_analytics_matomo_site_id'] ?? '1'); ?>"
+                           style="max-width:120px;">
+                    <small class="form-text">Die ID der Website in Matomo (zu finden unter Verwaltung → Websites)</small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">
+                        Eigener Tracking-Code
+                        <span class="seo-badge seo-badge-info" style="margin-left:.5rem;">Optional</span>
+                    </label>
+                    <textarea name="matomo_code" class="form-control"
+                              rows="6"
+                              placeholder="<!-- Eigener Matomo-Code hier einfügen (überschreibt Auto-Code oben) -->"
+                              style="font-family:'Courier New',monospace;font-size:.8rem;"><?php echo htmlspecialchars($s['seo_analytics_matomo_code'] ?? ''); ?></textarea>
+                    <small class="form-text">
+                        Leer lassen = Code wird automatisch aus URL + Site-ID generiert.
+                        Eigener Code wird 1:1 im <code>&lt;head&gt;</code> ausgegeben.
+                    </small>
+                </div>
+                <?php
+                    $mUrl  = trim($s['seo_analytics_matomo_url'] ?? '');
+                    $mSite = trim($s['seo_analytics_matomo_site_id'] ?? '1');
+                    $mCode = trim($s['seo_analytics_matomo_code'] ?? '');
+                    if ($mUrl && !$mCode):
+                        $autoCode = "<!-- Matomo -->\n<script>\n  var _paq = window._paq = window._paq || [];\n  _paq.push(['trackPageView']);\n  _paq.push(['enableLinkTracking']);\n  (function() {\n    var u=\"{$mUrl}\";\n    _paq.push(['setTrackerUrl', u+'matomo.php']);\n    _paq.push(['setSiteId', '{$mSite}']);\n    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];\n    g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);\n  })();\n</script>";
+                ?>
+                <div style="margin-top:.75rem;">
+                    <label style="font-size:.8rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Auto-generierter Code (Vorschau)</label>
+                    <div class="code-preview"><?php echo htmlspecialchars($autoCode); ?></div>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- ─── Google Analytics 4 ─────────────────────────────────────────── -->
+        <div class="admin-card">
+            <div class="dw-card-header">
+                <h3>🔴 Google Analytics 4 (GA4)</h3>
+                <label class="dw-toggle" style="margin-left:auto;">
+                    <input type="checkbox" name="ga4_enabled" id="ga4Toggle"
+                           <?php echo $checked('seo_analytics_ga4_enabled'); ?>
+                           onchange="document.getElementById('ga4Fields').style.display=this.checked?'block':'none'">
+                    <span class="dw-toggle-slider"></span>
+                </label>
+            </div>
+            <p class="dw-card-sub">Google Analytics 4 via gtag.js einbinden</p>
+
+            <div id="ga4Fields" style="display:<?php echo $s['seo_analytics_ga4_enabled']==='1'?'block':'none'; ?>;">
+                <div class="form-group">
+                    <label class="form-label">Measurement ID <span style="color:#ef4444;">*</span></label>
+                    <input type="text" name="ga4_id" class="form-control"
+                           placeholder="G-XXXXXXXXXX"
+                           value="<?php echo htmlspecialchars($s['seo_analytics_ga4_id'] ?? ''); ?>">
+                    <small class="form-text">Format: <code>G-XXXXXXXXXX</code> – zu finden in Google Analytics → Verwaltung → Datenstreams</small>
+                </div>
+                <?php if (!empty($s['seo_analytics_ga4_id'])): ?>
+                <div style="margin-top:.75rem;">
+                    <label style="font-size:.8rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Generierter Code</label>
+                    <div class="code-preview"><?php echo htmlspecialchars(
+                        "<!-- Google Analytics 4 -->\n<script async src=\"https://www.googletagmanager.com/gtag/js?id=" . htmlspecialchars($s['seo_analytics_ga4_id']) . "\"></script>\n<script>\n  window.dataLayer = window.dataLayer || [];\n  function gtag(){dataLayer.push(arguments);}\n  gtag('js', new Date());\n  gtag('config', '" . htmlspecialchars($s['seo_analytics_ga4_id']) . "');\n</script>"
+                    ); ?></div>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- ─── Google Tag Manager ─────────────────────────────────────────── -->
+        <div class="admin-card">
+            <div class="dw-card-header">
+                <h3>🟠 Google Tag Manager (GTM)</h3>
+                <label class="dw-toggle" style="margin-left:auto;">
+                    <input type="checkbox" name="gtm_enabled" id="gtmToggle"
+                           <?php echo $checked('seo_analytics_gtm_enabled'); ?>
+                           onchange="document.getElementById('gtmFields').style.display=this.checked?'block':'none'">
+                    <span class="dw-toggle-slider"></span>
+                </label>
+            </div>
+            <p class="dw-card-sub">Tag Manager Container – verwaltet alle Tags zentral</p>
+
+            <div id="gtmFields" style="display:<?php echo $s['seo_analytics_gtm_enabled']==='1'?'block':'none'; ?>;">
+                <div class="form-group">
+                    <label class="form-label">Container ID <span style="color:#ef4444;">*</span></label>
+                    <input type="text" name="gtm_id" class="form-control"
+                           placeholder="GTM-XXXXXXX"
+                           value="<?php echo htmlspecialchars($s['seo_analytics_gtm_id'] ?? ''); ?>">
+                    <small class="form-text">Format: <code>GTM-XXXXXXX</code> – im GTM unter Container-Einstellungen</small>
+                </div>
+                <?php if (!empty($s['seo_analytics_gtm_id'])): ?>
+                <div style="margin-top:.75rem;">
+                    <label style="font-size:.8rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Head-Code</label>
+                    <div class="code-preview"><?php echo htmlspecialchars(
+                        "<!-- Google Tag Manager -->\n<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':\nnew Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],\nj=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=\n'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);\n})(window,document,'script','dataLayer','" . htmlspecialchars($s['seo_analytics_gtm_id']) . "');</script>"
+                    ); ?></div>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- ─── Facebook / Meta Pixel ─────────────────────────────────────── -->
+        <div class="admin-card">
+            <div class="dw-card-header">
+                <h3>🟣 Facebook / Meta Pixel</h3>
+                <label class="dw-toggle" style="margin-left:auto;">
+                    <input type="checkbox" name="fb_pixel_enabled" id="fbPixelToggle"
+                           <?php echo $checked('seo_analytics_fb_pixel_enabled'); ?>
+                           onchange="document.getElementById('fbPixelFields').style.display=this.checked?'block':'none'">
+                    <span class="dw-toggle-slider"></span>
+                </label>
+            </div>
+            <p class="dw-card-sub">Meta Pixel für Werbung & Conversion-Tracking</p>
+
+            <div id="fbPixelFields" style="display:<?php echo $s['seo_analytics_fb_pixel_enabled']==='1'?'block':'none'; ?>;">
+                <div class="form-group">
+                    <label class="form-label">Pixel ID <span style="color:#ef4444;">*</span></label>
+                    <input type="text" name="fb_pixel_id" class="form-control"
+                           placeholder="123456789012345"
+                           value="<?php echo htmlspecialchars($s['seo_analytics_fb_pixel_id'] ?? ''); ?>">
+                    <small class="form-text">Die numerische Pixel-ID aus dem Meta Events Manager</small>
+                </div>
+                <?php if (!empty($s['seo_analytics_fb_pixel_id'])): ?>
+                <div style="margin-top:.75rem;">
+                    <label style="font-size:.8rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Generierter Code</label>
+                    <div class="code-preview"><?php echo htmlspecialchars(
+                        "<!-- Meta Pixel -->\n<script>\n!function(f,b,e,v,n,t,s)\n{if(f.fbq)return;n=f.fbq=function(){n.callMethod?\nn.callMethod.apply(n,arguments):n.queue.push(arguments)};\nif(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';\nn.queue=[];t=b.createElement(e);t.async=!0;\nt.src=v;s=b.getElementsByTagName(e)[0];\ns.parentNode.insertBefore(t,s)}(window, document,'script',\n'https://connect.facebook.net/en_US/fbevents.js');\nfbq('init', '" . htmlspecialchars($s['seo_analytics_fb_pixel_id']) . "');\nfbq('track', 'PageView');\n</script>"
+                    ); ?></div>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- ─── Eigener Code (Head & Body) ────────────────────────────────── -->
+        <div class="admin-card" style="grid-column: 1 / -1;">
+            <h3>✏️ Eigener Analytics-Code</h3>
+            <p class="dw-card-sub">Hier kann beliebiger Tracking-Code (z. B. Piwik PRO, Plausible, Fathom, TikTok Pixel) eingebunden werden</p>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;">
+                <div class="form-group">
+                    <label class="form-label">Code im <code>&lt;head&gt;</code> einbinden</label>
+                    <textarea name="custom_head_code" class="form-control"
+                              rows="8"
+                              placeholder="<!-- Tracking-Code für den Head hier einfügen -->"
+                              style="font-family:'Courier New',monospace;font-size:.8rem;"><?php echo htmlspecialchars($s['seo_analytics_custom_head'] ?? ''); ?></textarea>
+                    <small class="form-text">Wird direkt vor <code>&lt;/head&gt;</code> ausgegeben</small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Code nach <code>&lt;body&gt;</code>-Tag einbinden</label>
+                    <textarea name="custom_body_code" class="form-control"
+                              rows="8"
+                              placeholder="<!-- Code direkt nach <body> öffnendem Tag -->"
+                              style="font-family:'Courier New',monospace;font-size:.8rem;"><?php echo htmlspecialchars($s['seo_analytics_custom_body'] ?? ''); ?></textarea>
+                    <small class="form-text">Wird direkt nach dem öffnenden <code>&lt;body&gt;</code>-Tag ausgegeben (nützlich z. B. für GTM noscript)</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── Datenschutz & Optionen ────────────────────────────────────── -->
+        <div class="admin-card">
+            <h3>🔒 Datenschutz & Optionen</h3>
+            <p class="dw-card-sub">Diese Einstellungen gelten für alle aktivierten Analytics-Tools</p>
+
+            <div class="dw-toggle-row">
+                <div>
+                    <div class="dw-toggle-label">Admins vom Tracking ausschließen</div>
+                    <div class="dw-toggle-hint">Eingeloggte Administratoren werden nicht getrackt</div>
+                </div>
+                <label class="dw-toggle">
+                    <input type="checkbox" name="exclude_admins" <?php echo $checked('seo_analytics_exclude_admins'); ?>>
+                    <span class="dw-toggle-slider"></span>
+                </label>
+            </div>
+            <div class="dw-toggle-row">
+                <div>
+                    <div class="dw-toggle-label">IP-Adresse anonymisieren</div>
+                    <div class="dw-toggle-hint">Aktiviert anonymizeIp() bei Matomo & GA4 (empfohlen für DSGVO)</div>
+                </div>
+                <label class="dw-toggle">
+                    <input type="checkbox" name="anonymize_ip" <?php echo $checked('seo_analytics_anonymize_ip'); ?>>
+                    <span class="dw-toggle-slider"></span>
+                </label>
+            </div>
+            <div class="dw-toggle-row">
+                <div>
+                    <div class="dw-toggle-label">DNT (Do Not Track) respektieren</div>
+                    <div class="dw-toggle-hint">Tracking wird deaktiviert, wenn der Browser DNT gesendet hat</div>
+                </div>
+                <label class="dw-toggle">
+                    <input type="checkbox" name="respect_dnt" <?php echo $checked('seo_analytics_respect_dnt'); ?>>
+                    <span class="dw-toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- ─── Status-Übersicht ─────────────────────────────────────────── -->
+        <div class="admin-card">
+            <h3>📋 Aktive Dienste – Übersicht</h3>
+            <p class="dw-card-sub">Aktuell eingebundene Tracking-Dienste</p>
+
+            <?php
+            $services = [
+                ['label' => 'Matomo',             'key' => 'seo_analytics_matomo_enabled',   'detail' => $s['seo_analytics_matomo_url'] ?? ''],
+                ['label' => 'Google Analytics 4', 'key' => 'seo_analytics_ga4_enabled',      'detail' => $s['seo_analytics_ga4_id'] ?? ''],
+                ['label' => 'Google Tag Manager', 'key' => 'seo_analytics_gtm_enabled',      'detail' => $s['seo_analytics_gtm_id'] ?? ''],
+                ['label' => 'Facebook Pixel',     'key' => 'seo_analytics_fb_pixel_enabled','detail' => $s['seo_analytics_fb_pixel_id'] ?? ''],
+                ['label' => 'Eigener Head-Code',  'key' => '',                               'detail' => !empty(trim($s['seo_analytics_custom_head'] ?? '')) ? 'Konfiguriert' : ''],
+                ['label' => 'Eigener Body-Code',  'key' => '',                               'detail' => !empty(trim($s['seo_analytics_custom_body'] ?? '')) ? 'Konfiguriert' : ''],
+            ];
+            ?>
+            <table style="width:100%;border-collapse:collapse;font-size:.88rem;">
+                <thead>
+                    <tr style="background:#f8fafc;">
+                        <th style="padding:.6rem .75rem;text-align:left;font-weight:600;color:#475569;border-bottom:1px solid #e2e8f0;">Dienst</th>
+                        <th style="padding:.6rem .75rem;text-align:left;font-weight:600;color:#475569;border-bottom:1px solid #e2e8f0;">Status</th>
+                        <th style="padding:.6rem .75rem;text-align:left;font-weight:600;color:#475569;border-bottom:1px solid #e2e8f0;">Konfiguration</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($services as $svc): ?>
+                    <?php
+                        $isActive = $svc['key']
+                            ? ($s[$svc['key']] ?? '0') === '1'
+                            : !empty($svc['detail']);
+                    ?>
+                    <tr style="border-bottom:1px solid #f1f5f9;">
+                        <td style="padding:.6rem .75rem;color:#1e293b;font-weight:500;"><?php echo htmlspecialchars($svc['label']); ?></td>
+                        <td style="padding:.6rem .75rem;">
+                            <span class="status-badge <?php echo $isActive ? 'active' : 'inactive'; ?>">
+                                <?php echo $isActive ? '✅ Aktiv' : '⭕ Inaktiv'; ?>
+                            </span>
+                        </td>
+                        <td style="padding:.6rem .75rem;color:#64748b;font-size:.82rem;">
+                            <?php echo $svc['detail'] ? htmlspecialchars($svc['detail']) : '—'; ?>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+
+            <?php
+            $anyActive = $s['seo_analytics_matomo_enabled']==='1'
+                      || $s['seo_analytics_ga4_enabled']==='1'
+                      || $s['seo_analytics_gtm_enabled']==='1'
+                      || $s['seo_analytics_fb_pixel_enabled']==='1'
+                      || !empty(trim($s['seo_analytics_custom_head'] ?? ''))
+                      || !empty(trim($s['seo_analytics_custom_body'] ?? ''));
+            if (!$anyActive): ?>
+            <div class="empty-state" style="padding:1.5rem 0 0;">
+                <p>⭕ Kein Analytics-Dienst aktiv</p>
+                <p class="text-muted" style="font-size:.8rem;">Aktiviere mindestens einen Dienst oben und speichere.</p>
+            </div>
+            <?php endif; ?>
+        </div>
+
+    </div><!-- /seo-grid -->
+
+    <div style="margin-top:1.5rem;">
+        <button type="submit" class="btn btn-primary">💾 Analytics-Einstellungen speichern</button>
+    </div>
+    </form>
+    </div><!-- /analytics -->
 
   </div><!-- admin-content-inner -->
 </div><!-- admin-content -->
