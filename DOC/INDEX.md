@@ -88,11 +88,15 @@
 
 ---
 
-## audits/ – Sicherheits-Audits
+## audit/ – Audit-Berichte
 
 | Datei | Beschreibung |
 |-------|-------------|
-| [SECURITY-AUDIT-REPORT.md](audits/SECURITY-AUDIT-REPORT.md) | Vollständiger Security-Audit-Bericht |
+| [PERFORMANCE-AUDIT.md](audit/PERFORMANCE-AUDIT.md) | Performance-Analyse für `/CMS` |
+| [SECURITY-AUDIT.md](audit/SECURITY-AUDIT.md) | Security-Analyse für `/CMS` |
+| [CORE-AUDIT.md](audit/CORE-AUDIT.md) | Core-Architektur-Audit für `/CMS` |
+| [FEATURE-AUDIT.md](audit/FEATURE-AUDIT.md) | Feature- und Produktreife-Audit für `/CMS` |
+| [THEME-AUDIT.md](audit/THEME-AUDIT.md) | Theme- und Designsystem-Audit für `/CMS` |
 
 ---
 
@@ -110,4 +114,3 @@
 | DB-Queries schreiben | [core/CORE-CLASSES.md](core/CORE-CLASSES.md#2-database) |
 | Sicherheit (CSRF/XSS) | [core/SECURITY.md](core/SECURITY.md) |
 | Systemstatus prüfen | [core/STATUS.md](core/STATUS.md) |
-
