@@ -105,8 +105,34 @@ class Database
         $flagFile = ABSPATH . 'cache/db_schema_v3.flag';
         @unlink($flagFile);
         $this->createTables();
+        $this->migrateColumns();
     }
-    
+
+    /**
+     * Add missing columns to existing tables (safe for re-runs via try/catch)
+     */
+    private function migrateColumns(): void
+    {
+        $migrations = [
+            // RBAC: member_dashboard_access on roles
+            "ALTER TABLE `{$this->prefix}roles` ADD COLUMN `member_dashboard_access` TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Zugriff auf Member-Dashboard' AFTER `capabilities`",
+            // RBAC: sort_order on roles
+            "ALTER TABLE `{$this->prefix}roles` ADD COLUMN `sort_order` INT NOT NULL DEFAULT 0 AFTER `member_dashboard_access`",
+            // Groups: role_id on user_groups
+            "ALTER TABLE `{$this->prefix}user_groups` ADD COLUMN `role_id` INT UNSIGNED NULL COMMENT 'Verknüpfte RBAC-Rolle' AFTER `description`",
+        ];
+        foreach ($migrations as $sql) {
+            try {
+                $this->pdo->exec($sql);
+            } catch (\PDOException $e) {
+                // Column already exists – ignore duplicate column errors
+                if (!str_contains($e->getMessage(), 'Duplicate column')) {
+                    error_log('DB migration warning: ' . $e->getMessage());
+                }
+            }
+        }
+    }
+
     /**
      * Create required tables
      * Uses a flag-file to avoid running 15+ SQL queries on every page load.
@@ -154,6 +180,8 @@ class Database
                 display_name VARCHAR(100) NOT NULL,
                 description TEXT,
                 capabilities TEXT COMMENT 'JSON-Array mit Berechtigungen',
+                member_dashboard_access TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Zugriff auf Member-Dashboard',
+                sort_order INT NOT NULL DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_name (name)
@@ -373,6 +401,7 @@ class Database
                 name VARCHAR(100) NOT NULL,
                 slug VARCHAR(100) NOT NULL UNIQUE,
                 description TEXT,
+                role_id INT UNSIGNED NULL COMMENT 'Verknüpfte RBAC-Rolle',
                 plan_id INT,
                 is_active BOOLEAN DEFAULT 1,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

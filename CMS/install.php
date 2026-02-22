@@ -246,6 +246,8 @@ function createDatabaseTables(PDO $pdo, string $prefix = 'cms_'): array {
             display_name VARCHAR(100) NOT NULL,
             description TEXT,
             capabilities TEXT COMMENT 'JSON-Array mit Berechtigungen',
+            member_dashboard_access TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Zugriff auf Member-Dashboard',
+            sort_order INT NOT NULL DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             INDEX idx_name (name)
@@ -536,6 +538,7 @@ function createDatabaseTables(PDO $pdo, string $prefix = 'cms_'): array {
             name VARCHAR(100) NOT NULL,
             slug VARCHAR(100) NOT NULL UNIQUE,
             description TEXT,
+            role_id INT UNSIGNED NULL COMMENT 'Verknüpfte RBAC-Rolle',
             plan_id INT,
             is_active BOOLEAN DEFAULT 1,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -602,7 +605,44 @@ function createDatabaseTables(PDO $pdo, string $prefix = 'cms_'): array {
             INDEX idx_plan_id (plan_id),
             INDEX idx_status (status),
             INDEX idx_created_at (created_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Bestellungen für Abos'"
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Bestellungen für Abos'",
+
+        'post_categories' => "CREATE TABLE IF NOT EXISTS {$prefix}post_categories (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            slug VARCHAR(100) NOT NULL UNIQUE,
+            description TEXT,
+            parent_id INT UNSIGNED DEFAULT NULL,
+            sort_order INT DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_slug (slug),
+            INDEX idx_parent (parent_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Blog-Kategorien'",
+
+        'posts' => "CREATE TABLE IF NOT EXISTS {$prefix}posts (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            slug VARCHAR(255) NOT NULL UNIQUE,
+            content LONGTEXT,
+            excerpt TEXT,
+            featured_image VARCHAR(500),
+            status ENUM('draft','published','trash') NOT NULL DEFAULT 'draft',
+            author_id INT UNSIGNED NOT NULL,
+            category_id INT UNSIGNED DEFAULT NULL,
+            tags VARCHAR(500) COMMENT 'Kommagetrennte Tags',
+            views INT UNSIGNED DEFAULT 0,
+            allow_comments TINYINT(1) NOT NULL DEFAULT 1,
+            meta_title VARCHAR(255),
+            meta_description TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            published_at TIMESTAMP NULL,
+            INDEX idx_slug (slug),
+            INDEX idx_status (status),
+            INDEX idx_author (author_id),
+            INDEX idx_category (category_id),
+            INDEX idx_published (published_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Blog-Beiträge'"
     ];
     
     foreach ($tables as $name => $sql) {

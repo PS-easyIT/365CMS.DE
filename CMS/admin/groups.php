@@ -42,6 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $name        = trim($_POST['name']        ?? '');
             $slug        = trim($_POST['slug']        ?? '');
             $description = trim($_POST['description'] ?? '');
+            $role_id     = (int)($_POST['role_id']    ?? 0);
             $plan_id     = (int)($_POST['plan_id']    ?? 0);
             $is_active   = isset($_POST['is_active']) ? 1 : 0;
 
@@ -56,8 +57,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $messages[] = ['type' => 'error', 'text' => 'Slug bereits vergeben.'];
                 } else {
                     $db->execute(
-                        "INSERT INTO {$prefix}user_groups (name, slug, description, plan_id, is_active, created_at) VALUES (?,?,?,?,?,NOW())",
-                        [$name, $slug, $description, $plan_id ?: null, $is_active]
+                        "INSERT INTO {$prefix}user_groups (name, slug, description, role_id, plan_id, is_active, created_at) VALUES (?,?,?,?,?,?,NOW())",
+                        [$name, $slug, $description, $role_id ?: null, $plan_id ?: null, $is_active]
                     );
                     header('Location: ' . SITE_URL . '/admin/groups?tab=groups&msg=group_created');
                     exit;
@@ -74,6 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $gid         = (int)($_POST['group_id']   ?? 0);
             $name        = trim($_POST['name']        ?? '');
             $description = trim($_POST['description'] ?? '');
+            $role_id     = (int)($_POST['role_id']    ?? 0);
             $plan_id     = (int)($_POST['plan_id']    ?? 0);
             $is_active   = isset($_POST['is_active']) ? 1 : 0;
 
@@ -81,8 +83,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $messages[] = ['type' => 'error', 'text' => 'Ungültige Eingaben.'];
             } else {
                 $db->execute(
-                    "UPDATE {$prefix}user_groups SET name=?, description=?, plan_id=?, is_active=?, updated_at=NOW() WHERE id=?",
-                    [$name, $description, $plan_id ?: null, $is_active, $gid]
+                    "UPDATE {$prefix}user_groups SET name=?, description=?, role_id=?, plan_id=?, is_active=?, updated_at=NOW() WHERE id=?",
+                    [$name, $description, $role_id ?: null, $plan_id ?: null, $is_active, $gid]
                 );
                 header('Location: ' . SITE_URL . '/admin/groups?tab=groups&msg=group_updated');
                 exit;
@@ -246,7 +248,7 @@ $groups = $db->get_results(
      FROM {$prefix}user_groups g {$gWhere} ORDER BY g.name",
     $gParams
 );
-$roles   = $db->get_results("SELECT * FROM {$prefix}roles ORDER BY name");
+$roles   = $db->get_results("SELECT * FROM {$prefix}roles ORDER BY sort_order, display_name");
 $allCaps        = ['manage_posts','manage_pages','manage_users','manage_plugins',
                    'manage_themes','manage_settings','view_analytics','manage_media'];
 $capsLabels     = [
@@ -338,6 +340,18 @@ if ($editGroupId > 0):
                         <label>Plan-ID <span style="font-weight:400;color:#94a3b8;">(optional)</span></label>
                         <input type="number" name="plan_id" class="form-control" value="<?php echo (int)($grp->plan_id ?? 0) ?: ''; ?>" placeholder="0">
                     </div>
+                    <div class="form-group" style="grid-column:1/-1;">
+                        <label class="form-label">Vererbte Rolle <span style="font-weight:400;color:#94a3b8;">(optional)</span></label>
+                        <select name="role_id" class="form-control">
+                            <option value="">– Keine Rolle –</option>
+                            <?php foreach ($roles as $r): ?>
+                            <option value="<?php echo (int)$r->id; ?>" <?php echo ((int)($grp->role_id ?? 0) === (int)$r->id) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($r->display_name, ENT_QUOTES); ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <small class="form-text">Mitglieder dieser Gruppe erben diese Rolle automatisch.</small>
+                    </div>
                     <div class="form-group">
                         <label style="cursor:pointer;display:flex;align-items:center;gap:.4rem;margin-top:1.4rem;">
                             <input type="checkbox" name="is_active" <?php echo $grp->is_active ? 'checked' : ''; ?>> Aktiv
@@ -420,6 +434,19 @@ if ($editGroupId > 0):
                 <span>Slug: <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;"><?php echo htmlspecialchars($grp->slug, ENT_QUOTES); ?></code></span>
                 <span>Erstellt: <?php echo date('d.m.Y', strtotime($grp->created_at)); ?></span>
                 <span>Status: <span class="status-badge <?php echo $grp->is_active ? 'status-active' : 'status-inactive'; ?>"><?php echo $grp->is_active ? 'Aktiv' : 'Inaktiv'; ?></span></span>
+                <?php
+                    $assignedRole = null;
+                    if (!empty($grp->role_id)) {
+                        foreach ($roles as $r) {
+                            if ((int)$r->id === (int)$grp->role_id) { $assignedRole = $r; break; }
+                        }
+                    }
+                ?>
+                <?php if ($assignedRole): ?>
+                <span>Rolle: <strong style="color:#1e293b;"><?php echo htmlspecialchars($assignedRole->display_name, ENT_QUOTES); ?></strong></span>
+                <?php else: ?>
+                <span style="color:#cbd5e1;">Keine Rolle zugewiesen</span>
+                <?php endif; ?>
             </div>
             <div style="margin-top:1rem;">
                 <form method="post" action="<?php echo SITE_URL; ?>/admin/groups" id="deleteGroupForm">
@@ -517,6 +544,18 @@ function openMemberRemoveModal(formId, username) {
                         <input type="number" name="plan_id" class="form-control" placeholder="0" min="0">
                         <small class="form-text">Verknüpft diese Gruppe mit einem Abo-Paket.</small>
                     </div>
+                    <div class="form-group">
+                        <label class="form-label">Vererbte Rolle <span style="font-weight:400;color:#94a3b8;">(optional)</span></label>
+                        <select name="role_id" class="form-control">
+                            <option value="">– Keine Rolle –</option>
+                            <?php foreach ($roles as $r): ?>
+                            <option value="<?php echo (int)$r->id; ?>">
+                                <?php echo htmlspecialchars($r->display_name, ENT_QUOTES); ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <small class="form-text">Mitglieder dieser Gruppe erben diese Rolle automatisch.</small>
+                    </div>
                 </div>
             </div>
         </div>
@@ -575,6 +614,7 @@ function openMemberRemoveModal(formId, username) {
         <thead><tr>
             <th>Name</th>
             <th style="width:160px;">Slug</th>
+            <th style="width:130px;">Rolle</th>
             <th style="width:80px;text-align:center;">Mitglieder</th>
             <th style="width:90px;text-align:center;">Status</th>
             <th style="width:130px;text-align:right;"></th>
@@ -582,6 +622,8 @@ function openMemberRemoveModal(formId, username) {
         <tbody>
         <?php
         $grpColors = ['#2563eb','#7c3aed','#db2777','#059669','#d97706','#dc2626'];
+        $roleMap   = [];
+        foreach ($roles as $r) { $roleMap[(int)$r->id] = $r->display_name; }
         foreach ($groups as $g):
             $gc = $grpColors[abs(crc32($g->slug ?? $g->name)) % count($grpColors)];
         ?>
@@ -605,6 +647,13 @@ function openMemberRemoveModal(formId, username) {
                 </div>
             </td>
             <td style="font-size:.78rem;font-family:monospace;color:#64748b;"><?php echo htmlspecialchars($g->slug, ENT_QUOTES); ?></td>
+            <td style="font-size:.78rem;">
+                <?php if (!empty($g->role_id) && isset($roleMap[(int)$g->role_id])): ?>
+                <span style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;padding:1px 7px;border-radius:20px;font-size:.72rem;font-weight:600;">🔑 <?php echo htmlspecialchars($roleMap[(int)$g->role_id], ENT_QUOTES); ?></span>
+                <?php else: ?>
+                <span style="color:#cbd5e1;font-size:.74rem;">Keine</span>
+                <?php endif; ?>
+            </td>
             <td style="text-align:center;font-size:.8rem;color:#64748b;"><?php echo (int)($g->member_count ?? 0); ?></td>
             <td style="text-align:center;">
                 <span class="status-badge <?php echo $g->is_active ? 'active' : 'inactive'; ?>">
