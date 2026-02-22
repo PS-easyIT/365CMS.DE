@@ -509,7 +509,7 @@ function getAdminMenuItems(string $currentPage = ''): array
                 ],
                 [
                     'slug'   => 'backup',
-                    'label'  => 'Backup',
+                    'label'  => 'Backup & Restore',
                     'icon'   => '💾',
                     'url'    => '/admin/backup',
                     'active' => _adminNavIsActive('/admin/backup') || $currentPage === 'backup',

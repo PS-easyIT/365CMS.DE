@@ -59,7 +59,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     'timezone' => $_POST['timezone'] ?? 'Europe/Berlin',
                     'date_format' => $_POST['date_format'] ?? 'd.m.Y',
                     'time_format' => $_POST['time_format'] ?? 'H:i',
-                    'permalink_structure' => $_POST['permalink_structure'] ?? '/%postname%/',
                     'legal_page_id' => intval($_POST['legal_page_id'] ?? 0),
                     'privacy_page_id' => intval($_POST['privacy_page_id'] ?? 0),
                 ];
@@ -106,7 +105,7 @@ $settingKeys = [
     'setting_site_name', 'setting_site_description', 'setting_admin_email',
     'setting_maintenance_mode', 'setting_allow_registration', 'setting_default_role',
     'setting_posts_per_page', 'setting_home_page_id',
-    'setting_timezone', 'setting_date_format', 'setting_time_format', 'setting_permalink_structure',
+    'setting_timezone', 'setting_date_format', 'setting_time_format',
     'setting_legal_page_id', 'setting_privacy_page_id'
 ];
 
@@ -128,7 +127,6 @@ $defaults = [
     'setting_date_format' => 'd.m.Y',
     'setting_time_format' => 'H:i',
     'setting_default_role' => 'subscriber',
-    'setting_permalink_structure' => '/%postname%/'
 ];
 
 foreach ($defaults as $key => $val) {
@@ -137,6 +135,11 @@ foreach ($defaults as $key => $val) {
 
 // Fetch Pages for Dropdowns
 $pages = $db->execute("SELECT id as ID, title as post_title FROM {$db->getPrefix()}pages WHERE status = 'published' ORDER BY title ASC")->fetchAll();
+
+// Fetch Roles from RBAC DB
+$availableRoles = $db->execute(
+    "SELECT name, display_name FROM {$db->getPrefix()}roles ORDER BY sort_order ASC, display_name ASC"
+)->fetchAll();
 
 // Generate CSRF token
 $csrfToken = $security->generateToken('admin_settings');
@@ -373,21 +376,11 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         <small class="form-text">Wähle eine statische Seite als Startseite aus.</small>
                     </div>
 
-                    <div class="settings-two-col">
-                        <div class="form-group">
-                            <label class="form-label" for="posts_per_page">Einträge pro Seite</label>
-                            <input type="number" id="posts_per_page" name="posts_per_page"
-                                   value="<?php echo htmlspecialchars($currentSettings['setting_posts_per_page']); ?>"
-                                   class="form-control" min="1" max="100">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" for="permalink_structure">Permalink-Struktur</label>
-                            <select id="permalink_structure" name="permalink_structure" class="form-control">
-                                <option value="/?p=%post_id%" <?php echo ($currentSettings['setting_permalink_structure'] == '/?p=%post_id%') ? 'selected' : ''; ?>>Einfach (/?p=123)</option>
-                                <option value="/%postname%/" <?php echo ($currentSettings['setting_permalink_structure'] == '/%postname%/') ? 'selected' : ''; ?>>Beitragsname (/beispiel/)</option>
-                                <option value="/%year%/%monthnum%/%postname%/" <?php echo ($currentSettings['setting_permalink_structure'] == '/%year%/%monthnum%/%postname%/') ? 'selected' : ''; ?>>Monat &amp; Name (/2026/02/beitrag/)</option>
-                            </select>
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label" for="posts_per_page">Einträge pro Seite</label>
+                        <input type="number" id="posts_per_page" name="posts_per_page"
+                               value="<?php echo htmlspecialchars($currentSettings['setting_posts_per_page']); ?>"
+                               class="form-control" min="1" max="100">
                     </div>
                 </div>
 
@@ -420,11 +413,12 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     <div class="form-group" style="margin-top:1.5rem;">
                         <label class="form-label" for="default_role">Standard-Rolle für neue Benutzer</label>
                         <select id="default_role" name="default_role" class="form-control">
-                            <option value="subscriber" <?php echo ($currentSettings['setting_default_role'] == 'subscriber') ? 'selected' : ''; ?>>Abonnent</option>
-                            <option value="contributor" <?php echo ($currentSettings['setting_default_role'] == 'contributor') ? 'selected' : ''; ?>>Mitarbeiter</option>
-                            <option value="author" <?php echo ($currentSettings['setting_default_role'] == 'author') ? 'selected' : ''; ?>>Autor</option>
-                            <option value="editor" <?php echo ($currentSettings['setting_default_role'] == 'editor') ? 'selected' : ''; ?>>Redakteur</option>
-                            <option value="admin" <?php echo ($currentSettings['setting_default_role'] == 'admin') ? 'selected' : ''; ?>>Administrator</option>
+                            <?php foreach ($availableRoles as $role): ?>
+                                <option value="<?php echo htmlspecialchars($role->name, ENT_QUOTES); ?>"
+                                    <?php echo ($currentSettings['setting_default_role'] === $role->name) ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($role->display_name); ?>
+                                </option>
+                            <?php endforeach; ?>
                         </select>
                         <small class="form-text">Rolle die neu registrierten Benutzern automatisch zugewiesen wird.</small>
                     </div>
