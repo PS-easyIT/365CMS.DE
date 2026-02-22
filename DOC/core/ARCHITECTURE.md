@@ -279,4 +279,4 @@ Business-Logik erweitern durch eigene Service-Klassen:
 
 ---
 
-*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*
+*Letzte Aktualisierung: 22. Februar 2026 – Version 1.8.0*
