@@ -273,25 +273,6 @@ Lest diese Dokumente in dieser Reihenfolge:
 
 ---
 
-## 📊 Dokumentations-Matrix
-
-| Dokument | Zielgruppe | Umfang | Schwierigkeit | Priorität |
-|----------|------------|--------|---------------|-----------|
-| README.md | Alle | Quick Start | Einfach | 🔴 Hoch |
-| INSTALLATION.md | Admins | Setup | Mittel | 🔴 Hoch |
-| STATUS.md | PM/Devs | Übersicht | Einfach | 🟡 Mittel |
-| ARCHITECTURE.md | Devs/Architekten | Architektur | Hoch | 🟡 Mittel |
-| DATABASE-SCHEMA.md | Devs/DBA | Datenbank | Hoch | 🟡 Mittel |
-| HOOKS-REFERENCE.md | Plugin-Devs | Hooks | Mittel-Hoch | 🟡 Mittel |
-| workflow/PLUGIN-REGISTRATION-WORKFLOW.MD | Devs/PM/BA | Workflow | Mittel | 🟡 Mittel |
-| PLUGIN-DEVELOPMENT.md | Devs | Plugin | Mittel-Hoch | 🟡 Mittel |
-| THEME-DEVELOPMENT.md | Devs/Designer | Theme | Mittel | 🟡 Mittel |
-| API-REFERENCE.md | Devs | API | Hoch | 🟢 Niedrig |
-| SECURITY.md | Security/Devs | Security | Hoch | 🔴 Hoch |
-| CHANGELOG.md | Alle | Historie | Einfach | 🟢 Niedrig |
-
----
-
 ## 🔍 Schnellsuche
 
 ### Nach Thema

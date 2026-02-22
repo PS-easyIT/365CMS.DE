@@ -622,42 +622,15 @@ Vollständiges Schema: [doc/DATABASE-SCHEMA.md](doc/DATABASE-SCHEMA.md)
 - ✅ Subscription- und Checkout-System (v1.3.5)
 - ✅ Blog-Routen und Datenbankschema v3 (v1.3.1–v1.3.2)
 
-### v1.1.x – v1.2.x (19.–20. Februar 2026) — Member & Media
-- ✅ Member-Medien-Management und Media-Proxy (v1.1.9, v1.2.0–v1.2.1)
-- ✅ Expert-Management, Events, Speakers-Plugin (v1.1.4–v1.1.6)
-- ✅ Cookie-Scanning-Funktionalität (v1.1.1)
-- ✅ Logo-Upload und 4 Dashboard-Widgets (v1.1.8)
-
-### v1.0.x (18.–19. Februar 2026) — AJAX-Architektur & Stabilisierung
-- ✅ Vollständiger Admin-Bereich mit AJAX-Architektur für 12 Dateien (v1.0.4)
-- ✅ Core-Bereich vollständig dokumentiert (v1.0.3)
-- ✅ Mehrere kritische Bugfixes und Sicherheits-Fixes (v1.0.0–v1.0.6)
-
-### v0.8.x – v0.9.x (18. Februar 2026) — Admin-Neugestaltung
-- ✅ Komplett neuer Admin-Bereich – Modern & Friendly (v0.9.1)
-- ✅ Member-Profil, Security, Subscription-Views (v0.9.5)
-- ✅ KRITISCH: 7 Sicherheitsprobleme behoben (v0.8.0)
-- ✅ Dashboard mit AJAX-Architektur (v0.8.8)
-
-### v0.5.x – v0.7.x (15.–17. Februar 2026) — CMSv2 Aufbau (intern)
-- ✅ CMSv2 Initial: Core-System mit Hooks, Datenbank, Auth, Routing (v0.5.0)
-- ✅ Sicherheits-Enhancements: MFA, OAuth, Social Login, GDPR (v0.7.0)
-- ✅ E-Mail-System, Job-Queue, PWA-Support (v0.7.1–v0.7.5)
-- ✅ LiteSpeed-Cache-Integration (v0.7.2)
-
-### v0.1.x – v0.4.x (2025) — CMSv1 · Interne Entwicklung
-- Initiales CMS: Core, Auth, DB, Theme, Plugin-System
-- Nicht öffentlich verfügbar
-
 ## 📄 Lizenz
 
-Freie Verwendung für private Projekte.
-Kostenpflichtig für Geschäftliche Projekte.
+Freie Verwendung für private und geschäftliche Projekte **mit Copyright-Hinweis**.
+Nutzung **ohne Copyright-Hinweis** ist kostenpflichtig (Privat: einmalig 50,00 € · Geschäftlich: Preis auf Anfrage).
 
 ## 👨‍💻 Support & Community
 
 - **Issue Tracker:** GitHub Issues
-- **Email:** support@365cms.de
+- **Email:** info@phinit.de
 
 ## 🙏 Credits
 
