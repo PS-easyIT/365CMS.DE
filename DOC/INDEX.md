@@ -79,24 +79,50 @@
 
 ---
 
-## feature/ – Feature-Planung (intern)
+## feature/ – Feature-Planung & Status (intern)
 
 | Datei | Beschreibung |
 |-------|-------------|
 | [MARKETPLACE-KONZEPT.md](feature/MARKETPLACE-KONZEPT.md) | Marketplace-Feature-Konzept |
-| [PROJEKT-STATUS.md](feature/PROJEKT-STATUS.md) | Projekt-Status & Roadmap |
+| [PROJEKT-STATUS.md](feature/PROJEKT-STATUS.md) | Projekt-Gesamtstatus & Ampel-Übersicht |
+| [ROADMAP_FEB2026.md](feature/ROADMAP_FEB2026.md) | Konsolidierte Roadmap (81 Items: Critical→Low) |
+| [CORE-CMS-FEATURES.md](feature/CORE-CMS-FEATURES.md) | Vollständige Core-Feature-Liste mit Status |
+| [PLUGIN-LIST.MD](feature/PLUGIN-LIST.MD) | Alle 60 geplanten Plugins mit Details |
+| [NEW-PLUGIN-CONCEPTS.md](feature/NEW-PLUGIN-CONCEPTS.md) | Neue Plugin-Ideen (Newsletter, Forum, Shop, CRM…) |
 
 ---
 
-## audit/ – Audit-Berichte
+## audits/ – Audit-Berichte 2026
 
 | Datei | Beschreibung |
 |-------|-------------|
-| [PERFORMANCE-AUDIT.md](audit/PERFORMANCE-AUDIT.md) | Performance-Analyse für `/CMS` |
-| [SECURITY-AUDIT.md](audit/SECURITY-AUDIT.md) | Security-Analyse für `/CMS` |
-| [CORE-AUDIT.md](audit/CORE-AUDIT.md) | Core-Architektur-Audit für `/CMS` |
-| [FEATURE-AUDIT.md](audit/FEATURE-AUDIT.md) | Feature- und Produktreife-Audit für `/CMS` |
-| [THEME-AUDIT.md](audit/THEME-AUDIT.md) | Theme- und Designsystem-Audit für `/CMS` |
+| [PERFORMANCE-AUDIT.md](audits/PERFORMANCE-AUDIT.md) | Performance-Analyse (Score: 5.8/10) |
+| [SECURITY-AUDIT.md](audits/SECURITY-AUDIT.md) | Security-Analyse (Score: 5.2/10, 7 P1-Findings) |
+| [CORE-AUDIT.md](audits/CORE-AUDIT.md) | Core-Architektur-Audit (Score: 5.4/10) |
+| [FEATURE-AUDIT.md](audits/FEATURE-AUDIT.md) | Feature- und Produktreife-Audit (Score: 6.1/10) |
+| [PLUGIN-AUDIT.md](audits/PLUGIN-AUDIT.md) | Plugin-System-Audit (Score: 5.1/10) |
+| [THEME-AUDIT.md](audits/THEME-AUDIT.md) | Theme-System-Audit (Score: 4.7/10) |
+
+---
+
+## workflow/ – Operative Workflows
+
+| Datei | Beschreibung |
+|-------|-------------|
+| [PLUGIN-REGISTRATION-WORKFLOW.MD](workflow/PLUGIN-REGISTRATION-WORKFLOW.MD) | Plugin-Registrierung & Member-Dashboard (1022 Zeilen) |
+| [SECURITY-HARDENING-WORKFLOW.md](workflow/SECURITY-HARDENING-WORKFLOW.md) | System-Härtung Phase 0–3 |
+| [PLUGIN-DEVELOPMENT-WORKFLOW.md](workflow/PLUGIN-DEVELOPMENT-WORKFLOW.md) | Plugin von Null bis Deployment |
+| [THEME-DEVELOPMENT-WORKFLOW.md](workflow/THEME-DEVELOPMENT-WORKFLOW.md) | Theme-Entwicklung Schritt für Schritt |
+| [CONTENT-MANAGEMENT-WORKFLOW.md](workflow/CONTENT-MANAGEMENT-WORKFLOW.md) | Inhalte erstellen, SEO, Publish-Prozess |
+| [MEDIA-UPLOAD-WORKFLOW.md](workflow/MEDIA-UPLOAD-WORKFLOW.md) | Upload-Pipeline: MIME, EXIF, WebP |
+| [USER-MANAGEMENT-WORKFLOW.md](workflow/USER-MANAGEMENT-WORKFLOW.md) | Benutzer, Rollen, RBAC, DSGVO |
+| [BACKUP-RESTORE-WORKFLOW.md](workflow/BACKUP-RESTORE-WORKFLOW.md) | Backup erstellen, Restore, Rollback |
+| [UPDATE-DEPLOYMENT-WORKFLOW.md](workflow/UPDATE-DEPLOYMENT-WORKFLOW.md) | CMS-Update, SHA-256-Verifikation, Deployment |
+| [MARKETPLACE-WORKFLOW.md](workflow/MARKETPLACE-WORKFLOW.md) | Plugin/Theme aus Marketplace installieren |
+| [API-INTEGRATION-WORKFLOW.md](workflow/API-INTEGRATION-WORKFLOW.md) | REST-API, Webhooks, externe Integrationen |
+| **Plugin-Konzept-Workflows** | | 
+| [NEWSLETTER-PLUGIN-WORKFLOW.md](workflow/NEWSLETTER-PLUGIN-WORKFLOW.md) | Double-Opt-In, Kampagnen, DSGVO |
+| [FORUM-PLUGIN-WORKFLOW.md](workflow/FORUM-PLUGIN-WORKFLOW.md) | Threads, Moderation, Volltext-Suche |
 
 ---
 
@@ -108,9 +134,20 @@
 | Admin-Login | [admin/README.md#1-zugang--login](admin/README.md) |
 | Neuen User anlegen | [admin/GUIDE.md](admin/GUIDE.md) |
 | Plugin 10min Quickstart | [plugins/GUIDE.md](plugins/GUIDE.md) |
-| Vollständiger Plugin-Guide | [plugins/PLUGIN-DEVELOPMENT.md](plugins/PLUGIN-DEVELOPMENT.md) |
-| Theme erstellen | [theme/THEME-DEVELOPMENT.md](theme/THEME-DEVELOPMENT.md) |
+| Plugin entwickeln (vollständig) | [workflow/PLUGIN-DEVELOPMENT-WORKFLOW.md](workflow/PLUGIN-DEVELOPMENT-WORKFLOW.md) |
+| Theme erstellen | [workflow/THEME-DEVELOPMENT-WORKFLOW.md](workflow/THEME-DEVELOPMENT-WORKFLOW.md) |
 | Hooks nutzen | [core/HOOKS-REFERENCE.md](core/HOOKS-REFERENCE.md) |
 | DB-Queries schreiben | [core/CORE-CLASSES.md](core/CORE-CLASSES.md#2-database) |
 | Sicherheit (CSRF/XSS) | [core/SECURITY.md](core/SECURITY.md) |
+| System härten (Produktion) | [workflow/SECURITY-HARDENING-WORKFLOW.md](workflow/SECURITY-HARDENING-WORKFLOW.md) |
+| Backup erstellen | [workflow/BACKUP-RESTORE-WORKFLOW.md](workflow/BACKUP-RESTORE-WORKFLOW.md) |
+| CMS updaten | [workflow/UPDATE-DEPLOYMENT-WORKFLOW.md](workflow/UPDATE-DEPLOYMENT-WORKFLOW.md) |
+| Medien hochladen (sicher) | [workflow/MEDIA-UPLOAD-WORKFLOW.md](workflow/MEDIA-UPLOAD-WORKFLOW.md) |
+| Benutzer verwalten | [workflow/USER-MANAGEMENT-WORKFLOW.md](workflow/USER-MANAGEMENT-WORKFLOW.md) |
+| Plugin aus Marketplace | [workflow/MARKETPLACE-WORKFLOW.md](workflow/MARKETPLACE-WORKFLOW.md) |
+| API-Endpunkt registrieren | [workflow/API-INTEGRATION-WORKFLOW.md](workflow/API-INTEGRATION-WORKFLOW.md) |
+| Projektstatus prüfen | [feature/PROJEKT-STATUS.md](feature/PROJEKT-STATUS.md) |
+| Roadmap lesen | [feature/ROADMAP_FEB2026.md](feature/ROADMAP_FEB2026.md) |
+| Alle Features im Überblick | [feature/CORE-CMS-FEATURES.md](feature/CORE-CMS-FEATURES.md) |
+| Neue Plugin-Ideen | [feature/NEW-PLUGIN-CONCEPTS.md](feature/NEW-PLUGIN-CONCEPTS.md) |
 | Systemstatus prüfen | [core/STATUS.md](core/STATUS.md) |
