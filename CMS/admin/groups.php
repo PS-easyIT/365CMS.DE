@@ -234,11 +234,19 @@ if (isset($_GET['msg'])) {
 }
 
 // ── Data ──────────────────────────────────────────────────────────────────────
-$groups         = $db->get_results(
+$search  = trim($_GET['search'] ?? '');
+$gWhere  = '';
+$gParams = [];
+if (!empty($search)) {
+    $gWhere  = 'WHERE (g.name LIKE ? OR g.slug LIKE ? OR g.description LIKE ?)';
+    $gParams = ["%{$search}%", "%{$search}%", "%{$search}%"];
+}
+$groups = $db->get_results(
     "SELECT g.*, (SELECT COUNT(*) FROM {$prefix}user_group_members m WHERE m.group_id=g.id) AS member_count
-     FROM {$prefix}user_groups g ORDER BY g.name"
+     FROM {$prefix}user_groups g {$gWhere} ORDER BY g.name",
+    $gParams
 );
-$roles          = $db->get_results("SELECT * FROM {$prefix}roles ORDER BY name");
+$roles   = $db->get_results("SELECT * FROM {$prefix}roles ORDER BY name");
 $allCaps        = ['manage_posts','manage_pages','manage_users','manage_plugins',
                    'manage_themes','manage_settings','view_analytics','manage_media'];
 $capsLabels     = [
@@ -256,7 +264,7 @@ $csrfGroup = $security->generateToken('group_management');
 $csrfRole  = $security->generateToken('role_management');
 
 // Detail-Ansicht
-$viewMode     = $_GET['view'] ?? 'list';
+$viewMode     = in_array($_GET['view'] ?? '', ['list', 'detail', 'new']) ? ($_GET['view'] ?? 'list') : 'list';
 $detailId     = (int)($_GET['id'] ?? 0);
 $editGroupId  = ($viewMode === 'detail' && $detailId > 0) ? $detailId : 0;
 $editRoleId   = (int)($_GET['edit_role'] ?? 0);
@@ -422,38 +430,122 @@ if ($editGroupId > 0):
     </div>
 </div>
 
+<?php elseif ($viewMode === 'new'): // Neue Gruppe anlegen ?>
+
+<div class="posts-header">
+    <h2 style="margin:0;">➕ Neue Gruppe anlegen</h2>
+    <a href="<?php echo SITE_URL; ?>/admin/groups?tab=groups" class="btn-sm btn-secondary">← Alle Gruppen</a>
+</div>
+
+<form method="post" action="<?php echo SITE_URL; ?>/admin/groups?tab=groups">
+    <input type="hidden" name="_csrf"   value="<?php echo $csrfGroup; ?>">
+    <input type="hidden" name="_action" value="create_group">
+
+    <div class="post-edit-layout">
+        <div class="post-edit-main">
+            <div class="post-card">
+                <h3>📂 Gruppendetails</h3>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+                    <div class="field-group">
+                        <label>Name *</label>
+                        <input type="text" name="name" required placeholder="z.B. Premium-Mitglieder"
+                               oninput="this.form.slug.value=this.value.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')">
+                    </div>
+                    <div class="field-group">
+                        <label>Slug <span style="font-weight:400;color:#94a3b8;">(auto)</span></label>
+                        <input type="text" name="slug" placeholder="premium-mitglieder" pattern="[a-z0-9\-]+">
+                    </div>
+                    <div class="field-group" style="grid-column:1/-1;">
+                        <label>Beschreibung</label>
+                        <textarea name="description" placeholder="Optionale Beschreibung…"></textarea>
+                    </div>
+                    <div class="field-group">
+                        <label>Plan-ID <span style="font-weight:400;color:#94a3b8;">(optional)</span></label>
+                        <input type="number" name="plan_id" placeholder="0" min="0">
+                        <div class="field-hint">Verknüpft diese Gruppe mit einem Abo-Paket.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="post-edit-side">
+            <div class="post-card">
+                <h3>⚙️ Status</h3>
+                <div class="field-group">
+                    <label style="cursor:pointer;display:flex;align-items:center;gap:.4rem;">
+                        <input type="checkbox" name="is_active" checked> Gruppe aktiv
+                    </label>
+                    <div class="field-hint">Inaktive Gruppen sind für Members nicht sichtbar.</div>
+                </div>
+                <div style="margin-top:1rem;">
+                    <button type="submit" class="btn-sm btn-primary btn-lg" style="width:100%;">✅ Gruppe erstellen</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
 <?php else: // Gruppen-Liste ?>
 
 <div class="posts-header">
-    <h2 style="margin:0;">👥 Gruppen</h2>
+    <h2 style="margin:0;">� Gruppen</h2>
+    <a href="<?php echo SITE_URL; ?>/admin/groups?tab=groups&view=new" class="btn-sm btn-primary">➕ Neue Gruppe</a>
 </div>
+
+<form method="get" action="<?php echo SITE_URL; ?>/admin/groups">
+    <input type="hidden" name="tab" value="groups">
+    <div class="posts-toolbar">
+        <div class="posts-search">
+            <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Suche nach Name oder Slug…">
+            <button type="submit">🔍</button>
+        </div>
+        <?php if ($search): ?>
+        <a href="<?php echo SITE_URL; ?>/admin/groups?tab=groups" class="btn-sm btn-secondary">✕ Filter löschen</a>
+        <?php endif; ?>
+    </div>
+</form>
 
 <?php if (empty($groups)): ?>
 <div class="post-card" style="text-align:center;padding:3rem;color:#94a3b8;">
-    <div style="font-size:3rem;margin-bottom:1rem;">👥</div>
-    <p>Noch keine Gruppen vorhanden.</p>
+    <div style="font-size:3rem;margin-bottom:1rem;">📂</div>
+    <p><?php echo $search
+        ? 'Keine Treffer für <strong>' . htmlspecialchars($search, ENT_QUOTES) . '</strong>'
+        : 'Noch keine Gruppen vorhanden.'; ?></p>
 </div>
 <?php else: ?>
-<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:auto;margin-bottom:1.5rem;">
+<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:auto;">
     <table class="posts-table">
         <thead><tr>
             <th>Name</th>
-            <th style="width:130px;">Slug</th>
+            <th style="width:160px;">Slug</th>
             <th style="width:80px;text-align:center;">Mitglieder</th>
             <th style="width:90px;text-align:center;">Status</th>
             <th style="width:130px;text-align:right;"></th>
         </tr></thead>
         <tbody>
-        <?php foreach ($groups as $g): ?>
+        <?php
+        $grpColors = ['#2563eb','#7c3aed','#db2777','#059669','#d97706','#dc2626'];
+        foreach ($groups as $g):
+            $gc = $grpColors[abs(crc32($g->slug ?? $g->name)) % count($grpColors)];
+        ?>
         <tr>
             <td>
-                <a href="<?php echo SITE_URL; ?>/admin/groups?tab=groups&view=detail&id=<?php echo (int)$g->id; ?>"
-                   style="font-weight:600;color:#1e293b;text-decoration:none;">
-                    <?php echo htmlspecialchars($g->name, ENT_QUOTES); ?>
-                </a>
-                <?php if (!empty($g->description)): ?>
-                <div style="font-size:.74rem;color:#94a3b8;"><?php echo htmlspecialchars(substr($g->description, 0, 60), ENT_QUOTES) . (strlen($g->description) > 60 ? '…' : ''); ?></div>
-                <?php endif; ?>
+                <div style="display:flex;align-items:center;gap:.6rem;">
+                    <div style="width:32px;height:32px;border-radius:8px;background:<?php echo $gc; ?>;
+                                display:flex;align-items:center;justify-content:center;
+                                color:#fff;font-size:.85rem;font-weight:700;flex-shrink:0;">
+                        <?php echo strtoupper(substr($g->name, 0, 1)); ?>
+                    </div>
+                    <div>
+                        <a href="<?php echo SITE_URL; ?>/admin/groups?tab=groups&view=detail&id=<?php echo (int)$g->id; ?>"
+                           style="font-weight:600;color:#1e293b;text-decoration:none;">
+                            <?php echo htmlspecialchars($g->name, ENT_QUOTES); ?>
+                        </a>
+                        <?php if (!empty($g->description)): ?>
+                        <div style="font-size:.74rem;color:#94a3b8;"><?php echo htmlspecialchars(mb_substr($g->description, 0, 70), ENT_QUOTES) . (mb_strlen($g->description) > 70 ? '…' : ''); ?></div>
+                        <?php endif; ?>
+                    </div>
+                </div>
             </td>
             <td style="font-size:.78rem;font-family:monospace;color:#64748b;"><?php echo htmlspecialchars($g->slug, ENT_QUOTES); ?></td>
             <td style="text-align:center;font-size:.8rem;color:#64748b;"><?php echo (int)($g->member_count ?? 0); ?></td>
@@ -464,7 +556,9 @@ if ($editGroupId > 0):
             </td>
             <td style="text-align:right;white-space:nowrap;">
                 <a href="<?php echo SITE_URL; ?>/admin/groups?tab=groups&view=detail&id=<?php echo (int)$g->id; ?>"
-                   class="btn-sm btn-secondary">✏️ Details</a>
+                   class="btn-sm btn-secondary" title="Details &amp; Bearbeiten">✏️</a>
+                <button type="button" class="btn-sm btn-danger" title="Löschen"
+                        onclick="deleteGroup(<?php echo (int)$g->id; ?>, '<?php echo htmlspecialchars(addslashes($g->name), ENT_QUOTES); ?>')">🗑️</button>
             </td>
         </tr>
         <?php endforeach; ?>
@@ -473,41 +567,22 @@ if ($editGroupId > 0):
 </div>
 <?php endif; ?>
 
-<!-- Neue Gruppe erstellen -->
-<div class="post-card">
-    <h3>➕ Neue Gruppe erstellen</h3>
-    <form method="post" action="<?php echo SITE_URL; ?>/admin/groups?tab=groups">
-        <input type="hidden" name="_csrf"   value="<?php echo $csrfGroup; ?>">
-        <input type="hidden" name="_action" value="create_group">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
-            <div class="field-group">
-                <label>Name *</label>
-                <input type="text" name="name" required placeholder="z.B. Premium-Mitglieder"
-                       oninput="this.form.slug.value=this.value.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')">
-            </div>
-            <div class="field-group">
-                <label>Slug <span style="font-weight:400;color:#94a3b8;">(auto)</span></label>
-                <input type="text" name="slug" placeholder="premium-mitglieder" pattern="[a-z0-9\-]+">
-            </div>
-            <div class="field-group" style="grid-column:1/-1;">
-                <label>Beschreibung</label>
-                <textarea name="description" placeholder="Optionale Beschreibung…"></textarea>
-            </div>
-            <div class="field-group">
-                <label>Plan-ID <span style="font-weight:400;color:#94a3b8;">(optional)</span></label>
-                <input type="number" name="plan_id" placeholder="0" min="0">
-            </div>
-            <div class="field-group">
-                <label style="cursor:pointer;display:flex;align-items:center;gap:.4rem;margin-top:1.4rem;">
-                    <input type="checkbox" name="is_active" checked> Aktiv
-                </label>
-            </div>
-        </div>
-        <button type="submit" class="btn-sm btn-primary">✅ Gruppe erstellen</button>
-    </form>
-</div>
+<form id="deleteGroupForm" method="post" action="<?php echo SITE_URL; ?>/admin/groups?tab=groups" style="display:none;">
+    <input type="hidden" name="_csrf"    value="<?php echo $csrfGroup; ?>">
+    <input type="hidden" name="_action"  value="delete_group">
+    <input type="hidden" name="group_id" id="deleteGroupId" value="">
+</form>
 
-<?php endif; // detail vs. list ?>
+<script>
+function deleteGroup(id, name) {
+    if (confirm('Gruppe "' + name + '" und alle Mitgliedschaften wirklich löschen?')) {
+        document.getElementById('deleteGroupId').value = id;
+        document.getElementById('deleteGroupForm').submit();
+    }
+}
+</script>
+
+<?php endif; // detail vs. list / new ?>
 
 <?php elseif ($activeTab === 'roles'): ?>
 <?php /* ================================================================

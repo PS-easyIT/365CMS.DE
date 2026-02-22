@@ -2,7 +2,7 @@
 /**
  * Admin: Member Dashboard – Verwaltung
  *
- * URL: /admin/design-dashboard-widgets
+ * URL: /admin/member-dashboard
  * Tabs: plugins | widgets | design | settings
  *
  *   plugins  – Welche CMS-Plugins im Member-Dashboard sichtbar sind
@@ -314,40 +314,199 @@ foreach (array_keys($sectionLabels) as $s) {
 
 $csrfToken = $security->generateToken('dashboard_widgets');
 require_once __DIR__ . '/partials/admin-menu.php';
+renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Member Dashboard – Verwaltung &bull; <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=202602">
-    <?php renderAdminSidebarStyles(); ?>
-</head>
-<body class="admin-body">
 
-    <?php renderAdminSidebar('design-dashboard-widgets'); ?>
+<style>
+/* ── Member Dashboard – Page Layout ───────────────────────────────────────── */
+.md-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 1.5rem 1.75rem;
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4f46e5 100%);
+    border-radius: 12px;
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(79,70,229,.35);
+}
+.md-page-header-left { display: flex; align-items: center; gap: 1rem; }
+.md-page-header-icon {
+    width: 52px; height: 52px;
+    background: rgba(255,255,255,.15);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.625rem;
+    backdrop-filter: blur(6px);
+    flex-shrink: 0;
+}
+.md-page-header h2 {
+    margin: 0; font-size: 1.375rem; font-weight: 700; color: #fff;
+    letter-spacing: -.015em;
+}
+.md-page-header p {
+    margin: .2rem 0 0; font-size: .8125rem; color: rgba(255,255,255,.7);
+}
+.md-preview-btn {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .5rem 1.1rem;
+    background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.25);
+    border-radius: 8px;
+    color: #fff;
+    font-size: .8125rem; font-weight: 600;
+    text-decoration: none;
+    transition: background .15s, border-color .15s;
+    white-space: nowrap;
+    backdrop-filter: blur(6px);
+}
+.md-preview-btn:hover {
+    background: rgba(255,255,255,.25);
+    border-color: rgba(255,255,255,.4);
+    color: #fff;
+}
 
-    <div class="admin-content">
+/* ── Tab Navigation ────────────────────────────────────────────────────────── */
+.md-nav {
+    display: flex;
+    gap: .5rem;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: .375rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+.md-nav-tab {
+    display: flex;
+    align-items: center;
+    gap: .625rem;
+    padding: .625rem 1.1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #64748b;
+    font-size: .875rem;
+    font-weight: 500;
+    transition: background .15s, color .15s, box-shadow .15s;
+    white-space: nowrap;
+    flex: 1 1 auto;
+    min-width: 0;
+    border: 1px solid transparent;
+}
+.md-nav-tab:hover:not(.active) {
+    background: #fff;
+    color: #334155;
+    border-color: #e2e8f0;
+}
+.md-nav-tab.active {
+    background: #fff;
+    color: #4f46e5;
+    border-color: #c7d2fe;
+    box-shadow: 0 1px 6px rgba(79,70,229,.12);
+    font-weight: 600;
+}
+.md-nav-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    background: #e2e8f0;
+    flex-shrink: 0;
+    transition: background .15s;
+}
+.md-nav-tab.active .md-nav-icon {
+    background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+}
+.md-nav-text { display: flex; flex-direction: column; min-width: 0; }
+.md-nav-label { font-size: .875rem; line-height: 1.2; white-space: nowrap; }
+.md-nav-desc {
+    font-size: .7rem;
+    color: #94a3b8;
+    font-weight: 400;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+.md-nav-tab.active .md-nav-desc { color: #818cf8; }
 
-        <div class="admin-page-header">
-            <div>
-                <h1>🧩 Member Dashboard – Verwaltung</h1>
-                <p class="admin-page-subtitle">
-                    Plugins, Widgets, Design, Layout und Einstellungen des Member-Bereichs konfigurieren.
-                </p>
-            </div>
-            <a href="<?php echo SITE_URL; ?>/member" target="_blank" class="dw-live-link">
-                👁️ Dashboard ansehen
-            </a>
+/* ── Panel ─────────────────────────────────────────────────────────────────── */
+.dw-panel { display: none; }
+.dw-panel.active { display: block; }
+
+/* Design-tab save button */
+.btn-save-dw {
+    display: inline-flex; align-items: center; gap: .4rem;
+    margin-top: 1.25rem;
+    padding: .55rem 1.4rem;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: #fff; border: none; border-radius: 8px;
+    font-size: .875rem; font-weight: 600; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(79,70,229,.3);
+    transition: opacity .15s;
+}
+.btn-save-dw:hover { opacity: .9; }
+</style>
+
+<!-- ── Page Header ────────────────────────────────────────────────────────── -->
+<div class="md-page-header">
+    <div class="md-page-header-left">
+        <div class="md-page-header-icon">🧩</div>
+        <div>
+            <h2>Member Dashboard</h2>
+            <p>Plugins, Widgets, Design &amp; Einstellungen des Mitgliederbereichs</p>
         </div>
+    </div>
+    <a href="<?php echo SITE_URL; ?>/member" target="_blank" class="md-preview-btn">
+        👁️ Live-Ansicht
+    </a>
+</div>
 
-        <?php foreach ($messages as $msg): ?>
-        <div class="admin-alert-<?php echo $msg['type']; ?>">
-            <?php echo htmlspecialchars($msg['text']); ?>
-        </div>
-        <?php endforeach; ?>
+<?php foreach ($messages as $msg):
+    $cls = $msg['type'] === 'success' ? 'notice-success' : 'notice-error';
+?>
+<div class="notice <?php echo $cls; ?>"><?php echo htmlspecialchars($msg['text']); ?></div>
+<?php endforeach; ?>
+
+<!-- ── Tab Navigation ─────────────────────────────────────────────────────── -->
+<nav class="md-nav" role="tablist" aria-label="Member Dashboard Navigation">
+    <a href="?tab=plugins"
+       class="md-nav-tab <?php echo $activeTab === 'plugins' ? 'active' : ''; ?>"
+       role="tab" aria-selected="<?php echo $activeTab === 'plugins' ? 'true' : 'false'; ?>">
+        <span class="md-nav-icon">🔌</span>
+        <span class="md-nav-text">
+            <span class="md-nav-label">Plugins</span>
+            <span class="md-nav-desc">Sichtbarkeit der Plugin-Widgets</span>
+        </span>
+    </a>
+    <a href="?tab=widgets"
+       class="md-nav-tab <?php echo $activeTab === 'widgets' ? 'active' : ''; ?>"
+       role="tab" aria-selected="<?php echo $activeTab === 'widgets' ? 'true' : 'false'; ?>">
+        <span class="md-nav-icon">📌</span>
+        <span class="md-nav-text">
+            <span class="md-nav-label">Widgets</span>
+            <span class="md-nav-desc">Bis zu 4 Info-Widgets</span>
+        </span>
+    </a>
+    <a href="?tab=design"
+       class="md-nav-tab <?php echo $activeTab === 'design' ? 'active' : ''; ?>"
+       role="tab" aria-selected="<?php echo $activeTab === 'design' ? 'true' : 'false'; ?>">
+        <span class="md-nav-icon">🎨</span>
+        <span class="md-nav-text">
+            <span class="md-nav-label">Design &amp; Layout</span>
+            <span class="md-nav-desc">Farben, Spalten, Reihenfolge</span>
+        </span>
+    </a>
+    <a href="?tab=settings"
+       class="md-nav-tab <?php echo $activeTab === 'settings' ? 'active' : ''; ?>"
+       role="tab" aria-selected="<?php echo $activeTab === 'settings' ? 'true' : 'false'; ?>">
+        <span class="md-nav-icon">⚙️</span>
+        <span class="md-nav-text">
+            <span class="md-nav-label">Einstellungen</span>
+            <span class="md-nav-desc">Registrierung, Sicherheit, Medien</span>
+        </span>
+    </a>
+</nav>
 
 
         <!-- ══════════════════════════════════════════════════════════════════ -->
@@ -394,7 +553,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     <?php endif; ?>
                 </div>
 
-                <button type="submit" class="btn-save-dw">💾 Sichtbarkeit speichern</button>
+                <button type="submit" class="btn-sm btn-primary" style="margin-top:1rem;">💾 Sichtbarkeit speichern</button>
             </form>
         </div>
 
@@ -498,7 +657,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     <?php endfor; ?>
                 </div>
 
-                <button type="submit" class="btn-save-dw">💾 Widgets speichern</button>
+                <button type="submit" class="btn-sm btn-primary" style="margin-top:1rem;">💾 Widgets speichern</button>
             </form>
         </div>
 
@@ -865,11 +1024,9 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     </div>
                 </div>
 
-                <button type="submit" class="btn-save-dw">💾 Einstellungen speichern</button>
+                <button type="submit" class="btn-sm btn-primary" style="margin-top:1rem;">💾 Einstellungen speichern</button>
             </form>
         </div>
-
-    </div><!-- /.admin-content -->
 
     <script>
     // ── Widget Live-Vorschau ───────────────────────────────────────────────────
@@ -998,5 +1155,4 @@ require_once __DIR__ . '/partials/admin-menu.php';
         });
     })();
     </script>
-</body>
-</html>
+<?php renderAdminLayoutEnd(); ?>

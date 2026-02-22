@@ -106,7 +106,7 @@ function toc_sel(mixed $val, mixed $compare): void {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Table of Contents – <?php echo htmlspecialchars(SITE_NAME); ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=202602">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
     <?php renderAdminSidebarStyles(); ?>
 </head>
 <body class="admin-body">

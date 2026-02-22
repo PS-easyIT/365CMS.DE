@@ -175,11 +175,6 @@ foreach (['all', 'admin', 'member', 'editor'] as $r) {
 }
 $roleCounts['banned'] = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}users WHERE status='banned'");
 
-$statTotal  = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}users");
-$statAdmin  = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}users WHERE role='admin'");
-$statActive = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}users WHERE status='active'");
-$statNew7   = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
-
 $csrfCreate = $security->generateToken('users_create');
 $csrfEdit   = $security->generateToken('users_edit');
 $csrfDelete = $security->generateToken('users_delete');
@@ -446,14 +441,6 @@ else:
             $extra
         ));
 ?>
-
-<!-- Stat-Karten -->
-<div class="stat-cards">
-    <div class="stat-card"><div class="stat-card-num" style="color:#2563eb;"><?php echo $statTotal; ?></div><div class="stat-card-lbl">Gesamt</div></div>
-    <div class="stat-card"><div class="stat-card-num" style="color:#f59e0b;"><?php echo $statAdmin; ?></div><div class="stat-card-lbl">Administratoren</div></div>
-    <div class="stat-card"><div class="stat-card-num" style="color:#22c55e;"><?php echo $statActive; ?></div><div class="stat-card-lbl">Aktiv</div></div>
-    <div class="stat-card"><div class="stat-card-num" style="color:#8b5cf6;"><?php echo $statNew7; ?></div><div class="stat-card-lbl">Neue (7 Tage)</div></div>
-</div>
 
 <div class="posts-header">
     <h2 style="margin:0;">👥 Benutzer</h2>

@@ -312,29 +312,29 @@ function getAdminMenuItems(string $currentPage = ''): array
                     'slug'   => 'dashboard-plugins',
                     'label'  => 'Plugins',
                     'icon'   => '🔌',
-                    'url'    => '/admin/design-dashboard-widgets?tab=plugins',
-                    'active' => _adminNavIsActive('/admin/design-dashboard-widgets?tab=plugins') || $currentPage === 'dashboard-plugins',
+                    'url'    => '/admin/member-dashboard?tab=plugins',
+                    'active' => _adminNavIsActive('/admin/member-dashboard?tab=plugins') || $currentPage === 'dashboard-plugins',
                 ],
                 [
                     'slug'   => 'dashboard-widgets',
                     'label'  => 'Widgets',
                     'icon'   => '📌',
-                    'url'    => '/admin/design-dashboard-widgets?tab=widgets',
-                    'active' => (_adminNavIsActive('/admin/design-dashboard-widgets') && empty($_GET['tab'])) || _adminNavIsActive('/admin/design-dashboard-widgets?tab=widgets') || $currentPage === 'design-dashboard-widgets',
+                    'url'    => '/admin/member-dashboard?tab=widgets',
+                    'active' => (_adminNavIsActive('/admin/member-dashboard') && empty($_GET['tab'])) || _adminNavIsActive('/admin/member-dashboard?tab=widgets') || $currentPage === 'member-dashboard',
                 ],
                 [
                     'slug'   => 'dashboard-design',
                     'label'  => 'Design & Layout',
                     'icon'   => '🎨',
-                    'url'    => '/admin/design-dashboard-widgets?tab=design',
-                    'active' => _adminNavIsActive('/admin/design-dashboard-widgets?tab=design') || _adminNavIsActive('/admin/design-dashboard-widgets?tab=layout') || $currentPage === 'dashboard-design',
+                    'url'    => '/admin/member-dashboard?tab=design',
+                    'active' => _adminNavIsActive('/admin/member-dashboard?tab=design') || _adminNavIsActive('/admin/member-dashboard?tab=layout') || $currentPage === 'dashboard-design',
                 ],
                 [
                     'slug'   => 'dashboard-settings',
                     'label'  => 'Einstellungen',
                     'icon'   => '⚙️',
-                    'url'    => '/admin/design-dashboard-widgets?tab=settings',
-                    'active' => _adminNavIsActive('/admin/design-dashboard-widgets?tab=settings') || $currentPage === 'dashboard-settings',
+                    'url'    => '/admin/member-dashboard?tab=settings',
+                    'active' => _adminNavIsActive('/admin/member-dashboard?tab=settings') || $currentPage === 'dashboard-settings',
                 ],
             ]),
         ],
@@ -751,8 +751,8 @@ function renderAdminLayoutStart(string $title, string $activeSlug = ''): void
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title><?php echo htmlspecialchars($title); ?> – <?php echo htmlspecialchars(SITE_NAME); ?></title>
         <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-        <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin-sidebar.css?v=20260222">
-        <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=202602">
+        <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin-sidebar.css?v=20260222b">
+        <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
         <?php 
         if (class_exists('CMS\Hooks')) {
             CMS\Hooks::doAction('head');

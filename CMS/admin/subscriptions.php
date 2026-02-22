@@ -216,68 +216,122 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
         
         <!-- CONTENT: PAKETÜBERSICHT -->
         <?php if ($activeTab === 'plans'): ?>
+            <?php
+            // Tier-Farben nach sort_order / Index
+            $tierColors = [
+                ['--plan-accent:#94a3b8;--plan-accent-bg:#f8fafc;--plan-accent-text:#475569;'],  // Grau – Free
+                ['--plan-accent:#22c55e;--plan-accent-bg:#f0fdf4;--plan-accent-text:#15803d;'],  // Grün – Starter
+                ['--plan-accent:#3b82f6;--plan-accent-bg:#eff6ff;--plan-accent-text:#1d4ed8;'],  // Blau – Basic
+                ['--plan-accent:#a855f7;--plan-accent-bg:#faf5ff;--plan-accent-text:#7e22ce;'],  // Lila – Pro
+                ['--plan-accent:#f59e0b;--plan-accent-bg:#fffbeb;--plan-accent-text:#b45309;'],  // Gold – Business
+                ['--plan-accent:#ef4444;--plan-accent-bg:#fef2f2;--plan-accent-text:#b91c1c;'],  // Rot – Enterprise
+            ];
+            $featMap = [
+                'feature_analytics'       => ['📊', 'Analytics'],
+                'feature_advanced_search' => ['🔍', 'Adv. Search'],
+                'feature_api_access'      => ['⚡', 'API'],
+                'feature_custom_branding' => ['🎨', 'Branding'],
+                'feature_priority_support'=> ['🎯', 'Support'],
+                'feature_export_data'     => ['📤', 'Export'],
+                'feature_integrations'    => ['🔗', 'Integrationen'],
+                'feature_custom_domains'  => ['🌐', 'Domains'],
+            ];
+            $pluginMap = [
+                'plugin_experts'   => ['👤', 'Experten'],
+                'plugin_companies' => ['🏢', 'Firmen'],
+                'plugin_events'    => ['📅', 'Events'],
+                'plugin_speakers'  => ['🎤', 'Speakers'],
+            ];
+            $limitLabel = fn(int $v, string $unit) => $v === -1
+                ? '<span class="plc-limit plc-limit--inf">∞</span>'
+                : ($v === 0
+                    ? '<span class="plc-limit plc-limit--off">—</span>'
+                    : '<span class="plc-limit">' . $v . '</span>');
+            ?>
+
             <div class="admin-section-header">
-                <h3 style="margin:0;font-size:1rem;">Verfügbare Abo-Pakete</h3>
+                <h3 style="margin:0;font-size:1rem;">Verfügbare Abo-Pakete <span class="plc-count-badge"><?php echo count($plans); ?></span></h3>
                 <a href="#" onclick="document.getElementById('create-plan-modal').style.display='flex'; return false;" class="btn-sm btn-primary">+ Neues Paket</a>
             </div>
-            
+
             <?php if (empty($plans)): ?>
                 <div class="post-card" style="text-align:center;color:#64748b;padding:2rem;">Noch keine Abo-Pakete vorhanden.</div>
             <?php else: ?>
-                <div class="sub-plans-grid">
-                    <?php foreach ($plans as $plan): ?>
-                        <div class="plan-card">
-                            <div class="plan-header">
-                                <h3 class="plan-name"><?php echo htmlspecialchars($plan->name); ?></h3>
-                                <div class="plan-price">
-                                    €<?php echo number_format((float)($plan->price_monthly ?? 0), 2); ?> <small>/Monat</small>
-                                </div>
-                                <div class="plan-price">
-                                    €<?php echo number_format((float)($plan->price_yearly ?? 0), 2); ?> <small>/Jahr</small>
-                                </div>
+            <div class="plan-list">
+                <?php foreach ($plans as $i => $plan): 
+                    $colors = $tierColors[$i % count($tierColors)][0];
+                    $lim = fn(mixed $v) => (int)$v === -1 ? '<span class="plc-limit plc-limit--inf">∞</span>' : ((int)$v === 0 ? '<span class="plc-limit plc-limit--off">—</span>' : '<span class="plc-limit">' . (int)$v . '</span>');
+                ?>
+                <div class="plan-list-card" style="<?php echo $colors; ?>">
+
+                    <!-- Accent bar -->
+                    <div class="plc-accent"></div>
+
+                    <!-- Col 1: Identity -->
+                    <div class="plc-identity">
+                        <div class="plc-name"><?php echo htmlspecialchars($plan->name); ?></div>
+                        <code class="plc-slug"><?php echo htmlspecialchars($plan->slug); ?></code>
+                        <?php if (!empty($plan->description)): ?>
+                            <p class="plc-desc"><?php echo htmlspecialchars($plan->description); ?></p>
+                        <?php endif; ?>
+                        <div class="plc-order">Sortierung: <?php echo (int)$plan->sort_order; ?></div>
+                    </div>
+
+                    <!-- Col 2: Limits -->
+                    <div class="plc-limits">
+                        <div class="plc-limits-title">Limits</div>
+                        <div class="plc-limits-grid">
+                            <div class="plc-lrow"><span class="plc-licon">👤</span><span class="plc-lname">Experten</span><?php echo $lim($plan->limit_experts); ?></div>
+                            <div class="plc-lrow"><span class="plc-licon">🏢</span><span class="plc-lname">Firmen</span><?php echo $lim($plan->limit_companies); ?></div>
+                            <div class="plc-lrow"><span class="plc-licon">📅</span><span class="plc-lname">Events</span><?php echo $lim($plan->limit_events); ?></div>
+                            <div class="plc-lrow"><span class="plc-licon">🎤</span><span class="plc-lname">Speakers</span><?php echo $lim($plan->limit_speakers); ?></div>
+                            <div class="plc-lrow"><span class="plc-licon">💾</span><span class="plc-lname">Speicher</span><span class="plc-limit"><?php echo (int)$plan->limit_storage_mb; ?>&thinsp;MB</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Col 3: Plugins & Features -->
+                    <div class="plc-features">
+                        <div class="plc-limits-title">Plugins &amp; Features</div>
+                        <div class="plc-feat-rows">
+                            <?php foreach ($pluginMap as $key => [$icon, $label]): ?>
+                            <div class="plc-feat-row <?php echo $plan->$key ? 'plc-feat-row--on' : 'plc-feat-row--off'; ?>">
+                                <span><?php echo $icon; ?></span> <?php echo $label; ?>
                             </div>
-                            
-                            <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1rem;">
-                                <?php echo htmlspecialchars($plan->description ?? ''); ?>
-                            </p>
-                            
-                            <ul class="plan-features">
-                                <li>
-                                    <span class="feature-label">Experten:</span>
-                                    <span class="feature-value <?php echo $plan->limit_experts === -1 ? 'unlimited' : ($plan->limit_experts === 0 ? 'disabled' : ''); ?>">
-                                        <?php echo $plan->limit_experts === -1 ? '∞ Unbegrenzt' : ($plan->limit_experts === 0 ? '✗ Deaktiviert' : $plan->limit_experts); ?>
-                                    </span>
-                                </li>
-                                <li>
-                                    <span class="feature-label">Unternehmen:</span>
-                                    <span class="feature-value <?php echo $plan->limit_companies === -1 ? 'unlimited' : ($plan->limit_companies === 0 ? 'disabled' : ''); ?>">
-                                        <?php echo $plan->limit_companies === -1 ? '∞ Unbegrenzt' : ($plan->limit_companies === 0 ? '✗ Deaktiviert' : $plan->limit_companies); ?>
-                                    </span>
-                                </li>
-                                <li>
-                                    <span class="feature-label">Speicher:</span>
-                                    <span class="feature-value"><?php echo $plan->limit_storage_mb; ?> MB</span>
-                                </li>
-                            </ul>
-                            
-                            <h4 style="margin-top: 1rem; margin-bottom: 0.5rem; font-size: 0.9rem; color: #64748b;">Features:</h4>
-                            <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.6rem;">
-                                <?php if ($plan->feature_analytics): ?><span class="sub-feat-badge">Analytics</span><?php endif; ?>
-                                <?php if ($plan->feature_api_access): ?><span class="sub-feat-badge">API</span><?php endif; ?>
-                                <?php if ($plan->feature_priority_support): ?><span class="sub-feat-badge">Support</span><?php endif; ?>
+                            <?php endforeach; ?>
+                            <?php foreach ($featMap as $key => [$icon, $label]): ?>
+                            <div class="plc-feat-row <?php echo $plan->$key ? 'plc-feat-row--on' : 'plc-feat-row--off'; ?>">
+                                <span><?php echo $icon; ?></span> <?php echo $label; ?>
                             </div>
-                            <div class="plan-actions">
-                                <a href="?tab=plans&edit_id=<?php echo $plan->id; ?>" class="btn-sm btn-secondary">✏️ Bearbeiten</a>
-                                <form method="POST" onsubmit="return confirm('Paket wirklich löschen?');" style="flex:1;">
-                                    <input type="hidden" name="action" value="delete_plan">
-                                    <input type="hidden" name="plan_id" value="<?php echo $plan->id; ?>">
-                                    <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                                    <button class="btn-sm btn-danger" style="width:100%;">🗑 Löschen</button>
-                                </form>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+
+                    <!-- Col 4: Preise & Aktionen -->
+                    <div class="plc-right">
+                        <div class="plc-prices">
+                            <div class="plc-price-row">
+                                <span class="plc-price-amount">€<?php echo number_format((float)($plan->price_monthly ?? 0), 2); ?></span>
+                                <span class="plc-price-cycle">/Monat</span>
+                            </div>
+                            <div class="plc-price-row">
+                                <span class="plc-price-amount plc-price-amount--year">€<?php echo number_format((float)($plan->price_yearly ?? 0), 2); ?></span>
+                                <span class="plc-price-cycle">/Jahr</span>
                             </div>
                         </div>
-                    <?php endforeach; ?>
+                        <div class="plc-actions">
+                            <a href="?tab=plans&edit_id=<?php echo $plan->id; ?>" class="btn-sm btn-secondary">✏️ Bearbeiten</a>
+                            <form method="POST" onsubmit="return confirm('Paket &quot;<?php echo htmlspecialchars($plan->name, ENT_QUOTES); ?>&quot; wirklich löschen?');">
+                                <input type="hidden" name="action" value="delete_plan">
+                                <input type="hidden" name="plan_id" value="<?php echo $plan->id; ?>">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                <button class="btn-sm btn-danger">🗑 Löschen</button>
+                            </form>
+                        </div>
+                    </div>
+
                 </div>
+                <?php endforeach; ?>
+            </div>
             <?php endif; ?>
             
         <!-- CONTENT: EINSTELLUNGEN -->
