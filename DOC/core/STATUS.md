@@ -1,7 +1,5 @@
 ﻿# 365CMS – System-Status
 
-> **Version:** 0.27.1 | **Stand:** 22. Februar 2026
-
 ---
 
 ## Versions-Info
@@ -135,7 +133,3 @@
 - [ ] Multi-Site-Unterstützung
 - [ ] GraphQL-API-Endpunkt
 - [ ] Automatische Updates für Core
-
----
-
-*Stand: 22. Februar 2026 – Version 0.27.1*

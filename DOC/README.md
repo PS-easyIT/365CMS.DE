@@ -357,7 +357,3 @@ Alle Dokumentationen folgen diesen Standards:
 | [member/HOOKS.md](member/HOOKS.md) | Plugin-Hooks mit Codebeispielen |
 | [member/SECURITY.md](member/SECURITY.md) | Sicherheitsmodell & DSGVO |
 
----
-
-**Letzte Aktualisierung:** 18. Februar 2026  
-**365CMS Version:** 0.26.13

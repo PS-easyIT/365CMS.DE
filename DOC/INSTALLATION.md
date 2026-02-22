@@ -1,7 +1,5 @@
 ﻿# 365CMS – Installations-Anleitung
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026
-
 Diese Anleitung führt euch Schritt für Schritt durch die Installation des 365CMS – von den Voraussetzungen bis zum ersten Login.
 
 ---
@@ -209,6 +207,3 @@ Häufige Ursachen:
 - `CMS_DEBUG` temporär auf `true` setzen
 - PHP-Fehler-Ausgabe: `ini_set('display_errors', 1)` in `config.php`
 
----
-
-*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*

@@ -112,6 +112,3 @@
 | Sicherheit (CSRF/XSS) | [core/SECURITY.md](core/SECURITY.md) |
 | Systemstatus prüfen | [core/STATUS.md](core/STATUS.md) |
 
----
-
-*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*

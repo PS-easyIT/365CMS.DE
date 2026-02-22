@@ -1,9 +1,5 @@
 # Admin-Bereich – Vollständige Dateistruktur
 
-**Version:** 0.26.13 
-**Stand:** 21. Februar 2026 
-**Autor:** Automatisch generiert nach Code-Audit
-
 ---
 
 ## 📁 Verzeichnisstruktur
@@ -301,15 +297,3 @@ $csrfToken = Security::instance()->generateToken('my_action');
 ── Zur Website        /
 🚪 Abmelden           /logout
 ```
-
----
-
-## 📋 Bisher nicht als Admin-Seiten vorhandene Bereiche
-
-Folgende Seiten existieren in der Sidebar-Definition, haben aber noch keine vollständige
-Implementierung oder sind an andere Seiten angebunden:
-
-| Seite | Status |
-|-------|--------|
-| Gruppen (`/admin/groups`) | ✅ Vorhanden, Mitglieder-AJAX-Loading ausstehend |
-| Updates (`/admin/updates`) | ✅ Vorhanden, tatsächliche Update-Logik abhängig von `UpdateService` |

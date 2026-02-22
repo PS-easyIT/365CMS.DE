@@ -167,7 +167,3 @@ Die vollständige Dokumentation finden Sie im Ordner `/doc`.
 - **Frontend:** HTML5, CSS3 (Custom Properties), Vanilla JS (ES6+)
 - **Architektur:** MVC-ähnlich, Event-Driven (Hooks)
 - **Abhängigkeiten:** Keine externen PHP-Bibliotheken (Zero-Dependency Core)
-
----
-
-**Made in Germany 🇩🇪 | Built with PHP 8.3+ 🐘 | Powered by MySQL 🗄️**

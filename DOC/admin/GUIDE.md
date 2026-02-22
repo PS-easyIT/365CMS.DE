@@ -1,7 +1,5 @@
 ﻿# 365CMS – Admin-Handbuch
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026
-
 Dieses Handbuch erklärt die häufigsten Admin-Aufgaben Schritt für Schritt.
 
 ---
@@ -128,6 +126,3 @@ Hier seht ihr:
 | `cache/` nicht schreibbar | `chmod 777 cache/` (oder Webserver-Besitzer setzen) |
 | Datenbank-Verbindung langsam | Zu viele Abfragen? Performance-Seite prüfen |
 
----
-
-*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*

@@ -1,7 +1,5 @@
 ﻿# 365CMS – Admin-Panel Dokumentation
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026
-
 Das Admin-Panel ist das Herz des 365CMS. Hier verwaltet ihr alles: Benutzer, Inhalte, Themes, Plugins und Systemeinstellungen.
 
 ---
@@ -329,6 +327,3 @@ Direkter Zugang zur Online-Dokumentation (diese Docs!) – verlinkt zum GitHub-R
 | Updates | `/admin/updates.php` | System-Updates |
 | Support | `/admin/support.php` | Dokumentation |
 
----
-
-*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*

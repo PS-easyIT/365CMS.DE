@@ -1,7 +1,5 @@
 ﻿# CMS Core – Übersicht
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026
-
 Das `core/`-Verzeichnis enthält alle Kernklassen des 365CMS.  
 Alle Klassen folgen dem **Singleton-Pattern** und sind über PSR-4 autogeladen.
 
