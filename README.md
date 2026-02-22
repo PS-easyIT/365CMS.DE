@@ -1,74 +1,224 @@
 # 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-1.8.0-blue.svg)](https://shields.io/)
 
 ![PHP](https://img.shields.io/badge/php-%23777BB4.svg?style=for-the-badge&logo=php&logoColor=white)![MySQL](https://img.shields.io/badge/mysql-4479A1.svg?style=for-the-badge&logo=mysql&logoColor=white)![MariaDB](https://img.shields.io/badge/MariaDB-003545?style=for-the-badge&logo=mariadb&logoColor=white)![HTML5](https://img.shields.io/badge/html5-%23E34F26.svg?style=for-the-badge&logo=html5&logoColor=white)![CSS3](https://img.shields.io/badge/css3-%231572B6.svg?style=for-the-badge&logo=css3&logoColor=white)
- ---
-### Sicheres, modulares und erweiterbares Content Management System 
+
+---
+
+### Sicheres, modulares und erweiterbares Content Management System
 ### [WWW.365CMS.DE](HTTPS://365CMS.DE)
+
+## �️ Screenshots
+
+### Dashboard & Übersicht
+
+<img src="DOC/screenshots/admincenter_uebersicht.jpg" width="700" alt="Admin Dashboard Übersicht">
+
+*Zentrales Admin-Dashboard mit Statistik-Cards, Schnellzugriff, System-Health und Aktivitäts-Feed.*
+
+---
+
+### Benutzerverwaltung & Rollen
+
+| Benutzerverwaltung | Member-Dashboard |
+|---|---|
+| <img src="DOC/screenshots/admincenter_user.jpg" width="340" alt="Benutzerverwaltung"> | <img src="DOC/screenshots/admincenter_member.jpg" width="340" alt="Member Dashboard"> |
+
+<img src="DOC/screenshots/admincenter_rbac.jpg" width="700" alt="Rollen & Berechtigungen (RBAC)">
+
+*Granulare Rollen- und Rechteverwaltung (RBAC) mit 8 Capability-Checkboxen pro Gruppe.*
+
+---
+
+### Content Management
+
+| Beiträge | Seiten |
+|---|---|
+| <img src="DOC/screenshots/admincenter_posts.jpg" width="340" alt="Blog-Beiträge"> | <img src="DOC/screenshots/admincenter_sites.jpg" width="340" alt="Seiten-Verwaltung"> |
+
+<img src="DOC/screenshots/admincenter_landing-page.jpg" width="700" alt="Landing-Page Builder">
+
+*Visueller Landing-Page-Builder mit Sektions-Editor und Live-Vorschau.*
+
+---
+
+### Medien-Verwaltung
+
+<img src="DOC/screenshots/admincenter_media-managemend.jpg" width="700" alt="Medien-Bibliothek">
+
+*Vollständige Media-Library mit Upload, Grid-/Listen-Ansicht, MIME-Filterung und Media-Proxy.*
+
+---
+
+### SEO & Performance
+
+| SEO-Tools | Performance-Center |
+|---|---|
+| <img src="DOC/screenshots/admincenter_seo.jpg" width="340" alt="SEO-Einstellungen"> | <img src="DOC/screenshots/admincenter_performance.jpg" width="340" alt="Performance-Tools"> |
+
+---
+
+### Theme & Design
+
+| Theme-Verwaltung | Lokale Fonts |
+|---|---|
+| <img src="DOC/screenshots/admincenter_thememanaged.jpg" width="340" alt="Theme-Verwaltung"> | <img src="DOC/screenshots/admincenter_localfonts.jpg" width="340" alt="Lokale Schriften"> |
+
+---
+
+### Plugins
+
+<img src="DOC/screenshots/admincenter_plugins.jpg" width="700" alt="Plugin-Verwaltung">
+
+*Plugin-Verwaltung mit Installieren, Aktivieren/Deaktivieren und Marketplace-Integration.*
+
+---
+
+### Abo-Verwaltung
+
+<img src="DOC/screenshots/admincenter_subscription.jpg" width="700" alt="Abo-Verwaltung & Pakete">
+
+*Subscription-Management mit Paket-Editor, Benutzer-Zuweisungen und Bestellverwaltung.*
+
+---
+
+### Sicherheit & DSGVO
+
+| Firewall & Sicherheit | Cookie-Verwaltung |
+|---|---|
+| <img src="DOC/screenshots/admincenter_firewall.jpg" width="340" alt="CMS Firewall"> | <img src="DOC/screenshots/admincenter_cookies.jpg" width="340" alt="Cookie-Manager"> |
+
+---
+
+### Einstellungen
+
+<img src="DOC/screenshots/admincenter_settings.jpg" width="700" alt="Globale Einstellungen">
+
+*Globale Systemkonfiguration: Site-Einstellungen, Registrierung, E-Mail, Wartungsmodus und mehr.*
+
+---
 
 ## 🚀 Features
 
 ### Core-System
-- ✅ **Modulare Architektur** - OOP-Struktur mit Singleton-Pattern und Namespaces
-- ✅ **Plugin-System** - WordPress-ähnliches Hook-System für einfache Erweiterungen
-- ✅ **Theme-System** - Flexibles Template-System mit Live-Customization
-- ✅ **Theme-Editor** - Vollständiger visueller Theme-Customizer mit 50+ Optionen
-- ✅ **Sicherheit** - CSRF-Schutz, XSS-Prevention, Rate Limiting, Prepared Statements
-- ✅ **Performance** - Optimierte PDO-Abfragen, Query-Caching, CacheManager
-- ✅ **Debug-System** - Logging nach `/logs/debug-YYYY-MM-DD.log` (nur bei `CMS_DEBUG=true`)
-- ✅ **Admin-Dashboard** - Vollständiges Backend mit Version-Badge und Schnellzugriff
+- ✅ **Modulare Architektur** - OOP-Struktur mit Singleton-Pattern und PSR-4 Namespaces
+- ✅ **Plugin-System** - WordPress-ähnliches Hook-System (Actions & Filters) für einfache Erweiterungen
+- ✅ **Theme-System** - Flexibles Template-System mit Live-Customization und Theme-Marketplace
+- ✅ **Theme-Editor** - Vollständiger visueller Theme-Customizer mit 50+ Optionen in 8 Kategorien
+- ✅ **REST API** - Interne REST-API-Endpunkte für Frontend-Kommunikation
+- ✅ **Sicherheit** - CSRF-Schutz, XSS-Prevention, Rate Limiting, Prepared Statements (PDO)
+- ✅ **Performance** - Optimierte PDO-Abfragen, Query-Caching, CacheManager mit Auto-Clearing
+- ✅ **Debug-System** - Strukturiertes Logging nach `/logs/debug-YYYY-MM-DD.log` (nur bei `CMS_DEBUG=true`)
+- ✅ **Admin-Dashboard** - Vollständiges Backend mit KPI-Cards, Version-Badge und Schnellzugriff
 
-### Admin-Backend
-- ✅ **Benutzerverwaltung** - Stat-Cards, Rollen-Tabs, Suche, Bulk-Aktionen, Gruppen-Zuordnung
-- ✅ **Gruppen & Rollen** - 8 Capability-Checkboxen, Mitgliederlisten, Rollen-Verwaltung
-- ✅ **Seiten** - WYSIWYG-Editor, SEO-Felder, Revisionen
-- ✅ **Blog/Beiträge** - Post-Verwaltung mit Kategorien und Tags
-- ✅ **Media-Bibliothek** - Upload, Galerie, Media-Proxy, MIME-Filterung
-- ✅ **Navigation** - Menü-Verwaltung mit Sortierung
-- ✅ **SEO** - Meta-Tags, Open Graph, Sitemap, Robots.txt
-- ✅ **Analytics** - Besucherstatistiken, Top-Seiten, System-Health, Cache-Stats
-- ✅ **Landing Pages** - Visueller Landing-Page-Builder
-- ✅ **Backup** - DB/Dateisystem-Backup, E-Mail-Versand, S3-Support
-- ✅ **Performance-Tools** - Cache leeren, Optimierungen, Laufzeitmetriken
-- ✅ **Updates** - Core- und Plugin-Update-Prüfung via GitHub API
-- ✅ **Design-Tools** - Dashboard-Widgets, Lokale Fonts
-- ✅ **Settings & System** - CMS-Konfiguration, Diagnose, PHP/DB-Info
+### 👤 Benutzerverwaltung
+- ✅ **Benutzer-Übersicht** - Stat-Cards (Gesamt, Aktiv, Admins, Mitglieder), Suche, Rollen-Filterung
+- ✅ **Benutzer-Editor** - Erstellen, Bearbeiten, Passwort-Reset, Rollen- und Gruppen-Zuordnung
+- ✅ **Bulk-Aktionen** - Massenoperationen: Aktivieren, Deaktivieren, Löschen
+- ✅ **Gruppen-Verwaltung** - Eigene Benutzergruppen mit individuellen Paket-Zuweisungen
+- ✅ **RBAC** - Role-Based Access Control mit 8 granularen Capabilities pro Gruppe
+- ✅ **Member-Dashboard** - Admin-seitige Verwaltung aller Mitgliederbereiche
+- ✅ **Login-Protokoll** - Vollständige Aufzeichnung aller Login-Ereignisse pro Benutzer
 
-### Abo-Verwaltung
-- 💳 **Pakete** - Übersicht mit inline Edit/Delete, Neues-Paket-Modal, Feature-Limits
-- ⚙️ **Einstellungen** - Abo-Toggle, Währung, Zahlungsmethoden, Rechtliche Seiten, Bestellnummern-Format
-- 🔗 **Zuweisungen** - Benutzer-Abos & Gruppen-Pakete in einer Ansicht
-- 🛒 **Bestellungen** - Order-Management mit Status-Tracking (Bestätigt/Storniert/Erstattet)
+### 📝 Content Management
+- ✅ **Seiten-Verwaltung** - WYSIWYG-Editor (SunEditor), SEO-Felder, Slug-Verwaltung, Revisionen
+- ✅ **Blog/Beiträge** - Post-Management mit Kategorien, Tags, Featured Image, Publish-Workflow
+- ✅ **Landing-Page-Builder** - Visueller Sektions-Editor mit Hero, Text, Bild, CTA-Blöcken
+- ✅ **Inhaltsverzeichnis** - Automatische TOC-Generierung für lange Seiten
+- ✅ **Menü-Verwaltung** - Drag-&-Drop Navigation mit mehrstufigen Menüs und Custom Links
+- ✅ **Seiten-Tabellen** - Benutzerdefinierte Datentabellen mit CRUD, Import/Export (CSV/JSON)
 
-### DSGVO-Suite
-- 🍪 **Cookie-Verwaltung** - Cookie-Kategorien, Consent-Management
-- 📥 **Datenzugriff** - Automatisierte Datenauskunfts-Anfragen
-- 🗑 **Datenlöschung** - DSGVO-konforme Löschanträge
-- 🔒 **Datenschutz** - Member-seitige Datenschutz-Einstellungen
+### 🖼️ Medien-Bibliothek
+- ✅ **Media-Upload** - Drag-&-Drop, MIME-Typ-Filterung, automatische Thumbnail-Generierung
+- ✅ **Galerie-Ansicht** - Grid- und Listen-Layout mit Such- und Filteroptionen
+- ✅ **Media-Proxy** - Sicheres Ausliefern von Medien über kontrollierten Proxy-Endpunkt
+- ✅ **Datei-Verwaltung** - Umbenennen, Löschen, Metadaten-Bearbeitung (Alt-Text, Beschreibung)
+- ✅ **Speicher-Statistiken** - Gesamtgröße, Dateianzahl, Typ-Aufschlüsselung
 
-### Member-Bereich
-- 👤 **Profil** - Profilbearbeitung, Avatar, Bio, Social Links
-- 💬 **Nachrichten** - Privates Messaging-System
-- 🔔 **Benachrichtigungen** - System- und User-Benachrichtigungen
-- ❤️ **Favoriten** - Inhalte als Favoriten markieren
-- 🖼️ **Medien** - Eigene Medien verwalten und hochladen
-- 🛡️ **Sicherheit** - Passwortänderung, Login-Protokoll
-- 💰 **Mitgliedschaft** - Abo-Übersicht, Upgrade/Downgrade, Checkout
+### 🔍 SEO & Analytics
+- ✅ **Meta-Tags** - Global und seitenspezifisch: Title, Description, Keywords
+- ✅ **Open Graph** - OG-Tags für Social-Media-Sharing (Facebook, Twitter/X)
+- ✅ **Sitemap** - Automatisch generierte XML-Sitemap mit Ping an Suchmaschinen
+- ✅ **Robots.txt** - Editierbares Robots.txt mit Vorlagen
+- ✅ **Kanonische URLs** - Automatische Canonical-Link-Verwaltung
+- ✅ **Analytics-Dashboard** - Besucherstatistiken, Seitenaufrufe, Top-Seiten, Referrer
+- ✅ **System-Health** - Live-Monitoring von PHP, MySQL, Speicher, Cache-Status
 
-### Theme-System Features
-- 🎨 **Live Theme Customization** - Über 50 Anpassungsoptionen in 8 Kategorien
-- 🎨 **CSS-Generator** - Automatische CSS-Generierung aus Einstellungen
-- 🎨 **Import/Export** - Theme-Einstellungen sichern und teilen
-- 🎨 **Google Fonts** - 8 integrierte Webfonts mit Auto-Loading
-- 🎨 **Custom CSS/JS** - Eigene Styles und Scripts hinzufügen
-- 🎨 **Responsive Design** - Mobile-First Ansatz mit Dark Mode Support
-- 🎨 **Performance-Optionen** - Lazy Loading, Minifikation, Preloading
+### ⚡ Performance & Optimierung
+- ✅ **Cache-Management** - Query-Cache, File-Cache, manuelle Cache-Invalidierung
+- ✅ **Performance-Analyse** - Laufzeitmetriken, Slow-Query-Log, Ressourcen-Analyse
+- ✅ **Asset-Optimierung** - CSS-Minifikation, JS-Minifikation, Font-Preloading
+- ✅ **Lazy Loading** - Bilder und schwere Ressourcen werden verzögert geladen
+- ✅ **Datenbank-Optimierung** - OPTIMIZE TABLE, REPAIR TABLE, Auto-Rebuild-Funktionen
+- ✅ **Cache-Statistiken** - Hit-Rate, Miss-Rate, gespeicherter Speicher-Overhead
 
-### System & Diagnose
-- 🔧 **System-Monitoring** - Echtzeit-Status von PHP, MySQL, Dateisystem
-- 🔧 **Datenbank-Tools** - Reparatur, Optimierung, Backup-Funktionen
-- 🔧 **Cache-Management** - Intelligent caching mit Auto-Clearing
-- 🔧 **Security-Audit** - Sicherheitsüberprüfung und Failed-Login-Tracking
-- 🔧 **Activity-Log** - Vollständige Aktivitätsverfolgung
+### 🎨 Theme-System
+- ✅ **Theme-Marketplace** - Built-in Theme-Browser mit 10 fertigen Themes
+- ✅ **Theme-Verwaltung** - Aktivieren, Deaktivieren, Vorschau, Theme-Details
+- ✅ **Theme-Editor** - Vollständiger Code-Editor für Theme-Dateien (PHP, CSS, JS)
+- ✅ **Theme-Customizer** - Live-Vorschau mit 50+ Einstellungen: Farben, Fonts, Layout, Header, Footer, Buttons
+- ✅ **Theme-Einstellungen** - Pro-Theme-Konfigurationen (Logo, Favicon, Metadaten, Social Links)
+- ✅ **CSS-Generator** - Automatische CSS-Generierung aus Customizer-Einstellungen
+- ✅ **Import/Export** - Theme-Einstellungen als JSON sichern und teilen
+- ✅ **Google Fonts** - 8+ integrierte Webfonts mit automatischem Lokal-Hosting
+- ✅ **Lokale Fonts Manager** - Eigene Schriften hochladen, verwalten und in Themes einbinden
+- ✅ **Custom CSS/JS** - Eigene Styles und Scripts pro Theme hinzufügen
+- ✅ **Dark Mode Support** - Natives Dark-Mode-Handling in allen mitgelieferten Themes
+
+### 🔌 Plugin-System
+- ✅ **Plugin-Verwaltung** - Installieren, Aktivieren/Deaktivieren, Deinstallieren mit Bestätigung
+- ✅ **Plugin-Marketplace** - Built-in Plugin-Browser mit Kategorien und Such-Filter
+- ✅ **Plugin-Bibliothek** - cms-experts, cms-companies, cms-events, cms-speakers, cms-jobads, cms-importer
+- ✅ **Auto-Updates** - Core-, Plugin- und Theme-Update-Prüfung via GitHub API
+- ✅ **Hook-Integration** - Plugins erweitern Admin, Frontend und Member-Bereich via Hooks/Filters
+- ✅ **Datenbank-Integration** - Plugins können eigene Tabellen erstellen und DB-Prefix nutzen
+
+### 💳 Abo-Verwaltung
+- ✅ **Paket-Verwaltung** - Abo-Pakete erstellen, bearbeiten, löschen mit Feature-Limits und Preis-Tiers
+- ✅ **Abonnement-Einstellungen** - Abo-Toggle, Währung, Zahlungsmethoden, Bestellnummern-Format
+- ✅ **Zuweisungen** - Benutzer-Abos und Gruppen-Pakete in einer Übersicht
+- ✅ **Bestellverwaltung** - Vollständiges Order-Management mit Status-Tracking (Offen, Bestätigt, Storniert, Erstattet)
+- ✅ **Checkout-System** - Member-seitiger Checkout mit Upgrade/Downgrade-Flow
+- ✅ **Rechtliche Seiten** - Verknüpfung mit AGB, Datenschutz, Widerruf
+
+### 🔒 Sicherheit & Firewall
+- ✅ **CMS-Firewall** - IP-Blacklisting, Geo-Blocking, Request-Filterung, User-Agent-Blocking
+- ✅ **AntiSpam** - Konfigurierbare Spam-Schutzregeln für Formulare und Kommentare
+- ✅ **Security-Audit** - Automatisierter Sicherheits-Scan mit Score-System und Handlungsempfehlungen
+- ✅ **Rate Limiting** - Konfigurierbare Anfragen-Limits pro IP für Login, API und Formulare
+- ✅ **Failed-Login-Tracking** - Protokollierung fehlgeschlagener Anmeldungen, automatische IP-Sperre
+- ✅ **Blockierte IPs** - Manuelle und automatische IP-Verwaltung mit Entsperr-Funktion
+- ✅ **CSRF-Tokens** - Pflicht-Token für alle zustandsändernden Operationen
+- ✅ **Session-Security** - HTTP-Only Cookies, Secure Flag, Session-Rotation
+- ✅ **BCrypt Password Hashing** - Sichere Passwort-Speicherung mit automatischem Salt
+
+### 🍪 DSGVO-Suite
+- ✅ **Cookie-Verwaltung** - Cookie-Kategorien definieren (Notwendig, Analytics, Marketing), Dienstbibliothek
+- ✅ **Consent-Management** - Dynamischer Zustimmungsstatus, Audit-Trail aller Einwilligungen
+- ✅ **Cookie-Richtlinien-Generator** - Automatische Generierung der Cookie-Policy aus definierten Diensten
+- ✅ **Datenzugriff (Art. 15 DSGVO)** - Automatisierte Datenauskunfts-Anfragen mit PDF-Export
+- ✅ **Datenlöschung (Art. 17 DSGVO)** - DSGVO-konforme Löschanträge mit Workflow und Bestätigung
+- ✅ **Rechtstexte** - Integrierter Generator für Impressum, Datenschutzerklärung, AGB, Widerrufsbelehrung
+- ✅ **Legal-Sites Manager** - Verwaltung und Verknüpfung rechtlicher Pflichtseiten
+
+### 👥 Member-Bereich
+- ✅ **Profil** - Profilbearbeitung mit Avatar-Upload, Bio, Social Links, Sichtbarkeitseinstellungen
+- ✅ **Nachrichten** - Privates Messaging-System mit Posteingang, Gesendeten und Benachrichtigungen
+- ✅ **Benachrichtigungen** - System- und User-Notifications mit Echtzeit-Badge-Counter
+- ✅ **Favoriten** - Beliebige Inhalte als Favoriten markieren und verwalten
+- ✅ **Eigene Medien** - Persönliche Medienbibliothek verwalten und hochladen
+- ✅ **Sicherheit** - Passwortänderung, Zwei-Faktor-Vorbereitung, vollständiges Login-Protokoll
+- ✅ **Mitgliedschaft** - Abo-Übersicht, Upgrade/Downgrade, vollständiger Checkout-Flow
+- ✅ **Support-System** - Integriertes Ticket-System mit Prioritäten, Status-Tracking und Admin-Kommunikation
+
+### 🗄️ System & Diagnose
+- ✅ **System-Info** - PHP-Version, MySQL-Version, aktive Extensions, Server-Konfiguration
+- ✅ **Datenbank-Diagnose** - Tabellen-Status der 17 Kern-Tabellen, Datenbankgröße, Tabellen-Check
+- ✅ **Dateisystem-Check** - Verzeichnis-Berechtigungen, Schreib-Tests, Disk-Space-Anzeige
+- ✅ **Security-Status** - HTTPS-Prüfung, Security-Score, Failed-Logins der letzten 24h
+- ✅ **Backup-System** - Datenbank- und Dateisystem-Backup, E-Mail-Versand, S3-Anbindung
+- ✅ **Activity-Log** - Vollständige Aktivitätsverfolgung aller Admin-Aktionen
+- ✅ **System-Tools** - Cache leeren, Sessions bereinigen, Tabellen reparieren/optimieren, Logs leeren
+- ✅ **Update-Manager** - Core-, Plugin- und Theme-Updates direkt aus dem Backend
 
 ## 📋 Systemanforderungen
 
@@ -134,73 +284,109 @@ config.php → 644
 
 ```
 365CMS/
-├── core/                      # Kern-System (PSR-4)
-│   ├── Bootstrap.php          # System-Initialisierung
-│   ├── Database.php           # PDO-Wrapper mit prepared statements
-│   ├── Security.php           # CSRF, XSS, Rate Limiting
-│   ├── Auth.php               # Authentifizierung & Sessions
-│   ├── Router.php             # URL-Routing
-│   ├── Hooks.php              # WordPress-like Hook-System
-│   ├── PluginManager.php      # Plugin-Verwaltung
-│   ├── ThemeManager.php       # Theme-Verwaltung
-│   ├── PageManager.php        # Seiten-Management
-│   ├── Api.php                # REST API Endpoints
-│   └── Services/              # Service-Layer
-│       ├── SystemService.php  # System-Diagnose
-│       ├── ThemeCustomizer.php # Theme-Anpassungen
-│       └── LandingPageService.php
-├── admin/                     # Admin-Backend
-│   ├── index.php              # Dashboard
-│   ├── plugins.php            # Plugin-Verwaltung
-│   ├── theme-editor.php       # Theme Editor (NEU!)
-│   ├── users.php              # Benutzer-Verwaltung
-│   ├── system.php             # System & Diagnose
-│   └── settings.php           # Globale Einstellungen
-├── member/                    # Mitgliederbereich
-│   └── index.php              # Member-Dashboard
-├── themes/                    # Theme-Verzeichnis
-│   └── default/               # Standard-Theme
-│       ├── theme.json         # Theme-Konfiguration (NEU!)
-│       ├── style.css          # Basis-Styles
-│       ├── customizations.css # Generiertes CSS (auto)
-│       ├── README.md          # Theme-Dokumentation
-│       ├── header.php         # Header-Template
-│       ├── footer.php         # Footer-Template
-│       ├── home.php           # Homepage
-│       ├── page.php           # Standard-Seite
-│       ├── login.php          # Login-Seite
-│       ├── register.php       # Registrierung
-│       ├── 404.php            # 404-Fehlerseite
-│       ├── error.php          # Fehlerseite
-│       └── functions.php      # Theme-Funktionen
-├── plugins/                   # Plugin-Verzeichnis
-│   ├── cms-booking/           # Buchungssystem
-│   ├── cms-events/            # Event-Management
-│   ├── cms-experts/           # Experten-Verzeichnis
-│   ├── cms-companies/         # Firmen-Verzeichnis
-│   ├── cms-speakers/          # Referenten-Verwaltung
-│   ├── cms-projects/          # Projekt-Management
-│   ├── cms-seo/               # SEO-Optimierung
-│   └── cms-contact/           # Kontaktformular
-├── assets/                    # Statische Assets
+├── core/                          # Kern-System (PSR-4)
+│   ├── Bootstrap.php              # System-Initialisierung
+│   ├── Database.php               # PDO-Wrapper mit prepared statements
+│   ├── Security.php               # CSRF, XSS, Rate Limiting
+│   ├── Auth.php                   # Authentifizierung & Sessions
+│   ├── Router.php                 # URL-Routing
+│   ├── Hooks.php                  # WordPress-like Hook-System
+│   ├── PluginManager.php          # Plugin-Verwaltung
+│   ├── ThemeManager.php           # Theme-Verwaltung
+│   ├── PageManager.php            # Seiten-Management
+│   ├── Api.php                    # REST API Endpoints
+│   └── Services/                  # Service-Layer
+│       ├── SystemService.php      # System-Diagnose
+│       ├── ThemeCustomizer.php    # Theme-Anpassungen
+│       └── LandingPageService.php # Landing-Page-Builder
+├── admin/                         # Admin-Backend
+│   ├── index.php                  # Dashboard
+│   ├── users.php                  # Benutzerverwaltung
+│   ├── groups.php                 # Gruppen & RBAC
+│   ├── rbac.php                   # Rollen & Berechtigungen
+│   ├── member-dashboard.php       # Member-Bereich Admin
+│   ├── pages.php                  # Seiten-Verwaltung
+│   ├── posts.php                  # Blog/Beiträge
+│   ├── landing-page.php           # Landing-Page-Builder
+│   ├── table-of-contents.php      # Inhaltsverzeichnis
+│   ├── menus.php                  # Navigation & Menüs
+│   ├── site-tables.php            # Benutzerdefinierte Tabellen
+│   ├── media.php                  # Medien-Bibliothek
+│   ├── seo.php                    # SEO-Einstellungen
+│   ├── analytics.php              # Analytics & Statistiken
+│   ├── performance.php            # Performance-Tools
+│   ├── backup.php                 # Backup & Wiederherstellung
+│   ├── themes.php                 # Theme-Verwaltung
+│   ├── theme-editor.php           # Theme-Code-Editor
+│   ├── theme-customizer.php       # Live-Customizer
+│   ├── theme-settings.php         # Pro-Theme Einstellungen
+│   ├── theme-marketplace.php      # Theme-Marketplace
+│   ├── fonts-local.php            # Lokale Fonts Manager
+│   ├── plugins.php                # Plugin-Verwaltung
+│   ├── plugin-marketplace.php     # Plugin-Marketplace
+│   ├── updates.php                # Update-Manager
+│   ├── subscriptions.php          # Abo-Pakete & Zuweisungen
+│   ├── subscription-settings.php  # Abo-Konfiguration
+│   ├── orders.php                 # Bestellverwaltung
+│   ├── legal-sites.php            # Rechtliche Pflichtseiten
+│   ├── cookies.php                # Cookie-Verwaltung (DSGVO)
+│   ├── data-access.php            # Datenzugriff (Art. 15 DSGVO)
+│   ├── data-deletion.php          # Datenlöschung (Art. 17 DSGVO)
+│   ├── antispam.php               # AntiSpam-Einstellungen
+│   ├── cms-firewall.php           # CMS-Firewall & IP-Management
+│   ├── security-audit.php         # Sicherheits-Audit
+│   ├── support.php                # Support-Ticket-Verwaltung
+│   ├── system.php                 # System & Diagnose
+│   ├── settings.php               # Globale Einstellungen
+│   ├── partials/
+│   │   └── admin-menu.php         # Zentrale Sidebar-Definition
+│   └── includes/                  # Admin-Hilfsfunktionen
+├── member/                        # Mitgliederbereich
+│   └── index.php                  # Member-Dashboard
+├── themes/                        # Theme-Verzeichnis
+│   ├── 365Network/                # Network-Theme
+│   ├── academy365/                # Academy-Theme
+│   ├── buildbase/                 # Builder-Theme
+│   ├── business/                  # Business-Theme
+│   ├── cms-default/               # Standard-Theme
+│   ├── logilink/                  # Logistik-Theme
+│   ├── medcarepro/                # Healthcare-Theme
+│   ├── personalflow/              # HR-Theme
+│   └── technexus/                 # Tech-Theme
+├── plugins/                       # Plugin-Verzeichnis (CMS)
+│   └── [plugin-name]/
+│       └── [plugin-name].php      # Plugin-Hauptdatei
+├── PLUGINS/                       # Externe Plugins
+│   ├── cms-companies/             # Firmen-Verzeichnis-Plugin
+│   ├── cms-events/                # Event-Management-Plugin
+│   ├── cms-experts/               # Experten-Verzeichnis-Plugin
+│   ├── cms-importer/              # Import/Export-Plugin
+│   ├── cms-jobads/                # Stellenanzeigen-Plugin
+│   └── cms-speakers/             # Referenten-Plugin
+├── assets/                        # Statische Assets
 │   ├── css/
-│   │   └── admin.css          # Admin-Styles (1850+ Zeilen)
+│   │   ├── admin.css              # Admin-Styles (2000+ Zeilen)
+│   │   └── admin-sidebar.css      # Sidebar-Styles
 │   ├── js/
-│   │   ├── admin.js           # Admin-JavaScript
-│   │   └── theme.js           # Theme-JavaScript
-│   └── images/                # Bilder
-├── includes/                  # Helper-Funktionen
-│   └── functions.php          # Global functions
-├── uploads/                   # User-Uploads
-├── cache/                     # Cache-Verzeichnis
-├── logs/                      # Log-Dateien
-├── config/                    # Konfigurationen
-├── index.php                  # Bootstrap-Datei
-├── config.php                 # Konfiguration (gitignored!)
-├── config.sample.php          # Config-Vorlage
-├── install.php                # Installations-Skript
-├── .htaccess                  # Apache-Konfiguration
-└── README.md                  # Diese Datei
+│   │   ├── admin.js               # Admin-JavaScript
+│   │   └── theme.js               # Theme-JavaScript
+│   └── images/                    # Statische Bilder
+├── includes/                      # Helper-Funktionen
+│   └── functions.php              # Globale Hilfsfunktionen
+├── uploads/                       # User-Uploads
+├── cache/                         # Cache-Verzeichnis
+├── logs/                          # Log-Dateien (debug-YYYY-MM-DD.log)
+├── config/                        # Konfigurationen
+├── DOC/                           # Dokumentation
+│   ├── screenshots/               # Admin-Screenshots
+│   └── ...                        # Weitere Docs
+├── index.php                      # Bootstrap-Datei
+├── config.php                     # Konfiguration (gitignored!)
+├── config.sample.php              # Config-Vorlage
+├── install.php                    # Installations-Skript
+├── media-proxy.php                # Media-Proxy Endpunkt
+├── .htaccess                      # Apache-Konfiguration
+└── README.md                      # Diese Datei
 ```
 
 ## 🎨 Theme-Editor verwenden
@@ -558,71 +744,102 @@ Admin → System & Diagnose → Tools → Fehlende Tabellen erstellen
 
 ## 📊 Datenbank-Schema
 
-### Kern-Tabellen (17)
+### Kern-Tabellen
 
-| Tabelle | Beschreibung | Datensätze (ca.) |
-|---------|--------------|------------------|
-| `cms_users` | Benutzer | 1-10000 |
-| `cms_user_meta` | User-Metadaten | 10-50000 |
-| `cms_roles` | Rollen & Berechtigungen | 3-10 |
-| `cms_sessions` | Aktive Sessions | 10-1000 |
-| `cms_settings` | Globale Einstellungen | 20-100 |
-| `cms_pages` | Seiten-Content | 10-1000 |
-| `cms_page_revisions` | Seiten-Versionen | 50-5000 |
-| `cms_landing_sections` | Landing-Page Sektionen | 5-50 |
-| `cms_activity_log` | Aktivitäts-Log | 1000-100000 |
-| `cms_cache` | Query-Cache | 100-10000 |
-| `cms_failed_logins` | Fehlgeschlagene Logins | 0-10000 |
-| `cms_login_attempts` | Login-Versuche (Security) | 0-1000 |
-| `cms_blocked_ips` | Blockierte IPs | 0-100 |
-| `cms_media` | Media-Library | 0-10000 |
-| `cms_plugins` | Installierte Plugins | 0-50 |
-| `cms_plugin_meta` | Plugin-Metadaten | 0-500 |
-| `cms_theme_customizations` | Theme-Anpassungen | 0-200 |
+| Tabelle | Beschreibung |
+|---------|--------------|
+| `cms_users` | Benutzer-Accounts |
+| `cms_user_meta` | Erweiterte User-Metadaten |
+| `cms_roles` | Rollen & Berechtigungen |
+| `cms_groups` | Benutzergruppen |
+| `cms_sessions` | Aktive Sessions |
+| `cms_settings` | Globale Systemeinstellungen |
+| `cms_pages` | Seiten-Content |
+| `cms_page_revisions` | Seiten-Revisionen |
+| `cms_posts` | Blog-Beiträge |
+| `cms_post_categories` | Beitrags-Kategorien |
+| `cms_post_tags` | Beitrags-Tags |
+| `cms_landing_sections` | Landing-Page Sektionen |
+| `cms_menus` | Navigationsmenüs |
+| `cms_menu_items` | Menü-Einträge |
+| `cms_media` | Media-Library |
+| `cms_activity_log` | Aktivitäts-Audit-Log |
+| `cms_cache` | Query-Cache |
+| `cms_failed_logins` | Fehlgeschlagene Logins |
+| `cms_login_attempts` | Login-Versuche |
+| `cms_blocked_ips` | IP-Sperrliste (Firewall) |
+| `cms_plugins` | Installierte Plugins |
+| `cms_plugin_meta` | Plugin-Metadaten |
+| `cms_theme_customizations` | Theme-Customizer-Einstellungen |
+| `cms_subscriptions` | Abo-Pakete |
+| `cms_user_subscriptions` | Benutzer-Abonnements |
+| `cms_orders` | Bestellungen |
+| `cms_cookies` | Cookie-Definitionen (DSGVO) |
+| `cms_cookie_consents` | Cookie-Einwilligungen |
+| `cms_support_tickets` | Support-Tickets |
+| `cms_support_messages` | Ticket-Nachrichten |
+| `cms_notifications` | Benutzer-Benachrichtigungen |
+| `cms_messages` | Private Nachrichten |
+| `cms_site_tables` | Benutzerdefinierte Datentabellen |
 
-Vollständiges Schema: [doc/DATABASE-SCHEMA.md](doc/DATABASE-SCHEMA.md)
+Vollständiges Schema: [DOC/](DOC/)
 
 ## 📚 Weitere Dokumentation
 
-- **[Installations-Guide](doc/INSTALLATION.md)** - Detaillierte Installations-Anleitung
-- **[Architektur](doc/ARCHITECTURE.md)** - System-Architektur und Design-Patterns
-- **[API-Referenz](doc/API-REFERENCE.md)** - REST API Endpunkte
-- **[Hook-Referenz](doc/HOOKS-REFERENCE.md)** - Alle verfügbaren Hooks
-- **[Datenbank-Schema](doc/DATABASE-SCHEMA.md)** - Komplettes DB-Schema mit SQL
-- **[Sicherheit](doc/SECURITY.md)** - Security Best Practices & Audit
-- **[Theme-Entwicklung](doc/THEME-DEVELOPMENT.md)** - Theme-Entwicklungs-Guide
-- **[Plugin-Entwicklung](doc/plugins/PLUGIN-DEVELOPMENT.md)** - Plugin-Entwicklungs-Guide
-- **[Admin-Guide](doc/admin/ADMIN-GUIDE.md)** - Admin-Panel Nutzung
-- **[Changelog](doc/CHANGELOG.md)** - Versions-Historie
+- **[Installations-Guide](DOC/INSTALLATION.md)** - Detaillierte Installations-Anleitung
+- **[Admin-Guide](DOC/admin/)** - Vollständige Admin-Panel-Dokumentation
+- **[API-Referenz](DOC/core/)** - REST API Endpunkte
+- **[Feature-Dokumentation](DOC/feature/)** - Alle Features im Detail
+- **[Plugin-Entwicklung](DOC/plugins/)** - Plugin-Entwicklungs-Guide
+- **[Theme-Entwicklung](DOC/theme/)** - Theme-Entwicklungs-Guide
+- **[Member-Bereich](DOC/member/)** - Member-Dokumentation
+- **[Workflow-Guides](DOC/workflow/)** - Arbeitsabläufe und Best Practices
+- **[Changelog](Changelog.md)** - Vollständige Versions-Historie
 
 ## 🔄 Versions-Historie
 
 > Die vollständige Versionshistorie mit allen Einzel-Patches befindet sich im [Changelog](Changelog.md).
 
-### v1.6.x (21.–22. Februar 2026) — **AKTUELL** · Cookie-Manager & Legal-Suite
-- ✅ Cookie-Verwaltung mit Dienstbibliothek und Sicherheitsprüfungen (v1.6.9)
-- ✅ AntiSpam-Einstellungsseite und Rechtstexte-Generator (v1.6.1)
-- ✅ Cookie-Richtlinie-Generierung und dynamischer Zustimmungsstatus (v1.6.2–v1.6.3)
-- ✅ Site-Tables-Management mit CRUD-Operationen und Import/Export (v1.6.5)
-- ✅ Cache-Clearing-Funktionalität und Asset-Regenerierung (v1.6.0)
+### v1.8.x (22. Februar 2026) — **AKTUELL** · Security & Firewall Suite
+- ✅ CMS-Firewall mit IP-Blocking, Geo-Filtering und Request-Analyse
+- ✅ AntiSpam-System mit konfigurierbaren Schutzregeln
+- ✅ Security-Audit-Seite mit automatisiertem Score und Handlungsempfehlungen
+- ✅ RBAC-Verwaltung vollständig überarbeitet
+- ✅ Support-Ticket-System im Admin-Bereich integriert
+
+### v1.7.x (22. Februar 2026) — Theme & Plugin Marketplace
+- ✅ Theme-Marketplace mit 10 fertigen Themes
+- ✅ Plugin-Marketplace mit Kategorie-Browser und Such-Filter
+- ✅ Lokale Fonts Manager mit Upload und Theme-Integration
+- ✅ Theme-Customizer Live-Vorschau erweitert (50+ Optionen)
+- ✅ Update-Manager für Core, Plugins und Themes via GitHub API
+
+### v1.6.x (21.–22. Februar 2026) — Cookie-Manager & Legal-Suite
+- ✅ Cookie-Verwaltung mit Dienstbibliothek und Sicherheitsprüfungen
+- ✅ AntiSpam-Einstellungsseite und Rechtstexte-Generator
+- ✅ Cookie-Richtlinie-Generierung und dynamischer Zustimmungsstatus
+- ✅ Site-Tables-Management mit CRUD-Operationen und Import/Export
+- ✅ Cache-Clearing und Asset-Regenerierung
 
 ### v1.5.x (21. Februar 2026) — Support-System & DSGVO
-- ✅ DSGVO-konforme Datenlöschung und Security-Audit-Seite (v1.5.7)
-- ✅ Support.php komplett neu via GitHub API (v1.5.0–v1.5.4)
-- ✅ Logs nur noch bei `CMS_DEBUG=true` (v1.4.5)
+- ✅ DSGVO-konforme Datenlöschung (Art. 17) und Security-Audit-Seite
+- ✅ Support-Ticket-System mit Prioritäten und Status-Tracking
+- ✅ Datenzugriffs-Anträge (Art. 15 DSGVO) automatisiert
+- ✅ Debug-Logging nur noch bei `CMS_DEBUG=true`
 
 ### v1.4.x (21. Februar 2026) — Admin-Erweiterungen
-- ✅ Plugin- und Theme-Marketplace-Seiten (v1.4.7)
-- ✅ Dokumentationsabruf mit rekursivem Directory-Traversal (v1.4.9)
-- ✅ Aboverwaltung: Pakete-Editor, Zuweisungen, Einstellungen-Tab (v1.4.1–v1.4.2)
-- ✅ Version-Badge im Admin Dashboard (v1.4.0)
+- ✅ Plugin- und Theme-Marketplace-Seiten
+- ✅ Aboverwaltung: Pakete-Editor, Zuweisungen, Einstellungen-Tab
+- ✅ Version-Badge im Admin Dashboard
+- ✅ Dokumentationsabruf mit rekursivem Directory-Traversal
 
 ### v1.3.x (20. Februar 2026) — 🚀 First Public Release
-- ✅ **365CMS.DE öffentlich veröffentlicht** (v1.3.0)
-- ✅ Subscription- und Checkout-System (v1.3.5)
-- ✅ Blog-Routen und Datenbankschema v3 (v1.3.1–v1.3.2)
+- ✅ **365CMS.DE öffentlich veröffentlicht**
+- ✅ Subscription- und Checkout-System
+- ✅ Blog-Routen und Datenbankschema v3
+- ✅ Landing-Page-Builder, Menü-Verwaltung, Media-Library
 
-## 📄 Lizenz
+
 
 Freie Verwendung für private und geschäftliche Projekte **mit Copyright-Hinweis**.
 
