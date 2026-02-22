@@ -430,7 +430,7 @@ class SystemService {
                 $files = glob($cache_dir . '/*');
                 foreach ($files as $file) {
                     if (is_file($file)) {
-                        @unlink($file);
+                        unlink($file); // M-03: kein @, is_file vorher geprüft
                     }
                 }
             }
