@@ -47,6 +47,8 @@ package-lock.json
 BACKUP/
 PLUGINS/
 THEMES/
+DOC/workflow/
+DOC/workflow/*
 DOC/audits/
 DOC/feature/
 DOC/feature
