@@ -392,7 +392,11 @@ class PluginManager
         if (file_exists($pluginFile)) {
             // Plugin einmalig includen (falls noch nicht geladen)
             if (!in_array(realpath($pluginFile), get_included_files(), true)) {
-                @include_once $pluginFile;
+                try {
+                    include_once $pluginFile; // M-03: try/catch statt @include
+                } catch (\Throwable $e) {
+                    error_log('PluginManager [M-13]: Plugin für Uninstall nicht ladbar: ' . $e->getMessage());
+                }
             }
             $this->runLifecycleCallback($plugin, 'uninstall');
         }
