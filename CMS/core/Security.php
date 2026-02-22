@@ -18,7 +18,13 @@ if (!defined('ABSPATH')) {
 class Security
 {
     private static ?self $instance = null;
-    
+
+    /**
+     * Per-Request CSP-Nonce (H-03)
+     * Wird in init() einmalig generiert und in allen Templates genutzt.
+     */
+    private string $cspNonce = '';
+
     /**
      * Singleton instance
      */
@@ -29,18 +35,41 @@ class Security
         }
         return self::$instance;
     }
+
+    /**
+     * CSP-Nonce für inline <script nonce="..."> und <style nonce="..."> zurückgeben (H-03)
+     */
+    public function getNonce(): string
+    {
+        return $this->cspNonce;
+    }
+
+    /**
+     * Fertiges nonce-Attribut zurückgeben, z. B.: nonce="abc123"
+     * Nutzung in Templates: <script <?= Security::instance()->nonceAttr() ?>>
+     */
+    public function nonceAttr(): string
+    {
+        return 'nonce="' . htmlspecialchars($this->cspNonce, ENT_QUOTES, 'UTF-8') . '"';
+    }
     
     /**
      * Initialize security measures
+     * Nonce wird VOR den Headers generiert, damit er in den CSP-Header eingebettet werden kann.
      */
     public function init(): void
     {
+        // H-03: Nonce einmalig pro Request generieren
+        $this->cspNonce = base64_encode(random_bytes(18)); // 24 Zeichen base64
         $this->setSecurityHeaders();
         $this->startSession();
     }
     
     /**
      * Set security headers
+     *
+     * H-03: Nonce-basierte CSP (kein unsafe-inline mehr)
+     * H-04: HSTS mit includeSubDomains
      */
     private function setSecurityHeaders(): void
     {
@@ -50,9 +79,32 @@ class Security
             header('X-XSS-Protection: 1; mode=block');
             header('Referrer-Policy: strict-origin-when-cross-origin');
             header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
-            
-            if (!CMS_DEBUG) {
-                header('Content-Security-Policy: default-src \'self\'; script-src \'self\' \'unsafe-inline\'; style-src \'self\' \'unsafe-inline\'');
+
+            // H-04: HSTS – nur über HTTPS senden, nicht im Debug-Modus
+            if (!CMS_DEBUG && (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')) {
+                header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+            }
+
+            // H-03: Nonce-basierte CSP (unsafe-inline entfernt)
+            // Alle inline <script> und <style> müssen das nonce-Attribut tragen!
+            $nonce = $this->cspNonce;
+            $csp = implode('; ', [
+                "default-src 'self'",
+                "script-src 'self' 'nonce-{$nonce}'",
+                "style-src 'self' 'nonce-{$nonce}'",
+                "img-src 'self' data: https:",
+                "font-src 'self' data:",
+                "connect-src 'self'",
+                "frame-ancestors 'none'",
+                "base-uri 'self'",
+                "form-action 'self'",
+            ]);
+
+            // Im Debug-Modus nur als Report-Only, damit bestehende Inline-Scripts nicht brechen
+            if (CMS_DEBUG) {
+                header('Content-Security-Policy-Report-Only: ' . $csp);
+            } else {
+                header('Content-Security-Policy: ' . $csp);
             }
         }
     }
@@ -206,6 +258,7 @@ class Security
     
     /**
      * Rate limiting check (static wrapper with session)
+     * Fallback für Kontexte ohne DB. Primär: checkDbRateLimit() verwenden.
      */
     public static function checkRateLimit(string $identifier, int $maxAttempts = 5, int $timeWindow = 300): bool
     {
@@ -238,6 +291,58 @@ class Security
         // Increment attempts
         $_SESSION[$key]['attempts']++;
         return true;
+    }
+
+    /**
+     * H-05: Rate-Limiting auf Datenbankbasis (IP + Action)
+     *
+     * Zählt Login-Versuche aus der DB-Tabelle `login_attempts` – erkennt so auch
+     * verteilte Brute-Force-Angriffe über mehrere Sessions/Browser/IPs-Ranges.
+     *
+     * @param  string $ip          Client-IP (aus getClientIp())
+     * @param  string $action      Aktion-Bezeichner, z. B. 'login'
+     * @param  int    $maxAttempts Maximale Versuche im Zeitfenster
+     * @param  int    $timeWindow  Zeitfenster in Sekunden
+     * @return bool   true = Versuch erlaubt, false = gesperrt
+     */
+    public static function checkDbRateLimit(
+        string $ip,
+        string $action,
+        int $maxAttempts = 5,
+        int $timeWindow = 300
+    ): bool {
+        try {
+            $db = Database::instance();
+            $prefix = $db->getPrefix();
+            $since  = date('Y-m-d H:i:s', time() - $timeWindow);
+            // H-05: Datenbankbasiertes Zählen – IP + Action-Feld berücksichtigen
+            // (schützt auch gegen verteilte Brute-Force über mehrere Sessions)
+            $stmt = $db->prepare(
+                "SELECT COUNT(*) AS attempt_count
+                   FROM {$prefix}login_attempts
+                  WHERE ip_address = ?
+                    AND action = ?
+                    AND attempted_at >= ?"
+            );
+            $stmt->execute([$ip, $action, $since]);
+            $row = $stmt->fetch(\PDO::FETCH_OBJ);
+
+            $count = (int) ($row->attempt_count ?? 0);
+
+            // Gelegentlich alte Einträge bereinigen (1:20 Chance pro Request)
+            if (random_int(1, 20) === 1) {
+                $cutoff = date('Y-m-d H:i:s', time() - max($timeWindow * 4, 86400));
+                $del = $db->prepare("DELETE FROM {$prefix}login_attempts WHERE attempted_at < ?");
+                $del->execute([$cutoff]);
+            }
+
+            return $count < $maxAttempts;
+
+        } catch (\Throwable $e) {
+            error_log('Security::checkDbRateLimit() Fehler (Fallback auf Session): ' . $e->getMessage());
+            // Fallback auf Session-basiertes Rate-Limiting wenn DB nicht verfügbar
+            return self::checkRateLimit('db_rl_' . $action . '_' . md5($ip), $maxAttempts, $timeWindow);
+        }
     }
     
     /**

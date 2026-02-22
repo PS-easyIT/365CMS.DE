@@ -16,8 +16,9 @@ Options +FollowSymLinks
     # RewriteCond %{HTTPS} off
     # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
     
-    # Block access to sensitive files
+    # Block access to sensitive files and directories
     RewriteRule ^config\.php$ - [F,L]
+    RewriteRule ^config/ - [F,L]
     RewriteRule ^\.git - [F,L]
     
     # Allow direct access to media handler
@@ -69,6 +70,13 @@ Options +FollowSymLinks
     Deny from all
 </Files>
 
+# Protect config directory (double protection alongside config/.htaccess and RewriteRule)
+<IfModule mod_authz_core.c>
+    <Directory "config">
+        Require all denied
+    </Directory>
+</IfModule>
+
 # Protect .htaccess
 <Files ".htaccess">
     Order Deny,Allow
@@ -78,23 +86,63 @@ Options +FollowSymLinks
 # Set default charset
 AddDefaultCharset UTF-8
 
+# Kompression – Brotli (bevorzugt) + Gzip/Deflate als Fallback (H-14)
+<IfModule mod_brotli.c>
+    AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/xml text/css text/javascript application/javascript application/json application/xml font/woff font/woff2
+</IfModule>
+
 # Compression
 <IfModule mod_deflate.c>
     AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
 </IfModule>
 
-# Browser caching
+# Browser caching – H-14: Expires + Cache-Control + ETag
 <IfModule mod_expires.c>
     ExpiresActive On
-    ExpiresByType image/jpg "access plus 1 year"
-    ExpiresByType image/jpeg "access plus 1 year"
-    ExpiresByType image/gif "access plus 1 year"
-    ExpiresByType image/png "access plus 1 year"
-    ExpiresByType image/webp "access plus 1 year"
-    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType image/jpg            "access plus 1 year"
+    ExpiresByType image/jpeg           "access plus 1 year"
+    ExpiresByType image/gif            "access plus 1 year"
+    ExpiresByType image/png            "access plus 1 year"
+    ExpiresByType image/webp           "access plus 1 year"
+    ExpiresByType image/svg+xml        "access plus 1 month"
+    ExpiresByType image/x-icon         "access plus 1 year"
+    ExpiresByType text/css             "access plus 1 month"
     ExpiresByType application/javascript "access plus 1 month"
-    ExpiresByType image/x-icon "access plus 1 year"
+    ExpiresByType text/javascript      "access plus 1 month"
+    ExpiresByType application/json     "access plus 0 seconds"
+    ExpiresByType text/html            "access plus 0 seconds"
+    ExpiresByType font/woff            "access plus 1 year"
+    ExpiresByType font/woff2           "access plus 1 year"
+    ExpiresByType application/font-woff "access plus 1 year"
+    ExpiresByType application/font-woff2 "access plus 1 year"
 </IfModule>
+
+# Cache-Control headers (H-14)
+<IfModule mod_headers.c>
+    # Statische Bild-Assets – 1 Jahr, immutable (nie geändert ohne neuen Namen)
+    <FilesMatch "\.(jpg|jpeg|gif|png|webp|ico|svg)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+
+    # Schriften – 1 Jahr
+    <FilesMatch "\.(woff|woff2|ttf|otf|eot)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+
+    # CSS / JS – 1 Monat (mit ?v= Cache-Busting in Templates)
+    <FilesMatch "\.(css|js)$">
+        Header set Cache-Control "public, max-age=2592000, must-revalidate"
+    </FilesMatch>
+
+    # HTML – kein Caching (dynamische Seiten)
+    <FilesMatch "\.html?$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
+    </FilesMatch>
+</IfModule>
+
+# ETag: INode-Komponente deaktivieren (HTTP/1.1-kompatibel, sichere Cluster-Nutzung)
+FileETag MTime Size
 
 # Limit file upload size (adjust as needed)
 php_value upload_max_filesize 10M

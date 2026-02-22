@@ -350,7 +350,7 @@ class MediaService {
             return new WP_Error('size_limit', 'Datei ist zu groß. Maximum: ' . $settings['max_upload_size']);
         }
 
-        // Check file type
+        // Check file type by extension
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         $allowedGroups = $settings['allowed_types'] ?? ['image', 'document'];
         
@@ -375,6 +375,78 @@ class MediaService {
         
         if (!$isAllowed) {
             return new WP_Error('type_not_allowed', 'Dateityp nicht erlaubt: ' . $ext);
+        }
+
+        // H-23: MIME-Typ per finfo() verifizieren – verhindert MIME-Spoofing via Dateiendung
+        $allowedMimeMap = [
+            'jpg'  => ['image/jpeg'],
+            'jpeg' => ['image/jpeg'],
+            'png'  => ['image/png'],
+            'gif'  => ['image/gif'],
+            'webp' => ['image/webp'],
+            'bmp'  => ['image/bmp', 'image/x-bmp'],
+            'ico'  => ['image/x-icon', 'image/vnd.microsoft.icon'],
+            'svg'  => ['image/svg+xml', 'text/plain', 'text/html'], // Browser-Varianz
+            'mp4'  => ['video/mp4'],
+            'webm' => ['video/webm'],
+            'ogg'  => ['video/ogg', 'audio/ogg', 'application/ogg'],
+            'mov'  => ['video/quicktime'],
+            'avi'  => ['video/avi', 'video/x-msvideo'],
+            'mkv'  => ['video/x-matroska'],
+            'mp3'  => ['audio/mpeg', 'audio/mp3'],
+            'wav'  => ['audio/wav', 'audio/x-wav'],
+            'aac'  => ['audio/aac', 'audio/x-aac'],
+            'flac' => ['audio/flac', 'audio/x-flac'],
+            'm4a'  => ['audio/m4a', 'audio/x-m4a', 'audio/mp4'],
+            'pdf'  => ['application/pdf'],
+            'doc'  => ['application/msword'],
+            'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+            'xls'  => ['application/vnd.ms-excel'],
+            'xlsx' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+            'ppt'  => ['application/vnd.ms-powerpoint'],
+            'pptx' => ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
+            'txt'  => ['text/plain'],
+            'rtf'  => ['text/rtf', 'application/rtf', 'text/richtext'],
+            'csv'  => ['text/csv', 'text/plain', 'application/csv'],
+            'zip'  => ['application/zip', 'application/x-zip-compressed', 'application/x-zip'],
+            'rar'  => ['application/x-rar-compressed', 'application/vnd.rar'],
+            '7z'   => ['application/x-7z-compressed'],
+            'tar'  => ['application/x-tar'],
+            'gz'   => ['application/gzip', 'application/x-gzip'],
+        ];
+
+        if (function_exists('finfo_open') && isset($allowedMimeMap[$ext])) {
+            $finfo    = finfo_open(FILEINFO_MIME_TYPE);
+            $realMime = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+
+            if ($realMime !== false && !in_array($realMime, $allowedMimeMap[$ext], true)) {
+                return new WP_Error(
+                    'mime_mismatch',
+                    sprintf(
+                        'MIME-Typ "%s" passt nicht zur Dateiendung ".%s". Upload abgebrochen.',
+                        $realMime,
+                        $ext
+                    )
+                );
+            }
+        }
+
+        // H-23: PHP-Tag-Scan – verhindert das Einschleusen von PHP-Code in Uploads
+        $textExtensions = ['txt', 'csv', 'rtf', 'svg', 'html', 'htm', 'xml'];
+        if (in_array($ext, $textExtensions, true) || $file['size'] < 512 * 1024) {
+            // Nur bei Text-Dateien oder kleinen Dateien (<512 KB) scannen
+            $content = @file_get_contents($file['tmp_name'], false, null, 0, 65536); // ersten 64 KB prüfen
+            if ($content !== false && (
+                stripos($content, '<?php') !== false ||
+                strpos($content, '<?=')    !== false ||
+                strpos($content, '<%')     !== false   // ASP-Tags (zusätzliche Vorsicht)
+            )) {
+                return new WP_Error(
+                    'php_code_detected',
+                    'Die hochgeladene Datei enthält PHP- oder Server-Code und wurde abgelehnt.'
+                );
+            }
         }
 
         $fullPath = $this->resolvePath($targetPath);

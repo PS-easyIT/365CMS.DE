@@ -11,11 +11,14 @@ declare(strict_types=1);
 
 namespace CMS;
 
+use CMS\Contracts\CacheInterface;
+
 if (!defined('ABSPATH')) {
     exit;
 }
 
-class CacheManager
+/** @implements CacheInterface */
+class CacheManager implements CacheInterface
 {
     private static ?self $instance = null;
     private string $cacheDir;
@@ -40,7 +43,15 @@ class CacheManager
     }
 
     /**
-     * Get item from cache
+     * HMAC-Key aus Konfigurations-Konstante lesen
+     */
+    private function getHmacKey(): string
+    {
+        return defined('NONCE_KEY') ? NONCE_KEY : 'cms-cache-hmac-fallback-key';
+    }
+
+    /**
+     * Get item from cache (JSON + HMAC-Verifikation – kein unserialize())
      */
     public function get(string $key): mixed
     {
@@ -49,58 +60,162 @@ class CacheManager
             return null;
         }
 
-        $content = file_get_contents($file);
-        $data = unserialize($content);
-
-        // Check expiration
-        if ($data['expires'] < time()) {
-            unlink($file);
+        $raw = file_get_contents($file);
+        if ($raw === false) {
             return null;
         }
 
-        return $data['value'];
+        // Format: <hmac>:<base64-encoded-json>
+        $sep = strpos($raw, ':');
+        if ($sep === false) {
+            // Altes Format (serialize) – Datei ungültig löschen
+            @unlink($file);
+            return null;
+        }
+
+        $storedHmac = substr($raw, 0, $sep);
+        $payload    = base64_decode(substr($raw, $sep + 1), true);
+
+        if ($payload === false) {
+            @unlink($file);
+            return null;
+        }
+
+        // HMAC-Integritätsprüfung (verhindert PHP Object Injection)
+        $expectedHmac = hash_hmac('sha256', $payload, $this->getHmacKey());
+        if (!hash_equals($expectedHmac, $storedHmac)) {
+            @unlink($file);
+            error_log('CacheManager: HMAC-Fehlschlag für Cache-Schlüssel ' . $key . ' – mögliche Manipulation!');
+            return null;
+        }
+
+        $data = json_decode($payload, true);
+        if (!is_array($data) || !array_key_exists('v', $data) || !isset($data['e'])) {
+            @unlink($file);
+            return null;
+        }
+
+        // Ablaufzeit prüfen
+        if ($data['e'] < time()) {
+            @unlink($file);
+            return null;
+        }
+
+        return $data['v'];
     }
 
     /**
-     * Set item in cache
+     * Set item in cache (JSON + HMAC – kein serialize())
+     * Rückgabe bool für CacheInterface-Kompatibilität.
      */
-    public function set(string $key, mixed $value, int $ttl = 3600): void
+    public function set(string $key, mixed $value, ?int $ttl = null): bool
     {
+        $ttl  = $ttl ?? 3600;
         $file = $this->getCacheFile($key);
-        $data = [
-            'value' => $value,
-            'expires' => time() + $ttl
-        ];
-        file_put_contents($file, serialize($data));
+
+        try {
+            $payload = json_encode(['v' => $value, 'e' => time() + $ttl], JSON_THROW_ON_ERROR);
+            $hmac    = hash_hmac('sha256', $payload, $this->getHmacKey());
+            // Format: <hmac>:<base64-encoded-json>
+            return (bool) file_put_contents($file, $hmac . ':' . base64_encode($payload), LOCK_EX);
+        } catch (\JsonException $e) {
+            error_log('CacheManager::set() JSON error: ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**
      * Delete item from cache
+     * Rückgabe bool für CacheInterface-Kompatibilität.
      */
-    public function delete(string $key): void
+    public function delete(string $key): bool
     {
         $file = $this->getCacheFile($key);
         if (file_exists($file)) {
-            unlink($file);
+            return @unlink($file);
         }
+        return true; // Nicht vorhanden = bereits gelöscht
     }
 
     /**
-     * Flush entire cache
+     * Prüft ob ein gültiger Cache-Eintrag existiert (CacheInterface::has)
      */
-    public function flush(): void
+    public function has(string $key): bool
     {
-        $files = glob($this->cacheDir . '*');
+        return $this->get($key) !== null;
+    }
+
+    /**
+     * Flush entire cache (Alias: clear() für CacheInterface)
+     */
+    public function flush(): bool
+    {
+        return $this->clear();
+    }
+
+    /**
+     * Leert den gesamten File-Cache (CacheInterface::clear)
+     */
+    public function clear(): bool
+    {
+        $files  = glob($this->cacheDir . '*') ?: [];
+        $success = true;
         foreach ($files as $file) {
             if (is_file($file)) {
-                unlink($file);
+                $success = @unlink($file) && $success;
             }
         }
-        
         // LiteSpeed Purge
         if ($this->useLiteSpeed) {
             header('X-LiteSpeed-Purge: *');
         }
+        return $success;
+    }
+
+    // ── CacheInterface: Batch-Methoden ────────────────────────────────────────
+
+    /**
+     * Liest mehrere Werte in einem Aufruf (CacheInterface::getMultiple)
+     *
+     * @param  string[] $keys
+     * @return array<string, mixed>
+     */
+    public function getMultiple(array $keys, mixed $default = null): array
+    {
+        $result = [];
+        foreach ($keys as $key) {
+            $val = $this->get($key);
+            $result[$key] = ($val !== null) ? $val : $default;
+        }
+        return $result;
+    }
+
+    /**
+     * Speichert mehrere Werte (CacheInterface::setMultiple)
+     *
+     * @param  array<string, mixed> $values
+     */
+    public function setMultiple(array $values, ?int $ttl = null): bool
+    {
+        $success = true;
+        foreach ($values as $key => $value) {
+            $success = $this->set((string) $key, $value, $ttl) && $success;
+        }
+        return $success;
+    }
+
+    /**
+     * Löscht mehrere Einträge (CacheInterface::deleteMultiple)
+     *
+     * @param  string[] $keys
+     */
+    public function deleteMultiple(array $keys): bool
+    {
+        $success = true;
+        foreach ($keys as $key) {
+            $success = $this->delete($key) && $success;
+        }
+        return $success;
     }
     
     /**

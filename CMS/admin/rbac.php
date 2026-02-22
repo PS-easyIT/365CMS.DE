@@ -40,7 +40,7 @@ foreach ($migrations as $sql) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 6 STANDARD-ROLLEN SICHERSTELLEN
+// 6 STANDARD-ROLLEN SICHERSTELLEN (H-13: Batch-INSERT statt N+1-Einzelqueries)
 // ═══════════════════════════════════════════════════════════════════════════════
 $_seedRoles = [
     // name          display_name         description                                                     caps_json                                                                                            mda  sort
@@ -51,13 +51,18 @@ $_seedRoles = [
     ['contributor',  'Beitragender',      'Eigene Beitraege erstellen, eingeschraenkter Member-Zugang',  '["manage_posts"]',                                                                                  1, 5],
     ['viewer',       'Beobachter',        'Nur-Lesen-Zugang, kein Admin-Bereich',                        '[]',                                                                                                0, 6],
 ];
+// H-13: 1 Batch-Query (INSERT … ON DUPLICATE KEY UPDATE) statt 6× SELECT+INSERT
+$pdo = $db->getPdo();
 foreach ($_seedRoles as [$rName, $rDisplay, $rDesc, $rCaps, $rMda, $rSort]) {
-    $exists = $db->get_var("SELECT id FROM {$prefix}roles WHERE name=?", [$rName]);
-    if (!$exists) {
-        $db->execute(
-            "INSERT INTO {$prefix}roles (name, display_name, description, capabilities, member_dashboard_access, sort_order) VALUES (?,?,?,?,?,?)",
-            [$rName, $rDisplay, $rDesc, $rCaps, $rMda, $rSort]
-        );
+    try {
+        $pdo->prepare(
+            "INSERT INTO `{$prefix}roles`
+                (name, display_name, description, capabilities, member_dashboard_access, sort_order)
+             VALUES (?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE sort_order = VALUES(sort_order)"
+        )->execute([$rName, $rDisplay, $rDesc, $rCaps, $rMda, $rSort]);
+    } catch (\PDOException $e) {
+        error_log('rbac.php seed role error: ' . $e->getMessage());
     }
 }
 

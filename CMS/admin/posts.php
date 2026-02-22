@@ -264,10 +264,20 @@ $categories = $db->get_results(
     "SELECT * FROM {$prefix}post_categories ORDER BY name ASC"
 ) ?: [];
 
-$counts = [];
-foreach (['all','published','draft','trash'] as $s) {
-    $where = $s === 'all' ? "status != 'trash'" : "status = '$s'";
-    $counts[$s] = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}posts WHERE $where");
+// H-13: Batch-Query statt N+1-Einzelabfragen für Status-Zählung
+$statusCountRows = $db->get_results(
+    "SELECT status, COUNT(*) AS cnt FROM {$prefix}posts GROUP BY status"
+);
+$counts = ['all' => 0, 'published' => 0, 'draft' => 0, 'trash' => 0];
+foreach ($statusCountRows as $sc) {
+    if ($sc->status === 'trash') {
+        $counts['trash'] = (int) $sc->cnt;
+    } else {
+        $counts['all'] += (int) $sc->cnt;
+        if (isset($counts[$sc->status])) {
+            $counts[$sc->status] = (int) $sc->cnt;
+        }
+    }
 }
 
 $csrf = $security->generateToken('admin_posts');

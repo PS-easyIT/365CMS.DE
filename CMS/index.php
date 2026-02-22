@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * 365CMS - Main Bootstrap File
  * 
@@ -11,9 +11,12 @@
 declare(strict_types=1);
 
 // Start session with secure settings
+// Alle ini_set MÜSSEN vor session_start() gesetzt werden (Security::startSession() prüft nur ob Session noch nicht gestartet ist)
 ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_secure', '1');
 ini_set('session.use_only_cookies', '1');
+ini_set('session.use_strict_mode', '1');  // Verhindert Session-Fixation (H-03-Ergänzung)
+ini_set('session.cookie_samesite', 'Strict');  // CSRF-Zusatzschutz
 session_start();
 
 // Load configuration

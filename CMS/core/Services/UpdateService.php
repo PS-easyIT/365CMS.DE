@@ -123,6 +123,8 @@ class UpdateService
                         'new_version' => $updateInfo['version'],
                         'update_available' => true,
                         'download_url' => $updateInfo['download_url'] ?? '',
+                        // H-19: SHA-256-Prüfsumme aus update-Metadaten mitliefern
+                        'sha256' => $updateInfo['sha256'] ?? $updateInfo['checksum_sha256'] ?? '',
                         'changelog' => $updateInfo['changelog'] ?? '',
                     ];
                 }
@@ -171,60 +173,142 @@ class UpdateService
     }
     
     /**
-     * Fetch data from GitHub API
+     * C-11: Fetch data from GitHub API via cURL (ersetzt @file_get_contents)
+     *
+     * Verwendet cURL mit:
+     * - Timeout (Verbindung + Transfer)
+     * - TLS-Verifikation (CURLOPT_SSL_VERIFYPEER)
+     * - Kein SSRF: nur absolute HTTPS-URLs zu github.com erlaubt
      */
     private function fetchGitHubData(string $url): ?array
     {
-        $context = stream_context_create([
-            'http' => [
-                'method' => 'GET',
-                'header' => [
-                    'User-Agent: 365CMS-UpdateChecker/1.0',
-                    'Accept: application/vnd.github.v3+json',
-                ],
-                'timeout' => 10,
-            ],
-        ]);
-        
-        try {
-            $response = @file_get_contents($url, false, $context);
-            
-            if ($response === false) {
-                error_log('UpdateService: Failed to fetch from GitHub: ' . $url);
-                return null;
-            }
-            
-            $data = json_decode($response, true);
-            
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                error_log('UpdateService: Invalid JSON from GitHub: ' . json_last_error_msg());
-                return null;
-            }
-            
-            return $data;
-        } catch (\Exception $e) {
-            error_log('UpdateService::fetchGitHubData() Error: ' . $e->getMessage());
+        // SSRF-Guard: nur HTTPS-Calls zur GitHub-API erlaubt
+        if (!str_starts_with($url, 'https://api.github.com/')) {
+            error_log('UpdateService: Ungültige URL blockiert: ' . $url);
             return null;
         }
+
+        if (!extension_loaded('curl')) {
+            error_log('UpdateService: cURL-Extension nicht verfügbar.');
+            return null;
+        }
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => false,        // kein Redirect-Follow (SSRF-Schutz)
+            CURLOPT_CONNECTTIMEOUT => 5,            // 5 s Verbindungsaufbau
+            CURLOPT_TIMEOUT        => 10,           // 10 s Gesamt-Transfer
+            CURLOPT_SSL_VERIFYPEER => true,         // TLS-Zertifikat prüfen
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_HTTPHEADER     => [
+                'User-Agent: 365CMS-UpdateChecker/1.0',
+                'Accept: application/vnd.github.v3+json',
+            ],
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($response === false || $curlError !== '') {
+            error_log('UpdateService: cURL-Fehler bei ' . $url . ': ' . $curlError);
+            return null;
+        }
+
+        if ($httpCode !== 200) {
+            error_log('UpdateService: HTTP ' . $httpCode . ' bei ' . $url);
+            return null;
+        }
+
+        $data = json_decode((string) $response, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log('UpdateService: Ungültiges JSON von GitHub: ' . json_last_error_msg());
+            return null;
+        }
+
+        return $data;
     }
-    
+
     /**
-     * Fetch plugin update information
+     * C-11: Fetch plugin update information via cURL (ersetzt @file_get_contents)
      */
     private function fetchPluginUpdate(string $url): ?array
     {
-        try {
-            $response = @file_get_contents($url);
-            
-            if ($response === false) {
-                return null;
-            }
-            
-            return json_decode($response, true);
-        } catch (\Exception $e) {
-            error_log('UpdateService::fetchPluginUpdate() Error: ' . $e->getMessage());
+        if (!filter_var($url, FILTER_VALIDATE_URL) || !str_starts_with($url, 'https://')) {
+            error_log('UpdateService: fetchPluginUpdate – URL nicht HTTPS oder ungültig: ' . $url);
             return null;
         }
+
+        if (!extension_loaded('curl')) {
+            error_log('UpdateService: cURL-Extension nicht verfügbar.');
+            return null;
+        }
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_TIMEOUT        => 10,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_HTTPHEADER     => [
+                'User-Agent: 365CMS-UpdateChecker/1.0',
+            ],
+        ]);
+
+        $response = curl_exec($ch);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($response === false || $curlError !== '') {
+            error_log('UpdateService: fetchPluginUpdate cURL-Fehler: ' . $curlError);
+            return null;
+        }
+
+        return json_decode((string) $response, true) ?: null;
+    }
+
+    /**
+     * C-10: SHA-256-Verifikation für heruntergeladene Dateien (Plugin/Theme)
+     *
+     * Wird beim Marketplace-Download aufgerufen, sobald eine Datei lokal gespeichert ist.
+     * Der erwartete Hash steht im update.json des Anbieters (Feld: sha256).
+     *
+     * @param  string $filePath     Absoluter Pfad zur heruntergeladenen Datei
+     * @param  string $expectedHash Erwarteter SHA-256-Hash (aus update.json/API-Response)
+     * @return bool   true = Datei ist integer, false = Hash-Mismatch oder Datei fehlt
+     */
+    public function verifyDownloadIntegrity(string $filePath, string $expectedHash): bool
+    {
+        if (!file_exists($filePath) || !is_readable($filePath)) {
+            error_log('UpdateService: verifyDownloadIntegrity – Datei nicht gefunden: ' . $filePath);
+            return false;
+        }
+
+        if (!preg_match('/^[0-9a-f]{64}$/i', $expectedHash)) {
+            error_log('UpdateService: verifyDownloadIntegrity – ungültiges Hash-Format.');
+            return false;
+        }
+
+        $actualHash = hash_file('sha256', $filePath);
+
+        if ($actualHash === false) {
+            error_log('UpdateService: verifyDownloadIntegrity – hash_file() fehlgeschlagen.');
+            return false;
+        }
+
+        $match = hash_equals(strtolower($expectedHash), $actualHash);
+
+        if (!$match) {
+            error_log('UpdateService: SHA-256-Mismatch für ' . basename($filePath)
+                . ' – erwartet: ' . $expectedHash . ' – bekommen: ' . $actualHash);
+        }
+
+        return $match;
     }
     
     /**
@@ -281,6 +365,119 @@ class UpdateService
         }
     }
     
+    /**
+     * H-19: Plugin/Theme-Update herunterladen und nach SHA-256-Verifikation installieren.
+     *
+     * Ablauf:
+     *  1. Download der ZIP-Datei in einen temporären Pfad
+     *  2. SHA-256-Prüfsumme verifizieren (Abbruch bei Mismatch)
+     *  3. ZIP in Zielverzeichnis extrahieren
+     *  4. Temporäre Datei löschen
+     *
+     * @param  string $downloadUrl  HTTPS-URL zur ZIP-Datei
+     * @param  string $sha256       Erwartete SHA-256-Prüfsumme (leer = Warnung, kein Abbruch)
+     * @param  string $targetDir    Absoluter Ziel-Pfad (z. B. PLUGIN_PATH . 'my-plugin/')
+     * @param  string $type         'plugin' | 'theme' | 'core' für Logging
+     * @param  string $name         Name des Pakets für Logging
+     * @param  string $version      Neue Versionsnummer für Logging
+     * @return array{success: bool, message: string, sha256_verified: bool}
+     */
+    public function downloadAndInstallUpdate(
+        string $downloadUrl,
+        string $sha256,
+        string $targetDir,
+        string $type,
+        string $name,
+        string $version
+    ): array {
+        // SSRF-Guard: nur HTTPS
+        if (!str_starts_with($downloadUrl, 'https://')) {
+            return ['success' => false, 'message' => 'Ungültige Download-URL: nur HTTPS erlaubt.', 'sha256_verified' => false];
+        }
+
+        if (!extension_loaded('curl')) {
+            return ['success' => false, 'message' => 'cURL ist nicht verfügbar.', 'sha256_verified' => false];
+        }
+
+        if (!extension_loaded('zip')) {
+            return ['success' => false, 'message' => 'ZIP-Extension ist nicht verfügbar.', 'sha256_verified' => false];
+        }
+
+        // Temporäre Datei erstellen (eigene .zip-Benennung, kein tempnam-Leak)
+        $tmpFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR
+            . '365cms_upd_' . bin2hex(random_bytes(8)) . '.zip';
+
+        try {
+            // Download via cURL
+            $fp = fopen($tmpFile, 'wb');
+            if ($fp === false) {
+                throw new \RuntimeException('Temporäre Datei nicht beschreibbar: ' . $tmpFile);
+            }
+
+            $ch = curl_init($downloadUrl);
+            curl_setopt_array($ch, [
+                CURLOPT_FILE           => $fp,
+                CURLOPT_FOLLOWLOCATION => false,
+                CURLOPT_CONNECTTIMEOUT => 10,
+                CURLOPT_TIMEOUT        => 120,
+                CURLOPT_SSL_VERIFYPEER => true,
+                CURLOPT_SSL_VERIFYHOST => 2,
+                CURLOPT_HTTPHEADER     => ['User-Agent: 365CMS-Updater/1.0'],
+            ]);
+
+            $curlOk   = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlErr  = curl_error($ch);
+            curl_close($ch);
+            fclose($fp);
+
+            if (!$curlOk || $curlErr !== '') {
+                throw new \RuntimeException('Download-Fehler: ' . $curlErr);
+            }
+            if ($httpCode !== 200) {
+                throw new \RuntimeException("Download fehlgeschlagen: HTTP {$httpCode}");
+            }
+
+            // H-19: SHA-256-Verifikation
+            $sha256Verified = false;
+            if (!empty($sha256)) {
+                if (!$this->verifyDownloadIntegrity($tmpFile, $sha256)) {
+                    @unlink($tmpFile);
+                    return ['success' => false, 'message' => 'SHA-256-Prüfsumme stimmt nicht überein! Update abgebrochen.', 'sha256_verified' => false];
+                }
+                $sha256Verified = true;
+            } else {
+                error_log("UpdateService: Kein SHA-256-Hash für {$name} – Installation ohne Verifikation.");
+            }
+
+            // ZIP extrahieren
+            if (!is_dir($targetDir) && !mkdir($targetDir, 0755, true)) {
+                throw new \RuntimeException('Zielverzeichnis konnte nicht erstellt werden: ' . $targetDir);
+            }
+
+            $zip = new \ZipArchive();
+            $zipResult = $zip->open($tmpFile);
+            if ($zipResult !== true) {
+                throw new \RuntimeException('ZIP konnte nicht geöffnet werden (Fehlercode: ' . $zipResult . ')');
+            }
+            $zip->extractTo($targetDir);
+            $zip->close();
+
+            // Temporäre Datei löschen
+            @unlink($tmpFile);
+
+            // Update protokollieren
+            $this->logUpdate($type, $name, $version);
+
+            return ['success' => true, 'message' => "Update {$name} v{$version} erfolgreich installiert.", 'sha256_verified' => $sha256Verified];
+
+        } catch (\Throwable $e) {
+            @unlink($tmpFile);
+            error_log('UpdateService::downloadAndInstallUpdate() Fehler: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Fehler: ' . $e->getMessage(), 'sha256_verified' => false];
+        }
+    }
+
     /**
      * Log update
      */
