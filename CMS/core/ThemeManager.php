@@ -147,7 +147,7 @@ class ThemeManager
             'base64_decode', // häufig für verschleierten Code genutzt
         ];
 
-        $content = @file_get_contents($file);
+        $content = is_file($file) ? file_get_contents($file) : false; // M-03: kein @
         if ($content === false) {
             return false;
         }
@@ -565,7 +565,10 @@ class ThemeManager
                 continue;
             }
 
-            $content = @file_get_contents($file->getPathname());
+            // M-03: is_readable statt @ für lesbare Dateien prüfen
+            $content = (is_file($file->getPathname()) && is_readable($file->getPathname()))
+                ? file_get_contents($file->getPathname())
+                : false;
             if ($content === false) {
                 continue;
             }

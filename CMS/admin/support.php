@@ -145,7 +145,9 @@ $sidebarOrder = [
 // ?refresh=1 → Cache löschen
 if (($_GET['refresh'] ?? '') === '1') {
     $cf = sys_get_temp_dir() . DIRECTORY_SEPARATOR . '365cms_doclist_' . md5(GITHUB_REPO) . '.json';
-    if (is_file($cf)) @unlink($cf);
+    if (is_file($cf)) {
+        unlink($cf); // M-03: kein @, is_file vorher geprüft
+    }
     header('Location: ' . SITE_URL . '/admin/support');
     exit;
 }

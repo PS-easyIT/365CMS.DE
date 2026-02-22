@@ -52,7 +52,10 @@ class CacheManager implements CacheInterface
                          PHP_SAPI !== 'cli'; // APCu deaktiviert im CLI ohne apc.enable_cli
 
         if (!file_exists($this->cacheDir)) {
-            @mkdir($this->cacheDir, 0755, true);
+            // M-03: Race-Condition-sicher, kein @ – is_dir als zweite Prüfung
+            if (!mkdir($this->cacheDir, 0755, true) && !is_dir($this->cacheDir)) {
+                error_log('CacheManager: Cache-Verzeichnis konnte nicht erstellt werden: ' . $this->cacheDir);
+            }
         }
     }
 
@@ -95,7 +98,7 @@ class CacheManager implements CacheInterface
         $sep = strpos($raw, ':');
         if ($sep === false) {
             // Altes Format (serialize) – Datei ungültig löschen
-            @unlink($file);
+            if (file_exists($file)) { unlink($file); }
             return null;
         }
 
@@ -103,27 +106,27 @@ class CacheManager implements CacheInterface
         $payload    = base64_decode(substr($raw, $sep + 1), true);
 
         if ($payload === false) {
-            @unlink($file);
+            if (file_exists($file)) { unlink($file); }
             return null;
         }
 
         // HMAC-Integritätsprüfung (verhindert PHP Object Injection)
         $expectedHmac = hash_hmac('sha256', $payload, $this->getHmacKey());
         if (!hash_equals($expectedHmac, $storedHmac)) {
-            @unlink($file);
+            if (file_exists($file)) { unlink($file); }
             error_log('CacheManager: HMAC-Fehlschlag für Cache-Schlüssel ' . $key . ' – mögliche Manipulation!');
             return null;
         }
 
         $data = json_decode($payload, true);
         if (!is_array($data) || !array_key_exists('v', $data) || !isset($data['e'])) {
-            @unlink($file);
+            if (file_exists($file)) { unlink($file); }
             return null;
         }
 
         // Ablaufzeit prüfen
         if ($data['e'] < time()) {
-            @unlink($file);
+            if (file_exists($file)) { unlink($file); }
             return null;
         }
 
@@ -177,7 +180,7 @@ class CacheManager implements CacheInterface
         // L2: File-Cache
         $file = $this->getCacheFile($key);
         if (file_exists($file)) {
-            return @unlink($file);
+            return unlink($file); // M-03: kein @, file_exists geprüft
         }
         return true;
     }
@@ -214,7 +217,9 @@ class CacheManager implements CacheInterface
         $success = true;
         foreach ($files as $file) {
             if (is_file($file)) {
-                $success = @unlink($file) && $success;
+                if (!unlink($file)) { // M-03: kein @, is_file vorher geprüft
+                    $success = false;
+                }
             }
         }
 

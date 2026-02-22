@@ -221,6 +221,10 @@ class PluginManager
         // Load plugin
         require_once $pluginFile;
 
+        // M-13: Lifecycle-Hook – Plugin kann eigene Aktivierungslogik
+        //        (z. B. DB-Tabellen anlegen) via <plugin>_activate() bereitstellen.
+        $this->runLifecycleCallback($plugin, 'activate');
+
         // Call activation hook
         Hooks::doAction('plugin_activated', $plugin);
 
@@ -354,6 +358,9 @@ class PluginManager
         // Remove from active plugins
         $this->activePlugins = array_diff($this->activePlugins, [$plugin]);
         $this->saveActivePlugins();
+
+        // M-13: Lifecycle-Hook Deaktivierung (Plugin läuft noch im Speicher)
+        $this->runLifecycleCallback($plugin, 'deactivate');
         
         // Call deactivation hook
         Hooks::doAction('plugin_deactivated', $plugin);
@@ -380,6 +387,16 @@ class PluginManager
             return 'Plugin-Verzeichnis nicht gefunden.';
         }
         
+        // M-13: Lifecycle-Hook Uninstall – Plugin-Datei laden um Callback aufzurufen
+        $pluginFile = $pluginDir . '/' . $plugin . '.php';
+        if (file_exists($pluginFile)) {
+            // Plugin einmalig includen (falls noch nicht geladen)
+            if (!in_array(realpath($pluginFile), get_included_files(), true)) {
+                @include_once $pluginFile;
+            }
+            $this->runLifecycleCallback($plugin, 'uninstall');
+        }
+
         // Call uninstall hook before deletion
         Hooks::doAction('plugin_before_delete', $plugin);
         
@@ -392,6 +409,53 @@ class PluginManager
         Hooks::doAction('plugin_deleted', $plugin);
         
         return true;
+    }
+
+    /**
+     * M-13: Ruft den Plugin-Lifecycle-Callback auf (falls definiert).
+     *
+     * Konvention: Plugin-Datei kann folgende Funktionen definieren:
+     *   {plugin_folder}_activate()   – Läuft nach Aktivierung (z. B. CREATE TABLE)
+     *   {plugin_folder}_deactivate() – Läuft nach Deaktivierung (z. B. geplante Tasks entfernen)
+     *   {plugin_folder}_uninstall()  – Läuft vor Löschung (z. B. DROP TABLE, Optionen löschen)
+     *
+     * Der Callback wird in try/catch gewrappt, damit ein Fehler darin
+     * den Haupt-Aktivierungs/Deaktivierungsfluss nicht blockiert.
+     *
+     * @param string $plugin   Plugin-Ordnername (Slug)
+     * @param string $lifecycle 'activate' | 'deactivate' | 'uninstall'
+     */
+    private function runLifecycleCallback(string $plugin, string $lifecycle): void
+    {
+        // Callback-Name: z. B. cms_experts_activate
+        $callbackName = str_replace(['-', ' '], '_', $plugin) . '_' . $lifecycle;
+
+        if (!function_exists($callbackName)) {
+            return; // kein Callback definiert – kein Fehler
+        }
+
+        try {
+            $callbackName();
+        } catch (\Throwable $e) {
+            error_log(sprintf(
+                'PluginManager [M-13]: Lifecycle-Callback "%s" für Plugin "%s" fehlgeschlagen: %s',
+                $callbackName,
+                $plugin,
+                $e->getMessage()
+            ));
+
+            if (class_exists(AuditLogger::class)) {
+                AuditLogger::instance()->log(
+                    'plugin',
+                    'plugin.lifecycle_error',
+                    sprintf('Lifecycle-Callback "%s" für Plugin "%s" fehlgeschlagen.', $lifecycle, $plugin),
+                    'plugin',
+                    null,
+                    ['plugin' => $plugin, 'lifecycle' => $lifecycle, 'error' => $e->getMessage()],
+                    'warning'
+                );
+            }
+        }
     }
     
     /**

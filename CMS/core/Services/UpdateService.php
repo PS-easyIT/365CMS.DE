@@ -233,12 +233,76 @@ class UpdateService
     }
 
     /**
+     * M-20: Prüft ob eine IP-Adresse zu privaten / reservierten Bereichen gehört.
+     *
+     * Abgedeckt:
+     *  - Loopback        127.0.0.0/8, ::1
+     *  - Link-Local      169.254.0.0/16, fe80::/10
+     *  - Private (RFC1918) 10.x, 172.16-31.x, 192.168.x
+     *  - Unique Local    fc00::/7
+     *  - Multicast       224.0.0.0/4, ff00::/8
+     *
+     * @param  string $ip  V4 oder V6 Adresse
+     * @return bool        true = privat/reserviert, false = öffentlich
+     */
+    private function isPrivateOrReservedIp(string $ip): bool
+    {
+        return filter_var(
+            $ip,
+            FILTER_VALIDATE_IP,
+            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+        ) === false;
+    }
+
+    /**
+     * M-20: SSRF-Guard – löst Hostname auf und prüft ob die IP privat/reserviert ist.
+     *
+     * @param  string $url  Vollständige HTTPS-URL
+     * @return bool         true = URL ist sicher, false = URL blockiert
+     */
+    private function isSafeExternalUrl(string $url): bool
+    {
+        $host = parse_url($url, PHP_URL_HOST);
+        if (empty($host)) {
+            return false;
+        }
+
+        // Alle DNS-Auflösungen prüfen (IPv4 + IPv6)
+        $records = @dns_get_record($host, DNS_A | DNS_AAAA);
+        if (empty($records)) {
+            // DNS-Auflösung fehlgeschlagen → nicht blockieren (könnte Netzwerkproblem sein)
+            // Aber statisch offensichtliche private Hostnamen blocken:
+            if (in_array(strtolower($host), ['localhost', 'localhost.localdomain', 'ip6-localhost', 'ip6-loopback'], true)) {
+                return false;
+            }
+            return true;
+        }
+
+        foreach ($records as $record) {
+            $ip = $record['ip'] ?? $record['ipv6'] ?? '';
+            if ($ip !== '' && $this->isPrivateOrReservedIp($ip)) {
+                error_log('UpdateService [M-20]: SSRF-Blockierung – Host "' . $host . '" löst auf private IP auf: ' . $ip);
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * C-11: Fetch plugin update information via cURL (ersetzt @file_get_contents)
+     * M-20: SSRF-Guard mit Private-IP-Blockliste
      */
     private function fetchPluginUpdate(string $url): ?array
     {
         if (!filter_var($url, FILTER_VALIDATE_URL) || !str_starts_with($url, 'https://')) {
             error_log('UpdateService: fetchPluginUpdate – URL nicht HTTPS oder ungültig: ' . $url);
+            return null;
+        }
+
+        // M-20: Prüfen ob der Hostname auf eine private/reservierte IP auflöst (SSRF-Schutz)
+        if (!$this->isSafeExternalUrl($url)) {
+            error_log('UpdateService [M-20]: fetchPluginUpdate – URL blockiert (SSRF-Guard): ' . $url);
             return null;
         }
 

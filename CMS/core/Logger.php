@@ -85,7 +85,10 @@ class Logger implements LoggerInterface
 
         // Sicherstellen dass das Log-Verzeichnis existiert
         if (!is_dir($this->logPath)) {
-            @mkdir($this->logPath, 0750, true);
+            // Race-Condition-sicher: mkdir kann scheitern wenn Verzeichnis parallel angelegt wurde
+            if (!mkdir($this->logPath, 0750, true) && !is_dir($this->logPath)) {
+                error_log('Logger: Log-Verzeichnis konnte nicht erstellt werden: ' . $this->logPath);
+            }
         }
     }
 
@@ -169,11 +172,16 @@ class Logger implements LoggerInterface
 
         // Datei-Log (tagesweise, z. B. logs/cms-2026-02-22.log)
         $file = $this->logPath . $this->channel . '-' . date('Y-m-d') . '.log';
-        @file_put_contents($file, $line . PHP_EOL, FILE_APPEND | LOCK_EX);
+        // M-03: Kein @ – explizites Fehler-Handling statt stiller Unterdrückung
+        $written = file_put_contents($file, $line . PHP_EOL, FILE_APPEND | LOCK_EX);
+        if ($written === false) {
+            // Fallback auf error_log damit der Log-Eintrag nicht verloren geht
+            error_log('[Logger-Fallback] ' . $line);
+        }
 
         // Im Debug-Modus zusätzlich auf STDERR ausgeben
         if (defined('CMS_DEBUG') && CMS_DEBUG) {
-            @file_put_contents('php://stderr', $line . PHP_EOL);
+            file_put_contents('php://stderr', $line . PHP_EOL);
         }
 
         // Kritische+ Level auch in AuditLogger spiegeln (wenn verfügbar)

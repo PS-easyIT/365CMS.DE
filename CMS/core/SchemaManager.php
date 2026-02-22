@@ -52,7 +52,10 @@ class SchemaManager
      */
     public function clearFlag(): void
     {
-        @unlink($this->getFlagFile());
+        $flagFile = $this->getFlagFile();
+        if (is_file($flagFile)) {
+            unlink($flagFile); // M-03: kein @, is_file geprüft
+        }
     }
 
     /**
@@ -531,9 +534,13 @@ class SchemaManager
         // Flag-Datei schreiben
         $cacheDir = ABSPATH . 'cache/';
         if (!is_dir($cacheDir)) {
-            @mkdir($cacheDir, 0755, true);
+            if (!mkdir($cacheDir, 0755, true) && !is_dir($cacheDir)) {
+                error_log('SchemaManager: Cache-Verzeichnis konnte nicht erstellt werden: ' . $cacheDir);
+            }
         }
-        @file_put_contents($flagFile, date('Y-m-d H:i:s'));
+        if (file_put_contents($flagFile, date('Y-m-d H:i:s')) === false) {
+            error_log('SchemaManager: Flag-Datei konnte nicht geschrieben werden: ' . $flagFile);
+        }
     }
 
     /**

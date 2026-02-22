@@ -40,13 +40,57 @@ class Auth
     }
     
     /**
+     * M-17: Session-Lifetime-Limits.
+     * Admin: 8 Stunden, Member: 30 Tage.
+     */
+    private const SESSION_LIFETIME_ADMIN  = 28_800;   // 8 h
+    private const SESSION_LIFETIME_MEMBER = 2_592_000; // 30 Tage
+
+    /**
      * Check if user is logged in via session
+     * M-17: Session-Lifetime nach Rolle prüfen.
      */
     private function checkSession(): void
     {
-        if (isset($_SESSION['user_id'])) {
-            $this->currentUser = $this->getUserById($_SESSION['user_id']);
+        if (!isset($_SESSION['user_id'])) {
+            return;
         }
+
+        // M-17: Maximale Lebensdauer je Rolle
+        $role        = (string)($_SESSION['user_role'] ?? 'member');
+        $maxLifetime = ($role === 'admin')
+            ? self::SESSION_LIFETIME_ADMIN
+            : self::SESSION_LIFETIME_MEMBER;
+
+        $sessionStart = (int)($_SESSION['session_start_time'] ?? 0);
+
+        if ($sessionStart === 0 || (time() - $sessionStart) > $maxLifetime) {
+            // Session abgelaufen oder kein Startzeit-Stempel → sauber beenden
+            $this->forceExpireSession();
+            return;
+        }
+
+        $this->currentUser = $this->getUserById((int)$_SESSION['user_id']);
+    }
+
+    /**
+     * M-17: Session ohne Redirect sauber invalidieren
+     * (kein header()-Aufruf – checkSession läuft im Konstruktor).
+     */
+    private function forceExpireSession(): void
+    {
+        $_SESSION = [];
+        if (ini_get('session.use_cookies')) {
+            $params = session_get_cookie_params();
+            setcookie(
+                session_name(), '',
+                time() - 42000,
+                $params['path'], $params['domain'],
+                $params['secure'], $params['httponly']
+            );
+        }
+        session_destroy();
+        $this->currentUser = null;
     }
     
     /**
@@ -101,8 +145,9 @@ class Auth
             return 'MFA_REQUIRED';
         }
 
-        $_SESSION['user_id'] = $user->id;
-        $_SESSION['user_role'] = $user->role;
+        $_SESSION['user_id']          = $user->id;
+        $_SESSION['user_role']         = $user->role;
+        $_SESSION['session_start_time'] = time(); // M-17: Startzeitstempel für Lifetime-Prüfung
         session_regenerate_id(true); // Prevent Fixation
         
         $db->update('users', ['last_login' => date('Y-m-d H:i:s')], ['id' => $user->id]);
