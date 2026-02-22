@@ -625,6 +625,7 @@ Vollständiges Schema: [doc/DATABASE-SCHEMA.md](doc/DATABASE-SCHEMA.md)
 ## 📄 Lizenz
 
 Freie Verwendung für private und geschäftliche Projekte **mit Copyright-Hinweis**.
+
 Nutzung **ohne Copyright-Hinweis** ist kostenpflichtig (Privat: einmalig 50,00 € · Geschäftlich: Preis auf Anfrage).
 
 ## 👨‍💻 Support & Community
