@@ -177,6 +177,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (method_exists($seoService, 'saveSitemap'))   { $seoService->saveSitemap(); }
                 $messages[] = ['type' => 'success', 'text' => 'Indexierungs-Einstellungen gespeichert.'];
             }
+            // ── ROBOTS.TXT GENERIEREN ───────────────────────────────────────────
+            elseif ($action === 'generate_robots_txt') {
+                if (method_exists($seoService, 'saveRobotsTxt') && $seoService->saveRobotsTxt()) {
+                    $messages[] = ['type' => 'success', 'text' => '✅ robots.txt wurde erfolgreich generiert und gespeichert.'];
+                } else {
+                    $messages[] = ['type' => 'error', 'text' => 'Fehler beim Generieren der robots.txt. Prüfe die Schreibrechte im Root-Verzeichnis.'];
+                }
+            }
+            // ── SITEMAP GENERIEREN ────────────────────────────────────────────
+            elseif ($action === 'generate_sitemap') {
+                if (method_exists($seoService, 'saveSitemap') && $seoService->saveSitemap()) {
+                    $messages[] = ['type' => 'success', 'text' => '✅ sitemap.xml wurde erfolgreich generiert und gespeichert.'];
+                } else {
+                    $messages[] = ['type' => 'error', 'text' => 'Fehler beim Generieren der sitemap.xml. Prüfe die Schreibrechte im Root-Verzeichnis.'];
+                }
+            }
             // ── ANALYTICS CODE ────────────────────────────────────────────────
             elseif ($action === 'save_seo_analytics') {
                 $analyticsFields = [
@@ -254,6 +270,15 @@ $s['seo_robots_txt_content']       = $s['seo_robots_txt_content'] !== ''
 $s['seo_analytics_matomo_site_id'] = $s['seo_analytics_matomo_site_id'] ?: '1';
 $s['seo_analytics_anonymize_ip']   = $s['seo_analytics_anonymize_ip']   !== '' ? $s['seo_analytics_anonymize_ip'] : '1';
 $s['seo_analytics_respect_dnt']    = $s['seo_analytics_respect_dnt']    !== '' ? $s['seo_analytics_respect_dnt']  : '1';
+
+// ── Dateistatus: robots.txt + sitemap.xml ────────────────────────────────────
+$_abspath      = defined('ABSPATH') ? rtrim(ABSPATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR : '';
+$_robotsPath   = $_abspath . 'robots.txt';
+$_robotsOk     = $_abspath !== '' && file_exists($_robotsPath);
+$_robotsInfo   = $_robotsOk ? ['date' => date('d.m.Y H:i', filemtime($_robotsPath)), 'size' => round(filesize($_robotsPath)/1024, 2) . ' KB'] : [];
+$_sitemapPath  = $_abspath . 'sitemap.xml';
+$_sitemapOk    = $_abspath !== '' && file_exists($_sitemapPath);
+$_sitemapInfo  = $_sitemapOk ? ['date' => date('d.m.Y H:i', filemtime($_sitemapPath)), 'size' => round(filesize($_sitemapPath)/1024, 2) . ' KB'] : [];
 
 $checked = fn(string $key, string $val = '1') => $s[$key] === $val ? 'checked' : '';
 $sel     = fn(string $key, string $val)        => $s[$key] === $val ? 'selected' : '';
@@ -360,7 +385,6 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                     <label>Startseiten-Description</label>
                     <textarea name="homepage_description" class="form-control" rows="2"><?php echo $val('seo_homepage_description'); ?></textarea>
                 </div>
-            </div>
         </div>
 
         <!-- Meta Defaults -->
@@ -383,7 +407,6 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                         <option value="manual" <?php echo $sel('seo_canonical_url','manual'); ?>>Manuell überschreibbar</option>
                     </select>
                 </div>
-            </div>
         </div>
 
         <!-- Noindex Einstellungen -->
@@ -428,7 +451,6 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                         <span class="dw-toggle-slider"></span>
                     </label>
                 </div>
-            </div>
         </div>
     </div>
 
@@ -474,7 +496,6 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                         <option value="profile" <?php echo $sel('seo_og_type','profile'); ?>>profile</option>
                     </select>
                 </div>
-            </div>
         </div>
 
         <!-- Twitter/X -->
@@ -501,7 +522,6 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                     <label>LinkedIn Unternehmensseite URL</label>
                     <input type="url" name="linkedin_company" class="form-control" placeholder="https://linkedin.com/company/…" value="<?php echo $val('seo_linkedin_company'); ?>">
                 </div>
-            </div>
         </div>
 
         <!-- Authorship -->
@@ -515,7 +535,6 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                     <label>Publisher Meta (Facebook Page URL)</label>
                     <input type="url" name="publisher_meta" class="form-control" placeholder="https://facebook.com/…" value="<?php echo $val('seo_publisher_meta'); ?>">
                 </div>
-            </div>
         </div>
     </div>
 
@@ -573,7 +592,6 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                     <label>Social Profile URLs <span class="form-text" style="display:inline">(kommagetrennt)</span></label>
                     <textarea name="schema_social_profiles" class="form-control" rows="2"><?php echo $val('seo_schema_social_profiles'); ?></textarea>
                 </div>
-            </div>
         </div>
 
         <!-- JSON-LD & Breadcrumbs -->
@@ -616,7 +634,6 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                     ?></div>
                 </div>
                 <?php endif; ?>
-            </div>
         </div>
     </div>
 
@@ -661,7 +678,6 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                         <input type="text" name="permalink_custom" class="form-control" style="margin-top:.35rem;" placeholder="/%category%/%postname%/" value="<?php echo $isCustom ? $val('setting_permalink_structure') : ''; ?>">
                     </div>
                 </label>
-            </div>
         </div>
 
         <div class="admin-card">
@@ -695,7 +711,6 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                         <span class="dw-toggle-slider"></span>
                     </label>
                 </div>
-            </div>
         </div>
     </div>
 
@@ -708,137 +723,212 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
 
     <!-- ──────────────────────────────────────────────────────── TAB: INDEXING -->
     <div class="seo-panel <?php echo $activeTab==='indexing' ? 'active' : ''; ?>">
+
+    <!-- ── Datei-Status & Sofortaktionen ───────────────────────────────────────── -->
+    <div class="seo-grid" style="margin-bottom:1.5rem;">
+
+        <form method="post" action="<?php echo SITE_URL; ?>/admin/seo?tab=indexing" class="admin-card" style="margin:0;">
+            <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+            <input type="hidden" name="action" value="generate_robots_txt">
+            <h3>📄 robots.txt</h3>
+            <p class="dw-card-sub">Steuert welche Bereiche Suchmaschinen-Crawler besuchen dürfen</p>
+            <?php if ($_robotsOk): ?>
+            <div style="display:flex;align-items:center;gap:.75rem;padding:.65rem .875rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;margin-bottom:1rem;">
+                <span style="font-size:1.3rem;flex-shrink:0;">✅</span>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:600;font-size:.875rem;color:#166534;">Datei vorhanden</div>
+                    <div style="font-size:.78rem;color:#16a34a;margin-top:.1rem;">Geändert: <?php echo $_robotsInfo['date']; ?> &bull; <?php echo $_robotsInfo['size']; ?></div>
+                </div>
+                <a href="<?php echo SITE_URL; ?>/robots.txt" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="flex-shrink:0;white-space:nowrap;">🔍 Ansehen</a>
+            </div>
+            <?php else: ?>
+            <div style="display:flex;align-items:center;gap:.75rem;padding:.65rem .875rem;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;margin-bottom:1rem;">
+                <span style="font-size:1.3rem;flex-shrink:0;">⚠️</span>
+                <div>
+                    <div style="font-weight:600;font-size:.875rem;color:#991b1b;">Datei nicht vorhanden</div>
+                    <div style="font-size:.78rem;color:#b91c1c;margin-top:.1rem;">Noch nicht generiert oder keine Schreibrechte</div>
+                </div>
+            </div>
+            <?php endif; ?>
+            <button type="submit" class="btn btn-primary" style="width:100%;">🔄 robots.txt jetzt generieren &amp; speichern</button>
+        </form>
+
+        <form method="post" action="<?php echo SITE_URL; ?>/admin/seo?tab=indexing" class="admin-card" style="margin:0;">
+            <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+            <input type="hidden" name="action" value="generate_sitemap">
+            <h3>🗺️ sitemap.xml</h3>
+            <p class="dw-card-sub">XML-Sitemap für Suchmaschinen – alle veröffentlichten Seiten</p>
+            <?php if ($_sitemapOk): ?>
+            <div style="display:flex;align-items:center;gap:.75rem;padding:.65rem .875rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;margin-bottom:1rem;">
+                <span style="font-size:1.3rem;flex-shrink:0;">✅</span>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:600;font-size:.875rem;color:#166534;">Datei vorhanden</div>
+                    <div style="font-size:.78rem;color:#16a34a;margin-top:.1rem;">Geändert: <?php echo $_sitemapInfo['date']; ?> &bull; <?php echo $_sitemapInfo['size']; ?></div>
+                </div>
+                <a href="<?php echo SITE_URL; ?>/sitemap.xml" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="flex-shrink:0;white-space:nowrap;">🔍 Ansehen</a>
+            </div>
+            <?php else: ?>
+            <div style="display:flex;align-items:center;gap:.75rem;padding:.65rem .875rem;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;margin-bottom:1rem;">
+                <span style="font-size:1.3rem;flex-shrink:0;">⚠️</span>
+                <div>
+                    <div style="font-weight:600;font-size:.875rem;color:#991b1b;">Datei nicht vorhanden</div>
+                    <div style="font-size:.78rem;color:#b91c1c;margin-top:.1rem;">Noch nicht generiert oder keine Schreibrechte</div>
+                </div>
+            </div>
+            <?php endif; ?>
+            <button type="submit" class="btn btn-primary" style="width:100%;">🔄 sitemap.xml jetzt generieren &amp; speichern</button>
+        </form>
+
+    </div><!-- /status-grid -->
+
+    <!-- ── Einstellungen-Formular ───────────────────────────────────────────────── -->
     <form method="post" action="<?php echo SITE_URL; ?>/admin/seo?tab=indexing">
     <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
     <input type="hidden" name="action"     value="save_seo_indexing">
 
     <div class="seo-grid">
-        <!-- Crawler -->
+
+        <!-- Crawler & robots.txt Inhalt -->
         <div class="admin-card">
-            <h3>🤖 Crawler-Steuerung</h3>
-                <div class="form-group">
-                    <label>Suchmaschinen-Sichtbarkeit</label>
-                    <select name="robots_index" class="form-control">
-                        <option value="index"   <?php echo $sel('seo_robots_index','index'); ?>>Indexieren erlauben (index)</option>
-                        <option value="noindex" <?php echo $sel('seo_robots_index','noindex'); ?>>Suchmaschinen abhalten (noindex)</option>
-                    </select>
-                    <span class="form-text">Setzt global <code>meta name="robots"</code>.</span>
-                </div>
-                <div class="form-group">
-                    <label>Link-Verfolgung</label>
-                    <select name="robots_follow" class="form-control">
-                        <option value="follow"   <?php echo $sel('seo_robots_follow','follow'); ?>>Links folgen (follow)</option>
-                        <option value="nofollow" <?php echo $sel('seo_robots_follow','nofollow'); ?>>Links ignorieren (nofollow)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>robots.txt Inhalt</label>
-                    <textarea name="robots_txt_content" class="form-control" rows="5" style="font-family:monospace;font-size:.85rem;"><?php echo $val('seo_robots_txt_content'); ?></textarea>
-                    <span class="form-text">Wird als virtuelle <code>/robots.txt</code> ausgeliefert.</span>
-                </div>
+            <h3>🤖 Crawler-Steuerung &amp; robots.txt</h3>
+            <div class="form-group">
+                <label class="form-label">Suchmaschinen-Sichtbarkeit</label>
+                <select name="robots_index" class="form-control">
+                    <option value="index"   <?php echo $sel('seo_robots_index','index'); ?>>Indexieren erlauben (index)</option>
+                    <option value="noindex" <?php echo $sel('seo_robots_index','noindex'); ?>>Suchmaschinen abhalten (noindex)</option>
+                </select>
+                <small class="form-text">Setzt global <code>meta name="robots"</code> auf allen Seiten.</small>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Link-Verfolgung</label>
+                <select name="robots_follow" class="form-control">
+                    <option value="follow"   <?php echo $sel('seo_robots_follow','follow'); ?>>Links folgen (follow)</option>
+                    <option value="nofollow" <?php echo $sel('seo_robots_follow','nofollow'); ?>>Links ignorieren (nofollow)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">robots.txt Inhalt</label>
+                <textarea name="robots_txt_content" class="form-control" rows="8"
+                          style="font-family:'Courier New',monospace;font-size:.83rem;line-height:1.6;"><?php echo $val('seo_robots_txt_content'); ?></textarea>
+                <small class="form-text">
+                    Inhalt bearbeiten und <strong>speichern</strong>. Dann oben <strong>„robots.txt jetzt generieren"</strong>
+                    klicken, um die physische Datei <code>/robots.txt</code> zu erzeugen.
+                </small>
             </div>
         </div>
 
-        <!-- Sitemap -->
+        <!-- XML-Sitemap Einstellungen -->
         <div class="admin-card">
-            <h3>🗺️ XML-Sitemap</h3>
-                <div class="dw-toggle-row">
-                    <div>
-                        <div class="dw-toggle-label">XML Sitemap aktivieren</div>
-                        <div class="dw-toggle-hint">Unter <code>/sitemap.xml</code> erreichbar</div>
-                    </div>
-                    <label class="dw-toggle">
-                        <input type="checkbox" name="sitemap_enabled" <?php echo $checked('seo_sitemap_enabled'); ?>>
-                        <span class="dw-toggle-slider"></span>
-                    </label>
+            <h3>🗺️ XML-Sitemap Einstellungen</h3>
+            <div class="dw-toggle-row">
+                <div>
+                    <div class="dw-toggle-label">XML Sitemap aktivieren</div>
+                    <div class="dw-toggle-hint">Unter <code>/sitemap.xml</code> erreichbar</div>
                 </div>
-                <div class="dw-toggle-row">
-                    <div>
-                        <div class="dw-toggle-label">Bilder einschließen</div>
-                        <div class="dw-toggle-hint">&lt;image:image&gt; Einträge</div>
-                    </div>
-                    <label class="dw-toggle">
-                        <input type="checkbox" name="sitemap_include_images" <?php echo $checked('seo_sitemap_include_images'); ?>>
-                        <span class="dw-toggle-slider"></span>
-                    </label>
+                <label class="dw-toggle">
+                    <input type="checkbox" name="sitemap_enabled" <?php echo $checked('seo_sitemap_enabled'); ?>>
+                    <span class="dw-toggle-slider"></span>
+                </label>
+            </div>
+            <div class="dw-toggle-row">
+                <div>
+                    <div class="dw-toggle-label">Bilder einschließen</div>
+                    <div class="dw-toggle-hint">&lt;image:image&gt; Einträge</div>
                 </div>
-                <div class="dw-toggle-row">
-                    <div>
-                        <div class="dw-toggle-label">News-Sitemap einschließen</div>
-                    </div>
-                    <label class="dw-toggle">
-                        <input type="checkbox" name="sitemap_include_news" <?php echo $checked('seo_sitemap_include_news'); ?>>
-                        <span class="dw-toggle-slider"></span>
-                    </label>
+                <label class="dw-toggle">
+                    <input type="checkbox" name="sitemap_include_images" <?php echo $checked('seo_sitemap_include_images'); ?>>
+                    <span class="dw-toggle-slider"></span>
+                </label>
+            </div>
+            <div class="dw-toggle-row">
+                <div>
+                    <div class="dw-toggle-label">News-Sitemap einschließen</div>
+                    <div class="dw-toggle-hint">Google News Sitemap-Erweiterung</div>
                 </div>
-                <div class="form-group" style="margin-top:1rem;">
-                    <label>Standard Priority</label>
-                    <select name="sitemap_default_priority" class="form-control">
-                        <?php foreach (['1.0','0.9','0.8','0.7','0.6','0.5','0.4','0.3','0.2','0.1'] as $p): ?>
-                        <option value="<?php echo $p; ?>" <?php echo $sel('seo_sitemap_default_priority',$p); ?>><?php echo $p; ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Änderungsfrequenz</label>
-                    <select name="sitemap_change_freq" class="form-control">
-                        <?php foreach (['always','hourly','daily','weekly','monthly','yearly','never'] as $f): ?>
-                        <option value="<?php echo $f; ?>" <?php echo $sel('seo_sitemap_change_freq',$f); ?>><?php echo ucfirst($f); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
+                <label class="dw-toggle">
+                    <input type="checkbox" name="sitemap_include_news" <?php echo $checked('seo_sitemap_include_news'); ?>>
+                    <span class="dw-toggle-slider"></span>
+                </label>
+            </div>
+            <div class="form-group" style="margin-top:1rem;">
+                <label class="form-label">Standard-Priorität</label>
+                <select name="sitemap_default_priority" class="form-control">
+                    <?php foreach (['1.0','0.9','0.8','0.7','0.6','0.5','0.4','0.3','0.2','0.1'] as $p): ?>
+                    <option value="<?php echo $p; ?>" <?php echo $sel('seo_sitemap_default_priority',$p); ?>><?php echo $p; ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <small class="form-text">0.7 = Standard für reguläre Seiten.</small>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Änderungsfrequenz</label>
+                <select name="sitemap_change_freq" class="form-control">
+                    <?php foreach (['always','hourly','daily','weekly','monthly','yearly','never'] as $f): ?>
+                    <option value="<?php echo $f; ?>" <?php echo $sel('seo_sitemap_change_freq',$f); ?>><?php echo ucfirst($f); ?></option>
+                    <?php endforeach; ?>
+                </select>
             </div>
         </div>
 
         <!-- IndexNow -->
         <div class="admin-card">
             <h3>⚡ IndexNow</h3>
-                <div class="dw-toggle-row">
-                    <div>
-                        <div class="dw-toggle-label">IndexNow automatischen Ping</div>
-                        <div class="dw-toggle-hint">Benachrichtigt Bing & Yandex sofort bei neuen Inhalten</div>
-                    </div>
-                    <label class="dw-toggle">
-                        <input type="checkbox" name="indexnow_enabled" <?php echo $checked('seo_indexnow_enabled'); ?>>
-                        <span class="dw-toggle-slider"></span>
-                    </label>
+            <p class="dw-card-sub">Benachrichtigt Bing &amp; Yandex sofort bei neuen/geänderten Inhalten</p>
+            <div class="dw-toggle-row">
+                <div>
+                    <div class="dw-toggle-label">IndexNow automatisch pingen</div>
+                    <div class="dw-toggle-hint">Ping bei jeder Seiten-Veröffentlichung</div>
                 </div>
-                <div class="form-group" style="margin-top:1rem;">
-                    <label>IndexNow API Key</label>
-                    <div style="display:flex;gap:.5rem;">
-                        <input type="text" name="indexnow_key" class="form-control" value="<?php echo $val('seo_indexnow_key'); ?>" placeholder="Zufälligen Key generieren…">
-                        <button type="button" class="btn btn-primary" style="white-space:nowrap;padding:.5rem .85rem;font-size:.8rem;"
-                            onclick="document.querySelector('[name=indexnow_key]').value=Math.random().toString(36).substring(2,34)">
-                            🔄 Key generieren
-                        </button>
-                    </div>
-                    <span class="form-text">Wird als <code>/{key}.txt</code> im Root abgelegt.</span>
+                <label class="dw-toggle">
+                    <input type="checkbox" name="indexnow_enabled" <?php echo $checked('seo_indexnow_enabled'); ?>>
+                    <span class="dw-toggle-slider"></span>
+                </label>
+            </div>
+            <div class="form-group" style="margin-top:1.25rem;">
+                <label class="form-label">IndexNow API Key</label>
+                <div style="display:flex;gap:.5rem;align-items:stretch;">
+                    <input type="text" name="indexnow_key" class="form-control" style="flex:1;"
+                           value="<?php echo $val('seo_indexnow_key'); ?>"
+                           placeholder="Zufälligen Key generieren…">
+                    <button type="button" class="btn btn-secondary btn-sm" style="white-space:nowrap;flex-shrink:0;"
+                            onclick="document.querySelector('[name=indexnow_key]').value=Math.random().toString(36).substring(2,34)">🔄 Generieren</button>
                 </div>
+                <small class="form-text">Wird als <code>/{key}.txt</code> im Root-Verzeichnis hinterlegt.</small>
+            </div>
+            <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+                <a href="https://www.indexnow.org/de_de/documentation" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">📖 Dokumentation</a>
+                <a href="https://www.indexnow.org/de_de/faq" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">❓ FAQ</a>
             </div>
         </div>
 
         <!-- Site Verification -->
         <div class="admin-card">
             <h3>✅ Site Verification</h3>
-                <div class="form-group">
-                    <label><i class="fab fa-google" style="color:#ea4335;"></i> Google Search Console</label>
-                    <input type="text" name="google_site_verification" class="form-control" placeholder="Verification Code" value="<?php echo $val('seo_google_site_verification'); ?>">
-                </div>
-                <div class="form-group">
-                    <label><i class="fab fa-microsoft" style="color:#0078d4;"></i> Bing Webmaster Tools</label>
-                    <input type="text" name="bing_site_verification" class="form-control" value="<?php echo $val('seo_bing_site_verification'); ?>">
-                </div>
-                <div class="form-group">
-                    <label>Yandex Verification</label>
-                    <input type="text" name="yandex_verification" class="form-control" value="<?php echo $val('seo_yandex_verification'); ?>">
-                </div>
-                <div class="form-group">
-                    <label>Baidu Verification</label>
-                    <input type="text" name="baidu_verification" class="form-control" value="<?php echo $val('seo_baidu_verification'); ?>">
-                </div>
+            <p class="dw-card-sub">Eigentümer-Verifizierung für Suchmaschinen-Webmaster-Tools</p>
+            <div class="form-group">
+                <label class="form-label">🔴 Google Search Console</label>
+                <input type="text" name="google_site_verification" class="form-control"
+                       placeholder="Nur den content-Wert des Meta-Tags"
+                       value="<?php echo $val('seo_google_site_verification'); ?>">
+                <small class="form-text">Nur den <code>content</code>-Wert, nicht das gesamte Meta-Tag.</small>
+            </div>
+            <div class="form-group">
+                <label class="form-label">🔵 Bing Webmaster Tools</label>
+                <input type="text" name="bing_site_verification" class="form-control"
+                       value="<?php echo $val('seo_bing_site_verification'); ?>">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Yandex Webmaster</label>
+                <input type="text" name="yandex_verification" class="form-control"
+                       value="<?php echo $val('seo_yandex_verification'); ?>">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Baidu Webmaster</label>
+                <input type="text" name="baidu_verification" class="form-control"
+                       value="<?php echo $val('seo_baidu_verification'); ?>">
             </div>
         </div>
-    </div>
+
+    </div><!-- /seo-grid -->
 
     <div style="margin-top:1.5rem;">
         <button type="submit" class="btn btn-primary">💾 Indexierungs-Einstellungen speichern</button>
@@ -1144,8 +1234,5 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
     </div>
     </form>
     </div><!-- /analytics -->
-
-  </div><!-- admin-content-inner -->
-</div><!-- admin-content -->
 
 <?php renderAdminLayoutEnd(); ?>

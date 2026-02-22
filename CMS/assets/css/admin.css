@@ -1516,6 +1516,10 @@ textarea.form-control {
     padding: 1rem;
 }
 
+.modal.active {
+    display: flex;
+}
+
 .modal-content {
     background: white;
     border-radius: 12px;

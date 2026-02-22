@@ -174,13 +174,13 @@ if ($action === 'new' || $action === 'edit'):
         <?php if ($isEdit): ?>
         <a href="<?php echo SITE_URL; ?>/<?php echo htmlspecialchars($pData['slug'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" class="btn btn-secondary">👁️ Vorschau</a>
         <?php endif; ?>
-        <a href="<?php echo SITE_URL; ?>/admin/pages.php" class="btn btn-secondary">↩️ Zurück</a>
+        <a href="<?php echo SITE_URL; ?>/admin/pages" class="btn btn-secondary">↩️ Zurück</a>
         <button type="submit" form="pageEditorForm" class="btn btn-primary">💾 <?php echo $isEdit ? 'Aktualisieren' : 'Speichern'; ?></button>
     </div>
 </div>
 
 <form method="post"
-      action="<?php echo SITE_URL; ?>/admin/pages.php"
+      action="<?php echo SITE_URL; ?>/admin/pages"
       enctype="multipart/form-data"
       id="pageEditorForm">
     <input type="hidden" name="csrf_token"  value="<?php echo $pagesCsrfToken; ?>">
@@ -290,7 +290,7 @@ if ($action === 'new' || $action === 'edit'):
 </form>
 
 <?php if ($isEdit): ?>
-<form id="deletePageForm" method="post" action="<?php echo SITE_URL; ?>/admin/pages.php" style="display:none;">
+<form id="deletePageForm" method="post" action="<?php echo SITE_URL; ?>/admin/pages" style="display:none;">
     <input type="hidden" name="csrf_token"  value="<?php echo $pagesCsrfToken; ?>">
     <input type="hidden" name="page_action" value="delete_page">
     <input type="hidden" name="page_id"     value="<?php echo (int)$pData['id']; ?>">
@@ -318,13 +318,13 @@ else:
         <p><?php echo count($filteredPages); ?> Seite<?php echo count($filteredPages) !== 1 ? 'n' : ''; ?> &nbsp;&middot;&nbsp; Statische Inhalte der Website</p>
     </div>
     <div class="header-actions">
-        <a href="<?php echo SITE_URL; ?>/admin/pages.php?action=new" class="btn btn-primary">➕ Neue Seite</a>
+        <a href="<?php echo SITE_URL; ?>/admin/pages?action=new" class="btn btn-primary">➕ Neue Seite</a>
     </div>
 </div>
 
 <div class="tabs" style="margin-bottom:1.5rem;">
     <?php foreach (['all' => ['Alle', ''], 'published' => ['Veröffentlicht', '✅'], 'draft' => ['Entwürfe', '📝'], 'private' => ['Privat', '🔒']] as $s => [$label, $icon]): ?>
-    <a href="<?php echo SITE_URL; ?>/admin/pages.php?status=<?php echo $s; ?>"
+    <a href="<?php echo SITE_URL; ?>/admin/pages?status=<?php echo $s; ?>"
        class="tab-btn <?php echo $filterStatus === $s ? 'active' : ''; ?>">
         <?php echo $icon; ?> <?php echo $label; ?> <span class="nav-badge" style="margin-left:0.35rem; font-size:0.75rem;"><?php echo $counts[$s] ?? 0; ?></span>
     </a>
@@ -337,10 +337,10 @@ else:
     <p><strong>Keine Seiten gefunden.</strong></p>
     <?php if ($filterStatus !== 'all'): ?>
     <p class="text-muted">In diesem Status gibt es keine Seiten.</p>
-    <a href="pages.php" class="btn btn-secondary" style="margin-top:1rem;">Alle anzeigen</a>
+    <a href="<?php echo SITE_URL; ?>/admin/pages" class="btn btn-secondary" style="margin-top:1rem;">Alle anzeigen</a>
     <?php else: ?>
     <p class="text-muted">Erstellen Sie die erste Seite für Ihre Website.</p>
-    <a href="<?php echo SITE_URL; ?>/admin/pages.php?action=new" class="btn btn-primary" style="margin-top:1rem;">➕ Erste Seite erstellen</a>
+    <a href="<?php echo SITE_URL; ?>/admin/pages?action=new" class="btn btn-primary" style="margin-top:1rem;">➕ Erste Seite erstellen</a>
     <?php endif; ?>
 </div>
 <?php else: ?>
@@ -362,7 +362,7 @@ else:
         ?>
         <tr>
             <td>
-                <a href="<?php echo SITE_URL; ?>/admin/pages.php?action=edit&id=<?php echo (int)$pg['id']; ?>"
+                <a href="<?php echo SITE_URL; ?>/admin/pages?action=edit&id=<?php echo (int)$pg['id']; ?>"
                    style="font-weight:600; color:#1e293b; text-decoration:none;">
                     <?php echo htmlspecialchars($pg['title'], ENT_QUOTES, 'UTF-8'); ?>
                 </a>
@@ -376,7 +376,7 @@ else:
                 <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
                     <a href="<?php echo SITE_URL; ?>/<?php echo htmlspecialchars($pg['slug'], ENT_QUOTES, 'UTF-8'); ?>"
                        target="_blank" class="btn btn-sm btn-secondary" title="Vorschau">👁️</a>
-                    <a href="<?php echo SITE_URL; ?>/admin/pages.php?action=edit&id=<?php echo (int)$pg['id']; ?>"
+                    <a href="<?php echo SITE_URL; ?>/admin/pages?action=edit&id=<?php echo (int)$pg['id']; ?>"
                        class="btn btn-sm btn-secondary" title="Bearbeiten">✏️</a>
                     <button type="button" class="btn btn-sm btn-danger"
                             onclick="deletePage(<?php echo (int)$pg['id']; ?>)"
@@ -390,7 +390,7 @@ else:
 </div>
 <?php endif; ?>
 
-<form id="listDeletePageForm" method="post" action="<?php echo SITE_URL; ?>/admin/pages.php" style="display:none;">
+<form id="listDeletePageForm" method="post" action="<?php echo SITE_URL; ?>/admin/pages" style="display:none;">
     <input type="hidden" name="csrf_token"  value="<?php echo $pagesCsrfToken; ?>">
     <input type="hidden" name="page_action" value="delete_page">
     <input type="hidden" name="page_id"     id="listDeletePageId" value="">
