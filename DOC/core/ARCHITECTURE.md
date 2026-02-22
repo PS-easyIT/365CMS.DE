@@ -49,7 +49,7 @@ Das 365CMS folgt einer **mehrschichtigen Architektur** (Layered Architecture) mi
 
 **`config.php`** – Startpunkt. Definiert alle Konstanten:
 - `ABSPATH` – Absoluter Pfad zum CMS-Root
-- `CMS_VERSION` – Aktuelle Version (0.26.13)
+- `CMS_VERSION` – Aktuelle Version (1.8.0)
 - `DB_*` – Datenbank-Zugangsdaten
 - `SITE_URL` – Basis-URL ohne Trailing Slash
 - `CMS_DEBUG` – Debug-Modus (in Produktion: false)

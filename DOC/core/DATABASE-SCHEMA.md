@@ -1,7 +1,7 @@
 # 365CMS – Datenbank-Schema
 
 
-Das 365CMS nutzt **22 Datenbank-Tabellen**, die beim ersten Start automatisch angelegt werden. Alle Tabellen haben das Prefix `cms_` (konfigurierbar in `config.php`).
+Das 365CMS nutzt **33 Datenbank-Tabellen**, die beim ersten Start automatisch angelegt werden. Alle Tabellen haben das Prefix `cms_` (konfigurierbar in `config.php`).
 
 ---
 
@@ -12,9 +12,11 @@ Das 365CMS nutzt **22 Datenbank-Tabellen**, die beim ersten Start automatisch an
 3. [Inhalts-System](#3-inhalts-system)
 4. [Plugin & Theme System](#4-plugin--theme-system)
 5. [Abo-System](#5-abo-system)
-6. [System-Tabellen](#6-system-tabellen)
-7. [Beziehungen (ER-Diagramm)](#7-beziehungen-er-diagramm)
-8. [Wichtige Queries](#8-wichtige-queries)
+6. [Sicherheits-System](#6-sicherheits-system)
+7. [Medien & Kommunikation](#7-medien--kommunikation)
+8. [System-Tabellen](#8-system-tabellen)
+9. [Beziehungen (ER-Diagramm)](#9-beziehungen-er-diagramm)
+10. [Wichtige Queries](#10-wichtige-queries)
 
 ---
 
@@ -27,11 +29,15 @@ Das 365CMS nutzt **22 Datenbank-Tabellen**, die beim ersten Start automatisch an
 | `cms_roles` | Konfiguration | Benutzer-Rollen & Berechtigungen |
 | `cms_sessions` | Laufzeit | Aktive Browser-Sessions |
 | `cms_login_attempts` | Security | Login-Versuche für Rate-Limiting |
+| `cms_failed_logins` | Security | Fehlgeschlagene Login-Protokolle |
+| `cms_blocked_ips` | Security | Firewall-Sperrliste (IP-Blacklist) |
 | `cms_pages` | Inhalt | Statische CMS-Seiten |
 | `cms_page_revisions` | Archiv | Versionsverlauf von Seiten |
 | `cms_posts` | Inhalt | Blog-Beiträge |
 | `cms_post_categories` | Taxonomie | Blog-Kategorien |
+| `cms_post_tags` | Taxonomie | Blog-Tags |
 | `cms_landing_sections` | Inhalt | Landing-Page Abschnitte |
+| `cms_menu_items` | Navigation | Navigations-Menüpunkte |
 | `cms_settings` | Konfiguration | System-Einstellungen (Options) |
 | `cms_plugins` | Konfiguration | Plugin-Registry |
 | `cms_plugin_meta` | Metadaten | Plugin-Einstellungen |
@@ -42,6 +48,13 @@ Das 365CMS nutzt **22 Datenbank-Tabellen**, die beim ersten Start automatisch an
 | `cms_user_group_members` | Relation | Gruppen-Mitgliedschaften |
 | `cms_subscription_usage` | Tracking | Ressourcen-Nutzung pro User |
 | `cms_orders` | E-Commerce | Bestellungen & Rechnungsdaten |
+| `cms_media` | Medien | Medienbibliothek (Bilder, PDFs) |
+| `cms_support_tickets` | Support | Support-Ticket-Verwaltung |
+| `cms_support_messages` | Support | Ticket-Nachrichten-Thread |
+| `cms_analytics` | Statistiken | Seitenaufruf-Tracking (DSGVO-konform) |
+| `cms_cookie_consents` | DSGVO | Cookie-Einwilligungsprotokolle |
+| `cms_legal_documents` | DSGVO | Rechtstext-Versionierung |
+| `cms_antispam_log` | Security | AntiSpam-Filter-Protokolle |
 | `cms_activity_log` | Audit | Alle Aktionen mit IP-Logging |
 | `cms_cache` | Performance | Datenbank-Cache-Einträge |
 

@@ -258,4 +258,69 @@ $writeable = $status->checkWritePermissions(['uploads/', 'cache/', 'logs/']);
 
 ---
 
-*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*
+## SystemService
+
+**Datei:** `core/Services/SystemService.php`
+
+Liefert umfassende Server- und System-Informationen für das Admin-Panel.
+
+```php
+$system = new CMS\Services\SystemService();
+
+// Server-Informationen
+$info = $system->getServerInfo();
+// Enthält: PHP-Version, MySQL-Version, Web-Server, OS, Upload-Limits
+
+// Datenbank-Status
+$dbStats = $system->getDatabaseStats();
+// Enthält: Größe, Tabellenanzahl, Verbindungsstatus
+
+// Verzeichnisgrößen
+$sizes = $system->getDirectorySizes();
+```
+
+---
+
+## TrackingService
+
+**Datei:** `core/Services/TrackingService.php`
+
+Erfasst Seitenaufrufe DSGVO-konform ohne externe Tools.
+
+```php
+$tracker = new CMS\Services\TrackingService();
+
+// Aktuellen Seitenaufruf tracken
+$tracker->trackPageView(
+    url: '/experten',
+    referrer: $_SERVER['HTTP_REFERER'] ?? '',
+    userAgent: $_SERVER['HTTP_USER_AGENT'] ?? ''
+);
+// IP-Adressen werden nur als Hash gespeichert
+```
+
+---
+
+## UpdateService
+
+**Datei:** `core/Services/UpdateService.php`
+
+Prüft verfügbare Updates für CMS-Core und Plugins via GitHub Release API.
+
+```php
+$updater = new CMS\Services\UpdateService();
+
+// Verfügbare Updates prüfen (gecacht 6h)
+$updates = $updater->checkForUpdates();
+// Gibt: ['core' => [...], 'plugins' => [...]]
+
+// Core-Update durchführen
+$result = $updater->updateCore('1.8.1');
+
+// Plugin-Update
+$result = $updater->updatePlugin('cms-experts', '1.3.0');
+```
+
+---
+
+*Letzte Aktualisierung: 22. Februar 2026 – Version 1.8.0*

@@ -6,11 +6,11 @@
 
 | Eigenschaft | Wert |
 |-------------|------|
-| **CMS-Version** | 0.27.1 |
-| **PHP-Mindestanforderung** | 8.1 (empfohlen: 8.3) |
-| **DB-Version** | MySQL 8.0+ / MariaDB 10.6+ |
+| **CMS-Version** | 1.8.0 |
+| **PHP-Mindestanforderung** | 8.2 (empfohlen: 8.3) |
+| **DB-Version** | MySQL 5.7+ / MariaDB 10.3+ |
 | **Letztes Update** | 22. Februar 2026 |
-| **Status** | Aktiv in Entwicklung |
+| **Status** | Produktionsreif (Beta) |
 
 ---
 
@@ -21,7 +21,7 @@
 | Komponente | Status | Notiz |
 |------------|--------|-------|
 | Bootstrap | ✅ Vollständig | Singleton, Lifecycle, Error-Handling |
-| Database (PDO) | ✅ Vollständig | 22 Tabellen, WP-compat. API |
+| Database (PDO) | ✅ Vollständig | 33 Tabellen, WP-compat. API |
 | Security | ✅ Vollständig | CSRF, XSS, Rate-Limiting, Headers |
 | Auth | ✅ Vollständig | Login, Session, Rollen |
 | Router | ✅ Vollständig | GET/POST/PUT/DELETE, Plugin-Routen |
@@ -45,7 +45,10 @@
 | MemberService | ✅ Implementiert |
 | SEOService | ✅ Implementiert |
 | StatusService | ✅ Implementiert |
+| SystemService | ✅ Implementiert |
 | ThemeCustomizer | ✅ Implementiert |
+| TrackingService | ✅ Implementiert |
+| UpdateService | ✅ Implementiert |
 | UserService | ✅ Implementiert |
 
 ### Admin-Panel (36 Seiten)
@@ -89,13 +92,14 @@
 | Rechtliche Seiten | `legal-sites.php` | ✅ |
 | Sicherheits-Audit | `security-audit.php` | ✅ |
 
-### Plugins (5 verfügbar)
+### Plugins (6 verfügbar)
 
 | Plugin | Slug | Status |
 |--------|------|--------|
 | CMS Companies | `cms-companies` | ✅ Verfügbar |
 | CMS Events | `cms-events` | ✅ Verfügbar |
 | CMS Experts | `cms-experts` | ✅ Verfügbar |
+| CMS Importer | `cms-importer` | ✅ Verfügbar |
 | CMS Job Ads | `cms-jobads` | ✅ Verfügbar |
 | CMS Speakers | `cms-speakers` | ✅ Verfügbar |
 

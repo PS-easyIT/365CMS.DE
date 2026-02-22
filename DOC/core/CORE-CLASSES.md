@@ -1,7 +1,7 @@
 # 365CMS – Core-Klassen Referenz
 
 
-Alle 11 Core-Klassen des 365CMS im Detail – Aufgaben, wichtigste Methoden und Verwendungsbeispiele.
+Alle 15 Core-Klassen des 365CMS im Detail – Aufgaben, wichtigste Methoden und Verwendungsbeispiele.
 
 ---
 
@@ -18,6 +18,10 @@ Alle 11 Core-Klassen des 365CMS im Detail – Aufgaben, wichtigste Methoden und 
 9. [CacheManager](#9-cachemanager)
 10. [PageManager](#10-pagemanager)
 11. [SubscriptionManager](#11-subscriptionmanager)
+12. [Api](#12-api)
+13. [Debug](#13-debug)
+14. [WP\_Error](#14-wp_error)
+15. [SubscriptionManager](#15-subscriptionmanager-erweitert)
 
 ---
 
