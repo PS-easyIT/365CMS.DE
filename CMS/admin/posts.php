@@ -346,11 +346,12 @@ if ($view === 'categories'): ?>
                 <td style="text-align:right;"><?php echo $cc; ?></td>
                 <td style="text-align:right;">
                     <a href="?view=categories&cat_id=<?php echo (int)$cat->id; ?>" class="btn btn-secondary btn-sm">✏️</a>
-                    <form method="post" action="<?php echo SITE_URL; ?>/admin/posts?view=categories" style="display:inline;" onsubmit="return confirm('Kategorie löschen?');">
+                    <form id="catDeleteForm_<?php echo (int)$cat->id; ?>" method="post" action="<?php echo SITE_URL; ?>/admin/posts?view=categories">
                         <input type="hidden" name="_csrf"    value="<?php echo $csrf; ?>">
                         <input type="hidden" name="_action"  value="delete_category">
                         <input type="hidden" name="cat_id"   value="<?php echo (int)$cat->id; ?>">
-                        <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
+                        <button type="button" class="btn btn-danger btn-sm"
+                                onclick="catDeleteConfirm('catDeleteForm_<?php echo (int)$cat->id; ?>', '<?php echo htmlspecialchars($cat->name, ENT_QUOTES|ENT_JS); ?>')">🗑️</button>
                     </form>
                 </td>
             </tr>
@@ -542,7 +543,7 @@ elseif ($view === 'edit'):
 </form>
 
 <?php if (!$isNew): ?>
-<form id="deletePostForm" method="post" action="<?php echo SITE_URL; ?>/admin/posts" style="display:none;" onsubmit="return confirm('In Papierkorb?');">
+<form id="deletePostForm" method="post" action="<?php echo SITE_URL; ?>/admin/posts" style="display:none;">
     <input type="hidden" name="_csrf"       value="<?php echo $csrf; ?>">
     <input type="hidden" name="_action"     value="delete_post">
     <input type="hidden" name="post_id"     value="<?php echo (int)$pd['id']; ?>">
@@ -735,13 +736,33 @@ else: // view === 'list'
     <input type="hidden" name="post_id"     id="listDeleteId" value="">
     <input type="hidden" name="delete_mode" id="listDeleteMode" value="">
 </form>
+
+<!-- Post löschen – Bestätigungs-Modal -->
+<div id="postDeleteModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="postDeleteModalTitle">Beitrag löschen</h3>
+            <button class="modal-close" onclick="closeModal('postDeleteModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="postDeleteModalMsg" style="color:#1e293b;"></p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('postDeleteModal')">Abbrechen</button>
+            <button type="button" class="btn btn-danger" id="postDeleteModalConfirm">🗑️ Löschen</button>
+        </div>
+    </div>
+</div>
 <script>
 function deletePost(id, mode, msg) {
-    if (confirm(msg)) {
+    document.getElementById('postDeleteModalMsg').textContent = msg;
+    document.getElementById('postDeleteModalTitle').textContent = mode === 'permanent' ? 'Endgültig löschen' : 'In Papierkorb';
+    document.getElementById('postDeleteModalConfirm').onclick = function() {
         document.getElementById('listDeleteId').value = id;
         document.getElementById('listDeleteMode').value = mode;
         document.getElementById('listDeleteForm').submit();
-    }
+    };
+    document.getElementById('postDeleteModal').style.display = 'flex';
 }
 </script>
 
@@ -825,7 +846,13 @@ function confirmBulk(form) {
     const n = form.querySelectorAll('input[name="bulk_ids[]"]:checked').length;
     if (!a) { alert('Bitte zuerst eine Aktion wählen.'); return false; }
     if (!n) { alert('Keine Beiträge ausgewählt.'); return false; }
-    if (a === 'delete') return confirm(n + ' Beitrag/Beiträge ENDGÜLTIG löschen?');
+    if (a === 'delete') {
+        document.getElementById('postDeleteModalTitle').textContent = 'Sammelaktion: Endgültig löschen';
+        document.getElementById('postDeleteModalMsg').textContent = n + ' Beitrag/Beiträge ENDGÜLTIG löschen?';
+        document.getElementById('postDeleteModalConfirm').onclick = function() { closeModal('postDeleteModal'); form.submit(); };
+        document.getElementById('postDeleteModal').style.display = 'flex';
+        return false;
+    }
     return true;
 }
 </script>

@@ -190,8 +190,10 @@ renderAdminLayoutStart('Benutzer', 'users');
         <p>Verwalten Sie Benutzer, Rollen und Zugriffsrechte.</p>
     </div>
     <div class="header-actions">
-        <?php if ($view === 'edit'): ?>
-            <a href="users.php" class="btn btn-secondary">↩️ Zurück zur Liste</a>
+        <?php if ($view === 'edit' || $view === 'new'): ?>
+            <a href="<?php echo SITE_URL; ?>/admin/users" class="btn btn-secondary">↩️ Zurück zur Liste</a>
+        <?php else: ?>
+            <a href="<?php echo SITE_URL; ?>/admin/users?view=new" class="btn btn-primary">➕ Neuer Benutzer</a>
         <?php endif; ?>
     </div>
 </div>
@@ -209,7 +211,7 @@ renderAdminLayoutStart('Benutzer', 'users');
 if ($view === 'edit' && $editUserId > 0):
     $eu = $db->get_row("SELECT * FROM {$prefix}users WHERE id=?", [$editUserId]);
     if (!$eu):
-        echo '<script>window.location.href="users.php";</script>';
+        echo '<script>window.location.href="<?php echo SITE_URL; ?>/admin/users";</script>';
         exit;
     endif;
 
@@ -221,7 +223,7 @@ if ($view === 'edit' && $editUserId > 0):
     $allGroups = $db->get_results("SELECT id, name FROM {$prefix}user_groups WHERE is_active=1 ORDER BY name");
 ?>
 
-<form method="post" action="users.php?view=edit&id=<?php echo (int)$eu->id; ?>" id="editUserForm">
+<form method="post" action="<?php echo SITE_URL; ?>/admin/users?view=edit&id=<?php echo (int)$eu->id; ?>" id="editUserForm">
     <input type="hidden" name="_csrf"   value="<?php echo $csrfEdit; ?>">
     <input type="hidden" name="_action" value="edit_user">
     <input type="hidden" name="user_id" value="<?php echo (int)$eu->id; ?>">
@@ -317,8 +319,8 @@ if ($view === 'edit' && $editUserId > 0):
                 <div style="display:flex;flex-direction:column;gap:.45rem;margin-top:.9rem;">
                     <button type="submit" class="btn btn-primary btn-sm" style="width:100%;">💾 Speichern</button>
                     <?php if ((int)$eu->id !== $current_user_id): ?>
-                    <button type="submit" form="deleteUserForm" class="btn btn-danger btn-sm"
-                            onclick="return confirm('Benutzer wirklich löschen?')" style="width:100%;">🗑️ Löschen</button>
+                    <button type="button" class="btn btn-danger btn-sm"
+                            onclick="openUserDeleteModal()" style="width:100%;">🗑️ Löschen</button>
                     <?php endif; ?>
                 </div>
             </div>
@@ -367,11 +369,11 @@ elseif ($view === 'new'):
         <p>Einen neuen Benutzer manuell anlegen.</p>
     </div>
     <div class="header-actions">
-        <a href="users.php" class="btn btn-secondary">↩️ Zurück zur Liste</a>
+        <a href="<?php echo SITE_URL; ?>/admin/users" class="btn btn-secondary">↩️ Zurück zur Liste</a>
     </div>
 </div>
 
-<form method="post" action="users.php">
+<form method="post" action="<?php echo SITE_URL; ?>/admin/users">
     <input type="hidden" name="_csrf"   value="<?php echo $csrfCreate; ?>">
     <input type="hidden" name="_action" value="create_user">
 
@@ -455,26 +457,16 @@ else:
     );
 
     $buildUrl = fn(array $extra = []) =>
-        'users.php?' . http_build_query(array_merge(
+        SITE_URL . '/admin/users?' . http_build_query(array_merge(
             ['role' => $roleFilter],
             $search ? ['search' => $search] : [],
             $extra
         ));
 ?>
 
-<div class="admin-page-header">
-    <div>
-        <h2>👥 Benutzerverwaltung</h2>
-        <p>Übersicht aller registrierten Benutzer.</p>
-    </div>
-    <div class="header-actions">
-        <a href="users.php?view=new" class="btn btn-primary">➕ Neuer Benutzer</a>
-    </div>
-</div>
-
 <div class="tabs" style="margin-bottom:1.5rem;">
     <?php foreach (['all' => 'Alle', 'admin' => 'Administratoren', 'member' => 'Members', 'editor' => 'Editoren', 'banned' => 'Gesperrt'] as $r => $lbl): ?>
-    <a href="users.php?role=<?php echo $r; ?><?php echo $search ? '&search=' . urlencode($search) : ''; ?>"
+    <a href="<?php echo SITE_URL; ?>/admin/users?role=<?php echo $r; ?><?php echo $search ? '&search=' . urlencode($search) : ''; ?>"
        class="tab-btn <?php echo $roleFilter === $r ? 'active' : ''; ?>" style="text-decoration:none;">
         <?php echo $lbl; ?> <span class="nav-badge" style="margin-left:0.25rem; font-size:0.75rem;"><?php echo $roleCounts[$r] ?? 0; ?></span>
     </a>
@@ -482,19 +474,19 @@ else:
 </div>
 
 <div class="admin-card" style="margin-bottom:1.5rem; padding:1rem;">
-    <form method="get" action="users.php" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+    <form method="get" action="<?php echo SITE_URL; ?>/admin/users" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
         <input type="hidden" name="role" value="<?php echo htmlspecialchars($roleFilter); ?>">
         <div style="display:flex; gap:0.5rem; flex:1; max-width:400px;">
             <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" class="form-control" placeholder="Suche nach Name, E-Mail…" style="min-width:200px;">
             <button type="submit" class="btn btn-secondary">🔍 Suchen</button>
         </div>
         <?php if ($search): ?>
-        <a href="users.php?role=<?php echo $roleFilter; ?>" class="btn btn-secondary btn-sm">✕ Filter löschen</a>
+        <a href="<?php echo SITE_URL; ?>/admin/users?role=<?php echo $roleFilter; ?>" class="btn btn-secondary btn-sm">✕ Filter löschen</a>
         <?php endif; ?>
     </form>
 </div>
 
-<form method="post" action="users.php" id="bulkForm">
+<form method="post" action="<?php echo SITE_URL; ?>/admin/users" id="bulkForm">
     <input type="hidden" name="_csrf"   value="<?php echo $csrfBulk; ?>">
     <input type="hidden" name="_action" value="bulk">
     
@@ -507,8 +499,7 @@ else:
             <option value="make_admin">Rolle → Admin</option>
             <option value="delete">Endgültig löschen</option>
         </select>
-        <button type="submit" class="btn btn-secondary btn-sm"
-                onclick="return confirm('Aktion auf ausgewählte Benutzer anwenden?')">Anwenden</button>
+        <button type="submit" class="btn btn-secondary btn-sm">Anwenden</button>
         <span style="color:#64748b; font-size:0.875rem; margin-left:auto;"><?php echo $total; ?> Benutzer gesamt</span>
     </div>
 
@@ -520,7 +511,7 @@ else:
             ? 'Keine Treffer für <strong>' . htmlspecialchars($search, ENT_QUOTES) . '</strong>'
             : 'Erstellen Sie den ersten Benutzer.'; ?></p>
         <?php if(!$search): ?>
-        <a href="users.php?view=new" class="btn btn-primary" style="margin-top:1rem;">➕ Benutzer erstellen</a>
+        <a href="<?php echo SITE_URL; ?>/admin/users?view=new" class="btn btn-primary" style="margin-top:1rem;">➕ Benutzer erstellen</a>
         <?php endif; ?>
     </div>
     <?php else: ?>
@@ -567,7 +558,7 @@ else:
                             <?php echo strtoupper(substr($u->username, 0, 1)); ?>
                         </div>
                         <div style="display:flex; flex-direction:column;">
-                            <a href="users.php?view=edit&id=<?php echo (int)$u->id; ?>"
+                            <a href="<?php echo SITE_URL; ?>/admin/users?view=edit&id=<?php echo (int)$u->id; ?>"
                                style="font-weight:600; color:#1e293b; text-decoration:none;">
                                 <?php echo htmlspecialchars($u->username, ENT_QUOTES); ?>
                                 <?php if ((int)$u->id === $current_user_id): ?>
@@ -587,10 +578,10 @@ else:
                 <td style="color:#64748b;"><?php echo date('d.m.Y', strtotime($u->created_at)); ?></td>
                 <td style="text-align:right; white-space:nowrap;">
                     <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
-                        <a href="users.php?view=edit&id=<?php echo (int)$u->id; ?>"
-                           class="btn btn-sm btn-secondary" title="Bearbeiten">✏️</a>
+                        <a href="<?php echo SITE_URL; ?>/admin/users?view=edit&id=<?php echo (int)$u->id; ?>"
+                           class="btn btn-secondary btn-sm" title="Bearbeiten">✏️</a>
                         <?php if ((int)$u->id !== $current_user_id): ?>
-                        <button type="button" class="btn btn-sm btn-danger" title="Löschen"
+                        <button type="button" class="btn btn-danger btn-sm" title="Löschen"
                                 onclick="deleteUser(<?php echo (int)$u->id; ?>)">🗑️</button>
                         <?php endif; ?>
                     </div>
@@ -615,21 +606,46 @@ else:
     <?php endif; ?>
 </form>
 
-<form id="deleteUserForm" method="post" action="users.php" style="display:none;">
+<form id="deleteUserForm" method="post" action="<?php echo SITE_URL; ?>/admin/users" style="display:none;">
     <input type="hidden" name="_csrf"   value="<?php echo $csrfDelete; ?>">
     <input type="hidden" name="_action" value="delete_user">
     <input type="hidden" name="user_id" id="deleteUserId" value="">
 </form>
 
+<!-- Benutzer löschen – Bestätigungs-Modal -->
+<div id="userDeleteModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Benutzer löschen</h3>
+            <button class="modal-close" onclick="closeModal('userDeleteModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Benutzer wirklich <strong>endgültig löschen</strong>? Diese Aktion kann nicht rückgängig gemacht werden.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('userDeleteModal')">Abbrechen</button>
+            <button type="button" class="btn btn-danger" id="userDeleteConfirmBtn">🗑️ Löschen</button>
+        </div>
+    </div>
+</div>
+
 <?php endif; ?>
 
 <script>
 function deleteUser(id) {
-    // Custom modal would be better, but staying compatible with quick JS
-    if (confirm('Benutzer wirklich löschen?')) {
+    document.getElementById('userDeleteConfirmBtn').onclick = function() {
+        closeModal('userDeleteModal');
         document.getElementById('deleteUserId').value = id;
         document.getElementById('deleteUserForm').submit();
-    }
+    };
+    document.getElementById('userDeleteModal').style.display = 'flex';
+}
+function openUserDeleteModal() {
+    document.getElementById('userDeleteModal').style.display = 'flex';
+    document.getElementById('userDeleteConfirmBtn').onclick = function() {
+        closeModal('userDeleteModal');
+        document.getElementById('deleteUserForm').submit();
+    };
 }
 </script>
 

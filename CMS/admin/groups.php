@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 declare(strict_types=1);
 
 /**
@@ -373,14 +373,14 @@ if ($editGroupId > 0):
                     </div>
                     <div style="display:flex;align-items:center;gap:.4rem;">
                         <span style="font-size:.72rem;color:#94a3b8;">seit <?php echo date('d.m.Y', strtotime($m->joined_at)); ?></span>
-                        <form method="post" action="<?php echo SITE_URL; ?>/admin/groups" style="display:inline;">
+                        <form method="post" action="<?php echo SITE_URL; ?>/admin/groups" id="removeMemberForm_<?php echo (int)$m->id; ?>" style="display:none;">
                             <input type="hidden" name="_csrf"     value="<?php echo $csrfGroup; ?>">
                             <input type="hidden" name="_action"   value="remove_member">
                             <input type="hidden" name="group_id"  value="<?php echo $editGroupId; ?>">
                             <input type="hidden" name="user_id"   value="<?php echo (int)$m->id; ?>">
-                            <button type="submit" class="btn btn-danger btn-sm"
-                                    onclick="return confirm('Mitglied aus Gruppe entfernen?')">✕</button>
                         </form>
+                        <button type="button" class="btn btn-danger btn-sm"
+                                onclick="openMemberRemoveModal('removeMemberForm_<?php echo (int)$m->id; ?>', <?php echo json_encode($m->username ?? ''); ?>)">✕</button>
                     </div>
                 </div>
                 <?php endforeach; ?>
@@ -427,12 +427,57 @@ if ($editGroupId > 0):
                     <input type="hidden" name="_action"  value="delete_group">
                     <input type="hidden" name="group_id" value="<?php echo $editGroupId; ?>">
                 </form>
-                <button type="submit" form="deleteGroupForm" class="btn btn-danger" style="width:100%;"
-                        onclick="return confirm('Gruppe und alle Mitgliedschaften löschen?')">🗑️ Gruppe löschen</button>
+                <button type="button" class="btn btn-danger" style="width:100%;"
+                        onclick="openModal('groupDetailDeleteModal')">🗑️ Gruppe löschen</button>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Mitglied entfernen – Bestätigungs-Modal -->
+<div id="memberRemoveModal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:480px;">
+        <div class="modal-header">
+            <h3>Mitglied entfernen</h3>
+            <button class="modal-close" onclick="closeModal('memberRemoveModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Soll <strong id="memberRemoveName"></strong> wirklich aus dieser Gruppe entfernt werden?</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('memberRemoveModal')">Abbrechen</button>
+            <button type="button" class="btn btn-danger" id="memberRemoveConfirmBtn">✕ Entfernen</button>
+        </div>
+    </div>
+</div>
+
+<!-- Gruppe löschen (Detail) – Bestätigungs-Modal -->
+<div id="groupDetailDeleteModal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:480px;">
+        <div class="modal-header">
+            <h3>Gruppe löschen</h3>
+            <button class="modal-close" onclick="closeModal('groupDetailDeleteModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Soll diese Gruppe und <strong>alle zugehörigen Mitgliedschaften</strong> wirklich gelöscht werden?</p>
+            <p style="color:#ef4444;font-size:.875rem;">⚠️ Diese Aktion kann nicht rückgängig gemacht werden.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('groupDetailDeleteModal')">Abbrechen</button>
+            <button type="button" class="btn btn-danger" onclick="document.getElementById('deleteGroupForm').submit()">🗑️ Endgültig löschen</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function openMemberRemoveModal(formId, username) {
+    document.getElementById('memberRemoveName').textContent = username;
+    document.getElementById('memberRemoveConfirmBtn').onclick = function() {
+        document.getElementById(formId).submit();
+    };
+    openModal('memberRemoveModal');
+}
+</script>
 
 <?php elseif ($viewMode === 'new'): // Neue Gruppe anlegen ?>
 
@@ -585,12 +630,29 @@ if ($editGroupId > 0):
     <input type="hidden" name="group_id" id="deleteGroupId" value="">
 </form>
 
+<!-- Gruppe löschen (Liste) – Bestätigungs-Modal -->
+<div id="groupDeleteModal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:480px;">
+        <div class="modal-header">
+            <h3>Gruppe löschen</h3>
+            <button class="modal-close" onclick="closeModal('groupDeleteModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Soll die Gruppe <strong id="groupDeleteName"></strong> und alle zugehörigen Mitgliedschaften wirklich gelöscht werden?</p>
+            <p style="color:#ef4444;font-size:.875rem;">⚠️ Diese Aktion kann nicht rückgängig gemacht werden.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('groupDeleteModal')">Abbrechen</button>
+            <button type="button" class="btn btn-danger" onclick="document.getElementById('deleteGroupForm').submit()">🗑️ Endgültig löschen</button>
+        </div>
+    </div>
+</div>
+
 <script>
 function deleteGroup(id, name) {
-    if (confirm('Gruppe "' + name + '" und alle Mitgliedschaften wirklich löschen?')) {
-        document.getElementById('deleteGroupId').value = id;
-        document.getElementById('deleteGroupForm').submit();
-    }
+    document.getElementById('deleteGroupId').value = id;
+    document.getElementById('groupDeleteName').textContent = name;
+    openModal('groupDeleteModal');
 }
 </script>
 
@@ -744,12 +806,28 @@ $isEditCore = $editRole ? in_array($editRole->name, $coreRoles) : false;
     <input type="hidden" name="_action"  value="delete_role">
     <input type="hidden" name="role_id"  id="deleteRoleId" value="">
 </form>
+<!-- Rolle löschen – Bestätigungs-Modal -->
+<div id="roleDeleteModal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:480px;">
+        <div class="modal-header">
+            <h3>Rolle löschen</h3>
+            <button class="modal-close" onclick="closeModal('roleDeleteModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Soll diese Rolle wirklich gelöscht werden?</p>
+            <p style="color:#ef4444;font-size:.875rem;">⚠️ Diese Aktion kann nicht rückgängig gemacht werden.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('roleDeleteModal')">Abbrechen</button>
+            <button type="button" class="btn btn-danger" onclick="document.getElementById('deleteRoleForm').submit()">🗑️ Endgültig löschen</button>
+        </div>
+    </div>
+</div>
+
 <script>
 function deleteRole(id) {
-    if (confirm('Rolle wirklich löschen?')) {
-        document.getElementById('deleteRoleId').value = id;
-        document.getElementById('deleteRoleForm').submit();
-    }
+    document.getElementById('deleteRoleId').value = id;
+    openModal('roleDeleteModal');
 }
 </script>
 

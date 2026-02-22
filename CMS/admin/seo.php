@@ -234,147 +234,113 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
 
 
 <style>
-/* ── SEO Dashboard Styles ─────────────────────────────────── */
-.seo-page-header {
-    background: linear-gradient(135deg, #052e16 0%, #14532d 45%, #16a34a 100%);
-    border-radius: 12px; padding: 2rem 2rem 1.6rem; margin-bottom: 2rem;
-    display: flex; align-items: center; gap: 1.5rem; color: #fff;
-    box-shadow: 0 4px 20px rgba(22,163,74,.35);
-}
-.seo-page-header-icon {
-    width: 56px; height: 56px; background: rgba(255,255,255,.15);
-    border-radius: 12px; display: flex; align-items: center; justify-content: center;
-    font-size: 1.6rem; flex-shrink: 0;
-}
-.seo-page-header-text h1 { margin: 0 0 .25rem; font-size: 1.5rem; font-weight: 700; }
-.seo-page-header-text p  { margin: 0; opacity: .8; font-size: .9rem; }
-.seo-nav { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 2rem; }
-.seo-nav-tab {
-    display: flex; align-items: center; gap: .7rem; padding: .65rem 1.1rem;
-    background: #fff; border: 1.5px solid #e2e8f0; border-radius: 10px;
-    color: #475569; font-size: .85rem; font-weight: 500; text-decoration: none;
-    transition: all .2s; cursor: pointer;
-}
-.seo-nav-tab:hover { border-color: #16a34a; color: #16a34a; background: #f0fdf4; }
-.seo-nav-tab.active { border-color: #16a34a; background: #f0fdf4; color: #15803d; font-weight: 700; }
-.seo-nav-icon { width: 32px; height: 32px; border-radius: 8px; background: #f1f5f9;
-    display: flex; align-items: center; justify-content: center; font-size: .9rem; }
-.seo-nav-tab.active .seo-nav-icon { background: #dcfce7; }
-.seo-nav-label { display: flex; flex-direction: column; }
-.seo-nav-label span:first-child { line-height: 1.2; }
-.seo-nav-desc { font-size: .72rem; color: #94a3b8; font-weight: 400; }
-.seo-nav-tab.active .seo-nav-desc { color: #86efac; }
+/* SEO-spezifische Komponenten (nicht in admin.css) */
+.seo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 1.5rem; }
 .seo-panel { display: none; }
 .seo-panel.active { display: block; }
-.seo-save-btn {
-    background: linear-gradient(135deg, #15803d, #16a34a); color: #fff;
-    border: none; border-radius: 8px; padding: .65rem 1.5rem; font-size: .9rem;
-    font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: .5rem;
-    transition: transform .15s, box-shadow .15s;
-}
-.seo-save-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(22,163,74,.4); }
-.code-preview {
-    background: #0f172a; color: #86efac; border-radius: 8px; padding: 1rem;
-    font-family: 'Courier New', monospace; font-size: .8rem; white-space: pre-wrap;
-    word-break: break-all; margin-top: .5rem;
-}
+/* Toggle Switch */
+.dw-toggle { position: relative; display: inline-flex; width: 44px; height: 24px; flex-shrink: 0; }
+.dw-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.dw-toggle-slider { position: absolute; inset: 0; background: #cbd5e1; border-radius: 24px; cursor: pointer; transition: background .2s; }
+.dw-toggle-slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.dw-toggle input:checked + .dw-toggle-slider { background: var(--admin-primary, #3b82f6); }
+.dw-toggle input:checked + .dw-toggle-slider::before { transform: translateX(20px); }
+.dw-toggle-row { display: flex; align-items: center; justify-content: space-between; padding: .75rem 0; border-bottom: 1px solid #f1f5f9; }
+.dw-toggle-row:last-child { border-bottom: none; }
+.dw-toggle-label { font-weight: 500; font-size: .9rem; color: #1e293b; }
+.dw-toggle-hint { font-size: .8rem; color: #64748b; margin-top: .15rem; }
+/* Code-Vorschau */
+.code-preview { background: #0f172a; color: #86efac; border-radius: 8px; padding: 1rem; font-family: 'Courier New', monospace; font-size: .8rem; white-space: pre-wrap; word-break: break-all; margin-top: .5rem; }
+/* Badges */
 .seo-badge { display: inline-block; padding: .2rem .6rem; border-radius: 999px; font-size: .72rem; font-weight: 600; }
 .seo-badge-warn { background: #fef3c7; color: #92400e; }
 .seo-badge-info { background: #dbeafe; color: #1e40af; }
 .seo-badge-ok   { background: #dcfce7; color: #166534; }
+/* Radio-Zeilen */
+.dw-radio-row { display: flex; align-items: flex-start; gap: .75rem; padding: .75rem .5rem; border-radius: 8px; cursor: pointer; margin-bottom: .5rem; border: 1.5px solid #e2e8f0; background: #fff; transition: border-color .15s, background .15s; }
+.dw-radio-row:hover { border-color: var(--admin-primary, #3b82f6); }
 </style>
 
-<div class="admin-content">
-  <div class="admin-content-inner">
-
-    <!-- Page Header -->
-    <div class="seo-page-header">
-        <div class="seo-page-header-icon"><i class="fas fa-search"></i></div>
-        <div class="seo-page-header-text">
-            <h1>SEO Dashboard</h1>
-            <p>Suchmaschinenoptimierung, Social Media, Strukturierte Daten & Indexierung</p>
-        </div>
+<!-- Page Header -->
+<div class="admin-page-header">
+    <div>
+        <h2>🔍 SEO &amp; Performance</h2>
+        <p>Suchmaschinenoptimierung, Social Media, Strukturierte Daten &amp; Indexierung</p>
     </div>
+</div>
 
-    <!-- Messages -->
-    <?php foreach ($messages as $msg): ?>
-        <div class="notice-<?php echo $msg['type']; ?>" style="margin-bottom:1rem;">
-            <i class="fas <?php echo $msg['type'] === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'; ?>"></i>
-            <?php echo htmlspecialchars($msg['text']); ?>
-        </div>
+<!-- Messages -->
+<?php foreach ($messages as $msg): ?>
+    <div class="alert alert-<?php echo $msg['type'] === 'success' ? 'success' : 'error'; ?>">
+        <?php echo htmlspecialchars($msg['text']); ?>
+    </div>
+<?php endforeach; ?>
+
+<!-- Tab Navigation -->
+<nav class="lp-section-nav">
+    <?php
+    $navTabs = [
+        'general'    => ['icon' => '⚙️',  'label' => 'Allgemein',          'desc' => 'Titel, Meta, Canonical'],
+        'social'     => ['icon' => '📣',  'label' => 'Social Media',        'desc' => 'OG, Twitter/X, LinkedIn'],
+        'structured' => ['icon' => '🗂️', 'label' => 'Strukturierte Daten', 'desc' => 'Schema.org, JSON-LD'],
+        'permalinks' => ['icon' => '🔗',  'label' => 'Permalinks',          'desc' => 'URL-Struktur, Basis'],
+        'indexing'   => ['icon' => '🤖',  'label' => 'Indexierung',         'desc' => 'Robots, Sitemap, IndexNow'],
+    ];
+    foreach ($navTabs as $tid => $t):
+    ?>
+    <a href="<?php echo SITE_URL; ?>/admin/seo?tab=<?php echo $tid; ?>" class="lp-section-nav__item <?php echo $activeTab === $tid ? 'active' : ''; ?>">
+        <span class="lp-section-nav__icon"><?php echo $t['icon']; ?></span>
+        <span><?php echo $t['label']; ?><br><small style="color:#94a3b8;font-size:.72rem;font-weight:400;"><?php echo $t['desc']; ?></small></span>
+    </a>
     <?php endforeach; ?>
-
-    <!-- Tab Navigation -->
-    <nav class="seo-nav">
-        <?php
-        $tabs = [
-            'general'    => ['icon'=>'fa-cogs',          'label'=>'Allgemein',           'desc'=>'Titel, Meta, Canonical'],
-            'social'     => ['icon'=>'fa-share-alt',     'label'=>'Social Media',         'desc'=>'OG, Twitter/X, LinkedIn'],
-            'structured' => ['icon'=>'fa-code',          'label'=>'Strukturierte Daten',  'desc'=>'Schema.org, JSON-LD'],
-            'permalinks' => ['icon'=>'fa-link',          'label'=>'Permalinks',           'desc'=>'URL-Struktur, Basis'],
-            'indexing'   => ['icon'=>'fa-robot',         'label'=>'Indexierung',          'desc'=>'Robots, Sitemap, IndexNow'],
-        ];
-        foreach ($tabs as $tid => $t):
-            $active = $activeTab === $tid ? 'active' : '';
-        ?>
-        <a href="seo.php?tab=<?php echo $tid; ?>" class="seo-nav-tab <?php echo $active; ?>">
-            <div class="seo-nav-icon"><i class="fas <?php echo $t['icon']; ?>"></i></div>
-            <div class="seo-nav-label">
-                <span><?php echo $t['label']; ?></span>
-                <span class="seo-nav-desc"><?php echo $t['desc']; ?></span>
-            </div>
-        </a>
-        <?php endforeach; ?>
-    </nav>
+</nav>
 
     <!-- ──────────────────────────────────────────────────────── TAB: GENERAL -->
     <div class="seo-panel <?php echo $activeTab==='general' ? 'active' : ''; ?>">
-    <form method="post" action="seo.php?tab=general">
+    <form method="post" action="<?php echo SITE_URL; ?>/admin/seo?tab=general">
     <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
     <input type="hidden" name="action"     value="save_seo_general">
 
-    <div class="dw-grid-2">
+    <div class="seo-grid">
         <!-- Titel-Template -->
-        <div class="dw-card">
-            <div class="dw-card-header"><h3><i class="fas fa-heading"></i> Titel & Format</h3></div>
-            <div class="dw-card-body">
-                <div class="dw-form-group">
+        <div class="admin-card">
+            <h3>📋 Titel & Format</h3>
+                <div class="form-group">
                     <label>Titel-Template</label>
-                    <input type="text" name="site_title_format" class="dw-input" value="<?php echo $val('seo_site_title_format'); ?>">
-                    <span class="dw-hint">Platzhalter: <code>{title}</code>, <code>{sitename}</code>, <code>{tagline}</code></span>
+                    <input type="text" name="site_title_format" class="form-control" value="<?php echo $val('seo_site_title_format'); ?>">
+                    <span class="form-text">Platzhalter: <code>{title}</code>, <code>{sitename}</code>, <code>{tagline}</code></span>
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>Trennzeichen</label>
-                    <input type="text" name="title_separator" class="dw-input" style="max-width:80px;" value="<?php echo $val('seo_title_separator'); ?>">
+                    <input type="text" name="title_separator" class="form-control" style="max-width:80px;" value="<?php echo $val('seo_title_separator'); ?>">
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>Startseiten-Titel</label>
-                    <input type="text" name="homepage_title" class="dw-input" value="<?php echo $val('seo_homepage_title'); ?>">
+                    <input type="text" name="homepage_title" class="form-control" value="<?php echo $val('seo_homepage_title'); ?>">
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>Startseiten-Description</label>
-                    <textarea name="homepage_description" class="dw-input" rows="2"><?php echo $val('seo_homepage_description'); ?></textarea>
+                    <textarea name="homepage_description" class="form-control" rows="2"><?php echo $val('seo_homepage_description'); ?></textarea>
                 </div>
             </div>
         </div>
 
         <!-- Meta Defaults -->
-        <div class="dw-card">
-            <div class="dw-card-header"><h3><i class="fas fa-tags"></i> Standard-Meta</h3></div>
-            <div class="dw-card-body">
-                <div class="dw-form-group">
+        <div class="admin-card">
+            <h3>🏷️ Standard-Meta</h3>
+                <div class="form-group">
                     <label>Standard Meta-Description</label>
-                    <textarea name="meta_description" class="dw-input" rows="3"><?php echo $val('seo_meta_description'); ?></textarea>
-                    <span class="dw-hint">Fallback für Seiten ohne eigene Description.</span>
+                    <textarea name="meta_description" class="form-control" rows="3"><?php echo $val('seo_meta_description'); ?></textarea>
+                    <span class="form-text">Fallback für Seiten ohne eigene Description.</span>
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>Meta-Keywords <span class="seo-badge seo-badge-warn">Niedrige Relevanz</span></label>
-                    <input type="text" name="meta_keywords" class="dw-input" value="<?php echo $val('seo_meta_keywords'); ?>">
-                    <span class="dw-hint">Kommagetrennt. Von den meisten Suchmaschinen ignoriert.</span>
+                    <input type="text" name="meta_keywords" class="form-control" value="<?php echo $val('seo_meta_keywords'); ?>">
+                    <span class="form-text">Kommagetrennt. Von den meisten Suchmaschinen ignoriert.</span>
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>Canonical URL Verhalten</label>
-                    <select name="canonical_url" class="dw-input">
+                    <select name="canonical_url" class="form-control">
                         <option value="auto"   <?php echo $sel('seo_canonical_url','auto'); ?>>Automatisch (Self-referencing)</option>
                         <option value="manual" <?php echo $sel('seo_canonical_url','manual'); ?>>Manuell überschreibbar</option>
                     </select>
@@ -383,10 +349,9 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
         </div>
 
         <!-- Noindex Einstellungen -->
-        <div class="dw-card">
-            <div class="dw-card-header"><h3><i class="fas fa-eye-slash"></i> Noindex-Regeln</h3></div>
-            <div class="dw-card-body">
-                <span class="dw-hint" style="display:block;margin-bottom:1rem;">Verhindert das Indexieren bestimmter Seitentypen.</span>
+        <div class="admin-card">
+            <h3>🚫 Noindex-Regeln</h3>
+                <span class="form-text" style="display:block;margin-bottom:1rem;">Verhindert das Indexieren bestimmter Seitentypen.</span>
                 <div class="dw-toggle-row">
                     <div>
                         <div class="dw-toggle-label">Archive-Seiten (noindex)</div>
@@ -430,7 +395,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
     </div>
 
     <div style="margin-top:1.5rem;">
-        <button type="submit" class="seo-save-btn"><i class="fas fa-save"></i> Allgemein speichern</button>
+        <button type="submit" class="btn btn-primary">💾 Allgemein speichern</button>
     </div>
     </form>
     </div><!-- /general -->
@@ -438,35 +403,34 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
 
     <!-- ──────────────────────────────────────────────────────── TAB: SOCIAL -->
     <div class="seo-panel <?php echo $activeTab==='social' ? 'active' : ''; ?>">
-    <form method="post" action="seo.php?tab=social">
+    <form method="post" action="<?php echo SITE_URL; ?>/admin/seo?tab=social">
     <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
     <input type="hidden" name="action"     value="save_seo_social">
 
-    <div class="dw-grid-2">
+    <div class="seo-grid">
         <!-- Open Graph -->
-        <div class="dw-card">
-            <div class="dw-card-header"><h3><i class="fab fa-facebook"></i> Open Graph (Facebook / LinkedIn)</h3></div>
-            <div class="dw-card-body">
-                <div class="dw-form-group">
+        <div class="admin-card">
+            <h3>📘 Open Graph (Facebook / LinkedIn)</h3>
+                <div class="form-group">
                     <label>OG Titel (Standard)</label>
-                    <input type="text" name="og_title" class="dw-input" value="<?php echo $val('seo_og_title'); ?>">
+                    <input type="text" name="og_title" class="form-control" value="<?php echo $val('seo_og_title'); ?>">
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>OG Description (Standard)</label>
-                    <textarea name="og_description" class="dw-input" rows="2"><?php echo $val('seo_og_description'); ?></textarea>
+                    <textarea name="og_description" class="form-control" rows="2"><?php echo $val('seo_og_description'); ?></textarea>
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>Standard OG Bild URL</label>
-                    <input type="url" name="og_image" class="dw-input" placeholder="https://…/bild.jpg" value="<?php echo $val('seo_og_image'); ?>">
-                    <span class="dw-hint">Empfohlen: 1200×630 px</span>
+                    <input type="url" name="og_image" class="form-control" placeholder="https://…/bild.jpg" value="<?php echo $val('seo_og_image'); ?>">
+                    <span class="form-text">Empfohlen: 1200×630 px</span>
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>OG Locale</label>
-                    <input type="text" name="og_locale" class="dw-input" placeholder="de_DE" value="<?php echo $val('seo_og_locale'); ?>">
+                    <input type="text" name="og_locale" class="form-control" placeholder="de_DE" value="<?php echo $val('seo_og_locale'); ?>">
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>OG Type</label>
-                    <select name="og_type" class="dw-input">
+                    <select name="og_type" class="form-control">
                         <option value="website" <?php echo $sel('seo_og_type','website'); ?>>website</option>
                         <option value="article" <?php echo $sel('seo_og_type','article'); ?>>article</option>
                         <option value="profile" <?php echo $sel('seo_og_type','profile'); ?>>profile</option>
@@ -476,51 +440,49 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
         </div>
 
         <!-- Twitter/X -->
-        <div class="dw-card">
-            <div class="dw-card-header"><h3><i class="fab fa-x-twitter"></i> Twitter / X Card</h3></div>
-            <div class="dw-card-body">
-                <div class="dw-form-group">
+        <div class="admin-card">
+            <h3>𝕏 Twitter / X Card</h3>
+                <div class="form-group">
                     <label>Card Typ</label>
-                    <select name="twitter_card" class="dw-input">
+                    <select name="twitter_card" class="form-control">
                         <option value="summary"             <?php echo $sel('seo_twitter_card','summary'); ?>>Summary</option>
                         <option value="summary_large_image" <?php echo $sel('seo_twitter_card','summary_large_image'); ?>>Summary Large Image</option>
                         <option value="app"                 <?php echo $sel('seo_twitter_card','app'); ?>>App</option>
                         <option value="player"              <?php echo $sel('seo_twitter_card','player'); ?>>Player</option>
                     </select>
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>Twitter Site <span class="seo-badge seo-badge-info">@handle</span></label>
-                    <input type="text" name="twitter_site" class="dw-input" placeholder="@deineFirma" value="<?php echo $val('seo_twitter_site'); ?>">
+                    <input type="text" name="twitter_site" class="form-control" placeholder="@deineFirma" value="<?php echo $val('seo_twitter_site'); ?>">
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>Twitter Creator</label>
-                    <input type="text" name="twitter_creator" class="dw-input" placeholder="@autor" value="<?php echo $val('seo_twitter_creator'); ?>">
+                    <input type="text" name="twitter_creator" class="form-control" placeholder="@autor" value="<?php echo $val('seo_twitter_creator'); ?>">
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>LinkedIn Unternehmensseite URL</label>
-                    <input type="url" name="linkedin_company" class="dw-input" placeholder="https://linkedin.com/company/…" value="<?php echo $val('seo_linkedin_company'); ?>">
+                    <input type="url" name="linkedin_company" class="form-control" placeholder="https://linkedin.com/company/…" value="<?php echo $val('seo_linkedin_company'); ?>">
                 </div>
             </div>
         </div>
 
         <!-- Authorship -->
-        <div class="dw-card">
-            <div class="dw-card-header"><h3><i class="fas fa-user-tag"></i> Authorship</h3></div>
-            <div class="dw-card-body">
-                <div class="dw-form-group">
+        <div class="admin-card">
+            <h3>👤 Authorship</h3>
+                <div class="form-group">
                     <label>Globaler Autor-Name</label>
-                    <input type="text" name="author_meta" class="dw-input" value="<?php echo $val('seo_author_meta'); ?>">
+                    <input type="text" name="author_meta" class="form-control" value="<?php echo $val('seo_author_meta'); ?>">
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>Publisher Meta (Facebook Page URL)</label>
-                    <input type="url" name="publisher_meta" class="dw-input" placeholder="https://facebook.com/…" value="<?php echo $val('seo_publisher_meta'); ?>">
+                    <input type="url" name="publisher_meta" class="form-control" placeholder="https://facebook.com/…" value="<?php echo $val('seo_publisher_meta'); ?>">
                 </div>
             </div>
         </div>
     </div>
 
     <div style="margin-top:1.5rem;">
-        <button type="submit" class="seo-save-btn"><i class="fas fa-save"></i> Social-Media speichern</button>
+        <button type="submit" class="btn btn-primary">💾 Social-Media speichern</button>
     </div>
     </form>
     </div><!-- /social -->
@@ -528,59 +490,57 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
 
     <!-- ─────────────────────────────────────────────── TAB: STRUCTURED DATA -->
     <div class="seo-panel <?php echo $activeTab==='structured' ? 'active' : ''; ?>">
-    <form method="post" action="seo.php?tab=structured">
+    <form method="post" action="<?php echo SITE_URL; ?>/admin/seo?tab=structured">
     <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
     <input type="hidden" name="action"     value="save_seo_structured">
 
-    <div class="dw-grid-2">
+    <div class="seo-grid">
         <!-- Organization Schema -->
-        <div class="dw-card">
-            <div class="dw-card-header"><h3><i class="fas fa-building"></i> Schema.org Entität</h3></div>
-            <div class="dw-card-body">
-                <div class="dw-form-group">
+        <div class="admin-card">
+            <h3>🏢 Schema.org Entität</h3>
+                <div class="form-group">
                     <label>Typ</label>
-                    <select name="schema_type" class="dw-input">
+                    <select name="schema_type" class="form-control">
                         <option value="Organization"   <?php echo $sel('seo_schema_type','Organization'); ?>>Organization</option>
                         <option value="LocalBusiness"  <?php echo $sel('seo_schema_type','LocalBusiness'); ?>>LocalBusiness</option>
                         <option value="Person"         <?php echo $sel('seo_schema_type','Person'); ?>>Person</option>
                         <option value="WebSite"        <?php echo $sel('seo_schema_type','WebSite'); ?>>WebSite</option>
                     </select>
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>Name</label>
-                    <input type="text" name="schema_name" class="dw-input" value="<?php echo $val('seo_schema_name'); ?>">
+                    <input type="text" name="schema_name" class="form-control" value="<?php echo $val('seo_schema_name'); ?>">
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>URL</label>
-                    <input type="url" name="schema_url" class="dw-input" value="<?php echo $val('seo_schema_url'); ?>">
+                    <input type="url" name="schema_url" class="form-control" value="<?php echo $val('seo_schema_url'); ?>">
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>Logo URL</label>
-                    <input type="url" name="schema_logo" class="dw-input" placeholder="https://…/logo.png" value="<?php echo $val('seo_schema_logo'); ?>">
+                    <input type="url" name="schema_logo" class="form-control" placeholder="https://…/logo.png" value="<?php echo $val('seo_schema_logo'); ?>">
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>E-Mail</label>
-                    <input type="email" name="schema_email" class="dw-input" value="<?php echo $val('seo_schema_email'); ?>">
+                    <input type="email" name="schema_email" class="form-control" value="<?php echo $val('seo_schema_email'); ?>">
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>Telefon</label>
-                    <input type="text" name="schema_phone" class="dw-input" placeholder="+49 …" value="<?php echo $val('seo_schema_phone'); ?>">
+                    <input type="text" name="schema_phone" class="form-control" placeholder="+49 …" value="<?php echo $val('seo_schema_phone'); ?>">
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>Adresse</label>
-                    <input type="text" name="schema_address" class="dw-input" placeholder="Musterstr. 1, 12345 Berlin" value="<?php echo $val('seo_schema_address'); ?>">
+                    <input type="text" name="schema_address" class="form-control" placeholder="Musterstr. 1, 12345 Berlin" value="<?php echo $val('seo_schema_address'); ?>">
                 </div>
-                <div class="dw-form-group">
-                    <label>Social Profile URLs <span class="dw-hint" style="display:inline">(kommagetrennt)</span></label>
-                    <textarea name="schema_social_profiles" class="dw-input" rows="2"><?php echo $val('seo_schema_social_profiles'); ?></textarea>
+                <div class="form-group">
+                    <label>Social Profile URLs <span class="form-text" style="display:inline">(kommagetrennt)</span></label>
+                    <textarea name="schema_social_profiles" class="form-control" rows="2"><?php echo $val('seo_schema_social_profiles'); ?></textarea>
                 </div>
             </div>
         </div>
 
         <!-- JSON-LD & Breadcrumbs -->
-        <div class="dw-card">
-            <div class="dw-card-header"><h3><i class="fas fa-code"></i> JSON-LD & Breadcrumbs</h3></div>
-            <div class="dw-card-body">
+        <div class="admin-card">
+            <h3>🗂️ JSON-LD & Breadcrumbs</h3>
                 <div class="dw-toggle-row">
                     <div>
                         <div class="dw-toggle-label">JSON-LD Block ausgeben</div>
@@ -623,7 +583,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
     </div>
 
     <div style="margin-top:1.5rem;">
-        <button type="submit" class="seo-save-btn"><i class="fas fa-save"></i> Strukturierte Daten speichern</button>
+        <button type="submit" class="btn btn-primary">💾 Strukturierte Daten speichern</button>
     </div>
     </form>
     </div><!-- /structured -->
@@ -631,14 +591,13 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
 
     <!-- ──────────────────────────────────────────────────── TAB: PERMALINKS -->
     <div class="seo-panel <?php echo $activeTab==='permalinks' ? 'active' : ''; ?>">
-    <form method="post" action="seo.php?tab=permalinks">
+    <form method="post" action="<?php echo SITE_URL; ?>/admin/seo?tab=permalinks">
     <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
     <input type="hidden" name="action"     value="save_seo_permalinks">
 
-    <div class="dw-grid-2">
-        <div class="dw-card">
-            <div class="dw-card-header"><h3><i class="fas fa-link"></i> URL-Struktur</h3></div>
-            <div class="dw-card-body">
+    <div class="seo-grid">
+        <div class="admin-card">
+            <h3>🔗 URL-Struktur</h3>
                 <?php
                 $presets = [
                     '/%postname%/'                => ['Beitragsname',   '/beispiel-beitrag/'],
@@ -661,23 +620,22 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                     <input type="radio" name="permalink_structure" value="custom" <?php echo $isCustom?'checked':''; ?>>
                     <div style="flex:1;">
                         <strong style="font-size:.9rem;">Benutzerdefiniert</strong>
-                        <input type="text" name="permalink_custom" class="dw-input" style="margin-top:.35rem;" placeholder="/%category%/%postname%/" value="<?php echo $isCustom ? $val('setting_permalink_structure') : ''; ?>">
+                        <input type="text" name="permalink_custom" class="form-control" style="margin-top:.35rem;" placeholder="/%category%/%postname%/" value="<?php echo $isCustom ? $val('setting_permalink_structure') : ''; ?>">
                     </div>
                 </label>
             </div>
         </div>
 
-        <div class="dw-card">
-            <div class="dw-card-header"><h3><i class="fas fa-folder-tree"></i> Kategorie & Tag Basis</h3></div>
-            <div class="dw-card-body">
-                <div class="dw-form-group">
+        <div class="admin-card">
+            <h3>📁 Kategorie & Tag Basis</h3>
+                <div class="form-group">
                     <label>Kategorie-Basis</label>
-                    <input type="text" name="category_base" class="dw-input" placeholder="category" value="<?php echo $val('setting_category_base'); ?>">
-                    <span class="dw-hint">Beispiel: <code>category</code> → /category/news/</span>
+                    <input type="text" name="category_base" class="form-control" placeholder="category" value="<?php echo $val('setting_category_base'); ?>">
+                    <span class="form-text">Beispiel: <code>category</code> → /category/news/</span>
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>Schlagwort-Basis</label>
-                    <input type="text" name="tag_base" class="dw-input" placeholder="tag" value="<?php echo $val('setting_tag_base'); ?>">
+                    <input type="text" name="tag_base" class="form-control" placeholder="tag" value="<?php echo $val('setting_tag_base'); ?>">
                 </div>
                 <div class="dw-toggle-row" style="margin-top:1rem;">
                     <div>
@@ -704,7 +662,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
     </div>
 
     <div style="margin-top:1.5rem;">
-        <button type="submit" class="seo-save-btn"><i class="fas fa-save"></i> Permalink-Struktur speichern</button>
+        <button type="submit" class="btn btn-primary">💾 Permalink-Struktur speichern</button>
     </div>
     </form>
     </div><!-- /permalinks -->
@@ -712,42 +670,40 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
 
     <!-- ──────────────────────────────────────────────────────── TAB: INDEXING -->
     <div class="seo-panel <?php echo $activeTab==='indexing' ? 'active' : ''; ?>">
-    <form method="post" action="seo.php?tab=indexing">
+    <form method="post" action="<?php echo SITE_URL; ?>/admin/seo?tab=indexing">
     <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
     <input type="hidden" name="action"     value="save_seo_indexing">
 
-    <div class="dw-grid-2">
+    <div class="seo-grid">
         <!-- Crawler -->
-        <div class="dw-card">
-            <div class="dw-card-header"><h3><i class="fas fa-robot"></i> Crawler-Steuerung</h3></div>
-            <div class="dw-card-body">
-                <div class="dw-form-group">
+        <div class="admin-card">
+            <h3>🤖 Crawler-Steuerung</h3>
+                <div class="form-group">
                     <label>Suchmaschinen-Sichtbarkeit</label>
-                    <select name="robots_index" class="dw-input">
+                    <select name="robots_index" class="form-control">
                         <option value="index"   <?php echo $sel('seo_robots_index','index'); ?>>Indexieren erlauben (index)</option>
                         <option value="noindex" <?php echo $sel('seo_robots_index','noindex'); ?>>Suchmaschinen abhalten (noindex)</option>
                     </select>
-                    <span class="dw-hint">Setzt global <code>meta name="robots"</code>.</span>
+                    <span class="form-text">Setzt global <code>meta name="robots"</code>.</span>
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>Link-Verfolgung</label>
-                    <select name="robots_follow" class="dw-input">
+                    <select name="robots_follow" class="form-control">
                         <option value="follow"   <?php echo $sel('seo_robots_follow','follow'); ?>>Links folgen (follow)</option>
                         <option value="nofollow" <?php echo $sel('seo_robots_follow','nofollow'); ?>>Links ignorieren (nofollow)</option>
                     </select>
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>robots.txt Inhalt</label>
-                    <textarea name="robots_txt_content" class="dw-input" rows="5" style="font-family:monospace;font-size:.85rem;"><?php echo $val('seo_robots_txt_content'); ?></textarea>
-                    <span class="dw-hint">Wird als virtuelle <code>/robots.txt</code> ausgeliefert.</span>
+                    <textarea name="robots_txt_content" class="form-control" rows="5" style="font-family:monospace;font-size:.85rem;"><?php echo $val('seo_robots_txt_content'); ?></textarea>
+                    <span class="form-text">Wird als virtuelle <code>/robots.txt</code> ausgeliefert.</span>
                 </div>
             </div>
         </div>
 
         <!-- Sitemap -->
-        <div class="dw-card">
-            <div class="dw-card-header"><h3><i class="fas fa-sitemap"></i> XML-Sitemap</h3></div>
-            <div class="dw-card-body">
+        <div class="admin-card">
+            <h3>🗺️ XML-Sitemap</h3>
                 <div class="dw-toggle-row">
                     <div>
                         <div class="dw-toggle-label">XML Sitemap aktivieren</div>
@@ -777,17 +733,17 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                         <span class="dw-toggle-slider"></span>
                     </label>
                 </div>
-                <div class="dw-form-group" style="margin-top:1rem;">
+                <div class="form-group" style="margin-top:1rem;">
                     <label>Standard Priority</label>
-                    <select name="sitemap_default_priority" class="dw-input">
+                    <select name="sitemap_default_priority" class="form-control">
                         <?php foreach (['1.0','0.9','0.8','0.7','0.6','0.5','0.4','0.3','0.2','0.1'] as $p): ?>
                         <option value="<?php echo $p; ?>" <?php echo $sel('seo_sitemap_default_priority',$p); ?>><?php echo $p; ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>Änderungsfrequenz</label>
-                    <select name="sitemap_change_freq" class="dw-input">
+                    <select name="sitemap_change_freq" class="form-control">
                         <?php foreach (['always','hourly','daily','weekly','monthly','yearly','never'] as $f): ?>
                         <option value="<?php echo $f; ?>" <?php echo $sel('seo_sitemap_change_freq',$f); ?>><?php echo ucfirst($f); ?></option>
                         <?php endforeach; ?>
@@ -797,9 +753,8 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
         </div>
 
         <!-- IndexNow -->
-        <div class="dw-card">
-            <div class="dw-card-header"><h3><i class="fas fa-bolt"></i> IndexNow</h3></div>
-            <div class="dw-card-body">
+        <div class="admin-card">
+            <h3>⚡ IndexNow</h3>
                 <div class="dw-toggle-row">
                     <div>
                         <div class="dw-toggle-label">IndexNow automatischen Ping</div>
@@ -810,46 +765,45 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                         <span class="dw-toggle-slider"></span>
                     </label>
                 </div>
-                <div class="dw-form-group" style="margin-top:1rem;">
+                <div class="form-group" style="margin-top:1rem;">
                     <label>IndexNow API Key</label>
                     <div style="display:flex;gap:.5rem;">
-                        <input type="text" name="indexnow_key" class="dw-input" value="<?php echo $val('seo_indexnow_key'); ?>" placeholder="Zufälligen Key generieren…">
-                        <button type="button" class="seo-save-btn" style="white-space:nowrap;padding:.5rem .85rem;font-size:.8rem;"
+                        <input type="text" name="indexnow_key" class="form-control" value="<?php echo $val('seo_indexnow_key'); ?>" placeholder="Zufälligen Key generieren…">
+                        <button type="button" class="btn btn-primary" style="white-space:nowrap;padding:.5rem .85rem;font-size:.8rem;"
                             onclick="document.querySelector('[name=indexnow_key]').value=Math.random().toString(36).substring(2,34)">
-                            <i class="fas fa-sync"></i> Key generieren
+                            🔄 Key generieren
                         </button>
                     </div>
-                    <span class="dw-hint">Wird als <code>/{key}.txt</code> im Root abgelegt.</span>
+                    <span class="form-text">Wird als <code>/{key}.txt</code> im Root abgelegt.</span>
                 </div>
             </div>
         </div>
 
         <!-- Site Verification -->
-        <div class="dw-card">
-            <div class="dw-card-header"><h3><i class="fas fa-check-circle"></i> Site Verification</h3></div>
-            <div class="dw-card-body">
-                <div class="dw-form-group">
+        <div class="admin-card">
+            <h3>✅ Site Verification</h3>
+                <div class="form-group">
                     <label><i class="fab fa-google" style="color:#ea4335;"></i> Google Search Console</label>
-                    <input type="text" name="google_site_verification" class="dw-input" placeholder="Verification Code" value="<?php echo $val('seo_google_site_verification'); ?>">
+                    <input type="text" name="google_site_verification" class="form-control" placeholder="Verification Code" value="<?php echo $val('seo_google_site_verification'); ?>">
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label><i class="fab fa-microsoft" style="color:#0078d4;"></i> Bing Webmaster Tools</label>
-                    <input type="text" name="bing_site_verification" class="dw-input" value="<?php echo $val('seo_bing_site_verification'); ?>">
+                    <input type="text" name="bing_site_verification" class="form-control" value="<?php echo $val('seo_bing_site_verification'); ?>">
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>Yandex Verification</label>
-                    <input type="text" name="yandex_verification" class="dw-input" value="<?php echo $val('seo_yandex_verification'); ?>">
+                    <input type="text" name="yandex_verification" class="form-control" value="<?php echo $val('seo_yandex_verification'); ?>">
                 </div>
-                <div class="dw-form-group">
+                <div class="form-group">
                     <label>Baidu Verification</label>
-                    <input type="text" name="baidu_verification" class="dw-input" value="<?php echo $val('seo_baidu_verification'); ?>">
+                    <input type="text" name="baidu_verification" class="form-control" value="<?php echo $val('seo_baidu_verification'); ?>">
                 </div>
             </div>
         </div>
     </div>
 
     <div style="margin-top:1.5rem;">
-        <button type="submit" class="seo-save-btn"><i class="fas fa-save"></i> Indexierungs-Einstellungen speichern</button>
+        <button type="submit" class="btn btn-primary">💾 Indexierungs-Einstellungen speichern</button>
     </div>
     </form>
     </div><!-- /indexing -->
@@ -858,261 +812,3 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
 </div><!-- admin-content -->
 
 <?php renderAdminLayoutEnd(); ?>
-            <?php if ($message): ?>
-                <div class="alert alert-<?php echo $messageType; ?>">
-                    <?php echo $message; ?>
-                </div>
-            <?php endif; ?>
-
-                <!-- TAB: GENERAL -->
-                <?php if ($activeTab === 'general'): ?>
-                <form method="post" action="seo.php?tab=general">
-                    <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                    <input type="hidden" name="action" value="save_seo_general">
-                    
-                    <div class="card-grid-2">
-                        <!-- Meta Defaults -->
-                        <div class="admin-card">
-                            <div class="card-header">
-                                <h3><i class="fas fa-tags"></i> Meta Defaults</h3>
-                            </div>
-                            <div class="card-body">
-                                <div class="form-group">
-                                    <label>Standard Meta Description</label>
-                                    <textarea name="meta_description" class="form-control" rows="3"><?php echo htmlspecialchars($currentSettings['seo_meta_description'] ?? ''); ?></textarea>
-                                    <span class="help-text">Standardbeschreibung für Seiten ohne eigene Description.</span>
-                                </div>
-                                <div class="form-group">
-                                    <label>Standard Meta Keywords</label>
-                                    <input type="text" name="meta_keywords" class="form-control" value="<?php echo htmlspecialchars($currentSettings['seo_meta_keywords'] ?? ''); ?>">
-                                    <span class="help-text">Kommagetrennt. Weniger relevant für moderne Suchmaschinen.</span>
-                                </div>
-                                <div class="form-group">
-                                    <label>Canonical URL Verhalten</label>
-                                    <select name="canonical_url" class="form-control">
-                                        <option value="auto" <?php echo ($currentSettings['seo_canonical_url'] == 'auto') ? 'selected' : ''; ?>>Automatisch (Self-referencing)</option>
-                                        <option value="manual" <?php echo ($currentSettings['seo_canonical_url'] == 'manual') ? 'selected' : ''; ?>>Manuell überschreibbar</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Social Media / Open Graph -->
-                        <div class="admin-card">
-                            <div class="card-header">
-                                <h3><i class="fas fa-share-alt"></i> Social Media (OG & Twitter)</h3>
-                            </div>
-                            <div class="card-body">
-                                <div class="form-group">
-                                    <label>Default OG Image URL</label>
-                                    <input type="text" name="og_image" class="form-control" value="<?php echo htmlspecialchars($currentSettings['seo_og_image'] ?? ''); ?>">
-                                </div>
-                                <div class="form-group">
-                                    <label>Twitter Site (z.B. @firma)</label>
-                                    <input type="text" name="twitter_site" class="form-control" value="<?php echo htmlspecialchars($currentSettings['seo_twitter_site'] ?? ''); ?>">
-                                </div>
-                                <div class="form-group">
-                                    <label>Twitter Card Typ</label>
-                                    <select name="twitter_card" class="form-control">
-                                        <option value="summary" <?php echo ($currentSettings['seo_twitter_card'] == 'summary') ? 'selected' : ''; ?>>Summary</option>
-                                        <option value="summary_large_image" <?php echo ($currentSettings['seo_twitter_card'] == 'summary_large_image') ? 'selected' : ''; ?>>Summary Large Image</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Authorship -->
-                        <div class="admin-card">
-                            <div class="card-header">
-                                <h3><i class="fas fa-user-tag"></i> Authorship</h3>
-                            </div>
-                            <div class="card-body">
-                                <div class="form-group">
-                                    <label>Publisher Meta (Facebook Page URL)</label>
-                                    <input type="text" name="publisher_meta" class="form-control" value="<?php echo htmlspecialchars($currentSettings['seo_publisher_meta'] ?? ''); ?>">
-                                </div>
-                                <div class="form-group">
-                                    <label>Global Author Name</label>
-                                    <input type="text" name="author_meta" class="form-control" value="<?php echo htmlspecialchars($currentSettings['seo_author_meta'] ?? ''); ?>">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-actions mt-4">
-                        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Einstellungen speichern</button>
-                    </div>
-                </form>
-                <?php endif; ?>
-
-                <!-- TAB: PERMALINKS -->
-                <?php if ($activeTab === 'permalinks'): ?>
-                <form method="post" action="seo.php?tab=permalinks">
-                    <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                    <input type="hidden" name="action" value="save_seo_permalinks">
-
-                    <div class="card-grid-2">
-                        <div class="admin-card">
-                            <div class="card-header">
-                                <h3><i class="fas fa-link"></i> URL Struktur</h3>
-                            </div>
-                            <div class="card-body">
-                                <div class="form-group">
-                                    <label>Permalink Struktur</label>
-                                    <div style="margin-bottom: 15px;">
-                                        <label class="radio-label" style="display:block; margin-bottom:8px;">
-                                            <input type="radio" name="permalink_structure" value="/%postname%/" <?php echo ($currentSettings['setting_permalink_structure'] == '/%postname%/') ? 'checked' : ''; ?>> 
-                                            Beitragsname <code style="color:#666">/beispiel-beitrag/</code>
-                                        </label>
-                                        <label class="radio-label" style="display:block; margin-bottom:8px;">
-                                            <input type="radio" name="permalink_structure" value="/%year%/%month%/%postname%/" <?php echo ($currentSettings['setting_permalink_structure'] == '/%year%/%month%/%postname%/') ? 'checked' : ''; ?>> 
-                                            Datum & Name <code style="color:#666">/2024/03/beispiel-beitrag/</code>
-                                        </label>
-                                        <label class="radio-label" style="display:block; margin-bottom:8px;">
-                                            <input type="radio" name="permalink_structure" value="/archives/%post_id%" <?php echo ($currentSettings['setting_permalink_structure'] == '/archives/%post_id%') ? 'checked' : ''; ?>> 
-                                            Numerisch <code style="color:#666">/archives/123</code>
-                                        </label>
-                                        <label class="radio-label" style="display:block; margin-bottom:8px;">
-                                            <input type="radio" name="permalink_structure" value="custom" <?php echo (strpos($currentSettings['setting_permalink_structure'], '%') === false && $currentSettings['setting_permalink_structure'] != '') ? 'checked' : ''; ?>> 
-                                            Benutzerdefiniert
-                                        </label>
-                                    </div>
-                                    <span class="help-text">Wähle, wie deine URLs aussehen sollen. Dies beeinflusst die SEO aller Beiträge.</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="admin-card">
-                            <div class="card-header">
-                                <h3><i class="fas fa-folder-tree"></i> Kategorie & Tag Basis</h3>
-                            </div>
-                            <div class="card-body">
-                                <div class="form-group">
-                                    <label>Kategorie-Basis</label>
-                                    <input type="text" name="category_base" class="form-control" value="<?php echo htmlspecialchars($currentSettings['setting_category_base'] ?? 'category'); ?>">
-                                    <span class="help-text">Standard: <code>category</code> (z.B. /category/news/)</span>
-                                </div>
-                                <div class="form-group">
-                                    <label>Schlagwort-Basis</label>
-                                    <input type="text" name="tag_base" class="form-control" value="<?php echo htmlspecialchars($currentSettings['setting_tag_base'] ?? 'tag'); ?>">
-                                    <span class="help-text">Standard: <code>tag</code></span>
-                                </div>
-                                <div class="form-group" style="margin-top:20px;">
-                                    <label class="checkbox-container">
-                                        <input type="checkbox" name="strip_category_base" <?php echo ($currentSettings['setting_strip_category_base'] == '1') ? 'checked' : ''; ?>>
-                                        <span class="checkmark"></span>
-                                        Kategorie-Basis aus URLs entfernen
-                                    </label>
-                                    <span class="help-text" style="display:block; margin-left:30px;">Macht URLs kürzer: <code>/news/</code> statt <code>/category/news/</code>. Vorsicht bei Konflikten mit Seitennamen!</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-actions mt-4">
-                        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Permalink-Struktur speichern</button>
-                    </div>
-                </form>
-                <?php endif; ?>
-
-                <!-- TAB: INDEXING -->
-                <?php if ($activeTab === 'indexing'): ?>
-                <form method="post" action="seo.php?tab=indexing">
-                    <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                    <input type="hidden" name="action" value="save_seo_indexing">
-
-                    <div class="card-grid-2">
-                        <div class="admin-card">
-                            <div class="card-header">
-                                <h3><i class="fas fa-robot"></i> Crawler Steuerung</h3>
-                            </div>
-                            <div class="card-body">
-                                <div class="form-group">
-                                    <label>Suchmaschinen-Sichtbarkeit</label>
-                                    <select name="robots_index" class="form-control">
-                                        <option value="index" <?php echo ($currentSettings['seo_robots_index'] == 'index') ? 'selected' : ''; ?>>Indexieren erlauben (index)</option>
-                                        <option value="noindex" <?php echo ($currentSettings['seo_robots_index'] == 'noindex') ? 'selected' : ''; ?>>Suchmaschinen abhalten (noindex)</option>
-                                    </select>
-                                    <span class="help-text">Setzt global das <code>meta name="robots"</code> Tag.</span>
-                                </div>
-                                <div class="form-group">
-                                    <label>Link-Verfolgung</label>
-                                    <select name="robots_follow" class="form-control">
-                                        <option value="follow" <?php echo ($currentSettings['seo_robots_follow'] == 'follow') ? 'selected' : ''; ?>>Links folgen (follow)</option>
-                                        <option value="nofollow" <?php echo ($currentSettings['seo_robots_follow'] == 'nofollow') ? 'selected' : ''; ?>>Links ignorieren (nofollow)</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>robots.txt Inhalt</label>
-                                    <textarea name="robots_txt_content" class="form-control" rows="5" style="font-family:monospace;"><?php echo htmlspecialchars($currentSettings['seo_robots_txt_content'] ?? "User-agent: *\nDisallow: /admin/\nAllow: /"); ?></textarea>
-                                    <span class="help-text">Wird in die virtuelle robots.txt geschrieben.</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="admin-card">
-                            <div class="card-header">
-                                <h3><i class="fas fa-sitemap"></i> Sitemap & IndexNow</h3>
-                            </div>
-                            <div class="card-body">
-                                <div class="form-group">
-                                    <label class="checkbox-container">
-                                        <input type="checkbox" name="sitemap_enabled" <?php echo ($currentSettings['seo_sitemap_enabled'] == '1') ? 'checked' : ''; ?>>
-                                        <span class="checkmark"></span>
-                                        XML Sitemap generieren
-                                    </label>
-                                    <span class="help-text" style="display:block; margin-left:30px;">Unter <code>/sitemap.xml</code> erreichbar. Aktualisiert sich bei neuen Beiträgen.</span>
-                                </div>
-                                
-                                <hr style="margin: 20px 0; border:0; border-top:1px solid #eee;">
-
-                                <div class="form-group">
-                                    <label class="checkbox-container">
-                                        <input type="checkbox" name="indexnow_enabled" <?php echo ($currentSettings['seo_indexnow_enabled'] == '1') ? 'checked' : ''; ?>>
-                                        <span class="checkmark"></span>
-                                        IndexNow automatischen Ping aktivieren
-                                    </label>
-                                </div>
-                                <div class="form-group">
-                                    <label>IndexNow API Key</label>
-                                    <input type="text" name="indexnow_key" class="form-control" value="<?php echo htmlspecialchars($currentSettings['seo_indexnow_key'] ?? ''); ?>">
-                                    <span class="help-text">Bing/Yandex IndexNow Key. Muss im Root als txt Datei liegen (wird automatisch erstellt).</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="admin-card">
-                            <div class="card-header">
-                                <h3><i class="fas fa-check-circle"></i> Site Verification</h3>
-                            </div>
-                            <div class="card-body">
-                                <div class="form-group">
-                                    <label>Google Search Console</label>
-                                    <input type="text" name="google_site_verification" class="form-control" placeholder="content='...'" value="<?php echo htmlspecialchars($currentSettings['seo_google_site_verification'] ?? ''); ?>">
-                                </div>
-                                <div class="form-group">
-                                    <label>Bing Webmaster Tools</label>
-                                    <input type="text" name="bing_site_verification" class="form-control" value="<?php echo htmlspecialchars($currentSettings['seo_bing_site_verification'] ?? ''); ?>">
-                                </div>
-                                <div class="form-group">
-                                    <label>Yandex / Baidu</label>
-                                    <div style="display:flex; gap:10px;">
-                                        <input type="text" name="yandex_verification" class="form-control" placeholder="Yandex Code" value="<?php echo htmlspecialchars($currentSettings['seo_yandex_verification'] ?? ''); ?>">
-                                        <input type="text" name="baidu_verification" class="form-control" placeholder="Baidu Code" value="<?php echo htmlspecialchars($currentSettings['seo_baidu_verification'] ?? ''); ?>">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-actions mt-4">
-                        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Indexierungseinstellungen speichern</button>
-                    </div>
-                </form>
-                <?php endif; ?>
-
-            </div> <!-- End admin-content-inner -->
-        </div> <!-- End admin-content (main wrapper) -->
-    
-</body>
-</html>
