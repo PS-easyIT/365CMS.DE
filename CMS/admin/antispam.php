@@ -22,6 +22,7 @@ if (!defined('ABSPATH')) { exit; }
 if (!Auth::instance()->isAdmin()) { header('Location: ' . SITE_URL); exit; }
 
 $db = Database::instance();
+$security = Security::instance();
 $message = '';
 
 // Helper to get option
@@ -55,9 +56,8 @@ $optionKeys = [
 
 // Handle Updates
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_antispam'])) {
-    // Basic CSRF check if available, or skip if strictly admin secured
-    if (isset($_POST['_csrf_token']) && function_exists('wp_verify_nonce') && !wp_verify_nonce($_POST['_csrf_token'], 'save_antispam')) {
-         $message = '<div class="alert alert-error">Sicherheitsprüfung fehlgeschlagen.</div>';
+    if (!$security->verifyToken($_POST['_csrf_token'] ?? '', 'save_antispam')) {
+        $message = '<div class="alert alert-error">Sicherheitsprüfung fehlgeschlagen.</div>';
     } else {
         // Prepare options
         $newOptions = [
@@ -106,8 +106,23 @@ try {
     $spamCountTotal = $db->fetchOne("SELECT COUNT(*) as c FROM {$db->getPrefix()}comments WHERE status = 'spam'")['c'] ?? 0;
 } catch (\Exception $e) { $spamCountTotal = 0; }
 
-$blockedToday = 12; 
-$accuracy = 98.5;
+try {
+    $today = date('Y-m-d');
+    $blockedToday = $db->fetchOne(
+        "SELECT COUNT(*) as c FROM {$db->getPrefix()}comments WHERE status = 'spam' AND DATE(post_date) = ?",
+        [$today]
+    )['c'] ?? 0;
+} catch (\Exception $e) { $blockedToday = 0; }
+
+// Verhältnis Spam zu Gesamt (nur wenn Gesamt > 0)
+try {
+    $totalComments = $db->fetchOne("SELECT COUNT(*) as c FROM {$db->getPrefix()}comments")['c'] ?? 0;
+    $accuracy = ($totalComments > 0 && $spamCountTotal > 0)
+        ? round(($spamCountTotal / $totalComments) * 100, 1)
+        : 0.0;
+} catch (\Exception $e) { $accuracy = 0.0; }
+
+$csrfToken = $security->generateToken('save_antispam');
 
 renderAdminLayoutStart('AntiSpam Schutz', 'antispam');
 ?>
@@ -135,13 +150,13 @@ renderAdminLayoutStart('AntiSpam Schutz', 'antispam');
     <div class="metric-card">
         <div class="metric-icon">🎯</div>
         <div class="metric-value"><?php echo number_format($accuracy, 1); ?>%</div>
-        <div class="metric-label">Erkennungsrate</div>
+        <div class="metric-label">Spam-Quote (Spam/Gesamt)</div>
     </div>
 </div>
 
 <form method="post" class="admin-form" style="margin-top: 2rem;">
-    <!-- Mock CSRF if needed or simple hidden field -->
     <input type="hidden" name="save_antispam" value="1">
+    <input type="hidden" name="_csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
     
     <div class="settings-grid">
         
@@ -177,13 +192,14 @@ renderAdminLayoutStart('AntiSpam Schutz', 'antispam');
                 </span>
             </label>
 
-             <label class="toggle-switch">
-                <input type="checkbox" name="local_db" <?php echo ($current['antispam_local_db'] == '1') ? 'checked' : ''; ?>>
+            <label class="toggle-switch">
+                <input type="checkbox" name="regex_check" <?php echo ($current['antispam_regex_check'] == '1') ? 'checked' : ''; ?>>
                 <span class="toggle-slider"></span>
                 <span class="toggle-label">
-                    <strong>Lokale Spam-Datenbank nutzen</strong><br>
-                    Vergleicht IP, E-Mail und Inhalt mit existierendem Spam.
+                    <strong>Regex-Filter aktiv</strong><br>
+                    Scannt Kommentarinhalte auf benutzerdefinierte Muster.
                 </span>
+            </label>
             </label>
             
             <hr>
@@ -260,6 +276,15 @@ renderAdminLayoutStart('AntiSpam Schutz', 'antispam');
                 <span class="toggle-slider"></span>
                 <span class="toggle-label">
                     <strong>Spam-Zähler anzeigen</strong>
+                </span>
+            </label>
+
+             <label class="toggle-switch">
+                <input type="checkbox" name="ignore_trackbacks" <?php echo ($current['antispam_ignore_trackbacks'] == '1') ? 'checked' : ''; ?>>
+                <span class="toggle-slider"></span>
+                <span class="toggle-label">
+                    <strong>Trackbacks & Pingbacks ignorieren</strong><br>
+                    Trackbacks werden nicht als Spam-Kandidaten geprüft.
                 </span>
             </label>
 
