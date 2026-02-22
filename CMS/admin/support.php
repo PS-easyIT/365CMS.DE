@@ -99,7 +99,10 @@ function fetchDocList(): array
     }
 
     if (!empty($docs)) {
-        @file_put_contents($cacheFile, json_encode($docs, JSON_UNESCAPED_UNICODE));
+        // M-03: @ durch expliziten Return-Wert-Check ersetzt
+        if (file_put_contents($cacheFile, json_encode($docs, JSON_UNESCAPED_UNICODE)) === false) {
+            error_log('support.php: Cache-Datei konnte nicht geschrieben werden: ' . $cacheFile);
+        }
     }
 
     return $docs;

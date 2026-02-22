@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $files = glob($cacheDir . '*');
                 foreach ($files as $file) {
                     if (is_file($file) && basename($file) !== '.htaccess' && basename($file) !== 'index.php') {
-                        @unlink($file);
+                        unlink($file); // M-03: kein @, is_file vorher geprüft
                     }
                 }
                 

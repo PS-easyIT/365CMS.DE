@@ -76,9 +76,15 @@ class Auth
     /**
      * M-17: Session ohne Redirect sauber invalidieren
      * (kein header()-Aufruf – checkSession läuft im Konstruktor).
+     * Nur aufrufen wenn session_start() bereits erfolgt ist.
      */
     private function forceExpireSession(): void
     {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            $this->currentUser = null;
+            return;
+        }
+
         $_SESSION = [];
         if (ini_get('session.use_cookies')) {
             $params = session_get_cookie_params();
