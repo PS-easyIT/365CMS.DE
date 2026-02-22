@@ -320,7 +320,3 @@ echo $content;
 - Core-PHP-Dateien aus dem Theme aufrufen (`require_once CORE_PATH ...` ist OK, aber Core-Klassen nicht verändern)
 - Direkt `$_POST`/`$_GET` in Templates ausgeben (immer escapen!)
 - Kritische Logik im Theme (gehört in Plugins oder Services)
-
----
-
-*Letzte Aktualisierung: 22. Februar 2026 – Version 1.8.0*

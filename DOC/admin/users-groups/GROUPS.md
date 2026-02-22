@@ -165,7 +165,3 @@ do_action('cms_user_added_to_group', $userId, $groupId, $assignedBy);
 do_action('cms_user_removed_from_group', $userId, $groupId);
 add_filter('cms_user_permissions', 'my_permission_extend', 10, 2);
 ```
-
----
-
-*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*

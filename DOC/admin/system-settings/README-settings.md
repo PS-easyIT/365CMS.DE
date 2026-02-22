@@ -138,7 +138,3 @@ $settings = get_cms_options([
 do_action('cms_settings_saved', $savedSettings);
 add_filter('cms_option_site_title', 'my_title_modifier');
 ```
-
----
-
-*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*

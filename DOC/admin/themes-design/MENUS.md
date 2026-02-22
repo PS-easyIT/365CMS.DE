@@ -155,7 +155,3 @@ do_action('cms_menu_saved', $menuId, $menuItems);
 add_filter('cms_menu_item_classes', 'my_menu_classes', 10, 3);
 add_filter('cms_menu_item_visible', 'role_based_visibility', 10, 3);
 ```
-
----
-
-*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*

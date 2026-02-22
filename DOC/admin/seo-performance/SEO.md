@@ -187,7 +187,3 @@ add_filter('cms_seo_meta_tags', 'my_meta_tags', 10, 2);
 add_filter('cms_seo_structured_data', 'my_schema_extend', 10, 2);
 do_action('cms_sitemap_generated', $sitemapPath);
 ```
-
----
-
-*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*

@@ -1,7 +1,5 @@
 # Member-Bereich – Hooks & Filter
 
-**Datum:** 18. Februar 2026
-
 ---
 
 ## Überblick
@@ -170,3 +168,7 @@ HTTP Request → Notifications rendering
 - Widget-Callbacks erhalten `$user` als Objekt – Ausgaben mit `htmlspecialchars()` escapen
 - Neue Menü-URLs müssen eigene Berechtigungsprüfungen implementieren
 - Im Präferenzen-Filter: nur Boolean/String-Werte hinzufügen, keine DB-Queries direkt
+
+---
+
+*Letzte Aktualisierung: 22. Februar 2026 – Version 1.8.0*

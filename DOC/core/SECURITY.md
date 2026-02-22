@@ -319,6 +319,3 @@ Nach erfolgreichem Login wird die Session-ID erneuert (`session_regenerate_id(tr
 - [ ] CMS-Updates einspielen sobald verfügbar
 - [ ] Plugin-Uploads: nur vertrauenswürdige Quellen
 
----
-
-*Letzte Aktualisierung: 22. Februar 2026 – Version 1.8.0*

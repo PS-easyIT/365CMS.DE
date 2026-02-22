@@ -150,7 +150,3 @@ do_action('cms_post_scheduled', $postId, $publishDate);
 add_filter('cms_post_excerpt_length', fn() => 55);
 add_filter('cms_post_excerpt_more', fn() => '…');
 ```
-
----
-
-*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*

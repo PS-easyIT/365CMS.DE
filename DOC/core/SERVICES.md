@@ -320,7 +320,3 @@ $result = $updater->updateCore('1.8.1');
 // Plugin-Update
 $result = $updater->updatePlugin('cms-experts', '1.3.0');
 ```
-
----
-
-*Letzte Aktualisierung: 22. Februar 2026 – Version 1.8.0*

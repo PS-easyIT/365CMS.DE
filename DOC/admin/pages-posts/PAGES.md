@@ -147,7 +147,3 @@ do_action('cms_page_saved', $pageId, $pageData, $isNew);
 do_action('cms_page_deleted', $pageId);
 add_filter('cms_page_slug', 'my_slug_modifier', 10, 2);
 ```
-
----
-
-*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*

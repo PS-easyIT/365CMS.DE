@@ -154,7 +154,3 @@ $config = json_decode(
 do_action('cms_landing_page_saved', $newConfig, $oldConfig);
 add_filter('cms_landing_page_sections', 'my_plugin_add_section');
 ```
-
----
-
-*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*

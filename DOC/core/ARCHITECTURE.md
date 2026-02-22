@@ -276,7 +276,3 @@ Business-Logik erweitern durch eigene Service-Klassen:
 - Neue Klasse in `core/Services/` oder `plugins/mein-plugin/services/`
 - Singleton-Pattern nutzen
 - Via Hooks exposrieren
-
----
-
-*Letzte Aktualisierung: 22. Februar 2026 – Version 1.8.0*

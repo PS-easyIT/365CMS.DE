@@ -128,7 +128,3 @@ $visible = in_array($currentUserRole, $widget['roles'] ?? ['admin', 'editor']);
 add_action('admin_dashboard_widgets', 'my_widget_registrieren');
 add_filter('admin_dashboard_widget_order', 'my_order_filter', 10, 2);
 ```
-
----
-
-*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*

@@ -1,6 +1,4 @@
-﻿# 365CMS – Mitglieder-Bereich
-
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026
+# 365CMS – Mitglieder-Bereich
 
 Der Mitglieder-Bereich ist der persönliche Bereich für eingeloggte Benutzer. Er ist vollständig von Admin-Panel und Frontend getrennt.
 
@@ -37,15 +35,16 @@ Der Member-Bereich bietet eingeloggten Nutzern:
 **Basis-URL:** `/member`
 
 ```
-/member                 → Dashboard (member/index.php)
-/member/profile         → Profil-Verwaltung
-/member/media           → Medienbibliothek
-/member/messages        → Nachrichten
-/member/notifications   → Benachrichtigungen
-/member/subscription    → Abo & Upgrade
-/member/favorites       → Favoriten-Liste
-/member/privacy         → Datenschutz & DSGVO
-/member/security        → Sicherheitseinstellungen
+/member                 → Dashboard     (member/index.php)
+/member/profile         → Profil        (member/profile.php)
+/member/media           → Mediathek     (member/media.php)
+/member/messages        → Nachrichten   (member/messages.php)
+/member/notifications   → Benachrichtigungen (member/notifications.php)
+/member/subscription    → Abo & Upgrade (member/subscription.php)
+/member/favorites       → Favoriten     (member/favorites.php)
+/member/privacy         → Datenschutz   (member/privacy.php)
+/member/security        → Sicherheit    (member/security.php)
+/member/orders          → Bestellungen  (member/order_public.php)
 ```
 
 **Zugangskontrolle:**
@@ -120,26 +119,30 @@ Sicherheitseinstellungen:
 
 ```
 member/
-├── index.php           ← Dashboard-Controller
-├── profile.php         ← Profil-Controller
-├── media.php           ← Medien-Controller
-├── media-ajax.php      ← AJAX-Handler für Medien
-├── media_handler.php   ← Datei-Upload-Logik
-├── messages.php        ← Nachrichten-Controller
-├── notifications.php   ← Benachrichtigungs-Controller
-├── favorites.php       ← Favoriten-Controller
-├── subscription.php    ← Abo-Controller
-├── privacy.php         ← Datenschutz-Controller
-├── security.php        ← Sicherheits-Controller
-├── order_public.php    ← Bestellungen-Controller
-├── plugin-section.php  ← Plugin-Integrations-Renderer
-├── debug_snippet.php   ← Debug-Hilfsmittel (nur dev)
-├── includes/           ← Wiederverwendbare Klassen
-│   └── class-member-controller.php
-└── partials/           ← Template-Fragmente (Header, Footer, Nav)
-    ├── header.php
-    ├── footer.php
-    └── navigation.php
+├── index.php              ← Dashboard-Controller
+├── profile.php            ← Profil-Controller
+├── media.php              ← Medien-Controller
+├── media-ajax.php         ← AJAX-Handler für Medien
+├── media_handler.php      ← Datei-Upload-Logik
+├── messages.php           ← Nachrichten-Controller
+├── notifications.php      ← Benachrichtigungs-Controller
+├── favorites.php          ← Favoriten-Controller
+├── subscription.php       ← Abo-Controller
+├── privacy.php            ← Datenschutz-Controller
+├── security.php           ← Sicherheits-Controller
+├── order_public.php       ← Bestellungen-Controller
+├── plugin-section.php     ← Plugin-Integrations-Renderer
+├── debug_snippet.php      ← Debug-Hilfsmittel (nur dev)
+├── includes/
+│   └── class-member-controller.php  ← Basis-Controller-Klasse
+└── partials/              ← View-Templates
+    ├── member-menu.php            ← Sidebar-Navigation + Hilfsfunktionen
+    ├── dashboard-view.php         ← Dashboard-Template
+    ├── profile-view.php           ← Profil-Template
+    ├── security-view.php          ← Sicherheits-Template
+    ├── notifications-view.php     ← Benachrichtigungs-Template
+    ├── privacy-view.php           ← Datenschutz-Template
+    └── subscription-view.php      ← Abo-Template
 ```
 
 ### MemberController
@@ -215,7 +218,7 @@ CMS\Hooks::addAction('routes_registered', function() {
 });
 
 // 2. Navigation-Link hinzufügen
-CMS\Hooks::addFilter('member_nav_items', function(array $items): array {
+CMS\Hooks::addFilter('member_menu_items', function(array $items): array {
     $items[] = [
         'label' => 'Mein Feature',
         'url'   => '/member/mein-feature',
@@ -227,4 +230,4 @@ CMS\Hooks::addFilter('member_nav_items', function(array $items): array {
 
 ---
 
-*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*
+*Letzte Aktualisierung: 22. Februar 2026 – Version 1.8.0*

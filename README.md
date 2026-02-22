@@ -7,7 +7,7 @@
 ### Sicheres, modulares und erweiterbares Content Management System
 ### [WWW.365CMS.DE](HTTPS://365CMS.DE)
 
-## �️ Screenshots
+## Screenshots
 
 ### Dashboard & Übersicht
 

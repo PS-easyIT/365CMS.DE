@@ -1,7 +1,5 @@
 # Medienbibliothek
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026 | **Datei:** `admin/media.php`
-
 Zentrale Verwaltung aller hochgeladenen Dateien im 365CMS – Bilder, Dokumente, Videos und sonstige Medien.
 
 ---
@@ -178,7 +176,3 @@ do_action('cms_media_uploaded', $mediaId, $filePath, $userId);
 do_action('cms_media_deleted', $mediaId, $filePath);
 add_filter('cms_media_allowed_types', 'my_plugin_allow_svg');
 ```
-
----
-
-*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*

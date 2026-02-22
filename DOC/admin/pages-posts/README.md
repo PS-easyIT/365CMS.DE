@@ -1,7 +1,5 @@
 # Content Management – Übersicht
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026
-
 Verwaltung aller inhaltlichen Elemente der 365CMS Website.
 
 ---
@@ -85,7 +83,3 @@ Tabelle | Code-Block | HTML-Quellcode | Vollbild
 
 ### Externe Medien
 Externe YouTube/Vimeo-URLs werden automatisch als embed erkannt und in Responsive-Player umgewandelt.
-
----
-
-*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*

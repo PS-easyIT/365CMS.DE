@@ -130,4 +130,4 @@ do_action('cms_member_account_deletion_requested', $userId, $scheduledDate);
 
 ---
 
-*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*
+*Letzte Aktualisierung: 22. Februar 2026 – Version 1.8.0*

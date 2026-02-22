@@ -1,7 +1,5 @@
 # Admin Dashboard
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026 | **Datei:** `admin/index.php`
-
 Die Startseite des Admin-Bereichs bietet einen schnellen Überblick über den gesamten Systemstatus und ermöglicht schnellen Zugriff auf die wichtigsten Verwaltungsaufgaben.
 
 ---
@@ -123,7 +121,3 @@ add_action('admin_dashboard_widgets', function($registry) {
     ]);
 });
 ```
-
----
-
-*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*

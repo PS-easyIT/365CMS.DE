@@ -405,7 +405,3 @@ $db->query(
     ['active_theme', 'cms-dark']
 );
 ```
-
----
-
-*Letzte Aktualisierung: 22. Februar 2026 – Version 1.8.0*

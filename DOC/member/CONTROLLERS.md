@@ -1,7 +1,5 @@
 # Member-Bereich – Controller-Dokumentation
 
-**Datum:** 18. Februar 2026
-
 ---
 
 ## 1. Basis-Controller: `MemberController`

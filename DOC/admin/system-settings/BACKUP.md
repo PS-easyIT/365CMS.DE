@@ -138,7 +138,3 @@ do_action('cms_backup_created', $backupPath, $type, $size);
 do_action('cms_backup_restored', $backupPath, $type);
 do_action('cms_backup_failed', $type, $errorMessage);
 ```
-
----
-
-*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*

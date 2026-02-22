@@ -133,4 +133,4 @@ add_filter('member_dashboard_stats', 'mein_plugin_stats_erweitern', 10, 2);
 
 ---
 
-*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*
+*Letzte Aktualisierung: 22. Februar 2026 – Version 1.8.0*

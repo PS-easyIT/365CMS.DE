@@ -1,7 +1,5 @@
 # Member-Bereich – Sicherheitsmodell
 
-**Datum:** 18. Februar 2026
-
 ---
 
 ## Sicherheitsarchitektur
@@ -190,3 +188,6 @@ Alle Plugins, die den Member-Bereich erweitern, müssen:
 - [ ] Alle Ausgaben mit `htmlspecialchars()` escapen
 - [ ] Keine direkten DB-Queries ohne Prepared Statements
 - [ ] Keine `$_SESSION`-Manipulation ohne vorherige Validierung
+---
+
+*Letzte Aktualisierung: 22. Februar 2026 – Version 1.8.0*

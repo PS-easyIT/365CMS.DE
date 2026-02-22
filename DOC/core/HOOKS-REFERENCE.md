@@ -323,7 +323,3 @@ CMS\Hooks::addAction('plugins_loaded', function() {
     MeinPlugin::instance()->init();
 });
 ```
-
----
-
-*Letzte Aktualisierung: 22. Februar 2026 – Version 1.8.0*

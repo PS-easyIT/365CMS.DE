@@ -470,7 +470,3 @@ if ($sm->hasFeature($user->id, 'premium_content')) {
     echo '<a href="/subscribe">Premium-Zugang freischalten</a>';
 }
 ```
-
----
-
-*Letzte Aktualisierung: 22. Februar 2026 – Version 1.8.0*

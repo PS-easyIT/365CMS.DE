@@ -176,7 +176,3 @@ do_action('cms_gdpr_export_generated', $userId, $exportPath);
 do_action('cms_gdpr_user_deleted', $userId, $anonymizedId);
 add_filter('cms_gdpr_export_data', 'my_plugin_add_export_data', 10, 2);
 ```
-
----
-
-*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*

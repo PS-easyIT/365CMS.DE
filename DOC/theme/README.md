@@ -154,6 +154,3 @@ Kurzversion:
 5. `screenshot.png` erstellen (400×300 px)
 6. Im Admin aktivieren
 
----
-
-*Letzte Aktualisierung: 22. Februar 2026 – Version 1.8.0*

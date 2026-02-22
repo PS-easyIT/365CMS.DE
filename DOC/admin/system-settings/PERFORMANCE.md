@@ -176,7 +176,3 @@ do_action('cms_cache_cleared', $type, $target);
 add_filter('cms_cache_exclude_urls', 'my_exclude_urls');
 add_filter('cms_cache_ttl', fn($ttl, $url) => 7200, 10, 2);
 ```
-
----
-
-*Letzte Aktualisierung: 21. Februar 2026 – Version 0.26.13*
