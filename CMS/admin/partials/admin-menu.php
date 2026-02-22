@@ -461,6 +461,13 @@ function getAdminMenuItems(string $currentPage = ''): array
                     'url'    => '/admin/security-audit',
                     'active' => (_adminNavIsActive('/admin/security-audit') && empty($_GET['tab'])) || $currentPage === 'security-audit',
                 ],
+                [
+                    'slug'   => 'cms-firewall',
+                    'label'  => 'Firewall',
+                    'icon'   => '🔥',
+                    'url'    => '/admin/cms-firewall',
+                    'active' => _adminNavIsActive('/admin/cms-firewall') || $currentPage === 'cms-firewall',
+                ],
             ],
         ],
 
