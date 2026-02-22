@@ -63,11 +63,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
         
         <div class="admin-page-header">
             <div>
-                <h2>🚀 Dashboard <span style="display:inline-block; margin-left:0.5rem; padding:0.2rem 0.6rem; background:var(--admin-primary); color:#fff; border-radius:99px; font-size:0.7rem; vertical-align:middle; font-weight:700;">v<?php echo htmlspecialchars(CMS_VERSION); ?></span></h2>
+                <h2>�️ Dashboard <span style="display:inline-block; margin-left:0.5rem; padding:0.2rem 0.6rem; background:var(--admin-primary); color:#fff; border-radius:99px; font-size:0.7rem; vertical-align:middle; font-weight:700;">v<?php echo htmlspecialchars(CMS_VERSION); ?></span></h2>
                 <p>Willkommen zurück, <strong><?php echo htmlspecialchars($user->username); ?></strong>.</p>
-            </div>
-            <div class="header-actions">
-                <a href="pages.php?action=new" class="btn btn-primary">➕ Neue Seite</a>
             </div>
         </div>
         
@@ -150,23 +147,23 @@ require_once __DIR__ . '/partials/admin-menu.php';
             </div>
         </div>
         
-        <!-- Quick Actions -->
+        <!-- Links -->
         <div class="admin-card">
-            <h3>⚡ Schnellzugriff</h3>
-            <div class="form-actions" style="margin-top:1rem;">
-                <a href="users.php" class="btn btn-secondary">
-                    👥 Benutzer verwalten
-                </a>
-                <a href="settings.php" class="btn btn-secondary">
-                    ⚙️ Einstellungen
-                </a>
-                <a href="media.php" class="btn btn-secondary">
-                    📁 Medien
-                </a>
-                <a href="updates.php" class="btn btn-secondary">
-                    🔄 Updates prüfen
-                </a>
-            </div>
+            <h3>🔗 Links &amp; Ressourcen</h3>
+            <ul class="info-list" style="margin-top:1rem;">
+                <li>
+                    <strong>GitHub Repository:</strong>
+                    <a href="https://github.com/PS-easyIT/365CMS.DE" target="_blank" rel="noopener noreferrer">github.com/PS-easyIT/365CMS.DE</a>
+                </li>
+                <li>
+                    <strong>365CMS Website:</strong>
+                    <a href="https://365cms.de" target="_blank" rel="noopener noreferrer">365cms.de</a>
+                </li>
+                <li>
+                    <strong>PHiNiT Website:</strong>
+                    <a href="https://phinit.de" target="_blank" rel="noopener noreferrer">phinit.de</a>
+                </li>
+            </ul>
         </div>
         
         <?php Hooks::doAction('admin_dashboard_widgets'); ?>
