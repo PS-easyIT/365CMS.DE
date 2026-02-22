@@ -4,6 +4,41 @@ Das Admin-Panel ist das Herz des 365CMS. Hier verwaltet ihr alles: Benutzer, Inh
 
 ---
 
+## Dokumentations-Index
+
+### Nach Bereich
+
+| Bereich | Dokument | Beschreibung |
+|---------|----------|--------------|
+| **Dashboard** | [dashboard/DASHBOARD.md](dashboard/DASHBOARD.md) | KPIs, Widgets, Schnellzugriff |
+| **Benutzer** | [users-groups/USERS.md](users-groups/USERS.md) | Benutzerverwaltung komplett |
+| **Benutzer** | [users-groups/RBAC.md](users-groups/RBAC.md) | Rollen- & Rechtesystem |
+| **Mitglieder** | [member/README.md](member/README.md) | Member-Dashboard-Verwaltung |
+| **Seiten & Beiträge** | [pages-posts/PAGES.md](pages-posts/PAGES.md) | Statische Seiten |
+| **Seiten & Beiträge** | [pages-posts/POSTS.md](pages-posts/POSTS.md) | Blog-Beiträge |
+| **Landing Page** | [landing-page/LANDING-PAGE.md](landing-page/LANDING-PAGE.md) | Landing Page Builder |
+| **Medien** | [media/MEDIA.md](media/MEDIA.md) | Medienbibliothek |
+| **Design** | [themes-design/CUSTOMIZER.md](themes-design/CUSTOMIZER.md) | Theme-Customizer |
+| **Design** | [themes-design/MARKETPLACE.md](themes-design/MARKETPLACE.md) | Theme & Plugin Marketplace |
+| **Plugins** | [plugins/PLUGINS.md](plugins/PLUGINS.md) | Plugin-Verwaltung |
+| **SEO** | [seo-performance/SEO.md](seo-performance/SEO.md) | SEO-Einstellungen |
+| **Analytics** | [seo-performance/ANALYTICS.md](seo-performance/ANALYTICS.md) | Besucherstatistiken |
+| **Performance** | [system-settings/PERFORMANCE.md](system-settings/PERFORMANCE.md) | Cache & Speed |
+| **Abonnements** | [subscription/SUBSCRIPTIONS.md](subscription/SUBSCRIPTIONS.md) | Abo-Pläne |
+| **Bestellungen** | [subscription/ORDERS.md](subscription/ORDERS.md) | Bestellverwaltung |
+| **Support** | [support/README.md](support/README.md) | Support-Ticket-System |
+| **Cookies** | [legal-security/COOKIES.md](legal-security/COOKIES.md) | Cookie-Manager, Consent |
+| **DSGVO** | [legal-security/DSGVO.md](legal-security/DSGVO.md) | Art. 15 & 17 DSGVO |
+| **Rechtstexte** | [legal-security/LEGAL.md](legal-security/LEGAL.md) | Impressum, AGB, Datenschutz |
+| **Firewall** | [legal-security/FIREWALL.md](legal-security/FIREWALL.md) | IP-Sperren, Request-Filter |
+| **AntiSpam** | [legal-security/ANTISPAM.md](legal-security/ANTISPAM.md) | Spam-Schutz |
+| **Security Audit** | [legal-security/SECURITY-AUDIT.md](legal-security/SECURITY-AUDIT.md) | Score 0–100, Härtung |
+| **System** | [system-settings/SYSTEM.md](system-settings/SYSTEM.md) | Server, Diagnose, Wartung |
+| **Backup** | [system-settings/BACKUP.md](system-settings/BACKUP.md) | Backup-System |
+| **Updates** | [system-settings/UPDATES.md](system-settings/UPDATES.md) | Update-Manager |
+
+---
+
 ## Inhaltsverzeichnis
 
 1. [Zugang & Login](#1-zugang--login)
@@ -14,8 +49,10 @@ Das Admin-Panel ist das Herz des 365CMS. Hier verwaltet ihr alles: Benutzer, Inh
 6. [Plugins](#6-plugins)
 7. [SEO & Analyse](#7-seo--analyse)
 8. [Abos & Bestellungen](#8-abos--bestellungen)
-9. [System & Backup](#9-system--backup)
-10. [Admin-Seiten Übersicht](#10-admin-seiten-übersicht)
+9. [Legal & Sicherheit](#9-legal--sicherheit)
+10. [System & Backup](#10-system--backup)
+11. [Support](#11-support)
+12. [Admin-Seiten Übersicht](#12-admin-seiten-übersicht)
 
 ---
 
@@ -249,7 +286,23 @@ Alle Bestellungen einsehen, Status ändern, Rechnungen herunterladen.
 
 ---
 
-## 9. System & Backup
+## 9. Legal & Sicherheit
+
+Vollständige Dokumentation: [legal-security/README.md](legal-security/README.md)
+
+| Admin-Seite | Datei | Dokumentation |
+|-------------|-------|---------------|
+| Cookie-Manager | `admin/cookies.php` | [COOKIES.md](legal-security/COOKIES.md) |
+| DSGVO Datenzugriff | `admin/data-access.php` | [DSGVO.md](legal-security/DSGVO.md) |
+| DSGVO Datenlöschung | `admin/data-deletion.php` | [DSGVO.md](legal-security/DSGVO.md) |
+| Rechtstexte | `admin/legal-sites.php` | [LEGAL.md](legal-security/LEGAL.md) |
+| Firewall | `admin/firewall.php` | [FIREWALL.md](legal-security/FIREWALL.md) |
+| AntiSpam | `admin/antispam.php` | [ANTISPAM.md](legal-security/ANTISPAM.md) |
+| Security Audit | `admin/security-audit.php` | [SECURITY-AUDIT.md](legal-security/SECURITY-AUDIT.md) |
+
+---
+
+## 10. System & Backup
 
 ### System-Status
 **Datei:** `admin/system.php`  

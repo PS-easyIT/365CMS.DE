@@ -1,20 +1,25 @@
-# Cookie & Compliance Management
+# Legal & Sicherheit – Übersicht
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026
-
-Dieses Modul stellt die DSGVO-Konformität (GDPR) des CMS sicher und bietet Tools zur Verwaltung von Cookie-Einwilligungen, Datenauskunfts-Anfragen und Datenlöschungen.
+Dieses Modul stellt die DSGVO-Konformität (GDPR) des CMS sicher und bietet umfassende Tools für Datenschutz, Sicherheit und rechtliche Anforderungen.
 
 ---
 
-## Inhaltsverzeichnis
+## Dokumentations-Index
 
-1. [Überblick](#1-überblick)
-2. [Cookie Scanner & Consent Banner](#2-cookie-scanner--consent-banner)
-3. [Datenauskunft (Art. 15 DSGVO)](#3-datenauskunft-art-15-dsgvo)
-4. [Datenlöschung (Art. 17 DSGVO)](#4-datenlöschung-art-17-dsgvo)
-5. [Einwilligungs-Protokoll](#5-einwilligungs-protokoll)
-6. [Impressum & Datenschutzerklärung](#6-impressum--datenschutzerklärung)
-7. [Technische Details](#7-technische-details)
+| Datei | Admin-Seite | Beschreibung |
+|-------|-------------|--------------|
+| [COOKIES.md](COOKIES.md) | `admin/cookies.php` | Cookie-Manager, Consent-Banner, Dienste-Bibliothek |
+| [DSGVO.md](DSGVO.md) | `admin/data-access.php`, `admin/data-deletion.php` | Art. 15 & 17 DSGVO, Datenzugriff, Löschung |
+| [LEGAL.md](LEGAL.md) | `admin/legal-sites.php` | Rechtstexte: Impressum, Datenschutz, AGB |
+| [FIREWALL.md](FIREWALL.md) | `admin/firewall.php` | IP-Sperren, Request-Filter, Rate Limiting |
+| [ANTISPAM.md](ANTISPAM.md) | `admin/antispam.php` | Honeypot, CAPTCHA, Keyword-Filter |
+| [SECURITY-AUDIT.md](SECURITY-AUDIT.md) | `admin/security-audit.php` | Security Score 0–100, Härtungsassistent |
+
+---
+
+## Überblick
+
+Alle Bereiche sind unter `Admin → Legal & Sicherheit` zusammengefasst.
 
 ---
 
