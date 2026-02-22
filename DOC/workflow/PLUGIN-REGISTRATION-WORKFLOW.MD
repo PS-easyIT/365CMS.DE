@@ -1,6 +1,5 @@
-﻿# 365CMS - Plugin-basierter Registrierungs- & Member-Workflow
+# 365CMS - Plugin-basierter Registrierungs- & Member-Workflow
 
-**Version:** 1.0.0  
 **Datum:** 17. Februar 2026  
 **System:** CMS365/365CMS - IT Expert Hub Platform  
 **Kategorie:** Workflow-Dokumentation

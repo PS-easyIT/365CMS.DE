@@ -1,6 +1,5 @@
 # Member-Bereich – Sicherheitsmodell
 
-**Version:** 2.0.2  
 **Datum:** 18. Februar 2026
 
 ---

@@ -831,12 +831,6 @@ Vollständiges Schema: [DOC/](DOC/)
 - ✅ Blog-Routen und Datenbankschema v3
 - ✅ Landing-Page-Builder, Menü-Verwaltung, Media-Library
 
-
-
-Freie Verwendung für private und geschäftliche Projekte **mit Copyright-Hinweis**.
-
-Nutzung **ohne Copyright-Hinweis** ist kostenpflichtig (Privat: einmalig 50,00 € · Geschäftlich: Preis auf Anfrage).
-
 ## 👨‍💻 Support & Community
 
 - **Issue Tracker:** GitHub Issues
@@ -850,3 +844,11 @@ Nutzung **ohne Copyright-Hinweis** ist kostenpflichtig (Privat: einmalig 50,00 �
 - **Fonts:** Google Fonts with Local Font Manager
 - **Editor:** Suneditor is based on pure JavaScript, no dependencies. 
 - **Inspiration:** WordPress, Laravel, Symfony
+
+---
+
+## Lizenz
+
+Freie Verwendung für private und geschäftliche Projekte **mit Copyright-Hinweis**.
+
+Nutzung **ohne Copyright-Hinweis** ist kostenpflichtig (Privat: einmalig 50,00 € · Geschäftlich: Preis auf Anfrage).

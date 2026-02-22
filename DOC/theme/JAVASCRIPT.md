@@ -1,7 +1,6 @@
 # JavaScript – navigation.js Referenz
 
 **Datei:** `themes/default/js/navigation.js`  
-**Version:** 2.0.0  
 **Ladeweise:** `<script defer>` im Footer
 
 ---
