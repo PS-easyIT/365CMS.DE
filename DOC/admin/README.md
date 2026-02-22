@@ -344,39 +344,55 @@ CMS-Updates und Plugin-Updates einspielen.
 **Datei:** `admin/support.php`  
 **URL:** `/admin/support.php`
 
-Direkter Zugang zur Online-Dokumentation (diese Docs!) – verlinkt zum GitHub-Repository.
+Vollständige Dokumentation: [support/README.md](support/README.md)
+
+Ticket-Verwaltung für Support-Anfragen von Mitgliedern mit Prioritäten und Status-Tracking.
 
 ---
 
-## 10. Admin-Seiten Übersicht
+## 11. Support
 
-| Seite | URL | Beschreibung |
-|-------|-----|--------------|
-| Dashboard | `/admin` | Übersicht & Widgets |
-| Benutzer | `/admin/users.php` | User-Verwaltung |
-| Gruppen | `/admin/groups.php` | Gruppen verwalten |
-| Seiten | `/admin/pages.php` | Statische Seiten |
-| Beiträge | `/admin/posts.php` | Blog |
-| Medien | `/admin/media.php` | Dateien & Bilder |
-| Menüs | `/admin/menus.php` | Navigation |
-| Landing Page | `/admin/landing-page.php` | Startseiten-Builder |
-| Themes | `/admin/themes.php` | Theme-Auswahl |
-| Customizer | `/admin/theme-customizer.php` | Theme-Design |
-| Theme-Editor | `/admin/theme-editor.php` | Code-Editor |
-| Theme-Marktplatz | `/admin/theme-marketplace.php` | Themes installieren |
-| Dashboard-Widgets | `/admin/design-dashboard-widgets.php` | Widgets konfigurieren |
-| Fonts | `/admin/fonts-local.php` | Lokale Fonts |
-| Plugins | `/admin/plugins.php` | Plugins verwalten |
-| Plugin-Marktplatz | `/admin/plugin-marketplace.php` | Plugins installieren |
-| SEO | `/admin/seo.php` | SEO-Einstellungen |
-| Analytics | `/admin/analytics.php` | Besucherstatistiken |
-| Performance | `/admin/performance.php` | Cache & Speed |
-| Abos | `/admin/subscriptions.php` | Abo-Pläne |
-| Abo-Einstellungen | `/admin/subscription-settings.php` | Abo-Config |
-| Bestellungen | `/admin/orders.php` | Käufe & Rechnungen |
-| System | `/admin/system.php` | Server-Status |
-| Einstellungen | `/admin/settings.php` | CMS-Einstellungen |
-| Backup | `/admin/backup.php` | Sicherungen |
-| Updates | `/admin/updates.php` | System-Updates |
-| Support | `/admin/support.php` | Dokumentation |
+→ Siehe [support/README.md](support/README.md) für vollständige Dokumentation.
+
+---
+
+## 12. Admin-Seiten Übersicht
+
+| Seite | URL | Dokumentation |
+|-------|-----|---------------|
+| Dashboard | `/admin` | [DASHBOARD.md](dashboard/DASHBOARD.md) |
+| Benutzer | `/admin/users.php` | [USERS.md](users-groups/USERS.md) |
+| Gruppen | `/admin/groups.php` | [RBAC.md](users-groups/RBAC.md) |
+| Mitglieder | `/admin/members.php` | [member/README.md](member/README.md) |
+| Seiten | `/admin/pages.php` | [PAGES.md](pages-posts/PAGES.md) |
+| Beiträge | `/admin/posts.php` | [POSTS.md](pages-posts/POSTS.md) |
+| Medien | `/admin/media.php` | [MEDIA.md](media/MEDIA.md) |
+| Menüs | `/admin/menus.php` | [pages-posts/README.md](pages-posts/README.md) |
+| Landing Page | `/admin/landing-page.php` | [LANDING-PAGE.md](landing-page/LANDING-PAGE.md) |
+| Themes | `/admin/themes.php` | [themes-design/README.md](themes-design/README.md) |
+| Customizer | `/admin/theme-customizer.php` | [CUSTOMIZER.md](themes-design/CUSTOMIZER.md) |
+| Theme-Editor | `/admin/theme-editor.php` | [themes-design/EDITOR.md](themes-design/EDITOR.md) |
+| Theme-Marktplatz | `/admin/theme-marketplace.php` | [MARKETPLACE.md](themes-design/MARKETPLACE.md) |
+| Dashboard-Widgets | `/admin/design-dashboard-widgets.php` | [DASHBOARD-WIDGETS.md](themes-design/DASHBOARD-WIDGETS.md) |
+| Fonts | `/admin/fonts-local.php` | [FONTS.md](themes-design/FONTS.md) |
+| Plugins | `/admin/plugins.php` | [PLUGINS.md](plugins/PLUGINS.md) |
+| Plugin-Marktplatz | `/admin/plugin-marketplace.php` | [MARKETPLACE.md](themes-design/MARKETPLACE.md) |
+| SEO | `/admin/seo.php` | [SEO.md](seo-performance/SEO.md) |
+| Analytics | `/admin/analytics.php` | [ANALYTICS.md](seo-performance/ANALYTICS.md) |
+| Performance | `/admin/performance.php` | [PERFORMANCE.md](system-settings/PERFORMANCE.md) |
+| Abos | `/admin/subscriptions.php` | [SUBSCRIPTIONS.md](subscription/SUBSCRIPTIONS.md) |
+| Abo-Einstellungen | `/admin/subscription-settings.php` | [ORDERS.md](subscription/ORDERS.md) |
+| Bestellungen | `/admin/orders.php` | [ORDERS.md](subscription/ORDERS.md) |
+| Support | `/admin/support.php` | [support/README.md](support/README.md) |
+| Cookie-Manager | `/admin/cookies.php` | [COOKIES.md](legal-security/COOKIES.md) |
+| DSGVO Datenzugriff | `/admin/data-access.php` | [DSGVO.md](legal-security/DSGVO.md) |
+| DSGVO Datenlöschung | `/admin/data-deletion.php` | [DSGVO.md](legal-security/DSGVO.md) |
+| Rechtstexte | `/admin/legal-sites.php` | [LEGAL.md](legal-security/LEGAL.md) |
+| Firewall | `/admin/firewall.php` | [FIREWALL.md](legal-security/FIREWALL.md) |
+| AntiSpam | `/admin/antispam.php` | [ANTISPAM.md](legal-security/ANTISPAM.md) |
+| Security Audit | `/admin/security-audit.php` | [SECURITY-AUDIT.md](legal-security/SECURITY-AUDIT.md) |
+| System | `/admin/system.php` | [SYSTEM.md](system-settings/SYSTEM.md) |
+| Einstellungen | `/admin/settings.php` | [system-settings/README.md](system-settings/README.md) |
+| Backup | `/admin/backup.php` | [BACKUP.md](system-settings/BACKUP.md) |
+| Updates | `/admin/updates.php` | [UPDATES.md](system-settings/UPDATES.md) |
 
