@@ -208,3 +208,100 @@ $controller->render('dashboard-view', [
 | `$availablePackages` | Array von Paketen mit `id`, `name`, `price`, `billing_cycle`, `description`, `features[]`, `featured` |
 | `$permissions` | Array von Berechtigungs-Strings des Users |
 | `$statusBadges` | `['active'=>'success', 'expired'=>'danger', 'pending'=>'warning', 'cancelled'=>'secondary']` |
+
+
+---
+
+## 8. Medien-Controller
+
+**Datei:** `media.php` / `media-ajax.php` / `media_handler.php`  
+**URL:** `/member/media`
+
+### Aktionen
+
+| `action` Wert | Beschreibung |
+|---|---|
+| Upload via `media-ajax.php` | AJAX-Datei-Upload mit Fortschrittsanzeige |
+| Delete via `media-ajax.php` | Einzelne Datei löschen |
+| GET `media.php` | Dateiübersicht mit Speicherplatz-Anzeige |
+
+### Daten an View
+
+| Variable | Beschreibung |
+|----------|-------------|
+| `e:\00-WPwork\365CMS.DE\DOC\core\ARCHITECTURE.md e:\00-WPwork\365CMS.DE\DOC\core\CORE-CLASSES.md e:\00-WPwork\365CMS.DE\DOC\core\DATABASE-SCHEMA.md e:\00-WPwork\365CMS.DE\DOC\core\HOOKS-REFERENCE.md e:\00-WPwork\365CMS.DE\DOC\core\SECURITY.md e:\00-WPwork\365CMS.DE\DOC\plugins\GUIDE.md e:\00-WPwork\365CMS.DE\DOC\plugins\PLUGIN-DEVELOPMENT.md e:\00-WPwork\365CMS.DE\DOC\theme\README.md e:\00-WPwork\365CMS.DE\DOC\theme\THEME-DEVELOPMENT.md` | Array eigener Dateien mit `id`, `name`, `size`, `mime_type`, `url`, `created_at` |
+| `` | Genutzter Speicher in Bytes |
+| `` | Maximaler Speicher in Bytes (aus Abo) |
+| `` | Prozentsatz (0–100) |
+| `` | CSRF-Token `'member_media'` |
+
+---
+
+## 9. Nachrichten-Controller
+
+**Datei:** `messages.php`  
+**URL:** `/member/messages`
+
+### Funktionen
+
+- Konversationsliste aller Gespräche
+- Neue Konversation starten
+- Nachrichten lesen und senden
+- Ungelesene-Badge im Sidebar-Menü
+
+### Daten an View
+
+| Variable | Beschreibung |
+|----------|-------------|
+| `` | Array von Konversationen mit `id`, `partner_name`, `partner_avatar`, `last_message`, `unread_count`, `last_activity` |
+| `` | Aktive Konversation (wenn GET `?id=...`), inkl. `messages[]` |
+| `` | Gesamtanzahl ungelesener Nachrichten |
+| `` | CSRF-Token `'member_messages'` |
+
+---
+
+## 10. Favoriten-Controller
+
+**Datei:** `favorites.php`  
+**URL:** `/member/favorites`
+
+### Aktionen (POST)
+
+| `action` Wert | Beschreibung |
+|---|---|
+| `add_favorite` | Element als Favorit speichern |
+| `remove_favorite` | Favorit entfernen |
+
+### Daten an View
+
+| Variable | Beschreibung |
+|----------|-------------|
+| `` | Array mit `id`, `type` (expert/company/event), `target_id`, `title`, `url`, `created_at` |
+| `` | CSRF-Token `'member_favorites'` |
+
+---
+
+## 11. Bestellungen-Controller
+
+**Datei:** `order_public.php`  
+**URL:** `/member/orders`
+
+### Daten an View
+
+| Variable | Beschreibung |
+|----------|-------------|
+| `` | Array von Bestellungen mit `id`, `order_number`, `package_name`, `amount`, `status`, `payment_method`, `created_at` |
+| `` | Pagination-Daten (`current_page`, `total_pages`, `total_items`) |
+
+### Bestellstatus
+
+| Status | Bedeutung |
+|---|---|
+| `paid` | Bezahlt und bestätigt |
+| `pending` | Zahlung ausstehend |
+| `refunded` | Erstattet |
+| `cancelled` | Storniert |
+
+---
+
+*Letzte Aktualisierung: 22. Februar 2026 – Version 1.8.0*

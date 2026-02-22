@@ -12,6 +12,7 @@ Der Mitglieder-Bereich ist der persönliche Bereich für eingeloggte Benutzer. E
 4. [Architektur](#4-architektur)
 5. [Plugin-Integration](#5-plugin-integration)
 6. [Entwickler-Guide](#6-entwickler-guide)
+7. [Weiterführende Dokumentation](#7-weiterführende-dokumentation)
 
 ---
 
@@ -110,6 +111,17 @@ Sicherheitseinstellungen:
 - Aktive Sessions anzeigen und beenden
 - Login-Verlauf
 - Passwort-Stärke-Indikator
+- Zwei-Faktor-Authentifizierung (2FA) via TOTP
+
+### Favoriten (`member/favorites.php`)
+Merkliste für gespeicherte Inhalte:
+- Experten, Firmen und Events als Favoriten speichern
+- Schnellzugriff auf gespeicherte Profile
+
+### Bestellungen (`member/order_public.php`)
+Bestellhistorie:
+- Alle bisherigen Abo-Käufe mit Status
+- Rechnungen als PDF abrufbar (wo verfügbar)
 
 ---
 
@@ -227,6 +239,23 @@ CMS\Hooks::addFilter('member_menu_items', function(array $items): array {
     return $items;
 });
 ```
+
+---
+
+## 7. Weiterführende Dokumentation
+
+| Dokument | Inhalt |
+|----------|--------|
+| [CONTROLLERS.md](CONTROLLERS.md) | Alle Controller-Klassen, Formularfelder, View-Daten |
+| [VIEWS.md](VIEWS.md) | Template-Variablen, Bereiche, JS-Funktionen |
+| [HOOKS.md](HOOKS.md) | Alle verfügbaren Actions & Filter für Plugins |
+| [SECURITY.md](SECURITY.md) | Sicherheitsmodell, CSRF, Sanitization, Output-Escaping |
+| [general/DASHBOARD.md](general/DASHBOARD.md) | Dashboard-Widgets im Detail |
+| [general/PROFILE.md](general/PROFILE.md) | Profil-Felder, Avatar, Social-Links |
+| [general/SECURITY.md](general/SECURITY.md) | 2FA, Session-Verwaltung, Login-History |
+| [general/NOTIFICATIONS.md](general/NOTIFICATIONS.md) | Benachrichtigungstypen, Filter, E-Mail-Settings |
+| [general/PRIVACY.md](general/PRIVACY.md) | DSGVO, Datenexport, Account-Löschung |
+| [general/SUBSCRIPTION.md](general/SUBSCRIPTION.md) | Pakete, Upgrade-Prozess, Zahlungsoptionen |
 
 ---
 

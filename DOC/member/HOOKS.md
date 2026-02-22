@@ -162,6 +162,101 @@ HTTP Request → Notifications rendering
 
 ---
 
+## Alle verfügbaren Hooks (Übersicht)
+
+| Hook | Typ | Registriert in | Beschreibung |
+|------|-----|---------------|-------------|
+| `member_menu_items` | Filter | `member-menu.php` | Sidebar-Menüpunkte anpassen |
+| `member_notification_preferences` | Filter | `class-member-controller.php` | Benachrichtigungspräferenzen erweitern |
+| `member_notification_settings_sections` | Filter | `notifications-view.php` | Einstellungsformular erweitern |
+| `member_dashboard_widgets` | Filter | `dashboard-view.php` | Dashboard-Widgets hinzufügen |
+| `member_dashboard_stats` | Filter | `dashboard-view.php` | Statistik-Kacheln erweitern |
+| `cms_member_profile_updated` | Action | `MemberService` | Nach Profil-Speicherung |
+| `cms_member_avatar_changed` | Action | `MemberService` | Nach Avatar-Änderung |
+| `cms_member_data_export_requested` | Action | `privacy.php` | Bei Datenexport-Anfrage |
+| `cms_member_consent_updated` | Action | `privacy.php` | Bei Einwilligungsänderung |
+| `cms_member_account_deletion_requested` | Action | `privacy.php` | Bei Löschanfrage |
+| `cms_notification_created` | Action | `NotificationService` | Neue Benachrichtigung |
+
+---
+
+## Filter (Übersicht bereits ausführlich oben)
+
+### `member_dashboard_stats`
+
+Fügt eigene Statistik-Kacheln zum Dashboard hinzu.
+
+```php
+\CMS\Hooks::addFilter('member_dashboard_stats', function(array $stats, int $userId): array {
+    $stats[] = [
+        'label' => 'Eigene Kachel',
+        'value' => MyPlugin::getCountForUser($userId),
+        'icon'  => '📊',
+        'url'   => '/member/my-plugin',
+    ];
+    return $stats;
+}, 10, 2);
+```
+
+---
+
+## Actions
+
+### `cms_member_profile_updated`
+
+Wird gefeuert, nachdem ein Mitglied sein Profil erfolgreich gespeichert hat.
+
+```php
+\CMS\Hooks::addAction('cms_member_profile_updated', 
+    function(int $userId, array $updatedData): void {
+        // z.B. Experten-Profil synchronisieren
+        MyPlugin::syncExpertProfile($userId, $updatedData);
+    }, 
+    10, 
+    2
+);
+```
+
+**Parameter:**
+| # | Typ | Beschreibung |
+|---|-----|-------------|
+| 1 | `int` | User-ID |
+| 2 | `array` | Die gespeicherten Felder |
+
+---
+
+### `cms_member_data_export_requested`
+
+Wird gefeuert, wenn ein Mitglied einen DSGVO-Datenexport anfordert.
+
+```php
+\CMS\Hooks::addAction('cms_member_data_export_requested', 
+    function(int $userId): void {
+        // Plugin-eigene Daten in den Export einschließen
+        MyPlugin::exportDataForUser($userId);
+    }
+);
+```
+
+---
+
+### `cms_member_account_deletion_requested`
+
+Wird gefeuert, wenn ein Mitglied die Account-Löschung beantragt.
+
+```php
+\CMS\Hooks::addAction('cms_member_account_deletion_requested', 
+    function(int $userId, string $scheduledDate): void {
+        // Plugin-eigene Bereinigung vorbereiten
+        MyPlugin::scheduleDataDeletion($userId, $scheduledDate);
+    },
+    10,
+    2
+);
+```
+
+---
+
 ## Sicherheitshinweise
 
 - Alle Hook-Callbacks, die Benutzereingaben verarbeiten, **müssen** selbst sanitizen
