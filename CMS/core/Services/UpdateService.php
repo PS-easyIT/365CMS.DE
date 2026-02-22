@@ -506,7 +506,7 @@ class UpdateService
             $sha256Verified = false;
             if (!empty($sha256)) {
                 if (!$this->verifyDownloadIntegrity($tmpFile, $sha256)) {
-                    @unlink($tmpFile);
+                    if (file_exists($tmpFile)) { unlink($tmpFile); } // M-03
                     return ['success' => false, 'message' => 'SHA-256-Prüfsumme stimmt nicht überein! Update abgebrochen.', 'sha256_verified' => false];
                 }
                 $sha256Verified = true;
@@ -528,7 +528,7 @@ class UpdateService
             $zip->close();
 
             // Temporäre Datei löschen
-            @unlink($tmpFile);
+            if (file_exists($tmpFile)) { unlink($tmpFile); } // M-03
 
             // Update protokollieren
             $this->logUpdate($type, $name, $version);
@@ -536,7 +536,7 @@ class UpdateService
             return ['success' => true, 'message' => "Update {$name} v{$version} erfolgreich installiert.", 'sha256_verified' => $sha256Verified];
 
         } catch (\Throwable $e) {
-            @unlink($tmpFile);
+            if (file_exists($tmpFile)) { unlink($tmpFile); } // M-03
             error_log('UpdateService::downloadAndInstallUpdate() Fehler: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Fehler: ' . $e->getMessage(), 'sha256_verified' => false];
         }

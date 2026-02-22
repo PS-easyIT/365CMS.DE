@@ -436,7 +436,10 @@ class MediaService {
         $textExtensions = ['txt', 'csv', 'rtf', 'svg', 'html', 'htm', 'xml'];
         if (in_array($ext, $textExtensions, true) || $file['size'] < 512 * 1024) {
             // Nur bei Text-Dateien oder kleinen Dateien (<512 KB) scannen
-            $content = @file_get_contents($file['tmp_name'], false, null, 0, 65536); // ersten 64 KB prüfen
+            // M-03: is_readable statt @ – Upload-TmpFile immer lesbar wenn kein Upload-Fehler
+            $content = is_readable($file['tmp_name'])
+                ? file_get_contents($file['tmp_name'], false, null, 0, 65536) // ersten 64 KB prüfen
+                : false;
             if ($content !== false && (
                 stripos($content, '<?php') !== false ||
                 strpos($content, '<?=')    !== false ||
@@ -492,7 +495,7 @@ class MediaService {
             $webpPath = $this->convertToWebP($destination, $ext);
             if ($webpPath !== null) {
                 // Original nach Konvertierung löschen und WebP als primäre Datei verwenden
-                @unlink($destination);
+                if (file_exists($destination)) { unlink($destination); } // M-03: kein @
                 $fileName    = pathinfo($fileName, PATHINFO_FILENAME) . '.webp';
                 $destination = $fullPath . DIRECTORY_SEPARATOR . $fileName;
             }
