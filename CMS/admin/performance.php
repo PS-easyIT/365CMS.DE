@@ -281,4 +281,157 @@ $num = fn(string $k, int $def) => (int)($currentSettings[$k] ?: $def);
 </div>
 </form>
 
+<?php
+/* ═══════════════════════════════════════════════════════════════════════════
+   H-15 | OPcache-Status-Karte
+   H-16 | Core Web Vitals Empfehlungen
+   H-17 | Slow-Query-Log-Hinweise
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+// H-15: OPcache-Daten sammeln
+$opcacheEnabled = function_exists('opcache_get_status');
+$opcacheStatus  = $opcacheEnabled ? @opcache_get_status(false) : false;
+$opcacheIni     = $opcacheEnabled ? opcache_get_configuration()['directives'] ?? [] : [];
+
+// Memory-Nutzung ermitteln
+$opMemFree  = isset($opcacheStatus['memory_usage']['free_memory'])   ? round($opcacheStatus['memory_usage']['free_memory']   / 1024 / 1024, 1) : null;
+$opMemUsed  = isset($opcacheStatus['memory_usage']['used_memory'])   ? round($opcacheStatus['memory_usage']['used_memory']   / 1024 / 1024, 1) : null;
+$opMemWaste = isset($opcacheStatus['memory_usage']['wasted_memory']) ? round($opcacheStatus['memory_usage']['wasted_memory'] / 1024 / 1024, 1) : null;
+$opHitRate  = isset($opcacheStatus['opcache_statistics']['opcache_hit_rate'])
+    ? round((float)$opcacheStatus['opcache_statistics']['opcache_hit_rate'], 1) : null;
+
+$validateTimestamps = (bool)($opcacheIni['opcache.validate_timestamps'] ?? true);
+$revalidateFreq     = (int)($opcacheIni['opcache.revalidate_freq'] ?? 2);
+?>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:1.5rem;margin-top:1.5rem;">
+
+<!-- H-15: OPcache -->
+<div class="admin-card">
+    <h3>🔧 OPcache-Status
+        <?php if ($opcacheEnabled && ($opcacheStatus['opcache_enabled'] ?? false)): ?>
+            <span class="status-badge active" style="font-size:.72rem;padding:.15rem .5rem;">Aktiv</span>
+        <?php else: ?>
+            <span class="status-badge inactive" style="font-size:.72rem;padding:.15rem .5rem;">Inaktiv</span>
+        <?php endif; ?>
+    </h3>
+
+    <?php if (!$opcacheEnabled): ?>
+        <div class="alert alert-error" style="margin-top:.75rem;">
+            ❌ OPcache ist nicht installiert. Empfehlung: <code>opcache.enable=1</code> in <code>php.ini</code> setzen.
+        </div>
+    <?php elseif (!($opcacheStatus['opcache_enabled'] ?? false)): ?>
+        <div class="alert alert-error" style="margin-top:.75rem;">
+            ❌ OPcache ist installiert, aber deaktiviert. In <code>php.ini</code>: <code>opcache.enable=1</code>
+        </div>
+    <?php else: ?>
+        <ul class="info-list" style="list-style:none;padding:0;margin:.75rem 0 0;">
+            <li style="padding:.35rem 0;border-bottom:1px solid #f1f5f9;"><strong>Hit-Rate:</strong>
+                <?php echo $opHitRate !== null ? ($opHitRate . ' %') : '–'; ?>
+                <?php if ($opHitRate !== null && $opHitRate < 90): ?>
+                    <span style="color:#d97706;font-size:.8rem;"> ⚠️ &lt; 90 % – OPcache-Speicher ggf. erhöhen</span>
+                <?php endif; ?>
+            </li>
+            <li style="padding:.35rem 0;border-bottom:1px solid #f1f5f9;"><strong>Genutzter Speicher:</strong> <?php echo $opMemUsed !== null ? $opMemUsed . ' MB' : '–'; ?></li>
+            <li style="padding:.35rem 0;border-bottom:1px solid #f1f5f9;"><strong>Freier Speicher:</strong> <?php echo $opMemFree !== null ? $opMemFree . ' MB' : '–'; ?></li>
+            <li style="padding:.35rem 0;border-bottom:1px solid #f1f5f9;"><strong>Wasted Memory:</strong> <?php echo $opMemWaste !== null ? $opMemWaste . ' MB' : '–'; ?></li>
+            <li style="padding:.35rem 0;border-bottom:1px solid #f1f5f9;"><strong>Scripts gecacht:</strong> <?php echo $opcacheStatus['opcache_statistics']['num_cached_scripts'] ?? '–'; ?></li>
+            <li style="padding:.35rem 0;border-bottom:1px solid #f1f5f9;"><strong>validate_timestamps:</strong>
+                <?php if ($validateTimestamps): ?>
+                    <span style="color:#d97706;">✅ on (Entwicklung OK)</span>
+                    <?php if (!CMS_DEBUG): ?>
+                        <span style="color:#dc2626;font-size:.8rem;"> — In Produktion <strong>0</strong> setzen für max. Performance</span>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <span style="color:#059669;">✅ off (Produktion: optimal)</span>
+                <?php endif; ?>
+            </li>
+            <?php if ($validateTimestamps): ?>
+            <li style="padding:.35rem 0;"><strong>revalidate_freq:</strong> <?php echo $revalidateFreq; ?> s</li>
+            <?php endif; ?>
+        </ul>
+        <?php if (!CMS_DEBUG && $validateTimestamps): ?>
+        <div style="margin-top:1rem;background:#fef9c3;border:1px solid #fde68a;padding:.75rem 1rem;border-radius:6px;font-size:.875rem;">
+            💡 <strong>Tipp:</strong> In Produktion (<code>CMS_DEBUG=false</code>) bitte <code>opcache.validate_timestamps=0</code> in
+            <code>php.ini</code> setzen. Erhöht Durchsatz um bis zu 40 %.
+            Danach PHP-FPM neu starten oder OPcache via Cache-Leeren oben zurücksetzen.
+        </div>
+        <?php endif; ?>
+    <?php endif; ?>
+</div>
+
+<!-- H-16: Core Web Vitals -->
+<div class="admin-card">
+    <h3>📊 Core Web Vitals – Zielwerte</h3>
+    <p style="font-size:.875rem;color:#64748b;margin-top:.5rem;">
+        Empfohlene Messung via <a href="https://pagespeed.web.dev" target="_blank" rel="noopener">PageSpeed Insights</a>,
+        <a href="https://search.google.com/search-console" target="_blank" rel="noopener">Google Search Console</a>
+        oder <a href="https://web.dev/measure/" target="_blank" rel="noopener">web.dev/measure</a>.
+    </p>
+    <table style="width:100%;border-collapse:collapse;margin-top:.75rem;font-size:.875rem;">
+        <thead>
+            <tr style="background:#f8fafc;">
+                <th style="padding:.5rem .75rem;text-align:left;border-bottom:1px solid #e2e8f0;">Metrik</th>
+                <th style="padding:.5rem .75rem;text-align:left;border-bottom:1px solid #e2e8f0;">Ziel (Gut)</th>
+                <th style="padding:.5rem .75rem;text-align:left;border-bottom:1px solid #e2e8f0;">Grund</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td style="padding:.45rem .75rem;border-bottom:1px solid #f1f5f9;"><strong>LCP</strong> (Largest Contentful Paint)</td><td style="padding:.45rem .75rem;border-bottom:1px solid #f1f5f9;color:#059669;">≤ 2,5 s</td><td style="padding:.45rem .75rem;border-bottom:1px solid #f1f5f9;color:#64748b;">Hauptbild/Text sichtbar</td></tr>
+            <tr><td style="padding:.45rem .75rem;border-bottom:1px solid #f1f5f9;"><strong>INP</strong> (Interaction to Next Paint)</td><td style="padding:.45rem .75rem;border-bottom:1px solid #f1f5f9;color:#059669;">≤ 200 ms</td><td style="padding:.45rem .75rem;border-bottom:1px solid #f1f5f9;color:#64748b;">Ersetzt FID seit 2024</td></tr>
+            <tr><td style="padding:.45rem .75rem;border-bottom:1px solid #f1f5f9;"><strong>CLS</strong> (Cumulative Layout Shift)</td><td style="padding:.45rem .75rem;border-bottom:1px solid #f1f5f9;color:#059669;">≤ 0,1</td><td style="padding:.45rem .75rem;border-bottom:1px solid #f1f5f9;color:#64748b;">Keine Layoutverschiebungen</td></tr>
+            <tr><td style="padding:.45rem .75rem;border-bottom:1px solid #f1f5f9;"><strong>FCP</strong> (First Contentful Paint)</td><td style="padding:.45rem .75rem;border-bottom:1px solid #f1f5f9;color:#059669;">≤ 1,8 s</td><td style="padding:.45rem .75rem;border-bottom:1px solid #f1f5f9;color:#64748b;">Erste Inhalte sichtbar</td></tr>
+            <tr><td style="padding:.45rem .75rem;"><strong>TTFB</strong> (Time to First Byte)</td><td style="padding:.45rem .75rem;color:#059669;">≤ 0,8 s</td><td style="padding:.45rem .75rem;color:#64748b;">Server-Response-Zeit</td></tr>
+        </tbody>
+    </table>
+    <div style="margin-top:1rem;background:#eff6ff;border:1px solid #bfdbfe;padding:.75rem 1rem;border-radius:6px;font-size:.875rem;">
+        💡 <strong>Schnellgewinne:</strong> Lazy Loading + Defer JS + Browser-Cache aktivieren (Einstellungen oben) → senkt LCP + FCP direkt.
+    </div>
+</div>
+
+<!-- H-17: Slow-Query-Log -->
+<div class="admin-card">
+    <h3>🐢 MySQL Slow-Query-Log</h3>
+    <p style="font-size:.875rem;color:#64748b;margin-top:.5rem;">
+        Erkennt langsame Datenbankabfragen (&gt; Schwellwert). Konfiguration in
+        <code>my.cnf</code> / <code>my.ini</code> des Datenbankservers:
+    </p>
+    <div style="background:#1e293b;color:#e2e8f0;padding:1rem 1.25rem;border-radius:8px;font-family:monospace;font-size:.82rem;margin-top:.75rem;overflow-x:auto;">
+        <span style="color:#94a3b8;"># my.cnf – [mysqld]-Sektion</span><br>
+        slow_query_log&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 1<br>
+        slow_query_log_file&nbsp;&nbsp;&nbsp;= /var/log/mysql/slow.log<br>
+        long_query_time&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 1<span style="color:#94a3b8;">&nbsp;&nbsp;# Queries &gt; 1 s loggen</span><br>
+        log_queries_not_using_indexes = 1<br>
+        min_examined_row_limit = 1000
+    </div>
+    <?php
+    // Prüfen ob slow_query_log aktiv ist (via SHOW VARIABLES)
+    try {
+        $sqRow = $db->get_row("SHOW VARIABLES LIKE 'slow_query_log'");
+        $sqFile = $db->get_row("SHOW VARIABLES LIKE 'slow_query_log_file'");
+        $sqTime = $db->get_row("SHOW VARIABLES LIKE 'long_query_time'");
+        if ($sqRow):
+    ?>
+    <ul class="info-list" style="list-style:none;padding:0;margin:1rem 0 0;">
+        <li style="padding:.35rem 0;border-bottom:1px solid #f1f5f9;"><strong>slow_query_log:</strong>
+            <?php echo ($sqRow->Value ?? 'OFF') === 'ON'
+                ? '<span style="color:#059669;">✅ ON</span>'
+                : '<span style="color:#dc2626;">❌ OFF</span> – Für Produktions-Monitoring empfohlen'; ?>
+        </li>
+        <?php if (!empty($sqFile->Value ?? '')): ?>
+        <li style="padding:.35rem 0;border-bottom:1px solid #f1f5f9;"><strong>Log-Datei:</strong> <code><?php echo htmlspecialchars($sqFile->Value, ENT_QUOTES); ?></code></li>
+        <?php endif; ?>
+        <?php if (!empty($sqTime->Value ?? '')): ?>
+        <li style="padding:.35rem 0;"><strong>long_query_time:</strong> <?php echo htmlspecialchars($sqTime->Value, ENT_QUOTES); ?> s</li>
+        <?php endif; ?>
+    </ul>
+    <?php endif; } catch (\Exception $e) { /* Keine DB-Rechte → silent */ } ?>
+    <div style="margin-top:1rem;background:#f0fdf4;border:1px solid #bbf7d0;padding:.75rem 1rem;border-radius:6px;font-size:.875rem;">
+        💡 <strong>Analyse-Tool:</strong> <code>pt-query-digest</code> (Percona Toolkit) oder
+        <code>mysqldumpslow</code> (mitgeliefert) für Log-Auswertung empfohlen.
+    </div>
+</div>
+
+</div><!-- /server-info grid -->
+
 <?php renderAdminLayoutEnd(); ?>
