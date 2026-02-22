@@ -1,11 +1,9 @@
-<?php
+﻿<?php
 /**
  * Admin Menu – Grouped Navigation
  *
  * @package CMSv2\Admin
  */
-
-declare(strict_types=1);
 
 if (!defined('ABSPATH')) {
     exit;
@@ -638,181 +636,6 @@ function getAdminMenuItems(string $currentPage = ''): array
 function renderAdminSidebarStyles(): void
 {
     ?>
-    <style>
-        body.admin-body {
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-            background: #f1f5f9;
-            margin: 0;
-        }
-
-        /* ── Sidebar Shell ── */
-        .admin-sidebar {
-            width: 220px;
-            background: #0f172a;
-            color: #cbd5e1;
-            padding: 0;
-            position: fixed;
-            height: 100vh;
-            overflow-y: auto;
-            left: 0;
-            top: 0;
-            z-index: 1000;
-            box-sizing: border-box;
-            scrollbar-width: thin;
-            scrollbar-color: #334155 transparent;
-        }
-        .admin-sidebar::-webkit-scrollbar { width: 4px; }
-        .admin-sidebar::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
-
-        /* ── Sidebar Header ── */
-        .admin-sidebar-header {
-            padding: 1.25rem 1rem 1rem;
-            border-bottom: 1px solid #1e293b;
-        }
-        .admin-sidebar-logo {
-            font-size: 1rem;
-            font-weight: 700;
-            color: #f1f5f9;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: .5rem;
-            letter-spacing: -.01em;
-        }
-
-        /* ── Content Area ── */
-        .admin-content {
-            margin-left: 220px;
-            padding: 2rem;
-            min-height: 100vh;
-            box-sizing: border-box;
-        }
-        .admin-content h2,
-        .admin-content h3,
-        .admin-content h4,
-        .admin-content p,
-        .admin-content label,
-        .admin-content input,
-        .admin-content textarea,
-        .admin-content select,
-        .admin-content button {
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-        }
-
-        /* ── Nav Container ── */
-        .admin-nav {
-            padding: .75rem 0;
-        }
-
-        /* ── Standalone Item ── */
-        .nav-item {
-            display: flex;
-            align-items: center;
-            gap: .5rem;
-            padding: .5rem 1rem;
-            color: #94a3b8;
-            text-decoration: none;
-            font-size: .8125rem;
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-            transition: background .15s, color .15s;
-            border-radius: 0;
-        }
-        .nav-item:hover { background: #1e293b; color: #f1f5f9; }
-        .nav-item.active { background: #1d4ed8; color: #fff; font-weight: 600; }
-        .nav-item .nav-icon { font-size: .9rem; flex-shrink: 0; }
-
-        /* ── Group (details/summary) ── */
-        .nav-group {
-            border: none;
-        }
-        .nav-group-header {
-            display: flex;
-            align-items: center;
-            gap: .5rem;
-            padding: .5rem 1rem;
-            font-size: .7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: .06em;
-            color: #475569;
-            cursor: pointer;
-            list-style: none;
-            user-select: none;
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-            transition: color .15s;
-        }
-        .nav-group-header:hover { color: #94a3b8; }
-        .nav-group-header::marker,
-        .nav-group-header::-webkit-details-marker { display: none; }
-        .nav-group-arrow {
-            margin-left: auto;
-            font-size: .65rem;
-            opacity: .5;
-            transition: transform .2s;
-        }
-        details.nav-group[open] .nav-group-arrow { transform: rotate(90deg); }
-
-        /* ── Group Children ── */
-        .nav-group-children {
-            padding: 0 0 .25rem 0;
-        }
-        .nav-subitem {
-            display: flex;
-            align-items: center;
-            gap: .5rem;
-            padding: .4rem 1rem .4rem 2rem;
-            color: #64748b;
-            text-decoration: none;
-            font-size: .8rem;
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-            transition: background .15s, color .15s;
-        }
-        .nav-subitem:hover { background: #1e293b; color: #e2e8f0; }
-        .nav-subitem.active {
-            background: #172554;
-            color: #93c5fd;
-            font-weight: 600;
-            border-left: 2px solid #3b82f6;
-            padding-left: calc(2rem - 2px);
-        }
-        .nav-subitem .nav-icon { font-size: .8rem; flex-shrink: 0; }
-
-        /* ── Section Label (Trennüberschrift innerhalb Gruppen-Kinder) ── */
-        .nav-section-label {
-            display: flex;
-            align-items: center;
-            gap: .35rem;
-            padding: .7rem 1rem .2rem 1rem;
-            font-size: .63rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: .07em;
-            color: #2d3f55;
-            margin-top: .15rem;
-            border-top: 1px solid #1e293b;
-        }
-        .nav-section-label:first-child { border-top: none; padding-top: .4rem; }
-        .nav-section-label .nav-icon { font-size: .72rem; opacity: .7; }
-
-        /* ── Divider ── */
-        .nav-divider {
-            height: 1px;
-            background: #1e293b;
-            margin: .5rem 0;
-        }
-
-        /* ── Footer Links ── */
-        .admin-sidebar-footer {
-            padding: .75rem 0;
-            border-top: 1px solid #1e293b;
-            margin-top: .5rem;
-        }
-
-        @media (max-width: 768px) {
-            .admin-sidebar { width: 100%; position: relative; height: auto; }
-            .admin-content { margin-left: 0; }
-        }
-    </style>
     <?php
     if (class_exists('\CMS\Services\EditorService')) {
         \CMS\Services\EditorService::getInstance()->enqueueEditorAssets();
@@ -831,8 +654,11 @@ function renderAdminSidebar(string $currentPage = ''): void
     <div class="admin-sidebar">
         <div class="admin-sidebar-header">
             <a href="<?= SITE_URL ?>/admin" class="admin-sidebar-logo">
-                <span>🛠️</span>
-                <?= htmlspecialchars(SITE_NAME) ?>
+                <span class="logo-icon">🛠️</span>
+                <span class="logo-text">
+                    <span class="logo-title"><?= htmlspecialchars(SITE_NAME) ?></span>
+                    <span class="logo-subtitle">Administration</span>
+                </span>
             </a>
         </div>
 
@@ -926,7 +752,8 @@ function renderAdminLayoutStart(string $title, string $activeSlug = ''): void
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title><?php echo htmlspecialchars($title); ?> – <?php echo htmlspecialchars(SITE_NAME); ?></title>
         <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-        <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css">
+        <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin-sidebar.css?v=202602">
+        <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=202602">
         <?php 
         if (class_exists('CMS\Hooks')) {
             CMS\Hooks::doAction('head');

@@ -151,7 +151,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Einstellungen - <?php echo htmlspecialchars(SITE_NAME); ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=202602">
     <?php renderAdminSidebarStyles(); ?>
 </head>
 <body class="admin-body">
@@ -423,95 +423,6 @@ require_once __DIR__ . '/partials/admin-menu.php';
     </div>
 
     <!-- Styles for Settings Page -->
-    <style>
-        .settings-form {
-            max-width: 100%;
-        }
-
-        .settings-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        
-        @media (max-width: 1000px) {
-            .settings-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .settings-card {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            border: 1px solid #e2e8f0;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .card-header {
-            background: #f8fafc;
-            padding: 1.25rem 1.5rem;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .card-header h3 { margin: 0; font-size: 1.1rem; color: #1e293b; }
-        .card-header p { margin: 0.25rem 0 0 0; font-size: 0.85rem; color: #64748b; }
-
-        .card-body {
-            padding: 1.5rem;
-            flex: 1;
-        }
-
-        .form-group { margin-bottom: 1.25rem; }
-        .form-group label { display: block; font-weight: 500; margin-bottom: 0.5rem; color: #334155; }
-        .form-control { width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem; }
-        .form-control:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
-        .form-group small { display: block; color: #94a3b8; font-size: 0.8rem; margin-top: 0.25rem; }
-
-        .split-group { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-
-        /* Toggle Switch */
-        .toggle-group { display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1.25rem; }
-        .toggle-switch { position: relative; width: 48px; height: 26px; }
-        .toggle-switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: #3b82f6; }
-        input:checked + .slider:before { transform: translateX(22px); }
-        .toggle-label strong { display: block; color: #334155; }
-        .toggle-label p { margin: 0; font-size: 0.85rem; color: #64748b; }
-
-        .sticky-footer {
-            position: sticky;
-            bottom: 20px;
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            padding: 1rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            border: 1px solid #e2e8f0;
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 2rem;
-            z-index: 10;
-        }
-
-        .btn-large { padding: 0.75rem 2rem; font-size: 1rem; font-weight: 600; }
-        
-        .status-list { list-style: none; padding: 0; margin: 0; }
-        .status-list li { padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; }
-        .status-list li:last-child { border-bottom: none; }
-        .status-icon.check { color: #10b981; font-weight: bold; margin-right: 0.5rem; }
-        .badge { padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
-        .badge-success { background: #dcfce7; color: #166534; }
-        .badge-secondary { background: #f1f5f9; color: #475569; }
-        
-        .info-list-item { display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid #f1f5f9; }
-        .info-list-item:last-child { border-bottom: none; }
-    </style>
 
     <?php endif; // End of tabs ?>
     

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Subscription Management Admin Page
  * 
@@ -191,70 +191,6 @@ $csrfToken = Security::instance()->generateToken('subscription_management');
 require_once __DIR__ . '/partials/admin-menu.php';
 renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
 ?>
-<style>
-/* ── Abo-Verwaltung (unified with Benutzer & Gruppen) ───────── */
-.post-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:1.2rem;}
-.post-card h3{font-size:.875rem;font-weight:700;color:#374151;margin:0 0 .9rem;padding-bottom:.45rem;border-bottom:1px solid #f1f5f9;}
-.posts-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1.5rem;}
-.field-group{margin-bottom:.9rem;}
-.field-group label{display:block;font-size:.8rem;font-weight:600;color:#374151;margin-bottom:.3rem;}
-.field-group input,.field-group select,.field-group textarea{width:100%;padding:.4rem .6rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.875rem;box-sizing:border-box;background:#fff;color:#1e293b;resize:vertical;}
-.btn-sm{padding:.3rem .65rem;font-size:.8rem;border-radius:5px;border:none;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:.2rem;transition:background .14s;}
-.btn-primary{background:#2563eb;color:#fff;}.btn-primary:hover{background:#1d4ed8;}
-.btn-secondary{background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;}.btn-secondary:hover{background:#e2e8f0;}
-.btn-danger{background:#fee2e2;color:#b91c1c;border:none;}.btn-danger:hover{background:#fecaca;}
-/* Settings 2-column grid */
-.settings-grid-2col{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem;align-items:start;}
-@media(max-width:900px){.settings-grid-2col{grid-template-columns:1fr;}}
-/* Plan cards */
-.sub-plans-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;margin:1.25rem 0;}
-.plan-card{background:#fff;border:2px solid #e2e8f0;border-radius:10px;padding:1.25rem;transition:all .2s;}
-.plan-card:hover{border-color:#93c5fd;box-shadow:0 4px 12px rgba(59,130,246,.12);}
-.plan-header{border-bottom:2px solid #f1f5f9;padding-bottom:.9rem;margin-bottom:.9rem;}
-.plan-name{font-size:1.1rem;font-weight:700;color:#1e293b;margin:0 0 .3rem;}
-.plan-price{font-size:1rem;color:#3b82f6;font-weight:600;line-height:1.6;}
-.plan-price small{font-size:.8rem;color:#64748b;font-weight:400;}
-.plan-features{list-style:none;padding:0;margin:0;}
-.plan-features li{padding:.35rem 0;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;font-size:.875rem;}
-.plan-features li:last-child{border-bottom:none;}
-.feature-label{color:#475569;}.feature-value{font-weight:600;color:#1e293b;}
-.feature-value.unlimited{color:#10b981;}.feature-value.disabled{color:#ef4444;}
-.sub-feat-badge{display:inline-block;padding:.2rem .55rem;border-radius:9999px;font-size:.72rem;font-weight:600;background:#dcfce7;color:#166534;}
-.plan-actions{margin-top:.9rem;display:flex;gap:.5rem;border-top:1px solid #f1f5f9;padding-top:.75rem;}
-.plan-actions a,.plan-actions button{flex:1;text-align:center;justify-content:center;}
-/* User assignment cards */
-.usr-adm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;margin-top:1rem;}
-.usr-adm-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:1.2rem;transition:all .2s;}
-.usr-adm-card:hover{transform:translateY(-2px);box-shadow:0 8px 15px -3px rgba(0,0,0,.08);}
-.usr-adm-top{display:flex;gap:.9rem;align-items:center;margin-bottom:.9rem;}
-.usr-adm-avatar{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:1.1rem;flex-shrink:0;}
-.usr-adm-ident{overflow:hidden;}
-.usr-adm-name{margin:0;font-weight:600;color:#1e293b;font-size:.95rem;}
-.usr-adm-email{margin:0;color:#64748b;font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.usr-adm-badges{display:flex;gap:.5rem;margin-bottom:.9rem;flex-wrap:wrap;}
-.usr-adm-badge{padding:.2rem .5rem;border-radius:6px;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.02em;}
-/* Table (groups) */
-.posts-table{width:100%;border-collapse:collapse;font-size:.875rem;}
-.posts-table th{background:#f8fafc;padding:.55rem .7rem;text-align:left;font-weight:600;color:#374151;border-bottom:2px solid #e2e8f0;white-space:nowrap;}
-.posts-table td{padding:.6rem .7rem;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
-.posts-table tr:hover td{background:#f8fafc;}
-/* Status badge */
-.status-badge{display:inline-flex;align-items:center;padding:.2rem .5rem;border-radius:99px;font-size:.74rem;font-weight:600;}
-/* Admin section header */
-.admin-section-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;border-bottom:1px solid #e2e8f0;padding-bottom:1rem;gap:1rem;}
-/* Plan modal */
-#create-plan-modal .modal-box{background:#fff;padding:2rem;border-radius:12px;max-width:780px;width:90%;max-height:90vh;overflow-y:auto;}
-#create-plan-modal .modal-box h2{margin:0 0 1.25rem;font-size:1.2rem;color:#1e293b;padding-bottom:.75rem;border-bottom:2px solid #f1f5f9;}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
-.form-grid-full{grid-column:1/-1;}
-.form-group{margin-bottom:.75rem;}
-.form-group label{display:block;font-size:.82rem;font-weight:600;color:#374151;margin-bottom:.3rem;}
-.form-group input,.form-group select,.form-group textarea{width:100%;padding:.4rem .6rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.875rem;box-sizing:border-box;}
-/* Notices */
-.notice{padding:.65rem .9rem;border-radius:7px;margin-bottom:1rem;font-size:.875rem;}
-.notice-success{background:#dcfce7;color:#15803d;border:1px solid #86efac;}
-.notice-error{background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;}
-</style>
 
 <div class="posts-header">
     <h2>💳 Abo-Verwaltung</h2>

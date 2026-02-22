@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Admin - Gruppen & Rollenverwaltung (vollständig ausgebaut)
  *
@@ -266,42 +266,6 @@ $_layoutTitle = $activeTab === 'roles' ? 'Rollen & Rechte' : 'Gruppen';
 $_layoutSlug  = $activeTab === 'roles' ? 'roles' : 'groups';
 renderAdminLayoutStart($_layoutTitle, $_layoutSlug);
 ?>
-<style>
-.posts-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1.5rem;}
-.posts-table{width:100%;border-collapse:collapse;font-size:.875rem;}
-.posts-table th{background:#f8fafc;padding:.55rem .7rem;text-align:left;font-weight:600;color:#374151;border-bottom:2px solid #e2e8f0;white-space:nowrap;}
-.posts-table td{padding:.6rem .7rem;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
-.posts-table tr:hover td{background:#f8fafc;}
-.btn-sm{padding:.3rem .65rem;font-size:.8rem;border-radius:5px;border:none;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:.2rem;transition:background .14s;}
-.btn-primary{background:#2563eb;color:#fff;}.btn-primary:hover{background:#1d4ed8;}
-.btn-secondary{background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;}.btn-secondary:hover{background:#e2e8f0;}
-.btn-danger{background:#fee2e2;color:#b91c1c;}.btn-danger:hover{background:#fecaca;}
-.btn-success{background:#dcfce7;color:#15803d;}.btn-success:hover{background:#bbf7d0;}
-.btn-lg{padding:.55rem 1.2rem;font-size:.9375rem;}
-.notice{padding:.65rem .9rem;border-radius:7px;margin-bottom:.9rem;font-size:.875rem;}
-.notice-success{background:#dcfce7;color:#15803d;border:1px solid #86efac;}
-.notice-error{background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;}
-.status-badge{display:inline-flex;align-items:center;gap:.2rem;padding:.2rem .5rem;border-radius:99px;font-size:.74rem;font-weight:600;}
-.status-active{background:#dcfce7;color:#15803d;}
-.status-inactive{background:#fee2e2;color:#b91c1c;}
-.cap-pill{display:inline-flex;align-items:center;padding:.2rem .5rem;background:#ede9fe;color:#6d28d9;border-radius:99px;font-size:.72rem;font-weight:600;margin:.1rem;}
-.post-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:1.2rem;}
-.post-card h3{font-size:.8375rem;font-weight:700;color:#374151;margin:0 0 .9rem;padding-bottom:.45rem;border-bottom:1px solid #f1f5f9;}
-.post-edit-layout{display:grid;grid-template-columns:1fr 280px;gap:1.5rem;align-items:start;}
-@media(max-width:880px){.post-edit-layout{grid-template-columns:1fr;}}
-.post-edit-main,.post-edit-side{display:flex;flex-direction:column;gap:1.2rem;}
-.field-group{margin-bottom:.9rem;}
-.field-group label{display:block;font-size:.8rem;font-weight:600;color:#374151;margin-bottom:.3rem;}
-.field-group input,.field-group select,.field-group textarea{width:100%;padding:.4rem .6rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.875rem;box-sizing:border-box;background:#fff;color:#1e293b;}
-.field-group textarea{min-height:80px;resize:vertical;}
-.field-hint{font-size:.74rem;color:#94a3b8;margin-top:.2rem;}
-.caps-grid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;}
-.cap-check{display:flex;align-items:center;gap:.4rem;font-size:.835rem;padding:.3rem .5rem;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;}
-.cap-check:has(input:checked){background:#ede9fe;border-color:#a78bfa;}
-.member-list{display:flex;flex-direction:column;gap:.35rem;}
-.member-row{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.4rem .65rem;background:#f8fafc;border-radius:6px;font-size:.85rem;}
-.user-avatar-sm{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.75rem;flex-shrink:0;}
-</style>
 
 <?php foreach ($messages as $m):
     $cls = $m['type'] === 'success' ? 'notice-success' : 'notice-error';

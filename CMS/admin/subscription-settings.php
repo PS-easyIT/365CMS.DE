@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-require_once __DIR__ . '/includes/sidebar.php';
+require_once __DIR__ . '/partials/admin-menu.php';
 
 $auth = CMS\Auth::instance();
 if (!$auth->isAdmin()) {
@@ -49,22 +49,13 @@ $exampleFormats = [
     'ABO-{ID}' => 'ABO-0001'
 ];
 
+renderAdminLayoutStart('Abo-Einstellungen', 'subscription-settings');
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <title>Aboeinstellungen - CMS Admin</title>
-    <link rel="stylesheet" href="<?php echo ASSETS_URL; ?>/css/admin.css">
-</head>
-<body>
-    <div class="admin-layout">
-        <?php include __DIR__ . '/includes/sidebar.php'; ?>
-        
-        <main class="admin-content">
-            <header class="admin-header">
-                <h1>Aboeinstellungen</h1>
-            </header>
+
+        <div class="admin-page-header">
+            <h2>⚙️ Abo-Einstellungen</h2>
+            <p style="color:#64748b;font-size:.875rem;margin:.25rem 0 0;">Bestellnummern-Format und weitere Abo-Konfiguration</p>
+        </div>
             
             <?php if ($message): ?>
                 <div class="alert alert-success"><?php echo htmlspecialchars($message); ?></div>
@@ -108,7 +99,4 @@ $exampleFormats = [
                     <button type="submit" class="btn btn-primary">Speichern</button>
                 </form>
             </div>
-        </main>
-    </div>
-</body>
-</html>
+<?php renderAdminLayoutEnd(); ?>

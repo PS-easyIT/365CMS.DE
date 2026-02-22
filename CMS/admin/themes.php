@@ -105,36 +105,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Theme-Verwaltung – <?php echo htmlspecialchars(SITE_NAME); ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=202602">
     <?php renderAdminSidebarStyles(); ?>
-    <style>
-        /* Alerts */
-        .alert { padding: 0.875rem 1.25rem; border-radius: 6px; margin-bottom: 1.25rem; font-size: 0.875rem; }
-        .alert-success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
-        .alert-error   { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-
-        /* Info box */
-        .info-box {
-            background: #eff6ff;
-            border: 1px solid #bfdbfe;
-            border-radius: 6px;
-            padding: 0.875rem 1.25rem;
-            margin-bottom: 1.25rem;
-            font-size: 0.8125rem;
-            color: #1e40af;
-        }
-        .info-box strong { display: block; margin-bottom: 0.25rem; }
-        
-        /* Button styles */
-        .btn { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; font-family: inherit; cursor: pointer; transition: all 0.15s; text-decoration: none; border: 1px solid transparent; }
-        .btn-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
-        .btn-primary:hover { background: #1d4ed8; }
-        .btn-secondary { background: #fff; color: #374151; border-color: #d1d5db; }
-        .btn-secondary:hover { background: #f8fafc; }
-        .btn-danger { background: #dc2626; color: #fff; border-color: #dc2626; font-size: 0.75rem; padding: 0.3rem 0.75rem; }
-        .btn-danger:hover { background: #b91c1c; }
-        .btn-sm { padding: 0.3rem 0.625rem; font-size: 0.8rem; }
-    </style>
 </head>
 <body class="admin-body">
 

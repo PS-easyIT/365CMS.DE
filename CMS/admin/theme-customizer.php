@@ -48,7 +48,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
 <head>
     <meta charset="UTF-8">
     <title>Theme Customizer</title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=202602">
     <?php renderAdminSidebarStyles(); ?>
 </head>
 <body class="admin-body">

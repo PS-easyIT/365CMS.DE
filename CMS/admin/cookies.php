@@ -288,64 +288,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
     <meta charset="UTF-8">
     <title>Cookie Manager - <?php echo htmlspecialchars(SITE_NAME); ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=202602">
     <?php renderAdminSidebarStyles(); ?>
-    <style>
-        .adm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; }
-        .adm-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
-        .form-group { margin-bottom: 1rem; }
-        .form-group label { display: block; font-weight: 500; color: #475569; margin-bottom: 0.5rem; font-size: 0.875rem; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.625rem; border: 1px solid #cbd5e1; border-radius: 6px; }
-        .btn-primary { background: #3b82f6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; }
-        .btn-danger { background: #ef4444; color: white; border: none; padding: 0.25rem 0.75rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
-        
-        .cookie-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-        .cookie-table th { text-align: left; padding: 0.75rem; background: #f8fafc; color: #475569; font-weight: 600; border-bottom: 1px solid #e2e8f0; }
-        .cookie-table td { padding: 0.75rem; border-bottom: 1px solid #f1f5f9; color: #334155; }
-        .badge { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
-        .badge-essential { background: #dbfafe; color: #0e7490; }
-        .badge-analytics { background: #fef3c7; color: #b45309; }
-        .badge-marketing { background: #fee2e2; color: #b91c1c; }
-        
-        .preview-box { background: #f1f5f9; padding: 2rem; border-radius: 12px; display: flex; align-items: center; justify-content: center; min-height: 150px; }
-        .preview-card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); max-width: 400px; width:100%; }
-        
-        .tabs { display: flex; gap: 1rem; border-bottom: 1px solid #e2e8f0; margin-bottom: 1rem; }
-        .tab-btn { background: none; border: none; padding: 0.75rem 1rem; cursor: pointer; color: #64748b; font-weight: 600; border-bottom: 2px solid transparent; }
-        .tab-btn.active { color: #3b82f6; border-bottom-color: #3b82f6; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        
-        .code-block { background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 6px; font-family: monospace; overflow-x: auto; margin:1rem 0; }
-        .copy-btn { float: right; background: #3b82f6; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem; }
-
-        /* === SERVICE BIBLIOTHEK === */
-        .svc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 0.85rem; margin-top: 0.75rem; }
-        .svc-card { background: #fff; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 0.9rem 1.1rem; display: flex; gap: 0.75rem; align-items: flex-start; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
-        .svc-card:hover { border-color: #94a3b8; }
-        .svc-card.active { border-color: #3b82f6; background: #eff6ff; }
-        .svc-card.locked { border-color: #10b981; background: #f0fdf4; cursor: default; }
-        .svc-card input[type=checkbox] { margin-top: 3px; flex-shrink: 0; width: 16px; height: 16px; accent-color: #3b82f6; }
-        .svc-info { flex: 1; min-width: 0; }
-        .svc-info strong { font-size: 0.875rem; color: #1e293b; display: block; }
-        .svc-provider { font-size: 0.775rem; color: #64748b; display: block; }
-        .svc-desc { font-size: 0.8rem; color: #475569; margin-top: 0.2rem; display: block; }
-        .svc-cookies { font-size: 0.72rem; color: #94a3b8; margin-top: 0.2rem; display: block; font-style: italic; }
-        .svc-privacy { font-size: 0.72rem; color: #3b82f6; text-decoration: none; display: inline-block; margin-top: 0.15rem; }
-        .svc-privacy:hover { text-decoration: underline; }
-        .svc-cat-header { display: flex; align-items: center; gap: 0.5rem; margin: 1.5rem 0 0.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; }
-        .svc-cat-header h4 { margin: 0; font-size: 0.95rem; color: #334155; font-weight: 700; }
-        .svc-cat-note { font-size: 0.75rem; color: #64748b; margin-left: auto; }
-        .badge-functional { background: #e0f2fe; color: #0369a1; }
-        .btn-sm { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; padding: 0.35rem 0.75rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 500; }
-        .btn-sm:hover { background: #e2e8f0; }
-        .btn-sm-grey { background: #f8fafc; }
-        .cat-sel { padding: 0.2rem 0.4rem; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.78rem; background: #fff; cursor: pointer; }
-        .svc-stats { display: flex; gap: 1rem; flex-wrap: wrap; }
-        .svc-stat-item { text-align: center; }
-        .svc-stat-num { font-size: 1.5rem; font-weight: 700; color: #3b82f6; display: block; }
-        .svc-stat-label { font-size: 0.75rem; color: #64748b; }
-    </style>
     <script>
         function switchTab(id) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));

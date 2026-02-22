@@ -142,18 +142,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
     <meta charset="UTF-8">
     <title>Font Manager - <?php echo htmlspecialchars(SITE_NAME); ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=202602">
     <?php renderAdminSidebarStyles(); ?>
-    <style>
-        .adm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; }
-        .adm-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
-        .btn-primary { background: #3b82f6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; }
-        .form-group { margin-bottom: 1rem; }
-        .form-group input { width: 100%; padding: 0.625rem; border: 1px solid #cbd5e1; border-radius: 6px; }
-        .status-badge { padding: 0.25rem 0.5rem; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
-        .status-active { background: #dcfce7; color: #166534; }
-        .status-inactive { background: #fee2e2; color: #991b1b; }
-    </style>
 </head>
 <body class="admin-body">
     <?php renderAdminSidebar('fonts-local'); ?>

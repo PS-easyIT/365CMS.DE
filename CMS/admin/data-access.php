@@ -104,18 +104,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
     <meta charset="UTF-8">
     <title>Recht auf Auskunft - <?php echo htmlspecialchars(SITE_NAME); ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=202602">
     <?php renderAdminSidebarStyles(); ?>
-    <style>
-        .adm-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; }
-        .form-group { margin-bottom: 1rem; }
-        .form-group input { width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; }
-        .btn-primary { background: #3b82f6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; }
-        .data-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem; }
-        .data-box { background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; }
-        .data-label { color: #64748b; font-size: 0.85rem; display: block; margin-bottom: 0.25rem; }
-        .data-value { font-weight: 600; color: #1e293b; font-size: 1.1rem; }
-    </style>
 </head>
 <body class="admin-body">
     <?php renderAdminSidebar('data-access'); ?>

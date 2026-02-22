@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Orders Admin Page
  * 
@@ -90,35 +90,6 @@ function getStatusBadge($status) {
 require_once __DIR__ . '/partials/admin-menu.php';
 renderAdminLayoutStart('Bestellungen', 'orders');
 ?>
-<style>
-/* ── Bestellungen (unified with Benutzer & Gruppen) ───────── */
-.posts-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1.5rem;}
-.posts-table{width:100%;border-collapse:collapse;font-size:.875rem;}
-.posts-table th{background:#f8fafc;padding:.6rem .75rem;text-align:left;font-weight:600;color:#374151;border-bottom:2px solid #e2e8f0;white-space:nowrap;}
-.posts-table td{padding:.65rem .75rem;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
-.posts-table tr:hover td{background:#f8fafc;}
-.status-badge{display:inline-flex;align-items:center;padding:.2rem .55rem;border-radius:99px;font-size:.74rem;font-weight:600;}
-.status-success{background:#dcfce7;color:#166534;}
-.status-warning{background:#fef9c3;color:#854d0e;}
-.status-danger{background:#fee2e2;color:#991b1b;}
-.status-info{background:#dbeafe;color:#1e40af;}
-.status-secondary{background:#f1f5f9;color:#475569;}
-.badge-plan{border:1px solid #e2e8f0;color:#475569;background:#f8fafc;padding:.2rem .5rem;border-radius:6px;font-size:.78rem;font-weight:600;}
-.btn-icon{width:30px;height:30px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:5px;border:1px solid #e2e8f0;background:#fff;cursor:pointer;font-size:.85rem;transition:background .14s;}
-.btn-icon:hover{background:#f1f5f9;}
-.btn-sm{padding:.3rem .65rem;font-size:.8rem;border-radius:5px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:.2rem;transition:background .14s;}
-.btn-success-sm{background:#dcfce7;color:#15803d;border:1px solid #86efac;}
-.btn-success-sm:hover{background:#bbf7d0;}
-.btn-danger-sm{background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;}
-.btn-danger-sm:hover{background:#fecaca;}
-.pager{display:flex;gap:.35rem;margin-top:1.25rem;align-items:center;}
-.pager a{padding:.3rem .65rem;background:#fff;border:1px solid #e2e8f0;border-radius:5px;text-decoration:none;color:#374151;font-size:.82rem;transition:background .14s;}
-.pager a:hover{background:#f1f5f9;}
-.pager a.active{background:#2563eb;color:#fff;border-color:#2563eb;}
-.notice{padding:.65rem .9rem;border-radius:7px;margin-bottom:1rem;font-size:.875rem;}
-.notice-success{background:#dcfce7;color:#15803d;border:1px solid #86efac;}
-.notice-error{background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;}
-</style>
 
 <div class="posts-header">
     <h2>🧾 Bestellungen</h2>

@@ -209,38 +209,8 @@ function st_sel(mixed $val, mixed $compare): void {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Site Tables – <?php echo htmlspecialchars(SITE_NAME); ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=202602">
     <?php renderAdminSidebarStyles(); ?>
-    <style>
-        .st-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:2rem;overflow:hidden}
-        .st-card-head{background:#f8fafc;padding:1rem 1.5rem;border-bottom:1px solid #e2e8f0;font-weight:600;color:#1e293b;display:flex;align-items:center;justify-content:space-between}
-        .st-card-body{padding:1.5rem}
-        .st-row{display:grid;grid-template-columns:220px 1fr;gap:2rem;margin-bottom:1.4rem;align-items:start}
-        .st-row>label{font-weight:500;color:#475569;padding-top:.35rem}
-        .st-hint{font-size:.82rem;color:#94a3b8;margin-top:.2rem;display:block}
-        .st-chk-list{display:flex;flex-direction:column;gap:.4rem}
-        .st-chk-list label{display:flex;align-items:center;gap:.5rem;font-weight:normal;padding:0}
-        .st-tabs{display:flex;gap:0;border-bottom:2px solid #e2e8f0;margin-bottom:1.5rem}
-        .st-tab{padding:.6rem 1.2rem;cursor:pointer;border:none;background:none;font-size:.95rem;color:#64748b;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
-        .st-tab.active{color:#2563eb;border-bottom-color:#2563eb;font-weight:600}
-        .st-tab-panel{display:none}.st-tab-panel.active{display:block}
-
-        /* Spreadsheet-like table builder */
-        .sheet-wrap{overflow:auto;border:1px solid #e2e8f0;border-radius:6px;margin-top:1rem}
-        .sheet-table{border-collapse:collapse;width:100%;min-width:600px}
-        .sheet-table th{background:#f1f5f9;padding:.5rem .75rem;text-align:left;font-size:.85rem;border:1px solid #e2e8f0;white-space:nowrap}
-        .sheet-table td{border:1px solid #e2e8f0;padding:0}
-        .sheet-table td input{width:100%;border:none;padding:.45rem .6rem;font-size:.9rem;background:transparent}
-        .sheet-table td input:focus{background:#eff6ff;outline:none}
-        .sheet-table .row-del{background:none;border:none;color:#f87171;cursor:pointer;padding:.3rem .5rem;font-size:.95rem}
-        .sheet-table .col-head input{border:none;background:transparent;width:100%;font-weight:600;padding:.45rem .5rem}
-
-        .st-tables-list{width:100%;border-collapse:collapse}
-        .st-tables-list th{background:#f8fafc;padding:.6rem 1rem;text-align:left;font-size:.85rem;font-weight:600;border-bottom:2px solid #e2e8f0}
-        .st-tables-list td{padding:.7rem 1rem;border-bottom:1px solid #f1f5f9;vertical-align:middle;font-size:.92rem}
-        .st-tables-list tr:hover td{background:#fafafa}
-        .badge-sc{background:#eff6ff;color:#2563eb;font-size:.78rem;padding:.15rem .5rem;border-radius:3px;font-family:monospace}
-    </style>
 </head>
 <body class="admin-body">
 <?php renderAdminSidebar('site-tables'); ?>

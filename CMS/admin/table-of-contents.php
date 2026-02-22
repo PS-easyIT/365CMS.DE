@@ -106,21 +106,8 @@ function toc_sel(mixed $val, mixed $compare): void {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Table of Contents – <?php echo htmlspecialchars(SITE_NAME); ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=202602">
     <?php renderAdminSidebarStyles(); ?>
-    <style>
-        .toc-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:2rem;overflow:hidden}
-        .toc-card-head{background:#f8fafc;padding:1rem 1.5rem;border-bottom:1px solid #e2e8f0;font-weight:600;color:#1e293b;display:flex;align-items:center;gap:.5rem}
-        .toc-card-body{padding:1.5rem}
-        .toc-row{display:grid;grid-template-columns:260px 1fr;gap:2rem;margin-bottom:1.5rem;align-items:start}
-        .toc-row>label{font-weight:500;color:#475569;padding-top:.4rem}
-        .toc-hint{font-size:.82rem;color:#94a3b8;margin-top:.25rem;display:block}
-        .toc-chk-list{display:flex;flex-direction:column;gap:.5rem}
-        .toc-chk-list label{display:flex;align-items:center;gap:.5rem;font-weight:normal;padding:0}
-        .heading-pills{display:flex;flex-wrap:wrap;gap:.75rem}
-        .heading-pills label{background:#f1f5f9;padding:.25rem .75rem;border-radius:4px;cursor:pointer;font-weight:normal}
-        .heading-pills input[type=checkbox]:checked+span{color:#2563eb;font-weight:700}
-    </style>
 </head>
 <body class="admin-body">
 <?php renderAdminSidebar('table-of-contents'); ?>

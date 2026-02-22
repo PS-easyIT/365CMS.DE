@@ -197,51 +197,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SEO Einstellungen - <?php echo htmlspecialchars(SITE_NAME); ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css">
-    <style>
-        /* Specific header overrides for SEO page to match layout */
-        .admin-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            padding: 0;
-            background: transparent;
-            box-shadow: none;
-            position: relative;
-            z-index: 10;
-        }
-
-        .header-content h1 {
-            color: #1e293b;
-            margin: 0;
-            font-size: 1.8rem;
-        }
-        
-        .card-grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        @media (max-width: 768px) {
-            .card-grid-2 { grid-template-columns: 1fr; }
-        }
-        .help-text {
-            display: block;
-            font-size: 0.85rem;
-            color: #64748b;
-            margin-top: 4px;
-        }
-        .code-block {
-            background: #1e293b;
-            color: #e2e8f0;
-            padding: 10px;
-            border-radius: 4px;
-            font-family: monospace;
-            margin: 10px 0;
-            white-space: pre-wrap;
-        }
-    </style>
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=202602">
     <?php renderAdminSidebarStyles(); ?>
 </head>
 <body class="admin-body">
