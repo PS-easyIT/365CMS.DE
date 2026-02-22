@@ -287,9 +287,14 @@ renderAdminLayoutStart('Beiträge', 'posts');
    =============================================================== */
 if ($view === 'categories'): ?>
 
-<div class="posts-header">
-    <h2 style="margin:0;">🏷️ Post-Kategorien</h2>
-    <a href="<?php echo SITE_URL; ?>/admin/posts" class="btn-sm btn-secondary">← Zu Beiträgen</a>
+<div class="admin-page-header">
+    <div>
+        <h2>🏷️ Kategorien</h2>
+        <p><?php echo count($categories); ?> Kategorie<?php echo count($categories) !== 1 ? 'n' : ''; ?> &nbsp;&middot;&nbsp; Beiträge thematisch organisieren</p>
+    </div>
+    <div class="header-actions">
+        <a href="<?php echo SITE_URL; ?>/admin/posts" class="btn btn-secondary">← Zu Beiträgen</a>
+    </div>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;">
 
@@ -299,7 +304,7 @@ if ($view === 'categories'): ?>
         $editCat = $db->get_row("SELECT * FROM {$prefix}post_categories WHERE id=?", [(int)$_GET['cat_id']]);
     }
     ?>
-    <div class="post-card">
+    <div class="admin-card">
         <h3><?php echo $editCat ? '✏️ Kategorie bearbeiten' : '➕ Neue Kategorie'; ?></h3>
         <form method="post" action="<?php echo SITE_URL; ?>/admin/posts?view=categories">
             <input type="hidden" name="_csrf"    value="<?php echo $csrf; ?>">
@@ -318,13 +323,13 @@ if ($view === 'categories'): ?>
                 <textarea name="cat_desc"><?php echo htmlspecialchars($editCat->description ?? '', ENT_QUOTES); ?></textarea>
             </div>
             <div style="display:flex;gap:.5rem;">
-                <button type="submit" class="btn-sm btn-primary btn-lg"><?php echo $editCat ? '💾 Speichern' : '➕ Erstellen'; ?></button>
-                <?php if ($editCat): ?><a href="<?php echo SITE_URL; ?>/admin/posts?view=categories" class="btn-sm btn-secondary btn-lg">Abbrechen</a><?php endif; ?>
+                <button type="submit" class="btn btn-primary"><?php echo $editCat ? '💾 Speichern' : '➕ Erstellen'; ?></button>
+                <?php if ($editCat): ?><a href="<?php echo SITE_URL; ?>/admin/posts?view=categories" class="btn btn-secondary">Abbrechen</a><?php endif; ?>
             </div>
         </form>
     </div>
 
-    <div class="post-card">
+    <div class="admin-card">
         <h3>📋 Alle Kategorien (<?php echo count($categories); ?>)</h3>
         <?php if (empty($categories)): ?>
             <p style="color:#94a3b8;font-size:.875rem;">Noch keine Kategorien vorhanden.</p>
@@ -379,9 +384,22 @@ elseif ($view === 'edit'):
         'published_at'     => $post->published_at      ?? '',
     ];
 ?>
-<div class="posts-header">
-    <h2 style="margin:0;"><?php echo $isNew ? '➕ Neuer Beitrag' : '✏️ Beitrag bearbeiten'; ?></h2>
-    <a href="<?php echo SITE_URL; ?>/admin/posts" class="btn-sm btn-secondary">← Alle Beiträge</a>
+<div class="admin-page-header">
+    <div>
+        <h2><?php echo $isNew ? '➕ Neuer Beitrag' : '✏️ Beitrag bearbeiten'; ?></h2>
+        <?php if (!$isNew): ?>
+        <p>ID #<?php echo (int)$pd['id']; ?> &nbsp;&middot;&nbsp; /blog/<?php echo htmlspecialchars($pd['slug'], ENT_QUOTES); ?></p>
+        <?php else: ?>
+        <p>Neuen Blog-Beitrag erstellen und veröffentlichen</p>
+        <?php endif; ?>
+    </div>
+    <div class="header-actions">
+        <?php if (!$isNew): ?>
+        <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($pd['slug']); ?>" target="_blank" class="btn btn-secondary">👁️ Vorschau</a>
+        <?php endif; ?>
+        <a href="<?php echo SITE_URL; ?>/admin/posts" class="btn btn-outline">← Alle Beiträge</a>
+        <button type="submit" form="postEditForm" class="btn btn-primary">💾 <?php echo $isNew ? 'Erstellen' : 'Speichern'; ?></button>
+    </div>
 </div>
 
 <form method="post"
@@ -396,7 +414,8 @@ elseif ($view === 'edit'):
         <!-- Haupt-Spalte -->
         <div class="post-edit-main">
 
-            <div class="post-card">
+            <div class="admin-card">
+                <h3>📝 Titel &amp; Permalink</h3>
                 <div class="field-group" style="margin-bottom:.7rem;">
                     <label for="post_title">Titel *</label>
                     <input type="text" id="post_title" name="post_title"
@@ -414,19 +433,19 @@ elseif ($view === 'edit'):
                 </div>
             </div>
 
-            <div class="post-card" style="padding:0;overflow:hidden;">
-                <div style="padding:.65rem 1.1rem;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-size:.85rem;font-weight:700;color:#374151;">📝 Inhalt</div>
+            <div class="admin-card">
+                <h3>✏️ Inhalt</h3>
                 <textarea id="post_content" name="post_content" style="display:none;"><?php echo htmlspecialchars($pd['content'], ENT_QUOTES); ?></textarea>
                 <div id="suneditorWrap"></div>
             </div>
 
-            <div class="post-card">
+            <div class="admin-card">
                 <h3>📄 Auszug (Teaser)</h3>
                 <textarea name="post_excerpt" rows="3" placeholder="Kurze Zusammenfassung – max. 300 Zeichen…"><?php echo htmlspecialchars($pd['excerpt'], ENT_QUOTES); ?></textarea>
                 <div class="field-hint">Wird in Beitragsübersichten verwendet.</div>
             </div>
 
-            <div class="post-card">
+            <div class="admin-card">
                 <h3>🔍 SEO</h3>
                 <div class="field-group">
                     <label>Meta-Titel <span style="font-weight:400;color:#94a3b8;">(leer = Beitragstitel)</span></label>
@@ -443,8 +462,8 @@ elseif ($view === 'edit'):
         <!-- Seiten-Spalte -->
         <div class="post-edit-side">
 
-            <div class="post-card">
-                <h3>📋 Status & Sichtbarkeit</h3>
+            <div class="admin-card">
+                <h3>📋 Status &amp; Sichtbarkeit</h3>
                 <div class="field-group">
                     <label>Status</label>
                     <select name="post_status" id="post_status" onchange="togglePublishedAt(this.value)">
@@ -458,18 +477,15 @@ elseif ($view === 'edit'):
                     <input type="datetime-local" name="published_at"
                            value="<?php echo $pd['published_at'] ? date('Y-m-d\TH:i', strtotime($pd['published_at'])) : date('Y-m-d\TH:i'); ?>">
                 </div>
-                <div style="display:flex;flex-direction:column;gap:.45rem;margin-top:.9rem;">
-                    <button type="submit" class="btn-sm btn-primary btn-lg">💾 Speichern</button>
-                    <?php if (!$isNew): ?>
-                    <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($pd['slug']); ?>" target="_blank"
-                       class="btn-sm btn-secondary" style="text-align:center;">👁️ Vorschau</a>
-                    <button type="submit" form="deletePostForm" class="btn-sm btn-danger" style="width:100%;">🗑️ In Papierkorb</button>
-                    <?php endif; ?>
+                <?php if (!$isNew): ?>
+                <div style="margin-top:.9rem;">
+                    <button type="submit" form="deletePostForm" class="btn btn-danger" style="width:100%;">🗑️ In Papierkorb</button>
                 </div>
+                <?php endif; ?>
             </div>
 
-            <div class="post-card">
-                <h3>🏷️ Kategorie & Tags</h3>
+            <div class="admin-card">
+                <h3>🏷️ Kategorie &amp; Tags</h3>
                 <div class="field-group">
                     <label>Kategorie</label>
                     <select name="post_category">
@@ -488,7 +504,7 @@ elseif ($view === 'edit'):
                 </div>
             </div>
 
-            <div class="post-card">
+            <div class="admin-card">
                 <h3>🖼️ Beitragsbild</h3>
                 <div id="featImgWrap">
                     <?php if (!empty($pd['featured_image'])): ?>
@@ -512,7 +528,7 @@ elseif ($view === 'edit'):
                 </div>
             </div>
 
-            <div class="post-card">
+            <div class="admin-card">
                 <h3>💬 Kommentare</h3>
                 <label style="display:flex;align-items:center;gap:.5rem;font-size:.875rem;cursor:pointer;">
                     <input type="checkbox" name="allow_comments" value="1" <?php echo $pd['allow_comments'] ? 'checked' : ''; ?>>
@@ -522,6 +538,7 @@ elseif ($view === 'edit'):
 
         </div><!-- /.post-edit-side -->
     </div><!-- /.post-edit-layout -->
+
 </form>
 
 <?php if (!$isNew): ?>
@@ -577,19 +594,22 @@ else: // view === 'list'
         ));
 ?>
 
-<div class="posts-header">
-    <h2 style="margin:0;">✏️ Beiträge</h2>
-    <div style="display:flex;gap:.5rem;">
-        <a href="<?php echo SITE_URL; ?>/admin/posts?view=categories" class="btn-sm btn-secondary">🏷️ Kategorien</a>
-        <a href="<?php echo SITE_URL; ?>/admin/posts?view=edit" class="btn-sm btn-primary">➕ Neuer Beitrag</a>
+<div class="admin-page-header">
+    <div>
+        <h2>✍️ Beiträge</h2>
+        <p><?php echo $total; ?> Beitrag<?php echo $total !== 1 ? 'e' : ''; ?><?php echo $search ? ' für &bdquo;'.htmlspecialchars($search,ENT_QUOTES).'&ldquo;' : ''; ?> &nbsp;&middot;&nbsp; Blog &amp; News verwalten</p>
+    </div>
+    <div class="header-actions">
+        <a href="<?php echo SITE_URL; ?>/admin/posts?view=categories" class="btn btn-secondary">🏷️ Kategorien</a>
+        <a href="<?php echo SITE_URL; ?>/admin/posts?view=edit" class="btn btn-primary">➕ Neuer Beitrag</a>
     </div>
 </div>
 
-<div class="posts-tabs">
-    <?php foreach (['all'=>'Alle','published'=>'Veröffentlicht','draft'=>'Entwürfe','trash'=>'Papierkorb'] as $s=>$label): ?>
+<div class="tabs">
+    <?php foreach (['all'=>['Alle','📄'],'published'=>['Veröffentlicht','✅'],'draft'=>['Entwürfe','📝'],'trash'=>['Papierkorb','🗑️']] as $s=>[$label,$icon]): ?>
     <a href="<?php echo SITE_URL; ?>/admin/posts?status=<?php echo $s; ?><?php echo $search?'&search='.urlencode($search):''; ?>"
-       class="posts-tab <?php echo $status===$s?'active':''; ?>">
-        <?php echo $label; ?><span class="badge"><?php echo $counts[$s]; ?></span>
+       class="tab-btn <?php echo $status===$s?'active':''; ?>">
+        <?php echo $icon; ?> <?php echo $label; ?> <span class="badge" style="margin-left:.35rem;"><?php echo $counts[$s]; ?></span>
     </a>
     <?php endforeach; ?>
 </div>
@@ -624,17 +644,17 @@ else: // view === 'list'
     </div>
 
     <?php if (empty($posts)): ?>
-    <div class="post-card" style="text-align:center;padding:3rem;color:#94a3b8;">
-        <div style="font-size:3rem;margin-bottom:1rem;">📭</div>
+    <div class="admin-card" style="text-align:center;padding:3rem;color:#94a3b8;">
+        <div style="font-size:3rem;margin-bottom:1rem;">📝</div>
         <p style="font-size:.9225rem;">
             <?php echo $search ? 'Keine Treffer für <strong>'.htmlspecialchars($search,ENT_QUOTES).'</strong>' : 'Noch keine Beiträge.'; ?>
         </p>
         <?php if (!$search): ?>
-        <a href="<?php echo SITE_URL; ?>/admin/posts?view=edit" class="btn-sm btn-primary btn-lg" style="margin-top:.75rem;display:inline-flex;">➕ Ersten Beitrag erstellen</a>
+        <a href="<?php echo SITE_URL; ?>/admin/posts?view=edit" class="btn btn-primary" style="margin-top:.75rem;display:inline-flex;">➕ Ersten Beitrag erstellen</a>
         <?php endif; ?>
     </div>
     <?php else: ?>
-    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:auto;">
+    <div class="admin-card" style="padding:0;overflow:hidden;">
         <table class="posts-table">
             <thead><tr>
                 <th class="col-check"><input type="checkbox" onchange="document.querySelectorAll('#bulkForm input[name=\'bulk_ids[]\']').forEach(c=>c.checked=this.checked)"></th>

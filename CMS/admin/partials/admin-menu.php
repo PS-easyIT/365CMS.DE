@@ -636,7 +636,7 @@ function getAdminMenuItems(string $currentPage = ''): array
 function renderAdminSidebarStyles(): void
 {
     ?>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin-sidebar.css?v=202602">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin-sidebar.css?v=20260222">
     <?php
     if (class_exists('\CMS\Services\EditorService')) {
         \CMS\Services\EditorService::getInstance()->enqueueEditorAssets();
@@ -655,11 +655,9 @@ function renderAdminSidebar(string $currentPage = ''): void
     <div class="admin-sidebar">
         <div class="admin-sidebar-header">
             <a href="<?= SITE_URL ?>/admin" class="admin-sidebar-logo">
-                <span class="logo-icon">🛠️</span>
-                <span class="logo-text">
-                    <span class="logo-title"><?= htmlspecialchars(SITE_NAME) ?></span>
-                    <span class="logo-subtitle">Administration</span>
-                </span>
+                <img src="<?= SITE_URL ?>/assets/images/365CMS-DASHBOARD-Admin-100px.png"
+                     alt="<?= htmlspecialchars(SITE_NAME) ?> Admin"
+                     class="sidebar-logo-img">
             </a>
         </div>
 
@@ -753,7 +751,7 @@ function renderAdminLayoutStart(string $title, string $activeSlug = ''): void
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title><?php echo htmlspecialchars($title); ?> – <?php echo htmlspecialchars(SITE_NAME); ?></title>
         <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-        <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin-sidebar.css?v=202602">
+        <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin-sidebar.css?v=20260222">
         <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=202602">
         <?php 
         if (class_exists('CMS\Hooks')) {

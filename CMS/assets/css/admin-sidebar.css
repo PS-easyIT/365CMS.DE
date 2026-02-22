@@ -31,7 +31,7 @@
 :root {
     /* Sidebar dimensions */
     --sidebar-width:            260px;
-    --sidebar-logo-h:           66px;
+    --sidebar-logo-h:           114px;
 
     /* Background layers */
     --sidebar-bg:               #0c1526;
@@ -100,13 +100,35 @@
     height: var(--sidebar-logo-h);
     display: flex;
     align-items: center;
-    padding: 0 1rem;
-    border-bottom: 1px solid var(--sidebar-border);
+    justify-content: center;
+    padding: 7px 1rem;
+    border-bottom: none;
     flex-shrink: 0;
     background: linear-gradient(
         135deg,
         #0c1526 0%,
         #111e34 100%
+    );
+    /* Dezente Trennlinie als Box-Shadow nach unten */
+    box-shadow: 0 1px 0 var(--sidebar-border),
+                0 2px 6px rgba(0, 0, 0, .35);
+    position: relative;
+}
+
+/* Linie zwischen Header und Navigation */
+.admin-sidebar-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px;
+    right: 16px;
+    height: 1px;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        var(--sidebar-accent) 30%,
+        rgba(59,130,246,.35) 70%,
+        transparent 100%
     );
 }
 
@@ -202,16 +224,26 @@
     box-shadow: 0 3px 12px rgba(96, 165, 250, 0.5);
 }
 
+/* Logo-Bild (ersetzt Text-/Icon-Variante) */
+.sidebar-logo-img {
+    max-height: 100px;
+    width: auto;
+    display: block;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,.45));
+}
 
-/* ═══════════════════════════════════════════════════════
-   NAVIGATION WRAPPER
-   ═══════════════════════════════════════════════════════ */
+.admin-sidebar-logo:has(.sidebar-logo-img) {
+    justify-content: center;
+    width: 100%;
+}
 
+/* Abstand zwischen Header-Ende und erstem Nav-Item */
 .admin-nav {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 0.4rem 0.45rem 0;
+    padding: 0.75rem 0.45rem 0;
     display: flex;
     flex-direction: column;
     gap: 0.04rem;

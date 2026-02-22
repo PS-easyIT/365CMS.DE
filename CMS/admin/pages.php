@@ -160,9 +160,22 @@ if ($action === 'new' || $action === 'edit'):
     $hasCustomSlug = $isEdit && !empty($pData['slug']);
 ?>
 
-<div class="posts-header">
-    <h2 style="margin:0;"><?php echo $isEdit ? '✏️ Seite bearbeiten' : '➕ Neue Seite'; ?></h2>
-    <a href="<?php echo SITE_URL; ?>/admin/pages" class="btn-sm btn-secondary">← Alle Seiten</a>
+<div class="admin-page-header">
+    <div>
+        <h2><?php echo $isEdit ? '✏️ Seite bearbeiten' : '➕ Neue Seite'; ?></h2>
+        <?php if ($isEdit): ?>
+        <p>ID #<?php echo (int)$pData['id']; ?> &nbsp;&middot;&nbsp; /<?php echo htmlspecialchars($pData['slug'], ENT_QUOTES, 'UTF-8'); ?></p>
+        <?php else: ?>
+        <p>Neue statische Seite anlegen und veröffentlichen</p>
+        <?php endif; ?>
+    </div>
+    <div class="header-actions">
+        <?php if ($isEdit): ?>
+        <a href="<?php echo SITE_URL; ?>/<?php echo htmlspecialchars($pData['slug'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" class="btn btn-secondary">👁️ Vorschau</a>
+        <?php endif; ?>
+        <a href="<?php echo SITE_URL; ?>/admin/pages" class="btn btn-outline">← Alle Seiten</a>
+        <button type="submit" form="pageEditorForm" class="btn btn-primary">💾 <?php echo $isEdit ? 'Aktualisieren' : 'Erstellen'; ?></button>
+    </div>
 </div>
 
 <form method="post"
@@ -180,7 +193,8 @@ if ($action === 'new' || $action === 'edit'):
         <!-- Haupt-Spalte -->
         <div class="post-edit-main">
 
-            <div class="post-card">
+            <div class="admin-card">
+                <h3>📄 Titel &amp; Permalink</h3>
                 <div class="field-group" style="margin-bottom:.7rem;">
                     <label for="page_title">Titel *</label>
                     <input type="text"
@@ -212,11 +226,9 @@ if ($action === 'new' || $action === 'edit'):
                 </div>
             </div>
 
-            <div class="post-card" style="padding:0;overflow:hidden;">
-                <div style="padding:.65rem 1.1rem;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-size:.85rem;font-weight:700;color:#374151;">📝 Inhalt</div>
-                <div style="padding:1rem;">
-                    <?php echo EditorService::getInstance()->render('page_content', $pContent, ['height' => 480]); ?>
-                </div>
+            <div class="admin-card">
+                <h3>📝 Inhalt</h3>
+                <?php echo EditorService::getInstance()->render('page_content', $pContent, ['height' => 480]); ?>
             </div>
 
         </div><!-- /.post-edit-main -->
@@ -224,8 +236,8 @@ if ($action === 'new' || $action === 'edit'):
         <!-- Seiten-Spalte -->
         <div class="post-edit-side">
 
-            <div class="post-card">
-                <h3>📋 Status & Sichtbarkeit</h3>
+            <div class="admin-card">
+                <h3>📋 Status &amp; Sichtbarkeit</h3>
                 <div class="field-group" style="margin-bottom:.9rem;">
                     <label>Status</label>
                     <select name="page_status" id="page_status">
@@ -247,22 +259,18 @@ if ($action === 'new' || $action === 'edit'):
                     <span>Geändert: <?php echo date('d.m.Y H:i', strtotime($pData['updated_at'])); ?></span>
                     <span>ID: #<?php echo (int)$pData['id']; ?></span>
                 </div>
-                <?php endif; ?>
-                <div style="display:flex;flex-direction:column;gap:.45rem;margin-top:.9rem;">
-                    <button type="submit" class="btn-sm btn-primary btn-lg">💾 <?php echo $isEdit ? 'Aktualisieren' : 'Erstellen'; ?></button>
-                    <?php if ($isEdit): ?>
-                    <a href="<?php echo SITE_URL; ?>/<?php echo htmlspecialchars($pData['slug'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank"
-                       class="btn-sm btn-secondary" style="text-align:center;">👁️ Vorschau</a>
+                <div style="margin-top:.9rem;">
                     <button type="submit" form="deletePageForm"
-                            class="btn-sm btn-danger"
+                            class="btn btn-danger"
                             onclick="return confirm('Seite wirklich löschen?')"
                             style="width:100%;">🗑️ Seite löschen</button>
-                    <?php endif; ?>
                 </div>
+                <?php endif; ?>
             </div>
 
         </div><!-- /.post-edit-side -->
     </div><!-- /.post-edit-layout -->
+
 </form>
 
 <?php if ($isEdit): ?>
@@ -288,28 +296,33 @@ else:
         : array_values(array_filter($pages, fn($pg) => $pg['status'] === $filterStatus));
 ?>
 
-<div class="posts-header">
-    <h2 style="margin:0;">📄 Seiten</h2>
-    <a href="<?php echo SITE_URL; ?>/admin/pages?action=new" class="btn-sm btn-primary">➕ Neue Seite</a>
+<div class="admin-page-header">
+    <div>
+        <h2>📄 Seiten</h2>
+        <p><?php echo count($filteredPages); ?> Seite<?php echo count($filteredPages) !== 1 ? 'n' : ''; ?> &nbsp;&middot;&nbsp; Statische Inhalte der Website</p>
+    </div>
+    <div class="header-actions">
+        <a href="<?php echo SITE_URL; ?>/admin/pages?action=new" class="btn btn-primary">➕ Neue Seite</a>
+    </div>
 </div>
 
-<div class="posts-tabs">
-    <?php foreach (['all' => 'Alle', 'published' => 'Veröffentlicht', 'draft' => 'Entwürfe', 'private' => 'Privat'] as $s => $label): ?>
+<div class="tabs">
+    <?php foreach (['all' => ['Alle', '📄'], 'published' => ['Veröffentlicht', '✅'], 'draft' => ['Entwürfe', '📝'], 'private' => ['Privat', '🔒']] as $s => [$label, $icon]): ?>
     <a href="<?php echo SITE_URL; ?>/admin/pages?status=<?php echo $s; ?>"
-       class="posts-tab <?php echo $filterStatus === $s ? 'active' : ''; ?>">
-        <?php echo $label; ?><span class="badge"><?php echo $counts[$s] ?? 0; ?></span>
+       class="tab-btn <?php echo $filterStatus === $s ? 'active' : ''; ?>">
+        <?php echo $icon; ?> <?php echo $label; ?> <span class="badge" style="margin-left:.35rem;"><?php echo $counts[$s] ?? 0; ?></span>
     </a>
     <?php endforeach; ?>
 </div>
 
 <?php if (empty($filteredPages)): ?>
-<div class="post-card" style="text-align:center;padding:3rem;color:#94a3b8;">
+<div class="admin-card" style="text-align:center;padding:3rem;color:#94a3b8;">
     <div style="font-size:3rem;margin-bottom:1rem;">📄</div>
     <p>Noch keine Seiten vorhanden.</p>
-    <a href="<?php echo SITE_URL; ?>/admin/pages?action=new" class="btn-sm btn-primary btn-lg" style="margin-top:.75rem;display:inline-flex;">➕ Erste Seite erstellen</a>
+    <a href="<?php echo SITE_URL; ?>/admin/pages?action=new" class="btn btn-primary" style="margin-top:.75rem;display:inline-flex;">➕ Erste Seite erstellen</a>
 </div>
 <?php else: ?>
-<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:auto;">
+<div class="admin-card" style="padding:0;overflow:hidden;">
     <table class="posts-table">
         <thead><tr>
             <th>Titel</th>

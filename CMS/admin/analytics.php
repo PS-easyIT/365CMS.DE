@@ -511,8 +511,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     </div>
                 </div>
 
-                <div class="admin-card" style="margin-top: 2rem;">
-                    <h3 style="margin-bottom: 1.5rem;">Prüfbericht</h3>
+                <div class="admin-card">
+                    <h3>Prüfbericht</h3>
                     <div class="page-list">
                         <?php foreach ($checks as $check): ?>
                             <div class="page-item">

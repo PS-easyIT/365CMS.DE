@@ -171,7 +171,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Landing Page – <?php echo htmlspecialchars(SITE_NAME); ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=202602">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222">
     <?php renderAdminSidebarStyles(); ?>
 </head>
 <body class="admin-body">
@@ -182,18 +182,31 @@ require_once __DIR__ . '/partials/admin-menu.php';
 
         <!-- Page Header -->
         <div class="admin-page-header">
-            <h2><?php
-                $sectionLabels = [
-                    'header'   => '🔝 Header',
-                    'content'  => '📋 Content',
-                    'footer'   => '🔚 Footer',
-                    'design'   => '🎨 Design',
-                    'plugins'  => '🔌 Plugins',
-                    'settings' => '⚙️ Einstellungen',
-                ];
-                echo 'Landing Page – ' . ($sectionLabels[$activeSection] ?? 'Landing Page');
-            ?></h2>
+            <h2>🖥️ Landing Page</h2>
+            <p>Gestalte die &ouml;ffentliche Startseite deines CMS</p>
         </div>
+
+        <!-- Section Navigation -->
+        <nav class="lp-section-nav">
+            <a href="?section=header" class="lp-section-nav__item <?php echo $activeSection === 'header'   ? 'active' : ''; ?>">
+                <span class="lp-section-nav__icon">🔝</span> Header
+            </a>
+            <a href="?section=content" class="lp-section-nav__item <?php echo $activeSection === 'content'  ? 'active' : ''; ?>">
+                <span class="lp-section-nav__icon">📋</span> Content
+            </a>
+            <a href="?section=footer" class="lp-section-nav__item <?php echo $activeSection === 'footer'   ? 'active' : ''; ?>">
+                <span class="lp-section-nav__icon">🔚</span> Footer
+            </a>
+            <a href="?section=design" class="lp-section-nav__item <?php echo $activeSection === 'design'   ? 'active' : ''; ?>">
+                <span class="lp-section-nav__icon">🎨</span> Design
+            </a>
+            <a href="?section=plugins" class="lp-section-nav__item <?php echo $activeSection === 'plugins'  ? 'active' : ''; ?>">
+                <span class="lp-section-nav__icon">🔌</span> Plugins
+            </a>
+            <a href="?section=settings" class="lp-section-nav__item <?php echo $activeSection === 'settings' ? 'active' : ''; ?>">
+                <span class="lp-section-nav__icon">⚙️</span> Einstellungen
+            </a>
+        </nav>
 
         <!-- Messages -->
         <?php if (isset($success)): ?>
@@ -347,8 +360,11 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     </div>
                 </div>
 
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">💾 Header speichern</button>
+                <div class="lp-card form-actions-card">
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">💾 Header speichern</button>
+                        <span class="form-actions__hint">Alle Abschnitte werden gemeinsam gespeichert</span>
+                    </div>
                 </div>
             </form>
 
@@ -479,55 +495,70 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 <input type="hidden" name="landing_action" value="update_footer">
                 <input type="hidden" name="csrf_token"     value="<?php echo $csrfToken; ?>">
 
-                <div class="lp-card">
-                    <h4>👁️ Sichtbarkeit</h4>
-                    <label class="checkbox-label" style="display:flex;align-items:center;gap:.5rem;cursor:pointer;">
-                        <input type="checkbox" name="show_footer" value="1"
-                               <?php echo ($landingFooter['show_footer'] ?? true) ? 'checked' : ''; ?>>
-                        <strong>Footer-Bereich anzeigen</strong>
-                    </label>
-                </div>
-
-                <div class="lp-card">
-                    <h4>📄 Inhalt</h4>
-                    <div class="form-group">
-                        <label class="form-label">Text unterhalb der Content-Sektion</label>
-                        <textarea name="footer_content" id="footer_content" class="form-control" rows="5"><?php echo htmlspecialchars($landingFooter['content'] ?? ''); ?></textarea>
-                        <small class="text-muted">HTML ist erlaubt.</small>
-                    </div>
-                </div>
-
-                <div class="lp-card">
-                    <h4>🔘 Call-to-Action Button</h4>
-                    <p class="text-muted" style="font-size:.875rem;margin-bottom:1rem;">Felder leer lassen = Button ausblenden.</p>
-                    <div class="lp-form-row">
-                        <div class="form-group">
-                            <label class="form-label" for="footer_button_text">Button Text</label>
-                            <input type="text" name="footer_button_text" id="footer_button_text" class="form-control"
-                                   value="<?php echo htmlspecialchars($landingFooter['button_text'] ?? ''); ?>"
-                                   placeholder="z.B. Jetzt registrieren">
+                <!-- Row 1: Visibility + Copyright nebeneinander -->
+                <div class="lp-card-row">
+                    <div class="lp-card">
+                        <h4>👁️ Sichtbarkeit</h4>
+                        <div style="padding:1.25rem 1.5rem;">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="show_footer" value="1"
+                                       <?php echo ($landingFooter['show_footer'] ?? true) ? 'checked' : ''; ?>>
+                                <strong>Footer-Bereich anzeigen</strong>
+                            </label>
+                            <p class="text-muted" style="font-size:.8rem;margin:.6rem 0 0 1.5rem;">Wenn deaktiviert, wird der gesamte Footer-Bereich der Landing Page ausgeblendet.</p>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label" for="footer_button_url">Button URL</label>
-                            <input type="text" name="footer_button_url" id="footer_button_url" class="form-control"
-                                   value="<?php echo htmlspecialchars($landingFooter['button_url'] ?? ''); ?>"
-                                   placeholder="/register oder https://...">
+                    </div>
+
+                    <div class="lp-card">
+                        <h4>©️ Copyright</h4>
+                        <div style="padding:1.25rem 1.5rem;">
+                            <div class="form-group" style="margin:0;">
+                                <label class="form-label" for="footer_copyright">Copyright-Zeile (ganz unten)</label>
+                                <input type="text" name="footer_copyright" id="footer_copyright" class="form-control"
+                                       value="<?php echo htmlspecialchars($landingFooter['copyright'] ?? ''); ?>"
+                                       placeholder="© 2026 Mein Projekt. Alle Rechte vorbehalten.">
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="lp-card">
-                    <h4>©️ Copyright</h4>
-                    <div class="form-group">
-                        <label class="form-label" for="footer_copyright">Copyright-Zeile (ganz unten)</label>
-                        <input type="text" name="footer_copyright" id="footer_copyright" class="form-control"
-                               value="<?php echo htmlspecialchars($landingFooter['copyright'] ?? ''); ?>"
-                               placeholder="© 2026 Mein Projekt. Alle Rechte vorbehalten.">
+                <!-- Row 2: Content + CTA-Button nebeneinander -->
+                <div class="lp-card-row">
+                    <div class="lp-card">
+                        <h4>📄 Inhalt</h4>
+                        <div style="padding:1.25rem 1.5rem;">
+                            <div class="form-group" style="margin:0;">
+                                <label class="form-label">Text unterhalb der Content-Sektion</label>
+                                <textarea name="footer_content" id="footer_content" class="form-control" rows="5"><?php echo htmlspecialchars($landingFooter['content'] ?? ''); ?></textarea>
+                                <small class="text-muted">HTML ist erlaubt.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lp-card">
+                        <h4>🔘 Call-to-Action Button</h4>
+                        <div style="padding:1.25rem 1.5rem;">
+                            <p class="text-muted" style="font-size:.82rem;margin:0 0 1rem;">Felder leer lassen = Button ausblenden.</p>
+                            <div class="form-group">
+                                <label class="form-label" for="footer_button_text">Button Text</label>
+                                <input type="text" name="footer_button_text" id="footer_button_text" class="form-control"
+                                       value="<?php echo htmlspecialchars($landingFooter['button_text'] ?? ''); ?>"
+                                       placeholder="z.B. Jetzt registrieren">
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label class="form-label" for="footer_button_url">Button URL</label>
+                                <input type="text" name="footer_button_url" id="footer_button_url" class="form-control"
+                                       value="<?php echo htmlspecialchars($landingFooter['button_url'] ?? ''); ?>"
+                                       placeholder="/register oder https://...">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">💾 Footer speichern</button>
+                <div class="lp-card form-actions-card">
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">💾 Footer speichern</button>
+                    </div>
                 </div>
             </form>
 
@@ -583,7 +614,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         </div>
                     </div>
 
-                    <div style="display:flex;gap:1rem;margin-top:1.5rem;">
+                    <div class="form-actions" style="padding:1rem 1.5rem;border-top:1px solid #f1f5f9;margin-top:1rem;border-radius:0 0 9px 9px;background:#f8fafc;">
                         <button type="submit" class="btn btn-primary">💾 Farben speichern</button>
                         <button type="button" onclick="resetColors()" class="btn btn-secondary">🔄 Zurücksetzen</button>
                     </div>
@@ -757,8 +788,10 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     </div>
                 </div>
 
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">&#128190; Design speichern</button>
+                <div class="lp-card form-actions-card">
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">&#128190; Design speichern</button>
+                    </div>
                 </div>
             </form>
 
@@ -794,54 +827,56 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 <input type="hidden" name="landing_action" value="update_settings">
                 <input type="hidden" name="csrf_token"     value="<?php echo $csrfToken; ?>">
 
-
-                <div class="lp-card">
-                    <h4>🔦 Sichtbarkeit der Bereiche</h4>
-                    <p class="text-muted" style="font-size:.875rem;margin-bottom:1rem;">Welche Bereiche sollen auf der Landing Page angezeigt werden?</p>
-                    <div style="display:flex;flex-direction:column;gap:.6rem;">
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="show_header" value="1"
-                                   <?php echo ($landingSettings['show_header'] ?? true) ? 'checked' : ''; ?>>
-                            <strong>Header</strong> – Hero-Bereich mit Titel und Buttons
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="show_content" value="1"
-                                   <?php echo ($landingSettings['show_content'] ?? true) ? 'checked' : ''; ?>>
-                            <strong>Content</strong> – Feature Grid, freier Text oder letzte Beitr&auml;ge
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="show_footer_section" value="1"
-                                   <?php echo ($landingSettings['show_footer_section'] ?? true) ? 'checked' : ''; ?>>
-                            <strong>Footer</strong> – CTA-Bereich und Copyright
-                        </label>
-                    </div>
-                </div>
-
-
-                <div class="lp-card">
-                    <h4>&#128279; URL &amp; Erreichbarkeit</h4>
-                    <div class="lp-form-row">
-                        <div class="form-group">
-                            <label class="form-label" for="landing_slug">URL-Slug der Landing Page</label>
-                            <input type="text" id="landing_slug" name="landing_slug" class="form-control"
-                                   value="<?php echo htmlspecialchars($landingSettings['landing_slug'] ?? ''); ?>"
-                                   placeholder="/ (Root) oder /start">
-                            <small class="text-muted">Leer oder / = Startseite des CMS.</small>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Wartungsmodus</label>
-                            <label class="checkbox-label" style="margin-top:.5rem;display:flex;align-items:center;gap:.5rem;">
-                                <input type="checkbox" name="maintenance_mode" value="1"
-                                       <?php echo !empty($landingSettings['maintenance_mode']) ? 'checked' : ''; ?>>
-                                Landing Page in Wartungsmodus setzen
+                <div class="lp-card-row">
+                    <div class="lp-card">
+                        <h4>🔦 Sichtbarkeit der Bereiche</h4>
+                        <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:.5rem;">
+                            <p class="text-muted" style="font-size:.82rem;margin:0 0 .5rem;">Welche Bereiche sollen auf der Landing Page angezeigt werden?</p>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="show_header" value="1"
+                                       <?php echo ($landingSettings['show_header'] ?? true) ? 'checked' : ''; ?>>
+                                <span><strong>Header</strong> – Hero-Bereich mit Titel und Buttons</span>
                             </label>
-                            <small class="text-muted">Nicht-eingeloggte Besucher sehen eine Wartungsseite.</small>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="show_content" value="1"
+                                       <?php echo ($landingSettings['show_content'] ?? true) ? 'checked' : ''; ?>>
+                                <span><strong>Content</strong> – Feature Grid, freier Text oder letzte Beitr&auml;ge</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="show_footer_section" value="1"
+                                       <?php echo ($landingSettings['show_footer_section'] ?? true) ? 'checked' : ''; ?>>
+                                <span><strong>Footer</strong> – CTA-Bereich und Copyright</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="lp-card">
+                        <h4>&#128279; URL &amp; Erreichbarkeit</h4>
+                        <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:1rem;">
+                            <div class="form-group" style="margin:0;">
+                                <label class="form-label" for="landing_slug">URL-Slug der Landing Page</label>
+                                <input type="text" id="landing_slug" name="landing_slug" class="form-control"
+                                       value="<?php echo htmlspecialchars($landingSettings['landing_slug'] ?? ''); ?>"
+                                       placeholder="/ (Root) oder /start">
+                                <small class="text-muted">Leer oder / = Startseite des CMS.</small>
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label class="form-label">Wartungsmodus</label>
+                                <label class="checkbox-label" style="margin-top:.3rem;">
+                                    <input type="checkbox" name="maintenance_mode" value="1"
+                                           <?php echo !empty($landingSettings['maintenance_mode']) ? 'checked' : ''; ?>>
+                                    Landing Page in Wartungsmodus setzen
+                                </label>
+                                <small class="text-muted">Nicht-eingeloggte Besucher sehen eine Wartungsseite.</small>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">💾 Einstellungen speichern</button>
+                <div class="lp-card form-actions-card">
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">💾 Einstellungen speichern</button>
+                    </div>
                 </div>
             </form>
 

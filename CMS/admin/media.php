@@ -112,14 +112,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
             case 'save_settings':
                 $settings = [
-                    'max_upload_size' => $_POST['max_upload_size'] ?? '64M',
-                    'allowed_types' => $_POST['allowed_types'] ?? [],
-                    'auto_webp' => isset($_POST['auto_webp']),
-                    'strip_exif' => isset($_POST['strip_exif']),
-                    'max_width' => (int)($_POST['max_width'] ?? 2560),
-                    'max_height' => (int)($_POST['max_height'] ?? 2560),
-                    'organize_month_year' => isset($_POST['organize_month_year']),
-                    'member_uploads_enabled' => isset($_POST['member_uploads_enabled'])
+                    // Upload
+                    'max_upload_size'          => $_POST['max_upload_size'] ?? '64M',
+                    'allowed_types'            => $_POST['allowed_types'] ?? [],
+                    // Image processing
+                    'auto_webp'                => isset($_POST['auto_webp']),
+                    'strip_exif'               => isset($_POST['strip_exif']),
+                    'jpeg_quality'             => (int)($_POST['jpeg_quality'] ?? 85),
+                    'max_width'                => (int)($_POST['max_width'] ?? 2560),
+                    'max_height'               => (int)($_POST['max_height'] ?? 2560),
+                    // Thumbnails
+                    'generate_thumbnails'      => isset($_POST['generate_thumbnails']),
+                    'thumb_small_w'            => (int)($_POST['thumb_small_w'] ?? 150),
+                    'thumb_small_h'            => (int)($_POST['thumb_small_h'] ?? 150),
+                    'thumb_medium_w'           => (int)($_POST['thumb_medium_w'] ?? 300),
+                    'thumb_medium_h'           => (int)($_POST['thumb_medium_h'] ?? 300),
+                    'thumb_large_w'            => (int)($_POST['thumb_large_w'] ?? 1024),
+                    'thumb_large_h'            => (int)($_POST['thumb_large_h'] ?? 1024),
+                    'thumb_banner_w'           => (int)($_POST['thumb_banner_w'] ?? 1200),
+                    'thumb_banner_h'           => (int)($_POST['thumb_banner_h'] ?? 400),
+                    // Organisation
+                    'organize_month_year'      => isset($_POST['organize_month_year']),
+                    'sanitize_filenames'       => isset($_POST['sanitize_filenames']),
+                    'unique_filenames'         => isset($_POST['unique_filenames']),
+                    'lowercase_filenames'      => isset($_POST['lowercase_filenames']),
+                    // Member permissions
+                    'member_uploads_enabled'   => isset($_POST['member_uploads_enabled']),
+                    'member_max_upload_size'   => $_POST['member_max_upload_size'] ?? '5M',
+                    'member_allowed_types'     => $_POST['member_allowed_types'] ?? [],
+                    'member_delete_own'        => isset($_POST['member_delete_own']),
+                    // Security
+                    'block_dangerous_types'    => isset($_POST['block_dangerous_types']),
+                    'validate_image_content'   => isset($_POST['validate_image_content']),
+                    'require_login_for_upload' => isset($_POST['require_login_for_upload']),
+                    'protect_uploads_dir'      => isset($_POST['protect_uploads_dir']),
                 ];
                 
                 $result = $mediaService->saveSettings($settings);
@@ -234,131 +260,418 @@ $categories = $mediaService->getCategories();
             <div class="admin-page-header">
                 <div>
                     <h2>⚙️ Medieneinstellungen</h2>
-                    <p class="text-muted">Konfigurieren Sie Uploads, Bildgrößen und Dateitypen.</p>
+                    <p class="text-muted">Uploads, Bildverarbeitung, Organisation, Berechtigungen &amp; Sicherheit konfigurieren.</p>
                 </div>
             </div>
 
-            <div class="settings-card">
-                <?php
-                $isChecked = fn($key) => !empty($settings[$key]) ? 'checked' : '';
-                $isTypeAllowed = fn($type) => in_array($type, $settings['allowed_types'] ?? []) ? 'checked' : '';
-                $isSelected = fn($key, $val) => ($settings[$key] ?? '') === $val ? 'selected' : '';
-                ?>
-                <form id="media-settings-form" onsubmit="event.preventDefault(); saveSettings();">
-                    
-                    <!-- Upload Restrictions -->
-                    <div class="form-section">
-                        <h3>Datei-Uploads</h3>
-                        <div class="form-group mb-3">
-                            <label style="display:block; margin-bottom:5px; font-weight:500;">Maximale Dateigröße (Server-Limit: <?php echo ini_get('upload_max_filesize'); ?>)</label>
-                            <select name="max_upload_size" class="form-control" style="width: 200px;">
-                                <option value="2M" <?php echo $isSelected('max_upload_size', '2M'); ?>>2 MB</option>
-                                <option value="5M" <?php echo $isSelected('max_upload_size', '5M'); ?>>5 MB</option>
-                                <option value="10M" <?php echo $isSelected('max_upload_size', '10M'); ?>>10 MB</option>
-                                <option value="32M" <?php echo $isSelected('max_upload_size', '32M'); ?>>32 MB</option>
-                                <option value="64M" <?php echo $isSelected('max_upload_size', '64M'); ?>>64 MB</option>
-                                <option value="128M" <?php echo $isSelected('max_upload_size', '128M'); ?>>128 MB</option>
-                            </select>
-                            <small class="text-muted">Begrenzt die Upload-Größe für Benutzer, unabhängig vom Server-Limit.</small>
+            <?php
+            $isChecked          = fn($key) => !empty($settings[$key]) ? 'checked' : '';
+            $isTypeAllowed      = fn($type) => in_array($type, $settings['allowed_types'] ?? []) ? 'checked' : '';
+            $isMemberTypeAllowed = fn($type) => in_array($type, $settings['member_allowed_types'] ?? []) ? 'checked' : '';
+            $isSelected         = fn($key, $val) => ($settings[$key] ?? '') === $val ? 'selected' : '';
+            ?>
+
+            <form id="media-settings-form" onsubmit="event.preventDefault(); saveSettings();">
+
+                <!-- ═══ ROW 1: Upload & Bildverarbeitung ═══ -->
+                <div class="settings-grid">
+
+                    <!-- Card: Upload-Einstellungen -->
+                    <div class="settings-card">
+                        <div class="sc-header">
+                            <span class="sc-icon">📁</span>
+                            <div>
+                                <h3>Upload-Einstellungen</h3>
+                                <p>Dateigröße &amp; erlaubte Typen</p>
+                            </div>
                         </div>
-                        
-                        <div class="form-group">
-                            <label style="display:block; margin-bottom:5px; font-weight:500;">Erlaubte Dateitypen</label>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
-                                <label><input type="checkbox" name="allowed_types[]" value="image" <?php echo $isTypeAllowed('image'); ?>> Bilder (jpg, png, webp...)</label>
-                                <label><input type="checkbox" name="allowed_types[]" value="document" <?php echo $isTypeAllowed('document'); ?>> Dokumente (pdf, docx...)</label>
-                                <label><input type="checkbox" name="allowed_types[]" value="video" <?php echo $isTypeAllowed('video'); ?>> Videos (mp4, webm...)</label>
-                                <label><input type="checkbox" name="allowed_types[]" value="audio" <?php echo $isTypeAllowed('audio'); ?>> Audio (mp3, wav...)</label>
-                                <label><input type="checkbox" name="allowed_types[]" value="archive" <?php echo $isTypeAllowed('archive'); ?>> Archive (zip, rar...)</label>
-                                <label><input type="checkbox" name="allowed_types[]" value="svg" <?php echo $isTypeAllowed('svg'); ?>> SVG (Sicherheitsrisiko beachten)</label>
+                        <div class="sc-body">
+                            <div class="form-group">
+                                <label class="form-label">
+                                    Maximale Dateigröße
+                                    <span class="badge-muted">Server: <?php echo ini_get('upload_max_filesize'); ?></span>
+                                </label>
+                                <select name="max_upload_size" class="form-control form-control-sm">
+                                    <option value="2M"   <?php echo $isSelected('max_upload_size', '2M');   ?>>2 MB</option>
+                                    <option value="5M"   <?php echo $isSelected('max_upload_size', '5M');   ?>>5 MB</option>
+                                    <option value="10M"  <?php echo $isSelected('max_upload_size', '10M');  ?>>10 MB</option>
+                                    <option value="32M"  <?php echo $isSelected('max_upload_size', '32M');  ?>>32 MB</option>
+                                    <option value="64M"  <?php echo $isSelected('max_upload_size', '64M');  ?>>64 MB</option>
+                                    <option value="128M" <?php echo $isSelected('max_upload_size', '128M'); ?>>128 MB</option>
+                                </select>
+                                <small class="text-muted">Gilt unabhängig vom PHP-Serverlimit für alle Uploads.</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Erlaubte Dateitypen</label>
+                                <div class="type-grid">
+                                    <label class="type-check">
+                                        <input type="checkbox" name="allowed_types[]" value="image" <?php echo $isTypeAllowed('image'); ?>>
+                                        <span>🖼️ Bilder</span>
+                                        <small>jpg, png, webp, gif</small>
+                                    </label>
+                                    <label class="type-check">
+                                        <input type="checkbox" name="allowed_types[]" value="document" <?php echo $isTypeAllowed('document'); ?>>
+                                        <span>📄 Dokumente</span>
+                                        <small>pdf, docx, xlsx</small>
+                                    </label>
+                                    <label class="type-check">
+                                        <input type="checkbox" name="allowed_types[]" value="video" <?php echo $isTypeAllowed('video'); ?>>
+                                        <span>🎬 Videos</span>
+                                        <small>mp4, webm, mov</small>
+                                    </label>
+                                    <label class="type-check">
+                                        <input type="checkbox" name="allowed_types[]" value="audio" <?php echo $isTypeAllowed('audio'); ?>>
+                                        <span>🎵 Audio</span>
+                                        <small>mp3, wav, ogg</small>
+                                    </label>
+                                    <label class="type-check">
+                                        <input type="checkbox" name="allowed_types[]" value="archive" <?php echo $isTypeAllowed('archive'); ?>>
+                                        <span>📦 Archive</span>
+                                        <small>zip, rar, 7z</small>
+                                    </label>
+                                    <label class="type-check type-check--warn">
+                                        <input type="checkbox" name="allowed_types[]" value="svg" <?php echo $isTypeAllowed('svg'); ?>>
+                                        <span>⚠️ SVG</span>
+                                        <small>Sicherheitsrisiko</small>
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Image Processing -->
-                    <div class="form-section">
-                        <h3>Bildverarbeitung</h3>
-                        <div class="form-group mb-3">
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="auto_webp" <?php echo $isChecked('auto_webp'); ?>> 
-                                <strong>Automatische WebP-Konvertierung</strong>
-                                <p class="text-muted" style="margin:5px 0 0 25px;">Wandelt JPEGs und PNGs beim Upload automatisch in das effiziente WebP-Format um.</p>
-                            </label>
-                        </div>
-                        <div class="form-group mb-3">
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="strip_exif" <?php echo $isChecked('strip_exif'); ?>>
-                                <strong>Metadaten entfernen (EXIF)</strong>
-                                <p class="text-muted" style="margin:5px 0 0 25px;">Entfernt GPS- und Kameradaten zum Schutz der Privatsphäre.</p>
-                            </label>
-                        </div>
-                        <div class="form-group">
-                            <label style="display:block; margin-bottom:5px; font-weight:500;">Maximale Bilddimensionen</label>
-                            <div style="display:flex; gap:10px; align-items:center;">
-                                <input type="number" class="form-control" name="max_width" placeholder="Breite" value="<?php echo htmlspecialchars((string)($settings['max_width'] ?? 2560)); ?>" style="width:100px;">
-                                <span>x</span>
-                                <input type="number" class="form-control" name="max_height" placeholder="Höhe" value="<?php echo htmlspecialchars((string)($settings['max_height'] ?? 2560)); ?>" style="width:100px;">
-                                <span>px</span>
+                    <!-- Card: Bildverarbeitung -->
+                    <div class="settings-card">
+                        <div class="sc-header">
+                            <span class="sc-icon">🖼️</span>
+                            <div>
+                                <h3>Bildverarbeitung</h3>
+                                <p>Qualität, Konvertierung &amp; Metadaten</p>
                             </div>
-                            <small class="text-muted">Größere Bilder werden beim Upload herunterskaliert.</small>
+                        </div>
+                        <div class="sc-body">
+                            <div class="toggle-group">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="auto_webp" <?php echo $isChecked('auto_webp'); ?>>
+                                    <span class="slider"></span>
+                                </label>
+                                <div class="toggle-label">
+                                    <strong>Automatische WebP-Konvertierung</strong>
+                                    <p>JPEGs &amp; PNGs werden beim Upload in WebP umgewandelt.</p>
+                                </div>
+                            </div>
+                            <div class="toggle-group">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="strip_exif" <?php echo $isChecked('strip_exif'); ?>>
+                                    <span class="slider"></span>
+                                </label>
+                                <div class="toggle-label">
+                                    <strong>EXIF-Metadaten entfernen</strong>
+                                    <p>GPS- &amp; Kameradaten werden aus Bildern gelöscht.</p>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">JPEG-Qualität beim Speichern</label>
+                                <div class="range-row">
+                                    <input type="range" name="jpeg_quality" min="60" max="100" step="5"
+                                        value="<?php echo (int)($settings['jpeg_quality'] ?? 85); ?>"
+                                        oninput="document.getElementById('jpeg_q_val').textContent = this.value + '%'">
+                                    <span id="jpeg_q_val" class="range-val"><?php echo (int)($settings['jpeg_quality'] ?? 85); ?>%</span>
+                                </div>
+                                <small class="text-muted">Niedrigere Werte = kleinere Dateien, höhere = bessere Qualität.</small>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Maximale Bilddimensionen (px)</label>
+                                <div class="dim-row">
+                                    <input type="number" class="form-control form-control-sm" name="max_width"
+                                        placeholder="Breite"
+                                        value="<?php echo htmlspecialchars((string)($settings['max_width'] ?? 2560)); ?>"
+                                        style="width:90px;">
+                                    <span class="dim-x">×</span>
+                                    <input type="number" class="form-control form-control-sm" name="max_height"
+                                        placeholder="Höhe"
+                                        value="<?php echo htmlspecialchars((string)($settings['max_height'] ?? 2560)); ?>"
+                                        style="width:90px;">
+                                </div>
+                                <small class="text-muted">Größere Bilder werden beim Upload automatisch skaliert.</small>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Organization -->
-                    <div class="form-section">
-                        <h3>Organisation</h3>
-                        <div class="form-group">
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="organize_month_year" <?php echo $isChecked('organize_month_year'); ?>>
-                                <strong>Uploads in Monat- und Jahr-basierten Ordnern organisieren</strong>
-                                <p class="text-muted" style="margin:5px 0 0 25px;">Beispiel: <code>uploads/2026/02/datei.jpg</code></p>
-                            </label>
+                </div><!-- /.settings-grid ROW 1 -->
+
+                <!-- ═══ ROW 2: Organisation & Mitglieder ═══ -->
+                <div class="settings-grid">
+
+                    <!-- Card: Organisation & Dateinamen -->
+                    <div class="settings-card">
+                        <div class="sc-header">
+                            <span class="sc-icon">📂</span>
+                            <div>
+                                <h3>Organisation &amp; Dateinamen</h3>
+                                <p>Ordnerstruktur &amp; Benennungsregeln</p>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <!-- Member Permissions -->
-                    <div class="form-section">
-                        <h3>Berechtigungen</h3>
-                        <div class="form-group">
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="member_uploads_enabled" <?php echo $isChecked('member_uploads_enabled'); ?>>
-                                <strong>Mitgliedern Uploads erlauben</strong>
-                                <p class="text-muted" style="margin:5px 0 0 25px;">Wenn aktiviert, können Mitglieder im Dashboard Dateien in ihren eigenen Bereich hochladen (<code>uploads/member/{user}/...</code>).</p>
-                            </label>
+                        <div class="sc-body">
+                            <div class="toggle-group">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="organize_month_year" <?php echo $isChecked('organize_month_year'); ?>>
+                                    <span class="slider"></span>
+                                </label>
+                                <div class="toggle-label">
+                                    <strong>Ordner nach Monat/Jahr</strong>
+                                    <p>Uploads werden unter <code>uploads/2026/02/</code> abgelegt.</p>
+                                </div>
+                            </div>
+                            <div class="toggle-group">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="sanitize_filenames" <?php echo $isChecked('sanitize_filenames'); ?>>
+                                    <span class="slider"></span>
+                                </label>
+                                <div class="toggle-label">
+                                    <strong>Dateinamen bereinigen</strong>
+                                    <p>Sonderzeichen &amp; Leerzeichen werden ersetzt: <code>mein bild.jpg</code> → <code>mein-bild.jpg</code></p>
+                                </div>
+                            </div>
+                            <div class="toggle-group">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="unique_filenames" <?php echo $isChecked('unique_filenames'); ?>>
+                                    <span class="slider"></span>
+                                </label>
+                                <div class="toggle-label">
+                                    <strong>Eindeutige Dateinamen erzwingen</strong>
+                                    <p>Verhindert Überschreiben — Duplikate erhalten ein Suffix: <code>bild-1.jpg</code></p>
+                                </div>
+                            </div>
+                            <div class="toggle-group">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="lowercase_filenames" <?php echo $isChecked('lowercase_filenames'); ?>>
+                                    <span class="slider"></span>
+                                </label>
+                                <div class="toggle-label">
+                                    <strong>Kleinbuchstaben erzwingen</strong>
+                                    <p>Dateinamen werden automatisch in Kleinbuchstaben umgewandelt.</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div style="text-align: right;">
-                        <button type="submit" class="btn btn-primary">Einstellungen speichern</button>
+                    <!-- Card: Mitglieder-Berechtigungen -->
+                    <div class="settings-card">
+                        <div class="sc-header">
+                            <span class="sc-icon">👥</span>
+                            <div>
+                                <h3>Mitglieder-Berechtigungen</h3>
+                                <p>Upload-Rechte für angemeldete Benutzer</p>
+                            </div>
+                        </div>
+                        <div class="sc-body">
+                            <div class="toggle-group">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="member_uploads_enabled" id="member_uploads_toggle"
+                                        <?php echo $isChecked('member_uploads_enabled'); ?>
+                                        onchange="toggleMemberSettings(this.checked)">
+                                    <span class="slider"></span>
+                                </label>
+                                <div class="toggle-label">
+                                    <strong>Mitglieder-Uploads aktivieren</strong>
+                                    <p>Mitglieder können Dateien in <code>uploads/member/{user}/</code> hochladen.</p>
+                                </div>
+                            </div>
+                            <div id="member-settings-panel" class="member-subsettings" style="<?php echo empty($settings['member_uploads_enabled']) ? 'opacity:0.4;pointer-events:none;' : ''; ?>">
+                                <div class="form-group">
+                                    <label class="form-label">Max. Dateigröße für Mitglieder</label>
+                                    <select name="member_max_upload_size" class="form-control form-control-sm">
+                                        <option value="1M"  <?php echo $isSelected('member_max_upload_size', '1M');  ?>>1 MB</option>
+                                        <option value="2M"  <?php echo $isSelected('member_max_upload_size', '2M');  ?>>2 MB</option>
+                                        <option value="5M"  <?php echo $isSelected('member_max_upload_size', '5M');  ?>>5 MB</option>
+                                        <option value="10M" <?php echo $isSelected('member_max_upload_size', '10M'); ?>>10 MB</option>
+                                        <option value="32M" <?php echo $isSelected('member_max_upload_size', '32M'); ?>>32 MB</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Erlaubte Typen für Mitglieder</label>
+                                    <div class="type-grid type-grid--compact">
+                                        <label class="type-check"><input type="checkbox" name="member_allowed_types[]" value="image" <?php echo $isMemberTypeAllowed('image'); ?>><span>🖼️ Bilder</span></label>
+                                        <label class="type-check"><input type="checkbox" name="member_allowed_types[]" value="document" <?php echo $isMemberTypeAllowed('document'); ?>><span>📄 Dokumente</span></label>
+                                        <label class="type-check"><input type="checkbox" name="member_allowed_types[]" value="video" <?php echo $isMemberTypeAllowed('video'); ?>><span>🎬 Videos</span></label>
+                                        <label class="type-check"><input type="checkbox" name="member_allowed_types[]" value="audio" <?php echo $isMemberTypeAllowed('audio'); ?>><span>🎵 Audio</span></label>
+                                    </div>
+                                </div>
+                                <div class="toggle-group">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" name="member_delete_own" <?php echo $isChecked('member_delete_own'); ?>>
+                                        <span class="slider"></span>
+                                    </label>
+                                    <div class="toggle-label">
+                                        <strong>Eigene Dateien löschen erlauben</strong>
+                                        <p>Mitglieder können ihre eigenen Uploads selbst entfernen.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </form>
-            </div>
+
+                </div><!-- /.settings-grid ROW 2 -->
+
+                <!-- ═══ ROW 3: Thumbnail-Größen & Sicherheit ═══ -->
+                <div class="settings-grid">
+
+                    <!-- Card: Thumbnail-Größen -->
+                    <div class="settings-card">
+                        <div class="sc-header">
+                            <span class="sc-icon">📐</span>
+                            <div>
+                                <h3>Thumbnail-Größen</h3>
+                                <p>Automatisch generierte Bildgrößen beim Upload</p>
+                            </div>
+                        </div>
+                        <div class="sc-body">
+                            <div class="toggle-group" style="margin-bottom:1.25rem;">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="generate_thumbnails" <?php echo $isChecked('generate_thumbnails'); ?>>
+                                    <span class="slider"></span>
+                                </label>
+                                <div class="toggle-label">
+                                    <strong>Thumbnails automatisch erstellen</strong>
+                                    <p>Alle definierten Bildgrößen werden beim Upload generiert.</p>
+                                </div>
+                            </div>
+                            <table class="thumb-sizes-table">
+                                <thead>
+                                    <tr><th>Größe</th><th>Breite (px)</th><th>Höhe (px)</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><span class="thumb-badge thumb-badge--sm">Klein</span></td>
+                                        <td><input type="number" class="form-control form-control-sm" name="thumb_small_w" value="<?php echo (int)($settings['thumb_small_w'] ?? 150); ?>" style="width:80px;"></td>
+                                        <td><input type="number" class="form-control form-control-sm" name="thumb_small_h" value="<?php echo (int)($settings['thumb_small_h'] ?? 150); ?>" style="width:80px;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td><span class="thumb-badge thumb-badge--md">Mittel</span></td>
+                                        <td><input type="number" class="form-control form-control-sm" name="thumb_medium_w" value="<?php echo (int)($settings['thumb_medium_w'] ?? 300); ?>" style="width:80px;"></td>
+                                        <td><input type="number" class="form-control form-control-sm" name="thumb_medium_h" value="<?php echo (int)($settings['thumb_medium_h'] ?? 300); ?>" style="width:80px;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td><span class="thumb-badge thumb-badge--lg">Groß</span></td>
+                                        <td><input type="number" class="form-control form-control-sm" name="thumb_large_w" value="<?php echo (int)($settings['thumb_large_w'] ?? 1024); ?>" style="width:80px;"></td>
+                                        <td><input type="number" class="form-control form-control-sm" name="thumb_large_h" value="<?php echo (int)($settings['thumb_large_h'] ?? 1024); ?>" style="width:80px;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td><span class="thumb-badge thumb-badge--banner">Banner</span></td>
+                                        <td><input type="number" class="form-control form-control-sm" name="thumb_banner_w" value="<?php echo (int)($settings['thumb_banner_w'] ?? 1200); ?>" style="width:80px;"></td>
+                                        <td><input type="number" class="form-control form-control-sm" name="thumb_banner_h" value="<?php echo (int)($settings['thumb_banner_h'] ?? 400); ?>" style="width:80px;"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Card: Sicherheit & Schutz -->
+                    <div class="settings-card">
+                        <div class="sc-header">
+                            <span class="sc-icon">🔒</span>
+                            <div>
+                                <h3>Sicherheit &amp; Schutz</h3>
+                                <p>Schutz vor gefährlichen Uploads</p>
+                            </div>
+                        </div>
+                        <div class="sc-body">
+                            <div class="toggle-group">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="block_dangerous_types" <?php echo $isChecked('block_dangerous_types'); ?>>
+                                    <span class="slider"></span>
+                                </label>
+                                <div class="toggle-label">
+                                    <strong>Gefährliche Dateitypen blockieren</strong>
+                                    <p>Verhindert Uploads von <code>.php</code>, <code>.exe</code>, <code>.sh</code> u.&nbsp;a.</p>
+                                </div>
+                            </div>
+                            <div class="toggle-group">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="validate_image_content" <?php echo $isChecked('validate_image_content'); ?>>
+                                    <span class="slider"></span>
+                                </label>
+                                <div class="toggle-label">
+                                    <strong>Bildinhalt validieren</strong>
+                                    <p>Überprüft, ob als Bild deklarierte Dateien tatsächlich Bilddaten enthalten.</p>
+                                </div>
+                            </div>
+                            <div class="toggle-group">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="require_login_for_upload" <?php echo $isChecked('require_login_for_upload'); ?>>
+                                    <span class="slider"></span>
+                                </label>
+                                <div class="toggle-label">
+                                    <strong>Login für Uploads erforderlich</strong>
+                                    <p>Nur angemeldete Benutzer können Dateien hochladen.</p>
+                                </div>
+                            </div>
+                            <div class="toggle-group">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="protect_uploads_dir" <?php echo $isChecked('protect_uploads_dir'); ?>>
+                                    <span class="slider"></span>
+                                </label>
+                                <div class="toggle-label">
+                                    <strong>Upload-Verzeichnis schützen</strong>
+                                    <p>Erstellt eine <code>.htaccess</code>, die direkte PHP-Ausführung verhindert.</p>
+                                </div>
+                            </div>
+                            <div class="settings-info-box">
+                                ℹ️ Aktivieren Sie alle Optionen für maximale Sicherheit (empfohlen für Produktivumgebungen).
+                            </div>
+                        </div>
+                    </div>
+
+                </div><!-- /.settings-grid ROW 3 -->
+
+                <!-- Sticky Save Footer -->
+                <div class="sticky-footer">
+                    <span id="settings-save-status"></span>
+                    <button type="submit" class="btn btn-primary">💾 Einstellungen speichern</button>
+                </div>
+
+            </form>
 
             <script>
+                function toggleMemberSettings(enabled) {
+                    const panel = document.getElementById('member-settings-panel');
+                    panel.style.opacity       = enabled ? '1' : '0.4';
+                    panel.style.pointerEvents = enabled ? '' : 'none';
+                }
+
                 async function saveSettings() {
-                    const form = document.getElementById('media-settings-form');
+                    const form   = document.getElementById('media-settings-form');
                     const formData = new FormData(form);
                     formData.append('action', 'save_settings');
 
-                    const btn = form.querySelector('button[type="submit"]');
-                    const oldText = btn.innerText;
-                    btn.innerText = 'Speichere...';
-                    btn.disabled = true;
+                    const btn    = form.querySelector('button[type="submit"]');
+                    const status = document.getElementById('settings-save-status');
+                    btn.disabled   = true;
+                    btn.textContent = '⏳ Speichere...';
+                    status.innerHTML = '';
 
                     try {
                         const response = await fetch('', { method: 'POST', body: formData });
-                        const result = await response.json();
-                        
+                        const result   = await response.json();
+
                         if (result.success) {
-                            alert(result.message);
+                            btn.textContent  = '✅ Gespeichert';
+                            status.innerHTML = '<span style="color:#10b981;font-size:0.875rem;">✓ Einstellungen wurden erfolgreich gespeichert.</span>';
+                            setTimeout(() => {
+                                btn.textContent  = '💾 Einstellungen speichern';
+                                btn.disabled     = false;
+                                status.innerHTML = '';
+                            }, 2500);
                         } else {
-                            alert('Fehler: ' + (result.error || 'Unbekannter Fehler'));
+                            btn.textContent  = '❌ Fehler';
+                            status.innerHTML = '<span style="color:#ef4444;font-size:0.875rem;">Fehler: ' + (result.error ?? 'Unbekannt') + '</span>';
+                            setTimeout(() => { btn.textContent = '💾 Einstellungen speichern'; btn.disabled = false; }, 3000);
                         }
                     } catch (e) {
-                        alert('Netzwerkfehler beim Speichern.');
-                    } finally {
-                        btn.innerText = oldText;
-                        btn.disabled = false;
+                        btn.textContent  = '❌ Netzwerkfehler';
+                        status.innerHTML = '<span style="color:#ef4444;font-size:0.875rem;">Netzwerkfehler beim Speichern.</span>';
+                        setTimeout(() => { btn.textContent = '💾 Einstellungen speichern'; btn.disabled = false; }, 3000);
                     }
                 }
             </script>
