@@ -80,37 +80,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $csrfToken = $security->generateToken('data_deletion');
 
 require_once __DIR__ . '/partials/admin-menu.php';
+renderAdminLayoutStart('Löschanträge', 'data-deletion');
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <title>Löschanträge - <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
-    <?php renderAdminSidebarStyles(); ?>
-</head>
-<body class="admin-body">
-    <?php renderAdminSidebar('data-deletion'); ?>
-    <div class="admin-content">
-        <div class="admin-page-header">
-            <h2>🗑️ Löschanträge (Art. 17 DSGVO)</h2>
-            <p>Recht auf Vergessenwerden: Benutzerdaten anonymisieren oder löschen.</p>
-        </div>
+<div class="admin-page-header">
+    <div>
+        <h2>🗑️ Löschanträge (Art. 17 DSGVO)</h2>
+        <p>Recht auf Vergessenwerden: Benutzerdaten anonymisieren oder löschen.</p>
+    </div>
+</div>
 
         <?php if ($message): ?>
             <div class="alert alert-<?php echo $messageType; ?>"><?php echo htmlspecialchars($message); ?></div>
         <?php endif; ?>
 
         <!-- SEARCH -->
-        <div class="adm-card">
+        <div class="admin-card">
             <h3>🔍 Benutzer zur Löschung suchen</h3>
             <form method="post">
                 <div class="form-group">
-                    <label>E-Mail Adresse des Nutzers</label>
+                    <label class="form-label">E-Mail Adresse des Nutzers</label>
                     <div style="display:flex; gap:1rem;">
-                        <input type="email" name="email" placeholder="user@example.com" value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" required>
-                        <button type="submit" class="btn-primary">Suchen</button>
+                        <input type="email" name="email" class="form-control" placeholder="user@example.com" value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" required>
+                        <button type="submit" class="btn btn-primary">Suchen</button>
                     </div>
                 </div>
             </form>
@@ -118,14 +109,14 @@ require_once __DIR__ . '/partials/admin-menu.php';
 
         <!-- ACTION AREA -->
         <?php if ($userData): ?>
-        <div class="adm-card" style="border-top: 4px solid #ef4444;">
+        <div class="admin-card" style="border-top: 4px solid #ef4444;">
              <h3 style="color:#ef4444;">🚨 Gefundener Benutzer: <?php echo htmlspecialchars($userData->display_name); ?></h3>
              <p>E-Mail: <strong><?php echo htmlspecialchars($userData->user_email); ?></strong> (ID: <?php echo $userData->id; ?>)</p>
              
-             <div class="warning-box">
+             <div class="alert alert-error" style="border-radius:8px;">
                  <strong>⚠️ Achtung:</strong> Diese Aktion ist <u>irreversibel</u>.
-                 <ul style="margin:0.5rem 0 0 1rem; font-size:0.9rem;">
-                     <li>Der Benutzer wird umbenannt in "Deleted User".</li>
+                 <ul style="margin:.5rem 0 0 1rem; font-size:0.9rem;">
+                     <li>Der Benutzer wird umbenannt in „Deleted User“.</li>
                      <li>Die E-Mail-Adresse wird anonymisiert.</li>
                      <li>Das Passwort wird deaktiviert (Login unmöglich).</li>
                      <li>Persönliche Metadaten werden gelöscht.</li>
@@ -138,18 +129,18 @@ require_once __DIR__ . '/partials/admin-menu.php';
                  <input type="hidden" name="user_id" value="<?php echo $userData->id; ?>">
                  <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
                  
-                 <label style="display:flex; gap:0.5rem; align-items:center; margin-bottom:1rem;">
-                     <input type="checkbox" required>
-                     <span>Ich bestätige, dass ich die Identität des Antragstellers geprüft habe.</span>
-                 </label>
+                 <div class="form-group">
+                     <label class="checkbox-label">
+                         <input type="checkbox" required>
+                         Ich bestätige, dass ich die Identität des Antragstellers geprüft habe.
+                     </label>
+                 </div>
 
-                 <button type="submit" class="btn-danger">
+                 <button type="submit" class="btn btn-danger">
                      🗑️ Jetzt unwiderruflich anonymisieren
                  </button>
              </form>
         </div>
         <?php endif; ?>
 
-    </div>
-</body>
-</html>
+<?php renderAdminLayoutEnd(); ?>

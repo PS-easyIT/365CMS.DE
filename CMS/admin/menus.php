@@ -164,29 +164,15 @@ $activeTab  = 'menus';
 
 // Admin-Menü partial laden
 require_once __DIR__ . '/partials/admin-menu.php';
-
-// ─── HTML ─────────────────────────────────────────────────────────────────────
-
+renderAdminLayoutStart('Menü-Verwaltung', 'menus');
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Menü-Verwaltung – <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
-    <?php renderAdminSidebarStyles(); ?>
-</head>
-<body class="admin-body">
-
-    <?php renderAdminSidebar('menus'); ?>
-
-    <div class="admin-content">
 
         <!-- Page Header -->
         <div class="admin-page-header">
-            <h2>🗂️ Menü-Verwaltung</h2>
+            <div>
+                <h2>🗂️ Menü-Verwaltung</h2>
+                <p>Navigationsmenüs des aktiven Themes bearbeiten</p>
+            </div>
         </div>
 
         <!-- Messages -->
@@ -196,8 +182,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
             </div>
         <?php endif; ?>
 
-        <div class="info-box">
-            <strong>Wie es funktioniert</strong>
+        <div class="alert" style="background:#eff6ff;color:#1e40af;border-left:4px solid #3b82f6;border-radius:8px;">
+            <strong>ℹ️ Wie es funktioniert</strong><br>
             Wähle links eine Menüposition, bearbeite die Einträge und klicke auf „Menü speichern".
             Das Theme bindet die Menüs automatisch an der richtigen Stelle ein.
             Unter jeder Position steht in grün ob sie vom aktiven Theme unterstützt wird.
@@ -238,11 +224,9 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
                         <input type="hidden" name="action"     value="add_location">
                         <div class="add-location-form">
-                            <input type="text" name="new_slug"  placeholder="Slug (z.B. sidebar)" required
-                                   pattern="[a-zA-Z0-9_-]+" title="Nur Buchstaben, Zahlen, - und _"
-                                   style="flex:1;min-width:110px;">
-                            <input type="text" name="new_label" placeholder="Bezeichnung" required
-                                   style="flex:2;min-width:140px;">
+                            <input type="text" name="new_slug"  class="form-control" placeholder="Slug (z.B. sidebar)" required
+                                   pattern="[a-zA-Z0-9_-]+" title="Nur Buchstaben, Zahlen, - und _">
+                            <input type="text" name="new_label" class="form-control" placeholder="Bezeichnung" required>
                             <button type="submit" class="btn btn-primary btn-sm">Anlegen</button>
                         </div>
                         <p style="margin:0.5rem 0 0;font-size:0.75rem;color:#9ca3af;">
@@ -496,5 +480,5 @@ require_once __DIR__ . '/partials/admin-menu.php';
     // Initialer Zustand
     refreshSortButtons();
     </script>
-</body>
-</html>
+
+<?php renderAdminLayoutEnd(); ?>

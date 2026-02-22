@@ -133,65 +133,66 @@ require_once __DIR__ . '/partials/admin-menu.php';
     
     <!-- Main Content -->
     <div class="admin-content">
-        <div class="admin-header">
-            <h1>Plugin-Verwaltung</h1>
-            <p>Verwalten Sie Ihre Plugins - Aktivieren, Deaktivieren, Löschen oder Neue installieren</p>
+        <div class="admin-page-header">
+            <div>
+                <h2>🔌 Plugin-Verwaltung</h2>
+                <p>Plugins aktivieren, deaktivieren, löschen oder neue installieren.</p>
+            </div>
         </div>
         
-        <?php if ($message): ?>
-            <div class="alert alert-<?php echo $messageType; ?>" style="margin-bottom: 2rem;">
-                <?php echo htmlspecialchars($message); ?>
-            </div>
+        <?php if ($message && $messageType === 'success'): ?>
+            <div class="alert alert-success"><?php echo htmlspecialchars($message); ?></div>
+        <?php elseif ($message): ?>
+            <div class="alert alert-error"><?php echo htmlspecialchars($message); ?></div>
         <?php endif; ?>
         
         <!-- Statistics -->
-        <div class="stats-row">
+        <div class="dashboard-grid">
             <div class="stat-card">
-                <div class="stat-value"><?php echo count($plugins); ?></div>
+                <h3>Plugins</h3>
+                <div class="stat-number"><?php echo count($plugins); ?></div>
                 <div class="stat-label">Installierte Plugins</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value"><?php echo count(array_filter($plugins, fn($p) => $p['active'])); ?></div>
+                <h3>Aktiv</h3>
+                <div class="stat-number"><?php echo count(array_filter($plugins, fn($p) => $p['active'])); ?></div>
                 <div class="stat-label">Aktive Plugins</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value"><?php echo count(array_filter($plugins, fn($p) => !$p['active'])); ?></div>
+                <h3>Inaktiv</h3>
+                <div class="stat-number"><?php echo count(array_filter($plugins, fn($p) => !$p['active'])); ?></div>
                 <div class="stat-label">Inaktive Plugins</div>
             </div>
         </div>
         
         <!-- Upload Section -->
-        <div class="upload-section">
-            <h3 style="margin: 0 0 1rem 0;">Neues Plugin installieren</h3>
+        <div class="admin-card">
+            <h3>📦 Neues Plugin installieren</h3>
             <form method="post" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
                 <input type="hidden" name="action" value="upload">
                 
-                <div class="upload-area">
-                    <div class="upload-icon">📦</div>
-                    <p style="margin: 0 0 1rem 0; font-weight: 500;">Plugin als ZIP-Datei hochladen</p>
-                    <input type="file" name="plugin_file" accept=".zip" required style="margin-bottom: 1rem;">
-                    <p style="color: #64748b; font-size: 0.875rem; margin: 1rem 0 0 0;">
-                        Maximale Dateigröße: 50MB | Format: ZIP
-                    </p>
+                <div class="form-group">
+                    <label class="form-label">ZIP-Datei auswählen <span style="color:#ef4444;">*</span></label>
+                    <input type="file" name="plugin_file" accept=".zip" required class="form-control">
+                    <small class="form-text">Maximale Dateigröße: 50 MB | Format: ZIP</small>
                 </div>
                 
-                <div style="text-align: right; margin-top: 1rem;">
-                    <button type="submit" class="btn-save">
-                        📤 Plugin hochladen & installieren
-                    </button>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">📤 Plugin hochladen &amp; installieren</button>
                 </div>
             </form>
         </div>
         
         <!-- Plugins List -->
-        <h2 style="margin-bottom: 1rem;">Installierte Plugins</h2>
+        <div class="admin-card">
+        <h3>🔌 Installierte Plugins</h3>
         
         <?php if (empty($plugins)): ?>
             <div class="empty-state">
-                <div style="font-size: 3rem; margin-bottom: 1rem;">🔌</div>
-                <p style="color: #64748b; font-size: 1.125rem; margin: 0 0 0.5rem 0; font-weight: 500;">Noch keine Plugins installiert</p>
-                <p style="color: #94a3b8; margin: 0;">Laden Sie Ihr erstes Plugin hoch, um zu beginnen.</p>
+                <p style="font-size:2.5rem;margin:0;">🔌</p>
+                <p><strong>Noch keine Plugins installiert</strong></p>
+                <p class="text-muted">Laden Sie Ihr erstes Plugin über das Formular oben hoch.</p>
             </div>
         <?php else: ?>
             <div class="plugin-list">
@@ -248,77 +249,60 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         <!-- Actions -->
                         <div class="plugin-actions">
                             <?php if ($plugin['active']): ?>
-                                <form method="post" style="display: inline;">
+                                <form method="post" style="display:inline;">
                                     <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
                                     <input type="hidden" name="action" value="deactivate">
                                     <input type="hidden" name="plugin" value="<?php echo htmlspecialchars($folder); ?>">
-                                    <button type="submit" class="btn-plugin btn-deactivate">
-                                        ⏸ Deaktivieren
-                                    </button>
+                                    <button type="submit" class="btn btn-secondary btn-sm">⏸ Deaktivieren</button>
                                 </form>
                             <?php else: ?>
-                                <form method="post" style="display: inline;">
+                                <form method="post" style="display:inline;">
                                     <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
                                     <input type="hidden" name="action" value="activate">
                                     <input type="hidden" name="plugin" value="<?php echo htmlspecialchars($folder); ?>">
-                                    <button type="submit" class="btn-plugin btn-activate">
-                                        ▶ Aktivieren
-                                    </button>
+                                    <button type="submit" class="btn btn-primary btn-sm">▶ Aktivieren</button>
                                 </form>
-                                
-                                <button type="button" 
-                                        class="btn-plugin btn-delete" 
-                                        onclick="showDeleteModal('<?php echo htmlspecialchars($folder); ?>', '<?php echo htmlspecialchars($plugin['name'] ?? $folder); ?>')">
-                                    🗑 Löschen
-                                </button>
+                                <button type="button" class="btn btn-danger btn-sm"
+                                        onclick="showDeleteModal('<?php echo htmlspecialchars($folder, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($plugin['name'] ?? $folder, ENT_QUOTES); ?>')">🗑️ Löschen</button>
                             <?php endif; ?>
                         </div>
                     </div>
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
+        </div><!-- /.admin-card -->
         
-    </div>
+    </div><!-- /.admin-content -->
     
     <!-- Delete Confirmation Modal -->
-    <div id="deleteModal" class="delete-modal">
-        <div class="delete-modal-content">
-            <h3 style="margin: 0 0 1rem 0; color: #dc2626;">Plugin löschen</h3>
-            <p style="margin-bottom: 1rem;">
-                Möchten Sie das Plugin <strong id="pluginNameToDelete"></strong> wirklich löschen?
-            </p>
-            <p style="color: #ef4444; font-weight: 500; margin-bottom: 1rem;">
-                ⚠️ Diese Aktion kann nicht rückgängig gemacht werden!
-            </p>
-            
-            <form method="post" id="deleteForm">
-                <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                <input type="hidden" name="action" value="delete">
-                <input type="hidden" name="plugin" id="pluginFolderToDelete" value="">
+    <div id="deleteModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🗑️ Plugin löschen</h3>
+                <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Möchten Sie das Plugin <strong id="pluginNameToDelete"></strong> wirklich löschen?</p>
+                <div class="alert alert-error">⚠️ Diese Aktion kann nicht rückgängig gemacht werden!</div>
                 
-                <label for="confirmDelete" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
-                    Zum Bestätigen "DELETE" eingeben:
-                </label>
-                <input type="text" 
-                       name="confirm_delete" 
-                       id="confirmDelete" 
-                       class="delete-confirm-input"
-                       placeholder="DELETE"
-                       autocomplete="off">
-                
-                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-                    <button type="button" 
-                            onclick="closeDeleteModal()" 
-                            style="flex: 1; padding: 0.75rem; background: #e5e7eb; border: none; border-radius: 6px; cursor: pointer;">
-                        Abbrechen
-                    </button>
-                    <button type="submit" 
-                            class="btn-plugin btn-delete" 
-                            style="flex: 1; padding: 0.75rem;">
-                        Plugin löschen
-                    </button>
-                </div>
-            </form>
+                <form method="post" id="deleteForm">
+                    <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="plugin" id="pluginFolderToDelete" value="">
+                    
+                    <div class="form-group">
+                        <label for="confirmDelete" class="form-label">
+                            Zum Bestätigen <code>DELETE</code> eingeben: <span style="color:#ef4444;">*</span>
+                        </label>
+                        <input type="text" name="confirm_delete" id="confirmDelete" class="form-control"
+                               placeholder="DELETE" autocomplete="off">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Abbrechen</button>
+                <button type="submit" form="deleteForm" class="btn btn-danger">🗑️ Plugin löschen</button>
+            </div>
         </div>
     </div>
     
@@ -327,25 +311,22 @@ require_once __DIR__ . '/partials/admin-menu.php';
             document.getElementById('pluginFolderToDelete').value = folder;
             document.getElementById('pluginNameToDelete').textContent = name;
             document.getElementById('confirmDelete').value = '';
-            document.getElementById('deleteModal').classList.add('active');
+            document.getElementById('deleteModal').style.display = 'flex';
         }
         
         function closeDeleteModal() {
-            document.getElementById('deleteModal').classList.remove('active');
+            document.getElementById('deleteModal').style.display = 'none';
         }
         
         // Close modal on ESC key
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeDeleteModal();
-            }
+            if (e.key === 'Escape') closeDeleteModal();
         });
         
         // Close modal on background click
-        document.getElementById('deleteModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeDeleteModal();
-            }
+        window.addEventListener('click', function(e) {
+            const m = document.getElementById('deleteModal');
+            if (e.target === m) closeDeleteModal();
         });
     </script>
     

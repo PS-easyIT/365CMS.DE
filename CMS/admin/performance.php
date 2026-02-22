@@ -135,169 +135,150 @@ $csrfToken = $security->generateToken('performance_settings');
 
 // Load admin menu
 require_once __DIR__ . '/partials/admin-menu.php';
+renderAdminLayoutStart('Performance', 'performance');
+
+$c   = fn(string $k) => ($currentSettings[$k] ?? '') === '1' ? 'checked' : '';
+$num = fn(string $k, int $def) => (int)($currentSettings[$k] ?: $def);
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Performance Einstellungen - <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
-    <?php renderAdminSidebarStyles(); ?>
-</head>
-<body class="admin-body">
-    
-    <?php renderAdminSidebar('performance'); ?>
-    
-    <!-- Main Content -->
-    <div class="admin-content">
-        
-        <!-- Page Header -->
-        <div class="admin-page-header">
-            <h2>⚡ Performance Optimierung</h2>
-            <p>Beschleunigen Sie Ihre Website durch intelligente Optimierungen</p>
-        </div>
-        
-        <?php if ($message): ?>
-            <div class="alert alert-<?php echo $messageType; ?>" style="margin-bottom: 2rem;">
-                <?php echo htmlspecialchars($message); ?>
-            </div>
-        <?php endif; ?>
-        
-        <form method="post">
-            <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-            <input type="hidden" name="action" value="save_performance">
-            
-            <!-- Asset Optimization -->
-            <div class="perf-section">
-                <h3>Asset-Optimierung <span class="performance-badge">EMPFOHLEN</span></h3>
-                <div class="form-grid">
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="minify_css" name="minify_css" <?php echo $currentSettings['perf_minify_css'] === '1' ? 'checked' : ''; ?>>
-                        <label for="minify_css">
-                            <strong>CSS Minifizierung</strong>
-                            <div class="help-text">Entfernt Leerzeichen und Kommentare aus CSS-Dateien</div>
-                        </label>
-                    </div>
-                    
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="minify_js" name="minify_js" <?php echo $currentSettings['perf_minify_js'] === '1' ? 'checked' : ''; ?>>
-                        <label for="minify_js">
-                            <strong>JavaScript Minifizierung</strong>
-                            <div class="help-text">Komprimiert JavaScript-Dateien</div>
-                        </label>
-                    </div>
-                    
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="defer_js" name="defer_js" <?php echo $currentSettings['perf_defer_js'] === '1' ? 'checked' : ''; ?>>
-                        <label for="defer_js">
-                            <strong>JavaScript verzögern (Defer)</strong>
-                            <div class="help-text">Lädt JavaScript erst nach dem Seitenaufbau</div>
-                        </label>
-                    </div>
-                    
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="async_css" name="async_css" <?php echo $currentSettings['perf_async_css'] === '1' ? 'checked' : ''; ?>>
-                        <label for="async_css">
-                            <strong>CSS asynchron laden</strong>
-                            <div class="help-text">Verhindert Render-Blocking durch CSS</div>
-                        </label>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Images & Fonts -->
-            <div class="perf-section">
-                <h3>Bilder & Schriftarten</h3>
-                <div class="form-grid">
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="enable_lazy_loading" name="enable_lazy_loading" <?php echo $currentSettings['perf_enable_lazy_loading'] === '1' ? 'checked' : ''; ?>>
-                        <label for="enable_lazy_loading">
-                            <strong>Lazy Loading für Bilder</strong>
-                            <div class="help-text">Bilder werden erst beim Scrollen geladen</div>
-                        </label>
-                    </div>
-                    
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="enable_preload_fonts" name="enable_preload_fonts" <?php echo $currentSettings['perf_enable_preload_fonts'] === '1' ? 'checked' : ''; ?>>
-                        <label for="enable_preload_fonts">
-                            <strong>Webfonts vorladen</strong>
-                            <div class="help-text">Reduziert Flash of Unstyled Text (FOUT)</div>
-                        </label>
-                    </div>
-                    
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="preload_critical_css" name="preload_critical_css" <?php echo $currentSettings['perf_preload_critical_css'] === '1' ? 'checked' : ''; ?>>
-                        <label for="preload_critical_css">
-                            <strong>Critical CSS vorladen</strong>
-                            <div class="help-text">Lädt wichtige Styles inline für schnelleres Rendering</div>
-                        </label>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Caching -->
-            <div class="perf-section">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h3>Caching <span class="performance-badge">KRITISCH</span></h3>
-                    <button type="submit" name="action" value="clear_cache" class="btn-save" style="padding: 0.5rem 1rem; font-size: 0.875rem; background: #ef4444;">
-                        🗑️ Cache leeren
-                    </button>
-                </div>
-                <div class="form-grid">
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="enable_browser_cache" name="enable_browser_cache" <?php echo $currentSettings['perf_enable_browser_cache'] === '1' ? 'checked' : ''; ?>>
-                        <label for="enable_browser_cache">
-                            <strong>Browser-Caching aktivieren</strong>
-                            <div class="help-text">Speichert Assets im Browser-Cache</div>
-                        </label>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="cache_duration">Cache-Dauer (Sekunden)</label>
-                        <input type="number" id="cache_duration" name="cache_duration" value="<?php echo htmlspecialchars($currentSettings['perf_cache_duration'] ?: '86400'); ?>" min="0" step="3600">
-                        <div class="help-text">Standard: 86400 (24 Stunden)</div>
-                    </div>
-                    
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="enable_gzip" name="enable_gzip" <?php echo $currentSettings['perf_enable_gzip'] === '1' ? 'checked' : ''; ?>>
-                        <label for="enable_gzip">
-                            <strong>GZip Kompression</strong>
-                            <div class="help-text">Komprimiert übertragene Daten</div>
-                        </label>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Database & Cleanup -->
-            <div class="perf-section">
-                <h3>Datenbank & Aufräumen</h3>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="limit_revisions">Maximale Revisionen pro Seite</label>
-                        <input type="number" id="limit_revisions" name="limit_revisions" value="<?php echo htmlspecialchars($currentSettings['perf_limit_revisions'] ?: '5'); ?>" min="0" max="100">
-                        <div class="help-text">0 = unbegrenzt (nicht empfohlen)</div>
-                    </div>
-                    
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="disable_emojis" name="disable_emojis" <?php echo $currentSettings['perf_disable_emojis'] === '1' ? 'checked' : ''; ?>>
-                        <label for="disable_emojis">
-                            <strong>Emoji-Scripts deaktivieren</strong>
-                            <div class="help-text">Entfernt unnötige Emoji-Detection Scripts</div>
-                        </label>
-                    </div>
-                </div>
-            </div>
-            
-            <div style="text-align: right; margin-top: 2rem;">
-                <button type="submit" class="btn-save">
-                    💾 Einstellungen Speichern
-                </button>
-            </div>
-        </form>
-        
+
+<div class="admin-page-header">
+    <div>
+        <h2>⚡ Performance Optimierung</h2>
+        <p>Assets, Caching, Lazy Loading und Datenbank-Optimierung</p>
     </div>
-    
-</body>
-</html>
+</div>
+
+<?php if ($message): ?>
+    <div class="alert alert-<?php echo $messageType === 'success' ? 'success' : 'error'; ?>">
+        <?php echo htmlspecialchars($message); ?>
+    </div>
+<?php endif; ?>
+
+<form method="post">
+<input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+<input type="hidden" name="action"     value="save_performance">
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:1.5rem;">
+
+    <!-- Asset Optimierung -->
+    <div class="admin-card">
+        <h3>⚡ Asset-Optimierung <span class="status-badge active" style="font-size:.72rem;padding:.15rem .5rem;">Empfohlen</span></h3>
+
+        <div class="form-group" style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;">
+            <div>
+                <label class="form-label" style="margin:0;">CSS Minifizierung</label>
+                <small class="form-text">Entfernt Leerzeichen und Kommentare aus CSS-Dateien</small>
+            </div>
+            <label class="dw-toggle"><input type="checkbox" name="minify_css" <?php echo $c('perf_minify_css'); ?>><span class="dw-toggle-slider"></span></label>
+        </div>
+        <div class="form-group" style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;">
+            <div>
+                <label class="form-label" style="margin:0;">JavaScript Minifizierung</label>
+                <small class="form-text">Komprimiert JS-Dateien für schnelleren Transfer</small>
+            </div>
+            <label class="dw-toggle"><input type="checkbox" name="minify_js" <?php echo $c('perf_minify_js'); ?>><span class="dw-toggle-slider"></span></label>
+        </div>
+        <div class="form-group" style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;">
+            <div>
+                <label class="form-label" style="margin:0;">JavaScript verzögern (Defer)</label>
+                <small class="form-text">Lädt JS erst nach dem Seitenaufbau → schnelleres FCP</small>
+            </div>
+            <label class="dw-toggle"><input type="checkbox" name="defer_js" <?php echo $c('perf_defer_js'); ?>><span class="dw-toggle-slider"></span></label>
+        </div>
+        <div class="form-group" style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;">
+            <div>
+                <label class="form-label" style="margin:0;">CSS asynchron laden</label>
+                <small class="form-text">Verhindert Render-Blocking durch CSS</small>
+            </div>
+            <label class="dw-toggle"><input type="checkbox" name="async_css" <?php echo $c('perf_async_css'); ?>><span class="dw-toggle-slider"></span></label>
+        </div>
+        <div class="form-group" style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;">
+            <div>
+                <label class="form-label" style="margin:0;">Critical CSS vorladen</label>
+                <small class="form-text">Inline-Styles für Above-the-Fold-Rendering</small>
+            </div>
+            <label class="dw-toggle"><input type="checkbox" name="preload_critical_css" <?php echo $c('perf_preload_critical_css'); ?>><span class="dw-toggle-slider"></span></label>
+        </div>
+    </div>
+
+    <!-- Bilder & Fonts -->
+    <div class="admin-card">
+        <h3>🖼️ Bilder &amp; Schriftarten</h3>
+
+        <div class="form-group" style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;">
+            <div>
+                <label class="form-label" style="margin:0;">Lazy Loading für Bilder</label>
+                <small class="form-text">Bilder werden erst beim Scrollen geladen → spart Bandbreite</small>
+            </div>
+            <label class="dw-toggle"><input type="checkbox" name="enable_lazy_loading" <?php echo $c('perf_enable_lazy_loading'); ?>><span class="dw-toggle-slider"></span></label>
+        </div>
+        <div class="form-group" style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;">
+            <div>
+                <label class="form-label" style="margin:0;">Webfonts vorladen</label>
+                <small class="form-text">Reduziert Flash of Unstyled Text (FOUT)</small>
+            </div>
+            <label class="dw-toggle"><input type="checkbox" name="enable_preload_fonts" <?php echo $c('perf_enable_preload_fonts'); ?>><span class="dw-toggle-slider"></span></label>
+        </div>
+        <div class="form-group" style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;">
+            <div>
+                <label class="form-label" style="margin:0;">Emoji-Scripts deaktivieren</label>
+                <small class="form-text">Entfernt unnötige Emoji-Detection Scripts aus dem &lt;head&gt;</small>
+            </div>
+            <label class="dw-toggle"><input type="checkbox" name="disable_emojis" <?php echo $c('perf_disable_emojis'); ?>><span class="dw-toggle-slider"></span></label>
+        </div>
+    </div>
+
+    <!-- Caching -->
+    <div class="admin-card">
+        <h3>💾 Caching <span class="status-badge" style="font-size:.72rem;padding:.15rem .5rem;background:#fee2e2;color:#991b1b;">Kritisch</span></h3>
+
+        <div class="form-group" style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;">
+            <div>
+                <label class="form-label" style="margin:0;">Browser-Caching aktivieren</label>
+                <small class="form-text">Speichert statische Assets im Browser-Cache</small>
+            </div>
+            <label class="dw-toggle"><input type="checkbox" name="enable_browser_cache" <?php echo $c('perf_enable_browser_cache'); ?>><span class="dw-toggle-slider"></span></label>
+        </div>
+        <div class="form-group" style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;">
+            <div>
+                <label class="form-label" style="margin:0;">GZip Kompression</label>
+                <small class="form-text">Komprimiert HTTP-Antworten (spart 60–80 % Datengröße)</small>
+            </div>
+            <label class="dw-toggle"><input type="checkbox" name="enable_gzip" <?php echo $c('perf_enable_gzip'); ?>><span class="dw-toggle-slider"></span></label>
+        </div>
+        <div class="form-group" style="margin-top:1rem;">
+            <label class="form-label" for="cache_duration">Cache-Dauer <small class="form-text" style="display:inline;">(in Sekunden)</small></label>
+            <input type="number" id="cache_duration" name="cache_duration" class="form-control" style="max-width:160px;"
+                value="<?php echo $num('perf_cache_duration', 86400); ?>" min="0" step="3600">
+            <small class="form-text">Standard: 86400 = 24 Stunden</small>
+        </div>
+        <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid #e2e8f0;">
+            <button type="submit" name="action" value="clear_cache" class="btn btn-danger btn-sm">
+                🗑️ Cache jetzt leeren
+            </button>
+            <small class="form-text" style="display:block;margin-top:.5rem;">Löscht DB-Cache und alle Cache-Dateien sofort.</small>
+        </div>
+    </div>
+
+    <!-- Datenbank -->
+    <div class="admin-card">
+        <h3>🗄️ Datenbank &amp; Aufräumen</h3>
+
+        <div class="form-group">
+            <label class="form-label" for="limit_revisions">Maximale Revisionen pro Seite</label>
+            <input type="number" id="limit_revisions" name="limit_revisions" class="form-control" style="max-width:120px;"
+                value="<?php echo $num('perf_limit_revisions', 5); ?>" min="0" max="100">
+            <small class="form-text">0 = unbegrenzt (nicht empfohlen – vergrößert die DB)</small>
+        </div>
+    </div>
+
+</div><!-- /grid -->
+
+<div class="admin-card form-actions-card" style="margin-top:1.5rem;">
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">💾 Performance-Einstellungen speichern</button>
+    </div>
+</div>
+</form>
+
+<?php renderAdminLayoutEnd(); ?>

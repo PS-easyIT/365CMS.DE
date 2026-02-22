@@ -184,10 +184,22 @@ require_once __DIR__ . '/partials/admin-menu.php';
 renderAdminLayoutStart('Benutzer', 'users');
 ?>
 
+<div class="admin-page-header">
+    <div>
+        <h2>👥 Benutzerverwaltung</h2>
+        <p>Verwalten Sie Benutzer, Rollen und Zugriffsrechte.</p>
+    </div>
+    <div class="header-actions">
+        <?php if ($view === 'edit'): ?>
+            <a href="users.php" class="btn btn-secondary">↩️ Zurück zur Liste</a>
+        <?php endif; ?>
+    </div>
+</div>
+
 <?php foreach ($messages as $m):
-    $cls = $m['type'] === 'success' ? 'notice-success' : 'notice-error';
+    $cls = $m['type'] === 'success' ? 'alert alert-success' : 'alert alert-error';
 ?>
-<div class="notice <?php echo $cls; ?>"><?php echo htmlspecialchars($m['text'], ENT_QUOTES, 'UTF-8'); ?></div>
+<div class="<?php echo $cls; ?>"><?php echo htmlspecialchars($m['text'], ENT_QUOTES, 'UTF-8'); ?></div>
 <?php endforeach; ?>
 
 <?php
@@ -197,7 +209,7 @@ renderAdminLayoutStart('Benutzer', 'users');
 if ($view === 'edit' && $editUserId > 0):
     $eu = $db->get_row("SELECT * FROM {$prefix}users WHERE id=?", [$editUserId]);
     if (!$eu):
-        header('Location: ' . SITE_URL . '/admin/users');
+        echo '<script>window.location.href="users.php";</script>';
         exit;
     endif;
 
@@ -208,104 +220,104 @@ if ($view === 'edit' && $editUserId > 0):
     );
     $allGroups = $db->get_results("SELECT id, name FROM {$prefix}user_groups WHERE is_active=1 ORDER BY name");
 ?>
-<div class="posts-header">
-    <h2 style="margin:0;">✏️ Benutzer bearbeiten</h2>
-    <a href="<?php echo SITE_URL; ?>/admin/users" class="btn-sm btn-secondary">← Alle Benutzer</a>
-</div>
 
-<form method="post" action="<?php echo SITE_URL; ?>/admin/users?view=edit&id=<?php echo (int)$eu->id; ?>" id="editUserForm">
+<form method="post" action="users.php?view=edit&id=<?php echo (int)$eu->id; ?>" id="editUserForm">
     <input type="hidden" name="_csrf"   value="<?php echo $csrfEdit; ?>">
     <input type="hidden" name="_action" value="edit_user">
     <input type="hidden" name="user_id" value="<?php echo (int)$eu->id; ?>">
 
-    <div class="post-edit-layout">
-        <div class="post-edit-main">
-            <div class="post-card">
+    <div class="form-grid" style="display:grid; grid-template-columns: 2fr 1fr; gap:1.5rem;">
+        <div style="display:flex; flex-direction:column; gap:1.5rem;">
+            <div class="admin-card">
                 <h3>👤 Benutzerdaten</h3>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
-                    <div class="field-group">
-                        <label>Benutzername</label>
-                        <input type="text" value="<?php echo htmlspecialchars($eu->username, ENT_QUOTES); ?>" disabled style="background:#f8fafc;color:#94a3b8;">
-                        <div class="field-hint">Benutzername kann nicht geändert werden.</div>
+                <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Benutzername</label>
+                        <input type="text" value="<?php echo htmlspecialchars($eu->username, ENT_QUOTES); ?>" disabled class="form-control" style="background:#f1f5f9; color:#64748b;">
+                        <small class="form-text">Nicht änderbar.</small>
                     </div>
-                    <div class="field-group">
-                        <label>E-Mail *</label>
-                        <input type="email" name="email" value="<?php echo htmlspecialchars($eu->email, ENT_QUOTES); ?>" required>
+                    <div class="form-group">
+                        <label class="form-label">E-Mail <span style="color:#ef4444;">*</span></label>
+                        <input type="email" name="email" value="<?php echo htmlspecialchars($eu->email, ENT_QUOTES); ?>" class="form-control" required>
                     </div>
-                    <div class="field-group" style="grid-column:1/-1;">
-                        <label>Anzeigename</label>
-                        <input type="text" name="display_name" value="<?php echo htmlspecialchars($eu->display_name ?? '', ENT_QUOTES); ?>" placeholder="Anzeigename">
+                    <div class="form-group" style="grid-column:1/-1;">
+                        <label class="form-label">Anzeigename</label>
+                        <input type="text" name="display_name" value="<?php echo htmlspecialchars($eu->display_name ?? '', ENT_QUOTES); ?>" class="form-control" placeholder="Anzeigename">
                     </div>
                 </div>
             </div>
 
-            <div class="post-card">
+            <div class="admin-card">
                 <h3>🔑 Passwort ändern</h3>
-                <div class="field-group">
-                    <label>Neues Passwort <span style="font-weight:400;color:#94a3b8;">(leer = unverändert)</span></label>
-                    <input type="password" name="new_password" placeholder="min. 6 Zeichen" minlength="6" autocomplete="new-password">
-                </div>
-                <div class="field-group" style="margin-bottom:0;">
-                    <label>Passwort bestätigen</label>
-                    <input type="password" id="pwConfirm" placeholder="Passwort wiederholen" autocomplete="new-password">
-                    <div class="field-hint" id="pwHint"></div>
+                <div class="form-group">
+                    <label class="form-label">Neues Passwort</label>
+                    <input type="password" name="new_password" class="form-control" placeholder="min. 6 Zeichen (leer lassen für unverändert)" minlength="6" autocomplete="new-password">
                 </div>
             </div>
 
-            <div class="post-card">
+            <div class="admin-card">
                 <h3>👥 Gruppen</h3>
                 <?php if (empty($allGroups)): ?>
-                <p style="color:#94a3b8;font-size:.875rem;">Noch keine Gruppen vorhanden. <a href="<?php echo SITE_URL; ?>/admin/groups">Gruppen verwalten →</a></p>
+                <p style="color:#94a3b8; font-size:0.9rem;">Noch keine Gruppen vorhanden. <a href="groups.php">Gruppen verwalten →</a></p>
                 <?php else: ?>
-                <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem;">
+                <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem;">
                     <?php foreach ($allGroups as $grp):
                         $isMember = array_filter($euGroups, fn($g) => (int)$g->id === (int)$grp->id);
                     ?>
-                    <label style="display:flex;align-items:center;gap:.35rem;font-size:.875rem;cursor:pointer;padding:.3rem .6rem;border:1px solid #e2e8f0;border-radius:6px;background:<?php echo $isMember ? '#dbeafe' : '#f8fafc'; ?>;">
-                        <input type="checkbox" name="groups[]" value="<?php echo (int)$grp->id; ?>"
-                               <?php echo $isMember ? 'checked' : ''; ?>>
+                    <label class="checkbox-label" style="padding:0.5rem 1rem; border:1px solid #e2e8f0; border-radius:6px; background:<?php echo $isMember ? '#eff6ff' : '#fff'; ?>;">
+                        <input type="checkbox" name="groups[]" value="<?php echo (int)$grp->id; ?>" <?php echo $isMember ? 'checked' : ''; ?>>
                         <?php echo htmlspecialchars($grp->name, ENT_QUOTES); ?>
                     </label>
                     <?php endforeach; ?>
                 </div>
-                <div class="field-hint">Gruppen-Mitgliedschaften werden nach dem Speichern aktualisiert.</div>
+                <small class="form-text">Gruppen-Mitgliedschaften werden nach dem Speichern aktualisiert.</small>
                 <?php endif; ?>
             </div>
         </div>
 
-        <div class="post-edit-side">
-            <div class="post-card">
+        <div style="display:flex; flex-direction:column; gap:1.5rem;">
+            <div class="admin-card">
                 <h3>⚙️ Status & Rolle</h3>
-                <div class="field-group">
-                    <label>Rolle</label>
-                    <select name="role" <?php echo (int)$eu->id === $current_user_id ? 'disabled' : ''; ?>>
+                <div class="form-group">
+                    <label class="form-label">Rolle</label>
+                    <select name="role" class="form-control" <?php echo (int)$eu->id === $current_user_id ? 'disabled' : ''; ?>>
                         <option value="member" <?php echo ($eu->role ?? '') === 'member' ? 'selected' : ''; ?>>👤 Member</option>
                         <option value="editor" <?php echo ($eu->role ?? '') === 'editor' ? 'selected' : ''; ?>>✏️ Editor</option>
                         <option value="admin"  <?php echo ($eu->role ?? '') === 'admin'  ? 'selected' : ''; ?>>🔑 Administrator</option>
                     </select>
-                    <?php if ((int)$eu->id === $current_user_id): ?>
-                    <div class="field-hint">Eigene Rolle kann nicht geändert werden.</div>
-                    <?php endif; ?>
                 </div>
-                <div class="field-group">
-                    <label>Status</label>
-                    <select name="status" <?php echo (int)$eu->id === $current_user_id ? 'disabled' : ''; ?>>
+                <div class="form-group">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-control" <?php echo (int)$eu->id === $current_user_id ? 'disabled' : ''; ?>>
                         <option value="active"   <?php echo ($eu->status ?? 'active') === 'active'   ? 'selected' : ''; ?>>✅ Aktiv</option>
                         <option value="inactive" <?php echo ($eu->status ?? '') === 'inactive' ? 'selected' : ''; ?>>⏸️ Inaktiv</option>
                         <option value="banned"   <?php echo ($eu->status ?? '') === 'banned'   ? 'selected' : ''; ?>>🚫 Gesperrt</option>
                     </select>
                 </div>
-                <div style="font-size:.76rem;color:#94a3b8;border-top:1px solid #f1f5f9;padding-top:.6rem;display:flex;flex-direction:column;gap:.15rem;margin-top:.5rem;">
+                <div style="font-size:0.8rem; color:#94a3b8; border-top:1px solid #f1f5f9; padding-top:0.75rem; margin-top:1rem; display:flex; flex-direction:column; gap:0.25rem;">
                     <span>ID: #<?php echo (int)$eu->id; ?></span>
                     <span>Erstellt: <?php echo date('d.m.Y H:i', strtotime($eu->created_at)); ?></span>
-                    <?php if (!empty($eu->last_login)): ?>
+                    <?php if ($eu->updated_at): ?>
+                    <span>Aktualisiert: <?php echo date('d.m.Y H:i', strtotime($eu->updated_at)); ?></span>
+                    <?php endif; ?>
+                </div>
+            </div>
+            
+            <div class="admin-card form-actions-card">
+                <div class="form-actions" style="flex-direction:column; width:100%;">
+                    <button type="submit" class="btn btn-primary" style="width:100%;">💾 Änderungen speichern</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>                    <?php if (!empty($eu->last_login)): ?>
                     <span>Letzter Login: <?php echo date('d.m.Y H:i', strtotime($eu->last_login)); ?></span>
                     <?php endif; ?>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:.45rem;margin-top:.9rem;">
-                    <button type="submit" class="btn-sm btn-primary btn-lg" style="width:100%;">💾 Speichern</button>
+                    <button type="submit" class="btn btn-primary btn-sm" style="width:100%;">💾 Speichern</button>
                     <?php if ((int)$eu->id !== $current_user_id): ?>
-                    <button type="submit" form="deleteUserForm" class="btn-sm btn-danger"
+                    <button type="submit" form="deleteUserForm" class="btn btn-danger btn-sm"
                             onclick="return confirm('Benutzer wirklich löschen?')" style="width:100%;">🗑️ Löschen</button>
                     <?php endif; ?>
                 </div>
@@ -348,52 +360,60 @@ document.addEventListener('DOMContentLoaded', function() {
    ================================================================ */
 elseif ($view === 'new'):
 ?>
-<div class="posts-header">
-    <h2 style="margin:0;">➕ Neuer Benutzer</h2>
-    <a href="<?php echo SITE_URL; ?>/admin/users" class="btn-sm btn-secondary">← Alle Benutzer</a>
+
+<div class="admin-page-header">
+    <div>
+        <h2>➕ Neuer Benutzer</h2>
+        <p>Einen neuen Benutzer manuell anlegen.</p>
+    </div>
+    <div class="header-actions">
+        <a href="users.php" class="btn btn-secondary">↩️ Zurück zur Liste</a>
+    </div>
 </div>
 
-<form method="post" action="<?php echo SITE_URL; ?>/admin/users">
+<form method="post" action="users.php">
     <input type="hidden" name="_csrf"   value="<?php echo $csrfCreate; ?>">
     <input type="hidden" name="_action" value="create_user">
 
-    <div class="post-edit-layout">
-        <div class="post-edit-main">
-            <div class="post-card">
+    <div class="form-grid" style="display:grid; grid-template-columns: 2fr 1fr; gap:1.5rem;">
+        <div style="display:flex; flex-direction:column; gap:1.5rem;">
+            <div class="admin-card">
                 <h3>👤 Benutzerdaten</h3>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
-                    <div class="field-group">
-                        <label>Benutzername *</label>
-                        <input type="text" name="username" required placeholder="z.B. max123" autocomplete="off">
+                <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Benutzername <span style="color:#ef4444;">*</span></label>
+                        <input type="text" name="username" class="form-control" required placeholder="z.B. max123" autocomplete="off">
                     </div>
-                    <div class="field-group">
-                        <label>E-Mail *</label>
-                        <input type="email" name="email" required placeholder="user@example.com">
+                    <div class="form-group">
+                        <label class="form-label">E-Mail <span style="color:#ef4444;">*</span></label>
+                        <input type="email" name="email" class="form-control" required placeholder="user@example.com">
                     </div>
-                    <div class="field-group">
-                        <label>Passwort * <span style="font-weight:400;color:#94a3b8;">(min. 6 Zeichen)</span></label>
-                        <input type="password" name="password" required minlength="6" placeholder="••••••" autocomplete="new-password">
+                    <div class="form-group">
+                        <label class="form-label">Passwort <span style="color:#ef4444;">*</span></label>
+                        <input type="password" name="password" class="form-control" required minlength="6" placeholder="••••••" autocomplete="new-password">
+                        <small class="form-text">Mindestens 6 Zeichen.</small>
                     </div>
-                    <div class="field-group">
-                        <label>Anzeigename</label>
-                        <input type="text" name="display_name" placeholder="Max Mustermann">
+                    <div class="form-group">
+                        <label class="form-label">Anzeigename</label>
+                        <input type="text" name="display_name" class="form-control" placeholder="Max Mustermann">
                     </div>
                 </div>
             </div>
         </div>
-        <div class="post-edit-side">
-            <div class="post-card">
+        
+        <div style="display:flex; flex-direction:column; gap:1.5rem;">
+            <div class="admin-card">
                 <h3>⚙️ Rolle</h3>
-                <div class="field-group">
-                    <label>Rolle</label>
-                    <select name="role">
+                <div class="form-group">
+                    <label class="form-label">Rolle</label>
+                    <select name="role" class="form-control">
                         <option value="member">👤 Member</option>
                         <option value="editor">✏️ Editor</option>
                         <option value="admin">🔑 Administrator</option>
                     </select>
                 </div>
-                <div style="margin-top:.9rem;">
-                    <button type="submit" class="btn-sm btn-primary btn-lg" style="width:100%;">✅ Erstellen</button>
+                <div style="margin-top:1rem;">
+                    <button type="submit" class="btn btn-primary" style="width:100%;">✅ Benutzer erstellen</button>
                 </div>
             </div>
         </div>
@@ -435,45 +455,51 @@ else:
     );
 
     $buildUrl = fn(array $extra = []) =>
-        SITE_URL . '/admin/users?' . http_build_query(array_merge(
+        'users.php?' . http_build_query(array_merge(
             ['role' => $roleFilter],
             $search ? ['search' => $search] : [],
             $extra
         ));
 ?>
 
-<div class="posts-header">
-    <h2 style="margin:0;">👥 Benutzer</h2>
-    <a href="<?php echo SITE_URL; ?>/admin/users?view=new" class="btn-sm btn-primary">➕ Neuer Benutzer</a>
+<div class="admin-page-header">
+    <div>
+        <h2>👥 Benutzerverwaltung</h2>
+        <p>Übersicht aller registrierten Benutzer.</p>
+    </div>
+    <div class="header-actions">
+        <a href="users.php?view=new" class="btn btn-primary">➕ Neuer Benutzer</a>
+    </div>
 </div>
 
-<div class="posts-tabs">
+<div class="tabs" style="margin-bottom:1.5rem;">
     <?php foreach (['all' => 'Alle', 'admin' => 'Administratoren', 'member' => 'Members', 'editor' => 'Editoren', 'banned' => 'Gesperrt'] as $r => $lbl): ?>
-    <a href="<?php echo SITE_URL; ?>/admin/users?role=<?php echo $r; ?><?php echo $search ? '&search=' . urlencode($search) : ''; ?>"
-       class="posts-tab <?php echo $roleFilter === $r ? 'active' : ''; ?>">
-        <?php echo $lbl; ?><span class="badge"><?php echo $roleCounts[$r] ?? 0; ?></span>
+    <a href="users.php?role=<?php echo $r; ?><?php echo $search ? '&search=' . urlencode($search) : ''; ?>"
+       class="tab-btn <?php echo $roleFilter === $r ? 'active' : ''; ?>" style="text-decoration:none;">
+        <?php echo $lbl; ?> <span class="nav-badge" style="margin-left:0.25rem; font-size:0.75rem;"><?php echo $roleCounts[$r] ?? 0; ?></span>
     </a>
     <?php endforeach; ?>
 </div>
 
-<form method="get" action="<?php echo SITE_URL; ?>/admin/users">
-    <input type="hidden" name="role" value="<?php echo htmlspecialchars($roleFilter); ?>">
-    <div class="posts-toolbar">
-        <div class="posts-search">
-            <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Suche nach Name, E-Mail…">
-            <button type="submit">🔍</button>
+<div class="admin-card" style="margin-bottom:1.5rem; padding:1rem;">
+    <form method="get" action="users.php" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+        <input type="hidden" name="role" value="<?php echo htmlspecialchars($roleFilter); ?>">
+        <div style="display:flex; gap:0.5rem; flex:1; max-width:400px;">
+            <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" class="form-control" placeholder="Suche nach Name, E-Mail…" style="min-width:200px;">
+            <button type="submit" class="btn btn-secondary">🔍 Suchen</button>
         </div>
         <?php if ($search): ?>
-        <a href="<?php echo SITE_URL; ?>/admin/users?role=<?php echo $roleFilter; ?>" class="btn-sm btn-secondary">✕ Filter löschen</a>
+        <a href="users.php?role=<?php echo $roleFilter; ?>" class="btn btn-secondary btn-sm">✕ Filter löschen</a>
         <?php endif; ?>
-    </div>
-</form>
+    </form>
+</div>
 
-<form method="post" action="<?php echo SITE_URL; ?>/admin/users" id="bulkForm">
+<form method="post" action="users.php" id="bulkForm">
     <input type="hidden" name="_csrf"   value="<?php echo $csrfBulk; ?>">
     <input type="hidden" name="_action" value="bulk">
-    <div class="bulk-bar">
-        <select name="bulk_action">
+    
+    <div style="background:#f8fafc; padding:0.75rem; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:1rem; display:flex; align-items:center; gap:0.75rem;">
+        <select name="bulk_action" class="form-control" style="width:auto; display:inline-block; padding:0.4rem;">
             <option value="">Aktion wählen…</option>
             <option value="activate">Aktivieren</option>
             <option value="ban">Sperren</option>
@@ -481,74 +507,93 @@ else:
             <option value="make_admin">Rolle → Admin</option>
             <option value="delete">Endgültig löschen</option>
         </select>
-        <button type="submit" class="btn-sm btn-secondary"
+        <button type="submit" class="btn btn-secondary btn-sm"
                 onclick="return confirm('Aktion auf ausgewählte Benutzer anwenden?')">Anwenden</button>
-        <span style="color:#94a3b8;font-size:.8rem;"><?php echo $total; ?> Benutzer</span>
+        <span style="color:#64748b; font-size:0.875rem; margin-left:auto;"><?php echo $total; ?> Benutzer gesamt</span>
     </div>
 
     <?php if (empty($users)): ?>
-    <div class="post-card" style="text-align:center;padding:3rem;color:#94a3b8;">
-        <div style="font-size:3rem;margin-bottom:1rem;">👤</div>
-        <p><?php echo $search
+    <div class="empty-state">
+        <p style="font-size:2.5rem; margin:0;">👤</p>
+        <p><strong>Keine Benutzer gefunden.</strong></p>
+        <p class="text-muted"><?php echo $search
             ? 'Keine Treffer für <strong>' . htmlspecialchars($search, ENT_QUOTES) . '</strong>'
-            : 'Keine Benutzer gefunden.'; ?></p>
+            : 'Erstellen Sie den ersten Benutzer.'; ?></p>
+        <?php if(!$search): ?>
+        <a href="users.php?view=new" class="btn btn-primary" style="margin-top:1rem;">➕ Benutzer erstellen</a>
+        <?php endif; ?>
     </div>
     <?php else: ?>
-    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:auto;">
-        <table class="posts-table">
-            <thead><tr>
-                <th style="width:30px;">
-                    <input type="checkbox" onchange="document.querySelectorAll('#bulkForm input[name=\'bulk_ids[]\']').forEach(c=>c.checked=this.checked)">
-                </th>
-                <th>Benutzer</th>
-                <th style="width:200px;">E-Mail</th>
-                <th style="width:100px;">Rolle</th>
-                <th style="width:90px;">Status</th>
-                <th style="width:80px;text-align:center;">Gruppen</th>
-                <th style="width:130px;">Registriert</th>
-                <th style="width:110px;text-align:right;"></th>
-            </tr></thead>
+    <div class="users-table-container">
+        <table class="users-table">
+            <thead>
+                <tr>
+                    <th style="width:30px;">
+                        <input type="checkbox" onchange="document.querySelectorAll('#bulkForm input[name=\'bulk_ids[]\']').forEach(c=>c.checked=this.checked)">
+                    </th>
+                    <th>Benutzer</th>
+                    <th>E-Mail</th>
+                    <th>Rolle</th>
+                    <th>Status</th>
+                    <th style="text-align:center;">Gruppen</th>
+                    <th>Registriert</th>
+                    <th style="text-align:right;">Aktion</th>
+                </tr>
+            </thead>
             <tbody>
             <?php foreach ($users as $u):
                 $colors      = ['#2563eb','#7c3aed','#db2777','#059669','#d97706','#dc2626'];
                 $avatarColor = $colors[abs(crc32($u->username)) % count($colors)];
-                $roleLbl     = ['admin' => '🔑 Admin', 'editor' => '✏️ Editor', 'member' => '👤 Member'][$u->role] ?? $u->role;
-                $statusLbl   = ['active' => 'Aktiv', 'inactive' => 'Inaktiv', 'banned' => 'Gesperrt'][$u->status ?? 'active'] ?? ($u->status ?? 'active');
+                $roleLbl     = ['admin' => 'Administrator', 'editor' => 'Editor', 'member' => 'Member'][$u->role] ?? ucfirst($u->role);
+                $statusLbl   = ['active' => 'Aktiv', 'inactive' => 'Inaktiv', 'banned' => 'Gesperrt'][$u->status ?? 'active'] ?? ucfirst($u->status ?? 'active');
+                
+                $roleBadgeClass = match($u->role) {
+                    'admin' => 'admin',
+                    'editor' => 'admin', 
+                    default => 'member'
+                };
+                $statusBadgeClass = match($u->status) {
+                    'active' => 'active',
+                    'banned' => 'danger',
+                    default => 'inactive'
+                };
             ?>
             <tr>
                 <td><input type="checkbox" name="bulk_ids[]" value="<?php echo (int)$u->id; ?>"
                            <?php echo (int)$u->id === $current_user_id ? 'disabled' : ''; ?>></td>
                 <td>
-                    <div style="display:flex;align-items:center;gap:.6rem;">
-                        <div class="user-avatar" style="background:<?php echo $avatarColor; ?>">
+                    <div style="display:flex; align-items:center; gap:0.75rem;">
+                        <div style="width:32px; height:32px; border-radius:50%; background:<?php echo $avatarColor; ?>; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.8rem;">
                             <?php echo strtoupper(substr($u->username, 0, 1)); ?>
                         </div>
-                        <div>
-                            <a href="<?php echo SITE_URL; ?>/admin/users?view=edit&id=<?php echo (int)$u->id; ?>"
-                               style="font-weight:600;color:#1e293b;text-decoration:none;">
+                        <div style="display:flex; flex-direction:column;">
+                            <a href="users.php?view=edit&id=<?php echo (int)$u->id; ?>"
+                               style="font-weight:600; color:#1e293b; text-decoration:none;">
                                 <?php echo htmlspecialchars($u->username, ENT_QUOTES); ?>
                                 <?php if ((int)$u->id === $current_user_id): ?>
-                                <span style="background:#dcfce7;color:#166534;padding:1px 5px;border-radius:4px;font-size:.68rem;margin-left:4px;">Sie</span>
+                                <span style="background:#dcfce7; color:#166534; padding:0 4px; border-radius:4px; font-size:0.65rem; margin-left:4px;">Sie</span>
                                 <?php endif; ?>
                             </a>
                             <?php if (!empty($u->display_name) && $u->display_name !== $u->username): ?>
-                            <div style="font-size:.74rem;color:#94a3b8;"><?php echo htmlspecialchars($u->display_name, ENT_QUOTES); ?></div>
+                            <small style="color:#64748b;"><?php echo htmlspecialchars($u->display_name, ENT_QUOTES); ?></small>
                             <?php endif; ?>
                         </div>
                     </div>
                 </td>
-                <td style="font-size:.82rem;color:#64748b;"><?php echo htmlspecialchars($u->email, ENT_QUOTES); ?></td>
-                <td><span class="status-badge role-<?php echo htmlspecialchars($u->role ?? 'member'); ?>"><?php echo $roleLbl; ?></span></td>
-                <td><span class="status-badge status-<?php echo htmlspecialchars($u->status ?? 'active'); ?>"><?php echo $statusLbl; ?></span></td>
-                <td style="text-align:center;font-size:.8rem;color:#64748b;"><?php echo (int)($u->group_count ?? 0); ?></td>
-                <td style="font-size:.78rem;color:#64748b;"><?php echo date('d.m.Y', strtotime($u->created_at)); ?></td>
-                <td style="text-align:right;white-space:nowrap;">
-                    <a href="<?php echo SITE_URL; ?>/admin/users?view=edit&id=<?php echo (int)$u->id; ?>"
-                       class="btn-sm btn-secondary" title="Bearbeiten">✏️</a>
-                    <?php if ((int)$u->id !== $current_user_id): ?>
-                    <button type="button" class="btn-sm btn-danger" title="Löschen"
-                            onclick="deleteUser(<?php echo (int)$u->id; ?>)">🗑️</button>
-                    <?php endif; ?>
+                <td style="color:#64748b;"><?php echo htmlspecialchars($u->email, ENT_QUOTES); ?></td>
+                <td><span class="role-badge <?php echo $roleBadgeClass; ?>"><?php echo $roleLbl; ?></span></td>
+                <td><span class="status-badge <?php echo $statusBadgeClass; ?>"><?php echo $statusLbl; ?></span></td>
+                <td style="text-align:center; color:#64748b;"><?php echo (int)($u->group_count ?? 0); ?></td>
+                <td style="color:#64748b;"><?php echo date('d.m.Y', strtotime($u->created_at)); ?></td>
+                <td style="text-align:right; white-space:nowrap;">
+                    <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+                        <a href="users.php?view=edit&id=<?php echo (int)$u->id; ?>"
+                           class="btn btn-sm btn-secondary" title="Bearbeiten">✏️</a>
+                        <?php if ((int)$u->id !== $current_user_id): ?>
+                        <button type="button" class="btn btn-sm btn-danger" title="Löschen"
+                                onclick="deleteUser(<?php echo (int)$u->id; ?>)">🗑️</button>
+                        <?php endif; ?>
+                    </div>
                 </td>
             </tr>
             <?php endforeach; ?>
@@ -557,20 +602,20 @@ else:
     </div>
 
     <?php if ($totalPages > 1): ?>
-    <div class="posts-pagination">
-        <?php if ($page > 1): ?><a href="<?php echo $buildUrl(['p' => $page - 1]); ?>">‹</a><?php endif; ?>
+    <div class="pagination" style="display:flex; gap:0.5rem; justify-content:center; margin-top:1.5rem;">
+        <?php if ($page > 1): ?><a href="<?php echo $buildUrl(['p' => $page - 1]); ?>" class="btn btn-secondary btn-sm">‹</a><?php endif; ?>
         <?php for ($i = max(1, $page - 3); $i <= min($totalPages, $page + 3); $i++): ?>
-            <?php if ($i === $page): ?><span class="cp"><?php echo $i; ?></span>
-            <?php else: ?><a href="<?php echo $buildUrl(['p' => $i]); ?>"><?php echo $i; ?></a><?php endif; ?>
+            <?php if ($i === $page): ?><span class="btn btn-primary btn-sm" style="pointer-events:none;"><?php echo $i; ?></span>
+            <?php else: ?><a href="<?php echo $buildUrl(['p' => $i]); ?>" class="btn btn-secondary btn-sm"><?php echo $i; ?></a><?php endif; ?>
         <?php endfor; ?>
-        <?php if ($page < $totalPages): ?><a href="<?php echo $buildUrl(['p' => $page + 1]); ?>">›</a><?php endif; ?>
-        <span style="color:#94a3b8;font-size:.78rem;margin-left:.4rem;"><?php echo $page; ?>/<?php echo $totalPages; ?></span>
+        <?php if ($page < $totalPages): ?><a href="<?php echo $buildUrl(['p' => $page + 1]); ?>" class="btn btn-secondary btn-sm">›</a><?php endif; ?>
+        <span style="color:#94a3b8; font-size:0.875rem; align-self:center; margin-left:0.5rem;"><?php echo $page; ?> von <?php echo $totalPages; ?></span>
     </div>
     <?php endif; ?>
     <?php endif; ?>
 </form>
 
-<form id="deleteUserForm" method="post" action="<?php echo SITE_URL; ?>/admin/users" style="display:none;">
+<form id="deleteUserForm" method="post" action="users.php" style="display:none;">
     <input type="hidden" name="_csrf"   value="<?php echo $csrfDelete; ?>">
     <input type="hidden" name="_action" value="delete_user">
     <input type="hidden" name="user_id" id="deleteUserId" value="">
@@ -580,6 +625,7 @@ else:
 
 <script>
 function deleteUser(id) {
+    // Custom modal would be better, but staying compatible with quick JS
     if (confirm('Benutzer wirklich löschen?')) {
         document.getElementById('deleteUserId').value = id;
         document.getElementById('deleteUserForm').submit();

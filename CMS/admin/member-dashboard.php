@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Admin: Member Dashboard – Verwaltung
  *
@@ -318,57 +318,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
 ?>
 
 <style>
-/* ── Member Dashboard – Page Layout ───────────────────────────────────────── */
-.md-page-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    padding: 1.5rem 1.75rem;
-    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4f46e5 100%);
-    border-radius: 12px;
-    color: #fff;
-    box-shadow: 0 4px 20px rgba(79,70,229,.35);
-}
-.md-page-header-left { display: flex; align-items: center; gap: 1rem; }
-.md-page-header-icon {
-    width: 52px; height: 52px;
-    background: rgba(255,255,255,.15);
-    border-radius: 14px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.625rem;
-    backdrop-filter: blur(6px);
-    flex-shrink: 0;
-}
-.md-page-header h2 {
-    margin: 0; font-size: 1.375rem; font-weight: 700; color: #fff;
-    letter-spacing: -.015em;
-}
-.md-page-header p {
-    margin: .2rem 0 0; font-size: .8125rem; color: rgba(255,255,255,.7);
-}
-.md-preview-btn {
-    display: inline-flex; align-items: center; gap: .4rem;
-    padding: .5rem 1.1rem;
-    background: rgba(255,255,255,.15);
-    border: 1px solid rgba(255,255,255,.25);
-    border-radius: 8px;
-    color: #fff;
-    font-size: .8125rem; font-weight: 600;
-    text-decoration: none;
-    transition: background .15s, border-color .15s;
-    white-space: nowrap;
-    backdrop-filter: blur(6px);
-}
-.md-preview-btn:hover {
-    background: rgba(255,255,255,.25);
-    border-color: rgba(255,255,255,.4);
-    color: #fff;
-}
-
-/* ── Tab Navigation ────────────────────────────────────────────────────────── */
+/* -- Tab Navigation ────────────────────────────────────────────────────────── */
 .md-nav {
     display: flex;
     gap: .5rem;
@@ -433,25 +383,25 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
 /* ── Panel ─────────────────────────────────────────────────────────────────── */
 .dw-panel { display: none; }
 .dw-panel.active { display: block; }
-
-/* Design-tab save button */
-.btn-save-dw {
-    display: inline-flex; align-items: center; gap: .4rem;
-    margin-top: 1.25rem;
-    padding: .55rem 1.4rem;
-    background: linear-gradient(135deg, #4f46e5, #7c3aed);
-    color: #fff; border: none; border-radius: 8px;
-    font-size: .875rem; font-weight: 600; cursor: pointer;
-    box-shadow: 0 2px 8px rgba(79,70,229,.3);
-    transition: opacity .15s;
+.dw-card-header-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: .5rem;
 }
-.btn-save-dw:hover { opacity: .9; }
+.dw-card-header-inner h3 { margin: 0; border: none; padding: 0; }
 </style>
 
-<!-- ── Page Header ────────────────────────────────────────────────────────── -->
-<div class="md-page-header">
-    <div class="md-page-header-left">
-        <div class="md-page-header-icon">🧩</div>
+<!-- Page Header -->
+<div class="admin-page-header">
+    <div>
+        <h2>🧩 Member Dashboard</h2>
+        <p>Plugins, Widgets, Design &amp; Einstellungen des Mitgliederbereichs</p>
+    </div>
+    <div class="header-actions">
+        <a href="<?php echo SITE_URL; ?>/member" target="_blank" class="btn btn-secondary btn-sm">
+            👁️ Live-Ansicht
+        </a>
+    </div>
+</div>
         <div>
             <h2>Member Dashboard</h2>
             <p>Plugins, Widgets, Design &amp; Einstellungen des Mitgliederbereichs</p>
@@ -463,9 +413,9 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
 </div>
 
 <?php foreach ($messages as $msg):
-    $cls = $msg['type'] === 'success' ? 'notice-success' : 'notice-error';
+    $cls = $msg['type'] === 'success' ? 'alert-success' : 'alert-error';
 ?>
-<div class="notice <?php echo $cls; ?>"><?php echo htmlspecialchars($msg['text']); ?></div>
+<div class="alert <?php echo $cls; ?>"><?php echo htmlspecialchars($msg['text']); ?></div>
 <?php endforeach; ?>
 
 <!-- ── Tab Navigation ─────────────────────────────────────────────────────── -->
@@ -574,15 +524,15 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
                 <div class="dw-grid">
                     <?php for ($i = 1; $i <= 4; $i++): ?>
                     <?php $w = $widgets[$i]; $hasContent = !empty($w['title']) || !empty($w['content']); ?>
-                    <div class="dw-card" id="dw-card-<?php echo $i; ?>">
-                        <div class="dw-card-header">
+                    <div class="admin-card" id="dw-card-<?php echo $i; ?>">
+                        <div class="dw-card-header-inner">
                             <h3>Widget <?php echo $i; ?></h3>
                             <span class="dw-badge <?php echo $hasContent ? 'active' : ''; ?>">
                                 <?php echo $hasContent ? 'konfiguriert' : 'leer'; ?>
                             </span>
                         </div>
 
-                        <div class="dw-form-group">
+                        <div class="form-group">
                             <label>Icon (Emoji)</label>
                             <div class="dw-icon-row">
                                 <input type="text" name="widget_<?php echo $i; ?>_icon"
@@ -595,7 +545,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
                             </div>
                         </div>
 
-                        <div class="dw-form-group">
+                        <div class="form-group">
                             <label>Überschrift</label>
                             <input type="text" name="widget_<?php echo $i; ?>_title"
                                    value="<?php echo htmlspecialchars($w['title']); ?>"
@@ -603,7 +553,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
                                    oninput="dwUpdatePreview(<?php echo $i; ?>)">
                         </div>
 
-                        <div class="dw-form-group">
+                        <div class="form-group">
                             <label>Beschreibung</label>
                             <textarea name="widget_<?php echo $i; ?>_content"
                                       placeholder="Kurze Info oder Ankündigung …"
@@ -612,7 +562,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
                             <p class="dw-hint">Erlaubt: &lt;p&gt; &lt;a&gt; &lt;strong&gt; &lt;em&gt; &lt;ul&gt; &lt;li&gt;</p>
                         </div>
 
-                        <div class="dw-form-group">
+                        <div class="form-group">
                             <label>Weblink (optional)</label>
                             <input type="url" name="widget_<?php echo $i; ?>_link"
                                    value="<?php echo htmlspecialchars($w['link']); ?>"
@@ -620,7 +570,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
                                    oninput="dwUpdatePreview(<?php echo $i; ?>)">
                         </div>
 
-                        <div class="dw-form-group">
+                        <div class="form-group">
                             <label>Button-Text (optional)</label>
                             <input type="text" name="widget_<?php echo $i; ?>_btntext"
                                    value="<?php echo htmlspecialchars($w['btntext']); ?>"
@@ -677,8 +627,8 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
                 <div class="dw-grid-2">
 
                     <!-- FARBEN -->
-                    <div class="dw-card">
-                        <div class="dw-card-header">
+                    <div class="admin-card">
+                        <div class="dw-card-header-inner">
                             <h3>🎨 Farbschema</h3>
                         </div>
                         <p style="font-size:.8125rem;color:#64748b;margin:0 0 .75rem;">
@@ -740,8 +690,8 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
                     </div>
 
                     <!-- LAYOUT -->
-                    <div class="dw-card">
-                        <div class="dw-card-header">
+                    <div class="admin-card">
+                        <div class="dw-card-header-inner">
                             <h3>🗂️ Layout & Spalten</h3>
                         </div>
                         <p style="font-size:.8125rem;color:#64748b;margin:0 0 .75rem;">
@@ -749,7 +699,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
                         </p>
 
                         <!-- Logo -->
-                        <div class="dw-form-group">
+                        <div class="form-group">
                             <label>Dashboard Logo</label>
                             <input type="file" name="member_dashboard_logo" accept="image/*"
                                    style="padding:.35rem 0;border:none;">
@@ -791,8 +741,8 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
 
 
                 <!-- ── Sektions-Reihenfolge (Drag & Drop) ────────────────────── -->
-                <div class="dw-card" style="margin-top:1.25rem;">
-                    <div class="dw-card-header">
+                <div class="admin-card" style="margin-top:1.25rem;">
+                    <div class="dw-card-header-inner">
                         <h3>↕️ Startseite – Sektionen anordnen</h3>
                         <span style="font-size:.75rem;color:#94a3b8;">Ziehen zum Umordnen</span>
                     </div>
@@ -815,7 +765,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
                     </div>
                 </div>
 
-                <button type="submit" class="btn-save-dw">💾 Design & Layout speichern</button>
+                <button type="submit" class="btn btn-primary">💾 Design & Layout speichern</button>
             </form>
         </div>
 
@@ -831,10 +781,10 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
                 <div class="dw-grid-2">
 
                     <!-- ── Begrüßung & Willkommen ─────────────────────────────── -->
-                    <div class="dw-card">
-                        <div class="dw-card-header"><h3>👋 Begrüßung</h3></div>
+                    <div class="admin-card">
+                        <div class="dw-card-header-inner"><h3>👋 Begrüßung</h3></div>
 
-                        <div class="dw-form-group">
+                        <div class="form-group">
                             <label for="set-greeting">Begrüßungs-Text</label>
                             <input type="text" id="set-greeting" name="member_dashboard_greeting"
                                    value="<?php echo htmlspecialchars($settingsData['greeting']); ?>"
@@ -842,7 +792,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
                             <p class="dw-hint"><code>{name}</code> = Vorname des Mitglieds</p>
                         </div>
 
-                        <div class="dw-form-group">
+                        <div class="form-group">
                             <label for="set-welcome">Willkommens-Nachricht</label>
                             <textarea id="set-welcome" name="member_dashboard_welcome_text"
                                       placeholder="Schön, dass du dabei bist! …"><?php echo htmlspecialchars($settingsData['welcome_text']); ?></textarea>
@@ -863,10 +813,10 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
                     </div>
 
                     <!-- ── Weiterleitungen ────────────────────────────────────── -->
-                    <div class="dw-card">
-                        <div class="dw-card-header"><h3>🔀 Weiterleitungen</h3></div>
+                    <div class="admin-card">
+                        <div class="dw-card-header-inner"><h3>🔀 Weiterleitungen</h3></div>
 
-                        <div class="dw-form-group">
+                        <div class="form-group">
                             <label for="set-redir-login">Nach dem Login</label>
                             <input type="text" id="set-redir-login" name="member_redirect_after_login"
                                    value="<?php echo htmlspecialchars($settingsData['redirect_after_login']); ?>"
@@ -874,14 +824,14 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
                             <p class="dw-hint">Wohin wird nach erfolgreicher Anmeldung weitergeleitet?</p>
                         </div>
 
-                        <div class="dw-form-group">
+                        <div class="form-group">
                             <label for="set-redir-logout">Nach dem Logout</label>
                             <input type="text" id="set-redir-logout" name="member_redirect_after_logout"
                                    value="<?php echo htmlspecialchars($settingsData['redirect_after_logout']); ?>"
                                    placeholder="/">
                         </div>
 
-                        <div class="dw-form-group">
+                        <div class="form-group">
                             <label for="set-redir-denied">Zugriff verweigert</label>
                             <input type="text" id="set-redir-denied" name="member_redirect_access_denied"
                                    value="<?php echo htmlspecialchars($settingsData['redirect_access_denied']); ?>"
@@ -895,8 +845,8 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
                 <div class="dw-grid-2" style="margin-top:1.25rem;">
 
                     <!-- ── Registrierung & Profil ─────────────────────────────── -->
-                    <div class="dw-card">
-                        <div class="dw-card-header"><h3>👤 Registrierung & Profil</h3></div>
+                    <div class="admin-card">
+                        <div class="dw-card-header-inner"><h3>👤 Registrierung & Profil</h3></div>
 
                         <div class="dw-toggle-row">
                             <div class="dw-toggle-info">
@@ -948,10 +898,10 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
                     </div>
 
                     <!-- ── Sicherheit ─────────────────────────────────────────── -->
-                    <div class="dw-card">
-                        <div class="dw-card-header"><h3>🔒 Sicherheit</h3></div>
+                    <div class="admin-card">
+                        <div class="dw-card-header-inner"><h3>🔒 Sicherheit</h3></div>
 
-                        <div class="dw-form-group">
+                        <div class="form-group">
                             <label for="set-max-logins">Max. Login-Versuche</label>
                             <input type="number" id="set-max-logins" name="member_max_login_attempts"
                                    value="<?php echo (int)$settingsData['max_login_attempts']; ?>"
@@ -959,7 +909,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
                             <p class="dw-hint">Nach dieser Anzahl Fehler wird der Account temporär gesperrt (1–20).</p>
                         </div>
 
-                        <div class="dw-form-group">
+                        <div class="form-group">
                             <label for="set-session">Session-Timeout (Minuten)</label>
                             <input type="number" id="set-session" name="member_session_timeout"
                                    value="<?php echo (int)$settingsData['session_timeout']; ?>"
@@ -979,7 +929,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
                             </label>
                         </div>
 
-                        <div class="dw-form-group" style="margin-top:.875rem;">
+                        <div class="form-group" style="margin-top:.875rem;">
                             <label for="set-noti-from">Absender-E-Mail für Benachrichtigungen</label>
                             <input type="email" id="set-noti-from" name="member_notifications_email_from"
                                    value="<?php echo htmlspecialchars($settingsData['notifications_email_from']); ?>"
@@ -991,10 +941,10 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
                 </div><!-- /.dw-grid-2 -->
 
                 <!-- ── Medien-Limits ──────────────────────────────────────────── -->
-                <div class="dw-card" style="margin-top:1.25rem;">
-                    <div class="dw-card-header"><h3>📂 Medien-Limits</h3></div>
+                <div class="admin-card" style="margin-top:1.25rem;">
+                    <div class="dw-card-header-inner"><h3>📂 Medien-Limits</h3></div>
                     <div style="display:flex;gap:2rem;flex-wrap:wrap;align-items:flex-start;">
-                        <div class="dw-form-group" style="min-width:200px;max-width:280px;margin:0;">
+                        <div class="form-group" style="min-width:200px;max-width:280px;margin:0;">
                             <label for="set-max-mb">Max. Upload-Größe pro Datei (MB)</label>
                             <input type="number" id="set-max-mb" name="member_media_max_upload_mb"
                                    value="<?php echo (int)$settingsData['media_max_upload_mb']; ?>"

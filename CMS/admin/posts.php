@@ -277,9 +277,9 @@ renderAdminLayoutStart('Beiträge', 'posts');
 ?>
 
 <?php foreach ($messages as $m):
-    $cls = match($m['type']){'success'=>'notice-success','error'=>'notice-error',default=>'notice-info'};
+    $cls = match($m['type']){'success'=>'alert-success','error'=>'alert-error',default=>''};
 ?>
-<div class="notice <?php echo $cls; ?>"><?php echo htmlspecialchars($m['text'], ENT_QUOTES, 'UTF-8'); ?></div>
+<div class="alert <?php echo $cls; ?>"><?php echo htmlspecialchars($m['text'], ENT_QUOTES, 'UTF-8'); ?></div>
 <?php endforeach; ?>
 
 <?php /* ===============================================================
@@ -345,12 +345,12 @@ if ($view === 'categories'): ?>
                 <td style="color:#64748b;font-size:.8rem;"><?php echo htmlspecialchars($cat->slug, ENT_QUOTES); ?></td>
                 <td style="text-align:right;"><?php echo $cc; ?></td>
                 <td style="text-align:right;">
-                    <a href="?view=categories&cat_id=<?php echo (int)$cat->id; ?>" class="btn-sm btn-secondary">✏️</a>
+                    <a href="?view=categories&cat_id=<?php echo (int)$cat->id; ?>" class="btn btn-secondary btn-sm">✏️</a>
                     <form method="post" action="<?php echo SITE_URL; ?>/admin/posts?view=categories" style="display:inline;" onsubmit="return confirm('Kategorie löschen?');">
                         <input type="hidden" name="_csrf"    value="<?php echo $csrf; ?>">
                         <input type="hidden" name="_action"  value="delete_category">
                         <input type="hidden" name="cat_id"   value="<?php echo (int)$cat->id; ?>">
-                        <button type="submit" class="btn-sm btn-danger">🗑️</button>
+                        <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
                     </form>
                 </td>
             </tr>
@@ -518,12 +518,12 @@ elseif ($view === 'edit'):
                     <input type="hidden" name="remove_featured_image" id="removeFeatImg" value="0">
                 </div>
                 <div style="display:flex;gap:.4rem;margin-top:.4rem;flex-wrap:wrap;">
-                    <label class="btn-sm btn-secondary" style="cursor:pointer;">
+                    <label class="btn btn-secondary btn-sm" style="cursor:pointer;">
                         📁 Bild wählen
                         <input type="file" id="featImgInput" name="featured_image" accept="image/*" style="display:none;" onchange="previewFeatImg(this)">
                     </label>
                     <?php if (!empty($pd['featured_image'])): ?>
-                    <button type="button" class="btn-sm btn-danger" onclick="removeFeatImg()">✕ Entfernen</button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="removeFeatImg()">✕ Entfernen</button>
                     <?php endif; ?>
                 </div>
             </div>
@@ -623,7 +623,7 @@ else: // view === 'list'
             <button type="submit">🔍 Suchen</button>
         </div>
         <?php if ($search): ?>
-        <a href="<?php echo SITE_URL; ?>/admin/posts?status=<?php echo $status; ?>" class="btn-sm btn-secondary">✕ Filter löschen</a>
+        <a href="<?php echo SITE_URL; ?>/admin/posts?status=<?php echo $status; ?>" class="btn btn-secondary btn-sm">✕ Filter löschen</a>
         <?php endif; ?>
     </div>
 </form>
@@ -639,7 +639,7 @@ else: // view === 'list'
             <option value="trash">In Papierkorb</option>
             <?php if ($status === 'trash'): ?><option value="delete">Endgültig löschen</option><?php endif; ?>
         </select>
-        <button type="submit" class="btn-sm btn-secondary" onclick="return confirmBulk(this.form)">Anwenden</button>
+        <button type="submit" class="btn btn-secondary btn-sm" onclick="return confirmBulk(this.form)">Anwenden</button>
         <span style="color:#94a3b8;font-size:.8rem;"><?php echo $total; ?> Beitrag<?php echo $total!==1?'e':''; ?></span>
     </div>
 
@@ -698,12 +698,12 @@ else: // view === 'list'
                 <td class="col-views" style="color:#64748b;font-size:.8rem;"><?php echo number_format((int)$p->views); ?></td>
                 <td class="col-date" style="font-size:.78rem;color:#64748b;"><?php echo $dval; ?></td>
                 <td class="col-actions" style="white-space:nowrap;">
-                    <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($p->slug, ENT_QUOTES); ?>" target="_blank" class="btn-sm btn-secondary" title="Ansehen">👁️</a>
-                    <a href="<?php echo SITE_URL; ?>/admin/posts?view=edit&id=<?php echo (int)$p->id; ?>" class="btn-sm btn-secondary" title="Bearbeiten">✏️</a>
+                    <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($p->slug, ENT_QUOTES); ?>" target="_blank" class="btn btn-secondary btn-sm" title="Ansehen">👁️</a>
+                    <a href="<?php echo SITE_URL; ?>/admin/posts?view=edit&id=<?php echo (int)$p->id; ?>" class="btn btn-secondary btn-sm" title="Bearbeiten">✏️</a>
                     <?php if ($p->status !== 'trash'): ?>
-                    <button type="button" class="btn-sm btn-danger" onclick="deletePost(<?php echo (int)$p->id; ?>, 'trash', 'In Papierkorb?')">🗑️</button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="deletePost(<?php echo (int)$p->id; ?>, 'trash', 'In Papierkorb?')">🗑️</button>
                     <?php else: ?>
-                    <button type="button" class="btn-sm btn-danger" onclick="deletePost(<?php echo (int)$p->id; ?>, 'permanent', 'ENDGÜLTIG löschen?')">☠️</button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="deletePost(<?php echo (int)$p->id; ?>, 'permanent', 'ENDGÜLTIG löschen?')">☠️</button>
                     <?php endif; ?>
                 </td>
             </tr>

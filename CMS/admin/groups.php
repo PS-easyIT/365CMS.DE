@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 declare(strict_types=1);
 
 /**
@@ -276,9 +276,9 @@ renderAdminLayoutStart($_layoutTitle, $_layoutSlug);
 ?>
 
 <?php foreach ($messages as $m):
-    $cls = $m['type'] === 'success' ? 'notice-success' : 'notice-error';
+    $cls = $m['type'] === 'success' ? 'alert-success' : 'alert-error';
 ?>
-<div class="notice <?php echo $cls; ?>"><?php echo htmlspecialchars($m['text'], ENT_QUOTES, 'UTF-8'); ?></div>
+<div class="alert <?php echo $cls; ?>"><?php echo htmlspecialchars($m['text'], ENT_QUOTES, 'UTF-8'); ?></div>
 <?php endforeach; ?>
 
 <?php if ($activeTab === 'groups'): ?>
@@ -307,45 +307,49 @@ if ($editGroupId > 0):
         [$editGroupId]
     );
 ?>
-<div class="posts-header">
-    <h2 style="margin:0;">📂 <?php echo htmlspecialchars($grp->name, ENT_QUOTES); ?></h2>
-    <a href="<?php echo SITE_URL; ?>/admin/groups?tab=groups" class="btn-sm btn-secondary">← Alle Gruppen</a>
+<div class="admin-page-header">
+    <div>
+        <h2>📂 <?php echo htmlspecialchars($grp->name, ENT_QUOTES); ?></h2>
+    </div>
+    <div class="header-actions">
+        <a href="<?php echo SITE_URL; ?>/admin/groups?tab=groups" class="btn btn-secondary btn-sm">← Alle Gruppen</a>
+    </div>
 </div>
 
-<div class="post-edit-layout">
-    <div class="post-edit-main">
+<div style="display:grid;grid-template-columns:3fr 1fr;gap:1.5rem;align-items:start;">
+    <div class="grid-main">
         <!-- Gruppe bearbeiten -->
-        <div class="post-card">
+        <div class="admin-card">
             <h3>✏️ Gruppe bearbeiten</h3>
             <form method="post" action="<?php echo SITE_URL; ?>/admin/groups?tab=groups&view=detail&id=<?php echo $editGroupId; ?>">
                 <input type="hidden" name="_csrf"    value="<?php echo $csrfGroup; ?>">
                 <input type="hidden" name="_action"  value="edit_group">
                 <input type="hidden" name="group_id" value="<?php echo $editGroupId; ?>">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
-                    <div class="field-group" style="grid-column:1/-1;">
+                    <div class="form-group" style="grid-column:1/-1;">
                         <label>Name *</label>
-                        <input type="text" name="name" value="<?php echo htmlspecialchars($grp->name, ENT_QUOTES); ?>" required>
+                        <input type="text" name="name" class="form-control" value="<?php echo htmlspecialchars($grp->name, ENT_QUOTES); ?>" required>
                     </div>
-                    <div class="field-group" style="grid-column:1/-1;">
+                    <div class="form-group" style="grid-column:1/-1;">
                         <label>Beschreibung</label>
-                        <textarea name="description"><?php echo htmlspecialchars($grp->description ?? '', ENT_QUOTES); ?></textarea>
+                        <textarea name="description" class="form-control"><?php echo htmlspecialchars($grp->description ?? '', ENT_QUOTES); ?></textarea>
                     </div>
-                    <div class="field-group">
+                    <div class="form-group">
                         <label>Plan-ID <span style="font-weight:400;color:#94a3b8;">(optional)</span></label>
-                        <input type="number" name="plan_id" value="<?php echo (int)($grp->plan_id ?? 0) ?: ''; ?>" placeholder="0">
+                        <input type="number" name="plan_id" class="form-control" value="<?php echo (int)($grp->plan_id ?? 0) ?: ''; ?>" placeholder="0">
                     </div>
-                    <div class="field-group">
+                    <div class="form-group">
                         <label style="cursor:pointer;display:flex;align-items:center;gap:.4rem;margin-top:1.4rem;">
                             <input type="checkbox" name="is_active" <?php echo $grp->is_active ? 'checked' : ''; ?>> Aktiv
                         </label>
                     </div>
                 </div>
-                <button type="submit" class="btn-sm btn-primary">💾 Speichern</button>
+                <button type="submit" class="btn btn-primary btn-sm">💾 Speichern</button>
             </form>
         </div>
 
         <!-- Mitglieder -->
-        <div class="post-card">
+        <div class="admin-card">
             <h3>👥 Mitglieder (<?php echo count($members); ?>)</h3>
             <?php if (empty($members)): ?>
             <p style="color:#94a3b8;font-size:.875rem;">Noch keine Mitglieder in dieser Gruppe.</p>
@@ -374,7 +378,7 @@ if ($editGroupId > 0):
                             <input type="hidden" name="_action"   value="remove_member">
                             <input type="hidden" name="group_id"  value="<?php echo $editGroupId; ?>">
                             <input type="hidden" name="user_id"   value="<?php echo (int)$m->id; ?>">
-                            <button type="submit" class="btn-sm btn-danger" style="padding:.2rem .4rem;"
+                            <button type="submit" class="btn btn-danger btn-sm"
                                     onclick="return confirm('Mitglied aus Gruppe entfernen?')">✕</button>
                         </form>
                     </div>
@@ -390,7 +394,7 @@ if ($editGroupId > 0):
                     <input type="hidden" name="_csrf"    value="<?php echo $csrfGroup; ?>">
                     <input type="hidden" name="_action"  value="add_member">
                     <input type="hidden" name="group_id" value="<?php echo $editGroupId; ?>">
-                    <select name="user_id" style="flex:1;min-width:200px;padding:.35rem .6rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.85rem;">
+                    <select name="user_id" class="form-control" style="flex:1;min-width:200px;">
                         <option value="">Benutzer wählen…</option>
                         <?php foreach ($nonMembers as $nm): ?>
                         <option value="<?php echo (int)$nm->id; ?>">
@@ -401,15 +405,15 @@ if ($editGroupId > 0):
                         </option>
                         <?php endforeach; ?>
                     </select>
-                    <button type="submit" class="btn-sm btn-success">➕ Hinzufügen</button>
+                    <button type="submit" class="btn btn-primary btn-sm">➕ Hinzufügen</button>
                 </form>
             </div>
             <?php endif; ?>
         </div>
     </div>
 
-    <div class="post-edit-side">
-        <div class="post-card">
+    <div class="grid-side">
+        <div class="admin-card">
             <h3>ℹ️ Info</h3>
             <div style="font-size:.8rem;display:flex;flex-direction:column;gap:.25rem;color:#64748b;">
                 <span>ID: #<?php echo (int)$grp->id; ?></span>
@@ -423,7 +427,7 @@ if ($editGroupId > 0):
                     <input type="hidden" name="_action"  value="delete_group">
                     <input type="hidden" name="group_id" value="<?php echo $editGroupId; ?>">
                 </form>
-                <button type="submit" form="deleteGroupForm" class="btn-sm btn-danger" style="width:100%;"
+                <button type="submit" form="deleteGroupForm" class="btn btn-danger" style="width:100%;"
                         onclick="return confirm('Gruppe und alle Mitgliedschaften löschen?')">🗑️ Gruppe löschen</button>
             </div>
         </div>
@@ -432,53 +436,57 @@ if ($editGroupId > 0):
 
 <?php elseif ($viewMode === 'new'): // Neue Gruppe anlegen ?>
 
-<div class="posts-header">
-    <h2 style="margin:0;">➕ Neue Gruppe anlegen</h2>
-    <a href="<?php echo SITE_URL; ?>/admin/groups?tab=groups" class="btn-sm btn-secondary">← Alle Gruppen</a>
+<div class="admin-page-header">
+    <div>
+        <h2>➕ Neue Gruppe anlegen</h2>
+    </div>
+    <div class="header-actions">
+        <a href="<?php echo SITE_URL; ?>/admin/groups?tab=groups" class="btn btn-secondary btn-sm">← Alle Gruppen</a>
+    </div>
 </div>
 
 <form method="post" action="<?php echo SITE_URL; ?>/admin/groups?tab=groups">
     <input type="hidden" name="_csrf"   value="<?php echo $csrfGroup; ?>">
     <input type="hidden" name="_action" value="create_group">
 
-    <div class="post-edit-layout">
-        <div class="post-edit-main">
-            <div class="post-card">
+    <div style="display:grid;grid-template-columns:3fr 1fr;gap:1.5rem;align-items:start;">
+        <div class="grid-main">
+            <div class="admin-card">
                 <h3>📂 Gruppendetails</h3>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
-                    <div class="field-group">
+                    <div class="form-group">
                         <label>Name *</label>
-                        <input type="text" name="name" required placeholder="z.B. Premium-Mitglieder"
+                        <input type="text" name="name" class="form-control" required placeholder="z.B. Premium-Mitglieder"
                                oninput="this.form.slug.value=this.value.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')">
                     </div>
-                    <div class="field-group">
+                    <div class="form-group">
                         <label>Slug <span style="font-weight:400;color:#94a3b8;">(auto)</span></label>
-                        <input type="text" name="slug" placeholder="premium-mitglieder" pattern="[a-z0-9\-]+">
+                        <input type="text" name="slug" class="form-control" placeholder="premium-mitglieder" pattern="[a-z0-9\-]+">
                     </div>
-                    <div class="field-group" style="grid-column:1/-1;">
+                    <div class="form-group" style="grid-column:1/-1;">
                         <label>Beschreibung</label>
-                        <textarea name="description" placeholder="Optionale Beschreibung…"></textarea>
+                        <textarea name="description" class="form-control" placeholder="Optionale Beschreibung…"></textarea>
                     </div>
-                    <div class="field-group">
+                    <div class="form-group">
                         <label>Plan-ID <span style="font-weight:400;color:#94a3b8;">(optional)</span></label>
-                        <input type="number" name="plan_id" placeholder="0" min="0">
-                        <div class="field-hint">Verknüpft diese Gruppe mit einem Abo-Paket.</div>
+                        <input type="number" name="plan_id" class="form-control" placeholder="0" min="0">
+                        <small class="form-text">Verknüpft diese Gruppe mit einem Abo-Paket.</small>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="post-edit-side">
-            <div class="post-card">
+        <div class="grid-side">
+            <div class="admin-card">
                 <h3>⚙️ Status</h3>
-                <div class="field-group">
+                <div class="form-group">
                     <label style="cursor:pointer;display:flex;align-items:center;gap:.4rem;">
                         <input type="checkbox" name="is_active" checked> Gruppe aktiv
                     </label>
-                    <div class="field-hint">Inaktive Gruppen sind für Members nicht sichtbar.</div>
+                    <small class="form-text">Inaktive Gruppen sind für Members nicht sichtbar.</small>
                 </div>
                 <div style="margin-top:1rem;">
-                    <button type="submit" class="btn-sm btn-primary btn-lg" style="width:100%;">✅ Gruppe erstellen</button>
+                    <button type="submit" class="btn btn-primary" style="width:100%;">✅ Gruppe erstellen</button>
                 </div>
             </div>
         </div>
@@ -487,34 +495,38 @@ if ($editGroupId > 0):
 
 <?php else: // Gruppen-Liste ?>
 
-<div class="posts-header">
-    <h2 style="margin:0;">� Gruppen</h2>
-    <a href="<?php echo SITE_URL; ?>/admin/groups?tab=groups&view=new" class="btn-sm btn-primary">➕ Neue Gruppe</a>
+<div class="admin-page-header">
+    <div>
+        <h2>📂 Gruppen</h2>
+    </div>
+    <div class="header-actions">
+        <a href="<?php echo SITE_URL; ?>/admin/groups?tab=groups&view=new" class="btn btn-primary btn-sm">➕ Neue Gruppe</a>
+    </div>
 </div>
 
 <form method="get" action="<?php echo SITE_URL; ?>/admin/groups">
     <input type="hidden" name="tab" value="groups">
-    <div class="posts-toolbar">
-        <div class="posts-search">
-            <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Suche nach Name oder Slug…">
-            <button type="submit">🔍</button>
+    <div style="display:flex;gap:.75rem;align-items:center;margin-bottom:1.5rem;">
+        <div style="display:flex;gap:.5rem;flex:1;">
+            <input type="text" name="search" class="form-control" value="<?php echo htmlspecialchars($search); ?>" placeholder="Suche nach Name oder Slug…">
+            <button type="submit" class="btn btn-secondary">🔍</button>
         </div>
         <?php if ($search): ?>
-        <a href="<?php echo SITE_URL; ?>/admin/groups?tab=groups" class="btn-sm btn-secondary">✕ Filter löschen</a>
+        <a href="<?php echo SITE_URL; ?>/admin/groups?tab=groups" class="btn btn-secondary btn-sm">✕ Filter löschen</a>
         <?php endif; ?>
     </div>
 </form>
 
 <?php if (empty($groups)): ?>
-<div class="post-card" style="text-align:center;padding:3rem;color:#94a3b8;">
+<div class="empty-state">
     <div style="font-size:3rem;margin-bottom:1rem;">📂</div>
     <p><?php echo $search
         ? 'Keine Treffer für <strong>' . htmlspecialchars($search, ENT_QUOTES) . '</strong>'
         : 'Noch keine Gruppen vorhanden.'; ?></p>
 </div>
 <?php else: ?>
-<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:auto;">
-    <table class="posts-table">
+<div class="users-table-container">
+    <table class="users-table">
         <thead><tr>
             <th>Name</th>
             <th style="width:160px;">Slug</th>
@@ -550,14 +562,14 @@ if ($editGroupId > 0):
             <td style="font-size:.78rem;font-family:monospace;color:#64748b;"><?php echo htmlspecialchars($g->slug, ENT_QUOTES); ?></td>
             <td style="text-align:center;font-size:.8rem;color:#64748b;"><?php echo (int)($g->member_count ?? 0); ?></td>
             <td style="text-align:center;">
-                <span class="status-badge <?php echo $g->is_active ? 'status-active' : 'status-inactive'; ?>">
+                <span class="status-badge <?php echo $g->is_active ? 'active' : 'inactive'; ?>">
                     <?php echo $g->is_active ? 'Aktiv' : 'Inaktiv'; ?>
                 </span>
             </td>
             <td style="text-align:right;white-space:nowrap;">
                 <a href="<?php echo SITE_URL; ?>/admin/groups?tab=groups&view=detail&id=<?php echo (int)$g->id; ?>"
-                   class="btn-sm btn-secondary" title="Details &amp; Bearbeiten">✏️</a>
-                <button type="button" class="btn-sm btn-danger" title="Löschen"
+                   class="btn btn-secondary btn-sm" title="Details &amp; Bearbeiten">✏️</a>
+                <button type="button" class="btn btn-danger btn-sm" title="Löschen"
                         onclick="deleteGroup(<?php echo (int)$g->id; ?>, '<?php echo htmlspecialchars(addslashes($g->name), ENT_QUOTES); ?>')">🗑️</button>
             </td>
         </tr>
@@ -592,13 +604,15 @@ $allCapsForView = ['manage_posts','manage_pages','manage_users','manage_plugins'
                    'manage_themes','manage_settings','view_analytics','manage_media'];
 ?>
 
-<div class="posts-header">
-    <h2 style="margin:0;">🔑 Rollen</h2>
+<div class="admin-page-header">
+    <div>
+        <h2>🔑 Rollen</h2>
+    </div>
 </div>
 
 <?php if (!empty($roles)): ?>
-<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:auto;margin-bottom:1.5rem;">
-    <table class="posts-table">
+<div class="users-table-container" style="margin-bottom:1.5rem;">
+    <table class="users-table">
         <thead><tr>
             <th>Rolle</th>
             <th style="width:140px;">Interner Name</th>
@@ -635,9 +649,9 @@ $allCapsForView = ['manage_posts','manage_pages','manage_users','manage_plugins'
             </td>
             <td style="text-align:right;white-space:nowrap;">
                 <a href="<?php echo SITE_URL; ?>/admin/groups?tab=roles&edit_role=<?php echo (int)$role->id; ?>"
-                   class="btn-sm btn-secondary">✏️</a>
+                   class="btn btn-secondary btn-sm">✏️</a>
                 <?php if (!$isCore): ?>
-                <button type="button" class="btn-sm btn-danger"
+                <button type="button" class="btn btn-danger btn-sm"
                         onclick="deleteRole(<?php echo (int)$role->id; ?>)">🗑️</button>
                 <?php endif; ?>
             </td>
@@ -655,11 +669,11 @@ $editCaps = $editRole ? (json_decode($editRole->capabilities ?? '[]', true) ?? [
 $isEditCore = $editRole ? in_array($editRole->name, $coreRoles) : false;
 ?>
 
-<div class="post-card">
+<div class="admin-card">
     <h3><?php echo $editRole ? '✏️ Rolle bearbeiten: ' . htmlspecialchars($editRole->display_name, ENT_QUOTES) : '➕ Neue Rolle erstellen'; ?></h3>
 
     <?php if ($editRole && $isEditCore): ?>
-    <div class="notice" style="background:#fefce8;color:#854d0e;border:1px solid #fde047;margin-bottom:.9rem;">
+    <div class="alert" style="background:#fefce8;color:#854d0e;border-left:4px solid #fde047;margin-bottom:.9rem;">
         ⚠️ Core-Rollen (admin, member, editor) werden vom System verwaltet. Capabilities können geändert werden.
     </div>
     <?php endif; ?>
@@ -671,24 +685,24 @@ $isEditCore = $editRole ? in_array($editRole->name, $coreRoles) : false;
         <input type="hidden" name="role_id"  value="<?php echo (int)$editRole->id; ?>">
         <?php endif; ?>
 
-        <div class="post-edit-layout">
-            <div class="post-edit-main">
+        <div style="display:grid;grid-template-columns:3fr 1fr;gap:1.5rem;align-items:start;">
+            <div class="grid-main">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
                     <?php if (!$editRole): ?>
-                    <div class="field-group">
+                    <div class="form-group">
                         <label>Interner Name * <span style="font-weight:400;color:#94a3b8;">(nur a-z, 0-9, _)</span></label>
-                        <input type="text" name="name" required placeholder="z.B. moderator" pattern="[a-z0-9_]+">
+                        <input type="text" name="name" class="form-control" required placeholder="z.B. moderator" pattern="[a-z0-9_]+">
                     </div>
                     <?php endif; ?>
-                    <div class="field-group" <?php echo !$editRole ? '' : 'style="grid-column:1/-1;"'; ?>>
+                    <div class="form-group" <?php echo !$editRole ? '' : 'style="grid-column:1/-1;"'; ?>>
                         <label>Anzeigename *</label>
-                        <input type="text" name="display_name" required
+                        <input type="text" name="display_name" class="form-control" required
                                value="<?php echo htmlspecialchars($editRole->display_name ?? '', ENT_QUOTES); ?>"
                                placeholder="z.B. Moderator">
                     </div>
-                    <div class="field-group" style="grid-column:1/-1;">
+                    <div class="form-group" style="grid-column:1/-1;">
                         <label>Beschreibung</label>
-                        <textarea name="description" placeholder="Optionale Beschreibung…"><?php echo htmlspecialchars($editRole->description ?? '', ENT_QUOTES); ?></textarea>
+                        <textarea name="description" class="form-control" placeholder="Optionale Beschreibung…"><?php echo htmlspecialchars($editRole->description ?? '', ENT_QUOTES); ?></textarea>
                     </div>
                 </div>
 
@@ -706,15 +720,15 @@ $isEditCore = $editRole ? in_array($editRole->name, $coreRoles) : false;
                 </div>
             </div>
 
-            <div class="post-edit-side">
-                <div class="post-card">
+            <div class="grid-side">
+                <div class="admin-card">
                     <h3>⚙️ Aktionen</h3>
                     <div style="display:flex;flex-direction:column;gap:.45rem;">
-                        <button type="submit" class="btn-sm btn-primary btn-lg" style="width:100%;">
+                        <button type="submit" class="btn btn-primary" style="width:100%;">
                             <?php echo $editRole ? '💾 Speichern' : '✅ Rolle erstellen'; ?>
                         </button>
                         <?php if ($editRole): ?>
-                        <a href="<?php echo SITE_URL; ?>/admin/groups?tab=roles" class="btn-sm btn-secondary" style="width:100%;justify-content:center;">
+                        <a href="<?php echo SITE_URL; ?>/admin/groups?tab=roles" class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;">
                             ✕ Abbrechen
                         </a>
                         <?php endif; ?>
@@ -742,3 +756,4 @@ function deleteRole(id) {
 <?php endif; // tab ?>
 
 <?php renderAdminLayoutEnd(); ?>
+

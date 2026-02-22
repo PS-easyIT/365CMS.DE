@@ -97,37 +97,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $csrfToken = $security->generateToken('data_access');
 
 require_once __DIR__ . '/partials/admin-menu.php';
+renderAdminLayoutStart('Recht auf Auskunft', 'data-access');
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <title>Recht auf Auskunft - <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
-    <?php renderAdminSidebarStyles(); ?>
-</head>
-<body class="admin-body">
-    <?php renderAdminSidebar('data-access'); ?>
-    <div class="admin-content">
-        <div class="admin-page-header">
-            <h2>👤 Recht auf Auskunft (Art. 15 DSGVO)</h2>
-            <p>Erstellen Sie maschinenlesbare Datenauszüge für Nutzeranfragen.</p>
-        </div>
+<div class="admin-page-header">
+    <div>
+        <h2>👤 Recht auf Auskunft (Art. 15 DSGVO)</h2>
+        <p>Erstellen Sie maschinenlesbare Datenauszüge für Nutzeranfragen.</p>
+    </div>
+</div>
 
         <?php if ($message): ?>
             <div class="alert alert-<?php echo $messageType; ?>"><?php echo htmlspecialchars($message); ?></div>
         <?php endif; ?>
 
         <!-- SEARCH FORM -->
-        <div class="adm-card">
+        <div class="admin-card">
             <h3>🔍 Benutzer suchen</h3>
             <form method="post">
                 <div class="form-group">
-                    <label>E-Mail Adresse des Nutzers</label>
+                    <label class="form-label">E-Mail Adresse des Nutzers</label>
                     <div style="display:flex; gap:1rem;">
-                        <input type="email" name="email" placeholder="user@example.com" value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" required>
-                        <button type="submit" class="btn-primary">Suchen</button>
+                        <input type="email" name="email" class="form-control" placeholder="user@example.com" value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" required>
+                        <button type="submit" class="btn btn-primary">Suchen</button>
                     </div>
                 </div>
             </form>
@@ -135,7 +126,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
 
         <!-- RESULT SECTION -->
         <?php if ($userData): ?>
-        <div class="adm-card" style="border-top: 4px solid #3b82f6;">
+        <div class="admin-card" style="border-top: 4px solid var(--admin-primary);">
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                 <div>
                     <h3 style="margin-top:0;">Gefundener Datensatz</h3>
@@ -177,15 +168,12 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     <input type="hidden" name="action" value="export_json">
                     <input type="hidden" name="user_id" value="<?php echo $userData->id; ?>">
                     <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                    <button type="submit" class="btn-primary">
+                    <button type="submit" class="btn btn-primary">
                         📥 JSON-Export herunterladen
                     </button>
-                    <!-- Future: PDF Export Button -->
                 </form>
             </div>
         </div>
         <?php endif; ?>
 
-    </div>
-</body>
-</html>
+<?php renderAdminLayoutEnd(); ?>

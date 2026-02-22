@@ -2,7 +2,7 @@
 /**
  * Rechtstexte Generator
  * 
- * Automatische Erstellung von Impressum und Datenschutz
+ * Automatische Erstellung von Impressum, Datenschutz und Cookie-Richtlinie
  * 
  * @package CMSv2\Admin
  */
@@ -18,27 +18,33 @@ use CMS\Database;
 use CMS\Security;
 
 if (!defined('ABSPATH')) { exit; }
-if (!Auth::instance()->isAdmin()) { header('Location: ' . SITE_URL); exit; }
+// Nur Admins dürfen diese Seite sehen
+if (!Auth::instance()->isAdmin()) {
+    header('Location: ' . SITE_URL);
+    exit;
+}
 
 // Load Admin Menu & Layout Helpers
 require_once __DIR__ . '/partials/admin-menu.php';
 
 $db = Database::instance();
 $message = '';
+$messageType = '';
 
 // Handle Generation
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_legal'])) {
-    if (!wp_verify_nonce($_POST['_csrf_token'], 'generate_legal')) {
-        $message = '<div class="alert alert-error">Sicherheitsprüfung fehlgeschlagen.</div>';
+    if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'generate_legal')) {
+        $message = 'Sicherheitsprüfung fehlgeschlagen.';
+        $messageType = 'error';
     } else {
         // Collect Data
-        $company = sanitize_text_field($_POST['company']);
-        $address = sanitize_text_field($_POST['address']);
-        $email = sanitize_email($_POST['email']);
-        $phone = sanitize_text_field($_POST['phone']);
-        $owner = sanitize_text_field($_POST['owner']);
+        $company  = sanitize_text_field($_POST['company']);
+        $address  = sanitize_text_field($_POST['address']);
+        $email    = sanitize_email($_POST['email']);
+        $phone    = sanitize_text_field($_POST['phone']);
+        $owner    = sanitize_text_field($_POST['owner']);
         $registry = sanitize_text_field($_POST['registry']);
-        $vat_id = sanitize_text_field($_POST['vat_id']);
+        $vat_id   = sanitize_text_field($_POST['vat_id']);
 
         // 1. Generate Impressum
         $impressumContent = "<h2>Angaben gemäß § 5 TMG</h2>";
@@ -173,7 +179,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_legal'])) {
             }
         } // End of generate_cookie_policy block
 
-        $message = '<div class="alert alert-success">Rechtstexte wurden erfolgreich aktualisiert!</div>';
+        $message = 'Rechtstexte wurden erfolgreich aktualisiert!';
+        $messageType = 'success';
     } // End of nonce check
 } // End of POST request
 
@@ -182,81 +189,89 @@ $settings = $db->fetchAll("SELECT option_name, option_value FROM {$db->getPrefix
 $opts = [];
 foreach($settings as $s) $opts[$s['option_name']] = $s['option_value'];
 
+$csrfToken = Security::instance()->generateToken('generate_legal');
 
 renderAdminLayoutStart('Rechtstexte Generator', 'legal-sites');
 ?>
 
-<div class="admin-header">
-    <h1>§ Rechtstexte Generator</h1>
-    <p>Erstellen Sie automatisiert Ihr Impressum und Ihre Datenschutzerklärung.</p>
+<div class="admin-page-header">
+    <div>
+        <h2>§ Rechtstexte Generator</h2>
+        <p>Erstellen Sie automatisiert Ihr Impressum, Datenschutzerklärung und Cookie-Richtlinie.</p>
+    </div>
 </div>
 
-<?php echo $message; ?>
+<?php if ($message): ?>
+    <div class="alert alert-<?php echo $messageType; ?>"><?php echo htmlspecialchars($message); ?></div>
+<?php endif; ?>
 
 <div class="admin-card">
     <form method="post" class="admin-form">
-        <input type="hidden" name="_csrf_token" value="<?php echo wp_create_nonce('generate_legal'); ?>">
+        <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
         <input type="hidden" name="generate_legal" value="1">
 
         <h3>🏢 Firmendaten</h3>
         
         <div class="form-group">
-            <label>Firmenname / Inhaber</label>
-            <input type="text" name="company" value="<?php echo htmlspecialchars($opts['site_title'] ?? ''); ?>" required placeholder="Musterfirma GmbH">
+            <label class="form-label">Firmenname / Inhaber <span style="color:#ef4444;">*</span></label>
+            <input type="text" name="company" class="form-control"
+                   value="<?php echo htmlspecialchars($opts['site_title'] ?? ''); ?>" required placeholder="Musterfirma GmbH">
         </div>
 
         <div class="form-group">
-            <label>Anschrift (Straße, PLZ, Ort)</label>
-            <input type="text" name="address" required placeholder="Musterstraße 1, 12345 Musterstadt">
+            <label class="form-label">Anschrift (Straße, PLZ, Ort) <span style="color:#ef4444;">*</span></label>
+            <input type="text" name="address" class="form-control"
+                   required placeholder="Musterstraße 1, 12345 Musterstadt">
         </div>
 
-        <div class="form-grid">
+        <div class="form-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem;">
             <div class="form-group">
-                <label>E-Mail Adresse</label>
-                <input type="email" name="email" value="<?php echo htmlspecialchars($opts['admin_email'] ?? ''); ?>" required>
+                <label class="form-label">E-Mail Adresse <span style="color:#ef4444;">*</span></label>
+                <input type="email" name="email" class="form-control"
+                       value="<?php echo htmlspecialchars($opts['admin_email'] ?? ''); ?>" required>
             </div>
              <div class="form-group">
-                <label>Telefonnummer</label>
-                <input type="text" name="phone" placeholder="+49 123 456789">
+                <label class="form-label">Telefonnummer</label>
+                <input type="text" name="phone" class="form-control" placeholder="+49 123 456789">
             </div>
         </div>
 
         <div class="form-group">
-            <label>Geschäftsführer / Verantwortlicher</label>
-            <input type="text" name="owner" placeholder="Max Mustermann">
+            <label class="form-label">Geschäftsführer / Verantwortlicher</label>
+            <input type="text" name="owner" class="form-control" placeholder="Max Mustermann">
         </div>
 
-        <div class="form-grid">
+        <div class="form-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem;">
              <div class="form-group">
-                <label>Handelsregister (Optional)</label>
-                <input type="text" name="registry" placeholder="HRB 12345">
+                <label class="form-label">Handelsregister (Optional)</label>
+                <input type="text" name="registry" class="form-control" placeholder="HRB 12345">
             </div>
              <div class="form-group">
-                <label>USt-IdNr. (Optional)</label>
-                <input type="text" name="vat_id" placeholder="DE123456789">
+                <label class="form-label">USt-IdNr. (Optional)</label>
+                <input type="text" name="vat_id" class="form-control" placeholder="DE123456789">
             </div>
         </div>
 
         <div class="form-group">
-             <label style="display:flex; align-items:center; gap:0.5rem; font-weight:bold;">
+             <label class="checkbox-label" style="display:flex; align-items:center; gap:0.5rem; font-weight:bold;">
                 <input type="checkbox" name="generate_cookie_policy" value="1" checked>
                 Cookie-Richtlinie (cookie-richtlinie) mitgenerieren
             </label>
-            <p style="font-size:0.85rem; color:#64748b; margin-top:0.25rem;">
+            <small class="form-text">
                 Erstellt eine Seite mit einer Tabelle aller erkannten Cookies und einem Button zum Ändern der Zustimmung.
-            </p>
+            </small>
         </div>
 
-        <div class="form-actions">
-            <button type="submit" class="btn btn-primary">
-                🔨 Rechtstexte generieren & speichern
-            </button>
+        <!-- Sticky Save Bar -->
+        <div class="admin-card form-actions-card">
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">🔨 Rechtstexte generieren & speichern</button>
+            </div>
+            <p style="margin-top: 1rem; color: #64748b; font-size: 0.85rem;">
+                ℹ️ Hinweis: Durch Klick auf den Button werden die Seiten "Impressum", "Datenschutz" und ggf. "Cookie-Richtlinie" erstellt oder überschrieben. 
+                Bitte prüfen Sie die Texte anschließend auf Vollständigkeit.
+            </p>
         </div>
-        
-        <p style="margin-top: 1rem; color: #64748b; font-size: 0.85rem;">
-            ℹ️ Hinweis: Durch Klick auf den Button werden die Seiten "Impressum" und "Datenschutz" erstellt oder überschrieben. 
-            Bitte prüfen Sie die Texte anschließend auf Vollständigkeit.
-        </p>
     </form>
 </div>
 

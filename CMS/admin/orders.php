@@ -75,15 +75,13 @@ $totalPages = ceil($total / $perPage);
 
 $csrfToken = Security::instance()->generateToken('update_order_status');
 
-function getStatusBadge($status) {
-    switch ($status) {
-        case 'confirmed': return '<span class="status-badge status-success">Bestätigt</span>';
-        case 'completed': return '<span class="status-badge status-success">Abgeschlossen</span>'; // Legacy/Alias
-        case 'cancelled': return '<span class="status-badge status-danger">Storniert</span>';
-        case 'refunded': return '<span class="status-badge status-secondary">Erstattet</span>';
-        case 'confirmed': return '<span class="status-badge status-info">Bestätigt</span>';
-        default: return '<span class="status-badge status-warning">Ausstehend</span>';
-    }
+function getStatusBadge(string $status): string {
+    return match($status) {
+        'confirmed', 'completed' => '<span class="status-badge active">Bestätigt</span>',
+        'cancelled'             => '<span class="status-badge" style="background:#fee2e2;color:#991b1b;">Storniert</span>',
+        'refunded'              => '<span class="status-badge inactive">Erstattet</span>',
+        default                 => '<span class="status-badge" style="background:#fef3c7;color:#92400e;">Ausstehend</span>',
+    };
 }
 
 // Load admin menu
@@ -91,20 +89,22 @@ require_once __DIR__ . '/partials/admin-menu.php';
 renderAdminLayoutStart('Bestellungen', 'orders');
 ?>
 
-<div class="posts-header">
-    <h2>🧾 Bestellungen</h2>
-    <span style="color:#64748b;font-size:.875rem;"><?php echo (int)$total; ?> Bestellung<?php echo $total != 1 ? 'en' : ''; ?> gesamt</span>
+<div class="admin-page-header">
+    <div>
+        <h2>🧾 Bestellungen</h2>
+        <p><?php echo (int)$total; ?> Bestellung<?php echo $total != 1 ? 'en' : ''; ?> gesamt</p>
+    </div>
 </div>
 
 <?php if ($message): ?>
-    <div class="notice notice-success"><?php echo htmlspecialchars($message); ?></div>
+    <div class="alert alert-success"><?php echo htmlspecialchars($message); ?></div>
 <?php endif; ?>
 <?php if ($error): ?>
-    <div class="notice notice-error"><?php echo htmlspecialchars($error); ?></div>
+    <div class="alert alert-error"><?php echo htmlspecialchars($error); ?></div>
 <?php endif; ?>
 
-<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:auto;">
-    <table class="posts-table">
+<div class="users-table-container">
+    <table class="users-table">
         <thead>
             <tr>
                 <th>Bestell-Nr.</th>
@@ -142,23 +142,23 @@ renderAdminLayoutStart('Bestellungen', 'orders');
                         <div style="font-size:.78rem;color:#94a3b8;"><?php echo date('H:i', strtotime($order->created_at)); ?></div>
                     </td>
                     <td><?php echo getStatusBadge($order->status); ?></td>
-                    <td>
-                        <div style="display:flex;gap:.3rem;align-items:center;">
-                            <button onclick="viewOrderDetails(<?php echo htmlspecialchars(json_encode($order)); ?>)" class="btn-icon" title="Details">👁️</button>
+                    <td style="text-align:right; white-space:nowrap;">
+                        <div style="display:flex;gap:.4rem;align-items:center;justify-content:flex-end;">
+                            <button onclick="viewOrderDetails(<?php echo htmlspecialchars(json_encode($order)); ?>)" class="btn btn-sm btn-secondary" title="Details">👁️</button>
                             <?php if ($order->status === 'pending'): ?>
                             <form method="POST" style="display:inline;" onsubmit="return confirm('Bestellung als bezahlt markieren?');">
                                 <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
                                 <input type="hidden" name="action" value="update_status">
                                 <input type="hidden" name="order_id" value="<?php echo $order->id; ?>">
                                 <input type="hidden" name="status" value="confirmed">
-                                <button type="submit" class="btn-icon btn-success-sm" title="Als bezahlt markieren">✅</button>
+                                <button type="submit" class="btn btn-sm btn-primary" title="Als bezahlt markieren">✅</button>
                             </form>
                             <form method="POST" style="display:inline;" onsubmit="return confirm('Bestellung stornieren?');">
                                 <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
                                 <input type="hidden" name="action" value="update_status">
                                 <input type="hidden" name="order_id" value="<?php echo $order->id; ?>">
                                 <input type="hidden" name="status" value="cancelled">
-                                <button type="submit" class="btn-icon btn-danger-sm" title="Stornieren">❌</button>
+                                <button type="submit" class="btn btn-sm btn-danger" title="Stornieren">❌</button>
                             </form>
                             <?php endif; ?>
                         </div>
@@ -171,22 +171,28 @@ renderAdminLayoutStart('Bestellungen', 'orders');
 </div>
 
 <?php if ($totalPages > 1): ?>
-<div class="pager">
-    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-        <a href="?p=<?php echo $i; ?>" class="<?php echo $page === $i ? 'active' : ''; ?>"><?php echo $i; ?></a>
+<div style="display:flex;gap:.5rem;justify-content:center;margin-top:1.5rem;flex-wrap:wrap;">
+    <?php if ($page > 1): ?>
+        <a href="?p=<?php echo $page - 1; ?>" class="btn btn-secondary btn-sm">← Zurück</a>
+    <?php endif; ?>
+    <?php for ($i = max(1,$page-2); $i <= min($totalPages,$page+2); $i++): ?>
+        <a href="?p=<?php echo $i; ?>" class="btn btn-sm <?php echo $page === $i ? 'btn-primary' : 'btn-secondary'; ?>"><?php echo $i; ?></a>
     <?php endfor; ?>
+    <?php if ($page < $totalPages): ?>
+        <a href="?p=<?php echo $page + 1; ?>" class="btn btn-secondary btn-sm">Weiter →</a>
+    <?php endif; ?>
 </div>
 <?php endif; ?>
 
 
 <!-- Details Modal -->
-<div id="orderModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;">
-    <div style="background:#fff;max-width:620px;width:90%;margin:auto;border-radius:12px;padding:2rem;box-shadow:0 8px 30px rgba(0,0,0,.18);max-height:90vh;overflow-y:auto;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;padding-bottom:.75rem;border-bottom:2px solid #f1f5f9;">
-            <h3 style="margin:0;font-size:1.1rem;color:#1e293b;">Bestelldetails <span id="modalOrderNum" style="color:#3b82f6;"></span></h3>
-            <button onclick="document.getElementById('orderModal').style.display='none'" style="border:none;background:none;font-size:1.4rem;cursor:pointer;color:#94a3b8;line-height:1;">&times;</button>
+<div id="orderModal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:640px;">
+        <div class="modal-header">
+            <h3>Bestelldetails <span id="modalOrderNum" style="color:var(--admin-primary);"></span></h3>
+            <button class="modal-close" onclick="closeOrderModal()">&times;</button>
         </div>
-        <div id="modalContent"></div>
+        <div class="modal-body" id="modalContent"></div>
     </div>
 </div>
 
@@ -195,6 +201,8 @@ function viewOrderDetails(order) {
     const modal = document.getElementById('orderModal');
     document.getElementById('modalOrderNum').textContent = '#' + order.order_number;
     modal.style.display = 'flex';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
     
     const html = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;">
         <div>
@@ -224,8 +232,11 @@ function viewOrderDetails(order) {
     document.getElementById('modalContent').innerHTML = html;
 }
 
+function closeOrderModal() {
+    document.getElementById('orderModal').style.display = 'none';
+}
 document.getElementById('orderModal').addEventListener('click', function(e) {
-    if (e.target === this) this.style.display = 'none';
+    if (e.target === this) closeOrderModal();
 });
 </script>
 <?php renderAdminLayoutEnd(); ?>

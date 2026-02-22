@@ -106,6 +106,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
 <html lang="de">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Security Audit - <?php echo htmlspecialchars(SITE_NAME); ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">

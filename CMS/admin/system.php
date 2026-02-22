@@ -126,16 +126,19 @@ require_once __DIR__ . '/partials/admin-menu.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>System & Diagnose - <?php echo htmlspecialchars(SITE_NAME); ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=<?php echo CMS_VERSION; ?>">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
     <?php renderAdminSidebarStyles(); ?>
 </head>
 <body class="admin-body">
     
     <?php renderAdminSidebar('system'); ?>
     
-    <main class="admin-content">
+    <div class="admin-content">
         <div class="admin-page-header">
-            <h2>System & Diagnose</h2>
+            <div>
+                <h2>⚙️ System &amp; Diagnose</h2>
+                <p>Systemstatus, Datenbank, Dateisystem und Diagnosewerkzeuge.</p>
+            </div>
             <div class="header-actions">
                 <span class="status-indicator <?php echo $databaseStatus['connected'] ? 'status-online' : 'status-offline'; ?>">
                     <?php echo $databaseStatus['connected'] ? '● Online' : '● Offline'; ?>
@@ -153,20 +156,20 @@ require_once __DIR__ . '/partials/admin-menu.php';
         
         <!-- Tab Navigation -->
         <div class="tabs">
-            <button class="tab-btn active" data-tab="overview">Übersicht</button>
-            <button class="tab-btn" data-tab="database">Datenbank</button>
-            <button class="tab-btn" data-tab="files">Dateisystem</button>
-            <button class="tab-btn" data-tab="security">Sicherheit</button>
-            <button class="tab-btn" data-tab="tools">Tools</button>
-            <button class="tab-btn" data-tab="logs">Logs</button>
+            <button class="tab-btn active" onclick="switchTab('tab-overview', this)">Übersicht</button>
+            <button class="tab-btn" onclick="switchTab('tab-database', this)">Datenbank</button>
+            <button class="tab-btn" onclick="switchTab('tab-files', this)">Dateisystem</button>
+            <button class="tab-btn" onclick="switchTab('tab-security', this)">Sicherheit</button>
+            <button class="tab-btn" onclick="switchTab('tab-tools', this)">Tools</button>
+            <button class="tab-btn" onclick="switchTab('tab-logs', this)">Logs</button>
         </div>
         
         <!-- Overview Tab -->
         <div class="tab-content active" id="tab-overview">
             <div class="system-grid">
                 <!-- System Info Card -->
-                <div class="system-card">
-                    <h2>📊 System-Informationen</h2>
+                <div class="admin-card">
+                    <h3>📊 System-Informationen</h3>
                     <div class="info-list">
                         <div class="info-row">
                             <span class="info-label">PHP Version:</span>
@@ -204,8 +207,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 </div>
                 
                 <!-- Database Status Card -->
-                <div class="system-card">
-                    <h2>💾 Datenbank-Status</h2>
+                <div class="admin-card">
+                    <h3>💾 Datenbank-Status</h3>
                     <div class="info-list">
                         <div class="info-row">
                             <span class="info-label">Verbindung:</span>
@@ -233,8 +236,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 </div>
                 
                 <!-- CMS Statistics Card -->
-                <div class="system-card">
-                    <h2>📈 CMS-Statistiken</h2>
+                <div class="admin-card">
+                    <h3>📈 CMS-Statistiken</h3>
                     <div class="info-list">
                         <div class="info-row">
                             <span class="info-label">Benutzer (Gesamt):</span>
@@ -264,8 +267,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 </div>
                 
                 <!-- Directory Sizes Card -->
-                <div class="system-card">
-                    <h2>📁 Verzeichnis-Größen</h2>
+                <div class="admin-card">
+                    <h3>📁 Verzeichnis-Größen</h3>
                     <div class="info-list">
                         <?php foreach ($directorySizes as $dir): ?>
                         <div class="info-row">
@@ -280,9 +283,9 @@ require_once __DIR__ . '/partials/admin-menu.php';
         
         <!-- Database Tab -->
         <div class="tab-content" id="tab-database">
-            <div class="table-container">
-                <h2>Datenbank-Tabellen</h2>
-                <table class="data-table">
+            <div class="users-table-container">
+                <h3>Datenbank-Tabellen</h3>
+                <table class="users-table">
                     <thead>
                         <tr>
                             <th>Tabelle</th>
@@ -324,9 +327,9 @@ require_once __DIR__ . '/partials/admin-menu.php';
         
         <!-- Files Tab -->
         <div class="tab-content" id="tab-files">
-            <div class="table-container">
-                <h2>Datei-Berechtigungen</h2>
-                <table class="data-table">
+            <div class="users-table-container">
+                <h3>Datei-Berechtigungen</h3>
+                <table class="users-table">
                     <thead>
                         <tr>
                             <th>Pfad</th>
@@ -379,8 +382,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
         
         <!-- Security Tab -->
         <div class="tab-content" id="tab-security">
-            <div class="system-card">
-                <h2>🔒 Sicherheits-Status</h2>
+            <div class="admin-card">
+                <h3>🔒 Sicherheits-Status</h3>
                 <div class="info-list">
                     <?php foreach ($securityStatus as $key => $value): ?>
                     <div class="info-row">
@@ -420,73 +423,73 @@ require_once __DIR__ . '/partials/admin-menu.php';
         <!-- Tools Tab -->
         <div class="tab-content" id="tab-tools">
             <div class="tools-grid">
-                <div class="tool-card">
+                <div class="admin-card">
                     <h3>🗑️ Cache leeren</h3>
                     <p>Löscht alle Cache-Einträge aus der Datenbank und dem Cache-Verzeichnis.</p>
-                    <form method="POST" onsubmit="return confirm('Cache wirklich leeren?');">
+                    <form method="POST" onsubmit="return openSystemConfirm('clear_cache', 'Cache leeren', 'Cache wirklich leeren?', 'primary')">
                         <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                         <input type="hidden" name="action" value="clear_cache">
-                        <button type="submit" class="btn btn-primary">Cache leeren</button>
+                        <button type="submit" class="btn btn-primary">🗑️ Cache leeren</button>
                     </form>
                 </div>
                 
-                <div class="tool-card">
+                <div class="admin-card">
                     <h3>🔄 Alte Sitzungen löschen</h3>
                     <p>Entfernt abgelaufene Sitzungen aus der Datenbank.</p>
-                    <form method="POST" onsubmit="return confirm('Alte Sitzungen löschen?');">
+                    <form method="POST" onsubmit="return openSystemConfirm('clear_sessions', 'Sitzungen löschen', 'Abgelaufene Sitzungen löschen?', 'danger')">
                         <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                         <input type="hidden" name="action" value="clear_sessions">
-                        <button type="submit" class="btn btn-primary">Sitzungen löschen</button>
+                        <button type="submit" class="btn btn-secondary">🔄 Sitzungen löschen</button>
                     </form>
                 </div>
                 
-                <div class="tool-card">
+                <div class="admin-card">
                     <h3>🚫 Fehllogins löschen</h3>
                     <p>Löscht fehlgeschlagene Login-Versuche älter als 24 Stunden.</p>
-                    <form method="POST" onsubmit="return confirm('Fehlgeschlagene Logins löschen?');">
+                    <form method="POST" onsubmit="return openSystemConfirm('clear_failed_logins', 'Fehllogins löschen', 'Fehlgeschlagene Logins löschen?', 'danger')">
                         <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                         <input type="hidden" name="action" value="clear_failed_logins">
-                        <button type="submit" class="btn btn-primary">Fehllogins löschen</button>
+                        <button type="submit" class="btn btn-secondary">🚫 Fehllogins löschen</button>
                     </form>
                 </div>
                 
-                <div class="tool-card">
+                <div class="admin-card">
                     <h3>🔧 Tabellen reparieren</h3>
                     <p>Führt REPAIR TABLE auf allen CMS-Tabellen aus.</p>
-                    <form method="POST" onsubmit="return confirm('Tabellen reparieren? Dies kann einige Zeit dauern.');">
+                    <form method="POST" onsubmit="return openSystemConfirm('repair_tables', 'Tabellen reparieren', 'REPAIR TABLE durchführen? Dies kann etwas dauern.', 'danger')">
                         <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                         <input type="hidden" name="action" value="repair_tables">
-                        <button type="submit" class="btn btn-warning">Tabellen reparieren</button>
+                        <button type="submit" class="btn btn-danger">🔧 Tabellen reparieren</button>
                     </form>
                 </div>
                 
-                <div class="tool-card">
+                <div class="admin-card">
                     <h3>⚡ Tabellen optimieren</h3>
                     <p>Führt OPTIMIZE TABLE auf allen CMS-Tabellen aus.</p>
-                    <form method="POST" onsubmit="return confirm('Tabellen optimieren? Dies kann einige Zeit dauern.');">
+                    <form method="POST" onsubmit="return openSystemConfirm('optimize_tables', 'Tabellen optimieren', 'OPTIMIZE TABLE durchführen? Dies kann etwas dauern.', 'danger')">
                         <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                         <input type="hidden" name="action" value="optimize_tables">
-                        <button type="submit" class="btn btn-warning">Tabellen optimieren</button>
+                        <button type="submit" class="btn btn-danger">⚡ Tabellen optimieren</button>
                     </form>
                 </div>
                 
-                <div class="tool-card">
+                <div class="admin-card">
                     <h3>📋 Logs leeren</h3>
                     <p>Löscht alle Einträge aus der Fehler-Log-Datei.</p>
-                    <form method="POST" onsubmit="return confirm('Logs wirklich löschen?');">
+                    <form method="POST" onsubmit="return openSystemConfirm('clear_logs', 'Logs leeren', 'Alle Logs wirklich löschen?', 'danger')">
                         <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                         <input type="hidden" name="action" value="clear_logs">
-                        <button type="submit" class="btn btn-danger">Logs leeren</button>
+                        <button type="submit" class="btn btn-danger">📋 Logs leeren</button>
                     </form>
                 </div>
                 
-                <div class="tool-card">
+                <div class="admin-card">
                     <h3>🔨 Fehlende Tabellen erstellen</h3>
                     <p>Erstellt alle fehlenden CMS-Tabellen in der Datenbank.</p>
-                    <form method="POST" onsubmit="return confirm('Fehlende Tabellen jetzt erstellen?');">
+                    <form method="POST" onsubmit="return openSystemConfirm('create_missing_tables', 'Tabellen erstellen', 'Fehlende Tabellen jetzt erstellen?', 'primary')">
                         <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                         <input type="hidden" name="action" value="create_missing_tables">
-                        <button type="submit" class="btn btn-primary">Tabellen erstellen</button>
+                        <button type="submit" class="btn btn-primary">🔨 Tabellen erstellen</button>
                     </form>
                 </div>
             </div>
@@ -515,24 +518,55 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 <?php endif; ?>
             </div>
         </div>
-    </main>
+    </div><!-- /.admin-content -->
+    
+    <!-- Confirm Action Modal -->
+    <div id="confirmActionModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="confirmActionTitle">⚠️ Aktion bestätigen</h3>
+                <button class="modal-close" onclick="closeConfirmModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmActionText"></p>
+                <form id="confirmActionForm" method="POST">
+                    <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                    <input type="hidden" name="action" id="confirmActionValue" value="">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeConfirmModal()">Abbrechen</button>
+                <button type="submit" form="confirmActionForm" id="confirmActionBtn" class="btn btn-danger">Bestätigen</button>
+            </div>
+        </div>
+    </div>
     
     <script>
-        // Tab switching
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const tabName = this.dataset.tab;
-                
-                // Update buttons
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                
-                // Update content
-                document.querySelectorAll('.tab-content').forEach(content => {
-                    content.classList.remove('active');
-                });
-                document.getElementById('tab-' + tabName).classList.add('active');
-            });
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        function openSystemConfirm(action, title, text, type) {
+            document.getElementById('confirmActionValue').value = action;
+            document.getElementById('confirmActionTitle').textContent = (type === 'danger' ? '⚠️ ' : 'ℹ️ ') + title;
+            document.getElementById('confirmActionText').textContent = text;
+            const btn = document.getElementById('confirmActionBtn');
+            btn.className = type === 'danger' ? 'btn btn-danger' : 'btn btn-primary';
+            document.getElementById('confirmActionModal').style.display = 'flex';
+            return false; // prevent immediate form submit
+        }
+        function closeConfirmModal() {
+            document.getElementById('confirmActionModal').style.display = 'none';
+        }
+        window.addEventListener('click', function(e) {
+            const m = document.getElementById('confirmActionModal');
+            if (e.target === m) closeConfirmModal();
+        });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeConfirmModal();
         });
         
         // Auto-hide alerts after 5 seconds

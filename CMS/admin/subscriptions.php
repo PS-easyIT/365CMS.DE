@@ -192,26 +192,30 @@ require_once __DIR__ . '/partials/admin-menu.php';
 renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
 ?>
 
-<div class="posts-header">
-    <h2>💳 Abo-Verwaltung</h2>
-
+<div class="admin-page-header">
+    <div>
+        <h2>💳 Abo-Verwaltung</h2>
+        <p>Abo-Pakete, Zuweisungen und Zahlungseinstellungen verwalten.</p>
+    </div>
+    <div class="header-actions">
             <?php if (empty($plans) && $activeTab === 'plans'): ?>
-             <form method="POST" style="display: inline;">
+             <form method="POST" style="display:inline;">
                     <input type="hidden" name="action" value="seed_defaults">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                    <button type="submit" class="btn btn-primary" onclick="return confirm('6 Standard-Pakete erstellen?')">
-                        Standard-Pakete erstellen
+                    <button type="submit" class="btn btn-secondary">
+                        ➕ Standard-Pakete erstellen
                     </button>
                 </form>
         <?php endif; ?>
-</div><!-- /.posts-header -->
+    </div>
+</div><!-- /.admin-page-header -->
 
 <?php if ($message): ?>
-    <div class="notice notice-success"><?php echo htmlspecialchars($message); ?></div>
+    <div class="alert alert-success"><?php echo htmlspecialchars($message); ?></div>
 <?php endif; ?>
 
 <?php if ($error): ?>
-    <div class="notice notice-error"><?php echo htmlspecialchars($error); ?></div>
+    <div class="alert alert-error"><?php echo htmlspecialchars($error); ?></div>
 <?php endif; ?>
         
         <!-- CONTENT: PAKETÜBERSICHT -->
@@ -251,11 +255,15 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
 
             <div class="admin-section-header">
                 <h3 style="margin:0;font-size:1rem;">Verfügbare Abo-Pakete <span class="plc-count-badge"><?php echo count($plans); ?></span></h3>
-                <a href="#" onclick="document.getElementById('create-plan-modal').style.display='flex'; return false;" class="btn-sm btn-primary">+ Neues Paket</a>
+                <a href="#" onclick="document.getElementById('create-plan-modal').style.display='flex'; return false;" class="btn btn-primary btn-sm">➕ Neues Paket</a>
             </div>
 
             <?php if (empty($plans)): ?>
-                <div class="post-card" style="text-align:center;color:#64748b;padding:2rem;">Noch keine Abo-Pakete vorhanden.</div>
+                <div class="empty-state">
+                    <p style="font-size:2.5rem;margin:0;">💭</p>
+                    <p><strong>Noch keine Abo-Pakete vorhanden.</strong></p>
+                    <p class="text-muted">Erstelle dein erstes Paket über den Button oben.</p>
+                </div>
             <?php else: ?>
             <div class="plan-list">
                 <?php foreach ($plans as $i => $plan): 
@@ -319,13 +327,9 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                             </div>
                         </div>
                         <div class="plc-actions">
-                            <a href="?tab=plans&edit_id=<?php echo $plan->id; ?>" class="btn-sm btn-secondary">✏️ Bearbeiten</a>
-                            <form method="POST" onsubmit="return confirm('Paket &quot;<?php echo htmlspecialchars($plan->name, ENT_QUOTES); ?>&quot; wirklich löschen?');">
-                                <input type="hidden" name="action" value="delete_plan">
-                                <input type="hidden" name="plan_id" value="<?php echo $plan->id; ?>">
-                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                                <button class="btn-sm btn-danger">🗑 Löschen</button>
-                            </form>
+                            <a href="?tab=plans&edit_id=<?php echo $plan->id; ?>" class="btn btn-secondary btn-sm">✏️ Bearbeiten</a>
+                            <button type="button" class="btn btn-danger btn-sm"
+                                    onclick="openDeletePlanModal(<?php echo $plan->id; ?>, '<?php echo htmlspecialchars($plan->name, ENT_QUOTES); ?>')">🗑 Löschen</button>
                         </div>
                     </div>
 
@@ -357,8 +361,7 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
 
                 <div class="settings-grid-2col">
 
-                <!-- Section: Abo-System Toggle -->
-                <div class="post-card">
+                <div class="admin-card">
                     <h3>🔧 Abo-System</h3>
                     <div class="field-group">
                         <label style="display:flex;align-items:center;gap:.6rem;font-size:.875rem;cursor:pointer;font-weight:600;">
@@ -378,7 +381,7 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                 </div>
 
                 <!-- Section: Zahlungsmethoden -->
-                <div class="post-card">
+                <div class="admin-card">
                     <h3>💳 Zahlungsmethoden</h3>
                     <p style="color:#64748b;font-size:.8rem;margin-top:-.25rem;">Werden Mitgliedern beim Abo-Abschluss angezeigt.</p>
                     <div class="field-group">
@@ -396,7 +399,7 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                 </div>
 
                 <!-- Section: Rechtliche Seiten -->
-                <div class="post-card">
+                <div class="admin-card">
                     <h3>📄 Rechtliche Seiten</h3>
                     <p style="color:#64748b;font-size:.8rem;margin-top:-.25rem;">URLs zu Pflichtseiten – werden im Checkout verlinkt.</p>
                     <div class="field-group">
@@ -414,7 +417,7 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                 </div>
 
                 <!-- Section: Rechnungsabsender -->
-                <div class="post-card">
+                <div class="admin-card">
                     <h3>🏢 Rechnungsabsender</h3>
                     <p style="color:#64748b;font-size:.8rem;margin-top:-.25rem;">Werden auf Rechnungen als Absender gedruckt.</p>
                     <div class="field-group">
@@ -428,7 +431,7 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                 </div>
 
                 <!-- Section: Bestellnummern -->
-                <div class="post-card">
+                <div class="admin-card">
                     <h3>📋 Bestellnummern</h3>
                     <div class="field-group" style="margin-bottom:0;">
                         <label>Format</label>
@@ -440,7 +443,7 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                 </div><!-- /.settings-grid-2col -->
 
                 <div style="margin-top:.25rem;">
-                    <button type="submit" class="btn-sm btn-primary" style="padding:.5rem 1.25rem;font-size:.9rem;">💾 Einstellungen speichern</button>
+                    <button type="submit" class="btn btn-primary">💾 Einstellungen speichern</button>
                 </div>
             </form>
 
@@ -448,7 +451,7 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
         <?php elseif ($activeTab === 'assignments'): ?>
 
             <!-- Assign form -->
-            <div class="post-card" style="margin-bottom:1.5rem;">
+                <div class="admin-card" style="margin-bottom:1.5rem;">
                 <h3>👤 Benutzer-Abo zuweisen</h3>
                 <form method="POST">
                     <input type="hidden" name="action" value="assign_subscription">
@@ -481,11 +484,11 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                             </select>
                         </div>
                         <div class="form-group" style="display:flex;align-items:flex-end;">
-                            <button type="submit" class="btn-sm btn-primary" style="padding:.45rem 1rem;">Abo zuweisen</button>
+                            <button type="submit" class="btn btn-primary btn-sm">Abo zuweisen</button>
                         </div>
                     </div>
                 </form>
-            </div>
+            </div><!-- /.admin-card -->
             
             <div class="admin-section-header" style="margin-top:1.5rem;">
                 <h3 style="margin:0;font-size:1rem;">Aktive Benutzer-Abos</h3>
@@ -523,7 +526,10 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                 <?php endforeach; ?>
                 
                 <?php if (empty($activeSubscriptions)): ?>
-                    <div class="post-card" style="text-align:center;color:#64748b;">Noch keine aktiven Abos.</div>
+                    <div class="empty-state">
+                        <p style="font-size:2.5rem;margin:0;">💭</p>
+                        <p><strong>Noch keine aktiven Abos vorhanden.</strong></p>
+                    </div>
                 <?php endif; ?>
             </div>
 
@@ -581,7 +587,7 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                                     <option value="<?php echo (int)$plan->id; ?>" <?php echo (int)($grp->plan_id ?? 0) === (int)$plan->id ? 'selected' : ''; ?>><?php echo htmlspecialchars($plan->name, ENT_QUOTES); ?></option>
                                     <?php endforeach; ?>
                                 </select>
-                                <button type="submit" class="btn-sm btn-primary">💾</button>
+                                <button type="submit" class="btn btn-primary btn-sm">💾</button>
                             </form>
                         </td>
                     </tr>
@@ -592,6 +598,29 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
             <?php endif; ?>
 
         <?php endif; ?>
+    </div>
+    
+    <!-- Delete Plan Confirmation Modal -->
+    <div id="deletePlanModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🗑️ Paket löschen</h3>
+                <button class="modal-close" onclick="closeDeletePlanModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Möchten Sie das Paket <strong id="deletePlanName"></strong> wirklich löschen?</p>
+                <div class="alert alert-error">⚠️ Diese Aktion kann nicht rückgängig gemacht werden!</div>
+                <form method="POST" id="deletePlanForm">
+                    <input type="hidden" name="action" value="delete_plan">
+                    <input type="hidden" name="plan_id" id="deletePlanId" value="">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeDeletePlanModal()">Abbrechen</button>
+                <button type="submit" form="deletePlanForm" class="btn btn-danger">🗑️ Paket löschen</button>
+            </div>
+        </div>
     </div>
     
     <!-- Create/Edit Plan Modal -->
@@ -696,9 +725,26 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
     </div>
     
     <script>
+        function openDeletePlanModal(id, name) {
+            document.getElementById('deletePlanId').value = id;
+            document.getElementById('deletePlanName').textContent = name;
+            document.getElementById('deletePlanModal').style.display = 'flex';
+        }
+        function closeDeletePlanModal() {
+            document.getElementById('deletePlanModal').style.display = 'none';
+        }
         // Modal: clicking outside closes it
         document.getElementById('create-plan-modal').addEventListener('click', function(e){
             if (e.target === this) this.style.display='none';
+        });
+        document.getElementById('deletePlanModal').addEventListener('click', function(e){
+            if (e.target === this) closeDeletePlanModal();
+        });
+        document.addEventListener('keydown', function(e){
+            if (e.key === 'Escape') {
+                closeDeletePlanModal();
+                document.getElementById('create-plan-modal').style.display='none';
+            }
         });
     </script>
 <?php renderAdminLayoutEnd(); ?>

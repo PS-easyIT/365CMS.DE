@@ -123,187 +123,195 @@ try {
 } catch (\Exception $e) { $accuracy = 0.0; }
 
 $csrfToken = $security->generateToken('save_antispam');
-
-renderAdminLayoutStart('AntiSpam Schutz', 'antispam');
 ?>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AntiSpam Schutz – <?php echo htmlspecialchars(SITE_NAME); ?></title>
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
+    <?php renderAdminSidebarStyles(); ?>
+</head>
+<body class="admin-body">
 
-<div class="admin-header">
-    <h1>🛡️ AntiSpam Schutz</h1>
-    <p>Einstellungen und Statistiken zum Schutz vor Kommentar-Spam</p>
-</div>
+    <?php renderAdminSidebar('antispam'); ?>
 
-<?php echo $message; ?>
+    <div class="admin-content">
 
-<div class="metrics-grid">
-    <div class="metric-card">
-        <div class="metric-icon">🚫</div>
-        <div class="metric-value"><?php echo number_format((float)$spamCountTotal); ?></div>
-        <div class="metric-label">Blockierte Kommentare (Gesamt)</div>
-    </div>
-    
-    <div class="metric-card">
-        <div class="metric-icon">📅</div>
-        <div class="metric-value"><?php echo number_format($blockedToday); ?></div>
-        <div class="metric-label">Heute blockiert</div>
-    </div>
-    
-    <div class="metric-card">
-        <div class="metric-icon">🎯</div>
-        <div class="metric-value"><?php echo number_format($accuracy, 1); ?>%</div>
-        <div class="metric-label">Spam-Quote (Spam/Gesamt)</div>
-    </div>
-</div>
-
-<form method="post" class="admin-form" style="margin-top: 2rem;">
-    <input type="hidden" name="save_antispam" value="1">
-    <input type="hidden" name="_csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-    
-    <div class="settings-grid">
-        
-        <!-- Filter Regeln -->
-        <div class="settings-card">
-            <h3>Antispam-Filter</h3>
-            <p class="description">Regeln zur Erkennung von Spam-Kommentaren.</p>
-
-            <label class="toggle-switch">
-                <input type="checkbox" name="trust_approved" <?php echo ($current['antispam_trust_approved'] == '1') ? 'checked' : ''; ?>>
-                <span class="toggle-slider"></span>
-                <span class="toggle-label">
-                    <strong>Genehmigten Kommentatoren vertrauen</strong><br>
-                    Benutzer nicht prüfen, die bereits erfolgreich kommentiert haben.
-                </span>
-            </label>
-
-            <label class="toggle-switch">
-                <input type="checkbox" name="check_time" <?php echo ($current['antispam_check_time'] == '1') ? 'checked' : ''; ?>>
-                <span class="toggle-slider"></span>
-                <span class="toggle-label">
-                    <strong>Kommentarzeit berücksichtigen</strong><br>
-                    Erkennt Bots, die Formulare zu schnell ausfüllen.
-                </span>
-            </label>
-            
-            <label class="toggle-switch">
-                <input type="checkbox" name="bbcode_check" <?php echo ($current['antispam_bbcode_check'] == '1') ? 'checked' : ''; ?>>
-                <span class="toggle-slider"></span>
-                <span class="toggle-label">
-                    <strong>BBCode-Links sind Spam</strong><br>
-                    Kommentare mit vielen [url] Tags als Spam markieren.
-                </span>
-            </label>
-
-            <label class="toggle-switch">
-                <input type="checkbox" name="regex_check" <?php echo ($current['antispam_regex_check'] == '1') ? 'checked' : ''; ?>>
-                <span class="toggle-slider"></span>
-                <span class="toggle-label">
-                    <strong>Regex-Filter aktiv</strong><br>
-                    Scannt Kommentarinhalte auf benutzerdefinierte Muster.
-                </span>
-            </label>
-            </label>
-            
-            <hr>
-            
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" name="block_country_check" 
-                        <?php echo !empty($current['antispam_block_country']) ? 'checked' : ''; ?>
-                        onclick="document.getElementById('country_select').disabled = !this.checked"> 
-                    Kommentare aus bestimmten Ländern blockieren
-                </label>
-                <select name="block_country_code" id="country_select" class="form-control" <?php echo empty($current['antispam_block_country']) ? 'disabled' : ''; ?>>
-                    <option value="">Auswahl...</option>
-                    <option value="RU" <?php echo ($current['antispam_block_country'] === 'RU') ? 'selected' : ''; ?>>Russland (RU)</option>
-                    <option value="CN" <?php echo ($current['antispam_block_country'] === 'CN') ? 'selected' : ''; ?>>China (CN)</option>
-                    <option value="BR" <?php echo ($current['antispam_block_country'] === 'BR') ? 'selected' : ''; ?>>Brasilien (BR)</option>
-                </select>
-                <small>Beachten Sie den Datenschutzhinweis für Geo-Blocking.</small>
+        <div class="admin-page-header">
+            <div>
+                <h2>🛡️ AntiSpam Schutz</h2>
+                <p>Einstellungen und Statistiken zum Schutz vor Kommentar-Spam</p>
+            </div>
+            <div class="header-actions">
+                <!-- Optional: Reset Button or Help -->
             </div>
         </div>
 
-        <!-- Erweitert -->
-        <div class="settings-card">
-            <h3>Erweitert & Datenbank</h3>
-            <p class="description">Verhalten bei erkanntem Spam.</p>
+        <?php echo $message; ?>
 
-            <label class="toggle-switch">
-                <input type="checkbox" name="mark_spam" <?php echo ($current['antispam_mark_spam'] == '1') ? 'checked' : ''; ?>>
-                <span class="toggle-slider"></span>
-                <span class="toggle-label">
-                    <strong>Als Spam markieren, nicht löschen</strong><br>
-                    Bewahrt Spam zur manuellen Prüfung auf.
-                </span>
-            </label>
-
-            <label class="toggle-switch">
-                <input type="checkbox" name="notify_admin" <?php echo ($current['antispam_notify_admin'] == '1') ? 'checked' : ''; ?>>
-                <span class="toggle-slider"></span>
-                <span class="toggle-label">
-                    <strong>Admin per E-Mail benachrichtigen</strong><br>
-                    Bei neuem Spam eine Info-Mail senden.
-                </span>
-            </label>
-
-             <div class="form-group" style="margin-top: 1rem;">
-                <label>Alten Spam automatisch löschen nach (Tagen)</label>
-                <input type="number" name="delete_days" value="<?php echo htmlspecialchars($current['antispam_delete_days']); ?>" min="0">
-                <small>0 = Nie automatisch löschen</small>
+        <div class="dashboard-grid">
+            <div class="stat-card">
+                <h3>Blockiert (Gesamt)</h3>
+                <div class="stat-number"><?php echo number_format((float)$spamCountTotal); ?></div>
+                <div class="stat-label">🚫 Spam-Kommentare</div>
             </div>
             
-            <label class="toggle-switch">
-                <input type="checkbox" name="spam_cleanup_uninstall" value="1">
-                <span class="toggle-slider"></span>
-                <span class="toggle-label">
-                    <strong>AntiSpam-Daten bei Deinstallation löschen</strong>
-                </span>
-            </label>
+            <div class="stat-card">
+                <h3>Heute blockiert</h3>
+                <div class="stat-number"><?php echo number_format($blockedToday); ?></div>
+                <div class="stat-label">📅 Heute</div>
+            </div>
+            
+            <div class="stat-card">
+                <h3>Spam-Quote</h3>
+                <div class="stat-number"><?php echo number_format($accuracy, 1); ?>%</div>
+                <div class="stat-label">🎯 Spam/Gesamt Verhältnis</div>
+            </div>
         </div>
 
-        <!-- Sonstiges -->
-         <div class="settings-card">
-            <h3>Sonstiges & Dashboard</h3>
+        <form method="post" class="admin-form">
+            <input type="hidden" name="save_antispam" value="1">
+            <input type="hidden" name="_csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+            
+            <div class="admin-card">
+                <h3>Antispam-Filter</h3>
+                <p style="color:#64748b; margin-bottom:1.5rem;">Regeln zur Erkennung von Spam-Kommentaren.</p>
 
-            <label class="toggle-switch">
-                <input type="checkbox" name="dashboard_widget" <?php echo ($current['antispam_dashboard_widget'] == '1') ? 'checked' : ''; ?>>
-                <span class="toggle-slider"></span>
-                <span class="toggle-label">
-                    <strong>Statistik-Widget im Dashboard</strong>
-                </span>
-            </label>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="trust_approved" <?php echo ($current['antispam_trust_approved'] == '1') ? 'checked' : ''; ?>>
+                        <strong>Genehmigten Kommentatoren vertrauen</strong>
+                    </label>
+                    <small class="form-text" style="margin-left:1.7rem;">Benutzer nicht prüfen, die bereits erfolgreich kommentiert haben.</small>
+                </div>
 
-             <label class="toggle-switch">
-                <input type="checkbox" name="spam_counter" <?php echo ($current['antispam_spam_counter'] == '1') ? 'checked' : ''; ?>>
-                <span class="toggle-slider"></span>
-                <span class="toggle-label">
-                    <strong>Spam-Zähler anzeigen</strong>
-                </span>
-            </label>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="check_time" <?php echo ($current['antispam_check_time'] == '1') ? 'checked' : ''; ?>>
+                        <strong>Kommentarzeit berücksichtigen</strong>
+                    </label>
+                    <small class="form-text" style="margin-left:1.7rem;">Erkennt Bots, die Formulare zu schnell ausfüllen.</small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="bbcode_check" <?php echo ($current['antispam_bbcode_check'] == '1') ? 'checked' : ''; ?>>
+                        <strong>BBCode-Links sind Spam</strong>
+                    </label>
+                    <small class="form-text" style="margin-left:1.7rem;">Kommentare mit vielen [url] Tags als Spam markieren.</small>
+                </div>
 
-             <label class="toggle-switch">
-                <input type="checkbox" name="ignore_trackbacks" <?php echo ($current['antispam_ignore_trackbacks'] == '1') ? 'checked' : ''; ?>>
-                <span class="toggle-slider"></span>
-                <span class="toggle-label">
-                    <strong>Trackbacks & Pingbacks ignorieren</strong><br>
-                    Trackbacks werden nicht als Spam-Kandidaten geprüft.
-                </span>
-            </label>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="regex_check" <?php echo ($current['antispam_regex_check'] == '1') ? 'checked' : ''; ?>>
+                        <strong>Regex-Filter aktiv</strong>
+                    </label>
+                    <small class="form-text" style="margin-left:1.7rem;">Scannt Kommentarinhalte auf benutzerdefinierte Muster.</small>
+                </div>
+                
+                <hr style="border:0; border-top:1px solid #e2e8f0; margin:1.5rem 0;">
+                
+                <div class="form-group">
+                    <label class="checkbox-label" style="margin-bottom:0.5rem;">
+                        <input type="checkbox" name="block_country_check" 
+                            <?php echo !empty($current['antispam_block_country']) ? 'checked' : ''; ?>
+                            onclick="document.getElementById('country_select').disabled = !this.checked"> 
+                        <strong>Kommentare aus bestimmten Ländern blockieren</strong>
+                    </label>
+                    <div style="margin-left:1.7rem;">
+                        <select name="block_country_code" id="country_select" class="form-control" style="max-width:300px;" <?php echo empty($current['antispam_block_country']) ? 'disabled' : ''; ?>>
+                            <option value="">Auswahl...</option>
+                            <option value="RU" <?php echo ($current['antispam_block_country'] === 'RU') ? 'selected' : ''; ?>>Russland (RU)</option>
+                            <option value="CN" <?php echo ($current['antispam_block_country'] === 'CN') ? 'selected' : ''; ?>>China (CN)</option>
+                            <option value="BR" <?php echo ($current['antispam_block_country'] === 'BR') ? 'selected' : ''; ?>>Brasilien (BR)</option>
+                        </select>
+                        <small class="form-text">Beachten Sie den Datenschutzhinweis für Geo-Blocking.</small>
+                    </div>
+                </div>
+            </div>
 
-             <label class="toggle-switch">
-                <input type="checkbox" name="check_markup" <?php echo ($current['antispam_check_markup'] == '1') ? 'checked' : ''; ?>>
-                <span class="toggle-slider"></span>
-                <span class="toggle-label">
-                    <strong>Gesamtes Markup prüfen</strong><br>
-                    Analysiert die gesamte Seite auf versteckte Spam-Felder.
-                </span>
-            </label>
-        </div>
+            <div class="admin-card">
+                <h3>Erweitert & Datenbank</h3>
+                <p style="color:#64748b; margin-bottom:1.5rem;">Verhalten bei erkanntem Spam.</p>
 
-    </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="mark_spam" <?php echo ($current['antispam_mark_spam'] == '1') ? 'checked' : ''; ?>>
+                        <strong>Als Spam markieren, nicht löschen</strong>
+                    </label>
+                    <small class="form-text" style="margin-left:1.7rem;">Bewahrt Spam zur manuellen Prüfung auf.</small>
+                </div>
 
-    <div class="form-actions sticky-footer">
-        <button type="submit" class="btn btn-primary btn-lg">💾 Einstellungen speichern</button>
-    </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="notify_admin" <?php echo ($current['antispam_notify_admin'] == '1') ? 'checked' : ''; ?>>
+                        <strong>Admin per E-Mail benachrichtigen</strong>
+                    </label>
+                    <small class="form-text" style="margin-left:1.7rem;">Bei neuem Spam eine Info-Mail senden.</small>
+                </div>
 
-</form>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label class="form-label">Alten Spam automatisch löschen nach (Tagen)</label>
+                    <input type="number" name="delete_days" class="form-control" style="max-width:150px;" value="<?php echo htmlspecialchars($current['antispam_delete_days']); ?>" min="0">
+                    <small class="form-text">0 = Nie automatisch löschen</small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="spam_cleanup_uninstall" value="1">
+                        <strong>AntiSpam-Daten bei Deinstallation löschen</strong>
+                    </label>
+                </div>
+            </div>
 
-<?php renderAdminLayoutEnd(); ?>
+            <div class="admin-card">
+                <h3>Sonstiges & Dashboard</h3>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="dashboard_widget" <?php echo ($current['antispam_dashboard_widget'] == '1') ? 'checked' : ''; ?>>
+                        <strong>Statistik-Widget im Dashboard</strong>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="spam_counter" <?php echo ($current['antispam_spam_counter'] == '1') ? 'checked' : ''; ?>>
+                        <strong>Spam-Zähler anzeigen</strong>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="ignore_trackbacks" <?php echo ($current['antispam_ignore_trackbacks'] == '1') ? 'checked' : ''; ?>>
+                        <strong>Trackbacks & Pingbacks ignorieren</strong>
+                    </label>
+                    <small class="form-text" style="margin-left:1.7rem;">Trackbacks werden nicht als Spam-Kandidaten geprüft.</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="check_markup" <?php echo ($current['antispam_check_markup'] == '1') ? 'checked' : ''; ?>>
+                        <strong>Gesamtes Markup prüfen</strong>
+                    </label>
+                    <small class="form-text" style="margin-left:1.7rem;">Analysiert die gesamte Seite auf versteckte Spam-Felder.</small>
+                </div>
+            </div>
+
+            <div class="admin-card form-actions-card">
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">💾 Einstellungen speichern</button>
+                    <span class="form-actions__hint">Änderungen werden sofort übernommen</span>
+                </div>
+            </div>
+
+        </form>
+
+    </div><!-- /.admin-content -->
+
+    <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
+</body>
+</html>

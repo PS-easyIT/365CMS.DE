@@ -44,7 +44,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - <?php echo htmlspecialchars(SITE_NAME); ?></title>
+    <title>Admin Dashboard – <?php echo htmlspecialchars(SITE_NAME); ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
     <?php 
@@ -59,18 +59,18 @@ require_once __DIR__ . '/partials/admin-menu.php';
     
     <?php renderAdminSidebar('dashboard'); ?>
     
-    <!-- Main Content -->
     <div class="admin-content">
         
-        <!-- Page Header -->
         <div class="admin-page-header">
-            <h2>Dashboard <span style="display:inline-block;margin-left:.6rem;padding:.2rem .65rem;background:#3b82f6;color:#fff;border-radius:9999px;font-size:.7rem;font-weight:700;vertical-align:middle;letter-spacing:.04em;">v<?php echo htmlspecialchars(CMS_VERSION); ?></span></h2>
-            <div class="admin-user">
-                <span>Willkommen, <strong><?php echo htmlspecialchars($user->username); ?></strong></span>
+            <div>
+                <h2>🚀 Dashboard <span style="display:inline-block; margin-left:0.5rem; padding:0.2rem 0.6rem; background:var(--admin-primary); color:#fff; border-radius:99px; font-size:0.7rem; vertical-align:middle; font-weight:700;">v<?php echo htmlspecialchars(CMS_VERSION); ?></span></h2>
+                <p>Willkommen zurück, <strong><?php echo htmlspecialchars($user->username); ?></strong>.</p>
+            </div>
+            <div class="header-actions">
+                <a href="pages.php?action=new" class="btn btn-primary">➕ Neue Seite</a>
             </div>
         </div>
         
-        <!-- Success/Error Messages -->
         <?php if (isset($_SESSION['success'])): ?>
             <div class="alert alert-success">
                 <?php 
@@ -91,70 +91,56 @@ require_once __DIR__ . '/partials/admin-menu.php';
         
         <!-- Dashboard Statistics -->
         <div class="dashboard-grid">
-            
-            <!-- Users Stats -->
             <div class="stat-card">
                 <h3>Benutzer</h3>
                 <div class="stat-number"><?php echo number_format($stats['users']['total']); ?></div>
-                <p class="stat-label">
-                    <?php echo number_format($stats['users']['active_today']); ?> heute aktiv
-                </p>
+                <div class="stat-label"><?php echo number_format($stats['users']['active_today']); ?> heute aktiv</div>
             </div>
             
-            <!-- Pages Stats -->
             <div class="stat-card">
                 <h3>Seiten</h3>
                 <div class="stat-number"><?php echo number_format($stats['pages']['total']); ?></div>
-                <p class="stat-label">
-                    <?php echo number_format($stats['pages']['published']); ?> veröffentlicht
-                </p>
+                <div class="stat-label"><?php echo number_format($stats['pages']['published']); ?> veröffentlicht</div>
             </div>
             
-            <!-- Media Stats -->
             <div class="stat-card">
                 <h3>Medien</h3>
                 <div class="stat-number"><?php echo number_format($stats['media']['total']); ?></div>
-                <p class="stat-label">
-                    <?php echo $stats['media']['total_size_mb']; ?> MB gesamt
-                </p>
+                <div class="stat-label"><?php echo $stats['media']['total_size_mb']; ?> MB gesamt</div>
             </div>
             
-            <!-- Sessions Stats -->
             <div class="stat-card">
-                <h3>Aktive Sessions</h3>
+                <h3>Sessions</h3>
                 <div class="stat-number"><?php echo number_format($stats['sessions']['active']); ?></div>
-                <p class="stat-label">
-                    <?php echo number_format($stats['sessions']['total']); ?> gesamt
-                </p>
+                <div class="stat-label"><?php echo number_format($stats['sessions']['total']); ?> gesamt</div>
             </div>
-            
         </div>
         
         <!-- System Information -->
-        <div class="admin-section">
-            <h3>System-Informationen</h3>
+        <div class="admin-card" style="margin-top:2rem;">
+            <h3>💻 System-Status</h3>
             
             <div class="info-grid">
                 <div class="info-card">
-                    <h4>🖥️ Server</h4>
+                    <h4>Server</h4>
                     <ul class="info-list">
                         <li><strong>PHP Version:</strong> <?php echo $stats['system']['php_version']; ?></li>
-                        <li><strong>Server Software:</strong> <?php echo htmlspecialchars($stats['system']['server_software']); ?></li>
-                        <li><strong>Betriebssystem:</strong> <?php echo htmlspecialchars($stats['system']['os']); ?></li>
+                        <li><strong>Server:</strong> <?php echo htmlspecialchars($stats['system']['server_software']); ?></li>
+                        <li><strong>OS:</strong> <?php echo htmlspecialchars($stats['system']['os']); ?></li>
                     </ul>
                 </div>
                 
                 <div class="info-card">
-                    <h4>📊 Performance</h4>
+                    <h4>Performance</h4>
                     <ul class="info-list">
-                        <li><strong>Memory Usage:</strong> <?php echo $stats['performance']['memory_usage_formatted']; ?></li>
-                        <li><strong>Memory Limit:</strong> <?php echo $stats['performance']['memory_limit']; ?></li>
-                        <li><strong>Peak Memory:</strong> <?php echo $stats['performance']['memory_peak_formatted']; ?></li>
+                        <li><strong>RAM Nutzung:</strong> <?php echo $stats['performance']['memory_usage_formatted']; ?></li>
+                        <li><strong>RAM Limit:</strong> <?php echo $stats['performance']['memory_limit']; ?></li>
+                        <li><strong>Peak:</strong> <?php echo $stats['performance']['memory_peak_formatted']; ?></li>
                     </ul>
                 </div>
                 
                 <div class="info-card">
-                    <h4>🔒 Sicherheit</h4>
+                    <h4>Sicherheit</h4>
                     <ul class="info-list">
                         <li><strong>Failed Logins (24h):</strong> <?php echo number_format($stats['security']['failed_logins_24h']); ?></li>
                         <li><strong>Blocked IPs:</strong> <?php echo number_format($stats['security']['blocked_ips']); ?></li>
@@ -165,27 +151,28 @@ require_once __DIR__ . '/partials/admin-menu.php';
         </div>
         
         <!-- Quick Actions -->
-        <div class="quick-actions">
-            <h3>Schnellzugriff</h3>
-            <div class="action-buttons">
-                <a href="/admin/pages" class="btn btn-primary">
-                    📄 Neue Seite erstellen
-                </a>
-                <a href="/admin/users" class="btn btn-secondary">
+        <div class="admin-card">
+            <h3>⚡ Schnellzugriff</h3>
+            <div class="form-actions" style="margin-top:1rem;">
+                <a href="users.php" class="btn btn-secondary">
                     👥 Benutzer verwalten
                 </a>
-                <a href="/admin/settings" class="btn btn-secondary">
+                <a href="settings.php" class="btn btn-secondary">
                     ⚙️ Einstellungen
+                </a>
+                <a href="media.php" class="btn btn-secondary">
+                    📁 Medien
+                </a>
+                <a href="updates.php" class="btn btn-secondary">
+                    🔄 Updates prüfen
                 </a>
             </div>
         </div>
         
-        <!-- Plugin Hooks for Dashboard Widgets -->
         <?php Hooks::doAction('admin_dashboard_widgets'); ?>
         
     </div>
     
     <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
-    
 </body>
 </html>

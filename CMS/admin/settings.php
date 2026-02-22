@@ -387,7 +387,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
             </div>
             
             <div class="sticky-footer">
-                <button type="submit" class="btn-save btn-large">
+                <button type="submit" class="btn btn-primary">
                     💾 Alle Einstellungen speichern
                 </button>
             </div>

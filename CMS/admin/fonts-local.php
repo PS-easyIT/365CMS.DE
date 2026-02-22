@@ -135,72 +135,63 @@ $isLocalFontsActive = ($useLocalFonts && $useLocalFonts->option_value === '1');
 $csrfToken = $security->generateToken('privacy_settings');
 
 require_once __DIR__ . '/partials/admin-menu.php';
+renderAdminLayoutStart('Font Manager', 'fonts-local');
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <title>Font Manager - <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
-    <?php renderAdminSidebarStyles(); ?>
-</head>
-<body class="admin-body">
-    <?php renderAdminSidebar('fonts-local'); ?>
-    <div class="admin-content">
-        <div class="admin-page-header">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h2>🔤 Font Manager</h2>
-                <span class="status-badge <?php echo $isLocalFontsActive ? 'status-active' : 'status-inactive'; ?>">
-                    <?php echo $isLocalFontsActive ? 'Lokal Aktiviert' : 'Google CDN'; ?>
-                </span>
-            </div>
-        </div>
+<div class="admin-page-header">
+    <div>
+        <h2>🔤 Font Manager</h2>
+        <p>Google Fonts lokal hosten und DSGVO-konform einbinden</p>
+    </div>
+    <div class="header-actions">
+        <span class="status-badge <?php echo $isLocalFontsActive ? 'active' : 'inactive'; ?>">
+            <?php echo $isLocalFontsActive ? 'Lokal Aktiviert' : 'Google CDN'; ?>
+        </span>
+    </div>
+</div>
 
         <?php if ($message): ?>
             <div class="alert alert-<?php echo $messageType; ?>"><?php echo htmlspecialchars($message); ?></div>
         <?php endif; ?>
 
-        <div class="adm-grid">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem;">
             <!-- Card 1: Theme Auto-Scan -->
-            <div class="adm-card">
+            <div class="admin-card">
                 <h3>🔍 Automatisch aus Theme</h3>
-                <p style="font-size:0.9rem; color:#64748b;">Scannt die Theme-Einstellungen und versucht, die Standard-Schriftarten (Inter, Roboto, etc.) zu laden.</p>
+                <p class="form-text">Scannt die Theme-Einstellungen und versucht, die Standard-Schriftarten (Inter, Roboto, etc.) zu laden.</p>
                 <form method="post">
                     <input type="hidden" name="action" value="localize_fonts">
                     <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                    <button type="submit" class="btn-primary">Scan & Download</button>
+                    <button type="submit" class="btn btn-primary">Scan &amp; Download</button>
                 </form>
             </div>
 
             <!-- Card 2: Custom URL -->
-            <div class="adm-card">
+            <div class="admin-card">
                 <h3>🔗 Eigene Google Webfonts URL</h3>
-                <p style="font-size:0.9rem; color:#64748b;">
+                <p class="form-text">
                     Fügen Sie hier die CSS-URL von Google Webfonts ein.<br>
-                    (z.B. <code>https://fonts.googleapis.com/css2?family=Roboto&display=swap</code>)
+                    (z.B. <code>https://fonts.googleapis.com/css2?family=Roboto&amp;display=swap</code>)
                 </p>
                 <form method="post">
                     <input type="hidden" name="action" value="localize_custom">
                     <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
                     <div class="form-group">
-                        <input type="text" name="custom_url" placeholder="https://fonts.googleapis.com/..." required>
+                        <input type="text" name="custom_url" class="form-control" placeholder="https://fonts.googleapis.com/..." required>
                     </div>
-                    <button type="submit" class="btn-primary">Download</button>
+                    <button type="submit" class="btn btn-primary">Download</button>
                 </form>
             </div>
             
             <!-- Card 3: Reset -->
-             <div class="adm-card" style="border-color:#fca5a5; background:#fef2f2;">
-                 <h3 style="color:#b91c1c;">⚠️ Reset</h3>
-                 <p style="font-size:0.9rem; color:#7f1d1d;">Schaltet auf die Standard-CDN-Einbindung zurück.</p>
-                 <form method="post">
+            <div class="admin-card" style="border-top:4px solid #ef4444;">
+                <h3 style="color:#ef4444;">⚠️ Zurücksetzen</h3>
+                <p class="form-text">Schaltet auf die Standard-CDN-Einbindung zurück. Die heruntergeladenen Schriftdateien bleiben erhalten.</p>
+                <form method="post">
                     <input type="hidden" name="action" value="reset_fonts">
                     <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                    <button type="submit" class="btn-primary" style="background:#ef4444;">Deaktivieren</button>
-                 </form>
-             </div>
+                    <button type="submit" class="btn btn-danger">Deaktivieren</button>
+                </form>
+            </div>
         </div>
-    </div>
-</body>
-</html>
+
+<?php renderAdminLayoutEnd(); ?>

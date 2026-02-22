@@ -165,7 +165,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Backup & Restore - <?php echo htmlspecialchars(SITE_NAME); ?></title>
+    <title>Backup & Restore – <?php echo htmlspecialchars(SITE_NAME); ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
     <?php renderAdminSidebarStyles(); ?>
@@ -175,30 +175,40 @@ require_once __DIR__ . '/partials/admin-menu.php';
     <?php renderAdminSidebar($currentPage); ?>
     
     <div class="admin-content">
-        <div class="page-header">
-            <h1>💾 Backup & Restore</h1>
-            <p style="color: #64748b;">Datensicherung und -Wiederherstellung</p>
+        
+        <div class="admin-page-header">
+            <div>
+                <h2>💾 Backup & Restore</h2>
+                <p>Datensicherung und -Wiederherstellung</p>
+            </div>
+            <div class="header-actions">
+                <button type="button" class="btn btn-secondary" onclick="location.reload()">🔄 Liste aktualisieren</button>
+            </div>
         </div>
         
         <?php if ($message): ?>
-            <div class="alert alert-<?php echo $messageType; ?>" style="margin-bottom: 2rem;">
+            <div class="alert alert-<?php echo $messageType; ?>">
                 <?php echo htmlspecialchars($message); ?>
             </div>
         <?php endif; ?>
         
-        <div class="backup-page-grid">
+        <div class="backup-layout" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem;">
             
             <!-- Left Column: Create Backups -->
-            <div class="backup-create-section">
-                <div class="section-header">
-                    <h2>Backup erstellen</h2>
-                </div>
+            <div class="admin-card">
+                <h3>Backup erstellen</h3>
+                <p style="color:#64748b; margin-bottom:1.5rem;">Erstellen Sie hier Sicherungen Ihrer Datenbank und Dateien.</p>
 
                 <!-- Full Backup -->
-                <div class="backup-card">
-                    <h3><span>🗄️</span> Vollständiges Backup</h3>
-                    <p>Sichert alle Datenbank-Tabellen und Dateien (Uploads, Themes, Plugins) in ein Archiv.</p>
-                    <form method="post" class="backup-form">
+                <div class="backup-option" style="border:1px solid #e2e8f0; border-radius:8px; padding:1.25rem; margin-bottom:1.25rem;">
+                    <div style="display:flex; align-items:flex-start; margin-bottom:1rem;">
+                        <span style="font-size:1.5rem; margin-right:1rem;">🗄️</span>
+                        <div>
+                            <h4 style="margin:0 0 0.25rem 0;">Vollständiges Backup</h4>
+                            <p style="margin:0; font-size:0.875rem; color:#64748b;">Sichert alle Datenbank-Tabellen und Dateien (Uploads, Themes, Plugins).</p>
+                        </div>
+                    </div>
+                    <form method="post">
                         <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
                         <input type="hidden" name="action" value="create_full_backup">
                         <button type="submit" class="btn btn-primary" style="width:100%">
@@ -208,10 +218,15 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 </div>
                 
                 <!-- Database Backup -->
-                <div class="backup-card">
-                    <h3><span>🗃️</span> Nur Datenbank</h3>
-                    <p>Exportiert nur die Datenbank als SQL-Dump (.sql). Schneller, aber ohne Dateien.</p>
-                    <form method="post" class="backup-form">
+                <div class="backup-option" style="border:1px solid #e2e8f0; border-radius:8px; padding:1.25rem; margin-bottom:1.25rem;">
+                    <div style="display:flex; align-items:flex-start; margin-bottom:1rem;">
+                        <span style="font-size:1.5rem; margin-right:1rem;">🗃️</span>
+                        <div>
+                            <h4 style="margin:0 0 0.25rem 0;">Nur Datenbank</h4>
+                            <p style="margin:0; font-size:0.875rem; color:#64748b;">Exportiert nur die Datenbank als SQL-Dump (.sql). Schneller.</p>
+                        </div>
+                    </div>
+                    <form method="post">
                         <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
                         <input type="hidden" name="action" value="create_db_backup">
                         <button type="submit" class="btn btn-secondary" style="width:100%">
@@ -221,16 +236,21 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 </div>
 
                 <!-- Email Backup -->
-                <div class="backup-card">
-                    <h3><span>📧</span> Backup per E-Mail</h3>
-                    <p>Sendet das Datenbank-Backup direkt an Ihre E-Mail-Adresse.</p>
-                    <form method="post" class="backup-form">
+                <div class="backup-option" style="border:1px solid #e2e8f0; border-radius:8px; padding:1.25rem;">
+                    <div style="display:flex; align-items:flex-start; margin-bottom:1rem;">
+                        <span style="font-size:1.5rem; margin-right:1rem;">📧</span>
+                        <div>
+                            <h4 style="margin:0 0 0.25rem 0;">Backup per E-Mail</h4>
+                            <p style="margin:0; font-size:0.875rem; color:#64748b;">Sendet das DB-Backup an Ihre Adresse.</p>
+                        </div>
+                    </div>
+                    <form method="post">
                         <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
                         <input type="hidden" name="action" value="email_backup">
-                        <div class="form-group">
+                        <div class="form-group" style="margin-bottom:0.75rem;">
                             <input type="email" name="email" value="<?php echo htmlspecialchars(ADMIN_EMAIL); ?>" class="form-control" placeholder="E-Mail Adresse" required>
                         </div>
-                        <button type="submit" class="btn btn-secondary" style="width:100%; margin-top:0.5rem;">
+                        <button type="submit" class="btn btn-secondary" style="width:100%;">
                             📤 An E-Mail senden
                         </button>
                     </form>
@@ -238,74 +258,74 @@ require_once __DIR__ . '/partials/admin-menu.php';
             </div>
 
             <!-- Right Column: Restore & Manage -->
-            <div class="backup-restore-section">
-                <div class="section-header">
-                    <h2>Restore & Verwaltung</h2>
-                </div>
-
+            <div class="admin-card">
+                <h3>Restore & Verwaltung</h3>
+                
                 <!-- Upload Section -->
-                <div class="backup-card">
-                    <h3><span>⬆️</span> Backup importieren</h3>
-                    <p>Laden Sie ein bestehendes Backup (.zip oder .sql) hoch, um es wiederherzustellen.</p>
-                    <form method="post" enctype="multipart/form-data" class="backup-form">
-                        <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+                <div class="upload-section" style="background:#f8fafc; border:2px dashed #cbd5e1; border-radius:8px; padding:2rem; text-align:center; margin-bottom:2rem; cursor:pointer;" onclick="document.getElementById('backup_file_input').click()">
+                    <span style="font-size:2.5rem; display:block; margin-bottom:0.5rem;">📂</span>
+                    <p style="margin:0; color:#475569; font-weight:500;">Datei hier ablegen oder klicken</p>
+                    <p style="margin:0; color:#94a3b8; font-size:0.85rem;">.zip, .sql, .gz</p>
+                    
+                    <form method="post" enctype="multipart/form-data" id="upload_form">
+                         <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
                         <input type="hidden" name="action" value="upload_backup">
-                        
-                        <div class="upload-area">
-                            <span style="font-size:2rem; display:block; margin-bottom:0.5rem;">📂</span>
-                            <span style="color:#64748b; font-weight:500;">Datei hier ablegen oder klicken</span>
-                            <input type="file" name="backup_file" accept=".zip,.sql,.gz" onchange="this.form.submit()">
-                        </div>
+                        <input type="file" id="backup_file_input" name="backup_file" accept=".zip,.sql,.gz" style="display:none;" onchange="document.getElementById('upload_form').submit()">
                     </form>
                 </div>
 
                 <!-- Existing Backups List -->
-                <h3 style="margin: 0 0 1rem 0; font-size:1.1rem; color:#334155;">Verfügbare Backups</h3>
+                <h4 style="margin-bottom:1rem;">Verfügbare Backups</h4>
                 
                 <?php if (empty($backups)): ?>
-                    <div class="backup-card" style="text-align:center; padding:3rem;">
-                        <span style="font-size:3rem; display:block; margin-bottom:1rem; opacity:0.5;">📭</span>
-                        <p>Keine Backups gefunden.</p>
+                    <div class="empty-state" style="text-align:center; padding:2rem; background:#f8fafc; border-radius:8px;">
+                        <p style="font-size:2rem; margin:0;">📭</p>
+                        <p style="color:#64748b;">Keine Backups gefunden.</p>
                     </div>
                 <?php else: ?>
-                    <div class="backup-list-container">
-                        <?php foreach ($backups as $backup): ?>
-                            <div class="backup-item">
-                                <div class="backup-info">
-                                    <span class="backup-name"><?php echo htmlspecialchars($backup['name']); ?></span>
-                                    <div class="backup-meta">
-                                        <span><?php echo date('d.m.Y H:i', $backup['timestamp']); ?></span>
-                                        <span class="backup-size"><?php echo $backup['size_formatted'] ?? '0 B'; ?></span>
-                                    </div>
-                                </div>
-                                <div class="backup-actions">
-                                    <!-- Download -->
-                                    <a href="?action=download&file=<?php echo urlencode($backup['name']); ?>" class="btn-icon btn-download" title="Herunterladen">
-                                        ⬇
-                                    </a>
-                                    
-                                    <!-- Restore (Trigger only) -->
-                                    <form method="post" style="display:inline;" onsubmit="return confirm('WARNUNG: Dies wird die aktuelle Datenbank/Dateien überschreiben! Fortfahren?');">
-                                        <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                                        <input type="hidden" name="action" value="restore_backup">
-                                        <input type="hidden" name="backup_name" value="<?php echo htmlspecialchars($backup['name']); ?>">
-                                        <button type="submit" class="btn-icon btn-restore" title="Wiederherstellen">
-                                            ↺
-                                        </button>
-                                    </form>
+                    <div class="users-table-container">
+                        <table class="users-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Größe</th>
+                                    <th style="text-align:right;">Aktionen</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($backups as $backup): ?>
+                                <tr>
+                                    <td>
+                                        <strong style="display:block; font-size:0.9rem;"><?php echo htmlspecialchars($backup['name']); ?></strong>
+                                        <span style="font-size:0.8rem; color:#64748b;"><?php echo date('d.m.Y H:i', $backup['timestamp']); ?></span>
+                                    </td>
+                                    <td><?php echo $backup['size_formatted'] ?? '0 B'; ?></td>
+                                    <td>
+                                        <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
+                                            <!-- Download -->
+                                            <a href="?action=download&file=<?php echo urlencode($backup['name']); ?>" class="btn btn-sm btn-secondary" title="Herunterladen">⬇️</a>
+                                            
+                                            <!-- Restore -->
+                                            <form method="post" onsubmit="return confirm('WARNUNG: Dies wird die aktuelle Datenbank/Dateien überschreiben! Fortfahren?');">
+                                                <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+                                                <input type="hidden" name="action" value="restore_backup">
+                                                <input type="hidden" name="backup_name" value="<?php echo htmlspecialchars($backup['name']); ?>">
+                                                <button type="submit" class="btn btn-sm btn-secondary" title="Wiederherstellen">↺</button>
+                                            </form>
 
-                                    <!-- Delete -->
-                                    <form method="post" style="display:inline;" onsubmit="return confirm('Wirklich löschen?');">
-                                        <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                                        <input type="hidden" name="action" value="delete_backup">
-                                        <input type="hidden" name="backup_name" value="<?php echo htmlspecialchars($backup['name']); ?>">
-                                        <button type="submit" class="btn-icon btn-delete" title="Löschen">
-                                            ✕
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
+                                            <!-- Delete -->
+                                            <form method="post" onsubmit="return confirm('Wirklich löschen?');">
+                                                <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+                                                <input type="hidden" name="action" value="delete_backup">
+                                                <input type="hidden" name="backup_name" value="<?php echo htmlspecialchars($backup['name']); ?>">
+                                                <button type="submit" class="btn btn-sm btn-danger" title="Löschen">🗑️</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
                     </div>
                 <?php endif; ?>
             </div>
@@ -313,6 +333,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
         
     </div>
     
+    <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
 </body>
 </html>
 

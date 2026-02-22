@@ -96,53 +96,59 @@ require_once __DIR__ . '/partials/admin-menu.php';
     
     <div class="admin-content">
         <div class="admin-page-header">
-            <?php 
-                $pageTitle = '📊 Analytics & Monitoring';
-                $pageSub = 'Besucher-Statistiken und Traffic-Analyse';
-                
-                if ($activeTab === '404-monitor') {
-                    $pageTitle = '🚫 404 Monitor';
-                    $pageSub = 'Fehlerhafte Aufrufe und fehlende Seiten';
-                } elseif ($activeTab === 'seo-analyzer') {
-                    $pageTitle = '📑 SEO Analyse';
-                    $pageSub = 'Technische Prüfung und Optimierung';
-                }
-            ?>
-            <h1><?php echo htmlspecialchars($pageTitle); ?></h1>
-            <p><?php echo htmlspecialchars($pageSub); ?></p>
+            <div>
+                <?php 
+                    $pageTitle = '📊 Analytics & Monitoring';
+                    $pageSub = 'Besucher-Statistiken und Traffic-Analyse';
+                    
+                    if ($activeTab === '404-monitor') {
+                        $pageTitle = '🚫 404 Monitor';
+                        $pageSub = 'Fehlerhafte Aufrufe und fehlende Seiten';
+                    } elseif ($activeTab === 'seo-analyzer') {
+                        $pageTitle = '📑 SEO Analyse';
+                        $pageSub = 'Technische Prüfung und Optimierung';
+                    }
+                ?>
+                <h2><?php echo htmlspecialchars($pageTitle); ?></h2>
+                <p><?php echo htmlspecialchars($pageSub); ?></p>
+            </div>
+            <div class="header-actions">
+                <a href="?tab=overview" class="btn <?php echo $activeTab === 'overview' ? 'btn-primary' : 'btn-secondary'; ?>">Übersicht</a>
+                <a href="?tab=pages" class="btn <?php echo $activeTab === 'pages' ? 'btn-primary' : 'btn-secondary'; ?>">Seiten</a>
+                <a href="?tab=visitors" class="btn <?php echo $activeTab === 'visitors' ? 'btn-primary' : 'btn-secondary'; ?>">Besucher</a>
+            </div>
         </div>
         
         <?php if ($activeTab === 'overview' || $activeTab === 'visitors' || $activeTab === 'pages' || $activeTab === 'sources'): ?>
             <!-- Overview Tab -->
-            <div class="metrics-grid">
-                    <div class="metric-card">
-                        <div class="metric-icon">👥</div>
-                        <div class="metric-value"><?php echo number_format((int)($visitorStats['total'] ?? 0)); ?></div>
-                        <div class="metric-label">Seitenaufrufe (30 Tage)</div>
+            <div class="dashboard-grid">
+                    <div class="stat-card">
+                        <h3>Seitenaufrufe (30 Tage)</h3>
+                        <div class="stat-number"><?php echo number_format((int)($visitorStats['total'] ?? 0)); ?></div>
+                        <div class="stat-label">👥 Besucher gesamt</div>
                     </div>
                    
-                    <div class="metric-card">
-                        <div class="metric-icon">👤</div>
-                        <div class="metric-value"><?php echo number_format((int)($visitorStats['unique'] ?? 0)); ?></div>
-                        <div class="metric-label">Eindeutige Besucher</div>
+                    <div class="stat-card">
+                        <h3>Eindeutige Besucher</h3>
+                        <div class="stat-number"><?php echo number_format((int)($visitorStats['unique'] ?? 0)); ?></div>
+                        <div class="stat-label">👤 Unique Clients</div>
                     </div>
                    
-                    <div class="metric-card">
-                        <div class="metric-icon">⚡</div>
-                        <div class="metric-value"><?php echo number_format((int)($visitorStats['active_now'] ?? 0)); ?></div>
-                        <div class="metric-label">Aktive Besucher</div>
-                        <div class="metric-change" style="color:#10b981;">● Online</div>
+                    <div class="stat-card">
+                        <h3>Aktive Besucher</h3>
+                        <div class="stat-number"><?php echo number_format((int)($visitorStats['active_now'] ?? 0)); ?></div>
+                        <div class="stat-label" style="color:#10b981;">⚡ Online</div>
                     </div>
                    
-                    <div class="metric-card">
-                        <div class="metric-icon">📈</div>
-                        <div class="metric-value"><?php echo number_format((float)($visitorStats['bounce_rate'] ?? 0), 1); ?>%</div>
-                        <div class="metric-label">Absprungrate</div>
+                    <div class="stat-card">
+                        <h3>Absprungrate</h3>
+                        <div class="stat-number"><?php echo number_format((float)($visitorStats['bounce_rate'] ?? 0), 1); ?>%</div>
+                        <div class="stat-label">📉 Bounce Rate</div>
                     </div>
                 </div>
 
                 <!-- CSS Only Chart -->
-                <div class="chart-container">
+                <div class="admin-card">
                     <h3 style="margin-bottom: 1.5rem;">📈 Besucher-Verlauf (Letzte 30 Tage)</h3>
                     <div style="display: flex; align-items: flex-end; justify-content: space-between; height: 300px; gap: 4px; padding-bottom: 2rem;">
                         <?php 

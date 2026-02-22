@@ -299,7 +299,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
 
             <!-- ── Speichern ─────────────────────────────────────────────── -->
             <div style="display:flex;gap:1rem;align-items:center;">
-                <button type="submit" class="btn-save">💾 Einstellungen speichern</button>
+                <button type="submit" class="btn btn-primary">💾 Einstellungen speichern</button>
                 <a href="<?php echo SITE_URL; ?>/admin/themes" style="font-size:.875rem;color:#64748b;text-decoration:none;">
                     ← Zur Themeverwaltung
                 </a>

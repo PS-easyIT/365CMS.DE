@@ -286,16 +286,396 @@ require_once __DIR__ . '/partials/admin-menu.php';
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Cookie Manager - <?php echo htmlspecialchars(SITE_NAME); ?></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Manager – <?php echo htmlspecialchars(SITE_NAME); ?></title>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
     <?php renderAdminSidebarStyles(); ?>
+    <style>
+        .svc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .svc-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; display: flex; gap: 0.75rem; cursor: pointer; transition: all 0.2s; background: #fff; }
+        .svc-card:hover { border-color: #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .svc-card.active { border-color: var(--admin-primary); background: var(--admin-primary-light); }
+        .svc-card.locked { opacity: 0.7; cursor: not-allowed; background: #f8fafc; }
+        .svc-info strong { display: block; margin-bottom: 0.25rem; color: #1e293b; }
+        .svc-provider { display: block; font-size: 0.8rem; color: #64748b; margin-bottom: 0.5rem; }
+        .svc-desc { display: block; font-size: 0.85rem; color: #475569; line-height: 1.4; margin-bottom: 0.5rem; }
+        .svc-cookies { display: block; font-size: 0.75rem; color: #94a3b8; font-family: monospace; }
+        .svc-privacy { font-size: 0.75rem; color: var(--admin-primary); text-decoration: none; display: inline-block; margin-top: 0.25rem; }
+        .svc-cat-header { margin: 2rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 0.75rem; }
+        .svc-cat-note { font-size: 0.8rem; color: #64748b; margin-left: auto; }
+        .preview-box { background: #e2e8f0; padding: 2rem; border-radius: 8px; display: flex; justify-content: center; margin-top: 1rem; }
+        .preview-card { background: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); max-width: 400px; width: 100%; }
+        /* Tabs overrides */
+        .tabs { margin-bottom: 1.5rem; border-bottom: 1px solid #e2e8f0; overflow-x: auto; white-space: nowrap; }
+        .tab-btn { background: none; border: none; padding: 1rem 1.5rem; font-size: 1rem; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+        .tab-btn:hover { color: #1e293b; }
+        .tab-btn.active { color: var(--admin-primary); border-bottom-color: var(--admin-primary); font-weight: 600; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="admin-body">
+    <?php renderAdminSidebar('cookies'); ?>
+    
+    <div class="admin-content">
+        <div class="admin-page-header">
+            <div>
+                <h2>🍪 Cookie Manager</h2>
+                <p>Verwalten Sie Cookies und den Consent Banner</p>
+            </div>
+            <div class="header-actions">
+                <?php if ($message): ?>
+                    <span style="font-size:0.9rem; margin-right:1rem;" class="<?php echo $messageType === 'success' ? 'text-success' : 'text-danger'; ?>">
+                        <?php echo htmlspecialchars($message); ?>
+                    </span>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <?php if ($message): ?>
+            <div class="alert alert-<?php echo $messageType; ?>"><?php echo htmlspecialchars($message); ?></div>
+        <?php endif; ?>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('tab-settings', this)">Banner Einstellungen</button>
+            <button class="tab-btn" onclick="switchTab('tab-cookies', this)">Cookie Liste (<?php echo count($scannedCookies) + count($manualCookies); ?>)</button>
+            <button class="tab-btn" onclick="switchTab('tab-services', this)">🔌 Dienste (<?php echo count($activeServices); ?> aktiv)</button>
+            <button class="tab-btn" onclick="switchTab('tab-integration', this)">Integration & Log</button>
+        </div>
+
+        <!-- TAB: SETTINGS -->
+        <div id="tab-settings" class="tab-content active">
+            <form method="post" oninput="updatePreview()">
+                <input type="hidden" name="action" value="save_settings">
+                <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+
+                <div class="form-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem;">
+                    <div class="admin-card">
+                        <h3>Aktivierung & Text</h3>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="enabled" value="1" <?php echo ($settings['cookie_consent_enabled'] === '1') ? 'checked' : ''; ?>>
+                                <strong>Cookie Banner auf der Website aktivieren</strong>
+                            </label>
+                        </div>
+                        <div class="form-group" style="margin-top:1rem;">
+                            <label class="form-label">Hinweistext</label>
+                            <textarea name="banner_text" class="form-control" rows="3"><?php echo htmlspecialchars($settings['cookie_banner_text']); ?></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Link Datenschutz</label>
+                            <input type="text" name="policy_url" class="form-control" value="<?php echo htmlspecialchars($settings['cookie_policy_url']); ?>">
+                        </div>
+                    </div>
+
+                    <div class="admin-card">
+                        <h3>Design</h3>
+                        <div class="form-group">
+                            <label class="form-label">Position</label>
+                            <select name="position" class="form-control">
+                                <option value="bottom" <?php echo ($settings['cookie_banner_position'] === 'bottom') ? 'selected' : ''; ?>>Unten (Sticky)</option>
+                                <option value="center" <?php echo ($settings['cookie_banner_position'] === 'center') ? 'selected' : ''; ?>>Mitte (Modal)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Primärfarbe</label>
+                            <input type="color" name="primary_color" class="form-control form-control-color" value="<?php echo htmlspecialchars($settings['cookie_primary_color']); ?>" style="height:40px; padding:0.2rem;">
+                        </div>
+                        <div class="form-group" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                            <div>
+                                <label class="form-label">Btn: Akzeptieren</label>
+                                <input type="text" name="accept_text" class="form-control" value="<?php echo htmlspecialchars($settings['cookie_accept_text']); ?>">
+                            </div>
+                            <div>
+                                <label class="form-label">Btn: Essenzielle</label>
+                                <input type="text" name="essential_text" class="form-control" value="<?php echo htmlspecialchars($settings['cookie_essential_text']); ?>">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-card" style="margin-top:1.5rem;">
+                    <h3>Vorschau</h3>
+                    <div class="preview-box">
+                        <div class="preview-card">
+                            <p id="prev-text" style="font-size:0.9rem; color:#64748b; margin-bottom:1rem; margin-top:0;"><?php echo htmlspecialchars($settings['cookie_banner_text']); ?></p>
+                            <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+                                <button type="button" id="prev-essential" style="background:#f1f5f9; padding:0.5rem 1rem; border-radius:4px; border:none; font-size:0.8rem; cursor:pointer; color:#475569;"><?php echo htmlspecialchars($settings['cookie_essential_text']); ?></button>
+                                <button type="button" id="prev-accept" style="background:<?php echo htmlspecialchars($settings['cookie_primary_color']); ?>; padding:0.5rem 1rem; border-radius:4px; border:none; color:white; font-size:0.8rem; cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.1);"><?php echo htmlspecialchars($settings['cookie_accept_text']); ?></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-card form-actions-card">
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">💾 Speichern</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- TAB: COOKIES -->
+        <div id="tab-cookies" class="tab-content">
+            
+            <div class="form-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem;">
+                <!-- Manual Add -->
+                <div class="admin-card">
+                    <h3>➕ Cookie manuell hinzufügen</h3>
+                    <form method="post">
+                        <input type="hidden" name="action" value="add_manual_cookie">
+                        <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+                        <div class="form-group">
+                            <label class="form-label">Name (z.B. _ga)</label>
+                            <input type="text" name="cookie_name" class="form-control" required placeholder="Cookie Name">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Anbieter</label>
+                            <input type="text" name="cookie_provider" class="form-control" placeholder="z.B. Google LLC">
+                        </div>
+                         <div class="form-group">
+                            <label class="form-label">Kategorie</label>
+                            <select name="cookie_category" class="form-control">
+                                <option value="essential">Essenziell</option>
+                                <option value="analytics">Statistik</option>
+                                <option value="marketing">Marketing</option>
+                            </select>
+                        </div>
+                         <div class="form-group">
+                            <label class="form-label">Laufzeit</label>
+                            <input type="text" name="cookie_duration" class="form-control" placeholder="z.B. 2 Jahre">
+                        </div>
+                        <div style="margin-top:1.5rem;">
+                             <button type="submit" class="btn btn-primary" style="width:100%;">Hinzufügen</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Scanner -->
+                <div class="admin-card">
+                    <h3>📡 Auto-Scan</h3>
+                    <p style="font-size:0.9rem; color:#64748b;">Der Scanner durchsucht die Startseite nach bekannten Cookies und Klassifiziert diese automatisch.</p>
+                    <div style="background:#f8fafc; padding:1.5rem; border-radius:8px; text-align:center; border:1px dashed #cbd5e1; margin-top:1rem;">
+                        <span style="font-size:2rem; margin-bottom:0.5rem; display:block;">🛰️</span>
+                        <form method="post">
+                            <input type="hidden" name="action" value="scan_cookies">
+                            <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+                            <button type="submit" class="btn btn-secondary">🔄 Jetzt scannen</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="admin-card" style="margin-top:1.5rem;">
+                <h3>📋 Cookie Liste</h3>
+                <div class="users-table-container">
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Anbieter</th>
+                                <th>Kategorie</th>
+                                <th>Quelle</th>
+                                <th>Aktion</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Manual Cookies -->
+                            <?php foreach($manualCookies as $idx => $c): ?>
+                            <tr>
+                                <td><strong><?php echo htmlspecialchars($c['name']); ?></strong></td>
+                                <td><?php echo htmlspecialchars($c['provider']); ?></td>
+                                <td><span class="status-badge <?php echo htmlspecialchars($c['category'] ?? 'essential'); ?>"><?php echo ucfirst($c['category']); ?></span></td>
+                                <td>Manuell</td>
+                                <td>
+                                    <form method="post" style="display:inline;">
+                                        <input type="hidden" name="action" value="delete_manual_cookie">
+                                        <input type="hidden" name="index" value="<?php echo $idx; ?>">
+                                        <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+                                        <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+
+                            <!-- Scanned Cookies -->
+                            <?php foreach($scannedCookies as $key => $c): ?>
+                            <tr>
+                                <td><strong><?php echo htmlspecialchars($c['name']); ?></strong></td>
+                                <td><?php echo htmlspecialchars($c['provider'] ?? '-'); ?></td>
+                                <td>
+                                    <form method="post" style="display:inline;">
+                                        <input type="hidden" name="action" value="update_cookie_category">
+                                        <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+                                        <input type="hidden" name="cookie_key" value="<?php echo htmlspecialchars((string)$key); ?>">
+                                        <select name="new_category" class="form-control" style="padding:0.2rem; font-size:0.85rem;" onchange="this.form.submit()" title="Kategorie ändern – sofort speichern">
+                                            <?php foreach($categoryLabels as $val => $lbl): ?>
+                                            <option value="<?php echo $val; ?>" <?php echo (($c['category'] ?? '') === $val) ? 'selected' : ''; ?>><?php echo htmlspecialchars($lbl); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </form>
+                                </td>
+                                <td>Scan (<?php echo htmlspecialchars($c['source'] ?? ''); ?>)</td>
+                                <td><span style="color:#94a3b8; font-size:0.8rem;">Auto-Erkannt</span></td>
+                            </tr>
+                            <?php endforeach; ?>
+                            
+                            <?php if(empty($manualCookies) && empty($scannedCookies)): ?>
+                            <tr>
+                                <td colspan="5" style="text-align:center; padding:2rem; color:#94a3b8;">Noch keine Cookies in der Liste.</td>
+                            </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: SERVICES -->
+        <div id="tab-services" class="tab-content">
+
+            <?php
+            $grouped    = ['essential'=>[], 'functional'=>[], 'analytics'=>[], 'marketing'=>[]];
+            foreach ($serviceLibrary as $svc) { $grouped[$svc['category']][] = $svc; }
+            $totalActive   = count($activeServices);
+            $totalServices = count($serviceLibrary);
+            $byCategory    = array_map(fn($g) => count(array_filter($g, fn($s) => in_array($s['id'], $activeServices, true))), $grouped);
+            $catIcons      = ['essential'=>'🔒', 'functional'=>'⚙️', 'analytics'=>'📊', 'marketing'=>'📣'];
+            ?>
+
+            <!-- Stats-Leiste -->
+            <div class="admin-card" style="margin-bottom:1.5rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+                    <div>
+                        <h3>🔌 Dienste & Drittanbieter</h3>
+                        <p style="margin:0; font-size:0.875rem; color:#64748b;">Aktivieren Sie die Dienste, die auf Ihrer Website genutzt werden.</p>
+                    </div>
+                    <div style="display:flex; gap:1.5rem;">
+                        <div style="text-align:center;"><span style="display:block; font-size:1.5rem; font-weight:700; color:#1e293b;"><?php echo $totalActive; ?></span><span style="color:#64748b; font-size:0.8rem;">Aktiv</span></div>
+                        <div style="text-align:center;"><span style="display:block; font-size:1.5rem; font-weight:700; color:#cbd5e1;"><?php echo $totalServices; ?></span><span style="color:#64748b; font-size:0.8rem;">Gesamt</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" action="">
+                <input type="hidden" name="action" value="save_services">
+                <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+
+                <div class="admin-card form-actions-card" style="margin-bottom:2rem; display:flex; gap:0.5rem; flex-wrap:wrap; justify-content:space-between; align-items:center;">
+                    <strong style="color:#334155; font-size:0.9rem;">Schnellauswahl:</strong>
+                    <div style="display:flex; gap:0.5rem;">
+                        <button type="button" onclick="selectCategory('essential')" class="btn btn-sm btn-secondary">🔒 Nur Essenziell</button>
+                        <button type="button" onclick="selectCategory('analytics')" class="btn btn-sm btn-secondary">📊 + Statistik</button>
+                        <button type="button" onclick="selectAll(true)" class="btn btn-sm btn-secondary">✅ Alle</button>
+                    </div>
+                    <button type="submit" class="btn btn-primary">💾 Auswahl speichern</button>
+                </div>
+
+                <?php foreach ($grouped as $cat => $services):
+                    if (empty($services)) continue;
+                    $countActive = $byCategory[$cat];
+                ?>
+                <div class="svc-cat-header">
+                    <span style="font-size:1.1rem;"><?php echo $catIcons[$cat]; ?></span>
+                    <h4 style="margin:0; font-size:1rem; font-weight:700; color:#1e293b;"><?php echo htmlspecialchars($categoryLabels[$cat]); ?></h4>
+                    <span class="status-badge <?php echo $countActive > 0 ? 'active' : 'inactive'; ?>" style="font-size:0.75rem; margin-left:0.5rem;"><?php echo $countActive; ?> aktiv</span>
+                    
+                    <?php if ($cat === 'essential'): ?>
+                    <span class="svc-cat-note">⚠️ Immer aktiv</span>
+                    <?php endif; ?>
+                </div>
+                
+                <div class="svc-grid">
+                    <?php foreach ($services as $svc):
+                        $isEssential = $svc['category'] === 'essential';
+                        $isActive    = in_array($svc['id'], $activeServices, true);
+                    ?>
+                    <label class="svc-card <?php echo $isEssential ? 'locked' : ($isActive ? 'active' : ''); ?>" data-cat="<?php echo $cat; ?>">
+                        <input type="checkbox"
+                               name="active_services[]"
+                               value="<?php echo htmlspecialchars($svc['id']); ?>"
+                               <?php echo $isActive ? 'checked' : ''; ?>
+                               <?php echo $isEssential ? 'onclick="return false;" title="Essentielle Dienste sind immer aktiv."' : 'onchange="toggleSvcCard(this);"'; ?>>
+                        <div class="svc-info">
+                            <strong><?php echo htmlspecialchars($svc['name']); ?></strong>
+                            <span class="svc-provider"><?php echo htmlspecialchars($svc['provider']); ?></span>
+                            <span class="svc-desc" style="display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;"><?php echo htmlspecialchars($svc['description']); ?></span>
+                            <span class="svc-cookies">Cookies: <?php echo htmlspecialchars(implode(', ', $svc['cookies'])); ?></span>
+                            <?php if (!empty($svc['privacy_url'])): ?>
+                            <a href="<?php echo htmlspecialchars($svc['privacy_url']); ?>" target="_blank" rel="noopener noreferrer" class="svc-privacy" onclick="event.stopPropagation();">Datenschutzerklärung ↗</a>
+                            <?php endif; ?>
+                        </div>
+                    </label>
+                    <?php endforeach; ?>
+                </div>
+                <?php endforeach; ?>
+            </form>
+        </div>
+
+        <!-- TAB: INTEGRATION & LOG -->
+        <div id="tab-integration" class="tab-content">
+            <div class="admin-card">
+                <h3>🍪 Integration</h3>
+                <p style="color:#64748b; margin-bottom:1.5rem;">Der Cookie Banner wird automatisch auf allen Seiten eingebunden, wenn er aktiviert ist.</p>
+                
+                <h4 style="margin-top:1.5rem; margin-bottom:0.5rem; color:#334155;">Einstellungen öffnen Link</h4>
+                <p style="color:#64748b; font-size:0.9rem;">Nutzer können ihre Einwilligung nachträglich über diesen Link ändern. Fügen Sie diesen Code in Ihre Datenschutz-Seite oder den Footer ein:</p>
+                <div style="background:#1e293b; color:#cbd5e1; padding:1rem; border-radius:6px; font-family:monospace; position:relative;">
+                    <button class="btn btn-sm btn-secondary" onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)" style="position:absolute; top:0.5rem; right:0.5rem;">Kopieren</button>
+                    <code>&lt;a href="#" onclick="window.CMS.Cookie.openSettings(); return false;"&gt;Cookie-Einstellungen&lt;/a&gt;</code>
+                </div>
+
+                <h4 style="margin-top:1.5rem; margin-bottom:0.5rem; color:#334155;">Javascript API</h4>
+                <div style="background:#1e293b; color:#cbd5e1; padding:1rem; border-radius:6px; font-family:monospace; overflow-x:auto;">
+<code>// Prüfen ob Consent vorhanden
+if (window.CMS.Cookie.hasConsent('analytics')) {
+    // Google Analytics laden
+}
+
+// Event Listener
+window.CMS.Cookie.on('change', (consent) => {
+    console.log('Consent updated:', consent);
+});</code>
+                </div>
+            </div>
+
+            <div class="admin-card" style="margin-top:1.5rem;">
+                <h3>📜 Consent Log (Auszug letzte 20)</h3>
+                <p style="color:#64748b; font-size:0.9rem;">Hier sehen Sie anonymisierte Einwilligungen (Erfordert 'cms_cookie_consents' Tabelle).</p>
+                
+                <div class="users-table-container">
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th>Zeitstempel</th>
+                                <th>Consent-ID</th>
+                                <th>Version</th>
+                                <th>Typ</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5" style="text-align:center; padding:2rem; color:#94a3b8;">
+                                    <em>Consent-Logging ist noch nicht aktiv. Aktivieren Sie die erweiterte Protokollierung in den Einstellungen.</em>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
     <script>
-        function switchTab(id) {
+        function switchTab(id, btn) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             document.getElementById(id).classList.add('active');
-            event.target.classList.add('active');
+            if(btn) btn.classList.add('active');
         }
         function selectAll(state) {
             document.querySelectorAll('.svc-card:not(.locked) input[type=checkbox]').forEach(cb => {
@@ -307,8 +687,10 @@ require_once __DIR__ . '/partials/admin-menu.php';
             document.querySelectorAll('.svc-card:not(.locked) input[type=checkbox]').forEach(cb => {
                 const card = cb.closest('.svc-card');
                 const matches = card.dataset.cat === cat;
-                cb.checked = matches;
-                card.classList.toggle('active', matches);
+                if (matches) {
+                    cb.checked = true;
+                    card.classList.add('active');
+                }
             });
         }
         function toggleSvcCard(cb) {
@@ -328,349 +710,5 @@ require_once __DIR__ . '/partials/admin-menu.php';
             document.getElementById('prev-essential').textContent = btnEssential || 'Nur Essenzielle';
         }
     </script>
-</head>
-<body class="admin-body">
-    <?php renderAdminSidebar('cookies'); ?>
-    
-    <div class="admin-content">
-        <div class="admin-page-header">
-            <h2>🍪 Cookie Managed</h2>
-            <p>Verwalten Sie Cookies und den Consent Banner.</p>
-        </div>
-
-        <?php if ($message): ?>
-            <div class="alert alert-<?php echo $messageType; ?>"><?php echo htmlspecialchars($message); ?></div>
-        <?php endif; ?>
-
-        <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('tab-settings')">Banner Einstellungen</button>
-            <button class="tab-btn" onclick="switchTab('tab-cookies')">Cookie Liste (<?php echo count($scannedCookies) + count($manualCookies); ?>)</button>
-            <button class="tab-btn" onclick="switchTab('tab-services')">🔌 Dienste (<?php echo count($activeServices); ?> aktiv)</button>
-            <button class="tab-btn" onclick="switchTab('tab-integration')">Integration & Log</button>
-        </div>
-
-        <!-- TAB: SETTINGS -->
-        <div id="tab-settings" class="tab-content active">
-            <form method="post" action="" oninput="updatePreview()">
-                <input type="hidden" name="action" value="save_settings">
-                <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-
-                <div class="adm-grid">
-                    <div class="adm-card">
-                        <h3>Aktivierung & Text</h3>
-                        <label style="display:flex; gap:0.5rem; align-items:center;">
-                            <input type="checkbox" name="enabled" value="1" <?php echo ($settings['cookie_consent_enabled'] === '1') ? 'checked' : ''; ?>>
-                            <strong>Cookie Banner auf der Website aktivieren</strong>
-                        </label>
-                        <div class="form-group" style="margin-top:1rem;">
-                            <label>Hinweistext</label>
-                            <textarea name="banner_text" rows="3"><?php echo htmlspecialchars($settings['cookie_banner_text']); ?></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Link Datenschutz</label>
-                            <input type="text" name="policy_url" value="<?php echo htmlspecialchars($settings['cookie_policy_url']); ?>">
-                        </div>
-                    </div>
-
-                    <div class="adm-card">
-                        <h3>Design</h3>
-                        <div class="form-group">
-                            <label>Position</label>
-                            <select name="position">
-                                <option value="bottom" <?php echo ($settings['cookie_banner_position'] === 'bottom') ? 'selected' : ''; ?>>Unten (Sticky)</option>
-                                <option value="center" <?php echo ($settings['cookie_banner_position'] === 'center') ? 'selected' : ''; ?>>Mitte (Modal)</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Primärfarbe</label>
-                            <input type="color" name="primary_color" value="<?php echo htmlspecialchars($settings['cookie_primary_color']); ?>" style="height:40px;">
-                        </div>
-                        <div class="form-group" style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
-                            <div>
-                                <label>Btn: Akzeptieren</label>
-                                <input type="text" name="accept_text" value="<?php echo htmlspecialchars($settings['cookie_accept_text']); ?>">
-                            </div>
-                            <div>
-                                <label>Btn: Essenzielle</label>
-                                <input type="text" name="essential_text" value="<?php echo htmlspecialchars($settings['cookie_essential_text']); ?>">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="adm-card" style="margin-top:1.5rem;">
-                    <h3>Vorschau</h3>
-                    <div class="preview-box">
-                        <div class="preview-card">
-                            <p id="prev-text" style="font-size:0.9rem; color:#64748b; margin-bottom:1rem;"><?php echo htmlspecialchars($settings['cookie_banner_text']); ?></p>
-                            <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
-                                <button type="button" id="prev-essential" style="background:#f1f5f9; padding:0.5rem 1rem; border-radius:4px; border:none; font-size:0.8rem;"><?php echo htmlspecialchars($settings['cookie_essential_text']); ?></button>
-                                <button type="button" id="prev-accept" style="background:<?php echo htmlspecialchars($settings['cookie_primary_color']); ?>; padding:0.5rem 1rem; border-radius:4px; border:none; color:white; font-size:0.8rem;"><?php echo htmlspecialchars($settings['cookie_accept_text']); ?></button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="margin-top:1rem; text-align:right;">
-                    <button type="submit" class="btn-primary">Speichern</button>
-                </div>
-            </form>
-        </div>
-
-        <!-- TAB: COOKIES -->
-        <div id="tab-cookies" class="tab-content">
-            
-            <div class="adm-grid">
-                <!-- Manual Add -->
-                <div class="adm-card">
-                    <h3>➕ Cookie manuell hinzufügen</h3>
-                    <form method="post">
-                        <input type="hidden" name="action" value="add_manual_cookie">
-                        <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                        <div class="form-group">
-                            <label>Name (z.B. _ga)</label>
-                            <input type="text" name="cookie_name" required placeholder="Cookie Name">
-                        </div>
-                        <div class="form-group">
-                            <label>Anbieter</label>
-                            <input type="text" name="cookie_provider" placeholder="z.B. Google LLC">
-                        </div>
-                         <div class="form-group">
-                            <label>Kategorie</label>
-                            <select name="cookie_category">
-                                <option value="essential">Essenziell</option>
-                                <option value="analytics">Statistik</option>
-                                <option value="marketing">Marketing</option>
-                            </select>
-                        </div>
-                         <div class="form-group">
-                            <label>Laufzeit</label>
-                            <input type="text" name="cookie_duration" placeholder="z.B. 2 Jahre">
-                        </div>
-                        <button type="submit" class="btn-primary" style="width:100%;">Hinzufügen</button>
-                    </form>
-                </div>
-
-                <!-- Scanner -->
-                <div class="adm-card">
-                    <h3>📡 Auto-Scan</h3>
-                    <p style="font-size:0.9rem; color:#64748b;">Der Scanner durchsucht die Startseite nach bekannten Cookies.</p>
-                    <form method="post">
-                        <input type="hidden" name="action" value="scan_cookies">
-                        <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                        <button type="submit" class="btn-primary" style="background:#64748b;">🔄 Jetzt scannen</button>
-                    </form>
-                </div>
-            </div>
-
-            <div class="adm-card" style="margin-top:1.5rem;">
-                <h3>📋 Cookie Liste</h3>
-                <table class="cookie-table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Anbieter</th>
-                            <th>Kategorie</th>
-                            <th>Quelle</th>
-                            <th>Aktion</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Manual Cookies -->
-                        <?php foreach($manualCookies as $idx => $c): ?>
-                        <tr>
-                            <td><strong><?php echo htmlspecialchars($c['name']); ?></strong></td>
-                            <td><?php echo htmlspecialchars($c['provider']); ?></td>
-                            <td><span class="badge badge-<?php echo htmlspecialchars($c['category']); ?>"><?php echo ucfirst($c['category']); ?></span></td>
-                            <td>Manuell</td>
-                            <td>
-                                <form method="post" style="display:inline;">
-                                    <input type="hidden" name="action" value="delete_manual_cookie">
-                                    <input type="hidden" name="index" value="<?php echo $idx; ?>">
-                                    <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                                    <button type="submit" class="btn-danger">Löschen</button>
-                                </form>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-
-                        <!-- Scanned Cookies -->
-                        <?php foreach($scannedCookies as $key => $c): ?>
-                        <tr>
-                            <td><strong><?php echo htmlspecialchars($c['name']); ?></strong></td>
-                            <td><?php echo htmlspecialchars($c['provider'] ?? '-'); ?></td>
-                            <td>
-                                <form method="post" style="display:inline;">
-                                    <input type="hidden" name="action" value="update_cookie_category">
-                                    <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                                    <input type="hidden" name="cookie_key" value="<?php echo htmlspecialchars((string)$key); ?>">
-                                    <select name="new_category" class="cat-sel" onchange="this.form.submit()" title="Kategorie ändern – sofort speichern">
-                                        <?php foreach($categoryLabels as $val => $lbl): ?>
-                                        <option value="<?php echo $val; ?>" <?php echo (($c['category'] ?? '') === $val) ? 'selected' : ''; ?>><?php echo htmlspecialchars($lbl); ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </form>
-                            </td>
-                            <td>Scan (<?php echo htmlspecialchars($c['source'] ?? ''); ?>)</td>
-                            <td><span style="color:#94a3b8; font-size:0.8rem;">Auto-Erkannt</span></td>
-                        </tr>
-                        <?php endforeach; ?>
-                        
-                        <?php if(empty($manualCookies) && empty($scannedCookies)): ?>
-                        <tr>
-                            <td colspan="5" style="text-align:center; padding:2rem; color:#94a3b8;">Noch keine Cookies in der Liste.</td>
-                        </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- TAB: SERVICES -->
-        <div id="tab-services" class="tab-content">
-
-            <?php
-            $grouped    = ['essential'=>[], 'functional'=>[], 'analytics'=>[], 'marketing'=>[]];
-            foreach ($serviceLibrary as $svc) { $grouped[$svc['category']][] = $svc; }
-            $totalActive   = count($activeServices);
-            $totalServices = count($serviceLibrary);
-            $byCategory    = array_map(fn($g) => count(array_filter($g, fn($s) => in_array($s['id'], $activeServices, true))), $grouped);
-            $catIcons      = ['essential'=>'🔒', 'functional'=>'⚙️', 'analytics'=>'📊', 'marketing'=>'📣'];
-            ?>
-
-            <!-- Stats-Leiste -->
-            <div class="adm-card" style="margin-bottom:1.5rem;">
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
-                    <div>
-                        <h3 style="margin:0 0 0.25rem;">🔌 Dienste & Drittanbieter</h3>
-                        <p style="margin:0; font-size:0.875rem; color:#64748b;">Aktivieren Sie die Dienste, die auf Ihrer Website genutzt werden. <strong>Essentielle Dienste</strong> werden immer geladen – auch bei Ablehnung im Banner. Alle anderen nur mit Zustimmung.</p>
-                    </div>
-                    <div class="svc-stats">
-                        <div class="svc-stat-item"><span class="svc-stat-num"><?php echo $totalActive; ?></span><span class="svc-stat-label">Aktiv</span></div>
-                        <div class="svc-stat-item"><span class="svc-stat-num" style="color:#64748b;"><?php echo $totalServices; ?></span><span class="svc-stat-label">Gesamt</span></div>
-                        <div class="svc-stat-item"><span class="svc-stat-num" style="color:#10b981;"><?php echo $byCategory['essential']; ?></span><span class="svc-stat-label">Essenziell</span></div>
-                        <div class="svc-stat-item"><span class="svc-stat-num" style="color:#f59e0b;"><?php echo $byCategory['analytics']; ?></span><span class="svc-stat-label">Statistik</span></div>
-                        <div class="svc-stat-item"><span class="svc-stat-num" style="color:#ef4444;"><?php echo $byCategory['marketing']; ?></span><span class="svc-stat-label">Marketing</span></div>
-                    </div>
-                </div>
-            </div>
-
-            <form method="post" action="">
-                <input type="hidden" name="action" value="save_services">
-                <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-
-                <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1rem; align-items:center;">
-                    <strong style="color:#334155; font-size:0.9rem;">Schnellauswahl:</strong>
-                    <button type="button" onclick="selectCategory('essential')" class="btn-sm">🔒 Nur Essenziell</button>
-                    <button type="button" onclick="selectCategory('analytics')" class="btn-sm">📊 + Statistik</button>
-                    <button type="button" onclick="selectAll(true)" class="btn-sm">✅ Alle aktivieren</button>
-                    <button type="button" onclick="selectAll(false)" class="btn-sm btn-sm-grey">❌ Alle deaktivieren</button>
-                    <button type="submit" class="btn-primary" style="margin-left:auto; padding:0.5rem 1.25rem;">💾 Speichern</button>
-                </div>
-
-                <?php foreach ($grouped as $cat => $services):
-                    if (empty($services)) continue;
-                    $countActive = $byCategory[$cat];
-                ?>
-                <div class="svc-cat-header">
-                    <span style="font-size:1.1rem;"><?php echo $catIcons[$cat]; ?></span>
-                    <h4><?php echo htmlspecialchars($categoryLabels[$cat]); ?></h4>
-                    <span class="badge badge-<?php echo $cat; ?>" style="padding:0.2rem 0.5rem; border-radius:999px; font-size:0.72rem; font-weight:600;"><?php echo $countActive; ?>/<?php echo count($services); ?> aktiv</span>
-                    <?php if ($cat === 'essential'): ?>
-                    <span class="svc-cat-note">⚠️ Immer aktiv – auch bei „<?php echo htmlspecialchars($settings['cookie_essential_text'] ?: 'Nur Essenzielle'); ?>"</span>
-                    <?php elseif ($cat === 'functional'): ?>
-                    <span class="svc-cat-note">Benötigt Zustimmung (außer bei eingebetteten Pflichtfunktionen)</span>
-                    <?php elseif ($cat === 'analytics'): ?>
-                    <span class="svc-cat-note">Benötigt Statistik-Zustimmung</span>
-                    <?php elseif ($cat === 'marketing'): ?>
-                    <span class="svc-cat-note">Nur mit ausdrücklicher Zustimmung des Nutzers</span>
-                    <?php endif; ?>
-                </div>
-                <div class="svc-grid">
-                    <?php foreach ($services as $svc):
-                        $isEssential = $svc['category'] === 'essential';
-                        $isActive    = in_array($svc['id'], $activeServices, true);
-                    ?>
-                    <label class="svc-card <?php echo $isEssential ? 'locked' : ($isActive ? 'active' : ''); ?>" data-cat="<?php echo $cat; ?>">
-                        <input type="checkbox"
-                               name="active_services[]"
-                               value="<?php echo htmlspecialchars($svc['id']); ?>"
-                               <?php echo $isActive ? 'checked' : ''; ?>
-                               <?php echo $isEssential ? 'onclick="return false;" title="Essentielle Dienste sind immer aktiv."' : 'onchange="toggleSvcCard(this);"'; ?>>
-                        <div class="svc-info">
-                            <strong><?php echo htmlspecialchars($svc['name']); ?></strong>
-                            <span class="svc-provider"><?php echo htmlspecialchars($svc['provider']); ?></span>
-                            <span class="svc-desc"><?php echo htmlspecialchars($svc['description']); ?></span>
-                            <span class="svc-cookies">Cookies: <?php echo htmlspecialchars(implode(', ', $svc['cookies'])); ?></span>
-                            <?php if (!empty($svc['privacy_url'])): ?>
-                            <a href="<?php echo htmlspecialchars($svc['privacy_url']); ?>" target="_blank" rel="noopener noreferrer" class="svc-privacy" onclick="event.stopPropagation();">Datenschutzerklärung ↗</a>
-                            <?php endif; ?>
-                        </div>
-                    </label>
-                    <?php endforeach; ?>
-                </div>
-                <?php endforeach; ?>
-
-                <div style="margin-top:1.5rem; text-align:right;">
-                    <button type="submit" class="btn-primary">💾 Dienste speichern</button>
-                </div>
-            </form>
-        </div>
-
-        <!-- TAB: INTEGRATION & LOG -->
-        <div id="tab-integration" class="tab-content">
-            <div class="adm-card">
-                <h3>🍪 Integration</h3>
-                <p>Der Cookie Banner wird automatisch auf allen Seiten eingebunden, wenn er aktiviert ist.</p>
-                
-                <h4 style="margin-top:1.5rem; margin-bottom:0.5rem; color:#334155;">Einstellungen öffnen</h4>
-                <p>Nutzer können ihre Einwilligung nachträglich über diesen Link ändern. Fügen Sie diesen Code in Ihre Datenschutz-Seite oder den Footer ein:</p>
-                <div class="code-block">
-                    <button class="copy-btn" onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)">Kopieren</button>
-                    <code>&lt;a href="#" onclick="window.CMS.Cookie.openSettings(); return false;"&gt;Cookie-Einstellungen&lt;/a&gt;</code>
-                </div>
-
-                <h4 style="margin-top:1.5rem; margin-bottom:0.5rem; color:#334155;">Javascript API</h4>
-                <div class="code-block">
-                    <code>
-// Prüfen ob Consent vorhanden
-if (window.CMS.Cookie.hasConsent('analytics')) {
-    // Google Analytics laden
-}
-
-// Event Listener
-window.CMS.Cookie.on('change', (consent) => {
-    console.log('Consent updated:', consent);
-});
-                    </code>
-                </div>
-            </div>
-
-            <div class="adm-card" style="margin-top:1.5rem;">
-                <h3>📜 Consent Log (Auszug letzte 20)</h3>
-                <p style="color:#64748b; font-size:0.9rem;">Hier sehen Sie anonymisierte Einwilligungen (Erfordert 'cms_cookie_consents' Tabelle).</p>
-                
-                <table class="cookie-table" style="margin-top:1rem;">
-                    <thead>
-                        <tr>
-                            <th>Zeitstempel</th>
-                            <th>Consent-ID</th>
-                            <th>Version</th>
-                            <th>Typ</th>
-                            <th>Details</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td colspan="5" style="text-align:center; padding:2rem; color:#94a3b8;">
-                                <em>Consent-Logging ist noch nicht aktiv. Aktivieren Sie die erweiterte Protokollierung in den Einstellungen.</em>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-    </div>
 </body>
 </html>

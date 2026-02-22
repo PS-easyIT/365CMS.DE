@@ -194,7 +194,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
 
         <!-- Page Header -->
         <div class="admin-page-header">
-            <h2>Support & Dokumentation</h2>
+            <h2>📚 Support &amp; Dokumentation</h2>
         </div>
 
         <div class="support-layout">
