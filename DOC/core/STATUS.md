@@ -1,6 +1,6 @@
 ﻿# 365CMS – System-Status
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026
+> **Version:** 0.27.1 | **Stand:** 22. Februar 2026
 
 ---
 
@@ -8,10 +8,10 @@
 
 | Eigenschaft | Wert |
 |-------------|------|
-| **CMS-Version** | 0.26.13 |
+| **CMS-Version** | 0.27.1 |
 | **PHP-Mindestanforderung** | 8.1 (empfohlen: 8.3) |
 | **DB-Version** | MySQL 8.0+ / MariaDB 10.6+ |
-| **Letztes Update** | 21. Februar 2026 |
+| **Letztes Update** | 22. Februar 2026 |
 | **Status** | Aktiv in Entwicklung |
 
 ---
@@ -50,7 +50,7 @@
 | ThemeCustomizer | ✅ Implementiert |
 | UserService | ✅ Implementiert |
 
-### Admin-Panel (24 Seiten)
+### Admin-Panel (36 Seiten)
 
 | Seite | Datei | Status |
 |-------|-------|--------|
@@ -61,16 +61,22 @@
 | Beiträge | `posts.php` | ✅ |
 | Medien | `media.php` | ✅ |
 | Menüs | `menus.php` | ✅ |
+| Landing Page | `landing-page.php` | ✅ |
+| Inhaltsverzeichnis | `table-of-contents.php` | ✅ |
+| Seitentabellen | `site-tables.php` | ✅ |
 | Themes | `themes.php` | ✅ |
 | Theme-Editor | `theme-editor.php` | ✅ |
 | Theme-Customizer | `theme-customizer.php` | ✅ |
 | Theme-Einstellungen | `theme-settings.php` | ✅ |
 | Theme-Marktplatz | `theme-marketplace.php` | ✅ |
+| Dashboard-Widgets | `design-dashboard-widgets.php` | ✅ |
+| Lokale Fonts | `fonts-local.php` | ✅ |
 | Plugins | `plugins.php` | ✅ |
 | Plugin-Marktplatz | `plugin-marketplace.php` | ✅ |
 | SEO | `seo.php` | ✅ |
 | Analytics | `analytics.php` | ✅ |
 | Performance | `performance.php` | ✅ |
+| Updates | `updates.php` | ✅ |
 | Abos (Admin) | `subscriptions.php` | ✅ |
 | Abo-Einstellungen | `subscription-settings.php` | ✅ |
 | Bestellungen | `orders.php` | ✅ |
@@ -78,6 +84,12 @@
 | Einstellungen | `settings.php` | ✅ |
 | Backup | `backup.php` | ✅ |
 | Support | `support.php` | ✅ |
+| AntiSpam | `antispam.php` | ✅ |
+| DSGVO – Cookies | `cookies.php` | ✅ |
+| DSGVO – Datenzugang | `data-access.php` | ✅ |
+| DSGVO – Datenlöschung | `data-deletion.php` | ✅ |
+| Rechtliche Seiten | `legal-sites.php` | ✅ |
+| Sicherheits-Audit | `security-audit.php` | ✅ |
 
 ### Plugins (5 verfügbar)
 
@@ -126,4 +138,4 @@
 
 ---
 
-*Stand: 21. Februar 2026 – Version 0.26.13*
+*Stand: 22. Februar 2026 – Version 0.27.1*

@@ -1,4 +1,4 @@
-# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-0.8.24-blue.svg)](https://shields.io/)
+# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-1.6.9-blue.svg)](https://shields.io/)
 
 ![PHP](https://img.shields.io/badge/php-%23777BB4.svg?style=for-the-badge&logo=php&logoColor=white)![MySQL](https://img.shields.io/badge/mysql-4479A1.svg?style=for-the-badge&logo=mysql&logoColor=white)![MariaDB](https://img.shields.io/badge/MariaDB-003545?style=for-the-badge&logo=mariadb&logoColor=white)![HTML5](https://img.shields.io/badge/html5-%23E34F26.svg?style=for-the-badge&logo=html5&logoColor=white)![CSS3](https://img.shields.io/badge/css3-%231572B6.svg?style=for-the-badge&logo=css3&logoColor=white)
  ---
@@ -597,42 +597,57 @@ Vollständiges Schema: [doc/DATABASE-SCHEMA.md](doc/DATABASE-SCHEMA.md)
 
 ## 🔄 Versions-Historie
 
-### v0.8.24 (Februar 2026) - AKTUELL
+> Die vollständige Versionshistorie mit allen Einzel-Patches befindet sich im [Changelog](Changelog.md).
 
-**Neu:**
-- ✅ Theme-Editor mit Live-Customization
-- ✅ Theme-Customizer Service (643 Zeilen)
-- ✅ Automatische CSS-Generierung
-- ✅ 50+ Theme-Optionen in 8 Kategorien
-- ✅ Import/Export für Theme-Einstellungen
-- ✅ Google Fonts Integration (8 Fonts)
-- ✅ Custom CSS/JS Editor
-- ✅ theme_customizations Datenbank-Tabelle
-- ✅ Database::getPrefix() Methode
-- ✅ Umfassende Theme-Dokumentation
+### v1.6.x (21.–22. Februar 2026) — **AKTUELL** · Cookie-Manager & Legal-Suite
+- ✅ Cookie-Verwaltung mit Dienstbibliothek und Sicherheitsprüfungen (v1.6.9)
+- ✅ AntiSpam-Einstellungsseite und Rechtstexte-Generator (v1.6.1)
+- ✅ Cookie-Richtlinie-Generierung und dynamischer Zustimmungsstatus (v1.6.2–v1.6.3)
+- ✅ Site-Tables-Management mit CRUD-Operationen und Import/Export (v1.6.5)
+- ✅ Cache-Clearing-Funktionalität und Asset-Regenerierung (v1.6.0)
 
-**Verbessert:**
-- ✅ Database.php: prefix() + getPrefix() Methoden
-- ✅ SystemService: Alle Methoden nutzen getPrefix()
-- ✅ Theme-Templates: Customization-Integration
-- ✅ Admin-Sidebar: Theme Editor Menü
-- ✅ Fehlerbehandlung in ThemeCustomizer
+### v1.5.x (21. Februar 2026) — Support-System & DSGVO
+- ✅ DSGVO-konforme Datenlöschung und Security-Audit-Seite (v1.5.7)
+- ✅ Support.php komplett neu via GitHub API (v1.5.0–v1.5.4)
+- ✅ Logs nur noch bei `CMS_DEBUG=true` (v1.4.5)
 
-**Behoben:**
-- ✅ "Cannot redeclare prefix()" Fatal Error
-- ✅ Tab-Wechsel im Theme-Editor
-- ✅ CSS !important für Tab-Switching
+### v1.4.x (21. Februar 2026) — Admin-Erweiterungen
+- ✅ Plugin- und Theme-Marketplace-Seiten (v1.4.7)
+- ✅ Dokumentationsabruf mit rekursivem Directory-Traversal (v1.4.9)
+- ✅ Aboverwaltung: Pakete-Editor, Zuweisungen, Einstellungen-Tab (v1.4.1–v1.4.2)
+- ✅ Version-Badge im Admin Dashboard (v1.4.0)
 
-### v0.4.0 (Januar 2025 - Februar 2026)
+### v1.3.x (20. Februar 2026) — 🚀 First Public Release
+- ✅ **365CMS.DE öffentlich veröffentlicht** (v1.3.0)
+- ✅ Subscription- und Checkout-System (v1.3.5)
+- ✅ Blog-Routen und Datenbankschema v3 (v1.3.1–v1.3.2)
 
-**Initial Release - only INTERNAL used:**
-- ✅ Core-System mit PDO
-- ✅ Plugin-System
-- ✅ Theme-System
-- ✅ Admin-Panel
-- ✅ System & Diagnose
-- ✅ Benutzer-Verwaltung
-- ✅ 8 Core-Plugins
+### v1.1.x – v1.2.x (19.–20. Februar 2026) — Member & Media
+- ✅ Member-Medien-Management und Media-Proxy (v1.1.9, v1.2.0–v1.2.1)
+- ✅ Expert-Management, Events, Speakers-Plugin (v1.1.4–v1.1.6)
+- ✅ Cookie-Scanning-Funktionalität (v1.1.1)
+- ✅ Logo-Upload und 4 Dashboard-Widgets (v1.1.8)
+
+### v1.0.x (18.–19. Februar 2026) — AJAX-Architektur & Stabilisierung
+- ✅ Vollständiger Admin-Bereich mit AJAX-Architektur für 12 Dateien (v1.0.4)
+- ✅ Core-Bereich vollständig dokumentiert (v1.0.3)
+- ✅ Mehrere kritische Bugfixes und Sicherheits-Fixes (v1.0.0–v1.0.6)
+
+### v0.8.x – v0.9.x (18. Februar 2026) — Admin-Neugestaltung
+- ✅ Komplett neuer Admin-Bereich – Modern & Friendly (v0.9.1)
+- ✅ Member-Profil, Security, Subscription-Views (v0.9.5)
+- ✅ KRITISCH: 7 Sicherheitsprobleme behoben (v0.8.0)
+- ✅ Dashboard mit AJAX-Architektur (v0.8.8)
+
+### v0.5.x – v0.7.x (15.–17. Februar 2026) — CMSv2 Aufbau (intern)
+- ✅ CMSv2 Initial: Core-System mit Hooks, Datenbank, Auth, Routing (v0.5.0)
+- ✅ Sicherheits-Enhancements: MFA, OAuth, Social Login, GDPR (v0.7.0)
+- ✅ E-Mail-System, Job-Queue, PWA-Support (v0.7.1–v0.7.5)
+- ✅ LiteSpeed-Cache-Integration (v0.7.2)
+
+### v0.1.x – v0.4.x (2025) — CMSv1 · Interne Entwicklung
+- Initiales CMS: Core, Auth, DB, Theme, Plugin-System
+- Nicht öffentlich verfügbar
 
 ## 📄 Lizenz
 

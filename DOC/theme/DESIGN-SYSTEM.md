@@ -1,4 +1,4 @@
-﻿# Design System – CMS Default Theme v0.26.13
+﻿# Design System – CMS Default Theme v1.6.9
 
 ## Farbpalette (CSS Custom Properties)
 
