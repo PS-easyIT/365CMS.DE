@@ -1,6 +1,5 @@
 # Landing Page Editor
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026 | **Datei:** `admin/landing-page.php`
 
 Der Landing Page Editor ermöglicht die visuelle Bearbeitung der Startseite ohne Programmierkenntnisse. Er bietet einen Sektions-basierten Aufbau mit vorkonfigurierten Blöcken.
 

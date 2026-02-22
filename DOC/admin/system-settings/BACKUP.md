@@ -1,6 +1,5 @@
 # Backup-Verwaltung
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026 | **Datei:** `admin/backup.php`
 
 Das Backup-Modul ermöglicht die manuelle und automatisierte Sicherung der gesamten 365CMS-Installation inklusive Datenbank und Medien.
 

@@ -1,6 +1,5 @@
 # Suchmaschinenoptimierung (SEO)
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026 | **Datei:** `admin/seo.php`
 
 Globale SEO-Einstellungen und Tools zur Optimierung der Sichtbarkeit in Suchmaschinen.
 

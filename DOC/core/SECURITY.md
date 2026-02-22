@@ -1,6 +1,5 @@
-﻿# 365CMS – Sicherheits-Dokumentation
+# 365CMS – Sicherheits-Dokumentation
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026
 
 ---
 

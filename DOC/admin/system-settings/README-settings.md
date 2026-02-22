@@ -1,6 +1,5 @@
 # Allgemeine Einstellungen
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026 | **Datei:** `admin/settings.php`
 
 Zentrale Konfigurationsseite des 365CMS – alle globalen Parameter werden hier verwaltet.
 

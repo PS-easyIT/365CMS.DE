@@ -1,6 +1,5 @@
 # Member Profil
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026 | **Datei:** `member/profile.php`
 
 Der Profilbereich ermöglicht eingeloggten Mitgliedern die vollständige Verwaltung ihrer persönlichen Daten und Kontoeinstellungen.
 

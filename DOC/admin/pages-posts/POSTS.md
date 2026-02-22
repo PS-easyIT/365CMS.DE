@@ -1,6 +1,5 @@
 # Beiträge & Blog (Posts)
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026 | **Datei:** `admin/posts.php`
 
 Verwaltung dynamischer Inhalte für den Blog- oder News-Bereich des 365CMS.
 

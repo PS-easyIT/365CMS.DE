@@ -1,6 +1,5 @@
 # Benutzergruppen (Groups)
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026 | **Datei:** `admin/groups.php`
 
 Gruppierung von Benutzern zur effizienten, granularen Rechteverwaltung im 365CMS.
 

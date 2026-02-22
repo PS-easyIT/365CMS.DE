@@ -1,6 +1,5 @@
-﻿# 365CMS – Datenbank-Schema
+# 365CMS – Datenbank-Schema
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026 | **Prefix:** `cms_` | **Charset:** utf8mb4
 
 Das 365CMS nutzt **22 Datenbank-Tabellen**, die beim ersten Start automatisch angelegt werden. Alle Tabellen haben das Prefix `cms_` (konfigurierbar in `config.php`).
 

@@ -1,6 +1,5 @@
 # Admin Dashboard-Widgets
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026 | **Datei:** `admin/design-dashboard-widgets.php`
 
 Konfiguration und Anpassung der Widgets auf der Admin-Startseite (`admin/index.php`).
 

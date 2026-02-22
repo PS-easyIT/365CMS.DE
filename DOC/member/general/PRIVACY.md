@@ -1,6 +1,5 @@
 # Datenschutz & Privatsphäre
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026 | **Datei:** `member/privacy.php`
 
 DSGVO-konformes Datenschutz-Center für Mitglieder. Ermöglicht die Verwaltung aller persönlichen Daten und rechtlicher Einwilligungen.
 

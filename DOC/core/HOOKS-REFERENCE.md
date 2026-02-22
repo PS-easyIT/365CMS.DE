@@ -1,6 +1,5 @@
-﻿# 365CMS – Hook-System Referenz
+# 365CMS – Hook-System Referenz
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026
 
 Das Hook-System des 365CMS ist von WordPress inspiriert und erlaubt es Plugins und Themes, das Verhalten des CMS zu erweitern **ohne Core-Dateien zu verändern**.
 

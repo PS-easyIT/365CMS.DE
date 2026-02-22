@@ -1,6 +1,5 @@
 # Seitenverwaltung (Pages)
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026 | **Datei:** `admin/pages.php`
 
 Verwaltung statischer Inhaltsseiten wie „Über uns", „Impressum", „Kontakt" oder Landing Pages.
 

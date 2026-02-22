@@ -1,6 +1,5 @@
-﻿# 365CMS – Core-Klassen Referenz
+# 365CMS – Core-Klassen Referenz
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026
 
 Alle 11 Core-Klassen des 365CMS im Detail – Aufgaben, wichtigste Methoden und Verwendungsbeispiele.
 

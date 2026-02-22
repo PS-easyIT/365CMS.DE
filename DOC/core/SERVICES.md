@@ -1,6 +1,5 @@
-﻿# 365CMS – Service-Klassen
+# 365CMS – Service-Klassen
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026
 
 Der Service-Layer enthält die **Geschäftslogik** des CMS. Alle 11 Service-Klassen sind im Namespace `CMS\Services` und befinden sich in `core/Services/`.
 

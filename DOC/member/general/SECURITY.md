@@ -1,6 +1,5 @@
 # Sicherheits-Center
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026 | **Datei:** `member/security.php`
 
 Das Sicherheits-Center gibt Mitgliedern die Kontrolle über den Schutz ihres Kontos – von aktiven Sessions bis zur Zwei-Faktor-Authentifizierung.
 

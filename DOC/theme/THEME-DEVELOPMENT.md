@@ -1,6 +1,5 @@
-﻿# 365CMS – Theme-Entwicklung (Anfänger-Guide)
+# 365CMS – Theme-Entwicklung (Anfänger-Guide)
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026
 
 Dieser Guide führt euch Schritt für Schritt durch die Erstellung eines eigenen 365CMS-Themes.
 

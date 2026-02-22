@@ -1,6 +1,5 @@
 # Abo-Verwaltung
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026 | **Datei:** `member/subscription.php`
 
 Der Abo-Bereich zeigt den aktuellen Mitgliedschaftsplan und ermöglicht Upgrades, Downgrades sowie den Zugriff auf Rechnungen und Zahlungsinformationen.
 

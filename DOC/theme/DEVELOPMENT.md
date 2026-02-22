@@ -1,4 +1,4 @@
-﻿# Theme-Entwicklung für 365CMS
+# Theme-Entwicklung für 365CMS
 
 Komplette Anleitung zur Entwicklung von Themes für das 365CMS.
 
@@ -50,7 +50,6 @@ In `style.css` muss ein Header-Kommentar enthalten sein:
 /*
 Theme Name: Mein Theme Name
 Description: Kurze Beschreibung des Themes
-Version: 1.0.0
 Author: Dein Name
 Author URI: https://example.com
 */
@@ -250,7 +249,6 @@ $themeManager->render('home'); // Lädt home.php
 /*
 Theme Name: Mein Theme
 Description: Beschreibung
-Version: 1.0.0
 Author: Name
 */
 
@@ -532,7 +530,6 @@ CMS\Hooks::addAction('head', function() {
 /*
 Theme Name: Minimal Theme
 Description: Ein minimalistisches Theme
-Version: 1.0.0
 Author: Dein Name
 */
 

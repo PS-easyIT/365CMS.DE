@@ -1,6 +1,5 @@
 # Member Dashboard
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026 | **Datei:** `member/index.php`
 
 Das Member-Dashboard ist die persönliche Startseite jedes eingeloggten Benutzers und bündelt die wichtigsten Informationen auf einen Blick.
 

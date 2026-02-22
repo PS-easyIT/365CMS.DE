@@ -1,6 +1,5 @@
 # Menü-Verwaltung
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026 | **Datei:** `admin/menus.php`
 
 Visual-Editor für die Navigationsstrukturen der 365CMS Website.
 

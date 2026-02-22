@@ -1,6 +1,5 @@
 # Subscription-System (Admin)
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026 | **Datei:** `admin/subscriptions.php`
 
 Das Subscription-System ermöglicht die Verwaltung von Mitgliedschaftsplänen, Benutzer-Abonnements und zugehörigen Zugriffsbeschränkungen.
 

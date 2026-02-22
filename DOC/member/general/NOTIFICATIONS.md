@@ -1,6 +1,5 @@
 # Benachrichtigungen
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026 | **Datei:** `member/notifications.php`
 
 Zentrale Inbox für alle System- und Benutzer-Benachrichtigungen im Mitglieder-Bereich.
 
