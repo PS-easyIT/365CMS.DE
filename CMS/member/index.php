@@ -1,11 +1,10 @@
-<?php
+﻿<?php
 /**
  * Member Dashboard Controller
  * 
  * Zentrale Übersicht für Mitglieder mit personalisierten Widgets
  * 
  * @package CMSv2\Member
- * @version 1.0.0
  */
 
 declare(strict_types=1);

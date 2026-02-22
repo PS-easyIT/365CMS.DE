@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Plugin Dashboard Registry
  *
@@ -34,7 +34,6 @@
  * ─────────────────────────────────────────────────────────────────────────────
  *
  * @package CMSv2\Core\Member
- * @version 1.0.0
  */
 
 declare(strict_types=1);

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 declare(strict_types=1);
 
 namespace CMS\Services;
@@ -14,7 +14,6 @@ use WP_Error;
  * Wird von AJAX-Endpoints UND Admin-Views verwendet.
  * 
  * @package CMS\Services
- * @version 2.0.0
  */
 class UserService {
     

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 declare(strict_types=1);
 
 namespace CMS\Services;
@@ -12,7 +12,6 @@ use PDO;
  * Handles system status, diagnostics, and troubleshooting
  * 
  * @package CMS\Services
- * @version 2.0.0
  */
 class SystemService {
     private static ?SystemService $instance = null;

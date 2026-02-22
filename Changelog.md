@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-1.6.9-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-1.8.0-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -14,16 +14,16 @@
 
 | Version | Datum | Typ | Bereich | Beschreibung |
 |---------|-------|-----|---------|-------------|
-| **1.6.9** | 22.02.2026 | 🟢 feat | Cookie | Cookie-Verwaltung mit Dienstbibliothek und Sicherheitsprüfungen erweitert |
-| 1.6.8 | 21.02.2026 | 🔵 docs | Core | Dokumentation und Skripte für 365CMS aktualisiert |
-| 1.6.7 | 21.02.2026 | ⬜ chore | Docs | Veraltete Sicherheitsarchitektur-Dokumentation entfernt |
-| 1.6.6 | 21.02.2026 | 🔵 docs | README | README-Dateien mit neuen Versionsinformationen aktualisiert |
-| 1.6.5 | 21.02.2026 | 🟢 feat | Admin | Site-Tables-Management mit CRUD-Operationen und Import/Export |
-| 1.6.4 | 21.02.2026 | 🟡 refactor | Legal | Rechtstexte-Generierung bereinigt und optimiert |
-| 1.6.3 | 21.02.2026 | 🟢 feat | Cookie | Cookie-Richtlinie mit dynamischem Zustimmungsstatus |
-| 1.6.2 | 21.02.2026 | 🟢 feat | Cookie | Cookie-Richtlinie-Generierung in Rechtstexte-Generator integriert |
-| 1.6.1 | 21.02.2026 | 🟢 feat | Legal | AntiSpam-Einstellungsseite und Rechtstexte-Generator implementiert |
-| 1.6.0 | 21.02.2026 | 🟢 feat | Cache | Cache-Clearing-Funktionalität und Asset-Regenerierung hinzugefügt |
+| **1.8.0** | 22.02.2026 | 🟢 feat | Security | CMS-Firewall, AntiSpam, Security-Audit vollständig überarbeitet |
+| 1.7.9 | 22.02.2026 | 🟢 feat | Admin | RBAC-Verwaltung vollständig neu implementiert |
+| 1.7.8 | 22.02.2026 | 🟢 feat | Admin | Support-Ticket-System in Admin-Bereich integriert |
+| 1.7.7 | 22.02.2026 | 🟢 feat | Theme | Theme-Marketplace mit 10 fertigen Themes |
+| 1.7.6 | 22.02.2026 | 🟢 feat | Plugin | Plugin-Marketplace mit Kategorie-Browser |
+| 1.7.5 | 22.02.2026 | 🟢 feat | Theme | Lokaler Fonts Manager mit Upload und Theme-Integration |
+| 1.7.4 | 22.02.2026 | 🟡 refactor | Theme | Theme-Customizer erweitert auf 50+ Optionen |
+| 1.7.3 | 22.02.2026 | 🟢 feat | Admin | Update-Manager für Core, Plugins und Themes via GitHub API |
+| 1.7.2 | 22.02.2026 | 🟢 feat | Admin | Benutzerdefierte Site-Tables mit CRUD und Import/Export erweitert |
+| 1.7.1 | 22.02.2026 | 🟢 feat | Member | Member-Dashboard Admin-Verwaltung überarbeitet |
 
 ---
 
@@ -45,11 +45,36 @@
 
 ---
 
+### v1.8.x — 22. Februar 2026 · Security & Firewall Suite
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **1.8.0** | 🟢 feat | Security | CMS-Firewall mit IP-Blocking, Geo-Filtering und Request-Analyse sowie AntiSpam und Security-Audit vollständig überarbeitet |
+
+---
+
+### v1.7.x — 22. Februar 2026 · Theme & Plugin Marketplace
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| 1.7.9 | 🟢 feat | Admin | RBAC-Verwaltung vollständig neu implementiert mit granularen Capabilities |
+| 1.7.8 | 🟢 feat | Admin | Support-Ticket-System mit Prioritäten und Status-Tracking in Admin integriert |
+| 1.7.7 | 🟢 feat | Theme | Theme-Marketplace mit 10 fertigen Themes und Vorschau-Funktion |
+| 1.7.6 | 🟢 feat | Plugin | Plugin-Marketplace mit Kategorie-Browser und Such-Filter |
+| 1.7.5 | 🟢 feat | Theme | Lokaler Fonts Manager mit Upload, Verwaltung und Theme-Integration |
+| 1.7.4 | 🟡 refactor | Theme | Theme-Customizer auf 50+ Optionen in 8 Kategorien erweitert |
+| 1.7.3 | 🟢 feat | Admin | Update-Manager für Core, Plugins und Themes direkt via GitHub API |
+| 1.7.2 | 🟢 feat | Admin | Benutzerdefinierte Site-Tables mit CRUD, Import/Export CSV/JSON erweitert |
+| 1.7.1 | 🟢 feat | Member | Member-Dashboard Admin-Verwaltung mit Übersichts- und Statusseite überarbeitet |
+| 1.7.0 | 🟢 feat | Admin | README-Dokumentation vollständig mit Screenshots und Feature-Übersicht aktualisiert |
+
+---
+
 ### v1.6.x — 21.–22. Februar 2026 · Cookie-Manager & Legal-Suite
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
-| **1.6.9** | 🟢 feat | Cookie | Cookie-Verwaltung mit Dienstbibliothek und Sicherheitsprüfungen erweitert |
+| 1.6.9 | 🟢 feat | Cookie | Cookie-Verwaltung mit Dienstbibliothek und Sicherheitsprüfungen erweitert |
 | 1.6.8 | 🔵 docs | Core | Dokumentation und Skripte für 365CMS aktualisiert |
 | 1.6.7 | ⬜ chore | Docs | Veraltete Sicherheitsarchitektur-Dokumentation entfernt |
 | 1.6.6 | 🔵 docs | README | README-Dateien mit neuen Versionsinformationen und verbesserten Beschreibungen aktualisiert |

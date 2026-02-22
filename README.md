@@ -65,14 +65,6 @@
 
 ---
 
-### Plugins
-
-<img src="DOC/screenshots/admincenter_plugins.jpg" width="700" alt="Plugin-Verwaltung">
-
-*Plugin-Verwaltung mit Installieren, Aktivieren/Deaktivieren und Marketplace-Integration.*
-
----
-
 ### Abo-Verwaltung
 
 <img src="DOC/screenshots/admincenter_subscription.jpg" width="700" alt="Abo-Verwaltung & Pakete">

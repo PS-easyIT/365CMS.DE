@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * PSR-4 Autoloader für 365CMS
  * 
@@ -7,7 +7,6 @@
  * - CMS\Services\* -> /core/services/
  * 
  * @package CMSv2
- * @version 2.0.0
  */
 
 declare(strict_types=1);

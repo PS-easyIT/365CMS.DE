@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 declare(strict_types=1);
 
 namespace CMS\Services;
@@ -10,7 +10,6 @@ use WP_Error;
  * Status Service - System Health & Maintenance
  * 
  * @package CMS\Services
- * @version 2.0.0
  */
 class StatusService {
     

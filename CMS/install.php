@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * CMS Installation Script
  * 
@@ -12,7 +12,6 @@
  * WICHTIG: Nach erfolgreicher Installation LÖSCHEN!
  * 
  * @package 365CMS
- * @version 2.0.0
  */
 
 declare(strict_types=1);

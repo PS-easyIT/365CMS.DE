@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Member Service
  *
@@ -7,7 +7,6 @@
  * Subscription und Dashboard-Daten.
  *
  * @package CMS\Services
- * @version 1.0.0
  */
 
 declare(strict_types=1);

@@ -1,11 +1,10 @@
-<?php
+﻿<?php
 /**
  * Member Menu Items
  * 
  * Zentrale Definition aller Member-Menüpunkte mit Plugin-Hook-Support
  * 
  * @package CMSv2\Member
- * @version 1.0.0
  */
 
 declare(strict_types=1);

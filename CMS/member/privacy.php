@@ -1,9 +1,8 @@
-<?php
+﻿<?php
 /**
  * Member Privacy Controller
  * 
  * @package CMSv2\Member
- * @version 1.0.0
  */
 
 declare(strict_types=1);

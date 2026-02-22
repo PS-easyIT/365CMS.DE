@@ -1,11 +1,10 @@
-<?php
+﻿<?php
 /**
  * Member Controller Base Class
  * 
  * Basis-Controller für alle Member-Seiten
  * 
  * @package CMSv2\Member
- * @version 1.0.0
  */
 
 declare(strict_types=1);

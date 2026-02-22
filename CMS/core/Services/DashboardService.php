@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 declare(strict_types=1);
 
 namespace CMS\Services;
@@ -9,7 +9,6 @@ use CMS\Database;
  * Dashboard Service - Business Logic für Dashboard-Statistiken
  * 
  * @package CMS\Services
- * @version 2.0.0
  */
 class DashboardService {
     

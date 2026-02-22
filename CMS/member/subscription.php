@@ -1,11 +1,10 @@
-<?php
+﻿<?php
 /**
  * Member Subscription Controller
  * 
  * Shows current subscription and upgrade options
  * 
  * @package CMSv2\Member
- * @version 1.0.0
  */
 
 declare(strict_types=1);

@@ -1,11 +1,10 @@
-<?php
+﻿<?php
 /**
  * Analytics Admin Page
  * 
  * Besucher-Statistiken und Traffic-Analyse (OHNE Updates - die sind jetzt unter /admin/updates)
  * 
  * @package CMSv2\Admin
- * @version 2.0.1
  */
 
 declare(strict_types=1);
