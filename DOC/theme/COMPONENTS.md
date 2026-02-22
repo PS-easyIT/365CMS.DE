@@ -1,4 +1,4 @@
-﻿# Komponenten-Referenz – CMS Default Theme v1.6.9
+# Komponenten-Referenz – CMS Default Theme
 
 ## Header
 

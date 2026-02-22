@@ -1,7 +1,5 @@
 # 365CMS – Theme-System
 
-> **Version:** 0.26.13 | **Stand:** 21. Februar 2026
-
 Themes steuern das visuelle Erscheinungsbild des 365CMS. Eigene Themes können ohne Core-Anpassungen erstellt werden.
 
 ---
