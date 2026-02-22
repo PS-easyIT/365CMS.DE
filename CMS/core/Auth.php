@@ -172,7 +172,13 @@ class Auth
         if (!$security->validateEmail($email)) {
             return 'Ungültige E-Mail-Adresse.';
         }
-        
+
+        // M-18: Passwort-Policy prüfen (min. 12 Zeichen, Komplexität)
+        $policyResult = self::validatePasswordPolicy($data['password']);
+        if ($policyResult !== true) {
+            return $policyResult;
+        }
+
         // Check if username exists
         $stmt = $db->prepare("SELECT COUNT(*) as count FROM {$db->getPrefix()}users WHERE username = ?");
         $stmt->execute([$username]);
@@ -204,7 +210,45 @@ class Auth
         
         return 'Registrierung fehlgeschlagen.';
     }
-    
+
+    /**
+     * M-18: Passwort-Policy validieren.
+     *
+     * Anforderungen:
+     *  - Mindestlänge: 12 Zeichen
+     *  - Mindestens 1 Großbuchstabe (A-Z)
+     *  - Mindestens 1 Kleinbuchstabe (a-z)
+     *  - Mindestens 1 Ziffer (0-9)
+     *  - Mindestens 1 Sonderzeichen (!@#$%^&* etc.)
+     *
+     * @param  string   $password Das zu prüfende Passwort (Klartext).
+     * @return true|string        true wenn gültig, Fehlermeldung sonst.
+     */
+    public static function validatePasswordPolicy(string $password): true|string
+    {
+        if (strlen($password) < 12) {
+            return 'Das Passwort muss mindestens 12 Zeichen lang sein.';
+        }
+
+        if (!preg_match('/[A-Z]/', $password)) {
+            return 'Das Passwort muss mindestens einen Großbuchstaben enthalten.';
+        }
+
+        if (!preg_match('/[a-z]/', $password)) {
+            return 'Das Passwort muss mindestens einen Kleinbuchstaben enthalten.';
+        }
+
+        if (!preg_match('/\d/', $password)) {
+            return 'Das Passwort muss mindestens eine Ziffer (0–9) enthalten.';
+        }
+
+        if (!preg_match('/[^a-zA-Z0-9]/', $password)) {
+            return 'Das Passwort muss mindestens ein Sonderzeichen enthalten (z. B. !@#$%^&*).';
+        }
+
+        return true;
+    }
+
     /**
      * Logout user
      */

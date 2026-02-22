@@ -86,14 +86,46 @@ Options +FollowSymLinks
 # Set default charset
 AddDefaultCharset UTF-8
 
-# Kompression – Brotli (bevorzugt) + Gzip/Deflate als Fallback (H-14)
+# Kompression – Brotli (bevorzugt) + Gzip/Deflate als Fallback (M-09)
 <IfModule mod_brotli.c>
-    AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/xml text/css text/javascript application/javascript application/json application/xml font/woff font/woff2
+    # Qualitätsstufe 6 – gutes Verhältnis Kompression/CPU
+    BrotliCompressionQuality 6
+    AddOutputFilterByType BROTLI_COMPRESS \
+        text/html text/plain text/xml text/css \
+        text/javascript text/x-component \
+        application/javascript application/x-javascript \
+        application/json application/xml application/xhtml+xml \
+        application/rss+xml application/atom+xml \
+        image/svg+xml \
+        font/woff font/woff2 font/truetype font/opentype \
+        application/font-woff application/font-woff2 \
+        application/vnd.ms-fontobject
 </IfModule>
 
-# Compression
+# Deflate als Fallback (kein Brotli-Modul vorhanden)
 <IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+    AddOutputFilterByType DEFLATE \
+        text/html text/plain text/xml text/css \
+        text/javascript text/x-component \
+        application/javascript application/x-javascript \
+        application/json application/xml application/xhtml+xml \
+        application/rss+xml application/atom+xml \
+        image/svg+xml \
+        font/woff font/woff2 font/truetype font/opentype \
+        application/font-woff application/font-woff2 \
+        application/vnd.ms-fontobject
+
+    # Defekte Proxys umgehen
+    BrowserMatch ^Mozilla/4 gzip-only-text/html
+    BrowserMatch ^Mozilla/4\.0[678] no-gzip
+    BrowserMatch \bMSIE !no-gzip !gzip-only-text/html
+</IfModule>
+
+# Vary: Accept-Encoding – verhindert Proxy-Caching von unkomprimierten Inhalten (M-09)
+<IfModule mod_headers.c>
+    <FilesMatch "\.(html?|css|js|json|xml|svg|woff|woff2|ttf|otf|eot)$">
+        Header append Vary "Accept-Encoding"
+    </FilesMatch>
 </IfModule>
 
 # Browser caching – H-14: Expires + Cache-Control + ETag

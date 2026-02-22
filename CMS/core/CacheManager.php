@@ -23,6 +23,12 @@ class CacheManager implements CacheInterface
     private static ?self $instance = null;
     private string $cacheDir;
     private bool $useLiteSpeed;
+
+    /**
+     * M-05: APCu vorhanden und aktiviert?
+     * L1-Cache (In-Memory, sub-Millisekunde) vor File-Cache (L2).
+     */
+    private bool $useApcu;
     
     public static function instance(): self
     {
@@ -36,7 +42,15 @@ class CacheManager implements CacheInterface
     {
         $this->cacheDir = ABSPATH . 'cache/';
         $this->useLiteSpeed = isset($_SERVER['SERVER_SOFTWARE']) && strpos($_SERVER['SERVER_SOFTWARE'], 'LiteSpeed') !== false;
-        
+
+        // M-05: APCu als L1-Cache aktivieren (schneller In-Memory-Layer)
+        $this->useApcu = function_exists('apcu_fetch') &&
+                         function_exists('apcu_store') &&
+                         function_exists('apcu_delete') &&
+                         function_exists('apcu_clear_cache') &&
+                         ini_get('apc.enabled') &&
+                         PHP_SAPI !== 'cli'; // APCu deaktiviert im CLI ohne apc.enable_cli
+
         if (!file_exists($this->cacheDir)) {
             @mkdir($this->cacheDir, 0755, true);
         }
@@ -51,10 +65,22 @@ class CacheManager implements CacheInterface
     }
 
     /**
-     * Get item from cache (JSON + HMAC-Verifikation – kein unserialize())
+     * Get item from cache.
+     * M-05: Liest zuerst aus APCu (L1), danach File-Cache (L2).
+     *       Bei L2-Treffer wird L1 nachgefüllt (Read-Through).
      */
     public function get(string $key): mixed
     {
+        // L1: APCu (In-Memory)
+        if ($this->useApcu) {
+            $success = false;
+            $val = apcu_fetch($this->apcuKey($key), $success);
+            if ($success) {
+                return $val;
+            }
+        }
+
+        // L2: File-Cache
         $file = $this->getCacheFile($key);
         if (!file_exists($file)) {
             return null;
@@ -101,22 +127,35 @@ class CacheManager implements CacheInterface
             return null;
         }
 
+        // M-05: Read-Through – L2-Treffer in L1 zurückschreiben (restliche TTL)
+        if ($this->useApcu) {
+            $remainingTtl = $data['e'] - time();
+            if ($remainingTtl > 0) {
+                apcu_store($this->apcuKey($key), $data['v'], $remainingTtl);
+            }
+        }
+
         return $data['v'];
     }
 
     /**
-     * Set item in cache (JSON + HMAC – kein serialize())
-     * Rückgabe bool für CacheInterface-Kompatibilität.
+     * Set item in cache.
+     * M-05: Schreibt in APCu (L1) UND File-Cache (L2) gleichzeitig (Write-Through).
      */
     public function set(string $key, mixed $value, ?int $ttl = null): bool
     {
         $ttl  = $ttl ?? 3600;
         $file = $this->getCacheFile($key);
 
+        // L1: APCu
+        if ($this->useApcu) {
+            apcu_store($this->apcuKey($key), $value, $ttl);
+        }
+
+        // L2: File-Cache (JSON + HMAC)
         try {
             $payload = json_encode(['v' => $value, 'e' => time() + $ttl], JSON_THROW_ON_ERROR);
             $hmac    = hash_hmac('sha256', $payload, $this->getHmacKey());
-            // Format: <hmac>:<base64-encoded-json>
             return (bool) file_put_contents($file, $hmac . ':' . base64_encode($payload), LOCK_EX);
         } catch (\JsonException $e) {
             error_log('CacheManager::set() JSON error: ' . $e->getMessage());
@@ -125,16 +164,22 @@ class CacheManager implements CacheInterface
     }
 
     /**
-     * Delete item from cache
-     * Rückgabe bool für CacheInterface-Kompatibilität.
+     * Delete item from cache.
+     * M-05: Entfernt aus APCu (L1) und File-Cache (L2).
      */
     public function delete(string $key): bool
     {
+        // L1: APCu
+        if ($this->useApcu) {
+            apcu_delete($this->apcuKey($key));
+        }
+
+        // L2: File-Cache
         $file = $this->getCacheFile($key);
         if (file_exists($file)) {
             return @unlink($file);
         }
-        return true; // Nicht vorhanden = bereits gelöscht
+        return true;
     }
 
     /**
@@ -154,17 +199,25 @@ class CacheManager implements CacheInterface
     }
 
     /**
-     * Leert den gesamten File-Cache (CacheInterface::clear)
+     * Leert den gesamten Cache (L1 APCu + L2 File).
+     * M-05: APCu wird ebenfalls vollständig geleert.
      */
     public function clear(): bool
     {
-        $files  = glob($this->cacheDir . '*') ?: [];
+        // L1: APCu löschen
+        if ($this->useApcu) {
+            apcu_clear_cache();
+        }
+
+        // L2: File-Cache löschen
+        $files   = glob($this->cacheDir . '*') ?: [];
         $success = true;
         foreach ($files as $file) {
             if (is_file($file)) {
                 $success = @unlink($file) && $success;
             }
         }
+
         // LiteSpeed Purge
         if ($this->useLiteSpeed) {
             header('X-LiteSpeed-Purge: *');
@@ -372,5 +425,14 @@ class CacheManager implements CacheInterface
     private function getCacheFile(string $key): string
     {
         return $this->cacheDir . md5($key) . '.cache';
+    }
+
+    /**
+     * M-05: Erzeugt einen präfixierten APCu-Schlüssel um Namespace-Konflikte
+     * mit anderen Anwendungen auf demselben Server zu vermeiden.
+     */
+    private function apcuKey(string $key): string
+    {
+        return '365cms:' . $key;
     }
 }

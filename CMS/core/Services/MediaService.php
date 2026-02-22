@@ -486,6 +486,18 @@ class MediaService {
             return new WP_Error('move_failed', 'Failed to move uploaded file');
         }
 
+        // M-07: Automatische WebP-Konvertierung (wenn aktiviert und GD vorhanden)
+        $settings = $this->getSettings();
+        if (($settings['auto_webp'] ?? false) && in_array($ext, ['jpg', 'jpeg', 'png', 'gif'], true)) {
+            $webpPath = $this->convertToWebP($destination, $ext);
+            if ($webpPath !== null) {
+                // Original nach Konvertierung löschen und WebP als primäre Datei verwenden
+                @unlink($destination);
+                $fileName    = pathinfo($fileName, PATHINFO_FILENAME) . '.webp';
+                $destination = $fullPath . DIRECTORY_SEPARATOR . $fileName;
+            }
+        }
+
         // Save metadata (uploader, category)
         $meta = $this->loadMeta();
         $currentUser = Auth::getCurrentUser();
@@ -654,5 +666,53 @@ class MediaService {
         $pow = min($pow, count($units) - 1);
         $bytes /= pow(1024, $pow);
         return round($bytes, 2) . ' ' . $units[$pow];
+    }
+
+    /**
+     * M-07: Konvertiert ein Bild (JPG/PNG/GIF) in WebP und speichert die neue Datei.
+     *
+     * Voraussetzungen: PHP-GD-Extension mit WebP-Support.
+     * Gibt den Pfad zur WebP-Datei zurück oder null bei Fehler/nicht unterstützt.
+     *
+     * @param  string $sourcePath  Absoluter Pfad zur Quelldatei (bereits gespeichert)
+     * @param  string $ext         Dateiendung (jpg|jpeg|png|gif)
+     * @param  int    $quality     WebP-Qualität 0–100 (Standard: 82)
+     * @return string|null         Absoluter Pfad zur .webp-Datei oder null
+     */
+    public function convertToWebP(string $sourcePath, string $ext, int $quality = 82): ?string
+    {
+        if (!function_exists('imagewebp') || !function_exists('imagecreatefromjpeg')) {
+            return null; // GD nicht verfügbar oder ohne WebP-Kompilierung
+        }
+
+        $image = match (strtolower($ext)) {
+            'jpg', 'jpeg' => @imagecreatefromjpeg($sourcePath),
+            'png'         => @imagecreatefrompng($sourcePath),
+            'gif'         => @imagecreatefromgif($sourcePath),
+            default       => null,
+        };
+
+        if ($image === null || $image === false) {
+            return null;
+        }
+
+        // PNG-Transparenz erhalten
+        if (in_array(strtolower($ext), ['png'], true)) {
+            imagepalettetotruecolor($image);
+            imagealphablending($image, true);
+            imagesavealpha($image, true);
+        }
+
+        $webpPath = preg_replace('/\.' . preg_quote($ext, '/') . '$/i', '.webp', $sourcePath);
+
+        if ($webpPath === null || $webpPath === $sourcePath) {
+            imagedestroy($image);
+            return null;
+        }
+
+        $success = imagewebp($image, $webpPath, $quality);
+        imagedestroy($image);
+
+        return $success ? $webpPath : null;
     }
 }
