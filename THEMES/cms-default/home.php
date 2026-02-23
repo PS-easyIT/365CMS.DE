@@ -547,17 +547,19 @@ $btnPrimary    = $safe($lpColors['primary_button']       ?? '#3b82f6');
     <?php if (!empty($recentSidebar)): ?>
     <div>
         <div class="widget-title">Zuletzt erschienen</div>
-        <?php foreach ($recentSidebar as $i => $recent): ?>
+        <?php foreach ($recentSidebar as $i => $recent):
+            $rArr = is_object($recent) ? (array)$recent : (array)$recent;
+        ?>
         <div class="recent-item">
             <div class="recent-num"><?php echo str_pad((string)($i + 1), 2, '0', STR_PAD_LEFT); ?></div>
             <div class="recent-body">
-                <?php if (!empty($recent['category_name'])): ?>
-                <div class="rcat"><?php echo htmlspecialchars($recent['category_name']); ?></div>
+                <?php if (!empty($rArr['category_name'])): ?>
+                <div class="rcat"><?php echo htmlspecialchars($rArr['category_name']); ?></div>
                 <?php endif; ?>
-                <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($recent['slug']); ?>">
-                    <?php echo htmlspecialchars($recent['title']); ?>
+                <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($rArr['slug'] ?? ''); ?>">
+                    <?php echo htmlspecialchars($rArr['title'] ?? ''); ?>
                 </a>
-                <time><?php echo meridian_format_date($recent['published_at'] ?? $recent['created_at'] ?? '', true); ?></time>
+                <time><?php echo meridian_format_date($rArr['published_at'] ?? $rArr['created_at'] ?? '', true); ?></time>
             </div>
         </div>
         <?php endforeach; ?>
