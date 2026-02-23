@@ -417,8 +417,9 @@ class LandingPageService
             $data = json_decode($result['data'] ?? '{}', true);
             return [
                 'id'           => $result['id'],
-                'content_type' => $data['content_type'] ?? 'grid',
+                'content_type' => $data['content_type'] ?? 'features',
                 'content_text' => $data['content_text'] ?? '',
+                'posts_count'  => max(1, (int)($data['posts_count'] ?? 5)),
             ];
         } catch (\Exception $e) {
             error_log('LandingPageService::getContentSettings() Error: ' . $e->getMessage());

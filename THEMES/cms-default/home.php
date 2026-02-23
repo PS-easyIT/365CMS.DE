@@ -153,8 +153,10 @@ try {
     $lpFeatures    = $landingSvc->getFeatures();
     $lpColors      = $lpHeader['colors'] ?? [];
     $lpContentSets = $landingSvc->getContentSettings();
+    $lpDesign      = $landingSvc->getDesign();
 } catch (\Throwable $lpEx) {
     error_log('cms-default home.php LandingPageService: ' . $lpEx->getMessage());
+    $lpDesign = [];
 }
 
 // ── Titel: Customizer-Override → LP-Titel → SITE_NAME ────
@@ -190,6 +192,32 @@ $featCardBg     = $safe($lpColors['feature_card_bg']      ?? '#ffffff');
 $featCardHover  = $safe($lpColors['feature_card_hover']   ?? '#3b82f6');
 $btnPrimary     = $safe($lpColors['primary_button']       ?? '#3b82f6');
 
+// ── Design-Tokens aus LP-Admin ────────────────────────────
+$dCardBr     = max(0, min(48, (int)($lpDesign['card_border_radius']   ?? 12)));
+$dBtnBr      = max(0, min(50, (int)($lpDesign['button_border_radius'] ?? 8)));
+$dIconLayout = $lpDesign['card_icon_layout']  ?? 'top';   // 'top' | 'left'
+$dBorderCol  = $safe($lpDesign['card_border_color']  ?? '#e2e8f0');
+$dBorderW    = $safe($lpDesign['card_border_width']  ?? '1px');
+$dShadow     = $lpDesign['card_shadow']       ?? 'sm';   // none|sm|md|lg
+$dColumns    = $lpDesign['feature_columns']   ?? 'auto'; // auto|2|3|4
+$dContentBg  = $safe($lpDesign['content_section_bg'] ?? '#ffffff');
+
+$shadowMap = [
+    'none' => 'none',
+    'sm'   => '0 1px 4px rgba(0,0,0,.08)',
+    'md'   => '0 4px 12px rgba(0,0,0,.12)',
+    'lg'   => '0 8px 24px rgba(0,0,0,.18)',
+];
+$dShadowVal = $shadowMap[$dShadow] ?? $shadowMap['sm'];
+
+$columnMap = [
+    'auto' => 'repeat(auto-fill,minmax(240px,1fr))',
+    '2'    => 'repeat(2,1fr)',
+    '3'    => 'repeat(3,1fr)',
+    '4'    => 'repeat(4,1fr)',
+];
+$dColumnsVal = $columnMap[$dColumns] ?? $columnMap['auto'];
+
 // ── Layout: compact vs. standard ─────────────────────────
 $lpLayout    = $lpHeader['header_layout'] ?? 'standard';
 $lpVersion   = $lpHeader['version']       ?? '';
@@ -202,10 +230,10 @@ $subFontSz   = $lpIsCompact ? '1rem'           : '1.25rem';
 ?>
 <style>
 /* Landing Page: Abstände reset */
-.category-bar           { display: none !important; }
-footer, .site-footer    { margin-top: 0 !important; }
-main.site-main          { padding: 0 !important; margin: 0 !important; }
-#lp-content             { margin: 0; }
+.category-bar        { display: none !important; }
+footer, .site-footer { margin-top: 0 !important; }
+main.site-main       { padding: 0 !important; margin: 0 !important; }
+#lp-content          { margin: 0; }
 
 /* Farb-Custom-Properties aus LP-Admin */
 .lp-hero {
@@ -216,18 +244,41 @@ main.site-main          { padding: 0 !important; margin: 0 !important; }
     --lp-btn:        <?php echo $btnPrimary; ?>;
 }
 .lp-features {
-    --lp-features-bg:   <?php echo $featuresBgCol; ?>;
-    --lp-card-bg:       <?php echo $featCardBg; ?>;
-    --lp-card-hover:    <?php echo $featCardHover; ?>;
+    --lp-features-bg:  <?php echo $featuresBgCol; ?>;
+    --lp-card-bg:      <?php echo $featCardBg; ?>;
+    --lp-card-hover:   <?php echo $featCardHover; ?>;
+    --lp-card-br:      <?php echo $dCardBr; ?>px;
+    --lp-card-border:  <?php echo $dBorderW; ?> solid <?php echo $dBorderCol; ?>;
+    --lp-card-shadow:  <?php echo $dShadowVal; ?>;
+    --lp-columns:      <?php echo $dColumnsVal; ?>;
+    --lp-content-bg:   <?php echo $dContentBg; ?>;
 }
-.lp-features .card {
-    background: var(--lp-card-bg) !important;
-    transition: border-color .2s, box-shadow .2s;
+.lp-features .lp-card-grid {
+    display: grid;
+    grid-template-columns: var(--lp-columns);
+    gap: 1.5rem;
 }
-.lp-features .card:hover {
+.lp-features .lp-feat-card {
+    background:    var(--lp-card-bg);
+    border:        var(--lp-card-border);
+    border-radius: var(--lp-card-br);
+    box-shadow:    var(--lp-card-shadow);
+    padding:       1.5rem;
+    transition:    border-color .2s, box-shadow .2s;
+}
+.lp-features .lp-feat-card:hover {
     border-color: var(--lp-card-hover) !important;
-    box-shadow: 0 4px 16px rgba(0,0,0,.1);
+    box-shadow: 0 6px 20px rgba(0,0,0,.13);
 }
+.lp-feat-card--icon-left {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+.lp-feat-card__icon  { font-size: 2rem; line-height: 1; flex-shrink: 0; }
+.lp-feat-card__body  { flex: 1; }
+.lp-feat-card__title { font-size: 1rem; font-weight: 700; margin: 0 0 .4rem; color: #1e293b; }
+.lp-feat-card__desc  { font-size: .9rem; color: #64748b; margin: 0; line-height: 1.5; }
 </style>
 
 <div class="landing-page">
@@ -306,34 +357,32 @@ main.site-main          { padding: 0 !important; margin: 0 !important; }
     <!-- ── Hauptinhalt (Features / Artikel / Text) ────────── -->
     <?php
     $lpContentType = $lpContentSets['content_type'] ?? 'features';
-    $lpPostsCount  = max(1, (int)($lpContentSets['posts_count'] ?? 6));
+    $lpPostsCount  = max(1, (int)($lpContentSets['posts_count'] ?? 5));
     ?>
 
     <?php if ($lpContentType === 'features' && !empty($lpFeatures)): ?>
     <!-- Feature-Karten aus dem Landing-Page-Admin -->
     <section class="lp-features" style="padding:3rem 0;background:var(--lp-features-bg);">
         <div style="max-width:1140px;margin:0 auto;padding:0 1.5rem;">
-            <?php
-            $featSectionTitle = $lpHeader['features_title'] ?? '';
-            if ($featSectionTitle): ?>
-            <div class="section-label" style="text-align:center;margin-bottom:2rem;">
-                <h2><?php echo $safe($featSectionTitle); ?></h2>
-            </div>
-            <?php endif; ?>
-            <div class="card-grid">
+            <div class="lp-card-grid">
                 <?php foreach ($lpFeatures as $feat):
                     $fTitle = $feat['title']       ?? '';
                     $fText  = $feat['description'] ?? '';
                     $fIcon  = $feat['icon']        ?? '';
                     if (empty($fTitle) && empty($fText)) continue;
+                    $isIconLeft = ($dIconLayout === 'left');
                 ?>
-                <div class="card">
-                    <div class="card-body">
-                        <?php if ($fIcon): ?>
-                        <div style="font-size:2rem;margin-bottom:.5rem;"><?php echo $safe($fIcon); ?></div>
+                <div class="lp-feat-card<?php echo $isIconLeft ? ' lp-feat-card--icon-left' : ''; ?>">
+                    <?php if ($fIcon): ?>
+                    <div class="lp-feat-card__icon"><?php echo $safe($fIcon); ?></div>
+                    <?php endif; ?>
+                    <div class="lp-feat-card__body">
+                        <?php if ($fTitle): ?>
+                        <p class="lp-feat-card__title"><?php echo $safe($fTitle); ?></p>
                         <?php endif; ?>
-                        <?php if ($fTitle): ?><h4><?php echo $safe($fTitle); ?></h4><?php endif; ?>
-                        <?php if ($fText):  ?><p><?php echo $safe($fText); ?></p><?php endif; ?>
+                        <?php if ($fText): ?>
+                        <p class="lp-feat-card__desc"><?php echo $safe($fText); ?></p>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <?php endforeach; ?>
@@ -396,10 +445,11 @@ main.site-main          { padding: 0 !important; margin: 0 !important; }
 
     <?php elseif ($lpContentType === 'text'): ?>
     <!-- Freitext aus der Landing Page -->
-    <?php if ($lpDesc): ?>
-    <section style="max-width:860px;margin:3rem auto;padding:0 1.5rem;">
-        <div style="font-size:1.1rem;line-height:1.7;color:#1e293b;">
-            <?php echo nl2br(htmlspecialchars($lpDesc)); ?>
+    <?php $lpContentText = $lpContentSets['content_text'] ?? ''; ?>
+    <?php if ($lpContentText): ?>
+    <section style="max-width:860px;margin:3rem auto;padding:0 1.5rem;background:var(--lp-content-bg,#fff);">
+        <div style="font-size:1.05rem;line-height:1.75;color:#1e293b;">
+            <?php echo nl2br(htmlspecialchars(strip_tags($lpContentText, '<p><a><strong><em><ul><ol><li><h2><h3><h4><br><hr><img>'))); ?>
         </div>
     </section>
     <?php endif; ?>
