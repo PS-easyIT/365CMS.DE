@@ -35,7 +35,7 @@ $auth = Auth::instance();
 $subManager = SubscriptionManager::instance();
 
 // Fetch Plan
-$plan = $db->fetch("SELECT * FROM {$db->prefix()}subscription_plans WHERE id = ?", [$planId]);
+$plan = $db->execute("SELECT * FROM {$db->getPrefix()}subscription_plans WHERE id = ?", [$planId])->fetch(\PDO::FETCH_ASSOC);
 
 if (!$plan) {
     // Redirect to packages if no plan selected
@@ -73,14 +73,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             // Generate Order Number
             // Fetch format from settings or default
-            $format = $db->fetchColumn("SELECT option_value FROM {$db->prefix()}settings WHERE option_name = 'setting_order_number_format'") ?: 'BST{Y}{M}-{ID}';
+            $format = $db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'setting_order_number_format'") ?: 'BST{Y}{M}-{ID}';
             
             // We need a temporary ID or just use a random string and update later if ID is needed for format
             // Simple generation for now:
-            $nextId = $db->fetchColumn("SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '{$db->prefix()}orders'");
+            $nextId = $db->get_var("SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '{$db->getPrefix()}orders'");
             if (!$nextId) {
                 // Fallback if permission denied
-                $maxId = $db->fetchColumn("SELECT MAX(id) FROM {$db->prefix()}orders");
+                $maxId = $db->get_var("SELECT MAX(id) FROM {$db->getPrefix()}orders");
                 $nextId = ($maxId ? $maxId : 0) + 1;
             }
 
@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Insert Order
             try {
-                $db->insert('orders', [
+                $orderId = $db->insert('orders', [
                     'order_number' => $orderNumber,
                     'user_id' => $user ? $user->id : null,
                     'plan_id' => $plan['id'],
@@ -112,8 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'created_at' => date('Y-m-d H:i:s')
                 ]);
                 
-                $orderId = $db->lastInsertId();
-                $success = true;
+                $success = (bool) $orderId;
                 
                 // Here you would send an email
                 

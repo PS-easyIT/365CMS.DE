@@ -42,13 +42,14 @@ class CacheManager
     /**
      * Get item from cache
      */
-    public function get(string $key): mixed
+    public function get(string $key, mixed $default = null): mixed
     {
         $file = $this->getCacheFile($key);
         if (!file_exists($file)) {
-            return null;
+            return $default;
         }
 
+<<<<<<< Updated upstream
         $content = file_get_contents($file);
         $data = unserialize($content);
 
@@ -59,6 +60,58 @@ class CacheManager
         }
 
         return $data['value'];
+=======
+        $raw = file_get_contents($file);
+        if ($raw === false) {
+            return $default;
+        }
+
+        // Format: <hmac>:<base64-encoded-json>
+        $sep = strpos($raw, ':');
+        if ($sep === false) {
+            // Altes Format (serialize) – Datei ungültig löschen
+            if (file_exists($file)) { unlink($file); }
+            return $default;
+        }
+
+        $storedHmac = substr($raw, 0, $sep);
+        $payload    = base64_decode(substr($raw, $sep + 1), true);
+
+        if ($payload === false) {
+            if (file_exists($file)) { unlink($file); }
+            return $default;
+        }
+
+        // HMAC-Integritätsprüfung (verhindert PHP Object Injection)
+        $expectedHmac = hash_hmac('sha256', $payload, $this->getHmacKey());
+        if (!hash_equals($expectedHmac, $storedHmac)) {
+            if (file_exists($file)) { unlink($file); }
+            error_log('CacheManager: HMAC-Fehlschlag für Cache-Schlüssel ' . $key . ' – mögliche Manipulation!');
+            return $default;
+        }
+
+        $data = json_decode($payload, true);
+        if (!is_array($data) || !array_key_exists('v', $data) || !isset($data['e'])) {
+            if (file_exists($file)) { unlink($file); }
+            return $default;
+        }
+
+        // Ablaufzeit prüfen
+        if ($data['e'] < time()) {
+            if (file_exists($file)) { unlink($file); }
+            return $default;
+        }
+
+        // M-05: Read-Through – L2-Treffer in L1 zurückschreiben (restliche TTL)
+        if ($this->useApcu) {
+            $remainingTtl = $data['e'] - time();
+            if ($remainingTtl > 0) {
+                apcu_store($this->apcuKey($key), $data['v'], $remainingTtl);
+            }
+        }
+
+        return $data['v'];
+>>>>>>> Stashed changes
     }
 
     /**

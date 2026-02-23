@@ -26,7 +26,12 @@ class Api
         }
         return self::$instance;
     }
-    
+
+    /**
+     * Private constructor – Singleton erzwingen.
+     */
+    private function __construct() {}  // Singleton: nur via instance() instanziieren
+
     /**
      * Handle API Request
      * /api/v1/{endpoint}/{id}

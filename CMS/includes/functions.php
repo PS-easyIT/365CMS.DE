@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Helper Functions
  * 
@@ -7,7 +8,6 @@
  * @package CMSv2\Includes
  */
 
-declare(strict_types=1);
 
 if (!defined('ABSPATH')) {
     exit;

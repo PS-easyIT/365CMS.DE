@@ -107,13 +107,11 @@ class Router
         });
         
         $this->addRoute('GET', '/api/v1/pages', function() {
-            $api = new Api();
-            $api->handleRequest('pages');
+            Api::instance()->handleRequest('pages');
         });
         
         $this->addRoute('GET', '/api/v1/pages/:slug', function($slug) {
-            $api = new Api();
-            $api->handleRequest('pages', $slug);
+            Api::instance()->handleRequest('pages', $slug);
         });
         
         // Search Route
@@ -127,7 +125,7 @@ class Router
         // Blog Routes
         $this->addRoute('GET', '/blog', function() {
             $db     = Database::instance();
-            $prefix = $db->prefix;
+            $prefix = $db->getPrefix();
             $page   = max(1, (int)($_GET['p'] ?? 1));
             $perPage = 9;
             $offset  = ($page - 1) * $perPage;
@@ -150,7 +148,7 @@ class Router
         });
         $this->addRoute('GET', '/blog/:slug', function(string $slug) {
             $db     = Database::instance();
-            $prefix = $db->prefix;
+            $prefix = $db->getPrefix();
             $post   = $db->get_row(
                 "SELECT p.*, u.display_name AS author_name, c.name AS category_name
                  FROM {$prefix}posts p

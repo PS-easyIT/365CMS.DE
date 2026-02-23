@@ -396,7 +396,12 @@ class BackupService
             ],
         ]);
         
-        $result = @file_get_contents($url, false, $context);
+        try {
+            $result = file_get_contents($url, false, $context);
+        } catch (\Throwable $e) {
+            error_log('BackupService::uploadToS3WithREST() file_get_contents Fehler: ' . $e->getMessage());
+            $result = false;
+        }
         
         return $result !== false;
     }
