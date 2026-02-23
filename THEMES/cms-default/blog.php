@@ -221,15 +221,15 @@ try {
         <?php if (!empty($recentSidebar)): ?>
         <div>
             <div class="widget-title">Aktuelle Beiträge</div>
-            <?php $rNum = 1; foreach ($recentSidebar as $recent): ?>
+            <?php $rNum = 1; foreach ($recentSidebar as $recent): $rArr = (array)$recent; ?>
             <div class="recent-item">
                 <div class="recent-num"><?php echo str_pad((string)$rNum++, 2, '0', STR_PAD_LEFT); ?></div>
                 <div class="recent-body">
-                    <?php if (!empty($recent['category_name'])): ?>
-                    <div class="rcat"><?php echo htmlspecialchars($recent['category_name']); ?></div>
+                    <?php if (!empty($rArr['category_name'])): ?>
+                    <div class="rcat"><?php echo htmlspecialchars($rArr['category_name']); ?></div>
                     <?php endif; ?>
-                    <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($recent['slug']); ?>"><?php echo htmlspecialchars($recent['title']); ?></a>
-                    <time><?php echo meridian_format_date($recent['published_at'] ?? $recent['created_at'] ?? '', true); ?></time>
+                    <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($rArr['slug']); ?>"><?php echo htmlspecialchars($rArr['title']); ?></a>
+                    <time><?php echo meridian_format_date($rArr['published_at'] ?? $rArr['created_at'] ?? '', true); ?></time>
                 </div>
             </div>
             <?php endforeach; ?>

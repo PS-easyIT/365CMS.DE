@@ -270,6 +270,13 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
     border-color: var(--lp-card-hover) !important;
     box-shadow: 0 6px 20px rgba(0,0,0,.13);
 }
+.lp-feat-card:not(.lp-feat-card--icon-left) {
+    text-align: center;
+}
+.lp-feat-card:not(.lp-feat-card--icon-left) .lp-feat-card__icon {
+    display: block;
+    margin: 0 auto .75rem;
+}
 .lp-feat-card--icon-left {
     display: flex;
     gap: 1rem;
