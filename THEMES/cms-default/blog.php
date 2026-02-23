@@ -223,7 +223,7 @@ try {
             <div class="widget-title">Aktuelle Beiträge</div>
             <?php $rNum = 1; foreach ($recentSidebar as $recent): ?>
             <div class="recent-item">
-                <div class="recent-num"><?php echo str_pad($rNum++, 2, '0', STR_PAD_LEFT); ?></div>
+                <div class="recent-num"><?php echo str_pad((string)$rNum++, 2, '0', STR_PAD_LEFT); ?></div>
                 <div class="recent-body">
                     <?php if (!empty($recent['category_name'])): ?>
                     <div class="rcat"><?php echo htmlspecialchars($recent['category_name']); ?></div>
