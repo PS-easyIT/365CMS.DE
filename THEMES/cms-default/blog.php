@@ -78,44 +78,17 @@ try {
     <main id="main-content">
 
             <?php if (!empty($posts)): ?>
-            <div class="article-list">
-                <?php foreach ($posts as $post): ?>
-                <article class="article-row">
-                    <?php if (!empty($post->featured_image)): ?>
-                    <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>" class="art-thumb">
-                        <img src="<?php echo htmlspecialchars($post->featured_image); ?>"
-                             alt="<?php echo htmlspecialchars($post->title); ?>"
-                             loading="lazy">
-                    </a>
-                    <?php endif; ?>
-                    <div class="art-body">
-                        <?php if (!empty($post->category_name)): ?>
-                        <div class="art-cat">
-                            <a href="<?php echo SITE_URL . '/blog?category=' . urlencode($post->category_slug ?? $post->category_name ?? ''); ?>">
-                                <?php echo htmlspecialchars($post->category_name); ?>
-                            </a>
-                        </div>
-                        <?php endif; ?>
-                        <div class="art-title">
-                            <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>">
-                                <?php echo htmlspecialchars($post->title); ?>
-                            </a>
-                        </div>
-                        <?php $excerpt = !empty($post->excerpt) ? $post->excerpt : meridian_excerpt($post->content ?? '', 160); ?>
-                        <?php if ($excerpt): ?>
-                        <p class="art-excerpt"><?php echo htmlspecialchars($excerpt); ?></p>
-                        <?php endif; ?>
-                        <div class="art-meta">
-                            <time datetime="<?php echo htmlspecialchars($post->published_at ?? $post->created_at ?? ''); ?>"><?php echo meridian_format_date($post->published_at ?? $post->created_at ?? ''); ?></time>
-                            <?php if (meridian_setting('blog', 'show_reading_time', true)): ?>
-                            <span class="dot"></span>
-                            <span class="read-t"><?php echo meridian_reading_time($post->content ?? ''); ?></span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </article>
-                <?php endforeach; ?>
-            </div>
+            <?php
+                // Erste 4 → Listen-Cards, nächste 6 → Grid-Cards
+                $listPosts = array_slice($posts, 0, 4);
+                $gridPosts = array_slice($posts, 4, 6);
+            ?>
+
+            <?php require __DIR__ . '/partials/blog-list-cards.php'; ?>
+
+            <?php if (!empty($gridPosts)): ?>
+            <?php require __DIR__ . '/partials/blog-grid-cards.php'; ?>
+            <?php endif; ?>
 
             <!-- Paginierung -->
             <?php if ($totalPages > 1): ?>
