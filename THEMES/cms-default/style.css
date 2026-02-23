@@ -487,6 +487,7 @@ img { display: block; max-width: 100%; }
   color: #fff;
   padding: 5rem 2rem;
   text-align: center;
+  margin-top: 0;
 }
 
 .lp-hero__inner {

@@ -187,6 +187,16 @@ $heroBorderCol = $safe($lpColors['hero_border']          ?? '#3b82f6');
 $heroTextColor = $safe($lpColors['hero_text']            ?? '#ffffff');
 $featuresBgCol = $safe($lpColors['features_bg']          ?? '#f8fafc');
 $btnPrimary    = $safe($lpColors['primary_button']       ?? '#3b82f6');
+
+// ── Layout: compact vs. standard ─────────────────────────
+$lpLayout    = $lpHeader['header_layout'] ?? 'standard';
+$lpVersion   = $lpHeader['version']       ?? '';
+$lpIsCompact = ($lpLayout === 'compact');
+$heroPadding = $lpIsCompact ? '1.75rem 1.5rem' : '5rem 2rem';
+$heroTitleSz = $lpIsCompact ? '1.75rem'        : 'clamp(1.8rem,4vw,3rem)';
+$logoMaxH    = $lpIsCompact ? '50px'           : '90px';
+$logoMarginB = $lpIsCompact ? '0.75rem'        : '1.75rem';
+$subFontSz   = $lpIsCompact ? '1rem'           : '1.25rem';
 ?>
 <style>
 .lp-hero     { --lp-grad-start:<?php echo $heroGradStart;?>; --lp-grad-end:<?php echo $heroGradEnd;?>; --lp-border:<?php echo $heroBorderCol;?>; --lp-text:<?php echo $heroTextColor;?>; --lp-btn:<?php echo $btnPrimary;?>; }
@@ -198,6 +208,8 @@ $btnPrimary    = $safe($lpColors['primary_button']       ?? '#3b82f6');
 
     <!-- ── Hero ──────────────────────────────────────────── -->
     <section class="lp-hero" style="
+        margin-top:0;
+        padding:<?php echo $heroPadding;?>;
         background:linear-gradient(135deg,var(--lp-grad-start) 0%,var(--lp-grad-end) 100%);
         border-bottom:3px solid var(--lp-border);">
         <div class="lp-hero__inner">
@@ -205,27 +217,46 @@ $btnPrimary    = $safe($lpColors['primary_button']       ?? '#3b82f6');
             <?php if (!empty($lpLogo)): ?>
             <img src="<?php echo $safe($lpLogo); ?>"
                  alt="<?php echo $safe($lpTitle); ?>"
-                 style="max-height:80px;margin:0 auto 1.5rem;display:block;">
+                 style="max-height:<?php echo $logoMaxH;?>;margin:0 auto <?php echo $logoMarginB;?>;display:block;">
             <?php endif; ?>
 
-            <h1 class="lp-hero__title" style="color:var(--lp-text);">
-                <?php echo $safe($lpTitle); ?>
-            </h1>
+            <div style="position:relative;display:inline-block;max-width:100%;">
+                <h1 class="lp-hero__title" style="color:var(--lp-text);font-size:<?php echo $heroTitleSz;?>;">
+                    <?php echo $safe($lpTitle); ?>
+                </h1>
+                <?php if ($lpVersion && $lpIsCompact): ?>
+                <span style="
+                    position:absolute;top:-.25rem;right:-3.5rem;
+                    background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);
+                    border-radius:4px;padding:.1rem .4rem;
+                    font-size:.7rem;font-weight:500;color:#fff;line-height:1;
+                    white-space:nowrap;">v<?php echo $safe($lpVersion); ?></span>
+                <?php elseif ($lpVersion): ?>
+                <div style="margin-top:.5rem;">
+                    <span style="
+                        display:inline-block;background:rgba(255,255,255,.15);
+                        border:1px solid rgba(255,255,255,.3);border-radius:6px;
+                        padding:.25rem .75rem;font-size:.8rem;color:#fff;">
+                        v<?php echo $safe($lpVersion); ?>
+                    </span>
+                </div>
+                <?php endif; ?>
+            </div>
 
             <?php if ($lpSubtitle): ?>
-            <p style="color:var(--lp-text);opacity:.85;font-size:1.25rem;max-width:600px;margin:0 auto 1rem;">
+            <p style="color:var(--lp-text);opacity:.85;font-size:<?php echo $subFontSz;?>;max-width:600px;margin:<?php echo $lpIsCompact ? '.5rem' : '1rem';?> auto <?php echo $lpIsCompact ? '.75rem' : '1rem';?>;">
                 <?php echo $safe($lpSubtitle); ?>
             </p>
             <?php endif; ?>
 
-            <?php if ($lpDesc && $lpDesc !== $lpTitle): ?>
-            <p style="color:var(--lp-text);opacity:.75;max-width:680px;margin:0 auto 1.5rem;font-size:1rem;">
+            <?php if ($lpDesc && $lpDesc !== $lpTitle && $lpDesc !== $lpSubtitle): ?>
+            <p style="color:var(--lp-text);opacity:.75;max-width:680px;margin:0 auto <?php echo $lpIsCompact ? '1rem' : '1.5rem';?>;font-size:<?php echo $lpIsCompact ? '.95rem' : '1rem';?>;">
                 <?php echo $safe($lpDesc); ?>
             </p>
             <?php endif; ?>
 
             <?php if ($lpCtaLabel && $lpCtaHref): ?>
-            <div class="lp-hero__actions">
+            <div class="lp-hero__actions" style="margin-top:<?php echo $lpIsCompact ? '1rem' : '2rem';?>;">
                 <a href="<?php echo $safe($lpCtaHref); ?>"
                    class="btn-hero"
                    style="background:var(--lp-btn);">
@@ -262,9 +293,9 @@ $btnPrimary    = $safe($lpColors['primary_button']       ?? '#3b82f6');
             <?php endif; ?>
             <div class="card-grid">
                 <?php foreach ($lpFeatures as $feat):
-                    $fTitle = $feat['title'] ?? '';
-                    $fText  = $feat['text']  ?? '';
-                    $fIcon  = $feat['icon']  ?? '';
+                    $fTitle = $feat['title']       ?? '';
+                    $fText  = $feat['description'] ?? '';
+                    $fIcon  = $feat['icon']        ?? '';
                     if (empty($fTitle) && empty($fText)) continue;
                 ?>
                 <div class="card">
