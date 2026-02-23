@@ -181,12 +181,14 @@ if (empty($lpCtaLabel)) {
 // ── Farben mit Defaults ───────────────────────────────────
 $safe = fn(string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
 
-$heroGradStart = $safe($lpColors['hero_gradient_start'] ?? '#1a2744');
-$heroGradEnd   = $safe($lpColors['hero_gradient_end']   ?? '#0c1526');
-$heroBorderCol = $safe($lpColors['hero_border']          ?? '#3b82f6');
-$heroTextColor = $safe($lpColors['hero_text']            ?? '#ffffff');
-$featuresBgCol = $safe($lpColors['features_bg']          ?? '#f8fafc');
-$btnPrimary    = $safe($lpColors['primary_button']       ?? '#3b82f6');
+$heroGradStart  = $safe($lpColors['hero_gradient_start'] ?? '#1a2744');
+$heroGradEnd    = $safe($lpColors['hero_gradient_end']   ?? '#0c1526');
+$heroBorderCol  = $safe($lpColors['hero_border']          ?? '#3b82f6');
+$heroTextColor  = $safe($lpColors['hero_text']            ?? '#ffffff');
+$featuresBgCol  = $safe($lpColors['features_bg']          ?? '#f8fafc');
+$featCardBg     = $safe($lpColors['feature_card_bg']      ?? '#ffffff');
+$featCardHover  = $safe($lpColors['feature_card_hover']   ?? '#3b82f6');
+$btnPrimary     = $safe($lpColors['primary_button']       ?? '#3b82f6');
 
 // ── Layout: compact vs. standard ─────────────────────────
 $lpLayout    = $lpHeader['header_layout'] ?? 'standard';
@@ -199,12 +201,37 @@ $logoMarginB = $lpIsCompact ? '0.75rem'        : '1.75rem';
 $subFontSz   = $lpIsCompact ? '1rem'           : '1.25rem';
 ?>
 <style>
-.lp-hero     { --lp-grad-start:<?php echo $heroGradStart;?>; --lp-grad-end:<?php echo $heroGradEnd;?>; --lp-border:<?php echo $heroBorderCol;?>; --lp-text:<?php echo $heroTextColor;?>; --lp-btn:<?php echo $btnPrimary;?>; }
-.lp-features { --lp-features-bg:<?php echo $featuresBgCol;?>; }
+/* Landing Page: Abstände reset */
+.category-bar           { display: none !important; }
+footer, .site-footer    { margin-top: 0 !important; }
+main.site-main          { padding: 0 !important; margin: 0 !important; }
+#lp-content             { margin: 0; }
+
+/* Farb-Custom-Properties aus LP-Admin */
+.lp-hero {
+    --lp-grad-start: <?php echo $heroGradStart; ?>;
+    --lp-grad-end:   <?php echo $heroGradEnd; ?>;
+    --lp-border:     <?php echo $heroBorderCol; ?>;
+    --lp-text:       <?php echo $heroTextColor; ?>;
+    --lp-btn:        <?php echo $btnPrimary; ?>;
+}
+.lp-features {
+    --lp-features-bg:   <?php echo $featuresBgCol; ?>;
+    --lp-card-bg:       <?php echo $featCardBg; ?>;
+    --lp-card-hover:    <?php echo $featCardHover; ?>;
+}
+.lp-features .card {
+    background: var(--lp-card-bg) !important;
+    transition: border-color .2s, box-shadow .2s;
+}
+.lp-features .card:hover {
+    border-color: var(--lp-card-hover) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,.1);
+}
 </style>
 
 <div class="landing-page">
-<main id="main-content">
+<div id="lp-content">
 
     <!-- ── Hero ──────────────────────────────────────────── -->
     <section class="lp-hero" style="
@@ -226,19 +253,21 @@ $subFontSz   = $lpIsCompact ? '1rem'           : '1.25rem';
                 </h1>
                 <?php if ($lpVersion && $lpIsCompact): ?>
                 <span style="
-                    position:absolute;top:-.25rem;right:-3.5rem;
-                    background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);
-                    border-radius:4px;padding:.1rem .4rem;
-                    font-size:.7rem;font-weight:500;color:#fff;line-height:1;
-                    white-space:nowrap;">v<?php echo $safe($lpVersion); ?></span>
+                    position:absolute;top:-.35rem;right:-4rem;
+                    background:<?php echo $btnPrimary;?>;color:#fff;
+                    border-radius:4px;padding:.15rem .55rem;
+                    font-size:.75rem;font-weight:700;line-height:1.2;
+                    white-space:nowrap;letter-spacing:.02em;
+                    box-shadow:0 1px 4px rgba(0,0,0,.25);">v<?php echo $safe($lpVersion); ?></span>
                 <?php elseif ($lpVersion): ?>
-                <div style="margin-top:.5rem;">
+                <div style="margin:.6rem 0 .25rem;">
                     <span style="
-                        display:inline-block;background:rgba(255,255,255,.15);
-                        border:1px solid rgba(255,255,255,.3);border-radius:6px;
-                        padding:.25rem .75rem;font-size:.8rem;color:#fff;">
-                        v<?php echo $safe($lpVersion); ?>
-                    </span>
+                        display:inline-block;
+                        background:<?php echo $btnPrimary;?>;color:#fff;
+                        border-radius:6px;padding:.3rem 1rem;
+                        font-size:.85rem;font-weight:700;
+                        letter-spacing:.03em;
+                        box-shadow:0 1px 6px rgba(0,0,0,.2);">v<?php echo $safe($lpVersion); ?></span>
                 </div>
                 <?php endif; ?>
             </div>
@@ -384,7 +413,7 @@ $subFontSz   = $lpIsCompact ? '1rem'           : '1.25rem';
     </div>
     <?php endif; ?>
 
-</main>
+</div><!-- /#lp-content -->
 </div><!-- /.landing-page -->
 
 <?php else: /* ── BLOG MODUS (Standard) ── */ ?>
