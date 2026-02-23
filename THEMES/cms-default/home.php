@@ -166,19 +166,23 @@ $lpSubtitle = $lpHeader['subtitle']    ?? '';
 $lpDesc     = $lpHeader['description'] ?? '';
 $lpLogo     = $lpHeader['logo']        ?? '';
 
-// ── CTA: Customizer-Override → erster LP-Button ───────────
-$lpCtaLabel = $ctaText;
-$lpCtaHref  = $ctaUrl;
-if (empty($lpCtaLabel)) {
-    $lpBtns = $lpHeader['header_buttons'] ?? [];
-    if (is_string($lpBtns)) {
-        $lpBtns = @json_decode($lpBtns, true) ?? [];
-    }
-    if (!empty($lpBtns[0])) {
-        $lpCtaLabel = $lpBtns[0]['label'] ?? '';
-        $lpCtaHref  = $lpBtns[0]['url']   ?? '';
-    }
+// ── CTA: LP-Buttons aus Admin ──────────────────────────
+$lpBtns = $lpHeader['header_buttons'] ?? [];
+if (is_string($lpBtns)) {
+    $lpBtns = @json_decode($lpBtns, true) ?? [];
 }
+if (!is_array($lpBtns)) {
+    $lpBtns = [];
+}
+// Customizer-Override: falls gesetzt, Slot 0 überschreiben
+if (!empty($ctaText) && !empty($ctaUrl)) {
+    $lpBtns = array_merge(
+        [['text' => $ctaText, 'url' => $ctaUrl, 'icon' => '', 'target' => '_self', 'outline' => false]],
+        array_slice($lpBtns, 0)
+    );
+}
+// Buttons filtern: nur vollständige Einträge (text + url)
+$lpBtns = array_values(array_filter($lpBtns, fn($b) => !empty($b['text']) && !empty($b['url'])));
 
 // ── Farben mit Defaults ───────────────────────────────────
 $safe = fn(string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
@@ -342,19 +346,23 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
             </p>
             <?php endif; ?>
 
-            <?php if ($lpCtaLabel && $lpCtaHref): ?>
-            <div class="lp-hero__actions" style="margin-top:<?php echo $lpIsCompact ? '1rem' : '2rem';?>;">
-                <a href="<?php echo $safe($lpCtaHref); ?>"
-                   class="btn-hero"
-                   style="background:var(--lp-btn);">
-                    <?php echo $safe($lpCtaLabel); ?>
+            <?php if (!empty($lpBtns)): ?>
+            <div class="lp-hero__actions" style="margin-top:<?php echo $lpIsCompact ? '1rem' : '2rem';?>;display:flex;flex-wrap:wrap;gap:.75rem;justify-content:center;align-items:center;">
+                <?php foreach ($lpBtns as $btn):
+                    $btnText    = $safe($btn['text']   ?? '');
+                    $btnHref    = $safe($btn['url']    ?? '#');
+                    $btnIcon    = $safe($btn['icon']   ?? '');
+                    $btnTarget  = in_array($btn['target'] ?? '', ['_blank','_self']) ? $btn['target'] : '_self';
+                    $btnOutline = !empty($btn['outline']);
+                ?>
+                <a href="<?php echo $btnHref; ?>"
+                   class="btn-hero<?php echo $btnOutline ? ' btn-hero--outline' : ''; ?>"
+                   target="<?php echo $btnTarget; ?>"
+                   <?php echo $btnTarget === '_blank' ? 'rel="noopener noreferrer"' : ''; ?>
+                   style="<?php echo !$btnOutline ? 'background:var(--lp-btn);' : ''; ?>">
+                    <?php if ($btnIcon): ?><span style="margin-right:.35em;"><?php echo $btnIcon; ?></span><?php endif; ?><?php echo $btnText; ?>
                 </a>
-                <?php if (!theme_is_logged_in()): ?>
-                <a href="<?php echo $safe(SITE_URL . '/register'); ?>"
-                   class="btn-hero btn-hero--outline">
-                    Registrieren →
-                </a>
-                <?php endif; ?>
+                <?php endforeach; ?>
             </div>
             <?php endif; ?>
 

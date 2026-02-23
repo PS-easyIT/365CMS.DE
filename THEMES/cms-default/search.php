@@ -63,31 +63,31 @@ $totalPages  = $totalPages  ?? 1;
         <?php foreach ($results as $post): ?>
         <article class="article-row">
             <?php if (!empty($post->featured_image)): ?>
-            <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>" class="art-thumb">
-                <img src="<?php echo htmlspecialchars($post->featured_image); ?>"
-                     alt="<?php echo htmlspecialchars($post->title); ?>"
+            <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug ?? ''); ?>" class="art-thumb">
+                <img src="<?php echo htmlspecialchars($post->featured_image ?? ''); ?>"
+                     alt="<?php echo htmlspecialchars($post->title ?? ''); ?>"
                      loading="lazy">
             </a>
             <?php endif; ?>
             <div class="art-body">
                 <?php if (!empty($post->category_name)): ?>
                 <a class="cat-tag cat-tag--sm"
-                   href="<?php echo SITE_URL . '/blog?category=' . urlencode($post->category_slug ?? $post->category_name); ?>">
-                    <?php echo htmlspecialchars($post->category_name); ?>
+                    href="<?php echo SITE_URL . '/blog?category=' . urlencode($post->category_slug ?? $post->category_name ?? ''); ?>">
+                    <?php echo htmlspecialchars($post->category_name ?? ''); ?>
                 </a>
                 <?php endif; ?>
                 <h2 class="art-title">
-                    <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>">
-                        <?php echo htmlspecialchars($post->title); ?>
+                    <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug ?? ''); ?>">
+                        <?php echo htmlspecialchars($post->title ?? ''); ?>
                     </a>
                 </h2>
                 <?php $excerpt = !empty($post->excerpt) ? $post->excerpt : meridian_excerpt($post->content ?? '', 200); ?>
                 <?php if ($excerpt): ?>
-                <p class="art-excerpt"><?php echo htmlspecialchars($excerpt); ?></p>
+                <p class="art-excerpt"><?php echo htmlspecialchars($excerpt ?? ''); ?></p>
                 <?php endif; ?>
                 <div class="art-meta">
                     <?php if (!empty($post->author_name)): ?>
-                    <span class="art-author"><?php echo htmlspecialchars($post->author_name); ?></span>
+                    <span class="art-author"><?php echo htmlspecialchars($post->author_name ?? ''); ?></span>
                     <?php endif; ?>
                     <span class="art-date"><?php echo meridian_format_date($post->published_at ?? $post->created_at ?? ''); ?></span>
                 </div>
