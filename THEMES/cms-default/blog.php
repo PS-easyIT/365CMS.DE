@@ -57,21 +57,6 @@ try {
 }
 ?>
 
-<!-- Blog-Header -->
-<div class="blog-archive-header">
-    <div class="container">
-        <h1 class="blog-archive-title"><?php echo htmlspecialchars($pageTitle); ?></h1>
-        <?php if ($total > 0): ?>
-        <p class="blog-archive-meta">
-            <?php echo number_format($total); ?> Artikel
-            <?php if ($totalPages > 1): ?>
-            &ensp;·&ensp; Seite <?php echo $currentPage; ?> von <?php echo $totalPages; ?>
-            <?php endif; ?>
-        </p>
-        <?php endif; ?>
-    </div>
-</div>
-
 <div class="page-wrap">
 
     <!-- Content Area -->
