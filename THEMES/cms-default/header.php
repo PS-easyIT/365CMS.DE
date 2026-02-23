@@ -124,7 +124,7 @@ $flashMsg    = function_exists('theme_get_flash') ? theme_get_flash() : null;
     <!-- Header Actions -->
     <div class="header-actions">
       <?php if ($showSearch): ?>
-      <button class="btn-icon" aria-label="Suche">
+      <button class="btn-icon" id="searchToggle" aria-label="Suche">
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </button>
       <?php endif; ?>
@@ -140,6 +140,13 @@ $flashMsg    = function_exists('theme_get_flash') ? theme_get_flash() : null;
           <a href="<?php echo SITE_URL; ?>/register" class="btn-solid">Registrieren</a>
           <?php endif; ?>
       <?php endif; ?>
+
+      <!-- Hamburger (nur mobil sichtbar via CSS) -->
+      <button class="nav-toggle" id="navToggle" aria-label="Menü öffnen" aria-expanded="false" aria-controls="mobileNavPanel">
+        <span class="nav-toggle-bar"></span>
+        <span class="nav-toggle-bar"></span>
+        <span class="nav-toggle-bar"></span>
+      </button>
     </div>
   </div>
 </header>
@@ -182,6 +189,72 @@ $flashMsg    = function_exists('theme_get_flash') ? theme_get_flash() : null;
 </div>
 <?php endif; ?>
 
+<!-- Mobile Nav Overlay -->
+<div id="mobileNavOverlay" class="mobile-nav-overlay" aria-hidden="true"></div>
+
+<!-- Mobile Nav Panel (Slide-in von rechts) -->
+<nav id="mobileNavPanel" class="mobile-nav-panel" aria-hidden="true" aria-label="Mobile Navigation">
+  <div class="mobile-nav-header">
+    <a href="<?php echo SITE_URL; ?>/" class="site-logo" style="text-decoration:none;">
+      <?php if ($logoType === 'image' && $logoUrl): ?>
+        <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($logoText); ?>" style="max-height:32px;">
+      <?php else: ?>
+        <span class="logo-word" style="font-size:1rem;"><?php echo htmlspecialchars($logoText); ?></span>
+        <span class="logo-dot"></span>
+      <?php endif; ?>
+    </a>
+    <button id="mobileNavClose" class="btn-icon" aria-label="Menü schließen" style="margin-left:auto;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <div class="mobile-nav-body">
+    <?php foreach ($navItems as $item):
+        $mHref    = is_array($item) ? ($item['href'] ?? $item['url'] ?? '#') : '#';
+        $mLabel   = is_array($item) ? ($item['label'] ?? $item['title'] ?? '') : $item;
+        $mActive  = rtrim($currentPath, '/') === rtrim(parse_url($mHref, PHP_URL_PATH) ?? '/', '/');
+        $mChildren = is_array($item) ? ($item['children'] ?? []) : [];
+    ?>
+    <a href="<?php echo htmlspecialchars($mHref); ?>"
+       class="mobile-nav-link<?php echo $mActive ? ' active' : ''; ?>">
+      <?php echo htmlspecialchars($mLabel); ?>
+    </a>
+    <?php foreach ($mChildren as $child):
+        $cHref  = is_array($child) ? ($child['href'] ?? $child['url'] ?? '#') : '#';
+        $cLabel = is_array($child) ? ($child['label'] ?? $child['title'] ?? '') : $child;
+    ?>
+    <a href="<?php echo htmlspecialchars($cHref); ?>"
+       class="mobile-nav-link"
+       style="padding-left:2.5rem;font-size:.83rem;opacity:.8;">
+      <?php echo htmlspecialchars($cLabel); ?>
+    </a>
+    <?php endforeach; ?>
+    <?php endforeach; ?>
+
+    <div style="height:1px;background:var(--rule);margin:.5rem 1.25rem;"></div>
+
+    <?php if ($isLoggedIn): ?>
+      <a href="<?php echo SITE_URL; ?>/member/profile" class="mobile-nav-link">👤 Mein Bereich</a>
+      <a href="<?php echo SITE_URL; ?>/logout" class="mobile-nav-link">⬡ Logout</a>
+    <?php else: ?>
+      <?php if ($showLoginBtn): ?>
+      <a href="<?php echo SITE_URL; ?>/login" class="mobile-nav-link">🔑 Anmelden</a>
+      <?php endif; ?>
+      <?php if ($showRegBtn): ?>
+      <a href="<?php echo SITE_URL; ?>/register" class="mobile-nav-link" style="color:var(--accent);font-weight:600;">✨ Registrieren</a>
+      <?php endif; ?>
+    <?php endif; ?>
+  </div>
+
+  <?php if ($showSearch): ?>
+  <div class="mobile-nav-search">
+    <form action="<?php echo SITE_URL; ?>/search" method="GET" role="search" style="display:flex;gap:.5rem;">
+      <input type="search" name="q" placeholder="Suchen…" class="form-control form-control--sm" aria-label="Suche" style="flex:1;">
+      <button type="submit" class="btn-submit" style="padding:.35rem .85rem;font-size:.82rem;">→</button>
+    </form>
+  </div>
+  <?php endif; ?>
+</nav>
+
 <!-- Main Content Wrapper startet hier -->
 <main class="site-main">
-
