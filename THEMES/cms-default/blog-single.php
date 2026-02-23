@@ -75,7 +75,7 @@ $relatedPosts = function_exists('meridian_get_related_posts') ? meridian_get_rel
 
   <!-- Post Body -->
   <div class="post-body">
-    <?php echo $postContent; // Content is trusted ?>
+    <?php echo $pContent; // Content is trusted ?>
   </div>
 
   <!-- Post Footer: Tags -->
@@ -108,7 +108,7 @@ $relatedPosts = function_exists('meridian_get_related_posts') ? meridian_get_rel
   <div class="related-section">
     <div class="section-label"><h3>Verwandte Artikel</h3></div>
     <div class="related-grid">
-      <?php foreach ($relatedPosts as $rp): 
+      <?php foreach ($relatedPosts as $rp): $rp = (array)$rp;
           $rTitle = htmlspecialchars($rp['title'] ?? '');
           $rLink  = SITE_URL . '/blog/' . ($rp['slug'] ?? '');
           $rCat   = htmlspecialchars($rp['category_name'] ?? 'Tipp');
