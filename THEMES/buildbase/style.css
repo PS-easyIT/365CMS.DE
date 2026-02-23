@@ -1,0 +1,329 @@
+/**
+ * BuildBase Theme – Bau & Handwerk
+ * Palette: Erdbraun #92400e | Gelb-Orange #f97316 | Dunkelgrün #166534
+ * Fonts: Roboto, Roboto Condensed, Oswald
+ */
+
+/* ================================================================
+   1. Design Tokens
+   ================================================================ */
+:root {
+    --primary-color:   #f97316;
+    --primary-dark:    #ea580c;
+    --secondary-color: #92400e;
+    --accent-color:    #166534;
+    --bg-primary:      #fffbf7;
+    --bg-secondary:    #fef3e2;
+    --bg-card:         #ffffff;
+    --text-primary:    #1c1917;
+    --text-secondary:  #44403c;
+    --muted-color:     #a8a29e;
+    --border-color:    #fed7aa;
+    --shadow-sm:       0 1px 3px rgba(146,64,14,.08);
+    --shadow-md:       0 4px 16px rgba(146,64,14,.12);
+    --shadow-lg:       0 12px 40px rgba(146,64,14,.16);
+    --font-body:       Roboto, sans-serif;
+    --font-heading:    Oswald, sans-serif;
+    --font-condensed:  "Roboto Condensed", sans-serif;
+    --font-xs:         .75rem;
+    --font-sm:         .875rem;
+    --font-md:         1rem;
+    --font-lg:         1.125rem;
+    --font-xl:         1.25rem;
+    --font-2xl:        1.5rem;
+    --font-3xl:        2rem;
+    --font-4xl:        2.5rem;
+    --font-5xl:        3.25rem;
+    --spacing-xs:      .375rem;
+    --spacing-sm:      .75rem;
+    --spacing-md:      1.25rem;
+    --spacing-lg:      2rem;
+    --spacing-xl:      2.5rem;
+    --spacing-2xl:     4rem;
+    --radius-sm:       4px;
+    --radius-md:       8px;
+    --radius-lg:       12px;
+    --radius-pill:     9999px;
+    --header-height:   72px;
+    --container-max:   1200px;
+}
+
+/* ================================================================
+   2. Reset & Base
+   ================================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 16px; scroll-behavior: smooth; }
+
+body.bb-body {
+    font-family: var(--font-body);
+    font-size: var(--font-md);
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    line-height: 1.7;
+}
+
+img { max-width: 100%; height: auto; display: block; }
+a   { color: var(--primary-color); text-decoration: none; }
+a:hover { text-decoration: underline; }
+ul  { list-style: none; }
+
+.bb-visually-hidden {
+    position: absolute; width: 1px; height: 1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap;
+}
+
+/* ================================================================
+   3. Layout
+   ================================================================ */
+.bb-page-wrapper { display: flex; flex-direction: column; min-height: 100vh; }
+.bb-site-content  { flex: 1; padding-top: var(--header-height); }
+.bb-container     { width: 100%; max-width: var(--container-max); margin: 0 auto; padding: 0 1.25rem; }
+.bb-grid          { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 1.5rem; }
+.bb-section-header { text-align: center; margin-bottom: var(--spacing-xl); }
+.bb-section-header h2 { font-family: var(--font-heading); font-size: var(--font-3xl); color: var(--secondary-color); }
+
+/* ================================================================
+   4. Header
+   ================================================================ */
+.bb-site-header {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: var(--header-height);
+    background: var(--bg-card);
+    border-bottom: 3px solid var(--primary-color);
+    box-shadow: var(--shadow-sm);
+    z-index: 1000;
+    transition: box-shadow .3s;
+}
+.bb-site-header.scrolled { box-shadow: var(--shadow-md); }
+
+.bb-header-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 100%; gap: 1.5rem;
+    max-width: var(--container-max); margin: 0 auto; padding: 0 1.25rem;
+}
+
+.bb-logo-text {
+    font-family: var(--font-heading);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--secondary-color);
+    letter-spacing: .5px;
+}
+.bb-logo-icon { color: var(--primary-color); margin-right: .35rem; }
+
+.main-navigation ul { display: flex; gap: .25rem; }
+.main-navigation a {
+    font-family: var(--font-condensed);
+    font-size: var(--font-sm);
+    font-weight: 600;
+    padding: .5rem .9rem;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    transition: color .2s, background .2s;
+}
+.main-navigation a:hover { color: var(--primary-color); background: var(--bg-secondary); text-decoration: none; }
+
+.bb-header-actions { display: flex; align-items: center; gap: .75rem; }
+
+/* Emergency Banner */
+.bb-emergency-banner {
+    background: var(--primary-color);
+    color: #fff;
+    text-align: center;
+    font-size: var(--font-sm);
+    font-weight: 600;
+    padding: .5rem 1rem;
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 1001;
+}
+body.has-emergency-banner .bb-site-header { top: 2.5rem; }
+body.has-emergency-banner .bb-site-content { padding-top: calc(var(--header-height) + 2.5rem); }
+
+.bb-mobile-toggle {
+    display: none; flex-direction: column; gap: 5px;
+    background: none; border: none; cursor: pointer; padding: .5rem;
+}
+.bb-mobile-toggle span {
+    display: block; width: 22px; height: 2px; background: var(--text-primary);
+    border-radius: 2px; transition: .3s;
+}
+@media (max-width: 768px) {
+    .bb-mobile-toggle { display: flex; }
+    .main-navigation {
+        display: none; position: absolute; top: var(--header-height);
+        left: 0; right: 0; background: var(--bg-card);
+        border-bottom: 2px solid var(--border-color);
+        padding: 1rem;
+    }
+    .main-navigation.open { display: block; }
+    .main-navigation ul { flex-direction: column; }
+}
+
+/* ================================================================
+   5. Buttons
+   ================================================================ */
+.bb-btn {
+    display: inline-flex; align-items: center; gap: .45rem;
+    padding: .65rem 1.35rem;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-condensed);
+    font-size: var(--font-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    cursor: pointer; border: 2px solid transparent;
+    transition: background .2s, color .2s, border-color .2s, transform .15s;
+    text-decoration: none !important;
+}
+.bb-btn:hover { transform: translateY(-1px); text-decoration: none; }
+.bb-btn-primary  { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+.bb-btn-primary:hover  { background: var(--primary-dark); border-color: var(--primary-dark); }
+.bb-btn-secondary{ background: var(--secondary-color); color: #fff; border-color: var(--secondary-color); }
+.bb-btn-outline  { background: transparent; color: var(--primary-color); border-color: var(--primary-color); }
+.bb-btn-outline:hover  { background: var(--primary-color); color: #fff; }
+.bb-btn-ghost    { background: transparent; color: var(--text-secondary); border-color: transparent; }
+.bb-btn-ghost:hover { background: var(--bg-secondary); }
+
+/* ================================================================
+   6. Hero
+   ================================================================ */
+.bb-hero {
+    background: linear-gradient(135deg, var(--secondary-color) 0%, #6b2d0d 100%);
+    color: #fff;
+    padding: var(--spacing-2xl) 0;
+    text-align: center;
+}
+.bb-hero h1 {
+    font-family: var(--font-heading);
+    font-size: clamp(2rem, 5vw, var(--font-5xl));
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #fff;
+    margin-bottom: 1rem;
+}
+.bb-hero-sub { font-size: var(--font-lg); opacity: .9; max-width: 640px; margin: 0 auto 2rem; }
+.bb-hero-badge {
+    display: inline-block;
+    background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: var(--radius-pill);
+    padding: .35rem 1rem;
+    font-size: var(--font-sm);
+    margin-bottom: 1rem;
+    backdrop-filter: blur(4px);
+}
+.bb-cta-group { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+.bb-stats-row {
+    display: flex; justify-content: center; gap: 2.5rem;
+    margin-top: 2.5rem; flex-wrap: wrap;
+}
+.bb-stat { text-align: center; }
+.bb-stat-number {
+    display: block;
+    font-family: var(--font-heading);
+    font-size: var(--font-3xl);
+    font-weight: 700;
+    color: var(--primary-color);
+}
+.bb-stat-label { font-size: var(--font-sm); opacity: .8; }
+
+/* ================================================================
+   7. Cards
+   ================================================================ */
+.bb-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-top: 3px solid var(--primary-color);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    transition: transform .2s, box-shadow .2s;
+}
+.bb-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.bb-card h3 { font-family: var(--font-heading); color: var(--secondary-color); margin-bottom: .5rem; }
+
+/* Dienstleistungs-Kacheln */
+.bb-service-icon {
+    font-size: 2rem;
+    color: var(--primary-color);
+    margin-bottom: .75rem;
+    display: block;
+}
+.bb-trade-badge {
+    display: inline-block;
+    padding: .25rem .7rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-condensed);
+    font-size: var(--font-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--secondary-color);
+    margin: .25rem .15rem 0 0;
+}
+
+/* Portfolio / Review Cards */
+.bb-portfolio-image {
+    width: 100%;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    margin-bottom: 1rem;
+}
+.bb-review-stars { color: var(--primary-color); font-size: 1.1rem; margin-bottom: .5rem; }
+.bb-review-meta  { font-size: var(--font-xs); color: var(--muted-color); }
+
+/* ================================================================
+   8. Section
+   ================================================================ */
+.bb-section         { padding: var(--spacing-2xl) 0; }
+.bb-section--alt    { background: var(--bg-secondary); }
+
+/* ================================================================
+   9. Skip Link
+   ================================================================ */
+.bb-skip-link {
+    position: absolute; top: -100%; left: 1rem;
+    background: var(--primary-color); color: #fff;
+    padding: .75rem 1.25rem; border-radius: 0 0 var(--radius-md) var(--radius-md);
+    font-weight: 700; z-index: 9999;
+}
+.bb-skip-link:focus { top: 0; }
+
+/* ================================================================
+   10. Footer
+   ================================================================ */
+.bb-footer {
+    background: var(--secondary-color);
+    color: rgba(255,255,255,.85);
+    padding: var(--spacing-2xl) 0 0;
+}
+.bb-footer-widgets {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 2rem;
+    padding-bottom: var(--spacing-xl);
+}
+.bb-footer h3 { font-family: var(--font-heading); color: #fff; margin-bottom: .75rem; }
+.bb-footer ul li { margin-bottom: .5rem; }
+.bb-footer a { color: rgba(255,255,255,.8); }
+.bb-footer a:hover { color: var(--primary-color); }
+.bb-footer-bottom {
+    border-top: 1px solid rgba(255,255,255,.15);
+    padding: 1.25rem 0;
+    font-size: var(--font-sm);
+    color: rgba(255,255,255,.6);
+    text-align: center;
+}
+
+/* ================================================================
+   11. Accessibility & Print
+   ================================================================ */
+@media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+}
+@media print {
+    .bb-site-header, .bb-footer, .bb-emergency-banner { display: none; }
+    .bb-site-content { padding-top: 0 !important; }
+}

@@ -1,0 +1,538 @@
+{
+  "name": "PersonalFlow",
+  "slug": "personalflow",
+  "version": "1.0.0",
+  "author": "PHINIT.DE / Andreas Hepp",
+  "description": "HR & Personalvermittlungs-Theme – Menschlich, warm, professionell. Für Personalagenturen, HR-Tech und Karriereportale.",
+  "tags": ["hr", "jobs", "recruitment", "warm", "responsive", "cms"],
+  "supports": ["dark-mode", "custom-logo", "sticky-header", "custom-css", "kanban", "match-score"],
+
+  "customization": {
+
+    "colors": {
+      "label": "Farben",
+      "description": "Warme Farbpalette – Amber als Energiefarbe, erdige Töne für Vertrauen.",
+      "settings": {
+        "primary_color": {
+          "label": "Primärfarbe",
+          "type": "color",
+          "default": "#f59e0b",
+          "description": "Amber – Hauptfarbe für Buttons, Badges und Highlights"
+        },
+        "secondary_color": {
+          "label": "Sekundärfarbe",
+          "type": "color",
+          "default": "#d97706",
+          "description": "Dunkleres Amber für Hover-Zustände"
+        },
+        "accent_color": {
+          "label": "Akzentfarbe",
+          "type": "color",
+          "default": "#0ea5e9",
+          "description": "Hellblau als Kontrastakzent"
+        },
+        "match_color": {
+          "label": "Match-Score-Farbe",
+          "type": "color",
+          "default": "#10b981",
+          "description": "Grün für hohe Kandidaten-Match-Scores"
+        },
+        "text_color": {
+          "label": "Textfarbe",
+          "type": "color",
+          "default": "#1c1917",
+          "description": "Haupttextfarbe – warmes Schwarz"
+        },
+        "bg_color": {
+          "label": "Hintergrundfarbe",
+          "type": "color",
+          "default": "#fffbf5",
+          "description": "Warmer Seitenhintergrund"
+        },
+        "card_bg_color": {
+          "label": "Card-Hintergrundfarbe",
+          "type": "color",
+          "default": "#ffffff",
+          "description": "Hintergrund für Kandidaten- und Job-Cards"
+        },
+        "link_color": {
+          "label": "Linkfarbe",
+          "type": "color",
+          "default": "#d97706",
+          "description": "Standard-Linkfarbe"
+        },
+        "muted_color": {
+          "label": "Gedämpfte Textfarbe",
+          "type": "color",
+          "default": "#78716c",
+          "description": "Sekundärer Text – warmes Grau"
+        },
+        "border_color": {
+          "label": "Rahmenfarbe",
+          "type": "color",
+          "default": "#fde68a",
+          "description": "Rahmenfarbe – warmes Gelb"
+        },
+        "success_color": {
+          "label": "Erfolgsfarbe",
+          "type": "color",
+          "default": "#22c55e",
+          "description": "Angenommen/Platziert-Status"
+        },
+        "error_color": {
+          "label": "Fehlerfarbe",
+          "type": "color",
+          "default": "#ef4444",
+          "description": "Abgelehnt-Status"
+        },
+        "remote_badge_color": {
+          "label": "Remote-Badge-Farbe",
+          "type": "color",
+          "default": "#8b5cf6",
+          "description": "Violet für Remote-Arbeits-Badges"
+        }
+      }
+    },
+
+    "typography": {
+      "label": "Typografie",
+      "description": "Freundliche, runde Schriften – Playfair für Display, Nunito für UI.",
+      "settings": {
+        "font_family_base": {
+          "label": "Basis-Schriftart",
+          "type": "select",
+          "options": {
+            "nunito-sans": "Nunito Sans (empfohlen)",
+            "open-sans": "Open Sans",
+            "lato": "Lato",
+            "roboto": "Roboto",
+            "inter": "Inter"
+          },
+          "default": "nunito-sans",
+          "description": "Freundliche, gut lesbare Schrift für Profilseiten"
+        },
+        "font_family_heading": {
+          "label": "Überschriften-Schriftart",
+          "type": "select",
+          "options": {
+            "nunito": "Nunito (empfohlen – freundlich, rund)",
+            "playfair-display": "Playfair Display (elegant)",
+            "poppins": "Poppins",
+            "raleway": "Raleway",
+            "montserrat": "Montserrat"
+          },
+          "default": "nunito",
+          "description": "Schriftart für Überschriften"
+        },
+        "font_family_stats": {
+          "label": "Statistik/KPI-Schriftart",
+          "type": "select",
+          "options": {
+            "oswald": "Oswald (empfohlen – prägnant für Zahlen)",
+            "inter": "Inter",
+            "roboto-condensed": "Roboto Condensed",
+            "montserrat": "Montserrat"
+          },
+          "default": "oswald",
+          "description": "Schriftart für Gehaltszahlen, KPIs und Stats"
+        },
+        "font_size_base": {
+          "label": "Basis-Schriftgröße (px)",
+          "type": "number",
+          "default": 16,
+          "min": 12,
+          "max": 24,
+          "description": "Schriftgröße des Fließtexts"
+        },
+        "line_height_base": {
+          "label": "Zeilenhöhe",
+          "type": "number",
+          "default": 1.7,
+          "min": 1.2,
+          "max": 2.5,
+          "step": 0.1,
+          "description": "Großzügige Zeilenhöhe für Profile-Texte"
+        },
+        "font_weight_heading": {
+          "label": "Überschriften-Gewicht",
+          "type": "select",
+          "options": {
+            "600": "Semi-Bold (600)",
+            "700": "Bold (700) – Standard",
+            "800": "Extra-Bold (800)"
+          },
+          "default": "700",
+          "description": "Font-Weight für Überschriften"
+        }
+      }
+    },
+
+    "layout": {
+      "label": "Layout",
+      "description": "Layout-Einstellungen mit Fokus auf Kandidaten- und Job-Darstellung.",
+      "settings": {
+        "container_width": {
+          "label": "Container-Breite (px)",
+          "type": "number",
+          "default": 1200,
+          "min": 800,
+          "max": 1920,
+          "description": "Maximale Breite des Inhaltsbereichs"
+        },
+        "content_padding": {
+          "label": "Content-Padding (rem)",
+          "type": "number",
+          "default": 2,
+          "min": 0.5,
+          "max": 6,
+          "step": 0.25
+        },
+        "border_radius": {
+          "label": "Eckenradius (px)",
+          "type": "number",
+          "default": 12,
+          "min": 0,
+          "max": 32,
+          "description": "Größerer Radius für freundlichere, organische Formen"
+        },
+        "section_spacing": {
+          "label": "Sektionsabstand (rem)",
+          "type": "number",
+          "default": 4,
+          "min": 1,
+          "max": 12,
+          "step": 0.5
+        },
+        "enable_sticky_header": {
+          "label": "Sticky Header",
+          "type": "checkbox",
+          "default": true
+        },
+        "job_board_layout": {
+          "label": "Job-Board Layout",
+          "type": "select",
+          "options": {
+            "list": "Liste (Standard)",
+            "grid": "Grid-Kacheln",
+            "three-col": "Drei-Spalten (Filter + Liste + Preview)"
+          },
+          "default": "three-col",
+          "description": "Darstellungsformat des Job-Boards"
+        },
+        "candidate_grid_columns": {
+          "label": "Kandidaten-Grid Spalten",
+          "type": "select",
+          "options": {
+            "2": "2 Spalten",
+            "3": "3 Spalten – Standard",
+            "4": "4 Spalten"
+          },
+          "default": "3"
+        }
+      }
+    },
+
+    "header": {
+      "label": "Header",
+      "description": "Helle, einladende Navigation für HR-Plattform.",
+      "settings": {
+        "logo_url": {
+          "label": "Header Logo",
+          "type": "image",
+          "default": "",
+          "description": "Logo im Header"
+        },
+        "header_bg_color": {
+          "label": "Header-Hintergrund",
+          "type": "color",
+          "default": "#ffffff",
+          "description": "Heller Header-Hintergrund – einladend und offen"
+        },
+        "header_text_color": {
+          "label": "Header-Textfarbe",
+          "type": "color",
+          "default": "#1c1917",
+          "description": "Dunkle Textfarbe für hellen Header"
+        },
+        "header_accent_color": {
+          "label": "Header-Akzentfarbe",
+          "type": "color",
+          "default": "#f59e0b",
+          "description": "Amber-Akzent für aktive Menüpunkte und Hover"
+        },
+        "header_height": {
+          "label": "Header-Höhe (px)",
+          "type": "number",
+          "default": 70,
+          "min": 48,
+          "max": 120
+        },
+        "logo_max_height": {
+          "label": "Logo-Maximalhöhe (px)",
+          "type": "number",
+          "default": 44,
+          "min": 24,
+          "max": 100
+        },
+        "show_header_shadow": {
+          "label": "Header-Schatten",
+          "type": "checkbox",
+          "default": true
+        }
+      }
+    },
+
+    "footer": {
+      "label": "Footer",
+      "description": "Footer-Einstellungen für die HR-Plattform.",
+      "settings": {
+        "footer_bg_color": {
+          "label": "Footer-Hintergrund",
+          "type": "color",
+          "default": "#1c1917",
+          "description": "Dunkler Footer für Kontrast"
+        },
+        "footer_text_color": {
+          "label": "Footer-Textfarbe",
+          "type": "color",
+          "default": "#a8a29e",
+          "description": "Warmes Grau für Footer-Text"
+        },
+        "footer_link_color": {
+          "label": "Footer-Linkfarbe",
+          "type": "color",
+          "default": "#fde68a",
+          "description": "Helles Amber für Footer-Links"
+        },
+        "footer_text": {
+          "label": "Footer-Beschreibung",
+          "type": "textarea",
+          "default": "Die moderne Plattform für Talent-Matching, Karriereentwicklung und HR-Netzwerke. Finde den richtigen Job – oder den richtigen Kandidaten.",
+          "description": "Kurzbeschreibung im Footer"
+        },
+        "copyright_text": {
+          "label": "Copyright-Text",
+          "type": "text",
+          "default": "&copy; {year} {site_title}. Alle Rechte vorbehalten.",
+          "description": "Copyright-Zeile. Platzhalter: {year}, {site_title}"
+        }
+      }
+    },
+
+    "buttons": {
+      "label": "Buttons",
+      "description": "Freundliche, gut klickbare Buttons.",
+      "settings": {
+        "button_border_radius": {
+          "label": "Button-Eckenradius (px)",
+          "type": "number",
+          "default": 10,
+          "min": 0,
+          "max": 50,
+          "description": "Größerer Radius für freundlichere Buttons"
+        },
+        "button_padding_x": {
+          "label": "Button-Padding horizontal (rem)",
+          "type": "number",
+          "default": 1.75,
+          "min": 0.5,
+          "max": 4,
+          "step": 0.25
+        },
+        "button_padding_y": {
+          "label": "Button-Padding vertikal (rem)",
+          "type": "number",
+          "default": 0.75,
+          "min": 0.25,
+          "max": 2,
+          "step": 0.125
+        },
+        "button_font_weight": {
+          "label": "Button-Schriftgewicht",
+          "type": "select",
+          "options": {
+            "600": "Semi-Bold (600)",
+            "700": "Bold (700) – Standard"
+          },
+          "default": "700"
+        },
+        "button_transform": {
+          "label": "Button-Text",
+          "type": "select",
+          "options": {
+            "none": "Normal – Standard",
+            "capitalize": "Erster Buchstabe groß"
+          },
+          "default": "none"
+        }
+      }
+    },
+
+    "hr_hero": {
+      "label": "Hero-Bereich",
+      "description": "Texte für den Startseiten-Hero-Bereich.",
+      "settings": {
+        "hero_badge": {
+          "label": "Hero Badge",
+          "type": "text",
+          "default": "✨ Deine Karriereplattform",
+          "description": "Badge über dem Haupttitel"
+        },
+        "hero_headline": {
+          "label": "Hero Hauptüberschrift",
+          "type": "text",
+          "default": "Dein Talent. Deine Karriere. Deine Zukunft.",
+          "description": "Haupttitel des Hero-Bereichs"
+        },
+        "hero_subline": {
+          "label": "Hero Untertitel",
+          "type": "textarea",
+          "default": "Verbindet Talente mit den besten Arbeitgebern. Entdecke Tausende von Jobs, finde passende Kandidaten und beschleunige deine Karriere.",
+          "description": "Beschreibungstext unterhalb des Haupttitels"
+        },
+        "hero_cta_seeker_label": {
+          "label": "CTA Jobsuchende",
+          "type": "text",
+          "default": "Jobs entdecken",
+          "description": "Button-Text für Jobsuchende"
+        },
+        "hero_cta_employer_label": {
+          "label": "CTA Arbeitgeber",
+          "type": "text",
+          "default": "Kandidaten finden",
+          "description": "Button-Text für Arbeitgeber/Recruiter"
+        },
+        "hero_gradient_start": {
+          "label": "Hero Gradient-Start",
+          "type": "color",
+          "default": "#fffbf5",
+          "description": "Warmer Startton des Hero-Verlaufs"
+        },
+        "hero_gradient_end": {
+          "label": "Hero Gradient-Ende",
+          "type": "color",
+          "default": "#fef3c7",
+          "description": "Endton des Hero-Verlaufs"
+        }
+      }
+    },
+
+    "hr_content": {
+      "label": "Seiteninhalte / Texte",
+      "description": "Texte für Jobboard, Kandidatenpool und HR-Sektionen.",
+      "settings": {
+        "jobs_section_title": {
+          "label": "Jobs-Sektion Titel",
+          "type": "text",
+          "default": "Aktuelle Stellenausschreibungen",
+          "description": "Überschrift des Job-Board-Bereichs"
+        },
+        "jobs_section_subtitle": {
+          "label": "Jobs-Sektion Untertitel",
+          "type": "text",
+          "default": "Finde Deinen Traumjob – von Remote bis Vollzeit",
+          "description": "Untertitel unter der Jobs-Überschrift"
+        },
+        "talent_section_title": {
+          "label": "Kandidaten-Sektion Titel",
+          "type": "text",
+          "default": "Top-Talente auf Jobsuche",
+          "description": "Überschrift des Kandidatenpools (für Recruiter)"
+        },
+        "match_section_title": {
+          "label": "Match-Score Abschnittstitel",
+          "type": "text",
+          "default": "Wie gut passt Du?",
+          "description": "Überschrift des Match-Score-Bereichs"
+        },
+        "salary_label": {
+          "label": "Gehalts-Label",
+          "type": "text",
+          "default": "Jahresgehalt",
+          "description": "Beschriftung für Gehaltsangaben"
+        },
+        "remote_label": {
+          "label": "Remote-Label",
+          "type": "text",
+          "default": "Remote möglich",
+          "description": "Label für Remote-Work-Badge"
+        },
+        "immediate_available_label": {
+          "label": "Sofort-verfügbar-Label",
+          "type": "text",
+          "default": "Sofort verfügbar",
+          "description": "Label für sofort verfügbare Kandidaten/Jobs"
+        },
+        "cta_section_title": {
+          "label": "CTA-Sektion Titel",
+          "type": "text",
+          "default": "Bereit für den nächsten Karriereschritt?",
+          "description": "Überschrift des Registrierungs-CTA"
+        },
+        "cta_section_text": {
+          "label": "CTA-Sektion Text",
+          "type": "textarea",
+          "default": "Erstelle Dein kostenloses Kandidaten- oder Arbeitgeber-Profil und profitiere sofort vom KI-gestützten Talent-Matching.",
+          "description": "Beschreibungstext im CTA-Bereich"
+        }
+      }
+    },
+
+    "hr_kanban": {
+      "label": "Bewerbungs-Kanban",
+      "description": "Spaltennamen und Einstellungen für das Bewerbungs-Status-Kanban.",
+      "settings": {
+        "show_kanban": {
+          "label": "Kanban-Board anzeigen",
+          "type": "checkbox",
+          "default": true,
+          "description": "Bewerbungsstatus-Kanban im Kandidaten-Dashboard aktivieren"
+        },
+        "kanban_col_new": {
+          "label": "Spalte: Neu",
+          "type": "text",
+          "default": "Beworben",
+          "description": "Name der ersten Kanban-Spalte"
+        },
+        "kanban_col_review": {
+          "label": "Spalte: In Prüfung",
+          "type": "text",
+          "default": "In Prüfung",
+          "description": "Name der zweiten Kanban-Spalte"
+        },
+        "kanban_col_interview": {
+          "label": "Spalte: Gespräch",
+          "type": "text",
+          "default": "Vorstellungsgespräch",
+          "description": "Name der dritten Kanban-Spalte"
+        },
+        "kanban_col_offer": {
+          "label": "Spalte: Angebot",
+          "type": "text",
+          "default": "Angebot erhalten",
+          "description": "Name der vierten Kanban-Spalte"
+        },
+        "kanban_col_done": {
+          "label": "Spalte: Abgeschlossen",
+          "type": "text",
+          "default": "Platziert ✓",
+          "description": "Name der letzten Kanban-Spalte"
+        }
+      }
+    },
+
+    "advanced": {
+      "label": "Erweitert",
+      "description": "Custom CSS und Datenschutz-Einstellungen.",
+      "settings": {
+        "custom_css": {
+          "label": "Eigenes CSS",
+          "type": "textarea",
+          "default": "",
+          "description": "Zusätzliches CSS das am Ende angehängt wird."
+        }
+      }
+    }
+
+  }
+}

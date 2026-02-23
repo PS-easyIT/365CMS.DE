@@ -1,0 +1,51 @@
+{
+  "version": "1",
+  "updated": "2026-02-21",
+  "themes": [
+    {
+      "slug": "365network",
+      "name": "365Network",
+      "manifest": "THEMES/365Network/update.json"
+    },
+    {
+      "slug": "academy365",
+      "name": "Academy365",
+      "manifest": "THEMES/academy365/update.json"
+    },
+    {
+      "slug": "buildbase",
+      "name": "BuildBase",
+      "manifest": "THEMES/buildbase/update.json"
+    },
+    {
+      "slug": "business",
+      "name": "Business Presentation",
+      "manifest": "THEMES/business/update.json"
+    },
+    {
+      "slug": "cms-default",
+      "name": "Meridian CMS Default",
+      "manifest": "THEMES/cms-default/update.json"
+    },
+    {
+      "slug": "logilink",
+      "name": "LogiLink",
+      "manifest": "THEMES/logilink/update.json"
+    },
+    {
+      "slug": "medcarepro",
+      "name": "MedCare Pro",
+      "manifest": "THEMES/medcarepro/update.json"
+    },
+    {
+      "slug": "personalflow",
+      "name": "PersonalFlow",
+      "manifest": "THEMES/personalflow/update.json"
+    },
+    {
+      "slug": "technexus",
+      "name": "TechNexus",
+      "manifest": "THEMES/technexus/update.json"
+    }
+  ]
+}

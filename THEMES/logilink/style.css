@@ -1,0 +1,240 @@
+/**
+ * LogiLink Theme – Logistik & Transport
+ * Palette: Sky Blue #0284c7 | Gelb-Warnfarbe #fbbf24 | Dunkelblau #1e3a5f
+ * Fonts: Inter, Roboto Condensed, JetBrains Mono (Tracking-Codes)
+ */
+
+/* ================================================================
+   1. Design Tokens
+   ================================================================ */
+:root {
+    --primary-color:    #0284c7;
+    --primary-dark:     #0369a1;
+    --secondary-color:  #1e3a5f;
+    --accent-color:     #fbbf24;
+    --accent-dark:      #d97706;
+    --bg-primary:       #f0f9ff;
+    --bg-secondary:     #e0f2fe;
+    --bg-card:          #ffffff;
+    --text-primary:     #0c1a2e;
+    --text-secondary:   #374151;
+    --muted-color:      #9ca3af;
+    --border-color:     #bae6fd;
+    --status-warehouse: #6b7280;
+    --status-picked:    #3b82f6;
+    --status-transit:   #f59e0b;
+    --status-delivered: #10b981;
+    --status-delayed:   #ef4444;
+    --status-returned:  #8b5cf6;
+    --shadow-sm:        0 1px 3px rgba(2,132,199,.08);
+    --shadow-md:        0 4px 16px rgba(2,132,199,.12);
+    --font-body:        Inter, sans-serif;
+    --font-heading:     Inter, sans-serif;
+    --font-condensed:   "Roboto Condensed", sans-serif;
+    --font-mono:        "JetBrains Mono", monospace;
+    --font-xs:          .75rem;
+    --font-sm:          .875rem;
+    --font-md:          1rem;
+    --font-lg:          1.125rem;
+    --font-xl:          1.25rem;
+    --font-2xl:         1.5rem;
+    --font-3xl:         2rem;
+    --font-4xl:         2.5rem;
+    --font-5xl:         3.25rem;
+    --spacing-xs:       .375rem;
+    --spacing-sm:       .75rem;
+    --spacing-md:       1.25rem;
+    --spacing-lg:       2rem;
+    --spacing-xl:       2.5rem;
+    --spacing-2xl:      4rem;
+    --radius-sm:        4px;
+    --radius-md:        8px;
+    --radius-lg:        16px;
+    --radius-pill:      9999px;
+    --header-height:    68px;
+    --container-max:    1200px;
+}
+
+/* ================================================================
+   2. Reset & Base
+   ================================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; scroll-behavior: smooth; }
+body.ll-body { font-family: var(--font-body); color: var(--text-primary); background: var(--bg-primary); line-height: 1.65; }
+img { max-width: 100%; height: auto; display: block; }
+a   { color: var(--primary-color); text-decoration: none; }
+a:hover { text-decoration: underline; }
+ul  { list-style: none; }
+.ll-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+
+/* ================================================================
+   3. Layout
+   ================================================================ */
+.ll-page-wrapper  { display: flex; flex-direction: column; min-height: 100vh; }
+.ll-site-content  { flex: 1; padding-top: var(--header-height); }
+.ll-container     { width: 100%; max-width: var(--container-max); margin: 0 auto; padding: 0 1.25rem; }
+.ll-grid          { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 1.5rem; }
+.ll-section-header{ text-align: center; margin-bottom: var(--spacing-xl); }
+.ll-section-header h2 { font-size: var(--font-3xl); font-weight: 700; color: var(--secondary-color); }
+
+/* ================================================================
+   4. Header
+   ================================================================ */
+.ll-site-header {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: var(--header-height);
+    background: var(--secondary-color);
+    border-bottom: 3px solid var(--accent-color);
+    box-shadow: var(--shadow-sm);
+    z-index: 1000;
+}
+.ll-site-header.scrolled { box-shadow: var(--shadow-md); }
+.ll-header-inner {
+    display: flex; align-items: center; justify-content: space-between; height: 100%; gap: 1.5rem;
+    max-width: var(--container-max); margin: 0 auto; padding: 0 1.25rem;
+}
+.ll-logo-text { font-size: 1.35rem; font-weight: 800; color: #fff; letter-spacing: .5px; }
+.ll-logo-icon { color: var(--accent-color); margin-right: .35rem; }
+
+.main-navigation ul { display: flex; gap: .15rem; }
+.main-navigation a {
+    font-size: var(--font-sm); font-weight: 500; padding: .45rem .8rem;
+    border-radius: var(--radius-sm); color: rgba(255,255,255,.85);
+    transition: color .2s, background .2s;
+}
+.main-navigation a:hover { color: var(--accent-color); background: rgba(255,255,255,.08); text-decoration: none; }
+.ll-header-actions { display: flex; align-items: center; gap: .75rem; }
+
+/* Tracking Quick Search */
+.ll-tracking-quick {
+    display: flex; gap: .5rem; align-items: center;
+    background: rgba(255,255,255,.1); border-radius: var(--radius-pill);
+    padding: .3rem .3rem .3rem .9rem;
+}
+.ll-tracking-quick input {
+    background: none; border: none; outline: none; color: #fff;
+    font-family: var(--font-mono); font-size: var(--font-sm); width: 180px;
+}
+.ll-tracking-quick input::placeholder { color: rgba(255,255,255,.5); }
+.ll-tracking-quick button {
+    background: var(--accent-color); border: none; border-radius: var(--radius-pill);
+    padding: .4rem .9rem; font-size: var(--font-xs); font-weight: 700; cursor: pointer;
+    color: var(--secondary-color); transition: background .2s;
+}
+.ll-tracking-quick button:hover { background: var(--accent-dark); }
+
+.ll-mobile-toggle { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: .5rem; }
+.ll-mobile-toggle span { display: block; width: 22px; height: 2px; background: rgba(255,255,255,.8); border-radius: 2px; }
+
+@media (max-width: 900px) {
+    .ll-tracking-quick { display: none; }
+    .ll-mobile-toggle   { display: flex; }
+    .main-navigation { display: none; position: absolute; top: var(--header-height); left: 0; right: 0; background: var(--secondary-color); padding: 1rem; border-bottom: 2px solid var(--accent-color); }
+    .main-navigation.open { display: block; }
+    .main-navigation ul { flex-direction: column; }
+}
+
+/* ================================================================
+   5. Buttons
+   ================================================================ */
+.ll-btn {
+    display: inline-flex; align-items: center; gap: .45rem;
+    padding: .65rem 1.3rem; border-radius: var(--radius-md);
+    font-size: var(--font-sm); font-weight: 600; cursor: pointer;
+    border: 2px solid transparent; text-decoration: none !important;
+    transition: background .2s, color .2s, border-color .2s, transform .15s;
+}
+.ll-btn:hover { transform: translateY(-1px); }
+.ll-btn-primary  { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+.ll-btn-primary:hover  { background: var(--primary-dark); border-color: var(--primary-dark); }
+.ll-btn-accent   { background: var(--accent-color); color: var(--secondary-color); border-color: var(--accent-color); font-weight: 700; }
+.ll-btn-outline  { background: transparent; color: #fff; border-color: rgba(255,255,255,.6); }
+.ll-btn-outline:hover  { background: rgba(255,255,255,.15); }
+.ll-btn-ghost    { background: transparent; color: var(--text-secondary); border-color: transparent; }
+
+/* ================================================================
+   6. Hero
+   ================================================================ */
+.ll-hero {
+    background: linear-gradient(135deg, var(--secondary-color) 0%, #0f2540 100%);
+    color: #fff; padding: var(--spacing-2xl) 0; text-align: center;
+    position: relative; overflow: hidden;
+}
+.ll-hero::before {
+    content: ''; position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+    pointer-events: none;
+}
+.ll-hero > * { position: relative; z-index: 1; }
+.ll-hero h1  { font-size: clamp(1.75rem, 5vw, var(--font-5xl)); font-weight: 800; color: #fff; margin-bottom: 1rem; }
+.ll-hero-sub { font-size: var(--font-lg); opacity: .85; max-width: 640px; margin: 0 auto 2rem; }
+.ll-hero-badge {
+    display: inline-block; background: rgba(251,191,36,.2); border: 1px solid var(--accent-color);
+    border-radius: var(--radius-pill); padding: .35rem 1rem; font-size: var(--font-sm); margin-bottom: 1rem; color: var(--accent-color);
+}
+.ll-cta-group { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+.ll-stats-row { display: flex; justify-content: center; gap: 2.5rem; margin-top: 2.5rem; flex-wrap: wrap; }
+.ll-stat { text-align: center; }
+.ll-stat-number { display: block; font-size: var(--font-3xl); font-weight: 800; color: var(--accent-color); }
+.ll-stat-label  { font-size: var(--font-sm); opacity: .7; }
+
+/* ================================================================
+   7. Cards & Tracking
+   ================================================================ */
+.ll-card {
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius-md); padding: 1.5rem;
+    box-shadow: var(--shadow-sm); transition: transform .2s, box-shadow .2s;
+}
+.ll-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.ll-card h3    { font-weight: 700; color: var(--secondary-color); margin-bottom: .5rem; }
+
+/* Tracking Status Badge */
+.ll-status-badge {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .25rem .75rem; border-radius: var(--radius-pill);
+    font-size: var(--font-xs); font-weight: 700; font-family: var(--font-condensed);
+}
+.ll-status-badge::before { content: '●'; font-size: .6rem; }
+.ll-status--warehouse { background: #f3f4f6; color: var(--status-warehouse); }
+.ll-status--picked    { background: #eff6ff; color: var(--status-picked); }
+.ll-status--transit   { background: #fffbeb; color: var(--status-transit); }
+.ll-status--delivered { background: #ecfdf5; color: var(--status-delivered); }
+.ll-status--delayed   { background: #fef2f2; color: var(--status-delayed); }
+.ll-status--returned  { background: #f5f3ff; color: var(--status-returned); }
+
+/* Tracking ID Code */
+.ll-tracking-id { font-family: var(--font-mono); font-size: var(--font-sm); background: var(--bg-secondary); padding: .2rem .5rem; border-radius: var(--radius-sm); color: var(--secondary-color); }
+
+/* KPI Card */
+.ll-kpi-card {
+    background: var(--secondary-color); color: #fff;
+    border-radius: var(--radius-md); padding: 1.25rem;
+    text-align: center;
+}
+.ll-kpi-number { font-size: var(--font-3xl); font-weight: 800; color: var(--accent-color); }
+.ll-kpi-label  { font-size: var(--font-sm); opacity: .8; margin-top: .25rem; }
+
+/* ================================================================
+   8. Section
+   ================================================================ */
+.ll-section     { padding: var(--spacing-2xl) 0; }
+.ll-section--alt{ background: var(--bg-secondary); }
+
+/* ================================================================
+   9. Skip Link
+   ================================================================ */
+.ll-skip-link { position: absolute; top: -100%; left: 1rem; background: var(--primary-color); color: #fff; padding: .75rem 1.25rem; border-radius: 0 0 var(--radius-md) var(--radius-md); font-weight: 700; z-index: 9999; }
+.ll-skip-link:focus { top: 0; }
+
+/* ================================================================
+   10. Footer
+   ================================================================ */
+.ll-footer         { background: var(--secondary-color); color: rgba(255,255,255,.8); padding: var(--spacing-2xl) 0 0; }
+.ll-footer h3      { color: #fff; font-weight: 700; margin-bottom: .75rem; }
+.ll-footer a       { color: rgba(255,255,255,.75); }
+.ll-footer a:hover { color: var(--accent-color); }
+.ll-footer-widgets { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 2rem; padding-bottom: var(--spacing-xl); }
+.ll-footer-bottom  { border-top: 1px solid rgba(255,255,255,.1); padding: 1.25rem 0; font-size: var(--font-sm); color: rgba(255,255,255,.5); text-align: center; }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

@@ -5,10 +5,9 @@
  */
 define('CMS_AJAX_REQUEST', true);
 
-// Try to find config
+// Try to find config (config.php liegt in CMS/, eine Ebene über CMS/member/)
 $possible_paths = [
     dirname(__DIR__) . '/config.php',
-    dirname(dirname(__DIR__)) . '/config.php'
 ];
 
 foreach ($possible_paths as $path) {

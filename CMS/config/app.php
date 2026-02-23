@@ -28,15 +28,9 @@ define('CMS_DEBUG', true);
 // ─── Datenbank-Konfiguration ───────────────────────────────────────────────
 // Diese Platzhalter werden durch install.php mit den korrekten Werten ersetzt.
 define('DB_HOST',    'localhost');
-<<<<<<< HEAD
-define('DB_NAME',    'u185238248_CMS365v1');
-define('DB_USER',    'u185238248_CMS365v1');
-define('DB_PASS',    '%F9NQu#guJ@4*6');
-=======
 define('DB_NAME',    'YOUR_DATABASE_NAME');
 define('DB_USER',    'YOUR_DATABASE_USER');
 define('DB_PASS',    'YOUR_DATABASE_PASSWORD');
->>>>>>> 99c076b264547ca37d9fb41c77632a2247e7247a
 define('DB_CHARSET', 'utf8mb4');
 define('DB_PREFIX',  'cms_');
 
@@ -52,11 +46,8 @@ define('NONCE_KEY',       'REPLACE_VIA_INSTALLER_run_install_php_to_generate_uni
 // ─── Site-Konfiguration ────────────────────────────────────────────────────
 // Platzhalter – werden durch install.php gesetzt.
 define('SITE_NAME',    '365CMS.DE');
-<<<<<<< HEAD
 define('SITE_URL',     'https://beta.365cms.de'); // NIEMALS mit Unterverzeichnis!
-=======
 define('SITE_URL',     'https://YOUR-DOMAIN.example.com'); // NIEMALS mit Unterverzeichnis!
->>>>>>> 99c076b264547ca37d9fb41c77632a2247e7247a
 define('ADMIN_EMAIL',  'admin@example.com');
 define('CMS_VERSION',  '1.6.14');
 

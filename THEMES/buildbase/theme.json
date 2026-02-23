@@ -1,0 +1,516 @@
+{
+  "name": "BuildBase",
+  "slug": "buildbase",
+  "version": "1.0.0",
+  "author": "PHINIT.DE / Andreas Hepp",
+  "description": "Bau & Handwerk Theme – Robust, solide, handwerklich. Für Bauunternehmen, Architekten und Handwerksbetriebe.",
+  "tags": ["bau", "handwerk", "portfolio", "directory", "robust", "cms"],
+  "supports": ["dark-mode", "custom-logo", "sticky-header", "custom-css", "portfolio", "before-after-slider"],
+
+  "customization": {
+
+    "colors": {
+      "label": "Farben",
+      "description": "Erdige, robuste Farbpalette – warme Braun- und Goldtöne.",
+      "settings": {
+        "primary_color": {
+          "label": "Primärfarbe",
+          "type": "color",
+          "default": "#b45309",
+          "description": "Amber Brown – Hauptfarbe für Buttons und Akzente"
+        },
+        "secondary_color": {
+          "label": "Sekundärfarbe",
+          "type": "color",
+          "default": "#92400e",
+          "description": "Dunkleres Braun für Hover-Zustände"
+        },
+        "accent_color": {
+          "label": "Akzentfarbe",
+          "type": "color",
+          "default": "#d97706",
+          "description": "Goldton für Highlights und Badges"
+        },
+        "safety_color": {
+          "label": "Sicherheits-/Warnfarbe",
+          "type": "color",
+          "default": "#f59e0b",
+          "description": "Baustellengelb für Warnhinweise"
+        },
+        "text_color": {
+          "label": "Textfarbe",
+          "type": "color",
+          "default": "#1c1917",
+          "description": "Kräftiges, gut lesbares Schwarz"
+        },
+        "bg_color": {
+          "label": "Hintergrundfarbe",
+          "type": "color",
+          "default": "#fafaf9",
+          "description": "Warmer, heller Hintergrund"
+        },
+        "card_bg_color": {
+          "label": "Card-Hintergrundfarbe",
+          "type": "color",
+          "default": "#ffffff",
+          "description": "Hintergrund für Projekt- und Profil-Cards"
+        },
+        "section_dark_bg": {
+          "label": "Dunkle Sektion Hintergrund",
+          "type": "color",
+          "default": "#292524",
+          "description": "Dunkler Hintergrund für Kontrast-Sektionen"
+        },
+        "link_color": {
+          "label": "Linkfarbe",
+          "type": "color",
+          "default": "#b45309",
+          "description": "Standard-Linkfarbe"
+        },
+        "muted_color": {
+          "label": "Gedämpfte Textfarbe",
+          "type": "color",
+          "default": "#78716c",
+          "description": "Sekundärer Text – Stone-Grau"
+        },
+        "border_color": {
+          "label": "Rahmenfarbe",
+          "type": "color",
+          "default": "#d6d3d1",
+          "description": "Stone-Grau für Rahmen und Trennlinien"
+        },
+        "success_color": {
+          "label": "Erfolgsfarbe",
+          "type": "color",
+          "default": "#16a34a",
+          "description": "Projekt abgeschlossen / Gütesiegel"
+        },
+        "error_color": {
+          "label": "Fehlerfarbe",
+          "type": "color",
+          "default": "#dc2626",
+          "description": "Fehlermeldungen"
+        }
+      }
+    },
+
+    "typography": {
+      "label": "Typografie",
+      "description": "Kräftige, industrielle Schriften – Bebas für Display, Roboto für Lesbarkeit.",
+      "settings": {
+        "font_family_base": {
+          "label": "Basis-Schriftart",
+          "type": "select",
+          "options": {
+            "roboto": "Roboto (empfohlen – neutral, lesbar)",
+            "open-sans": "Open Sans",
+            "lato": "Lato",
+            "inter": "Inter"
+          },
+          "default": "roboto",
+          "description": "Schriftart für Fließtext"
+        },
+        "font_family_heading": {
+          "label": "Überschriften-Schriftart",
+          "type": "select",
+          "options": {
+            "roboto-condensed": "Roboto Condensed (empfohlen – kompakt, klar)",
+            "bebas-neue": "Bebas Neue (industriell, kräftig)",
+            "oswald": "Oswald (prägnant)",
+            "roboto": "Roboto"
+          },
+          "default": "roboto-condensed",
+          "description": "Schriftart für Überschriften"
+        },
+        "font_family_badge": {
+          "label": "Badge-/Gewerk-Schriftart",
+          "type": "select",
+          "options": {
+            "oswald": "Oswald (empfohlen – prägnant für Gewerke)",
+            "roboto-condensed": "Roboto Condensed",
+            "bebas-neue": "Bebas Neue"
+          },
+          "default": "oswald",
+          "description": "Schriftart für Gewerk-Badges und Labels"
+        },
+        "font_size_base": {
+          "label": "Basis-Schriftgröße (px)",
+          "type": "number",
+          "default": 16,
+          "min": 14,
+          "max": 20,
+          "description": "Schriftgröße – gut lesbar auf Mobilgeräten (Baustelle!)"
+        },
+        "line_height_base": {
+          "label": "Zeilenhöhe",
+          "type": "number",
+          "default": 1.6,
+          "min": 1.2,
+          "max": 2.5,
+          "step": 0.1
+        },
+        "font_weight_heading": {
+          "label": "Überschriften-Gewicht",
+          "type": "select",
+          "options": {
+            "700": "Bold (700)",
+            "800": "Extra-Bold (800) – Standard",
+            "900": "Black (900)"
+          },
+          "default": "800",
+          "description": "Kräftiges Gewicht für Handwerk-Typografie"
+        }
+      }
+    },
+
+    "layout": {
+      "label": "Layout",
+      "description": "Robustes, strukturiertes Layout mit klaren Hierarchien.",
+      "settings": {
+        "container_width": {
+          "label": "Container-Breite (px)",
+          "type": "number",
+          "default": 1200,
+          "min": 800,
+          "max": 1920
+        },
+        "content_padding": {
+          "label": "Content-Padding (rem)",
+          "type": "number",
+          "default": 2,
+          "min": 0.5,
+          "max": 6,
+          "step": 0.25
+        },
+        "border_radius": {
+          "label": "Eckenradius (px)",
+          "type": "number",
+          "default": 4,
+          "min": 0,
+          "max": 16,
+          "description": "Kleinerer Radius für soliden, handwerklichen Look"
+        },
+        "section_spacing": {
+          "label": "Sektionsabstand (rem)",
+          "type": "number",
+          "default": 4,
+          "min": 1,
+          "max": 12,
+          "step": 0.5
+        },
+        "enable_sticky_header": {
+          "label": "Sticky Header",
+          "type": "checkbox",
+          "default": true
+        },
+        "portfolio_columns": {
+          "label": "Portfolio-Grid Spalten",
+          "type": "select",
+          "options": {
+            "2": "2 Spalten",
+            "3": "3 Spalten – Standard",
+            "4": "4 Spalten"
+          },
+          "default": "3",
+          "description": "Anzahl Spalten im Portfolio/Referenzen-Grid"
+        },
+        "enable_before_after": {
+          "label": "Vorher/Nachher-Slider aktivieren",
+          "type": "checkbox",
+          "default": true,
+          "description": "Interaktiver Bildvergleich für Projekt-Referenzen"
+        }
+      }
+    },
+
+    "header": {
+      "label": "Header",
+      "description": "Robuster Header mit optionalem Notfall-Kontakt-Banner.",
+      "settings": {
+        "logo_url": {
+          "label": "Header Logo",
+          "type": "image",
+          "default": "",
+          "description": "Firmenlogo im Header"
+        },
+        "header_bg_color": {
+          "label": "Header-Hintergrund",
+          "type": "color",
+          "default": "#292524",
+          "description": "Dunkler Header im handwerklichen Stil"
+        },
+        "header_text_color": {
+          "label": "Header-Textfarbe",
+          "type": "color",
+          "default": "#fafaf9",
+          "description": "Helle Textfarbe auf dunklem Hintergrund"
+        },
+        "header_height": {
+          "label": "Header-Höhe (px)",
+          "type": "number",
+          "default": 68,
+          "min": 48,
+          "max": 120
+        },
+        "logo_max_height": {
+          "label": "Logo-Maximalhöhe (px)",
+          "type": "number",
+          "default": 44,
+          "min": 24,
+          "max": 100
+        },
+        "show_header_shadow": {
+          "label": "Header-Schatten",
+          "type": "checkbox",
+          "default": true
+        },
+        "show_emergency_banner": {
+          "label": "Notfall-Service Banner anzeigen",
+          "type": "checkbox",
+          "default": false,
+          "description": "Prominenten Banner für Notfall-/Havariedienste aktivieren"
+        },
+        "emergency_phone": {
+          "label": "Notfall-Telefonnummer",
+          "type": "text",
+          "default": "",
+          "description": "Rufnummer für den Notfall-Banner (z.B. 0800 123 456)"
+        },
+        "emergency_label": {
+          "label": "Notfall-Banner Text",
+          "type": "text",
+          "default": "24h Notfall-Service",
+          "description": "Beschriftung vor der Rufnummer im Banner"
+        }
+      }
+    },
+
+    "footer": {
+      "label": "Footer",
+      "description": "Footer mit Gewerk-Übersicht und Kontaktdaten.",
+      "settings": {
+        "footer_bg_color": {
+          "label": "Footer-Hintergrund",
+          "type": "color",
+          "default": "#1c1917",
+          "description": "Sehr dunkler Footer"
+        },
+        "footer_text_color": {
+          "label": "Footer-Textfarbe",
+          "type": "color",
+          "default": "#a8a29e",
+          "description": "Stone-Grau für Footer-Text"
+        },
+        "footer_link_color": {
+          "label": "Footer-Linkfarbe",
+          "type": "color",
+          "default": "#d6d3d1",
+          "description": "Helles Stone für Footer-Links"
+        },
+        "footer_text": {
+          "label": "Footer-Beschreibung",
+          "type": "textarea",
+          "default": "Qualität aus Handwerkerhand. Ihr zuverlässiger Partner für Bauprojekte, Renovierungen und Handwerksleistungen aller Art.",
+          "description": "Firmenbeschreibung im Footer"
+        },
+        "footer_show_crafts": {
+          "label": "Gewerk-Liste anzeigen",
+          "type": "checkbox",
+          "default": true,
+          "description": "Schnellzugriff nach Gewerken im Footer"
+        },
+        "copyright_text": {
+          "label": "Copyright-Text",
+          "type": "text",
+          "default": "&copy; {year} {site_title}. Alle Rechte vorbehalten.",
+          "description": "Copyright-Zeile. Platzhalter: {year}, {site_title}"
+        }
+      }
+    },
+
+    "buttons": {
+      "label": "Buttons",
+      "description": "Kräftige, solide Buttons – klares Handwerk-Design.",
+      "settings": {
+        "button_border_radius": {
+          "label": "Button-Eckenradius (px)",
+          "type": "number",
+          "default": 4,
+          "min": 0,
+          "max": 50,
+          "description": "Wenig gerundete Ecken für soliden Look"
+        },
+        "button_padding_x": {
+          "label": "Button-Padding horizontal (rem)",
+          "type": "number",
+          "default": 1.75,
+          "min": 0.5,
+          "max": 4,
+          "step": 0.25
+        },
+        "button_padding_y": {
+          "label": "Button-Padding vertikal (rem)",
+          "type": "number",
+          "default": 0.75,
+          "min": 0.25,
+          "max": 2,
+          "step": 0.125
+        },
+        "button_font_weight": {
+          "label": "Button-Schriftgewicht",
+          "type": "select",
+          "options": {
+            "600": "Semi-Bold (600)",
+            "700": "Bold (700) – Standard"
+          },
+          "default": "700"
+        },
+        "button_transform": {
+          "label": "Button-Text",
+          "type": "select",
+          "options": {
+            "none": "Normal",
+            "uppercase": "GROSSBUCHSTABEN – Standard für Handwerk"
+          },
+          "default": "uppercase"
+        }
+      }
+    },
+
+    "build_hero": {
+      "label": "Hero-Bereich",
+      "description": "Texte für den Hero-Einstiegsbereich.",
+      "settings": {
+        "hero_badge": {
+          "label": "Hero Badge",
+          "type": "text",
+          "default": "🔨 Handwerk trifft Qualität",
+          "description": "Badge-Text über dem Haupttitel"
+        },
+        "hero_headline": {
+          "label": "Hero Hauptüberschrift",
+          "type": "text",
+          "default": "Ihr Bau- & Handwerker-Verzeichnis",
+          "description": "Haupttitel des Hero-Bereichs"
+        },
+        "hero_subline": {
+          "label": "Hero Untertitel",
+          "type": "textarea",
+          "default": "Finden Sie qualifizierte Handwerker, Baufirmen und Architekten in Ihrer Region. Persönlich, zuverlässig, qualitätsbewusst.",
+          "description": "Beschreibungstext im Hero-Bereich"
+        },
+        "hero_cta_label": {
+          "label": "CTA Button Text",
+          "type": "text",
+          "default": "Handwerker finden",
+          "description": "Text des Haupt-CTA-Buttons"
+        },
+        "hero_quote_request_label": {
+          "label": "Kostenvoranschlag-Button",
+          "type": "text",
+          "default": "Kostenvoranschlag anfordern",
+          "description": "Text des Anfrage-Buttons"
+        },
+        "hero_gradient_start": {
+          "label": "Hero Gradient-Start",
+          "type": "color",
+          "default": "#292524",
+          "description": "Startfarbe des Hero-Verlaufs"
+        },
+        "hero_gradient_end": {
+          "label": "Hero Gradient-Ende",
+          "type": "color",
+          "default": "#44403c",
+          "description": "Endfarbe des Hero-Verlaufs"
+        }
+      }
+    },
+
+    "build_content": {
+      "label": "Seiteninhalte / Texte",
+      "description": "Texte für Dienstleister-Verzeichnis, Portfolio und Anfrage-Formulare.",
+      "settings": {
+        "directory_section_title": {
+          "label": "Verzeichnis-Sektion Titel",
+          "type": "text",
+          "default": "Handwerker & Baufirmen in Ihrer Region",
+          "description": "Überschrift des Dienstleister-Verzeichnisses"
+        },
+        "portfolio_section_title": {
+          "label": "Portfolio-Sektion Titel",
+          "type": "text",
+          "default": "Referenzprojekte",
+          "description": "Überschrift der Projekt-Portfolio-Sektion"
+        },
+        "portfolio_section_subtitle": {
+          "label": "Portfolio-Sektion Untertitel",
+          "type": "text",
+          "default": "Realisierte Projekte mit Qualitätsnachweis",
+          "description": "Untertitel der Portfolio-Sektion"
+        },
+        "reviews_section_title": {
+          "label": "Bewertungs-Sektion Titel",
+          "type": "text",
+          "default": "Kundenbewertungen",
+          "description": "Überschrift der Bewertungs-Sektion"
+        },
+        "service_request_title": {
+          "label": "Anfrage-Formular Titel",
+          "type": "text",
+          "default": "Kostenvoranschlag anfragen",
+          "description": "Titel des Anfrage-Formulars"
+        },
+        "service_request_intro": {
+          "label": "Anfrage-Formular Einleitung",
+          "type": "textarea",
+          "default": "Schildern Sie Ihr Projekt und erhalten Sie innerhalb von 24 Stunden einen unverbindlichen Kostenvoranschlag.",
+          "description": "Einleitungstext des Anfrage-Formulars"
+        },
+        "coverage_area_label": {
+          "label": "Einzugsgebiet-Label",
+          "type": "text",
+          "default": "Einzugsgebiet",
+          "description": "Label für die Einzugsgebiet-Anzeige"
+        },
+        "certificate_section_title": {
+          "label": "Zertifikate-Sektion Titel",
+          "type": "text",
+          "default": "Qualifikationen & Zertifikate",
+          "description": "Überschrift des Qualifikations-Bereichs im Profil"
+        },
+        "cta_section_title": {
+          "label": "CTA-Sektion Titel",
+          "type": "text",
+          "default": "Qualität statt Kompromisse",
+          "description": "Überschrift des Call-to-Action Bereichs"
+        },
+        "cta_section_text": {
+          "label": "CTA-Sektion Text",
+          "type": "textarea",
+          "default": "Registrieren Sie Ihren Betrieb kostenlos und werden Sie sichtbar für Kunden in Ihrer Region.",
+          "description": "Beschreibungstext im CTA-Bereich"
+        }
+      }
+    },
+
+    "advanced": {
+      "label": "Erweitert",
+      "description": "Custom CSS und erweiterte Einstellungen.",
+      "settings": {
+        "custom_css": {
+          "label": "Eigenes CSS",
+          "type": "textarea",
+          "default": "",
+          "description": "Zusätzliches CSS das am Ende angehängt wird."
+        },
+        "enable_map_integration": {
+          "label": "Karten-Integration aktivieren",
+          "type": "checkbox",
+          "default": true,
+          "description": "OpenStreetMap-Karte für Einzugsgebiete anzeigen"
+        }
+      }
+    }
+
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "slug": "technexus",
+  "name": "TechNexus",
+  "type": "theme",
+  "license": "free",
+  "version": "1.0.0",
+  "min_cms_version": "0.20.0",
+  "released": "2026-02-21",
+  "download_url": "",
+  "checksum_sha256": "",
+  "changelog": {
+    "1.0.0": "Erstveröffentlichung: Modernes Tech-Theme für IT-Unternehmen."
+  }
+}

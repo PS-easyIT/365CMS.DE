@@ -1,0 +1,602 @@
+{
+  "name": "TechNexus",
+  "slug": "technexus",
+  "version": "1.0.0",
+  "author": "PHINIT.DE / Andreas Hepp",
+  "description": "IT & Tech Hub Theme – Präzise, technisch, vertrauenswürdig. Für IT-Dienstleister, Softwarehäuser und Tech-Hubs.",
+  "tags": ["tech", "it", "dark-mode", "responsive", "cms", "network"],
+  "supports": ["dark-mode", "custom-logo", "sticky-header", "custom-css", "mega-menu", "code-blocks"],
+
+  "customization": {
+
+    "colors": {
+      "label": "Farben",
+      "description": "Farbpalette im Tech-/IT-Stil – Elektrisches Blau als Primärfarbe.",
+      "settings": {
+        "primary_color": {
+          "label": "Primärfarbe",
+          "type": "color",
+          "default": "#2563eb",
+          "description": "Electric Blue – Hauptfarbe für Buttons, Links und Akzente"
+        },
+        "secondary_color": {
+          "label": "Sekundärfarbe",
+          "type": "color",
+          "default": "#1d4ed8",
+          "description": "Dunkleres Blau für Hover-Zustände"
+        },
+        "accent_color": {
+          "label": "Akzentfarbe",
+          "type": "color",
+          "default": "#06b6d4",
+          "description": "Cyan-Akzent für Tech-Stack-Badges und Highlights"
+        },
+        "code_color": {
+          "label": "Code-Akzentfarbe",
+          "type": "color",
+          "default": "#10b981",
+          "description": "Grün für Code-Blöcke und Syntax-Highlights"
+        },
+        "text_color": {
+          "label": "Textfarbe",
+          "type": "color",
+          "default": "#0f172a",
+          "description": "Haupt-Textfarbe (Hell-Modus)"
+        },
+        "bg_color": {
+          "label": "Hintergrundfarbe",
+          "type": "color",
+          "default": "#f8fafc",
+          "description": "Seitenhintergrund"
+        },
+        "card_bg_color": {
+          "label": "Card-Hintergrundfarbe",
+          "type": "color",
+          "default": "#ffffff",
+          "description": "Hintergrund für Expert-Cards und Feature-Cards"
+        },
+        "dark_bg_color": {
+          "label": "Dark-Mode Hintergrund",
+          "type": "color",
+          "default": "#0f172a",
+          "description": "Hintergrundfarbe im Dark-Mode"
+        },
+        "dark_surface_color": {
+          "label": "Dark-Mode Surface",
+          "type": "color",
+          "default": "#1e293b",
+          "description": "Card- und Panel-Hintergrund im Dark-Mode"
+        },
+        "link_color": {
+          "label": "Linkfarbe",
+          "type": "color",
+          "default": "#2563eb",
+          "description": "Standard-Linkfarbe im Content"
+        },
+        "muted_color": {
+          "label": "Gedämpfte Textfarbe",
+          "type": "color",
+          "default": "#64748b",
+          "description": "Sekundärer Text (Meta-Infos, Labels)"
+        },
+        "border_color": {
+          "label": "Rahmenfarbe",
+          "type": "color",
+          "default": "#e2e8f0",
+          "description": "Standard-Rahmen für Cards und Trennlinien"
+        },
+        "success_color": {
+          "label": "Erfolgsfarbe",
+          "type": "color",
+          "default": "#22c55e",
+          "description": "Verfügbarkeits-Status, Online-Badge"
+        },
+        "error_color": {
+          "label": "Fehlerfarbe",
+          "type": "color",
+          "default": "#ef4444",
+          "description": "Fehlermeldungen und kritische Status"
+        },
+        "warning_color": {
+          "label": "Warnfarbe",
+          "type": "color",
+          "default": "#f59e0b",
+          "description": "Warnmeldungen und Beschäftigt-Status"
+        }
+      }
+    },
+
+    "typography": {
+      "label": "Typografie",
+      "description": "Tech-optimierte Schriften – JetBrains Mono für Code, Plus Jakarta Sans / Inter für UI.",
+      "settings": {
+        "font_family_base": {
+          "label": "Basis-Schriftart",
+          "type": "select",
+          "options": {
+            "inter": "Inter (empfohlen)",
+            "system": "System-Standard",
+            "roboto": "Roboto",
+            "open-sans": "Open Sans",
+            "poppins": "Poppins"
+          },
+          "default": "inter",
+          "description": "Schriftart für Fließtext und UI-Elemente"
+        },
+        "font_family_heading": {
+          "label": "Überschriften-Schriftart",
+          "type": "select",
+          "options": {
+            "plus-jakarta-sans": "Plus Jakarta Sans (empfohlen)",
+            "inter": "Inter",
+            "montserrat": "Montserrat",
+            "poppins": "Poppins",
+            "raleway": "Raleway"
+          },
+          "default": "plus-jakarta-sans",
+          "description": "Schriftart für Überschriften – modern und präzise"
+        },
+        "font_family_code": {
+          "label": "Code-Schriftart",
+          "type": "select",
+          "options": {
+            "jetbrains-mono": "JetBrains Mono (empfohlen)",
+            "fira-code": "Fira Code",
+            "source-code-pro": "Source Code Pro",
+            "monospace": "System Monospace"
+          },
+          "default": "jetbrains-mono",
+          "description": "Schriftart für Code-Blöcke und Terminal-Elemente"
+        },
+        "font_size_base": {
+          "label": "Basis-Schriftgröße (px)",
+          "type": "number",
+          "default": 16,
+          "min": 12,
+          "max": 24,
+          "description": "Schriftgröße des Fließtexts"
+        },
+        "line_height_base": {
+          "label": "Zeilenhöhe",
+          "type": "number",
+          "default": 1.6,
+          "min": 1.2,
+          "max": 2.5,
+          "step": 0.1,
+          "description": "Zeilenhöhe des Fließtexts"
+        },
+        "font_weight_heading": {
+          "label": "Überschriften-Gewicht",
+          "type": "select",
+          "options": {
+            "600": "Semi-Bold (600)",
+            "700": "Bold (700) – empfohlen",
+            "800": "Extra-Bold (800)"
+          },
+          "default": "700",
+          "description": "Font-Weight für Überschriften"
+        }
+      }
+    },
+
+    "layout": {
+      "label": "Layout",
+      "description": "Containerbreite, Abstände und Layout-Optionen für Tech-Darstellungen.",
+      "settings": {
+        "container_width": {
+          "label": "Container-Breite (px)",
+          "type": "number",
+          "default": 1280,
+          "min": 800,
+          "max": 1920,
+          "description": "Maximale Breite des Inhaltsbereichs"
+        },
+        "content_padding": {
+          "label": "Content-Padding (rem)",
+          "type": "number",
+          "default": 2,
+          "min": 0.5,
+          "max": 6,
+          "step": 0.25,
+          "description": "Horizontaler Innenabstand"
+        },
+        "border_radius": {
+          "label": "Eckenradius (px)",
+          "type": "number",
+          "default": 8,
+          "min": 0,
+          "max": 16,
+          "description": "Eckenrundung für Cards – Tech-Stil: weniger rund"
+        },
+        "section_spacing": {
+          "label": "Sektionsabstand (rem)",
+          "type": "number",
+          "default": 5,
+          "min": 1,
+          "max": 12,
+          "step": 0.5,
+          "description": "Vertikaler Abstand zwischen Sektionen"
+        },
+        "enable_sticky_header": {
+          "label": "Sticky Header aktivieren",
+          "type": "checkbox",
+          "default": true,
+          "description": "Header mit Blur-Effekt beim Scrollen fixieren"
+        },
+        "enable_grid_background": {
+          "label": "Grid-Hintergrund aktivieren",
+          "type": "checkbox",
+          "default": true,
+          "description": "Dezentes Tech-Grid-Muster als Hintergrundtextur"
+        },
+        "card_columns": {
+          "label": "Expert-Card Spalten",
+          "type": "select",
+          "options": {
+            "2": "2 Spalten",
+            "3": "3 Spalten (Standard)",
+            "4": "4 Spalten"
+          },
+          "default": "3",
+          "description": "Anzahl Spalten im Expert/Firmen-Archiv-Grid"
+        }
+      }
+    },
+
+    "header": {
+      "label": "Header",
+      "description": "Navigation mit Mega-Menu-Support und optionalem Blur-Effekt.",
+      "settings": {
+        "logo_url": {
+          "label": "Header Logo",
+          "type": "image",
+          "default": "",
+          "description": "Logo im Header (SVG empfohlen für Schärfe). Leer = standard Tech-Icon."
+        },
+        "header_bg_color": {
+          "label": "Header-Hintergrund",
+          "type": "color",
+          "default": "#0f172a",
+          "description": "Dunkler Header-Hintergrund im Tech-Stil"
+        },
+        "header_text_color": {
+          "label": "Header-Textfarbe",
+          "type": "color",
+          "default": "#f1f5f9",
+          "description": "Farbe von Navigationslinks"
+        },
+        "header_height": {
+          "label": "Header-Höhe (px)",
+          "type": "number",
+          "default": 72,
+          "min": 48,
+          "max": 120,
+          "description": "Höhe der Navigationsleiste"
+        },
+        "logo_max_height": {
+          "label": "Logo-Maximalhöhe (px)",
+          "type": "number",
+          "default": 40,
+          "min": 24,
+          "max": 100,
+          "description": "Maximale Höhe des Logos"
+        },
+        "show_header_shadow": {
+          "label": "Header-Schatten anzeigen",
+          "type": "checkbox",
+          "default": true,
+          "description": "Schatten unterhalb der Navigation"
+        },
+        "enable_blur_header": {
+          "label": "Blur-Effekt beim Scrollen",
+          "type": "checkbox",
+          "default": true,
+          "description": "Hintergrund-Blur wenn Header sticky wird"
+        },
+        "show_status_dot": {
+          "label": "Live-Status-Punkt anzeigen",
+          "type": "checkbox",
+          "default": true,
+          "description": "Grüner Punkt bei Online-Nutzern im Header"
+        }
+      }
+    },
+
+    "footer": {
+      "label": "Footer",
+      "description": "Footer mit Tech-Community-Links und Newsletter-Opt-in.",
+      "settings": {
+        "footer_bg_color": {
+          "label": "Footer-Hintergrund",
+          "type": "color",
+          "default": "#0f172a",
+          "description": "Dunkler Footer-Hintergrund"
+        },
+        "footer_text_color": {
+          "label": "Footer-Textfarbe",
+          "type": "color",
+          "default": "#94a3b8",
+          "description": "Textfarbe im Footer"
+        },
+        "footer_link_color": {
+          "label": "Footer-Linkfarbe",
+          "type": "color",
+          "default": "#e2e8f0",
+          "description": "Farbe der Footer-Links"
+        },
+        "footer_text": {
+          "label": "Footer-Beschreibung",
+          "type": "textarea",
+          "default": "Die führende Plattform für IT-Experten, Tech-Teams und Softwarehäuser. Vernetze Dich – finde Projekte, Experten und Partner.",
+          "description": "Kurzbeschreibung im Footer-Widget"
+        },
+        "show_tech_links": {
+          "label": "Tech-Kategorie-Links anzeigen",
+          "type": "checkbox",
+          "default": true,
+          "description": "Schnellzugriff auf Experten, Firmen, Events und Jobs"
+        },
+        "copyright_text": {
+          "label": "Copyright-Text",
+          "type": "text",
+          "default": "&copy; {year} {site_title}. Alle Rechte vorbehalten.",
+          "description": "Copyright-Zeile. Platzhalter: {year}, {site_title}"
+        }
+      }
+    },
+
+    "buttons": {
+      "label": "Buttons",
+      "description": "Button-Stil im Tech-Look – leicht gerundete Ecken, klar und präzise.",
+      "settings": {
+        "button_border_radius": {
+          "label": "Button-Eckenradius (px)",
+          "type": "number",
+          "default": 6,
+          "min": 0,
+          "max": 50,
+          "description": "Eckenrundung – 0 für quadratisch, 50 für Pill-Form"
+        },
+        "button_padding_x": {
+          "label": "Button-Padding horizontal (rem)",
+          "type": "number",
+          "default": 1.5,
+          "min": 0.5,
+          "max": 4,
+          "step": 0.25,
+          "description": "Horizontaler Innenabstand"
+        },
+        "button_padding_y": {
+          "label": "Button-Padding vertikal (rem)",
+          "type": "number",
+          "default": 0.625,
+          "min": 0.25,
+          "max": 2,
+          "step": 0.125,
+          "description": "Vertikaler Innenabstand"
+        },
+        "button_font_weight": {
+          "label": "Button-Schriftgewicht",
+          "type": "select",
+          "options": {
+            "500": "Medium (500)",
+            "600": "Semi-Bold (600) – Standard",
+            "700": "Bold (700)"
+          },
+          "default": "600",
+          "description": "Schriftgewicht für Buttons"
+        },
+        "button_transform": {
+          "label": "Button-Text",
+          "type": "select",
+          "options": {
+            "none": "Normal",
+            "uppercase": "GROSSBUCHSTABEN",
+            "capitalize": "Erster Buchstabe groß"
+          },
+          "default": "none",
+          "description": "Textformatierung der Button-Beschriftungen"
+        }
+      }
+    },
+
+    "tech_hero": {
+      "label": "Hero-Bereich",
+      "description": "Texte und Einstellungen für den Einstiegs-Hero-Bereich der Startseite.",
+      "settings": {
+        "hero_badge": {
+          "label": "Hero Badge-Text",
+          "type": "text",
+          "default": "🚀 Die IT-Expert Plattform",
+          "description": "Kleiner Badge over dem Haupttitel"
+        },
+        "hero_headline": {
+          "label": "Hero Hauptüberschrift",
+          "type": "text",
+          "default": "Vernetze IT-Experten. Skaliere dein Team.",
+          "description": "Haupttitel des Hero-Bereichs"
+        },
+        "hero_subline": {
+          "label": "Hero Untertitel",
+          "type": "textarea",
+          "default": "Finde spezialisierte IT-Fachkräfte, innovative Technologiepartner und spannende Projekte. Alles auf einer Plattform.",
+          "description": "Beschreibungstext unterhalb des Haupttitels"
+        },
+        "hero_cta_label": {
+          "label": "Hero CTA Button-Text",
+          "type": "text",
+          "default": "Experten entdecken",
+          "description": "Beschriftung des primären Call-to-Action Buttons"
+        },
+        "hero_cta_url": {
+          "label": "Hero CTA Button-URL",
+          "type": "text",
+          "default": "/it-experts",
+          "description": "Ziel-URL des primären CTA Buttons"
+        },
+        "hero_secondary_cta_label": {
+          "label": "Sekundärer CTA Button-Text",
+          "type": "text",
+          "default": "Profil anlegen",
+          "description": "Beschriftung des sekundären Buttons"
+        },
+        "hero_secondary_cta_url": {
+          "label": "Sekundärer CTA Button-URL",
+          "type": "text",
+          "default": "/register",
+          "description": "Ziel-URL des sekundären Buttons"
+        },
+        "hero_gradient_start": {
+          "label": "Hero Gradient-Start",
+          "type": "color",
+          "default": "#0f172a",
+          "description": "Startfarbe des Hero-Hintergrundverlaufs"
+        },
+        "hero_gradient_end": {
+          "label": "Hero Gradient-Ende",
+          "type": "color",
+          "default": "#1e3a5f",
+          "description": "Endfarbe des Hero-Hintergrundverlaufs"
+        },
+        "show_particle_bg": {
+          "label": "Partikel-Hintergrund aktivieren",
+          "type": "checkbox",
+          "default": false,
+          "description": "Animiertes Netzwerk-Partikel-Hintergrundbild (Performance-Hinweis)"
+        },
+        "show_stats_bar": {
+          "label": "Statistiken-Leiste anzeigen",
+          "type": "checkbox",
+          "default": true,
+          "description": "Zeile mit Plattform-KPIs (Experten, Firmen, Projekte)"
+        }
+      }
+    },
+
+    "tech_expert_cards": {
+      "label": "Expert-Card Anzeige",
+      "description": "Einstellungen für die Darstellung von Experten-Profil-Karten.",
+      "settings": {
+        "show_tech_stack": {
+          "label": "Tech-Stack-Badges anzeigen",
+          "type": "checkbox",
+          "default": true,
+          "description": "Technologie-Badges auf Expert-Cards (z.B. PHP, React, AWS)"
+        },
+        "show_skill_meter": {
+          "label": "Skill-Level-Balken anzeigen",
+          "type": "checkbox",
+          "default": true,
+          "description": "Visuelle Skill-Balken auf Profil-Detail-Seiten"
+        },
+        "show_availability_status": {
+          "label": "Verfügbarkeits-Status anzeigen",
+          "type": "checkbox",
+          "default": true,
+          "description": "Online/Verfügbar/Beschäftigt-Status-Badge"
+        },
+        "tech_stack_max_badges": {
+          "label": "Max. Tech-Stack-Badges",
+          "type": "number",
+          "default": 5,
+          "min": 1,
+          "max": 15,
+          "description": "Maximale Anzahl Tech-Badges pro Card"
+        },
+        "card_hover_effect": {
+          "label": "Card Hover-Effekt",
+          "type": "select",
+          "options": {
+            "lift": "Hochheben (Schatten)  – Standard",
+            "glow": "Glühen (Primärfarbe)",
+            "border": "Farbiger Rahmen",
+            "none": "Kein Effekt"
+          },
+          "default": "lift",
+          "description": "Hover-Animation der Expert-Cards"
+        }
+      }
+    },
+
+    "tech_content": {
+      "label": "Seiteninhalte / Texte",
+      "description": "Überschriften und Texte für die wichtigsten Seiten-Sektionen.",
+      "settings": {
+        "experts_section_title": {
+          "label": "Experten-Sektion Titel",
+          "type": "text",
+          "default": "Top IT-Experten",
+          "description": "Überschrift der Experten-Sektion auf der Startseite"
+        },
+        "experts_section_subtitle": {
+          "label": "Experten-Sektion Untertitel",
+          "type": "text",
+          "default": "Spezialisierte Fachkräfte für jedes Tech-Projekt",
+          "description": "Beschreibungstext unter der Experten-Überschrift"
+        },
+        "companies_section_title": {
+          "label": "Firmen-Sektion Titel",
+          "type": "text",
+          "default": "Führende Tech-Unternehmen",
+          "description": "Überschrift der Firmen-Sektion"
+        },
+        "events_section_title": {
+          "label": "Events-Sektion Titel",
+          "type": "text",
+          "default": "Tech Events & Meetups",
+          "description": "Überschrift der Events-Sektion"
+        },
+        "jobs_section_title": {
+          "label": "Jobs-Sektion Titel",
+          "type": "text",
+          "default": "IT-Jobs & Remote-Positionen",
+          "description": "Überschrift der Job-Board-Sektion"
+        },
+        "cta_section_title": {
+          "label": "CTA-Sektion Titel",
+          "type": "text",
+          "default": "Bereit für das nächste Projekt?",
+          "description": "Überschrift des Call-to-Action Bereichs"
+        },
+        "cta_section_text": {
+          "label": "CTA-Sektion Text",
+          "type": "textarea",
+          "default": "Registriere Dich kostenlos und werde Teil der größten IT-Expert-Community.",
+          "description": "Beschreibungstext im CTA-Bereich"
+        },
+        "register_cta_label": {
+          "label": "Registrierungs-Button",
+          "type": "text",
+          "default": "Jetzt kostenlos registrieren",
+          "description": "Text des Registrierungs-Buttons"
+        }
+      }
+    },
+
+    "advanced": {
+      "label": "Erweitert",
+      "description": "Custom CSS und erweiterte Theme-Einstellungen.",
+      "settings": {
+        "custom_css": {
+          "label": "Eigenes CSS",
+          "type": "textarea",
+          "default": "",
+          "description": "Zusätzliches CSS das am Ende aller Theme-Styles angehängt wird."
+        },
+        "enable_dark_mode_toggle": {
+          "label": "Dark-Mode Toggle anzeigen",
+          "type": "checkbox",
+          "default": true,
+          "description": "Schalter für manuellen Dark/Light-Mode Wechsel im Header"
+        },
+        "prefers_dark_mode": {
+          "label": "Dark-Mode Standard",
+          "type": "checkbox",
+          "default": false,
+          "description": "Dark-Mode als Standard-Modus aktivieren"
+        }
+      }
+    }
+
+  }
+}

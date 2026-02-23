@@ -1,0 +1,271 @@
+<?php
+/**
+ * Meridian CMS Default – Blog-Liste Template
+ *
+ * Vom Router bereitgestellte Variablen:
+ *   $posts        – array of stdObjects (Beiträge der aktuellen Seite)
+ *   $total        – int, Gesamtanzahl
+ *   $currentPage  – int, aktuelle Seite
+ *   $totalPages   – int, Gesamtzahl Seiten
+ *   $perPage      – int, Beiträge pro Seite
+ *
+ * @package CMSv2\Themes\CmsDefault
+ */
+
+declare(strict_types=1);
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+// Standardwerte für den Fall, dass Router Variablen nicht liefert
+$posts       = $posts       ?? [];
+$total       = $total       ?? 0;
+$currentPage = $currentPage ?? 1;
+$totalPages  = $totalPages  ?? 1;
+
+$showSidebar = (bool) meridian_setting('layout', 'show_sidebar', true);
+$activeCategory = htmlspecialchars($_GET['category'] ?? '');
+$activeTag      = htmlspecialchars($_GET['tag'] ?? '');
+$pageTitle      = 'Blog';
+if ($activeCategory) {
+    $pageTitle = 'Kategorie: ' . $activeCategory;
+} elseif ($activeTag) {
+    $pageTitle = 'Tag: ' . $activeTag;
+}
+
+// Sidebar-Daten
+$recentSidebar = meridian_get_recent_posts(5);
+$sidebarCats   = meridian_get_categories(8);
+$tagCloud      = [];
+try {
+    $pdo = \CMS\Database::instance()->getConnection();
+    $stmt = $pdo->query("SELECT tags FROM posts WHERE status = 'published' AND tags IS NOT NULL AND tags != ''");
+    $tagRows = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+    $tagCounts = [];
+    foreach ($tagRows as $row) {
+        foreach (array_map('trim', explode(',', $row)) as $tag) {
+            if ($tag) {
+                $tagCounts[$tag] = ($tagCounts[$tag] ?? 0) + 1;
+            }
+        }
+    }
+    arsort($tagCounts);
+    $tagCloud = array_keys(array_slice($tagCounts, 0, 20));
+} catch (\Exception $e) {
+    $tagCloud = [];
+}
+?>
+
+<!-- Blog-Header -->
+<div class="blog-archive-header">
+    <div class="container">
+        <h1 class="blog-archive-title"><?php echo htmlspecialchars($pageTitle); ?></h1>
+        <?php if ($total > 0): ?>
+        <p class="blog-archive-meta">
+            <?php echo number_format($total); ?> Artikel
+            <?php if ($totalPages > 1): ?>
+            &ensp;·&ensp; Seite <?php echo $currentPage; ?> von <?php echo $totalPages; ?>
+            <?php endif; ?>
+        </p>
+        <?php endif; ?>
+    </div>
+</div>
+
+<div class="page-wrap">
+
+    <!-- Content Area -->
+    <main id="main-content">
+
+            <?php if (!empty($posts)): ?>
+            <div class="article-list">
+                <?php foreach ($posts as $post): ?>
+                <article class="article-row">
+                    <?php if (!empty($post->featured_image)): ?>
+                    <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>" class="art-thumb">
+                        <img src="<?php echo htmlspecialchars($post->featured_image); ?>"
+                             alt="<?php echo htmlspecialchars($post->title); ?>"
+                             loading="lazy">
+                    </a>
+                    <?php endif; ?>
+                    <div class="art-body">
+                        <?php if (!empty($post->category_name)): ?>
+                        <div class="art-cat">
+                            <a href="<?php echo SITE_URL . '/blog?category=' . urlencode($post->category_slug ?? $post->category_name ?? ''); ?>">
+                                <?php echo htmlspecialchars($post->category_name); ?>
+                            </a>
+                        </div>
+                        <?php endif; ?>
+                        <div class="art-title">
+                            <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>">
+                                <?php echo htmlspecialchars($post->title); ?>
+                            </a>
+                        </div>
+                        <?php $excerpt = !empty($post->excerpt) ? $post->excerpt : meridian_excerpt($post->content ?? '', 160); ?>
+                        <?php if ($excerpt): ?>
+                        <p class="art-excerpt"><?php echo htmlspecialchars($excerpt); ?></p>
+                        <?php endif; ?>
+                        <div class="art-meta">
+                            <time datetime="<?php echo htmlspecialchars($post->published_at ?? $post->created_at ?? ''); ?>"><?php echo meridian_format_date($post->published_at ?? $post->created_at ?? ''); ?></time>
+                            <?php if (meridian_setting('blog', 'show_reading_time', true)): ?>
+                            <span class="dot"></span>
+                            <span class="read-t"><?php echo meridian_reading_time($post->content ?? ''); ?></span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </article>
+                <?php endforeach; ?>
+            </div>
+
+            <!-- Paginierung -->
+            <?php if ($totalPages > 1): ?>
+            <nav class="pagination" aria-label="Seitennavigation">
+                <?php
+                $baseUrl = SITE_URL . '/blog';
+                $qParts  = [];
+                if ($activeCategory) {
+                    $qParts[] = 'category=' . urlencode($activeCategory);
+                }
+                if ($activeTag) {
+                    $qParts[] = 'tag=' . urlencode($activeTag);
+                }
+                $qBase = $qParts ? '?' . implode('&', $qParts) . '&' : '?';
+
+                // Prev
+                if ($currentPage > 1): ?>
+                <a class="pagination-item pagination-item--prev"
+                   href="<?php echo $baseUrl . $qBase . 'page=' . ($currentPage - 1); ?>"
+                   aria-label="Vorherige Seite">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                </a>
+                <?php endif;
+
+                // Page numbers
+                $start = max(1, $currentPage - 2);
+                $end   = min($totalPages, $currentPage + 2);
+                if ($start > 1): ?>
+                    <a class="pagination-item" href="<?php echo $baseUrl . $qBase . 'page=1'; ?>">1</a>
+                    <?php if ($start > 2): ?>
+                        <span class="pagination-gap">…</span>
+                    <?php endif; ?>
+                <?php endif;
+
+                for ($p = $start; $p <= $end; $p++): ?>
+                <a class="pagination-item<?php echo $p === $currentPage ? ' pagination-item--active' : ''; ?>"
+                   href="<?php echo $baseUrl . $qBase . 'page=' . $p; ?>"
+                   <?php echo $p === $currentPage ? 'aria-current="page"' : ''; ?>>
+                    <?php echo $p; ?>
+                </a>
+                <?php endfor;
+
+                if ($end < $totalPages): ?>
+                    <?php if ($end < $totalPages - 1): ?>
+                        <span class="pagination-gap">…</span>
+                    <?php endif; ?>
+                    <a class="pagination-item" href="<?php echo $baseUrl . $qBase . 'page=' . $totalPages; ?>"><?php echo $totalPages; ?></a>
+                <?php endif;
+
+                // Next
+                if ($currentPage < $totalPages): ?>
+                <a class="pagination-item pagination-item--next"
+                   href="<?php echo $baseUrl . $qBase . 'page=' . ($currentPage + 1); ?>"
+                   aria-label="Nächste Seite">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                </a>
+                <?php endif; ?>
+            </nav>
+            <?php endif; ?>
+
+            <?php else: ?>
+            <!-- Empty State -->
+            <div class="empty-state" style="text-align:center;padding:4rem 2rem;">
+                <p style="font-size:3rem;margin:0">📭</p>
+                <h2 style="margin:.75rem 0 .5rem;">Keine Artikel gefunden</h2>
+                <?php if ($activeCategory || $activeTag): ?>
+                <p style="color:var(--ink-60)">Für diese Auswahl wurden keine Beiträge gefunden.</p>
+                <a href="<?php echo SITE_URL; ?>/blog" class="btn-solid" style="display:inline-block;margin-top:1rem;">Alle Artikel anzeigen</a>
+                <?php else: ?>
+                <p style="color:var(--ink-60)">Die ersten Artikel erscheinen hier, sobald sie veröffentlicht werden.</p>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+
+    </main>
+
+    <!-- Sidebar -->
+    <?php if ($showSidebar): ?>
+    <aside class="sidebar" aria-label="Sidebar">
+
+        <!-- Suche in Sidebar -->
+        <div>
+            <div class="widget-title">Suche</div>
+                <form action="<?php echo SITE_URL; ?>/search" method="GET" role="search">
+                    <div style="display:flex;gap:.5rem;">
+                        <input type="search" name="q" class="form-control form-control--sm"
+                               placeholder="Artikel suchen …" autocomplete="off"
+                               value="<?php echo htmlspecialchars($_GET['q'] ?? ''); ?>">
+                        <button type="submit" class="btn-solid" aria-label="Suchen">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+        </div>
+
+        <!-- Aktuelle Beiträge -->
+        <?php if (!empty($recentSidebar)): ?>
+        <div>
+            <div class="widget-title">Aktuelle Beiträge</div>
+            <?php $rNum = 1; foreach ($recentSidebar as $recent): ?>
+            <div class="recent-item">
+                <div class="recent-num"><?php echo str_pad($rNum++, 2, '0', STR_PAD_LEFT); ?></div>
+                <div class="recent-body">
+                    <?php if (!empty($recent['category_name'])): ?>
+                    <div class="rcat"><?php echo htmlspecialchars($recent['category_name']); ?></div>
+                    <?php endif; ?>
+                    <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($recent['slug']); ?>"><?php echo htmlspecialchars($recent['title']); ?></a>
+                    <time><?php echo meridian_format_date($recent['published_at'] ?? $recent['created_at'] ?? '', true); ?></time>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
+        <!-- Kategorien -->
+        <?php if (!empty($sidebarCats)): ?>
+        <div>
+            <div class="widget-title">Kategorien</div>
+            <?php foreach ($sidebarCats as $cat): ?>
+            <div class="cat-row<?php echo ($activeCategory === ($cat['slug'] ?? '')) ? ' cat-row--active' : ''; ?>">
+                <a href="<?php echo SITE_URL . '/blog?category=' . urlencode($cat['slug'] ?? ''); ?>">
+                    <?php echo htmlspecialchars($cat['name']); ?>
+                </a>
+                <?php if (!empty($cat['post_count'])): ?>
+                <span class="cat-count"><?php echo (int)$cat['post_count']; ?></span>
+                <?php endif; ?>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
+        <!-- Tag Cloud -->
+        <?php if (!empty($tagCloud)): ?>
+        <div>
+            <div class="widget-title">Tags</div>
+            <div class="tag-cloud">
+                <?php foreach ($tagCloud as $tag): ?>
+                <a href="<?php echo SITE_URL . '/blog?tag=' . urlencode($tag); ?>"><?php echo htmlspecialchars($tag); ?></a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
+    </aside>
+    <?php endif; ?>
+
+</div><!-- /.page-wrap -->

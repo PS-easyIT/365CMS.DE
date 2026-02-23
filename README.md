@@ -849,6 +849,4 @@ Vollständiges Schema: [DOC/](DOC/)
 
 ## Lizenz
 
-Freie Verwendung für private und geschäftliche Projekte **mit Copyright-Hinweis**.
-
-Nutzung **ohne Copyright-Hinweis** ist kostenpflichtig (Privat: einmalig 50,00 € · Geschäftlich: Preis auf Anfrage).
+Freie Verwendung für private und geschäftliche Projekte

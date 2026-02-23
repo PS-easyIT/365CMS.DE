@@ -16,8 +16,8 @@ if (!defined('ABSPATH')) {
     // Standalone mode: Start buffer and load config
     if (ob_get_level() == 0) ob_start();
     
-    // Load config
-    $configFile = dirname(dirname(__DIR__)) . '/config.php';
+    // Load config (config.php liegt eine Ebene über CMS/member/ in CMS/)
+    $configFile = dirname(__DIR__) . '/config.php';
     if (file_exists($configFile)) {
         require_once $configFile;
     }

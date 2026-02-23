@@ -1,0 +1,217 @@
+/**
+ * Academy365 Theme – Bildung & E-Learning
+ * Palette: Violet #7c3aed | Indigo #4f46e5 | Amber #f59e0b
+ * Fonts: Open Sans, Raleway, Plus Jakarta Sans
+ */
+
+/* ================================================================
+   1. Design Tokens
+   ================================================================ */
+:root {
+    --primary-color:    #7c3aed;
+    --primary-dark:     #6d28d9;
+    --secondary-color:  #4f46e5;
+    --accent-color:     #f59e0b;
+    --accent-dark:      #d97706;
+    --bg-primary:       #faf5ff;
+    --bg-secondary:     #ede9fe;
+    --bg-card:          #ffffff;
+    --text-primary:     #1e1b4b;
+    --text-secondary:   #374151;
+    --muted-color:      #9ca3af;
+    --border-color:     #ddd6fe;
+    --badge-free:       #10b981;
+    --badge-cert:       #f59e0b;
+    --badge-new:        #3b82f6;
+    --badge-best:       #ef4444;
+    --cat-tech:         #0ea5e9;
+    --cat-business:     #f59e0b;
+    --cat-design:       #ec4899;
+    --cat-language:     #10b981;
+    --shadow-sm:        0 1px 4px rgba(124,58,237,.08);
+    --shadow-md:        0 4px 18px rgba(124,58,237,.13);
+    --font-body:        "Open Sans", sans-serif;
+    --font-heading:     Raleway, sans-serif;
+    --font-ui:          "Plus Jakarta Sans", sans-serif;
+    --font-xs:          .75rem;
+    --font-sm:          .875rem;
+    --font-md:          1rem;
+    --font-lg:          1.125rem;
+    --font-xl:          1.25rem;
+    --font-2xl:         1.5rem;
+    --font-3xl:         2rem;
+    --font-4xl:         2.5rem;
+    --font-5xl:         3.25rem;
+    --spacing-xs:       .375rem;
+    --spacing-sm:       .75rem;
+    --spacing-md:       1.25rem;
+    --spacing-lg:       2rem;
+    --spacing-xl:       2.5rem;
+    --spacing-2xl:      4rem;
+    --radius-sm:        6px;
+    --radius-md:        12px;
+    --radius-lg:        20px;
+    --radius-pill:      9999px;
+    --header-height:    72px;
+    --container-max:    1200px;
+}
+
+/* ================================================================
+   2. Reset & Base
+   ================================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; scroll-behavior: smooth; }
+body.ac-body { font-family: var(--font-body); color: var(--text-primary); background: var(--bg-primary); line-height: 1.7; }
+img { max-width: 100%; height: auto; display: block; }
+a   { color: var(--primary-color); text-decoration: none; }
+a:hover { text-decoration: underline; }
+ul  { list-style: none; }
+.ac-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+
+/* ================================================================
+   3. Layout
+   ================================================================ */
+.ac-page-wrapper  { display: flex; flex-direction: column; min-height: 100vh; }
+.ac-site-content  { flex: 1; padding-top: var(--header-height); }
+.ac-container     { width: 100%; max-width: var(--container-max); margin: 0 auto; padding: 0 1.25rem; }
+.ac-grid          { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 1.5rem; }
+.ac-section-header { text-align: center; margin-bottom: var(--spacing-xl); }
+.ac-section-header h2 { font-family: var(--font-heading); font-size: var(--font-3xl); color: var(--text-primary); font-weight: 800; }
+.ac-section-header p  { color: var(--text-secondary); margin-top: .5rem; }
+
+/* ================================================================
+   4. Header
+   ================================================================ */
+.ac-site-header {
+    position: fixed; top: 0; left: 0; right: 0; height: var(--header-height);
+    background: #fff; border-bottom: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm); z-index: 1000;
+}
+.ac-site-header.scrolled { box-shadow: var(--shadow-md); }
+.ac-header-inner {
+    display: flex; align-items: center; justify-content: space-between; height: 100%; gap: 1.5rem;
+    max-width: var(--container-max); margin: 0 auto; padding: 0 1.25rem;
+}
+.ac-logo-text { font-family: var(--font-heading); font-size: 1.35rem; font-weight: 800; color: var(--primary-color); display: flex; align-items: center; gap: .4rem; }
+
+.main-navigation ul { display: flex; gap: .15rem; }
+.main-navigation a {
+    font-family: var(--font-ui); font-size: var(--font-sm); font-weight: 500; padding: .5rem .85rem;
+    border-radius: var(--radius-sm); color: var(--text-secondary); transition: color .2s, background .2s;
+}
+.main-navigation a:hover { color: var(--primary-color); background: var(--bg-secondary); text-decoration: none; }
+.ac-header-actions { display: flex; align-items: center; gap: .75rem; }
+.ac-mobile-toggle { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: .5rem; }
+.ac-mobile-toggle span { display: block; width: 22px; height: 2px; background: var(--text-primary); border-radius: 2px; }
+@media (max-width: 768px) {
+    .ac-mobile-toggle { display: flex; }
+    .main-navigation { display: none; position: absolute; top: var(--header-height); left: 0; right: 0; background: #fff; border-bottom: 1px solid var(--border-color); padding: 1rem; }
+    .main-navigation.open { display: block; }
+    .main-navigation ul { flex-direction: column; }
+}
+
+/* ================================================================
+   5. Buttons
+   ================================================================ */
+.ac-btn {
+    display: inline-flex; align-items: center; gap: .45rem; padding: .65rem 1.4rem;
+    border-radius: var(--radius-pill); font-family: var(--font-ui); font-size: var(--font-sm); font-weight: 700;
+    cursor: pointer; border: 2px solid transparent; text-decoration: none !important;
+    transition: background .2s, color .2s, transform .15s;
+}
+.ac-btn:hover { transform: translateY(-1px); }
+.ac-btn-primary  { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+.ac-btn-primary:hover  { background: var(--primary-dark); }
+.ac-btn-accent   { background: var(--accent-color); color: #1e1b4b; border-color: var(--accent-color); }
+.ac-btn-accent:hover   { background: var(--accent-dark); }
+.ac-btn-outline  { background: transparent; color: var(--primary-color); border-color: var(--primary-color); }
+.ac-btn-outline:hover  { background: var(--primary-color); color: #fff; }
+.ac-btn-ghost    { background: transparent; color: var(--text-secondary); border-color: transparent; }
+
+/* ================================================================
+   6. Hero
+   ================================================================ */
+.ac-hero {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    color: #fff; padding: var(--spacing-2xl) 0 calc(var(--spacing-2xl) + 2rem); text-align: center; position: relative; overflow: hidden;
+}
+.ac-hero::after {
+    content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 3rem;
+    background: var(--bg-primary);
+    clip-path: ellipse(60% 100% at 50% 100%);
+}
+.ac-hero > * { position: relative; z-index: 1; }
+.ac-hero h1   { font-family: var(--font-heading); font-size: clamp(1.9rem, 5vw, var(--font-5xl)); font-weight: 800; color: #fff; margin-bottom: 1rem; line-height: 1.15; }
+.ac-hero-sub  { font-size: var(--font-lg); opacity: .9; max-width: 600px; margin: 0 auto 2rem; }
+.ac-hero-badge { display: inline-block; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.35); border-radius: var(--radius-pill); padding: .35rem 1rem; font-size: var(--font-sm); margin-bottom: 1rem; }
+.ac-cta-group  { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+.ac-stats-row  { display: flex; justify-content: center; gap: 2.5rem; margin-top: 2.5rem; flex-wrap: wrap; }
+.ac-stat       { text-align: center; }
+.ac-stat-number{ display: block; font-family: var(--font-heading); font-size: var(--font-3xl); font-weight: 800; color: var(--accent-color); }
+.ac-stat-label  { font-size: var(--font-sm); opacity: .8; }
+
+/* ================================================================
+   7. Course Cards
+   ================================================================ */
+.ac-card {
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg); overflow: hidden;
+    box-shadow: var(--shadow-sm); transition: transform .2s, box-shadow .2s;
+    display: flex; flex-direction: column;
+}
+.ac-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+.ac-card-thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
+.ac-card-body  { padding: 1.25rem; flex: 1; display: flex; flex-direction: column; gap: .5rem; }
+.ac-card-title { font-family: var(--font-heading); font-weight: 700; font-size: var(--font-lg); color: var(--text-primary); }
+.ac-card-meta  { font-size: var(--font-xs); color: var(--muted-color); display: flex; gap: .75rem; flex-wrap: wrap; }
+.ac-card-footer{ padding: .75rem 1.25rem; border-top: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; }
+
+/* Course badges */
+.ac-badge {
+    display: inline-block; padding: .22rem .65rem; border-radius: var(--radius-pill);
+    font-size: var(--font-xs); font-weight: 700; font-family: var(--font-ui);
+}
+.ac-badge--free      { background: #ecfdf5; color: var(--badge-free); }
+.ac-badge--cert      { background: #fffbeb; color: var(--badge-cert); }
+.ac-badge--new       { background: #eff6ff; color: var(--badge-new); }
+.ac-badge--bestseller{ background: #fef2f2; color: var(--badge-best); }
+
+/* Rating */
+.ac-rating { display: inline-flex; align-items: center; gap: .25rem; font-size: var(--font-xs); color: var(--accent-color); font-weight: 600; }
+
+/* Progress bar */
+.ac-progress { width: 100%; height: 6px; background: var(--bg-secondary); border-radius: var(--radius-pill); overflow: hidden; }
+.ac-progress-bar { height: 100%; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)); border-radius: var(--radius-pill); transition: width .5s ease; }
+
+/* Category colors */
+.ac-cat--tech     { border-top: 3px solid var(--cat-tech); }
+.ac-cat--business { border-top: 3px solid var(--cat-business); }
+.ac-cat--design   { border-top: 3px solid var(--cat-design); }
+.ac-cat--language { border-top: 3px solid var(--cat-language); }
+
+/* Gamification badge */
+.ac-xp-badge { display: inline-flex; align-items: center; gap: .35rem; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: #fff; border-radius: var(--radius-pill); padding: .3rem .8rem; font-size: var(--font-xs); font-weight: 700; }
+
+/* ================================================================
+   8. Section
+   ================================================================ */
+.ac-section     { padding: var(--spacing-2xl) 0; }
+.ac-section--alt{ background: var(--bg-secondary); }
+
+/* ================================================================
+   9. Skip Link
+   ================================================================ */
+.ac-skip-link { position: absolute; top: -100%; left: 1rem; background: var(--primary-color); color: #fff; padding: .75rem 1.25rem; border-radius: 0 0 var(--radius-md) var(--radius-md); font-weight: 700; z-index: 9999; }
+.ac-skip-link:focus { top: 0; }
+
+/* ================================================================
+   10. Footer
+   ================================================================ */
+.ac-footer         { background: var(--text-primary); color: rgba(255,255,255,.8); padding: var(--spacing-2xl) 0 0; }
+.ac-footer h3      { color: #fff; font-family: var(--font-heading); font-weight: 700; margin-bottom: .75rem; }
+.ac-footer a       { color: rgba(255,255,255,.7); }
+.ac-footer a:hover { color: var(--accent-color); }
+.ac-footer-widgets { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 2rem; padding-bottom: var(--spacing-xl); }
+.ac-footer-bottom  { border-top: 1px solid rgba(255,255,255,.1); padding: 1.25rem 0; font-size: var(--font-sm); color: rgba(255,255,255,.45); text-align: center; }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

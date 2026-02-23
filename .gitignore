@@ -46,7 +46,6 @@ package-lock.json
 # Dev/Local Folders (Komplette Ordner ignorieren)
 BACKUP/
 PLUGINS/
-THEMES/
 DOC/workflow/
 DOC/workflow/*
 DOC/audits/
