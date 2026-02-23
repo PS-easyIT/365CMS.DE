@@ -16,8 +16,6 @@ if (empty($post)) {
     exit;
 }
 
-require_once __DIR__ . '/header.php';
-
 // Prepare variables
 $pTitle   = htmlspecialchars($post->title ?? '');
 $pLink    = SITE_URL . '/blog/' . ($post->slug ?? '');
@@ -147,4 +145,3 @@ $relatedPosts = function_exists('meridian_get_related_posts') ? meridian_get_rel
 
 </div>
 
-<?php require_once __DIR__ . '/footer.php'; ?>
