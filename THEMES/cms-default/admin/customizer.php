@@ -128,6 +128,24 @@ $config = [
                 'type'    => 'checkbox',
                 'default' => true,
             ],
+            'nav_font_size' => [
+                'label'       => 'Navigation Schriftgröße (px)',
+                'description' => 'Schriftgröße der Hauptmenü-Links.',
+                'type'        => 'number',
+                'default'     => 14,
+            ],
+            'nav_uppercase' => [
+                'label'       => 'Navigation in Großbuchstaben',
+                'description' => 'Menü-Links in Kapitälchen/Großbuchstaben anzeigen.',
+                'type'        => 'checkbox',
+                'default'     => false,
+            ],
+            'nav_letter_spacing' => [
+                'label'       => 'Navigation Buchstabenabstand',
+                'description' => 'CSS letter-spacing, z. B. 0.05em oder 0.',
+                'type'        => 'text',
+                'default'     => '0',
+            ],
         ]
     ],
     'layout' => [
@@ -163,6 +181,18 @@ $config = [
                 'description' => 'Abrundung von Karten, Buttons und Eingabefeldern.',
                 'type'        => 'number',
                 'default'     => 3,
+            ],
+            'card_gap' => [
+                'label'       => 'Karten-Abstand (px)',
+                'description' => 'Abstand zwischen Grid-Karten und Artikel-Elementen.',
+                'type'        => 'number',
+                'default'     => 24,
+            ],
+            'show_back_to_top' => [
+                'label'       => 'Zurück-nach-oben-Button anzeigen',
+                'description' => 'Schwebendes Icon zum Zurückspringen an den Seitenanfang.',
+                'type'        => 'checkbox',
+                'default'     => true,
             ],
         ]
     ],
@@ -232,6 +262,30 @@ $config = [
                 'type'        => 'color',
                 'default'     => '#1a1a18',
             ],
+            'link_color' => [
+                'label'       => 'Link-Farbe (Content)',
+                'description' => 'Textfarbe für Hyperlinks im Content-Bereich.',
+                'type'        => 'color',
+                'default'     => '#c0862a',
+            ],
+            'link_hover_color' => [
+                'label'       => 'Link Hover-Farbe',
+                'description' => 'Link-Farbe beim Überfahren mit der Maus.',
+                'type'        => 'color',
+                'default'     => '#a06b18',
+            ],
+            'category_bar_bg' => [
+                'label'       => 'Kategorie-Leiste Hintergrundfarbe',
+                'description' => 'Hintergrundfarbe der Kategorie-/Menüleiste unter dem Header.',
+                'type'        => 'color',
+                'default'     => '#f2f1ec',
+            ],
+            'category_bar_text' => [
+                'label'       => 'Kategorie-Leiste Textfarbe',
+                'description' => 'Textfarbe der Links in der Kategorie-Leiste.',
+                'type'        => 'color',
+                'default'     => '#3d3d3a',
+            ],
         ]
     ],
     'typography' => [
@@ -260,6 +314,53 @@ $config = [
                 'description' => 'Libre Baskerville (Überschriften) + DM Sans (Text). Deaktivieren für DSGVO-Konformität ohne externe Anfragen.',
                 'type'        => 'checkbox',
                 'default'     => true,
+            ],
+            'font_family_body' => [
+                'label'       => 'Schriftart Fließtext',
+                'description' => 'Schriftfamilie für Absätze und Fließtext.',
+                'type'        => 'select',
+                'options'     => [
+                    'dm-sans'         => 'DM Sans (Standard)',
+                    'system-ui'       => 'System-Schrift (kein Google Fonts)',
+                    'georgia'         => 'Georgia (klassische Serif)',
+                    'inter'           => 'Inter',
+                    'times-new-roman' => 'Times New Roman',
+                ],
+                'default'     => 'dm-sans',
+            ],
+            'font_family_heading' => [
+                'label'       => 'Schriftart Überschriften',
+                'description' => 'Schriftfamilie für h1–h6.',
+                'type'        => 'select',
+                'options'     => [
+                    'libre-baskerville' => 'Libre Baskerville (Standard)',
+                    'georgia'           => 'Georgia',
+                    'playfair-display'  => 'Playfair Display',
+                    'merriweather'      => 'Merriweather',
+                    'system-ui'         => 'System-Schrift',
+                ],
+                'default'     => 'libre-baskerville',
+            ],
+            'letter_spacing_headings' => [
+                'label'       => 'Buchstabenabstand Überschriften',
+                'description' => 'CSS letter-spacing, z. B. -0.02em, 0.05em oder 0.',
+                'type'        => 'text',
+                'default'     => '0',
+            ],
+            'h1_size' => [
+                'label'       => 'H1 Schriftgröße (px)',
+                'type'        => 'number',
+                'default'     => 38,
+            ],
+            'h2_size' => [
+                'label'       => 'H2 Schriftgröße (px)',
+                'type'        => 'number',
+                'default'     => 28,
+            ],
+            'h3_size' => [
+                'label'       => 'H3 Schriftgröße (px)',
+                'type'        => 'number',
+                'default'     => 22,
             ],
         ]
     ],
@@ -331,6 +432,53 @@ $config = [
                 'label'   => 'YouTube URL',
                 'type'    => 'text',
                 'default' => '',
+            ],
+        ]
+    ],
+    'blog' => [
+        'title' => '📰 Blog & Artikel',
+        'sections' => [
+            'posts_per_page' => [
+                'label'       => 'Artikel pro Seite',
+                'description' => 'Anzahl der Artikel auf der Blog-Übersichtsseite.',
+                'type'        => 'number',
+                'default'     => 12,
+            ],
+            'show_hero_post' => [
+                'label'       => 'Hero-Post anzeigen',
+                'description' => 'Den neuesten Artikel als großes Hero-Element oben darstellen.',
+                'type'        => 'checkbox',
+                'default'     => true,
+            ],
+            'show_reading_time' => [
+                'label'       => 'Lesezeit anzeigen',
+                'description' => 'Geschätzte Lesezeit bei Artikeln anzeigen (z. B. „3 min Lesezeit").',
+                'type'        => 'checkbox',
+                'default'     => true,
+            ],
+            'show_author' => [
+                'label'       => 'Autor anzeigen',
+                'description' => 'Autorenname in der Artikel-Meta-Zeile anzeigen.',
+                'type'        => 'checkbox',
+                'default'     => true,
+            ],
+            'show_views' => [
+                'label'       => 'Aufrufe anzeigen',
+                'description' => 'Aufruf-Zähler bei Artikeln anzeigen.',
+                'type'        => 'checkbox',
+                'default'     => false,
+            ],
+            'show_comments' => [
+                'label'       => 'Kommentarformular anzeigen',
+                'description' => 'Kommentarformular unterhalb von Blog-Artikeln anzeigen.',
+                'type'        => 'checkbox',
+                'default'     => true,
+            ],
+            'show_related_posts' => [
+                'label'       => 'Verwandte Artikel anzeigen',
+                'description' => 'Ähnliche Artikel am Ende eines Blog-Posts zeigen.',
+                'type'        => 'checkbox',
+                'default'     => true,
             ],
         ]
     ],
@@ -635,20 +783,122 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
     <script>
-    // Farb-Picker ↔ Text-Input synchronisieren
-    document.querySelectorAll('input[type="color"]').forEach(function(picker) {
-        var textInput = picker.nextElementSibling;
-        if (!textInput) return;
-        picker.addEventListener('input', function() {
-            textInput.value = this.value;
-        });
-        textInput.addEventListener('input', function() {
-            var v = this.value.trim();
-            if (/^#[0-9a-fA-F]{6}$/.test(v)) { picker.value = v; }
-        });
-    });
+    // ── Farb-Picker ↔ Text-Input synchronisieren + Live-Vorschau ────────────
+    (function() {
+        // Live-Vorschau: Injiziert eine <style>-Tag für Echtzeit-Farb-Preview
+        var liveStyle = document.createElement('style');
+        liveStyle.id = 'customizer-live-preview';
+        document.head.appendChild(liveStyle);
 
-    // Logo-Upload Vorschau
+        function updateLivePreview() {
+            var rules = ':root {\n';
+            var mapping = {
+                'colors_accent_color':        '--accent',
+                'colors_accent_dark_color':   '--accent-dark',
+                'colors_ink_color':           '--ink',
+                'colors_ink_soft_color':      '--ink-soft',
+                'colors_ink_muted_color':     '--ink-muted',
+                'colors_ground_color':        '--ground',
+                'colors_surface_color':       '--surface',
+                'colors_surface_tint_color':  '--surface-tint',
+                'colors_rule_color':          '--rule',
+                'colors_header_bg_color':     '--header-bg-preview',
+                'colors_header_stripe_color': '--stripe-preview',
+            };
+            Object.keys(mapping).forEach(function(name) {
+                var inp = document.querySelector('input[name="'+ name +'"][type="color"]');
+                if (inp) { rules += '  ' + mapping[name] + ': ' + inp.value + ';\n'; }
+            });
+            rules += '}';
+            liveStyle.textContent = rules;
+
+            // Header-Vorschau
+            var hbg = document.querySelector('input[name="colors_header_bg_color"][type="color"]');
+            if (hbg) {
+                var headers = document.querySelectorAll('.site-header');
+                headers.forEach(function(h){ h.style.background = hbg.value; });
+            }
+        }
+
+        // Farb-Picker ↔ Text-Input synchronisieren
+        document.querySelectorAll('input[type="color"]').forEach(function(picker) {
+            var textInput = picker.nextElementSibling;
+            if (textInput && textInput.tagName === 'INPUT') {
+                picker.addEventListener('input', function() {
+                    textInput.value = this.value;
+                    updateLivePreview();
+                });
+                textInput.addEventListener('input', function() {
+                    var v = this.value.trim();
+                    if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+                        picker.value = v;
+                        updateLivePreview();
+                    }
+                });
+            }
+        });
+
+        // Farbpaletten-Vorschau-Balken rendern
+        var colorSection = document.querySelector('.customizer-content');
+        if (colorSection && document.querySelector('input[name="colors_accent_color"]')) {
+            var palette = document.createElement('div');
+            palette.id  = 'color-palette-preview';
+            palette.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;padding:1rem 0 0;';
+
+            var colorFields = [
+                { name: 'colors_accent_color',       label: 'Akzent' },
+                { name: 'colors_accent_dark_color',  label: 'Akzent Dunkel' },
+                { name: 'colors_ink_color',          label: 'Text' },
+                { name: 'colors_ground_color',       label: 'Hintergrund' },
+                { name: 'colors_surface_color',      label: 'Surface' },
+                { name: 'colors_header_bg_color',    label: 'Header' },
+                { name: 'colors_header_stripe_color', label: 'Streifen' },
+            ];
+
+            colorFields.forEach(function(cf) {
+                var inp = document.querySelector('input[name="'+cf.name+'"][type="color"]');
+                if (!inp) return;
+                var swatch = document.createElement('div');
+                swatch.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:2px;';
+                var dot = document.createElement('div');
+                dot.style.cssText = 'width:32px;height:32px;border-radius:50%;border:2px solid rgba(0,0,0,.1);background:'+inp.value+';';
+                var lbl = document.createElement('span');
+                lbl.style.cssText = 'font-size:0.68rem;color:#64748b;max-width:48px;text-align:center;line-height:1.2;';
+                lbl.textContent = cf.label;
+                swatch.appendChild(dot);
+                swatch.appendChild(lbl);
+                palette.appendChild(swatch);
+
+                inp.addEventListener('input', function() {
+                    dot.style.background = this.value;
+                });
+            });
+
+            var firstCard = document.querySelector('.customizer-content .admin-card');
+            if (firstCard) {
+                var previewWrap = document.createElement('div');
+                previewWrap.style.cssText = 'padding:1rem;border-bottom:1px solid #f1f5f9;background:#fafafa;';
+                var title = document.createElement('div');
+                title.style.cssText = 'font-size:.75rem;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;';
+                title.textContent = 'Farb-Vorschau';
+                previewWrap.appendChild(title);
+                previewWrap.appendChild(palette);
+                firstCard.insertBefore(previewWrap, firstCard.firstChild);
+            }
+        }
+
+        // ── Strg+S = automatisch Speichern ──────────────────────────────────
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                var btn = document.querySelector('button[type="submit"].btn-primary');
+                if (btn) { btn.click(); }
+            }
+        });
+
+    })();
+
+    // ── Logo-Upload Vorschau ─────────────────────────────────────────────────
     function previewLogoUpload(input) {
         if (!input.files || !input.files[0]) return;
         var reader = new FileReader();
@@ -660,7 +910,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             } else if (wrap) {
                 wrap.innerHTML = '<img id="logo-preview-img" src="'+ e.target.result +'" style="max-height:48px;max-width:200px;">';
             }
-            // URL-Feld leeren damit Upload-Pfad Vorrang hat
             var urlField = document.querySelector('input[name="header_logo_url"]');
             if (urlField) urlField.value = '';
         };

@@ -93,6 +93,26 @@
           "type": "checkbox",
           "default": true,
           "description": "Hamburger-Menü auf kleinen Bildschirmen anzeigen"
+        },
+        "nav_font_size": {
+          "label": "Navigation Schriftgröße (px)",
+          "type": "number",
+          "default": 14,
+          "min": 11,
+          "max": 20,
+          "description": "Schriftgröße der Hauptmenü-Links"
+        },
+        "nav_uppercase": {
+          "label": "Navigation in Großbuchstaben",
+          "type": "checkbox",
+          "default": false,
+          "description": "Menü-Links in Kapitälchen/Großbuchstaben anzeigen"
+        },
+        "nav_letter_spacing": {
+          "label": "Navigation Buchstabenabstand",
+          "type": "text",
+          "default": "0",
+          "description": "CSS letter-spacing für Menü-Links, z.B. 0.05em"
         }
       }
     },
@@ -148,6 +168,20 @@
           "min": 0,
           "max": 24,
           "description": "Abrundung von Karten, Buttons und Eingabefeldern"
+        },
+        "card_gap": {
+          "label": "Karten-Abstand (px)",
+          "type": "number",
+          "default": 24,
+          "min": 4,
+          "max": 64,
+          "description": "Abstand zwischen Grid-Karten und Artikel-Elementen"
+        },
+        "show_back_to_top": {
+          "label": "Zurück-nach-oben-Button anzeigen",
+          "type": "checkbox",
+          "default": true,
+          "description": "Schwebendes Icon zum Zurückspringen an den Seitenanfang"
         }
       }
     },
@@ -221,6 +255,30 @@
           "type": "color",
           "default": "#1a1a18",
           "description": "Der dünne farbige Streifen ganz oben am Header"
+        },
+        "link_color": {
+          "label": "Link-Farbe (Content)",
+          "type": "color",
+          "default": "#c0862a",
+          "description": "Textfarbe für Hyperlinks im Content-Bereich"
+        },
+        "link_hover_color": {
+          "label": "Link Hover-Farbe",
+          "type": "color",
+          "default": "#a06b18",
+          "description": "Link-Farbe beim Überfahren mit der Maus"
+        },
+        "category_bar_bg": {
+          "label": "Kategorie-Leiste Hintergrundfarbe",
+          "type": "color",
+          "default": "#f2f1ec",
+          "description": "Hintergrundfarbe der Kategorie-/Menüleiste unter dem Header"
+        },
+        "category_bar_text": {
+          "label": "Kategorie-Leiste Textfarbe",
+          "type": "color",
+          "default": "#3d3d3a",
+          "description": "Textfarbe der Links in der Kategorie-Leiste"
         }
       }
     },
@@ -254,6 +312,48 @@
           "type": "select",
           "default": "700",
           "description": "Schriftgewicht für h1–h6"
+        },
+        "font_family_body": {
+          "label": "Schriftart Fließtext",
+          "type": "select",
+          "default": "dm-sans",
+          "description": "dm-sans = DM Sans, system-ui = System-Schrift, georgia = Georgia, inter = Inter"
+        },
+        "font_family_heading": {
+          "label": "Schriftart Überschriften",
+          "type": "select",
+          "default": "libre-baskerville",
+          "description": "libre-baskerville = Libre Baskerville, georgia = Georgia, playfair-display = Playfair Display, system-ui = System-Schrift"
+        },
+        "letter_spacing_headings": {
+          "label": "Buchstabenabstand Überschriften",
+          "type": "text",
+          "default": "0",
+          "description": "CSS letter-spacing, z.B. -0.02em, 0.05em oder 0"
+        },
+        "h1_size": {
+          "label": "H1 Schriftgröße (px)",
+          "type": "number",
+          "default": 38,
+          "min": 18,
+          "max": 72,
+          "description": "Schriftgröße der H1-Überschrift in Pixeln"
+        },
+        "h2_size": {
+          "label": "H2 Schriftgröße (px)",
+          "type": "number",
+          "default": 28,
+          "min": 14,
+          "max": 60,
+          "description": "Schriftgröße der H2-Überschrift in Pixeln"
+        },
+        "h3_size": {
+          "label": "H3 Schriftgröße (px)",
+          "type": "number",
+          "default": 22,
+          "min": 12,
+          "max": 48,
+          "description": "Schriftgröße der H3-Überschrift in Pixeln"
         }
       }
     },

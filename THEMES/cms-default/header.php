@@ -43,6 +43,13 @@ $flashMsg    = function_exists('theme_get_flash') ? theme_get_flash() : null;
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300;1,9..40,400&family=DM+Mono:wght@400;500&display=swap">
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/themes/cms-default/style.css?v=<?php echo defined('MERIDIAN_THEME_VERSION') ? MERIDIAN_THEME_VERSION : '1.0.0'; ?>">
+    <?php
+    // Theme-Customizer CSS-Variablen direkt nach style.css ausgeben
+    // (überschreibt im Inline-<style> die hardcodierten Defaults in style.css)
+    if (function_exists('meridian_output_custom_styles')) {
+        meridian_output_custom_styles();
+    }
+    ?>
 </head>
 <body class="meridian-theme">
 

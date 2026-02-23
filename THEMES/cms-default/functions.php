@@ -108,73 +108,145 @@ class MeridianCMSDefaultTheme
         try {
             $c = \CMS\Services\ThemeCustomizer::instance();
 
-            $accent       = $c->get('colors', 'accent_color',        '#c0862a');
-            $accentDark   = $c->get('colors', 'accent_dark_color',   '#a06b18');
-            $ink          = $c->get('colors', 'ink_color',           '#1a1a18');
-            $inkSoft      = $c->get('colors', 'ink_soft_color',      '#3d3d3a');
-            $inkMuted     = $c->get('colors', 'ink_muted_color',     '#7a7a74');
-            $ground       = $c->get('colors', 'ground_color',        '#f7f6f2');
-            $surface      = $c->get('colors', 'surface_color',       '#ffffff');
-            $surfaceTint  = $c->get('colors', 'surface_tint_color',  '#f2f1ec');
-            $rule         = $c->get('colors', 'rule_color',          '#e2e0d8');
-            $headerBg     = $c->get('colors', 'header_bg_color',     '#ffffff');
-            $stripe       = $c->get('colors', 'header_stripe_color', '#1a1a18');
-            $footerBg     = $c->get('footer', 'footer_bg_color',     '#1a1a18');
-            $footerText   = $c->get('footer', 'footer_text_color',   '#9a9a94');
-            $footerAccent = $c->get('footer', 'footer_accent_color', '#c0862a');
+            // ── Farben ────────────────────────────────────────────────────────
+            $accent       = (string)$c->get('colors', 'accent_color',        '#c0862a');
+            $accentDark   = (string)$c->get('colors', 'accent_dark_color',   '#a06b18');
+            $ink          = (string)$c->get('colors', 'ink_color',           '#1a1a18');
+            $inkSoft      = (string)$c->get('colors', 'ink_soft_color',      '#3d3d3a');
+            $inkMuted     = (string)$c->get('colors', 'ink_muted_color',     '#7a7a74');
+            $ground       = (string)$c->get('colors', 'ground_color',        '#f7f6f2');
+            $surface      = (string)$c->get('colors', 'surface_color',       '#ffffff');
+            $surfaceTint  = (string)$c->get('colors', 'surface_tint_color',  '#f2f1ec');
+            $rule         = (string)$c->get('colors', 'rule_color',          '#e2e0d8');
+            $headerBg     = (string)$c->get('colors', 'header_bg_color',     '#ffffff');
+            $stripe       = (string)$c->get('colors', 'header_stripe_color', '#1a1a18');
+            $linkColor    = (string)$c->get('colors', 'link_color',          $accent);
+            $linkHover    = (string)$c->get('colors', 'link_hover_color',    $accentDark);
+            $catBarBg     = (string)$c->get('colors', 'category_bar_bg',     '#f2f1ec');
+            $catBarText   = (string)$c->get('colors', 'category_bar_text',   '#3d3d3a');
 
+            // ── Footer ────────────────────────────────────────────────────────
+            $footerBg     = (string)$c->get('footer', 'footer_bg_color',     '#1a1a18');
+            $footerText   = (string)$c->get('footer', 'footer_text_color',   '#9a9a94');
+            $footerAccent = (string)$c->get('footer', 'footer_accent_color', '#c0862a');
+
+            // ── Layout ────────────────────────────────────────────────────────
             $maxWidth     = max(600, (int)$c->get('layout', 'max_width',       1140));
             $colWidth     = max(300, (int)$c->get('layout', 'post_col_width',   680));
-            $borderRadius = max(0, (int)$c->get('layout', 'border_radius',       3));
-            $stickyHeader = (bool)((string)$c->get('layout', 'sticky_header', true) !== '0');
+            $borderRadius = max(0,   (int)$c->get('layout', 'border_radius',     3));
+            $cardGap      = max(4,   (int)$c->get('layout', 'card_gap',          24));
+            $stickyHeader = (string)$c->get('layout', 'sticky_header', '1') !== '0';
 
-            $baseFontSz   = max(10, (int)$c->get('typography', 'font_size_base',  15));
-            $lineHeight   = (float)str_replace(',', '.', (string)$c->get('typography', 'line_height', '1.6'));
-            if ($lineHeight < 1 || $lineHeight > 3) { $lineHeight = 1.6; }
+            // ── Typografie ────────────────────────────────────────────────────
+            $baseFontSz    = max(10, (int)$c->get('typography', 'font_size_base',      15));
+            $lineHeight    = (float)str_replace(',', '.', (string)$c->get('typography', 'line_height', '1.6'));
+            if ($lineHeight < 1.0 || $lineHeight > 3.0) { $lineHeight = 1.6; }
             $headingWeight = (int)$c->get('typography', 'heading_weight', 700);
             if (!in_array($headingWeight, [600, 700, 800, 900])) { $headingWeight = 700; }
+            $fontBody      = (string)$c->get('typography', 'font_family_body',    'dm-sans');
+            $fontHeading   = (string)$c->get('typography', 'font_family_heading', 'libre-baskerville');
+            $lsHeadings    = (string)$c->get('typography', 'letter_spacing_headings', '0');
+            $h1Size        = max(18, (int)$c->get('typography', 'h1_size', 38));
+            $h2Size        = max(14, (int)$c->get('typography', 'h2_size', 28));
+            $h3Size        = max(12, (int)$c->get('typography', 'h3_size', 22));
 
-            $stripeEnabled = (bool)((string)$c->get('header', 'header_stripe_enabled', true) !== '0');
+            // ── Navigation ────────────────────────────────────────────────────
+            $navFontSize   = max(11, (int)$c->get('navigation', 'nav_font_size',     14));
+            $navUppercase  = (string)$c->get('navigation', 'nav_uppercase', '0') !== '0';
+            $navLetterSp   = (string)$c->get('navigation', 'nav_letter_spacing', '0');
 
-            $customCss    = $c->get('advanced', 'custom_css',         '');
+            // ── Header-Streifen ───────────────────────────────────────────────
+            $stripeEnabled = (string)$c->get('header', 'header_stripe_enabled', '1') !== '0';
 
-            // Helper
+            // ── Erweitert ─────────────────────────────────────────────────────
+            $customCss     = (string)$c->get('advanced', 'custom_css', '');
+
+            // ── Schrift-Familien-Mapping ──────────────────────────────────────
+            $fontBodyCss = match($fontBody) {
+                'system-ui'       => 'system-ui, -apple-system, sans-serif',
+                'georgia'         => "'Georgia', serif",
+                'times-new-roman' => "'Times New Roman', Times, serif",
+                'inter'           => "'Inter', system-ui, sans-serif",
+                default           => "'DM Sans', system-ui, sans-serif",
+            };
+            $fontHeadingCss = match($fontHeading) {
+                'georgia'          => "Georgia, serif",
+                'merriweather'     => "'Merriweather', Georgia, serif",
+                'playfair-display' => "'Playfair Display', Georgia, serif",
+                'system-ui'        => "system-ui, -apple-system, sans-serif",
+                default            => "'Libre Baskerville', Georgia, serif",
+            };
+
             $esc = fn(string $v) => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
 
             echo '<style id="meridian-custom-vars">' . "\n";
+
+            // ── CSS Custom Properties (:root) ─────────────────────────────────
             echo ':root {' . "\n";
-            echo '  --accent:           ' . $esc($accent)      . ";\n";
-            echo '  --accent-dark:      ' . $esc($accentDark)  . ";\n";
+            echo '  --accent:           ' . $esc($accent)       . ";\n";
+            echo '  --accent-dark:      ' . $esc($accentDark)   . ";\n";
             echo '  --accent-light:     ' . $this->hexToRgba($accent, 0.08) . ";\n";
             echo '  --accent-mid:       ' . $this->hexToRgba($accent, 0.15) . ";\n";
-            echo '  --ink:              ' . $esc($ink)         . ";\n";
-            echo '  --ink-soft:         ' . $esc($inkSoft)     . ";\n";
-            echo '  --ink-muted:        ' . $esc($inkMuted)    . ";\n";
-            echo '  --ground:           ' . $esc($ground)      . ";\n";
-            echo '  --surface:          ' . $esc($surface)     . ";\n";
-            echo '  --surface-tint:     ' . $esc($surfaceTint) . ";\n";
-            echo '  --rule:             ' . $esc($rule)        . ";\n";
-            echo '  --rule-heavy:       ' . $esc($rule)        . ";\n";
-            echo '  --max:              ' . $maxWidth          . "px;\n";
-            echo '  --col:              ' . $colWidth          . "px;\n";
-            echo '  --r:                ' . $borderRadius      . "px;\n";
+            echo '  --ink:              ' . $esc($ink)          . ";\n";
+            echo '  --ink-soft:         ' . $esc($inkSoft)      . ";\n";
+            echo '  --ink-muted:        ' . $esc($inkMuted)     . ";\n";
+            echo '  --ground:           ' . $esc($ground)       . ";\n";
+            echo '  --surface:          ' . $esc($surface)      . ";\n";
+            echo '  --surface-tint:     ' . $esc($surfaceTint)  . ";\n";
+            echo '  --rule:             ' . $esc($rule)         . ";\n";
+            echo '  --rule-heavy:       ' . $esc($rule)         . ";\n";
+            echo '  --max:              ' . $maxWidth           . "px;\n";
+            echo '  --col:              ' . $colWidth           . "px;\n";
+            echo '  --r:                ' . $borderRadius       . "px;\n";
+            echo '  --font-sans:        ' . $fontBodyCss        . ";\n";
+            echo '  --font-serif:       ' . $fontHeadingCss     . ";\n";
+            echo '  --card-gap:         ' . $cardGap            . "px;\n";
             echo '}' . "\n";
-            echo 'body { font-size: ' . $baseFontSz . 'px; line-height: ' . $lineHeight . "; }\n";
-            echo '.site-header { background: ' . $esc($headerBg) . "; }\n";
-            echo '.site-header::before { height: ' . ($stripeEnabled ? '3px' : '0') . '; background: ' . $esc($stripe) . "; }\n";
+
+            // ── Basis-Elemente ────────────────────────────────────────────────
+            echo 'body { font-size:' . $baseFontSz . 'px; line-height:' . $lineHeight . '; background:' . $esc($ground) . '; color:' . $esc($ink) . "; }\n";
+            echo 'h1,h2,h3,h4,h5,h6 { font-weight:' . $headingWeight . '; letter-spacing:' . $esc($lsHeadings) . "; }\n";
+            echo 'h1 { font-size:' . $h1Size . "px; }\n";
+            echo 'h2 { font-size:' . $h2Size . "px; }\n";
+            echo 'h3 { font-size:' . $h3Size . "px; }\n";
+            // Post-Body-Links separat, damit globaler a:hover nicht Menü/Buttons betrifft
+            echo '.post-body a, .article-content a { color:' . $esc($linkColor) . "; }\n";
+            echo '.post-body a:hover, .article-content a:hover { color:' . $esc($linkHover) . "; }\n";
+
+            // ── Header ────────────────────────────────────────────────────────
+            echo '.site-header { background:' . $esc($headerBg) . "; }\n";
+            echo '.site-header::before { height:' . ($stripeEnabled ? '3px' : '0') . '; background:' . $esc($stripe) . "; }\n";
             if (!$stickyHeader) {
-                echo ".site-header { position: static; }\n";
+                echo ".site-header { position:static !important; top:auto !important; }\n";
             }
-            echo 'h1,h2,h3,h4,h5,h6 { font-weight: ' . $headingWeight . "; }\n";
-            echo 'footer { background: ' . $esc($footerBg) . '; color: ' . $esc($footerText) . "; }\n";
-            echo 'footer a { color: ' . $esc($footerText) . "; }\n";
-            echo 'footer a:hover, .ft-col a:hover { color: ' . $esc($footerAccent) . ' !important; }' . "\n";
+
+            // ── Navigation ────────────────────────────────────────────────────
+            $navTransform = $navUppercase ? 'uppercase' : 'none';
+            echo '.main-nav a, .nav-link { font-size:' . $navFontSize . 'px; text-transform:' . $navTransform . '; letter-spacing:' . $esc($navLetterSp) . "; }\n";
+            echo '.category-bar { background:' . $esc($catBarBg) . "; }\n";
+            echo '.category-bar a, .category-bar .cat-label { color:' . $esc($catBarText) . "; }\n";
+            echo '.category-bar a:hover, .category-bar a.active { color:' . $esc($accent) . "; }\n";
+
+            // ── Karten & Grid ─────────────────────────────────────────────────
+            echo '.card-grid, .articles-grid, .dashboard-grid { gap:' . $cardGap . "px; }\n";
+            echo '.article-row + .article-row { margin-top:' . $cardGap . "px; }\n";
+
+            // ── Footer ────────────────────────────────────────────────────────
+            echo 'footer, .site-footer { background:' . $esc($footerBg) . '; color:' . $esc($footerText) . "; }\n";
+            echo 'footer a, .site-footer a { color:' . $esc($footerText) . "; }\n";
+            echo 'footer a:hover, .site-footer a:hover, .ft-col a:hover { color:' . $esc($footerAccent) . " !important; }\n";
+            echo '.ft-col h4, .footer-col-title { color:' . $esc($footerAccent) . "; }\n";
+            echo '.ft-copyright { color:' . $esc($footerText) . "; opacity:.7; }\n";
+
+            // ── Custom CSS ────────────────────────────────────────────────────
             if ($customCss && trim($customCss) !== '') {
-                echo "\n/* Custom CSS */\n" . $customCss . "\n";
+                echo "\n/* ── Custom CSS (Theme Customizer) ── */\n" . $customCss . "\n";
             }
+
             echo '</style>' . "\n";
+
         } catch (\Throwable $e) {
-            // Customizer nicht verfügbar – Standard-CSS greift
+            error_log('meridian outputCustomStyles error: ' . $e->getMessage());
         }
     }
 
@@ -316,6 +388,15 @@ HTML;
 
 // Theme initialisieren
 MeridianCMSDefaultTheme::instance();
+
+/**
+ * Globaler Wrapper – direkt in header.php o.ä. Templates aufrufbar.
+ * Gibt den <style>-Block mit allen CSS-Variablen aus dem Customizer aus.
+ */
+function meridian_output_custom_styles(): void
+{
+    MeridianCMSDefaultTheme::instance()->outputCustomStyles();
+}
 
 // ─── Template Helper-Funktionen ─────────────────────────────────────────────
 
