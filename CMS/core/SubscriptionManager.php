@@ -44,9 +44,13 @@ class SubscriptionManager
             $this->createTables();
             $cacheDir = ABSPATH . 'cache/';
             if (!is_dir($cacheDir)) {
-                @mkdir($cacheDir, 0755, true);
+                if (!mkdir($cacheDir, 0755, true) && !is_dir($cacheDir)) {
+                    error_log('SubscriptionManager: Cache-Verzeichnis konnte nicht erstellt werden: ' . $cacheDir);
+                }
             }
-            @file_put_contents($flagFile, date('Y-m-d H:i:s'));
+            if (file_put_contents($flagFile, date('Y-m-d H:i:s')) === false) {
+                error_log('SubscriptionManager: Flag-Datei konnte nicht geschrieben werden: ' . $flagFile);
+            }
         }
     }
     

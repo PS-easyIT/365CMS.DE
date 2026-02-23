@@ -285,6 +285,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
         
         <form method="POST" action="">
+            <!-- CSRF-Schutz (C-04) -->
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($GLOBALS['cms_form_guard_csrf'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
             <div class="order-step">
                 <h2 class="h4 mb-4">1. Gewähltes Paket</h2>
                 <div class="plan-summary d-flex justify-content-between align-items-center">

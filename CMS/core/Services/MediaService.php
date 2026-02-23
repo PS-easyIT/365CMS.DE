@@ -350,7 +350,7 @@ class MediaService {
             return new WP_Error('size_limit', 'Datei ist zu groß. Maximum: ' . $settings['max_upload_size']);
         }
 
-        // Check file type
+        // Check file type by extension
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         $allowedGroups = $settings['allowed_types'] ?? ['image', 'document'];
         
@@ -375,6 +375,81 @@ class MediaService {
         
         if (!$isAllowed) {
             return new WP_Error('type_not_allowed', 'Dateityp nicht erlaubt: ' . $ext);
+        }
+
+        // H-23: MIME-Typ per finfo() verifizieren – verhindert MIME-Spoofing via Dateiendung
+        $allowedMimeMap = [
+            'jpg'  => ['image/jpeg'],
+            'jpeg' => ['image/jpeg'],
+            'png'  => ['image/png'],
+            'gif'  => ['image/gif'],
+            'webp' => ['image/webp'],
+            'bmp'  => ['image/bmp', 'image/x-bmp'],
+            'ico'  => ['image/x-icon', 'image/vnd.microsoft.icon'],
+            'svg'  => ['image/svg+xml', 'text/plain', 'text/html'], // Browser-Varianz
+            'mp4'  => ['video/mp4'],
+            'webm' => ['video/webm'],
+            'ogg'  => ['video/ogg', 'audio/ogg', 'application/ogg'],
+            'mov'  => ['video/quicktime'],
+            'avi'  => ['video/avi', 'video/x-msvideo'],
+            'mkv'  => ['video/x-matroska'],
+            'mp3'  => ['audio/mpeg', 'audio/mp3'],
+            'wav'  => ['audio/wav', 'audio/x-wav'],
+            'aac'  => ['audio/aac', 'audio/x-aac'],
+            'flac' => ['audio/flac', 'audio/x-flac'],
+            'm4a'  => ['audio/m4a', 'audio/x-m4a', 'audio/mp4'],
+            'pdf'  => ['application/pdf'],
+            'doc'  => ['application/msword'],
+            'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+            'xls'  => ['application/vnd.ms-excel'],
+            'xlsx' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+            'ppt'  => ['application/vnd.ms-powerpoint'],
+            'pptx' => ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
+            'txt'  => ['text/plain'],
+            'rtf'  => ['text/rtf', 'application/rtf', 'text/richtext'],
+            'csv'  => ['text/csv', 'text/plain', 'application/csv'],
+            'zip'  => ['application/zip', 'application/x-zip-compressed', 'application/x-zip'],
+            'rar'  => ['application/x-rar-compressed', 'application/vnd.rar'],
+            '7z'   => ['application/x-7z-compressed'],
+            'tar'  => ['application/x-tar'],
+            'gz'   => ['application/gzip', 'application/x-gzip'],
+        ];
+
+        if (function_exists('finfo_open') && isset($allowedMimeMap[$ext])) {
+            $finfo    = finfo_open(FILEINFO_MIME_TYPE);
+            $realMime = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+
+            if ($realMime !== false && !in_array($realMime, $allowedMimeMap[$ext], true)) {
+                return new WP_Error(
+                    'mime_mismatch',
+                    sprintf(
+                        'MIME-Typ "%s" passt nicht zur Dateiendung ".%s". Upload abgebrochen.',
+                        $realMime,
+                        $ext
+                    )
+                );
+            }
+        }
+
+        // H-23: PHP-Tag-Scan – verhindert das Einschleusen von PHP-Code in Uploads
+        $textExtensions = ['txt', 'csv', 'rtf', 'svg', 'html', 'htm', 'xml'];
+        if (in_array($ext, $textExtensions, true) || $file['size'] < 512 * 1024) {
+            // Nur bei Text-Dateien oder kleinen Dateien (<512 KB) scannen
+            // M-03: is_readable statt @ – Upload-TmpFile immer lesbar wenn kein Upload-Fehler
+            $content = is_readable($file['tmp_name'])
+                ? file_get_contents($file['tmp_name'], false, null, 0, 65536) // ersten 64 KB prüfen
+                : false;
+            if ($content !== false && (
+                stripos($content, '<?php') !== false ||
+                strpos($content, '<?=')    !== false ||
+                strpos($content, '<%')     !== false   // ASP-Tags (zusätzliche Vorsicht)
+            )) {
+                return new WP_Error(
+                    'php_code_detected',
+                    'Die hochgeladene Datei enthält PHP- oder Server-Code und wurde abgelehnt.'
+                );
+            }
         }
 
         $fullPath = $this->resolvePath($targetPath);
@@ -412,6 +487,18 @@ class MediaService {
 
         if (!move_uploaded_file($file['tmp_name'], $destination)) {
             return new WP_Error('move_failed', 'Failed to move uploaded file');
+        }
+
+        // M-07: Automatische WebP-Konvertierung (wenn aktiviert und GD vorhanden)
+        $settings = $this->getSettings();
+        if (($settings['auto_webp'] ?? false) && in_array($ext, ['jpg', 'jpeg', 'png', 'gif'], true)) {
+            $webpPath = $this->convertToWebP($destination, $ext);
+            if ($webpPath !== null) {
+                // Original nach Konvertierung löschen und WebP als primäre Datei verwenden
+                if (file_exists($destination)) { unlink($destination); } // M-03: kein @
+                $fileName    = pathinfo($fileName, PATHINFO_FILENAME) . '.webp';
+                $destination = $fullPath . DIRECTORY_SEPARATOR . $fileName;
+            }
         }
 
         // Save metadata (uploader, category)
@@ -582,5 +669,53 @@ class MediaService {
         $pow = min($pow, count($units) - 1);
         $bytes /= pow(1024, $pow);
         return round($bytes, 2) . ' ' . $units[$pow];
+    }
+
+    /**
+     * M-07: Konvertiert ein Bild (JPG/PNG/GIF) in WebP und speichert die neue Datei.
+     *
+     * Voraussetzungen: PHP-GD-Extension mit WebP-Support.
+     * Gibt den Pfad zur WebP-Datei zurück oder null bei Fehler/nicht unterstützt.
+     *
+     * @param  string $sourcePath  Absoluter Pfad zur Quelldatei (bereits gespeichert)
+     * @param  string $ext         Dateiendung (jpg|jpeg|png|gif)
+     * @param  int    $quality     WebP-Qualität 0–100 (Standard: 82)
+     * @return string|null         Absoluter Pfad zur .webp-Datei oder null
+     */
+    public function convertToWebP(string $sourcePath, string $ext, int $quality = 82): ?string
+    {
+        if (!function_exists('imagewebp') || !function_exists('imagecreatefromjpeg')) {
+            return null; // GD nicht verfügbar oder ohne WebP-Kompilierung
+        }
+
+        $image = match (strtolower($ext)) {
+            'jpg', 'jpeg' => @imagecreatefromjpeg($sourcePath),
+            'png'         => @imagecreatefrompng($sourcePath),
+            'gif'         => @imagecreatefromgif($sourcePath),
+            default       => null,
+        };
+
+        if ($image === null || $image === false) {
+            return null;
+        }
+
+        // PNG-Transparenz erhalten
+        if (in_array(strtolower($ext), ['png'], true)) {
+            imagepalettetotruecolor($image);
+            imagealphablending($image, true);
+            imagesavealpha($image, true);
+        }
+
+        $webpPath = preg_replace('/\.' . preg_quote($ext, '/') . '$/i', '.webp', $sourcePath);
+
+        if ($webpPath === null || $webpPath === $sourcePath) {
+            imagedestroy($image);
+            return null;
+        }
+
+        $success = imagewebp($image, $webpPath, $quality);
+        imagedestroy($image);
+
+        return $success ? $webpPath : null;
     }
 }

@@ -77,6 +77,13 @@ class Router
         $this->addRoute('GET', '/register', [$this, 'renderRegister']);
         $this->addRoute('POST', '/register', [$this, 'handleRegister']);
         $this->addRoute('GET', '/logout', [$this, 'handleLogout']);
+
+        // H-02: MFA-Routen
+        $this->addRoute('GET',  '/mfa-challenge', [$this, 'renderMfaChallenge']);
+        $this->addRoute('POST', '/mfa-challenge', [$this, 'handleMfaChallenge']);
+        $this->addRoute('GET',  '/mfa-setup',     [$this, 'renderMfaSetup']);
+        $this->addRoute('POST', '/mfa-setup',     [$this, 'handleMfaSetup']);
+        $this->addRoute('POST', '/mfa-disable',   [$this, 'handleMfaDisable']);
         
         // Public Order Page
         $this->addRoute('GET', '/order', [$this, 'renderOrder']);
@@ -190,7 +197,32 @@ class Router
     public function dispatch(): void
     {
         $method = $this->requestMethod;
-        $uri = $this->requestUri;
+        $uri    = $this->requestUri;
+
+        // ── CSRF-Middleware (C-04) ──────────────────────────────────────────────
+        // Deckt alle öffentlichen state-ändernden Routen ab.
+        // Admin / Member / API / Login / Register steuern CSRF eigenständig.
+        $csrfBypassPrefixes = ['/api/', '/admin/', '/member/'];
+        $csrfBypassExact    = ['/login', '/register', '/logout'];
+
+        if (in_array($method, ['POST', 'PUT', 'DELETE', 'PATCH'], true)
+            && !in_array($uri, $csrfBypassExact, true)
+            && !array_reduce($csrfBypassPrefixes, fn($c, $p) => $c || str_starts_with($uri, $p), false)
+        ) {
+            $csrfToken = $_POST['csrf_token'] ?? '';
+            if (!Security::instance()->verifyToken($csrfToken, 'form_guard')) {
+                http_response_code(403);
+                error_log('Router [C-04]: CSRF-Fehlschlag für ' . $method . ' ' . $uri);
+                if ($this->isAjaxRequest()) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'error' => 'CSRF-Sicherheitsüberprüfung fehlgeschlagen.']);
+                } else {
+                    echo '<!DOCTYPE html><html><body><h1>403 Forbidden</h1><p>CSRF-Validierung fehlgeschlagen.</p></body></html>';
+                }
+                exit;
+            }
+        }
+        // ───────────────────────────────────────────────────────────────────────
         
         // Check exact match first
         if (isset($this->routes[$method][$uri])) {
@@ -287,10 +319,216 @@ class Router
         
         if ($result === true) {
             $this->redirect('/member');
+        } elseif ($result === 'MFA_REQUIRED') {
+            // H-02: MFA-Challenge erforderlich – ausstehende User-ID ist bereits in Session
+            $this->redirect('/mfa-challenge');
         } else {
             $_SESSION['error'] = $result;
             $this->redirect('/login');
         }
+    }
+
+    // ── H-02: MFA-Routen ─────────────────────────────────────────────────────
+
+    /**
+     * MFA-Challenge-Seite anzeigen (nach erfolgreichem Passwort-Login).
+     */
+    public function renderMfaChallenge(): void
+    {
+        if (empty($_SESSION['mfa_pending_user_id'])) {
+            $this->redirect('/login');
+            return;
+        }
+        $security  = Security::instance();
+        $csrfToken = $security->generateToken('mfa_challenge');
+        $error     = $_SESSION['error'] ?? null;
+        unset($_SESSION['error']);
+
+        echo '<!DOCTYPE html><html lang="de"><head>'
+            . '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+            . '<title>Zwei-Faktor-Authentifizierung – ' . htmlspecialchars(SITE_NAME) . '</title>'
+            . '<link rel="stylesheet" href="' . SITE_URL . '/assets/css/main.css">'
+            . '</head><body style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f1f5f9;">'
+            . '<div style="background:#fff;padding:2.5rem;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.1);width:100%;max-width:400px;">'
+            . '<h2 style="margin:0 0 0.5rem;font-size:1.375rem;color:#1e293b;">🔐 Zwei-Faktor-Authentifizierung</h2>'
+            . '<p style="color:#64748b;margin:0 0 1.5rem;">Gib den 6-stelligen Code aus deiner Authenticator-App ein.</p>';
+
+        if ($error) {
+            echo '<div style="background:#fee2e2;color:#991b1b;padding:.875rem 1rem;border-radius:8px;margin-bottom:1rem;border-left:4px solid #ef4444;">❌ '
+                . htmlspecialchars($error) . '</div>';
+        }
+
+        echo '<form method="POST" action="/mfa-challenge" autocomplete="off">'
+            . '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($csrfToken) . '">'
+            . '<div style="margin-bottom:1.25rem;">'
+            . '<label style="display:block;font-weight:600;margin-bottom:.5rem;color:#1e293b;">Authenticator-Code</label>'
+            . '<input type="text" name="totp_code" inputmode="numeric" pattern="\d{6}" maxlength="6" required autofocus '
+            . 'style="width:100%;padding:.75rem 1rem;border:2px solid #e2e8f0;border-radius:8px;font-size:1.5rem;letter-spacing:.3em;text-align:center;box-sizing:border-box;" '
+            . 'placeholder="000000">'
+            . '</div>'
+            . '<button type="submit" style="width:100%;padding:.875rem;background:#3b82f6;color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;">✅ Bestätigen</button>'
+            . '</form>'
+            . '<p style="text-align:center;margin-top:1.25rem;"><a href="/login" style="color:#64748b;font-size:.875rem;">← Zurück zum Login</a></p>'
+            . '</div></body></html>';
+    }
+
+    /**
+     * MFA-Challenge auswerten.
+     */
+    public function handleMfaChallenge(): void
+    {
+        $security = Security::instance();
+
+        if (!$security->verifyToken($_POST['csrf_token'] ?? '', 'mfa_challenge')) {
+            $_SESSION['error'] = 'Sicherheitsüberprüfung fehlgeschlagen.';
+            $this->redirect('/mfa-challenge');
+            return;
+        }
+
+        $pendingUserId = (int)($_SESSION['mfa_pending_user_id'] ?? 0);
+        if ($pendingUserId === 0) {
+            $this->redirect('/login');
+            return;
+        }
+
+        $code = trim($_POST['totp_code'] ?? '');
+        if (!Auth::instance()->verifyMfaCode($pendingUserId, $code)) {
+            $_SESSION['error'] = 'Ungültiger oder abgelaufener Code. Bitte erneut versuchen.';
+            $this->redirect('/mfa-challenge');
+            return;
+        }
+
+        // MFA bestanden → echte Session setzen
+        unset($_SESSION['mfa_pending_user_id']);
+        $_SESSION['user_id'] = $pendingUserId;
+        session_regenerate_id(true);
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SECURITY,
+            'login_mfa_success',
+            'Login mit MFA erfolgreich.',
+            'user',
+            $pendingUserId,
+            ['ip' => $security->getClientIp()],
+            'info'
+        );
+
+        $this->redirect('/member');
+    }
+
+    /**
+     * MFA-Einrichtungsseite anzeigen (nur eingeloggte Nutzer).
+     */
+    public function renderMfaSetup(): void
+    {
+        if (!Auth::instance()->isLoggedIn()) {
+            $this->redirect('/login');
+            return;
+        }
+
+        $userId = (int)$_SESSION['user_id'];
+
+        // Falls MFA bereits aktiv → zur Sicherheitsseite weiterleiten
+        if (Auth::instance()->isMfaEnabled($userId)) {
+            $_SESSION['success'] = '2FA ist bereits aktiv.';
+            $this->redirect('/member/security');
+            return;
+        }
+        $auth     = Auth::instance();
+        $security = Security::instance();
+
+        // Setup-Daten erzeugen (Pending-Secret wird in user_meta gespeichert)
+        $setup     = $auth->setupMfaSecret($userId);
+        $csrfToken = $security->generateToken('mfa_setup');
+        $error     = $_SESSION['error'] ?? null;
+        $success   = $_SESSION['success'] ?? null;
+        unset($_SESSION['error'], $_SESSION['success']);
+
+        echo '<!DOCTYPE html><html lang="de"><head>'
+            . '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+            . '<title>2FA einrichten – ' . htmlspecialchars(SITE_NAME) . '</title>'
+            . '<link rel="stylesheet" href="' . SITE_URL . '/assets/css/main.css">'
+            . '</head><body style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f1f5f9;">'
+            . '<div style="background:#fff;padding:2.5rem;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.1);width:100%;max-width:480px;">'
+            . '<h2 style="margin:0 0 0.5rem;font-size:1.375rem;color:#1e293b;">🔐 Zwei-Faktor-Authentifizierung einrichten</h2>'
+            . '<p style="color:#64748b;margin:0 0 1.5rem;">Scanne den QR-Code mit deiner Authenticator-App (z. B. Google Authenticator, Authy) und gib anschließend den 6-stelligen Code ein.</p>';
+
+        if ($error) {
+            echo '<div style="background:#fee2e2;color:#991b1b;padding:.875rem;border-radius:8px;margin-bottom:1rem;border-left:4px solid #ef4444;">❌ '
+                . htmlspecialchars($error) . '</div>';
+        }
+
+        echo '<div style="text-align:center;margin-bottom:1.5rem;">'
+            . '<img src="' . htmlspecialchars($setup['qr_url']) . '" alt="QR-Code für Authenticator" width="200" height="200" style="border:4px solid #e2e8f0;border-radius:8px;">'
+            . '</div>'
+            . '<div style="background:#f8fafc;padding:1rem;border-radius:8px;margin-bottom:1.5rem;font-family:monospace;text-align:center;font-size:1.1rem;letter-spacing:.1em;color:#1e293b;border:1px solid #e2e8f0;">'
+            . htmlspecialchars($setup['secret'])
+            . '</div>'
+            . '<p style="color:#64748b;font-size:.875rem;margin:0 0 1.25rem;">Falls du den QR-Code nicht scannen kannst, gib den obigen Schlüssel manuell in deiner App ein.</p>'
+            . '<form method="POST" action="/mfa-setup">'
+            . '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($csrfToken) . '">'
+            . '<div style="margin-bottom:1.25rem;">'
+            . '<label style="display:block;font-weight:600;margin-bottom:.5rem;color:#1e293b;">Bestätigungscode aus der App</label>'
+            . '<input type="text" name="totp_code" inputmode="numeric" pattern="\d{6}" maxlength="6" required autofocus '
+            . 'style="width:100%;padding:.75rem 1rem;border:2px solid #e2e8f0;border-radius:8px;font-size:1.5rem;letter-spacing:.3em;text-align:center;box-sizing:border-box;" '
+            . 'placeholder="000000">'
+            . '</div>'
+            . '<button type="submit" style="width:100%;padding:.875rem;background:#3b82f6;color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;">✅ 2FA aktivieren</button>'
+            . '</form>'
+            . '<p style="text-align:center;margin-top:1.25rem;"><a href="/member/security" style="color:#64748b;font-size:.875rem;">← Zurück zur Sicherheitsseite</a></p>'
+            . '</div></body></html>';
+    }
+
+    /**
+     * MFA-Einrichtung bestätigen (ersten Code verifizieren → aktivieren).
+     */
+    public function handleMfaSetup(): void
+    {
+        if (!Auth::instance()->isLoggedIn()) {
+            $this->redirect('/login');
+            return;
+        }
+
+        $security = Security::instance();
+        if (!$security->verifyToken($_POST['csrf_token'] ?? '', 'mfa_setup')) {
+            $_SESSION['error'] = 'Sicherheitsüberprüfung fehlgeschlagen.';
+            $this->redirect('/mfa-setup');
+            return;
+        }
+
+        $userId = (int)$_SESSION['user_id'];
+        $code   = trim($_POST['totp_code'] ?? '');
+
+        if (!Auth::instance()->confirmMfaSetup($userId, $code)) {
+            $_SESSION['error'] = 'Ungültiger Code. Bitte erneut scannen und Code eingeben.';
+            $this->redirect('/mfa-setup');
+            return;
+        }
+
+        $_SESSION['success'] = '2FA wurde erfolgreich aktiviert.';
+        $this->redirect('/member/security');
+    }
+
+    /**
+     * MFA deaktivieren (nur eingeloggte Nutzer, mit CSRF-Schutz).
+     */
+    public function handleMfaDisable(): void
+    {
+        if (!Auth::instance()->isLoggedIn()) {
+            $this->redirect('/login');
+            return;
+        }
+
+        $security = Security::instance();
+        if (!$security->verifyToken($_POST['csrf_token'] ?? '', 'mfa_disable')) {
+            $_SESSION['error'] = 'Sicherheitsüberprüfung fehlgeschlagen.';
+            $this->redirect('/member/security');
+            return;
+        }
+
+        Auth::instance()->disableMfa((int)$_SESSION['user_id']);
+        $_SESSION['success'] = '2FA wurde deaktiviert.';
+        $this->redirect('/member/security');
     }
     
     /**
@@ -340,10 +578,22 @@ class Router
     }
     
     /**
+     * Erkennt AJAX-Anfragen (X-Requested-With-Header)
+     */
+    private function isAjaxRequest(): bool
+    {
+        return !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
+            && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+    }
+
+    /**
      * Render order page
      */
     public function renderOrder(): void
     {
+        // CSRF-Token für das Order-Formular generieren (C-04)
+        $GLOBALS['cms_form_guard_csrf'] = Security::instance()->generateToken('form_guard');
+
         // Public access allowed, logic handled in view/controller
         $file = ABSPATH . 'member/order_public.php';
         if (file_exists($file)) {

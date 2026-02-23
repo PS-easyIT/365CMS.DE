@@ -213,6 +213,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// AUTO-CLEANUP: Abgelaufene Sperren lautlos entfernen (läuft bei jeder Ansicht)
+// ═══════════════════════════════════════════════════════════════════════════
+try {
+    $db->execute(
+        "DELETE FROM {$prefix}blocked_ips WHERE permanent = 0 AND expires_at IS NOT NULL AND expires_at < NOW()"
+    );
+} catch (\Throwable $ignored) { /* Nicht-kritische Hintergrundaufgabe */ }
+
+// ═══════════════════════════════════════════════════════════════════════════
 // DATEN für Anzeige
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -702,8 +711,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
                                         <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
                                         <input type="hidden" name="fw_action" value="unblock_ip">
                                         <input type="hidden" name="unblock_ip" value="<?php echo htmlspecialchars($bip->ip_address, ENT_QUOTES); ?>">
-                                        <button type="submit" class="btn btn-sm btn-secondary"
-                                                onclick="return confirm('IP <?php echo htmlspecialchars($bip->ip_address, ENT_QUOTES); ?> entsperren?')">
+                                        <button type="submit" class="btn btn-sm btn-secondary fw-confirm-btn"
+                                                data-msg="IP <?php echo htmlspecialchars($bip->ip_address, ENT_ATTR); ?> entsperren?">
                                             🔓 Entsperren
                                         </button>
                                     </form>
@@ -741,8 +750,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     <form method="POST">
                         <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
                         <input type="hidden" name="fw_action" value="clear_logs">
-                        <button type="submit" class="btn btn-sm btn-danger"
-                                onclick="return confirm('Logs älter als <?php echo htmlspecialchars($fwSettings['log_retention_days']); ?> Tage löschen?')">
+                        <button type="submit" class="btn btn-sm btn-danger fw-confirm-btn"
+                                data-msg="Logs älter als <?php echo (int)$fwSettings['log_retention_days']; ?> Tage löschen? Diese Aktion kann nicht rückgängig gemacht werden.">
                             🗑️ Alte Logs löschen
                         </button>
                     </form>
@@ -919,5 +928,58 @@ require_once __DIR__ . '/partials/admin-menu.php';
     </div><!-- /.admin-content -->
 
     <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
+    <script>
+    // ── Firewall: Bestätigungs-Modal (ersetzt window.confirm) ──
+    (function () {
+        // Modal HTML einmalig erzeugen
+        const modal = document.createElement('div');
+        modal.id = 'fw-confirm-modal';
+        modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;align-items:center;justify-content:center;';
+        modal.innerHTML = `
+            <div style="background:#fff;border-radius:10px;padding:2rem;max-width:440px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.2);">
+                <h3 style="margin:0 0 1rem;font-size:1.05rem;color:#1e293b;">⚠️ Bestätigung erforderlich</h3>
+                <p id="fw-confirm-msg" style="color:#475569;margin:0 0 1.5rem;"></p>
+                <div style="display:flex;gap:.75rem;justify-content:flex-end;">
+                    <button id="fw-confirm-cancel" class="btn btn-secondary" type="button">Abbrechen</button>
+                    <button id="fw-confirm-ok"     class="btn btn-danger"    type="button">Bestätigen</button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+
+        let pendingForm = null;
+
+        function openModal(msg, form) {
+            document.getElementById('fw-confirm-msg').textContent = msg;
+            pendingForm = form;
+            modal.style.display = 'flex';
+        }
+        function closeModal() {
+            modal.style.display = 'none';
+            pendingForm = null;
+        }
+
+        document.getElementById('fw-confirm-cancel').addEventListener('click', closeModal);
+        modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+        document.getElementById('fw-confirm-ok').addEventListener('click', function () {
+            if (pendingForm) {
+                pendingForm.removeEventListener('submit', preventDefault);
+                pendingForm.submit();
+            }
+            closeModal();
+        });
+
+        function preventDefault(e) { e.preventDefault(); }
+
+        // Alle Buttons mit .fw-confirm-btn abfangen
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.fw-confirm-btn');
+            if (!btn) return;
+            e.preventDefault();
+            const form = btn.closest('form');
+            if (!form) return;
+            openModal(btn.dataset.msg || 'Aktion wirklich ausführen?', form);
+        });
+    })();
+    </script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * PSR-4 Autoloader für 365CMS
  * 

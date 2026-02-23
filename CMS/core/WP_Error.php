@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * WP_Error Class - Simple Error Handling
  * 

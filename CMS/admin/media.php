@@ -29,17 +29,19 @@ if (!Auth::instance()->isAdmin()) {
 }
 
 $auth = Auth::instance();
+$security = Security::instance();
 $mediaService = new MediaService();
 
 // Handle AJAX Requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    
-    // Verify Request (Nonce verification should be added here ideally)
-    // if (!Security::verifyNonce($_POST['nonce'], 'media_action')) {
-    //     wp_send_json_error('Invalid nonce');
-    // }
 
     header('Content-Type: application/json');
+
+    // CSRF-Schutz reaktiviert (Fix C-13) – Token-Verifikation VOR generateToken()
+    if (!$security->verifyToken($_POST['csrf_token'] ?? '', 'media_action')) {
+        echo json_encode(['success' => false, 'error' => 'Sicherheitsüberprüfung fehlgeschlagen']);
+        exit;
+    }
     $action = $_POST['action'];
     $currentPath = $_POST['path'] ?? '';
 
@@ -205,6 +207,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     exit;
 }
 
+// CSRF-Token für die Seite generieren (GET-Anfragen / Seitenaufruf)
+$mediaCsrfToken = $security->generateToken('media_action');
+
 // Extract active tab to determine initial filter
 $activeTab = $_GET['tab'] ?? 'all';
 $initialFilter = 'all';
@@ -247,6 +252,19 @@ $categories = $mediaService->getCategories();
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222c">
     <?php renderAdminSidebarStyles(); ?>
+    <script>
+        // CSRF-Token für alle Media-AJAX-Aufrufe (Fix C-13)
+        const CMS_MEDIA_NONCE = '<?php echo htmlspecialchars($mediaCsrfToken, ENT_QUOTES, 'UTF-8'); ?>';
+        /**
+         * CSRF-sicherer fetch-Wrapper: hängt das CSRF-Token an jede FormData an
+         * @param {FormData} formData
+         * @returns {Promise<Response>}
+         */
+        async function cmsPost(formData) {
+            formData.append('csrf_token', CMS_MEDIA_NONCE);
+            return fetch('', { method: 'POST', body: formData });
+        }
+    </script>
 </head>
 <body class="admin-body">
     
@@ -652,7 +670,7 @@ $categories = $mediaService->getCategories();
                     status.innerHTML = '';
 
                     try {
-                        const response = await fetch('', { method: 'POST', body: formData });
+                        const response = await cmsPost(formData);
                         const result   = await response.json();
 
                         if (result.success) {
@@ -747,7 +765,7 @@ $categories = $mediaService->getCategories();
                     formData.append('action', 'add_category');
                     formData.append('name', name);
 
-                    const response = await fetch('', { method: 'POST', body: formData });
+                    const response = await cmsPost(formData);
                     const result = await response.json();
 
                     if (result.success) {
@@ -764,7 +782,7 @@ $categories = $mediaService->getCategories();
                     formData.append('action', 'delete_category');
                     formData.append('slug', slug);
 
-                    const response = await fetch('', { method: 'POST', body: formData });
+                    const response = await cmsPost(formData);
                     if ((await response.json()).success) {
                         location.reload();
                     }
@@ -943,10 +961,7 @@ $categories = $mediaService->getCategories();
                     formData.append('path', path);
 
                     try {
-                        const response = await fetch('', {
-                            method: 'POST',
-                            body: formData
-                        });
+                        const response = await cmsPost(formData);
                         const result = await response.json();
                         
                         if (result.success) {
@@ -1136,7 +1151,7 @@ $categories = $mediaService->getCategories();
                     formData.append('file_path', filePath);
                     formData.append('slug', slug);
                     
-                    const response = await fetch('', { method: 'POST', body: formData });
+                    const response = await cmsPost(formData);
                     const result = await response.json();
                     
                     if (result.success) {
@@ -1214,7 +1229,7 @@ $categories = $mediaService->getCategories();
                     formData.append('name', name);
                     formData.append('path', currentPath);
 
-                    const response = await fetch('', { method: 'POST', body: formData });
+                    const response = await cmsPost(formData);
                     const result = await response.json();
 
                     if (result.success) {
@@ -1243,7 +1258,7 @@ $categories = $mediaService->getCategories();
                         formData.append('path', currentPath);
 
                         try {
-                            const response = await fetch('', { method: 'POST', body: formData });
+                            const response = await cmsPost(formData);
                             const result = await response.json();
                             if (!result.success) {
                                 errors.push(file.name + ': ' + result.error);
@@ -1272,7 +1287,7 @@ $categories = $mediaService->getCategories();
                     formData.append('item_path', path);
 
                     try {
-                        const response = await fetch('', { method: 'POST', body: formData });
+                        const response = await cmsPost(formData);
                         const result = await response.json();
                         if (result.success) loadPath(currentPath);
                         else alert('Fehler: ' + result.error);
@@ -1300,7 +1315,7 @@ $categories = $mediaService->getCategories();
                     formData.append('new_name', newName);
 
                     try {
-                        const response = await fetch('', { method: 'POST', body: formData });
+                        const response = await cmsPost(formData);
                         const result = await response.json();
                         if (result.success) {
                             closeModal('rename-modal');

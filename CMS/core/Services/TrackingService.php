@@ -75,6 +75,9 @@ class TrackingService
     
     /**
      * Track page view
+     *
+     * Requires analytics consent (DSGVO/GDPR).
+     * Always stores anonymised IP – last octet (IPv4) or last 80 bits (IPv6) zeroed.
      */
     public function trackPageView(
         ?int $pageId,
@@ -82,21 +85,79 @@ class TrackingService
         string $pageTitle,
         ?int $userId = null
     ): bool {
+        // DSGVO: only track when the visitor has given explicit consent
+        if (!self::hasAnalyticsConsent()) {
+            return false;
+        }
+
         try {
             return $this->db->insert('page_views', [
-                'page_id' => $pageId,
-                'page_slug' => $pageSlug,
+                'page_id'    => $pageId,
+                'page_slug'  => $pageSlug,
                 'page_title' => $pageTitle,
-                'user_id' => $userId,
+                'user_id'    => $userId,
                 'session_id' => session_id(),
-                'ip_address' => $_SERVER['REMOTE_ADDR'] ?? '',
+                'ip_address' => self::anonymizeIp($_SERVER['REMOTE_ADDR'] ?? ''),
                 'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? '',
-                'referrer' => $_SERVER['HTTP_REFERER'] ?? '',
+                'referrer'   => $_SERVER['HTTP_REFERER'] ?? '',
             ]) !== false;
         } catch (\Exception $e) {
             error_log('TrackingService::trackPageView() Error: ' . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Check whether the current visitor has given analytics consent.
+     *
+     * Consent is stored in $_SESSION['analytics_consent'] (bool true).
+     * Logged-in users always count as consented (they accepted the T&C).
+     */
+    public static function hasAnalyticsConsent(): bool
+    {
+        // Logged-in users implicitly consented via registration T&C
+        if (isset($_SESSION['user_id']) && (int)$_SESSION['user_id'] > 0) {
+            return true;
+        }
+        return !empty($_SESSION['analytics_consent']);
+    }
+
+    /**
+     * Anonymise an IP address for DSGVO compliance.
+     *
+     * IPv4: last octet set to 0   (192.168.1.100 → 192.168.1.0)
+     * IPv6: last 80 bits zeroed   (2001:db8::1   → 2001:db8::)
+     * Returns empty string for invalid / empty input.
+     */
+    public static function anonymizeIp(string $ip): string
+    {
+        if ($ip === '') {
+            return '';
+        }
+
+        // Detect proxy chain and use leftmost trusted IP
+        if (str_contains($ip, ',')) {
+            $ip = trim(explode(',', $ip)[0]);
+        }
+
+        // IPv6
+        if (str_contains($ip, ':')) {
+            $binary = inet_pton($ip);
+            if ($binary === false) {
+                return '';
+            }
+            // Keep first 48 bits (6 bytes), zero remaining 10 bytes
+            $anonymized = substr($binary, 0, 6) . str_repeat("\x00", 10);
+            return inet_ntop($anonymized) ?: '';
+        }
+
+        // IPv4
+        $parts = explode('.', $ip);
+        if (count($parts) !== 4) {
+            return '';
+        }
+        $parts[3] = '0';
+        return implode('.', $parts);
     }
     
     /**

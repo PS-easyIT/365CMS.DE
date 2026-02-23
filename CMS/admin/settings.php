@@ -46,21 +46,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     } else {
         if ($_POST['action'] === 'save_settings') {
             try {
-                // Save general settings
+                // H-24: Alle $_POST-Eingaben sanitieren vor Weiterverarbeitung
+                $allowedRoles = ['admin', 'editor', 'author', 'member', 'subscriber'];
+                $allowedTimezones = \DateTimeZone::listIdentifiers();
+                $defaultRole = in_array($_POST['default_role'] ?? '', $allowedRoles, true)
+                    ? $_POST['default_role']
+                    : 'subscriber';
+                $timezone = in_array($_POST['timezone'] ?? '', $allowedTimezones, true)
+                    ? $_POST['timezone']
+                    : 'Europe/Berlin';
+
                 $settings = [
-                    'site_name' => $_POST['site_name'] ?? SITE_NAME,
-                    'site_description' => $_POST['site_description'] ?? '',
-                    'admin_email' => $_POST['admin_email'] ?? ADMIN_EMAIL,
+                    'site_name'        => Security::sanitize($_POST['site_name'] ?? SITE_NAME),
+                    'site_description' => Security::sanitize($_POST['site_description'] ?? ''),
+                    'admin_email'      => Security::sanitize($_POST['admin_email'] ?? ADMIN_EMAIL, 'email'),
                     'maintenance_mode' => isset($_POST['maintenance_mode']) ? '1' : '0',
                     'allow_registration' => isset($_POST['allow_registration']) ? '1' : '0',
-                    'default_role' => $_POST['default_role'] ?? 'subscriber',
-                    'posts_per_page' => intval($_POST['posts_per_page'] ?? 10),
-                    'home_page_id' => intval($_POST['home_page_id'] ?? 0),
-                    'timezone' => $_POST['timezone'] ?? 'Europe/Berlin',
-                    'date_format' => $_POST['date_format'] ?? 'd.m.Y',
-                    'time_format' => $_POST['time_format'] ?? 'H:i',
-                    'legal_page_id' => intval($_POST['legal_page_id'] ?? 0),
-                    'privacy_page_id' => intval($_POST['privacy_page_id'] ?? 0),
+                    'default_role'     => $defaultRole,
+                    'posts_per_page'   => max(1, min(100, intval($_POST['posts_per_page'] ?? 10))),
+                    'home_page_id'     => intval($_POST['home_page_id'] ?? 0),
+                    'timezone'         => $timezone,
+                    'date_format'      => Security::sanitize($_POST['date_format'] ?? 'd.m.Y'),
+                    'time_format'      => Security::sanitize($_POST['time_format'] ?? 'H:i'),
+                    'legal_page_id'    => intval($_POST['legal_page_id'] ?? 0),
+                    'privacy_page_id'  => intval($_POST['privacy_page_id'] ?? 0),
                 ];
                 
                 // Save each setting to database

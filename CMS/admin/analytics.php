@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Analytics Admin Page
  * 

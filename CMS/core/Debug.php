@@ -80,7 +80,10 @@ class Debug {
         
         // Verzeichnis anlegen falls nicht vorhanden
         if (!is_dir($logDir)) {
-            @mkdir($logDir, 0750, true);
+            if (!mkdir($logDir, 0750, true) && !is_dir($logDir)) {
+                // Kein error_log hier um Rekursion zu vermeiden
+                return;
+            }
         }
         
         $logFile = $logDir . '/debug-' . date('Y-m-d') . '.log';
