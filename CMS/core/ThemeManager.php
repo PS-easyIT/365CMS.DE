@@ -20,7 +20,8 @@ class ThemeManager
     private static ?self $instance = null;
     private string $activeTheme;
     private string $themePath;
-    private array $settings = [];
+    /** @var array<string,string>|null  null = noch nicht geladen (H-22 Lazy Loading) */
+    private ?array $settings = null;
     
     /**
      * Singleton instance
@@ -39,24 +40,57 @@ class ThemeManager
     private function __construct()
     {
         $this->activeTheme = $this->getActiveTheme();
-        $this->themePath = THEME_PATH . $this->activeTheme . '/';
-        
-        // Load settings
-        $db = Database::instance();
-        $stmt = $db->query("SELECT option_name, option_value FROM {$db->getPrefix()}settings WHERE option_name LIKE 'color_%' OR option_name LIKE 'font_%' OR option_name LIKE 'site_%'");
-        while ($row = $stmt->fetch(\PDO::FETCH_OBJ)) {
-            $this->settings[$row->option_name] = $row->option_value;
-        }
-        
+        $this->themePath   = THEME_PATH . $this->activeTheme . '/';
+
+        // H-22: DB-Zugriff auf Lazy Loading verschoben → kein DB-Query bei jeder Instanziierung.
+        // Settings werden erst in loadSettings() beim ersten echten Zugriff geladen.
+
         // Hooks
         Hooks::addAction('head', [$this, 'renderCustomStyles']);
+    }
+
+    /**
+     * H-22: Lädt Theme-Settings aus der DB beim ersten Zugriff (Lazy Loading).
+     * Wird intern immer aufgerufen bevor $this->settings gelesen wird.
+     */
+    private function loadSettings(): void
+    {
+        if ($this->settings !== null) {
+            return; // bereits geladen
+        }
+
+        $this->settings = [];
+
+        try {
+            $db   = Database::instance();
+            $stmt = $db->query(
+                "SELECT option_name, option_value FROM {$db->getPrefix()}settings"
+                . " WHERE option_name LIKE 'color_%' OR option_name LIKE 'font_%' OR option_name LIKE 'site_%'"
+            );
+            while ($row = $stmt->fetch(\PDO::FETCH_OBJ)) {
+                $this->settings[$row->option_name] = $row->option_value;
+            }
+        } catch (\Exception $e) {
+            error_log('ThemeManager::loadSettings() Error: ' . $e->getMessage());
+        }
     }
     
     /**
      * Load theme
+     *
+     * C-14: realpath()-Guard stellt sicher, dass das Theme-Verzeichnis
+     * wirklich innerhalb von THEME_PATH liegt (Path-Traversal-Schutz).
+     * H-21: Rollback auf DEFAULT_THEME bei Ladefehler.
      */
     public function loadTheme(): void
     {
+        // C-14: Pfad-Validierung
+        if (!$this->validateThemePath($this->themePath)) {
+            error_log('ThemeManager: Ungültiger Theme-Pfad abgewiesen: ' . $this->themePath);
+            $this->rollbackToDefaultTheme('Ungültiger Theme-Pfad');
+            return;
+        }
+
         // Sync ThemeCustomizer to the active theme (before loading functions.php)
         if (class_exists(\CMS\Services\ThemeCustomizer::class)) {
             \CMS\Services\ThemeCustomizer::instance()->setTheme($this->activeTheme);
@@ -65,19 +99,149 @@ class ThemeManager
         // Load theme functions
         $functionsFile = $this->themePath . 'functions.php';
         if (file_exists($functionsFile)) {
-            require_once $functionsFile;
+            // C-14: Gefährliche Funktionsaufrufe im Theme scannen
+            if ($this->hasUnsafeCode($functionsFile)) {
+                error_log('ThemeManager: Theme "' . $this->activeTheme . '" enthält unsichere Funktionsaufrufe und wird nicht geladen.');
+                $this->rollbackToDefaultTheme('Unsicherer Code in functions.php');
+                return;
+            }
+
+            try {
+                require_once $functionsFile;
+            } catch (\Throwable $e) {
+                error_log('ThemeManager: functions.php des Themes "' . $this->activeTheme . '" verursachte einen Fehler: ' . $e->getMessage());
+                $this->rollbackToDefaultTheme('Laufzeitfehler in functions.php: ' . $e->getMessage());
+                return;
+            }
         }
-        
+
         Hooks::doAction('theme_loaded', $this->activeTheme);
     }
-    
+
+    /**
+     * C-14: Verifiziert, dass $path wirklich innerhalb von THEME_PATH liegt.
+     * Verhindert Path-Traversal-Angriffe (z. B. ../../etc/).
+     */
+    private function validateThemePath(string $path): bool
+    {
+        $realThemePath = realpath(THEME_PATH);
+        $realPath      = realpath($path);
+
+        if ($realThemePath === false || $realPath === false) {
+            return false;
+        }
+
+        // Pfad muss mit dem erlaubten Basisverzeichnis beginnen
+        return str_starts_with($realPath . DIRECTORY_SEPARATOR, $realThemePath . DIRECTORY_SEPARATOR);
+    }
+
+    /**
+     * C-14: Einfacher Scan auf gefährliche PHP-Funktionen in einer Theme-Datei.
+     * Gibt true zurück wenn unsicherer Code gefunden wurde.
+     */
+    private function hasUnsafeCode(string $file): bool
+    {
+        $dangerousFunctions = [
+            'eval', 'exec', 'system', 'shell_exec',
+            'passthru', 'proc_open', 'popen',
+            'base64_decode', // häufig für verschleierten Code genutzt
+        ];
+
+        $content = is_file($file) ? file_get_contents($file) : false; // M-03: kein @
+        if ($content === false) {
+            return false;
+        }
+
+        try {
+            $tokens = token_get_all($content, TOKEN_PARSE);
+        } catch (\ParseError $e) {
+            error_log('ThemeManager::hasUnsafeCode() Parse-Fehler in ' . $file . ': ' . $e->getMessage());
+            return true; // Syntaxfehler = trotzdem ablehnen
+        }
+
+        foreach ($tokens as $token) {
+            if (is_array($token) && $token[0] === T_STRING) {
+                if (in_array(strtolower($token[1]), $dangerousFunctions, true)) {
+                    error_log('ThemeManager: Gefährliche Funktion "' . $token[1] . '" in ' . $file . ' gefunden.');
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * H-21: Rollback auf DEFAULT_THEME bei einem Ladefehler des aktiven Themes.
+     *
+     * Wird von loadTheme() aufgerufen wenn das Theme nicht sicher geladen werden kann.
+     * Schreibt DEFAULT_THEME in die DB und setzt $this->activeTheme + $this->themePath
+     * zurück, sodass nachfolgende Render-Aufrufe noch funktionieren.
+     */
+    private function rollbackToDefaultTheme(string $reason = ''): void
+    {
+        $default = DEFAULT_THEME;
+
+        // Nicht in eine Endlosschleife laufen wenn das Default-Theme selbst defekt ist
+        if ($this->activeTheme === $default) {
+            error_log('ThemeManager: Rollback abgebrochen – DEFAULT_THEME "' . $default . '" ist selbst fehlerhaft. Grund: ' . $reason);
+            return;
+        }
+
+        error_log(sprintf(
+            'ThemeManager [H-21]: Theme "%s" fehlerhaft (%s) – Rollback auf DEFAULT_THEME "%s".',
+            $this->activeTheme,
+            $reason,
+            $default
+        ));
+
+        // Audit-Log
+        if (class_exists(AuditLogger::class)) {
+            AuditLogger::instance()->log(
+                'theme',
+                'theme.rollback',
+                sprintf('Theme "%s" automatisch auf DEFAULT_THEME "%s" zurückgesetzt. Grund: %s', $this->activeTheme, $default, $reason),
+                'theme',
+                null,
+                ['from' => $this->activeTheme, 'to' => $default, 'reason' => $reason],
+                'warning'
+            );
+        }
+
+        // DB-Eintrag aktualisieren
+        try {
+            $db    = Database::instance();
+            $check = $db->prepare("SELECT COUNT(*) AS cnt FROM {$db->getPrefix()}settings WHERE option_name = 'active_theme'");
+            $check->execute();
+            $result = $check->fetch();
+
+            if ($result && (int)$result->cnt > 0) {
+                $db->execute(
+                    "UPDATE {$db->getPrefix()}settings SET option_value = ? WHERE option_name = 'active_theme'",
+                    [$default]
+                );
+            } else {
+                $db->execute(
+                    "INSERT INTO {$db->getPrefix()}settings (option_name, option_value) VALUES ('active_theme', ?)",
+                    [$default]
+                );
+            }
+        } catch (\Exception $e) {
+            error_log('ThemeManager::rollbackToDefaultTheme() DB-Fehler: ' . $e->getMessage());
+        }
+
+        // Runtime-Zustand aktualisieren
+        $this->activeTheme = $default;
+        $this->themePath   = THEME_PATH . $default . '/';
+    }
+
     /**
      * Render template
      */
     public function render(string $template, array $data = []): void
     {
-        // Extract data for template
-        extract($data);
+        // Extract data for template – EXTR_SKIP verhindert das Überschreiben existierender Variablen (LFI-Schutz)
+        extract($data, EXTR_SKIP);
         
         // Allow plugins to modify template
         $template = Hooks::applyFilters('template_name', $template);
@@ -314,6 +478,9 @@ class ThemeManager
     
     /**
      * Switch theme
+     *
+     * C-15: Audit-Log für Theme-Wechsel
+     * H-20: Gesundheitscheck vor dem Aktivieren
      */
     public function switchTheme(string $theme): bool|string
     {
@@ -321,6 +488,13 @@ class ThemeManager
 
         if (!file_exists($themeFile)) {
             return 'Theme nicht gefunden.';
+        }
+
+        // H-20: Gesundheitscheck (Pflichtdateien + Syntax aller PHP-Dateien)
+        $healthResult = $this->healthCheckTheme($theme);
+        if ($healthResult !== true) {
+            error_log('ThemeManager::switchTheme() Health-Check fehlgeschlagen für "' . $theme . '": ' . $healthResult);
+            return 'Theme-Gesundheitscheck fehlgeschlagen: ' . $healthResult;
         }
 
         try {
@@ -342,11 +516,72 @@ class ThemeManager
                 );
             }
 
+            // C-15: Theme-Wechsel protokollieren
+            AuditLogger::instance()->themeSwitch($this->activeTheme, $theme);
+
             return true;
         } catch (\Exception $e) {
             error_log('ThemeManager::switchTheme() Error: ' . $e->getMessage());
             return 'Fehler beim Wechseln des Themes.';
         }
+    }
+
+    /**
+     * H-20: Gesundheitscheck für ein Theme vor der Aktivierung.
+     *
+     * Prüft:
+     *   1. style.css vorhanden (Pflicht)
+     *   2. Mindestens eine Template-Datei (index.php oder functions.php)
+     *   3. PHP-Syntaxprüfung aller .php-Dateien via token_get_all()
+     *
+     * @return true|string  true = gesund, string = Fehlerbeschreibung
+     */
+    public function healthCheckTheme(string $theme): bool|string
+    {
+        $themeDir = THEME_PATH . basename($theme) . '/';
+
+        // 1. style.css Pflicht
+        if (!file_exists($themeDir . 'style.css')) {
+            return 'Pflichtdatei style.css fehlt.';
+        }
+
+        // 2. Mindestens eine Template-Datei
+        $hasTemplate = file_exists($themeDir . 'index.php') || file_exists($themeDir . 'functions.php');
+        if (!$hasTemplate) {
+            return 'Keine Template-Datei gefunden (index.php oder functions.php erforderlich).';
+        }
+
+        // 3. PHP-Syntaxprüfung aller .php-Dateien
+        if (!is_dir($themeDir)) {
+            return 'Theme-Verzeichnis nicht gefunden.';
+        }
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($themeDir, \FilesystemIterator::SKIP_DOTS)
+        );
+
+        foreach ($iterator as $file) {
+            if ($file->getExtension() !== 'php') {
+                continue;
+            }
+
+            // M-03: is_readable statt @ für lesbare Dateien prüfen
+            $content = (is_file($file->getPathname()) && is_readable($file->getPathname()))
+                ? file_get_contents($file->getPathname())
+                : false;
+            if ($content === false) {
+                continue;
+            }
+
+            try {
+                token_get_all($content, TOKEN_PARSE);
+            } catch (\ParseError $e) {
+                $relPath = str_replace($themeDir, '', $file->getPathname());
+                return sprintf('PHP-Syntaxfehler in %s: %s', $relPath, $e->getMessage());
+            }
+        }
+
+        return true;
     }
     
     /**
@@ -359,6 +594,8 @@ class ThemeManager
 
     /**
      * Delete a theme (only non-active, only if at least 2 themes exist)
+     *
+     * C-15: Audit-Log für Theme-Löschung
      */
     public function deleteTheme(string $folder): bool|string
     {
@@ -379,6 +616,10 @@ class ThemeManager
 
         try {
             $this->deleteDirectory($themeDir);
+
+            // C-15: Theme-Löschung protokollieren
+            AuditLogger::instance()->themeDelete($folder);
+
             return true;
         } catch (\Throwable $e) {
             error_log('ThemeManager::deleteTheme() Error: ' . $e->getMessage());
@@ -418,6 +659,7 @@ class ThemeManager
      */
     public function getSiteTitle(): string
     {
+        $this->loadSettings(); // H-22
         return $this->settings['site_title'] ?? SITE_NAME;
     }
 
@@ -426,6 +668,7 @@ class ThemeManager
      */
     public function getSiteDescription(): string
     {
+        $this->loadSettings(); // H-22
         return $this->settings['site_description'] ?? '';
     }
 
@@ -434,6 +677,7 @@ class ThemeManager
      */
     public function getSiteMenu(): array
     {
+        $this->loadSettings(); // H-22
         if (isset($this->settings['site_menu'])) {
             return json_decode($this->settings['site_menu'], true) ?: [];
         }
@@ -567,6 +811,8 @@ class ThemeManager
      */
     public function renderCustomStyles(): void
     {
+        $this->loadSettings(); // H-22
+
         if (empty($this->settings)) {
             return;
         }

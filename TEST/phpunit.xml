@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+<<<<<<< HEAD
          bootstrap="bootstrap.php"
+=======
+         bootstrap="tests/bootstrap.php"
+>>>>>>> 99c076b264547ca37d9fb41c77632a2247e7247a
          cacheDirectory=".phpunit.cache"
          executionOrder="random"
          requireCoverageMetadata="false"
@@ -11,16 +15,27 @@
 
     <testsuites>
         <testsuite name="Unit">
+<<<<<<< HEAD
             <directory>Unit</directory>
         </testsuite>
         <testsuite name="Integration">
             <directory>Integration</directory>
+=======
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Integration">
+            <directory>tests/Integration</directory>
+>>>>>>> 99c076b264547ca37d9fb41c77632a2247e7247a
         </testsuite>
     </testsuites>
 
     <source>
         <include>
+<<<<<<< HEAD
             <directory suffix=".php">../CMS/core</directory>
+=======
+            <directory suffix=".php">CMS/core</directory>
+>>>>>>> 99c076b264547ca37d9fb41c77632a2247e7247a
         </include>
         <exclude>
             <file>CMS/core/autoload.php</file>
@@ -31,9 +46,15 @@
 
     <coverage>
         <report>
+<<<<<<< HEAD
             <html outputDirectory="coverage/html" lowUpperBound="50" highLowerBound="90"/>
             <text outputFile="coverage/coverage.txt"/>
             <clover outputFile="coverage/clover.xml"/>
+=======
+            <html outputDirectory="tests/coverage/html" lowUpperBound="50" highLowerBound="90"/>
+            <text outputFile="tests/coverage/coverage.txt"/>
+            <clover outputFile="tests/coverage/clover.xml"/>
+>>>>>>> 99c076b264547ca37d9fb41c77632a2247e7247a
         </report>
     </coverage>
 

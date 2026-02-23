@@ -34,6 +34,49 @@ $user = $auth->getCurrentUser();
 $security = Security::instance();
 $updates = UpdateService::getInstance();
 
+// H-19: AJAX-Handler für Update-Download mit SHA-256-Verifikation
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    header('Content-Type: application/json');
+
+    // CSRF prüfen
+    if (!$security->verifyToken($_POST['csrf_token'] ?? '', 'updates')) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Sicherheitscheck fehlgeschlagen.']);
+        exit;
+    }
+
+    $action = strip_tags(trim($_POST['action']));
+
+    if ($action === 'download_update') {
+        $downloadUrl  = filter_var($_POST['download_url'] ?? '', FILTER_VALIDATE_URL) ?: '';
+        $sha256       = preg_replace('/[^0-9a-fA-F]/', '', $_POST['sha256'] ?? '');
+        $type         = in_array($_POST['type'] ?? '', ['plugin', 'theme', 'core'], true)
+                        ? $_POST['type']
+                        : 'plugin';
+        $name         = strip_tags(trim($_POST['name'] ?? 'Unbekannt'));
+        $version      = preg_replace('/[^0-9a-zA-Z.\-_]/', '', $_POST['version'] ?? '');
+
+        // Zielverzeichnis je Typ
+        $targetDir = match($type) {
+            'plugin' => PLUGIN_PATH . preg_replace('/[^a-z0-9\-_]/i', '', $_POST['slug'] ?? $name) . '/',
+            'theme'  => THEME_PATH  . preg_replace('/[^a-z0-9\-_]/i', '', $_POST['slug'] ?? $name) . '/',
+            default  => ABSPATH,
+        };
+
+        if (empty($downloadUrl)) {
+            echo json_encode(['success' => false, 'message' => 'Keine gültige Download-URL angegeben.', 'sha256_verified' => false]);
+            exit;
+        }
+
+        $result = $updates->downloadAndInstallUpdate($downloadUrl, $sha256, $targetDir, $type, $name, $version);
+        echo json_encode($result);
+        exit;
+    }
+
+    echo json_encode(['success' => false, 'message' => 'Unbekannte Aktion.']);
+    exit;
+}
+
 // Get current tab
 $activeTab = $_GET['tab'] ?? 'core';
 

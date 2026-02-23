@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Member Service
  *
@@ -317,7 +317,9 @@ class MemberService
     public function getSecurityData(int $userId): array
     {
         $meta        = $this->getUserMeta($userId);
-        $twoFA       = ($meta['2fa_enabled'] ?? '0') === '1';
+        // H-02: mfa_enabled (TOTP-basiert, gesetzt von Auth::confirmMfaSetup) hat Vorrang vor
+        // dem alten Flag-Schlüssel 2fa_enabled für Abwärtskompatibilität.
+        $twoFA       = ($meta['mfa_enabled'] ?? $meta['2fa_enabled'] ?? '0') === '1';
         $pwChanged   = $meta['password_changed_at'] ?? null;
         $lastLogin   = $meta['last_login'] ?? null;
         $lastLoginIp = $meta['last_login_ip'] ?? null;
@@ -546,24 +548,15 @@ class MemberService
 
     /**
      * User-Meta-Feld schreiben (upsert).
+     * Nutzt ON DUPLICATE KEY UPDATE für atomische Operation (erfordert UNIQUE KEY uq_user_meta).
      */
     private function setUserMeta(int $userId, string $key, string $value): void
     {
-        $exists = $this->db->get_var(
-            "SELECT COUNT(*) FROM {$this->prefix}user_meta WHERE user_id = ? AND meta_key = ?",
-            [$userId, $key]
+        $this->db->execute(
+            "INSERT INTO {$this->prefix}user_meta (user_id, meta_key, meta_value)
+             VALUES (?, ?, ?)
+             ON DUPLICATE KEY UPDATE meta_value = VALUES(meta_value)",
+            [$userId, $key, $value]
         );
-
-        if ((int)$exists > 0) {
-            $this->db->execute(
-                "UPDATE {$this->prefix}user_meta SET meta_value = ? WHERE user_id = ? AND meta_key = ?",
-                [$value, $userId, $key]
-            );
-        } else {
-            $this->db->execute(
-                "INSERT INTO {$this->prefix}user_meta (user_id, meta_key, meta_value) VALUES (?, ?, ?)",
-                [$userId, $key, $value]
-            );
-        }
     }
 }

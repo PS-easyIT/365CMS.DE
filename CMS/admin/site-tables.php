@@ -270,7 +270,8 @@ function st_sel(mixed $val, mixed $compare): void {
                         <td>
                             <a href="?action=edit&id=<?php echo $t['id']; ?>" class="btn btn-secondary" style="padding:.25rem .7rem;font-size:.82rem">✏️ Bearbeiten</a>
                             <a href="?action=export&id=<?php echo $t['id']; ?>&fmt=csv" class="btn btn-secondary" style="padding:.25rem .7rem;font-size:.82rem">⬇️ CSV</a>
-                            <form method="post" style="display:inline" onsubmit="return confirm('Tabelle wirklich löschen?')">
+                            <form method="post" style="display:inline" class="js-needs-confirm"
+                                  data-msg="Tabelle wirklich löschen? Alle darin gespeicherten Daten gehen unwiderruflich verloren.">
                                 <input type="hidden" name="action" value="delete_table">
                                 <input type="hidden" name="table_id" value="<?php echo $t['id']; ?>">
                                 <input type="hidden" name="csrf_token" value="<?php echo $security->generateToken('site_tables'); ?>">
@@ -673,4 +674,43 @@ function stSwitchTab(id, btn) {
     btn.classList.add('active');
 }
 </script>
-<?php renderAdminLayoutEnd(); ?>
+<!-- C-12: Confirm-Modal (ersetzt window.confirm) -->
+<div id="cmsConfirmModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:10px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;">
+        <div style="background:#f8fafc;padding:1.25rem 1.5rem;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
+            <h3 style="margin:0;font-size:1.1rem;color:#1e293b;">&#x26A0;&#xFE0F; Bestätigung erforderlich</h3>
+            <button onclick="closeCmsConfirm()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:#64748b;line-height:1;">&times;</button>
+        </div>
+        <div style="padding:1.5rem;">
+            <p id="cmsConfirmMsg" style="margin:0;color:#1e293b;font-size:1rem;line-height:1.6;"></p>
+        </div>
+        <div style="padding:1rem 1.5rem;border-top:1px solid #e2e8f0;display:flex;gap:.75rem;justify-content:flex-end;">
+            <button type="button" onclick="closeCmsConfirm()" class="btn btn-secondary">Abbrechen</button>
+            <button type="button" id="cmsConfirmOk" class="btn btn-danger">Bestätigen</button>
+        </div>
+    </div>
+</div>
+<script>
+(function(){
+    var _pendingForm = null;
+    document.querySelectorAll('.js-needs-confirm').forEach(function(form){
+        form.addEventListener('submit', function(e){
+            e.preventDefault();
+            _pendingForm = form;
+            document.getElementById('cmsConfirmMsg').textContent = form.dataset.msg || 'Wirklich fortfahren?';
+            document.getElementById('cmsConfirmModal').style.display = 'flex';
+        });
+    });
+    window.closeCmsConfirm = function(){
+        _pendingForm = null;
+        document.getElementById('cmsConfirmModal').style.display = 'none';
+    };
+    document.getElementById('cmsConfirmOk').addEventListener('click', function(){
+        if (_pendingForm) { _pendingForm.submit(); }
+        closeCmsConfirm();
+    });
+    window.addEventListener('click', function(e){
+        if (e.target === document.getElementById('cmsConfirmModal')) { closeCmsConfirm(); }
+    });
+})();
+</script><?php renderAdminLayoutEnd(); ?>

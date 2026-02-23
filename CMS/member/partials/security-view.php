@@ -177,17 +177,15 @@ if (!defined('ABSPATH')) {
                         <span class="success-icon">✓</span>
                         <div>
                             <strong>2FA ist aktiviert</strong>
-                            <p>Dein Account ist durch Zwei-Faktor-Authentifizierung geschützt.</p>
+                            <p>Dein Account ist durch TOTP Zwei-Faktor-Authentifizierung geschützt.</p>
                         </div>
                     </div>
                     
-                    <form method="POST" class="member-form">
-                        <input type="hidden" name="action" value="toggle_2fa">
-                        <input type="hidden" name="csrf_token" value="<?php echo $csrf2FA; ?>">
-                        <input type="hidden" name="enable_2fa" value="0">
-                        
-                        <button type="submit" class="member-btn member-btn-danger">
-                            2FA deaktivieren
+                    <form method="POST" action="/mfa-disable" class="member-form">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(\CMS\Security::instance()->generateToken('mfa_disable')); ?>">
+                        <button type="submit" class="member-btn member-btn-danger js-needs-confirm"
+                                data-msg="2FA wirklich deaktivieren? Dein Account wird dadurch weniger geschützt.">
+                            🔓 2FA deaktivieren
                         </button>
                     </form>
                 <?php else: ?>
@@ -195,19 +193,13 @@ if (!defined('ABSPATH')) {
                         <span class="warning-icon">⚠️</span>
                         <div>
                             <strong>2FA ist nicht aktiviert</strong>
-                            <p>Aktiviere 2FA für zusätzlichen Schutz deines Accounts.</p>
+                            <p>Aktiviere 2FA für zusätzlichen Schutz deines Accounts. Du benötigst eine Authenticator-App (z. B. Google Authenticator, Authy).</p>
                         </div>
                     </div>
                     
-                    <form method="POST" class="member-form">
-                        <input type="hidden" name="action" value="toggle_2fa">
-                        <input type="hidden" name="csrf_token" value="<?php echo $csrf2FA; ?>">
-                        <input type="hidden" name="enable_2fa" value="1">
-                        
-                        <button type="submit" class="member-btn member-btn-success">
-                            🔐 2FA aktivieren
-                        </button>
-                    </form>
+                    <a href="/mfa-setup" class="member-btn member-btn-success">
+                        🔐 2FA einrichten
+                    </a>
                 <?php endif; ?>
             </div>
         </div>

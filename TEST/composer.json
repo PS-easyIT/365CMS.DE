@@ -29,7 +29,11 @@
     },
     "autoload-dev": {
         "psr-4": {
+<<<<<<< HEAD
             "CMS\\Tests\\": ""
+=======
+            "CMS\\Tests\\": "tests/"
+>>>>>>> 99c076b264547ca37d9fb41c77632a2247e7247a
         }
     },
     "scripts": {

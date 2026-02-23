@@ -35,10 +35,25 @@ class Api
     /**
      * Handle API Request
      * /api/v1/{endpoint}/{id}
+     * M-19: Rate-Limiting für alle API-Endpunkte.
      */
     public function handleRequest(string $endpoint, ?string $id = null): void
     {
         header('Content-Type: application/json');
+
+        // M-19: API-Rate-Limiting – max. 60 Anfragen / 60 s pro IP
+        $security = Security::instance();
+        if (!$security->checkDbRateLimit(
+            $security->getClientIp(),
+            'api',
+            60,   // max. Versuche
+            60    // Zeitfenster in Sekunden
+        )) {
+            http_response_code(429);
+            header('Retry-After: 60');
+            echo json_encode(['error' => 'Rate limit exceeded. Please try again later.']);
+            exit;
+        }
         
         try {
             switch ($endpoint) {
@@ -94,12 +109,12 @@ class Api
         
         $db = Database::instance();
         if ($id) {
-            $stmt = $db->prepare("SELECT id, username, email, role FROM {$db->prefix()}users WHERE id = ?");
+            $stmt = $db->prepare("SELECT id, username, email, role FROM {$db->getPrefix()}users WHERE id = ?");
             $stmt->execute([$id]);
             $user = $stmt->fetchObject();
             $this->sendResponse($user);
         } else {
-            $stmt = $db->query("SELECT id, username, email, role FROM {$db->prefix()}users LIMIT 50");
+            $stmt = $db->query("SELECT id, username, email, role FROM {$db->getPrefix()}users LIMIT 50");
             $this->sendResponse($stmt->fetchAll(\PDO::FETCH_CLASS));
         }
     }

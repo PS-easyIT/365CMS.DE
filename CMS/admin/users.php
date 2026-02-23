@@ -32,10 +32,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'crea
     if (!$security->verifyToken($_POST['_csrf'] ?? '', 'users_create')) {
         $messages[] = ['type' => 'error', 'text' => 'Sicherheitscheck fehlgeschlagen.'];
     } else {
-        $username     = trim($_POST['username']     ?? '');
-        $email        = trim($_POST['email']        ?? '');
-        $password     = $_POST['password']          ?? '';
-        $display_name = trim($_POST['display_name'] ?? '');
+        // H-24: Konsistente Sanitierung aller Eingabefelder
+        $username     = Security::sanitize(trim($_POST['username']     ?? ''), 'username');
+        $email        = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
+        $password     = $_POST['password'] ?? '';
+        $display_name = Security::sanitize(trim($_POST['display_name'] ?? ''), 'text');
         $role         = in_array($_POST['role'] ?? '', ['admin', 'member', 'editor']) ? $_POST['role'] : 'member';
 
         if (empty($username) || empty($email) || empty($password)) {
@@ -66,8 +67,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'edit
         $messages[] = ['type' => 'error', 'text' => 'Sicherheitscheck fehlgeschlagen.'];
     } else {
         $eid          = (int)($_POST['user_id'] ?? 0);
-        $email        = trim($_POST['email']        ?? '');
-        $display_name = trim($_POST['display_name'] ?? '');
+        // H-24: Konsistente Sanitierung
+        $email        = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
+        $display_name = Security::sanitize(trim($_POST['display_name'] ?? ''), 'text');
         $role         = in_array($_POST['role'] ?? '', ['admin', 'member', 'editor']) ? $_POST['role'] : 'member';
         $status       = in_array($_POST['status'] ?? '', ['active', 'inactive', 'banned']) ? $_POST['status'] : 'active';
         $new_password = $_POST['new_password'] ?? '';
@@ -164,14 +166,16 @@ $search     = trim($_GET['search'] ?? '');
 $perPage    = 25;
 $page       = max(1, (int)($_GET['p'] ?? 1));
 
-$roleCounts = [];
-foreach (['all', 'admin', 'member', 'editor'] as $r) {
-    $roleCounts[$r] = (int)$db->get_var(
-        $r === 'all'
-            ? "SELECT COUNT(*) FROM {$prefix}users WHERE status != 'banned'"
-            : "SELECT COUNT(*) FROM {$prefix}users WHERE role=? AND status!='banned'",
-        $r === 'all' ? [] : [$r]
-    );
+// H-13: Batch-Query statt N+1-Einzelabfragen für Rollenzählung
+$roleCountRows = $db->get_results(
+    "SELECT role, COUNT(*) AS cnt FROM {$prefix}users WHERE status != 'banned' GROUP BY role"
+);
+$roleCounts = ['all' => 0, 'admin' => 0, 'member' => 0, 'editor' => 0];
+foreach ($roleCountRows as $rc) {
+    if (isset($roleCounts[$rc->role])) {
+        $roleCounts[$rc->role] = (int) $rc->cnt;
+    }
+    $roleCounts['all'] += (int) $rc->cnt;
 }
 $roleCounts['banned'] = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}users WHERE status='banned'");
 

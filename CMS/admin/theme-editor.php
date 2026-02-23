@@ -18,6 +18,7 @@ require_once CORE_PATH . 'autoload.php';
 use CMS\Auth;
 use CMS\Security;
 use CMS\ThemeManager;
+use CMS\AuditLogger;
 use CMS\Services\ThemeCustomizer;
 
 if (!defined('ABSPATH')) {
@@ -139,6 +140,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         if ($customizer->import($data)) {
                             $message = 'Einstellungen erfolgreich importiert';
                             $messageType = 'success';
+                            // C-15: Import-Aktion protokollieren
+                            AuditLogger::instance()->themeFileEdit($customizer->getTheme(), '[import]');
                         } else {
                             $message = 'Fehler beim Importieren';
                             $messageType = 'error';
@@ -151,14 +154,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 break;
                 
             case 'generate_css':
-                $cssContent = $customizer->generateCSS();
-                $cssPath = ABSPATH . 'themes/' . $customizer->getTheme() . '/customizations.css';
-                
-                if (file_put_contents($cssPath, $cssContent)) {
-                    $message = 'CSS erfolgreich generiert: customizations.css';
+                // Path-Traversal-Schutz: Theme-Slug bereinigen + Pfad via realpath() verifizieren (Fix C-06)
+                $rawSlug  = $customizer->getTheme();
+                $safeSlug = preg_replace('/[^a-zA-Z0-9_\-]/', '', $rawSlug);
+                if (empty($safeSlug)) {
+                    $message     = 'Sicherheitsfehler: Ungültiger Theme-Slug';
+                    $messageType = 'error';
+                    break;
+                }
+                $cssContent   = $customizer->generateCSS();
+                $themesBase   = realpath(ABSPATH . 'themes');
+                $cssPath      = ABSPATH . 'themes/' . $safeSlug . '/customizations.css';
+                $cssTargetDir = realpath(dirname($cssPath));
+
+                // Sicherstellen, dass der Zielpfad innerhalb des themes/-Verzeichnisses liegt
+                if ($themesBase === false || $cssTargetDir === false
+                    || !str_starts_with($cssTargetDir . DIRECTORY_SEPARATOR, $themesBase . DIRECTORY_SEPARATOR)) {
+                    $message     = 'Sicherheitsfehler: Pfad liegt außerhalb des Theme-Verzeichnisses';
+                    $messageType = 'error';
+                    error_log('theme-editor: Path-Traversal-Versuch erkannt! slug=' . $rawSlug);
+                    break;
+                }
+
+                if (file_put_contents($cssPath, $cssContent) !== false) {
+                    $message     = 'CSS erfolgreich generiert: customizations.css';
                     $messageType = 'success';
+                    // C-15: CSS-Datei-Änderung protokollieren
+                    AuditLogger::instance()->themeFileEdit($safeSlug, 'customizations.css');
                 } else {
-                    $message = 'Fehler beim Schreiben der CSS-Datei';
+                    $message     = 'Fehler beim Schreiben der CSS-Datei';
                     $messageType = 'error';
                 }
                 break;

@@ -1,0 +1,13 @@
+# config/.htaccess
+# Verweigert jeden direkten HTTP-Zugriff auf dieses Verzeichnis.
+# C-02: Konfigurationsdatei außerhalb Web-Root gesichert.
+
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+
+# Apache 2.2 Fallback
+<IfModule !mod_authz_core.c>
+    Order Deny,Allow
+    Deny from all
+</IfModule>
