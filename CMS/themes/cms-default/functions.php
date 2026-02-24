@@ -118,11 +118,43 @@ class MeridianCMSDefaultTheme
             }
 
             $googleMap = [
-                'dm-sans'           => 'DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400',
-                'libre-baskerville' => 'Libre+Baskerville:ital,wght@0,400;0,700;1,400',
-                'inter'             => 'Inter:wght@400;500;600;700',
-                'playfair-display'  => 'Playfair+Display:ital,wght@0,400;0,700;1,400',
-                'merriweather'      => 'Merriweather:ital,wght@0,400;0,700;1,400',
+                // ── cms-default Kern ──────────────────────────────────────────
+                'dm-sans'             => 'DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400',
+                'libre-baskerville'   => 'Libre+Baskerville:ital,wght@0,400;0,700;1,400',
+                // ── Serifenlose ───────────────────────────────────────────────
+                'inter'               => 'Inter:wght@300;400;500;600;700;800',
+                'roboto'              => 'Roboto:ital,wght@0,300;0,400;0,500;0,700;1,400',
+                'open-sans'           => 'Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,400',
+                'lato'                => 'Lato:ital,wght@0,300;0,400;0,700;1,400',
+                'montserrat'          => 'Montserrat:ital,wght@0,400;0,500;0,600;0,700;1,400',
+                'poppins'             => 'Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400',
+                'raleway'             => 'Raleway:ital,wght@0,400;0,600;0,700;1,400',
+                'nunito'              => 'Nunito:ital,wght@0,300;0,400;0,600;0,700;1,400',
+                'nunito-sans'         => 'Nunito+Sans:ital,wght@0,300;0,400;0,600;0,700;1,400',
+                'figtree'             => 'Figtree:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400',
+                'outfit'              => 'Outfit:wght@300;400;500;600;700',
+                'plus-jakarta-sans'   => 'Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400',
+                'manrope'             => 'Manrope:wght@300;400;500;600;700;800',
+                'work-sans'           => 'Work+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400',
+                'space-grotesk'       => 'Space+Grotesk:wght@300;400;500;600;700',
+                'urbanist'            => 'Urbanist:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400',
+                // ── Serifenschriften ──────────────────────────────────────────
+                'playfair-display'    => 'Playfair+Display:ital,wght@0,400;0,600;0,700;1,400',
+                'merriweather'        => 'Merriweather:ital,wght@0,300;0,400;0,700;1,400',
+                'lora'                => 'Lora:ital,wght@0,400;0,500;0,600;0,700;1,400',
+                'source-serif-4'      => 'Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400',
+                'spectral'            => 'Spectral:ital,wght@0,300;0,400;0,600;0,700;1,400',
+                'eb-garamond'         => 'EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400',
+                'cormorant-garamond'  => 'Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400',
+                'bitter'              => 'Bitter:ital,wght@0,300;0,400;0,600;0,700;1,400',
+                'crimson-text'        => 'Crimson+Text:ital,wght@0,400;0,600;0,700;1,400',
+                'pt-serif'            => 'PT+Serif:ital,wght@0,400;0,700;1,400',
+                'noto-serif'          => 'Noto+Serif:ital,wght@0,400;0,600;0,700;1,400',
+                'source-sans-3'       => 'Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400',
+                // ── Monospace ──────────────────────────────────────────────
+                'jetbrains-mono'      => 'JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400',
+                'fira-code'           => 'Fira+Code:wght@400;500;600;700',
+                'ibm-plex-mono'       => 'IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400',
             ];
 
             $families = [];

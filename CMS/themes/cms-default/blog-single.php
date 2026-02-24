@@ -40,7 +40,7 @@ $showViews    = (bool) meridian_setting('blog', 'show_views', false);
 // TOC verarbeiten: Anker-IDs in Content einfügen + TOC-HTML erzeugen
 $tocResult = \CMS\TableOfContents::instance()->process($pContent, 'post', (int)($post->id ?? 0));
 $pContent  = $tocResult['content'];
-$pToc      = $tocResult['toc'];  // leer wenn [ez-toc]-Shortcode genutzt oder Auto-Insert deaktiviert
+$pToc      = $tocResult['toc'];  // leer wenn [cms_toc]-Shortcode genutzt oder Auto-Insert deaktiviert
 
 // Verwandte Posts: korrekte Signatur (categoryId, excludeId, limit)
 $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))

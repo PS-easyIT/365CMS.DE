@@ -22,7 +22,7 @@ $pageHideTitle = !empty($page['hide_title']);
 // TOC verarbeiten: Anker-IDs in Content einfügen + TOC-HTML erzeugen
 $tocResult   = \CMS\TableOfContents::instance()->process($pageContent, 'page', $pageId);
 $pageContent = $tocResult['content'];
-$pageToc     = $tocResult['toc'];  // leer wenn [ez-toc]-Shortcode genutzt oder Auto-Insert deaktiviert
+$pageToc     = $tocResult['toc'];  // leer wenn [cms_toc]-Shortcode genutzt oder Auto-Insert deaktiviert
 ?>
 
 <div class="view-post" style="display:block;">

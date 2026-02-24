@@ -74,20 +74,64 @@ function downloadGoogleFonts($customizer) {
     $typo = $customizer->getCategory('typography');
 
     $fontMap = [
-        // cms-default Schriften
-        'dm-sans'           => 'DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400',
-        'libre-baskerville' => 'Libre+Baskerville:ital,wght@0,400;0,700;1,400',
-        'dm-mono'           => 'DM+Mono:wght@400;500',
-        'inter'             => 'Inter:wght@400;500;600;700;800',
-        'playfair-display'  => 'Playfair+Display:ital,wght@0,400;0,700;1,400',
-        'merriweather'      => 'Merriweather:ital,wght@0,400;0,700;1,400',
-        // 365Network / andere Themes
-        'roboto'      => 'Roboto:wght@400;500;700',
-        'open-sans'   => 'Open+Sans:wght@400;600;700',
-        'lato'        => 'Lato:wght@400;700',
-        'montserrat'  => 'Montserrat:wght@400;500;600;700',
-        'poppins'     => 'Poppins:wght@400;500;600;700',
-        'raleway'     => 'Raleway:wght@400;600;700',
+        // ── cms-default Kern-Schriften ──────────────────────────────────────
+        'dm-sans'             => 'DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400',
+        'libre-baskerville'   => 'Libre+Baskerville:ital,wght@0,400;0,700;1,400',
+        'dm-mono'             => 'DM+Mono:wght@400;500',
+        // ── Serifenlose Schriften ───────────────────────────────────────────
+        'inter'               => 'Inter:wght@300;400;500;600;700;800',
+        'roboto'              => 'Roboto:ital,wght@0,300;0,400;0,500;0,700;1,400',
+        'open-sans'           => 'Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,400',
+        'lato'                => 'Lato:ital,wght@0,300;0,400;0,700;1,400',
+        'montserrat'          => 'Montserrat:ital,wght@0,400;0,500;0,600;0,700;1,400',
+        'poppins'             => 'Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400',
+        'raleway'             => 'Raleway:ital,wght@0,400;0,600;0,700;1,400',
+        'nunito'              => 'Nunito:ital,wght@0,300;0,400;0,600;0,700;1,400',
+        'nunito-sans'         => 'Nunito+Sans:ital,wght@0,300;0,400;0,600;0,700;1,400',
+        'figtree'             => 'Figtree:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400',
+        'outfit'              => 'Outfit:wght@300;400;500;600;700',
+        'plus-jakarta-sans'   => 'Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400',
+        'manrope'             => 'Manrope:wght@300;400;500;600;700;800',
+        'work-sans'           => 'Work+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400',
+        'space-grotesk'       => 'Space+Grotesk:wght@300;400;500;600;700',
+        'urbanist'            => 'Urbanist:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400',
+        'geist'               => 'Geist:wght@300;400;500;600;700',
+        'ibm-plex-sans'       => 'IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400',
+        'source-sans-3'       => 'Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400',
+        'noto-sans'           => 'Noto+Sans:ital,wght@0,300;0,400;0,600;0,700;1,400',
+        'ubuntu'              => 'Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,400',
+        'barlow'              => 'Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400',
+        'cabin'               => 'Cabin:ital,wght@0,400;0,500;0,600;0,700;1,400',
+        'josefin-sans'        => 'Josefin+Sans:ital,wght@0,300;0,400;0,600;0,700;1,400',
+        'mukta'               => 'Mukta:wght@300;400;500;600;700',
+        'quicksand'           => 'Quicksand:wght@300;400;500;600;700',
+        'dosis'               => 'Dosis:wght@300;400;500;600;700',
+        'exo-2'               => 'Exo+2:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400',
+        'overpass'            => 'Overpass:ital,wght@0,300;0,400;0,600;0,700;1,400',
+        // ── Serifenschriften ────────────────────────────────────────────────
+        'playfair-display'    => 'Playfair+Display:ital,wght@0,400;0,600;0,700;1,400',
+        'merriweather'        => 'Merriweather:ital,wght@0,300;0,400;0,700;1,400',
+        'lora'                => 'Lora:ital,wght@0,400;0,500;0,600;0,700;1,400',
+        'source-serif-4'      => 'Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400',
+        'ibm-plex-serif'      => 'IBM+Plex+Serif:ital,wght@0,300;0,400;0,600;0,700;1,400',
+        'noto-serif'          => 'Noto+Serif:ital,wght@0,400;0,600;0,700;1,400',
+        'pt-serif'            => 'PT+Serif:ital,wght@0,400;0,700;1,400',
+        'crimson-text'        => 'Crimson+Text:ital,wght@0,400;0,600;0,700;1,400',
+        'spectral'            => 'Spectral:ital,wght@0,300;0,400;0,600;0,700;1,400',
+        'bitter'              => 'Bitter:ital,wght@0,300;0,400;0,600;0,700;1,400',
+        'eb-garamond'         => 'EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400',
+        'cormorant-garamond'  => 'Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400',
+        // ── Display / Headlines ─────────────────────────────────────────────
+        'oswald'              => 'Oswald:wght@300;400;500;600;700',
+        'bebas-neue'          => 'Bebas+Neue:wght@400',
+        'syne'                => 'Syne:wght@400;500;600;700;800',
+        // ── Monospace / Code ────────────────────────────────────────────────
+        'jetbrains-mono'      => 'JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400',
+        'ibm-plex-mono'       => 'IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400',
+        'source-code-pro'     => 'Source+Code+Pro:ital,wght@0,400;0,500;0,600;1,400',
+        'fira-code'           => 'Fira+Code:wght@400;500;600;700',
+        'roboto-mono'         => 'Roboto+Mono:ital,wght@0,400;0,500;0,700;1,400',
+        'geist-mono'          => 'Geist+Mono:wght@400;500;600;700',
     ];
 
     // Unterstütze beide Key-Konventionen:
@@ -96,13 +140,28 @@ function downloadGoogleFonts($customizer) {
     $baseFont    = $typo['font_family_body']    ?? $typo['font_family_base']    ?? 'dm-sans';
     $headingFont = $typo['font_family_heading'] ?? 'libre-baskerville';
 
+    // Optionale Zusatz-Slots (z. B. Mono für Code-Blöcke, UI-Schrift für Nav)
+    $monoFont    = $typo['font_family_mono'] ?? $typo['font_family_code'] ?? null;
+    $uiFont      = $typo['font_family_ui']   ?? null;
+
     $fontsToLoad = [];
-    if (isset($fontMap[$baseFont]))    { $fontsToLoad[$baseFont]    = $fontMap[$baseFont]; }
-    if ($headingFont !== $baseFont && isset($fontMap[$headingFont])) {
-        $fontsToLoad[$headingFont] = $fontMap[$headingFont];
+    foreach ([$baseFont, $headingFont, $monoFont, $uiFont] as $fontKey) {
+        if ($fontKey && isset($fontMap[$fontKey]) && !isset($fontsToLoad[$fontKey])) {
+            $fontsToLoad[$fontKey] = $fontMap[$fontKey];
+        }
     }
-    // Immer DM Mono für Code-Blöcke mitladen (cms-default)
-    if (!isset($fontsToLoad['dm-mono'])) {
+
+    // Fallback: wenn gar nichts erkannt wurde → cms-default Standard-Set laden
+    if (empty($fontsToLoad)) {
+        $fontsToLoad = [
+            'dm-sans'           => $fontMap['dm-sans'],
+            'libre-baskerville' => $fontMap['libre-baskerville'],
+            'dm-mono'           => $fontMap['dm-mono'],
+        ];
+    }
+
+    // dm-mono immer mitladen wenn dm-sans Basis-Schrift ist (Code-Blöcke)
+    if ($baseFont === 'dm-sans' && !isset($fontsToLoad['dm-mono'])) {
         $fontsToLoad['dm-mono'] = $fontMap['dm-mono'];
     }
 

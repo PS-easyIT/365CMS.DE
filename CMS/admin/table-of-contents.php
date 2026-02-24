@@ -302,8 +302,8 @@ function toc_sel(mixed $val, mixed $compare): void {
             <div class="toc-card-head">ℹ️ Shortcode-Referenz</div>
             <div class="toc-card-body">
                 <p>Manuelles Einbetten per Shortcode:</p>
-                <code style="display:block;background:#f1f5f9;padding:1rem;border-radius:4px">[ez-toc]</code>
-                <p style="margin-top:.75rem"><small>Attribute: <code>[ez-toc header_label="Inhalt" display_counter="no"]</code></small></p>
+                <code style="display:block;background:#f1f5f9;padding:1rem;border-radius:4px">[cms_toc]</code>
+                <p style="margin-top:.75rem"><small>Attribute: <code>[cms_toc header_label="Inhalt" display_counter="no"]</code></small></p>
             </div>
         </div>
 

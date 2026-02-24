@@ -8,10 +8,10 @@
  * Verwendung im Theme-Template:
  *   $toc = \CMS\TableOfContents::instance();
  *   $result = $toc->process($content, 'post');   // oder 'page'
- *   // $result['toc']     = TOC-HTML (leer wenn Auto-Insert nicht aktiv oder [ez-toc] inline ersetzt)
+ *   // $result['toc']     = TOC-HTML (leer wenn Auto-Insert nicht aktiv oder [cms_toc] inline ersetzt)
  *   // $result['content'] = Content mit eingefügten id="…"-Ankern
  *
- * Shortcode: [ez-toc] wird direkt im Content ersetzt.
+ * Shortcode: [cms_toc] wird direkt im Content ersetzt.
  *
  * @package CMSv2\Core
  */
@@ -105,7 +105,7 @@ class TableOfContents
      *
      * Rückgabe: ['toc' => string, 'content' => string]
      * - 'toc':     TOC-HTML für Auto-Insert (leer wenn Shortcode genutzt oder deaktiviert)
-     * - 'content': Content mit id="…" in Überschriften; [ez-toc]-Shortcode ggf. ersetzt
+     * - 'content': Content mit id="…" in Überschriften; [cms_toc]-Shortcode ggf. ersetzt
      *
      * @param string $content   HTML-Content aus der DB
      * @param string $type      'post' | 'page' | sonstige
@@ -116,10 +116,10 @@ class TableOfContents
         // Keine Unterstützung für diesen Typ?
         $supportTypes = (array)($this->settings['support_types'] ?? ['post', 'page']);
         if (!in_array($type, $supportTypes, true)) {
-            return ['toc' => '', 'content' => str_replace('[ez-toc]', '', $content)];
+            return ['toc' => '', 'content' => str_replace('[cms_toc]', '', $content)];
         }
 
-        $hasShortcode = str_contains($content, '[ez-toc]');
+        $hasShortcode = str_contains($content, '[cms_toc]');
         $autoTypes    = (array)($this->settings['auto_insert_types'] ?? ['post']);
         $autoInsert   = !$hasShortcode && in_array($type, $autoTypes, true);
 
@@ -134,7 +134,7 @@ class TableOfContents
 
         // Zu wenig Überschriften → TOC unterdrücken
         if (count($headings) < $limit) {
-            return ['toc' => '', 'content' => str_replace('[ez-toc]', '', $content)];
+            return ['toc' => '', 'content' => str_replace('[cms_toc]', '', $content)];
         }
 
         // Anker-IDs in Content einfügen
@@ -145,7 +145,7 @@ class TableOfContents
 
         if ($hasShortcode) {
             // Shortcode inline ersetzen – TOC erscheint an exakter Position im Text
-            $content = str_replace('[ez-toc]', $tocHtml, $content);
+            $content = str_replace('[cms_toc]', $tocHtml, $content);
             return ['toc' => '', 'content' => $content];
         }
 

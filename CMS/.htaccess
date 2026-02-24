@@ -41,16 +41,37 @@ Options +FollowSymLinks
 <IfModule mod_headers.c>
     # Prevent clickjacking
     Header always set X-Frame-Options "SAMEORIGIN"
-    
-    # XSS Protection
+
+    # XSS Protection (legacy, ergänzt CSP)
     Header always set X-XSS-Protection "1; mode=block"
-    
+
     # Prevent MIME sniffing
     Header always set X-Content-Type-Options "nosniff"
-    
+
     # Referrer Policy
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
-    
+
+    # ── Content Security Policy ──────────────────────────────────────────────
+    # 'unsafe-inline' + 'unsafe-eval' sind nötig für Admin-Inline-Scripts und
+    # SunEditor (WYSIWYG). Nonce-basierter Ansatz als zukünftige Verbesserung.
+    # Google Fonts bleiben als erlaubte Quelle, da Local-Fonts optional sind.
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; media-src 'self' blob:; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+
+    # ── HSTS – nur über HTTPS aktiv ──────────────────────────────────────────
+    # Schrittweise erhöhen: 300 → 86400 → 2592000 → 31536000 (+ includeSubDomains)
+    Header always set Strict-Transport-Security "max-age=31536000" env=HTTPS
+
+    # ── Cross-Origin-Opener-Policy (COOP) ────────────────────────────────────
+    # Isoliert das Browser-Fenster von fremden Origins. same-origin-allow-popups
+    # erlaubt OAuth-Popups und Payment-Redirects.
+    Header always set Cross-Origin-Opener-Policy "same-origin-allow-popups"
+
+    # ── Cross-Origin-Resource-Policy (CORP) ──────────────────────────────────
+    Header always set Cross-Origin-Resource-Policy "same-site"
+
+    # ── Permissions Policy ────────────────────────────────────────────────────
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+
     # Remove server signature
     Header unset Server
     Header unset X-Powered-By
