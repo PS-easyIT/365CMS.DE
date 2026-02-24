@@ -26,7 +26,7 @@ if (!defined('ABSPATH')) {
 class SchemaManager
 {
     /** Flag-Datei-Version – erhöhen wenn Schema geändert wird */
-    public const SCHEMA_VERSION = 'v6';
+    public const SCHEMA_VERSION = 'v7';
 
     private Database $db;
     private string $prefix;

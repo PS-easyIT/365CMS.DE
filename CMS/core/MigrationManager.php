@@ -63,6 +63,13 @@ class MigrationManager
             "ALTER TABLE `{$p}login_attempts` ADD INDEX `idx_ip_action` (`ip_address`, `action`)",
             // H-02: UNIQUE-Key auf user_meta(user_id, meta_key) für ON DUPLICATE KEY UPDATE (Schema v6)
             "ALTER TABLE `{$p}user_meta` ADD UNIQUE KEY `uq_user_meta` (`user_id`, `meta_key`)",
+            
+            // H-02: User-Display-Name bei alten Tabellen (falls fehlend)
+            "ALTER TABLE `{$p}users` ADD COLUMN `display_name` VARCHAR(100) NOT NULL AFTER `password`",
+            
+            // H-01: Audit-Log Action-Spalte (Fix für fehlende Spalte bei Update von alter Version)
+            "ALTER TABLE `{$p}audit_log` ADD COLUMN `action` VARCHAR(100) NOT NULL DEFAULT 'unknown' AFTER `category`",
+            "ALTER TABLE `{$p}audit_log` ADD INDEX `idx_action` (`action`)",
         ];
 
         $pdo = $this->db->getPdo();
