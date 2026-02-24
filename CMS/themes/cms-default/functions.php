@@ -50,6 +50,11 @@ class MeridianCMSDefaultTheme
 
         // Standard-Menü beim ersten Start
         \CMS\Hooks::addAction('cms_init', [$this, 'seedDefaultMenus']);
+
+        // Table of Contents Engine frühzeitig initialisieren
+        \CMS\Hooks::addAction('cms_init', static function (): void {
+            \CMS\TableOfContents::instance();
+        }, 5);
     }
 
     // ─── Preconnect / Performance ───────────────────────────────────────────

@@ -18,6 +18,11 @@ $pageTitle     = $page['title']      ?? '';
 $pageContent   = $page['content']    ?? '';
 $pageId        = (int)($page['id']   ?? 0);
 $pageHideTitle = !empty($page['hide_title']);
+
+// TOC verarbeiten: Anker-IDs in Content einfügen + TOC-HTML erzeugen
+$tocResult   = \CMS\TableOfContents::instance()->process($pageContent, 'page', $pageId);
+$pageContent = $tocResult['content'];
+$pageToc     = $tocResult['toc'];  // leer wenn [ez-toc]-Shortcode genutzt oder Auto-Insert deaktiviert
 ?>
 
 <div class="view-post" style="display:block;">
@@ -29,6 +34,9 @@ $pageHideTitle = !empty($page['hide_title']);
     </div>
     <?php endif; ?>
 
+    <?php if ($pageToc !== ''): ?>
+    <div class="cms-toc-wrap"><?php echo $pageToc; ?></div>
+    <?php endif; ?>
     <div class="post-body page-content">
       <?php echo $pageContent; // Kommt aus DB, bereits sanitiert ?>
     </div>

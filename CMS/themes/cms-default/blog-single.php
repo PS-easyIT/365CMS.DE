@@ -37,6 +37,11 @@ $showRelated  = (bool) meridian_setting('blog', 'show_related_posts', true);
 $showComments = (bool) meridian_setting('blog', 'show_comments', true);
 $showViews    = (bool) meridian_setting('blog', 'show_views', false);
 
+// TOC verarbeiten: Anker-IDs in Content einfügen + TOC-HTML erzeugen
+$tocResult = \CMS\TableOfContents::instance()->process($pContent, 'post', (int)($post->id ?? 0));
+$pContent  = $tocResult['content'];
+$pToc      = $tocResult['toc'];  // leer wenn [ez-toc]-Shortcode genutzt oder Auto-Insert deaktiviert
+
 // Verwandte Posts: korrekte Signatur (categoryId, excludeId, limit)
 $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
     ? meridian_get_related_posts((int)($post->category_id ?? 0), (int)($post->id ?? 0), 3)
@@ -76,6 +81,9 @@ $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
   </div>
 
   <!-- Post Body -->
+  <?php if ($pToc !== ''): ?>
+  <div class="cms-toc-wrap"><?php echo $pToc; ?></div>
+  <?php endif; ?>
   <div class="post-body">
     <?php echo $pContent; // Content is trusted ?>
   </div>

@@ -111,7 +111,7 @@ class LandingPageService
             'subtitle' => $data['subtitle'] ?? $existing['subtitle'],
             'logo_position' => $data['logo_position'] ?? $existing['logo_position'] ?? 'top',
             'header_layout' => $data['header_layout'] ?? $existing['header_layout'] ?? 'standard',
-            'description' => $data['description'] ?? $existing['description'],
+            'description' => $this->normalizeHtml($data['description'] ?? $existing['description']),
             'header_buttons' => $data['header_buttons'] ?? $existing['header_buttons'] ?? [],
             'github_url' => $data['github_url'] ?? $existing['github_url'],
             'github_text' => $data['github_text'] ?? $existing['github_text'] ?? '💻 GitHub Projekt',
@@ -237,6 +237,16 @@ class LandingPageService
         return $stmt->execute([$id]);
     }
     
+    /**
+     * Liefert leeren String zurück wenn HTML keinen sichtbaren Text enthält
+     * (z.B. <p><br></p> aus SunEditor bei leerem Feld).
+     */
+    private function normalizeHtml(mixed $value): string
+    {
+        $str = (string)($value ?? '');
+        return trim(strip_tags($str)) === '' ? '' : $str;
+    }
+
     /**
      * Default Header Data
      */
