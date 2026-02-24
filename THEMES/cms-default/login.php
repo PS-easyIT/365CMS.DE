@@ -30,12 +30,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login_submit'])) {
     if (!$csrfOk) {
         $loginError = 'Sicherheitscheck fehlgeschlagen. Bitte Seite neu laden.';
     } else {
-        $loginEmail = filter_var($_POST['email'] ?? '', FILTER_VALIDATE_EMAIL) ?: '';
+        // Erlaube Login via E-Mail ODER Benutzername
+        // Filterung entfernen, da Usernames keine E-Mail sein müssen
+        $loginInput = trim($_POST['email'] ?? '');
         $loginPass  = $_POST['password'] ?? '';
-        if (empty($loginEmail) || empty($loginPass)) {
-            $loginError = 'Bitte E-Mail und Passwort eingeben.';
+        
+        if (empty($loginInput) || empty($loginPass)) {
+            $loginError = 'Bitte Benutzername/E-Mail und Passwort eingeben.';
         } elseif (function_exists('theme_login_user')) {
-            $result = theme_login_user($loginEmail, $loginPass);
+            $result = theme_login_user($loginInput, $loginPass);
             if ($result === true) {
                 header('Location: ' . SITE_URL . $redirect);
                 exit;
