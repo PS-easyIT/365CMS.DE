@@ -59,10 +59,17 @@ ASSETS/test_import/*
 # ----------------------------------------------------------------------
 # CMS v2 SPECIFIC
 # ----------------------------------------------------------------------
-# Configuration
+# Configuration – nur Root-Level und Legacy-Pfade ignorieren
+/config.php
 CMSv2/config.php
-config.php
 config.local.php
+# CMS/config.php ist der Stub (kein Credential-Inhalt) → wird NICHT ignoriert
+
+# CMS v2 – sensible Konfigurationsdateien (werden durch Installer erzeugt,
+# niemals in VCS einchecken – enthält echte DB-Credentials & Security-Keys!)
+CMS/config/app.php
+CMS/config/app.php.backup.*
+CMS/config/media-settings.json
 
 # Dynamic Content & Cache
 CMSv2/backups/

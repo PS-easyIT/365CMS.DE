@@ -49,31 +49,70 @@ function parseExistingConfig(): array|bool {
     }
 
     $content = file_get_contents($configPath);
-    $config = [];
-    
+    $config  = [];
+
+    /**
+     * Bereinigt bekannte Platzhalter-Werte aus dem Installer-Template.
+     * Gibt einen leeren String zurück wenn der Wert noch nicht konfiguriert wurde.
+     */
+    $clean = static function (string $val): string {
+        if (
+            str_contains($val, 'YOUR_')
+            || str_contains($val, 'REPLACE_VIA_INSTALLER')
+            || str_contains($val, 'example.com')
+        ) {
+            return '';
+        }
+        return $val;
+    };
+
     // Parse DB-Credentials
-    if (preg_match("/define\('DB_HOST',\s*'([^']+)'\);/", $content, $matches)) {
-        $config['db_host'] = $matches[1];
+    if (preg_match("/define\('DB_HOST',\s*'([^']+)'\);/", $content, $m)) {
+        // 'localhost' ist ein wirksamer Wert – kein Platzhalter-Check nötig
+        $config['db_host'] = $m[1];
     }
-    if (preg_match("/define\('DB_NAME',\s*'([^']+)'\);/", $content, $matches)) {
-        $config['db_name'] = $matches[1];
+    if (preg_match("/define\('DB_NAME',\s*'([^']+)'\);/", $content, $m)) {
+        $config['db_name'] = $clean($m[1]);
     }
-    if (preg_match("/define\('DB_USER',\s*'([^']+)'\);/", $content, $matches)) {
-        $config['db_user'] = $matches[1];
+    if (preg_match("/define\('DB_USER',\s*'([^']+)'\);/", $content, $m)) {
+        $config['db_user'] = $clean($m[1]);
     }
-    if (preg_match("/define\('DB_PASS',\s*'([^']+)'\);/", $content, $matches)) {
-        $config['db_pass'] = $matches[1];
+    if (preg_match("/define\('DB_PASS',\s*'([^']+)'\);/", $content, $m)) {
+        // Passwort darf leer sein → kein Platzhalter-Check, nur REPLACE_-Strings entfernen
+        $config['db_pass'] = str_contains($m[1], 'YOUR_') ? '' : $m[1];
     }
-    
+
     // Parse Site-Info
-    if (preg_match("/define\('SITE_NAME',\s*'([^']+)'\);/", $content, $matches)) {
-        $config['site_name'] = $matches[1];
+    if (preg_match("/define\('SITE_NAME',\s*'([^']+)'\);/", $content, $m)) {
+        $config['site_name'] = $clean($m[1]);
     }
-    if (preg_match("/define\('ADMIN_EMAIL',\s*'([^']+)'\);/", $content, $matches)) {
-        $config['admin_email'] = $matches[1];
+    if (preg_match("/define\('ADMIN_EMAIL',\s*'([^']+)'\);/", $content, $m)) {
+        $config['admin_email'] = $clean($m[1]);
     }
-    
-    return !empty($config['db_host']) ? $config : false;
+    // SITE_URL: ersten Match nehmen (Datei könnte doppelten define haben)
+    if (preg_match("/define\('SITE_URL',\s*'([^']+)'\);/", $content, $m)) {
+        $config['site_url'] = $clean($m[1]);
+    }
+    if (preg_match("/define\('CMS_DEBUG',\s*(true|false)\);/", $content, $m)) {
+        $config['debug_mode'] = $m[1];
+    }
+
+    // Security-Keys beibehalten (Update-Modus – kein Neuerstellen erforderlich)
+    if (preg_match("/define\('AUTH_KEY',\s*'([^']+)'\);/", $content, $m)) {
+        $config['auth_key'] = str_contains($m[1], 'REPLACE_VIA_INSTALLER') ? '' : $m[1];
+    }
+    if (preg_match("/define\('SECURE_AUTH_KEY',\s*'([^']+)'\);/", $content, $m)) {
+        $config['secure_auth_key'] = str_contains($m[1], 'REPLACE_VIA_INSTALLER') ? '' : $m[1];
+    }
+    if (preg_match("/define\('NONCE_KEY',\s*'([^']+)'\);/", $content, $m)) {
+        $config['nonce_key'] = str_contains($m[1], 'REPLACE_VIA_INSTALLER') ? '' : $m[1];
+    }
+
+    // Nur als "echte Installation" werten wenn DB-Username UND DB-Name vorhanden sind.
+    // 'localhost' allein reicht nicht – das steht auch im Template.
+    return (!empty($config['db_user']) && !empty($config['db_name']))
+        ? $config
+        : false;
 }
 
 function cleanDatabase(PDO $pdo, string $prefix = 'cms_'): array {
@@ -252,6 +291,32 @@ PHP;
     file_put_contents($stubPath, $stub);
 
     return true;
+}
+
+/**
+ * Update-Modus: config/app.php neu schreiben und dabei
+ * bestehende DB-Zugangsdaten sowie Security-Keys beibehalten.
+ *
+ * @param array $existing  Geparste Werte der bestehenden config/app.php
+ * @param array $updates   Neue Site-Werte (site_name, site_url, admin_email, debug_mode)
+ */
+function updateConfigFile(array $existing, array $updates): bool|string {
+    $data = [
+        'created_at'      => date('Y-m-d H:i:s'),
+        'debug_mode'      => $updates['debug_mode']      ?? $existing['debug_mode']      ?? 'false',
+        'db_host'         => $existing['db_host'],
+        'db_name'         => $existing['db_name'],
+        'db_user'         => $existing['db_user'],
+        'db_pass'         => $existing['db_pass'],
+        // Security-Keys aus bestehender Config übernehmen; nur neu erzeugen wenn nicht vorhanden
+        'auth_key'        => $existing['auth_key']        ?? generateSecurityKey(),
+        'secure_auth_key' => $existing['secure_auth_key'] ?? generateSecurityKey(),
+        'nonce_key'       => $existing['nonce_key']       ?? generateSecurityKey(),
+        'site_name'       => $updates['site_name']   ?? $existing['site_name']   ?? 'IT Expert Network',
+        'site_url'        => $updates['site_url']    ?? $existing['site_url']    ?? '',
+        'admin_email'     => $updates['admin_email'] ?? $existing['admin_email'] ?? '',
+    ];
+    return createConfigFile($data);
 }
 
 function createDatabaseTables(PDO $pdo, string $prefix = 'cms_'): array {
@@ -955,31 +1020,279 @@ if ($step == 1) {
                 
                 <?php if ($isReinstall): ?>
                 <div class="info-box" style="background: #fef3c7; border-left-color: #f59e0b;">
-                    <strong>⚠️ Bestehende Installation gefunden!</strong><br>
-                    Es wurde eine config.php mit folgenden Daten gefunden:<br>
+                    <strong>⚠️ Bestehende Installation erkannt!</strong><br>
+                    Vorhandene Konfiguration (<code>config/app.php</code>):<br>
                     <ul style="margin: 0.5rem 0 0.5rem 1.5rem;">
                         <li><strong>Datenbank:</strong> <?php echo htmlspecialchars($existingConfig['db_name'] ?? 'N/A'); ?> @ <?php echo htmlspecialchars($existingConfig['db_host'] ?? 'N/A'); ?></li>
                         <li><strong>Site:</strong> <?php echo htmlspecialchars($existingConfig['site_name'] ?? 'N/A'); ?></li>
+                        <li><strong>URL:</strong> <?php echo htmlspecialchars($existingConfig['site_url'] ?? 'N/A'); ?></li>
                     </ul>
-                    <br>
-                    <strong>ACHTUNG:</strong> Die Neuinstallation wird <strong style="color: #dc2626;">ALLE TABELLEN LÖSCHEN</strong> und das CMS komplett neu aufsetzen!<br>
-                    <small style="color: #92400e;">Dies kann nicht rückgängig gemacht werden. Erstellen Sie vorher ein Backup!</small>
                 </div>
                 <?php endif; ?>
-                
+
                 <div class="info-box">
                     <strong>🌐 Automatisch erkannte Domain:</strong><br>
                     <code style="font-size: 1.1rem; color: #3b82f6;"><?php echo htmlspecialchars($autoUrl); ?></code><br>
                     <small style="color: #64748b;">Diese wird im nächsten Schritt verwendet.</small>
                 </div>
-                
-                <form method="post" action="?step=2">
-                    <?php if ($isReinstall): ?>
-                    <input type="hidden" name="reinstall" value="1">
-                    <?php endif; ?>
-                    <button type="submit" class="btn" <?php echo (!$mysqlAvailable || !$writePermission) ? 'disabled' : ''; ?>>
-                        <?php echo $isReinstall ? '🔄 Neuinstallation starten →' : 'Weiter zu Schritt 2 →'; ?>
+
+                <?php if ($isReinstall): ?>
+                <!-- Update empfohlen -->
+                <form method="post" action="?step=update" style="margin-top: 1.5rem;">
+                    <button type="submit" class="btn" style="background: linear-gradient(135deg,#10b981 0%,#059669 100%);" <?php echo (!$mysqlAvailable || !$writePermission) ? 'disabled' : ''; ?>>
+                        🔄 Update / Schema-Reparatur (bestehende Daten bleiben erhalten)
                     </button>
+                </form>
+                <!-- Neuinstallation: eingeklappt, extra Bestätigung notwendig -->
+                <details style="margin-top: 1rem; border: 2px solid #fca5a5; border-radius: 8px; overflow: hidden;">
+                    <summary style="padding: .75rem 1rem; background: #fef2f2; color: #991b1b; font-weight: 600; cursor: pointer; list-style: none;">
+                        ⚠️ Komplett-Neuinstallation (alle Daten löschen) – hier aufklappen
+                    </summary>
+                    <div style="padding: 1rem; background: #fff;">
+                        <p style="color: #7f1d1d; margin-bottom: 1rem; font-size: .9rem;">
+                            <strong>ACHTUNG:</strong> Löscht <strong>alle Datenbank-Tabellen</strong> unwiderruflich!
+                            Bitte vorher ein Backup erstellen.
+                        </p>
+                        <form method="post" action="?step=2">
+                            <input type="hidden" name="reinstall" value="1">
+                            <button type="submit" class="btn" style="background: linear-gradient(135deg,#ef4444 0%,#b91c1c 100%);" <?php echo (!$mysqlAvailable || !$writePermission) ? 'disabled' : ''; ?>>
+                                ❌ Ja, komplett neu installieren (alle Daten löschen)
+                            </button>
+                        </form>
+                    </div>
+                </details>
+                <?php else: ?>
+                <form method="post" action="?step=2" style="margin-top: 1.5rem;">
+                    <button type="submit" class="btn" <?php echo (!$mysqlAvailable || !$writePermission) ? 'disabled' : ''; ?>>
+                        Weiter zu Schritt 2 →
+                    </button>
+                </form>
+                <?php endif; ?>
+            </div>
+        </div>
+    </body>
+    </html>
+    <?php
+    exit;
+}
+
+// ─── Update-Modus: fehlende Tabellen ergänzen, Config-Werte aktualisieren ────
+if ($step === 'update') {
+    if (!$existingConfig) {
+        header('Location: ?step=1');
+        exit;
+    }
+
+    $updateErrors  = [];
+    $tableResults  = [];
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run_update'])) {
+        $newSiteName   = trim($_POST['site_name']   ?? $existingConfig['site_name']   ?? '');
+        $newSiteUrl    = rtrim(trim($_POST['site_url'] ?? $existingConfig['site_url'] ?? ''), '/');
+        $newAdminEmail = trim($_POST['admin_email']  ?? $existingConfig['admin_email'] ?? '');
+        $newDebugMode  = isset($_POST['debug_mode'])  ? 'true' : 'false';
+
+        // 1. config/app.php aktualisieren – DB-Zugangsdaten + Security-Keys bleiben erhalten
+        $configResult = updateConfigFile($existingConfig, [
+            'site_name'   => $newSiteName,
+            'site_url'    => $newSiteUrl,
+            'admin_email' => $newAdminEmail,
+            'debug_mode'  => $newDebugMode,
+        ]);
+
+        if ($configResult !== true) {
+            $updateErrors[] = 'Config-Update fehlgeschlagen: ' . $configResult;
+        } else {
+            try {
+                $dsn = "mysql:host={$existingConfig['db_host']};dbname={$existingConfig['db_name']};charset=utf8mb4";
+                $pdo = new PDO($dsn, $existingConfig['db_user'], $existingConfig['db_pass'], [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+                ]);
+
+                // 2. Fehlende Tabellen anlegen (CREATE TABLE IF NOT EXISTS – Daten bleiben)
+                $tableResults = createDatabaseTables($pdo);
+
+                // 3. Zentrale Settings in DB aktualisieren
+                $prefix = 'cms_';
+                $settingStmt = $pdo->prepare(
+                    "INSERT INTO {$prefix}settings (option_name, option_value, autoload)
+                     VALUES (?, ?, 1) ON DUPLICATE KEY UPDATE option_value = VALUES(option_value)"
+                );
+                foreach ([
+                    'site_name'   => $newSiteName,
+                    'admin_email' => $newAdminEmail,
+                    'site_title'  => $newSiteName,
+                ] as $k => $v) {
+                    try { $settingStmt->execute([$k, $v]); } catch (PDOException) {}
+                }
+
+                $newTables = array_keys(array_filter($tableResults, static fn($v) => $v === true));
+                $_SESSION['install_success'] = [
+                    'username'       => '',
+                    'site_url'       => $newSiteUrl,
+                    'is_update'      => true,
+                    'tables_created' => $newTables,
+                ];
+                header('Location: ?step=5');
+                exit;
+
+            } catch (PDOException $e) {
+                $updateErrors[] = 'Datenbankfehler: ' . $e->getMessage();
+            }
+        }
+    }
+
+    // Formular-Vorbelegung aus bestehender Config
+    $fSiteName   = htmlspecialchars($existingConfig['site_name']   ?? 'IT Expert Network');
+    $fSiteUrl    = htmlspecialchars($existingConfig['site_url']    ?? autoDetectUrl());
+    $fAdminEmail = htmlspecialchars($existingConfig['admin_email'] ?? '');
+    $fDebugMode  = ($existingConfig['debug_mode'] ?? 'false') === 'true';
+
+    ?>
+    <!DOCTYPE html>
+    <html lang="de">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>CMS Update / Schema-Reparatur</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                min-height: 100vh;
+                padding: 2rem;
+            }
+            .container { max-width: 800px; margin: 0 auto; }
+            .card {
+                background: white;
+                border-radius: 16px;
+                padding: 3rem;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            }
+            h1 { color: #1e293b; font-size: 2rem; margin-bottom: 0.5rem; }
+            .form-group { margin: 1.5rem 0; }
+            label {
+                display: block;
+                font-weight: 600;
+                margin-bottom: 0.5rem;
+                color: #334155;
+            }
+            input[type="text"], input[type="email"], input[type="url"] {
+                width: 100%;
+                padding: 0.75rem;
+                border: 2px solid #e2e8f0;
+                border-radius: 8px;
+                font-size: 1rem;
+            }
+            input[readonly] {
+                background: #f8fafc;
+                color: #94a3b8;
+                cursor: not-allowed;
+            }
+            input:focus { outline: none; border-color: #10b981; }
+            .help-text { font-size: 0.875rem; color: #64748b; margin-top: 0.25rem; }
+            .error-box {
+                background: #fef2f2;
+                border-left: 4px solid #ef4444;
+                padding: 1rem;
+                margin: 1rem 0;
+                border-radius: 4px;
+                color: #991b1b;
+            }
+            .info-box {
+                background: #f0fdf4;
+                border-left: 4px solid #10b981;
+                padding: 1rem;
+                margin: 1rem 0;
+                border-radius: 4px;
+            }
+            .btn {
+                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                color: white;
+                padding: 1rem 2rem;
+                border: none;
+                border-radius: 8px;
+                font-size: 1rem;
+                font-weight: 600;
+                cursor: pointer;
+                width: 100%;
+                margin-top: 1rem;
+            }
+            .btn:hover { opacity: 0.9; }
+            .btn-back { display: inline-block; color: #64748b; text-decoration: none; font-size: .875rem; margin-bottom: 1.5rem; }
+            .checkbox-group { display: flex; align-items: center; gap: .5rem; }
+            .section-divider { border: none; border-top: 2px solid #e2e8f0; margin: 2rem 0; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="card">
+                <a href="?step=1" class="btn-back">← Zurück zur Übersicht</a>
+                <h1>🔄 CMS Update / Schema-Reparatur</h1>
+                <p style="color: #64748b; margin-bottom: 1.5rem;">
+                    Fehlende Datenbank-Tabellen werden ergänzt.
+                    Bestehende Daten und Einstellungen <strong>bleiben vollständig erhalten</strong>.
+                </p>
+
+                <?php if (!empty($updateErrors)): ?>
+                <div class="error-box">
+                    <strong>⚠️ Fehler:</strong><br>
+                    <?php echo implode('<br>', array_map('htmlspecialchars', $updateErrors)); ?>
+                </div>
+                <?php endif; ?>
+
+                <div class="info-box">
+                    <strong>📋 Bestehende Datenbankverbindung:</strong><br>
+                    Datenbank: <code><?php echo htmlspecialchars($existingConfig['db_name'] ?? ''); ?></code>
+                    @ <code><?php echo htmlspecialchars($existingConfig['db_host'] ?? ''); ?></code>
+                    &nbsp;·&nbsp; Benutzer: <code><?php echo htmlspecialchars($existingConfig['db_user'] ?? ''); ?></code><br>
+                    <small style="color: #065f46;">DB-Zugangsdaten und Security-Keys werden unverändert übernommen.</small>
+                </div>
+
+                <form method="post">
+                    <input type="hidden" name="run_update" value="1">
+
+                    <hr class="section-divider">
+                    <p style="font-weight: 700; color: #1e293b; margin-bottom: 1rem;">Site-Konfiguration prüfen / anpassen</p>
+
+                    <div class="form-group">
+                        <label>Site-Name</label>
+                        <input type="text" name="site_name" value="<?php echo $fSiteName; ?>" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Site-URL</label>
+                        <input type="url" name="site_url" value="<?php echo $fSiteUrl; ?>" required>
+                        <p class="help-text">Ohne abschließenden Slash — wird aus bestehender Config übernommen.</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Admin E-Mail</label>
+                        <input type="email" name="admin_email" value="<?php echo $fAdminEmail; ?>" required>
+                    </div>
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" name="debug_mode" id="debug_mode" <?php echo $fDebugMode ? 'checked' : ''; ?>>
+                            <label for="debug_mode" style="margin: 0;">Debug-Modus aktivieren</label>
+                        </div>
+                        <p class="help-text">Nur für Entwicklung — in Produktion deaktivieren!</p>
+                    </div>
+
+                    <hr class="section-divider">
+                    <p style="font-weight: 700; color: #1e293b; margin-bottom: .5rem;">Datenbankzugänge (schreibgeschützt)</p>
+                    <div class="form-group">
+                        <label>DB-Host</label>
+                        <input type="text" value="<?php echo htmlspecialchars($existingConfig['db_host'] ?? ''); ?>" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>DB-Name</label>
+                        <input type="text" value="<?php echo htmlspecialchars($existingConfig['db_name'] ?? ''); ?>" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>DB-Benutzer</label>
+                        <input type="text" value="<?php echo htmlspecialchars($existingConfig['db_user'] ?? ''); ?>" readonly>
+                    </div>
+
+                    <button type="submit" class="btn">🚀 Update starten</button>
                 </form>
             </div>
         </div>
@@ -991,42 +1304,22 @@ if ($step == 1) {
 
 // Step 2: Datenbank-Konfiguration
 if ($step == 2) {
-    $isReinstall = isset($_POST['reinstall']) && $_POST['reinstall'] == '1';
-    
-    // Bei Neuinstallation: DB-Daten aus config.php laden und direkt bereinigen
-    if ($isReinstall && $existingConfig) {
-        try {
-            $dsn = "mysql:host={$existingConfig['db_host']};dbname={$existingConfig['db_name']};charset=utf8mb4";
-            $pdo = new PDO($dsn, $existingConfig['db_user'], $existingConfig['db_pass'], [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-            ]);
-            
-            $cleanResult = cleanDatabase($pdo, 'cms_');
-            
-            $_SESSION['db_config'] = [
-                'db_host' => $existingConfig['db_host'],
-                'db_name' => $existingConfig['db_name'],
-                'db_user' => $existingConfig['db_user'],
-                'db_pass' => $existingConfig['db_pass']
-            ];
-            $_SESSION['db_cleaned'] = $cleanResult;
-            $_SESSION['is_reinstall'] = true;
-            
-            header('Location: ?step=3');
-            exit;
-        } catch (PDOException $e) {
-            $errors[] = 'Datenbankverbindung fehlgeschlagen: ' . $e->getMessage();
-        }
-    }
-    
+    // Reinstall-Flag aus POST (Step-1-Button) oder Session (Seiten-Reload) lesen.
+    // KEIN automatischer Verbindungsversuch mit bestehenden Credentials hier –
+    // der Nutzer muss die Zugangsdaten zuerst prüfen und bestätigen.
+    $isReinstall = (isset($_POST['reinstall']) && $_POST['reinstall'] == '1')
+                || (isset($_SESSION['is_reinstall']) && $_SESSION['is_reinstall'] === true);
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['test_db'])) {
         $dbHost = trim($_POST['db_host'] ?? '');
         $dbName = trim($_POST['db_name'] ?? '');
         $dbUser = trim($_POST['db_user'] ?? '');
         $dbPass = $_POST['db_pass'] ?? '';
-        
+        // Reinstall-Flag aus dem versteckten Formularfeld
+        $reinstallFlag = isset($_POST['reinstall_flag']) && $_POST['reinstall_flag'] == '1';
+
         $testResult = testDatabaseConnection($dbHost, $dbName, $dbUser, $dbPass);
-        
+
         if ($testResult === true) {
             $_SESSION['db_config'] = [
                 'db_host' => $dbHost,
@@ -1034,19 +1327,29 @@ if ($step == 2) {
                 'db_user' => $dbUser,
                 'db_pass' => $dbPass
             ];
+            // Reinstall-Flag für Step 4 merken (DB-Bereinigung erfolgt dort)
+            $_SESSION['is_reinstall'] = $reinstallFlag;
             header('Location: ?step=3');
             exit;
         } else {
             $errors[] = $testResult;
         }
     }
-    
-    $defaultValues = $_SESSION['db_config'] ?? [
+
+    // Formular vorbelegen: zuerst Session-Werte, dann bestehende Config, dann Defaults.
+    // Placeholder-Werte wie 'YOUR_DATABASE_USER' aus der Config werden angezeigt,
+    // damit der Nutzer sie korrigieren kann – aber es wird NICHT versucht, damit zu verbinden.
+    $defaultValues = $_SESSION['db_config'] ?? ($existingConfig ? [
+        'db_host' => $existingConfig['db_host'] ?? 'localhost',
+        'db_name' => $existingConfig['db_name'] ?? '',
+        'db_user' => $existingConfig['db_user'] ?? '',
+        'db_pass' => $existingConfig['db_pass'] ?? '',
+    ] : [
         'db_host' => 'localhost',
         'db_name' => '',
         'db_user' => '',
         'db_pass' => ''
-    ];
+    ]);
     
     ?>
     <!DOCTYPE html>
@@ -1149,10 +1452,21 @@ if ($step == 2) {
                         <?php echo implode('<br>', array_map('htmlspecialchars', $errors)); ?>
                     </div>
                 <?php endif; ?>
-                
+
+                <?php if ($isReinstall): ?>
+                <div class="info-box" style="background:#fef3c7;border-left-color:#f59e0b;">
+                    <strong>⚠️ Neuinstallation</strong> – alle Tabellen werden nach erfolgreicher Verbindungsprüfung gelöscht.<br>
+                    <?php if ($existingConfig): ?>
+                    Die Felder wurden aus der bestehenden <code>config/app.php</code> vorbelegt.
+                    Bitte Zugangsdaten prüfen und ggf. korrigieren, bevor Sie fortfahren.
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+
                 <form method="post">
                     <input type="hidden" name="test_db" value="1">
-                    
+                    <input type="hidden" name="reinstall_flag" value="<?php echo $isReinstall ? '1' : '0'; ?>">
+
                     <div class="form-group">
                         <label>Datenbank-Host</label>
                         <input type="text" name="db_host" value="<?php echo htmlspecialchars($defaultValues['db_host']); ?>" required>
@@ -1423,10 +1737,17 @@ if ($step == 4) {
                         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
                     ]);
                     
-                    // 3. Create tables
+                    // 3. Bei Neuinstallation: alle bestehenden Tabellen löschen
+                    //    (erst HIER, nach verifizierten Credentials, nicht bereits in Step 2)
+                    if (!empty($_SESSION['is_reinstall'])) {
+                        $cleanResult = cleanDatabase($pdo, 'cms_');
+                        $_SESSION['db_cleaned'] = $cleanResult;
+                    }
+
+                    // 4. Create tables (CREATE TABLE IF NOT EXISTS)
                     $tableResults = createDatabaseTables($pdo);
-                    
-                    // 4. Create admin user
+
+                    // 5. Create admin user
                     $adminResult = createAdminUser($pdo, $adminUsername, $adminEmail, $adminPassword);
                     
                     // 5. Create default settings
@@ -1620,7 +1941,7 @@ if ($step == 5) {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Installation erfolgreich!</title>
+        <title><?php echo isset($success['is_update']) && $success['is_update'] ? 'Update erfolgreich!' : 'Installation erfolgreich!'; ?></title>
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
@@ -1719,10 +2040,17 @@ if ($step == 5) {
     <body>
         <div class="container">
             <div class="card">
-                <div class="success-icon">🎉</div>
-                <h1>Installation erfolgreich!</h1>
+                <div class="success-icon"><?php echo isset($success['is_update']) && $success['is_update'] ? '🔄' : '🎉'; ?></div>
+                <h1><?php echo isset($success['is_update']) && $success['is_update'] ? 'Update erfolgreich!' : 'Installation erfolgreich!'; ?></h1>
                 <p class="success-message">
-                    Ihr CMS wurde erfolgreich installiert und ist einsatzbereit.
+                    <?php if (isset($success['is_update']) && $success['is_update']): ?>
+                        Das CMS wurde erfolgreich aktualisiert. Alle bestehenden Daten sind erhalten geblieben.
+                        <?php if (!empty($success['tables_created'])): ?>
+                        <br><small style="color:#065f46;">Neu angelegte Tabellen: <?php echo htmlspecialchars(implode(', ', $success['tables_created'])); ?></small>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        Ihr CMS wurde erfolgreich installiert und ist einsatzbereit.
+                    <?php endif; ?>
                 </p>
                 
                 <div class="info-box">
@@ -1730,10 +2058,12 @@ if ($step == 5) {
                         <strong>🌐 Site-URL:</strong>
                         <code><?php echo htmlspecialchars($success['site_url']); ?></code>
                     </div>
+                    <?php if (!empty($success['username'])): ?>
                     <div class="info-item">
                         <strong>👤 Admin-User:</strong>
                         <code><?php echo htmlspecialchars($success['username']); ?></code>
                     </div>
+                    <?php endif; ?>
                     <div class="info-item">
                         <strong>🔐 Login-URL:</strong>
                         <code><?php echo htmlspecialchars($success['site_url']); ?>/login</code>
