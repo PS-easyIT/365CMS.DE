@@ -749,8 +749,28 @@ class ThemeManager
      */
     public function getMenuLocations(): array
     {
-        // Built-in defaults from active theme (via filter)
+        // Built-in defaults from active theme (via filter – registered by functions.php in frontend)
         $locations = Hooks::applyFilters('register_menu_locations', []);
+
+        // M-NEW: Fallback – Menüpositionen direkt aus theme.json lesen,
+        // damit sie auch im Admin-Bereich ohne geladene functions.php verfügbar sind.
+        $themeJsonFile = $this->themePath . 'theme.json';
+        if (file_exists($themeJsonFile)) {
+            try {
+                $json = json_decode((string)file_get_contents($themeJsonFile), true);
+                if (is_array($json) && isset($json['menus']) && is_array($json['menus'])) {
+                    $existingSlugs = array_column($locations, 'slug');
+                    foreach ($json['menus'] as $slug => $label) {
+                        if (!in_array($slug, $existingSlugs, true)) {
+                            $locations[] = ['slug' => (string)$slug, 'label' => (string)$label];
+                            $existingSlugs[] = (string)$slug;
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                error_log('ThemeManager::getMenuLocations() theme.json error: ' . $e->getMessage());
+            }
+        }
 
         // Additional user-created locations
         try {

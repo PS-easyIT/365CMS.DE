@@ -494,6 +494,24 @@ class SchemaManager
                 INDEX idx_date (visited_at)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
+            // Kommentare (wird von antispam.php und ggf. Plugins verwendet)
+            "CREATE TABLE IF NOT EXISTS {$p}comments (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                post_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+                user_id INT UNSIGNED NULL,
+                author VARCHAR(100) NOT NULL DEFAULT '',
+                author_email VARCHAR(150) NOT NULL DEFAULT '',
+                author_ip VARCHAR(45) DEFAULT '',
+                content TEXT NOT NULL,
+                status ENUM('pending','approved','spam','trash') NOT NULL DEFAULT 'pending',
+                post_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_post_id (post_id),
+                INDEX idx_status (status),
+                INDEX idx_post_date (post_date),
+                INDEX idx_user_id (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET={$c} COMMENT='Kommentare'",
+
             // H-01: Sicherheits-Audit-Log (AuditLogger-Klasse)
             "CREATE TABLE IF NOT EXISTS {$p}audit_log (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

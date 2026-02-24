@@ -156,6 +156,10 @@ class Bootstrap
         $this->container->bindInstance(Database::class, $this->db);
         $this->container->bindInstance('db', $this->db);
 
+        // H-10: Inkrementelle DB-Migrationen ausführen (idempotent, version-basiert –
+        // nur 1 DB-Query pro Request wenn bereits aktuell)
+        (new MigrationManager($this->db))->run();
+
         // Security init (setzt HTTP-Security-Header) – nicht im CLI-Modus
         $this->security = Security::instance();
         $this->container->bindInstance(Security::class, $this->security);

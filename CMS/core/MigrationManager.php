@@ -26,6 +26,12 @@ class MigrationManager
     private Database $db;
     private string $prefix;
 
+    /**
+     * Aktuelle Schema-Version – erhöhen wenn neue Migrations hinzukommen.
+     * Wird in cms_settings (option_name = 'db_schema_version') gespeichert.
+     */
+    private const SCHEMA_VERSION = 'v7';
+
     public function __construct(Database $db)
     {
         $this->db     = $db;
@@ -41,15 +47,26 @@ class MigrationManager
     {
         (new SchemaManager($this->db))->clearFlag();
         (new SchemaManager($this->db))->createTables();
+        // Bei Reparatur Schema-Version zurücksetzen damit run() erneut durchläuft
+        $this->resetVersion();
+        $this->run();
     }
 
     /**
      * Führt alle inkrementellen Migrations-SQLs aus.
      * Idempotent: PDOException für bereits vorhandene Spalten / Duplikat-Keys werden ignoriert.
+     * Versionsprüfung: läuft nur einmal bis SCHEMA_VERSION erreicht ist (1 DB-Query auf
+     * normalen Requests statt vieler ALTER TABLE Statements).
      */
     public function run(): void
     {
-        $p = $this->prefix;
+        // Nur ausführen wenn Version noch nicht aktuell
+        if ($this->getCurrentVersion() === self::SCHEMA_VERSION) {
+            return;
+        }
+
+        $p   = $this->prefix;
+        $pdo = $this->db->getPdo();
 
         $migrations = [
             // RBAC: member_dashboard_access on roles
@@ -61,33 +78,84 @@ class MigrationManager
             // H-05: action-Feld für DB-basiertes Rate-Limiting (Schema v5)
             "ALTER TABLE `{$p}login_attempts` ADD COLUMN `action` VARCHAR(30) NOT NULL DEFAULT 'login' AFTER `ip_address`",
             "ALTER TABLE `{$p}login_attempts` ADD INDEX `idx_ip_action` (`ip_address`, `action`)",
+            "ALTER TABLE `{$p}login_attempts` ADD INDEX `idx_action` (`action`)",
+            // H-05: veraltete success-Spalte entfernen (falls aus alter Installation vorhanden)
+            "ALTER TABLE `{$p}login_attempts` DROP COLUMN `success`",
+            "ALTER TABLE `{$p}login_attempts` DROP INDEX `idx_success`",
             // H-02: UNIQUE-Key auf user_meta(user_id, meta_key) für ON DUPLICATE KEY UPDATE (Schema v6)
             "ALTER TABLE `{$p}user_meta` ADD UNIQUE KEY `uq_user_meta` (`user_id`, `meta_key`)",
-            
             // H-02: User-Display-Name bei alten Tabellen (falls fehlend)
             "ALTER TABLE `{$p}users` ADD COLUMN `display_name` VARCHAR(100) NOT NULL AFTER `password`",
-            
             // H-01: Audit-Log Action-Spalte (Fix für fehlende Spalte bei Update von alter Version)
             "ALTER TABLE `{$p}audit_log` ADD COLUMN `action` VARCHAR(100) NOT NULL DEFAULT 'unknown' AFTER `category`",
             "ALTER TABLE `{$p}audit_log` ADD INDEX `idx_action` (`action`)",
         ];
 
-        $pdo = $this->db->getPdo();
         foreach ($migrations as $sql) {
             try {
                 $pdo->exec($sql);
             } catch (PDOException $e) {
                 $msg = $e->getMessage();
-                // Ignorierte Errors: Spalte/Key existiert bereits, Tabelle existiert noch nicht
+                // Ignorierte Errors: Spalte/Key existiert bereits, Tabelle existiert noch nicht,
+                // Spalte existiert nicht (DROP auf nicht vorhandene Spalte), Check constraint
                 if (
                     !str_contains($msg, 'Duplicate column') &&
                     !str_contains($msg, 'Duplicate key name') &&
                     !str_contains($msg, "doesn't exist") &&
-                    !str_contains($msg, 'Multiple definition')
+                    !str_contains($msg, 'Multiple definition') &&
+                    !str_contains($msg, "Can't DROP") &&
+                    !str_contains($msg, 'check that column/key exists')
                 ) {
                     error_log('MigrationManager: ' . $msg);
                 }
             }
         }
+
+        // Version nach erfolgreichem Durchlauf persistieren
+        $this->saveVersion(self::SCHEMA_VERSION);
+    }
+
+    /**
+     * Liest die aktuelle Schema-Version aus der Settings-Tabelle.
+     */
+    private function getCurrentVersion(): string
+    {
+        try {
+            $stmt = $this->db->getPdo()->prepare(
+                "SELECT option_value FROM `{$this->prefix}settings` WHERE option_name = 'db_schema_version' LIMIT 1"
+            );
+            $stmt->execute();
+            return (string)($stmt->fetchColumn() ?: '');
+        } catch (\Throwable) {
+            return ''; // Settings-Tabelle existiert noch nicht → Migration muss laufen
+        }
+    }
+
+    /**
+     * Speichert die Schema-Version in der Settings-Tabelle.
+     */
+    private function saveVersion(string $version): void
+    {
+        try {
+            $this->db->getPdo()->exec(
+                "INSERT INTO `{$this->prefix}settings` (option_name, option_value, autoload)
+                 VALUES ('db_schema_version', " . $this->db->getPdo()->quote($version) . ", 0)
+                 ON DUPLICATE KEY UPDATE option_value = " . $this->db->getPdo()->quote($version)
+            );
+        } catch (\Throwable) {
+            // Nicht kritisch – beim nächsten Request wird erneut versucht
+        }
+    }
+
+    /**
+     * Schema-Version zurücksetzen (für repairTables).
+     */
+    private function resetVersion(): void
+    {
+        try {
+            $this->db->getPdo()->exec(
+                "DELETE FROM `{$this->prefix}settings` WHERE option_name = 'db_schema_version'"
+            );
+        } catch (\Throwable) {}
     }
 }

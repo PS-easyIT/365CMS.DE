@@ -62,12 +62,15 @@ class Database implements DatabaseInterface
             // Nicht werfen – App soll weiterlaufen
         }
     }
-    
+
     /**
      * Connect to database
      */
     private function connect(): void
     {
+        // Präfix aus Konfigurationskonstante übernehmen (muss VOR SchemaManager gesetzt sein)
+        $this->prefix = defined('DB_PREFIX') ? DB_PREFIX : 'cms_';
+
         try {
             $dsn = sprintf(
                 'mysql:host=%s;dbname=%s;charset=%s',

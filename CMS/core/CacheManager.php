@@ -89,37 +89,16 @@ class CacheManager implements CacheInterface
             return $default;
         }
 
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-        $content = file_get_contents($file);
-        $data = unserialize($content);
-
-        // Check expiration
-        if ($data['expires'] < time()) {
-            unlink($file);
-            return null;
-        }
-
-        return $data['value'];
-=======
         $raw = file_get_contents($file);
         if ($raw === false) {
             return $default;
         }
 
-=======
-        $raw = file_get_contents($file);
-        if ($raw === false) {
-            return null;
-        }
-
->>>>>>> 99c076b264547ca37d9fb41c77632a2247e7247a
         // Format: <hmac>:<base64-encoded-json>
         $sep = strpos($raw, ':');
         if ($sep === false) {
             // Altes Format (serialize) – Datei ungültig löschen
             if (file_exists($file)) { unlink($file); }
-<<<<<<< HEAD
             return $default;
         }
 
@@ -149,72 +128,6 @@ class CacheManager implements CacheInterface
         if ($data['e'] < time()) {
             if (file_exists($file)) { unlink($file); }
             return $default;
-        }
-
-        // M-05: Read-Through – L2-Treffer in L1 zurückschreiben (restliche TTL)
-        if ($this->useApcu) {
-            $remainingTtl = $data['e'] - time();
-            if ($remainingTtl > 0) {
-                apcu_store($this->apcuKey($key), $data['v'], $remainingTtl);
-            }
-        }
-
-        return $data['v'];
->>>>>>> Stashed changes
-    }
-
-    /**
-     * Set item in cache
-     */
-    public function set(string $key, mixed $value, int $ttl = 3600): void
-    {
-        $file = $this->getCacheFile($key);
-        $data = [
-            'value' => $value,
-            'expires' => time() + $ttl
-        ];
-        file_put_contents($file, serialize($data));
-    }
-
-    /**
-     * Delete item from cache
-     */
-    public function delete(string $key): void
-    {
-        $file = $this->getCacheFile($key);
-        if (file_exists($file)) {
-            unlink($file);
-=======
-            return null;
->>>>>>> 99c076b264547ca37d9fb41c77632a2247e7247a
-        }
-
-        $storedHmac = substr($raw, 0, $sep);
-        $payload    = base64_decode(substr($raw, $sep + 1), true);
-
-        if ($payload === false) {
-            if (file_exists($file)) { unlink($file); }
-            return null;
-        }
-
-        // HMAC-Integritätsprüfung (verhindert PHP Object Injection)
-        $expectedHmac = hash_hmac('sha256', $payload, $this->getHmacKey());
-        if (!hash_equals($expectedHmac, $storedHmac)) {
-            if (file_exists($file)) { unlink($file); }
-            error_log('CacheManager: HMAC-Fehlschlag für Cache-Schlüssel ' . $key . ' – mögliche Manipulation!');
-            return null;
-        }
-
-        $data = json_decode($payload, true);
-        if (!is_array($data) || !array_key_exists('v', $data) || !isset($data['e'])) {
-            if (file_exists($file)) { unlink($file); }
-            return null;
-        }
-
-        // Ablaufzeit prüfen
-        if ($data['e'] < time()) {
-            if (file_exists($file)) { unlink($file); }
-            return null;
         }
 
         // M-05: Read-Through – L2-Treffer in L1 zurückschreiben (restliche TTL)

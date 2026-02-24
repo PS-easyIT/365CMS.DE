@@ -313,7 +313,9 @@ class Router
             return;
         }
         
-        $result = Auth::instance()->login($_POST['username'] ?? '', $_POST['password'] ?? '');
+        // Login-Formular kann 'username' oder 'email' als Feldnamen verwenden
+        $loginInput = $_POST['username'] ?? $_POST['email'] ?? '';
+        $result = Auth::instance()->login($loginInput, $_POST['password'] ?? '');
         
         if ($result === true) {
             $this->redirect('/member');

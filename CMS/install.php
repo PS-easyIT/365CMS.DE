@@ -81,6 +81,9 @@ function parseExistingConfig(): array|bool {
         // Passwort darf leer sein → kein Platzhalter-Check, nur REPLACE_-Strings entfernen
         $config['db_pass'] = str_contains($m[1], 'YOUR_') ? '' : $m[1];
     }
+    if (preg_match("/define\('DB_PREFIX',\s*'([^']+)'\);/", $content, $m)) {
+        $config['db_prefix'] = !empty($m[1]) ? $m[1] : 'cms_';
+    }
 
     // Parse Site-Info
     if (preg_match("/define\('SITE_NAME',\s*'([^']+)'\);/", $content, $m)) {
@@ -220,7 +223,7 @@ define('DB_NAME',    '{$data['db_name']}');
 define('DB_USER',    '{$data['db_user']}');
 define('DB_PASS',    '{$data['db_pass']}');
 define('DB_CHARSET', 'utf8mb4');
-define('DB_PREFIX',  'cms_');
+define('DB_PREFIX',  '{$data['db_prefix']}');
 
 // ─── Security-Keys (via random_bytes – NICHT manuell setzen!) ─────────────
 define('AUTH_KEY',        '{$data['auth_key']}');
@@ -308,6 +311,7 @@ function updateConfigFile(array $existing, array $updates): bool|string {
         'db_name'         => $existing['db_name'],
         'db_user'         => $existing['db_user'],
         'db_pass'         => $existing['db_pass'],
+        'db_prefix'       => $existing['db_prefix']  ?? 'cms_',
         // Security-Keys aus bestehender Config übernehmen; nur neu erzeugen wenn nicht vorhanden
         'auth_key'        => $existing['auth_key']        ?? generateSecurityKey(),
         'secure_auth_key' => $existing['secure_auth_key'] ?? generateSecurityKey(),
@@ -392,12 +396,13 @@ function createDatabaseTables(PDO $pdo, string $prefix = 'cms_'): array {
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             username VARCHAR(60),
             ip_address VARCHAR(45),
-            success TINYINT(1) DEFAULT 0,
+            action VARCHAR(30) NOT NULL DEFAULT 'login',
             attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             INDEX idx_username (username),
             INDEX idx_ip (ip_address),
-            INDEX idx_time (attempted_at),
-            INDEX idx_success (success)
+            INDEX idx_action (action),
+            INDEX idx_ip_action (ip_address, action),
+            INDEX idx_time (attempted_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
 
         'blocked_ips' => "CREATE TABLE IF NOT EXISTS {$prefix}blocked_ips (
@@ -753,6 +758,24 @@ function createDatabaseTables(PDO $pdo, string $prefix = 'cms_'): array {
             INDEX idx_published (published_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Blog-Beiträge'",
 
+        // Kommentare (wird von antispam.php und ggf. Plugins verwendet)
+        'comments' => "CREATE TABLE IF NOT EXISTS {$prefix}comments (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            post_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            user_id INT UNSIGNED NULL,
+            author VARCHAR(100) NOT NULL DEFAULT '',
+            author_email VARCHAR(150) NOT NULL DEFAULT '',
+            author_ip VARCHAR(45) DEFAULT '',
+            content TEXT NOT NULL,
+            status ENUM('pending','approved','spam','trash') NOT NULL DEFAULT 'pending',
+            post_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_post_id (post_id),
+            INDEX idx_status (status),
+            INDEX idx_post_date (post_date),
+            INDEX idx_user_id (user_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Kommentare'",
+
         // H-01: Sicherheits-Audit-Log (AuditLogger-Klasse)
         'audit_log' => "CREATE TABLE IF NOT EXISTS {$prefix}audit_log (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -799,8 +822,9 @@ function createAdminUser(PDO $pdo, string $username, string $email, string $pass
         
         // Create admin
         $hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+        $displayName = ucfirst($username);
         $stmt = $pdo->prepare("INSERT INTO {$prefix}users (username, email, password, display_name, role, status) VALUES (?, ?, ?, ?, 'admin', 'active')");
-        $stmt->execute([$username, $email, $hash, 'Administrator']);
+        $stmt->execute([$username, $email, $hash, $displayName]);
         
         return true;
     } catch (PDOException $e) {
@@ -1320,18 +1344,29 @@ if ($step == 2) {
 
         $testResult = testDatabaseConnection($dbHost, $dbName, $dbUser, $dbPass);
 
-        if ($testResult === true) {
+        $dbPrefix = trim($_POST['db_prefix'] ?? 'cms_');
+        // Sicherheits-Validierung: nur Buchstaben, Zahlen, Unterstrich; muss mit _ enden
+        if (!preg_match('/^[a-z][a-z0-9_]*_$/i', $dbPrefix)) {
+            $errors[] = 'Tabellen-Präfix darf nur Buchstaben, Zahlen und _ enthalten und muss mit _ enden (z.B. cms_)';
+        } elseif (strlen($dbPrefix) > 20) {
+            $errors[] = 'Tabellen-Präfix darf maximal 20 Zeichen lang sein';
+        } else {
+            $dbPrefix = strtolower($dbPrefix);
+        }
+
+        if ($testResult === true && empty($errors)) {
             $_SESSION['db_config'] = [
-                'db_host' => $dbHost,
-                'db_name' => $dbName,
-                'db_user' => $dbUser,
-                'db_pass' => $dbPass
+                'db_host'   => $dbHost,
+                'db_name'   => $dbName,
+                'db_user'   => $dbUser,
+                'db_pass'   => $dbPass,
+                'db_prefix' => $dbPrefix,
             ];
             // Reinstall-Flag für Step 4 merken (DB-Bereinigung erfolgt dort)
             $_SESSION['is_reinstall'] = $reinstallFlag;
             header('Location: ?step=3');
             exit;
-        } else {
+        } elseif ($testResult !== true) {
             $errors[] = $testResult;
         }
     }
@@ -1340,15 +1375,17 @@ if ($step == 2) {
     // Placeholder-Werte wie 'YOUR_DATABASE_USER' aus der Config werden angezeigt,
     // damit der Nutzer sie korrigieren kann – aber es wird NICHT versucht, damit zu verbinden.
     $defaultValues = $_SESSION['db_config'] ?? ($existingConfig ? [
-        'db_host' => $existingConfig['db_host'] ?? 'localhost',
-        'db_name' => $existingConfig['db_name'] ?? '',
-        'db_user' => $existingConfig['db_user'] ?? '',
-        'db_pass' => $existingConfig['db_pass'] ?? '',
+        'db_host'   => $existingConfig['db_host']   ?? 'localhost',
+        'db_name'   => $existingConfig['db_name']   ?? '',
+        'db_user'   => $existingConfig['db_user']   ?? '',
+        'db_pass'   => $existingConfig['db_pass']   ?? '',
+        'db_prefix' => $existingConfig['db_prefix'] ?? 'cms_',
     ] : [
-        'db_host' => 'localhost',
-        'db_name' => '',
-        'db_user' => '',
-        'db_pass' => ''
+        'db_host'   => 'localhost',
+        'db_name'   => '',
+        'db_user'   => '',
+        'db_pass'   => '',
+        'db_prefix' => 'cms_',
     ]);
     
     ?>
@@ -1487,6 +1524,20 @@ if ($step == 2) {
                     <div class="form-group">
                         <label>Datenbank-Passwort</label>
                         <input type="password" name="db_pass" value="<?php echo htmlspecialchars($defaultValues['db_pass']); ?>">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tabellen-Präfix</label>
+                        <input type="text" name="db_prefix"
+                               value="<?php echo htmlspecialchars($defaultValues['db_prefix'] ?? 'cms_'); ?>"
+                               pattern="[a-zA-Z][a-zA-Z0-9_]*_"
+                               maxlength="20"
+                               placeholder="cms_"
+                               required>
+                        <p class="help-text">
+                            Standard: <code>cms_</code> &mdash; nur Buchstaben, Zahlen und <code>_</code>, muss mit <code>_</code> enden.<br>
+                            Bei mehreren CMS-Installationen in einer Datenbank unterschiedliche Präfixe verwenden (z.&nbsp;B. <code>shop_</code>, <code>blog_</code>).
+                        </p>
                     </div>
                     
                     <button type="submit" class="btn">Verbindung testen & weiter →</button>
@@ -1706,23 +1757,25 @@ if ($step == 4) {
             $errors[] = 'Passwort muss mindestens 8 Zeichen lang sein';
         } else {
             // Start Installation!
-            $dbConfig = $_SESSION['db_config'];
+            $dbConfig   = $_SESSION['db_config'];
             $siteConfig = $_SESSION['site_config'];
+            $prefix     = $dbConfig['db_prefix'] ?? 'cms_';
             
             // 1. Create config.php
             $configData = [
-                'created_at' => date('Y-m-d H:i:s'),
-                'debug_mode' => $siteConfig['debug_mode'],
-                'db_host' => $dbConfig['db_host'],
-                'db_name' => $dbConfig['db_name'],
-                'db_user' => $dbConfig['db_user'],
-                'db_pass' => $dbConfig['db_pass'],
-                'auth_key' => generateSecurityKey(),
+                'created_at'      => date('Y-m-d H:i:s'),
+                'debug_mode'      => $siteConfig['debug_mode'],
+                'db_host'         => $dbConfig['db_host'],
+                'db_name'         => $dbConfig['db_name'],
+                'db_user'         => $dbConfig['db_user'],
+                'db_pass'         => $dbConfig['db_pass'],
+                'db_prefix'       => $prefix,
+                'auth_key'        => generateSecurityKey(),
                 'secure_auth_key' => generateSecurityKey(),
-                'nonce_key' => generateSecurityKey(),
-                'site_name' => $siteConfig['site_name'],
-                'site_url' => $siteConfig['site_url'],
-                'admin_email' => $siteConfig['admin_email']
+                'nonce_key'       => generateSecurityKey(),
+                'site_name'       => $siteConfig['site_name'],
+                'site_url'        => $siteConfig['site_url'],
+                'admin_email'     => $siteConfig['admin_email'],
             ];
             
             $configResult = createConfigFile($configData);
@@ -1737,31 +1790,35 @@ if ($step == 4) {
                         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
                     ]);
                     
-                    // 3. Bei Neuinstallation: alle bestehenden Tabellen löschen
-                    //    (erst HIER, nach verifizierten Credentials, nicht bereits in Step 2)
-                    if (!empty($_SESSION['is_reinstall'])) {
-                        $cleanResult = cleanDatabase($pdo, 'cms_');
-                        $_SESSION['db_cleaned'] = $cleanResult;
-                    }
+                    // 3. Immer alle bestehenden Tabellen mit diesem Präfix löschen
+                    //    (idempotent – cleanDatabase gibt leeres Array zurück wenn keine Tabellen existieren)
+                    $cleanResult = cleanDatabase($pdo, $prefix);
+                    $_SESSION['db_cleaned'] = $cleanResult;
 
                     // 4. Create tables (CREATE TABLE IF NOT EXISTS)
-                    $tableResults = createDatabaseTables($pdo);
+                    $tableResults = createDatabaseTables($pdo, $prefix);
 
                     // 5. Create admin user
-                    $adminResult = createAdminUser($pdo, $adminUsername, $adminEmail, $adminPassword);
+                    $adminResult = createAdminUser($pdo, $adminUsername, $adminEmail, $adminPassword, $prefix);
                     
                     // 5. Create default settings
-                    createDefaultSettings($pdo, $siteConfig['site_name'], $siteConfig['admin_email']);
+                    createDefaultSettings($pdo, $siteConfig['site_name'], $siteConfig['admin_email'], $prefix);
                     
                     // 6. Initialize landing page data
-                    initializeLandingPageData($pdo);
+                    initializeLandingPageData($pdo, $prefix);
                     
                     if ($adminResult === true) {
+                        // SchemaManager-Flag löschen → beim ersten CMS-Boot wird Schema neu geprüft
+                        $flagFile = __DIR__ . '/cache/db_schema_v7.flag';
+                        if (file_exists($flagFile)) {
+                            @unlink($flagFile);
+                        }
                         // SUCCESS!
                         $_SESSION['install_success'] = [
                             'username' => $adminUsername,
                             'site_url' => $siteConfig['site_url']
                         ];
+                        unset($_SESSION['is_reinstall']);
                         header('Location: ?step=5');
                         exit;
                     } else {
