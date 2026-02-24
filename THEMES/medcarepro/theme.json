@@ -1,7 +1,20 @@
 {
   "name": "MedCare Pro",
   "slug": "medcarepro",
-  "version": "1.0.0",
+  "version": "1.0.1",
+
+  "templates": {
+    "home":         "home.php",
+    "index":        "index.php",
+    "page":         "page.php",
+    "404":          "404.php",
+    "error":        "error.php",
+    "blog":         "blog.php",
+    "blog-single":  "blog-single.php",
+    "search":       "search.php",
+    "login":        "login.php",
+    "register":     "register.php"
+  },
   "author": "PHINIT.DE / Andreas Hepp",
   "description": "Gesundheitswesen & Medizin Theme – Vertrauensvoll, beruhigend, klar. Für Arztpraxen, Kliniken, Therapeuten und Pflegedienste.",
   "tags": ["medizin", "gesundheit", "arzt", "klinik", "dsgvo", "barrierefrei", "cms"],
@@ -423,6 +436,62 @@
           "type": "text",
           "default": "Arzt / Therapeut finden",
           "description": "Text des Arzt-Suche-Buttons"
+        },
+        "hero_cta_label": {
+          "label": "Primärer CTA Buttontext",
+          "type": "text",
+          "default": "Arzt suchen",
+          "description": "Beschriftung des primären Hero-Buttons"
+        },
+        "hero_cta_url": {
+          "label": "Primärer CTA URL",
+          "type": "text",
+          "default": "/aerzte",
+          "description": "Ziel-URL des primären Hero-Buttons"
+        },
+        "hero_secondary_cta_label": {
+          "label": "Sekundärer CTA Buttontext",
+          "type": "text",
+          "default": "Termin buchen",
+          "description": "Beschriftung des sekundären Hero-Buttons"
+        },
+        "hero_secondary_cta_url": {
+          "label": "Sekundärer CTA URL",
+          "type": "text",
+          "default": "/termin",
+          "description": "Ziel-URL des sekundären Hero-Buttons"
+        },
+        "show_stats_bar": {
+          "label": "Statistik-Leiste anzeigen",
+          "type": "checkbox",
+          "default": true,
+          "description": "Zeigt Statistiken (Ärzte, Fachgebiete, 24/7) unter dem Hero an"
+        },
+        "stat_doctors_count": {
+          "label": "Statistik: Arzt-Anzahl",
+          "type": "text",
+          "default": "1.500+",
+          "description": "Zahl der Ärzte & Kliniken"
+        },
+        "stat_doctors_label": {
+          "label": "Statistik: Arzt-Label",
+          "type": "text",
+          "default": "Ärzte & Kliniken"
+        },
+        "stat_specialties_count": {
+          "label": "Statistik: Fachgebiete Anzahl",
+          "type": "text",
+          "default": "40+"
+        },
+        "stat_specialties_label": {
+          "label": "Statistik: Fachgebiete Label",
+          "type": "text",
+          "default": "Fachgebiete"
+        },
+        "stat_booking_label": {
+          "label": "Statistik: Buchungs-Label",
+          "type": "text",
+          "default": "Online-Termine"
         }
       }
     },

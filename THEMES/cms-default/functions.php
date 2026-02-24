@@ -56,14 +56,45 @@ class MeridianCMSDefaultTheme
 
     public function outputPreconnect(): void
     {
+        // Kein Preconnect zu Google, wenn Local Fonts aktiv sind
+        if ($this->isLocalFontsEnabled()) {
+            return;
+        }
         echo '<link rel="preconnect" href="https://fonts.googleapis.com">' . "\n";
         echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n";
     }
 
-    // ─── Google Fonts ───────────────────────────────────────────────────────
+    /**
+     * Prüft ob Local Fonts (DSGVO) im CMS aktiviert sind
+     */
+    private function isLocalFontsEnabled(): bool
+    {
+        try {
+            $db  = \CMS\Database::instance();
+            $row = $db->execute(
+                "SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'privacy_use_local_fonts'"
+            )->fetch();
+            return ($row && $row->option_value === '1');
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    // ─── Google Fonts / Local Fonts ────────────────────────────────────────────
 
     public function outputGoogleFonts(): void
     {
+        // 1. CMS-weit: Local Fonts (DSGVO) haben Vorrang
+        if ($this->isLocalFontsEnabled()) {
+            $localCssPath = defined('ASSETS_PATH') ? ASSETS_PATH . 'css/local-fonts.css' : '';
+            $localCssUrl  = defined('SITE_URL')    ? SITE_URL    . '/assets/css/local-fonts.css' : '';
+            if ($localCssPath && file_exists($localCssPath) && $localCssUrl) {
+                echo '<link rel="stylesheet" href="' . htmlspecialchars($localCssUrl, ENT_QUOTES, 'UTF-8') . '">' . "\n";
+            }
+            return; // Kein Google-Fonts-Request
+        }
+
+        // 2. Customizer: google_fonts = false → gar keine externe Schrift
         try {
             $loadFonts = \CMS\Services\ThemeCustomizer::instance()->get('typography', 'google_fonts', true);
         } catch (\Throwable $e) {
@@ -71,7 +102,36 @@ class MeridianCMSDefaultTheme
         }
 
         if ($loadFonts) {
-            echo '<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">' . "\n";
+            // Schriftart-Auswahl aus Customizer berücksichtigen
+            try {
+                $c           = \CMS\Services\ThemeCustomizer::instance();
+                $fontBody    = (string)$c->get('typography', 'font_family_body',    'dm-sans');
+                $fontHeading = (string)$c->get('typography', 'font_family_heading', 'libre-baskerville');
+            } catch (\Throwable $e) {
+                $fontBody    = 'dm-sans';
+                $fontHeading = 'libre-baskerville';
+            }
+
+            $googleMap = [
+                'dm-sans'           => 'DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400',
+                'libre-baskerville' => 'Libre+Baskerville:ital,wght@0,400;0,700;1,400',
+                'inter'             => 'Inter:wght@400;500;600;700',
+                'playfair-display'  => 'Playfair+Display:ital,wght@0,400;0,700;1,400',
+                'merriweather'      => 'Merriweather:ital,wght@0,400;0,700;1,400',
+            ];
+
+            $families = [];
+            if (isset($googleMap[$fontBody]))    { $families[] = $googleMap[$fontBody]; }
+            if ($fontHeading !== $fontBody && isset($googleMap[$fontHeading])) {
+                $families[] = $googleMap[$fontHeading];
+            }
+            // DM Mono immer mitladen (für Code-Blöcke)
+            if (!in_array('DM+Mono:wght@400;500', $families, true)) {
+                $families[] = 'DM+Mono:wght@400;500';
+            }
+
+            $url = 'https://fonts.googleapis.com/css2?family=' . implode('&family=', $families) . '&display=swap';
+            echo '<link href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '" rel="stylesheet">' . "\n";
         }
     }
 
@@ -182,6 +242,27 @@ class MeridianCMSDefaultTheme
             echo '<style id="meridian-custom-vars">' . "\n";
 
             // ── CSS Custom Properties (:root) ─────────────────────────────────
+            // Abgeleitete Farben berechnen (leere DB-Werte auf Style.css-Defaults zurückfallen)
+            $accent      = $accent      ?: '#c0862a';
+            $accentDark  = $accentDark  ?: '#a06b18';
+            $ink         = $ink         ?: '#1a1a18';
+            $inkSoft     = $inkSoft     ?: '#3d3d3a';
+            $inkMuted    = $inkMuted    ?: '#7a7a74';
+            $ground      = $ground      ?: '#f7f6f2';
+            $surface     = $surface     ?: '#ffffff';
+            $surfaceTint = $surfaceTint ?: '#f2f1ec';
+            $rule        = $rule        ?: '#e2e0d8';
+            $headerBg    = $headerBg    ?: '#ffffff';
+            $stripe      = $stripe      ?: '#1a1a18';
+            $linkColor   = $linkColor   ?: $accent;
+            $linkHover   = $linkHover   ?: $accentDark;
+            $catBarBg    = $catBarBg    ?: '#f2f1ec';
+            $catBarText  = $catBarText  ?: '#3d3d3a';
+            $footerBg    = $footerBg    ?: '#1a1a18';
+            $footerText  = $footerText  ?: '#9a9a94';
+            $footerAccent = $footerAccent ?: '#c0862a';
+            $inkGhost = $this->lightenHex($inkMuted, 0.46); // ~#b7b7b4 (ähnlich #b8b8b0)
+
             echo ':root {' . "\n";
             echo '  --accent:           ' . $esc($accent)       . ";\n";
             echo '  --accent-dark:      ' . $esc($accentDark)   . ";\n";
@@ -190,11 +271,14 @@ class MeridianCMSDefaultTheme
             echo '  --ink:              ' . $esc($ink)          . ";\n";
             echo '  --ink-soft:         ' . $esc($inkSoft)      . ";\n";
             echo '  --ink-muted:        ' . $esc($inkMuted)     . ";\n";
+            echo '  --ink-ghost:        ' . $esc($inkGhost)     . ";\n";
             echo '  --ground:           ' . $esc($ground)       . ";\n";
             echo '  --surface:          ' . $esc($surface)      . ";\n";
             echo '  --surface-tint:     ' . $esc($surfaceTint)  . ";\n";
             echo '  --rule:             ' . $esc($rule)         . ";\n";
             echo '  --rule-heavy:       ' . $esc($rule)         . ";\n";
+            echo '  --tag-bg:           ' . $esc($surfaceTint)  . ";\n";
+            echo '  --tag-color:        ' . $esc($inkMuted)     . ";\n";
             echo '  --max:              ' . $maxWidth           . "px;\n";
             echo '  --col:              ' . $colWidth           . "px;\n";
             echo '  --r:                ' . $borderRadius       . "px;\n";
@@ -263,6 +347,22 @@ class MeridianCMSDefaultTheme
         $g = hexdec(substr($hex, 2, 2));
         $b = hexdec(substr($hex, 4, 2));
         return 'rgba(' . $r . ',' . $g . ',' . $b . ',' . $alpha . ')';
+    }
+
+    /**
+     * Hilfsfunktion: Farbe in Richtung Weiß aufhellen (für --ink-ghost Ableitung)
+     * $factor 0 = unverändert · 1 = weiß
+     */
+    private function lightenHex(string $hex, float $factor): string
+    {
+        $hex = ltrim($hex, '#');
+        if (strlen($hex) === 3) {
+            $hex = $hex[0].$hex[0].$hex[1].$hex[1].$hex[2].$hex[2];
+        }
+        $r = (int)round(hexdec(substr($hex, 0, 2)) + (255 - hexdec(substr($hex, 0, 2))) * $factor);
+        $g = (int)round(hexdec(substr($hex, 2, 2)) + (255 - hexdec(substr($hex, 2, 2))) * $factor);
+        $b = (int)round(hexdec(substr($hex, 4, 2)) + (255 - hexdec(substr($hex, 4, 2))) * $factor);
+        return sprintf('#%02x%02x%02x', min(255, $r), min(255, $g), min(255, $b));
     }
 
     // ─── Custom Header Code (SEO / Tracking) ─────────────────────────────────
@@ -396,6 +496,16 @@ MeridianCMSDefaultTheme::instance();
 function meridian_output_custom_styles(): void
 {
     MeridianCMSDefaultTheme::instance()->outputCustomStyles();
+}
+
+/**
+ * Globaler Wrapper für Preconnect + Fonts.
+ * Berücksichtigt automatisch lokale Schriften (DSGVO) und Customizer-Einstellungen.
+ */
+function meridian_output_fonts(): void
+{
+    MeridianCMSDefaultTheme::instance()->outputPreconnect();
+    MeridianCMSDefaultTheme::instance()->outputGoogleFonts();
 }
 
 // ─── Template Helper-Funktionen ─────────────────────────────────────────────
@@ -592,17 +702,59 @@ function meridian_setting(string $section, string $key, mixed $default = null): 
 }
 
 /**
- * Kategorie-Leiste: Holt alle Kategorien aus der DB
+ * Kategorie-Leiste: Holt Kategorien aus der DB
+ *
+ * @param int $limit 0 = alle
  */
-function meridian_get_categories(): array
+function meridian_get_categories(int $limit = 0): array
 {
     try {
         $db     = \CMS\Database::instance();
         $prefix = $db->getPrefix();
-        $cats   = $db->get_results(
-            "SELECT id, name, slug FROM {$prefix}post_categories ORDER BY sort_order ASC, name ASC"
-        );
+        $sql    = "SELECT id, name, slug,
+                          (SELECT COUNT(*) FROM {$prefix}posts p WHERE p.category_id = c.id AND p.status = 'published') AS post_count
+                   FROM {$prefix}post_categories c ORDER BY c.sort_order ASC, c.name ASC";
+        if ($limit > 0) {
+            $sql .= ' LIMIT ' . $limit;
+        }
+        $cats = $db->get_results($sql);
         return $cats ? (array)$cats : [];
+    } catch (\Throwable $e) {
+        return [];
+    }
+}
+
+/**
+ * Tag-Cloud: Holt alle verwendeten Tags aus der DB
+ *
+ * @param int $limit 0 = alle
+ */
+function meridian_get_tags(int $limit = 30): array
+{
+    try {
+        $db     = \CMS\Database::instance();
+        $prefix = $db->getPrefix();
+        $stmt   = $db->execute("SELECT tags FROM {$prefix}posts WHERE status = 'published' AND tags IS NOT NULL AND tags != ''");
+        $rows   = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+        $counts = [];
+        foreach ($rows as $row) {
+            foreach (array_filter(array_map('trim', explode(',', $row))) as $tag) {
+                $counts[$tag] = ($counts[$tag] ?? 0) + 1;
+            }
+        }
+        arsort($counts);
+        if ($limit > 0) {
+            $counts = array_slice($counts, 0, $limit, true);
+        }
+        $out = [];
+        foreach ($counts as $name => $count) {
+            $out[] = [
+                'name'  => $name,
+                'slug'  => urlencode(strtolower($name)),
+                'count' => $count,
+            ];
+        }
+        return $out;
     } catch (\Throwable $e) {
         return [];
     }
@@ -697,11 +849,14 @@ function meridian_get_posts(array $args = []): array
             }
         }
 
-        // Sticky (if supported by DB schema, else ignore or mock)
+        // Sticky: Wenn is_sticky-Spalte existiert, bevorzuge angeheftete Beiträge
         if ($args['sticky'] === true) {
-            // Check if column exists or just return latest as sticky
-            // For now, let's assume 'is_sticky' column exists or ignore
-             // $sql .= " AND p.is_sticky = 1"; 
+            try {
+                $db->execute("SELECT is_sticky FROM {$prefix}posts LIMIT 1");
+                $sql .= " AND p.is_sticky = 1";
+            } catch (\Throwable $e) {
+                // is_sticky-Spalte existiert nicht – ignorieren
+            }
         }
 
         // Order
@@ -722,4 +877,121 @@ function meridian_get_posts(array $args = []): array
         // Fallback or log error
         return [];
     }
+}
+
+// ─── Template-Alias-Funktionen ───────────────────────────────────────────────
+// Werden in header.php, login.php, register.php etc. genutzt.
+
+/**
+ * Alias: Eingeloggter Benutzer?
+ */
+function theme_is_logged_in(): bool
+{
+    return meridian_is_logged_in();
+}
+
+/**
+ * Alias: Flash-Message aus der Session
+ */
+function theme_get_flash(): ?array
+{
+    return meridian_get_flash();
+}
+
+/**
+ * Alias: Aktives Menü für eine Position
+ */
+function theme_get_menu(string $location): array
+{
+    try {
+        return \CMS\ThemeManager::instance()->getMenu($location) ?? [];
+    } catch (\Throwable $e) {
+        return [];
+    }
+}
+
+/**
+ * Benutzer einloggen (delegiert an Auth-Service)
+ * Gibt true zurück oder eine Fehlermeldung als String.
+ */
+function theme_login_user(string $email, string $password): bool|string
+{
+    try {
+        $auth   = \CMS\Auth::instance();
+        $result = $auth->login($email, $password);
+        if ($result === true) {
+            return true;
+        }
+        return is_string($result) ? $result : 'Ungültige Zugangsdaten.';
+    } catch (\Throwable $e) {
+        return 'Anmeldung fehlgeschlagen: ' . $e->getMessage();
+    }
+}
+
+/**
+ * Neues Konto registrieren (delegiert an Auth/User-Service)
+ * Gibt true zurück oder eine Fehlermeldung als String.
+ */
+function theme_register_user(string $email, string $username, string $password): bool|string
+{
+    try {
+        // Prüfen ob E-Mail oder Benutzername verfügbar
+        $db     = \CMS\Database::instance();
+        $prefix = $db->getPrefix();
+        $exists = $db->execute(
+            "SELECT id FROM {$prefix}users WHERE email = ? OR username = ? LIMIT 1",
+            [$email, $username]
+        )->fetch();
+        if ($exists) {
+            return 'E-Mail-Adresse oder Benutzername bereits vergeben.';
+        }
+
+        // Auth-Service verwenden wenn vorhanden, sonst direkt einfügen
+        if (method_exists(\CMS\Auth::instance(), 'register')) {
+            $result = \CMS\Auth::instance()->register($email, $username, $password);
+            return ($result === true) ? true : (is_string($result) ? $result : 'Registrierung fehlgeschlagen.');
+        }
+
+        // Fallback: Direkt in DB schreiben
+        $hash = password_hash($password, PASSWORD_BCRYPT);
+        $db->execute(
+            "INSERT INTO {$prefix}users (email, username, password, role, created_at) VALUES (?, ?, ?, 'member', NOW())",
+            [$email, $username, $hash]
+        );
+        return true;
+    } catch (\Throwable $e) {
+        return 'Registrierung fehlgeschlagen: ' . $e->getMessage();
+    }
+}
+
+/**
+ * Gibt den Beitragszähler für eine gegebene Kategorie zurück
+ */
+function meridian_get_category_post_count(int $categoryId): int
+{
+    try {
+        $db     = \CMS\Database::instance();
+        $prefix = $db->getPrefix();
+        $row    = $db->execute(
+            "SELECT COUNT(*) AS cnt FROM {$prefix}posts WHERE category_id = ? AND status = 'published'",
+            [$categoryId]
+        )->fetch();
+        return $row ? (int)$row->cnt : 0;
+    } catch (\Throwable $e) {
+        return 0;
+    }
+}
+
+/**
+ * Copyright-Text mit Platzhaltern auflösen
+ * Unterstützte Platzhalter: {year}, {site_title}
+ */
+function meridian_copyright(string $template = ''): string
+{
+    if ($template === '') {
+        $template = meridian_setting('footer', 'copyright_text', '© {year} {site_title}. Alle Rechte vorbehalten.');
+    }
+    $siteName = defined('SITE_NAME') ? SITE_NAME : '365CMS';
+    $text = str_replace(['{year}', '{site_title}'], [date('Y'), $siteName], $template);
+    return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
 }

@@ -14,6 +14,14 @@
     const conBtn  = document.getElementById('contrastToggle');
 
     if (header) {
+        // Dynamic content padding (handles optional emergency banner)
+        const content = document.getElementById('content');
+        function updateContentPadding() {
+            if (content) content.style.paddingTop = header.offsetHeight + 'px';
+        }
+        updateContentPadding();
+        window.addEventListener('resize', updateContentPadding);
+
         const fn = () => header.classList.toggle('scrolled', window.scrollY > 20);
         window.addEventListener('scroll', fn, { passive: true }); fn();
     }

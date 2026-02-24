@@ -1,11 +1,38 @@
 {
   "name": "Meridian CMS Default",
   "slug": "cms-default",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "PHINIT.DE / Andreas Hepp",
   "description": "Das offizielle CMS-Default Theme – editorial, klar, charakterstark. Warm Off-White + Near-Black + Deep Amber. Ideal für Blogs, Magazine und Wissensportale.",
   "tags": ["editorial", "magazine", "blog", "responsive", "cms", "default"],
   "supports": ["custom-logo", "sticky-header", "custom-css", "categories"],
+
+  "templates": {
+    "home":            "home.php",
+    "blog":            "blog.php",
+    "blog-single":     "blog-single.php",
+    "page":            "page.php",
+    "category":        "category.php",
+    "tag":             "tag.php",
+    "author":          "author.php",
+    "archive":         "archive.php",
+    "search":          "search.php",
+    "login":           "login.php",
+    "register":        "register.php",
+    "forgot-password": "forgot-password.php",
+    "contact":         "contact.php",
+    "404":             "404.php",
+    "error":           "error.php"
+  },
+
+  "partials": {
+    "header":       "header.php",
+    "footer":       "footer.php",
+    "sidebar":      "partials/sidebar.php",
+    "newsletter":   "partials/newsletter.php",
+    "blog-list":    "partials/blog-list-cards.php",
+    "blog-grid":    "partials/blog-grid-cards.php"
+  },
 
   "customization": {
 
@@ -566,6 +593,68 @@
           "type": "textarea",
           "default": "",
           "description": "Wird vor </body> ausgegeben."
+        }
+      }
+    },
+
+    "newsletter": {
+      "label": "Newsletter-Widget",
+      "description": "Texte für das Newsletter-Anmeldeformular in der Sidebar.",
+      "settings": {
+        "widget_title": {
+          "label": "Widget-Titel",
+          "type": "text",
+          "default": "Kein Artikel verpassen",
+          "description": "Überschrift des Newsletter-Widgets"
+        },
+        "widget_desc": {
+          "label": "Beschreibungstext",
+          "type": "textarea",
+          "default": "Praxiswissen direkt ins Postfach – kein Spam, jederzeit abbestellbar.",
+          "description": "Kurzbeschreibung unterhalb des Titels"
+        },
+        "widget_btn_text": {
+          "label": "Button-Text",
+          "type": "text",
+          "default": "Jetzt abonnieren →",
+          "description": "Text des Anmelde-Buttons"
+        }
+      }
+    },
+
+    "contact": {
+      "label": "Kontaktseite",
+      "description": "Einstellungen für die Kontaktseite (/contact).",
+      "settings": {
+        "contact_email": {
+          "label": "Empfänger-E-Mail",
+          "type": "text",
+          "default": "",
+          "description": "E-Mail-Adresse, an die Kontaktformulare gesendet werden"
+        },
+        "contact_email_display": {
+          "label": "Angezeigte E-Mail",
+          "type": "text",
+          "default": "",
+          "description": "Öffentlich angezeigte Kontakt-E-Mail (kann von Empfänger-Mail abweichen)"
+        },
+        "contact_phone": {
+          "label": "Telefonnummer",
+          "type": "text",
+          "default": "",
+          "description": "Telefonnummer in der Kontakt-Info-Box"
+        },
+        "contact_address": {
+          "label": "Adresse",
+          "type": "textarea",
+          "default": "",
+          "description": "Postalische Adresse (mehrzeilig möglich)"
+        },
+        "contact_hours": {
+          "label": "Erreichbarkeit",
+          "type": "textarea",
+          "default": "",
+          "description": "Erreichbarkeitszeiten, z.B. Mo–Fr 9–17 Uhr"
         }
       }
     }

@@ -71,11 +71,17 @@ function localizeFontsFromUrl($url) {
 }
 
 function downloadGoogleFonts($customizer) {
-    // Basic automatic detection logic (simulated/hardcoded)
     $typo = $customizer->getCategory('typography');
-    $googleFonts = ['inter', 'roboto', 'open-sans', 'lato', 'montserrat', 'poppins', 'raleway'];
+
     $fontMap = [
-        'inter'       => 'Inter:wght@400;500;600;700;800',
+        // cms-default Schriften
+        'dm-sans'           => 'DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400',
+        'libre-baskerville' => 'Libre+Baskerville:ital,wght@0,400;0,700;1,400',
+        'dm-mono'           => 'DM+Mono:wght@400;500',
+        'inter'             => 'Inter:wght@400;500;600;700;800',
+        'playfair-display'  => 'Playfair+Display:ital,wght@0,400;0,700;1,400',
+        'merriweather'      => 'Merriweather:ital,wght@0,400;0,700;1,400',
+        // 365Network / andere Themes
         'roboto'      => 'Roboto:wght@400;500;700',
         'open-sans'   => 'Open+Sans:wght@400;600;700',
         'lato'        => 'Lato:wght@400;700',
@@ -84,18 +90,29 @@ function downloadGoogleFonts($customizer) {
         'raleway'     => 'Raleway:wght@400;600;700',
     ];
 
+    // Unterstütze beide Key-Konventionen:
+    // cms-default  → font_family_body / font_family_heading
+    // 365Network   → font_family_base / font_family_heading
+    $baseFont    = $typo['font_family_body']    ?? $typo['font_family_base']    ?? 'dm-sans';
+    $headingFont = $typo['font_family_heading'] ?? 'libre-baskerville';
+
     $fontsToLoad = [];
-    $baseFont    = $typo['font_family_base']    ?? 'inter';
-    $headingFont = $typo['font_family_heading'] ?? 'inter';
+    if (isset($fontMap[$baseFont]))    { $fontsToLoad[$baseFont]    = $fontMap[$baseFont]; }
+    if ($headingFont !== $baseFont && isset($fontMap[$headingFont])) {
+        $fontsToLoad[$headingFont] = $fontMap[$headingFont];
+    }
+    // Immer DM Mono für Code-Blöcke mitladen (cms-default)
+    if (!isset($fontsToLoad['dm-mono'])) {
+        $fontsToLoad['dm-mono'] = $fontMap['dm-mono'];
+    }
 
-    if (in_array($baseFont, $googleFonts) && isset($fontMap[$baseFont])) $fontsToLoad[$baseFont] = $fontMap[$baseFont];
-    if (in_array($headingFont, $googleFonts) && isset($fontMap[$headingFont])) $fontsToLoad[$headingFont] = $fontMap[$headingFont];
-
-    if (empty($fontsToLoad)) return ['success' => false, 'message' => 'Keine Standard-Google Fonts in Theme-Config gefunden.'];
+    if (empty($fontsToLoad)) {
+        return ['success' => false, 'message' => 'Keine Google Fonts in Theme-Konfiguration gefunden.'];
+    }
 
     $families = implode('&family=', array_values($fontsToLoad));
     $url = 'https://fonts.googleapis.com/css2?family=' . $families . '&display=swap';
-    
+
     return localizeFontsFromUrl($url);
 }
 

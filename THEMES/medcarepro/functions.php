@@ -51,3 +51,115 @@ final class MedCare_Theme {
     }
 }
 MedCare_Theme::instance();
+
+// ── Theme Helper Functions ──────────────────────────────────────────────────
+
+if (!function_exists('theme_is_logged_in')) {
+    /**
+     * Check whether the current visitor is logged in.
+     */
+    function theme_is_logged_in(): bool {
+        try { return \CMS\Auth::instance()->isLoggedIn(); } catch (\Throwable $e) { return false; }
+    }
+}
+
+if (!function_exists('theme_nav_menu')) {
+    /**
+     * Render a registered navigation menu as a <ul> list.
+     *
+     * @param string $location  Menu location slug (e.g. 'primary-nav')
+     */
+    function theme_nav_menu(string $location): void {
+        try {
+            $items = \CMS\ThemeManager::instance()->getMenu($location);
+        } catch (\Throwable $e) {
+            $items = [];
+        }
+        if (empty($items)) return;
+        $cur = $_SERVER['REQUEST_URI'] ?? '';
+        echo '<ul>';
+        foreach ($items as $item) {
+            $url    = htmlspecialchars($item['url']   ?? '#', ENT_QUOTES, 'UTF-8');
+            $label  = htmlspecialchars($item['label'] ?? '',  ENT_QUOTES, 'UTF-8');
+            $active = (!empty($item['active']) || (isset($item['url']) && rtrim($item['url'], '/') === rtrim(strtok($cur, '?'), '/')))
+                      ? ' class="current-menu-item"' : '';
+            echo '<li' . $active . '><a href="' . $url . '">' . $label . '</a></li>';
+        }
+        echo '</ul>';
+    }
+}
+
+if (!function_exists('get_header')) {
+    /**
+     * Include the theme header template.
+     */
+    function get_header(): void {
+        $path = __DIR__ . '/header.php';
+        try {
+            $tp = \CMS\ThemeManager::instance()->getThemePath('medcarepro') . '/header.php';
+            if (file_exists($tp)) $path = $tp;
+        } catch (\Throwable $e) {}
+        if (file_exists($path)) require $path;
+    }
+}
+
+if (!function_exists('get_footer')) {
+    /**
+     * Include the theme footer template.
+     */
+    function get_footer(): void {
+        $path = __DIR__ . '/footer.php';
+        try {
+            $tp = \CMS\ThemeManager::instance()->getThemePath('medcarepro') . '/footer.php';
+            if (file_exists($tp)) $path = $tp;
+        } catch (\Throwable $e) {}
+        if (file_exists($path)) require $path;
+    }
+}
+
+if (!function_exists('mc_get_setting')) {
+    /**
+     * Shorthand for ThemeCustomizer::get() with safe fallback.
+     *
+     * @param string $section  Customizer section slug
+     * @param string $key      Setting key
+     * @param mixed  $default  Fallback value
+     */
+    function mc_get_setting(string $section, string $key, mixed $default = ''): mixed {
+        try {
+            return \CMS\Services\ThemeCustomizer::instance()->get($section, $key, $default);
+        } catch (\Throwable $e) {
+            return $default;
+        }
+    }
+}
+
+if (!function_exists('mc_get_flash')) {
+    /**
+     * Return and clear a session flash message array or null.
+     *
+     * @return array{type:string,message:string}|null
+     */
+    function mc_get_flash(): ?array {
+        if (session_status() !== PHP_SESSION_ACTIVE) { @session_start(); }
+        if (!empty($_SESSION['mc_flash'])) {
+            $flash = $_SESSION['mc_flash'];
+            unset($_SESSION['mc_flash']);
+            return $flash;
+        }
+        return null;
+    }
+}
+
+if (!function_exists('mc_set_flash')) {
+    /**
+     * Store a flash message in the session.
+     *
+     * @param string $type    'success' | 'error' | 'info'
+     * @param string $message Flash message text
+     */
+    function mc_set_flash(string $type, string $message): void {
+        if (session_status() !== PHP_SESSION_ACTIVE) { @session_start(); }
+        $_SESSION['mc_flash'] = ['type' => $type, 'message' => $message];
+    }
+}

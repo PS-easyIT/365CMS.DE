@@ -1419,7 +1419,7 @@ footer {
 .ft-socials a:hover { color: rgba(255,255,255,.8); border-color: rgba(255,255,255,.3); }
 .ft-socials svg { width: 13px; height: 13px; fill: currentColor; }
 
-.ft-col h5 {
+.ft-col h4, .ft-col h5 {
   font-size: .65rem; font-weight: 600;
   letter-spacing: .14em; text-transform: uppercase;
   color: rgba(255,255,255,.35);
@@ -2086,7 +2086,7 @@ footer, .site-footer { background: var(--ink); color: rgba(255,255,255,.5); marg
 .ft-brand .ft-logo .logo-dot { background: var(--accent); align-self: center; margin-bottom: 2px; }
 .ft-desc { font-size: .78rem; line-height: 1.75; color: rgba(255,255,255,.35); max-width: 270px; margin-bottom: 1.25rem; }
 .ft-social { display: flex; gap: .4rem; }
-.ft-col h5, .ft-col-title { font-size: .65rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.35); margin-bottom: .9rem; padding-bottom: .5rem; border-bottom: 1px solid rgba(255,255,255,.07); }
+.ft-col h4, .ft-col h5, .ft-col-title { font-size: .65rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.35); margin-bottom: .9rem; padding-bottom: .5rem; border-bottom: 1px solid rgba(255,255,255,.07); }
 .ft-col a { display: block; font-size: .8rem; color: rgba(255,255,255,.35); padding: .22rem 0; transition: color .13s; }
 .ft-col a:hover { color: rgba(255,255,255,.75); }
 .footer-bottom { border-top: 1px solid rgba(255,255,255,.06); }

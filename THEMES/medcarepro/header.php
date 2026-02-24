@@ -14,17 +14,32 @@
 <?php
 try {
     $c = \CMS\Services\ThemeCustomizer::instance();
-    $logoUrl      = $c->get('header', 'logo_url', '');
-    $showSearch   = $c->get('header', 'show_search', true);
-    $showFontSize = $c->get('accessibility', 'show_font_size_toggle', true);
-    $showContrast = $c->get('accessibility', 'show_contrast_toggle', true);
-} catch (\Throwable $e) { $logoUrl = ''; $showSearch = true; $showFontSize = false; $showContrast = false; }
+    $logoUrl         = $c->get('header', 'logo_url', '');
+    $showSearch      = $c->get('header', 'show_search', true);
+    $showFontSize    = $c->get('accessibility', 'enable_font_size_toggle',    true);
+    $showContrast    = $c->get('accessibility', 'enable_high_contrast_toggle', true);
+    $showEmergency   = $c->get('header', 'show_emergency_banner', false);
+    $emergencyPhone  = $c->get('header', 'emergency_phone', '112');
+    $emergencyBanner = $c->get('header', 'emergency_banner_text', 'Notfall? Bitte rufen Sie sofort an:');
+} catch (\Throwable $e) {
+    $logoUrl = ''; $showSearch = true; $showFontSize = true; $showContrast = true;
+    $showEmergency = false; $emergencyPhone = '112'; $emergencyBanner = '';
+}
 $themeManager = \CMS\ThemeManager::instance();
 $siteTitle    = $themeManager->getSiteTitle();
 $isLoggedIn   = theme_is_logged_in();
 $siteUrl      = SITE_URL;
 $safe         = fn(string $v) => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
 ?>
+<?php if ($showEmergency && !empty($emergencyPhone)) : ?>
+<style>:root{--header-height:calc(72px + 2.375rem);}</style>
+<div class="mc-emergency-banner" role="alert" aria-live="polite">
+    <div class="mc-container" style="display:flex;align-items:center;justify-content:center;gap:.75rem;flex-wrap:wrap;">
+        <span><?php echo $safe($emergencyBanner); ?></span>
+        <a href="tel:<?php echo preg_replace('/\D/', '', $emergencyPhone); ?>" class="mc-emergency-phone"><?php echo $safe($emergencyPhone); ?></a>
+    </div>
+</div>
+<?php endif; ?>
 <header id="masthead" class="mc-site-header" role="banner">
     <div class="mc-header-inner">
         <div class="mc-branding">

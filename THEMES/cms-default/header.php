@@ -24,8 +24,8 @@ $headerBarMode = meridian_setting('navigation', 'header_bar_mode', 'categories')
 $stickyHeader  = (bool)meridian_setting('layout', 'sticky_header', true);
 
 $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
-$isLoggedIn  = function_exists('theme_is_logged_in') ? theme_is_logged_in() : false;
-$flashMsg    = function_exists('theme_get_flash') ? theme_get_flash() : null;
+$isLoggedIn  = meridian_is_logged_in();
+$flashMsg    = meridian_get_flash();
 
 ?>
 <!DOCTYPE html>
@@ -34,20 +34,31 @@ $flashMsg    = function_exists('theme_get_flash') ? theme_get_flash() : null;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <?php
-    // SEO meta tags via hooks
-    if (class_exists('\CMS\Hooks')) {
-        \CMS\Hooks::doAction('cms_head');
+    // Seitentitel ermitteln
+    $siteTitle = defined('SITE_NAME') ? SITE_NAME : '365CMS';
+    try {
+        if (class_exists('\CMS\ThemeManager')) {
+            $tm = \CMS\ThemeManager::instance()->getSiteTitle();
+            if (!empty($tm)) { $siteTitle = $tm; }
+        }
+    } catch (\Throwable $e) {}
+    ?>
+    <title><?php echo htmlspecialchars($siteTitle, ENT_QUOTES, 'UTF-8'); ?></title>
+    <?php
+    // Preconnect + Fonts: Local Fonts werden automatisch priorisiert wenn aktiviert
+    if (function_exists('meridian_output_fonts')) {
+        meridian_output_fonts();
     }
     ?>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300;1,9..40,400&family=DM+Mono:wght@400;500&display=swap">
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/themes/cms-default/style.css?v=<?php echo defined('MERIDIAN_THEME_VERSION') ? MERIDIAN_THEME_VERSION : '1.0.0'; ?>">
     <?php
     // Theme-Customizer CSS-Variablen direkt nach style.css ausgeben
-    // (überschreibt im Inline-<style> die hardcodierten Defaults in style.css)
     if (function_exists('meridian_output_custom_styles')) {
         meridian_output_custom_styles();
+    }
+    // SEO meta tags + Custom Head Code via Hooks
+    if (class_exists('\CMS\Hooks')) {
+        \CMS\Hooks::doAction('head');
     }
     ?>
 </head>
@@ -67,9 +78,9 @@ $flashMsg    = function_exists('theme_get_flash') ? theme_get_flash() : null;
 
     <!-- Logo + optionaler Titel daneben -->
     <div class="site-logo-group">
-      <a href="<?php echo SITE_URL; ?>/" class="site-logo">
+      <a href="<?php echo SITE_URL; ?>/" class="site-logo" aria-label="<?php echo htmlspecialchars($logoText); ?> – Startseite">
         <?php if ($logoType === 'image' && $logoUrl): ?>
-            <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($logoText); ?>" style="max-height:<?php echo $logoHeight; ?>px;display:block;">
+            <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($logoText); ?>" height="<?php echo $logoHeight; ?>" style="max-height:<?php echo $logoHeight; ?>px;display:block;width:auto;">
         <?php else: ?>
             <span class="logo-word"><?php echo htmlspecialchars($logoText); ?></span>
             <span class="logo-dot"></span>
@@ -179,8 +190,10 @@ $flashMsg    = function_exists('theme_get_flash') ? theme_get_flash() : null;
 
     <?php elseif ($headerBarMode === 'menu'): ?>
         <?php
-        // Try to fetch secondary menu
-        $secMenu = function_exists('theme_get_menu') ? theme_get_menu('secondary') : [];
+        $secMenu = [];
+        try {
+            $secMenu = \CMS\ThemeManager::instance()->getMenu('secondary') ?? [];
+        } catch (\Throwable $e) {}
         if (!empty($secMenu)):
             foreach ($secMenu as $item):
                 $mUrl   = $item['url'] ?? '#';
@@ -200,11 +213,11 @@ $flashMsg    = function_exists('theme_get_flash') ? theme_get_flash() : null;
 <div id="mobileNavOverlay" class="mobile-nav-overlay" aria-hidden="true"></div>
 
 <!-- Mobile Nav Panel (Slide-in von rechts) -->
-<nav id="mobileNavPanel" class="mobile-nav-panel" aria-hidden="true" aria-label="Mobile Navigation">
+<nav id="mobileNavPanel" class="mobile-nav-panel" aria-hidden="true" inert aria-label="Mobile Navigation">
   <div class="mobile-nav-header">
-    <a href="<?php echo SITE_URL; ?>/" class="site-logo" style="text-decoration:none;">
+    <a href="<?php echo SITE_URL; ?>/" class="site-logo" aria-label="<?php echo htmlspecialchars($logoText); ?> – Startseite" style="text-decoration:none;">
       <?php if ($logoType === 'image' && $logoUrl): ?>
-        <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($logoText); ?>" style="max-height:32px;">
+        <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($logoText); ?>" height="32" style="max-height:32px;width:auto;">
       <?php else: ?>
         <span class="logo-word" style="font-size:1rem;"><?php echo htmlspecialchars($logoText); ?></span>
         <span class="logo-dot"></span>
@@ -257,7 +270,7 @@ $flashMsg    = function_exists('theme_get_flash') ? theme_get_flash() : null;
   <div class="mobile-nav-search">
     <form action="<?php echo SITE_URL; ?>/search" method="GET" role="search" style="display:flex;gap:.5rem;">
       <input type="search" name="q" placeholder="Suchen…" class="form-control form-control--sm" aria-label="Suche" style="flex:1;">
-      <button type="submit" class="btn-submit" style="padding:.35rem .85rem;font-size:.82rem;">→</button>
+      <button type="submit" class="btn-submit" aria-label="Suche absenden" style="padding:.35rem .85rem;font-size:.82rem;">→</button>
     </form>
   </div>
   <?php endif; ?>

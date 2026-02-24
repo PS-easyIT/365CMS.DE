@@ -31,6 +31,7 @@
     function openMobileNav() {
         if (!mobileNavPanel) return;
         mobileNavPanel.removeAttribute('aria-hidden');
+        mobileNavPanel.removeAttribute('inert');
         mobileNavPanel.classList.add('is-open');
         if (mobileNavOverlay) {
             mobileNavOverlay.removeAttribute('aria-hidden');
@@ -43,6 +44,7 @@
     function closeMobileNav() {
         if (!mobileNavPanel) return;
         mobileNavPanel.setAttribute('aria-hidden', 'true');
+        mobileNavPanel.setAttribute('inert', '');
         mobileNavPanel.classList.remove('is-open');
         if (mobileNavOverlay) {
             mobileNavOverlay.setAttribute('aria-hidden', 'true');

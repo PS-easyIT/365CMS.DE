@@ -33,8 +33,14 @@ if (is_string($pTags)) {
     $pTags = array_filter(array_map('trim', explode(',', $pTags)));
 }
 
-// Mock related
-$relatedPosts = function_exists('meridian_get_related_posts') ? meridian_get_related_posts($post->id ?? 0, 3) : [];
+$showRelated  = (bool) meridian_setting('blog', 'show_related_posts', true);
+$showComments = (bool) meridian_setting('blog', 'show_comments', true);
+$showViews    = (bool) meridian_setting('blog', 'show_views', false);
+
+// Verwandte Posts: korrekte Signatur (categoryId, excludeId, limit)
+$relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
+    ? meridian_get_related_posts((int)($post->category_id ?? 0), (int)($post->id ?? 0), 3)
+    : [];
 ?>
 
 <div class="view-post" style="display:block;">
@@ -69,6 +75,11 @@ $relatedPosts = function_exists('meridian_get_related_posts') ? meridian_get_rel
       <span style="color:var(--ink-ghost);font-size:.7rem;">·</span>
       <span style="font-size:.78rem;color:var(--ink-ghost);"><?php echo $pRead; ?> Lesezeit</span>
     </div>
+    <?php if ($showViews && isset($post->views) && (int)$post->views > 0): ?>
+    <div class="p-meta" style="margin-top:.25rem;">
+      <span style="font-size:.75rem;color:var(--ink-ghost);">??? <?php echo number_format((int)$post->views); ?> Aufrufe</span>
+    </div>
+    <?php endif; ?>
   </div>
 
   <!-- Post Body -->
@@ -102,7 +113,7 @@ $relatedPosts = function_exists('meridian_get_related_posts') ? meridian_get_rel
   </div>
 
   <!-- Verwandte Artikel -->
-  <?php if (!empty($relatedPosts)): ?>
+  <?php if ($showRelated && !empty($relatedPosts)): ?>
   <div class="related-section">
     <div class="section-label"><h3>Verwandte Artikel</h3></div>
     <div class="related-grid">
@@ -126,22 +137,31 @@ $relatedPosts = function_exists('meridian_get_related_posts') ? meridian_get_rel
   <?php endif; ?>
 
   <!-- Kommentare -->
+  <?php if ($showComments): ?>
   <div class="comments-section">
     <div class="section-label"><h3>Kommentare</h3></div>
     <!-- Comments implementation would go here -->
     <div class="comment-form-wrap">
       <h4>Einen Kommentar hinterlassen</h4>
+      <?php
+        $commentCsrf = '';
+        if (class_exists('\\CMS\\Security')) {
+            $commentCsrf = \CMS\Security::instance()->generateToken('comment_' . ($post->id ?? 0));
+        }
+      ?>
       <form method="post" action="<?php echo SITE_URL; ?>/comments/post">
-         <input type="hidden" name="post_id" value="<?php echo $post->id ?? 0; ?>">
+         <input type="hidden" name="post_id" value="<?php echo (int)($post->id ?? 0); ?>">
+         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($commentCsrf, ENT_QUOTES, 'UTF-8'); ?>">
          <div class="form-2col">
-            <div class="form-field"><label>Name *</label><input type="text" name="author" placeholder="Dein Name" required></div>
-            <div class="form-field"><label>E-Mail *</label><input type="email" name="email" placeholder="deine@email.de" required></div>
-            <div class="form-field form-full"><label>Kommentar *</label><textarea name="comment" placeholder="Dein Kommentar …" required></textarea></div>
+            <div class="form-field"><label>Name <span style="color:#ef4444;">*</span></label><input type="text" name="author" placeholder="Dein Name" required maxlength="100"></div>
+            <div class="form-field"><label>E-Mail <span style="color:#ef4444;">*</span></label><input type="email" name="email" placeholder="deine@email.de" required maxlength="200"></div>
+            <div class="form-field form-full"><label>Kommentar <span style="color:#ef4444;">*</span></label><textarea name="comment" placeholder="Dein Kommentar …" required maxlength="2000" style="min-height:120px;"></textarea></div>
          </div>
          <button type="submit" class="btn-submit">Kommentar absenden →</button>
       </form>
     </div>
   </div>
+  <?php endif; // show_comments ?>
 
 </div>
 

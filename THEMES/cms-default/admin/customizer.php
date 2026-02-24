@@ -311,7 +311,7 @@ $config = [
             ],
             'google_fonts' => [
                 'label'       => 'Google Fonts laden',
-                'description' => 'Libre Baskerville (Überschriften) + DM Sans (Text). Deaktivieren für DSGVO-Konformität ohne externe Anfragen.',
+                'description' => 'Libre Baskerville (\u00dcberschriften) + DM Sans (Text). Deaktivieren f\u00fcr DSGVO-Konformit\u00e4t. Hinweis: Wenn unter <em>CMS-Einstellungen \u2192 Datenschutz \u2192 Lokale Schriften</em> aktiviert, wird automatisch die lokal heruntergeladene Version verwendet, unabh\u00e4ngig von dieser Einstellung.',
                 'type'        => 'checkbox',
                 'default'     => true,
             ],
