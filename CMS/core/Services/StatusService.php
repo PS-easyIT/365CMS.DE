@@ -453,21 +453,21 @@ class StatusService {
         
         // Verwaiste User-Meta
         $result = $this->db->query(
-            "DELETE FROM cms_user_meta 
+            "DELETE FROM {$this->prefix}user_meta 
              WHERE user_id NOT IN (SELECT id FROM {$this->prefix}users)"
         );
         $deleted += $this->db->affected_rows();
         
         // Verwaiste Sessions
         $result = $this->db->query(
-            "DELETE FROM cms_sessions 
+            "DELETE FROM {$this->prefix}sessions 
              WHERE user_id NOT IN (SELECT id FROM {$this->prefix}users)"
         );
         $deleted += $this->db->affected_rows();
         
         // Alte Login-Attempts (> 90 Tage)
         $result = $this->db->query(
-            "DELETE FROM cms_login_attempts 
+            "DELETE FROM {$this->prefix}login_attempts 
              WHERE attempted_at < DATE_SUB(NOW(), INTERVAL 90 DAY)"
         );
         $deleted += $this->db->affected_rows();

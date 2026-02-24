@@ -471,13 +471,13 @@ class UserService {
     private function getUserMeta(int $user_id, ?string $key = null): mixed {
         if ($key) {
             return $this->db->get_var(
-                "SELECT meta_value FROM cms_user_meta WHERE user_id = ? AND meta_key = ?",
+                "SELECT meta_value FROM {$this->prefix}user_meta WHERE user_id = ? AND meta_key = ?",
                 [$user_id, $key]
             );
         }
         
         $meta_rows = $this->db->get_results(
-            "SELECT meta_key, meta_value FROM cms_user_meta WHERE user_id = ?",
+            "SELECT meta_key, meta_value FROM {$this->prefix}user_meta WHERE user_id = ?",
             [$user_id]
         );
         
@@ -500,20 +500,20 @@ class UserService {
     private function updateUserMeta(int $user_id, string $key, mixed $value): bool {
         // Prüfe ob bereits existiert
         $existing = $this->db->get_var(
-            "SELECT meta_value FROM cms_user_meta WHERE user_id = ? AND meta_key = ?",
+            "SELECT meta_value FROM {$this->prefix}user_meta WHERE user_id = ? AND meta_key = ?",
             [$user_id, $key]
         );
         
         if ($existing !== null) {
             // Update
             return $this->db->update(
-                'cms_user_meta',
+                'user_meta',
                 ['meta_value' => $value],
                 ['user_id' => $user_id, 'meta_key' => $key]
             );
         } else {
             // Insert
-            return $this->db->insert('cms_user_meta', [
+            return $this->db->insert('user_meta', [
                 'user_id' => $user_id,
                 'meta_key' => $key,
                 'meta_value' => $value

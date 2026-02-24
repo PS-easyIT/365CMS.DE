@@ -191,16 +191,16 @@ class DashboardService {
     public function getSessionStats(): array {
         try {
             $active_sessions = (int)$this->db->get_var(
-                "SELECT COUNT(*) FROM cms_sessions WHERE last_activity >= DATE_SUB(NOW(), INTERVAL 30 MINUTE)"
+                "SELECT COUNT(*) FROM {$this->prefix}sessions WHERE last_activity >= DATE_SUB(NOW(), INTERVAL 30 MINUTE)"
             ) ?: 0;
             
             $total_sessions_today = (int)$this->db->get_var(
-                "SELECT COUNT(*) FROM cms_sessions WHERE DATE(last_activity) = CURDATE()"
+                "SELECT COUNT(*) FROM {$this->prefix}sessions WHERE DATE(last_activity) = CURDATE()"
             ) ?: 0;
             
             $avg_session_duration = $this->db->get_var(
                 "SELECT AVG(TIMESTAMPDIFF(SECOND, created_at, last_activity)) 
-                 FROM cms_sessions 
+                 FROM {$this->prefix}sessions 
                  WHERE DATE(created_at) = CURDATE()"
             ) ?: 0;
             
@@ -215,7 +215,7 @@ class DashboardService {
                         ELSE 'Other'
                     END as browser,
                     COUNT(*) as count
-                 FROM cms_sessions 
+                 FROM {$this->prefix}sessions 
                  WHERE DATE(last_activity) = CURDATE()
                  GROUP BY browser"
             ) ?: [];
@@ -225,7 +225,7 @@ class DashboardService {
                 $browser_stats[$browser->browser] = (int)$browser->count;
             }
             
-            $total_sessions = (int)$this->db->get_var("SELECT COUNT(*) FROM cms_sessions") ?: 0;
+            $total_sessions = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}sessions") ?: 0;
             
             return [
                 'active' => $active_sessions,
@@ -252,17 +252,14 @@ class DashboardService {
      * Sicherheits-Statistiken
      */
     public function getSecurityStats(): array {
+        // login_attempts enthält nur Fehlschläge (success-Spalte wurde entfernt)
         $failed_logins_24h = (int)$this->db->get_var(
-            "SELECT COUNT(*) FROM cms_login_attempts 
-             WHERE success = 0 
-             AND attempted_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)"
+            "SELECT COUNT(*) FROM {$this->prefix}login_attempts
+             WHERE attempted_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)"
         ) ?: 0;
-        
-        $successful_logins_24h = (int)$this->db->get_var(
-            "SELECT COUNT(*) FROM cms_login_attempts 
-             WHERE success = 1 
-             AND attempted_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)"
-        ) ?: 0;
+
+        // Erfolgreiche Logins werden nicht in login_attempts gespeichert
+        $successful_logins_24h = 0;
         
         // Note: cms_blocked_ips table doesn't exist yet
         // This functionality can be implemented by a security plugin

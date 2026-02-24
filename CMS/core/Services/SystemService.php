@@ -154,7 +154,6 @@ class SystemService {
             'landing_sections' => 'Landing Sections',
             'activity_log' => 'Aktivitätslog',
             'cache' => 'Cache',
-            'failed_logins' => 'Fehlgeschlagene Logins',
             'login_attempts' => 'Login-Versuche',
             'blocked_ips' => 'Blockierte IPs',
             'media' => 'Media-Bibliothek',
@@ -398,10 +397,10 @@ class SystemService {
                 $stats['cache_entries'] = (int)($row['total'] ?? 0);
             }
             
-            // Failed logins today
+            // Failed logins today (Tabelle: login_attempts, enthält nur Fehlschläge)
             $result = $pdo->query("
                 SELECT COUNT(*) as total 
-                FROM `{$prefix}failed_logins` 
+                FROM `{$prefix}login_attempts` 
                 WHERE DATE(attempted_at) = CURDATE()
             ");
             if ($result && $row = $result->fetch(PDO::FETCH_ASSOC)) {
@@ -465,7 +464,7 @@ class SystemService {
         
         try {
             $pdo->exec("
-                DELETE FROM `{$prefix}failed_logins` 
+                DELETE FROM `{$prefix}login_attempts` 
                 WHERE attempted_at < DATE_SUB(NOW(), INTERVAL 24 HOUR)
             ");
             return true;
@@ -484,7 +483,7 @@ class SystemService {
         $tables = [
             'users', 'roles', 'sessions', 'settings', 'pages', 
             'page_revisions', 'landing_sections', 'activity_log', 
-            'cache', 'failed_logins'
+            'cache', 'login_attempts'
         ];
         
         $results = [];
@@ -527,7 +526,7 @@ class SystemService {
         $tables = [
             'users', 'roles', 'sessions', 'settings', 'pages', 
             'page_revisions', 'landing_sections', 'activity_log', 
-            'cache', 'failed_logins', 'plugins', 'plugin_meta'
+            'cache', 'login_attempts', 'plugins', 'plugin_meta'
         ];
         
         $results = [];
