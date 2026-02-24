@@ -198,7 +198,7 @@ try {
         <?php if (!empty($sidebarCats)): ?>
         <div>
             <div class="widget-title">Kategorien</div>
-            <?php foreach ($sidebarCats as $cat): ?>
+            <?php foreach ($sidebarCats as $cat): $cat = (array)$cat; ?>
             <div class="cat-row<?php echo ($activeCategory === ($cat['slug'] ?? '')) ? ' cat-row--active' : ''; ?>">
                 <a href="<?php echo SITE_URL . '/blog?category=' . urlencode($cat['slug'] ?? ''); ?>">
                     <?php echo htmlspecialchars($cat['name']); ?>

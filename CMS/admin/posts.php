@@ -361,7 +361,7 @@ if ($view === 'categories'): ?>
                         <input type="hidden" name="_action"  value="delete_category">
                         <input type="hidden" name="cat_id"   value="<?php echo (int)$cat->id; ?>">
                         <button type="button" class="btn btn-danger btn-sm"
-                                onclick="catDeleteConfirm('catDeleteForm_<?php echo (int)$cat->id; ?>', '<?php echo htmlspecialchars($cat->name, ENT_QUOTES|ENT_JS); ?>')">🗑️</button>
+                                onclick="catDeleteConfirm('catDeleteForm_<?php echo (int)$cat->id; ?>', '<?php echo htmlspecialchars($cat->name, ENT_QUOTES); ?>')">🗑️</button>
                     </form>
                 </td>
             </tr>
@@ -446,8 +446,7 @@ elseif ($view === 'edit'):
 
             <div class="admin-card">
                 <h3>✏️ Inhalt</h3>
-                <textarea id="post_content" name="post_content" style="display:none;"><?php echo htmlspecialchars($pd['content'], ENT_QUOTES); ?></textarea>
-                <div id="suneditorWrap"></div>
+                <textarea id="post_content" name="post_content"><?php echo htmlspecialchars($pd['content'], ENT_QUOTES); ?></textarea>
             </div>
 
             <div class="admin-card">
@@ -794,8 +793,19 @@ document.addEventListener('DOMContentLoaded', function() {
             ['table','link','image','video'],
             ['fullScreen','showBlocks','codeView'],['removeFormat']
         ],
+        width: '100%',
         height: 460,
         lang: SUNEDITOR_LANG['de'],
+    });
+
+    // Inhalt bei jeder Änderung in die Textarea zurückschreiben (wie EditorService)
+    editor.onChange = function(contents) {
+        ta.value = contents;
+    };
+
+    // Zusätzlich vor dem Absenden sicherstellen
+    document.getElementById('postEditForm').addEventListener('submit', function() {
+        editor.save();
     });
 
     function slugify(text) {

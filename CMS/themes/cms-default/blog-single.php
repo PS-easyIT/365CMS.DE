@@ -45,19 +45,10 @@ $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
 
 <div class="view-post" style="display:block;">
 
-  <!-- Breadcrumb -->
-  <div class="breadcrumb-bar">
-    <div class="breadcrumb-inner">
-      <a href="<?php echo SITE_URL; ?>/">Startseite</a><span class="sep">›</span>
-      <a href="<?php echo SITE_URL; ?>/blog">Blog</a><span class="sep">›</span>
-      <a href="<?php echo SITE_URL; ?>/blog?category=<?php echo urlencode($pCatSlug); ?>"><?php echo htmlspecialchars($pCat); ?></a><span class="sep">›</span>
-      <span class="cur"><?php echo $pTitle; ?></span>
-    </div>
-  </div>
+  <div class="post-column">
 
   <!-- Post Header -->
   <div class="post-header">
-    <div class="p-cat"><?php echo htmlspecialchars($pCat); ?></div>
     <h1><?php echo $pTitle; ?></h1>
     <?php if ($pExcerpt): ?>
     <p class="p-intro"><?php echo $pExcerpt; ?></p>
@@ -70,6 +61,8 @@ $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
           <div class="role">Autor</div>
         </div>
       </div>
+      <span style="color:var(--ink-ghost);font-size:.7rem;">·</span>
+      <a href="<?php echo SITE_URL; ?>/blog?category=<?php echo urlencode($pCatSlug); ?>" class="p-meta-cat"><?php echo htmlspecialchars($pCat); ?></a>
       <span style="color:var(--ink-ghost);font-size:.7rem;">·</span>
       <time style="font-size:.78rem;color:var(--ink-muted);"><?php echo $pDate; ?></time>
       <span style="color:var(--ink-ghost);font-size:.7rem;">·</span>
@@ -111,6 +104,8 @@ $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
       </div>
     </div>
   </div>
+
+  </div><!-- /.post-column -->
 
   <!-- Verwandte Artikel -->
   <?php if ($showRelated && !empty($relatedPosts)): ?>

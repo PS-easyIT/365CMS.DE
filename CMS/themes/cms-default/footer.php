@@ -19,6 +19,27 @@ $col2Title      = meridian_setting('footer', 'col2_title', 'Ressourcen');
 $col3Title      = meridian_setting('footer', 'col3_title', 'Über');
 $copyrightText  = meridian_copyright(meridian_setting('footer', 'copyright_text', ''));
 
+// Brand-Spalte Beschreibung
+$brandTitleEnabled = (bool) meridian_setting('footer', 'footer_brand_title_enabled', true);
+$brandDescEnabled  = (bool) meridian_setting('footer', 'footer_brand_desc_enabled', true);
+$brandCompact      = !$brandTitleEnabled || !$brandDescEnabled;
+$brandEmpty        = !$brandTitleEnabled && !$brandDescEnabled;
+
+// Footer-Karten Sichtbarkeit
+$col1Enabled    = (bool) meridian_setting('footer', 'footer_col1_enabled', true);
+$col2Enabled    = (bool) meridian_setting('footer', 'footer_col2_enabled', true);
+$col3Enabled    = (bool) meridian_setting('footer', 'footer_col3_enabled', true);
+
+// Footer-Menüs aus Menü-Verwaltung laden
+$footerCol1Menu = $footerCol2Menu = $footerCol3Menu = $footerLegalMenu = [];
+if (class_exists('\\CMS\\ThemeManager')) {
+    $tm = \CMS\ThemeManager::instance();
+    $footerCol1Menu  = $tm->getMenu('footer_col1') ?: [];
+    $footerCol2Menu  = $tm->getMenu('footer_col2') ?: [];
+    $footerCol3Menu  = $tm->getMenu('footer_col3') ?: [];
+    $footerLegalMenu = $tm->getMenu('footer')      ?: [];
+}
+
 $socialLinks = [
     'twitter'   => meridian_setting('footer', 'social_twitter', ''),
     'instagram' => meridian_setting('footer', 'social_instagram', ''),
@@ -31,15 +52,22 @@ $socialLinks = [
 
 <footer>
   <div class="footer-top-rule"></div>
-  <div class="footer-main">
+  <div class="footer-main<?php
+    $cls = '';
+    if ($brandCompact) $cls .= ' footer-main--compact';
+    if ($brandEmpty)   $cls .= ' footer-main--slim';
+    echo $cls;
+  ?>">
 
     <!-- Brand Column -->
-    <div class="ft-brand">
+    <div class="ft-brand<?php echo $brandCompact ? ' ft-brand--compact' : ''; ?>">
+      <?php if ($brandTitleEnabled): ?>
       <a href="<?php echo SITE_URL; ?>/" class="site-logo-ft" aria-label="<?php echo htmlspecialchars($logoText); ?> – Startseite">
         <span class="lw"><?php echo htmlspecialchars($logoText); ?></span>
         <span class="ld"></span>
       </a>
-      <?php if ($footerDesc): ?>
+      <?php endif; ?>
+      <?php if ($brandDescEnabled && $footerDesc): ?>
       <p><?php echo htmlspecialchars($footerDesc); ?></p>
       <?php endif; ?>
 
@@ -73,46 +101,96 @@ $socialLinks = [
       <?php endif; ?>
     </div>
 
-    <!-- Themes Column -->
+    <?php if ($col1Enabled): ?>
+    <!-- Footer Menü Karte 1 -->
     <div class="ft-col">
       <h4><?php echo htmlspecialchars($col1Title); ?></h4>
-      <?php
-        $cats = function_exists('meridian_get_categories') ? meridian_get_categories(6) : [];
-        if (!empty($cats)) {
-            foreach ($cats as $cat) {
-                 echo '<a href="'. SITE_URL .'/blog?category='. urlencode($cat['slug'] ?? '') .'">'. htmlspecialchars($cat['name'] ?? '') .'</a>';
-            }
-        } else {
-            echo '<a href="'. SITE_URL .'/blog">Alle Artikel</a>';
-        }
-      ?>
+      <?php if (!empty($footerCol1Menu)): ?>
+        <?php foreach ($footerCol1Menu as $item): ?>
+          <?php
+            $mUrl    = htmlspecialchars($item['url'] ?? $item['href'] ?? '#');
+            $mLabel  = htmlspecialchars($item['label'] ?? $item['title'] ?? '');
+            $mTarget = htmlspecialchars($item['target'] ?? '_self');
+          ?>
+          <a href="<?php echo $mUrl; ?>" target="<?php echo $mTarget; ?>"><?php echo $mLabel; ?></a>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <?php
+          $cats = function_exists('meridian_get_categories') ? meridian_get_categories(6) : [];
+          if (!empty($cats)) {
+              foreach ($cats as $cat) {
+                   echo '<a href="'. SITE_URL .'/blog?category='. urlencode($cat['slug'] ?? '') .'">' . htmlspecialchars($cat['name'] ?? '') . '</a>';
+              }
+          } else {
+              echo '<a href="'. SITE_URL .'/blog">Alle Artikel</a>';
+          }
+        ?>
+      <?php endif; ?>
     </div>
+    <?php endif; ?>
 
-    <!-- Resources Column -->
+    <?php if ($col2Enabled): ?>
+    <!-- Footer Menü Karte 2 -->
     <div class="ft-col">
       <h4><?php echo htmlspecialchars($col2Title); ?></h4>
-      <a href="<?php echo SITE_URL; ?>/blog">Script-Bibliothek</a>
-      <a href="<?php echo SITE_URL; ?>/blog">Tutorials</a>
-      <a href="<?php echo SITE_URL; ?>/search">Suche</a>
-      <a href="<?php echo SITE_URL; ?>/register">Newsletter</a>
+      <?php if (!empty($footerCol2Menu)): ?>
+        <?php foreach ($footerCol2Menu as $item): ?>
+          <?php
+            $mUrl    = htmlspecialchars($item['url'] ?? $item['href'] ?? '#');
+            $mLabel  = htmlspecialchars($item['label'] ?? $item['title'] ?? '');
+            $mTarget = htmlspecialchars($item['target'] ?? '_self');
+          ?>
+          <a href="<?php echo $mUrl; ?>" target="<?php echo $mTarget; ?>"><?php echo $mLabel; ?></a>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <a href="<?php echo SITE_URL; ?>/blog">Script-Bibliothek</a>
+        <a href="<?php echo SITE_URL; ?>/blog">Tutorials</a>
+        <a href="<?php echo SITE_URL; ?>/search">Suche</a>
+        <a href="<?php echo SITE_URL; ?>/register">Newsletter</a>
+      <?php endif; ?>
     </div>
+    <?php endif; ?>
 
-    <!-- About Column -->
+    <?php if ($col3Enabled): ?>
+    <!-- Footer Menü Karte 3 -->
     <div class="ft-col">
       <h4><?php echo htmlspecialchars($col3Title); ?></h4>
-      <a href="<?php echo SITE_URL; ?>/about">Über uns</a>
-      <a href="<?php echo SITE_URL; ?>/contact">Kontakt</a>
-      <a href="<?php echo SITE_URL; ?>/impressum">Impressum</a>
-      <a href="<?php echo SITE_URL; ?>/datenschutz">Datenschutz</a>
+      <?php if (!empty($footerCol3Menu)): ?>
+        <?php foreach ($footerCol3Menu as $item): ?>
+          <?php
+            $mUrl    = htmlspecialchars($item['url'] ?? $item['href'] ?? '#');
+            $mLabel  = htmlspecialchars($item['label'] ?? $item['title'] ?? '');
+            $mTarget = htmlspecialchars($item['target'] ?? '_self');
+          ?>
+          <a href="<?php echo $mUrl; ?>" target="<?php echo $mTarget; ?>"><?php echo $mLabel; ?></a>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <a href="<?php echo SITE_URL; ?>/about">Über uns</a>
+        <a href="<?php echo SITE_URL; ?>/contact">Kontakt</a>
+        <a href="<?php echo SITE_URL; ?>/impressum">Impressum</a>
+        <a href="<?php echo SITE_URL; ?>/datenschutz">Datenschutz</a>
+      <?php endif; ?>
     </div>
+    <?php endif; ?>
 
   </div>
 
   <div class="footer-bottom">
     <span class="copy"><?php echo $copyrightText; ?></span>
     <div class="footer-legal">
-      <a href="<?php echo SITE_URL; ?>/impressum">Impressum</a>
-      <a href="<?php echo SITE_URL; ?>/datenschutz">Datenschutz</a>
+      <?php if (!empty($footerLegalMenu)): ?>
+        <?php foreach ($footerLegalMenu as $item): ?>
+          <?php
+            $mUrl    = htmlspecialchars($item['url'] ?? $item['href'] ?? '#');
+            $mLabel  = htmlspecialchars($item['label'] ?? $item['title'] ?? '');
+            $mTarget = htmlspecialchars($item['target'] ?? '_self');
+          ?>
+          <a href="<?php echo $mUrl; ?>" target="<?php echo $mTarget; ?>"><?php echo $mLabel; ?></a>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <a href="<?php echo SITE_URL; ?>/impressum">Impressum</a>
+        <a href="<?php echo SITE_URL; ?>/datenschutz">Datenschutz</a>
+      <?php endif; ?>
     </div>
   </div>
 </footer>

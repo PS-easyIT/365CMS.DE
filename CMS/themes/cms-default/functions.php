@@ -210,6 +210,9 @@ class MeridianCMSDefaultTheme
             $h2Size        = max(14, (int)$c->get('typography', 'h2_size', 28));
             $h3Size        = max(12, (int)$c->get('typography', 'h3_size', 22));
 
+            // ── Blog ──────────────────────────────────────────────────────────
+            $postColumnBorder = (string)$c->get('blog', 'post_column_border_color', '#e2e0d8');
+
             // ── Navigation ────────────────────────────────────────────────────
             $navFontSize   = max(11, (int)$c->get('navigation', 'nav_font_size',     14));
             $navUppercase  = (string)$c->get('navigation', 'nav_uppercase', '0') !== '0';
@@ -306,10 +309,15 @@ class MeridianCMSDefaultTheme
 
             // ── Navigation ────────────────────────────────────────────────────
             $navTransform = $navUppercase ? 'uppercase' : 'none';
-            echo '.main-nav a, .nav-link { font-size:' . $navFontSize . 'px; text-transform:' . $navTransform . '; letter-spacing:' . $esc($navLetterSp) . "; }\n";
+            echo '.primary-nav a, .primary-nav .nav-group a { font-size:' . $navFontSize . 'px; text-transform:' . $navTransform . '; letter-spacing:' . $esc($navLetterSp) . "; }\n";
             echo '.category-bar { background:' . $esc($catBarBg) . "; }\n";
             echo '.category-bar a, .category-bar .cat-label { color:' . $esc($catBarText) . "; }\n";
             echo '.category-bar a:hover, .category-bar a.active { color:' . $esc($accent) . "; }\n";
+
+            // ── Blog-Artikel ─────────────────────────────────────────────────
+            $postColumnBorder = $postColumnBorder ?: '#e2e0d8';
+            echo '.post-column { border-left-color:' . $esc($postColumnBorder) . '; border-right-color:' . $esc($postColumnBorder) . "; }\n";
+            echo '.view-post { border-top-color:' . $esc($postColumnBorder) . '; border-bottom-color:' . $esc($postColumnBorder) . "; }\n";
 
             // ── Karten & Grid ─────────────────────────────────────────────────
             echo '.card-grid, .articles-grid, .dashboard-grid { gap:' . $cardGap . "px; }\n";
@@ -450,10 +458,13 @@ HTML;
 
     public function registerMenuLocations(array $locations): array
     {
-        $locations[] = ['slug' => 'primary', 'label' => 'Hauptmenü (Header)'];
-        $locations[] = ['slug' => 'secondary', 'label' => 'Sekundäres Menü (unter Header)'];
-        $locations[] = ['slug' => 'mobile',  'label' => 'Mobiles Menü'];
-        $locations[] = ['slug' => 'footer',  'label' => 'Footer-Navigation'];
+        $locations[] = ['slug' => 'primary',     'label' => 'Hauptmenü (Header)'];
+        $locations[] = ['slug' => 'secondary',   'label' => 'Sekundäres Menü (unter Header)'];
+        $locations[] = ['slug' => 'mobile',      'label' => 'Mobiles Menü'];
+        $locations[] = ['slug' => 'footer_col1', 'label' => 'Footer Menü – Karte 1'];
+        $locations[] = ['slug' => 'footer_col2', 'label' => 'Footer Menü – Karte 2'];
+        $locations[] = ['slug' => 'footer_col3', 'label' => 'Footer Menü – Karte 3'];
+        $locations[] = ['slug' => 'footer',      'label' => 'Footer-Navigation (Copyright-Leiste)'];
         return $locations;
     }
 
@@ -470,6 +481,20 @@ HTML;
                 ['label' => 'Startseite',  'url' => '/',          'target' => '_self'],
                 ['label' => 'Blog',        'url' => '/blog',      'target' => '_self'],
                 ['label' => 'Anmelden',    'url' => '/login',     'target' => '_self'],
+            ],
+            'footer_col1' => [
+                ['label' => 'Blog',        'url' => '/blog',      'target' => '_self'],
+                ['label' => 'Kategorien',  'url' => '/blog',      'target' => '_self'],
+            ],
+            'footer_col2' => [
+                ['label' => 'Suche',       'url' => '/search',    'target' => '_self'],
+                ['label' => 'Newsletter',  'url' => '/register',  'target' => '_self'],
+            ],
+            'footer_col3' => [
+                ['label' => 'Über uns',    'url' => '/about',     'target' => '_self'],
+                ['label' => 'Kontakt',     'url' => '/contact',   'target' => '_self'],
+                ['label' => 'Impressum',   'url' => '/impressum', 'target' => '_self'],
+                ['label' => 'Datenschutz', 'url' => '/datenschutz', 'target' => '_self'],
             ],
             'footer'  => [
                 ['label' => 'Impressum',   'url' => '/impressum',   'target' => '_self'],

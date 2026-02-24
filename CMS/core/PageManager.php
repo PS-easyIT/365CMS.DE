@@ -66,7 +66,7 @@ class PageManager
      */
     public function createPage(string $title, string $content, string $status, int $authorId, int $hideTitle = 0): int
     {
-        $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $title)));
+        $slug = $this->generateSlug($title);
         // Ensure unique slug
         $originalSlug = $slug;
         $count = 1;
@@ -115,6 +115,21 @@ class PageManager
     {
         $stmt = $this->db->prepare("DELETE FROM {$this->prefix}pages WHERE id = ?");
         return $stmt->execute([$id]);
+    }
+
+    /**
+     * Generate a URL-safe slug from a title, with German umlaut handling
+     */
+    public function generateSlug(string $title): string
+    {
+        // German umlauts and common accented chars → ASCII equivalents
+        $title = str_replace(
+            ['ä','ö','ü','Ä','Ö','Ü','ß','é','è','ê','à','â','î','ï','ô','ù','û'],
+            ['ae','oe','ue','ae','oe','ue','ss','e','e','e','a','a','i','i','o','u','u'],
+            $title
+        );
+        $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $title), '-'));
+        return $slug !== '' ? $slug : 'seite';
     }
 
     /**

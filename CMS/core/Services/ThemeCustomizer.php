@@ -25,6 +25,7 @@ class ThemeCustomizer
     private string $currentTheme = 'default';
     private ?array $themeConfig = null;
     private array $customizations = [];
+    private bool $tableChecked = false;
     
     /**
      * Get singleton instance
@@ -241,16 +242,50 @@ class ThemeCustomizer
     /**
      * Save customization value
      */
+    /**
+     * Ensure the theme_customizations table exists (auto-repair for missing migrations)
+     */
+    private function ensureTable(): void
+    {
+        if ($this->tableChecked) {
+            return;
+        }
+        $this->tableChecked = true;
+        try {
+            $p = $this->db->getPrefix();
+            $this->db->execute("CREATE TABLE IF NOT EXISTS {$p}theme_customizations (
+                id              INT UNSIGNED     NOT NULL AUTO_INCREMENT,
+                theme_slug      VARCHAR(100)     NOT NULL,
+                setting_category VARCHAR(100)    NOT NULL,
+                setting_key     VARCHAR(200)     NOT NULL,
+                setting_value   MEDIUMTEXT,
+                user_id         INT UNSIGNED     DEFAULT NULL,
+                created_at      DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at      DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                UNIQUE KEY uq_theme_setting (theme_slug, setting_category, setting_key, user_id),
+                KEY idx_theme_slug   (theme_slug),
+                KEY idx_user_id      (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        } catch (\Throwable $e) {
+            error_log('ThemeCustomizer::ensureTable() failed: ' . $e->getMessage());
+        }
+    }
+
     public function set(string $category, string $key, $value, ?int $userId = null): bool
     {
         try {
-            // Validate that setting exists in theme.json
+            // Soft-validate against theme.json: log a warning but do NOT block the save.
+            // A hard-fail here would silently swallow all settings if theme.json is unreachable.
             $options = $this->getCustomizationOptions();
-            if (!isset($options[$category]['settings'][$key])) {
-                error_log("Invalid theme setting: {$category}.{$key}");
-                return false;
+            if (!empty($options) && !isset($options[$category]['settings'][$key])) {
+                error_log("ThemeCustomizer::set() – unknown setting: {$category}.{$key} (theme: {$this->currentTheme})");
+                // Continue – the key may have been added in the PHP config but not yet in theme.json
             }
-            
+
+            // Ensure the table exists (idempotent, runs once per request)
+            $this->ensureTable();
+
             // Check if record exists
             $sql = "SELECT id FROM {$this->db->getPrefix()}theme_customizations 
                     WHERE theme_slug = ? AND setting_category = ? AND setting_key = ?";
@@ -294,10 +329,10 @@ class ThemeCustomizer
                 $this->loadCustomizations($userId);
             }
             
-            return $result;
+            return (bool)$result;
             
         } catch (\PDOException $e) {
-            error_log("Error saving theme customization: " . $e->getMessage());
+            error_log("ThemeCustomizer::set() PDO error [{$category}.{$key}]: " . $e->getMessage());
             return false;
         }
     }

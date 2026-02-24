@@ -24,6 +24,12 @@ $headerBarMode = meridian_setting('navigation', 'header_bar_mode', 'categories')
 $stickyHeader  = (bool)meridian_setting('layout', 'sticky_header', true);
 
 $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+
+// Kategorie-Leiste nur auf Übersichtsseiten (Home, Blog-Liste) anzeigen.
+// Secondary-Menü-Modus wird davon nicht berührt – immer sichtbar.
+$_catBarListingPages = ['/', '/blog'];
+$_showHeaderBar = ($headerBarMode === 'menu')
+    || ($headerBarMode === 'categories' && in_array($currentPath, $_catBarListingPages, true));
 $isLoggedIn  = meridian_is_logged_in();
 $flashMsg    = meridian_get_flash();
 
@@ -170,10 +176,10 @@ $flashMsg    = meridian_get_flash();
 </header>
 
 <!-- Kategorie/Menü-Leiste -->
-<?php if ($headerBarMode !== 'none'): ?>
+<?php if ($_showHeaderBar): ?>
 <div class="category-bar">
   <div class="category-bar-inner">
-    
+
     <?php if ($headerBarMode === 'categories'): ?>
         <span class="cat-label">Kategorien</span>
         <a href="<?php echo SITE_URL; ?>/blog" class="<?php echo ($currentPath === '/blog' && !isset($_GET['category'])) ? 'active' : ''; ?>">Alle</a>

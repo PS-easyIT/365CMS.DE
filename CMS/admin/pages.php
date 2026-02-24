@@ -54,11 +54,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['page_action'])) {
                 } else {
                     $newId = $pageManager->createPage($pTitle, $pContent, $pStatus, $currentUserId, $pHideTitle);
                     if ($newId > 0 && !empty($pSlug)) {
-                        $safeSlug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $pSlug)));
+                        $safeSlug = $pageManager->generateSlug($pSlug);
                         $pageManager->updatePage($newId, ['slug' => $safeSlug]);
                     }
                     if ($newId > 0) {
-                        header('Location: ?msg=created');
+                        $createdPage = $pageManager->getPage($newId);
+                        $createdSlug = $createdPage['slug'] ?? '';
+                        header('Location: ?msg=created&slug=' . urlencode($createdSlug));
                         exit;
                     }
                     $pageActionError = 'Fehler beim Erstellen der Seite.';
@@ -82,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['page_action'])) {
                         $upData['content'] = $pContent;
                     }
                     if (!empty($pSlug)) {
-                        $upData['slug'] = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $pSlug)));
+                        $upData['slug'] = $pageManager->generateSlug($pSlug);
                     }
                     if ($pageManager->updatePage($pId, $upData)) {
                         header('Location: ?msg=updated');
@@ -119,7 +121,13 @@ if ($action === 'edit' && $editPageId > 0) {
 // Success messages from redirect
 if (isset($_GET['msg'])) {
     switch ($_GET['msg']) {
-        case 'created': $success = '✅ Seite erfolgreich erstellt.';      break;
+        case 'created':
+            $createdSlug = trim($_GET['slug'] ?? '');
+            $success = '✅ Seite erfolgreich erstellt.';
+            if ($createdSlug) {
+                $success .= ' URL: <a href="' . htmlspecialchars(SITE_URL . '/' . $createdSlug, ENT_QUOTES) . '" target="_blank">/' . htmlspecialchars($createdSlug, ENT_QUOTES) . '</a>';
+            }
+            break;
         case 'updated': $success = '✅ Seite erfolgreich aktualisiert.';  break;
         case 'deleted': $success = '🗑️ Seite erfolgreich gelöscht.';      break;
     }
@@ -255,8 +263,8 @@ if ($action === 'new' || $action === 'edit'):
                 <div class="form-group">
                     <label class="form-label">Status</label>
                     <select name="page_status" id="page_status" class="form-control">
-                        <option value="draft"     <?php echo ($pData['status'] ?? 'draft') === 'draft'     ? 'selected' : ''; ?>>📝 Entwurf</option>
-                        <option value="published" <?php echo ($pData['status'] ?? '') === 'published' ? 'selected' : ''; ?>>✅ Veröffentlicht</option>
+                        <option value="published" <?php echo ($pData['status'] ?? 'published') === 'published' ? 'selected' : ''; ?>>✅ Veröffentlicht</option>
+                        <option value="draft"     <?php echo ($pData['status'] ?? '') === 'draft'     ? 'selected' : ''; ?>>📝 Entwurf</option>
                         <option value="private"   <?php echo ($pData['status'] ?? '') === 'private'   ? 'selected' : ''; ?>>🔒 Privat</option>
                     </select>
                 </div>

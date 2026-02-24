@@ -274,6 +274,12 @@ $config = [
                 'type'        => 'color',
                 'default'     => '#a06b18',
             ],
+            'post_column_border_color' => [
+                'label'       => 'Content-Randfarbe',
+                'description' => 'Farbe der linken und rechten Führungslinie neben dem Beitragstext.',
+                'type'        => 'color',
+                'default'     => '#e2e0d8',
+            ],
             'category_bar_bg' => [
                 'label'       => 'Kategorie-Leiste Hintergrundfarbe',
                 'description' => 'Hintergrundfarbe der Kategorie-/Menüleiste unter dem Header.',
@@ -367,10 +373,23 @@ $config = [
     'footer' => [
         'title' => '🔻 Footer',
         'sections' => [
+            'footer_brand_title_enabled' => [
+                'label'       => 'Websitetitel (Brand-Spalte) anzeigen',
+                'type'        => 'checkbox',
+                'default'     => true,
+                'description' => 'Blendet den Websitetitel/Wordmark im Footer ein/aus. Wenn sowohl Titel als auch Beschreibung deaktiviert sind, wird die Spalte automatisch schmaler.',
+            ],
+            'footer_brand_desc_enabled' => [
+                'label'       => 'Beschreibungstext (Brand-Spalte) anzeigen',
+                'type'        => 'checkbox',
+                'default'     => true,
+                'description' => 'Wenn deaktiviert, wird der Text unter dem Footer-Logo ausgeblendet und die Brand-Spalte automatisch schmaler.',
+            ],
             'footer_description' => [
-                'label'   => 'Footer Beschreibungstext (Brand-Spalte)',
-                'type'    => 'textarea',
-                'default' => 'Aktuelle Themen, fundierte Analysen und persönliche Geschichten – täglich neu.',
+                'label'       => 'Footer Beschreibungstext (Brand-Spalte)',
+                'type'        => 'textarea',
+                'default'     => 'Aktuelle Themen, fundierte Analysen und persönliche Geschichten – täglich neu.',
+                'description' => 'Wird nur angezeigt, wenn die Option oben aktiviert ist.',
             ],
             'footer_bg_color' => [
                 'label'       => 'Footer Hintergrundfarbe',
@@ -388,19 +407,40 @@ $config = [
                 'default'     => '#c0862a',
             ],
             'col1_title' => [
-                'label'   => 'Titel Link-Spalte 1',
-                'type'    => 'text',
-                'default' => 'Rubriken',
+                'label'       => 'Titel Menü-Karte 1',
+                'type'        => 'text',
+                'default'     => 'Rubriken',
+                'description' => 'Spaltenüberschrift für Footer-Karte 1 (Menü-Position: Footer Menü – Karte 1).',
+            ],
+            'footer_col1_enabled' => [
+                'label'       => 'Footer Menü Karte 1 anzeigen',
+                'type'        => 'checkbox',
+                'default'     => true,
+                'description' => 'Footer-Karte 1 ein-/ausblenden. Wenn aktiv, werden die Links aus Menü-Position „Footer Menü – Karte 1“ gerendert.',
             ],
             'col2_title' => [
-                'label'   => 'Titel Link-Spalte 2',
-                'type'    => 'text',
-                'default' => 'Ressourcen',
+                'label'       => 'Titel Menü-Karte 2',
+                'type'        => 'text',
+                'default'     => 'Ressourcen',
+                'description' => 'Spaltenüberschrift für Footer-Karte 2 (Menü-Position: Footer Menü – Karte 2).',
+            ],
+            'footer_col2_enabled' => [
+                'label'       => 'Footer Menü Karte 2 anzeigen',
+                'type'        => 'checkbox',
+                'default'     => true,
+                'description' => 'Footer-Karte 2 ein-/ausblenden. Wenn aktiv, werden die Links aus Menü-Position „Footer Menü – Karte 2“ gerendert.',
             ],
             'col3_title' => [
-                'label'   => 'Titel Link-Spalte 3',
-                'type'    => 'text',
-                'default' => 'Über',
+                'label'       => 'Titel Menü-Karte 3',
+                'type'        => 'text',
+                'default'     => 'Über',
+                'description' => 'Spaltenüberschrift für Footer-Karte 3 (Menü-Position: Footer Menü – Karte 3).',
+            ],
+            'footer_col3_enabled' => [
+                'label'       => 'Footer Menü Karte 3 anzeigen',
+                'type'        => 'checkbox',
+                'default'     => true,
+                'description' => 'Footer-Karte 3 ein-/ausblenden. Wenn aktiv, werden die Links aus Menü-Position „Footer Menü – Karte 3“ gerendert.',
             ],
             'show_social_icons' => [
                 'label'   => 'Social Icons anzeigen',
@@ -576,83 +616,114 @@ if (!isset($config[$activeTab])) {
 $success = null;
 $error   = null;
 
+// Flash-Message aus vorherigem PRG-Redirect lesen
+if (!empty($_SESSION['_cms_customizer_flash'])) {
+    $flash = $_SESSION['_cms_customizer_flash'];
+    unset($_SESSION['_cms_customizer_flash']);
+    if (($flash['type'] ?? '') === 'success') {
+        $success = $flash['msg'];
+    } else {
+        $error = $flash['msg'];
+    }
+}
+
+// Hilfsfunktion: PRG-Redirect mit Flash
+$customizerRedirect = function(string $tab, string $type, string $msg): never {
+    $_SESSION['_cms_customizer_flash'] = ['type' => $type, 'msg' => $msg];
+    $base = strtok($_SERVER['REQUEST_URI'] ?? '/admin/theme-customizer', '?');
+    header('Location: ' . $base . '?tab=' . urlencode($tab));
+    exit;
+};
+
 // Reset-Aktion: Tab-Einstellungen auf Standard zurücksetzen
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'reset_theme_tab') {
     if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'theme_customizer')) {
-        $error = 'Sicherheitscheck fehlgeschlagen. Bitte erneut versuchen.';
-    } else {
-        $resetTab = $_POST['active_section'] ?? $activeTab;
-        if (!isset($config[$resetTab])) {
-            $resetTab = $activeTab;
-        }
-        foreach ($config[$resetTab]['sections'] as $fieldKey => $fieldConfig) {
-            $default = $fieldConfig['default'] ?? '';
-            if (is_bool($default)) {
-                $default = $default ? '1' : '0';
-            }
-            $customizer->set($resetTab, $fieldKey, (string)$default);
-        }
-        $success = 'Einstellungen für &bdquo;' . htmlspecialchars($config[$resetTab]['title']) . '&ldquo; auf Standardwerte zurückgesetzt.';
+        $customizerRedirect($activeTab, 'error', 'Sicherheitscheck fehlgeschlagen. Bitte erneut versuchen.');
     }
+    $resetTab = $_POST['active_section'] ?? $activeTab;
+    if (!isset($config[$resetTab])) {
+        $resetTab = $activeTab;
+    }
+    foreach ($config[$resetTab]['sections'] as $fieldKey => $fieldConfig) {
+        $default = $fieldConfig['default'] ?? '';
+        if (is_bool($default)) {
+            $default = $default ? '1' : '0';
+        }
+        $customizer->set($resetTab, $fieldKey, (string)$default);
+    }
+    $customizerRedirect($resetTab, 'success', 'Einstellungen für „' . htmlspecialchars($config[$resetTab]['title']) . '" auf Standardwerte zurückgesetzt.');
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_theme_options') {
     if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'theme_customizer')) {
-        $error = 'Sicherheitscheck fehlgeschlagen. Bitte erneut versuchen.';
-    } else {
-        // Logo-Datei-Upload verarbeiten
-        if (!empty($_FILES['logo_upload_file']['tmp_name'])) {
-            $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'];
-            $fileExt = strtolower(pathinfo($_FILES['logo_upload_file']['name'], PATHINFO_EXTENSION));
-            if (in_array($fileExt, $allowedExts, true)) {
-                $uploadDir = UPLOAD_PATH . 'theme-logos';
-                if (!is_dir($uploadDir)) {
-                    mkdir($uploadDir, 0755, true);
-                }
-                $newFileName = 'logo-' . time() . '.' . $fileExt;
-                $destPath    = $uploadDir . '/' . $newFileName;
-                if (move_uploaded_file($_FILES['logo_upload_file']['tmp_name'], $destPath)) {
-                    $customizer->set('header', 'logo_url', UPLOAD_URL . '/theme-logos/' . $newFileName);
-                } else {
-                    $error = 'Logo-Upload fehlgeschlagen. Bitte prüfen Sie die Schreibrechte auf uploads/theme-logos/';
-                }
-            } else {
-                $error = 'Ungültiges Dateiformat. Erlaubt: JPG, PNG, GIF, SVG, WebP';
-            }
-        }
+        $customizerRedirect($activeTab, 'error', 'Sicherheitscheck fehlgeschlagen. Bitte erneut versuchen.');
+    }
+    $saveTab = $_POST['active_section'] ?? $activeTab;
+    if (!isset($config[$saveTab])) {
+        $saveTab = $activeTab;
+    }
+    $uploadError = null;
 
-        if (!$error) {
-            // NUR den aktuell aktiven Tab speichern – sonst werden andere Tabs überschrieben!
-            $saveTab = $_POST['active_section'] ?? $activeTab;
-            if (!isset($config[$saveTab])) {
-                $saveTab = $activeTab;
+    // Logo-Datei-Upload verarbeiten
+    if (!empty($_FILES['logo_upload_file']['tmp_name'])) {
+        $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'];
+        $fileExt = strtolower(pathinfo($_FILES['logo_upload_file']['name'], PATHINFO_EXTENSION));
+        if (in_array($fileExt, $allowedExts, true)) {
+            $uploadDir = UPLOAD_PATH . 'theme-logos';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
             }
-            foreach ($config[$saveTab]['sections'] as $fieldKey => $fieldConfig) {
-                $sectionKey = $saveTab;
-                $inputName  = "{$sectionKey}_{$fieldKey}";
-                // logo_url: Wenn per Upload gesetzt → POST-Wert nicht überschreiben (außer explizit befüllt)
-                if ($sectionKey === 'header' && $fieldKey === 'logo_url') {
-                    $postVal = $_POST[$inputName] ?? '';
-                    if ($postVal !== '') {
-                        $customizer->set($sectionKey, $fieldKey, $postVal);
-                    }
-                    continue;
-                }
-                if ($fieldConfig['type'] === 'checkbox') {
-                    $value = isset($_POST[$inputName]) ? '1' : '0';
-                } elseif ($fieldConfig['type'] === 'image_upload') {
-                    // Nur speichern wenn explizit gesetzt
-                    $value = $_POST[$inputName] ?? null;
-                    if ($value === null) { continue; }
-                } else {
-                    $value = $_POST[$inputName] ?? '';
-                }
-                $customizer->set($sectionKey, $fieldKey, $value);
+            $newFileName = 'logo-' . time() . '.' . $fileExt;
+            $destPath    = $uploadDir . '/' . $newFileName;
+            if (move_uploaded_file($_FILES['logo_upload_file']['tmp_name'], $destPath)) {
+                $customizer->set('header', 'logo_url', UPLOAD_URL . '/theme-logos/' . $newFileName);
+            } else {
+                $uploadError = 'Logo-Upload fehlgeschlagen. Bitte Schreibrechte auf uploads/theme-logos/ prüfen.';
             }
-            $success = 'Einstellungen für &bdquo;' . htmlspecialchars($config[$saveTab]['title']) . '&ldquo; gespeichert.';
+        } else {
+            $uploadError = 'Ungültiges Dateiformat. Erlaubt: JPG, PNG, GIF, SVG, WebP';
         }
     }
+
+    if ($uploadError) {
+        $customizerRedirect($saveTab, 'error', $uploadError);
+    }
+
+    // Felder des aktiven Tabs speichern
+    $saveCount = 0;
+    $failCount = 0;
+    foreach ($config[$saveTab]['sections'] as $fieldKey => $fieldConfig) {
+        $inputName = "{$saveTab}_{$fieldKey}";
+        // logo_url: per Upload already set → nur überschreiben wenn URL-Feld gefüllt
+        if ($saveTab === 'header' && $fieldKey === 'logo_url') {
+            $postVal = $_POST[$inputName] ?? '';
+            if ($postVal !== '') {
+                $customizer->set($saveTab, $fieldKey, $postVal) ? $saveCount++ : $failCount++;
+            }
+            continue;
+        }
+        if ($fieldConfig['type'] === 'checkbox') {
+            $value = isset($_POST[$inputName]) ? '1' : '0';
+        } elseif ($fieldConfig['type'] === 'image_upload') {
+            $value = $_POST[$inputName] ?? null;
+            if ($value === null) { continue; }
+        } else {
+            $value = $_POST[$inputName] ?? '';
+        }
+        $customizer->set($saveTab, $fieldKey, $value) ? $saveCount++ : $failCount++;
+    }
+
+    if ($failCount === 0) {
+        $customizerRedirect($saveTab, 'success', 'Einstellungen für „' . htmlspecialchars($config[$saveTab]['title']) . '" gespeichert.');
+    } elseif ($saveCount === 0) {
+        $customizerRedirect($saveTab, 'error', 'Speichern fehlgeschlagen (' . $failCount . ' Fehler). Bitte das Server-Error-Log prüfen.');
+    } else {
+        $customizerRedirect($saveTab, 'error', $saveCount . ' von ' . ($saveCount + $failCount) . ' Einstellungen gespeichert – ' . $failCount . ' Fehler aufgetreten.');
+    }
 }
+
+// CSRF-Token einmalig generieren – beide Formulare teilen sich denselben Token
+$csrfToken = Security::instance()->generateToken('theme_customizer');
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -690,16 +761,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         </div>
 
         <?php if ($success): ?>
-            <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
+            <div class="alert alert-success"><?php echo $success; ?></div>
         <?php endif; ?>
         <?php if ($error): ?>
-            <div class="alert alert-error"><?php echo htmlspecialchars($error); ?></div>
+            <div class="alert alert-error"><?php echo $error; ?></div>
         <?php endif; ?>
 
         <form method="POST" action="?tab=<?php echo htmlspecialchars($activeTab); ?>" enctype="multipart/form-data">
             <input type="hidden" name="action" value="save_theme_options">
             <input type="hidden" name="active_section" value="<?php echo htmlspecialchars($activeTab); ?>">
-            <input type="hidden" name="csrf_token" value="<?php echo Security::instance()->generateToken('theme_customizer'); ?>">
+            <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
 
             <div class="customizer-layout">
                 <!-- Sidebar Tabs -->
@@ -801,14 +872,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     </div>
 
                     <!-- Reset-Formular (versteckt, wird per JS gesendet) -->
-                    <form id="reset-form" method="POST" action="?tab=<?php echo htmlspecialchars($activeTab); ?>" style="display:none;">
-                        <input type="hidden" name="action" value="reset_theme_tab">
-                        <input type="hidden" name="active_section" value="<?php echo htmlspecialchars($activeTab); ?>">
-                        <input type="hidden" name="csrf_token" value="<?php echo Security::instance()->generateToken('theme_customizer'); ?>">
-                    </form>
+                    <!-- HINWEIS: dieses Form absichtlich NICHT hier – es steht nach dem Haupt-</form> -->
                     <?php endif; ?>
                 </div>
             </div>
+        </form>
+
+        <!-- Reset-Formular AUSSERHALB des Haupt-Formulars (verschachtelte Forms sind in HTML ungültig) -->
+        <form id="reset-form" method="POST" action="?tab=<?php echo htmlspecialchars($activeTab); ?>" style="display:none;">
+            <input type="hidden" name="action" value="reset_theme_tab">
+            <input type="hidden" name="active_section" value="<?php echo htmlspecialchars($activeTab); ?>">
+            <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
         </form>
 
     </div>

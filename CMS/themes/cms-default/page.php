@@ -14,38 +14,24 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$pageTitle   = $page['title']       ?? '';
-$pageContent = $page['content']     ?? '';
-$pageUpdated = $page['updated_at']  ?? '';
-$pageId      = (int)($page['id']    ?? 0);
+$pageTitle     = $page['title']      ?? '';
+$pageContent   = $page['content']    ?? '';
+$pageId        = (int)($page['id']   ?? 0);
+$pageHideTitle = !empty($page['hide_title']);
 ?>
 
-<div class="container">
-    <div class="page-content-wrap">
-        <article class="page-article">
+<div class="view-post" style="display:block;">
+  <div class="post-column">
 
-            <!-- Breadcrumb -->
-            <nav class="breadcrumb" aria-label="Breadcrumb" style="margin-bottom:1.5rem;">
-                <a href="<?php echo SITE_URL; ?>/">Startseite</a>
-                <span class="breadcrumb-sep" aria-hidden="true">›</span>
-                <span class="breadcrumb-current" aria-current="page"><?php echo htmlspecialchars($pageTitle); ?></span>
-            </nav>
+    <?php if (!$pageHideTitle && $pageTitle !== ''): ?>
+    <div class="post-header">
+      <h1><?php echo htmlspecialchars($pageTitle); ?></h1>
+    </div>
+    <?php endif; ?>
 
-            <header class="post-header">
-                <h1 class="post-title"><?php echo htmlspecialchars($pageTitle); ?></h1>
-                <?php if ($pageUpdated): ?>
-                <p class="post-meta-bar">
-                    <time class="post-meta-date" datetime="<?php echo htmlspecialchars(substr($pageUpdated, 0, 10)); ?>">
-                        Aktualisiert: <?php echo meridian_format_date($pageUpdated); ?>
-                    </time>
-                </p>
-                <?php endif; ?>
-            </header>
+    <div class="post-body page-content">
+      <?php echo $pageContent; // Kommt aus DB, bereits sanitiert ?>
+    </div>
 
-            <div class="post-body page-content">
-                <?php echo $pageContent; // Kommt aus DB, bereits sanitiert ?>
-            </div>
-
-        </article>
-    </div><!-- /.page-content-wrap -->
-</div><!-- /.container -->
+  </div><!-- /.post-column -->
+</div><!-- /.view-post -->
