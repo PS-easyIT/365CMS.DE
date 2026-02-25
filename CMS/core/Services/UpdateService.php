@@ -182,126 +182,20 @@ class UpdateService
      */
     private function fetchGitHubData(string $url): ?array
     {
-        $context = stream_context_create([
-            'http' => [
-                'method' => 'GET',
-                'header' => [
-                    'User-Agent: 365CMS-UpdateChecker/1.0',
-                    'Accept: application/vnd.github.v3+json',
-                ],
-                'timeout' => 10,
-            ],
-        ]);
-        
-        try {
-            $response = @file_get_contents($url, false, $context);
-            
-            if ($response === false) {
-                error_log('UpdateService: Failed to fetch from GitHub: ' . $url);
-                return null;
-
-        $response = curl_exec($ch);
-        $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlError = curl_error($ch);
-        curl_close($ch);
-
-        if ($response === false || $curlError !== '') {
-            error_log('UpdateService: cURL-Fehler bei ' . $url . ': ' . $curlError);
+        if (!filter_var($url, FILTER_VALIDATE_URL) || !str_starts_with($url, 'https://api.github.com/')) {
+            error_log('UpdateService: Invalid GitHub API URL: ' . $url);
             return null;
         }
 
-        if ($httpCode !== 200) {
-            error_log('UpdateService: HTTP ' . $httpCode . ' bei ' . $url);
-            return null;
-        }
-
-        $data = json_decode((string) $response, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            error_log('UpdateService: Ungültiges JSON von GitHub: ' . json_last_error_msg());
-            return null;
-        }
-
-        return $data;
-    }
-
-    /**
-     * M-20: Prüft ob eine IP-Adresse zu privaten / reservierten Bereichen gehört.
-     *
-     * Abgedeckt:
-     *  - Loopback        127.0.0.0/8, ::1
-     *  - Link-Local      169.254.0.0/16, fe80::/10
-     *  - Private (RFC1918) 10.x, 172.16-31.x, 192.168.x
-     *  - Unique Local    fc00::/7
-     *  - Multicast       224.0.0.0/4, ff00::/8
-     *
-     * @param  string $ip  V4 oder V6 Adresse
-     * @return bool        true = privat/reserviert, false = öffentlich
-     */
-    private function isPrivateOrReservedIp(string $ip): bool
-    {
-        return filter_var(
-            $ip,
-            FILTER_VALIDATE_IP,
-            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
-        ) === false;
-    }
-
-    /**
-     * M-20: SSRF-Guard – löst Hostname auf und prüft ob die IP privat/reserviert ist.
-     *
-     * @param  string $url  Vollständige HTTPS-URL
-     * @return bool         true = URL ist sicher, false = URL blockiert
-     */
-    private function isSafeExternalUrl(string $url): bool
-    {
-        $host = parse_url($url, PHP_URL_HOST);
-        if (empty($host)) {
-            return false;
-        }
-
-        // Alle DNS-Auflösungen prüfen (IPv4 + IPv6)
-        $records = dns_get_record($host, DNS_A | DNS_AAAA) ?: [];
-        if (empty($records)) {
-            // DNS-Auflösung fehlgeschlagen → nicht blockieren (könnte Netzwerkproblem sein)
-            // Aber statisch offensichtliche private Hostnamen blocken:
-            if (in_array(strtolower($host), ['localhost', 'localhost.localdomain', 'ip6-localhost', 'ip6-loopback'], true)) {
-                return false;
-            }
-            
-            $data = json_decode($response, true);
-            
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                error_log('UpdateService: Invalid JSON from GitHub: ' . json_last_error_msg());
-                return null;
-            }
-            
-            return $data;
-        } catch (\Exception $e) {
-            error_log('UpdateService::fetchGitHubData() Error: ' . $e->getMessage());
-        // SSRF-Guard: nur HTTPS-Calls zur GitHub-API erlaubt
-        if (!str_starts_with($url, 'https://api.github.com/')) {
-            error_log('UpdateService: Ungültige URL blockiert: ' . $url);
-            return null;
-        }
-
-        if (!extension_loaded('curl')) {
-            error_log('UpdateService: cURL-Extension nicht verfügbar.');
-            return null;
-        }
-
-        $ch = curl_init($url);
+        $ch = curl_init();
         curl_setopt_array($ch, [
+            CURLOPT_URL            => $url,
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FOLLOWLOCATION => false,        // kein Redirect-Follow (SSRF-Schutz)
-            CURLOPT_CONNECTTIMEOUT => 5,            // 5 s Verbindungsaufbau
-            CURLOPT_TIMEOUT        => 10,           // 10 s Gesamt-Transfer
-            CURLOPT_SSL_VERIFYPEER => true,         // TLS-Zertifikat prüfen
-            CURLOPT_SSL_VERIFYHOST => 2,
-            CURLOPT_HTTPHEADER     => [
-                'User-Agent: 365CMS-UpdateChecker/1.0',
-                'Accept: application/vnd.github.v3+json',
-            ],
+            CURLOPT_TIMEOUT        => 10,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_USERAGENT      => '365CMS-UpdateChecker/1.0',
+            CURLOPT_HTTPHEADER     => ['Accept: application/vnd.github.v3+json'],
+            CURLOPT_SSL_VERIFYPEER => true,
         ]);
 
         $response = curl_exec($ch);
