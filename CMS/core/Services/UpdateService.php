@@ -182,7 +182,6 @@ class UpdateService
      */
     private function fetchGitHubData(string $url): ?array
     {
-<<<<<<< HEAD
         $context = stream_context_create([
             'http' => [
                 'method' => 'GET',
@@ -193,7 +192,6 @@ class UpdateService
                 'timeout' => 10,
             ],
         ]);
-<<<<<<< Updated upstream
         
         try {
             $response = @file_get_contents($url, false, $context);
@@ -201,7 +199,6 @@ class UpdateService
             if ($response === false) {
                 error_log('UpdateService: Failed to fetch from GitHub: ' . $url);
                 return null;
-=======
 
         $response = curl_exec($ch);
         $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -270,7 +267,6 @@ class UpdateService
             // Aber statisch offensichtliche private Hostnamen blocken:
             if (in_array(strtolower($host), ['localhost', 'localhost.localdomain', 'ip6-localhost', 'ip6-loopback'], true)) {
                 return false;
->>>>>>> Stashed changes
             }
             
             $data = json_decode($response, true);
@@ -283,11 +279,9 @@ class UpdateService
             return $data;
         } catch (\Exception $e) {
             error_log('UpdateService::fetchGitHubData() Error: ' . $e->getMessage());
-=======
         // SSRF-Guard: nur HTTPS-Calls zur GitHub-API erlaubt
         if (!str_starts_with($url, 'https://api.github.com/')) {
             error_log('UpdateService: Ungültige URL blockiert: ' . $url);
->>>>>>> 99c076b264547ca37d9fb41c77632a2247e7247a
             return null;
         }
 
