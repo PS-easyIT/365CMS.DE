@@ -92,26 +92,26 @@ class EditorService
         
         $settings = array_merge($defaults, $settings);
         
-        // Escape content for textarea
-        $escapedContent = htmlspecialchars($content ?? '', ENT_QUOTES, 'UTF-8');
+        // Content für JS-Übergabe: JSON-encode garantiert korrektes Escaping
+        $jsContent = json_encode($content ?? '', JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT);
         
         ob_start();
         ?>
         <textarea 
             id="<?php echo htmlspecialchars($editorId); ?>" 
             name="<?php echo htmlspecialchars($name); ?>" 
-            style="display:none;"><?php echo $escapedContent; ?></textarea>
+            style="display:none;"></textarea>
         <script>
         (function() {
+            var _initialContent = <?php echo $jsContent; ?>;
             if (typeof SUNEDITOR === 'undefined') {
                 console.error('SunEditor not loaded. Please check script inclusion.');
-                // Fallback: show textarea
-                const el = document.getElementById('<?php echo $editorId; ?>');
-                if (el) el.style.display = 'block';
+                // Fallback: show textarea with raw content
+                var el = document.getElementById('<?php echo $editorId; ?>');
+                if (el) { el.value = _initialContent; el.style.display = 'block'; }
                 return;
             }
             
-            // Wait for DOM to be ready
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', initEditor);
             } else {
@@ -119,14 +119,14 @@ class EditorService
             }
             
             function initEditor() {
-                const editorElement = document.getElementById('<?php echo $editorId; ?>');
+                var editorElement = document.getElementById('<?php echo $editorId; ?>');
                 if (!editorElement) {
                     console.error('Editor element not found: <?php echo $editorId; ?>');
                     return;
                 }
                 
                 try {
-                    const editor_<?php echo self::$editorCount; ?> = SUNEDITOR.create(editorElement, {
+                    var editor_<?php echo self::$editorCount; ?> = SUNEDITOR.create(editorElement, {
                         lang: SUNEDITOR_LANG && SUNEDITOR_LANG.de ? SUNEDITOR_LANG.de : 'en',
                         height: '<?php echo htmlspecialchars((string)$settings['height']); ?>',
                         width: '100%',
@@ -162,10 +162,20 @@ class EditorService
                         ]
                     });
                     
-                    // Sync content to textarea on change
+                    // Inhalt via API setzen – verhindert jegliches Encoding-Problem
+                    editor_<?php echo self::$editorCount; ?>.setContents(_initialContent);
+                    
+                    // Textarea bei Änderungen synchronisieren
                     editor_<?php echo self::$editorCount; ?>.onChange = function(contents, core) {
                         editorElement.value = contents;
                     };
+                    // Auch vor Form-Submit sicherstellen dass der Wert aktuell ist
+                    var form = editorElement.closest('form');
+                    if (form) {
+                        form.addEventListener('submit', function() {
+                            editorElement.value = editor_<?php echo self::$editorCount; ?>.getContents();
+                        });
+                    }
                 } catch (error) {
                     console.error('Failed to initialize SunEditor:', error);
                     // Fallback: show textarea

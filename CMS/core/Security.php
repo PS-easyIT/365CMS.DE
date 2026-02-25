@@ -219,9 +219,9 @@ class Security
     /**
      * Escape output for HTML (static wrapper)
      */
-    public static function escape(string $output): string
+    public static function escape(string|int $output): string
     {
-        return htmlspecialchars($output, ENT_QUOTES, 'UTF-8');
+        return htmlspecialchars((string)$output, ENT_QUOTES, 'UTF-8');
     }
     
     /**
