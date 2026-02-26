@@ -236,13 +236,34 @@ function renderMemberSidebar(string $currentPage = ''): void
                 <div class="nav-section">
                     <h4 class="nav-section-title"><?php echo $catLabel; ?></h4>
                     <ul class="nav-list">
-                        <?php foreach ($menuGroups[$catKey] as $item): ?>
+                        <?php foreach ($menuGroups[$catKey] as $item):
+                            // Sub-Items werden als Kinder ihres Parents gerendert – überspringen
+                            if (!empty($item['parent_slug'])) continue;
+                            // Kinder-Items dieses Eintrags sammeln
+                            $subItems = array_values(array_filter(
+                                $menuGroups[$catKey],
+                                fn($i) => ($i['parent_slug'] ?? '') === $item['slug']
+                            ));
+                            $hasActiveChild = !empty(array_filter($subItems, fn($i) => $i['active']));
+                        ?>
                         <li>
-                            <a href="<?php echo $item['url']; ?>" class="nav-link<?php echo $item['active'] ? ' active' : ''; ?>">
+                            <a href="<?php echo $item['url']; ?>" class="nav-link<?php echo ($item['active'] || $hasActiveChild) ? ' active' : ''; ?>">
                                 <span class="nav-icon"><?php echo $item['icon']; ?></span>
                                 <span class="nav-text"><?php echo $item['label']; ?></span>
-                                <?php if ($item['active']): ?><span class="active-dot"></span><?php endif; ?>
+                                <?php if ($item['active'] || $hasActiveChild): ?><span class="active-dot"></span><?php endif; ?>
                             </a>
+                            <?php if (!empty($subItems)): ?>
+                            <ul class="nav-sub-list">
+                                <?php foreach ($subItems as $sub): ?>
+                                <li>
+                                    <a href="<?php echo $sub['url']; ?>" class="nav-sub-link<?php echo $sub['active'] ? ' active' : ''; ?>">
+                                        <span class="nav-sub-icon"><?php echo $sub['icon']; ?></span>
+                                        <span class="nav-text"><?php echo $sub['label']; ?></span>
+                                    </a>
+                                </li>
+                                <?php endforeach; ?>
+                            </ul>
+                            <?php endif; ?>
                         </li>
                         <?php endforeach; ?>
                     </ul>
@@ -424,6 +445,38 @@ function renderMemberSidebarStyles(): void
             width: 24px; text-align: center;
         }
         .nav-link.active .nav-icon { opacity: 1; color: var(--sidebar-active-accent); }
+
+        /* Sub-Navigation (Plugin-Unterpunkte) */
+        .nav-sub-list {
+            list-style: none; padding: 0; margin: 0;
+            border-left: 1px solid rgba(255,255,255,0.08);
+            margin-left: 2.25rem;
+        }
+        .nav-sub-link {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.38rem 1rem 0.38rem 0.75rem;
+            text-decoration: none;
+            color: var(--sidebar-text);
+            font-size: 0.82rem;
+            opacity: 0.72;
+            border-radius: 4px;
+            margin: 1px 0;
+            transition: all 0.15s;
+        }
+        .nav-sub-link:hover {
+            color: var(--sidebar-text-hover);
+            opacity: 1;
+            background: rgba(255,255,255,0.04);
+        }
+        .nav-sub-link.active {
+            color: var(--sidebar-active-accent);
+            opacity: 1;
+            font-weight: 600;
+            background: rgba(255,255,255,0.05);
+        }
+        .nav-sub-icon { font-size: 0.85rem; width: 18px; text-align: center; }
 
         /* Footer */
         .sidebar-footer {

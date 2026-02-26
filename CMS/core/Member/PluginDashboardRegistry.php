@@ -160,6 +160,7 @@ class PluginDashboardRegistry
             'category'         => $config['category'] ?? 'plugins',
             'priority'         => (int) ($config['priority'] ?? 50),
             'capability'       => $config['capability'] ?? null,
+            'parent_slug'      => $config['parent_slug'] ?? null,
             'dashboard_widget' => $config['dashboard_widget'] ?? null,
             'render_callback'  => $config['render_callback'],
             'post_callback'    => $config['post_callback'] ?? null,
@@ -203,12 +204,13 @@ class PluginDashboardRegistry
         $items = [];
         foreach ($this->getAll() as $section) {
             $items[] = [
-                'slug'     => 'plugin_' . $section['slug'],
-                'label'    => $section['label'],
-                'icon'     => $section['icon'],
-                'url'      => '/member/plugin/' . $section['slug'],
-                'active'   => $currentSlug === $section['slug'],
-                'category' => $section['category'],
+                'slug'        => 'plugin_' . $section['slug'],
+                'label'       => $section['label'],
+                'icon'        => $section['icon'],
+                'url'         => '/member/plugin/' . $section['slug'],
+                'active'      => $currentSlug === $section['slug'],
+                'category'    => $section['category'],
+                'parent_slug' => $section['parent_slug'] ?? null,
             ];
         }
         return $items;
@@ -224,6 +226,10 @@ class PluginDashboardRegistry
         $isAdmin = Auth::instance()->isAdmin();
 
         foreach ($this->getAll() as $section) {
+            // Sub-Items (mit parent_slug) bekommen keine eigene Dashboard-Kachel
+            if (!empty($section['parent_slug'])) {
+                continue;
+            }
             $wConfig = $section['dashboard_widget'] ?? [];
 
             // Stats via Callback ermitteln

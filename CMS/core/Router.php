@@ -91,7 +91,12 @@ class Router
         
         // Member area
         $this->addRoute('GET', '/member', [$this, 'renderMember']);
-        $this->addRoute('GET', '/member/plugin/:slug', [$this, 'renderMemberPluginSection']);
+        // Sub-path routes muss vor /:slug stehen (spezifischer), damit sie zuerst geprüft werden
+        $this->addRoute('GET',  '/member/plugin/:slug/:action/:id', [$this, 'renderMemberPluginSection']);
+        $this->addRoute('POST', '/member/plugin/:slug/:action/:id', [$this, 'renderMemberPluginSection']);
+        $this->addRoute('GET',  '/member/plugin/:slug/:action',     [$this, 'renderMemberPluginSection']);
+        $this->addRoute('POST', '/member/plugin/:slug/:action',     [$this, 'renderMemberPluginSection']);
+        $this->addRoute('GET',  '/member/plugin/:slug', [$this, 'renderMemberPluginSection']);
         $this->addRoute('POST', '/member/plugin/:slug', [$this, 'renderMemberPluginSection']);
         $this->addRoute('GET', '/member/:page', [$this, 'renderMemberPage']);
         
@@ -653,11 +658,20 @@ class Router
      *
      * Delegiert an PluginDashboardRegistry::handleRoute().
      */
-    public function renderMemberPluginSection(string $slug): void
+    public function renderMemberPluginSection(string $slug, string $action = '', string $id = ''): void
     {
         if (!Auth::instance()->isLoggedIn()) {
             $this->redirect('/login');
             return;
+        }
+
+        // Pfad-Segmente (:action, :id) als $_GET-Parameter injizieren,
+        // damit render_callback im Plugin via $_GET['action'] und $_GET['id'] darauf zugreifen kann.
+        if ($action !== '') {
+            $_GET['action'] = sanitize_key($action);
+        }
+        if ($id !== '' && ctype_digit($id)) {
+            $_GET['id'] = $id;
         }
 
         // Registry laden (PSR-4 autoloaded: CMS\Member\PluginDashboardRegistry)
