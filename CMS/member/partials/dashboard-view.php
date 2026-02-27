@@ -64,6 +64,7 @@ function getDashboardFeatureWidgets(object $user): array
     // Experten-Plugin
     if (class_exists('CMS_Experts_Database')) {
         $widgets[] = [
+            'plugin'     => 'cms-experts',
             'icon'       => '🧑‍💼',
             'title'      => 'Experten-Profile',
             'text'       => 'IT-Experten suchen, Profile anlegen und verwalten.',
@@ -78,6 +79,7 @@ function getDashboardFeatureWidgets(object $user): array
     // Companies-Plugin
     if (class_exists('CMS_Companies_Database')) {
         $widgets[] = [
+            'plugin'     => 'cms-companies',
             'icon'       => '🏢',
             'title'      => 'Unternehmen',
             'text'       => 'Firmen im Netzwerk entdecken und Experten zuordnen.',
@@ -93,6 +95,7 @@ function getDashboardFeatureWidgets(object $user): array
     $hook_widgets = \CMS\Hooks::applyFilters('member_dashboard_widgets', []);
     foreach ($hook_widgets as $hw) {
         $widgets[] = [
+            'plugin'     => $hw['plugin'] ?? '',
             'icon'       => $hw['icon'] ?? '🔌',
             'title'      => $hw['title'] ?? 'Plugin-Widget',
             'text'       => $hw['description'] ?? '',
@@ -610,6 +613,32 @@ $greeting = str_replace('{name}', $firstName, $greetingTpl);
                             </div>
                         </div>
                     </div>
+
+                    <?php if (class_exists('CMS_Experts_Database')): ?>
+                    <!-- Card 5: IT-Experten (Plugin-Infocard) -->
+                    <div class="grid-item-col">
+                        <div class="stat-card" style="width:100%;cursor:pointer;border-left:3px solid #4f46e5;"
+                             onclick="window.location='/member/plugin/experts'">
+                            <div class="stat-header">
+                                <span class="stat-title" style="color:#4f46e5;">IT-Experten</span>
+                                <span class="stat-icon" style="color:#4f46e5;">🧑‍💼</span>
+                            </div>
+                            <div class="stat-body">
+                                <?php
+                                try {
+                                    $expertCount = (int) CMS_Experts_Database::instance()->countExperts('active');
+                                    echo '<div class="stat-value" style="color:#4f46e5;">' . $expertCount . '</div>';
+                                    echo '<div class="stat-meta"><a href="/member/plugin/experts" style="text-decoration:none;color:#4f46e5;">Experten ansehen &rarr;</a></div>';
+                                } catch (\Throwable $e) {
+                                    echo '<div class="stat-value" style="font-size:1.5rem;color:#94a3b8;">&ndash;</div>';
+                                    echo '<div class="stat-meta"><a href="/member/plugin/experts" style="text-decoration:none;color:#4f46e5;">Zur Übersicht &rarr;</a></div>';
+                                }
+                                ?>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
                 </div>
             <?php endif; ?>
 
@@ -651,7 +680,17 @@ $greeting = str_replace('{name}', $firstName, $greetingTpl);
             <?php 
             // ── PLUGINS ──
             if ($sectionKey === 'plugins'): 
-                $allPluginWidgets = array_merge($featureWidgets, $registryPluginWidgets);
+                // Registry-Widgets (je Plugin eine Card) gehen vor.
+                // Statische Feature-Widgets nur hinzufügen, wenn kein Registry-Widget
+                // für dasselbe Plugin-Slug bereits vorhanden ist.
+                $registryPluginSlugs = array_filter(
+                    array_column($registryPluginWidgets, 'plugin')
+                );
+                $filteredFeatureWidgets = array_filter(
+                    $featureWidgets,
+                    fn(array $fw) => empty($fw['plugin']) || !in_array($fw['plugin'], $registryPluginSlugs, true)
+                );
+                $allPluginWidgets = array_merge($registryPluginWidgets, array_values($filteredFeatureWidgets));
                 // Also add static quick links to this array or render them after
                 ?>
                 <div class="section-header">

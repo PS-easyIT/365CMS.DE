@@ -163,7 +163,9 @@ renderAdminLayoutStart('Seiten', 'pages');
    ================================================================ */
 if ($action === 'new' || $action === 'edit'):
     $isEdit       = ($action === 'edit' && $editPageData !== null);
-    $pData        = $editPageData ?? ['id' => 0, 'title' => '', 'slug' => '', 'content' => '', 'status' => 'draft', 'hide_title' => 0, 'created_at' => '', 'updated_at' => ''];
+    // Neue Seiten standardmäßig als 'published' vorbelegen (nicht 'draft'),
+    // damit die Seite nach dem Speichern direkt unter ihrer URL erreichbar ist.
+    $pData        = $editPageData ?? ['id' => 0, 'title' => '', 'slug' => '', 'content' => '', 'status' => 'published', 'hide_title' => 0, 'created_at' => '', 'updated_at' => ''];
     $pContent     = $pData['content'] ?? '';
     // Fix: Ensure slug is always editable for new pages if title is empty
     $hasCustomSlug = $isEdit && !empty($pData['slug']);

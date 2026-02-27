@@ -258,9 +258,23 @@ class Router
                 $themeManager->render('page', ['page' => $page]);
                 return;
             }
+
+            // Debug-Logging: Hilft bei 404-Diagnose
+            if (CMS_DEBUG) {
+                if ($page === null) {
+                    error_log(sprintf('Router [404]: Kein Seiten-Eintrag für Slug "%s" gefunden.', $slug));
+                } else {
+                    error_log(sprintf(
+                        'Router [404]: Seite "%s" (ID %d) wurde gefunden, hat aber Status "%s" (erwartet: "published").',
+                        $slug,
+                        (int)($page['id'] ?? 0),
+                        $page['status'] ?? 'unbekannt'
+                    ));
+                }
+            }
         } catch (\Throwable $e) {
-            // Log error silently, proceed to 404
-            error_log('Router Page Check Error: ' . $e->getMessage());
+            // Log error, proceed to 404
+            error_log('Router Page Check Error für "' . ($slug ?? $uri) . '": ' . $e->getMessage());
         }
         
         // 404 Not Found

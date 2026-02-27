@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-1.8.0-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-1.8.1-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -14,6 +14,7 @@
 
 | Version | Datum | Typ | Bereich | Beschreibung |
 |---------|-------|-----|---------|-------------|
+| **1.8.1** | 23.02.2026 | 🔴 fix | Router/Admin | Öffentliche Seiten zeigen 404: Standard-Status für neue Seiten auf `published` gesetzt; Router-Debug-Logging verbessert |
 | **1.8.0** | 22.02.2026 | 🟢 feat | Security | CMS-Firewall, AntiSpam, Security-Audit vollständig überarbeitet |
 | 1.7.9 | 22.02.2026 | 🟢 feat | Admin | RBAC-Verwaltung vollständig neu implementiert |
 | 1.7.8 | 22.02.2026 | 🟢 feat | Admin | Support-Ticket-System in Admin-Bereich integriert |
@@ -45,10 +46,11 @@
 
 ---
 
-### v1.8.x — 22. Februar 2026 · Security & Firewall Suite
+### v1.8.x — 22.–23. Februar 2026 · Security & Firewall Suite
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
+| **1.8.1** | 🔴 fix | Router/Admin | **Öffentliche Seiten 404-Bug**: Neue CMS-Seiten wurden standardmäßig als `draft` angelegt, obwohl die Admin-UI "anlegen und veröffentlichen" beschreibt. `admin/pages.php` – Default-Status für neue Seiten von `draft` auf `published` geändert. Router-Debug-Logging für 404 verbessert (zeigt Slug + aktuellen Status bei Debug-Modus). |
 | **1.8.0** | 🟢 feat | Security | CMS-Firewall mit IP-Blocking, Geo-Filtering und Request-Analyse sowie AntiSpam und Security-Audit vollständig überarbeitet |
 
 ---

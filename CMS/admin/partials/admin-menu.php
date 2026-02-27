@@ -781,6 +781,13 @@ function renderAdminLayoutEnd(): void
 {
     ?>
         </div><!-- /.admin-content -->
+        <?php
+        // Plugins können über body_end-Hook Scripts einbinden (analog zum Frontend)
+        if (class_exists('CMS\Hooks')) {
+            \CMS\Hooks::doAction('body_end');
+            \CMS\Hooks::doAction('admin_body_end');
+        }
+        ?>
     </body>
     </html>
     <?php
