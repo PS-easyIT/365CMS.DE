@@ -17,6 +17,10 @@
 
 declare(strict_types=1);
 
+// Output-Buffer starten: verhindert "headers already sent"-Fehler,
+// da Plugins im render_callback ggf. Redirects via header() auslösen.
+ob_start();
+
 // Laden der Basis-Deps falls direkt aufgerufen
 if (!defined('ABSPATH')) {
     require_once dirname(__DIR__) . '/config.php';
@@ -159,3 +163,4 @@ $pageIcon  = $section['icon'];
     <?php \CMS\Hooks::doAction('member_plugin_section_footer', $section['slug'], $user); ?>
 </body>
 </html>
+<?php ob_end_flush(); ?>
