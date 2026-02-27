@@ -185,8 +185,7 @@ class ThemeCustomizer
                 $sql .= " AND user_id IS NULL";
             }
             
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute($params);
+            $stmt    = $this->db->execute($sql, $params);
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             $this->customizations = [];
@@ -197,8 +196,8 @@ class ThemeCustomizer
                 $this->customizations[$row['setting_category']][$row['setting_key']] = $row['setting_value'];
             }
             
-        } catch (\PDOException $e) {
-            error_log("Error loading theme customizations: " . $e->getMessage());
+        } catch (\Throwable $e) {
+            error_log("ThemeCustomizer::loadCustomizations() error: " . $e->getMessage());
             $this->customizations = [];
         }
     }
@@ -253,7 +252,11 @@ class ThemeCustomizer
         $this->tableChecked = true;
         try {
             $p = $this->db->getPrefix();
-            $this->db->execute("CREATE TABLE IF NOT EXISTS {$p}theme_customizations (
+            // DDL-Statements via query() ausführen – nicht über prepare(),
+            // da CREATE TABLE als Server-Side Prepared Statement in manchen
+            // MySQL/MariaDB-Versionen mit ATTR_EMULATE_PREPARES=false nicht
+            // unterstützt wird und Database::execute() intern prepare() nutzt.
+            $this->db->query("CREATE TABLE IF NOT EXISTS {$p}theme_customizations (
                 id              INT UNSIGNED     NOT NULL AUTO_INCREMENT,
                 theme_slug      VARCHAR(100)     NOT NULL,
                 setting_category VARCHAR(100)    NOT NULL,
@@ -287,6 +290,10 @@ class ThemeCustomizer
             $this->ensureTable();
 
             // Check if record exists
+            // Database::execute() nutzen statt prepare()+execute() direkt –
+            // nur so werden NULL-Werte korrekt als PDO::PARAM_NULL gebunden
+            // (direktes $stmt->execute($array) kann null als '' binden, was
+            // im strikten SQL-Modus ein INSERT auf INT-Spalten bricht).
             $sql = "SELECT id FROM {$this->db->getPrefix()}theme_customizations 
                     WHERE theme_slug = ? AND setting_category = ? AND setting_key = ?";
             $params = [$this->currentTheme, $category, $key];
@@ -298,8 +305,7 @@ class ThemeCustomizer
                 $sql .= " AND user_id IS NULL";
             }
             
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute($params);
+            $stmt    = $this->db->execute($sql, $params);
             $existing = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($existing) {
@@ -307,15 +313,13 @@ class ThemeCustomizer
                 $updateSql = "UPDATE {$this->db->getPrefix()}theme_customizations 
                               SET setting_value = ?, updated_at = NOW() 
                               WHERE id = ?";
-                $updateStmt = $this->db->prepare($updateSql);
-                $result = $updateStmt->execute([$value, $existing['id']]);
+                $this->db->execute($updateSql, [$value, (int)$existing['id']]);
             } else {
                 // Insert new
                 $insertSql = "INSERT INTO {$this->db->getPrefix()}theme_customizations 
                               (theme_slug, setting_category, setting_key, setting_value, user_id) 
                               VALUES (?, ?, ?, ?, ?)";
-                $insertStmt = $this->db->prepare($insertSql);
-                $result = $insertStmt->execute([
+                $this->db->execute($insertSql, [
                     $this->currentTheme,
                     $category,
                     $key,
@@ -325,14 +329,12 @@ class ThemeCustomizer
             }
             
             // Reload customizations
-            if ($result) {
-                $this->loadCustomizations($userId);
-            }
+            $this->loadCustomizations($userId);
             
-            return (bool)$result;
+            return true;
             
-        } catch (\PDOException $e) {
-            error_log("ThemeCustomizer::set() PDO error [{$category}.{$key}]: " . $e->getMessage());
+        } catch (\Throwable $e) {
+            error_log("ThemeCustomizer::set() error [{$category}.{$key}]: " . $e->getMessage());
             return false;
         }
     }
@@ -376,18 +378,12 @@ class ThemeCustomizer
                 $sql .= " AND user_id IS NULL";
             }
             
-            $stmt = $this->db->prepare($sql);
-            $result = $stmt->execute($params);
+            $this->db->execute($sql, $params);
+            $this->loadCustomizations($userId);
+            return true;
             
-            // Reload customizations
-            if ($result) {
-                $this->loadCustomizations($userId);
-            }
-            
-            return $result;
-            
-        } catch (\PDOException $e) {
-            error_log("Error resetting theme customization: " . $e->getMessage());
+        } catch (\Throwable $e) {
+            error_log("ThemeCustomizer::reset() error: " . $e->getMessage());
             return false;
         }
     }
@@ -409,18 +405,12 @@ class ThemeCustomizer
                 $sql .= " AND user_id IS NULL";
             }
             
-            $stmt = $this->db->prepare($sql);
-            $result = $stmt->execute($params);
+            $this->db->execute($sql, $params);
+            $this->loadCustomizations($userId);
+            return true;
             
-            // Reload customizations
-            if ($result) {
-                $this->loadCustomizations($userId);
-            }
-            
-            return $result;
-            
-        } catch (\PDOException $e) {
-            error_log("Error resetting all theme customizations: " . $e->getMessage());
+        } catch (\Throwable $e) {
+            error_log("ThemeCustomizer::resetAll() error: " . $e->getMessage());
             return false;
         }
     }
