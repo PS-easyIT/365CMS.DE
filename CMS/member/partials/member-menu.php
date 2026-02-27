@@ -245,24 +245,31 @@ function renderMemberSidebar(string $currentPage = ''): void
                                 fn($i) => ($i['parent_slug'] ?? '') === $item['slug']
                             ));
                             $hasActiveChild = !empty(array_filter($subItems, fn($i) => $i['active']));
+                            $isOpen = $item['active'] || $hasActiveChild;
                         ?>
                         <li>
-                            <a href="<?php echo $item['url']; ?>" class="nav-link<?php echo ($item['active'] || $hasActiveChild) ? ' active' : ''; ?>">
-                                <span class="nav-icon"><?php echo $item['icon']; ?></span>
-                                <span class="nav-text"><?php echo $item['label']; ?></span>
-                                <?php if ($item['active'] || $hasActiveChild): ?><span class="active-dot"></span><?php endif; ?>
-                            </a>
                             <?php if (!empty($subItems)): ?>
-                            <ul class="nav-sub-list">
-                                <?php foreach ($subItems as $sub): ?>
-                                <li>
-                                    <a href="<?php echo $sub['url']; ?>" class="nav-sub-link<?php echo $sub['active'] ? ' active' : ''; ?>">
-                                        <span class="nav-sub-icon"><?php echo $sub['icon']; ?></span>
+                            <details class="nav-group<?php echo $isOpen ? ' has-active' : ''; ?>"<?php echo $isOpen ? ' open' : ''; ?>>
+                                <summary class="nav-link nav-group-header">
+                                    <span class="nav-icon"><?php echo $item['icon']; ?></span>
+                                    <span class="nav-text"><?php echo $item['label']; ?></span>
+                                    <span class="nav-group-arrow">▶</span>
+                                </summary>
+                                <div class="nav-group-children">
+                                    <?php foreach ($subItems as $sub): ?>
+                                    <a href="<?php echo $sub['url']; ?>" class="nav-subitem<?php echo $sub['active'] ? ' active' : ''; ?>">
+                                        <span class="nav-icon"><?php echo $sub['icon']; ?></span>
                                         <span class="nav-text"><?php echo $sub['label']; ?></span>
                                     </a>
-                                </li>
-                                <?php endforeach; ?>
-                            </ul>
+                                    <?php endforeach; ?>
+                                </div>
+                            </details>
+                            <?php else: ?>
+                            <a href="<?php echo $item['url']; ?>" class="nav-link<?php echo $item['active'] ? ' active' : ''; ?>">
+                                <span class="nav-icon"><?php echo $item['icon']; ?></span>
+                                <span class="nav-text"><?php echo $item['label']; ?></span>
+                                <?php if ($item['active']): ?><span class="active-dot"></span><?php endif; ?>
+                            </a>
                             <?php endif; ?>
                         </li>
                         <?php endforeach; ?>
@@ -446,37 +453,85 @@ function renderMemberSidebarStyles(): void
         }
         .nav-link.active .nav-icon { opacity: 1; color: var(--sidebar-active-accent); }
 
-        /* Sub-Navigation (Plugin-Unterpunkte) */
-        .nav-sub-list {
-            list-style: none; padding: 0; margin: 0;
-            border-left: 1px solid rgba(255,255,255,0.08);
-            margin-left: 2.25rem;
+        /* Sub-Navigation – Akkordeon (details/summary) */
+        .nav-group {
+            border: none;
+            background: none;
+            list-style: none;
+            margin: 0;
         }
-        .nav-sub-link {
+        .nav-group-header {
             display: flex;
             align-items: center;
-            gap: 0.6rem;
+            gap: 0.75rem;
+            padding: 0.65rem 1.5rem;
+            cursor: pointer;
+            color: var(--sidebar-text);
+            font-size: 0.9rem;
+            transition: all 0.15s;
+            position: relative;
+            list-style: none;
+            user-select: none;
+            text-decoration: none;
+        }
+        .nav-group-header::-webkit-details-marker { display: none; }
+        .nav-group-header::marker               { display: none; }
+        .nav-group-header:hover {
+            color: var(--sidebar-text-hover);
+            background: rgba(255,255,255,0.03);
+        }
+        .nav-group.has-active > .nav-group-header {
+            color: #fff;
+            font-weight: 500;
+        }
+        .nav-group-arrow {
+            margin-left: auto;
+            font-size: 0.6rem;
+            opacity: 0.5;
+            transition: transform 0.2s ease;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+        .nav-group[open] > .nav-group-header .nav-group-arrow {
+            transform: rotate(90deg);
+            opacity: 0.8;
+        }
+        .nav-group-children {
+            padding: 0.25rem 0 0.5rem 0;
+            border-left: 1px solid rgba(255,255,255,0.08);
+            margin-left: 2.6rem;
+            overflow: hidden;
+            animation: slideDownNav 0.18s ease;
+        }
+        @keyframes slideDownNav {
+            from { opacity: 0; transform: translateY(-6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .nav-subitem {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
             padding: 0.38rem 1rem 0.38rem 0.75rem;
             text-decoration: none;
             color: var(--sidebar-text);
             font-size: 0.82rem;
-            opacity: 0.72;
+            opacity: 0.75;
             border-radius: 4px;
-            margin: 1px 0;
+            margin: 1px 4px 1px 0;
             transition: all 0.15s;
         }
-        .nav-sub-link:hover {
+        .nav-subitem:hover {
             color: var(--sidebar-text-hover);
             opacity: 1;
-            background: rgba(255,255,255,0.04);
+            background: rgba(255,255,255,0.05);
         }
-        .nav-sub-link.active {
+        .nav-subitem.active {
             color: var(--sidebar-active-accent);
             opacity: 1;
             font-weight: 600;
-            background: rgba(255,255,255,0.05);
+            background: rgba(255,255,255,0.06);
         }
-        .nav-sub-icon { font-size: 0.85rem; width: 18px; text-align: center; }
+        .nav-subitem .nav-icon { font-size: 0.85rem; width: 18px; text-align: center; }
 
         /* Footer */
         .sidebar-footer {
