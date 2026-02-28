@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['page_action'])) {
         switch ($_POST['page_action']) {
             case 'create_page':
                 $pTitle     = trim($_POST['page_title'] ?? '');
-                $pContent   = $_POST['page_content'] ?? '';
+                $pContent   = wp_kses_post($_POST['page_content'] ?? '');
                 $pStatus    = in_array($_POST['page_status'] ?? '', ['published', 'draft', 'private'])
                               ? $_POST['page_status'] : 'draft';
                 $pSlug      = trim($_POST['page_slug'] ?? '');
@@ -70,7 +70,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['page_action'])) {
             case 'update_page':
                 $pId        = (int)($_POST['page_id'] ?? 0);
                 $pTitle     = trim($_POST['page_title'] ?? '');
-                $pContent   = $_POST['page_content'] ?? null;  // null = not submitted (SunEditor not loaded)
+                $pRawContent = $_POST['page_content'] ?? null;  // null = not submitted (SunEditor not loaded)
+                $pContent   = $pRawContent !== null ? wp_kses_post($pRawContent) : null;
                 $pStatus    = in_array($_POST['page_status'] ?? '', ['published', 'draft', 'private'])
                               ? $_POST['page_status'] : 'draft';
                 $pSlug      = trim($_POST['page_slug'] ?? '');
