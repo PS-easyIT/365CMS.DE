@@ -86,11 +86,14 @@ Persönliche Medienbibliothek:
 - Speicherplatz-Anzeige (basierend auf Abo-Limit)
 
 ### Nachrichten (`member/messages.php`)
-Direktnachrichten-System:
-- Konversationsliste
-- Neue Konversation starten
-- Nachrichten lesen und senden
-- Benachrichtigung bei neuen Nachrichten
+Vollständiges Member-to-Member-Messaging über `MessageService`:
+- **Posteingang** – Empfangene Nachrichten mit Ungelesen-Badge
+- **Gesendet** – Gesendete Nachrichten-Übersicht
+- **Verfassen** – Neue Nachricht mit Empfänger-Autocomplete (AJAX-Suche)
+- **Thread-Ansicht** – Chat-Bubble-Layout mit Antwort-Funktion
+- **Soft-Delete** – Nachrichten einzeln löschen (physisch gelöscht wenn beide Parteien löschen)
+- Pagination und CSRF-geschützte Formulare
+- Datenbank: `cms_messages` (Schema v8, mit parent_id für Threads)
 
 ### Abo (`member/subscription.php`)
 Abo-Verwaltung:

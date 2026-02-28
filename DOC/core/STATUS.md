@@ -6,10 +6,11 @@
 
 | Eigenschaft | Wert |
 |-------------|------|
-| **CMS-Version** | 1.8.0 |
+| **CMS-Version** | 2.0.0 |
 | **PHP-Mindestanforderung** | 8.2 (empfohlen: 8.3) |
 | **DB-Version** | MySQL 5.7+ / MariaDB 10.3+ |
-| **Letztes Update** | 22. Februar 2026 |
+| **Schema-Version** | v8 |
+| **Letztes Update** | 01. März 2026 |
 | **Status** | Produktionsreif (Beta) |
 
 ---
@@ -21,7 +22,7 @@
 | Komponente | Status | Notiz |
 |------------|--------|-------|
 | Bootstrap | ✅ Vollständig | Singleton, Lifecycle, Error-Handling |
-| Database (PDO) | ✅ Vollständig | 33 Tabellen, WP-compat. API |
+| Database (PDO) | ✅ Vollständig | 34 Tabellen (inkl. messages), WP-compat. API |
 | Security | ✅ Vollständig | CSRF, XSS, Rate-Limiting, Headers |
 | Auth | ✅ Vollständig | Login, Session, Rollen |
 | Router | ✅ Vollständig | GET/POST/PUT/DELETE, Plugin-Routen |
@@ -32,7 +33,7 @@
 | PageManager | ✅ Vollständig | Seiten, Meta-Tags |
 | SubscriptionManager | ✅ Vollständig | Pläne, Abos, Feature-Gating |
 
-### Service-Layer (11/11)
+### Service-Layer (15/15)
 
 | Service | Status |
 |---------|--------|
@@ -43,6 +44,7 @@
 | LandingPageService | ✅ Implementiert |
 | MediaService | ✅ Implementiert |
 | MemberService | ✅ Implementiert |
+| **MessageService** | ✅ **Neu (v2.0.0)** |
 | SEOService | ✅ Implementiert |
 | StatusService | ✅ Implementiert |
 | SystemService | ✅ Implementiert |
@@ -92,18 +94,19 @@
 | Rechtliche Seiten | `legal-sites.php` | ✅ |
 | Sicherheits-Audit | `security-audit.php` | ✅ |
 
-### Plugins (6 verfügbar)
+### Plugins (7 verfügbar)
 
 | Plugin | Slug | Status |
 |--------|------|--------|
 | CMS Companies | `cms-companies` | ✅ Verfügbar |
 | CMS Events | `cms-events` | ✅ Verfügbar |
 | CMS Experts | `cms-experts` | ✅ Verfügbar |
+| CMS Feed | `cms-feed` | ✅ Verfügbar |
 | CMS Importer | `cms-importer` | ✅ Verfügbar |
-| CMS Job Ads | `cms-jobads` | ✅ Verfügbar |
+| CMS Job Profile Generator | `cms-jobprofile-generator` | ✅ Verfügbar |
 | CMS Speakers | `cms-speakers` | ✅ Verfügbar |
 
-### Themes (8 verfügbar, 1 aktiv)
+### Themes (9 verfügbar, 1 aktiv)
 
 | Theme | Slug | Status |
 |-------|------|--------|
@@ -111,10 +114,11 @@
 | Academy 365 | `academy365` | ✅ Verfügbar |
 | Build Base | `buildbase` | ✅ Verfügbar |
 | Business | `business` | ✅ Verfügbar |
+| CMS Newspaper | `cms-newspaper` | ✅ Verfügbar |
+| CMS PhinIT | `cms-phinit` | ✅ Verfügbar |
 | LogiLink | `logilink` | ✅ Verfügbar |
 | MedCarePro | `medcarepro` | ✅ Verfügbar |
 | PersonalFlow | `personalflow` | ✅ Verfügbar |
-| TechNexus | `technexus` | ✅ Verfügbar |
 | **CMS Default** | `cms-default` | ✅ **AKTIV** |
 
 ---

@@ -1,7 +1,7 @@
 # 365CMS – Datenbank-Schema
 
 
-Das 365CMS nutzt **33 Datenbank-Tabellen**, die beim ersten Start automatisch angelegt werden. Alle Tabellen haben das Prefix `cms_` (konfigurierbar in `config.php`).
+Das 365CMS nutzt **34 Datenbank-Tabellen**, die beim ersten Start automatisch angelegt werden. Alle Tabellen haben das Prefix `cms_` (konfigurierbar in `config.php`).
 
 ---
 
@@ -49,6 +49,7 @@ Das 365CMS nutzt **33 Datenbank-Tabellen**, die beim ersten Start automatisch an
 | `cms_subscription_usage` | Tracking | Ressourcen-Nutzung pro User |
 | `cms_orders` | E-Commerce | Bestellungen & Rechnungsdaten |
 | `cms_media` | Medien | Medienbibliothek (Bilder, PDFs) |
+| `cms_messages` | Kommunikation | Interne Nachrichten (Member-to-Member, Threads, Soft-Delete) |
 | `cms_support_tickets` | Support | Support-Ticket-Verwaltung |
 | `cms_support_messages` | Support | Ticket-Nachrichten-Thread |
 | `cms_analytics` | Statistiken | Seitenaufruf-Tracking (DSGVO-konform) |

@@ -320,3 +320,117 @@ $result = $updater->updateCore('1.8.1');
 // Plugin-Update
 $result = $updater->updatePlugin('cms-experts', '1.3.0');
 ```
+
+---
+
+## MessageService
+
+**Datei:** `core/Services/MessageService.php`  
+**Neu seit:** v2.0.0
+
+Vollständiges internes Nachrichten-System für Member-to-Member-Kommunikation.
+Unterstützt Threads (Antworten), Soft-Delete und Empfänger-Suche.
+
+```php
+$msg = CMS\Services\MessageService::getInstance();
+
+// Posteingang (paginiert)
+$inbox = $msg->getInbox($userId, 20, 0);
+
+// Gesendete Nachrichten
+$sent = $msg->getSent($userId, 20, 0);
+
+// Nachricht senden
+$id = $msg->send($senderId, $recipientId, 'Betreff', 'Nachrichtentext', $parentId);
+
+// Thread abrufen
+$thread = $msg->getThread($messageId, $userId);
+
+// Als gelesen markieren
+$msg->markAsRead($messageId, $userId);
+
+// Soft-Delete (physisch gelöscht wenn beide Parteien gelöscht haben)
+$msg->delete($messageId, $userId);
+
+// Ungelesene Nachrichten zählen
+$count = $msg->getUnreadCount($userId);
+
+// Konversationen gruppiert nach Thread
+$convos = $msg->getConversations($userId, 'inbox', 20, 0);
+
+// Empfänger-Autocomplete
+$users = $msg->searchRecipients('max', $currentUserId);
+```
+
+**Datenbank-Tabelle:** `cms_messages` (Schema v8)
+
+| Spalte | Typ | Beschreibung |
+|--------|-----|-------------|
+| id | BIGINT PK | Auto-Increment |
+| sender_id | INT UNSIGNED | FK → users |
+| recipient_id | INT UNSIGNED | FK → users |
+| subject | VARCHAR(255) | Betreff (optional) |
+| body | TEXT | Nachrichtentext |
+| is_read | TINYINT(1) | 0/1 |
+| read_at | TIMESTAMP | Lesezeitpunkt |
+| parent_id | BIGINT | Thread-Root-ID |
+| deleted_by_sender | TINYINT(1) | Soft-Delete Absender |
+| deleted_by_recipient | TINYINT(1) | Soft-Delete Empfänger |
+| created_at | TIMESTAMP | Erstellungsdatum |
+
+---
+
+## MessageService
+
+**Datei:** `core/Services/MessageService.php`  
+**Neu seit:** v2.0.0
+
+Vollständiges internes Nachrichten-System für Member-to-Member-Kommunikation.
+Unterstützt Threads (Antworten), Soft-Delete und Empfänger-Suche.
+
+```php
+$msg = CMS\Services\MessageService::getInstance();
+
+// Posteingang (paginiert)
+$inbox = $msg->getInbox($userId, 20, 0);
+
+// Gesendete Nachrichten
+$sent = $msg->getSent($userId, 20, 0);
+
+// Nachricht senden
+$id = $msg->send($senderId, $recipientId, 'Betreff', 'Nachrichtentext', $parentId);
+
+// Thread abrufen
+$thread = $msg->getThread($messageId, $userId);
+
+// Als gelesen markieren
+$msg->markAsRead($messageId, $userId);
+
+// Soft-Delete (physisch gelöscht wenn beide Parteien gelöscht haben)
+$msg->delete($messageId, $userId);
+
+// Ungelesene Nachrichten zählen
+$count = $msg->getUnreadCount($userId);
+
+// Konversationen gruppiert nach Thread
+$convos = $msg->getConversations($userId, 'inbox', 20, 0);
+
+// Empfänger-Autocomplete
+$users = $msg->searchRecipients('max', $currentUserId);
+```
+
+**Datenbank-Tabelle:** `cms_messages` (Schema v8)
+
+| Spalte | Typ | Beschreibung |
+|--------|-----|-------------|
+| id | BIGINT PK | Auto-Increment |
+| sender_id | INT UNSIGNED | FK → users |
+| recipient_id | INT UNSIGNED | FK → users |
+| subject | VARCHAR(255) | Betreff (optional) |
+| body | TEXT | Nachrichtentext |
+| is_read | TINYINT(1) | 0/1 |
+| read_at | TIMESTAMP | Lesezeitpunkt |
+| parent_id | BIGINT | Thread-Root-ID |
+| deleted_by_sender | TINYINT(1) | Soft-Delete Absender |
+| deleted_by_recipient | TINYINT(1) | Soft-Delete Empfänger |
+| created_at | TIMESTAMP | Erstellungsdatum |

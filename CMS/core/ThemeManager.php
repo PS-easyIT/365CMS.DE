@@ -368,7 +368,8 @@ class ThemeManager
                 $stmt->execute();
                 $result = $stmt->fetch();
                 if ($result && $result->option_value) {
-                    $slug = $result->option_value;
+                    // Defense-in-depth: Slug darf nur sichere Zeichen enthalten
+                    $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', $result->option_value);
                 }
             }
         } catch (\Exception $e) {

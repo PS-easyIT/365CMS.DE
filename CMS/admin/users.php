@@ -46,19 +46,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'crea
             $messages[] = ['type' => 'error', 'text' => 'Benutzername, E-Mail und Passwort sind Pflichtfelder.'];
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $messages[] = ['type' => 'error', 'text' => 'Ungültige E-Mail-Adresse.'];
-        } elseif (strlen($password) < 6) {
-            $messages[] = ['type' => 'error', 'text' => 'Passwort muss mindestens 6 Zeichen haben.'];
         } else {
-            $existing = $db->get_var("SELECT id FROM {$prefix}users WHERE username=? OR email=?", [$username, $email]);
-            if ($existing) {
-                $messages[] = ['type' => 'error', 'text' => 'Benutzername oder E-Mail bereits vergeben.'];
+            $policyResult = \CMS\Auth::validatePasswordPolicy($password);
+            if ($policyResult !== true) {
+                $messages[] = ['type' => 'error', 'text' => $policyResult];
             } else {
-                $db->execute(
-                    "INSERT INTO {$prefix}users (username, email, password, display_name, role, status, created_at) VALUES (?,?,?,?,?,?,NOW())",
-                    [$username, $email, password_hash($password, PASSWORD_BCRYPT), $display_name ?: $username, $role, 'active']
-                );
-                header('Location: ' . SITE_URL . '/admin/users?msg=created');
-                exit;
+                $existing = $db->get_var("SELECT id FROM {$prefix}users WHERE username=? OR email=?", [$username, $email]);
+                if ($existing) {
+                    $messages[] = ['type' => 'error', 'text' => 'Benutzername oder E-Mail bereits vergeben.'];
+                } else {
+                    $db->execute(
+                        "INSERT INTO {$prefix}users (username, email, password, display_name, role, status, created_at) VALUES (?,?,?,?,?,?,NOW())",
+                        [$username, $email, password_hash($password, PASSWORD_BCRYPT), $display_name ?: $username, $role, 'active']
+                    );
+                    header('Location: ' . SITE_URL . '/admin/users?msg=created');
+                    exit;
+                }
             }
         }
     }
@@ -81,29 +84,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'edit
         if ($eid < 1 || empty($email)) {
             $messages[] = ['type' => 'error', 'text' => 'Ungültige Eingaben.'];
         } else {
+            $passwordValid = true;
             $upd = "UPDATE {$prefix}users SET email=?, display_name=?, role=?, status=?, updated_at=NOW()";
             $params = [$email, $display_name, $role, $status];
-            if (!empty($new_password) && strlen($new_password) >= 6) {
-                $upd .= ', password=?';
-                $params[] = password_hash($new_password, PASSWORD_BCRYPT);
-            }
-            $upd .= ' WHERE id=?';
-            $params[] = $eid;
-            $db->execute($upd, $params);
-
-            // Gruppen aktualisieren
-            $db->execute("DELETE FROM {$prefix}user_group_members WHERE user_id=?", [$eid]);
-            foreach ($groups as $gid) {
-                if ($gid > 0) {
-                    $db->execute(
-                        "INSERT IGNORE INTO {$prefix}user_group_members (user_id, group_id, joined_at) VALUES (?,?,NOW())",
-                        [$eid, $gid]
-                    );
+            if (!empty($new_password)) {
+                $policyResult = \CMS\Auth::validatePasswordPolicy($new_password);
+                if ($policyResult !== true) {
+                    $messages[] = ['type' => 'error', 'text' => $policyResult];
+                    $passwordValid = false;
+                } else {
+                    $upd .= ', password=?';
+                    $params[] = password_hash($new_password, PASSWORD_BCRYPT);
                 }
             }
+            if ($passwordValid) {
+                $upd .= ' WHERE id=?';
+                $params[] = $eid;
+                $db->execute($upd, $params);
 
-            header('Location: ' . SITE_URL . '/admin/users?msg=updated');
-            exit;
+                // Gruppen aktualisieren
+                $db->execute("DELETE FROM {$prefix}user_group_members WHERE user_id=?", [$eid]);
+                foreach ($groups as $gid) {
+                    if ($gid > 0) {
+                        $db->execute(
+                            "INSERT IGNORE INTO {$prefix}user_group_members (user_id, group_id, joined_at) VALUES (?,?,NOW())",
+                            [$eid, $gid]
+                        );
+                    }
+                }
+
+                header('Location: ' . SITE_URL . '/admin/users?msg=updated');
+                exit;
+            }
         }
     }
 }

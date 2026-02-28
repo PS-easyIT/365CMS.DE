@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-1.8.1-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.0.0-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -14,17 +14,19 @@
 
 | Version | Datum | Typ | Bereich | Beschreibung |
 |---------|-------|-----|---------|-------------|
+| **2.0.0** | 01.03.2026 | 🟢 feat | Core/Member | Nachrichten-System (Member-to-Member), Security-Audit CRITICAL+HIGH-Fixes, SchemaManager v8, Installer-Update |
+| **1.9.5** | 28.02.2026 | 🔴 fix | Admin/Security | XSS-Escaping Media, Backup-Pfad-Traversal-Schutz, Delete-Modals, Plugin-UI-Spacing |
+| **1.9.4** | 28.02.2026 | 🔴 fix | Admin | ABSPATH-Guard in users.php, Site-URL-Check, Benutzer-Formular-Layout |
+| **1.9.3** | 28.02.2026 | 🎨 style | Admin | Plugin-Management-UI (Layout, Responsiveness) |
+| **1.9.2** | 27.02.2026 | 🟡 refactor | Theme | ThemeCustomizer: NULL-Handling bei prepared Statements verbessert |
+| **1.9.1** | 27.02.2026 | 🔴 fix | Admin/Plugin | Unbenutzbare Feature-Widgets entfernt; Output-Buffering für Plugin-Admin |
+| **1.9.0** | 27.02.2026 | 🟢 feat | Member | Accordion-Navigation für Member-Sidebar mit verbessertem Styling |
+| **1.8.5** | 26.02.2026 | 🟢 feat | Member | Plugin-Navigation mit Sub-Items erweitert |
+| **1.8.4** | 26.02.2026 | ⬜ chore | Theme | TechNexus-Theme und zugehörige Tests entfernt |
+| **1.8.3** | 25.02.2026 | 🟢 feat | Theme | 365Network Theme Customizer mit Farb-, Typografie-, Layout-, Header-, Footer- und Button-Einstellungen |
+| **1.8.2** | 25.02.2026 | 🔴 fix | Core | Security::escape() akzeptiert `string\|int`; WYSIWYG Double-Encoding behoben |
 | **1.8.1** | 23.02.2026 | 🔴 fix | Router/Admin | Öffentliche Seiten zeigen 404: Standard-Status für neue Seiten auf `published` gesetzt; Router-Debug-Logging verbessert |
 | **1.8.0** | 22.02.2026 | 🟢 feat | Security | CMS-Firewall, AntiSpam, Security-Audit vollständig überarbeitet |
-| 1.7.9 | 22.02.2026 | 🟢 feat | Admin | RBAC-Verwaltung vollständig neu implementiert |
-| 1.7.8 | 22.02.2026 | 🟢 feat | Admin | Support-Ticket-System in Admin-Bereich integriert |
-| 1.7.7 | 22.02.2026 | 🟢 feat | Theme | Theme-Marketplace mit 10 fertigen Themes |
-| 1.7.6 | 22.02.2026 | 🟢 feat | Plugin | Plugin-Marketplace mit Kategorie-Browser |
-| 1.7.5 | 22.02.2026 | 🟢 feat | Theme | Lokaler Fonts Manager mit Upload und Theme-Integration |
-| 1.7.4 | 22.02.2026 | 🟡 refactor | Theme | Theme-Customizer erweitert auf 50+ Optionen |
-| 1.7.3 | 22.02.2026 | 🟢 feat | Admin | Update-Manager für Core, Plugins und Themes via GitHub API |
-| 1.7.2 | 22.02.2026 | 🟢 feat | Admin | Benutzerdefierte Site-Tables mit CRUD und Import/Export erweitert |
-| 1.7.1 | 22.02.2026 | 🟢 feat | Member | Member-Dashboard Admin-Verwaltung überarbeitet |
 
 ---
 
@@ -46,12 +48,37 @@
 
 ---
 
-### v1.8.x — 22.–23. Februar 2026 · Security & Firewall Suite
+### v2.0.0 — 01. März 2026 · Nachrichten-System & Security-Audit
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
-| **1.8.1** | 🔴 fix | Router/Admin | **Öffentliche Seiten 404-Bug**: Neue CMS-Seiten wurden standardmäßig als `draft` angelegt, obwohl die Admin-UI "anlegen und veröffentlichen" beschreibt. `admin/pages.php` – Default-Status für neue Seiten von `draft` auf `published` geändert. Router-Debug-Logging für 404 verbessert (zeigt Slug + aktuellen Status bei Debug-Modus). |
-| **1.8.0** | 🟢 feat | Security | CMS-Firewall mit IP-Blocking, Geo-Filtering und Request-Analyse sowie AntiSpam und Security-Audit vollständig überarbeitet |
+| **2.0.0** | 🟢 feat | Core/Member | **Nachrichten-System**: Vollständige Member-to-Member-Messaging-Funktion mit Posteingang, Gesendet-Ansicht, Thread-Konversationen, Empfänger-Autocomplete und Soft-Delete. Neue `cms_messages`-Tabelle (SchemaManager v8). Neuer `MessageService` (Singleton, Inbox/Sent/Thread/Send/Delete/UnreadCount). Member-Dashboard mit Two-Panel-Layout (Konversationsliste + Detail/Thread/Compose). **Security-Audit**: 10 CRITICAL- und 9 HIGH-Priority-Fixes implementiert (XSS-Escaping, CSRF-Schutz, Path-Traversal, Admin-Passwort, SQL-Injection-Prävention). **Installer**: CMS_VERSION → 2.0.0, PHP-Mindestversion → 8.2, Messages-Tabelle hinzugefügt. |
+
+---
+
+### v1.9.x — 27.–28. Februar 2026 · Security Hardening & UI-Improvements
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **1.9.5** | 🔴 fix | Admin/Security | **Media**: XSS-Escaping mit `escHtml()`/`escAttr()` für Dateinamen und Alt-Texte; Custom Delete-Modal statt `window.confirm()`. **Pages**: `wp_kses_post` für Seiteninhalt-Sanitierung; Custom Lösch-Modal. **Backup**: Path-Traversal-Schutz mit `basename()`+Regex. **Updates**: Core-Update-Button mit AJAX-Handler. **Security-Audit**: Inline-CSS + admin-page-header Fix. **Plugin-UI**: 10px Menü-Spacing-Fix. |
+| **1.9.4** | 🔴 fix | Admin | `ABSPATH`-Guard in `users.php` hinzugefügt; dupliziertes HTML entfernt; `last_login`-Spalte und Delete-Button ergänzt; Site-URL-Definition sichergestellt. |
+| **1.9.3** | 🎨 style | Admin | Plugin-Management-UI komplett überarbeitet für besseres Layout und Responsiveness. |
+| **1.9.2** | 🟡 refactor | Theme | ThemeCustomizer: `prepare/execute` durch `execute` ersetzt für korrekte NULL-Wert-Behandlung; Error-Logging verbessert. |
+| **1.9.1** | 🔴 fix | Admin/Plugin | Unbenutzte Feature-Widgets aus Widget-Dashboard entfernt; Output-Buffering für Plugin-Admin-Bereich korrigiert. |
+| **1.9.0** | 🟢 feat | Member | Accordion-Navigation für Member-Sidebar mit ausklappbaren Plugin-Bereichen und verbessertem Styling. |
+
+---
+
+### v1.8.x — 22.–26. Februar 2026 · Security, Themes & Blog
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **1.8.5** | 🟢 feat | Member | Plugin-Navigation im Member-Bereich mit Sub-Items und verbessertem Styling. |
+| **1.8.4** | ⬜ chore | Theme | TechNexus-Theme und zugehörige Unit-Tests entfernt. |
+| **1.8.3** | 🟢 feat | Theme | 365Network Theme Customizer: Konfigurierbare Einstellungen für Farben, Typografie, Layout, Header, Footer, Buttons und erweiterte Optionen. |
+| **1.8.2** | 🔴 fix | Core | `Security::escape()` akzeptiert nun `string|int`. EditorService nutzt `setContents()` statt `set()` um WYSIWYG-Double-Encoding zu verhindern. `fetchGitHubData` von `file_get_contents` auf cURL umgestellt. |
+| **1.8.1** | 🔴 fix | Router/Admin | **Öffentliche Seiten 404-Bug**: Neue CMS-Seiten wurden standardmäßig als `draft` angelegt. `admin/pages.php` – Default-Status auf `published` geändert. Router-Debug-Logging verbessert. |
+| **1.8.0** | 🟢 feat | Security | CMS-Firewall mit IP-Blocking, Geo-Filtering und Request-Analyse sowie AntiSpam und Security-Audit vollständig überarbeitet. |
 
 ---
 

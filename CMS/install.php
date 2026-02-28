@@ -234,7 +234,7 @@ define('NONCE_KEY',       '{$data['nonce_key']}');
 define('SITE_NAME',   '{$data['site_name']}');
 define('SITE_URL',    '{$data['site_url']}');
 define('ADMIN_EMAIL', '{$data['admin_email']}');
-define('CMS_VERSION', '1.6.14');
+define('CMS_VERSION', '2.0.0');
 
 // ─── Pfade ─────────────────────────────────────────────────────────────────
 define('CORE_PATH',   ABSPATH . 'core/');
@@ -776,6 +776,28 @@ function createDatabaseTables(PDO $pdo, string $prefix = 'cms_'): array {
             INDEX idx_user_id (user_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Kommentare'",
 
+        // Nachrichten-System (Member → Member)
+        'messages' => "CREATE TABLE IF NOT EXISTS {$prefix}messages (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            sender_id INT UNSIGNED NOT NULL,
+            recipient_id INT UNSIGNED NOT NULL,
+            subject VARCHAR(255) DEFAULT NULL,
+            body TEXT NOT NULL,
+            is_read TINYINT(1) NOT NULL DEFAULT 0,
+            read_at TIMESTAMP NULL,
+            parent_id BIGINT UNSIGNED DEFAULT NULL COMMENT 'Thread-Root-ID für Antworten',
+            deleted_by_sender TINYINT(1) NOT NULL DEFAULT 0,
+            deleted_by_recipient TINYINT(1) NOT NULL DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_sender (sender_id),
+            INDEX idx_recipient (recipient_id),
+            INDEX idx_parent (parent_id),
+            INDEX idx_read (is_read),
+            INDEX idx_created (created_at),
+            FOREIGN KEY (sender_id) REFERENCES {$prefix}users(id) ON DELETE CASCADE,
+            FOREIGN KEY (recipient_id) REFERENCES {$prefix}users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Interne Nachrichten zwischen Mitgliedern'",
+
         // H-01: Sicherheits-Audit-Log (AuditLogger-Klasse)
         'audit_log' => "CREATE TABLE IF NOT EXISTS {$prefix}audit_log (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -1018,7 +1040,7 @@ if ($step == 1) {
                     <span class="check-icon success">✓</span>
                     <div>
                         <strong>PHP Version</strong><br>
-                        <small>Version <?php echo $phpVersion; ?> (erforderlich: 8.0+)</small>
+                        <small>Version <?php echo $phpVersion; ?> (erforderlich: 8.2+)</small>
                     </div>
                 </div>
                 

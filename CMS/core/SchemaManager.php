@@ -26,7 +26,7 @@ if (!defined('ABSPATH')) {
 class SchemaManager
 {
     /** Flag-Datei-Version – erhöhen wenn Schema geändert wird */
-    public const SCHEMA_VERSION = 'v7';
+    public const SCHEMA_VERSION = 'v8';
 
     private Database $db;
     private string $prefix;
@@ -511,6 +511,28 @@ class SchemaManager
                 INDEX idx_post_date (post_date),
                 INDEX idx_user_id (user_id)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c} COMMENT='Kommentare'",
+
+            // Messages table (Member-Dashboard Nachrichten)
+            "CREATE TABLE IF NOT EXISTS {$p}messages (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                sender_id INT UNSIGNED NOT NULL,
+                recipient_id INT UNSIGNED NOT NULL,
+                subject VARCHAR(255) NOT NULL DEFAULT '',
+                body TEXT NOT NULL,
+                is_read TINYINT(1) NOT NULL DEFAULT 0,
+                read_at TIMESTAMP NULL,
+                parent_id BIGINT UNSIGNED NULL COMMENT 'Antwort auf andere Nachricht (Thread)',
+                deleted_by_sender TINYINT(1) NOT NULL DEFAULT 0,
+                deleted_by_recipient TINYINT(1) NOT NULL DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_sender (sender_id),
+                INDEX idx_recipient (recipient_id),
+                INDEX idx_parent (parent_id),
+                INDEX idx_is_read (is_read),
+                INDEX idx_created_at (created_at),
+                FOREIGN KEY (sender_id) REFERENCES {$p}users(id) ON DELETE CASCADE,
+                FOREIGN KEY (recipient_id) REFERENCES {$p}users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET={$c} COMMENT='Benutzer-Nachrichten (Member-Dashboard)'",
 
             // H-01: Sicherheits-Audit-Log (AuditLogger-Klasse)
             "CREATE TABLE IF NOT EXISTS {$p}audit_log (

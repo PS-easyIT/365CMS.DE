@@ -97,8 +97,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_submit'])) {
         $pass1    = $_POST['new_password']  ?? '';
         $pass2    = $_POST['new_password2'] ?? '';
 
-        if (strlen($pass1) < 8) {
-            $fpError = 'Das Passwort muss mindestens 8 Zeichen lang sein.';
+        $policyResult = \CMS\Auth::validatePasswordPolicy($pass1);
+        if ($policyResult !== true) {
+            $fpError = $policyResult;
         } elseif ($pass1 !== $pass2) {
             $fpError = 'Die Passwörter stimmen nicht überein.';
         } elseif (empty($token)) {

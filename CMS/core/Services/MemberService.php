@@ -118,8 +118,9 @@ class MemberService
         if ($new !== $confirm) {
             return 'Neues Passwort und Bestätigung stimmen nicht überein.';
         }
-        if (strlen($new) < 8) {
-            return 'Das neue Passwort muss mindestens 8 Zeichen lang sein.';
+        $policyResult = \CMS\Auth::validatePasswordPolicy($new);
+        if ($policyResult !== true) {
+            return $policyResult;
         }
 
         $hash = $this->db->get_var(

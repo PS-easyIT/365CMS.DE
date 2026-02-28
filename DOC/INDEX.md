@@ -25,7 +25,7 @@
 | [API-REFERENCE.md](core/API-REFERENCE.md) | REST-API-Endpunkte | Entwickler |
 | [SECURITY.md](core/SECURITY.md) | CSRF, XSS, SQL-Injection, Rate-Limiting, Header | Alle Devs |
 | [SECURITY-ARCHITECTURE.md](core/SECURITY-ARCHITECTURE.md) | Vertiefte Security-Analyse | Senior Devs |
-| [SERVICES.md](core/SERVICES.md) | Alle 11 Service-Klassen erklärt | Entwickler |
+| [SERVICES.md](core/SERVICES.md) | Alle 15 Service-Klassen erklärt (inkl. MessageService) | Entwickler |
 | [STATUS.md](core/STATUS.md) | Implementierungsstand & Roadmap | PM/Devs |
 | [SYSTEM-DOCUMENTATION.md](core/SYSTEM-DOCUMENTATION.md) | Vollständige technische Dokumentation | Architekten |
 
