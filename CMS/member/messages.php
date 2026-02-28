@@ -24,38 +24,13 @@ $controller = new MemberController();
 $user = $controller->getUser();
 
 // Prepare page data
+// NOTE: Messaging feature is not yet backed by a database table.
+// A proper implementation requires: cms_messages table, MessageService class, CRUD operations.
+// For now we show an empty state instead of fake/hardcoded demo data.
 $data = [
     'user' => $user,
-    // Fake data for messages
-    'conversations' => [
-        [
-            'id' => 1,
-            'user' => 'Support Team',
-            'avatar' => 'S',
-            'subject' => 'Willkommen im neuen Dashboard!',
-            'preview' => 'Hallo ' . $user->username . ', schön dass du da bist. Schau dich gerne um...',
-            'date' => 'Heute, 10:30',
-            'unread' => true
-        ],
-        [
-            'id' => 2,
-            'user' => 'Markus Weber',
-            'avatar' => 'M',
-            'subject' => 'Projekt Anfrage: Redesign',
-            'preview' => 'Hi, ich habe dein Profil gesehen und wollte fragen ob du Zeit hast...',
-            'date' => 'Gestern',
-            'unread' => false
-        ],
-        [
-            'id' => 3,
-            'user' => 'Sarah Design',
-            'avatar' => 'S',
-            'subject' => 'Re: Logo Entwürfe',
-            'preview' => 'Die neuen Skizzen sehen super aus! Können wir morgen kurz telefonieren?',
-            'date' => '18. Feb',
-            'unread' => false
-        ]
-    ]
+    'conversations' => [],  // Empty until messaging DB/Service is implemented
+    'feature_status' => 'coming_soon',
 ];
 
 // Set active page for menu highlighting

@@ -934,6 +934,23 @@ $categories = $mediaService->getCategories();
                 </div>
             </div>
 
+            <!-- Delete Confirmation Modal -->
+            <div class="modal" id="mediaDeleteModal" style="display:none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Löschen bestätigen</h3>
+                        <button class="modal-close" onclick="document.getElementById('mediaDeleteModal').style.display='none'">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p id="mediaDeleteMsg">Element wirklich löschen?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('mediaDeleteModal').style.display='none'">Abbrechen</button>
+                        <button type="button" class="btn btn-danger" id="mediaDeleteConfirmBtn">🗑️ Löschen</button>
+                    </div>
+                </div>
+            </div>
+
             <script>
                 // ... (Previous JS logic for Library) ...
                 let currentPath = '';

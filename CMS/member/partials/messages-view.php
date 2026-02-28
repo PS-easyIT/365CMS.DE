@@ -180,7 +180,15 @@ if (!defined('ABSPATH')) {
                 </div>
                 <div class="msg-list-scroll">
                     <?php if (empty($conversations)): ?>
+                        <?php if (!empty($feature_status) && $feature_status === 'coming_soon'): ?>
+                        <div style="padding:2rem; text-align:center; color:#94a3b8;">
+                            <p style="font-size:2rem; margin:0 0 0.5rem;">💬</p>
+                            <p style="font-weight:600; color:#475569;">Nachrichten – Coming Soon</p>
+                            <p style="font-size:0.85rem;">Diese Funktion wird bald verfügbar sein.</p>
+                        </div>
+                        <?php else: ?>
                         <div style="padding:2rem; text-align:center; color:#94a3b8;">Keine Nachrichten</div>
+                        <?php endif; ?>
                     <?php else: ?>
                         <?php foreach($conversations as $conv): ?>
                         <div class="msg-item <?php echo $conv['unread'] ? 'unread' : ''; ?>">
