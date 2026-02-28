@@ -7,8 +7,11 @@ declare(strict_types=1);
  * @package CMSv2\Admin
  */
 
-if (!defined('SITE_URL')) {
-    require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../config.php';
+require_once CORE_PATH . 'autoload.php';
+
+if (!defined('ABSPATH')) {
+    exit;
 }
 
 use CMS\Security;
@@ -306,25 +309,18 @@ if ($view === 'edit' && $editUserId > 0):
                     <?php if ($eu->updated_at): ?>
                     <span>Aktualisiert: <?php echo date('d.m.Y H:i', strtotime($eu->updated_at)); ?></span>
                     <?php endif; ?>
+                    <?php if (!empty($eu->last_login)): ?>
+                    <span>Letzter Login: <?php echo date('d.m.Y H:i', strtotime($eu->last_login)); ?></span>
+                    <?php endif; ?>
                 </div>
             </div>
             
             <div class="admin-card form-actions-card">
                 <div class="form-actions" style="flex-direction:column; width:100%;">
                     <button type="submit" class="btn btn-primary" style="width:100%;">💾 Änderungen speichern</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</form>                    <?php if (!empty($eu->last_login)): ?>
-                    <span>Letzter Login: <?php echo date('d.m.Y H:i', strtotime($eu->last_login)); ?></span>
-                    <?php endif; ?>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:.45rem;margin-top:.9rem;">
-                    <button type="submit" class="btn btn-primary btn-sm" style="width:100%;">💾 Speichern</button>
                     <?php if ((int)$eu->id !== $current_user_id): ?>
                     <button type="button" class="btn btn-danger btn-sm"
-                            onclick="openUserDeleteModal()" style="width:100%;">🗑️ Löschen</button>
+                            onclick="openUserDeleteModal()" style="width:100%;margin-top:.45rem;">🗑️ Löschen</button>
                     <?php endif; ?>
                 </div>
             </div>
