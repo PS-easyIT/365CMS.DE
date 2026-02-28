@@ -577,14 +577,24 @@ class SchemaManager
             $result = $stmt->fetch();
 
             if ($result && (int) $result->cnt === 0) {
+                // Generate a cryptographically secure random password
+                $randomPassword = bin2hex(random_bytes(16)); // 32 chars hex
+
                 $this->db->insert('users', [
                     'username'     => 'admin',
                     'email'        => defined('ADMIN_EMAIL') ? ADMIN_EMAIL : 'admin@localhost',
-                    'password'     => password_hash('admin123', PASSWORD_BCRYPT),
+                    'password'     => password_hash($randomPassword, PASSWORD_BCRYPT),
                     'display_name' => 'Administrator',
                     'role'         => 'admin',
                     'status'       => 'active',
                 ]);
+
+                // Log the generated password so the admin can retrieve it
+                error_log('[365CMS] Default admin created. Temp password: ' . $randomPassword);
+                // Write to a one-time file for first login
+                $credFile = dirname(__DIR__) . '/logs/admin-credentials.txt';
+                @file_put_contents($credFile, "Default Admin Password: {$randomPassword}\nGenerated: " . date('Y-m-d H:i:s') . "\nDELETE THIS FILE AFTER FIRST LOGIN!\n");
+                @chmod($credFile, 0600);
             }
         } catch (\Exception $e) {
             error_log('SchemaManager::createDefaultAdmin() Error: ' . $e->getMessage());

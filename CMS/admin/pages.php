@@ -287,9 +287,9 @@ if ($action === 'new' || $action === 'edit'):
                     <div>✍️ Geändert: <?php echo date('d.m.Y', strtotime($pData['updated_at'])); ?></div>
                 </div>
                 <div style="margin-top:1rem; border-top:1px solid #f1f5f9; padding-top:1rem;">
-                    <button type="submit" form="deletePageForm"
+                    <button type="button"
                             class="btn btn-danger btn-sm"
-                            onclick="return confirm('Seite wirklich und unwiderruflich löschen?')"
+                            onclick="openDeletePageModal(<?php echo (int)$pData['id']; ?>, true)"
                             style="width:100%;">🗑️ Seite löschen</button>
                 </div>
                 <?php endif; ?>
@@ -409,6 +409,23 @@ else:
 
 <?php endif; // end views ?>
 
+<!-- Seite löschen – Bestätigungs-Modal -->
+<div id="pageDeleteModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Seite löschen</h3>
+            <button class="modal-close" onclick="closeModal('pageDeleteModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Seite wirklich <strong>unwiderruflich löschen</strong>? Diese Aktion kann nicht rückgängig gemacht werden.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('pageDeleteModal')">Abbrechen</button>
+            <button type="button" class="btn btn-danger" id="pageDeleteConfirmBtn">🗑️ Löschen</button>
+        </div>
+    </div>
+</div>
+
 <?php if ($action === 'new' || $action === 'edit'): ?>
 <link  rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/suneditor/css/suneditor.min.css">
 <script src="<?php echo SITE_URL; ?>/assets/suneditor/suneditor.min.js"></script>
@@ -447,10 +464,24 @@ function updateSlugHidden(val) {
     if (preview) preview.textContent = val ? val : '...';
 }
 function deletePage(id) {
-    if (confirm('Seite wirklich löschen?')) {
-        document.getElementById('listDeletePageId').value = id;
-        document.getElementById('listDeletePageForm').submit();
-    }
+    openDeletePageModal(id, false);
+}
+function openDeletePageModal(id, isEditorView) {
+    const modal = document.getElementById('pageDeleteModal');
+    if (!modal) return;
+    document.getElementById('pageDeleteConfirmBtn').onclick = function() {
+        closeModal('pageDeleteModal');
+        if (isEditorView) {
+            document.getElementById('deletePageForm').submit();
+        } else {
+            document.getElementById('listDeletePageId').value = id;
+            document.getElementById('listDeletePageForm').submit();
+        }
+    };
+    modal.style.display = 'flex';
+}
+function closeModal(id) {
+    document.getElementById(id).style.display = 'none';
 }
 document.addEventListener('DOMContentLoaded', function() {
     const pageForm = document.getElementById('pageEditorForm');

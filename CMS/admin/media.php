@@ -776,17 +776,19 @@ $categories = $mediaService->getCategories();
                 }
 
                 async function deleteCategory(slug) {
-                    if (!confirm('Kategorie wirklich löschen? Zugeordnete Dateien werden nicht gelöscht.')) return;
-
-                    const formData = new FormData();
-                    formData.append('action', 'delete_category');
-                    formData.append('slug', slug);
-
-                    const response = await cmsPost(formData);
-                    if ((await response.json()).success) {
-                        location.reload();
-                    }
+                    _pendingDeleteCategorySlug = slug;
+                    document.getElementById('mediaDeleteModal').style.display = 'flex';
+                    document.getElementById('mediaDeleteMsg').textContent = 'Kategorie wirklich löschen? Zugeordnete Dateien werden nicht gelöscht.';
+                    document.getElementById('mediaDeleteConfirmBtn').onclick = async function() {
+                        document.getElementById('mediaDeleteModal').style.display = 'none';
+                        const formData = new FormData();
+                        formData.append('action', 'delete_category');
+                        formData.append('slug', _pendingDeleteCategorySlug);
+                        const response = await cmsPost(formData);
+                        if ((await response.json()).success) { location.reload(); }
+                    };
                 }
+                let _pendingDeleteCategorySlug = '';
                 
                 function closeModal(id) {
                     document.getElementById(id).classList.remove('active');
@@ -1058,27 +1060,27 @@ $categories = $mediaService->getCategories();
                         const isSystem = folder.is_system;
                         const deleteBtn = isSystem 
                             ? `<button class="action-btn" disabled style="opacity:0.3; cursor:not-allowed;" title="Systemordner"><span style="filter:grayscale(1)">🔒</span></button>`
-                            : `<button class="action-btn delete" title="Löschen" onclick="deleteItem('${folder.path}', 'folder')">🗑️</button>`;
+                            : `<button class="action-btn delete" title="Löschen" onclick="deleteItem('${escAttr(folder.path)}', 'folder')">🗑️</button>`;
 
                         const tr = document.createElement('tr');
                         // Category Badge
                         let catBadge = '';
                         if (folder.category) {
                            const cat = allCategories.find(c => c.slug === folder.category);
-                           if (cat) catBadge = `<span class="badge" style="background:#f1f5f9; color:#475569; padding:2px 6px; border-radius:4px; font-size:0.75em; border:1px solid #cbd5e1;">${cat.name}</span>`;
+                           if (cat) catBadge = `<span class="badge" style="background:#f1f5f9; color:#475569; padding:2px 6px; border-radius:4px; font-size:0.75em; border:1px solid #cbd5e1;">${escHtml(cat.name)}</span>`;
                         } else {
                             catBadge = `<span style="color:#cbd5e1; font-size:0.8em;">-</span>`;
                         }
 
                         tr.innerHTML = `
                             <td><div class="folder-icon">📂</div></td>
-                            <td><a href="#" onclick="event.preventDefault(); loadPath('${folder.path}')" style="font-weight: 600; color: #1e293b; text-decoration: none;">${folder.name}</a></td>
+                            <td><a href="#" onclick="event.preventDefault(); loadPath('${escAttr(folder.path)}')" style="font-weight: 600; color: #1e293b; text-decoration: none;">${escHtml(folder.name)}</a></td>
                             <td><span class="badge" style="background:#e2e8f0; color:#475569; padding:2px 6px; border-radius:4px; font-size:0.8em;">Ordner</span></td>
-                            <td>${folder.items_count !== undefined ? folder.items_count + ' Elemente' : '-'}</td>
+                            <td>${folder.items_count !== undefined ? parseInt(folder.items_count) + ' Elemente' : '-'}</td>
                             <td>${catBadge}</td>
-                            <td>${folder.uploaded_by || '<span style="color:#cbd5e1">-</span>'}</td>
+                            <td>${escHtml(folder.uploaded_by) || '<span style="color:#cbd5e1">-</span>'}</td>
                             <td style="text-align: right;">
-                                <button class="action-btn" title="Umbenennen" onclick="openRenameModal('${folder.path}', '${folder.name}')" ${isSystem ? 'disabled style="opacity:0.5"' : ''}>✎</button>
+                                <button class="action-btn" title="Umbenennen" onclick="openRenameModal('${escAttr(folder.path)}', '${escAttr(folder.name)}')" ${isSystem ? 'disabled style="opacity:0.5"' : ''}>✎</button>
                                 ${deleteBtn}
                             </td>
                         `;
@@ -1091,7 +1093,7 @@ $categories = $mediaService->getCategories();
                         let icon = '';
                         
                         if (category === 'image') {
-                            icon = `<img src="${file.url}" class="media-preview" style="cursor: zoom-in;" onclick="openImagePreview('${file.url}')" title="Vorschau">`; 
+                            icon = `<img src="${escAttr(file.url)}" class="media-preview" style="cursor: zoom-in;" onclick="openImagePreview('${escAttr(file.url)}')" title="Vorschau">`; 
                         } else {
                             icon = `<div class="media-preview">${getFileIcon(file.type)}</div>`;
                         }
@@ -1099,7 +1101,7 @@ $categories = $mediaService->getCategories();
                         let catBadge = '';
                         if (file.category) {
                            const cat = allCategories.find(c => c.slug === file.category);
-                           if (cat) catBadge = `<span class="badge" style="background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; font-size:0.75em; margin-right:5px; border:1px solid #bae6fd;">${cat.name}</span>`;
+                           if (cat) catBadge = `<span class="badge" style="background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; font-size:0.75em; margin-right:5px; border:1px solid #bae6fd;">${escHtml(cat.name)}</span>`;
                         } else {
                             catBadge = `<span style="color:#cbd5e1; font-size:0.8em; margin-right:5px;">-</span>`;
                         }
@@ -1108,23 +1110,23 @@ $categories = $mediaService->getCategories();
                         const isSystem = file.is_system;
                         const deleteBtn = isSystem 
                             ? `<button class="action-btn" disabled style="opacity:0.3; cursor:not-allowed;" title="Systemdatei"><span style="filter:grayscale(1)">🔒</span></button>`
-                            : `<button class="action-btn delete" title="Löschen" onclick="deleteItem('${file.path}', 'file')">🗑️</button>`;
+                            : `<button class="action-btn delete" title="Löschen" onclick="deleteItem('${escAttr(file.path)}', 'file')">🗑️</button>`;
 
 
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
                             <td>${icon}</td>
                             <td>
-                                <a href="${file.url}" target="_blank" style="color: #3b82f6; text-decoration: none;">${file.name}</a>
+                                <a href="${escAttr(file.url)}" target="_blank" style="color: #3b82f6; text-decoration: none;">${escHtml(file.name)}</a>
                             </td>
-                            <td><span style="text-transform:uppercase; font-size:0.85em; font-weight:600; color:#64748b;">${file.type}</span></td>
+                            <td><span style="text-transform:uppercase; font-size:0.85em; font-weight:600; color:#64748b;">${escHtml(file.type)}</span></td>
                             <td>${formatSize(file.size)}</td>
                             <td>${catBadge}</td>
-                            <td>${file.uploaded_by || '<span style="color:#cbd5e1">-</span>'}</td>
+                            <td>${escHtml(file.uploaded_by) || '<span style="color:#cbd5e1">-</span>'}</td>
                             <td style="text-align: right;">
-                                <button class="action-btn" title="Kategorie" onclick="openAssignModal('${file.path}', '${file.category || ''}')">🏷️</button>
-                                <button class="action-btn" title="URL kopieren" onclick="copyToClipboard('${file.url}')">🔗</button>
-                                <button class="action-btn" title="Umbenennen" onclick="openRenameModal('${file.path}', '${file.name}')">✎</button>
+                                <button class="action-btn" title="Kategorie" onclick="openAssignModal('${escAttr(file.path)}', '${escAttr(file.category || '')}')">🏷️</button>
+                                <button class="action-btn" title="URL kopieren" onclick="copyToClipboard('${escAttr(file.url)}')">🔗</button>
+                                <button class="action-btn" title="Umbenennen" onclick="openRenameModal('${escAttr(file.path)}', '${escAttr(file.name)}')">✎</button>
                                 ${deleteBtn}
                             </td>
                         `;
@@ -1160,6 +1162,17 @@ $categories = $mediaService->getCategories();
                     } else {
                         alert('Fehler: ' + result.error);
                     }
+                }
+
+                // H-2: XSS-Schutz für Template-Literale
+                function escHtml(str) {
+                    if (str == null) return '';
+                    const div = document.createElement('div');
+                    div.appendChild(document.createTextNode(String(str)));
+                    return div.innerHTML;
+                }
+                function escAttr(str) {
+                    return escHtml(str).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
                 }
 
                 function getFileTypeCategory(extension) {
@@ -1279,21 +1292,25 @@ $categories = $mediaService->getCategories();
                 }
 
                 async function deleteItem(path, type) {
-                    const conf = confirm(`Möchten Sie dieses ${type === 'folder' ? 'Ordner und dessen Inhalt' : 'Datei'} wirklich löschen?`);
-                    if (!conf) return;
+                    document.getElementById('mediaDeleteModal').style.display = 'flex';
+                    document.getElementById('mediaDeleteMsg').textContent = 
+                        `Möchten Sie dieses ${type === 'folder' ? 'Ordner und dessen Inhalt' : 'Datei'} wirklich löschen?`;
+                    document.getElementById('mediaDeleteConfirmBtn').onclick = async function() {
+                        document.getElementById('mediaDeleteModal').style.display = 'none';
 
-                    const formData = new FormData();
-                    formData.append('action', 'delete_item');
-                    formData.append('item_path', path);
+                        const formData = new FormData();
+                        formData.append('action', 'delete_item');
+                        formData.append('item_path', path);
 
-                    try {
-                        const response = await cmsPost(formData);
-                        const result = await response.json();
-                        if (result.success) loadPath(currentPath);
-                        else alert('Fehler: ' + result.error);
-                    } catch (e) {
-                        alert('Netzwerkfehler beim Löschen');
-                    }
+                        try {
+                            const response = await cmsPost(formData);
+                            const result = await response.json();
+                            if (result.success) loadPath(currentPath);
+                            else alert('Fehler: ' + result.error);
+                        } catch (e) {
+                            alert('Netzwerkfehler beim Löschen');
+                        }
+                    };
                 }
                 
                 function openRenameModal(path, name) {

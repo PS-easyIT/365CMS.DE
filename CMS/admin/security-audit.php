@@ -111,13 +111,26 @@ require_once __DIR__ . '/partials/admin-menu.php';
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
     <?php renderAdminSidebarStyles(); ?>
+    <style>
+        .score-card { display:flex; justify-content:space-between; align-items:center; background:#fff; padding:2rem; border-radius:var(--card-radius,10px); border:var(--card-border,1px solid #e2e8f0); box-shadow:var(--card-shadow,0 1px 4px rgba(0,0,0,.06)); margin-bottom:1.5rem; }
+        .score-circle { width:80px; height:80px; border-radius:50%; border:4px solid; display:flex; align-items:center; justify-content:center; font-size:1.5rem; font-weight:700; flex-shrink:0; }
+        .audit-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:1rem; }
+        .audit-card { display:flex; gap:1rem; align-items:flex-start; background:#fff; padding:1.25rem; border-radius:var(--card-radius,10px); border:var(--card-border,1px solid #e2e8f0); box-shadow:var(--card-shadow,0 1px 4px rgba(0,0,0,.06)); }
+        .audit-icon { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:1.1rem; flex-shrink:0; }
+        .audit-icon.status-pass    { background:#d1fae5; color:#065f46; }
+        .audit-icon.status-fail    { background:#fee2e2; color:#991b1b; }
+        .audit-icon.status-warning { background:#fef3c7; color:#92400e; }
+        .audit-icon.status-info    { background:#dbeafe; color:#1e40af; }
+    </style>
 </head>
 <body class="admin-body">
     <?php renderAdminSidebar('security-audit'); ?>
     <div class="admin-content">
         <div class="admin-page-header">
-            <h2>🛡️ Security Audit</h2>
-            <p>Systemweite Sicherheitsüberprüfung.</p>
+            <div>
+                <h2>🛡️ Security Audit</h2>
+                <p>Systemweite Sicherheitsüberprüfung.</p>
+            </div>
         </div>
 
         <?php
@@ -183,5 +196,6 @@ require_once __DIR__ . '/partials/admin-menu.php';
         </div>
         
     </div>
+    <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
 </body>
 </html>

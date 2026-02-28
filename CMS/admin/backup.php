@@ -83,8 +83,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 break;
                 
             case 'delete_backup':
-                $backupName = $_POST['backup_name'] ?? '';
-                if ($backupName && $backupService->deleteBackup($backupName)) {
+                $backupName = basename($_POST['backup_name'] ?? '');
+                if (empty($backupName) || preg_match('/[\.]{2}|[\/\\\\]/', $backupName)) {
+                    $message = 'Ungültiger Backup-Name';
+                    $messageType = 'error';
+                } elseif ($backupService->deleteBackup($backupName)) {
                     $message = 'Backup erfolgreich gelöscht';
                     $messageType = 'success';
                 } else {
@@ -96,17 +99,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             case 'upload_backup':
                 if (isset($_FILES['backup_file']) && $_FILES['backup_file']['error'] === UPLOAD_ERR_OK) {
                     $file = $_FILES['backup_file'];
-                    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                    $safeName = basename($file['name']);
+                    $ext = strtolower(pathinfo($safeName, PATHINFO_EXTENSION));
                     
                     if (in_array($ext, ['zip', 'sql', 'gz'])) {
-                        $backupName = 'import_' . pathinfo($file['name'], PATHINFO_FILENAME) . '_' . date('YmdHis');
+                        $backupName = 'import_' . preg_replace('/[^a-zA-Z0-9_\-]/', '', pathinfo($safeName, PATHINFO_FILENAME)) . '_' . date('YmdHis');
                         $targetDir = ABSPATH . 'backups/' . $backupName;
                         
                         if (!is_dir($targetDir)) {
                             mkdir($targetDir, 0755, true);
                         }
                         
-                        $targetFile = $targetDir . '/' . $file['name'];
+                        $targetFile = $targetDir . '/' . $safeName;
                         
                         if (move_uploaded_file($file['tmp_name'], $targetFile)) {
                             // Create manifest so it appears in the list
@@ -114,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                 'timestamp' => time(),
                                 'date' => date('Y-m-d_H-i-s'),
                                 'type' => 'import',
-                                'files' => $file['name'],
+                                'files' => $safeName,
                                 'size' => filesize($targetFile),
                                 'cms_version' => 'external'
                             ];
@@ -137,11 +141,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 break;
 
             case 'restore_backup':
-                $backupName = $_POST['backup_name'] ?? '';
-                // Placeholder for restore logic
-                // In a real implementation, this would trigger BackupService::restoreBackup($backupName)
-                $message = 'Wiederherstellungs-Funktion ist in dieser Version noch nicht vollständig implementiert. Bitte manuell wiederherstellen.';
-                $messageType = 'info';
+                $backupName = basename($_POST['backup_name'] ?? '');
+                if (empty($backupName) || preg_match('/[\.]{2}|[\/\\\\]/', $backupName)) {
+                    $message = 'Ungültiger Backup-Name';
+                    $messageType = 'error';
+                } else {
+                    // Placeholder for restore logic
+                    $message = 'Wiederherstellungs-Funktion ist in dieser Version noch nicht vollständig implementiert. Bitte manuell wiederherstellen.';
+                    $messageType = 'info';
+                }
                 break;
         }
     }

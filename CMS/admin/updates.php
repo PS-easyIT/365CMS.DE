@@ -159,7 +159,11 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 </div>
                 
                 <div style="display:flex; gap:1rem; align-items:center;">
-                    <button class="btn btn-primary">
+                    <button class="btn btn-primary" id="coreUpdateBtn"
+                            onclick="startCoreUpdate(this)"
+                            data-url="<?php echo htmlspecialchars($coreUpdate['download_url'] ?? '', ENT_QUOTES); ?>"
+                            data-sha256="<?php echo htmlspecialchars($coreUpdate['sha256'] ?? '', ENT_QUOTES); ?>"
+                            data-version="<?php echo htmlspecialchars($coreUpdate['latest_version'], ENT_QUOTES); ?>">
                         ⬇️ Auf Version <?php echo htmlspecialchars($coreUpdate['latest_version']); ?> aktualisieren
                     </button>
                     <?php if (!empty($coreUpdate['download_url'])): ?>
@@ -255,5 +259,45 @@ require_once __DIR__ . '/partials/admin-menu.php';
         
     </div>
     
+    <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
+    <script>
+    async function startCoreUpdate(btn) {
+        if (!confirm('CMS-Core jetzt aktualisieren? Bitte erstellen Sie vorher ein Backup.')) return;
+        const url     = btn.dataset.url;
+        const sha256  = btn.dataset.sha256;
+        const version = btn.dataset.version;
+        if (!url) { alert('Keine Download-URL vorhanden.'); return; }
+
+        btn.disabled = true;
+        btn.textContent = '⏳ Update wird heruntergeladen…';
+
+        const fd = new FormData();
+        fd.append('action', 'download_update');
+        fd.append('csrf_token', '<?php echo $csrfToken; ?>');
+        fd.append('download_url', url);
+        fd.append('sha256', sha256);
+        fd.append('type', 'core');
+        fd.append('name', '365CMS');
+        fd.append('version', version);
+
+        try {
+            const res  = await fetch(window.location.href, { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.success) {
+                btn.textContent = '✅ Update erfolgreich!';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-secondary');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                btn.textContent = '❌ Fehler: ' + (data.message || 'Unbekannt');
+                btn.disabled = false;
+                setTimeout(() => { btn.textContent = '⬇️ Erneut versuchen'; }, 3000);
+            }
+        } catch (e) {
+            btn.textContent = '❌ Netzwerkfehler';
+            btn.disabled = false;
+        }
+    }
+    </script>
 </body>
 </html>
