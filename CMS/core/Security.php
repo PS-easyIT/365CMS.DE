@@ -185,7 +185,14 @@ class Security
             return false;
         }
         
-        return hash_equals($stored['token'], $token);
+        $valid = hash_equals($stored['token'], $token);
+
+        // Token nach erfolgreicher Prüfung invalidieren (verhindert Replay-Angriffe)
+        if ($valid) {
+            unset($_SESSION['csrf_tokens'][$action]);
+        }
+
+        return $valid;
     }
     
     /**

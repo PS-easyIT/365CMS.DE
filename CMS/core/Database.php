@@ -166,10 +166,13 @@ class Database implements DatabaseInterface
     }
     
     /**
-     * Execute query
+     * Execute query (ungeparametrisiert – nur für vertrauenswürdige SQL-Strings!)
      */
     public function query(string $sql): \PDOStatement
     {
+        if ($this->pdo === null) {
+            throw new \RuntimeException('Database connection is not available. PDO is null.');
+        }
         return $this->pdo->query($sql);
     }
 
@@ -206,6 +209,21 @@ class Database implements DatabaseInterface
     }
 
     /**
+     * Validiert einen Tabellen- oder Spaltennamen gegen SQL-Injection.
+     *
+     * @throws \InvalidArgumentException Bei ungültigem Bezeichner
+     */
+    private function validateIdentifier(string $name): string
+    {
+        if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $name)) {
+            throw new \InvalidArgumentException(
+                'Ungültiger SQL-Bezeichner: ' . substr($name, 0, 50)
+            );
+        }
+        return '`' . $name . '`';
+    }
+
+    /**
      * Insert data (mit Error-Tracking)
      */
     public function insert(string $table, array $data): int|bool
@@ -213,10 +231,11 @@ class Database implements DatabaseInterface
         try {
             $table = $this->prefix . $table;
             $keys = array_keys($data);
-            $fields = implode(', ', $keys);
+            $escapedFields = array_map([$this, 'validateIdentifier'], $keys);
+            $fields = implode(', ', $escapedFields);
             $placeholders = implode(', ', array_fill(0, count($keys), '?'));
 
-            $sql = "INSERT INTO {$table} ({$fields}) VALUES ({$placeholders})";
+            $sql = "INSERT INTO `{$table}` ({$fields}) VALUES ({$placeholders})";
             $this->lastStatement = $this->prepare($sql);
             $this->bindParams($this->lastStatement, array_values($data));
             $result = $this->lastStatement->execute();
@@ -245,17 +264,17 @@ class Database implements DatabaseInterface
             $values = [];
 
             foreach ($data as $key => $value) {
-                $set[] = "{$key} = ?";
+                $set[] = $this->validateIdentifier($key) . " = ?";
                 $values[] = $value;
             }
 
             $whereClauses = [];
             foreach ($where as $key => $value) {
-                $whereClauses[] = "{$key} = ?";
+                $whereClauses[] = $this->validateIdentifier($key) . " = ?";
                 $values[] = $value;
             }
 
-            $sql = "UPDATE {$table} SET " . implode(', ', $set) . " WHERE " . implode(' AND ', $whereClauses);
+            $sql = "UPDATE `{$table}` SET " . implode(', ', $set) . " WHERE " . implode(' AND ', $whereClauses);
             $this->lastStatement = $this->prepare($sql);
             $this->bindParams($this->lastStatement, $values);
             $result = $this->lastStatement->execute();
@@ -283,11 +302,11 @@ class Database implements DatabaseInterface
         $values = [];
 
         foreach ($where as $key => $value) {
-            $whereClauses[] = "{$key} = ?";
+            $whereClauses[] = $this->validateIdentifier($key) . " = ?";
             $values[] = $value;
         }
 
-        $sql  = "DELETE FROM {$table} WHERE " . implode(' AND ', $whereClauses);
+        $sql  = "DELETE FROM `{$table}` WHERE " . implode(' AND ', $whereClauses);
         $stmt = $this->prepare($sql);
         $this->bindParams($stmt, $values);
         return $stmt->execute();

@@ -597,12 +597,13 @@ function getAdminMenuItems(string $currentPage = ''): array
                     }
 
                     $menuItems[] = [
-                        'type'     => 'group',
-                        'label'    => $menu['menu_title'],
-                        'icon'     => $icon, 
-                        'children' => $children,
+                        'type'        => 'group',
+                        'label'       => $menu['menu_title'],
+                        'icon'        => $icon, 
+                        'children'    => $children,
+                        'plugin_menu' => true,
                         // Add 'active' property to group so it stays open
-                        'active'   => $hasActiveChild 
+                        'active'      => $hasActiveChild 
                     ];
                 } else {
                     // Standalone Item
@@ -619,12 +620,13 @@ function getAdminMenuItems(string $currentPage = ''): array
                     }
 
                     $menuItems[] = [
-                        'type'   => 'item',
-                        'slug'   => $menuSlug,
-                        'label'  => $menu['menu_title'],
-                        'icon'   => $icon, 
-                        'url'    => $url,
-                        'active' => _adminNavIsActive($url) || ($currentPage === $menuSlug),
+                        'type'        => 'item',
+                        'slug'        => $menuSlug,
+                        'label'       => $menu['menu_title'],
+                        'icon'        => $icon, 
+                        'url'         => $url,
+                        'plugin_menu' => true,
+                        'active'      => _adminNavIsActive($url) || ($currentPage === $menuSlug),
                     ];
                 }
             }
@@ -669,6 +671,7 @@ function renderAdminSidebar(string $currentPage = ''): void
         </div>
 
         <nav class="admin-nav">
+            <?php $pluginSectionStarted = false; ?>
             <?php foreach ($menuItems as $item):
                 $type = $item['type'] ?? 'item';
                 
@@ -682,7 +685,12 @@ function renderAdminSidebar(string $currentPage = ''): void
                    $type = $item['type'];
                 }
 
-                if ($type === 'item'): ?>
+                if ($type === 'item'):
+                    $isFirstPluginMenu = !empty($item['plugin_menu']) && !$pluginSectionStarted;
+                    if ($isFirstPluginMenu) { $pluginSectionStarted = true; }
+                    if ($isFirstPluginMenu): ?>
+                        <div class="nav-divider nav-divider--plugins"></div>
+                    <?php endif; ?>
 
                     <a href="<?= htmlspecialchars($item['url']) ?>"
                        class="nav-item <?= !empty($item['active']) ? 'active' : '' ?>">
@@ -700,7 +708,12 @@ function renderAdminSidebar(string $currentPage = ''): void
                     }
                     ?>
 
-                    <div class="nav-divider"></div>
+                    <?php
+                    $isFirstPluginGroup = !empty($item['plugin_menu']) && !$pluginSectionStarted;
+                    if ($isFirstPluginGroup) { $pluginSectionStarted = true; }
+                    ?>
+
+                    <div class="nav-divider<?= $isFirstPluginGroup ? ' nav-divider--plugins' : '' ?>"></div>
                     <details class="nav-group" <?= $groupOpen ? 'open' : '' ?>>
                         <summary class="nav-group-header">
                             <span><?= $item['icon'] ?></span>

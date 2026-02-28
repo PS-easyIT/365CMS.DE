@@ -12,8 +12,7 @@ declare(strict_types=1);
 // Load configuration
 require_once dirname(__DIR__) . '/config.php';
 
-// Debug Snippet
-require_once __DIR__ . '/debug_snippet.php';
+// Debug Snippet entfernt (Security: Information Disclosure)
 
 // Load autoloader
 require_once CORE_PATH . 'autoload.php';
@@ -49,7 +48,7 @@ $mediaService = new MediaService();
 $settings = $mediaService->getSettings();
 
 // Check permissions
-if (!empty($settings['member_uploads_enabled']) && !$settings['member_uploads_enabled'] && !Auth::isAdmin()) {
+if (empty($settings['member_uploads_enabled']) && !Auth::instance()->isAdmin()) {
     // If disabled, redirect to dashboard or show error
     $controller->setError('Medienverwaltung ist deaktiviert.');
     $controller->redirect('member');

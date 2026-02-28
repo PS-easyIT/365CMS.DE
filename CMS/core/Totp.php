@@ -136,12 +136,18 @@ class Totp
      * @param string $secret  Base32-kodiertes Geheimnis
      * @param string $account E-Mail oder Benutzername
      * @param string $issuer  Anzeigename der Anwendung
-     * @return string Vollständige URL zum QR-Code-Bild (200×200 px)
+     * @return string OTP-Auth-URI (zur lokalen QR-Code-Generierung im Frontend)
+     *
+     * @deprecated Verwende getOtpAuthUri() und generiere den QR-Code lokal
+     *             (z. B. via JS-Bibliothek im Frontend). NIEMALS das Secret an
+     *             externe APIs senden!
      */
     public function getQrCodeUrl(string $secret, string $account, string $issuer): string
     {
-        $uri = $this->getOtpAuthUri($secret, $account, $issuer);
-        return 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' . rawurlencode($uri);
+        // SICHERHEITSHINWEIS: Secret darf NICHT an externe Server übermittelt werden!
+        // Gib die OTP-Auth-URI zurück – der QR-Code muss lokal generiert werden
+        // (z. B. über eine JS-Bibliothek wie qrcode.js im Frontend).
+        return $this->getOtpAuthUri($secret, $account, $issuer);
     }
 
     // ── Base32 (RFC 4648) ─────────────────────────────────────────────────────

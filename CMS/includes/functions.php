@@ -21,9 +21,15 @@ function esc_html(string $text): string {
 }
 
 /**
- * Escape URL
+ * Escape URL – sanitiert und blockiert unsichere Schemes (javascript:, data:, vbscript:)
  */
 function esc_url(string $url): string {
+    $url = trim($url);
+    // Blockiere unsichere Schemes
+    $stripped = strtolower(preg_replace('/[\x00-\x1f\s]/', '', $url));
+    if (preg_match('/^(javascript|data|vbscript|file):/i', $stripped)) {
+        return '';
+    }
     return filter_var($url, FILTER_SANITIZE_URL);
 }
 
@@ -635,12 +641,10 @@ function map_deep($value, $callback) {
 }
 
 /**
- * Verify nonce (Placeholder)
+ * Verify nonce – delegiert an CMS\Security::verifyToken()
  */
 function wp_verify_nonce(string $nonce, string|int $action = -1): bool {
-    // Return true for now to bypass security check during dev
-    // Real implementation would verify against CMS\Security::verifyToken
-    return true; 
+    return \CMS\Security::instance()->verifyToken($nonce, (string) $action);
 }
 
 /**
@@ -710,12 +714,11 @@ function sanitize_title(string $title): string {
 }
 
 /**
- * WP Kses Post (Allow HTML - Security Warning!)
+ * WP Kses Post – filtert HTML auf eine sichere Whitelist.
  */
 function wp_kses_post(string $content): string {
-    // In a real WP environment, this filters HTML.
-    // For now, we trust the input or rely on output escaping later.
-    return $content; 
+    $allowed = '<p><a><strong><b><em><i><ul><ol><li><br><h1><h2><h3><h4><h5><h6><blockquote><pre><code><img><table><thead><tbody><tr><th><td><hr><span><div><figure><figcaption><dl><dt><dd><sub><sup>';
+    return strip_tags($content, $allowed);
 }
 
 /**
@@ -1226,7 +1229,7 @@ if ( ! function_exists('maybe_serialize') ) {
 if ( ! function_exists('maybe_unserialize') ) {
     function maybe_unserialize( string $original ) {
         if ( is_serialized( $original ) ) {
-            return @unserialize( $original );
+            return @unserialize( $original, ['allowed_classes' => false] );
         }
         return $original;
     }

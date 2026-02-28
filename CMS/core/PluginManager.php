@@ -30,6 +30,16 @@ class PluginManager
     }
 
     /**
+     * Prüft ob ein Plugin aktiv ist.
+     *
+     * @param string $slug Plugin-Slug (z. B. 'cms-companies')
+     */
+    public function isPluginActive(string $slug): bool
+    {
+        return in_array($slug, $this->activePlugins, true);
+    }
+
+    /**
      * Load all active plugins (C-07)
      */
     public function loadPlugins(): void
@@ -428,6 +438,29 @@ class PluginManager
         $zip = new \ZipArchive();
         if ($zip->open($file['tmp_name']) !== true) {
             return 'ZIP-Datei konnte nicht geöffnet werden.';
+        }
+
+        // ZIP-Slip-Schutz: Alle Pfade validieren bevor entpackt wird
+        $realPluginPath = realpath(PLUGIN_PATH);
+        if ($realPluginPath === false) {
+            $zip->close();
+            return 'Plugin-Verzeichnis nicht gefunden.';
+        }
+
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $entryName = $zip->getNameIndex($i);
+            if ($entryName === false) {
+                continue;
+            }
+            // Path-Traversal-Prüfung: kein .., kein absoluter Pfad
+            $fullPath = realpath(PLUGIN_PATH) . DIRECTORY_SEPARATOR . $entryName;
+            $resolved = realpath(dirname(PLUGIN_PATH . DIRECTORY_SEPARATOR . $entryName));
+            // Für neue Verzeichnisse: normalisierten Pfad prüfen
+            $normalized = PLUGIN_PATH . DIRECTORY_SEPARATOR . $entryName;
+            if (str_contains($entryName, '..') || str_starts_with($entryName, '/') || str_starts_with($entryName, '\\')) {
+                $zip->close();
+                return 'ZIP-Archiv enthält unsichere Pfade.';
+            }
         }
 
         if (!$zip->extractTo(PLUGIN_PATH)) {

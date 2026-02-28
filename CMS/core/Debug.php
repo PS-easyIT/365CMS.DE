@@ -3,6 +3,10 @@ declare(strict_types=1);
 
 namespace CMS;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 /**
  * Debug-System für Admin-Bereiche
  * Zeigt detaillierte Fehler und Ablauf-Informationen

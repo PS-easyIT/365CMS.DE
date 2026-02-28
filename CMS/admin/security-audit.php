@@ -43,7 +43,7 @@ $auditResults[] = [
 ];
 
 // 3. Debug Mode
-$debug = defined('WP_DEBUG') && WP_DEBUG; // Or CMS constant
+$debug = defined('CMS_DEBUG') && CMS_DEBUG;
 $displayErrors = ini_get('display_errors');
 $auditResults[] = [
     'category' => 'Configuration',

@@ -273,6 +273,11 @@
     flex-shrink: 0;
 }
 
+/* Extra spacing before plugin menu section */
+.nav-divider--plugins {
+    margin-top: 0.85rem;
+}
+
 /* Legacy hr divider */
 .admin-nav hr {
     margin: 0.35rem 0;
