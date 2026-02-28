@@ -4068,31 +4068,81 @@ input:checked + .slider:before { transform: translateX(22px); }
 }
 
 /* ── Plugin Manager ── */
-.plugin-list { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; }
+.plugin-list {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
 .plugin-item {
     background: #fff;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
     padding: 1.25rem;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 1rem;
-    align-items: start;
+    display: flex;
+    flex-direction: column;
+    height: 200px;
+    transition: box-shadow .2s, border-color .2s;
+    position: relative;
+    overflow: hidden;
+}
+.plugin-item:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,.1);
+    border-color: #cbd5e1;
+}
+.plugin-item.active {
+    border-color: var(--admin-primary, #3b82f6);
+    background: #f8fbff;
 }
 .plugin-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+.plugin-header h3 { font-size: 1rem; font-weight: 700; color: #1e293b; margin: 0; word-break: break-word; }
 .plugin-status-badge {
-    padding: 0.2rem 0.55rem;
+    margin-bottom: 0.75rem;
+}
+.plugin-status {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
     border-radius: 10px;
     font-size: 0.72rem;
     font-weight: 700;
 }
-.plugin-status.active   { color: #15803d; }
-.plugin-status.inactive { color: #64748b; }
-.plugin-meta { font-size: 0.75rem; color: #94a3b8; display: flex; gap: 0.75rem; flex-wrap: wrap; }
+.plugin-status.active   { color: #065f46; background: #d1fae5; }
+.plugin-status.inactive { color: #64748b; background: #f1f5f9; }
+.plugin-info { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.plugin-meta { font-size: 0.75rem; color: #94a3b8; display: flex; gap: 0.5rem 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
 .plugin-meta-item { display: flex; align-items: center; gap: 0.2rem; }
-.plugin-description { font-size: 0.8125rem; color: #64748b; margin-top: 0.5rem; line-height: 1.5; }
-.plugin-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: flex-end; align-items: flex-start; }
+.plugin-description {
+    font-size: 0.8125rem;
+    color: #64748b;
+    margin-top: 0.5rem;
+    line-height: 1.5;
+    flex: 1;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+}
+.plugin-actions {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-top: auto;
+    padding-top: 0.75rem;
+    border-top: 1px solid #f1f5f9;
+}
 .stats-row { display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.8125rem; color: #64748b; margin-top: 0.5rem; }
+
+/* Plugin-Grid Responsive */
+@media (max-width: 1400px) {
+    .plugin-list { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 1060px) {
+    .plugin-list { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 700px) {
+    .plugin-list { grid-template-columns: 1fr; }
+    .plugin-item { height: auto; min-height: 280px; }
+}
 
 /* ── Coming Soon Hero (Plugin/Theme Marketplace) ── */
 .cs-hero {

@@ -165,25 +165,6 @@ require_once __DIR__ . '/partials/admin-menu.php';
             </div>
         </div>
         
-        <!-- Upload Section -->
-        <div class="admin-card">
-            <h3>📦 Neues Plugin installieren</h3>
-            <form method="post" enctype="multipart/form-data">
-                <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                <input type="hidden" name="action" value="upload">
-                
-                <div class="form-group">
-                    <label class="form-label">ZIP-Datei auswählen <span style="color:#ef4444;">*</span></label>
-                    <input type="file" name="plugin_file" accept=".zip" required class="form-control">
-                    <small class="form-text">Maximale Dateigröße: 50 MB | Format: ZIP</small>
-                </div>
-                
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">📤 Plugin hochladen &amp; installieren</button>
-                </div>
-            </form>
-        </div>
-        
         <!-- Plugins List -->
         <div class="admin-card">
         <h3>🔌 Installierte Plugins</h3>
@@ -192,7 +173,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
             <div class="empty-state">
                 <p style="font-size:2.5rem;margin:0;">🔌</p>
                 <p><strong>Noch keine Plugins installiert</strong></p>
-                <p class="text-muted">Laden Sie Ihr erstes Plugin über das Formular oben hoch.</p>
+                <p class="text-muted">Laden Sie Ihr erstes Plugin über das Formular unten hoch.</p>
             </div>
         <?php else: ?>
             <div class="plugin-list">
@@ -215,7 +196,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                                 <?php if (!empty($plugin['version'])): ?>
                                     <span class="plugin-meta-item">
                                         <span>📌</span> 
-                                        <span>Version <?php echo htmlspecialchars($plugin['version']); ?></span>
+                                        <span>v<?php echo htmlspecialchars($plugin['version']); ?></span>
                                     </span>
                                 <?php endif; ?>
                                 
@@ -229,7 +210,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                                 <?php if (!empty($plugin['requires'])): ?>
                                     <span class="plugin-meta-item">
                                         <span>⚙️</span>
-                                        <span>Benötigt: <?php echo htmlspecialchars($plugin['requires']); ?></span>
+                                        <span><?php echo htmlspecialchars($plugin['requires']); ?></span>
                                     </span>
                                 <?php endif; ?>
                                 
@@ -263,7 +244,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                                     <button type="submit" class="btn btn-primary btn-sm">▶ Aktivieren</button>
                                 </form>
                                 <button type="button" class="btn btn-danger btn-sm"
-                                        onclick="showDeleteModal('<?php echo htmlspecialchars($folder, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($plugin['name'] ?? $folder, ENT_QUOTES); ?>')">🗑️ Löschen</button>
+                                        onclick="showDeleteModal('<?php echo htmlspecialchars($folder, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($plugin['name'] ?? $folder, ENT_QUOTES); ?>')">🗑️</button>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -271,6 +252,18 @@ require_once __DIR__ . '/partials/admin-menu.php';
             </div>
         <?php endif; ?>
         </div><!-- /.admin-card -->
+        
+        <!-- Upload Section -->
+        <div class="admin-card">
+            <h3>📦 Neues Plugin installieren</h3>
+            <form method="post" enctype="multipart/form-data" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+                <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+                <input type="hidden" name="action" value="upload">
+                <input type="file" name="plugin_file" accept=".zip" required class="form-control" style="flex:1;min-width:200px;">
+                <button type="submit" class="btn btn-primary btn-sm">📤 Hochladen &amp; installieren</button>
+            </form>
+            <small class="form-text" style="margin-top:0.5rem;display:block;">Maximale Dateigröße: 50 MB | Format: ZIP</small>
+        </div>
         
     </div><!-- /.admin-content -->
     
