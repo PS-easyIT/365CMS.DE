@@ -14,7 +14,7 @@
 
 | Version | Datum | Typ | Bereich | Beschreibung |
 |---------|-------|-----|---------|-------------|
-| **2.0.0** | 01.03.2026 | 🟢 feat | Core/Member | Nachrichten-System (Member-to-Member), Security-Audit CRITICAL+HIGH-Fixes, SchemaManager v8, Installer-Update |
+| **2.0.0** | 28.02.2026 | 🟢 feat | Core/Member | Nachrichten-System (Member-to-Member), Security-Audit CRITICAL+HIGH-Fixes, SchemaManager v8, Installer-Update |
 | **1.9.5** | 28.02.2026 | 🔴 fix | Admin/Security | XSS-Escaping Media, Backup-Pfad-Traversal-Schutz, Delete-Modals, Plugin-UI-Spacing |
 | **1.9.4** | 28.02.2026 | 🔴 fix | Admin | ABSPATH-Guard in users.php, Site-URL-Check, Benutzer-Formular-Layout |
 | **1.9.3** | 28.02.2026 | 🎨 style | Admin | Plugin-Management-UI (Layout, Responsiveness) |
@@ -48,7 +48,7 @@
 
 ---
 
-### v2.0.0 — 01. März 2026 · Nachrichten-System & Security-Audit
+### v2.0.0 — 28. Februar 2026 · Nachrichten-System & Security-Audit
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|

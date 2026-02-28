@@ -789,56 +789,11 @@ Vollständiges Schema: [DOC/](DOC/)
 - **[Workflow-Guides](DOC/workflow/)** - Arbeitsabläufe und Best Practices
 - **[Changelog](Changelog.md)** - Vollständige Versions-Historie
 
-## 🔄 Versions-Historie
-
-> Die vollständige Versionshistorie mit allen Einzel-Patches befindet sich im [Changelog](Changelog.md).
-
-### v1.8.x (22. Februar 2026) — **AKTUELL** · Security & Firewall Suite
-- ✅ CMS-Firewall mit IP-Blocking, Geo-Filtering und Request-Analyse
-- ✅ AntiSpam-System mit konfigurierbaren Schutzregeln
-- ✅ Security-Audit-Seite mit automatisiertem Score und Handlungsempfehlungen
-- ✅ RBAC-Verwaltung vollständig überarbeitet
-- ✅ Support-Ticket-System im Admin-Bereich integriert
-
-### v1.7.x (22. Februar 2026) — Theme & Plugin Marketplace
-- ✅ Theme-Marketplace mit 10 fertigen Themes
-- ✅ Plugin-Marketplace mit Kategorie-Browser und Such-Filter
-- ✅ Lokale Fonts Manager mit Upload und Theme-Integration
-- ✅ Theme-Customizer Live-Vorschau erweitert (50+ Optionen)
-- ✅ Update-Manager für Core, Plugins und Themes via GitHub API
-
-### v1.6.x (21.–22. Februar 2026) — Cookie-Manager & Legal-Suite
-- ✅ Cookie-Verwaltung mit Dienstbibliothek und Sicherheitsprüfungen
-- ✅ AntiSpam-Einstellungsseite und Rechtstexte-Generator
-- ✅ Cookie-Richtlinie-Generierung und dynamischer Zustimmungsstatus
-- ✅ Site-Tables-Management mit CRUD-Operationen und Import/Export
-- ✅ Cache-Clearing und Asset-Regenerierung
-
-### v1.5.x (21. Februar 2026) — Support-System & DSGVO
-- ✅ DSGVO-konforme Datenlöschung (Art. 17) und Security-Audit-Seite
-- ✅ Support-Ticket-System mit Prioritäten und Status-Tracking
-- ✅ Datenzugriffs-Anträge (Art. 15 DSGVO) automatisiert
-- ✅ Debug-Logging nur noch bei `CMS_DEBUG=true`
-
-### v1.4.x (21. Februar 2026) — Admin-Erweiterungen
-- ✅ Plugin- und Theme-Marketplace-Seiten
-- ✅ Aboverwaltung: Pakete-Editor, Zuweisungen, Einstellungen-Tab
-- ✅ Version-Badge im Admin Dashboard
-- ✅ Dokumentationsabruf mit rekursivem Directory-Traversal
-
-### v1.3.x (20. Februar 2026) — 🚀 First Public Release
-- ✅ **365CMS.DE öffentlich veröffentlicht**
-- ✅ Subscription- und Checkout-System
-- ✅ Blog-Routen und Datenbankschema v3
-- ✅ Landing-Page-Builder, Menü-Verwaltung, Media-Library
 
 ## 👨‍💻 Support & Community
-
 - **Issue Tracker:** GitHub Issues
-- **Email:** info@phinit.de
 
 ## 🙏 Credits
-
 - **Entwicklung:** Andreas Hepp
 - **Website:** PhinIT.DE & 365CMS.DE
 - **Icons:** Dashicons
