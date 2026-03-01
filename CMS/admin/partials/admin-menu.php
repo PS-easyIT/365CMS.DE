@@ -232,6 +232,14 @@ function getAdminMenuItems(string $currentPage = ''): array
                     'active' => (_adminNavIsActive('/admin/subscriptions') && empty($_GET['tab'])) || $currentPage === 'subscriptions',
                 ],
                 [
+                    'slug'   => 'subscriptions-overview',
+                    'label'  => 'Übersicht',
+                    'icon'   => '📋',
+                    'url'    => '/admin/subscriptions?tab=overview',
+                    'active' => (rtrim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/') === '/admin/subscriptions'
+                                 && ($_GET['tab'] ?? '') === 'overview') || $currentPage === 'subscriptions-overview',
+                ],
+                [
                     'slug'   => 'subscriptions-assignments',
                     'label'  => 'Zuweisungen',
                     'icon'   => '🔗',

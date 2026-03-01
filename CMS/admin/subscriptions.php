@@ -37,7 +37,6 @@ $subscriptionManager = SubscriptionManager::instance();
 // Handle Actions
 $action = $_GET['action'] ?? 'list';
 $activeTab = $_GET['tab'] ?? 'plans';
-$activeSub = $_GET['sub'] ?? 'users';
 $message = '';
 $error = '';
 
@@ -447,11 +446,138 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                 </div>
             </form>
 
+        <!-- CONTENT: ABO-ÜBERSICHT (Ansicht) -->
+        <?php elseif ($activeTab === 'overview'): ?>
+            <?php
+            $activeSubscriptions = $db->query("
+                SELECT us.*, sp.name as plan_name, sp.price_monthly, sp.price_yearly,
+                       u.username, u.email
+                FROM {$db->getPrefix()}user_subscriptions us
+                JOIN {$db->getPrefix()}subscription_plans sp ON us.plan_id = sp.id
+                JOIN {$db->getPrefix()}users u ON us.user_id = u.id
+                ORDER BY us.status ASC, us.created_at DESC
+            ")->fetchAll();
+
+            $totalActive   = 0;
+            $totalInactive = 0;
+            $monthlyRev    = 0.0;
+            foreach ($activeSubscriptions as $s) {
+                if ($s->status === 'active') {
+                    $totalActive++;
+                    $monthlyRev += (float)($s->price_monthly ?? 0);
+                } else {
+                    $totalInactive++;
+                }
+            }
+            ?>
+
+            <!-- Stats -->
+            <div class="dashboard-grid" style="margin-bottom:1.5rem;">
+                <div class="stat-card">
+                    <h3>Aktive Abos</h3>
+                    <div class="stat-number"><?php echo $totalActive; ?></div>
+                    <div class="stat-label">laufende Benutzer-Abonnements</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Inaktive Abos</h3>
+                    <div class="stat-number" style="color:#64748b;"><?php echo $totalInactive; ?></div>
+                    <div class="stat-label">gekuendigt / abgelaufen</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Monatl. Umsatz</h3>
+                    <div class="stat-number">&euro;<?php echo number_format($monthlyRev, 2, ',', '.'); ?></div>
+                    <div class="stat-label">Summe aller aktiven Monatspreise</div>
+                </div>
+            </div>
+
+            <!-- Benutzer-Abos Tabelle -->
+            <div class="admin-card">
+                <h3>👤 Benutzer-Abonnements <span class="plc-count-badge"><?php echo count($activeSubscriptions); ?></span></h3>
+                <?php if (empty($activeSubscriptions)): ?>
+                    <div class="empty-state">
+                        <p style="font-size:2.5rem;margin:0;">💭</p>
+                        <p><strong>Noch keine Abos vorhanden.</strong></p>
+                        <p class="text-muted">Erstelle Zuweisungen im Tab <a href="?tab=assignments">Zuweisungen</a>.</p>
+                    </div>
+                <?php else: ?>
+                <div class="users-table-container">
+                    <table class="users-table">
+                        <thead><tr>
+                            <th>Benutzer</th>
+                            <th>E-Mail</th>
+                            <th>Paket</th>
+                            <th>Zyklus</th>
+                            <th>Status</th>
+                            <th>Seit</th>
+                        </tr></thead>
+                        <tbody>
+                        <?php foreach ($activeSubscriptions as $sub): ?>
+                        <tr>
+                            <td style="font-weight:600;"><?php echo htmlspecialchars($sub->username); ?></td>
+                            <td><?php echo htmlspecialchars($sub->email); ?></td>
+                            <td><span class="sub-feat-badge" style="background:#dbeafe;color:#1e40af;">📦 <?php echo htmlspecialchars($sub->plan_name); ?></span></td>
+                            <td><?php echo ucfirst($sub->billing_cycle); ?></td>
+                            <td>
+                                <span class="status-badge <?php echo $sub->status === 'active' ? 'active' : 'inactive'; ?>">
+                                    <?php echo $sub->status === 'active' ? 'Aktiv' : ucfirst($sub->status); ?>
+                                </span>
+                            </td>
+                            <td style="font-size:.85rem;color:#64748b;"><?php echo date('d.m.Y', strtotime($sub->created_at)); ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Gruppen-Paketzuordnung (read-only) -->
+            <div class="admin-card" style="margin-top:1.5rem;">
+                <h3>🫂 Gruppen-Paketzuordnung</h3>
+                <?php if (empty($groups)): ?>
+                    <p style="color:#94a3b8;font-size:.85rem;">Noch keine Gruppen vorhanden. <a href="<?php echo SITE_URL; ?>/admin/groups">Gruppen erstellen &rarr;</a></p>
+                <?php else: ?>
+                <div class="users-table-container">
+                    <table class="users-table">
+                        <thead><tr>
+                            <th>Gruppe</th>
+                            <th>Status</th>
+                            <th>Zugewiesenes Paket</th>
+                        </tr></thead>
+                        <tbody>
+                        <?php foreach ($groups as $grp): ?>
+                        <tr>
+                            <td>
+                                <span style="font-weight:600;"><?php echo htmlspecialchars($grp->name, ENT_QUOTES); ?></span>
+                                <?php if (!empty($grp->description)): ?>
+                                <div style="font-size:.74rem;color:#94a3b8;"><?php echo htmlspecialchars(mb_substr($grp->description ?? '', 0, 55), ENT_QUOTES); ?><?php echo mb_strlen($grp->description ?? '') > 55 ? '&hellip;' : ''; ?></div>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <span class="status-badge" style="background:<?php echo $grp->is_active ? '#dcfce7' : '#fee2e2'; ?>;color:<?php echo $grp->is_active ? '#15803d' : '#b91c1c'; ?>;">
+                                    <?php echo $grp->is_active ? 'Aktiv' : 'Inaktiv'; ?>
+                                </span>
+                            </td>
+                            <td>
+                                <?php if ($grp->plan_name): ?>
+                                <span class="sub-feat-badge" style="background:#dbeafe;color:#1e40af;">📦 <?php echo htmlspecialchars($grp->plan_name, ENT_QUOTES); ?></span>
+                                <?php else: ?>
+                                <span style="color:#94a3b8;font-size:.8rem;">Kein Paket</span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php endif; ?>
+            </div>
+
         <!-- CONTENT: ZUWEISUNGEN -->
         <?php elseif ($activeTab === 'assignments'): ?>
 
-            <!-- Assign form -->
-                <div class="admin-card" style="margin-bottom:1.5rem;">
+            <!-- Benutzer-Abo zuweisen -->
+            <div class="admin-card" style="margin-bottom:1.5rem;">
                 <h3>👤 Benutzer-Abo zuweisen</h3>
                 <form method="POST">
                     <input type="hidden" name="action" value="assign_subscription">
@@ -460,7 +586,7 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                         <div class="form-group">
                             <label>Benutzer *</label>
                             <select name="user_id" required>
-                                <option value="">-- Benutzer wählen --</option>
+                                <option value="">-- Benutzer waehlen --</option>
                                 <?php foreach ($users as $user): ?>
                                     <option value="<?php echo $user->id; ?>"><?php echo htmlspecialchars($user->username); ?> (<?php echo htmlspecialchars($user->email); ?>)</option>
                                 <?php endforeach; ?>
@@ -469,9 +595,9 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                         <div class="form-group">
                             <label>Abo-Paket *</label>
                             <select name="plan_id" required>
-                                <option value="">-- Paket wählen --</option>
+                                <option value="">-- Paket waehlen --</option>
                                 <?php foreach ($plans as $plan): ?>
-                                    <option value="<?php echo $plan->id; ?>"><?php echo htmlspecialchars($plan->name); ?> (€<?php echo number_format((float)($plan->price_monthly ?? 0), 2); ?>/Monat)</option>
+                                    <option value="<?php echo $plan->id; ?>"><?php echo htmlspecialchars($plan->name); ?> (&euro;<?php echo number_format((float)($plan->price_monthly ?? 0), 2); ?>/Monat)</option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -479,7 +605,7 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                             <label>Abrechnungszyklus *</label>
                             <select name="billing_cycle" required>
                                 <option value="monthly">Monatlich</option>
-                                <option value="yearly">Jährlich</option>
+                                <option value="yearly">Jaehrlich</option>
                                 <option value="lifetime">Lebenslang</option>
                             </select>
                         </div>
@@ -488,114 +614,68 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                         </div>
                     </div>
                 </form>
-            </div><!-- /.admin-card -->
-            
-            <div class="admin-section-header" style="margin-top:1.5rem;">
-                <h3 style="margin:0;font-size:1rem;">Aktive Benutzer-Abos</h3>
             </div>
-            <?php
-            $activeSubscriptions = $db->query("
-                SELECT us.*, sp.name as plan_name, u.username, u.email
-                FROM {$db->getPrefix()}user_subscriptions us
-                JOIN {$db->getPrefix()}subscription_plans sp ON us.plan_id = sp.id
-                JOIN {$db->getPrefix()}users u ON us.user_id = u.id
-                WHERE us.status = 'active'
-                ORDER BY us.created_at DESC
-            ")->fetchAll();
-            ?>
-            
-            <div class="usr-adm-grid">
-                <?php foreach ($activeSubscriptions as $sub): 
-                     $nameParts = preg_split('/\s+/', trim($sub->username));
-                     $initials  = mb_strtoupper(mb_substr($nameParts[0], 0, 1));
-                ?>
-                    <div class="usr-adm-card">
-                        <div class="usr-adm-top">
-                            <div class="usr-adm-avatar" style="background:linear-gradient(135deg,#3b82f6,#2563eb);"><?php echo $initials; ?></div>
-                            <div class="usr-adm-ident">
-                                <p class="usr-adm-name"><?php echo htmlspecialchars($sub->username); ?></p>
-                                <p class="usr-adm-email"><?php echo htmlspecialchars($sub->email); ?></p>
-                            </div>
-                        </div>
-                        <div class="usr-adm-badges">
-                            <span class="usr-adm-badge" style="background:#dcfce7;color:#166534;"><?php echo htmlspecialchars($sub->plan_name); ?></span>
-                            <span class="usr-adm-badge" style="background:#f1f5f9;color:#475569;"><?php echo ucfirst($sub->billing_cycle); ?></span>
-                        </div>
-                        <div style="font-size:.82rem;color:#64748b;">Seit: <?php echo date('d.m.Y', strtotime($sub->created_at)); ?></div>
+
+            <!-- Gruppen-Zuweisungen -->
+            <div class="admin-card">
+                <h3>🫂 Gruppen-Paketzuweisung</h3>
+                <p style="color:#64748b;font-size:.82rem;margin-top:-.25rem;">Weise jeder Gruppe ein Abo-Paket zu. Mitglieder erhalten damit die Rechte des Paketes.</p>
+
+                <?php if (empty($groups)): ?>
+                    <div style="padding:1.5rem;text-align:center;">
+                        <p style="color:#64748b;">Noch keine Gruppen vorhanden. <a href="<?php echo SITE_URL; ?>/admin/groups">Gruppen erstellen &rarr;</a></p>
                     </div>
-                <?php endforeach; ?>
-                
-                <?php if (empty($activeSubscriptions)): ?>
-                    <div class="empty-state">
-                        <p style="font-size:2.5rem;margin:0;">💭</p>
-                        <p><strong>Noch keine aktiven Abos vorhanden.</strong></p>
-                    </div>
+                <?php else: ?>
+                <div class="users-table-container" style="margin-top:1rem;">
+                    <table class="users-table">
+                        <thead><tr>
+                            <th>Gruppe</th>
+                            <th style="width:100px;">Status</th>
+                            <th>Aktuelles Paket</th>
+                            <th style="width:300px;">Paket zuweisen</th>
+                        </tr></thead>
+                        <tbody>
+                        <?php foreach ($groups as $grp): ?>
+                        <tr>
+                            <td>
+                                <span style="font-weight:600;color:#1e293b;"><?php echo htmlspecialchars($grp->name, ENT_QUOTES); ?></span>
+                                <?php if (!empty($grp->description)): ?>
+                                <div style="font-size:.74rem;color:#94a3b8;"><?php echo htmlspecialchars(mb_substr($grp->description ?? '', 0, 55), ENT_QUOTES); ?><?php echo mb_strlen($grp->description ?? '') > 55 ? '&hellip;' : ''; ?></div>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <span class="status-badge" style="background:<?php echo $grp->is_active ? '#dcfce7' : '#fee2e2'; ?>;color:<?php echo $grp->is_active ? '#15803d' : '#b91c1c'; ?>;">
+                                    <?php echo $grp->is_active ? 'Aktiv' : 'Inaktiv'; ?>
+                                </span>
+                            </td>
+                            <td>
+                                <?php if ($grp->plan_name): ?>
+                                <span class="sub-feat-badge" style="background:#dbeafe;color:#1e40af;">📦 <?php echo htmlspecialchars($grp->plan_name, ENT_QUOTES); ?></span>
+                                <?php else: ?>
+                                <span style="color:#94a3b8;font-size:.8rem;">Kein Paket</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <form method="POST" action="?tab=assignments" style="display:flex;gap:.4rem;align-items:center;">
+                                    <input type="hidden" name="action" value="assign_group_plan">
+                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                    <input type="hidden" name="group_id" value="<?php echo (int)$grp->id; ?>">
+                                    <select name="group_plan_id" style="flex:1;">
+                                        <option value="0">&mdash; Kein Paket &mdash;</option>
+                                        <?php foreach ($plans as $plan): ?>
+                                        <option value="<?php echo (int)$plan->id; ?>" <?php echo (int)($grp->plan_id ?? 0) === (int)$plan->id ? 'selected' : ''; ?>><?php echo htmlspecialchars($plan->name, ENT_QUOTES); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <button type="submit" class="btn btn-primary btn-sm">💾</button>
+                                </form>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
                 <?php endif; ?>
             </div>
-
-            <div style="height:1.5rem;"></div>
-
-            <div class="admin-section-header" style="margin-top:2rem;">
-                <div>
-                    <h3 style="margin:0;font-size:1rem;">🫂 Gruppen-Zuweisungen</h3>
-                    <p style="margin:.2rem 0 0;color:#64748b;font-size:.82rem;">Weise jeder Gruppe ein Abo-Paket zu. Mitglieder erhalten damit die Rechte des Paketes.</p>
-                </div>
-            </div>
-
-            <?php if (empty($groups)): ?>
-                <div style="padding:2rem;text-align:center;background:#fff;border-radius:8px;border:1px solid #e2e8f0;">
-                    <p style="color:#64748b;">Noch keine Gruppen vorhanden. <a href="<?php echo SITE_URL; ?>/admin/groups">Gruppen erstellen →</a></p>
-                </div>
-            <?php else: ?>
-            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:auto;margin-bottom:1.5rem;">
-                <table class="posts-table">
-                    <thead><tr>
-                        <th>Gruppe</th>
-                        <th style="width:100px;">Status</th>
-                        <th>Aktuelles Paket</th>
-                        <th style="width:300px;">Paket zuweisen</th>
-                    </tr></thead>
-                    <tbody>
-                    <?php foreach ($groups as $grp): ?>
-                    <tr>
-                        <td>
-                            <span style="font-weight:600;color:#1e293b;"><?php echo htmlspecialchars($grp->name, ENT_QUOTES); ?></span>
-                            <?php if (!empty($grp->description)): ?>
-                            <div style="font-size:.74rem;color:#94a3b8;"><?php echo htmlspecialchars(substr($grp->description, 0, 55), ENT_QUOTES) . (strlen($grp->description ?? '') > 55 ? '…' : ''); ?></div>
-                            <?php endif; ?>
-                        </td>
-                        <td>
-                            <span class="status-badge" style="background:<?php echo $grp->is_active ? '#dcfce7' : '#fee2e2'; ?>;color:<?php echo $grp->is_active ? '#15803d' : '#b91c1c'; ?>;">
-                                <?php echo $grp->is_active ? 'Aktiv' : 'Inaktiv'; ?>
-                            </span>
-                        </td>
-                        <td>
-                            <?php if ($grp->plan_name): ?>
-                            <span class="sub-feat-badge" style="background:#dbeafe;color:#1e40af;">📦 <?php echo htmlspecialchars($grp->plan_name, ENT_QUOTES); ?></span>
-                            <?php else: ?>
-                            <span style="color:#94a3b8;font-size:.8rem;">Kein Paket</span>
-                            <?php endif; ?>
-                        </td>
-                        <td>
-                            <form method="POST" action="?tab=assignments&sub=groups" style="display:flex;gap:.4rem;align-items:center;">
-                                <input type="hidden" name="action" value="assign_group_plan">
-                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                                <input type="hidden" name="group_id" value="<?php echo (int)$grp->id; ?>">
-                                <select name="group_plan_id" style="flex:1;">
-                                    <option value="0">— Kein Paket —</option>
-                                    <?php foreach ($plans as $plan): ?>
-                                    <option value="<?php echo (int)$plan->id; ?>" <?php echo (int)($grp->plan_id ?? 0) === (int)$plan->id ? 'selected' : ''; ?>><?php echo htmlspecialchars($plan->name, ENT_QUOTES); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <button type="submit" class="btn btn-primary btn-sm">💾</button>
-                            </form>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-            <?php endif; ?>
 
         <?php endif; ?>
     </div>
