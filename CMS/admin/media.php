@@ -88,16 +88,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 break;
 
             case 'delete_item':
-                $itemPath = $_POST['item_path'] ?? ''; // This is the relative path to file/folder
+                $itemPath = $_POST['item_path'] ?? '';
                 if (empty($itemPath)) {
-                    echo json_encode(['success' => false, 'error' => 'Item path is required']);
+                    echo json_encode(['success' => false, 'error' => 'Item path is required', 'new_token' => $newCsrfToken]);
                     break;
                 }
                 $result = $mediaService->deleteItem($itemPath);
                 if (is_wp_error($result)) {
-                    echo json_encode(['success' => false, 'error' => $result->get_error_message()]);
+                    echo json_encode(['success' => false, 'error' => $result->get_error_message(), 'new_token' => $newCsrfToken]);
                 } else {
-                    echo json_encode(['success' => true]);
+                    echo json_encode(['success' => true, 'new_token' => $newCsrfToken]);
                 }
                 break;
             
@@ -105,14 +105,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $oldPath = $_POST['old_path'] ?? '';
                 $newName = $_POST['new_name'] ?? '';
                 if (empty($oldPath) || empty($newName)) {
-                    echo json_encode(['success' => false, 'error' => 'Fehlende Parameter']);
+                    echo json_encode(['success' => false, 'error' => 'Fehlende Parameter', 'new_token' => $newCsrfToken]);
                     break;
                 }
                 $result = $mediaService->renameItem($oldPath, $newName);
                 if (is_wp_error($result)) {
-                    echo json_encode(['success' => false, 'error' => $result->get_error_message()]);
+                    echo json_encode(['success' => false, 'error' => $result->get_error_message(), 'new_token' => $newCsrfToken]);
                 } else {
-                    echo json_encode(['success' => true]);
+                    echo json_encode(['success' => true, 'new_token' => $newCsrfToken]);
                 }
                 break;
 
@@ -156,57 +156,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 
                 $result = $mediaService->saveSettings($settings);
                 if (is_wp_error($result)) {
-                    echo json_encode(['success' => false, 'error' => $result->get_error_message()]);
+                    echo json_encode(['success' => false, 'error' => $result->get_error_message(), 'new_token' => $newCsrfToken]);
                 } else {
-                    echo json_encode(['success' => true, 'message' => 'Einstellungen erfolgreich gespeichert.']);
+                    echo json_encode(['success' => true, 'message' => 'Einstellungen erfolgreich gespeichert.', 'new_token' => $newCsrfToken]);
                 }
                 break;
 
             case 'get_categories':
-                echo json_encode(['success' => true, 'data' => $mediaService->getCategories()]);
+                echo json_encode(['success' => true, 'data' => $mediaService->getCategories(), 'new_token' => $newCsrfToken]);
                 break;
 
             case 'add_category':
                 $name = $_POST['name'] ?? '';
                 if (empty($name)) {
-                    echo json_encode(['success' => false, 'error' => 'Name ist erforderlich']);
+                    echo json_encode(['success' => false, 'error' => 'Name ist erforderlich', 'new_token' => $newCsrfToken]);
                     break;
                 }
                 $result = $mediaService->addCategory($name);
                 if (is_wp_error($result)) {
-                    echo json_encode(['success' => false, 'error' => $result->get_error_message()]);
+                    echo json_encode(['success' => false, 'error' => $result->get_error_message(), 'new_token' => $newCsrfToken]);
                 } else {
-                    echo json_encode(['success' => true]);
+                    echo json_encode(['success' => true, 'new_token' => $newCsrfToken]);
                 }
                 break;
 
             case 'delete_category':
                 $slug = $_POST['slug'] ?? '';
                 if (empty($slug)) {
-                    echo json_encode(['success' => false, 'error' => 'Slug ist erforderlich']);
+                    echo json_encode(['success' => false, 'error' => 'Slug ist erforderlich', 'new_token' => $newCsrfToken]);
                     break;
                 }
                 $result = $mediaService->deleteCategory($slug);
-                echo json_encode(['success' => true]);
+                echo json_encode(['success' => true, 'new_token' => $newCsrfToken]);
                 break;
 
             case 'assign_category':
                 $filePath = $_POST['file_path'] ?? '';
                 $slug = $_POST['slug'] ?? '';
                 if (empty($filePath)) {
-                    echo json_encode(['success' => false, 'error' => 'Datei ist erforderlich']);
+                    echo json_encode(['success' => false, 'error' => 'Datei ist erforderlich', 'new_token' => $newCsrfToken]);
                     break;
                 }
-                // allow empty slug to unassign
                 $result = $mediaService->assignCategory($filePath, $slug);
-                echo json_encode(['success' => true]);
+                echo json_encode(['success' => true, 'new_token' => $newCsrfToken]);
                 break;
 
             default:
-                echo json_encode(['success' => false, 'error' => 'Ungültige Aktion']);
+                echo json_encode(['success' => false, 'error' => 'Ungültige Aktion', 'new_token' => $newCsrfToken]);
         }
     } catch (Exception $e) {
-        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        echo json_encode(['success' => false, 'error' => $e->getMessage(), 'new_token' => $newCsrfToken]);
     }
     exit;
 }
@@ -258,15 +257,25 @@ $categories = $mediaService->getCategories();
     <?php renderAdminSidebarStyles(); ?>
     <script>
         // CSRF-Token für alle Media-AJAX-Aufrufe (Fix C-13)
-        const CMS_MEDIA_NONCE = '<?php echo htmlspecialchars($mediaCsrfToken, ENT_QUOTES, 'UTF-8'); ?>';
+        let CMS_MEDIA_NONCE = '<?php echo htmlspecialchars($mediaCsrfToken, ENT_QUOTES, 'UTF-8'); ?>';
         /**
          * CSRF-sicherer fetch-Wrapper: hängt das CSRF-Token an jede FormData an
+         * und aktualisiert den Token automatisch nach jeder Antwort (One-Time-Use).
          * @param {FormData} formData
          * @returns {Promise<Response>}
          */
         async function cmsPost(formData) {
             formData.append('csrf_token', CMS_MEDIA_NONCE);
-            return fetch('', { method: 'POST', body: formData });
+            const response = await fetch('', { method: 'POST', body: formData });
+            // Token-Rotation: Neuen Token aus Antwort extrahieren
+            const cloned = response.clone();
+            try {
+                const json = await cloned.json();
+                if (json.new_token) {
+                    CMS_MEDIA_NONCE = json.new_token;
+                }
+            } catch (e) { /* Antwort ist kein JSON – ignorieren */ }
+            return response;
         }
     </script>
 </head>
