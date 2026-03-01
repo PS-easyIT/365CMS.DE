@@ -259,8 +259,9 @@ $categories = $mediaService->getCategories();
         // CSRF-Token für alle Media-AJAX-Aufrufe (Fix C-13)
         let CMS_MEDIA_NONCE = '<?php echo htmlspecialchars($mediaCsrfToken, ENT_QUOTES, 'UTF-8'); ?>';
         /**
-         * CSRF-sicherer fetch-Wrapper: hängt das CSRF-Token an jede FormData an
-         * und aktualisiert den Token automatisch nach jeder Antwort (One-Time-Use).
+         * CSRF-sicherer fetch-Wrapper: hängt das CSRF-Token an jede FormData an,
+         * aktualisiert den Token automatisch nach jeder Antwort (One-Time-Use)
+         * und wiederholt den Request einmalig bei CSRF-Fehler (Auto-Retry).
          * @param {FormData} formData
          * @returns {Promise<Response>}
          */
@@ -273,6 +274,21 @@ $categories = $mediaService->getCategories();
                 const json = await cloned.json();
                 if (json.new_token) {
                     CMS_MEDIA_NONCE = json.new_token;
+                }
+                // Auto-Retry: bei CSRF-Fehler einmalig mit neuem Token wiederholen
+                if (!json.success && json.new_token && json.error && json.error.indexOf('Sicherheits') !== -1) {
+                    const retryData = new FormData();
+                    for (const [key, value] of formData.entries()) {
+                        if (key !== 'csrf_token') retryData.append(key, value);
+                    }
+                    retryData.append('csrf_token', CMS_MEDIA_NONCE);
+                    const retryResp = await fetch('', { method: 'POST', body: retryData });
+                    const retryClone = retryResp.clone();
+                    try {
+                        const retryJson = await retryClone.json();
+                        if (retryJson.new_token) CMS_MEDIA_NONCE = retryJson.new_token;
+                    } catch (e2) { /* ignore */ }
+                    return retryResp;
                 }
             } catch (e) { /* Antwort ist kein JSON – ignorieren */ }
             return response;
