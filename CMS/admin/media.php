@@ -39,9 +39,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
     // CSRF-Schutz reaktiviert (Fix C-13) – Token-Verifikation VOR generateToken()
     if (!$security->verifyToken($_POST['csrf_token'] ?? '', 'media_action')) {
-        echo json_encode(['success' => false, 'error' => 'Sicherheitsüberprüfung fehlgeschlagen']);
+        // Token ungültig – neuen Token generieren, damit Client es erneut versuchen kann
+        $newToken = $security->generateToken('media_action');
+        echo json_encode(['success' => false, 'error' => 'Sicherheitsüberprüfung fehlgeschlagen', 'new_token' => $newToken]);
         exit;
     }
+    // Nach erfolgreicher Verifikation: neuen Token generieren (One-Time-Use)
+    $newCsrfToken = $security->generateToken('media_action');
     $action = $_POST['action'];
     $currentPath = $_POST['path'] ?? '';
 
@@ -50,36 +54,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             case 'list_files':
                 $result = $mediaService->getItems($currentPath);
                 if (is_wp_error($result)) {
-                    echo json_encode(['success' => false, 'error' => $result->get_error_message()]);
+                    echo json_encode(['success' => false, 'error' => $result->get_error_message(), 'new_token' => $newCsrfToken]);
                 } else {
-                    echo json_encode(['success' => true, 'data' => $result]);
+                    echo json_encode(['success' => true, 'data' => $result, 'new_token' => $newCsrfToken]);
                 }
                 break;
 
             case 'create_folder':
                 $folderName = $_POST['name'] ?? '';
                 if (empty($folderName)) {
-                    echo json_encode(['success' => false, 'error' => 'Ordnername ist erforderlich']);
+                    echo json_encode(['success' => false, 'error' => 'Ordnername ist erforderlich', 'new_token' => $newCsrfToken]);
                     break;
                 }
                 $result = $mediaService->createFolder($folderName, $currentPath);
                 if (is_wp_error($result)) {
-                    echo json_encode(['success' => false, 'error' => $result->get_error_message()]);
+                    echo json_encode(['success' => false, 'error' => $result->get_error_message(), 'new_token' => $newCsrfToken]);
                 } else {
-                    echo json_encode(['success' => true]);
+                    echo json_encode(['success' => true, 'new_token' => $newCsrfToken]);
                 }
                 break;
 
             case 'upload_file':
                 if (!isset($_FILES['file'])) {
-                    echo json_encode(['success' => false, 'error' => 'Keine Datei hochgeladen']);
+                    echo json_encode(['success' => false, 'error' => 'Keine Datei hochgeladen', 'new_token' => $newCsrfToken]);
                     break;
                 }
                 $result = $mediaService->uploadFile($_FILES['file'], $currentPath);
                 if (is_wp_error($result)) {
-                    echo json_encode(['success' => false, 'error' => $result->get_error_message()]);
+                    echo json_encode(['success' => false, 'error' => $result->get_error_message(), 'new_token' => $newCsrfToken]);
                 } else {
-                    echo json_encode(['success' => true, 'filename' => $result]);
+                    echo json_encode(['success' => true, 'filename' => $result, 'new_token' => $newCsrfToken]);
                 }
                 break;
 
