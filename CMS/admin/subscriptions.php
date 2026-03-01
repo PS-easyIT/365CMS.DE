@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $groupPlanId = (int)($_POST['group_plan_id'] ?? 0);
             if ($groupId > 0) {
                 $db2 = CMS\Database::instance();
-                $db2->query(
+                $db2->execute(
                     "UPDATE {$db2->getPrefix()}user_groups SET plan_id = ? WHERE id = ?",
                     [$groupPlanId > 0 ? $groupPlanId : null, $groupId]
                 );
@@ -124,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $planId = (int)$_POST['plan_id'];
             $db = CMS\Database::instance();
             // Check usage before delete? For now simple delete.
-            if ($db->query("DELETE FROM {$db->getPrefix()}subscription_plans WHERE id = ?", [$planId])) {
+            if ($db->execute("DELETE FROM {$db->getPrefix()}subscription_plans WHERE id = ?", [$planId])) {
                 $message = 'Paket gelöscht.';
             } else {
                 $error = 'Fehler beim Löschen.';
@@ -148,9 +148,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             foreach ($settingsToSave as $optName => $optVal) {
                 $exists = $db2->get_var("SELECT id FROM {$db2->getPrefix()}settings WHERE option_name = ?", [$optName]);
                 if ($exists) {
-                    $db2->query("UPDATE {$db2->getPrefix()}settings SET option_value = ? WHERE option_name = ?", [$optVal, $optName]);
+                    $db2->execute("UPDATE {$db2->getPrefix()}settings SET option_value = ? WHERE option_name = ?", [$optVal, $optName]);
                 } else {
-                    $db2->query("INSERT INTO {$db2->getPrefix()}settings (option_name, option_value) VALUES (?, ?)", [$optName, $optVal]);
+                    $db2->execute("INSERT INTO {$db2->getPrefix()}settings (option_name, option_value) VALUES (?, ?)", [$optName, $optVal]);
                 }
             }
             $message = 'Einstellungen gespeichert.';
