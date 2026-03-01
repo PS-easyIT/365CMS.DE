@@ -74,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_legal'])) {
                 'slug' => 'impressum',
                 'content' => $impressumContent,
                 'status' => 'published',
+                'type' => 'page',
                 'author_id' => Auth::instance()->getCurrentUser()->id,
                 'published_at' => date('Y-m-d H:i:s')
             ]);
@@ -95,8 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_legal'])) {
                 'title' => 'Datenschutzerklärung',
                 'slug' => 'datenschutz',
                 'content' => $privacyContent,
-                'status' => 'published',
-                'author_id' => Auth::instance()->getCurrentUser()->id,
+                'status' => 'published',                'type' => 'page',                'author_id' => Auth::instance()->getCurrentUser()->id,
                 'published_at' => date('Y-m-d H:i:s')
             ]);
         }
