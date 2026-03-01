@@ -575,9 +575,9 @@ class ThemeCustomizer
 
         // ── Elemente-CSS ────────────────────────────────────────────────────
 
-        // Body-Schrift
+        // Body-Schrift (:where() → Spezifität 0, damit Plugin-Styles nicht überschrieben werden)
         if (!empty($typography['font_family_base']) && $typography['font_family_base'] !== 'system') {
-            $css .= "body {\n";
+            $css .= ":where(body) {\n";
             $css .= "    font-family: var(--font-body);\n";
             if (!empty($typography['font_size_base'])) {
                 $css .= "    font-size: var(--font-size-base, 16px);\n";
@@ -588,9 +588,9 @@ class ThemeCustomizer
             $css .= "}\n\n";
         }
 
-        // Überschriften-Schrift
+        // Überschriften-Schrift (:where() → Plugin-Headings bleiben unberührt)
         if (!empty($typography['font_family_heading']) && $typography['font_family_heading'] !== 'system') {
-            $css .= "h1, h2, h3, h4, h5, h6 {\n";
+            $css .= ":where(h1, h2, h3, h4, h5, h6) {\n";
             $css .= "    font-family: var(--font-heading, inherit);\n";
             if (!empty($typography['font_weight_heading'])) {
                 $css .= "    font-weight: var(--font-weight-heading, 700);\n";
@@ -598,9 +598,9 @@ class ThemeCustomizer
             $css .= "}\n\n";
         }
 
-        // Container
+        // Container (:where() → Plugin-Container bleiben unberührt)
         if (!empty($layout['container_width'])) {
-            $css .= ".container {\n";
+            $css .= ":where(.container) {\n";
             $css .= "    max-width: var(--container-max-width, 1200px);\n";
             if (!empty($layout['content_padding'])) {
                 $css .= "    padding-left: var(--container-padding, 2rem);\n";
@@ -663,9 +663,9 @@ class ThemeCustomizer
             }
         }
 
-        // Buttons
+        // Buttons (:where() → Plugin-eigene Button-Styles bleiben unberührt)
         if (!empty($buttons['button_border_radius']) || !empty($buttons['button_padding_x'])) {
-            $css .= ".btn, button.btn, a.btn {\n";
+            $css .= ":where(.btn, button.btn, a.btn) {\n";
             if (!empty($buttons['button_border_radius'])) {
                 $css .= "    border-radius: var(--button-border-radius);\n";
             }
