@@ -374,4 +374,50 @@ class SEOService
             return $default;
         }
     }
+
+    // ─── Public Getters für Frontend-Integration ────────────────────────────
+
+    /**
+     * Get SEO homepage title (from admin SEO settings)
+     */
+    public function getHomepageTitle(string $default = ''): string
+    {
+        return $this->getSetting('homepage_title', $default);
+    }
+
+    /**
+     * Get SEO homepage meta description (from admin SEO settings)
+     */
+    public function getHomepageDescription(string $default = ''): string
+    {
+        return $this->getSetting('homepage_description', $default);
+    }
+
+    /**
+     * Get global meta description (fallback: homepage_description)
+     */
+    public function getMetaDescription(string $default = ''): string
+    {
+        $desc = $this->getSetting('meta_description', '');
+        if ($desc === '') {
+            $desc = $this->getSetting('homepage_description', '');
+        }
+        return $desc !== '' ? $desc : $default;
+    }
+
+    /**
+     * Get site title format (e.g. "%title% | %sitename%")
+     */
+    public function getSiteTitleFormat(): string
+    {
+        return $this->getSetting('site_title_format', '%title% | %sitename%');
+    }
+
+    /**
+     * Get title separator
+     */
+    public function getTitleSeparator(): string
+    {
+        return $this->getSetting('title_separator', '|');
+    }
 }

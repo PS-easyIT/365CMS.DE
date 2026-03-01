@@ -34,10 +34,14 @@ $flashMsg    = meridian_get_flash();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <?php
-    // Seitentitel ermitteln
+    // Seitentitel ermitteln (Priorität: SEO → ThemeManager → SITE_NAME)
     $siteTitle = defined('SITE_NAME') ? SITE_NAME : '365CMS';
     try {
-        if (class_exists('\CMS\ThemeManager')) {
+        $seo = \CMS\Services\SEOService::getInstance();
+        $seoTitle = $seo->getHomepageTitle();
+        if (!empty($seoTitle)) {
+            $siteTitle = $seoTitle;
+        } elseif (class_exists('\CMS\ThemeManager')) {
             $tm = \CMS\ThemeManager::instance()->getSiteTitle();
             if (!empty($tm)) { $siteTitle = $tm; }
         }
