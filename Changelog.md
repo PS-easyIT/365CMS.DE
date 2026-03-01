@@ -20,7 +20,7 @@
 
 ---
 
-### v2.0.1 — 28. Juni 2025 · Admin-Panel Audit & Bugfixes
+### v2.0.1 — 01. März 2026 · Admin-Panel Audit & Bugfixes
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
