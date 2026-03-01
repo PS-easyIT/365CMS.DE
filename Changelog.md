@@ -2,34 +2,6 @@
 
 # 365CMS Changelog
 
-> **Versionierungsschema:**
-> - `CMSv1` = `0.1.xx – 0.4.99` — Interne Entwicklung (2025, nicht öffentlich)
-> - `CMSv2` = `0.5.xx+` — Public Release (2026, GitHub)
-> - `x.MINOR.patch` — Minor-Sprung = neue Funktion · Patch-Sprung = Bugfix/Refactor
-> - Plugins & Themes werden separat versioniert und sind hier **nicht** enthalten
-
----
-
-## 🗓️ Übersicht (letzte Einträge)
-
-| Version | Datum | Typ | Bereich | Beschreibung |
-|---------|-------|-----|---------|-------------|
-| **2.0.0** | 28.02.2026 | 🟢 feat | Core/Member | Nachrichten-System (Member-to-Member), Security-Audit CRITICAL+HIGH-Fixes, SchemaManager v8, Installer-Update |
-| **1.9.5** | 28.02.2026 | 🔴 fix | Admin/Security | XSS-Escaping Media, Backup-Pfad-Traversal-Schutz, Delete-Modals, Plugin-UI-Spacing |
-| **1.9.4** | 28.02.2026 | 🔴 fix | Admin | ABSPATH-Guard in users.php, Site-URL-Check, Benutzer-Formular-Layout |
-| **1.9.3** | 28.02.2026 | 🎨 style | Admin | Plugin-Management-UI (Layout, Responsiveness) |
-| **1.9.2** | 27.02.2026 | 🟡 refactor | Theme | ThemeCustomizer: NULL-Handling bei prepared Statements verbessert |
-| **1.9.1** | 27.02.2026 | 🔴 fix | Admin/Plugin | Unbenutzbare Feature-Widgets entfernt; Output-Buffering für Plugin-Admin |
-| **1.9.0** | 27.02.2026 | 🟢 feat | Member | Accordion-Navigation für Member-Sidebar mit verbessertem Styling |
-| **1.8.5** | 26.02.2026 | 🟢 feat | Member | Plugin-Navigation mit Sub-Items erweitert |
-| **1.8.4** | 26.02.2026 | ⬜ chore | Theme | TechNexus-Theme und zugehörige Tests entfernt |
-| **1.8.3** | 25.02.2026 | 🟢 feat | Theme | 365Network Theme Customizer mit Farb-, Typografie-, Layout-, Header-, Footer- und Button-Einstellungen |
-| **1.8.2** | 25.02.2026 | 🔴 fix | Core | Security::escape() akzeptiert `string\|int`; WYSIWYG Double-Encoding behoben |
-| **1.8.1** | 23.02.2026 | 🔴 fix | Router/Admin | Öffentliche Seiten zeigen 404: Standard-Status für neue Seiten auf `published` gesetzt; Router-Debug-Logging verbessert |
-| **1.8.0** | 22.02.2026 | 🟢 feat | Security | CMS-Firewall, AntiSpam, Security-Audit vollständig überarbeitet |
-
----
-
 ## 📋 Legende
 
 | Symbol | Typ | Bedeutung |
