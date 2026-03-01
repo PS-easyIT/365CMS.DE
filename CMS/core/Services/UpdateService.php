@@ -24,9 +24,14 @@ class UpdateService
     private static ?self $instance = null;
     private Database $db;
     
-    private const GITHUB_REPO = 'PS-easyIT/365CMS.DE';
-    private const GITHUB_API = 'https://api.github.com';
+    /** Fallback-Werte – werden von DB-Setting überschrieben, wenn vorhanden */
+    private const DEFAULT_GITHUB_REPO = 'PS-easyIT/365CMS.DE';
+    private const DEFAULT_GITHUB_API = 'https://api.github.com';
     private const CACHE_DURATION = 3600; // 1 hour
+
+    /** Aktive Konfiguration (aus DB oder Fallback) */
+    private string $githubRepo;
+    private string $githubApi;
     
     /**
      * Singleton instance
@@ -45,6 +50,28 @@ class UpdateService
     private function __construct()
     {
         $this->db = Database::instance();
+        $this->loadUpdateConfig();
+    }
+
+    /**
+     * Load update repo configuration from DB settings (or use defaults)
+     */
+    private function loadUpdateConfig(): void
+    {
+        try {
+            $row = $this->db->fetchOne(
+                "SELECT option_value FROM {$this->db->getPrefix()}settings WHERE option_name = 'update_github_repo'"
+            );
+            $this->githubRepo = (!empty($row['option_value'])) ? $row['option_value'] : self::DEFAULT_GITHUB_REPO;
+
+            $row2 = $this->db->fetchOne(
+                "SELECT option_value FROM {$this->db->getPrefix()}settings WHERE option_name = 'update_github_api'"
+            );
+            $this->githubApi = (!empty($row2['option_value'])) ? rtrim($row2['option_value'], '/') : self::DEFAULT_GITHUB_API;
+        } catch (\Throwable $e) {
+            $this->githubRepo = self::DEFAULT_GITHUB_REPO;
+            $this->githubApi  = self::DEFAULT_GITHUB_API;
+        }
     }
     
     /**
@@ -62,8 +89,8 @@ class UpdateService
             return $cached;
         }
         
-        // Fetch latest release from GitHub
-        $url = self::GITHUB_API . '/repos/' . self::GITHUB_REPO . '/releases/latest';
+        // Fetch latest release from GitHub (konfigurierbar via DB)
+        $url = $this->githubApi . '/repos/' . $this->githubRepo . '/releases/latest';
         $release = $this->fetchGitHubData($url);
         
         if (!$release) {
@@ -150,8 +177,8 @@ class UpdateService
         $themeData = json_decode(file_get_contents($themeJsonFile), true);
         $currentVersion = $themeData['version'] ?? '1.0.0';
         
-        // Check GitHub for theme updates
-        $url = self::GITHUB_API . '/repos/' . self::GITHUB_REPO . '/contents/themes/default/theme.json';
+        // Check GitHub for theme updates (konfigurierbar via DB)
+        $url = $this->githubApi . '/repos/' . $this->githubRepo . '/contents/themes/default/theme.json';
         $response = $this->fetchGitHubData($url);
         
         if (!$response || !isset($response['content'])) {

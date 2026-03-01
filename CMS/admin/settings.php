@@ -466,19 +466,6 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     <small class="form-text">Diese Seiten werden automatisch im Footer und bei Formularen verlinkt.</small>
                 </div>
 
-                <!-- 6. Module -->
-                <div class="admin-card">
-                    <h3>🧩 Aktive Module</h3>
-                    <div class="module-row">
-                        <span>📝 Blog Modul</span>
-                        <span class="status-badge active">Aktiv</span>
-                    </div>
-                    <div class="module-row">
-                        <span>🛒 Shop System</span>
-                        <span class="status-badge inactive">Inaktiv</span>
-                    </div>
-                </div>
-
             </div><!-- /.settings-layout -->
 
             <!-- Save Bar -->
