@@ -24,6 +24,15 @@ $security = Security::instance();
 $db       = Database::instance();
 $prefix   = $db->prefix;
 
+// ── Auto-Migration: Fehlende Spalten in roles-Tabelle sicherstellen ──
+$_roleMigrations = [
+    "ALTER TABLE {$prefix}roles ADD COLUMN IF NOT EXISTS member_dashboard_access TINYINT(1) NOT NULL DEFAULT 1",
+    "ALTER TABLE {$prefix}roles ADD COLUMN IF NOT EXISTS sort_order INT NOT NULL DEFAULT 0",
+];
+foreach ($_roleMigrations as $sql) {
+    try { $db->execute($sql, []); } catch (\Throwable $e) { /* Spalte existiert bereits */ }
+}
+
 $messages = [];
 $activeTab = in_array($_GET['tab'] ?? '', ['groups', 'roles']) ? $_GET['tab'] : 'groups';
 

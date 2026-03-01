@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'crea
         $email        = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
         $password     = $_POST['password'] ?? '';
         $display_name = Security::sanitize(trim($_POST['display_name'] ?? ''), 'text');
-        $role         = in_array($_POST['role'] ?? '', ['admin', 'member', 'editor']) ? $_POST['role'] : 'member';
+        $role         = in_array($_POST['role'] ?? '', $allRoleNames) ? $_POST['role'] : 'member';
 
         if (empty($username) || empty($email) || empty($password)) {
             $messages[] = ['type' => 'error', 'text' => 'Benutzername, E-Mail und Passwort sind Pflichtfelder.'];
@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'edit
         // H-24: Konsistente Sanitierung
         $email        = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
         $display_name = Security::sanitize(trim($_POST['display_name'] ?? ''), 'text');
-        $role         = in_array($_POST['role'] ?? '', ['admin', 'member', 'editor']) ? $_POST['role'] : 'member';
+        $role         = in_array($_POST['role'] ?? '', $allRoleNames) ? $_POST['role'] : 'member';
         $status       = in_array($_POST['status'] ?? '', ['active', 'inactive', 'banned']) ? $_POST['status'] : 'active';
         $new_password = $_POST['new_password'] ?? '';
         $groups       = array_map('intval', (array)($_POST['groups'] ?? []));
@@ -176,7 +176,7 @@ if (isset($_GET['msg'])) {
 // ── View / Filter ─────────────────────────────────────────────────────────────
 $view       = $_GET['view']   ?? 'list';
 $editUserId = (int)($_GET['id'] ?? 0);
-$roleFilter = in_array($_GET['role'] ?? '', ['admin', 'member', 'editor', 'banned']) ? $_GET['role'] : 'all';
+$roleFilter = in_array($_GET['role'] ?? '', array_merge($allRoleNames, ['banned'])) ? $_GET['role'] : 'all';
 $search     = trim($_GET['search'] ?? '');
 $perPage    = 25;
 $page       = max(1, (int)($_GET['p'] ?? 1));
@@ -185,14 +185,23 @@ $page       = max(1, (int)($_GET['p'] ?? 1));
 $roleCountRows = $db->get_results(
     "SELECT role, COUNT(*) AS cnt FROM {$prefix}users WHERE status != 'banned' GROUP BY role"
 );
-$roleCounts = ['all' => 0, 'admin' => 0, 'member' => 0, 'editor' => 0];
+$roleCounts = ['all' => 0];
+foreach ($allRoleNames as $rn) { $roleCounts[$rn] = 0; }
 foreach ($roleCountRows as $rc) {
-    if (isset($roleCounts[$rc->role])) {
-        $roleCounts[$rc->role] = (int) $rc->cnt;
-    }
+    $roleCounts[$rc->role] = (int) $rc->cnt;
     $roleCounts['all'] += (int) $rc->cnt;
 }
 $roleCounts['banned'] = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}users WHERE status='banned'");
+
+// Alle Rollen aus der Datenbank laden (inkl. benutzerdefinierter Rollen)
+$allDbRoles = $db->get_results("SELECT name, display_name FROM {$prefix}roles ORDER BY sort_order, display_name");
+$allRoleNames = array_map(fn($r) => $r->name, $allDbRoles);
+// Fallback falls DB-Tabelle leer ist
+if (empty($allRoleNames)) {
+    $allRoleNames = ['admin', 'editor', 'member'];
+}
+// Emoji-Mapping für Rollen-Anzeige
+$roleEmojis = ['admin' => '🔑', 'editor' => '✏️', 'member' => '👤', 'moderator' => '🛡️', 'contributor' => '✍️', 'viewer' => '👁️'];
 
 $csrfCreate = $security->generateToken('users_create');
 $csrfEdit   = $security->generateToken('users_edit');
@@ -302,9 +311,11 @@ if ($view === 'edit' && $editUserId > 0):
                 <div class="form-group">
                     <label class="form-label">Rolle</label>
                     <select name="role" class="form-control" <?php echo (int)$eu->id === $current_user_id ? 'disabled' : ''; ?>>
-                        <option value="member" <?php echo ($eu->role ?? '') === 'member' ? 'selected' : ''; ?>>👤 Member</option>
-                        <option value="editor" <?php echo ($eu->role ?? '') === 'editor' ? 'selected' : ''; ?>>✏️ Editor</option>
-                        <option value="admin"  <?php echo ($eu->role ?? '') === 'admin'  ? 'selected' : ''; ?>>🔑 Administrator</option>
+                        <?php foreach ($allDbRoles as $dbRole): ?>
+                        <option value="<?php echo htmlspecialchars($dbRole->name, ENT_QUOTES); ?>" <?php echo ($eu->role ?? '') === $dbRole->name ? 'selected' : ''; ?>>
+                            <?php echo $roleEmojis[$dbRole->name] ?? '🏷️'; ?> <?php echo htmlspecialchars($dbRole->display_name, ENT_QUOTES); ?>
+                        </option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="form-group">
@@ -421,9 +432,11 @@ elseif ($view === 'new'):
                 <div class="form-group">
                     <label class="form-label">Rolle</label>
                     <select name="role" class="form-control">
-                        <option value="member">👤 Member</option>
-                        <option value="editor">✏️ Editor</option>
-                        <option value="admin">🔑 Administrator</option>
+                        <?php foreach ($allDbRoles as $dbRole): ?>
+                        <option value="<?php echo htmlspecialchars($dbRole->name, ENT_QUOTES); ?>" <?php echo $dbRole->name === 'member' ? 'selected' : ''; ?>>
+                            <?php echo $roleEmojis[$dbRole->name] ?? '🏷️'; ?> <?php echo htmlspecialchars($dbRole->display_name, ENT_QUOTES); ?>
+                        </option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div style="margin-top:1rem;">
@@ -477,7 +490,16 @@ else:
 ?>
 
 <div class="tabs" style="margin-bottom:1.5rem;">
-    <?php foreach (['all' => 'Alle', 'admin' => 'Administratoren', 'member' => 'Members', 'editor' => 'Editoren', 'banned' => 'Gesperrt'] as $r => $lbl): ?>
+    <?php
+    // Dynamische Rollen-Tabs: Alle DB-Rollen + Gesperrt
+    $roleTabs = ['all' => 'Alle'];
+    foreach ($allDbRoles as $dbRole) {
+        $emoji = $roleEmojis[$dbRole->name] ?? '🏷️';
+        $roleTabs[$dbRole->name] = $emoji . ' ' . $dbRole->display_name;
+    }
+    $roleTabs['banned'] = '🚫 Gesperrt';
+    ?>
+    <?php foreach ($roleTabs as $r => $lbl): ?>
     <a href="<?php echo SITE_URL; ?>/admin/users?role=<?php echo $r; ?><?php echo $search ? '&search=' . urlencode($search) : ''; ?>"
        class="tab-btn <?php echo $roleFilter === $r ? 'active' : ''; ?>" style="text-decoration:none;">
         <?php echo $lbl; ?> <span class="nav-badge" style="margin-left:0.25rem; font-size:0.75rem;"><?php echo $roleCounts[$r] ?? 0; ?></span>
