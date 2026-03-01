@@ -47,10 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             'theme_marketplace_enabled' => isset($_POST['theme_marketplace_enabled']) ? '1' : '0',
             'theme_preview_mode'        => sanitize_input($_POST['theme_preview_mode'] ?? 'disabled', 'slug'),
             'theme_custom_css_global'   => isset($_POST['theme_custom_css_global']) ? '1' : '0',
-            'theme_editor_role'         => sanitize_input($_POST['theme_editor_role'] ?? 'admin', 'slug'),
-            'marketplace_source'        => sanitize_input($_POST['marketplace_source'] ?? 'official', 'text'),
-            'marketplace_api_url'       => filter_var($_POST['marketplace_api_url'] ?? '', FILTER_SANITIZE_URL),
-            'marketplace_license_key'   => sanitize_input($_POST['marketplace_license_key'] ?? '', 'text'),
+            'theme_editor_roles'        => implode(',', array_map(fn($r) => sanitize_input($r, 'slug'), (array)($_POST['theme_editor_roles'] ?? ['admin']))),
         ];
 
         try {
@@ -109,11 +106,11 @@ $current = [
     'theme_marketplace_enabled' => getThemeSetting($db, 'theme_marketplace_enabled', '0'),
     'theme_preview_mode'        => getThemeSetting($db, 'theme_preview_mode', 'disabled'),
     'theme_custom_css_global'   => getThemeSetting($db, 'theme_custom_css_global', '0'),
-    'theme_editor_role'         => getThemeSetting($db, 'theme_editor_role', 'admin'),
-    'marketplace_source'        => getThemeSetting($db, 'marketplace_source', 'official'),
-    'marketplace_api_url'       => getThemeSetting($db, 'marketplace_api_url', ''),
-    'marketplace_license_key'   => getThemeSetting($db, 'marketplace_license_key', ''),
+    'theme_editor_roles'        => getThemeSetting($db, 'theme_editor_roles', 'admin'),
 ];
+
+// Rollen als Array für Checkbox-Auswahl
+$selectedRoles = array_filter(explode(',', $current['theme_editor_roles']));
 
 // Alle Rollen aus der DB laden für Editor-Zugriff
 $allDbRoles = $db->get_results("SELECT name, display_name FROM {$db->getPrefix()}roles ORDER BY sort_order ASC, name ASC");
@@ -200,95 +197,23 @@ renderAdminLayoutStart('Theme-Einstellungen', 'theme-settings');
                     <div class="form-row">
                         <div>
                             <div class="form-label">Editor-Zugriff</div>
-                            <div class="form-hint">Minimale Rolle für den Design Editor</div>
+                            <div class="form-hint">Welche Rollen d&uuml;rfen den Design Editor nutzen?</div>
                         </div>
-                        <select name="theme_editor_role" class="form-select" style="max-width:200px;">
+                        <div style="display:flex;flex-wrap:wrap;gap:.75rem;">
                             <?php foreach ($editorRoleOptions as $v => $l): ?>
-                                <option value="<?php echo htmlspecialchars($v); ?>" <?php echo $current['theme_editor_role'] === $v ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($l); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                </div>
-            </div>
-
-            <!-- ── Marketplace-Einstellungen ─────────────────────────────── -->
-            <div class="settings-card">
-                <div class="sc-header">
-                    <span style="font-size:1.25rem;">🛍️</span>
-                    <div>
-                        <h3>Marketplace-Verbindung</h3>
-                        <p>API-Verbindung zum Theme &amp; Plugin Marketplace</p>
-                    </div>
-                </div>
-                <div class="sc-body">
-
-                    <div class="info-box-cs">
-                        <strong>⏳ Coming Soon</strong>
-                        Der Marketplace befindet sich in Entwicklung. Du kannst hier schon die API-Zugangsdaten
-                        vorbereiten. Mehr Infos im
-                        <a href="<?php echo SITE_URL; ?>/admin/docs/marketplace-konzept" style="color:#b45309;font-weight:600;" onclick="return false;">
-                            Marketplace-Konzept (Doku)
-                        </a>.
-                    </div>
-
-                    <div class="form-row">
-                        <div>
-                            <div class="form-label">Marketplace aktiv</div>
-                            <div class="form-hint">Marketplace-Features im Admin einblenden</div>
-                        </div>
-                        <div class="toggle-row">
-                            <label class="toggle-label">
-                                <input type="checkbox" name="theme_marketplace_enabled" value="1"
-                                    <?php echo $current['theme_marketplace_enabled'] === '1' ? 'checked' : ''; ?>>
-                                Marketplace-Bereich aktivieren
+                            <label class="toggle-label" style="min-width:140px;">
+                                <input type="checkbox" name="theme_editor_roles[]" value="<?php echo htmlspecialchars($v); ?>"
+                                    <?php echo in_array($v, $selectedRoles) ? 'checked' : ''; ?>>
+                                <?php echo htmlspecialchars($l); ?>
                             </label>
+                            <?php endforeach; ?>
                         </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div>
-                            <div class="form-label">Marketplace-Quelle</div>
-                            <div class="form-hint">Offiziell oder eigener Server</div>
-                        </div>
-                        <select name="marketplace_source" class="form-select" style="max-width:240px;">
-                            <option value="official" <?php echo $current['marketplace_source'] === 'official' ? 'selected' : ''; ?>>
-                                Offizieller 365CMS Marketplace
-                            </option>
-                            <option value="github" <?php echo $current['marketplace_source'] === 'github' ? 'selected' : ''; ?>>
-                                GitHub-basierter Marketplace
-                            </option>
-                            <option value="custom" <?php echo $current['marketplace_source'] === 'custom' ? 'selected' : ''; ?>>
-                                Eigener Webspace / Server
-                            </option>
-                        </select>
-                    </div>
-
-                    <div class="form-row">
-                        <div>
-                            <div class="form-label">Marketplace API-URL</div>
-                            <div class="form-hint">Nur für "GitHub" oder "Eigener Server"</div>
-                        </div>
-                        <input type="url" name="marketplace_api_url" class="form-input"
-                               placeholder="https://api.dein-marketplace.de/v1"
-                               value="<?php echo htmlspecialchars($current['marketplace_api_url'], ENT_QUOTES); ?>">
-                    </div>
-
-                    <div class="form-row">
-                        <div>
-                            <div class="form-label">Lizenzschlüssel</div>
-                            <div class="form-hint">Für Premium-Lizenzen &amp; Auto-Updates</div>
-                        </div>
-                        <input type="text" name="marketplace_license_key" class="form-input"
-                               placeholder="XXXX-XXXX-XXXX-XXXX"
-                               autocomplete="off"
-                               value="<?php echo htmlspecialchars($current['marketplace_license_key'], ENT_QUOTES); ?>">
                     </div>
 
                 </div>
             </div>
+
+            <!-- Marketplace-Einstellungen → Coming Soon, wird in Zukunft hier ergänzt -->
 
             <!-- ── Speichern ─────────────────────────────────────────────── -->
             <div style="display:flex;gap:1rem;align-items:center;">
