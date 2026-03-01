@@ -234,7 +234,7 @@ define('NONCE_KEY',       '{$data['nonce_key']}');
 define('SITE_NAME',   '{$data['site_name']}');
 define('SITE_URL',    '{$data['site_url']}');
 define('ADMIN_EMAIL', '{$data['admin_email']}');
-define('CMS_VERSION', '2.0.0');
+define('CMS_VERSION', '2.0.1');
 
 // ─── Pfade ─────────────────────────────────────────────────────────────────
 define('CORE_PATH',   ABSPATH . 'core/');
