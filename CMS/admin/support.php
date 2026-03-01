@@ -179,20 +179,8 @@ $activeIcon  = $areaConfig[$activeArea]['icon']   ?? '📁';
 $activeDesc  = $areaConfig[$activeArea]['desc']   ?? '';
 
 require_once __DIR__ . '/partials/admin-menu.php';
+renderAdminLayoutStart('Support & Dokumentation', 'support');
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Support & Docs – <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
-    <?php renderAdminSidebarStyles(); ?>
-</head>
-<body class="admin-body">
-
-    <?php renderAdminSidebar('support'); ?>
 
     <!-- Main Content -->
     <div class="admin-content">
@@ -362,5 +350,4 @@ require_once __DIR__ . '/partials/admin-menu.php';
 
     </div><!-- /.admin-content -->
 
-</body>
-</html>
+<?php renderAdminLayoutEnd(); ?>

@@ -95,22 +95,9 @@ $currentPage = 'updates';
 
 // Load admin menu (VOR DOCTYPE!)
 require_once __DIR__ . '/partials/admin-menu.php';
+renderAdminLayoutStart('System-Updates', $currentPage);
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Updates - <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
-    <?php renderAdminSidebarStyles(); ?>
-</head>
-<body class="admin-body">
-    
-    <?php renderAdminSidebar($currentPage); ?>
-    
-    <div class="admin-content">
+
         <div class="admin-page-header">
             <div>
                 <h2>🔄 System-Updates</h2>
@@ -260,9 +247,37 @@ require_once __DIR__ . '/partials/admin-menu.php';
     </div>
     
     <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
+
+    <!-- Update-Bestätigungsmodal -->
+    <div id="updateConfirmModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⬆️ CMS-Core aktualisieren</h3>
+                <button class="modal-close" onclick="document.getElementById('updateConfirmModal').style.display='none'">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Möchten Sie das CMS-Core jetzt aktualisieren?</p>
+                <div class="alert alert-error">⚠️ Bitte erstellen Sie vorher ein Backup!</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('updateConfirmModal').style.display='none'">Abbrechen</button>
+                <button type="button" class="btn btn-primary" id="updateConfirmBtn" onclick="executeUpdate()">⬆️ Jetzt aktualisieren</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-    async function startCoreUpdate(btn) {
-        if (!confirm('CMS-Core jetzt aktualisieren? Bitte erstellen Sie vorher ein Backup.')) return;
+    let pendingUpdateBtn = null;
+
+    function startCoreUpdate(btn) {
+        pendingUpdateBtn = btn;
+        document.getElementById('updateConfirmModal').style.display = 'flex';
+    }
+
+    async function executeUpdate() {
+        document.getElementById('updateConfirmModal').style.display = 'none';
+        const btn = pendingUpdateBtn;
+        if (!btn) return;
         const url     = btn.dataset.url;
         const sha256  = btn.dataset.sha256;
         const version = btn.dataset.version;
@@ -298,6 +313,13 @@ require_once __DIR__ . '/partials/admin-menu.php';
             btn.disabled = false;
         }
     }
+
+    // Modal schließen via Klick außerhalb oder Escape
+    document.getElementById('updateConfirmModal').addEventListener('click', function(e) {
+        if (e.target === this) this.style.display = 'none';
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') document.getElementById('updateConfirmModal').style.display = 'none';
+    });
     </script>
-</body>
-</html>
+<?php renderAdminLayoutEnd(); ?>

@@ -226,7 +226,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         </div>
                         <div class="info-row">
                             <span class="info-label">CMS Tabellen:</span>
-                            <span class="info-value"><?php echo $databaseStatus['cms_tables']; ?> / 22</span>
+                            <span class="info-value"><?php echo $databaseStatus['cms_tables']; ?></span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">Datenbank-Größe:</span>

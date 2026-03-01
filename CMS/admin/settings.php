@@ -47,7 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if ($_POST['action'] === 'save_settings') {
             try {
                 // H-24: Alle $_POST-Eingaben sanitieren vor Weiterverarbeitung
-                $allowedRoles = ['admin', 'editor', 'author', 'member', 'subscriber'];
+                // Rollen dynamisch aus DB laden
+                $dbRoleRows = $db->execute("SELECT name FROM {$db->getPrefix()}roles ORDER BY sort_order ASC")->fetchAll(\PDO::FETCH_COLUMN);
+                $allowedRoles = !empty($dbRoleRows) ? $dbRoleRows : ['admin', 'member'];
                 $allowedTimezones = \DateTimeZone::listIdentifiers();
                 $defaultRole = in_array($_POST['default_role'] ?? '', $allowedRoles, true)
                     ? $_POST['default_role']
