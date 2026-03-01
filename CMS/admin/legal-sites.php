@@ -45,32 +45,99 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_legal'])) {
         $owner    = sanitize_text_field($_POST['owner']);
         $registry = sanitize_text_field($_POST['registry']);
         $vat_id   = sanitize_text_field($_POST['vat_id']);
+        $website_name    = sanitize_text_field($_POST['website_name'] ?? '');
+        $registry_court  = sanitize_text_field($_POST['registry_court'] ?? '');
+        $domains_raw     = sanitize_text_field($_POST['connected_domains'] ?? '');
+        $privacy_officer = sanitize_text_field($_POST['privacy_officer'] ?? '');
+        $privacy_officer_address = sanitize_text_field($_POST['privacy_officer_address'] ?? '');
+        $privacy_officer_email   = sanitize_email($_POST['privacy_officer_email'] ?? '');
 
         // 1. Generate Impressum (§ 5 DDG / ehem. TMG, § 18 MStV)
-        $impressumContent  = "<h2>Angaben gemäß § 5 DDG</h2>";
-        $impressumContent .= "<p><strong>{$company}</strong><br>{$address}</p>";
-        $impressumContent .= "<h3>Kontakt</h3>";
-        $impressumContent .= "<p>Telefon: {$phone}<br>E-Mail: <a href=\"mailto:{$email}\">{$email}</a></p>";
-        if ($registry) {
-            $impressumContent .= "<h3>Registereintrag</h3>";
-            $impressumContent .= "<p>Eintragung im Handelsregister.<br>Registergericht: Amtsgericht<br>Registernummer: {$registry}</p>";
+        $impressumContent = '';
+
+        // Optionaler Einleitungssatz
+        if (!empty($website_name)) {
+            $impressumContent .= "<p><strong>{$website_name}</strong></p>\n";
         }
-        if ($vat_id) {
-            $impressumContent .= "<h3>Umsatzsteuer-ID</h3>";
-            $impressumContent .= "<p>Umsatzsteuer-Identifikationsnummer gemäß § 27 a Umsatzsteuergesetz:<br>{$vat_id}</p>";
+
+        $impressumContent .= "<h2>Angaben gem&auml;&szlig; &sect; 5 DDG</h2>\n";
+        $impressumContent .= "<p><strong>{$company}</strong><br>{$address}</p>\n";
+
+        $impressumContent .= "<h3>Kontakt</h3>\n";
+        $contactParts = [];
+        if (!empty($phone)) {
+            $contactParts[] = "Telefon: {$phone}";
         }
-        if ($owner) {
-            $impressumContent .= "<h3>Vertretungsberechtigte Person</h3>";
-            $impressumContent .= "<p>{$owner}</p>";
-            $impressumContent .= "<h3>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h3>";
-            $impressumContent .= "<p>{$owner}<br>{$address}</p>";
+        $contactParts[] = "E-Mail: <a href=\"mailto:{$email}\">{$email}</a>";
+        $impressumContent .= '<p>' . implode('<br>', $contactParts) . "</p>\n";
+
+        if (!empty($registry)) {
+            $impressumContent .= "<h3>Registereintrag</h3>\n";
+            $impressumContent .= '<p>Eintragung im Handelsregister.<br>';
+            if (!empty($registry_court)) {
+                $impressumContent .= "Registergericht: {$registry_court}<br>";
+            }
+            $impressumContent .= "Registernummer: {$registry}</p>\n";
         }
-        $impressumContent .= "<h3>EU-Streitschlichtung</h3>";
-        $impressumContent .= "<p>Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit: ";
-        $impressumContent .= "<a href=\"https://ec.europa.eu/consumers/odr/\" target=\"_blank\" rel=\"noopener noreferrer\">https://ec.europa.eu/consumers/odr/</a>.<br>";
-        $impressumContent .= "Unsere E-Mail-Adresse finden Sie oben im Impressum.</p>";
-        $impressumContent .= "<h3>Verbraucherstreitbeilegung / Universalschlichtungsstelle</h3>";
-        $impressumContent .= "<p>Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.</p>";
+
+        if (!empty($vat_id)) {
+            $impressumContent .= "<h3>Umsatzsteuer-ID</h3>\n";
+            $impressumContent .= "<p>Umsatzsteuer-Identifikationsnummer gem&auml;&szlig; &sect; 27 a Umsatzsteuergesetz:<br>{$vat_id}</p>\n";
+        }
+
+        if (!empty($owner)) {
+            $impressumContent .= "<h3>Vertretungsberechtigte Person</h3>\n";
+            $impressumContent .= "<p>{$owner}</p>\n";
+            $impressumContent .= "<h3>Verantwortlich f&uuml;r den Inhalt nach &sect; 18 Abs. 2 MStV</h3>\n";
+            $impressumContent .= "<p>{$owner}<br>{$address}</p>\n";
+        }
+
+        // Datenschutzbeauftragter (optional)
+        if (!empty($privacy_officer)) {
+            $impressumContent .= "<h3>Datenschutzbeauftragter</h3>\n";
+            $dpoInfo = "<p>{$privacy_officer}";
+            if (!empty($privacy_officer_address)) {
+                $dpoInfo .= "<br>{$privacy_officer_address}";
+            }
+            if (!empty($privacy_officer_email)) {
+                $dpoInfo .= "<br>E-Mail: <a href=\"mailto:{$privacy_officer_email}\">{$privacy_officer_email}</a>";
+            }
+            $dpoInfo .= "</p>\n";
+            $impressumContent .= $dpoInfo;
+        }
+
+        // Verbundene Domains
+        if (!empty($domains_raw)) {
+            $domains = array_filter(array_map('trim', preg_split('/[\n,;]+/', $domains_raw)));
+            if (!empty($domains)) {
+                $impressumContent .= "<h3>Mit diesem Impressum verbundene Domains</h3>\n<ul>\n";
+                foreach ($domains as $domain) {
+                    $impressumContent .= '<li>' . htmlspecialchars($domain) . "</li>\n";
+                }
+                $impressumContent .= "</ul>\n";
+            }
+        }
+
+        $impressumContent .= "<h3>EU-Streitschlichtung</h3>\n";
+        $impressumContent .= '<p>Die Europ&auml;ische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit: ';
+        $impressumContent .= '<a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noopener noreferrer">https://ec.europa.eu/consumers/odr/</a>.<br>';
+        $impressumContent .= "Unsere E-Mail-Adresse finden Sie oben im Impressum.</p>\n";
+        $impressumContent .= "<h3>Verbraucherstreitbeilegung / Universalschlichtungsstelle</h3>\n";
+        $impressumContent .= "<p>Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.</p>\n";
+
+        // Haftungsausschluss
+        $impressumContent .= "<h3>Haftung f&uuml;r Inhalte</h3>\n";
+        $impressumContent .= '<p>Wir entwickeln die Inhalte dieser Website st&auml;ndig weiter und bem&uuml;hen uns, korrekte und aktuelle Informationen bereitzustellen. Leider k&ouml;nnen wir keine Haftung f&uuml;r die Korrektheit aller Inhalte auf dieser Website &uuml;bernehmen, speziell f&uuml;r jene, die seitens Dritter bereitgestellt wurden. Als Diensteanbieter sind wir nicht verpflichtet, die von Ihnen &uuml;bermittelten oder gespeicherten Informationen zu &uuml;berwachen oder nach Umst&auml;nden zu forschen, die auf eine rechtswidrige T&auml;tigkeit hinweisen.</p>';
+        $impressumContent .= "\n<p>Unsere Verpflichtungen zur Entfernung von Informationen oder zur Sperrung der Nutzung von Informationen nach den allgemeinen Gesetzen aufgrund von gerichtlichen oder beh&ouml;rdlichen Anordnungen bleiben auch im Falle unserer Nichtverantwortlichkeit davon unber&uuml;hrt.</p>\n";
+        $impressumContent .= "<p>Sollten Ihnen problematische oder rechtswidrige Inhalte auffallen, bitten wir Sie, uns umgehend zu kontaktieren, damit wir die rechtswidrigen Inhalte entfernen k&ouml;nnen. Sie finden die Kontaktdaten im Impressum.</p>\n";
+
+        $impressumContent .= "<h3>Haftung f&uuml;r Links</h3>\n";
+        $impressumContent .= '<p>Unsere Website enth&auml;lt Links zu anderen Websites, f&uuml;r deren Inhalt wir nicht verantwortlich sind. Haftung f&uuml;r verlinkte Websites besteht f&uuml;r uns nicht, da wir keine Kenntnis rechtswidriger T&auml;tigkeiten hatten und haben, uns solche Rechtswidrigkeiten auch bisher nicht aufgefallen sind und wir Links sofort entfernen w&uuml;rden, wenn uns Rechtswidrigkeiten bekannt werden.</p>';
+        $impressumContent .= "\n<p>Wenn Ihnen rechtswidrige Links auf unserer Website auffallen, bitten wir Sie, uns zu kontaktieren. Sie finden die Kontaktdaten im Impressum.</p>\n";
+
+        $impressumContent .= "<h3>Urheberrechtshinweis</h3>\n";
+        $impressumContent .= '<p>Alle Inhalte dieser Webseite (Bilder, Fotos, Texte, Videos) unterliegen dem Urheberrecht. Bitte fragen Sie uns, bevor Sie die Inhalte dieser Website verbreiten, vervielf&auml;ltigen oder verwerten wie zum Beispiel auf anderen Websites erneut ver&ouml;ffentlichen. Falls notwendig, werden wir die unerlaubte Nutzung von Teilen der Inhalte unserer Seite rechtlich verfolgen.</p>';
+        $impressumContent .= "\n<p>Sollten Sie auf dieser Webseite Inhalte finden, die das Urheberrecht verletzen, bitten wir Sie, uns zu kontaktieren.</p>\n";
 
         // Save Impressum → pages table
         $existingImp = $db->fetchOne("SELECT id FROM {$db->getPrefix()}pages WHERE slug = 'impressum'");
@@ -297,6 +364,12 @@ renderAdminLayoutStart('Rechtstexte Generator', 'legal-sites');
         </div>
 
         <div class="form-group">
+            <label class="form-label">Website-Name</label>
+            <input type="text" name="website_name" class="form-control" placeholder="z. B. MeinBlog.de oder Firmenwebsite">
+            <small class="form-text">Wird als Einleitung im Impressum angezeigt (optional).</small>
+        </div>
+
+        <div class="form-group">
             <label class="form-label">Anschrift (Straße, PLZ, Ort) <span style="color:#ef4444;">*</span></label>
             <input type="text" name="address" class="form-control"
                    required placeholder="Musterstraße 1, 12345 Musterstadt">
@@ -321,14 +394,49 @@ renderAdminLayoutStart('Rechtstexte Generator', 'legal-sites');
 
         <div class="form-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem;">
              <div class="form-group">
-                <label class="form-label">Handelsregister (Optional)</label>
+                <label class="form-label">Handelsregister-Nr. (Optional)</label>
                 <input type="text" name="registry" class="form-control" placeholder="HRB 12345">
             </div>
              <div class="form-group">
-                <label class="form-label">USt-IdNr. (Optional)</label>
-                <input type="text" name="vat_id" class="form-control" placeholder="DE123456789">
+                <label class="form-label">Registergericht (Optional)</label>
+                <input type="text" name="registry_court" class="form-control" placeholder="Amtsgericht Musterstadt">
             </div>
         </div>
+
+        <div class="form-group">
+            <label class="form-label">USt-IdNr. (Optional)</label>
+            <input type="text" name="vat_id" class="form-control" placeholder="DE123456789" style="max-width:320px;">
+        </div>
+
+        <h3>🌐 Weitere Angaben</h3>
+
+        <div class="form-group">
+            <label class="form-label">Verbundene Domains (Optional)</label>
+            <textarea name="connected_domains" class="form-control" rows="3" placeholder="z. B. meinshop.de&#10;meineapp.com"
+                      style="resize:vertical;min-height:80px;"></textarea>
+            <small class="form-text">Eine Domain pro Zeile. Diese Domains teilen sich das gleiche Impressum.</small>
+        </div>
+
+        <h3>🛡️ Datenschutzbeauftragter (Optional)</h3>
+        <small class="form-text" style="display:block;margin-bottom:1rem;">Nur ausfüllen, wenn ein externer oder interner Datenschutzbeauftragter bestellt wurde.</small>
+
+        <div class="form-group">
+            <label class="form-label">Name des Datenschutzbeauftragten</label>
+            <input type="text" name="privacy_officer" class="form-control" placeholder="Dr. Erika Muster">
+        </div>
+
+        <div class="form-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem;">
+            <div class="form-group">
+                <label class="form-label">Anschrift (DSB)</label>
+                <input type="text" name="privacy_officer_address" class="form-control" placeholder="Datenschutzstraße 1, 12345 Musterstadt">
+            </div>
+            <div class="form-group">
+                <label class="form-label">E-Mail (DSB)</label>
+                <input type="email" name="privacy_officer_email" class="form-control" placeholder="dsb@example.de">
+            </div>
+        </div>
+
+        <h3>⚙️ Optionen</h3>
 
         <div class="form-group">
              <label class="checkbox-label" style="display:flex; align-items:center; gap:0.5rem; font-weight:bold;">

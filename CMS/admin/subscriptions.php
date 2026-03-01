@@ -616,6 +616,52 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                 </form>
             </div>
 
+            <!-- Aktive Benutzer-Abos (Kurzliste) -->
+            <?php
+            $assignedSubs = $db->query("
+                SELECT us.*, sp.name as plan_name, u.username, u.email
+                FROM {$db->getPrefix()}user_subscriptions us
+                JOIN {$db->getPrefix()}subscription_plans sp ON us.plan_id = sp.id
+                JOIN {$db->getPrefix()}users u ON us.user_id = u.id
+                WHERE us.status = 'active'
+                ORDER BY us.created_at DESC
+            ")->fetchAll();
+            ?>
+            <div class="admin-card" style="margin-bottom:1.5rem;">
+                <h3>📋 Aktive Benutzer-Abos <span class="plc-count-badge"><?php echo count($assignedSubs); ?></span></h3>
+                <?php if (empty($assignedSubs)): ?>
+                    <div class="empty-state">
+                        <p style="font-size:2.5rem;margin:0;">💭</p>
+                        <p><strong>Noch keine aktiven Abos vorhanden.</strong></p>
+                        <p class="text-muted">Weise oben einem Benutzer ein Abo-Paket zu.</p>
+                    </div>
+                <?php else: ?>
+                <div class="users-table-container">
+                    <table class="users-table">
+                        <thead><tr>
+                            <th>Benutzer</th>
+                            <th>Paket</th>
+                            <th>Zyklus</th>
+                            <th>Seit</th>
+                        </tr></thead>
+                        <tbody>
+                        <?php foreach ($assignedSubs as $sub): ?>
+                        <tr>
+                            <td>
+                                <span style="font-weight:600;"><?php echo htmlspecialchars($sub->username); ?></span>
+                                <div style="font-size:.78rem;color:#94a3b8;"><?php echo htmlspecialchars($sub->email); ?></div>
+                            </td>
+                            <td><span class="sub-feat-badge" style="background:#dbeafe;color:#1e40af;">📦 <?php echo htmlspecialchars($sub->plan_name); ?></span></td>
+                            <td><?php echo ucfirst($sub->billing_cycle); ?></td>
+                            <td style="font-size:.85rem;color:#64748b;"><?php echo date('d.m.Y', strtotime($sub->created_at)); ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php endif; ?>
+            </div>
+
             <!-- Gruppen-Zuweisungen -->
             <div class="admin-card">
                 <h3>🫂 Gruppen-Paketzuweisung</h3>
