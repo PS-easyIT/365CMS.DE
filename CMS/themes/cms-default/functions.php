@@ -50,11 +50,6 @@ class MeridianCMSDefaultTheme
 
         // Standard-Menü beim ersten Start
         \CMS\Hooks::addAction('cms_init', [$this, 'seedDefaultMenus']);
-
-        // Table of Contents Engine frühzeitig initialisieren
-        \CMS\Hooks::addAction('cms_init', static function (): void {
-            \CMS\TableOfContents::instance();
-        }, 5);
     }
 
     // ─── Preconnect / Performance ───────────────────────────────────────────
@@ -118,43 +113,11 @@ class MeridianCMSDefaultTheme
             }
 
             $googleMap = [
-                // ── cms-default Kern ──────────────────────────────────────────
-                'dm-sans'             => 'DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400',
-                'libre-baskerville'   => 'Libre+Baskerville:ital,wght@0,400;0,700;1,400',
-                // ── Serifenlose ───────────────────────────────────────────────
-                'inter'               => 'Inter:wght@300;400;500;600;700;800',
-                'roboto'              => 'Roboto:ital,wght@0,300;0,400;0,500;0,700;1,400',
-                'open-sans'           => 'Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,400',
-                'lato'                => 'Lato:ital,wght@0,300;0,400;0,700;1,400',
-                'montserrat'          => 'Montserrat:ital,wght@0,400;0,500;0,600;0,700;1,400',
-                'poppins'             => 'Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400',
-                'raleway'             => 'Raleway:ital,wght@0,400;0,600;0,700;1,400',
-                'nunito'              => 'Nunito:ital,wght@0,300;0,400;0,600;0,700;1,400',
-                'nunito-sans'         => 'Nunito+Sans:ital,wght@0,300;0,400;0,600;0,700;1,400',
-                'figtree'             => 'Figtree:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400',
-                'outfit'              => 'Outfit:wght@300;400;500;600;700',
-                'plus-jakarta-sans'   => 'Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400',
-                'manrope'             => 'Manrope:wght@300;400;500;600;700;800',
-                'work-sans'           => 'Work+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400',
-                'space-grotesk'       => 'Space+Grotesk:wght@300;400;500;600;700',
-                'urbanist'            => 'Urbanist:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400',
-                // ── Serifenschriften ──────────────────────────────────────────
-                'playfair-display'    => 'Playfair+Display:ital,wght@0,400;0,600;0,700;1,400',
-                'merriweather'        => 'Merriweather:ital,wght@0,300;0,400;0,700;1,400',
-                'lora'                => 'Lora:ital,wght@0,400;0,500;0,600;0,700;1,400',
-                'source-serif-4'      => 'Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400',
-                'spectral'            => 'Spectral:ital,wght@0,300;0,400;0,600;0,700;1,400',
-                'eb-garamond'         => 'EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400',
-                'cormorant-garamond'  => 'Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400',
-                'bitter'              => 'Bitter:ital,wght@0,300;0,400;0,600;0,700;1,400',
-                'crimson-text'        => 'Crimson+Text:ital,wght@0,400;0,600;0,700;1,400',
-                'pt-serif'            => 'PT+Serif:ital,wght@0,400;0,700;1,400',
-                'noto-serif'          => 'Noto+Serif:ital,wght@0,400;0,600;0,700;1,400',
-                'source-sans-3'       => 'Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400',
-                // ── Monospace ──────────────────────────────────────────────
-                'jetbrains-mono'      => 'JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400',
-                'fira-code'           => 'Fira+Code:wght@400;500;600;700',
-                'ibm-plex-mono'       => 'IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400',
+                'dm-sans'           => 'DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400',
+                'libre-baskerville' => 'Libre+Baskerville:ital,wght@0,400;0,700;1,400',
+                'inter'             => 'Inter:wght@400;500;600;700',
+                'playfair-display'  => 'Playfair+Display:ital,wght@0,400;0,700;1,400',
+                'merriweather'      => 'Merriweather:ital,wght@0,400;0,700;1,400',
             ];
 
             $families = [];
@@ -246,9 +209,6 @@ class MeridianCMSDefaultTheme
             $h1Size        = max(18, (int)$c->get('typography', 'h1_size', 38));
             $h2Size        = max(14, (int)$c->get('typography', 'h2_size', 28));
             $h3Size        = max(12, (int)$c->get('typography', 'h3_size', 22));
-
-            // ── Blog ──────────────────────────────────────────────────────────
-            $postColumnBorder = (string)$c->get('blog', 'post_column_border_color', '#e2e0d8');
 
             // ── Navigation ────────────────────────────────────────────────────
             $navFontSize   = max(11, (int)$c->get('navigation', 'nav_font_size',     14));
@@ -346,15 +306,10 @@ class MeridianCMSDefaultTheme
 
             // ── Navigation ────────────────────────────────────────────────────
             $navTransform = $navUppercase ? 'uppercase' : 'none';
-            echo '.primary-nav a, .primary-nav .nav-group a { font-size:' . $navFontSize . 'px; text-transform:' . $navTransform . '; letter-spacing:' . $esc($navLetterSp) . "; }\n";
+            echo '.main-nav a, .nav-link { font-size:' . $navFontSize . 'px; text-transform:' . $navTransform . '; letter-spacing:' . $esc($navLetterSp) . "; }\n";
             echo '.category-bar { background:' . $esc($catBarBg) . "; }\n";
             echo '.category-bar a, .category-bar .cat-label { color:' . $esc($catBarText) . "; }\n";
             echo '.category-bar a:hover, .category-bar a.active { color:' . $esc($accent) . "; }\n";
-
-            // ── Blog-Artikel ─────────────────────────────────────────────────
-            $postColumnBorder = $postColumnBorder ?: '#e2e0d8';
-            echo '.post-column { border-left-color:' . $esc($postColumnBorder) . '; border-right-color:' . $esc($postColumnBorder) . "; }\n";
-            echo '.view-post { border-top-color:' . $esc($postColumnBorder) . '; border-bottom-color:' . $esc($postColumnBorder) . "; }\n";
 
             // ── Karten & Grid ─────────────────────────────────────────────────
             echo '.card-grid, .articles-grid, .dashboard-grid { gap:' . $cardGap . "px; }\n";
@@ -495,13 +450,10 @@ HTML;
 
     public function registerMenuLocations(array $locations): array
     {
-        $locations[] = ['slug' => 'primary',     'label' => 'Hauptmenü (Header)'];
-        $locations[] = ['slug' => 'secondary',   'label' => 'Sekundäres Menü (unter Header)'];
-        $locations[] = ['slug' => 'mobile',      'label' => 'Mobiles Menü'];
-        $locations[] = ['slug' => 'footer_col1', 'label' => 'Footer Menü – Karte 1'];
-        $locations[] = ['slug' => 'footer_col2', 'label' => 'Footer Menü – Karte 2'];
-        $locations[] = ['slug' => 'footer_col3', 'label' => 'Footer Menü – Karte 3'];
-        $locations[] = ['slug' => 'footer',      'label' => 'Footer-Navigation (Copyright-Leiste)'];
+        $locations[] = ['slug' => 'primary', 'label' => 'Hauptmenü (Header)'];
+        $locations[] = ['slug' => 'secondary', 'label' => 'Sekundäres Menü (unter Header)'];
+        $locations[] = ['slug' => 'mobile',  'label' => 'Mobiles Menü'];
+        $locations[] = ['slug' => 'footer',  'label' => 'Footer-Navigation'];
         return $locations;
     }
 
@@ -518,20 +470,6 @@ HTML;
                 ['label' => 'Startseite',  'url' => '/',          'target' => '_self'],
                 ['label' => 'Blog',        'url' => '/blog',      'target' => '_self'],
                 ['label' => 'Anmelden',    'url' => '/login',     'target' => '_self'],
-            ],
-            'footer_col1' => [
-                ['label' => 'Blog',        'url' => '/blog',      'target' => '_self'],
-                ['label' => 'Kategorien',  'url' => '/blog',      'target' => '_self'],
-            ],
-            'footer_col2' => [
-                ['label' => 'Suche',       'url' => '/search',    'target' => '_self'],
-                ['label' => 'Newsletter',  'url' => '/register',  'target' => '_self'],
-            ],
-            'footer_col3' => [
-                ['label' => 'Über uns',    'url' => '/about',     'target' => '_self'],
-                ['label' => 'Kontakt',     'url' => '/contact',   'target' => '_self'],
-                ['label' => 'Impressum',   'url' => '/impressum', 'target' => '_self'],
-                ['label' => 'Datenschutz', 'url' => '/datenschutz', 'target' => '_self'],
             ],
             'footer'  => [
                 ['label' => 'Impressum',   'url' => '/impressum',   'target' => '_self'],
@@ -780,7 +718,7 @@ function meridian_get_categories(int $limit = 0): array
             $sql .= ' LIMIT ' . $limit;
         }
         $cats = $db->get_results($sql);
-        return $cats ? (array)$cats : [];
+        return $cats ? array_map(fn($c) => (array)$c, $cats) : [];
     } catch (\Throwable $e) {
         return [];
     }

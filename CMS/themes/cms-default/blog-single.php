@@ -37,11 +37,6 @@ $showRelated  = (bool) meridian_setting('blog', 'show_related_posts', true);
 $showComments = (bool) meridian_setting('blog', 'show_comments', true);
 $showViews    = (bool) meridian_setting('blog', 'show_views', false);
 
-// TOC verarbeiten: Anker-IDs in Content einfügen + TOC-HTML erzeugen
-$tocResult = \CMS\TableOfContents::instance()->process($pContent, 'post', (int)($post->id ?? 0));
-$pContent  = $tocResult['content'];
-$pToc      = $tocResult['toc'];  // leer wenn [cms_toc]-Shortcode genutzt oder Auto-Insert deaktiviert
-
 // Verwandte Posts: korrekte Signatur (categoryId, excludeId, limit)
 $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
     ? meridian_get_related_posts((int)($post->category_id ?? 0), (int)($post->id ?? 0), 3)
@@ -50,10 +45,19 @@ $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
 
 <div class="view-post" style="display:block;">
 
-  <div class="post-column">
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-bar">
+    <div class="breadcrumb-inner">
+      <a href="<?php echo SITE_URL; ?>/">Startseite</a><span class="sep">›</span>
+      <a href="<?php echo SITE_URL; ?>/blog">Blog</a><span class="sep">›</span>
+      <a href="<?php echo SITE_URL; ?>/blog?category=<?php echo urlencode($pCatSlug); ?>"><?php echo htmlspecialchars($pCat); ?></a><span class="sep">›</span>
+      <span class="cur"><?php echo $pTitle; ?></span>
+    </div>
+  </div>
 
   <!-- Post Header -->
   <div class="post-header">
+    <div class="p-cat"><?php echo htmlspecialchars($pCat); ?></div>
     <h1><?php echo $pTitle; ?></h1>
     <?php if ($pExcerpt): ?>
     <p class="p-intro"><?php echo $pExcerpt; ?></p>
@@ -67,8 +71,6 @@ $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
         </div>
       </div>
       <span style="color:var(--ink-ghost);font-size:.7rem;">·</span>
-      <a href="<?php echo SITE_URL; ?>/blog?category=<?php echo urlencode($pCatSlug); ?>" class="p-meta-cat"><?php echo htmlspecialchars($pCat); ?></a>
-      <span style="color:var(--ink-ghost);font-size:.7rem;">·</span>
       <time style="font-size:.78rem;color:var(--ink-muted);"><?php echo $pDate; ?></time>
       <span style="color:var(--ink-ghost);font-size:.7rem;">·</span>
       <span style="font-size:.78rem;color:var(--ink-ghost);"><?php echo $pRead; ?> Lesezeit</span>
@@ -81,9 +83,6 @@ $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
   </div>
 
   <!-- Post Body -->
-  <?php if ($pToc !== ''): ?>
-  <div class="cms-toc-wrap"><?php echo $pToc; ?></div>
-  <?php endif; ?>
   <div class="post-body">
     <?php echo $pContent; // Content is trusted ?>
   </div>
@@ -112,8 +111,6 @@ $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
       </div>
     </div>
   </div>
-
-  </div><!-- /.post-column -->
 
   <!-- Verwandte Artikel -->
   <?php if ($showRelated && !empty($relatedPosts)): ?>

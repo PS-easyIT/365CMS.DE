@@ -11,9 +11,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-if (!headers_sent()) {
-    http_response_code(404);
-}
+http_response_code(404);
 
 $recentPosts = meridian_get_recent_posts(3);
 ?>
@@ -38,7 +36,7 @@ $recentPosts = meridian_get_recent_posts(3);
     <section class="error-suggestions">
         <h2 class="section-label" style="text-align:center;margin-bottom:1.5rem;">Aktuelle Artikel</h2>
         <div class="card-grid">
-            <?php foreach ($recentPosts as $post): $post = (array)$post; ?>
+            <?php foreach ($recentPosts as $post): ?>
             <article class="card">
                 <?php if (!empty($post['featured_image'])): ?>
                 <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post['slug']); ?>" class="card-img">

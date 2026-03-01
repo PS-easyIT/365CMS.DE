@@ -340,14 +340,10 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
             </p>
             <?php endif; ?>
 
-            <?php
-            // Beschreibung ist HTML (SunEditor) – echte Leere erkennen
-            $lpDescPlain = trim(strip_tags($lpDesc ?? ''));
-            if ($lpDescPlain && $lpDescPlain !== strip_tags($lpTitle) && $lpDescPlain !== strip_tags($lpSubtitle)):
-            ?>
-            <div style="color:var(--lp-text);opacity:.75;max-width:680px;margin:0 auto <?php echo $lpIsCompact ? '1rem' : '1.5rem';?>;font-size:<?php echo $lpIsCompact ? '.95rem' : '1rem';?>;line-height:1.6;">
-                <?php echo $lpDesc; // HTML aus DB – bereits bei Eingabe sanitiert ?>
-            </div>
+            <?php if ($lpDesc && $lpDesc !== $lpTitle && $lpDesc !== $lpSubtitle): ?>
+            <p style="color:var(--lp-text);opacity:.75;max-width:680px;margin:0 auto <?php echo $lpIsCompact ? '1rem' : '1.5rem';?>;font-size:<?php echo $lpIsCompact ? '.95rem' : '1rem';?>;">
+                <?php echo $safe($lpDesc); ?>
+            </p>
             <?php endif; ?>
 
             <?php if (!empty($lpBtns)): ?>

@@ -8,13 +8,10 @@
   "supports": ["custom-logo", "sticky-header", "custom-css", "categories"],
 
   "menus": {
-    "primary":    "Hauptmenü (Header)",
-    "secondary":  "Sekundäres Menü (unter Header)",
-    "mobile":     "Mobiles Menü (Hamburger)",
-    "footer_col1": "Footer Menü – Karte 1",
-    "footer_col2": "Footer Menü – Karte 2",
-    "footer_col3": "Footer Menü – Karte 3",
-    "footer":     "Footer-Navigation (Copyright-Leiste)"
+    "primary":   "Hauptmenü (Header)",
+    "secondary": "Sekundäres Menü (unter Header)",
+    "mobile":    "Mobiles Menü (Hamburger)",
+    "footer":    "Footer-Navigation"
   },
 
   "templates": {
@@ -399,18 +396,6 @@
       "label": "Footer",
       "description": "Footer-Inhalt, Spalten, Social Icons und Copyright.",
       "settings": {
-        "footer_brand_title_enabled": {
-          "label": "Websitetitel (Brand-Spalte) anzeigen",
-          "type": "checkbox",
-          "default": true,
-          "description": "Blendet den Websitetitel/Wordmark unter dem Footer-Logo ein/aus. Wenn beide Optionen (Titel + Beschreibung) deaktiviert sind, wird die Brand-Spalte automatisch schmaler."
-        },
-        "footer_brand_desc_enabled": {
-          "label": "Beschreibungstext (Brand-Spalte) anzeigen",
-          "type": "checkbox",
-          "default": true,
-          "description": "Blendet den Beschreibungstext unter dem Logo ein/aus. Deaktiviert wird die Brand-Spalte automatisch schmaler (1fr statt 2fr)."
-        },
         "footer_description": {
           "label": "Footer-Beschreibung",
           "type": "textarea",
@@ -434,24 +419,6 @@
           "type": "text",
           "default": "Über",
           "description": "Überschrift der dritten Linksspalte im Footer"
-        },
-        "footer_col1_enabled": {
-          "label": "Footer Menü Karte 1 anzeigen",
-          "type": "checkbox",
-          "default": true,
-          "description": "Footer-Karte 1 (Menü-Spalte) ein-/ausblenden"
-        },
-        "footer_col2_enabled": {
-          "label": "Footer Menü Karte 2 anzeigen",
-          "type": "checkbox",
-          "default": true,
-          "description": "Footer-Karte 2 (Menü-Spalte) ein-/ausblenden"
-        },
-        "footer_col3_enabled": {
-          "label": "Footer Menü Karte 3 anzeigen",
-          "type": "checkbox",
-          "default": true,
-          "description": "Footer-Karte 3 (Menü-Spalte) ein-/ausblenden"
         },
         "footer_bg_color": {
           "label": "Footer Hintergrundfarbe",
@@ -556,12 +523,8 @@
           "label": "Verwandte Artikel anzeigen",
           "type": "checkbox",
           "default": true,
-          "description": "Ähnliche Artikel am Ende eines Blog-Posts zeigen"        },
-        "post_column_border_color": {
-          "label": "Content-Randfarbe",
-          "type": "color",
-          "default": "#e2e0d8",
-          "description": "Farbe der linken und rechten F\u00fchrungslinie neben dem Beitragstext"        }
+          "description": "Ähnliche Artikel am Ende eines Blog-Posts zeigen"
+        }
       }
     },
 
