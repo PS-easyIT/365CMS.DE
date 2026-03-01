@@ -24,22 +24,8 @@ if (!Auth::instance()->isAdmin()) {
 }
 
 require_once __DIR__ . '/partials/admin-menu.php';
+renderAdminLayoutStart('Theme Marketplace', 'theme-marketplace');
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Theme Marketplace – <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
-    <?php renderAdminSidebarStyles(); ?>
-</head>
-<body class="admin-body">
-
-    <?php renderAdminSidebar('theme-marketplace'); ?>
-
-    <div class="admin-content">
 
         <!-- Page Header -->
         <div class="admin-page-header">
@@ -131,5 +117,4 @@ require_once __DIR__ . '/partials/admin-menu.php';
 
     </div><!-- /.admin-content -->
 
-</body>
-</html>
+<?php renderAdminLayoutEnd(); ?>

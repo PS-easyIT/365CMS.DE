@@ -115,25 +115,18 @@ $current = [
     'marketplace_license_key'   => getThemeSetting($db, 'marketplace_license_key', ''),
 ];
 
+// Alle Rollen aus der DB laden für Editor-Zugriff
+$allDbRoles = $db->get_results("SELECT name, display_name FROM {$db->getPrefix()}roles ORDER BY sort_order ASC, name ASC");
+$editorRoleOptions = [];
+foreach ($allDbRoles as $role) {
+    $editorRoleOptions[$role->name] = $role->display_name ?: ucfirst($role->name);
+}
+
 $csrfToken = $security->generateToken('theme_settings');
 
 require_once __DIR__ . '/partials/admin-menu.php';
+renderAdminLayoutStart('Theme-Einstellungen', 'theme-settings');
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Theme-Einstellungen – <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
-    <?php renderAdminSidebarStyles(); ?>
-</head>
-<body class="admin-body">
-
-    <?php renderAdminSidebar('theme-settings'); ?>
-
-    <div class="admin-content">
 
         <div class="admin-page-header">
             <h2>⚙️ Theme-Einstellungen</h2>
@@ -210,8 +203,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
                             <div class="form-hint">Minimale Rolle für den Design Editor</div>
                         </div>
                         <select name="theme_editor_role" class="form-select" style="max-width:200px;">
-                            <?php foreach (['admin' => 'Administrator', 'editor' => 'Redakteur'] as $v => $l): ?>
-                                <option value="<?php echo $v; ?>" <?php echo $current['theme_editor_role'] === $v ? 'selected' : ''; ?>>
+                            <?php foreach ($editorRoleOptions as $v => $l): ?>
+                                <option value="<?php echo htmlspecialchars($v); ?>" <?php echo $current['theme_editor_role'] === $v ? 'selected' : ''; ?>>
                                     <?php echo htmlspecialchars($l); ?>
                                 </option>
                             <?php endforeach; ?>
@@ -309,5 +302,4 @@ require_once __DIR__ . '/partials/admin-menu.php';
 
     </div><!-- /.admin-content -->
 
-</body>
-</html>
+<?php renderAdminLayoutEnd(); ?>
