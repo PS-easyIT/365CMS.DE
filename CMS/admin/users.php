@@ -174,6 +174,16 @@ if (isset($_GET['msg'])) {
 }
 
 // ── View / Filter ─────────────────────────────────────────────────────────────
+// Alle Rollen aus der Datenbank laden (inkl. benutzerdefinierter Rollen)
+$allDbRoles = $db->get_results("SELECT name, display_name FROM {$prefix}roles ORDER BY sort_order, display_name");
+$allRoleNames = array_map(fn($r) => $r->name, $allDbRoles);
+// Fallback falls DB-Tabelle leer ist
+if (empty($allRoleNames)) {
+    $allRoleNames = ['admin', 'editor', 'member'];
+}
+// Emoji-Mapping für Rollen-Anzeige
+$roleEmojis = ['admin' => '🔑', 'editor' => '✏️', 'member' => '👤', 'moderator' => '🛡️', 'contributor' => '✍️', 'viewer' => '👁️'];
+
 $view       = $_GET['view']   ?? 'list';
 $editUserId = (int)($_GET['id'] ?? 0);
 $roleFilter = in_array($_GET['role'] ?? '', array_merge($allRoleNames, ['banned'])) ? $_GET['role'] : 'all';
@@ -192,16 +202,6 @@ foreach ($roleCountRows as $rc) {
     $roleCounts['all'] += (int) $rc->cnt;
 }
 $roleCounts['banned'] = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}users WHERE status='banned'");
-
-// Alle Rollen aus der Datenbank laden (inkl. benutzerdefinierter Rollen)
-$allDbRoles = $db->get_results("SELECT name, display_name FROM {$prefix}roles ORDER BY sort_order, display_name");
-$allRoleNames = array_map(fn($r) => $r->name, $allDbRoles);
-// Fallback falls DB-Tabelle leer ist
-if (empty($allRoleNames)) {
-    $allRoleNames = ['admin', 'editor', 'member'];
-}
-// Emoji-Mapping für Rollen-Anzeige
-$roleEmojis = ['admin' => '🔑', 'editor' => '✏️', 'member' => '👤', 'moderator' => '🛡️', 'contributor' => '✍️', 'viewer' => '👁️'];
 
 $csrfCreate = $security->generateToken('users_create');
 $csrfEdit   = $security->generateToken('users_edit');
