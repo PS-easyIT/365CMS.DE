@@ -126,12 +126,177 @@ class Router
             Api::instance()->handleRequest('pages', $slug);
         });
         
-        // Search Route
+        // Search Route – übergreifende Suche über Seiten, Experten, Firmen, Speaker, Events
         $this->addRoute('GET', '/search', function() {
-            $query = $_GET['q'] ?? '';
-            $pageManager = PageManager::instance();
-            $results = $pageManager->search($query);
-            ThemeManager::instance()->render('search', ['results' => $results, 'query' => $query]);
+            $query    = trim($_GET['q'] ?? '');
+            $type     = $_GET['type'] ?? '';
+            $location = trim($_GET['location'] ?? '');
+            $filter   = trim($_GET['filter'] ?? '');
+
+            $results    = [];
+            $pluginMgr  = PluginManager::instance();
+            $db         = Database::instance();
+            $prefix     = $db->getPrefix();
+
+            // Seiten-Suche (immer, außer ein spezifischer Bereich ist gewählt)
+            if (empty($type) || $type === 'pages') {
+                $pageManager = PageManager::instance();
+                $pageResults = $pageManager->search($query);
+                foreach ($pageResults as $r) {
+                    $r = (array)$r;
+                    $r['_type'] = 'page';
+                    $r['_type_label'] = 'Seite';
+                    $results[] = $r;
+                }
+            }
+
+            // Experten-Suche
+            if ((empty($type) || $type === 'experts') && $pluginMgr->isPluginActive('cms-experts')) {
+                try {
+                    $where = ["e.status = 'active'"];
+                    $params = [];
+                    if ($query !== '') {
+                        $where[] = "(e.name LIKE ? OR e.title LIKE ? OR e.skills LIKE ? OR e.specializations LIKE ?)";
+                        $like = '%' . $query . '%';
+                        $params = array_merge($params, [$like, $like, $like, $like]);
+                    }
+                    if ($location !== '') {
+                        $where[] = "(e.location LIKE ? OR e.availability LIKE ?)";
+                        $locLike = '%' . $location . '%';
+                        $params[] = $locLike;
+                        $params[] = $locLike;
+                    }
+                    if ($filter !== '') {
+                        $where[] = "(e.skills LIKE ? OR e.specializations LIKE ?)";
+                        $fLike = '%' . $filter . '%';
+                        $params[] = $fLike;
+                        $params[] = $fLike;
+                    }
+                    $sql = "SELECT e.* FROM {$prefix}experts e WHERE " . implode(' AND ', $where) . " ORDER BY e.created_at DESC LIMIT 20";
+                    $stmt = $db->prepare($sql);
+                    $stmt->execute($params);
+                    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+                    foreach ($rows as $r) {
+                        $r['_type'] = 'expert';
+                        $r['_type_label'] = 'Experte';
+                        $r['slug'] = 'experts/' . ($r['id'] ?? 0);
+                        $r['title'] = $r['name'] ?? $r['display_name'] ?? 'Experte';
+                        $r['meta_description'] = $r['title'] ?? $r['skills'] ?? '';
+                        $results[] = $r;
+                    }
+                } catch (\Throwable $e) { /* Tabelle ggf. nicht vorhanden */ }
+            }
+
+            // Firmen-Suche
+            if ((empty($type) || $type === 'companies') && $pluginMgr->isPluginActive('cms-companies')) {
+                try {
+                    $where = ["c.status = 'active'"];
+                    $params = [];
+                    if ($query !== '') {
+                        $where[] = "(c.name LIKE ? OR c.description LIKE ? OR c.industry LIKE ?)";
+                        $like = '%' . $query . '%';
+                        $params = array_merge($params, [$like, $like, $like]);
+                    }
+                    if ($location !== '') {
+                        $where[] = "(c.location LIKE ? OR c.city LIKE ?)";
+                        $locLike = '%' . $location . '%';
+                        $params[] = $locLike;
+                        $params[] = $locLike;
+                    }
+                    if ($filter !== '') {
+                        $where[] = "(c.industry LIKE ? OR c.description LIKE ?)";
+                        $fLike = '%' . $filter . '%';
+                        $params[] = $fLike;
+                        $params[] = $fLike;
+                    }
+                    $sql = "SELECT c.* FROM {$prefix}companies c WHERE " . implode(' AND ', $where) . " ORDER BY c.created_at DESC LIMIT 20";
+                    $stmt = $db->prepare($sql);
+                    $stmt->execute($params);
+                    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+                    foreach ($rows as $r) {
+                        $r['_type'] = 'company';
+                        $r['_type_label'] = 'Firma';
+                        $r['slug'] = 'companies/' . ($r['id'] ?? 0);
+                        $r['title'] = $r['name'] ?? $r['company_name'] ?? 'Firma';
+                        $r['meta_description'] = $r['description'] ?? $r['short_description'] ?? '';
+                        $results[] = $r;
+                    }
+                } catch (\Throwable $e) { /* */ }
+            }
+
+            // Speaker-Suche
+            if ((empty($type) || $type === 'speakers') && $pluginMgr->isPluginActive('cms-speakers')) {
+                try {
+                    $where = ["s.status = 'active'"];
+                    $params = [];
+                    if ($query !== '') {
+                        $where[] = "(s.name LIKE ? OR s.bio LIKE ? OR s.expertise LIKE ?)";
+                        $like = '%' . $query . '%';
+                        $params = array_merge($params, [$like, $like, $like]);
+                    }
+                    if ($location !== '') {
+                        $where[] = "(s.location LIKE ?)";
+                        $params[] = '%' . $location . '%';
+                    }
+                    if ($filter !== '') {
+                        $where[] = "(s.expertise LIKE ? OR s.topics LIKE ?)";
+                        $fLike = '%' . $filter . '%';
+                        $params[] = $fLike;
+                        $params[] = $fLike;
+                    }
+                    $sql = "SELECT s.* FROM {$prefix}event_speakers s WHERE " . implode(' AND ', $where) . " ORDER BY s.created_at DESC LIMIT 20";
+                    $stmt = $db->prepare($sql);
+                    $stmt->execute($params);
+                    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+                    foreach ($rows as $r) {
+                        $r['_type'] = 'speaker';
+                        $r['_type_label'] = 'Speaker';
+                        $r['slug'] = 'speakers/' . ($r['id'] ?? 0);
+                        $r['title'] = $r['name'] ?? 'Speaker';
+                        $r['meta_description'] = $r['bio'] ?? $r['expertise'] ?? '';
+                        $results[] = $r;
+                    }
+                } catch (\Throwable $e) { /* */ }
+            }
+
+            // Events-Suche
+            if ((empty($type) || $type === 'events') && $pluginMgr->isPluginActive('cms-events')) {
+                try {
+                    $where = ["ev.status = 'active'"];
+                    $params = [];
+                    if ($query !== '') {
+                        $where[] = "(ev.title LIKE ? OR ev.description LIKE ?)";
+                        $like = '%' . $query . '%';
+                        $params = array_merge($params, [$like, $like]);
+                    }
+                    if ($location !== '') {
+                        $where[] = "(ev.location LIKE ? OR ev.venue LIKE ?)";
+                        $locLike = '%' . $location . '%';
+                        $params[] = $locLike;
+                        $params[] = $locLike;
+                    }
+                    $sql = "SELECT ev.* FROM {$prefix}events ev WHERE " . implode(' AND ', $where) . " ORDER BY ev.start_date DESC LIMIT 20";
+                    $stmt = $db->prepare($sql);
+                    $stmt->execute($params);
+                    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+                    foreach ($rows as $r) {
+                        $r['_type'] = 'event';
+                        $r['_type_label'] = 'Event';
+                        $r['slug'] = 'events/' . ($r['id'] ?? 0);
+                        $r['title'] = $r['title'] ?? 'Event';
+                        $r['meta_description'] = $r['description'] ?? '';
+                        $results[] = $r;
+                    }
+                } catch (\Throwable $e) { /* */ }
+            }
+
+            ThemeManager::instance()->render('search', [
+                'results'  => $results,
+                'query'    => $query,
+                'type'     => $type,
+                'location' => $location,
+                'filter'   => $filter,
+            ]);
         });
         
         // Blog Routes
