@@ -371,7 +371,7 @@ class Router
         // Deckt alle öffentlichen state-ändernden Routen ab.
         // Admin / Member / API / Login / Register steuern CSRF eigenständig.
         $csrfBypassPrefixes = ['/api/', '/admin/', '/member/', '/contact/'];
-        $csrfBypassExact    = ['/login', '/register', '/logout'];
+        $csrfBypassExact    = ['/login', '/register', '/logout', '/contact'];
 
         if (in_array($method, ['POST', 'PUT', 'DELETE', 'PATCH'], true)
             && !in_array($uri, $csrfBypassExact, true)
