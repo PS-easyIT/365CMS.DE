@@ -34,7 +34,8 @@ class MediaService {
         if ($customRoot && strpos($customRoot, UPLOAD_PATH) === 0) {
             $relativePath = str_replace(UPLOAD_PATH, '', $customRoot);
             $relativePath = str_replace('\\', '/', $relativePath); // ensuring forward slashes for URL
-            $this->uploadUrl .= $relativePath;
+            $relativePath = ltrim($relativePath, '/');
+            $this->uploadUrl .= '/' . $relativePath;
         }
 
         $this->settingsFile = dirname(dirname(__DIR__)) . '/config/media-settings.json';

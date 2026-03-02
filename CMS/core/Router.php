@@ -90,15 +90,17 @@ class Router
         $this->addRoute('POST', '/order', [$this, 'handleOrder']);
         
         // Member area
-        $this->addRoute('GET', '/member', [$this, 'renderMember']);
-        // Sub-path routes muss vor /:slug stehen (spezifischer), damit sie zuerst geprüft werden
+        $this->addRoute('GET',  '/member', [$this, 'renderMember']);
+        $this->addRoute('POST', '/member', [$this, 'renderMember']);
+        // Sub-path routes muss vor /:page stehen (spezifischer), damit sie zuerst geprüft werden
         $this->addRoute('GET',  '/member/plugin/:slug/:action/:id', [$this, 'renderMemberPluginSection']);
         $this->addRoute('POST', '/member/plugin/:slug/:action/:id', [$this, 'renderMemberPluginSection']);
         $this->addRoute('GET',  '/member/plugin/:slug/:action',     [$this, 'renderMemberPluginSection']);
         $this->addRoute('POST', '/member/plugin/:slug/:action',     [$this, 'renderMemberPluginSection']);
         $this->addRoute('GET',  '/member/plugin/:slug', [$this, 'renderMemberPluginSection']);
         $this->addRoute('POST', '/member/plugin/:slug', [$this, 'renderMemberPluginSection']);
-        $this->addRoute('GET', '/member/:page', [$this, 'renderMemberPage']);
+        $this->addRoute('GET',  '/member/:page', [$this, 'renderMemberPage']);
+        $this->addRoute('POST', '/member/:page', [$this, 'renderMemberPage']);
         
         // Admin area
         $this->addRoute('GET', '/admin', [$this, 'renderAdmin']);
@@ -823,11 +825,20 @@ class Router
             $this->redirect('/login');
             return;
         }
-        
+
+        // Nur erlaubte Seitennamen (alphanumerisch + Bindestrich) – kein Path-Traversal
+        if (!preg_match('/^[a-zA-Z0-9_-]+$/', $page)) {
+            $this->render404();
+            return;
+        }
+
         $file = ABSPATH . 'member/' . $page . '.php';
         if (file_exists($file)) {
-            require_once $file;
+            // require statt require_once: Stellt sicher, dass die Datei
+            // bei jedem Request frisch ausgeführt wird (wichtig für PRG-Pattern)
+            require $file;
         } else {
+            error_log('Router [renderMemberPage]: Datei nicht gefunden: ' . $file);
             $this->render404();
         }
     }

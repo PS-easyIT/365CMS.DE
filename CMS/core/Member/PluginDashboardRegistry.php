@@ -57,6 +57,14 @@ class PluginDashboardRegistry
     /** @var bool Ob init bereits gefeuert wurde */
     private bool $initialized = false;
 
+    /**
+     * Cache für Admin-Sichtbarkeits-Einstellungen aus der DB.
+     * null = noch nicht geladen; array = geladen (key=plugin-slug, val=bool)
+     *
+     * @var array<string,bool>|null
+     */
+    private ?array $adminVisibility = null;
+
     // ── Singleton ────────────────────────────────────────────────────────────
 
     public static function instance(): self
@@ -180,7 +188,8 @@ class PluginDashboardRegistry
     /**
      * Liefert alle registrierten Bereiche, sortiert nach priority.
      *
-     * Filtert nach Berechtigung des aktuellen Benutzers.
+     * Filtert nach Berechtigung des aktuellen Benutzers UND nach Admin-
+     * Sichtbarkeits-Einstellungen (member_dashboard_plugin_{slug}).
      *
      * @return array[]
      */
@@ -189,11 +198,51 @@ class PluginDashboardRegistry
         $sections = array_filter(
             $this->sections,
             fn(array $s) => $this->checkCapability($s['capability'])
+                         && $this->isVisibleByAdmin($s)
         );
 
         uasort($sections, fn(array $a, array $b) => $a['priority'] <=> $b['priority']);
 
         return array_values($sections);
+    }
+
+    /**
+     * Lädt alle member_dashboard_plugin_* Einstellungen einmalig aus der DB.
+     */
+    private function loadAdminVisibility(): void
+    {
+        if ($this->adminVisibility !== null) {
+            return;
+        }
+        $this->adminVisibility = [];
+        try {
+            $db   = \CMS\Database::instance();
+            $stmt = $db->prepare(
+                "SELECT option_name, option_value FROM {$db->getPrefix()}settings
+                  WHERE option_name LIKE 'member_dashboard_plugin_%'"
+            );
+            if ($stmt) {
+                $stmt->execute();
+                foreach ($stmt->fetchAll(\PDO::FETCH_OBJ) as $row) {
+                    $pluginSlug = substr($row->option_name, strlen('member_dashboard_plugin_'));
+                    $this->adminVisibility[$pluginSlug] = ($row->option_value === '1');
+                }
+            }
+        } catch (\Throwable $e) {
+            // Bei DB-Fehler alle Bereiche anzeigen (Fallback = sichtbar)
+        }
+    }
+
+    /**
+     * Prüft ob ein Plugin-Bereich laut Admin-Einstellungen sichtbar ist.
+     * Kein Eintrag in der DB = noch nie gesetzt = standardmäßig sichtbar.
+     */
+    private function isVisibleByAdmin(array $section): bool
+    {
+        $this->loadAdminVisibility();
+        $pluginSlug = $section['plugin'] ?? $section['slug'];
+        // null (kein Eintrag) = noch nie deaktiviert → sichtbar
+        return $this->adminVisibility[$pluginSlug] ?? true;
     }
 
     /**
