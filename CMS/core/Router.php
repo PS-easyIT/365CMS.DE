@@ -370,7 +370,7 @@ class Router
         // ── CSRF-Middleware (C-04) ──────────────────────────────────────────────
         // Deckt alle öffentlichen state-ändernden Routen ab.
         // Admin / Member / API / Login / Register steuern CSRF eigenständig.
-        $csrfBypassPrefixes = ['/api/', '/admin/', '/member/'];
+        $csrfBypassPrefixes = ['/api/', '/admin/', '/member/', '/contact/'];
         $csrfBypassExact    = ['/login', '/register', '/logout'];
 
         if (in_array($method, ['POST', 'PUT', 'DELETE', 'PATCH'], true)

@@ -802,6 +802,7 @@ function renderAdminLayoutEnd(): void
 {
     ?>
         </div><!-- /.admin-content -->
+        <script src="<?php echo SITE_URL; ?>/assets/js/admin.js?v=20260302"></script>
         <?php
         // Plugins können über body_end-Hook Scripts einbinden (analog zum Frontend)
         if (class_exists('CMS\Hooks')) {

@@ -4,6 +4,22 @@
  * @package CMSv2\Assets
  */
 
+// ── Modal Utilities ──────────────────────────────────────────────────────────
+function openModal(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'flex';
+}
+function closeModal(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+}
+// Close modal on backdrop click
+window.addEventListener('click', function(e) {
+    if (e.target.classList && e.target.classList.contains('modal')) {
+        closeModal(e.target.id);
+    }
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     
     // Confirmation for destructive actions
