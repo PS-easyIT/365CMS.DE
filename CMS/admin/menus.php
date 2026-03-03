@@ -190,6 +190,9 @@ $isCurrentCustom = in_array($currentLocation, $customSlugs, true);
 
 $locationLabel = '';
 foreach ($locations as $loc) {
+    if (!is_array($loc) || !isset($loc['slug'])) {
+        continue; // Defensive: ungültige Einträge überspringen
+    }
     if ($loc['slug'] === $currentLocation) {
         $locationLabel = $loc['label'];
         break;
@@ -224,6 +227,7 @@ renderAdminLayoutStart('Menü-Verwaltung', 'menus');
         <div class="admin-card" style="padding:0;overflow:hidden;">
             <div style="display:flex;align-items:stretch;flex-wrap:wrap;border-bottom:1px solid #e2e8f0;background:#f8fafc;">
                 <?php foreach ($locations as $loc):
+                    if (!is_array($loc) || !isset($loc['slug'], $loc['label'])) continue;
                     $tabActive = $loc['slug'] === $currentLocation;
                     $tabCustom = in_array($loc['slug'], $customSlugs, true);
                     $tabCnt    = count($themeManager->getMenu($loc['slug']));

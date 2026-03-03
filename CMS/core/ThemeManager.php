@@ -783,6 +783,10 @@ class ThemeManager
             if ($result && $result->option_value) {
                 $custom = json_decode($result->option_value, true) ?: [];
                 foreach ($custom as $loc) {
+                    // Defensive: nur valide Array-Einträge mit 'slug'-Schlüssel verarbeiten
+                    if (!is_array($loc) || !isset($loc['slug'], $loc['label'])) {
+                        continue;
+                    }
                     // Avoid duplicates from theme-registered locations
                     $slugs = array_column($locations, 'slug');
                     if (!in_array($loc['slug'], $slugs, true)) {
@@ -790,7 +794,7 @@ class ThemeManager
                     }
                 }
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ThemeManager::getMenuLocations() Error: ' . $e->getMessage());
         }
 
