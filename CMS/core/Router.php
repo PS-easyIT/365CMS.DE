@@ -804,7 +804,7 @@ class Router
     }
     
     /**
-     * Render member area
+     * Render member area – redirect to /member/dashboard
      */
     public function renderMember(): void
     {
@@ -812,8 +812,9 @@ class Router
             $this->redirect('/login');
             return;
         }
-        
-        require_once ABSPATH . 'member/index.php';
+
+        // Slug-basiertes Dashboard: URL zeigt /member/dashboard
+        $this->redirect('/member/dashboard');
     }
     
     /**
@@ -829,6 +830,13 @@ class Router
         // Nur erlaubte Seitennamen (alphanumerisch + Bindestrich) – kein Path-Traversal
         if (!preg_match('/^[a-zA-Z0-9_-]+$/', $page)) {
             $this->render404();
+            return;
+        }
+
+        // Theme-Override: Wenn aktives Theme member/{page}.php bereitstellt
+        $themeFile = ThemeManager::instance()->getThemePath() . 'member/' . $page . '.php';
+        if (file_exists($themeFile)) {
+            require $themeFile;
             return;
         }
 
