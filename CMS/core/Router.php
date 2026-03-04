@@ -89,6 +89,10 @@ class Router
         $this->addRoute('GET', '/order', [$this, 'renderOrder']);
         $this->addRoute('POST', '/order', [$this, 'handleOrder']);
         
+        // Dashboard shortcut – Theme-eigenes Dashboard (z. B. cms-phinit) oder Fallback auf /member/dashboard
+        $this->addRoute('GET',  '/dashboard', [$this, 'renderDashboard']);
+        $this->addRoute('POST', '/dashboard', [$this, 'renderDashboard']);
+
         // Member area
         $this->addRoute('GET',  '/member', [$this, 'renderMember']);
         $this->addRoute('POST', '/member', [$this, 'renderMember']);
@@ -803,6 +807,30 @@ class Router
         }
     }
     
+    /**
+     * Render /dashboard – Theme-eigenes Dashboard oder Fallback auf /member/dashboard
+     *
+     * Prüft ob das aktive Theme ein eigenes member/dashboard.php bereitstellt.
+     * Falls ja, wird es direkt gerendert (z. B. cms-phinit).
+     * Falls nein, Redirect auf /member/dashboard (CMS-Standard).
+     */
+    public function renderDashboard(): void
+    {
+        if (!Auth::instance()->isLoggedIn()) {
+            $this->redirect('/login');
+            return;
+        }
+
+        $themeFile = ThemeManager::instance()->getThemePath() . 'member/dashboard.php';
+        if (file_exists($themeFile)) {
+            require $themeFile;
+            return;
+        }
+
+        // Kein Theme-Dashboard vorhanden → Standard-Member-Dashboard
+        $this->redirect('/member/dashboard');
+    }
+
     /**
      * Render member area – redirect to /member/dashboard
      */
