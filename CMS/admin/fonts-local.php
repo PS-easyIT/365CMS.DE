@@ -145,7 +145,7 @@ function downloadGoogleFonts($customizer) {
     $uiFont      = $typo['font_family_ui']   ?? null;
 
     $fontsToLoad = [];
-    foreach ([$baseFont, $headingFont, $monoFont, $uiFont] as $fontKey) {
+    foreach ([$baseFont, $headingFont, $monoFont, $uiFont, $brandFont] as $fontKey) {
         if ($fontKey && isset($fontMap[$fontKey]) && !isset($fontsToLoad[$fontKey])) {
             $fontsToLoad[$fontKey] = $fontMap[$fontKey];
         }
