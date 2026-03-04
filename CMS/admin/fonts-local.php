@@ -141,8 +141,9 @@ function downloadGoogleFonts($customizer) {
     $headingFont = $typo['font_family_heading'] ?? 'libre-baskerville';
 
     // Optionale Zusatz-Slots (z. B. Mono für Code-Blöcke, UI-Schrift für Nav)
-    $monoFont    = $typo['font_family_mono'] ?? $typo['font_family_code'] ?? null;
-    $uiFont      = $typo['font_family_ui']   ?? null;
+    $monoFont    = $typo['font_family_mono']  ?? $typo['font_family_code'] ?? null;
+    $uiFont      = $typo['font_family_ui']    ?? null;
+    $brandFont   = $typo['font_family_brand'] ?? null;
 
     $fontsToLoad = [];
     foreach ([$baseFont, $headingFont, $monoFont, $uiFont, $brandFont] as $fontKey) {
