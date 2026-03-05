@@ -79,21 +79,7 @@ $currentPage = 'analytics';
 // Load admin menu functions
 require_once __DIR__ . '/partials/admin-menu.php';
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analytics - <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
-    <?php renderAdminSidebarStyles(); ?>
-    <?php renderAdminSidebarStyles(); ?>
-</head>
-<body class="admin-body">
-    <?php renderAdminSidebar($currentPage); ?>
-    
-    <div class="admin-content">
+<?php renderAdminLayoutStart('Analytics', $currentPage); ?>
         <div class="admin-page-header">
             <div>
                 <?php 
@@ -536,6 +522,4 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 </div>
 
             <?php endif; ?>
-    </div>
-</body>
-</html>
+<?php renderAdminLayoutEnd(); ?>

@@ -135,21 +135,7 @@ $csrf_token = Security::instance()->generateToken('system_management');
 // Load admin menu
 require_once __DIR__ . '/partials/admin-menu.php';
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>System & Diagnose - <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
-    <?php renderAdminSidebarStyles(); ?>
-</head>
-<body class="admin-body">
-    
-    <?php renderAdminSidebar('system'); ?>
-    
-    <div class="admin-content">
+<?php renderAdminLayoutStart('System & Diagnose', 'system'); ?>
         <div class="admin-page-header">
             <div>
                 <h2>⚙️ System &amp; Diagnose</h2>
@@ -622,5 +608,4 @@ require_once __DIR__ . '/partials/admin-menu.php';
             });
         }, 5000);
     </script>
-</body>
-</html>
+<?php renderAdminLayoutEnd(); ?>

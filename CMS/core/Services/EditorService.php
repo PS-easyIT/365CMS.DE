@@ -1,9 +1,9 @@
 <?php
 /**
- * WYSIWYG Editor Service - SunEditor Integration
+ * WYSIWYG Editor Service - SunEditor / Editor.js Integration
  * 
- * Provides rich text editing capabilities using SunEditor
- * https://github.com/JiHong88/SunEditor
+ * Provides rich text editing capabilities.
+ * Delegates to SunEditor (legacy) or Editor.js based on admin setting.
  * 
  * @package CMSv2\Services
  */
@@ -35,6 +35,11 @@ class EditorService
      * Track editor instances for unique IDs
      */
     private static int $editorCount = 0;
+
+    /**
+     * Cached editor type: 'suneditor' | 'editorjs'
+     */
+    private static ?string $editorType = null;
     
     /**
      * Get singleton instance
@@ -55,6 +60,27 @@ class EditorService
         // Register admin head action for assets
         \CMS\Hooks::addAction('admin_head', [$this, 'enqueueEditorAssets']);
     }
+
+    /**
+     * Aktiven Editor-Typ ermitteln.
+     */
+    public static function getEditorType(): string
+    {
+        if (self::$editorType === null) {
+            self::$editorType = function_exists('get_option')
+                ? (get_option('setting_editor_type', 'suneditor') ?: 'suneditor')
+                : 'suneditor';
+        }
+        return self::$editorType;
+    }
+
+    /**
+     * Prüfen ob Editor.js aktiv ist.
+     */
+    public static function isEditorJs(): bool
+    {
+        return self::getEditorType() === 'editorjs';
+    }
     
     /**
      * Render WYSIWYG editor
@@ -66,6 +92,11 @@ class EditorService
      */
     public function render(string $name, string $content = '', array $settings = []): string
     {
+        // Bei Editor.js an den spezialisierten Service delegieren
+        if (self::isEditorJs()) {
+            return EditorJsService::getInstance()->render($name, $content, $settings);
+        }
+
         self::$editorCount++;
         $editorId = $name . '_editor_' . self::$editorCount;
         
@@ -199,14 +230,19 @@ class EditorService
         if (self::$assetsEnqueued) {
             return;
         }
+
+        // Bei Editor.js an den spezialisierten Service delegieren
+        if (self::isEditorJs()) {
+            EditorJsService::getInstance()->enqueueEditorAssets();
+            self::$assetsEnqueued = true;
+            return;
+        }
         
         $siteUrl = defined('SITE_URL') ? SITE_URL : '';
         
         echo "\n<!-- SunEditor Assets -->\n";
         echo '<link rel="stylesheet" href="' . htmlspecialchars($siteUrl) . '/assets/suneditor/css/suneditor.min.css">' . "\n";
         echo '<script src="' . htmlspecialchars($siteUrl) . '/assets/suneditor/suneditor.min.js"></script>' . "\n";
-        // Check if lang file exists before verifying, but for now just include it.
-        // If file structure matches the attachment: assets/suneditor/lang/de.js
         echo '<script src="' . htmlspecialchars($siteUrl) . '/assets/suneditor/lang/de.js"></script>' . "\n";
         echo "<!-- /SunEditor Assets -->\n\n";
         
@@ -242,13 +278,20 @@ class EditorService
     /**
      * Sanitize editor content
      * 
-     * Removes dangerous HTML while preserving safe formatting
+     * Removes dangerous HTML while preserving safe formatting.
+     * Bei Editor.js wird JSON sanitiert, bei SunEditor HTML.
      * 
      * @param string $content Raw content from editor
      * @return string Sanitized content
      */
     public function sanitize(string $content): string
     {
+        // Editor.js-Daten: JSON sanitieren
+        if (self::isEditorJs()) {
+            return EditorJsService::getInstance()->sanitize($content);
+        }
+
+        // SunEditor: HTML sanitieren
         // Allow safe HTML tags
         $allowedTags = [
             'p', 'br', 'strong', 'em', 'u', 's', 'del', 'b', 'i',
@@ -285,5 +328,30 @@ class EditorService
         $sanitized = preg_replace('/(<[^>]+)\s+href\s*=\s*["\']javascript:[^"\']*["\']/i', '$1', $sanitized ?? '');
         
         return $sanitized ?? '';
+    }
+
+    /**
+     * Inhalt als HTML rendern (für Frontend-Ausgabe).
+     *
+     * Bei SunEditor ist der gespeicherte Inhalt bereits HTML.
+     * Bei Editor.js wird der JSON-String über EditorJsRenderer zu HTML konvertiert.
+     *
+     * @param string $content Gespeicherter Inhalt (HTML oder Editor.js JSON)
+     * @return string HTML-Ausgabe
+     */
+    public function renderContent(string $content): string
+    {
+        if ($content === '') {
+            return '';
+        }
+
+        // Prüfe ob der Inhalt ein Editor.js JSON-Objekt ist
+        $decoded = json_decode($content, true);
+        if (is_array($decoded) && isset($decoded['blocks'])) {
+            return EditorJsRenderer::getInstance()->render($decoded);
+        }
+
+        // Fallback: reguläres HTML (SunEditor-Inhalt)
+        return $content;
     }
 }

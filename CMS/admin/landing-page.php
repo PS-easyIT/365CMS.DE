@@ -164,21 +164,7 @@ $csrfToken = Security::instance()->generateToken('landing_page');
 // Load admin menu
 require_once __DIR__ . '/partials/admin-menu.php';
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Landing Page – <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222">
-    <?php renderAdminSidebarStyles(); ?>
-</head>
-<body class="admin-body">
-
-    <?php renderAdminSidebar('landing-page'); ?>
-
-    <div class="admin-content">
+<?php renderAdminLayoutStart('Landing Page', 'landing-page'); ?>
 
         <!-- Page Header -->
         <div class="admin-page-header">
@@ -1156,5 +1142,4 @@ require_once __DIR__ . '/partials/admin-menu.php';
         }
     }
     </script>
-</body>
-</html>
+<?php renderAdminLayoutEnd(); ?>

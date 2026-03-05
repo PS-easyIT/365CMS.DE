@@ -202,19 +202,7 @@ function st_sel(mixed $val, mixed $compare): void {
     echo ((string)$val === (string)$compare) ? 'selected' : '';
 }
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Site Tables – <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
-    <?php renderAdminSidebarStyles(); ?>
-</head>
-<body class="admin-body">
-<?php renderAdminSidebar('site-tables'); ?>
-<div class="admin-content">
+<?php renderAdminLayoutStart('Site Tables', 'site-tables'); ?>
     <div class="admin-page-header">
         <h2>📊 Site Tables</h2>
         <p>Tabellen erstellen, verwalten und per Shortcode oder Widget einbetten.</p>

@@ -72,6 +72,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     'time_format'      => Security::sanitize($_POST['time_format'] ?? 'H:i'),
                     'legal_page_id'    => intval($_POST['legal_page_id'] ?? 0),
                     'privacy_page_id'  => intval($_POST['privacy_page_id'] ?? 0),
+                    'editor_type'      => in_array($_POST['editor_type'] ?? '', ['suneditor', 'editorjs'], true)
+                                            ? $_POST['editor_type']
+                                            : 'suneditor',
                 ];
                 
                 // Save each setting to database
@@ -117,7 +120,8 @@ $settingKeys = [
     'setting_maintenance_mode', 'setting_allow_registration', 'setting_default_role',
     'setting_posts_per_page', 'setting_home_page_id',
     'setting_timezone', 'setting_date_format', 'setting_time_format',
-    'setting_legal_page_id', 'setting_privacy_page_id'
+    'setting_legal_page_id', 'setting_privacy_page_id',
+    'setting_editor_type'
 ];
 
 foreach ($settingKeys as $key) {
@@ -138,6 +142,7 @@ $defaults = [
     'setting_date_format' => 'd.m.Y',
     'setting_time_format' => 'H:i',
     'setting_default_role' => 'subscriber',
+    'setting_editor_type' => 'suneditor',
 ];
 
 foreach ($defaults as $key => $val) {
@@ -164,8 +169,6 @@ require_once __DIR__ . '/partials/admin-menu.php';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Einstellungen – <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
     <?php renderAdminSidebarStyles(); ?>
     <style>
         /* ── Settings Page – Spacing & Layout ─────────────────────── */
@@ -392,6 +395,15 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         <input type="number" id="posts_per_page" name="posts_per_page"
                                value="<?php echo htmlspecialchars($currentSettings['setting_posts_per_page']); ?>"
                                class="form-control" min="1" max="100">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="editor_type">Editor</label>
+                        <select id="editor_type" name="editor_type" class="form-control">
+                            <option value="suneditor" <?php echo ($currentSettings['setting_editor_type'] ?? 'suneditor') === 'suneditor' ? 'selected' : ''; ?>>SunEditor (klassisch, WYSIWYG)</option>
+                            <option value="editorjs" <?php echo ($currentSettings['setting_editor_type'] ?? '') === 'editorjs' ? 'selected' : ''; ?>>Editor.js (Block-Editor)</option>
+                        </select>
+                        <small class="form-text">Der Block-Editor speichert Inhalte als strukturierte Blöcke — ideal für moderne Layouts.</small>
                     </div>
                 </div>
 

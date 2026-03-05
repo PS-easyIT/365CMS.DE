@@ -98,21 +98,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
 // ─── HTML ─────────────────────────────────────────────────────────────────────
 
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Theme-Verwaltung – <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
-    <?php renderAdminSidebarStyles(); ?>
-</head>
-<body class="admin-body">
-
-    <?php renderAdminSidebar('themes'); ?>
-
-    <div class="admin-content">
+<?php renderAdminLayoutStart('Theme-Verwaltung', 'themes'); ?>
 
         <!-- Page Header -->
         <div class="admin-page-header">
@@ -195,6 +181,4 @@ require_once __DIR__ . '/partials/admin-menu.php';
             <div class="alert alert-error">Keine Themes gefunden. Bitte mindestens einen Theme-Ordner mit style.css im themes/-Verzeichnis anlegen.</div>
         <?php endif; ?>
 
-    </div><!-- /.admin-content -->
-</body>
-</html>
+<?php renderAdminLayoutEnd(); ?>

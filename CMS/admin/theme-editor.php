@@ -239,21 +239,7 @@ $csrfToken = $security->generateToken('theme_editor');
 require_once __DIR__ . '/partials/admin-menu.php';
 
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Theme Editor - <?php echo htmlspecialchars($themeMetadata['name']); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
-    <?php renderAdminSidebarStyles(); ?>
-</head>
-<body class="admin-body">
-    
-    <?php renderAdminSidebar('theme'); ?>
-    
-    <main class="admin-content">
+<?php renderAdminLayoutStart('Theme Editor', 'theme'); ?>
         <div class="admin-page-header">
             <h2>🎨 Theme Editor</h2>
             <p>Passen Sie das Erscheinungsbild Ihrer Website an</p>
@@ -751,5 +737,4 @@ require_once __DIR__ . '/partials/admin-menu.php';
             if (fileEl) fileEl.value = '';
         }
     </script>
-</body>
-</html>
+<?php renderAdminLayoutEnd(); ?>

@@ -43,18 +43,7 @@ if (file_exists($themeCustomizerFile)) {
 // ── Kein theme-eigener Customizer vorhanden ──────────────────────────────────
 require_once __DIR__ . '/partials/admin-menu.php';
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <title>Theme Customizer</title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
-    <?php renderAdminSidebarStyles(); ?>
-</head>
-<body class="admin-body">
-<?php renderAdminSidebar('theme-customizer'); ?>
-<main class="admin-content">
+<?php renderAdminLayoutStart('Theme Customizer', 'theme-customizer'); ?>
     <div class="admin-page-header">
         <h2>🎨 Theme Customizer</h2>
     </div>
@@ -66,6 +55,4 @@ require_once __DIR__ . '/partials/admin-menu.php';
         <p>Erstelle die Datei <code>themes/<?php echo htmlspecialchars($activeThemeSlug); ?>/admin/customizer.php</code>
            im Theme-Verzeichnis, um einen eigenen Customizer bereitzustellen.</p>
     </div>
-</main>
-</body>
-</html>
+<?php renderAdminLayoutEnd(); ?>

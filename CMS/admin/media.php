@@ -252,8 +252,6 @@ $categories = $mediaService->getCategories();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Medienverwaltung - <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222c">
     <?php renderAdminSidebarStyles(); ?>
     <script>
         // CSRF-Token für alle Media-AJAX-Aufrufe (Fix C-13)

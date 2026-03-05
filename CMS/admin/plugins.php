@@ -117,22 +117,7 @@ $csrfToken = $security->generateToken('plugin_management');
 // Load admin menu
 require_once __DIR__ . '/partials/admin-menu.php';
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plugin-Verwaltung - <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
-    <?php renderAdminSidebarStyles(); ?>
-</head>
-<body class="admin-body">
-    
-    <?php renderAdminSidebar('plugins'); ?>
-    
-    <!-- Main Content -->
-    <div class="admin-content">
+<?php renderAdminLayoutStart('Plugin-Verwaltung', 'plugins'); ?>
         <div class="admin-page-header">
             <div>
                 <h2>🔌 Plugin-Verwaltung</h2>
@@ -322,6 +307,4 @@ require_once __DIR__ . '/partials/admin-menu.php';
             if (e.target === m) closeDeleteModal();
         });
     </script>
-    
-</body>
-</html>
+<?php renderAdminLayoutEnd(); ?>

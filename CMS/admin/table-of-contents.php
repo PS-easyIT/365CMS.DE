@@ -99,19 +99,7 @@ function toc_sel(mixed $val, mixed $compare): void {
     echo ((string)$val === (string)$compare) ? 'selected' : '';
 }
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Table of Contents – <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
-    <?php renderAdminSidebarStyles(); ?>
-</head>
-<body class="admin-body">
-<?php renderAdminSidebar('table-of-contents'); ?>
-<div class="admin-content">
+<?php renderAdminLayoutStart('Table of Contents', 'table-of-contents'); ?>
     <div class="admin-page-header">
         <h2>📑 Table of Contents</h2>
         <p>Konfigurieren Sie das automatische Inhaltsverzeichnis Ihrer Website.</p>

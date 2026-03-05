@@ -108,8 +108,6 @@ require_once __DIR__ . '/partials/admin-menu.php';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Security Audit - <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
     <?php renderAdminSidebarStyles(); ?>
     <style>
         .score-card { display:flex; justify-content:space-between; align-items:center; background:#fff; padding:2rem; border-radius:var(--card-radius,10px); border:var(--card-border,1px solid #e2e8f0); box-shadow:var(--card-shadow,0 1px 4px rgba(0,0,0,.06)); margin-bottom:1.5rem; }

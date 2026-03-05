@@ -124,21 +124,7 @@ try {
 
 $csrfToken = $security->generateToken('save_antispam');
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AntiSpam Schutz – <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
-    <?php renderAdminSidebarStyles(); ?>
-</head>
-<body class="admin-body">
-
-    <?php renderAdminSidebar('antispam'); ?>
-
-    <div class="admin-content">
+<?php renderAdminLayoutStart('AntiSpam Schutz', 'antispam'); ?>
 
         <div class="admin-page-header">
             <div>
@@ -310,8 +296,4 @@ $csrfToken = $security->generateToken('save_antispam');
 
         </form>
 
-    </div><!-- /.admin-content -->
-
-    <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
-</body>
-</html>
+<?php renderAdminLayoutEnd(); ?>
