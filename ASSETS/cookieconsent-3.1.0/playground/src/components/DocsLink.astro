@@ -1,0 +1,18 @@
+---
+import { docsUrl } from '../data/metadata';
+
+interface Props {
+    docSection?: string,
+    label?: string
+}
+
+const { docSection, label }: Props = Astro.props;
+---
+<a
+    href={`${docsUrl}/${docSection}`}
+    target="_blank"
+    rel="noopener noreferrer"
+    title="Docs"
+    class="help-icon"
+    aria-label={label}
+>?</a>

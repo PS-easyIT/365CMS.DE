@@ -1,0 +1,7 @@
+FROM node:20-alpine AS build
+
+WORKDIR /site
+COPY ./ /site
+RUN yarn --frozen-lockfile
+
+CMD yarn start

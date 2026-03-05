@@ -1,0 +1,21 @@
+services:
+  # Runs dev env for the site
+  server:
+    image: remark42-site:dev
+    build:
+      dockerfile: Dockerfile.dev
+      context: .
+
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
+
+    ports:
+      - '3001:3001'
+      - '8080:8080'
+
+    volumes:
+      - ./src:/site/src
+      - ./build:/site/build

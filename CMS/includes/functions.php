@@ -715,10 +715,21 @@ function sanitize_title(string $title): string {
 
 /**
  * WP Kses Post – filtert HTML auf eine sichere Whitelist.
+ * Delegiert an PurifierService (HTMLPurifier) wenn verfügbar.
  */
 function wp_kses_post(string $content): string {
-    $allowed = '<p><a><strong><b><em><i><ul><ol><li><br><h1><h2><h3><h4><h5><h6><blockquote><pre><code><img><table><thead><tbody><tr><th><td><hr><span><div><figure><figcaption><dl><dt><dd><sub><sup>';
-    return strip_tags($content, $allowed);
+    return \CMS\Services\PurifierService::getInstance()->purify($content, 'default');
+}
+
+/**
+ * HTML sanitieren – zentraler Einstiegspunkt.
+ *
+ * @param string $html    Unsicherer HTML-String
+ * @param string $profile 'default' | 'strict' | 'minimal'
+ * @return string          Sauberer HTML-String
+ */
+function sanitize_html(string $html, string $profile = 'default'): string {
+    return \CMS\Services\PurifierService::getInstance()->purify($html, $profile);
 }
 
 /**
@@ -1258,4 +1269,19 @@ if ( ! function_exists('is_serialized') ) {
 global $wpdb;
 if ( ! isset($wpdb) || ! ($wpdb instanceof CMS_WPDB_Compat) ) {
     $wpdb = new CMS_WPDB_Compat();
+}
+
+// ─── E-Mail Helper ─────────────────────────────────────────────────────────
+
+/**
+ * E-Mail senden über den zentralen MailService (SMTP oder mail()-Fallback).
+ *
+ * @param string $to      Empfänger
+ * @param string $subject Betreff
+ * @param string $body    HTML- oder Plain-Text-Inhalt
+ * @param array  $headers Zusätzliche Header
+ * @return bool
+ */
+function cms_mail(string $to, string $subject, string $body, array $headers = []): bool {
+    return \CMS\Services\MailService::getInstance()->send($to, $subject, $body, $headers);
 }

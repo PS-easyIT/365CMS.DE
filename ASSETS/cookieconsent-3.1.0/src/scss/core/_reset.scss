@@ -1,0 +1,58 @@
+#cc-main {
+
+    /* Reset only specific elements */
+    div,
+    span,
+    a,
+    h2,
+    p,
+    button,
+    input,
+    ::before,
+    ::after{
+        all: unset;
+        box-sizing: border-box;
+    }
+
+    button,
+    .pm__badge {
+        all: initial;
+        box-sizing: border-box;
+        color: unset;
+        visibility: unset;
+    }
+
+    /* Restore outline and cursor*/
+    a,
+    button,
+    input,
+    .pm__badge {
+        font-family: inherit;
+        font-size: 100%;
+        line-height: normal;
+        margin: 0;
+        outline: revert;
+        outline-offset: 2px;
+        cursor: pointer;
+        overflow: hidden;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
+    table,
+    thead,
+    tbody,
+    tr,
+    th,
+    td {
+        all: revert;
+        font-family: inherit;
+        font-weight: inherit;
+        color: inherit;
+        font-size: inherit;
+    }
+
+    &{
+        background: transparent;
+    }
+}

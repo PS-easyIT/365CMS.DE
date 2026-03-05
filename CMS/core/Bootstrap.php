@@ -115,6 +115,12 @@ class Bootstrap
         if (file_exists(ABSPATH . 'includes/subscription-helpers.php')) {
             require_once ABSPATH . 'includes/subscription-helpers.php';
         }
+
+        // Vendor-Autoloader für externe Libraries (ASSETS/)
+        $vendorAutoload = dirname(ABSPATH) . '/ASSETS/autoload.php';
+        if (file_exists($vendorAutoload)) {
+            require_once $vendorAutoload;
+        }
     }
     
     /**
@@ -180,6 +186,26 @@ class Bootstrap
         $cache = CacheManager::instance();
         $this->container->bindInstance(CacheManager::class, $cache);
         $this->container->bindInstance('cache', $cache);
+
+        // PurifierService – lazy Singleton (wird erst bei erstem Zugriff instanziiert)
+        $this->container->singleton(Services\PurifierService::class, fn() => Services\PurifierService::getInstance());
+        $this->container->singleton('purifier', fn() => Services\PurifierService::getInstance());
+
+        // MailService – lazy Singleton
+        $this->container->singleton(Services\MailService::class, fn() => Services\MailService::getInstance());
+        $this->container->singleton('mail', fn() => Services\MailService::getInstance());
+
+        // SearchService – lazy Singleton (TNTSearch Volltextsuche)
+        $this->container->singleton(Services\SearchService::class, fn() => Services\SearchService::getInstance());
+        $this->container->singleton('search', fn() => Services\SearchService::getInstance());
+
+        // ImageService – lazy Singleton (GD-basierte Bildbearbeitung)
+        $this->container->singleton(Services\ImageService::class, fn() => Services\ImageService::getInstance());
+        $this->container->singleton('image', fn() => Services\ImageService::getInstance());
+
+        // FeedService – lazy Singleton (SimplePie RSS/Atom-Parsing)
+        $this->container->singleton(Services\FeedService::class, fn() => Services\FeedService::getInstance());
+        $this->container->singleton('feed', fn() => Services\FeedService::getInstance());
 
         // Router – nur für Web/Admin (CLI routed anders)
         $this->router = Router::instance();

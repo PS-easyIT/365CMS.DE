@@ -1,0 +1,103 @@
+/*
+ * The file is for demo purposes,
+ * don't use in your configuration!
+ */
+
+*,
+:after,
+:before {
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+html,
+body{
+    height: auto;
+    width: 100vw;
+    overflow-x: hidden;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    font-weight: 400;
+    margin: 0 auto;
+    padding: 1em;
+    max-width: 27em;
+    color: #455361;
+}
+
+h1,
+h2,
+em{
+    font-weight: 600;
+}
+
+h1{
+    font-size: 1.5em;
+    color: #92a2c1!important;
+}
+
+h2{
+    font-size: 1.15em;
+}
+
+a{
+    border-bottom: 2px dotted;
+    text-decoration: none;
+    color: inherit;
+    transition: transform .15s ease;
+
+}
+
+a:active{
+    color: #263577;
+    transform: translateY(3px);
+}
+
+[data-cc="show-preferencesModal"]{
+    margin: 0 .5em .5em 0;
+}
+
+.btn {
+    border: none;
+    padding: 1em 1.5em;
+    border-radius: .4em;
+    font-family: inherit;
+    font-weight: 600;
+    background: #dce8ff;
+    color: #263577;
+    transition: background-color .25s ease, transform .15s ease;
+}
+
+.btn:hover{
+    background-color: #c8dbff;
+}
+
+.btn:active{
+    transform: translateY(3px);
+}
+
+.warning{
+    margin-top: 2em;
+    color: #810000;
+    background: #ffeadf;
+    padding: 1em;
+    border-radius: 0.5em;
+}
+
+#cc-main p{
+    margin: 0;
+    margin-bottom: 1px!important;
+}
+
+#cc-main p>span{
+    background: rgba(143, 174, 189, .13);
+    border-radius: 5px;
+    padding: 1px 6px;
+    font-size: .95em;
+    margin-left: 0.5em;
+}
+
+#cc-main .pm__section-desc p {
+    display: block;
+}

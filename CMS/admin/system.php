@@ -80,6 +80,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $error = 'Fehler beim Erstellen der Tabellen: ' . $e->getMessage();
                 }
                 break;
+
+            case 'rebuild_search_index':
+                try {
+                    $searchService = \CMS\Services\SearchService::getInstance();
+                    if (!$searchService->isAvailable()) {
+                        $error = 'Suchservice nicht verfügbar (TNTSearch prüfen)';
+                    } else {
+                        $indexResults = $searchService->rebuildAllIndices();
+                        $built = count(array_filter($indexResults));
+                        $total = count($indexResults);
+                        $message = "Suchindex: {$built} von {$total} Indizes erfolgreich erstellt";
+                    }
+                } catch (\Exception $e) {
+                    $error = 'Fehler beim Erstellen des Suchindex: ' . $e->getMessage();
+                }
+                break;
         }
         
         // Redirect to prevent form resubmission
@@ -490,6 +506,35 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                         <input type="hidden" name="action" value="create_missing_tables">
                         <button type="submit" class="btn btn-primary">🔨 Tabellen erstellen</button>
+                    </form>
+                </div>
+
+                <div class="admin-card">
+                    <h3>🔍 Suchindex neu erstellen</h3>
+                    <p>Erstellt den TNTSearch-Volltextindex für Seiten und Beiträge neu.</p>
+                    <?php
+                    $searchSvc = \CMS\Services\SearchService::getInstance();
+                    $indexInfo = $searchSvc->getIndexInfo();
+                    if (!empty($indexInfo)):
+                    ?>
+                    <div style="margin-bottom:.75rem;font-size:.85rem;color:#64748b;">
+                        <?php foreach ($indexInfo as $idxName => $idx): ?>
+                            <span style="margin-right:1rem;">
+                                <?php echo htmlspecialchars($idxName); ?>:
+                                <?php if ($idx['exists']): ?>
+                                    ✅ <?php echo number_format($idx['size'] / 1024, 1); ?> KB
+                                    <small>(<?php echo htmlspecialchars($idx['modified'] ?? ''); ?>)</small>
+                                <?php else: ?>
+                                    ❌ nicht erstellt
+                                <?php endif; ?>
+                            </span>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php endif; ?>
+                    <form method="POST" onsubmit="return openSystemConfirm('rebuild_search_index', 'Suchindex erstellen', 'Suchindex komplett neu erstellen? Dies kann etwas dauern.', 'primary')">
+                        <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                        <input type="hidden" name="action" value="rebuild_search_index">
+                        <button type="submit" class="btn btn-primary">🔍 Suchindex erstellen</button>
                     </form>
                 </div>
             </div>

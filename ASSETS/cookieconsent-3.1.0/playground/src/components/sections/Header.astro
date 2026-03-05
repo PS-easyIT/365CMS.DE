@@ -1,0 +1,15 @@
+---
+import '../../styles/header.scss';
+import { docsUrl, stackblitzUrl, repoUrl } from "../../data/metadata";
+import { GitHubIcon } from '../../data/icons';
+---
+<header>
+    <h1 class="page-title">CookieConsent v3<span data-latest-release data-minor-release class="fade-in title__minor-version">.0.0</span></h1>
+    <h2 class="page-subtitle">A lightweight, GDPR and CCPA compliant Consent Management Tool written in vanilla JS.</h2>
+
+    <div class="main-links">
+        <a href={docsUrl} class="styled-link" target="_blank" rel="noopener noreferrer">📃 Documentation</a>
+        <a href={stackblitzUrl} class="styled-link styled-link__2" target="_blank" rel="noopener noreferrer">Live demos</a>
+        <a href={repoUrl} class="styled-link styled-link__2 github-icon" target="_blank" set:html={GitHubIcon} aria-label="GitHub repository"></a>
+    </div>
+</header>

@@ -1,0 +1,10 @@
+---
+import { getTranslationLocales } from "../modules/serverUtils";
+
+const locales = getTranslationLocales();
+---
+{
+    locales.map(locale => {
+        return <option value={locale}>{locale}</option>
+    })
+}

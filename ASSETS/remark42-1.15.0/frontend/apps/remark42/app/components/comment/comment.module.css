@@ -1,0 +1,50 @@
+.user {
+  display: flex;
+  align-items: center;
+}
+
+.user > * + * {
+  margin-left: 4px;
+}
+
+.verificationButton {
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  width: 16px;
+  height: 16px;
+}
+
+.verificationIcon {
+  color: var(--color29);
+}
+
+.verificationIconInactive {
+  color: var(--color1);
+  transition: opacity 0.15s;
+
+  &:hover {
+    opacity: 0.75;
+  }
+}
+
+.threadStarterAnchor {
+  display: inline-flex;
+  height: 1rem;
+  width: 1rem;
+  color: var(--color1);
+  justify-content: center;
+  align-items: center;
+
+  &:hover {
+    color: var(--color29);
+  }
+}
+
+:global(.dark) .threadStarterAnchor {
+  color: var(--color11);
+
+  &:hover {
+    color: var(--color41);
+  }
+}

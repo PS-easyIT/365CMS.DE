@@ -144,15 +144,65 @@ class Router
             $db         = Database::instance();
             $prefix     = $db->getPrefix();
 
+            // SearchService für Volltextsuche (TNTSearch)
+            $searchService = Services\SearchService::getInstance();
+            $useTNT = $searchService->isAvailable() && $query !== '';
+
             // Seiten-Suche (immer, außer ein spezifischer Bereich ist gewählt)
             if (empty($type) || $type === 'pages') {
-                $pageManager = PageManager::instance();
-                $pageResults = $pageManager->search($query);
-                foreach ($pageResults as $r) {
-                    $r = (array)$r;
-                    $r['_type'] = 'page';
-                    $r['_type_label'] = 'Seite';
-                    $results[] = $r;
+                if ($useTNT) {
+                    // TNTSearch Volltextsuche (relevanzbasiert)
+                    $tntResult = $searchService->search($query, 'pages', 20, true);
+                    if (!empty($tntResult['ids'])) {
+                        $ids = array_map('intval', $tntResult['ids']);
+                        $ph  = implode(',', array_fill(0, count($ids), '?'));
+                        $stmt = $db->prepare("SELECT * FROM {$prefix}pages WHERE id IN ({$ph}) AND status = 'published'");
+                        $stmt->execute($ids);
+                        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+                        // In TNTSearch-Relevanzreihenfolge bringen
+                        $byId = [];
+                        foreach ($rows as $r) { $byId[(int)$r['id']] = $r; }
+                        foreach ($ids as $id) {
+                            if (isset($byId[$id])) {
+                                $byId[$id]['_type'] = 'page';
+                                $byId[$id]['_type_label'] = 'Seite';
+                                $results[] = $byId[$id];
+                            }
+                        }
+                    }
+                } else {
+                    // Fallback: LIKE-Suche
+                    $pageManager = PageManager::instance();
+                    $pageResults = $pageManager->search($query);
+                    foreach ($pageResults as $r) {
+                        $r = (array)$r;
+                        $r['_type'] = 'page';
+                        $r['_type_label'] = 'Seite';
+                        $results[] = $r;
+                    }
+                }
+            }
+
+            // Posts-Suche (Blog)
+            if (empty($type) || $type === 'posts') {
+                if ($useTNT) {
+                    $tntResult = $searchService->search($query, 'posts', 20, true);
+                    if (!empty($tntResult['ids'])) {
+                        $ids = array_map('intval', $tntResult['ids']);
+                        $ph  = implode(',', array_fill(0, count($ids), '?'));
+                        $stmt = $db->prepare("SELECT * FROM {$prefix}posts WHERE id IN ({$ph}) AND status = 'published'");
+                        $stmt->execute($ids);
+                        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+                        $byId = [];
+                        foreach ($rows as $r) { $byId[(int)$r['id']] = $r; }
+                        foreach ($ids as $id) {
+                            if (isset($byId[$id])) {
+                                $byId[$id]['_type'] = 'post';
+                                $byId[$id]['_type_label'] = 'Beitrag';
+                                $results[] = $byId[$id];
+                            }
+                        }
+                    }
                 }
             }
 

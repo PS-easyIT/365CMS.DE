@@ -1,0 +1,39 @@
+/logs/
+/target/
+/var/
+/.vscode/
+/.idea/
+/bin/
+/.git/
+
+# frontend files not needed in docker image
+/frontend/node_modules/
+/frontend/apps/remark42/node_modules/
+/frontend/apps/remark42/public/
+# e2e tests arficats
+/frontend/e2e/playwright-report/
+/frontend/e2e/playwright/.cache/
+/frontend/e2e/test-results/
+
+# source files
+docker-compose.yml
+compose-dev-backend.yml
+compose-dev-frontend.yml
+compose-private-backend.yml
+compose-private-frontend.yml
+compose-e2e-test.yml
+compose-private.yml
+rest-client.env.json
+Makefile
+
+# generated files
+*.cov
+.cover
+target
+debug
+debug.test
+*.prof
+*.test
+remark42
+/backend/var/
+/playwright-report/

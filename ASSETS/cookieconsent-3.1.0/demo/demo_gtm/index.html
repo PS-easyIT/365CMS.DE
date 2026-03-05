@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CookieConsent demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../assets/demo.css">
+    <script src="../assets/demo.js" defer></script>
+
+    <!-- Load plugin css -->
+    <link rel="stylesheet" href="../../dist/cookieconsent.css">
+</head>
+<body>
+
+    <h1><a href="https://orestbida.com/demo-projects/cookieconsent/" target="_blank" class="demo-title">CookieConsent 🡥</a></h1>
+    <h2>Example configuration with Google Tag Manager</h2>
+    <br>
+    <p>Check your <a href="https://developer.chrome.com/docs/devtools/shortcuts/#open" target="_blank">browser's console 🡥</a> to see what's happening!</p>
+    <button class="btn" type="button" data-cc="show-preferencesModal">Cookie preferences</button>
+
+    <!-- Load plugin script -->
+    <script type="module" src="cookieconsent-init.js"></script>
+
+    <!--
+        You can manage any script by settings these 2 attributes:
+
+        - type="text/plain"
+        - data-category="category-name" (replace "category-name" with a valid category)
+    -->
+
+    <script>
+        // Define dataLayer and the gtag function.
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+
+        gtag('consent', 'default', {
+          'ad_storage': 'denied',
+          'analytics_storage': 'denied'
+        });
+    </script>
+
+    <!-- Google Tag Manager (replace GTM-XXXXXX)-->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-XXXXXX');</script>
+    <!-- End Google Tag Manager -->
+
+    <script type="text/plain" data-category="analytics">
+        gtag('consent', 'update', {
+            'analytics_storage': 'granted'
+        });
+    </script>
+
+    <script type="text/plain" data-category="!analytics">
+        gtag('consent', 'update', {
+            'analytics_storage': 'denied'
+        });
+    </script>
+
+    <script type="text/plain" data-category="ads">
+        gtag('consent', 'update', {
+            'ad_storage': 'granted'
+        });
+    </script>
+
+    <script type="text/plain" data-category="!ads">
+        gtag('consent', 'update', {
+            'ad_storage': 'denied'
+        });
+    </script>
+</body>
+</html>

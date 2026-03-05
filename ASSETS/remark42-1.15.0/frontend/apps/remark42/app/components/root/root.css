@@ -1,0 +1,11 @@
+.root {
+  position: relative;
+
+  &::selection {
+    background: var(--color42);
+  }
+}
+
+.root_user-info {
+  position: static;
+}

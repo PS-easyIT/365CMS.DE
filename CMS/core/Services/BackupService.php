@@ -307,7 +307,7 @@ class BackupService
     }
     
     /**
-     * Send email with attachment
+     * Send email with attachment (delegiert an MailService)
      */
     private function sendEmailWithAttachment(
         string $to,
@@ -316,29 +316,14 @@ class BackupService
         string $filePath,
         string $fileName
     ): bool {
-        $boundary = md5((string)time());
-        
-        $headers = [
-            'From: ' . ADMIN_EMAIL,
-            'MIME-Version: 1.0',
-            'Content-Type: multipart/mixed; boundary="' . $boundary . '"',
-        ];
-        
-        $body = "--{$boundary}\r\n";
-        $body .= "Content-Type: text/plain; charset=UTF-8\r\n";
-        $body .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
-        $body .= $message . "\r\n\r\n";
-        
-        // Attachment
-        $content = chunk_split(base64_encode(file_get_contents($filePath)));
-        $body .= "--{$boundary}\r\n";
-        $body .= "Content-Type: application/octet-stream; name=\"{$fileName}\"\r\n";
-        $body .= "Content-Transfer-Encoding: base64\r\n";
-        $body .= "Content-Disposition: attachment; filename=\"{$fileName}\"\r\n\r\n";
-        $body .= $content . "\r\n";
-        $body .= "--{$boundary}--";
-        
-        return mail($to, $subject, $body, implode("\r\n", $headers));
+        return MailService::getInstance()->sendWithAttachment(
+            $to,
+            $subject,
+            $message,
+            $filePath,
+            $fileName,
+            false // Plain-Text-Nachricht
+        );
     }
     
     /**

@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "incremental": true,
+    "target": "es6",
+    "module": "esnext",
+    "lib": ["es2019", "dom"],
+    "jsx": "preserve",
+    "jsxFactory": "h",
+    "jsxFragmentFactory": "Fragment",
+    "noEmit": true,
+    "strict": true,
+    "allowJs": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "baseUrl": "app",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "paths": {
+      "react": ["../node_modules/preact/compat"],
+      "react-dom": ["../node_modules/preact/compat"]
+    }
+  },
+  "include": ["app/typings", "app/**/*.tsx", "app/**/*.ts"],
+  "exclude": ["node_modules"]
+}
