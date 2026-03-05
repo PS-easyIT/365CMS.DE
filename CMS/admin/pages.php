@@ -154,9 +154,12 @@ renderAdminLayoutStart('Seiten', 'pages');
 ?>
 
 <?php foreach ($messages as $m):
-    $cls = $m['type'] === 'success' ? 'alert alert-success' : 'alert alert-error';
+    $alertCls = $m['type'] === 'success' ? 'alert-success' : 'alert-danger';
 ?>
-<div class="<?php echo $cls; ?>"><?php echo htmlspecialchars($m['text'], ENT_QUOTES, 'UTF-8'); ?></div>
+<div class="alert <?php echo $alertCls; ?> alert-dismissible" role="alert">
+    <div class="d-flex"><div><?php echo $m['text']; ?></div></div>
+    <a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>
+</div>
 <?php endforeach; ?>
 
 <?php /* ================================================================
@@ -172,21 +175,24 @@ if ($action === 'new' || $action === 'edit'):
     $hasCustomSlug = $isEdit && !empty($pData['slug']);
 ?>
 
-<div class="admin-page-header">
-    <div>
-        <h2><?php echo $isEdit ? '✏️ Seite bearbeiten' : '➕ Neue Seite'; ?></h2>
-        <?php if ($isEdit): ?>
-        <p>ID #<?php echo (int)$pData['id']; ?> &nbsp;&middot;&nbsp; <code>/<?php echo htmlspecialchars($pData['slug'], ENT_QUOTES, 'UTF-8'); ?></code></p>
-        <?php else: ?>
-        <p>Neue statische Seite anlegen und veröffentlichen</p>
-        <?php endif; ?>
-    </div>
-    <div class="header-actions">
-        <?php if ($isEdit): ?>
-        <a href="<?php echo SITE_URL; ?>/<?php echo htmlspecialchars($pData['slug'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" class="btn btn-secondary">👁️ Vorschau</a>
-        <?php endif; ?>
-        <a href="<?php echo SITE_URL; ?>/admin/pages" class="btn btn-secondary">↩️ Zurück</a>
-        <button type="submit" form="pageEditorForm" class="btn btn-primary">💾 <?php echo $isEdit ? 'Aktualisieren' : 'Speichern'; ?></button>
+<div class="page-header d-print-none mb-3">
+    <div class="container-xl">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle"><?php echo $isEdit ? 'Bearbeiten' : 'Erstellen'; ?></div>
+                <h2 class="page-title"><?php echo $isEdit ? '✏️ Seite bearbeiten' : '➕ Neue Seite'; ?></h2>
+                <?php if ($isEdit): ?>
+                <div class="text-secondary mt-1">ID #<?php echo (int)$pData['id']; ?> &middot; <code>/<?php echo htmlspecialchars($pData['slug'], ENT_QUOTES, 'UTF-8'); ?></code></div>
+                <?php endif; ?>
+            </div>
+            <div class="col-auto ms-auto">
+                <?php if ($isEdit): ?>
+                <a href="<?php echo SITE_URL; ?>/<?php echo htmlspecialchars($pData['slug'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" class="btn btn-secondary">👁️ Vorschau</a>
+                <?php endif; ?>
+                <a href="<?php echo SITE_URL; ?>/admin/pages" class="btn btn-secondary">↩️ Zurück</a>
+                <button type="submit" form="pageEditorForm" class="btn btn-primary">💾 <?php echo $isEdit ? 'Aktualisieren' : 'Speichern'; ?></button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -200,15 +206,16 @@ if ($action === 'new' || $action === 'edit'):
     <input type="hidden" name="page_id" value="<?php echo (int)$pData['id']; ?>">
     <?php endif; ?>
 
-    <div class="form-grid" style="display:grid; grid-template-columns: 3fr 1fr; gap:1.5rem;">
+    <div class="row g-3">
 
         <!-- Haupt-Spalte -->
-        <div style="display:flex; flex-direction:column; gap:1.5rem;">
+        <div class="col-lg-9">
 
-            <div class="admin-card">
-                <h3>📄 Inhalt</h3>
-                <div class="form-group">
-                    <label class="form-label">Titel <span style="color:#ef4444;">*</span></label>
+            <div class="card mb-3">
+                <div class="card-header"><h3 class="card-title">📄 Inhalt</h3></div>
+                <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Titel <span class="text-danger">*</span></label>
                     <input type="text"
                            id="page_title"
                            name="page_title"
@@ -250,7 +257,7 @@ if ($action === 'new' || $action === 'edit'):
                     </div>
                 </div>
 
-                <div class="form-group">
+                <div class="mb-3">
                     <label class="form-label">Inhalt</label>
                     <?php echo EditorService::getInstance()->render('page_content', $pContent, ['height' => 500]); ?>
                 </div>
@@ -259,26 +266,27 @@ if ($action === 'new' || $action === 'edit'):
         </div><!-- /.main-col -->
 
         <!-- Seiten-Spalte -->
-        <div style="display:flex; flex-direction:column; gap:1.5rem;">
+        <div class="col-lg-3">
 
-            <div class="admin-card">
-                <h3>⚙️ Veröffentlichung</h3>
-                <div class="form-group">
+            <div class="card mb-3">
+                <div class="card-header"><h3 class="card-title">⚙️ Veröffentlichung</h3></div>
+                <div class="card-body">
+                <div class="mb-3">
                     <label class="form-label">Status</label>
-                    <select name="page_status" id="page_status" class="form-control">
+                    <select name="page_status" id="page_status" class="form-select">
                         <option value="published" <?php echo ($pData['status'] ?? 'published') === 'published' ? 'selected' : ''; ?>>✅ Veröffentlicht</option>
                         <option value="draft"     <?php echo ($pData['status'] ?? '') === 'draft'     ? 'selected' : ''; ?>>📝 Entwurf</option>
                         <option value="private"   <?php echo ($pData['status'] ?? '') === 'private'   ? 'selected' : ''; ?>>🔒 Privat</option>
                     </select>
                 </div>
                 
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="page_hide_title" value="1"
+                <div class="mb-3">
+                    <label class="form-check">
+                        <input type="checkbox" name="page_hide_title" value="1" class="form-check-input"
                                <?php echo !empty($pData['hide_title']) ? 'checked' : ''; ?>>
-                        Seitentitel auf Seite ausblenden
+                        <span class="form-check-label">Seitentitel auf Seite ausblenden</span>
                     </label>
-                    <small class="form-text">Der Titel wird im Frontend nicht als H1 ausgegeben.</small>
+                    <small class="form-hint">Der Titel wird im Frontend nicht als H1 ausgegeben.</small>
                 </div>
 
                 <?php if ($isEdit): ?>
@@ -323,24 +331,31 @@ else:
         : array_values(array_filter($pages, fn($pg) => $pg['status'] === $filterStatus));
 ?>
 
-<div class="admin-page-header">
-    <div>
-        <h2>📄 Seiten</h2>
-        <p><?php echo count($filteredPages); ?> Seite<?php echo count($filteredPages) !== 1 ? 'n' : ''; ?> &nbsp;&middot;&nbsp; Statische Inhalte der Website</p>
-    </div>
-    <div class="header-actions">
-        <a href="<?php echo SITE_URL; ?>/admin/pages?action=new" class="btn btn-primary">➕ Neue Seite</a>
+<div class="page-header d-print-none mb-3">
+    <div class="container-xl">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle">Verwaltung</div>
+                <h2 class="page-title">📄 Seiten</h2>
+                <div class="text-secondary mt-1"><?php echo count($filteredPages); ?> Seite<?php echo count($filteredPages) !== 1 ? 'n' : ''; ?></div>
+            </div>
+            <div class="col-auto ms-auto">
+                <a href="<?php echo SITE_URL; ?>/admin/pages?action=new" class="btn btn-primary">➕ Neue Seite</a>
+            </div>
+        </div>
     </div>
 </div>
 
-<div class="tabs" style="margin-bottom:1.5rem;">
+<ul class="nav nav-tabs mb-3">
     <?php foreach (['all' => ['Alle', ''], 'published' => ['Veröffentlicht', '✅'], 'draft' => ['Entwürfe', '📝'], 'private' => ['Privat', '🔒']] as $s => [$label, $icon]): ?>
-    <a href="<?php echo SITE_URL; ?>/admin/pages?status=<?php echo $s; ?>"
-       class="tab-btn <?php echo $filterStatus === $s ? 'active' : ''; ?>">
-        <?php echo $icon; ?> <?php echo $label; ?> <span class="nav-badge" style="margin-left:0.35rem; font-size:0.75rem;"><?php echo $counts[$s] ?? 0; ?></span>
-    </a>
+    <li class="nav-item">
+        <a href="<?php echo SITE_URL; ?>/admin/pages?status=<?php echo $s; ?>"
+           class="nav-link <?php echo $filterStatus === $s ? 'active' : ''; ?>">
+            <?php echo $icon; ?> <?php echo $label; ?> <span class="badge bg-secondary ms-1"><?php echo $counts[$s] ?? 0; ?></span>
+        </a>
+    </li>
     <?php endforeach; ?>
-</div>
+</ul>
 
 <?php if (empty($filteredPages)): ?>
 <div class="empty-state">
@@ -355,8 +370,9 @@ else:
     <?php endif; ?>
 </div>
 <?php else: ?>
-<div class="users-table-container">
-    <table class="users-table">
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table">
         <thead>
             <tr>
                 <th>Titel</th>
@@ -368,8 +384,12 @@ else:
         </thead>
         <tbody>
         <?php foreach ($filteredPages as $pg):
-            $smap   = ['published' => ['Veröffentlicht','active'], 'draft' => ['Entwurf','inactive'], 'private' => ['Privat','admin']];
-            $sbadge = $smap[$pg['status']] ?? [ucfirst($pg['status']), ''];
+            $sbadge = match($pg['status']) {
+                'published' => ['Veröffentlicht', 'bg-success-lt'],
+                'draft'     => ['Entwurf', 'bg-secondary-lt'],
+                'private'   => ['Privat', 'bg-yellow-lt'],
+                default     => [ucfirst($pg['status']), 'bg-secondary-lt']
+            };
         ?>
         <tr>
             <td>
@@ -381,7 +401,7 @@ else:
             <td style="color:#64748b; font-size:0.875rem;">
                 <code style="background:#f1f5f9; padding:2px 4px; border-radius:4px;">/<?php echo htmlspecialchars($pg['slug'], ENT_QUOTES, 'UTF-8'); ?></code>
             </td>
-            <td><span class="status-badge <?php echo $sbadge[1]; ?>"><?php echo $sbadge[0]; ?></span></td>
+            <td><span class="badge <?php echo $sbadge[1]; ?>"><?php echo $sbadge[0]; ?></span></td>
             <td style="font-size:0.875rem; color:#64748b;"><?php echo date('d.m.Y', strtotime($pg['created_at'])); ?></td>
             <td style="text-align:right; white-space:nowrap;">
                 <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
@@ -396,8 +416,8 @@ else:
             </td>
         </tr>
         <?php endforeach; ?>
-        </tbody>
-    </table>
+        </table>
+    </div>
 </div>
 <?php endif; ?>
 
@@ -409,19 +429,25 @@ else:
 
 <?php endif; // end views ?>
 
-<!-- Seite löschen – Bestätigungs-Modal -->
-<div id="pageDeleteModal" class="modal" style="display:none;">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Seite löschen</h3>
-            <button class="modal-close" onclick="closeModal('pageDeleteModal')">&times;</button>
-        </div>
-        <div class="modal-body">
-            <p>Seite wirklich <strong>unwiderruflich löschen</strong>? Diese Aktion kann nicht rückgängig gemacht werden.</p>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeModal('pageDeleteModal')">Abbrechen</button>
-            <button type="button" class="btn btn-danger" id="pageDeleteConfirmBtn">🗑️ Löschen</button>
+<!-- Seite löschen – Bootstrap 5 Modal -->
+<div class="modal modal-blur fade" id="pageDeleteModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+            <div class="modal-status bg-danger"></div>
+            <div class="modal-body text-center py-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon mb-2 text-danger icon-lg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0z"/><path d="M12 16h.01"/></svg>
+                <h3>Seite löschen</h3>
+                <div class="text-secondary">Seite wirklich <strong>unwiderruflich löschen</strong>? Diese Aktion kann nicht rückgängig gemacht werden.</div>
+            </div>
+            <div class="modal-footer">
+                <div class="w-100">
+                    <div class="row">
+                        <div class="col"><button type="button" class="btn w-100" data-bs-dismiss="modal">Abbrechen</button></div>
+                        <div class="col"><button type="button" class="btn btn-danger w-100" id="pageDeleteConfirmBtn">🗑️ Löschen</button></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -463,14 +489,13 @@ function updateSlugHidden(val) {
     if (hidden)  hidden.value = val;
     if (preview) preview.textContent = val ? val : '...';
 }
+const _pageDelModal = new bootstrap.Modal(document.getElementById('pageDeleteModal'));
 function deletePage(id) {
     openDeletePageModal(id, false);
 }
 function openDeletePageModal(id, isEditorView) {
-    const modal = document.getElementById('pageDeleteModal');
-    if (!modal) return;
     document.getElementById('pageDeleteConfirmBtn').onclick = function() {
-        closeModal('pageDeleteModal');
+        _pageDelModal.hide();
         if (isEditorView) {
             document.getElementById('deletePageForm').submit();
         } else {
@@ -478,10 +503,7 @@ function openDeletePageModal(id, isEditorView) {
             document.getElementById('listDeletePageForm').submit();
         }
     };
-    modal.style.display = 'flex';
-}
-function closeModal(id) {
-    document.getElementById(id).style.display = 'none';
+    _pageDelModal.show();
 }
 document.addEventListener('DOMContentLoaded', function() {
     const pageForm = document.getElementById('pageEditorForm');

@@ -212,24 +212,31 @@ require_once __DIR__ . '/partials/admin-menu.php';
 renderAdminLayoutStart('Benutzer', 'users');
 ?>
 
-<div class="admin-page-header">
-    <div>
-        <h2>👥 Benutzerverwaltung</h2>
-        <p>Verwalten Sie Benutzer, Rollen und Zugriffsrechte.</p>
-    </div>
-    <div class="header-actions">
-        <?php if ($view === 'edit' || $view === 'new'): ?>
-            <a href="<?php echo SITE_URL; ?>/admin/users" class="btn btn-secondary">↩️ Zurück zur Liste</a>
-        <?php else: ?>
-            <a href="<?php echo SITE_URL; ?>/admin/users?view=new" class="btn btn-primary">➕ Neuer Benutzer</a>
-        <?php endif; ?>
+<div class="page-header d-print-none mb-3">
+    <div class="container-xl">
+        <div class="row align-items-center">
+            <div class="col-auto">
+                <div class="page-pretitle">Verwaltung</div>
+                <h2 class="page-title">👥 Benutzerverwaltung</h2>
+            </div>
+            <div class="col-auto ms-auto">
+                <?php if ($view === 'edit' || $view === 'new'): ?>
+                    <a href="<?php echo SITE_URL; ?>/admin/users" class="btn btn-secondary">↩️ Zurück zur Liste</a>
+                <?php else: ?>
+                    <a href="<?php echo SITE_URL; ?>/admin/users?view=new" class="btn btn-primary">➕ Neuer Benutzer</a>
+                <?php endif; ?>
+            </div>
+        </div>
     </div>
 </div>
 
 <?php foreach ($messages as $m):
-    $cls = $m['type'] === 'success' ? 'alert alert-success' : 'alert alert-error';
+    $alertCls = $m['type'] === 'success' ? 'alert-success' : 'alert-danger';
 ?>
-<div class="<?php echo $cls; ?>"><?php echo htmlspecialchars($m['text'], ENT_QUOTES, 'UTF-8'); ?></div>
+<div class="alert <?php echo $alertCls; ?> alert-dismissible" role="alert">
+    <div class="d-flex"><div><?php echo htmlspecialchars($m['text'], ENT_QUOTES, 'UTF-8'); ?></div></div>
+    <a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>
+</div>
 <?php endforeach; ?>
 
 <?php
@@ -261,32 +268,36 @@ if ($view === 'edit' && $editUserId > 0):
             <div class="admin-card">
                 <h3>👤 Benutzerdaten</h3>
                 <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
-                    <div class="form-group">
+                    <div class="col-md-6">
                         <label class="form-label">Benutzername</label>
                         <input type="text" value="<?php echo htmlspecialchars($eu->username, ENT_QUOTES); ?>" disabled class="form-control" style="background:#f1f5f9; color:#64748b;">
-                        <small class="form-text">Nicht änderbar.</small>
+                        <small class="form-hint">Nicht änderbar.</small>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">E-Mail <span style="color:#ef4444;">*</span></label>
+                    <div class="col-md-6">
+                        <label class="form-label">E-Mail <span class="text-danger">*</span></label>
                         <input type="email" name="email" value="<?php echo htmlspecialchars($eu->email, ENT_QUOTES); ?>" class="form-control" required>
                     </div>
-                    <div class="form-group" style="grid-column:1/-1;">
+                    <div class="col-12">
                         <label class="form-label">Anzeigename</label>
                         <input type="text" name="display_name" value="<?php echo htmlspecialchars($eu->display_name ?? '', ENT_QUOTES); ?>" class="form-control" placeholder="Anzeigename">
                     </div>
                 </div>
-            </div>
-
-            <div class="admin-card">
-                <h3>🔑 Passwort ändern</h3>
-                <div class="form-group">
-                    <label class="form-label">Neues Passwort</label>
-                    <input type="password" name="new_password" class="form-control" placeholder="min. 6 Zeichen (leer lassen für unverändert)" minlength="6" autocomplete="new-password">
                 </div>
             </div>
 
-            <div class="admin-card">
-                <h3>👥 Gruppen</h3>
+            <div class="card mb-3">
+                <div class="card-header"><h3 class="card-title">🔑 Passwort ändern</h3></div>
+                <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Neues Passwort</label>
+                    <input type="password" name="new_password" class="form-control" placeholder="min. 6 Zeichen (leer lassen für unverändert)" minlength="6" autocomplete="new-password">
+                </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header"><h3 class="card-title">👥 Gruppen</h3></div>
+                <div class="card-body">
                 <?php if (empty($allGroups)): ?>
                 <p style="color:#94a3b8; font-size:0.9rem;">Noch keine Gruppen vorhanden. <a href="groups.php">Gruppen verwalten →</a></p>
                 <?php else: ?>
@@ -300,17 +311,19 @@ if ($view === 'edit' && $editUserId > 0):
                     </label>
                     <?php endforeach; ?>
                 </div>
-                <small class="form-text">Gruppen-Mitgliedschaften werden nach dem Speichern aktualisiert.</small>
+                <small class="form-hint">Gruppen-Mitgliedschaften werden nach dem Speichern aktualisiert.</small>
                 <?php endif; ?>
+                </div>
             </div>
         </div>
 
-        <div style="display:flex; flex-direction:column; gap:1.5rem;">
-            <div class="admin-card">
-                <h3>⚙️ Status & Rolle</h3>
+        <div class="col-lg-4">
+            <div class="card mb-3">
+                <div class="card-header"><h3 class="card-title">⚙️ Status & Rolle</h3></div>
+                <div class="card-body">
                 <div class="form-group">
                     <label class="form-label">Rolle</label>
-                    <select name="role" class="form-control" <?php echo (int)$eu->id === $current_user_id ? 'disabled' : ''; ?>>
+                    <select name="role" class="form-select" <?php echo (int)$eu->id === $current_user_id ? 'disabled' : ''; ?>>
                         <?php foreach ($allDbRoles as $dbRole): ?>
                         <option value="<?php echo htmlspecialchars($dbRole->name, ENT_QUOTES); ?>" <?php echo ($eu->role ?? '') === $dbRole->name ? 'selected' : ''; ?>>
                             <?php echo $roleEmojis[$dbRole->name] ?? '🏷️'; ?> <?php echo htmlspecialchars($dbRole->display_name, ENT_QUOTES); ?>
@@ -320,7 +333,7 @@ if ($view === 'edit' && $editUserId > 0):
                 </div>
                 <div class="form-group">
                     <label class="form-label">Status</label>
-                    <select name="status" class="form-control" <?php echo (int)$eu->id === $current_user_id ? 'disabled' : ''; ?>>
+                    <select name="status" class="form-select" <?php echo (int)$eu->id === $current_user_id ? 'disabled' : ''; ?>>
                         <option value="active"   <?php echo ($eu->status ?? 'active') === 'active'   ? 'selected' : ''; ?>>✅ Aktiv</option>
                         <option value="inactive" <?php echo ($eu->status ?? '') === 'inactive' ? 'selected' : ''; ?>>⏸️ Inaktiv</option>
                         <option value="banned"   <?php echo ($eu->status ?? '') === 'banned'   ? 'selected' : ''; ?>>🚫 Gesperrt</option>
@@ -336,14 +349,15 @@ if ($view === 'edit' && $editUserId > 0):
                     <span>Letzter Login: <?php echo date('d.m.Y H:i', strtotime($eu->last_login)); ?></span>
                     <?php endif; ?>
                 </div>
+                </div>
             </div>
             
-            <div class="admin-card form-actions-card">
-                <div class="form-actions" style="flex-direction:column; width:100%;">
-                    <button type="submit" class="btn btn-primary" style="width:100%;">💾 Änderungen speichern</button>
+            <div class="card">
+                <div class="card-body d-flex flex-column gap-2">
+                    <button type="submit" class="btn btn-primary w-100">💾 Änderungen speichern</button>
                     <?php if ((int)$eu->id !== $current_user_id): ?>
-                    <button type="button" class="btn btn-danger btn-sm"
-                            onclick="openUserDeleteModal()" style="width:100%;margin-top:.45rem;">🗑️ Löschen</button>
+                    <button type="button" class="btn btn-danger btn-sm w-100"
+                            onclick="openUserDeleteModal()">🗑️ Löschen</button>
                     <?php endif; ?>
                 </div>
             </div>
@@ -386,52 +400,45 @@ document.addEventListener('DOMContentLoaded', function() {
 elseif ($view === 'new'):
 ?>
 
-<div class="admin-page-header">
-    <div>
-        <h2>➕ Neuer Benutzer</h2>
-        <p>Einen neuen Benutzer manuell anlegen.</p>
-    </div>
-    <div class="header-actions">
-        <a href="<?php echo SITE_URL; ?>/admin/users" class="btn btn-secondary">↩️ Zurück zur Liste</a>
-    </div>
-</div>
-
 <form method="post" action="<?php echo SITE_URL; ?>/admin/users">
     <input type="hidden" name="_csrf"   value="<?php echo $csrfCreate; ?>">
     <input type="hidden" name="_action" value="create_user">
 
-    <div class="form-grid" style="display:grid; grid-template-columns: 2fr 1fr; gap:1.5rem;">
-        <div style="display:flex; flex-direction:column; gap:1.5rem;">
-            <div class="admin-card">
-                <h3>👤 Benutzerdaten</h3>
-                <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
-                    <div class="form-group">
-                        <label class="form-label">Benutzername <span style="color:#ef4444;">*</span></label>
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="card mb-3">
+                <div class="card-header"><h3 class="card-title">👤 Benutzerdaten</h3></div>
+                <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Benutzername <span class="text-danger">*</span></label>
                         <input type="text" name="username" class="form-control" required placeholder="z.B. max123" autocomplete="off">
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">E-Mail <span style="color:#ef4444;">*</span></label>
+                    <div class="col-md-6">
+                        <label class="form-label">E-Mail <span class="text-danger">*</span></label>
                         <input type="email" name="email" class="form-control" required placeholder="user@example.com">
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Passwort <span style="color:#ef4444;">*</span></label>
+                    <div class="col-md-6">
+                        <label class="form-label">Passwort <span class="text-danger">*</span></label>
                         <input type="password" name="password" class="form-control" required minlength="6" placeholder="••••••" autocomplete="new-password">
-                        <small class="form-text">Mindestens 6 Zeichen.</small>
+                        <small class="form-hint">Mindestens 6 Zeichen.</small>
                     </div>
-                    <div class="form-group">
+                    <div class="col-md-6">
                         <label class="form-label">Anzeigename</label>
                         <input type="text" name="display_name" class="form-control" placeholder="Max Mustermann">
                     </div>
                 </div>
+                </div>
             </div>
         </div>
         
-        <div style="display:flex; flex-direction:column; gap:1.5rem;">
-            <div class="admin-card">
-                <h3>⚙️ Rolle</h3>
-                <div class="form-group">
+        <div class="col-lg-4">
+            <div class="card mb-3">
+                <div class="card-header"><h3 class="card-title">⚙️ Rolle</h3></div>
+                <div class="card-body">
+                <div class="mb-3">
                     <label class="form-label">Rolle</label>
-                    <select name="role" class="form-control">
+                    <select name="role" class="form-select">
                         <?php foreach ($allDbRoles as $dbRole): ?>
                         <option value="<?php echo htmlspecialchars($dbRole->name, ENT_QUOTES); ?>" <?php echo $dbRole->name === 'member' ? 'selected' : ''; ?>>
                             <?php echo $roleEmojis[$dbRole->name] ?? '🏷️'; ?> <?php echo htmlspecialchars($dbRole->display_name, ENT_QUOTES); ?>
@@ -439,8 +446,7 @@ elseif ($view === 'new'):
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div style="margin-top:1rem;">
-                    <button type="submit" class="btn btn-primary" style="width:100%;">✅ Benutzer erstellen</button>
+                <button type="submit" class="btn btn-primary w-100">✅ Benutzer erstellen</button>
                 </div>
             </div>
         </div>
@@ -489,9 +495,8 @@ else:
         ));
 ?>
 
-<div class="tabs" style="margin-bottom:1.5rem;">
+<ul class="nav nav-tabs mb-3">
     <?php
-    // Dynamische Rollen-Tabs: Alle DB-Rollen + Gesperrt
     $roleTabs = ['all' => 'Alle'];
     foreach ($allDbRoles as $dbRole) {
         $emoji = $roleEmojis[$dbRole->name] ?? '🏷️';
@@ -500,24 +505,32 @@ else:
     $roleTabs['banned'] = '🚫 Gesperrt';
     ?>
     <?php foreach ($roleTabs as $r => $lbl): ?>
-    <a href="<?php echo SITE_URL; ?>/admin/users?role=<?php echo $r; ?><?php echo $search ? '&search=' . urlencode($search) : ''; ?>"
-       class="tab-btn <?php echo $roleFilter === $r ? 'active' : ''; ?>" style="text-decoration:none;">
-        <?php echo $lbl; ?> <span class="nav-badge" style="margin-left:0.25rem; font-size:0.75rem;"><?php echo $roleCounts[$r] ?? 0; ?></span>
-    </a>
+    <li class="nav-item">
+        <a href="<?php echo SITE_URL; ?>/admin/users?role=<?php echo $r; ?><?php echo $search ? '&search=' . urlencode($search) : ''; ?>"
+           class="nav-link <?php echo $roleFilter === $r ? 'active' : ''; ?>">
+            <?php echo $lbl; ?> <span class="badge bg-secondary ms-1"><?php echo $roleCounts[$r] ?? 0; ?></span>
+        </a>
+    </li>
     <?php endforeach; ?>
-</div>
+</ul>
 
-<div class="admin-card" style="margin-bottom:1.5rem; padding:1rem;">
-    <form method="get" action="<?php echo SITE_URL; ?>/admin/users" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
-        <input type="hidden" name="role" value="<?php echo htmlspecialchars($roleFilter); ?>">
-        <div style="display:flex; gap:0.5rem; flex:1; max-width:400px;">
-            <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" class="form-control" placeholder="Suche nach Name, E-Mail…" style="min-width:200px;">
-            <button type="submit" class="btn btn-secondary">🔍 Suchen</button>
-        </div>
-        <?php if ($search): ?>
-        <a href="<?php echo SITE_URL; ?>/admin/users?role=<?php echo $roleFilter; ?>" class="btn btn-secondary btn-sm">✕ Filter löschen</a>
-        <?php endif; ?>
-    </form>
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" action="<?php echo SITE_URL; ?>/admin/users" class="row g-2 align-items-center">
+            <input type="hidden" name="role" value="<?php echo htmlspecialchars($roleFilter); ?>">
+            <div class="col-auto" style="flex:1; max-width:400px;">
+                <div class="input-group">
+                    <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" class="form-control" placeholder="Suche nach Name, E-Mail…">
+                    <button type="submit" class="btn btn-secondary">🔍 Suchen</button>
+                </div>
+            </div>
+            <?php if ($search): ?>
+            <div class="col-auto">
+                <a href="<?php echo SITE_URL; ?>/admin/users?role=<?php echo $roleFilter; ?>" class="btn btn-secondary btn-sm">✕ Filter löschen</a>
+            </div>
+            <?php endif; ?>
+        </form>
+    </div>
 </div>
 
 <form method="post" action="<?php echo SITE_URL; ?>/admin/users" id="bulkForm">
@@ -549,9 +562,10 @@ else:
         <?php endif; ?>
     </div>
     <?php else: ?>
-    <div class="users-table-container">
-        <table class="users-table">
-            <thead>
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-vcenter card-table">
+                <thead>
                 <tr>
                     <th style="width:30px;">
                         <input type="checkbox" onchange="document.querySelectorAll('#bulkForm input[name=\'bulk_ids[]\']').forEach(c=>c.checked=this.checked)">
@@ -573,14 +587,14 @@ else:
                 $statusLbl   = ['active' => 'Aktiv', 'inactive' => 'Inaktiv', 'banned' => 'Gesperrt'][$u->status ?? 'active'] ?? ucfirst($u->status ?? 'active');
                 
                 $roleBadgeClass = match($u->role) {
-                    'admin' => 'admin',
-                    'editor' => 'admin', 
-                    default => 'member'
+                    'admin' => 'bg-yellow-lt',
+                    'editor' => 'bg-blue-lt', 
+                    default => 'bg-azure-lt'
                 };
                 $statusBadgeClass = match($u->status) {
-                    'active' => 'active',
-                    'banned' => 'danger',
-                    default => 'inactive'
+                    'active' => 'bg-success-lt',
+                    'banned' => 'bg-danger-lt',
+                    default => 'bg-secondary-lt'
                 };
             ?>
             <tr>
@@ -606,8 +620,8 @@ else:
                     </div>
                 </td>
                 <td style="color:#64748b;"><?php echo htmlspecialchars($u->email, ENT_QUOTES); ?></td>
-                <td><span class="role-badge <?php echo $roleBadgeClass; ?>"><?php echo $roleLbl; ?></span></td>
-                <td><span class="status-badge <?php echo $statusBadgeClass; ?>"><?php echo $statusLbl; ?></span></td>
+                <td><span class="badge <?php echo $roleBadgeClass; ?>"><?php echo $roleLbl; ?></span></td>
+                <td><span class="badge <?php echo $statusBadgeClass; ?>"><?php echo $statusLbl; ?></span></td>
                 <td style="text-align:center; color:#64748b;"><?php echo (int)($u->group_count ?? 0); ?></td>
                 <td style="color:#64748b;"><?php echo date('d.m.Y', strtotime($u->created_at)); ?></td>
                 <td style="text-align:right; white-space:nowrap;">
@@ -624,7 +638,7 @@ else:
             <?php endforeach; ?>
             </tbody>
         </table>
-    </div>
+        </div>
 
     <?php if ($totalPages > 1): ?>
     <div class="pagination" style="display:flex; gap:0.5rem; justify-content:center; margin-top:1.5rem;">
@@ -646,19 +660,29 @@ else:
     <input type="hidden" name="user_id" id="deleteUserId" value="">
 </form>
 
-<!-- Benutzer löschen – Bestätigungs-Modal -->
-<div id="userDeleteModal" class="modal" style="display:none;">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Benutzer löschen</h3>
-            <button class="modal-close" onclick="closeModal('userDeleteModal')">&times;</button>
-        </div>
-        <div class="modal-body">
-            <p>Benutzer wirklich <strong>endgültig löschen</strong>? Diese Aktion kann nicht rückgängig gemacht werden.</p>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeModal('userDeleteModal')">Abbrechen</button>
-            <button type="button" class="btn btn-danger" id="userDeleteConfirmBtn">🗑️ Löschen</button>
+<!-- Benutzer löschen – Bootstrap 5 Modal -->
+<div class="modal modal-blur fade" id="userDeleteModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+            <div class="modal-status bg-danger"></div>
+            <div class="modal-body text-center py-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon mb-2 text-danger icon-lg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0z"/><path d="M12 16h.01"/></svg>
+                <h3>Benutzer löschen</h3>
+                <div class="text-secondary">Benutzer wirklich <strong>endgültig löschen</strong>? Diese Aktion kann nicht rückgängig gemacht werden.</div>
+            </div>
+            <div class="modal-footer">
+                <div class="w-100">
+                    <div class="row">
+                        <div class="col">
+                            <button type="button" class="btn w-100" data-bs-dismiss="modal">Abbrechen</button>
+                        </div>
+                        <div class="col">
+                            <button type="button" class="btn btn-danger w-100" id="userDeleteConfirmBtn">🗑️ Löschen</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -666,20 +690,21 @@ else:
 <?php endif; ?>
 
 <script>
+const _delModal = new bootstrap.Modal(document.getElementById('userDeleteModal'));
 function deleteUser(id) {
     document.getElementById('userDeleteConfirmBtn').onclick = function() {
-        closeModal('userDeleteModal');
+        _delModal.hide();
         document.getElementById('deleteUserId').value = id;
         document.getElementById('deleteUserForm').submit();
     };
-    document.getElementById('userDeleteModal').style.display = 'flex';
+    _delModal.show();
 }
 function openUserDeleteModal() {
-    document.getElementById('userDeleteModal').style.display = 'flex';
     document.getElementById('userDeleteConfirmBtn').onclick = function() {
-        closeModal('userDeleteModal');
+        _delModal.hide();
         document.getElementById('deleteUserForm').submit();
     };
+    _delModal.show();
 }
 </script>
 

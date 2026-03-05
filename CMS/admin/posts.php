@@ -287,9 +287,12 @@ renderAdminLayoutStart('Beiträge', 'posts');
 ?>
 
 <?php foreach ($messages as $m):
-    $cls = match($m['type']){'success'=>'alert-success','error'=>'alert-error',default=>''};
+    $cls = match($m['type']){'success'=>'alert-success','error'=>'alert-danger',default=>''};
 ?>
-<div class="alert <?php echo $cls; ?>"><?php echo htmlspecialchars($m['text'], ENT_QUOTES, 'UTF-8'); ?></div>
+<div class="alert <?php echo $cls; ?> alert-dismissible" role="alert">
+    <div class="d-flex"><div><?php echo htmlspecialchars($m['text'], ENT_QUOTES, 'UTF-8'); ?></div></div>
+    <a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>
+</div>
 <?php endforeach; ?>
 
 <?php /* ===============================================================
@@ -297,13 +300,18 @@ renderAdminLayoutStart('Beiträge', 'posts');
    =============================================================== */
 if ($view === 'categories'): ?>
 
-<div class="admin-page-header">
-    <div>
-        <h2>🏷️ Kategorien</h2>
-        <p><?php echo count($categories); ?> Kategorie<?php echo count($categories) !== 1 ? 'n' : ''; ?> &nbsp;&middot;&nbsp; Beiträge thematisch organisieren</p>
-    </div>
-    <div class="header-actions">
-        <a href="<?php echo SITE_URL; ?>/admin/posts" class="btn btn-secondary">← Zu Beiträgen</a>
+<div class="page-header d-print-none mb-3">
+    <div class="container-xl">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle">Verwaltung</div>
+                <h2 class="page-title">🏷️ Kategorien</h2>
+                <div class="text-secondary mt-1"><?php echo count($categories); ?> Kategorie<?php echo count($categories) !== 1 ? 'n' : ''; ?></div>
+            </div>
+            <div class="col-auto ms-auto">
+                <a href="<?php echo SITE_URL; ?>/admin/posts" class="btn btn-secondary">← Zu Beiträgen</a>
+            </div>
+        </div>
     </div>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;">
@@ -395,21 +403,24 @@ elseif ($view === 'edit'):
         'published_at'     => $post->published_at      ?? '',
     ];
 ?>
-<div class="admin-page-header">
-    <div>
-        <h2><?php echo $isNew ? '➕ Neuer Beitrag' : '✏️ Beitrag bearbeiten'; ?></h2>
-        <?php if (!$isNew): ?>
-        <p>ID #<?php echo (int)$pd['id']; ?> &nbsp;&middot;&nbsp; /blog/<?php echo htmlspecialchars($pd['slug'], ENT_QUOTES); ?></p>
-        <?php else: ?>
-        <p>Neuen Blog-Beitrag erstellen und veröffentlichen</p>
-        <?php endif; ?>
-    </div>
-    <div class="header-actions">
-        <?php if (!$isNew): ?>
-        <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($pd['slug']); ?>" target="_blank" class="btn btn-secondary">👁️ Vorschau</a>
-        <?php endif; ?>
-        <a href="<?php echo SITE_URL; ?>/admin/posts" class="btn btn-outline">← Alle Beiträge</a>
-        <button type="submit" form="postEditForm" class="btn btn-primary">💾 <?php echo $isNew ? 'Erstellen' : 'Speichern'; ?></button>
+<div class="page-header d-print-none mb-3">
+    <div class="container-xl">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle"><?php echo $isNew ? 'Erstellen' : 'Bearbeiten'; ?></div>
+                <h2 class="page-title"><?php echo $isNew ? '➕ Neuer Beitrag' : '✏️ Beitrag bearbeiten'; ?></h2>
+                <?php if (!$isNew): ?>
+                <div class="text-secondary mt-1">ID #<?php echo (int)$pd['id']; ?> &middot; /blog/<?php echo htmlspecialchars($pd['slug'], ENT_QUOTES); ?></div>
+                <?php endif; ?>
+            </div>
+            <div class="col-auto ms-auto">
+                <?php if (!$isNew): ?>
+                <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($pd['slug']); ?>" target="_blank" class="btn btn-secondary">👁️ Vorschau</a>
+                <?php endif; ?>
+                <a href="<?php echo SITE_URL; ?>/admin/posts" class="btn">← Alle Beiträge</a>
+                <button type="submit" form="postEditForm" class="btn btn-primary">💾 <?php echo $isNew ? 'Erstellen' : 'Speichern'; ?></button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -420,10 +431,10 @@ elseif ($view === 'edit'):
     <input type="hidden" name="_action" value="save_post">
     <input type="hidden" name="post_id" value="<?php echo (int)$pd['id']; ?>">
 
-    <div class="post-edit-layout">
+    <div class="row g-3">
 
         <!-- Haupt-Spalte -->
-        <div class="post-edit-main">
+        <div class="col-lg-8">
 
             <div class="admin-card">
                 <h3>📝 Titel &amp; Permalink</h3>
@@ -467,10 +478,10 @@ elseif ($view === 'edit'):
                 </div>
             </div>
 
-        </div><!-- /.post-edit-main -->
+        </div><!-- /.col-lg-8 -->
 
         <!-- Seiten-Spalte -->
-        <div class="post-edit-side">
+        <div class="col-lg-4">
 
             <div class="admin-card">
                 <h3>📋 Status &amp; Sichtbarkeit</h3>
@@ -546,8 +557,8 @@ elseif ($view === 'edit'):
                 </label>
             </div>
 
-        </div><!-- /.post-edit-side -->
-    </div><!-- /.post-edit-layout -->
+        </div><!-- /.col-lg-4 -->
+    </div><!-- /.row -->
 
 </form>
 
@@ -604,25 +615,32 @@ else: // view === 'list'
         ));
 ?>
 
-<div class="admin-page-header">
-    <div>
-        <h2>✍️ Beiträge</h2>
-        <p><?php echo $total; ?> Beitrag<?php echo $total !== 1 ? 'e' : ''; ?><?php echo $search ? ' für &bdquo;'.htmlspecialchars($search,ENT_QUOTES).'&ldquo;' : ''; ?> &nbsp;&middot;&nbsp; Blog &amp; News verwalten</p>
-    </div>
-    <div class="header-actions">
-        <a href="<?php echo SITE_URL; ?>/admin/posts?view=categories" class="btn btn-secondary">🏷️ Kategorien</a>
-        <a href="<?php echo SITE_URL; ?>/admin/posts?view=edit" class="btn btn-primary">➕ Neuer Beitrag</a>
+<div class="page-header d-print-none mb-3">
+    <div class="container-xl">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="page-pretitle">Verwaltung</div>
+                <h2 class="page-title">✍️ Beiträge</h2>
+                <div class="text-secondary mt-1"><?php echo $total; ?> Beitrag<?php echo $total !== 1 ? 'e' : ''; ?><?php echo $search ? ' für &bdquo;'.htmlspecialchars($search,ENT_QUOTES).'&ldquo;' : ''; ?></div>
+            </div>
+            <div class="col-auto ms-auto">
+                <a href="<?php echo SITE_URL; ?>/admin/posts?view=categories" class="btn btn-secondary">🏷️ Kategorien</a>
+                <a href="<?php echo SITE_URL; ?>/admin/posts?view=edit" class="btn btn-primary">➕ Neuer Beitrag</a>
+            </div>
+        </div>
     </div>
 </div>
 
-<div class="tabs">
+<ul class="nav nav-tabs mb-3">
     <?php foreach (['all'=>['Alle','📄'],'published'=>['Veröffentlicht','✅'],'draft'=>['Entwürfe','📝'],'trash'=>['Papierkorb','🗑️']] as $s=>[$label,$icon]): ?>
-    <a href="<?php echo SITE_URL; ?>/admin/posts?status=<?php echo $s; ?><?php echo $search?'&search='.urlencode($search):''; ?>"
-       class="tab-btn <?php echo $status===$s?'active':''; ?>">
-        <?php echo $icon; ?> <?php echo $label; ?> <span class="badge" style="margin-left:.35rem;"><?php echo $counts[$s]; ?></span>
-    </a>
+    <li class="nav-item">
+        <a href="<?php echo SITE_URL; ?>/admin/posts?status=<?php echo $s; ?><?php echo $search?'&search='.urlencode($search):''; ?>"
+           class="nav-link <?php echo $status===$s?'active':''; ?>">
+            <?php echo $icon; ?> <?php echo $label; ?> <span class="badge bg-secondary ms-1"><?php echo $counts[$s]; ?></span>
+        </a>
+    </li>
     <?php endforeach; ?>
-</div>
+</ul>
 
 <form method="get" action="<?php echo SITE_URL; ?>/admin/posts">
     <input type="hidden" name="view"   value="list">
@@ -746,32 +764,39 @@ else: // view === 'list'
     <input type="hidden" name="delete_mode" id="listDeleteMode" value="">
 </form>
 
-<!-- Post löschen – Bestätigungs-Modal -->
-<div id="postDeleteModal" class="modal" style="display:none;">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 id="postDeleteModalTitle">Beitrag löschen</h3>
-            <button class="modal-close" onclick="closeModal('postDeleteModal')">&times;</button>
-        </div>
-        <div class="modal-body">
-            <p id="postDeleteModalMsg" style="color:#1e293b;"></p>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeModal('postDeleteModal')">Abbrechen</button>
-            <button type="button" class="btn btn-danger" id="postDeleteModalConfirm">🗑️ Löschen</button>
+<!-- Post löschen – Bootstrap 5 Modal -->
+<div class="modal modal-blur fade" id="postDeleteModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+            <div class="modal-status bg-danger"></div>
+            <div class="modal-body text-center py-4">
+                <h3 id="postDeleteModalTitle">Beitrag löschen</h3>
+                <div class="text-secondary" id="postDeleteModalMsg"></div>
+            </div>
+            <div class="modal-footer">
+                <div class="w-100">
+                    <div class="row">
+                        <div class="col"><button type="button" class="btn w-100" data-bs-dismiss="modal">Abbrechen</button></div>
+                        <div class="col"><button type="button" class="btn btn-danger w-100" id="postDeleteModalConfirm">🗑️ Löschen</button></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 <script>
+const _postDelModal = new bootstrap.Modal(document.getElementById('postDeleteModal'));
 function deletePost(id, mode, msg) {
     document.getElementById('postDeleteModalMsg').textContent = msg;
     document.getElementById('postDeleteModalTitle').textContent = mode === 'permanent' ? 'Endgültig löschen' : 'In Papierkorb';
     document.getElementById('postDeleteModalConfirm').onclick = function() {
+        _postDelModal.hide();
         document.getElementById('listDeleteId').value = id;
         document.getElementById('listDeleteMode').value = mode;
         document.getElementById('listDeleteForm').submit();
     };
-    document.getElementById('postDeleteModal').style.display = 'flex';
+    _postDelModal.show();
 }
 </script>
 
@@ -869,8 +894,8 @@ function confirmBulk(form) {
     if (a === 'delete') {
         document.getElementById('postDeleteModalTitle').textContent = 'Sammelaktion: Endgültig löschen';
         document.getElementById('postDeleteModalMsg').textContent = n + ' Beitrag/Beiträge ENDGÜLTIG löschen?';
-        document.getElementById('postDeleteModalConfirm').onclick = function() { closeModal('postDeleteModal'); form.submit(); };
-        document.getElementById('postDeleteModal').style.display = 'flex';
+        document.getElementById('postDeleteModalConfirm').onclick = function() { _postDelModal.hide(); form.submit(); };
+        _postDelModal.show();
         return false;
     }
     return true;

@@ -302,10 +302,15 @@ $categories = $mediaService->getCategories();
         
         <?php if ($viewMode === 'settings'): ?>
             <!-- SETTINGS VIEW -->
-            <div class="admin-page-header">
-                <div>
-                    <h2>⚙️ Medieneinstellungen</h2>
-                    <p class="text-muted">Uploads, Bildverarbeitung, Organisation, Berechtigungen &amp; Sicherheit konfigurieren.</p>
+            <div class="page-header d-print-none mb-3">
+                <div class="container-xl">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="page-pretitle">Administration</div>
+                            <h2 class="page-title">⚙️ Medieneinstellungen</h2>
+                            <p class="text-secondary mt-1">Uploads, Bildverarbeitung, Organisation, Berechtigungen &amp; Sicherheit konfigurieren.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -723,13 +728,18 @@ $categories = $mediaService->getCategories();
 
         <?php elseif ($viewMode === 'categories'): ?>
             <!-- CATEGORIES VIEW -->
-            <div class="admin-page-header">
-                <div>
-                    <h2>🏷️ Dokumenten-Kategorien</h2>
-                    <p class="text-muted">Organisieren Sie Dokumente und Dateien.</p>
-                </div>
-                <div class="header-actions">
-                    <button class="btn btn-primary" onclick="openCategoryModal()">Neue Kategorie</button>
+            <div class="page-header d-print-none mb-3">
+                <div class="container-xl">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="page-pretitle">Administration</div>
+                            <h2 class="page-title">🏷️ Dokumenten-Kategorien</h2>
+                            <p class="text-secondary mt-1">Organisieren Sie Dokumente und Dateien.</p>
+                        </div>
+                        <div class="col-auto ms-auto">
+                            <button class="btn btn-primary" onclick="openCategoryModal()">Neue Kategorie</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -824,19 +834,24 @@ $categories = $mediaService->getCategories();
 
         <?php else: ?>
             <!-- LIBRARY VIEW -->
-            <div class="admin-page-header">
-                <div>
-                    <h2>🖼️ Medienverwaltung</h2>
-                    <p class="text-muted">Verwalten Sie alle Dateien, Bilder und Dokumente an einem Ort.</p>
-                </div>
-                <div class="header-actions">
-                    <button class="btn btn-outline" onclick="openCreateFolderModal()">
-                        📂 Neuer Ordner
-                    </button>
-                    <button class="btn btn-primary" onclick="document.getElementById('file-upload').click()">
-                        ☁️ Upload
-                    </button>
-                    <input type="file" id="file-upload" multiple style="display: none;" onchange="handleFileUpload(this)">
+            <div class="page-header d-print-none mb-3">
+                <div class="container-xl">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="page-pretitle">Administration</div>
+                            <h2 class="page-title">🖼️ Medienverwaltung</h2>
+                            <p class="text-secondary mt-1">Verwalten Sie alle Dateien, Bilder und Dokumente an einem Ort.</p>
+                        </div>
+                        <div class="col-auto ms-auto d-flex gap-2">
+                            <button class="btn btn-outline" onclick="openCreateFolderModal()">
+                                📂 Neuer Ordner
+                            </button>
+                            <button class="btn btn-primary" onclick="document.getElementById('file-upload').click()">
+                                ☁️ Upload
+                            </button>
+                            <input type="file" id="file-upload" multiple style="display: none;" onchange="handleFileUpload(this)">
+                        </div>
+                    </div>
                 </div>
             </div>
 
