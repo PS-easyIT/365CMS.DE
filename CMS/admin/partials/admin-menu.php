@@ -654,7 +654,9 @@ function renderAdminSidebarStyles(): void
 {
     ?>
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/tabler/css/tabler.min.css">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260305">
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin-tabler.css?v=20260305">
+    <script src="<?php echo SITE_URL; ?>/assets/tabler/js/tabler.min.js" defer></script>
     <?php
     if (class_exists('\CMS\Services\EditorService')) {
         \CMS\Services\EditorService::getInstance()->enqueueEditorAssets();
@@ -835,7 +837,6 @@ function renderAdminLayoutEnd(): void
                 </div><!-- /.page-body -->
             </div><!-- /.page-wrapper -->
         </div><!-- /.page -->
-        <script src="<?php echo SITE_URL; ?>/assets/tabler/js/tabler.min.js"></script>
         <script src="<?php echo SITE_URL; ?>/assets/js/admin.js?v=20260305"></script>
         <?php
         if (class_exists('CMS\Hooks')) {
