@@ -39,27 +39,7 @@ $csrfToken = Security::instance()->generateToken('admin_dashboard');
 // Load admin menu
 require_once __DIR__ . '/partials/admin-menu.php';
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard – <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222b">
-    <?php 
-    if (class_exists('CMS\Hooks')) {
-        CMS\Hooks::doAction('head');
-        CMS\Hooks::doAction('admin_head');
-    }
-    renderAdminSidebarStyles(); 
-    ?>
-</head>
-<body class="admin-body">
-    
-    <?php renderAdminSidebar('dashboard'); ?>
-    
-    <div class="admin-content">
+<?php renderAdminLayoutStart('Admin Dashboard', 'dashboard'); ?>
         
         <div class="admin-page-header">
             <div>
@@ -168,8 +148,4 @@ require_once __DIR__ . '/partials/admin-menu.php';
         
         <?php Hooks::doAction('admin_dashboard_widgets'); ?>
         
-    </div>
-    
-    <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
-</body>
-</html>
+<?php renderAdminLayoutEnd(); ?>
