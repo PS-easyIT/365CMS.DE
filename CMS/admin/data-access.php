@@ -99,10 +99,12 @@ $csrfToken = $security->generateToken('data_access');
 require_once __DIR__ . '/partials/admin-menu.php';
 renderAdminLayoutStart('Recht auf Auskunft', 'data-access');
 ?>
-<div class="admin-page-header">
-    <div>
-        <h2>👤 Recht auf Auskunft (Art. 15 DSGVO)</h2>
-        <p>Erstellen Sie maschinenlesbare Datenauszüge für Nutzeranfragen.</p>
+<div class="page-header d-print-none mb-3">
+    <div class="row align-items-center">
+        <div class="col-auto">
+            <div class="page-pretitle">Erstellen Sie maschinenlesbare Datenauszüge für Nutzeranfragen.</div>
+            <h2 class="page-title">👤 Recht auf Auskunft (Art. 15 DSGVO)</h2>
+        </div>
     </div>
 </div>
 
@@ -111,7 +113,7 @@ renderAdminLayoutStart('Recht auf Auskunft', 'data-access');
         <?php endif; ?>
 
         <!-- SEARCH FORM -->
-        <div class="admin-card">
+        <div class="card">
             <h3>🔍 Benutzer suchen</h3>
             <form method="post">
                 <div class="form-group">
@@ -126,7 +128,7 @@ renderAdminLayoutStart('Recht auf Auskunft', 'data-access');
 
         <!-- RESULT SECTION -->
         <?php if ($userData): ?>
-        <div class="admin-card" style="border-top: 4px solid var(--admin-primary);">
+        <div class="card" style="border-top: 4px solid var(--admin-primary);">
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                 <div>
                     <h3 style="margin-top:0;">Gefundener Datensatz</h3>

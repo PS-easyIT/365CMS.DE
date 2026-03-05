@@ -28,12 +28,14 @@ renderAdminLayoutStart('Plugin Marketplace', 'plugin-marketplace');
 ?>
 
         <!-- Page Header -->
-        <div class="admin-page-header">
-            <h2>🏪 Plugin Marketplace</h2>
-            <p style="color:#64748b;font-size:0.875rem;margin:.25rem 0 0;">Entdecke und installiere Erweiterungen für dein CMS</p>
+                <div class="page-header d-print-none mb-3">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <div class="page-pretitle">Entdecke und installiere Erweiterungen für dein CMS</div>
+                    <h2 class="page-title">🏪 Plugin Marketplace</h2>
+                </div>
+            </div>
         </div>
-
-        <!-- Coming Soon Info Box -->
         <div class="info-box-coming">
             <strong>⏳ Coming Soon – Plugin Marketplace</strong>
             Der offizielle Plugin Marketplace befindet sich derzeit in Entwicklung und wird in Kürze verfügbar sein.

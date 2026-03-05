@@ -339,10 +339,12 @@ $csrfToken = Security::instance()->generateToken('generate_legal');
 renderAdminLayoutStart('Rechtstexte Generator', 'legal-sites');
 ?>
 
-<div class="admin-page-header">
-    <div>
-        <h2>§ Rechtstexte Generator</h2>
-        <p>Erstellen Sie automatisiert Ihr Impressum, Datenschutzerklärung und Cookie-Richtlinie.</p>
+<div class="page-header d-print-none mb-3">
+    <div class="row align-items-center">
+        <div class="col-auto">
+            <div class="page-pretitle">Erstellen Sie automatisiert Ihr Impressum, Datenschutzerklärung und Cookie-Richtlinie.</div>
+            <h2 class="page-title">§ Rechtstexte Generator</h2>
+        </div>
     </div>
 </div>
 
@@ -350,7 +352,7 @@ renderAdminLayoutStart('Rechtstexte Generator', 'legal-sites');
     <div class="alert alert-<?php echo $messageType; ?>"><?php echo htmlspecialchars($message); ?></div>
 <?php endif; ?>
 
-<div class="admin-card">
+<div class="card">
     <form method="post" class="admin-form">
         <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
         <input type="hidden" name="generate_legal" value="1">
@@ -366,7 +368,7 @@ renderAdminLayoutStart('Rechtstexte Generator', 'legal-sites');
         <div class="form-group">
             <label class="form-label">Website-Name</label>
             <input type="text" name="website_name" class="form-control" placeholder="z. B. MeinBlog.de oder Firmenwebsite">
-            <small class="form-text">Wird als Einleitung im Impressum angezeigt (optional).</small>
+            <small class="form-hint">Wird als Einleitung im Impressum angezeigt (optional).</small>
         </div>
 
         <div class="form-group">
@@ -414,11 +416,11 @@ renderAdminLayoutStart('Rechtstexte Generator', 'legal-sites');
             <label class="form-label">Verbundene Domains (Optional)</label>
             <textarea name="connected_domains" class="form-control" rows="3" placeholder="z. B. meinshop.de&#10;meineapp.com"
                       style="resize:vertical;min-height:80px;"></textarea>
-            <small class="form-text">Eine Domain pro Zeile. Diese Domains teilen sich das gleiche Impressum.</small>
+            <small class="form-hint">Eine Domain pro Zeile. Diese Domains teilen sich das gleiche Impressum.</small>
         </div>
 
         <h3>🛡️ Datenschutzbeauftragter (Optional)</h3>
-        <small class="form-text" style="display:block;margin-bottom:1rem;">Nur ausfüllen, wenn ein externer oder interner Datenschutzbeauftragter bestellt wurde.</small>
+        <small class="form-hint" style="display:block;margin-bottom:1rem;">Nur ausfüllen, wenn ein externer oder interner Datenschutzbeauftragter bestellt wurde.</small>
 
         <div class="form-group">
             <label class="form-label">Name des Datenschutzbeauftragten</label>
@@ -443,13 +445,13 @@ renderAdminLayoutStart('Rechtstexte Generator', 'legal-sites');
                 <input type="checkbox" name="generate_cookie_policy" value="1" checked>
                 Cookie-Richtlinie (cookie-richtlinie) mitgenerieren
             </label>
-            <small class="form-text">
+            <small class="form-hint">
                 Erstellt eine Seite mit einer Tabelle aller erkannten Cookies und einem Button zum Ändern der Zustimmung.
             </small>
         </div>
 
         <!-- Sticky Save Bar -->
-        <div class="admin-card form-actions-card">
+        <div class="card form-actions-card">
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">🔨 Rechtstexte generieren & speichern</button>
             </div>

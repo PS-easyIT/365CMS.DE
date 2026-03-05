@@ -57,7 +57,7 @@ $optionKeys = [
 // Handle Updates
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_antispam'])) {
     if (!$security->verifyToken($_POST['_csrf_token'] ?? '', 'save_antispam')) {
-        $message = '<div class="alert alert-error">Sicherheitsprüfung fehlgeschlagen.</div>';
+        $message = '<div class="alert alert-danger">Sicherheitsprüfung fehlgeschlagen.</div>';
     } else {
         // Prepare options
         $newOptions = [
@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_antispam'])) {
             }
             $message = '<div class="alert alert-success">🛡️ AntiSpam Einstellungen gespeichert!</div>';
         } catch (\Exception $e) {
-             $message = '<div class="alert alert-error">Fehler: ' . $e->getMessage() . '</div>';
+             $message = '<div class="alert alert-danger">Fehler: ' . $e->getMessage() . '</div>';
         }
     }
 }
@@ -126,13 +126,15 @@ $csrfToken = $security->generateToken('save_antispam');
 ?>
 <?php renderAdminLayoutStart('AntiSpam Schutz', 'antispam'); ?>
 
-        <div class="admin-page-header">
-            <div>
-                <h2>🛡️ AntiSpam Schutz</h2>
-                <p>Einstellungen und Statistiken zum Schutz vor Kommentar-Spam</p>
-            </div>
-            <div class="header-actions">
-                <!-- Optional: Reset Button or Help -->
+                <div class="page-header d-print-none mb-3">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <div class="page-pretitle">Einstellungen und Statistiken zum Schutz vor Kommentar-Spam</div>
+                    <h2 class="page-title">🛡️ AntiSpam Schutz</h2>
+                </div>
+                <div class="col-auto ms-auto d-print-none">
+                    <!-- Optional: Reset Button or Help -->
+                </div>
             </div>
         </div>
 
@@ -162,7 +164,7 @@ $csrfToken = $security->generateToken('save_antispam');
             <input type="hidden" name="save_antispam" value="1">
             <input type="hidden" name="_csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
             
-            <div class="admin-card">
+            <div class="card">
                 <h3>Antispam-Filter</h3>
                 <p style="color:#64748b; margin-bottom:1.5rem;">Regeln zur Erkennung von Spam-Kommentaren.</p>
 
@@ -171,7 +173,7 @@ $csrfToken = $security->generateToken('save_antispam');
                         <input type="checkbox" name="trust_approved" <?php echo ($current['antispam_trust_approved'] == '1') ? 'checked' : ''; ?>>
                         <strong>Genehmigten Kommentatoren vertrauen</strong>
                     </label>
-                    <small class="form-text" style="margin-left:1.7rem;">Benutzer nicht prüfen, die bereits erfolgreich kommentiert haben.</small>
+                    <small class="form-hint" style="margin-left:1.7rem;">Benutzer nicht prüfen, die bereits erfolgreich kommentiert haben.</small>
                 </div>
 
                 <div class="form-group">
@@ -179,7 +181,7 @@ $csrfToken = $security->generateToken('save_antispam');
                         <input type="checkbox" name="check_time" <?php echo ($current['antispam_check_time'] == '1') ? 'checked' : ''; ?>>
                         <strong>Kommentarzeit berücksichtigen</strong>
                     </label>
-                    <small class="form-text" style="margin-left:1.7rem;">Erkennt Bots, die Formulare zu schnell ausfüllen.</small>
+                    <small class="form-hint" style="margin-left:1.7rem;">Erkennt Bots, die Formulare zu schnell ausfüllen.</small>
                 </div>
                 
                 <div class="form-group">
@@ -187,7 +189,7 @@ $csrfToken = $security->generateToken('save_antispam');
                         <input type="checkbox" name="bbcode_check" <?php echo ($current['antispam_bbcode_check'] == '1') ? 'checked' : ''; ?>>
                         <strong>BBCode-Links sind Spam</strong>
                     </label>
-                    <small class="form-text" style="margin-left:1.7rem;">Kommentare mit vielen [url] Tags als Spam markieren.</small>
+                    <small class="form-hint" style="margin-left:1.7rem;">Kommentare mit vielen [url] Tags als Spam markieren.</small>
                 </div>
 
                 <div class="form-group">
@@ -195,7 +197,7 @@ $csrfToken = $security->generateToken('save_antispam');
                         <input type="checkbox" name="regex_check" <?php echo ($current['antispam_regex_check'] == '1') ? 'checked' : ''; ?>>
                         <strong>Regex-Filter aktiv</strong>
                     </label>
-                    <small class="form-text" style="margin-left:1.7rem;">Scannt Kommentarinhalte auf benutzerdefinierte Muster.</small>
+                    <small class="form-hint" style="margin-left:1.7rem;">Scannt Kommentarinhalte auf benutzerdefinierte Muster.</small>
                 </div>
                 
                 <hr style="border:0; border-top:1px solid #e2e8f0; margin:1.5rem 0;">
@@ -208,18 +210,18 @@ $csrfToken = $security->generateToken('save_antispam');
                         <strong>Kommentare aus bestimmten Ländern blockieren</strong>
                     </label>
                     <div style="margin-left:1.7rem;">
-                        <select name="block_country_code" id="country_select" class="form-control" style="max-width:300px;" <?php echo empty($current['antispam_block_country']) ? 'disabled' : ''; ?>>
+                        <select name="block_country_code" id="country_select" class="form-select" style="max-width:300px;" <?php echo empty($current['antispam_block_country']) ? 'disabled' : ''; ?>>
                             <option value="">Auswahl...</option>
                             <option value="RU" <?php echo ($current['antispam_block_country'] === 'RU') ? 'selected' : ''; ?>>Russland (RU)</option>
                             <option value="CN" <?php echo ($current['antispam_block_country'] === 'CN') ? 'selected' : ''; ?>>China (CN)</option>
                             <option value="BR" <?php echo ($current['antispam_block_country'] === 'BR') ? 'selected' : ''; ?>>Brasilien (BR)</option>
                         </select>
-                        <small class="form-text">Beachten Sie den Datenschutzhinweis für Geo-Blocking.</small>
+                        <small class="form-hint">Beachten Sie den Datenschutzhinweis für Geo-Blocking.</small>
                     </div>
                 </div>
             </div>
 
-            <div class="admin-card">
+            <div class="card">
                 <h3>Erweitert & Datenbank</h3>
                 <p style="color:#64748b; margin-bottom:1.5rem;">Verhalten bei erkanntem Spam.</p>
 
@@ -228,7 +230,7 @@ $csrfToken = $security->generateToken('save_antispam');
                         <input type="checkbox" name="mark_spam" <?php echo ($current['antispam_mark_spam'] == '1') ? 'checked' : ''; ?>>
                         <strong>Als Spam markieren, nicht löschen</strong>
                     </label>
-                    <small class="form-text" style="margin-left:1.7rem;">Bewahrt Spam zur manuellen Prüfung auf.</small>
+                    <small class="form-hint" style="margin-left:1.7rem;">Bewahrt Spam zur manuellen Prüfung auf.</small>
                 </div>
 
                 <div class="form-group">
@@ -236,13 +238,13 @@ $csrfToken = $security->generateToken('save_antispam');
                         <input type="checkbox" name="notify_admin" <?php echo ($current['antispam_notify_admin'] == '1') ? 'checked' : ''; ?>>
                         <strong>Admin per E-Mail benachrichtigen</strong>
                     </label>
-                    <small class="form-text" style="margin-left:1.7rem;">Bei neuem Spam eine Info-Mail senden.</small>
+                    <small class="form-hint" style="margin-left:1.7rem;">Bei neuem Spam eine Info-Mail senden.</small>
                 </div>
 
                 <div class="form-group" style="margin-top: 1rem;">
                     <label class="form-label">Alten Spam automatisch löschen nach (Tagen)</label>
                     <input type="number" name="delete_days" class="form-control" style="max-width:150px;" value="<?php echo htmlspecialchars($current['antispam_delete_days']); ?>" min="0">
-                    <small class="form-text">0 = Nie automatisch löschen</small>
+                    <small class="form-hint">0 = Nie automatisch löschen</small>
                 </div>
                 
                 <div class="form-group">
@@ -253,7 +255,7 @@ $csrfToken = $security->generateToken('save_antispam');
                 </div>
             </div>
 
-            <div class="admin-card">
+            <div class="card">
                 <h3>Sonstiges & Dashboard</h3>
 
                 <div class="form-group">
@@ -275,7 +277,7 @@ $csrfToken = $security->generateToken('save_antispam');
                         <input type="checkbox" name="ignore_trackbacks" <?php echo ($current['antispam_ignore_trackbacks'] == '1') ? 'checked' : ''; ?>>
                         <strong>Trackbacks & Pingbacks ignorieren</strong>
                     </label>
-                    <small class="form-text" style="margin-left:1.7rem;">Trackbacks werden nicht als Spam-Kandidaten geprüft.</small>
+                    <small class="form-hint" style="margin-left:1.7rem;">Trackbacks werden nicht als Spam-Kandidaten geprüft.</small>
                 </div>
 
                 <div class="form-group">
@@ -283,11 +285,11 @@ $csrfToken = $security->generateToken('save_antispam');
                         <input type="checkbox" name="check_markup" <?php echo ($current['antispam_check_markup'] == '1') ? 'checked' : ''; ?>>
                         <strong>Gesamtes Markup prüfen</strong>
                     </label>
-                    <small class="form-text" style="margin-left:1.7rem;">Analysiert die gesamte Seite auf versteckte Spam-Felder.</small>
+                    <small class="form-hint" style="margin-left:1.7rem;">Analysiert die gesamte Seite auf versteckte Spam-Felder.</small>
                 </div>
             </div>
 
-            <div class="admin-card form-actions-card">
+            <div class="card form-actions-card">
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">💾 Einstellungen speichern</button>
                     <span class="form-actions__hint">Änderungen werden sofort übernommen</span>

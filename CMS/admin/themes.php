@@ -101,11 +101,13 @@ require_once __DIR__ . '/partials/admin-menu.php';
 <?php renderAdminLayoutStart('Theme-Verwaltung', 'themes'); ?>
 
         <!-- Page Header -->
-        <div class="admin-page-header">
-            <h2>🎨 Theme-Verwaltung</h2>
+                <div class="page-header d-print-none mb-3">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <h2 class="page-title">🎨 Theme-Verwaltung</h2>
+                </div>
+            </div>
         </div>
-
-        <!-- Messages -->
         <?php if ($message): ?>
             <div class="alert alert-<?php echo $messageType; ?>">
                 <?php echo $message; ?>
@@ -178,7 +180,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
         </div>
 
         <?php if (empty($allThemes)): ?>
-            <div class="alert alert-error">Keine Themes gefunden. Bitte mindestens einen Theme-Ordner mit style.css im themes/-Verzeichnis anlegen.</div>
+            <div class="alert alert-danger">Keine Themes gefunden. Bitte mindestens einen Theme-Ordner mit style.css im themes/-Verzeichnis anlegen.</div>
         <?php endif; ?>
 
 <?php renderAdminLayoutEnd(); ?>

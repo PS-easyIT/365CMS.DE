@@ -183,15 +183,15 @@ renderAdminLayoutStart('RBAC – Rollen & Rechte', 'rbac');
    ROLLEN
    ========================================================= */ ?>
 
-<div class="admin-page-header">
-    <div>
-        <h2>🔑 Rollen & Rechte</h2>
-        <p>Definiere Admin-Capabilities und Member-Dashboard-Zugang pro Rolle. Plugins registrieren eigene Rechte eigenständig.</p>
+<div class="page-header d-print-none mb-3">
+    <div class="row align-items-center">
+        <div class="col-auto">
+            <div class="page-pretitle">Definiere Admin-Capabilities und Member-Dashboard-Zugang pro Rolle. Plugins registrieren eigene Rechte eigenständig.</div>
+            <h2 class="page-title">🔑 Rollen & Rechte</h2>
+        </div>
     </div>
 </div>
-
-<!-- Rollen-Übersicht -->
-<div class="admin-card" style="margin-bottom:1.5rem;">
+<div class="card" style="margin-bottom:1.5rem;">
     <h3>📋 Alle Rollen</h3>
     <div class="users-table-container">
         <table class="users-table">
@@ -269,7 +269,7 @@ $editCaps    = $editRole ? (json_decode($editRole->capabilities  ?? '[]',   true
 $editMda     = $editRole ? (int)($editRole->member_dashboard_access ?? 1) : 1;
 $isEditCore  = $editRole && in_array($editRole->name, $coreRoles);
 ?>
-<div class="admin-card" id="role-form">
+<div class="card" id="role-form">
     <h3><?php echo $editRole ? '✏️ Rolle bearbeiten: <em>' . htmlspecialchars($editRole->display_name, ENT_QUOTES) . '</em>' : '➕ Neue Rolle erstellen'; ?></h3>
 
     <?php if ($isEditCore): ?>
@@ -289,14 +289,14 @@ $isEditCore  = $editRole && in_array($editRole->name, $coreRoles);
 
             <!-- Spalte 1: Basis -->
             <div>
-                <div class="admin-card" style="margin:0;">
+                <div class="card" style="margin:0;">
                     <h3>📋 Basisdaten</h3>
                     <?php if (!$editRole): ?>
                     <div class="form-group">
                         <label class="form-label">Interner Name <span style="color:#ef4444;">*</span></label>
                         <input type="text" name="name" class="form-control" required placeholder="z.B. supervisor" pattern="[a-z0-9_]+"
                                title="Nur a-z, 0-9 und Unterstrich">
-                        <small class="form-text">Nur a–z, 0–9, _ · unveränderlich nach Erstellung</small>
+                        <small class="form-hint">Nur a–z, 0–9, _ · unveränderlich nach Erstellung</small>
                     </div>
                     <?php else: ?>
                     <div class="form-group">
@@ -318,7 +318,7 @@ $isEditCore  = $editRole && in_array($editRole->name, $coreRoles);
 
             <!-- Spalte 2: Admin-Capabilities -->
             <div>
-                <div class="admin-card" style="margin:0;">
+                <div class="card" style="margin:0;">
                     <h3>🛡️ Admin-Capabilities</h3>
                     <p style="font-size:.8rem;color:#64748b;margin-bottom:.75rem;">Bestimmt welche Admin-Bereiche zugänglich sind. Keiner = reine Member/Frontend-Rolle.</p>
                     <div class="rbac-caps-grid">
@@ -335,7 +335,7 @@ $isEditCore  = $editRole && in_array($editRole->name, $coreRoles);
 
             <!-- Spalte 3: Member-Einstellungen -->
             <div style="display:flex;flex-direction:column;gap:1rem;">
-                <div class="admin-card" style="margin:0;">
+                <div class="card" style="margin:0;">
                     <h3>🖥️ Member-Dashboard</h3>
                     <label class="dw-toggle-row" style="cursor:pointer;">
                         <div>
@@ -351,7 +351,7 @@ $isEditCore  = $editRole && in_array($editRole->name, $coreRoles);
 
 
 
-                <div class="admin-card" style="margin:0;">
+                <div class="card" style="margin:0;">
                     <div style="display:flex;flex-direction:column;gap:.45rem;">
                         <button type="submit" class="btn btn-primary" style="width:100%;">
                             <?php echo $editRole ? '💾 Änderungen speichern' : '✅ Rolle erstellen'; ?>

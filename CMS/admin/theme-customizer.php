@@ -44,8 +44,12 @@ if (file_exists($themeCustomizerFile)) {
 require_once __DIR__ . '/partials/admin-menu.php';
 ?>
 <?php renderAdminLayoutStart('Theme Customizer', 'theme-customizer'); ?>
-    <div class="admin-page-header">
-        <h2>🎨 Theme Customizer</h2>
+        <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col-auto">
+                <h2 class="page-title">🎨 Theme Customizer</h2>
+            </div>
+        </div>
     </div>
     <div style="padding:2rem;background:#fef9c3;border:2px solid #f59e0b;border-radius:10px;color:#92400e;margin:1rem 2rem;">
         <h3>Kein Customizer für dieses Theme</h3>

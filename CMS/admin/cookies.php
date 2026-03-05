@@ -318,17 +318,19 @@ require_once __DIR__ . '/partials/admin-menu.php';
     <?php renderAdminSidebar('cookies'); ?>
     
     <div class="admin-content">
-        <div class="admin-page-header">
-            <div>
-                <h2>🍪 Cookie Manager</h2>
-                <p>Verwalten Sie Cookies und den Consent Banner</p>
-            </div>
-            <div class="header-actions">
-                <?php if ($message): ?>
+                <div class="page-header d-print-none mb-3">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <div class="page-pretitle">Verwalten Sie Cookies und den Consent Banner</div>
+                    <h2 class="page-title">🍪 Cookie Manager</h2>
+                </div>
+                <div class="col-auto ms-auto d-print-none">
+                    <?php if ($message): ?>
                     <span style="font-size:0.9rem; margin-right:1rem;" class="<?php echo $messageType === 'success' ? 'text-success' : 'text-danger'; ?>">
-                        <?php echo htmlspecialchars($message); ?>
+                    <?php echo htmlspecialchars($message); ?>
                     </span>
-                <?php endif; ?>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
 
@@ -350,7 +352,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
 
                 <div class="form-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem;">
-                    <div class="admin-card">
+                    <div class="card">
                         <h3>Aktivierung & Text</h3>
                         <div class="form-group">
                             <label class="checkbox-label">
@@ -368,11 +370,11 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         </div>
                     </div>
 
-                    <div class="admin-card">
+                    <div class="card">
                         <h3>Design</h3>
                         <div class="form-group">
                             <label class="form-label">Position</label>
-                            <select name="position" class="form-control">
+                            <select name="position" class="form-select">
                                 <option value="bottom" <?php echo ($settings['cookie_banner_position'] === 'bottom') ? 'selected' : ''; ?>>Unten (Sticky)</option>
                                 <option value="center" <?php echo ($settings['cookie_banner_position'] === 'center') ? 'selected' : ''; ?>>Mitte (Modal)</option>
                             </select>
@@ -394,7 +396,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     </div>
                 </div>
 
-                <div class="admin-card" style="margin-top:1.5rem;">
+                <div class="card" style="margin-top:1.5rem;">
                     <h3>Vorschau</h3>
                     <div class="preview-box">
                         <div class="preview-card">
@@ -407,7 +409,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     </div>
                 </div>
 
-                <div class="admin-card form-actions-card">
+                <div class="card form-actions-card">
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">💾 Speichern</button>
                     </div>
@@ -420,7 +422,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
             
             <div class="form-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem;">
                 <!-- Manual Add -->
-                <div class="admin-card">
+                <div class="card">
                     <h3>➕ Cookie manuell hinzufügen</h3>
                     <form method="post">
                         <input type="hidden" name="action" value="add_manual_cookie">
@@ -435,7 +437,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         </div>
                          <div class="form-group">
                             <label class="form-label">Kategorie</label>
-                            <select name="cookie_category" class="form-control">
+                            <select name="cookie_category" class="form-select">
                                 <option value="essential">Essenziell</option>
                                 <option value="analytics">Statistik</option>
                                 <option value="marketing">Marketing</option>
@@ -452,7 +454,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 </div>
 
                 <!-- Scanner -->
-                <div class="admin-card">
+                <div class="card">
                     <h3>📡 Auto-Scan</h3>
                     <p style="font-size:0.9rem; color:#64748b;">Der Scanner durchsucht die Startseite nach bekannten Cookies und Klassifiziert diese automatisch.</p>
                     <div style="background:#f8fafc; padding:1.5rem; border-radius:8px; text-align:center; border:1px dashed #cbd5e1; margin-top:1rem;">
@@ -466,7 +468,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 </div>
             </div>
 
-            <div class="admin-card" style="margin-top:1.5rem;">
+            <div class="card" style="margin-top:1.5rem;">
                 <h3>📋 Cookie Liste</h3>
                 <div class="users-table-container">
                     <table class="users-table">
@@ -508,7 +510,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                                         <input type="hidden" name="action" value="update_cookie_category">
                                         <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
                                         <input type="hidden" name="cookie_key" value="<?php echo htmlspecialchars((string)$key); ?>">
-                                        <select name="new_category" class="form-control" style="padding:0.2rem; font-size:0.85rem;" onchange="this.form.submit()" title="Kategorie ändern – sofort speichern">
+                                        <select name="new_category" class="form-select" style="padding:0.2rem; font-size:0.85rem;" onchange="this.form.submit()" title="Kategorie ändern – sofort speichern">
                                             <?php foreach($categoryLabels as $val => $lbl): ?>
                                             <option value="<?php echo $val; ?>" <?php echo (($c['category'] ?? '') === $val) ? 'selected' : ''; ?>><?php echo htmlspecialchars($lbl); ?></option>
                                             <?php endforeach; ?>
@@ -544,7 +546,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
             ?>
 
             <!-- Stats-Leiste -->
-            <div class="admin-card" style="margin-bottom:1.5rem;">
+            <div class="card" style="margin-bottom:1.5rem;">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
                     <div>
                         <h3>🔌 Dienste & Drittanbieter</h3>
@@ -561,7 +563,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 <input type="hidden" name="action" value="save_services">
                 <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
 
-                <div class="admin-card form-actions-card" style="margin-bottom:2rem; display:flex; gap:0.5rem; flex-wrap:wrap; justify-content:space-between; align-items:center;">
+                <div class="card form-actions-card" style="margin-bottom:2rem; display:flex; gap:0.5rem; flex-wrap:wrap; justify-content:space-between; align-items:center;">
                     <strong style="color:#334155; font-size:0.9rem;">Schnellauswahl:</strong>
                     <div style="display:flex; gap:0.5rem;">
                         <button type="button" onclick="selectCategory('essential')" class="btn btn-sm btn-secondary">🔒 Nur Essenziell</button>
@@ -614,7 +616,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
 
         <!-- TAB: INTEGRATION & LOG -->
         <div id="tab-integration" class="tab-content">
-            <div class="admin-card">
+            <div class="card">
                 <h3>🍪 Integration</h3>
                 <p style="color:#64748b; margin-bottom:1.5rem;">Der Cookie Banner wird automatisch auf allen Seiten eingebunden, wenn er aktiviert ist.</p>
                 
@@ -639,7 +641,7 @@ window.CMS.Cookie.on('change', (consent) => {
                 </div>
             </div>
 
-            <div class="admin-card" style="margin-top:1.5rem;">
+            <div class="card" style="margin-top:1.5rem;">
                 <h3>📜 Consent Log (Auszug letzte 20)</h3>
                 <p style="color:#64748b; font-size:0.9rem;">Hier sehen Sie anonymisierte Einwilligungen (Erfordert 'cms_cookie_consents' Tabelle).</p>
                 

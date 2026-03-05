@@ -474,17 +474,19 @@ require_once __DIR__ . '/partials/admin-menu.php';
     <div class="admin-content">
 
         <!-- Page Header -->
-        <div class="admin-page-header">
-            <div>
-                <h2>🔥 Firewall</h2>
-                <p>Schutz gegen Brute-Force-Angriffe, IP-Blockierung und Login-Überwachung</p>
-            </div>
-            <div class="header-actions">
-                <form method="POST" style="display:inline;">
+                <div class="page-header d-print-none mb-3">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <div class="page-pretitle">Schutz gegen Brute-Force-Angriffe, IP-Blockierung und Login-Überwachung</div>
+                    <h2 class="page-title">🔥 Firewall</h2>
+                </div>
+                <div class="col-auto ms-auto d-print-none">
+                    <form method="POST" style="display:inline;">
                     <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
                     <input type="hidden" name="fw_action" value="run_autoblock">
                     <button type="submit" class="btn btn-secondary">⚡ Auto-Block jetzt ausführen</button>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
 
@@ -492,7 +494,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
             <div class="alert alert-success">✅ <?php echo $success; ?></div>
         <?php endif; ?>
         <?php if ($error): ?>
-            <div class="alert alert-error">❌ <?php echo htmlspecialchars($error); ?></div>
+            <div class="alert alert-danger">❌ <?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
 
         <!-- Firewall Status Banner -->
@@ -542,7 +544,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
         <!-- ── ÜBERSICHT ─────────────────────────────────────────────── -->
 
         <!-- Manuell IP blockieren -->
-        <div class="admin-card">
+        <div class="card">
             <h3>🚫 IP manuell blockieren</h3>
             <form method="POST">
                 <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
@@ -575,7 +577,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
 
         <!-- Top Angreifer -->
         <div class="fw-attacker-grid">
-            <div class="admin-card">
+            <div class="card">
                 <h3>🎯 Top angreifende IPs <small style="font-weight:400;color:#64748b;font-size:.8rem;">(letzte 24h)</small></h3>
                 <?php if (empty($topAttackers)): ?>
                     <div class="empty-state" style="padding:2rem 0;">
@@ -614,7 +616,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 <?php endif; ?>
             </div>
 
-            <div class="admin-card">
+            <div class="card">
                 <h3>👤 Meist angegriffene Benutzer <small style="font-weight:400;color:#64748b;font-size:.8rem;">(letzte 7 Tage)</small></h3>
                 <?php if (empty($topUsernames)): ?>
                     <div class="empty-state" style="padding:2rem 0;">
@@ -642,7 +644,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
         <?php elseif ($tab === 'blocked'): ?>
         <!-- ── GEBLOCKTE IPs ─────────────────────────────────────────── -->
 
-        <div class="admin-card">
+        <div class="card">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
                 <h3 style="margin:0;">🚫 Geblockte IP-Adressen</h3>
                 <div style="display:flex;gap:.6rem;">
@@ -740,7 +742,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
         <?php elseif ($tab === 'loginlog'): ?>
         <!-- ── LOGIN LOG ─────────────────────────────────────────────── -->
 
-        <div class="admin-card">
+        <div class="card">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
                 <h3 style="margin:0;">🔐 Fehlgeschlagene Login-Versuche</h3>
                 <div style="display:flex;gap:.6rem;align-items:center;">
@@ -815,7 +817,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
             <div class="fw-settings-grid">
 
                 <!-- Allgemein -->
-                <div class="admin-card">
+                <div class="card">
                     <h3>🛡️ Allgemein</h3>
 
                     <div class="fw-toggle-row">
@@ -864,7 +866,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 </div>
 
                 <!-- Schwellenwerte -->
-                <div class="admin-card">
+                <div class="card">
                     <h3>📏 Schwellenwerte & Log</h3>
 
                     <div class="form-group">
@@ -872,7 +874,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         <input type="number" id="max_attempts" name="max_attempts"
                                class="form-control" min="1" max="100"
                                value="<?php echo htmlspecialchars($fwSettings['max_attempts']); ?>">
-                        <small class="form-text">Nach dieser Anzahl fehlgeschlagener Logins wird die IP blockiert.</small>
+                        <small class="form-hint">Nach dieser Anzahl fehlgeschlagener Logins wird die IP blockiert.</small>
                     </div>
 
                     <div class="form-group">
@@ -880,7 +882,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         <input type="number" id="lockout_minutes" name="lockout_minutes"
                                class="form-control" min="1"
                                value="<?php echo htmlspecialchars($fwSettings['lockout_minutes']); ?>">
-                        <small class="form-text">Wie lange eine IP nach dem Auto-Block gesperrt bleibt.</small>
+                        <small class="form-hint">Wie lange eine IP nach dem Auto-Block gesperrt bleibt.</small>
                     </div>
 
                     <div class="form-group">
@@ -888,19 +890,19 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         <input type="number" id="log_retention_days" name="log_retention_days"
                                class="form-control" min="1" max="365"
                                value="<?php echo htmlspecialchars($fwSettings['log_retention_days']); ?>">
-                        <small class="form-text">Login-Logs älter als dieser Wert werden beim nächsten Bereinigen gelöscht.</small>
+                        <small class="form-hint">Login-Logs älter als dieser Wert werden beim nächsten Bereinigen gelöscht.</small>
                     </div>
                 </div>
 
                 <!-- Whitelist -->
-                <div class="admin-card" style="grid-column: 1 / -1;">
+                <div class="card" style="grid-column: 1 / -1;">
                     <h3>✅ IP-Whitelist</h3>
                     <div class="form-group">
                         <label class="form-label" for="whitelist_ips">Whitelist-IPs (eine pro Zeile)</label>
                         <textarea id="whitelist_ips" name="whitelist_ips"
                                   class="form-control" rows="6"
                                   placeholder="192.168.1.1&#10;10.0.0.1&#10;..."><?php echo htmlspecialchars($fwSettings['whitelist_ips']); ?></textarea>
-                        <small class="form-text">Diese IPs werden niemals automatisch blockiert. Eigene Server-IP und Büro-IP hier eintragen!</small>
+                        <small class="form-hint">Diese IPs werden niemals automatisch blockiert. Eigene Server-IP und Büro-IP hier eintragen!</small>
                     </div>
 
                     <?php if (!empty($whitelistArr)): ?>

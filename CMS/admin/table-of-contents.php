@@ -100,9 +100,13 @@ function toc_sel(mixed $val, mixed $compare): void {
 }
 ?>
 <?php renderAdminLayoutStart('Table of Contents', 'table-of-contents'); ?>
-    <div class="admin-page-header">
-        <h2>📑 Table of Contents</h2>
-        <p>Konfigurieren Sie das automatische Inhaltsverzeichnis Ihrer Website.</p>
+        <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col-auto">
+                <div class="page-pretitle">Konfigurieren Sie das automatische Inhaltsverzeichnis Ihrer Website.</div>
+                <h2 class="page-title">📑 Table of Contents</h2>
+            </div>
+        </div>
     </div>
 
     <?php if ($message): ?>
@@ -134,7 +138,7 @@ function toc_sel(mixed $val, mixed $compare): void {
                 </div>
                 <div class="toc-row">
                     <label>Position</label>
-                    <select name="position" class="form-control" style="max-width:300px">
+                    <select name="position" class="form-select" style="max-width:300px">
                         <option value="before" <?php toc_sel('before', $settings['position']); ?>>Vor der ersten Überschrift (Standard)</option>
                         <option value="after"  <?php toc_sel('after',  $settings['position']); ?>>Nach der ersten Überschrift</option>
                         <option value="top"    <?php toc_sel('top',    $settings['position']); ?>>Oben (Inhalt-Start)</option>
@@ -144,7 +148,7 @@ function toc_sel(mixed $val, mixed $compare): void {
                 <div class="toc-row">
                     <label>Anzeigen ab</label>
                     <div style="display:flex;align-items:center;gap:.5rem">
-                        <select name="show_limit" class="form-control" style="width:80px">
+                        <select name="show_limit" class="form-select" style="width:80px">
                             <?php for ($i = 1; $i <= 10; $i++): ?>
                                 <option value="<?php echo $i; ?>" <?php toc_sel($i, $settings['show_limit']); ?>><?php echo $i; ?></option>
                             <?php endfor; ?>
@@ -190,7 +194,7 @@ function toc_sel(mixed $val, mixed $compare): void {
             <div class="toc-card-body">
                 <div class="toc-row">
                     <label>Breite</label>
-                    <select name="width" class="form-control" style="max-width:200px">
+                    <select name="width" class="form-select" style="max-width:200px">
                         <option value="auto"   <?php toc_sel('auto',   $settings['width']); ?>>Automatisch</option>
                         <option value="100%"   <?php toc_sel('100%',   $settings['width']); ?>>100%</option>
                         <option value="custom" <?php toc_sel('custom', $settings['width']); ?>>Benutzerdefiniert</option>
@@ -198,7 +202,7 @@ function toc_sel(mixed $val, mixed $compare): void {
                 </div>
                 <div class="toc-row">
                     <label>Ausrichtung</label>
-                    <select name="alignment" class="form-control" style="max-width:200px">
+                    <select name="alignment" class="form-select" style="max-width:200px">
                         <option value="none"   <?php toc_sel('none',   $settings['alignment']); ?>>Keine (Standard)</option>
                         <option value="left"   <?php toc_sel('left',   $settings['alignment']); ?>>Links</option>
                         <option value="right"  <?php toc_sel('right',  $settings['alignment']); ?>>Rechts</option>
@@ -207,7 +211,7 @@ function toc_sel(mixed $val, mixed $compare): void {
                 </div>
                 <div class="toc-row">
                     <label>Theme</label>
-                    <select name="theme" class="form-control" style="max-width:200px"
+                    <select name="theme" class="form-select" style="max-width:200px"
                             onchange="document.getElementById('toc-custom-colors').style.display=(this.value==='custom'?'block':'none')">
                         <option value="grey"        <?php toc_sel('grey',        $settings['theme']); ?>>Grau (Standard)</option>
                         <option value="light-blue"  <?php toc_sel('light-blue',  $settings['theme']); ?>>Hellblau</option>

@@ -124,10 +124,12 @@ require_once __DIR__ . '/partials/admin-menu.php';
 <body class="admin-body">
     <?php renderAdminSidebar('security-audit'); ?>
     <div class="admin-content">
-        <div class="admin-page-header">
-            <div>
-                <h2>🛡️ Security Audit</h2>
-                <p>Systemweite Sicherheitsüberprüfung.</p>
+                <div class="page-header d-print-none mb-3">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <div class="page-pretitle">Systemweite Sicherheitsüberprüfung.</div>
+                    <h2 class="page-title">🛡️ Security Audit</h2>
+                </div>
             </div>
         </div>
 

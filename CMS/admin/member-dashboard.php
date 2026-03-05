@@ -750,20 +750,22 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
 </style>
 
 <!-- ── Page Header ────────────────────────────────────────────────────────── -->
-<div class="admin-page-header">
-    <div>
-        <h2>🧩 Member Dashboard</h2>
-        <p>Plugins, Navigation, Design &amp; alle Einstellungen des Mitgliederbereichs</p>
-    </div>
-    <div class="header-actions">
-        <a href="<?php echo SITE_URL; ?>/member" target="_blank" class="btn btn-secondary btn-sm">
+<div class="page-header d-print-none mb-3">
+    <div class="row align-items-center">
+        <div class="col-auto">
+            <div class="page-pretitle">Plugins, Navigation, Design &amp; alle Einstellungen des Mitgliederbereichs</div>
+            <h2 class="page-title">🧩 Member Dashboard</h2>
+        </div>
+        <div class="col-auto ms-auto d-print-none">
+            <a href="<?php echo SITE_URL; ?>/member" target="_blank" class="btn btn-secondary btn-sm">
             👁️ Live-Ansicht
-        </a>
+            </a>
+        </div>
     </div>
 </div>
 
 <?php foreach ($messages as $msg):
-    $cls = $msg['type'] === 'success' ? 'alert-success' : 'alert-error';
+    $cls = $msg['type'] === 'success' ? 'alert-success' : 'alert-danger';
 ?>
 <div class="alert <?php echo $cls; ?>"><?php echo htmlspecialchars($msg['text']); ?></div>
 <?php endforeach; ?>
@@ -801,7 +803,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
         <input type="hidden" name="active_tab" value="plugins">
 
-        <div class="admin-card">
+        <div class="card">
             <div class="dw-card-header">
                 <h3>🔌 Plugin-Sichtbarkeit</h3>
                 <span class="dw-badge"><?php echo count($dashboardPlugins); ?> Plugins</span>
@@ -845,7 +847,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
             <?php endif; ?>
         </div>
 
-        <div class="admin-card" style="margin-top:1.25rem;">
+        <div class="card" style="margin-top:1.25rem;">
             <button type="submit" class="btn btn-primary">💾 Sichtbarkeit speichern</button>
         </div>
     </form>
@@ -861,7 +863,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
         <input type="hidden" name="active_tab" value="navigation">
         <input type="hidden" name="nav_count" id="navCount" value="<?php echo count($navItems); ?>">
 
-        <div class="admin-card">
+        <div class="card">
             <div class="dw-card-header">
                 <h3>🗂️ Sidebar-Navigation der Mitglieder</h3>
                 <span class="dw-badge"><?php echo count($navItems); ?> Einträge</span>
@@ -922,7 +924,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
             </button>
         </div>
 
-        <div class="admin-card" style="margin-top:1.25rem;">
+        <div class="card" style="margin-top:1.25rem;">
             <button type="submit" class="btn btn-primary">💾 Navigation speichern</button>
             <span style="font-size:.78rem;color:#94a3b8;margin-left:1rem;">
                 Reihenfolge per Drag &amp; Drop anpassen – dann speichern
@@ -941,7 +943,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
         <input type="hidden" name="active_tab" value="quickstart">
         <input type="hidden" name="qs_count" id="qsCount" value="<?php echo count($qsButtons); ?>">
 
-        <div class="admin-card">
+        <div class="card">
             <div class="dw-card-header">
                 <h3>🚀 Schnellstart-Buttons</h3>
                 <span class="dw-badge"><?php echo count($qsButtons); ?> Buttons</span>
@@ -1011,7 +1013,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
             </button>
         </div>
 
-        <div class="admin-card" style="margin-top:1.25rem;">
+        <div class="card" style="margin-top:1.25rem;">
             <button type="submit" class="btn btn-primary">💾 Schnellstart speichern</button>
         </div>
     </form>
@@ -1026,7 +1028,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
         <input type="hidden" name="active_tab" value="widgets">
 
-        <div class="admin-card">
+        <div class="card">
             <div class="dw-card-header">
                 <h3>📌 Info-Widgets</h3>
             </div>
@@ -1038,7 +1040,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
             <div class="dw-grid">
                 <?php for ($i = 1; $i <= 6; $i++): ?>
                 <?php $w = $widgets[$i]; $hasContent = !empty($w['title']) || !empty($w['content']); ?>
-                <div class="admin-card" style="margin:0;">
+                <div class="card" style="margin:0;">
                     <div class="dw-card-header">
                         <h3>Widget <?php echo $i; ?></h3>
                         <span class="dw-badge <?php echo $hasContent ? 'active' : ''; ?>">
@@ -1122,7 +1124,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
             </div>
         </div>
 
-        <div class="admin-card" style="margin-top:1.25rem;">
+        <div class="card" style="margin-top:1.25rem;">
             <button type="submit" class="btn btn-primary">💾 Widgets speichern</button>
         </div>
     </form>
@@ -1142,7 +1144,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
         <div class="dw-grid-2">
 
             <!-- Farbschema -->
-            <div class="admin-card">
+            <div class="card">
                 <div class="dw-card-header"><h3>🎨 Farbschema</h3></div>
                 <p class="dw-card-sub">Passe Farben des Mitglieder-Dashboards individuell an.</p>
 
@@ -1205,7 +1207,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
             </div>
 
             <!-- Layout & Logo -->
-            <div class="admin-card">
+            <div class="card">
                 <div class="dw-card-header"><h3>🗂️ Layout &amp; Logo</h3></div>
                 <p class="dw-card-sub">Dashboard-Logo und Anzahl der Widget-Spalten.</p>
 
@@ -1247,7 +1249,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
         </div>
 
         <!-- Statuswidgets -->
-        <div class="admin-card" style="margin-top:1.25rem;">
+        <div class="card" style="margin-top:1.25rem;">
             <div class="dw-card-header"><h3>📊 Statuswidgets</h3></div>
             <p class="dw-card-sub">
                 Wähle, welche Zähler und Status-Kacheln auf dem Mitglieder-Dashboard angezeigt werden.
@@ -1279,7 +1281,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
         </div>
 
         <!-- Sektions-Reihenfolge -->
-        <div class="admin-card" style="margin-top:1.25rem;">
+        <div class="card" style="margin-top:1.25rem;">
             <div class="dw-card-header">
                 <h3>↕️ Sektionen anordnen</h3>
                 <span style="font-size:.75rem;color:#94a3b8;">Ziehen &amp; Ablegen zum Umsortieren</span>
@@ -1302,7 +1304,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
             </div>
         </div>
 
-        <div class="admin-card" style="margin-top:1.25rem;">
+        <div class="card" style="margin-top:1.25rem;">
             <button type="submit" class="btn btn-primary">💾 Design &amp; Layout speichern</button>
         </div>
     </form>
@@ -1320,7 +1322,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
         <div class="dw-grid-2">
 
             <!-- Begrüßung -->
-            <div class="admin-card">
+            <div class="card">
                 <div class="dw-card-header"><h3>👋 Begrüßung</h3></div>
                 <div class="form-group">
                     <label class="adm-lbl" for="set-greeting">Begrüßungs-Text</label>
@@ -1351,7 +1353,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
             </div>
 
             <!-- Weiterleitungen -->
-            <div class="admin-card">
+            <div class="card">
                 <div class="dw-card-header"><h3>🔀 Weiterleitungen</h3></div>
                 <div class="form-group">
                     <label class="adm-lbl" for="set-redir-login">Nach dem Login</label>
@@ -1382,7 +1384,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
         <div class="dw-grid-2" style="margin-top:1.25rem;">
 
             <!-- Registrierung & Profil -->
-            <div class="admin-card">
+            <div class="card">
                 <div class="dw-card-header"><h3>👤 Registrierung &amp; Profil</h3></div>
                 <div class="dw-toggle-row">
                     <div class="dw-toggle-info">
@@ -1453,7 +1455,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
             </div>
 
             <!-- Sicherheit -->
-            <div class="admin-card">
+            <div class="card">
                 <div class="dw-card-header"><h3>🔒 Sicherheit</h3></div>
 
                 <div class="form-group">
@@ -1498,7 +1500,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
         </div>
 
         <!-- Medien-Limits -->
-        <div class="admin-card" style="margin-top:1.25rem;">
+        <div class="card" style="margin-top:1.25rem;">
             <div class="dw-card-header"><h3>📂 Medien &amp; Dateilimits</h3></div>
             <p class="dw-card-sub">Upload-Beschränkungen und erlaubte Dateitypen für Mitglieder.</p>
 
@@ -1532,7 +1534,7 @@ renderAdminLayoutStart('Member Dashboard', 'member-dashboard');
             </div>
         </div>
 
-        <div class="admin-card" style="margin-top:1.25rem;">
+        <div class="card" style="margin-top:1.25rem;">
             <button type="submit" class="btn btn-primary">💾 Einstellungen speichern</button>
         </div>
     </form>

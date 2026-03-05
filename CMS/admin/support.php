@@ -186,8 +186,12 @@ renderAdminLayoutStart('Support & Dokumentation', 'support');
     <div class="admin-content">
 
         <!-- Page Header -->
-        <div class="admin-page-header">
-            <h2>📚 Support &amp; Dokumentation</h2>
+                <div class="page-header d-print-none mb-3">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <h2 class="page-title">📚 Support &amp; Dokumentation</h2>
+                </div>
+            </div>
         </div>
 
         <div class="support-layout">

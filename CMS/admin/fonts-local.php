@@ -214,15 +214,17 @@ $csrfToken = $security->generateToken('privacy_settings');
 require_once __DIR__ . '/partials/admin-menu.php';
 renderAdminLayoutStart('Font Manager', 'fonts-local');
 ?>
-<div class="admin-page-header">
-    <div>
-        <h2>🔤 Font Manager</h2>
-        <p>Google Fonts lokal hosten und DSGVO-konform einbinden</p>
-    </div>
-    <div class="header-actions">
-        <span class="status-badge <?php echo $isLocalFontsActive ? 'active' : 'inactive'; ?>">
+<div class="page-header d-print-none mb-3">
+    <div class="row align-items-center">
+        <div class="col-auto">
+            <div class="page-pretitle">Google Fonts lokal hosten und DSGVO-konform einbinden</div>
+            <h2 class="page-title">🔤 Font Manager</h2>
+        </div>
+        <div class="col-auto ms-auto d-print-none">
+            <span class="status-badge <?php echo $isLocalFontsActive ? 'active' : 'inactive'; ?>">
             <?php echo $isLocalFontsActive ? 'Lokal Aktiviert' : 'Google CDN'; ?>
-        </span>
+            </span>
+        </div>
     </div>
 </div>
 
@@ -232,9 +234,9 @@ renderAdminLayoutStart('Font Manager', 'fonts-local');
 
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem;">
             <!-- Card 1: Theme Auto-Scan -->
-            <div class="admin-card">
+            <div class="card">
                 <h3>🔍 Automatisch aus Theme</h3>
-                <p class="form-text">Scannt die Theme-Einstellungen und versucht, die Standard-Schriftarten (Inter, Roboto, etc.) zu laden.</p>
+                <p class="form-hint">Scannt die Theme-Einstellungen und versucht, die Standard-Schriftarten (Inter, Roboto, etc.) zu laden.</p>
                 <form method="post">
                     <input type="hidden" name="action" value="localize_fonts">
                     <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
@@ -243,9 +245,9 @@ renderAdminLayoutStart('Font Manager', 'fonts-local');
             </div>
 
             <!-- Card 2: Custom URL -->
-            <div class="admin-card">
+            <div class="card">
                 <h3>🔗 Eigene Google Webfonts URL</h3>
-                <p class="form-text">
+                <p class="form-hint">
                     Fügen Sie hier die CSS-URL von Google Webfonts ein.<br>
                     (z.B. <code>https://fonts.googleapis.com/css2?family=Roboto&amp;display=swap</code>)
                 </p>
@@ -260,9 +262,9 @@ renderAdminLayoutStart('Font Manager', 'fonts-local');
             </div>
             
             <!-- Card 3: Reset -->
-            <div class="admin-card" style="border-top:4px solid #ef4444;">
+            <div class="card" style="border-top:4px solid #ef4444;">
                 <h3 style="color:#ef4444;">⚠️ Zurücksetzen</h3>
-                <p class="form-text">Schaltet auf die Standard-CDN-Einbindung zurück. Die heruntergeladenen Schriftdateien bleiben erhalten.</p>
+                <p class="form-hint">Schaltet auf die Standard-CDN-Einbindung zurück. Die heruntergeladenen Schriftdateien bleiben erhalten.</p>
                 <form method="post">
                     <input type="hidden" name="action" value="reset_fonts">
                     <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">

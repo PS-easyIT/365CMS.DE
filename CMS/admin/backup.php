@@ -170,13 +170,15 @@ require_once __DIR__ . '/partials/admin-menu.php';
 ?>
 <?php renderAdminLayoutStart('Backup & Restore', $currentPage); ?>
         
-        <div class="admin-page-header">
-            <div>
-                <h2>💾 Backup & Restore</h2>
-                <p>Datensicherung und -Wiederherstellung</p>
-            </div>
-            <div class="header-actions">
-                <button type="button" class="btn btn-secondary" onclick="location.reload()">🔄 Liste aktualisieren</button>
+                <div class="page-header d-print-none mb-3">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <div class="page-pretitle">Datensicherung und -Wiederherstellung</div>
+                    <h2 class="page-title">💾 Backup & Restore</h2>
+                </div>
+                <div class="col-auto ms-auto d-print-none">
+                    <button type="button" class="btn btn-secondary" onclick="location.reload()">🔄 Liste aktualisieren</button>
+                </div>
             </div>
         </div>
         
@@ -189,7 +191,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
         <div class="backup-layout" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem;">
             
             <!-- Left Column: Create Backups -->
-            <div class="admin-card">
+            <div class="card">
                 <h3>Backup erstellen</h3>
                 <p style="color:#64748b; margin-bottom:1.5rem;">Erstellen Sie hier Sicherungen Ihrer Datenbank und Dateien.</p>
 
@@ -252,7 +254,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
             </div>
 
             <!-- Right Column: Restore & Manage -->
-            <div class="admin-card">
+            <div class="card">
                 <h3>Restore & Verwaltung</h3>
                 
                 <!-- Upload Section -->

@@ -341,7 +341,7 @@ $categories = $mediaService->getCategories();
                                     Maximale Dateigröße
                                     <span class="badge-muted">Server: <?php echo ini_get('upload_max_filesize'); ?></span>
                                 </label>
-                                <select name="max_upload_size" class="form-control form-control-sm">
+                                <select name="max_upload_size" class="form-select form-select-sm">
                                     <option value="2M"   <?php echo $isSelected('max_upload_size', '2M');   ?>>2 MB</option>
                                     <option value="5M"   <?php echo $isSelected('max_upload_size', '5M');   ?>>5 MB</option>
                                     <option value="10M"  <?php echo $isSelected('max_upload_size', '10M');  ?>>10 MB</option>
@@ -531,7 +531,7 @@ $categories = $mediaService->getCategories();
                             <div id="member-settings-panel" class="member-subsettings" style="<?php echo empty($settings['member_uploads_enabled']) ? 'opacity:0.4;pointer-events:none;' : ''; ?>">
                                 <div class="form-group">
                                     <label class="form-label">Max. Dateigröße für Mitglieder</label>
-                                    <select name="member_max_upload_size" class="form-control form-control-sm">
+                                    <select name="member_max_upload_size" class="form-select form-select-sm">
                                         <option value="1M"  <?php echo $isSelected('member_max_upload_size', '1M');  ?>>1 MB</option>
                                         <option value="2M"  <?php echo $isSelected('member_max_upload_size', '2M');  ?>>2 MB</option>
                                         <option value="5M"  <?php echo $isSelected('member_max_upload_size', '5M');  ?>>5 MB</option>
@@ -743,8 +743,9 @@ $categories = $mediaService->getCategories();
                 </div>
             </div>
             
-            <div class="admin-card">
-                <table class="media-table">
+            <div class="card">
+                <div class="table-responsive">
+                <table class="table table-vcenter card-table">
                     <thead>
                         <tr>
                             <th>Name</th>
@@ -770,6 +771,7 @@ $categories = $mediaService->getCategories();
                         <?php endif; ?>
                     </tbody>
                 </table>
+                </div>
             </div>
 
             <!-- Add Category Modal -->
@@ -862,7 +864,7 @@ $categories = $mediaService->getCategories();
                         <span onclick="loadPath('')">Home</span>
                     </div>
                     
-                    <select id="media-filter" class="form-control" style="width: 200px;" onchange="applyFilter()">
+                    <select id="media-filter" class="form-select" style="width: 200px;" onchange="applyFilter()">
                         <option value="all">Alle Dateitypen</option>
                         <option value="folder">Nur Ordner</option>
                         <option value="image">Bilder</option>
@@ -875,14 +877,14 @@ $categories = $mediaService->getCategories();
                         <option value="font">Fonts</option>
                     </select>
                     
-                    <select id="category-filter" class="form-control" style="width: 200px;" onchange="applyFilter()">
+                    <select id="category-filter" class="form-select" style="width: 200px;" onchange="applyFilter()">
                         <option value="">Alle Kategorien</option>
                         <?php foreach($categories as $cat): ?>
                             <option value="<?php echo htmlspecialchars($cat['slug']); ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
                         <?php endforeach; ?>
                     </select>
 
-                    <select id="uploader-filter" class="form-control" style="width: 200px;" onchange="applyFilter()">
+                    <select id="uploader-filter" class="form-select" style="width: 200px;" onchange="applyFilter()">
                         <option value="">Alle Uploader</option>
                     </select>
                 </div>
@@ -952,7 +954,7 @@ $categories = $mediaService->getCategories();
                     <input type="hidden" id="assign-file-path">
                     <div class="form-group">
                         <label style="display: block; margin-bottom: 8px; font-weight: 500;">Kategorie wählen</label>
-                        <select id="assign-category-slug" class="form-control">
+                        <select id="assign-category-slug" class="form-select">
                             <option value="">-- Keine --</option>
                             <?php foreach($categories as $cat): ?>
                                 <option value="<?php echo htmlspecialchars($cat['slug']); ?>"><?php echo htmlspecialchars($cat['name']); ?></option>

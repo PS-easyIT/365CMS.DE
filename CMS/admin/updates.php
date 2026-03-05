@@ -98,15 +98,15 @@ require_once __DIR__ . '/partials/admin-menu.php';
 renderAdminLayoutStart('System-Updates', $currentPage);
 ?>
 
-        <div class="admin-page-header">
-            <div>
-                <h2>🔄 System-Updates</h2>
-                <p>CMS-Core, Plugins und Themes aktuell halten.</p>
+                <div class="page-header d-print-none mb-3">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <div class="page-pretitle">CMS-Core, Plugins und Themes aktuell halten.</div>
+                    <h2 class="page-title">🔄 System-Updates</h2>
+                </div>
             </div>
         </div>
-        
-        <!-- Core Updates -->
-        <div class="admin-card <?php echo $coreUpdate['update_available'] ? 'update-available' : ''; ?>">
+        <div class="card <?php echo $coreUpdate['update_available'] ? 'update-available' : ''; ?>">
             <div class="update-header">
                 <div>
                     <h3 style="margin: 0 0 0.5rem 0;">365 CMS Core</h3>
@@ -171,7 +171,7 @@ renderAdminLayoutStart('System-Updates', $currentPage);
             <div>
                 <h3 style="margin-bottom:1rem;">⚙️ Systemanforderungen</h3>
                 
-                <div class="admin-card">
+                <div class="card">
                     <h4 style="margin-top:0;">Environment</h4>
                     <div class="system-req-grid">
                         <div class="req-item <?php echo $systemReqs['php_version']['met'] ? 'met' : 'not-met'; ?>">
@@ -211,7 +211,7 @@ renderAdminLayoutStart('System-Updates', $currentPage);
             <!-- Update History -->
             <div>
                 <h3 style="margin-bottom:1rem;">📜 Verlauf</h3>
-                <div class="admin-card">
+                <div class="card">
                 <?php if (!empty($updateHistory)): ?>
                     <div style="display:flex; flex-direction:column; gap:1rem;">
                         <?php foreach ($updateHistory as $entry): ?>
@@ -257,7 +257,7 @@ renderAdminLayoutStart('System-Updates', $currentPage);
             </div>
             <div class="modal-body">
                 <p>Möchten Sie das CMS-Core jetzt aktualisieren?</p>
-                <div class="alert alert-error">⚠️ Bitte erstellen Sie vorher ein Backup!</div>
+                <div class="alert alert-danger">⚠️ Bitte erstellen Sie vorher ein Backup!</div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="document.getElementById('updateConfirmModal').style.display='none'">Abbrechen</button>

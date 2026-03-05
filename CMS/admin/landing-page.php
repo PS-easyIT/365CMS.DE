@@ -167,12 +167,14 @@ require_once __DIR__ . '/partials/admin-menu.php';
 <?php renderAdminLayoutStart('Landing Page', 'landing-page'); ?>
 
         <!-- Page Header -->
-        <div class="admin-page-header">
-            <h2>🖥️ Landing Page</h2>
-            <p>Gestalte die &ouml;ffentliche Startseite deines CMS</p>
+                <div class="page-header d-print-none mb-3">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <div class="page-pretitle">Gestalte die &ouml;ffentliche Startseite deines CMS</div>
+                    <h2 class="page-title">🖥️ Landing Page</h2>
+                </div>
+            </div>
         </div>
-
-        <!-- Section Navigation -->
         <nav class="lp-section-nav">
             <a href="?section=header" class="lp-section-nav__item <?php echo $activeSection === 'header'   ? 'active' : ''; ?>">
                 <span class="lp-section-nav__icon">🔝</span> Header
@@ -199,7 +201,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
             <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
         <?php endif; ?>
         <?php if (isset($error)): ?>
-            <div class="alert alert-error"><?php echo htmlspecialchars($error); ?></div>
+            <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
 
         <?php /* ═══════════ SECTION: HEADER ══════════════════════════════ */ ?>
@@ -656,7 +658,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         <!-- Spalten -->
                         <div class="form-group">
                             <label class="form-label" style="font-weight:600;">Spaltenanzahl</label>
-                            <select name="feature_columns" class="form-control">
+                            <select name="feature_columns" class="form-select">
                                 <?php foreach (['auto' => 'Automatisch (responsive)', '2' => '2 Spalten', '3' => '3 Spalten', '4' => '4 Spalten'] as $_cv => $_cl): ?>
                                 <option value="<?php echo $_cv; ?>" <?php echo $d_columns === $_cv ? 'selected' : ''; ?>><?php echo $_cl; ?></option>
                                 <?php endforeach; ?>
@@ -677,7 +679,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         <!-- Schatten -->
                         <div class="form-group">
                             <label class="form-label" style="font-weight:600;">Schatten</label>
-                            <select name="card_shadow" class="form-control">
+                            <select name="card_shadow" class="form-select">
                                 <?php foreach (['none' => 'Kein Schatten', 'sm' => 'Leicht', 'md' => 'Mittel', 'lg' => 'Stark'] as $_sv => $_sl): ?>
                                 <option value="<?php echo $_sv; ?>" <?php echo $d_shadow === $_sv ? 'selected' : ''; ?>><?php echo $_sl; ?></option>
                                 <?php endforeach; ?>
@@ -687,7 +689,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         <!-- Rahmenbreite -->
                         <div class="form-group">
                             <label class="form-label" style="font-weight:600;">Rahmenbreite</label>
-                            <select name="card_border_width" class="form-control" onchange="_updateDesignPreview()">
+                            <select name="card_border_width" class="form-select" onchange="_updateDesignPreview()">
                                 <?php foreach (['0' => 'Kein Rahmen', '1px' => '1px', '2px' => '2px', '3px' => '3px'] as $_bv => $_bl): ?>
                                 <option value="<?php echo $_bv; ?>" <?php echo $d_border_w === $_bv ? 'selected' : ''; ?>><?php echo $_bl; ?></option>
                                 <?php endforeach; ?>
@@ -730,7 +732,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     <div class="lp-design-grid">
                         <div class="form-group">
                             <label class="form-label" style="font-weight:600;">Hero-Bereich Innenabstand</label>
-                            <select name="hero_padding" class="form-control">
+                            <select name="hero_padding" class="form-select">
                                 <?php foreach (['sm' => 'Klein (2rem)', 'md' => 'Mittel (4rem)', 'lg' => 'Gro&szlig; (6rem)', 'xl' => 'Extra Gro&szlig; (8rem)'] as $_pv => $_pl): ?>
                                 <option value="<?php echo $_pv; ?>" <?php echo $d_hero_pad === $_pv ? 'selected' : ''; ?>><?php echo $_pl; ?></option>
                                 <?php endforeach; ?>
@@ -738,7 +740,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         </div>
                         <div class="form-group">
                             <label class="form-label" style="font-weight:600;">Feature-Bereich Innenabstand</label>
-                            <select name="feature_padding" class="form-control">
+                            <select name="feature_padding" class="form-select">
                                 <?php foreach (['sm' => 'Klein (2rem)', 'md' => 'Mittel (4rem)', 'lg' => 'Gro&szlig; (6rem)', 'xl' => 'Extra Gro&szlig; (8rem)'] as $_pv => $_pl): ?>
                                 <option value="<?php echo $_pv; ?>" <?php echo $d_feat_pad === $_pv ? 'selected' : ''; ?>><?php echo $_pl; ?></option>
                                 <?php endforeach; ?>

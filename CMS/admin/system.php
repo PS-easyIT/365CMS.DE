@@ -136,15 +136,17 @@ $csrf_token = Security::instance()->generateToken('system_management');
 require_once __DIR__ . '/partials/admin-menu.php';
 ?>
 <?php renderAdminLayoutStart('System & Diagnose', 'system'); ?>
-        <div class="admin-page-header">
-            <div>
-                <h2>⚙️ System &amp; Diagnose</h2>
-                <p>Systemstatus, Datenbank, Dateisystem und Diagnosewerkzeuge.</p>
-            </div>
-            <div class="header-actions">
-                <span class="status-indicator <?php echo $databaseStatus['connected'] ? 'status-online' : 'status-offline'; ?>">
+                <div class="page-header d-print-none mb-3">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <div class="page-pretitle">Systemstatus, Datenbank, Dateisystem und Diagnosewerkzeuge.</div>
+                    <h2 class="page-title">⚙️ System &amp; Diagnose</h2>
+                </div>
+                <div class="col-auto ms-auto d-print-none">
+                    <span class="status-indicator <?php echo $databaseStatus['connected'] ? 'status-online' : 'status-offline'; ?>">
                     <?php echo $databaseStatus['connected'] ? '● Online' : '● Offline'; ?>
-                </span>
+                    </span>
+                </div>
             </div>
         </div>
         
@@ -153,7 +155,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
         <?php endif; ?>
         
         <?php if ($error): ?>
-            <div class="alert alert-error"><?php echo htmlspecialchars($error); ?></div>
+            <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
         
         <!-- Tab Navigation -->
@@ -170,7 +172,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
         <div class="tab-content active" id="tab-overview">
             <div class="system-grid">
                 <!-- System Info Card -->
-                <div class="admin-card">
+                <div class="card">
                     <h3>📊 System-Informationen</h3>
                     <div class="info-list">
                         <div class="info-row">
@@ -209,7 +211,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 </div>
                 
                 <!-- Database Status Card -->
-                <div class="admin-card">
+                <div class="card">
                     <h3>💾 Datenbank-Status</h3>
                     <div class="info-list">
                         <div class="info-row">
@@ -238,7 +240,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 </div>
                 
                 <!-- CMS Statistics Card -->
-                <div class="admin-card">
+                <div class="card">
                     <h3>📈 CMS-Statistiken</h3>
                     <div class="info-list">
                         <div class="info-row">
@@ -269,7 +271,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 </div>
                 
                 <!-- Directory Sizes Card -->
-                <div class="admin-card">
+                <div class="card">
                     <h3>📁 Verzeichnis-Größen</h3>
                     <div class="info-list">
                         <?php foreach ($directorySizes as $dir): ?>
@@ -384,7 +386,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
         
         <!-- Security Tab -->
         <div class="tab-content" id="tab-security">
-            <div class="admin-card">
+            <div class="card">
                 <h3>🔒 Sicherheits-Status</h3>
                 <div class="info-list">
                     <?php foreach ($securityStatus as $key => $value): ?>
@@ -425,7 +427,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
         <!-- Tools Tab -->
         <div class="tab-content" id="tab-tools">
             <div class="tools-grid">
-                <div class="admin-card">
+                <div class="card">
                     <h3>🗑️ Cache leeren</h3>
                     <p>Löscht alle Cache-Einträge aus der Datenbank und dem Cache-Verzeichnis.</p>
                     <form method="POST" onsubmit="return openSystemConfirm('clear_cache', 'Cache leeren', 'Cache wirklich leeren?', 'primary')">
@@ -435,7 +437,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     </form>
                 </div>
                 
-                <div class="admin-card">
+                <div class="card">
                     <h3>🔄 Alte Sitzungen löschen</h3>
                     <p>Entfernt abgelaufene Sitzungen aus der Datenbank.</p>
                     <form method="POST" onsubmit="return openSystemConfirm('clear_sessions', 'Sitzungen löschen', 'Abgelaufene Sitzungen löschen?', 'danger')">
@@ -445,7 +447,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     </form>
                 </div>
                 
-                <div class="admin-card">
+                <div class="card">
                     <h3>🚫 Fehllogins löschen</h3>
                     <p>Löscht fehlgeschlagene Login-Versuche älter als 24 Stunden.</p>
                     <form method="POST" onsubmit="return openSystemConfirm('clear_failed_logins', 'Fehllogins löschen', 'Fehlgeschlagene Logins löschen?', 'danger')">
@@ -455,7 +457,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     </form>
                 </div>
                 
-                <div class="admin-card">
+                <div class="card">
                     <h3>🔧 Tabellen reparieren</h3>
                     <p>Führt REPAIR TABLE auf allen CMS-Tabellen aus.</p>
                     <form method="POST" onsubmit="return openSystemConfirm('repair_tables', 'Tabellen reparieren', 'REPAIR TABLE durchführen? Dies kann etwas dauern.', 'danger')">
@@ -465,7 +467,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     </form>
                 </div>
                 
-                <div class="admin-card">
+                <div class="card">
                     <h3>⚡ Tabellen optimieren</h3>
                     <p>Führt OPTIMIZE TABLE auf allen CMS-Tabellen aus.</p>
                     <form method="POST" onsubmit="return openSystemConfirm('optimize_tables', 'Tabellen optimieren', 'OPTIMIZE TABLE durchführen? Dies kann etwas dauern.', 'danger')">
@@ -475,7 +477,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     </form>
                 </div>
                 
-                <div class="admin-card">
+                <div class="card">
                     <h3>📋 Logs leeren</h3>
                     <p>Löscht alle Einträge aus der Fehler-Log-Datei.</p>
                     <form method="POST" onsubmit="return openSystemConfirm('clear_logs', 'Logs leeren', 'Alle Logs wirklich löschen?', 'danger')">
@@ -485,7 +487,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     </form>
                 </div>
                 
-                <div class="admin-card">
+                <div class="card">
                     <h3>🔨 Fehlende Tabellen erstellen</h3>
                     <p>Erstellt alle fehlenden CMS-Tabellen in der Datenbank.</p>
                     <form method="POST" onsubmit="return openSystemConfirm('create_missing_tables', 'Tabellen erstellen', 'Fehlende Tabellen jetzt erstellen?', 'primary')">
@@ -495,7 +497,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     </form>
                 </div>
 
-                <div class="admin-card">
+                <div class="card">
                     <h3>🔍 Suchindex neu erstellen</h3>
                     <p>Erstellt den TNTSearch-Volltextindex für Seiten und Beiträge neu.</p>
                     <?php

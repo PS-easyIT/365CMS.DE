@@ -28,12 +28,14 @@ renderAdminLayoutStart('Theme Marketplace', 'theme-marketplace');
 ?>
 
         <!-- Page Header -->
-        <div class="admin-page-header">
-            <h2>🛍️ Theme Marketplace</h2>
-            <p style="color:#64748b;font-size:.875rem;margin:.25rem 0 0;">Professionelle Themes für dein 365CMS – kostenlos &amp; premium</p>
+                <div class="page-header d-print-none mb-3">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <div class="page-pretitle">Professionelle Themes für dein 365CMS – kostenlos &amp; premium</div>
+                    <h2 class="page-title">🛍️ Theme Marketplace</h2>
+                </div>
+            </div>
         </div>
-
-        <!-- Coming Soon Info Box -->
         <div class="info-box-coming">
             <strong>⏳ Coming Soon – Theme Marketplace</strong>
             Der offizielle Theme Marketplace befindet sich derzeit in Entwicklung und wird in Kürze verfügbar sein.

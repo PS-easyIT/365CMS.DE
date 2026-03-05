@@ -16,6 +16,7 @@ require_once CORE_PATH . 'autoload.php';
 use CMS\Auth;
 use CMS\Security;
 use CMS\Database;
+use CMS\Services\EditorService;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -283,6 +284,9 @@ foreach ($statusCountRows as $sc) {
 $csrf = $security->generateToken('admin_posts');
 
 require_once __DIR__ . '/partials/admin-menu.php';
+if ($view === 'edit') {
+    EditorService::getInstance();
+}
 renderAdminLayoutStart('Beiträge', 'posts');
 ?>
 
@@ -314,7 +318,7 @@ if ($view === 'categories'): ?>
         </div>
     </div>
 </div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;">
+<div class="row g-3" style="align-items:start;">
 
     <?php
     $editCat = null;
@@ -322,33 +326,39 @@ if ($view === 'categories'): ?>
         $editCat = $db->get_row("SELECT * FROM {$prefix}post_categories WHERE id=?", [(int)$_GET['cat_id']]);
     }
     ?>
-    <div class="admin-card">
-        <h3><?php echo $editCat ? '✏️ Kategorie bearbeiten' : '➕ Neue Kategorie'; ?></h3>
+    <div class="col-lg-6">
+    <div class="card">
+        <div class="card-header"><h3 class="card-title"><?php echo $editCat ? '✏️ Kategorie bearbeiten' : '➕ Neue Kategorie'; ?></h3></div>
+        <div class="card-body">
         <form method="post" action="<?php echo SITE_URL; ?>/admin/posts?view=categories">
             <input type="hidden" name="_csrf"    value="<?php echo $csrf; ?>">
             <input type="hidden" name="_action"  value="save_category">
             <?php if ($editCat): ?><input type="hidden" name="cat_id" value="<?php echo (int)$editCat->id; ?>"><?php endif; ?>
-            <div class="field-group">
-                <label>Name *</label>
-                <input type="text" name="cat_name" value="<?php echo htmlspecialchars($editCat->name ?? '', ENT_QUOTES); ?>" required>
+            <div class="mb-3">
+                <label class="form-label">Name <span class="text-danger">*</span></label>
+                <input type="text" name="cat_name" class="form-control" value="<?php echo htmlspecialchars($editCat->name ?? '', ENT_QUOTES); ?>" required>
             </div>
-            <div class="field-group">
-                <label>Slug</label>
-                <input type="text" name="cat_slug" value="<?php echo htmlspecialchars($editCat->slug ?? '', ENT_QUOTES); ?>" placeholder="auto-generiert">
+            <div class="mb-3">
+                <label class="form-label">Slug</label>
+                <input type="text" name="cat_slug" class="form-control" value="<?php echo htmlspecialchars($editCat->slug ?? '', ENT_QUOTES); ?>" placeholder="auto-generiert">
             </div>
-            <div class="field-group">
-                <label>Beschreibung</label>
-                <textarea name="cat_desc"><?php echo htmlspecialchars($editCat->description ?? '', ENT_QUOTES); ?></textarea>
+            <div class="mb-3">
+                <label class="form-label">Beschreibung</label>
+                <textarea name="cat_desc" class="form-control"><?php echo htmlspecialchars($editCat->description ?? '', ENT_QUOTES); ?></textarea>
             </div>
-            <div style="display:flex;gap:.5rem;">
+            <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary"><?php echo $editCat ? '💾 Speichern' : '➕ Erstellen'; ?></button>
                 <?php if ($editCat): ?><a href="<?php echo SITE_URL; ?>/admin/posts?view=categories" class="btn btn-secondary">Abbrechen</a><?php endif; ?>
             </div>
         </form>
+        </div>
+    </div>
     </div>
 
-    <div class="admin-card">
-        <h3>📋 Alle Kategorien (<?php echo count($categories); ?>)</h3>
+    <div class="col-lg-6">
+    <div class="card">
+        <div class="card-header"><h3 class="card-title">📋 Alle Kategorien (<?php echo count($categories); ?>)</h3></div>
+        <div class="card-body">
         <?php if (empty($categories)): ?>
             <p style="color:#94a3b8;font-size:.875rem;">Noch keine Kategorien vorhanden.</p>
         <?php else: ?>
@@ -377,6 +387,8 @@ if ($view === 'categories'): ?>
             </tbody>
         </table>
         <?php endif; ?>
+        </div>
+    </div>
     </div>
 
 </div>
@@ -436,45 +448,53 @@ elseif ($view === 'edit'):
         <!-- Haupt-Spalte -->
         <div class="col-lg-8">
 
-            <div class="admin-card">
-                <h3>📝 Titel &amp; Permalink</h3>
-                <div class="field-group" style="margin-bottom:.7rem;">
-                    <label for="post_title">Titel *</label>
-                    <input type="text" id="post_title" name="post_title"
-                           value="<?php echo htmlspecialchars($pd['title'], ENT_QUOTES); ?>"
-                           placeholder="Beitragstitel…" required
-                           style="font-size:1.05rem;font-weight:600;"
-                           oninput="updateSlugPreview(this.value)">
-                </div>
-                <div class="field-group" style="margin-bottom:0;">
-                    <label for="post_slug">Slug / Permalink</label>
-                    <input type="text" id="post_slug" name="post_slug"
-                           value="<?php echo htmlspecialchars($pd['slug'], ENT_QUOTES); ?>"
-                           placeholder="auto-generiert">
-                    <div class="slug-row"><?php echo SITE_URL; ?>/blog/<strong id="slugPreviewVal"><?php echo htmlspecialchars($pd['slug'], ENT_QUOTES); ?></strong></div>
+            <div class="card mb-3">
+                <div class="card-header"><h3 class="card-title">📝 Titel &amp; Permalink</h3></div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <label for="post_title" class="form-label">Titel <span class="text-danger">*</span></label>
+                        <input type="text" id="post_title" name="post_title" class="form-control"
+                               value="<?php echo htmlspecialchars($pd['title'], ENT_QUOTES); ?>"
+                               placeholder="Beitragstitel…" required
+                               style="font-size:1.05rem;font-weight:600;"
+                               oninput="updateSlugPreview(this.value)">
+                    </div>
+                    <div class="mb-0">
+                        <label for="post_slug" class="form-label">Slug / Permalink</label>
+                        <input type="text" id="post_slug" name="post_slug" class="form-control"
+                               value="<?php echo htmlspecialchars($pd['slug'], ENT_QUOTES); ?>"
+                               placeholder="auto-generiert">
+                        <div class="form-hint mt-1"><?php echo SITE_URL; ?>/blog/<strong id="slugPreviewVal"><?php echo htmlspecialchars($pd['slug'], ENT_QUOTES); ?></strong></div>
+                    </div>
                 </div>
             </div>
 
-            <div class="admin-card">
-                <h3>✏️ Inhalt</h3>
-                <textarea id="post_content" name="post_content"><?php echo htmlspecialchars($pd['content'], ENT_QUOTES); ?></textarea>
-            </div>
-
-            <div class="admin-card">
-                <h3>📄 Auszug (Teaser)</h3>
-                <textarea name="post_excerpt" rows="3" placeholder="Kurze Zusammenfassung – max. 300 Zeichen…"><?php echo htmlspecialchars($pd['excerpt'], ENT_QUOTES); ?></textarea>
-                <div class="field-hint">Wird in Beitragsübersichten verwendet.</div>
-            </div>
-
-            <div class="admin-card">
-                <h3>🔍 SEO</h3>
-                <div class="field-group">
-                    <label>Meta-Titel <span style="font-weight:400;color:#94a3b8;">(leer = Beitragstitel)</span></label>
-                    <input type="text" name="meta_title" value="<?php echo htmlspecialchars($pd['meta_title'], ENT_QUOTES); ?>" placeholder="max. 70 Zeichen" maxlength="70">
+            <div class="card mb-3">
+                <div class="card-header"><h3 class="card-title">✏️ Inhalt</h3></div>
+                <div class="card-body">
+                    <?php echo EditorService::getInstance()->render('post_content', $pd['content'], ['height' => 460]); ?>
                 </div>
-                <div class="field-group" style="margin-bottom:0;">
-                    <label>Meta-Beschreibung <span style="font-weight:400;color:#94a3b8;">(leer = Auszug)</span></label>
-                    <textarea name="meta_description" rows="2" placeholder="max. 165 Zeichen" maxlength="165"><?php echo htmlspecialchars($pd['meta_description'], ENT_QUOTES); ?></textarea>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header"><h3 class="card-title">📄 Auszug (Teaser)</h3></div>
+                <div class="card-body">
+                    <textarea name="post_excerpt" rows="3" class="form-control" placeholder="Kurze Zusammenfassung – max. 300 Zeichen…"><?php echo htmlspecialchars($pd['excerpt'], ENT_QUOTES); ?></textarea>
+                    <div class="form-hint">Wird in Beitragsübersichten verwendet.</div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header"><h3 class="card-title">🔍 SEO</h3></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Meta-Titel <span class="text-secondary fw-normal">(leer = Beitragstitel)</span></label>
+                        <input type="text" name="meta_title" class="form-control" value="<?php echo htmlspecialchars($pd['meta_title'], ENT_QUOTES); ?>" placeholder="max. 70 Zeichen" maxlength="70">
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">Meta-Beschreibung <span class="text-secondary fw-normal">(leer = Auszug)</span></label>
+                        <textarea name="meta_description" rows="2" class="form-control" placeholder="max. 165 Zeichen" maxlength="165"><?php echo htmlspecialchars($pd['meta_description'], ENT_QUOTES); ?></textarea>
+                    </div>
                 </div>
             </div>
 
@@ -483,78 +503,84 @@ elseif ($view === 'edit'):
         <!-- Seiten-Spalte -->
         <div class="col-lg-4">
 
-            <div class="admin-card">
-                <h3>📋 Status &amp; Sichtbarkeit</h3>
-                <div class="field-group">
-                    <label>Status</label>
-                    <select name="post_status" id="post_status" onchange="togglePublishedAt(this.value)">
-                        <option value="draft"     <?php echo $pd['status']==='draft'     ?'selected':''; ?>>📝 Entwurf</option>
-                        <option value="published" <?php echo $pd['status']==='published' ?'selected':''; ?>>✅ Veröffentlicht</option>
-                        <option value="trash"     <?php echo $pd['status']==='trash'     ?'selected':''; ?>>🗑️ Papierkorb</option>
-                    </select>
-                </div>
-                <div class="field-group" id="publishedAtField" style="<?php echo $pd['status']!=='published'?'display:none;':''; ?>">
-                    <label>Veröffentlicht am</label>
-                    <input type="datetime-local" name="published_at"
-                           value="<?php echo $pd['published_at'] ? date('Y-m-d\TH:i', strtotime($pd['published_at'])) : date('Y-m-d\TH:i'); ?>">
-                </div>
-                <?php if (!$isNew): ?>
-                <div style="margin-top:.9rem;">
-                    <button type="submit" form="deletePostForm" class="btn btn-danger" style="width:100%;">🗑️ In Papierkorb</button>
-                </div>
-                <?php endif; ?>
-            </div>
-
-            <div class="admin-card">
-                <h3>🏷️ Kategorie &amp; Tags</h3>
-                <div class="field-group">
-                    <label>Kategorie</label>
-                    <select name="post_category">
-                        <option value="">– keine –</option>
-                        <?php foreach ($categories as $cat): ?>
-                        <option value="<?php echo (int)$cat->id; ?>" <?php echo (string)$pd['category_id']===(string)$cat->id?'selected':''; ?>>
-                            <?php echo htmlspecialchars($cat->name, ENT_QUOTES); ?>
-                        </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <div class="field-hint"><a href="<?php echo SITE_URL; ?>/admin/posts?view=categories" style="color:#2563eb;">+ Kategorien verwalten</a></div>
-                </div>
-                <div class="field-group" style="margin-bottom:0;">
-                    <label>Tags <span style="font-weight:400;color:#94a3b8;">(kommagetrennt)</span></label>
-                    <input type="text" name="post_tags" value="<?php echo htmlspecialchars($pd['tags'], ENT_QUOTES); ?>" placeholder="php, tutorial, news">
-                </div>
-            </div>
-
-            <div class="admin-card">
-                <h3>🖼️ Beitragsbild</h3>
-                <div id="featImgWrap">
-                    <?php if (!empty($pd['featured_image'])): ?>
-                        <img src="<?php echo htmlspecialchars($pd['featured_image'], ENT_QUOTES); ?>"
-                             class="feat-img-preview" id="featImgPreview" alt="">
-                    <?php else: ?>
-                        <div class="feat-img-placeholder" onclick="document.getElementById('featImgInput').click()">🖼️ Bild hochladen</div>
+            <div class="card mb-3">
+                <div class="card-header"><h3 class="card-title">📋 Status &amp; Sichtbarkeit</h3></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select name="post_status" id="post_status" class="form-select" onchange="togglePublishedAt(this.value)">
+                            <option value="draft"     <?php echo $pd['status']==='draft'     ?'selected':''; ?>>📝 Entwurf</option>
+                            <option value="published" <?php echo $pd['status']==='published' ?'selected':''; ?>>✅ Veröffentlicht</option>
+                            <option value="trash"     <?php echo $pd['status']==='trash'     ?'selected':''; ?>>🗑️ Papierkorb</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="publishedAtField" style="<?php echo $pd['status']!=='published'?'display:none;':''; ?>">
+                        <label class="form-label">Veröffentlicht am</label>
+                        <input type="datetime-local" name="published_at" class="form-control"
+                               value="<?php echo $pd['published_at'] ? date('Y-m-d\TH:i', strtotime($pd['published_at'])) : date('Y-m-d\TH:i'); ?>">
+                    </div>
+                    <?php if (!$isNew): ?>
+                    <button type="submit" form="deletePostForm" class="btn btn-danger w-100">🗑️ In Papierkorb</button>
                     <?php endif; ?>
-                    <input type="hidden" name="existing_featured_image" id="existingFeatImg"
-                           value="<?php echo htmlspecialchars($pd['featured_image'], ENT_QUOTES); ?>">
-                    <input type="hidden" name="remove_featured_image" id="removeFeatImg" value="0">
                 </div>
-                <div style="display:flex;gap:.4rem;margin-top:.4rem;flex-wrap:wrap;">
-                    <label class="btn btn-secondary btn-sm" style="cursor:pointer;">
-                        📁 Bild wählen
-                        <input type="file" id="featImgInput" name="featured_image" accept="image/*" style="display:none;" onchange="previewFeatImg(this)">
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header"><h3 class="card-title">🏷️ Kategorie &amp; Tags</h3></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Kategorie</label>
+                        <select name="post_category" class="form-select">
+                            <option value="">– keine –</option>
+                            <?php foreach ($categories as $cat): ?>
+                            <option value="<?php echo (int)$cat->id; ?>" <?php echo (string)$pd['category_id']===(string)$cat->id?'selected':''; ?>>
+                                <?php echo htmlspecialchars($cat->name, ENT_QUOTES); ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="form-hint"><a href="<?php echo SITE_URL; ?>/admin/posts?view=categories" style="color:var(--tblr-primary);">+ Kategorien verwalten</a></div>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">Tags <span class="text-secondary fw-normal">(kommagetrennt)</span></label>
+                        <input type="text" name="post_tags" class="form-control" value="<?php echo htmlspecialchars($pd['tags'], ENT_QUOTES); ?>" placeholder="php, tutorial, news">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header"><h3 class="card-title">🖼️ Beitragsbild</h3></div>
+                <div class="card-body">
+                    <div id="featImgWrap">
+                        <?php if (!empty($pd['featured_image'])): ?>
+                            <img src="<?php echo htmlspecialchars($pd['featured_image'], ENT_QUOTES); ?>"
+                                 class="feat-img-preview" id="featImgPreview" alt="">
+                        <?php else: ?>
+                            <div class="feat-img-placeholder" onclick="document.getElementById('featImgInput').click()">🖼️ Bild hochladen</div>
+                        <?php endif; ?>
+                        <input type="hidden" name="existing_featured_image" id="existingFeatImg"
+                               value="<?php echo htmlspecialchars($pd['featured_image'], ENT_QUOTES); ?>">
+                        <input type="hidden" name="remove_featured_image" id="removeFeatImg" value="0">
+                    </div>
+                    <div class="d-flex gap-2 mt-2 flex-wrap">
+                        <label class="btn btn-secondary btn-sm" style="cursor:pointer;">
+                            📁 Bild wählen
+                            <input type="file" id="featImgInput" name="featured_image" accept="image/*" style="display:none;" onchange="previewFeatImg(this)">
+                        </label>
+                        <?php if (!empty($pd['featured_image'])): ?>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removeFeatImg()">✕ Entfernen</button>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header"><h3 class="card-title">💬 Kommentare</h3></div>
+                <div class="card-body">
+                    <label class="form-check">
+                        <input type="checkbox" name="allow_comments" value="1" class="form-check-input" <?php echo $pd['allow_comments'] ? 'checked' : ''; ?>>
+                        <span class="form-check-label">Kommentare erlauben</span>
                     </label>
-                    <?php if (!empty($pd['featured_image'])): ?>
-                    <button type="button" class="btn btn-danger btn-sm" onclick="removeFeatImg()">✕ Entfernen</button>
-                    <?php endif; ?>
                 </div>
-            </div>
-
-            <div class="admin-card">
-                <h3>💬 Kommentare</h3>
-                <label style="display:flex;align-items:center;gap:.5rem;font-size:.875rem;cursor:pointer;">
-                    <input type="checkbox" name="allow_comments" value="1" <?php echo $pd['allow_comments'] ? 'checked' : ''; ?>>
-                    Kommentare erlauben
-                </label>
             </div>
 
         </div><!-- /.col-lg-4 -->
@@ -672,7 +698,7 @@ else: // view === 'list'
     </div>
 
     <?php if (empty($posts)): ?>
-    <div class="admin-card" style="text-align:center;padding:3rem;color:#94a3b8;">
+    <div class="card" style="text-align:center;padding:3rem;color:#94a3b8;">
         <div style="font-size:3rem;margin-bottom:1rem;">📝</div>
         <p style="font-size:.9225rem;">
             <?php echo $search ? 'Keine Treffer für <strong>'.htmlspecialchars($search,ENT_QUOTES).'</strong>' : 'Noch keine Beiträge.'; ?>
@@ -682,7 +708,7 @@ else: // view === 'list'
         <?php endif; ?>
     </div>
     <?php else: ?>
-    <div class="admin-card" style="padding:0;overflow:hidden;">
+    <div class="card" style="padding:0;overflow:hidden;">
         <table class="posts-table">
             <thead><tr>
                 <th class="col-check"><input type="checkbox" onchange="document.querySelectorAll('#bulkForm input[name=\'bulk_ids[]\']').forEach(c=>c.checked=this.checked)"></th>
@@ -802,37 +828,10 @@ function deletePost(id, mode, msg) {
 
 <?php endif; // end views ?>
 
-<!-- ── Editor + JS (Edit-Modus) ──────────────────────────────────────────────── -->
+<!-- ── JS (Edit-Modus) ────────────────────────────────────────────────────────── -->
 <?php if ($view === 'edit'): ?>
-<link  rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/suneditor/css/suneditor.min.css">
-<script src="<?php echo SITE_URL; ?>/assets/suneditor/suneditor.min.js"></script>
-<script src="<?php echo SITE_URL; ?>/assets/suneditor/lang/de.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const ta = document.getElementById('post_content');
-    const editor = SUNEDITOR.create(ta, {
-        buttonList: [
-            ['undo','redo'],['font','fontSize','formatBlock'],
-            ['bold','underline','italic','strike'],['fontColor','hiliteColor'],
-            ['align','horizontalRule','list','lineHeight'],
-            ['table','link','image','video'],
-            ['fullScreen','showBlocks','codeView'],['removeFormat']
-        ],
-        width: '100%',
-        height: 460,
-        lang: SUNEDITOR_LANG['de'],
-    });
-
-    // Inhalt bei jeder Änderung in die Textarea zurückschreiben (wie EditorService)
-    editor.onChange = function(contents) {
-        ta.value = contents;
-    };
-
-    // Zusätzlich vor dem Absenden sicherstellen
-    document.getElementById('postEditForm').addEventListener('submit', function() {
-        editor.save();
-    });
-
     function slugify(text) {
         return text.toLowerCase()
             .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')

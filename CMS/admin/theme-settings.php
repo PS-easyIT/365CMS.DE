@@ -125,12 +125,14 @@ require_once __DIR__ . '/partials/admin-menu.php';
 renderAdminLayoutStart('Theme-Einstellungen', 'theme-settings');
 ?>
 
-        <div class="admin-page-header">
-            <h2>⚙️ Theme-Einstellungen</h2>
-            <p style="color:#64748b;font-size:.875rem;margin:.25rem 0 0;">
-                Allgemeine Einstellungen für Themeverwaltung &amp; Marketplace —
-                unabhängig vom aktiven Theme.
-            </p>
+                <div class="page-header d-print-none mb-3">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <div class="page-pretitle">Allgemeine Einstellungen für Themeverwaltung &amp; Marketplace —
+                unabhängig vom aktiven Theme.</div>
+                    <h2 class="page-title">⚙️ Theme-Einstellungen</h2>
+                </div>
+            </div>
         </div>
 
         <?php if ($message): ?>

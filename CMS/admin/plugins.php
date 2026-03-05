@@ -118,17 +118,19 @@ $csrfToken = $security->generateToken('plugin_management');
 require_once __DIR__ . '/partials/admin-menu.php';
 ?>
 <?php renderAdminLayoutStart('Plugin-Verwaltung', 'plugins'); ?>
-        <div class="admin-page-header">
-            <div>
-                <h2>🔌 Plugin-Verwaltung</h2>
-                <p>Plugins aktivieren, deaktivieren, löschen oder neue installieren.</p>
+                <div class="page-header d-print-none mb-3">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <div class="page-pretitle">Plugins aktivieren, deaktivieren, löschen oder neue installieren.</div>
+                    <h2 class="page-title">🔌 Plugin-Verwaltung</h2>
+                </div>
             </div>
         </div>
         
         <?php if ($message && $messageType === 'success'): ?>
             <div class="alert alert-success"><?php echo htmlspecialchars($message); ?></div>
         <?php elseif ($message): ?>
-            <div class="alert alert-error"><?php echo htmlspecialchars($message); ?></div>
+            <div class="alert alert-danger"><?php echo htmlspecialchars($message); ?></div>
         <?php endif; ?>
         
         <!-- Statistics -->
@@ -151,7 +153,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
         </div>
         
         <!-- Plugins List -->
-        <div class="admin-card">
+        <div class="card">
         <h3>🔌 Installierte Plugins</h3>
         
         <?php if (empty($plugins)): ?>
@@ -236,10 +238,10 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
-        </div><!-- /.admin-card -->
+        </div><!-- /.card -->
         
         <!-- Upload Section -->
-        <div class="admin-card">
+        <div class="card">
             <h3>📦 Neues Plugin installieren</h3>
             <form method="post" enctype="multipart/form-data" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
                 <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
@@ -247,7 +249,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 <input type="file" name="plugin_file" accept=".zip" required class="form-control" style="flex:1;min-width:200px;">
                 <button type="submit" class="btn btn-primary btn-sm">📤 Hochladen &amp; installieren</button>
             </form>
-            <small class="form-text" style="margin-top:0.5rem;display:block;">Maximale Dateigröße: 50 MB | Format: ZIP</small>
+            <small class="form-hint" style="margin-top:0.5rem;display:block;">Maximale Dateigröße: 50 MB | Format: ZIP</small>
         </div>
         
     </div><!-- /.admin-content -->
@@ -261,7 +263,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
             </div>
             <div class="modal-body">
                 <p>Möchten Sie das Plugin <strong id="pluginNameToDelete"></strong> wirklich löschen?</p>
-                <div class="alert alert-error">⚠️ Diese Aktion kann nicht rückgängig gemacht werden!</div>
+                <div class="alert alert-danger">⚠️ Diese Aktion kann nicht rückgängig gemacht werden!</div>
                 
                 <form method="post" id="deleteForm">
                     <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">

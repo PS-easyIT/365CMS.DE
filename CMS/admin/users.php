@@ -265,7 +265,7 @@ if ($view === 'edit' && $editUserId > 0):
 
     <div class="form-grid" style="display:grid; grid-template-columns: 2fr 1fr; gap:1.5rem;">
         <div style="display:flex; flex-direction:column; gap:1.5rem;">
-            <div class="admin-card">
+            <div class="card">
                 <h3>👤 Benutzerdaten</h3>
                 <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
                     <div class="col-md-6">
@@ -538,7 +538,7 @@ else:
     <input type="hidden" name="_action" value="bulk">
     
     <div style="background:#f8fafc; padding:0.75rem; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:1rem; display:flex; align-items:center; gap:0.75rem;">
-        <select name="bulk_action" class="form-control" style="width:auto; display:inline-block; padding:0.4rem;">
+        <select name="bulk_action" class="form-select" style="width:auto; display:inline-block; padding:0.4rem;">
             <option value="">Aktion wählen…</option>
             <option value="activate">Aktivieren</option>
             <option value="ban">Sperren</option>

@@ -181,10 +181,10 @@ require_once __DIR__ . '/partials/admin-menu.php';
         @media (max-width: 1100px) {
             .settings-layout { grid-template-columns: 1fr; }
         }
-        .settings-layout .admin-card {
+        .settings-layout .card {
             margin-bottom: 0;
         }
-        .settings-layout .admin-card h3 {
+        .settings-layout .card h3 {
             margin-bottom: 1.5rem;
         }
         /* Section divider between form groups */
@@ -205,7 +205,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
             padding: 0.6rem 0.85rem;
             font-size: 0.95rem;
         }
-        .settings-layout .form-text {
+        .settings-layout .form-hint {
             margin-top: 0.35rem;
             font-size: 0.82rem;
             color: #64748b;
@@ -290,19 +290,25 @@ require_once __DIR__ . '/partials/admin-menu.php';
     <div class="admin-content">
 
         <!-- Page Header -->
-        <div class="admin-page-header">
-            <div>
-                <h2>⚙️ Systemeinstellungen</h2>
-                <p>Grundlegende Konfiguration der Website</p>
-            </div>
-            <div class="header-actions">
-                <a href="/admin/legal-sites" class="btn btn-secondary">⚖️ Legal Sites</a>
+        <div class="page-header d-print-none mb-3">
+            <div class="container-xl">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="page-pretitle">Administration</div>
+                        <h2 class="page-title">⚙️ Systemeinstellungen</h2>
+                        <p class="text-secondary mt-1">Grundlegende Konfiguration der Website</p>
+                    </div>
+                    <div class="col-auto ms-auto">
+                        <a href="/admin/legal-sites" class="btn btn-secondary">⚖️ Legal Sites</a>
+                    </div>
+                </div>
             </div>
         </div>
 
         <?php if ($message): ?>
-            <div class="alert alert-<?php echo $messageType === 'success' ? 'success' : 'error'; ?>">
+            <div class="alert alert-<?php echo $messageType === 'success' ? 'success' : 'danger'; ?> alert-dismissible">
                 <?php echo htmlspecialchars($message); ?>
+                <a class="btn-close" data-bs-dismiss="alert" aria-label="Close"></a>
             </div>
         <?php endif; ?>
 
@@ -315,8 +321,9 @@ require_once __DIR__ . '/partials/admin-menu.php';
             <div class="settings-layout">
 
                 <!-- 1. Allgemein -->
-                <div class="admin-card">
-                    <h3>🏢 Allgemein</h3>
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">🏢 Allgemein</h3></div>
+                    <div class="card-body">
 
                     <div class="form-group">
                         <label class="form-label" for="site_name">Website-Name <span style="color:#ef4444;">*</span></label>
@@ -328,7 +335,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     <div class="form-group">
                         <label class="form-label" for="site_description">Untertitel / Slogan</label>
                         <textarea id="site_description" name="site_description" class="form-control" rows="3"><?php echo htmlspecialchars($currentSettings['setting_site_description'] ?? ''); ?></textarea>
-                        <small class="form-text">Wird in Suchmaschinen und im Browser-Titel angezeigt.</small>
+                        <small class="form-hint">Wird in Suchmaschinen und im Browser-Titel angezeigt.</small>
                     </div>
 
                     <div class="form-group">
@@ -336,17 +343,19 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         <input type="email" id="admin_email" name="admin_email"
                                value="<?php echo htmlspecialchars($currentSettings['setting_admin_email']); ?>"
                                class="form-control" required>
-                        <small class="form-text">Empfänger für System-Benachrichtigungen.</small>
+                        <small class="form-hint">Empfänger für System-Benachrichtigungen.</small>
+                    </div>
                     </div>
                 </div>
 
                 <!-- 2. Lokalisierung -->
-                <div class="admin-card">
-                    <h3>🌍 Lokalisierung</h3>
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">🌍 Lokalisierung</h3></div>
+                    <div class="card-body">
 
                     <div class="form-group">
                         <label class="form-label" for="timezone">Zeitzone</label>
-                        <select id="timezone" name="timezone" class="form-control">
+                        <select id="timezone" name="timezone" class="form-select">
                             <option value="Europe/Berlin" <?php echo $currentSettings['setting_timezone'] === 'Europe/Berlin' ? 'selected' : ''; ?>>Europa/Berlin (MEZ)</option>
                             <option value="Europe/Vienna" <?php echo $currentSettings['setting_timezone'] === 'Europe/Vienna' ? 'selected' : ''; ?>>Europa/Wien (MEZ)</option>
                             <option value="Europe/Zurich" <?php echo $currentSettings['setting_timezone'] === 'Europe/Zurich' ? 'selected' : ''; ?>>Europa/Zürich (MEZ)</option>
@@ -357,7 +366,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     <div class="settings-two-col">
                         <div class="form-group">
                             <label class="form-label" for="date_format">Datumsformat</label>
-                            <select id="date_format" name="date_format" class="form-control">
+                            <select id="date_format" name="date_format" class="form-select">
                                 <option value="d.m.Y" <?php echo $currentSettings['setting_date_format'] === 'd.m.Y' ? 'selected' : ''; ?>>18.02.2026</option>
                                 <option value="Y-m-d" <?php echo $currentSettings['setting_date_format'] === 'Y-m-d' ? 'selected' : ''; ?>>2026-02-18</option>
                                 <option value="m/d/Y" <?php echo $currentSettings['setting_date_format'] === 'm/d/Y' ? 'selected' : ''; ?>>02/18/2026</option>
@@ -365,21 +374,23 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         </div>
                         <div class="form-group">
                             <label class="form-label" for="time_format">Zeitformat</label>
-                            <select id="time_format" name="time_format" class="form-control">
+                            <select id="time_format" name="time_format" class="form-select">
                                 <option value="H:i" <?php echo $currentSettings['setting_time_format'] === 'H:i' ? 'selected' : ''; ?>>14:30 (24h)</option>
                                 <option value="h:i A" <?php echo $currentSettings['setting_time_format'] === 'h:i A' ? 'selected' : ''; ?>>02:30 PM (12h)</option>
                             </select>
                         </div>
                     </div>
+                    </div>
                 </div>
 
                 <!-- 3. Inhalt & Darstellung -->
-                <div class="admin-card">
-                    <h3>🎨 Inhalt &amp; Darstellung</h3>
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">🎨 Inhalt &amp; Darstellung</h3></div>
+                    <div class="card-body">
 
                     <div class="form-group">
                         <label class="form-label" for="home_page_id">Startseite</label>
-                        <select id="home_page_id" name="home_page_id" class="form-control">
+                        <select id="home_page_id" name="home_page_id" class="form-select">
                             <option value="0">– Neueste Beiträge –</option>
                             <?php foreach ($pages as $p): ?>
                                 <option value="<?php echo (int)$p->ID; ?>" <?php echo ($currentSettings['setting_home_page_id'] == $p->ID) ? 'selected' : ''; ?>>
@@ -387,7 +398,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                                 </option>
                             <?php endforeach; ?>
                         </select>
-                        <small class="form-text">Wähle eine statische Seite als Startseite aus.</small>
+                        <small class="form-hint">Wähle eine statische Seite als Startseite aus.</small>
                     </div>
 
                     <div class="form-group">
@@ -399,17 +410,19 @@ require_once __DIR__ . '/partials/admin-menu.php';
 
                     <div class="form-group">
                         <label class="form-label" for="editor_type">Editor</label>
-                        <select id="editor_type" name="editor_type" class="form-control">
+                        <select id="editor_type" name="editor_type" class="form-select">
                             <option value="suneditor" <?php echo ($currentSettings['setting_editor_type'] ?? 'suneditor') === 'suneditor' ? 'selected' : ''; ?>>SunEditor (klassisch, WYSIWYG)</option>
                             <option value="editorjs" <?php echo ($currentSettings['setting_editor_type'] ?? '') === 'editorjs' ? 'selected' : ''; ?>>Editor.js (Block-Editor)</option>
                         </select>
-                        <small class="form-text">Der Block-Editor speichert Inhalte als strukturierte Blöcke — ideal für moderne Layouts.</small>
+                        <small class="form-hint">Der Block-Editor speichert Inhalte als strukturierte Blöcke — ideal für moderne Layouts.</small>
+                    </div>
                     </div>
                 </div>
 
                 <!-- 4. System & Benutzer -->
-                <div class="admin-card">
-                    <h3>🔧 System &amp; Benutzer</h3>
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">🔧 System &amp; Benutzer</h3></div>
+                    <div class="card-body">
 
                     <div class="settings-toggle-row">
                         <label class="toggle-switch">
@@ -435,7 +448,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
 
                     <div class="form-group" style="margin-top:1.5rem;">
                         <label class="form-label" for="default_role">Standard-Rolle für neue Benutzer</label>
-                        <select id="default_role" name="default_role" class="form-control">
+                        <select id="default_role" name="default_role" class="form-select">
                             <?php foreach ($availableRoles as $role): ?>
                                 <option value="<?php echo htmlspecialchars($role->name, ENT_QUOTES); ?>"
                                     <?php echo ($currentSettings['setting_default_role'] === $role->name) ? 'selected' : ''; ?>>
@@ -443,18 +456,20 @@ require_once __DIR__ . '/partials/admin-menu.php';
                                 </option>
                             <?php endforeach; ?>
                         </select>
-                        <small class="form-text">Rolle die neu registrierten Benutzern automatisch zugewiesen wird.</small>
+                        <small class="form-hint">Rolle die neu registrierten Benutzern automatisch zugewiesen wird.</small>
+                    </div>
                     </div>
                 </div>
 
                 <!-- 5. Rechtliches -->
-                <div class="admin-card">
-                    <h3>⚖️ Rechtliches &amp; Datenschutz</h3>
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">⚖️ Rechtliches &amp; Datenschutz</h3></div>
+                    <div class="card-body">
 
                     <div class="settings-two-col">
                         <div class="form-group">
                             <label class="form-label" for="legal_page_id">Impressum</label>
-                            <select id="legal_page_id" name="legal_page_id" class="form-control">
+                            <select id="legal_page_id" name="legal_page_id" class="form-select">
                                 <option value="0">– Nicht ausgewählt –</option>
                                 <?php foreach ($pages as $p): ?>
                                     <option value="<?php echo (int)$p->ID; ?>" <?php echo ($currentSettings['setting_legal_page_id'] == $p->ID) ? 'selected' : ''; ?>>
@@ -465,7 +480,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         </div>
                         <div class="form-group">
                             <label class="form-label" for="privacy_page_id">Datenschutzerklärung</label>
-                            <select id="privacy_page_id" name="privacy_page_id" class="form-control">
+                            <select id="privacy_page_id" name="privacy_page_id" class="form-select">
                                 <option value="0">– Nicht ausgewählt –</option>
                                 <?php foreach ($pages as $p): ?>
                                     <option value="<?php echo (int)$p->ID; ?>" <?php echo ($currentSettings['setting_privacy_page_id'] == $p->ID) ? 'selected' : ''; ?>>
@@ -475,7 +490,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
                             </select>
                         </div>
                     </div>
-                    <small class="form-text">Diese Seiten werden automatisch im Footer und bei Formularen verlinkt.</small>
+                    <small class="form-hint">Diese Seiten werden automatisch im Footer und bei Formularen verlinkt.</small>
+                    </div>
                 </div>
 
             </div><!-- /.settings-layout -->

@@ -209,14 +209,14 @@ renderAdminLayoutStart('Menü-Verwaltung', 'menus');
 ?>
 
         <!-- Page Header -->
-        <div class="admin-page-header">
-            <div>
-                <h2>🗂️ Menü-Verwaltung</h2>
-                <p>Navigationsmenüs des aktiven Themes bearbeiten – inkl. Untermenüs</p>
+                <div class="page-header d-print-none mb-3">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <div class="page-pretitle">Navigationsmenüs des aktiven Themes bearbeiten – inkl. Untermenüs</div>
+                    <h2 class="page-title">🗂️ Menü-Verwaltung</h2>
+                </div>
             </div>
         </div>
-
-        <!-- Messages -->
         <?php if ($message): ?>
             <div class="alert alert-<?php echo htmlspecialchars($messageType); ?>">
                 <?php echo $message; ?>
@@ -224,7 +224,7 @@ renderAdminLayoutStart('Menü-Verwaltung', 'menus');
         <?php endif; ?>
 
         <!-- Positions-Tabs -->
-        <div class="admin-card" style="padding:0;overflow:hidden;">
+        <div class="card" style="padding:0;overflow:hidden;">
             <div style="display:flex;align-items:stretch;flex-wrap:wrap;border-bottom:1px solid #e2e8f0;background:#f8fafc;">
                 <?php foreach ($locations as $loc):
                     if (!is_array($loc) || !isset($loc['slug'], $loc['label'])) continue;
@@ -284,7 +284,7 @@ renderAdminLayoutStart('Menü-Verwaltung', 'menus');
         </div>
 
         <!-- Editor -->
-        <div class="admin-card">
+        <div class="card">
             <!-- Card-Header -->
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;
                         border-bottom:1px solid #f1f5f9;padding-bottom:1rem;margin-bottom:1.25rem;">
@@ -332,7 +332,7 @@ renderAdminLayoutStart('Menü-Verwaltung', 'menus');
                 <div style="display:grid;grid-template-columns:1fr 1fr 115px auto;gap:.45rem;">
                     <input type="text" id="newLabel"  class="form-control" placeholder="Bezeichnung">
                     <input type="text" id="newUrl"    class="form-control" placeholder="/pfad oder https://…">
-                    <select           id="newTarget"  class="form-control">
+                    <select           id="newTarget"  class="form-select">
                         <option value="_self">Gleicher Tab</option>
                         <option value="_blank">Neuer Tab</option>
                     </select>
@@ -484,7 +484,7 @@ function render() {
                    oninput="menuItems[${i}].label=this.value">
             <input class="form-control" value="${esc(item.url)}" placeholder="/pfad oder https://…"
                    oninput="menuItems[${i}].url=this.value">
-            <select class="form-control" onchange="menuItems[${i}].target=this.value">
+            <select class="form-select" onchange="menuItems[${i}].target=this.value">
                 <option value="_self"  ${item.target!=='_blank'?'selected':''}>Gleicher Tab</option>
                 <option value="_blank" ${item.target==='_blank'?'selected':''}>Neuer Tab</option>
             </select>
@@ -515,7 +515,7 @@ function render() {
                            oninput="menuItems[${i}].children[${ci}].label=this.value">
                     <input class="form-control" value="${esc(child.url)}" placeholder="/pfad"
                            oninput="menuItems[${i}].children[${ci}].url=this.value">
-                    <select class="form-control" onchange="menuItems[${i}].children[${ci}].target=this.value">
+                    <select class="form-select" onchange="menuItems[${i}].children[${ci}].target=this.value">
                         <option value="_self"  ${child.target!=='_blank'?'selected':''}>Gleicher Tab</option>
                         <option value="_blank" ${child.target==='_blank'?'selected':''}>Neuer Tab</option>
                     </select>
@@ -537,7 +537,7 @@ function render() {
             <div style="display:grid;grid-template-columns:1fr 1fr 115px auto;gap:.4rem;">
                 <input type="text" id="cl_${i}" class="form-control" placeholder="Untermenü-Bezeichnung" style="font-size:.85rem;">
                 <input type="text" id="cu_${i}" class="form-control" placeholder="/pfad" style="font-size:.85rem;">
-                <select           id="ct_${i}" class="form-control" style="font-size:.85rem;">
+                <select           id="ct_${i}" class="form-select" style="font-size:.85rem;">
                     <option value="_self">Gleicher Tab</option>
                     <option value="_blank">Neuer Tab</option>
                 </select>

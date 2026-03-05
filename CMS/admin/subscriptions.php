@@ -191,30 +191,32 @@ require_once __DIR__ . '/partials/admin-menu.php';
 renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
 ?>
 
-<div class="admin-page-header">
-    <div>
-        <h2>💳 Abo-Verwaltung</h2>
-        <p>Abo-Pakete, Zuweisungen und Zahlungseinstellungen verwalten.</p>
-    </div>
-    <div class="header-actions">
+<div class="page-header d-print-none mb-3">
+    <div class="row align-items-center">
+        <div class="col-auto">
+            <div class="page-pretitle">Abo-Pakete, Zuweisungen und Zahlungseinstellungen verwalten.</div>
+            <h2 class="page-title">💳 Abo-Verwaltung</h2>
+        </div>
+        <div class="col-auto ms-auto d-print-none">
             <?php if (empty($plans) && $activeTab === 'plans'): ?>
-             <form method="POST" style="display:inline;">
-                    <input type="hidden" name="action" value="seed_defaults">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                    <button type="submit" class="btn btn-secondary">
-                        ➕ Standard-Pakete erstellen
-                    </button>
-                </form>
-        <?php endif; ?>
+            <form method="POST" style="display:inline;">
+            <input type="hidden" name="action" value="seed_defaults">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+            <button type="submit" class="btn btn-secondary">
+            ➕ Standard-Pakete erstellen
+            </button>
+            </form>
+            <?php endif; ?>
+        </div>
     </div>
-</div><!-- /.admin-page-header -->
+</div>
 
 <?php if ($message): ?>
     <div class="alert alert-success"><?php echo htmlspecialchars($message); ?></div>
 <?php endif; ?>
 
 <?php if ($error): ?>
-    <div class="alert alert-error"><?php echo htmlspecialchars($error); ?></div>
+    <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
 <?php endif; ?>
         
         <!-- CONTENT: PAKETÜBERSICHT -->
@@ -360,7 +362,7 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
 
                 <div class="settings-grid-2col">
 
-                <div class="admin-card">
+                <div class="card">
                     <h3>🔧 Abo-System</h3>
                     <div class="field-group">
                         <label style="display:flex;align-items:center;gap:.6rem;font-size:.875rem;cursor:pointer;font-weight:600;">
@@ -380,7 +382,7 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                 </div>
 
                 <!-- Section: Zahlungsmethoden -->
-                <div class="admin-card">
+                <div class="card">
                     <h3>💳 Zahlungsmethoden</h3>
                     <p style="color:#64748b;font-size:.8rem;margin-top:-.25rem;">Werden Mitgliedern beim Abo-Abschluss angezeigt.</p>
                     <div class="field-group">
@@ -398,7 +400,7 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                 </div>
 
                 <!-- Section: Rechtliche Seiten -->
-                <div class="admin-card">
+                <div class="card">
                     <h3>📄 Rechtliche Seiten</h3>
                     <p style="color:#64748b;font-size:.8rem;margin-top:-.25rem;">URLs zu Pflichtseiten – werden im Checkout verlinkt.</p>
                     <div class="field-group">
@@ -416,7 +418,7 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                 </div>
 
                 <!-- Section: Rechnungsabsender -->
-                <div class="admin-card">
+                <div class="card">
                     <h3>🏢 Rechnungsabsender</h3>
                     <p style="color:#64748b;font-size:.8rem;margin-top:-.25rem;">Werden auf Rechnungen als Absender gedruckt.</p>
                     <div class="field-group">
@@ -430,7 +432,7 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                 </div>
 
                 <!-- Section: Bestellnummern -->
-                <div class="admin-card">
+                <div class="card">
                     <h3>📋 Bestellnummern</h3>
                     <div class="field-group" style="margin-bottom:0;">
                         <label>Format</label>
@@ -491,7 +493,7 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
             </div>
 
             <!-- Benutzer-Abos Tabelle -->
-            <div class="admin-card">
+            <div class="card">
                 <h3>👤 Benutzer-Abonnements <span class="plc-count-badge"><?php echo count($activeSubscriptions); ?></span></h3>
                 <?php if (empty($activeSubscriptions)): ?>
                     <div class="empty-state">
@@ -532,7 +534,7 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
             </div>
 
             <!-- Gruppen-Paketzuordnung (read-only) -->
-            <div class="admin-card" style="margin-top:1.5rem;">
+            <div class="card" style="margin-top:1.5rem;">
                 <h3>🫂 Gruppen-Paketzuordnung</h3>
                 <?php if (empty($groups)): ?>
                     <p style="color:#94a3b8;font-size:.85rem;">Noch keine Gruppen vorhanden. <a href="<?php echo SITE_URL; ?>/admin/groups">Gruppen erstellen &rarr;</a></p>
@@ -577,7 +579,7 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
         <?php elseif ($activeTab === 'assignments'): ?>
 
             <!-- Benutzer-Abo zuweisen -->
-            <div class="admin-card" style="margin-bottom:1.5rem;">
+            <div class="card" style="margin-bottom:1.5rem;">
                 <h3>👤 Benutzer-Abo zuweisen</h3>
                 <form method="POST">
                     <input type="hidden" name="action" value="assign_subscription">
@@ -627,7 +629,7 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                 ORDER BY us.created_at DESC
             ")->fetchAll();
             ?>
-            <div class="admin-card" style="margin-bottom:1.5rem;">
+            <div class="card" style="margin-bottom:1.5rem;">
                 <h3>📋 Aktive Benutzer-Abos <span class="plc-count-badge"><?php echo count($assignedSubs); ?></span></h3>
                 <?php if (empty($assignedSubs)): ?>
                     <div class="empty-state">
@@ -663,7 +665,7 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
             </div>
 
             <!-- Gruppen-Zuweisungen -->
-            <div class="admin-card">
+            <div class="card">
                 <h3>🫂 Gruppen-Paketzuweisung</h3>
                 <p style="color:#64748b;font-size:.82rem;margin-top:-.25rem;">Weise jeder Gruppe ein Abo-Paket zu. Mitglieder erhalten damit die Rechte des Paketes.</p>
 
@@ -735,7 +737,7 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
             </div>
             <div class="modal-body">
                 <p>Möchten Sie das Paket <strong id="deletePlanName"></strong> wirklich löschen?</p>
-                <div class="alert alert-error">⚠️ Diese Aktion kann nicht rückgängig gemacht werden!</div>
+                <div class="alert alert-danger">⚠️ Diese Aktion kann nicht rückgängig gemacht werden!</div>
                 <form method="POST" id="deletePlanForm">
                     <input type="hidden" name="action" value="delete_plan">
                     <input type="hidden" name="plan_id" id="deletePlanId" value="">

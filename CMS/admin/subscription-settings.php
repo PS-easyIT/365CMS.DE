@@ -52,10 +52,12 @@ $exampleFormats = [
 renderAdminLayoutStart('Abo-Einstellungen', 'subscription-settings');
 ?>
 
-        <div class="admin-page-header">
-            <div>
-                <h2>⚙️ Abo-Einstellungen</h2>
-                <p>Bestellnummern-Format und weitere Abo-Konfiguration.</p>
+                <div class="page-header d-print-none mb-3">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <div class="page-pretitle">Bestellnummern-Format und weitere Abo-Konfiguration.</div>
+                    <h2 class="page-title">⚙️ Abo-Einstellungen</h2>
+                </div>
             </div>
         </div>
             
@@ -63,7 +65,7 @@ renderAdminLayoutStart('Abo-Einstellungen', 'subscription-settings');
                 <div class="alert alert-success"><?php echo htmlspecialchars($message); ?></div>
             <?php endif; ?>
 
-            <div class="admin-card">
+            <div class="card">
                 <h3>🔢 Bestellnummern-Format</h3>
                 <p>Definieren Sie hier das Format für neue Bestellnummern. Änderungen wirken sich nur auf zukünftige Bestellungen aus.</p>
                 
@@ -73,7 +75,7 @@ renderAdminLayoutStart('Abo-Einstellungen', 'subscription-settings');
                     
                     <div class="form-group">
                         <label>Format-Vorlage wählen:</label>
-                        <select onchange="document.getElementById('formatInput').value = this.value" class="form-control">
+                        <select onchange="document.getElementById('formatInput').value = this.value" class="form-select">
                             <option value="">-- Bitte wählen --</option>
                             <?php foreach ($exampleFormats as $fmt => $desc): ?>
                                 <option value="<?php echo htmlspecialchars($fmt); ?>"><?php echo htmlspecialchars($desc); ?></option>
@@ -84,7 +86,7 @@ renderAdminLayoutStart('Abo-Einstellungen', 'subscription-settings');
                     <div class="form-group">
                         <label>Aktuelles Format:</label>
                         <input type="text" name="order_number_format" id="formatInput" value="<?php echo htmlspecialchars($currentFormat); ?>" class="form-control" readonly style="background: #f1f5f9; cursor: not-allowed;">
-                        <small class="form-text">Das Format kann nur aus den vordefinierten Optionen gewählt werden.</small>
+                        <small class="form-hint">Das Format kann nur aus den vordefinierten Optionen gewählt werden.</small>
                     </div>
 
                     <div class="info-box">

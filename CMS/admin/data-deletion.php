@@ -82,10 +82,12 @@ $csrfToken = $security->generateToken('data_deletion');
 require_once __DIR__ . '/partials/admin-menu.php';
 renderAdminLayoutStart('Löschanträge', 'data-deletion');
 ?>
-<div class="admin-page-header">
-    <div>
-        <h2>🗑️ Löschanträge (Art. 17 DSGVO)</h2>
-        <p>Recht auf Vergessenwerden: Benutzerdaten anonymisieren oder löschen.</p>
+<div class="page-header d-print-none mb-3">
+    <div class="row align-items-center">
+        <div class="col-auto">
+            <div class="page-pretitle">Recht auf Vergessenwerden: Benutzerdaten anonymisieren oder löschen.</div>
+            <h2 class="page-title">🗑️ Löschanträge (Art. 17 DSGVO)</h2>
+        </div>
     </div>
 </div>
 
@@ -94,7 +96,7 @@ renderAdminLayoutStart('Löschanträge', 'data-deletion');
         <?php endif; ?>
 
         <!-- SEARCH -->
-        <div class="admin-card">
+        <div class="card">
             <h3>🔍 Benutzer zur Löschung suchen</h3>
             <form method="post">
                 <div class="form-group">
@@ -109,11 +111,11 @@ renderAdminLayoutStart('Löschanträge', 'data-deletion');
 
         <!-- ACTION AREA -->
         <?php if ($userData): ?>
-        <div class="admin-card" style="border-top: 4px solid #ef4444;">
+        <div class="card" style="border-top: 4px solid #ef4444;">
              <h3 style="color:#ef4444;">🚨 Gefundener Benutzer: <?php echo htmlspecialchars($userData->display_name); ?></h3>
              <p>E-Mail: <strong><?php echo htmlspecialchars($userData->user_email); ?></strong> (ID: <?php echo $userData->id; ?>)</p>
              
-             <div class="alert alert-error" style="border-radius:8px;">
+             <div class="alert alert-danger" style="border-radius:8px;">
                  <strong>⚠️ Achtung:</strong> Diese Aktion ist <u>irreversibel</u>.
                  <ul style="margin:.5rem 0 0 1rem; font-size:0.9rem;">
                      <li>Der Benutzer wird umbenannt in „Deleted User“.</li>

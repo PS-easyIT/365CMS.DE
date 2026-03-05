@@ -324,14 +324,14 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
 </style>
 
 <!-- Page Header -->
-<div class="admin-page-header">
-    <div>
-        <h2>🔍 SEO &amp; Performance</h2>
-        <p>Suchmaschinenoptimierung, Social Media, Strukturierte Daten &amp; Indexierung</p>
+<div class="page-header d-print-none mb-3">
+    <div class="row align-items-center">
+        <div class="col-auto">
+            <div class="page-pretitle">Suchmaschinenoptimierung, Social Media, Strukturierte Daten &amp; Indexierung</div>
+            <h2 class="page-title">🔍 SEO &amp; Performance</h2>
+        </div>
     </div>
 </div>
-
-<!-- Messages -->
 <?php foreach ($messages as $msg): ?>
     <div class="alert alert-<?php echo $msg['type'] === 'success' ? 'success' : 'error'; ?>">
         <?php echo htmlspecialchars($msg['text']); ?>
@@ -366,12 +366,12 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
 
     <div class="seo-grid">
         <!-- Titel-Template -->
-        <div class="admin-card">
+        <div class="card">
             <h3>📋 Titel & Format</h3>
                 <div class="form-group">
                     <label>Titel-Template</label>
                     <input type="text" name="site_title_format" class="form-control" value="<?php echo $val('seo_site_title_format'); ?>">
-                    <span class="form-text">Platzhalter: <code>{title}</code>, <code>{sitename}</code>, <code>{tagline}</code></span>
+                    <span class="form-hint">Platzhalter: <code>{title}</code>, <code>{sitename}</code>, <code>{tagline}</code></span>
                 </div>
                 <div class="form-group">
                     <label>Trennzeichen</label>
@@ -388,21 +388,21 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
         </div>
 
         <!-- Meta Defaults -->
-        <div class="admin-card">
+        <div class="card">
             <h3>🏷️ Standard-Meta</h3>
                 <div class="form-group">
                     <label>Standard Meta-Description</label>
                     <textarea name="meta_description" class="form-control" rows="3"><?php echo $val('seo_meta_description'); ?></textarea>
-                    <span class="form-text">Fallback für Seiten ohne eigene Description.</span>
+                    <span class="form-hint">Fallback für Seiten ohne eigene Description.</span>
                 </div>
                 <div class="form-group">
                     <label>Meta-Keywords <span class="seo-badge seo-badge-warn">Niedrige Relevanz</span></label>
                     <input type="text" name="meta_keywords" class="form-control" value="<?php echo $val('seo_meta_keywords'); ?>">
-                    <span class="form-text">Kommagetrennt. Von den meisten Suchmaschinen ignoriert.</span>
+                    <span class="form-hint">Kommagetrennt. Von den meisten Suchmaschinen ignoriert.</span>
                 </div>
                 <div class="form-group">
                     <label>Canonical URL Verhalten</label>
-                    <select name="canonical_url" class="form-control">
+                    <select name="canonical_url" class="form-select">
                         <option value="auto"   <?php echo $sel('seo_canonical_url','auto'); ?>>Automatisch (Self-referencing)</option>
                         <option value="manual" <?php echo $sel('seo_canonical_url','manual'); ?>>Manuell überschreibbar</option>
                     </select>
@@ -410,9 +410,9 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
         </div>
 
         <!-- Noindex Einstellungen -->
-        <div class="admin-card">
+        <div class="card">
             <h3>🚫 Noindex-Regeln</h3>
-                <span class="form-text" style="display:block;margin-bottom:1rem;">Verhindert das Indexieren bestimmter Seitentypen.</span>
+                <span class="form-hint" style="display:block;margin-bottom:1rem;">Verhindert das Indexieren bestimmter Seitentypen.</span>
                 <div class="dw-toggle-row">
                     <div>
                         <div class="dw-toggle-label">Archive-Seiten (noindex)</div>
@@ -469,7 +469,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
 
     <div class="seo-grid">
         <!-- Open Graph -->
-        <div class="admin-card">
+        <div class="card">
             <h3>📘 Open Graph (Facebook / LinkedIn)</h3>
                 <div class="form-group">
                     <label>OG Titel (Standard)</label>
@@ -482,7 +482,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                 <div class="form-group">
                     <label>Standard OG Bild URL</label>
                     <input type="url" name="og_image" class="form-control" placeholder="https://…/bild.jpg" value="<?php echo $val('seo_og_image'); ?>">
-                    <span class="form-text">Empfohlen: 1200×630 px</span>
+                    <span class="form-hint">Empfohlen: 1200×630 px</span>
                 </div>
                 <div class="form-group">
                     <label>OG Locale</label>
@@ -490,7 +490,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                 </div>
                 <div class="form-group">
                     <label>OG Type</label>
-                    <select name="og_type" class="form-control">
+                    <select name="og_type" class="form-select">
                         <option value="website" <?php echo $sel('seo_og_type','website'); ?>>website</option>
                         <option value="article" <?php echo $sel('seo_og_type','article'); ?>>article</option>
                         <option value="profile" <?php echo $sel('seo_og_type','profile'); ?>>profile</option>
@@ -499,11 +499,11 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
         </div>
 
         <!-- Twitter/X -->
-        <div class="admin-card">
+        <div class="card">
             <h3>𝕏 Twitter / X Card</h3>
                 <div class="form-group">
                     <label>Card Typ</label>
-                    <select name="twitter_card" class="form-control">
+                    <select name="twitter_card" class="form-select">
                         <option value="summary"             <?php echo $sel('seo_twitter_card','summary'); ?>>Summary</option>
                         <option value="summary_large_image" <?php echo $sel('seo_twitter_card','summary_large_image'); ?>>Summary Large Image</option>
                         <option value="app"                 <?php echo $sel('seo_twitter_card','app'); ?>>App</option>
@@ -525,7 +525,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
         </div>
 
         <!-- Authorship -->
-        <div class="admin-card">
+        <div class="card">
             <h3>👤 Authorship</h3>
                 <div class="form-group">
                     <label>Globaler Autor-Name</label>
@@ -553,11 +553,11 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
 
     <div class="seo-grid">
         <!-- Organization Schema -->
-        <div class="admin-card">
+        <div class="card">
             <h3>🏢 Schema.org Entität</h3>
                 <div class="form-group">
                     <label>Typ</label>
-                    <select name="schema_type" class="form-control">
+                    <select name="schema_type" class="form-select">
                         <option value="Organization"   <?php echo $sel('seo_schema_type','Organization'); ?>>Organization</option>
                         <option value="LocalBusiness"  <?php echo $sel('seo_schema_type','LocalBusiness'); ?>>LocalBusiness</option>
                         <option value="Person"         <?php echo $sel('seo_schema_type','Person'); ?>>Person</option>
@@ -589,13 +589,13 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                     <input type="text" name="schema_address" class="form-control" placeholder="Musterstr. 1, 12345 Berlin" value="<?php echo $val('seo_schema_address'); ?>">
                 </div>
                 <div class="form-group">
-                    <label>Social Profile URLs <span class="form-text" style="display:inline">(kommagetrennt)</span></label>
+                    <label>Social Profile URLs <span class="form-hint" style="display:inline">(kommagetrennt)</span></label>
                     <textarea name="schema_social_profiles" class="form-control" rows="2"><?php echo $val('seo_schema_social_profiles'); ?></textarea>
                 </div>
         </div>
 
         <!-- JSON-LD & Breadcrumbs -->
-        <div class="admin-card">
+        <div class="card">
             <h3>🗂️ JSON-LD & Breadcrumbs</h3>
                 <div class="dw-toggle-row">
                     <div>
@@ -651,7 +651,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
     <input type="hidden" name="action"     value="save_seo_permalinks">
 
     <div class="seo-grid">
-        <div class="admin-card">
+        <div class="card">
             <h3>🔗 URL-Struktur</h3>
                 <?php
                 $presets = [
@@ -680,12 +680,12 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                 </label>
         </div>
 
-        <div class="admin-card">
+        <div class="card">
             <h3>📁 Kategorie & Tag Basis</h3>
                 <div class="form-group">
                     <label>Kategorie-Basis</label>
                     <input type="text" name="category_base" class="form-control" placeholder="category" value="<?php echo $val('setting_category_base'); ?>">
-                    <span class="form-text">Beispiel: <code>category</code> → /category/news/</span>
+                    <span class="form-hint">Beispiel: <code>category</code> → /category/news/</span>
                 </div>
                 <div class="form-group">
                     <label>Schlagwort-Basis</label>
@@ -727,7 +727,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
     <!-- ── Datei-Status & Sofortaktionen ───────────────────────────────────────── -->
     <div class="seo-grid" style="margin-bottom:1.5rem;">
 
-        <form method="post" action="<?php echo SITE_URL; ?>/admin/seo?tab=indexing" class="admin-card" style="margin:0;">
+        <form method="post" action="<?php echo SITE_URL; ?>/admin/seo?tab=indexing" class="card" style="margin:0;">
             <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
             <input type="hidden" name="action" value="generate_robots_txt">
             <h3>📄 robots.txt</h3>
@@ -753,7 +753,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
             <button type="submit" class="btn btn-primary" style="width:100%;">🔄 robots.txt jetzt generieren &amp; speichern</button>
         </form>
 
-        <form method="post" action="<?php echo SITE_URL; ?>/admin/seo?tab=indexing" class="admin-card" style="margin:0;">
+        <form method="post" action="<?php echo SITE_URL; ?>/admin/seo?tab=indexing" class="card" style="margin:0;">
             <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
             <input type="hidden" name="action" value="generate_sitemap">
             <h3>🗺️ sitemap.xml</h3>
@@ -789,19 +789,19 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
     <div class="seo-grid">
 
         <!-- Crawler & robots.txt Inhalt -->
-        <div class="admin-card">
+        <div class="card">
             <h3>🤖 Crawler-Steuerung &amp; robots.txt</h3>
             <div class="form-group">
                 <label class="form-label">Suchmaschinen-Sichtbarkeit</label>
-                <select name="robots_index" class="form-control">
+                <select name="robots_index" class="form-select">
                     <option value="index"   <?php echo $sel('seo_robots_index','index'); ?>>Indexieren erlauben (index)</option>
                     <option value="noindex" <?php echo $sel('seo_robots_index','noindex'); ?>>Suchmaschinen abhalten (noindex)</option>
                 </select>
-                <small class="form-text">Setzt global <code>meta name="robots"</code> auf allen Seiten.</small>
+                <small class="form-hint">Setzt global <code>meta name="robots"</code> auf allen Seiten.</small>
             </div>
             <div class="form-group">
                 <label class="form-label">Link-Verfolgung</label>
-                <select name="robots_follow" class="form-control">
+                <select name="robots_follow" class="form-select">
                     <option value="follow"   <?php echo $sel('seo_robots_follow','follow'); ?>>Links folgen (follow)</option>
                     <option value="nofollow" <?php echo $sel('seo_robots_follow','nofollow'); ?>>Links ignorieren (nofollow)</option>
                 </select>
@@ -810,7 +810,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                 <label class="form-label">robots.txt Inhalt</label>
                 <textarea name="robots_txt_content" class="form-control" rows="8"
                           style="font-family:'Courier New',monospace;font-size:.83rem;line-height:1.6;"><?php echo $val('seo_robots_txt_content'); ?></textarea>
-                <small class="form-text">
+                <small class="form-hint">
                     Inhalt bearbeiten und <strong>speichern</strong>. Dann oben <strong>„robots.txt jetzt generieren"</strong>
                     klicken, um die physische Datei <code>/robots.txt</code> zu erzeugen.
                 </small>
@@ -818,7 +818,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
         </div>
 
         <!-- XML-Sitemap Einstellungen -->
-        <div class="admin-card">
+        <div class="card">
             <h3>🗺️ XML-Sitemap Einstellungen</h3>
             <div class="dw-toggle-row">
                 <div>
@@ -852,16 +852,16 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
             </div>
             <div class="form-group" style="margin-top:1rem;">
                 <label class="form-label">Standard-Priorität</label>
-                <select name="sitemap_default_priority" class="form-control">
+                <select name="sitemap_default_priority" class="form-select">
                     <?php foreach (['1.0','0.9','0.8','0.7','0.6','0.5','0.4','0.3','0.2','0.1'] as $p): ?>
                     <option value="<?php echo $p; ?>" <?php echo $sel('seo_sitemap_default_priority',$p); ?>><?php echo $p; ?></option>
                     <?php endforeach; ?>
                 </select>
-                <small class="form-text">0.7 = Standard für reguläre Seiten.</small>
+                <small class="form-hint">0.7 = Standard für reguläre Seiten.</small>
             </div>
             <div class="form-group">
                 <label class="form-label">Änderungsfrequenz</label>
-                <select name="sitemap_change_freq" class="form-control">
+                <select name="sitemap_change_freq" class="form-select">
                     <?php foreach (['always','hourly','daily','weekly','monthly','yearly','never'] as $f): ?>
                     <option value="<?php echo $f; ?>" <?php echo $sel('seo_sitemap_change_freq',$f); ?>><?php echo ucfirst($f); ?></option>
                     <?php endforeach; ?>
@@ -870,7 +870,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
         </div>
 
         <!-- IndexNow -->
-        <div class="admin-card">
+        <div class="card">
             <h3>⚡ IndexNow</h3>
             <p class="dw-card-sub">Benachrichtigt Bing &amp; Yandex sofort bei neuen/geänderten Inhalten</p>
             <div class="dw-toggle-row">
@@ -892,7 +892,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                     <button type="button" class="btn btn-secondary btn-sm" style="white-space:nowrap;flex-shrink:0;"
                             onclick="document.querySelector('[name=indexnow_key]').value=Math.random().toString(36).substring(2,34)">🔄 Generieren</button>
                 </div>
-                <small class="form-text">Wird als <code>/{key}.txt</code> im Root-Verzeichnis hinterlegt.</small>
+                <small class="form-hint">Wird als <code>/{key}.txt</code> im Root-Verzeichnis hinterlegt.</small>
             </div>
             <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap;">
                 <a href="https://www.indexnow.org/de_de/documentation" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">📖 Dokumentation</a>
@@ -901,7 +901,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
         </div>
 
         <!-- Site Verification -->
-        <div class="admin-card">
+        <div class="card">
             <h3>✅ Site Verification</h3>
             <p class="dw-card-sub">Eigentümer-Verifizierung für Suchmaschinen-Webmaster-Tools</p>
             <div class="form-group">
@@ -909,7 +909,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                 <input type="text" name="google_site_verification" class="form-control"
                        placeholder="Nur den content-Wert des Meta-Tags"
                        value="<?php echo $val('seo_google_site_verification'); ?>">
-                <small class="form-text">Nur den <code>content</code>-Wert, nicht das gesamte Meta-Tag.</small>
+                <small class="form-hint">Nur den <code>content</code>-Wert, nicht das gesamte Meta-Tag.</small>
             </div>
             <div class="form-group">
                 <label class="form-label">🔵 Bing Webmaster Tools</label>
@@ -952,7 +952,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
     <div class="seo-grid">
 
         <!-- ─── Matomo ──────────────────────────────────────────────────────── -->
-        <div class="admin-card">
+        <div class="card">
             <div class="dw-card-header">
                 <h3>🔵 Matomo / Piwik</h3>
                 <label class="dw-toggle" style="margin-left:auto;">
@@ -970,7 +970,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                     <input type="url" name="matomo_url" class="form-control"
                            placeholder="https://analytics.deinedomain.de/"
                            value="<?php echo htmlspecialchars($s['seo_analytics_matomo_url'] ?? ''); ?>">
-                    <small class="form-text">URL deiner Matomo-Instanz (mit trailing Slash)</small>
+                    <small class="form-hint">URL deiner Matomo-Instanz (mit trailing Slash)</small>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Site ID <span style="color:#ef4444;">*</span></label>
@@ -978,7 +978,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                            placeholder="1"
                            value="<?php echo htmlspecialchars($s['seo_analytics_matomo_site_id'] ?? '1'); ?>"
                            style="max-width:120px;">
-                    <small class="form-text">Die ID der Website in Matomo (zu finden unter Verwaltung → Websites)</small>
+                    <small class="form-hint">Die ID der Website in Matomo (zu finden unter Verwaltung → Websites)</small>
                 </div>
                 <div class="form-group">
                     <label class="form-label">
@@ -989,7 +989,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                               rows="6"
                               placeholder="<!-- Eigener Matomo-Code hier einfügen (überschreibt Auto-Code oben) -->"
                               style="font-family:'Courier New',monospace;font-size:.8rem;"><?php echo htmlspecialchars($s['seo_analytics_matomo_code'] ?? ''); ?></textarea>
-                    <small class="form-text">
+                    <small class="form-hint">
                         Leer lassen = Code wird automatisch aus URL + Site-ID generiert.
                         Eigener Code wird 1:1 im <code>&lt;head&gt;</code> ausgegeben.
                     </small>
@@ -1010,7 +1010,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
         </div>
 
         <!-- ─── Google Analytics 4 ─────────────────────────────────────────── -->
-        <div class="admin-card">
+        <div class="card">
             <div class="dw-card-header">
                 <h3>🔴 Google Analytics 4 (GA4)</h3>
                 <label class="dw-toggle" style="margin-left:auto;">
@@ -1028,7 +1028,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                     <input type="text" name="ga4_id" class="form-control"
                            placeholder="G-XXXXXXXXXX"
                            value="<?php echo htmlspecialchars($s['seo_analytics_ga4_id'] ?? ''); ?>">
-                    <small class="form-text">Format: <code>G-XXXXXXXXXX</code> – zu finden in Google Analytics → Verwaltung → Datenstreams</small>
+                    <small class="form-hint">Format: <code>G-XXXXXXXXXX</code> – zu finden in Google Analytics → Verwaltung → Datenstreams</small>
                 </div>
                 <?php if (!empty($s['seo_analytics_ga4_id'])): ?>
                 <div style="margin-top:.75rem;">
@@ -1042,7 +1042,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
         </div>
 
         <!-- ─── Google Tag Manager ─────────────────────────────────────────── -->
-        <div class="admin-card">
+        <div class="card">
             <div class="dw-card-header">
                 <h3>🟠 Google Tag Manager (GTM)</h3>
                 <label class="dw-toggle" style="margin-left:auto;">
@@ -1060,7 +1060,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                     <input type="text" name="gtm_id" class="form-control"
                            placeholder="GTM-XXXXXXX"
                            value="<?php echo htmlspecialchars($s['seo_analytics_gtm_id'] ?? ''); ?>">
-                    <small class="form-text">Format: <code>GTM-XXXXXXX</code> – im GTM unter Container-Einstellungen</small>
+                    <small class="form-hint">Format: <code>GTM-XXXXXXX</code> – im GTM unter Container-Einstellungen</small>
                 </div>
                 <?php if (!empty($s['seo_analytics_gtm_id'])): ?>
                 <div style="margin-top:.75rem;">
@@ -1074,7 +1074,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
         </div>
 
         <!-- ─── Facebook / Meta Pixel ─────────────────────────────────────── -->
-        <div class="admin-card">
+        <div class="card">
             <div class="dw-card-header">
                 <h3>🟣 Facebook / Meta Pixel</h3>
                 <label class="dw-toggle" style="margin-left:auto;">
@@ -1092,7 +1092,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                     <input type="text" name="fb_pixel_id" class="form-control"
                            placeholder="123456789012345"
                            value="<?php echo htmlspecialchars($s['seo_analytics_fb_pixel_id'] ?? ''); ?>">
-                    <small class="form-text">Die numerische Pixel-ID aus dem Meta Events Manager</small>
+                    <small class="form-hint">Die numerische Pixel-ID aus dem Meta Events Manager</small>
                 </div>
                 <?php if (!empty($s['seo_analytics_fb_pixel_id'])): ?>
                 <div style="margin-top:.75rem;">
@@ -1106,7 +1106,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
         </div>
 
         <!-- ─── Eigener Code (Head & Body) ────────────────────────────────── -->
-        <div class="admin-card" style="grid-column: 1 / -1;">
+        <div class="card" style="grid-column: 1 / -1;">
             <h3>✏️ Eigener Analytics-Code</h3>
             <p class="dw-card-sub">Hier kann beliebiger Tracking-Code (z. B. Piwik PRO, Plausible, Fathom, TikTok Pixel) eingebunden werden</p>
 
@@ -1117,7 +1117,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                               rows="8"
                               placeholder="<!-- Tracking-Code für den Head hier einfügen -->"
                               style="font-family:'Courier New',monospace;font-size:.8rem;"><?php echo htmlspecialchars($s['seo_analytics_custom_head'] ?? ''); ?></textarea>
-                    <small class="form-text">Wird direkt vor <code>&lt;/head&gt;</code> ausgegeben</small>
+                    <small class="form-hint">Wird direkt vor <code>&lt;/head&gt;</code> ausgegeben</small>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Code nach <code>&lt;body&gt;</code>-Tag einbinden</label>
@@ -1125,13 +1125,13 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
                               rows="8"
                               placeholder="<!-- Code direkt nach <body> öffnendem Tag -->"
                               style="font-family:'Courier New',monospace;font-size:.8rem;"><?php echo htmlspecialchars($s['seo_analytics_custom_body'] ?? ''); ?></textarea>
-                    <small class="form-text">Wird direkt nach dem öffnenden <code>&lt;body&gt;</code>-Tag ausgegeben (nützlich z. B. für GTM noscript)</small>
+                    <small class="form-hint">Wird direkt nach dem öffnenden <code>&lt;body&gt;</code>-Tag ausgegeben (nützlich z. B. für GTM noscript)</small>
                 </div>
             </div>
         </div>
 
         <!-- ─── Datenschutz & Optionen ────────────────────────────────────── -->
-        <div class="admin-card">
+        <div class="card">
             <h3>🔒 Datenschutz & Optionen</h3>
             <p class="dw-card-sub">Diese Einstellungen gelten für alle aktivierten Analytics-Tools</p>
 
@@ -1168,7 +1168,7 @@ renderAdminLayoutStart('SEO Dashboard', 'seo' . ($activeTab !== 'general' ? '-' 
         </div>
 
         <!-- ─── Status-Übersicht ─────────────────────────────────────────── -->
-        <div class="admin-card">
+        <div class="card">
             <h3>📋 Aktive Dienste – Übersicht</h3>
             <p class="dw-card-sub">Aktuell eingebundene Tracking-Dienste</p>
 

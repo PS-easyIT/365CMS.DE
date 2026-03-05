@@ -80,27 +80,17 @@ $currentPage = 'analytics';
 require_once __DIR__ . '/partials/admin-menu.php';
 ?>
 <?php renderAdminLayoutStart('Analytics', $currentPage); ?>
-        <div class="admin-page-header">
-            <div>
-                <?php 
-                    $pageTitle = '📊 Analytics & Monitoring';
-                    $pageSub = 'Besucher-Statistiken und Traffic-Analyse';
-                    
-                    if ($activeTab === '404-monitor') {
-                        $pageTitle = '🚫 404 Monitor';
-                        $pageSub = 'Fehlerhafte Aufrufe und fehlende Seiten';
-                    } elseif ($activeTab === 'seo-analyzer') {
-                        $pageTitle = '📑 SEO Analyse';
-                        $pageSub = 'Technische Prüfung und Optimierung';
-                    }
-                ?>
-                <h2><?php echo htmlspecialchars($pageTitle); ?></h2>
-                <p><?php echo htmlspecialchars($pageSub); ?></p>
-            </div>
-            <div class="header-actions">
-                <a href="?tab=overview" class="btn <?php echo $activeTab === 'overview' ? 'btn-primary' : 'btn-secondary'; ?>">Übersicht</a>
-                <a href="?tab=pages" class="btn <?php echo $activeTab === 'pages' ? 'btn-primary' : 'btn-secondary'; ?>">Seiten</a>
-                <a href="?tab=visitors" class="btn <?php echo $activeTab === 'visitors' ? 'btn-primary' : 'btn-secondary'; ?>">Besucher</a>
+                <div class="page-header d-print-none mb-3">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <div class="page-pretitle"><?php echo htmlspecialchars($pageSub); ?></div>
+                    <h2 class="page-title"><?php echo htmlspecialchars($pageTitle); ?></h2>
+                </div>
+                <div class="col-auto ms-auto d-print-none">
+                    <a href="?tab=overview" class="btn <?php echo $activeTab === 'overview' ? 'btn-primary' : 'btn-secondary'; ?>">Übersicht</a>
+                    <a href="?tab=pages" class="btn <?php echo $activeTab === 'pages' ? 'btn-primary' : 'btn-secondary'; ?>">Seiten</a>
+                    <a href="?tab=visitors" class="btn <?php echo $activeTab === 'visitors' ? 'btn-primary' : 'btn-secondary'; ?>">Besucher</a>
+                </div>
             </div>
         </div>
         
@@ -133,7 +123,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 </div>
 
                 <!-- CSS Only Chart -->
-                <div class="admin-card">
+                <div class="card">
                     <h3 style="margin-bottom: 1.5rem;">📈 Besucher-Verlauf (Letzte 30 Tage)</h3>
                     <div style="display: flex; align-items: flex-end; justify-content: space-between; height: 300px; gap: 4px; padding-bottom: 2rem;">
                         <?php 
@@ -502,7 +492,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     </div>
                 </div>
 
-                <div class="admin-card">
+                <div class="card">
                     <h3>Prüfbericht</h3>
                     <div class="page-list">
                         <?php foreach ($checks as $check): ?>

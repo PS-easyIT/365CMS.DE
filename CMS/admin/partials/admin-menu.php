@@ -1,6 +1,6 @@
 ﻿<?php
 /**
- * Admin Menu – Grouped Navigation
+ * Admin Menu – Grouped Navigation (Tabler UI)
  *
  * @package CMSv2\Admin
  */
@@ -8,6 +8,8 @@
 if (!defined('ABSPATH')) {
     exit;
 }
+
+require_once __DIR__ . '/tabler-icons.php';
 
 /**
  * Ermittelt, ob eine Nav-URL die aktuelle Seite ist.
@@ -61,7 +63,7 @@ function getAdminMenuItems(string $currentPage = ''): array
             'type'   => 'item',
             'slug'   => 'dashboard',
             'label'  => 'Dashboard',
-            'icon'   => '📊',
+            'icon'   => 'layout-dashboard',
             'url'    => '/admin',
             'active' => _adminNavIsActive('/admin') || $currentPage === 'dashboard',
         ],
@@ -73,12 +75,12 @@ function getAdminMenuItems(string $currentPage = ''): array
         [
             'type'     => 'group',
             'label'    => 'Landing Page',
-            'icon'     => '🏠',
+            'icon'     => 'home',
             'children' => [
                 [
                     'slug'   => 'landing-header',
                     'label'  => 'Header',
-                    'icon'   => '🔝',
+                    'icon'   => 'arrow-bar-up',
                     'url'    => '/admin/landing-page?section=header',
                     'active' => _adminNavIsActive('/admin/landing-page?section=header')
                               || (_adminNavIsActive('/admin/landing-page') && empty($_GET['section'])),
@@ -86,35 +88,35 @@ function getAdminMenuItems(string $currentPage = ''): array
                 [
                     'slug'   => 'landing-content',
                     'label'  => 'Content',
-                    'icon'   => '📋',
+                    'icon'   => 'file-text',
                     'url'    => '/admin/landing-page?section=content',
                     'active' => _adminNavIsActive('/admin/landing-page?section=content'),
                 ],
                 [
                     'slug'   => 'landing-footer',
                     'label'  => 'Footer',
-                    'icon'   => '🔚',
+                    'icon'   => 'arrow-bar-down',
                     'url'    => '/admin/landing-page?section=footer',
                     'active' => _adminNavIsActive('/admin/landing-page?section=footer'),
                 ],
                 [
                     'slug'   => 'landing-design',
                     'label'  => 'Design',
-                    'icon'   => '🎨',
+                    'icon'   => 'palette',
                     'url'    => '/admin/landing-page?section=design',
                     'active' => _adminNavIsActive('/admin/landing-page?section=design'),
                 ],
                 [
                     'slug'   => 'landing-plugins',
                     'label'  => 'Plugins',
-                    'icon'   => '🔌',
+                    'icon'   => 'plug',
                     'url'    => '/admin/landing-page?section=plugins',
                     'active' => _adminNavIsActive('/admin/landing-page?section=plugins'),
                 ],
                 [
                     'slug'   => 'landing-settings',
                     'label'  => 'Einstellungen',
-                    'icon'   => '⚙️',
+                    'icon'   => 'settings',
                     'url'    => '/admin/landing-page?section=settings',
                     'active' => _adminNavIsActive('/admin/landing-page?section=settings'),
                 ],
@@ -125,19 +127,19 @@ function getAdminMenuItems(string $currentPage = ''): array
         [
             'type'     => 'group',
             'label'    => 'Seiten & Beiträge',
-            'icon'     => '📄',
+            'icon'     => 'files',
             'children' => [
                 [
                     'slug'   => 'pages',
                     'label'  => 'Seiten',
-                    'icon'   => '📄',
+                    'icon'   => 'file',
                     'url'    => '/admin/pages',
                     'active' => _adminNavIsActive('/admin/pages') || $currentPage === 'pages',
                 ],
                 [
                     'slug'   => 'posts',
                     'label'  => 'Beiträge',
-                    'icon'   => '✏️',
+                    'icon'   => 'article',
                     'url'    => '/admin/posts',
                     'active' => _adminNavIsActive('/admin/posts') || $currentPage === 'posts',
                 ],
@@ -148,33 +150,33 @@ function getAdminMenuItems(string $currentPage = ''): array
         [
             'type'     => 'group',
             'label'    => 'Medienverwaltung',
-            'icon'     => '📷',
+            'icon'     => 'photo',
             'children' => [
                 [
                     'slug'   => 'media-library',
                     'label'  => 'Medien',
-                    'icon'   => '🖼️',
+                    'icon'   => 'photo',
                     'url'    => '/admin/media',
                     'active' => _adminNavIsActive('/admin/media') && empty($_GET['tab']),
                 ],
                 [
                     'slug'   => 'media-categories',
                     'label'  => 'Kategorien',
-                    'icon'   => '🏷️',
+                    'icon'   => 'tag',
                     'url'    => '/admin/media?tab=categories',
                     'active' => _adminNavIsActive('/admin/media?tab=categories'),
                 ],
                 [
                     'slug'   => 'site-tables',
                     'label'  => 'Site Tables',
-                    'icon'   => '📊',
+                    'icon'   => 'table',
                     'url'    => '/admin/site-tables',
                     'active' => _adminNavIsActive('/admin/site-tables'),
                 ],
                 [
                     'slug'   => 'media-settings',
                     'label'  => 'Einstellungen',
-                    'icon'   => '⚙️',
+                    'icon'   => 'settings',
                     'url'    => '/admin/media?tab=settings',
                     'active' => _adminNavIsActive('/admin/media?tab=settings'),
                 ],
@@ -185,26 +187,26 @@ function getAdminMenuItems(string $currentPage = ''): array
         [
             'type'     => 'group',
             'label'    => 'Benutzer & Gruppen',
-            'icon'     => '👥',
+            'icon'     => 'users',
             'children' => [
                 [
                     'slug'   => 'users',
                     'label'  => 'Benutzer',
-                    'icon'   => '👤',
+                    'icon'   => 'user',
                     'url'    => '/admin/users',
                     'active' => _adminNavIsActive('/admin/users') || $currentPage === 'users',
                 ],
                 [
                     'slug'   => 'groups',
                     'label'  => 'Gruppen',
-                    'icon'   => '🫂',
+                    'icon'   => 'users-group',
                     'url'    => '/admin/groups',
                     'active' => (_adminNavIsActive('/admin/groups') && ($_GET['tab'] ?? '') !== 'roles') || $currentPage === 'groups',
                 ],
                 [
                     'slug'   => 'roles',
                     'label'  => 'Rollen & Rechte',
-                    'icon'   => '🔑',
+                    'icon'   => 'shield-lock',
                     'url'    => '/admin/rbac',
                     'active' => _adminNavIsActive('/admin/rbac') || $currentPage === 'rbac',
                 ],
@@ -215,26 +217,26 @@ function getAdminMenuItems(string $currentPage = ''): array
         [
             'type'     => 'group',
             'label'    => 'Aboverwaltung',
-            'icon'     => '💳',
+            'icon'     => 'credit-card',
             'children' => [
                 [
                     'slug'   => 'orders',
                     'label'  => 'Bestellungen',
-                    'icon'   => '🛒',
+                    'icon'   => 'shopping-cart',
                     'url'    => '/admin/orders',
                     'active' => _adminNavIsActive('/admin/orders') || ($currentPage === 'orders'),
                 ],
                 [
                     'slug'   => 'subscriptions',
                     'label'  => 'Pakete',
-                    'icon'   => '📦',
+                    'icon'   => 'package',
                     'url'    => '/admin/subscriptions',
                     'active' => (_adminNavIsActive('/admin/subscriptions') && empty($_GET['tab'])) || $currentPage === 'subscriptions',
                 ],
                 [
                     'slug'   => 'subscriptions-overview',
                     'label'  => 'Übersicht',
-                    'icon'   => '📋',
+                    'icon'   => 'clipboard-list',
                     'url'    => '/admin/subscriptions?tab=overview',
                     'active' => (rtrim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/') === '/admin/subscriptions'
                                  && ($_GET['tab'] ?? '') === 'overview') || $currentPage === 'subscriptions-overview',
@@ -242,7 +244,7 @@ function getAdminMenuItems(string $currentPage = ''): array
                 [
                     'slug'   => 'subscriptions-assignments',
                     'label'  => 'Zuweisungen',
-                    'icon'   => '🔗',
+                    'icon'   => 'link',
                     'url'    => '/admin/subscriptions?tab=assignments',
                     'active' => (rtrim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/') === '/admin/subscriptions'
                                  && in_array($_GET['tab'] ?? '', ['assignments', 'group-assignments'])) || $currentPage === 'subscriptions-assignments',
@@ -250,7 +252,7 @@ function getAdminMenuItems(string $currentPage = ''): array
                 [
                     'slug'   => 'subscriptions-settings',
                     'label'  => 'Einstellungen',
-                    'icon'   => '⚙️',
+                    'icon'   => 'settings',
                     'url'    => '/admin/subscriptions?tab=settings',
                     'active' => (rtrim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/') === '/admin/subscriptions'
                                  && in_array($_GET['tab'] ?? '', ['settings', 'payments'])) || $currentPage === 'subscriptions-settings',
@@ -262,47 +264,47 @@ function getAdminMenuItems(string $currentPage = ''): array
         [
             'type'     => 'group',
             'label'    => 'Themes & Design',
-            'icon'     => '🎨',
+            'icon'     => 'brush',
             'children' => [
                 [
                     'slug'   => 'themes',
                     'label'  => 'Themes',
-                    'icon'   => '🖼️',
+                    'icon'   => 'palette',
                     'url'    => '/admin/themes',
                     'active' => (_adminNavIsActive('/admin/themes') && empty($_GET['tab'])) || $currentPage === 'themes',
                 ],
                 [
                     'slug'   => 'theme-customizer',
                     'label'  => 'Design Editor',
-                    'icon'   => '🎨',
+                    'icon'   => 'adjustments',
                     'url'    => '/admin/theme-customizer',
                     'active' => _adminNavIsActive('/admin/theme-customizer') || $currentPage === 'theme-customizer',
                 ],
                 [
                     'slug'   => 'menus',
                     'label'  => 'Menü Editor',
-                    'icon'   => '🗂️',
+                    'icon'   => 'menu-2',
                     'url'    => '/admin/menus',
                     'active' => _adminNavIsActive('/admin/menus') || $currentPage === 'menus',
                 ],
                 [
                     'slug'   => 'table-of-contents',
                     'label'  => 'Table of Contents',
-                    'icon'   => '📑',
+                    'icon'   => 'list-tree',
                     'url'    => '/admin/table-of-contents',
                     'active' => _adminNavIsActive('/admin/table-of-contents') || $currentPage === 'table-of-contents',
                 ],
                 [
                     'slug'   => 'theme-marketplace',
                     'label'  => 'Marketplace',
-                    'icon'   => '🏪',
+                    'icon'   => 'building-store',
                     'url'    => '/admin/theme-marketplace',
                     'active' => _adminNavIsActive('/admin/theme-marketplace') || $currentPage === 'theme-marketplace',
                 ],
                 [
                     'slug'   => 'theme-settings',
                     'label'  => 'Einstellungen',
-                    'icon'   => '⚙️',
+                    'icon'   => 'settings',
                     'url'    => '/admin/theme-settings',
                     'active' => _adminNavIsActive('/admin/theme-settings') || $currentPage === 'theme-settings',
                 ],
@@ -313,34 +315,34 @@ function getAdminMenuItems(string $currentPage = ''): array
         [
             'type'     => 'group',
             'label'    => 'Member Dashboard',
-            'icon'     => '🧩',
+            'icon'     => 'layout-grid',
             // Plugins können via cms_member_dashboard_items ihre Menüpunkte hier einhängen
             'children' => \CMS\Hooks::applyFilters('cms_member_dashboard_items', [
                 [
                     'slug'   => 'dashboard-plugins',
                     'label'  => 'Plugins',
-                    'icon'   => '🔌',
+                    'icon'   => 'plug',
                     'url'    => '/admin/member-dashboard?tab=plugins',
                     'active' => _adminNavIsActive('/admin/member-dashboard?tab=plugins') || $currentPage === 'dashboard-plugins',
                 ],
                 [
                     'slug'   => 'dashboard-widgets',
                     'label'  => 'Widgets',
-                    'icon'   => '📌',
+                    'icon'   => 'pinned',
                     'url'    => '/admin/member-dashboard?tab=widgets',
                     'active' => (_adminNavIsActive('/admin/member-dashboard') && empty($_GET['tab'])) || _adminNavIsActive('/admin/member-dashboard?tab=widgets') || $currentPage === 'member-dashboard',
                 ],
                 [
                     'slug'   => 'dashboard-design',
                     'label'  => 'Design & Layout',
-                    'icon'   => '🎨',
+                    'icon'   => 'palette',
                     'url'    => '/admin/member-dashboard?tab=design',
                     'active' => _adminNavIsActive('/admin/member-dashboard?tab=design') || _adminNavIsActive('/admin/member-dashboard?tab=layout') || $currentPage === 'dashboard-design',
                 ],
                 [
                     'slug'   => 'dashboard-settings',
                     'label'  => 'Einstellungen',
-                    'icon'   => '⚙️',
+                    'icon'   => 'settings',
                     'url'    => '/admin/member-dashboard?tab=settings',
                     'active' => _adminNavIsActive('/admin/member-dashboard?tab=settings') || $currentPage === 'dashboard-settings',
                 ],
@@ -351,33 +353,33 @@ function getAdminMenuItems(string $currentPage = ''): array
         [
             'type'     => 'group',
             'label'    => 'SEO & Performance',
-            'icon'     => '📈',
+            'icon'     => 'chart-line',
             'children' => [
                 [
                     'slug'   => 'seo',
                     'label'  => 'SEO Dashboard',
-                    'icon'   => '🔍',
+                    'icon'   => 'search',
                     'url'    => '/admin/seo',
                     'active' => (_adminNavIsActive('/admin/seo') && empty($_GET['tab'])) || $currentPage === 'seo',
                 ],
                 [
                     'slug'   => 'seo-permalinks',
                     'label'  => 'Permalinks',
-                    'icon'   => '🔗',
+                    'icon'   => 'link',
                     'url'    => '/admin/seo?tab=permalinks',
                     'active' => _adminNavIsActive('/admin/seo?tab=permalinks'),
                 ],
                 [
                     'slug'   => 'seo-indexing',
                     'label'  => 'Indexierung',
-                    'icon'   => '📡',
+                    'icon'   => 'world',
                     'url'    => '/admin/seo?tab=indexing',
                     'active' => _adminNavIsActive('/admin/seo?tab=indexing'),
                 ],
                 [
                     'slug'   => 'performance',
                     'label'  => 'Performance',
-                    'icon'   => '⚡',
+                    'icon'   => 'bolt',
                     'url'    => '/admin/performance',
                     'active' => _adminNavIsActive('/admin/performance') || $currentPage === 'performance',
                 ],
@@ -388,26 +390,26 @@ function getAdminMenuItems(string $currentPage = ''): array
         [
             'type'     => 'group',
             'label'    => 'Analytics',
-            'icon'     => '📊',
+            'icon'     => 'chart-bar',
             'children' => [
                 [
                     'slug'   => 'analytics',
                     'label'  => 'Übersicht',
-                    'icon'   => '📉',
+                    'icon'   => 'chart-dots',
                     'url'    => '/admin/analytics',
                     'active' => (_adminNavIsActive('/admin/analytics') && empty($_GET['tab'])) || $currentPage === 'analytics',
                 ],
                  [
                     'slug'   => 'analytics-404',
                     'label'  => '404 Monitor',
-                    'icon'   => '🚫',
+                    'icon'   => 'ban',
                     'url'    => '/admin/analytics?tab=404-monitor',
                     'active' => _adminNavIsActive('/admin/analytics?tab=404-monitor'),
                 ],
                 [
                     'slug'   => 'analytics-seo',
                     'label'  => 'SEO Analyse',
-                    'icon'   => '📑',
+                    'icon'   => 'file-analytics',
                     'url'    => '/admin/analytics?tab=seo-analyzer',
                     'active' => _adminNavIsActive('/admin/analytics?tab=seo-analyzer'),
                 ],
@@ -418,61 +420,61 @@ function getAdminMenuItems(string $currentPage = ''): array
         [
             'type'     => 'group',
             'label'    => 'Recht & Sicherheit',
-            'icon'     => '⚖️',
+            'icon'     => 'scale',
             'children' => [
                 [
                     'slug'   => 'legal-sites',
                     'label'  => 'Legal Sites',
-                    'icon'   => '§',
+                    'icon'   => 'section',
                     'url'    => '/admin/legal-sites', 
                     'active' => _adminNavIsActive('/admin/legal-sites') || $currentPage === 'legal-sites',
                 ],
                 [
                     'slug'   => 'cookies',
                     'label'  => 'Cookie Managed',
-                    'icon'   => '🍪',
+                    'icon'   => 'cookie',
                     'url'    => '/admin/cookies',
                     'active' => _adminNavIsActive('/admin/cookies') || $currentPage === 'cookies',
                 ],
                 [
                     'slug'   => 'antispam',
                     'label'  => 'AntiSpam',
-                    'icon'   => '🛡️',
+                    'icon'   => 'shield',
                     'url'    => '/admin/antispam',
                     'active' => _adminNavIsActive('/admin/antispam') || $currentPage === 'antispam',
                 ],
                 [
                     'slug'   => 'fonts-local',
                     'label'  => 'Font Manager',
-                    'icon'   => '🔤',
+                    'icon'   => 'typography',
                     'url'    => '/admin/fonts-local',
                     'active' => _adminNavIsActive('/admin/fonts-local') || $currentPage === 'fonts-local',
                 ],
                 [
                     'slug'   => 'data-access',
                     'label'  => 'Recht auf Auskunft',
-                    'icon'   => '👤',
+                    'icon'   => 'user-search',
                     'url'    => '/admin/data-access',
                     'active' => _adminNavIsActive('/admin/data-access') || $currentPage === 'data-access',
                 ],
                 [
                     'slug'   => 'data-deletion',
                     'label'  => 'Löschanträge',
-                    'icon'   => '🗑️',
+                    'icon'   => 'trash',
                     'url'    => '/admin/data-deletion', 
                     'active' => _adminNavIsActive('/admin/data-deletion') || $currentPage === 'data-deletion',
                 ],
                 [
                     'slug'   => 'security-audit',
                     'label'  => 'Security Audit',
-                    'icon'   => '🛡️',
+                    'icon'   => 'shield-check',
                     'url'    => '/admin/security-audit',
                     'active' => (_adminNavIsActive('/admin/security-audit') && empty($_GET['tab'])) || $currentPage === 'security-audit',
                 ],
                 [
                     'slug'   => 'cms-firewall',
                     'label'  => 'Firewall',
-                    'icon'   => '🔥',
+                    'icon'   => 'flame',
                     'url'    => '/admin/cms-firewall',
                     'active' => _adminNavIsActive('/admin/cms-firewall') || $currentPage === 'cms-firewall',
                 ],
@@ -483,19 +485,19 @@ function getAdminMenuItems(string $currentPage = ''): array
         [
             'type'     => 'group',
             'label'    => 'Plugins',
-            'icon'     => '🔌',
+            'icon'     => 'puzzle',
             'children' => [
                 [
                     'slug'   => 'plugins',
                     'label'  => 'Verwalten',
-                    'icon'   => '🔌',
+                    'icon'   => 'plug',
                     'url'    => '/admin/plugins',
                     'active' => _adminNavIsActive('/admin/plugins') || $currentPage === 'plugins',
                 ],
                 [
                     'slug'   => 'plugin-marketplace',
                     'label'  => 'Marketplace',
-                    'icon'   => '🏪',
+                    'icon'   => 'building-store',
                     'url'    => '/admin/plugin-marketplace',
                     'active' => _adminNavIsActive('/admin/plugin-marketplace') || $currentPage === 'plugin-marketplace',
                 ],
@@ -506,40 +508,40 @@ function getAdminMenuItems(string $currentPage = ''): array
         [
             'type'     => 'group',
             'label'    => 'System & Einstellungen',
-            'icon'     => '⚙️',
+            'icon'     => 'settings',
             'children' => [
                 [
                     'slug'   => 'settings',
                     'label'  => 'Einstellungen',
-                    'icon'   => '⚙️',
+                    'icon'   => 'settings',
                     'url'    => '/admin/settings',
                     'active' => _adminNavIsActive('/admin/settings') || $currentPage === 'settings',
                 ],
                 [
                     'slug'   => 'updates',
                     'label'  => 'Updates',
-                    'icon'   => '🔄',
+                    'icon'   => 'refresh',
                     'url'    => '/admin/updates',
                     'active' => _adminNavIsActive('/admin/updates') || $currentPage === 'updates',
                 ],
                 [
                     'slug'   => 'backup',
                     'label'  => 'Backup & Restore',
-                    'icon'   => '💾',
+                    'icon'   => 'database',
                     'url'    => '/admin/backup',
                     'active' => _adminNavIsActive('/admin/backup') || $currentPage === 'backup',
                 ],
                 [
                     'slug'   => 'system',
                     'label'  => 'Info & Diagnose',
-                    'icon'   => '🩺',
+                    'icon'   => 'stethoscope',
                     'url'    => '/admin/system',
                     'active' => _adminNavIsActive('/admin/system') || $currentPage === 'system',
                 ],
                 [
                     'slug'   => 'support',
                     'label'  => 'Support & Docs',
-                    'icon'   => '📖',
+                    'icon'   => 'book',
                     'url'    => '/admin/support',
                     'active' => _adminNavIsActive('/admin/support') || $currentPage === 'support',
                 ],
@@ -585,7 +587,7 @@ function getAdminMenuItems(string $currentPage = ''): array
                         $children[] = [
                             'slug'   => $childSlug,
                             'label'  => $child['menu_title'],
-                            'icon'   => '🔹',
+                            'icon'   => 'circle-dot',
                             'url'    => $childUrl,
                             'active' => $isChildActive,
                         ];
@@ -595,7 +597,7 @@ function getAdminMenuItems(string $currentPage = ''): array
                 // If children exist, render as Group
                 if (!empty($children)) {
                     // Determine Icon
-                    $icon = '🧩';
+                    $icon = 'puzzle';
                     if (!empty($menu['icon_url'])) {
                         if (strpos($menu['icon_url'], 'dashicons') !== false) {
                             $icon = '<span class="dashicons ' . htmlspecialchars($menu['icon_url']) . '"></span>';
@@ -618,7 +620,7 @@ function getAdminMenuItems(string $currentPage = ''): array
                     $url = '/admin/plugins/' . $menuSlug . '/' . $menuSlug;
                     
                     // Determine Icon
-                    $icon = '🧩';
+                    $icon = 'puzzle';
                     if (!empty($menu['icon_url'])) {
                         if (strpos($menu['icon_url'], 'dashicons') !== false) {
                             $icon = '<span class="dashicons ' . htmlspecialchars($menu['icon_url']) . '"></span>';
@@ -714,7 +716,7 @@ function renderAdminSidebar(string $currentPage = ''): void
                             <li class="nav-item">
                                 <a class="nav-link<?= !empty($item['active']) ? ' active' : '' ?>"
                                    href="<?= htmlspecialchars($item['url']) ?>">
-                                    <span class="nav-link-icon"><?= $item['icon'] ?></span>
+                                    <span class="nav-link-icon"><?= tablerIcon($item['icon'], 20) ?></span>
                                     <span class="nav-link-title"><?= htmlspecialchars($item['label']) ?></span>
                                 </a>
                             </li>
@@ -745,20 +747,20 @@ function renderAdminSidebar(string $currentPage = ''): void
                                    data-bs-toggle="collapse"
                                    role="button"
                                    aria-expanded="<?= $groupOpen ? 'true' : 'false' ?>">
-                                    <span class="nav-link-icon"><?= $item['icon'] ?></span>
+                                    <span class="nav-link-icon"><?= tablerIcon($item['icon'], 20) ?></span>
                                     <span class="nav-link-title"><?= htmlspecialchars($item['label']) ?></span>
                                 </a>
                                 <div class="dropdown-menu<?= $groupOpen ? ' show collapse show' : ' collapse' ?>" id="<?= $groupId ?>">
                                     <?php foreach ($item['children'] as $child): ?>
                                         <?php if (($child['type'] ?? 'link') === 'section'): ?>
                                             <div class="nav-section-label">
-                                                <?php if (!empty($child['icon'])): ?><span class="nav-link-icon"><?= $child['icon'] ?></span><?php endif; ?>
+                                                <?php if (!empty($child['icon'])): ?><span class="nav-link-icon"><?= tablerIcon($child['icon'], 16) ?></span><?php endif; ?>
                                                 <?= htmlspecialchars($child['label']) ?>
                                             </div>
                                         <?php else: ?>
                                             <a class="dropdown-item<?= !empty($child['active']) ? ' active' : '' ?>"
                                                href="<?= htmlspecialchars($child['url']) ?>">
-                                                <span class="nav-link-icon"><?= $child['icon'] ?></span>
+                                                <span class="nav-link-icon"><?= tablerIcon($child['icon'], 16) ?></span>
                                                 <?= htmlspecialchars($child['label']) ?>
                                             </a>
                                         <?php endif; ?>
@@ -775,13 +777,13 @@ function renderAdminSidebar(string $currentPage = ''): void
                     <ul class="navbar-nav">
                         <li class="nav-item">
                             <a class="nav-link" href="<?= SITE_URL ?>">
-                                <span class="nav-link-icon">🏠</span>
+                                <span class="nav-link-icon"><?= tablerIcon('home', 18) ?></span>
                                 <span class="nav-link-title">Zur Website</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="<?= SITE_URL ?>/logout">
-                                <span class="nav-link-icon">🚪</span>
+                                <span class="nav-link-icon"><?= tablerIcon('logout', 18) ?></span>
                                 <span class="nav-link-title">Abmelden</span>
                             </a>
                         </li>

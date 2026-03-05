@@ -89,10 +89,12 @@ require_once __DIR__ . '/partials/admin-menu.php';
 renderAdminLayoutStart('Bestellungen', 'orders');
 ?>
 
-<div class="admin-page-header">
-    <div>
-        <h2>🧾 Bestellungen</h2>
-        <p><?php echo (int)$total; ?> Bestellung<?php echo $total != 1 ? 'en' : ''; ?> gesamt</p>
+<div class="page-header d-print-none mb-3">
+    <div class="row align-items-center">
+        <div class="col-auto">
+            <div class="page-pretitle"><?php echo (int)$total; ?> Bestellung<?php echo $total != 1 ? 'en' : ''; ?> gesamt</div>
+            <h2 class="page-title">🧾 Bestellungen</h2>
+        </div>
     </div>
 </div>
 
@@ -100,7 +102,7 @@ renderAdminLayoutStart('Bestellungen', 'orders');
     <div class="alert alert-success"><?php echo htmlspecialchars($message); ?></div>
 <?php endif; ?>
 <?php if ($error): ?>
-    <div class="alert alert-error"><?php echo htmlspecialchars($error); ?></div>
+    <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
 <?php endif; ?>
 
 <div class="users-table-container">

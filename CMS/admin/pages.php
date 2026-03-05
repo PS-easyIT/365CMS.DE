@@ -150,6 +150,9 @@ if ($pageActionError) {
 
 // Load admin menu
 require_once __DIR__ . '/partials/admin-menu.php';
+if ($action === 'new' || $action === 'edit') {
+    EditorService::getInstance();
+}
 renderAdminLayoutStart('Seiten', 'pages');
 ?>
 
@@ -452,12 +455,6 @@ else:
     </div>
 </div>
 
-<?php if ($action === 'new' || $action === 'edit'): ?>
-<link  rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/suneditor/css/suneditor.min.css">
-<script src="<?php echo SITE_URL; ?>/assets/suneditor/suneditor.min.js"></script>
-<script src="<?php echo SITE_URL; ?>/assets/suneditor/lang/de.js"></script>
-<?php endif; ?>
-
 <script>
 function slugify(text) {
     return text.toLowerCase()
@@ -505,18 +502,6 @@ function openDeletePageModal(id, isEditorView) {
     };
     _pageDelModal.show();
 }
-document.addEventListener('DOMContentLoaded', function() {
-    const pageForm = document.getElementById('pageEditorForm');
-    if (pageForm && typeof SUNEDITOR !== 'undefined') {
-        pageForm.addEventListener('submit', function() {
-            const ta = pageForm.querySelector('textarea[name="page_content"]');
-            if (ta && ta.id) {
-                const ed = SUNEDITOR.get(ta.id);
-                if (ed) ed.save();
-            }
-        });
-    }
-});
 </script>
 
 <?php renderAdminLayoutEnd(); ?>

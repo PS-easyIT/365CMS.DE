@@ -203,9 +203,13 @@ function st_sel(mixed $val, mixed $compare): void {
 }
 ?>
 <?php renderAdminLayoutStart('Site Tables', 'site-tables'); ?>
-    <div class="admin-page-header">
-        <h2>📊 Site Tables</h2>
-        <p>Tabellen erstellen, verwalten und per Shortcode oder Widget einbetten.</p>
+        <div class="page-header d-print-none mb-3">
+        <div class="row align-items-center">
+            <div class="col-auto">
+                <div class="page-pretitle">Tabellen erstellen, verwalten und per Shortcode oder Widget einbetten.</div>
+                <h2 class="page-title">📊 Site Tables</h2>
+            </div>
+        </div>
     </div>
 
     <?php if ($message): ?>
@@ -297,7 +301,7 @@ function st_sel(mixed $val, mixed $compare): void {
                 </div>
                 <div class="st-row">
                     <label>Standard Seitengröße</label>
-                    <select name="page_size" class="form-control" style="max-width:120px">
+                    <select name="page_size" class="form-select" style="max-width:120px">
                         <option value="5">5</option>
                         <option value="10" selected>10</option>
                         <option value="25">25</option>
@@ -307,7 +311,7 @@ function st_sel(mixed $val, mixed $compare): void {
                 </div>
                 <div class="st-row">
                     <label>Design-Theme</label>
-                    <select name="style_theme" class="form-control" style="max-width:200px">
+                    <select name="style_theme" class="form-select" style="max-width:200px">
                         <option value="default">Standard</option>
                         <option value="stripe">Gestreift</option>
                         <option value="hover">Hover-Highlight</option>
@@ -446,7 +450,7 @@ function st_sel(mixed $val, mixed $compare): void {
                     </div>
                     <div class="st-row">
                         <label>Seitengröße</label>
-                        <select name="page_size" class="form-control" style="max-width:120px">
+                        <select name="page_size" class="form-select" style="max-width:120px">
                             <?php foreach ([5,10,25,50,100] as $ps): ?>
                                 <option value="<?php echo $ps; ?>" <?php st_sel($ps, $ts['page_size']); ?>><?php echo $ps; ?></option>
                             <?php endforeach; ?>
@@ -468,7 +472,7 @@ function st_sel(mixed $val, mixed $compare): void {
                             <label style="font-weight:normal">Standard Spalte:
                                 <input type="number" name="default_sort_col" value="<?php echo (int)$ts['default_sort_col']; ?>" style="width:60px;padding:4px" min="0">
                             </label>
-                            <select name="default_sort_dir" class="form-control" style="max-width:120px">
+                            <select name="default_sort_dir" class="form-select" style="max-width:120px">
                                 <option value="asc" <?php st_sel('asc', $ts['default_sort_dir']); ?>>Aufsteigend</option>
                                 <option value="desc" <?php st_sel('desc', $ts['default_sort_dir']); ?>>Absteigend</option>
                             </select>
@@ -503,7 +507,7 @@ function st_sel(mixed $val, mixed $compare): void {
                     </div>
                     <div class="st-row">
                         <label>Style-Theme</label>
-                        <select name="style_theme" class="form-control" style="max-width:200px">
+                        <select name="style_theme" class="form-select" style="max-width:200px">
                             <option value="default" <?php st_sel('default', $ts['style_theme']); ?>>Standard</option>
                             <option value="stripe"  <?php st_sel('stripe',  $ts['style_theme']); ?>>Gestreift</option>
                             <option value="hover"   <?php st_sel('hover',   $ts['style_theme']); ?>>Hover-Highlight</option>

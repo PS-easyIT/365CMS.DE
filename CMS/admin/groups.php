@@ -287,7 +287,7 @@ renderAdminLayoutStart($_layoutTitle, $_layoutSlug);
 ?>
 
 <?php foreach ($messages as $m):
-    $cls = $m['type'] === 'success' ? 'alert-success' : 'alert-error';
+    $cls = $m['type'] === 'success' ? 'alert-success' : 'alert-danger';
 ?>
 <div class="alert <?php echo $cls; ?>"><?php echo htmlspecialchars($m['text'], ENT_QUOTES, 'UTF-8'); ?></div>
 <?php endforeach; ?>
@@ -318,19 +318,21 @@ if ($editGroupId > 0):
         [$editGroupId]
     );
 ?>
-<div class="admin-page-header">
-    <div>
-        <h2>📂 <?php echo htmlspecialchars($grp->name, ENT_QUOTES); ?></h2>
-    </div>
-    <div class="header-actions">
-        <a href="<?php echo SITE_URL; ?>/admin/groups?tab=groups" class="btn btn-secondary btn-sm">← Alle Gruppen</a>
+<div class="page-header d-print-none mb-3">
+    <div class="row align-items-center">
+        <div class="col-auto">
+            <h2 class="page-title">📂 <?php echo htmlspecialchars($grp->name, ENT_QUOTES); ?></h2>
+        </div>
+        <div class="col-auto ms-auto d-print-none">
+            <a href="<?php echo SITE_URL; ?>/admin/groups?tab=groups" class="btn btn-secondary btn-sm">← Alle Gruppen</a>
+        </div>
     </div>
 </div>
 
 <div style="display:grid;grid-template-columns:3fr 1fr;gap:1.5rem;align-items:start;">
     <div class="grid-main">
         <!-- Gruppe bearbeiten -->
-        <div class="admin-card">
+        <div class="card">
             <h3>✏️ Gruppe bearbeiten</h3>
             <form method="post" action="<?php echo SITE_URL; ?>/admin/groups?tab=groups&view=detail&id=<?php echo $editGroupId; ?>">
                 <input type="hidden" name="_csrf"    value="<?php echo $csrfGroup; ?>">
@@ -351,7 +353,7 @@ if ($editGroupId > 0):
                     </div>
                     <div class="form-group" style="grid-column:1/-1;">
                         <label class="form-label">Vererbte Rolle <span style="font-weight:400;color:#94a3b8;">(optional)</span></label>
-                        <select name="role_id" class="form-control">
+                        <select name="role_id" class="form-select">
                             <option value="">– Keine Rolle –</option>
                             <?php foreach ($roles as $r): ?>
                             <option value="<?php echo (int)$r->id; ?>" <?php echo ((int)($grp->role_id ?? 0) === (int)$r->id) ? 'selected' : ''; ?>>
@@ -359,7 +361,7 @@ if ($editGroupId > 0):
                             </option>
                             <?php endforeach; ?>
                         </select>
-                        <small class="form-text">Mitglieder dieser Gruppe erben diese Rolle automatisch.</small>
+                        <small class="form-hint">Mitglieder dieser Gruppe erben diese Rolle automatisch.</small>
                     </div>
                     <div class="form-group">
                         <label style="cursor:pointer;display:flex;align-items:center;gap:.4rem;margin-top:1.4rem;">
@@ -372,7 +374,7 @@ if ($editGroupId > 0):
         </div>
 
         <!-- Mitglieder -->
-        <div class="admin-card">
+        <div class="card">
             <h3>👥 Mitglieder (<?php echo count($members); ?>)</h3>
             <?php if (empty($members)): ?>
             <p style="color:#94a3b8;font-size:.875rem;">Noch keine Mitglieder in dieser Gruppe.</p>
@@ -417,7 +419,7 @@ if ($editGroupId > 0):
                     <input type="hidden" name="_csrf"    value="<?php echo $csrfGroup; ?>">
                     <input type="hidden" name="_action"  value="add_member">
                     <input type="hidden" name="group_id" value="<?php echo $editGroupId; ?>">
-                    <select name="user_id" class="form-control" style="flex:1;min-width:200px;">
+                    <select name="user_id" class="form-select" style="flex:1;min-width:200px;">
                         <option value="">Benutzer wählen…</option>
                         <?php foreach ($nonMembers as $nm): ?>
                         <option value="<?php echo (int)$nm->id; ?>">
@@ -436,7 +438,7 @@ if ($editGroupId > 0):
     </div>
 
     <div class="grid-side">
-        <div class="admin-card">
+        <div class="card">
             <h3>ℹ️ Info</h3>
             <div style="font-size:.8rem;display:flex;flex-direction:column;gap:.25rem;color:#64748b;">
                 <span>ID: #<?php echo (int)$grp->id; ?></span>
@@ -517,12 +519,14 @@ function openMemberRemoveModal(formId, username) {
 
 <?php elseif ($viewMode === 'new'): // Neue Gruppe anlegen ?>
 
-<div class="admin-page-header">
-    <div>
-        <h2>➕ Neue Gruppe anlegen</h2>
-    </div>
-    <div class="header-actions">
-        <a href="<?php echo SITE_URL; ?>/admin/groups?tab=groups" class="btn btn-secondary btn-sm">← Alle Gruppen</a>
+<div class="page-header d-print-none mb-3">
+    <div class="row align-items-center">
+        <div class="col-auto">
+            <h2 class="page-title">➕ Neue Gruppe anlegen</h2>
+        </div>
+        <div class="col-auto ms-auto d-print-none">
+            <a href="<?php echo SITE_URL; ?>/admin/groups?tab=groups" class="btn btn-secondary btn-sm">← Alle Gruppen</a>
+        </div>
     </div>
 </div>
 
@@ -532,7 +536,7 @@ function openMemberRemoveModal(formId, username) {
 
     <div style="display:grid;grid-template-columns:3fr 1fr;gap:1.5rem;align-items:start;">
         <div class="grid-main">
-            <div class="admin-card">
+            <div class="card">
                 <h3>📂 Gruppendetails</h3>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
                     <div class="form-group">
@@ -551,11 +555,11 @@ function openMemberRemoveModal(formId, username) {
                     <div class="form-group">
                         <label>Plan-ID <span style="font-weight:400;color:#94a3b8;">(optional)</span></label>
                         <input type="number" name="plan_id" class="form-control" placeholder="0" min="0">
-                        <small class="form-text">Verknüpft diese Gruppe mit einem Abo-Paket.</small>
+                        <small class="form-hint">Verknüpft diese Gruppe mit einem Abo-Paket.</small>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Vererbte Rolle <span style="font-weight:400;color:#94a3b8;">(optional)</span></label>
-                        <select name="role_id" class="form-control">
+                        <select name="role_id" class="form-select">
                             <option value="">– Keine Rolle –</option>
                             <?php foreach ($roles as $r): ?>
                             <option value="<?php echo (int)$r->id; ?>">
@@ -563,20 +567,20 @@ function openMemberRemoveModal(formId, username) {
                             </option>
                             <?php endforeach; ?>
                         </select>
-                        <small class="form-text">Mitglieder dieser Gruppe erben diese Rolle automatisch.</small>
+                        <small class="form-hint">Mitglieder dieser Gruppe erben diese Rolle automatisch.</small>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="grid-side">
-            <div class="admin-card">
+            <div class="card">
                 <h3>⚙️ Status</h3>
                 <div class="form-group">
                     <label style="cursor:pointer;display:flex;align-items:center;gap:.4rem;">
                         <input type="checkbox" name="is_active" checked> Gruppe aktiv
                     </label>
-                    <small class="form-text">Inaktive Gruppen sind für Members nicht sichtbar.</small>
+                    <small class="form-hint">Inaktive Gruppen sind für Members nicht sichtbar.</small>
                 </div>
                 <div style="margin-top:1rem;">
                     <button type="submit" class="btn btn-primary" style="width:100%;">✅ Gruppe erstellen</button>
@@ -588,12 +592,14 @@ function openMemberRemoveModal(formId, username) {
 
 <?php else: // Gruppen-Liste ?>
 
-<div class="admin-page-header">
-    <div>
-        <h2>📂 Gruppen</h2>
-    </div>
-    <div class="header-actions">
-        <a href="<?php echo SITE_URL; ?>/admin/groups?tab=groups&view=new" class="btn btn-primary btn-sm">➕ Neue Gruppe</a>
+<div class="page-header d-print-none mb-3">
+    <div class="row align-items-center">
+        <div class="col-auto">
+            <h2 class="page-title">📂 Gruppen</h2>
+        </div>
+        <div class="col-auto ms-auto d-print-none">
+            <a href="<?php echo SITE_URL; ?>/admin/groups?tab=groups&view=new" class="btn btn-primary btn-sm">➕ Neue Gruppe</a>
+        </div>
     </div>
 </div>
 
@@ -724,9 +730,11 @@ $allCapsForView = ['manage_posts','manage_pages','manage_users','manage_plugins'
                    'manage_themes','manage_settings','view_analytics','manage_media'];
 ?>
 
-<div class="admin-page-header">
-    <div>
-        <h2>🔑 Rollen</h2>
+<div class="page-header d-print-none mb-3">
+    <div class="row align-items-center">
+        <div class="col-auto">
+            <h2 class="page-title">🔑 Rollen</h2>
+        </div>
     </div>
 </div>
 
@@ -789,7 +797,7 @@ $editCaps = $editRole ? (json_decode($editRole->capabilities ?? '[]', true) ?? [
 $isEditCore = $editRole ? in_array($editRole->name, $coreRoles) : false;
 ?>
 
-<div class="admin-card">
+<div class="card">
     <h3><?php echo $editRole ? '✏️ Rolle bearbeiten: ' . htmlspecialchars($editRole->display_name, ENT_QUOTES) : '➕ Neue Rolle erstellen'; ?></h3>
 
     <?php if ($editRole && $isEditCore): ?>
@@ -841,7 +849,7 @@ $isEditCore = $editRole ? in_array($editRole->name, $coreRoles) : false;
             </div>
 
             <div class="grid-side">
-                <div class="admin-card">
+                <div class="card">
                     <h3>⚙️ Aktionen</h3>
                     <div style="display:flex;flex-direction:column;gap:.45rem;">
                         <button type="submit" class="btn btn-primary" style="width:100%;">

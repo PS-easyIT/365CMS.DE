@@ -240,9 +240,13 @@ require_once __DIR__ . '/partials/admin-menu.php';
 
 ?>
 <?php renderAdminLayoutStart('Theme Editor', 'theme'); ?>
-        <div class="admin-page-header">
-            <h2>🎨 Theme Editor</h2>
-            <p>Passen Sie das Erscheinungsbild Ihrer Website an</p>
+                <div class="page-header d-print-none mb-3">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <div class="page-pretitle">Passen Sie das Erscheinungsbild Ihrer Website an</div>
+                    <h2 class="page-title">🎨 Theme Editor</h2>
+                </div>
+            </div>
         </div>
         
         <?php if ($message): ?>
