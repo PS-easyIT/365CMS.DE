@@ -648,12 +648,13 @@ function getAdminMenuItems(string $currentPage = ''): array
 }
 
 /**
- * Render admin sidebar styles
+ * Render admin sidebar styles (Tabler-basiert)
  */
 function renderAdminSidebarStyles(): void
 {
     ?>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin-sidebar.css?v=20260222">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/tabler/css/tabler.min.css">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin-tabler.css?v=20260305">
     <?php
     if (class_exists('\CMS\Services\EditorService')) {
         \CMS\Services\EditorService::getInstance()->enqueueEditorAssets();
@@ -661,7 +662,7 @@ function renderAdminSidebarStyles(): void
 }
 
 /**
- * Render admin sidebar
+ * Render admin sidebar (Tabler navbar-vertical)
  *
  * @param string $currentPage  Active slug (Legacy; URL detection takes precedence)
  */
@@ -669,104 +670,133 @@ function renderAdminSidebar(string $currentPage = ''): void
 {
     $menuItems = getAdminMenuItems($currentPage);
     ?>
-    <div class="admin-sidebar">
-        <div class="admin-sidebar-header">
-            <a href="<?= SITE_URL ?>/admin" class="admin-sidebar-logo">
-                <img src="<?= SITE_URL ?>/assets/images/365CMS-DASHBOARD-Admin-100px.png"
-                     alt="<?= htmlspecialchars(SITE_NAME) ?> Admin"
-                     class="sidebar-logo-img">
-            </a>
-        </div>
+    <aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="dark">
+        <div class="container-fluid">
 
-        <nav class="admin-nav">
-            <?php $pluginSectionStarted = false; ?>
-            <?php foreach ($menuItems as $item):
-                $type = $item['type'] ?? 'item';
-                
-                // Atom Plugin Support (Simplified)
-                if ($type === 'atom_plugin') {
-                   // Check if plugin is active - always show for now or assume activated
-                   // if (!in_array($item['plugin'], get_active_plugins() ?? [])) continue;
-                   
-                   // Unwrap data
-                   $item = $item['data'];
-                   $type = $item['type'];
-                }
+            <!-- Mobile Toggle -->
+            <button class="navbar-toggler" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#sidebar-menu"
+                    aria-controls="sidebar-menu" aria-expanded="false" aria-label="Navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
 
-                if ($type === 'item'):
-                    $isFirstPluginMenu = !empty($item['plugin_menu']) && !$pluginSectionStarted;
-                    if ($isFirstPluginMenu) { $pluginSectionStarted = true; }
-                    if ($isFirstPluginMenu): ?>
-                        <div class="nav-divider nav-divider--plugins"></div>
-                    <?php endif; ?>
-
-                    <a href="<?= htmlspecialchars($item['url']) ?>"
-                       class="nav-item <?= !empty($item['active']) ? 'active' : '' ?>">
-                        <span class="nav-icon"><?= $item['icon'] ?></span>
-                        <?= htmlspecialchars($item['label']) ?>
-                    </a>
-
-                <?php elseif ($type === 'group'):
-                    // Gruppe ist offen wenn ein Kind aktiv ist
-                    $groupOpen = !empty($item['active']); 
-                    if (!$groupOpen) {
-                        foreach ($item['children'] as $child) {
-                            if (!empty($child['active'])) { $groupOpen = true; break; }
-                        }
-                    }
-                    ?>
-
-                    <?php
-                    $isFirstPluginGroup = !empty($item['plugin_menu']) && !$pluginSectionStarted;
-                    if ($isFirstPluginGroup) { $pluginSectionStarted = true; }
-                    ?>
-
-                    <div class="nav-divider<?= $isFirstPluginGroup ? ' nav-divider--plugins' : '' ?>"></div>
-                    <details class="nav-group" <?= $groupOpen ? 'open' : '' ?>>
-                        <summary class="nav-group-header">
-                            <span><?= $item['icon'] ?></span>
-                            <?= htmlspecialchars($item['label']) ?>
-                            <span class="nav-group-arrow">▶</span>
-                        </summary>
-                        <div class="nav-group-children">
-                            <?php foreach ($item['children'] as $child): ?>
-                                <?php if (($child['type'] ?? 'link') === 'section'): ?>
-                                    <div class="nav-section-label">
-                                        <?php if (!empty($child['icon'])): ?><span class="nav-icon"><?= $child['icon'] ?></span><?php endif; ?>
-                                        <?= htmlspecialchars($child['label']) ?>
-                                    </div>
-                                <?php else: ?>
-                                    <a href="<?= htmlspecialchars($child['url']) ?>"
-                                       class="nav-subitem <?= !empty($child['active']) ? 'active' : '' ?>">
-                                        <span class="nav-icon"><?= $child['icon'] ?></span>
-                                        <?= htmlspecialchars($child['label']) ?>
-                                    </a>
-                                <?php endif; ?>
-                            <?php endforeach; ?>
-                        </div>
-                    </details>
-
-                <?php endif; ?>
-            <?php endforeach; ?>
-
-            <div class="admin-sidebar-footer">
-                <a href="<?= SITE_URL ?>" class="nav-item">
-                    <span class="nav-icon">🏠</span>Zur Website
-                </a>
-                <a href="<?= SITE_URL ?>/logout" class="nav-item">
-                    <span class="nav-icon">🚪</span>Abmelden
+            <!-- Brand / Logo -->
+            <div class="navbar-brand navbar-brand-autodark">
+                <a href="<?= SITE_URL ?>/admin">
+                    <img src="<?= SITE_URL ?>/assets/images/365CMS-DASHBOARD-Admin-100px.png"
+                         alt="<?= htmlspecialchars(SITE_NAME) ?> Admin"
+                         height="64">
                 </a>
             </div>
-        </nav>
-    </div>
+
+            <!-- Sidebar Navigation -->
+            <div class="collapse navbar-collapse" id="sidebar-menu">
+                <ul class="navbar-nav pt-lg-3">
+                    <?php $pluginSectionStarted = false; ?>
+                    <?php foreach ($menuItems as $item):
+                        $type = $item['type'] ?? 'item';
+
+                        // Atom Plugin Support
+                        if ($type === 'atom_plugin') {
+                            $item = $item['data'];
+                            $type = $item['type'];
+                        }
+
+                        if ($type === 'item'):
+                            $isFirstPluginMenu = !empty($item['plugin_menu']) && !$pluginSectionStarted;
+                            if ($isFirstPluginMenu) { $pluginSectionStarted = true; }
+                            if ($isFirstPluginMenu): ?>
+                                <li class="nav-divider nav-divider--plugins"></li>
+                            <?php endif; ?>
+
+                            <li class="nav-item">
+                                <a class="nav-link<?= !empty($item['active']) ? ' active' : '' ?>"
+                                   href="<?= htmlspecialchars($item['url']) ?>">
+                                    <span class="nav-link-icon"><?= $item['icon'] ?></span>
+                                    <span class="nav-link-title"><?= htmlspecialchars($item['label']) ?></span>
+                                </a>
+                            </li>
+
+                        <?php elseif ($type === 'group'):
+                            // Gruppe ist offen wenn ein Kind aktiv ist
+                            $groupOpen = !empty($item['active']);
+                            if (!$groupOpen) {
+                                foreach ($item['children'] as $child) {
+                                    if (!empty($child['active'])) { $groupOpen = true; break; }
+                                }
+                            }
+
+                            $isFirstPluginGroup = !empty($item['plugin_menu']) && !$pluginSectionStarted;
+                            if ($isFirstPluginGroup) { $pluginSectionStarted = true; }
+                            $groupId = 'navgroup-' . md5($item['label']);
+                        ?>
+
+                            <?php if ($isFirstPluginGroup): ?>
+                                <li class="nav-divider nav-divider--plugins"></li>
+                            <?php else: ?>
+                                <li class="nav-divider"></li>
+                            <?php endif; ?>
+
+                            <li class="nav-item dropdown<?= $groupOpen ? ' show' : '' ?>">
+                                <a class="nav-link dropdown-toggle<?= $groupOpen ? '' : ' collapsed' ?>"
+                                   href="#<?= $groupId ?>"
+                                   data-bs-toggle="collapse"
+                                   role="button"
+                                   aria-expanded="<?= $groupOpen ? 'true' : 'false' ?>">
+                                    <span class="nav-link-icon"><?= $item['icon'] ?></span>
+                                    <span class="nav-link-title"><?= htmlspecialchars($item['label']) ?></span>
+                                </a>
+                                <div class="dropdown-menu<?= $groupOpen ? ' show collapse show' : ' collapse' ?>" id="<?= $groupId ?>">
+                                    <?php foreach ($item['children'] as $child): ?>
+                                        <?php if (($child['type'] ?? 'link') === 'section'): ?>
+                                            <div class="nav-section-label">
+                                                <?php if (!empty($child['icon'])): ?><span class="nav-link-icon"><?= $child['icon'] ?></span><?php endif; ?>
+                                                <?= htmlspecialchars($child['label']) ?>
+                                            </div>
+                                        <?php else: ?>
+                                            <a class="dropdown-item<?= !empty($child['active']) ? ' active' : '' ?>"
+                                               href="<?= htmlspecialchars($child['url']) ?>">
+                                                <span class="nav-link-icon"><?= $child['icon'] ?></span>
+                                                <?= htmlspecialchars($child['label']) ?>
+                                            </a>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                </div>
+                            </li>
+
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                </ul>
+
+                <!-- Sidebar Footer -->
+                <div class="sidebar-footer">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="<?= SITE_URL ?>">
+                                <span class="nav-link-icon">🏠</span>
+                                <span class="nav-link-title">Zur Website</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="<?= SITE_URL ?>/logout">
+                                <span class="nav-link-icon">🚪</span>
+                                <span class="nav-link-title">Abmelden</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+    </aside>
     <?php
 }
 
 /**
- * Öffnet das Admin-Layout (Head + Sidebar).
+ * Öffnet das Tabler-basierte Admin-Layout (Head + Sidebar + Page-Wrapper).
  * Muss mit renderAdminLayoutEnd() geschlossen werden.
  *
- * @param string $title     Seitentitel (wird im <title>-Tag verwendet)
+ * @param string $title      Seitentitel (wird im <title>-Tag verwendet)
  * @param string $activeSlug Aktiver Menü-Punkt (z.B. 'experts')
  */
 function renderAdminLayoutStart(string $title, string $activeSlug = ''): void
@@ -778,33 +808,36 @@ function renderAdminLayoutStart(string $title, string $activeSlug = ''): void
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title><?php echo htmlspecialchars($title); ?> – <?php echo htmlspecialchars(SITE_NAME); ?></title>
-        <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-        <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin-sidebar.css?v=20260222c">
-        <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css?v=20260222c">
         <?php 
+        renderAdminSidebarStyles();
         if (class_exists('CMS\Hooks')) {
             CMS\Hooks::doAction('head');
             CMS\Hooks::doAction('admin_head');
         }
-        renderAdminSidebarStyles(); 
         ?>
     </head>
     <body class="admin-body">
-        <?php renderAdminSidebar($activeSlug); ?>
-        <div class="admin-content">
+        <div class="page">
+            <?php renderAdminSidebar($activeSlug); ?>
+            <div class="page-wrapper">
+                <div class="page-body">
+                    <div class="container-xl">
     <?php
 }
 
 /**
- * Schließt das Admin-Layout (schließt .admin-content, body, html).
+ * Schließt das Tabler-basierte Admin-Layout.
  */
 function renderAdminLayoutEnd(): void
 {
     ?>
-        </div><!-- /.admin-content -->
-        <script src="<?php echo SITE_URL; ?>/assets/js/admin.js?v=20260302"></script>
+                    </div><!-- /.container-xl -->
+                </div><!-- /.page-body -->
+            </div><!-- /.page-wrapper -->
+        </div><!-- /.page -->
+        <script src="<?php echo SITE_URL; ?>/assets/tabler/js/tabler.min.js"></script>
+        <script src="<?php echo SITE_URL; ?>/assets/js/admin.js?v=20260305"></script>
         <?php
-        // Plugins können über body_end-Hook Scripts einbinden (analog zum Frontend)
         if (class_exists('CMS\Hooks')) {
             \CMS\Hooks::doAction('body_end');
             \CMS\Hooks::doAction('admin_body_end');
