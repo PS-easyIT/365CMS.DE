@@ -1,0 +1,43 @@
+i.icss-earth {
+    width: 1em;
+    height: 1em;
+    border-width: .065em;
+    border-style: solid;
+    border-radius: 100%;
+    background-color: transparent;
+    overflow: hidden;
+}
+i.icss-earth:before {
+    border-width: .1em 0 .38em .28em;
+    border-style: solid;
+    border-radius: .05em;
+    border-color: transparent;
+    border-left-color: inherit;
+    top: .35em;
+    left: .6em;
+    box-shadow: 
+        -0.05em -0.02em,
+        0.09em -.2em, 
+        -.58em 0.07em 0 -0.07em,
+        -.73em -.3em 0 -0.05em,
+        -.65em -.5em 0 -0.02em
+;
+
+}
+i.icss-earth:after {
+    border-width: .15em;
+    border-style: solid;
+    border-radius: 100%;
+    top: .28em;
+    left: .42em;
+    box-shadow: 
+        -.5em -.18em 0 -.02em, 
+        -.47em .07em 0 -.07em, 
+        -.35em .16em 0 -.07em, 
+        -.35em .26em 0 -.09em, 
+        .2em -.06em 0 -.06em, 
+        -.3em -.53em 0 .05em, 
+        .05em .1em 0 -.03em, 
+        -.03em -.25em 0 -.06em, 
+        .19em -.33em 0 .05em;
+}

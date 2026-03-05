@@ -1,0 +1,31 @@
+i.icss-mail {
+    width: 1em;
+    background-color: transparent;
+    border-width: .4em;
+    border-style: solid;
+    border-top-color: transparent;
+    border-bottom-color: transparent;
+    margin: .15em 0;
+}
+i.icss-mail:before {
+    border-style: solid;
+    border-width: .5em .5em 0;
+    border-radius: .03em;
+    bottom: -.05em;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left-color: transparent;
+    border-right-color: transparent;
+}
+
+i.icss-mail:after {
+    border-style: solid;
+    border-width: 0 .35em .35em;
+    border-radius: .03em;
+    bottom: -.4em;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left-color: transparent;
+    border-right-color: transparent;
+    width: .9em;
+}

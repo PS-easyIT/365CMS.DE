@@ -1,0 +1,37 @@
+i.icss-excavator {
+    height: .4em;
+    width: .59em;
+    background: transparent;
+    border-right: .24em solid transparent;
+    border-radius: 50% .03em .0em / 100% .03em .0em;
+    box-shadow: inset 0 0 0 .065em, 0 .15em;
+    margin: .15em .08em .45em .58em;
+}
+.icss-stack i.icss-excavator {
+    transform: translate(-.65em, -.5em);
+}
+i.icss-excavator:before {
+    width: .35em;
+    height: .36em;
+    border: .06em solid currentColor;
+    border-width: .15em .09em 0 .05em;
+    border-bottom: transparent;
+    border-radius: .03em .03em 0 0;
+    transform: skewY(23deg) perspective(.2em) rotateX(35deg);
+    top: -.1em;
+    left: -.35em;
+}
+i.icss-excavator:after {
+    width: .25em;
+    height: .25em;
+    border-radius: 50%;
+    box-shadow: inset .1em -.2em 0 -.1em,
+        -.05em .01em 0 -.01em,
+        1em .35em 0 -.04em, 
+        .8em .35em 0 -.04em, 
+        .6em .35em 0 -.04em, 
+        .4em .35em 0 -.04em
+        ;
+    top: 0.17em;
+    left: -.54em;
+}

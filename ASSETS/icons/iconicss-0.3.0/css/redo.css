@@ -1,0 +1,22 @@
+i.icss-redo {
+  width: 1em;
+  height: 1em;
+  background-color: transparent;
+  margin: 0;
+}
+i.icss-redo:before {
+  width: .8em;
+  height: .8em;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  border: .1em solid currentColor;
+  border-bottom-color: transparent;
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+i.icss-redo:after {
+  top: .43em;
+  left: .67em;
+  border: .17em solid transparent;
+  border-top: .24em solid currentColor;
+}

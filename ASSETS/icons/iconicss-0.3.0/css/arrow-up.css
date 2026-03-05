@@ -1,0 +1,29 @@
+i.icss-arrow-up {
+    width: 1em;
+    height: .18em;
+    border-radius: .1em;
+    background-color: currentColor;
+    margin: .41em  0;
+    transform: rotate(90deg);
+}
+.icss-stack i.icss-arrow-up {
+   transform: translate(-.5em, -.5em) rotate(90deg);
+}
+i.icss-arrow-up:before {
+    width: .6em;
+    height: .18em;
+    border-radius: .1em;
+    background-color: currentColor;
+    top: -.15em;
+    left: -.06em;
+    transform: rotate(-45deg);
+}
+i.icss-arrow-up:after {
+    width: .6em;
+    height: .18em;
+    border-radius: .1em;
+    background-color: currentColor;
+    top: .15em;
+    left: -.06em;
+    transform: rotate(45deg);
+}

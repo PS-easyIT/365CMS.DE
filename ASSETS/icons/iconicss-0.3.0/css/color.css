@@ -1,0 +1,35 @@
+i.icss-color {
+    width: 1em;
+    height: 1em;
+    background-color: transparent;
+    margin: 0;
+}
+i.icss-color:before {
+	width: 0.28em; 
+	height: 0.24em; 
+	border-radius: 50%;
+    border: 0.065em solid currentColor;
+    transform: rotate(-20deg);
+    top: .53em;
+    left: .18em;
+    box-shadow: 
+        0.3em .1em 0 -0.05em,
+        0.36em .1em 0 -0.06em,
+        0.5em -.02em 0 -0.05em,
+        0.46em -.02em 0 -0.06em,
+        0.4em -.23em 0 -0.05em,
+        0.36em -.23em 0 -0.06em,
+        0.15em -.3em 0 -0.05em,
+        0.13em -.26em 0 -0.06em
+        ;
+}
+i.icss-color:after {
+    width: 1em; 
+	height: .8em; 
+	border-radius: 100% 80% 50% 50% / 100% 100% 60% 60%;
+    background-color: transparent;
+    border: 0.065em solid currentColor;
+    transform: translate(-50%, -50%) rotate(-20deg);
+   	top: 48%;
+    left: 48%;
+}

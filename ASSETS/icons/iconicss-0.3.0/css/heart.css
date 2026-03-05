@@ -1,0 +1,31 @@
+i.icss-heart {
+  width: .5em;
+  height: .5em;
+  background: currentColor;
+  border: .065em solid currentColor;
+  border-top: 0;
+  border-right: 0;
+  transform: rotate(-45deg);
+  margin: .3em .25em .2em;
+}
+.icss-stack i.icss-heart {
+    transform: translate(-.5em, -.5em) rotate(-45deg);
+}
+i.icss-heart:before {
+  width: .5em;
+  height: .28em;
+  top: -.22em;
+  left: -.063em;
+  background: currentColor;
+  border-radius: .5em .5em 0 0;
+}
+
+i.icss-heart:after {
+  width: .28em;
+  height: .5em;
+  top: 0em;
+  left: .37em;
+  border-radius: 0 .5em .5em 0;
+  background: currentColor;
+}
+

@@ -1,0 +1,32 @@
+i.icss-hand-pointer{
+    width: .13em;
+    height: .32em;
+    background:currentColor;
+    border-radius: .2em;
+    box-shadow:
+        0 -.21em 0,
+        .12em .10em 0,
+        .25em .12em 0,
+        .36em .19em 0;
+    margin: .26em .52em .42em .35em;
+}
+i.icss-hand-pointer:before{
+    width: .55em;
+    height: .5em;
+    background-color: currentColor;
+    border-radius: 100% 100% .3em;
+    margin: .5em .11em 0 0;
+    top: -.32em;
+    left: -.05em;
+    transform: rotate(45deg);
+}
+i.icss-hand-pointer:after{
+    width: .12em;
+    height: .43em;
+    background: currentColor;
+    top: .15em;
+    left: -.1em;
+    border-radius: .04em;
+    transform: rotate(-18deg);
+    border-radius: .04em 70% .04em / .04em 30% .04em;
+}

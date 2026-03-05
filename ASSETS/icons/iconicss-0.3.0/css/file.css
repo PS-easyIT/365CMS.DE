@@ -1,0 +1,18 @@
+i.icss-file {
+    width: .8em;
+    height: 1em;
+    background-color: transparent;
+    border-width: .065em;
+    border-style: solid;
+    border-radius: .05em .34em .05em .05em;
+}
+i.icss-file:before {
+    border-style: solid;
+    border-width: .2em;
+    left: .275em;
+    border-radius: .1em;
+    border-color: transparent;
+    border-right-color: currentColor;
+    transform: rotate(-45deg);
+    top: .02em;
+}

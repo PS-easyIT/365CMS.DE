@@ -1,0 +1,23 @@
+i.icss-star {
+	background-color: transparent;
+	border: 0 solid transparent;
+	border-width: 0 .15em .35em;
+	border-bottom-color: currentColor;
+	margin: .05em .36em .6em;
+}
+i.icss-star:before {
+	top: .3em;
+	left: -.5em;
+	border: 0 solid transparent;
+	border-width: 0 .5em .35em;
+	border-bottom-color: currentColor;	
+	transform: rotate(-35deg);
+}
+i.icss-star:after {
+	top: .3em;
+	left: -.5em;
+	border: 0 solid transparent;
+	border-width: 0 .5em .35em;
+	border-bottom-color: currentColor;	
+	transform: rotate(35deg);
+}

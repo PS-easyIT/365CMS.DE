@@ -1,0 +1,20 @@
+i.icss-bars{
+    margin: .41em  0;
+}
+i.icss-bars,
+i.icss-bars:before,
+i.icss-bars:after {
+    width: 1em;
+    height: .18em;
+    border-radius: .06em;
+    background-color: currentColor;
+}
+
+i.icss-bars:before {
+    top: -0.36em;
+    left: 0;
+}
+i.icss-bars:after{
+    top: 0.36em;
+    left: 0;
+}

@@ -1,0 +1,41 @@
+i.icss-users {
+    width: .8em;
+    height: .5em;
+    border-width: .065em;
+    border-style: solid;
+    border-radius: .8em .8em .2em .2em;
+    margin-top: .4em;
+    background-color: transparent;
+    box-shadow: .45em .05em 0 -.05em;
+    margin: .5em .35em 0 0;
+}
+.icss-stack i.icss-users {
+    transform: translate(-.6em, -.5em);
+}
+i.icss-users:before {
+    border-style: solid;
+    border-width: .065em;
+    border-radius: 100%;
+    top: -.46em;
+    left: 50%;
+    transform: translateX(-50%);
+    width: .45em;
+    height: .45em;
+    box-shadow: .45em .1em 0 -.05em;
+    background-image: 
+        radial-gradient(circle at -.1em -.1em, 
+            currentcolor 0, currentcolor .28em, transparent .28em),
+        radial-gradient(circle at .35em -.2em, 
+            currentcolor 0, currentcolor .35em, transparent .35em);
+}
+i.icss-users:after {
+    border-style: solid;
+    border-width: .15em .1em .3em;
+    border-radius: 100%;
+    width: .2em;
+    height: .2em;
+    border-left-color: transparent;
+    border-right-color: transparent;
+    left: .23em;
+    top: -.05em
+}

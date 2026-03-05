@@ -1,0 +1,20 @@
+i.icss-clubs {
+    height: .5em;
+    width: .44em;
+    border-style: solid;
+    border-width:0 .18em .25em;
+    border-left-color: transparent;
+    border-right-color: transparent;
+    background-color: transparent;
+    box-shadow: inset .1em 0;
+    margin: .45em .3em 0;
+}
+i.icss-clubs:before {
+    width: .4em;
+    height: .4em;
+    background-color: currentcolor; 
+    border-radius: 100%;
+    box-shadow: .4em 0, .2em -.3em;
+    left: -.36em;
+    top:-.06em;
+}

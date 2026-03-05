@@ -35,6 +35,23 @@ pnpm-debug.log*
 package-lock.json
 # yarn.lock # Einkommentieren, wenn Yarn verwendet wird
 
+ASSETS\AdminLTE-4.0.0-rc4
+ASSETS\cache-8.0.6
+ASSETS\cookieconsent-3.1.0
+ASSETS\elFinder-2.1.66
+ASSETS\filepond-4.28.2
+ASSETS\htmlpurifier-4.19.0
+ASSETS\image-3.11.7
+ASSETS\mailer-8.0.6
+ASSETS\remark42-1.15.0
+ASSETS\schema-org-4.0.0
+ASSETS\simplepie-1.9.0
+ASSETS\tabler--tabler-core-1.4.0
+ASSETS\test_import
+ASSETS\tntsearch-5.0.2
+ASSETS\translation-8.0.6
+ASSETS\suneditor-2.47.8
+
 # ----------------------------------------------------------------------
 # PROJECT SPECIFIC - 365CMS.DE
 # ----------------------------------------------------------------------
@@ -53,8 +70,8 @@ DOC/feature/
 DOC/feature
 DOC/feature/*.*
 DOC/feature/*/
-ASSETS/test_import/
-ASSETS/test_import/*
+AASSETS/test_import/
+AASSETS/test_import/*
 
 # ----------------------------------------------------------------------
 # CMS v2 SPECIFIC

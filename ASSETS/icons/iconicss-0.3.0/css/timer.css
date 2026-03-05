@@ -1,0 +1,32 @@
+i.icss-timer {
+    background-color: transparent;
+    width: .8em;
+    height: .8em;
+    border-style: solid;
+    border-width: .08em;
+    border-radius: 50%;
+    box-shadow: -.29em -.29em 0 -.32em;
+    margin: .1em
+}
+i.icss-timer:before {
+    width: .14em;
+    height: .14em;
+    border-style: solid;
+    border-width: .07em;
+    border-radius: .05em;
+    top: -.15em;
+    left: .3em;
+    box-shadow: -.07em 0, -.14em 0;
+}
+i.icss-timer:after {
+    width: .55em;
+    height: .55em;
+    border-style: solid;
+    border-width: .275em;
+    transform: rotate(111deg);
+    border-radius: 100%;
+    top: .055em;
+    left: .055em;
+    border-color: transparent;
+    border-left-color: inherit;
+}

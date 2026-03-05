@@ -1,0 +1,34 @@
+i.icss-map {
+  width: .4em;
+  height: .8em;
+  background-color: transparent;
+  border-radius: .02em;
+  border:.07em solid currentColor;
+  border-width: .07em 0 .07em .07em;
+  margin: .1em .65em .06em .03em;
+  transform: skewY(-20deg);
+}
+.icss-stack i.icss-map {
+    transform: translate(-.5em, -.5em) skewY(-20deg);
+}
+i.icss-map:before {
+  width: .26em;
+  height: .8em;
+  background-color: transparent;
+  border-radius: .02em;
+  border:.07em solid currentColor;
+  border-width: .07em 0.03em;
+  transform: skewY(40deg);
+  top: .03em;
+  left: .31em;
+}
+i.icss-map:after {
+  width: .4em;
+  height: .8em;
+  background-color: transparent;
+  border-radius: .02em;
+  border:.07em solid currentColor;
+  border-width: .07em .07em .07em 0;
+  top: .135em;
+  left: .55em;
+}

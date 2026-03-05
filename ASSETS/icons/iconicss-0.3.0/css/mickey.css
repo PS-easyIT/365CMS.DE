@@ -1,0 +1,32 @@
+i.icss-mickey {
+    width: .6em;
+    height: .6em;
+    background-color: transparent;
+    border-radius: 100%;
+    box-shadow: inset 0 .04em 0 .065em,
+        0 .16em 0 -.135em,
+        .25em -.35em 0 -.11em, 
+        -.25em -.35em 0 -.11em;
+    margin: .3em .2em .1em;
+}
+i.icss-mickey:before {
+    width: .25em;
+    height: .25em;
+    border-radius: 100% 100% 100% .1em;
+    top: .26em;
+    left: 50%;
+    transform: translateX(-50%) rotate(-45deg);
+    box-shadow: inset .1em -.1em 0 -.08em,
+        .19em -.19em 0 -.04em;
+}
+
+i.icss-mickey:after {
+    width: 0.08em;
+    height: 0.09em;
+    background-color: currentColor;
+    border-radius: 100%;
+    top: 55%;
+    left: 50%;
+    transform: translate(-50%);
+    box-shadow: .1em -.1em 0 -.01em, -.1em -.1em 0 -.01em;
+}
