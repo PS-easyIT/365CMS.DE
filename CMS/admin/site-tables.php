@@ -23,8 +23,8 @@ if (!Auth::instance()->isAdmin()) { header('Location: ' . SITE_URL); exit; }
 
 $db       = Database::instance();
 $security = Security::instance();
-$message  = '';
-$msgType  = '';
+$success  = '';
+$error    = '';
 
 // ─── Ensure DB table exists ────────────────────────────────────────────────
 $db->execute("CREATE TABLE IF NOT EXISTS {$db->getPrefix()}site_tables (
@@ -84,53 +84,225 @@ $defaultTableSettings = [
     'shortcode'              => '',
 ];
 
+function st_sanitize_text(string $value, int $maxLength = 255): string {
+    return mb_substr(trim(strip_tags($value)), 0, $maxLength);
+}
+
+function st_sanitize_slug(string $value): string {
+    $value = strtolower(trim($value));
+    $value = (string) preg_replace('/[^a-z0-9]+/i', '-', $value);
+    $value = trim($value, '-');
+    return mb_substr($value, 0, 120);
+}
+
+function st_sanitize_json_array(string $json, array $fallback = []): array {
+    $decoded = json_decode($json, true);
+    return is_array($decoded) ? $decoded : $fallback;
+}
+
+function st_sanitize_table_columns(array $columns): array {
+    $sanitized = [];
+    foreach ($columns as $index => $column) {
+        if (!is_array($column)) {
+            continue;
+        }
+
+        $label = st_sanitize_text((string) ($column['label'] ?? ('Spalte ' . ($index + 1))), 120);
+        if ($label === '') {
+            $label = 'Spalte ' . ($index + 1);
+        }
+
+        $sanitized[] = [
+            'label' => $label,
+            'type' => 'text',
+        ];
+    }
+
+    return $sanitized !== [] ? $sanitized : [['label' => 'Spalte 1', 'type' => 'text']];
+}
+
+function st_sanitize_table_rows(array $rows, array $columns): array {
+    $sanitized = [];
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+
+        $cleanRow = [];
+        foreach ($columns as $index => $column) {
+            $label = (string) ($column['label'] ?? ('Spalte ' . ($index + 1)));
+            $value = $row[$label] ?? $row[$index] ?? '';
+            if (is_array($value) || is_object($value)) {
+                $value = '';
+            }
+            $cleanRow[$label] = mb_substr(trim((string) $value), 0, 5000);
+        }
+        $sanitized[] = $cleanRow;
+    }
+
+    return $sanitized;
+}
+
+function st_build_table_settings(array $post, array $defaults): array {
+    $allowedThemes = ['default', 'stripe', 'hover', 'cell-border'];
+    $settings = $defaults;
+
+    foreach ($defaults as $key => $default) {
+        if (is_bool($default)) {
+            $settings[$key] = isset($post[$key]);
+            continue;
+        }
+
+        $settings[$key] = $post[$key] ?? $default;
+    }
+
+    $settings['page_size'] = max(5, min(100, (int) ($post['page_size'] ?? $defaults['page_size'])));
+    $settings['fixed_cols'] = max(0, min(20, (int) ($post['fixed_cols'] ?? $defaults['fixed_cols'])));
+    $settings['default_sort_col'] = max(0, min(1000, (int) ($post['default_sort_col'] ?? $defaults['default_sort_col'])));
+    $settings['default_sort_dir'] = (($post['default_sort_dir'] ?? 'asc') === 'desc') ? 'desc' : 'asc';
+    $settings['style_theme'] = in_array((string) ($post['style_theme'] ?? ''), $allowedThemes, true)
+        ? (string) $post['style_theme']
+        : $defaults['style_theme'];
+    $settings['custom_css'] = trim((string) ($post['custom_css'] ?? ''));
+    $settings['aria_label'] = st_sanitize_text((string) ($post['aria_label'] ?? ''), 180);
+    $settings['caption'] = st_sanitize_text((string) ($post['caption'] ?? ''), 180);
+    $settings['shortcode'] = '';
+
+    return $settings;
+}
+
+function st_get_unique_slug(Database $db, string $slug, int $excludeId = 0): string {
+    $baseSlug = $slug !== '' ? $slug : 'tabelle';
+    $uniqueSlug = $baseSlug;
+    $suffix = 2;
+
+    while (true) {
+        $params = [$uniqueSlug];
+        $sql = "SELECT id FROM {$db->getPrefix()}site_tables WHERE table_slug = ?";
+        if ($excludeId > 0) {
+            $sql .= ' AND id <> ?';
+            $params[] = $excludeId;
+        }
+        $existing = $db->fetchOne($sql . ' LIMIT 1', $params);
+        if (!$existing) {
+            return $uniqueSlug;
+        }
+        $uniqueSlug = $baseSlug . '-' . $suffix++;
+    }
+}
+
+function st_send_export(string $tableName, string $format, array $columns, array $rows): void {
+    $safeName = st_sanitize_slug($tableName) ?: 'site-table';
+
+    if ($format === 'json') {
+        header('Content-Type: application/json; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="' . $safeName . '.json"');
+        echo json_encode([
+            'columns' => $columns,
+            'rows' => $rows,
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $safeName . '.csv"');
+    $out = fopen('php://output', 'wb');
+    if ($out === false) {
+        exit;
+    }
+    fwrite($out, "\xEF\xBB\xBF");
+    fputcsv($out, array_map(fn(array $col): string => (string) ($col['label'] ?? ''), $columns), ';');
+    foreach ($rows as $row) {
+        $line = [];
+        foreach ($columns as $index => $column) {
+            $label = (string) ($column['label'] ?? ('Spalte ' . ($index + 1)));
+            $line[] = (string) ($row[$label] ?? '');
+        }
+        fputcsv($out, $line, ';');
+    }
+    fclose($out);
+    exit;
+}
+
+$globalSettingsKey = 'site_tables_default_settings';
+$globalDefaultsRow = $db->fetchOne("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = ? LIMIT 1", [$globalSettingsKey]);
+$storedGlobalDefaults = $globalDefaultsRow ? json_decode((string) ($globalDefaultsRow['option_value'] ?? '{}'), true) : [];
+$globalTableSettings = is_array($storedGlobalDefaults)
+    ? array_merge($defaultTableSettings, $storedGlobalDefaults)
+    : $defaultTableSettings;
+
 // ─── Action Routing ────────────────────────────────────────────────────────
 $action    = $_GET['action'] ?? 'list';
 $table_id  = (int) ($_GET['id'] ?? 0);
+
+if ($action === 'export' && $table_id > 0) {
+    $format = ($_GET['fmt'] ?? 'csv') === 'json' ? 'json' : 'csv';
+    $exportTable = $db->fetchOne("SELECT table_name, columns_json, rows_json FROM {$db->getPrefix()}site_tables WHERE id = ? LIMIT 1", [$table_id]);
+    if ($exportTable) {
+        $columns = st_sanitize_table_columns(st_sanitize_json_array((string) ($exportTable['columns_json'] ?? '[]')));
+        $rows = st_sanitize_table_rows(st_sanitize_json_array((string) ($exportTable['rows_json'] ?? '[]')), $columns);
+        st_send_export((string) ($exportTable['table_name'] ?? 'site-table'), $format, $columns, $rows);
+    }
+    $error = 'Die angeforderte Tabelle wurde nicht gefunden.';
+    $action = 'list';
+}
 
 // Save / create table
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postAction = $_POST['action'] ?? '';
 
     if (!$security->verifyToken($_POST['csrf_token'] ?? '', 'site_tables')) {
-        $message = 'Sicherheitsprüfung fehlgeschlagen.'; $msgType = 'error';
+        $error = 'Sicherheitsprüfung fehlgeschlagen.';
     } else {
 
-        if ($postAction === 'save_table') {
-            $name        = trim($_POST['table_name'] ?? '');
-            $desc        = trim($_POST['description'] ?? '');
-            $slug        = trim($_POST['table_slug'] ?? '');
-            if (!$slug) $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $name));
-
-            $cols_json   = $_POST['columns_json'] ?? '[]';
-            $rows_json   = $_POST['rows_json']    ?? '[]';
-
-            // Build settings
-            $ts = $defaultTableSettings;
-            foreach ($defaultTableSettings as $k => $def) {
-                if (is_bool($def)) {
-                    $ts[$k] = isset($_POST[$k]);
-                } else {
-                    $ts[$k] = $_POST[$k] ?? $def;
-                }
-            }
-            $settings_json = json_encode($ts);
-            $id = (int)($_POST['table_id'] ?? 0);
-
-            if ($id > 0) {
-                $db->execute("UPDATE {$db->getPrefix()}site_tables
-                              SET table_name=?,table_slug=?,description=?,columns_json=?,rows_json=?,settings_json=?
-                              WHERE id=?",
-                    [$name,$slug,$desc,$cols_json,$rows_json,$settings_json,$id]);
-                $message = 'Tabelle gespeichert.'; $msgType = 'success';
-                $table_id = $id; $action = 'edit';
+        if ($postAction === 'save_global_settings') {
+            $globalTableSettings = st_build_table_settings($_POST, $defaultTableSettings);
+            $globalJson = json_encode($globalTableSettings, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $exists = $db->fetchOne("SELECT id FROM {$db->getPrefix()}settings WHERE option_name = ? LIMIT 1", [$globalSettingsKey]);
+            if ($exists) {
+                $db->execute("UPDATE {$db->getPrefix()}settings SET option_value = ? WHERE option_name = ?", [$globalJson, $globalSettingsKey]);
             } else {
-                $db->execute("INSERT INTO {$db->getPrefix()}site_tables (table_name,table_slug,description,columns_json,rows_json,settings_json)
-                              VALUES (?,?,?,?,?,?)",
-                    [$name,$slug,$desc,$cols_json,$rows_json,$settings_json]);
-                $table_id = (int)$db->lastInsertId();
-                $message = 'Tabelle erstellt.'; $msgType = 'success';
-                $action = 'edit';
+                $db->execute("INSERT INTO {$db->getPrefix()}settings (option_name, option_value) VALUES (?, ?)", [$globalSettingsKey, $globalJson]);
+            }
+            $success = 'Globale Tabellen-Standards gespeichert.';
+            $action = 'list';
+        }
+
+        if ($postAction === 'save_table') {
+            $id = (int)($_POST['table_id'] ?? 0);
+            $name = st_sanitize_text((string) ($_POST['table_name'] ?? ''), 120);
+            $desc = st_sanitize_text((string) ($_POST['description'] ?? ''), 1000);
+            $slug = st_sanitize_slug((string) ($_POST['table_slug'] ?? ''));
+            if ($slug === '') {
+                $slug = st_sanitize_slug($name);
+            }
+            $slug = st_get_unique_slug($db, $slug, $id);
+
+            $columns = st_sanitize_table_columns(st_sanitize_json_array((string) ($_POST['columns_json'] ?? '[]')));
+            $rows = st_sanitize_table_rows(st_sanitize_json_array((string) ($_POST['rows_json'] ?? '[]')), $columns);
+            $ts = st_build_table_settings($_POST, $globalTableSettings);
+            $settings_json = json_encode($ts, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $cols_json = json_encode($columns, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $rows_json = json_encode($rows, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+            if ($name === '') {
+                $error = 'Ein Tabellenname ist erforderlich.';
+            } else {
+                if ($id > 0) {
+                    $db->execute("UPDATE {$db->getPrefix()}site_tables
+                                  SET table_name=?,table_slug=?,description=?,columns_json=?,rows_json=?,settings_json=?
+                                  WHERE id=?",
+                        [$name,$slug,$desc,$cols_json,$rows_json,$settings_json,$id]);
+                    $success = 'Tabelle gespeichert.';
+                    $table_id = $id; $action = 'edit';
+                } else {
+                    $db->execute("INSERT INTO {$db->getPrefix()}site_tables (table_name,table_slug,description,columns_json,rows_json,settings_json)
+                                  VALUES (?,?,?,?,?,?)",
+                        [$name,$slug,$desc,$cols_json,$rows_json,$settings_json]);
+                    $table_id = (int)$db->lastInsertId();
+                    $success = 'Tabelle erstellt.';
+                    $action = 'edit';
+                }
             }
         }
 
@@ -138,43 +310,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $del_id = (int)($_POST['table_id'] ?? 0);
             if ($del_id > 0) {
                 $db->execute("DELETE FROM {$db->getPrefix()}site_tables WHERE id=?", [$del_id]);
-                $message = 'Tabelle gelöscht.'; $msgType = 'success';
+                $success = 'Tabelle gelöscht.';
             }
             $action = 'list';
         }
 
         // Import CSV/JSON
         if ($postAction === 'import_table' && isset($_FILES['import_file'])) {
-            $ext  = strtolower(pathinfo($_FILES['import_file']['name'], PATHINFO_EXTENSION));
-            $raw  = file_get_contents($_FILES['import_file']['tmp_name']);
-            if ($ext === 'csv') {
-                $lines   = preg_split('/\r?\n/', trim($raw));
-                $headers = str_getcsv(array_shift($lines));
-                $rows    = array_map('str_getcsv', array_filter($lines));
-                $cols    = array_map(fn($h) => ['label' => $h, 'type' => 'text'], $headers);
-                $rowData = array_map(fn($r) => array_combine($headers, $r), $rows);
-                $cols_json = json_encode($cols);
-                $rows_json = json_encode($rowData);
+            $uploadName = (string) ($_FILES['import_file']['name'] ?? '');
+            $tmpName = (string) ($_FILES['import_file']['tmp_name'] ?? '');
+            $ext  = strtolower(pathinfo($uploadName, PATHINFO_EXTENSION));
+            $raw  = is_uploaded_file($tmpName) ? file_get_contents($tmpName) : false;
+            $columns = [['label' => 'Spalte 1', 'type' => 'text']];
+            $rowData = [];
+
+            if ($raw === false || $raw === '') {
+                $error = 'Die Importdatei konnte nicht gelesen werden.';
+            } elseif ($ext === 'csv') {
+                $lines = preg_split('/\r?\n/', trim((string) $raw));
+                $headers = isset($lines[0]) ? str_getcsv((string) array_shift($lines), ';') : [];
+                $headers = array_map(fn($header, $index) => st_sanitize_text((string) $header, 120) ?: ('Spalte ' . ($index + 1)), $headers, array_keys($headers));
+                $columns = st_sanitize_table_columns(array_map(fn($header) => ['label' => $header, 'type' => 'text'], $headers));
+                foreach (array_filter($lines, static fn($line) => trim((string) $line) !== '') as $line) {
+                    $values = str_getcsv((string) $line, ';');
+                    $row = [];
+                    foreach ($columns as $index => $column) {
+                        $row[$column['label']] = mb_substr(trim((string) ($values[$index] ?? '')), 0, 5000);
+                    }
+                    $rowData[] = $row;
+                }
             } elseif ($ext === 'json') {
-                $decoded = json_decode($raw, true);
-                if (isset($decoded['columns'], $decoded['rows'])) {
-                    $cols_json = json_encode($decoded['columns']);
-                    $rows_json = json_encode($decoded['rows']);
+                $decoded = json_decode((string) $raw, true);
+                if (is_array($decoded) && isset($decoded['columns'], $decoded['rows']) && is_array($decoded['columns']) && is_array($decoded['rows'])) {
+                    $columns = st_sanitize_table_columns($decoded['columns']);
+                    $rowData = st_sanitize_table_rows($decoded['rows'], $columns);
+                } elseif (is_array($decoded)) {
+                    $firstRow = $decoded[0] ?? [];
+                    $columns = is_array($firstRow)
+                        ? st_sanitize_table_columns(array_map(fn($key) => ['label' => (string) $key, 'type' => 'text'], array_keys($firstRow)))
+                        : [['label' => 'Spalte 1', 'type' => 'text']];
+                    $rowData = st_sanitize_table_rows($decoded, $columns);
                 } else {
-                    $cols_json = '[]'; $rows_json = json_encode($decoded);
+                    $error = 'Die JSON-Datei enthält kein unterstütztes Tabellenformat.';
                 }
             } else {
-                $message = 'Nur CSV und JSON-Import unterstützt.'; $msgType = 'error';
-                $cols_json = $rows_json = '[]';
+                $error = 'Nur CSV- und JSON-Importe werden unterstützt.';
             }
-            if ($msgType !== 'error') {
-                $name  = pathinfo($_FILES['import_file']['name'], PATHINFO_FILENAME);
-                $slug  = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $name)) . '-' . time();
+
+            if ($error === '') {
+                $name  = st_sanitize_text((string) pathinfo($uploadName, PATHINFO_FILENAME), 120);
+                $name = $name !== '' ? $name : 'Importierte Tabelle';
+                $slug  = st_get_unique_slug($db, st_sanitize_slug($name) . '-' . time());
                 $db->execute("INSERT INTO {$db->getPrefix()}site_tables (table_name,table_slug,description,columns_json,rows_json,settings_json)
                               VALUES (?,?,?,?,?,?)",
-                    [$name,$slug,'Importiert',$cols_json,$rows_json,json_encode($defaultTableSettings)]);
+                    [$name,$slug,'Importiert',json_encode($columns, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),json_encode($rowData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),json_encode($globalTableSettings, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]);
                 $table_id = (int)$db->lastInsertId();
-                $message = 'Tabelle importiert.'; $msgType = 'success'; $action = 'edit';
+                $success = 'Tabelle importiert.'; $action = 'edit';
             }
         }
     }
@@ -185,7 +376,7 @@ $editTable = null;
 if ($action === 'edit' && $table_id > 0) {
     $editTable = $db->fetchOne("SELECT * FROM {$db->getPrefix()}site_tables WHERE id=?", [$table_id]);
     if ($editTable) {
-        $ts = array_merge($defaultTableSettings, (array) json_decode($editTable['settings_json'] ?? '{}', true));
+        $ts = array_merge($globalTableSettings, (array) json_decode($editTable['settings_json'] ?? '{}', true));
     }
 }
 
@@ -202,19 +393,17 @@ function st_sel(mixed $val, mixed $compare): void {
     echo ((string)$val === (string)$compare) ? 'selected' : '';
 }
 ?>
-<?php renderAdminLayoutStart('Site Tables', 'site-tables'); ?>
+<?php renderAdminLayoutStart('Tabellen', 'site-tables'); ?>
         <div class="page-header d-print-none mb-3">
         <div class="row align-items-center">
             <div class="col-auto">
                 <div class="page-pretitle">Tabellen erstellen, verwalten und per Shortcode oder Widget einbetten.</div>
-                <h2 class="page-title">📊 Site Tables</h2>
+                <h2 class="page-title">📊 Tabellen</h2>
             </div>
         </div>
     </div>
 
-    <?php if ($message): ?>
-        <div class="alert alert-<?php echo htmlspecialchars($msgType); ?>"><?php echo htmlspecialchars($message); ?></div>
-    <?php endif; ?>
+    <?php renderAdminAlerts(); ?>
 
     <?php if ($action === 'list'): ?>
     <!-- ════════════════════════════════════════════
@@ -236,13 +425,14 @@ function st_sel(mixed $val, mixed $compare): void {
         </div>
         <div class="st-card-body" style="padding:0">
             <?php if (empty($allTables)): ?>
-                <div style="padding:3rem;text-align:center;color:#94a3b8">
-                    <p style="font-size:2rem;margin:0">📋</p>
-                    <p>Noch keine Tabellen vorhanden.</p>
-                    <a href="?action=edit" class="btn btn-primary">Erste Tabelle erstellen</a>
+                <div class="empty-state">
+                    <p style="font-size:2.5rem;margin:0;">📋</p>
+                    <p><strong>Noch keine Tabellen vorhanden</strong></p>
+                    <p class="text-muted">Erstelle deine erste Tabelle oder importiere CSV-/JSON-Daten.</p>
+                    <a href="?action=edit" class="btn btn-primary" style="margin-top:1rem;">➕ Erste Tabelle erstellen</a>
                 </div>
             <?php else: ?>
-            <table class="st-tables-list">
+            <table class="table table-vcenter card-table st-tables-list">
                 <thead>
                     <tr>
                         <th>Name</th>
@@ -288,34 +478,32 @@ function st_sel(mixed $val, mixed $compare): void {
                 <p style="color:#64748b;margin-top:0">Diese Werte werden als Standard für alle neuen Tabellen verwendet und können pro Tabelle überschrieben werden.</p>
                 <div class="st-row">
                     <label>Responsive</label>
-                    <label class="st-chk-list"><input type="checkbox" name="responsive" value="1" checked> Auf allen Bildschirmgrößen optimiert darstellen</label>
+                    <label class="st-chk-list"><input type="checkbox" name="responsive" value="1" <?php echo st_chk('1', $globalTableSettings['responsive'] ? '1':'0'); ?>> Auf allen Bildschirmgrößen optimiert darstellen</label>
                 </div>
                 <div class="st-row">
                     <label>Interaktivität</label>
                     <div class="st-chk-list">
-                        <label><input type="checkbox" name="enable_search" value="1" checked> Suche aktivieren</label>
-                        <label><input type="checkbox" name="enable_sorting" value="1" checked> Sortierung aktivieren</label>
-                        <label><input type="checkbox" name="enable_pagination" value="1" checked> Pagination aktivieren</label>
-                        <label><input type="checkbox" name="search_highlight" value="1" checked> Suchtreffer hervorheben</label>
+                        <label><input type="checkbox" name="enable_search" value="1" <?php echo st_chk('1', $globalTableSettings['enable_search'] ? '1':'0'); ?>> Suche aktivieren</label>
+                        <label><input type="checkbox" name="enable_sorting" value="1" <?php echo st_chk('1', $globalTableSettings['enable_sorting'] ? '1':'0'); ?>> Sortierung aktivieren</label>
+                        <label><input type="checkbox" name="enable_pagination" value="1" <?php echo st_chk('1', $globalTableSettings['enable_pagination'] ? '1':'0'); ?>> Pagination aktivieren</label>
+                        <label><input type="checkbox" name="search_highlight" value="1" <?php echo st_chk('1', $globalTableSettings['search_highlight'] ? '1':'0'); ?>> Suchtreffer hervorheben</label>
                     </div>
                 </div>
                 <div class="st-row">
                     <label>Standard Seitengröße</label>
                     <select name="page_size" class="form-select" style="max-width:120px">
-                        <option value="5">5</option>
-                        <option value="10" selected>10</option>
-                        <option value="25">25</option>
-                        <option value="50">50</option>
-                        <option value="100">100</option>
+                        <?php foreach ([5,10,25,50,100] as $ps): ?>
+                            <option value="<?php echo $ps; ?>" <?php st_sel($ps, $globalTableSettings['page_size']); ?>><?php echo $ps; ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="st-row">
                     <label>Design-Theme</label>
                     <select name="style_theme" class="form-select" style="max-width:200px">
-                        <option value="default">Standard</option>
-                        <option value="stripe">Gestreift</option>
-                        <option value="hover">Hover-Highlight</option>
-                        <option value="cell-border">Zellrahmen</option>
+                        <option value="default" <?php st_sel('default', $globalTableSettings['style_theme']); ?>>Standard</option>
+                        <option value="stripe" <?php st_sel('stripe', $globalTableSettings['style_theme']); ?>>Gestreift</option>
+                        <option value="hover" <?php st_sel('hover', $globalTableSettings['style_theme']); ?>>Hover-Highlight</option>
+                        <option value="cell-border" <?php st_sel('cell-border', $globalTableSettings['style_theme']); ?>>Zellrahmen</option>
                     </select>
                 </div>
                 <button type="submit" class="btn btn-primary" style="margin-top:.5rem">Globale Standards speichern</button>
@@ -330,7 +518,7 @@ function st_sel(mixed $val, mixed $compare): void {
     <?php
         $editCols = $editTable ? json_decode($editTable['columns_json'] ?? '[]', true) : [['label'=>'Spalte 1','type'=>'text']];
         $editRows = $editTable ? json_decode($editTable['rows_json']    ?? '[]', true) : [];
-        $ts       = $editTable ? array_merge($defaultTableSettings, (array)json_decode($editTable['settings_json'] ?? '{}', true)) : $defaultTableSettings;
+        $ts       = $editTable ? array_merge($globalTableSettings, (array)json_decode($editTable['settings_json'] ?? '{}', true)) : $globalTableSettings;
     ?>
     <div style="margin-bottom:1rem">
         <a href="?action=list" style="color:#64748b;text-decoration:none">← Zurück zur Liste</a>
@@ -666,43 +854,15 @@ function stSwitchTab(id, btn) {
     btn.classList.add('active');
 }
 </script>
-<!-- C-12: Confirm-Modal (ersetzt window.confirm) -->
-<div id="cmsConfirmModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;">
-    <div style="background:#fff;border-radius:10px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;">
-        <div style="background:#f8fafc;padding:1.25rem 1.5rem;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
-            <h3 style="margin:0;font-size:1.1rem;color:#1e293b;">&#x26A0;&#xFE0F; Bestätigung erforderlich</h3>
-            <button onclick="closeCmsConfirm()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:#64748b;line-height:1;">&times;</button>
-        </div>
-        <div style="padding:1.5rem;">
-            <p id="cmsConfirmMsg" style="margin:0;color:#1e293b;font-size:1rem;line-height:1.6;"></p>
-        </div>
-        <div style="padding:1rem 1.5rem;border-top:1px solid #e2e8f0;display:flex;gap:.75rem;justify-content:flex-end;">
-            <button type="button" onclick="closeCmsConfirm()" class="btn btn-secondary">Abbrechen</button>
-            <button type="button" id="cmsConfirmOk" class="btn btn-danger">Bestätigen</button>
-        </div>
-    </div>
-</div>
+<!-- .js-needs-confirm → globales cmsConfirm()-Modal aus admin-menu.php -->
 <script>
 (function(){
-    var _pendingForm = null;
     document.querySelectorAll('.js-needs-confirm').forEach(function(form){
         form.addEventListener('submit', function(e){
             e.preventDefault();
-            _pendingForm = form;
-            document.getElementById('cmsConfirmMsg').textContent = form.dataset.msg || 'Wirklich fortfahren?';
-            document.getElementById('cmsConfirmModal').style.display = 'flex';
+            var f = form;
+            cmsConfirm(f.dataset.msg || 'Wirklich fortfahren?', function(){ f.submit(); });
         });
-    });
-    window.closeCmsConfirm = function(){
-        _pendingForm = null;
-        document.getElementById('cmsConfirmModal').style.display = 'none';
-    };
-    document.getElementById('cmsConfirmOk').addEventListener('click', function(){
-        if (_pendingForm) { _pendingForm.submit(); }
-        closeCmsConfirm();
-    });
-    window.addEventListener('click', function(e){
-        if (e.target === document.getElementById('cmsConfirmModal')) { closeCmsConfirm(); }
     });
 })();
 </script><?php renderAdminLayoutEnd(); ?>

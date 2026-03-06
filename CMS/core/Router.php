@@ -131,6 +131,25 @@ class Router
         $this->addRoute('GET', '/api/v1/pages/:slug', function($slug) {
             Api::instance()->handleRequest('pages', $slug);
         });
+
+        // Admin Grid.js – Server-Side-Data für Tabellen (nur für Admins)
+        $this->addRoute('GET', '/api/v1/admin/posts', function () {
+            $this->requireAdmin();
+            $this->jsonAdminPosts();
+        });
+        $this->addRoute('GET', '/api/v1/admin/users', function () {
+            $this->requireAdmin();
+            $this->jsonAdminUsers();
+        });
+
+        // FilePond Upload API
+        $this->addRoute('POST', '/api/upload', function() {
+            $result = Services\FileUploadService::getInstance()->handleUploadRequest();
+            http_response_code((int)($result['status'] ?? 200));
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode($result['data'] ?? ['error' => 'Unbekannter Fehler']);
+            exit;
+        });
         
         // Search Route – übergreifende Suche über Seiten, Experten, Firmen, Speaker, Events
         $this->addRoute('GET', '/search', function() {
@@ -354,6 +373,13 @@ class Router
                 'filter'   => $filter,
             ]);
         });
+
+        $this->addRoute('GET', '/site-table/export/:id/:format', function (string $id, string $format) {
+            $tableId = (int) $id;
+            if ($tableId <= 0 || !Services\SiteTableService::getInstance()->streamExportById($tableId, $format, true)) {
+                $this->render404();
+            }
+        });
         
         // Blog Routes
         $this->addRoute('GET', '/blog', function() {
@@ -397,6 +423,19 @@ class Router
             }
             // View-Counter erhöhen
             $db->execute("UPDATE {$prefix}posts SET views = views + 1 WHERE id = ?", [(int)$post->id]);
+            // Editor.js JSON → HTML konvertieren (falls Inhalt JSON ist)
+            if (!empty($post->content)) {
+                $post->content = $this->prepareRenderableContent((string) $post->content, 'post', (int) ($post->id ?? 0));
+            }
+            // PDF-Download: /blog/slug?pdf=1
+            if (isset($_GET['pdf']) && $_GET['pdf'] === '1') {
+                $this->streamContentAsPdf(
+                    htmlspecialchars($post->title ?? 'Beitrag', ENT_QUOTES, 'UTF-8'),
+                    $post->content,
+                    $post->author_name ?? null
+                );
+                return;
+            }
             ThemeManager::instance()->render('blog-single', ['post' => $post]);
         });
 
@@ -474,6 +513,19 @@ class Router
             
             $page = $pageManager->getPageBySlug($slug);
             if ($page && $page['status'] === 'published') {
+                // Editor.js JSON → HTML konvertieren (falls Inhalt JSON ist)
+                if (!empty($page['content'])) {
+                    $page['content'] = $this->prepareRenderableContent((string) $page['content'], 'page', (int) ($page['id'] ?? 0));
+                }
+                // PDF-Download: /seiten-slug?pdf=1
+                if (isset($_GET['pdf']) && $_GET['pdf'] === '1') {
+                    $this->streamContentAsPdf(
+                        htmlspecialchars($page['title'] ?? 'Seite', ENT_QUOTES, 'UTF-8'),
+                        $page['content'],
+                        null
+                    );
+                    return;
+                }
                 // Render page template
                 $themeManager = ThemeManager::instance();
                 $themeManager->render('page', ['page' => $page]);
@@ -963,8 +1015,21 @@ class Router
             $this->redirect('/');
             return;
         }
-        
-        require_once ABSPATH . 'admin/index.php';
+
+        $candidates = [
+            ABSPATH . 'admin/index.php',
+            ABSPATH . 'admin/modules/dashboard/page.php',
+            ABSPATH . 'admin/old/index.php',
+        ];
+
+        foreach ($candidates as $file) {
+            if (is_file($file)) {
+                require_once $file;
+                return;
+            }
+        }
+
+        $this->render404();
     }
     
     /**
@@ -976,13 +1041,27 @@ class Router
             $this->redirect('/');
             return;
         }
-        
-        $file = ABSPATH . 'admin/' . $page . '.php';
-        if (file_exists($file)) {
-            require_once $file;
-        } else {
+
+        // Nur sichere Slugs zulassen (kein Path Traversal)
+        if (!preg_match('/^[a-zA-Z0-9_-]+$/', $page)) {
             $this->render404();
+            return;
         }
+
+        $candidates = [
+            ABSPATH . 'admin/' . $page . '.php',
+            ABSPATH . 'admin/modules/' . $page . '/page.php',
+            ABSPATH . 'admin/old/' . $page . '.php',
+        ];
+
+        foreach ($candidates as $file) {
+            if (is_file($file)) {
+                require_once $file;
+                return;
+            }
+        }
+
+        $this->render404();
     }
     
     /**
@@ -992,6 +1071,67 @@ class Router
     {
         http_response_code(404);
         ThemeManager::instance()->render('404');
+    }
+
+    /**
+     * Bereitet Seiten-/Beitragsinhalt für das Frontend auf.
+     */
+    private function prepareRenderableContent(string $content, string $type, int $id = 0): string
+    {
+        $content = Services\EditorService::getInstance()->renderContent($content);
+        $content = Services\SiteTableService::getInstance()->replaceShortcodes($content);
+
+        $tocResult = TableOfContents::instance()->process($content, $type, $id);
+        $prepared = (string) ($tocResult['content'] ?? $content);
+        $tocHtml = (string) ($tocResult['toc'] ?? '');
+
+        if ($tocHtml !== '') {
+            $prepared = $this->injectTocIntoContent(
+                $prepared,
+                $tocHtml,
+                (string) TableOfContents::instance()->getSetting('position', 'before')
+            );
+        }
+
+        return $prepared;
+    }
+
+    /**
+     * Fügt ein TOC anhand der konfigurierten Position in bereits gerenderten Inhalt ein.
+     */
+    private function injectTocIntoContent(string $content, string $tocHtml, string $position): string
+    {
+        if ($tocHtml === '') {
+            return $content;
+        }
+
+        return match ($position) {
+            'top' => $tocHtml . $content,
+            'bottom' => $content . $tocHtml,
+            'after' => $this->insertAfterFirstHeading($content, $tocHtml),
+            default => $this->insertBeforeFirstHeading($content, $tocHtml),
+        };
+    }
+
+    private function insertBeforeFirstHeading(string $content, string $html): string
+    {
+        if (preg_match('/<h[1-6]\b[^>]*>/i', $content, $match, PREG_OFFSET_CAPTURE)) {
+            $position = (int) ($match[0][1] ?? 0);
+            return substr($content, 0, $position) . $html . substr($content, $position);
+        }
+
+        return $html . $content;
+    }
+
+    private function insertAfterFirstHeading(string $content, string $html): string
+    {
+        if (preg_match('/<h[1-6]\b[^>]*>.*?<\/h[1-6]>/is', $content, $match, PREG_OFFSET_CAPTURE)) {
+            $fullMatch = (string) ($match[0][0] ?? '');
+            $position = (int) ($match[0][1] ?? 0) + strlen($fullMatch);
+            return substr($content, 0, $position) . $html . substr($content, $position);
+        }
+
+        return $html . $content;
     }
     
     /**
@@ -1030,7 +1170,153 @@ class Router
         echo $seoService->generateRobotsTxt();
         exit;
     }
+    /**
+     * Streamt Seiten-/Beitragsinhalt als PDF per PdfService.
+     */
+    private function streamContentAsPdf(string $title, string $htmlContent, ?string $author): void
+    {
+        $pdf = Services\PdfService::getInstance();
+        if (!$pdf->isAvailable()) {
+            http_response_code(503);
+            echo 'PDF-Generierung ist nicht verfügbar.';
+            return;
+        }
 
+        $siteName = defined('SITE_NAME') ? SITE_NAME : '365CMS';
+        $html = $pdf->wrapTemplate($title, $htmlContent);
+        $safeFilename = preg_replace('/[^a-zA-Z0-9_\-]/', '_', mb_substr($title, 0, 80)) . '.pdf';
+        $pdf->streamFromHtml($html, $safeFilename);
+    }
+
+    /**
+     * Admin-Zugriff prüfen und ggf. 403-JSON zurückgeben.
+     */
+    private function requireAdmin(): void
+    {
+        if (!Auth::instance()->isAdmin()) {
+            http_response_code(403);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Zugriff verweigert']);
+            exit;
+        }
+    }
+
+    /**
+     * Grid.js JSON-API: Posts (Server-Side Pagination + Search + Sort).
+     */
+    private function jsonAdminPosts(): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        $db     = Database::instance();
+        $prefix = $db->getPrefix();
+
+        $page    = max(1, (int)($_GET['page'] ?? 1));
+        $limit   = min(100, max(5, (int)($_GET['limit'] ?? 20)));
+        $offset  = ($page - 1) * $limit;
+        $search  = trim($_GET['search'] ?? '');
+        $status  = trim($_GET['status'] ?? 'all');
+        $sort    = in_array($_GET['sort'] ?? '', ['title', 'status', 'published_at', 'views', 'updated_at'], true)
+                   ? $_GET['sort'] : 'updated_at';
+        $order   = strtoupper($_GET['order'] ?? 'DESC') === 'ASC' ? 'ASC' : 'DESC';
+
+        $where  = [];
+        $params = [];
+        if ($status === 'all') {
+            $where[] = "p.status != 'trash'";
+        } elseif (in_array($status, ['published', 'draft', 'trash'], true)) {
+            $where[]  = "p.status = ?";
+            $params[] = $status;
+        }
+        if ($search !== '') {
+            $where[]  = "(p.title LIKE ? OR p.slug LIKE ?)";
+            $params[] = "%{$search}%";
+            $params[] = "%{$search}%";
+        }
+        $whereStr = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+
+        $total = (int)$db->get_var(
+            "SELECT COUNT(*) FROM {$prefix}posts p {$whereStr}",
+            $params
+        );
+        $rows = $db->get_results(
+            "SELECT p.id, p.title, p.slug, p.status, p.views, p.featured_image,
+                    p.published_at, p.updated_at,
+                    u.display_name AS author_name,
+                    c.name AS category_name
+             FROM {$prefix}posts p
+             LEFT JOIN {$prefix}users u ON u.id = p.author_id
+             LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
+             {$whereStr}
+             ORDER BY p.{$sort} {$order}
+             LIMIT {$limit} OFFSET {$offset}",
+            $params
+        ) ?: [];
+
+        echo json_encode([
+            'data'  => $rows,
+            'total' => $total,
+            'page'  => $page,
+            'limit' => $limit,
+        ]);
+        exit;
+    }
+
+    /**
+     * Grid.js JSON-API: Users (Server-Side Pagination + Search + Sort).
+     */
+    private function jsonAdminUsers(): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        $db     = Database::instance();
+        $prefix = $db->getPrefix();
+
+        $page    = max(1, (int)($_GET['page'] ?? 1));
+        $limit   = min(100, max(5, (int)($_GET['limit'] ?? 20)));
+        $offset  = ($page - 1) * $limit;
+        $search  = trim($_GET['search'] ?? '');
+        $role    = trim($_GET['role'] ?? 'all');
+        $sort    = in_array($_GET['sort'] ?? '', ['username', 'email', 'display_name', 'role', 'status', 'created_at'], true)
+                   ? $_GET['sort'] : 'created_at';
+        $order   = strtoupper($_GET['order'] ?? 'DESC') === 'ASC' ? 'ASC' : 'DESC';
+
+        $where  = [];
+        $params = [];
+        if ($role === 'banned') {
+            $where[]  = "u.status = 'banned'";
+        } elseif ($role !== 'all' && $role !== '') {
+            $where[]  = "u.role = ?";
+            $params[] = $role;
+        }
+        if ($search !== '') {
+            $where[]  = "(u.username LIKE ? OR u.email LIKE ? OR u.display_name LIKE ?)";
+            $params[] = "%{$search}%";
+            $params[] = "%{$search}%";
+            $params[] = "%{$search}%";
+        }
+        $whereStr = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+
+        $total = (int)$db->get_var(
+            "SELECT COUNT(*) FROM {$prefix}users u {$whereStr}",
+            $params
+        );
+        $rows = $db->get_results(
+            "SELECT u.id, u.username, u.email, u.display_name, u.role, u.status, u.created_at,
+                    (SELECT COUNT(*) FROM {$prefix}user_group_members ugm WHERE ugm.user_id = u.id) AS group_count
+             FROM {$prefix}users u
+             {$whereStr}
+             ORDER BY u.{$sort} {$order}
+             LIMIT {$limit} OFFSET {$offset}",
+            $params
+        ) ?: [];
+
+        echo json_encode([
+            'data'  => $rows,
+            'total' => $total,
+            'page'  => $page,
+            'limit' => $limit,
+        ]);
+        exit;
+    }
 
     /**
      * Render plugin admin page

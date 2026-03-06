@@ -6,6 +6,8 @@ use CMS\Auth;
 
 class MediaService {
 
+    private static array $instances = [];
+
     private $uploadPath;
     private $uploadUrl;
     private $metaFile;
@@ -13,6 +15,16 @@ class MediaService {
 
     // Standard folders that cannot be deleted
     private $systemFolders = ['themes', 'plugins', 'assets', 'fonts', 'dl-manager', 'form-uploads'];
+
+    public static function getInstance(string $customRoot = ''): self {
+        $key = $customRoot !== '' ? $customRoot : '__default__';
+
+        if (!isset(self::$instances[$key])) {
+            self::$instances[$key] = new self($customRoot);
+        }
+
+        return self::$instances[$key];
+    }
 
     /**
      * Parse ini size string to bytes
@@ -84,7 +96,20 @@ class MediaService {
      */
     public function getCategories(): array {
         $meta = $this->loadMeta();
-        return $meta['categories'] ?? [];
+        $counts = [];
+
+        foreach (($meta['files'] ?? []) as $fileMeta) {
+            $category = $fileMeta['category'] ?? null;
+            if ($category) {
+                $counts[$category] = ($counts[$category] ?? 0) + 1;
+            }
+        }
+
+        return array_map(static function(array $category) use ($counts): array {
+            $slug = $category['slug'] ?? '';
+            $category['count'] = $counts[$slug] ?? 0;
+            return $category;
+        }, $meta['categories'] ?? []);
     }
 
     /**
@@ -92,10 +117,17 @@ class MediaService {
      */
     public function addCategory(string $name, string $slug = ''): bool|WP_Error {
         $meta = $this->loadMeta();
-        $slug = $slug ?: strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $name)));
+        $slug = $slug ?: strtolower(trim((string)preg_replace('/[^A-Za-z0-9-]+/', '-', $name), '-'));
+        $name = trim($name);
+
+        if ($name === '' || $slug === '') {
+            return new WP_Error('invalid_category', 'Name und Slug sind erforderlich');
+        }
         
-        foreach ($meta['categories'] as $cat) {
-            if ($cat['slug'] === $slug) return new WP_Error('exists', 'Category already exists');
+        foreach (($meta['categories'] ?? []) as $cat) {
+            if (($cat['slug'] ?? '') === $slug) {
+                return new WP_Error('exists', 'Category already exists');
+            }
         }
 
         $meta['categories'][] = [
@@ -110,8 +142,20 @@ class MediaService {
     /**
      * Delete Category
      */
-    public function deleteCategory(string $slug): bool {
+    public function deleteCategory(string $slug): bool|WP_Error {
         $meta = $this->loadMeta();
+        $slug = trim($slug);
+
+        if ($slug === '') {
+            return new WP_Error('missing_slug', 'Kategorie-Slug fehlt');
+        }
+
+        foreach (($meta['categories'] ?? []) as $category) {
+            if (($category['slug'] ?? '') === $slug && !empty($category['is_system'])) {
+                return new WP_Error('system_category', 'System-Kategorien können nicht gelöscht werden');
+            }
+        }
+
         $meta['categories'] = array_filter($meta['categories'], fn($c) => $c['slug'] !== $slug);
         
         // Remove category from files
@@ -132,12 +176,24 @@ class MediaService {
         
         // Normalize path
         $filePath = str_replace('\\', '/', $filePath);
+
+        if ($categorySlug !== '') {
+            $validSlugs = array_column($meta['categories'] ?? [], 'slug');
+            if (!in_array($categorySlug, $validSlugs, true)) {
+                return new WP_Error('invalid_category', 'Kategorie existiert nicht');
+            }
+        }
         
         if (!isset($meta['files'][$filePath])) {
             $meta['files'][$filePath] = [];
         }
         
-        $meta['files'][$filePath]['category'] = $categorySlug;
+        if ($categorySlug === '') {
+            unset($meta['files'][$filePath]['category']);
+        } else {
+            $meta['files'][$filePath]['category'] = $categorySlug;
+        }
+
         return $this->saveMeta($meta);
     }
 
@@ -154,7 +210,227 @@ class MediaService {
     }
 
     private function saveMeta(array $data): bool {
-        return file_put_contents($this->metaFile, json_encode($data, JSON_PRETTY_PRINT)) !== false;
+        return file_put_contents($this->metaFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) !== false;
+    }
+
+    private function getDefaultSettings(): array {
+        return [
+            'max_upload_size' => '64M',
+            'allowed_types' => ['image', 'document', 'video', 'audio', 'archive'],
+            'auto_webp' => true,
+            'strip_exif' => true,
+            'jpeg_quality' => 85,
+            'max_width' => 2560,
+            'max_height' => 2560,
+            'organize_month_year' => true,
+            'sanitize_filenames' => true,
+            'unique_filenames' => true,
+            'lowercase_filenames' => false,
+            'member_uploads_enabled' => false,
+            'member_max_upload_size' => '5M',
+            'member_allowed_types' => ['image', 'document'],
+            'member_delete_own' => false,
+            'generate_thumbnails' => false,
+            'thumb_small_w' => 150,
+            'thumb_small_h' => 150,
+            'thumb_medium_w' => 300,
+            'thumb_medium_h' => 300,
+            'thumb_large_w' => 1024,
+            'thumb_large_h' => 1024,
+            'thumb_banner_w' => 1200,
+            'thumb_banner_h' => 400,
+            'block_dangerous_types' => false,
+            'validate_image_content' => false,
+            'require_login_for_upload' => true,
+            'protect_uploads_dir' => false,
+        ];
+    }
+
+    private function getTypeMap(): array {
+        return [
+            'image' => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico'],
+            'video' => ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'],
+            'audio' => ['mp3', 'wav', 'aac', 'flac', 'm4a'],
+            'document' => ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'rtf', 'csv'],
+            'archive' => ['zip', 'rar', '7z', 'tar', 'gz'],
+            'svg' => ['svg'],
+            'plugin' => ['zip'],
+            'theme' => ['zip']
+        ];
+    }
+
+    private function sanitizeSizeSetting(string $size, string $fallback): string {
+        $normalized = strtoupper(str_replace(' ', '', trim($size)));
+        return preg_match('/^\d+(?:\.\d+)?(?:B|K|KB|M|MB|G|GB)?$/', $normalized) ? $normalized : $fallback;
+    }
+
+    private function normalizeSettings(array $settings): array {
+        $defaults = $this->getDefaultSettings();
+        $allTypes = array_keys($this->getTypeMap());
+
+        $allowedTypes = array_values(array_unique(array_intersect(
+            array_map('strval', (array)($settings['allowed_types'] ?? $defaults['allowed_types'])),
+            $allTypes
+        )));
+        if ($allowedTypes === []) {
+            $allowedTypes = $defaults['allowed_types'];
+        }
+
+        $memberAllowedTypes = array_values(array_unique(array_intersect(
+            array_map('strval', (array)($settings['member_allowed_types'] ?? $defaults['member_allowed_types'])),
+            ['image', 'document', 'video', 'audio']
+        )));
+        if ($memberAllowedTypes === []) {
+            $memberAllowedTypes = $defaults['member_allowed_types'];
+        }
+
+        return array_merge($defaults, [
+            'max_upload_size' => $this->sanitizeSizeSetting((string)($settings['max_upload_size'] ?? $defaults['max_upload_size']), $defaults['max_upload_size']),
+            'allowed_types' => $allowedTypes,
+            'auto_webp' => !empty($settings['auto_webp']),
+            'strip_exif' => !empty($settings['strip_exif']),
+            'jpeg_quality' => max(60, min(100, (int)($settings['jpeg_quality'] ?? $defaults['jpeg_quality']))),
+            'max_width' => max(1, min(8000, (int)($settings['max_width'] ?? $defaults['max_width']))),
+            'max_height' => max(1, min(8000, (int)($settings['max_height'] ?? $defaults['max_height']))),
+            'organize_month_year' => !empty($settings['organize_month_year']),
+            'sanitize_filenames' => !empty($settings['sanitize_filenames']),
+            'unique_filenames' => !empty($settings['unique_filenames']),
+            'lowercase_filenames' => !empty($settings['lowercase_filenames']),
+            'member_uploads_enabled' => !empty($settings['member_uploads_enabled']),
+            'member_max_upload_size' => $this->sanitizeSizeSetting((string)($settings['member_max_upload_size'] ?? $defaults['member_max_upload_size']), $defaults['member_max_upload_size']),
+            'member_allowed_types' => $memberAllowedTypes,
+            'member_delete_own' => !empty($settings['member_delete_own']),
+            'generate_thumbnails' => !empty($settings['generate_thumbnails']),
+            'thumb_small_w' => max(50, min(4000, (int)($settings['thumb_small_w'] ?? $defaults['thumb_small_w']))),
+            'thumb_small_h' => max(50, min(4000, (int)($settings['thumb_small_h'] ?? $defaults['thumb_small_h']))),
+            'thumb_medium_w' => max(50, min(4000, (int)($settings['thumb_medium_w'] ?? $defaults['thumb_medium_w']))),
+            'thumb_medium_h' => max(50, min(4000, (int)($settings['thumb_medium_h'] ?? $defaults['thumb_medium_h']))),
+            'thumb_large_w' => max(50, min(6000, (int)($settings['thumb_large_w'] ?? $defaults['thumb_large_w']))),
+            'thumb_large_h' => max(50, min(6000, (int)($settings['thumb_large_h'] ?? $defaults['thumb_large_h']))),
+            'thumb_banner_w' => max(50, min(6000, (int)($settings['thumb_banner_w'] ?? $defaults['thumb_banner_w']))),
+            'thumb_banner_h' => max(50, min(6000, (int)($settings['thumb_banner_h'] ?? $defaults['thumb_banner_h']))),
+            'block_dangerous_types' => !empty($settings['block_dangerous_types']),
+            'validate_image_content' => !empty($settings['validate_image_content']),
+            'require_login_for_upload' => !empty($settings['require_login_for_upload']),
+            'protect_uploads_dir' => !empty($settings['protect_uploads_dir']),
+        ]);
+    }
+
+    private function getDangerousExtensions(): array {
+        return [
+            'php', 'php3', 'php4', 'php5', 'phtml', 'phar', 'exe', 'com', 'bat', 'cmd', 'ps1', 'sh', 'pl', 'cgi', 'jar', 'msi', 'vbs', 'scr', 'dll', 'asp', 'aspx', 'jspx'
+        ];
+    }
+
+    private function isImageExtension(string $ext): bool {
+        return in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico'], true);
+    }
+
+    private function buildThumbnailSizes(array $settings): array {
+        return [
+            'small' => [(int)$settings['thumb_small_w'], (int)$settings['thumb_small_h']],
+            'medium' => [(int)$settings['thumb_medium_w'], (int)$settings['thumb_medium_h']],
+            'large' => [(int)$settings['thumb_large_w'], (int)$settings['thumb_large_h']],
+            'banner' => [(int)$settings['thumb_banner_w'], (int)$settings['thumb_banner_h']],
+        ];
+    }
+
+    private function getGeneratedVariantPaths(string $fullPath): array {
+        $variants = [];
+        $info = pathinfo($fullPath);
+        $extension = $info['extension'] ?? '';
+        if ($extension === '') {
+            return $variants;
+        }
+
+        foreach (array_keys($this->buildThumbnailSizes($this->getSettings())) as $name) {
+            $variants[] = $info['dirname'] . DIRECTORY_SEPARATOR . $info['filename'] . '-' . $name . '.' . $extension;
+        }
+
+        return $variants;
+    }
+
+    private function purgeMetaForPath(string $relativePath): void {
+        $meta = $this->loadMeta();
+        $relativePath = trim(str_replace('\\', '/', $relativePath), '/');
+
+        foreach (array_keys($meta['files']) as $path) {
+            if ($path === $relativePath || str_starts_with($path, $relativePath . '/')) {
+                unset($meta['files'][$path]);
+            }
+        }
+
+        $this->saveMeta($meta);
+    }
+
+    private function renameMetaPath(string $oldRelativePath, string $newRelativePath): void {
+        $meta = $this->loadMeta();
+        $oldRelativePath = trim(str_replace('\\', '/', $oldRelativePath), '/');
+        $newRelativePath = trim(str_replace('\\', '/', $newRelativePath), '/');
+        $updated = [];
+
+        foreach ($meta['files'] as $path => $data) {
+            if ($path === $oldRelativePath || str_starts_with($path, $oldRelativePath . '/')) {
+                $suffix = ltrim(substr($path, strlen($oldRelativePath)), '/');
+                $newPath = $newRelativePath . ($suffix !== '' ? '/' . $suffix : '');
+                $updated[$newPath] = $data;
+                unset($meta['files'][$path]);
+            }
+        }
+
+        $meta['files'] = array_merge($meta['files'], $updated);
+        $this->saveMeta($meta);
+    }
+
+    private function syncUploadsProtection(bool $enabled): bool|WP_Error {
+        $htaccessPath = $this->uploadPath . DIRECTORY_SEPARATOR . '.htaccess';
+
+        if (!$enabled) {
+            if (file_exists($htaccessPath) && !unlink($htaccessPath)) {
+                return new WP_Error('protection_remove_failed', 'Upload-Verzeichnis-Schutz konnte nicht entfernt werden.');
+            }
+
+            return true;
+        }
+
+        $content = "<FilesMatch \"\\.(php|php3|php4|php5|phtml|phar|cgi|pl|py|sh)$\">\n    Require all denied\n</FilesMatch>\nOptions -ExecCGI\n";
+        if (file_put_contents($htaccessPath, $content) === false) {
+            return new WP_Error('protection_write_failed', 'Upload-Verzeichnis-Schutz konnte nicht geschrieben werden.');
+        }
+
+        return true;
+    }
+
+    private function reEncodeImage(string $path, string $ext, int $quality): bool {
+        if (!function_exists('imagejpeg')) {
+            return false;
+        }
+
+        $ext = strtolower($ext);
+        $image = match ($ext) {
+            'jpg', 'jpeg' => function_exists('imagecreatefromjpeg') ? @imagecreatefromjpeg($path) : false,
+            'png' => function_exists('imagecreatefrompng') ? @imagecreatefrompng($path) : false,
+            'gif' => function_exists('imagecreatefromgif') ? @imagecreatefromgif($path) : false,
+            'webp' => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($path) : false,
+            'bmp' => function_exists('imagecreatefrombmp') ? @imagecreatefrombmp($path) : false,
+            default => false,
+        };
+
+        if ($image === false) {
+            return false;
+        }
+
+        $saved = match ($ext) {
+            'jpg', 'jpeg' => imagejpeg($image, $path, $quality),
+            'png' => imagepng($image, $path, max(0, min(9, (int)round((100 - $quality) / 10)))),
+            'gif' => imagegif($image, $path),
+            'webp' => function_exists('imagewebp') ? imagewebp($image, $path, $quality) : false,
+            'bmp' => function_exists('imagebmp') ? imagebmp($image, $path) : false,
+            default => false,
+        };
+
+        imagedestroy($image);
+        return $saved;
     }
 
     /**
@@ -163,15 +439,7 @@ class MediaService {
      * @return array
      */
     public function getSettings(): array {
-        $defaults = [
-            'max_upload_size' => '64M',
-            'allowed_types' => ['image', 'document', 'video', 'audio', 'archive'],
-            'auto_webp' => true,
-            'strip_exif' => true,
-            'max_width' => 2560,
-            'max_height' => 2560,
-            'organize_month_year' => true
-        ];
+        $defaults = $this->getDefaultSettings();
 
         if (!file_exists($this->settingsFile)) {
             return $defaults;
@@ -183,7 +451,7 @@ class MediaService {
         }
 
         $settings = json_decode($content, true);
-        return array_merge($defaults, is_array($settings) ? $settings : []);
+        return $this->normalizeSettings(is_array($settings) ? $settings : []);
     }
 
     /**
@@ -193,7 +461,11 @@ class MediaService {
      * @return bool|WP_Error
      */
     public function saveSettings(array $settings): bool|WP_Error {
-        // Validation could go here
+        $settings = $this->normalizeSettings($settings);
+        $protectionResult = $this->syncUploadsProtection((bool)($settings['protect_uploads_dir'] ?? false));
+        if (is_wp_error($protectionResult)) {
+            return $protectionResult;
+        }
         
         $json = json_encode($settings, JSON_PRETTY_PRINT);
         if ($json === false) {
@@ -344,41 +616,33 @@ class MediaService {
      */
     public function uploadFile(array $file, string $targetPath = ''): string|WP_Error {
         $settings = $this->getSettings();
-        
-        // Check file size
+        $targetPath = trim(str_replace('\\', '/', $targetPath), '/');
+
         $maxSize = $this->parseSize($settings['max_upload_size'] ?? '64M');
-        if ($file['size'] > $maxSize) {
+        if (($file['size'] ?? 0) > $maxSize) {
             return new WP_Error('size_limit', 'Datei ist zu groß. Maximum: ' . $settings['max_upload_size']);
         }
 
-        // Check file type by extension
-        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $ext = strtolower(pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION));
         $allowedGroups = $settings['allowed_types'] ?? ['image', 'document'];
-        
-        $typeMap = [
-            'image' => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico'],
-            'video' => ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'],
-            'audio' => ['mp3', 'wav', 'aac', 'flac', 'm4a'],
-            'document' => ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'rtf', 'csv'],
-            'archive' => ['zip', 'rar', '7z', 'tar', 'gz'],
-            'svg' => ['svg'],
-            'plugin' => ['zip'],
-            'theme' => ['zip']
-        ];
-        
+        $typeMap = $this->getTypeMap();
+
+        if (($settings['block_dangerous_types'] ?? false) && in_array($ext, $this->getDangerousExtensions(), true)) {
+            return new WP_Error('dangerous_type', 'Gefährlicher Dateityp wurde blockiert: ' . $ext);
+        }
+
         $isAllowed = false;
         foreach ($allowedGroups as $group) {
-            if (isset($typeMap[$group]) && in_array($ext, $typeMap[$group])) {
+            if (isset($typeMap[$group]) && in_array($ext, $typeMap[$group], true)) {
                 $isAllowed = true;
                 break;
             }
         }
-        
+
         if (!$isAllowed) {
             return new WP_Error('type_not_allowed', 'Dateityp nicht erlaubt: ' . $ext);
         }
 
-        // H-23: MIME-Typ per finfo() verifizieren – verhindert MIME-Spoofing via Dateiendung
         $allowedMimeMap = [
             'jpg'  => ['image/jpeg'],
             'jpeg' => ['image/jpeg'],
@@ -387,7 +651,7 @@ class MediaService {
             'webp' => ['image/webp'],
             'bmp'  => ['image/bmp', 'image/x-bmp'],
             'ico'  => ['image/x-icon', 'image/vnd.microsoft.icon'],
-            'svg'  => ['image/svg+xml', 'text/plain', 'text/html'], // Browser-Varianz
+            'svg'  => ['image/svg+xml', 'text/plain', 'text/html'],
             'mp4'  => ['video/mp4'],
             'webm' => ['video/webm'],
             'ogg'  => ['video/ogg', 'audio/ogg', 'application/ogg'],
@@ -417,100 +681,132 @@ class MediaService {
         ];
 
         if (function_exists('finfo_open') && isset($allowedMimeMap[$ext])) {
-            $finfo    = finfo_open(FILEINFO_MIME_TYPE);
-            $realMime = finfo_file($finfo, $file['tmp_name']);
-            finfo_close($finfo);
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $realMime = $finfo ? finfo_file($finfo, $file['tmp_name']) : false;
+            if ($finfo) {
+                finfo_close($finfo);
+            }
 
             if ($realMime !== false && !in_array($realMime, $allowedMimeMap[$ext], true)) {
-                return new WP_Error(
-                    'mime_mismatch',
-                    sprintf(
-                        'MIME-Typ "%s" passt nicht zur Dateiendung ".%s". Upload abgebrochen.',
-                        $realMime,
-                        $ext
-                    )
-                );
+                return new WP_Error('mime_mismatch', sprintf('MIME-Typ "%s" passt nicht zur Dateiendung ".%s". Upload abgebrochen.', $realMime, $ext));
             }
         }
 
-        // H-23: PHP-Tag-Scan – verhindert das Einschleusen von PHP-Code in Uploads
         $textExtensions = ['txt', 'csv', 'rtf', 'svg', 'html', 'htm', 'xml'];
-        if (in_array($ext, $textExtensions, true) || $file['size'] < 512 * 1024) {
-            // Nur bei Text-Dateien oder kleinen Dateien (<512 KB) scannen
-            // M-03: is_readable statt @ – Upload-TmpFile immer lesbar wenn kein Upload-Fehler
+        if (in_array($ext, $textExtensions, true) || ($file['size'] ?? 0) < 512 * 1024) {
             $content = is_readable($file['tmp_name'])
-                ? file_get_contents($file['tmp_name'], false, null, 0, 65536) // ersten 64 KB prüfen
+                ? file_get_contents($file['tmp_name'], false, null, 0, 65536)
                 : false;
             if ($content !== false && (
                 stripos($content, '<?php') !== false ||
-                strpos($content, '<?=')    !== false ||
-                strpos($content, '<%')     !== false   // ASP-Tags (zusätzliche Vorsicht)
+                strpos($content, '<?=') !== false ||
+                strpos($content, '<%') !== false
             )) {
-                return new WP_Error(
-                    'php_code_detected',
-                    'Die hochgeladene Datei enthält PHP- oder Server-Code und wurde abgelehnt.'
-                );
+                return new WP_Error('php_code_detected', 'Die hochgeladene Datei enthält PHP- oder Server-Code und wurde abgelehnt.');
             }
         }
 
-        $fullPath = $this->resolvePath($targetPath);
+        if (($settings['validate_image_content'] ?? false) && $this->isImageExtension($ext) && @getimagesize($file['tmp_name']) === false) {
+            return new WP_Error('invalid_image', 'Die Datei enthält keine gültigen Bilddaten.');
+        }
 
+        $fullPath = $this->resolvePath($targetPath);
         if (is_wp_error($fullPath)) {
             return $fullPath;
         }
 
-        // Ensure directory exists
-        if (!is_dir($fullPath)) {
-            if (!mkdir($fullPath, 0755, true)) {
-                return new WP_Error('mkdir_failed', 'Failed to create directory: ' . $targetPath);
-            }
+        if (!is_dir($fullPath) && !mkdir($fullPath, 0755, true)) {
+            return new WP_Error('mkdir_failed', 'Failed to create directory: ' . $targetPath);
         }
 
-        if ($file['error'] !== UPLOAD_ERR_OK) {
-            return new WP_Error('upload_error', 'File upload error code: ' . $file['error']);
+        if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+            return new WP_Error('upload_error', 'File upload error code: ' . (int)$file['error']);
         }
 
+        $originalInfo = pathinfo((string)$file['name']);
+        $baseName = (string)($originalInfo['filename'] ?? 'upload');
+        $baseName = ($settings['sanitize_filenames'] ?? true)
+            ? $this->sanitizeFileName($baseName)
+            : trim(str_replace(['/', '\\', "\0"], '_', $baseName));
+        if ($baseName === '') {
+            $baseName = 'upload';
+        }
 
-        $fileName = $this->sanitizeFileName($file['name']);
-        
-        // Ensure unique filename
-        $info = pathinfo($fileName);
-        $baseName = $info['filename'];
-        $extension = $info['extension'] ?? '';
+        if ($settings['lowercase_filenames'] ?? false) {
+            $baseName = strtolower($baseName);
+            $ext = strtolower($ext);
+        }
+
+        $willConvertToWebp = ($settings['auto_webp'] ?? false) && in_array($ext, ['jpg', 'jpeg', 'png', 'gif'], true);
+        $finalExtension = $willConvertToWebp ? 'webp' : $ext;
+        $fileName = $baseName . ($finalExtension !== '' ? '.' . $finalExtension : '');
         $counter = 1;
-        
+
         while (file_exists($fullPath . DIRECTORY_SEPARATOR . $fileName)) {
-            $fileName = $baseName . '-' . $counter . '.' . $extension;
+            if (!($settings['unique_filenames'] ?? true)) {
+                return new WP_Error('exists', 'Eine Datei mit diesem Namen existiert bereits.');
+            }
+
+            $fileName = $baseName . '-' . $counter . ($finalExtension !== '' ? '.' . $finalExtension : '');
             $counter++;
         }
 
-        $destination = $fullPath . DIRECTORY_SEPARATOR . $fileName;
+        $destinationBaseName = pathinfo($fileName, PATHINFO_FILENAME);
+        $temporaryFileName = $destinationBaseName . ($ext !== '' ? '.' . $ext : '');
+        $destination = $fullPath . DIRECTORY_SEPARATOR . $temporaryFileName;
 
         if (!move_uploaded_file($file['tmp_name'], $destination)) {
             return new WP_Error('move_failed', 'Failed to move uploaded file');
         }
 
-        // M-07: Automatische WebP-Konvertierung (wenn aktiviert und GD vorhanden)
-        $settings = $this->getSettings();
-        if (($settings['auto_webp'] ?? false) && in_array($ext, ['jpg', 'jpeg', 'png', 'gif'], true)) {
-            $webpPath = $this->convertToWebP($destination, $ext);
-            if ($webpPath !== null) {
-                // Original nach Konvertierung löschen und WebP als primäre Datei verwenden
-                if (file_exists($destination)) { unlink($destination); } // M-03: kein @
-                $fileName    = pathinfo($fileName, PATHINFO_FILENAME) . '.webp';
-                $destination = $fullPath . DIRECTORY_SEPARATOR . $fileName;
+        $imageDimensions = null;
+        if ($this->isImageExtension($ext)) {
+            $imageService = ImageService::getInstance();
+            $imageService->autoOrient($destination);
+            $imageService->resize(
+                $destination,
+                max(1, (int)($settings['max_width'] ?? 2560)),
+                max(1, (int)($settings['max_height'] ?? 2560)),
+                $destination,
+                (int)($settings['jpeg_quality'] ?? 85)
+            );
+
+            if ($settings['strip_exif'] ?? false) {
+                $this->reEncodeImage($destination, $ext, (int)($settings['jpeg_quality'] ?? 85));
             }
         }
 
-        // Save metadata (uploader, category)
+        if ($willConvertToWebp) {
+            $webpPath = $this->convertToWebP($destination, $ext, (int)($settings['jpeg_quality'] ?? 82));
+            if ($webpPath !== null) {
+                if (file_exists($destination)) {
+                    unlink($destination);
+                }
+                $destination = $webpPath;
+                $fileName = basename($webpPath);
+                $ext = 'webp';
+            } else {
+                $fileName = basename($destination);
+            }
+        } else {
+            $fileName = basename($destination);
+        }
+
+        if (($settings['generate_thumbnails'] ?? false) && $this->isImageExtension($ext)) {
+            ImageService::getInstance()->createAllThumbnails($destination, $this->buildThumbnailSizes($settings));
+        }
+
+        if ($this->isImageExtension($ext)) {
+            $imageDimensions = ImageService::getInstance()->getDimensions($destination);
+        }
+
         $meta = $this->loadMeta();
         $currentUser = Auth::getCurrentUser();
         $relativePath = str_replace('\\', '/', trim($targetPath . '/' . $fileName, '/'));
-        
-        // Auto-assign category based on path
+
         $category = null;
         $pathParts = explode('/', $relativePath);
-        if (count($pathParts) > 0 && in_array($pathParts[0], $this->systemFolders)) {
+        if (count($pathParts) > 0 && in_array($pathParts[0], $this->systemFolders, true)) {
             $category = $pathParts[0];
         }
 
@@ -518,7 +814,8 @@ class MediaService {
             'uploader_id' => $currentUser->id ?? 0,
             'uploaded_by' => $currentUser->display_name ?? 'System',
             'category' => $category,
-            'upload_date' => date('Y-m-d H:i:s')
+            'upload_date' => date('Y-m-d H:i:s'),
+            'dimensions' => $imageDimensions,
         ];
         $this->saveMeta($meta);
 
@@ -530,6 +827,7 @@ class MediaService {
      */
     public function deleteItem(string $path): bool|WP_Error {
         $fullPath = $this->resolvePath($path);
+        $normalizedPath = trim(str_replace('\\', '/', $path), '/');
 
         if (is_wp_error($fullPath)) {
             return $fullPath;
@@ -541,11 +839,20 @@ class MediaService {
 
         if (is_dir($fullPath)) {
             // Recursive delete directory
-            return $this->deleteDirectory($fullPath);
-        } else {
-            if (!unlink($fullPath)) {
-                return new WP_Error('delete_failed', 'Failed to delete file');
+            if (!$this->deleteDirectory($fullPath)) {
+                return new WP_Error('delete_failed', 'Failed to delete directory');
             }
+
+            $this->purgeMetaForPath($normalizedPath);
+            return true;
+        } else {
+            foreach ([$fullPath, ...$this->getGeneratedVariantPaths($fullPath)] as $filePath) {
+                if (file_exists($filePath) && !unlink($filePath)) {
+                    return new WP_Error('delete_failed', 'Failed to delete file');
+                }
+            }
+
+            $this->purgeMetaForPath($normalizedPath);
         }
 
         return true;
@@ -578,6 +885,7 @@ class MediaService {
      */
     public function renameItem(string $oldPath, string $newName): bool|WP_Error {
         $fullOldPath = $this->resolvePath($oldPath);
+        $oldPath = trim(str_replace('\\', '/', $oldPath), '/');
         
         if (is_wp_error($fullOldPath)) {
             return $fullOldPath;
@@ -599,6 +907,25 @@ class MediaService {
         if (!rename($fullOldPath, $fullNewPath)) {
             return new WP_Error('rename_failed', 'Failed to rename item');
         }
+
+        $newRelativePath = trim(str_replace('\\', '/', dirname($oldPath)), '/');
+        $newRelativePath = trim(($newRelativePath !== '' ? $newRelativePath . '/' : '') . $newName, '/');
+
+        if (is_dir($fullNewPath)) {
+            $this->renameMetaPath($oldPath, $newRelativePath);
+            return true;
+        }
+
+        $oldVariants = $this->getGeneratedVariantPaths($fullOldPath);
+        $newVariants = $this->getGeneratedVariantPaths($fullNewPath);
+        foreach ($oldVariants as $index => $oldVariant) {
+            $newVariant = $newVariants[$index] ?? null;
+            if ($newVariant !== null && file_exists($oldVariant)) {
+                rename($oldVariant, $newVariant);
+            }
+        }
+
+        $this->renameMetaPath($oldPath, $newRelativePath);
 
         return true;
     }

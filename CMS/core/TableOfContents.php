@@ -46,14 +46,20 @@ class TableOfContents
         'width'                => 'auto',
         'alignment'            => 'none',
         'theme'                => 'grey',
+        'custom_bg_color'      => '#f9f9f9',
+        'custom_border_color'  => '#aaaaaa',
+        'custom_title_color'   => '#333333',
+        'custom_link_color'    => '#0073aa',
         'headings'             => ['h2', 'h3', 'h4'],
         'exclude_headings'     => '',
+        'limit_path'           => '',
         'lowercase'            => true,
         'hyphenate'            => true,
         'homepage_toc'         => false,
         'exclude_css'          => false,
         'anchor_prefix'        => '',
         'remove_toc_links'     => false,
+        'sticky_toggle'        => false,
     ];
 
     // ─── Singleton ────────────────────────────────────────────────────────────
@@ -113,6 +119,10 @@ class TableOfContents
      */
     public function process(string $content, string $type = 'post', int $id = 0): array
     {
+        if (!$this->matchesCurrentPathLimit()) {
+            return ['toc' => '', 'content' => str_replace('[cms_toc]', '', $content)];
+        }
+
         // Keine Unterstützung für diesen Typ?
         $supportTypes = (array)($this->settings['support_types'] ?? ['post', 'page']);
         if (!in_array($type, $supportTypes, true)) {
@@ -159,12 +169,35 @@ class TableOfContents
      */
     public function renderFromContent(string $content): string
     {
+        if (!$this->matchesCurrentPathLimit()) {
+            return '';
+        }
+
         $headings = $this->extractHeadings($content);
         $limit    = max(1, (int)($this->settings['show_limit'] ?? 4));
         if (count($headings) < $limit) {
             return '';
         }
         return $this->buildTocHtml($headings);
+    }
+
+    private function matchesCurrentPathLimit(): bool
+    {
+        $limitPath = trim((string) ($this->settings['limit_path'] ?? ''));
+        if ($limitPath === '') {
+            return true;
+        }
+
+        $limitPath = '/' . ltrim($limitPath, '/');
+        $limitPath = rtrim((string) preg_replace('#/+#', '/', $limitPath), '/');
+        $limitPath = $limitPath === '' ? '/' : $limitPath;
+
+        $currentPath = (string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
+        $currentPath = '/' . ltrim($currentPath, '/');
+        $currentPath = rtrim((string) preg_replace('#/+#', '/', $currentPath), '/');
+        $currentPath = $currentPath === '' ? '/' : $currentPath;
+
+        return $currentPath === $limitPath || str_starts_with($currentPath, $limitPath . '/');
     }
 
     // ─── Heading Extraction ───────────────────────────────────────────────────
@@ -317,21 +350,36 @@ class TableOfContents
         $showHier     = (bool)($this->settings['show_hierarchy']     ?? true);
         $showCounter  = (bool)($this->settings['show_counter']       ?? true);
         $smoothScroll = (bool)($this->settings['smooth_scroll']      ?? true);
-        $offset       = (int) ($this->settings['smooth_scroll_offset'] ?? 30);
+        $desktopOffset = (int) ($this->settings['smooth_scroll_offset'] ?? 30);
+        $mobileOffset  = (int) ($this->settings['mobile_scroll_offset'] ?? $desktopOffset);
+        $removeLinks  = (bool)($this->settings['remove_toc_links']   ?? false);
+        $stickyToggle = (bool)($this->settings['sticky_toggle']      ?? false);
         $theme        = htmlspecialchars((string)($this->settings['theme']      ?? 'grey'),  ENT_QUOTES, 'UTF-8');
         $alignment    = htmlspecialchars((string)($this->settings['alignment']  ?? 'none'),  ENT_QUOTES, 'UTF-8');
-        $width        = htmlspecialchars((string)($this->settings['width']      ?? 'auto'),  ENT_QUOTES, 'UTF-8');
+        $widthSetting = (string)($this->settings['width'] ?? 'auto');
 
         $uid     = 'toc-' . substr(md5((string)microtime(true) . random_int(0, 9999)), 0, 8);
         $classes = ['cms-toc', 'cms-toc--' . $theme];
         if ($alignment !== 'none') {
             $classes[] = 'cms-toc--align-' . $alignment;
         }
-        if ($width !== 'auto') {
-            $classes[] = 'cms-toc--w-' . $width;
+        if ($widthSetting === '100%') {
+            $classes[] = 'cms-toc--w-full';
+        }
+        if ($stickyToggle) {
+            $classes[] = 'cms-toc--sticky';
         }
 
-        $html  = '<nav id="' . $uid . '" class="' . implode(' ', $classes) . '" aria-label="Inhaltsverzeichnis">';
+        $inlineStyles = [];
+        if ($theme === 'custom') {
+            $inlineStyles[] = '--cms-toc-bg:' . htmlspecialchars((string)($this->settings['custom_bg_color'] ?? '#f9f9f9'), ENT_QUOTES, 'UTF-8');
+            $inlineStyles[] = '--cms-toc-border:' . htmlspecialchars((string)($this->settings['custom_border_color'] ?? '#aaaaaa'), ENT_QUOTES, 'UTF-8');
+            $inlineStyles[] = '--cms-toc-title:' . htmlspecialchars((string)($this->settings['custom_title_color'] ?? '#333333'), ENT_QUOTES, 'UTF-8');
+            $inlineStyles[] = '--cms-toc-link:' . htmlspecialchars((string)($this->settings['custom_link_color'] ?? '#0073aa'), ENT_QUOTES, 'UTF-8');
+        }
+        $styleAttr = $inlineStyles !== [] ? ' style="' . implode(';', $inlineStyles) . '"' : '';
+
+        $html  = '<nav id="' . $uid . '" class="' . implode(' ', $classes) . '" aria-label="Inhaltsverzeichnis"' . $styleAttr . '>';
 
         if ($showHeader) {
             $html .= '<div class="cms-toc__header">';
@@ -350,9 +398,9 @@ class TableOfContents
 
         if ($showHier) {
             $structured = $this->buildHierarchy($headings);
-            $html      .= $this->renderList($structured, 0, $showCounter, $smoothScroll);
+            $html      .= $this->renderList($structured, 0, $showCounter, $smoothScroll, $removeLinks);
         } else {
-            $html .= $this->renderList($headings, 0, $showCounter, $smoothScroll);
+            $html .= $this->renderList($headings, 0, $showCounter, $smoothScroll, $removeLinks);
         }
 
         $html .= '</div>';
@@ -387,7 +435,8 @@ class TableOfContents
                 .     'var el=document.getElementById(id);'
                 .     'if(!el)return;'
                 .     'e.preventDefault();'
-                .     'var top=el.getBoundingClientRect().top+window.scrollY-' . $offset . ';'
+                .     'var offset=window.innerWidth<=767?' . $mobileOffset . ':' . $desktopOffset . ';'
+                .     'var top=el.getBoundingClientRect().top+window.scrollY-offset;'
                 .     'window.scrollTo({top:top,behavior:"smooth"});'
                 .     'history.pushState(null,null,"#"+id);'
                 .   '});'
@@ -428,7 +477,7 @@ class TableOfContents
 
     // ─── Render List ─────────────────────────────────────────────────────────
 
-    private function renderList(array $headings, int $depth, bool $numbered, bool $smooth): string
+    private function renderList(array $headings, int $depth, bool $numbered, bool $smooth, bool $removeLinks): string
     {
         if (empty($headings)) {
             return '';
@@ -445,10 +494,14 @@ class TableOfContents
             $hasKids   = !empty($h['children']);
 
             $html .= '<li class="cms-toc__item' . ($hasKids ? ' has-children' : '') . '">';
-            $html .= '<a href="' . $href . '"' . $scrollAttr . '>' . $text . '</a>';
+            if ($removeLinks) {
+                $html .= '<span class="cms-toc__label">' . $text . '</span>';
+            } else {
+                $html .= '<a href="' . $href . '"' . $scrollAttr . '>' . $text . '</a>';
+            }
 
             if ($hasKids) {
-                $html .= $this->renderList($h['children'], $depth + 1, $numbered, $smooth);
+                $html .= $this->renderList($h['children'], $depth + 1, $numbered, $smooth, $removeLinks);
             }
 
             $html .= '</li>';

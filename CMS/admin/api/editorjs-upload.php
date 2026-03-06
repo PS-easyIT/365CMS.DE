@@ -1,10 +1,12 @@
 <?php
 /**
- * Editor.js Upload Endpoint
+ * Editor.js Upload/Fetch Endpoint (modular path)
  *
- * Nimmt Bild- und Datei-Uploads von Editor.js entgegen.
- * Gibt JSON im Editor.js-Format zurück:
- *   { success: 1, file: { url: "..." } }
+ * Unterstützt:
+ * - action=upload_image (multipart)
+ * - action=upload_file  (multipart)
+ * - action=fetch_image  (byUrl)
+ * - action=fetch_link   (LinkTool)
  *
  * @package CMSv2\Admin\API
  */
@@ -24,63 +26,107 @@ if (!defined('ABSPATH')) {
 
 header('Content-Type: application/json; charset=utf-8');
 
-// Nur eingeloggte Admins dürfen hochladen
 if (!Auth::instance()->isLoggedIn()) {
     http_response_code(403);
     echo json_encode(['success' => 0, 'error' => 'Nicht angemeldet']);
     exit;
 }
 
-// Nur POST erlaubt
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['success' => 0, 'error' => 'Methode nicht erlaubt']);
     exit;
 }
 
-// CSRF prüfen
-$csrfToken = $_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+$csrfToken = $_POST['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
 if (!Security::instance()->verifyToken($csrfToken, 'editorjs_upload')) {
     http_response_code(403);
     echo json_encode(['success' => 0, 'error' => 'CSRF-Token ungültig']);
     exit;
 }
 
-// Datei prüfen
-$fileKey = 'image'; // Editor.js Image-Plugin sendet als "image"
-if (empty($_FILES[$fileKey])) {
-    $fileKey = 'file'; // Attaches-Plugin sendet als "file"
+$action = (string)($_GET['action'] ?? 'upload_image');
+
+$allowedImageExt = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'avif'];
+$allowedFileExt  = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'txt', 'csv'];
+$maxSize = 10 * 1024 * 1024; // 10 MB
+
+if ($action === 'fetch_link') {
+    $url = trim((string)($_POST['url'] ?? ''));
+    $validUrl = filter_var($url, FILTER_VALIDATE_URL);
+
+    if ($validUrl === false) {
+        http_response_code(400);
+        echo json_encode(['success' => 0, 'error' => 'Ungültige URL']);
+        exit;
+    }
+
+    echo json_encode([
+        'success' => 1,
+        'meta' => [
+            'title' => (string)$validUrl,
+            'description' => '',
+            'image' => ['url' => ''],
+        ],
+        'link' => (string)$validUrl,
+    ]);
+    exit;
 }
-if (empty($_FILES[$fileKey]) || $_FILES[$fileKey]['error'] !== UPLOAD_ERR_OK) {
+
+if ($action === 'fetch_image') {
+    $url = trim((string)($_POST['url'] ?? ''));
+    $validUrl = filter_var($url, FILTER_VALIDATE_URL);
+
+    if ($validUrl === false) {
+        http_response_code(400);
+        echo json_encode(['success' => 0, 'error' => 'Ungültige Bild-URL']);
+        exit;
+    }
+
+    $ext = strtolower((string)pathinfo(parse_url((string)$validUrl, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION));
+    if ($ext !== '' && !in_array($ext, $allowedImageExt, true)) {
+        http_response_code(415);
+        echo json_encode(['success' => 0, 'error' => 'Bildtyp nicht erlaubt']);
+        exit;
+    }
+
+    echo json_encode([
+        'success' => 1,
+        'file' => [
+            'url' => (string)$validUrl,
+        ],
+    ]);
+    exit;
+}
+
+$fileKey = 'image';
+if (!empty($_FILES['file'])) {
+    $fileKey = 'file';
+}
+
+if (empty($_FILES[$fileKey]) || (int)$_FILES[$fileKey]['error'] !== UPLOAD_ERR_OK) {
     http_response_code(400);
     echo json_encode(['success' => 0, 'error' => 'Keine Datei empfangen']);
     exit;
 }
 
 $file = $_FILES[$fileKey];
-
-// Maximale Dateigröße: 10 MB
-$maxSize = 10 * 1024 * 1024;
-if ($file['size'] > $maxSize) {
+$size = (int)($file['size'] ?? 0);
+if ($size > $maxSize) {
     http_response_code(413);
     echo json_encode(['success' => 0, 'error' => 'Datei zu groß (max. 10 MB)']);
     exit;
 }
 
-// Erlaubte Dateitypen
-$ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-$allowedImages  = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
-$allowedFiles   = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'txt', 'csv'];
-$allowedAll     = array_merge($allowedImages, $allowedFiles);
-
-if (!in_array($ext, $allowedAll, true)) {
+$ext = strtolower((string)pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION));
+$allowed = ($action === 'upload_file') ? array_merge($allowedImageExt, $allowedFileExt) : $allowedImageExt;
+if (!in_array($ext, $allowed, true)) {
     http_response_code(415);
     echo json_encode(['success' => 0, 'error' => 'Dateityp nicht erlaubt: ' . $ext]);
     exit;
 }
 
-// Upload-Zielverzeichnis: uploads/editor/YYYY/MM/
-$year  = date('Y');
+$year = date('Y');
 $month = date('m');
 $targetPath = "editor/{$year}/{$month}";
 
@@ -94,18 +140,17 @@ try {
         exit;
     }
 
-    // Dateiname zurückbekommen → URL zusammenbauen
     $fileUrl = SITE_URL . '/uploads/' . $targetPath . '/' . $result;
 
     echo json_encode([
         'success' => 1,
         'file' => [
-            'url'  => $fileUrl,
-            'name' => $result,
-            'size' => $file['size'],
-        ]
+            'url' => $fileUrl,
+            'name' => (string)$result,
+            'size' => $size,
+        ],
     ]);
-} catch (\Throwable $e) {
+} catch (\Throwable) {
     http_response_code(500);
     echo json_encode(['success' => 0, 'error' => 'Upload fehlgeschlagen']);
 }

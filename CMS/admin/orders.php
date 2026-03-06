@@ -105,8 +105,9 @@ renderAdminLayoutStart('Bestellungen', 'orders');
     <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
 <?php endif; ?>
 
-<div class="users-table-container">
-    <table class="users-table">
+<div class="card">
+<div class="table-responsive">
+    <table class="table table-vcenter card-table">
         <thead>
             <tr>
                 <th>Bestell-Nr.</th>
@@ -139,9 +140,8 @@ renderAdminLayoutStart('Bestellungen', 'orders');
                     <td style="font-weight:600;color:#1e293b;">
                         <?php echo number_format((float)($order->total_amount ?? 0), 2, ',', '.'); ?> <?php echo htmlspecialchars($order->currency ?? 'EUR'); ?>
                     </td>
-                    <td>
-                        <div style="color:#374151;"><?php echo date('d.m.Y', strtotime($order->created_at)); ?></div>
-                        <div style="font-size:.78rem;color:#94a3b8;"><?php echo date('H:i', strtotime($order->created_at)); ?></div>
+                    <td title="<?php echo date('d.m.Y H:i', strtotime($order->created_at)); ?>">
+                        <div style="color:#374151;"><?php echo time_ago($order->created_at); ?></div>
                     </td>
                     <td><?php echo getStatusBadge($order->status); ?></td>
                     <td style="text-align:right; white-space:nowrap;">
@@ -171,6 +171,7 @@ renderAdminLayoutStart('Bestellungen', 'orders');
         </tbody>
     </table>
 </div>
+</div>
 
 <?php if ($totalPages > 1): ?>
 <div style="display:flex;gap:.5rem;justify-content:center;margin-top:1.5rem;flex-wrap:wrap;">
@@ -188,23 +189,21 @@ renderAdminLayoutStart('Bestellungen', 'orders');
 
 
 <!-- Details Modal -->
-<div id="orderModal" class="modal" style="display:none;">
-    <div class="modal-content" style="max-width:640px;">
-        <div class="modal-header">
-            <h3>Bestelldetails <span id="modalOrderNum" style="color:var(--admin-primary);"></span></h3>
-            <button class="modal-close" onclick="closeOrderModal()">&times;</button>
+<div class="modal modal-blur fade" id="orderModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bestelldetails <span id="modalOrderNum" class="text-primary"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+            </div>
+            <div class="modal-body" id="modalContent"></div>
         </div>
-        <div class="modal-body" id="modalContent"></div>
     </div>
 </div>
 
 <script>
 function viewOrderDetails(order) {
-    const modal = document.getElementById('orderModal');
     document.getElementById('modalOrderNum').textContent = '#' + order.order_number;
-    modal.style.display = 'flex';
-    modal.style.alignItems = 'center';
-    modal.style.justifyContent = 'center';
     
     const html = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;">
         <div>
@@ -232,13 +231,7 @@ function viewOrderDetails(order) {
         </div>
     </div>`;
     document.getElementById('modalContent').innerHTML = html;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('orderModal')).show();
 }
-
-function closeOrderModal() {
-    document.getElementById('orderModal').style.display = 'none';
-}
-document.getElementById('orderModal').addEventListener('click', function(e) {
-    if (e.target === this) closeOrderModal();
-});
 </script>
 <?php renderAdminLayoutEnd(); ?>

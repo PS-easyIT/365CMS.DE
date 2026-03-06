@@ -4,21 +4,20 @@
  * @package CMSv2\Assets
  */
 
-// ── Modal Utilities ──────────────────────────────────────────────────────────
+// ── Modal Utilities (Tabler Bootstrap) ───────────────────────────────────────
 function openModal(id) {
     var el = document.getElementById(id);
-    if (el) el.style.display = 'flex';
+    if (el && typeof bootstrap !== 'undefined') {
+        bootstrap.Modal.getOrCreateInstance(el).show();
+    }
 }
 function closeModal(id) {
     var el = document.getElementById(id);
-    if (el) el.style.display = 'none';
-}
-// Close modal on backdrop click
-window.addEventListener('click', function(e) {
-    if (e.target.classList && e.target.classList.contains('modal')) {
-        closeModal(e.target.id);
+    if (el && typeof bootstrap !== 'undefined') {
+        var inst = bootstrap.Modal.getInstance(el);
+        if (inst) inst.hide();
     }
-});
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     

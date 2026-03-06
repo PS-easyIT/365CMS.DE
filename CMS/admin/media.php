@@ -187,7 +187,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     break;
                 }
                 $result = $mediaService->deleteCategory($slug);
-                echo json_encode(['success' => true, 'new_token' => $newCsrfToken]);
+                if (is_wp_error($result)) {
+                    echo json_encode(['success' => false, 'error' => $result->get_error_message(), 'new_token' => $newCsrfToken]);
+                } else {
+                    echo json_encode(['success' => true, 'new_token' => $newCsrfToken]);
+                }
                 break;
 
             case 'assign_category':
@@ -198,7 +202,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     break;
                 }
                 $result = $mediaService->assignCategory($filePath, $slug);
-                echo json_encode(['success' => true, 'new_token' => $newCsrfToken]);
+                if (is_wp_error($result)) {
+                    echo json_encode(['success' => false, 'error' => $result->get_error_message(), 'new_token' => $newCsrfToken]);
+                } else {
+                    echo json_encode(['success' => true, 'new_token' => $newCsrfToken]);
+                }
                 break;
 
             default:
@@ -220,6 +228,7 @@ $initialFilter = 'all';
 switch ($activeTab) {
     case 'settings':
     case 'categories':
+    case 'elfinder':
         $viewMode = $activeTab;
         break;
     default:
@@ -245,35 +254,27 @@ require_once __DIR__ . '/partials/admin-menu.php';
 // Load settings for view (and categories)
 $settings = $mediaService->getSettings();
 $categories = $mediaService->getCategories();
+$diskUsage = ($viewMode === 'files') ? $mediaService->getDiskUsage() : null;
+
+$mediaActiveSlug = 'media-' . ($activeTab === 'all' ? 'library' : $activeTab);
+renderAdminLayoutStart('Medienverwaltung', $mediaActiveSlug);
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Medienverwaltung - <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <?php renderAdminSidebarStyles(); ?>
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/filepond/filepond.min.css?v=20260305">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/elfinder/css/elfinder.min.css?v=20260305">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/elfinder/css/theme.css?v=20260305">
+    <script src="<?php echo SITE_URL; ?>/assets/filepond/filepond.min.js" defer></script>
+    <script src="<?php echo SITE_URL; ?>/assets/elfinder/js/elfinder.min.js" defer></script>
     <script>
-        // CSRF-Token für alle Media-AJAX-Aufrufe (Fix C-13)
         let CMS_MEDIA_NONCE = '<?php echo htmlspecialchars($mediaCsrfToken, ENT_QUOTES, 'UTF-8'); ?>';
-        /**
-         * CSRF-sicherer fetch-Wrapper: hängt das CSRF-Token an jede FormData an,
-         * aktualisiert den Token automatisch nach jeder Antwort (One-Time-Use)
-         * und wiederholt den Request einmalig bei CSRF-Fehler (Auto-Retry).
-         * @param {FormData} formData
-         * @returns {Promise<Response>}
-         */
         async function cmsPost(formData) {
             formData.append('csrf_token', CMS_MEDIA_NONCE);
             const response = await fetch('', { method: 'POST', body: formData });
-            // Token-Rotation: Neuen Token aus Antwort extrahieren
             const cloned = response.clone();
             try {
                 const json = await cloned.json();
                 if (json.new_token) {
                     CMS_MEDIA_NONCE = json.new_token;
                 }
-                // Auto-Retry: bei CSRF-Fehler einmalig mit neuem Token wiederholen
                 if (!json.success && json.new_token && json.error && json.error.indexOf('Sicherheits') !== -1) {
                     const retryData = new FormData();
                     for (const [key, value] of formData.entries()) {
@@ -288,17 +289,13 @@ $categories = $mediaService->getCategories();
                     } catch (e2) { /* ignore */ }
                     return retryResp;
                 }
-            } catch (e) { /* Antwort ist kein JSON – ignorieren */ }
+            } catch (e) { /* ignore */ }
             return response;
         }
     </script>
-</head>
-<body class="admin-body">
-    
-    <?php renderAdminSidebar('media-' . ($activeTab === 'all' ? 'library' : $activeTab)); ?>
-    
+
     <!-- Main Content -->
-    <div class="admin-content" <?php if($viewMode === 'files') echo 'ondragover="event.preventDefault(); this.classList.add(\'drag-over\');" ondragleave="this.classList.remove(\'drag-over\');" ondrop="handleDrop(event)"'; ?>>
+    <div class="media-content-area" <?php if($viewMode === 'files') echo 'ondragover="event.preventDefault(); this.classList.add(\'drag-over\');" ondragleave="this.classList.remove(\'drag-over\');" ondrop="handleDrop(event)"'; ?>>
         
         <?php if ($viewMode === 'settings'): ?>
             <!-- SETTINGS VIEW -->
@@ -742,6 +739,8 @@ $categories = $mediaService->getCategories();
                     </div>
                 </div>
             </div>
+
+            <div id="category-status-notice" aria-live="polite"></div>
             
             <div class="card">
                 <div class="table-responsive">
@@ -762,9 +761,14 @@ $categories = $mediaService->getCategories();
                                 <tr>
                                     <td><strong><?php echo htmlspecialchars($cat['name']); ?></strong></td>
                                     <td><code><?php echo htmlspecialchars($cat['slug']); ?></code></td>
-                                    <td>-</td> <!-- Would require counting file occurrences -->
+                                    <td><?php echo (int)($cat['count'] ?? 0); ?></td>
                                     <td style="text-align:right;">
-                                        <button class="action-btn delete" onclick="deleteCategory('<?php echo $cat['slug']; ?>')">🗑️</button>
+                                        <?php if (!empty($cat['is_system'])): ?>
+                                            <span class="badge bg-secondary-lt">System</span>
+                                            <button class="action-btn" disabled style="opacity:.35;cursor:not-allowed;" title="System-Kategorie">🔒</button>
+                                        <?php else: ?>
+                                            <button class="action-btn delete" onclick="deleteCategory('<?php echo htmlspecialchars($cat['slug'], ENT_QUOTES); ?>')">🗑️</button>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -775,25 +779,40 @@ $categories = $mediaService->getCategories();
             </div>
 
             <!-- Add Category Modal -->
-            <div class="modal" id="add-category-modal">
-                <div class="modal-content">
-                    <h3>Neue Kategorie</h3>
-                    <div class="form-group mb-3">
-                        <label>Name</label>
-                        <input type="text" id="cat-name" class="form-control" onkeydown="if(event.key === 'Enter') addCategory()">
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-outline" onclick="closeModal('add-category-modal')">Abbrechen</button>
-                        <button class="btn btn-primary" onclick="addCategory()">Erstellen</button>
+            <div class="modal modal-blur fade" id="add-category-modal" tabindex="-1" role="dialog" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Neue Kategorie</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Name</label>
+                                <input type="text" id="cat-name" class="form-control" onkeydown="if(event.key === 'Enter') addCategory()">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                            <button class="btn btn-primary" onclick="addCategory()">Erstellen</button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <script>
+                function showCategoryNotice(message, type = 'success') {
+                    const container = document.getElementById('category-status-notice');
+                    if (!container) return;
+                    container.innerHTML = '<div class="notice notice-' + (type === 'error' ? 'error' : type === 'info' ? 'info' : 'success') + ' mb-3">' + String(message).replace(/[&<>"']/g, function(char) {
+                        return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[char];
+                    }) + '</div>';
+                }
+
                 function openCategoryModal() {
                     document.getElementById('cat-name').value = '';
-                    document.getElementById('add-category-modal').classList.add('active');
-                    setTimeout(() => document.getElementById('cat-name').focus(), 50);
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('add-category-modal')).show();
+                    setTimeout(() => document.getElementById('cat-name').focus(), 150);
                 }
 
                 async function addCategory() {
@@ -808,31 +827,65 @@ $categories = $mediaService->getCategories();
                     const result = await response.json();
 
                     if (result.success) {
-                        location.reload(); 
+                        showCategoryNotice('Kategorie erfolgreich erstellt.', 'success');
+                        window.setTimeout(() => location.reload(), 350);
                     } else {
-                        alert('Fehler: ' + result.error);
+                        showCategoryNotice('Fehler: ' + result.error, 'error');
                     }
                 }
 
                 async function deleteCategory(slug) {
                     _pendingDeleteCategorySlug = slug;
-                    document.getElementById('mediaDeleteModal').style.display = 'flex';
+                    const delModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('mediaDeleteModal'));
+                    delModal.show();
                     document.getElementById('mediaDeleteMsg').textContent = 'Kategorie wirklich löschen? Zugeordnete Dateien werden nicht gelöscht.';
                     document.getElementById('mediaDeleteConfirmBtn').onclick = async function() {
-                        document.getElementById('mediaDeleteModal').style.display = 'none';
+                        delModal.hide();
                         const formData = new FormData();
                         formData.append('action', 'delete_category');
                         formData.append('slug', _pendingDeleteCategorySlug);
                         const response = await cmsPost(formData);
-                        if ((await response.json()).success) { location.reload(); }
+                        const result = await response.json();
+                        if (result.success) {
+                            showCategoryNotice('Kategorie gelöscht.', 'success');
+                            window.setTimeout(() => location.reload(), 350);
+                        } else {
+                            showCategoryNotice('Fehler: ' + (result.error ?? 'Kategorie konnte nicht gelöscht werden.'), 'error');
+                        }
                     };
                 }
                 let _pendingDeleteCategorySlug = '';
                 
                 function closeModal(id) {
-                    document.getElementById(id).classList.remove('active');
+                    const el = document.getElementById(id);
+                    const inst = bootstrap.Modal.getInstance(el);
+                    if (inst) inst.hide();
                 }
             </script>
+
+        <?php elseif ($viewMode === 'elfinder'): ?>
+            <!-- ELFINDER VIEW -->
+            <div class="page-header d-print-none mb-3">
+                <div class="container-xl">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="page-pretitle">Administration</div>
+                            <h2 class="page-title">🗂️ elFinder Dateimanager</h2>
+                            <p class="text-secondary mt-1">Connector aktiv: <code>/admin/includes/elfinder-connector.php</code> (nur Admin, Upload-Verzeichnis auf <code>CMS/uploads/</code> beschränkt).</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        ⚠️ Der Connector ist aktiv. Für die vollständige Browser-UI benötigt elFinder zusätzlich jQuery + jQuery UI als lokale Runtime-Abhängigkeit.
+                    </div>
+                    <p style="margin:0;color:#475569;">Endpoint-Test:</p>
+                    <pre style="background:#0f172a;color:#e2e8f0;padding:1rem;border-radius:8px;overflow:auto;margin-top:.75rem;">GET <?php echo SITE_URL; ?>/admin/includes/elfinder-connector.php?cmd=open&target=l1_Lw</pre>
+                </div>
+            </div>
 
         <?php else: ?>
             <!-- LIBRARY VIEW -->
@@ -844,14 +897,19 @@ $categories = $mediaService->getCategories();
                             <h2 class="page-title">🖼️ Medienverwaltung</h2>
                             <p class="text-secondary mt-1">Verwalten Sie alle Dateien, Bilder und Dokumente an einem Ort.</p>
                         </div>
-                        <div class="col-auto ms-auto d-flex gap-2">
+                        <div class="col-auto ms-auto d-flex gap-2 align-items-center">
+                            <?php if ($diskUsage): ?>
+                            <span class="media-disk-usage" title="Speicherbelegung: <?php echo (int)$diskUsage['count']; ?> Dateien">
+                                💾 <?php echo htmlspecialchars($diskUsage['formatted']); ?>
+                                <small>(<?php echo (int)$diskUsage['count']; ?> Dateien)</small>
+                            </span>
+                            <?php endif; ?>
                             <button class="btn btn-outline" onclick="openCreateFolderModal()">
                                 📂 Neuer Ordner
                             </button>
-                            <button class="btn btn-primary" onclick="document.getElementById('file-upload').click()">
+                            <button class="btn btn-primary" onclick="triggerUploadBrowse()">
                                 ☁️ Upload
                             </button>
-                            <input type="file" id="file-upload" multiple style="display: none;" onchange="handleFileUpload(this)">
                         </div>
                     </div>
                 </div>
@@ -860,11 +918,11 @@ $categories = $mediaService->getCategories();
             <!-- Toolbar -->
             <div class="media-toolbar">
                 <div class="media-filters">
-                    <div class="breadcrumb" id="breadcrumb" style="margin-right: 20px;">
+                    <div class="media-breadcrumb" id="breadcrumb" style="margin-right: 20px;">
                         <span onclick="loadPath('')">Home</span>
                     </div>
                     
-                    <select id="media-filter" class="form-select" style="width: 200px;" onchange="applyFilter()">
+                    <select id="media-filter" class="form-select form-select-sm" style="width: 170px;" onchange="applyFilter()">
                         <option value="all">Alle Dateitypen</option>
                         <option value="folder">Nur Ordner</option>
                         <option value="image">Bilder</option>
@@ -877,147 +935,450 @@ $categories = $mediaService->getCategories();
                         <option value="font">Fonts</option>
                     </select>
                     
-                    <select id="category-filter" class="form-select" style="width: 200px;" onchange="applyFilter()">
+                    <select id="category-filter" class="form-select form-select-sm" style="width: 170px;" onchange="applyFilter()">
                         <option value="">Alle Kategorien</option>
                         <?php foreach($categories as $cat): ?>
                             <option value="<?php echo htmlspecialchars($cat['slug']); ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
                         <?php endforeach; ?>
                     </select>
 
-                    <select id="uploader-filter" class="form-select" style="width: 200px;" onchange="applyFilter()">
+                    <select id="uploader-filter" class="form-select form-select-sm" style="width: 170px;" onchange="applyFilter()">
                         <option value="">Alle Uploader</option>
                     </select>
                 </div>
-                <div class="search-box">
-                    <input type="text" placeholder="Suchen..." class="form-control" id="search-input" onkeyup="applyFilterS(this.value)">
+                <div class="media-toolbar-right">
+                    <input type="text" placeholder="Suchen..." class="form-control form-control-sm" id="search-input" style="width:200px;" onkeyup="applyFilterS(this.value)">
+                    <div class="media-view-toggle btn-group">
+                        <button class="btn btn-sm btn-icon" id="view-list-btn" onclick="setViewMode('list')" title="Listenansicht">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                        </button>
+                        <button class="btn btn-sm btn-icon" id="view-grid-btn" onclick="setViewMode('grid')" title="Kachelansicht">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Table View -->
-            <div id="media-view">
-                <table class="media-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 60px;">Vorschau</th>
-                            <th>Name</th>
-                            <th>Typ</th>
-                            <th>Größe</th>
-                            <th>Kategorie</th>
-                            <th>Hochgeladen von</th>
-                            <th style="min-width: 150px; text-align: right;">Aktionen</th>
-                        </tr>
-                    </thead>
-                    <tbody id="file-list">
-                        <!-- Loaded via JS -->
-                        <tr>
-                            <td colspan="6" style="text-align: center; padding: 30px;">Lade Dateien...</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="section-header">
+                        <h3>☁️ Schnell-Upload</h3>
+                        <p>Dateien per Drag & Drop oder über den Dateidialog direkt in den aktuell geöffneten Ordner hochladen.</p>
+                    </div>
+                    <input type="file" id="file-upload" class="js-filepond" multiple onchange="if (typeof window.FilePond === 'undefined') handleFileUpload(this)">
+                    <div id="media-status-notice" aria-live="polite"></div>
+                </div>
+            </div>
+
+            <!-- Media Content Layout (File List + Detail Panel) -->
+            <div class="media-layout">
+                <!-- File Area -->
+                <div class="media-file-area">
+                    <!-- Table View -->
+                    <div id="media-list-view">
+                        <div class="card">
+                            <div class="table-responsive">
+                                <table class="table table-vcenter card-table media-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:44px;">
+                                                <input type="checkbox" class="form-check-input" id="select-all" onchange="toggleSelectAll(this.checked)">
+                                            </th>
+                                            <th style="width: 60px;">Vorschau</th>
+                                            <th>Name</th>
+                                            <th>Typ</th>
+                                            <th>Größe</th>
+                                            <th>Kategorie</th>
+                                            <th style="min-width: 120px; text-align: right;">Aktionen</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="file-list">
+                                        <tr>
+                                            <td colspan="7" style="text-align: center; padding: 30px;">Lade Dateien...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grid View -->
+                    <div id="media-grid-view" style="display:none;">
+                        <div class="media-grid" id="file-grid">
+                            <!-- Loaded via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Bulk Actions Bar -->
+                    <div class="media-bulk-bar" id="bulk-bar" style="display:none;">
+                        <span id="bulk-count">0 ausgewählt</span>
+                        <button class="btn btn-sm btn-danger" onclick="bulkDelete()">🗑️ Auswahl löschen</button>
+                    </div>
+                </div>
+
+                <!-- Detail Panel -->
+                <div class="media-detail-panel" id="detail-panel" style="display:none;">
+                    <div class="media-detail-header">
+                        <strong>Dateidetails</strong>
+                        <button class="btn-close" onclick="closeDetailPanel()">&times;</button>
+                    </div>
+                    <div class="media-detail-body">
+                        <div class="media-detail-preview" id="detail-preview"></div>
+                        <div class="media-detail-info">
+                            <table class="media-detail-table">
+                                <tr><td>Dateiname</td><td id="detail-name">-</td></tr>
+                                <tr><td>Typ</td><td id="detail-type">-</td></tr>
+                                <tr><td>Größe</td><td id="detail-size">-</td></tr>
+                                <tr><td>Abmessungen</td><td id="detail-dimensions">-</td></tr>
+                                <tr><td>Geändert</td><td id="detail-modified">-</td></tr>
+                                <tr><td>Hochgeladen von</td><td id="detail-uploader">-</td></tr>
+                                <tr><td>Kategorie</td><td id="detail-category">-</td></tr>
+                            </table>
+                        </div>
+                        <div class="media-detail-url">
+                            <label class="form-label" style="font-size:.8rem;font-weight:600;">Datei-URL</label>
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control" id="detail-url" readonly>
+                                <button class="btn btn-outline" onclick="copyToClipboard(document.getElementById('detail-url').value)">📋</button>
+                            </div>
+                        </div>
+                        <div class="media-detail-actions">
+                            <button class="btn btn-sm btn-outline w-100 mb-1" id="detail-rename-btn" onclick="openRenameFromDetail()">✎ Umbenennen</button>
+                            <button class="btn btn-sm btn-outline w-100 mb-1" id="detail-category-btn" onclick="openCategoryFromDetail()">🏷️ Kategorie</button>
+                            <a class="btn btn-sm btn-outline w-100 mb-1" id="detail-download-btn" href="#" download>⬇️ Herunterladen</a>
+                            <button class="btn btn-sm btn-danger w-100" id="detail-delete-btn" onclick="deleteFromDetail()">🗑️ Löschen</button>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <!-- Create Folder Modal -->
-            <div class="modal" id="create-folder-modal">
-                <div class="modal-content">
-                    <h3>Neuen Ordner erstellen</h3>
-                    <div class="form-group">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 500;">Ordnername</label>
-                        <input type="text" id="new-folder-name" class="form-control" placeholder="z.B. Projekte_2024" onkeydown="if(event.key === 'Enter') createFolder()">
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-outline" onclick="closeModal('create-folder-modal')">Abbrechen</button>
-                        <button class="btn btn-primary" onclick="createFolder()">Erstellen</button>
+            <div class="modal modal-blur fade" id="create-folder-modal" tabindex="-1" role="dialog" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Neuen Ordner erstellen</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Ordnername</label>
+                                <input type="text" id="new-folder-name" class="form-control" placeholder="z.B. Projekte_2024" onkeydown="if(event.key === 'Enter') createFolder()">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                            <button class="btn btn-primary" onclick="createFolder()">Erstellen</button>
+                        </div>
                     </div>
                 </div>
             </div>
             
             <!-- Rename Modal -->
-            <div class="modal" id="rename-modal">
-                <div class="modal-content">
-                    <h3>Umbenennen</h3>
-                    <input type="hidden" id="rename-old-path">
-                    <div class="form-group">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 500;">Neuer Name</label>
-                        <input type="text" id="rename-new-name" class="form-control" onkeydown="if(event.key === 'Enter') renameItem()">
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-outline" onclick="closeModal('rename-modal')">Abbrechen</button>
-                        <button class="btn btn-primary" onclick="renameItem()">Speichern</button>
+            <div class="modal modal-blur fade" id="rename-modal" tabindex="-1" role="dialog" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Umbenennen</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="rename-old-path">
+                            <div class="mb-3">
+                                <label class="form-label">Neuer Name</label>
+                                <input type="text" id="rename-new-name" class="form-control" onkeydown="if(event.key === 'Enter') renameItem()">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                            <button class="btn btn-primary" onclick="renameItem()">Speichern</button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Assign Category Modal -->
-            <div class="modal" id="assign-modal">
-                <div class="modal-content">
-                    <h3>Kategorie zuweisen</h3>
-                    <input type="hidden" id="assign-file-path">
-                    <div class="form-group">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 500;">Kategorie wählen</label>
-                        <select id="assign-category-slug" class="form-select">
-                            <option value="">-- Keine --</option>
-                            <?php foreach($categories as $cat): ?>
-                                <option value="<?php echo htmlspecialchars($cat['slug']); ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-outline" onclick="closeModal('assign-modal')">Abbrechen</button>
-                        <button class="btn btn-primary" onclick="submitAssignment()">Speichern</button>
+            <div class="modal modal-blur fade" id="assign-modal" tabindex="-1" role="dialog" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Kategorie zuweisen</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="assign-file-path">
+                            <div class="mb-3">
+                                <label class="form-label">Kategorie wählen</label>
+                                <select id="assign-category-slug" class="form-select">
+                                    <option value="">-- Keine --</option>
+                                    <?php foreach($categories as $cat): ?>
+                                        <option value="<?php echo htmlspecialchars($cat['slug']); ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                            <button class="btn btn-primary" onclick="submitAssignment()">Speichern</button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Image Preview Modal -->
-            <div class="modal" id="image-preview-modal" onclick="if(event.target === this) closeModal('image-preview-modal')">
-                <div class="modal-content" style="width: auto; max-width: 90%; background: transparent; box-shadow: none; padding: 0;">
-                    <img id="preview-image-full" src="" style="max-width: 100%; max-height: 85vh; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
-                    <div style="text-align: center; margin-top: 10px;">
-                        <button class="btn btn-light btn-sm" onclick="closeModal('image-preview-modal')">Schließen</button>
+            <div class="modal modal-blur fade" id="image-preview-modal" tabindex="-1" role="dialog" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                    <div class="modal-content" style="background: transparent; border: none; box-shadow: none;">
+                        <div class="modal-body p-0 text-center">
+                            <img id="preview-image-full" src="" style="max-width: 100%; max-height: 85vh; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+                        </div>
+                        <div class="modal-footer border-0 justify-content-center" style="background: transparent;">
+                            <button class="btn btn-light btn-sm" data-bs-dismiss="modal">Schließen</button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Delete Confirmation Modal -->
-            <div class="modal" id="mediaDeleteModal" style="display:none;">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3>Löschen bestätigen</h3>
-                        <button class="modal-close" onclick="document.getElementById('mediaDeleteModal').style.display='none'">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <p id="mediaDeleteMsg">Element wirklich löschen?</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('mediaDeleteModal').style.display='none'">Abbrechen</button>
-                        <button type="button" class="btn btn-danger" id="mediaDeleteConfirmBtn">🗑️ Löschen</button>
+            <div class="modal modal-blur fade" id="mediaDeleteModal" tabindex="-1" role="dialog" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
+                    <div class="modal-content">
+                        <div class="modal-status bg-danger"></div>
+                        <div class="modal-header">
+                            <h5 class="modal-title">Löschen bestätigen</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p id="mediaDeleteMsg">Element wirklich löschen?</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                            <button type="button" class="btn btn-danger" id="mediaDeleteConfirmBtn">🗑️ Löschen</button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <script>
-                // ... (Previous JS logic for Library) ...
+                // State
                 let currentPath = '';
                 let allItems = { folders: [], files: [] };
+                let selectedItems = new Set();
+                let currentDetailFile = null;
+                let currentViewMode = localStorage.getItem('media_view') || 'list';
+                let mediaPond = null;
                 const allCategories = <?php echo json_encode($categories); ?>;
-                // Initial filter from PHP
                 const initialFilter = '<?php echo htmlspecialchars($initialFilter); ?>';
 
                 document.addEventListener('DOMContentLoaded', () => {
                     const filterSelect = document.getElementById('media-filter');
-                    if (filterSelect) {
-                        filterSelect.value = initialFilter;
-                    }
+                    if (filterSelect) filterSelect.value = initialFilter;
+                    setViewMode(currentViewMode);
+                    initFilePond();
                     loadPath('');
                 });
 
+                /* ── View Mode Toggle ── */
+                function setViewMode(mode) {
+                    currentViewMode = mode;
+                    localStorage.setItem('media_view', mode);
+                    const listView = document.getElementById('media-list-view');
+                    const gridView = document.getElementById('media-grid-view');
+                    const listBtn = document.getElementById('view-list-btn');
+                    const gridBtn = document.getElementById('view-grid-btn');
+                    if (mode === 'grid') {
+                        listView.style.display = 'none';
+                        gridView.style.display = '';
+                        listBtn.classList.remove('active');
+                        gridBtn.classList.add('active');
+                    } else {
+                        listView.style.display = '';
+                        gridView.style.display = 'none';
+                        listBtn.classList.add('active');
+                        gridBtn.classList.remove('active');
+                    }
+                    applyFilter();
+                }
+
+                /* ── Selection ── */
+                function toggleSelectAll(checked) {
+                    selectedItems.clear();
+                    document.querySelectorAll('.media-row-check').forEach(cb => {
+                        cb.checked = checked;
+                        if (checked) selectedItems.add(cb.dataset.path);
+                    });
+                    updateBulkBar();
+                }
+                function toggleSelectItem(path, checked) {
+                    if (checked) selectedItems.add(path);
+                    else selectedItems.delete(path);
+                    updateBulkBar();
+                }
+                function updateBulkBar() {
+                    const bar = document.getElementById('bulk-bar');
+                    if (selectedItems.size > 0) {
+                        bar.style.display = 'flex';
+                        document.getElementById('bulk-count').textContent = selectedItems.size + ' ausgewählt';
+                    } else {
+                        bar.style.display = 'none';
+                    }
+                }
+
+                function showMediaNotice(message, type = 'success') {
+                    const container = document.getElementById('media-status-notice');
+                    if (!container) return;
+                    container.innerHTML = '<div class="notice notice-' + escAttr(type) + ' mt-3">' + escHtml(message) + '</div>';
+                    window.clearTimeout(showMediaNotice._timer);
+                    showMediaNotice._timer = window.setTimeout(() => {
+                        container.innerHTML = '';
+                    }, 4500);
+                }
+
+                function triggerUploadBrowse() {
+                    if (mediaPond && typeof mediaPond.browse === 'function') {
+                        mediaPond.browse();
+                        return;
+                    }
+
+                    const input = document.getElementById('file-upload');
+                    if (input) {
+                        input.click();
+                    }
+                }
+
+                async function bulkDelete() {
+                    if (selectedItems.size === 0) return;
+                    const delModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('mediaDeleteModal'));
+                    delModal.show();
+                    document.getElementById('mediaDeleteMsg').textContent = selectedItems.size + ' Elemente wirklich löschen?';
+                    document.getElementById('mediaDeleteConfirmBtn').onclick = async function() {
+                        delModal.hide();
+                        for (const path of selectedItems) {
+                            const fd = new FormData();
+                            fd.append('action', 'delete_item');
+                            fd.append('item_path', path);
+                            await cmsPost(fd);
+                        }
+                        selectedItems.clear();
+                        updateBulkBar();
+                        loadPath(currentPath);
+                    };
+                }
+
+                /* ── Detail Panel ── */
+                function showDetailPanel(file) {
+                    currentDetailFile = file;
+                    const panel = document.getElementById('detail-panel');
+                    panel.style.display = '';
+
+                    const previewEl = document.getElementById('detail-preview');
+                    const isImage = ['jpg','jpeg','png','gif','webp','svg','bmp','ico'].includes((file.type||'').toLowerCase());
+                    if (isImage) {
+                        previewEl.innerHTML = '<img src="' + escAttr(file.url) + '" alt="" style="max-width:100%;max-height:240px;border-radius:6px;cursor:pointer;" onclick="openImagePreview(\'' + escAttr(file.url) + '\')">';
+                        // Try to get dimensions
+                        const img = new Image();
+                        img.onload = () => {
+                            document.getElementById('detail-dimensions').textContent = img.naturalWidth + ' × ' + img.naturalHeight + ' px';
+                        };
+                        img.src = file.url;
+                    } else {
+                        previewEl.innerHTML = '<div style="font-size:3rem;text-align:center;padding:1.5rem;">' + getFileIcon(file.type) + '</div>';
+                        document.getElementById('detail-dimensions').textContent = '-';
+                    }
+
+                    document.getElementById('detail-name').textContent = file.name;
+                    document.getElementById('detail-type').textContent = (file.type || '').toUpperCase();
+                    document.getElementById('detail-size').textContent = formatSize(file.size || 0);
+                    document.getElementById('detail-modified').textContent = file.modified ? formatDate(file.modified) : '-';
+                    document.getElementById('detail-uploader').textContent = file.uploaded_by || '-';
+                    
+                    const catEl = document.getElementById('detail-category');
+                    if (file.category) {
+                        const cat = allCategories.find(c => c.slug === file.category);
+                        catEl.textContent = cat ? cat.name : file.category;
+                    } else {
+                        catEl.textContent = '-';
+                    }
+
+                    document.getElementById('detail-url').value = file.url || '';
+                    document.getElementById('detail-download-btn').href = file.url || '#';
+                    
+                    const isSystem = file.is_system;
+                    document.getElementById('detail-delete-btn').disabled = isSystem;
+                    document.getElementById('detail-rename-btn').disabled = isSystem;
+                }
+                function closeDetailPanel() {
+                    document.getElementById('detail-panel').style.display = 'none';
+                    currentDetailFile = null;
+                }
+                function openRenameFromDetail() {
+                    if (!currentDetailFile) return;
+                    openRenameModal(currentDetailFile.path, currentDetailFile.name);
+                }
+                function openCategoryFromDetail() {
+                    if (!currentDetailFile) return;
+                    openAssignModal(currentDetailFile.path, currentDetailFile.category || '');
+                }
+                function deleteFromDetail() {
+                    if (!currentDetailFile) return;
+                    deleteItem(currentDetailFile.path, 'file');
+                }
+
+                /* ── FilePond ── */
+                function initFilePond() {
+                    const input = document.getElementById('file-upload');
+                    if (!input || typeof window.FilePond === 'undefined') return;
+
+                    window.FilePond.registerPlugin();
+                    mediaPond = window.FilePond.create(input, {
+                        allowMultiple: true,
+                        instantUpload: true,
+                        credits: false,
+                        labelIdle: 'Dateien hier ablegen oder <span class="filepond--label-action">durchsuchen</span>',
+                        server: {
+                            process: {
+                                url: '/api/upload',
+                                method: 'POST',
+                                ondata: (formData) => {
+                                    formData.append('csrf_token', CMS_MEDIA_NONCE);
+                                    formData.append('path', currentPath || '');
+                                    return formData;
+                                },
+                                onload: (responseText) => {
+                                    try {
+                                        const payload = JSON.parse(responseText);
+                                        if (payload.new_token) CMS_MEDIA_NONCE = payload.new_token;
+                                        return payload.id || payload.path || '';
+                                    } catch (e) { return ''; }
+                                },
+                                onerror: (responseText) => {
+                                    try {
+                                        const payload = JSON.parse(responseText);
+                                        if (payload.new_token) CMS_MEDIA_NONCE = payload.new_token;
+                                        return payload.error || 'Upload fehlgeschlagen';
+                                    } catch (e) { return 'Upload fehlgeschlagen'; }
+                                }
+                            }
+                        }
+                    });
+                    mediaPond.on('processfile', (error) => {
+                        if (!error) {
+                            showMediaNotice('Upload erfolgreich abgeschlossen.', 'success');
+                            loadPath(currentPath);
+                        }
+                    });
+                    mediaPond.on('processfileabort', () => showMediaNotice('Upload wurde abgebrochen.', 'info'));
+                }
+
+                /* ── Load Files ── */
                 async function loadPath(path) {
                     currentPath = path;
+                    selectedItems.clear();
+                    updateBulkBar();
                     updateBreadcrumb(path);
                     
                     const tbody = document.getElementById('file-list');
-                    if (!tbody) return;
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Laden...</td></tr>';
+                    if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:#94a3b8;">Laden...</td></tr>';
 
                     const formData = new FormData();
                     formData.append('action', 'list_files');
@@ -1026,206 +1387,210 @@ $categories = $mediaService->getCategories();
                     try {
                         const response = await cmsPost(formData);
                         const result = await response.json();
-                        
                         if (result.success) {
                             allItems = result.data;
                             updateUploaderFilter();
                             applyFilter();
                         } else {
-                            alert('Fehler: ' + result.error);
+                            showMediaNotice(result.error || 'Dateiliste konnte nicht geladen werden.', 'error');
+                            if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="color:#ef4444;text-align:center;">Fehler: ' + escHtml(result.error) + '</td></tr>';
                         }
                     } catch (error) {
                         console.error('Error:', error);
-                        tbody.innerHTML = '<tr><td colspan="6" style="color: red; text-align: center;">Ein Fehler ist aufgetreten beim Laden der Daten.</td></tr>';
+                        showMediaNotice('Netzwerkfehler beim Laden der Dateien.', 'error');
+                        if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="color:#ef4444;text-align:center;">Netzwerkfehler</td></tr>';
                     }
                 }
 
-                function applyFilterS(val) {
-                    applyFilter();
-                }
-
+                function applyFilterS(val) { applyFilter(); }
 
                 function updateUploaderFilter() {
                     const uploaderSelect = document.getElementById('uploader-filter');
                     if (!uploaderSelect) return;
-                    
                     const currentVal = uploaderSelect.value;
                     const uploaders = new Map();
-
-                    // Collect from folders
-                    allItems.folders.forEach(item => {
-                        if (item.uploader_id && item.uploaded_by) {
-                            uploaders.set(item.uploader_id, item.uploaded_by);
-                        }
-                    });
-                    // Collect from files
-                    allItems.files.forEach(item => {
-                        if (item.uploader_id && item.uploaded_by) {
-                            uploaders.set(item.uploader_id, item.uploaded_by);
-                        }
-                    });
-
+                    allItems.folders.forEach(i => { if (i.uploader_id && i.uploaded_by) uploaders.set(i.uploader_id, i.uploaded_by); });
+                    allItems.files.forEach(i => { if (i.uploader_id && i.uploaded_by) uploaders.set(i.uploader_id, i.uploaded_by); });
                     let options = '<option value="">Alle Uploader</option>';
-                    uploaders.forEach((name, id) => {
-                        options += `<option value="${id}">${name}</option>`;
-                    });
-                    
+                    uploaders.forEach((name, id) => { options += '<option value="' + id + '">' + escHtml(name) + '</option>'; });
                     uploaderSelect.innerHTML = options;
-                    if (currentVal && uploaders.has(parseInt(currentVal))) {
-                        uploaderSelect.value = currentVal;
-                    }
+                    if (currentVal && uploaders.has(parseInt(currentVal))) uploaderSelect.value = currentVal;
                 }
 
+                /* ── Filter & Render ── */
                 function applyFilter() {
                     const filterType = document.getElementById('media-filter').value;
                     const catFilter = document.getElementById('category-filter') ? document.getElementById('category-filter').value : '';
                     const uploaderFilter = document.getElementById('uploader-filter') ? document.getElementById('uploader-filter').value : '';
                     const searchTerm = document.getElementById('search-input').value.toLowerCase();
-                    const tbody = document.getElementById('file-list');
-                    if (!tbody) return;
-                    
-                    tbody.innerHTML = '';
 
-                    let foldersToShow = allItems.folders;
-                    let filesToShow = allItems.files;
+                    let foldersToShow = [...allItems.folders];
+                    let filesToShow = [...allItems.files];
 
-                    // Filter Logic
-                    if (filterType === 'folder') {
-                        filesToShow = [];
-                    } else if (filterType !== 'all') {
-                        filesToShow = filesToShow.filter(file => getFileTypeCategory(file.type) === filterType);
-                    }
-
+                    if (filterType === 'folder') { filesToShow = []; }
+                    else if (filterType !== 'all') { filesToShow = filesToShow.filter(f => getFileTypeCategory(f.type) === filterType); }
                     if (catFilter) {
-                         filesToShow = filesToShow.filter(file => file.category === catFilter);
-                         foldersToShow = foldersToShow.filter(folder => folder.category === catFilter); 
-                         // Note: Folders can now have categories too!
+                        filesToShow = filesToShow.filter(f => f.category === catFilter);
+                        foldersToShow = foldersToShow.filter(f => f.category === catFilter);
                     }
-
                     if (uploaderFilter) {
                         const uid = parseInt(uploaderFilter);
                         foldersToShow = foldersToShow.filter(f => f.uploader_id === uid);
                         filesToShow = filesToShow.filter(f => f.uploader_id === uid);
                     }
-
-                    // Search Logic
                     if (searchTerm) {
                         foldersToShow = foldersToShow.filter(f => f.name.toLowerCase().includes(searchTerm));
                         filesToShow = filesToShow.filter(f => f.name.toLowerCase().includes(searchTerm));
                     }
 
-                    // Render Folders
-                    // Always show folders unless searching/filtering hides them
-                    foldersToShow.forEach(folder => {
-                        // Check if system folder
-                        const isSystem = folder.is_system;
-                        const deleteBtn = isSystem 
-                            ? `<button class="action-btn" disabled style="opacity:0.3; cursor:not-allowed;" title="Systemordner"><span style="filter:grayscale(1)">🔒</span></button>`
-                            : `<button class="action-btn delete" title="Löschen" onclick="deleteItem('${escAttr(folder.path)}', 'folder')">🗑️</button>`;
-
-                        const tr = document.createElement('tr');
-                        // Category Badge
-                        let catBadge = '';
-                        if (folder.category) {
-                           const cat = allCategories.find(c => c.slug === folder.category);
-                           if (cat) catBadge = `<span class="badge" style="background:#f1f5f9; color:#475569; padding:2px 6px; border-radius:4px; font-size:0.75em; border:1px solid #cbd5e1;">${escHtml(cat.name)}</span>`;
-                        } else {
-                            catBadge = `<span style="color:#cbd5e1; font-size:0.8em;">-</span>`;
-                        }
-
-                        tr.innerHTML = `
-                            <td><div class="folder-icon">📂</div></td>
-                            <td><a href="#" onclick="event.preventDefault(); loadPath('${escAttr(folder.path)}')" style="font-weight: 600; color: #1e293b; text-decoration: none;">${escHtml(folder.name)}</a></td>
-                            <td><span class="badge" style="background:#e2e8f0; color:#475569; padding:2px 6px; border-radius:4px; font-size:0.8em;">Ordner</span></td>
-                            <td>${folder.items_count !== undefined ? parseInt(folder.items_count) + ' Elemente' : '-'}</td>
-                            <td>${catBadge}</td>
-                            <td>${escHtml(folder.uploaded_by) || '<span style="color:#cbd5e1">-</span>'}</td>
-                            <td style="text-align: right;">
-                                <button class="action-btn" title="Umbenennen" onclick="openRenameModal('${escAttr(folder.path)}', '${escAttr(folder.name)}')" ${isSystem ? 'disabled style="opacity:0.5"' : ''}>✎</button>
-                                ${deleteBtn}
-                            </td>
-                        `;
-                        tbody.appendChild(tr);
-                    });
-
-                    // Render Files
-                    filesToShow.forEach(file => {
-                        const category = getFileTypeCategory(file.type);
-                        let icon = '';
-                        
-                        if (category === 'image') {
-                            icon = `<img src="${escAttr(file.url)}" class="media-preview" style="cursor: zoom-in;" onclick="openImagePreview('${escAttr(file.url)}')" title="Vorschau">`; 
-                        } else {
-                            icon = `<div class="media-preview">${getFileIcon(file.type)}</div>`;
-                        }
-
-                        let catBadge = '';
-                        if (file.category) {
-                           const cat = allCategories.find(c => c.slug === file.category);
-                           if (cat) catBadge = `<span class="badge" style="background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; font-size:0.75em; margin-right:5px; border:1px solid #bae6fd;">${escHtml(cat.name)}</span>`;
-                        } else {
-                            catBadge = `<span style="color:#cbd5e1; font-size:0.8em; margin-right:5px;">-</span>`;
-                        }
-
-                        // Check system file
-                        const isSystem = file.is_system;
-                        const deleteBtn = isSystem 
-                            ? `<button class="action-btn" disabled style="opacity:0.3; cursor:not-allowed;" title="Systemdatei"><span style="filter:grayscale(1)">🔒</span></button>`
-                            : `<button class="action-btn delete" title="Löschen" onclick="deleteItem('${escAttr(file.path)}', 'file')">🗑️</button>`;
-
-
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td>${icon}</td>
-                            <td>
-                                <a href="${escAttr(file.url)}" target="_blank" style="color: #3b82f6; text-decoration: none;">${escHtml(file.name)}</a>
-                            </td>
-                            <td><span style="text-transform:uppercase; font-size:0.85em; font-weight:600; color:#64748b;">${escHtml(file.type)}</span></td>
-                            <td>${formatSize(file.size)}</td>
-                            <td>${catBadge}</td>
-                            <td>${escHtml(file.uploaded_by) || '<span style="color:#cbd5e1">-</span>'}</td>
-                            <td style="text-align: right;">
-                                <button class="action-btn" title="Kategorie" onclick="openAssignModal('${escAttr(file.path)}', '${escAttr(file.category || '')}')">🏷️</button>
-                                <button class="action-btn" title="URL kopieren" onclick="copyToClipboard('${escAttr(file.url)}')">🔗</button>
-                                <button class="action-btn" title="Umbenennen" onclick="openRenameModal('${escAttr(file.path)}', '${escAttr(file.name)}')">✎</button>
-                                ${deleteBtn}
-                            </td>
-                        `;
-                        tbody.appendChild(tr);
-                    });
-
-                    if (foldersToShow.length === 0 && filesToShow.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 40px; font-style: italic;">Keine Einträge gefunden.</td></tr>';
+                    if (currentViewMode === 'grid') {
+                        renderGrid(foldersToShow, filesToShow);
+                    } else {
+                        renderTable(foldersToShow, filesToShow);
                     }
                 }
-                
+
+                /* ── Table Rendering ── */
+                function renderTable(folders, files) {
+                    const tbody = document.getElementById('file-list');
+                    if (!tbody) return;
+                    tbody.innerHTML = '';
+
+                    folders.forEach(folder => {
+                        const isSystem = folder.is_system;
+                        const deleteBtn = isSystem
+                            ? '<button class="action-btn" disabled style="opacity:0.3;cursor:not-allowed;" title="Systemordner">🔒</button>'
+                            : '<button class="action-btn delete" title="Löschen" onclick="deleteItem(\'' + escAttr(folder.path) + '\', \'folder\')">🗑️</button>';
+                        const catBadge = getCatBadge(folder.category);
+
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = '<td><input type="checkbox" class="form-check-input media-row-check" data-path="' + escAttr(folder.path) + '" onchange="toggleSelectItem(\'' + escAttr(folder.path) + '\', this.checked)"></td>' +
+                            '<td><div class="folder-icon">📂</div></td>' +
+                            '<td><a href="#" onclick="event.preventDefault(); loadPath(\'' + escAttr(folder.path) + '\')" style="font-weight:600;color:#1e293b;text-decoration:none;">' + escHtml(folder.name) + '</a></td>' +
+                            '<td><span class="badge bg-secondary-lt">Ordner</span></td>' +
+                            '<td>' + (folder.items_count !== undefined ? parseInt(folder.items_count) + ' Elemente' : '-') + '</td>' +
+                            '<td>' + catBadge + '</td>' +
+                            '<td style="text-align:right;">' +
+                                '<button class="action-btn" title="Umbenennen" onclick="openRenameModal(\'' + escAttr(folder.path) + '\', \'' + escAttr(folder.name) + '\')" ' + (isSystem ? 'disabled style="opacity:0.5"' : '') + '>✎</button> ' +
+                                deleteBtn +
+                            '</td>';
+                        tbody.appendChild(tr);
+                    });
+
+                    files.forEach(file => {
+                        const category = getFileTypeCategory(file.type);
+                        const isImage = category === 'image';
+                        const icon = isImage
+                            ? '<img src="' + escAttr(file.url) + '" class="media-thumb" style="cursor:pointer;" onclick="showDetailPanel(window._mf_' + file._idx + ')" title="Details">'
+                            : '<div class="media-thumb-icon">' + getFileIcon(file.type) + '</div>';
+                        const isSystem = file.is_system;
+                        const deleteBtn = isSystem
+                            ? '<button class="action-btn" disabled style="opacity:0.3;cursor:not-allowed;">🔒</button>'
+                            : '<button class="action-btn delete" title="Löschen" onclick="deleteItem(\'' + escAttr(file.path) + '\', \'file\')">🗑️</button>';
+                        const catBadge = getCatBadge(file.category);
+
+                        const tr = document.createElement('tr');
+                        tr.className = currentDetailFile && currentDetailFile.path === file.path ? 'table-active' : '';
+                        tr.innerHTML = '<td><input type="checkbox" class="form-check-input media-row-check" data-path="' + escAttr(file.path) + '" onchange="toggleSelectItem(\'' + escAttr(file.path) + '\', this.checked)"></td>' +
+                            '<td>' + icon + '</td>' +
+                            '<td><a href="#" onclick="event.preventDefault(); showDetailPanel(window._mf_' + file._idx + ')" style="color:#3b82f6;text-decoration:none;">' + escHtml(file.name) + '</a></td>' +
+                            '<td><span style="text-transform:uppercase;font-size:.8em;font-weight:600;color:#64748b;">' + escHtml(file.type) + '</span></td>' +
+                            '<td>' + formatSize(file.size) + '</td>' +
+                            '<td>' + catBadge + '</td>' +
+                            '<td style="text-align:right;">' +
+                                '<button class="action-btn" title="URL kopieren" onclick="copyToClipboard(\'' + escAttr(file.url) + '\')">🔗</button> ' +
+                                '<button class="action-btn" title="Umbenennen" onclick="openRenameModal(\'' + escAttr(file.path) + '\', \'' + escAttr(file.name) + '\')">✎</button> ' +
+                                deleteBtn +
+                            '</td>';
+                        tbody.appendChild(tr);
+
+                        // Store file reference for detail panel
+                        window['_mf_' + file._idx] = file;
+                    });
+
+                    if (folders.length === 0 && files.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:40px;font-style:italic;">Keine Einträge gefunden.</td></tr>';
+                    }
+                }
+
+                /* ── Grid Rendering ── */
+                function renderGrid(folders, files) {
+                    const grid = document.getElementById('file-grid');
+                    if (!grid) return;
+                    grid.innerHTML = '';
+
+                    folders.forEach(folder => {
+                        const div = document.createElement('div');
+                        div.className = 'media-grid-item media-grid-folder';
+                        div.onclick = () => loadPath(folder.path);
+                        div.innerHTML = '<div class="media-grid-thumb"><span style="font-size:2.5rem;">📂</span></div>' +
+                            '<div class="media-grid-label" title="' + escAttr(folder.name) + '">' + escHtml(folder.name) + '</div>' +
+                            '<div class="media-grid-meta">' + (folder.items_count !== undefined ? parseInt(folder.items_count) + ' Elemente' : 'Ordner') + '</div>';
+                        grid.appendChild(div);
+                    });
+
+                    files.forEach(file => {
+                        const isImage = ['jpg','jpeg','png','gif','webp','svg','bmp','ico'].includes((file.type||'').toLowerCase());
+                        const div = document.createElement('div');
+                        div.className = 'media-grid-item' + (currentDetailFile && currentDetailFile.path === file.path ? ' active' : '');
+                        div.onclick = () => showDetailPanel(file);
+
+                        if (isImage) {
+                            div.innerHTML = '<div class="media-grid-thumb"><img src="' + escAttr(file.url) + '" alt="" loading="lazy"></div>';
+                        } else {
+                            div.innerHTML = '<div class="media-grid-thumb"><span style="font-size:2rem;">' + getFileIcon(file.type) + '</span></div>';
+                        }
+                        div.innerHTML += '<div class="media-grid-label" title="' + escAttr(file.name) + '">' + escHtml(file.name) + '</div>' +
+                            '<div class="media-grid-meta">' + formatSize(file.size) + '</div>';
+                        grid.appendChild(div);
+                    });
+
+                    if (folders.length === 0 && files.length === 0) {
+                        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#94a3b8;padding:40px;font-style:italic;">Keine Einträge gefunden.</div>';
+                    }
+                }
+
+                /* ── Category Badge Helper ── */
+                function getCatBadge(category) {
+                    if (!category) return '<span style="color:#cbd5e1;font-size:.8em;">-</span>';
+                    const cat = allCategories.find(c => c.slug === category);
+                    if (cat) return '<span class="badge bg-azure-lt">' + escHtml(cat.name) + '</span>';
+                    return '<span class="badge bg-secondary-lt">' + escHtml(category) + '</span>';
+                }
+
+                /* ── Assign file indices for detail panel references ── */
+                const _origApplyFilter = applyFilter;
+                // Wrap to assign _idx before rendering
+                applyFilter = function() {
+                    allItems.files.forEach((f, i) => { f._idx = i; window['_mf_' + i] = f; });
+                    _origApplyFilter();
+                };
+
+                /* ── Modals & Actions ── */
                 function openAssignModal(path, currentSlug) {
                     document.getElementById('assign-file-path').value = path;
                     document.getElementById('assign-category-slug').value = currentSlug;
-                    document.getElementById('assign-modal').classList.add('active');
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('assign-modal')).show();
                 }
-
                 async function submitAssignment() {
                     const filePath = document.getElementById('assign-file-path').value;
                     const slug = document.getElementById('assign-category-slug').value;
-                    
-                    const formData = new FormData();
-                    formData.append('action', 'assign_category');
-                    formData.append('file_path', filePath);
-                    formData.append('slug', slug);
-                    
-                    const response = await cmsPost(formData);
+                    const fd = new FormData();
+                    fd.append('action', 'assign_category');
+                    fd.append('file_path', filePath);
+                    fd.append('slug', slug);
+                    const response = await cmsPost(fd);
                     const result = await response.json();
-                    
                     if (result.success) {
                         closeModal('assign-modal');
-                        loadPath(currentPath); // Reload to show new assignment
+                        showMediaNotice('Kategorie aktualisiert.', 'success');
+                        loadPath(currentPath);
                     } else {
-                        alert('Fehler: ' + result.error);
+                        showMediaNotice('Fehler: ' + result.error, 'error');
                     }
                 }
 
-                // H-2: XSS-Schutz für Template-Literale
+                // XSS-Schutz
                 function escHtml(str) {
                     if (str == null) return '';
                     const div = document.createElement('div');
@@ -1237,58 +1602,40 @@ $categories = $mediaService->getCategories();
                 }
 
                 function getFileTypeCategory(extension) {
-                    const ext = extension.toLowerCase();
-                    const categories = {
-                        'image': ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'],
-                        'video': ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'],
-                        'audio': ['mp3', 'wav', 'aac', 'flac', 'm4a'],
-                        'document': ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'rtf', 'csv'],
-                        'archive': ['zip', 'rar', '7z', 'tar', 'gz'],
-                        'font': ['ttf', 'otf', 'woff', 'woff2', 'eot'],
-                        'plugin': ['php', 'zip'],
-                        'theme': ['css', 'php']
+                    const ext = (extension||'').toLowerCase();
+                    const cats = {
+                        'image': ['jpg','jpeg','png','gif','webp','svg','bmp','ico'],
+                        'video': ['mp4','webm','ogg','mov','avi','mkv'],
+                        'audio': ['mp3','wav','aac','flac','m4a'],
+                        'document': ['pdf','doc','docx','xls','xlsx','ppt','pptx','txt','rtf','csv'],
+                        'archive': ['zip','rar','7z','tar','gz'],
+                        'font': ['ttf','otf','woff','woff2','eot']
                     };
-
-                    for (const [cat, exts] of Object.entries(categories)) {
-                        if (exts.includes(ext)) return cat;
-                    }
+                    for (const [cat, exts] of Object.entries(cats)) { if (exts.includes(ext)) return cat; }
                     return 'other';
                 }
-
                 function getFileIcon(extension) {
                     const icons = {
-                        'pdf': '📄', 'doc': '📝', 'docx': '📝', 
-                        'xls': '📊', 'xlsx': '📊', 
-                        'ppt': '📽️', 'pptx': '📽️',
-                        'zip': '📦', 'rar': '📦', '7z': '📦',
-                        'mp3': '🎵', 'wav': '🎵',
-                        'mp4': '🎬', 'mov': '🎬', 'avi': '🎬',
-                        'txt': '📄', 'php': '🐘', 'js': '📜', 'css': '🎨', 'html': '🌐',
-                        'ttf': '🔤', 'otf': '🔤', 'woff': '🔤', 'woff2': '🔤'
+                        'pdf':'📄','doc':'📝','docx':'📝','xls':'📊','xlsx':'📊','ppt':'📽️','pptx':'📽️',
+                        'zip':'📦','rar':'📦','7z':'📦','mp3':'🎵','wav':'🎵','mp4':'🎬','mov':'🎬','avi':'🎬',
+                        'txt':'📄','php':'🐘','js':'📜','css':'🎨','html':'🌐',
+                        'ttf':'🔤','otf':'🔤','woff':'🔤','woff2':'🔤'
                     };
-                    return icons[extension.toLowerCase()] || '📄';
+                    return icons[(extension||'').toLowerCase()] || '📄';
                 }
 
                 function updateBreadcrumb(path) {
                     const container = document.getElementById('breadcrumb');
                     if (!container) return;
-                    
-                    if (!path) {
-                        container.innerHTML = '<span onclick="loadPath(\'\')">Home</span>';
-                        return;
-                    }
-                    
+                    if (!path) { container.innerHTML = '<span onclick="loadPath(\'\')">Home</span>'; return; }
                     const parts = path.split('/').filter(p => p);
                     let html = '<span onclick="loadPath(\'\')">Home</span>';
-                    
                     parts.forEach((part, index) => {
                         let clickPath = parts.slice(0, index + 1).join('/');
                         html += ' / ';
-                        if (index === parts.length - 1) {
-                            html += `<span>${part}</span>`;
-                        } else {
-                            html += `<span onclick="loadPath('${clickPath}')">${part}</span>`;
-                        }
+                        html += index === parts.length - 1
+                            ? '<span>' + escHtml(part) + '</span>'
+                            : '<span onclick="loadPath(\'' + escAttr(clickPath) + '\')">' + escHtml(part) + '</span>';
                     });
                     container.innerHTML = html;
                 }
@@ -1297,118 +1644,109 @@ $categories = $mediaService->getCategories();
                     const nameInput = document.getElementById('new-folder-name');
                     const name = nameInput.value.trim();
                     if (!name) return;
-
-                    const formData = new FormData();
-                    formData.append('action', 'create_folder');
-                    formData.append('name', name);
-                    formData.append('path', currentPath);
-
-                    const response = await cmsPost(formData);
+                    const fd = new FormData();
+                    fd.append('action', 'create_folder');
+                    fd.append('name', name);
+                    fd.append('path', currentPath);
+                    const response = await cmsPost(fd);
                     const result = await response.json();
-
                     if (result.success) {
                         closeModal('create-folder-modal');
                         nameInput.value = '';
+                        showMediaNotice('Ordner erfolgreich erstellt.', 'success');
                         loadPath(currentPath);
                     } else {
-                        alert('Fehler: ' + result.error);
+                        showMediaNotice('Fehler: ' + result.error, 'error');
                     }
                 }
 
                 async function handleFileUpload(input) {
                     if (input.files.length === 0) return;
-
-                    const btn = document.querySelector('.header-actions .btn-primary');
-                    const oldText = btn.innerText;
-                    btn.innerText = 'Upload läuft...';
-                    btn.disabled = true;
+                    const btn = document.querySelector('.col-auto .btn-primary');
+                    const oldText = btn ? btn.innerText : '';
+                    if (btn) { btn.innerText = 'Upload läuft...'; btn.disabled = true; }
 
                     let errors = [];
                     for (let i = 0; i < input.files.length; i++) {
-                        const file = input.files[i];
-                        const formData = new FormData();
-                        formData.append('action', 'upload_file');
-                        formData.append('file', file);
-                        formData.append('path', currentPath);
-
+                        const fd = new FormData();
+                        fd.append('action', 'upload_file');
+                        fd.append('file', input.files[i]);
+                        fd.append('path', currentPath);
                         try {
-                            const response = await cmsPost(formData);
+                            const response = await cmsPost(fd);
                             const result = await response.json();
-                            if (!result.success) {
-                                errors.push(file.name + ': ' + result.error);
-                            }
-                        } catch (e) {
-                            errors.push(file.name + ': Netzwerkfehler');
-                        }
+                            if (!result.success) errors.push(input.files[i].name + ': ' + result.error);
+                        } catch (e) { errors.push(input.files[i].name + ': Netzwerkfehler'); }
                     }
-
                     input.value = '';
-                    btn.innerText = oldText;
-                    btn.disabled = false;
-
+                    if (btn) { btn.innerText = oldText; btn.disabled = false; }
                     if (errors.length > 0) {
-                        alert('Einige Dateien konnten nicht hochgeladen werden:\n' + errors.join('\n'));
+                        showMediaNotice('Einige Uploads sind fehlgeschlagen: ' + errors.join(' | '), 'error');
+                    } else {
+                        showMediaNotice('Upload erfolgreich abgeschlossen.', 'success');
                     }
                     loadPath(currentPath);
                 }
 
                 async function deleteItem(path, type) {
-                    document.getElementById('mediaDeleteModal').style.display = 'flex';
-                    document.getElementById('mediaDeleteMsg').textContent = 
-                        `Möchten Sie dieses ${type === 'folder' ? 'Ordner und dessen Inhalt' : 'Datei'} wirklich löschen?`;
+                    const delModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('mediaDeleteModal'));
+                    delModal.show();
+                    document.getElementById('mediaDeleteMsg').textContent =
+                        'Möchten Sie ' + (type === 'folder' ? 'diesen Ordner und dessen Inhalt' : 'diese Datei') + ' wirklich löschen?';
                     document.getElementById('mediaDeleteConfirmBtn').onclick = async function() {
-                        document.getElementById('mediaDeleteModal').style.display = 'none';
-
-                        const formData = new FormData();
-                        formData.append('action', 'delete_item');
-                        formData.append('item_path', path);
-
+                        delModal.hide();
+                        const fd = new FormData();
+                        fd.append('action', 'delete_item');
+                        fd.append('item_path', path);
                         try {
-                            const response = await cmsPost(formData);
+                            const response = await cmsPost(fd);
                             const result = await response.json();
-                            if (result.success) loadPath(currentPath);
-                            else alert('Fehler: ' + result.error);
+                            if (result.success) {
+                                closeDetailPanel();
+                                showMediaNotice('Element erfolgreich gelöscht.', 'success');
+                                loadPath(currentPath);
+                            } else {
+                                showMediaNotice('Fehler: ' + result.error, 'error');
+                            }
                         } catch (e) {
-                            alert('Netzwerkfehler beim Löschen');
+                            showMediaNotice('Netzwerkfehler beim Löschen.', 'error');
                         }
                     };
                 }
-                
+
                 function openRenameModal(path, name) {
                     document.getElementById('rename-old-path').value = path;
                     const input = document.getElementById('rename-new-name');
                     input.value = name;
-                    document.getElementById('rename-modal').classList.add('active');
-                    setTimeout(() => input.focus(), 50);
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('rename-modal')).show();
+                    setTimeout(() => input.focus(), 150);
                 }
-
                 async function renameItem() {
                     const oldPath = document.getElementById('rename-old-path').value;
                     const newName = document.getElementById('rename-new-name').value.trim();
                     if (!newName) return;
-
-                    const formData = new FormData();
-                    formData.append('action', 'rename_item');
-                    formData.append('old_path', oldPath);
-                    formData.append('new_name', newName);
-
+                    const fd = new FormData();
+                    fd.append('action', 'rename_item');
+                    fd.append('old_path', oldPath);
+                    fd.append('new_name', newName);
                     try {
-                        const response = await cmsPost(formData);
+                        const response = await cmsPost(fd);
                         const result = await response.json();
                         if (result.success) {
                             closeModal('rename-modal');
+                            showMediaNotice('Element erfolgreich umbenannt.', 'success');
                             loadPath(currentPath);
                         } else {
-                            alert('Fehler: ' + result.error);
+                            showMediaNotice('Fehler: ' + result.error, 'error');
                         }
                     } catch (e) {
-                        alert('Netzwerkfehler');
+                        showMediaNotice('Netzwerkfehler.', 'error');
                     }
                 }
 
                 function handleDrop(e) {
                     e.preventDefault();
-                    document.querySelector('.admin-content').classList.remove('drag-over');
+                    document.querySelector('.media-content-area').classList.remove('drag-over');
                     if (e.dataTransfer.files.length > 0) {
                         const input = document.getElementById('file-upload');
                         input.files = e.dataTransfer.files;
@@ -1417,43 +1755,34 @@ $categories = $mediaService->getCategories();
                 }
 
                 function openCreateFolderModal() {
-                    document.getElementById('create-folder-modal').classList.add('active');
-                    setTimeout(() => document.getElementById('new-folder-name').focus(), 50);
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('create-folder-modal')).show();
+                    setTimeout(() => document.getElementById('new-folder-name').focus(), 150);
                 }
-
                 function closeModal(id) {
-                    document.getElementById(id).classList.remove('active');
+                    const el = document.getElementById(id);
+                    const inst = bootstrap.Modal.getInstance(el);
+                    if (inst) inst.hide();
                 }
-                
                 function openImagePreview(url) {
                     document.getElementById('preview-image-full').src = url;
-                    document.getElementById('image-preview-modal').classList.add('active');
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('image-preview-modal')).show();
                 }
-
                 function copyToClipboard(text) {
                     navigator.clipboard.writeText(text).then(() => {
                         const btn = document.activeElement;
-                        const originalText = btn.innerText;
-                        btn.innerText = '✓';
-                        setTimeout(() => btn.innerText = originalText, 1000);
+                        if (btn) { const old = btn.innerText; btn.innerText = '✓'; setTimeout(() => btn.innerText = old, 1000); }
+                        showMediaNotice('URL in die Zwischenablage kopiert.', 'info');
                     });
                 }
-
-                function formatDate(timestamp) {
-                    return new Date(timestamp * 1000).toLocaleString('de-DE');
-                }
-
+                function formatDate(timestamp) { return new Date(timestamp * 1000).toLocaleString('de-DE'); }
                 function formatSize(bytes) {
-                    if (bytes === 0) return '0 Bytes';
+                    if (!bytes || bytes === 0) return '0 B';
                     const k = 1024;
-                    const units = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+                    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
                     const i = Math.floor(Math.log(bytes) / Math.log(k));
                     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + units[i];
                 }
             </script>
         <?php endif; ?>
-    </div>
-    
-    <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
-</body>
-</html>
+    </div><!-- /.media-content-area -->
+<?php renderAdminLayoutEnd(); ?>

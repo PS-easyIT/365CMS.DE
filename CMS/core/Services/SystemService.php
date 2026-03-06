@@ -619,6 +619,105 @@ class SystemService {
             return false;
         }
     }
+
+    /**
+     * Get available CMS log files (daily rotation pattern cms-YYYY-MM-DD.log)
+     *
+     * @return array<string, string> Filename => full path, sorted newest first
+     */
+    public function getCmsLogFiles(): array
+    {
+        $logDir = defined('LOG_PATH') ? LOG_PATH : (ABSPATH . 'logs/');
+        $files  = [];
+
+        if (!is_dir($logDir)) {
+            return $files;
+        }
+
+        $globResult = glob($logDir . 'cms-*.log');
+        if ($globResult === false) {
+            return $files;
+        }
+
+        foreach ($globResult as $path) {
+            $files[basename($path)] = $path;
+        }
+
+        krsort($files); // newest date first
+
+        return $files;
+    }
+
+    /**
+     * Read CMS log entries from a specific log file.
+     *
+     * @param string $filename Log filename (must match cms-YYYY-MM-DD.log pattern)
+     * @param int    $limit    Max number of entries
+     * @return array<int, array{timestamp: string, level: string, channel: string, message: string}>
+     */
+    public function getCmsLogEntries(string $filename, int $limit = 200): array
+    {
+        // Validate filename to prevent path traversal
+        if (!preg_match('/^cms-\d{4}-\d{2}-\d{2}\.log$/', $filename)) {
+            return [];
+        }
+
+        $logDir  = defined('LOG_PATH') ? LOG_PATH : (ABSPATH . 'logs/');
+        $logFile = $logDir . $filename;
+
+        if (!file_exists($logFile)) {
+            return [];
+        }
+
+        $entries = [];
+        $lines   = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+
+        if ($lines === false) {
+            return [];
+        }
+
+        $lines = array_slice($lines, -$limit);
+
+        foreach ($lines as $line) {
+            // Logger format: [2026-02-22 14:30:00] [WARNING] [cms] Message {context}
+            if (preg_match('/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]\s+\[(\w+)\]\s+\[(\w+)\]\s+(.*)$/', $line, $m)) {
+                $entries[] = [
+                    'timestamp' => $m[1],
+                    'level'     => $m[2],
+                    'channel'   => $m[3],
+                    'message'   => $m[4],
+                ];
+            } else {
+                $entries[] = [
+                    'timestamp' => '',
+                    'level'     => 'RAW',
+                    'channel'   => '',
+                    'message'   => $line,
+                ];
+            }
+        }
+
+        return array_reverse($entries);
+    }
+
+    /**
+     * Delete a CMS log file.
+     */
+    public function clearCmsLogFile(string $filename): bool
+    {
+        if (!preg_match('/^cms-\d{4}-\d{2}-\d{2}\.log$/', $filename)) {
+            return false;
+        }
+
+        $logDir  = defined('LOG_PATH') ? LOG_PATH : (ABSPATH . 'logs/');
+        $logFile = $logDir . $filename;
+
+        if (file_exists($logFile)) {
+            return unlink($logFile);
+        }
+
+        return true;
+    }
     
     /**
      * Get security status

@@ -177,6 +177,9 @@ final class SearchService
             return true;
         } catch (\Throwable $e) {
             error_log("SearchService::buildIndex({$name}) Fehler: " . $e->getMessage());
+            if (function_exists('cms_log')) {
+                cms_log("Index-Build '{$name}' fehlgeschlagen: " . $e->getMessage(), 'error', 'search');
+            }
             return false;
         }
     }

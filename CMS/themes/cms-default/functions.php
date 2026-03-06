@@ -406,6 +406,16 @@ class MeridianCMSDefaultTheme
 
     public function outputCookieBanner(): void
     {
+        if (class_exists('\\CMS\\Services\\CookieConsentService')) {
+            try {
+                if (\CMS\Services\CookieConsentService::getInstance()->isManagedExternally()) {
+                    return;
+                }
+            } catch (\Throwable $e) {
+                // Fallback auf Legacy-Banner
+            }
+        }
+
         try {
             $db      = \CMS\Database::instance();
             $enabled = $db->execute("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'cookie_consent_enabled'")->fetch();

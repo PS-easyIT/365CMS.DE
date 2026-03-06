@@ -19,8 +19,8 @@ if (!Auth::instance()->isAdmin()) { header('Location: ' . SITE_URL); exit; }
 
 $db       = Database::instance();
 $security = Security::instance();
-$message  = '';
-$msgType  = '';
+$success  = '';
+$error    = '';
 
 $defaultSettings = [
     'support_types'       => ['post', 'page'],
@@ -54,31 +54,111 @@ $defaultSettings = [
     'sticky_toggle'       => false,
 ];
 
+function toc_sanitize_color(string $value, string $fallback): string {
+    $value = trim($value);
+    return preg_match('/^#[0-9a-fA-F]{6}$/', $value) ? strtolower($value) : $fallback;
+}
+
+function toc_sanitize_path_prefix(string $value): string {
+    $value = trim(strip_tags($value));
+    if ($value === '') {
+        return '';
+    }
+
+    $value = '/' . ltrim($value, '/');
+    return preg_replace('#/+#', '/', $value) ?: '';
+}
+
+function toc_sanitize_anchor_prefix(string $value): string {
+    $value = strtolower(trim(strip_tags($value)));
+    $value = (string) preg_replace('/[^a-z0-9\-_]/', '', $value);
+    return substr($value, 0, 40);
+}
+
+function toc_sanitize_text(string $value, string $fallback = '', int $maxLength = 120): string {
+    $value = trim(strip_tags($value));
+    if ($value === '') {
+        return $fallback;
+    }
+
+    return mb_substr($value, 0, $maxLength);
+}
+
 // Handle save
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_toc_settings') {
     if (!$security->verifyToken($_POST['csrf_token'] ?? '', 'toc_settings')) {
-        $message = 'Sicherheitsprüfung fehlgeschlagen.';
-        $msgType = 'error';
+        $error = 'Sicherheitsprüfung fehlgeschlagen.';
     } else {
-        $new = $defaultSettings;
-        foreach ($defaultSettings as $key => $default) {
-            if (is_bool($default)) {
-                $new[$key] = isset($_POST[$key]);
-            } elseif (is_array($default)) {
-                $new[$key] = (array) ($_POST[$key] ?? []);
-            } else {
-                $new[$key] = $_POST[$key] ?? $default;
-            }
-        }
-        $json   = json_encode($new);
+        $allowedContentTypes = ['post', 'page', 'product'];
+        $allowedPositions = ['before', 'after', 'top', 'bottom'];
+        $allowedWidths = ['auto', '100%', 'custom'];
+        $allowedAlignments = ['none', 'left', 'right', 'center'];
+        $allowedThemes = ['grey', 'light-blue', 'white', 'black', 'transparent', 'custom'];
+        $allowedHeadings = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+
+        $supportTypes = array_values(array_intersect(
+            $allowedContentTypes,
+            array_map('strval', (array) ($_POST['support_types'] ?? []))
+        ));
+
+        $autoInsertTypes = array_values(array_intersect(
+            $allowedContentTypes,
+            array_map('strval', (array) ($_POST['auto_insert_types'] ?? []))
+        ));
+
+        $headings = array_values(array_intersect(
+            $allowedHeadings,
+            array_map('strtolower', array_map('strval', (array) ($_POST['headings'] ?? [])))
+        ));
+
+        $new = [
+            'support_types' => $supportTypes !== [] ? $supportTypes : $defaultSettings['support_types'],
+            'auto_insert_types' => $autoInsertTypes,
+            'position' => in_array((string) ($_POST['position'] ?? ''), $allowedPositions, true)
+                ? (string) $_POST['position']
+                : $defaultSettings['position'],
+            'show_limit' => max(1, min(10, (int) ($_POST['show_limit'] ?? $defaultSettings['show_limit']))),
+            'show_header_label' => isset($_POST['show_header_label']),
+            'header_label' => toc_sanitize_text((string) ($_POST['header_label'] ?? ''), $defaultSettings['header_label'], 120),
+            'allow_toggle' => isset($_POST['allow_toggle']),
+            'show_hierarchy' => isset($_POST['show_hierarchy']),
+            'show_counter' => isset($_POST['show_counter']),
+            'smooth_scroll' => isset($_POST['smooth_scroll']),
+            'smooth_scroll_offset' => max(0, min(500, (int) ($_POST['smooth_scroll_offset'] ?? $defaultSettings['smooth_scroll_offset']))),
+            'mobile_scroll_offset' => max(0, min(500, (int) ($_POST['mobile_scroll_offset'] ?? $defaultSettings['mobile_scroll_offset']))),
+            'width' => in_array((string) ($_POST['width'] ?? ''), $allowedWidths, true)
+                ? (string) $_POST['width']
+                : $defaultSettings['width'],
+            'alignment' => in_array((string) ($_POST['alignment'] ?? ''), $allowedAlignments, true)
+                ? (string) $_POST['alignment']
+                : $defaultSettings['alignment'],
+            'theme' => in_array((string) ($_POST['theme'] ?? ''), $allowedThemes, true)
+                ? (string) $_POST['theme']
+                : $defaultSettings['theme'],
+            'custom_bg_color' => toc_sanitize_color((string) ($_POST['custom_bg_color'] ?? ''), $defaultSettings['custom_bg_color']),
+            'custom_border_color' => toc_sanitize_color((string) ($_POST['custom_border_color'] ?? ''), $defaultSettings['custom_border_color']),
+            'custom_title_color' => toc_sanitize_color((string) ($_POST['custom_title_color'] ?? ''), $defaultSettings['custom_title_color']),
+            'custom_link_color' => toc_sanitize_color((string) ($_POST['custom_link_color'] ?? ''), $defaultSettings['custom_link_color']),
+            'lowercase' => isset($_POST['lowercase']),
+            'hyphenate' => isset($_POST['hyphenate']),
+            'homepage_toc' => isset($_POST['homepage_toc']),
+            'exclude_css' => isset($_POST['exclude_css']),
+            'headings' => $headings !== [] ? $headings : $defaultSettings['headings'],
+            'exclude_headings' => toc_sanitize_text((string) ($_POST['exclude_headings'] ?? ''), '', 255),
+            'limit_path' => toc_sanitize_path_prefix((string) ($_POST['limit_path'] ?? '')),
+            'anchor_prefix' => toc_sanitize_anchor_prefix((string) ($_POST['anchor_prefix'] ?? '')),
+            'remove_toc_links' => isset($_POST['remove_toc_links']),
+            'sticky_toggle' => isset($_POST['sticky_toggle']),
+        ];
+
+        $json = json_encode($new, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         $exists = $db->fetchOne("SELECT id FROM {$db->getPrefix()}settings WHERE option_name = 'toc_settings'");
         if ($exists) {
             $db->execute("UPDATE {$db->getPrefix()}settings SET option_value = ? WHERE option_name = 'toc_settings'", [$json]);
         } else {
             $db->execute("INSERT INTO {$db->getPrefix()}settings (option_name, option_value) VALUES ('toc_settings', ?)", [$json]);
         }
-        $message = 'Einstellungen gespeichert.';
-        $msgType = 'success';
+        $success = 'Einstellungen gespeichert.';
     }
 }
 
@@ -99,19 +179,17 @@ function toc_sel(mixed $val, mixed $compare): void {
     echo ((string)$val === (string)$compare) ? 'selected' : '';
 }
 ?>
-<?php renderAdminLayoutStart('Table of Contents', 'table-of-contents'); ?>
+<?php renderAdminLayoutStart('Inhaltsverzeichnis', 'table-of-contents'); ?>
         <div class="page-header d-print-none mb-3">
         <div class="row align-items-center">
             <div class="col-auto">
                 <div class="page-pretitle">Konfigurieren Sie das automatische Inhaltsverzeichnis Ihrer Website.</div>
-                <h2 class="page-title">📑 Table of Contents</h2>
+                <h2 class="page-title">📑 Inhaltsverzeichnis</h2>
             </div>
         </div>
     </div>
 
-    <?php if ($message): ?>
-        <div class="alert alert-<?php echo $msgType; ?>"><?php echo htmlspecialchars($message); ?></div>
-    <?php endif; ?>
+    <?php renderAdminAlerts(); ?>
 
     <form method="post" action="">
         <input type="hidden" name="action" value="save_toc_settings">

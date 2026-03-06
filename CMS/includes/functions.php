@@ -293,29 +293,55 @@ function format_date(string $date, string $format = 'd.m.Y'): string {
 }
 
 /**
- * Time ago helper
+ * Time ago helper — human-readable relative timestamps
+ *
+ * Uses Carbon when available (ASSETS/Carbon), falls back to native PHP.
  */
 function time_ago(string|int $datetime): string {
-    // Handle both string dates and timestamps
     if (is_string($datetime)) {
         $timestamp = strtotime($datetime);
     } else {
         $timestamp = $datetime;
     }
-    
+
+    if ($timestamp === false || $timestamp <= 0) {
+        return '-';
+    }
+
+    // Try Carbon if loaded via ASSETS autoloader
+    if (class_exists('Carbon\\Carbon')) {
+        try {
+            return \Carbon\Carbon::createFromTimestamp($timestamp)->locale('de')->diffForHumans();
+        } catch (\Throwable $e) {
+            // Fall through to native implementation
+        }
+    }
+
     $diff = time() - $timestamp;
-    
-    if ($diff < 60) {
+
+    if ($diff < 0) {
+        return 'In der Zukunft';
+    } elseif ($diff < 60) {
         return 'Gerade eben';
     } elseif ($diff < 3600) {
-        $mins = floor($diff / 60);
-        return $mins . ' Minute' . ($mins > 1 ? 'n' : '') . ' her';
+        $mins = (int)floor($diff / 60);
+        return 'vor ' . $mins . ' Minute' . ($mins > 1 ? 'n' : '');
     } elseif ($diff < 86400) {
-        $hours = floor($diff / 3600);
-        return $hours . ' Stunde' . ($hours > 1 ? 'n' : '') . ' her';
+        $hours = (int)floor($diff / 3600);
+        return 'vor ' . $hours . ' Stunde' . ($hours > 1 ? 'n' : '');
+    } elseif ($diff < 604800) {
+        $days = (int)floor($diff / 86400);
+        if ($days === 1) return 'Gestern';
+        return 'vor ' . $days . ' Tagen';
+    } elseif ($diff < 2592000) {
+        $weeks = (int)floor($diff / 604800);
+        return 'vor ' . $weeks . ' Woche' . ($weeks > 1 ? 'n' : '');
+    } elseif ($diff < 31536000) {
+        $months = (int)floor($diff / 2592000);
+        return 'vor ' . $months . ' Monat' . ($months > 1 ? 'en' : '');
     } else {
-        $days = floor($diff / 86400);
-        return $days . ' Tag' . ($days > 1 ? 'e' : '') . ' her';
+        $years = (int)floor($diff / 31536000);
+        return 'vor ' . $years . ' Jahr' . ($years > 1 ? 'en' : '');
     }
 }
 
@@ -333,6 +359,18 @@ function dd(...$vars): void {
     }
     echo '</pre>';
     exit;
+}
+
+/**
+ * Global logging helper — delegates to CMS\Logger
+ *
+ * @param string $level   PSR-3 level (debug|info|notice|warning|error|critical|alert|emergency)
+ * @param string $message Log message ({key} placeholders replaced from $context)
+ * @param array  $context Context data
+ */
+function cms_log(string $level, string $message, array $context = []): void
+{
+    \CMS\Logger::instance()->log($level, $message, $context);
 }
 
 /**
@@ -559,8 +597,7 @@ function get_registered_admin_menus(): array {
  * This is a minimal polyfill for the CMS environment.
  */
 function __(string $text, string $domain = 'default'): string {
-    // In a full implementation, we would look up the translation here.
-    return $text;
+    return \CMS\Services\TranslationService::getInstance()->translate($text, $domain);
 }
 
 /**
@@ -578,7 +615,8 @@ function _e(string $text, string $domain = 'default'): void {
  * Retrieves the translation of  with context.
  */
 function _x(string $text, string $context, string $domain = 'default'): string {
-    return $text; 
+    // Kontext wird aktuell nicht getrennt gespeichert; Fallback auf normale Übersetzung.
+    return __($text, $domain);
 }
 
 /**
@@ -587,7 +625,7 @@ function _x(string $text, string $context, string $domain = 'default'): string {
  * Retrieves the plural or single form based on the amount.
  */
 function _n(string $single, string $plural, int $number, string $domain = 'default'): string {
-    return ($number === 1) ? $single : $plural;
+    return \CMS\Services\TranslationService::getInstance()->translatePlural($single, $plural, $number, $domain);
 }
 
 

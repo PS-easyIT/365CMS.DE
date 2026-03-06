@@ -256,7 +256,7 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
 
             <div class="admin-section-header">
                 <h3 style="margin:0;font-size:1rem;">Verfügbare Abo-Pakete <span class="plc-count-badge"><?php echo count($plans); ?></span></h3>
-                <a href="#" onclick="document.getElementById('create-plan-modal').style.display='flex'; return false;" class="btn btn-primary btn-sm">➕ Neues Paket</a>
+                <a href="#" onclick="openCreatePlanModal(); return false;" class="btn btn-primary btn-sm">➕ Neues Paket</a>
             </div>
 
             <?php if (empty($plans)): ?>
@@ -502,8 +502,8 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                         <p class="text-muted">Erstelle Zuweisungen im Tab <a href="?tab=assignments">Zuweisungen</a>.</p>
                     </div>
                 <?php else: ?>
-                <div class="users-table-container">
-                    <table class="users-table">
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table">
                         <thead><tr>
                             <th>Benutzer</th>
                             <th>E-Mail</th>
@@ -539,8 +539,8 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                 <?php if (empty($groups)): ?>
                     <p style="color:#94a3b8;font-size:.85rem;">Noch keine Gruppen vorhanden. <a href="<?php echo SITE_URL; ?>/admin/groups">Gruppen erstellen &rarr;</a></p>
                 <?php else: ?>
-                <div class="users-table-container">
-                    <table class="users-table">
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table">
                         <thead><tr>
                             <th>Gruppe</th>
                             <th>Status</th>
@@ -638,8 +638,8 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                         <p class="text-muted">Weise oben einem Benutzer ein Abo-Paket zu.</p>
                     </div>
                 <?php else: ?>
-                <div class="users-table-container">
-                    <table class="users-table">
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table">
                         <thead><tr>
                             <th>Benutzer</th>
                             <th>Paket</th>
@@ -674,8 +674,8 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
                         <p style="color:#64748b;">Noch keine Gruppen vorhanden. <a href="<?php echo SITE_URL; ?>/admin/groups">Gruppen erstellen &rarr;</a></p>
                     </div>
                 <?php else: ?>
-                <div class="users-table-container" style="margin-top:1rem;">
-                    <table class="users-table">
+                <div class="table-responsive" style="margin-top:1rem;">
+                    <table class="table table-vcenter card-table">
                         <thead><tr>
                             <th>Gruppe</th>
                             <th style="width:100px;">Status</th>
@@ -729,24 +729,27 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
     </div>
     
     <!-- Delete Plan Confirmation Modal -->
-    <div id="deletePlanModal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>🗑️ Paket löschen</h3>
-                <button class="modal-close" onclick="closeDeletePlanModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p>Möchten Sie das Paket <strong id="deletePlanName"></strong> wirklich löschen?</p>
-                <div class="alert alert-danger">⚠️ Diese Aktion kann nicht rückgängig gemacht werden!</div>
-                <form method="POST" id="deletePlanForm">
-                    <input type="hidden" name="action" value="delete_plan">
-                    <input type="hidden" name="plan_id" id="deletePlanId" value="">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeDeletePlanModal()">Abbrechen</button>
-                <button type="submit" form="deletePlanForm" class="btn btn-danger">🗑️ Paket löschen</button>
+    <div class="modal modal-blur fade" id="deletePlanModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
+            <div class="modal-content">
+                <div class="modal-status bg-danger"></div>
+                <div class="modal-header">
+                    <h5 class="modal-title">🗑️ Paket löschen</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Möchten Sie das Paket <strong id="deletePlanName"></strong> wirklich löschen?</p>
+                    <div class="alert alert-danger">⚠️ Diese Aktion kann nicht rückgängig gemacht werden!</div>
+                    <form method="POST" id="deletePlanForm">
+                        <input type="hidden" name="action" value="delete_plan">
+                        <input type="hidden" name="plan_id" id="deletePlanId" value="">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="submit" form="deletePlanForm" class="btn btn-danger">🗑️ Paket löschen</button>
+                </div>
             </div>
         </div>
     </div>
@@ -754,125 +757,119 @@ renderAdminLayoutStart('Abo-Verwaltung', 'subscriptions');
     <!-- Create/Edit Plan Modal -->
     <?php 
     $showModal = (isset($editPlan) || ($activeTab === 'plans' && isset($_GET['new'])));
-    // If editPlan is set, populate fields. If not, empty.
     $p = $editPlan;
     ?>
-    <div id="create-plan-modal" style="display:<?php echo $showModal ? 'flex' : 'none'; ?>;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;">
-        <div style="background:#fff;padding:2rem;border-radius:12px;max-width:780px;width:90%;max-height:90vh;overflow-y:auto;">
-            <h2 style="margin:0 0 1.25rem;font-size:1.2rem;color:#1e293b;padding-bottom:.75rem;border-bottom:2px solid #f1f5f9;"><?php echo $p ? 'Paket bearbeiten' : 'Neues Abo-Paket erstellen'; ?></h2>
-            <form method="POST" action="?tab=plans">
-                <input type="hidden" name="action" value="<?php echo $p ? 'update_plan' : 'create_plan'; ?>">
-                <?php if ($p): ?><input type="hidden" name="plan_id" value="<?php echo $p->id; ?>"><?php endif; ?>
-                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Name *</label>
-                        <input type="text" name="name" value="<?php echo $p ? htmlspecialchars($p->name) : ''; ?>" required>
-                    </div>
+    <div class="modal modal-blur fade<?php echo $showModal ? ' show' : ''; ?>" id="create-plan-modal" tabindex="-1" role="dialog" aria-hidden="<?php echo $showModal ? 'false' : 'true'; ?>"<?php echo $showModal ? ' style="display:block;"' : ''; ?>>
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+            <div class="modal-content">
+                <form method="POST" action="?tab=plans">
+                    <input type="hidden" name="action" value="<?php echo $p ? 'update_plan' : 'create_plan'; ?>">
+                    <?php if ($p): ?><input type="hidden" name="plan_id" value="<?php echo $p->id; ?>"><?php endif; ?>
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                     
-                    <div class="form-group">
-                        <label>Slug *</label>
-                        <input type="text" name="slug" value="<?php echo $p ? htmlspecialchars($p->slug) : ''; ?>" required>
+                    <div class="modal-header">
+                        <h5 class="modal-title"><?php echo $p ? 'Paket bearbeiten' : 'Neues Abo-Paket erstellen'; ?></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
                     </div>
-                    
-                    <div class="form-group form-grid-full">
-                        <label>Beschreibung</label>
-                        <textarea name="description" rows="3"><?php echo $p ? htmlspecialchars($p->description ?? '') : ''; ?></textarea>
+                    <div class="modal-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Name *</label>
+                                <input type="text" name="name" class="form-control" value="<?php echo $p ? htmlspecialchars($p->name) : ''; ?>" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Slug *</label>
+                                <input type="text" name="slug" class="form-control" value="<?php echo $p ? htmlspecialchars($p->slug) : ''; ?>" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Beschreibung</label>
+                            <textarea name="description" class="form-control" rows="3"><?php echo $p ? htmlspecialchars($p->description ?? '') : ''; ?></textarea>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Preis/Monat (€)</label>
+                                <input type="number" name="price_monthly" class="form-control" step="0.01" value="<?php echo $p ? $p->price_monthly : '0.00'; ?>">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Preis/Jahr (€)</label>
+                                <input type="number" name="price_yearly" class="form-control" step="0.01" value="<?php echo $p ? $p->price_yearly : '0.00'; ?>">
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Limit Experten (-1 = ∞)</label>
+                                <input type="number" name="limit_experts" class="form-control" value="<?php echo $p ? $p->limit_experts : '-1'; ?>">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Limit Unternehmen (-1 = ∞)</label>
+                                <input type="number" name="limit_companies" class="form-control" value="<?php echo $p ? $p->limit_companies : '-1'; ?>">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Limit Events (-1 = ∞)</label>
+                                <input type="number" name="limit_events" class="form-control" value="<?php echo $p ? $p->limit_events : '-1'; ?>">
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Limit Speakers (-1 = ∞)</label>
+                                <input type="number" name="limit_speakers" class="form-control" value="<?php echo $p ? $p->limit_speakers : '-1'; ?>">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Speicher (MB)</label>
+                                <input type="number" name="limit_storage_mb" class="form-control" value="<?php echo $p ? $p->limit_storage_mb : '1000'; ?>">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Sortierung</label>
+                                <input type="number" name="sort_order" class="form-control" value="<?php echo $p ? $p->sort_order : '0'; ?>">
+                            </div>
+                        </div>
+                        
+                        <h4 class="mt-3 mb-2">Plugin-Zugriff</h4>
+                        <div class="row mb-3">
+                            <div class="col-6"><label class="form-check form-check-inline"><input type="checkbox" name="plugin_experts" class="form-check-input" <?php echo (!$p || $p->plugin_experts) ? 'checked' : ''; ?>> <span class="form-check-label">Experten</span></label></div>
+                            <div class="col-6"><label class="form-check form-check-inline"><input type="checkbox" name="plugin_companies" class="form-check-input" <?php echo (!$p || $p->plugin_companies) ? 'checked' : ''; ?>> <span class="form-check-label">Unternehmen</span></label></div>
+                            <div class="col-6"><label class="form-check form-check-inline"><input type="checkbox" name="plugin_events" class="form-check-input" <?php echo (!$p || $p->plugin_events) ? 'checked' : ''; ?>> <span class="form-check-label">Events</span></label></div>
+                            <div class="col-6"><label class="form-check form-check-inline"><input type="checkbox" name="plugin_speakers" class="form-check-input" <?php echo (!$p || $p->plugin_speakers) ? 'checked' : ''; ?>> <span class="form-check-label">Speakers</span></label></div>
+                        </div>
+                        
+                        <h4 class="mt-3 mb-2">Premium Features</h4>
+                        <div class="row">
+                            <div class="col-6"><label class="form-check form-check-inline"><input type="checkbox" name="feature_analytics" class="form-check-input" <?php echo ($p && $p->feature_analytics) ? 'checked' : ''; ?>> <span class="form-check-label">Analytics</span></label></div>
+                            <div class="col-6"><label class="form-check form-check-inline"><input type="checkbox" name="feature_advanced_search" class="form-check-input" <?php echo ($p && $p->feature_advanced_search) ? 'checked' : ''; ?>> <span class="form-check-label">Erweiterte Suche</span></label></div>
+                            <div class="col-6"><label class="form-check form-check-inline"><input type="checkbox" name="feature_api_access" class="form-check-input" <?php echo ($p && $p->feature_api_access) ? 'checked' : ''; ?>> <span class="form-check-label">API-Zugang</span></label></div>
+                            <div class="col-6"><label class="form-check form-check-inline"><input type="checkbox" name="feature_custom_branding" class="form-check-input" <?php echo ($p && $p->feature_custom_branding) ? 'checked' : ''; ?>> <span class="form-check-label">Custom Branding</span></label></div>
+                            <div class="col-6"><label class="form-check form-check-inline"><input type="checkbox" name="feature_priority_support" class="form-check-input" <?php echo ($p && $p->feature_priority_support) ? 'checked' : ''; ?>> <span class="form-check-label">Priority Support</span></label></div>
+                            <div class="col-6"><label class="form-check form-check-inline"><input type="checkbox" name="feature_export_data" class="form-check-input" <?php echo ($p && $p->feature_export_data) ? 'checked' : ''; ?>> <span class="form-check-label">Daten-Export</span></label></div>
+                            <div class="col-6"><label class="form-check form-check-inline"><input type="checkbox" name="feature_integrations" class="form-check-input" <?php echo ($p && $p->feature_integrations) ? 'checked' : ''; ?>> <span class="form-check-label">Integrationen</span></label></div>
+                            <div class="col-6"><label class="form-check form-check-inline"><input type="checkbox" name="feature_custom_domains" class="form-check-input" <?php echo ($p && $p->feature_custom_domains) ? 'checked' : ''; ?>> <span class="form-check-label">Custom Domains</span></label></div>
+                        </div>
                     </div>
-                    
-                    <div class="form-group">
-                        <label>Preis/Monat (€)</label>
-                        <input type="number" name="price_monthly" step="0.01" value="<?php echo $p ? $p->price_monthly : '0.00'; ?>">
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                        <button type="submit" class="btn btn-primary"><?php echo $p ? 'Speichern' : 'Paket erstellen'; ?></button>
                     </div>
-                    
-                    <div class="form-group">
-                        <label>Preis/Jahr (€)</label>
-                        <input type="number" name="price_yearly" step="0.01" value="<?php echo $p ? $p->price_yearly : '0.00'; ?>">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Limit Experten (-1 = ∞)</label>
-                        <input type="number" name="limit_experts" value="<?php echo $p ? $p->limit_experts : '-1'; ?>">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Limit Unternehmen (-1 = ∞)</label>
-                        <input type="number" name="limit_companies" value="<?php echo $p ? $p->limit_companies : '-1'; ?>">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Limit Events (-1 = ∞)</label>
-                        <input type="number" name="limit_events" value="<?php echo $p ? $p->limit_events : '-1'; ?>">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Limit Speakers (-1 = ∞)</label>
-                        <input type="number" name="limit_speakers" value="<?php echo $p ? $p->limit_speakers : '-1'; ?>">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Speicher (MB)</label>
-                        <input type="number" name="limit_storage_mb" value="<?php echo $p ? $p->limit_storage_mb : '1000'; ?>">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Sortierung</label>
-                        <input type="number" name="sort_order" value="<?php echo $p ? $p->sort_order : '0'; ?>">
-                    </div>
-                </div>
-                
-                <h3 style="margin-top: 1.5rem;">Plugin-Zugriff</h3>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
-                    <label><input type="checkbox" name="plugin_experts" <?php echo (!$p || $p->plugin_experts) ? 'checked' : ''; ?>> Experten</label>
-                    <label><input type="checkbox" name="plugin_companies" <?php echo (!$p || $p->plugin_companies) ? 'checked' : ''; ?>> Unternehmen</label>
-                    <label><input type="checkbox" name="plugin_events" <?php echo (!$p || $p->plugin_events) ? 'checked' : ''; ?>> Events</label>
-                    <label><input type="checkbox" name="plugin_speakers" <?php echo (!$p || $p->plugin_speakers) ? 'checked' : ''; ?>> Speakers</label>
-                </div>
-                
-                <h3 style="margin-top: 1.5rem;">Premium Features</h3>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
-                    <label><input type="checkbox" name="feature_analytics" <?php echo ($p && $p->feature_analytics) ? 'checked' : ''; ?>> Analytics</label>
-                    <label><input type="checkbox" name="feature_advanced_search" <?php echo ($p && $p->feature_advanced_search) ? 'checked' : ''; ?>> Erweiterte Suche</label>
-                    <label><input type="checkbox" name="feature_api_access" <?php echo ($p && $p->feature_api_access) ? 'checked' : ''; ?>> API-Zugang</label>
-                    <label><input type="checkbox" name="feature_custom_branding" <?php echo ($p && $p->feature_custom_branding) ? 'checked' : ''; ?>> Custom Branding</label>
-                    <label><input type="checkbox" name="feature_priority_support" <?php echo ($p && $p->feature_priority_support) ? 'checked' : ''; ?>> Priority Support</label>
-                    <label><input type="checkbox" name="feature_export_data" <?php echo ($p && $p->feature_export_data) ? 'checked' : ''; ?>> Daten-Export</label>
-                    <label><input type="checkbox" name="feature_integrations" <?php echo ($p && $p->feature_integrations) ? 'checked' : ''; ?>> Integrationen</label>
-                    <label><input type="checkbox" name="feature_custom_domains" <?php echo ($p && $p->feature_custom_domains) ? 'checked' : ''; ?>> Custom Domains</label>
-                </div>
-                
-                <div class="form-actions" style="margin-top: 2rem;">
-                    <button type="submit" class="btn btn-primary"><?php echo $p ? 'Speichern' : 'Paket erstellen'; ?></button>
-                    <a href="?tab=plans" class="btn btn-secondary" onclick="document.getElementById('create-plan-modal').style.display='none'">
-                        Abbrechen
-                    </a>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     </div>
+    <?php if ($showModal): ?>
+    <div class="modal-backdrop fade show"></div>
+    <script>document.addEventListener('DOMContentLoaded',()=>bootstrap.Modal.getOrCreateInstance(document.getElementById('create-plan-modal')).show());</script>
+    <?php endif; ?>
     
     <script>
         function openDeletePlanModal(id, name) {
             document.getElementById('deletePlanId').value = id;
             document.getElementById('deletePlanName').textContent = name;
-            document.getElementById('deletePlanModal').style.display = 'flex';
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('deletePlanModal')).show();
         }
-        function closeDeletePlanModal() {
-            document.getElementById('deletePlanModal').style.display = 'none';
+        function openCreatePlanModal() {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('create-plan-modal')).show();
         }
-        // Modal: clicking outside closes it
-        document.getElementById('create-plan-modal').addEventListener('click', function(e){
-            if (e.target === this) this.style.display='none';
-        });
-        document.getElementById('deletePlanModal').addEventListener('click', function(e){
-            if (e.target === this) closeDeletePlanModal();
-        });
-        document.addEventListener('keydown', function(e){
-            if (e.key === 'Escape') {
-                closeDeletePlanModal();
-                document.getElementById('create-plan-modal').style.display='none';
-            }
-        });
     </script>
 <?php renderAdminLayoutEnd(); ?>

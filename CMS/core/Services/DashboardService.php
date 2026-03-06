@@ -41,8 +41,37 @@ class DashboardService {
             'sessions' => $this->getSessionStats(),
             'security' => $this->getSecurityStats(),
             'performance' => $this->getPerformanceStats(),
-            'system' => $this->getSystemInfo()
+            'system' => $this->getSystemInfo(),
+            'orders' => $this->getOrderStats()
         ];
+    }
+
+    /**
+     * Bestell-Statistiken.
+     */
+    public function getOrderStats(): array {
+        try {
+            $total = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}orders") ?: 0;
+            $pending = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}orders WHERE status = 'pending'") ?: 0;
+            $monthRevenue = (float)$this->db->get_var(
+                "SELECT COALESCE(SUM(total_amount), 0) FROM {$this->prefix}orders WHERE status IN ('confirmed', 'completed') AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)"
+            );
+
+            return [
+                'total' => $total,
+                'pending' => $pending,
+                'month_revenue' => $monthRevenue,
+                'month_revenue_formatted' => number_format($monthRevenue, 2, ',', '.') . ' EUR',
+            ];
+        } catch (\Throwable $e) {
+            error_log('DashboardService: Order stats error - ' . $e->getMessage());
+            return [
+                'total' => 0,
+                'pending' => 0,
+                'month_revenue' => 0.0,
+                'month_revenue_formatted' => '0,00 EUR',
+            ];
+        }
     }
     
     /**
@@ -413,6 +442,82 @@ class DashboardService {
         }
         
         return $activities;
+    }
+
+    /**
+     * Neueste Bestellungen für das Dashboard.
+     *
+     * @return array<int, object>
+     */
+    public function getRecentOrders(int $limit = 5): array {
+        try {
+            return $this->db->get_results(
+                "SELECT o.order_number, o.total_amount, o.currency, o.status, o.created_at,
+                        COALESCE(NULLIF(CONCAT(COALESCE(o.forename, ''), ' ', COALESCE(o.lastname, '')), ' '), u.display_name, u.username, o.email, 'Gast') AS customer_name
+                 FROM {$this->prefix}orders o
+                 LEFT JOIN {$this->prefix}users u ON o.user_id = u.id
+                 ORDER BY o.created_at DESC
+                 LIMIT ?",
+                [$limit]
+            ) ?: [];
+        } catch (\Throwable $e) {
+            error_log('DashboardService: Recent orders error - ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Kompakte Aufgabenliste für das Dashboard.
+     */
+    public function getAttentionItems(): array {
+        $stats = $this->getAllStats();
+        $items = [];
+
+        if (($stats['orders']['pending'] ?? 0) > 0) {
+            $items[] = [
+                'type' => 'warning',
+                'icon' => '🧾',
+                'label' => 'Offene Bestellungen',
+                'value' => (string)$stats['orders']['pending'],
+                'hint' => 'Warten auf Prüfung oder Bestätigung',
+                'url' => SITE_URL . '/admin/orders',
+            ];
+        }
+
+        if (($stats['security']['failed_logins_24h'] ?? 0) > 0) {
+            $items[] = [
+                'type' => (($stats['security']['failed_logins_24h'] ?? 0) >= 10) ? 'danger' : 'warning',
+                'icon' => '🔐',
+                'label' => 'Fehlgeschlagene Logins (24h)',
+                'value' => (string)$stats['security']['failed_logins_24h'],
+                'hint' => 'Sicherheitslage im Blick behalten',
+                'url' => SITE_URL . '/admin/security-audit',
+            ];
+        }
+
+        if (($stats['users']['new_today'] ?? 0) > 0) {
+            $items[] = [
+                'type' => 'info',
+                'icon' => '👤',
+                'label' => 'Neue Benutzer heute',
+                'value' => (string)$stats['users']['new_today'],
+                'hint' => 'Neue Registrierungen prüfen',
+                'url' => SITE_URL . '/admin/users',
+            ];
+        }
+
+        if (($stats['security']['https_enabled'] ?? false) === false) {
+            $items[] = [
+                'type' => 'danger',
+                'icon' => '⚠️',
+                'label' => 'HTTPS nicht aktiv',
+                'value' => 'Check',
+                'hint' => 'Produktivbetrieb ohne TLS ist riskant',
+                'url' => SITE_URL . '/admin/system',
+            ];
+        }
+
+        return $items;
     }
     
     /**

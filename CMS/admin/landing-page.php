@@ -124,8 +124,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['landing_action'])) {
                 $pluginId = $_POST['plugin_id'] ?? '';
                 if ($landingService->updatePluginOverride(['area' => $area, 'plugin_id' => $pluginId])) {
                     $success = $pluginId !== ''
-                        ? 'Plugin-Override für ' . htmlspecialchars($area) . ' aktiviert'
-                        : 'CMS-Standard für ' . htmlspecialchars($area) . ' wiederhergestellt';
+                        ? 'Plugin-Override für ' . $area . ' aktiviert'
+                        : 'CMS-Standard für ' . $area . ' wiederhergestellt';
                 } else {
                     $error = 'Fehler beim Speichern des Plugin-Overrides';
                 }
@@ -197,12 +197,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
         </nav>
 
         <!-- Messages -->
-        <?php if (isset($success)): ?>
-            <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
-        <?php endif; ?>
-        <?php if (isset($error)): ?>
-            <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
-        <?php endif; ?>
+        <?php renderAdminAlerts(); ?>
 
         <?php /* ═══════════ SECTION: HEADER ══════════════════════════════ */ ?>
         <?php if ($activeSection === 'header'): ?>
@@ -425,7 +420,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                                     <p class="lp-feature-card__desc"><?php echo htmlspecialchars(strip_tags($feature['description'])); ?></p>
                                     <div class="lp-feature-card__actions">
                                         <button onclick='editFeature(<?php echo json_encode($feature); ?>)' class="btn btn-secondary btn-sm">✏️ Bearbeiten</button>
-                                        <form method="POST" style="display:inline;" onsubmit="return confirm('Feature wirklich löschen?');">
+                                        <form method="POST" style="display:inline;" onsubmit="return submitFeatureDelete(event, this);">
                                             <input type="hidden" name="landing_action" value="delete_feature">
                                             <input type="hidden" name="csrf_token"     value="<?php echo $csrfToken; ?>">
                                             <input type="hidden" name="feature_id"     value="<?php echo $feature['id']; ?>">
@@ -604,7 +599,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
 
                     <div class="form-actions" style="padding:1rem 1.5rem;border-top:1px solid #f1f5f9;margin-top:1rem;border-radius:0 0 9px 9px;background:#f8fafc;">
                         <button type="submit" class="btn btn-primary">💾 Farben speichern</button>
-                        <button type="button" onclick="resetColors()" class="btn btn-secondary">🔄 Zurücksetzen</button>
+                        <button type="button" onclick="confirmResetColors()" class="btn btn-secondary">🔄 Zurücksetzen</button>
                     </div>
                 </div>
             </form>
@@ -987,46 +982,56 @@ require_once __DIR__ . '/partials/admin-menu.php';
 
         <?php endif; ?>
 
-    </div><!-- /.admin-content -->
-
     <!-- Feature Modal -->
-    <div id="featureModal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modalTitle">Feature bearbeiten</h3>
-                <button onclick="closeFeatureModal()" class="modal-close">×</button>
+    <div class="modal modal-blur fade" id="featureModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <form method="POST" id="featureForm">
+                    <input type="hidden" name="landing_action" value="save_feature">
+                    <input type="hidden" name="csrf_token"     value="<?php echo $csrfToken; ?>">
+                    <input type="hidden" name="feature_id"     id="feature_id">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalTitle">Feature bearbeiten</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="feature_icon" class="form-label">Icon (Emoji)</label>
+                            <input type="text" id="feature_icon" name="icon" class="form-control" placeholder="🎯" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="feature_title" class="form-label">Titel</label>
+                            <input type="text" id="feature_title" name="title" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="feature_description" class="form-label">Beschreibung</label>
+                            <textarea id="feature_description" name="description" class="form-control" rows="3" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="feature_sort" class="form-label">Sortierung</label>
+                            <input type="number" id="feature_sort" name="sort_order" class="form-control" min="1" max="99">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                        <button type="submit" class="btn btn-primary">💾 Speichern</button>
+                    </div>
+                </form>
             </div>
-            <form method="POST" id="featureForm">
-                <input type="hidden" name="landing_action" value="save_feature">
-                <input type="hidden" name="csrf_token"     value="<?php echo $csrfToken; ?>">
-                <input type="hidden" name="feature_id"     id="feature_id">
-                <div class="form-group">
-                    <label for="feature_icon" class="form-label">Icon (Emoji)</label>
-                    <input type="text" id="feature_icon" name="icon" class="form-control" placeholder="🎯" required>
-                </div>
-                <div class="form-group">
-                    <label for="feature_title" class="form-label">Titel</label>
-                    <input type="text" id="feature_title" name="title" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label for="feature_description" class="form-label">Beschreibung</label>
-                    <textarea id="feature_description" name="description" class="form-control" rows="3" required></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="feature_sort" class="form-label">Sortierung</label>
-                    <input type="number" id="feature_sort" name="sort_order" class="form-control" min="1" max="99">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" onclick="closeFeatureModal()" class="btn btn-secondary">Abbrechen</button>
-                    <button type="submit" class="btn btn-primary">💾 Speichern</button>
-                </div>
-            </form>
         </div>
     </div>
 
     <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
     <script>
     let _featureEditor = null;
+
+    function submitFeatureDelete(event, form) {
+        event.preventDefault();
+        cmsConfirm('Feature wirklich löschen?', function() {
+            form.submit();
+        }, 'Feature löschen');
+        return false;
+    }
 
     function _initFeatureEditor() {
         if (typeof SUNEDITOR === 'undefined') return;
@@ -1043,7 +1048,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
         document.getElementById('modalTitle').textContent = 'Neues Feature';
         document.getElementById('featureForm').reset();
         document.getElementById('feature_id').value = '';
-        document.getElementById('featureModal').style.display = 'flex';
+        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('featureModal'));
+        modal.show();
         setTimeout(() => { _initFeatureEditor(); if (_featureEditor) _featureEditor.setContents(''); }, 50);
     }
 
@@ -1053,21 +1059,14 @@ require_once __DIR__ . '/partials/admin-menu.php';
         document.getElementById('feature_icon').value        = feature.icon;
         document.getElementById('feature_title').value       = feature.title;
         document.getElementById('feature_sort').value        = feature.sort_order;
-        document.getElementById('featureModal').style.display = 'flex';
+        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('featureModal'));
+        modal.show();
         setTimeout(() => {
             _initFeatureEditor();
             if (_featureEditor) { _featureEditor.setContents(feature.description); }
             else { document.getElementById('feature_description').value = feature.description; }
         }, 50);
     }
-
-    function closeFeatureModal() {
-        document.getElementById('featureModal').style.display = 'none';
-    }
-
-    window.addEventListener('click', function(e) {
-        if (e.target === document.getElementById('featureModal')) closeFeatureModal();
-    });
 
     document.querySelectorAll('.color-picker').forEach(function(picker) {
         picker.addEventListener('input', function() {
@@ -1094,7 +1093,6 @@ require_once __DIR__ . '/partials/admin-menu.php';
     }
 
     function resetColors() {
-        if (!confirm('Alle Farben auf Standardwerte zuruecksetzen?')) return;
         const defaults = {
             hero_gradient_start: '#1e293b', hero_gradient_end: '#0f172a',
             hero_border: '#3b82f6',         hero_text: '#ffffff',
@@ -1108,6 +1106,12 @@ require_once __DIR__ . '/partials/admin-menu.php';
             if (t) t.value = v;
         });
         _updateColorPreview();
+    }
+
+    function confirmResetColors() {
+        cmsConfirm('Alle Farben auf Standardwerte zurücksetzen?', function() {
+            resetColors();
+        }, 'Farben zurücksetzen');
     }
 
     // ── Content Mode Toggle ─────────────────────────────────────────────────

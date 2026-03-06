@@ -1,114 +1,21 @@
-/*
- * Admin CSS
- * 
+/**
+ * 365CMS Admin – Page-Specific Components
+ *
+ * Basis-Styles (Buttons, Alerts, Forms, Cards, Sidebar) kommen aus:
+ *   → tabler.min.css  (Tabler Framework)
+ *   → admin-tabler.css (365CMS Branding & Legacy-Mappings)
+ *
+ * Diese Datei enthält NUR seitenspezifische Komponenten.
+ *
  * @package CMSv2\Assets
  */
 
-/* Sidebar-Styles automatisch mitladen (für alle Admin-Pages) */
-@import url('admin-sidebar.css');
+/* NOTE: @import admin-sidebar.css entfernt – Sidebar nutzt Tabler .navbar-vertical */
+/* NOTE: CSS-Variablen sind in admin-tabler.css definiert */
 
-:root {
-    --admin-primary:        #3b82f6;
-    --admin-primary-dark:   #2563eb;
-    --admin-primary-light:  #eff6ff;
-    --admin-sidebar-width:  260px;
-    /* Unified card design tokens */
-    --card-radius:          10px;
-    --card-border:          1px solid #e2e8f0;
-    --card-shadow:          0 1px 4px rgba(0, 0, 0, 0.06);
-    --card-shadow-hover:    0 4px 12px rgba(0, 0, 0, 0.1);
-    --card-bg:              #fff;
-    --card-header-bg:       #f8fafc;
-    --card-header-border:   #e2e8f0;
-}
+/* OLD: .admin-header, .admin-container entfernt – Tabler-Layout nutzt .page > .page-wrapper */
 
-/* Admin Body */
-.admin-body {
-    background: #f1f5f9;
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-/* Admin Header */
-.admin-header {
-    background: white;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
-
-.admin-header-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 2rem;
-}
-
-.admin-logo {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--admin-primary);
-    margin: 0;
-}
-
-.admin-logo span {
-    color: #64748b;
-    font-weight: 400;
-    font-size: 1rem;
-    margin-left: 0.5rem;
-}
-
-.admin-user {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.btn-logout {
-    padding: 0.5rem 1rem;
-    background: #ef4444;
-    color: white;
-    border-radius: 6px;
-    text-decoration: none;
-    font-weight: 500;
-    transition: all 0.2s;
-}
-
-.btn-logout:hover {
-    background: #dc2626;
-}
-
-/* Admin Container */
-.admin-container {
-    display: flex;
-    min-height: 100vh;
-}
-
-/* ═══════════════════════════════════════════════════════
-   ADMIN SIDEBAR
-   → Ausgelagert in: assets/css/admin-sidebar.css
-   ═══════════════════════════════════════════════════════ */
-
-
-
-
-
-/* ═══════════════════════════════════════════════════════
-   MAIN CONTENT AREA
-   ═══════════════════════════════════════════════════════ */
-.admin-content {
-    margin-left: var(--admin-sidebar-width, 260px);
-    padding: 2rem;
-    min-height: 100vh;
-    width: calc(100% - var(--admin-sidebar-width, 260px));
-    box-sizing: border-box;
-}
-
-.admin-content h2 {
-    color: #1e293b;
-    margin-bottom: 2rem;
-}
+/* OLD: .admin-content margin-left entfernt – Tabler .page-wrapper handled by admin-tabler.css */
 
 .admin-page-header {
     display: flex;
@@ -143,315 +50,24 @@
     flex-shrink: 0;
 }
 
-/* Alerts */
-.alert {
-    padding: 1rem 1.5rem;
-    border-radius: 8px;
-    margin-bottom: 1.5rem;
-    font-weight: 500;
-}
+/* OLD: .alert Basis-Definitionen entfernt – Tabler stellt Alerts bereit */
 
-.alert-success {
-    background: #d1fae5;
-    color: #065f46;
-    border-left: 4px solid #10b981;
-}
+/* OLD: .dashboard-grid, .stat-card Basis-Definitionen entfernt – in admin-tabler.css */
 
-.alert-error {
-    background: #fee2e2;
-    color: #991b1b;
-    border-left: 4px solid #ef4444;
-}
+/* OLD: .admin-section/.admin-card Basis-Definitionen entfernt – in admin-tabler.css */
 
-/* Dashboard Grid */
-.dashboard-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 3rem;
-}
+/* OLD: .info-grid/.info-card entfernt – in admin-tabler.css */
 
-.stat-card {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 10px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-    border: 1px solid #e2e8f0;
-}
+/* OLD: .quick-actions entfernt – in admin-tabler.css */
 
-.stat-card h3 {
-    color: #64748b;
-    font-size: 0.875rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    margin-bottom: 0.5rem;
-}
+/* OLD: .btn Basis-Definitionen entfernt – Tabler stellt Buttons bereit */
 
-.stat-number {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--admin-primary);
-}
+/* OLD: .plugin-card/.theme-card Basis-Definitionen entfernt – in admin-tabler.css */
 
-.stat-label {
-    color: #64748b;
-    font-size: 0.875rem;
-    margin-top: 0.5rem;
-}
+/* OLD: .status-badge/.users-table/.role-badge/.empty-state entfernt – in admin-tabler.css */
 
-/* Admin Section / Admin Card – unified card style */
-.admin-section,
-.admin-card {
-    background: var(--card-bg, white);
-    padding: 1.5rem;
-    border-radius: var(--card-radius, 10px);
-    box-shadow: var(--card-shadow, 0 1px 4px rgba(0, 0, 0, 0.06));
-    border: var(--card-border, 1px solid #e2e8f0);
-    margin-bottom: 1.5rem;
-    max-width: 100%;
-    box-sizing: border-box;
-}
-
-.admin-section h3,
-.admin-card h3 {
-    color: #1e293b;
-    margin-bottom: 1.25rem;
-    font-size: 1.1rem;
-    font-weight: 700;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid #f1f5f9;
-}
-
-/* Info Grid */
-.info-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
-}
-
-.info-card {
-    background: #fff;
-    padding: 1.5rem;
-    border-radius: 10px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-}
-
-.info-card h4 {
-    color: #1e293b;
-    margin-bottom: 1rem;
-    font-size: 1.1rem;
-}
-
-.info-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.info-list li {
-    padding: 0.5rem 0;
-    color: #475569;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-.info-list li:last-child {
-    border-bottom: none;
-}
-
-.info-list strong {
-    color: #1e293b;
-    font-weight: 600;
-}
-
-/* Quick Actions */
-.quick-actions {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 10px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-    border: 1px solid #e2e8f0;
-}
-
-.quick-actions h3 {
-    margin-bottom: 1.5rem;
-    color: #1e293b;
-}
-
-.action-buttons {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-}
-
-/* Buttons */
-.btn {
-    display: inline-block;
-    padding: 0.75rem 1.5rem;
-    border-radius: 6px;
-    text-decoration: none;
-    font-weight: 600;
-    transition: all 0.2s;
-    border: none;
-    cursor: pointer;
-}
-
-.btn-primary {
-    background: var(--admin-primary);
-    color: white;
-}
-
-.btn-primary:hover {
-    background: var(--admin-primary-dark);
-    transform: translateY(-2px);
-}
-
-.btn-secondary {
-    background: #64748b;
-    color: white;
-}
-
-.btn-secondary:hover {
-    background: #475569;
-}
-
-/* Plugin/Theme Cards */
-.plugins-list,
-.themes-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.plugin-card,
-.theme-card {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border: 2px solid transparent;
-    transition: all 0.2s;
-}
-
-.plugin-card.active,
-.theme-card.active {
-    border-color: var(--admin-primary);
-    background: #eff6ff;
-}
-
-.plugin-info h3,
-.theme-info h3 {
-    color: #1e293b;
-    margin-bottom: 0.5rem;
-}
-
-.plugin-description,
-.theme-description {
-    color: #64748b;
-    margin-bottom: 0.5rem;
-}
-
-.plugin-meta,
-.theme-meta {
-    font-size: 0.875rem;
-    color: #94a3b8;
-}
-
-.plugin-actions,
-.theme-actions {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.status-badge {
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.875rem;
-    font-weight: 600;
-}
-
-.status-badge.active {
-    background: #d1fae5;
-    color: #065f46;
-}
-
-/* Users Table */
-.users-table-container {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    overflow-x: auto;
-    overflow-y: visible;
-    max-width: 100%;
-}
-
-.users-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 600px;
-}
-
-.users-table thead {
-    background: #f8fafc;
-}
-
-.users-table th {
-    padding: 1rem;
-    text-align: left;
-    font-weight: 600;
-    color: #475569;
-    border-bottom: 2px solid #e2e8f0;
-}
-
-.users-table td {
-    padding: 1rem;
-    border-bottom: 1px solid #e2e8f0;
-    color: #1e293b;
-}
-
-.role-badge {
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.875rem;
-    font-weight: 600;
-    display: inline-block;
-}
-
-.role-badge.admin {
-    background: #fef3c7;
-    color: #92400e;
-}
-
-.role-badge.member {
-    background: #dbeafe;
-    color: #1e40af;
-}
-
-/* Empty State */
-.empty-state {
-    text-align: center;
-    padding: 3rem;
-    background: white;
-    border-radius: 8px;
-}
-
-.empty-state .text-muted {
-    color: #94a3b8;
-    margin-top: 0.5rem;
-}
-
-.empty-state code {
-    background: #f1f5f9;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-family: monospace;
-}
-
-/* Forms */
+/* OLD: .form-control Basis-Definition entfernt – Tabler stellt Forms bereit */
+/* Behalte .settings-form und .form-text als CMS-spezifisch */
 .settings-form {
     max-width: 600px;
 }
@@ -464,44 +80,6 @@
     display: block;
     margin-bottom: 0.5rem;
     color: #1e293b;
-}
-
-.form-control {
-    width: 100%;
-    padding: 0.75rem;
-    border: 2px solid #e2e8f0;
-    border-radius: 6px;
-    font-size: 1rem;
-    transition: all 0.2s;
-}
-
-.form-control:focus {
-    outline: none;
-    border-color: var(--admin-primary);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.form-text {
-    display: block;
-    color: #64748b;
-    font-size: 0.875rem;
-    margin-top: 0.5rem;
-}
-
-.form-group input[type="checkbox"] {
-    width: auto;
-    margin-right: 0.5rem;
-}
-
-.form-group label:has(input[type="checkbox"]) {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-}
-
-textarea.form-control {
-    min-height: 120px;
-    resize: vertical;
 }
 
 /* WYSIWYG Editor Toolbar */
@@ -542,66 +120,7 @@ textarea.form-control {
     border-top: none !important;
 }
 
-/* Responsive */
-@media (max-width: 960px) {
-    /* Sidebar wird per .sidebar-open Toggle eingeblendet (admin-sidebar.css) */
-    .admin-content {
-        margin-left: 0;
-        width: 100%;
-        padding: 1rem;
-    }
-    
-    .admin-page-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
-    }
-    
-    .info-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .plugin-card,
-    .theme-card {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
-    }
-    
-    .dashboard-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .action-buttons {
-        flex-direction: column;
-        width: 100%;
-    }
-    
-    .action-buttons .btn {
-        width: 100%;
-    }
-    
-    .form-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .landing-feature-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .tab-navigation {
-        overflow-x: auto;
-        flex-wrap: nowrap;
-    }
-    
-    .users-table-container {
-        overflow-x: auto;
-    }
-    
-    .admin-section {
-        padding: 1rem;
-    }
-}
+/* OLD: Alter Responsive-Block entfernt – Tabler hat eigene Breakpoints */
 /* ========================================
    LANDING PAGE EDITOR STYLES
    ======================================== */
@@ -775,19 +294,7 @@ textarea.form-control {
     border-top: 1px solid #e2e8f0;
 }
 
-.btn-sm {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-}
-
-.btn-danger {
-    background: #ef4444;
-    color: white;
-}
-
-.btn-danger:hover {
-    background: #dc2626;
-}
+/* OLD: .btn-sm/.btn-danger entfernt – Tabler stellt diese bereit */
 
 /* ════════════════════════════════════════════════════════════
    LANDING PAGE ADMIN – lp-* Component System
@@ -1501,8 +1008,8 @@ textarea.form-control {
     border-bottom: 1px solid #f1f5f9;
 }
 
-/* Modal */
-.modal {
+/* CMS Modal (Legacy .active Pattern – Basis-Handling in admin-tabler.css) */
+.cms-modal {
     display: none;
     position: fixed;
     top: 0;
@@ -1510,12 +1017,13 @@ textarea.form-control {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.7);
-    z-index: 1000;
+    z-index: 1050;
     align-items: center;
     justify-content: center;
     padding: 1rem;
 }
 
+.cms-modal.active,
 .modal.active {
     display: flex;
 }
@@ -1650,51 +1158,7 @@ textarea.form-control {
     margin: 0;
 }
 
-/* Alert Messages */
-.alert {
-    padding: 1rem 1.5rem;
-    border-radius: 8px;
-    margin-bottom: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    animation: slideDown 0.3s;
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.alert-success {
-    background: #dcfce7;
-    color: #166534;
-    border-left: 4px solid #22c55e;
-}
-
-.alert-error {
-    background: #fee2e2;
-    color: #991b1b;
-    border-left: 4px solid #ef4444;
-}
-
-.alert-warning {
-    background: #fef3c7;
-    color: #92400e;
-    border-left: 4px solid #f59e0b;
-}
-
-.alert-info {
-    background: #dbeafe;
-    color: #1e40af;
-    border-left: 4px solid #3b82f6;
-}
+/* OLD: .alert Definitionen entfernt – Tabler stellt Alerts bereit, .alert-error in admin-tabler.css */
 /* Color Picker Styles */
 .color-grid {
     display: grid;
@@ -1976,21 +1440,7 @@ textarea.form-control {
     font-weight: 600;
 }
 
-/* Button Sizes */
-.btn-sm {
-    padding: 0.375rem 0.75rem;
-    font-size: 0.875rem;
-}
-
-.btn-danger {
-    background: #ef4444;
-    color: white;
-    border: 1px solid #dc2626;
-}
-
-.btn-danger:hover {
-    background: #dc2626;
-}
+/* OLD: Zweiter .btn-sm/.btn-danger Block entfernt – Tabler stellt diese bereit */
 
 /* Modal Sizes */
 .modal-small {
@@ -2513,53 +1963,7 @@ textarea.form-control {
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
-/* Alert Styles */
-.alert {
-    padding: 18px 24px;
-    border-radius: 10px;
-    margin-bottom: 24px;
-    font-size: 14px;
-    font-weight: 600;
-    animation: slideDown 0.3s ease-out;
-    transition: opacity 0.3s ease-out;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.alert-success {
-    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-    color: #166534;
-    border-left: 4px solid #22c55e;
-}
-
-.alert-success::before {
-    content: '✔️';
-    font-size: 20px;
-}
-
-.alert-error {
-    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-    color: #991b1b;
-    border-left: 4px solid #ef4444;
-}
-
-.alert-error::before {
-    content: '⚠️';
-    font-size: 20px;
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
+/* OLD: Zweiter .alert Block entfernt – Tabler + admin-tabler.css stellen Alerts bereit */
 
 /* Responsive System Page */
 @media (max-width: 1200px) {
@@ -2602,43 +2006,7 @@ textarea.form-control {
     }
 }
 
-.stat-card {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 10px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-    border: 1px solid #e2e8f0;
-    text-align: center;
-    transition: box-shadow 0.2s, transform 0.2s;
-}
-
-.stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    border-color: var(--admin-primary);
-}
-
-.stat-icon {
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
-    display: block;
-}
-
-.stat-value {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #1e293b;
-    line-height: 1;
-    margin: 0.5rem 0;
-}
-
-.stat-label {
-    font-size: 0.875rem;
-    color: #64748b;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
+/* .stat-card/.stat-icon/.stat-value/.stat-label: Tabler-kompatibel in admin-tabler.css */
 
 /* ═══════════════════════════════════════════════════════════════════════
    ERWEITERTE ADMIN-KOMPONENTEN – alle <style>-Blöcke der Admin-Seiten
@@ -2749,14 +2117,14 @@ textarea.form-control {
     flex-direction: column;
     margin-bottom: 1.5rem;
 }
-.card-header {
+.settings-card > .card-header {
     background: #f8fafc;
     padding: 1.25rem 1.5rem;
     border-bottom: 1px solid #e2e8f0;
 }
-.card-header h3 { margin: 0; font-size: 1.1rem; color: #1e293b; }
-.card-header p { margin: 0.25rem 0 0; font-size: 0.85rem; color: #64748b; }
-.card-body { padding: 1.5rem; flex: 1; }
+.settings-card > .card-header h3 { margin: 0; font-size: 1.1rem; color: #1e293b; }
+.settings-card > .card-header p { margin: 0.25rem 0 0; font-size: 0.85rem; color: #64748b; }
+.settings-card > .card-body { padding: 1.5rem; flex: 1; }
 .sc-header {
     padding: 1rem 1.5rem;
     background: #f8fafc;
@@ -3245,8 +2613,7 @@ input:checked + .slider:before { transform: translateX(22px); }
 .btn-danger-sm  { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; padding: 0.25rem 0.6rem; border-radius: 5px; font-size: 0.75rem; cursor: pointer; }
 .btn-plugin { padding: 0.3rem 0.75rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 500; border: 1px solid transparent; transition: all .15s; }
 
-/* ── Badge / Pill variants ── */
-.badge { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 10px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.01em; }
+/* ── Badge / Pill variants (CMS-spezifisch, nicht Tabler .badge überschreiben) ── */
 .badge-success   { background: #dcfce7; color: #15803d; }
 .badge-secondary { background: #f1f5f9; color: #475569; }
 .badge-info      { background: #dbeafe; color: #1e40af; }
@@ -3501,6 +2868,13 @@ input:checked + .slider:before { transform: translateX(22px); }
     gap: 0.75rem;
     flex-wrap: wrap;
     margin-bottom: 1rem;
+    justify-content: space-between;
+}
+.media-toolbar-right {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-left: auto;
 }
 .media-filters {
     display: flex;
@@ -3508,23 +2882,199 @@ input:checked + .slider:before { transform: translateX(22px); }
     flex-wrap: wrap;
     align-items: center;
 }
-.breadcrumb {
+.media-breadcrumb {
     display: flex;
     align-items: center;
     gap: 0.3rem;
     font-size: 0.875rem;
     color: #64748b;
-    margin-bottom: 1rem;
+    margin-bottom: 0;
     flex-wrap: wrap;
+    cursor: pointer;
 }
-.breadcrumb a { color: #2563eb; text-decoration: none; }
-.breadcrumb a:hover { text-decoration: underline; }
-.breadcrumb .sep { color: #cbd5e1; }
-.media-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-.media-table th { background: #f8fafc; padding: 0.5rem 0.7rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e2e8f0; }
-.media-table td { padding: 0.55rem 0.7rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
-.media-table tr:hover td { background: #f8fafc; }
-.media-preview img { max-width: 80px; max-height: 60px; border-radius: 4px; border: 1px solid #e2e8f0; object-fit: cover; }
+.media-breadcrumb span:hover { color: #2563eb; }
+.media-breadcrumb a { color: #2563eb; text-decoration: none; }
+.media-breadcrumb a:hover { text-decoration: underline; }
+.media-breadcrumb .sep { color: #cbd5e1; }
+
+/* View Toggle */
+.media-view-toggle { display: flex; gap: 0; }
+.media-view-toggle .btn { border-radius: 0; border: 1px solid #e2e8f0; background: #fff; color: #64748b; padding: 0.25rem 0.5rem; }
+.media-view-toggle .btn:first-child { border-radius: 4px 0 0 4px; }
+.media-view-toggle .btn:last-child { border-radius: 0 4px 4px 0; border-left: 0; }
+.media-view-toggle .btn.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+
+/* Disk Usage Badge */
+.media-disk-usage {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    color: #64748b;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 0.3rem 0.75rem;
+    white-space: nowrap;
+}
+.media-disk-usage small { color: #94a3b8; font-size: 0.78rem; }
+
+/* Layout: File Area + Detail Panel */
+.media-layout {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+.media-file-area { flex: 1; min-width: 0; }
+
+/* Thumbnails in table */
+.media-thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+    object-fit: cover;
+    display: block;
+}
+.media-thumb-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    background: #f8fafc;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+}
+
+/* Table overrides for Tabler compat */
+.media-table th { font-size: 0.8rem; }
+.media-table td { font-size: 0.85rem; }
+
+/* Grid View */
+.media-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.75rem;
+}
+.media-grid-item {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    overflow: hidden;
+    transition: box-shadow .15s, border-color .15s;
+}
+.media-grid-item:hover { border-color: #93c5fd; box-shadow: 0 2px 8px rgba(59,130,246,.12); }
+.media-grid-item.active { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,.25); }
+.media-grid-folder { cursor: pointer; }
+.media-grid-thumb {
+    width: 100%;
+    height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8fafc;
+    overflow: hidden;
+}
+.media-grid-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.media-grid-label {
+    padding: 0.4rem 0.6rem 0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.media-grid-meta {
+    padding: 0.15rem 0.6rem 0.4rem;
+    font-size: 0.72rem;
+    color: #94a3b8;
+}
+
+/* Detail Panel */
+.media-detail-panel {
+    width: 320px;
+    min-width: 320px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+    position: sticky;
+    top: 1rem;
+}
+.media-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 0.9rem;
+}
+.media-detail-header .btn-close {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: #64748b;
+    padding: 0;
+    line-height: 1;
+}
+.media-detail-body { padding: 1rem; }
+.media-detail-preview {
+    margin-bottom: 1rem;
+    text-align: center;
+    background: #f8fafc;
+    border-radius: 6px;
+    overflow: hidden;
+    min-height: 60px;
+}
+.media-detail-preview img { display: block; margin: 0 auto; }
+.media-detail-info { margin-bottom: 1rem; }
+.media-detail-table { width: 100%; font-size: 0.82rem; }
+.media-detail-table td:first-child { font-weight: 600; color: #64748b; padding: 0.25rem 0.5rem 0.25rem 0; white-space: nowrap; width: 40%; }
+.media-detail-table td:last-child { color: #1e293b; padding: 0.25rem 0; word-break: break-all; }
+.media-detail-url { margin-bottom: 1rem; }
+.media-detail-actions { display: flex; flex-direction: column; gap: 0; }
+
+/* Bulk Actions Bar */
+.media-bulk-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.6rem 1rem;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: #1e40af;
+}
+
+/* Drag-Over state */
+.media-content-area.drag-over {
+    outline: 3px dashed #3b82f6;
+    outline-offset: -3px;
+    background: rgba(59,130,246,.03);
+}
+
+@media (max-width: 900px) {
+    .media-layout { flex-direction: column; }
+    .media-detail-panel { width: 100%; min-width: 0; position: static; }
+    .media-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+}
+@media (max-width: 640px) {
+    .media-toolbar { flex-direction: column; align-items: stretch; }
+    .media-toolbar-right { justify-content: space-between; }
+    .media-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+}
 .folder-icon { font-size: 1.5rem; color: #f59e0b; }
 .action-btn {
     padding: 0.25rem 0.55rem;
@@ -4132,6 +3682,135 @@ input:checked + .slider:before { transform: translateX(22px); }
 }
 .stats-row { display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.8125rem; color: #64748b; margin-top: 0.5rem; }
 
+
+/* ============================================
+   EDITOR.JS – Wrapper, Toolbar, Statusbar
+   ============================================ */
+
+/* Wrap: Rahmen um gesamten Editor */
+.editorjs-wrap {
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    overflow: hidden;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.editorjs-wrap:focus-within {
+    border-color: var(--tblr-primary, #3b82f6);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+/* Schnellfunktionen-Toolbar */
+.editorjs-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 0.5rem 0.75rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.editorjs-toolbar button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #475569;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    white-space: nowrap;
+    line-height: 1.2;
+}
+
+.editorjs-toolbar button:hover {
+    background: #eff6ff;
+    border-color: var(--tblr-primary, #3b82f6);
+    color: var(--tblr-primary, #3b82f6);
+}
+
+.editorjs-toolbar button:active {
+    transform: scale(0.96);
+}
+
+.editorjs-toolbar button svg {
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+
+.editorjs-toolbar button:hover svg {
+    opacity: 1;
+}
+
+/* Toolbar-Separator */
+.editorjs-toolbar__sep {
+    width: 1px;
+    align-self: stretch;
+    margin: 2px 4px;
+    background: #e2e8f0;
+}
+
+/* Editor-Feld selbst */
+.editorjs-holder {
+    padding: 1.25rem 1.5rem;
+    cursor: text;
+}
+
+.editorjs-holder .ce-block__content {
+    max-width: 100%;
+}
+
+.editorjs-holder .ce-toolbar__content {
+    max-width: 100%;
+}
+
+.editorjs-holder .codex-editor__redactor {
+    padding-bottom: 200px !important;
+}
+
+/* Statusbar */
+.editorjs-statusbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0.75rem;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+.editorjs-statusbar kbd {
+    display: inline-block;
+    padding: 0.1rem 0.35rem;
+    font-size: 0.7rem;
+    font-family: inherit;
+    background: #e2e8f0;
+    border: 1px solid #cbd5e1;
+    border-radius: 3px;
+    color: #475569;
+}
+
+.editorjs-statusbar__count {
+    font-weight: 600;
+    color: #64748b;
+}
+
+/* Responsive: Toolbar Text auf Mobil verstecken */
+@media (max-width: 768px) {
+    .editorjs-toolbar button span {
+        display: none;
+    }
+    .editorjs-toolbar button {
+        padding: 0.35rem;
+    }
+}
+
 /* Plugin-Grid Responsive */
 @media (max-width: 1400px) {
     .plugin-list { grid-template-columns: repeat(3, 1fr); }
@@ -4304,141 +3983,8 @@ input:checked + .slider:before { transform: translateX(22px); }
 .info-box-cs strong { display: block; margin-bottom: 0.25rem; color: #92400e; }
 
 
-/* ═══════════════════════════════════════════════════════
-   ADMIN SIDEBAR – KORRIGIERTE STILE (Override)
-   Behebt: details/summary-Marker, Sub-Item-Layout
-   ═══════════════════════════════════════════════════════ */
-
-/* Reset browser defaults for details/summary */
-.admin-sidebar details {
-    display: block;
-    border-radius: 6px;
-    margin-bottom: 1px;
-}
-
-/* Hide ALL browser disclosure markers */
-.admin-sidebar details > summary {
-    list-style: none;
-    display: -webkit-box;
-    display: -ms-flexbox;
-    display: flex;
-    -webkit-box-align: center;
-    -ms-flex-align: center;
-    align-items: center;
-    width: 100%;
-    -webkit-box-sizing: border-box;
-    box-sizing: border-box;
-    padding: 0.5rem 0.75rem;
-    color: #94a3b8;
-    font-size: 0.8375rem;
-    font-weight: 600;
-    cursor: pointer;
-    border-radius: 6px;
-    -webkit-user-select: none;
-    user-select: none;
-    -webkit-transition: background 0.15s, color 0.15s;
-    transition: background 0.15s, color 0.15s;
-    line-height: 1.4;
-    margin-bottom: 1px;
-}
-.admin-sidebar details > summary::-webkit-details-marker { display: none !important; }
-.admin-sidebar details > summary::marker { content: '' !important; display: none !important; }
-.admin-sidebar details > summary:hover   { background: #334155; color: #e2e8f0; }
-.admin-sidebar details[open] > summary   { background: #263045; color: #cbd5e1; border-radius: 6px 6px 0 0; margin-bottom: 0; }
-
-/* Rotate arrow when open */
-.admin-sidebar details[open] > summary .nav-group-arrow {
-    -webkit-transform: rotate(90deg);
-    transform: rotate(90deg);
-    opacity: 0.85;
-}
-.nav-group-arrow {
-    margin-left: auto;
-    font-size: 0.55rem;
-    opacity: 0.45;
-    -webkit-transition: -webkit-transform 0.2s;
-    transition: transform 0.2s;
-    padding-left: 0.3rem;
-    display: inline-block;
-    flex-shrink: 0;
-}
-
-/* Children container: force column flex layout */
-.admin-sidebar .nav-group-children {
-    display: -webkit-box !important;
-    display: -ms-flexbox !important;
-    display: flex !important;
-    -webkit-box-orient: vertical !important;
-    -webkit-box-direction: normal !important;
-    -ms-flex-direction: column !important;
-    flex-direction: column !important;
-    width: 100%;
-    background: #17202e;
-    border-top: 1px solid #263045;
-    border-radius: 0 0 6px 6px;
-    padding: 0.25rem 0 0.375rem;
-    margin-bottom: 1px;
-    box-sizing: border-box;
-}
-
-/* Sub-items: each item takes a full row */
-.admin-sidebar .nav-subitem {
-    display: -webkit-box !important;
-    display: -ms-flexbox !important;
-    display: flex !important;
-    -webkit-box-orient: horizontal !important;
-    -webkit-box-direction: normal !important;
-    -ms-flex-direction: row !important;
-    flex-direction: row !important;
-    -webkit-box-align: center;
-    -ms-flex-align: center;
-    align-items: center;
-    width: 100% !important;
-    -webkit-box-sizing: border-box;
-    box-sizing: border-box;
-    padding: 0.4rem 0.625rem 0.4rem 2.25rem;
-    color: #64748b;
-    text-decoration: none;
-    font-size: 0.8rem;
-    font-weight: 400;
-    border-radius: 5px;
-    margin: 0 !important;
-    -webkit-transition: background 0.15s, color 0.15s;
-    transition: background 0.15s, color 0.15s;
-    line-height: 1.4;
-}
-.admin-sidebar .nav-subitem:hover  { background: #263045; color: #c0cfe3; }
-.admin-sidebar .nav-subitem.active { background: rgba(59,130,246,0.18); color: #60a5fa; font-weight: 600; }
-.admin-sidebar .nav-subitem .nav-icon { width: 1.25rem; flex-shrink: 0; margin-right: 0.45rem; }
-
-/* Top-level nav-items: also full-width */
-.admin-sidebar .nav-item {
-    display: -webkit-box !important;
-    display: -ms-flexbox !important;
-    display: flex !important;
-    -webkit-box-align: center;
-    -ms-flex-align: center;
-    align-items: center;
-    width: 100%;
-    -webkit-box-sizing: border-box;
-    box-sizing: border-box;
-    text-decoration: none;
-    border-radius: 6px;
-    cursor: pointer;
-    line-height: 1.4;
-}
-
-/* Section labels inside children */
-.admin-sidebar .nav-section-label {
-    display: block !important;
-    padding: 0.5rem 0.75rem 0.15rem 2.5rem;
-    font-size: 0.67rem;
-    font-weight: 700;
-    color: #475569;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    line-height: 1;
-}
+/* OLD: .admin-sidebar Override-Sektion entfernt – Sidebar nutzt jetzt Tabler .navbar-vertical */
+/* Styles in admin-tabler.css unter NAVBAR VERTICAL */
 
 /* ═══════════════════════════════════════════════════════
    MEDIA SETTINGS – Card Grid Layout
@@ -4451,16 +3997,7 @@ input:checked + .slider:before { transform: translateX(22px); }
     flex-shrink: 0;
 }
 
-/* Compact form-label */
-.form-label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 600;
-    font-size: 0.875rem;
-    color: #334155;
-    margin-bottom: 0.5rem;
-}
+/* Compact form-label für Media Settings (scoped, nicht Tabler .form-label überschreiben) */\n.sc-body .form-label {\n    display: flex;\n    align-items: center;\n    gap: 0.5rem;\n    font-weight: 600;\n    font-size: 0.875rem;\n    color: #334155;\n    margin-bottom: 0.5rem;\n}
 
 /* Muted badge next to label (e.g. "Server: 128M") */
 .badge-muted {

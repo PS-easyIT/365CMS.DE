@@ -49,14 +49,22 @@ class PageManager
                 "SHOW COLUMNS FROM {$this->prefix}pages LIKE 'hide_title'"
             );
             if (!$stmt->fetch()) {
-                // Column does not exist yet – add it
                 $this->db->query(
                     "ALTER TABLE {$this->prefix}pages 
                      ADD COLUMN hide_title TINYINT(1) NOT NULL DEFAULT 0"
                 );
             }
+
+            $stmt2 = $this->db->query(
+                "SHOW COLUMNS FROM {$this->prefix}pages LIKE 'featured_image'"
+            );
+            if (!$stmt2->fetch()) {
+                $this->db->query(
+                    "ALTER TABLE {$this->prefix}pages 
+                     ADD COLUMN featured_image VARCHAR(500) DEFAULT NULL AFTER hide_title"
+                );
+            }
         } catch (\Throwable $e) {
-            // Table may not yet exist (fresh install handled by Database::createTables)
             error_log('PageManager::ensureColumns() warning: ' . $e->getMessage());
         }
     }
@@ -90,7 +98,7 @@ class PageManager
         $values = [];
         
         foreach ($data as $key => $value) {
-            if (in_array($key, ['title', 'content', 'status', 'slug', 'hide_title'])) {
+            if (in_array($key, ['title', 'content', 'status', 'slug', 'hide_title', 'featured_image'])) {
                 $fields[] = "$key = ?";
                 $values[] = $value;
             }

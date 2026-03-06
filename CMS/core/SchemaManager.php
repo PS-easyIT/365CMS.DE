@@ -147,6 +147,7 @@ class SchemaManager
                 excerpt TEXT,
                 status VARCHAR(20) DEFAULT 'draft',
                 hide_title TINYINT(1) NOT NULL DEFAULT 0,
+                featured_image VARCHAR(500) DEFAULT NULL,
                 author_id INT UNSIGNED,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

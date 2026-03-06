@@ -41,6 +41,40 @@ if (file_exists(CORE_PATH . 'autoload.php')) {
 use CMS\Auth;
 use CMS\Services\MediaService;
 
+function cms_member_media_type_map(): array
+{
+    return [
+        'image' => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico'],
+        'video' => ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'],
+        'audio' => ['mp3', 'wav', 'aac', 'flac', 'm4a'],
+        'document' => ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'rtf', 'csv'],
+    ];
+}
+
+function cms_member_allowed_extensions(array $settings): array
+{
+    $extensions = [];
+    $typeMap = cms_member_media_type_map();
+    foreach ((array)($settings['member_allowed_types'] ?? []) as $group) {
+        if (isset($typeMap[$group])) {
+            $extensions = array_merge($extensions, $typeMap[$group]);
+        }
+    }
+
+    return array_values(array_unique($extensions));
+}
+
+function cms_member_parse_size(string $size): int
+{
+    $unit = preg_replace('/[^bkmgtpezy]/i', '', $size);
+    $value = preg_replace('/[^0-9\.]/', '', $size);
+    if ($unit !== '') {
+        return (int)round((float)$value * pow(1024, stripos('bkmgtpezy', $unit[0])));
+    }
+
+    return (int)round((float)$value);
+}
+
 // Prevent if ABSPATH still not defined
 if (!defined('ABSPATH')) {
     http_response_code(403);
@@ -135,6 +169,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     echo json_encode(['success' => false, 'error' => 'Keine Datei']);
                     break;
                 }
+
+                $memberMaxSize = cms_member_parse_size((string)($settings['member_max_upload_size'] ?? '5M'));
+                if ((int)($_FILES['file']['size'] ?? 0) > $memberMaxSize) {
+                    echo json_encode(['success' => false, 'error' => 'Datei überschreitet das Mitglieder-Limit von ' . ($settings['member_max_upload_size'] ?? '5M')]);
+                    break;
+                }
+
+                $allowedExtensions = cms_member_allowed_extensions($settings);
+                $extension = strtolower((string)pathinfo((string)($_FILES['file']['name'] ?? ''), PATHINFO_EXTENSION));
+                if ($allowedExtensions !== [] && !in_array($extension, $allowedExtensions, true)) {
+                    echo json_encode(['success' => false, 'error' => 'Dateityp für Mitglieder nicht erlaubt: ' . $extension]);
+                    break;
+                }
                 
                 // Enforce Date Structure (YYYY/MM) if enforced by system, 
                 // OR allow user to upload to current folder they navigated to.
@@ -165,6 +212,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $itemPath = $_POST['item_path'] ?? '';
                 if (empty($itemPath)) {
                     echo json_encode(['success' => false, 'error' => 'Pfad fehlt']);
+                    break;
+                }
+                if (empty($settings['member_delete_own']) && !$auth->isAdmin()) {
+                    echo json_encode(['success' => false, 'error' => 'Löschen eigener Dateien ist derzeit deaktiviert']);
                     break;
                 }
                 $result = $memberMedia->deleteItem($itemPath);

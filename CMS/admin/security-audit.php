@@ -101,14 +101,8 @@ $auditResults[] = [
 
 
 require_once __DIR__ . '/partials/admin-menu.php';
+renderAdminLayoutStart('Security Audit', 'security-audit');
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security Audit - <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <?php renderAdminSidebarStyles(); ?>
     <style>
         .score-card { display:flex; justify-content:space-between; align-items:center; background:#fff; padding:2rem; border-radius:var(--card-radius,10px); border:var(--card-border,1px solid #e2e8f0); box-shadow:var(--card-shadow,0 1px 4px rgba(0,0,0,.06)); margin-bottom:1.5rem; }
         .score-circle { width:80px; height:80px; border-radius:50%; border:4px solid; display:flex; align-items:center; justify-content:center; font-size:1.5rem; font-weight:700; flex-shrink:0; }
@@ -120,10 +114,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
         .audit-icon.status-warning { background:#fef3c7; color:#92400e; }
         .audit-icon.status-info    { background:#dbeafe; color:#1e40af; }
     </style>
-</head>
-<body class="admin-body">
-    <?php renderAdminSidebar('security-audit'); ?>
-    <div class="admin-content">
+
                 <div class="page-header d-print-none mb-3">
             <div class="row align-items-center">
                 <div class="col-auto">
@@ -195,7 +186,4 @@ require_once __DIR__ . '/partials/admin-menu.php';
             <?php endforeach; ?>
         </div>
         
-    </div>
-    <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
-</body>
-</html>
+<?php renderAdminLayoutEnd(); ?>

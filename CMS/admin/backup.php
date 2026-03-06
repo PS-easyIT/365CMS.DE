@@ -279,8 +279,9 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         <p style="color:#64748b;">Keine Backups gefunden.</p>
                     </div>
                 <?php else: ?>
-                    <div class="users-table-container">
-                        <table class="users-table">
+                    <div class="card">
+                    <div class="table-responsive">
+                        <table class="table table-vcenter card-table">
                             <thead>
                                 <tr>
                                     <th>Name</th>
@@ -325,6 +326,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                             </tbody>
                         </table>
                     </div>
+                    </div>
                 <?php endif; ?>
             </div>
         </div>
@@ -333,44 +335,15 @@ require_once __DIR__ . '/partials/admin-menu.php';
     
     <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
 
-    <!-- C-12: Confirm-Modal (ersetzt window.confirm) -->
-    <div id="cmsConfirmModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;">
-        <div style="background:#fff;border-radius:10px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;">
-            <div style="background:#f8fafc;padding:1.25rem 1.5rem;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
-                <h3 style="margin:0;font-size:1.1rem;color:#1e293b;">&#x26A0;&#xFE0F; Bestätigung erforderlich</h3>
-                <button onclick="closeCmsConfirm()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:#64748b;line-height:1;">&times;</button>
-            </div>
-            <div style="padding:1.5rem;">
-                <p id="cmsConfirmMsg" style="margin:0;color:#1e293b;font-size:1rem;line-height:1.6;"></p>
-            </div>
-            <div style="padding:1rem 1.5rem;border-top:1px solid #e2e8f0;display:flex;gap:.75rem;justify-content:flex-end;">
-                <button type="button" onclick="closeCmsConfirm()" class="btn btn-secondary">Abbrechen</button>
-                <button type="button" id="cmsConfirmOk" class="btn btn-danger">Bestätigen</button>
-            </div>
-        </div>
-    </div>
+    <!-- .js-needs-confirm → globales cmsConfirm()-Modal aus admin-menu.php -->
     <script>
     (function(){
-        var _pendingForm = null;
         document.querySelectorAll('.js-needs-confirm').forEach(function(form){
             form.addEventListener('submit', function(e){
                 e.preventDefault();
-                _pendingForm = form;
-                document.getElementById('cmsConfirmMsg').textContent = form.dataset.msg || 'Wirklich fortfahren?';
-                var modal = document.getElementById('cmsConfirmModal');
-                modal.style.display = 'flex';
+                var f = form;
+                cmsConfirm(f.dataset.msg || 'Wirklich fortfahren?', function(){ f.submit(); });
             });
-        });
-        window.closeCmsConfirm = function(){
-            _pendingForm = null;
-            document.getElementById('cmsConfirmModal').style.display = 'none';
-        };
-        document.getElementById('cmsConfirmOk').addEventListener('click', function(){
-            if (_pendingForm) { _pendingForm.submit(); }
-            closeCmsConfirm();
-        });
-        window.addEventListener('click', function(e){
-            if (e.target === document.getElementById('cmsConfirmModal')) { closeCmsConfirm(); }
         });
     })();
     </script>

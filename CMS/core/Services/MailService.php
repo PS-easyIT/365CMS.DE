@@ -312,5 +312,8 @@ class MailService
     private function log(string $message): void
     {
         error_log('[MailService] ' . $message);
+        if (function_exists('cms_log')) {
+            cms_log($message, 'error', 'mail');
+        }
     }
 }

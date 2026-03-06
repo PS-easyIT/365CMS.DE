@@ -30,6 +30,18 @@ $current_user_id = (int)($_SESSION['user_id'] ?? 0);
 
 $messages = [];
 
+// Alle Rollen früh laden, damit POST-Handler valide Rollen sauber prüfen können.
+$allDbRoles = $db->get_results("SELECT name, display_name FROM {$prefix}roles ORDER BY sort_order, display_name");
+if (empty($allDbRoles)) {
+    $allDbRoles = [
+        (object) ['name' => 'admin', 'display_name' => 'Administrator'],
+        (object) ['name' => 'editor', 'display_name' => 'Editor'],
+        (object) ['name' => 'member', 'display_name' => 'Member'],
+    ];
+}
+$allRoleNames = array_values(array_unique(array_map(static fn($r) => (string) $r->name, $allDbRoles)));
+$roleEmojis = ['admin' => '🔑', 'editor' => '✏️', 'member' => '👤', 'moderator' => '🛡️', 'contributor' => '✍️', 'viewer' => '👁️'];
+
 // ── Create User ──────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'create_user') {
     if (!$security->verifyToken($_POST['_csrf'] ?? '', 'users_create')) {
@@ -73,16 +85,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'edit
         $messages[] = ['type' => 'error', 'text' => 'Sicherheitscheck fehlgeschlagen.'];
     } else {
         $eid          = (int)($_POST['user_id'] ?? 0);
+        $existingUser = $eid > 0 ? $db->get_row("SELECT id, role, status FROM {$prefix}users WHERE id=?", [$eid]) : null;
         // H-24: Konsistente Sanitierung
         $email        = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
         $display_name = Security::sanitize(trim($_POST['display_name'] ?? ''), 'text');
-        $role         = in_array($_POST['role'] ?? '', $allRoleNames) ? $_POST['role'] : 'member';
-        $status       = in_array($_POST['status'] ?? '', ['active', 'inactive', 'banned']) ? $_POST['status'] : 'active';
+        $role         = in_array($_POST['role'] ?? '', $allRoleNames, true)
+            ? (string) $_POST['role']
+            : (string) ($existingUser->role ?? 'member');
+        $status       = in_array($_POST['status'] ?? '', ['active', 'inactive', 'banned'], true)
+            ? (string) $_POST['status']
+            : (string) ($existingUser->status ?? 'active');
         $new_password = $_POST['new_password'] ?? '';
         $groups       = array_map('intval', (array)($_POST['groups'] ?? []));
 
-        if ($eid < 1 || empty($email)) {
+        if ($eid < 1 || !$existingUser || empty($email)) {
             $messages[] = ['type' => 'error', 'text' => 'Ungültige Eingaben.'];
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $messages[] = ['type' => 'error', 'text' => 'Ungültige E-Mail-Adresse.'];
         } else {
             $passwordValid = true;
             $upd = "UPDATE {$prefix}users SET email=?, display_name=?, role=?, status=?, updated_at=NOW()";
@@ -126,7 +145,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'dele
         $messages[] = ['type' => 'error', 'text' => 'Sicherheitscheck fehlgeschlagen.'];
     } else {
         $did = (int)($_POST['user_id'] ?? 0);
-        if ($did > 0 && $did !== $current_user_id) {
+        $deleteUser = $did > 0 ? $db->get_row("SELECT id, role FROM {$prefix}users WHERE id=?", [$did]) : null;
+        if ($did <= 0 || !$deleteUser) {
+            $messages[] = ['type' => 'error', 'text' => 'Benutzer konnte nicht gefunden werden.'];
+        } elseif ($did === $current_user_id) {
+            $messages[] = ['type' => 'error', 'text' => 'Der aktuell angemeldete Benutzer kann nicht gelöscht werden.'];
+        } elseif (($deleteUser->role ?? '') === 'admin') {
+            $messages[] = ['type' => 'error', 'text' => 'Administratoren können nicht über die Benutzerverwaltung gelöscht werden.'];
+        } else {
             $db->execute("DELETE FROM {$prefix}user_group_members WHERE user_id=?", [$did]);
             $db->execute("DELETE FROM {$prefix}users WHERE id=?", [$did]);
             header('Location: ' . SITE_URL . '/admin/users?msg=deleted');
@@ -141,21 +167,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'bulk
         $bulk_ids    = array_map('intval', (array)($_POST['bulk_ids'] ?? []));
         $bulk_ids    = array_filter($bulk_ids, fn($id) => $id !== $current_user_id);
         $bulk_action = $_POST['bulk_action'] ?? '';
-        if (!empty($bulk_ids)) {
+        $msg = 'bulk_done';
+        if (empty($bulk_ids) || $bulk_action === '') {
+            $msg = 'bulk_invalid';
+        } else {
             $phs = implode(',', array_fill(0, count($bulk_ids), '?'));
-            match ($bulk_action) {
+            if ($bulk_action === 'delete') {
+                $adminRows = $db->get_results(
+                    "SELECT id FROM {$prefix}users WHERE role='admin' AND id IN ({$phs})",
+                    array_values($bulk_ids)
+                ) ?: [];
+                $adminIds = array_map(static fn($row) => (int) $row->id, $adminRows);
+                $bulk_ids = array_values(array_filter($bulk_ids, static fn($id) => !in_array($id, $adminIds, true)));
+                if (!empty($adminIds)) {
+                    $msg = !empty($bulk_ids) ? 'bulk_partial' : 'bulk_protected';
+                }
+                if (!empty($bulk_ids)) {
+                    $phs = implode(',', array_fill(0, count($bulk_ids), '?'));
+                    $db->execute("DELETE FROM {$prefix}user_group_members WHERE user_id IN ({$phs})", array_values($bulk_ids));
+                    $db->execute("DELETE FROM {$prefix}users WHERE id IN ({$phs})", array_values($bulk_ids));
+                }
+            } else {
+                match ($bulk_action) {
                 'ban'         => $db->execute("UPDATE {$prefix}users SET status='banned' WHERE id IN ({$phs})", array_values($bulk_ids)),
                 'activate'    => $db->execute("UPDATE {$prefix}users SET status='active' WHERE id IN ({$phs})",  array_values($bulk_ids)),
                 'make_admin'  => $db->execute("UPDATE {$prefix}users SET role='admin' WHERE id IN ({$phs})",    array_values($bulk_ids)),
                 'make_member' => $db->execute("UPDATE {$prefix}users SET role='member' WHERE id IN ({$phs})",   array_values($bulk_ids)),
-                'delete'      => (function() use ($db, $prefix, $phs, $bulk_ids) {
-                    $db->execute("DELETE FROM {$prefix}user_group_members WHERE user_id IN ({$phs})", array_values($bulk_ids));
-                    $db->execute("DELETE FROM {$prefix}users WHERE id IN ({$phs})",                   array_values($bulk_ids));
-                })(),
-                default => null
-            };
+                    default => $msg = 'bulk_invalid'
+                };
+            }
         }
-        header('Location: ' . SITE_URL . '/admin/users?msg=bulk_done');
+        header('Location: ' . SITE_URL . '/admin/users?msg=' . urlencode($msg));
         exit;
     }
 }
@@ -167,6 +209,9 @@ if (isset($_GET['msg'])) {
         'updated'   => ['success', '✅ Benutzer erfolgreich aktualisiert.'],
         'deleted'   => ['success', '🗑️ Benutzer gelöscht.'],
         'bulk_done' => ['success', '✅ Aktion ausgeführt.'],
+        'bulk_partial' => ['warning', '⚠️ Aktion ausgeführt, Administratoren wurden dabei nicht gelöscht.'],
+        'bulk_protected' => ['warning', '⚠️ Die ausgewählten Benutzer konnten nicht gelöscht werden, weil Administratoren geschützt sind.'],
+        'bulk_invalid' => ['warning', '⚠️ Bitte zuerst Benutzer markieren und eine gültige Aktion auswählen.'],
     ];
     if (isset($msgMap[$_GET['msg']])) {
         $messages[] = ['type' => $msgMap[$_GET['msg']][0], 'text' => $msgMap[$_GET['msg']][1]];
@@ -174,22 +219,19 @@ if (isset($_GET['msg'])) {
 }
 
 // ── View / Filter ─────────────────────────────────────────────────────────────
-// Alle Rollen aus der Datenbank laden (inkl. benutzerdefinierter Rollen)
-$allDbRoles = $db->get_results("SELECT name, display_name FROM {$prefix}roles ORDER BY sort_order, display_name");
-$allRoleNames = array_map(fn($r) => $r->name, $allDbRoles);
-// Fallback falls DB-Tabelle leer ist
-if (empty($allRoleNames)) {
-    $allRoleNames = ['admin', 'editor', 'member'];
-}
-// Emoji-Mapping für Rollen-Anzeige
-$roleEmojis = ['admin' => '🔑', 'editor' => '✏️', 'member' => '👤', 'moderator' => '🛡️', 'contributor' => '✍️', 'viewer' => '👁️'];
-
 $view       = $_GET['view']   ?? 'list';
 $editUserId = (int)($_GET['id'] ?? 0);
 $roleFilter = in_array($_GET['role'] ?? '', array_merge($allRoleNames, ['banned'])) ? $_GET['role'] : 'all';
-$search     = trim($_GET['search'] ?? '');
-$perPage    = 25;
-$page       = max(1, (int)($_GET['p'] ?? 1));
+
+$editUser = null;
+if ($view === 'edit' && $editUserId > 0) {
+    $editUser = $db->get_row("SELECT * FROM {$prefix}users WHERE id=?", [$editUserId]);
+    if (!$editUser) {
+        $messages[] = ['type' => 'error', 'text' => 'Der angeforderte Benutzer wurde nicht gefunden.'];
+        $view = 'list';
+        $editUserId = 0;
+    }
+}
 
 // H-13: Batch-Query statt N+1-Einzelabfragen für Rollenzählung
 $roleCountRows = $db->get_results(
@@ -230,13 +272,10 @@ renderAdminLayoutStart('Benutzer', 'users');
     </div>
 </div>
 
-<?php foreach ($messages as $m):
-    $alertCls = $m['type'] === 'success' ? 'alert-success' : 'alert-danger';
-?>
-<div class="alert <?php echo $alertCls; ?> alert-dismissible" role="alert">
-    <div class="d-flex"><div><?php echo htmlspecialchars($m['text'], ENT_QUOTES, 'UTF-8'); ?></div></div>
-    <a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>
-</div>
+<div id="usersNoticeContainer"></div>
+
+<?php foreach ($messages as $m): ?>
+    <?php renderAdminAlert((string) ($m['type'] ?? 'info'), (string) ($m['text'] ?? '')); ?>
 <?php endforeach; ?>
 
 <?php
@@ -244,11 +283,7 @@ renderAdminLayoutStart('Benutzer', 'users');
    EDIT-ANSICHT
    ================================================================ */
 if ($view === 'edit' && $editUserId > 0):
-    $eu = $db->get_row("SELECT * FROM {$prefix}users WHERE id=?", [$editUserId]);
-    if (!$eu):
-        echo '<script>window.location.href="<?php echo SITE_URL; ?>/admin/users";</script>';
-        exit;
-    endif;
+    $eu = $editUser;
 
     $euGroups  = $db->get_results(
         "SELECT g.id, g.name FROM {$prefix}user_group_members m
@@ -290,7 +325,8 @@ if ($view === 'edit' && $editUserId > 0):
                 <div class="card-body">
                 <div class="mb-3">
                     <label class="form-label">Neues Passwort</label>
-                    <input type="password" name="new_password" class="form-control" placeholder="min. 6 Zeichen (leer lassen für unverändert)" minlength="6" autocomplete="new-password">
+                    <input type="password" name="new_password" class="form-control" placeholder="Neues Passwort (leer lassen für unverändert)" minlength="12" autocomplete="new-password">
+                    <small class="form-hint">Passwortregel: mindestens 12 Zeichen inkl. Groß-/Kleinbuchstabe, Zahl und Sonderzeichen.</small>
                 </div>
                 </div>
             </div>
@@ -330,6 +366,9 @@ if ($view === 'edit' && $editUserId > 0):
                         </option>
                         <?php endforeach; ?>
                     </select>
+                    <?php if ((int)$eu->id === $current_user_id): ?>
+                    <input type="hidden" name="role" value="<?php echo htmlspecialchars((string) ($eu->role ?? 'member'), ENT_QUOTES); ?>">
+                    <?php endif; ?>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Status</label>
@@ -338,6 +377,9 @@ if ($view === 'edit' && $editUserId > 0):
                         <option value="inactive" <?php echo ($eu->status ?? '') === 'inactive' ? 'selected' : ''; ?>>⏸️ Inaktiv</option>
                         <option value="banned"   <?php echo ($eu->status ?? '') === 'banned'   ? 'selected' : ''; ?>>🚫 Gesperrt</option>
                     </select>
+                    <?php if ((int)$eu->id === $current_user_id): ?>
+                    <input type="hidden" name="status" value="<?php echo htmlspecialchars((string) ($eu->status ?? 'active'), ENT_QUOTES); ?>">
+                    <?php endif; ?>
                 </div>
                 <div style="font-size:0.8rem; color:#94a3b8; border-top:1px solid #f1f5f9; padding-top:0.75rem; margin-top:1rem; display:flex; flex-direction:column; gap:0.25rem;">
                     <span>ID: #<?php echo (int)$eu->id; ?></span>
@@ -369,29 +411,9 @@ if ($view === 'edit' && $editUserId > 0):
 <form id="deleteUserForm" method="post" action="<?php echo SITE_URL; ?>/admin/users" style="display:none;">
     <input type="hidden" name="_csrf"   value="<?php echo $csrfDelete; ?>">
     <input type="hidden" name="_action" value="delete_user">
-    <input type="hidden" name="user_id" value="<?php echo (int)$eu->id; ?>">
+    <input type="hidden" name="user_id" id="deleteUserId" value="<?php echo (int)$eu->id; ?>">
 </form>
 <?php endif; ?>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const pwField   = document.querySelector('input[name="new_password"]');
-    const pwConfirm = document.getElementById('pwConfirm');
-    const pwHint    = document.getElementById('pwHint');
-    function checkPw() {
-        if (!pwField.value) { pwHint.textContent = ''; return; }
-        if (pwField.value !== pwConfirm.value) {
-            pwHint.textContent = '⚠️ Passwörter stimmen nicht überein.';
-            pwHint.style.color = '#b91c1c';
-        } else {
-            pwHint.textContent = '✅ Passwörter stimmen überein.';
-            pwHint.style.color = '#15803d';
-        }
-    }
-    if (pwField)   pwField.addEventListener('input', checkPw);
-    if (pwConfirm) pwConfirm.addEventListener('input', checkPw);
-});
-</script>
 
 <?php
 /* ================================================================
@@ -420,8 +442,8 @@ elseif ($view === 'new'):
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Passwort <span class="text-danger">*</span></label>
-                        <input type="password" name="password" class="form-control" required minlength="6" placeholder="••••••" autocomplete="new-password">
-                        <small class="form-hint">Mindestens 6 Zeichen.</small>
+                        <input type="password" name="password" class="form-control" required minlength="12" placeholder="••••••••••••" autocomplete="new-password">
+                        <small class="form-hint">Mindestens 12 Zeichen inkl. Groß-/Kleinbuchstabe, Zahl und Sonderzeichen.</small>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Anzeigename</label>
@@ -458,41 +480,7 @@ elseif ($view === 'new'):
    LISTEN-ANSICHT
    ================================================================ */
 else:
-    $whereParts = [];
-    $params     = [];
-    if ($roleFilter === 'banned') {
-        $whereParts[] = "u.status = 'banned'";
-    } elseif ($roleFilter !== 'all') {
-        $whereParts[] = "u.role = ?";
-        $params[]     = $roleFilter;
-        $whereParts[] = "u.status != 'banned'";
-    } else {
-        $whereParts[] = "u.status != 'banned'";
-    }
-    if (!empty($search)) {
-        $whereParts[] = "(u.username LIKE ? OR u.email LIKE ? OR u.display_name LIKE ?)";
-        $params[] = "%{$search}%";
-        $params[] = "%{$search}%";
-        $params[] = "%{$search}%";
-    }
-    $where      = $whereParts ? ' WHERE ' . implode(' AND ', $whereParts) : '';
-    $total      = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}users u" . $where, $params);
-    $totalPages = max(1, (int)ceil($total / $perPage));
-    $page       = min($page, $totalPages);
-    $offset     = ($page - 1) * $perPage;
-
-    $users = $db->get_results(
-        "SELECT u.*, (SELECT COUNT(*) FROM {$prefix}user_group_members m WHERE m.user_id=u.id) AS group_count
-         FROM {$prefix}users u" . $where . " ORDER BY u.created_at DESC LIMIT {$perPage} OFFSET {$offset}",
-        $params
-    );
-
-    $buildUrl = fn(array $extra = []) =>
-        SITE_URL . '/admin/users?' . http_build_query(array_merge(
-            ['role' => $roleFilter],
-            $search ? ['search' => $search] : [],
-            $extra
-        ));
+    // Grid.js holt Daten per API – PHP-seitig nur Role-Tabs nötig
 ?>
 
 <ul class="nav nav-tabs mb-3">
@@ -506,7 +494,7 @@ else:
     ?>
     <?php foreach ($roleTabs as $r => $lbl): ?>
     <li class="nav-item">
-        <a href="<?php echo SITE_URL; ?>/admin/users?role=<?php echo $r; ?><?php echo $search ? '&search=' . urlencode($search) : ''; ?>"
+        <a href="<?php echo SITE_URL; ?>/admin/users?role=<?php echo $r; ?>"
            class="nav-link <?php echo $roleFilter === $r ? 'active' : ''; ?>">
             <?php echo $lbl; ?> <span class="badge bg-secondary ms-1"><?php echo $roleCounts[$r] ?? 0; ?></span>
         </a>
@@ -514,30 +502,12 @@ else:
     <?php endforeach; ?>
 </ul>
 
-<div class="card mb-3">
-    <div class="card-body">
-        <form method="get" action="<?php echo SITE_URL; ?>/admin/users" class="row g-2 align-items-center">
-            <input type="hidden" name="role" value="<?php echo htmlspecialchars($roleFilter); ?>">
-            <div class="col-auto" style="flex:1; max-width:400px;">
-                <div class="input-group">
-                    <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" class="form-control" placeholder="Suche nach Name, E-Mail…">
-                    <button type="submit" class="btn btn-secondary">🔍 Suchen</button>
-                </div>
-            </div>
-            <?php if ($search): ?>
-            <div class="col-auto">
-                <a href="<?php echo SITE_URL; ?>/admin/users?role=<?php echo $roleFilter; ?>" class="btn btn-secondary btn-sm">✕ Filter löschen</a>
-            </div>
-            <?php endif; ?>
-        </form>
-    </div>
-</div>
+<!-- Grid.js übernimmt die Suche -->
 
 <form method="post" action="<?php echo SITE_URL; ?>/admin/users" id="bulkForm">
     <input type="hidden" name="_csrf"   value="<?php echo $csrfBulk; ?>">
     <input type="hidden" name="_action" value="bulk">
-    
-    <div style="background:#f8fafc; padding:0.75rem; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:1rem; display:flex; align-items:center; gap:0.75rem;">
+    <div class="bulk-bar">
         <select name="bulk_action" class="form-select" style="width:auto; display:inline-block; padding:0.4rem;">
             <option value="">Aktion wählen…</option>
             <option value="activate">Aktivieren</option>
@@ -547,112 +517,199 @@ else:
             <option value="delete">Endgültig löschen</option>
         </select>
         <button type="submit" class="btn btn-secondary btn-sm">Anwenden</button>
-        <span style="color:#64748b; font-size:0.875rem; margin-left:auto;"><?php echo $total; ?> Benutzer gesamt</span>
     </div>
-
-    <?php if (empty($users)): ?>
-    <div class="empty-state">
-        <p style="font-size:2.5rem; margin:0;">👤</p>
-        <p><strong>Keine Benutzer gefunden.</strong></p>
-        <p class="text-muted"><?php echo $search
-            ? 'Keine Treffer für <strong>' . htmlspecialchars($search, ENT_QUOTES) . '</strong>'
-            : 'Erstellen Sie den ersten Benutzer.'; ?></p>
-        <?php if(!$search): ?>
-        <a href="<?php echo SITE_URL; ?>/admin/users?view=new" class="btn btn-primary" style="margin-top:1rem;">➕ Benutzer erstellen</a>
-        <?php endif; ?>
-    </div>
-    <?php else: ?>
-    <div class="card">
-        <div class="table-responsive">
-            <table class="table table-vcenter card-table">
-                <thead>
-                <tr>
-                    <th style="width:30px;">
-                        <input type="checkbox" onchange="document.querySelectorAll('#bulkForm input[name=\'bulk_ids[]\']').forEach(c=>c.checked=this.checked)">
-                    </th>
-                    <th>Benutzer</th>
-                    <th>E-Mail</th>
-                    <th>Rolle</th>
-                    <th>Status</th>
-                    <th style="text-align:center;">Gruppen</th>
-                    <th>Registriert</th>
-                    <th style="text-align:right;">Aktion</th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php foreach ($users as $u):
-                $colors      = ['#2563eb','#7c3aed','#db2777','#059669','#d97706','#dc2626'];
-                $avatarColor = $colors[abs(crc32($u->username)) % count($colors)];
-                $roleLbl     = ['admin' => 'Administrator', 'editor' => 'Editor', 'member' => 'Member'][$u->role] ?? ucfirst($u->role);
-                $statusLbl   = ['active' => 'Aktiv', 'inactive' => 'Inaktiv', 'banned' => 'Gesperrt'][$u->status ?? 'active'] ?? ucfirst($u->status ?? 'active');
-                
-                $roleBadgeClass = match($u->role) {
-                    'admin' => 'bg-yellow-lt',
-                    'editor' => 'bg-blue-lt', 
-                    default => 'bg-azure-lt'
-                };
-                $statusBadgeClass = match($u->status) {
-                    'active' => 'bg-success-lt',
-                    'banned' => 'bg-danger-lt',
-                    default => 'bg-secondary-lt'
-                };
-            ?>
-            <tr>
-                <td><input type="checkbox" name="bulk_ids[]" value="<?php echo (int)$u->id; ?>"
-                           <?php echo (int)$u->id === $current_user_id ? 'disabled' : ''; ?>></td>
-                <td>
-                    <div style="display:flex; align-items:center; gap:0.75rem;">
-                        <div style="width:32px; height:32px; border-radius:50%; background:<?php echo $avatarColor; ?>; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.8rem;">
-                            <?php echo strtoupper(substr($u->username, 0, 1)); ?>
-                        </div>
-                        <div style="display:flex; flex-direction:column;">
-                            <a href="<?php echo SITE_URL; ?>/admin/users?view=edit&id=<?php echo (int)$u->id; ?>"
-                               style="font-weight:600; color:#1e293b; text-decoration:none;">
-                                <?php echo htmlspecialchars($u->username, ENT_QUOTES); ?>
-                                <?php if ((int)$u->id === $current_user_id): ?>
-                                <span style="background:#dcfce7; color:#166534; padding:0 4px; border-radius:4px; font-size:0.65rem; margin-left:4px;">Sie</span>
-                                <?php endif; ?>
-                            </a>
-                            <?php if (!empty($u->display_name) && $u->display_name !== $u->username): ?>
-                            <small style="color:#64748b;"><?php echo htmlspecialchars($u->display_name, ENT_QUOTES); ?></small>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </td>
-                <td style="color:#64748b;"><?php echo htmlspecialchars($u->email, ENT_QUOTES); ?></td>
-                <td><span class="badge <?php echo $roleBadgeClass; ?>"><?php echo $roleLbl; ?></span></td>
-                <td><span class="badge <?php echo $statusBadgeClass; ?>"><?php echo $statusLbl; ?></span></td>
-                <td style="text-align:center; color:#64748b;"><?php echo (int)($u->group_count ?? 0); ?></td>
-                <td style="color:#64748b;"><?php echo date('d.m.Y', strtotime($u->created_at)); ?></td>
-                <td style="text-align:right; white-space:nowrap;">
-                    <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
-                        <a href="<?php echo SITE_URL; ?>/admin/users?view=edit&id=<?php echo (int)$u->id; ?>"
-                           class="btn btn-secondary btn-sm" title="Bearbeiten">✏️</a>
-                        <?php if ((int)$u->id !== $current_user_id): ?>
-                        <button type="button" class="btn btn-danger btn-sm" title="Löschen"
-                                onclick="deleteUser(<?php echo (int)$u->id; ?>)">🗑️</button>
-                        <?php endif; ?>
-                    </div>
-                </td>
-            </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-        </div>
-
-    <?php if ($totalPages > 1): ?>
-    <div class="pagination" style="display:flex; gap:0.5rem; justify-content:center; margin-top:1.5rem;">
-        <?php if ($page > 1): ?><a href="<?php echo $buildUrl(['p' => $page - 1]); ?>" class="btn btn-secondary btn-sm">‹</a><?php endif; ?>
-        <?php for ($i = max(1, $page - 3); $i <= min($totalPages, $page + 3); $i++): ?>
-            <?php if ($i === $page): ?><span class="btn btn-primary btn-sm" style="pointer-events:none;"><?php echo $i; ?></span>
-            <?php else: ?><a href="<?php echo $buildUrl(['p' => $i]); ?>" class="btn btn-secondary btn-sm"><?php echo $i; ?></a><?php endif; ?>
-        <?php endfor; ?>
-        <?php if ($page < $totalPages): ?><a href="<?php echo $buildUrl(['p' => $page + 1]); ?>" class="btn btn-secondary btn-sm">›</a><?php endif; ?>
-        <span style="color:#94a3b8; font-size:0.875rem; align-self:center; margin-left:0.5rem;"><?php echo $page; ?> von <?php echo $totalPages; ?></span>
-    </div>
-    <?php endif; ?>
-    <?php endif; ?>
+    <div id="bulkIdsContainer"></div>
 </form>
+
+<!-- Grid.js Users-Tabelle -->
+<link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/gridjs/mermaid.min.css">
+<div id="users-grid"></div>
+
+<script src="<?php echo SITE_URL; ?>/assets/gridjs/gridjs.umd.js"></script>
+<script src="<?php echo SITE_URL; ?>/assets/js/gridjs-init.js"></script>
+<script>
+(function() {
+    var SITE = <?php echo json_encode(SITE_URL); ?>;
+    var ROLE = <?php echo json_encode($roleFilter); ?>;
+    var ME   = <?php echo (int)$current_user_id; ?>;
+    var _sel = new Set();
+    var ROLE_MAP = <?php echo json_encode(array_reduce($allDbRoles, static function(array $carry, object $role) use ($roleEmojis): array {
+        $carry[(string) $role->name] = [
+            (string) $role->display_name,
+            ((string) $role->name === 'admin') ? 'bg-yellow-lt' : (((string) $role->name === 'editor') ? 'bg-blue-lt' : 'bg-azure-lt')
+        ];
+        return $carry;
+    }, []), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+
+    function esc(s) { return cmsEsc(s); }
+
+    function showUsersNotice(type, message) {
+        var container = document.getElementById('usersNoticeContainer');
+        if (!container) {
+            return;
+        }
+        var cls = type === 'error' ? 'alert-danger' : (type === 'warning' ? 'alert-warning' : 'alert-info');
+        container.innerHTML = '<div class="alert ' + cls + ' alert-dismissible" role="alert">'
+            + '<div class="d-flex"><div>' + esc(message) + '</div></div>'
+            + '<a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>'
+            + '</div>';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Bulk-Checkbox → hidden inputs beim Submit
+    window._usersBulkIds = _sel;
+    document.getElementById('bulkForm').addEventListener('submit', function(event) {
+        var actionField = this.querySelector('[name="bulk_action"]');
+        var action = actionField ? actionField.value : '';
+        if (!action) {
+            event.preventDefault();
+            showUsersNotice('warning', 'Bitte zuerst eine Bulk-Aktion auswählen.');
+            return;
+        }
+        if (_sel.size === 0) {
+            event.preventDefault();
+            showUsersNotice('warning', 'Bitte zuerst mindestens einen Benutzer markieren.');
+            return;
+        }
+        if (action === 'delete') {
+            event.preventDefault();
+            cmsConfirm('Die markierten Benutzer wirklich endgültig löschen? Administratoren bleiben aus Sicherheitsgründen unberührt.', function() {
+                submitBulkForm();
+            }, 'Benutzer löschen');
+            return;
+        }
+        submitBulkForm();
+    });
+
+    function submitBulkForm() {
+        var c = document.getElementById('bulkIdsContainer');
+        c.innerHTML = '';
+        _sel.forEach(function(id) {
+            var inp = document.createElement('input');
+            inp.type = 'hidden'; inp.name = 'bulk_ids[]'; inp.value = id;
+            c.appendChild(inp);
+        });
+        document.getElementById('bulkForm').submit();
+    }
+
+    var _colors = ['#2563eb','#7c3aed','#db2777','#059669','#d97706','#dc2626'];
+
+    var statusMap = {
+        active:   ['Aktiv',    'bg-success-lt'],
+        inactive: ['Inaktiv',  'bg-secondary-lt'],
+        banned:   ['Gesperrt', 'bg-danger-lt']
+    };
+
+    cmsGrid('#users-grid', {
+        url: SITE + '/api/v1/admin/users',
+        extraParams: { role: ROLE },
+        limit: 20,
+        sortMap: { 2: 'username', 3: 'email', 4: 'role', 5: 'status', 7: 'created_at' },
+        columns: [
+            { id: 'id', hidden: true },
+            { id: 'display_name', hidden: true },
+            {
+                id: '_check',
+                name: gridjs.html('<input type="checkbox" onchange="document.querySelectorAll(\'.gjs-user-chk\').forEach(function(c){if(!c.disabled){c.checked=this.checked;if(this.checked)window._usersBulkIds.add(+c.value);else window._usersBulkIds.delete(+c.value);}}.bind(this))">'),
+                width: '36px',
+                sort: false,
+                formatter: function (_, row) {
+                    var id = row.cells[0].data;
+                    var dis = (id === ME) ? ' disabled' : '';
+                    var chk = _sel.has(id) ? ' checked' : '';
+                    return gridjs.html('<input type="checkbox" class="gjs-user-chk" value="' + id + '"' + chk + dis + ' onchange="this.checked?window._usersBulkIds.add(' + id + '):window._usersBulkIds.delete(' + id + ')">');
+                }
+            },
+            {
+                id: 'username',
+                name: 'Benutzer',
+                formatter: function (_, row) {
+                    var d = row.cells;
+                    var id = d[0].data, user = d[3].data, disp = d[1].data || '';
+                    var col = _colors[Math.abs(hashCode(user)) % _colors.length];
+                    var letter = user.charAt(0).toUpperCase();
+                    var me = (id === ME) ? ' <span style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:4px;font-size:.65rem;margin-left:4px;">Sie</span>' : '';
+                    var sub = (disp && disp !== user) ? '<small style="color:#64748b;">' + esc(disp) + '</small>' : '';
+                    return gridjs.html(
+                        '<div style="display:flex;align-items:center;gap:.75rem;">' +
+                        '<div style="width:32px;height:32px;border-radius:50%;background:' + col + ';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;">' + letter + '</div>' +
+                        '<div style="display:flex;flex-direction:column;">' +
+                        '<a href="' + SITE + '/admin/users?view=edit&id=' + id + '" style="font-weight:600;color:#1e293b;text-decoration:none;">' + esc(user) + me + '</a>' +
+                        sub + '</div></div>'
+                    );
+                }
+            },
+            {
+                id: 'email',
+                name: 'E-Mail',
+                formatter: function (cell) {
+                    return gridjs.html('<span style="color:#64748b;">' + esc(cell) + '</span>');
+                }
+            },
+            {
+                id: 'role',
+                name: 'Rolle',
+                width: '120px',
+                formatter: function (cell) {
+                    var r = ROLE_MAP[cell] || [cell, 'bg-azure-lt'];
+                    return gridjs.html('<span class="badge ' + r[1] + '">' + r[0] + '</span>');
+                }
+            },
+            {
+                id: 'status',
+                name: 'Status',
+                width: '100px',
+                formatter: function (cell) {
+                    var s = statusMap[cell] || [cell, 'bg-secondary-lt'];
+                    return gridjs.html('<span class="badge ' + s[1] + '">' + s[0] + '</span>');
+                }
+            },
+            {
+                id: 'group_count',
+                name: 'Gruppen',
+                width: '80px',
+                sort: false,
+                formatter: function (cell) {
+                    return gridjs.html('<span style="color:#64748b;text-align:center;display:block;">' + Number(cell || 0) + '</span>');
+                }
+            },
+            {
+                id: 'created_at',
+                name: 'Registriert',
+                width: '110px',
+                formatter: function (cell) {
+                    return gridjs.html('<span style="font-size:.78rem;color:#64748b;" title="' + esc(cell) + '">' + cmsTimeAgo(cell) + '</span>');
+                }
+            },
+            {
+                id: '_actions',
+                name: '',
+                width: '100px',
+                sort: false,
+                formatter: function (_, row) {
+                    var id = row.cells[0].data;
+                    var del = (id !== ME)
+                        ? '<button type="button" class="btn btn-danger btn-sm" onclick="deleteUser(' + id + ')">🗑️</button>'
+                        : '';
+                    return gridjs.html(
+                        '<div style="display:flex;justify-content:flex-end;gap:.3rem;white-space:nowrap;">' +
+                        '<a href="' + SITE + '/admin/users?view=edit&id=' + id + '" class="btn btn-secondary btn-sm" title="Bearbeiten">✏️</a>' +
+                        del + '</div>'
+                    );
+                }
+            },
+            // Hidden data columns sind oben definiert (id, display_name)
+        ]
+    });
+
+    // Simple string hash for avatar colors
+    function hashCode(s) {
+        for (var h = 0, i = 0; i < s.length; i++)
+            h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+        return h;
+    }
+})();
+</script>
 
 <form id="deleteUserForm" method="post" action="<?php echo SITE_URL; ?>/admin/users" style="display:none;">
     <input type="hidden" name="_csrf"   value="<?php echo $csrfDelete; ?>">
@@ -660,51 +717,21 @@ else:
     <input type="hidden" name="user_id" id="deleteUserId" value="">
 </form>
 
-<!-- Benutzer löschen – Bootstrap 5 Modal -->
-<div class="modal modal-blur fade" id="userDeleteModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
-            <div class="modal-status bg-danger"></div>
-            <div class="modal-body text-center py-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon mb-2 text-danger icon-lg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0z"/><path d="M12 16h.01"/></svg>
-                <h3>Benutzer löschen</h3>
-                <div class="text-secondary">Benutzer wirklich <strong>endgültig löschen</strong>? Diese Aktion kann nicht rückgängig gemacht werden.</div>
-            </div>
-            <div class="modal-footer">
-                <div class="w-100">
-                    <div class="row">
-                        <div class="col">
-                            <button type="button" class="btn w-100" data-bs-dismiss="modal">Abbrechen</button>
-                        </div>
-                        <div class="col">
-                            <button type="button" class="btn btn-danger w-100" id="userDeleteConfirmBtn">🗑️ Löschen</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <?php endif; ?>
 
+<?php renderAdminConfirmModal(); ?>
+
 <script>
-const _delModal = new bootstrap.Modal(document.getElementById('userDeleteModal'));
 function deleteUser(id) {
-    document.getElementById('userDeleteConfirmBtn').onclick = function() {
-        _delModal.hide();
+    cmsConfirm('Benutzer wirklich endgültig löschen? Diese Aktion kann nicht rückgängig gemacht werden.', function() {
         document.getElementById('deleteUserId').value = id;
         document.getElementById('deleteUserForm').submit();
-    };
-    _delModal.show();
+    }, 'Benutzer löschen');
 }
 function openUserDeleteModal() {
-    document.getElementById('userDeleteConfirmBtn').onclick = function() {
-        _delModal.hide();
+    cmsConfirm('Benutzer wirklich endgültig löschen? Diese Aktion kann nicht rückgängig gemacht werden.', function() {
         document.getElementById('deleteUserForm').submit();
-    };
-    _delModal.show();
+    }, 'Benutzer löschen');
 }
 </script>
 

@@ -282,43 +282,33 @@ $csrfToken = $security->generateToken('cookie_settings');
 
 require_once __DIR__ . '/partials/admin-menu.php';
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cookie Manager – <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <?php renderAdminSidebarStyles(); ?>
-    <style>
-        .svc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
-        .svc-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; display: flex; gap: 0.75rem; cursor: pointer; transition: all 0.2s; background: #fff; }
-        .svc-card:hover { border-color: #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .svc-card.active { border-color: var(--admin-primary); background: var(--admin-primary-light); }
-        .svc-card.locked { opacity: 0.7; cursor: not-allowed; background: #f8fafc; }
-        .svc-info strong { display: block; margin-bottom: 0.25rem; color: #1e293b; }
-        .svc-provider { display: block; font-size: 0.8rem; color: #64748b; margin-bottom: 0.5rem; }
-        .svc-desc { display: block; font-size: 0.85rem; color: #475569; line-height: 1.4; margin-bottom: 0.5rem; }
-        .svc-cookies { display: block; font-size: 0.75rem; color: #94a3b8; font-family: monospace; }
-        .svc-privacy { font-size: 0.75rem; color: var(--admin-primary); text-decoration: none; display: inline-block; margin-top: 0.25rem; }
-        .svc-cat-header { margin: 2rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 0.75rem; }
-        .svc-cat-note { font-size: 0.8rem; color: #64748b; margin-left: auto; }
-        .preview-box { background: #e2e8f0; padding: 2rem; border-radius: 8px; display: flex; justify-content: center; margin-top: 1rem; }
-        .preview-card { background: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); max-width: 400px; width: 100%; }
-        /* Tabs overrides */
-        .tabs { margin-bottom: 1.5rem; border-bottom: 1px solid #e2e8f0; overflow-x: auto; white-space: nowrap; }
-        .tab-btn { background: none; border: none; padding: 1rem 1.5rem; font-size: 1rem; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
-        .tab-btn:hover { color: #1e293b; }
-        .tab-btn.active { color: var(--admin-primary); border-bottom-color: var(--admin-primary); font-weight: 600; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-    </style>
-</head>
-<body class="admin-body">
-    <?php renderAdminSidebar('cookies'); ?>
-    
-    <div class="admin-content">
-                <div class="page-header d-print-none mb-3">
+<?php renderAdminLayoutStart('Cookie Manager', 'cookies'); ?>
+
+<style>
+    .svc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .svc-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; display: flex; gap: 0.75rem; cursor: pointer; transition: all 0.2s; background: #fff; }
+    .svc-card:hover { border-color: #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    .svc-card.active { border-color: var(--admin-primary); background: var(--admin-primary-light); }
+    .svc-card.locked { opacity: 0.7; cursor: not-allowed; background: #f8fafc; }
+    .svc-info strong { display: block; margin-bottom: 0.25rem; color: #1e293b; }
+    .svc-provider { display: block; font-size: 0.8rem; color: #64748b; margin-bottom: 0.5rem; }
+    .svc-desc { display: block; font-size: 0.85rem; color: #475569; line-height: 1.4; margin-bottom: 0.5rem; }
+    .svc-cookies { display: block; font-size: 0.75rem; color: #94a3b8; font-family: monospace; }
+    .svc-privacy { font-size: 0.75rem; color: var(--admin-primary); text-decoration: none; display: inline-block; margin-top: 0.25rem; }
+    .svc-cat-header { margin: 2rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 0.75rem; }
+    .svc-cat-note { font-size: 0.8rem; color: #64748b; margin-left: auto; }
+    .preview-box { background: #e2e8f0; padding: 2rem; border-radius: 8px; display: flex; justify-content: center; margin-top: 1rem; }
+    .preview-card { background: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); max-width: 400px; width: 100%; }
+    .tabs { margin-bottom: 1.5rem; border-bottom: 1px solid #e2e8f0; overflow-x: auto; white-space: nowrap; }
+    .tab-btn { background: none; border: none; padding: 1rem 1.5rem; font-size: 1rem; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+    .tab-btn:hover { color: #1e293b; }
+    .tab-btn.active { color: var(--admin-primary); border-bottom-color: var(--admin-primary); font-weight: 600; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+
+        <div class="page-header d-print-none mb-3">
             <div class="row align-items-center">
                 <div class="col-auto">
                     <div class="page-pretitle">Verwalten Sie Cookies und den Consent Banner</div>
@@ -470,8 +460,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
 
             <div class="card" style="margin-top:1.5rem;">
                 <h3>📋 Cookie Liste</h3>
-                <div class="users-table-container">
-                    <table class="users-table">
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table">
                         <thead>
                             <tr>
                                 <th>Name</th>
@@ -645,8 +635,8 @@ window.CMS.Cookie.on('change', (consent) => {
                 <h3>📜 Consent Log (Auszug letzte 20)</h3>
                 <p style="color:#64748b; font-size:0.9rem;">Hier sehen Sie anonymisierte Einwilligungen (Erfordert 'cms_cookie_consents' Tabelle).</p>
                 
-                <div class="users-table-container">
-                    <table class="users-table">
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table">
                         <thead>
                             <tr>
                                 <th>Zeitstempel</th>
@@ -669,7 +659,7 @@ window.CMS.Cookie.on('change', (consent) => {
         </div>
 
     </div>
-    <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
+
     <script>
         function switchTab(id, btn) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -710,5 +700,5 @@ window.CMS.Cookie.on('change', (consent) => {
             document.getElementById('prev-essential').textContent = btnEssential || 'Nur Essenzielle';
         }
     </script>
-</body>
-</html>
+
+<?php renderAdminLayoutEnd(); ?>

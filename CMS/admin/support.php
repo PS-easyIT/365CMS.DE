@@ -182,11 +182,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
 renderAdminLayoutStart('Support & Dokumentation', 'support');
 ?>
 
-    <!-- Main Content -->
-    <div class="admin-content">
-
         <!-- Page Header -->
-                <div class="page-header d-print-none mb-3">
+        <div class="page-header d-print-none mb-3">
             <div class="row align-items-center">
                 <div class="col-auto">
                     <h2 class="page-title">📚 Support &amp; Dokumentation</h2>
@@ -351,7 +348,5 @@ renderAdminLayoutStart('Support & Dokumentation', 'support');
             </main>
 
         </div><!-- /.support-layout -->
-
-    </div><!-- /.admin-content -->
 
 <?php renderAdminLayoutEnd(); ?>

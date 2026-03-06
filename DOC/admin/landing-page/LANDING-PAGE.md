@@ -1,156 +1,252 @@
 # Landing Page Editor
 
-
-Der Landing Page Editor ermöglicht die visuelle Bearbeitung der Startseite ohne Programmierkenntnisse. Er bietet einen Sektions-basierten Aufbau mit vorkonfigurierten Blöcken.
-
----
-
-## Inhaltsverzeichnis
-
-1. [Überblick](#1-überblick)
-2. [Sektionen verwalten](#2-sektionen-verwalten)
-3. [Hero Section](#3-hero-section)
-4. [Features-Sektion](#4-features-sektion)
-5. [Testimonials](#5-testimonials)
-6. [CTA-Sektion](#6-cta-sektion)
-7. [Footer-Einstellungen](#7-footer-einstellungen)
-8. [Technische Details](#8-technische-details)
+Der Landing-Page-Editor steuert die öffentliche Startseite des CMS über den Admin-Bereich `admin/landing-page.php`.
+Die aktuelle Implementierung arbeitet **sektionenbasiert über die Tabelle `cms_landing_sections`** und bietet zusätzlich ein **Plugin-Override-System** für Header, Content und Footer.
 
 ---
 
-## 1. Überblick
+## Überblick
 
-URL: `/admin/landing-page.php`
+**URL:** `/admin/landing-page.php`
 
-Die Landing Page ist die **öffentliche Startseite** der Website (Wurzel-URL `/`). Der Editor speichert alle Inhalte in der `cms_settings`-Tabelle als JSON-Objekt unter dem Key `landing_page_config`.
+Verfügbare Admin-Sektionen:
 
-**Voraussetzung:** In `admin/settings.php` → „Startseite" muss „Landing Page" ausgewählt sein (nicht „Letzter Blog-Beitrag" oder eine statische Seite).
-
----
-
-## 2. Sektionen verwalten
-
-Die Landing Page besteht aus konfigurierbaren Sektionen:
-
-| Sektion | Aktiv by default | Deaktivierbar |
+| Sektion | Route | Zweck |
 |---|---|---|
-| Hero | ✅ | ❌ Nein |
-| Features | ✅ | ✅ Ja |
-| Testimonials | ❌ | ✅ Ja |
-| CTA-Banner | ✅ | ✅ Ja |
-| Statistiken | ❌ | ✅ Ja |
-| Footer | ✅ | ❌ Nein |
+| Header | `/admin/landing-page?section=header` | Hero-Bereich, Logo, Titel, Buttons |
+| Content | `/admin/landing-page?section=content` | Feature-Grid, Freitext oder letzte Beiträge |
+| Footer | `/admin/landing-page?section=footer` | Footer-Text, CTA, Copyright |
+| Design | `/admin/landing-page?section=design` | Farben und Design-Tokens |
+| Plugins | `/admin/landing-page?section=plugins` | Plugin-Overrides pro Bereich |
+| Einstellungen | `/admin/landing-page?section=settings` | Sichtbarkeit, Slug, Wartungsmodus |
 
-**Reihenfolge:** Sektionen können per Drag & Drop umsortiert werden.
-
----
-
-## 3. Hero Section
-
-Die Hero-Sektion ist die große Willkommensansicht oben auf der Startseite.
-
-**Einstellbare Felder:**
-
-| Feld | Beschreibung | Max. Länge |
-|---|---|---|
-| `hero_title` | Hauptüberschrift (H1) | 80 Zeichen |
-| `hero_subtitle` | Untertitel/Beschreibungstext | 200 Zeichen |
-| `hero_cta_primary_text` | Text des primären Buttons | 30 Zeichen |
-| `hero_cta_primary_url` | Link des primären Buttons | — |
-| `hero_cta_secondary_text` | Text des sekundären Buttons | 30 Zeichen |
-| `hero_cta_secondary_url` | Link des sekundären Buttons | — |
-| `hero_background_type` | `color` oder `image` | — |
-| `hero_background_value` | Hex-Farbe oder Bild-URL | — |
-| `hero_text_color` | Textfarbe (`light` oder `dark`) | — |
+Die Seite nutzt das zentrale Admin-Layout über `renderAdminLayoutStart()` / `renderAdminLayoutEnd()`.
+Statusmeldungen und Bestätigungen laufen über die gemeinsamen Admin-Komponenten (`renderAdminAlerts()`, `cmsConfirm()`).
 
 ---
 
-## 4. Features-Sektion
+## Datenmodell
 
-Stellt bis zu **6 Feature-Karten** in einem Grid dar (3 oder 4 Spalten).
+Die Landing Page speichert ihre Daten in `cms_landing_sections`.
 
-**Pro Karte:**
-- **Icon:** FontAwesome 6 Klassen-Name (z.B. `fa-solid fa-rocket`)
-- **Titel:** Kurze Bezeichnung (max. 40 Zeichen)
-- **Text:** Beschreibung (max. 150 Zeichen)
-- **Link:** Optionaler Link für „Mehr erfahren"
+Typische `type`-Werte:
 
-**Layout-Optionen:**
-- Hintergrundfarbe der Sektion
-- Karten-Stil: `card`, `icon-only`, `list`
+- `header`
+- `feature`
+- `footer`
+- `content`
+- `settings`
+- `design`
+- `plugin_overrides`
 
----
+Zentrale Service-Klasse:
 
-## 5. Testimonials
+- `CMS/core/Services/LandingPageService.php`
 
-Kundenmeinungen/Referenzen anzeigen:
+Admin-Datei:
 
-**Pro Testimonial:**
-- **Avatar:** Bild-Upload oder Gravatar via E-Mail
-- **Name:** Kundenname
-- **Position:** Berufsbezeichnung und Firma
-- **Zitat:** Kundenmeinung (max. 280 Zeichen)
-- **Bewertung:** 1–5 Sterne (optional)
-
-**Darstellung:** Karussell (mit Auto-Play, konfigurierbar) oder statisches Grid
+- `CMS/admin/landing-page.php`
 
 ---
 
-## 6. CTA-Sektion
+## Header
 
-Call-to-Action Banner zwischen Sektionen:
+Der Header-Bereich enthält:
 
-- **Überschrift:** max. 60 Zeichen
-- **Text:** max. 120 Zeichen
-- **Button:** Text + URL
-- **Hintergrund:** Vollfarbe oder Gradient (Start- und Endfarbe)
+- Logo-Upload / Logo-Entfernung
+- Logo-Position (`top`, `left`)
+- Header-Layout (`standard`, `compact`)
+- Titel
+- Untertitel
+- Beschreibung (Editor)
+- Versions-/Badge-Text
+- bis zu 4 Header-Buttons
+
+### Header-Buttons
+
+Pro Button werden gespeichert:
+
+- `text`
+- `url`
+- `icon`
+- `target` (`_self`, `_blank`)
+- `outline`
+
+Serverseitig werden diese Werte im `LandingPageService` validiert und bereinigt.
 
 ---
 
-## 7. Footer-Einstellungen
+## Content
 
-Der Footer wird ebenfalls hier konfiguriert:
+Die Content-Sektion unterstützt aktuell drei Modi:
 
-**Spalten (1–4 Spalten):**
-- Pro Spalte: Titel, Inhalt (WYSIWYG, Links möglich)
-- Typische Struktur: Logo + Beschreibung | Links | Kontakt | Social
-
-**Social-Media-Links:**
-| Plattform | Key |
+| Modus | Beschreibung |
 |---|---|
-| Twitter/X | `social_twitter` |
-| LinkedIn | `social_linkedin` |
-| GitHub | `social_github` |
-| Instagram | `social_instagram` |
-| YouTube | `social_youtube` |
+| `features` | Feature-/Widget-Grid |
+| `text` | Freier HTML-/Editor-Inhalt |
+| `posts` | Neueste Beiträge |
 
-**Copyright-Zeile:**
-- Frei konfigurierbarer Text
-- Automatisches Jahr-Platzhalter: `{year}`
+### Feature-Grid
+
+Features werden einzeln in `cms_landing_sections` mit `type = 'feature'` gespeichert.
+
+Pro Feature:
+
+- `icon`
+- `title`
+- `description`
+- `sort_order`
+
+Das Löschen erfolgt im Admin über das zentrale Bestätigungsmodal, nicht über `window.confirm()`.
 
 ---
 
-## 8. Technische Details
+## Footer
 
-**Speicherung:** Alle Werte als JSON in `cms_settings`:
+Der Footer-Bereich bietet:
+
+- Sichtbarkeit ein/aus
+- Freitext-Inhalt
+- CTA-Button (`button_text`, `button_url`)
+- Copyright-Zeile
+
+Hinweis:
+
+- `{year}` kann im Copyright-Text als Platzhalter verwendet werden.
+
+---
+
+## Design
+
+Die Design-Sektion ist in zwei Bereiche aufgeteilt:
+
+### Farben
+
+Gespeicherte Farbwerte:
+
+- `hero_gradient_start`
+- `hero_gradient_end`
+- `hero_border`
+- `hero_text`
+- `features_bg`
+- `feature_card_bg`
+- `feature_card_hover`
+- `primary_button`
+
+### Design-Tokens
+
+Gespeicherte Token u. a.:
+
+- `card_border_radius`
+- `button_border_radius`
+- `card_icon_layout`
+- `card_border_color`
+- `card_border_width`
+- `card_shadow`
+- `feature_columns`
+- `hero_padding`
+- `feature_padding`
+- `footer_bg`
+- `footer_text_color`
+- `content_section_bg`
+
+Die Werte werden serverseitig auf erlaubte Bereiche, Farben und Enumerationen validiert.
+
+---
+
+## Plugins / Overrides
+
+Die Plugins-Sektion erlaubt, die CMS-Standardbereiche durch Plugin-Ausgaben zu ersetzen.
+
+Unterstützte Zielbereiche:
+
+- `header`
+- `content`
+- `footer`
+
+### Plugin-Registrierung
+
+Plugins registrieren sich über:
+
 ```php
-// Wert speichern
-$db->update('cms_settings',
-    ['option_value' => json_encode($landingConfig)],
-    ['option_name'  => 'landing_page_config']
-);
+CMS\Hooks::addFilter('landing_page_plugins', function (array $plugins): array {
+    $plugins['my-plugin'] = [
+        'id' => 'my-plugin',
+        'name' => 'Mein Plugin',
+        'description' => 'Ersetzt den Content-Bereich der Landing Page.',
+        'version' => '1.0.0',
+        'author' => '365 Network',
+        'targets' => ['content'],
+        'settings_callback' => [$this, 'render_settings'],
+    ];
 
-// Wert laden
-$config = json_decode(
-    $db->get_var("SELECT option_value FROM cms_settings WHERE option_name = 'landing_page_config'"),
-    true
-);
+    return $plugins;
+});
 ```
 
-**Template:** `themes/{active_theme}/templates/landing-page.php`
+### Gespeicherte Override-Daten
 
-**Hook:**
-```php
-do_action('cms_landing_page_saved', $newConfig, $oldConfig);
-add_filter('cms_landing_page_sections', 'my_plugin_add_section');
-```
+`type = 'plugin_overrides'` enthält:
+
+- aktives Plugin je Bereich (`header`, `content`, `footer`)
+- plugin-spezifische Einstellungen in `plugin_settings`
+
+Der Service prüft serverseitig:
+
+- ob das Plugin tatsächlich registriert ist
+- ob der gewünschte Zielbereich unterstützt wird
+- ob eine `settings_callback` wirklich aufrufbar ist
+
+---
+
+## Einstellungen
+
+Die Einstellungs-Sektion verwaltet:
+
+- Sichtbarkeit von Header, Content und Footer-Sektion
+- `landing_slug`
+- `maintenance_mode`
+
+### Slug-Regeln
+
+Der Slug wird serverseitig normalisiert:
+
+- leer oder `/` = Root-Startseite
+- sonst normalisierte Pfadangabe wie z. B. `/start`
+
+---
+
+## Sicherheit und Validierung
+
+Die Landing-Page-Verwaltung nutzt:
+
+- Admin-Check via `Auth::instance()->isAdmin()`
+- CSRF-Schutz via `Security::instance()->verifyToken()`
+- serverseitige Sanitierung im `LandingPageService`
+- zentrale Admin-Alerts und Admin-Confirm-Modal
+
+Serverseitig bereinigt werden unter anderem:
+
+- Texte
+- URLs
+- Farbcodes
+- Slugs
+- Button-Konfigurationen
+- Plugin-IDs und Plugin-Settings
+
+---
+
+## Wichtige Dateien
+
+| Datei | Zweck |
+|---|---|
+| `CMS/admin/landing-page.php` | Admin-Oberfläche |
+| `CMS/core/Services/LandingPageService.php` | Laden/Speichern/Validieren |
+| `CMS/admin/partials/admin-menu.php` | Layout, Sidebar, Alerts, Confirm-Modal |
+
+---
+
+## Aktueller Stand
+
+Die aktuelle Implementierung deckt die real vorhandenen Bereiche im Admin ab und ist nicht mehr identisch mit älteren Konzepten wie Testimonials-, CTA- oder Statistik-Sektionen aus früheren Planungsständen.
+Für neue Landing-Page-Module sollte zuerst geprüft werden, ob sie als echte `landing_sections`-Typen oder als Plugin-Overrides umgesetzt werden sollen.

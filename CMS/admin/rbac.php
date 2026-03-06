@@ -97,8 +97,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $rid          = (int)($_POST['role_id']        ?? 0);
             $name         = preg_replace('/[^a-z0-9_]/', '', strtolower(trim($_POST['name'] ?? '')));
-            $displayName  = trim($_POST['display_name']    ?? '');
-            $description  = trim($_POST['description']     ?? '');
+            $displayName  = sanitize_text_field($_POST['display_name'] ?? '');
+            $description  = sanitize_text_field($_POST['description']  ?? '');
             $capsRaw      = (array)($_POST['capabilities'] ?? []);
             $caps         = array_values(array_intersect($capsRaw, array_keys($allAdminCaps)));
             $mda = isset($_POST['member_dashboard_access']) ? 1 : 0;
@@ -174,9 +174,7 @@ renderAdminLayoutStart('RBAC – Rollen & Rechte', 'rbac');
 ?>
 
 <?php foreach ($messages as $msg): ?>
-<div class="alert alert-<?php echo $msg['type'] === 'success' ? 'success' : 'error'; ?>">
-    <?php echo htmlspecialchars($msg['text'], ENT_QUOTES, 'UTF-8'); ?>
-</div>
+    <?php renderAdminAlert((string) ($msg['type'] ?? 'info'), (string) ($msg['text'] ?? '')); ?>
 <?php endforeach; ?>
 
 <?php /* =========================================================
@@ -192,9 +190,11 @@ renderAdminLayoutStart('RBAC – Rollen & Rechte', 'rbac');
     </div>
 </div>
 <div class="card" style="margin-bottom:1.5rem;">
-    <h3>📋 Alle Rollen</h3>
-    <div class="users-table-container">
-        <table class="users-table">
+    <div class="card-header">
+        <h3 class="card-title">📋 Alle Rollen</h3>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-vcenter card-table">
             <thead>
                 <tr>
                     <th>Rolle</th>
@@ -270,7 +270,10 @@ $editMda     = $editRole ? (int)($editRole->member_dashboard_access ?? 1) : 1;
 $isEditCore  = $editRole && in_array($editRole->name, $coreRoles);
 ?>
 <div class="card" id="role-form">
-    <h3><?php echo $editRole ? '✏️ Rolle bearbeiten: <em>' . htmlspecialchars($editRole->display_name, ENT_QUOTES) . '</em>' : '➕ Neue Rolle erstellen'; ?></h3>
+    <div class="card-header">
+        <h3 class="card-title"><?php echo $editRole ? '✏️ Rolle bearbeiten: <em>' . htmlspecialchars($editRole->display_name, ENT_QUOTES) . '</em>' : '➕ Neue Rolle erstellen'; ?></h3>
+    </div>
+    <div class="card-body">
 
     <?php if ($isEditCore): ?>
     <div class="alert" style="background:#fefce8;color:#854d0e;border-left:4px solid #fde047;margin-bottom:1rem;padding:.75rem 1rem;">
@@ -290,7 +293,8 @@ $isEditCore  = $editRole && in_array($editRole->name, $coreRoles);
             <!-- Spalte 1: Basis -->
             <div>
                 <div class="card" style="margin:0;">
-                    <h3>📋 Basisdaten</h3>
+                    <div class="card-header"><h3 class="card-title">📋 Basisdaten</h3></div>
+                    <div class="card-body">
                     <?php if (!$editRole): ?>
                     <div class="form-group">
                         <label class="form-label">Interner Name <span style="color:#ef4444;">*</span></label>
@@ -319,7 +323,8 @@ $isEditCore  = $editRole && in_array($editRole->name, $coreRoles);
             <!-- Spalte 2: Admin-Capabilities -->
             <div>
                 <div class="card" style="margin:0;">
-                    <h3>🛡️ Admin-Capabilities</h3>
+                    <div class="card-header"><h3 class="card-title">🛡️ Admin-Capabilities</h3></div>
+                    <div class="card-body">
                     <p style="font-size:.8rem;color:#64748b;margin-bottom:.75rem;">Bestimmt welche Admin-Bereiche zugänglich sind. Keiner = reine Member/Frontend-Rolle.</p>
                     <div class="rbac-caps-grid">
                         <?php foreach ($allAdminCaps as $capKey => $capLabel): ?>
@@ -330,13 +335,15 @@ $isEditCore  = $editRole && in_array($editRole->name, $coreRoles);
                         </label>
                         <?php endforeach; ?>
                     </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Spalte 3: Member-Einstellungen -->
             <div style="display:flex;flex-direction:column;gap:1rem;">
                 <div class="card" style="margin:0;">
-                    <h3>🖥️ Member-Dashboard</h3>
+                    <div class="card-header"><h3 class="card-title">🖥️ Member-Dashboard</h3></div>
+                    <div class="card-body">
                     <label class="dw-toggle-row" style="cursor:pointer;">
                         <div>
                             <div class="dw-toggle-label">Member-Dashboard nutzen</div>
@@ -347,6 +354,7 @@ $isEditCore  = $editRole && in_array($editRole->name, $coreRoles);
                             <span class="dw-toggle-slider"></span>
                         </label>
                     </label>
+                    </div>
                 </div>
 
 
@@ -365,19 +373,26 @@ $isEditCore  = $editRole && in_array($editRole->name, $coreRoles);
 
         </div>
     </form>
+    </div>
 </div>
 
 <!-- Rolle löschen Modal -->
-<div id="rbacRoleDeleteModal" class="modal" style="display:none;">
-    <div class="modal-content" style="max-width:460px;">
-        <div class="modal-header"><h3>Rolle löschen</h3><button class="modal-close" onclick="closeModal('rbacRoleDeleteModal')">&times;</button></div>
-        <div class="modal-body">
-            <p>Soll die Rolle <strong id="rbacRoleDeleteName"></strong> endgültig gelöscht werden?</p>
-            <p style="color:#ef4444;font-size:.875rem;">⚠️ Diese Aktion kann nicht rückgängig gemacht werden.</p>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeModal('rbacRoleDeleteModal')">Abbrechen</button>
-            <button class="btn btn-danger" onclick="document.getElementById('rbacDeleteRoleForm').submit()">🗑️ Löschen</button>
+<div class="modal modal-blur fade" id="rbacRoleDeleteModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-status bg-danger"></div>
+            <div class="modal-header">
+                <h5 class="modal-title">Rolle löschen</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+            </div>
+            <div class="modal-body">
+                <p>Soll die Rolle <strong id="rbacRoleDeleteName"></strong> endgültig gelöscht werden?</p>
+                <p class="text-danger small">⚠️ Diese Aktion kann nicht rückgängig gemacht werden.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button class="btn btn-danger" onclick="document.getElementById('rbacDeleteRoleForm').submit()">🗑️ Löschen</button>
+            </div>
         </div>
     </div>
 </div>
@@ -431,26 +446,11 @@ $isEditCore  = $editRole && in_array($editRole->name, $coreRoles);
    JAVASCRIPT
    ========================================================= */ ?>
 <script>
-// ── Modal-Hilfsfunktionen ────────────────────────────────────────────────────
-function openModal(id) {
-    const el = document.getElementById(id);
-    if (el) el.style.display = 'flex';
-}
-function closeModal(id) {
-    const el = document.getElementById(id);
-    if (el) el.style.display = 'none';
-}
-window.addEventListener('click', e => {
-    document.querySelectorAll('.modal').forEach(m => {
-        if (e.target === m) m.style.display = 'none';
-    });
-});
-
 // ── Rollen: Lösch-Bestätigung ────────────────────────────────────────────────
 function rbacDeleteRole(id, name) {
     document.getElementById('rbacDeleteRoleId').value = id;
     document.getElementById('rbacRoleDeleteName').textContent = name;
-    openModal('rbacRoleDeleteModal');
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('rbacRoleDeleteModal')).show();
 }
 
 </script>

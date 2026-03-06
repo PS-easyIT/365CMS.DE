@@ -275,14 +275,8 @@ $failedLogins = $db->execute(
 $csrfToken = $security->generateToken('cms_firewall');
 
 require_once __DIR__ . '/partials/admin-menu.php';
+renderAdminLayoutStart('Firewall', 'cms-firewall');
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firewall – <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <?php renderAdminSidebarStyles(); ?>
     <style>
         /* ── Firewall Page Styles ─────────────────────────────── */
         .fw-stats-grid {
@@ -466,12 +460,6 @@ require_once __DIR__ . '/partials/admin-menu.php';
         .fw-status-banner.active   { background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
         .fw-status-banner.inactive { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
     </style>
-</head>
-<body class="admin-body">
-
-    <?php renderAdminSidebar('cms-firewall'); ?>
-
-    <div class="admin-content">
 
         <!-- Page Header -->
                 <div class="page-header d-print-none mb-3">
@@ -663,8 +651,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     <p class="text-muted">Aktuell sind keine IP-Adressen gesperrt.</p>
                 </div>
             <?php else: ?>
-                <div class="fw-table-wrap">
-                    <table class="fw-table">
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table fw-table">
                         <thead>
                             <tr>
                                 <th>IP-Adresse</th>
@@ -764,8 +752,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
                     <p><strong>Keine fehlgeschlagenen Login-Versuche</strong></p>
                 </div>
             <?php else: ?>
-                <div class="fw-table-wrap">
-                    <table class="fw-table">
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table fw-table">
                         <thead>
                             <tr>
                                 <th>IP-Adresse</th>
@@ -925,61 +913,19 @@ require_once __DIR__ . '/partials/admin-menu.php';
 
         <?php endif; // end tabs ?>
 
-    </div><!-- /.admin-content -->
-
-    <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
     <script>
-    // ── Firewall: Bestätigungs-Modal (ersetzt window.confirm) ──
+    // ── Firewall: Bestätigungs-Modal via globales cmsConfirm() ──
     (function () {
-        // Modal HTML einmalig erzeugen
-        const modal = document.createElement('div');
-        modal.id = 'fw-confirm-modal';
-        modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;align-items:center;justify-content:center;';
-        modal.innerHTML = `
-            <div style="background:#fff;border-radius:10px;padding:2rem;max-width:440px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.2);">
-                <h3 style="margin:0 0 1rem;font-size:1.05rem;color:#1e293b;">⚠️ Bestätigung erforderlich</h3>
-                <p id="fw-confirm-msg" style="color:#475569;margin:0 0 1.5rem;"></p>
-                <div style="display:flex;gap:.75rem;justify-content:flex-end;">
-                    <button id="fw-confirm-cancel" class="btn btn-secondary" type="button">Abbrechen</button>
-                    <button id="fw-confirm-ok"     class="btn btn-danger"    type="button">Bestätigen</button>
-                </div>
-            </div>`;
-        document.body.appendChild(modal);
-
-        let pendingForm = null;
-
-        function openModal(msg, form) {
-            document.getElementById('fw-confirm-msg').textContent = msg;
-            pendingForm = form;
-            modal.style.display = 'flex';
-        }
-        function closeModal() {
-            modal.style.display = 'none';
-            pendingForm = null;
-        }
-
-        document.getElementById('fw-confirm-cancel').addEventListener('click', closeModal);
-        modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
-        document.getElementById('fw-confirm-ok').addEventListener('click', function () {
-            if (pendingForm) {
-                pendingForm.removeEventListener('submit', preventDefault);
-                pendingForm.submit();
-            }
-            closeModal();
-        });
-
-        function preventDefault(e) { e.preventDefault(); }
-
-        // Alle Buttons mit .fw-confirm-btn abfangen
         document.addEventListener('click', function (e) {
             const btn = e.target.closest('.fw-confirm-btn');
             if (!btn) return;
             e.preventDefault();
             const form = btn.closest('form');
             if (!form) return;
-            openModal(btn.dataset.msg || 'Aktion wirklich ausführen?', form);
+            cmsConfirm(btn.dataset.msg || 'Aktion wirklich ausführen?', function() {
+                form.submit();
+            });
         });
     })();
     </script>
-</body>
-</html>
+<?php renderAdminLayoutEnd(); ?>

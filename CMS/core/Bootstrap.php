@@ -207,6 +207,90 @@ class Bootstrap
         $this->container->singleton(Services\FeedService::class, fn() => Services\FeedService::getInstance());
         $this->container->singleton('feed', fn() => Services\FeedService::getInstance());
 
+        // CookieConsentService – lazy Singleton (Frontend Consent-Banner)
+        $this->container->singleton(Services\CookieConsentService::class, fn() => Services\CookieConsentService::getInstance());
+        $this->container->singleton('cookieconsent', fn() => Services\CookieConsentService::getInstance());
+
+        // TranslationService – lazy Singleton (I18n)
+        $this->container->singleton(Services\TranslationService::class, fn() => Services\TranslationService::getInstance());
+        $this->container->singleton('translation', fn() => Services\TranslationService::getInstance());
+
+        // PdfService – lazy Singleton (Dompdf-basierte PDF-Erzeugung)
+        $this->container->singleton(Services\PdfService::class, fn() => Services\PdfService::getInstance());
+        $this->container->singleton('pdf', fn() => Services\PdfService::getInstance());
+
+        // EditorService – lazy Singleton (SunEditor WYSIWYG)
+        $this->container->singleton(Services\EditorService::class, fn() => Services\EditorService::getInstance());
+        $this->container->singleton('editor', fn() => Services\EditorService::getInstance());
+
+        // EditorJsService – lazy Singleton (Editor.js Block-Editor)
+        $this->container->singleton(Services\EditorJsService::class, fn() => Services\EditorJsService::getInstance());
+        $this->container->singleton('editorjs', fn() => Services\EditorJsService::getInstance());
+
+        // EditorJsRenderer – lazy Singleton (Editor.js HTML-Rendering)
+        $this->container->singleton(Services\EditorJsRenderer::class, fn() => Services\EditorJsRenderer::getInstance());
+        $this->container->singleton('editorjs.renderer', fn() => Services\EditorJsRenderer::getInstance());
+
+        // FileUploadService – lazy Singleton (FilePond-Upload)
+        $this->container->singleton(Services\FileUploadService::class, fn() => Services\FileUploadService::getInstance());
+        $this->container->singleton('fileupload', fn() => Services\FileUploadService::getInstance());
+
+        // CommentService – lazy Singleton (Kommentarsystem)
+        $this->container->singleton(Services\CommentService::class, fn() => Services\CommentService::getInstance());
+        $this->container->singleton('comments', fn() => Services\CommentService::getInstance());
+
+        // SEOService – lazy Singleton (Meta-Tags, Schema.org)
+        $this->container->singleton(Services\SEOService::class, fn() => Services\SEOService::getInstance());
+        $this->container->singleton('seo', fn() => Services\SEOService::getInstance());
+
+        // MemberService – lazy Singleton (Mitgliederverwaltung)
+        $this->container->singleton(Services\MemberService::class, fn() => Services\MemberService::getInstance());
+        $this->container->singleton('member', fn() => Services\MemberService::getInstance());
+
+        // MessageService – lazy Singleton (Internes Nachrichtensystem)
+        $this->container->singleton(Services\MessageService::class, fn() => Services\MessageService::getInstance());
+        $this->container->singleton('messages', fn() => Services\MessageService::getInstance());
+
+        // UserService – lazy Singleton (Benutzerverwaltung)
+        $this->container->singleton(Services\UserService::class, fn() => Services\UserService::getInstance());
+        $this->container->singleton('users', fn() => Services\UserService::getInstance());
+
+        // StatusService – lazy Singleton (Online-Status)
+        $this->container->singleton(Services\StatusService::class, fn() => Services\StatusService::getInstance());
+        $this->container->singleton('status', fn() => Services\StatusService::getInstance());
+
+        // DashboardService – lazy Singleton (Admin-Dashboard-Statistiken)
+        $this->container->singleton(Services\DashboardService::class, fn() => Services\DashboardService::getInstance());
+        $this->container->singleton('dashboard', fn() => Services\DashboardService::getInstance());
+
+        // LandingPageService – lazy Singleton (Landing-Page-Builder)
+        $this->container->singleton(Services\LandingPageService::class, fn() => Services\LandingPageService::getInstance());
+        $this->container->singleton('landingpage', fn() => Services\LandingPageService::getInstance());
+
+        // AnalyticsService – lazy Singleton (Seitenstatistiken)
+        $this->container->singleton(Services\AnalyticsService::class, fn() => Services\AnalyticsService::getInstance());
+        $this->container->singleton('analytics', fn() => Services\AnalyticsService::getInstance());
+
+        // TrackingService – lazy Singleton (Seitenaufrufe)
+        $this->container->singleton(Services\TrackingService::class, fn() => Services\TrackingService::getInstance());
+        $this->container->singleton('tracking', fn() => Services\TrackingService::getInstance());
+
+        // BackupService – lazy Singleton (Datenbank-Backups)
+        $this->container->singleton(Services\BackupService::class, fn() => Services\BackupService::getInstance());
+        $this->container->singleton('backup', fn() => Services\BackupService::getInstance());
+
+        // SystemService – lazy Singleton (Systeminfo & Wartung)
+        $this->container->singleton(Services\SystemService::class, fn() => Services\SystemService::instance());
+        $this->container->singleton('system', fn() => Services\SystemService::instance());
+
+        // ThemeCustomizer – lazy Singleton (Theme-Anpassungen)
+        $this->container->singleton(Services\ThemeCustomizer::class, fn() => Services\ThemeCustomizer::instance());
+        $this->container->singleton('customizer', fn() => Services\ThemeCustomizer::instance());
+
+        // UpdateService – lazy Singleton (Auto-Update-Prüfung)
+        $this->container->singleton(Services\UpdateService::class, fn() => Services\UpdateService::getInstance());
+        $this->container->singleton('update', fn() => Services\UpdateService::getInstance());
+
         // Router – nur für Web/Admin (CLI routed anders)
         $this->router = Router::instance();
         $this->container->bindInstance(Router::class, $this->router);
@@ -227,6 +311,19 @@ class Bootstrap
         if ($this->mode !== 'cli') {
             $sm = SubscriptionManager::instance();
             $this->container->bindInstance(SubscriptionManager::class, $sm);
+        }
+
+        // Frontend: CookieConsent im Theme-Footer ausgeben
+        if ($this->mode === 'web') {
+            Hooks::addAction('body_end', [Services\CookieConsentService::getInstance(), 'render'], 20);
+
+            // PhotoSwipe V5 — Lightbox für Bilder in Content-Bereichen
+            Hooks::addAction('head', function () {
+                echo '<link rel="stylesheet" href="' . SITE_URL . '/assets/photoswipe/photoswipe.css">' . "\n";
+            }, 30);
+            Hooks::addAction('body_end', function () {
+                echo '<script type="module" src="' . SITE_URL . '/assets/js/photoswipe-init.js"></script>' . "\n";
+            }, 10);
         }
 
         // Initialize hooks

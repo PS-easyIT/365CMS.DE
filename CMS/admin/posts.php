@@ -256,7 +256,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_action'])) {
 if (isset($_GET['msg'])) {
     $messages[] = [
         'type' => in_array($_GET['mtype'] ?? '', ['success','error','info'], true) ? $_GET['mtype'] : 'info',
-        'text' => htmlspecialchars(urldecode($_GET['msg']), ENT_QUOTES, 'UTF-8'),
+        'text' => urldecode($_GET['msg']),
     ];
 }
 
@@ -298,6 +298,8 @@ renderAdminLayoutStart('Beiträge', 'posts');
     <a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>
 </div>
 <?php endforeach; ?>
+
+<div id="postsNoticeContainer"></div>
 
 <?php /* ===============================================================
         KATEGORIEN-ANSICHT
@@ -362,7 +364,8 @@ if ($view === 'categories'): ?>
         <?php if (empty($categories)): ?>
             <p style="color:#94a3b8;font-size:.875rem;">Noch keine Kategorien vorhanden.</p>
         <?php else: ?>
-        <table class="posts-table">
+        <div class="table-responsive">
+        <table class="table table-vcenter card-table">
             <thead><tr><th>Name</th><th>Slug</th><th style="text-align:right;">Beiträge</th><th></th></tr></thead>
             <tbody>
             <?php foreach ($categories as $cat):
@@ -379,13 +382,14 @@ if ($view === 'categories'): ?>
                         <input type="hidden" name="_action"  value="delete_category">
                         <input type="hidden" name="cat_id"   value="<?php echo (int)$cat->id; ?>">
                         <button type="button" class="btn btn-danger btn-sm"
-                                onclick="catDeleteConfirm('catDeleteForm_<?php echo (int)$cat->id; ?>', '<?php echo htmlspecialchars($cat->name, ENT_QUOTES); ?>')">🗑️</button>
+                                onclick="confirmCategoryDelete('catDeleteForm_<?php echo (int)$cat->id; ?>', '<?php echo htmlspecialchars($cat->name, ENT_QUOTES); ?>')">🗑️</button>
                     </form>
                 </td>
             </tr>
             <?php endforeach; ?>
             </tbody>
         </table>
+        </div>
         <?php endif; ?>
         </div>
     </div>
@@ -472,7 +476,7 @@ elseif ($view === 'edit'):
             <div class="card mb-3">
                 <div class="card-header"><h3 class="card-title">✏️ Inhalt</h3></div>
                 <div class="card-body">
-                    <?php echo EditorService::getInstance()->render('post_content', $pd['content'], ['height' => 460]); ?>
+                    <?php echo EditorService::getInstance()->render('post_content', $pd['content'], ['height' => 700]); ?>
                 </div>
             </div>
 
@@ -520,7 +524,7 @@ elseif ($view === 'edit'):
                                value="<?php echo $pd['published_at'] ? date('Y-m-d\TH:i', strtotime($pd['published_at'])) : date('Y-m-d\TH:i'); ?>">
                     </div>
                     <?php if (!$isNew): ?>
-                    <button type="submit" form="deletePostForm" class="btn btn-danger w-100">🗑️ In Papierkorb</button>
+                    <button type="button" class="btn btn-danger w-100" onclick="confirmEditorDeletePost()">🗑️ In Papierkorb</button>
                     <?php endif; ?>
                 </div>
             </div>
@@ -668,19 +672,6 @@ else: // view === 'list'
     <?php endforeach; ?>
 </ul>
 
-<form method="get" action="<?php echo SITE_URL; ?>/admin/posts">
-    <input type="hidden" name="view"   value="list">
-    <input type="hidden" name="status" value="<?php echo htmlspecialchars($status); ?>">
-    <div class="posts-toolbar">
-        <div class="posts-search">
-            <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Beiträge suchen…">
-            <button type="submit">🔍 Suchen</button>
-        </div>
-        <?php if ($search): ?>
-        <a href="<?php echo SITE_URL; ?>/admin/posts?status=<?php echo $status; ?>" class="btn btn-secondary btn-sm">✕ Filter löschen</a>
-        <?php endif; ?>
-    </div>
-</form>
 
 <form method="post" action="<?php echo SITE_URL; ?>/admin/posts" id="bulkForm">
     <input type="hidden" name="_csrf"   value="<?php echo $csrf; ?>">
@@ -694,94 +685,146 @@ else: // view === 'list'
             <?php if ($status === 'trash'): ?><option value="delete">Endgültig löschen</option><?php endif; ?>
         </select>
         <button type="submit" class="btn btn-secondary btn-sm" onclick="return confirmBulk(this.form)">Anwenden</button>
-        <span style="color:#94a3b8;font-size:.8rem;"><?php echo $total; ?> Beitrag<?php echo $total!==1?'e':''; ?></span>
     </div>
-
-    <?php if (empty($posts)): ?>
-    <div class="card" style="text-align:center;padding:3rem;color:#94a3b8;">
-        <div style="font-size:3rem;margin-bottom:1rem;">📝</div>
-        <p style="font-size:.9225rem;">
-            <?php echo $search ? 'Keine Treffer für <strong>'.htmlspecialchars($search,ENT_QUOTES).'</strong>' : 'Noch keine Beiträge.'; ?>
-        </p>
-        <?php if (!$search): ?>
-        <a href="<?php echo SITE_URL; ?>/admin/posts?view=edit" class="btn btn-primary" style="margin-top:.75rem;display:inline-flex;">➕ Ersten Beitrag erstellen</a>
-        <?php endif; ?>
-    </div>
-    <?php else: ?>
-    <div class="card" style="padding:0;overflow:hidden;">
-        <table class="posts-table">
-            <thead><tr>
-                <th class="col-check"><input type="checkbox" onchange="document.querySelectorAll('#bulkForm input[name=\'bulk_ids[]\']').forEach(c=>c.checked=this.checked)"></th>
-                <th class="col-img"></th>
-                <th>Titel</th>
-                <th class="col-cat">Kategorie</th>
-                <th class="col-status">Status</th>
-                <th class="col-views">👁️</th>
-                <th class="col-date">Datum</th>
-                <th class="col-actions"></th>
-            </tr></thead>
-            <tbody>
-            <?php foreach ($posts as $p):
-                $smap  = ['published'=>['Veröffentlicht','status-published'],'draft'=>['Entwurf','status-draft'],'trash'=>['Papierkorb','status-trash']];
-                $sbadge = $smap[$p->status] ?? [$p->status,''];
-                $dval  = ($p->status==='published' && $p->published_at)
-                       ? date('d.m.Y H:i', strtotime($p->published_at))
-                       : date('d.m.Y H:i', strtotime($p->updated_at));
-            ?>
-            <tr>
-                <td class="col-check"><input type="checkbox" name="bulk_ids[]" value="<?php echo (int)$p->id; ?>"></td>
-                <td class="col-img">
-                    <?php if (!empty($p->featured_image)): ?>
-                        <img src="<?php echo htmlspecialchars($p->featured_image,ENT_QUOTES); ?>" class="post-thumb" alt="">
-                    <?php else: ?>
-                        <div class="post-thumb-ph">🖼️</div>
-                    <?php endif; ?>
-                </td>
-                <td>
-                    <a href="<?php echo SITE_URL; ?>/admin/posts?view=edit&id=<?php echo (int)$p->id; ?>"
-                       style="font-weight:600;color:#1e293b;text-decoration:none;">
-                        <?php echo htmlspecialchars($p->title, ENT_QUOTES); ?>
-                    </a>
-                    <div style="font-size:.74rem;color:#94a3b8;margin-top:.12rem;">
-                        <?php echo htmlspecialchars($p->author_name??'Unbekannt', ENT_QUOTES); ?>
-                        &nbsp;·&nbsp;<code style="font-size:.7rem;">/blog/<?php echo htmlspecialchars($p->slug, ENT_QUOTES); ?></code>
-                    </div>
-                </td>
-                <td class="col-cat" style="font-size:.8rem;"><?php echo $p->category_name ? htmlspecialchars($p->category_name,ENT_QUOTES) : '<span style="color:#cbd5e1;">—</span>'; ?></td>
-                <td class="col-status"><span class="status-badge <?php echo $sbadge[1]; ?>"><?php echo $sbadge[0]; ?></span></td>
-                <td class="col-views" style="color:#64748b;font-size:.8rem;"><?php echo number_format((int)$p->views); ?></td>
-                <td class="col-date" style="font-size:.78rem;color:#64748b;"><?php echo $dval; ?></td>
-                <td class="col-actions" style="white-space:nowrap;">
-                    <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($p->slug, ENT_QUOTES); ?>" target="_blank" class="btn btn-secondary btn-sm" title="Ansehen">👁️</a>
-                    <a href="<?php echo SITE_URL; ?>/admin/posts?view=edit&id=<?php echo (int)$p->id; ?>" class="btn btn-secondary btn-sm" title="Bearbeiten">✏️</a>
-                    <?php if ($p->status !== 'trash'): ?>
-                    <button type="button" class="btn btn-danger btn-sm" onclick="deletePost(<?php echo (int)$p->id; ?>, 'trash', 'In Papierkorb?')">🗑️</button>
-                    <?php else: ?>
-                    <button type="button" class="btn btn-danger btn-sm" onclick="deletePost(<?php echo (int)$p->id; ?>, 'permanent', 'ENDGÜLTIG löschen?')">☠️</button>
-                    <?php endif; ?>
-                </td>
-            </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
-
-    <?php if ($totalPages > 1): ?>
-    <div class="posts-pagination">
-        <?php if ($page > 1): ?><a href="<?php echo $buildUrl(['p'=>$page-1]); ?>">‹</a><?php endif; ?>
-        <?php for ($i=max(1,$page-3); $i<=min($totalPages,$page+3); $i++): ?>
-            <?php if ($i===$page): ?>
-                <span class="cp"><?php echo $i; ?></span>
-            <?php else: ?>
-                <a href="<?php echo $buildUrl(['p'=>$i]); ?>"><?php echo $i; ?></a>
-            <?php endif; ?>
-        <?php endfor; ?>
-        <?php if ($page < $totalPages): ?><a href="<?php echo $buildUrl(['p'=>$page+1]); ?>">›</a><?php endif; ?>
-        <span style="color:#94a3b8;font-size:.78rem;margin-left:.4rem;"><?php echo $page; ?>/<?php echo $totalPages; ?></span>
-    </div>
-    <?php endif; ?>
-    <?php endif; // posts empty check ?>
+    <div id="bulkIdsContainer"></div>
 </form>
+
+<!-- Grid.js Posts-Tabelle -->
+<link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/gridjs/mermaid.min.css">
+<div id="posts-grid"></div>
+
+<script src="<?php echo SITE_URL; ?>/assets/gridjs/gridjs.umd.js"></script>
+<script src="<?php echo SITE_URL; ?>/assets/js/gridjs-init.js"></script>
+<script>
+(function() {
+    var SITE = <?php echo json_encode(SITE_URL); ?>;
+    var STATUS = <?php echo json_encode($status); ?>;
+    var _sel = new Set();
+
+    function esc(s) { return cmsEsc(s); }
+
+    // Bulk-Checkbox-Handling
+    window._postsBulkIds = _sel;
+    var origSubmit = document.getElementById('bulkForm').onsubmit;
+    document.getElementById('bulkForm').addEventListener('submit', function() {
+        var c = document.getElementById('bulkIdsContainer');
+        c.innerHTML = '';
+        _sel.forEach(function(id) {
+            var inp = document.createElement('input');
+            inp.type = 'hidden'; inp.name = 'bulk_ids[]'; inp.value = id;
+            c.appendChild(inp);
+        });
+    });
+
+    var statusMap = {
+        published: ['Veröffentlicht', 'status-published'],
+        draft:     ['Entwurf',        'status-draft'],
+        trash:     ['Papierkorb',     'status-trash']
+    };
+
+    cmsGrid('#posts-grid', {
+        url: SITE + '/api/v1/admin/posts',
+        extraParams: { status: STATUS },
+        limit: 20,
+        sortMap: { 1: 'title', 2: 'title', 3: 'status', 4: 'views', 5: 'updated_at' },
+        columns: [
+            {
+                id: '_check',
+                name: gridjs.html('<input type="checkbox" onchange="document.querySelectorAll(\'.gjs-post-chk\').forEach(function(c){c.checked=this.checked;if(this.checked)window._postsBulkIds.add(+c.value);else window._postsBulkIds.delete(+c.value);}.bind(this))">'),
+                width: '36px',
+                sort: false,
+                formatter: function (_, row) {
+                    var id = row.cells[11].data;
+                    var chk = _sel.has(id) ? ' checked' : '';
+                    return gridjs.html('<input type="checkbox" class="gjs-post-chk" value="' + id + '"' + chk + ' onchange="this.checked?window._postsBulkIds.add(' + id + '):window._postsBulkIds.delete(' + id + ')">');
+                }
+            },
+            {
+                id: 'featured_image',
+                name: '',
+                width: '48px',
+                sort: false,
+                formatter: function (cell) {
+                    if (cell) return gridjs.html('<img src="' + esc(cell) + '" style="width:36px;height:36px;object-fit:cover;border-radius:4px;" alt="">');
+                    return gridjs.html('<div style="width:36px;height:36px;background:#f1f5f9;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.8rem;">🖼️</div>');
+                }
+            },
+            {
+                id: 'title',
+                name: 'Titel',
+                formatter: function (cell, row) {
+                    var d = row.cells;
+                    var id = d[11].data, title = cell, slug = d[9].data, author = d[10].data || 'Unbekannt';
+                    return gridjs.html(
+                        '<a href="' + SITE + '/admin/posts?view=edit&id=' + id + '" style="font-weight:600;color:#1e293b;text-decoration:none;">' + esc(title) + '</a>' +
+                        '<div style="font-size:.74rem;color:#94a3b8;margin-top:.12rem;">' + esc(author) + ' · <code style="font-size:.7rem;">/blog/' + esc(slug) + '</code></div>'
+                    );
+                }
+            },
+            {
+                id: 'category_name',
+                name: 'Kategorie',
+                width: '120px',
+                formatter: function (cell) {
+                    return cell ? esc(cell) : gridjs.html('<span style="color:#cbd5e1;">—</span>');
+                }
+            },
+            {
+                id: 'status',
+                name: 'Status',
+                width: '110px',
+                formatter: function (cell) {
+                    var st = statusMap[cell] || [cell, ''];
+                    return gridjs.html('<span class="status-badge ' + st[1] + '">' + st[0] + '</span>');
+                }
+            },
+            {
+                id: 'views',
+                name: '👁️',
+                width: '60px',
+                formatter: function (cell) {
+                    return gridjs.html('<span style="color:#64748b;font-size:.8rem;">' + Number(cell || 0).toLocaleString('de-DE') + '</span>');
+                }
+            },
+            {
+                id: 'updated_at',
+                name: 'Datum',
+                width: '110px',
+                formatter: function (_, row) {
+                    var d = row.cells;
+                    var st = d[4].data, pub = d[8].data, upd = d[6].data;
+                    var raw = (st === 'published' && pub) ? pub : upd;
+                    return gridjs.html('<span style="font-size:.78rem;color:#64748b;" title="' + esc(raw) + '">' + cmsTimeAgo(raw) + '</span>');
+                }
+            },
+            {
+                id: '_actions',
+                name: '',
+                width: '120px',
+                sort: false,
+                formatter: function (_, row) {
+                    var d = row.cells;
+                    var id = d[11].data, slug = d[9].data, st = d[4].data;
+                    var del = st === 'trash'
+                        ? '<button type="button" class="btn btn-danger btn-sm" onclick="deletePost(' + id + ',\'permanent\',\'ENDGÜLTIG löschen?\')">☠️</button>'
+                        : '<button type="button" class="btn btn-danger btn-sm" onclick="deletePost(' + id + ',\'trash\',\'In Papierkorb?\')">🗑️</button>';
+                    return gridjs.html(
+                        '<div style="display:flex;gap:.3rem;white-space:nowrap;">' +
+                        '<a href="' + SITE + '/blog/' + esc(slug) + '" target="_blank" class="btn btn-secondary btn-sm" title="Ansehen">👁️</a>' +
+                        '<a href="' + SITE + '/admin/posts?view=edit&id=' + id + '" class="btn btn-secondary btn-sm" title="Bearbeiten">✏️</a>' +
+                        del + '</div>'
+                    );
+                }
+            },
+            // Hidden data columns (used by formatters via row.cells)
+            { id: 'published_at', hidden: true },
+            { id: 'slug', hidden: true },
+            { id: 'author_name', hidden: true },
+            { id: 'id', hidden: true }
+        ]
+    });
+})();
+</script>
 
 <form id="listDeleteForm" method="post" action="<?php echo SITE_URL; ?>/admin/posts" style="display:none;">
     <input type="hidden" name="_csrf"       value="<?php echo $csrf; ?>">
@@ -813,6 +856,17 @@ else: // view === 'list'
 </div>
 <script>
 const _postDelModal = new bootstrap.Modal(document.getElementById('postDeleteModal'));
+function showPostsNotice(type, message) {
+    var container = document.getElementById('postsNoticeContainer');
+    if (!container) return;
+    var cls = type === 'error' ? 'alert-danger' : (type === 'warning' ? 'alert-warning' : 'alert-info');
+    container.innerHTML = '<div class="alert ' + cls + ' alert-dismissible" role="alert">'
+        + '<div class="d-flex"><div>' + cmsEsc(message) + '</div></div>'
+        + '<a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>'
+        + '</div>';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 function deletePost(id, mode, msg) {
     document.getElementById('postDeleteModalMsg').textContent = msg;
     document.getElementById('postDeleteModalTitle').textContent = mode === 'permanent' ? 'Endgültig löschen' : 'In Papierkorb';
@@ -823,6 +877,18 @@ function deletePost(id, mode, msg) {
         document.getElementById('listDeleteForm').submit();
     };
     _postDelModal.show();
+}
+
+function confirmCategoryDelete(formId, categoryName) {
+    cmsConfirm('Kategorie „' + categoryName + '“ wirklich löschen?', function() {
+        document.getElementById(formId).submit();
+    }, 'Kategorie löschen');
+}
+
+function confirmEditorDeletePost() {
+    cmsConfirm('Diesen Beitrag wirklich in den Papierkorb verschieben?', function() {
+        document.getElementById('deletePostForm').submit();
+    }, 'Beitrag verschieben');
 }
 </script>
 
@@ -887,17 +953,21 @@ window.removeFeatImg = function() {
 <script>
 function confirmBulk(form) {
     const a = form.querySelector('select[name=bulk_action]').value;
-    const n = form.querySelectorAll('input[name="bulk_ids[]"]:checked').length;
-    if (!a) { alert('Bitte zuerst eine Aktion wählen.'); return false; }
-    if (!n) { alert('Keine Beiträge ausgewählt.'); return false; }
-    if (a === 'delete') {
-        document.getElementById('postDeleteModalTitle').textContent = 'Sammelaktion: Endgültig löschen';
-        document.getElementById('postDeleteModalMsg').textContent = n + ' Beitrag/Beiträge ENDGÜLTIG löschen?';
-        document.getElementById('postDeleteModalConfirm').onclick = function() { _postDelModal.hide(); form.submit(); };
-        _postDelModal.show();
-        return false;
-    }
-    return true;
+    const n = window._postsBulkIds ? window._postsBulkIds.size : 0;
+    if (!a) { showPostsNotice('warning', 'Bitte zuerst eine Bulk-Aktion wählen.'); return false; }
+    if (!n) { showPostsNotice('warning', 'Bitte zuerst mindestens einen Beitrag auswählen.'); return false; }
+
+    const labels = {
+        publish: 'veröffentlichen',
+        draft: 'als Entwurf setzen',
+        trash: 'in den Papierkorb verschieben',
+        delete: 'endgültig löschen'
+    };
+
+    cmsConfirm(n + ' Beitrag/Beiträge wirklich ' + (labels[a] || 'bearbeiten') + '?', function() {
+        form.submit();
+    }, 'Sammelaktion bestätigen');
+    return false;
 }
 </script>
 <?php endif; ?>

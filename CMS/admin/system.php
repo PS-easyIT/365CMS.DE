@@ -96,6 +96,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $error = 'Fehler beim Erstellen des Suchindex: ' . $e->getMessage();
                 }
                 break;
+
+            case 'clear_cms_log':
+                $logFile = sanitize_text_field($_POST['log_file'] ?? '');
+                if ($logFile && $systemService->clearCmsLogFile($logFile)) {
+                    $message = 'Log-Datei "' . $logFile . '" gelöscht';
+                } else {
+                    $error = 'Log-Datei konnte nicht gelöscht werden';
+                }
+                break;
         }
         
         // Redirect to prevent form resubmission
@@ -129,6 +138,14 @@ $directorySizes = $systemService->getDirectorySizes();
 $cmsStats = $systemService->getCMSStatistics();
 $securityStatus = $systemService->getSecurityStatus();
 $errorLogs = $systemService->getErrorLogs(50);
+
+// CMS Logger files (daily rotation)
+$cmsLogFiles   = $systemService->getCmsLogFiles();
+$activeLogFile = sanitize_text_field($_GET['logfile'] ?? '');
+if (!$activeLogFile && !empty($cmsLogFiles)) {
+    $activeLogFile = array_key_first($cmsLogFiles);
+}
+$cmsLogEntries = $activeLogFile ? $systemService->getCmsLogEntries($activeLogFile, 200) : [];
 
 $csrf_token = Security::instance()->generateToken('system_management');
 
@@ -287,9 +304,10 @@ require_once __DIR__ . '/partials/admin-menu.php';
         
         <!-- Database Tab -->
         <div class="tab-content" id="tab-database">
-            <div class="users-table-container">
-                <h3>Datenbank-Tabellen</h3>
-                <table class="users-table">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title">Datenbank-Tabellen</h3></div>
+                <div class="table-responsive">
+                <table class="table table-vcenter card-table">
                     <thead>
                         <tr>
                             <th>Tabelle</th>
@@ -326,14 +344,16 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
         
         <!-- Files Tab -->
         <div class="tab-content" id="tab-files">
-            <div class="users-table-container">
-                <h3>Datei-Berechtigungen</h3>
-                <table class="users-table">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title">Datei-Berechtigungen</h3></div>
+                <div class="table-responsive">
+                <table class="table table-vcenter card-table">
                     <thead>
                         <tr>
                             <th>Pfad</th>
@@ -381,6 +401,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
         
@@ -530,46 +551,141 @@ require_once __DIR__ . '/partials/admin-menu.php';
         
         <!-- Logs Tab -->
         <div class="tab-content" id="tab-logs">
-            <div class="logs-container">
-                <h2>Fehler-Logs (letzte 50 Einträge)</h2>
-                <?php if (empty($errorLogs)): ?>
-                    <p class="text-muted">Keine Fehler-Logs gefunden.</p>
-                <?php else: ?>
-                <div class="logs-list">
-                    <?php foreach ($errorLogs as $log): ?>
-                    <div class="log-entry log-type-<?php echo strtolower($log['type']); ?>">
-                        <div class="log-header">
-                            <span class="log-type"><?php echo htmlspecialchars($log['type']); ?></span>
-                            <span class="log-timestamp"><?php echo htmlspecialchars($log['timestamp']); ?></span>
-                        </div>
-                        <div class="log-message">
-                            <?php echo htmlspecialchars($log['message']); ?>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
+
+            <!-- CMS Application Logs -->
+            <div class="card mb-3">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h3 class="mb-0">📋 Anwendungs-Logs (CMS Logger)</h3>
+                    <?php if ($activeLogFile): ?>
+                    <form method="POST" style="margin:0;">
+                        <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                        <input type="hidden" name="action" value="clear_cms_log">
+                        <input type="hidden" name="log_file" value="<?php echo htmlspecialchars($activeLogFile); ?>">
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Log-Datei wirklich löschen?')">🗑️ Datei löschen</button>
+                    </form>
+                    <?php endif; ?>
                 </div>
-                <?php endif; ?>
+                <div class="card-body">
+                    <?php if (empty($cmsLogFiles)): ?>
+                        <p class="text-muted">Keine CMS-Log-Dateien vorhanden.</p>
+                    <?php else: ?>
+                        <div class="mb-3">
+                            <label class="form-label">Log-Datei auswählen:</label>
+                            <select class="form-select form-select-sm" style="max-width:300px;" onchange="location.href='?logfile='+this.value">
+                                <?php foreach ($cmsLogFiles as $fname => $fpath): ?>
+                                <option value="<?php echo htmlspecialchars($fname); ?>"<?php echo $fname === $activeLogFile ? ' selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($fname); ?> (<?php echo number_format(filesize($fpath) / 1024, 1); ?> KB)
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <?php if (empty($cmsLogEntries)): ?>
+                            <p class="text-muted">Keine Einträge in dieser Log-Datei.</p>
+                        <?php else: ?>
+                            <div class="mb-2 text-muted" style="font-size:.85rem;">
+                                <?php echo count($cmsLogEntries); ?> Einträge (neueste zuerst)
+                            </div>
+                            <div class="table-responsive" style="max-height:500px; overflow-y:auto;">
+                                <table class="table table-vcenter table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:160px;">Zeit</th>
+                                            <th style="width:90px;">Level</th>
+                                            <th style="width:80px;">Channel</th>
+                                            <th>Nachricht</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($cmsLogEntries as $entry): ?>
+                                        <tr>
+                                            <td><code style="font-size:.8rem;"><?php echo htmlspecialchars($entry['timestamp']); ?></code></td>
+                                            <td><?php
+                                                $lvl = strtoupper($entry['level']);
+                                                $badgeClass = match($lvl) {
+                                                    'EMERGENCY', 'ALERT', 'CRITICAL' => 'bg-danger',
+                                                    'ERROR'     => 'bg-danger',
+                                                    'WARNING'   => 'bg-warning text-dark',
+                                                    'NOTICE'    => 'bg-info',
+                                                    'INFO'      => 'bg-primary',
+                                                    'DEBUG'     => 'bg-secondary',
+                                                    default     => 'bg-secondary',
+                                                };
+                                                echo '<span class="badge ' . $badgeClass . '">' . htmlspecialchars($lvl) . '</span>';
+                                            ?></td>
+                                            <td><span class="text-muted" style="font-size:.8rem;"><?php echo htmlspecialchars($entry['channel']); ?></span></td>
+                                            <td style="font-size:.85rem; word-break:break-word;"><?php echo htmlspecialchars($entry['message']); ?></td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                </div>
             </div>
+
+            <!-- PHP Error Logs -->
+            <div class="card">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h3 class="mb-0">⚠️ PHP Fehler-Logs (letzte 50 Einträge)</h3>
+                    <form method="POST" style="margin:0;">
+                        <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                        <input type="hidden" name="action" value="clear_logs">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">🗑️ Leeren</button>
+                    </form>
+                </div>
+                <div class="card-body">
+                    <?php if (empty($errorLogs)): ?>
+                        <p class="text-muted">Keine PHP-Fehler-Logs gefunden.</p>
+                    <?php else: ?>
+                    <div class="table-responsive" style="max-height:400px; overflow-y:auto;">
+                        <table class="table table-vcenter table-sm">
+                            <thead>
+                                <tr>
+                                    <th style="width:160px;">Zeit</th>
+                                    <th style="width:90px;">Typ</th>
+                                    <th>Nachricht</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($errorLogs as $log): ?>
+                                <tr>
+                                    <td><code style="font-size:.8rem;"><?php echo htmlspecialchars($log['timestamp']); ?></code></td>
+                                    <td><span class="badge bg-<?php echo strtolower($log['type']) === 'error' ? 'danger' : 'warning'; ?>"><?php echo htmlspecialchars($log['type']); ?></span></td>
+                                    <td style="font-size:.85rem; word-break:break-word;"><?php echo htmlspecialchars($log['message']); ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
         </div>
     </div><!-- /.admin-content -->
     
     <!-- Confirm Action Modal -->
-    <div id="confirmActionModal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="confirmActionTitle">⚠️ Aktion bestätigen</h3>
-                <button class="modal-close" onclick="closeConfirmModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p id="confirmActionText"></p>
-                <form id="confirmActionForm" method="POST">
-                    <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-                    <input type="hidden" name="action" id="confirmActionValue" value="">
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeConfirmModal()">Abbrechen</button>
-                <button type="submit" form="confirmActionForm" id="confirmActionBtn" class="btn btn-danger">Bestätigen</button>
+    <div class="modal modal-blur fade" id="confirmActionModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
+            <div class="modal-content">
+                <div class="modal-status" id="confirmActionStatus"></div>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmActionTitle">⚠️ Aktion bestätigen</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="confirmActionText"></p>
+                    <form id="confirmActionForm" method="POST">
+                        <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                        <input type="hidden" name="action" id="confirmActionValue" value="">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="submit" form="confirmActionForm" id="confirmActionBtn" class="btn btn-danger">Bestätigen</button>
+                </div>
             </div>
         </div>
     </div>
@@ -588,19 +704,10 @@ require_once __DIR__ . '/partials/admin-menu.php';
             document.getElementById('confirmActionText').textContent = text;
             const btn = document.getElementById('confirmActionBtn');
             btn.className = type === 'danger' ? 'btn btn-danger' : 'btn btn-primary';
-            document.getElementById('confirmActionModal').style.display = 'flex';
-            return false; // prevent immediate form submit
+            document.getElementById('confirmActionStatus').className = type === 'danger' ? 'modal-status bg-danger' : 'modal-status bg-primary';
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('confirmActionModal')).show();
+            return false;
         }
-        function closeConfirmModal() {
-            document.getElementById('confirmActionModal').style.display = 'none';
-        }
-        window.addEventListener('click', function(e) {
-            const m = document.getElementById('confirmActionModal');
-            if (e.target === m) closeConfirmModal();
-        });
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') closeConfirmModal();
-        });
         
         // Auto-hide alerts after 5 seconds
         setTimeout(() => {

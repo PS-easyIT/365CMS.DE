@@ -49,15 +49,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['page_action'])) {
                               ? $_POST['page_status'] : 'draft';
                 $pSlug      = trim($_POST['page_slug'] ?? '');
                 $pHideTitle = isset($_POST['page_hide_title']) ? 1 : 0;
+
+                // Featured Image Upload
+                $pFeaturedImage = '';
+                if (isset($_FILES['featured_image']) && $_FILES['featured_image']['error'] === UPLOAD_ERR_OK) {
+                    $ext = strtolower(pathinfo($_FILES['featured_image']['name'], PATHINFO_EXTENSION));
+                    if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'])) {
+                        $uploadDir = ABSPATH . 'uploads/pages/';
+                        if (!is_dir($uploadDir)) { mkdir($uploadDir, 0755, true); }
+                        $filename = 'page-' . time() . '-' . bin2hex(random_bytes(4)) . '.' . $ext;
+                        if (move_uploaded_file($_FILES['featured_image']['tmp_name'], $uploadDir . $filename)) {
+                            $pFeaturedImage = SITE_URL . '/uploads/pages/' . $filename;
+                        }
+                    }
+                }
+
                 if (empty($pTitle)) {
                     $pageActionError = 'Bitte geben Sie einen Titel ein.';
                 } else {
                     $newId = $pageManager->createPage($pTitle, $pContent, $pStatus, $currentUserId, $pHideTitle);
-                    if ($newId > 0 && !empty($pSlug)) {
-                        $safeSlug = $pageManager->generateSlug($pSlug);
-                        $pageManager->updatePage($newId, ['slug' => $safeSlug]);
-                    }
                     if ($newId > 0) {
+                        $upExtra = [];
+                        if (!empty($pSlug)) {
+                            $upExtra['slug'] = $pageManager->generateSlug($pSlug);
+                        }
+                        if (!empty($pFeaturedImage)) {
+                            $upExtra['featured_image'] = $pFeaturedImage;
+                        }
+                        if (!empty($upExtra)) {
+                            $pageManager->updatePage($newId, $upExtra);
+                        }
                         $createdPage = $pageManager->getPage($newId);
                         $createdSlug = $createdPage['slug'] ?? '';
                         header('Location: ?msg=created&slug=' . urlencode($createdSlug));
@@ -70,17 +91,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['page_action'])) {
             case 'update_page':
                 $pId        = (int)($_POST['page_id'] ?? 0);
                 $pTitle     = trim($_POST['page_title'] ?? '');
-                $pRawContent = $_POST['page_content'] ?? null;  // null = not submitted (SunEditor not loaded)
+                $pRawContent = $_POST['page_content'] ?? null;
                 $pContent   = $pRawContent !== null ? wp_kses_post($pRawContent) : null;
                 $pStatus    = in_array($_POST['page_status'] ?? '', ['published', 'draft', 'private'])
                               ? $_POST['page_status'] : 'draft';
                 $pSlug      = trim($_POST['page_slug'] ?? '');
                 $pHideTitle = isset($_POST['page_hide_title']) ? 1 : 0;
+
+                // Featured Image Upload
+                $pFeaturedImage = sanitize_text_field($_POST['existing_featured_image'] ?? '');
+                if (isset($_FILES['featured_image']) && $_FILES['featured_image']['error'] === UPLOAD_ERR_OK) {
+                    $ext = strtolower(pathinfo($_FILES['featured_image']['name'], PATHINFO_EXTENSION));
+                    if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'])) {
+                        $uploadDir = ABSPATH . 'uploads/pages/';
+                        if (!is_dir($uploadDir)) { mkdir($uploadDir, 0755, true); }
+                        $filename = 'page-' . time() . '-' . bin2hex(random_bytes(4)) . '.' . $ext;
+                        if (move_uploaded_file($_FILES['featured_image']['tmp_name'], $uploadDir . $filename)) {
+                            $pFeaturedImage = SITE_URL . '/uploads/pages/' . $filename;
+                        }
+                    }
+                }
+                if (isset($_POST['remove_featured_image']) && $_POST['remove_featured_image'] === '1') {
+                    $pFeaturedImage = '';
+                }
+
                 if ($pId < 1 || empty($pTitle)) {
                     $pageActionError = 'Ungültige Eingaben.';
                 } else {
-                    $upData = ['title' => $pTitle, 'status' => $pStatus, 'hide_title' => $pHideTitle];
-                    // Only overwrite content when SunEditor actually submitted something
+                    $upData = ['title' => $pTitle, 'status' => $pStatus, 'hide_title' => $pHideTitle, 'featured_image' => $pFeaturedImage];
                     if ($pContent !== null) {
                         $upData['content'] = $pContent;
                     }
@@ -172,7 +210,7 @@ if ($action === 'new' || $action === 'edit'):
     $isEdit       = ($action === 'edit' && $editPageData !== null);
     // Neue Seiten standardmäßig als 'published' vorbelegen (nicht 'draft'),
     // damit die Seite nach dem Speichern direkt unter ihrer URL erreichbar ist.
-    $pData        = $editPageData ?? ['id' => 0, 'title' => '', 'slug' => '', 'content' => '', 'status' => 'published', 'hide_title' => 0, 'created_at' => '', 'updated_at' => ''];
+    $pData        = $editPageData ?? ['id' => 0, 'title' => '', 'slug' => '', 'content' => '', 'status' => 'published', 'hide_title' => 0, 'featured_image' => '', 'created_at' => '', 'updated_at' => ''];
     $pContent     = $pData['content'] ?? '';
     // Fix: Ensure slug is always editable for new pages if title is empty
     $hasCustomSlug = $isEdit && !empty($pData['slug']);
@@ -212,10 +250,10 @@ if ($action === 'new' || $action === 'edit'):
     <div class="row g-3">
 
         <!-- Haupt-Spalte -->
-        <div class="col-lg-9">
+        <div class="col-lg-8">
 
             <div class="card mb-3">
-                <div class="card-header"><h3 class="card-title">📄 Inhalt</h3></div>
+                <div class="card-header"><h3 class="card-title">📄 Titel &amp; Permalink</h3></div>
                 <div class="card-body">
                 <div class="mb-3">
                     <label class="form-label">Titel <span class="text-danger">*</span></label>
@@ -230,7 +268,7 @@ if ($action === 'new' || $action === 'edit'):
                            oninput="pageUpdateSlug(this.value)">
                 </div>
 
-                <div class="form-group">
+                <div class="mb-0">
                     <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
                         <span>Slug / Permalink</span>
                         <label style="font-weight:400; color:#64748b; font-size:0.85rem; cursor:pointer;">
@@ -255,59 +293,98 @@ if ($action === 'new' || $action === 'edit'):
                     <input type="hidden" id="page_slug_hidden" name="page_slug"
                            value="<?php echo $hasCustomSlug ? htmlspecialchars($pData['slug'], ENT_QUOTES, 'UTF-8') : ''; ?>">
                     
-                    <div style="font-size:0.85rem; color:#64748b;">
-                        Vorschau: <span style="color:#0f172a;"><?php echo SITE_URL; ?>/<strong id="slugPreviewVal"><?php echo htmlspecialchars($pData['slug'], ENT_QUOTES, 'UTF-8'); ?></strong></span>
+                    <div class="form-hint mt-1">
+                        <?php echo SITE_URL; ?>/<strong id="slugPreviewVal"><?php echo htmlspecialchars($pData['slug'], ENT_QUOTES, 'UTF-8'); ?></strong>
                     </div>
                 </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Inhalt</label>
-                    <?php echo EditorService::getInstance()->render('page_content', $pContent, ['height' => 500]); ?>
                 </div>
             </div>
 
-        </div><!-- /.main-col -->
+            <div class="card mb-3">
+                <div class="card-header"><h3 class="card-title">✏️ Inhalt</h3></div>
+                <div class="card-body">
+                    <?php echo EditorService::getInstance()->render('page_content', $pContent, ['height' => 700]); ?>
+                </div>
+            </div>
+
+        </div><!-- /.col-lg-8 -->
 
         <!-- Seiten-Spalte -->
-        <div class="col-lg-3">
+        <div class="col-lg-4">
 
             <div class="card mb-3">
                 <div class="card-header"><h3 class="card-title">⚙️ Veröffentlichung</h3></div>
                 <div class="card-body">
-                <div class="mb-3">
-                    <label class="form-label">Status</label>
-                    <select name="page_status" id="page_status" class="form-select">
-                        <option value="published" <?php echo ($pData['status'] ?? 'published') === 'published' ? 'selected' : ''; ?>>✅ Veröffentlicht</option>
-                        <option value="draft"     <?php echo ($pData['status'] ?? '') === 'draft'     ? 'selected' : ''; ?>>📝 Entwurf</option>
-                        <option value="private"   <?php echo ($pData['status'] ?? '') === 'private'   ? 'selected' : ''; ?>>🔒 Privat</option>
-                    </select>
-                </div>
-                
-                <div class="mb-3">
-                    <label class="form-check">
-                        <input type="checkbox" name="page_hide_title" value="1" class="form-check-input"
-                               <?php echo !empty($pData['hide_title']) ? 'checked' : ''; ?>>
-                        <span class="form-check-label">Seitentitel auf Seite ausblenden</span>
-                    </label>
-                    <small class="form-hint">Der Titel wird im Frontend nicht als H1 ausgegeben.</small>
-                </div>
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select name="page_status" id="page_status" class="form-select">
+                            <option value="published" <?php echo ($pData['status'] ?? 'published') === 'published' ? 'selected' : ''; ?>>✅ Veröffentlicht</option>
+                            <option value="draft"     <?php echo ($pData['status'] ?? '') === 'draft'     ? 'selected' : ''; ?>>📝 Entwurf</option>
+                            <option value="private"   <?php echo ($pData['status'] ?? '') === 'private'   ? 'selected' : ''; ?>>🔒 Privat</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-check">
+                            <input type="checkbox" name="page_hide_title" value="1" class="form-check-input"
+                                   <?php echo !empty($pData['hide_title']) ? 'checked' : ''; ?>>
+                            <span class="form-check-label">Seitentitel auf Seite ausblenden</span>
+                        </label>
+                        <small class="form-hint">Der Titel wird im Frontend nicht als H1 ausgegeben.</small>
+                    </div>
 
-                <?php if ($isEdit): ?>
-                <div style="font-size:0.85rem; color:#64748b; border-top:1px solid #f1f5f9; padding-top:1rem; margin-top:1rem; display:flex; flex-direction:column; gap:0.5rem;">
-                    <div>📅 Erstellt: <?php echo date('d.m.Y', strtotime($pData['created_at'])); ?></div>
-                    <div>✍️ Geändert: <?php echo date('d.m.Y', strtotime($pData['updated_at'])); ?></div>
+                    <?php if ($isEdit): ?>
+                    <div style="font-size:0.85rem; color:#64748b; border-top:1px solid #f1f5f9; padding-top:1rem; margin-top:1rem; display:flex; flex-direction:column; gap:0.5rem;">
+                        <div>📅 Erstellt: <?php echo date('d.m.Y', strtotime($pData['created_at'])); ?></div>
+                        <div>✍️ Geändert: <?php echo date('d.m.Y', strtotime($pData['updated_at'])); ?></div>
+                    </div>
+                    <?php endif; ?>
                 </div>
-                <div style="margin-top:1rem; border-top:1px solid #f1f5f9; padding-top:1rem;">
-                    <button type="button"
-                            class="btn btn-danger btn-sm"
-                            onclick="openDeletePageModal(<?php echo (int)$pData['id']; ?>, true)"
-                            style="width:100%;">🗑️ Seite löschen</button>
-                </div>
-                <?php endif; ?>
             </div>
 
-        </div><!-- /.side-col -->
-    </div><!-- /.grid -->
+            <div class="card mb-3">
+                <div class="card-header"><h3 class="card-title">🖼️ Seitenbild</h3></div>
+                <div class="card-body">
+                    <div id="pageFeatImgWrap">
+                        <?php if (!empty($pData['featured_image'])): ?>
+                            <img src="<?php echo htmlspecialchars($pData['featured_image'], ENT_QUOTES, 'UTF-8'); ?>"
+                                 style="width:100%; border-radius:6px; margin-bottom:0.5rem;" id="pageFeatImgPreview" alt="Seitenbild">
+                        <?php else: ?>
+                            <div id="pageFeatImgPlaceholder" onclick="document.getElementById('pageFeatImgInput').click()"
+                                 style="border:2px dashed #e2e8f0; border-radius:8px; padding:2rem; text-align:center; cursor:pointer; color:#94a3b8; transition:border-color .15s;">
+                                <div style="font-size:2rem; margin-bottom:0.5rem;">🖼️</div>
+                                <div>Bild hochladen oder hierher ziehen</div>
+                            </div>
+                        <?php endif; ?>
+                        <input type="hidden" name="existing_featured_image" id="pageExistingFeatImg"
+                               value="<?php echo htmlspecialchars($pData['featured_image'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                        <input type="hidden" name="remove_featured_image" id="pageRemoveFeatImg" value="0">
+                    </div>
+                    <div class="d-flex gap-2 mt-2 flex-wrap">
+                        <label class="btn btn-secondary btn-sm" style="cursor:pointer;">
+                            📁 Bild wählen
+                            <input type="file" id="pageFeatImgInput" name="featured_image" accept="image/*" style="display:none;" onchange="pagePreviewFeatImg(this)">
+                        </label>
+                        <?php if (!empty($pData['featured_image'])): ?>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="pageRemoveFeatImg()">✕ Entfernen</button>
+                        <?php endif; ?>
+                    </div>
+                    <div class="form-hint mt-2">Wird vom Theme als Hero-/Header-Bild der Seite verwendet.</div>
+                </div>
+            </div>
+
+            <?php if ($isEdit): ?>
+            <div class="card mb-3">
+                <div class="card-body">
+                    <button type="button"
+                            class="btn btn-danger w-100"
+                            onclick="openDeletePageModal(<?php echo (int)$pData['id']; ?>, true)">🗑️ Seite löschen</button>
+                </div>
+            </div>
+            <?php endif; ?>
+
+        </div><!-- /.col-lg-4 -->
+    </div><!-- /.row -->
 
 </form>
 
@@ -405,7 +482,7 @@ else:
                 <code style="background:#f1f5f9; padding:2px 4px; border-radius:4px;">/<?php echo htmlspecialchars($pg['slug'], ENT_QUOTES, 'UTF-8'); ?></code>
             </td>
             <td><span class="badge <?php echo $sbadge[1]; ?>"><?php echo $sbadge[0]; ?></span></td>
-            <td style="font-size:0.875rem; color:#64748b;"><?php echo date('d.m.Y', strtotime($pg['created_at'])); ?></td>
+            <td style="font-size:0.875rem; color:#64748b;" title="<?php echo date('d.m.Y H:i', strtotime($pg['created_at'])); ?>"><?php echo time_ago($pg['created_at']); ?></td>
             <td style="text-align:right; white-space:nowrap;">
                 <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
                     <a href="<?php echo SITE_URL; ?>/<?php echo htmlspecialchars($pg['slug'], ENT_QUOTES, 'UTF-8'); ?>"
@@ -501,6 +578,50 @@ function openDeletePageModal(id, isEditorView) {
         }
     };
     _pageDelModal.show();
+}
+
+// Seitenbild-Vorschau
+function pagePreviewFeatImg(input) {
+    if (!input.files || !input.files[0]) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        var wrap = document.getElementById('pageFeatImgWrap');
+        var placeholder = document.getElementById('pageFeatImgPlaceholder');
+        if (placeholder) placeholder.style.display = 'none';
+        var existing = document.getElementById('pageFeatImgPreview');
+        if (existing) {
+            existing.src = e.target.result;
+        } else {
+            var img = document.createElement('img');
+            img.id = 'pageFeatImgPreview';
+            img.src = e.target.result;
+            img.alt = 'Seitenbild';
+            img.style.cssText = 'width:100%;border-radius:6px;margin-bottom:0.5rem;';
+            wrap.insertBefore(img, wrap.firstChild);
+        }
+    };
+    reader.readAsDataURL(input.files[0]);
+}
+function pageRemoveFeatImg() {
+    document.getElementById('pageRemoveFeatImg').value = '1';
+    document.getElementById('pageExistingFeatImg').value = '';
+    var preview = document.getElementById('pageFeatImgPreview');
+    if (preview) preview.remove();
+    var placeholder = document.getElementById('pageFeatImgPlaceholder');
+    if (placeholder) {
+        placeholder.style.display = '';
+        return;
+    }
+
+    var wrap = document.getElementById('pageFeatImgWrap');
+    if (!wrap) return;
+
+    var ph = document.createElement('div');
+    ph.id = 'pageFeatImgPlaceholder';
+    ph.setAttribute('onclick', "document.getElementById('pageFeatImgInput').click()");
+    ph.style.cssText = 'border:2px dashed #e2e8f0;border-radius:8px;padding:2rem;text-align:center;cursor:pointer;color:#94a3b8;transition:border-color .15s;';
+    ph.innerHTML = '<div style="font-size:2rem; margin-bottom:0.5rem;">🖼️</div><div>Bild hochladen oder hierher ziehen</div>';
+    wrap.insertBefore(ph, wrap.firstChild);
 }
 </script>
 

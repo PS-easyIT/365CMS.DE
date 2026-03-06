@@ -21,6 +21,16 @@ class LandingPageService
 {
     private static ?self $instance = null;
     private $db;
+
+    private const ALLOWED_CONTENT_TYPES = ['features', 'text', 'posts'];
+    private const ALLOWED_PLUGIN_AREAS = ['header', 'content', 'footer'];
+    private const ALLOWED_LOGO_POSITIONS = ['top', 'left'];
+    private const ALLOWED_HEADER_LAYOUTS = ['standard', 'compact'];
+    private const ALLOWED_ICON_LAYOUTS = ['top', 'left'];
+    private const ALLOWED_SHADOWS = ['none', 'sm', 'md', 'lg'];
+    private const ALLOWED_COLUMNS = ['auto', '2', '3', '4'];
+    private const ALLOWED_PADDINGS = ['sm', 'md', 'lg', 'xl'];
+    private const ALLOWED_BORDER_WIDTHS = ['0', '1px', '2px', '3px'];
     
     public static function getInstance(): self
     {
@@ -104,20 +114,22 @@ class LandingPageService
         }
         
         // Keep existing logo if not provided
-        $logo = isset($data['logo']) ? $data['logo'] : ($existing['logo'] ?? '');
+        $logo = isset($data['logo']) ? $this->sanitizeRelativeAssetPath((string)$data['logo']) : ($existing['logo'] ?? '');
+
+        $headerButtons = $this->sanitizeHeaderButtons($data['header_buttons'] ?? $existing['header_buttons'] ?? []);
         
         $headerData = json_encode([
-            'title' => $data['title'] ?? $existing['title'],
-            'subtitle' => $data['subtitle'] ?? $existing['subtitle'],
-            'logo_position' => $data['logo_position'] ?? $existing['logo_position'] ?? 'top',
-            'header_layout' => $data['header_layout'] ?? $existing['header_layout'] ?? 'standard',
+            'title' => $this->sanitizePlainText((string)($data['title'] ?? $existing['title']), 120),
+            'subtitle' => $this->sanitizePlainText((string)($data['subtitle'] ?? $existing['subtitle']), 160),
+            'logo_position' => $this->sanitizeEnum((string)($data['logo_position'] ?? $existing['logo_position'] ?? 'top'), self::ALLOWED_LOGO_POSITIONS, 'top'),
+            'header_layout' => $this->sanitizeEnum((string)($data['header_layout'] ?? $existing['header_layout'] ?? 'standard'), self::ALLOWED_HEADER_LAYOUTS, 'standard'),
             'description' => $this->normalizeHtml($data['description'] ?? $existing['description']),
-            'header_buttons' => $data['header_buttons'] ?? $existing['header_buttons'] ?? [],
-            'github_url' => $data['github_url'] ?? $existing['github_url'],
-            'github_text' => $data['github_text'] ?? $existing['github_text'] ?? '💻 GitHub Projekt',
-            'gitlab_url' => $data['gitlab_url'] ?? $existing['gitlab_url'],
-            'gitlab_text' => $data['gitlab_text'] ?? $existing['gitlab_text'] ?? '🦊 GitLab Projekt',
-            'version' => $data['version'] ?? $existing['version'],
+            'header_buttons' => $headerButtons,
+            'github_url' => $this->sanitizeUrl((string)($data['github_url'] ?? $existing['github_url'] ?? '')),
+            'github_text' => $this->sanitizePlainText((string)($data['github_text'] ?? $existing['github_text'] ?? '💻 GitHub Projekt'), 40),
+            'gitlab_url' => $this->sanitizeUrl((string)($data['gitlab_url'] ?? $existing['gitlab_url'] ?? '')),
+            'gitlab_text' => $this->sanitizePlainText((string)($data['gitlab_text'] ?? $existing['gitlab_text'] ?? '🦊 GitLab Projekt'), 40),
+            'version' => $this->sanitizePlainText((string)($data['version'] ?? $existing['version']), 40),
             'logo' => $logo,
             'colors' => $colors
         ]);
@@ -197,12 +209,12 @@ class LandingPageService
     public function saveFeature(?int $id, array $data): int
     {
         $featureData = json_encode([
-            'icon' => $data['icon'] ?? '🎯',
-            'title' => $data['title'] ?? '',
-            'description' => $data['description'] ?? ''
+            'icon' => $this->sanitizePlainText((string)($data['icon'] ?? '🎯'), 16),
+            'title' => $this->sanitizePlainText((string)($data['title'] ?? ''), 80),
+            'description' => $this->normalizeHtml($data['description'] ?? '')
         ]);
         
-        $sortOrder = $data['sort_order'] ?? 999;
+        $sortOrder = max(1, min(999, (int)($data['sort_order'] ?? 999)));
         
         try {
             if ($id) {
@@ -244,7 +256,15 @@ class LandingPageService
     private function normalizeHtml(mixed $value): string
     {
         $str = (string)($value ?? '');
-        return trim(strip_tags($str)) === '' ? '' : $str;
+        if (trim(strip_tags($str)) === '') {
+            return '';
+        }
+
+        if (function_exists('sanitize_html')) {
+            return (string)sanitize_html($str, 'default');
+        }
+
+        return $str;
     }
 
     /**
@@ -371,10 +391,10 @@ class LandingPageService
     public function updateFooter(array $data): bool
     {
         $footerData = json_encode([
-            'content' => $data['footer_content'] ?? '',
-            'button_text' => $data['footer_button_text'] ?? '',
-            'button_url' => $data['footer_button_url'] ?? '',
-            'copyright' => $data['footer_copyright'] ?? '',
+            'content' => $this->normalizeHtml($data['footer_content'] ?? ''),
+            'button_text' => $this->sanitizePlainText((string)($data['footer_button_text'] ?? ''), 60),
+            'button_url' => $this->sanitizeUrl((string)($data['footer_button_url'] ?? '')),
+            'copyright' => $this->sanitizeCopyright((string)($data['footer_copyright'] ?? '')),
             'show_footer' => isset($data['show_footer'])
         ]);
         
@@ -443,9 +463,9 @@ class LandingPageService
     public function updateContentSettings(array $data): bool
     {
         $contentData = json_encode([
-            'content_type' => $data['content_type'] ?? 'features',
-            'content_text' => $data['content_text'] ?? '',
-            'posts_count'  => max(1, (int)($data['posts_count'] ?? 5)),
+            'content_type' => $this->sanitizeEnum((string)($data['content_type'] ?? 'features'), self::ALLOWED_CONTENT_TYPES, 'features'),
+            'content_text' => $this->normalizeHtml($data['content_text'] ?? ''),
+            'posts_count'  => max(1, min(50, (int)($data['posts_count'] ?? 5))),
         ]);
         try {
             $existing = $this->db->prepare("SELECT id FROM {$this->db->prefix()}landing_sections WHERE type = 'content' LIMIT 1");
@@ -536,7 +556,7 @@ class LandingPageService
             'show_header'         => isset($data['show_header']),
             'show_content'        => isset($data['show_content']),
             'show_footer_section' => isset($data['show_footer_section']),
-            'landing_slug'        => trim($data['landing_slug'] ?? ''),
+            'landing_slug'        => $this->sanitizeLandingSlug((string)($data['landing_slug'] ?? '')),
             'maintenance_mode'    => isset($data['maintenance_mode']),
         ]);
         try {
@@ -603,7 +623,8 @@ class LandingPageService
      */
     public function updateDesign(array $data): bool
     {
-        $allowed = array_keys($this->getDefaultDesign());
+        $defaults = $this->getDefaultDesign();
+        $allowed = array_keys($defaults);
         unset($allowed[array_search('id', $allowed, true)]);
 
         $designData = [];
@@ -611,12 +632,22 @@ class LandingPageService
             if (array_key_exists($key, $data)) {
                 $designData[$key] = $data[$key];
             } else {
-                $designData[$key] = $this->getDefaultDesign()[$key];
+                $designData[$key] = $defaults[$key];
             }
         }
         // Sanitize numeric values
         $designData['card_border_radius'] = max(0, min(48, (int)($designData['card_border_radius'] ?? 12)));
         $designData['button_border_radius'] = max(0, min(50, (int)($designData['button_border_radius'] ?? 8)));
+        $designData['card_icon_layout'] = $this->sanitizeEnum((string)($designData['card_icon_layout'] ?? 'top'), self::ALLOWED_ICON_LAYOUTS, 'top');
+        $designData['card_shadow'] = $this->sanitizeEnum((string)($designData['card_shadow'] ?? 'sm'), self::ALLOWED_SHADOWS, 'sm');
+        $designData['feature_columns'] = $this->sanitizeEnum((string)($designData['feature_columns'] ?? 'auto'), self::ALLOWED_COLUMNS, 'auto');
+        $designData['hero_padding'] = $this->sanitizeEnum((string)($designData['hero_padding'] ?? 'md'), self::ALLOWED_PADDINGS, 'md');
+        $designData['feature_padding'] = $this->sanitizeEnum((string)($designData['feature_padding'] ?? 'md'), self::ALLOWED_PADDINGS, 'md');
+        $designData['card_border_width'] = $this->sanitizeEnum((string)($designData['card_border_width'] ?? '1px'), self::ALLOWED_BORDER_WIDTHS, '1px');
+        $designData['card_border_color'] = $this->sanitizeColor((string)($designData['card_border_color'] ?? '#e2e8f0'), '#e2e8f0');
+        $designData['footer_bg'] = $this->sanitizeColor((string)($designData['footer_bg'] ?? '#1e293b'), '#1e293b');
+        $designData['footer_text_color'] = $this->sanitizeColor((string)($designData['footer_text_color'] ?? '#94a3b8'), '#94a3b8');
+        $designData['content_section_bg'] = $this->sanitizeColor((string)($designData['content_section_bg'] ?? '#ffffff'), '#ffffff');
 
         $json = json_encode($designData);
         try {
@@ -677,7 +708,42 @@ class LandingPageService
             return [];
         }
         $plugins = \CMS\Hooks::applyFilters('landing_page_plugins', []);
-        return is_array($plugins) ? $plugins : [];
+
+        if (!is_array($plugins)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($plugins as $pluginId => $plugin) {
+            if (!is_array($plugin)) {
+                continue;
+            }
+
+            $id = is_string($pluginId) && $pluginId !== ''
+                ? $pluginId
+                : $this->sanitizePluginId((string)($plugin['id'] ?? ''));
+
+            if ($id === '') {
+                continue;
+            }
+
+            $targets = array_values(array_intersect(
+                self::ALLOWED_PLUGIN_AREAS,
+                array_map('strval', (array)($plugin['targets'] ?? []))
+            ));
+
+            $normalized[$id] = [
+                'id' => $id,
+                'name' => $this->sanitizePlainText((string)($plugin['name'] ?? $id), 120),
+                'description' => $this->sanitizePlainText((string)($plugin['description'] ?? ''), 280),
+                'version' => $this->sanitizePlainText((string)($plugin['version'] ?? ''), 40),
+                'author' => $this->sanitizePlainText((string)($plugin['author'] ?? ''), 80),
+                'targets' => $targets,
+                'settings_callback' => is_callable($plugin['settings_callback'] ?? null) ? $plugin['settings_callback'] : null,
+            ];
+        }
+
+        return $normalized;
     }
 
     /**
@@ -722,10 +788,17 @@ class LandingPageService
     public function updatePluginOverride(array $data): bool
     {
         $area     = $data['area'] ?? '';
-        $pluginId = $data['plugin_id'] ?? '';
+        $pluginId = $this->sanitizePluginId((string)($data['plugin_id'] ?? ''));
 
-        if (!in_array($area, ['header', 'content', 'footer'], true)) {
+        if (!in_array($area, self::ALLOWED_PLUGIN_AREAS, true)) {
             return false;
+        }
+
+        if ($pluginId !== '') {
+            $plugins = $this->getRegisteredPlugins();
+            if (!isset($plugins[$pluginId]) || !in_array($area, $plugins[$pluginId]['targets'], true)) {
+                return false;
+            }
         }
 
         $overrides = $this->getPluginOverrides();
@@ -740,14 +813,34 @@ class LandingPageService
      */
     public function savePluginSettings(string $pluginId, array $data): bool
     {
+        $pluginId = $this->sanitizePluginId($pluginId);
         if ($pluginId === '') {
             return false;
         }
+
+        $plugins = $this->getRegisteredPlugins();
+        if (!isset($plugins[$pluginId]) || !is_callable($plugins[$pluginId]['settings_callback'] ?? null)) {
+            return false;
+        }
+
         $overrides = $this->getPluginOverrides();
         if (!is_array($overrides['plugin_settings'])) {
             $overrides['plugin_settings'] = [];
         }
-        $overrides['plugin_settings'][$pluginId] = $data;
+        $cleanSettings = [];
+        foreach ($data as $key => $value) {
+            $cleanKey = $this->sanitizePluginId((string)$key);
+            if ($cleanKey === '') {
+                continue;
+            }
+            if (is_array($value)) {
+                $cleanSettings[$cleanKey] = $this->sanitizePluginSettingsArray($value);
+                continue;
+            }
+            $cleanSettings[$cleanKey] = $this->sanitizePlainText((string)$value, 5000);
+        }
+
+        $overrides['plugin_settings'][$pluginId] = $cleanSettings;
         unset($overrides['id']);
 
         return $this->_savePluginOverridesRecord($overrides);
@@ -801,5 +894,139 @@ class LandingPageService
             'footer'         => null,
             'plugin_settings' => [],
         ];
+    }
+
+    private function sanitizePlainText(string $value, int $maxLength = 255): string
+    {
+        $value = trim(strip_tags($value));
+        if ($value === '') {
+            return '';
+        }
+
+        return mb_substr($value, 0, $maxLength);
+    }
+
+    private function sanitizeUrl(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        if (function_exists('esc_url_raw')) {
+            $sanitized = (string)esc_url_raw($value);
+            if ($sanitized !== '') {
+                return $sanitized;
+            }
+        }
+
+        if (preg_match('#^/[a-z0-9/_\-\.\?=&%]*$#i', $value) === 1) {
+            return $value;
+        }
+
+        return '';
+    }
+
+    private function sanitizeLandingSlug(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '' || $value === '/') {
+            return '';
+        }
+
+        $value = preg_replace('#[^a-z0-9/_\-]#i', '', $value) ?? '';
+        $value = '/' . trim($value, '/');
+
+        return $value === '/' ? '' : $value;
+    }
+
+    private function sanitizeColor(string $value, string $fallback): string
+    {
+        $value = trim($value);
+        return preg_match('/^#[0-9a-fA-F]{6}$/', $value) === 1 ? strtolower($value) : $fallback;
+    }
+
+    private function sanitizeEnum(string $value, array $allowed, string $fallback): string
+    {
+        return in_array($value, $allowed, true) ? $value : $fallback;
+    }
+
+    private function sanitizeCopyright(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        $value = strip_tags($value);
+        $value = preg_replace('/\{year\}/i', '{year}', $value) ?? $value;
+        return mb_substr($value, 0, 255);
+    }
+
+    private function sanitizeRelativeAssetPath(string $value): string
+    {
+        $value = trim(str_replace('\\', '/', $value));
+        if ($value === '') {
+            return '';
+        }
+
+        if (str_contains($value, '..')) {
+            return '';
+        }
+
+        return ltrim($value, '/');
+    }
+
+    private function sanitizeHeaderButtons(array $buttons): array
+    {
+        $cleanButtons = [];
+
+        foreach (array_slice($buttons, 0, 4) as $button) {
+            if (!is_array($button)) {
+                continue;
+            }
+
+            $text = $this->sanitizePlainText((string)($button['text'] ?? ''), 40);
+            $url = $this->sanitizeUrl((string)($button['url'] ?? ''));
+            $icon = $this->sanitizePlainText((string)($button['icon'] ?? ''), 16);
+            $target = $this->sanitizeEnum((string)($button['target'] ?? '_self'), ['_self', '_blank'], '_self');
+            $outline = !empty($button['outline']);
+
+            if ($text === '' && $url === '') {
+                continue;
+            }
+
+            $cleanButtons[] = [
+                'text' => $text,
+                'url' => $url,
+                'icon' => $icon,
+                'target' => $target,
+                'outline' => $outline,
+            ];
+        }
+
+        return $cleanButtons;
+    }
+
+    private function sanitizePluginId(string $value): string
+    {
+        $value = strtolower(trim($value));
+        return preg_replace('/[^a-z0-9_\-]/', '', $value) ?? '';
+    }
+
+    private function sanitizePluginSettingsArray(array $settings): array
+    {
+        $clean = [];
+        foreach ($settings as $key => $value) {
+            $cleanKey = $this->sanitizePluginId((string)$key);
+            if ($cleanKey === '') {
+                continue;
+            }
+            $clean[$cleanKey] = is_array($value)
+                ? $this->sanitizePluginSettingsArray($value)
+                : $this->sanitizePlainText((string)$value, 5000);
+        }
+
+        return $clean;
     }
 }

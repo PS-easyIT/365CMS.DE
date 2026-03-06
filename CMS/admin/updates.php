@@ -249,19 +249,21 @@ renderAdminLayoutStart('System-Updates', $currentPage);
     <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
 
     <!-- Update-Bestätigungsmodal -->
-    <div id="updateConfirmModal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>⬆️ CMS-Core aktualisieren</h3>
-                <button class="modal-close" onclick="document.getElementById('updateConfirmModal').style.display='none'">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p>Möchten Sie das CMS-Core jetzt aktualisieren?</p>
-                <div class="alert alert-danger">⚠️ Bitte erstellen Sie vorher ein Backup!</div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="document.getElementById('updateConfirmModal').style.display='none'">Abbrechen</button>
-                <button type="button" class="btn btn-primary" id="updateConfirmBtn" onclick="executeUpdate()">⬆️ Jetzt aktualisieren</button>
+    <div class="modal modal-blur fade" id="updateConfirmModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">⬆️ CMS-Core aktualisieren</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Möchten Sie das CMS-Core jetzt aktualisieren?</p>
+                    <div class="alert alert-danger">⚠️ Bitte erstellen Sie vorher ein Backup!</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="button" class="btn btn-primary" id="updateConfirmBtn" onclick="executeUpdate()">⬆️ Jetzt aktualisieren</button>
+                </div>
             </div>
         </div>
     </div>
@@ -271,11 +273,11 @@ renderAdminLayoutStart('System-Updates', $currentPage);
 
     function startCoreUpdate(btn) {
         pendingUpdateBtn = btn;
-        document.getElementById('updateConfirmModal').style.display = 'flex';
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('updateConfirmModal')).show();
     }
 
     async function executeUpdate() {
-        document.getElementById('updateConfirmModal').style.display = 'none';
+        bootstrap.Modal.getInstance(document.getElementById('updateConfirmModal'))?.hide();
         const btn = pendingUpdateBtn;
         if (!btn) return;
         const url     = btn.dataset.url;
@@ -313,13 +315,5 @@ renderAdminLayoutStart('System-Updates', $currentPage);
             btn.disabled = false;
         }
     }
-
-    // Modal schließen via Klick außerhalb oder Escape
-    document.getElementById('updateConfirmModal').addEventListener('click', function(e) {
-        if (e.target === this) this.style.display = 'none';
-    });
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') document.getElementById('updateConfirmModal').style.display = 'none';
-    });
     </script>
 <?php renderAdminLayoutEnd(); ?>

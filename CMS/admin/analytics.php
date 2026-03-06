@@ -207,21 +207,8 @@ require_once __DIR__ . '/partials/admin-menu.php';
                                                 <?php echo htmlspecialchars($activity['username'] ?? 'Unbekannt'); ?>
                                             </div>
                                         </div>
-                                        <div class="activity-time">
-                                            <?php 
-                                            $time = strtotime($activity['created_at'] ?? 'now');
-                                            $diff = time() - $time;
-                                            
-                                            if ($diff < 60) {
-                                                echo 'Gerade eben';
-                                            } elseif ($diff < 3600) {
-                                                echo floor($diff / 60) . ' Min. her';
-                                            } elseif ($diff < 86400) {
-                                                echo floor($diff / 3600) . ' Std. her';
-                                            } else {
-                                                echo date('d.m.Y H:i', $time);
-                                            }
-                                            ?>
+                                        <div class="activity-time" title="<?php echo date('d.m.Y H:i', strtotime($activity['created_at'] ?? 'now')); ?>">
+                                            <?php echo time_ago($activity['created_at'] ?? 'now'); ?>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
@@ -410,7 +397,7 @@ require_once __DIR__ . '/partials/admin-menu.php';
                                 <div>
                                     <strong style="color: #ef4444;">/<?php echo htmlspecialchars($p404['page_slug']); ?></strong>
                                     <div style="color: #64748b; font-size: 0.875rem;">
-                                        Zuletzt: <?php echo date('d.m.Y H:i', strtotime($p404['last_seen'])); ?>
+                                        Zuletzt: <span title="<?php echo date('d.m.Y H:i', strtotime($p404['last_seen'])); ?>"><?php echo time_ago($p404['last_seen']); ?></span>
                                     </div>
                                 </div>
                                 <div style="text-align: right;">

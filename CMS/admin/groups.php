@@ -24,6 +24,14 @@ $security = Security::instance();
 $db       = Database::instance();
 $prefix   = $db->prefix;
 
+$sanitizeGroupText = static fn(string $value, int $limit = 255): string => mb_substr(trim(strip_tags($value)), 0, $limit);
+$sanitizeGroupSlug = static function (string $value): string {
+    $slug = strtolower(trim($value));
+    $slug = (string) preg_replace('/[^a-z0-9\-]+/', '-', $slug);
+    $slug = (string) preg_replace('/-+/', '-', $slug);
+    return trim($slug, '-');
+};
+
 // ── Auto-Migration: Fehlende Spalten in roles-Tabelle sicherstellen ──
 $_roleMigrations = [
     "ALTER TABLE {$prefix}roles ADD COLUMN IF NOT EXISTS member_dashboard_access TINYINT(1) NOT NULL DEFAULT 1",
@@ -32,6 +40,9 @@ $_roleMigrations = [
 foreach ($_roleMigrations as $sql) {
     try { $db->execute($sql, []); } catch (\Throwable $e) { /* Spalte existiert bereits */ }
 }
+
+$rolesForValidation = $db->get_results("SELECT id, name, display_name FROM {$prefix}roles ORDER BY sort_order, display_name") ?: [];
+$validRoleIds = array_map(static fn($role) => (int) $role->id, $rolesForValidation);
 
 $messages = [];
 $activeTab = in_array($_GET['tab'] ?? '', ['groups', 'roles']) ? $_GET['tab'] : 'groups';
@@ -48,10 +59,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$security->verifyToken($_POST['_csrf'] ?? '', 'group_management')) {
             $messages[] = ['type' => 'error', 'text' => 'Sicherheitscheck fehlgeschlagen.'];
         } else {
-            $name        = trim($_POST['name']        ?? '');
-            $slug        = trim($_POST['slug']        ?? '');
-            $description = trim($_POST['description'] ?? '');
-            $role_id     = (int)($_POST['role_id']    ?? 0);
+            $name        = $sanitizeGroupText((string) ($_POST['name'] ?? ''), 120);
+            $slug        = $sanitizeGroupSlug((string) ($_POST['slug'] ?? ''));
+            $description = $sanitizeGroupText((string) ($_POST['description'] ?? ''), 2000);
+            $role_id     = (int)($_POST['role_id'] ?? 0);
+            $role_id     = in_array($role_id, $validRoleIds, true) ? $role_id : 0;
             $plan_id     = (int)($_POST['plan_id']    ?? 0);
             $is_active   = isset($_POST['is_active']) ? 1 : 0;
 
@@ -59,11 +71,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $messages[] = ['type' => 'error', 'text' => 'Gruppenname ist Pflichtfeld.'];
             } else {
                 if (empty($slug)) {
-                    $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $name));
+                    $slug = $sanitizeGroupSlug($name);
                 }
                 $existing = $db->get_var("SELECT id FROM {$prefix}user_groups WHERE slug=?", [$slug]);
                 if ($existing) {
                     $messages[] = ['type' => 'error', 'text' => 'Slug bereits vergeben.'];
+                } elseif ($slug === '') {
+                    $messages[] = ['type' => 'error', 'text' => 'Für diese Gruppe konnte kein gültiger Slug erzeugt werden.'];
                 } else {
                     $db->execute(
                         "INSERT INTO {$prefix}user_groups (name, slug, description, role_id, plan_id, is_active, created_at) VALUES (?,?,?,?,?,?,NOW())",
@@ -82,9 +96,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $messages[] = ['type' => 'error', 'text' => 'Sicherheitscheck fehlgeschlagen.'];
         } else {
             $gid         = (int)($_POST['group_id']   ?? 0);
-            $name        = trim($_POST['name']        ?? '');
-            $description = trim($_POST['description'] ?? '');
-            $role_id     = (int)($_POST['role_id']    ?? 0);
+            $name        = $sanitizeGroupText((string) ($_POST['name'] ?? ''), 120);
+            $description = $sanitizeGroupText((string) ($_POST['description'] ?? ''), 2000);
+            $role_id     = (int)($_POST['role_id'] ?? 0);
+            $role_id     = in_array($role_id, $validRoleIds, true) ? $role_id : 0;
             $plan_id     = (int)($_POST['plan_id']    ?? 0);
             $is_active   = isset($_POST['is_active']) ? 1 : 0;
 
@@ -159,9 +174,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$security->verifyToken($_POST['_csrf'] ?? '', 'role_management')) {
             $messages[] = ['type' => 'error', 'text' => 'Sicherheitscheck fehlgeschlagen.'];
         } else {
-            $name         = trim($_POST['name']         ?? '');
-            $display_name = trim($_POST['display_name'] ?? '');
-            $description  = trim($_POST['description']  ?? '');
+            $name         = $sanitizeGroupText((string) ($_POST['name'] ?? ''), 64);
+            $display_name = $sanitizeGroupText((string) ($_POST['display_name'] ?? ''), 120);
+            $description  = $sanitizeGroupText((string) ($_POST['description'] ?? ''), 1000);
             $caps         = array_intersect((array)($_POST['capabilities'] ?? []), $allCaps);
 
             if (empty($name)) {
@@ -190,8 +205,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $messages[] = ['type' => 'error', 'text' => 'Sicherheitscheck fehlgeschlagen.'];
         } else {
             $rid          = (int)($_POST['role_id']      ?? 0);
-            $display_name = trim($_POST['display_name']  ?? '');
-            $description  = trim($_POST['description']   ?? '');
+            $display_name = $sanitizeGroupText((string) ($_POST['display_name'] ?? ''), 120);
+            $description  = $sanitizeGroupText((string) ($_POST['description'] ?? ''), 1000);
             $caps         = array_intersect((array)($_POST['capabilities'] ?? []), $allCaps);
 
             if ($rid < 1) {
@@ -279,6 +294,16 @@ $viewMode     = in_array($_GET['view'] ?? '', ['list', 'detail', 'new']) ? ($_GE
 $detailId     = (int)($_GET['id'] ?? 0);
 $editGroupId  = ($viewMode === 'detail' && $detailId > 0) ? $detailId : 0;
 $editRoleId   = (int)($_GET['edit_role'] ?? 0);
+$detailGroup  = null;
+
+if ($activeTab === 'groups' && $editGroupId > 0) {
+    $detailGroup = $db->get_row("SELECT * FROM {$prefix}user_groups WHERE id=?", [$editGroupId]);
+    if (!$detailGroup) {
+        $messages[] = ['type' => 'error', 'text' => 'Die angeforderte Gruppe wurde nicht gefunden.'];
+        $viewMode = 'list';
+        $editGroupId = 0;
+    }
+}
 
 require_once __DIR__ . '/partials/admin-menu.php';
 $_layoutTitle = $activeTab === 'roles' ? 'Rollen & Rechte' : 'Gruppen';
@@ -286,10 +311,8 @@ $_layoutSlug  = $activeTab === 'roles' ? 'roles' : 'groups';
 renderAdminLayoutStart($_layoutTitle, $_layoutSlug);
 ?>
 
-<?php foreach ($messages as $m):
-    $cls = $m['type'] === 'success' ? 'alert-success' : 'alert-danger';
-?>
-<div class="alert <?php echo $cls; ?>"><?php echo htmlspecialchars($m['text'], ENT_QUOTES, 'UTF-8'); ?></div>
+<?php foreach ($messages as $m): ?>
+    <?php renderAdminAlert((string) ($m['type'] ?? 'info'), (string) ($m['text'] ?? '')); ?>
 <?php endforeach; ?>
 
 <?php if ($activeTab === 'groups'): ?>
@@ -299,11 +322,7 @@ renderAdminLayoutStart($_layoutTitle, $_layoutSlug);
 
 // ── DETAIL-VIEW einer Gruppe ──────────────────────────────────────────────
 if ($editGroupId > 0):
-    $grp = $db->get_row("SELECT * FROM {$prefix}user_groups WHERE id=?", [$editGroupId]);
-    if (!$grp):
-        header('Location: ' . SITE_URL . '/admin/groups?tab=groups');
-        exit;
-    endif;
+    $grp = $detailGroup;
     $members    = $db->get_results(
         "SELECT u.id, u.username, u.display_name, u.role, m.joined_at
          FROM {$prefix}user_group_members m
@@ -466,54 +485,17 @@ if ($editGroupId > 0):
                     <input type="hidden" name="group_id" value="<?php echo $editGroupId; ?>">
                 </form>
                 <button type="button" class="btn btn-danger" style="width:100%;"
-                        onclick="openModal('groupDetailDeleteModal')">🗑️ Gruppe löschen</button>
+                        onclick="confirmDeleteGroup(document.getElementById('deleteGroupForm'), <?php echo json_encode((string) ($grp->name ?? '')); ?>)">🗑️ Gruppe löschen</button>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Mitglied entfernen – Bestätigungs-Modal -->
-<div id="memberRemoveModal" class="modal" style="display:none;">
-    <div class="modal-content" style="max-width:480px;">
-        <div class="modal-header">
-            <h3>Mitglied entfernen</h3>
-            <button class="modal-close" onclick="closeModal('memberRemoveModal')">&times;</button>
-        </div>
-        <div class="modal-body">
-            <p>Soll <strong id="memberRemoveName"></strong> wirklich aus dieser Gruppe entfernt werden?</p>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeModal('memberRemoveModal')">Abbrechen</button>
-            <button type="button" class="btn btn-danger" id="memberRemoveConfirmBtn">✕ Entfernen</button>
-        </div>
-    </div>
-</div>
-
-<!-- Gruppe löschen (Detail) – Bestätigungs-Modal -->
-<div id="groupDetailDeleteModal" class="modal" style="display:none;">
-    <div class="modal-content" style="max-width:480px;">
-        <div class="modal-header">
-            <h3>Gruppe löschen</h3>
-            <button class="modal-close" onclick="closeModal('groupDetailDeleteModal')">&times;</button>
-        </div>
-        <div class="modal-body">
-            <p>Soll diese Gruppe und <strong>alle zugehörigen Mitgliedschaften</strong> wirklich gelöscht werden?</p>
-            <p style="color:#ef4444;font-size:.875rem;">⚠️ Diese Aktion kann nicht rückgängig gemacht werden.</p>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeModal('groupDetailDeleteModal')">Abbrechen</button>
-            <button type="button" class="btn btn-danger" onclick="document.getElementById('deleteGroupForm').submit()">🗑️ Endgültig löschen</button>
         </div>
     </div>
 </div>
 
 <script>
 function openMemberRemoveModal(formId, username) {
-    document.getElementById('memberRemoveName').textContent = username;
-    document.getElementById('memberRemoveConfirmBtn').onclick = function() {
+    cmsConfirm('Soll „' + username + '“ wirklich aus dieser Gruppe entfernt werden?', function() {
         document.getElementById(formId).submit();
-    };
-    openModal('memberRemoveModal');
+    }, 'Mitglied entfernen');
 }
 </script>
 
@@ -624,8 +606,9 @@ function openMemberRemoveModal(formId, username) {
         : 'Noch keine Gruppen vorhanden.'; ?></p>
 </div>
 <?php else: ?>
-<div class="users-table-container">
-    <table class="users-table">
+<div class="card">
+<div class="table-responsive">
+    <table class="table table-vcenter card-table">
         <thead><tr>
             <th>Name</th>
             <th style="width:160px;">Slug</th>
@@ -686,6 +669,7 @@ function openMemberRemoveModal(formId, username) {
         </tbody>
     </table>
 </div>
+</div>
 <?php endif; ?>
 
 <form id="deleteGroupForm" method="post" action="<?php echo SITE_URL; ?>/admin/groups?tab=groups" style="display:none;">
@@ -694,29 +678,10 @@ function openMemberRemoveModal(formId, username) {
     <input type="hidden" name="group_id" id="deleteGroupId" value="">
 </form>
 
-<!-- Gruppe löschen (Liste) – Bestätigungs-Modal -->
-<div id="groupDeleteModal" class="modal" style="display:none;">
-    <div class="modal-content" style="max-width:480px;">
-        <div class="modal-header">
-            <h3>Gruppe löschen</h3>
-            <button class="modal-close" onclick="closeModal('groupDeleteModal')">&times;</button>
-        </div>
-        <div class="modal-body">
-            <p>Soll die Gruppe <strong id="groupDeleteName"></strong> und alle zugehörigen Mitgliedschaften wirklich gelöscht werden?</p>
-            <p style="color:#ef4444;font-size:.875rem;">⚠️ Diese Aktion kann nicht rückgängig gemacht werden.</p>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeModal('groupDeleteModal')">Abbrechen</button>
-            <button type="button" class="btn btn-danger" onclick="document.getElementById('deleteGroupForm').submit()">🗑️ Endgültig löschen</button>
-        </div>
-    </div>
-</div>
-
 <script>
 function deleteGroup(id, name) {
     document.getElementById('deleteGroupId').value = id;
-    document.getElementById('groupDeleteName').textContent = name;
-    openModal('groupDeleteModal');
+    confirmDeleteGroup(document.getElementById('deleteGroupForm'), name);
 }
 </script>
 
@@ -739,8 +704,9 @@ $allCapsForView = ['manage_posts','manage_pages','manage_users','manage_plugins'
 </div>
 
 <?php if (!empty($roles)): ?>
-<div class="users-table-container" style="margin-bottom:1.5rem;">
-    <table class="users-table">
+<div class="card" style="margin-bottom:1.5rem;">
+<div class="table-responsive">
+    <table class="table table-vcenter card-table">
         <thead><tr>
             <th>Rolle</th>
             <th style="width:140px;">Interner Name</th>
@@ -787,6 +753,7 @@ $allCapsForView = ['manage_posts','manage_pages','manage_users','manage_plugins'
         <?php endforeach; ?>
         </tbody>
     </table>
+</div>
 </div>
 <?php endif; ?>
 
@@ -872,32 +839,27 @@ $isEditCore = $editRole ? in_array($editRole->name, $coreRoles) : false;
     <input type="hidden" name="_action"  value="delete_role">
     <input type="hidden" name="role_id"  id="deleteRoleId" value="">
 </form>
-<!-- Rolle löschen – Bestätigungs-Modal -->
-<div id="roleDeleteModal" class="modal" style="display:none;">
-    <div class="modal-content" style="max-width:480px;">
-        <div class="modal-header">
-            <h3>Rolle löschen</h3>
-            <button class="modal-close" onclick="closeModal('roleDeleteModal')">&times;</button>
-        </div>
-        <div class="modal-body">
-            <p>Soll diese Rolle wirklich gelöscht werden?</p>
-            <p style="color:#ef4444;font-size:.875rem;">⚠️ Diese Aktion kann nicht rückgängig gemacht werden.</p>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeModal('roleDeleteModal')">Abbrechen</button>
-            <button type="button" class="btn btn-danger" onclick="document.getElementById('deleteRoleForm').submit()">🗑️ Endgültig löschen</button>
-        </div>
-    </div>
-</div>
 
 <script>
 function deleteRole(id) {
     document.getElementById('deleteRoleId').value = id;
-    openModal('roleDeleteModal');
+    cmsConfirm('Soll diese Rolle wirklich gelöscht werden? Diese Aktion kann nicht rückgängig gemacht werden.', function() {
+        document.getElementById('deleteRoleForm').submit();
+    }, 'Rolle löschen');
 }
 </script>
 
 <?php endif; // tab ?>
+
+<?php renderAdminConfirmModal(); ?>
+
+<script>
+function confirmDeleteGroup(form, name) {
+    cmsConfirm('Soll die Gruppe „' + name + '“ und alle zugehörigen Mitgliedschaften wirklich gelöscht werden?', function() {
+        form.submit();
+    }, 'Gruppe löschen');
+}
+</script>
 
 <?php renderAdminLayoutEnd(); ?>
 

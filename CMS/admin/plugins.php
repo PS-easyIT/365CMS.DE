@@ -35,6 +35,8 @@ $pluginManager = PluginManager::instance();
 // Handle form submissions
 $message = '';
 $messageType = '';
+$success = null;
+$error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if (!$security->verifyToken($_POST['csrf_token'] ?? '', 'plugin_management')) {
@@ -127,11 +129,16 @@ require_once __DIR__ . '/partials/admin-menu.php';
             </div>
         </div>
         
-        <?php if ($message && $messageType === 'success'): ?>
-            <div class="alert alert-success"><?php echo htmlspecialchars($message); ?></div>
-        <?php elseif ($message): ?>
-            <div class="alert alert-danger"><?php echo htmlspecialchars($message); ?></div>
-        <?php endif; ?>
+        <?php
+        if ($message !== '') {
+            if ($messageType === 'success') {
+                $success = $message;
+            } else {
+                $error = $message;
+            }
+        }
+        renderAdminAlerts();
+        ?>
         
         <!-- Statistics -->
         <div class="dashboard-grid">
@@ -154,17 +161,19 @@ require_once __DIR__ . '/partials/admin-menu.php';
         
         <!-- Plugins List -->
         <div class="card">
-        <h3>🔌 Installierte Plugins</h3>
-        
-        <?php if (empty($plugins)): ?>
-            <div class="empty-state">
-                <p style="font-size:2.5rem;margin:0;">🔌</p>
-                <p><strong>Noch keine Plugins installiert</strong></p>
-                <p class="text-muted">Laden Sie Ihr erstes Plugin über das Formular unten hoch.</p>
+            <div class="card-header">
+                <h3 class="card-title">🔌 Installierte Plugins</h3>
             </div>
+            <div class="card-body">
+        <?php if (empty($plugins)): ?>
+                <div class="empty-state">
+                    <p style="font-size:2.5rem;margin:0;">🔌</p>
+                    <p><strong>Noch keine Plugins installiert</strong></p>
+                    <p class="text-muted">Laden Sie Ihr erstes Plugin über das Formular unten hoch.</p>
+                </div>
         <?php else: ?>
-            <div class="plugin-list">
-                <?php foreach ($plugins as $folder => $plugin): ?>
+                <div class="plugin-list">
+                    <?php foreach ($plugins as $folder => $plugin): ?>
                     <div class="plugin-item <?php echo $plugin['active'] ? 'active' : 'inactive'; ?>">
                         <!-- Status Badge -->
                         <div class="plugin-status-badge">
@@ -235,67 +244,73 @@ require_once __DIR__ . '/partials/admin-menu.php';
                             <?php endif; ?>
                         </div>
                     </div>
-                <?php endforeach; ?>
-            </div>
+                    <?php endforeach; ?>
+                </div>
         <?php endif; ?>
+            </div>
         </div><!-- /.card -->
         
         <!-- Upload Section -->
         <div class="card">
-            <h3>📦 Neues Plugin installieren</h3>
-            <form method="post" enctype="multipart/form-data" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
-                <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                <input type="hidden" name="action" value="upload">
-                <input type="file" name="plugin_file" accept=".zip" required class="form-control" style="flex:1;min-width:200px;">
-                <button type="submit" class="btn btn-primary btn-sm">📤 Hochladen &amp; installieren</button>
-            </form>
-            <small class="form-hint" style="margin-top:0.5rem;display:block;">Maximale Dateigröße: 50 MB | Format: ZIP</small>
+            <div class="card-header">
+                <h3 class="card-title">📦 Neues Plugin installieren</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+                    <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+                    <input type="hidden" name="action" value="upload">
+                    <input type="file" name="plugin_file" accept=".zip" required class="form-control" style="flex:1;min-width:200px;">
+                    <button type="submit" class="btn btn-primary btn-sm">📤 Hochladen &amp; installieren</button>
+                </form>
+                <small class="form-hint" style="margin-top:0.5rem;display:block;">Maximale Dateigröße: 50 MB | Format: ZIP</small>
+            </div>
         </div>
-        
-    </div><!-- /.admin-content -->
     
     <!-- Delete Confirmation Modal -->
-    <div id="deleteModal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>🗑️ Plugin löschen</h3>
-                <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p>Möchten Sie das Plugin <strong id="pluginNameToDelete"></strong> wirklich löschen?</p>
-                <div class="alert alert-danger">⚠️ Diese Aktion kann nicht rückgängig gemacht werden!</div>
-                
-                <form method="post" id="deleteForm">
-                    <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                    <input type="hidden" name="action" value="delete">
-                    <input type="hidden" name="plugin" id="pluginFolderToDelete" value="">
+    <div class="modal modal-blur fade" id="deleteModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
+            <div class="modal-content">
+                <div class="modal-status bg-danger"></div>
+                <div class="modal-header">
+                    <h5 class="modal-title">🗑️ Plugin löschen</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Möchten Sie das Plugin <strong id="pluginNameToDelete"></strong> wirklich löschen?</p>
+                    <div class="alert alert-danger">⚠️ Diese Aktion kann nicht rückgängig gemacht werden!</div>
                     
-                    <div class="form-group">
-                        <label for="confirmDelete" class="form-label">
-                            Zum Bestätigen <code>DELETE</code> eingeben: <span style="color:#ef4444;">*</span>
-                        </label>
-                        <input type="text" name="confirm_delete" id="confirmDelete" class="form-control"
-                               placeholder="DELETE" autocomplete="off">
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Abbrechen</button>
-                <button type="submit" form="deleteForm" class="btn btn-danger">🗑️ Plugin löschen</button>
+                    <form method="post" id="deleteForm">
+                        <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="plugin" id="pluginFolderToDelete" value="">
+                        
+                        <div class="mb-3">
+                            <label for="confirmDelete" class="form-label">
+                                Zum Bestätigen <code>DELETE</code> eingeben: <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="confirm_delete" id="confirmDelete" class="form-control"
+                                   placeholder="DELETE" autocomplete="off">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="submit" form="deleteForm" class="btn btn-danger">🗑️ Plugin löschen</button>
+                </div>
             </div>
         </div>
     </div>
     
     <script>
+        function closeDeleteModal() {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteModal')).hide();
+        }
+
         function showDeleteModal(folder, name) {
             document.getElementById('pluginFolderToDelete').value = folder;
             document.getElementById('pluginNameToDelete').textContent = name;
             document.getElementById('confirmDelete').value = '';
-            document.getElementById('deleteModal').style.display = 'flex';
-        }
-        
-        function closeDeleteModal() {
-            document.getElementById('deleteModal').style.display = 'none';
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteModal')).show();
         }
         
         // Close modal on ESC key

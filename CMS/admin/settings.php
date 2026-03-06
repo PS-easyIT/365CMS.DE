@@ -18,6 +18,7 @@ use CMS\Security;
 use CMS\Hooks;
 use CMS\Database;
 use CMS\Services\EditorService;
+use CMS\Services\TranslationService;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -51,12 +52,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $dbRoleRows = $db->execute("SELECT name FROM {$db->getPrefix()}roles ORDER BY sort_order ASC")->fetchAll(\PDO::FETCH_COLUMN);
                 $allowedRoles = !empty($dbRoleRows) ? $dbRoleRows : ['admin', 'member'];
                 $allowedTimezones = \DateTimeZone::listIdentifiers();
+                $availableLanguages = TranslationService::getInstance()->getAvailableLocales();
                 $defaultRole = in_array($_POST['default_role'] ?? '', $allowedRoles, true)
                     ? $_POST['default_role']
                     : 'subscriber';
                 $timezone = in_array($_POST['timezone'] ?? '', $allowedTimezones, true)
                     ? $_POST['timezone']
                     : 'Europe/Berlin';
+                $language = in_array($_POST['language'] ?? '', $availableLanguages, true)
+                    ? (string) $_POST['language']
+                    : 'de';
 
                 $settings = [
                     'site_name'        => Security::sanitize($_POST['site_name'] ?? SITE_NAME),
@@ -68,6 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     'posts_per_page'   => max(1, min(100, intval($_POST['posts_per_page'] ?? 10))),
                     'home_page_id'     => intval($_POST['home_page_id'] ?? 0),
                     'timezone'         => $timezone,
+                    'language'         => $language,
                     'date_format'      => Security::sanitize($_POST['date_format'] ?? 'd.m.Y'),
                     'time_format'      => Security::sanitize($_POST['time_format'] ?? 'H:i'),
                     'legal_page_id'    => intval($_POST['legal_page_id'] ?? 0),
@@ -120,6 +126,7 @@ $settingKeys = [
     'setting_maintenance_mode', 'setting_allow_registration', 'setting_default_role',
     'setting_posts_per_page', 'setting_home_page_id',
     'setting_timezone', 'setting_date_format', 'setting_time_format',
+    'setting_language',
     'setting_legal_page_id', 'setting_privacy_page_id',
     'setting_editor_type'
 ];
@@ -139,6 +146,7 @@ $defaults = [
     'setting_admin_email' => ADMIN_EMAIL,
     'setting_posts_per_page' => '10',
     'setting_timezone' => 'Europe/Berlin',
+    'setting_language' => 'de',
     'setting_date_format' => 'd.m.Y',
     'setting_time_format' => 'H:i',
     'setting_default_role' => 'subscriber',
@@ -160,134 +168,120 @@ $availableRoles = $db->execute(
 // Generate CSRF token
 $csrfToken = $security->generateToken('admin_settings');
 
+$availableLanguages = TranslationService::getInstance()->getAvailableLocales();
+
 // Load admin menu
 require_once __DIR__ . '/partials/admin-menu.php';
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Einstellungen – <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <?php renderAdminSidebarStyles(); ?>
-    <style>
-        /* ── Settings Page – Spacing & Layout ─────────────────────── */
-        .settings-layout {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.75rem;
-            align-items: start;
-        }
-        @media (max-width: 1100px) {
-            .settings-layout { grid-template-columns: 1fr; }
-        }
-        .settings-layout .card {
-            margin-bottom: 0;
-        }
-        .settings-layout .card h3 {
-            margin-bottom: 1.5rem;
-        }
-        /* Section divider between form groups */
-        .settings-layout .form-group {
-            margin-bottom: 1.5rem;
-        }
-        .settings-layout .form-group:last-child {
-            margin-bottom: 0;
-        }
-        .settings-layout .form-label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 0.45rem;
-            color: #374151;
-            font-size: 0.9rem;
-        }
-        .settings-layout .form-control {
-            padding: 0.6rem 0.85rem;
-            font-size: 0.95rem;
-        }
-        .settings-layout .form-hint {
-            margin-top: 0.35rem;
-            font-size: 0.82rem;
-            color: #64748b;
-        }
-        /* Two-column row for date/time */
-        .settings-two-col {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.25rem;
-        }
-        @media (max-width: 600px) {
-            .settings-two-col { grid-template-columns: 1fr; }
-        }
-        /* Toggle row */
-        .settings-toggle-row {
-            display: flex;
-            align-items: flex-start;
-            gap: 1rem;
-            padding: 1rem 0;
-            border-bottom: 1px solid #f1f5f9;
-        }
-        .settings-toggle-row:last-of-type {
-            border-bottom: none;
-            padding-bottom: 0;
-        }
-        .settings-toggle-row:first-of-type {
-            padding-top: 0;
-        }
-        .settings-toggle-row .toggle-switch {
-            flex-shrink: 0;
-            margin-top: 2px;
-        }
-        .settings-toggle-row .toggle-info strong {
-            display: block;
-            font-size: 0.95rem;
-            color: #1e293b;
-            margin-bottom: 0.2rem;
-        }
-        .settings-toggle-row .toggle-info p {
-            margin: 0;
-            font-size: 0.83rem;
-            color: #64748b;
-        }
-        /* Module list */
-        .module-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.85rem 0;
-            border-bottom: 1px solid #f1f5f9;
-            font-size: 0.93rem;
-            color: #1e293b;
-        }
-        .module-row:last-child { border-bottom: none; padding-bottom: 0; }
-        .module-row:first-child { padding-top: 0; }
-        .check-icon { color: #10b981; font-weight: 700; }
-        /* Save bar */
-        .settings-save-bar {
-            position: sticky;
-            bottom: 1.5rem;
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            box-shadow: 0 4px 16px rgba(0,0,0,.1);
-            padding: 1rem 1.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-            margin-top: 0.5rem;
-        }
-        .settings-save-bar span {
-            font-size: 0.85rem;
-            color: #64748b;
-        }
-    </style>
-</head>
-<body class="admin-body">
+<?php renderAdminLayoutStart('Einstellungen', 'settings'); ?>
 
-    <?php renderAdminSidebar('settings'); ?>
-
-    <div class="admin-content">
+<style>
+    /* ── Settings Page – Spacing & Layout ─────────────────────── */
+    .settings-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.75rem;
+        align-items: start;
+    }
+    @media (max-width: 1100px) {
+        .settings-layout { grid-template-columns: 1fr; }
+    }
+    .settings-layout .card {
+        margin-bottom: 0;
+    }
+    .settings-layout .card h3 {
+        margin-bottom: 1.5rem;
+    }
+    .settings-layout .form-group {
+        margin-bottom: 1.5rem;
+    }
+    .settings-layout .form-group:last-child {
+        margin-bottom: 0;
+    }
+    .settings-layout .form-label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.45rem;
+        color: #374151;
+        font-size: 0.9rem;
+    }
+    .settings-layout .form-control {
+        padding: 0.6rem 0.85rem;
+        font-size: 0.95rem;
+    }
+    .settings-layout .form-hint {
+        margin-top: 0.35rem;
+        font-size: 0.82rem;
+        color: #64748b;
+    }
+    .settings-two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem;
+    }
+    @media (max-width: 600px) {
+        .settings-two-col { grid-template-columns: 1fr; }
+    }
+    .settings-toggle-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem 0;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .settings-toggle-row:last-of-type {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+    .settings-toggle-row:first-of-type {
+        padding-top: 0;
+    }
+    .settings-toggle-row .toggle-switch {
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+    .settings-toggle-row .toggle-info strong {
+        display: block;
+        font-size: 0.95rem;
+        color: #1e293b;
+        margin-bottom: 0.2rem;
+    }
+    .settings-toggle-row .toggle-info p {
+        margin: 0;
+        font-size: 0.83rem;
+        color: #64748b;
+    }
+    .module-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.85rem 0;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.93rem;
+        color: #1e293b;
+    }
+    .module-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .module-row:first-child { padding-top: 0; }
+    .check-icon { color: #10b981; font-weight: 700; }
+    .settings-save-bar {
+        position: sticky;
+        bottom: 1.5rem;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        box-shadow: 0 4px 16px rgba(0,0,0,.1);
+        padding: 1rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-top: 0.5rem;
+    }
+    .settings-save-bar span {
+        font-size: 0.85rem;
+        color: #64748b;
+    }
+</style>
 
         <!-- Page Header -->
         <div class="page-header d-print-none mb-3">
@@ -352,6 +346,17 @@ require_once __DIR__ . '/partials/admin-menu.php';
                 <div class="card">
                     <div class="card-header"><h3 class="card-title">🌍 Lokalisierung</h3></div>
                     <div class="card-body">
+
+                    <div class="form-group">
+                        <label class="form-label" for="language">Sprache</label>
+                        <select id="language" name="language" class="form-select">
+                            <?php foreach ($availableLanguages as $locale): ?>
+                                <option value="<?php echo htmlspecialchars($locale, ENT_QUOTES); ?>" <?php echo ($currentSettings['setting_language'] ?? 'de') === $locale ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars(strtoupper($locale)); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
 
                     <div class="form-group">
                         <label class="form-label" for="timezone">Zeitzone</label>
@@ -509,8 +514,4 @@ require_once __DIR__ . '/partials/admin-menu.php';
         <!-- Plugin Settings Hook -->
         <?php Hooks::doAction('admin_settings_page'); ?>
 
-    </div><!-- /.admin-content -->
-
-    <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
-</body>
-</html>
+<?php renderAdminLayoutEnd(); ?>

@@ -341,6 +341,7 @@ class ThemeManager
         if (file_exists($footerFile)) {
             Hooks::doAction('before_footer');
             include $footerFile;
+            Hooks::doAction('body_end');
             Hooks::doAction('after_footer');
         }
     }
