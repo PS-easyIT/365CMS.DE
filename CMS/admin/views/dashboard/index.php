@@ -27,6 +27,11 @@ $highlights = is_array($data['highlights'] ?? null) ? $data['highlights'] : [];
 $security = is_array($data['security'] ?? null) ? $data['security'] : [];
 $performance = is_array($data['performance'] ?? null) ? $data['performance'] : [];
 $system = is_array($data['system'] ?? null) ? $data['system'] : [];
+$subscriptionEnabled = (bool) ($data['subscription_enabled'] ?? true);
+$quickLinks = is_array($data['quickLinks'] ?? null) ? $data['quickLinks'] : [];
+$headerQuickLinks = array_values(array_filter($quickLinks, static function (array $link): bool {
+    return !in_array((string) ($link['label'] ?? ''), ['Neue Seite', 'Neuer Beitrag'], true);
+}));
 
 /** Tabler-Icon-SVG als Inline-Helfer */
 function dashIcon(string $name): string {
@@ -59,6 +64,74 @@ function dashboardStatusBadge(string $status): string {
 }
 ?>
 
+<style>
+    .dashboard-overview-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+        gap: 1rem;
+        align-items: stretch;
+    }
+
+    .dashboard-overview-grid .card {
+        height: 100%;
+        box-shadow: 0 0.125rem 0.25rem rgba(15, 23, 42, 0.06);
+    }
+
+    .dashboard-overview-card .card-header {
+        min-height: 68px;
+        display: flex;
+        align-items: center;
+    }
+
+    .dashboard-overview-card .list-group-item,
+    .dashboard-overview-card .card-body,
+    .dashboard-overview-card .card-footer {
+        font-size: 0.95rem;
+    }
+
+    .dashboard-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+        gap: 1rem;
+    }
+
+    .dashboard-kpi-tile {
+        border: 1px solid rgba(37, 99, 235, 0.12);
+        border-radius: 0.75rem;
+        background: rgba(255, 255, 255, 0.72);
+        padding: 1rem;
+        min-height: 100%;
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .dashboard-kpi-tile:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 0.375rem 1rem rgba(37, 99, 235, 0.10);
+    }
+
+    .dashboard-kpi-tile .dashboard-kpi-value {
+        font-size: 1.4rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .dashboard-kpi-tile .dashboard-kpi-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        background: rgba(37, 99, 235, 0.08);
+        color: rgb(37, 99, 235);
+        flex: 0 0 auto;
+    }
+
+    .dashboard-kpi-tile .dashboard-kpi-value.is-highlight {
+        font-size: 1.1rem;
+    }
+</style>
+
 <!-- Page Header -->
 <div class="page-header d-print-none">
     <div class="container-xl">
@@ -75,6 +148,12 @@ function dashboardStatusBadge(string $status): string {
             </div>
             <div class="col-auto ms-auto d-print-none">
                 <div class="btn-list">
+                    <?php foreach ($headerQuickLinks as $link): ?>
+                        <a href="<?= htmlspecialchars($siteUrl . (string) ($link['url'] ?? '/admin')) ?>" class="btn btn-outline-secondary d-none d-xl-inline-flex">
+                            <?= dashIcon((string) ($link['icon'] ?? 'settings')) ?>
+                            <?= htmlspecialchars((string) ($link['label'] ?? 'Aktion')) ?>
+                        </a>
+                    <?php endforeach; ?>
                     <a href="<?= $siteUrl ?>/admin/pages?action=new" class="btn btn-primary d-none d-sm-inline-block">
                         <?= dashIcon('file-plus') ?>
                         Neue Seite
@@ -115,70 +194,46 @@ function dashboardStatusBadge(string $status): string {
 
         <div class="card card-lg mb-4 bg-primary-lt border-primary-subtle">
             <div class="card-body">
-                <div class="row align-items-center g-4">
-                    <div class="col-lg-8">
-                        <div class="d-flex align-items-center gap-2 text-primary mb-2">
-                            <?= dashIcon('activity') ?>
-                            <span class="fw-semibold">Zentrale Arbeitsübersicht</span>
-                        </div>
-                        <h3 class="mb-2">Alles Wichtige auf einen Blick</h3>
-                        <p class="text-secondary mb-0">
-                            Prüfe offene Aufgaben, springe direkt in häufige Bereiche und behalte Sicherheit, Performance sowie Bestellungen im Blick.
-                        </p>
-                    </div>
-                    <div class="col-lg-4">
-                        <div class="row g-3">
-                            <?php foreach (array_slice($highlights, 0, 4) as $highlight): ?>
-                                <div class="col-6">
-                                    <a href="<?= htmlspecialchars($siteUrl . (string) ($highlight['url'] ?? '/admin')) ?>" class="card card-link card-link-pop">
-                                        <div class="card-body p-3">
-                                            <div class="text-secondary small mb-1"><?= htmlspecialchars((string) ($highlight['label'] ?? 'Hinweis')) ?></div>
-                                            <div class="h2 mb-1"><?= htmlspecialchars((string) ($highlight['value'] ?? '0')) ?></div>
-                                            <div class="small text-secondary"><?= htmlspecialchars((string) ($highlight['hint'] ?? '')) ?></div>
-                                        </div>
-                                    </a>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
+                <div class="d-flex align-items-center gap-2 text-primary mb-2">
+                    <?= dashIcon('activity') ?>
+                    <span class="fw-semibold">Zentrale Arbeitsübersicht</span>
+                </div>
+                <h3 class="mb-2">Alles Wichtige auf einen Blick</h3>
+                <p class="text-secondary mb-0">
+                    Prüfe offene Aufgaben, springe direkt in häufige Bereiche und behalte Sicherheit, Performance sowie Bestellungen im Blick.
+                </p>
+
+                <div class="dashboard-kpi-grid mt-4">
+                    <?php foreach ($data['kpis'] as $kpi): ?>
+                        <a href="<?= htmlspecialchars($siteUrl . (string) ($kpi['url'] ?? '/admin')) ?>" class="dashboard-kpi-tile text-reset text-decoration-none">
+                            <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+                                <div class="subheader mb-0"><?= htmlspecialchars((string) ($kpi['label'] ?? 'KPI')) ?></div>
+                                <span class="dashboard-kpi-icon"><?= dashIcon((string) ($kpi['icon'] ?? 'activity')) ?></span>
+                            </div>
+                            <div class="dashboard-kpi-value mb-1"><?= htmlspecialchars((string) ($kpi['value'] ?? '0')) ?></div>
+                            <div class="small text-secondary mb-2"><?= htmlspecialchars((string) ($kpi['sub'] ?? '')) ?></div>
+                            <div class="small fw-semibold text-primary">Details →</div>
+                        </a>
+                    <?php endforeach; ?>
+
+                    <?php foreach (array_slice($highlights, 0, 4) as $highlight): ?>
+                        <a href="<?= htmlspecialchars($siteUrl . (string) ($highlight['url'] ?? '/admin')) ?>" class="dashboard-kpi-tile text-reset text-decoration-none">
+                            <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+                                <div class="subheader mb-0"><?= htmlspecialchars((string) ($highlight['label'] ?? 'Hinweis')) ?></div>
+                                <span class="dashboard-kpi-icon"><?= dashIcon('activity') ?></span>
+                            </div>
+                            <div class="dashboard-kpi-value is-highlight mb-1"><?= htmlspecialchars((string) ($highlight['value'] ?? '0')) ?></div>
+                            <div class="small text-secondary mb-2"><?= htmlspecialchars((string) ($highlight['hint'] ?? '')) ?></div>
+                            <div class="small fw-semibold text-primary">Öffnen →</div>
+                        </a>
+                    <?php endforeach; ?>
                 </div>
             </div>
         </div>
 
-        <!-- ─── KPI-Karten ──────────────────────────────────────────── -->
-        <div class="row row-deck row-cards mb-4">
-            <?php foreach ($data['kpis'] as $kpi): ?>
-                <div class="col-sm-6 col-lg-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="subheader"><?= htmlspecialchars($kpi['label']) ?></div>
-                                <div class="ms-auto lh-1">
-                                    <a href="<?= htmlspecialchars($siteUrl . $kpi['url']) ?>" class="text-secondary">
-                                        Details →
-                                    </a>
-                                </div>
-                            </div>
-                            <div class="d-flex align-items-baseline mt-1">
-                                <div class="h1 mb-0 me-2"><?= htmlspecialchars((string)$kpi['value']) ?></div>
-                            </div>
-                            <div class="mt-1">
-                                <span class="text-secondary"><?= htmlspecialchars($kpi['sub']) ?></span>
-                            </div>
-                        </div>
-                        <div class="card-stamp">
-                            <div class="card-stamp-icon bg-<?= htmlspecialchars($kpi['color']) ?>">
-                                <?= dashIcon($kpi['icon']) ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
-
-        <div class="row row-deck row-cards">
-            <div class="col-12 col-xl-4">
-                <div class="card h-100">
+        <div class="dashboard-overview-grid mb-4">
+            <div class="dashboard-overview-card">
+                <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Nächste Aufmerksamkeit</h3>
                     </div>
@@ -204,75 +259,52 @@ function dashboardStatusBadge(string $status): string {
                 </div>
             </div>
 
-            <!-- ─── Schnellzugriffe ────────────────────────────────── -->
-            <div class="col-12 col-xl-4">
+            <div class="dashboard-overview-card">
                 <div class="card">
                     <div class="card-header">
-                        <h3 class="card-title">Schnellzugriffe</h3>
+                        <h3 class="card-title">Systemstatus</h3>
                     </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <?php foreach ($data['quickLinks'] as $link): ?>
-                                <div class="col-6">
-                                    <a href="<?= htmlspecialchars($siteUrl . $link['url']) ?>"
-                                       class="btn btn-outline-<?= htmlspecialchars($link['color']) ?> w-100">
-                                        <?= dashIcon($link['icon']) ?>
-                                        <?= htmlspecialchars($link['label']) ?>
-                                    </a>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
+                    <div class="card-body p-0">
+                        <table class="table table-vcenter card-table mb-0">
+                            <tbody>
+                                <?php if (!empty($system['php_version'])): ?>
+                                    <tr>
+                                        <td class="text-secondary">PHP</td>
+                                        <td><?= htmlspecialchars((string) $system['php_version']) ?></td>
+                                    </tr>
+                                <?php endif; ?>
+                                <?php if (!empty($system['cms_version'])): ?>
+                                    <tr>
+                                        <td class="text-secondary">CMS</td>
+                                        <td><?= htmlspecialchars((string) $system['cms_version']) ?></td>
+                                    </tr>
+                                <?php endif; ?>
+                                <?php if (!empty($system['mysql_version'])): ?>
+                                    <tr>
+                                        <td class="text-secondary">MySQL</td>
+                                        <td><?= htmlspecialchars((string) $system['mysql_version']) ?></td>
+                                    </tr>
+                                <?php endif; ?>
+                                <?php if (!empty($performance['disk_free_formatted'])): ?>
+                                    <tr>
+                                        <td class="text-secondary">Speicher frei</td>
+                                        <td><?= htmlspecialchars((string) $performance['disk_free_formatted']) ?></td>
+                                    </tr>
+                                <?php endif; ?>
+                                <?php if (!empty($system['upload_max_filesize'])): ?>
+                                    <tr>
+                                        <td class="text-secondary">Upload-Limit</td>
+                                        <td><?= htmlspecialchars((string) $system['upload_max_filesize']) ?></td>
+                                    </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-
-                <!-- System-Info -->
-                <?php if ($system !== []): ?>
-                    <div class="card mt-3">
-                        <div class="card-header">
-                            <h3 class="card-title">Systemstatus</h3>
-                        </div>
-                        <div class="card-body p-0">
-                            <table class="table table-vcenter card-table">
-                                <tbody>
-                                    <?php if (!empty($system['php_version'])): ?>
-                                        <tr>
-                                            <td class="text-secondary">PHP</td>
-                                            <td><?= htmlspecialchars((string) $system['php_version']) ?></td>
-                                        </tr>
-                                    <?php endif; ?>
-                                    <?php if (!empty($system['cms_version'])): ?>
-                                        <tr>
-                                            <td class="text-secondary">CMS</td>
-                                            <td><?= htmlspecialchars((string) $system['cms_version']) ?></td>
-                                        </tr>
-                                    <?php endif; ?>
-                                    <?php if (!empty($system['mysql_version'])): ?>
-                                        <tr>
-                                            <td class="text-secondary">MySQL</td>
-                                            <td><?= htmlspecialchars((string) $system['mysql_version']) ?></td>
-                                        </tr>
-                                    <?php endif; ?>
-                                    <?php if (!empty($performance['disk_free_formatted'])): ?>
-                                        <tr>
-                                            <td class="text-secondary">Speicher frei</td>
-                                            <td><?= htmlspecialchars((string) $performance['disk_free_formatted']) ?></td>
-                                        </tr>
-                                    <?php endif; ?>
-                                    <?php if (!empty($system['upload_max_filesize'])): ?>
-                                        <tr>
-                                            <td class="text-secondary">Upload-Limit</td>
-                                            <td><?= htmlspecialchars((string) $system['upload_max_filesize']) ?></td>
-                                        </tr>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                <?php endif; ?>
             </div>
 
-            <div class="col-12 col-xl-4">
-                <div class="card mb-3">
+            <div class="dashboard-overview-card">
+                <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Sicherheit & Performance</h3>
                     </div>
@@ -314,90 +346,91 @@ function dashboardStatusBadge(string $status): string {
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Neueste Bestellungen</h3>
-                    </div>
-                    <?php if ($recentOrders !== []): ?>
-                        <div class="list-group list-group-flush">
-                            <?php foreach ($recentOrders as $order): ?>
-                                <div class="list-group-item">
-                                    <div class="d-flex align-items-start justify-content-between gap-3">
-                                        <div>
-                                            <div class="fw-semibold"><?= htmlspecialchars((string) ($order->order_number ?? 'Bestellung')) ?></div>
-                                            <div class="small text-secondary"><?= htmlspecialchars((string) ($order->customer_name ?? 'Gast')) ?></div>
-                                            <div class="small text-secondary"><?= htmlspecialchars((string) ($order->created_at ?? '')) ?></div>
-                                        </div>
-                                        <div class="text-end">
-                                            <div class="fw-semibold">
-                                                <?= htmlspecialchars(number_format((float) ($order->total_amount ?? 0), 2, ',', '.')) ?>
-                                                <?= htmlspecialchars((string) ($order->currency ?? 'EUR')) ?>
+            <?php if ($subscriptionEnabled): ?>
+                <div class="dashboard-overview-card">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Neueste Bestellungen</h3>
+                        </div>
+                        <?php if ($recentOrders !== []): ?>
+                            <div class="list-group list-group-flush">
+                                <?php foreach ($recentOrders as $order): ?>
+                                    <div class="list-group-item">
+                                        <div class="d-flex align-items-start justify-content-between gap-3">
+                                            <div>
+                                                <div class="fw-semibold"><?= htmlspecialchars((string) ($order->order_number ?? 'Bestellung')) ?></div>
+                                                <div class="small text-secondary"><?= htmlspecialchars((string) ($order->customer_name ?? 'Gast')) ?></div>
+                                                <div class="small text-secondary"><?= htmlspecialchars((string) ($order->created_at ?? '')) ?></div>
                                             </div>
-                                            <span class="badge bg-azure-lt"><?= htmlspecialchars((string) ($order->status ?? 'offen')) ?></span>
+                                            <div class="text-end">
+                                                <div class="fw-semibold">
+                                                    <?= htmlspecialchars(number_format((float) ($order->total_amount ?? 0), 2, ',', '.')) ?>
+                                                    <?= htmlspecialchars((string) ($order->currency ?? 'EUR')) ?>
+                                                </div>
+                                                <span class="badge bg-azure-lt"><?= htmlspecialchars((string) ($order->status ?? 'offen')) ?></span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                        <div class="card-footer">
-                            <a href="<?= htmlspecialchars($siteUrl . '/admin/orders') ?>" class="btn btn-outline-primary w-100">
-                                <?= dashIcon('shopping-cart') ?>
-                                Bestellungen öffnen
-                            </a>
-                        </div>
-                    <?php else: ?>
-                        <div class="card-body text-secondary">Noch keine Bestellungen gefunden.</div>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <!-- ─── Letzte Aktivitäten ─────────────────────────────── -->
-            <div class="col-12">
-                <div class="card mt-3">
-                    <div class="card-header">
-                        <h3 class="card-title">Letzte Aktivitäten</h3>
-                    </div>
-                    <?php if (!empty($data['activity'])): ?>
-                        <div class="card-body p-0">
-                            <table class="table table-vcenter card-table">
-                                <thead>
-                                    <tr>
-                                        <th>Aktion</th>
-                                        <th>Details</th>
-                                        <th>Zeitpunkt</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($data['activity'] as $entry): ?>
-                                        <tr>
-                                            <td>
-                                                <span class="badge bg-blue-lt"><?= htmlspecialchars($entry->action ?? '') ?></span>
-                                            </td>
-                                            <td class="text-secondary"><?= htmlspecialchars(mb_strimwidth($entry->details ?? '', 0, 60, '…')) ?></td>
-                                            <td class="text-secondary">
-                                                <?= htmlspecialchars($entry->created_at ?? '') ?>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php else: ?>
-                        <div class="card-body">
-                            <div class="empty">
-                                <div class="empty-icon"><?= dashIcon('activity') ?></div>
-                                <p class="empty-title">Keine Aktivitäten</p>
-                                <p class="empty-subtitle text-secondary">
-                                    Aktivitäten werden hier angezeigt, sobald Aktionen im System stattfinden.
-                                </p>
+                                <?php endforeach; ?>
                             </div>
-                        </div>
-                    <?php endif; ?>
+                            <div class="card-footer">
+                                <a href="<?= htmlspecialchars($siteUrl . '/admin/orders') ?>" class="btn btn-outline-primary w-100">
+                                    <?= dashIcon('shopping-cart') ?>
+                                    Bestellungen öffnen
+                                </a>
+                            </div>
+                        <?php else: ?>
+                            <div class="card-body text-secondary">Noch keine Bestellungen gefunden.</div>
+                        <?php endif; ?>
+                    </div>
                 </div>
-            </div>
+            <?php endif; ?>
+        </div>
 
-        </div><!-- /.row -->
+        <!-- ─── Letzte Aktivitäten ─────────────────────────────── -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Letzte Aktivitäten</h3>
+            </div>
+            <?php if (!empty($data['activity'])): ?>
+                <div class="card-body p-0">
+                    <table class="table table-vcenter card-table">
+                        <thead>
+                            <tr>
+                                <th>Aktion</th>
+                                <th>Details</th>
+                                <th>Zeitpunkt</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($data['activity'] as $entry): ?>
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-blue-lt"><?= htmlspecialchars($entry->action ?? '') ?></span>
+                                    </td>
+                                    <td class="text-secondary"><?= htmlspecialchars(mb_strimwidth($entry->details ?? '', 0, 60, '…')) ?></td>
+                                    <td class="text-secondary">
+                                        <?= htmlspecialchars($entry->created_at ?? '') ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php else: ?>
+                <div class="card-body">
+                    <div class="empty">
+                        <div class="empty-icon"><?= dashIcon('activity') ?></div>
+                        <p class="empty-title">Keine Aktivitäten</p>
+                        <p class="empty-subtitle text-secondary">
+                            Aktivitäten werden hier angezeigt, sobald Aktionen im System stattfinden.
+                        </p>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
 
     </div><!-- /.container-xl -->
 </div><!-- /.page-body -->

@@ -160,8 +160,9 @@ try {
 }
 
 // ── Titel: Customizer-Override → LP-Titel → SITE_NAME ────
+$runtimeSiteName = function_exists('cms_get_site_name') ? cms_get_site_name() : (defined('SITE_NAME') ? SITE_NAME : '');
 $lpTitle    = $heroTitleOverride
-            ?: ($lpHeader['title'] ?? (defined('SITE_NAME') ? SITE_NAME : ''));
+            ?: ($lpHeader['title'] ?? $runtimeSiteName);
 $lpSubtitle = $lpHeader['subtitle']    ?? '';
 $lpDesc     = $lpHeader['description'] ?? '';
 $lpLogo     = $lpHeader['logo']        ?? '';

@@ -11,8 +11,9 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+$runtimeSiteName = function_exists('cms_get_site_name') ? cms_get_site_name() : (defined('SITE_NAME') ? SITE_NAME : '365CMS');
 $logoUrl       = meridian_setting('header', 'logo_url', '');
-$logoText      = meridian_setting('header', 'logo_text', defined('SITE_NAME') ? SITE_NAME : '365CMS');
+$logoText      = meridian_setting('header', 'logo_text', $runtimeSiteName);
 $logoType      = meridian_setting('header', 'logo_type', 'text');
 $logoTagline   = meridian_setting('header', 'logo_tagline', '');
 $logoHeight    = max(20, (int)meridian_setting('header', 'logo_height', 40));
@@ -35,7 +36,7 @@ $flashMsg    = meridian_get_flash();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <?php
     // Seitentitel ermitteln (Priorität: SEO → ThemeManager → SITE_NAME)
-    $siteTitle = defined('SITE_NAME') ? SITE_NAME : '365CMS';
+    $siteTitle = function_exists('cms_get_site_title') ? cms_get_site_title() : $runtimeSiteName;
     try {
         $seo = \CMS\Services\SEOService::getInstance();
         $seoTitle = $seo->getHomepageTitle();

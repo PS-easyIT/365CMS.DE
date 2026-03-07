@@ -662,7 +662,9 @@ class ThemeManager
     public function getSiteTitle(): string
     {
         $this->loadSettings(); // H-22
-        return $this->settings['site_title'] ?? SITE_NAME;
+        return $this->settings['site_title']
+            ?? $this->settings['site_name']
+            ?? (function_exists('cms_get_site_title') ? cms_get_site_title() : SITE_NAME);
     }
 
     /**

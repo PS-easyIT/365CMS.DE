@@ -133,6 +133,7 @@ class SettingsModule
 
             $values = [
                 'site_name'            => trim(strip_tags($post['site_name'] ?? '')),
+                'site_title'           => trim(strip_tags($post['site_name'] ?? '')),
                 'site_description'     => trim(strip_tags($post['site_description'] ?? '')),
                 'site_url'             => rtrim(filter_var($post['site_url'] ?? '', FILTER_SANITIZE_URL), '/'),
                 'site_logo'            => $siteLogo,

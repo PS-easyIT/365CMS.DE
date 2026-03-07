@@ -36,6 +36,7 @@ class DashboardModule
     public function getData(): array
     {
         $stats = $this->service->getAllStats();
+        $subscriptionEnabled = $this->isSubscriptionSystemEnabled();
         $system = $stats['system'] ?? [];
         $security = $stats['security'] ?? [];
         $performance = $stats['performance'] ?? [];
@@ -46,12 +47,13 @@ class DashboardModule
 
         return [
             'welcome'       => $this->getWelcomeData($system),
-            'kpis'          => $this->buildKpis($stats),
+            'kpis'          => $this->buildKpis($stats, $subscriptionEnabled),
             'activity'      => $this->getRecentActivity(),
             'quickLinks'    => $this->getQuickLinks(),
             'alerts'        => $this->getAlerts($stats),
             'attention'     => $this->service->getAttentionItems(),
-            'recent_orders' => $this->service->getRecentOrders(),
+            'subscription_enabled' => $subscriptionEnabled,
+            'recent_orders' => $subscriptionEnabled ? $this->service->getRecentOrders() : [],
             'orders'        => $orders,
             'system'        => $system,
             'security'      => $security,
@@ -75,14 +77,31 @@ class DashboardModule
                     'hint' => (string) ($media['total_size_formatted'] ?? $this->formatBytes((int) ($media['total_size'] ?? 0))),
                     'url' => '/admin/media',
                 ],
-                [
+                ...($subscriptionEnabled ? [[
                     'label' => 'Bestellungen offen',
                     'value' => (string) ($orders['pending'] ?? 0),
                     'hint' => (string) ($orders['month_revenue_formatted'] ?? '0,00 EUR') . ' Umsatz in 30 Tagen',
                     'url' => '/admin/orders',
-                ],
+                ]] : []),
             ],
         ];
+    }
+
+    private function isSubscriptionSystemEnabled(): bool
+    {
+        try {
+            $value = $this->db->get_var(
+                "SELECT option_value FROM {$this->prefix}settings WHERE option_name = 'subscription_enabled' LIMIT 1"
+            );
+
+            if ($value === null) {
+                return true;
+            }
+
+            return (string) $value === '1';
+        } catch (\Throwable) {
+            return true;
+        }
     }
 
     /**
@@ -116,14 +135,14 @@ class DashboardModule
     /**
      * KPI-Karten aufbereiten
      */
-    private function buildKpis(array $stats): array
+    private function buildKpis(array $stats, bool $subscriptionEnabled): array
     {
         $users = $stats['users'] ?? [];
         $pages = $stats['pages'] ?? [];
         $media = $stats['media'] ?? [];
         $orders = $stats['orders'] ?? [];
 
-        return [
+        $kpis = [
             [
                 'label'  => 'Benutzer',
                 'value'  => $users['total'] ?? 0,
@@ -148,15 +167,20 @@ class DashboardModule
                 'icon'   => 'photo',
                 'url'    => '/admin/media',
             ],
-            [
+        ];
+
+        if ($subscriptionEnabled) {
+            $kpis[] = [
                 'label'  => 'Umsatz (30T)',
                 'value'  => $orders['month_revenue_formatted'] ?? '0,00 EUR',
                 'sub'    => ($orders['pending'] ?? 0) . ' ausstehend',
                 'color'  => 'yellow',
                 'icon'   => 'currency-euro',
                 'url'    => '/admin/orders',
-            ],
-        ];
+            ];
+        }
+
+        return $kpis;
     }
 
     /**

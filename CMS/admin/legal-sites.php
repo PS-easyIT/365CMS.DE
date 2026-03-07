@@ -21,6 +21,7 @@ if (!Auth::instance()->isAdmin()) {
 require_once __DIR__ . '/modules/legal/LegalSitesModule.php';
 $module    = new LegalSitesModule();
 $alert     = null;
+$userId    = (int)(Auth::instance()->getCurrentUser()->id ?? 0);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'admin_legal_sites')) {
@@ -31,8 +32,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'save':
                 $result = $module->save($_POST);
                 break;
+            case 'save_profile':
+                $result = $module->saveProfile($_POST);
+                break;
             case 'generate':
                 $result = $module->generateTemplate($_POST['template_type'] ?? '');
+                break;
+            case 'create_page':
+                $result = $module->createOrUpdatePage($_POST['template_type'] ?? '', $userId);
+                break;
+            case 'create_all_pages':
+                $result = $module->createOrUpdateAllPages($userId);
                 break;
             default:
                 $result = ['success' => false, 'error' => 'Unbekannte Aktion.'];

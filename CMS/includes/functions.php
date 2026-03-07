@@ -181,6 +181,39 @@ function get_option(string $key, $default = null) {
 }
 
 /**
+ * Liefert den aktuell konfigurierten Website-Namen aus den Settings.
+ */
+function cms_get_site_name(): string {
+    static $siteName = null;
+
+    if ($siteName !== null) {
+        return $siteName;
+    }
+
+    $fallback = defined('SITE_NAME') ? SITE_NAME : '365CMS';
+
+    try {
+        $db = CMS\Database::instance();
+        $value = $db->get_var(
+            "SELECT option_value FROM {$db->prefix()}settings WHERE option_name IN ('site_name', 'site_title') ORDER BY FIELD(option_name, 'site_name', 'site_title') LIMIT 1"
+        );
+
+        $siteName = is_string($value) && trim($value) !== '' ? trim($value) : $fallback;
+    } catch (\Throwable) {
+        $siteName = $fallback;
+    }
+
+    return $siteName;
+}
+
+/**
+ * Liefert den aktuellen Website-Titel für Browsertabs/Meta.
+ */
+function cms_get_site_title(): string {
+    return cms_get_site_name();
+}
+
+/**
  * Update site option
  */
 function update_option(string $key, $value): bool {

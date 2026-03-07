@@ -19,6 +19,7 @@ $pageTitle  = $pageTitle ?? 'Admin';
 $pageAssets = $pageAssets ?? [];
 $siteUrl    = defined('SITE_URL') ? SITE_URL : '';
 $assetsUrl  = defined('ASSETS_URL') ? ASSETS_URL : $siteUrl . '/assets';
+$siteName   = function_exists('cms_get_site_name') ? cms_get_site_name() : (defined('SITE_NAME') ? SITE_NAME : '365CMS');
 ?>
 <!doctype html>
 <html lang="de">
@@ -27,7 +28,7 @@ $assetsUrl  = defined('ASSETS_URL') ? ASSETS_URL : $siteUrl . '/assets';
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <meta name="robots" content="noindex,nofollow">
-    <title><?= htmlspecialchars($pageTitle) ?> – <?= htmlspecialchars(defined('SITE_NAME') ? SITE_NAME : '365CMS') ?> Admin</title>
+    <title><?= htmlspecialchars($pageTitle) ?> – <?= htmlspecialchars($siteName) ?> Admin</title>
 
     <!-- Tabler Core CSS -->
     <link rel="stylesheet" href="<?= $assetsUrl ?>/tabler/css/tabler.min.css">

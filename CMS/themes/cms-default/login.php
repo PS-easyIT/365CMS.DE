@@ -35,7 +35,7 @@ if (class_exists('\CMS\Security')) {
 }
 
 $siteUrl   = SITE_URL;
-$siteTitle = defined('SITE_NAME') ? SITE_NAME : '365CMS';
+$siteTitle = function_exists('cms_get_site_name') ? cms_get_site_name() : (defined('SITE_NAME') ? SITE_NAME : '365CMS');
 ?>
 
 <main id="main" role="main" style="background:linear-gradient(135deg,#e3f2fd 0%,#f5f9fc 100%);min-height:calc(100vh - 200px);display:flex;align-items:center;padding:2rem 1.5rem;">

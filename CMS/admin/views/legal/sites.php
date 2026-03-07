@@ -17,6 +17,7 @@ $tabIcons  = [
 $pageIdKeys = ['legal_imprint' => 'imprint_page_id', 'legal_privacy' => 'privacy_page_id', 'legal_terms' => 'terms_page_id', 'legal_revocation' => 'revocation_page_id'];
 $templateTypes = ['legal_imprint' => 'imprint', 'legal_privacy' => 'privacy', 'legal_terms' => 'terms', 'legal_revocation' => 'revocation'];
 $templateDefaults = $d['templates'] ?? [];
+$profile = $d['profile'] ?? [];
 ?>
 
 <div class="page-header d-print-none">
@@ -45,13 +46,230 @@ $templateDefaults = $d['templates'] ?? [];
         </div>
 
         <div class="alert alert-primary" role="alert">
-            Jeder Bereich enthält Vorlagen, Inhaltsfeld und Seitenzuordnung. Leere Bereiche können direkt mit einer Vorlage befüllt werden – also weniger weiße Wüste, mehr verwertbarer Rechtstext.
+            Hinterlege einmal die Standardwerte deines Unternehmens und erzeuge daraus passende Rechtstext-Seiten. Das spart Klicks, vermeidet Platzhalter-Chaos und bringt Impressum & Datenschutz deutlich näher an „fertig statt fragwürdig“.
         </div>
         <?php if (!empty($alert)): ?>
             <div class="alert alert-<?php echo htmlspecialchars($alert['type'] ?? 'info'); ?> mb-4" role="alert">
                 <?php echo htmlspecialchars($alert['message'] ?? ''); ?>
             </div>
         <?php endif; ?>
+
+        <div class="card mb-4">
+            <div class="card-header d-flex align-items-center justify-content-between gap-3 flex-wrap">
+                <div>
+                    <h3 class="card-title mb-1">Standardwerte & Generator</h3>
+                    <div class="text-secondary small">Diese Angaben werden für Impressum, Datenschutz, AGB und Widerrufsbelehrung verwendet.</div>
+                </div>
+                <form method="post" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
+                    <input type="hidden" name="action" value="create_all_pages">
+                    <button type="submit" class="btn btn-primary">Alle Rechtstext-Seiten erstellen/aktualisieren</button>
+                </form>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
+                    <input type="hidden" name="action" value="save_profile">
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-lg-6">
+                            <div class="border rounded p-3 h-100 bg-light-subtle">
+                                <div class="subheader mb-2">Unternehmen</div>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Firma / Name</label>
+                                        <input type="text" name="legal_profile_company_name" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_company_name'] ?? ''); ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Rechtsform</label>
+                                        <input type="text" name="legal_profile_legal_form" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_legal_form'] ?? ''); ?>" placeholder="z. B. GmbH, e.K., Einzelunternehmen">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Inhaber/in</label>
+                                        <input type="text" name="legal_profile_owner_name" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_owner_name'] ?? ''); ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Geschäftsführung</label>
+                                        <input type="text" name="legal_profile_managing_director" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_managing_director'] ?? ''); ?>">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Inhaltlich verantwortlich</label>
+                                        <input type="text" name="legal_profile_content_responsible" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_content_responsible'] ?? ''); ?>">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="border rounded p-3 h-100 bg-light-subtle">
+                                <div class="subheader mb-2">Adresse & Kontakt</div>
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <label class="form-label">Straße / Hausnummer</label>
+                                        <input type="text" name="legal_profile_street" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_street'] ?? ''); ?>">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">PLZ</label>
+                                        <input type="text" name="legal_profile_postal_code" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_postal_code'] ?? ''); ?>">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Ort</label>
+                                        <input type="text" name="legal_profile_city" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_city'] ?? ''); ?>">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Land</label>
+                                        <input type="text" name="legal_profile_country" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_country'] ?? 'Deutschland'); ?>">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">E-Mail</label>
+                                        <input type="email" name="legal_profile_email" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_email'] ?? ''); ?>">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Telefon</label>
+                                        <input type="text" name="legal_profile_phone" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_phone'] ?? ''); ?>">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Website</label>
+                                        <input type="url" name="legal_profile_website" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_website'] ?? ''); ?>">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="border rounded p-3 h-100 bg-light-subtle">
+                                <div class="subheader mb-2">Register & Pflichtangaben</div>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Registergericht</label>
+                                        <input type="text" name="legal_profile_register_court" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_register_court'] ?? ''); ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Registernummer</label>
+                                        <input type="text" name="legal_profile_register_number" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_register_number'] ?? ''); ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">USt.-ID</label>
+                                        <input type="text" name="legal_profile_vat_id" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_vat_id'] ?? ''); ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Streitbeilegung</label>
+                                        <select name="legal_profile_dispute_participation" class="form-select">
+                                            <option value="no" <?php echo ($profile['legal_profile_dispute_participation'] ?? 'no') === 'no' ? 'selected' : ''; ?>>Nicht teilnehmend</option>
+                                            <option value="yes" <?php echo ($profile['legal_profile_dispute_participation'] ?? 'no') === 'yes' ? 'selected' : ''; ?>>Teilnahme vorgesehen</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="border rounded p-3 h-100 bg-light-subtle">
+                                <div class="subheader mb-2">Datenschutz-Setup</div>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Hosting-Anbieter</label>
+                                        <input type="text" name="legal_profile_hosting_provider" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_hosting_provider'] ?? ''); ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Hosting-Adresse</label>
+                                        <input type="text" name="legal_profile_hosting_address" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_hosting_address'] ?? ''); ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Datenschutz-Kontakt</label>
+                                        <input type="text" name="legal_profile_privacy_contact_name" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_privacy_contact_name'] ?? ''); ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Datenschutz-E-Mail</label>
+                                        <input type="email" name="legal_profile_privacy_contact_email" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_privacy_contact_email'] ?? ''); ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Analyse-Tool</label>
+                                        <input type="text" name="legal_profile_analytics_name" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_analytics_name'] ?? ''); ?>" placeholder="z. B. Matomo, GA4">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Zahlungsanbieter</label>
+                                        <input type="text" name="legal_profile_payment_providers" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_payment_providers'] ?? ''); ?>" placeholder="z. B. Stripe, PayPal">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="border rounded p-3 h-100 bg-light-subtle">
+                                <div class="subheader mb-2">AGB & Widerruf</div>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Zielgruppe AGB</label>
+                                        <select name="legal_profile_terms_scope" class="form-select">
+                                            <option value="b2c" <?php echo ($profile['legal_profile_terms_scope'] ?? 'b2c') === 'b2c' ? 'selected' : ''; ?>>B2C</option>
+                                            <option value="b2b" <?php echo ($profile['legal_profile_terms_scope'] ?? 'b2c') === 'b2b' ? 'selected' : ''; ?>>B2B</option>
+                                            <option value="mixed" <?php echo ($profile['legal_profile_terms_scope'] ?? 'b2c') === 'mixed' ? 'selected' : ''; ?>>B2C + B2B</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Vertragsart</label>
+                                        <select name="legal_profile_contract_type" class="form-select">
+                                            <option value="services" <?php echo ($profile['legal_profile_contract_type'] ?? 'services') === 'services' ? 'selected' : ''; ?>>Dienstleistung</option>
+                                            <option value="goods" <?php echo ($profile['legal_profile_contract_type'] ?? 'services') === 'goods' ? 'selected' : ''; ?>>Warenverkauf</option>
+                                            <option value="digital" <?php echo ($profile['legal_profile_contract_type'] ?? 'services') === 'digital' ? 'selected' : ''; ?>>Digitale Inhalte</option>
+                                            <option value="mixed" <?php echo ($profile['legal_profile_contract_type'] ?? 'services') === 'mixed' ? 'selected' : ''; ?>>Gemischt</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Rücksendekosten</label>
+                                        <select name="legal_profile_return_costs" class="form-select">
+                                            <option value="customer" <?php echo ($profile['legal_profile_return_costs'] ?? 'customer') === 'customer' ? 'selected' : ''; ?>>Kunde trägt Kosten</option>
+                                            <option value="merchant" <?php echo ($profile['legal_profile_return_costs'] ?? 'customer') === 'merchant' ? 'selected' : ''; ?>>Unternehmen trägt Kosten</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-check">
+                                            <input type="checkbox" class="form-check-input" name="legal_profile_service_start_notice" value="1" <?php echo ($profile['legal_profile_service_start_notice'] ?? '0') === '1' ? 'checked' : ''; ?>>
+                                            <span class="form-check-label">Hinweis auf vorzeitigen Leistungsbeginn / Erlöschen des Widerrufsrechts einbauen</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="border rounded p-3 bg-light-subtle">
+                                <div class="subheader mb-2">Aktive Website-Funktionen</div>
+                                <div class="row g-3">
+                                    <?php
+                                    $toggleFields = [
+                                        'legal_profile_has_cookies' => 'Cookie-/Consent-Banner',
+                                        'legal_profile_has_contact_form' => 'Kontaktformular',
+                                        'legal_profile_has_registration' => 'Registrierung / Benutzerkonten',
+                                        'legal_profile_has_comments' => 'Kommentare / Beiträge',
+                                        'legal_profile_has_newsletter' => 'Newsletter',
+                                        'legal_profile_has_analytics' => 'Analyse / Tracking',
+                                        'legal_profile_has_external_media' => 'Externe Medien / Drittinhalte',
+                                        'legal_profile_has_webfonts' => 'Externe oder besondere Webfonts',
+                                        'legal_profile_has_shop' => 'Shop / Buchung / Zahlungsabwicklung',
+                                    ];
+                                    foreach ($toggleFields as $fieldName => $label):
+                                    ?>
+                                        <div class="col-sm-6 col-lg-4">
+                                            <label class="form-check">
+                                                <input type="checkbox" class="form-check-input" name="<?php echo htmlspecialchars($fieldName); ?>" value="1" <?php echo ($profile[$fieldName] ?? '0') === '1' ? 'checked' : ''; ?>>
+                                                <span class="form-check-label"><?php echo htmlspecialchars($label); ?></span>
+                                            </label>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button type="submit" class="btn btn-primary">Standardwerte speichern</button>
+                        <span class="text-secondary small align-self-center">Hinweis: Die Texte sind eine technische Vorlage und ersetzen keine rechtliche Prüfung.</span>
+                    </div>
+                </form>
+            </div>
+        </div>
 
         <div class="row row-cards">
         <?php foreach ($tabKeys as $i => $key): $p = $pages[$key] ?? []; ?>
@@ -70,7 +288,13 @@ $templateDefaults = $d['templates'] ?? [];
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                             <input type="hidden" name="action" value="generate">
                             <input type="hidden" name="template_type" value="<?php echo htmlspecialchars($templateType); ?>">
-                            <button type="submit" class="btn btn-outline-secondary btn-sm">Vorlage speichern</button>
+                            <button type="submit" class="btn btn-outline-secondary btn-sm">Aus Standardwerten generieren</button>
+                        </form>
+                        <form method="post" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
+                            <input type="hidden" name="action" value="create_page">
+                            <input type="hidden" name="template_type" value="<?php echo htmlspecialchars($templateType); ?>">
+                            <button type="submit" class="btn btn-primary btn-sm">Seite erstellen/aktualisieren</button>
                         </form>
                     </div>
                 </div>
@@ -94,7 +318,7 @@ $templateDefaults = $d['templates'] ?? [];
                             <div class="border rounded p-3 h-100 bg-light-subtle">
                                 <div class="subheader">Vorlage</div>
                                 <div class="fw-bold mb-2"><?php echo $defaultTemplate !== '' ? 'Standardtext verfügbar' : 'Keine Vorlage'; ?></div>
-                                <div class="text-secondary small">Die Vorlage enthält Platzhalter wie Firma, Anschrift und Kontakt und kann danach individuell angepasst werden.</div>
+                                <div class="text-secondary small">Der Generator nutzt deine Standardwerte für Name, Anschrift, Kontakt, Hosting und aktive Website-Funktionen.</div>
                             </div>
                         </div>
                     </div>
