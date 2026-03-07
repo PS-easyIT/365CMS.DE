@@ -36,16 +36,6 @@ package-lock.json
 # yarn.lock # Einkommentieren, wenn Yarn verwendet wird
 
 ASSETS/
-ASSETS/*
-ASSETS/*/*
-
-# ----------------------------------------------------------------------
-# PROJECT SPECIFIC - 365CMS.DE
-# ----------------------------------------------------------------------
-
-# Compiled CSS (Ausnahmen für Deployment behalten)
-!public/styles/tailwind.output.css
-!css_framework/tailwind/output.css
 
 # Dev/Local Folders (Komplette Ordner ignorieren)
 BACKUP/
