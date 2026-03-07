@@ -65,6 +65,7 @@ class LegalSitesModule
 
     /** @var array<string, string> */
     private const array PROFILE_DEFAULTS = [
+        'legal_profile_entity_type'        => 'company',
         'legal_profile_company_name'        => '',
         'legal_profile_legal_form'          => '',
         'legal_profile_owner_name'          => '',
@@ -180,6 +181,8 @@ class LegalSitesModule
                 }
             }
 
+            $this->syncRelatedSettingsFromAssignments($post);
+
             return ['success' => true, 'message' => 'Rechtliche Seiten gespeichert.'];
         } catch (\Exception $e) {
             return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
@@ -189,8 +192,18 @@ class LegalSitesModule
     public function saveProfile(array $post): array
     {
         try {
+            $sanitized = [];
+
             foreach (array_keys(self::PROFILE_DEFAULTS) as $key) {
-                $value = $this->sanitizeProfileValue($key, $post[$key] ?? self::PROFILE_DEFAULTS[$key]);
+                $sanitized[$key] = $this->sanitizeProfileValue($key, $post[$key] ?? self::PROFILE_DEFAULTS[$key]);
+            }
+
+            $errors = $this->validateProfile($sanitized);
+            if ($errors !== []) {
+                return ['success' => false, 'error' => implode(' ', $errors)];
+            }
+
+            foreach ($sanitized as $key => $value) {
                 $this->saveSetting($key, $value);
             }
 
@@ -253,6 +266,9 @@ class LegalSitesModule
                         'meta_description' => $metaDesc,
                     ]);
 
+                    $this->saveSetting($config['page_id_key'], (string)$pageId);
+                    $this->syncRelatedSettingsForType($type, $pageId);
+
                     return ['success' => true, 'message' => $title . ' wurde aktualisiert.', 'page_id' => $pageId];
                 }
             }
@@ -278,6 +294,7 @@ class LegalSitesModule
             }
 
             $this->saveSetting($config['page_id_key'], (string)$pageId);
+            $this->syncRelatedSettingsForType($type, $pageId);
 
             return ['success' => true, 'message' => $title . ' wurde als Seite erstellt.', 'page_id' => $pageId];
         } catch (\Throwable $e) {
@@ -354,6 +371,10 @@ class LegalSitesModule
             return !empty($value) ? '1' : '0';
         }
 
+        if ($key === 'legal_profile_entity_type') {
+            return in_array((string)$value, ['company', 'private'], true) ? (string)$value : 'company';
+        }
+
         if ($key === 'legal_profile_dispute_participation') {
             return in_array((string)$value, ['yes', 'no'], true) ? (string)$value : 'no';
         }
@@ -380,6 +401,58 @@ class LegalSitesModule
         }
 
         return trim(strip_tags((string)$value));
+    }
+
+    /** @return list<string> */
+    private function validateProfile(array $profile): array
+    {
+        $errors = [];
+        $entityType = $this->profileValue($profile, 'legal_profile_entity_type', 'company');
+
+        $requiredFields = [
+            'legal_profile_street' => 'Straße / Hausnummer',
+            'legal_profile_postal_code' => 'PLZ',
+            'legal_profile_city' => 'Ort',
+            'legal_profile_country' => 'Land',
+            'legal_profile_email' => 'E-Mail',
+        ];
+
+        if ($entityType === 'company') {
+            $requiredFields['legal_profile_company_name'] = 'Firma / Name';
+            $requiredFields['legal_profile_legal_form'] = 'Rechtsform';
+        } else {
+            $requiredFields['legal_profile_owner_name'] = 'Vor- und Nachname';
+        }
+
+        foreach ($requiredFields as $key => $label) {
+            if ($this->profileValue($profile, $key) === '') {
+                $errors[] = $label . ' ist als Pflichtfeld erforderlich.';
+            }
+        }
+
+        return $errors;
+    }
+
+    private function isPrivateProfile(array $profile): bool
+    {
+        return $this->profileValue($profile, 'legal_profile_entity_type', 'company') === 'private';
+    }
+
+    private function getProfileDisplayName(array $profile, string $fallback = 'Ihr Unternehmen'): string
+    {
+        if ($this->isPrivateProfile($profile)) {
+            return $this->profileValue(
+                $profile,
+                'legal_profile_owner_name',
+                $this->profileValue($profile, 'legal_profile_company_name', $fallback)
+            );
+        }
+
+        return $this->profileValue(
+            $profile,
+            'legal_profile_company_name',
+            $this->profileValue($profile, 'legal_profile_owner_name', $fallback)
+        );
     }
 
     private function saveSetting(string $key, string $value): void
@@ -415,7 +488,8 @@ class LegalSitesModule
 
     private function buildImprintTemplate(array $profile): string
     {
-        $companyName = $this->profileValue($profile, 'legal_profile_company_name', 'Ihr Unternehmen');
+        $isPrivateProfile = $this->isPrivateProfile($profile);
+        $companyName = $this->getProfileDisplayName($profile, 'Ihr Unternehmen');
         $legalForm = $this->profileValue($profile, 'legal_profile_legal_form');
         $owner = $this->profileValue($profile, 'legal_profile_owner_name');
         $managingDirector = $this->profileValue($profile, 'legal_profile_managing_director');
@@ -430,12 +504,12 @@ class LegalSitesModule
         $html = '<h2>Impressum</h2>';
         $html .= '<p>Angaben gemäß § 5 DDG</p>';
         $html .= '<p><strong>' . $this->escape($companyName) . '</strong>';
-        if ($legalForm !== '') {
+        if (!$isPrivateProfile && $legalForm !== '') {
             $html .= '<br>' . $this->escape($legalForm);
         }
         $html .= '<br>' . $this->nl2brEscaped($this->buildAddress($profile)) . '</p>';
 
-        if ($owner !== '' || $managingDirector !== '') {
+        if (!$isPrivateProfile && ($owner !== '' || $managingDirector !== '')) {
             $html .= '<h3>Vertreten durch</h3><p>';
             if ($owner !== '') {
                 $html .= '<strong>Inhaber:</strong> ' . $this->escape($owner);
@@ -493,7 +567,7 @@ class LegalSitesModule
 
     private function buildPrivacyTemplate(array $profile): string
     {
-        $companyName = $this->profileValue($profile, 'legal_profile_company_name', 'Ihr Unternehmen');
+        $companyName = $this->getProfileDisplayName($profile, 'Ihr Unternehmen');
         $email = $this->profileValue($profile, 'legal_profile_email');
         $privacyContactName = $this->profileValue($profile, 'legal_profile_privacy_contact_name', $companyName);
         $privacyContactEmail = $this->profileValue($profile, 'legal_profile_privacy_contact_email', $email);
@@ -581,7 +655,7 @@ class LegalSitesModule
 
     private function buildTermsTemplate(array $profile): string
     {
-        $companyName = $this->profileValue($profile, 'legal_profile_company_name', 'der Anbieter');
+        $companyName = $this->getProfileDisplayName($profile, 'der Anbieter');
         $email = $this->profileValue($profile, 'legal_profile_email');
         $scope = $this->profileValue($profile, 'legal_profile_terms_scope', 'b2c');
         $contractType = $this->profileValue($profile, 'legal_profile_contract_type', 'services');
@@ -658,7 +732,7 @@ class LegalSitesModule
 
     private function buildRevocationTemplate(array $profile): string
     {
-        $companyName = $this->profileValue($profile, 'legal_profile_company_name', 'den Anbieter');
+        $companyName = $this->getProfileDisplayName($profile, 'den Anbieter');
         $email = $this->profileValue($profile, 'legal_profile_email');
         $phone = $this->profileValue($profile, 'legal_profile_phone');
         $scope = $this->profileValue($profile, 'legal_profile_terms_scope', 'b2c');
@@ -764,6 +838,62 @@ class LegalSitesModule
         }
 
         return implode("\n", $lines);
+    }
+
+    private function syncRelatedSettingsFromAssignments(array $post): void
+    {
+        $typeMap = [
+            'privacy_page_id' => 'privacy',
+            'terms_page_id' => 'terms',
+            'revocation_page_id' => 'revocation',
+        ];
+
+        foreach ($typeMap as $field => $type) {
+            if (!array_key_exists($field, $post)) {
+                continue;
+            }
+
+            $pageId = (int)($post[$field] ?? 0);
+            if ($pageId > 0) {
+                $this->syncRelatedSettingsForType($type, $pageId);
+            }
+        }
+    }
+
+    private function syncRelatedSettingsForType(string $type, int $pageId): void
+    {
+        if ($pageId <= 0) {
+            return;
+        }
+
+        switch ($type) {
+            case 'privacy':
+                $this->saveSetting('cookie_policy_url', $this->buildRelativePageUrl($pageId, '/datenschutz'));
+                break;
+
+            case 'terms':
+                $this->saveSetting('terms_page_id', (string)$pageId);
+                break;
+
+            case 'revocation':
+                $this->saveSetting('cancellation_page_id', (string)$pageId);
+                break;
+        }
+    }
+
+    private function buildRelativePageUrl(int $pageId, string $fallback = '/'): string
+    {
+        $page = $this->pageManager->getPage($pageId);
+        if ($page === null) {
+            return $fallback;
+        }
+
+        $slug = trim((string)($page['slug'] ?? ''), '/');
+        if ($slug === '') {
+            return $fallback;
+        }
+
+        return '/' . $slug;
     }
 
     private function profileValue(array $profile, string $key, string $fallback = ''): string

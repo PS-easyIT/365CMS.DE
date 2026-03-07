@@ -182,12 +182,12 @@ $statusLabels = [
                                         <div class="btn-list flex-nowrap">
                                             <a href="<?= $siteUrl ?>/admin/pages?action=edit&id=<?= (int)$page->id ?>"
                                                class="btn btn-sm btn-outline-primary">Bearbeiten</a>
-                                            <form method="post" class="d-inline delete-page-form mb-0">
+                                            <form method="post" class="d-inline mb-0"
+                                                  onsubmit="return confirm('Seite &bdquo;<?= htmlspecialchars($page->title, ENT_QUOTES) ?>&ldquo; wirklich löschen?');">
                                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                                                 <input type="hidden" name="action" value="delete">
                                                 <input type="hidden" name="id" value="<?= (int)$page->id ?>">
-                                                <button type="button" class="btn btn-sm btn-outline-danger btn-delete-page"
-                                                        data-title="<?= htmlspecialchars($page->title, ENT_QUOTES) ?>">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">
                                                     Löschen
                                                 </button>
                                             </form>
@@ -263,23 +263,5 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    document.querySelectorAll('.btn-delete-page').forEach(function(button) {
-        button.addEventListener('click', function() {
-            const title = this.dataset.title || 'Diese Seite';
-            const form = this.closest('form');
-
-            cmsConfirm({
-                title: 'Seite löschen?',
-                message: '„' + title + '“ wird endgültig gelöscht.',
-                confirmText: 'Löschen',
-                confirmClass: 'btn-danger',
-                onConfirm: function() {
-                    if (form) {
-                        form.submit();
-                    }
-                }
-            });
-        });
-    });
 });
 </script>

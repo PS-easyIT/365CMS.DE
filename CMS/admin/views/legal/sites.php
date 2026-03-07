@@ -72,20 +72,37 @@ $profile = $d['profile'] ?? [];
                     <input type="hidden" name="action" value="save_profile">
 
                     <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <div class="border rounded p-3 bg-light-subtle">
+                                <div class="row g-3 align-items-end">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Profiltyp</label>
+                                        <select name="legal_profile_entity_type" id="legalProfileEntityType" class="form-select">
+                                            <option value="company" <?php echo ($profile['legal_profile_entity_type'] ?? 'company') === 'company' ? 'selected' : ''; ?>>Firma</option>
+                                            <option value="private" <?php echo ($profile['legal_profile_entity_type'] ?? 'company') === 'private' ? 'selected' : ''; ?>>Privat</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <div class="text-secondary small pt-md-4" id="legalProfileEntityHint">Wähle aus, ob die Rechtstexte für eine Firma oder eine Privatperson erstellt werden. Die passenden Pflichtfelder werden automatisch gesetzt.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="col-12 col-lg-6">
                             <div class="border rounded p-3 h-100 bg-light-subtle">
                                 <div class="subheader mb-2">Unternehmen</div>
                                 <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label">Firma / Name</label>
+                                    <div class="col-md-6" data-required-for="company">
+                                        <label class="form-label">Firma / Name <span class="text-danger js-required-indicator">*</span></label>
                                         <input type="text" name="legal_profile_company_name" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_company_name'] ?? ''); ?>">
                                     </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Rechtsform</label>
+                                    <div class="col-md-6" data-required-for="company">
+                                        <label class="form-label">Rechtsform <span class="text-danger js-required-indicator">*</span></label>
                                         <input type="text" name="legal_profile_legal_form" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_legal_form'] ?? ''); ?>" placeholder="z. B. GmbH, e.K., Einzelunternehmen">
                                     </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Inhaber/in</label>
+                                    <div class="col-md-6" data-required-for="private">
+                                        <label class="form-label">Vor- und Nachname <span class="text-danger js-required-indicator">*</span></label>
                                         <input type="text" name="legal_profile_owner_name" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_owner_name'] ?? ''); ?>">
                                     </div>
                                     <div class="col-md-6">
@@ -105,23 +122,23 @@ $profile = $d['profile'] ?? [];
                                 <div class="subheader mb-2">Adresse & Kontakt</div>
                                 <div class="row g-3">
                                     <div class="col-12">
-                                        <label class="form-label">Straße / Hausnummer</label>
+                                        <label class="form-label">Straße / Hausnummer <span class="text-danger">*</span></label>
                                         <input type="text" name="legal_profile_street" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_street'] ?? ''); ?>">
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="form-label">PLZ</label>
+                                        <label class="form-label">PLZ <span class="text-danger">*</span></label>
                                         <input type="text" name="legal_profile_postal_code" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_postal_code'] ?? ''); ?>">
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="form-label">Ort</label>
+                                        <label class="form-label">Ort <span class="text-danger">*</span></label>
                                         <input type="text" name="legal_profile_city" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_city'] ?? ''); ?>">
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="form-label">Land</label>
+                                        <label class="form-label">Land <span class="text-danger">*</span></label>
                                         <input type="text" name="legal_profile_country" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_country'] ?? 'Deutschland'); ?>">
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="form-label">E-Mail</label>
+                                        <label class="form-label">E-Mail <span class="text-danger">*</span></label>
                                         <input type="email" name="legal_profile_email" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_email'] ?? ''); ?>">
                                     </div>
                                     <div class="col-md-4">
@@ -140,15 +157,15 @@ $profile = $d['profile'] ?? [];
                             <div class="border rounded p-3 h-100 bg-light-subtle">
                                 <div class="subheader mb-2">Register & Pflichtangaben</div>
                                 <div class="row g-3">
-                                    <div class="col-md-6">
+                                    <div class="col-md-6" data-recommended-for="company">
                                         <label class="form-label">Registergericht</label>
                                         <input type="text" name="legal_profile_register_court" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_register_court'] ?? ''); ?>">
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-6" data-recommended-for="company">
                                         <label class="form-label">Registernummer</label>
                                         <input type="text" name="legal_profile_register_number" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_register_number'] ?? ''); ?>">
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-6" data-recommended-for="company">
                                         <label class="form-label">USt.-ID</label>
                                         <input type="text" name="legal_profile_vat_id" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_vat_id'] ?? ''); ?>">
                                     </div>
@@ -360,6 +377,50 @@ $profile = $d['profile'] ?? [];
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    var entityTypeSelect = document.getElementById('legalProfileEntityType');
+    var entityHint = document.getElementById('legalProfileEntityHint');
+
+    function updateLegalProfileRequirements() {
+        if (!entityTypeSelect) {
+            return;
+        }
+
+        var entityType = entityTypeSelect.value || 'company';
+        var isCompany = entityType === 'company';
+
+        document.querySelectorAll('[data-required-for]').forEach(function (wrapper) {
+            var requiredFor = wrapper.getAttribute('data-required-for');
+            var input = wrapper.querySelector('input, select, textarea');
+            var indicator = wrapper.querySelector('.js-required-indicator');
+            var isRequired = requiredFor === entityType;
+
+            wrapper.classList.toggle('opacity-75', !isRequired);
+
+            if (input) {
+                input.required = isRequired;
+            }
+
+            if (indicator) {
+                indicator.classList.toggle('d-none', !isRequired);
+            }
+        });
+
+        document.querySelectorAll('[data-recommended-for="company"]').forEach(function (wrapper) {
+            wrapper.classList.toggle('opacity-75', !isCompany);
+        });
+
+        if (entityHint) {
+            entityHint.textContent = isCompany
+                ? 'Firmenprofil aktiv: Firma und Rechtsform sind Pflichtfelder. Register- und USt.-Angaben sind für das Impressum empfohlen.'
+                : 'Privatprofil aktiv: Vor- und Nachname ist Pflicht. Firmenbezogene Felder bleiben optional und können leer bleiben.';
+        }
+    }
+
+    if (entityTypeSelect) {
+        entityTypeSelect.addEventListener('change', updateLegalProfileRequirements);
+        updateLegalProfileRequirements();
+    }
+
     document.querySelectorAll('.js-insert-template').forEach(function (button) {
         button.addEventListener('click', function () {
             var targetId = this.getAttribute('data-target');

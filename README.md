@@ -1,4 +1,4 @@
-# 365CMS.DE | [MERIDAN THEME](https://meridan.365cms.de/) [![Generic badge](https://img.shields.io/badge/VERSION-2.1.1-blue.svg)](https://shields.io/)
+# 365CMS.DE | [MERIDAN THEME](https://meridan.365cms.de/) [![Generic badge](https://img.shields.io/badge/VERSION-2.1.2-blue.svg)](https://shields.io/)
  ---
 
 ![PHP](https://img.shields.io/badge/php-%23777BB4.svg?style=for-the-badge&logo=php&logoColor=white)![MySQL](https://img.shields.io/badge/mysql-4479A1.svg?style=for-the-badge&logo=mysql&logoColor=white)![MariaDB](https://img.shields.io/badge/MariaDB-003545?style=for-the-badge&logo=mariadb&logoColor=white)![HTML5](https://img.shields.io/badge/html5-%23E34F26.svg?style=for-the-badge&logo=html5&logoColor=white)![CSS3](https://img.shields.io/badge/css3-%231572B6.svg?style=for-the-badge&logo=css3&logoColor=white)
@@ -113,8 +113,8 @@
 - ✅ **Login-Protokoll** - Vollständige Aufzeichnung aller Login-Ereignisse pro Benutzer
 
 ### 📝 Content Management
-- ✅ **Seiten-Verwaltung** - WYSIWYG-Editor (SunEditor) plus Editor.js, SEO-Felder, Slug-Verwaltung und Revisionen
-- ✅ **Blog/Beiträge** - Post-Management mit Kategorien, Tags, Featured Image, Publish-Workflow
+- ✅ **Seiten-Verwaltung** - WYSIWYG-Editor (SunEditor) plus Editor.js, SEO-Felder, Slug-Verwaltung, Revisionen und stabiler Lösch-Workflow im Admin
+- ✅ **Blog/Beiträge** - Post-Management mit Kategorien, Tags, Featured Image, Publish-Workflow und robuster Löschfunktion für einzelne Beiträge
 - ✅ **Landing-Page-Builder** - Visueller Sektions-Editor mit Hero, Text, Bild, CTA-Blöcken
 - ✅ **Inhaltsverzeichnis** - Automatische TOC-Generierung für lange Seiten
 - ✅ **Menü-Verwaltung** - Drag-&-Drop Navigation mit mehrstufigen Menüs und Custom Links
@@ -171,7 +171,7 @@
 - ✅ **Zuweisungen** - Benutzer-Abos und Gruppen-Pakete in einer Übersicht
 - ✅ **Bestellverwaltung** - Vollständiges Order-Management mit Status-Tracking (Offen, Bestätigt, Storniert, Erstattet)
 - ✅ **Checkout-System** - Member-seitiger Checkout mit Upgrade/Downgrade-Flow
-- ✅ **Rechtliche Seiten** - Verknüpfung mit AGB, Datenschutz, Widerruf
+- ✅ **Rechtliche Seiten** - Verknüpfung mit AGB, Datenschutz und Widerruf; die IDs lassen sich über den Legal-Sites-Manager zentral erzeugen und automatisch in angrenzende Checkout-/Abo-Einstellungen übernehmen
 
 ### 🔒 Sicherheit & Firewall
 - ✅ **CMS-Firewall** - IP-Blacklisting, Geo-Blocking, Request-Filterung, User-Agent-Blocking
@@ -183,6 +183,7 @@
 - ✅ **CSRF-Tokens** - Pflicht-Token für alle zustandsändernden Operationen
 - ✅ **Session-Security** - HTTP-Only Cookies, Secure Flag, Session-Rotation
 - ✅ **BCrypt Password Hashing** - Sichere Passwort-Speicherung mit automatischem Salt
+- ✅ **Admin-Sicherheitscenter** - Aufgeräumte Firewall- und AntiSpam-Ansichten mit korrekt ausgerichteten KPI-Karten, Formularen und Listen
 
 ### 🍪 DSGVO-Suite
 - ✅ **Cookie-Verwaltung** - Cookie-Kategorien definieren (Notwendig, Analytics, Marketing), Dienstbibliothek
@@ -190,8 +191,8 @@
 - ✅ **Cookie-Richtlinien-Generator** - Automatische Generierung der Cookie-Policy aus definierten Diensten
 - ✅ **Datenzugriff (Art. 15 DSGVO)** - Automatisierte Datenauskunfts-Anfragen mit PDF-Export
 - ✅ **Datenlöschung (Art. 17 DSGVO)** - DSGVO-konforme Löschanträge mit Workflow und Bestätigung
-- ✅ **Rechtstexte** - Integrierter Generator für Impressum, Datenschutzerklärung, AGB, Widerrufsbelehrung
-- ✅ **Legal-Sites Manager** - Verwaltung und Verknüpfung rechtlicher Pflichtseiten
+- ✅ **Rechtstexte** - Integrierter Generator für Impressum, Datenschutzerklärung, AGB und Widerrufsbelehrung mit profilabhängigen Vorlagen für `Firma` oder `Privat`
+- ✅ **Legal-Sites Manager** - Verwaltung, Generierung und Verknüpfung rechtlicher Pflichtseiten inklusive Auto-Befüllung angrenzender Bereiche wie Cookie-Manager (`Datenschutz-URL`) und Abo-/Checkout-Einstellungen (`AGB`/`Widerruf`)
 
 ### 👥 Member-Bereich
 - ✅ **Profil** - Profilbearbeitung mit Avatar-Upload, Bio, Social Links, Sichtbarkeitseinstellungen

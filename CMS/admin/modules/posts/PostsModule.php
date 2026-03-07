@@ -192,11 +192,21 @@ class PostsModule
      */
     public function delete(int $id): array
     {
+        if ($id <= 0) {
+            return ['success' => false, 'error' => 'Ungültige Beitrags-ID.'];
+        }
+
         try {
-            $this->db->execute("DELETE FROM {$this->prefix}posts WHERE id = ?", [$id]);
+            $success = $this->db->delete('posts', ['id' => $id]);
+
+            if (!$success) {
+                $error = trim((string)$this->db->last_error);
+                return ['success' => false, 'error' => 'Fehler beim Löschen.' . ($error !== '' ? ' ' . $error : '')];
+            }
+
             return ['success' => true, 'message' => 'Beitrag gelöscht.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler beim Löschen.'];
+            return ['success' => false, 'error' => 'Fehler beim Löschen: ' . $e->getMessage()];
         }
     }
 

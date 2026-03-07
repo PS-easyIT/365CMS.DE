@@ -160,11 +160,21 @@ class PagesModule
      */
     public function delete(int $id): array
     {
+        if ($id <= 0) {
+            return ['success' => false, 'error' => 'Ungültige Seiten-ID.'];
+        }
+
         try {
-            $this->db->execute("DELETE FROM {$this->prefix}pages WHERE id = ?", [$id]);
+            $success = $this->db->delete('pages', ['id' => $id]);
+
+            if (!$success) {
+                $error = trim((string)$this->db->last_error);
+                return ['success' => false, 'error' => 'Fehler beim Löschen.' . ($error !== '' ? ' ' . $error : '')];
+            }
+
             return ['success' => true, 'message' => 'Seite gelöscht.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler beim Löschen.'];
+            return ['success' => false, 'error' => 'Fehler beim Löschen: ' . $e->getMessage()];
         }
     }
 
