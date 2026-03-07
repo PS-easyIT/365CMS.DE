@@ -9,6 +9,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\AuditLogger;
+
 class AntispamModule
 {
     private readonly \CMS\Database $db;
@@ -102,6 +104,15 @@ class AntispamModule
                     $this->db->insert('settings', ['option_name' => $key, 'option_value' => $value]);
                 }
             }
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SECURITY,
+                'antispam.settings.save',
+                'AntiSpam-Einstellungen gespeichert',
+                'setting',
+                null,
+                $keys,
+                'warning'
+            );
             return ['success' => true, 'message' => 'AntiSpam-Einstellungen gespeichert.'];
         } catch (\Exception $e) {
             return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
@@ -122,12 +133,27 @@ class AntispamModule
         if ($type === 'email' && !filter_var($value, FILTER_VALIDATE_EMAIL)) {
             return ['success' => false, 'error' => 'Ungültige E-Mail-Adresse.'];
         }
+        if ($type === 'domain') {
+            $value = strtolower($value);
+            if (preg_match('/^(?:[a-z0-9-]+\.)+[a-z]{2,}$/', $value) !== 1) {
+                return ['success' => false, 'error' => 'Ungültige Domain.'];
+            }
+        }
 
         try {
             $this->db->insert('spam_blacklist', [
                 'type'  => $type,
                 'value' => $value,
             ]);
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SECURITY,
+                'antispam.blacklist.add',
+                'AntiSpam-Blacklist-Eintrag hinzugefügt',
+                'spam_blacklist',
+                null,
+                ['type' => $type, 'value' => $value],
+                'warning'
+            );
             return ['success' => true, 'message' => 'Blacklist-Eintrag hinzugefügt.'];
         } catch (\Exception $e) {
             return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
@@ -140,6 +166,15 @@ class AntispamModule
             return ['success' => false, 'error' => 'Ungültige ID.'];
         }
         $this->db->delete('spam_blacklist', ['id' => $id]);
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SECURITY,
+            'antispam.blacklist.delete',
+            'AntiSpam-Blacklist-Eintrag gelöscht',
+            'spam_blacklist',
+            $id,
+            [],
+            'warning'
+        );
         return ['success' => true, 'message' => 'Blacklist-Eintrag gelöscht.'];
     }
 }

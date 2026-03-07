@@ -9,6 +9,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\AuditLogger;
+
 class SecurityAuditModule
 {
     private readonly \CMS\Database $db;
@@ -43,7 +45,14 @@ class SecurityAuditModule
         return [
             'checks'  => $checks,
             'stats'   => ['passed' => $passed, 'warning' => $warning, 'critical' => $critical, 'total' => count($checks)],
-            'audit_log' => array_map(fn($r) => (array)$r, $auditLog),
+            // FIX: Audit-Log-Zeilen mit stabilen Anzeige-Keys an die View liefern.
+            'audit_log' => array_map(static function ($r): array {
+                $row = (array)$r;
+                if (!isset($row['details'])) {
+                    $row['details'] = (string)($row['description'] ?? '');
+                }
+                return $row;
+            }, $auditLog),
         ];
     }
 
@@ -54,6 +63,15 @@ class SecurityAuditModule
         foreach ($checks as $c) {
             if ($c['status'] === 'critical') $critical++;
         }
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SECURITY,
+            'security.audit.run',
+            'Sicherheits-Audit manuell ausgeführt',
+            'security_audit',
+            null,
+            ['critical' => $critical, 'total' => count($checks)],
+            $critical > 0 ? 'warning' : 'info'
+        );
         return ['success' => true, 'message' => "Audit abgeschlossen. {$critical} kritische Probleme gefunden."];
     }
 
@@ -61,6 +79,15 @@ class SecurityAuditModule
     {
         try {
             $this->db->query("DELETE FROM {$this->prefix}audit_log WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)");
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SECURITY,
+                'security.audit.clear_log',
+                'Alte Sicherheits-Audit-Logs bereinigt',
+                'security_audit',
+                null,
+                [],
+                'warning'
+            );
             return ['success' => true, 'message' => 'Alte Audit-Einträge (> 30 Tage) gelöscht.'];
         } catch (\Exception $e) {
             return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];

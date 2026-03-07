@@ -9,6 +9,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\AuditLogger;
+
 class LegalSitesModule
 {
     private readonly \CMS\Database $db;
@@ -183,6 +185,16 @@ class LegalSitesModule
 
             $this->syncRelatedSettingsFromAssignments($post);
 
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SETTING,
+                'legal.sites.save',
+                'Rechtliche Inhalte und Seiteneinstellungen gespeichert',
+                'legal_site',
+                null,
+                ['keys' => self::LEGAL_KEYS],
+                'warning'
+            );
+
             return ['success' => true, 'message' => 'Rechtliche Seiten gespeichert.'];
         } catch (\Exception $e) {
             return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
@@ -207,6 +219,16 @@ class LegalSitesModule
                 $this->saveSetting($key, $value);
             }
 
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SETTING,
+                'legal.profile.save',
+                'Standardwerte für Rechtstexte gespeichert',
+                'legal_profile',
+                null,
+                ['entity_type' => $sanitized['legal_profile_entity_type'] ?? 'company'],
+                'warning'
+            );
+
             return ['success' => true, 'message' => 'Standardwerte für Legal Sites gespeichert.'];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler beim Speichern der Standardwerte: ' . $e->getMessage()];
@@ -230,6 +252,16 @@ class LegalSitesModule
 
         $key = 'legal_' . $type;
         $this->saveSetting($key, $templates[$type]);
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            'legal.template.generate',
+            'Rechtstext-Vorlage generiert',
+            'legal_template',
+            null,
+            ['type' => $type],
+            'info'
+        );
 
         return ['success' => true, 'message' => self::LABELS[$key] . '-Vorlage generiert.'];
     }
@@ -295,6 +327,16 @@ class LegalSitesModule
 
             $this->saveSetting($config['page_id_key'], (string)$pageId);
             $this->syncRelatedSettingsForType($type, $pageId);
+
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_CONTENT,
+                'legal.page.create_or_update',
+                $title . ' als Rechtstext-Seite erstellt oder aktualisiert',
+                'page',
+                $pageId,
+                ['type' => $type, 'slug' => $slug],
+                'warning'
+            );
 
             return ['success' => true, 'message' => $title . ' wurde als Seite erstellt.', 'page_id' => $pageId];
         } catch (\Throwable $e) {
@@ -397,7 +439,14 @@ class LegalSitesModule
 
         if ($key === 'legal_profile_website') {
             $website = trim((string)$value);
-            return $website === '' ? '' : ((string)filter_var($website, FILTER_SANITIZE_URL));
+            if ($website === '') {
+                return '';
+            }
+
+            $normalized = preg_match('#^https?://#i', $website) === 1 ? $website : 'https://' . ltrim($website, '/');
+            $validated = filter_var($normalized, FILTER_VALIDATE_URL);
+
+            return $validated !== false ? (string)$validated : '';
         }
 
         return trim(strip_tags((string)$value));

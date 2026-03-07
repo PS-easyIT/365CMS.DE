@@ -9,6 +9,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\AuditLogger;
+
 class FirewallModule
 {
     private readonly \CMS\Database $db;
@@ -102,6 +104,16 @@ class FirewallModule
                     $this->db->insert('settings', ['option_name' => $key, 'option_value' => $value]);
                 }
             }
+            // ADDED: Änderungen an Security-Einstellungen zentral protokollieren.
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SECURITY,
+                'firewall.settings.save',
+                'Firewall-Einstellungen gespeichert',
+                'setting',
+                null,
+                $keys,
+                'warning'
+            );
             return ['success' => true, 'message' => 'Firewall-Einstellungen gespeichert.'];
         } catch (\Exception $e) {
             return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
@@ -116,9 +128,18 @@ class FirewallModule
         if ($value === '') {
             return ['success' => false, 'error' => 'Wert ist erforderlich.'];
         }
-        // Validate IP format for IP rules
+        // FIX: Regelwerte abhängig vom Typ strikt validieren.
         if (in_array($type, ['block_ip', 'allow_ip'], true) && !filter_var($value, FILTER_VALIDATE_IP)) {
             return ['success' => false, 'error' => 'Ungültige IP-Adresse.'];
+        }
+        if ($type === 'block_range' && preg_match('/^([0-9a-f:.]+)\/(\d{1,3})$/i', $value, $matches) !== 1) {
+            return ['success' => false, 'error' => 'Ungültiger IP-Bereich. Erwartet wird z. B. 192.168.0.0/24.'];
+        }
+        if ($type === 'block_country') {
+            $value = strtoupper($value);
+            if (preg_match('/^[A-Z]{2}$/', $value) !== 1) {
+                return ['success' => false, 'error' => 'Ungültiger Ländercode. Erwartet wird ein ISO-3166-Code wie DE oder AT.'];
+            }
         }
 
         $reason    = strip_tags($post['rule_reason'] ?? '');
@@ -132,6 +153,17 @@ class FirewallModule
                 'is_active'  => 1,
                 'expires_at' => $expiresAt,
             ]);
+
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SECURITY,
+                'firewall.rule.add',
+                'Firewall-Regel hinzugefügt',
+                'firewall_rule',
+                null,
+                ['type' => $type, 'value' => $value, 'reason' => $reason, 'expires_at' => $expiresAt],
+                'warning'
+            );
+
             return ['success' => true, 'message' => 'Regel hinzugefügt.'];
         } catch (\Exception $e) {
             return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
@@ -144,6 +176,15 @@ class FirewallModule
             return ['success' => false, 'error' => 'Ungültige ID.'];
         }
         $this->db->delete('firewall_rules', ['id' => $id]);
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SECURITY,
+            'firewall.rule.delete',
+            'Firewall-Regel gelöscht',
+            'firewall_rule',
+            $id,
+            [],
+            'warning'
+        );
         return ['success' => true, 'message' => 'Regel gelöscht.'];
     }
 
@@ -161,6 +202,15 @@ class FirewallModule
         }
         $newStatus = (int)$rule->is_active ? 0 : 1;
         $this->db->update('firewall_rules', ['is_active' => $newStatus], ['id' => $id]);
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SECURITY,
+            'firewall.rule.toggle',
+            $newStatus ? 'Firewall-Regel aktiviert' : 'Firewall-Regel deaktiviert',
+            'firewall_rule',
+            $id,
+            ['is_active' => $newStatus],
+            'warning'
+        );
         return ['success' => true, 'message' => $newStatus ? 'Regel aktiviert.' : 'Regel deaktiviert.'];
     }
 }

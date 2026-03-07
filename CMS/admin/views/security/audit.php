@@ -30,6 +30,13 @@ $statusBadge = ['ok' => 'bg-success', 'warning' => 'bg-warning', 'critical' => '
 <div class="page-body">
     <div class="container-xl">
 
+<?php if (!empty($alert)): ?>
+<div class="alert alert-<?php echo htmlspecialchars((string)($alert['type'] ?? 'info')); ?> alert-dismissible mb-4" role="alert">
+    <div><?php echo htmlspecialchars((string)($alert['message'] ?? '')); ?></div>
+    <a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>
+</div>
+<?php endif; ?>
+
 <!-- KPI-Karten -->
 <div class="row row-deck row-cards mb-4">
     <div class="col-sm-6 col-lg-3">
@@ -132,7 +139,15 @@ $statusBadge = ['ok' => 'bg-success', 'warning' => 'bg-warning', 'critical' => '
                     <td class="text-nowrap"><?php echo htmlspecialchars($entry['created_at'] ?? ''); ?></td>
                     <td><?php echo htmlspecialchars($entry['action'] ?? ''); ?></td>
                     <td><?php echo htmlspecialchars((string)($entry['user_id'] ?? '-')); ?></td>
-                    <td><?php echo htmlspecialchars($entry['details'] ?? ''); ?></td>
+                    <td>
+                        <div><?php echo htmlspecialchars((string)($entry['details'] ?? ($entry['description'] ?? ''))); ?></div>
+                        <?php if (!empty($entry['category']) || !empty($entry['severity'])): ?>
+                            <div class="text-secondary small">
+                                <?php echo htmlspecialchars((string)($entry['category'] ?? '')); ?>
+                                <?php if (!empty($entry['severity'])): ?>· <?php echo htmlspecialchars((string)$entry['severity']); ?><?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+                    </td>
                     <td><code><?php echo htmlspecialchars($entry['ip_address'] ?? '-'); ?></code></td>
                 </tr>
                 <?php endforeach; ?>

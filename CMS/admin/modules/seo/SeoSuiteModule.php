@@ -96,7 +96,8 @@ final class SeoSuiteModule
 
 	public function getData(string $section = 'dashboard'): array
 	{
-		$auditRows = $this->analysisService->enrichAuditRows($this->seoService->getAuditRows());
+		// FIX: Audit-Zeilen immer zentral normalisieren, damit Views niemals auf rohe Datenstrukturen angewiesen sind.
+		$auditRows = $this->normalizeAuditRows($this->analysisService->enrichAuditRows($this->seoService->getAuditRows()));
 		$overview = $this->buildOverview($auditRows);
 		$decoratedAuditRows = (array)($overview['content'] ?? $auditRows);
 
@@ -758,5 +759,28 @@ final class SeoSuiteModule
 		}
 
 		return array_slice(array_values($unique), 0, 50);
+	}
+
+	private function normalizeAuditRows(array $auditRows): array
+	{
+		return array_map(static function (array $row): array {
+			$analysis = (array)($row['analysis'] ?? []);
+			$status = (string)($analysis['status'] ?? ($row['seo_score'] ?? 'warning'));
+			if (!in_array($status, ['good', 'warning', 'bad'], true)) {
+				$status = 'warning';
+			}
+
+			$row['seo_score'] = $status;
+			$row['seo_score_value'] = (int)($analysis['score'] ?? ($row['seo_score_value'] ?? 0));
+			$row['seo_issues'] = array_values($row['seo_issues'] ?? array_map(static function (array $rule): array {
+				return [
+					'type' => !empty($rule['passed']) ? 'good' : 'warning',
+					'msg' => (string)($rule['label'] ?? ''),
+					'detail' => (string)($rule['message'] ?? ''),
+				];
+			}, array_filter((array)($analysis['rules'] ?? []), static fn(array $rule): bool => empty($rule['passed']))));
+
+			return $row;
+		}, $auditRows);
 	}
 }

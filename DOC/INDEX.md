@@ -7,6 +7,8 @@
 
 ## Haupt-Dokumente
 
+> Dokumentationsstand: **365CMS 2.3.1** – inklusive SEO-Suite, Performance-Center, Monitoring-Unterseiten, WebP-Massenkonvertierung und lokalem Font-Self-Hosting.
+
 | Datei | Beschreibung | Zielgruppe |
 |-------|-------------|------------|
 | [README.md](README.md) | Übersicht & Einstieg | Alle |

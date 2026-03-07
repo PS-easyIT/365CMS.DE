@@ -21,7 +21,7 @@ Diese Anleitung führt euch Schritt für Schritt durch die Installation des 365C
 
 | Komponente | Minimum | Empfohlen |
 |------------|---------|-----------|
-| **PHP** | 8.1 | 8.3+ |
+| **PHP** | 8.2 | 8.3+ |
 | **MySQL** | 8.0 | 8.0+ |
 | **MariaDB** | 10.6 | 10.11+ |
 | **Webserver** | Apache 2.4 / Nginx 1.18 | latest |
@@ -68,7 +68,7 @@ GRANT ALL PRIVILEGES ON cms365.* TO 'cms365user'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-Die Tabellen werden **automatisch** beim ersten Start über `Database::createTables()` angelegt.
+Die Tabellen werden **automatisch** beim ersten Start über den aktuellen Schema-/Migrationspfad angelegt.
 
 ---
 

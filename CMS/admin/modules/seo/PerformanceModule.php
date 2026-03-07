@@ -5,6 +5,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\AuditLogger;
 use CMS\Services\ImageService;
 
 final class PerformanceModule
@@ -364,6 +365,22 @@ final class PerformanceModule
             return ['success' => true, 'message' => 'Keine geeigneten Bilder für eine kleinere WebP-Version gefunden.'];
         }
 
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_MEDIA,
+            'performance.media.convert_webp',
+            'Medienbibliothek in WebP konvertiert',
+            'media',
+            null,
+            [
+                'converted' => $converted,
+                'skipped' => $skipped,
+                'failed' => $failed,
+                'saved_bytes' => $savedBytes,
+                'updated_references' => $updatedReferences,
+            ],
+            $failed > 0 ? 'warning' : 'info'
+        );
+
         return [
             'success' => $converted > 0,
             'message' => sprintf(
@@ -506,6 +523,17 @@ final class PerformanceModule
             $details[] = $label . ': ' . $message;
         }
 
+        // ADDED: Vollständige Cache-Bereinigung im Audit-Log erfassen.
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            'performance.cache.clear_all',
+            'Alle Cache-Layer bereinigt',
+            'cache',
+            null,
+            ['details' => $report['details'] ?? []],
+            'warning'
+        );
+
         return [
             'success' => true,
             'message' => 'Alle Cache-Layer bereinigt. ' . implode(' | ', $details),
@@ -526,6 +554,16 @@ final class PerformanceModule
             }
         }
 
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            'performance.cache.clear_file',
+            'Datei-Cache geleert',
+            'cache',
+            null,
+            ['deleted_files' => $count],
+            'warning'
+        );
+
         return ['success' => true, 'message' => $count . ' Datei-Cache(s) gelöscht.'];
     }
 
@@ -536,6 +574,15 @@ final class PerformanceModule
         }
 
         opcache_reset();
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            'performance.cache.clear_opcache',
+            'OPcache zurückgesetzt',
+            'cache',
+            null,
+            [],
+            'warning'
+        );
         return ['success' => true, 'message' => 'OPcache wurde geleert.'];
     }
 
@@ -549,6 +596,16 @@ final class PerformanceModule
             }
         }
 
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            'performance.database.optimize',
+            'Datenbanktabellen optimiert',
+            'database',
+            null,
+            ['success_count' => $success],
+            'warning'
+        );
+
         return ['success' => true, 'message' => $success . ' Tabelle(n) optimiert.'];
     }
 
@@ -561,6 +618,16 @@ final class PerformanceModule
                 $success++;
             }
         }
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            'performance.database.repair',
+            'Datenbanktabellen geprüft oder repariert',
+            'database',
+            null,
+            ['success_count' => $success],
+            'warning'
+        );
 
         return ['success' => true, 'message' => $success . ' Tabelle(n) repariert bzw. geprüft.'];
     }
@@ -584,6 +651,16 @@ final class PerformanceModule
                 }
             }
         }
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            'performance.sessions.clear_expired',
+            'Abgelaufene Sessions bereinigt',
+            'session',
+            null,
+            ['db_deleted' => $dbDeleted, 'file_deleted' => $fileCount],
+            'warning'
+        );
 
         return [
             'success' => true,
@@ -616,6 +693,16 @@ final class PerformanceModule
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Performance-Einstellungen konnten nicht gespeichert werden: ' . $e->getMessage()];
         }
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            'performance.settings.save',
+            'Performance-Einstellungen gespeichert',
+            'setting',
+            null,
+            $settings,
+            'warning'
+        );
 
         return ['success' => true, 'message' => 'Performance-Einstellungen gespeichert.'];
     }

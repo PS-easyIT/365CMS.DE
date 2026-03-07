@@ -13,6 +13,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\Database;
 use CMS\ThemeManager;
+use CMS\AuditLogger;
 
 class FontManagerModule
 {
@@ -149,6 +150,17 @@ class FontManagerModule
         $results = $this->scanActiveThemeFonts($this->getCustomFonts());
         $count   = count($results['detectedFonts']);
 
+        // ADDED: Theme-Scans für spätere Diagnose im Audit-Log festhalten.
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_THEME,
+            'font.scan',
+            'Theme-Schriften gescannt',
+            'theme',
+            null,
+            ['theme' => (string)($results['theme'] ?? ''), 'detected_fonts' => $count, 'scanned_files' => (int)($results['scannedFiles'] ?? 0)],
+            'info'
+        );
+
         return [
             'success' => true,
             'message' => sprintf('Theme-Scan abgeschlossen: %d erkannte Schrift%s in %d Dateien geprüft.', $count, $count === 1 ? '' : 'en', (int)($results['scannedFiles'] ?? 0)),
@@ -209,6 +221,17 @@ class FontManagerModule
         if ($errors !== []) {
             $message .= '. Hinweise: ' . implode(' | ', array_slice($errors, 0, 3));
         }
+
+        // ADDED: Sammel-Download im Audit-Log dokumentieren.
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_THEME,
+            'font.download.detected',
+            'Erkannte Theme-Schriften lokal gespeichert',
+            'font',
+            null,
+            ['downloaded' => $downloaded, 'skipped' => $skipped, 'errors' => $errors],
+            $errors === [] ? 'info' : 'warning'
+        );
 
         return ['success' => true, 'message' => $message . '.'];
     }
@@ -282,6 +305,18 @@ class FontManagerModule
                 "DELETE FROM {$this->prefix}custom_fonts WHERE id = ?",
                 [$fontId]
             );
+
+            // ADDED: Löschaktionen an zentralem Audit-Log spiegeln.
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_THEME,
+                'font.delete',
+                'Lokale Schriftart gelöscht',
+                'font',
+                $fontId,
+                ['file_path' => (string)($font->file_path ?? '')],
+                'warning'
+            );
+
             return ['success' => true, 'message' => 'Schriftart gelöscht.'];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
@@ -319,6 +354,11 @@ class FontManagerModule
         $cssUrl = 'https://fonts.googleapis.com/css2?family=' . $familyParam . ':wght@300;400;500;600;700&display=swap';
         $css = $this->fetchRemoteContent($cssUrl);
         if ($css === false) {
+            // IMPROVED: Fallback auf Legacy-CSS-Endpunkt, weil manche Hoster/Firewalls css2 blocken.
+            $legacyCssUrl = 'https://fonts.googleapis.com/css?family=' . $familyParam . ':300,400,500,600,700&display=swap';
+            $css = $this->fetchRemoteContent($legacyCssUrl);
+        }
+        if ($css === false) {
             return ['success' => false, 'error' => "Google Fonts CSS konnte nicht geladen werden für \"{$fontFamily}\"."];
         }
 
@@ -350,7 +390,9 @@ class FontManagerModule
                     continue;
                 }
 
-                file_put_contents($localPath, $fontData);
+                if (file_put_contents($localPath, $fontData) === false) {
+                    continue;
+                }
                 $downloadedFiles[] = $fileName;
 
                 // URL im CSS ersetzen
@@ -365,7 +407,9 @@ class FontManagerModule
 
         // Lokales CSS speichern
         $cssFile = $fontsDir . $slug . '.css';
-        file_put_contents($cssFile, $localCss);
+        if (file_put_contents($cssFile, $localCss) === false) {
+            return ['success' => false, 'error' => 'Lokale CSS-Datei für die Schrift konnte nicht geschrieben werden.'];
+        }
 
         // In DB speichern
         $this->db->execute(
@@ -382,6 +426,17 @@ class FontManagerModule
             ['font_stack_' . $slug, $fontStack]
         );
 
+        // ADDED: Erfolgreiche lokale Font-Downloads protokollieren.
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_THEME,
+            'font.download.google',
+            'Google Font lokal gespeichert',
+            'font',
+            null,
+            ['font_family' => $fontFamily, 'downloaded_files' => $downloadedFiles],
+            'info'
+        );
+
         return [
             'success' => true,
             'message' => "Schrift \"{$fontFamily}\" DSGVO-konform heruntergeladen (" . count($downloadedFiles) . " Dateien). Kein externer CDN-Aufruf mehr nötig.",
@@ -390,9 +445,13 @@ class FontManagerModule
 
     private function fetchRemoteContent(string $url): string|false
     {
+        $acceptHeader = str_contains($url, 'fonts.gstatic.com')
+            ? 'font/woff2,font/woff,font/ttf,application/octet-stream,*/*;q=0.1'
+            : 'text/css,*/*;q=0.1';
+
         $headers = [
             'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept: text/css,*/*;q=0.1',
+            'Accept: ' . $acceptHeader,
             'Accept-Language: de-DE,de;q=0.9,en;q=0.8',
         ];
 
@@ -423,11 +482,35 @@ class FontManagerModule
                 ]);
 
                 $response = curl_exec($ch);
+                $curlError = function_exists('curl_error') ? (string)curl_error($ch) : '';
                 $statusCode = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
                 curl_close($ch);
 
                 if (is_string($response) && $response !== '' && $statusCode >= 200 && $statusCode < 400) {
                     return $response;
+                }
+
+                // FIX: Windows-/Shared-Hosting-Setups scheitern oft an fehlenden CA-Bundles – einmal kontrolliert mit gelockerter SSL-Prüfung nachfassen.
+                if (str_contains(strtolower($curlError), 'ssl') || $statusCode === 0) {
+                    $ch = curl_init($url);
+                    if ($ch !== false) {
+                        curl_setopt_array($ch, [
+                            CURLOPT_RETURNTRANSFER => true,
+                            CURLOPT_FOLLOWLOCATION => true,
+                            CURLOPT_CONNECTTIMEOUT => 10,
+                            CURLOPT_TIMEOUT => 20,
+                            CURLOPT_HTTPHEADER => $headers,
+                            CURLOPT_SSL_VERIFYPEER => false,
+                            CURLOPT_SSL_VERIFYHOST => 0,
+                        ]);
+                        $response = curl_exec($ch);
+                        $statusCode = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+                        curl_close($ch);
+
+                        if (is_string($response) && $response !== '' && $statusCode >= 200 && $statusCode < 400) {
+                            return $response;
+                        }
+                    }
                 }
             }
         }

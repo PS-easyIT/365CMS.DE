@@ -14,6 +14,7 @@ if (!defined('ABSPATH')) {
 use CMS\Database;
 use CMS\SchemaManager;
 use CMS\Services\SystemService;
+use CMS\AuditLogger;
 
 class SystemInfoModule
 {
@@ -87,6 +88,15 @@ class SystemInfoModule
             $this->service->clearCache();
             $this->service->clearOldSessions();
             $this->service->clearOldFailedLogins();
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SYSTEM,
+                'system.cache.clear',
+                'System-Cache, Sessions und Login-Versuche bereinigt',
+                'system',
+                null,
+                [],
+                'warning'
+            );
             return ['success' => true, 'message' => 'Cache, alte Sessions und Login-Versuche bereinigt.'];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
@@ -107,6 +117,16 @@ class SystemInfoModule
                 }
             }
 
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SYSTEM,
+                'system.database.optimize',
+                'Datenbankoptimierung aus Diagnosebereich gestartet',
+                'database',
+                null,
+                ['success' => $success, 'failed' => $failed],
+                'warning'
+            );
+
             return ['success' => true, 'message' => $success . ' Tabelle(n) optimiert' . ($failed > 0 ? ', ' . $failed . ' fehlgeschlagen' : '') . '.'];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
@@ -117,6 +137,15 @@ class SystemInfoModule
     {
         try {
             $this->service->clearErrorLogs();
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SYSTEM,
+                'system.logs.clear',
+                'Fehlerlogs aus dem Diagnosebereich gelöscht',
+                'log',
+                null,
+                [],
+                'warning'
+            );
             return ['success' => true, 'message' => 'Fehlerlogs gelöscht.'];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
@@ -130,6 +159,15 @@ class SystemInfoModule
             $schema = new SchemaManager($db);
             $schema->clearFlag();
             $schema->createTables();
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SYSTEM,
+                'system.schema.create_missing',
+                'Fehlende Tabellen/Migrationen aus dem Diagnosebereich erstellt',
+                'database',
+                null,
+                [],
+                'warning'
+            );
             return ['success' => true, 'message' => 'Fehlende Tabellen wurden erstellt und Migrationen ausgeführt.'];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
@@ -172,6 +210,16 @@ class SystemInfoModule
             if ($errors !== []) {
                 $message .= ' Fehler bei: ' . implode(', ', $errors);
             }
+
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SYSTEM,
+                'system.database.repair',
+                'Tabellenprüfung/Reparatur aus dem Diagnosebereich ausgeführt',
+                'database',
+                null,
+                ['repaired' => $repaired, 'errors' => $errors],
+                $errors === [] ? 'warning' : 'critical'
+            );
 
             return ['success' => true, 'message' => $message];
         } catch (\Throwable $e) {
@@ -290,6 +338,16 @@ class SystemInfoModule
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Monitoring-Einstellungen konnten nicht gespeichert werden: ' . $e->getMessage()];
         }
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            'system.monitoring.save',
+            'Monitoring- und Alert-Einstellungen gespeichert',
+            'monitoring',
+            null,
+            $settings,
+            'warning'
+        );
 
         return ['success' => true, 'message' => 'Monitoring- und E-Mail-Einstellungen gespeichert.'];
     }

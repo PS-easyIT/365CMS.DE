@@ -3,7 +3,7 @@
 ## 
 
 
-Willkommen bei der Dokumentation des **365CMS**! Dieses CMS ist ein modulares, selbst gehostetes Content-Management-System – entwickelt mit PHP 8.3, PDO/MySQL und einem WordPress-ähnlichen Hook-System.
+Willkommen bei der Dokumentation des **365CMS**! Dieses CMS ist ein modulares, selbst gehostetes Content-Management-System – entwickelt mit PHP 8.3, PDO/MySQL und einem WordPress-ähnlichen Hook-System. Der aktuelle dokumentierte Stand dieser Übersicht ist **Release 2.3.1**.
 
 ---
 
@@ -23,6 +23,12 @@ Lest diese Dokumente in dieser Reihenfolge:
 ---
 
 ## 📚 Verfügbare Dokumentationen
+
+### Release-Fokus `2.2.x` → `2.3.1`
+
+- **Performance Center & Monitoring** mit eigenen Admin-Unterseiten für Cache, Medien, Datenbank, Sessions, Response-Time, Cron, Disk-Usage, Health-Checks und E-Mail-Alerts
+- **SEO-Suite** mit Audit, Meta-Daten, Social, Schema, Sitemap und technischem SEO sowie erweiterten Redaktionskarten in Seiten/Beiträgen
+- **Font Self-Hosting & WebP** mit Theme-Font-Scan, Sammeldownload erkannter Google Fonts und Massenkonvertierung der Medienbibliothek zu WebP
 
 ### 🚀 Getting Started
 

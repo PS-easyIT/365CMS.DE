@@ -1,4 +1,4 @@
-# 365CMS.DE | [MERIDAN THEME](https://meridan.365cms.de/) [![Generic badge](https://img.shields.io/badge/VERSION-2.1.2-blue.svg)](https://shields.io/)
+# 365CMS.DE | [MERIDAN THEME](https://meridan.365cms.de/) [![Generic badge](https://img.shields.io/badge/VERSION-2.3.1-blue.svg)](https://shields.io/)
  ---
 
 ![PHP](https://img.shields.io/badge/php-%23777BB4.svg?style=for-the-badge&logo=php&logoColor=white)![MySQL](https://img.shields.io/badge/mysql-4479A1.svg?style=for-the-badge&logo=mysql&logoColor=white)![MariaDB](https://img.shields.io/badge/MariaDB-003545?style=for-the-badge&logo=mariadb&logoColor=white)![HTML5](https://img.shields.io/badge/html5-%23E34F26.svg?style=for-the-badge&logo=html5&logoColor=white)![CSS3](https://img.shields.io/badge/css3-%231572B6.svg?style=for-the-badge&logo=css3&logoColor=white)
@@ -55,6 +55,8 @@
 | SEO-Tools | Performance-Center |
 |---|---|
 | <img src="DOC/screenshots/admincenter_seo.jpg" width="340" alt="SEO-Einstellungen"> | <img src="DOC/screenshots/admincenter_performance.jpg" width="340" alt="Performance-Tools"> |
+
+*Neu in `2.2.x`/`2.3.x`: getrennte Hauptbereiche für SEO, Performance, System, Info und Diagnose; SEO-Suite mit Audit/Meta/Social/Schema/Sitemap/Technical sowie WebP-Massenkonvertierung und lokales Font-Self-Hosting.*
 
 ---
 
@@ -134,6 +136,8 @@
 - ✅ **Robots.txt** - Editierbares Robots.txt mit Vorlagen
 - ✅ **Kanonische URLs** - Automatische Canonical-Link-Verwaltung
 - ✅ **Analytics-Dashboard** - Besucherstatistiken, Seitenaufrufe, Top-Seiten, Referrer
+- ✅ **SEO-Suite** - Eigene Unterseiten für Dashboard, Audit, Meta-Daten, Social Media, strukturierte Daten, Sitemap und technisches SEO
+- ✅ **SEO-Editor-Workflow** - Drei Karten unter Seiten/Beiträgen für Score, Lesbarkeit und SERP-/Social-Vorschau
 - ✅ **System-Health** - Live-Monitoring von PHP, MySQL, Speicher, Cache-Status
 
 ### ⚡ Performance & Optimierung
@@ -141,6 +145,7 @@
 - ✅ **Performance-Analyse** - Laufzeitmetriken, Slow-Query-Log, Ressourcen-Analyse
 - ✅ **Asset-Optimierung** - CSS-Minifikation, JS-Minifikation, Font-Preloading
 - ✅ **Lazy Loading** - Bilder und schwere Ressourcen werden verzögert geladen
+- ✅ **WebP-Massenkonvertierung** - Geeignete Medien können gesammelt konvertiert, Einsparungen ausgewertet und bekannte Referenzen automatisch umgebogen werden
 - ✅ **Datenbank-Optimierung** - OPTIMIZE TABLE, REPAIR TABLE, Auto-Rebuild-Funktionen
 - ✅ **Cache-Statistiken** - Hit-Rate, Miss-Rate, gespeicherter Speicher-Overhead
 
@@ -153,7 +158,7 @@
 - ✅ **CSS-Generator** - Automatische CSS-Generierung aus Customizer-Einstellungen
 - ✅ **Import/Export** - Theme-Einstellungen als JSON sichern und teilen
 - ✅ **Google Fonts** - 8+ integrierte Webfonts mit automatischem Lokal-Hosting
-- ✅ **Lokale Fonts Manager** - Eigene Schriften hochladen, verwalten und in Themes einbinden
+- ✅ **Lokale Fonts Manager** - Eigene Schriften hochladen, Theme-Fonts scannen, erkannte Google Fonts gesammelt lokal self-hosten und in Themes einbinden
 - ✅ **Custom CSS/JS** - Eigene Styles und Scripts pro Theme hinzufügen
 - ✅ **Dark Mode Support** - Natives Dark-Mode-Handling in allen mitgelieferten Themes
 
@@ -209,6 +214,7 @@
 - ✅ **Datenbank-Diagnose** - Tabellen-Status des vollständigen Core-Schemas mit derzeit 30 CMS-Tabellen, Datenbankgröße, CHECK TABLE und Fehleranzeige
 - ✅ **Dateisystem-Check** - Verzeichnis-Berechtigungen, Schreib-Tests, Disk-Space-Anzeige
 - ✅ **Security-Status** - HTTPS-Prüfung, Security-Score, Failed-Logins der letzten 24h
+- ✅ **Monitoring-Unterseiten** - Response-Time, Cron-Status, Disk-Usage, Scheduled Tasks, Health-Check und E-Mail-Alerts als getrennte Diagnose-Werkzeuge
 - ✅ **Backup-System** - Datenbank- und Dateisystem-Backup, E-Mail-Versand, S3-Anbindung
 - ✅ **Activity-Log** - Vollständige Aktivitätsverfolgung aller Admin-Aktionen
 - ✅ **System-Tools** - Cache leeren, Sessions bereinigen, fehlende Tabellen erstellen, Tabellen reparieren/optimieren, Logs leeren

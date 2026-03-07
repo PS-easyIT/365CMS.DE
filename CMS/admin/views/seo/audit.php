@@ -56,6 +56,15 @@ $scoreLabels = ['good' => 'Gut', 'warning' => 'Warnung', 'bad' => 'Kritisch'];
                     </thead>
                     <tbody>
                         <?php foreach ($content as $item): ?>
+                            <?php
+                            // FIX: View defensiv gegen unvollständige Audit-Datensätze absichern.
+                            $itemScore = (string)($item['seo_score'] ?? 'warning');
+                            if (!array_key_exists($itemScore, $scoreColors)) {
+                                $itemScore = 'warning';
+                            }
+                            $itemScoreValue = (int)($item['seo_score_value'] ?? (($item['analysis']['score'] ?? 0)));
+                            $itemIssues = array_values((array)($item['seo_issues'] ?? []));
+                            ?>
                             <tr>
                                 <td>
                                     <div class="fw-semibold"><?= htmlspecialchars((string)($item['title'] ?? '')) ?></div>
@@ -70,18 +79,18 @@ $scoreLabels = ['good' => 'Gut', 'warning' => 'Warnung', 'bad' => 'Kritisch'];
                                     <div class="small"><strong>Canonical:</strong> <?= htmlspecialchars((string)($item['canonical_url'] ?? 'automatisch')) ?></div>
                                     <div class="small"><strong>Schema:</strong> <?= htmlspecialchars((string)($item['schema_type'] ?? 'WebPage')) ?></div>
                                 </td>
-                                <td><span class="badge bg-<?= htmlspecialchars($scoreColors[$item['seo_score']] ?? 'secondary') ?>"><?= (int)($item['seo_score_value'] ?? 0) ?> · <?= htmlspecialchars($scoreLabels[$item['seo_score']] ?? '?') ?></span></td>
+                                <td><span class="badge bg-<?= htmlspecialchars($scoreColors[$itemScore] ?? 'secondary') ?>"><?= $itemScoreValue ?> · <?= htmlspecialchars($scoreLabels[$itemScore] ?? '?') ?></span></td>
                                 <td>
-                                    <?php foreach (array_slice((array)($item['seo_issues'] ?? []), 0, 4) as $issue): ?>
+                                    <?php foreach (array_slice($itemIssues, 0, 4) as $issue): ?>
                                         <div class="small text-warning"><strong><?= htmlspecialchars((string)($issue['msg'] ?? '')) ?></strong> <span class="text-secondary">· <?= htmlspecialchars((string)($issue['detail'] ?? '')) ?></span></div>
                                     <?php endforeach; ?>
-                                    <?php if (empty($item['seo_issues'])): ?><span class="text-success small">✓ Keine offenen Punkte</span><?php endif; ?>
+                                    <?php if ($itemIssues === []): ?><span class="text-success small">✓ Keine offenen Punkte</span><?php endif; ?>
                                 </td>
                                 <td class="text-end">
                                     <details>
                                         <summary class="btn btn-outline-secondary btn-sm">Bearbeiten</summary>
                                         <form method="post" class="mt-3" style="min-width:340px;">
-                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars((string)($csrfToken ?? '')) ?>">
                                             <input type="hidden" name="action" value="save_audit_item">
                                             <input type="hidden" name="content_type" value="<?= htmlspecialchars((string)($item['type'] ?? '')) ?>">
                                             <input type="hidden" name="content_id" value="<?= (int)($item['id'] ?? 0) ?>">
