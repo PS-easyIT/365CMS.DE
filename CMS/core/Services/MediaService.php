@@ -463,7 +463,7 @@ class MediaService {
     public function saveSettings(array $settings): bool|WP_Error {
         $settings = $this->normalizeSettings($settings);
         $protectionResult = $this->syncUploadsProtection((bool)($settings['protect_uploads_dir'] ?? false));
-        if (is_wp_error($protectionResult)) {
+        if ($protectionResult instanceof WP_Error) {
             return $protectionResult;
         }
         
@@ -501,7 +501,7 @@ class MediaService {
     public function getItems(string $path = ''): array|WP_Error {
         $fullPath = $this->resolvePath($path);
         
-        if (is_wp_error($fullPath)) {
+        if ($fullPath instanceof WP_Error) {
             return $fullPath;
         }
 
@@ -575,7 +575,7 @@ class MediaService {
         $name = $this->sanitizeFileName($name);
         $fullPath = $this->resolvePath($parentPath);
 
-        if (is_wp_error($fullPath)) {
+        if ($fullPath instanceof WP_Error) {
             return $fullPath;
         }
 
@@ -711,7 +711,7 @@ class MediaService {
         }
 
         $fullPath = $this->resolvePath($targetPath);
-        if (is_wp_error($fullPath)) {
+        if ($fullPath instanceof WP_Error) {
             return $fullPath;
         }
 
@@ -829,7 +829,7 @@ class MediaService {
         $fullPath = $this->resolvePath($path);
         $normalizedPath = trim(str_replace('\\', '/', $path), '/');
 
-        if (is_wp_error($fullPath)) {
+        if ($fullPath instanceof WP_Error) {
             return $fullPath;
         }
 
@@ -887,7 +887,7 @@ class MediaService {
         $fullOldPath = $this->resolvePath($oldPath);
         $oldPath = trim(str_replace('\\', '/', $oldPath), '/');
         
-        if (is_wp_error($fullOldPath)) {
+        if ($fullOldPath instanceof WP_Error) {
             return $fullOldPath;
         }
         

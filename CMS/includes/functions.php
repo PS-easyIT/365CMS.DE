@@ -295,7 +295,7 @@ function format_date(string $date, string $format = 'd.m.Y'): string {
 /**
  * Time ago helper — human-readable relative timestamps
  *
- * Uses Carbon when available (ASSETS/Carbon), falls back to native PHP.
+ * Uses Carbon when available (CMS/assets/Carbon), falls back to native PHP.
  */
 function time_ago(string|int $datetime): string {
     if (is_string($datetime)) {
@@ -308,7 +308,7 @@ function time_ago(string|int $datetime): string {
         return '-';
     }
 
-    // Try Carbon if loaded via ASSETS autoloader
+    // Try Carbon if loaded via CMS/assets/autoload.php
     if (class_exists('Carbon\\Carbon')) {
         try {
             return \Carbon\Carbon::createFromTimestamp($timestamp)->locale('de')->diffForHumans();

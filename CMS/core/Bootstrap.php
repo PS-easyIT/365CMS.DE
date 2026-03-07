@@ -116,10 +116,17 @@ class Bootstrap
             require_once ABSPATH . 'includes/subscription-helpers.php';
         }
 
-        // Vendor-Autoloader für externe Libraries (ASSETS/)
-        $vendorAutoload = dirname(ABSPATH) . '/ASSETS/autoload.php';
+        // Vendor-Autoloader für externe Libraries (CMS/assets/)
+        // Primär: produktiver Autoloader aus CMS/assets/ (wird aufs Hosting deployed)
+        $vendorAutoload = ABSPATH . 'assets/autoload.php';
         if (file_exists($vendorAutoload)) {
             require_once $vendorAutoload;
+        } else {
+            // Fallback: Entwicklungs-Autoloader (ASSETS/ im Repo-Root, wird NICHT deployed)
+            $devAutoload = dirname(ABSPATH) . '/ASSETS/autoload.php';
+            if (file_exists($devAutoload)) {
+                require_once $devAutoload;
+            }
         }
     }
     
@@ -321,6 +328,24 @@ class Bootstrap
             Hooks::addAction('head', function () {
                 echo '<link rel="stylesheet" href="' . SITE_URL . '/assets/photoswipe/photoswipe.css">' . "\n";
             }, 30);
+
+            // Custom Fonts (DSGVO-konform lokal gespeicherte Schriften)
+            Hooks::addAction('head', function () {
+                try {
+                    $db = Database::instance();
+                    $fonts = $db->get_results(
+                        "SELECT css_path FROM {$db->getPrefix()}custom_fonts WHERE css_path IS NOT NULL AND css_path != ''"
+                    ) ?: [];
+                    foreach ($fonts as $font) {
+                        $cssFile = ABSPATH . ltrim($font->css_path, '/');
+                        if (is_file($cssFile)) {
+                            echo '<link rel="stylesheet" href="' . SITE_URL . '/' . htmlspecialchars($font->css_path) . '">' . "\n";
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    // Tabelle existiert noch nicht – ignorieren
+                }
+            }, 15);
             Hooks::addAction('body_end', function () {
                 echo '<script type="module" src="' . SITE_URL . '/assets/js/photoswipe-init.js"></script>' . "\n";
             }, 10);

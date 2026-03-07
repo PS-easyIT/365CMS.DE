@@ -6,13 +6,13 @@
 
 ## Übersicht
 
-Die Benutzerverwaltung ist der zentrale Bereich zur Verwaltung aller registrierten Accounts. Sie bietet vollständige CRUD-Operationen, Rollen-Zuweisung, Gruppen-Management und Bulk-Aktionen.
+Die Benutzerverwaltung ist der zentrale Bereich zur Verwaltung aller registrierten Accounts. Sie bietet vollständige CRUD-Operationen, Rollen-Zuweisung, Gruppen-Management, Grid.js-Listenansicht und Bulk-Aktionen.
 
 ---
 
 ## Statistiken-Übersicht (Stat-Cards)
 
-Oben auf der Seite werden vier KPI-Kacheln angezeigt:
+Oben auf der Listenansicht werden vier KPI-Kacheln angezeigt:
 
 | Kachel | Inhalt |
 |--------|--------|
@@ -25,29 +25,29 @@ Oben auf der Seite werden vier KPI-Kacheln angezeigt:
 
 ## Benutzer-Tabelle
 
+Die Hauptliste wird über **Grid.js** geladen und serverseitig aus der Admin-API befüllt.
+
 ### Filter & Suche
-- **Volltextsuche** über Name, E-Mail, Benutzername
-- **Rollen-Filter:** Alle, Admin, Editor, Member, Moderator
-- **Status-Filter:** Aktiv / Inaktiv
+- **Grid.js-Suche** über die API-Liste
+- **Rollen-Tabs:** Alle, vorhandene Rollen, Gesperrt
+- **Bulk-Auswahl** per Checkbox direkt in der Liste
 
 ### Tabellenspalten
 
 | Spalte | Beschreibung |
 |--------|--------------|
-| **#** | Benutzer-ID |
-| **Name** | Vor- und Nachname mit Avatar-Initials |
-| **Benutzername** | Login-Name (`@username`) |
+| **Benutzer** | Login-Name mit Avatar-Initials und optionalem Anzeigenamen |
 | **E-Mail** | E-Mail-Adresse |
 | **Rolle** | Farbiges Rollen-Badge |
-| **Gruppe** | Zugewiesene Benutzergruppe |
+| **Gruppen** | Anzahl zugewiesener Gruppen |
 | **Status** | Aktiv / Inaktiv Badge |
 | **Erstellt** | Registrierungsdatum |
-| **Aktionen** | Bearbeiten · Passwort · Löschen |
+| **Aktionen** | Bearbeiten · Löschen (nicht für den eigenen Account oder geschützte Admins) |
 
 ### Aktionen pro Benutzer
-- ✏️ **Bearbeiten** – Öffnet Bearbeitungs-Modal mit allen Feldern
-- 🔑 **Passwort zurücksetzen** – Generiert temporäres Passwort
-- 🗑️ **Löschen** – Permanente Löschung mit Bestätigungs-Modal
+- ✏️ **Bearbeiten** – Öffnet die Detail-/Bearbeitungsansicht
+- 🔑 **Passwort ändern** – Direkt in der Bearbeitungsansicht, optional leer lassen
+- 🗑️ **Löschen** – Permanente Löschung mit zentralem Bestätigungs-Modal
 
 ---
 
@@ -56,22 +56,22 @@ Oben auf der Seite werden vier KPI-Kacheln angezeigt:
 **Felder:**
 - Benutzername (alphanumerisch, eindeutig)
 - E-Mail (valide E-Mail, eindeutig)
-- Vorname / Nachname
-- Passwort (min. 8 Zeichen)
+- Anzeigename
+- Passwort (min. 12 Zeichen inkl. Policy)
 - Rolle (Admin, Editor, Moderator, Member)
-- Gruppe (optional)
-- Status (Aktiv/Inaktiv)
+- Standardstatus: `active`
 
 ---
 
 ## Benutzer bearbeiten
 
-Alle Felder des Erstellungs-Formulars sind bearbeitbar. Passwort-Feld leer lassen = Passwort nicht ändern.
+Die Bearbeitungsansicht ist als eigene Admin-Seite aufgebaut. Passwort-Feld leer lassen = Passwort nicht ändern.
 
 **Zusätzlich sichtbar:**
 - Letzter Login-Zeitstempel
-- Anzahl aktiver Sessions
-- Zugewiesenes Abo-Paket
+- Interne Benutzer-ID
+- Gruppen-Mitgliedschaften
+- Rolle/Status mit Schutz für Self-Edit
 
 ---
 
@@ -83,9 +83,12 @@ Alle Felder des Erstellungs-Formulars sind bearbeitbar. Passwort-Feld leer lasse
 |--------|--------------|
 | **Aktivieren** | Status auf `active` setzen |
 | **Deaktivieren** | Status auf `inactive` setzen |
-| **Löschen** | Permanente Massenl­öschung (mit Bestätigung) |
-| **Rolle zuweisen** | Alle markierten Benutzer erhalten dieselbe Rolle |
-| **Gruppe zuweisen** | Alle markierten Benutzer einer Gruppe zuweisen |
+| **Sperren** | Status auf `banned` setzen |
+| **Löschen** | Permanente Massenlöschung (mit Bestätigung) |
+| **Rolle → Admin** | Alle markierten Benutzer werden zu Admins |
+| **Rolle → Member** | Alle markierten Benutzer werden zu Membern |
+
+Administrator-Accounts bleiben bei Lösch-Bulk-Aktionen geschützt.
 
 ---
 
@@ -105,6 +108,7 @@ Alle Felder des Erstellungs-Formulars sind bearbeitbar. Passwort-Feld leer lasse
 
 - Alle Passwörter werden BCrypt-gehasht gespeichert
 - Admins können andere Admins nicht löschen (Schutz vor Selbst-Aussperrung)
+- Der aktuell angemeldete Benutzer kann sich nicht selbst löschen oder seine eigene Rolle/Status versehentlich entwerten
 - Gelöschte Benutzer werden aus allen Sessions entfernt
 - CSRF-Token für alle Formulare und AJAX-Anfragen verpflichtend
 

@@ -161,12 +161,27 @@ class SystemService {
             'plugin_meta' => 'Plugin-Metadaten',
             'theme_customizations' => 'Theme-Anpassungen',
             
+            // Content
+            'post_categories' => 'Blog-Kategorien',
+            'posts' => 'Blog-Beiträge',
+            'comments' => 'Kommentare',
+            'page_views' => 'Seitenaufrufe',
+            'orders' => 'Bestellungen',
+            'messages' => 'Nachrichten',
+
             // Subscription System
             'subscription_plans' => 'Abo-Pakete',
             'user_subscriptions' => 'Benutzer-Abos',
             'user_groups' => 'Benutzer-Gruppen',
             'user_group_members' => 'Gruppen-Mitglieder',
-            'subscription_usage' => 'Abo-Nutzung'
+            'subscription_usage' => 'Abo-Nutzung',
+
+            // Security & Audit
+            'failed_logins' => 'Fehlgeschlagene Logins',
+            'audit_log' => 'Audit-Log',
+
+            // Custom Fonts
+            'custom_fonts' => 'Eigene Schriften',
         ];
         
         $table_status = [];

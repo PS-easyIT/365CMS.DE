@@ -48,6 +48,12 @@ Der integrierte Marketplace ermöglicht das Durchsuchen, Installieren und Aktivi
 
 **Datei:** `admin/plugin-marketplace.php`
 
+### Aktueller Stand
+- Der Bereich ist derzeit bewusst als **Coming-Soon-Vorschau** umgesetzt.
+- Die Seite nutzt das zentrale Admin-Layout und verweist für produktive Aktionen aktuell auf:
+    - `Admin → Plugins` für Upload, Aktivierung und Verwaltung
+    - `Admin → Updates` für vorhandene Update-Flows
+
 ### Suche & Filter
 - **Volltextsuche** in Plugin-Name und Beschreibung
 - **Kategorien:** Content, Commerce, Security, SEO, Integration, Tools
@@ -63,7 +69,7 @@ Der integrierte Marketplace ermöglicht das Durchsuchen, Installieren und Aktivi
 | **cms-jobads** | Content | Stellenanzeigen-Portal |
 | **cms-importer** | Tools | WordPress XML-Import, JSON-Import, CSV-Import |
 
-### Plugin installieren
+### Plugin installieren (aktueller Weg)
 
 **Schritt 1 – Upload:**
 ```
@@ -77,6 +83,8 @@ Admin → Plugins → [Plugin-Name] → Aktivieren
 
 **Schritt 3 – Konfiguration:**
 Plugins zeigen nach Aktivierung ggf. eigene Menüpunkte in der Admin-Sidebar.
+
+> Hinweis: Die eigentliche Marketplace-Registry mit Suche, Lizenzprüfung und 1-Klick-Installation ist noch nicht produktiv angebunden.
 
 ### Plugin-Struktur (Mindest-Anforderung)
 

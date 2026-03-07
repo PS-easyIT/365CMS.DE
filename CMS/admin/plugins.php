@@ -1,327 +1,65 @@
 <?php
-/**
- * Plugin Management Admin Page
- * 
- * @package CMSv2\Admin
- */
-
 declare(strict_types=1);
 
-// Load configuration first
-require_once dirname(__DIR__) . '/config.php';
-
-// Load autoloader
-require_once CORE_PATH . 'autoload.php';
-
-use CMS\Auth;
-use CMS\Security;
-use CMS\PluginManager;
+/**
+ * Plugins – Entry Point
+ * Route: /admin/plugins
+ */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
-// Security check
+use CMS\Auth;
+use CMS\Security;
+
 if (!Auth::instance()->isAdmin()) {
     header('Location: ' . SITE_URL);
     exit;
 }
 
-$auth = Auth::instance();
-$user = $auth->getCurrentUser();
-$security = Security::instance();
-$pluginManager = PluginManager::instance();
+require_once __DIR__ . '/modules/plugins/PluginsModule.php';
+$module = new PluginsModule();
+$alert  = null;
 
-// Handle form submissions
-$message = '';
-$messageType = '';
-$success = null;
-$error = null;
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    if (!$security->verifyToken($_POST['csrf_token'] ?? '', 'plugin_management')) {
-        $message = 'Sicherheitsüberprüfung fehlgeschlagen';
-        $messageType = 'error';
+// POST-Handler: Token ZUERST verifizieren, bevor ein neuer generiert wird
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'admin_plugins')) {
+        $alert = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
     } else {
-        switch ($_POST['action']) {
+        $action = $_POST['action'] ?? '';
+        switch ($action) {
             case 'activate':
-                $plugin = $_POST['plugin'] ?? '';
-                $result = $pluginManager->activatePlugin($plugin);
-                
-                if ($result === true) {
-                    $message = 'Plugin erfolgreich aktiviert';
-                    $messageType = 'success';
-                } else {
-                    $message = $result;
-                    $messageType = 'error';
-                }
+                $result = $module->activatePlugin($_POST['slug'] ?? '');
                 break;
-                
             case 'deactivate':
-                $plugin = $_POST['plugin'] ?? '';
-                $result = $pluginManager->deactivatePlugin($plugin);
-                
-                if ($result === true) {
-                    $message = 'Plugin erfolgreich deaktiviert';
-                    $messageType = 'success';
-                } else {
-                    $message = $result;
-                    $messageType = 'error';
-                }
+                $result = $module->deactivatePlugin($_POST['slug'] ?? '');
                 break;
-                
             case 'delete':
-                $plugin = $_POST['plugin'] ?? '';
-                $confirm = $_POST['confirm_delete'] ?? '';
-                
-                if ($confirm !== 'DELETE') {
-                    $message = 'Löschen abgebrochen. Bitte "DELETE" eingeben zur Bestätigung.';
-                    $messageType = 'error';
-                } else {
-                    $result = $pluginManager->deletePlugin($plugin);
-                    
-                    if ($result === true) {
-                        $message = 'Plugin erfolgreich gelöscht';
-                        $messageType = 'success';
-                    } else {
-                        $message = $result;
-                        $messageType = 'error';
-                    }
-                }
+                $result = $module->deletePlugin($_POST['slug'] ?? '');
                 break;
-                
-            case 'upload':
-                if (!isset($_FILES['plugin_file'])) {
-                    $message = 'Keine Datei ausgewählt';
-                    $messageType = 'error';
-                } else {
-                    $result = $pluginManager->installPlugin($_FILES['plugin_file']);
-                    
-                    if ($result === true) {
-                        $message = 'Plugin erfolgreich hochgeladen und installiert';
-                        $messageType = 'success';
-                    } else {
-                        $message = $result;
-                        $messageType = 'error';
-                    }
-                }
-                break;
+            default:
+                $result = ['success' => false, 'error' => 'Unbekannte Aktion.'];
         }
+        $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
+        header('Location: ' . SITE_URL . '/admin/plugins');
+        exit;
     }
 }
 
-// Get all plugins
-$plugins = $pluginManager->getAvailablePlugins();
+if (isset($_SESSION['admin_alert'])) {
+    $alert = $_SESSION['admin_alert'];
+    unset($_SESSION['admin_alert']);
+}
 
-// Generate CSRF token
-$csrfToken = $security->generateToken('plugin_management');
+// Token NACH dem POST-Handler generieren (für das Formular-Rendering)
+$csrfToken = Security::instance()->generateToken('admin_plugins');
 
-// Load admin menu
-require_once __DIR__ . '/partials/admin-menu.php';
-?>
-<?php renderAdminLayoutStart('Plugin-Verwaltung', 'plugins'); ?>
-                <div class="page-header d-print-none mb-3">
-            <div class="row align-items-center">
-                <div class="col-auto">
-                    <div class="page-pretitle">Plugins aktivieren, deaktivieren, löschen oder neue installieren.</div>
-                    <h2 class="page-title">🔌 Plugin-Verwaltung</h2>
-                </div>
-            </div>
-        </div>
-        
-        <?php
-        if ($message !== '') {
-            if ($messageType === 'success') {
-                $success = $message;
-            } else {
-                $error = $message;
-            }
-        }
-        renderAdminAlerts();
-        ?>
-        
-        <!-- Statistics -->
-        <div class="dashboard-grid">
-            <div class="stat-card">
-                <h3>Plugins</h3>
-                <div class="stat-number"><?php echo count($plugins); ?></div>
-                <div class="stat-label">Installierte Plugins</div>
-            </div>
-            <div class="stat-card">
-                <h3>Aktiv</h3>
-                <div class="stat-number"><?php echo count(array_filter($plugins, fn($p) => $p['active'])); ?></div>
-                <div class="stat-label">Aktive Plugins</div>
-            </div>
-            <div class="stat-card">
-                <h3>Inaktiv</h3>
-                <div class="stat-number"><?php echo count(array_filter($plugins, fn($p) => !$p['active'])); ?></div>
-                <div class="stat-label">Inaktive Plugins</div>
-            </div>
-        </div>
-        
-        <!-- Plugins List -->
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">🔌 Installierte Plugins</h3>
-            </div>
-            <div class="card-body">
-        <?php if (empty($plugins)): ?>
-                <div class="empty-state">
-                    <p style="font-size:2.5rem;margin:0;">🔌</p>
-                    <p><strong>Noch keine Plugins installiert</strong></p>
-                    <p class="text-muted">Laden Sie Ihr erstes Plugin über das Formular unten hoch.</p>
-                </div>
-        <?php else: ?>
-                <div class="plugin-list">
-                    <?php foreach ($plugins as $folder => $plugin): ?>
-                    <div class="plugin-item <?php echo $plugin['active'] ? 'active' : 'inactive'; ?>">
-                        <!-- Status Badge -->
-                        <div class="plugin-status-badge">
-                            <span class="plugin-status <?php echo $plugin['active'] ? 'active' : 'inactive'; ?>">
-                                <?php echo $plugin['active'] ? '✓ Aktiv' : '○ Inaktiv'; ?>
-                            </span>
-                        </div>
-                        
-                        <!-- Plugin Info -->
-                        <div class="plugin-info">
-                            <div class="plugin-header">
-                                <h3><?php echo htmlspecialchars($plugin['name'] ?? $folder); ?></h3>
-                            </div>
-                            
-                            <div class="plugin-meta">
-                                <?php if (!empty($plugin['version'])): ?>
-                                    <span class="plugin-meta-item">
-                                        <span>📌</span> 
-                                        <span>v<?php echo htmlspecialchars($plugin['version']); ?></span>
-                                    </span>
-                                <?php endif; ?>
-                                
-                                <?php if (!empty($plugin['author'])): ?>
-                                    <span class="plugin-meta-item">
-                                        <span>👤</span>
-                                        <span><?php echo htmlspecialchars($plugin['author']); ?></span>
-                                    </span>
-                                <?php endif; ?>
-                                
-                                <?php if (!empty($plugin['requires'])): ?>
-                                    <span class="plugin-meta-item">
-                                        <span>⚙️</span>
-                                        <span><?php echo htmlspecialchars($plugin['requires']); ?></span>
-                                    </span>
-                                <?php endif; ?>
-                                
-                                <span class="plugin-meta-item">
-                                    <span>📁</span>
-                                    <span><?php echo htmlspecialchars($folder); ?></span>
-                                </span>
-                            </div>
-                            
-                            <?php if (!empty($plugin['description'])): ?>
-                                <p class="plugin-description">
-                                    <?php echo htmlspecialchars($plugin['description']); ?>
-                                </p>
-                            <?php endif; ?>
-                        </div>
-                        
-                        <!-- Actions -->
-                        <div class="plugin-actions">
-                            <?php if ($plugin['active']): ?>
-                                <form method="post" style="display:inline;">
-                                    <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                                    <input type="hidden" name="action" value="deactivate">
-                                    <input type="hidden" name="plugin" value="<?php echo htmlspecialchars($folder); ?>">
-                                    <button type="submit" class="btn btn-secondary btn-sm">⏸ Deaktivieren</button>
-                                </form>
-                            <?php else: ?>
-                                <form method="post" style="display:inline;">
-                                    <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                                    <input type="hidden" name="action" value="activate">
-                                    <input type="hidden" name="plugin" value="<?php echo htmlspecialchars($folder); ?>">
-                                    <button type="submit" class="btn btn-primary btn-sm">▶ Aktivieren</button>
-                                </form>
-                                <button type="button" class="btn btn-danger btn-sm"
-                                        onclick="showDeleteModal('<?php echo htmlspecialchars($folder, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($plugin['name'] ?? $folder, ENT_QUOTES); ?>')">🗑️</button>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-        <?php endif; ?>
-            </div>
-        </div><!-- /.card -->
-        
-        <!-- Upload Section -->
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">📦 Neues Plugin installieren</h3>
-            </div>
-            <div class="card-body">
-                <form method="post" enctype="multipart/form-data" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
-                    <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                    <input type="hidden" name="action" value="upload">
-                    <input type="file" name="plugin_file" accept=".zip" required class="form-control" style="flex:1;min-width:200px;">
-                    <button type="submit" class="btn btn-primary btn-sm">📤 Hochladen &amp; installieren</button>
-                </form>
-                <small class="form-hint" style="margin-top:0.5rem;display:block;">Maximale Dateigröße: 50 MB | Format: ZIP</small>
-            </div>
-        </div>
-    
-    <!-- Delete Confirmation Modal -->
-    <div class="modal modal-blur fade" id="deleteModal" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
-            <div class="modal-content">
-                <div class="modal-status bg-danger"></div>
-                <div class="modal-header">
-                    <h5 class="modal-title">🗑️ Plugin löschen</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Möchten Sie das Plugin <strong id="pluginNameToDelete"></strong> wirklich löschen?</p>
-                    <div class="alert alert-danger">⚠️ Diese Aktion kann nicht rückgängig gemacht werden!</div>
-                    
-                    <form method="post" id="deleteForm">
-                        <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                        <input type="hidden" name="action" value="delete">
-                        <input type="hidden" name="plugin" id="pluginFolderToDelete" value="">
-                        
-                        <div class="mb-3">
-                            <label for="confirmDelete" class="form-label">
-                                Zum Bestätigen <code>DELETE</code> eingeben: <span class="text-danger">*</span>
-                            </label>
-                            <input type="text" name="confirm_delete" id="confirmDelete" class="form-control"
-                                   placeholder="DELETE" autocomplete="off">
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-                    <button type="submit" form="deleteForm" class="btn btn-danger">🗑️ Plugin löschen</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <script>
-        function closeDeleteModal() {
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteModal')).hide();
-        }
+$pageTitle  = 'Plugins';
+$activePage = 'plugins';
+$data       = $module->getData();
 
-        function showDeleteModal(folder, name) {
-            document.getElementById('pluginFolderToDelete').value = folder;
-            document.getElementById('pluginNameToDelete').textContent = name;
-            document.getElementById('confirmDelete').value = '';
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteModal')).show();
-        }
-        
-        // Close modal on ESC key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') closeDeleteModal();
-        });
-        
-        // Close modal on background click
-        window.addEventListener('click', function(e) {
-            const m = document.getElementById('deleteModal');
-            if (e.target === m) closeDeleteModal();
-        });
-    </script>
-<?php renderAdminLayoutEnd(); ?>
+require_once __DIR__ . '/partials/header.php';
+require_once __DIR__ . '/partials/sidebar.php';
+require_once __DIR__ . '/views/plugins/list.php';
+require_once __DIR__ . '/partials/footer.php';

@@ -26,7 +26,7 @@ if (!defined('ABSPATH')) {
 class SchemaManager
 {
     /** Flag-Datei-Version – erhöhen wenn Schema geändert wird */
-    public const SCHEMA_VERSION = 'v8';
+    public const SCHEMA_VERSION = 'v9';
 
     private Database $db;
     private string $prefix;
@@ -554,6 +554,19 @@ class SchemaManager
                 INDEX idx_action (action),
                 INDEX idx_severity (severity),
                 INDEX idx_created_at (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
+
+            "CREATE TABLE IF NOT EXISTS {$p}custom_fonts (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                slug VARCHAR(100) NOT NULL,
+                format VARCHAR(20) NOT NULL DEFAULT 'woff2',
+                file_path VARCHAR(500) NOT NULL,
+                css_path VARCHAR(500) DEFAULT NULL,
+                source VARCHAR(50) NOT NULL DEFAULT 'upload' COMMENT 'upload|google-fonts-local',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY idx_slug (slug),
+                INDEX idx_source (source)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
         ];
 

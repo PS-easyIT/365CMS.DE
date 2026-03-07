@@ -222,6 +222,17 @@ class Router
                             }
                         }
                     }
+                } elseif ($query !== '') {
+                    // Fallback: LIKE-Suche für Posts
+                    $like = '%' . $query . '%';
+                    $stmt = $db->prepare("SELECT * FROM {$prefix}posts WHERE status = 'published' AND (title LIKE ? OR content LIKE ? OR excerpt LIKE ?) ORDER BY created_at DESC LIMIT 20");
+                    $stmt->execute([$like, $like, $like]);
+                    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+                    foreach ($rows as $r) {
+                        $r['_type'] = 'post';
+                        $r['_type_label'] = 'Beitrag';
+                        $results[] = $r;
+                    }
                 }
             }
 

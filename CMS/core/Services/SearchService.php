@@ -31,6 +31,7 @@ final class SearchService
     private readonly string $storagePath;
     private ?TNTSearch $tnt = null;
     private bool $available = false;
+    private string $unavailableReason = '';
 
     /**
      * Konfiguration der Suchindizes.
@@ -65,8 +66,23 @@ final class SearchService
      */
     private function initTNTSearch(): void
     {
+        // SQLite-Extension prüfen (TNTSearch speichert Indizes als SQLite-DBs)
+        if (!extension_loaded('pdo_sqlite')) {
+            $this->unavailableReason = 'PHP-Extension pdo_sqlite ist nicht geladen. Bitte in der php.ini aktivieren.';
+            error_log('SearchService: ' . $this->unavailableReason);
+            return;
+        }
+
         if (!class_exists(TNTSearch::class)) {
-            error_log('SearchService: TNTSearch-Klasse nicht verfügbar. Autoload prüfen.');
+            $this->unavailableReason = 'TNTSearch-Klasse nicht verfügbar. CMS/assets/autoload.php prüfen.';
+            error_log('SearchService: ' . $this->unavailableReason);
+            return;
+        }
+
+        // Storage-Verzeichnis beschreibbar?
+        if (!is_dir($this->storagePath) || !is_writable($this->storagePath)) {
+            $this->unavailableReason = 'Verzeichnis cache/search/ existiert nicht oder ist nicht beschreibbar.';
+            error_log('SearchService: ' . $this->unavailableReason);
             return;
         }
 
@@ -89,6 +105,7 @@ final class SearchService
 
             $this->available = true;
         } catch (\Throwable $e) {
+            $this->unavailableReason = $e->getMessage();
             error_log('SearchService: TNTSearch-Init fehlgeschlagen: ' . $e->getMessage());
             $this->available = false;
         }
@@ -101,7 +118,7 @@ final class SearchService
     {
         // Pages-Index
         $this->indexDefinitions['pages'] = [
-            'query'      => "SELECT id, title, content, meta_description, slug FROM {$this->prefix}pages WHERE status = 'published'",
+            'query'      => "SELECT id, title, content, excerpt, slug FROM {$this->prefix}pages WHERE status = 'published'",
             'primaryKey' => 'id',
         ];
 
@@ -142,6 +159,14 @@ final class SearchService
     }
 
     /**
+     * Gibt den Grund zurück, warum die Suche nicht verfügbar ist.
+     */
+    public function getUnavailableReason(): string
+    {
+        return $this->unavailableReason;
+    }
+
+    /**
      * Einen zusätzlichen Suchindex registrieren (für Plugins).
      *
      * @param string $name     Index-Name (z. B. 'experts', 'events')
@@ -178,7 +203,7 @@ final class SearchService
         } catch (\Throwable $e) {
             error_log("SearchService::buildIndex({$name}) Fehler: " . $e->getMessage());
             if (function_exists('cms_log')) {
-                cms_log("Index-Build '{$name}' fehlgeschlagen: " . $e->getMessage(), 'error', 'search');
+                cms_log('error', "Index-Build '{$name}' fehlgeschlagen: " . $e->getMessage(), ['channel' => 'search']);
             }
             return false;
         }

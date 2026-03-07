@@ -1,0 +1,268 @@
+<?php
+declare(strict_types=1);
+
+/**
+ * Posts Module – CRUD-Logik für Beiträge
+ *
+ * @package CMSv2\Admin\Modules
+ */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+use CMS\Database;
+
+class PostsModule
+{
+    private Database $db;
+    private string $prefix;
+
+    public function __construct()
+    {
+        $this->db     = Database::instance();
+        $this->prefix = $this->db->getPrefix();
+    }
+
+    /**
+     * Daten für die Listenansicht
+     */
+    public function getListData(): array
+    {
+        $total     = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts");
+        $published = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts WHERE status = 'published'");
+        $drafts    = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts WHERE status = 'draft'");
+
+        $statusFilter   = $_GET['status'] ?? '';
+        $categoryFilter = (int)($_GET['category'] ?? 0);
+        $search         = trim($_GET['q'] ?? '');
+
+        $where  = [];
+        $params = [];
+
+        if ($statusFilter !== '' && in_array($statusFilter, ['published', 'draft'], true)) {
+            $where[]  = 'p.status = ?';
+            $params[] = $statusFilter;
+        }
+        if ($categoryFilter > 0) {
+            $where[]  = 'p.category_id = ?';
+            $params[] = $categoryFilter;
+        }
+        if ($search !== '') {
+            $where[]  = '(p.title LIKE ? OR p.slug LIKE ?)';
+            $params[] = "%{$search}%";
+            $params[] = "%{$search}%";
+        }
+
+        $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+
+        $posts = $this->db->get_results(
+            "SELECT p.id, p.title, p.slug, p.status, p.category_id, p.created_at, p.updated_at,
+                    u.display_name AS author,
+                    c.name AS category_name
+             FROM {$this->prefix}posts p
+             LEFT JOIN {$this->prefix}users u ON p.author_id = u.id
+             LEFT JOIN {$this->prefix}post_categories c ON p.category_id = c.id
+             {$whereClause}
+             ORDER BY p.updated_at DESC
+             LIMIT 200",
+            $params
+        ) ?: [];
+
+        $categories = $this->db->get_results(
+            "SELECT id, name, slug FROM {$this->prefix}post_categories ORDER BY name ASC"
+        ) ?: [];
+
+        return [
+            'posts'      => array_map(fn($p) => (array)$p, $posts),
+            'categories' => array_map(fn($c) => (array)$c, $categories),
+            'counts'     => compact('total', 'published', 'drafts'),
+            'filter'     => $statusFilter,
+            'catFilter'  => $categoryFilter,
+            'search'     => $search,
+        ];
+    }
+
+    /**
+     * Daten für Edit/Create
+     */
+    public function getEditData(?int $id): array
+    {
+        $post = null;
+        if ($id !== null) {
+            $post = $this->db->get_row(
+                "SELECT * FROM {$this->prefix}posts WHERE id = ?",
+                [$id]
+            );
+        }
+
+        $categories = $this->db->get_results(
+            "SELECT id, name FROM {$this->prefix}post_categories ORDER BY name ASC"
+        ) ?: [];
+
+        return [
+            'post'       => $post ? (array)$post : null,
+            'isNew'      => $post === null,
+            'categories' => array_map(fn($c) => (array)$c, $categories),
+        ];
+    }
+
+    /**
+     * Post speichern
+     */
+    public function save(array $post, int $userId): array
+    {
+        $id         = (int)($post['id'] ?? 0);
+        $title      = trim($post['title'] ?? '');
+        $slug       = trim($post['slug'] ?? '');
+        $status     = in_array($post['status'] ?? '', ['published', 'draft'], true) ? $post['status'] : 'draft';
+        $content    = $post['content'] ?? '';
+        $excerpt    = trim($post['excerpt'] ?? '');
+        $categoryId = (int)($post['category_id'] ?? 0);
+        $featuredImage = trim($post['featured_image'] ?? '');
+        $metaTitle  = trim($post['meta_title'] ?? '');
+        $metaDesc   = trim($post['meta_description'] ?? '');
+
+        if ($title === '') {
+            return ['success' => false, 'error' => 'Titel darf nicht leer sein.'];
+        }
+
+        if ($slug === '') {
+            $slug = $this->generateSlug($title);
+        }
+
+        try {
+            if ($id > 0) {
+                $this->db->query(
+                    "UPDATE {$this->prefix}posts 
+                     SET title = ?, slug = ?, content = ?, excerpt = ?, status = ?,
+                         category_id = ?, featured_image = ?,
+                         meta_title = ?, meta_description = ?,
+                         updated_at = NOW()
+                     WHERE id = ?",
+                    [$title, $slug, $content, $excerpt, $status, $categoryId ?: null, $featuredImage, $metaTitle, $metaDesc, $id]
+                );
+                return ['success' => true, 'id' => $id, 'message' => 'Beitrag aktualisiert.'];
+            } else {
+                $this->db->query(
+                    "INSERT INTO {$this->prefix}posts
+                     (title, slug, content, excerpt, status, category_id, featured_image, meta_title, meta_description, author_id, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
+                    [$title, $slug, $content, $excerpt, $status, $categoryId ?: null, $featuredImage, $metaTitle, $metaDesc, $userId]
+                );
+                $newId = (int)$this->db->lastInsertId();
+                return ['success' => true, 'id' => $newId, 'message' => 'Beitrag erstellt.'];
+            }
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Fehler beim Speichern: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Post löschen
+     */
+    public function delete(int $id): array
+    {
+        try {
+            $this->db->query("DELETE FROM {$this->prefix}posts WHERE id = ?", [$id]);
+            return ['success' => true, 'message' => 'Beitrag gelöscht.'];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Fehler beim Löschen.'];
+        }
+    }
+
+    /**
+     * Bulk-Aktion
+     */
+    public function bulkAction(string $action, array $ids): array
+    {
+        if (empty($ids)) {
+            return ['success' => false, 'error' => 'Keine Einträge ausgewählt.'];
+        }
+
+        $ids          = array_map('intval', $ids);
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+        try {
+            switch ($action) {
+                case 'delete':
+                    $this->db->query("DELETE FROM {$this->prefix}posts WHERE id IN ({$placeholders})", $ids);
+                    return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge gelöscht.'];
+
+                case 'publish':
+                    $this->db->query("UPDATE {$this->prefix}posts SET status = 'published', updated_at = NOW() WHERE id IN ({$placeholders})", $ids);
+                    return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge veröffentlicht.'];
+
+                case 'draft':
+                    $this->db->query("UPDATE {$this->prefix}posts SET status = 'draft', updated_at = NOW() WHERE id IN ({$placeholders})", $ids);
+                    return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge als Entwurf gesetzt.'];
+
+                default:
+                    return ['success' => false, 'error' => 'Unbekannte Aktion.'];
+            }
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Fehler bei Bulk-Aktion.'];
+        }
+    }
+
+    /**
+     * Kategorie speichern
+     */
+    public function saveCategory(array $post): array
+    {
+        $id   = (int)($post['cat_id'] ?? 0);
+        $name = trim($post['cat_name'] ?? '');
+        $slug = trim($post['cat_slug'] ?? '');
+
+        if ($name === '') {
+            return ['success' => false, 'error' => 'Kategoriename darf nicht leer sein.'];
+        }
+        if ($slug === '') {
+            $slug = $this->generateSlug($name);
+        }
+
+        try {
+            if ($id > 0) {
+                $this->db->query(
+                    "UPDATE {$this->prefix}post_categories SET name = ?, slug = ? WHERE id = ?",
+                    [$name, $slug, $id]
+                );
+                return ['success' => true, 'message' => 'Kategorie aktualisiert.'];
+            } else {
+                $this->db->query(
+                    "INSERT INTO {$this->prefix}post_categories (name, slug) VALUES (?, ?)",
+                    [$name, $slug]
+                );
+                return ['success' => true, 'message' => 'Kategorie erstellt.'];
+            }
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Fehler beim Speichern der Kategorie.'];
+        }
+    }
+
+    /**
+     * Kategorie löschen
+     */
+    public function deleteCategory(int $id): array
+    {
+        try {
+            // Posts auf "keine Kategorie" setzen
+            $this->db->query("UPDATE {$this->prefix}posts SET category_id = NULL WHERE category_id = ?", [$id]);
+            $this->db->query("DELETE FROM {$this->prefix}post_categories WHERE id = ?", [$id]);
+            return ['success' => true, 'message' => 'Kategorie gelöscht.'];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Fehler beim Löschen der Kategorie.'];
+        }
+    }
+
+    /**
+     * Slug generieren
+     */
+    private function generateSlug(string $text): string
+    {
+        $slug = mb_strtolower($text);
+        $slug = preg_replace('/[^a-z0-9\-]/', '-', $slug) ?? $slug;
+        $slug = preg_replace('/-+/', '-', $slug) ?? $slug;
+        return trim($slug, '-');
+    }
+}
