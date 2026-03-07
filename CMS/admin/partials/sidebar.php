@@ -198,12 +198,17 @@ $menuGroups = [
         'type'     => 'group',
         'label'    => 'Member Dashboard',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 5a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v14l-4 -2l-4 2l-4 -2l-4 2z"/><path d="M8 7h8"/><path d="M8 11h8"/></svg>',
-        'slugs'    => ['member-dashboard', 'member-dashboard-general', 'member-dashboard-widgets', 'member-dashboard-profile-fields'],
+        'slugs'    => ['member-dashboard', 'member-dashboard-general', 'member-dashboard-design', 'member-dashboard-frontend-modules', 'member-dashboard-widgets', 'member-dashboard-plugin-widgets', 'member-dashboard-profile-fields', 'member-dashboard-notifications', 'member-dashboard-onboarding'],
         'children' => [
             ['label' => 'Übersicht',           'slug' => 'member-dashboard', 'url' => $siteUrl . '/admin/member-dashboard'],
             ['label' => 'Allgemein',           'slug' => 'member-dashboard-general', 'url' => $siteUrl . '/admin/member-dashboard-general'],
+            ['label' => 'Design & Farben',     'slug' => 'member-dashboard-design', 'url' => $siteUrl . '/admin/member-dashboard-design'],
+            ['label' => 'Frontend-Module',     'slug' => 'member-dashboard-frontend-modules', 'url' => $siteUrl . '/admin/member-dashboard-frontend-modules'],
             ['label' => 'Dashboard Widgets',   'slug' => 'member-dashboard-widgets', 'url' => $siteUrl . '/admin/member-dashboard-widgets'],
+            ['label' => 'Plugin-Widgets',      'slug' => 'member-dashboard-plugin-widgets', 'url' => $siteUrl . '/admin/member-dashboard-plugin-widgets'],
             ['label' => 'Profil-Felder',       'slug' => 'member-dashboard-profile-fields', 'url' => $siteUrl . '/admin/member-dashboard-profile-fields'],
+            ['label' => 'Benachrichtigungen',  'slug' => 'member-dashboard-notifications', 'url' => $siteUrl . '/admin/member-dashboard-notifications'],
+            ['label' => 'Mitglieder-Onboarding', 'slug' => 'member-dashboard-onboarding', 'url' => $siteUrl . '/admin/member-dashboard-onboarding'],
         ],
     ],
 

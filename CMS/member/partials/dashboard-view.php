@@ -76,6 +76,88 @@ function getDashboardFeatureWidgets(object $user): array
     return $widgets;
 }
 
+function getDashboardFrontendModuleSettings(): array
+{
+    $db = \CMS\Database::instance();
+
+    $readBool = static function (string $key, string $default = '1') use ($db): bool {
+        $value = $db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = ?", [$key]);
+        $value = $value === null ? $default : (string)$value;
+        return $value === '1';
+    };
+
+    return [
+        'show_quickstart' => $readBool('member_dashboard_show_quickstart', '1'),
+        'show_stats' => $readBool('member_dashboard_show_stats', '1'),
+        'show_custom_widgets' => $readBool('member_dashboard_show_custom_widgets', '1'),
+        'show_plugin_widgets' => $readBool('member_dashboard_show_plugin_widgets', '1'),
+        'show_notifications_panel' => $readBool('member_dashboard_show_notifications_panel', '1'),
+        'show_onboarding_panel' => $readBool('member_dashboard_show_onboarding_panel', '1'),
+    ];
+}
+
+function getDashboardNotificationSettings(): array
+{
+    $db = \CMS\Database::instance();
+
+    $read = static function (string $key, string $default = '') use ($db): string {
+        $value = $db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = ?", [$key]);
+        return $value === null ? $default : (string)$value;
+    };
+
+    return [
+        'center_enabled' => $read('member_dashboard_notification_center_enabled', '1') === '1',
+        'email_enabled' => $read('member_dashboard_notification_email_enabled', '0') === '1',
+        'digest_frequency' => $read('member_dashboard_notification_digest_frequency', 'daily'),
+        'sender_name' => $read('member_dashboard_notification_sender_name', '365CMS Member Hub'),
+        'empty_text' => $read('member_dashboard_notification_empty_text', 'Aktuell gibt es keine neuen Meldungen.'),
+    ];
+}
+
+function getDashboardOnboardingSettings(): array
+{
+    $db = \CMS\Database::instance();
+
+    $read = static function (string $key, string $default = '') use ($db): string {
+        $value = $db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = ?", [$key]);
+        return $value === null ? $default : (string)$value;
+    };
+
+    return [
+        'enabled' => $read('member_dashboard_onboarding_enabled', '1') === '1',
+        'title' => $read('member_dashboard_onboarding_title', 'So startest du optimal'),
+        'intro' => $read('member_dashboard_onboarding_intro', 'Begleite neue Mitglieder mit einer klaren Checkliste und gezielten nächsten Schritten.'),
+        'steps' => json_decode($read('member_dashboard_onboarding_steps', '[]'), true) ?: [
+            'Profil vervollständigen',
+            'Profilbild hochladen',
+            'Passwort & Sicherheit prüfen',
+            'Wichtige Bereiche im Dashboard entdecken',
+        ],
+        'cta_label' => $read('member_dashboard_onboarding_cta_label', 'Jetzt starten'),
+        'cta_url' => $read('member_dashboard_onboarding_cta_url', '/member/profile'),
+    ];
+}
+
+function sortDashboardRegistryWidgets(array $widgets): array
+{
+    $db = \CMS\Database::instance();
+    $order = json_decode((string)($db->get_var("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'member_dashboard_plugin_order'") ?: '[]'), true) ?: [];
+
+    if ($order === []) {
+        return $widgets;
+    }
+
+    usort($widgets, static function (array $a, array $b) use ($order): int {
+        $aPos = array_search((string)($a['plugin'] ?? ''), $order, true);
+        $bPos = array_search((string)($b['plugin'] ?? ''), $order, true);
+        $aPos = $aPos === false ? 999 : (int)$aPos;
+        $bPos = $bPos === false ? 999 : (int)$bPos;
+        return $aPos <=> $bPos;
+    });
+
+    return $widgets;
+}
+
 /**
  * Liefert Plugin-Bereich-Widgets aus der PluginDashboardRegistry.
  * Diese enthalten optionale Statistiken und direkten Navigationslink.
@@ -92,9 +174,12 @@ function getDashboardRegistryWidgets(object $user): array
 
 $isAdmin             = \CMS\Auth::instance()->isAdmin();
 $featureWidgets      = getDashboardFeatureWidgets($user);
-$registryPluginWidgets = getDashboardRegistryWidgets($user);
+$registryPluginWidgets = sortDashboardRegistryWidgets(getDashboardRegistryWidgets($user));
 $customWidgets       = getDashboardCustomWidgets();
 $designColors        = getDashboardDesignSettings();
+$frontendModules     = getDashboardFrontendModuleSettings();
+$notificationSettings = getDashboardNotificationSettings();
+$onboardingSettings  = getDashboardOnboardingSettings();
 $firstName      = htmlspecialchars(explode(' ', $user->username)[0]);
 $hour           = (int) date('H');
 $greeting       = $hour < 12 ? 'Guten Morgen' : ($hour < 18 ? 'Guten Tag' : 'Guten Abend');
@@ -483,6 +568,40 @@ $greeting = str_replace('{name}', $firstName, $greetingTpl);
                 <span><?php echo htmlspecialchars($_SESSION['error']); unset($_SESSION['error']); ?></span>
             </div>
         <?php endif; ?>
+
+        <?php if (!empty($frontendModules['show_onboarding_panel']) && !empty($onboardingSettings['enabled'])): ?>
+            <div class="member-welcome-banner">
+                <div style="display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; align-items:flex-start;">
+                    <div>
+                        <strong style="display:block; margin-bottom:.35rem;"><?php echo htmlspecialchars((string)$onboardingSettings['title']); ?></strong>
+                        <p><?php echo htmlspecialchars((string)$onboardingSettings['intro']); ?></p>
+                        <?php if (!empty($onboardingSettings['steps'])): ?>
+                            <ul style="margin:.75rem 0 0 1rem; color:var(--member-text);">
+                                <?php foreach ($onboardingSettings['steps'] as $step): ?>
+                                    <li><?php echo htmlspecialchars((string)$step); ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        <?php endif; ?>
+                    </div>
+                    <a href="<?php echo htmlspecialchars((string)($onboardingSettings['cta_url'] ?? '/member/profile')); ?>" class="btn-quick">
+                        <?php echo htmlspecialchars((string)($onboardingSettings['cta_label'] ?? 'Jetzt starten')); ?>
+                    </a>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!empty($frontendModules['show_notifications_panel']) && !empty($notificationSettings['center_enabled'])): ?>
+            <div class="member-welcome-banner" style="border-left-color: var(--member-secondary);">
+                <div style="display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; align-items:center;">
+                    <div>
+                        <strong style="display:block; margin-bottom:.35rem;">Benachrichtigungen & Updates</strong>
+                        <p><?php echo htmlspecialchars((string)($notificationSettings['empty_text'] ?? 'Aktuell gibt es keine neuen Meldungen.')); ?></p>
+                        <small style="color:#64748b;">Digest: <?php echo htmlspecialchars((string)($notificationSettings['digest_frequency'] ?? 'daily')); ?> · Absender: <?php echo htmlspecialchars((string)($notificationSettings['sender_name'] ?? '365CMS Member Hub')); ?></small>
+                    </div>
+                    <a href="/member/notifications" class="btn-quick">🔔 Meldungen öffnen</a>
+                </div>
+            </div>
+        <?php endif; ?>
         
         <!-- ── Dynamic Section Order ── -->
         <?php 
@@ -491,7 +610,7 @@ $greeting = str_replace('{name}', $firstName, $greetingTpl);
             $sectionKey = trim($sectionKey);
             
             // ── QUICK START ──
-            if ($sectionKey === 'quick_start'): ?>
+            if ($sectionKey === 'quick_start' && !empty($frontendModules['show_quickstart'])): ?>
                 <div class="quick-start-bar">
                     <div class="quick-start-title">
                         <span style="font-size:1.25rem;">🚀</span> 
@@ -510,7 +629,7 @@ $greeting = str_replace('{name}', $firstName, $greetingTpl);
 
             <?php 
             // ── STATS ──
-            if ($sectionKey === 'stats'): ?>
+            if ($sectionKey === 'stats' && !empty($frontendModules['show_stats'])): ?>
                 <!-- Stats Grid - Uses dynamic column span -->
                 <div class="member-stats-grid" style="grid-template-columns: repeat(12, 1fr);">
                     <!-- Card 1: Account / Status -->
@@ -585,7 +704,7 @@ $greeting = str_replace('{name}', $firstName, $greetingTpl);
 
             <?php 
             // ── INFO WIDGETS ──
-            if ($sectionKey === 'widgets' && !empty($customWidgets)): ?>
+            if ($sectionKey === 'widgets' && !empty($frontendModules['show_custom_widgets']) && !empty($customWidgets)): ?>
                 <div class="section-header">
                     <h2>Informationen</h2>
                 </div>
@@ -620,7 +739,7 @@ $greeting = str_replace('{name}', $firstName, $greetingTpl);
 
             <?php 
             // ── PLUGINS ──
-            if ($sectionKey === 'plugins'): 
+            if ($sectionKey === 'plugins' && !empty($frontendModules['show_plugin_widgets'])): 
                 // Registry-Widgets (je Plugin eine Card) gehen vor.
                 // Statische Feature-Widgets nur hinzufügen, wenn kein Registry-Widget
                 // für dasselbe Plugin-Slug bereits vorhanden ist.

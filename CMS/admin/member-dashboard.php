@@ -18,8 +18,13 @@ $legacySection = (string)($_GET['section'] ?? 'overview');
 if ($legacySection !== '' && $legacySection !== 'overview') {
     $legacyRoutes = [
         'general'        => '/admin/member-dashboard-general',
+        'design'         => '/admin/member-dashboard-design',
+        'frontend-modules' => '/admin/member-dashboard-frontend-modules',
         'widgets'        => '/admin/member-dashboard-widgets',
+        'plugin-widgets' => '/admin/member-dashboard-plugin-widgets',
         'profile-fields' => '/admin/member-dashboard-profile-fields',
+        'notifications'  => '/admin/member-dashboard-notifications',
+        'onboarding'     => '/admin/member-dashboard-onboarding',
     ];
 
     if (isset($legacyRoutes[$legacySection])) {

@@ -45,6 +45,32 @@ class MemberDashboardModule
         'member_widget_4_title',
         'member_widget_4_content',
         'member_widget_4_icon',
+        'member_dashboard_color_primary',
+        'member_dashboard_color_accent',
+        'member_dashboard_color_bg',
+        'member_dashboard_color_card_bg',
+        'member_dashboard_color_text',
+        'member_dashboard_color_border',
+        'member_dashboard_show_quickstart',
+        'member_dashboard_show_stats',
+        'member_dashboard_show_custom_widgets',
+        'member_dashboard_show_plugin_widgets',
+        'member_dashboard_show_notifications_panel',
+        'member_dashboard_show_onboarding_panel',
+        'member_dashboard_notification_center_enabled',
+        'member_dashboard_notification_email_enabled',
+        'member_dashboard_notification_digest_frequency',
+        'member_dashboard_notification_sender_name',
+        'member_dashboard_notification_empty_text',
+        'member_dashboard_notification_types',
+        'member_dashboard_onboarding_enabled',
+        'member_dashboard_onboarding_title',
+        'member_dashboard_onboarding_intro',
+        'member_dashboard_onboarding_steps',
+        'member_dashboard_onboarding_cta_label',
+        'member_dashboard_onboarding_cta_url',
+        'member_dashboard_onboarding_require_profile_completion',
+        'member_dashboard_plugin_order',
     ];
 
     private const SECTION_ORDER_OPTIONS = [
@@ -52,6 +78,22 @@ class MemberDashboardModule
         'stats,plugins,widgets' => 'Statistiken → Plugins → Widgets',
         'widgets,stats,plugins' => 'Widgets → Statistiken → Plugins',
         'plugins,stats,widgets' => 'Plugins → Statistiken → Widgets',
+        'quick_start,stats,widgets,plugins' => 'Schnellstart → Statistiken → Widgets → Plugins',
+        'quick_start,stats,plugins,widgets' => 'Schnellstart → Statistiken → Plugins → Widgets',
+    ];
+
+    private const NOTIFICATION_TYPES = [
+        'system' => 'Systemmeldungen',
+        'messages' => 'Direktnachrichten',
+        'billing' => 'Abo & Rechnungen',
+        'security' => 'Sicherheitswarnungen',
+        'community' => 'Community & Aktivitäten',
+    ];
+
+    private const DIGEST_FREQUENCIES = [
+        'instant' => 'Sofort',
+        'daily' => 'Täglich',
+        'weekly' => 'Wöchentlich',
     ];
 
     private const PROFILE_FIELDS = [
@@ -130,6 +172,9 @@ class MemberDashboardModule
             'profileFields' => $profileFields,
             'roles'     => $this->getAvailableRoles(),
             'sectionOrderOptions' => self::SECTION_ORDER_OPTIONS,
+            'notificationTypes' => self::NOTIFICATION_TYPES,
+            'digestFrequencies' => self::DIGEST_FREQUENCIES,
+            'pluginWidgets' => $this->getPluginWidgets(),
             'overview'  => [
                 'enabledWidgets'      => count($settings['widgets'] ?? []),
                 'enabledProfileFields'=> count($settings['profile_fields'] ?? []),
@@ -139,6 +184,7 @@ class MemberDashboardModule
                 'registrationEnabled' => !empty($settings['registration_enabled']),
                 'verificationEnabled' => !empty($settings['email_verification']),
                 'subscriptionVisible' => !empty($settings['subscription_visible']),
+                'pluginWidgetCount'   => count($this->getPluginWidgets()),
             ],
         ];
     }
@@ -159,6 +205,11 @@ class MemberDashboardModule
             'general'        => $this->saveGeneralSettings($post),
             'widgets'        => $this->saveWidgetSettings($post),
             'profile-fields' => $this->saveProfileSettings($post),
+            'design'         => $this->saveDesignSettings($post),
+            'frontend-modules' => $this->saveFrontendModules($post),
+            'notifications'  => $this->saveNotificationSettings($post),
+            'onboarding'     => $this->saveOnboardingSettings($post),
+            'plugin-widgets' => $this->savePluginWidgetSettings($post),
             default          => ['success' => false, 'error' => 'Unbekannter Einstellungsbereich.'],
         };
     }
@@ -245,6 +296,127 @@ class MemberDashboardModule
         }
     }
 
+    private function saveDesignSettings(array $post): array
+    {
+        try {
+            $values = [
+                'member_dashboard_color_primary' => $this->sanitizeColor((string)($post['color_primary'] ?? '#6366f1'), '#6366f1'),
+                'member_dashboard_color_accent' => $this->sanitizeColor((string)($post['color_accent'] ?? '#8b5cf6'), '#8b5cf6'),
+                'member_dashboard_color_bg' => $this->sanitizeColor((string)($post['color_bg'] ?? '#f1f5f9'), '#f1f5f9'),
+                'member_dashboard_color_card_bg' => $this->sanitizeColor((string)($post['color_card_bg'] ?? '#ffffff'), '#ffffff'),
+                'member_dashboard_color_text' => $this->sanitizeColor((string)($post['color_text'] ?? '#1e293b'), '#1e293b'),
+                'member_dashboard_color_border' => $this->sanitizeColor((string)($post['color_border'] ?? '#e2e8f0'), '#e2e8f0'),
+            ];
+
+            $this->persistSettings($values);
+
+            return ['success' => true, 'message' => 'Design- und Farbvorgaben gespeichert.'];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+        }
+    }
+
+    private function saveFrontendModules(array $post): array
+    {
+        try {
+            $values = [
+                'member_dashboard_show_quickstart' => !empty($post['show_quickstart']) ? '1' : '0',
+                'member_dashboard_show_stats' => !empty($post['show_stats']) ? '1' : '0',
+                'member_dashboard_show_custom_widgets' => !empty($post['show_custom_widgets']) ? '1' : '0',
+                'member_dashboard_show_plugin_widgets' => !empty($post['show_plugin_widgets']) ? '1' : '0',
+                'member_dashboard_show_notifications_panel' => !empty($post['show_notifications_panel']) ? '1' : '0',
+                'member_dashboard_show_onboarding_panel' => !empty($post['show_onboarding_panel']) ? '1' : '0',
+            ];
+
+            $this->persistSettings($values);
+
+            return ['success' => true, 'message' => 'Frontend-Module gespeichert.'];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+        }
+    }
+
+    private function saveNotificationSettings(array $post): array
+    {
+        try {
+            $selectedTypes = array_values(array_intersect(
+                array_keys(self::NOTIFICATION_TYPES),
+                array_keys(array_filter($post['notification_types'] ?? []))
+            ));
+
+            $frequency = (string)($post['notification_digest_frequency'] ?? 'daily');
+            if (!isset(self::DIGEST_FREQUENCIES[$frequency])) {
+                $frequency = 'daily';
+            }
+
+            $values = [
+                'member_dashboard_notification_center_enabled' => !empty($post['notification_center_enabled']) ? '1' : '0',
+                'member_dashboard_notification_email_enabled' => !empty($post['notification_email_enabled']) ? '1' : '0',
+                'member_dashboard_notification_digest_frequency' => $frequency,
+                'member_dashboard_notification_sender_name' => $this->sanitizeTextSetting((string)($post['notification_sender_name'] ?? '365CMS Member Hub'), 120),
+                'member_dashboard_notification_empty_text' => $this->sanitizeTextSetting((string)($post['notification_empty_text'] ?? 'Aktuell gibt es keine neuen Meldungen.'), 255),
+                'member_dashboard_notification_types' => json_encode($selectedTypes, JSON_UNESCAPED_UNICODE),
+            ];
+
+            $this->persistSettings($values);
+
+            return ['success' => true, 'message' => 'Benachrichtigungseinstellungen gespeichert.'];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+        }
+    }
+
+    private function saveOnboardingSettings(array $post): array
+    {
+        try {
+            $steps = preg_split('/\r\n|\r|\n/', (string)($post['onboarding_steps'] ?? '')) ?: [];
+            $steps = array_values(array_filter(array_map(fn(string $step): string => $this->sanitizeTextSetting($step, 160), $steps)));
+
+            $values = [
+                'member_dashboard_onboarding_enabled' => !empty($post['onboarding_enabled']) ? '1' : '0',
+                'member_dashboard_onboarding_title' => $this->sanitizeTextSetting((string)($post['onboarding_title'] ?? 'Dein nächster Schritt'), 120),
+                'member_dashboard_onboarding_intro' => trim(strip_tags((string)($post['onboarding_intro'] ?? ''))),
+                'member_dashboard_onboarding_steps' => json_encode($steps, JSON_UNESCAPED_UNICODE),
+                'member_dashboard_onboarding_cta_label' => $this->sanitizeTextSetting((string)($post['onboarding_cta_label'] ?? 'Profil vervollständigen'), 80),
+                'member_dashboard_onboarding_cta_url' => trim((string)($post['onboarding_cta_url'] ?? '/member/profile')),
+                'member_dashboard_onboarding_require_profile_completion' => !empty($post['onboarding_require_profile_completion']) ? '1' : '0',
+            ];
+
+            $this->persistSettings($values);
+
+            return ['success' => true, 'message' => 'Onboarding-Einstellungen gespeichert.'];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+        }
+    }
+
+    private function savePluginWidgetSettings(array $post): array
+    {
+        try {
+            $pluginWidgets = $this->getPluginWidgets();
+            $allowedPlugins = array_map(static fn(array $widget): string => (string)$widget['plugin'], $pluginWidgets);
+
+            $order = array_values(array_filter(array_map(
+                static fn(string $value): string => trim($value),
+                explode(',', (string)($post['plugin_widget_order'] ?? ''))
+            ), static fn(string $value): bool => in_array($value, $allowedPlugins, true)));
+
+            $values = [
+                'member_dashboard_plugin_order' => json_encode($order, JSON_UNESCAPED_UNICODE),
+            ];
+
+            foreach ($allowedPlugins as $pluginSlug) {
+                $values['member_dashboard_plugin_' . $pluginSlug] = !empty($post['plugin_visible'][$pluginSlug]) ? '1' : '0';
+            }
+
+            $this->persistSettings($values);
+
+            return ['success' => true, 'message' => 'Plugin-Widgets gespeichert.'];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+        }
+    }
+
     /**
      * Einstellungen laden
      */
@@ -278,6 +450,45 @@ class MemberDashboardModule
             'show_welcome'         => ($settings['member_dashboard_show_welcome'] ?? '1') === '1',
             'subscription_visible' => ($settings['member_subscription_visible'] ?? '0') === '1',
             'custom_widgets'       => $this->mapCustomWidgets($settings),
+            'design'               => [
+                'primary' => $settings['member_dashboard_color_primary'] ?? '#6366f1',
+                'accent' => $settings['member_dashboard_color_accent'] ?? '#8b5cf6',
+                'bg' => $settings['member_dashboard_color_bg'] ?? '#f1f5f9',
+                'card_bg' => $settings['member_dashboard_color_card_bg'] ?? '#ffffff',
+                'text' => $settings['member_dashboard_color_text'] ?? '#1e293b',
+                'border' => $settings['member_dashboard_color_border'] ?? '#e2e8f0',
+            ],
+            'frontend_modules'     => [
+                'show_quickstart' => ($settings['member_dashboard_show_quickstart'] ?? '1') === '1',
+                'show_stats' => ($settings['member_dashboard_show_stats'] ?? '1') === '1',
+                'show_custom_widgets' => ($settings['member_dashboard_show_custom_widgets'] ?? '1') === '1',
+                'show_plugin_widgets' => ($settings['member_dashboard_show_plugin_widgets'] ?? '1') === '1',
+                'show_notifications_panel' => ($settings['member_dashboard_show_notifications_panel'] ?? '1') === '1',
+                'show_onboarding_panel' => ($settings['member_dashboard_show_onboarding_panel'] ?? '1') === '1',
+            ],
+            'notifications'        => [
+                'center_enabled' => ($settings['member_dashboard_notification_center_enabled'] ?? '1') === '1',
+                'email_enabled' => ($settings['member_dashboard_notification_email_enabled'] ?? '0') === '1',
+                'digest_frequency' => $settings['member_dashboard_notification_digest_frequency'] ?? 'daily',
+                'sender_name' => $settings['member_dashboard_notification_sender_name'] ?? '365CMS Member Hub',
+                'empty_text' => $settings['member_dashboard_notification_empty_text'] ?? 'Aktuell gibt es keine neuen Meldungen.',
+                'types' => json_decode($settings['member_dashboard_notification_types'] ?? '[]', true) ?: ['system', 'messages'],
+            ],
+            'onboarding'           => [
+                'enabled' => ($settings['member_dashboard_onboarding_enabled'] ?? '1') === '1',
+                'title' => $settings['member_dashboard_onboarding_title'] ?? 'So startest du optimal',
+                'intro' => $settings['member_dashboard_onboarding_intro'] ?? 'Begleite neue Mitglieder mit einer klaren Checkliste und gezielten nächsten Schritten.',
+                'steps' => json_decode($settings['member_dashboard_onboarding_steps'] ?? '[]', true) ?: [
+                    'Profil vervollständigen',
+                    'Profilbild hochladen',
+                    'Passwort & Sicherheit prüfen',
+                    'Erste Bereiche im Member-Dashboard entdecken',
+                ],
+                'cta_label' => $settings['member_dashboard_onboarding_cta_label'] ?? 'Jetzt starten',
+                'cta_url' => $settings['member_dashboard_onboarding_cta_url'] ?? '/member/profile',
+                'require_profile_completion' => ($settings['member_dashboard_onboarding_require_profile_completion'] ?? '0') === '1',
+            ],
+            'plugin_widget_order'  => json_decode($settings['member_dashboard_plugin_order'] ?? '[]', true) ?: [],
         ];
     }
 
@@ -368,6 +579,45 @@ class MemberDashboardModule
         return $roles;
     }
 
+    private function getPluginWidgets(): array
+    {
+        if (!class_exists('\\CMS\\Member\\PluginDashboardRegistry')) {
+            return [];
+        }
+
+        try {
+            $registry = \CMS\Member\PluginDashboardRegistry::instance();
+            $registry->init();
+
+            $widgets = [];
+            foreach ($registry->getAll() as $section) {
+                if (!empty($section['parent_slug'])) {
+                    continue;
+                }
+
+                $config = is_array($section['dashboard_widget'] ?? null) ? $section['dashboard_widget'] : [];
+                $plugin = (string)($section['plugin'] ?? $section['slug'] ?? '');
+                if ($plugin === '') {
+                    continue;
+                }
+
+                $widgets[] = [
+                    'plugin' => $plugin,
+                    'slug' => (string)($section['slug'] ?? $plugin),
+                    'label' => (string)($config['title'] ?? $section['label'] ?? $plugin),
+                    'description' => (string)($config['description'] ?? ''),
+                    'icon' => (string)($config['icon'] ?? $section['icon'] ?? '🔌'),
+                    'color' => (string)($config['color'] ?? '#4f46e5'),
+                    'priority' => (int)($section['priority'] ?? 50),
+                ];
+            }
+
+            return $widgets;
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
     private function persistSettings(array $values): void
     {
         foreach ($values as $key => $value) {
@@ -429,5 +679,16 @@ class MemberDashboardModule
         return function_exists('mb_substr')
             ? mb_substr($value, 0, $maxLength)
             : substr($value, 0, $maxLength);
+    }
+
+    private function sanitizeColor(string $value, string $fallback): string
+    {
+        $value = trim($value);
+
+        if (preg_match('/^#[0-9a-fA-F]{6}$/', $value) === 1) {
+            return strtolower($value);
+        }
+
+        return $fallback;
     }
 }
