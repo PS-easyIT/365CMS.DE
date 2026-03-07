@@ -145,7 +145,7 @@ class TablesModule
 
         try {
             if ($id > 0) {
-                $this->db->query(
+                $this->db->execute(
                     "UPDATE {$this->prefix}site_tables 
                      SET table_name = ?, description = ?, columns_json = ?, rows_json = ?, settings_json = ?, updated_at = NOW()
                      WHERE id = ?",
@@ -153,7 +153,7 @@ class TablesModule
                 );
                 return ['success' => true, 'id' => $id, 'message' => 'Tabelle aktualisiert.'];
             } else {
-                $this->db->query(
+                $this->db->execute(
                     "INSERT INTO {$this->prefix}site_tables
                      (table_name, description, columns_json, rows_json, settings_json, created_at, updated_at)
                      VALUES (?, ?, ?, ?, ?, NOW(), NOW())",
@@ -173,7 +173,7 @@ class TablesModule
     public function delete(int $id): array
     {
         try {
-            $this->db->query("DELETE FROM {$this->prefix}site_tables WHERE id = ?", [$id]);
+            $this->db->execute("DELETE FROM {$this->prefix}site_tables WHERE id = ?", [$id]);
             return ['success' => true, 'message' => 'Tabelle gelöscht.'];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler beim Löschen.'];
@@ -194,17 +194,19 @@ class TablesModule
             return ['success' => false, 'error' => 'Tabelle nicht gefunden.'];
         }
 
+        $sourceData = (array)$source;
+
         try {
-            $this->db->query(
+            $this->db->execute(
                 "INSERT INTO {$this->prefix}site_tables
                  (table_name, description, columns_json, rows_json, settings_json, created_at, updated_at)
                  VALUES (?, ?, ?, ?, ?, NOW(), NOW())",
                 [
-                    $source['table_name'] . ' (Kopie)',
-                    $source['description'] ?? '',
-                    $source['columns_json'] ?? '[]',
-                    $source['rows_json'] ?? '[]',
-                    $source['settings_json'] ?? '{}',
+                    ($sourceData['table_name'] ?? 'Tabelle') . ' (Kopie)',
+                    $sourceData['description'] ?? '',
+                    $sourceData['columns_json'] ?? '[]',
+                    $sourceData['rows_json'] ?? '[]',
+                    $sourceData['settings_json'] ?? '{}',
                 ]
             );
             $newId = (int)$this->db->lastInsertId();

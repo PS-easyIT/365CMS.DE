@@ -27,9 +27,7 @@ if (empty($listPosts)) {
         $iSlug    = htmlspecialchars($item->slug ?? '');
         $iCat     = htmlspecialchars($item->category_name ?? '');
         $iCatSlug = htmlspecialchars($item->category_slug ?? '');
-        $iExcerpt = htmlspecialchars(
-            !empty($item->excerpt) ? $item->excerpt : meridian_excerpt($item->content ?? '', 120)
-        );
+        $iExcerpt = meridian_excerpt((string)($item->excerpt ?? $item->content ?? ''), 120);
         $iDate    = !empty($item->published_at ?? $item->created_at ?? '')
                     ? meridian_format_date($item->published_at ?? $item->created_at, true)
                     : '';

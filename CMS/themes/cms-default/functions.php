@@ -568,7 +568,7 @@ function meridian_format_date(string $dateStr, bool $short = true): string
  */
 function meridian_excerpt(string $content, int $maxChars = 160): string
 {
-    $text = strip_tags($content);
+    $text = meridian_excerpt_plain_text($content);
     if (mb_strlen($text) <= $maxChars) {
         return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
     }
@@ -578,6 +578,65 @@ function meridian_excerpt(string $content, int $maxChars = 160): string
         $cut = mb_substr($cut, 0, $lastSpace);
     }
     return htmlspecialchars($cut, ENT_QUOTES, 'UTF-8') . '…';
+}
+
+/**
+ * Wandelt HTML oder Editor.js-JSON in reinen Text für Excerpts um.
+ */
+function meridian_excerpt_plain_text(string $content): string
+{
+    $content = trim($content);
+    if ($content === '') {
+        return '';
+    }
+
+    $decoded = json_decode($content, true);
+    if (is_array($decoded) && isset($decoded['blocks']) && is_array($decoded['blocks'])) {
+        $html = '';
+        if (class_exists('\\CMS\\Services\\EditorJsRenderer')) {
+            try {
+                $html = \CMS\Services\EditorJsRenderer::getInstance()->render($decoded);
+            } catch (\Throwable $e) {
+                $html = '';
+            }
+        }
+
+        if ($html !== '') {
+            $content = $html;
+        } else {
+            $parts = [];
+            foreach ($decoded['blocks'] as $block) {
+                if (!is_array($block)) {
+                    continue;
+                }
+
+                $data = $block['data'] ?? null;
+                if (!is_array($data)) {
+                    continue;
+                }
+
+                $candidateKeys = ['text', 'caption', 'message', 'title'];
+                foreach ($candidateKeys as $key) {
+                    if (!empty($data[$key]) && is_string($data[$key])) {
+                        $parts[] = $data[$key];
+                    }
+                }
+
+                if (!empty($data['items']) && is_array($data['items'])) {
+                    foreach ($data['items'] as $item) {
+                        if (is_string($item) && trim($item) !== '') {
+                            $parts[] = $item;
+                        }
+                    }
+                }
+            }
+
+            $content = implode(' ', $parts);
+        }
+    }
+
+    $text = trim(html_entity_decode(strip_tags($content), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+    return preg_replace('/\s+/u', ' ', $text) ?? '';
 }
 
 /**

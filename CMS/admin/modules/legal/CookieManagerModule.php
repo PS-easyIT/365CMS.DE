@@ -126,8 +126,11 @@ class CookieManagerModule
             'cookie_accept_text',
             'cookie_essential_text',
             'cookie_matomo_self_hosted_url',
+            'cookie_matomo_site_id',
             'cookie_matomo_hosting_region',
             'cookie_matomo_ip_anonymization',
+            'cookie_matomo_respect_dnt',
+            'cookie_matomo_disable_cookies',
             'cookie_matomo_log_retention_days',
             'cookie_matomo_dsgvo_note',
             'cookie_scan_results',
@@ -172,9 +175,12 @@ class CookieManagerModule
             'cookie_policy_url'      => trim((string)($post['cookie_policy_url'] ?? '/datenschutz')),
             'cookie_accept_text'     => trim((string)($post['cookie_accept_text'] ?? 'Akzeptieren')),
             'cookie_essential_text'  => trim((string)($post['cookie_essential_text'] ?? 'Nur Essenzielle')),
-            'cookie_matomo_self_hosted_url' => $this->sanitizeOptionalUrl((string)($post['cookie_matomo_self_hosted_url'] ?? '')),
+            'cookie_matomo_self_hosted_url' => $this->normalizeOptionalUrlForStorage((string)($post['cookie_matomo_self_hosted_url'] ?? '')),
+            'cookie_matomo_site_id' => trim((string)($post['cookie_matomo_site_id'] ?? '1')),
             'cookie_matomo_hosting_region' => trim((string)($post['cookie_matomo_hosting_region'] ?? 'Deutschland / EU')),
             'cookie_matomo_ip_anonymization' => isset($post['cookie_matomo_ip_anonymization']) ? '1' : '0',
+            'cookie_matomo_respect_dnt' => isset($post['cookie_matomo_respect_dnt']) ? '1' : '0',
+            'cookie_matomo_disable_cookies' => isset($post['cookie_matomo_disable_cookies']) ? '1' : '0',
             'cookie_matomo_log_retention_days' => (string)max(1, min(3650, (int)($post['cookie_matomo_log_retention_days'] ?? 180))),
             'cookie_matomo_dsgvo_note' => strip_tags((string)($post['cookie_matomo_dsgvo_note'] ?? ''), '<p><a><strong><em><br><ul><ol><li>'),
         ];
@@ -653,10 +659,28 @@ class CookieManagerModule
             return '';
         }
 
+        if (!preg_match('~^[a-z][a-z0-9+.-]*://~i', $url) && preg_match('~^[a-z0-9.-]+(?::\d+)?(?:/.*)?$~i', $url)) {
+            $url = 'https://' . ltrim($url, '/');
+        }
+
         if (filter_var($url, FILTER_VALIDATE_URL)) {
             return $url;
         }
 
         return '';
+    }
+
+    private function normalizeOptionalUrlForStorage(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return '';
+        }
+
+        if (!preg_match('~^[a-z][a-z0-9+.-]*://~i', $url) && preg_match('~^[a-z0-9._-]+(?::\d+)?(?:/.*)?$~i', $url)) {
+            return 'https://' . ltrim($url, '/');
+        }
+
+        return $url;
     }
 }

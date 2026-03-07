@@ -200,14 +200,10 @@ $menuGroups = [
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 5a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v14l-4 -2l-4 2l-4 -2l-4 2z"/><path d="M8 7h8"/><path d="M8 11h8"/></svg>',
         'slugs'    => ['member-dashboard'],
         'children' => [
-            ['label' => 'Einstellungen',       'slug' => 'member-dashboard',              'url' => $siteUrl . '/admin/member-dashboard'],
-            ['label' => 'Dashboard',           'slug' => 'member-dashboard-link',         'url' => $siteUrl . '/member'],
-            ['label' => 'Meine Files',         'slug' => 'member-dashboard-media-link',   'url' => $siteUrl . '/member/media'],
-            ['label' => 'Mein Profil',         'slug' => 'member-dashboard-profile-link', 'url' => $siteUrl . '/member/profile'],
-            ['label' => 'Benachrichtigungen',  'slug' => 'member-dashboard-notify-link',  'url' => $siteUrl . '/member/notifications'],
-            ['label' => 'Datenschutz',         'slug' => 'member-dashboard-privacy-link', 'url' => $siteUrl . '/member/privacy'],
-            ['label' => 'Sicherheit',          'slug' => 'member-dashboard-security-link','url' => $siteUrl . '/member/security'],
-            ['label' => 'Mein Abo',            'slug' => 'member-dashboard-sub-link',     'url' => $siteUrl . '/member/subscription'],
+            ['label' => 'Übersicht',           'slug' => 'member-dashboard', 'url' => $siteUrl . '/admin/member-dashboard#member-overview'],
+            ['label' => 'Allgemein',           'slug' => 'member-dashboard', 'url' => $siteUrl . '/admin/member-dashboard#member-general'],
+            ['label' => 'Dashboard Widgets',   'slug' => 'member-dashboard', 'url' => $siteUrl . '/admin/member-dashboard#member-widgets'],
+            ['label' => 'Profil-Felder',       'slug' => 'member-dashboard', 'url' => $siteUrl . '/admin/member-dashboard#member-profile-fields'],
         ],
     ],
 

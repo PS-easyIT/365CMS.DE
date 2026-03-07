@@ -46,9 +46,7 @@ $svgs = [
         $gSlug    = htmlspecialchars($item->slug ?? '');
         $gCat     = htmlspecialchars($item->category_name ?? '');
         $gCatSlug = htmlspecialchars($item->category_slug ?? '');
-        $gExcerpt = htmlspecialchars(
-            !empty($item->excerpt) ? $item->excerpt : meridian_excerpt($item->content ?? '', 160)
-        );
+        $gExcerpt = meridian_excerpt((string)($item->excerpt ?? $item->content ?? ''), 160);
         $gDate    = !empty($item->published_at ?? $item->created_at ?? '')
                     ? meridian_format_date($item->published_at ?? $item->created_at, true)
                     : '';

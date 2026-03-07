@@ -442,7 +442,7 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
                 </div>
                 <div class="card-body">
                     <h4><a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>"><?php echo htmlspecialchars($post->title); ?></a></h4>
-                    <p><?php echo htmlspecialchars(meridian_excerpt($post->excerpt ?: $post->content, 100)); ?></p>
+                    <p><?php echo meridian_excerpt((string)($post->excerpt ?: $post->content), 100); ?></p>
                     <div class="card-footer">
                         <time><?php echo meridian_format_date($post->published_at ?? $post->created_at, true); ?></time>
                         <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>" class="read-link">Lesen →</a>
@@ -510,7 +510,7 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
             </a>
         </h2>
         <?php if ($heroPost->excerpt): ?>
-        <p class="excerpt"><?php echo htmlspecialchars(meridian_excerpt($heroPost->excerpt, 200)); ?></p>
+        <p class="excerpt"><?php echo meridian_excerpt((string)$heroPost->excerpt, 200); ?></p>
         <?php endif; ?>
         <div class="post-meta">
             <?php if ($heroPost->author_name): ?>
@@ -557,9 +557,9 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
                     <?php echo htmlspecialchars($post->title); ?>
                 </a>
             </div>
-            <?php $artExcerpt = $post->excerpt ?: meridian_excerpt($post->content, 120); ?>
+            <?php $artExcerpt = meridian_excerpt((string)($post->excerpt ?: $post->content), 120); ?>
             <?php if ($artExcerpt): ?>
-            <div class="art-excerpt"><?php echo htmlspecialchars($artExcerpt); ?></div>
+            <div class="art-excerpt"><?php echo $artExcerpt; ?></div>
             <?php endif; ?>
             <div class="art-meta">
                 <time><?php echo meridian_format_date($post->published_at ?? $post->created_at); ?></time>
@@ -596,7 +596,7 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
                     <?php echo htmlspecialchars($post->title); ?>
                 </a>
             </h4>
-            <p><?php echo htmlspecialchars(meridian_excerpt($post->excerpt ?: $post->content, 100)); ?></p>
+            <p><?php echo meridian_excerpt((string)($post->excerpt ?: $post->content), 100); ?></p>
             <div class="card-footer">
                 <time><?php echo meridian_format_date($post->published_at ?? $post->created_at, true); ?></time>
                 <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>" class="read-link">Lesen →</a>
@@ -618,7 +618,7 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
                 <?php echo htmlspecialchars($post->title); ?>
             </a>
         </h3>
-        <p><?php echo htmlspecialchars(meridian_excerpt($post->excerpt ?: $post->content, 120)); ?></p>
+        <p><?php echo meridian_excerpt((string)($post->excerpt ?: $post->content), 120); ?></p>
         <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>" class="feature-link">
             <?php echo htmlspecialchars($post->category_name ?: 'Weiterlesen'); ?> →
         </a>

@@ -31,7 +31,7 @@ $profileFields = [
 ];
 ?>
 
-<div class="container-xl">
+<div class="container-xl" id="member-overview">
     <!-- Header -->
     <div class="page-header d-flex align-items-center mb-4">
         <div>
@@ -82,7 +82,7 @@ $profileFields = [
         <div class="row">
             <div class="col-lg-8">
                 <!-- Allgemeine Einstellungen -->
-                <div class="card mb-3">
+                <div class="card mb-3" id="member-general">
                     <div class="card-header">
                         <h3 class="card-title">Allgemein</h3>
                     </div>
@@ -123,7 +123,7 @@ $profileFields = [
                 </div>
 
                 <!-- Dashboard Widgets -->
-                <div class="card mb-3">
+                <div class="card mb-3" id="member-widgets">
                     <div class="card-header">
                         <h3 class="card-title">Dashboard Widgets</h3>
                     </div>
@@ -144,7 +144,7 @@ $profileFields = [
                 </div>
 
                 <!-- Profile Fields -->
-                <div class="card mb-3">
+                <div class="card mb-3" id="member-profile-fields">
                     <div class="card-header">
                         <h3 class="card-title">Profil-Felder</h3>
                     </div>

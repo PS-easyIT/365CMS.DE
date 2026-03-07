@@ -20,7 +20,7 @@ if (empty($post)) {
 $pTitle   = htmlspecialchars($post->title ?? '');
 $pLink    = SITE_URL . '/blog/' . ($post->slug ?? '');
 $pContent = $post->content ?? '';
-$pExcerpt = htmlspecialchars($post->excerpt ?? '');
+$pExcerpt = meridian_excerpt((string)($post->excerpt ?? ''), 240);
 $pDate    = isset($post->created_at) ? date('d. M Y', strtotime($post->created_at)) : '';
 $pAuthor  = $post->author_name ?? 'Redaktion';
 $pAuthIni = substr($pAuthor, 0, 2);

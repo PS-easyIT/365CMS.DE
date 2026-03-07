@@ -43,7 +43,7 @@ if (function_exists('meridian_get_posts')) {
             <?php
             $hTitle   = htmlspecialchars($heroPost['title'] ?? '');
             $hLink    = isset($heroPost['slug']) ? SITE_URL . '/blog/' . $heroPost['slug'] : '#';
-            $hExcerpt = htmlspecialchars($heroPost['excerpt'] ?? '');
+            $hExcerpt = meridian_excerpt((string)($heroPost['excerpt'] ?? $heroPost['content'] ?? ''), 220);
             $hDate    = isset($heroPost['created_at']) ? date('d. M Y', strtotime($heroPost['created_at'])) : '';
             $hCat     = $heroPost['category_name'] ?? 'Allgemein';
             $hAuthor  = $heroPost['author_name'] ?? 'Redaktion';
@@ -82,7 +82,7 @@ if (function_exists('meridian_get_posts')) {
                 <?php foreach ($latestPosts as $post): 
                     $pTitle  = htmlspecialchars($post['title'] ?? '');
                     $pLink   = isset($post['slug']) ? SITE_URL . '/blog/' . $post['slug'] : '#';
-                    $pExcerpt= htmlspecialchars($post['excerpt'] ?? '');
+                    $pExcerpt= meridian_excerpt((string)($post['excerpt'] ?? $post['content'] ?? ''), 140);
                     $pDate   = isset($post['created_at']) ? date('d. M Y', strtotime($post['created_at'])) : '';
                     $pCat    = $post['category_name'] ?? 'Blog';
                     $pRead   = isset($post['read_time']) ? $post['read_time'] . ' Min.' : '3 Min.';
@@ -132,7 +132,7 @@ if (function_exists('meridian_get_posts')) {
             <?php foreach ($featurePosts as $post): 
                 $cTitle = htmlspecialchars($post['title'] ?? '');
                 $cLink  = isset($post['slug']) ? SITE_URL . '/blog/' . $post['slug'] : '#';
-                $cExcerpt = htmlspecialchars($post['excerpt'] ?? '');
+                $cExcerpt = meridian_excerpt((string)($post['excerpt'] ?? $post['content'] ?? ''), 140);
                 $cDate  = isset($post['created_at']) ? date('d. M', strtotime($post['created_at'])) : '';
                 $cCat   = $post['category_name'] ?? 'Tipp';
             ?>

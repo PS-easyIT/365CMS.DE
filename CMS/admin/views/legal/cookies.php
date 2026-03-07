@@ -111,23 +111,62 @@ $curatedServices = $d['curated_services'] ?? [];
                                     <h4 class="card-title mb-1">Matomo Self-Hosted</h4>
                                     <div class="text-secondary small">Optional für DSGVO-Transparenz auf der öffentlichen Consent-Seite. Ideal, wenn Matomo auf eigener Infrastruktur betrieben wird.</div>
                                 </div>
+                                <div class="col-12">
+                                    <div class="alert alert-azure mb-0">
+                                        <div class="fw-bold mb-1">Mehr Kontrolle für Matomo</div>
+                                        <div class="small text-secondary">
+                                            Diese Werte werden auf der öffentlichen Seite <code>/cookie-einstellungen</code> angezeigt und helfen dabei, eure Matomo-Konfiguration für Besucher nachvollziehbarer zu dokumentieren.
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="col-md-8">
                                     <label class="form-label">Matomo-URL</label>
                                     <input type="url" name="cookie_matomo_self_hosted_url" class="form-control" placeholder="https://analytics.deine-domain.de/" value="<?php echo htmlspecialchars($settings['cookie_matomo_self_hosted_url'] ?? ''); ?>">
                                 </div>
                                 <div class="col-md-4">
+                                    <label class="form-label">Site-ID</label>
+                                    <input type="text" name="cookie_matomo_site_id" class="form-control" placeholder="z. B. 1" value="<?php echo htmlspecialchars(($settings['cookie_matomo_site_id'] ?? '') !== '' ? $settings['cookie_matomo_site_id'] : '1'); ?>">
+                                </div>
+                                <div class="col-md-4">
                                     <label class="form-label">Hosting-Region</label>
                                     <input type="text" name="cookie_matomo_hosting_region" class="form-control" value="<?php echo htmlspecialchars($settings['cookie_matomo_hosting_region'] ?? 'Deutschland / EU'); ?>">
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <label class="form-check form-switch mt-4">
                                         <input class="form-check-input" type="checkbox" name="cookie_matomo_ip_anonymization" value="1" <?php echo ($settings['cookie_matomo_ip_anonymization'] ?? '1') === '1' ? 'checked' : ''; ?>>
                                         <span class="form-check-label">IP-Anonymisierung aktiv</span>
                                     </label>
                                 </div>
+                                <div class="col-md-4">
+                                    <label class="form-check form-switch mt-4">
+                                        <input class="form-check-input" type="checkbox" name="cookie_matomo_respect_dnt" value="1" <?php echo ($settings['cookie_matomo_respect_dnt'] ?? '0') === '1' ? 'checked' : ''; ?>>
+                                        <span class="form-check-label">Browser-Do-Not-Track respektieren</span>
+                                    </label>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-check form-switch mt-4">
+                                        <input class="form-check-input" type="checkbox" name="cookie_matomo_disable_cookies" value="1" <?php echo ($settings['cookie_matomo_disable_cookies'] ?? '0') === '1' ? 'checked' : ''; ?>>
+                                        <span class="form-check-label">Matomo-Cookies deaktivieren / cookielos</span>
+                                    </label>
+                                </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Log-Löschung / Aufbewahrung (Tage)</label>
                                     <input type="number" name="cookie_matomo_log_retention_days" class="form-control" min="1" max="3650" value="<?php echo (int)(($settings['cookie_matomo_log_retention_days'] ?? '') !== '' ? $settings['cookie_matomo_log_retention_days'] : 180); ?>">
+                                    <div class="form-hint">Beispiel: 180 für 6 Monate oder 365 für 1 Jahr.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card bg-light-lt h-100">
+                                        <div class="card-body">
+                                            <div class="fw-semibold mb-2">Empfohlene Transparenzangaben</div>
+                                            <ul class="mb-0 text-secondary small ps-3">
+                                                <li>Self-Hosted-URL und Site-ID</li>
+                                                <li>Hosting-Region / EU-Bezug</li>
+                                                <li>IP-Anonymisierung</li>
+                                                <li>Do-Not-Track / cookieloser Betrieb</li>
+                                                <li>klare Log-Aufbewahrungsdauer</li>
+                                            </ul>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label">Zusätzlicher DSGVO-Hinweis</label>
