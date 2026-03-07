@@ -213,10 +213,15 @@ $search     = $data['search'] ?? '';
                                         <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/posts?action=edit&id=<?php echo (int)$p['id']; ?>" class="btn btn-ghost-primary btn-icon btn-sm" title="Bearbeiten">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"/><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z"/><path d="M16 5l3 3"/></svg>
                                         </a>
-                                        <button class="btn btn-ghost-danger btn-icon btn-sm" title="Löschen"
-                                                onclick="deletePost(<?php echo (int)$p['id']; ?>, '<?php echo htmlspecialchars(addslashes($p['title']), ENT_QUOTES); ?>')">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/></svg>
-                                        </button>
+                                        <form method="post" class="d-inline delete-post-form mb-0">
+                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="id" value="<?php echo (int)$p['id']; ?>">
+                                            <button type="button" class="btn btn-ghost-danger btn-icon btn-sm btn-delete-post" title="Löschen"
+                                                    data-title="<?php echo htmlspecialchars($p['title'], ENT_QUOTES); ?>">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/></svg>
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>
@@ -230,13 +235,6 @@ $search     = $data['search'] ?? '';
     </div>
 </div>
 
-<!-- Delete-Formular -->
-<form id="deleteForm" method="post" class="d-none">
-    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-    <input type="hidden" name="action" value="delete">
-    <input type="hidden" name="id" id="deleteId">
-</form>
-
 <script>
 function applyFilters() {
     var s = document.getElementById('statusFilter').value;
@@ -248,19 +246,6 @@ function applyFilters() {
     if (c && c !== '0') params.push('category=' + encodeURIComponent(c));
     if (q) params.push('q=' + encodeURIComponent(q));
     window.location.href = url + params.join('&');
-}
-
-function deletePost(id, title) {
-    cmsConfirm({
-        title: 'Beitrag löschen',
-        message: 'Beitrag <strong>' + title + '</strong> wirklich löschen?',
-        confirmText: 'Löschen',
-        confirmClass: 'btn-danger',
-        onConfirm: function() {
-            document.getElementById('deleteId').value = id;
-            document.getElementById('deleteForm').submit();
-        }
-    });
 }
 
 // Select-All & Bulk
@@ -283,6 +268,25 @@ function deletePost(id, title) {
     }
     document.querySelectorAll('.row-check').forEach(function(cb) {
         cb.addEventListener('change', updateBulk);
+    });
+
+    document.querySelectorAll('.btn-delete-post').forEach(function(button) {
+        button.addEventListener('click', function() {
+            var title = this.dataset.title || 'Diesen Beitrag';
+            var form = this.closest('form');
+
+            cmsConfirm({
+                title: 'Beitrag löschen',
+                message: 'Beitrag „' + title + '“ wirklich löschen?',
+                confirmText: 'Löschen',
+                confirmClass: 'btn-danger',
+                onConfirm: function() {
+                    if (form) {
+                        form.submit();
+                    }
+                }
+            });
+        });
     });
 })();
 </script>

@@ -182,10 +182,15 @@ $statusLabels = [
                                         <div class="btn-list flex-nowrap">
                                             <a href="<?= $siteUrl ?>/admin/pages?action=edit&id=<?= (int)$page->id ?>"
                                                class="btn btn-sm btn-outline-primary">Bearbeiten</a>
-                                            <button type="button" class="btn btn-sm btn-outline-danger"
-                                                    onclick="deletePage(<?= (int)$page->id ?>, '<?= htmlspecialchars(addslashes($page->title), ENT_QUOTES) ?>')">
-                                                Löschen
-                                            </button>
+                                            <form method="post" class="d-inline delete-page-form mb-0">
+                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                                                <input type="hidden" name="action" value="delete">
+                                                <input type="hidden" name="id" value="<?= (int)$page->id ?>">
+                                                <button type="button" class="btn btn-sm btn-outline-danger btn-delete-page"
+                                                        data-title="<?= htmlspecialchars($page->title, ENT_QUOTES) ?>">
+                                                    Löschen
+                                                </button>
+                                            </form>
                                         </div>
                                     </td>
                                 </tr>
@@ -210,13 +215,6 @@ $statusLabels = [
                 </div>
             <?php endif; ?>
         </div>
-
-        <!-- Löschen-Formular (hidden) -->
-        <form id="deleteForm" method="post" style="display:none;">
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
-            <input type="hidden" name="action" value="delete">
-            <input type="hidden" name="id" id="deleteId" value="">
-        </form>
 
     </div><!-- /.container-xl -->
 </div><!-- /.page-body -->
@@ -265,17 +263,23 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-});
+    document.querySelectorAll('.btn-delete-page').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const title = this.dataset.title || 'Diese Seite';
+            const form = this.closest('form');
 
-function deletePage(id, title) {
-    cmsConfirm({
-        title: 'Seite löschen?',
-        message: '„' + title + '" wird endgültig gelöscht.',
-        confirmText: 'Löschen',
-        onConfirm: function() {
-            document.getElementById('deleteId').value = id;
-            document.getElementById('deleteForm').submit();
-        }
+            cmsConfirm({
+                title: 'Seite löschen?',
+                message: '„' + title + '“ wird endgültig gelöscht.',
+                confirmText: 'Löschen',
+                confirmClass: 'btn-danger',
+                onConfirm: function() {
+                    if (form) {
+                        form.submit();
+                    }
+                }
+            });
+        });
     });
-}
+});
 </script>
