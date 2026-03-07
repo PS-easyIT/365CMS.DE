@@ -2,9 +2,7 @@
 
 Kurzbeschreibung: Dokumentation der dynamischen Rollen- und Rechteverwaltung im Admin.
 
-Letzte Aktualisierung: 2026-03-07
-
-**Admin-Route:** `/admin/roles`
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ---
 

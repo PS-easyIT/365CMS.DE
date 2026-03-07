@@ -2,13 +2,9 @@
 
 Kurzbeschreibung: Aktuelle Betriebs-, Monitoring- und Diagnoseoberflächen im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
----
-
-## Überblick
-
-Systeminformationen und Diagnosen sind heute auf mehrere Oberflächen verteilt statt in einer einzigen Seite gebündelt.
+Die systemnahen Werkzeuge sind heute auf mehrere Oberflächen verteilt statt in einer einzigen Seite gebündelt.
 
 | Route | Zweck |
 |---|---|

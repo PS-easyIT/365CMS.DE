@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Beschreibt die aktuelle Admin-Konfiguration des Member-Dashboards mit Sektionen, gespeicherten Einstellungen und der Trennung zwischen Verwaltungsoberfläche und Frontend-Mitgliederbereich.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ## Überblick
 
@@ -98,4 +98,4 @@ Die Admin-Konfiguration folgt dem Standardmuster:
 - [../../member/README.md](../../member/README.md)
 - [../../member/SECURITY.md](../../member/SECURITY.md)
 - [../users-groups/USERS.md](../users-groups/USERS.md)
-- [../subscription/README.md](../subscription/README.md)
+- [../subscription/SUBSCRIPTION-SYSTEM.md](../subscription/SUBSCRIPTION-SYSTEM.md)

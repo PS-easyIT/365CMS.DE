@@ -2,11 +2,7 @@
 
 Kurzbeschreibung: Technischer Überblick über Aufbau, Routing und Verantwortlichkeiten im aktuellen Admin-Code.
 
-Letzte Aktualisierung: 2026-03-07
-
----
-
-## Zielbild
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 Der Admin-Bereich ist in 365CMS 2.3.1 kein flaches Sammelbecken einzelner „Alles-in-einer-Datei“-Seiten mehr, sondern eine modulare Struktur aus:
 

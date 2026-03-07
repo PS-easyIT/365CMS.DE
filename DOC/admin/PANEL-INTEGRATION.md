@@ -2,11 +2,9 @@
 
 Kurzbeschreibung: Beschreibt die aktuelle Integration eigener Admin-Seiten und Menüeinträge in das 365CMS-Backend auf Basis von `cms_admin_menu`, `add_menu_page()` und `add_submenu_page()`.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
-## Überblick
-
-Die Admin-Navigation des CMS wird zentral in `CMS/admin/partials/sidebar.php` aufgebaut. Vor dem Rendern der Plugin-Menüs wird dort `CMS\Hooks::doAction('cms_admin_menu')` ausgeführt. Anschließend werden registrierte Einträge über `get_registered_admin_menus()` ausgelesen.
+Das Sidebar-Menü wird zentral in `CMS/admin/partials/sidebar.php` aufgebaut. Vor dem Rendern der Plugin-Menüs wird dort `CMS\Hooks::doAction('cms_admin_menu')` ausgeführt. Anschließend werden registrierte Einträge über `get_registered_admin_menus()` ausgelesen.
 
 Frühere Dokumentationsstände mit einem Filter `admin_menu_items` sind veraltet und gelten nicht mehr als Referenz für neue Integrationen.
 

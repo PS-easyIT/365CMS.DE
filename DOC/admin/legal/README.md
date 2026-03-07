@@ -2,13 +2,9 @@
 
 Kurzbeschreibung: Überblick über die aktuellen Legal-, Privacy- und Security-Module im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
----
-
-## Überblick
-
-Der Bereich ist in 2.3.1 in zwei Gruppen gegliedert:
+Der Bereich ist in zwei Gruppen gegliedert:
 
 - **Recht**
 - **Sicherheit**
@@ -46,9 +42,10 @@ Besonderheit: Frühere Einzelseiten für Privacy- und Deletion-Requests werden h
 | [COOKIES.md](COOKIES.md) | Cookie-Manager und öffentliche Einwilligungsseite |
 | [DSGVO.md](DSGVO.md) | Auskunfts- und Löschprozesse |
 | [LEGAL.md](LEGAL.md) | Rechtstexte und veröffentlichte Pflichtseiten |
-| [FIREWALL.md](FIREWALL.md) | Firewall-Regeln und Blocklisten |
-| [ANTISPAM.md](ANTISPAM.md) | Anti-Spam-Strategien |
-| [SECURITY-AUDIT.md](SECURITY-AUDIT.md) | Audit-Score und Prüfbereiche |
+| [DELETION-REQUESTS.md](DELETION-REQUESTS.md) | DSGVO Art. 17 – Löschanträge |
+| [../security/FIREWALL.md](../security/FIREWALL.md) | Firewall-Regeln und Blocklisten |
+| [../security/ANTISPAM.md](../security/ANTISPAM.md) | Anti-Spam-Strategien |
+| [../security/SECURITY-AUDIT.md](../security/SECURITY-AUDIT.md) | Audit-Score und Prüfbereiche |
 
 ---
 

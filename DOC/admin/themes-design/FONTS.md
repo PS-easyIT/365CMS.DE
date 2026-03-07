@@ -2,9 +2,7 @@
 
 Kurzbeschreibung: Verwaltung lokal gehosteter Schriftarten inklusive Import, Upload und CSS-Bereitstellung.
 
-Letzte Aktualisierung: 2026-03-07
-
-**Admin-Route:** `/admin/font-manager`
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ---
 

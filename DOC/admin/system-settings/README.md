@@ -2,13 +2,9 @@
 
 Kurzbeschreibung: Überblick über Konfiguration, Updates, Backups, Info-Ansichten und Diagnose im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
----
-
-## Überblick
-
-Der frühere, monolithische Bereich „System“ wurde in mehrere klar getrennte Einstiege aufgeteilt.
+Der Bereich „System" wurde in mehrere klar getrennte Einstiege aufgeteilt.
 
 ### System-Gruppe
 
@@ -39,11 +35,17 @@ Der frühere, monolithische Bereich „System“ wurde in mehrere klar getrennte
 
 ### Performance-Gruppe
 
-| Route | Zweck |
+Siehe [../performance/PERFORMANCE.md](../performance/PERFORMANCE.md) für die vollständige Routenübersicht des Performance-Centers mit Cache, Medien, Datenbank, Settings und Sessions.
+
+---
+
+## Zugeordnete Fachdokumente
+
+| Dokument | Schwerpunkt |
 |---|---|
-| `/admin/performance` | Gesamtübersicht |
-| `/admin/performance-cache` | Cache-Verwaltung |
-| `/admin/performance-media` | Medien-Optimierung |
-| `/admin/performance-database` | Datenbank-Wartung |
-| `/admin/performance-settings` | Laufzeit-Optionen |
-| `/admin/performance-sessions` | Session-Bereinigung und Status |
+| [BACKUP.md](BACKUP.md) | Backup & Restore |
+| [SYSTEM.md](SYSTEM.md) | Systeminfo & Diagnose-Übersicht |
+| [UPDATES.md](UPDATES.md) | Core-, Theme- und Plugin-Updates |
+| [../info/INFO.md](../info/INFO.md) | Systeminfo und Dokumentation |
+| [../diagnose/DIAGNOSE.md](../diagnose/DIAGNOSE.md) | Diagnose & Monitoring |
+| [../performance/PERFORMANCE.md](../performance/PERFORMANCE.md) | Performance-Center |

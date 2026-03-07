@@ -2,9 +2,7 @@
 
 Kurzbeschreibung: Verwaltung von Benutzergruppen, Mitgliedschaften und Paketbezügen im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-03-07
-
-**Admin-Route:** `/admin/groups`
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ---
 

@@ -2,9 +2,7 @@
 
 Kurzbeschreibung: Core-, Theme- und Plugin-Updates via GitHub-basierter Update-Logik.
 
-Letzte Aktualisierung: 2026-03-07
-
-**Admin-Route:** `/admin/updates`
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ---
 

@@ -2,21 +2,19 @@
 
 Kurzbeschreibung: Überblick über die Content-Module im Admin-Bereich und ihre aktuelle Aufgabenverteilung.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
----
-
-## Überblick
-
-Die Inhaltsverwaltung im Admin ist auf mehrere spezialisierte Bereiche verteilt:
+Der Content-Bereich ist auf mehrere spezialisierte Bereiche verteilt:
 
 | Route | Zweck |
 |---|---|
 | `/admin/pages` | statische Seiten verwalten |
 | `/admin/posts` | Blog- und News-Beiträge verwalten |
+| `/admin/comments` | Kommentare moderieren und verwalten |
 | `/admin/landing-page` | Landing-Page-Bausteine und Homepage-Sektionen |
 | `/admin/table-of-contents` | Inhaltsverzeichnis-Logik und TOC-Einstellungen |
 | `/admin/site-tables` | benutzerdefinierte Datentabellen |
+| `/admin/content-settings` | Inhalts-Einstellungen (Editor-Optionen, Defaults) |
 
 ---
 
@@ -38,6 +36,9 @@ Die SEO-spezifischen Global-Einstellungen liegen nicht mehr in einem alten Monol
 |---|---|
 | [PAGES.md](PAGES.md) | statische Seiten |
 | [POSTS.md](POSTS.md) | Beiträge und Blog-Workflow |
+| [COMMENTS.md](COMMENTS.md) | Kommentar-Moderation und Massenaktion |
+| [TABLES.md](TABLES.md) | Wiederverwendbare Site-Tabellen |
+| [TOC.md](TOC.md) | Inhaltsverzeichnis-Einstellungen |
 | [../landing-page/LANDING-PAGE.md](../landing-page/LANDING-PAGE.md) | Landing-Page-Builder |
 | [../media/MEDIA.md](../media/MEDIA.md) | Medienbibliothek und Dateinutzung |
 

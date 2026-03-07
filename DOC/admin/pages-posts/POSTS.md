@@ -2,9 +2,7 @@
 
 Kurzbeschreibung: Verwaltung chronologischer Inhalte wie News und Blog-Beiträge im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-03-07
-
-**Admin-Route:** `/admin/posts`
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ---
 

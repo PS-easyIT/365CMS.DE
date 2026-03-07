@@ -2,9 +2,7 @@
 
 Kurzbeschreibung: Verwaltung von Navigationsmenüs, Zuordnungen und Menüeinträgen im aktuellen Theme-/Design-Bereich.
 
-Letzte Aktualisierung: 2026-03-07
-
-**Admin-Route:** `/admin/menu-editor`
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ---
 

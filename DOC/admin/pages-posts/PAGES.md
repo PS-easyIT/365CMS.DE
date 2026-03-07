@@ -2,9 +2,7 @@
 
 Kurzbeschreibung: Verwaltung statischer CMS-Seiten im Admin inklusive Editor, SEO-Feldern, Slugs und Revisionsbezug.
 
-Letzte Aktualisierung: 2026-03-07
-
-**Admin-Route:** `/admin/pages`
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ---
 

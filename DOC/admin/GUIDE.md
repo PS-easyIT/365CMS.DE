@@ -2,11 +2,7 @@
 
 Kurzbeschreibung: Operatives Handbuch für die häufigsten Aufgaben im aktuellen Admin-Bereich von 365CMS 2.3.1.
 
-Letzte Aktualisierung: 2026-03-07
-
----
-
-## Erster Login
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 1. Browser öffnen: `https://eure-domain.de/admin`
 2. Zugangsdaten eingeben
@@ -78,6 +74,136 @@ Weitere Design-Werkzeuge:
 
 - Menü-Editor: `/admin/menu-editor`
 - Landing-Page-Builder: `/admin/landing-page`
+- Font-Manager: `/admin/font-manager`
+
+---
+
+## SEO prüfen und optimieren
+
+### SEO-Überblick
+
+**Route:** `/admin/seo-dashboard`
+
+1. SEO-Score und Gesamt-Health prüfen
+2. offene Optimierungspunkte sichten
+3. in die jeweilige Unterseite navigieren
+
+### Meta-Daten global pflegen
+
+**Route:** `/admin/seo-meta`
+
+1. Title-Templates für Seiten, Beiträge und Sondertypen definieren
+2. Meta-Description-Vorlagen pflegen
+3. Trennzeichen und Formate anpassen
+
+### Sitemap regenerieren
+
+**Route:** `/admin/seo-sitemap`
+
+1. Sitemap-Einstellungen öffnen
+2. Sitemaps bei Bedarf neu generieren
+3. robots.txt prüfen und anpassen
+
+Weitere SEO-Werkzeuge:
+
+- Analytics: `/admin/analytics`
+- SEO-Audit: `/admin/seo-audit`
+- Social Media: `/admin/seo-social`
+- Strukturierte Daten: `/admin/seo-schema`
+- Technisches SEO: `/admin/seo-technical`
+- Redirects: `/admin/redirect-manager`
+
+---
+
+## Performance überwachen
+
+### Gesamtübersicht
+
+**Route:** `/admin/performance`
+
+1. Health-Score und KPIs prüfen
+2. Handlungsbedarf erkennen
+3. in Unterbereiche navigieren
+
+### Cache leeren
+
+**Route:** `/admin/performance-cache`
+
+1. Cache-Statistiken prüfen
+2. Cache bei Bedarf manuell leeren
+
+### WebP-Konvertierung
+
+**Route:** `/admin/performance-media`
+
+1. Medien-Optimierung öffnen
+2. geeignete Bilder in WebP konvertieren
+3. Referenzen werden automatisch aktualisiert
+
+Weitere Performance-Werkzeuge:
+
+- Datenbank-Wartung: `/admin/performance-database`
+- Settings: `/admin/performance-settings`
+- Sessions: `/admin/performance-sessions`
+
+---
+
+## Sicherheit und Recht
+
+### Firewall-Regel anlegen
+
+**Route:** `/admin/firewall`
+
+1. Firewall öffnen
+2. neue Regel mit IP, Bereich oder Muster anlegen
+3. Regel aktivieren und speichern
+
+### AntiSpam konfigurieren
+
+**Route:** `/admin/antispam`
+
+1. Globalen Schalter prüfen
+2. Honeypot und Mindestzeit aktivieren
+3. Blacklist bei Bedarf ergänzen
+
+### Legal Sites pflegen
+
+**Route:** `/admin/legal-sites`
+
+1. Impressum, Datenschutz, AGB und Widerruf pflegen
+2. Seiten automatisch erstellen lassen
+3. Cookie-Manager unter `/admin/cookie-manager` ergänzen
+
+---
+
+## System und Diagnose
+
+### Backup erstellen
+
+**Route:** `/admin/backups`
+
+1. gewünschten Backup-Typ wählen (Voll oder nur DB)
+2. Backup starten
+3. Download oder Löschung über die Liste
+
+### Updates prüfen
+
+**Route:** `/admin/updates`
+
+1. Update-Prüfung starten
+2. verfügbare Core-, Theme- und Plugin-Updates einsehen
+3. Updates einzeln installieren
+
+### Systemdiagnose
+
+**Route:** `/admin/diagnose`
+
+1. Datenbank-Diagnose prüfen
+2. bei Bedarf Monitoring-Seiten aufrufen:
+   - Response-Time: `/admin/monitor-response-time`
+   - Cron-Status: `/admin/monitor-cron-status`
+   - Disk-Usage: `/admin/monitor-disk-usage`
+   - Health-Check: `/admin/monitor-health-check`
 - Font Manager: `/admin/font-manager`
 
 ---

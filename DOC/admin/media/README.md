@@ -2,11 +2,7 @@
 
 Kurzbeschreibung: Überblick über Medienbibliothek, Upload-Workflows, Schutzbereiche und zugehörige Dokumente.
 
-Letzte Aktualisierung: 2026-03-07
-
----
-
-## Überblick
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 Die Medienverwaltung ist unter `/admin/media` erreichbar und steuert Upload, Suche, Filter, Dateioperationen und Vorschaulogik für den globalen Medienbestand.
 
@@ -18,6 +14,16 @@ Wesentliche Merkmale im aktuellen Stand:
 - robusterer Redirect nach Aktionen
 - URL-sichere Vorschaulinks auch bei Leerzeichen und Umlauten
 - geschützter `member`-Ordner mit zusätzlicher Bestätigung
+
+---
+
+## Admin-Routen
+
+| Route | Zweck |
+|---|---|
+| `/admin/media` | Dateibrowser, Upload, Suche und Vorschau |
+| `/admin/media-categories` | Medien-Kategorien anlegen und pflegen |
+| `/admin/media-settings` | Upload-Limits, erlaubte Typen und globale Medienoptionen |
 
 ---
 
@@ -38,6 +44,14 @@ Wesentliche Merkmale im aktuellen Stand:
 | Performance | Bildgrößen, WebP und Medienoptimierung |
 | Member-Bereich | geschützter Medienordner |
 
+---
+
+## Listenspalten
+
+Die Bibliotheksansicht zeigt pro Eintrag:
+
+| Spalte | Beschreibung |
+|---|---|
 | Thumbnail | Kleines Vorschaubild |
 | Dateiname | Original-Dateiname mit Link zur Bearbeitungsseite |
 | Typ | MIME-Type |
@@ -49,120 +63,31 @@ Wesentliche Merkmale im aktuellen Stand:
 
 ---
 
-## 3. Dateien hochladen
+## Upload und Grenzwerte
 
-### Drag & Drop (Standard)
-- Dateien in den Upload-Bereich ziehen
-- Mehrere Dateien gleichzeitig möglich
-- Fortschrittsanzeige pro Datei
+Dateien können per Drag & Drop oder über den klassischen Datei-Dialog hochgeladen werden. Mehrfachauswahl ist möglich.
 
-### Browser-Upload
-- Klassischer Datei-Dialog
-- Mehrfachauswahl mit `Strg+Klick` oder `⌘+Klick`
+Upload-Grenzen sind über `/admin/media-settings` konfigurierbar:
 
-### Upload-Grenzwerte
+- maximale Dateigröße (Standard: 10 MB)
+- maximale Bildbreite mit Auto-Resize
+- erlaubte MIME-Typen (Whitelist)
 
-| Einschränkung | Standard | Konfigurierbar |
-|---|---|---|
-| Max. Dateigröße | 10 MB | ✅ `admin/settings.php` |
-| Max. Bildbreite | 2400 px | ✅ Auto-Resize |
-| Erlaubte Typen | Alle oben | ✅ Whitelist |
-| Speicherquote gesamt | Unbegrenzt | ✅ Pro Benutzer |
+**WebP-Konvertierung** ist optional über `/admin/performance-media` aktivierbar. Dabei wird automatisch eine WebP-Kopie erstellt; das Original bleibt erhalten.
 
-**WebP-Konvertierung (optional):**
-- Aktivierbar unter `admin/performance.php`
-- Erstellt automatisch WebP-Kopie von JPG/PNG
-- Original wird behalten, WebP bevorzugt ausgeliefert
-
-**Automatische Thumbnails:**
-Für jedes hochgeladene Bild werden automatisch generiert:
-- `thumbnail`: 150×150 px (crop center)
-- `medium`: 300×300 px (max, kein Crop)
-- `large`: 1024×1024 px (max, kein Crop)
+**Automatische Thumbnails** werden in drei Größen generiert: `thumbnail` (150×150), `medium` (300×300), `large` (1024×1024).
 
 ---
 
-## 4. Bild-Bearbeitung
+## Metadaten
 
-Basis-Bild-Editor direkt im Browser:
-
-| Funktion | Beschreibung |
-|---|---|
-| **Zuschneiden** | Freie Auswahl oder vordefinierte Verhältnisse (1:1, 16:9, 4:3) |
-| **Drehen** | ±90°, ±180° |
-| **Spiegeln** | Horizontal / Vertikal |
-| **Skalieren** | Breite und Höhe (proportional oder frei) |
-| **Helligkeit/Kontrast** | Slider-Anpassung |
-
-⚠️ Bearbeitung überschreibt das Original – **vorher Backup sichern**!
+Pro Datei pflegbar: Titel, Alt-Text, Beschreibung und Bildunterschrift. Alt-Text ist für SEO und Barrierefreiheit (WCAG 2.1) besonders relevant.
 
 ---
 
-## 5. Metadaten verwalten
+## Verwandte Dokumente
 
-Pro Mediendatei bearbeitbar:
-
-| Feld | SEO-Relevanz | Beispiel |
-|---|---|---|
-| **Titel** | Mittel | „Website-Launch-Event-2026" |
-| **Alt-Text** | Hoch (Bilder) | „Teilnehmer beim IT-Netzwerk-Event" |
-| **Beschreibung** | Niedrig | Längerer Beschreibungstext |
-| **Bildunterschrift** | Niedrig | Wird unter dem Bild angezeigt |
-
-**Best Practice:** Alt-Text immer ausfüllen – wichtig für SEO und Barrierefreiheit (WCAG 2.1).
-
----
-
-## 6. Suche & Filter
-
-| Filter | Optionen |
-|---|---|
-| **Dateityp** | Bilder, Dokumente, Videos, Audio, Alle |
-| **Datum** | Monat/Jahr-Auswahl |
-| **Benutzer** | Nur eigene / Alle (Admin only) |
-| **Suche** | Dateiname, Titel, Alt-Text (Volltext) |
-
----
-
-## 7. Technische Details
-
-**Service:** `CMS\Services\MediaService`
-
-```php
-// Datei hochladen
-$media = MediaService::instance();
-$result = $media->upload($_FILES['file'], [
-    'allowed_types' => ['image/jpeg', 'image/png', 'image/webp'],
-    'max_size'      => 10 * 1024 * 1024,  // 10 MB
-    'owner_id'      => $currentUserId,
-    'webp_convert'  => true,
-]);
-// $result: ['id' => 42, 'url' => '/uploads/2026/02/bild.jpg', ...]
-
-// Metadaten lesen
-$meta = $media->getMeta($mediaId);
-// ['title' => '...', 'alt' => '...', 'width' => 1920, 'height' => 1080]
-```
-
-**Datenbank-Tabelle: `cms_media`**
-
-| Spalte | Typ | Beschreibung |
-|---|---|---|
-| `id` | INT | Auto-Increment Primary Key |
-| `filename` | VARCHAR(255) | Original-Dateiname |
-| `filepath` | VARCHAR(500) | Relativer Pfad ab `/uploads/` |
-| `mime_type` | VARCHAR(100) | MIME-Type |
-| `filesize` | INT | Größe in Bytes |
-| `width` | INT | Bildbreite (null für Nicht-Bilder) |
-| `height` | INT | Bildhöhe (null für Nicht-Bilder) |
-| `alt_text` | TEXT | Alt-Attribut |
-| `title` | VARCHAR(255) | Mediendatei-Titel |
-| `user_id` | INT | Erstellt von |
-| `created_at` | DATETIME | Upload-Zeitstempel |
-
-**Hooks:**
-```php
-do_action('cms_media_uploaded', $mediaId, $filePath, $userId);
-do_action('cms_media_deleted', $mediaId, $filePath);
-add_filter('cms_media_allowed_types', 'my_plugin_allow_svg');
-```
+- [MEDIA.md](MEDIA.md)
+- [../pages-posts/README.md](../pages-posts/README.md)
+- [../performance/PERFORMANCE.md](../performance/PERFORMANCE.md)
+- [../../workflow/MEDIA-UPLOAD-WORKFLOW.md](../../workflow/MEDIA-UPLOAD-WORKFLOW.md)

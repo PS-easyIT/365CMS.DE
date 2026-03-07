@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Zentraler Einstiegspunkt in die Projektdokumentation des Haupt-Repositorys `365CMS.DE`.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 Die Dokumentation beschreibt den aktuell verifizierten Stand **365CMS 2.3.1** mit SEO-Center, Performance-Center, Monitoring-Unterseiten, Legal-/Security-Modulen, WebP-Massenkonvertierung und gehärtetem Font-Self-Hosting.
 
@@ -59,6 +59,9 @@ Die Dokumentation beschreibt den aktuell verifizierten Stand **365CMS 2.3.1** mi
 | Sicherheit | [admin/security/README.md](admin/security/README.md) |
 | Performance | [admin/performance/PERFORMANCE.md](admin/performance/PERFORMANCE.md) |
 | System, Betrieb & Wartung | [admin/system-settings/README.md](admin/system-settings/README.md) |
+| Diagnose & Monitoring | [admin/diagnose/DIAGNOSE.md](admin/diagnose/DIAGNOSE.md) |
+| Systeminformationen | [admin/info/INFO.md](admin/info/INFO.md) |
+| Landing-Pages | [admin/landing-page/LANDING-PAGE.md](admin/landing-page/LANDING-PAGE.md) |
 | Aboverwaltung | [admin/subscription/SUBSCRIPTION-SYSTEM.md](admin/subscription/SUBSCRIPTION-SYSTEM.md) |
 
 ---

@@ -2,9 +2,7 @@
 
 Kurzbeschreibung: Aktueller Einstieg für visuelle Theme-Anpassungen, Customizer-Werte und Export/Import von Design-Einstellungen.
 
-Letzte Aktualisierung: 2026-03-07
-
-**Admin-Route:** `/admin/theme-editor`
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ---
 

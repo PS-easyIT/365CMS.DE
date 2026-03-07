@@ -2,9 +2,7 @@
 
 Kurzbeschreibung: Verwaltung von Benutzerkonten, Status, Rollen, Gruppenbezug und Bearbeitungsabläufen im Admin.
 
-Letzte Aktualisierung: 2026-03-07
-
-**Admin-Route:** `/admin/users`
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ---
 

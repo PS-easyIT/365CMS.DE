@@ -20,13 +20,13 @@ Es verbindet Paketdefinitionen, manuelle oder prozessgesteuerte Zuweisungen und 
 
 ## Aktuelle Admin-Struktur
 
-Bereich **Aboverwaltung** standardmäßig verlinkt:
+Bereich **Aboverwaltung** im Sidebar:
 
-- **Pakete & Abo-Einstellungen** → `/admin/packages`
-- **Bestellungen & Zuweisung** → `/admin/orders`
-- **Einstellungen** → `/admin/subscription-settings`
-
-Ältere Sammelrouten wie `/admin/subscriptions` sind nicht mehr die maßgebliche Benutzerführung.
+| Route | Seite | Modul |
+|---|---|---|
+| `/admin/packages` | Pakete & Pläne | `PackagesModule` |
+| `/admin/orders` | Bestellungen & Zuweisung | `OrdersModule` |
+| `/admin/subscription-settings` | Einstellungen | `SubscriptionSettingsModule` |
 
 ---
 
@@ -56,18 +56,38 @@ Globale Schalter steuern, ob Paketlimits systemweit überhaupt erzwungen werden.
 
 ## Globale Einstellungen
 
-Die Seite `/admin/subscription-settings` verwaltet heute vor allem das **Systemverhalten**, nicht alle Paketdetails.
+Die Seite `/admin/subscription-settings` verwaltet zwei Bereiche über Tabs:
 
-Aktuell dokumentierte Schalter:
+### General Settings (6 Optionen)
 
-- Abo-Limits systemweit durchsetzen
-- Abo-Bereich im Member-Dashboard anzeigen
-- Bestell- und Upgrade-Prozesse zulassen
-- Pakete öffentlich kommunizieren
-- Standardpaket für neue Mitglieder
-- Hinweistext bei Deaktivierung
+| Key | Zweck | Default |
+|---|---|---|
+| `subscription_limits_enabled` | Paketlimits systemweit durchsetzen | `0` |
+| `subscription_default_plan` | Standardpaket für neue Mitglieder | – |
+| `subscription_member_area` | Abo-Bereich im Member-Dashboard | `0` |
+| `subscription_ordering_enabled` | Bestell-/Upgrade-Prozesse zulassen | `0` |
+| `subscription_public_pricing_enabled` | Pakete öffentlich kommunizieren | `0` |
+| `subscription_disabled_notice` | Hinweistext bei Deaktivierung | – |
 
-Preislogik, Trial, Steuern und Paketdetails gehören bewusst in die Paket- bzw. Bestellbereiche.
+### Package Settings (15 Optionen)
+
+| Key | Zweck | Default |
+|---|---|---|
+| `subscription_enabled` | Abo-System aktiv | `0` |
+| `subscription_trial_enabled` | Trial-Phase aktivieren | `0` |
+| `subscription_trial_days` | Dauer Trial in Tagen | `14` |
+| `subscription_auto_renewal` | Auto-Verlängerung | `1` |
+| `subscription_grace_period_days` | Karenzzeit nach Ablauf | `3` |
+| `subscription_cancellation_period_days` | Kündigungsfrist | `0` |
+| `subscription_payment_methods` | Erlaubte Zahlungsmethoden | – |
+| `subscription_invoice_prefix` | Rechnungsnummer-Prefix | – |
+| `subscription_invoice_next_number` | Nächste Rechnungsnummer | – |
+| `subscription_tax_rate` | Steuersatz (%) | `0` |
+| `subscription_notification_*` | E-Mail-Benachrichtigungen | – |
+| `subscription_terms_page` | AGB-Seite (Page-ID) | – |
+| `subscription_cancellation_page` | Widerrufsseite (Page-ID) | – |
+
+Preislogik, Trial, Steuern und Paketdetails werden im Package-Settings-Tab gepflegt, nicht bei General Settings.
 
 ---
 
@@ -107,6 +127,7 @@ Wichtige Bezugspunkte:
 
 ## Verwandte Seiten
 
+- [Pakete & Pläne](PACKAGES.md)
 - [Bestellungen & Zuweisung](ORDERS.md)
 - [Member Dashboard](../member/README.md)
 - [Benutzer & Gruppen](../users-groups/README.md)

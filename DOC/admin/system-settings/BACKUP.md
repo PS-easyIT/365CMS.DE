@@ -2,9 +2,7 @@
 
 Kurzbeschreibung: Lokale Sicherungen, Datenbank-Backups und Verwaltungsabläufe für Wiederherstellung und Bereinigung.
 
-Letzte Aktualisierung: 2026-03-07
-
-**Admin-Route:** `/admin/backups`
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ---
 

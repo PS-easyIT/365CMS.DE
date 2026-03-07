@@ -2,9 +2,9 @@
 
 Kurzbeschreibung: Überblick über die aktuelle Admin-Navigation, die wichtigsten Modulgruppen und die zugehörigen Fachdokumente.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
-Die hier dokumentierte Struktur folgt der aktuellen Sidebar-Konfiguration aus `CMS/admin/partials/sidebar.php`. Öffentliche Admin-Routen werden in der Dokumentation bewusst ohne `.php` beschrieben.
+Die Struktur folgt der aktuellen Sidebar-Konfiguration aus `CMS/admin/partials/sidebar.php`. Öffentliche Admin-Routen werden in der Dokumentation bewusst ohne `.php` beschrieben.
 
 ---
 
@@ -49,13 +49,28 @@ Wichtige Grundsätze:
 | Bereich | Dokument |
 |---|---|
 | Admin-Struktur | [FILESTRUCTURE.md](FILESTRUCTURE.md) |
+| Dashboard | [dashboard/DASHBOARD.md](dashboard/DASHBOARD.md) |
+| Seiten & Beiträge | [pages-posts/README.md](pages-posts/README.md) |
+| Kommentare | [pages-posts/COMMENTS.md](pages-posts/COMMENTS.md) |
+| Landing Page | [landing-page/LANDING-PAGE.md](landing-page/LANDING-PAGE.md) |
+| Medien | [media/README.md](media/README.md) |
+| Benutzer & Gruppen | [users-groups/README.md](users-groups/README.md) |
+| Member Dashboard | [member/README.md](member/README.md) |
+| Aboverwaltung | [subscription/SUBSCRIPTION-SYSTEM.md](subscription/SUBSCRIPTION-SYSTEM.md) |
+| Pakete | [subscription/PACKAGES.md](subscription/PACKAGES.md) |
 | Recht | [legal/README.md](legal/README.md) |
+| DSGVO-Löschanträge | [legal/DELETION-REQUESTS.md](legal/DELETION-REQUESTS.md) |
 | Sicherheit | [security/README.md](security/README.md) |
 | SEO | [seo/SEO.md](seo/SEO.md) |
+| URL-Weiterleitungen | [seo/REDIRECTS.md](seo/REDIRECTS.md) |
 | Performance | [performance/PERFORMANCE.md](performance/PERFORMANCE.md) |
-| Themes & Design | [themes-design/CUSTOMIZER.md](themes-design/CUSTOMIZER.md) |
+| Themes & Design | [themes-design/README.md](themes-design/README.md) |
+| Design-Einstellungen | [themes-design/DESIGN-SETTINGS.md](themes-design/DESIGN-SETTINGS.md) |
 | Fonts | [themes-design/FONTS.md](themes-design/FONTS.md) |
+| Plugins | [plugins/PLUGINS.md](plugins/PLUGINS.md) |
 | System & Betrieb | [system-settings/README.md](system-settings/README.md) |
+| Info | [info/INFO.md](info/INFO.md) |
+| Diagnose & Monitoring | [diagnose/DIAGNOSE.md](diagnose/DIAGNOSE.md) |
 
 ---
 

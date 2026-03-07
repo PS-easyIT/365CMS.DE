@@ -2,9 +2,7 @@
 
 Kurzbeschreibung: Bearbeitung von Datenschutzanfragen nach Art. 15 und Art. 17 DSGVO im aktuellen Admin-Workflow.
 
-Letzte Aktualisierung: 2026-03-07
-
-**Admin-Route:** `/admin/data-requests`
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ---
 

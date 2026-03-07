@@ -2,9 +2,7 @@
 
 Kurzbeschreibung: Verwaltung von Cookie-Kategorien, Diensten, Banner-Texten und der öffentlichen Einwilligungsseite.
 
-Letzte Aktualisierung: 2026-03-07
-
-**Admin-Route:** `/admin/cookie-manager`
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ---
 

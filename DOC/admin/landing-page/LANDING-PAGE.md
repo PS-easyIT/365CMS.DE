@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert den aktuellen Landing-Page-Editor im Admin inklusive Sektionen, Datenmodell, Plugin-Overrides und Sicherheitslogik.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ## Überblick
 

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Schutz vor missbräuchlichen Anfragen, IP-Sperren, Blockregeln und sicherheitsrelevanten Zugriffsmustern.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 **Admin-Route:** `/admin/firewall`
 
@@ -11,6 +11,12 @@ Letzte Aktualisierung: 2026-03-07
 ## Überblick
 
 Die Firewall ist das zentrale Admin-Modul für anwendungsnahe Abwehrmaßnahmen. Sie arbeitet zusammen mit Login-Schutz, AntiSpam und Security-Audit.
+
+| Baustein | Datei |
+|---|---|
+| Entry Point | `CMS/admin/firewall.php` |
+| Modul | `CMS/admin/modules/security/FirewallModule.php` |
+| View | `CMS/admin/views/security/firewall.php` |
 
 Typische Aufgaben:
 
@@ -55,4 +61,22 @@ Die aktuelle Modul-Implementierung prüft Eingaben strenger als ältere Stände,
 - Regel aktivieren oder deaktivieren
 - gesperrte IPs prüfen
 
-Diese Aktionen werden im aktuellen Arbeitsstand zusätzlich auditierbar protokolliert.
+Diese Aktionen werden im aktuellen Arbeitsstand zusätzlich über den `AuditLogger` protokolliert.
+
+---
+
+## Sicherheit
+
+- Zugriff nur für Administratoren
+- CSRF-Prüfung für alle POST-Aktionen
+- serverseitige Validierung von IPs und Regelparametern
+- Redirect nach jeder schreibenden Aktion
+
+---
+
+## Verwandte Dokumente
+
+- [ANTISPAM.md](ANTISPAM.md)
+- [SECURITY-AUDIT.md](SECURITY-AUDIT.md)
+- [../legal/README.md](../legal/README.md)
+- [../../core/SECURITY.md](../../core/SECURITY.md)

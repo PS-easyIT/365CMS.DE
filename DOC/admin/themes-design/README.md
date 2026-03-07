@@ -87,6 +87,7 @@ Solche Seiten sind funktional vorhanden, aber nicht zwingend Teil des Standard-N
 ## Dokumentationsstruktur
 
 - [Theme Editor](EDITOR.md)
+- [Design-Einstellungen](DESIGN-SETTINGS.md)
 - [Theme & Plugin Marketplace](MARKETPLACE.md)
 - [Menü-Editor](MENUS.md)
 - [Member-Dashboard-Widgets](DASHBOARD-WIDGETS.md)

@@ -2,15 +2,25 @@
 
 Kurzbeschreibung: Verwaltung hochgeladener Dateien, Ordner, Metadaten und sicherer Auslieferung über den Media-Proxy.
 
-Letzte Aktualisierung: 2026-03-07
-
-**Admin-Route:** `/admin/media`
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ---
 
 ## Überblick
 
 Die Medienbibliothek verwaltet Bilder, Dokumente und weitere Uploads zentral für Frontend, Admin und Member-Bereich.
+
+---
+
+## Admin-Routen
+
+Die Medienverwaltung umfasst seit 2.3.x drei Unterseiten:
+
+| Route | View | Zweck |
+|---|---|---|
+| `/admin/media` | `views/media/library.php` | Dateibrowser, Upload, Suche und Vorschau |
+| `/admin/media-categories` | `views/media/categories.php` | Medien-Kategorien anlegen und pflegen |
+| `/admin/media-settings` | `views/media/settings.php` | Upload-Limits, erlaubte Typen und globale Medienoptionen |
 
 ---
 
