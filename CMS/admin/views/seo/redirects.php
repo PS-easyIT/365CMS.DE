@@ -14,7 +14,7 @@ $stats     = $data['stats'] ?? [];
     <div class="container-xl">
         <div class="row g-2 align-items-center">
             <div class="col">
-                <div class="page-pretitle">SEO &amp; Performance</div>
+                <div class="page-pretitle">SEO</div>
                 <h2 class="page-title">404-Errors &amp; Weiterleitung</h2>
             </div>
             <div class="col-auto ms-auto d-flex gap-2">
@@ -37,6 +37,8 @@ $stats     = $data['stats'] ?? [];
                 <a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>
             </div>
         <?php endif; ?>
+
+        <?php require __DIR__ . '/subnav.php'; ?>
 
         <div class="row row-deck row-cards mb-4">
             <div class="col-sm-6 col-lg-3">

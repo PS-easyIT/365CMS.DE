@@ -184,174 +184,111 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                     </div>
                 </div>
 
-                <div class="col-lg-6">
-                    <div class="card cms-edit-card h-100">
-                        <div class="card-header">
-                            <h3 class="card-title">SEO</h3>
-                        </div>
+                <div class="col-xl-4 d-flex">
+                    <div class="card cms-edit-card h-100 w-100">
+                        <div class="card-header"><h3 class="card-title">SEO-Card</h3></div>
                         <div class="card-body">
                             <div class="mb-3">
                                 <label class="form-label" for="pageFocusKeyphrase">Fokus-Keyphrase</label>
-                                <input type="text" name="focus_keyphrase" class="form-control" id="pageFocusKeyphrase"
-                                       placeholder="z. B. Mitgliedschaft B2B-Netzwerk"
-                                       value="<?= htmlspecialchars($pageFocusKeyphraseValue) ?>">
+                                <input type="text" name="focus_keyphrase" class="form-control" id="pageFocusKeyphrase" placeholder="z. B. Mitgliedschaft B2B-Netzwerk" value="<?= htmlspecialchars($pageFocusKeyphraseValue) ?>">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Meta-Titel</label>
-                                <input type="text" name="meta_title" class="form-control" id="pageMetaTitle"
-                                       placeholder="SEO-Titel (Standard: Seitentitel)"
-                                       maxlength="70"
-                                       value="<?= htmlspecialchars($pageMetaTitleValue) ?>">
+                                <input type="text" name="meta_title" class="form-control" id="pageMetaTitle" placeholder="SEO-Titel (Standard: Seitentitel)" maxlength="70" value="<?= htmlspecialchars($pageMetaTitleValue) ?>">
                                 <small class="form-hint"><span id="metaTitleCount">0</span>/70 Zeichen</small>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Meta-Beschreibung</label>
-                                <textarea name="meta_description" class="form-control" rows="3" id="pageMetaDescription"
-                                          placeholder="Kurze Beschreibung für Suchmaschinen…"
-                                          maxlength="160"><?= htmlspecialchars($pageMetaDescriptionValue) ?></textarea>
+                                <textarea name="meta_description" class="form-control" rows="3" id="pageMetaDescription" placeholder="Kurze Beschreibung für Suchmaschinen…" maxlength="160"><?= htmlspecialchars($pageMetaDescriptionValue) ?></textarea>
                                 <small class="form-hint"><span id="metaDescriptionCount">0</span>/160 Zeichen</small>
                             </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="pageCanonicalUrl">Kanonische URL</label>
+                                <input type="text" name="canonical_url" id="pageCanonicalUrl" class="form-control" value="<?= htmlspecialchars($pageCanonicalUrlValue) ?>" placeholder="Automatisch self-referencing, wenn leer">
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between gap-2 mb-2"><span class="text-secondary small">Vorschau-URL</span><span class="badge bg-success-lt text-success" id="pageSlugState">Slug gültig</span></div>
+                            <div class="form-control-plaintext text-break small mb-3" id="pagePreviewUrl"><?= htmlspecialchars($pagePreviewUrl) ?></div>
                             <div id="pagePublishWarning" class="alert alert-warning mb-0" role="alert"></div>
                         </div>
                     </div>
                 </div>
 
-                <div class="col-lg-6">
-                    <div class="card cms-edit-card h-100">
-                        <div class="card-header">
-                            <h3 class="card-title">Vorschaubild</h3>
-                        </div>
+                <div class="col-xl-4 d-flex">
+                    <div class="card cms-edit-card h-100 w-100">
+                        <div class="card-header d-flex justify-content-between align-items-center"><h3 class="card-title">Lesbarkeits-Card</h3><span class="badge bg-danger-lt text-danger" id="pageReadabilityBadge">Kritisch</span></div>
                         <div class="card-body">
-                            <div id="featuredImagePreview">
-                                <?php if ($pageFeaturedImageValue !== ''): ?>
-                                    <img src="<?= htmlspecialchars($pageFeaturedImageValue) ?>" alt="" class="img-fluid rounded mb-2">
-                                <?php endif; ?>
-                            </div>
-                            <input type="hidden" name="featured_image" id="featuredImageInput"
-                                   value="<?= htmlspecialchars($pageFeaturedImageValue) ?>">
-                            <div id="featuredImageEmpty" class="text-secondary small <?= $pageFeaturedImageValue !== '' ? 'd-none' : '' ?>">Noch kein Vorschaubild ausgewählt.</div>
-                            <div class="btn-list">
-                                <button type="button" class="btn btn-sm btn-outline-primary" id="featuredImageBtn">
-                                    Bild auswählen
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="featuredImageRemove">
-                                    Entfernen
-                                </button>
+                            <div class="text-secondary small mb-3" id="pageReadabilitySummary">0 Wörter · 0 lange Sätze · 0 lange Absätze</div>
+                            <div class="row g-3">
+                                <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Wörter</div><div class="h3 m-0" id="pageWordCount">0</div></div></div>
+                                <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Keyphrase-Dichte</div><div class="h3 m-0" id="pageDensity">0%</div></div></div>
+                                <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Interne Links</div><div class="h3 m-0" id="pageInternalLinks">0</div></div></div>
+                                <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Externe Links</div><div class="h3 m-0" id="pageExternalLinks">0</div></div></div>
+                                <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Signalwörter</div><div class="h3 m-0" id="pageTransitionWords">0</div></div></div>
+                                <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Bilder ohne Alt</div><div class="h3 m-0" id="pageMissingAlt">0</div></div></div>
+                                <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Lange Sätze</div><div class="h3 m-0" id="pageLongSentences">0</div></div></div>
+                                <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Lange Absätze</div><div class="h3 m-0" id="pageLongParagraphs">0</div></div></div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="col-lg-6">
-                    <div class="card cms-edit-card h-100">
-                        <div class="card-header">
-                            <h3 class="card-title">SEO-Score</h3>
-                        </div>
+                <div class="col-xl-4 d-flex">
+                    <div class="card cms-edit-card h-100 w-100">
+                        <div class="card-header"><h3 class="card-title">Vorschau-Card</h3></div>
                         <div class="card-body">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <div class="h1 m-0" id="pageSeoScoreLabel">0</div>
-                                <span class="badge bg-danger-lt text-danger" id="pageSeoScoreBadge">Rot</span>
-                            </div>
-                            <div class="progress progress-sm mb-3">
-                                <div class="progress-bar bg-danger" id="pageSeoScoreBar" style="width:0%"></div>
-                            </div>
-                            <div class="row g-3 mb-3">
-                                <div class="col-6">
-                                    <div class="border rounded p-3 h-100">
-                                        <div class="text-secondary small mb-1">Titel</div>
-                                        <div class="h3 m-0" id="pageTitleCount">0</div>
-                                        <div class="text-secondary small">Zeichen</div>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="border rounded p-3 h-100">
-                                        <div class="text-secondary small mb-1">Slug</div>
-                                        <div class="h3 m-0" id="pageSlugCount">0</div>
-                                        <div class="text-secondary small">Zeichen</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <div class="text-secondary small mb-1">Status</div>
-                                <span class="badge bg-azure-lt text-azure" id="pageStatusBadge">Entwurf</span>
-                            </div>
-
-                            <div>
-                                <div class="text-secondary small mb-1">Vorschau-URL</div>
-                                <div class="form-control-plaintext text-break small" id="pagePreviewUrl"><?= htmlspecialchars($pagePreviewUrl) ?></div>
-                                <div class="mt-2"><span class="badge bg-success-lt text-success" id="pageSlugState">Slug gültig</span></div>
-                            </div>
-                            <div class="mt-3" id="pageSeoRules"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-7">
-                    <div class="card cms-edit-card h-100">
-                        <div class="card-header"><h3 class="card-title">SERP-Vorschau</h3></div>
-                        <div class="card-body">
-                            <div class="border rounded p-3 bg-light">
+                            <div class="text-uppercase text-secondary small mb-2">SERP</div>
+                            <div class="border rounded p-3 bg-light mb-4">
                                 <div id="pageSerpTitle" class="fw-semibold text-primary mb-1"><?= htmlspecialchars($pageMetaTitleValue ?: $pageTitleValue) ?></div>
                                 <div id="pageSerpUrl" class="small text-success mb-1"><?= htmlspecialchars($pagePreviewUrl) ?></div>
                                 <div id="pageSerpDescription" class="small text-secondary"><?= htmlspecialchars($pageMetaDescriptionValue ?: 'Meta-Beschreibung wird automatisch aus dem ersten Absatz erzeugt.') ?></div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-5">
-                    <div class="card cms-edit-card h-100">
-                        <div class="card-header"><h3 class="card-title">Social Preview</h3></div>
-                        <div class="card-body">
+                            <div class="text-uppercase text-secondary small mb-2">Social</div>
                             <div class="border rounded overflow-hidden bg-light">
                                 <img id="pageSocialImage" src="<?= htmlspecialchars($pageOgImageValue !== '' ? $pageOgImageValue : $pageFeaturedImageValue) ?>" alt="" style="display:<?= ($pageOgImageValue !== '' || $pageFeaturedImageValue !== '') ? 'block' : 'none' ?>; width:100%; height:160px; object-fit:cover;">
                                 <div class="p-3">
                                     <div class="text-uppercase text-secondary small mb-1">facebook / x</div>
-                                    <div id="pageSocialTitle" class="fw-semibold mb-1"><?= htmlspecialchars($pageMetaTitleValue ?: $pageTitleValue) ?></div>
-                                    <div id="pageSocialDescription" class="small text-secondary"><?= htmlspecialchars($pageMetaDescriptionValue ?: 'Social-Vorschau aus SEO-Daten') ?></div>
+                                    <div id="pageSocialTitle" class="fw-semibold mb-1"><?= htmlspecialchars($pageOgTitleValue !== '' ? $pageOgTitleValue : ($pageMetaTitleValue ?: $pageTitleValue)) ?></div>
+                                    <div id="pageSocialDescription" class="small text-secondary"><?= htmlspecialchars($pageOgDescriptionValue !== '' ? $pageOgDescriptionValue : ($pageMetaDescriptionValue ?: 'Social-Vorschau aus SEO-Daten')) ?></div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-6">
-                    <div class="card cms-edit-card h-100">
-                        <div class="card-header">
-                            <h3 class="card-title">Hinweise</h3>
-                        </div>
-                        <div class="card-body">
-                            <ul class="mb-0 text-secondary small ps-3">
-                                <li class="mb-2">Halte den Titel prägnant und eindeutig.</li>
-                                <li class="mb-2">Ein sauberer Slug verbessert Lesbarkeit und SEO.</li>
-                                <li class="mb-2">Meta-Titel idealerweise unter 70 Zeichen halten.</li>
-                                <li>Die Meta-Beschreibung sollte kurz und klickstark formuliert sein.</li>
-                            </ul>
                         </div>
                     </div>
                 </div>
 
                 <div class="col-12">
-                    <div class="card cms-edit-card">
-                        <div class="card-header"><h3 class="card-title">Erweitertes SEO &amp; Social</h3></div>
+                    <details class="card cms-edit-card" open>
+                        <summary class="card-header" style="cursor:pointer; list-style:none;"><div class="d-flex align-items-center justify-content-between w-100"><h3 class="card-title mb-0">SEO-Score &amp; Checkliste</h3><div class="d-flex align-items-center gap-3"><span class="badge bg-danger-lt text-danger" id="pageSeoScoreBadge">Rot</span><strong class="h2 mb-0" id="pageSeoScoreLabel">0</strong></div></div></summary>
                         <div class="card-body">
-                            <div class="row g-3">
+                            <div class="progress progress-sm mb-3"><div class="progress-bar bg-danger" id="pageSeoScoreBar" style="width:0%"></div></div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-3"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Titel</div><div class="h3 m-0" id="pageTitleCount">0</div><div class="text-secondary small">Zeichen</div></div></div>
+                                <div class="col-md-3"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Slug</div><div class="h3 m-0" id="pageSlugCount">0</div><div class="text-secondary small">Zeichen</div></div></div>
+                                <div class="col-md-3"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Status</div><span class="badge bg-azure-lt text-azure" id="pageStatusBadge">Entwurf</span></div></div>
+                                <div class="col-md-3"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Hinweis</div><div class="small">Slug, Meta, Lesbarkeit und Social-Preview live.</div></div></div>
+                            </div>
+                            <div id="pageSeoRules"></div>
+                        </div>
+                    </details>
+                </div>
+
+                <div class="col-12">
+                    <details class="card cms-edit-card">
+                        <summary class="card-header" style="cursor:pointer; list-style:none;"><div class="d-flex align-items-center justify-content-between w-100"><h3 class="card-title mb-0">Erweitertes SEO &amp; Social</h3><span class="text-secondary small">Canonical, Robots, Social, Schema, Sitemap, Vorschaubild</span></div></summary>
+                        <div class="card-body">
+                            <div class="row g-3 mb-4">
                                 <div class="col-lg-4">
-                                    <label class="form-label" for="pageCanonicalUrl">Kanonische URL</label>
-                                    <input type="text" name="canonical_url" id="pageCanonicalUrl" class="form-control" value="<?= htmlspecialchars($pageCanonicalUrlValue) ?>" placeholder="Automatisch self-referencing, wenn leer">
-                                </div>
-                                <div class="col-lg-2">
-                                    <label class="form-check mt-4">
-                                        <input class="form-check-input" type="checkbox" name="robots_index" value="1" <?= $pageRobotsIndexValue ? 'checked' : '' ?>>
-                                        <span class="form-check-label">index</span>
-                                    </label>
-                                </div>
-                                <div class="col-lg-2">
-                                    <label class="form-check mt-4">
-                                        <input class="form-check-input" type="checkbox" name="robots_follow" value="1" <?= $pageRobotsFollowValue ? 'checked' : '' ?>>
-                                        <span class="form-check-label">follow</span>
-                                    </label>
+                                    <label class="form-label">Vorschaubild</label>
+                                    <div id="featuredImagePreview">
+                                        <?php if ($pageFeaturedImageValue !== ''): ?>
+                                            <img src="<?= htmlspecialchars($pageFeaturedImageValue) ?>" alt="" class="img-fluid rounded mb-2">
+                                        <?php endif; ?>
+                                    </div>
+                                    <input type="hidden" name="featured_image" id="featuredImageInput" value="<?= htmlspecialchars($pageFeaturedImageValue) ?>">
+                                    <div id="featuredImageEmpty" class="text-secondary small <?= $pageFeaturedImageValue !== '' ? 'd-none' : '' ?>">Noch kein Vorschaubild ausgewählt.</div>
+                                    <div class="btn-list mt-2">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="featuredImageBtn">Bild auswählen</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="featuredImageRemove">Entfernen</button>
+                                    </div>
                                 </div>
                                 <div class="col-lg-4">
                                     <label class="form-label" for="pageSchemaType">Schema-Typ</label>
@@ -360,8 +297,21 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                                             <option value="<?= htmlspecialchars($type) ?>" <?= $pageSchemaTypeValue === $type ? 'selected' : '' ?>><?= htmlspecialchars($type) ?></option>
                                         <?php endforeach; ?>
                                     </select>
+                                    <label class="form-label mt-3" for="pageSitemapPriority">Sitemap Priority</label>
+                                    <input type="text" class="form-control" id="pageSitemapPriority" name="sitemap_priority" value="<?= htmlspecialchars($pageSitemapPriorityValue) ?>">
+                                    <label class="form-label mt-3" for="pageSitemapChangefreq">Sitemap Changefreq</label>
+                                    <select class="form-select" id="pageSitemapChangefreq" name="sitemap_changefreq">
+                                        <?php foreach (['always', 'daily', 'weekly', 'monthly', 'yearly'] as $freq): ?>
+                                            <option value="<?= htmlspecialchars($freq) ?>" <?= $pageSitemapChangefreqValue === $freq ? 'selected' : '' ?>><?= htmlspecialchars($freq) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
                                 </div>
-
+                                <div class="col-lg-4 d-flex flex-column justify-content-end gap-2">
+                                    <label class="form-check"><input class="form-check-input" type="checkbox" name="robots_index" value="1" <?= $pageRobotsIndexValue ? 'checked' : '' ?>><span class="form-check-label">index</span></label>
+                                    <label class="form-check"><input class="form-check-input" type="checkbox" name="robots_follow" value="1" <?= $pageRobotsFollowValue ? 'checked' : '' ?>><span class="form-check-label">follow</span></label>
+                                    <label class="form-label mt-2" for="pageHreflangGroup">hreflang-Gruppe</label>
+                                    <input type="text" class="form-control" id="pageHreflangGroup" name="hreflang_group" value="<?= htmlspecialchars($pageHreflangGroupValue) ?>">
+                                </div>
                                 <div class="col-lg-6">
                                     <label class="form-label" for="pageOgTitle">OG-Titel</label>
                                     <input type="text" class="form-control" id="pageOgTitle" name="og_title" value="<?= htmlspecialchars($pageOgTitleValue) ?>">
@@ -392,25 +342,9 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                                     <label class="form-label" for="pageTwitterImage">Twitter-/X-Bild</label>
                                     <input type="text" class="form-control" id="pageTwitterImage" name="twitter_image" value="<?= htmlspecialchars($pageTwitterImageValue) ?>">
                                 </div>
-                                <div class="col-lg-3">
-                                    <label class="form-label" for="pageSitemapPriority">Sitemap Priority</label>
-                                    <input type="text" class="form-control" id="pageSitemapPriority" name="sitemap_priority" value="<?= htmlspecialchars($pageSitemapPriorityValue) ?>">
-                                </div>
-                                <div class="col-lg-3">
-                                    <label class="form-label" for="pageSitemapChangefreq">Sitemap Changefreq</label>
-                                    <select class="form-select" id="pageSitemapChangefreq" name="sitemap_changefreq">
-                                        <?php foreach (['always', 'daily', 'weekly', 'monthly', 'yearly'] as $freq): ?>
-                                            <option value="<?= htmlspecialchars($freq) ?>" <?= $pageSitemapChangefreqValue === $freq ? 'selected' : '' ?>><?= htmlspecialchars($freq) ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <div class="col-lg-6">
-                                    <label class="form-label" for="pageHreflangGroup">hreflang-Gruppe</label>
-                                    <input type="text" class="form-control" id="pageHreflangGroup" name="hreflang_group" value="<?= htmlspecialchars($pageHreflangGroupValue) ?>">
-                                </div>
                             </div>
                         </div>
-                    </div>
+                    </details>
                 </div>
             </div>
         </form>
@@ -519,7 +453,12 @@ document.addEventListener('DOMContentLoaded', function() {
         metaTitleId: 'pageMetaTitle',
         metaDescId: 'pageMetaDescription',
         focusKeyphraseId: 'pageFocusKeyphrase',
+        ogTitleId: 'pageOgTitle',
+        ogDescriptionId: 'pageOgDescription',
         ogImageId: 'pageOgImage',
+        twitterTitleId: 'pageTwitterTitle',
+        twitterDescriptionId: 'pageTwitterDescription',
+        twitterImageId: 'pageTwitterImage',
         featuredImageId: 'featuredImageInput',
         statusId: 'pageStatusSelect',
         contentInputId: 'editorContent',
@@ -536,6 +475,16 @@ document.addEventListener('DOMContentLoaded', function() {
         socialImageId: 'pageSocialImage',
         publishWarningId: 'pagePublishWarning',
         slugStateId: 'pageSlugState',
+        wordCountId: 'pageWordCount',
+        densityId: 'pageDensity',
+        internalLinksId: 'pageInternalLinks',
+        externalLinksId: 'pageExternalLinks',
+        transitionWordsId: 'pageTransitionWords',
+        longSentencesId: 'pageLongSentences',
+        longParagraphsId: 'pageLongParagraphs',
+        missingAltId: 'pageMissingAlt',
+        readabilityBadgeId: 'pageReadabilityBadge',
+        readabilitySummaryId: 'pageReadabilitySummary',
         previewBaseUrl: '<?= htmlspecialchars($siteUrl) ?>/',
         siteName: '<?= htmlspecialchars((string)SITE_NAME, ENT_QUOTES) ?>',
         siteTitleFormat: '<?= htmlspecialchars((string)($seoTemplateSettings['site_title_format'] ?? '%%title%% %%sep%% %%sitename%%'), ENT_QUOTES) ?>',

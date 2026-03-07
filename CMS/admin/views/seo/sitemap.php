@@ -1,0 +1,27 @@
+<?php
+declare(strict_types=1);
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+$sitemap = $data['sitemap'] ?? [];
+$settings = $sitemap['settings'] ?? [];
+$files = $sitemap['files'] ?? [];
+$counts = $sitemap['counts'] ?? [];
+?>
+<div class="page-header d-print-none"><div class="container-xl"><div class="row g-2 align-items-center"><div class="col"><div class="page-pretitle">SEO</div><h2 class="page-title">Sitemap & robots.txt</h2></div><div class="col-auto ms-auto d-flex gap-2"><form method="post"><input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>"><input type="hidden" name="action" value="regenerate_sitemap_bundle"><button class="btn btn-outline-primary" type="submit">Sitemaps generieren</button></form><form method="post"><input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>"><input type="hidden" name="action" value="save_robots"><button class="btn btn-outline-secondary" type="submit">robots.txt schreiben</button></form></div></div></div></div>
+<div class="page-body"><div class="container-xl">
+    <?php if (!empty($alert)): ?><div class="alert alert-<?= htmlspecialchars($alert['type']) ?> alert-dismissible" role="alert"><div><?= htmlspecialchars($alert['message']) ?></div><a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a></div><?php endif; ?>
+    <?php require __DIR__ . '/subnav.php'; ?>
+    <div class="row row-deck row-cards mb-4">
+        <div class="col-sm-3"><div class="card"><div class="card-body"><div class="subheader">Pages</div><div class="h1 mb-0"><?= (int)($counts['pages'] ?? 0) ?></div></div></div></div>
+        <div class="col-sm-3"><div class="card"><div class="card-body"><div class="subheader">Posts</div><div class="h1 mb-0"><?= (int)($counts['posts'] ?? 0) ?></div></div></div></div>
+        <div class="col-sm-3"><div class="card"><div class="card-body"><div class="subheader">Bild-URLs</div><div class="h1 mb-0"><?= (int)($counts['images'] ?? 0) ?></div></div></div></div>
+        <div class="col-sm-3"><div class="card"><div class="card-body"><div class="subheader">News-Kandidaten</div><div class="h1 mb-0"><?= (int)($counts['news_candidates'] ?? 0) ?></div></div></div></div>
+    </div>
+    <div class="row g-4">
+        <div class="col-lg-6"><div class="card h-100"><div class="card-header"><h3 class="card-title">Dateistatus</h3></div><div class="table-responsive"><table class="table card-table table-vcenter"><thead><tr><th>Datei</th><th>Status</th><th>Aktualisiert</th><th class="text-end">Größe</th></tr></thead><tbody><?php foreach ($files as $name => $file): ?><tr><td><code><?= htmlspecialchars((string)$name) ?></code></td><td><?= !empty($file['exists']) ? '<span class="badge bg-success">vorhanden</span>' : '<span class="badge bg-danger">fehlt</span>' ?></td><td><?= htmlspecialchars((string)($file['updated_at'] ?? '—')) ?></td><td class="text-end"><?= !empty($file['exists']) ? number_format(((int)$file['size']) / 1024, 1, ',', '.') . ' KB' : '—' ?></td></tr><?php endforeach; ?></tbody></table></div></div></div>
+        <div class="col-lg-6"><div class="card h-100"><div class="card-header"><h3 class="card-title">Einstellungen</h3></div><div class="card-body"><form method="post" class="row g-3"><input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>"><input type="hidden" name="action" value="save_sitemap_settings"><div class="col-md-6"><label class="form-label">Pages Priority</label><input class="form-control" type="text" name="pages_priority" value="<?= htmlspecialchars((string)($settings['pages_priority'] ?? '0.8')) ?>"></div><div class="col-md-6"><label class="form-label">Pages Changefreq</label><input class="form-control" type="text" name="pages_changefreq" value="<?= htmlspecialchars((string)($settings['pages_changefreq'] ?? 'weekly')) ?>"></div><div class="col-md-6"><label class="form-label">Posts Priority</label><input class="form-control" type="text" name="posts_priority" value="<?= htmlspecialchars((string)($settings['posts_priority'] ?? '0.6')) ?>"></div><div class="col-md-6"><label class="form-label">Posts Changefreq</label><input class="form-control" type="text" name="posts_changefreq" value="<?= htmlspecialchars((string)($settings['posts_changefreq'] ?? 'monthly')) ?>"></div><div class="col-md-6"><label class="form-check"><input class="form-check-input" type="checkbox" name="ping_google" value="1" <?= !empty($settings['ping_google']) ? 'checked' : '' ?>><span class="form-check-label">Google pingen</span></label></div><div class="col-md-6"><label class="form-check"><input class="form-check-input" type="checkbox" name="ping_bing" value="1" <?= !empty($settings['ping_bing']) ? 'checked' : '' ?>><span class="form-check-label">Bing pingen</span></label></div><div class="col-md-6"><label class="form-check"><input class="form-check-input" type="checkbox" name="image_enabled" value="1" <?= !empty($settings['seo_sitemap_image_enabled']) ? 'checked' : '' ?>><span class="form-check-label">Image Sitemap aktivieren</span></label></div><div class="col-md-6"><label class="form-check"><input class="form-check-input" type="checkbox" name="news_enabled" value="1" <?= !empty($settings['seo_sitemap_news_enabled']) ? 'checked' : '' ?>><span class="form-check-label">News Sitemap aktivieren</span></label></div><div class="col-12"><button class="btn btn-primary" type="submit">Sitemap-Einstellungen speichern</button></div></form></div></div></div>
+    </div>
+</div></div>

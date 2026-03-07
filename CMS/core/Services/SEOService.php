@@ -267,9 +267,6 @@ class SEOService
     public function generateOrganizationSchema(): string
     {
         $schema = [
-                    'content' => (string)($row->content ?? ''),
-                    'excerpt' => (string)($row->excerpt ?? ''),
-                    'featured_image' => (string)($row->featured_image ?? ''),
             '@context' => 'https://schema.org',
             '@type' => 'Organization',
             'name' => SITE_NAME,
@@ -460,6 +457,100 @@ class SEOService
             error_log('SEOService::saveSitemap() Error: ' . $e->getMessage());
             return false;
         }
+    }
+
+    public function generateImageSitemap(): string
+    {
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">' . "\n";
+
+        foreach ($this->getSitemapImageRows() as $row) {
+            $loc = (string)($row['loc'] ?? '');
+            $image = (string)($row['image'] ?? '');
+            if ($loc === '' || $image === '') {
+                continue;
+            }
+
+            $xml .= "  <url>\n";
+            $xml .= '    <loc>' . htmlspecialchars($loc, ENT_QUOTES, 'UTF-8') . '</loc>' . "\n";
+            $xml .= "    <image:image>\n";
+            $xml .= '      <image:loc>' . htmlspecialchars($image, ENT_QUOTES, 'UTF-8') . '</image:loc>' . "\n";
+            $xml .= "    </image:image>\n";
+            $xml .= "  </url>\n";
+        }
+
+        $xml .= '</urlset>';
+        return $xml;
+    }
+
+    public function generateNewsSitemap(): string
+    {
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">' . "\n";
+
+        $rows = $this->db->get_results(
+            "SELECT slug, title, updated_at
+             FROM {$this->prefix}posts
+             WHERE status = 'published'
+             ORDER BY updated_at DESC
+             LIMIT 100"
+        ) ?: [];
+
+        foreach ($rows as $row) {
+            $url = SITE_URL . '/blog/' . (string)($row->slug ?? '');
+            $title = trim((string)($row->title ?? ''));
+            if ($title === '') {
+                continue;
+            }
+
+            $publicationDate = date(DATE_W3C, strtotime((string)($row->updated_at ?? 'now')));
+            $xml .= "  <url>\n";
+            $xml .= '    <loc>' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '</loc>' . "\n";
+            $xml .= "    <news:news>\n";
+            $xml .= "      <news:publication>\n";
+            $xml .= '        <news:name>' . htmlspecialchars((string)SITE_NAME, ENT_QUOTES, 'UTF-8') . '</news:name>' . "\n";
+            $xml .= "        <news:language>de</news:language>\n";
+            $xml .= "      </news:publication>\n";
+            $xml .= '      <news:publication_date>' . htmlspecialchars($publicationDate, ENT_QUOTES, 'UTF-8') . '</news:publication_date>' . "\n";
+            $xml .= '      <news:title>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</news:title>' . "\n";
+            $xml .= "    </news:news>\n";
+            $xml .= "  </url>\n";
+        }
+
+        $xml .= '</urlset>';
+        return $xml;
+    }
+
+    public function saveImageSitemap(): bool
+    {
+        try {
+            return file_put_contents(ABSPATH . 'image-sitemap.xml', $this->generateImageSitemap()) !== false;
+        } catch (\Throwable $e) {
+            error_log('SEOService::saveImageSitemap() Error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function saveNewsSitemap(): bool
+    {
+        try {
+            return file_put_contents(ABSPATH . 'news-sitemap.xml', $this->generateNewsSitemap()) !== false;
+        } catch (\Throwable $e) {
+            error_log('SEOService::saveNewsSitemap() Error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function saveSitemapBundle(): bool
+    {
+        $savedMain = $this->saveSitemap();
+        $imageEnabled = $this->getSetting('sitemap_image_enabled', '1') === '1';
+        $newsEnabled = $this->getSetting('sitemap_news_enabled', '0') === '1';
+
+        $savedImage = !$imageEnabled || $this->saveImageSitemap();
+        $savedNews = !$newsEnabled || $this->saveNewsSitemap();
+
+        return $savedMain && $savedImage && $savedNews;
     }
     
     /**
@@ -867,6 +958,49 @@ class SEOService
     {
         $allowed = ['always', 'hourly', 'daily', 'weekly', 'monthly', 'yearly', 'never'];
         return in_array($value, $allowed, true) ? $value : '';
+    }
+
+    private function getSitemapImageRows(): array
+    {
+        $rows = [];
+
+        $pages = $this->db->get_results(
+            "SELECT p.slug, p.featured_image, sm.og_image
+             FROM {$this->prefix}pages p
+             LEFT JOIN {$this->prefix}seo_meta sm ON sm.content_type = 'page' AND sm.content_id = p.id
+             WHERE p.status = 'published'"
+        ) ?: [];
+
+        foreach ($pages as $page) {
+            $image = trim((string)($page->og_image ?? $page->featured_image ?? ''));
+            if ($image === '') {
+                continue;
+            }
+            $rows[] = [
+                'loc' => SITE_URL . '/' . ltrim((string)($page->slug ?? ''), '/'),
+                'image' => $image,
+            ];
+        }
+
+        $posts = $this->db->get_results(
+            "SELECT p.slug, p.featured_image, sm.og_image
+             FROM {$this->prefix}posts p
+             LEFT JOIN {$this->prefix}seo_meta sm ON sm.content_type = 'post' AND sm.content_id = p.id
+             WHERE p.status = 'published'"
+        ) ?: [];
+
+        foreach ($posts as $post) {
+            $image = trim((string)($post->og_image ?? $post->featured_image ?? ''));
+            if ($image === '') {
+                continue;
+            }
+            $rows[] = [
+                'loc' => SITE_URL . '/blog/' . ltrim((string)($post->slug ?? ''), '/'),
+                'image' => $image,
+            ];
+        }
+
+        return $rows;
     }
 
     /**
