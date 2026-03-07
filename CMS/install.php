@@ -234,7 +234,7 @@ define('NONCE_KEY',       '{$data['nonce_key']}');
 define('SITE_NAME',   '{$data['site_name']}');
 define('SITE_URL',    '{$data['site_url']}');
 define('ADMIN_EMAIL', '{$data['admin_email']}');
-define('CMS_VERSION', '2.0.2');
+define('CMS_VERSION', '2.1.0');
 
 // ─── Pfade ─────────────────────────────────────────────────────────────────
 define('CORE_PATH',   ABSPATH . 'core/');
@@ -903,7 +903,7 @@ function initializeLandingPageData(PDO $pdo, string $prefix = 'cms_'): bool {
             'description' => 'Ein leistungsstarkes, sicheres und erweiterbares CMS für professionelle Websites.',
             'github_url' => 'https://github.com/PS-easyIT/WordPress-365network',
             'gitlab_url' => '',
-            'version' => '2.0.0',
+            'version' => '2.1.0',
             'logo' => '',
             'colors' => [
                 'hero_gradient_start' => '#1e293b',

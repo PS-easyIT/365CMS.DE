@@ -1,4 +1,4 @@
-# 365CMS.DE | [MERIDAN THEME](https://meridan.365cms.de/) [![Generic badge](https://img.shields.io/badge/VERSION-2.0.2-blue.svg)](https://shields.io/)
+# 365CMS.DE | [MERIDAN THEME](https://meridan.365cms.de/) [![Generic badge](https://img.shields.io/badge/VERSION-2.1.0-blue.svg)](https://shields.io/)
  ---
 
 ![PHP](https://img.shields.io/badge/php-%23777BB4.svg?style=for-the-badge&logo=php&logoColor=white)![MySQL](https://img.shields.io/badge/mysql-4479A1.svg?style=for-the-badge&logo=mysql&logoColor=white)![MariaDB](https://img.shields.io/badge/MariaDB-003545?style=for-the-badge&logo=mariadb&logoColor=white)![HTML5](https://img.shields.io/badge/html5-%23E34F26.svg?style=for-the-badge&logo=html5&logoColor=white)![CSS3](https://img.shields.io/badge/css3-%231572B6.svg?style=for-the-badge&logo=css3&logoColor=white)
@@ -113,7 +113,7 @@
 - ✅ **Login-Protokoll** - Vollständige Aufzeichnung aller Login-Ereignisse pro Benutzer
 
 ### 📝 Content Management
-- ✅ **Seiten-Verwaltung** - WYSIWYG-Editor (SunEditor), SEO-Felder, Slug-Verwaltung, Revisionen
+- ✅ **Seiten-Verwaltung** - WYSIWYG-Editor (SunEditor) plus Editor.js, SEO-Felder, Slug-Verwaltung und Revisionen
 - ✅ **Blog/Beiträge** - Post-Management mit Kategorien, Tags, Featured Image, Publish-Workflow
 - ✅ **Landing-Page-Builder** - Visueller Sektions-Editor mit Hero, Text, Bild, CTA-Blöcken
 - ✅ **Inhaltsverzeichnis** - Automatische TOC-Generierung für lange Seiten
@@ -803,7 +803,28 @@ Admin → System & Diagnose → Tools → Fehlende Tabellen erstellen
 
 ### Zusätzliche gebündelte UI-Libs im Tabler-Bundle
 
-Neben `Tabler Core` liegen im Verzeichnis `CMS/assets/tabler/libs/` weitere optionale Frontend-Libraries, die Tabler für spezielle UI-Komponenten mitbringt, darunter u. a. `ApexCharts`, `Tom Select`, `Dropzone`, `Litepicker`, `Plyr`, `List.js`, `IMask`, `Typed.js`, `Coloris`, `FullCalendar`, `Clipboard.js`, `Autosize`, `Signature Pad`, `Star Rating.js`, `Turbo` und `FsLightbox`.
+| Asset | Version / Ordner | Autor / Maintainer | Website | GitHub |
+|------|-------------------|--------------------|---------|--------|
+| ApexCharts | `apexcharts 3.54.1` | ApexCharts Team | https://apexcharts.com | https://github.com/apexcharts/apexcharts.js |
+| Autosize | `autosize 6.0.1` | Jack Moore | http://www.jacklmoore.com/autosize | https://github.com/jackmoore/autosize |
+| Clipboard.js | `clipboard 2.0.11` | Zeno Rocha & Contributors | https://clipboardjs.com | https://github.com/zenorocha/clipboard.js |
+| Coloris | `@melloware/coloris 0.25.0` | Momo Bassit / Melloware | https://coloris.js.org | https://github.com/melloware/coloris-npm |
+| CountUp.js | `countup.js 2.9.0` | Jamie Perkins | https://www.npmjs.com/package/countup.js | https://github.com/inorganik/countUp.js |
+| Dropzone | `dropzone 6.0.0-beta.2` | Dropzone Contributors | https://www.dropzone.dev/js | https://github.com/dropzone/dropzone |
+| FsLightbox | `fslightbox 3.6.1` | Bantha Apps / Piotr Zdziarski | https://fslightbox.com | https://github.com/banthagroup/fslightbox |
+| FullCalendar | `fullcalendar 6.1.18` | Adam Shaw | https://fullcalendar.io/docs/initialize-globals | https://github.com/fullcalendar/fullcalendar |
+| HugeRTE | `hugerte 1.0.9` | Ephox / HugeRTE Contributors | https://hugerte.org/ | https://github.com/hugerte/hugerte |
+| IMask | `imask 7.6.1` | Alexey Kryazhev | https://imask.js.org/ | https://github.com/uNmAnNeR/imaskjs |
+| jsVectorMap | `jsvectormap 1.7.0` | Mustafa Omar | https://jvm-docs.vercel.app | https://github.com/themustafaomar/jsvectormap |
+| List.js | `list.js 2.3.1` | Jonny Strömberg | https://listjs.com | https://github.com/javve/list.js |
+| Litepicker | `litepicker 2.0.12` | Rinat G. | https://litepicker.com | https://github.com/wakirin/Litepicker |
+| noUiSlider | `nouislider 15.8.1` | Léon Gersen & Contributors | https://refreshless.com/nouislider/ | https://github.com/leongersen/noUiSlider |
+| Plyr | `plyr 3.7.8` | Sam Potts | https://plyr.io | https://github.com/sampotts/plyr |
+| Signature Pad | `signature_pad 5.0.10` | Szymon Nowak | https://github.com/szimek/signature_pad | https://github.com/szimek/signature_pad |
+| Star Rating.js | `star-rating.js 4.3.1` | Paul Ryley | https://github.com/pryley/star-rating.js | https://github.com/pryley/star-rating.js |
+| Tom Select | `tom-select 2.4.3` | Josh Schmidt & Contributors | https://tom-select.js.org | https://github.com/orchidjs/tom-select |
+| Turbo | `@hotwired/turbo 8.0.13` | 37signals LLC | https://turbo.hotwired.dev | https://github.com/hotwired/turbo |
+| Typed.js | `typed.js 2.1.0` | Matt Boldt | https://github.com/mattboldt/typed.js | https://github.com/mattboldt/typed.js |
 
 Vollständiges Schema: [DOC/](DOC/)
 

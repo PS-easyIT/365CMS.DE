@@ -137,7 +137,7 @@ class Bootstrap
      */
     private function ensureConstants(): void
     {
-        defined('CMS_VERSION')   || define('CMS_VERSION',   '2.0.0');
+        defined('CMS_VERSION')   || define('CMS_VERSION',   '2.1.0');
         defined('SITE_NAME')     || define('SITE_NAME',     'CMS');
         defined('SITE_URL')      || define('SITE_URL',      '');
         defined('ADMIN_EMAIL')   || define('ADMIN_EMAIL',   '');

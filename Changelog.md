@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.0.2-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.1.0-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -20,15 +20,21 @@
 
 ---
 
-### Unreleased — 07. März 2026 · System-Tools, DSGVO-Fonts & Doku-Refresh
+### v2.1.0 — 07. März 2026 · Editor.js, Routing, Services & System-Tools
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
-| **Unreleased** | 🟢 feat | Admin/System | **DB-Tools in System-Info & Diagnose**: Neue Aktionen zum Erstellen fehlender Tabellen und zur Tabellen-Reparatur direkt im Admin. Tabellenprüfung deckt jetzt das vollständige Core-Schema inkl. `posts`, `comments`, `messages`, `audit_log` und `custom_fonts` ab. |
-| **Unreleased** | 🔴 fix | Admin/Security | **CSRF-Token-Reihenfolge korrigiert**: In den Admin-Entry-Points wird `verifyToken()` nicht mehr durch vorzeitiges `generateToken()` überschrieben. Zusätzlich fehlende Token-Erzeugung für normale GET-Requests in betroffenen Formularseiten wiederhergestellt. |
-| **Unreleased** | 🟢 feat | Admin/Theme | **Google Fonts DSGVO-lokalisiert**: Font-Manager kann Google-Fonts-CSS laden, WOFF2-Dateien lokal speichern, eigene `@font-face`-CSS erzeugen und die Schriften automatisch im Frontend einbinden. Neue Tabelle `custom_fonts`, Schema-Version auf `v9` erhöht. |
-| **Unreleased** | 🔴 fix | Admin/System | **System-Info Berechtigungen & Diagnose**: Berechtigungsanzeige verarbeitet die Rückgabe von `checkFilePermissions()` korrekt; Diagnose-Ansicht zeigt damit Dateisysteminformationen ohne `htmlspecialchars()`-TypeError. |
-| **Unreleased** | 🔵 docs | Docs | **README & Changelog aktualisiert**: System-/Schema-Dokumentation an den aktuellen Stand angepasst und vollständige Übersicht der gebündelten Drittanbieter-Assets mit Autor, Website und GitHub-Links ergänzt. |
+| **2.1.0** | 🟢 feat | Core/Editor | **Editor.js zusätzlich integriert**: Neben SunEditor steht jetzt auch Editor.js für moderne, blockbasierte Inhalte zur Verfügung. |
+| **2.1.0** | 🟢 feat | Core/Services | **Neue Services ergänzt**: Comment-Management, Cookie-Consent, File-Uploads, PDF-Generierung, Site-Tables und Translation-Services wurden ausgebaut bzw. neu integriert. |
+| **2.1.0** | 🟢 feat | Core/Router | **Mitglieder- und Dashboard-Routing erweitert**: Eigene Dashboard-Routen, Theme-Overrides, POST-Routen für den Member-Bereich und zusätzliche Seitennamen-Prüfungen ergänzen das Routing-System. |
+| **2.1.0** | 🟢 feat | Admin/System | **DB-Tools in System-Info & Diagnose**: Neue Aktionen zum Erstellen fehlender Tabellen und zur Tabellen-Reparatur direkt im Admin. Die Diagnose deckt jetzt das vollständige Core-Schema mit 30 Tabellen inkl. `posts`, `comments`, `messages`, `audit_log` und `custom_fonts` ab. |
+| **2.1.0** | 🟢 feat | Admin/RBAC | **Benutzer-, Rollen- und Berechtigungsverwaltung erweitert**: Neue Verwaltungsansichten und überarbeitete Admin-Oberflächen erleichtern Rollen- und Rechtemanagement. |
+| **2.1.0** | 🟢 feat | Admin/Theme | **Schriften & Theme-Assets erweitert**: Brand-Schriften wurden in Download- und Ladefunktion integriert; Google Fonts lassen sich DSGVO-konform lokal speichern und im Frontend einbinden. Neue Tabelle `custom_fonts`, Schema-Version `v9`. |
+| **2.1.0** | 🔴 fix | Admin/Security | **CSRF-Token-Flows korrigiert**: Die Token-Reihenfolge in Admin-Formularen wurde bereinigt, fehlende Token-Erzeugung auf normalen GET-Loads ergänzt und fehleranfällige Formularabläufe stabilisiert. |
+| **2.1.0** | 🔴 fix | Admin/System | **Diagnose-Ansichten stabilisiert**: Berechtigungsanzeige und System-Info verarbeiten Rückgabedaten wieder korrekt und vermeiden TypeErrors in der Ausgabe. |
+| **2.1.0** | 🟡 refactor | Admin/UI | **Admin-UI modernisiert**: Theme-Seiten, Dashboard, Posts- und User-Oberflächen wurden aufgeräumt, stärker auf Tabler Icons ausgerichtet und strukturell vereinheitlicht. |
+| **2.1.0** | 🔴 fix | Theme/Navigation | **Defensive Verarbeitung für Menüs und Themes**: Ungültige Einträge in Theme- und Menü-Arrays werden robuster abgefangen und übersprungen. |
+| **2.1.0** | 🔵 docs | Docs | **README & Changelog komplett aktualisiert**: Release-Version angehoben, System-/Schema-Dokumentation korrigiert und vollständige Übersicht der gebündelten Drittanbieter-Assets mit Autor, Website und GitHub-Links ergänzt. |
 
 ---
 
