@@ -28,7 +28,7 @@ Im aktuellen Stand nutzt 365CMS im Content-Bereich mehrere Editorkomponenten:
 - **Editor.js** für blockbasierte Inhalte
 - **SEO-Karten** unter Seiten und Beiträgen für Meta-Daten, Lesbarkeit und Vorschau
 
-Die SEO-spezifischen Global-Einstellungen liegen nicht mehr in einem alten Monolithen `seo.php`, sondern im [SEO-Center](../seo-performance/SEO.md).
+Die SEO-spezifischen Global-Einstellungen liegen nicht mehr in einem alten Monolithen `seo.php`, sondern im [SEO-Center](../seo/SEO.md).
 
 ---
 

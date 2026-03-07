@@ -1,6 +1,8 @@
 # Theme-Entwicklung für 365CMS
 
-Komplette Anleitung zur Entwicklung von Themes für das 365CMS.
+Kurzbeschreibung: Ausführliche Entwicklerreferenz für Theme-Struktur, Templates, Hooks, Assets und Theme-spezifische Admin-Integration in 365CMS.
+
+Letzte Aktualisierung: 2026-03-07
 
 ## 📋 Inhaltsverzeichnis
 
@@ -576,7 +578,7 @@ body {
 </html>
 ```
 
-## 🎨 Theme Customizer API (v0.26.13)
+## 🎨 Theme-Customization-API (2.3.1)
 
 ### Übersicht
 
@@ -894,7 +896,7 @@ function theme_css_var($name, $category, $key, $default = null) {
 
 ### Admin Theme-Editor Zugriff
 
-**URL:** `/admin/theme-editor.php`
+**Route:** `/admin/theme-editor`
 
 **Features:**
 - ✅ Live-Preview aller Einstellungen

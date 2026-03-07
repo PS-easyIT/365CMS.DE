@@ -1,143 +1,107 @@
-﻿# 365CMS – System-Status
+﻿# 365CMS – Systemstatus
+
+Kurzbeschreibung: Verifizierter Architektur-, Versions- und Funktionsstand des Hauptprojekts zum Release 2.3.1.
+
+Letzte Aktualisierung: 2026-03-07
 
 ---
 
-## Versions-Info
+## Versionsstand
 
 | Eigenschaft | Wert |
-|-------------|------|
-| **CMS-Version** | 2.0.0 |
-| **PHP-Mindestanforderung** | 8.2 (empfohlen: 8.3) |
-| **DB-Version** | MySQL 5.7+ / MariaDB 10.3+ |
-| **Schema-Version** | v8 |
-| **Letztes Update** | 01. März 2026 |
-| **Status** | Produktionsreif (Beta) |
+|---|---|
+| CMS-Version | `2.3.1` |
+| Code-Referenz | `CMS/config/app.php` |
+| Update-Metadaten | `CMS/update.json` |
+| Release-Datum | `2026-03-07` |
+| Projektstandard PHP | `8.3+` |
+| Update-Metadaten `min_php` | `8.2` |
+| Datenbank | MySQL 5.7+ / MariaDB 10.3+ |
 
 ---
 
-## Implementierungsstand
+## Core- und Plattformstatus
 
-### Core-System
-
-| Komponente | Status | Notiz |
-|------------|--------|-------|
-| Bootstrap | ✅ Vollständig | Singleton, Lifecycle, Error-Handling |
-| Database (PDO) | ✅ Vollständig | 34 Tabellen (inkl. messages), WP-compat. API |
-| Security | ✅ Vollständig | CSRF, XSS, Rate-Limiting, Headers |
-| Auth | ✅ Vollständig | Login, Session, Rollen |
-| Router | ✅ Vollständig | GET/POST/PUT/DELETE, Plugin-Routen |
-| Hooks | ✅ Vollständig | Actions & Filters, Prioritäten |
-| PluginManager | ✅ Vollständig | Laden, Aktivieren, Deaktivieren |
-| ThemeManager | ✅ Vollständig | Templates, Assets, Settings |
-| CacheManager | ✅ Vollständig | Datei- & DB-Cache |
-| PageManager | ✅ Vollständig | Seiten, Meta-Tags |
-| SubscriptionManager | ✅ Vollständig | Pläne, Abos, Feature-Gating |
-
-### Service-Layer (15/15)
-
-| Service | Status |
-|---------|--------|
-| AnalyticsService | ✅ Implementiert |
-| BackupService | ✅ Implementiert |
-| DashboardService | ✅ Implementiert |
-| EditorService | ✅ Implementiert |
-| LandingPageService | ✅ Implementiert |
-| MediaService | ✅ Implementiert |
-| MemberService | ✅ Implementiert |
-| **MessageService** | ✅ **Neu (v2.0.0)** |
-| SEOService | ✅ Implementiert |
-| StatusService | ✅ Implementiert |
-| SystemService | ✅ Implementiert |
-| ThemeCustomizer | ✅ Implementiert |
-| TrackingService | ✅ Implementiert |
-| UpdateService | ✅ Implementiert |
-| UserService | ✅ Implementiert |
-
-### Admin-Panel (36 Seiten)
-
-| Seite | Datei | Status |
-|-------|-------|--------|
-| Dashboard | `index.php` | ✅ |
-| Benutzer | `users.php` | ✅ |
-| Gruppen | `groups.php` | ✅ |
-| Seiten | `pages.php` | ✅ |
-| Beiträge | `posts.php` | ✅ |
-| Medien | `media.php` | ✅ |
-| Menüs | `menus.php` | ✅ |
-| Landing Page | `landing-page.php` | ✅ |
-| Inhaltsverzeichnis | `table-of-contents.php` | ✅ |
-| Seitentabellen | `site-tables.php` | ✅ |
-| Themes | `themes.php` | ✅ |
-| Theme-Editor | `theme-editor.php` | ✅ |
-| Theme-Customizer | `theme-customizer.php` | ✅ |
-| Theme-Einstellungen | `theme-settings.php` | ✅ |
-| Theme-Marktplatz | `theme-marketplace.php` | ✅ |
-| Dashboard-Widgets | `design-dashboard-widgets.php` | ✅ |
-| Lokale Fonts | `fonts-local.php` | ✅ |
-| Plugins | `plugins.php` | ✅ |
-| Plugin-Marktplatz | `plugin-marketplace.php` | ✅ |
-| SEO | `seo.php` | ✅ |
-| Analytics | `analytics.php` | ✅ |
-| Performance | `performance.php` | ✅ |
-| Updates | `updates.php` | ✅ |
-| Abos (Admin) | `subscriptions.php` | ✅ |
-| Abo-Einstellungen | `subscription-settings.php` | ✅ |
-| Bestellungen | `orders.php` | ✅ |
-| System | `system.php` | ✅ |
-| Einstellungen | `settings.php` | ✅ |
-| Backup | `backup.php` | ✅ |
-| Support | `support.php` | ✅ |
-| AntiSpam | `antispam.php` | ✅ |
-| DSGVO – Cookies | `cookies.php` | ✅ |
-| DSGVO – Datenzugang | `data-access.php` | ✅ |
-| DSGVO – Datenlöschung | `data-deletion.php` | ✅ |
-| Rechtliche Seiten | `legal-sites.php` | ✅ |
-| Sicherheits-Audit | `security-audit.php` | ✅ |
-
-### Plugins (7 verfügbar)
-
-| Plugin | Slug | Status |
-|--------|------|--------|
-| CMS Companies | `cms-companies` | ✅ Verfügbar |
-| CMS Events | `cms-events` | ✅ Verfügbar |
-| CMS Experts | `cms-experts` | ✅ Verfügbar |
-| CMS Feed | `cms-feed` | ✅ Verfügbar |
-| CMS Importer | `cms-importer` | ✅ Verfügbar |
-| CMS Job Profile Generator | `cms-jobprofile-generator` | ✅ Verfügbar |
-| CMS Speakers | `cms-speakers` | ✅ Verfügbar |
-
-### Themes (9 verfügbar, 1 aktiv)
-
-| Theme | Slug | Status |
-|-------|------|--------|
-| 365 Network | `365Network` | ✅ Verfügbar |
-| Academy 365 | `academy365` | ✅ Verfügbar |
-| Build Base | `buildbase` | ✅ Verfügbar |
-| Business | `business` | ✅ Verfügbar |
-| CMS Newspaper | `cms-newspaper` | ✅ Verfügbar |
-| CMS PhinIT | `cms-phinit` | ✅ Verfügbar |
-| LogiLink | `logilink` | ✅ Verfügbar |
-| MedCarePro | `medcarepro` | ✅ Verfügbar |
-| PersonalFlow | `personalflow` | ✅ Verfügbar |
-| **CMS Default** | `cms-default` | ✅ **AKTIV** |
+| Bereich | Status | Hinweis |
+|---|---|---|
+| Bootstrap | ✅ produktiv | lädt Konfiguration, Autoloader, Container und Kernservices |
+| Datenbank | ✅ produktiv | PDO-basierter Zugriff mit Helpern, Prepare-/Execute-Flow und SchemaManager |
+| Routing | ✅ produktiv | Frontend-, Admin-, Member- und Systemrouten aktiv |
+| Sicherheit | ✅ produktiv | CSRF, Escaping, Rate-Limits, Audit- und Firewall-Integration |
+| Theme-System | ✅ produktiv | ThemeManager, Theme-Editor, Theme-Explorer, Customizer-Anbindung |
+| Plugin-System | ✅ produktiv | Hook-System, Plugin-Registry, Plugin-Marketplace und Admin-Einbindung |
+| Member-Bereich | ✅ produktiv | Dashboard, Profil, Privacy, Notifications, Security, Subscription |
+| Update-System | ✅ produktiv | GitHub-basierte Core-/Plugin-/Theme-Prüfung |
 
 ---
 
-## Bekannte Einschränkungen
+## Datenbankschema
 
-| # | Einschränkung | Priorität |
-|---|---------------|-----------|
-| 1 | Kein integriertes E-Mail-System (SMTP muss manuell konfiguriert werden) | Mittel |
-| 2 | Kein Multi-Language-Support in Core | Niedrig |
-| 3 | REST-API ohne OAuth2 (nur Session-Auth) | Mittel |
+Der aktuelle Core-Stand arbeitet mit:
+
+- **30 Basistabellen** aus `SchemaManager`
+- zusätzlichen Modultabellen für SEO, Redirects, Cookies, Privacy, Firewall, Menüs und Rollenrechte
+
+Maßgebliche Referenz: [DATABASE-SCHEMA.md](DATABASE-SCHEMA.md)
 
 ---
 
-## Roadmap (geplante Features)
+## Aktuelle Admin-Architektur
 
-- [ ] SMTP-E-Mail-Service Integration
-- [ ] API-Key-System für REST-API
-- [ ] Zwei-Faktor-Authentifizierung (2FA)
-- [ ] Multi-Site-Unterstützung
-- [ ] GraphQL-API-Endpunkt
-- [ ] Automatische Updates für Core
+Die frühere Monolith-Struktur gilt nicht mehr als führende Referenz. Der Admin-Bereich ist heute in spezialisierte Einstiege aufgeteilt.
+
+### Zentrale Gruppen
+
+| Gruppe | Aktuelle Routen |
+|---|---|
+| Dashboard | `/admin` |
+| Seiten & Beiträge | `/admin/pages`, `/admin/posts`, `/admin/comments`, `/admin/table-of-contents`, `/admin/site-tables` |
+| Medien | `/admin/media` |
+| Benutzer & Gruppen | `/admin/users`, `/admin/groups`, `/admin/roles` |
+| Member Dashboard | `/admin/member-dashboard` und Folgeseiten |
+| Aboverwaltung | `/admin/packages`, `/admin/orders`, `/admin/subscription-settings` |
+| Themes & Design | `/admin/themes`, `/admin/theme-editor`, `/admin/theme-explorer`, `/admin/menu-editor`, `/admin/landing-page`, `/admin/font-manager` |
+| SEO | `/admin/seo-dashboard`, `/admin/analytics`, `/admin/seo-audit`, `/admin/seo-meta`, `/admin/seo-social`, `/admin/seo-schema`, `/admin/seo-sitemap`, `/admin/seo-technical`, `/admin/redirect-manager` |
+| Performance | `/admin/performance`, `/admin/performance-cache`, `/admin/performance-media`, `/admin/performance-database`, `/admin/performance-settings`, `/admin/performance-sessions` |
+| Recht | `/admin/legal-sites`, `/admin/cookie-manager`, `/admin/data-requests` |
+| Sicherheit | `/admin/antispam`, `/admin/firewall`, `/admin/security-audit` |
+| Plugins | `/admin/plugins`, optional `/admin/plugin-marketplace` |
+| System | `/admin/settings`, `/admin/backups`, `/admin/updates` |
+| Info | `/admin/info`, `/admin/documentation` |
+| Diagnose | `/admin/diagnose`, `/admin/monitor-*` |
+
+Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
+
+---
+
+## Wichtige Feature-Stände in 2.3.1
+
+| Bereich | Stand |
+|---|---|
+| SEO | ✅ eigenes SEO-Center mit Dashboard, Audit, Meta, Social, Schema, Sitemap und Technical |
+| Performance | ✅ eigenes Performance-Center mit Cache-, Medien-, Datenbank-, Settings- und Sessions-Unterseiten |
+| Monitoring | ✅ Response-Time, Cron-Status, Disk-Usage, Scheduled Tasks, Health-Check und E-Mail-Alerts |
+| Medien | ✅ Standard-Listenansicht, Schutzlogik für Member-Ordner, stabile Delete- und Preview-Flows |
+| Fonts | ✅ lokales Self-Hosting, Download-Fallbacks, Audit-Logging |
+| WebP | ✅ Massenkonvertierung und Referenz-Umbiegung |
+| Legal/Privacy | ✅ Sammelroute `/admin/data-requests`, Legal-Sites-Autofill, Cookie-Manager-Hydration |
+| Rollen & Rechte | ✅ dynamische Rollen, `role_permissions`, DB-basierte Capability-Prüfung |
+
+---
+
+## Bekannte Grenzen
+
+| Thema | Einordnung |
+|---|---|
+| SMTP | konfigurierbar, aber nicht als vollständig entkoppelter Mail-Produktbaukasten dokumentiert |
+| REST-Authentifizierung | vorwiegend sessionnah; kein voll ausgebautes OAuth2-/API-Key-Konzept als Core-Standard |
+| Dokumentation alter Alt-Routen | in Restbeständen einzelner Legacy-Dokumente noch nachziehbar |
+
+---
+
+## Verwandte Dokumente
+
+- [ARCHITECTURE.md](ARCHITECTURE.md)
+- [DATABASE-SCHEMA.md](DATABASE-SCHEMA.md)
+- [SERVICES.md](SERVICES.md)
+- [SECURITY.md](SECURITY.md)

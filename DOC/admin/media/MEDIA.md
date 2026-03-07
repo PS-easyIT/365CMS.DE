@@ -71,6 +71,6 @@ Typische Felder umfassen:
 ## Verwandte Dokumente
 
 - [../pages-posts/README.md](../pages-posts/README.md)
-- [../system-settings/PERFORMANCE.md](../system-settings/PERFORMANCE.md)
+- [../performance/PERFORMANCE.md](../performance/PERFORMANCE.md)
 - [../../workflow/MEDIA-UPLOAD-WORKFLOW.md](../../workflow/MEDIA-UPLOAD-WORKFLOW.md)
 

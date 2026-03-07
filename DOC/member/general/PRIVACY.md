@@ -84,4 +84,4 @@ Die View enthält zusätzlich:
 
 - [SECURITY.md](SECURITY.md)
 - [../SECURITY.md](../SECURITY.md)
-- [../../admin/legal-security/DSGVO.md](../../admin/legal-security/DSGVO.md)
+- [../../admin/legal/DSGVO.md](../../admin/legal/DSGVO.md)

@@ -62,5 +62,5 @@ Im aktuellen Redaktionsfluss greifen mehrere Systeme zusammen:
 ## Verwandte Dokumente
 
 - [PAGES.md](PAGES.md)
-- [../seo-performance/SEO.md](../seo-performance/SEO.md)
+- [../seo/SEO.md](../seo/SEO.md)
 - [../media/MEDIA.md](../media/MEDIA.md)

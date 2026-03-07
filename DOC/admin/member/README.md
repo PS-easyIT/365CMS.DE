@@ -1,94 +1,101 @@
 # Member-Dashboard – Admin-Verwaltung
 
-**Datei:** `admin/member-dashboard.php`
+Kurzbeschreibung: Beschreibt die aktuelle Admin-Konfiguration des Member-Dashboards mit Sektionen, gespeicherten Einstellungen und der Trennung zwischen Verwaltungsoberfläche und Frontend-Mitgliederbereich.
 
----
+Letzte Aktualisierung: 2026-03-07
 
-## Übersicht
+## Überblick
 
-Der Admin-Bereich des Member-Dashboards bietet eine zentrale Verwaltungsschnittstelle für alle Mitglieder-bezogenen Funktionen. Admins können Mitgliederbereiche einsehen, konfigurieren und überwachen.
+Die zentrale Administrationsoberfläche für den Mitgliederbereich basiert auf `CMS/admin/member-dashboard-page.php` und dem `MemberDashboardModule`. Sie dient nicht primär zur Inhaltsmoderation einzelner Nutzerprofile, sondern zur Konfiguration des gesamten Member-Frontends.
 
----
+Die Basisroute lautet `/admin/member-dashboard`. Je nach Einbindung kann die Seite in mehrere Unterrouten oder Abschnittsansichten aufgeteilt werden.
 
-## Funktionen im Admin
+## Architektur
 
-### 📊 Member-Statistiken
-- **Aktive Mitglieder** – Eingeloggte Nutzer der letzten 30 Tage
-- **Neue Registrierungen** – Anmeldungen pro Zeitraum
-- **Profil-Vollständigkeit** – Durchschnittliche Profilqualität
-- **Nachrichten-Volumen** – Anzahl privater Nachrichten
+Die aktuelle Implementierung trennt klar zwischen:
 
-### 👤 Profil-Verwaltung
-- Mitgliederprofile einsehen und bearbeiten
-- Avatar überschreiben oder löschen
-- Bio und Social Links administrieren
-- Profilsichtbarkeit steuern (Öffentlich / Privat)
+- Admin-Konfiguration des Member-Bereichs
+- Frontend-Dashboard unter `/member/...`
+- optionalen Plugin-Erweiterungen über Widgets oder Module
 
-### 💬 Nachrichten-Überwachung
-- Nachrichtenvolumen überwachen (kein Lesen von privaten Nachrichten)
-- Gemeldete Nachrichten verwalten
-- Nachrichtensystem aktivieren/deaktivieren
+Der Entry-Point lädt die Daten über `MemberDashboardModule::getData()` und speichert abschnittsweise über `saveSection()`.
 
-### 🔔 Benachrichtigungs-Verwaltung
-- System-Benachrichtigungen erstellen und versenden
-- Benachrichtigungen an alle oder ausgewählte Gruppen
-- Benachrichtigungs-Templates verwalten
+## Aktuelle Konfigurationsbereiche
 
-### ❤️ Favoriten-Übersicht
-- Meistgelikte Inhalte im Überblick
-- Favoriten-Statistiken pro Inhaltstyp
+Das Modul unterstützt derzeit insbesondere diese Sektionen:
 
-### 🖼️ Medien-Kontrolle
-- Mitglieder-Uploads einsehen und moderieren
-- Speicherlimits pro Benutzer oder Abo-Paket konfigurieren
-- Medien löschen oder freigeben
+- `general`
+- `widgets`
+- `profile-fields`
+- `design`
+- `frontend-modules`
+- `notifications`
+- `onboarding`
+- `plugin-widgets`
 
----
+Ältere Beschreibungen, die die Seite primär als Moderationszentrale für private Nachrichten, Medien oder Favoriten darstellen, decken den aktuellen Funktionsschwerpunkt nur noch unvollständig ab.
 
-## Member-Dashboard Konfiguration
+## Typische Einstellungsinhalte
 
-Im Admin kann konfiguriert werden, welche Bereiche im Member-Dashboard sichtbar sind:
+Je nach Sektion werden unter anderem folgende Aspekte gepflegt:
 
-| Bereich | Ein/Aus | Beschreibung |
-|---------|---------|--------------|
-| Profil | ✅ | Immer aktiv |
-| Nachrichten | ⚙️ | Deaktivierbar |
-| Benachrichtigungen | ⚙️ | Deaktivierbar |
-| Favoriten | ⚙️ | Deaktivierbar |
-| Medien | ⚙️ | Deaktivierbar |
-| Sicherheit | ✅ | Immer aktiv |
-| Mitgliedschaft | ⚙️ | Abhängig von Abo-System |
+- allgemeine Aktivierung und Basisoptionen des Member-Bereichs
+- verfügbare Dashboard-Widgets
+- zusätzliche oder optionale Profilfelder
+- Design- und Layout-Optionen für Member-Seiten
+- aktivierbare Frontend-Module
+- Benachrichtigungslogik und Standardtexte
+- Onboarding-Elemente für neue Mitglieder
+- plugin-gelieferte Widgets oder Erweiterungsmodule
 
----
+Die konkreten Werte werden über zahlreiche `member_*`-Settings persistent gespeichert.
 
-## Member-Bereich Zugangs-URL
+## Request-Handling
 
-```
-/member           → Member-Dashboard
-/member/profile   → Profil bearbeiten
-/member/messages  → Nachrichten
-/member/media     → Eigene Medien
-/member/security  → Sicherheit & Login-Log
-/member/subscription → Mitgliedschaft/Abo
-```
+Die Seite nutzt aktuell eine einheitliche POST-Verarbeitung:
 
----
+- CSRF-Kontext: `admin_member_dashboard`
+- Aktion: `save`
+- Dispatch nach Abschnitt über den gesetzten Member-Section-Kontext
 
-## Datenbank-Tabellen
+Nach dem Speichern werden Statusmeldungen in `$_SESSION['admin_alert']` hinterlegt und per Redirect wieder ausgegeben.
 
-| Tabelle | Inhalt |
-|---------|--------|
-| `cms_users` | Basis-Profildaten |
-| `cms_user_meta` | Erweiterte Profildaten, Avatar, Bio |
-| `cms_messages` | Private Nachrichten |
-| `cms_notifications` | Benachrichtigungen |
-| `cms_media` | Mitglieder-Uploads |
-| `cms_user_subscriptions` | Abo-Zuordnungen |
+## Verhältnis zum Frontend
 
----
+Diese Admin-Seite konfiguriert das Verhalten des tatsächlichen Mitgliederbereichs, ersetzt ihn aber nicht. Relevante Frontend-Routen liegen weiterhin im Member-Bereich, zum Beispiel:
 
-## Verwandte Seiten
+- `/member`
+- `/member/profile`
+- `/member/messages`
+- `/member/media`
+- `/member/security`
 
-- [Benutzerverwaltung](../users-groups/USERS.md)
-- [Abo-Verwaltung](../subscription/SUBSCRIPTIONS.md)
-- [Medien-Bibliothek](../media/README.md)
+Welche Module im Frontend sichtbar oder aktiv sind, wird wesentlich durch die im Admin gespeicherten Member-Einstellungen beeinflusst.
+
+## Erweiterbarkeit
+
+Die aktuelle Struktur ist auf Erweiterungen durch Plugins vorbereitet. Insbesondere der Bereich `plugin-widgets` zeigt, dass der Member-Bereich nicht mehr nur ein fester Kern ist, sondern um zusätzliche Komponenten ergänzt werden kann.
+
+## Sicherheit
+
+Die Admin-Konfiguration folgt dem Standardmuster:
+
+- Zugriff nur für Administratoren
+- CSRF-Prüfung via `Security::instance()->verifyToken(..., 'admin_member_dashboard')`
+- serverseitige Abschnittsvalidierung im Modul
+- Session-basierte Erfolgs- und Fehlermeldungen
+
+## Relevante Dateien
+
+| Datei | Zweck |
+|---|---|
+| `CMS/admin/member-dashboard-page.php` | zentraler Admin-Entry-Point |
+| `CMS/admin/modules/member/MemberDashboardModule.php` | Laden und Speichern der Member-Konfiguration |
+| `CMS/admin/views/member/dashboard.php` | Ausgabe der Admin-Oberfläche |
+
+## Verwandte Dokumente
+
+- [../../member/README.md](../../member/README.md)
+- [../../member/SECURITY.md](../../member/SECURITY.md)
+- [../users-groups/USERS.md](../users-groups/USERS.md)
+- [../subscription/README.md](../subscription/README.md)

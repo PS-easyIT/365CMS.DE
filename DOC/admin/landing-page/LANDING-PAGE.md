@@ -1,128 +1,80 @@
 # Landing Page Editor
 
-Der Landing-Page-Editor steuert die öffentliche Startseite des CMS über den Admin-Bereich `admin/landing-page.php`.
-Die aktuelle Implementierung arbeitet **sektionenbasiert über die Tabelle `cms_landing_sections`** und bietet zusätzlich ein **Plugin-Override-System** für Header, Content und Footer.
+Kurzbeschreibung: Dokumentiert den aktuellen Landing-Page-Editor im Admin inklusive Sektionen, Datenmodell, Plugin-Overrides und Sicherheitslogik.
 
----
+Letzte Aktualisierung: 2026-03-07
 
 ## Überblick
 
-**URL:** `/admin/landing-page.php`
+Die Landing Page wird im aktuellen System über die Route `/admin/landing-page` verwaltet. Die Oberfläche basiert auf `CMS/admin/landing-page.php`, während die komplette Lade-, Speicher- und Validierungslogik im `CMS\core\Services\LandingPageService` gekapselt ist.
 
-Verfügbare Admin-Sektionen:
+Die Implementierung ist sektionenbasiert und speichert Inhalte in `cms_landing_sections`. Zusätzlich unterstützt sie Plugin-Overrides für einzelne Bereiche der Startseite.
 
-| Sektion | Route | Zweck |
-|---|---|---|
-| Header | `/admin/landing-page?section=header` | Hero-Bereich, Logo, Titel, Buttons |
-| Content | `/admin/landing-page?section=content` | Feature-Grid, Freitext oder letzte Beiträge |
-| Footer | `/admin/landing-page?section=footer` | Footer-Text, CTA, Copyright |
-| Design | `/admin/landing-page?section=design` | Farben und Design-Tokens |
-| Plugins | `/admin/landing-page?section=plugins` | Plugin-Overrides pro Bereich |
-| Einstellungen | `/admin/landing-page?section=settings` | Sichtbarkeit, Slug, Wartungsmodus |
+## Verfügbare Tabs
 
-Die Seite nutzt das zentrale Admin-Layout über `renderAdminLayoutStart()` / `renderAdminLayoutEnd()`.
-Statusmeldungen und Bestätigungen laufen über die gemeinsamen Admin-Komponenten (`renderAdminAlerts()`, `cmsConfirm()`).
+Die Admin-Seite verarbeitet aktuell den Parameter `tab` mit folgenden Bereichen:
 
----
+| Tab | Zweck |
+|---|---|
+| `header` | Hero-Bereich, Logo, Titel, Untertitel, Beschreibung, Buttons |
+| `content` | Inhaltsmodus, Feature-Liste oder redaktioneller Freitext |
+| `footer` | Footer-Text, CTA und Copyright |
+| `design` | Farben und Design-Tokens für die Landing Page |
+| `plugins` | Plugin-Overrides für Header, Content und Footer |
+
+Ältere Doku-Stände mit zusätzlichen Unterpunkten wie Testimonials, Statistiken oder separaten Settings-Tabs entsprechen nicht mehr der aktuellen Produktlogik.
 
 ## Datenmodell
 
-Die Landing Page speichert ihre Daten in `cms_landing_sections`.
-
-Typische `type`-Werte:
+Die Service-Schicht arbeitet mit Einträgen in `cms_landing_sections`. Relevante `type`-Werte sind insbesondere:
 
 - `header`
+- `content`
 - `feature`
 - `footer`
-- `content`
-- `settings`
 - `design`
 - `plugin_overrides`
 
-Zentrale Service-Klasse:
-
-- `CMS/core/Services/LandingPageService.php`
-
-Admin-Datei:
-
-- `CMS/admin/landing-page.php`
-
----
+Zusätzliche globale Einstellungen wie `landing_slug` und `maintenance_mode` werden über die normalen Settings gespeichert.
 
 ## Header
 
-Der Header-Bereich enthält:
+Der Header-Bereich erlaubt die Pflege der zentralen Hero-Daten der Startseite. Dazu gehören unter anderem:
 
-- Logo-Upload / Logo-Entfernung
-- Logo-Position (`top`, `left`)
-- Header-Layout (`standard`, `compact`)
-- Titel
-- Untertitel
-- Beschreibung (Editor)
-- Versions-/Badge-Text
-- bis zu 4 Header-Buttons
+- Titel und Untertitel
+- beschreibender Einleitungstext
+- Badge- oder Versionshinweis
+- Logo inklusive Position und Layout
+- bis zu vier Call-to-Action-Buttons
 
-### Header-Buttons
-
-Pro Button werden gespeichert:
-
-- `text`
-- `url`
-- `icon`
-- `target` (`_self`, `_blank`)
-- `outline`
-
-Serverseitig werden diese Werte im `LandingPageService` validiert und bereinigt.
-
----
+Jeder Button wird serverseitig normalisiert. Relevante Felder sind `text`, `url`, `icon`, `target` und `outline`. Ungültige Werte werden im Service gefiltert oder auf zulässige Defaults zurückgeführt.
 
 ## Content
 
-Die Content-Sektion unterstützt aktuell drei Modi:
+Die Content-Sektion unterstützt drei Betriebsarten:
 
 | Modus | Beschreibung |
 |---|---|
-| `features` | Feature-/Widget-Grid |
+| `features` | Raster aus einzelnen Feature-Karten |
 | `text` | Freier HTML-/Editor-Inhalt |
-| `posts` | Neueste Beiträge |
+| `posts` | Ausgabe aktueller Beiträge |
 
-### Feature-Grid
-
-Features werden einzeln in `cms_landing_sections` mit `type = 'feature'` gespeichert.
-
-Pro Feature:
-
-- `icon`
-- `title`
-- `description`
-- `sort_order`
-
-Das Löschen erfolgt im Admin über das zentrale Bestätigungsmodal, nicht über `window.confirm()`.
-
----
+Feature-Karten werden einzeln gespeichert und typischerweise mit Icon, Titel, Beschreibung und Sortierung verwaltet. Das Anlegen, Bearbeiten und Löschen läuft über dedizierte POST-Aktionen wie `save_feature` und `delete_feature`.
 
 ## Footer
 
-Der Footer-Bereich bietet:
+Im Footer-Bereich werden folgende Elemente gepflegt:
 
-- Sichtbarkeit ein/aus
-- Freitext-Inhalt
-- CTA-Button (`button_text`, `button_url`)
+- Sichtbarkeit der Sektion
+- redaktioneller Text
+- CTA-Button mit Text und URL
 - Copyright-Zeile
 
-Hinweis:
-
-- `{year}` kann im Copyright-Text als Platzhalter verwendet werden.
-
----
+Im Copyright-Text kann `{year}` als Platzhalter verwendet werden.
 
 ## Design
 
-Die Design-Sektion ist in zwei Bereiche aufgeteilt:
-
-### Farben
-
-Gespeicherte Farbwerte:
+Die Design-Sektion verwaltet sowohl Farbwerte als auch UI-Tokens. Typische Schlüssel sind:
 
 - `hero_gradient_start`
 - `hero_gradient_end`
@@ -130,123 +82,66 @@ Gespeicherte Farbwerte:
 - `hero_text`
 - `features_bg`
 - `feature_card_bg`
-- `feature_card_hover`
 - `primary_button`
-
-### Design-Tokens
-
-Gespeicherte Token u. a.:
-
 - `card_border_radius`
 - `button_border_radius`
-- `card_icon_layout`
-- `card_border_color`
-- `card_border_width`
-- `card_shadow`
 - `feature_columns`
 - `hero_padding`
 - `feature_padding`
 - `footer_bg`
 - `footer_text_color`
-- `content_section_bg`
 
-Die Werte werden serverseitig auf erlaubte Bereiche, Farben und Enumerationen validiert.
+Die Werte werden im Service serverseitig validiert. Dazu gehören Hex-Farben, erlaubte Enumerationen und numerische Bereiche für Abstände oder Darstellungsmodi.
 
----
+## Plugin-Overrides
 
-## Plugins / Overrides
-
-Die Plugins-Sektion erlaubt, die CMS-Standardbereiche durch Plugin-Ausgaben zu ersetzen.
-
-Unterstützte Zielbereiche:
+Die Landing Page unterstützt alternative Ausgaben durch Plugins. Unterstützte Zielbereiche sind aktuell:
 
 - `header`
 - `content`
 - `footer`
 
-### Plugin-Registrierung
+Plugins registrieren sich über den Filter `landing_page_plugins`. Ein Plugin-Eintrag beschreibt mindestens Kennung, Namen, unterstützte Zielbereiche und optional eine Callback-Funktion für eigene Einstellungen.
 
-Plugins registrieren sich über:
+Gespeichert wird pro Zielbereich, welches Plugin aktiv ist. Zusätzlich können plugin-spezifische Einstellungen als `plugin_settings` abgelegt werden. Vor dem Speichern prüft der Service, ob:
 
-```php
-CMS\Hooks::addFilter('landing_page_plugins', function (array $plugins): array {
-    $plugins['my-plugin'] = [
-        'id' => 'my-plugin',
-        'name' => 'Mein Plugin',
-        'description' => 'Ersetzt den Content-Bereich der Landing Page.',
-        'version' => '1.0.0',
-        'author' => '365 Network',
-        'targets' => ['content'],
-        'settings_callback' => [$this, 'render_settings'],
-    ];
+- das Plugin tatsächlich registriert wurde,
+- der Zielbereich unterstützt wird,
+- optionale Callbacks aufrufbar sind.
 
-    return $plugins;
-});
-```
+## POST-Aktionen
 
-### Gespeicherte Override-Daten
+`CMS/admin/landing-page.php` verarbeitet derzeit insbesondere diese Aktionen:
 
-`type = 'plugin_overrides'` enthält:
+- `save_header`
+- `save_content`
+- `save_footer`
+- `save_design`
+- `save_feature`
+- `delete_feature`
+- `save_plugin`
 
-- aktives Plugin je Bereich (`header`, `content`, `footer`)
-- plugin-spezifische Einstellungen in `plugin_settings`
+Alle Aktionen verwenden denselben CSRF-Kontext `admin_landing_page`.
 
-Der Service prüft serverseitig:
+## Sicherheit
 
-- ob das Plugin tatsächlich registriert ist
-- ob der gewünschte Zielbereich unterstützt wird
-- ob eine `settings_callback` wirklich aufrufbar ist
+Die Seite folgt dem aktuellen Admin-Standard:
 
----
+- Zugriff nur für Administratoren über `Auth::instance()->isAdmin()`
+- CSRF-Prüfung via `Security::instance()->verifyToken(..., 'admin_landing_page')`
+- serverseitige Sanitierung sämtlicher Texte, URLs, Farbcodes, Slugs und Plugin-Konfigurationen
+- Redirect nach erfolgreichem POST mit Session-basierten Statusmeldungen
 
-## Einstellungen
-
-Die Einstellungs-Sektion verwaltet:
-
-- Sichtbarkeit von Header, Content und Footer-Sektion
-- `landing_slug`
-- `maintenance_mode`
-
-### Slug-Regeln
-
-Der Slug wird serverseitig normalisiert:
-
-- leer oder `/` = Root-Startseite
-- sonst normalisierte Pfadangabe wie z. B. `/start`
-
----
-
-## Sicherheit und Validierung
-
-Die Landing-Page-Verwaltung nutzt:
-
-- Admin-Check via `Auth::instance()->isAdmin()`
-- CSRF-Schutz via `Security::instance()->verifyToken()`
-- serverseitige Sanitierung im `LandingPageService`
-- zentrale Admin-Alerts und Admin-Confirm-Modal
-
-Serverseitig bereinigt werden unter anderem:
-
-- Texte
-- URLs
-- Farbcodes
-- Slugs
-- Button-Konfigurationen
-- Plugin-IDs und Plugin-Settings
-
----
-
-## Wichtige Dateien
+## Relevante Dateien
 
 | Datei | Zweck |
 |---|---|
-| `CMS/admin/landing-page.php` | Admin-Oberfläche |
-| `CMS/core/Services/LandingPageService.php` | Laden/Speichern/Validieren |
-| `CMS/admin/partials/admin-menu.php` | Layout, Sidebar, Alerts, Confirm-Modal |
+| `CMS/admin/landing-page.php` | Admin-Entry-Point und POST-Dispatch |
+| `CMS/core/Services/LandingPageService.php` | Laden, Validieren und Persistieren der Landing-Page-Daten |
+| `CMS/admin/views/landing-page/*` | Ausgabe der einzelnen Admin-Abschnitte |
 
----
+## Verwandte Dokumente
 
-## Aktueller Stand
-
-Die aktuelle Implementierung deckt die real vorhandenen Bereiche im Admin ab und ist nicht mehr identisch mit älteren Konzepten wie Testimonials-, CTA- oder Statistik-Sektionen aus früheren Planungsständen.
-Für neue Landing-Page-Module sollte zuerst geprüft werden, ob sie als echte `landing_sections`-Typen oder als Plugin-Overrides umgesetzt werden sollen.
+- [Admin-Übersicht](../README.md)
+- [Themes & Design](../themes-design/README.md)
+- [Plugin-Verwaltung](../plugins/PLUGINS.md)

@@ -1,7 +1,10 @@
 # 365CMS – Theme-Entwicklung (Anfänger-Guide)
 
+Kurzbeschreibung: Schritt-für-Schritt-Einstieg in die Erstellung eines einfachen, aktuellen 365CMS-Themes.
 
-Dieser Guide führt euch Schritt für Schritt durch die Erstellung eines eigenen 365CMS-Themes.
+Letzte Aktualisierung: 2026-03-07
+
+Dieser Guide führt euch durch die Erstellung eines einfachen Themes auf Basis der aktuellen 2.3.1-Architektur.
 
 ---
 
@@ -110,14 +113,15 @@ $siteUrl      = SITE_URL;
         }
     </style>
 
-    <!-- Plugins können hier CSS einfügen -->
-    <?php CMS\Hooks::doAction('wp_head'); ?>
+    <?php CMS\Hooks::doAction('head'); ?>
 </head>
 <body>
+<?php CMS\Hooks::doAction('body_start'); ?>
 <nav>
     <a href="<?php echo $siteUrl; ?>"><?php echo htmlspecialchars($siteName); ?></a>
     <!-- Navigation hier -->
 </nav>
+<?php CMS\Hooks::doAction('after_header'); ?>
 ```
 
 ### footer.php
@@ -130,8 +134,9 @@ $siteUrl      = SITE_URL;
 <!-- Theme-JavaScript -->
 <script src="<?php echo CMS\ThemeManager::instance()->getAssetUrl('js/main.js'); ?>"></script>
 
-<!-- Plugins können hier Scripts einfügen -->
-<?php CMS\Hooks::doAction('wp_footer'); ?>
+<?php CMS\Hooks::doAction('before_footer'); ?>
+<?php CMS\Hooks::doAction('footer'); ?>
+<?php CMS\Hooks::doAction('body_end'); ?>
 </body>
 </html>
 ```
@@ -155,7 +160,7 @@ include __DIR__ . '/header.php';
         <?php
         $db = CMS\Database::instance();
         $posts = $db->get_results(
-            "SELECT * FROM cms_posts WHERE status = 'published' ORDER BY published_at DESC LIMIT 6",
+            "SELECT * FROM {$db->getPrefix()}posts WHERE status = 'published' ORDER BY published_at DESC LIMIT 6",
             []
         );
         foreach ($posts as $post): ?>
@@ -275,10 +280,10 @@ echo '}</style>';
 
 ```php
 // Im Header – für Plugins, die CSS/Meta-Tags hinzufügen wollen
-CMS\Hooks::doAction('wp_head');
+CMS\Hooks::doAction('head');
 
 // Im Footer – für Plugins, die Scripts hinzufügen wollen
-CMS\Hooks::doAction('wp_footer');
+CMS\Hooks::doAction('body_end');
 
 // Vor dem Haupt-Inhalt
 CMS\Hooks::doAction('before_content', $page);
@@ -312,8 +317,10 @@ echo $content;
 **DO:**
 - CSS-Variablen für alle Farben und Fonts nutzen (Customizer-kompatibel)
 - Alle Ausgaben mit `htmlspecialchars()` escapen
-- `CMS\Hooks::doAction('wp_head')` im `<head>` aufrufen
-- `CMS\Hooks::doAction('wp_footer')` vor `</body>` aufrufen
+- `CMS\Hooks::doAction('head')` im `<head>` aufrufen
+- `CMS\Hooks::doAction('body_start')` direkt nach `<body>` aufrufen
+- `CMS\Hooks::doAction('after_header')` nach dem Header aufrufen
+- `CMS\Hooks::doAction('before_footer')`, `footer` und `body_end` vor Seitenende aufrufen
 - Theme über Admin aktivieren (nicht manuell in DB schreiben)
 
 **DON'T:**

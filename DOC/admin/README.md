@@ -49,8 +49,10 @@ Wichtige Grundsätze:
 | Bereich | Dokument |
 |---|---|
 | Admin-Struktur | [FILESTRUCTURE.md](FILESTRUCTURE.md) |
-| Legal & Security | [legal-security/README.md](legal-security/README.md) |
-| SEO | [seo-performance/SEO.md](seo-performance/SEO.md) |
+| Recht | [legal/README.md](legal/README.md) |
+| Sicherheit | [security/README.md](security/README.md) |
+| SEO | [seo/SEO.md](seo/SEO.md) |
+| Performance | [performance/PERFORMANCE.md](performance/PERFORMANCE.md) |
 | Themes & Design | [themes-design/CUSTOMIZER.md](themes-design/CUSTOMIZER.md) |
 | Fonts | [themes-design/FONTS.md](themes-design/FONTS.md) |
 | System & Betrieb | [system-settings/README.md](system-settings/README.md) |

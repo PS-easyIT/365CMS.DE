@@ -63,7 +63,7 @@ Dadurch werden Titel, Beschreibung, Snippet-Vorschau und Social-Vorschau direkt 
 ## Verwandte Dokumente
 
 - [POSTS.md](POSTS.md)
-- [../seo-performance/SEO.md](../seo-performance/SEO.md)
+- [../seo/SEO.md](../seo/SEO.md)
 - [../media/MEDIA.md](../media/MEDIA.md)
-- [../legal-security/LEGAL.md](../legal-security/LEGAL.md)
+- [../legal/LEGAL.md](../legal/LEGAL.md)
 

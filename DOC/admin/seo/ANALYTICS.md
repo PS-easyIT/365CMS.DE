@@ -93,5 +93,5 @@ Die Seite ist eine kompakte operative Steuerzentrale für internes Tracking und 
 ## Verwandte Seiten
 
 - [SEO](SEO.md)
-- [Cookies](../legal-security/COOKIES.md)
-- [Performance](../system-settings/PERFORMANCE.md)
+- [Cookies](../legal/COOKIES.md)
+- [Performance](../performance/PERFORMANCE.md)

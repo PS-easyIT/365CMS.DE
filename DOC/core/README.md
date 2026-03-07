@@ -1,5 +1,9 @@
 ﻿# CMS Core – Übersicht
 
+Kurzbeschreibung: Überblick über die Kernklassen, Verzeichnisstruktur und Architekturprinzipien des 365CMS-Core.
+
+Letzte Aktualisierung: 2026-03-07
+
 Das `core/`-Verzeichnis enthält alle Kernklassen des 365CMS.  
 Alle Klassen folgen dem **Singleton-Pattern** und sind über PSR-4 autogeladen.
 

@@ -1,5 +1,8 @@
 # 365CMS – Sicherheits-Dokumentation
 
+Kurzbeschreibung: Überblick über Sicherheitsarchitektur, Schutzmechanismen und Secure-Coding-Grundsätze im 365CMS.
+
+Letzte Aktualisierung: 2026-03-07
 
 ---
 

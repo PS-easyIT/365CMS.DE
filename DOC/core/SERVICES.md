@@ -1,5 +1,8 @@
 # 365CMS – Service-Klassen
 
+Kurzbeschreibung: Übersicht über den Service-Layer des 365CMS mit Aufgabenfeldern und typischen Einsatzbeispielen der zentralen Services.
+
+Letzte Aktualisierung: 2026-03-07
 
 Der Service-Layer enthält die **Geschäftslogik** des CMS. Alle 11 Service-Klassen sind im Namespace `CMS\Services` und befinden sich in `core/Services/`.
 

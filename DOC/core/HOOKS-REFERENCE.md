@@ -1,5 +1,8 @@
 # 365CMS – Hook-System Referenz
 
+Kurzbeschreibung: Referenz des Action-/Filter-Systems für Plugins und Themes inklusive Syntax, Prioritäten und Best Practices.
+
+Letzte Aktualisierung: 2026-03-07
 
 Das Hook-System des 365CMS ist von WordPress inspiriert und erlaubt es Plugins und Themes, das Verhalten des CMS zu erweitern **ohne Core-Dateien zu verändern**.
 

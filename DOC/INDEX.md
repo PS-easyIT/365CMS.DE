@@ -54,8 +54,10 @@ Die Dokumentation beschreibt den aktuell verifizierten Stand **365CMS 2.3.1** mi
 | Benutzer & Gruppen | [admin/users-groups/README.md](admin/users-groups/README.md) |
 | Themes & Design | [admin/themes-design/README.md](admin/themes-design/README.md) |
 | Plugins | [admin/plugins/PLUGINS.md](admin/plugins/PLUGINS.md) |
-| SEO | [admin/seo-performance/SEO.md](admin/seo-performance/SEO.md) |
-| Recht & Sicherheit | [admin/legal-security/README.md](admin/legal-security/README.md) |
+| SEO | [admin/seo/SEO.md](admin/seo/SEO.md) |
+| Recht | [admin/legal/README.md](admin/legal/README.md) |
+| Sicherheit | [admin/security/README.md](admin/security/README.md) |
+| Performance | [admin/performance/PERFORMANCE.md](admin/performance/PERFORMANCE.md) |
 | System, Betrieb & Wartung | [admin/system-settings/README.md](admin/system-settings/README.md) |
 | Aboverwaltung | [admin/subscription/SUBSCRIPTION-SYSTEM.md](admin/subscription/SUBSCRIPTION-SYSTEM.md) |
 

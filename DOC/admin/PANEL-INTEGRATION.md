@@ -1,340 +1,119 @@
-# Admin Panel - Entwickler-Dokumentation
+# Admin-Panel-Integration
 
-## Übersicht
+Kurzbeschreibung: Beschreibt die aktuelle Integration eigener Admin-Seiten und Menüeinträge in das 365CMS-Backend auf Basis von `cms_admin_menu`, `add_menu_page()` und `add_submenu_page()`.
 
-Das Admin Panel bietet ein vollständiges Verwaltungsinterface mit Sidebar-Navigation und Content-Bereich. Plugins können eigene Menüpunkte und Seiten hinzufügen.
+Letzte Aktualisierung: 2026-03-07
 
-## Struktur
+## Überblick
 
-```
-admin/
-├── index.php       # Dashboard (Standardseite)
-├── pages.php       # Seitenverwaltung
-├── users.php       # Benutzerverwaltung
-└── settings.php    # Systemeinstellungen
-```
+Die Admin-Navigation des CMS wird zentral in `CMS/admin/partials/sidebar.php` aufgebaut. Vor dem Rendern der Plugin-Menüs wird dort `CMS\Hooks::doAction('cms_admin_menu')` ausgeführt. Anschließend werden registrierte Einträge über `get_registered_admin_menus()` ausgelesen.
 
-## Zugriff
+Frühere Dokumentationsstände mit einem Filter `admin_menu_items` sind veraltet und gelten nicht mehr als Referenz für neue Integrationen.
 
-Das Admin Panel ist über `/admin` erreichbar und nur für Administratoren zugänglich.
+## Aktueller Integrationspfad
 
-## Plugin-Integration
+Plugins erweitern das Admin-Menü heute typischerweise in zwei Schritten:
 
-### 1. Menüpunkte hinzufügen
+1. Im Plugin einen Callback an `cms_admin_menu` hängen.
+2. Innerhalb dieses Callbacks `add_menu_page()` und optional `add_submenu_page()` aufrufen.
 
-Plugins können über den `admin_menu_items` Filter eigene Menüpunkte hinzufügen:
+Die Helferfunktionen liegen in `CMS/includes/functions.php`.
+
+## Verfügbare Helfer
+
+### `add_menu_page()`
+
+Registriert einen Top-Level-Menüpunkt. Relevante Parameter sind:
+
+- Seitentitel
+- Menütitel
+- Capability
+- `menu_slug`
+- optionales Render-Callback
+- optionales Icon
+- optionale Position
+- optional `hidden = true`, wenn nur Routing ohne Sidebar-Eintrag gewünscht ist
+
+### `add_submenu_page()`
+
+Registriert einen Unterpunkt unter einem bestehenden Parent-Slug. Die URL wird dabei für Plugin-Seiten als `/admin/plugins/{parent_slug}/{menu_slug}` aufgebaut.
+
+## Beispiel für Plugin-Menüregistrierung
 
 ```php
-<?php
-// In Ihrer Plugin-Datei
 use CMS\Hooks;
 
-Hooks::addFilter('admin_menu_items', function($items) {
-    // Neuen Menüpunkt hinzufügen
-    $items[] = [
-        'slug' => 'my-plugin',
-        'label' => 'Mein Plugin',
-        'icon' => '🔌',
-        'url' => '/admin/my-plugin',
-        'active' => false
-    ];
-    
-    return $items;
-}, 10);
+Hooks::addAction('cms_admin_menu', function (): void {
+    add_menu_page(
+        'Mein Plugin',
+        'Mein Plugin',
+        'manage_options',
+        'mein-plugin',
+        '',
+        'ri-puzzle-line',
+        80
+    );
+
+    add_submenu_page(
+        'mein-plugin',
+        'Einstellungen',
+        'Einstellungen',
+        'manage_options',
+        'settings'
+    );
+});
 ```
 
-### 2. Admin-Seite erstellen
+## Eigene Admin-Seite
 
-Erstellen Sie eine Datei `admin/my-plugin.php` im Hauptverzeichnis:
+Eine eigene Admin-Seite sollte sich am Standardmuster der Core-Seiten orientieren:
 
-```php
-<?php
-declare(strict_types=1);
+- `declare(strict_types=1);`
+- `ABSPATH`-Guard
+- Admin-Zugriffsprüfung mit `Auth::instance()->isAdmin()`
+- CSRF-Absicherung bei POST-Requests
+- Laden der gemeinsamen Layout-Teile über `partials/header.php`, `partials/sidebar.php`, `partials/footer.php`
 
-use CMS\Auth;
-use CMS\Hooks;
+Ein manueller HTML-Komplettaufbau mit eigener Sidebar ist für neue Seiten nicht mehr der empfohlene Weg.
 
-if (!defined('ABSPATH')) {
-    exit;
-}
+## Sidebar-Rendering
 
-// Security check
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
-}
+Die Sidebar führt vereinfacht diesen Ablauf aus:
 
-// Menü-Items mit aktivem Tab
-$menuItems = [
-    ['slug' => 'dashboard', 'label' => 'Dashboard', 'icon' => '📊', 'url' => '/admin', 'active' => false],
-    // ... weitere Standard-Items
-    ['slug' => 'my-plugin', 'label' => 'Mein Plugin', 'icon' => '🔌', 'url' => '/admin/my-plugin', 'active' => true]
-];
+1. Core-Menüs rendern
+2. `CMS\Hooks::doAction('cms_admin_menu')`
+3. registrierte Plugin-Menüs aus `get_registered_admin_menus()` holen
+4. Plugin-Menüs rendern
 
-$menuItems = Hooks::applyFilter('admin_menu_items', $menuItems);
-?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mein Plugin - <?php echo htmlspecialchars(SITE_NAME); ?></title>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/main.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/admin.css">
-</head>
-<body class="admin-body">
-    
-    <!-- Admin Sidebar -->
-    <div class="admin-sidebar">
-        <h1><?php echo htmlspecialchars(SITE_NAME); ?></h1>
-        
-        <nav class="admin-nav">
-            <?php foreach ($menuItems as $item): ?>
-                <a href="<?php echo htmlspecialchars($item['url']); ?>" 
-                   class="nav-item <?php echo $item['active'] ? 'active' : ''; ?>">
-                    <span class="nav-icon"><?php echo $item['icon']; ?></span>
-                    <?php echo htmlspecialchars($item['label']); ?>
-                </a>
-            <?php endforeach; ?>
-            
-            <hr>
-            
-            <a href="<?php echo SITE_URL; ?>" class="nav-item">
-                <span class="nav-icon">🏠</span>
-                Zur Website
-            </a>
-            
-            <a href="<?php echo SITE_URL; ?>/logout" class="nav-item">
-                <span class="nav-icon">🚪</span>
-                Abmelden
-            </a>
-        </nav>
-    </div>
-    
-    <!-- Main Content -->
-    <div class="admin-content">
-        
-        <div class="admin-page-header">
-            <h2>Mein Plugin</h2>
-        </div>
-        
-        <!-- Ihr Plugin-Inhalt hier -->
-        <div class="admin-section">
-            <h3>Plugin-Einstellungen</h3>
-            <p>Hier kommt der Inhalt Ihres Plugins.</p>
-        </div>
-        
-    </div>
-    
-    <script src="<?php echo SITE_URL; ?>/assets/js/admin.js"></script>
-    
-</body>
-</html>
-```
+Damit ist klar: Die Menüintegration läuft über eine Aktion plus Registry, nicht über ein vorher zusammenkopiertes Array.
 
-### 3. Dashboard-Widgets hinzufügen
+## Sicherheitsanforderungen
 
-Plugins können Widgets zum Dashboard hinzufügen:
+Für Admin-Erweiterungen gelten dieselben Mindestanforderungen wie für Core-Seiten:
 
-```php
-Hooks::addAction('admin_dashboard_widgets', function() {
-    ?>
-    <div class="admin-section">
-        <h3>🔌 Mein Plugin Widget</h3>
-        <p>Zusätzliche Informationen von meinem Plugin.</p>
-    </div>
-    <?php
-}, 10);
-```
+- Zugriff nur für Administratoren
+- CSRF-Tokens für alle schreibenden Aktionen
+- serverseitige Sanitierung sämtlicher Eingaben
+- Redirect nach POST statt direktem Rendern derselben Anfrage
 
-### 4. Einstellungen-Seite erweitern
+## Empfehlungen für Plugin-Autoren
 
-```php
-Hooks::addAction('admin_settings_page', function() {
-    ?>
-    <div class="admin-section">
-        <h3>Mein Plugin Einstellungen</h3>
-        <form method="POST" class="settings-form">
-            <div class="form-group">
-                <label for="plugin_option">
-                    <strong>Plugin-Option</strong>
-                </label>
-                <input type="text" 
-                       id="plugin_option" 
-                       name="plugin_option" 
-                       class="form-control">
-            </div>
-            <button type="submit" class="btn btn-primary">Speichern</button>
-        </form>
-    </div>
-    <?php
-}, 10);
-```
+- Menüs nur registrieren, wenn das Plugin wirklich aktiv ist
+- keine Slugs verwenden, die mit Core-Seiten kollidieren
+- für größere Plugins Top-Level-Menü plus klar benannte Unterpunkte verwenden
+- `hidden = true` nur nutzen, wenn eine Route bewusst ohne sichtbaren Sidebar-Eintrag gebraucht wird
+- Optik und Layout an bestehende Admin-Komponenten anlehnen statt eigene Parallelstrukturen zu bauen
 
-## Verfügbare CSS-Klassen
+## Relevante Dateien
 
-### Layout
-- `.admin-body` - Body-Klasse
-- `.admin-sidebar` - Sidebar-Navigation
-- `.admin-content` - Haupt-Content-Bereich
-- `.admin-page-header` - Seiten-Header
+| Datei | Zweck |
+|---|---|
+| `CMS/admin/partials/sidebar.php` | rendert Core- und Plugin-Menüs |
+| `CMS/includes/functions.php` | Registry und Menü-Helfer |
+| `CMS/admin/plugins.php` | Beispiel für eine echte Plugin-Core-Seite |
 
-### Komponenten
-- `.admin-section` - Content-Sektion
-- `.dashboard-grid` - Dashboard-Grid (4 Spalten)
-- `.stat-card` - Statistik-Karte
-- `.info-grid` - Info-Grid (3 Spalten)
-- `.info-card` - Info-Karte
+## Verwandte Dokumente
 
-### Tabellen
-- `.users-table-container` - Tabellen-Container
-- `.users-table` - Tabelle
-- `.status-badge` - Status-Badge
-- `.role-badge` - Rollen-Badge
-
-### Formulare
-- `.settings-form` - Formular
-- `.form-group` - Formular-Gruppe
-- `.form-control` - Input-Feld
-- `.form-text` - Hilfetext
-
-### Buttons
-- `.btn` - Basis-Button
-- `.btn-primary` - Primary Button (blau)
-- `.btn-secondary` - Secondary Button (grau)
-
-### Alerts
-- `.alert` - Alert-Box
-- `.alert-success` - Erfolgs-Nachricht (grün)
-- `.alert-error` - Fehler-Nachricht (rot)
-
-## Routing
-
-Der Router erkennt automatisch Admin-Seiten:
-- `/admin` → `admin/index.php`
-- `/admin/pages` → `admin/pages.php`
-- `/admin/my-plugin` → `admin/my-plugin.php`
-
-## Sicherheit
-
-### 1. Admin-Zugriff prüfen
-
-```php
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
-}
-```
-
-### 2. CSRF-Schutz
-
-```php
-use CMS\Security;
-
-// Token generieren
-$csrfToken = Security::instance()->generateToken('action_name');
-
-// In Form:
-<input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-
-// Validieren:
-if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'action_name')) {
-    $_SESSION['error'] = 'Sicherheitsüberprüfung fehlgeschlagen.';
-    header('Location: /admin');
-    exit;
-}
-```
-
-### 3. Input-Sanitierung
-
-```php
-// Immer User-Input escapen:
-$title = htmlspecialchars($_POST['title'] ?? '');
-$email = filter_var($_POST['email'] ?? '', FILTER_SANITIZE_EMAIL);
-```
-
-## Hooks-Übersicht
-
-### Filter
-- `admin_menu_items` - Menüpunkte modifizieren/hinzufügen
-
-### Actions
-- `admin_dashboard_widgets` - Dashboard-Widgets hinzufügen
-- `admin_settings_page` - Einstellungen-Seite erweitern
-
-## Best Practices
-
-1. **Konsistente Icons** - Verwenden Sie Emojis oder einheitliche Icon-Sets
-2. **CSRF-Schutz** - Immer bei Formularen verwenden
-3. **Eingabe-Validierung** - Alle User-Inputs validieren und sanitizen
-4. **Responsive Design** - Die vorhandenen CSS-Klassen sind bereits responsive
-5. **Error Handling** - Fehler über `$_SESSION['error']` zurückgeben
-6. **Success Messages** - Erfolge über `$_SESSION['success']` mitteilen
-
-## Beispiel: Vollständige Plugin-Integration
-
-```php
-<?php
-/**
- * My Plugin
- */
-declare(strict_types=1);
-
-namespace MyPlugin;
-
-use CMS\Hooks;
-use CMS\PluginManager;
-
-class MyPlugin {
-    private static ?self $instance = null;
-    
-    public static function instance(): self {
-        if (self::$instance === null) {
-            self::$instance = new self();
-        }
-        return self::$instance;
-    }
-    
-    private function __construct() {
-        $this->registerHooks();
-    }
-    
-    private function registerHooks(): void {
-        // Admin-Menü erweitern
-        Hooks::addFilter('admin_menu_items', [$this, 'addAdminMenu'], 10);
-        
-        // Dashboard-Widget
-        Hooks::addAction('admin_dashboard_widgets', [$this, 'dashboardWidget'], 10);
-    }
-    
-    public function addAdminMenu(array $items): array {
-        $items[] = [
-            'slug' => 'my-plugin',
-            'label' => 'Mein Plugin',
-            'icon' => '🔌',
-            'url' => '/admin/my-plugin',
-            'active' => false
-        ];
-        return $items;
-    }
-    
-    public function dashboardWidget(): void {
-        ?>
-        <div class="admin-section">
-            <h3>🔌 Mein Plugin Status</h3>
-            <p>Plugin läuft erfolgreich!</p>
-        </div>
-        <?php
-    }
-}
-
-// Plugin initialisieren
-MyPlugin::instance();
-```
-
-## Support
-
-Bei Fragen zur Admin Panel Integration:
-- Siehe `doc/admin/ADMIN-GUIDE.md`
-- Hook-System: `doc/HOOKS-REFERENCE.md`
-- Sicherheit: `doc/SECURITY.md`
+- [plugins/PLUGINS.md](plugins/PLUGINS.md)
+- [README.md](README.md)
+- [../plugins/GUIDE.md](../plugins/GUIDE.md)

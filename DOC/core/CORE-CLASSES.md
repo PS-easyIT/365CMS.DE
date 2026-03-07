@@ -1,5 +1,8 @@
 # 365CMS – Core-Klassen Referenz
 
+Kurzbeschreibung: Detailübersicht der zentralen Core-Klassen mit Aufgaben, Lifecycle und typischen Zugriffsmustern.
+
+Letzte Aktualisierung: 2026-03-07
 
 Alle 15 Core-Klassen des 365CMS im Detail – Aufgaben, wichtigste Methoden und Verwendungsbeispiele.
 

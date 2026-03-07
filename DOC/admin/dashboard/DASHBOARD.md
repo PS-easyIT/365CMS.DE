@@ -101,5 +101,5 @@ Diese zweite Ebene bündelt situationsabhängige Punkte, die besondere Aufmerksa
 ## Verwandte Seiten
 
 - [Member-Dashboard-Widgets](../themes-design/DASHBOARD-WIDGETS.md)
-- [Analytics](../seo-performance/ANALYTICS.md)
+- [Analytics](../seo/ANALYTICS.md)
 - [Bestellungen & Zuweisung](../subscription/ORDERS.md)

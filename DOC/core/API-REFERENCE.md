@@ -1,4 +1,8 @@
-﻿# 365CMS - API-Referenz
+﻿# 365CMS – API-Referenz
+
+Kurzbeschreibung: Referenz der wichtigsten öffentlichen Core-Klassen, Methoden und typischen Verwendungsbeispiele im 365CMS.
+
+Letzte Aktualisierung: 2026-03-07
 
 Vollständige API-Dokumentation aller Core-Klassen und Methoden.
 
