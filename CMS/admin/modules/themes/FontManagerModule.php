@@ -155,6 +155,64 @@ class FontManagerModule
         ];
     }
 
+    public function downloadDetectedFonts(): array
+    {
+        $customFonts = $this->getCustomFonts();
+        $scanResults = $this->scanActiveThemeFonts($customFonts);
+        $detectedFonts = (array)($scanResults['detectedFonts'] ?? []);
+
+        if ($detectedFonts === []) {
+            return ['success' => false, 'error' => 'Es wurden keine externen Theme-Schriften erkannt.'];
+        }
+
+        $installed = $this->getInstalledFontNames($customFonts);
+        $downloaded = 0;
+        $skipped = 0;
+        $errors = [];
+
+        foreach ($detectedFonts as $font) {
+            $fontName = trim((string)($font['name'] ?? ''));
+            if ($fontName === '') {
+                continue;
+            }
+
+            if (in_array(mb_strtolower($fontName), $installed, true)) {
+                $skipped++;
+                continue;
+            }
+
+            $result = $this->downloadGoogleFont($fontName);
+            if (!empty($result['success'])) {
+                $downloaded++;
+                $installed[] = mb_strtolower($fontName);
+                continue;
+            }
+
+            $message = (string)($result['error'] ?? 'Unbekannter Fehler');
+            if (str_contains($message, 'bereits vorhanden')) {
+                $skipped++;
+                $installed[] = mb_strtolower($fontName);
+                continue;
+            }
+
+            $errors[] = $fontName . ': ' . $message;
+        }
+
+        if ($downloaded === 0 && $errors !== []) {
+            return ['success' => false, 'error' => 'Keine Schrift konnte lokal geladen werden. ' . implode(' | ', array_slice($errors, 0, 3))];
+        }
+
+        $message = $downloaded . ' Schrift' . ($downloaded === 1 ? '' : 'en') . ' lokal geladen';
+        if ($skipped > 0) {
+            $message .= ', ' . $skipped . ' bereits vorhanden';
+        }
+        if ($errors !== []) {
+            $message .= '. Hinweise: ' . implode(' | ', array_slice($errors, 0, 3));
+        }
+
+        return ['success' => true, 'message' => $message . '.'];
+    }
+
     /**
      * Font-Einstellungen speichern
      */
@@ -257,14 +315,9 @@ class FontManagerModule
         }
 
         // Google Fonts CSS API (WOFF2 via User-Agent)
-        $cssUrl = 'https://fonts.googleapis.com/css2?family=' . urlencode(str_replace(' ', '+', $fontFamily)) . ':wght@300;400;500;600;700&display=swap';
-        $context = stream_context_create([
-            'http' => [
-                'timeout' => 15,
-                'header'  => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\n",
-            ],
-        ]);
-        $css = @file_get_contents($cssUrl, false, $context);
+        $familyParam = str_replace('%20', '+', rawurlencode($fontFamily));
+        $cssUrl = 'https://fonts.googleapis.com/css2?family=' . $familyParam . ':wght@300;400;500;600;700&display=swap';
+        $css = $this->fetchRemoteContent($cssUrl);
         if ($css === false) {
             return ['success' => false, 'error' => "Google Fonts CSS konnte nicht geladen werden für \"{$fontFamily}\"."];
         }
@@ -273,7 +326,7 @@ class FontManagerModule
         $localCss = $css;
         $downloadedFiles = [];
 
-        if (preg_match_all('/url\(([^)]+\.woff2[^)]*)\)/i', $css, $matches)) {
+        if (preg_match_all('/url\(([^)]+?\.(woff2?|ttf|otf)[^)]*)\)/i', $css, $matches)) {
             foreach ($matches[1] as $remoteUrl) {
                 $remoteUrl = trim($remoteUrl, "'\" ");
                 if (!str_starts_with($remoteUrl, 'https://')) {
@@ -282,13 +335,17 @@ class FontManagerModule
 
                 // Dateiname aus URL ableiten
                 $urlPath = (string)parse_url($remoteUrl, PHP_URL_PATH);
+                $extension = strtolower((string)pathinfo($urlPath, PATHINFO_EXTENSION));
+                if ($extension === '') {
+                    $extension = 'woff2';
+                }
                 $fileName = $slug . '-' . basename($urlPath);
-                if (!str_ends_with($fileName, '.woff2')) {
-                    $fileName .= '.woff2';
+                if (!str_ends_with(strtolower($fileName), '.' . $extension)) {
+                    $fileName .= '.' . $extension;
                 }
 
                 $localPath = $fontsDir . $fileName;
-                $fontData = @file_get_contents($remoteUrl, false, $context);
+                $fontData = $this->fetchRemoteContent($remoteUrl);
                 if ($fontData === false) {
                     continue;
                 }
@@ -329,6 +386,53 @@ class FontManagerModule
             'success' => true,
             'message' => "Schrift \"{$fontFamily}\" DSGVO-konform heruntergeladen (" . count($downloadedFiles) . " Dateien). Kein externer CDN-Aufruf mehr nötig.",
         ];
+    }
+
+    private function fetchRemoteContent(string $url): string|false
+    {
+        $headers = [
+            'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept: text/css,*/*;q=0.1',
+            'Accept-Language: de-DE,de;q=0.9,en;q=0.8',
+        ];
+
+        $context = stream_context_create([
+            'http' => [
+                'timeout' => 20,
+                'ignore_errors' => true,
+                'header' => implode("\r\n", $headers) . "\r\n",
+            ],
+        ]);
+
+        $content = @file_get_contents($url, false, $context);
+        if ($content !== false && $content !== '') {
+            return $content;
+        }
+
+        if (function_exists('curl_init')) {
+            $ch = curl_init($url);
+            if ($ch !== false) {
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_CONNECTTIMEOUT => 10,
+                    CURLOPT_TIMEOUT => 20,
+                    CURLOPT_HTTPHEADER => $headers,
+                    CURLOPT_SSL_VERIFYPEER => true,
+                    CURLOPT_SSL_VERIFYHOST => 2,
+                ]);
+
+                $response = curl_exec($ch);
+                $statusCode = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+                curl_close($ch);
+
+                if (is_string($response) && $response !== '' && $statusCode >= 200 && $statusCode < 400) {
+                    return $response;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

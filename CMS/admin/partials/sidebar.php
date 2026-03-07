@@ -177,22 +177,6 @@ $menuGroups = [
         ],
     ],
 
-    // ─── Themes & Design ──────────────
-    [
-        'type'     => 'group',
-        'label'    => 'Themes & Design',
-        'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 0 1 0 -18c4.97 0 9 3.582 9 8c0 1.06 -.474 2.078 -1.318 2.828c-.844 .75 -1.989 1.172 -3.182 1.172h-2.5a2 2 0 0 0 -1 3.75a1.3 1.3 0 0 1 -1 2.25"/><path d="M8.5 10.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12.5 7.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M16.5 10.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg>',
-        'slugs'    => ['themes', 'theme-editor', 'theme-explorer', 'menu-editor', 'landing-page', 'font-manager'],
-        'children' => [
-            ['label' => 'Theme - Verwaltung', 'slug' => 'themes',         'url' => $siteUrl . '/admin/themes'],
-            ['label' => 'Theme - Editor',     'slug' => 'theme-editor',   'url' => $siteUrl . '/admin/theme-editor'],
-            ['label' => 'Theme - Explorer',   'slug' => 'theme-explorer', 'url' => $siteUrl . '/admin/theme-explorer'],
-            ['label' => 'Theme - Menü',       'slug' => 'menu-editor',    'url' => $siteUrl . '/admin/menu-editor'],
-            ['label' => 'Landing Page',       'slug' => 'landing-page',   'url' => $siteUrl . '/admin/landing-page'],
-            ['label' => 'Font Manager',       'slug' => 'font-manager',   'url' => $siteUrl . '/admin/font-manager'],
-        ],
-    ],
-
     // ─── Member Dashboard ─────────────
     [
         'type'     => 'group',
@@ -222,6 +206,22 @@ $menuGroups = [
             ['label' => 'Pakete & Abo-Einstellungen', 'slug' => 'packages',              'url' => $siteUrl . '/admin/packages'],
             ['label' => 'Bestellungen & Zuweisung',   'slug' => 'orders',                'url' => $siteUrl . '/admin/orders'],
             ['label' => 'Einstellungen',              'slug' => 'subscription-settings', 'url' => $siteUrl . '/admin/subscription-settings'],
+        ],
+    ],
+
+    // ─── Themes & Design ──────────────
+    [
+        'type'     => 'group',
+        'label'    => 'Themes & Design',
+        'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 0 1 0 -18c4.97 0 9 3.582 9 8c0 1.06 -.474 2.078 -1.318 2.828c-.844 .75 -1.989 1.172 -3.182 1.172h-2.5a2 2 0 0 0 -1 3.75a1.3 1.3 0 0 1 -1 2.25"/><path d="M8.5 10.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12.5 7.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M16.5 10.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg>',
+        'slugs'    => ['themes', 'theme-editor', 'theme-explorer', 'menu-editor', 'landing-page', 'font-manager'],
+        'children' => [
+            ['label' => 'Theme - Verwaltung', 'slug' => 'themes',         'url' => $siteUrl . '/admin/themes'],
+            ['label' => 'Theme - Editor',     'slug' => 'theme-editor',   'url' => $siteUrl . '/admin/theme-editor'],
+            ['label' => 'Theme - Explorer',   'slug' => 'theme-explorer', 'url' => $siteUrl . '/admin/theme-explorer'],
+            ['label' => 'Theme - Menü',       'slug' => 'menu-editor',    'url' => $siteUrl . '/admin/menu-editor'],
+            ['label' => 'Landing Page',       'slug' => 'landing-page',   'url' => $siteUrl . '/admin/landing-page'],
+            ['label' => 'Font Manager',       'slug' => 'font-manager',   'url' => $siteUrl . '/admin/font-manager'],
         ],
     ],
 
@@ -308,14 +308,25 @@ $menuGroups = [
         ],
     ],
 
-    // ─── Info & Diagnose ─────────────
+    // ─── Info ────────────────────────
     [
         'type'     => 'group',
-        'label'    => 'Info & Diagnose',
+        'label'    => 'Info',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M12 9h.01"/><path d="M11 12h1v4h1"/></svg>',
-        'slugs'    => ['info', 'diagnose', 'monitor-response-time', 'monitor-cron-status', 'monitor-disk-usage', 'monitor-scheduled-tasks', 'monitor-health-check', 'monitor-email-alerts', 'documentation', 'system-info'],
+        'slugs'    => ['info', 'documentation', 'system-info'],
         'children' => [
             ['label' => 'Info CMS', 'slug' => 'info', 'url' => $siteUrl . '/admin/info'],
+            ['label' => 'Dokumentation', 'slug' => 'documentation', 'url' => $siteUrl . '/admin/documentation'],
+        ],
+    ],
+
+    // ─── Diagnose ────────────────────
+    [
+        'type'     => 'group',
+        'label'    => 'Diagnose',
+        'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M12 9h.01"/><path d="M11 12h1v4h1"/></svg>',
+        'slugs'    => ['diagnose', 'monitor-response-time', 'monitor-cron-status', 'monitor-disk-usage', 'monitor-scheduled-tasks', 'monitor-health-check', 'monitor-email-alerts'],
+        'children' => [
             ['label' => 'Diagnose Datenbank', 'slug' => 'diagnose', 'url' => $siteUrl . '/admin/diagnose'],
             ['label' => 'Response-Time Monitoring', 'slug' => 'monitor-response-time', 'url' => $siteUrl . '/admin/monitor-response-time'],
             ['label' => 'Cron-Job Status', 'slug' => 'monitor-cron-status', 'url' => $siteUrl . '/admin/monitor-cron-status'],
@@ -323,7 +334,6 @@ $menuGroups = [
             ['label' => 'Scheduled Tasks', 'slug' => 'monitor-scheduled-tasks', 'url' => $siteUrl . '/admin/monitor-scheduled-tasks'],
             ['label' => 'Health-Check', 'slug' => 'monitor-health-check', 'url' => $siteUrl . '/admin/monitor-health-check'],
             ['label' => 'E-Mail-Benachrichtigungen', 'slug' => 'monitor-email-alerts', 'url' => $siteUrl . '/admin/monitor-email-alerts'],
-            ['label' => 'Dokumentation', 'slug' => 'documentation', 'url' => $siteUrl . '/admin/documentation'],
         ],
     ],
 ];

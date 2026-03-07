@@ -5,6 +5,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\Services\ImageService;
+
 final class PerformanceModule
 {
     private const DEFAULT_SETTINGS = [
@@ -76,6 +78,7 @@ final class PerformanceModule
             'optimize_database' => $this->optimizeDatabase(),
             'repair_tables' => $this->repairDatabase(),
             'clear_expired_sessions' => $this->clearExpiredSessions(),
+            'convert_media_to_webp' => $this->convertMediaLibraryToWebp(),
             'save_settings', 'save_cache_settings', 'save_media_settings', 'save_session_settings' => $this->saveSettings($post),
             default => ['success' => false, 'error' => 'Unbekannte Aktion.'],
         };
@@ -197,6 +200,8 @@ final class PerformanceModule
     {
         $uploadDir = ABSPATH . 'uploads/';
         $uploadSize = is_dir($uploadDir) ? $this->getDirSize($uploadDir) : 0;
+        $imageService = ImageService::getInstance();
+        $imageSupport = $imageService->getInfo();
 
         $mediaTotals = [
             'total_files' => 0,
@@ -226,6 +231,9 @@ final class PerformanceModule
         }
 
         $largestImages = [];
+        $conversionCandidates = [];
+        $convertibleFiles = 0;
+        $convertibleBytes = 0;
         if (is_dir($uploadDir)) {
             $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($uploadDir, \FilesystemIterator::SKIP_DOTS));
             foreach ($iterator as $file) {
@@ -246,11 +254,23 @@ final class PerformanceModule
                     'height' => (int)($dimensions[1] ?? 0),
                     'is_webp' => $extension === 'webp',
                 ];
+
+                if (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'], true)) {
+                    $convertibleFiles++;
+                    $convertibleBytes += $file->getSize();
+                    $conversionCandidates[] = [
+                        'path' => str_replace(ABSPATH, '', $file->getPathname()),
+                        'size' => $file->getSize(),
+                        'extension' => $extension,
+                    ];
+                }
             }
         }
 
         usort($largestImages, static fn(array $a, array $b): int => $b['size'] <=> $a['size']);
         $largestImages = array_slice($largestImages, 0, 10);
+        usort($conversionCandidates, static fn(array $a, array $b): int => $b['size'] <=> $a['size']);
+        $conversionCandidates = array_slice($conversionCandidates, 0, 15);
 
         $oversizedCount = 0;
         foreach ($largestImages as $image) {
@@ -273,6 +293,89 @@ final class PerformanceModule
             'library' => $mediaTotals,
             'largest_images' => $largestImages,
             'oversized_images' => $oversizedCount,
+            'conversion' => [
+                'supported' => !empty($imageSupport['available']) && !empty($imageSupport['webp_support']),
+                'convertible_files' => $convertibleFiles,
+                'convertible_bytes' => $convertibleBytes,
+                'candidates' => $conversionCandidates,
+            ],
+        ];
+    }
+
+    private function convertMediaLibraryToWebp(): array
+    {
+        $imageService = ImageService::getInstance();
+        $imageInfo = $imageService->getInfo();
+
+        if (empty($imageInfo['available']) || empty($imageInfo['webp_support'])) {
+            return ['success' => false, 'error' => 'WebP-Konvertierung ist auf diesem Server nicht verfügbar.'];
+        }
+
+        $uploadDir = ABSPATH . 'uploads/';
+        if (!is_dir($uploadDir)) {
+            return ['success' => false, 'error' => 'Uploads-Verzeichnis nicht gefunden.'];
+        }
+
+        $converted = 0;
+        $skipped = 0;
+        $failed = 0;
+        $savedBytes = 0;
+        $updatedReferences = 0;
+
+        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($uploadDir, \FilesystemIterator::SKIP_DOTS));
+        foreach ($iterator as $file) {
+            if (!$file->isFile()) {
+                continue;
+            }
+
+            $sourcePath = $file->getPathname();
+            $extension = strtolower((string)$file->getExtension());
+            if (!in_array($extension, ['jpg', 'jpeg', 'png', 'gif'], true)) {
+                continue;
+            }
+
+            $originalSize = (int)$file->getSize();
+            $webpPath = $imageService->convertToWebP($sourcePath, 82, false);
+            if ($webpPath === null || !is_file($webpPath)) {
+                $failed++;
+                continue;
+            }
+
+            $webpSize = (int)filesize($webpPath);
+            if ($webpSize <= 0 || $webpSize >= $originalSize) {
+                if ($webpPath !== $sourcePath && is_file($webpPath)) {
+                    @unlink($webpPath);
+                }
+                $skipped++;
+                continue;
+            }
+
+            $updatedReferences += $this->replaceMediaReferences($sourcePath, $webpPath, $webpSize);
+
+            if (is_file($sourcePath)) {
+                @unlink($sourcePath);
+            }
+
+            $converted++;
+            $savedBytes += max(0, $originalSize - $webpSize);
+        }
+
+        if ($converted === 0 && $failed === 0) {
+            return ['success' => true, 'message' => 'Keine geeigneten Bilder für eine kleinere WebP-Version gefunden.'];
+        }
+
+        return [
+            'success' => $converted > 0,
+            'message' => sprintf(
+                '%d Bild%s in WebP umgewandelt, %s eingespart, %d Referenz%s aktualisiert, %d übersprungen, %d fehlgeschlagen.',
+                $converted,
+                $converted === 1 ? '' : 'er',
+                $this->formatBytes($savedBytes),
+                $updatedReferences,
+                $updatedReferences === 1 ? '' : 'en',
+                $skipped,
+                $failed
+            ),
         ];
     }
 
@@ -530,5 +633,79 @@ final class PerformanceModule
         }
 
         return $size;
+    }
+
+    private function replaceMediaReferences(string $sourcePath, string $webpPath, int $webpSize): int
+    {
+        $oldRelative = ltrim(str_replace('\\', '/', str_replace(ABSPATH, '', $sourcePath)), '/');
+        $newRelative = ltrim(str_replace('\\', '/', str_replace(ABSPATH, '', $webpPath)), '/');
+        $oldPublic = '/' . $oldRelative;
+        $newPublic = '/' . $newRelative;
+        $oldUrl = rtrim((string)SITE_URL, '/') . $oldPublic;
+        $newUrl = rtrim((string)SITE_URL, '/') . $newPublic;
+
+        $updates = 0;
+
+        $stmt = $this->db->prepare(
+            "UPDATE {$this->prefix}media
+             SET filename = ?, filepath = ?, filetype = ?, filesize = ?
+             WHERE REPLACE(filepath, '\\\\', '/') IN (?, ?, ?) OR filename = ?"
+        );
+        $stmt->execute([
+            basename($webpPath),
+            $newRelative,
+            'image/webp',
+            $webpSize,
+            $oldRelative,
+            $oldPublic,
+            $oldUrl,
+            basename($sourcePath),
+        ]);
+        $updates += $stmt->rowCount();
+
+        foreach ([
+            ['table' => 'pages', 'columns' => ['featured_image', 'content']],
+            ['table' => 'posts', 'columns' => ['featured_image', 'content', 'excerpt']],
+            ['table' => 'seo_meta', 'columns' => ['og_image', 'twitter_image']],
+        ] as $target) {
+            foreach ($target['columns'] as $column) {
+                $updates += $this->replaceInColumn($target['table'], $column, $oldUrl, $newUrl);
+                $updates += $this->replaceInColumn($target['table'], $column, $oldPublic, $newPublic);
+                $updates += $this->replaceInColumn($target['table'], $column, $oldRelative, $newRelative);
+            }
+        }
+
+        return $updates;
+    }
+
+    private function replaceInColumn(string $table, string $column, string $search, string $replace): int
+    {
+        if ($search === '' || $search === $replace) {
+            return 0;
+        }
+
+        $stmt = $this->db->prepare(
+            "UPDATE {$this->prefix}{$table}
+             SET {$column} = REPLACE({$column}, ?, ?)
+             WHERE {$column} IS NOT NULL AND {$column} LIKE ?"
+        );
+        $stmt->execute([$search, $replace, '%' . $search . '%']);
+
+        return $stmt->rowCount();
+    }
+
+    private function formatBytes(int $bytes): string
+    {
+        if ($bytes >= 1073741824) {
+            return number_format($bytes / 1073741824, 2, ',', '.') . ' GB';
+        }
+        if ($bytes >= 1048576) {
+            return number_format($bytes / 1048576, 2, ',', '.') . ' MB';
+        }
+        if ($bytes >= 1024) {
+            return number_format($bytes / 1024, 2, ',', '.') . ' KB';
+        }
+
+        return $bytes . ' B';
     }
 }

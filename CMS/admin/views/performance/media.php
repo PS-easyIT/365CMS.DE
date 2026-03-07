@@ -5,6 +5,8 @@ if (!defined('ABSPATH')) exit;
 $media = $data['media'] ?? [];
 $library = $media['library'] ?? [];
 $largestImages = $media['largest_images'] ?? [];
+$conversion = $media['conversion'] ?? [];
+$conversionCandidates = $conversion['candidates'] ?? [];
 $settings = $data['settings'] ?? [];
 $formatBytes = static function (int $bytes): string {
     if ($bytes >= 1073741824) return number_format($bytes / 1073741824, 2, ',', '.') . ' GB';
@@ -26,6 +28,48 @@ $formatBytes = static function (int $bytes): string {
     </div>
 
     <div class="card mb-4"><div class="card-header"><h3 class="card-title">Medien-Strategie</h3></div><div class="card-body"><form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="action" value="save_media_settings"><div class="row"><div class="col-md-4"><label class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" name="perf_lazy_loading" value="1" <?php echo ($settings['perf_lazy_loading'] ?? '0') === '1' ? 'checked' : ''; ?>><span class="form-check-label">Lazy Loading aktivieren</span></label></div><div class="col-md-4"><label class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" name="perf_webp_uploads" value="1" <?php echo ($settings['perf_webp_uploads'] ?? '0') === '1' ? 'checked' : ''; ?>><span class="form-check-label">WebP-Konvertierung bei Upload vorbereiten</span></label></div><div class="col-md-4"><label class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" name="perf_strip_exif" value="1" <?php echo ($settings['perf_strip_exif'] ?? '0') === '1' ? 'checked' : ''; ?>><span class="form-check-label">EXIF-Metadaten künftig entfernen</span></label></div></div><button type="submit" class="btn btn-primary">Medien-Einstellungen speichern</button></form></div></div>
+
+    <div class="card mb-4">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <div>
+                <h3 class="card-title">WebP-Massenkonvertierung</h3>
+                <div class="text-secondary small">Konvertiert alle geeigneten Bilder, zeigt die Ersparnis und ersetzt bekannte Referenzen automatisch.</div>
+            </div>
+            <form method="post" class="m-0">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
+                <input type="hidden" name="action" value="convert_media_to_webp">
+                <button type="submit" class="btn btn-success" <?php echo empty($conversion['supported']) || empty($conversion['convertible_files']) ? 'disabled' : ''; ?>>Alle Bilder zu WebP konvertieren</button>
+            </form>
+        </div>
+        <div class="card-body">
+            <div class="row row-cards mb-3">
+                <div class="col-md-4"><div class="card card-sm"><div class="card-body"><div class="subheader">Konvertierbare Bilder</div><div class="h2 mb-0"><?php echo (int)($conversion['convertible_files'] ?? 0); ?></div></div></div></div>
+                <div class="col-md-4"><div class="card card-sm"><div class="card-body"><div class="subheader">Aktuelles Dateivolumen</div><div class="h2 mb-0"><?php echo htmlspecialchars($formatBytes((int)($conversion['convertible_bytes'] ?? 0))); ?></div></div></div></div>
+                <div class="col-md-4"><div class="card card-sm"><div class="card-body"><div class="subheader">Server-Support</div><div class="h2 mb-0 <?php echo !empty($conversion['supported']) ? 'text-success' : 'text-danger'; ?>"><?php echo !empty($conversion['supported']) ? 'WebP bereit' : 'Nicht verfügbar'; ?></div></div></div></div>
+            </div>
+
+            <?php if (empty($conversion['supported'])): ?>
+                <div class="alert alert-warning mb-0">Auf diesem Server fehlt GD mit WebP-Support. Ohne das bleibt die WebP-Rakete leider am Boden.</div>
+            <?php elseif (empty($conversionCandidates)): ?>
+                <div class="alert alert-secondary mb-0">Keine JPG-, PNG- oder GIF-Dateien gefunden, die aktuell als Kandidaten für WebP infrage kommen.</div>
+            <?php else: ?>
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table table-striped">
+                        <thead><tr><th>Datei</th><th>Format</th><th>Größe</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($conversionCandidates as $candidate): ?>
+                            <tr>
+                                <td class="text-break"><?php echo htmlspecialchars((string)($candidate['path'] ?? '')); ?></td>
+                                <td><span class="badge bg-secondary-lt"><?php echo htmlspecialchars(strtoupper((string)($candidate['extension'] ?? ''))); ?></span></td>
+                                <td><?php echo htmlspecialchars($formatBytes((int)($candidate['size'] ?? 0))); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
 
     <div class="card"><div class="card-header"><h3 class="card-title">Größte Bilder</h3></div><div class="table-responsive"><table class="table table-vcenter card-table table-striped"><thead><tr><th>Datei</th><th>Größe</th><th>Dimensionen</th><th>Format</th></tr></thead><tbody><?php if (empty($largestImages)): ?><tr><td colspan="4" class="text-center text-secondary py-4">Keine Bilddaten gefunden.</td></tr><?php else: ?><?php foreach ($largestImages as $image): ?><tr><td class="text-break"><?php echo htmlspecialchars((string)$image['path']); ?></td><td><?php echo htmlspecialchars($formatBytes((int)$image['size'])); ?></td><td><?php echo (int)$image['width']; ?> × <?php echo (int)$image['height']; ?></td><td><span class="badge bg-<?php echo !empty($image['is_webp']) ? 'success' : 'secondary'; ?>-lt"><?php echo !empty($image['is_webp']) ? 'WebP' : 'Klassisch'; ?></span></td></tr><?php endforeach; ?><?php endif; ?></tbody></table></div></div>
 </div></div>

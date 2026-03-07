@@ -23,6 +23,8 @@ $lineHeight   = $data['lineHeight'] ?? '1.6';
 $scanResults  = $data['scanResults'] ?? ['theme' => '', 'scannedFiles' => 0, 'detectedFonts' => []];
 $fontCatalog  = $data['fontCatalog'] ?? [];
 $activeThemeSlug = $data['activeThemeSlug'] ?? '';
+$detectedFonts = (array)($scanResults['detectedFonts'] ?? []);
+$detectedInstallableFonts = array_values(array_filter($detectedFonts, static fn(array $font): bool => empty($font['installed'])));
 ?>
 
 <div class="page-header d-print-none">
@@ -55,17 +57,31 @@ $activeThemeSlug = $data['activeThemeSlug'] ?? '';
                         <h3 class="card-title mb-1">Schritt 1 · Theme-Fonts scannen</h3>
                         <div class="text-muted small">Aktives Theme: <code><?php echo htmlspecialchars($activeThemeSlug); ?></code></div>
                     </div>
-                    <form method="post">
-                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                        <input type="hidden" name="action" value="scan_theme_fonts">
-                        <button type="submit" class="btn btn-primary btn-sm">Scan starten</button>
-                    </form>
+                    <div class="d-flex gap-2">
+                        <?php if ($detectedInstallableFonts !== []): ?>
+                            <form method="post">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                <input type="hidden" name="action" value="download_detected_fonts">
+                                <button type="submit" class="btn btn-success btn-sm">Alle lokal laden</button>
+                            </form>
+                        <?php endif; ?>
+                        <form method="post">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                            <input type="hidden" name="action" value="scan_theme_fonts">
+                            <button type="submit" class="btn btn-primary btn-sm">Scan starten</button>
+                        </form>
+                    </div>
                 </div>
                 <div class="card-body">
                     <p class="text-muted">Der Scan durchsucht das aktive Theme nach Google-Font-Imports und bekannten Schriftfamilien, damit du genutzte Fonts lokal self-hosten kannst.</p>
                     <div class="small text-muted mb-3"><?php echo (int)($scanResults['scannedFiles'] ?? 0); ?> Dateien geprüft</div>
+                    <?php if ($detectedInstallableFonts !== []): ?>
+                        <div class="alert alert-info">
+                            <?php echo count($detectedInstallableFonts); ?> erkannte Schrift<?php echo count($detectedInstallableFonts) === 1 ? '' : 'en'; ?> sind noch extern eingebunden und können gesammelt lokal gespeichert werden.
+                        </div>
+                    <?php endif; ?>
 
-                    <?php if (!empty($scanResults['detectedFonts'])): ?>
+                    <?php if ($detectedFonts !== []): ?>
                         <div class="table-responsive">
                             <table class="table table-vcenter card-table">
                                 <thead>
@@ -78,7 +94,7 @@ $activeThemeSlug = $data['activeThemeSlug'] ?? '';
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach ($scanResults['detectedFonts'] as $font): ?>
+                                    <?php foreach ($detectedFonts as $font): ?>
                                         <tr>
                                             <td>
                                                 <div class="fw-semibold"><?php echo htmlspecialchars($font['name'] ?? ''); ?></div>

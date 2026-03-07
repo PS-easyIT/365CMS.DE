@@ -58,6 +58,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'type'    => $result['success'] ? 'success' : 'danger',
             'message' => $result['message'] ?? $result['error'] ?? '',
         ];
+    } elseif ($action === 'download_detected_fonts') {
+        $result = $module->downloadDetectedFonts();
+        $_SESSION['admin_alert'] = [
+            'type'    => $result['success'] ? 'success' : 'danger',
+            'message' => $result['message'] ?? $result['error'] ?? '',
+        ];
     }
 
     header('Location: ' . SITE_URL . '/admin/font-manager');

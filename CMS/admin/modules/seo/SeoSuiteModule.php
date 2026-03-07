@@ -98,18 +98,19 @@ final class SeoSuiteModule
 	{
 		$auditRows = $this->analysisService->enrichAuditRows($this->seoService->getAuditRows());
 		$overview = $this->buildOverview($auditRows);
+		$decoratedAuditRows = (array)($overview['content'] ?? $auditRows);
 
 		return [
 			'section' => $section,
 			'overview' => $overview,
-			'dashboard' => $this->getDashboardData($auditRows, $overview),
-			'analytics' => $this->getAnalyticsData($auditRows),
-			'audit' => $this->getAuditData($auditRows),
-			'meta' => $this->getMetaData($auditRows),
-			'social' => $this->getSocialData($auditRows),
-			'schema' => $this->getSchemaData($auditRows),
-			'sitemap' => $this->getSitemapData($auditRows),
-			'technical' => $this->getTechnicalData($auditRows),
+			'dashboard' => $this->getDashboardData($decoratedAuditRows, $overview),
+			'analytics' => $this->getAnalyticsData($decoratedAuditRows),
+			'audit' => $this->getAuditData($decoratedAuditRows),
+			'meta' => $this->getMetaData($decoratedAuditRows),
+			'social' => $this->getSocialData($decoratedAuditRows),
+			'schema' => $this->getSchemaData($decoratedAuditRows),
+			'sitemap' => $this->getSitemapData($decoratedAuditRows),
+			'technical' => $this->getTechnicalData($decoratedAuditRows),
 		];
 	}
 
@@ -132,9 +133,31 @@ final class SeoSuiteModule
 
 	public function regenerateSitemapBundle(): array
 	{
-		return $this->seoService->saveSitemapBundle()
-			? ['success' => true, 'message' => 'Sitemap-Bundle neu generiert.']
-			: ['success' => false, 'error' => 'Sitemap-Bundle konnte nicht geschrieben werden.'];
+		try {
+			$bundleSaved = false;
+
+			if (method_exists($this->seoService, 'saveSitemapBundle')) {
+				$bundleSaved = (bool)$this->seoService->saveSitemapBundle();
+			} else {
+				$mainSaved = $this->seoService->saveSitemap();
+				$sitemapSettings = array_merge($this->seoService->getSitemapSettings(), $this->loadSettings(self::SITEMAP_EXTRA_DEFAULTS));
+				$imageSaved = !((string)($sitemapSettings['seo_sitemap_image_enabled'] ?? '1') === '1')
+					|| !method_exists($this->seoService, 'saveImageSitemap')
+					? true
+					: (bool)$this->seoService->saveImageSitemap();
+				$newsSaved = !((string)($sitemapSettings['seo_sitemap_news_enabled'] ?? '0') === '1')
+					|| !method_exists($this->seoService, 'saveNewsSitemap')
+					? true
+					: (bool)$this->seoService->saveNewsSitemap();
+				$bundleSaved = $mainSaved && $imageSaved && $newsSaved;
+			}
+
+			return $bundleSaved
+				? ['success' => true, 'message' => 'Sitemap-Bundle neu generiert.']
+				: ['success' => false, 'error' => 'Sitemap-Bundle konnte nicht geschrieben werden.'];
+		} catch (\Throwable $e) {
+			return ['success' => false, 'error' => 'Sitemap-Bundle konnte nicht generiert werden: ' . $e->getMessage()];
+		}
 	}
 
 	public function saveRobotsTxt(): array
