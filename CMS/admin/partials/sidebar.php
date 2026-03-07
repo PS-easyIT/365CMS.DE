@@ -225,17 +225,32 @@ $menuGroups = [
         ],
     ],
 
-    // ─── SEO & Performance ────────────
+    // ─── SEO ─────────────────────────
     [
         'type'     => 'group',
-        'label'    => 'SEO & Performance',
+        'label'    => 'SEO',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M3.6 9h16.8"/><path d="M3.6 15h16.8"/><path d="M11.5 3a17 17 0 0 0 0 18"/><path d="M12.5 3a17 17 0 0 1 0 18"/></svg>',
-        'slugs'    => ['seo-dashboard', 'analytics', 'performance', 'redirect-manager'],
+        'slugs'    => ['seo-dashboard', 'analytics', 'redirect-manager'],
         'children' => [
-            ['label' => 'SEO Dashboard',       'slug' => 'seo-dashboard', 'url' => $siteUrl . '/admin/seo-dashboard'],
-            ['label' => 'Analytics',            'slug' => 'analytics',     'url' => $siteUrl . '/admin/analytics'],
-            ['label' => 'Performance',          'slug' => 'performance',   'url' => $siteUrl . '/admin/performance'],
+            ['label' => 'SEO Dashboard', 'slug' => 'seo-dashboard', 'url' => $siteUrl . '/admin/seo-dashboard'],
+            ['label' => 'Analytics', 'slug' => 'analytics', 'url' => $siteUrl . '/admin/analytics'],
             ['label' => '404-Errors & Weiterleitung', 'slug' => 'redirect-manager', 'url' => $siteUrl . '/admin/redirect-manager'],
+        ],
+    ],
+
+    // ─── Performance ─────────────────
+    [
+        'type'     => 'group',
+        'label'    => 'Performance',
+        'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3l7 4v5c0 5 -3.5 7.5 -7 9c-3.5 -1.5 -7 -4 -7 -9v-5l7 -4"/><path d="M12 8v4l2 2"/></svg>',
+        'slugs'    => ['performance', 'performance-cache', 'performance-media', 'performance-database', 'performance-settings', 'performance-sessions'],
+        'children' => [
+            ['label' => 'Übersicht', 'slug' => 'performance', 'url' => $siteUrl . '/admin/performance'],
+            ['label' => 'Cache-Verwaltung', 'slug' => 'performance-cache', 'url' => $siteUrl . '/admin/performance-cache'],
+            ['label' => 'Medien-Optimierung', 'slug' => 'performance-media', 'url' => $siteUrl . '/admin/performance-media'],
+            ['label' => 'Datenbank-Wartung', 'slug' => 'performance-database', 'url' => $siteUrl . '/admin/performance-database'],
+            ['label' => 'Performance-Einstellungen', 'slug' => 'performance-settings', 'url' => $siteUrl . '/admin/performance-settings'],
+            ['label' => 'Session-Verwaltung', 'slug' => 'performance-sessions', 'url' => $siteUrl . '/admin/performance-sessions'],
         ],
     ],
 
@@ -292,11 +307,17 @@ $menuGroups = [
         'type'     => 'group',
         'label'    => 'Info & Diagnose',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M12 9h.01"/><path d="M11 12h1v4h1"/></svg>',
-        'slugs'    => ['info', 'diagnose', 'documentation', 'system-info'],
+        'slugs'    => ['info', 'diagnose', 'monitor-response-time', 'monitor-cron-status', 'monitor-disk-usage', 'monitor-scheduled-tasks', 'monitor-health-check', 'monitor-email-alerts', 'documentation', 'system-info'],
         'children' => [
-            ['label' => 'Info',              'slug' => 'info',       'url' => $siteUrl . '/admin/info'],
-            ['label' => 'Diagnose',          'slug' => 'diagnose',   'url' => $siteUrl . '/admin/diagnose'],
-            ['label' => 'Dokumentation',     'slug' => 'documentation', 'url' => $siteUrl . '/admin/documentation'],
+            ['label' => 'Info CMS', 'slug' => 'info', 'url' => $siteUrl . '/admin/info'],
+            ['label' => 'Diagnose Datenbank', 'slug' => 'diagnose', 'url' => $siteUrl . '/admin/diagnose'],
+            ['label' => 'Response-Time Monitoring', 'slug' => 'monitor-response-time', 'url' => $siteUrl . '/admin/monitor-response-time'],
+            ['label' => 'Cron-Job Status', 'slug' => 'monitor-cron-status', 'url' => $siteUrl . '/admin/monitor-cron-status'],
+            ['label' => 'Disk-Usage', 'slug' => 'monitor-disk-usage', 'url' => $siteUrl . '/admin/monitor-disk-usage'],
+            ['label' => 'Scheduled Tasks', 'slug' => 'monitor-scheduled-tasks', 'url' => $siteUrl . '/admin/monitor-scheduled-tasks'],
+            ['label' => 'Health-Check', 'slug' => 'monitor-health-check', 'url' => $siteUrl . '/admin/monitor-health-check'],
+            ['label' => 'E-Mail-Benachrichtigungen', 'slug' => 'monitor-email-alerts', 'url' => $siteUrl . '/admin/monitor-email-alerts'],
+            ['label' => 'Dokumentation', 'slug' => 'documentation', 'url' => $siteUrl . '/admin/documentation'],
         ],
     ],
 ];

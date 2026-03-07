@@ -115,8 +115,8 @@ class SEOService
             'content_type'        => $contentType,
             'content_id'          => $contentId,
             'canonical_url'       => $this->sanitizeOptionalUrl((string)($data['canonical_url'] ?? '')),
-            'robots_index'        => !empty($data['robots_index']) ? 1 : 0,
-            'robots_follow'       => !empty($data['robots_follow']) ? 1 : 0,
+            'robots_index'        => array_key_exists('robots_index', $data) ? (!empty($data['robots_index']) ? 1 : 0) : 1,
+            'robots_follow'       => array_key_exists('robots_follow', $data) ? (!empty($data['robots_follow']) ? 1 : 0) : 1,
             'og_title'            => $this->sanitizeText((string)($data['og_title'] ?? ''), 255),
             'og_description'      => $this->sanitizeLongText((string)($data['og_description'] ?? '')),
             'og_image'            => $this->sanitizeOptionalUrl((string)($data['og_image'] ?? '')),
@@ -148,7 +148,7 @@ class SEOService
     public function getAuditRows(): array
     {
         $pages = $this->db->get_results(
-            "SELECT p.id, p.title, p.slug, p.meta_title, p.meta_description, p.status,
+            "SELECT p.id, p.title, p.slug, p.content, p.featured_image, p.meta_title, p.meta_description, p.status,
                     sm.canonical_url, sm.robots_index, sm.robots_follow, sm.og_title, sm.og_description,
                     sm.og_image, sm.og_type, sm.twitter_card, sm.twitter_title, sm.twitter_description,
                     sm.twitter_image, sm.focus_keyphrase, sm.schema_type, sm.sitemap_priority, sm.sitemap_changefreq
@@ -159,7 +159,7 @@ class SEOService
         ) ?: [];
 
         $posts = $this->db->get_results(
-            "SELECT p.id, p.title, p.slug, p.meta_title, p.meta_description, p.status,
+            "SELECT p.id, p.title, p.slug, p.content, p.excerpt, p.featured_image, p.meta_title, p.meta_description, p.status,
                     sm.canonical_url, sm.robots_index, sm.robots_follow, sm.og_title, sm.og_description,
                     sm.og_image, sm.og_type, sm.twitter_card, sm.twitter_title, sm.twitter_description,
                     sm.twitter_image, sm.focus_keyphrase, sm.schema_type, sm.sitemap_priority, sm.sitemap_changefreq
@@ -267,6 +267,9 @@ class SEOService
     public function generateOrganizationSchema(): string
     {
         $schema = [
+                    'content' => (string)($row->content ?? ''),
+                    'excerpt' => (string)($row->excerpt ?? ''),
+                    'featured_image' => (string)($row->featured_image ?? ''),
             '@context' => 'https://schema.org',
             '@type' => 'Organization',
             'name' => SITE_NAME,
@@ -350,7 +353,7 @@ class SEOService
         // Pages
         try {
             $stmt = $this->db->query("
-                SELECT slug, updated_at 
+                SELECT id, slug, updated_at 
                 FROM {$this->db->getPrefix()}pages 
                 WHERE status = 'published'
                 ORDER BY updated_at DESC
@@ -695,6 +698,7 @@ class SEOService
 
     private function getCurrentSeoPayload(): array
     {
+        $analysis = SeoAnalysisService::getInstance();
         $uri = isset($_SERVER['REQUEST_URI']) ? strtok((string)$_SERVER['REQUEST_URI'], '?') : '/';
         $canonicalUrl = SITE_URL . ($uri === '/' ? '/' : $uri);
 
@@ -732,8 +736,16 @@ class SEOService
         }
 
         $id = (int)($this->readField($content, 'id') ?? 0);
-        $title = trim((string)($this->readField($content, 'meta_title') ?: $this->readField($content, 'title') ?: SITE_NAME));
-        $description = trim((string)($this->readField($content, 'meta_description') ?: $this->readField($content, 'excerpt') ?: $this->getMetaDescription('')));
+        $resolvedContext = [
+            'title' => (string)($this->readField($content, 'title') ?? SITE_NAME),
+            'slug' => (string)($this->readField($content, 'slug') ?? ''),
+            'content' => (string)($this->readField($content, 'content') ?? ''),
+            'excerpt' => (string)($this->readField($content, 'excerpt') ?? ''),
+            'meta_title' => (string)($this->readField($content, 'meta_title') ?? ''),
+            'meta_description' => (string)($this->readField($content, 'meta_description') ?? ''),
+        ];
+        $title = trim($analysis->resolveMetaTitle($resolvedContext));
+        $description = trim($analysis->resolveMetaDescription($resolvedContext));
         $featuredImage = trim((string)($this->readField($content, 'featured_image') ?? ''));
         $meta = $this->getContentMeta($contentType, $id);
 

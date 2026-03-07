@@ -9,6 +9,8 @@ $siteUrl  = defined('SITE_URL') ? SITE_URL : '';
 $content  = $data['content'] ?? [];
 $scores   = $data['scores'] ?? [];
 $total    = $data['total'] ?? 0;
+$templateSettings = $data['template_settings'] ?? [];
+$sitemapSettings = $data['sitemap_settings'] ?? [];
 $scoreColors = ['good' => 'success', 'warning' => 'warning', 'bad' => 'danger'];
 $scoreLabels = ['good' => 'Gut', 'warning' => 'Warnung', 'bad' => 'Kritisch'];
 ?>
@@ -112,19 +114,106 @@ $scoreLabels = ['good' => 'Gut', 'warning' => 'Warnung', 'bad' => 'Kritisch'];
             </div>
         </div>
 
+        <div class="row row-cards mb-4">
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header"><h3 class="card-title">Meta-Vorlagen & Analyse</h3></div>
+                    <div class="card-body">
+                        <form method="post" class="row g-3">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                            <input type="hidden" name="action" value="save_templates">
+                            <div class="col-12">
+                                <label class="form-label">Titel-Template</label>
+                                <input type="text" class="form-control" name="site_title_format" value="<?= htmlspecialchars((string)($templateSettings['site_title_format'] ?? '%%title%% %%sep%% %%sitename%%')) ?>">
+                                <div class="form-hint">Variablen: <code>%%title%%</code>, <code>%%sitename%%</code>, <code>%%sep%%</code></div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Separator</label>
+                                <input type="text" class="form-control" name="title_separator" value="<?= htmlspecialchars((string)($templateSettings['title_separator'] ?? '|')) ?>">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Min. Wörter</label>
+                                <input type="number" class="form-control" name="analysis_min_words" min="100" value="<?= (int)($templateSettings['analysis_min_words'] ?? 300) ?>">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Max. Wörter pro Satz</label>
+                                <input type="number" class="form-control" name="analysis_sentence_words" min="12" value="<?= (int)($templateSettings['analysis_sentence_words'] ?? 24) ?>">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Max. Wörter pro Absatz</label>
+                                <input type="number" class="form-control" name="analysis_paragraph_words" min="40" value="<?= (int)($templateSettings['analysis_paragraph_words'] ?? 120) ?>">
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">Vorlagen speichern</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header"><h3 class="card-title">Sitemap & Ping</h3></div>
+                    <div class="card-body">
+                        <form method="post" class="row g-3">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                            <input type="hidden" name="action" value="save_sitemap_settings">
+                            <div class="col-md-6">
+                                <label class="form-label">Pages Priority</label>
+                                <input type="text" class="form-control" name="pages_priority" value="<?= htmlspecialchars((string)($sitemapSettings['pages_priority'] ?? '0.8')) ?>">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Pages Changefreq</label>
+                                <select class="form-select" name="pages_changefreq">
+                                    <?php foreach (['daily', 'weekly', 'monthly', 'yearly'] as $freq): ?>
+                                        <option value="<?= htmlspecialchars($freq) ?>" <?= ($sitemapSettings['pages_changefreq'] ?? 'weekly') === $freq ? 'selected' : '' ?>><?= htmlspecialchars($freq) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Posts Priority</label>
+                                <input type="text" class="form-control" name="posts_priority" value="<?= htmlspecialchars((string)($sitemapSettings['posts_priority'] ?? '0.6')) ?>">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Posts Changefreq</label>
+                                <select class="form-select" name="posts_changefreq">
+                                    <?php foreach (['daily', 'weekly', 'monthly', 'yearly'] as $freq): ?>
+                                        <option value="<?= htmlspecialchars($freq) ?>" <?= ($sitemapSettings['posts_changefreq'] ?? 'monthly') === $freq ? 'selected' : '' ?>><?= htmlspecialchars($freq) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-12 d-flex gap-4">
+                                <label class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="ping_google" value="1" <?= !empty($sitemapSettings['ping_google']) ? 'checked' : '' ?>>
+                                    <span class="form-check-label">Google pingen</span>
+                                </label>
+                                <label class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="ping_bing" value="1" <?= !empty($sitemapSettings['ping_bing']) ? 'checked' : '' ?>>
+                                    <span class="form-check-label">Bing pingen</span>
+                                </label>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">Sitemap-Einstellungen speichern</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- SEO Audit Table -->
         <div class="card">
-            <div class="card-header"><h3 class="card-title">SEO-Audit: Alle Inhalte</h3></div>
+            <div class="card-header"><h3 class="card-title">SEO-Audit & Inline-Metadaten</h3></div>
             <div class="table-responsive">
                 <table class="table table-vcenter card-table">
                     <thead>
                         <tr>
                             <th>Typ</th>
                             <th>Titel</th>
-                            <th>Meta-Titel</th>
-                            <th>Meta-Beschreibung</th>
-                            <th>Status</th>
+                            <th>Meta-Vorschau</th>
+                            <th>Fokus-Keyphrase</th>
+                            <th>SEO-Score</th>
                             <th>Probleme</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -132,38 +221,59 @@ $scoreLabels = ['good' => 'Gut', 'warning' => 'Warnung', 'bad' => 'Kritisch'];
                             <tr>
                                 <td><span class="badge bg-azure-lt"><?= htmlspecialchars($item['type']) ?></span></td>
                                 <td>
-                                    <a href="<?= $siteUrl ?>/admin/<?= $item['type'] === 'Seite' ? 'pages' : 'posts' ?>?action=edit&id=<?= (int)$item['id'] ?>">
+                                    <a href="<?= $siteUrl ?>/admin/<?= $item['type'] === 'page' ? 'pages' : 'posts' ?>?action=edit&id=<?= (int)$item['id'] ?>">
                                         <?= htmlspecialchars($item['title']) ?>
                                     </a>
+                                    <div class="text-secondary small"><?= htmlspecialchars($item['slug']) ?></div>
                                 </td>
                                 <td>
-                                    <?php $mt = $item['meta_title'] ?? ''; ?>
-                                    <?php if ($mt): ?>
-                                        <span class="text-secondary small"><?= mb_strlen($mt) ?>/60</span>
-                                    <?php else: ?>
-                                        <span class="text-danger small">fehlt</span>
-                                    <?php endif; ?>
+                                    <div class="fw-semibold small"><?= htmlspecialchars((string)($item['resolved_meta_title'] ?? $item['meta_title'])) ?></div>
+                                    <div class="text-secondary small"><?= htmlspecialchars((string)($item['resolved_meta_description'] ?? $item['meta_description'])) ?></div>
                                 </td>
                                 <td>
-                                    <?php $md = $item['meta_description'] ?? ''; ?>
-                                    <?php if ($md): ?>
-                                        <span class="text-secondary small"><?= mb_strlen($md) ?>/160</span>
-                                    <?php else: ?>
-                                        <span class="text-danger small">fehlt</span>
-                                    <?php endif; ?>
+                                    <span class="badge bg-secondary-lt text-secondary"><?= htmlspecialchars((string)($item['focus_keyphrase'] ?? '—')) ?></span>
                                 </td>
                                 <td>
                                     <span class="badge bg-<?= $scoreColors[$item['seo_score']] ?? 'secondary' ?>">
-                                        <?= $scoreLabels[$item['seo_score']] ?? '?' ?>
+                                        <?= (int)($item['seo_score_value'] ?? 0) ?> · <?= $scoreLabels[$item['seo_score']] ?? '?' ?>
                                     </span>
                                 </td>
                                 <td>
                                     <?php foreach ($item['seo_issues'] as $issue): ?>
-                                        <div class="text-<?= $issue['type'] === 'bad' ? 'danger' : 'warning' ?> small"><?= htmlspecialchars($issue['msg']) ?></div>
+                                        <div class="text-<?= $issue['type'] === 'bad' ? 'danger' : 'warning' ?> small">
+                                            <strong><?= htmlspecialchars($issue['msg']) ?></strong>
+                                            <?php if (!empty($issue['detail'])): ?>
+                                                <span class="text-secondary">· <?= htmlspecialchars($issue['detail']) ?></span>
+                                            <?php endif; ?>
+                                        </div>
                                     <?php endforeach; ?>
                                     <?php if (empty($item['seo_issues'])): ?>
                                         <span class="text-success small">✓ Alles gut</span>
                                     <?php endif; ?>
+                                </td>
+                                <td class="text-end">
+                                    <details>
+                                        <summary class="btn btn-outline-secondary btn-sm">Meta bearbeiten</summary>
+                                        <form method="post" class="mt-3" style="min-width: 320px;">
+                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                                            <input type="hidden" name="action" value="save_audit_item">
+                                            <input type="hidden" name="content_type" value="<?= htmlspecialchars((string)$item['type']) ?>">
+                                            <input type="hidden" name="content_id" value="<?= (int)$item['id'] ?>">
+                                            <div class="mb-2 text-start">
+                                                <label class="form-label small">Meta-Titel</label>
+                                                <input type="text" class="form-control form-control-sm" name="meta_title" value="<?= htmlspecialchars((string)($item['meta_title'] ?? '')) ?>">
+                                            </div>
+                                            <div class="mb-2 text-start">
+                                                <label class="form-label small">Meta-Beschreibung</label>
+                                                <textarea class="form-control form-control-sm" name="meta_description" rows="3"><?= htmlspecialchars((string)($item['meta_description'] ?? '')) ?></textarea>
+                                            </div>
+                                            <div class="mb-2 text-start">
+                                                <label class="form-label small">Fokus-Keyphrase</label>
+                                                <input type="text" class="form-control form-control-sm" name="focus_keyphrase" value="<?= htmlspecialchars((string)($item['focus_keyphrase'] ?? '')) ?>">
+                                            </div>
+                                            <button type="submit" class="btn btn-primary btn-sm w-100">Speichern</button>
+                                        </form>
+                                    </details>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

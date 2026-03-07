@@ -64,6 +64,8 @@ foreach ($tables as $tableInfo) {
             </div>
         <?php endif; ?>
 
+        <?php require __DIR__ . '/subnav.php'; ?>
+
         <div class="row row-deck row-cards mb-4">
             <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">DB-Status</div><div class="h1 mb-0 <?php echo !empty($database['connected']) ? 'text-success' : 'text-danger'; ?>"><?php echo !empty($database['connected']) ? 'Online' : 'Offline'; ?></div></div></div></div>
             <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Fehlende Tabellen</div><div class="h1 mb-0 text-danger"><?php echo $missingCount; ?></div></div></div></div>

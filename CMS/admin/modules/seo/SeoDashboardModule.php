@@ -9,6 +9,9 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\Services\SEOService;
+use CMS\Services\SeoAnalysisService;
+
 class SeoDashboardModule
 {
     private readonly \CMS\Database $db;
@@ -22,60 +25,25 @@ class SeoDashboardModule
 
     public function getData(): array
     {
-        $pages = $this->db->get_results(
-            "SELECT id, title, slug, status FROM {$this->prefix}pages WHERE status = 'published' ORDER BY title ASC"
-        ) ?: [];
-
-        $posts = $this->db->get_results(
-            "SELECT id, title, slug, meta_title, meta_description, status FROM {$this->prefix}posts WHERE status = 'published' ORDER BY title ASC"
-        ) ?: [];
-
-        $allContent = array_merge(
-            array_map(fn($p) => (array)$p + ['meta_title' => '', 'meta_description' => '', 'type' => 'Seite'], $pages),
-            array_map(fn($p) => (array)$p + ['type' => 'Beitrag'], $posts)
-        );
-
-        // SEO-Analyse
-        $issues = [];
+        $allContent = SeoAnalysisService::getInstance()->enrichAuditRows(SEOService::getInstance()->getAuditRows());
         $scores = ['good' => 0, 'warning' => 0, 'bad' => 0];
 
         foreach ($allContent as &$item) {
-            $item['seo_issues'] = [];
-
-            // Meta-Titel
-            $metaTitle = $item['meta_title'] ?? '';
-            if ($metaTitle === '') {
-                $item['seo_issues'][] = ['type' => 'warning', 'msg' => 'Kein Meta-Titel'];
-            } elseif (mb_strlen($metaTitle) > 60) {
-                $item['seo_issues'][] = ['type' => 'warning', 'msg' => 'Meta-Titel zu lang (' . mb_strlen($metaTitle) . '/60)'];
+            $status = (string)($item['analysis']['status'] ?? 'warning');
+            if (!isset($scores[$status])) {
+                $status = 'warning';
             }
 
-            // Meta-Beschreibung
-            $metaDesc = $item['meta_description'] ?? '';
-            if ($metaDesc === '') {
-                $item['seo_issues'][] = ['type' => 'bad', 'msg' => 'Keine Meta-Beschreibung'];
-            } elseif (mb_strlen($metaDesc) > 160) {
-                $item['seo_issues'][] = ['type' => 'warning', 'msg' => 'Meta-Beschreibung zu lang (' . mb_strlen($metaDesc) . '/160)'];
-            } elseif (mb_strlen($metaDesc) < 50) {
-                $item['seo_issues'][] = ['type' => 'warning', 'msg' => 'Meta-Beschreibung zu kurz'];
-            }
-
-            // Slug
-            if (empty($item['slug'])) {
-                $item['seo_issues'][] = ['type' => 'bad', 'msg' => 'Kein Slug definiert'];
-            }
-
-            // Score
-            if (empty($item['seo_issues'])) {
-                $scores['good']++;
-                $item['seo_score'] = 'good';
-            } elseif (array_filter($item['seo_issues'], fn($i) => $i['type'] === 'bad')) {
-                $scores['bad']++;
-                $item['seo_score'] = 'bad';
-            } else {
-                $scores['warning']++;
-                $item['seo_score'] = 'warning';
-            }
+            $item['seo_score'] = $status;
+            $item['seo_score_value'] = (int)($item['analysis']['score'] ?? 0);
+            $item['seo_issues'] = array_map(static function (array $rule): array {
+                return [
+                    'type' => !empty($rule['passed']) ? 'good' : 'warning',
+                    'msg' => (string)($rule['label'] ?? ''),
+                    'detail' => (string)($rule['message'] ?? ''),
+                ];
+            }, array_filter($item['analysis']['rules'] ?? [], static fn(array $rule): bool => empty($rule['passed'])));
+            $scores[$status]++;
         }
 
         // Sitemap-Status
@@ -94,47 +62,87 @@ class SeoDashboardModule
             'sitemap_exists' => $sitemapExists,
             'sitemap_date'   => $sitemapDate,
             'robots_exists'  => $robotsExists,
+            'template_settings' => SeoAnalysisService::getInstance()->getSettings(),
+            'sitemap_settings' => SEOService::getInstance()->getSitemapSettings(),
         ];
     }
 
     public function regenerateSitemap(): array
     {
-        $sitemapPath = defined('ABSPATH') ? ABSPATH . 'sitemap.xml' : '';
-        if (!$sitemapPath) {
-            return ['success' => false, 'error' => 'ABSPATH nicht definiert.'];
+        if (SEOService::getInstance()->saveSitemap()) {
+            return ['success' => true, 'message' => 'Sitemap neu generiert und Suchmaschinen optional benachrichtigt.'];
         }
 
-        $siteUrl = defined('SITE_URL') ? SITE_URL : '';
-        $pages = $this->db->get_results("SELECT slug, updated_at FROM {$this->prefix}pages WHERE status = 'published'") ?: [];
-        $posts = $this->db->get_results("SELECT slug, updated_at FROM {$this->prefix}posts WHERE status = 'published'") ?: [];
-
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
-
-        // Startseite
-        $xml .= "  <url>\n    <loc>" . htmlspecialchars($siteUrl) . "/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n";
-
-        foreach ($pages as $p) {
-            $xml .= "  <url>\n    <loc>" . htmlspecialchars($siteUrl . '/' . $p->slug) . "</loc>\n";
-            if ($p->updated_at) {
-                $xml .= "    <lastmod>" . date('Y-m-d', strtotime($p->updated_at)) . "</lastmod>\n";
-            }
-            $xml .= "    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>\n";
-        }
-
-        foreach ($posts as $p) {
-            $xml .= "  <url>\n    <loc>" . htmlspecialchars($siteUrl . '/blog/' . $p->slug) . "</loc>\n";
-            if ($p->updated_at) {
-                $xml .= "    <lastmod>" . date('Y-m-d', strtotime($p->updated_at)) . "</lastmod>\n";
-            }
-            $xml .= "    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n  </url>\n";
-        }
-
-        $xml .= "</urlset>\n";
-
-        if (file_put_contents($sitemapPath, $xml) !== false) {
-            return ['success' => true, 'message' => 'Sitemap neu generiert (' . (count($pages) + count($posts) + 1) . ' URLs).'];
-        }
         return ['success' => false, 'error' => 'Sitemap konnte nicht geschrieben werden.'];
+    }
+
+    public function saveMetaTemplates(array $post): array
+    {
+        $this->persistSettings([
+            'seo_site_title_format' => trim((string)($post['site_title_format'] ?? '%%title%% %%sep%% %%sitename%%')),
+            'seo_title_separator' => trim((string)($post['title_separator'] ?? '|')),
+            'seo_analysis_min_words' => (string)max(100, (int)($post['analysis_min_words'] ?? 300)),
+            'seo_analysis_sentence_words' => (string)max(12, (int)($post['analysis_sentence_words'] ?? 24)),
+            'seo_analysis_paragraph_words' => (string)max(40, (int)($post['analysis_paragraph_words'] ?? 120)),
+        ]);
+
+        return ['success' => true, 'message' => 'Meta-Vorlagen und Analyse-Schwellen gespeichert.'];
+    }
+
+    public function saveSitemapSettings(array $post): array
+    {
+        $this->persistSettings([
+            'seo_sitemap_pages_priority' => (string)($post['pages_priority'] ?? '0.8'),
+            'seo_sitemap_pages_changefreq' => (string)($post['pages_changefreq'] ?? 'weekly'),
+            'seo_sitemap_posts_priority' => (string)($post['posts_priority'] ?? '0.6'),
+            'seo_sitemap_posts_changefreq' => (string)($post['posts_changefreq'] ?? 'monthly'),
+            'seo_sitemap_ping_google' => !empty($post['ping_google']) ? '1' : '0',
+            'seo_sitemap_ping_bing' => !empty($post['ping_bing']) ? '1' : '0',
+        ]);
+
+        return ['success' => true, 'message' => 'Sitemap-Einstellungen gespeichert.'];
+    }
+
+    public function saveAuditItem(array $post): array
+    {
+        $contentType = (string)($post['content_type'] ?? '');
+        $id = (int)($post['content_id'] ?? 0);
+        if (!in_array($contentType, ['page', 'post'], true) || $id <= 0) {
+            return ['success' => false, 'error' => 'Ungültiger Inhalt für das SEO-Audit.'];
+        }
+
+        $table = $contentType === 'page' ? 'pages' : 'posts';
+        $this->db->execute(
+            "UPDATE {$this->prefix}{$table} SET meta_title = ?, meta_description = ? WHERE id = ?",
+            [trim((string)($post['meta_title'] ?? '')), trim((string)($post['meta_description'] ?? '')), $id]
+        );
+        SEOService::getInstance()->saveContentMeta($contentType, $id, [
+            'focus_keyphrase' => (string)($post['focus_keyphrase'] ?? ''),
+        ]);
+
+        return ['success' => true, 'message' => 'SEO-Audit-Eintrag aktualisiert.'];
+    }
+
+    private function persistSettings(array $values): void
+    {
+        foreach ($values as $key => $value) {
+            $exists = (int)$this->db->get_var(
+                "SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?",
+                [$key]
+            ) > 0;
+
+            if ($exists) {
+                $this->db->execute(
+                    "UPDATE {$this->prefix}settings SET option_value = ? WHERE option_name = ?",
+                    [(string)$value, (string)$key]
+                );
+                continue;
+            }
+
+            $this->db->execute(
+                "INSERT INTO {$this->prefix}settings (option_name, option_value) VALUES (?, ?)",
+                [(string)$key, (string)$value]
+            );
+        }
     }
 }

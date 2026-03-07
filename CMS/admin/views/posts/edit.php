@@ -33,6 +33,23 @@ $categoryId = (int)($post['category_id'] ?? 0);
 $featuredImg = htmlspecialchars($post['featured_image'] ?? '');
 $metaTitle  = htmlspecialchars($post['meta_title'] ?? '');
 $metaDesc   = htmlspecialchars($post['meta_description'] ?? '');
+$seoMeta = $data['seoMeta'] ?? [];
+$seoTemplateSettings = \CMS\Services\SeoAnalysisService::getInstance()->getSettings();
+$focusKeyphrase = htmlspecialchars((string)($seoMeta['focus_keyphrase'] ?? ''));
+$canonicalUrl = htmlspecialchars((string)($seoMeta['canonical_url'] ?? ''));
+$robotsIndex = !array_key_exists('robots_index', $seoMeta) || !empty($seoMeta['robots_index']);
+$robotsFollow = !array_key_exists('robots_follow', $seoMeta) || !empty($seoMeta['robots_follow']);
+$ogTitle = htmlspecialchars((string)($seoMeta['og_title'] ?? ''));
+$ogDescription = htmlspecialchars((string)($seoMeta['og_description'] ?? ''));
+$ogImage = htmlspecialchars((string)($seoMeta['og_image'] ?? ''));
+$twitterTitle = htmlspecialchars((string)($seoMeta['twitter_title'] ?? ''));
+$twitterDescription = htmlspecialchars((string)($seoMeta['twitter_description'] ?? ''));
+$twitterImage = htmlspecialchars((string)($seoMeta['twitter_image'] ?? ''));
+$twitterCard = htmlspecialchars((string)($seoMeta['twitter_card'] ?? 'summary_large_image'));
+$schemaType = htmlspecialchars((string)($seoMeta['schema_type'] ?? 'Article'));
+$sitemapPriority = htmlspecialchars((string)($seoMeta['sitemap_priority'] ?? ''));
+$sitemapChangefreq = htmlspecialchars((string)($seoMeta['sitemap_changefreq'] ?? 'monthly'));
+$hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
 ?>
 
 <div class="page-header d-print-none">
@@ -181,6 +198,11 @@ $metaDesc   = htmlspecialchars($post['meta_description'] ?? '');
                         </div>
                         <div class="card-body">
                             <div class="mb-3">
+                                <label class="form-label" for="focusKeyphrase">Fokus-Keyphrase</label>
+                                <input type="text" class="form-control" id="focusKeyphrase" name="focus_keyphrase" value="<?php echo $focusKeyphrase; ?>" placeholder="z. B. KI-Strategie Mittelstand">
+                                <span class="form-hint">Mehrere Varianten per Komma möglich.</span>
+                            </div>
+                            <div class="mb-3">
                                 <label class="form-label" for="metaTitle">Meta-Titel</label>
                                 <input type="text" class="form-control" id="metaTitle" name="meta_title" value="<?php echo htmlspecialchars($postMetaTitleValue); ?>" maxlength="70">
                                 <span class="form-hint"><span id="metaTitleCount">0</span>/70 Zeichen</span>
@@ -190,6 +212,7 @@ $metaDesc   = htmlspecialchars($post['meta_description'] ?? '');
                                 <textarea class="form-control" id="metaDesc" name="meta_description" rows="4" maxlength="160"><?php echo htmlspecialchars($postMetaDescriptionValue); ?></textarea>
                                 <span class="form-hint"><span id="metaDescCount">0</span>/160 Zeichen</span>
                             </div>
+                            <div id="postPublishWarning" class="alert alert-warning mt-3 mb-0" role="alert"></div>
                         </div>
                     </div>
                 </div>
@@ -221,9 +244,16 @@ $metaDesc   = htmlspecialchars($post['meta_description'] ?? '');
                 <div class="col-lg-6 col-xl-3">
                     <div class="card cms-edit-card h-100">
                         <div class="card-header">
-                            <h3 class="card-title">Analyse</h3>
+                            <h3 class="card-title">SEO-Score</h3>
                         </div>
                         <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div class="h1 m-0" id="postSeoScoreLabel">0</div>
+                                <span class="badge bg-danger-lt text-danger" id="postSeoScoreBadge">Rot</span>
+                            </div>
+                            <div class="progress progress-sm mb-3">
+                                <div class="progress-bar bg-danger" id="postSeoScoreBar" style="width:0%"></div>
+                            </div>
                             <div class="row g-3 mb-3">
                                 <div class="col-6">
                                     <div class="border rounded p-3 h-100">
@@ -254,6 +284,124 @@ $metaDesc   = htmlspecialchars($post['meta_description'] ?? '');
                             <div>
                                 <div class="text-secondary small mb-1">Vorschau-URL</div>
                                 <div class="form-control-plaintext text-break small" id="postPreviewUrl"><?php echo htmlspecialchars($postPreviewUrl); ?></div>
+                                <div class="mt-2"><span class="badge bg-success-lt text-success" id="postSlugState">Slug gültig</span></div>
+                            </div>
+                            <div class="mt-3" id="postSeoRules"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <div class="card cms-edit-card h-100">
+                        <div class="card-header">
+                            <h3 class="card-title">SERP-Vorschau</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="border rounded p-3 bg-light">
+                                <div id="postSerpTitle" class="fw-semibold text-primary mb-1"><?php echo htmlspecialchars($postMetaTitleValue ?: $postTitleValue); ?></div>
+                                <div id="postSerpUrl" class="small text-success mb-1"><?php echo htmlspecialchars($postPreviewUrl); ?></div>
+                                <div id="postSerpDescription" class="small text-secondary"><?php echo htmlspecialchars($postMetaDescriptionValue ?: 'Meta-Beschreibung wird automatisch aus dem ersten Absatz erzeugt.'); ?></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-5">
+                    <div class="card cms-edit-card h-100">
+                        <div class="card-header">
+                            <h3 class="card-title">Social Preview</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="border rounded overflow-hidden bg-light">
+                                <img id="postSocialImage" src="<?php echo $ogImage !== '' ? $ogImage : $postFeaturedImageValue; ?>" alt="" style="display:<?php echo ($ogImage !== '' || $postFeaturedImageValue !== '') ? 'block' : 'none'; ?>; width:100%; height:160px; object-fit:cover;">
+                                <div class="p-3">
+                                    <div class="text-uppercase text-secondary small mb-1">facebook / x</div>
+                                    <div id="postSocialTitle" class="fw-semibold mb-1"><?php echo htmlspecialchars($postMetaTitleValue ?: $postTitleValue); ?></div>
+                                    <div id="postSocialDescription" class="small text-secondary"><?php echo htmlspecialchars($postMetaDescriptionValue ?: 'Social-Vorschau aus SEO-Daten'); ?></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="card cms-edit-card">
+                        <div class="card-header">
+                            <h3 class="card-title">Erweitertes SEO &amp; Social</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-lg-4">
+                                    <label class="form-label" for="canonicalUrl">Kanonische URL</label>
+                                    <input type="text" class="form-control" id="canonicalUrl" name="canonical_url" value="<?php echo $canonicalUrl; ?>" placeholder="Automatisch self-referencing, wenn leer">
+                                </div>
+                                <div class="col-lg-2">
+                                    <label class="form-check mt-4">
+                                        <input class="form-check-input" type="checkbox" name="robots_index" value="1" <?php echo $robotsIndex ? 'checked' : ''; ?>>
+                                        <span class="form-check-label">index</span>
+                                    </label>
+                                </div>
+                                <div class="col-lg-2">
+                                    <label class="form-check mt-4">
+                                        <input class="form-check-input" type="checkbox" name="robots_follow" value="1" <?php echo $robotsFollow ? 'checked' : ''; ?>>
+                                        <span class="form-check-label">follow</span>
+                                    </label>
+                                </div>
+                                <div class="col-lg-4">
+                                    <label class="form-label" for="schemaType">Schema-Typ</label>
+                                    <select class="form-select" id="schemaType" name="schema_type">
+                                        <?php foreach (['Article', 'BlogPosting', 'FAQPage', 'HowTo', 'Person', 'Event'] as $type): ?>
+                                            <option value="<?php echo htmlspecialchars($type); ?>" <?php echo $schemaType === $type ? 'selected' : ''; ?>><?php echo htmlspecialchars($type); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+
+                                <div class="col-lg-6">
+                                    <label class="form-label" for="ogTitle">OG-Titel</label>
+                                    <input type="text" class="form-control" id="ogTitle" name="og_title" value="<?php echo $ogTitle; ?>">
+                                </div>
+                                <div class="col-lg-6">
+                                    <label class="form-label" for="ogImage">OG-Bild</label>
+                                    <input type="text" class="form-control" id="ogImage" name="og_image" value="<?php echo $ogImage; ?>">
+                                </div>
+                                <div class="col-lg-6">
+                                    <label class="form-label" for="ogDescription">OG-Beschreibung</label>
+                                    <textarea class="form-control" id="ogDescription" name="og_description" rows="3"><?php echo $ogDescription; ?></textarea>
+                                </div>
+                                <div class="col-lg-6">
+                                    <label class="form-label" for="twitterTitle">Twitter-/X-Titel</label>
+                                    <input type="text" class="form-control" id="twitterTitle" name="twitter_title" value="<?php echo $twitterTitle; ?>">
+                                    <label class="form-label mt-3" for="twitterCard">Twitter Card</label>
+                                    <select class="form-select" id="twitterCard" name="twitter_card">
+                                        <?php foreach (['summary_large_image', 'summary'] as $card): ?>
+                                            <option value="<?php echo htmlspecialchars($card); ?>" <?php echo $twitterCard === $card ? 'selected' : ''; ?>><?php echo htmlspecialchars($card); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-lg-6">
+                                    <label class="form-label" for="twitterDescription">Twitter-/X-Beschreibung</label>
+                                    <textarea class="form-control" id="twitterDescription" name="twitter_description" rows="3"><?php echo $twitterDescription; ?></textarea>
+                                </div>
+                                <div class="col-lg-6">
+                                    <label class="form-label" for="twitterImage">Twitter-/X-Bild</label>
+                                    <input type="text" class="form-control" id="twitterImage" name="twitter_image" value="<?php echo $twitterImage; ?>">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label class="form-label" for="sitemapPriority">Sitemap Priority</label>
+                                    <input type="text" class="form-control" id="sitemapPriority" name="sitemap_priority" value="<?php echo $sitemapPriority; ?>" placeholder="0.6">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label class="form-label" for="sitemapChangefreq">Sitemap Changefreq</label>
+                                    <select class="form-select" id="sitemapChangefreq" name="sitemap_changefreq">
+                                        <?php foreach (['always', 'daily', 'weekly', 'monthly', 'yearly'] as $freq): ?>
+                                            <option value="<?php echo htmlspecialchars($freq); ?>" <?php echo $sitemapChangefreq === $freq ? 'selected' : ''; ?>><?php echo htmlspecialchars($freq); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-lg-6">
+                                    <label class="form-label" for="hreflangGroup">hreflang-Gruppe</label>
+                                    <input type="text" class="form-control" id="hreflangGroup" name="hreflang_group" value="<?php echo $hreflangGroup; ?>" placeholder="z. B. blog-ki-strategie">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -369,6 +517,49 @@ $metaDesc   = htmlspecialchars($post['meta_description'] ?? '');
     });
 
     updateAnalysis();
+})();
+</script>
+
+<script src="<?php echo htmlspecialchars(SITE_URL); ?>/assets/js/admin-seo-editor.js"></script>
+<script>
+(function () {
+    if (!window.cmsSeoEditor) {
+        return;
+    }
+
+    window.cmsSeoEditor.init({
+        formId: 'postForm',
+        titleId: 'title',
+        slugId: 'slug',
+        metaTitleId: 'metaTitle',
+        metaDescId: 'metaDesc',
+        focusKeyphraseId: 'focusKeyphrase',
+        ogImageId: 'ogImage',
+        featuredImageId: 'featuredInput',
+        statusId: 'status',
+        contentInputId: 'contentInput',
+        editorContainerId: 'editorjs',
+        serpTitleId: 'postSerpTitle',
+        serpUrlId: 'postSerpUrl',
+        serpDescriptionId: 'postSerpDescription',
+        scoreBarId: 'postSeoScoreBar',
+        scoreLabelId: 'postSeoScoreLabel',
+        scoreBadgeId: 'postSeoScoreBadge',
+        scoreRulesId: 'postSeoRules',
+        socialTitleId: 'postSocialTitle',
+        socialDescriptionId: 'postSocialDescription',
+        socialImageId: 'postSocialImage',
+        publishWarningId: 'postPublishWarning',
+        slugStateId: 'postSlugState',
+        previewBaseUrl: '<?php echo htmlspecialchars(SITE_URL); ?>/blog/',
+        siteName: '<?php echo htmlspecialchars((string)SITE_NAME, ENT_QUOTES); ?>',
+        siteTitleFormat: '<?php echo htmlspecialchars((string)($seoTemplateSettings['site_title_format'] ?? '%%title%% %%sep%% %%sitename%%'), ENT_QUOTES); ?>',
+        titleSeparator: '<?php echo htmlspecialchars((string)($seoTemplateSettings['title_separator'] ?? '|'), ENT_QUOTES); ?>',
+        minWords: <?php echo (int)($seoTemplateSettings['analysis_min_words'] ?? 300); ?>,
+        maxSentenceWords: <?php echo (int)($seoTemplateSettings['analysis_sentence_words'] ?? 24); ?>,
+        maxParagraphWords: <?php echo (int)($seoTemplateSettings['analysis_paragraph_words'] ?? 120); ?>,
+        fallbackImage: '<?php echo htmlspecialchars($postFeaturedImageValue, ENT_QUOTES); ?>'
+    });
 })();
 </script>
 

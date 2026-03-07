@@ -27,12 +27,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $alert = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
     } else {
         $action = $_POST['action'] ?? '';
-        if ($action === 'regenerate_sitemap') {
-            $result = $module->regenerateSitemap();
-            $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
-            header('Location: ' . SITE_URL . '/admin/seo-dashboard');
-            exit;
-        }
+        $result = match ($action) {
+            'regenerate_sitemap' => $module->regenerateSitemap(),
+            'save_templates' => $module->saveMetaTemplates($_POST),
+            'save_sitemap_settings' => $module->saveSitemapSettings($_POST),
+            'save_audit_item' => $module->saveAuditItem($_POST),
+            default => ['success' => false, 'error' => 'Unbekannte SEO-Aktion.'],
+        };
+
+        $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
+        header('Location: ' . SITE_URL . '/admin/seo-dashboard');
+        exit;
     }
     $csrfToken = Security::instance()->generateToken('admin_seo');
 }

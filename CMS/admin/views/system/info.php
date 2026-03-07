@@ -83,6 +83,8 @@ $securityHighlights = [
             </div>
         <?php endif; ?>
 
+        <?php require __DIR__ . '/subnav.php'; ?>
+
         <div class="row row-deck row-cards mb-4">
             <?php foreach ($summaryCards as $card): ?>
                 <div class="col-sm-6 col-lg-4 col-xxl-3">

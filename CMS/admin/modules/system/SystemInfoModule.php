@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * System-Info & Diagnose-Modul
+ * System-Info, Diagnose & Monitoring-Modul
  *
  * @package CMSv2\Admin\Modules
  */
@@ -17,6 +17,15 @@ use CMS\Services\SystemService;
 
 class SystemInfoModule
 {
+    private const MONITOR_DEFAULTS = [
+        'monitor_email_notifications_enabled' => '0',
+        'monitor_alert_email' => '',
+        'monitor_response_threshold_ms' => '800',
+        'monitor_disk_threshold_percent' => '85',
+        'monitor_health_endpoint_enabled' => '0',
+        'monitor_health_endpoint_path' => '/health',
+    ];
+
     private SystemService $service;
 
     public function __construct()
@@ -24,50 +33,58 @@ class SystemInfoModule
         $this->service = SystemService::instance();
     }
 
-    /**
-     * Alle System-Informationen laden
-     */
     public function getData(): array
     {
         return [
-            'system'      => $this->getSystemInfoSafe(),
-            'database'    => $this->getDatabaseStatusSafe(),
-            'tables'      => $this->getTablesSafe(),
+            'system' => $this->getSystemInfoSafe(),
+            'database' => $this->getDatabaseStatusSafe(),
+            'tables' => $this->getTablesSafe(),
             'permissions' => $this->getPermissionsSafe(),
             'directories' => $this->getDirectorySizesSafe(),
-            'statistics'  => $this->getStatisticsSafe(),
-            'security'    => $this->getSecurityStatusSafe(),
+            'statistics' => $this->getStatisticsSafe(),
+            'security' => $this->getSecurityStatusSafe(),
+            'monitoring' => $this->getMonitoringOverview(),
+            'cron' => $this->getCronData(),
+            'disk' => $this->getDiskUsageData(),
+            'scheduled_tasks' => $this->getScheduledTasksData(),
+            'health' => $this->getHealthChecksData(),
+            'email_alerts' => $this->getMonitoringSettings(),
         ];
     }
 
     public function getInfoData(): array
     {
-        return [
-            'system'      => $this->getSystemInfoSafe(),
-            'database'    => $this->getDatabaseStatusSafe(),
-            'permissions' => $this->getPermissionsSafe(),
-            'directories' => $this->getDirectorySizesSafe(),
-            'statistics'  => $this->getStatisticsSafe(),
-            'security'    => $this->getSecurityStatusSafe(),
-        ];
+        return $this->getData();
     }
 
     public function getDiagnosticsData(): array
     {
         return [
-            'database'    => $this->getDatabaseStatusSafe(),
-            'tables'      => $this->getTablesSafe(),
+            'database' => $this->getDatabaseStatusSafe(),
+            'tables' => $this->getTablesSafe(),
             'permissions' => $this->getPermissionsSafe(),
+            'monitoring' => $this->getMonitoringOverview(),
+            'health' => $this->getHealthChecksData(),
         ];
     }
 
-    /**
-     * Cache leeren
-     */
+    public function handleAction(string $section, string $action, array $post): array
+    {
+        return match ($action) {
+            'clear_cache' => $this->clearCache(),
+            'optimize_db' => $this->optimizeDatabase(),
+            'clear_logs' => $this->clearLogs(),
+            'create_tables' => $this->createMissingTables(),
+            'repair_tables' => $this->repairTables(),
+            'save_monitoring_alerts' => $this->saveMonitoringSettings($post),
+            default => ['success' => false, 'error' => 'Unbekannte Aktion.'],
+        };
+    }
+
     public function clearCache(): array
     {
         try {
-            $result = $this->service->clearCache();
+            $this->service->clearCache();
             $this->service->clearOldSessions();
             $this->service->clearOldFailedLogins();
             return ['success' => true, 'message' => 'Cache, alte Sessions und Login-Versuche bereinigt.'];
@@ -76,31 +93,26 @@ class SystemInfoModule
         }
     }
 
-    /**
-     * Datenbank optimieren
-     */
     public function optimizeDatabase(): array
     {
         try {
             $results = $this->service->optimizeTables();
             $success = 0;
-            $failed  = 0;
-            foreach ($results as $table => $res) {
-                if (!empty($res['success'])) {
+            $failed = 0;
+            foreach ($results as $result) {
+                if (!empty($result['success'])) {
                     $success++;
                 } else {
                     $failed++;
                 }
             }
-            return ['success' => true, 'message' => "$success Tabelle(n) optimiert" . ($failed > 0 ? ", $failed fehlgeschlagen" : '') . '.'];
+
+            return ['success' => true, 'message' => $success . ' Tabelle(n) optimiert' . ($failed > 0 ? ', ' . $failed . ' fehlgeschlagen' : '') . '.'];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
         }
     }
 
-    /**
-     * Fehlerlogs leeren
-     */
     public function clearLogs(): array
     {
         try {
@@ -111,9 +123,6 @@ class SystemInfoModule
         }
     }
 
-    /**
-     * Fehlende Datenbank-Tabellen erstellen
-     */
     public function createMissingTables(): array
     {
         try {
@@ -127,16 +136,12 @@ class SystemInfoModule
         }
     }
 
-    /**
-     * Datenbank-Tabellen prüfen und reparieren (CHECK TABLE + REPAIR TABLE)
-     */
     public function repairTables(): array
     {
         try {
             $db = Database::instance();
             $pdo = $db->getPdo();
             $prefix = $db->getPrefix();
-
             $tables = $this->getTablesSafe();
             $repaired = 0;
             $errors = [];
@@ -145,8 +150,8 @@ class SystemInfoModule
                 if (!is_array($info) || empty($info['exists'])) {
                     continue;
                 }
-                $fullTable = $prefix . $info['name'];
 
+                $fullTable = $prefix . $info['name'];
                 $check = $pdo->query("CHECK TABLE `{$fullTable}`");
                 $row = $check ? $check->fetch(\PDO::FETCH_ASSOC) : null;
                 $status = $row['Msg_text'] ?? 'OK';
@@ -155,7 +160,6 @@ class SystemInfoModule
                     $repair = $pdo->query("REPAIR TABLE `{$fullTable}`");
                     $repairRow = $repair ? $repair->fetch(\PDO::FETCH_ASSOC) : null;
                     $repairStatus = $repairRow['Msg_text'] ?? 'unknown';
-
                     if (stripos($repairStatus, 'ok') !== false) {
                         $repaired++;
                     } else {
@@ -164,15 +168,12 @@ class SystemInfoModule
                 }
             }
 
-            $msg = $repaired > 0
-                ? "$repaired Tabelle(n) repariert."
-                : 'Alle Tabellen sind in Ordnung — keine Reparatur nötig.';
-
-            if (!empty($errors)) {
-                $msg .= ' Fehler bei: ' . implode(', ', $errors);
+            $message = $repaired > 0 ? $repaired . ' Tabelle(n) repariert.' : 'Alle Tabellen sind in Ordnung — keine Reparatur nötig.';
+            if ($errors !== []) {
+                $message .= ' Fehler bei: ' . implode(', ', $errors);
             }
 
-            return ['success' => true, 'message' => $msg];
+            return ['success' => true, 'message' => $message];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
         }
@@ -180,43 +181,318 @@ class SystemInfoModule
 
     private function getSystemInfoSafe(): array
     {
-        try { return $this->service->getSystemInfo(); }
-        catch (\Throwable $e) { return ['error' => $e->getMessage()]; }
+        try {
+            return $this->service->getSystemInfo();
+        } catch (\Throwable $e) {
+            return ['error' => $e->getMessage()];
+        }
     }
 
     private function getDatabaseStatusSafe(): array
     {
-        try { return $this->service->getDatabaseStatus(); }
-        catch (\Throwable $e) { return ['error' => $e->getMessage()]; }
+        try {
+            return $this->service->getDatabaseStatus();
+        } catch (\Throwable $e) {
+            return ['error' => $e->getMessage()];
+        }
     }
 
     private function getTablesSafe(): array
     {
-        try { return $this->service->checkDatabaseTables(); }
-        catch (\Throwable $e) { return []; }
+        try {
+            return $this->service->checkDatabaseTables();
+        } catch (\Throwable) {
+            return [];
+        }
     }
 
     private function getPermissionsSafe(): array
     {
-        try { return $this->service->checkFilePermissions(); }
-        catch (\Throwable $e) { return []; }
+        try {
+            return $this->service->checkFilePermissions();
+        } catch (\Throwable) {
+            return [];
+        }
     }
 
     private function getDirectorySizesSafe(): array
     {
-        try { return $this->service->getDirectorySizes(); }
-        catch (\Throwable $e) { return []; }
+        try {
+            return $this->service->getDirectorySizes();
+        } catch (\Throwable) {
+            return [];
+        }
     }
 
     private function getStatisticsSafe(): array
     {
-        try { return $this->service->getCMSStatistics(); }
-        catch (\Throwable $e) { return []; }
+        try {
+            return $this->service->getCMSStatistics();
+        } catch (\Throwable) {
+            return [];
+        }
     }
 
     private function getSecurityStatusSafe(): array
     {
-        try { return $this->service->getSecurityStatus(); }
-        catch (\Throwable $e) { return []; }
+        try {
+            return $this->service->getSecurityStatus();
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    private function getMonitoringSettings(): array
+    {
+        $settings = self::MONITOR_DEFAULTS;
+        $db = Database::instance();
+        $keys = array_keys($settings);
+        $placeholders = implode(',', array_fill(0, count($keys), '?'));
+
+        try {
+            $rows = $db->get_results(
+                "SELECT option_name, option_value FROM {$db->getPrefix()}settings WHERE option_name IN ({$placeholders})",
+                $keys
+            );
+
+            foreach ($rows as $row) {
+                $name = (string)($row->option_name ?? '');
+                if ($name !== '' && array_key_exists($name, $settings)) {
+                    $settings[$name] = (string)($row->option_value ?? '');
+                }
+            }
+        } catch (\Throwable) {
+        }
+
+        return $settings;
+    }
+
+    private function saveMonitoringSettings(array $post): array
+    {
+        $settings = $this->getMonitoringSettings();
+        $settings['monitor_email_notifications_enabled'] = !empty($post['monitor_email_notifications_enabled']) ? '1' : '0';
+        $settings['monitor_alert_email'] = trim((string)($post['monitor_alert_email'] ?? ''));
+        $settings['monitor_response_threshold_ms'] = (string)max(100, (int)($post['monitor_response_threshold_ms'] ?? $settings['monitor_response_threshold_ms']));
+        $settings['monitor_disk_threshold_percent'] = (string)min(99, max(1, (int)($post['monitor_disk_threshold_percent'] ?? $settings['monitor_disk_threshold_percent'])));
+        $settings['monitor_health_endpoint_enabled'] = !empty($post['monitor_health_endpoint_enabled']) ? '1' : '0';
+        $settings['monitor_health_endpoint_path'] = trim((string)($post['monitor_health_endpoint_path'] ?? $settings['monitor_health_endpoint_path'])) ?: '/health';
+
+        try {
+            $db = Database::instance();
+            foreach ($settings as $key => $value) {
+                $exists = (int)($db->get_var("SELECT COUNT(*) FROM {$db->getPrefix()}settings WHERE option_name = ?", [$key]) ?? 0);
+                if ($exists > 0) {
+                    $db->update('settings', ['option_value' => $value], ['option_name' => $key]);
+                } else {
+                    $db->insert('settings', ['option_name' => $key, 'option_value' => $value]);
+                }
+            }
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Monitoring-Einstellungen konnten nicht gespeichert werden: ' . $e->getMessage()];
+        }
+
+        return ['success' => true, 'message' => 'Monitoring- und E-Mail-Einstellungen gespeichert.'];
+    }
+
+    private function getMonitoringOverview(): array
+    {
+        return [
+            'response_time' => $this->measureResponseTime(SITE_URL),
+            'cron_hooks' => count($this->getCronData()['hooks'] ?? []),
+            'disk' => $this->getDiskUsageData(),
+        ];
+    }
+
+    private function getCronData(): array
+    {
+        $scanRoots = [
+            ABSPATH,
+            dirname(ABSPATH) . '-PLUGINS',
+        ];
+        $hooks = [];
+
+        foreach ($scanRoots as $root) {
+            if (!is_dir($root)) {
+                continue;
+            }
+
+            try {
+                $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS));
+                foreach ($iterator as $file) {
+                    if (!$file->isFile() || strtolower($file->getExtension()) !== 'php') {
+                        continue;
+                    }
+
+                    $path = $file->getPathname();
+                    if (str_contains($path, DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR) || str_contains($path, DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR)) {
+                        continue;
+                    }
+
+                    $content = @file_get_contents($path);
+                    if ($content === false) {
+                        continue;
+                    }
+
+                    if (preg_match_all("/'(cms_cron_[a-z_]+)'/i", $content, $matches) > 0) {
+                        foreach (array_unique($matches[1]) as $hook) {
+                            $hooks[$hook][] = $this->normalizeDisplayedPath($path);
+                        }
+                    }
+                }
+            } catch (\Throwable) {
+            }
+        }
+
+        ksort($hooks);
+        $mappedHooks = [];
+        foreach ($hooks as $hook => $files) {
+            $mappedHooks[] = [
+                'hook' => $hook,
+                'files' => array_values(array_unique($files)),
+                'occurrences' => count($files),
+            ];
+        }
+
+        return [
+            'cron_file_exists' => file_exists(ABSPATH . 'cron.php'),
+            'hooks' => $mappedHooks,
+            'hook_count' => count($mappedHooks),
+        ];
+    }
+
+    private function getDiskUsageData(): array
+    {
+        $total = @disk_total_space(ABSPATH);
+        $free = @disk_free_space(ABSPATH);
+        $used = ($total !== false && $free !== false) ? $total - $free : 0;
+
+        return [
+            'total_bytes' => $total !== false ? (int)$total : 0,
+            'free_bytes' => $free !== false ? (int)$free : 0,
+            'used_bytes' => (int)$used,
+            'used_percent' => ($total !== false && $total > 0) ? round(($used / $total) * 100, 1) : null,
+            'directories' => $this->getDirectorySizesSafe(),
+        ];
+    }
+
+    private function getScheduledTasksData(): array
+    {
+        $cron = $this->getCronData();
+        $tasks = [];
+        foreach ($cron['hooks'] as $hook) {
+            $tasks[] = [
+                'name' => (string)($hook['hook'] ?? ''),
+                'description' => 'Registrierter Cron-/Task-Hook im Codebestand',
+                'files' => (array)($hook['files'] ?? []),
+                'occurrences' => (int)($hook['occurrences'] ?? 0),
+            ];
+        }
+
+        return [
+            'tasks' => $tasks,
+            'task_count' => count($tasks),
+        ];
+    }
+
+    private function getHealthChecksData(): array
+    {
+        $settings = $this->getMonitoringSettings();
+        $response = $this->measureResponseTime(SITE_URL);
+        $disk = $this->getDiskUsageData();
+        $db = $this->getDatabaseStatusSafe();
+        $cacheWritable = is_writable(ABSPATH . 'cache');
+        $uploadsWritable = is_writable(ABSPATH . 'uploads');
+        $logsWritable = is_writable(ABSPATH . 'logs');
+
+        $checks = [
+            ['label' => 'Datenbank', 'passed' => !empty($db['connected']), 'detail' => !empty($db['connected']) ? 'Verbunden' : 'Nicht erreichbar'],
+            ['label' => 'Cache-Verzeichnis', 'passed' => $cacheWritable, 'detail' => $cacheWritable ? 'Beschreibbar' : 'Nicht beschreibbar'],
+            ['label' => 'Uploads-Verzeichnis', 'passed' => $uploadsWritable, 'detail' => $uploadsWritable ? 'Beschreibbar' : 'Nicht beschreibbar'],
+            ['label' => 'Logs-Verzeichnis', 'passed' => $logsWritable, 'detail' => $logsWritable ? 'Beschreibbar' : 'Nicht beschreibbar'],
+            ['label' => 'Response Time', 'passed' => empty($response['error']) && ((int)($response['duration_ms'] ?? 0) <= (int)$settings['monitor_response_threshold_ms']), 'detail' => empty($response['error']) ? ((int)$response['duration_ms']) . ' ms' : (string)$response['error']],
+            ['label' => 'Disk-Auslastung', 'passed' => ($disk['used_percent'] ?? 0) < (float)$settings['monitor_disk_threshold_percent'], 'detail' => ($disk['used_percent'] ?? null) !== null ? ((string)$disk['used_percent']) . '%' : 'Unbekannt'],
+            ['label' => 'Health-Endpunkt', 'passed' => ($settings['monitor_health_endpoint_enabled'] ?? '0') === '1', 'detail' => ($settings['monitor_health_endpoint_enabled'] ?? '0') === '1' ? (string)$settings['monitor_health_endpoint_path'] : 'Deaktiviert'],
+        ];
+
+        $passed = 0;
+        foreach ($checks as $check) {
+            if (!empty($check['passed'])) {
+                $passed++;
+            }
+        }
+
+        return [
+            'checks' => $checks,
+            'passed' => $passed,
+            'total' => count($checks),
+        ];
+    }
+
+    private function measureResponseTime(string $url): array
+    {
+        $start = microtime(true);
+
+        if (function_exists('curl_init')) {
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_TIMEOUT => 5,
+                CURLOPT_CONNECTTIMEOUT => 3,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_USERAGENT => '365CMS-Monitor/1.0',
+            ]);
+            curl_exec($ch);
+            $error = curl_error($ch);
+            $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            return [
+                'url' => $url,
+                'duration_ms' => (int)round((microtime(true) - $start) * 1000),
+                'status_code' => $status,
+                'error' => $error !== '' ? $error : null,
+            ];
+        }
+
+        $context = stream_context_create(['http' => ['timeout' => 5, 'ignore_errors' => true]]);
+        $content = @file_get_contents($url, false, $context);
+        $headers = $http_response_header ?? [];
+        $status = 0;
+        if (!empty($headers[0]) && preg_match('/\s(\d{3})\s/', $headers[0], $matches)) {
+            $status = (int)$matches[1];
+        }
+
+        return [
+            'url' => $url,
+            'duration_ms' => (int)round((microtime(true) - $start) * 1000),
+            'status_code' => $status,
+            'error' => $content === false ? 'Anfrage fehlgeschlagen' : null,
+        ];
+    }
+
+    private function normalizeDisplayedPath(string $path): string
+    {
+        if (str_starts_with($path, ABSPATH)) {
+            return str_replace('\\', '/', str_replace(ABSPATH, '', $path));
+        }
+
+        return str_replace('\\', '/', $path);
+    }
+
+    public function runSystemCheck(): array
+    {
+        return [
+            'system_info' => $this->service->getSystemInfo(),
+            'database_status' => $this->service->getDatabaseStatus(),
+            'table_status' => $this->service->checkDatabaseTables(),
+            'file_permissions' => $this->service->checkFilePermissions(),
+            'directory_sizes' => $this->service->getDirectorySizes(),
+            'cms_statistics' => $this->service->getCMSStatistics(),
+            'security_status' => $this->service->getSecurityStatus(),
+            'monitoring' => $this->getMonitoringOverview(),
+            'health' => $this->getHealthChecksData(),
+        ];
     }
 }

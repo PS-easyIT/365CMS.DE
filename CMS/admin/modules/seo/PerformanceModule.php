@@ -1,167 +1,534 @@
 <?php
 declare(strict_types=1);
 
-/**
- * PerformanceModule – Performance-Analyse & Cache-Management
- */
-
 if (!defined('ABSPATH')) {
     exit;
 }
 
-class PerformanceModule
+final class PerformanceModule
 {
+    private const DEFAULT_SETTINGS = [
+        'perf_lazy_loading' => '1',
+        'perf_minify_css' => '0',
+        'perf_minify_js' => '0',
+        'perf_gzip' => '0',
+        'perf_browser_cache' => '1',
+        'perf_page_cache' => '1',
+        'perf_browser_cache_ttl' => '604800',
+        'perf_html_cache_ttl' => '300',
+        'perf_webp_uploads' => '0',
+        'perf_strip_exif' => '0',
+        'perf_auto_clear_content_cache' => '1',
+        'perf_session_timeout_admin' => '28800',
+        'perf_session_timeout_member' => '2592000',
+    ];
+
     private readonly \CMS\Database $db;
+    private readonly \CMS\CacheManager $cacheManager;
+    private readonly \CMS\Services\SystemService $systemService;
     private readonly string $prefix;
 
     public function __construct()
     {
-        $this->db     = \CMS\Database::instance();
+        $this->db = \CMS\Database::instance();
+        $this->cacheManager = \CMS\CacheManager::instance();
+        $this->systemService = \CMS\Services\SystemService::instance();
         $this->prefix = $this->db->getPrefix();
     }
 
     public function getData(): array
     {
-        $abspath = defined('ABSPATH') ? ABSPATH : '';
-
-        // Cache-Größe
-        $cacheDir  = $abspath . 'cache/';
-        $cacheSize = is_dir($cacheDir) ? $this->getDirSize($cacheDir) : 0;
-        $cacheFiles = is_dir($cacheDir) ? count(glob($cacheDir . '*')) : 0;
-
-        // Session-Größe
-        $sessionDir  = $abspath . 'sessions/';
-        $sessionSize = is_dir($sessionDir) ? $this->getDirSize($sessionDir) : 0;
-        $sessionFiles = is_dir($sessionDir) ? count(glob($sessionDir . '*')) : 0;
-
-        // Upload-Größe
-        $uploadDir  = $abspath . 'uploads/';
-        $uploadSize = is_dir($uploadDir) ? $this->getDirSize($uploadDir) : 0;
-
-        // PHP-Info
-        $phpInfo = [
-            'version'         => PHP_VERSION,
-            'memory_limit'    => ini_get('memory_limit'),
-            'max_execution'   => ini_get('max_execution_time'),
-            'upload_max'      => ini_get('upload_max_filesize'),
-            'post_max'        => ini_get('post_max_size'),
-            'opcache_enabled' => function_exists('opcache_get_status') && @opcache_get_status() !== false,
-            'gzip_enabled'    => extension_loaded('zlib'),
-        ];
-
-        // DB-Größe
-        $dbSize = 0;
-        try {
-            $rows = $this->db->get_results(
-                "SELECT table_name, data_length + index_length AS size
-                 FROM information_schema.tables WHERE table_schema = DATABASE()"
-            );
-            foreach ($rows ?: [] as $r) {
-                $dbSize += (int)$r->size;
-            }
-        } catch (\Exception $e) {}
-
-        // Performance-Settings (Batch-Abfrage)
-        $settingKeys = ['perf_lazy_loading', 'perf_minify_css', 'perf_minify_js', 'perf_gzip', 'perf_browser_cache', 'perf_page_cache'];
-        $placeholders = implode(',', array_fill(0, count($settingKeys), '?'));
-        $rows = $this->db->get_results(
-            "SELECT option_name, option_value FROM {$this->prefix}settings WHERE option_name IN ({$placeholders})",
-            $settingKeys
-        ) ?: [];
-        $settings = array_fill_keys($settingKeys, '0');
-        foreach ($rows as $row) {
-            $settings[$row->option_name] = $row->option_value;
-        }
+        $settings = $this->getSettings();
+        $cache = $this->getCacheMetrics();
+        $media = $this->getMediaMetrics();
+        $database = $this->getDatabaseMetrics();
+        $sessions = $this->getSessionMetrics();
+        $phpInfo = $this->getPhpInfo();
 
         return [
-            'cache_size'    => $cacheSize,
-            'cache_files'   => $cacheFiles,
-            'session_size'  => $sessionSize,
-            'session_files' => $sessionFiles,
-            'upload_size'   => $uploadSize,
-            'db_size'       => $dbSize,
-            'php_info'      => $phpInfo,
-            'settings'      => $settings,
+            'cache_size' => (int)($cache['file_cache']['size_bytes'] ?? 0),
+            'cache_files' => (int)($cache['file_cache']['files'] ?? 0),
+            'session_size' => (int)($sessions['session_dir_size'] ?? 0),
+            'session_files' => (int)($sessions['session_dir_files'] ?? 0),
+            'upload_size' => (int)($media['upload_size'] ?? 0),
+            'db_size' => (int)($database['total_size_bytes'] ?? 0),
+            'php_info' => $phpInfo,
+            'settings' => $settings,
+            'overview' => [
+                'cache_score' => $cache['health_score'],
+                'media_score' => $media['health_score'],
+                'database_score' => $database['health_score'],
+                'session_score' => $sessions['health_score'],
+            ],
+            'cache' => $cache,
+            'media' => $media,
+            'database' => $database,
+            'sessions' => $sessions,
         ];
     }
 
-    public function clearCache(): array
+    public function handleAction(string $section, string $action, array $post): array
     {
-        $cacheDir = defined('ABSPATH') ? ABSPATH . 'cache/' : '';
+        return match ($action) {
+            'clear_all_cache' => $this->clearAllCacheLayers(),
+            'clear_file_cache' => $this->clearFileCache(),
+            'clear_opcache' => $this->clearOpcache(),
+            'optimize_database' => $this->optimizeDatabase(),
+            'repair_tables' => $this->repairDatabase(),
+            'clear_expired_sessions' => $this->clearExpiredSessions(),
+            'save_settings', 'save_cache_settings', 'save_media_settings', 'save_session_settings' => $this->saveSettings($post),
+            default => ['success' => false, 'error' => 'Unbekannte Aktion.'],
+        };
+    }
+
+    private function getSettings(): array
+    {
+        $keys = array_keys(self::DEFAULT_SETTINGS);
+        $placeholders = implode(',', array_fill(0, count($keys), '?'));
+        $rows = $this->db->get_results(
+            "SELECT option_name, option_value FROM {$this->prefix}settings WHERE option_name IN ({$placeholders})",
+            $keys
+        );
+
+        $settings = self::DEFAULT_SETTINGS;
+        foreach ($rows as $row) {
+            $name = (string)($row->option_name ?? '');
+            if ($name !== '' && array_key_exists($name, $settings)) {
+                $settings[$name] = (string)($row->option_value ?? '');
+            }
+        }
+
+        return $settings;
+    }
+
+    private function getPhpInfo(): array
+    {
+        $opcacheStatus = function_exists('opcache_get_status') ? @opcache_get_status(false) : false;
+
+        return [
+            'version' => PHP_VERSION,
+            'memory_limit' => (string)ini_get('memory_limit'),
+            'max_execution' => (string)ini_get('max_execution_time'),
+            'upload_max' => (string)ini_get('upload_max_filesize'),
+            'post_max' => (string)ini_get('post_max_size'),
+            'opcache_enabled' => $opcacheStatus !== false,
+            'gzip_enabled' => extension_loaded('zlib'),
+            'opcache_memory_used' => isset($opcacheStatus['memory_usage']['used_memory']) ? (int)$opcacheStatus['memory_usage']['used_memory'] : 0,
+            'opcache_memory_free' => isset($opcacheStatus['memory_usage']['free_memory']) ? (int)$opcacheStatus['memory_usage']['free_memory'] : 0,
+        ];
+    }
+
+    private function getCacheMetrics(): array
+    {
+        $status = $this->cacheManager->getStatus();
+        $cacheDir = ABSPATH . 'cache/';
+        $oldestAge = null;
+        $newestAge = null;
+
+        if (is_dir($cacheDir)) {
+            $files = glob($cacheDir . '*') ?: [];
+            foreach ($files as $file) {
+                if (!is_file($file)) {
+                    continue;
+                }
+
+                $age = time() - (int)filemtime($file);
+                $oldestAge = $oldestAge === null ? $age : max($oldestAge, $age);
+                $newestAge = $newestAge === null ? $age : min($newestAge, $age);
+            }
+        }
+
+        $activeDbCache = (int)($this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}cache WHERE expires_at IS NULL OR expires_at > NOW()") ?? 0);
+        $expiredDbCache = (int)($this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}cache WHERE expires_at IS NOT NULL AND expires_at <= NOW()") ?? 0);
+
+        $apcuInfo = $status['apcu']['info'] ?? null;
+        $apcuHits = is_array($apcuInfo) ? (int)($apcuInfo['num_hits'] ?? 0) : 0;
+        $apcuMisses = is_array($apcuInfo) ? (int)($apcuInfo['num_misses'] ?? 0) : 0;
+        $hitRatio = ($apcuHits + $apcuMisses) > 0 ? round(($apcuHits / ($apcuHits + $apcuMisses)) * 100, 1) : null;
+
+        $fileCacheFiles = (int)($status['file_cache']['files'] ?? 0);
+        $fileCacheSizeText = (string)($status['file_cache']['size'] ?? '0 B');
+        $fileCacheSizeBytes = $this->getDirSize($cacheDir);
+
+        $healthScore = 100;
+        if ($expiredDbCache > 100) {
+            $healthScore -= 15;
+        }
+        if ($oldestAge !== null && $oldestAge > 86400) {
+            $healthScore -= 10;
+        }
+        if ($hitRatio !== null && $hitRatio < 70.0) {
+            $healthScore -= 10;
+        }
+
+        return [
+            'health_score' => max(0, $healthScore),
+            'file_cache' => [
+                'files' => $fileCacheFiles,
+                'size' => $fileCacheSizeText,
+                'size_bytes' => $fileCacheSizeBytes,
+                'writable' => (bool)($status['file_cache']['writable'] ?? false),
+                'directory' => (string)($status['file_cache']['directory'] ?? $cacheDir),
+                'oldest_age' => $oldestAge,
+                'newest_age' => $newestAge,
+            ],
+            'apcu' => [
+                'enabled' => (bool)($status['apcu']['enabled'] ?? false),
+                'hits' => $apcuHits,
+                'misses' => $apcuMisses,
+                'hit_ratio' => $hitRatio,
+            ],
+            'opcache' => [
+                'enabled' => (bool)($status['opcache']['enabled'] ?? false),
+                'used_memory' => (int)($status['opcache']['status']['memory_usage']['used_memory'] ?? 0),
+                'free_memory' => (int)($status['opcache']['status']['memory_usage']['free_memory'] ?? 0),
+                'cached_scripts' => (int)($status['opcache']['status']['opcache_statistics']['num_cached_scripts'] ?? 0),
+                'hits' => (int)($status['opcache']['status']['opcache_statistics']['hits'] ?? 0),
+                'misses' => (int)($status['opcache']['status']['opcache_statistics']['misses'] ?? 0),
+            ],
+            'db_cache' => [
+                'active_entries' => $activeDbCache,
+                'expired_entries' => $expiredDbCache,
+            ],
+        ];
+    }
+
+    private function getMediaMetrics(): array
+    {
+        $uploadDir = ABSPATH . 'uploads/';
+        $uploadSize = is_dir($uploadDir) ? $this->getDirSize($uploadDir) : 0;
+
+        $mediaTotals = [
+            'total_files' => 0,
+            'total_size' => 0,
+            'missing_alt' => 0,
+            'webp_files' => 0,
+        ];
+
+        try {
+            $totals = $this->db->get_row(
+                "SELECT COUNT(*) AS total_files,
+                        COALESCE(SUM(filesize), 0) AS total_size,
+                        SUM(CASE WHEN COALESCE(alt_text, '') = '' THEN 1 ELSE 0 END) AS missing_alt,
+                        SUM(CASE WHEN LOWER(filetype) LIKE '%webp%' OR LOWER(filename) LIKE '%.webp' THEN 1 ELSE 0 END) AS webp_files
+                 FROM {$this->prefix}media"
+            );
+
+            if ($totals !== null) {
+                $mediaTotals = [
+                    'total_files' => (int)($totals->total_files ?? 0),
+                    'total_size' => (int)($totals->total_size ?? 0),
+                    'missing_alt' => (int)($totals->missing_alt ?? 0),
+                    'webp_files' => (int)($totals->webp_files ?? 0),
+                ];
+            }
+        } catch (\Throwable) {
+        }
+
+        $largestImages = [];
+        if (is_dir($uploadDir)) {
+            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($uploadDir, \FilesystemIterator::SKIP_DOTS));
+            foreach ($iterator as $file) {
+                if (!$file->isFile()) {
+                    continue;
+                }
+
+                $extension = strtolower((string)$file->getExtension());
+                if (!in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
+                    continue;
+                }
+
+                $dimensions = @getimagesize($file->getPathname()) ?: [0, 0];
+                $largestImages[] = [
+                    'path' => str_replace(ABSPATH, '', $file->getPathname()),
+                    'size' => $file->getSize(),
+                    'width' => (int)($dimensions[0] ?? 0),
+                    'height' => (int)($dimensions[1] ?? 0),
+                    'is_webp' => $extension === 'webp',
+                ];
+            }
+        }
+
+        usort($largestImages, static fn(array $a, array $b): int => $b['size'] <=> $a['size']);
+        $largestImages = array_slice($largestImages, 0, 10);
+
+        $oversizedCount = 0;
+        foreach ($largestImages as $image) {
+            if ($image['size'] > 500 * 1024 || $image['width'] > 2560) {
+                $oversizedCount++;
+            }
+        }
+
+        $healthScore = 100;
+        if ($mediaTotals['missing_alt'] > 0) {
+            $healthScore -= min(25, $mediaTotals['missing_alt']);
+        }
+        if ($oversizedCount > 0) {
+            $healthScore -= min(20, $oversizedCount * 5);
+        }
+
+        return [
+            'health_score' => max(0, $healthScore),
+            'upload_size' => $uploadSize,
+            'library' => $mediaTotals,
+            'largest_images' => $largestImages,
+            'oversized_images' => $oversizedCount,
+        ];
+    }
+
+    private function getDatabaseMetrics(): array
+    {
+        $tables = [];
+        $totalSize = 0;
+        $totalOverhead = 0;
+
+        try {
+            $tables = $this->db->get_results(
+                "SELECT table_name,
+                        table_rows,
+                        data_length,
+                        index_length,
+                        data_free
+                 FROM information_schema.tables
+                 WHERE table_schema = DATABASE()
+                 AND table_name LIKE ?
+                 ORDER BY (data_length + index_length) DESC",
+                [$this->prefix . '%']
+            );
+        } catch (\Throwable) {
+            $tables = [];
+        }
+
+        $tableMetrics = [];
+        foreach ($tables as $table) {
+            $size = (int)($table->data_length ?? 0) + (int)($table->index_length ?? 0);
+            $overhead = (int)($table->data_free ?? 0);
+            $totalSize += $size;
+            $totalOverhead += $overhead;
+            $tableMetrics[] = [
+                'name' => (string)($table->table_name ?? ''),
+                'rows' => (int)($table->table_rows ?? 0),
+                'size' => $size,
+                'overhead' => $overhead,
+            ];
+        }
+
+        $revisionCount = (int)($this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}page_revisions") ?? 0);
+        $expiredSessions = (int)($this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}sessions WHERE expires_at IS NOT NULL AND expires_at <= NOW()") ?? 0);
+        $expiredCache = (int)($this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}cache WHERE expires_at IS NOT NULL AND expires_at <= NOW()") ?? 0);
+        $failedLogins24h = (int)($this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}login_attempts WHERE attempted_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)") ?? 0);
+
+        $healthScore = 100;
+        if ($totalOverhead > 20 * 1024 * 1024) {
+            $healthScore -= 20;
+        }
+        if ($revisionCount > 500) {
+            $healthScore -= 10;
+        }
+        if ($expiredSessions > 0 || $expiredCache > 0) {
+            $healthScore -= 10;
+        }
+
+        return [
+            'health_score' => max(0, $healthScore),
+            'total_size_bytes' => $totalSize,
+            'total_overhead_bytes' => $totalOverhead,
+            'table_count' => count($tableMetrics),
+            'top_tables' => array_slice($tableMetrics, 0, 8),
+            'revision_count' => $revisionCount,
+            'expired_sessions' => $expiredSessions,
+            'expired_cache_entries' => $expiredCache,
+            'failed_logins_last_24h' => $failedLogins24h,
+        ];
+    }
+
+    private function getSessionMetrics(): array
+    {
+        $sessionDir = ABSPATH . 'sessions/';
+        $sessionDirFiles = is_dir($sessionDir) ? count(glob($sessionDir . '*') ?: []) : 0;
+        $sessionDirSize = is_dir($sessionDir) ? $this->getDirSize($sessionDir) : 0;
+
+        $activeSessions = (int)($this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}sessions WHERE expires_at IS NULL OR expires_at > NOW()") ?? 0);
+        $expiredSessions = (int)($this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}sessions WHERE expires_at IS NOT NULL AND expires_at <= NOW()") ?? 0);
+        $recentSessions = [];
+
+        try {
+            $recentSessions = $this->db->get_results(
+                "SELECT id, user_id, ip_address, user_agent, last_activity, expires_at
+                 FROM {$this->prefix}sessions
+                 ORDER BY last_activity DESC
+                 LIMIT 10"
+            );
+        } catch (\Throwable) {
+            $recentSessions = [];
+        }
+
+        $settings = $this->getSettings();
+        $healthScore = 100;
+        if ($expiredSessions > 50) {
+            $healthScore -= 20;
+        }
+        if ($activeSessions > 200) {
+            $healthScore -= 10;
+        }
+
+        return [
+            'health_score' => max(0, $healthScore),
+            'active_sessions' => $activeSessions,
+            'expired_sessions' => $expiredSessions,
+            'session_dir_files' => $sessionDirFiles,
+            'session_dir_size' => $sessionDirSize,
+            'recent_sessions' => array_map(static function (object $session): array {
+                return [
+                    'id' => (string)($session->id ?? ''),
+                    'user_id' => (int)($session->user_id ?? 0),
+                    'ip_address' => (string)($session->ip_address ?? ''),
+                    'user_agent' => (string)($session->user_agent ?? ''),
+                    'last_activity' => (string)($session->last_activity ?? ''),
+                    'expires_at' => (string)($session->expires_at ?? ''),
+                ];
+            }, $recentSessions),
+            'timeouts' => [
+                'admin' => (int)$settings['perf_session_timeout_admin'],
+                'member' => (int)$settings['perf_session_timeout_member'],
+            ],
+        ];
+    }
+
+    private function clearAllCacheLayers(): array
+    {
+        $report = $this->cacheManager->clearAll();
+        $details = [];
+        foreach (($report['details'] ?? []) as $label => $message) {
+            $details[] = $label . ': ' . $message;
+        }
+
+        return [
+            'success' => true,
+            'message' => 'Alle Cache-Layer bereinigt. ' . implode(' | ', $details),
+        ];
+    }
+
+    private function clearFileCache(): array
+    {
+        $cacheDir = ABSPATH . 'cache/';
         if (!is_dir($cacheDir)) {
             return ['success' => false, 'error' => 'Cache-Verzeichnis nicht gefunden.'];
         }
+
         $count = 0;
-        foreach (glob($cacheDir . '*') as $file) {
+        foreach (glob($cacheDir . '*') ?: [] as $file) {
             if (is_file($file) && unlink($file)) {
                 $count++;
             }
         }
-        return ['success' => true, 'message' => "{$count} Cache-Dateien gelöscht."];
+
+        return ['success' => true, 'message' => $count . ' Datei-Cache(s) gelöscht.'];
     }
 
-    public function clearExpiredSessions(): array
+    private function clearOpcache(): array
     {
-        $sessionDir = defined('ABSPATH') ? ABSPATH . 'sessions/' : '';
-        if (!is_dir($sessionDir)) {
-            return ['success' => false, 'error' => 'Session-Verzeichnis nicht gefunden.'];
+        if (!function_exists('opcache_reset')) {
+            return ['success' => false, 'error' => 'OPcache ist nicht verfügbar.'];
         }
-        $count = 0;
-        $threshold = time() - 86400; // 24h
-        foreach (glob($sessionDir . '*') as $file) {
-            if (is_file($file) && filemtime($file) < $threshold) {
-                if (unlink($file)) {
-                    $count++;
-                }
+
+        opcache_reset();
+        return ['success' => true, 'message' => 'OPcache wurde geleert.'];
+    }
+
+    private function optimizeDatabase(): array
+    {
+        $result = $this->systemService->optimizeTables();
+        $success = 0;
+        foreach ($result as $row) {
+            if (!empty($row['success'])) {
+                $success++;
             }
         }
-        return ['success' => true, 'message' => "{$count} abgelaufene Sessions bereinigt."];
+
+        return ['success' => true, 'message' => $success . ' Tabelle(n) optimiert.'];
     }
 
-    public function reportImageOptimization(): array
+    private function repairDatabase(): array
     {
-        $uploadDir = defined('ABSPATH') ? ABSPATH . 'uploads/' : '';
-        if (!is_dir($uploadDir)) {
-            return ['success' => false, 'error' => 'Upload-Verzeichnis nicht gefunden.'];
-        }
-        $large = 0;
-        $threshold = 500 * 1024; // 500 KB
-        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($uploadDir));
-        foreach ($iterator as $file) {
-            if ($file->isFile() && in_array(strtolower($file->getExtension()), ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
-                if ($file->getSize() > $threshold) {
-                    $large++;
-                }
+        $result = $this->systemService->repairTables();
+        $success = 0;
+        foreach ($result as $row) {
+            if (!empty($row['success'])) {
+                $success++;
             }
         }
-        return ['success' => true, 'message' => "{$large} Bilder sind größer als 500 KB und könnten optimiert werden."];
+
+        return ['success' => true, 'message' => $success . ' Tabelle(n) repariert bzw. geprüft.'];
     }
 
-    public function saveSettings(array $post): array
+    private function clearExpiredSessions(): array
     {
-        $keys = ['perf_lazy_loading', 'perf_minify_css', 'perf_minify_js', 'perf_gzip', 'perf_browser_cache', 'perf_page_cache'];
+        $dbDeleted = false;
         try {
-            foreach ($keys as $key) {
-                $value = isset($post[$key]) ? '1' : '0';
-                $exists = $this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?", [$key]);
-                if ($exists) {
+            $this->db->execute("DELETE FROM {$this->prefix}sessions WHERE expires_at IS NOT NULL AND expires_at <= NOW()");
+            $dbDeleted = true;
+        } catch (\Throwable) {
+        }
+
+        $sessionDir = ABSPATH . 'sessions/';
+        $fileCount = 0;
+        if (is_dir($sessionDir)) {
+            $threshold = time() - 86400;
+            foreach (glob($sessionDir . '*') ?: [] as $file) {
+                if (is_file($file) && filemtime($file) < $threshold && unlink($file)) {
+                    $fileCount++;
+                }
+            }
+        }
+
+        return [
+            'success' => true,
+            'message' => 'Abgelaufene Sessions bereinigt' . ($dbDeleted ? ' (DB)' : '') . '; Dateisessions gelöscht: ' . $fileCount . '.',
+        ];
+    }
+
+    private function saveSettings(array $post): array
+    {
+        $settings = $this->getSettings();
+
+        foreach ($settings as $key => $default) {
+            if (in_array($key, ['perf_lazy_loading', 'perf_minify_css', 'perf_minify_js', 'perf_gzip', 'perf_browser_cache', 'perf_page_cache', 'perf_webp_uploads', 'perf_strip_exif', 'perf_auto_clear_content_cache'], true)) {
+                $settings[$key] = !empty($post[$key]) ? '1' : '0';
+                continue;
+            }
+
+            $settings[$key] = (string)max(0, (int)($post[$key] ?? $default));
+        }
+
+        try {
+            foreach ($settings as $key => $value) {
+                $exists = (int)($this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?", [$key]) ?? 0);
+                if ($exists > 0) {
                     $this->db->update('settings', ['option_value' => $value], ['option_name' => $key]);
                 } else {
                     $this->db->insert('settings', ['option_name' => $key, 'option_value' => $value]);
                 }
             }
-            return ['success' => true, 'message' => 'Performance-Einstellungen gespeichert.'];
-        } catch (\Exception $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Performance-Einstellungen konnten nicht gespeichert werden: ' . $e->getMessage()];
         }
+
+        return ['success' => true, 'message' => 'Performance-Einstellungen gespeichert.'];
     }
 
     private function getDirSize(string $dir): int
     {
+        if (!is_dir($dir)) {
+            return 0;
+        }
+
         $size = 0;
-        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)) as $file) {
+        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS));
+        foreach ($iterator as $file) {
             $size += $file->getSize();
         }
+
         return $size;
     }
 }
