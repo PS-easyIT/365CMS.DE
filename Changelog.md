@@ -20,6 +20,18 @@
 
 ---
 
+### Unreleased — 07. März 2026 · System-Tools, DSGVO-Fonts & Doku-Refresh
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **Unreleased** | 🟢 feat | Admin/System | **DB-Tools in System-Info & Diagnose**: Neue Aktionen zum Erstellen fehlender Tabellen und zur Tabellen-Reparatur direkt im Admin. Tabellenprüfung deckt jetzt das vollständige Core-Schema inkl. `posts`, `comments`, `messages`, `audit_log` und `custom_fonts` ab. |
+| **Unreleased** | 🔴 fix | Admin/Security | **CSRF-Token-Reihenfolge korrigiert**: In den Admin-Entry-Points wird `verifyToken()` nicht mehr durch vorzeitiges `generateToken()` überschrieben. Zusätzlich fehlende Token-Erzeugung für normale GET-Requests in betroffenen Formularseiten wiederhergestellt. |
+| **Unreleased** | 🟢 feat | Admin/Theme | **Google Fonts DSGVO-lokalisiert**: Font-Manager kann Google-Fonts-CSS laden, WOFF2-Dateien lokal speichern, eigene `@font-face`-CSS erzeugen und die Schriften automatisch im Frontend einbinden. Neue Tabelle `custom_fonts`, Schema-Version auf `v9` erhöht. |
+| **Unreleased** | 🔴 fix | Admin/System | **System-Info Berechtigungen & Diagnose**: Berechtigungsanzeige verarbeitet die Rückgabe von `checkFilePermissions()` korrekt; Diagnose-Ansicht zeigt damit Dateisysteminformationen ohne `htmlspecialchars()`-TypeError. |
+| **Unreleased** | 🔵 docs | Docs | **README & Changelog aktualisiert**: System-/Schema-Dokumentation an den aktuellen Stand angepasst und vollständige Übersicht der gebündelten Drittanbieter-Assets mit Autor, Website und GitHub-Links ergänzt. |
+
+---
+
 ### v2.0.2 — 01. März 2026 · Admin-Fixes, SEO-Frontend, Abo-Split
 
 | Version | Typ | Bereich | Beschreibung |

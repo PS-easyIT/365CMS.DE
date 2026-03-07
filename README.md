@@ -205,12 +205,12 @@
 
 ### 🗄️ System & Diagnose
 - ✅ **System-Info** - PHP-Version, MySQL-Version, aktive Extensions, Server-Konfiguration
-- ✅ **Datenbank-Diagnose** - Tabellen-Status der 17 Kern-Tabellen, Datenbankgröße, Tabellen-Check
+- ✅ **Datenbank-Diagnose** - Tabellen-Status des vollständigen Core-Schemas mit derzeit 30 CMS-Tabellen, Datenbankgröße, CHECK TABLE und Fehleranzeige
 - ✅ **Dateisystem-Check** - Verzeichnis-Berechtigungen, Schreib-Tests, Disk-Space-Anzeige
 - ✅ **Security-Status** - HTTPS-Prüfung, Security-Score, Failed-Logins der letzten 24h
 - ✅ **Backup-System** - Datenbank- und Dateisystem-Backup, E-Mail-Versand, S3-Anbindung
 - ✅ **Activity-Log** - Vollständige Aktivitätsverfolgung aller Admin-Aktionen
-- ✅ **System-Tools** - Cache leeren, Sessions bereinigen, Tabellen reparieren/optimieren, Logs leeren
+- ✅ **System-Tools** - Cache leeren, Sessions bereinigen, fehlende Tabellen erstellen, Tabellen reparieren/optimieren, Logs leeren
 - ✅ **Update-Manager** - Core-, Plugin- und Theme-Updates direkt aus dem Backend
 
 ## 📋 Systemanforderungen
@@ -636,9 +636,9 @@ Admin → **System & Diagnose**
 - Aktive Sessions
 
 **Datenbank:**
-- Tabellen-Status (17 Kern-Tabellen)
+- Tabellen-Status (30 Core-Tabellen im aktuellen Schema)
 - Datenbank-Größe
-- Tabellen-Checks
+- Tabellen-Checks, Reparatur und Erstellen fehlender Tabellen
 
 **Dateisystem:**
 - Verzeichnis-Berechtigungen
@@ -744,36 +744,66 @@ Admin → System & Diagnose → Tools → Fehlende Tabellen erstellen
 | `cms_users` | Benutzer-Accounts |
 | `cms_user_meta` | Erweiterte User-Metadaten |
 | `cms_roles` | Rollen & Berechtigungen |
-| `cms_groups` | Benutzergruppen |
 | `cms_sessions` | Aktive Sessions |
 | `cms_settings` | Globale Systemeinstellungen |
 | `cms_pages` | Seiten-Content |
 | `cms_page_revisions` | Seiten-Revisionen |
-| `cms_posts` | Blog-Beiträge |
-| `cms_post_categories` | Beitrags-Kategorien |
-| `cms_post_tags` | Beitrags-Tags |
-| `cms_landing_sections` | Landing-Page Sektionen |
-| `cms_menus` | Navigationsmenüs |
-| `cms_menu_items` | Menü-Einträge |
-| `cms_media` | Media-Library |
-| `cms_activity_log` | Aktivitäts-Audit-Log |
-| `cms_cache` | Query-Cache |
-| `cms_failed_logins` | Fehlgeschlagene Logins |
-| `cms_login_attempts` | Login-Versuche |
-| `cms_blocked_ips` | IP-Sperrliste (Firewall) |
+| `cms_landing_sections` | Landing-Page-Sektionen |
+| `cms_activity_log` | Aktivitätsprotokoll |
+| `cms_cache` | Query- und System-Cache |
+| `cms_login_attempts` | Login-/Rate-Limit-Versuche |
 | `cms_plugins` | Installierte Plugins |
 | `cms_plugin_meta` | Plugin-Metadaten |
 | `cms_theme_customizations` | Theme-Customizer-Einstellungen |
-| `cms_subscriptions` | Abo-Pakete |
+| `cms_subscription_plans` | Paket- und Abo-Definitionen |
 | `cms_user_subscriptions` | Benutzer-Abonnements |
+| `cms_user_groups` | Benutzergruppen |
+| `cms_user_group_members` | Gruppen-Mitglieder |
+| `cms_subscription_usage` | Paketnutzung / Limits |
+| `cms_posts` | Blog-Beiträge |
+| `cms_post_categories` | Beitrags-Kategorien |
 | `cms_orders` | Bestellungen |
-| `cms_cookies` | Cookie-Definitionen (DSGVO) |
-| `cms_cookie_consents` | Cookie-Einwilligungen |
-| `cms_support_tickets` | Support-Tickets |
-| `cms_support_messages` | Ticket-Nachrichten |
-| `cms_notifications` | Benutzer-Benachrichtigungen |
+| `cms_blocked_ips` | Firewall-IP-Sperrliste |
+| `cms_failed_logins` | Fehlgeschlagene Anmeldungen |
+| `cms_media` | Media-Library |
+| `cms_page_views` | Seitenaufrufe / Analytics |
+| `cms_comments` | Kommentare und Moderation |
 | `cms_messages` | Private Nachrichten |
-| `cms_site_tables` | Benutzerdefinierte Datentabellen |
+| `cms_audit_log` | Sicherheits- und Audit-Log |
+| `cms_custom_fonts` | Lokal gespeicherte Webfonts |
+
+> Hinweis: Plugin-spezifische Tabellen werden von den jeweiligen Plugins selbst angelegt und sind nicht Teil des Core-Schemas.
+
+## 📦 Gebündelte Assets & Credits
+
+365CMS bündelt Drittanbieter-Libraries sowohl im Entwicklungsordner `ASSETS/` als auch – für den produktiven Runtime-Einsatz – in `CMS/assets/`. Die folgende Übersicht dokumentiert die derzeit mitgelieferten Haupt-Assets.
+
+| Asset | Version / Ordner | Autor / Maintainer | Website | GitHub |
+|------|-------------------|--------------------|---------|--------|
+| Symfony Cache | `cache-8.0.6` | Symfony | https://symfony.com/components/Cache | https://github.com/symfony/cache |
+| Carbon | `Carbon/` | Brian Nesbitt & Contributors | https://carbon.nesbot.com/ | https://github.com/briannesbitt/Carbon |
+| Cookie Consent | `cookieconsent-3.1.0` | Osano / Insites | https://www.osano.com/cookieconsent | https://github.com/osano/cookieconsent |
+| dompdf | `dompdf/` | The dompdf Project | https://dompdf.github.io/ | https://github.com/dompdf/dompdf |
+| Editor.js | `editor.js-2.31.4` | CodeX Team | https://editorjs.io/ | https://github.com/codex-team/editor.js |
+| elFinder | `elFinder-2.1.66` | Studio 42 | https://studio-42.github.io/elFinder/ | https://github.com/Studio-42/elFinder |
+| FilePond | `filepond-4.28.2` | Rik Schennink / PQINA | https://pqina.nl/filepond/ | https://github.com/pqina/filepond |
+| Grid.js | `gridjs/` | Grid.js Team | https://gridjs.io/ | https://github.com/grid-js/gridjs |
+| HTMLPurifier | `htmlpurifier-4.19.0` | Edward Z. Yang | https://htmlpurifier.org/ | https://github.com/ezyang/htmlpurifier |
+| Intervention Image | `image-3.11.7` | Oliver Vogel / Intervention | https://image.intervention.io/ | https://github.com/Intervention/image |
+| Symfony Mailer | `mailer-8.0.6` | Symfony | https://symfony.com/components/Mailer | https://github.com/symfony/mailer |
+| Monolog | `monolog-3.10.0` | Jordi Boggiano & Contributors | https://seldaek.github.io/monolog/ | https://github.com/Seldaek/monolog |
+| PhotoSwipe | `PhotoSwipe/` | Dmitry Semenov | https://photoswipe.com/ | https://github.com/dimsemenov/PhotoSwipe |
+| Symfony RateLimiter | `rate-limiter-8.0.6` | Symfony | https://symfony.com/components/RateLimiter | https://github.com/symfony/rate-limiter |
+| Spatie Schema.org | `schema-org-4.0.0` | Spatie | https://spatie.be/docs/schema-org | https://github.com/spatie/schema-org |
+| SimplePie | `simplepie-1.9.0` | SimplePie Authors | https://simplepie.org/ | https://github.com/simplepie/simplepie |
+| SunEditor | `suneditor-2.47.8` | Jaenung Kim | https://suneditor.com/ | https://github.com/JiHong88/SunEditor |
+| Tabler Core | `tabler--tabler-core-1.4.0` | Paweł Kuna & Tabler Team | https://tabler.io/ | https://github.com/tabler/tabler |
+| TNTSearch | `tntsearch-5.0.2` | TeamTNT | https://packagist.org/packages/teamtnt/tntsearch | https://github.com/teamtnt/tntsearch |
+| Symfony Translation | `translation-8.0.6` | Symfony | https://symfony.com/components/Translation | https://github.com/symfony/translation |
+
+### Zusätzliche gebündelte UI-Libs im Tabler-Bundle
+
+Neben `Tabler Core` liegen im Verzeichnis `CMS/assets/tabler/libs/` weitere optionale Frontend-Libraries, die Tabler für spezielle UI-Komponenten mitbringt, darunter u. a. `ApexCharts`, `Tom Select`, `Dropzone`, `Litepicker`, `Plyr`, `List.js`, `IMask`, `Typed.js`, `Coloris`, `FullCalendar`, `Clipboard.js`, `Autosize`, `Signature Pad`, `Star Rating.js`, `Turbo` und `FsLightbox`.
 
 Vollständiges Schema: [DOC/](DOC/)
 
@@ -796,9 +826,10 @@ Vollständiges Schema: [DOC/](DOC/)
 ## 🙏 Credits
 - **Entwicklung:** Andreas Hepp
 - **Website:** PhinIT.DE & 365CMS.DE
-- **Icons:** Dashicons
-- **Fonts:** Google Fonts with Local Font Manager
-- **Editor:** Suneditor is based on pure JavaScript, no dependencies. 
+- **UI-Framework:** Tabler
+- **Editor:** SunEditor
+- **Fonts:** Google Fonts via Local Font Manager / Custom Fonts
+- **Sanitizing & Security:** HTMLPurifier, Symfony Components, Monolog
 - **Inspiration:** WordPress, Laravel, Symfony
 
 ---
