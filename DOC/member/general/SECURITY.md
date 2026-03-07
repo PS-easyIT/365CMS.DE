@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Detaildokumentation der Sicherheitsseite mit Passwortformular, 2FA-Hinweisen, Session-Ansicht und Login-Verlauf.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 **Route:** `/member/security`
 

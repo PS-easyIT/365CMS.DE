@@ -1,5 +1,9 @@
 # Komponenten-Referenz – CMS Default Theme
 
+Kurzbeschreibung: HTML/CSS-Referenz der wiederverwendbaren UI-Komponenten (Header, Footer, Cards, Buttons, Formulare, Alerts).
+
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+
 ## Header
 
 ### Sticky Header

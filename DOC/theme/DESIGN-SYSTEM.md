@@ -1,5 +1,9 @@
 # Design System – CMS Default Theme
 
+Kurzbeschreibung: Design-Tokens (Farben, Typografie, Spacing, Schatten, Z-Index, Breakpoints, Dark Mode) als CSS Custom Properties.
+
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+
 ## Farbpalette (CSS Custom Properties)
 
 ### Brand Colors

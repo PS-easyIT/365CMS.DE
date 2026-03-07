@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Referenz der wichtigsten öffentlichen Core-Klassen, Methoden und typischen Verwendungsbeispiele im 365CMS.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 Vollständige API-Dokumentation aller Core-Klassen und Methoden.
 

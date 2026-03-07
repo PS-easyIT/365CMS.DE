@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Detaildokumentation der persönlichen Startseite unter `/member` mit Willkommensbereich, Statuskarten, Info-Widgets und Plugin-Kacheln.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 **Route:** `/member`
 

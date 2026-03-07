@@ -1,35 +1,8 @@
-# Member-Bereich – Controller-Dokumentation
-
----
-
-## 1. Basis-Controller: `MemberController`
-
-**Datei:** `includes/class-member-controller.php`  
-**Namespace:** `CMS\Member`  
-**Pattern:** Direkte Instanziierung (kein Singleton – jede Seite erzeugt eine Instanz)
-
-### Öffentliche Methoden
-
-| Methode | Signatur | Beschreibung |
-|---------|----------|-------------|
-| `render` | `render(string $view, array $data = []): void` | Lädt member-menu.php (Funktionen) und die angegebene View mit extrahierten Daten |
-| `redirect` | `redirect(string $url): void` | Leitet zu `SITE_URL . $url` weiter und beendet die Ausführung |
-| `generateToken` | `generateToken(string $action): string` | Generiert CSRF-Token für eine Aktion |
-| `verifyToken` | `verifyToken(string $token, string $action): bool` | Prüft CSRF-Token |
-| `setSuccess` | `setSuccess(string $message): void` | Setzt `$_SESSION['success']` |
-| `setError` | `setError(string $message): void` | Setzt `$_SESSION['error']` |
-| `getPost` | `getPost(string $key, string $type = 'text', $default = ''): mixed` | Liest `$_POST[$key]` mit Sanitization |
-| `isChecked` | `isChecked(string $key): bool` | Prüft ob Checkbox gesetzt ist |
-| `getUser` | `getUser(): object` | Gibt den aktuellen User zurück |
-| `handleSecurityActions` | `handleSecurityActions(): void` | Verarbeitet Passwort- und 2FA-Formulare |
-| `handleNotificationActions` | `handleNotificationActions(): void` | Speichert alle 10 Benachrichtigungs-Präferenzen |
-| `handlePrivacyActions` | `handlePrivacyActions(): void` | Datenschutz, Datenexport, Account-Löschung |
-
 # 365CMS – Member-Controller
 
 Kurzbeschreibung: Übersicht über den zentralen `MemberController` und die wichtigsten Request-Dateien des Mitgliederbereichs.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ---
 

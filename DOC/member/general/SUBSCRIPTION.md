@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Detaildokumentation der Mitgliedschaftsseite unter `/member/subscription` mit aktuellem Paket, verfügbaren Plänen und Zahlungsinfos.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 **Route:** `/member/subscription`
 

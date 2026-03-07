@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Schritt-für-Schritt-Einstieg in die Erstellung eines einfachen, aktuellen 365CMS-Themes.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 Dieser Guide führt euch durch die Erstellung eines einfachen Themes auf Basis der aktuellen 2.3.1-Architektur.
 

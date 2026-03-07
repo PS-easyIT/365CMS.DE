@@ -2,9 +2,9 @@
 
 Kurzbeschreibung: Übersicht über den Service-Layer des 365CMS mit Aufgabenfeldern und typischen Einsatzbeispielen der zentralen Services.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
-Der Service-Layer enthält die **Geschäftslogik** des CMS. Alle 11 Service-Klassen sind im Namespace `CMS\Services` und befinden sich in `core/Services/`.
+Der Service-Layer enthält die **Geschäftslogik** des CMS. Alle 30 Service-Klassen sind im Namespace `CMS\Services` und befinden sich in `core/Services/`.
 
 ---
 
@@ -14,14 +14,33 @@ Der Service-Layer enthält die **Geschäftslogik** des CMS. Alle 11 Service-Klas
 |--------|-------|---------|
 | `AnalyticsService` | `AnalyticsService.php` | Besucher-Statistiken & Auswertungen |
 | `BackupService` | `BackupService.php` | Datenbank- und Datei-Backups |
+| `CommentService` | `CommentService.php` | Kommentar-Verwaltung (CRUD, Moderation) |
+| `CookieConsentService` | `CookieConsentService.php` | Cookie-Consent-Banner & Einwilligungen |
 | `DashboardService` | `DashboardService.php` | Dashboard-Widget-Daten |
+| `EditorJsRenderer` | `EditorJsRenderer.php` | Editor.js Block-Rendering zu HTML |
+| `EditorJsService` | `EditorJsService.php` | Editor.js Integration & Block-Management |
 | `EditorService` | `EditorService.php` | Inhalts-Editor (SunEditor) |
+| `FeedService` | `FeedService.php` | RSS-/Atom-Feed-Generierung |
+| `FileUploadService` | `FileUploadService.php` | Datei-Upload-Verarbeitung & Validierung |
+| `ImageService` | `ImageService.php` | Bildverarbeitung (Resize, WebP, Thumbnails) |
 | `LandingPageService` | `LandingPageService.php` | Landing-Page-Builder |
+| `MailService` | `MailService.php` | E-Mail-Versand (SMTP/PHPMailer) |
 | `MediaService` | `MediaService.php` | Datei-Upload & Medienverwaltung |
 | `MemberService` | `MemberService.php` | Member-Dashboard-Logik |
-| `SEOService` | `SEOService.php` | Meta-Tags, Sitemap |
+| `MessageService` | `MessageService.php` | Internes Nachrichten-System (Threads, Soft-Delete) |
+| `PdfService` | `PdfService.php` | PDF-Generierung via DomPDF |
+| `PurifierService` | `PurifierService.php` | HTML-Bereinigung via HTMLPurifier |
+| `RedirectService` | `RedirectService.php` | URL-Weiterleitungen |
+| `SearchService` | `SearchService.php` | Volltextsuche (TNTSearch) |
+| `SeoAnalysisService` | `SeoAnalysisService.php` | SEO-Analyse & Scoring pro Seite |
+| `SEOService` | `SEOService.php` | Meta-Tags, Sitemap, Robots.txt |
+| `SiteTableService` | `SiteTableService.php` | Tabellen-Verwaltung |
 | `StatusService` | `StatusService.php` | System-Status-Checks |
-| `ThemeCustomizer` | `ThemeCustomizer.php` | Theme-Einstellungen |
+| `SystemService` | `SystemService.php` | System-Infos, DB-Status |
+| `ThemeCustomizer` | `ThemeCustomizer.php` | Theme-Einstellungen (Farben, Fonts) |
+| `TrackingService` | `TrackingService.php` | Page-View-Tracking (DSGVO-konform) |
+| `TranslationService` | `TranslationService.php` | Übersetzungssystem (i18n) |
+| `UpdateService` | `UpdateService.php` | CMS-Update-Prüfung (GitHub Release API) |
 | `UserService` | `UserService.php` | Benutzer-Verwaltung (CRUD) |
 
 ---
@@ -383,57 +402,127 @@ $users = $msg->searchRecipients('max', $currentUserId);
 
 ---
 
-## MessageService
+## CommentService
 
-**Datei:** `core/Services/MessageService.php`  
-**Neu seit:** v2.0.0
+**Datei:** `core/Services/CommentService.php`
 
-Vollständiges internes Nachrichten-System für Member-to-Member-Kommunikation.
-Unterstützt Threads (Antworten), Soft-Delete und Empfänger-Suche.
+Verwaltet Kommentare für Seiten und Beiträge inkl. Moderation.
 
 ```php
-$msg = CMS\Services\MessageService::getInstance();
-
-// Posteingang (paginiert)
-$inbox = $msg->getInbox($userId, 20, 0);
-
-// Gesendete Nachrichten
-$sent = $msg->getSent($userId, 20, 0);
-
-// Nachricht senden
-$id = $msg->send($senderId, $recipientId, 'Betreff', 'Nachrichtentext', $parentId);
-
-// Thread abrufen
-$thread = $msg->getThread($messageId, $userId);
-
-// Als gelesen markieren
-$msg->markAsRead($messageId, $userId);
-
-// Soft-Delete (physisch gelöscht wenn beide Parteien gelöscht haben)
-$msg->delete($messageId, $userId);
-
-// Ungelesene Nachrichten zählen
-$count = $msg->getUnreadCount($userId);
-
-// Konversationen gruppiert nach Thread
-$convos = $msg->getConversations($userId, 'inbox', 20, 0);
-
-// Empfänger-Autocomplete
-$users = $msg->searchRecipients('max', $currentUserId);
+$comments = new CMS\Services\CommentService();
+$list = $comments->getComments($pageId, ['status' => 'approved', 'limit' => 20]);
 ```
 
-**Datenbank-Tabelle:** `cms_messages` (Schema v8)
+---
 
-| Spalte | Typ | Beschreibung |
-|--------|-----|-------------|
-| id | BIGINT PK | Auto-Increment |
-| sender_id | INT UNSIGNED | FK → users |
-| recipient_id | INT UNSIGNED | FK → users |
-| subject | VARCHAR(255) | Betreff (optional) |
-| body | TEXT | Nachrichtentext |
-| is_read | TINYINT(1) | 0/1 |
-| read_at | TIMESTAMP | Lesezeitpunkt |
-| parent_id | BIGINT | Thread-Root-ID |
-| deleted_by_sender | TINYINT(1) | Soft-Delete Absender |
-| deleted_by_recipient | TINYINT(1) | Soft-Delete Empfänger |
-| created_at | TIMESTAMP | Erstellungsdatum |
+## CookieConsentService
+
+**Datei:** `core/Services/CookieConsentService.php`
+
+Generiert und verwaltet das Cookie-Consent-Banner (DSGVO-konform).
+
+---
+
+## EditorJsService / EditorJsRenderer
+
+**Dateien:** `core/Services/EditorJsService.php`, `core/Services/EditorJsRenderer.php`
+
+Integration des Editor.js Block-Editors. `EditorJsService` verwaltet das Speichern/Laden von Block-Daten; `EditorJsRenderer` konvertiert die JSON-Blöcke in HTML-Ausgabe.
+
+---
+
+## FeedService
+
+**Datei:** `core/Services/FeedService.php`
+
+Generiert RSS- und Atom-Feeds für veröffentlichte Inhalte.
+
+---
+
+## FileUploadService
+
+**Datei:** `core/Services/FileUploadService.php`
+
+Validiert und verarbeitet Datei-Uploads (Typ-Prüfung, Größenlimits, sichere Dateinamen).
+
+---
+
+## ImageService
+
+**Datei:** `core/Services/ImageService.php`
+
+Bildverarbeitung: Resize, Crop, WebP-Konvertierung, Thumbnail-Generierung. Nutzt die Intervention/Image-Bibliothek.
+
+---
+
+## MailService
+
+**Datei:** `core/Services/MailService.php`
+
+E-Mail-Versand über SMTP (PHPMailer). Unterstützt HTML-Templates und Anhänge.
+
+```php
+$mail = new CMS\Services\MailService();
+$mail->send('empfaenger@example.com', 'Betreff', '<p>HTML-Inhalt</p>');
+```
+
+---
+
+## PdfService
+
+**Datei:** `core/Services/PdfService.php`
+
+PDF-Generierung aus HTML via DomPDF. Wird u. a. für Rechnungen und Zertifikate verwendet.
+
+---
+
+## PurifierService
+
+**Datei:** `core/Services/PurifierService.php`
+
+HTML-Bereinigung via HTMLPurifier. Entfernt potenziell gefährlichen Code und erlaubt nur sichere Tags/Attribute.
+
+---
+
+## RedirectService
+
+**Datei:** `core/Services/RedirectService.php`
+
+Verwaltet 301/302-Weiterleitungen. Admin-UI zum Anlegen und Verwalten von Redirect-Regeln.
+
+---
+
+## SearchService
+
+**Datei:** `core/Services/SearchService.php`
+
+Volltextsuche über TNTSearch. Indiziert Seiten, Beiträge und Landing Pages.
+
+```php
+$search = new CMS\Services\SearchService();
+$results = $search->search('suchbegriff', ['limit' => 20]);
+```
+
+---
+
+## SeoAnalysisService
+
+**Datei:** `core/Services/SeoAnalysisService.php`
+
+Analysiert einzelne Seiten auf SEO-Kriterien (Titel-Länge, Meta-Description, Heading-Struktur, Keyword-Dichte) und liefert einen Score.
+
+---
+
+## SiteTableService
+
+**Datei:** `core/Services/SiteTableService.php`
+
+Verwaltet tabellarische Daten für Site-weite Anzeigen.
+
+---
+
+## TranslationService
+
+**Datei:** `core/Services/TranslationService.php`
+
+Übersetzungssystem (i18n). Lädt Sprachdateien aus `lang/` und stellt `__('key')`-artige Übersetzungsfunktionen bereit.

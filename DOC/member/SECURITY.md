@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Sicherheitsmodell des Member-Bereichs mit Login-Pflicht, CSRF-Schutz, Sanitizing und Escaping.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ---
 

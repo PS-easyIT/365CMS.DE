@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Ausführliche Entwicklerreferenz für Theme-Struktur, Templates, Hooks, Assets und Theme-spezifische Admin-Integration in 365CMS.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ## 📋 Inhaltsverzeichnis
 
@@ -439,9 +439,9 @@ Verwenden Sie Mobile-First CSS:
 Immer Ausgaben escapen:
 
 ```php
-<?php echo esc_html($variable); ?>
-<?php echo esc_url($url); ?>
-<?php echo esc_attr($attribute); ?>
+<?php echo htmlspecialchars($variable); ?>
+<?php echo htmlspecialchars($url); ?>
+<?php echo htmlspecialchars($attribute, ENT_QUOTES); ?>
 ```
 
 ### 4. Hooks verwenden
@@ -501,7 +501,7 @@ function theme_customizer() {
     ?>
     <style>
         :root {
-            --primary-color: <?php echo esc_attr($primary); ?>;
+            --primary-color: <?php echo htmlspecialchars($primary, ENT_QUOTES); ?>;
         }
     </style>
     <?php
@@ -812,6 +812,18 @@ if (!empty($customCSS)) {
 ```
 
 #### In footer.php
+
+```php
+<?php
+// Customizer-JS (falls benötigt)
+$customJS = $customizer->getSetting('advanced', 'custom_js', '');
+if (!empty($customJS)) {
+    echo "<script>\n" . htmlspecialchars($customJS) . "\n</script>\n";
+}
+?>
+```
+
+> **Hinweis:** Die Theme-Customization-API ist seit v2.3.1 stabil. Änderungen am Customizer werden in der Tabelle `cms_theme_customizations` gespeichert.
 
 ```php
 <?php

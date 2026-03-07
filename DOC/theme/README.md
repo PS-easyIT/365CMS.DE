@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über Theme-Aufbau, Theme-Verwaltung und die aktuellen Design-Werkzeuge im Hauptprojekt 365CMS.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ---
 

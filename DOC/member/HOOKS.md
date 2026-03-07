@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Erweiterungspunkte des Mitgliederbereichs für Navigation, Widgets und Benachrichtigungseinstellungen.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ---
 

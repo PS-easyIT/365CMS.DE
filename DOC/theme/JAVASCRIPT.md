@@ -1,5 +1,9 @@
 # JavaScript – navigation.js Referenz
 
+Kurzbeschreibung: Module, Events und Erweiterungspunkte des zentralen Theme-JavaScripts (Burger-Menü, Sticky Header, Dark Mode, Scroll-Animationen).
+
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+
 **Datei:** `themes/default/js/navigation.js`  
 **Ladeweise:** `<script defer>` im Footer
 
@@ -121,7 +125,7 @@ Nach `delay` ms: Fade-out + maximale Höhe auf 0, dann `.remove()`.
 
 ## Custom Events
 
-Eigene Module können auf Theme-Events lauschen (geplant v2.1.0):
+Eigene Module können auf Theme-Events lauschen (noch nicht implementiert – geplant für eine zukünftige Version):
 
 ```js
 // Burger-Menü geöffnet

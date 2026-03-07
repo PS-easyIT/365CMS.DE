@@ -99,6 +99,8 @@ Die Dokumentation beschreibt den aktuell verifizierten Stand **365CMS 2.3.1** mi
 
 Diese Dokumente enthalten teils Planungs- oder Bewertungsstände. Für aktuelle technische Aussagen haben Core-, Admin- und Member-Dokumente Vorrang.
 
+| Dokument | Inhalt |
+|----------|--------|
 | [PERFORMANCE-AUDIT.md](audits/PERFORMANCE-AUDIT.md) | Performance-Analyse (Score: 5.8/10) |
 | [SECURITY-AUDIT.md](audits/SECURITY-AUDIT.md) | Security-Analyse (Score: 5.2/10, 7 P1-Findings) |
 | [CORE-AUDIT.md](audits/CORE-AUDIT.md) | Core-Architektur-Audit (Score: 5.4/10) |
@@ -112,14 +114,8 @@ Diese Dokumente enthalten teils Planungs- oder Bewertungsstände. Für aktuelle 
 
 | Datei | Beschreibung |
 |-------|-------------|
-| [PLUGIN-REGISTRATION-WORKFLOW.MD](workflow/PLUGIN-REGISTRATION-WORKFLOW.MD) | Plugin-Registrierung & Member-Dashboard (1022 Zeilen) |
-| [SECURITY-HARDENING-WORKFLOW.md](workflow/SECURITY-HARDENING-WORKFLOW.md) | System-Härtung Phase 0–3 |
-| [PLUGIN-DEVELOPMENT-WORKFLOW.md](workflow/PLUGIN-DEVELOPMENT-WORKFLOW.md) | Plugin von Null bis Deployment |
-| [THEME-DEVELOPMENT-WORKFLOW.md](workflow/THEME-DEVELOPMENT-WORKFLOW.md) | Theme-Entwicklung Schritt für Schritt |
 | [CONTENT-MANAGEMENT-WORKFLOW.md](workflow/CONTENT-MANAGEMENT-WORKFLOW.md) | Inhalte erstellen, SEO, Publish-Prozess |
 | [MEDIA-UPLOAD-WORKFLOW.md](workflow/MEDIA-UPLOAD-WORKFLOW.md) | Upload-Pipeline: MIME, EXIF, WebP |
-| [USER-MANAGEMENT-WORKFLOW.md](workflow/USER-MANAGEMENT-WORKFLOW.md) | Benutzer, Rollen, RBAC, DSGVO |
-| [BACKUP-RESTORE-WORKFLOW.md](workflow/BACKUP-RESTORE-WORKFLOW.md) | Backup erstellen, Restore, Rollback |
 | [UPDATE-DEPLOYMENT-WORKFLOW.md](workflow/UPDATE-DEPLOYMENT-WORKFLOW.md) | CMS-Update, SHA-256-Verifikation, Deployment |
 | [MARKETPLACE-WORKFLOW.md](workflow/MARKETPLACE-WORKFLOW.md) | Plugin/Theme aus Marketplace installieren |
 | [API-INTEGRATION-WORKFLOW.md](workflow/API-INTEGRATION-WORKFLOW.md) | REST-API, Webhooks, externe Integrationen |
@@ -137,20 +133,15 @@ Diese Dokumente enthalten teils Planungs- oder Bewertungsstände. Für aktuelle 
 | Admin-Login | [admin/README.md#1-zugang--login](admin/README.md) |
 | Neuen User anlegen | [admin/GUIDE.md](admin/GUIDE.md) |
 | Plugin 10min Quickstart | [plugins/GUIDE.md](plugins/GUIDE.md) |
-| Plugin entwickeln (vollständig) | [workflow/PLUGIN-DEVELOPMENT-WORKFLOW.md](workflow/PLUGIN-DEVELOPMENT-WORKFLOW.md) |
-| Theme erstellen | [workflow/THEME-DEVELOPMENT-WORKFLOW.md](workflow/THEME-DEVELOPMENT-WORKFLOW.md) |
+| Plugin entwickeln (vollständig) | [plugins/PLUGIN-DEVELOPMENT.md](plugins/PLUGIN-DEVELOPMENT.md) |
+| Theme erstellen | [theme/THEME-DEVELOPMENT.md](theme/THEME-DEVELOPMENT.md) |
 | Hooks nutzen | [core/HOOKS-REFERENCE.md](core/HOOKS-REFERENCE.md) |
 | DB-Queries schreiben | [core/CORE-CLASSES.md](core/CORE-CLASSES.md#2-database) |
 | Sicherheit (CSRF/XSS) | [core/SECURITY.md](core/SECURITY.md) |
-| System härten (Produktion) | [workflow/SECURITY-HARDENING-WORKFLOW.md](workflow/SECURITY-HARDENING-WORKFLOW.md) |
-| Backup erstellen | [workflow/BACKUP-RESTORE-WORKFLOW.md](workflow/BACKUP-RESTORE-WORKFLOW.md) |
 | CMS updaten | [workflow/UPDATE-DEPLOYMENT-WORKFLOW.md](workflow/UPDATE-DEPLOYMENT-WORKFLOW.md) |
 | Medien hochladen (sicher) | [workflow/MEDIA-UPLOAD-WORKFLOW.md](workflow/MEDIA-UPLOAD-WORKFLOW.md) |
-| Benutzer verwalten | [workflow/USER-MANAGEMENT-WORKFLOW.md](workflow/USER-MANAGEMENT-WORKFLOW.md) |
+| Benutzer verwalten | [admin/users-groups/README.md](admin/users-groups/README.md) |
 | Plugin aus Marketplace | [workflow/MARKETPLACE-WORKFLOW.md](workflow/MARKETPLACE-WORKFLOW.md) |
 | API-Endpunkt registrieren | [workflow/API-INTEGRATION-WORKFLOW.md](workflow/API-INTEGRATION-WORKFLOW.md) |
-| Projektstatus prüfen | [feature/PROJEKT-STATUS.md](feature/PROJEKT-STATUS.md) |
-| Roadmap lesen | [feature/ROADMAP_FEB2026.md](feature/ROADMAP_FEB2026.md) |
-| Alle Features im Überblick | [feature/CORE-CMS-FEATURES.md](feature/CORE-CMS-FEATURES.md) |
 | Neue Plugin-Ideen | [feature/NEW-PLUGIN-CONCEPTS.md](feature/NEW-PLUGIN-CONCEPTS.md) |
 | Systemstatus prüfen | [core/STATUS.md](core/STATUS.md) |

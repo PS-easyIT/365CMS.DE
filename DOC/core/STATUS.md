@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verifizierter Architektur-, Versions- und Funktionsstand des Hauptprojekts zum Release 2.3.1.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ---
 

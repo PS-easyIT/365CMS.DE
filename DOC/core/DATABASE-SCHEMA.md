@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über das aktuell verifizierte Core-Schema und die zusätzlich von Modulen erzeugten Tabellen.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ---
 

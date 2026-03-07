@@ -2,9 +2,10 @@
 
 Kurzbeschreibung: Detailübersicht der zentralen Core-Klassen mit Aufgaben, Lifecycle und typischen Zugriffsmustern.
 
-Letzte Aktualisierung: 2026-03-07
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
-Alle 15 Core-Klassen des 365CMS im Detail – Aufgaben, wichtigste Methoden und Verwendungsbeispiele.
+Alle 22 Core-Klassen des 365CMS im Detail – Aufgaben, wichtigste Methoden und Verwendungsbeispiele.  
+Zusätzlich: 3 Interfaces in `Contracts/` und 1 Registry in `Member/`.
 
 ---
 
@@ -24,7 +25,15 @@ Alle 15 Core-Klassen des 365CMS im Detail – Aufgaben, wichtigste Methoden und 
 12. [Api](#12-api)
 13. [Debug](#13-debug)
 14. [WP\_Error](#14-wp_error)
-15. [SubscriptionManager](#15-subscriptionmanager-erweitert)
+15. [AuditLogger](#15-auditlogger)
+16. [Container](#16-container)
+17. [Logger](#17-logger)
+18. [SchemaManager](#18-schemamanager)
+19. [MigrationManager](#19-migrationmanager)
+20. [TableOfContents](#20-tableofcontents)
+21. [Totp](#21-totp)
+22. [Contracts (Interfaces)](#22-contracts-interfaces)
+23. [Member – PluginDashboardRegistry](#23-member--plugindashboardregistry)
 
 ---
 
@@ -473,3 +482,292 @@ if ($sm->hasFeature($user->id, 'premium_content')) {
     echo '<a href="/subscribe">Premium-Zugang freischalten</a>';
 }
 ```
+
+---
+
+## 12. Api
+
+**Datei:** `core/Api.php`  
+**Namespace:** `CMS`  
+**Aufgabe:** REST API v1 Controller. Handhabt `/api/v1/{endpoint}/{id}` mit Rate-Limiting (60 req/60 s pro IP).
+
+```php
+$api = CMS\Api::instance();
+```
+
+**Wichtige Methoden:**
+
+| Methode | Rückgabe | Beschreibung |
+|---------|----------|--------------|
+| `instance()` | `Api` | Singleton-Instanz |
+| `handleRequest(string $endpoint, ?string $id)` | `void` | Request an internen Handler dispatchen |
+
+Private Handler: `handlePages()`, `handleUsers()`, `sendResponse()`, `sendError()`.
+
+---
+
+## 13. Debug
+
+**Datei:** `core/Debug.php`  
+**Namespace:** `CMS`  
+**Aufgabe:** Debug-System für Admin-Bereiche. Zeigt Fehler, Timing und Speicherverbrauch. Schreibt nach `logs/debug-YYYY-MM-DD.log`.
+
+> Rein **statische** Klasse – kein `instance()`.
+
+```php
+CMS\Debug::enable();
+CMS\Debug::log('Query dauert lange', 'warning', $queryData);
+```
+
+**Alle Methoden (static):**
+
+| Methode | Rückgabe | Beschreibung |
+|---------|----------|--------------|
+| `enable(bool $enable = true)` | `void` | Debug-Modus an/aus |
+| `isEnabled()` | `bool` | Ist Debug aktiv? |
+| `startTimer()` | `void` | Zeitmessung starten |
+| `getElapsedTime()` | `float` | Vergangene Zeit in Sekunden |
+| `log(string $message, string $type, mixed $data)` | `void` | Nachricht loggen |
+
+---
+
+## 14. WP_Error
+
+**Datei:** `core/WP_Error.php`  
+**Namespace:** `CMS`  
+**Aufgabe:** WordPress-kompatible Fehlerklasse – einfacher Error-Container mit Code, Message und Data.
+
+```php
+$error = new CMS\WP_Error('not_found', 'Seite nicht gefunden.');
+if (is_wp_error($error)) {
+    echo $error->get_error_message();
+}
+```
+
+**Methoden:**
+
+| Methode | Rückgabe | Beschreibung |
+|---------|----------|--------------|
+| `__construct($code, $message, $data)` | — | Fehler erstellen |
+| `get_error_code()` | `string` | Fehlercode lesen |
+| `get_error_message()` | `string` | Fehlermeldung lesen |
+| `get_error_data()` | `array` | Zusatzdaten lesen |
+| `add(string $code, string $message, mixed $data)` | `void` | Weiteren Fehler hinzufügen |
+
+**Globale Funktion:** `is_wp_error(mixed $thing): bool`
+
+---
+
+## 15. AuditLogger
+
+**Datei:** `core/AuditLogger.php`  
+**Namespace:** `CMS`  
+**Aufgabe:** Zentrales Sicherheits-Audit-Log – protokolliert sicherheitsrelevante Aktionen (Theme-Wechsel, Plugin-Aktivierung, Admin-Login, Rollenwechsel) in `{prefix}audit_log`.
+
+```php
+$audit = CMS\AuditLogger::instance();
+$audit->log('security', 'ip_blocked', '5 fehlgeschlagene Logins', 'ip', null, ['ip' => $ip]);
+```
+
+**Kategorien-Konstanten:** `CAT_AUTH`, `CAT_THEME`, `CAT_PLUGIN`, `CAT_USER`, `CAT_SETTING`, `CAT_MEDIA`, `CAT_SYSTEM`, `CAT_SECURITY`
+
+| Methode | Rückgabe | Beschreibung |
+|---------|----------|--------------|
+| `log(string $category, string $action, string $desc, ...)` | `void` | Audit-Eintrag schreiben |
+| `themeSwitch(string $from, string $to)` | `void` | Theme-Wechsel protokollieren |
+| `themeDelete(string $folder)` | `void` | Theme-Löschung protokollieren |
+| `themeFileEdit(string $theme, string $file)` | `void` | Theme-Datei-Bearbeitung |
+| `pluginAction(string $action, string $slug)` | `void` | Plugin aktivieren/deaktivieren |
+| `loginSuccess(string $username)` | `void` | Erfolgreicher Login |
+| `loginFailed(string $username)` | `void` | Fehlgeschlagener Login |
+| `userRoleChange(int $userId, string $old, string $new)` | `void` | Rollenwechsel |
+| `backupAction(string $action, string $file)` | `void` | Backup-Aktion |
+| `getRecent(int $limit, string $category)` | `array` | Letzte Einträge abrufen |
+
+---
+
+## 16. Container
+
+**Datei:** `core/Container.php`  
+**Namespace:** `CMS`  
+**Aufgabe:** Einfacher Dependency-Injection-Container mit Factory-Bindings, Singletons und Lazy-Auflösung.
+
+```php
+$container = CMS\Container::instance();
+$container->singleton('mailer', fn() => new MailService());
+$mailer = $container->make('mailer');
+```
+
+| Methode | Rückgabe | Beschreibung |
+|---------|----------|--------------|
+| `bind(string $abstract, Closure $factory)` | `void` | Factory registrieren (jeder Aufruf = neue Instanz) |
+| `singleton(string $abstract, Closure $factory)` | `void` | Factory als Singleton registrieren |
+| `bindInstance(string $abstract, mixed $resolved)` | `void` | Fertige Instanz direkt binden |
+| `make(string $abstract)` | `mixed` | Auflösen (Factory oder Singleton) |
+| `has(string $abstract)` | `bool` | Prüfen ob Binding existiert |
+| `forget(string $abstract)` | `void` | Binding entfernen |
+| `flush()` | `void` | Alle Bindings leeren |
+
+---
+
+## 17. Logger
+
+**Datei:** `core/Logger.php`  
+**Namespace:** `CMS`  
+**Implements:** `CMS\Contracts\LoggerInterface`  
+**Aufgabe:** PSR-3-kompatibles Logging-System mit täglicher Dateirotation, Channel-Support, Sensitive-Data-Filterung und automatischer AuditLogger-Spiegelung ab CRITICAL.
+
+```php
+$log = CMS\Logger::instance();           // Standard-Channel 'cms'
+$log->info('Seite gespeichert', ['id' => 42]);
+
+$pluginLog = CMS\Logger::instance('plugins');  // Eigener Channel
+$pluginLog->warning('Plugin veraltet', ['slug' => 'cms-forum']);
+```
+
+**Log-Level:** `EMERGENCY` > `ALERT` > `CRITICAL` > `ERROR` > `WARNING` > `NOTICE` > `INFO` > `DEBUG`
+
+| Methode | Rückgabe | Beschreibung |
+|---------|----------|--------------|
+| `instance(string $channel = 'cms')` | `Logger` | Singleton pro Channel |
+| `emergency/alert/critical/error/warning/notice/info/debug()` | `void` | Nachricht im jeweiligen Level loggen |
+| `log(string $level, string $message, array $context)` | `void` | Nachricht mit beliebigem Level |
+| `isLevelEnabled(string $level)` | `bool` | Ist Log-Level aktiv? |
+| `withChannel(string $channel)` | `Logger` | Geklonte Instanz mit anderem Channel |
+
+---
+
+## 18. SchemaManager
+
+**Datei:** `core/SchemaManager.php`  
+**Namespace:** `CMS`  
+**Aufgabe:** Erstellt alle 30 CMS-Basis-Tabellen via `CREATE TABLE IF NOT EXISTS`. Legt Standard-Admin-Account an. Idempotent über Flag-Datei.
+
+> Kein Singleton – wird mit `new SchemaManager($db)` instanziiert.
+
+**Schema-Version:** `v10`
+
+```php
+$schema = new CMS\SchemaManager(CMS\Database::instance());
+$schema->createTables();
+```
+
+| Methode | Rückgabe | Beschreibung |
+|---------|----------|--------------|
+| `createTables()` | `void` | Alle 30 Tabellen erstellen |
+| `getFlagFile()` | `string` | Pfad zur Flag-Datei |
+| `clearFlag()` | `void` | Flag zurücksetzen (erzwingt Neu-Erstellung) |
+
+---
+
+## 19. MigrationManager
+
+**Datei:** `core/MigrationManager.php`  
+**Namespace:** `CMS`  
+**Aufgabe:** Inkrementelle Spalten-Migrationen (ALTER TABLE). Wird nach SchemaManager ausgeführt.
+
+> Kein Singleton – wird mit `new MigrationManager($db)` instanziiert.
+
+**Schema-Version:** `v7` (gespeichert in `cms_settings` als `db_schema_version`)
+
+```php
+$migrator = new CMS\MigrationManager(CMS\Database::instance());
+$migrator->run();
+```
+
+| Methode | Rückgabe | Beschreibung |
+|---------|----------|--------------|
+| `run()` | `void` | Alle ausstehenden Migrationen ausführen |
+| `repairTables()` | `void` | Fehlende Spalten nachträglich ergänzen |
+
+---
+
+## 20. TableOfContents
+
+**Datei:** `core/TableOfContents.php`  
+**Namespace:** `CMS`  
+**Aufgabe:** Parst HTML-Content, fügt Anker-IDs in Überschriften ein und erzeugt ein TOC-Widget. Unterstützt `[cms_toc]`-Shortcode und Auto-Insert.
+
+```php
+$toc = CMS\TableOfContents::instance();
+$result = $toc->process($htmlContent, 'post', $postId);
+echo $result['toc'];     // TOC-HTML
+echo $result['content'];  // Content mit Anker-IDs
+```
+
+| Methode | Rückgabe | Beschreibung |
+|---------|----------|--------------|
+| `getSetting(string $key, mixed $default)` | `mixed` | TOC-Einstellung aus DB |
+| `process(string $content, string $type, int $id)` | `array` | Content verarbeiten, TOC generieren |
+| `renderFromContent(string $content)` | `string` | TOC direkt aus Content rendern |
+
+---
+
+## 21. Totp
+
+**Datei:** `core/Totp.php`  
+**Namespace:** `CMS`  
+**Aufgabe:** Pure-PHP TOTP-Implementierung (RFC 6238/4226/4648). Kompatibel mit Google Authenticator, Authy, MS Authenticator. 30-Sekunden-Intervall, 6 Ziffern, ±1 Fenster.
+
+```php
+$totp = CMS\Totp::instance();
+$secret = $totp->generateSecret();
+$uri = $totp->getOtpAuthUri($secret, 'user@example.com', '365CMS');
+
+// Prüfung
+if ($totp->verifyCode($secret, $_POST['code'])) {
+    echo '2FA erfolgreich';
+}
+```
+
+| Methode | Rückgabe | Beschreibung |
+|---------|----------|--------------|
+| `generateSecret()` | `string` | Base32-Secret erzeugen (32 Zeichen) |
+| `generateCode(string $secret, ?int $ts)` | `string` | 6-stelligen Code generieren |
+| `verifyCode(string $secret, string $code)` | `bool` | Code validieren (±1 Zeitfenster) |
+| `getOtpAuthUri(string $secret, string $account, string $issuer)` | `string` | OTP-Auth-URI für QR-Code |
+| `base32Encode(string $data)` | `string` | Base32-Kodierung |
+| `base32Decode(string $data)` | `string` | Base32-Dekodierung |
+
+---
+
+## 22. Contracts (Interfaces)
+
+**Verzeichnis:** `core/Contracts/`
+
+Drei Interfaces für Dependency Injection und Testbarkeit:
+
+| Interface | Datei | Zweck |
+|-----------|-------|-------|
+| `CacheInterface` | `CacheInterface.php` | PSR-16-ähnlicher Cache-Contract |
+| `DatabaseInterface` | `DatabaseInterface.php` | Datenbank-Abstraktionsschicht |
+| `LoggerInterface` | `LoggerInterface.php` | PSR-3-kompatibler Logger |
+
+---
+
+## 23. Member – PluginDashboardRegistry
+
+**Datei:** `core/Member/PluginDashboardRegistry.php`  
+**Namespace:** `CMS\Member`  
+**Aufgabe:** Zentrale Registrierung für Plugin-Bereiche im Member-Dashboard. Plugins registrieren sich via `member_dashboard_init`-Hook.
+
+```php
+$registry = CMS\Member\PluginDashboardRegistry::instance();
+
+// Plugin registriert sich:
+$registry->register([
+    'slug'      => 'mein-plugin',
+    'label'     => 'Mein Plugin',
+    'icon'      => 'fas fa-star',
+    'callback'  => [$this, 'renderMemberPage'],
+]);
+```
+
+| Methode | Rückgabe | Beschreibung |
+|---------|----------|--------------|
+| `register(array $config)` | `void` | Plugin-Bereich registrieren |
+| `getSection(string $slug)` | `?array` | Registrierten Bereich abrufen |
+| `getAll()` | `array` | Alle Registrierungen |
+| `getMenuItems(string $current)` | `array` | Menüeinträge für Sidebar |
+| `getDashboardWidgets(object $user)` | `array` | Dashboard-Widgets sammeln |
+| `handleRoute(string $slug, array $params)` | `void` | Route an Plugin dispatchen |
