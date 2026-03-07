@@ -21,6 +21,7 @@ $category   = $data['category'] ?? '';
 $view       = $data['view'] ?? 'list';
 $search     = $data['search'] ?? '';
 $confirmMember = (string)($_GET['confirm_member'] ?? '') === '1';
+$memberFolderConfirmMessage = 'Der Member-Bereich enthält sensible Uploads. Möchten Sie den Ordner wirklich öffnen?';
 
 function mediaAdminUrl(array $params = []): string {
     $params = array_filter($params, static fn($value): bool => $value !== '' && $value !== null);
@@ -251,7 +252,7 @@ function mediaFolderRequiresConfirmation(string $folderPath): bool {
                                 $requiresConfirm = mediaFolderRequiresConfirmation($folderPath) && !$confirmMember;
                                 ?>
                                 <div class="media-grid-item media-grid-folder">
-                                    <a href="<?php echo htmlspecialchars($folderUrl); ?>" class="text-decoration-none text-reset media-folder-link" <?php echo $requiresConfirm ? 'data-confirm-member="1" data-confirm-url="' . htmlspecialchars($confirmUrl, ENT_QUOTES) . '"' : ''; ?>>
+                                    <a href="<?php echo htmlspecialchars($folderUrl); ?>" class="text-decoration-none text-reset media-folder-link" <?php echo $requiresConfirm ? 'data-confirm-url="' . htmlspecialchars($confirmUrl, ENT_QUOTES) . '" onclick="return confirmMemberFolderAccess(this);"' : ''; ?>>
                                         <div class="media-grid-thumb"><span class="folder-icon">📁</span></div>
                                         <div class="media-grid-label"><?php echo htmlspecialchars($folderName); ?></div>
                                         <div class="media-grid-meta"><?php echo (int)($folder['items_count'] ?? 0); ?> Einträge</div>
@@ -320,7 +321,7 @@ function mediaFolderRequiresConfirmation(string $folderPath): bool {
                                         <tr>
                                             <td><span class="folder-icon">📁</span></td>
                                             <td>
-                                                <a href="<?php echo htmlspecialchars($folderUrl); ?>" class="fw-semibold text-reset media-folder-link" <?php echo $requiresConfirm ? 'data-confirm-member="1" data-confirm-url="' . htmlspecialchars($confirmUrl, ENT_QUOTES) . '"' : ''; ?>>
+                                                <a href="<?php echo htmlspecialchars($folderUrl); ?>" class="fw-semibold text-reset media-folder-link" <?php echo $requiresConfirm ? 'data-confirm-url="' . htmlspecialchars($confirmUrl, ENT_QUOTES) . '" onclick="return confirmMemberFolderAccess(this);"' : ''; ?>>
                                                     <?php echo htmlspecialchars($folderName); ?>
                                                 </a>
                                             </td>
@@ -465,27 +466,17 @@ function mediaFolderRequiresConfirmation(string $folderPath): bool {
 </form>
 
 <script>
-document.querySelectorAll('.media-folder-link[data-confirm-member="1"]').forEach(function(link) {
-    link.addEventListener('click', function(event) {
-        event.preventDefault();
-        var targetUrl = this.getAttribute('data-confirm-url') || this.getAttribute('href');
-        if (typeof cmsConfirm === 'function') {
-            cmsConfirm({
-                title: 'Member-Ordner öffnen',
-                message: 'Der Member-Bereich enthält sensible Uploads. Möchten Sie den Ordner wirklich öffnen?',
-                confirmText: 'Öffnen',
-                onConfirm: function() {
-                    window.location.href = targetUrl;
-                }
-            });
-            return;
-        }
+function confirmMemberFolderAccess(link) {
+    var targetUrl = link.getAttribute('data-confirm-url') || link.getAttribute('href');
+    var message = <?php echo json_encode($memberFolderConfirmMessage, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 
-        if (window.confirm('Der Member-Bereich enthält sensible Uploads. Möchten Sie den Ordner wirklich öffnen?')) {
-            window.location.href = targetUrl;
-        }
-    });
-});
+    if (!window.confirm(message)) {
+        return false;
+    }
+
+    window.location.href = targetUrl;
+    return false;
+}
 
 function deleteMedia(path, name, itemType) {
     var submitDelete = function() {

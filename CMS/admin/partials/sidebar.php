@@ -18,6 +18,7 @@ $activePage = $activePage ?? '';
 $siteUrl    = defined('SITE_URL') ? SITE_URL : '';
 $assetsUrl  = defined('ASSETS_URL') ? ASSETS_URL : $siteUrl . '/assets';
 $sidebarLogoUrl = 'https://365cms.de/public_cms/images/LOGO_365CMS-75px.png';
+$defaultPluginIcon = '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h10v10h-10z"/><path d="M14 7v-3a1 1 0 0 0 -1 -1h-2a1 1 0 0 0 -1 1v3"/><path d="M7 14h-3a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1h3"/><path d="M17 14h3a1 1 0 0 0 1 -1v-2a1 1 0 0 0 -1 -1h-3"/><path d="M14 17v3a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1v-3"/></svg>';
 
 // Marketplace ein-/ausblenden (DB-Setting, Default: aktiviert)
 $_marketplaceEnabled = true;
@@ -32,6 +33,7 @@ try {
 
 // Plugin-Menüs laden und für die Sidebar verfügbar machen
 $registeredPluginMenus = [];
+$pluginMenuGroups = [];
 try {
     \CMS\Hooks::doAction('cms_admin_menu');
     if (function_exists('get_registered_admin_menus')) {
@@ -61,12 +63,10 @@ foreach ($registeredPluginMenus as $menu) {
 
     $menuSlug  = (string)$menu['menu_slug'];
     $menuTitle = (string)($menu['menu_title'] ?? $menuSlug);
-    $pluginSidebarChildren[] = [
-        'label' => $menuTitle,
-        'slug'  => $menuSlug,
-        'url'   => $siteUrl . '/admin/plugins/' . rawurlencode($menuSlug) . '/' . rawurlencode($menuSlug),
-    ];
-    $pluginSidebarSlugs[] = $menuSlug;
+    $menuUrl = $siteUrl . '/admin/plugins/' . rawurlencode($menuSlug) . '/' . rawurlencode($menuSlug);
+    $menuIcon = buildSidebarPluginIcon((string)($menu['icon_url'] ?? ''), $defaultPluginIcon);
+    $children = [];
+    $groupSlugs = [$menuSlug];
 
     foreach ((array)($menu['children'] ?? []) as $child) {
         if (!is_array($child) || empty($child['menu_slug'])) {
@@ -74,13 +74,48 @@ foreach ($registeredPluginMenus as $menu) {
         }
 
         $childSlug = (string)$child['menu_slug'];
-        $pluginSidebarChildren[] = [
-            'label' => '— ' . (string)($child['menu_title'] ?? $childSlug),
+        $children[] = [
+            'label' => (string)($child['menu_title'] ?? $childSlug),
             'slug'  => $childSlug,
             'url'   => $siteUrl . '/admin/plugins/' . rawurlencode($menuSlug) . '/' . rawurlencode($childSlug),
         ];
-        $pluginSidebarSlugs[] = $childSlug;
+        $groupSlugs[] = $childSlug;
     }
+
+    if ($children !== []) {
+        $hasOverviewChild = false;
+        foreach ($children as $child) {
+            if (($child['slug'] ?? '') === $menuSlug) {
+                $hasOverviewChild = true;
+                break;
+            }
+        }
+
+        if (!$hasOverviewChild) {
+            array_unshift($children, [
+                'label' => 'Übersicht',
+                'slug'  => $menuSlug,
+                'url'   => $menuUrl,
+            ]);
+        }
+
+        $pluginMenuGroups[] = [
+            'type'     => 'group',
+            'label'    => $menuTitle,
+            'icon'     => $menuIcon,
+            'slugs'    => array_values(array_unique($groupSlugs)),
+            'children' => $children,
+        ];
+        continue;
+    }
+
+    $pluginMenuGroups[] = [
+        'type'  => 'item',
+        'label' => $menuTitle,
+        'slug'  => $menuSlug,
+        'url'   => $menuUrl,
+        'icon'  => $menuIcon,
+    ];
 }
 
 $pluginSidebarChildren = array_values(array_unique($pluginSidebarChildren, SORT_REGULAR));
@@ -265,6 +300,39 @@ $menuGroups = [
     ],
 ];
 
+if ($pluginMenuGroups !== []) {
+    foreach ($menuGroups as $index => $item) {
+        if (($item['type'] ?? '') === 'group' && in_array('plugins', (array)($item['slugs'] ?? []), true)) {
+            $pluginCount = count($pluginMenuGroups);
+            array_splice($menuGroups, $index + 1, 0, array_merge([
+                [
+                    'type'  => 'spacer',
+                    'class' => 'nav-spacer--plugins-start',
+                ],
+            ], array_map(static function (array $pluginGroup, int $pluginIndex) use ($pluginCount): array {
+                $classes = ['nav-item--plugin'];
+
+                if ($pluginIndex === 0) {
+                    $classes[] = 'nav-item--plugin-first';
+                }
+
+                if ($pluginIndex === $pluginCount - 1) {
+                    $classes[] = 'nav-item--plugin-last';
+                }
+
+                $pluginGroup['class'] = trim((string)($pluginGroup['class'] ?? '') . ' ' . implode(' ', $classes));
+                return $pluginGroup;
+            }, $pluginMenuGroups, array_keys($pluginMenuGroups)), [
+                [
+                    'type'  => 'spacer',
+                    'class' => 'nav-spacer--plugins-end',
+                ],
+            ]));
+            break;
+        }
+    }
+}
+
 /**
  * Prüft ob ein Slug aktiv ist
  */
@@ -277,6 +345,24 @@ function isSlugActive(string $slug, string $activePage): bool {
  */
 function isGroupActive(array $slugs, string $activePage): bool {
     return in_array($activePage, $slugs, true);
+}
+
+function buildSidebarPluginIcon(string $icon, string $fallback): string {
+    $icon = trim($icon);
+
+    if ($icon === '') {
+        return $fallback;
+    }
+
+    if (str_starts_with($icon, '<')) {
+        return $icon;
+    }
+
+    if (preg_match('~^(https?://|/)~i', $icon) === 1) {
+        return '<img src="' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . '" alt="" class="icon" style="width:24px;height:24px;object-fit:contain;">';
+    }
+
+    return '<span class="icon d-inline-flex align-items-center justify-content-center" aria-hidden="true">' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . '</span>';
 }
 
 ?>
@@ -306,9 +392,20 @@ function isGroupActive(array $slugs, string $activePage): bool {
 
                 <?php foreach ($menuGroups as $item): ?>
 
-                    <?php if ($item['type'] === 'item'): ?>
+                    <?php if ($item['type'] === 'divider'): ?>
+                        <li class="nav-divider <?php echo htmlspecialchars((string)($item['class'] ?? '')); ?>" aria-hidden="true"></li>
+
+                    <?php elseif ($item['type'] === 'spacer'): ?>
+                        <li class="<?php echo htmlspecialchars((string)($item['class'] ?? 'nav-spacer')); ?>" aria-hidden="true"></li>
+
+                    <?php elseif ($item['type'] === 'section-label'): ?>
+                        <li class="nav-section-label <?php echo htmlspecialchars((string)($item['class'] ?? '')); ?>">
+                            <?= htmlspecialchars((string)($item['label'] ?? '')) ?>
+                        </li>
+
+                    <?php elseif ($item['type'] === 'item'): ?>
                         <!-- Einzelner Menüpunkt -->
-                        <li class="nav-item<?= isSlugActive($item['slug'], $activePage) ? ' active' : '' ?>">
+                        <li class="nav-item<?= isSlugActive($item['slug'], $activePage) ? ' active' : '' ?><?= !empty($item['class']) ? ' ' . htmlspecialchars((string)$item['class']) : '' ?>">
                             <a class="nav-link" href="<?= htmlspecialchars($item['url']) ?>">
                                 <span class="nav-link-icon"><?= $item['icon'] ?></span>
                                 <span class="nav-link-title"><?= htmlspecialchars($item['label']) ?></span>
@@ -318,7 +415,7 @@ function isGroupActive(array $slugs, string $activePage): bool {
                     <?php elseif ($item['type'] === 'group'): ?>
                         <?php $groupActive = isGroupActive($item['slugs'], $activePage); ?>
                         <!-- Gruppe mit Untermenü -->
-                        <li class="nav-item dropdown<?= $groupActive ? ' active' : '' ?>">
+                        <li class="nav-item dropdown<?= $groupActive ? ' active' : '' ?><?= !empty($item['class']) ? ' ' . htmlspecialchars((string)$item['class']) : '' ?>">
                             <a class="nav-link dropdown-toggle<?= $groupActive ? ' show' : '' ?>"
                                href="#sidebar-<?= htmlspecialchars($item['slugs'][0] ?? 'group') ?>"
                                data-bs-toggle="dropdown" data-bs-auto-close="false"
