@@ -1,4 +1,4 @@
-# 365CMS.DE | [MERIDAN THEME](https://meridan.365cms.de/) [![Generic badge](https://img.shields.io/badge/VERSION-2.1.0-blue.svg)](https://shields.io/)
+# 365CMS.DE | [MERIDAN THEME](https://meridan.365cms.de/) [![Generic badge](https://img.shields.io/badge/VERSION-2.1.1-blue.svg)](https://shields.io/)
  ---
 
 ![PHP](https://img.shields.io/badge/php-%23777BB4.svg?style=for-the-badge&logo=php&logoColor=white)![MySQL](https://img.shields.io/badge/mysql-4479A1.svg?style=for-the-badge&logo=mysql&logoColor=white)![MariaDB](https://img.shields.io/badge/MariaDB-003545?style=for-the-badge&logo=mariadb&logoColor=white)![HTML5](https://img.shields.io/badge/html5-%23E34F26.svg?style=for-the-badge&logo=html5&logoColor=white)![CSS3](https://img.shields.io/badge/css3-%231572B6.svg?style=for-the-badge&logo=css3&logoColor=white)
@@ -26,7 +26,7 @@
 
 <img src="DOC/screenshots/admincenter_rbac.jpg" width="700" alt="Rollen & Berechtigungen (RBAC)">
 
-*Granulare Rollen- und Rechteverwaltung (RBAC) mit 8 Capability-Checkboxen pro Gruppe.*
+*Dynamische Rollen- und Rechteverwaltung mit Berechtigungsmatrix sowie Dialogen zum Anlegen eigener Rollen und Rechte.*
 
 ---
 
@@ -46,7 +46,7 @@
 
 <img src="DOC/screenshots/admincenter_media-managemend.jpg" width="700" alt="Medien-Bibliothek">
 
-*Vollständige Media-Library mit Upload, Grid-/Listen-Ansicht, MIME-Filterung und Media-Proxy.*
+*Vollständige Media-Library mit Upload, Standard-Listenansicht, Such-/Kategorie-Filtern, geschütztem Member-Bereich und Media-Proxy.*
 
 ---
 
@@ -105,10 +105,10 @@
 
 ### 👤 Benutzerverwaltung
 - ✅ **Benutzer-Übersicht** - Stat-Cards (Gesamt, Aktiv, Admins, Mitglieder), Suche, Rollen-Filterung
-- ✅ **Benutzer-Editor** - Erstellen, Bearbeiten, Passwort-Reset, Rollen- und Gruppen-Zuordnung
+- ✅ **Benutzer-Editor** - Erstellen, Bearbeiten, Passwort-Reset, Rollen- und Gruppen-Zuordnung mit dynamischen Rollenlisten
 - ✅ **Bulk-Aktionen** - Massenoperationen: Aktivieren, Deaktivieren, Löschen
 - ✅ **Gruppen-Verwaltung** - Eigene Benutzergruppen mit individuellen Paket-Zuweisungen
-- ✅ **RBAC** - Role-Based Access Control mit 8 granularen Capabilities pro Gruppe
+- ✅ **RBAC** - Dynamische Rollen- und Rechteverwaltung mit Berechtigungsmatrix, eigenen Rollen/Rechten und DB-gestützter Capability-Prüfung
 - ✅ **Member-Dashboard** - Admin-seitige Verwaltung aller Mitgliederbereiche
 - ✅ **Login-Protokoll** - Vollständige Aufzeichnung aller Login-Ereignisse pro Benutzer
 
@@ -122,9 +122,9 @@
 
 ### 🖼️ Medien-Bibliothek
 - ✅ **Media-Upload** - Drag-&-Drop, MIME-Typ-Filterung, automatische Thumbnail-Generierung
-- ✅ **Galerie-Ansicht** - Grid- und Listen-Layout mit Such- und Filteroptionen
+- ✅ **Galerie-Ansicht** - Grid- und Listen-Layout mit Standard-Listenansicht, Suchfeld, Kategorien-Filter und robuster Vorschaulogik
 - ✅ **Media-Proxy** - Sicheres Ausliefern von Medien über kontrollierten Proxy-Endpunkt
-- ✅ **Datei-Verwaltung** - Umbenennen, Löschen, Metadaten-Bearbeitung (Alt-Text, Beschreibung)
+- ✅ **Datei-Verwaltung** - Umbenennen, Löschen von Dateien/Ordnern, Kategorien-Zuweisung und geschützter Member-Medienbereich mit Zusatzbestätigung
 - ✅ **Speicher-Statistiken** - Gesamtgröße, Dateianzahl, Typ-Aufschlüsselung
 
 ### 🔍 SEO & Analytics

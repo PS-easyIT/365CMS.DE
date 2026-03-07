@@ -418,10 +418,12 @@ class MemberService
      */
     public function getAvailablePackages(): array
     {
-        $table = $this->prefix . 'subscription_packages';
         try {
             return (array)$this->db->get_results(
-                "SELECT * FROM {$table} WHERE active = 1 ORDER BY sort_order ASC"
+                "SELECT id, name, slug, description, price_monthly, price_yearly, is_active, sort_order
+                 FROM {$this->prefix}subscription_plans
+                 WHERE is_active = 1
+                 ORDER BY sort_order ASC, price_monthly ASC"
             );
         } catch (\Throwable) {
             return [];

@@ -187,14 +187,27 @@ class Auth
             return true;
         }
 
-        // Capabilities Map
+        $db = Database::instance();
+
+        try {
+            $granted = $db->get_var(
+                "SELECT granted FROM {$db->getPrefix()}role_permissions WHERE role = ? AND capability = ? LIMIT 1",
+                [$role, $cap]
+            );
+
+            if ($granted !== null) {
+                return (bool)$granted;
+            }
+        } catch (\Throwable $e) {
+        }
+
         $caps = [
             'member' => ['read', 'edit_profile', 'view_content'],
             'editor' => ['read', 'edit_profile', 'view_content', 'edit_posts', 'publish_posts', 'manage_media'],
             'author' => ['read', 'edit_profile', 'view_content', 'edit_own_posts']
         ];
 
-        return isset($caps[$role]) && in_array($cap, $caps[$role]);
+        return isset($caps[$role]) && in_array($cap, $caps[$role], true);
     }
 
     /**

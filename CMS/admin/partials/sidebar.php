@@ -29,6 +29,62 @@ try {
     }
 } catch (\Throwable) {}
 
+// Plugin-Menüs laden und für die Sidebar verfügbar machen
+$registeredPluginMenus = [];
+try {
+    \CMS\Hooks::doAction('cms_admin_menu');
+    if (function_exists('get_registered_admin_menus')) {
+        $registeredPluginMenus = get_registered_admin_menus();
+    }
+} catch (\Throwable) {
+    $registeredPluginMenus = [];
+}
+
+$pluginSidebarChildren = [
+    ['label' => 'Plugins verwalten', 'slug' => 'plugins', 'url' => $siteUrl . '/admin/plugins'],
+];
+
+if ($_marketplaceEnabled) {
+    $pluginSidebarChildren[] = ['label' => 'Marketplace', 'slug' => 'plugin-marketplace', 'url' => $siteUrl . '/admin/plugin-marketplace'];
+}
+
+$pluginSidebarSlugs = ['plugins'];
+if ($_marketplaceEnabled) {
+    $pluginSidebarSlugs[] = 'plugin-marketplace';
+}
+
+foreach ($registeredPluginMenus as $menu) {
+    if (!is_array($menu) || !empty($menu['hidden']) || empty($menu['menu_slug'])) {
+        continue;
+    }
+
+    $menuSlug  = (string)$menu['menu_slug'];
+    $menuTitle = (string)($menu['menu_title'] ?? $menuSlug);
+    $pluginSidebarChildren[] = [
+        'label' => $menuTitle,
+        'slug'  => $menuSlug,
+        'url'   => $siteUrl . '/admin/plugins/' . rawurlencode($menuSlug) . '/' . rawurlencode($menuSlug),
+    ];
+    $pluginSidebarSlugs[] = $menuSlug;
+
+    foreach ((array)($menu['children'] ?? []) as $child) {
+        if (!is_array($child) || empty($child['menu_slug'])) {
+            continue;
+        }
+
+        $childSlug = (string)$child['menu_slug'];
+        $pluginSidebarChildren[] = [
+            'label' => '— ' . (string)($child['menu_title'] ?? $childSlug),
+            'slug'  => $childSlug,
+            'url'   => $siteUrl . '/admin/plugins/' . rawurlencode($menuSlug) . '/' . rawurlencode($childSlug),
+        ];
+        $pluginSidebarSlugs[] = $childSlug;
+    }
+}
+
+$pluginSidebarChildren = array_values(array_unique($pluginSidebarChildren, SORT_REGULAR));
+$pluginSidebarSlugs = array_values(array_unique($pluginSidebarSlugs));
+
 
 /**
  * Menü-Struktur: Hauptpunkte mit Icons, Unterpunkte ohne Icons
@@ -48,13 +104,14 @@ $menuGroups = [
         'type'     => 'group',
         'label'    => 'Seiten & Beiträge',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><path d="M9 9l1 0"/><path d="M9 13l6 0"/><path d="M9 17l6 0"/></svg>',
-        'slugs'    => ['pages', 'posts', 'comments', 'table-of-contents', 'site-tables'],
+        'slugs'    => ['pages', 'posts', 'comments', 'table-of-contents', 'site-tables', 'content-settings'],
         'children' => [
             ['label' => 'Seiten',               'slug' => 'pages',              'url' => $siteUrl . '/admin/pages'],
             ['label' => 'Beiträge',             'slug' => 'posts',              'url' => $siteUrl . '/admin/posts'],
             ['label' => 'Kommentare',           'slug' => 'comments',           'url' => $siteUrl . '/admin/comments'],
             ['label' => 'Inhaltsverzeichnis',   'slug' => 'table-of-contents',  'url' => $siteUrl . '/admin/table-of-contents'],
             ['label' => 'Tabellen',             'slug' => 'site-tables',        'url' => $siteUrl . '/admin/site-tables'],
+            ['label' => 'Einstellungen',        'slug' => 'content-settings',   'url' => $siteUrl . '/admin/settings?tab=content'],
         ],
     ],
 
@@ -63,7 +120,7 @@ $menuGroups = [
         'type'     => 'group',
         'label'    => 'Medienverwaltung',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 8h.01"/><path d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12z"/><path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5"/><path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3"/></svg>',
-        'slugs'    => ['media'],
+        'slugs'    => ['media', 'media-categories', 'media-settings'],
         'children' => [
             ['label' => 'Medien',         'slug' => 'media',              'url' => $siteUrl . '/admin/media'],
             ['label' => 'Kategorien',     'slug' => 'media-categories',   'url' => $siteUrl . '/admin/media?tab=categories'],
@@ -89,17 +146,33 @@ $menuGroups = [
         'type'     => 'group',
         'label'    => 'Themes & Design',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 0 1 0 -18c4.97 0 9 3.582 9 8c0 1.06 -.474 2.078 -1.318 2.828c-.844 .75 -1.989 1.172 -3.182 1.172h-2.5a2 2 0 0 0 -1 3.75a1.3 1.3 0 0 1 -1 2.25"/><path d="M8.5 10.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12.5 7.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M16.5 10.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg>',
-        'slugs'    => array_values(array_filter(['themes', 'theme-explorer', $_marketplaceEnabled ? 'theme-marketplace' : null, 'font-manager', 'menu-editor', 'member-dashboard', 'landing-page', 'design-settings'])),
-        'children' => array_values(array_filter([
-            ['label' => 'Themes',              'slug' => 'themes',             'url' => $siteUrl . '/admin/themes'],
-            ['label' => 'Theme-Explorer',      'slug' => 'theme-explorer',     'url' => $siteUrl . '/admin/theme-explorer'],
-            $_marketplaceEnabled ? ['label' => 'Marketplace',         'slug' => 'theme-marketplace',  'url' => $siteUrl . '/admin/theme-marketplace'] : null,
-            ['label' => 'Schriften',           'slug' => 'font-manager',       'url' => $siteUrl . '/admin/font-manager'],
-            ['label' => 'Menü-Editor',         'slug' => 'menu-editor',        'url' => $siteUrl . '/admin/menu-editor'],
-            ['label' => 'Member-Bereich',      'slug' => 'member-dashboard',   'url' => $siteUrl . '/admin/member-dashboard'],
-            ['label' => 'Landing Page',        'slug' => 'landing-page',       'url' => $siteUrl . '/admin/landing-page'],
-            ['label' => 'Design-Einstellungen','slug' => 'design-settings',    'url' => $siteUrl . '/admin/design-settings'],
-        ])),
+        'slugs'    => ['themes', 'theme-editor', 'theme-explorer', 'menu-editor', 'landing-page', 'font-manager'],
+        'children' => [
+            ['label' => 'Theme - Verwaltung', 'slug' => 'themes',         'url' => $siteUrl . '/admin/themes'],
+            ['label' => 'Theme - Editor',     'slug' => 'theme-editor',   'url' => $siteUrl . '/admin/theme-editor'],
+            ['label' => 'Theme - Explorer',   'slug' => 'theme-explorer', 'url' => $siteUrl . '/admin/theme-explorer'],
+            ['label' => 'Theme - Menü',       'slug' => 'menu-editor',    'url' => $siteUrl . '/admin/menu-editor'],
+            ['label' => 'Landing Page',       'slug' => 'landing-page',   'url' => $siteUrl . '/admin/landing-page'],
+            ['label' => 'Font Manager',       'slug' => 'font-manager',   'url' => $siteUrl . '/admin/font-manager'],
+        ],
+    ],
+
+    // ─── Member Dashboard ─────────────
+    [
+        'type'     => 'group',
+        'label'    => 'Member Dashboard',
+        'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 5a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v14l-4 -2l-4 2l-4 -2l-4 2z"/><path d="M8 7h8"/><path d="M8 11h8"/></svg>',
+        'slugs'    => ['member-dashboard'],
+        'children' => [
+            ['label' => 'Einstellungen',       'slug' => 'member-dashboard',              'url' => $siteUrl . '/admin/member-dashboard'],
+            ['label' => 'Dashboard',           'slug' => 'member-dashboard-link',         'url' => $siteUrl . '/member'],
+            ['label' => 'Meine Files',         'slug' => 'member-dashboard-media-link',   'url' => $siteUrl . '/member/media'],
+            ['label' => 'Mein Profil',         'slug' => 'member-dashboard-profile-link', 'url' => $siteUrl . '/member/profile'],
+            ['label' => 'Benachrichtigungen',  'slug' => 'member-dashboard-notify-link',  'url' => $siteUrl . '/member/notifications'],
+            ['label' => 'Datenschutz',         'slug' => 'member-dashboard-privacy-link', 'url' => $siteUrl . '/member/privacy'],
+            ['label' => 'Sicherheit',          'slug' => 'member-dashboard-security-link','url' => $siteUrl . '/member/security'],
+            ['label' => 'Mein Abo',            'slug' => 'member-dashboard-sub-link',     'url' => $siteUrl . '/member/subscription'],
+        ],
     ],
 
     // ─── Aboverwaltung ────────────────
@@ -109,9 +182,9 @@ $menuGroups = [
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 5m0 3a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3z"/><path d="M3 10l18 0"/><path d="M7 15l.01 0"/><path d="M11 15l2 0"/></svg>',
         'slugs'    => ['packages', 'subscription-settings', 'orders'],
         'children' => [
-            ['label' => 'Pakete',               'slug' => 'packages',              'url' => $siteUrl . '/admin/packages'],
-            ['label' => 'Abo-Einstellungen',    'slug' => 'subscription-settings', 'url' => $siteUrl . '/admin/subscription-settings'],
-            ['label' => 'Bestellungen',         'slug' => 'orders',                'url' => $siteUrl . '/admin/orders'],
+            ['label' => 'Pakete & Abo-Einstellungen', 'slug' => 'packages',              'url' => $siteUrl . '/admin/packages'],
+            ['label' => 'Bestellungen & Zuweisung',   'slug' => 'orders',                'url' => $siteUrl . '/admin/orders'],
+            ['label' => 'Einstellungen',              'slug' => 'subscription-settings', 'url' => $siteUrl . '/admin/subscription-settings'],
         ],
     ],
 
@@ -120,28 +193,38 @@ $menuGroups = [
         'type'     => 'group',
         'label'    => 'SEO & Performance',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M3.6 9h16.8"/><path d="M3.6 15h16.8"/><path d="M11.5 3a17 17 0 0 0 0 18"/><path d="M12.5 3a17 17 0 0 1 0 18"/></svg>',
-        'slugs'    => ['seo-dashboard', 'analytics', 'performance'],
+        'slugs'    => ['seo-dashboard', 'analytics', 'performance', 'redirect-manager'],
         'children' => [
             ['label' => 'SEO Dashboard',       'slug' => 'seo-dashboard', 'url' => $siteUrl . '/admin/seo-dashboard'],
             ['label' => 'Analytics',            'slug' => 'analytics',     'url' => $siteUrl . '/admin/analytics'],
             ['label' => 'Performance',          'slug' => 'performance',   'url' => $siteUrl . '/admin/performance'],
+            ['label' => '404-Errors & Weiterleitung', 'slug' => 'redirect-manager', 'url' => $siteUrl . '/admin/redirect-manager'],
         ],
     ],
 
-    // ─── Recht & Sicherheit ──────────
+    // ─── Recht ───────────────────────
     [
         'type'     => 'group',
-        'label'    => 'Recht & Sicherheit',
-        'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"/><path d="M12 11m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 12l0 2.5"/></svg>',
-        'slugs'    => ['legal-sites', 'cookie-manager', 'firewall', 'security-audit', 'antispam', 'privacy-requests', 'deletion-requests'],
+        'label'    => 'Recht',
+        'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 21h8"/><path d="M12 3l7 4v5c0 5 -3.5 7.5 -7 9c-3.5 -1.5 -7 -4 -7 -9v-5l7 -4"/></svg>',
+        'slugs'    => ['legal-sites', 'cookie-manager', 'data-requests', 'privacy-requests', 'deletion-requests'],
         'children' => [
-            ['label' => 'Rechtstexte',          'slug' => 'legal-sites',       'url' => $siteUrl . '/admin/legal-sites'],
-            ['label' => 'Cookie-Manager',       'slug' => 'cookie-manager',    'url' => $siteUrl . '/admin/cookie-manager'],
-            ['label' => 'Firewall',             'slug' => 'firewall',          'url' => $siteUrl . '/admin/firewall'],
-            ['label' => 'Sicherheits-Audit',    'slug' => 'security-audit',    'url' => $siteUrl . '/admin/security-audit'],
+            ['label' => 'Legal Sites',          'slug' => 'legal-sites',    'url' => $siteUrl . '/admin/legal-sites'],
+            ['label' => 'Cookie-Manager',       'slug' => 'cookie-manager', 'url' => $siteUrl . '/admin/cookie-manager'],
+            ['label' => 'Auskunft & Löschen',   'slug' => 'data-requests',  'url' => $siteUrl . '/admin/data-requests'],
+        ],
+    ],
+
+    // ─── Sicherheit ──────────────────
+    [
+        'type'     => 'group',
+        'label'    => 'Sicherheit',
+        'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"/><path d="M12 11m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 12l0 2.5"/></svg>',
+        'slugs'    => ['antispam', 'firewall', 'security-audit'],
+        'children' => [
             ['label' => 'AntiSpam',             'slug' => 'antispam',          'url' => $siteUrl . '/admin/antispam'],
-            ['label' => 'Datenschutz-Auskunft', 'slug' => 'privacy-requests',  'url' => $siteUrl . '/admin/privacy-requests'],
-            ['label' => 'Löschanträge',         'slug' => 'deletion-requests', 'url' => $siteUrl . '/admin/deletion-requests'],
+            ['label' => 'Firewall',             'slug' => 'firewall',          'url' => $siteUrl . '/admin/firewall'],
+            ['label' => 'Audit',                'slug' => 'security-audit',    'url' => $siteUrl . '/admin/security-audit'],
         ],
     ],
 
@@ -150,25 +233,33 @@ $menuGroups = [
         'type'     => 'group',
         'label'    => 'Plugins',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l0 10"/><path d="M20 7l0 10"/><path d="M12 3l0 18"/><path d="M3 17l4 -4l-4 -4"/><path d="M21 17l-4 -4l4 -4"/><path d="M11 7l2 -4l2 4"/></svg>',
-        'slugs'    => array_values(array_filter(['plugins', $_marketplaceEnabled ? 'plugin-marketplace' : null])),
-        'children' => array_values(array_filter([
-            ['label' => 'Plugins verwalten',   'slug' => 'plugins',            'url' => $siteUrl . '/admin/plugins'],
-            $_marketplaceEnabled ? ['label' => 'Marketplace',         'slug' => 'plugin-marketplace', 'url' => $siteUrl . '/admin/plugin-marketplace'] : null,
-        ])),
+        'slugs'    => $pluginSidebarSlugs,
+        'children' => $pluginSidebarChildren,
     ],
 
     // ─── System & Einstellungen ───────
     [
         'type'     => 'group',
-        'label'    => 'System & Einstellungen',
+        'label'    => 'System',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.066 2.573c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.573 1.066c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.066 -2.573c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"/><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/></svg>',
-        'slugs'    => ['settings', 'updates', 'backups', 'system-info', 'support'],
+        'slugs'    => ['settings', 'theme-settings', 'backups', 'updates'],
         'children' => [
-            ['label' => 'Einstellungen',       'slug' => 'settings',    'url' => $siteUrl . '/admin/settings'],
-            ['label' => 'Updates',             'slug' => 'updates',     'url' => $siteUrl . '/admin/updates'],
-            ['label' => 'Backup & Restore',    'slug' => 'backups',     'url' => $siteUrl . '/admin/backups'],
-            ['label' => 'Info & Diagnose',     'slug' => 'system-info', 'url' => $siteUrl . '/admin/system-info'],
-            ['label' => 'Support & Docs',      'slug' => 'support',     'url' => $siteUrl . '/admin/support'],
+            ['label' => 'Einstellungen',      'slug' => 'settings', 'url' => $siteUrl . '/admin/settings'],
+            ['label' => 'Backup & Restore',   'slug' => 'backups',  'url' => $siteUrl . '/admin/backups'],
+            ['label' => 'Updates',            'slug' => 'updates',  'url' => $siteUrl . '/admin/updates'],
+        ],
+    ],
+
+    // ─── Info & Diagnose ─────────────
+    [
+        'type'     => 'group',
+        'label'    => 'Info & Diagnose',
+        'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M12 9h.01"/><path d="M11 12h1v4h1"/></svg>',
+        'slugs'    => ['info', 'diagnose', 'documentation', 'system-info'],
+        'children' => [
+            ['label' => 'Info',              'slug' => 'info',       'url' => $siteUrl . '/admin/info'],
+            ['label' => 'Diagnose',          'slug' => 'diagnose',   'url' => $siteUrl . '/admin/diagnose'],
+            ['label' => 'Dokumentation',     'slug' => 'documentation', 'url' => $siteUrl . '/admin/documentation'],
         ],
     ],
 ];
@@ -186,9 +277,6 @@ function isSlugActive(string $slug, string $activePage): bool {
 function isGroupActive(array $slugs, string $activePage): bool {
     return in_array($activePage, $slugs, true);
 }
-
-// ─── Plugin-Menüs laden (dynamisch über Hooks) ───────────────────────────
-\CMS\Hooks::doAction('cms_admin_menu');
 
 ?>
 <aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="dark">

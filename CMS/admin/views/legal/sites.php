@@ -16,65 +16,150 @@ $tabIcons  = [
 ];
 $pageIdKeys = ['legal_imprint' => 'imprint_page_id', 'legal_privacy' => 'privacy_page_id', 'legal_terms' => 'terms_page_id', 'legal_revocation' => 'revocation_page_id'];
 $templateTypes = ['legal_imprint' => 'imprint', 'legal_privacy' => 'privacy', 'legal_terms' => 'terms', 'legal_revocation' => 'revocation'];
+$templateDefaults = $d['templates'] ?? [];
 ?>
 
-<ul class="nav nav-tabs mb-3" role="tablist">
-    <?php foreach ($tabKeys as $i => $key): $p = $pages[$key] ?? []; ?>
-    <li class="nav-item" role="presentation">
-        <a class="nav-link <?php echo $i === 0 ? 'active' : ''; ?>" data-bs-toggle="tab" href="#tab-<?php echo htmlspecialchars($key); ?>" role="tab">
-            <?php echo $tabIcons[$key] ?? ''; ?>
-            <?php echo htmlspecialchars($p['label'] ?? $key); ?>
-            <?php if (!empty($p['content'])): ?>
-                <span class="badge bg-success ms-1">✓</span>
-            <?php else: ?>
-                <span class="badge bg-secondary ms-1">–</span>
-            <?php endif; ?>
-        </a>
-    </li>
-    <?php endforeach; ?>
-</ul>
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <div class="page-pretitle">Recht</div>
+                <h2 class="page-title">Legal Sites</h2>
+            </div>
+        </div>
+    </div>
+</div>
 
-<form method="post">
-    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
-    <input type="hidden" name="action" value="save">
+<div class="page-body">
+    <div class="container-xl">
+        <div class="row row-deck row-cards mb-4">
+            <div class="col-md-4">
+                <div class="card"><div class="card-body"><div class="subheader">Bereiche</div><div class="h1 mb-0"><?= count($tabKeys) ?></div></div></div>
+            </div>
+            <div class="col-md-4">
+                <div class="card"><div class="card-body"><div class="subheader">Zugewiesene Seiten</div><div class="h1 mb-0"><?= count(array_filter($assigned)) ?></div></div></div>
+            </div>
+            <div class="col-md-4">
+                <div class="card"><div class="card-body"><div class="subheader">Veröffentlicht</div><div class="text-secondary">Impressum, Datenschutz, AGB und Widerruf zentral pflegen und vorhandenen Seiten zuordnen.</div></div></div>
+            </div>
+        </div>
 
-    <div class="tab-content">
+        <div class="alert alert-primary" role="alert">
+            Jeder Bereich enthält Vorlagen, Inhaltsfeld und Seitenzuordnung. Leere Bereiche können direkt mit einer Vorlage befüllt werden – also weniger weiße Wüste, mehr verwertbarer Rechtstext.
+        </div>
+        <?php if (!empty($alert)): ?>
+            <div class="alert alert-<?php echo htmlspecialchars($alert['type'] ?? 'info'); ?> mb-4" role="alert">
+                <?php echo htmlspecialchars($alert['message'] ?? ''); ?>
+            </div>
+        <?php endif; ?>
+
+        <div class="row row-cards">
         <?php foreach ($tabKeys as $i => $key): $p = $pages[$key] ?? []; ?>
-        <div class="tab-pane fade <?php echo $i === 0 ? 'show active' : ''; ?>" id="tab-<?php echo htmlspecialchars($key); ?>" role="tabpanel">
+        <div class="col-12">
+            <?php $templateType = $templateTypes[$key] ?? ''; ?>
+            <?php $defaultTemplate = $templateDefaults[$templateType] ?? ''; ?>
             <div class="card mb-3">
                 <div class="card-header d-flex align-items-center justify-content-between">
-                    <h3 class="card-title"><?php echo htmlspecialchars($p['label'] ?? ''); ?></h3>
-                    <form method="post" class="d-inline">
-                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
-                        <input type="hidden" name="action" value="generate">
-                        <input type="hidden" name="template_type" value="<?php echo htmlspecialchars($templateTypes[$key] ?? ''); ?>">
-                        <button type="submit" class="btn btn-outline-secondary btn-sm">Vorlage generieren</button>
-                    </form>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <?php echo $tabIcons[$key] ?? ''; ?>
+                        <h3 class="card-title mb-0"><?php echo htmlspecialchars($p['label'] ?? ''); ?></h3>
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button type="button" class="btn btn-outline-primary btn-sm js-insert-template" data-target="legal-<?php echo htmlspecialchars($key); ?>" data-template="<?php echo htmlspecialchars($defaultTemplate, ENT_QUOTES); ?>">Vorlage einfügen</button>
+                        <form method="post" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
+                            <input type="hidden" name="action" value="generate">
+                            <input type="hidden" name="template_type" value="<?php echo htmlspecialchars($templateType); ?>">
+                            <button type="submit" class="btn btn-outline-secondary btn-sm">Vorlage speichern</button>
+                        </form>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label">Inhalt (HTML)</label>
-                        <textarea name="<?php echo htmlspecialchars($key); ?>" class="form-control" rows="12"><?php echo htmlspecialchars($p['content'] ?? ''); ?></textarea>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 h-100 bg-light-subtle">
+                                <div class="subheader">Status</div>
+                                <div class="fw-bold mb-2"><?php echo !empty($p['content']) ? 'Inhalt vorhanden' : 'Noch leer'; ?></div>
+                                <div class="text-secondary small"><?php echo !empty($p['content']) ? 'Der Text ist gepflegt und kann einer Seite zugeordnet werden.' : 'Mit einem Klick auf „Vorlage generieren“ wird ein DSGVO-/TMG-Grundgerüst eingefügt.'; ?></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 h-100 bg-light-subtle">
+                                <div class="subheader">Zugeordnete Seite</div>
+                                <div class="fw-bold mb-2"><?php echo !empty($assigned[$pageIdKeys[$key] ?? '']) ? 'Verknüpft' : 'Nicht verknüpft'; ?></div>
+                                <div class="text-secondary small">Wähle unten eine veröffentlichte Seite, damit der Inhalt öffentlich an der richtigen Stelle ausgespielt wird.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 h-100 bg-light-subtle">
+                                <div class="subheader">Vorlage</div>
+                                <div class="fw-bold mb-2"><?php echo $defaultTemplate !== '' ? 'Standardtext verfügbar' : 'Keine Vorlage'; ?></div>
+                                <div class="text-secondary small">Die Vorlage enthält Platzhalter wie Firma, Anschrift und Kontakt und kann danach individuell angepasst werden.</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Zugewiesene Seite</label>
-                        <select name="<?php echo htmlspecialchars($pageIdKeys[$key] ?? ''); ?>" class="form-select">
-                            <option value="0">– Keine Seite –</option>
-                            <?php foreach ($allPages as $pg): ?>
-                                <option value="<?php echo (int)$pg['id']; ?>" <?php echo ($assigned[$pageIdKeys[$key] ?? ''] ?? '') == $pg['id'] ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($pg['title']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <small class="form-hint">Ordne eine bestehende Seite zu, die diesen Rechtstext anzeigt.</small>
-                    </div>
+
+                    <form method="post">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
+                        <input type="hidden" name="action" value="save">
+                        <div class="mb-3">
+                            <label class="form-label">Inhalt (HTML)</label>
+                            <textarea name="<?php echo htmlspecialchars($key); ?>" id="legal-<?php echo htmlspecialchars($key); ?>" class="form-control" rows="12"><?php echo htmlspecialchars($p['content'] ?? ''); ?></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Zugewiesene Seite</label>
+                            <select name="<?php echo htmlspecialchars($pageIdKeys[$key] ?? ''); ?>" class="form-select">
+                                <option value="0">– Keine Seite –</option>
+                                <?php foreach ($allPages as $pg): ?>
+                                    <option value="<?php echo (int)$pg['id']; ?>" <?php echo ($assigned[$pageIdKeys[$key] ?? ''] ?? '') == $pg['id'] ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($pg['title']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <small class="form-hint">Ordne eine bestehende Seite zu, die diesen Rechtstext anzeigt.</small>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Bereich speichern</button>
+                            <?php if (empty($p['content']) && $defaultTemplate !== ''): ?>
+                                <span class="text-secondary small align-self-center">Tipp: Erst Vorlage generieren, dann anpassen.</span>
+                            <?php endif; ?>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
         <?php endforeach; ?>
-    </div>
+        </div>
 
-    <div class="mb-4">
-        <button type="submit" class="btn btn-primary">Alle Änderungen speichern</button>
     </div>
-</form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.js-insert-template').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var targetId = this.getAttribute('data-target');
+            var template = this.getAttribute('data-template') || '';
+            var field = document.getElementById(targetId);
+
+            if (!field) {
+                return;
+            }
+
+            if (field.value.trim() !== '') {
+                cmsConfirm({
+                    title: 'Vorlage einfügen?',
+                    message: 'Vorhandener Inhalt wird überschrieben.',
+                    confirmText: 'Einfügen',
+                    onConfirm: function () {
+                        field.value = template;
+                    }
+                });
+                return;
+            }
+
+            field.value = template;
+        });
+    });
+});
+</script>

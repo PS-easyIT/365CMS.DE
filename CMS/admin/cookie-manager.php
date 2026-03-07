@@ -37,6 +37,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'delete_category':
                 $result = $module->deleteCategory((int)($_POST['id'] ?? 0));
                 break;
+            case 'save_service':
+                $result = $module->saveService($_POST);
+                break;
+            case 'delete_service':
+                $result = $module->deleteService((int)($_POST['id'] ?? 0));
+                break;
+            case 'import_curated_service':
+                $result = $module->importCuratedService(
+                    (string)($_POST['service_slug'] ?? ''),
+                    isset($_POST['self_hosted']) && $_POST['self_hosted'] === '1'
+                );
+                break;
+            case 'run_scan':
+                $result = $module->runScanner();
+                break;
             default:
                 $result = ['success' => false, 'error' => 'Unbekannte Aktion.'];
         }

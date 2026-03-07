@@ -21,6 +21,7 @@ class Router
     private string $requestUri;
     private string $requestMethod;
     private array $routes = [];
+    private bool $notFoundLogged = false;
     
     /**
      * Singleton instance
@@ -120,7 +121,7 @@ class Router
         // API Routes (v1)
         $this->addRoute('GET', '/api/v1/status', function() {
             header('Content-Type: application/json');
-            echo json_encode(['status' => 'ok', 'version' => defined('CMS_VERSION') ? CMS_VERSION : '2.1.0']);
+            echo json_encode(['status' => 'ok', 'version' => defined('CMS_VERSION') ? CMS_VERSION : '2.1.1']);
             exit;
         });
         
@@ -149,6 +150,14 @@ class Router
             header('Content-Type: application/json; charset=utf-8');
             echo json_encode($result['data'] ?? ['error' => 'Unbekannter Fehler']);
             exit;
+        });
+
+        // Editor.js Media API (Uploads, Remote-Image-Fetch, Link-Vorschau)
+        $this->addRoute('GET', '/api/media', function() {
+            Services\EditorJsService::getInstance()->handleMediaApiRequest();
+        });
+        $this->addRoute('POST', '/api/media', function() {
+            Services\EditorJsService::getInstance()->handleMediaApiRequest();
         });
         
         // Search Route – übergreifende Suche über Seiten, Experten, Firmen, Speaker, Events
@@ -385,6 +394,8 @@ class Router
             ]);
         });
 
+        $this->addRoute('GET', '/cookie-einstellungen', [$this, 'renderCookiePreferencesPage']);
+
         $this->addRoute('GET', '/site-table/export/:id/:format', function (string $id, string $format) {
             $tableId = (int) $id;
             if ($tableId <= 0 || !Services\SiteTableService::getInstance()->streamExportById($tableId, $format, true)) {
@@ -472,6 +483,15 @@ class Router
     {
         $method = $this->requestMethod;
         $uri    = $this->requestUri;
+
+        if (class_exists('\\CMS\\Services\\RedirectService')) {
+            $redirect = Services\RedirectService::getInstance()->findRedirect($uri);
+            if (is_array($redirect) && !empty($redirect['target_url'])) {
+                http_response_code((int)($redirect['redirect_type'] ?? 301));
+                header('Location: ' . (string)$redirect['target_url'], true, (int)($redirect['redirect_type'] ?? 301));
+                exit;
+            }
+        }
 
         // ── CSRF-Middleware (C-04) ──────────────────────────────────────────────
         // Deckt alle öffentlichen state-ändernden Routen ab.
@@ -906,6 +926,18 @@ class Router
         }
     }
 
+    public function renderCookiePreferencesPage(): void
+    {
+        if (!class_exists(Services\CookieConsentService::class)) {
+            $this->render404();
+            return;
+        }
+
+        ThemeManager::instance()->render('page', [
+            'page' => Services\CookieConsentService::getInstance()->getPublicConsentPage(),
+        ]);
+    }
+
     /**
      * Handle order submission
      */
@@ -1080,6 +1112,16 @@ class Router
      */
     private function render404(): void
     {
+        if (!$this->notFoundLogged && class_exists('\\CMS\\Services\\RedirectService')) {
+            Services\RedirectService::getInstance()->logNotFound($this->requestUri, [
+                'request_method' => $this->requestMethod,
+                'referrer_url' => (string)($_SERVER['HTTP_REFERER'] ?? ''),
+                'ip_address' => (string)($_SERVER['REMOTE_ADDR'] ?? ''),
+                'user_agent' => (string)($_SERVER['HTTP_USER_AGENT'] ?? ''),
+            ]);
+            $this->notFoundLogged = true;
+        }
+
         http_response_code(404);
         ThemeManager::instance()->render('404');
     }

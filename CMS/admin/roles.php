@@ -31,13 +31,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $action = $_POST['action'] ?? '';
-    if ($action === 'save_permissions') {
-        $result = $module->savePermissions($_POST);
-        $_SESSION['admin_alert'] = [
-            'type'    => $result['success'] ? 'success' : 'danger',
-            'message' => $result['message'] ?? $result['error'] ?? '',
-        ];
-    }
+    $result = match ($action) {
+        'save_permissions' => $module->savePermissions($_POST),
+        'add_role' => $module->addRole($_POST),
+        'add_capability' => $module->addCapability($_POST),
+        default => ['success' => false, 'error' => 'Unbekannte Aktion.'],
+    };
+
+    $_SESSION['admin_alert'] = [
+        'type'    => $result['success'] ? 'success' : 'danger',
+        'message' => $result['message'] ?? $result['error'] ?? '',
+    ];
+
     header('Location: ' . SITE_URL . '/admin/roles');
     exit;
 }

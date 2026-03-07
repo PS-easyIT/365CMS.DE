@@ -42,27 +42,12 @@ class RolesModule
      */
     public function getData(): array
     {
-        // Versuche gespeicherte Berechtigungen zu laden
-        $permissions = [];
-        try {
-            $rows = $this->db->get_results(
-                "SELECT * FROM {$this->prefix}role_permissions"
-            ) ?: [];
-            foreach ($rows as $row) {
-                $permissions[$row->role][$row->capability] = (bool)$row->granted;
-            }
-        } catch (\Throwable $e) {
-            // Tabelle existiert evtl. noch nicht – Default-Berechtigungen verwenden
-        }
+        $roles        = $this->getKnownRoles();
+        $capabilities = $this->getKnownCapabilities();
+        $permissions  = $this->getPermissionsMatrix($roles, $capabilities);
+        $roleCounts   = [];
 
-        // Defaults falls keine DB-Einträge
-        if (empty($permissions)) {
-            $permissions = $this->getDefaultPermissions();
-        }
-
-        // Benutzer-Counts pro Rolle
-        $roleCounts = [];
-        foreach (self::ROLES as $role) {
+        foreach ($roles as $role) {
             $roleCounts[$role] = (int)$this->db->get_var(
                 "SELECT COUNT(*) FROM {$this->prefix}users WHERE role = ?",
                 [$role]
@@ -70,8 +55,9 @@ class RolesModule
         }
 
         return [
-            'roles'        => self::ROLES,
-            'capabilities' => self::CAPABILITIES,
+            'roles'        => $roles,
+            'roleLabels'   => $this->getRoleLabels($roles),
+            'capabilities' => $capabilities,
             'permissions'  => $permissions,
             'roleCounts'   => $roleCounts,
         ];
@@ -83,18 +69,18 @@ class RolesModule
     public function savePermissions(array $post): array
     {
         try {
-            // Tabelle sicherstellen
             $this->ensureTable();
 
-            // Alle löschen und neu einfügen
+            $roles        = $this->getKnownRoles();
+            $capabilities = $this->getKnownCapabilities();
             $this->db->query("DELETE FROM {$this->prefix}role_permissions");
 
             $perms = $post['permissions'] ?? [];
-            foreach (self::ROLES as $role) {
-                foreach (self::CAPABILITIES as $group => $caps) {
+            foreach ($roles as $role) {
+                foreach ($capabilities as $caps) {
                     foreach ($caps as $cap) {
-                        $granted = !empty($perms[$role][$cap]) ? 1 : 0;
-                        $this->db->query(
+                        $granted = ($role === 'admin' || !empty($perms[$role][$cap])) ? 1 : 0;
+                        $this->db->execute(
                             "INSERT INTO {$this->prefix}role_permissions (role, capability, granted) VALUES (?, ?, ?)",
                             [$role, $cap, $granted]
                         );
@@ -105,6 +91,78 @@ class RolesModule
             return ['success' => true, 'message' => 'Berechtigungen gespeichert.'];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Neue Rolle anlegen
+     */
+    public function addRole(array $post): array
+    {
+        $slug = $this->sanitizeRoleSlug((string)($post['role_slug'] ?? ''));
+        if ($slug === '') {
+            return ['success' => false, 'error' => 'Bitte einen gültigen Rollen-Slug angeben.'];
+        }
+
+        $roles = $this->getKnownRoles();
+        if (in_array($slug, $roles, true)) {
+            return ['success' => false, 'error' => 'Diese Rolle existiert bereits.'];
+        }
+
+        try {
+            $this->ensureTable();
+
+            $capabilities = $this->getKnownCapabilities();
+            $templateRole = $this->sanitizeRoleSlug((string)($post['copy_role'] ?? 'member'));
+            $defaults     = $this->getPermissionsMatrix(array_merge($roles, [$slug]), $capabilities);
+
+            foreach ($capabilities as $caps) {
+                foreach ($caps as $cap) {
+                    $granted = !empty($defaults[$templateRole][$cap]) ? 1 : 0;
+                    $this->db->execute(
+                        "INSERT INTO {$this->prefix}role_permissions (role, capability, granted) VALUES (?, ?, ?)",
+                        [$slug, $cap, $granted]
+                    );
+                }
+            }
+
+            return ['success' => true, 'message' => 'Neue Rolle wurde angelegt.'];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Fehler beim Anlegen der Rolle: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Neue Berechtigung anlegen
+     */
+    public function addCapability(array $post): array
+    {
+        $capability = $this->sanitizeCapability((string)($post['capability_slug'] ?? ''));
+        if ($capability === '') {
+            return ['success' => false, 'error' => 'Bitte eine gültige Berechtigung im Format modul.aktion angeben.'];
+        }
+
+        $capabilities = $this->getKnownCapabilities();
+        foreach ($capabilities as $caps) {
+            if (in_array($capability, $caps, true)) {
+                return ['success' => false, 'error' => 'Diese Berechtigung existiert bereits.'];
+            }
+        }
+
+        try {
+            $this->ensureTable();
+
+            foreach ($this->getKnownRoles() as $role) {
+                $granted = $role === 'admin' ? 1 : 0;
+                $this->db->execute(
+                    "INSERT INTO {$this->prefix}role_permissions (role, capability, granted) VALUES (?, ?, ?)",
+                    [$role, $capability, $granted]
+                );
+            }
+
+            return ['success' => true, 'message' => 'Neue Berechtigung wurde angelegt.'];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Fehler beim Anlegen der Berechtigung: ' . $e->getMessage()];
         }
     }
 
@@ -127,13 +185,8 @@ class RolesModule
      */
     private function getDefaultPermissions(): array
     {
-        $allCaps = [];
-        foreach (self::CAPABILITIES as $caps) {
-            $allCaps = array_merge($allCaps, $caps);
-        }
-
         $perms = [];
-        foreach ($allCaps as $cap) {
+        foreach ($this->flattenCapabilities(self::CAPABILITIES) as $cap) {
             $perms['admin'][$cap] = true;
         }
 
@@ -155,5 +208,170 @@ class RolesModule
         }
 
         return $perms;
+    }
+
+    private function getKnownRoles(): array
+    {
+        $roles = self::ROLES;
+
+        try {
+            $dbRoles = $this->db->get_results("SELECT DISTINCT role FROM {$this->prefix}role_permissions ORDER BY role ASC") ?: [];
+            foreach ($dbRoles as $row) {
+                if (!empty($row->role)) {
+                    $roles[] = (string)$row->role;
+                }
+            }
+        } catch (\Throwable $e) {
+        }
+
+        try {
+            $userRoles = $this->db->get_results("SELECT DISTINCT role FROM {$this->prefix}users ORDER BY role ASC") ?: [];
+            foreach ($userRoles as $row) {
+                if (!empty($row->role)) {
+                    $roles[] = (string)$row->role;
+                }
+            }
+        } catch (\Throwable $e) {
+        }
+
+        $roles = array_values(array_unique(array_filter($roles, static fn ($role): bool => is_string($role) && $role !== '')));
+
+        usort($roles, static function (string $a, string $b): int {
+            $priority = array_flip(self::ROLES);
+            $aIndex   = $priority[$a] ?? 999;
+            $bIndex   = $priority[$b] ?? 999;
+
+            return $aIndex === $bIndex ? strcasecmp($a, $b) : ($aIndex <=> $bIndex);
+        });
+
+        return $roles;
+    }
+
+    private function getKnownCapabilities(): array
+    {
+        $capabilities = self::CAPABILITIES;
+
+        try {
+            $rows = $this->db->get_results("SELECT DISTINCT capability FROM {$this->prefix}role_permissions ORDER BY capability ASC") ?: [];
+            foreach ($rows as $row) {
+                $capability = (string)($row->capability ?? '');
+                if ($capability === '') {
+                    continue;
+                }
+
+                [$group] = array_pad(explode('.', $capability, 2), 2, 'general');
+                $group = $group !== '' ? $group : 'general';
+
+                if (!isset($capabilities[$group])) {
+                    $capabilities[$group] = [];
+                }
+
+                if (!in_array($capability, $capabilities[$group], true)) {
+                    $capabilities[$group][] = $capability;
+                }
+            }
+        } catch (\Throwable $e) {
+        }
+
+        foreach ($capabilities as &$caps) {
+            sort($caps, SORT_NATURAL | SORT_FLAG_CASE);
+        }
+        unset($caps);
+
+        ksort($capabilities, SORT_NATURAL | SORT_FLAG_CASE);
+
+        return $capabilities;
+    }
+
+    private function getPermissionsMatrix(array $roles, array $capabilities): array
+    {
+        $permissions = [];
+        $defaults    = $this->getDefaultPermissions();
+
+        foreach ($roles as $role) {
+            foreach ($capabilities as $caps) {
+                foreach ($caps as $cap) {
+                    $permissions[$role][$cap] = !empty($defaults[$role][$cap]);
+                }
+            }
+        }
+
+        try {
+            $rows = $this->db->get_results("SELECT role, capability, granted FROM {$this->prefix}role_permissions") ?: [];
+            foreach ($rows as $row) {
+                $role = (string)($row->role ?? '');
+                $cap  = (string)($row->capability ?? '');
+                if ($role === '' || $cap === '') {
+                    continue;
+                }
+
+                $permissions[$role][$cap] = (bool)$row->granted;
+            }
+        } catch (\Throwable $e) {
+        }
+
+        foreach ($capabilities as $caps) {
+            foreach ($caps as $cap) {
+                $permissions['admin'][$cap] = true;
+            }
+        }
+
+        return $permissions;
+    }
+
+    private function getRoleLabels(array $roles): array
+    {
+        $labels = [
+            'admin'  => 'Administrator',
+            'editor' => 'Editor',
+            'author' => 'Autor',
+            'member' => 'Mitglied',
+        ];
+
+        foreach ($roles as $role) {
+            if (!isset($labels[$role])) {
+                $labels[$role] = $this->humanizeSlug($role);
+            }
+        }
+
+        return $labels;
+    }
+
+    private function sanitizeRoleSlug(string $role): string
+    {
+        $role = strtolower(trim($role));
+        $role = preg_replace('/[^a-z0-9_-]+/', '-', $role) ?? '';
+        $role = trim($role, '-_');
+
+        return $role;
+    }
+
+    private function sanitizeCapability(string $capability): string
+    {
+        $capability = strtolower(trim($capability));
+        $capability = preg_replace('/[^a-z0-9._-]+/', '-', $capability) ?? '';
+        $capability = trim($capability, '.-_');
+
+        if ($capability === '' || !preg_match('/^[a-z0-9_-]+(?:\.[a-z0-9_-]+)+$/', $capability)) {
+            return '';
+        }
+
+        return $capability;
+    }
+
+    private function humanizeSlug(string $value): string
+    {
+        $value = str_replace(['_', '-', '.'], ' ', strtolower($value));
+        return ucwords(trim($value));
+    }
+
+    private function flattenCapabilities(array $capabilities): array
+    {
+        $flat = [];
+        foreach ($capabilities as $caps) {
+            $flat = array_merge($flat, $caps);
+        }
+
+        return array_values(array_unique($flat));
     }
 }

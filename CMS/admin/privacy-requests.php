@@ -18,6 +18,9 @@ if (!Auth::instance()->isAdmin()) {
     exit;
 }
 
+header('Location: ' . SITE_URL . '/admin/data-requests');
+exit;
+
 require_once __DIR__ . '/modules/legal/PrivacyRequestsModule.php';
 $module    = new PrivacyRequestsModule();
 $alert     = null;

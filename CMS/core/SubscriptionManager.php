@@ -20,6 +20,9 @@ class SubscriptionManager
     private static ?self $instance = null;
     private Database $db;
     private array $cache = [];
+
+    /** @var array<string, string> */
+    private array $settingsCache = [];
     
     /**
      * Singleton instance
@@ -219,6 +222,14 @@ class SubscriptionManager
         $this->cache[$cacheKey] = $subscription ?: null;
         return $this->cache[$cacheKey];
     }
+
+    /**
+     * Prüft, ob die systemweite Limit-/Abo-Durchsetzung aktiv ist.
+     */
+    public function isLimitEnforcementEnabled(): bool
+    {
+        return $this->getSetting('subscription_limits_enabled', '1') === '1';
+    }
     
     /**
      * Holt Abo durch Gruppen-Mitgliedschaft
@@ -261,6 +272,10 @@ class SubscriptionManager
      */
     public function canAccessPlugin(int $userId, string $pluginSlug): bool
     {
+        if (!$this->isLimitEnforcementEnabled()) {
+            return true;
+        }
+
         $subscription = $this->getUserSubscription($userId);
         
         if (!$subscription) {
@@ -277,6 +292,10 @@ class SubscriptionManager
      */
     public function checkLimit(int $userId, string $resourceType): bool
     {
+        if (!$this->isLimitEnforcementEnabled()) {
+            return true;
+        }
+
         $subscription = $this->getUserSubscription($userId);
         
         if (!$subscription) {
@@ -300,6 +319,27 @@ class SubscriptionManager
         $currentCount = $this->getCurrentUsage($userId, $resourceType);
         
         return $currentCount < $limit;
+    }
+
+    /**
+     * Liest ein Setting aus der DB mit kleinem Runtime-Cache.
+     */
+    private function getSetting(string $key, string $default = ''): string
+    {
+        if (array_key_exists($key, $this->settingsCache)) {
+            return $this->settingsCache[$key];
+        }
+
+        try {
+            $stmt = $this->db->prepare("SELECT option_value FROM {$this->db->getPrefix()}settings WHERE option_name = ? LIMIT 1");
+            $stmt->execute([$key]);
+            $value = $stmt->fetchColumn();
+            $this->settingsCache[$key] = $value !== false ? (string)$value : $default;
+        } catch (\Throwable) {
+            $this->settingsCache[$key] = $default;
+        }
+
+        return $this->settingsCache[$key];
     }
     
     /**

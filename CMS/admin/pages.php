@@ -16,6 +16,8 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 use CMS\Security;
+use CMS\Services\EditorJsService;
+use CMS\Services\EditorService;
 
 // ─── Auth-Check ────────────────────────────────────────────────────────────
 if (!Auth::instance()->isAdmin()) {
@@ -82,6 +84,7 @@ if (isset($_SESSION['admin_alert'])) {
 }
 
 $csrfToken = Security::instance()->generateToken('admin_pages');
+$editorMediaToken = Security::instance()->generateToken('editorjs_media');
 
 // ─── View bestimmen ────────────────────────────────────────────────────────
 $action = $_GET['action'] ?? 'list';
@@ -89,28 +92,16 @@ $action = $_GET['action'] ?? 'list';
 $pageTitle  = 'Seiten';
 $activePage = 'pages';
 $pageAssets = [];
+$useEditorJs = false;
 
 if ($action === 'edit') {
-    $assetsUrl  = defined('ASSETS_URL') ? ASSETS_URL : (defined('SITE_URL') ? SITE_URL : '') . '/assets';
-    $pageAssets['js'] = [
-        $assetsUrl . '/editorjs/editorjs.umd.js',
-        $assetsUrl . '/editorjs/header.umd.js',
-        $assetsUrl . '/editorjs/paragraph.umd.js',
-        $assetsUrl . '/editorjs/editorjs-list.umd.js',
-        $assetsUrl . '/editorjs/checklist.umd.js',
-        $assetsUrl . '/editorjs/quote.umd.js',
-        $assetsUrl . '/editorjs/warning.umd.js',
-        $assetsUrl . '/editorjs/code.umd.js',
-        $assetsUrl . '/editorjs/raw.umd.js',
-        $assetsUrl . '/editorjs/table.umd.js',
-        $assetsUrl . '/editorjs/inline-code.umd.js',
-        $assetsUrl . '/editorjs/underline.umd.js',
-        $assetsUrl . '/editorjs/delimiter.umd.js',
-        $assetsUrl . '/editorjs/image.umd.js',
-        $assetsUrl . '/editorjs/link.umd.js',
-        $assetsUrl . '/editorjs/attaches.umd.js',
-        $assetsUrl . '/js/editor-init.js',
-    ];
+    $useEditorJs = EditorService::isEditorJs();
+
+    if ($useEditorJs) {
+        $pageAssets = EditorJsService::getInstance()->getPageAssets();
+    } else {
+        EditorService::getInstance();
+    }
 }
 
 // ─── Layout rendern ────────────────────────────────────────────────────────
@@ -125,22 +116,24 @@ if ($action === 'edit') {
     $pageTitle = $editData['isNew'] ? 'Neue Seite' : 'Seite bearbeiten';
     require_once __DIR__ . '/views/pages/edit.php';
 
-    // EditorJS-Initialisierung (läuft in footer.php NACH den deferred Scripts)
-    $inlineJs = sprintf(
-        "(function(){
-            if(typeof createCmsEditor!=='function'){console.warn('EditorJS nicht verfügbar');return;}
-            var inp=document.getElementById('editorContent'),data=null;
-            if(inp&&inp.value){try{var p=JSON.parse(inp.value);if(p&&p.blocks&&p.blocks.length)data=p;}catch(e){}}
-            var ed=createCmsEditor('editorjs',data,%%s,%%s);
-            var form=document.getElementById('pageForm');
-            if(form){form.addEventListener('submit',function(e){
-                e.preventDefault();var f=this;
-                ed.save().then(function(o){inp.value=JSON.stringify(o);f.submit();}).catch(function(){f.submit();});
-            });}
-        })();",
-        json_encode((defined('SITE_URL') ? SITE_URL : '') . '/api/media'),
-        json_encode($csrfToken)
-    );
+    if ($useEditorJs) {
+        // EditorJS-Initialisierung (läuft in footer.php NACH den deferred Scripts)
+        $inlineJs = sprintf(
+            "(function(){
+                if(typeof createCmsEditor!=='function'){console.warn('EditorJS nicht verfügbar');return;}
+                var inp=document.getElementById('editorContent');
+                var rawContent=inp?inp.value:'';
+                var ed=createCmsEditor('editorjs',rawContent,%s,%s);
+                var form=document.getElementById('pageForm');
+                if(form){form.addEventListener('submit',function(e){
+                    e.preventDefault();var f=this;
+                    ed.save().then(function(o){inp.value=JSON.stringify(o);f.submit();}).catch(function(){f.submit();});
+                });}
+            })();",
+            json_encode((defined('SITE_URL') ? SITE_URL : '') . '/api/media'),
+            json_encode($editorMediaToken)
+        );
+    }
 } else {
     $listData = $module->getListData();
     require_once __DIR__ . '/views/pages/list.php';

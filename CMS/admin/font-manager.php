@@ -38,6 +38,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'type'    => $result['success'] ? 'success' : 'danger',
             'message' => $result['message'] ?? $result['error'] ?? '',
         ];
+    } elseif ($action === 'scan_theme_fonts') {
+        $result = $module->scanThemeFonts();
+        $_SESSION['admin_alert'] = [
+            'type'    => $result['success'] ? 'success' : 'danger',
+            'message' => $result['message'] ?? $result['error'] ?? '',
+        ];
     } elseif ($action === 'delete_font') {
         $fontId = (int)($_POST['font_id'] ?? 0);
         $result = $module->deleteCustomFont($fontId);

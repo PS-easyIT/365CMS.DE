@@ -28,6 +28,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $action = $_POST['action'] ?? '';
         switch ($action) {
+            case 'assign_subscription':
+                $result = $module->assignSubscription(
+                    (int)($_POST['user_id'] ?? 0),
+                    (int)($_POST['plan_id'] ?? 0),
+                    (string)($_POST['billing_cycle'] ?? 'monthly')
+                );
+                $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
+                header('Location: ' . SITE_URL . '/admin/orders');
+                exit;
+
             case 'update_status':
                 $id     = (int)($_POST['id'] ?? 0);
                 $status = $_POST['status'] ?? '';
@@ -54,7 +64,7 @@ if (isset($_SESSION['admin_alert'])) {
 
 $csrfToken    = Security::instance()->generateToken('admin_orders');
 $statusFilter = $_GET['status'] ?? '';
-$pageTitle    = 'Bestellungen';
+$pageTitle    = 'Bestellungen & Zuweisung';
 $activePage   = 'orders';
 $data         = $module->getData($statusFilter);
 

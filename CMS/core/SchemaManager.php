@@ -26,7 +26,7 @@ if (!defined('ABSPATH')) {
 class SchemaManager
 {
     /** Flag-Datei-Version – erhöhen wenn Schema geändert wird */
-    public const SCHEMA_VERSION = 'v9';
+    public const SCHEMA_VERSION = 'v10';
 
     private Database $db;
     private string $prefix;
@@ -148,6 +148,8 @@ class SchemaManager
                 status VARCHAR(20) DEFAULT 'draft',
                 hide_title TINYINT(1) NOT NULL DEFAULT 0,
                 featured_image VARCHAR(500) DEFAULT NULL,
+                meta_title VARCHAR(255) DEFAULT NULL,
+                meta_description TEXT DEFAULT NULL,
                 author_id INT UNSIGNED,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -581,6 +583,7 @@ class SchemaManager
 
         // Migrations ausführen (fehlende Spalten ergänzen)
         (new MigrationManager($this->db))->run();
+        $this->ensureContentColumns();
 
         // Standard-Admin anlegen falls noch kein Admin existiert
         $this->createDefaultAdmin();
@@ -634,6 +637,58 @@ class SchemaManager
             }
         } catch (\Exception $e) {
             error_log('SchemaManager::createDefaultAdmin() Error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Ergänzt fehlende Content-/SEO-Spalten in Altinstallationen.
+     */
+    private function ensureContentColumns(): void
+    {
+        $this->ensureColumnExists(
+            $this->prefix . 'pages',
+            'featured_image',
+            "ALTER TABLE {$this->prefix}pages ADD COLUMN featured_image VARCHAR(500) DEFAULT NULL AFTER hide_title"
+        );
+        $this->ensureColumnExists(
+            $this->prefix . 'pages',
+            'meta_title',
+            "ALTER TABLE {$this->prefix}pages ADD COLUMN meta_title VARCHAR(255) DEFAULT NULL AFTER featured_image"
+        );
+        $this->ensureColumnExists(
+            $this->prefix . 'pages',
+            'meta_description',
+            "ALTER TABLE {$this->prefix}pages ADD COLUMN meta_description TEXT DEFAULT NULL AFTER meta_title"
+        );
+        $this->ensureColumnExists(
+            $this->prefix . 'posts',
+            'featured_image',
+            "ALTER TABLE {$this->prefix}posts ADD COLUMN featured_image VARCHAR(500) DEFAULT NULL AFTER excerpt"
+        );
+        $this->ensureColumnExists(
+            $this->prefix . 'posts',
+            'meta_title',
+            "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_title VARCHAR(255) DEFAULT NULL AFTER allow_comments"
+        );
+        $this->ensureColumnExists(
+            $this->prefix . 'posts',
+            'meta_description',
+            "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_description TEXT DEFAULT NULL AFTER meta_title"
+        );
+    }
+
+    /**
+     * Führt ein ALTER TABLE nur aus, wenn die Spalte fehlt.
+     */
+    private function ensureColumnExists(string $table, string $column, string $alterSql): void
+    {
+        try {
+            $stmt = $this->db->query("SHOW COLUMNS FROM {$table} LIKE '{$column}'");
+            if ($stmt instanceof \PDOStatement && !$stmt->fetch()) {
+                $this->db->query($alterSql);
+            }
+        } catch (\Throwable $e) {
+            error_log(sprintf('SchemaManager::ensureColumnExists(%s.%s) failed: %s', $table, $column, $e->getMessage()));
         }
     }
 }

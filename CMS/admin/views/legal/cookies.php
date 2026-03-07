@@ -3,128 +3,352 @@ declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
 
 /** @var array $data */
-$d          = $data ?? [];
-$categories = $d['categories'] ?? [];
-$settings   = $d['settings'] ?? [];
+$d               = $data ?? [];
+$categories      = $d['categories'] ?? [];
+$services        = $d['services'] ?? [];
+$settings        = $d['settings'] ?? [];
+$scanResults     = $d['scan_results'] ?? [];
+$curatedServices = $d['curated_services'] ?? [];
 ?>
 
-<div class="row row-deck row-cards mb-4">
-    <!-- Banner-Einstellungen -->
-    <div class="col-lg-6">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">Cookie-Banner Einstellungen</h3>
-            </div>
-            <div class="card-body">
-                <form method="post">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
-                    <input type="hidden" name="action" value="save_settings">
-
-                    <label class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" name="cookie_banner_enabled" value="1" <?php echo ($settings['cookie_banner_enabled'] ?? '0') === '1' ? 'checked' : ''; ?>>
-                        <span class="form-check-label">Cookie-Banner aktiv</span>
-                    </label>
-
-                    <div class="mb-3">
-                        <label class="form-label">Position</label>
-                        <select name="cookie_banner_position" class="form-select">
-                            <?php foreach (['bottom' => 'Unten', 'top' => 'Oben', 'center' => 'Zentriert (Modal)'] as $v => $l): ?>
-                                <option value="<?php echo $v; ?>" <?php echo ($settings['cookie_banner_position'] ?? 'bottom') === $v ? 'selected' : ''; ?>><?php echo $l; ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Stil</label>
-                        <select name="cookie_banner_style" class="form-select">
-                            <?php foreach (['dark' => 'Dunkel', 'light' => 'Hell', 'custom' => 'Benutzerdefiniert'] as $v => $l): ?>
-                                <option value="<?php echo $v; ?>" <?php echo ($settings['cookie_banner_style'] ?? 'dark') === $v ? 'selected' : ''; ?>><?php echo $l; ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Banner-Text</label>
-                        <textarea name="cookie_banner_text" class="form-control" rows="3"><?php echo htmlspecialchars($settings['cookie_banner_text'] ?? ''); ?></textarea>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Cookie-Laufzeit (Tage)</label>
-                        <input type="number" name="cookie_lifetime_days" class="form-control" min="1" max="365" value="<?php echo (int)($settings['cookie_lifetime_days'] ?: 30); ?>">
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">Einstellungen speichern</button>
-                </form>
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <div class="page-pretitle">Recht &amp; Sicherheit</div>
+                <h2 class="page-title">Cookie-Manager</h2>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Vorschau -->
-    <div class="col-lg-6">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">Übersicht Cookie-Kategorien</h3>
-                <div class="card-actions">
-                    <a href="#" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#categoryModal" onclick="resetCategoryForm()">
-                        Kategorie hinzufügen
-                    </a>
+<div class="page-body">
+    <div class="container-xl">
+        <div class="row row-deck row-cards mb-4">
+            <div class="col-sm-6 col-lg-3">
+                <div class="card"><div class="card-body"><div class="subheader">Kategorien</div><div class="h1 mb-0"><?= count($categories) ?></div></div></div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card"><div class="card-body"><div class="subheader">Services</div><div class="h1 mb-0"><?= count($services) ?></div></div></div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card"><div class="card-body"><div class="subheader">Scanner-Treffer</div><div class="h1 mb-0"><?= count($scanResults) ?></div></div></div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card"><div class="card-body"><div class="subheader">Consent aktiv</div><div class="h1 mb-0 <?= ($settings['cookie_consent_enabled'] ?? '0') === '1' ? 'text-success' : 'text-secondary' ?>"><?= ($settings['cookie_consent_enabled'] ?? '0') === '1' ? 'Ja' : 'Nein' ?></div></div></div>
+            </div>
+        </div>
+
+        <div class="row row-deck row-cards mb-4">
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Consent &amp; Banner</h3>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
+                            <input type="hidden" name="action" value="save_settings">
+
+                            <label class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" name="cookie_banner_enabled" value="1" <?php echo ($settings['cookie_consent_enabled'] ?? $settings['cookie_banner_enabled'] ?? '0') === '1' ? 'checked' : ''; ?>>
+                                <span class="form-check-label">Cookie-Consent aktivieren</span>
+                            </label>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Position</label>
+                                    <select name="cookie_banner_position" class="form-select">
+                                        <?php foreach (['bottom' => 'Unten', 'top' => 'Oben', 'center' => 'Zentriert (Modal)'] as $v => $l): ?>
+                                            <option value="<?php echo $v; ?>" <?php echo ($settings['cookie_banner_position'] ?? 'bottom') === $v ? 'selected' : ''; ?>><?php echo $l; ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Stil</label>
+                                    <select name="cookie_banner_style" class="form-select">
+                                        <?php foreach (['dark' => 'Dunkel', 'light' => 'Hell', 'custom' => 'Benutzerdefiniert'] as $v => $l): ?>
+                                            <option value="<?php echo $v; ?>" <?php echo ($settings['cookie_banner_style'] ?? 'dark') === $v ? 'selected' : ''; ?>><?php echo $l; ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Akzeptieren-Button</label>
+                                    <input type="text" name="cookie_accept_text" class="form-control" value="<?php echo htmlspecialchars($settings['cookie_accept_text'] ?? 'Akzeptieren'); ?>">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Nur Essenzielle-Button</label>
+                                    <input type="text" name="cookie_essential_text" class="form-control" value="<?php echo htmlspecialchars($settings['cookie_essential_text'] ?? 'Nur Essenzielle'); ?>">
+                                </div>
+                                <div class="col-md-8">
+                                    <label class="form-label">Datenschutz-URL</label>
+                                    <input type="text" name="cookie_policy_url" class="form-control" value="<?php echo htmlspecialchars($settings['cookie_policy_url'] ?? '/datenschutz'); ?>">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Cookie-Laufzeit (Tage)</label>
+                                    <input type="number" name="cookie_lifetime_days" class="form-control" min="1" max="365" value="<?php echo (int)($settings['cookie_lifetime_days'] ?: 30); ?>">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Banner-Text</label>
+                                    <textarea name="cookie_banner_text" class="form-control" rows="3"><?php echo htmlspecialchars($settings['cookie_banner_text'] ?? ''); ?></textarea>
+                                </div>
+                                <div class="col-12">
+                                    <div class="alert alert-info mb-0">
+                                        <div class="fw-bold mb-1">Öffentliche Consent-Seite</div>
+                                        <div class="small">
+                                            Nutzer können ihre Einwilligung öffentlich unter
+                                            <a href="<?php echo htmlspecialchars(SITE_URL . '/cookie-einstellungen'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars(SITE_URL . '/cookie-einstellungen'); ?></a>
+                                            einsehen und anpassen.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <h4 class="card-title mb-1">Matomo Self-Hosted</h4>
+                                    <div class="text-secondary small">Optional für DSGVO-Transparenz auf der öffentlichen Consent-Seite. Ideal, wenn Matomo auf eigener Infrastruktur betrieben wird.</div>
+                                </div>
+                                <div class="col-md-8">
+                                    <label class="form-label">Matomo-URL</label>
+                                    <input type="url" name="cookie_matomo_self_hosted_url" class="form-control" placeholder="https://analytics.deine-domain.de/" value="<?php echo htmlspecialchars($settings['cookie_matomo_self_hosted_url'] ?? ''); ?>">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Hosting-Region</label>
+                                    <input type="text" name="cookie_matomo_hosting_region" class="form-control" value="<?php echo htmlspecialchars($settings['cookie_matomo_hosting_region'] ?? 'Deutschland / EU'); ?>">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-check form-switch mt-4">
+                                        <input class="form-check-input" type="checkbox" name="cookie_matomo_ip_anonymization" value="1" <?php echo ($settings['cookie_matomo_ip_anonymization'] ?? '1') === '1' ? 'checked' : ''; ?>>
+                                        <span class="form-check-label">IP-Anonymisierung aktiv</span>
+                                    </label>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Log-Löschung / Aufbewahrung (Tage)</label>
+                                    <input type="number" name="cookie_matomo_log_retention_days" class="form-control" min="1" max="3650" value="<?php echo (int)(($settings['cookie_matomo_log_retention_days'] ?? '') !== '' ? $settings['cookie_matomo_log_retention_days'] : 180); ?>">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Zusätzlicher DSGVO-Hinweis</label>
+                                    <textarea name="cookie_matomo_dsgvo_note" class="form-control" rows="4" placeholder="Optionaler Hinweis für Besucher, z. B. zur Auftragsverarbeitung oder internen Richtlinien."><?php echo htmlspecialchars($settings['cookie_matomo_dsgvo_note'] ?? ''); ?></textarea>
+                                </div>
+                            </div>
+
+                            <div class="mt-4">
+                                <button type="submit" class="btn btn-primary">Einstellungen speichern</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header d-flex align-items-center justify-content-between">
+                        <h3 class="card-title">Cookie-Scanner</h3>
+                        <form method="post" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
+                            <input type="hidden" name="action" value="run_scan">
+                            <button type="submit" class="btn btn-primary btn-sm">Scan starten</button>
+                        </form>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-secondary">Der Scanner durchsucht Theme-, Include- und JS-Dateien sowie ausgewählte Inhalte in Seiten und Einstellungen nach typischen Signaturen für Analyse-, Marketing- und Medien-Dienste.</p>
+                        <div class="text-secondary small mb-3">
+                            Letzter Lauf: <strong><?php echo htmlspecialchars($settings['cookie_scan_last_run'] ?? 'Noch nie'); ?></strong>
+                        </div>
+                        <?php if (empty($scanResults)): ?>
+                            <div class="text-secondary">Noch keine Scanner-Ergebnisse vorhanden.</div>
+                        <?php else: ?>
+                            <div class="list-group list-group-flush">
+                                <?php foreach ($scanResults as $scan): ?>
+                                    <div class="list-group-item px-0">
+                                        <div class="d-flex justify-content-between align-items-start gap-3">
+                                            <div>
+                                                <div class="fw-bold"><?php echo htmlspecialchars($scan['name'] ?? $scan['slug'] ?? 'Service'); ?></div>
+                                                <div class="text-secondary small"><?php echo htmlspecialchars($scan['provider'] ?? ''); ?> · Kategorie: <?php echo htmlspecialchars($scan['category_slug'] ?? ''); ?></div>
+                                                <?php if (!empty($scan['sources'])): ?>
+                                                    <div class="text-secondary small mt-1"><?php echo htmlspecialchars(implode(' · ', array_slice((array)$scan['sources'], 0, 3))); ?></div>
+                                                <?php endif; ?>
+                                            </div>
+                                            <form method="post" class="d-inline">
+                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
+                                                <input type="hidden" name="action" value="import_curated_service">
+                                                <input type="hidden" name="service_slug" value="<?php echo htmlspecialchars((string)($scan['slug'] ?? '')); ?>">
+                                                <button type="submit" class="btn btn-outline-primary btn-sm">Übernehmen</button>
+                                            </form>
+                                            <?php if (!empty($scan['self_hostable']) && ($scan['slug'] ?? '') === 'matomo'): ?>
+                                                <form method="post" class="d-inline">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
+                                                    <input type="hidden" name="action" value="import_curated_service">
+                                                    <input type="hidden" name="service_slug" value="matomo">
+                                                    <input type="hidden" name="self_hosted" value="1">
+                                                    <button type="submit" class="btn btn-outline-success btn-sm">Self-Hosted → essenziell</button>
+                                                </form>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row row-deck row-cards mb-4">
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header d-flex align-items-center justify-content-between">
+                        <h3 class="card-title">Standard-Services</h3>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-vcenter card-table">
+                            <thead>
+                                <tr>
+                                    <th>Service</th>
+                                    <th>Kategorie</th>
+                                    <th class="w-1"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($curatedServices as $slug => $service): ?>
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold"><?php echo htmlspecialchars($service['name']); ?></div>
+                                            <div class="text-secondary small"><?php echo htmlspecialchars($service['provider']); ?></div>
+                                        </td>
+                                        <td><span class="badge bg-azure-lt"><?php echo htmlspecialchars($service['category_slug']); ?></span></td>
+                                        <td>
+                                            <form method="post" class="d-inline">
+                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
+                                                <input type="hidden" name="action" value="import_curated_service">
+                                                <input type="hidden" name="service_slug" value="<?php echo htmlspecialchars($slug); ?>">
+                                                <button type="submit" class="btn btn-sm btn-outline-primary">Hinzufügen</button>
+                                            </form>
+                                            <?php if ($slug === 'matomo'): ?>
+                                                <form method="post" class="d-inline">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
+                                                    <input type="hidden" name="action" value="import_curated_service">
+                                                    <input type="hidden" name="service_slug" value="matomo">
+                                                    <input type="hidden" name="self_hosted" value="1">
+                                                    <button type="submit" class="btn btn-sm btn-outline-success">Self-Hosted</button>
+                                                </form>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header d-flex align-items-center justify-content-between">
+                        <h3 class="card-title">Kategorien</h3>
+                        <a href="#" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#categoryModal" onclick="resetCategoryForm()">Kategorie hinzufügen</a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-vcenter card-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Slug</th>
+                                    <th>Pflicht</th>
+                                    <th>Status</th>
+                                    <th class="w-1"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($categories as $cat): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($cat['name']); ?></td>
+                                        <td><code><?php echo htmlspecialchars($cat['slug']); ?></code></td>
+                                        <td><?php echo (int)$cat['is_required'] === 1 ? '<span class="badge bg-blue">Pflicht</span>' : '<span class="badge bg-secondary">Optional</span>'; ?></td>
+                                        <td><?php echo (int)$cat['is_active'] === 1 ? '<span class="badge bg-success">Aktiv</span>' : '<span class="badge bg-secondary">Inaktiv</span>'; ?></td>
+                                        <td>
+                                            <div class="dropdown">
+                                                <button class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="dropdown"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg></button>
+                                                <div class="dropdown-menu dropdown-menu-end">
+                                                    <a href="#" class="dropdown-item" onclick='editCategory(<?php echo json_encode($cat, JSON_HEX_APOS | JSON_HEX_QUOT); ?>)'>Bearbeiten</a>
+                                                    <?php if (!(int)$cat['is_required']): ?>
+                                                        <form method="post" class="d-inline">
+                                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
+                                                            <input type="hidden" name="action" value="delete_category">
+                                                            <input type="hidden" name="id" value="<?php echo (int)$cat['id']; ?>">
+                                                            <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Wirklich löschen?')">Löschen</button>
+                                                        </form>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h3 class="card-title">Konfigurierte Services</h3>
+                <a href="#" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#serviceModal" onclick="resetServiceForm()">Service hinzufügen</a>
             </div>
             <div class="table-responsive">
                 <table class="table table-vcenter card-table">
                     <thead>
                         <tr>
-                            <th>Name</th>
-                            <th>Slug</th>
-                            <th>Pflicht</th>
+                            <th>Service</th>
+                            <th>Kategorie</th>
                             <th>Status</th>
+                            <th>Cookie-Namen</th>
                             <th class="w-1"></th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (empty($categories)): ?>
-                        <tr>
-                            <td colspan="5" class="text-muted text-center">Keine Kategorien vorhanden</td>
-                        </tr>
+                        <?php if (empty($services)): ?>
+                            <tr><td colspan="5" class="text-center text-secondary py-4">Noch keine Services konfiguriert.</td></tr>
                         <?php else: ?>
-                        <?php foreach ($categories as $cat): ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($cat['name']); ?></td>
-                            <td><code><?php echo htmlspecialchars($cat['slug']); ?></code></td>
-                            <td>
-                                <?php if ((int)$cat['is_required']): ?>
-                                    <span class="badge bg-blue">Pflicht</span>
-                                <?php else: ?>
-                                    <span class="badge bg-secondary">Optional</span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <?php if ((int)$cat['is_active']): ?>
-                                    <span class="badge bg-success">Aktiv</span>
-                                <?php else: ?>
-                                    <span class="badge bg-secondary">Inaktiv</span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <div class="dropdown">
-                                    <button class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="dropdown">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg>
-                                    </button>
-                                    <div class="dropdown-menu dropdown-menu-end">
-                                        <a href="#" class="dropdown-item" onclick='editCategory(<?php echo json_encode($cat, JSON_HEX_APOS | JSON_HEX_QUOT); ?>)'>Bearbeiten</a>
-                                        <?php if (!(int)$cat['is_required']): ?>
-                                        <form method="post" class="d-inline">
-                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
-                                            <input type="hidden" name="action" value="delete_category">
-                                            <input type="hidden" name="id" value="<?php echo (int)$cat['id']; ?>">
-                                            <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Wirklich löschen?')">Löschen</button>
-                                        </form>
+                            <?php foreach ($services as $service): ?>
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold"><?php echo htmlspecialchars($service['name']); ?></div>
+                                        <div class="text-secondary small"><?php echo htmlspecialchars($service['provider'] ?? ''); ?></div>
+                                    </td>
+                                    <td><span class="badge bg-azure-lt"><?php echo htmlspecialchars($service['category_slug']); ?></span></td>
+                                    <td>
+                                        <?php if ((int)$service['is_essential'] === 1): ?>
+                                            <span class="badge bg-blue">Essenziell</span>
+                                        <?php elseif ((int)$service['is_active'] === 1): ?>
+                                            <span class="badge bg-success">Aktiv</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary">Inaktiv</span>
                                         <?php endif; ?>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
+                                    </td>
+                                    <td class="text-secondary small"><?php echo htmlspecialchars((string)($service['cookie_names'] ?? '')); ?></td>
+                                    <td>
+                                        <div class="dropdown">
+                                            <button class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="dropdown"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg></button>
+                                            <div class="dropdown-menu dropdown-menu-end">
+                                                <a href="#" class="dropdown-item" onclick='editService(<?php echo json_encode($service, JSON_HEX_APOS | JSON_HEX_QUOT); ?>)'>Bearbeiten</a>
+                                                <?php if (!(int)$service['is_essential']): ?>
+                                                    <form method="post" class="d-inline">
+                                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
+                                                        <input type="hidden" name="action" value="delete_service">
+                                                        <input type="hidden" name="id" value="<?php echo (int)$service['id']; ?>">
+                                                        <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Service wirklich löschen?')">Löschen</button>
+                                                    </form>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -190,6 +414,74 @@ $settings   = $d['settings'] ?? [];
     </div>
 </div>
 
+<div class="modal modal-blur fade" id="serviceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
+                <input type="hidden" name="action" value="save_service">
+                <input type="hidden" name="service_id" id="serviceId" value="0">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="serviceModalTitle">Service hinzufügen</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Name</label>
+                            <input type="text" name="service_name" id="serviceName" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Slug</label>
+                            <input type="text" name="service_slug" id="serviceSlug" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Anbieter</label>
+                            <input type="text" name="service_provider" id="serviceProvider" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Kategorie</label>
+                            <select name="category_slug" id="serviceCategory" class="form-select">
+                                <?php foreach ($categories as $cat): ?>
+                                    <option value="<?php echo htmlspecialchars($cat['slug']); ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Beschreibung</label>
+                            <textarea name="service_description" id="serviceDescription" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Cookie-Namen</label>
+                            <input type="text" name="cookie_names" id="serviceCookies" class="form-control" placeholder="_ga, _gid, li_fat_id">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Code-Snippet / Einbettung</label>
+                            <textarea name="code_snippet" id="serviceCode" class="form-control" rows="4" placeholder="<script src='...'></script>"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="is_essential" id="serviceEssential">
+                                <span class="form-check-label">Essenziell (nie blockieren)</span>
+                            </label>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="is_active" id="serviceActive" checked>
+                                <span class="form-check-label">Aktiv</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn me-auto" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 function resetCategoryForm() {
     document.getElementById('catModalTitle').textContent = 'Kategorie hinzufügen';
@@ -202,6 +494,7 @@ function resetCategoryForm() {
     document.getElementById('catRequired').checked = false;
     document.getElementById('catActive').checked = true;
 }
+
 function editCategory(cat) {
     document.getElementById('catModalTitle').textContent = 'Kategorie bearbeiten';
     document.getElementById('catId').value = cat.id;
@@ -213,5 +506,36 @@ function editCategory(cat) {
     document.getElementById('catRequired').checked = !!parseInt(cat.is_required);
     document.getElementById('catActive').checked = !!parseInt(cat.is_active);
     new bootstrap.Modal(document.getElementById('categoryModal')).show();
+}
+
+function resetServiceForm() {
+    document.getElementById('serviceModalTitle').textContent = 'Service hinzufügen';
+    document.getElementById('serviceId').value = '0';
+    document.getElementById('serviceName').value = '';
+    document.getElementById('serviceSlug').value = '';
+    document.getElementById('serviceProvider').value = '';
+    document.getElementById('serviceDescription').value = '';
+    document.getElementById('serviceCookies').value = '';
+    document.getElementById('serviceCode').value = '';
+    document.getElementById('serviceEssential').checked = false;
+    document.getElementById('serviceActive').checked = true;
+    if (document.getElementById('serviceCategory').options.length > 0) {
+        document.getElementById('serviceCategory').selectedIndex = 0;
+    }
+}
+
+function editService(service) {
+    document.getElementById('serviceModalTitle').textContent = 'Service bearbeiten';
+    document.getElementById('serviceId').value = service.id || 0;
+    document.getElementById('serviceName').value = service.name || '';
+    document.getElementById('serviceSlug').value = service.slug || '';
+    document.getElementById('serviceProvider').value = service.provider || '';
+    document.getElementById('serviceCategory').value = service.category_slug || 'necessary';
+    document.getElementById('serviceDescription').value = service.description || '';
+    document.getElementById('serviceCookies').value = service.cookie_names || '';
+    document.getElementById('serviceCode').value = service.code_snippet || '';
+    document.getElementById('serviceEssential').checked = !!parseInt(service.is_essential);
+    document.getElementById('serviceActive').checked = !!parseInt(service.is_active);
+    new bootstrap.Modal(document.getElementById('serviceModal')).show();
 }
 </script>

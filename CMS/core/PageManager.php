@@ -64,6 +64,26 @@ class PageManager
                      ADD COLUMN featured_image VARCHAR(500) DEFAULT NULL AFTER hide_title"
                 );
             }
+
+            $stmt3 = $this->db->query(
+                "SHOW COLUMNS FROM {$this->prefix}pages LIKE 'meta_title'"
+            );
+            if (!$stmt3->fetch()) {
+                $this->db->query(
+                    "ALTER TABLE {$this->prefix}pages 
+                     ADD COLUMN meta_title VARCHAR(255) DEFAULT NULL AFTER featured_image"
+                );
+            }
+
+            $stmt4 = $this->db->query(
+                "SHOW COLUMNS FROM {$this->prefix}pages LIKE 'meta_description'"
+            );
+            if (!$stmt4->fetch()) {
+                $this->db->query(
+                    "ALTER TABLE {$this->prefix}pages 
+                     ADD COLUMN meta_description TEXT DEFAULT NULL AFTER meta_title"
+                );
+            }
         } catch (\Throwable $e) {
             error_log('PageManager::ensureColumns() warning: ' . $e->getMessage());
         }
@@ -98,7 +118,7 @@ class PageManager
         $values = [];
         
         foreach ($data as $key => $value) {
-            if (in_array($key, ['title', 'content', 'status', 'slug', 'hide_title', 'featured_image'])) {
+            if (in_array($key, ['title', 'content', 'status', 'slug', 'hide_title', 'featured_image', 'meta_title', 'meta_description'], true)) {
                 $fields[] = "$key = ?";
                 $values[] = $value;
             }

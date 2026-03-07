@@ -13,16 +13,10 @@ if (!defined('ABSPATH')) {
  */
 
 $roles        = $data['roles'] ?? [];
+$roleLabels   = $data['roleLabels'] ?? [];
 $capabilities = $data['capabilities'] ?? [];
 $permissions  = $data['permissions'] ?? [];
 $roleCounts   = $data['roleCounts'] ?? [];
-
-$roleLabels = [
-    'admin'  => 'Administrator',
-    'editor' => 'Editor',
-    'author' => 'Autor',
-    'member' => 'Mitglied',
-];
 
 $groupLabels = [
     'pages'    => 'Seiten',
@@ -50,6 +44,10 @@ $capLabels = [
     'system'    => 'System',
     'roles'     => 'Rollen',
 ];
+
+$formatLabel = static function (string $value): string {
+    return ucwords(str_replace(['_', '-', '.'], ' ', strtolower($value)));
+};
 ?>
 
 <div class="container-xl">
@@ -58,6 +56,33 @@ $capLabels = [
         <div>
             <h2 class="page-title">Rollen & Rechte</h2>
             <div class="text-muted mt-1">Berechtigungsmatrix für alle Benutzerrollen</div>
+        </div>
+        <div class="ms-auto d-flex gap-2">
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addRoleModal">
+                Neue Rolle
+            </button>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCapabilityModal">
+                Neues Recht
+            </button>
+        </div>
+    </div>
+
+    <div class="row row-cards mb-4">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h3 class="card-title mb-2">Neue Rolle anlegen</h3>
+                    <p class="text-muted mb-0">Legt eine zusätzliche Benutzerrolle an. Optional können die Rechte einer bestehenden Rolle als Vorlage übernommen werden.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h3 class="card-title mb-2">Neues Recht anlegen</h3>
+                    <p class="text-muted mb-0">Neue Rechte werden im Format <code>bereich.aktion</code> angelegt, z. B. <code>shop.orders.view</code>. Administratoren erhalten neue Rechte automatisch.</p>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -98,7 +123,7 @@ $capLabels = [
                             <th style="min-width: 200px;">Berechtigung</th>
                             <?php foreach ($roles as $role): ?>
                                 <th class="text-center" style="min-width: 120px;">
-                                    <?php echo htmlspecialchars($roleLabels[$role] ?? $role); ?>
+                                    <?php echo htmlspecialchars($roleLabels[$role] ?? $formatLabel($role)); ?>
                                     <div class="small text-muted"><?php echo (int)($roleCounts[$role] ?? 0); ?> Benutzer</div>
                                 </th>
                             <?php endforeach; ?>
@@ -109,7 +134,7 @@ $capLabels = [
                             <!-- Group Header -->
                             <tr class="bg-light">
                                 <td colspan="<?php echo count($roles) + 1; ?>">
-                                    <strong><?php echo htmlspecialchars($groupLabels[$group] ?? $group); ?></strong>
+                                    <strong><?php echo htmlspecialchars($groupLabels[$group] ?? $formatLabel($group)); ?></strong>
                                     <button type="button" class="btn btn-sm btn-ghost-secondary ms-2 toggle-group" data-group="<?php echo htmlspecialchars($group); ?>">
                                         Alle umschalten
                                     </button>
@@ -121,8 +146,9 @@ $capLabels = [
                             ?>
                                 <tr>
                                     <td>
-                                        <span class="text-muted me-1"><?php echo htmlspecialchars($groupLabels[$group] ?? $group); ?> →</span>
-                                        <?php echo htmlspecialchars($capLabels[$shortCap] ?? $shortCap); ?>
+                                        <span class="text-muted me-1"><?php echo htmlspecialchars($groupLabels[$group] ?? $formatLabel($group)); ?> →</span>
+                                        <?php echo htmlspecialchars($capLabels[$shortCap] ?? $formatLabel($shortCap)); ?>
+                                        <div class="small text-muted"><?php echo htmlspecialchars($cap); ?></div>
                                     </td>
                                     <?php foreach ($roles as $role): ?>
                                         <td class="text-center">
@@ -154,6 +180,68 @@ $capLabels = [
             </div>
         </div>
     </form>
+</div>
+
+<div class="modal modal-blur fade" id="addRoleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title">Neue Rolle anlegen</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                    <input type="hidden" name="action" value="add_role">
+                    <div class="mb-3">
+                        <label class="form-label" for="role_slug">Rollen-Slug</label>
+                        <input type="text" class="form-control" id="role_slug" name="role_slug" placeholder="z. B. moderator" required>
+                        <div class="form-hint">Nur Kleinbuchstaben, Zahlen, Bindestriche und Unterstriche.</div>
+                    </div>
+                    <div>
+                        <label class="form-label" for="copy_role">Rechte übernehmen von</label>
+                        <select class="form-select" id="copy_role" name="copy_role">
+                            <?php foreach ($roles as $role): ?>
+                                <option value="<?php echo htmlspecialchars($role); ?>" <?php echo $role === 'member' ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($roleLabels[$role] ?? $formatLabel($role)); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Rolle anlegen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal modal-blur fade" id="addCapabilityModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title">Neues Recht anlegen</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                    <input type="hidden" name="action" value="add_capability">
+                    <div class="mb-0">
+                        <label class="form-label" for="capability_slug">Recht</label>
+                        <input type="text" class="form-control" id="capability_slug" name="capability_slug" placeholder="z. B. shop.orders.view" required>
+                        <div class="form-hint">Format: <code>bereich.aktion</code> oder <code>bereich.unterbereich.aktion</code>.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Recht anlegen</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <script>

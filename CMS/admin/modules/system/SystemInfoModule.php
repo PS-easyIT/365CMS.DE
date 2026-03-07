@@ -40,6 +40,27 @@ class SystemInfoModule
         ];
     }
 
+    public function getInfoData(): array
+    {
+        return [
+            'system'      => $this->getSystemInfoSafe(),
+            'database'    => $this->getDatabaseStatusSafe(),
+            'permissions' => $this->getPermissionsSafe(),
+            'directories' => $this->getDirectorySizesSafe(),
+            'statistics'  => $this->getStatisticsSafe(),
+            'security'    => $this->getSecurityStatusSafe(),
+        ];
+    }
+
+    public function getDiagnosticsData(): array
+    {
+        return [
+            'database'    => $this->getDatabaseStatusSafe(),
+            'tables'      => $this->getTablesSafe(),
+            'permissions' => $this->getPermissionsSafe(),
+        ];
+    }
+
     /**
      * Cache leeren
      */

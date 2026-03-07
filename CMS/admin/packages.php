@@ -19,7 +19,9 @@ if (!Auth::instance()->isAdmin()) {
 }
 
 require_once __DIR__ . '/modules/subscriptions/PackagesModule.php';
-$module    = new PackagesModule();
+$module          = new PackagesModule();
+require_once __DIR__ . '/modules/subscriptions/SubscriptionSettingsModule.php';
+$settingsModule  = new SubscriptionSettingsModule();
 $alert     = null;
 
 // ─── POST-Verarbeitung ──────────────────────────────────
@@ -31,6 +33,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($action) {
             case 'save':
                 $result = $module->save($_POST);
+                $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
+                header('Location: ' . SITE_URL . '/admin/packages');
+                exit;
+
+            case 'seed_defaults':
+                $result = $module->seedDefaults();
                 $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
                 header('Location: ' . SITE_URL . '/admin/packages');
                 exit;
@@ -48,6 +56,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
                 header('Location: ' . SITE_URL . '/admin/packages');
                 exit;
+
+            case 'save_package_settings':
+                $result = $settingsModule->savePackageSettings($_POST);
+                $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
+                header('Location: ' . SITE_URL . '/admin/packages');
+                exit;
         }
     }
     $csrfToken = Security::instance()->generateToken('admin_packages');
@@ -59,9 +73,9 @@ if (isset($_SESSION['admin_alert'])) {
 }
 
 $csrfToken  = Security::instance()->generateToken('admin_packages');
-$pageTitle  = 'Abo-Pakete';
+$pageTitle  = 'Pakete & Abo-Einstellungen';
 $activePage = 'packages';
-$data       = $module->getData();
+$data       = array_merge($module->getData(), $settingsModule->getPackageData());
 
 require_once __DIR__ . '/partials/header.php';
 require_once __DIR__ . '/partials/sidebar.php';

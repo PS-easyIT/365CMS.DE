@@ -84,7 +84,7 @@ $totalThemes = $data['totalThemes'] ?? 0;
                                 </button>
                             </form>
                         <?php else: ?>
-                            <a href="<?php echo SITE_URL; ?>/admin/design-settings" class="btn btn-outline-primary btn-sm">Anpassen</a>
+                            <a href="<?php echo SITE_URL; ?>/admin/theme-editor" class="btn btn-outline-primary btn-sm">Editor</a>
                             <a href="<?php echo SITE_URL; ?>/admin/theme-explorer" class="btn btn-outline-secondary btn-sm">Explorer</a>
                         <?php endif; ?>
                     </div>

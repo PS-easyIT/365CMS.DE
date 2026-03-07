@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) {
  */
 
 $categories = $data['categories'] ?? [];
-$systemSlugs = ['themes', 'plugins', 'assets', 'fonts', 'dl-manager', 'form-uploads'];
+$systemSlugs = ['themes', 'plugins', 'assets', 'fonts', 'dl-manager', 'form-uploads', 'member'];
 ?>
 
 <div class="page-header d-print-none">
@@ -127,15 +127,24 @@ $systemSlugs = ['themes', 'plugins', 'assets', 'fonts', 'dl-manager', 'form-uplo
 
 <script>
 function deleteCat(slug, name) {
-    cmsConfirm({
-        title: 'Kategorie löschen',
-        message: 'Kategorie <strong>' + name + '</strong> wirklich löschen? Die zugeordneten Dateien bleiben erhalten.',
-        confirmText: 'Löschen',
-        confirmClass: 'btn-danger',
-        onConfirm: function() {
-            document.getElementById('deleteCatSlug').value = slug;
-            document.getElementById('deleteCatForm').submit();
-        }
-    });
+    var submitDelete = function() {
+        document.getElementById('deleteCatSlug').value = slug;
+        document.getElementById('deleteCatForm').submit();
+    };
+
+    if (typeof cmsConfirm === 'function') {
+        cmsConfirm({
+            title: 'Kategorie löschen',
+            message: 'Kategorie ' + name + ' wirklich löschen? Die zugeordneten Dateien bleiben erhalten.',
+            confirmText: 'Löschen',
+            confirmClass: 'btn-danger',
+            onConfirm: submitDelete
+        });
+        return;
+    }
+
+    if (window.confirm('Kategorie ' + name + ' wirklich löschen? Die zugeordneten Dateien bleiben erhalten.')) {
+        submitDelete();
+    }
 }
 </script>

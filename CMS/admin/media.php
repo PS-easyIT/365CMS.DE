@@ -23,6 +23,21 @@ if (!Auth::instance()->isAdmin()) {
 require_once __DIR__ . '/modules/media/MediaModule.php';
 $module    = new MediaModule();
 $alert     = null;
+$tab       = $_GET['tab'] ?? 'library';
+
+if ($tab === 'library') {
+    $requestedPath = trim((string)($_GET['path'] ?? ''));
+    $memberConfirmed = (string)($_GET['confirm_member'] ?? '') === '1';
+
+    if ($module->requiresMemberConfirmation($requestedPath) && !$memberConfirmed) {
+        $_SESSION['admin_alert'] = [
+            'type' => 'danger',
+            'message' => 'Der Member-Ordner kann erst nach einer zusätzlichen Bestätigung geöffnet werden.',
+        ];
+        header('Location: ' . SITE_URL . '/admin/media');
+        exit;
+    }
+}
 
 // ─── POST-Handling ───────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -36,7 +51,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $path = $_POST['parent_path'] ?? $_POST['target_path'] ?? '';
-    $redir = SITE_URL . '/admin/media' . ($path !== '' ? '?path=' . urlencode($path) : '');
+
+    if ($path === '') {
+        $actionPath = $_POST['item_path'] ?? $_POST['old_path'] ?? $_POST['file_path'] ?? '';
+        if ($actionPath !== '') {
+            $normalizedActionPath = trim(str_replace('\\', '/', (string)$actionPath), '/');
+            $parentPath = trim(str_replace('\\', '/', dirname($normalizedActionPath)), '/.');
+            $path = $parentPath;
+        }
+    }
+
+    $redirectParams = [];
+
+    if ($tab !== 'library') {
+        $redirectParams['tab'] = $tab;
+    }
+
+    if ($path !== '') {
+        $redirectParams['path'] = $path;
+    } elseif (!empty($_GET['path'])) {
+        $redirectParams['path'] = (string)$_GET['path'];
+    }
+
+    foreach (['view', 'category', 'q', 'confirm_member'] as $key) {
+        if (isset($_GET[$key]) && $_GET[$key] !== '') {
+            $redirectParams[$key] = (string)$_GET[$key];
+        }
+    }
+
+    $redir = SITE_URL . '/admin/media' . (!empty($redirectParams) ? '?' . http_build_query($redirectParams) : '');
 
     switch ($action) {
         case 'upload':
@@ -149,11 +192,13 @@ if (!empty($_SESSION['admin_alert'])) {
 }
 
 $csrfToken  = Security::instance()->generateToken('admin_media');
-$activePage = 'media';
+$activePage = match ($tab) {
+    'categories' => 'media-categories',
+    'settings' => 'media-settings',
+    default => 'media',
+};
 
 // ─── Tab-Routing ─────────────────────────────────────────
-$tab = $_GET['tab'] ?? 'library';
-
 switch ($tab) {
     case 'categories':
         $data      = $module->getCategoriesData();

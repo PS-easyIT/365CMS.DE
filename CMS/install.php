@@ -234,7 +234,7 @@ define('NONCE_KEY',       '{$data['nonce_key']}');
 define('SITE_NAME',   '{$data['site_name']}');
 define('SITE_URL',    '{$data['site_url']}');
 define('ADMIN_EMAIL', '{$data['admin_email']}');
-define('CMS_VERSION', '2.1.0');
+define('CMS_VERSION', '2.1.1');
 
 // ─── Pfade ─────────────────────────────────────────────────────────────────
 define('CORE_PATH',   ABSPATH . 'core/');
@@ -443,6 +443,9 @@ function createDatabaseTables(PDO $pdo, string $prefix = 'cms_'): array {
             excerpt TEXT,
             status VARCHAR(20) DEFAULT 'draft',
             hide_title TINYINT(1) NOT NULL DEFAULT 0,
+            featured_image VARCHAR(500) DEFAULT NULL,
+            meta_title VARCHAR(255) DEFAULT NULL,
+            meta_description TEXT DEFAULT NULL,
             author_id INT UNSIGNED,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -903,7 +906,7 @@ function initializeLandingPageData(PDO $pdo, string $prefix = 'cms_'): bool {
             'description' => 'Ein leistungsstarkes, sicheres und erweiterbares CMS für professionelle Websites.',
             'github_url' => 'https://github.com/PS-easyIT/WordPress-365network',
             'gitlab_url' => '',
-            'version' => '2.1.0',
+            'version' => '2.1.1',
             'logo' => '',
             'colors' => [
                 'hero_gradient_start' => '#1e293b',

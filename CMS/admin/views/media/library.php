@@ -18,6 +18,27 @@ $categories = $data['categories'] ?? [];
 $diskUsage  = $data['diskUsage'] ?? [];
 $path       = $data['path'] ?? '';
 $category   = $data['category'] ?? '';
+$view       = $data['view'] ?? 'list';
+$search     = $data['search'] ?? '';
+$confirmMember = (string)($_GET['confirm_member'] ?? '') === '1';
+
+function mediaAdminUrl(array $params = []): string {
+    $params = array_filter($params, static fn($value): bool => $value !== '' && $value !== null);
+    $base = SITE_URL . '/admin/media';
+
+    return $params !== [] ? $base . '?' . http_build_query($params) : $base;
+}
+
+$libraryState = [
+    'path' => $path,
+    'view' => $view,
+    'category' => $category,
+    'q' => $search,
+];
+
+if ($confirmMember) {
+    $libraryState['confirm_member'] = '1';
+}
 
 // Breadcrumb-Pfad aufbauen
 $breadcrumbs = [];
@@ -46,6 +67,11 @@ function getFileType(string $filename): string {
     if (in_array($ext, ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'])) return 'video';
     if (in_array($ext, ['mp3', 'wav', 'aac', 'flac', 'm4a'])) return 'audio';
     return 'document';
+}
+
+function mediaFolderRequiresConfirmation(string $folderPath): bool {
+    $folderPath = trim(str_replace('\\', '/', $folderPath), '/');
+    return $folderPath === 'member' || str_starts_with($folderPath, 'member/');
 }
 ?>
 
@@ -139,39 +165,60 @@ function getFileType(string $filename): string {
         <!-- Breadcrumb & Filter -->
         <div class="card">
             <div class="card-header">
-                <div class="row w-100 g-2 align-items-center">
-                    <div class="col">
+                <div class="w-100">
+                    <div class="media-toolbar">
                         <nav aria-label="Breadcrumb">
-                            <ol class="breadcrumb mb-0">
-                                <li class="breadcrumb-item">
-                                    <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/media">Uploads</a>
-                                </li>
+                            <ol class="breadcrumb mb-0 media-breadcrumb">
+                                <li class="breadcrumb-item"><a href="<?php echo htmlspecialchars(mediaAdminUrl(['view' => $view, 'category' => $category, 'q' => $search] + ($confirmMember ? ['confirm_member' => '1'] : []))); ?>">Uploads</a></li>
                                 <?php foreach ($breadcrumbs as $i => $bc): ?>
                                     <?php if ($i === count($breadcrumbs) - 1): ?>
                                         <li class="breadcrumb-item active"><?php echo htmlspecialchars($bc['label']); ?></li>
                                     <?php else: ?>
                                         <li class="breadcrumb-item">
-                                            <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/media?path=<?php echo urlencode($bc['path']); ?>"><?php echo htmlspecialchars($bc['label']); ?></a>
+                                            <a href="<?php echo htmlspecialchars(mediaAdminUrl([
+                                                'path' => $bc['path'],
+                                                'view' => $view,
+                                                'category' => $category,
+                                                'q' => $search,
+                                            ] + ($confirmMember ? ['confirm_member' => '1'] : []))); ?>"><?php echo htmlspecialchars($bc['label']); ?></a>
                                         </li>
                                     <?php endif; ?>
                                 <?php endforeach; ?>
                             </ol>
                         </nav>
-                    </div>
-                    <div class="col-auto">
-                        <select class="form-select form-select-sm" onchange="window.location.href='<?php echo htmlspecialchars(SITE_URL); ?>/admin/media?path=<?php echo urlencode($path); ?>&category='+this.value">
-                            <option value="">Alle Kategorien</option>
-                            <?php foreach ($categories as $cat): ?>
-                                <option value="<?php echo htmlspecialchars($cat['slug']); ?>" <?php echo $category === $cat['slug'] ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($cat['name']); ?> (<?php echo (int)$cat['count']; ?>)
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
+
+                        <div class="media-toolbar-right">
+                            <form method="get" action="<?php echo htmlspecialchars(SITE_URL); ?>/admin/media" class="media-filters">
+                                <input type="hidden" name="path" value="<?php echo htmlspecialchars($path); ?>">
+                                <input type="hidden" name="view" value="<?php echo htmlspecialchars($view); ?>">
+                                <?php if ($confirmMember): ?>
+                                    <input type="hidden" name="confirm_member" value="1">
+                                <?php endif; ?>
+                                <select class="form-select form-select-sm" name="category" onchange="this.form.submit()">
+                                    <option value="">Alle Kategorien</option>
+                                    <?php foreach ($categories as $cat): ?>
+                                        <option value="<?php echo htmlspecialchars($cat['slug']); ?>" <?php echo $category === $cat['slug'] ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($cat['name']); ?> (<?php echo (int)$cat['count']; ?>)
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="input-group input-group-sm" style="width: 220px;">
+                                    <input type="search" class="form-control" name="q" placeholder="Dateien suchen …" value="<?php echo htmlspecialchars($search); ?>">
+                                    <button type="submit" class="btn btn-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/><path d="M21 21l-6 -6"/></svg>
+                                    </button>
+                                </div>
+                            </form>
+
+                            <div class="media-view-toggle" role="group" aria-label="Ansicht umschalten">
+                                <a href="<?php echo htmlspecialchars(mediaAdminUrl(array_merge($libraryState, ['view' => 'list']))); ?>" class="btn <?php echo $view === 'list' ? 'active' : ''; ?>">Liste</a>
+                                <a href="<?php echo htmlspecialchars(mediaAdminUrl(array_merge($libraryState, ['view' => 'grid']))); ?>" class="btn <?php echo $view === 'grid' ? 'active' : ''; ?>">Grid</a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Datei-Grid -->
             <div class="card-body">
                 <?php if (empty($folders) && empty($files)): ?>
                     <div class="empty">
@@ -182,57 +229,178 @@ function getFileType(string $filename): string {
                         <p class="empty-subtitle text-secondary">Legen Sie einen Ordner an oder laden Sie Dateien hoch.</p>
                     </div>
                 <?php else: ?>
-                    <div class="row row-cards">
-                        <!-- Ordner -->
-                        <?php foreach ($folders as $folder): ?>
-                            <?php $folderName = $folder['name'] ?? $folder; ?>
-                            <div class="col-6 col-sm-4 col-md-3 col-lg-2">
-                                <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/media?path=<?php echo urlencode(($path ? $path . '/' : '') . $folderName); ?>" class="card card-sm text-center text-decoration-none">
-                                    <div class="card-body py-3">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-lg text-yellow mb-1" width="40" height="40" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 4h4l3 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2"/></svg>
-                                        <div class="text-truncate small font-weight-medium"><?php echo htmlspecialchars($folderName); ?></div>
-                                    </div>
-                                </a>
-                            </div>
-                        <?php endforeach; ?>
+                    <?php if ($view === 'grid'): ?>
+                        <div class="media-grid">
+                            <?php foreach ($folders as $folder): ?>
+                                <?php
+                                $folderName = (string)($folder['name'] ?? '');
+                                $folderPath = (string)($folder['path'] ?? trim(($path !== '' ? $path . '/' : '') . $folderName, '/'));
+                                $folderUrl = mediaAdminUrl([
+                                    'path' => $folderPath,
+                                    'view' => $view,
+                                    'category' => $category,
+                                    'q' => $search,
+                                ] + ($confirmMember ? ['confirm_member' => '1'] : []));
+                                $confirmUrl = mediaAdminUrl([
+                                    'path' => $folderPath,
+                                    'view' => $view,
+                                    'category' => $category,
+                                    'q' => $search,
+                                    'confirm_member' => '1',
+                                ]);
+                                $requiresConfirm = mediaFolderRequiresConfirmation($folderPath) && !$confirmMember;
+                                ?>
+                                <div class="media-grid-item media-grid-folder">
+                                    <a href="<?php echo htmlspecialchars($folderUrl); ?>" class="text-decoration-none text-reset media-folder-link" <?php echo $requiresConfirm ? 'data-confirm-member="1" data-confirm-url="' . htmlspecialchars($confirmUrl, ENT_QUOTES) . '"' : ''; ?>>
+                                        <div class="media-grid-thumb"><span class="folder-icon">📁</span></div>
+                                        <div class="media-grid-label"><?php echo htmlspecialchars($folderName); ?></div>
+                                        <div class="media-grid-meta"><?php echo (int)($folder['items_count'] ?? 0); ?> Einträge</div>
+                                    </a>
+                                </div>
+                            <?php endforeach; ?>
 
-                        <!-- Dateien -->
-                        <?php foreach ($files as $file): ?>
-                            <?php
-                            $fname = $file['name'] ?? '';
-                            $ftype = getFileType($fname);
-                            $fsize = '';
-                            if (isset($file['size'])) {
-                                $bytes = (int)$file['size'];
-                                if ($bytes >= 1048576) { $fsize = round($bytes / 1048576, 1) . ' MB'; }
-                                elseif ($bytes >= 1024) { $fsize = round($bytes / 1024, 1) . ' KB'; }
-                                else { $fsize = $bytes . ' B'; }
-                            }
-                            $fpath = ($path ? $path . '/' : '') . $fname;
-                            $isImage = $ftype === 'image';
-                            ?>
-                            <div class="col-6 col-sm-4 col-md-3 col-lg-2">
-                                <div class="card card-sm text-center">
-                                    <div class="card-body py-3">
+                            <?php foreach ($files as $file): ?>
+                                <?php
+                                $fname = (string)($file['name'] ?? '');
+                                $ftype = getFileType($fname);
+                                $fpath = (string)($file['path'] ?? trim(($path !== '' ? $path . '/' : '') . $fname, '/'));
+                                $isImage = $ftype === 'image';
+                                ?>
+                                <div class="media-grid-item">
+                                    <div class="media-grid-thumb">
                                         <?php if ($isImage): ?>
-                                            <img src="<?php echo htmlspecialchars(UPLOAD_PATH . '/' . $fpath); ?>" alt="<?php echo htmlspecialchars($fname); ?>" class="rounded mb-1" style="max-height:60px;max-width:100%;object-fit:cover;" loading="lazy">
+                                            <img src="<?php echo htmlspecialchars((string)($file['url'] ?? (UPLOAD_URL . '/' . $fpath))); ?>" alt="<?php echo htmlspecialchars($fname); ?>" loading="lazy">
                                         <?php else: ?>
-                                            <div class="mb-1"><?php echo mediaTypeIcon($ftype); ?></div>
+                                            <?php echo mediaTypeIcon($ftype); ?>
                                         <?php endif; ?>
-                                        <div class="text-truncate small font-weight-medium" title="<?php echo htmlspecialchars($fname); ?>"><?php echo htmlspecialchars($fname); ?></div>
-                                        <div class="text-secondary" style="font-size:0.7rem;"><?php echo $fsize; ?></div>
                                     </div>
-                                    <div class="card-footer p-1">
-                                        <div class="btn-list justify-content-center">
-                                            <button class="btn btn-ghost-danger btn-icon btn-sm" title="Löschen" onclick="deleteMedia('<?php echo htmlspecialchars(addslashes($fpath), ENT_QUOTES); ?>', '<?php echo htmlspecialchars(addslashes($fname), ENT_QUOTES); ?>')">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/></svg>
-                                            </button>
-                                        </div>
+                                    <div class="media-grid-label"><?php echo htmlspecialchars($fname); ?></div>
+                                    <div class="media-grid-meta"><?php echo htmlspecialchars($file['category'] ?? 'Ohne Kategorie'); ?></div>
+                                    <div class="p-2 pt-0 text-center">
+                                        <button type="button" class="btn btn-ghost-danger btn-icon btn-sm" title="Löschen" onclick="deleteMedia('<?php echo htmlspecialchars(addslashes($fpath), ENT_QUOTES); ?>', '<?php echo htmlspecialchars(addslashes($fname), ENT_QUOTES); ?>', 'Datei')">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/></svg>
+                                        </button>
                                     </div>
                                 </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="table-responsive">
+                            <table class="table table-vcenter card-table media-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 60px;">Typ</th>
+                                        <th>Name</th>
+                                        <th>Kategorie</th>
+                                        <th>Größe</th>
+                                        <th>Geändert</th>
+                                        <th class="w-1">Aktionen</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($folders as $folder): ?>
+                                        <?php
+                                        $folderName = (string)($folder['name'] ?? '');
+                                        $folderPath = (string)($folder['path'] ?? trim(($path !== '' ? $path . '/' : '') . $folderName, '/'));
+                                        $folderUrl = mediaAdminUrl([
+                                            'path' => $folderPath,
+                                            'view' => $view,
+                                            'category' => $category,
+                                            'q' => $search,
+                                        ] + ($confirmMember ? ['confirm_member' => '1'] : []));
+                                        $confirmUrl = mediaAdminUrl([
+                                            'path' => $folderPath,
+                                            'view' => $view,
+                                            'category' => $category,
+                                            'q' => $search,
+                                            'confirm_member' => '1',
+                                        ]);
+                                        $requiresConfirm = mediaFolderRequiresConfirmation($folderPath) && !$confirmMember;
+                                        ?>
+                                        <tr>
+                                            <td><span class="folder-icon">📁</span></td>
+                                            <td>
+                                                <a href="<?php echo htmlspecialchars($folderUrl); ?>" class="fw-semibold text-reset media-folder-link" <?php echo $requiresConfirm ? 'data-confirm-member="1" data-confirm-url="' . htmlspecialchars($confirmUrl, ENT_QUOTES) . '"' : ''; ?>>
+                                                    <?php echo htmlspecialchars($folderName); ?>
+                                                </a>
+                                            </td>
+                                            <td>
+                                                <?php if (!empty($folder['category'])): ?>
+                                                    <span class="badge bg-blue-lt"><?php echo htmlspecialchars((string)$folder['category']); ?></span>
+                                                <?php else: ?>
+                                                    <span class="text-secondary">—</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="text-secondary"><?php echo (int)($folder['items_count'] ?? 0); ?> Einträge</td>
+                                            <td class="text-secondary"><?php echo !empty($folder['modified']) ? htmlspecialchars(date('d.m.Y H:i', (int)$folder['modified'])) : '—'; ?></td>
+                                            <td>
+                                                <?php if (empty($folder['is_system'])): ?>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteMedia('<?php echo htmlspecialchars(addslashes($folderPath), ENT_QUOTES); ?>', '<?php echo htmlspecialchars(addslashes($folderName), ENT_QUOTES); ?>', 'Ordner')">Löschen</button>
+                                                <?php else: ?>
+                                                    <span class="badge bg-secondary-lt">System</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+
+                                    <?php foreach ($files as $file): ?>
+                                        <?php
+                                        $fname = (string)($file['name'] ?? '');
+                                        $ftype = getFileType($fname);
+                                        $fpath = (string)($file['path'] ?? trim(($path !== '' ? $path . '/' : '') . $fname, '/'));
+                                        $fileUrl = (string)($file['url'] ?? (UPLOAD_URL . '/' . $fpath));
+                                        $isImage = $ftype === 'image';
+                                        $fsize = isset($file['size']) ? htmlspecialchars((string)($diskUsage['formatted'] ?? '')) : '—';
+                                        if (isset($file['size'])) {
+                                            $bytes = (int)$file['size'];
+                                            if ($bytes >= 1048576) {
+                                                $fsize = round($bytes / 1048576, 1) . ' MB';
+                                            } elseif ($bytes >= 1024) {
+                                                $fsize = round($bytes / 1024, 1) . ' KB';
+                                            } else {
+                                                $fsize = $bytes . ' B';
+                                            }
+                                        }
+                                        ?>
+                                        <tr>
+                                            <td>
+                                                <?php if ($isImage): ?>
+                                                    <img src="<?php echo htmlspecialchars($fileUrl); ?>" alt="<?php echo htmlspecialchars($fname); ?>" class="media-thumb" loading="lazy">
+                                                <?php else: ?>
+                                                    <span class="media-thumb-icon"><?php echo mediaTypeIcon($ftype); ?></span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <a href="<?php echo htmlspecialchars($fileUrl); ?>" target="_blank" rel="noopener noreferrer" class="fw-semibold text-reset">
+                                                    <?php echo htmlspecialchars($fname); ?>
+                                                </a>
+                                            </td>
+                                            <td>
+                                                <form method="post" class="d-flex gap-2 align-items-center">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                                    <input type="hidden" name="action" value="assign_category">
+                                                    <input type="hidden" name="file_path" value="<?php echo htmlspecialchars($fpath); ?>">
+                                                    <select class="form-select form-select-sm" name="category_slug" onchange="this.form.submit()">
+                                                        <option value="">Ohne Kategorie</option>
+                                                        <?php foreach ($categories as $cat): ?>
+                                                            <option value="<?php echo htmlspecialchars($cat['slug']); ?>" <?php echo (($file['category'] ?? '') === $cat['slug']) ? 'selected' : ''; ?>>
+                                                                <?php echo htmlspecialchars($cat['name']); ?>
+                                                            </option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                </form>
+                                            </td>
+                                            <td class="text-secondary"><?php echo htmlspecialchars($fsize); ?></td>
+                                            <td class="text-secondary"><?php echo !empty($file['modified']) ? htmlspecialchars(date('d.m.Y H:i', (int)$file['modified'])) : '—'; ?></td>
+                                            <td>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteMedia('<?php echo htmlspecialchars(addslashes($fpath), ENT_QUOTES); ?>', '<?php echo htmlspecialchars(addslashes($fname), ENT_QUOTES); ?>', 'Datei')">Löschen</button>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
                 <?php endif; ?>
             </div>
         </div>
@@ -297,16 +465,47 @@ function getFileType(string $filename): string {
 </form>
 
 <script>
-function deleteMedia(path, name) {
-    cmsConfirm({
-        title: 'Datei löschen',
-        message: '<strong>' + name + '</strong> wirklich löschen?',
-        confirmText: 'Löschen',
-        confirmClass: 'btn-danger',
-        onConfirm: function() {
-            document.getElementById('deleteMediaPath').value = path;
-            document.getElementById('deleteMediaForm').submit();
+document.querySelectorAll('.media-folder-link[data-confirm-member="1"]').forEach(function(link) {
+    link.addEventListener('click', function(event) {
+        event.preventDefault();
+        var targetUrl = this.getAttribute('data-confirm-url') || this.getAttribute('href');
+        if (typeof cmsConfirm === 'function') {
+            cmsConfirm({
+                title: 'Member-Ordner öffnen',
+                message: 'Der Member-Bereich enthält sensible Uploads. Möchten Sie den Ordner wirklich öffnen?',
+                confirmText: 'Öffnen',
+                onConfirm: function() {
+                    window.location.href = targetUrl;
+                }
+            });
+            return;
+        }
+
+        if (window.confirm('Der Member-Bereich enthält sensible Uploads. Möchten Sie den Ordner wirklich öffnen?')) {
+            window.location.href = targetUrl;
         }
     });
+});
+
+function deleteMedia(path, name, itemType) {
+    var submitDelete = function() {
+        document.getElementById('deleteMediaPath').value = path;
+        document.getElementById('deleteMediaForm').submit();
+    };
+
+    if (typeof cmsConfirm === 'function') {
+        cmsConfirm({
+            title: itemType + ' löschen',
+            message: name + ' wirklich löschen?',
+            confirmText: 'Löschen',
+            confirmClass: 'btn-danger',
+            onConfirm: submitDelete
+        });
+        return;
+    }
+
+    if (window.confirm(name + ' wirklich löschen?')) {
+        submitDelete();
+    }
 }
 </script>

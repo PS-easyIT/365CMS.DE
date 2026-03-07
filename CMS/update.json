@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "min_php": "8.2",
   "released": "2026-03-07",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release 2.1.0: Editor.js-Integration, erweiterte Services, Routing-Verbesserungen, DSGVO-Fonts und neue DB-Tools im Admin.",
+  "notes": "Release 2.1.1: Medienverwaltung vervollständigt, Member-Medien geschützt, dynamische Rollen/Rechte erweitert sowie README und Changelog synchronisiert.",
   "critical": false
 }

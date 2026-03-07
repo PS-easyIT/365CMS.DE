@@ -50,9 +50,15 @@ if (isset($_SESSION['admin_alert'])) {
 }
 
 $csrfToken  = Security::instance()->generateToken('admin_legal_sites');
-$pageTitle  = 'Rechtliche Seiten';
+$pageTitle  = 'Legal Sites';
 $activePage = 'legal-sites';
 $data       = $module->getData();
+$data['templates'] = [
+    'imprint'    => $module->getTemplateContent('imprint'),
+    'privacy'    => $module->getTemplateContent('privacy'),
+    'terms'      => $module->getTemplateContent('terms'),
+    'revocation' => $module->getTemplateContent('revocation'),
+];
 
 require_once __DIR__ . '/partials/header.php';
 require_once __DIR__ . '/partials/sidebar.php';

@@ -51,13 +51,15 @@ class UsersModule
         $stats = $this->userService->getStatistics();
 
         return [
-            'users'   => $result['users'],
-            'total'   => $result['total'],
-            'stats'   => $stats,
-            'filter'  => ['role' => $roleFilter, 'status' => $statusFilter, 'search' => $search],
-            'page'    => $page,
-            'perPage' => $perPage,
-            'pages'   => (int)ceil($result['total'] / $perPage),
+            'users'          => $result['users'],
+            'total'          => $result['total'],
+            'stats'          => $stats,
+            'availableRoles' => $this->userService->getAvailableRoles(),
+            'availableStatuses' => $this->userService->getAvailableStatuses(),
+            'filter'         => ['role' => $roleFilter, 'status' => $statusFilter, 'search' => $search],
+            'page'           => $page,
+            'perPage'        => $perPage,
+            'pages'          => (int)ceil($result['total'] / $perPage),
         ];
     }
 
@@ -72,8 +74,10 @@ class UsersModule
         }
 
         return [
-            'user'  => $user,
-            'isNew' => $user === null,
+            'user'              => $user,
+            'isNew'             => $user === null,
+            'availableRoles'    => $this->userService->getAvailableRoles(),
+            'availableStatuses' => $this->userService->getAvailableStatuses(),
         ];
     }
 

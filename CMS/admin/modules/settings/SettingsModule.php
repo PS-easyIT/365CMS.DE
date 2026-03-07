@@ -19,11 +19,14 @@ class SettingsModule
     private string $prefix;
 
     private const SETTINGS_KEYS = [
-        'site_name', 'site_description', 'site_url', 'admin_email',
+        'site_name', 'site_description', 'site_url', 'site_logo', 'admin_email',
         'language', 'timezone', 'date_format', 'time_format',
         'posts_per_page', 'registration_enabled', 'comments_enabled',
         'maintenance_mode', 'maintenance_message',
         'google_analytics', 'robots_txt', 'marketplace_enabled',
+        'setting_editor_type', 'setting_page_default_status',
+        'setting_post_default_status', 'setting_page_editor_width',
+        'setting_post_editor_width',
     ];
 
     private const TIMEZONES = [
@@ -57,12 +60,27 @@ class SettingsModule
     public function getData(): array
     {
         $settings = $this->loadSettings();
+        $editorType = (string)($settings['setting_editor_type'] ?? 'editorjs');
+        if (!in_array($editorType, ['editorjs', 'suneditor'], true)) {
+            $editorType = 'editorjs';
+        }
+
+        $pageDefaultStatus = (string)($settings['setting_page_default_status'] ?? 'draft');
+        if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
+            $pageDefaultStatus = 'draft';
+        }
+
+        $postDefaultStatus = (string)($settings['setting_post_default_status'] ?? 'draft');
+        if (!in_array($postDefaultStatus, ['draft', 'published'], true)) {
+            $postDefaultStatus = 'draft';
+        }
 
         return [
             'settings'  => [
                 'site_name'            => $settings['site_name'] ?? (defined('SITE_NAME') ? SITE_NAME : ''),
                 'site_description'     => $settings['site_description'] ?? '',
                 'site_url'             => $settings['site_url'] ?? (defined('SITE_URL') ? SITE_URL : ''),
+                'site_logo'            => $settings['site_logo'] ?? '',
                 'admin_email'          => $settings['admin_email'] ?? '',
                 'language'             => $settings['language'] ?? 'de',
                 'timezone'             => $settings['timezone'] ?? 'Europe/Berlin',
@@ -76,6 +94,11 @@ class SettingsModule
                 'google_analytics'     => $settings['google_analytics'] ?? '',
                 'robots_txt'           => $settings['robots_txt'] ?? '',
                 'marketplace_enabled'  => ($settings['marketplace_enabled'] ?? '1') === '1',
+                'editor_type'          => $editorType,
+                'page_default_status'  => $pageDefaultStatus,
+                'post_default_status'  => $postDefaultStatus,
+                'page_editor_width'    => (string)max(320, min(1600, (int)($settings['setting_page_editor_width'] ?? 1050))),
+                'post_editor_width'    => (string)max(320, min(1600, (int)($settings['setting_post_editor_width'] ?? 750))),
             ],
             'timezones' => self::TIMEZONES,
             'languages' => self::LANGUAGES,
@@ -88,10 +111,31 @@ class SettingsModule
     public function saveSettings(array $post): array
     {
         try {
+            $editorType = (string)($post['editor_type'] ?? 'editorjs');
+            if (!in_array($editorType, ['editorjs', 'suneditor'], true)) {
+                $editorType = 'editorjs';
+            }
+
+            $pageDefaultStatus = (string)($post['page_default_status'] ?? 'draft');
+            if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
+                $pageDefaultStatus = 'draft';
+            }
+
+            $postDefaultStatus = (string)($post['post_default_status'] ?? 'draft');
+            if (!in_array($postDefaultStatus, ['draft', 'published'], true)) {
+                $postDefaultStatus = 'draft';
+            }
+
+            $siteLogo = trim((string)($post['site_logo'] ?? ''));
+            if ($siteLogo !== '' && !str_starts_with($siteLogo, '/') && filter_var($siteLogo, FILTER_VALIDATE_URL) === false) {
+                $siteLogo = '';
+            }
+
             $values = [
                 'site_name'            => trim(strip_tags($post['site_name'] ?? '')),
                 'site_description'     => trim(strip_tags($post['site_description'] ?? '')),
                 'site_url'             => rtrim(filter_var($post['site_url'] ?? '', FILTER_SANITIZE_URL), '/'),
+                'site_logo'            => $siteLogo,
                 'admin_email'          => filter_var($post['admin_email'] ?? '', FILTER_VALIDATE_EMAIL) ?: '',
                 'language'             => array_key_exists($post['language'] ?? 'de', self::LANGUAGES) ? $post['language'] : 'de',
                 'timezone'             => in_array($post['timezone'] ?? '', self::TIMEZONES, true) ? $post['timezone'] : 'Europe/Berlin',
@@ -105,6 +149,11 @@ class SettingsModule
                 'google_analytics'     => preg_match('/^(G-|UA-)[A-Za-z0-9-]+$/', $post['google_analytics'] ?? '') ? $post['google_analytics'] : '',
                 'robots_txt'           => strip_tags($post['robots_txt'] ?? ''),
                 'marketplace_enabled'  => !empty($post['marketplace_enabled']) ? '1' : '0',
+                'setting_editor_type' => $editorType,
+                'setting_page_default_status' => $pageDefaultStatus,
+                'setting_post_default_status' => $postDefaultStatus,
+                'setting_page_editor_width' => (string)max(320, min(1600, (int)($post['page_editor_width'] ?? 1050))),
+                'setting_post_editor_width' => (string)max(320, min(1600, (int)($post['post_editor_width'] ?? 750))),
             ];
 
             foreach ($values as $key => $value) {
@@ -114,12 +163,12 @@ class SettingsModule
                 );
 
                 if ((int)$existing > 0) {
-                    $this->db->query(
+                    $this->db->execute(
                         "UPDATE {$this->prefix}settings SET option_value = ? WHERE option_name = ?",
                         [$value, $key]
                     );
                 } else {
-                    $this->db->query(
+                    $this->db->execute(
                         "INSERT INTO {$this->prefix}settings (option_name, option_value) VALUES (?, ?)",
                         [$key, $value]
                     );

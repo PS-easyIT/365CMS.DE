@@ -33,6 +33,12 @@ class MediaModule
     {
         $path     = trim($_GET['path'] ?? '');
         $category = trim($_GET['category'] ?? '');
+        $view     = trim($_GET['view'] ?? 'list');
+        $search   = trim($_GET['q'] ?? '');
+
+        if (!in_array($view, ['list', 'grid'], true)) {
+            $view = 'list';
+        }
 
         $items = $this->service->getItems($path);
         if ($items instanceof \WP_Error) {
@@ -47,6 +53,18 @@ class MediaModule
             $items['files'] = array_values($items['files']);
         }
 
+        if ($search !== '') {
+            $items['folders'] = array_values(array_filter($items['folders'] ?? [], static function (array $folder) use ($search): bool {
+                $haystack = strtolower((string)($folder['name'] ?? $folder['path'] ?? ''));
+                return str_contains($haystack, strtolower($search));
+            }));
+
+            $items['files'] = array_values(array_filter($items['files'] ?? [], static function (array $file) use ($search): bool {
+                $haystack = strtolower((string)($file['name'] ?? $file['path'] ?? ''));
+                return str_contains($haystack, strtolower($search));
+            }));
+        }
+
         $categories = $this->service->getCategories();
         $diskUsage  = $this->service->getDiskUsage();
 
@@ -57,7 +75,17 @@ class MediaModule
             'diskUsage'  => $diskUsage,
             'path'       => $path,
             'category'   => $category,
+            'view'       => $view,
+            'search'     => $search,
         ];
+    }
+
+    public function requiresMemberConfirmation(string $path): bool
+    {
+        $normalizedPath = trim(str_replace('\\', '/', $path), '/');
+
+        return $normalizedPath !== ''
+            && ($normalizedPath === 'member' || str_starts_with($normalizedPath, 'member/'));
     }
 
     /**

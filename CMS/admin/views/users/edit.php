@@ -13,7 +13,16 @@ if (!defined('ABSPATH')) {
 
 $user  = $data['user'] ?? null;
 $isNew = $data['isNew'] ?? true;
+$availableRoles = $data['availableRoles'] ?? [];
+$availableStatuses = $data['availableStatuses'] ?? [];
 $siteUrl = defined('SITE_URL') ? SITE_URL : '';
+
+$roleColors = [
+    'admin' => 'red',
+    'editor' => 'blue',
+    'author' => 'green',
+    'member' => 'secondary',
+];
 ?>
 
 <div class="page-header d-print-none">
@@ -102,18 +111,21 @@ $siteUrl = defined('SITE_URL') ? SITE_URL : '';
                             <div class="mb-3">
                                 <label class="form-label" for="role">Rolle</label>
                                 <select class="form-select" id="role" name="role">
-                                    <option value="member" <?php if (($user->role ?? 'member') === 'member') echo 'selected'; ?>>Mitglied</option>
-                                    <option value="author" <?php if (($user->role ?? '') === 'author') echo 'selected'; ?>>Autor</option>
-                                    <option value="editor" <?php if (($user->role ?? '') === 'editor') echo 'selected'; ?>>Editor</option>
-                                    <option value="admin" <?php if (($user->role ?? '') === 'admin') echo 'selected'; ?>>Administrator</option>
+                                    <?php foreach ($availableRoles as $role => $label): ?>
+                                        <option value="<?php echo htmlspecialchars((string)$role); ?>" <?php if (($user->role ?? 'member') === $role) echo 'selected'; ?>>
+                                            <?php echo htmlspecialchars((string)$label); ?>
+                                        </option>
+                                    <?php endforeach; ?>
                                 </select>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="status">Status</label>
                                 <select class="form-select" id="status" name="status">
-                                    <option value="active" <?php if (($user->status ?? 'active') === 'active') echo 'selected'; ?>>Aktiv</option>
-                                    <option value="inactive" <?php if (($user->status ?? '') === 'inactive') echo 'selected'; ?>>Inaktiv</option>
-                                    <option value="banned" <?php if (($user->status ?? '') === 'banned') echo 'selected'; ?>>Gesperrt</option>
+                                    <?php foreach ($availableStatuses as $status => $label): ?>
+                                        <option value="<?php echo htmlspecialchars((string)$status); ?>" <?php if (($user->status ?? 'active') === $status) echo 'selected'; ?>>
+                                            <?php echo htmlspecialchars((string)$label); ?>
+                                        </option>
+                                    <?php endforeach; ?>
                                 </select>
                             </div>
                         </div>

@@ -18,6 +18,9 @@ if (!Auth::instance()->isAdmin()) {
     exit;
 }
 
+header('Location: ' . SITE_URL . '/admin/info');
+exit;
+
 require_once __DIR__ . '/modules/system/SystemInfoModule.php';
 $module    = new SystemInfoModule();
 $alert     = null;

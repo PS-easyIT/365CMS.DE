@@ -9,6 +9,9 @@ $siteUrl      = defined('SITE_URL') ? SITE_URL : '';
 $orders       = $data['orders'] ?? [];
 $stats        = $data['stats'] ?? [];
 $statusFilter = $data['filter'] ?? '';
+$assignments  = $data['assignments'] ?? [];
+$plans        = $data['plans'] ?? [];
+$users        = $data['users'] ?? [];
 
 $statusLabels = [
     'pending'   => ['label' => 'Offen',       'class' => 'bg-warning'],
@@ -24,7 +27,10 @@ $statusLabels = [
         <div class="row g-2 align-items-center">
             <div class="col">
                 <div class="page-pretitle">Aboverwaltung</div>
-                <h2 class="page-title">Bestellungen</h2>
+                <h2 class="page-title">Bestellungen &amp; Zuweisung</h2>
+            </div>
+            <div class="col-auto ms-auto">
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#assignModal" onclick="resetAssignForm()">Zuweisen</button>
             </div>
         </div>
     </div>
@@ -76,7 +82,6 @@ $statusLabels = [
             </div>
         </div>
 
-        <!-- Filter -->
         <div class="card mb-3">
             <div class="card-body py-2">
                 <div class="d-flex gap-2 flex-wrap">
@@ -90,8 +95,7 @@ $statusLabels = [
             </div>
         </div>
 
-        <!-- Orders Table -->
-        <div class="card">
+        <div class="card mb-4">
             <div class="table-responsive">
                 <table class="table table-vcenter card-table">
                     <thead>
@@ -112,6 +116,9 @@ $statusLabels = [
                             <?php foreach ($orders as $order): ?>
                                 <tr>
                                     <td>
+                                        <?php if (!empty($order['plan_name'])): ?>
+                                            <div><?= htmlspecialchars($order['plan_name']) ?></div>
+                                        <?php endif; ?>
                                         <strong><?= htmlspecialchars($order['order_number'] ?? '#' . $order['id']) ?></strong>
                                     </td>
                                     <td>
@@ -145,6 +152,9 @@ $statusLabels = [
                                                         </form>
                                                     <?php endif; ?>
                                                 <?php endforeach; ?>
+                                                <?php if (!empty($order['user_id'])): ?>
+                                                    <button type="button" class="dropdown-item" onclick='openAssignFromOrder(<?= htmlspecialchars(json_encode($order, JSON_HEX_APOS | JSON_HEX_QUOT)) ?>)'>Paket zuweisen</button>
+                                                <?php endif; ?>
                                                 <div class="dropdown-divider"></div>
                                                 <button class="dropdown-item text-danger" onclick="cmsConfirm({title:'Bestellung löschen?',message:'#<?= htmlspecialchars($order['order_number'] ?? (string)$order['id']) ?>',onConfirm:function(){document.getElementById('delOrder-<?= (int)$order['id'] ?>').submit();}})">Löschen</button>
                                             </div>
@@ -163,5 +173,114 @@ $statusLabels = [
             </div>
         </div>
 
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Aktive Zuweisungen</h3>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table">
+                    <thead>
+                        <tr>
+                            <th>Benutzer</th>
+                            <th>Paket</th>
+                            <th>Status</th>
+                            <th>Abrechnung</th>
+                            <th>Laufzeit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($assignments)): ?>
+                            <tr><td colspan="5" class="text-center text-secondary py-4">Noch keine Zuweisungen vorhanden.</td></tr>
+                        <?php else: ?>
+                            <?php foreach ($assignments as $assignment): ?>
+                                <tr>
+                                    <td>
+                                        <div><?= htmlspecialchars($assignment['username'] ?? $assignment['email'] ?? '–') ?></div>
+                                        <div class="text-secondary small"><?= htmlspecialchars($assignment['email'] ?? '') ?></div>
+                                    </td>
+                                    <td><strong><?= htmlspecialchars($assignment['plan_name'] ?? '–') ?></strong></td>
+                                    <td><span class="badge bg-success"><?= htmlspecialchars($assignment['status'] ?? 'active') ?></span></td>
+                                    <td><?= htmlspecialchars($assignment['billing_cycle'] ?? 'monthly') ?></td>
+                                    <td class="text-secondary">
+                                        <?= !empty($assignment['start_date']) ? date('d.m.Y', strtotime((string)$assignment['start_date'])) : '–' ?>
+                                        <?php if (!empty($assignment['end_date'])): ?>
+                                            <div class="small">bis <?= date('d.m.Y', strtotime((string)$assignment['end_date'])) ?></div>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 </div>
+
+<div class="modal modal-blur fade" id="assignModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                <input type="hidden" name="action" value="assign_subscription">
+                <div class="modal-header">
+                    <h5 class="modal-title">Paket zuweisen</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Benutzer</label>
+                        <select name="user_id" id="assign-user" class="form-select" required>
+                            <option value="">– Benutzer wählen –</option>
+                            <?php foreach ($users as $user): ?>
+                                <option value="<?= (int)$user['id'] ?>"><?= htmlspecialchars($user['username'] ?: ($user['display_name'] ?: $user['email'])) ?><?= !empty($user['email']) ? ' (' . htmlspecialchars($user['email']) . ')' : '' ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Paket</label>
+                        <select name="plan_id" id="assign-plan" class="form-select" required>
+                            <option value="">– Paket wählen –</option>
+                            <?php foreach ($plans as $plan): ?>
+                                <option value="<?= (int)$plan['id'] ?>"><?= htmlspecialchars($plan['name']) ?><?php if (isset($plan['price_monthly'])): ?> – <?= number_format((float)$plan['price_monthly'], 2, ',', '.') ?> €/Monat<?php endif; ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">Abrechnungsintervall</label>
+                        <select name="billing_cycle" id="assign-cycle" class="form-select">
+                            <option value="monthly">Monatlich</option>
+                            <option value="yearly">Jährlich</option>
+                            <option value="lifetime">Lifetime</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn me-auto" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Zuweisen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function resetAssignForm() {
+    document.getElementById('assign-user').value = '';
+    document.getElementById('assign-plan').value = '';
+    document.getElementById('assign-cycle').value = 'monthly';
+}
+
+function openAssignFromOrder(order) {
+    resetAssignForm();
+    if (order.user_id) {
+        document.getElementById('assign-user').value = order.user_id;
+    }
+    const linkedPlanId = order.plan_id || order.package_id || order.linked_plan_id || '';
+    if (linkedPlanId) {
+        document.getElementById('assign-plan').value = linkedPlanId;
+    }
+    new bootstrap.Modal(document.getElementById('assignModal')).show();
+}
+</script>

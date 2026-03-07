@@ -15,6 +15,26 @@ $formatBytes = function(int $bytes): string {
 };
 ?>
 
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <div class="page-pretitle">SEO &amp; Performance</div>
+                <h2 class="page-title">Performance</h2>
+                <div class="text-secondary mt-1">Cache, Sessions, Bildanalyse und Performance-Einstellungen für das CMS.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="page-body">
+<div class="container-xl">
+    <?php if (!empty($alert)): ?>
+        <div class="alert alert-<?php echo htmlspecialchars($alert['type'] ?? 'info'); ?> mb-4" role="alert">
+            <?php echo htmlspecialchars($alert['message'] ?? ''); ?>
+        </div>
+    <?php endif; ?>
+
 <!-- KPI-Karten -->
 <div class="row row-deck row-cards mb-4">
     <div class="col-sm-6 col-lg-3">
@@ -204,4 +224,6 @@ $formatBytes = function(int $bytes): string {
             </tbody>
         </table>
     </div>
+</div>
+</div>
 </div>

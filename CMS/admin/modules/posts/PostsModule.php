@@ -22,6 +22,30 @@ class PostsModule
     {
         $this->db     = Database::instance();
         $this->prefix = $this->db->getPrefix();
+        $this->ensureColumns();
+    }
+
+    /**
+     * Ergänzt fehlende Beitrags-Spalten in Altinstallationen.
+     */
+    private function ensureColumns(): void
+    {
+        $columns = [
+            'featured_image' => "ALTER TABLE {$this->prefix}posts ADD COLUMN featured_image VARCHAR(500) DEFAULT NULL AFTER excerpt",
+            'meta_title' => "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_title VARCHAR(255) DEFAULT NULL AFTER allow_comments",
+            'meta_description' => "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_description TEXT DEFAULT NULL AFTER meta_title",
+        ];
+
+        foreach ($columns as $column => $sql) {
+            try {
+                $stmt = $this->db->query("SHOW COLUMNS FROM {$this->prefix}posts LIKE '{$column}'");
+                if ($stmt instanceof \PDOStatement && !$stmt->fetch()) {
+                    $this->db->query($sql);
+                }
+            } catch (\Throwable $e) {
+                error_log(sprintf('PostsModule::ensureColumns(%s) warning: %s', $column, $e->getMessage()));
+            }
+        }
     }
 
     /**
@@ -115,7 +139,12 @@ class PostsModule
         $id         = (int)($post['id'] ?? 0);
         $title      = trim($post['title'] ?? '');
         $slug       = trim($post['slug'] ?? '');
-        $status     = in_array($post['status'] ?? '', ['published', 'draft'], true) ? $post['status'] : 'draft';
+        $defaultStatus = function_exists('get_option') ? (string)get_option('setting_post_default_status', 'draft') : 'draft';
+        if (!in_array($defaultStatus, ['published', 'draft'], true)) {
+            $defaultStatus = 'draft';
+        }
+
+        $status     = in_array($post['status'] ?? '', ['published', 'draft'], true) ? $post['status'] : $defaultStatus;
         $content    = $post['content'] ?? '';
         $excerpt    = trim($post['excerpt'] ?? '');
         $categoryId = (int)($post['category_id'] ?? 0);
@@ -133,7 +162,7 @@ class PostsModule
 
         try {
             if ($id > 0) {
-                $this->db->query(
+                $this->db->execute(
                     "UPDATE {$this->prefix}posts 
                      SET title = ?, slug = ?, content = ?, excerpt = ?, status = ?,
                          category_id = ?, featured_image = ?,
@@ -144,7 +173,7 @@ class PostsModule
                 );
                 return ['success' => true, 'id' => $id, 'message' => 'Beitrag aktualisiert.'];
             } else {
-                $this->db->query(
+                $this->db->execute(
                     "INSERT INTO {$this->prefix}posts
                      (title, slug, content, excerpt, status, category_id, featured_image, meta_title, meta_description, author_id, created_at, updated_at)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
@@ -164,7 +193,7 @@ class PostsModule
     public function delete(int $id): array
     {
         try {
-            $this->db->query("DELETE FROM {$this->prefix}posts WHERE id = ?", [$id]);
+            $this->db->execute("DELETE FROM {$this->prefix}posts WHERE id = ?", [$id]);
             return ['success' => true, 'message' => 'Beitrag gelöscht.'];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler beim Löschen.'];
@@ -186,15 +215,15 @@ class PostsModule
         try {
             switch ($action) {
                 case 'delete':
-                    $this->db->query("DELETE FROM {$this->prefix}posts WHERE id IN ({$placeholders})", $ids);
+                    $this->db->execute("DELETE FROM {$this->prefix}posts WHERE id IN ({$placeholders})", $ids);
                     return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge gelöscht.'];
 
                 case 'publish':
-                    $this->db->query("UPDATE {$this->prefix}posts SET status = 'published', updated_at = NOW() WHERE id IN ({$placeholders})", $ids);
+                    $this->db->execute("UPDATE {$this->prefix}posts SET status = 'published', updated_at = NOW() WHERE id IN ({$placeholders})", $ids);
                     return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge veröffentlicht.'];
 
                 case 'draft':
-                    $this->db->query("UPDATE {$this->prefix}posts SET status = 'draft', updated_at = NOW() WHERE id IN ({$placeholders})", $ids);
+                    $this->db->execute("UPDATE {$this->prefix}posts SET status = 'draft', updated_at = NOW() WHERE id IN ({$placeholders})", $ids);
                     return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge als Entwurf gesetzt.'];
 
                 default:
@@ -223,13 +252,13 @@ class PostsModule
 
         try {
             if ($id > 0) {
-                $this->db->query(
+                $this->db->execute(
                     "UPDATE {$this->prefix}post_categories SET name = ?, slug = ? WHERE id = ?",
                     [$name, $slug, $id]
                 );
                 return ['success' => true, 'message' => 'Kategorie aktualisiert.'];
             } else {
-                $this->db->query(
+                $this->db->execute(
                     "INSERT INTO {$this->prefix}post_categories (name, slug) VALUES (?, ?)",
                     [$name, $slug]
                 );
@@ -247,8 +276,8 @@ class PostsModule
     {
         try {
             // Posts auf "keine Kategorie" setzen
-            $this->db->query("UPDATE {$this->prefix}posts SET category_id = NULL WHERE category_id = ?", [$id]);
-            $this->db->query("DELETE FROM {$this->prefix}post_categories WHERE id = ?", [$id]);
+            $this->db->execute("UPDATE {$this->prefix}posts SET category_id = NULL WHERE category_id = ?", [$id]);
+            $this->db->execute("DELETE FROM {$this->prefix}post_categories WHERE id = ?", [$id]);
             return ['success' => true, 'message' => 'Kategorie gelöscht.'];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler beim Löschen der Kategorie.'];

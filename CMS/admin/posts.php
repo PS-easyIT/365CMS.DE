@@ -12,6 +12,8 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 use CMS\Security;
+use CMS\Services\EditorJsService;
+use CMS\Services\EditorService;
 
 if (!Auth::instance()->isAdmin()) {
     header('Location: ' . SITE_URL);
@@ -36,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     switch ($action) {
         case 'save':
-            $result = $module->save($_POST, (int)($user['id'] ?? 0));
+            $result = $module->save($_POST, (int)($user->id ?? 0));
             $_SESSION['admin_alert'] = [
                 'type'    => $result['success'] ? 'success' : 'danger',
                 'message' => $result['message'] ?? $result['error'] ?? '',
@@ -98,6 +100,7 @@ if (!empty($_SESSION['admin_alert'])) {
 
 // CSRF-Token erneuern nach POST-Redirect
 $csrfToken = Security::instance()->generateToken('admin_posts');
+$editorMediaToken = Security::instance()->generateToken('editorjs_media');
 
 // ─── View-Routing ────────────────────────────────────────
 $viewAction = $_GET['action'] ?? 'list';
@@ -107,49 +110,38 @@ if ($viewAction === 'edit') {
     $data      = $module->getEditData($id);
     $pageTitle = $data['isNew'] ? 'Neuer Beitrag' : 'Beitrag bearbeiten';
     $activePage = 'posts';
-    $assetsUrl  = defined('ASSETS_URL') ? ASSETS_URL : (defined('SITE_URL') ? SITE_URL : '') . '/assets';
-    $pageAssets = [
-        'js' => [
-            $assetsUrl . '/editorjs/editorjs.umd.js',
-            $assetsUrl . '/editorjs/header.umd.js',
-            $assetsUrl . '/editorjs/paragraph.umd.js',
-            $assetsUrl . '/editorjs/editorjs-list.umd.js',
-            $assetsUrl . '/editorjs/checklist.umd.js',
-            $assetsUrl . '/editorjs/quote.umd.js',
-            $assetsUrl . '/editorjs/warning.umd.js',
-            $assetsUrl . '/editorjs/code.umd.js',
-            $assetsUrl . '/editorjs/raw.umd.js',
-            $assetsUrl . '/editorjs/table.umd.js',
-            $assetsUrl . '/editorjs/inline-code.umd.js',
-            $assetsUrl . '/editorjs/underline.umd.js',
-            $assetsUrl . '/editorjs/delimiter.umd.js',
-            $assetsUrl . '/editorjs/image.umd.js',
-            $assetsUrl . '/editorjs/link.umd.js',
-            $assetsUrl . '/editorjs/attaches.umd.js',
-            $assetsUrl . '/js/editor-init.js',
-        ],
-    ];
+    $useEditorJs = EditorService::isEditorJs();
+    $pageAssets = [];
+
+    if ($useEditorJs) {
+        $pageAssets = EditorJsService::getInstance()->getPageAssets();
+    } else {
+        EditorService::getInstance();
+    }
 
     require __DIR__ . '/partials/header.php';
     require __DIR__ . '/partials/sidebar.php';
     require __DIR__ . '/views/posts/edit.php';
 
-    // EditorJS-Initialisierung (läuft in footer.php NACH den deferred Scripts)
-    $inlineJs = sprintf(
-        "(function(){
-            if(typeof createCmsEditor!=='function'){console.warn('EditorJS nicht verfügbar');return;}
-            var inp=document.getElementById('contentInput'),data=null;
-            if(inp&&inp.value){try{var p=JSON.parse(inp.value);if(p&&p.blocks&&p.blocks.length)data=p;}catch(e){}}
-            var ed=createCmsEditor('editorjs',data,%%s,%%s);
-            var form=document.getElementById('postForm');
-            if(form){form.addEventListener('submit',function(e){
-                e.preventDefault();var f=this;
-                ed.save().then(function(o){inp.value=JSON.stringify(o);f.submit();}).catch(function(){f.submit();});
-            });}
-        })();",
-        json_encode((defined('SITE_URL') ? SITE_URL : '') . '/api/media'),
-        json_encode($csrfToken)
-    );
+    $inlineJs = '';
+    if ($useEditorJs) {
+        // EditorJS-Initialisierung (läuft in footer.php NACH den deferred Scripts)
+        $inlineJs = sprintf(
+            "(function(){
+                if(typeof createCmsEditor!=='function'){console.warn('EditorJS nicht verfügbar');return;}
+                var inp=document.getElementById('contentInput');
+                var rawContent=inp?inp.value:'';
+                var ed=createCmsEditor('editorjs',rawContent,%s,%s);
+                var form=document.getElementById('postForm');
+                if(form){form.addEventListener('submit',function(e){
+                    e.preventDefault();var f=this;
+                    ed.save().then(function(o){inp.value=JSON.stringify(o);f.submit();}).catch(function(){f.submit();});
+                });}
+            })();",
+            json_encode((defined('SITE_URL') ? SITE_URL : '') . '/api/media'),
+            json_encode($editorMediaToken)
+        );
+    }
 
     require __DIR__ . '/partials/footer.php';
 } else {

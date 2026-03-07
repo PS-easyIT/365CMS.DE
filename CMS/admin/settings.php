@@ -21,16 +21,19 @@ if (!Auth::instance()->isAdmin()) {
 require_once __DIR__ . '/modules/settings/SettingsModule.php';
 $module    = new SettingsModule();
 $alert     = null;
+$currentTab = ($_GET['tab'] ?? 'general') === 'content' ? 'content' : 'general';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postToken = $_POST['csrf_token'] ?? '';
     if (!Security::instance()->verifyToken($postToken, 'admin_settings')) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-        header('Location: ' . SITE_URL . '/admin/settings');
+        $redirectTab = ($_POST['tab'] ?? 'general') === 'content' ? 'content' : 'general';
+        header('Location: ' . SITE_URL . '/admin/settings?tab=' . $redirectTab);
         exit;
     }
 
     $action = $_POST['action'] ?? '';
+    $currentTab = ($_POST['tab'] ?? 'general') === 'content' ? 'content' : 'general';
     if ($action === 'save') {
         $result = $module->saveSettings($_POST);
         $_SESSION['admin_alert'] = [
@@ -39,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
     }
 
-    header('Location: ' . SITE_URL . '/admin/settings');
+    header('Location: ' . SITE_URL . '/admin/settings?tab=' . $currentTab);
     exit;
 }
 
@@ -50,8 +53,8 @@ if (!empty($_SESSION['admin_alert'])) {
 
 $csrfToken  = Security::instance()->generateToken('admin_settings');
 $data       = $module->getData();
-$pageTitle  = 'Allgemeine Einstellungen';
-$activePage = 'settings';
+$pageTitle  = $currentTab === 'content' ? 'Beiträge & Sites' : 'Allgemeine Einstellungen';
+$activePage = $currentTab === 'content' ? 'content-settings' : 'settings';
 $pageAssets = [];
 
 require __DIR__ . '/partials/header.php';

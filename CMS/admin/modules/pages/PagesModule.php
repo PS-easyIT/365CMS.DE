@@ -105,8 +105,14 @@ class PagesModule
         $id     = (int)($post['id'] ?? 0);
         $title  = trim($post['title'] ?? '');
         $slug   = trim($post['slug'] ?? '');
+        $defaultStatus = function_exists('get_option') ? (string)get_option('setting_page_default_status', 'draft') : 'draft';
+        if (!in_array($defaultStatus, ['published', 'draft', 'private'], true)) {
+            $defaultStatus = 'draft';
+        }
+
         $status = in_array($post['status'] ?? '', ['published', 'draft', 'private'], true)
-            ? $post['status'] : 'draft';
+            ? $post['status']
+            : $defaultStatus;
         $content    = $post['content'] ?? '';
         $hideTitle  = (int)($post['hide_title'] ?? 0);
         $featuredImage = trim($post['featured_image'] ?? '');
@@ -120,7 +126,7 @@ class PagesModule
         try {
             if ($id > 0) {
                 // Update
-                $this->db->query(
+                $this->db->execute(
                     "UPDATE {$this->prefix}pages 
                      SET title = ?, slug = ?, content = ?, status = ?,
                          hide_title = ?, featured_image = ?,
@@ -135,7 +141,7 @@ class PagesModule
                 $newId = $this->pageManager->createPage($title, $content, $status, $userId, $hideTitle);
                 if ($newId > 0) {
                     // Update meta fields
-                    $this->db->query(
+                    $this->db->execute(
                         "UPDATE {$this->prefix}pages 
                          SET featured_image = ?, meta_title = ?, meta_description = ?
                          WHERE id = ?",
@@ -155,7 +161,7 @@ class PagesModule
     public function delete(int $id): array
     {
         try {
-            $this->db->query("DELETE FROM {$this->prefix}pages WHERE id = ?", [$id]);
+            $this->db->execute("DELETE FROM {$this->prefix}pages WHERE id = ?", [$id]);
             return ['success' => true, 'message' => 'Seite gelöscht.'];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler beim Löschen.'];
@@ -177,21 +183,21 @@ class PagesModule
         try {
             switch ($action) {
                 case 'delete':
-                    $this->db->query(
+                    $this->db->execute(
                         "DELETE FROM {$this->prefix}pages WHERE id IN ({$placeholders})",
                         $ids
                     );
                     return ['success' => true, 'message' => count($ids) . ' Seite(n) gelöscht.'];
 
                 case 'publish':
-                    $this->db->query(
+                    $this->db->execute(
                         "UPDATE {$this->prefix}pages SET status = 'published', updated_at = NOW() WHERE id IN ({$placeholders})",
                         $ids
                     );
                     return ['success' => true, 'message' => count($ids) . ' Seite(n) veröffentlicht.'];
 
                 case 'draft':
-                    $this->db->query(
+                    $this->db->execute(
                         "UPDATE {$this->prefix}pages SET status = 'draft', updated_at = NOW() WHERE id IN ({$placeholders})",
                         $ids
                     );

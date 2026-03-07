@@ -40,7 +40,7 @@ if (isset($_SESSION['admin_alert'])) {
 }
 
 $csrfToken  = Security::instance()->generateToken('admin_sub_settings');
-$pageTitle  = 'Abo-Einstellungen';
+$pageTitle  = 'Aboverwaltung Einstellungen';
 $activePage = 'subscription-settings';
 $data       = $module->getData();
 

@@ -6,7 +6,7 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * Support & Dokumentation – Entry Point
+ * Legacy-Weiterleitung: frühere Support-&-Dokumentation-Seite
  * Route: /admin/support
  */
 
@@ -17,15 +17,5 @@ if (!Auth::instance()->isAdmin()) {
     exit;
 }
 
-require_once __DIR__ . '/modules/system/SupportModule.php';
-$module = new SupportModule();
-
-$data       = $module->getData();
-$pageTitle  = 'Support & Dokumentation';
-$activePage = 'support';
-$pageAssets = [];
-
-require __DIR__ . '/partials/header.php';
-require __DIR__ . '/partials/sidebar.php';
-require __DIR__ . '/views/system/support.php';
-require __DIR__ . '/partials/footer.php';
+header('Location: ' . SITE_URL . '/admin/documentation');
+exit;

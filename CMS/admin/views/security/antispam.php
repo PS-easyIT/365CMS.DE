@@ -10,6 +10,20 @@ $stats     = $d['stats'] ?? [];
 $typeLabels = ['word' => 'Wort', 'email' => 'E-Mail', 'ip' => 'IP-Adresse', 'domain' => 'Domain'];
 ?>
 
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <div class="page-pretitle">Sicherheit</div>
+                <h2 class="page-title">AntiSpam</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="page-body">
+    <div class="container-xl">
+
 <!-- KPI-Karten -->
 <div class="row row-deck row-cards mb-4">
     <div class="col-sm-6 col-lg-3">
@@ -43,6 +57,9 @@ $typeLabels = ['word' => 'Wort', 'email' => 'E-Mail', 'ip' => 'IP-Adresse', 'dom
                 <div class="h1 mb-0"><?php echo (int)($stats['ips'] ?? 0); ?></div>
             </div>
         </div>
+    </div>
+</div>
+
     </div>
 </div>
 

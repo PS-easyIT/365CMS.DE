@@ -7,7 +7,7 @@ if (!defined('ABSPATH')) {
 
 $siteUrl  = defined('SITE_URL') ? SITE_URL : '';
 $settings = $data['settings'] ?? [];
-$pages    = $data['pages'] ?? [];
+$plans    = $data['plans'] ?? [];
 ?>
 
 <div class="page-header d-print-none">
@@ -15,7 +15,7 @@ $pages    = $data['pages'] ?? [];
         <div class="row g-2 align-items-center">
             <div class="col">
                 <div class="page-pretitle">Aboverwaltung</div>
-                <h2 class="page-title">Abo-Einstellungen</h2>
+                <h2 class="page-title">Einstellungen</h2>
             </div>
         </div>
     </div>
@@ -35,133 +35,76 @@ $pages    = $data['pages'] ?? [];
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
 
             <div class="row g-4">
-                <!-- Allgemein -->
                 <div class="col-lg-6">
                     <div class="card">
-                        <div class="card-header"><h3 class="card-title">Allgemein</h3></div>
+                        <div class="card-header"><h3 class="card-title">Betriebsmodus</h3></div>
                         <div class="card-body">
-                            <div class="mb-3">
-                                <label class="form-check form-switch">
-                                    <input type="checkbox" name="subscription_enabled" class="form-check-input" <?= ($settings['subscription_enabled'] ?? '0') === '1' ? 'checked' : '' ?>>
-                                    <span class="form-check-label">Abo-System aktivieren</span>
-                                </label>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-check form-switch">
-                                    <input type="checkbox" name="auto_renewal" class="form-check-input" <?= ($settings['auto_renewal'] ?? '0') === '1' ? 'checked' : '' ?>>
-                                    <span class="form-check-label">Automatische Verlängerung</span>
-                                </label>
-                            </div>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Kulanzzeit (Tage)</label>
-                                    <input type="number" name="grace_period_days" class="form-control" min="0" value="<?= (int)($settings['grace_period_days'] ?? 3) ?>">
-                                    <small class="form-hint">Nach Ablauf, bevor Abo deaktiviert wird</small>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Kündigungsfrist (Tage)</label>
-                                    <input type="number" name="cancellation_period_days" class="form-control" min="0" value="<?= (int)($settings['cancellation_period_days'] ?? 0) ?>">
-                                </div>
-                            </div>
+                            <label class="form-check form-switch mb-3">
+                                <input type="checkbox" name="subscription_limits_enabled" class="form-check-input" <?= ($settings['subscription_limits_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
+                                <span class="form-check-label">Abo-Limits systemweit durchsetzen</span>
+                            </label>
+                            <div class="form-hint mb-3">Wenn deaktiviert, gibt es im gesamten CMS keine Paket-Limits mehr – unabhängig von Zuweisungen oder Planstufen.</div>
+
+                            <label class="form-check form-switch mb-3">
+                                <input type="checkbox" name="subscription_member_area_enabled" class="form-check-input" <?= ($settings['subscription_member_area_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
+                                <span class="form-check-label">Abo-Bereich im Member-Dashboard anzeigen</span>
+                            </label>
+
+                            <label class="form-check form-switch mb-3">
+                                <input type="checkbox" name="subscription_ordering_enabled" class="form-check-input" <?= ($settings['subscription_ordering_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
+                                <span class="form-check-label">Bestell- und Upgrade-Prozesse zulassen</span>
+                            </label>
+
+                            <label class="form-check form-switch mb-0">
+                                <input type="checkbox" name="subscription_public_pricing_enabled" class="form-check-input" <?= ($settings['subscription_public_pricing_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
+                                <span class="form-check-label">Pakete öffentlich kommunizieren</span>
+                            </label>
                         </div>
                     </div>
                 </div>
 
-                <!-- Testphase -->
                 <div class="col-lg-6">
                     <div class="card">
-                        <div class="card-header"><h3 class="card-title">Testphase</h3></div>
+                        <div class="card-header"><h3 class="card-title">Standard-Zuweisung</h3></div>
                         <div class="card-body">
                             <div class="mb-3">
-                                <label class="form-check form-switch">
-                                    <input type="checkbox" name="trial_enabled" class="form-check-input" <?= ($settings['trial_enabled'] ?? '0') === '1' ? 'checked' : '' ?>>
-                                    <span class="form-check-label">Testphase aktivieren</span>
-                                </label>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Testphase (Tage)</label>
-                                <input type="number" name="trial_days" class="form-control" min="1" max="365" value="<?= (int)($settings['trial_days'] ?? 14) ?>">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Rechnungen & Steuern -->
-                <div class="col-lg-6">
-                    <div class="card">
-                        <div class="card-header"><h3 class="card-title">Rechnungen & Steuern</h3></div>
-                        <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Rechnungspräfix</label>
-                                    <input type="text" name="invoice_prefix" class="form-control" value="<?= htmlspecialchars($settings['invoice_prefix'] ?? 'INV-') ?>">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Nächste Nummer</label>
-                                    <input type="number" name="invoice_next_number" class="form-control" min="1" value="<?= (int)($settings['invoice_next_number'] ?? 1001) ?>">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Steuersatz (%)</label>
-                                    <input type="number" name="tax_rate" class="form-control" min="0" max="100" value="<?= (int)($settings['tax_rate'] ?? 19) ?>">
-                                </div>
-                                <div class="col-md-6 d-flex align-items-end">
-                                    <label class="form-check form-switch">
-                                        <input type="checkbox" name="tax_included" class="form-check-input" <?= ($settings['tax_included'] ?? '1') === '1' ? 'checked' : '' ?>>
-                                        <span class="form-check-label">Preise inkl. MwSt.</span>
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="mt-3">
-                                <label class="form-label">Zahlungsmethoden</label>
-                                <select name="payment_methods" class="form-select">
-                                    <option value="invoice" <?= ($settings['payment_methods'] ?? '') === 'invoice' ? 'selected' : '' ?>>Rechnung</option>
-                                    <option value="stripe" <?= ($settings['payment_methods'] ?? '') === 'stripe' ? 'selected' : '' ?>>Stripe</option>
-                                    <option value="paypal" <?= ($settings['payment_methods'] ?? '') === 'paypal' ? 'selected' : '' ?>>PayPal</option>
-                                    <option value="all" <?= ($settings['payment_methods'] ?? '') === 'all' ? 'selected' : '' ?>>Alle</option>
+                                <label class="form-label">Standardpaket für neue Mitglieder</label>
+                                <select name="subscription_default_plan_id" class="form-select">
+                                    <option value="0">– Keine automatische Zuweisung –</option>
+                                    <?php foreach ($plans as $plan): ?>
+                                        <option value="<?= (int)$plan['id'] ?>" <?= (int)($settings['subscription_default_plan_id'] ?? 0) === (int)$plan['id'] ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($plan['name']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
                                 </select>
                             </div>
+                            <div class="alert alert-warning mb-0" role="alert">
+                                Dieser Bereich enthält bewusst nur <strong>Standardverhalten</strong> der Aboverwaltung. Paketdetails, Preise, Testphase, Steuern und Bestellprozesse pflegen Sie direkt auf den Bereichen <strong>Pakete &amp; Abo-Einstellungen</strong> sowie <strong>Bestellungen &amp; Zuweisung</strong>.
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Benachrichtigungen & Seiten -->
                 <div class="col-lg-6">
                     <div class="card">
-                        <div class="card-header"><h3 class="card-title">Benachrichtigungen & Seiten</h3></div>
+                        <div class="card-header"><h3 class="card-title">Hinweis bei Deaktivierung</h3></div>
                         <div class="card-body">
-                            <div class="mb-3">
-                                <label class="form-label">Tage vor Ablauf benachrichtigen</label>
-                                <input type="number" name="notification_before_expiry" class="form-control" min="0" value="<?= (int)($settings['notification_before_expiry'] ?? 7) ?>">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Benachrichtigungs-E-Mail</label>
-                                <input type="email" name="notification_email" class="form-control" placeholder="admin@example.com" value="<?= htmlspecialchars($settings['notification_email'] ?? '') ?>">
-                                <small class="form-hint">E-Mail für Admin-Benachrichtigungen (leer = Standard-Admin-E-Mail)</small>
-                            </div>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">AGB-Seite</label>
-                                    <select name="terms_page_id" class="form-select">
-                                        <option value="0">– Keine –</option>
-                                        <?php foreach ($pages as $p): ?>
-                                            <option value="<?= (int)$p['id'] ?>" <?= (int)($settings['terms_page_id'] ?? 0) === (int)$p['id'] ? 'selected' : '' ?>>
-                                                <?= htmlspecialchars($p['title']) ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Widerrufsbelehrung</label>
-                                    <select name="cancellation_page_id" class="form-select">
-                                        <option value="0">– Keine –</option>
-                                        <?php foreach ($pages as $p): ?>
-                                            <option value="<?= (int)$p['id'] ?>" <?= (int)($settings['cancellation_page_id'] ?? 0) === (int)$p['id'] ? 'selected' : '' ?>>
-                                                <?= htmlspecialchars($p['title']) ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                            </div>
+                            <label class="form-label">Text für Admin-/Member-Hinweis</label>
+                            <textarea name="subscription_disabled_notice" class="form-control" rows="5"><?= htmlspecialchars($settings['subscription_disabled_notice'] ?? '') ?></textarea>
+                            <div class="form-hint mt-2">Dieser Text kann für interne Hinweise oder spätere Frontend-Ausgaben verwendet werden, wenn die Aboverwaltung vollständig deaktiviert ist.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">Kurzüberblick</h3></div>
+                        <div class="card-body">
+                            <ul class="mb-0 text-secondary">
+                                <li><strong>Pakete &amp; Abo-Einstellungen</strong>: Preise, Limits, Trial, Steuern, AGB-Links.</li>
+                                <li><strong>Bestellungen &amp; Zuweisung</strong>: Bestellstatus und manuelle Paketzuweisung.</li>
+                                <li><strong>Einstellungen</strong>: globaler Schalter, Standardverhalten und komplette Deaktivierung der Limitlogik.</li>
+                            </ul>
                         </div>
                     </div>
                 </div>

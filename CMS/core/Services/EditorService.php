@@ -68,8 +68,8 @@ class EditorService
     {
         if (self::$editorType === null) {
             self::$editorType = function_exists('get_option')
-                ? (get_option('setting_editor_type', 'suneditor') ?: 'suneditor')
-                : 'suneditor';
+                ? (get_option('setting_editor_type', 'editorjs') ?: 'editorjs')
+                : 'editorjs';
         }
         return self::$editorType;
     }

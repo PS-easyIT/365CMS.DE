@@ -13,6 +13,9 @@ if (!defined('ABSPATH')) {
 $s          = $data['settings'];
 $timezones  = $data['timezones'];
 $languages  = $data['languages'];
+$currentTab = ($currentTab ?? 'general') === 'content' ? 'content' : 'general';
+$settingsBaseUrl = (defined('SITE_URL') ? SITE_URL : '') . '/admin/settings';
+$hideSettingsTabs = $hideSettingsTabs ?? false;
 ?>
 
 <div class="container-xl">
@@ -30,7 +33,26 @@ $languages  = $data['languages'];
     <form method="post" autocomplete="off">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
         <input type="hidden" name="action" value="save">
+        <input type="hidden" name="tab" value="<?php echo htmlspecialchars($currentTab); ?>">
 
+        <?php if (!$hideSettingsTabs): ?>
+        <div class="mb-4">
+            <ul class="nav nav-tabs">
+                <li class="nav-item">
+                    <a class="nav-link <?php echo $currentTab === 'general' ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($settingsBaseUrl); ?>">
+                        Allgemein
+                    </a>
+                </li>
+                <li class="nav-item ms-auto">
+                    <a class="nav-link <?php echo $currentTab === 'content' ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($settingsBaseUrl); ?>?tab=content">
+                        Beiträge &amp; Sites
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <?php endif; ?>
+
+        <?php if ($currentTab === 'general'): ?>
         <div class="row">
             <!-- Website-Grunddaten -->
             <div class="col-lg-6 mb-4">
@@ -44,6 +66,16 @@ $languages  = $data['languages'];
                         <div class="mb-3">
                             <label class="form-label">Beschreibung</label>
                             <textarea name="site_description" class="form-control" rows="2"><?php echo htmlspecialchars($s['site_description']); ?></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Website-Logo</label>
+                            <input type="text" name="site_logo" class="form-control" value="<?php echo htmlspecialchars($s['site_logo'] ?? ''); ?>" placeholder="/uploads/logo.svg oder https://...">
+                            <div class="form-hint">Theme-unabhängiger Logo-Pfad bzw. eine URL, die Themes optional laden können.</div>
+                            <?php if (!empty($s['site_logo'])): ?>
+                                <div class="mt-2">
+                                    <img src="<?php echo htmlspecialchars($s['site_logo']); ?>" alt="Website-Logo Vorschau" style="max-height:48px; max-width:220px; border-radius:6px; border:1px solid var(--tblr-border-color); padding:6px; background:#fff;">
+                                </div>
+                            <?php endif; ?>
                         </div>
                         <div class="mb-3">
                             <label class="form-label required">Website-URL</label>
@@ -168,6 +200,84 @@ $languages  = $data['languages'];
                 </div>
             </div>
         </div>
+        <?php else: ?>
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header"><h3 class="card-title">Editor</h3></div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Standard-Editor</label>
+                            <select name="editor_type" class="form-select">
+                                <option value="editorjs" <?php echo $s['editor_type'] === 'editorjs' ? 'selected' : ''; ?>>Editor.js</option>
+                                <option value="suneditor" <?php echo $s['editor_type'] === 'suneditor' ? 'selected' : ''; ?>>SunEditor</option>
+                            </select>
+                            <small class="form-hint">Gilt für Seiten und Beiträge beim Erstellen und Bearbeiten.</small>
+                        </div>
+                        <div>
+                            <label class="form-label">Beitrags-Editorbreite</label>
+                            <div class="input-group">
+                                <input type="number" name="post_editor_width" class="form-control" min="320" max="1600" step="10" value="<?php echo (int)$s['post_editor_width']; ?>">
+                                <span class="input-group-text">px</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header"><h3 class="card-title">Standard beim Speichern</h3></div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Neue Beiträge</label>
+                            <select name="post_default_status" class="form-select">
+                                <option value="draft" <?php echo $s['post_default_status'] === 'draft' ? 'selected' : ''; ?>>Als Entwurf speichern</option>
+                                <option value="published" <?php echo $s['post_default_status'] === 'published' ? 'selected' : ''; ?>>Direkt veröffentlichen</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Neue Seiten / Sites</label>
+                            <select name="page_default_status" class="form-select">
+                                <option value="draft" <?php echo $s['page_default_status'] === 'draft' ? 'selected' : ''; ?>>Als Entwurf speichern</option>
+                                <option value="published" <?php echo $s['page_default_status'] === 'published' ? 'selected' : ''; ?>>Direkt veröffentlichen</option>
+                                <option value="private" <?php echo $s['page_default_status'] === 'private' ? 'selected' : ''; ?>>Privat anlegen</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header"><h3 class="card-title">Seiten-Editor</h3></div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Seiten-Editorbreite</label>
+                            <div class="input-group">
+                                <input type="number" name="page_editor_width" class="form-control" min="320" max="1600" step="10" value="<?php echo (int)$s['page_editor_width']; ?>">
+                                <span class="input-group-text">px</span>
+                            </div>
+                            <small class="form-hint">Bestimmt die nutzbare Inhaltsbreite im Editor für Seiten.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header"><h3 class="card-title">Hinweise</h3></div>
+                    <div class="card-body">
+                        <ul class="mb-0 text-secondary small ps-3">
+                            <li class="mb-2">Die Editor-Auswahl greift global für Seiten und Beiträge.</li>
+                            <li class="mb-2">Standard-Status gilt vor allem für neue Einträge; bestehende Inhalte behalten ihren Status.</li>
+                            <li>Breiten werden direkt in den Editor-Ansichten übernommen.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
 
         <div class="d-flex justify-content-end">
             <button type="submit" class="btn btn-primary">

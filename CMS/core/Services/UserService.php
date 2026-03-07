@@ -16,6 +16,40 @@ use WP_Error;
  * @package CMS\Services
  */
 class UserService {
+
+    private const DEFAULT_ROLES = [
+        'admin' => 'Administrator',
+        'editor' => 'Redakteur',
+        'author' => 'Autor',
+        'member' => 'Mitglied',
+    ];
+
+    private const DEFAULT_ROLE_CAPABILITIES = [
+        'admin' => [
+            'manage_users',
+            'manage_settings',
+            'manage_pages',
+            'edit_all_posts',
+            'delete_all_posts',
+            'manage_media',
+            'view_analytics',
+        ],
+        'editor' => [
+            'manage_pages',
+            'edit_all_posts',
+            'delete_all_posts',
+            'manage_media',
+        ],
+        'author' => [
+            'edit_own_posts',
+            'delete_own_posts',
+            'upload_files',
+        ],
+        'member' => [
+            'read',
+            'edit_profile',
+        ],
+    ];
     
     private Database $db;
     private string $prefix;
@@ -75,9 +109,7 @@ class UserService {
             'username' => Security::sanitize($data['username'], 'username'),
             'email' => Security::sanitize($data['email'], 'email'),
             'password' => Security::hashPassword($data['password']),
-            'role' => in_array($data['role'] ?? 'member', ['admin', 'editor', 'author', 'member']) 
-                      ? $data['role'] 
-                      : 'member',
+            'role' => $this->normalizeRole($data['role'] ?? 'member'),
             'status' => in_array($data['status'] ?? 'active', ['active', 'inactive', 'banned']) 
                        ? $data['status'] 
                        : 'active'
@@ -163,9 +195,9 @@ class UserService {
         
         // Rolle
         if (isset($data['role'])) {
-            $allowed_roles = ['admin', 'editor', 'author', 'member'];
-            if (in_array($data['role'], $allowed_roles)) {
-                $update_data['role'] = $data['role'];
+            $role = $this->normalizeRole($data['role']);
+            if ($role !== '') {
+                $update_data['role'] = $role;
             }
         }
         
@@ -359,8 +391,8 @@ class UserService {
                 'deactivate' => $this->db->update('users', ['status' => 'inactive'], ['id' => $user_id]),
                 'delete' => $this->deleteUser($user_id, false),
                 'hard_delete' => $this->deleteUser($user_id, true),
-                'change_role' => !empty($data['role']) 
-                    ? $this->db->update('users', ['role' => $data['role']], ['id' => $user_id])
+                'change_role' => !empty($data['role']) && $this->normalizeRole((string)$data['role']) !== ''
+                    ? $this->db->update('users', ['role' => $this->normalizeRole((string)$data['role'])], ['id' => $user_id])
                     : false,
                 default => false
             };
@@ -560,12 +592,31 @@ class UserService {
      * @return array [slug => label]
      */
     public function getAvailableRoles(): array {
-        return [
-            'admin' => 'Administrator',
-            'editor' => 'Redakteur',
-            'author' => 'Autor',
-            'member' => 'Mitglied'
-        ];
+        $roles = self::DEFAULT_ROLES;
+
+        try {
+            $dbRoles = $this->db->get_results("SELECT DISTINCT role FROM {$this->prefix}role_permissions ORDER BY role ASC") ?: [];
+            foreach ($dbRoles as $row) {
+                $role = (string)($row->role ?? '');
+                if ($role !== '' && !isset($roles[$role])) {
+                    $roles[$role] = $this->humanizeRole($role);
+                }
+            }
+        } catch (\Throwable $e) {
+        }
+
+        try {
+            $userRoles = $this->db->get_results("SELECT DISTINCT role FROM {$this->prefix}users ORDER BY role ASC") ?: [];
+            foreach ($userRoles as $row) {
+                $role = (string)($row->role ?? '');
+                if ($role !== '' && !isset($roles[$role])) {
+                    $roles[$role] = $this->humanizeRole($role);
+                }
+            }
+        } catch (\Throwable $e) {
+        }
+
+        return $roles;
     }
     
     /**
@@ -574,32 +625,30 @@ class UserService {
      * @return array [slug => description]
      */
     public function getRoleDescriptions(): array {
-        return [
-            'admin' => [
-                'name' => 'Administrator',
-                'icon' => '👑',
-                'description' => 'Voller Zugriff auf alle Funktionen und Einstellungen',
-                'capabilities' => $this->getRoleCapabilities('admin')
-            ],
-            'editor' => [
-                'name' => 'Redakteur',
-                'icon' => '✏️',
-                'description' => 'Kann alle Inhalte erstellen, bearbeiten und veröffentlichen',
-                'capabilities' => $this->getRoleCapabilities('editor')
-            ],
-            'author' => [
-                'name' => 'Autor',
-                'icon' => '📝',
-                'description' => 'Kann eigene Beiträge erstellen und veröffentlichen',
-                'capabilities' => $this->getRoleCapabilities('author')
-            ],
-            'member' => [
-                'name' => 'Mitglied',
-                'icon' => '👤',
-                'description' => 'Kann sich einloggen und eigenes Profil bearbeiten',
-                'capabilities' => $this->getRoleCapabilities('member')
-            ]
-        ];
+        $descriptions = [];
+
+        foreach ($this->getAvailableRoles() as $role => $label) {
+            $descriptions[$role] = [
+                'name' => $label,
+                'icon' => match ($role) {
+                    'admin' => '👑',
+                    'editor' => '✏️',
+                    'author' => '📝',
+                    'member' => '👤',
+                    default => '🧩',
+                },
+                'description' => match ($role) {
+                    'admin' => 'Voller Zugriff auf alle Funktionen und Einstellungen',
+                    'editor' => 'Kann alle Inhalte erstellen, bearbeiten und veröffentlichen',
+                    'author' => 'Kann eigene Beiträge erstellen und veröffentlichen',
+                    'member' => 'Kann sich einloggen und eigenes Profil bearbeiten',
+                    default => 'Individuelle Rolle mit frei konfigurierbaren Berechtigungen',
+                },
+                'capabilities' => $this->getRoleCapabilities($role),
+            ];
+        }
+
+        return $descriptions;
     }
     
     /**
@@ -609,34 +658,19 @@ class UserService {
      * @return array Capabilities
      */
     public function getRoleCapabilities(string $role): array {
-        $capabilities = [
-            'admin' => [
-                'manage_users',
-                'manage_settings',
-                'manage_pages',
-                'edit_all_posts',
-                'delete_all_posts',
-                'manage_media',
-                'view_analytics'
-            ],
-            'editor' => [
-                'manage_pages',
-                'edit_all_posts',
-                'delete_all_posts',
-                'manage_media'
-            ],
-            'author' => [
-                'edit_own_posts',
-                'delete_own_posts',
-                'upload_files'
-            ],
-            'member' => [
-                'read',
-                'edit_profile'
-            ]
-        ];
-        
-        return $capabilities[$role] ?? [];
+        try {
+            $rows = $this->db->get_results(
+                "SELECT capability FROM {$this->prefix}role_permissions WHERE role = ? AND granted = 1 ORDER BY capability ASC",
+                [$role]
+            );
+
+            if (!empty($rows)) {
+                return array_values(array_map(static fn ($row): string => (string)$row->capability, $rows));
+            }
+        } catch (\Throwable $e) {
+        }
+
+        return self::DEFAULT_ROLE_CAPABILITIES[$role] ?? [];
     }
     
     /**
@@ -650,5 +684,18 @@ class UserService {
             'inactive' => 'Inaktiv',
             'banned' => 'Gesperrt'
         ];
+    }
+
+    private function normalizeRole(string $role): string {
+        $role = strtolower(trim($role));
+        if ($role === '') {
+            return '';
+        }
+
+        return array_key_exists($role, $this->getAvailableRoles()) ? $role : 'member';
+    }
+
+    private function humanizeRole(string $role): string {
+        return ucwords(str_replace(['_', '-'], ' ', strtolower($role)));
     }
 }

@@ -13,11 +13,24 @@ if (!defined('ABSPATH')) {
 
 $users   = $data['users'] ?? [];
 $stats   = $data['stats'] ?? [];
+$availableRoles = $data['availableRoles'] ?? [];
+$availableStatuses = $data['availableStatuses'] ?? [];
 $filter  = $data['filter'] ?? [];
 $total   = $data['total'] ?? 0;
 $curPage = $data['page'] ?? 1;
 $pages   = $data['pages'] ?? 1;
 $siteUrl = defined('SITE_URL') ? SITE_URL : '';
+
+$roleColors = [
+    'admin' => 'red',
+    'editor' => 'blue',
+    'author' => 'green',
+    'member' => 'secondary',
+];
+
+$getRoleColor = static function (string $role) use ($roleColors): string {
+    return $roleColors[$role] ?? 'azure';
+};
 ?>
 
 <div class="page-header d-print-none">
@@ -106,18 +119,17 @@ $siteUrl = defined('SITE_URL') ? SITE_URL : '';
                     <div class="col-auto">
                         <select class="form-select form-select-sm" onchange="window.location.href='<?php echo htmlspecialchars($siteUrl); ?>/admin/users?role='+this.value+'&status=<?php echo urlencode($filter['status']); ?>&q=<?php echo urlencode($filter['search']); ?>'">
                             <option value="">Alle Rollen</option>
-                            <option value="admin" <?php if ($filter['role'] === 'admin') echo 'selected'; ?>>Admin</option>
-                            <option value="editor" <?php if ($filter['role'] === 'editor') echo 'selected'; ?>>Editor</option>
-                            <option value="author" <?php if ($filter['role'] === 'author') echo 'selected'; ?>>Autor</option>
-                            <option value="member" <?php if ($filter['role'] === 'member') echo 'selected'; ?>>Mitglied</option>
+                            <?php foreach ($availableRoles as $role => $label): ?>
+                                <option value="<?php echo htmlspecialchars((string)$role); ?>" <?php if (($filter['role'] ?? '') === $role) echo 'selected'; ?>><?php echo htmlspecialchars((string)$label); ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="col-auto">
                         <select class="form-select form-select-sm" onchange="window.location.href='<?php echo htmlspecialchars($siteUrl); ?>/admin/users?status='+this.value+'&role=<?php echo urlencode($filter['role']); ?>&q=<?php echo urlencode($filter['search']); ?>'">
                             <option value="">Alle Status</option>
-                            <option value="active" <?php if ($filter['status'] === 'active') echo 'selected'; ?>>Aktiv</option>
-                            <option value="inactive" <?php if ($filter['status'] === 'inactive') echo 'selected'; ?>>Inaktiv</option>
-                            <option value="banned" <?php if ($filter['status'] === 'banned') echo 'selected'; ?>>Gesperrt</option>
+                            <?php foreach ($availableStatuses as $status => $label): ?>
+                                <option value="<?php echo htmlspecialchars((string)$status); ?>" <?php if (($filter['status'] ?? '') === $status) echo 'selected'; ?>><?php echo htmlspecialchars((string)$label); ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="col">
@@ -156,7 +168,7 @@ $siteUrl = defined('SITE_URL') ? SITE_URL : '';
                                     <td><input type="checkbox" class="form-check-input row-select" value="<?php echo (int)$u->id; ?>"></td>
                                     <td>
                                         <div class="d-flex align-items-center">
-                                            <span class="avatar avatar-sm me-2 bg-<?php echo match($u->role ?? '') { 'admin' => 'red', 'editor' => 'blue', 'author' => 'green', default => 'secondary' }; ?>"><?php echo strtoupper(substr($u->username ?? '', 0, 2)); ?></span>
+                                            <span class="avatar avatar-sm me-2 bg-<?php echo htmlspecialchars($getRoleColor((string)($u->role ?? 'member'))); ?>"><?php echo strtoupper(substr($u->username ?? '', 0, 2)); ?></span>
                                             <div>
                                                 <a href="<?php echo htmlspecialchars($siteUrl); ?>/admin/users?action=edit&id=<?php echo (int)$u->id; ?>" class="text-reset"><?php echo htmlspecialchars($u->username ?? ''); ?></a>
                                                 <?php if (!empty($u->meta['first_name']) || !empty($u->meta['last_name'])): ?>
@@ -166,7 +178,7 @@ $siteUrl = defined('SITE_URL') ? SITE_URL : '';
                                         </div>
                                     </td>
                                     <td class="text-secondary"><?php echo htmlspecialchars($u->email ?? ''); ?></td>
-                                    <td><span class="badge bg-<?php echo match($u->role ?? '') { 'admin' => 'red', 'editor' => 'blue', 'author' => 'green', default => 'secondary' }; ?>-lt"><?php echo htmlspecialchars(ucfirst($u->role ?? 'member')); ?></span></td>
+                                    <td><span class="badge bg-<?php echo htmlspecialchars($getRoleColor((string)($u->role ?? 'member'))); ?>-lt"><?php echo htmlspecialchars((string)($availableRoles[$u->role ?? ''] ?? ucfirst((string)($u->role ?? 'member')))); ?></span></td>
                                     <td><span class="badge bg-<?php echo match($u->status ?? '') { 'active' => 'green', 'inactive' => 'yellow', 'banned' => 'red', default => 'secondary' }; ?>-lt"><?php echo htmlspecialchars(match($u->status ?? '') { 'active' => 'Aktiv', 'inactive' => 'Inaktiv', 'banned' => 'Gesperrt', default => $u->status ?? '' }); ?></span></td>
                                     <td class="text-secondary"><?php echo !empty($u->created_at) ? date('d.m.Y', strtotime($u->created_at)) : '–'; ?></td>
                                     <td>

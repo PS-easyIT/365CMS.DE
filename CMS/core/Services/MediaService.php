@@ -14,7 +14,7 @@ class MediaService {
     private $settingsFile;
 
     // Standard folders that cannot be deleted
-    private $systemFolders = ['themes', 'plugins', 'assets', 'fonts', 'dl-manager', 'form-uploads'];
+    private $systemFolders = ['themes', 'plugins', 'assets', 'fonts', 'dl-manager', 'form-uploads', 'member'];
 
     public static function getInstance(string $customRoot = ''): self {
         $key = $customRoot !== '' ? $customRoot : '__default__';
@@ -69,7 +69,8 @@ class MediaService {
             'assets' => 'Assets',
             'fonts' => 'Fonts',
             'dl-manager' => 'Downloads',
-            'form-uploads' => 'Form Uploads'
+            'form-uploads' => 'Form Uploads',
+            'member' => 'Member'
         ];
 
         $existingSlugs = array_column($meta['categories'] ?? [], 'slug');
@@ -211,6 +212,19 @@ class MediaService {
 
     private function saveMeta(array $data): bool {
         return file_put_contents($this->metaFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) !== false;
+    }
+
+    private function buildPublicUrl(string $relativePath): string {
+        $normalizedPath = trim(str_replace('\\', '/', $relativePath), '/');
+        if ($normalizedPath === '') {
+            return $this->uploadUrl;
+        }
+
+        $segments = array_map(static function (string $segment): string {
+            return rawurlencode($segment);
+        }, explode('/', $normalizedPath));
+
+        return $this->uploadUrl . '/' . implode('/', $segments);
     }
 
     private function getDefaultSettings(): array {
@@ -481,7 +495,7 @@ class MediaService {
 
     private function detectSystemCategory(string $relativePath): ?string {
         $parts = explode('/', $relativePath);
-        if (count($parts) > 0 && in_array($parts[0], ['themes', 'plugins', 'assets', 'fonts', 'dl-manager', 'form-uploads'])) {
+        if (count($parts) > 0 && in_array($parts[0], $this->systemFolders, true)) {
             return $parts[0];
         }
         return null;
@@ -549,7 +563,7 @@ class MediaService {
                     $items['files'][] = [
                         'name' => $item,
                         'path' => $relativePath,
-                        'url' => $this->uploadUrl . '/' . $relativePath,
+                        'url' => $this->buildPublicUrl($relativePath),
                         'type' => pathinfo($itemPath, PATHINFO_EXTENSION),
                         'size' => filesize($itemPath),
                         'modified' => filemtime($itemPath),
@@ -755,7 +769,18 @@ class MediaService {
         $temporaryFileName = $destinationBaseName . ($ext !== '' ? '.' . $ext : '');
         $destination = $fullPath . DIRECTORY_SEPARATOR . $temporaryFileName;
 
-        if (!move_uploaded_file($file['tmp_name'], $destination)) {
+        $moved = move_uploaded_file($file['tmp_name'], $destination);
+        if (!$moved && is_readable((string)$file['tmp_name'])) {
+            $moved = @rename((string)$file['tmp_name'], $destination);
+            if (!$moved) {
+                $moved = @copy((string)$file['tmp_name'], $destination);
+                if ($moved) {
+                    @unlink((string)$file['tmp_name']);
+                }
+            }
+        }
+
+        if (!$moved) {
             return new WP_Error('move_failed', 'Failed to move uploaded file');
         }
 

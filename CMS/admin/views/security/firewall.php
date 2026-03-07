@@ -23,6 +23,20 @@ $typeBadges = [
 ];
 ?>
 
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <div class="page-pretitle">Sicherheit</div>
+                <h2 class="page-title">Firewall</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="page-body">
+    <div class="container-xl">
+
 <!-- KPI-Karten -->
 <div class="row row-deck row-cards mb-4">
     <div class="col-sm-6 col-lg-3">
@@ -56,6 +70,9 @@ $typeBadges = [
                 <div class="h1 mb-0 text-success"><?php echo (int)($stats['allowed_ips'] ?? 0); ?></div>
             </div>
         </div>
+    </div>
+</div>
+
     </div>
 </div>
 
