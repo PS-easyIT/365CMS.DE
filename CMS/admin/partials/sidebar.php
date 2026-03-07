@@ -17,6 +17,7 @@ if (!defined('ABSPATH')) {
 $activePage = $activePage ?? '';
 $siteUrl    = defined('SITE_URL') ? SITE_URL : '';
 $assetsUrl  = defined('ASSETS_URL') ? ASSETS_URL : $siteUrl . '/assets';
+$sidebarLogoUrl = 'https://365cms.de/public_cms/images/LOGO_365CMS-75px.png';
 
 // Marketplace ein-/ausblenden (DB-Setting, Default: aktiviert)
 $_marketplaceEnabled = true;
@@ -285,10 +286,11 @@ function isGroupActive(array $slugs, string $activePage): bool {
         <!-- Brand / Logo -->
         <h1 class="navbar-brand navbar-brand-autodark">
             <a href="<?= htmlspecialchars($siteUrl) ?>/admin">
-                <img src="<?= $assetsUrl ?>/images/logo-white.svg"
+                <img src="<?= htmlspecialchars($sidebarLogoUrl) ?>"
                      alt="<?= htmlspecialchars(defined('SITE_NAME') ? SITE_NAME : '365CMS') ?>"
-                     height="32"
-                     onerror="this.onerror=null;this.src='<?= $assetsUrl ?>/images/logo.svg';">
+                     height="75"
+                     style="height:75px;width:auto;max-width:100%;"
+                     onerror="this.onerror=null;this.src='<?= htmlspecialchars($assetsUrl) ?>/images/logo.svg';this.style.height='75px';this.style.width='auto';">
             </a>
         </h1>
 
