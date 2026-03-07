@@ -1,147 +1,97 @@
-# Analytics & Besucherstatistiken
+# Analytics
 
-**Datei:** `admin/analytics.php`
+Kurzbeschreibung: Dokumentiert die SEO-Analytics-Seite mit internem Tracking, Referrer-Auswertung und Tracking-Einstellungen.
 
----
-
-## Übersicht
-
-Das Analytics-Dashboard zeigt Besucherstatistiken, Traffic-Quellen und Inhalts-Performance ohne externe Tracking-Dienste. Alle Daten werden lokal in der CMS-Datenbank gespeichert.
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ---
 
-## Dashboard-Übersicht
+## Route und technische Einordnung
 
-### Zeitraum-Filter
-- Heute
-- Letzte 7 Tage
-- Letzte 30 Tage
-- Dieser Monat
-- Benutzerdefinierter Zeitraum
+- Route: `/admin/analytics`
+- Entry Point: `CMS/admin/analytics.php`
+- View: `CMS/admin/views/seo/analytics.php`
+- Einordnung in der Navigation: Bereich **SEO**
 
-### Haupt-KPIs (Stat-Cards)
-
-| KPI | Beschreibung |
-|-----|--------------|
-| **Seitenaufrufe** | Gesamte Page-Views im Zeitraum |
-| **Unique Visitors** | Eindeutige Besucher (per IP-Hash) |
-| **Ø Sitzungsdauer** | Durchschnittliche Besuchszeit |
-| **Bounce Rate** | Absprungrate |
+Die Seite gehört funktional zur SEO-Suite und nicht zu einem eigenständigen, vom restlichen System getrennten Statistik-Modul.
 
 ---
 
-## Traffic-Diagramm
+## Was die Seite aktuell zeigt
 
-Zeitreihen-Chart (Liniendiagramm) zeigt:
-- Seitenaufrufe pro Tag
-- Unique Visitors pro Tag
-- Vergleich zum Vorperiod
+Die View rendert aktuell folgende Bereiche:
 
----
+### KPI-Karten
 
-## Top-Seiten
+- Seitenaufrufe 30 Tage
+- Unique Visitors
+- Absprungrate
+- durchschnittliche Sessiondauer
 
-Tabelle der meistbesuchten Seiten:
+### Verlauf und Top-Seiten
 
-| Spalte | Beschreibung |
-|--------|--------------|
-| **Seite** | URL/Titel der Seite |
-| **Aufrufe** | Absolute Seitenaufrufe |
-| **Unique Views** | Eindeutige Aufrufe |
-| **Ø Zeit** | Durchschnittliche Verweildauer |
-| **Absprünge** | Absprungrate der Seite |
+- Tageswerte für Views über 30 Tage
+- Top-Seiten nach Aufrufen
 
----
+### Technische Zusatzwerte
 
-## Referrer-Analyse
+- Core Web Vitals (Schätzung)
+- Backlink-/Referrer-Monitoring
+- Internal-Linking-Ideen
 
-| Kanal | Beschreibung |
-|-------|--------------|
-| **Direkt** | Direkte URL-Eingabe oder Lesezeichen |
-| **Organisch** | Suchmaschinen (Google, Bing, etc.) |
-| **Social** | Facebook, LinkedIn, Twitter/X, etc. |
-| **Referral** | Externe Links auf anderen Websites |
-| **E-Mail** | Klicks aus E-Mail-Kampagnen |
+### Tracking-Einstellungen
 
----
+Pflegbare Felder:
 
-## Geräte & Browser
-
-### Gerätetypen
-- Desktop
-- Tablet
-- Mobile
-
-### Browser-Verteilung
-- Chrome, Firefox, Safari, Edge, Other
-
-### Betriebssysteme
-- Windows, macOS, Linux, iOS, Android
+- Google Search Console Property
+- GA4 ID
+- GTM ID
+- Matomo URL
+- Matomo Site ID
+- Meta Pixel ID
+- Admins ausschließen
+- Do Not Track respektieren
+- IP anonymisieren
 
 ---
 
-## System-Health Widget
+## Internes Page-View-Tracking
 
-Das Analytics-Dashboard enthält auch einen System-Health-Bereich:
+Wenn die zugrunde liegende Tracking-Tabelle fehlt, zeigt die Oberfläche einen Hinweis, dass das interne Page-View-Tracking noch nicht aktiv ist.
 
-| Check | Status |
-|-------|--------|
-| PHP-Version | ✅/⚠️ |
-| MySQL-Version | ✅/⚠️ |
-| Freier Speicher | ✅/⚠️ |
-| Cache-Hit-Rate | ✅/⚠️ |
-| Aktive Sessions | Anzahl |
-| Fehlerrate (24h) | Anzahl |
+Die Seite arbeitet also mit zwei Zuständen:
+
+1. **Tracking-Daten vorhanden** → Statistiken und Trends werden ausgegeben
+2. **Tracking-Daten fehlen** → Info-Hinweis mit weiterhin erreichbarer Einstellungsoberfläche
 
 ---
 
-## Cache-Statistiken
+## Datenschutzbezug
 
-| Metrik | Beschreibung |
-|--------|--------------|
-| **Cache-Einträge** | Anzahl gecachter Queries |
-| **Cache-Größe** | Gespeicherter Overhead |
-| **Hit-Rate** | Anteil treffsicherer Cache-Anfragen |
-| **Miss-Rate** | Anteil nicht gecachter Anfragen |
+Die Seite ist eng mit dem Datenschutz- und Cookie-Management verknüpft. Relevante Einstellungen wie:
 
----
+- DNT-Respektierung
+- IP-Anonymisierung
+- Aktivierung externer Tracking-Dienste
 
-## Datenschutz & DSGVO
+werden auch vom Cookie- und Legal-Kontext ausgewertet.
 
-- **IP-Adressen** werden nur als Hash gespeichert (keine Rückverfolgbarkeit)
-- **Keine Cookies** für Analytics notwendig (erster Schritt zu Cookie-freiem Tracking)
-- **Daten-Retention:** Konfigurierbar (Standard: 12 Monate)
-- **Opt-out:** Benutzer können im Member-Bereich Analytics ablehnen
+Das ist wichtig, weil Analytics in 365CMS nicht isoliert betrachtet wird, sondern als Teil des Consent- und Compliance-Flows.
 
 ---
 
-## Datenbank
+## Was diese Seite nicht ist
 
-Pageviews werden in `cms_analytics` (oder `cms_activity_log`) gespeichert:
+- kein vollständiges BI- oder Marketing-Attributions-Tool
+- keine externe SaaS-Reporting-Konsole
+- keine reine Datenbankansicht historischer Rohdaten
 
-| Spalte | Typ | Beschreibung |
-|--------|-----|--------------|
-| `id` | INT | Primärschlüssel |
-| `page_url` | VARCHAR | Aufgerufene URL |
-| `ip_hash` | VARCHAR | Hash der IP-Adresse |
-| `user_agent` | VARCHAR | Browser/Gerät |
-| `referrer` | VARCHAR | Herkunfts-URL |
-| `session_id` | VARCHAR | Session-Hash |
-| `created_at` | TIMESTAMP | Zeitstempel |
-
----
-
-## Daten exportieren
-
-Analytics-Daten exportierbar als:
-- **CSV** – Für Excel/Spreadsheets
-- **JSON** – Für weitere Verarbeitung
-- **PDF** – Für Reports
+Die Seite ist eine kompakte operative Steuerzentrale für internes Tracking und angebundene SEO-/Marketing-IDs.
 
 ---
 
 ## Verwandte Seiten
 
-- [SEO-Einstellungen](SEO.md)
-- [Performance-Tools](../system-settings/PERFORMANCE.md)
-- [System & Diagnose](../system-settings/README.md)
+- [SEO](SEO.md)
+- [Cookies](../legal-security/COOKIES.md)
+- [Performance](../system-settings/PERFORMANCE.md)

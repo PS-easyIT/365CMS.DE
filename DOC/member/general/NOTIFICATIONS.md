@@ -1,132 +1,78 @@
-# Benachrichtigungen
+# 365CMS – Benachrichtigungen
 
+Kurzbeschreibung: Dokumentation der Notifications-Seite für Präferenzen, aktuelle Meldungen und Erweiterungspunkte.
 
-Zentrale Inbox für alle System- und Benutzer-Benachrichtigungen im Mitglieder-Bereich.
+Letzte Aktualisierung: 2026-03-07
 
----
-
-## Inhaltsverzeichnis
-
-1. [Überblick](#1-überblick)
-2. [Benachrichtigungstypen](#2-benachrichtigungstypen)
-3. [Lesen & Verwalten](#3-lesen--verwalten)
-4. [Filter & Suche](#4-filter--suche)
-5. [E-Mail-Einstellungen](#5-e-mail-einstellungen)
-6. [Technische Details](#6-technische-details)
+**Route:** `/member/notifications`
 
 ---
 
-## 1. Überblick
+## Überblick
 
-URL: `/member/notifications`
+Die Notifications-Seite kombiniert zwei Dinge:
 
-Benachrichtigungen informieren Mitglieder über relevante Ereignisse. Sie werden in der Tabelle `cms_notifications` gespeichert und als Badge-Zähler im Dashboard angezeigt.
-
-**Lebenszyklus:**
-1. Benachrichtigung wird erstellt (via Hook oder direktem API-Aufruf)
-2. Anzeige im Dashboard-Widget (Badge) und auf der Notifications-Seite
-3. Beim Klick: Status → `read`, Weiterleitung zur verknüpften Seite
-4. Automatische Bereinigung nach 90 Tagen
+1. Anzeige der zuletzt geladenen Benachrichtigungen
+2. Speicherung persönlicher Notification-Präferenzen
 
 ---
 
-## 2. Benachrichtigungstypen
+## Gespeicherte Präferenzfelder
 
-| Typ | Icon | Beschreibung | Beispiel |
-|---|---|---|---|
-| `system` | ⚙️ | Wichtige System-Meldungen | Update verfügbar |
-| `security` | 🔒 | Sicherheitsereignisse | Neuer Login von unbekanntem Gerät |
-| `subscription` | 💳 | Abo-Ereignisse | Abo läuft in 7 Tagen ab |
-| `message` | ✉️ | Neue Direktnachricht | Neue Nachricht von Max Muster |
-| `info` | ℹ️ | Allgemeine Informationen | Neue Funktion verfügbar |
-| `warning` | ⚠️ | Warnungen | Speicherplatz fast aufgebraucht |
-| `plugin` | 🔌 | Plugin-spezifisch | Neue Buchungsanfrage |
+Der aktuelle Handler `handleNotificationActions()` speichert insbesondere:
 
----
+- `email_notifications`
+- `email_marketing`
+- `email_updates`
+- `email_security`
+- `browser_notifications`
+- `desktop_notifications`
+- `mobile_notifications`
+- `notify_new_features`
+- `notify_promotions`
+- `notification_frequency`
 
-## 3. Lesen & Verwalten
+Die Frequenz unterstützt aktuell:
 
-### Einzelne Benachrichtigung
-- **Klick** → markiert als gelesen und öffnet verknüpften Link
-- **„Als gelesen markieren"** – ohne Weiterleitung
-
-### Massenaktionen
-- **Alle als gelesen markieren** – setzt alle Notifications auf `read`
-- **Alle löschen** – entfernt alle (nach Bestätigung)
-- **Auswahl löschen** – Checkboxen + Bulk-Action
-
-### Pagination
-- 20 Einträge pro Seite
-- Sortierung: Neueste zuerst (Standard) / Älteste zuerst
+- `immediate`
+- `hourly`
+- `daily`
+- `weekly`
 
 ---
 
-## 4. Filter & Suche
+## Anzeige aktueller Meldungen
 
-| Filter | Optionen |
+Wenn `recentNotifications` befüllt ist, zeigt die View:
+
+- Icon und Farbkennung
+- Titel und Text
+- relative Zeitangabe
+- Kennzeichnung gelesen/ungelesen
+
+---
+
+## Wichtige Realitätshinweise
+
+- Der Button **„Alle als gelesen markieren“** ist in der aktuellen View nur als JavaScript-Platzhalter angelegt.
+- Auch der Link **„Alle anzeigen“** verweist auf `/member/notifications/all`; diese Dokumentation sollte nur dann als führend betrachtet werden, wenn die zugehörige Route tatsächlich projektweit vorhanden ist.
+- Browser-Testbenachrichtigungen laufen clientseitig über die Notification API des Browsers.
+
+---
+
+## Erweiterungspunkte
+
+Die Seite ist pluginfähig aufgebaut:
+
+| Hook | Zweck |
 |---|---|
-| **Status** | Alle, Ungelesen, Gelesen |
-| **Typ** | Alle, System, Sicherheit, Abo, Nachricht, Info, Plugin |
-| **Zeitraum** | Heute, Letzte 7 Tage, Letzter Monat, Alle |
-
-Filter als kombinierbare GET-Parameter:
-```
-/member/notifications?type=security&status=unread
-```
+| `member_notification_preferences` | zusätzliche Präferenzwerte beim Speichern ergänzen |
+| `member_notification_settings_sections` | zusätzliche Einstellungsabschnitte rendern |
 
 ---
 
-## 5. E-Mail-Einstellungen
+## Verwandte Dokumente
 
-| Typ | Standard | Konfigurierbar |
-|---|---|---|
-| `security` | ✅ immer | ❌ Nein (Sicherheitsschutz) |
-| `subscription` | ✅ aktiv | ✅ Ja |
-| `message` | ✅ aktiv | ✅ Ja |
-| `system` | ❌ deaktiviert | ✅ Ja |
-| `info` | ❌ deaktiviert | ✅ Ja |
-
-Einstellungen als `user_meta` mit Key `notification_prefs` (JSON).
-
----
-
-## 6. Technische Details
-
-**Datenbank-Tabelle:** `cms_notifications`
-
-```sql
-CREATE TABLE cms_notifications (
-    id          INT AUTO_INCREMENT PRIMARY KEY,
-    user_id     INT NOT NULL,
-    type        VARCHAR(50) NOT NULL DEFAULT 'info',
-    title       VARCHAR(255) NOT NULL,
-    message     TEXT,
-    link        VARCHAR(500),
-    is_read     TINYINT(1) DEFAULT 0,
-    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_unread (user_id, is_read)
-);
-```
-
-**API – Benachrichtigung erstellen:**
-```php
-use CMS\Services\NotificationService;
-
-NotificationService::create([
-    'user_id' => $userId,
-    'type'    => 'info',
-    'title'   => 'Willkommen!',
-    'message' => 'Ihr Konto wurde erfolgreich erstellt.',
-    'link'    => '/member/profile'
-]);
-```
-
-**Hooks:**
-```php
-do_action('cms_notification_created', $notificationId, $userId, $type);
-do_action('cms_notification_read', $notificationId, $userId);
-```
-
----
-
-*Letzte Aktualisierung: 22. Februar 2026 – Version 1.8.0*
+- [DASHBOARD.md](DASHBOARD.md)
+- [PRIVACY.md](PRIVACY.md)
+- [../HOOKS.md](../HOOKS.md)

@@ -1,157 +1,83 @@
-# Menü-Verwaltung
+# 365CMS – Menü-Editor
 
+Kurzbeschreibung: Verwaltung von Navigationsmenüs, Zuordnungen und Menüeinträgen im aktuellen Theme-/Design-Bereich.
 
-Visual-Editor für die Navigationsstrukturen der 365CMS Website.
+Letzte Aktualisierung: 2026-03-07
 
----
-
-## Inhaltsverzeichnis
-
-1. [Überblick](#1-überblick)
-2. [Menü erstellen](#2-menü-erstellen)
-3. [Menüpunkte hinzufügen](#3-menüpunkte-hinzufügen)
-4. [Struktur & Verschachtelung](#4-struktur--verschachtelung)
-5. [Menü-Positionen](#5-menü-positionen)
-6. [Erweiterte Optionen](#6-erweiterte-optionen)
-7. [Technische Details](#7-technische-details)
+**Admin-Route:** `/admin/menu-editor`
 
 ---
 
-## 1. Überblick
+## Überblick
 
-URL: `/admin/menus.php`
-
-365CMS unterstützt beliebig viele Menüs, die verschiedenen Theme-Positionen (Header, Footer, Sidebar) zugewiesen werden können.
+Der Menü-Editor wird über `CMS/admin/menu-editor.php` bereitgestellt und nutzt `MenuEditorModule` für Laden, Speichern und Löschen von Menüs sowie Menüeinträgen.
 
 ---
 
-## 2. Menü erstellen
+## Serverseitige Aktionen
 
-1. Menüname eingeben (nur intern, z.B. „Hauptnavigation")
-2. **„Menü erstellen"** klicken
-3. Das neue Menü erscheint im Menü-Editor
+Die Seite verwendet das CSRF-Token `admin_menu_editor`.
 
-**Mehrere Menüs:** Für jede Theme-Position kann ein eigenes Menü erstellt werden.
-
----
-
-## 3. Menüpunkte hinzufügen
-
-### Seiten (Pages)
-- Liste aller veröffentlichten Seiten mit Checkboxen
-- Mehrfachauswahl möglich
-- „Alle auswählen"-Button
-
-### Beiträge (Posts)
-- Suche nach Beitragstitel
-- Einzelne Beiträge auswählen
-
-### Kategorien
-- Liste aller Kategorien
-- Kategorie-Archiv-Link wird hinzugefügt
-
-### Tags
-- Wie Kategorien, für Tag-Archive
-
-### Individuelle Links (Custom Links)
-- **URL:** Beliebige URL (intern oder extern)
-- **Text:** Anzeigetext des Menüpunkts
-
-### Plugin-Inhalte
-Installierte Plugins können eigene Menüpunkt-Typen anbieten:
-- `cms-experts`: Experten-Verzeichnis
-- `cms-events`: Veranstaltungskalender
-- `cms-jobads`: Stellenbörse
-
----
-
-## 4. Struktur & Verschachtelung
-
-### Drag & Drop Editor
-
-```
-├── Startseite          (Ebene 1)
-├── Über uns            (Ebene 1)
-│   ├── Team            (Ebene 2 – Dropdown-Item)
-│   └── Geschichte      (Ebene 2 – Dropdown-Item)
-├── Leistungen          (Ebene 1)
-│   ├── Consulting      (Ebene 2)
-│   └── Entwicklung     (Ebene 2)
-└── Kontakt             (Ebene 1)
-```
-
-**Verschachtelungstiefe:** Maximum empfohlen: 3 Ebenen (tiefere Ebenen werden von vielen Themes nicht unterstützt)
-
-### Menüpunkt-Optionen (Einzelbearbeitung)
-| Feld | Beschreibung |
+| Aktion | Bedeutung |
 |---|---|
-| **Navigations-Label** | Angezeigter Text (überschreibt Seitentitel) |
-| **Titel-Attribut** | Tooltip beim Hover (SEO-neutral, Barrierefreiheit) |
-| **URL** | Ziel-URL (auto-befüllt, editierbar) |
-| **CSS-Klassen** | Eigene CSS-Klassen hinzufügen (z.B. `btn-primary`) |
-| **Rel-Attribut** | Link-Relation (z.B. `noopener noreferrer` für externe Links) |
-| **In neuem Tab** | `target="_blank"` setzen (Checkbox) |
+| `save_menu` | Menü anlegen oder Stammdaten speichern |
+| `delete_menu` | komplettes Menü löschen |
+| `save_items` | Menüeinträge und Reihenfolge speichern |
+
+Nach erfolgreicher Verarbeitung wird per Redirect zurück auf `/admin/menu-editor` navigiert.
 
 ---
 
-## 5. Menü-Positionen
+## Typische Arbeitsabläufe
 
-Jedes aktive Theme registriert seine verfügbaren Positionen:
+### Menü anlegen
 
-| Position | Slug | Typische Verwendung |
-|---|---|---|
-| **Header** | `primary` | Hauptnavigation oben |
-| **Footer** | `footer` | Links im Footer |
-| **Sidebar** | `sidebar` | Seitenleisten-Navigation |
-| **Mobile** | `mobile` | Separate mobile Navigation |
-| **Footer Links** | `footer_legal` | Impressum, Datenschutz |
+1. Menüname vergeben
+2. Menü speichern
+3. Menü im Editor auswählen
 
-**Zuweisung:** Checkboxen am Ende des Menü-Editors → Menü einer Position zuweisen.
+### Menüeinträge verwalten
 
----
+Je nach Modul- und Theme-Stand können Einträge aus Seiten, Beiträgen oder als freie Links angelegt werden. Die konkrete Oberfläche rendert die View `views/menus/editor.php`.
 
-## 6. Erweiterte Optionen
+### Menü löschen
 
-### Automatisch hinzufügen
-- Neue Seiten der höchsten Ebene automatisch zu einem Menü hinzufügen (Checkbox in Menü-Einstellungen)
-- Nützlich für Websites mit häufig neu angelegten Hauptseiten
-
-### Menü-Icons
-Wenn das aktive Theme Icons unterstützt, kann pro Menüpunkt ein Dashicon/FontAwesome-Icon zugewiesen werden.
-
-### Rollenbasierte Sichtbarkeit (via Hooks)
-```php
-// Menüpunkte für eingeloggte Benutzer ausblenden/einblenden
-add_filter('cms_menu_item_visible', function($visible, $menuItem, $user) {
-    if ($menuItem->slug === 'member' && !$user->isLoggedIn()) {
-        return false;
-    }
-    return $visible;
-}, 10, 3);
-```
+Ein Menü kann über die Löschaktion vollständig entfernt werden.
 
 ---
 
-## 7. Technische Details
+## Datenmodell
 
-**Datenbank:**
-- Menüs gespeichert in `cms_menus` (Name, Slug)
-- Menüpunkte in `cms_menu_items` (Menu-ID, Parent-ID, Order, Typ, URL, Label)
+Für die Menüverwaltung sind in 365CMS 2.3.1 insbesondere relevant:
 
-```php
-// Menü im Template ausgeben
-echo CMS\Nav::render('primary', [
-    'depth'       => 3,
-    'ul_class'    => 'nav-menu',
-    'li_class'    => 'nav-item',
-    'a_class'     => 'nav-link',
-    'active_class'=> 'active',
-]);
-```
+- `menus`
+- `menu_items`
 
-**Hooks:**
-```php
-do_action('cms_menu_saved', $menuId, $menuItems);
-add_filter('cms_menu_item_classes', 'my_menu_classes', 10, 3);
-add_filter('cms_menu_item_visible', 'role_based_visibility', 10, 3);
-```
+Historische Verweise auf nur `cms_menu_items` ohne separate Menü-Tabelle sind für den aktuellen Stand unvollständig.
+
+---
+
+## Theme-Bezug
+
+Die eigentlichen Menüpositionen stammen vom aktiven Theme. Der Menü-Editor verwaltet daher Inhalte und Zuordnungen, während das Theme festlegt, welche Positionen wie ausgegeben werden.
+
+Typische Positionen sind zum Beispiel:
+
+- Hauptnavigation
+- Footer-Navigation
+- Legal-/Footer-Links
+- mobile Navigation
+
+---
+
+## Wichtige Umstellung
+
+Verweise auf `/admin/menus.php` sind veraltet. Die maßgebliche aktuelle Route lautet `/admin/menu-editor`.
+
+---
+
+## Verwandte Dokumente
+
+- [README.md](README.md)
+- [CUSTOMIZER.md](CUSTOMIZER.md)
+- [../../theme/README.md](../../theme/README.md)

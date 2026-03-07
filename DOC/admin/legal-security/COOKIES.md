@@ -1,101 +1,83 @@
-# Cookie-Manager (DSGVO)
+# 365CMS – Cookie-Manager
 
-**Datei:** `admin/cookies.php`
+Kurzbeschreibung: Verwaltung von Cookie-Kategorien, Diensten, Banner-Texten und der öffentlichen Einwilligungsseite.
 
----
+Letzte Aktualisierung: 2026-03-07
 
-## Übersicht
-
-Der Cookie-Manager ermöglicht DSGVO-konforme Verwaltung aller eingesetzten Cookies und Tracking-Dienste. Er kategorisiert Cookies, verwaltet Benutzereinwilligungen und generiert automatisch eine Cookie-Richtlinie.
+**Admin-Route:** `/admin/cookie-manager`
 
 ---
 
-## Cookie-Kategorien
+## Überblick
 
-| Kategorie | Beschreibung | Einwilligung |
-|-----------|--------------|--------------|
-| **Notwendig** | Technisch erforderlich (Session, CSRF) | Immer aktiv |
-| **Funktional** | Komfort-Cookies (gespeicherte Einstellungen) | Opt-in |
-| **Analytik** | Besucher-Tracking, Statistiken | Opt-in |
-| **Marketing** | Werbung, Retargeting, Social Media | Opt-in |
+Der Cookie-Manager bündelt die Pflege der Consent-Konfiguration im Admin und die Auslieferung der öffentlichen Präferenzseite im Frontend.
 
----
+Wichtige Aufgaben:
 
-## Vorgefertigte Dienste-Bibliothek
-
-Der Cookie-Manager enthält eine vorkonfigurierte Bibliothek häufig genutzter Dienste:
-
-### Analytik-Dienste
-- **Google Analytics 4** – Cookies: `_ga`, `_gid`, `_gat`
-- **Matomo** – Cookies: `_pk_id`, `_pk_ses`, `_pk_ref`
-- **Hotjar** – Cookies: `_hjid`, `_hjSessionUser`
-
-### Marketing-Dienste
-- **Meta Pixel (Facebook)** – Cookies: `_fbp`, `_fbc`, `datr`, `fr`
-- **LinkedIn Insight Tag** – Cookies: `li_gc`, `bcookie`, `UserMatchHistory`
-- **Google Ads / DoubleClick** – Cookies: `IDE`, `DSID`, `__gads`
-- **X (Twitter) Pixel** – Cookies: `_twitter_sess`, `personalization_id`
-- **Pinterest Tag** – Cookies: `_pinterest_sess`, `_pinterest_ct_ua`
+- Cookie-Kategorien verwalten
+- Dienste und zugehörige Cookies pflegen
+- Banner- und Textbausteine definieren
+- kuratierte Dienste importieren
+- Website-Scan auslösen
 
 ---
 
-## Cookie-Definition erstellen
+## Öffentliche Einwilligungsseite
 
-Über das Formular neue Cookies erfassen:
+Die öffentliche Seite für Besucher lautet `/cookie-einstellungen`.
 
-| Feld | Beschreibung |
-|------|--------------|
-| **Name** | Anzeigename des Dienstes |
-| **Cookie-Name(n)** | Technische Cookie-Bezeichnung(en) |
-| **Kategorie** | Einordnung (notwendig/funktional/analytik/marketing) |
-| **Anbieter** | Unternehmen (z.B. "Google LLC") |
-| **Laufzeit** | Ablaufzeit (z.B. "2 Jahre", "Session") |
-| **Beschreibung** | Erklärung des Zwecks |
-| **Datenschutz-URL** | Link zur Datenschutzerklärung des Anbieters |
+Sie wird nicht als normale CMS-Seite gepflegt, sondern vom Cookie-Consent-Service bereitgestellt und clientseitig hydratisiert. Dadurch bleiben Consent-Status, Kategorien und UI konsistent zwischen Banner, Einstellungen und Protokollierung.
 
 ---
 
-## Einwilligungs-Management
+## Verwaltungsbereiche im Admin
 
-### Cookie-Banner Konfiguration
-- **Banner-Position:** Unten / Oben / Modal
-- **Granularität:** Kategorie-basiert oder Gesamt-Opt-in
-- **Sprache:** Deutsch (Standard), English, weitere
-- **Design:** Anpassbar an Theme-Farben
+### Kategorien
 
-### Einwilligungs-Speicherung
-- Einwilligungen in `cms_cookie_consents` gespeichert
-- Per IP-Hash und Fingerprint identifiziert
-- Ablaufdatum: 12 Monate (DSGVO-konform)
-- Audit-Trail mit Zeitstempel, IP, gewählten Kategorien
+Typische Kategorien sind:
 
----
+- notwendig
+- funktional
+- statistik
+- marketing
 
-## Cookie-Richtlinie generieren
+### Dienste
 
-**Admin → DSGVO → Cookie-Richtlinie generieren**
+Pro Dienst werden üblicherweise gepflegt:
 
-Automatisch generierter Text enthält:
-- Liste aller definierten Cookies mit Beschreibungen
-- Kategorisierung und Rechtsgrundlage (Art. 6 DSGVO)
-- Opt-out Hinweise und Links
-- Kontaktdaten des Datenschutzbeauftragten
+- Dienstname
+- Anbieter
+- Kategorie
+- Cookie-Namen
+- Zweckbeschreibung
+- Laufzeit
+- Datenschutz-URL
 
----
+### Einstellungen
 
-## Sicherheitsprüfungen
-
-Der Cookie-Manager prüft automatisch:
-- ✅ Ob alle Tracking-Skripte vor Einwilligung blockiert werden
-- ✅ Ob Consent-Cookies selbst notwendig und cookie-frei sind
-- ✅ Ob die Cookie-Laufzeiten korrekt konfiguriert sind
-- ⚠️ Fehlende Datenschutz-URLs
-- ⚠️ Marketing-Cookies ohne Opt-in-Pflicht
+Konfigurierbar sind unter anderem Banner-Texte, Button-Beschriftungen, Standardzustände, Scanner-Einstellungen und ergänzende Hinweise für öffentlich dargestellte Datenschutzhinweise.
 
 ---
 
-## Verwandte Seiten
+## Technische Grundlage
 
-- [DSGVO-Datenzugriff & Löschung](DSGVO.md)
-- [Rechtstexte & Legal-Sites](LEGAL.md)
-- [AntiSpam](ANTISPAM.md)
+Der Admin-Einstieg lädt `CMS/admin/modules/legal/CookieManagerModule.php`.
+
+Im Datenmodell spielen insbesondere diese Tabellen eine Rolle:
+
+- `cookie_categories`
+- `cookie_services`
+
+---
+
+## Typische Aktionen
+
+| Aktion | Bedeutung |
+|---|---|
+| `save_settings` | globale Cookie-Manager-Einstellungen speichern |
+| `save_category` | Kategorie anlegen oder aktualisieren |
+| `delete_category` | Kategorie löschen |
+| `save_service` | Dienst anlegen oder aktualisieren |
+| `delete_service` | Dienst löschen |
+| `import_curated_service` | vordefinierten Dienst importieren |
+| `run_scan` | Cookie-Scanner starten |

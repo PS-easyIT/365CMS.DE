@@ -25,283 +25,144 @@
 | `handleNotificationActions` | `handleNotificationActions(): void` | Speichert alle 10 Benachrichtigungs-Präferenzen |
 | `handlePrivacyActions` | `handlePrivacyActions(): void` | Datenschutz, Datenexport, Account-Löschung |
 
-### Sanitization-Typen für `getPost()`
+# 365CMS – Member-Controller
 
-| Typ | Funktion | Beispiel |
-|-----|----------|---------|
-| `text` (Standard) | `sanitize_text_field()` | Namen, Felder |
-| `email` | `sanitize_email()` | E-Mail-Adressen |
-| `url` | `esc_url_raw()` | Webseiten-URLs |
-| `textarea` | `sanitize_textarea_field()` | Mehrzeilige Texte |
-| `int` | `(int) $value` | Numerische IDs |
-| `bool` | `(bool) $value` | Boolean-Werte |
+Kurzbeschreibung: Übersicht über den zentralen `MemberController` und die wichtigsten Request-Dateien des Mitgliederbereichs.
 
-### Konstruktor-Ablauf
-
-```php
-public function __construct()
-{
-    if (!Auth::instance()->isLoggedIn())  → redirect('/login')
-    if (Auth::instance()->isAdmin())       → redirect('/admin')
-
-    $this->auth         = Auth::instance();
-    $this->security     = Security::instance();
-    $this->memberService = MemberService::getInstance();
-    $this->db           = Database::instance();
-    $this->user         = $this->auth->getCurrentUser();
-}
-```
+Letzte Aktualisierung: 2026-03-07
 
 ---
 
-## 2. Dashboard-Controller
+## Basis-Controller `MemberController`
 
-**Datei:** `index.php`  
-**URL:** `/member`
+**Datei:** `CMS/member/includes/class-member-controller.php`
 
-```php
-require_once dirname(__DIR__) . '/config.php';
-require_once CORE_PATH . 'autoload.php';
+Die Basisklasse bündelt Authentifizierung, Formularschutz, Redirects, Rendering und mehrere POST-Handler.
 
-$controller    = new MemberController();
-$memberService = MemberService::getInstance();
+### Öffentliche Methoden
 
-$dashboardData = $memberService->getMemberDashboardData($controller->getUser()->id);
-
-$controller->render('dashboard-view', [
-    'dashboardData' => $dashboardData
-]);
-```
-
-### `getMemberDashboardData()` – erwartete Rückgabe
-
-| Schlüssel | Typ | Beschreibung |
-|-----------|-----|-------------|
-| `last_login_formatted` | string | Formatiertes Datum des letzten Logins |
-| `last_login_relative` | string | Relativer Zeitstring (z.B. „vor 2 Stunden") |
-| `login_count_30d` | int | Anzahl Logins der letzten 30 Tage |
-| `account_age_days` | int | Account-Alter in Tagen |
-| `two_factor_enabled` | bool | 2FA aktiv? |
-| `password_changed_relative` | string | Relativer Zeitstring der letzten PW-Änderung |
-| `active_sessions` | int | Anzahl aktiver Sessions |
-| `subscription` | array\|null | Aktives Abo-Objekt oder null |
-| `subscription_visible` | bool | Abo-Menüpunkt sichtbar? |
-| `recent_activities` | array | Letzte Aktivitäten mit `icon`, `text`, `time_ago` |
-
----
-
-## 3. Profil-Controller
-
-**Datei:** `profile.php`  
-**URL:** `/member/profile`
-
-### Formularfelder (POST)
-
-| Feld | Typ | Sanitization |
-|------|-----|-------------|
-| `username` | string | `text` |
-| `email` | string | `email` |
-| `first_name` | string | `text` |
-| `last_name` | string | `text` |
-| `bio` | string | `textarea` |
-| `phone` | string | `text` |
-| `website` | string | `url` |
-
-### Daten an View
-
-| Variable | Beschreibung |
-|----------|-------------|
-| `$csrfToken` | CSRF-Token `'member_profile'` |
-| `$userMeta` | Array mit `first_name`, `last_name`, `bio`, `phone`, `website` |
-
----
-
-## 4. Sicherheits-Controller
-
-**Datei:** `security.php`  
-**URL:** `/member/security`
-
-### Aktionen (POST)
-
-| `action` Wert | CSRF-Token | Beschreibung |
-|--------------|------------|-------------|
-| `change_password` | `change_password` | Passwort ändern |
-| `toggle_2fa` | `toggle_2fa` | 2FA aktivieren/deaktivieren |
-
-### Daten an View
-
-| Variable | Beschreibung |
-|----------|-------------|
-| `$securityData` | Objekt mit `score` (0-100), `score_message`, `password_changed`, `recommendations[]`, `2fa_enabled`, `login_history[]` |
-| `$activeSessions` | Array von Sessions mit `id`, `device`, `ip`, `location`, `last_activity`, `is_current`, `device_icon` |
-| `$csrfPassword` | CSRF-Token `'change_password'` |
-| `$csrf2FA` | CSRF-Token `'toggle_2fa'` |
-
----
-
-## 5. Benachrichtigungen-Controller
-
-**Datei:** `notifications.php`  
-**URL:** `/member/notifications`
-
-### Gespeicherte Präferenzen (POST → `handleNotificationActions`)
-
-| Feld | Typ | Standard |
-|------|-----|---------|
-| `email_notifications` | bool | true |
-| `email_marketing` | bool | false |
-| `email_updates` | bool | true |
-| `email_security` | bool | true |
-| `browser_notifications` | bool | false |
-| `desktop_notifications` | bool | false |
-| `mobile_notifications` | bool | false |
-| `notify_new_features` | bool | true |
-| `notify_promotions` | bool | false |
-| `notification_frequency` | string | `'immediate'` |
-
-### Daten an View
-
-| Variable | Beschreibung |
-|----------|-------------|
-| `$preferences` | Alle gespeicherten Präferenzen als Array |
-| `$recentNotifications` | Max. 10 neueste Benachrichtigungen |
-| `$csrfToken` | CSRF-Token `'member_notifications'` |
-
----
-
-## 6. Datenschutz-Controller
-
-**Datei:** `privacy.php`  
-**URL:** `/member/privacy`
-
-### Aktionen (POST)
-
-| `action` Wert | CSRF-Token | Beschreibung |
-|--------------|------------|-------------|
-| `update_privacy` | `privacy_settings` | Privatsphäre-Einstellungen speichern |
-| `export_data` | `data_export` | JSON-Export aller User-Daten (DSGVO Art. 20) |
-| `delete_account` | `account_delete` | Account zur Löschung markieren (30 Tage) |
-
-### Daten an View
-
-| Variable | Beschreibung |
-|----------|-------------|
-| `$privacySettings` | Array mit `profile_visibility`, `show_email`, `show_activity`, `allow_contact`, `data_sharing`, `analytics_tracking`, `third_party_cookies` |
-| `$dataOverview` | Array mit `profile_records`, `activities`, `logins`, `settings`, `files`, `total_size`, `sessions` |
-| `$csrfPrivacy` | CSRF-Token `'privacy_settings'` |
-| `$csrfExport` | CSRF-Token `'data_export'` |
-| `$csrfDelete` | CSRF-Token `'account_delete'` |
-
----
-
-## 7. Abonnement-Controller
-
-**Datei:** `subscription.php`  
-**URL:** `/member/subscription`  
-**Sichtbarkeit:** Nur wenn `cms_settings.member_subscription_visible = '1'`
-
-### Daten an View
-
-| Variable | Beschreibung |
-|----------|-------------|
-| `$subscription` | Array mit aktivem Abo (`package_name`, `price`, `billing_cycle`, `start_date`, `end_date`, `status`, `auto_renew`, `features[]`, `package_id`) oder `null` |
-| `$availablePackages` | Array von Paketen mit `id`, `name`, `price`, `billing_cycle`, `description`, `features[]`, `featured` |
-| `$permissions` | Array von Berechtigungs-Strings des Users |
-| `$statusBadges` | `['active'=>'success', 'expired'=>'danger', 'pending'=>'warning', 'cancelled'=>'secondary']` |
-
-
----
-
-## 8. Medien-Controller
-
-**Datei:** `media.php` / `media-ajax.php` / `media_handler.php`  
-**URL:** `/member/media`
-
-### Aktionen
-
-| `action` Wert | Beschreibung |
+| Methode | Zweck |
 |---|---|
-| Upload via `media-ajax.php` | AJAX-Datei-Upload mit Fortschrittsanzeige |
-| Delete via `media-ajax.php` | Einzelne Datei löschen |
-| GET `media.php` | Dateiübersicht mit Speicherplatz-Anzeige |
-
-### Daten an View
-
-| Variable | Beschreibung |
-|----------|-------------|
-| `e:\00-WPwork\365CMS.DE\DOC\core\ARCHITECTURE.md e:\00-WPwork\365CMS.DE\DOC\core\CORE-CLASSES.md e:\00-WPwork\365CMS.DE\DOC\core\DATABASE-SCHEMA.md e:\00-WPwork\365CMS.DE\DOC\core\HOOKS-REFERENCE.md e:\00-WPwork\365CMS.DE\DOC\core\SECURITY.md e:\00-WPwork\365CMS.DE\DOC\plugins\GUIDE.md e:\00-WPwork\365CMS.DE\DOC\plugins\PLUGIN-DEVELOPMENT.md e:\00-WPwork\365CMS.DE\DOC\theme\README.md e:\00-WPwork\365CMS.DE\DOC\theme\THEME-DEVELOPMENT.md` | Array eigener Dateien mit `id`, `name`, `size`, `mime_type`, `url`, `created_at` |
-| `` | Genutzter Speicher in Bytes |
-| `` | Maximaler Speicher in Bytes (aus Abo) |
-| `` | Prozentsatz (0–100) |
-| `` | CSRF-Token `'member_media'` |
-
----
-
-## 9. Nachrichten-Controller
-
-**Datei:** `messages.php`  
-**URL:** `/member/messages`
-
-### Funktionen
-
-- Konversationsliste aller Gespräche
-- Neue Konversation starten
-- Nachrichten lesen und senden
-- Ungelesene-Badge im Sidebar-Menü
-
-### Daten an View
-
-| Variable | Beschreibung |
-|----------|-------------|
-| `` | Array von Konversationen mit `id`, `partner_name`, `partner_avatar`, `last_message`, `unread_count`, `last_activity` |
-| `` | Aktive Konversation (wenn GET `?id=...`), inkl. `messages[]` |
-| `` | Gesamtanzahl ungelesener Nachrichten |
-| `` | CSRF-Token `'member_messages'` |
+| `redirect(string $url)` | Weiterleitung auf relative Zielroute |
+| `generateToken(string $action)` | CSRF-Token erzeugen |
+| `verifyToken(string $token, string $action)` | CSRF-Token prüfen |
+| `setSuccess(string $message)` | Erfolgsmeldung in Session setzen |
+| `setError(string $message)` | Fehlermeldung in Session setzen |
+| `getPost(string $key, string $type = 'text', $default = '')` | POST-Werte sanitizen |
+| `isChecked(string $key)` | Checkbox-Status prüfen |
+| `render(string $view, array $data = [])` | Partial rendern |
+| `getUser()` | aktuellen Benutzer zurückgeben |
+| `handleSecurityActions()` | Passwort- und Security-POSTs verarbeiten |
+| `handleNotificationActions()` | Notification-Präferenzen speichern |
+| `handlePrivacyActions()` | Datenschutzaktionen ausführen |
 
 ---
 
-## 10. Favoriten-Controller
+## Konstruktor-Verhalten
 
-**Datei:** `favorites.php`  
-**URL:** `/member/favorites`
+Beim Erzeugen des Controllers werden aktuell folgende Schritte ausgeführt:
 
-### Aktionen (POST)
+1. Login-Prüfung via `Auth::instance()->isLoggedIn()`
+2. Initialisierung von `Auth`, `Security`, `MemberService` und `Database`
+3. Laden des aktuellen Users
+4. Initialisierung der `PluginDashboardRegistry`
 
-| `action` Wert | Beschreibung |
+Wichtig: Der aktuelle Stand leitet Administratoren **nicht** automatisch in den Admin-Bereich um.
+
+---
+
+## Sanitizing über `getPost()`
+
+| Typ | Verarbeitung |
 |---|---|
-| `add_favorite` | Element als Favorit speichern |
-| `remove_favorite` | Favorit entfernen |
-
-### Daten an View
-
-| Variable | Beschreibung |
-|----------|-------------|
-| `` | Array mit `id`, `type` (expert/company/event), `target_id`, `title`, `url`, `created_at` |
-| `` | CSRF-Token `'member_favorites'` |
+| `text` | `sanitize_text_field()` |
+| `email` | `sanitize_email()` |
+| `url` | `esc_url_raw()` |
+| `textarea` | `sanitize_textarea_field()` |
+| `int` | `(int)` |
+| `bool` | boolescher Cast |
 
 ---
 
-## 11. Bestellungen-Controller
+## Wichtige Request-Dateien
 
-**Datei:** `order_public.php`  
-**URL:** `/member/orders`
-
-### Daten an View
-
-| Variable | Beschreibung |
-|----------|-------------|
-| `` | Array von Bestellungen mit `id`, `order_number`, `package_name`, `amount`, `status`, `payment_method`, `created_at` |
-| `` | Pagination-Daten (`current_page`, `total_pages`, `total_items`) |
-
-### Bestellstatus
-
-| Status | Bedeutung |
-|---|---|
-| `paid` | Bezahlt und bestätigt |
-| `pending` | Zahlung ausstehend |
-| `refunded` | Erstattet |
-| `cancelled` | Storniert |
+| Datei | Route | Schwerpunkt |
+|---|---|---|
+| `index.php` | `/member` | Dashboard laden |
+| `profile.php` | `/member/profile` | Profil bearbeiten |
+| `security.php` | `/member/security` | Passwort, 2FA, Sessions |
+| `notifications.php` | `/member/notifications` | Präferenzen und Verlauf |
+| `privacy.php` | `/member/privacy` | Datenschutz, Export, Löschung |
+| `subscription.php` | `/member/subscription` | Paket- und Rechteansicht |
+| `media.php` | `/member/media` | Medienübersicht |
+| `messages.php` | `/member/messages` | Konversationen |
+| `favorites.php` | `/member/favorites` | Merkliste |
+| `order_public.php` | `/member/orders` | Bestellhistorie |
 
 ---
 
-*Letzte Aktualisierung: 22. Februar 2026 – Version 1.8.0*
+## Relevante POST-Handler
+
+### `handleSecurityActions()`
+
+Unterstützte Aktionen im Controller:
+
+- `change_password`
+- `toggle_2fa`
+
+Wichtig: Die aktuelle Security-View nutzt für 2FA zusätzlich dedizierte `/mfa-*`-Routen.
+
+### `handleNotificationActions()`
+
+Speichert u. a.:
+
+- `email_notifications`
+- `email_marketing`
+- `email_updates`
+- `email_security`
+- `browser_notifications`
+- `desktop_notifications`
+- `mobile_notifications`
+- `notify_new_features`
+- `notify_promotions`
+- `notification_frequency`
+
+Vor dem Speichern wird der Datensatz über `member_notification_preferences` filterbar gemacht.
+
+### `handlePrivacyActions()`
+
+Unterstützte Aktionen:
+
+- `update_privacy`
+- `export_data`
+- `delete_account`
+
+Aktuell verlässlich dokumentierte Standardfelder für `update_privacy`:
+
+- `profile_visibility`
+- `show_email`
+- `show_activity`
+
+---
+
+## Dashboard-spezifische Hinweise
+
+Im Dashboard greifen neben `MemberService` auch Settings aus der Datenbank, z. B.:
+
+- `member_dashboard_show_welcome`
+- `member_dashboard_show_quickstart`
+- `member_dashboard_show_stats`
+- `member_dashboard_show_custom_widgets`
+- `member_dashboard_show_plugin_widgets`
+- `member_dashboard_show_notifications_panel`
+- `member_dashboard_show_onboarding_panel`
+- `member_dashboard_plugin_order`
+
+---
+
+## Verwandte Dokumente
+
+- [README.md](README.md)
+- [VIEWS.md](VIEWS.md)
+- [HOOKS.md](HOOKS.md)
+- [SECURITY.md](SECURITY.md)

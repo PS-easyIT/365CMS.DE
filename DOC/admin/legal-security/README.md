@@ -1,178 +1,62 @@
-# Legal & Sicherheit – Übersicht
+# 365CMS – Recht & Sicherheit
 
-Dieses Modul stellt die DSGVO-Konformität (GDPR) des CMS sicher und bietet umfassende Tools für Datenschutz, Sicherheit und rechtliche Anforderungen.
+Kurzbeschreibung: Überblick über die aktuellen Legal-, Privacy- und Security-Module im Admin-Bereich.
 
----
-
-## Dokumentations-Index
-
-| Datei | Admin-Seite | Beschreibung |
-|-------|-------------|--------------|
-| [COOKIES.md](COOKIES.md) | `admin/cookies.php` | Cookie-Manager, Consent-Banner, Dienste-Bibliothek |
-| [DSGVO.md](DSGVO.md) | `admin/data-access.php`, `admin/data-deletion.php` | Art. 15 & 17 DSGVO, Datenzugriff, Löschung |
-| [LEGAL.md](LEGAL.md) | `admin/legal-sites.php` | Rechtstexte: Impressum, Datenschutz, AGB |
-| [FIREWALL.md](FIREWALL.md) | `admin/firewall.php` | IP-Sperren, Request-Filter, Rate Limiting |
-| [ANTISPAM.md](ANTISPAM.md) | `admin/antispam.php` | Honeypot, CAPTCHA, Keyword-Filter |
-| [SECURITY-AUDIT.md](SECURITY-AUDIT.md) | `admin/security-audit.php` | Security Score 0–100, Härtungsassistent |
+Letzte Aktualisierung: 2026-03-07
 
 ---
 
 ## Überblick
 
-Alle Bereiche sind unter `Admin → Legal & Sicherheit` zusammengefasst.
+Der Bereich ist in 2.3.1 in zwei Gruppen gegliedert:
+
+- **Recht**
+- **Sicherheit**
+
+Die Menüstruktur wird aus `CMS/admin/partials/sidebar.php` gespeist. Dadurch gelten die folgenden Routen als maßgeblich.
 
 ---
 
-## 1. Überblick
+## Recht
 
-**Datei-Übersicht:**
-
-| Datei | Funktion |
+| Route | Zweck |
 |---|---|
-| `admin/cookies.php` | Cookie-Scanner und Consent-Banner-Konfiguration |
-| `admin/data-access.php` | Datenauskunft-Anfragen bearbeiten |
-| `admin/data-deletion.php` | Datenlöschungs-Anfragen bearbeiten |
+| `/admin/legal-sites` | Verwaltung von Impressum, Datenschutz, AGB und weiteren Legal Pages |
+| `/admin/cookie-manager` | Cookie-Kategorien, Services, Banner- und Scanner-Konfiguration |
+| `/admin/data-requests` | gebündelte Bearbeitung von Auskunfts- und Löschanfragen |
 
-Alle drei Bereiche sind unter `Admin → Legal & DSGVO` zusammengefasst.
+Besonderheit: Frühere Einzelseiten für Privacy- und Deletion-Requests werden heute auf die Sammelroute `/admin/data-requests` zusammengeführt.
 
 ---
 
-## 2. Cookie Scanner & Consent Banner
+## Sicherheit
 
-**Datei:** `admin/cookies.php`
-
-### Cookie-Scanner
-- **Automatischer Scan:** Durchsucht die Website nach gesetzten Cookies
-- **Kategorisierung:** Ordnet Cookies automatisch zu:
-  - `necessary` – Session-Cookie, CSRF-Token, Auth-Cookie
-  - `statistics` – Besucherstatistiken, Analytics
-  - `marketing` – Tracking-Pixel, Retargeting
-  - `preferences` – Theme-Einstellungen, Sprachauswahl
-
-### Consent Banner Konfiguration
-
-| Einstellung | Beschreibung |
+| Route | Zweck |
 |---|---|
-| `banner_title` | Überschrift des Banners |
-| `banner_text` | Erklärungs-Text |
-| `accept_all_label` | Button-Text „Alle akzeptieren" |
-| `reject_label` | Button-Text „Nur notwendige" |
-| `customize_label` | Button-Text „Einstellungen" |
-| `position` | `bottom-bar`, `bottom-right`, `center-modal` |
-| `privacy_link` | Link zur Datenschutzerklärung |
-| `category_stats` | Statistik-Cookies ein-/ausblenden |
-| `category_marketing` | Marketing-Cookies ein-/ausblenden |
-
-**Cookie-Lebensdauer für Zustimmung:** Standard 365 Tage (konfigurierbar)
+| `/admin/antispam` | Formular- und Content-Schutz gegen Spam |
+| `/admin/firewall` | Blockregeln, IP-Sperren und Anfrageschutz |
+| `/admin/security-audit` | Sicherheitsbewertung, Prüfungen und Härtungshinweise |
 
 ---
 
-## 3. Datenauskunft (Art. 15 DSGVO)
+## Zugehörige Fachdokumente
 
-**Datei:** `admin/data-access.php`
-
-Bearbeitung von Anfragen auf Auskunft über gespeicherte Daten:
-
-1. **Anfragenliste:** Tabelle aller eingegangenen Export-Anfragen
-2. **Anfrage bearbeiten:**
-   - Benutzer identifizieren (via E-Mail oder Benutzer-ID)
-   - Gespeicherte Datenkategorien anzeigen
-   - Export als **JSON** oder **XML** generieren
-3. **Anfrage schließen:** Nach Übermittlung als „Erledigt" markieren
-
-**Frist:** DSGVO schreibt Bearbeitung innerhalb von **30 Tagen** vor. System zeigt ablaufende Fristen als Warnung.
-
-**Exportierte Datenkategorien:**
-- Profildaten (Name, E-Mail, Telefon)
-- Nutzungslog (Logins, Aktivitäten)
-- Bestellungen und Rechnungen
-- Nachrichten (Metadaten)
-- Hochgeladene Dateien (Auflistung)
-
----
-
-## 4. Datenlöschung (Art. 17 DSGVO)
-
-**Datei:** `admin/data-deletion.php`
-
-Bearbeitung von „Recht auf Vergessenwerden"-Anfragen:
-
-### Löschoptionen
-
-| Option | Beschreibung |
+| Dokument | Schwerpunkt |
 |---|---|
-| **Sofort-Löschung** | Alle personenbezogenen Daten sofort löschen |
-| **Anonymisierung** | Daten anonymisieren (Pflichtfelder erhalten, PII entfernt) |
-| **Geplante Löschung** | Datum setzen für zukünftige automatische Löschung |
-
-### Was wird gelöscht vs. anonymisiert
-
-**Gelöscht:** Profildaten, Avatarbild, Login-Log, Benachrichtigungen, Mediendateien  
-**Anonymisiert:** Bestellungen (User-ID → 0, Name → „Gelöschter Nutzer"), publizierte Beiträge  
-**Behalten:** Rechnungsdaten (steuerliche Aufbewahrungspflicht 10 Jahre, § 147 AO)
-
-### Protokoll
-- Alle durchgeführten Löschungen werden in `cms_gdpr_log` protokolliert
-- Protokolleintrag enthält: Datum, Admin, Anfrage-Typ, betroffene User-ID (anonymisiert)
+| [COOKIES.md](COOKIES.md) | Cookie-Manager und öffentliche Einwilligungsseite |
+| [DSGVO.md](DSGVO.md) | Auskunfts- und Löschprozesse |
+| [LEGAL.md](LEGAL.md) | Rechtstexte und veröffentlichte Pflichtseiten |
+| [FIREWALL.md](FIREWALL.md) | Firewall-Regeln und Blocklisten |
+| [ANTISPAM.md](ANTISPAM.md) | Anti-Spam-Strategien |
+| [SECURITY-AUDIT.md](SECURITY-AUDIT.md) | Audit-Score und Prüfbereiche |
 
 ---
 
-## 5. Einwilligungs-Protokoll
+## Audit- und Nachvollziehbarkeit
 
-Das System speichert alle Einwilligungsentscheidungen der Besucher:
+Mehrere Module in diesem Bereich schreiben sicherheitsrelevante Aktionen inzwischen in das Audit-Log, darunter insbesondere:
 
-```sql
-CREATE TABLE cms_consent_log (
-    id          INT AUTO_INCREMENT PRIMARY KEY,
-    visitor_id  VARCHAR(64),      -- Anonymisiert (Hash der IP)
-    ip_hash     VARCHAR(64),
-    categories  JSON,             -- {"necessary":1,"statistics":0,"marketing":0}
-    action      VARCHAR(20),      -- accept_all, reject_all, custom
-    banner_ver  VARCHAR(10),      -- Version des Consent-Banners
-    ts          DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-Protokoll ist nur für interne Compliance-Zwecke abrufbar, nicht öffentlich.
-
----
-
-## 6. Impressum & Datenschutzerklärung
-
-Quick-Links zu den Pflichtseiten im CMS:
-- **Impressum:** Prüft ob eine Seite mit Slug `impressum` existiert
-- **Datenschutzerklärung:** Prüft ob Seite `datenschutz` existiert
-- **Warnung:** Gelb-Banner wenn Pflichtseiten fehlen oder nicht veröffentlicht
-
----
-
-## 7. Technische Details
-
-**Service:** `CMS\Compliance\GDPRService`
-
-```php
-// Daten exportieren
-$gdpr = GDPRService::instance();
-$exportPath = $gdpr->generateExport($userId, 'json');
-
-// Daten löschen
-$gdpr->deleteUserData($userId, $options = [
-    'delete_media'  => true,
-    'anonymize_orders' => true,
-    'keep_billing' => true,
-]);
-
-// Einwilligung speichern
-$gdpr->saveConsent($visitorHash, [
-    'necessary'  => 1,
-    'statistics' => $statsAccepted,
-    'marketing'  => $marketingAccepted,
-]);
-```
-
-**Hooks:**
-```php
-do_action('cms_gdpr_export_generated', $userId, $exportPath);
-do_action('cms_gdpr_user_deleted', $userId, $anonymizedId);
-add_filter('cms_gdpr_export_data', 'my_plugin_add_export_data', 10, 2);
-```
+- Speichern von Legal-Site-Einstellungen
+- Firewall-Regeln anlegen, löschen oder umschalten
+- AntiSpam-Blacklist pflegen
+- Security-Audits auslösen oder bereinigen

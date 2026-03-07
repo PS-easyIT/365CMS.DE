@@ -1,209 +1,135 @@
-# Admin-Bereich – Vollständige Dateistruktur
+# 365CMS – Admin-Dateistruktur
+
+Kurzbeschreibung: Technischer Überblick über Aufbau, Routing und Verantwortlichkeiten im aktuellen Admin-Code.
+
+Letzte Aktualisierung: 2026-03-07
 
 ---
 
-## 📁 Verzeichnisstruktur
+## Zielbild
 
-```
-admin/
-├── index.php              # Dashboard
-├── pages.php              # Seiten & Landing Page Editor
-├── users.php              # Benutzerverwaltung
-├── settings.php           # Systemeinstellungen
-├── plugins.php            # Plugin-Verwaltung
-├── theme-editor.php       # Theme-Editor & Customizer
-├── seo.php                # SEO-Einstellungen
-├── performance.php        # Performance-Einstellungen
-├── analytics.php          # Analytics & Traffic
-├── backup.php             # Backup & Wiederherstellung
-├── subscriptions.php      # Abo-Pakete & Zuweisungen
-├── groups.php             # Benutzergruppen-Verwaltung
-├── updates.php            # System-/Plugin-/Theme-Updates
-├── system.php             # System & Diagnose
-├── README.md              # Kurzübersicht (für Entwickler)
-├── includes/
-│   └── sidebar.php        # Legacy-Sidebar (deprecated!)
+Der Admin-Bereich ist in 365CMS 2.3.1 kein flaches Sammelbecken einzelner „Alles-in-einer-Datei“-Seiten mehr, sondern eine modulare Struktur aus:
+
+- **Entry-Points** unter `CMS/admin/`
+- **Modulen** unter `CMS/admin/modules/`
+- **Views** unter `CMS/admin/views/`
+- **Partials** wie Header, Sidebar und Footer
+
+---
+
+## Hauptstruktur
+
+```text
+CMS/admin/
+├── index.php
+├── pages.php
+├── posts.php
+├── media.php
+├── users.php
+├── groups.php
+├── roles.php
+├── member-dashboard*.php
+├── packages.php
+├── orders.php
+├── subscription-settings.php
+├── themes.php
+├── theme-editor.php
+├── theme-explorer.php
+├── menu-editor.php
+├── landing-page.php
+├── font-manager.php
+├── seo-dashboard.php
+├── analytics.php
+├── seo-audit.php
+├── seo-meta.php
+├── seo-social.php
+├── seo-schema.php
+├── seo-sitemap.php
+├── seo-technical.php
+├── redirect-manager.php
+├── performance*.php
+├── legal-sites.php
+├── cookie-manager.php
+├── data-requests.php
+├── antispam.php
+├── firewall.php
+├── security-audit.php
+├── plugins.php
+├── plugin-marketplace.php
+├── settings.php
+├── backups.php
+├── updates.php
+├── info.php
+├── documentation.php
+├── diagnose.php
+├── monitor-*.php
+├── modules/
+├── views/
 └── partials/
-    └── admin-menu.php     # Aktive Menü-Funktionen
 ```
 
 ---
 
-## 🗂️ Datei-Dokumentation
+## Rollen der Verzeichnisse
 
-### `index.php` – Dashboard
-| Eigenschaft | Wert |
-|-------------|------|
-| Route | `/admin` |
-| Klassen | `CMS\Auth`, `CMS\Security`, `CMS\Services\DashboardService`, `CMS\Hooks` |
-| CSRF-Action | `admin_dashboard` |
-| Features | Statistik-Karten (Users, Pages, Media, Sessions), System-Info, Security-Status, Schnellzugriff, Plugin-Widgets |
-| Hooks | `admin_dashboard_widgets` (Action) |
+### `CMS/admin/*.php`
 
----
+Diese Dateien sind die Entry-Points. Sie prüfen Zugriff, laden das passende Modul, verarbeiten Aktionen, setzen `$pageTitle` und `$activePage` und rendern anschließend die Oberfläche.
 
-### `pages.php` – Seiten & Landing Page Editor
-| Eigenschaft | Wert |
-|-------------|------|
-| Route | `/admin/pages` |
-| Klassen | `CMS\Auth`, `CMS\PageManager`, `CMS\Services\LandingPageService`, `CMS\Hooks`, `CMS\Security` |
-| CSRF-Action | `landing_page` |
-| Tabs | `pages` (alle Seiten), `landing` (Header/Features), `colors` (Farben) |
-| Features | Seiten-Tabelle, Landing-Page-Editor mit Logo-Upload, Feature-Karten, Farbpalette |
-| File Upload | Erlaubte Typen: `jpg`, `jpeg`, `png`, `svg`, `gif` |
+### `CMS/admin/modules/`
+
+Hier liegt die Fachlogik je Bereich, zum Beispiel für Legal, Security, System, SEO oder Themes.
+
+### `CMS/admin/views/`
+
+Dieses Verzeichnis enthält die eigentliche Ausgabe. Typische Unterordner sind `views/legal/`, `views/seo/`, `views/system/` und `views/performance/`.
+
+### `CMS/admin/partials/`
+
+Gemeinsame Oberflächenbausteine wie Header, Sidebar und Footer. Die Sidebar-Datei ist die maßgebliche Quelle für die sichtbare Admin-Navigation.
 
 ---
 
-### `users.php` – Benutzerverwaltung
-| Eigenschaft | Wert |
-|-------------|------|
-| Route | `/admin/users` |
-| Klassen | `CMS\Auth`, `CMS\Services\UserService`, `CMS\Security`, `CMS\Hooks` |
-| CSRF-Action | `user_management` |
-| Tabs | `users` (Benutzerliste), `roles` (Rollen & Berechtigungen) |
-| Aktionen | `create_user`, `update_user`, `delete_user` |
-| Features | Statistik-Karten (gesamt/aktiv/inaktiv/gesperrt), Benutzer-Tabelle, Modal-Formulare, Rollen-Badges |
+## Routing und Slugs
+
+Für die Dokumentation sind die aktiven Slugs entscheidend, nicht alte Dateinamen aus älteren Versionen.
+
+| Bereich | Aktueller Slug / Route |
+|---|---|
+| Fonts | `/admin/font-manager` |
+| Backups | `/admin/backups` |
+| Cookie-Management | `/admin/cookie-manager` |
+| SEO-Start | `/admin/seo-dashboard` |
+| SEO-Meta | `/admin/seo-meta` |
+| Diagnose | `/admin/diagnose` |
+| Systeminfo | `/admin/info` |
+
+Veraltete Bezeichnungen wie `seo.php`, `backup.php`, `cookies.php`, `fonts-local.php` oder `theme-customizer.php` gelten nicht mehr als Referenz.
 
 ---
 
-### `settings.php` – Systemeinstellungen
-| Eigenschaft | Wert |
-|-------------|------|
-| Route | `/admin/settings` |
-| Klassen | `CMS\Auth`, `CMS\Security`, `CMS\Hooks`, `CMS\Database`, `CMS\Services\EditorService` |
-| CSRF-Action | `admin_settings` |
-| Aktionen | `save_settings` |
-| DB-Schlüssel | `setting_site_name`, `setting_site_description`, `setting_admin_email`, `setting_maintenance_mode`, `setting_allow_registration`, `setting_posts_per_page`, `setting_timezone`, `setting_date_format`, `setting_time_format` |
+## Typischer Aufbau eines Entry-Points
+
+1. `declare(strict_types=1)`
+2. `ABSPATH`-Guard
+3. Admin-Check via `CMS\Auth`
+4. Modul instanziieren
+5. POST-Daten mit `CMS\Security::verifyToken()` prüfen
+6. Ergebnis als Session-Alert ablegen
+7. Redirect auf die GET-Route
+8. View rendern
 
 ---
 
-### `plugins.php` – Plugin-Verwaltung
-| Eigenschaft | Wert |
-|-------------|------|
-| Route | `/admin/plugins` |
-| Klassen | `CMS\Auth`, `CMS\Security`, `CMS\PluginManager` |
-| CSRF-Action | `plugin_management` |
-| Aktionen | `activate`, `deactivate`, `delete` (mit `confirm_delete=DELETE`), `upload` |
-| Features | Plugin-Liste mit Status-Badges, Aktivieren/Deaktivieren, Löschen (mit Bestätigung), ZIP-Upload |
+## Beziehungen zu Core-Komponenten
 
----
+Der Admin-Bereich nutzt zentral:
 
-### `theme-editor.php` – Theme-Editor
-| Eigenschaft | Wert |
-|-------------|------|
-| Route | `/admin/theme-editor` |
-| Klassen | `CMS\Auth`, `CMS\Security`, `CMS\Services\ThemeCustomizer` |
-| CSRF-Action | `theme_editor` |
-| Aktionen | `save_customization`, `reset_category`, `reset_all`, `export_settings`, `import_settings`, `generate_css` |
-| Tabs | `colors`, weitere via ThemeCustomizer |
-| Features | CSS-Customizer (50+ Optionen), Import/Export (JSON), CSS-Generator, Reset-Funktionen, Live-Vorschau |
-| **Hinweis** | Redirect-Messages aus GET-Parametern werden HTML-escaped (XSS-Schutz) |
-
----
-
-### `seo.php` – SEO-Einstellungen
-| Eigenschaft | Wert |
-|-------------|------|
-| Route | `/admin/seo` |
-| Klassen | `CMS\Auth`, `CMS\Security`, `CMS\Database`, `CMS\Services\SEOService` |
-| CSRF-Action | `seo_settings` |
-| Aktionen | `save_seo` |
-| DB-Schlüssel | `seo_meta_description`, `seo_meta_keywords`, `seo_og_title`, `seo_og_description`, `seo_og_image`, `seo_twitter_card`, `seo_twitter_site`, `seo_twitter_creator`, `seo_canonical_url`, `seo_robots_index`, `seo_robots_follow`, `seo_google_analytics`, `seo_google_site_verification`, `seo_bing_site_verification`, `seo_favicon_url`, `seo_apple_touch_icon`, `seo_robots_txt_content` |
-| Besonderheiten | Regeneriert automatisch `robots.txt` und `sitemap.xml` nach dem Speichern |
-
----
-
-### `performance.php` – Performance-Einstellungen
-| Eigenschaft | Wert |
-|-------------|------|
-| Route | `/admin/performance` |
-| Klassen | `CMS\Auth`, `CMS\Security`, `CMS\Database` |
-| CSRF-Action | `performance_settings` |
-| Aktionen | `save_performance` |
-| DB-Schlüssel | `perf_enable_lazy_loading`, `perf_minify_css`, `perf_minify_js`, `perf_enable_preload_fonts`, `perf_enable_gzip`, `perf_enable_browser_cache`, `perf_cache_duration`, `perf_defer_js`, `perf_async_css`, `perf_preload_critical_css`, `perf_disable_emojis`, `perf_limit_revisions` |
-
----
-
-### `analytics.php` – Analytics & Traffic
-| Eigenschaft | Wert |
-|-------------|------|
-| Route | `/admin/analytics` |
-| Klassen | `CMS\Auth`, `CMS\Security`, `CMS\Services\AnalyticsService`, `CMS\Services\TrackingService` |
-| CSRF-Action | `analytics` |
-| Tabs | `overview`, weitere |
-| Features | Besucher-Statistiken (30 Tage), Top-Pages, Seitenaufrufe nach Datum, Aktivitäts-Log |
-| Fehlerbehandlung | try/catch mit Fallback auf leere Arrays – Seite bleibt ladbar auch wenn Analytics-DB leer ist |
-
----
-
-### `backup.php` – Backup & Wiederherstellung
-| Eigenschaft | Wert |
-|-------------|------|
-| Route | `/admin/backup` |
-| Klassen | `CMS\Auth`, `CMS\Security`, `CMS\Services\BackupService` |
-| CSRF-Action | `backup` |
-| Aktionen | `create_full_backup` (Timeout 300s), `create_db_backup` (Timeout 120s), `email_backup`, `delete_backup` |
-| Features | Backup-Liste mit Größen, Vollbackup, DB-Backup, E-Mail-Versand, Backup-History (20 Einträge) |
-
----
-
-### `subscriptions.php` – Abo-Verwaltung
-| Eigenschaft | Wert |
-|-------------|------|
-| Route | `/admin/subscriptions` |
-| Klassen | `CMS\Auth`, `CMS\Security`, `CMS\Database`, `CMS\SubscriptionManager` |
-| CSRF-Action | `subscription_management` |
-| Aktionen | `assign_subscription`, `create_plan`, `seed_defaults` |
-| Tabs | `plans` (Abo-Pakete), `assignments` (Benutzer-Zuweisungen), `groups` (Gruppen-Tab, aktuell Platzhalter) |
-| Features | Abo-Paket-Karten mit Limits/Features, Benutzer-Zuweisungen, Standard-Pakete generieren |
-| DB | `{prefix}subscription_plans`, `{prefix}user_subscriptions` |
-
----
-
-### `groups.php` – Benutzergruppen
-| Eigenschaft | Wert |
-|-------------|------|
-| Route | `/admin/groups` |
-| Klassen | `CMS\Auth`, `CMS\Security`, `CMS\Database`, `CMS\SubscriptionManager` |
-| CSRF-Action | `group_management` |
-| Aktionen | `create_group`, `add_member`, `remove_member` |
-| Features | Gruppen-Karten mit Mitgliederzahl, Gruppenplan-Badge, Modal für neue Gruppe und Mitgliederverwaltung |
-| DB | `{prefix}user_groups`, `{prefix}user_group_members`, `{prefix}subscription_plans` |
-
----
-
-### `updates.php` – Updates
-| Eigenschaft | Wert |
-|-------------|------|
-| Route | `/admin/updates` |
-| Klassen | `CMS\Auth`, `CMS\Security`, `CMS\Services\UpdateService` |
-| CSRF-Action | `updates` |
-| Tabs | `core` (CMS-Updates), `plugins`, `themes`, `requirements`, `history` |
-| Features | CMS-Core-Update-Status, Plugin-Update-Liste, Theme-Updates, System-Anforderungsprüfung, Update-History |
-
----
-
-### `system.php` – System & Diagnose
-| Eigenschaft | Wert |
-|-------------|------|
-| Route | `/admin/system` |
-| Klassen | `CMS\Auth`, `CMS\Security`, `CMS\Services\SystemService` |
-| CSRF-Action | `system_management` |
-| Aktionen | `clear_cache`, `clear_sessions`, `clear_failed_logins`, `repair_tables`, `optimize_tables`, `clear_logs`, `create_missing_tables` |
-| Tabs | `overview`, `database`, `files`, `security`, `tools`, `logs` |
-| Features | PHP/MySQL-Info, Datenbankstatus, Tabellenstatus, Dateirechte, Verzeichnisgrößen, CMS-Statistiken, Security-Status, Fehler-Logs (50 Einträge) |
-| POST-Redirect | Nach POST wird PR-Session-Key gesetzt und auf dieselbe URL redirectet (verhindert Form-Resubmission) |
-
----
-
-## 🔧 Hilfsdateien
-
-### `partials/admin-menu.php` – Aktive Menü-Funktionen (Primär)
-
-Definiert die Funktionen:
-- `getAdminMenuItems(string $currentPage): array` – Gibt alle Menüpunkte zurück
-- `renderAdminSidebarStyles(): void` – Gibt Inline-CSS für Sidebar aus
-- `renderAdminSidebar(string $currentPage): void` – Rendert die komplette Sidebar
+- `CMS\Auth`
+- `CMS\Security`
+- `CMS\Database`
+- `CMS\Hooks`
+- spezialisierte Services wie `UpdateService`, `BackupService` oder `ThemeCustomizer`
 
 **Menüstruktur mit Children (Sub-Menü):**
 - Das `children`-Array ermöglicht verschachtelte Menüpunkte

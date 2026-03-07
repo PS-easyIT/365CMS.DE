@@ -1,128 +1,161 @@
 ﻿# 365CMS – Admin-Handbuch
 
-Dieses Handbuch erklärt die häufigsten Admin-Aufgaben Schritt für Schritt.
+Kurzbeschreibung: Operatives Handbuch für die häufigsten Aufgaben im aktuellen Admin-Bereich von 365CMS 2.3.1.
+
+Letzte Aktualisierung: 2026-03-07
 
 ---
 
 ## Erster Login
 
 1. Browser öffnen: `https://eure-domain.de/admin`
-2. Benutzername und Passwort eingeben
-3. Auf "Anmelden" klicken
-4. Ihr seht das **Dashboard** mit der Systemübersicht
+2. Zugangsdaten eingeben
+3. nach erfolgreichem Login erscheint das Dashboard unter `/admin`
+
+Von dort aus erreicht ihr die zentralen Bereiche über die Sidebar.
 
 ---
 
-## Neuen Benutzer anlegen
+## Benutzer anlegen oder bearbeiten
 
-1. Admin → **Benutzer** (`/admin/users.php`)
-2. Klick auf **"Neuer Benutzer"**
-3. Pflichtfelder ausfüllen:
-   - **Benutzername** (nur Buchstaben, Zahlen, Unterstriche)
-   - **E-Mail** (muss eindeutig sein)
-   - **Passwort** (min. 8 Zeichen, besser 12+)
-   - **Rolle** wählen: `member` für normale Nutzer, `admin` nur für Admins
-4. Auf **"Speichern"** klicken
+**Route:** `/admin/users`
 
----
+1. Sidebar → **Benutzer & Gruppen** → **Benutzer**
+2. neuen Benutzer anlegen oder bestehenden Datensatz öffnen
+3. Benutzername, E-Mail, Rolle und Status setzen
+4. speichern
 
-## Passwort zurücksetzen
+Verwandte Bereiche:
 
-1. Admin → Benutzer → Benutzer suchen
-2. Benutzer anklicken → **"Bearbeiten"**
-3. Neues Passwort eingeben
-4. **"Speichern"**
+- Gruppen: `/admin/groups`
+- Rollen & Rechte: `/admin/roles`
 
 ---
 
-## Neue Seite erstellen
+## Inhalte pflegen
 
-1. Admin → **Seiten** (`/admin/pages.php`)
-2. **"Neue Seite"** klicken
-3. **Titel** eingeben (z.B. "Über uns")
-4. **Slug** wird automatisch generiert (z.B. `ueber-uns`) → URL wird `/ueber-uns`
-5. **Inhalt** mit SunEditor bearbeiten
-6. **Status:** `published` um die Seite zu veröffentlichen
-7. **"Speichern"**
+### Neue Seite erstellen
 
-**Tipp:** Mit `hide_title` kann der Seitentitel auf der Website ausgeblendet werden (nützlich für die Startseite).
+**Route:** `/admin/pages`
 
----
+1. **Seiten** öffnen
+2. Titel und Slug prüfen
+3. Inhalt im Editor pflegen
+4. SEO-Felder unterhalb des Editors ergänzen
+5. veröffentlichen oder als Entwurf speichern
 
-## Theme wechseln
+### Neuen Beitrag erstellen
 
-1. Admin → **Themes** (`/admin/themes.php`)
-2. Gewünschtes Theme finden
-3. Auf **"Aktivieren"** klicken
-4. Website im Browser neu laden – Theme ist sofort aktiv!
+**Route:** `/admin/posts`
 
----
-
-## Farben anpassen (ohne Code)
-
-1. Admin → **Theme-Customizer** (`/admin/theme-customizer.php`)
-2. Kategorie **"Farben"** öffnen
-3. Primärfarbe (z.B. `#ff6600`) eintragen
-4. **"Speichern"** – Änderung sofort sichtbar
+1. **Beiträge** öffnen
+2. Titel, Inhalt, Auszug und Featured Image pflegen
+3. Kategorien, Tags und SEO-Daten ergänzen
+4. Beitrag speichern oder veröffentlichen
 
 ---
 
-## Plugin aktivieren
+## Theme wechseln und Design anpassen
 
-1. Admin → **Plugins** (`/admin/plugins.php`)
-2. Gewünschtes Plugin finden
-3. **"Aktivieren"** klicken
-4. Plugin steht sofort zur Verfügung
+### Theme aktivieren
+
+**Route:** `/admin/themes`
+
+1. gewünschtes Theme auswählen
+2. aktivieren
+3. Frontend neu laden und prüfen
+
+### Farben und Design ändern
+
+**Route:** `/admin/theme-editor`
+
+1. Theme-Editor öffnen
+2. gewünschte Kategorie wie Farben, Typografie oder Layout wählen
+3. Werte anpassen
+4. speichern oder bei Bedarf exportieren
+
+Weitere Design-Werkzeuge:
+
+- Menü-Editor: `/admin/menu-editor`
+- Landing-Page-Builder: `/admin/landing-page`
+- Font Manager: `/admin/font-manager`
+
+---
+
+## Plugins verwalten
+
+**Route:** `/admin/plugins`
+
+1. Plugin-Liste öffnen
+2. Plugin aktivieren, deaktivieren oder – falls vorgesehen – konfigurieren
+3. bei plugin-spezifischen Admin-Seiten in der Plugin-Gruppe der Sidebar weiterarbeiten
+
+Optionaler Marketplace:
+
+- `/admin/plugin-marketplace`
 
 ---
 
 ## Backup erstellen
 
-1. Admin → **Backup** (`/admin/backup.php`)
-2. **"Datenbank-Backup erstellen"** klicken
-3. Download startet automatisch (`.sql.gz`-Datei)
-4. Datei sicher aufbewahren!
+**Route:** `/admin/backups`
 
-**Empfehlung:** Täglich automatisch Backup erstellen – Einstellung unter "Automatisches Backup".
-
----
-
-## Performance-Cache leeren
-
-Wenn nach Änderungen die Website nicht aktualisiert erscheint:
-
-1. Admin → **Performance** (`/admin/performance.php`)
-2. **"Cache leeren"** klicken
-3. Seite neu laden
+1. **System** → **Backup & Restore** öffnen
+2. vollständiges oder Datenbank-Backup auslösen
+3. Ergebnis in der Liste prüfen
+4. Backup-Datei außerhalb des Webroots sichern
 
 ---
 
-## Abo-Plan anlegen
+## Cache und Performance prüfen
 
-1. Admin → **Abos** (`/admin/subscriptions.php`)
-2. **"Neuer Plan"** klicken
-3. Konfigurieren:
-   - **Name** (z.B. "Pro")
-   - **Preis** monatlich/jährlich
-   - **Limits** (Anzahl Einträge pro Plugin)
-   - **Features** freischalten (Analytics, API, etc.)
-4. **"Speichern"**
+Wenn Änderungen nicht sichtbar werden oder das System träge reagiert:
+
+1. `/admin/performance` für den Gesamtstatus öffnen
+2. `/admin/performance-cache` für Cache-Bereinigung nutzen
+3. `/admin/performance-media` bei Bild- und WebP-Themen prüfen
+4. `/admin/performance-database` für Wartung und Cleanup verwenden
 
 ---
 
-## System-Status prüfen
+## Pakete und Bestellungen verwalten
 
-Admin → **System** (`/admin/system.php`)
+Die Aboverwaltung ist heute in drei Seiten aufgeteilt:
 
-Hier seht ihr:
-- 🟢 = Alles in Ordnung
-- 🟡 = Warnung (nicht kritisch)
-- 🔴 = Problem (sollte behoben werden)
+| Route | Zweck |
+|---|---|
+| `/admin/packages` | Pakete und Planparameter |
+| `/admin/orders` | Bestellungen und Zuweisungen |
+| `/admin/subscription-settings` | globale Abo-Einstellungen |
 
-**Häufige Probleme:**
-| Problem | Lösung |
-|---------|--------|
-| PHP-Extension fehlt | Hosting-Provider kontaktieren |
-| `cache/` nicht schreibbar | `chmod 777 cache/` (oder Webserver-Besitzer setzen) |
-| Datenbank-Verbindung langsam | Zu viele Abfragen? Performance-Seite prüfen |
+---
+
+## Datenschutzanfragen bearbeiten
+
+**Route:** `/admin/data-requests`
+
+Hier werden Auskunfts- und Löschanfragen gebündelt bearbeitet. Frühere Einzelseiten für Zugriff und Löschung sind Legacy-Kontext und nicht mehr die führende Oberfläche.
+
+---
+
+## Systeminfo und Diagnose nutzen
+
+Für den technischen Betriebszustand sind heute mehrere Einstiege relevant:
+
+| Route | Zweck |
+|---|---|
+| `/admin/info` | Systeminformationen |
+| `/admin/documentation` | lokale Projektdokumentation |
+| `/admin/diagnose` | Diagnoseübersicht |
+| `/admin/monitor-health-check` | Health-Checks |
+| `/admin/monitor-response-time` | Antwortzeiten |
+
+---
+
+## Wichtige Umstellungen gegenüber älteren Versionen
+
+- nicht mehr `/admin/theme-customizer.php`, sondern `/admin/theme-editor`
+- nicht mehr `/admin/backup.php`, sondern `/admin/backups`
+- nicht mehr `/admin/subscriptions.php`, sondern Paket-, Order- und Settings-Seiten
+- nicht mehr ein einziges `/admin/system.php`, sondern getrennte Info-, System- und Diagnose-Seiten
 

@@ -1,19 +1,38 @@
-# Font Management
-**Datei:** `admin/fonts-local.php`
+# 365CMS – Font Manager
 
-Verwaltung von Schriftarten unter Berücksichtigung der DSGVO (Lokales Hosting).
+Kurzbeschreibung: Verwaltung lokal gehosteter Schriftarten inklusive Import, Upload und CSS-Bereitstellung.
 
-## Funktionen
+Letzte Aktualisierung: 2026-03-07
 
-### 1. Google Fonts Import
-- Suche im Google Fonts Katalog.
-- **Download:** Schriftarten werden vom Google Server heruntergeladen und lokal (`/assets/fonts/`) gespeichert.
-- **CSS-Generierung:** `@font-face` Regeln werden automatisch erstellt.
-- **Vorteil:** Keine Verbindung zu Google-Servern beim Besucher -> DSGVO-konform.
+**Admin-Route:** `/admin/font-manager`
 
-### 2. Eigene Fonts
-- Upload von `.woff`, `.woff2`, `.ttf` Dateien.
-- Manuelle Zuweisung von Font-Family Namen.
+---
 
-### 3. Vorschau
-- Live-Vorschau aller installierten Schriftarten.
+## Überblick
+
+Der Font Manager ersetzt ältere, isolierte Font-Verwaltungslösungen und bündelt DSGVO-freundliches lokales Hosting von Webfonts.
+
+Mögliche Anwendungsfälle:
+
+- Google-Fonts lokal spiegeln
+- eigene WOFF/WOFF2-Dateien hochladen
+- Schriftfamilien zentral verwalten
+- generierte CSS-Pfade prüfen
+
+---
+
+## Datenmodell
+
+Der Kernspeicher liegt in der Tabelle `custom_fonts` mit Feldern wie `name`, `slug`, `format`, `file_path`, `css_path` und `source`.
+
+---
+
+## Aktuelle technische Hinweise
+
+Der aktuelle Arbeitsstand enthält zusätzliche Härtungen für den Font-Download, unter anderem robustere CSS-Endpunkt-Fallbacks, vorsichtigere Dateischreiboperationen und Audit-Logging für Scan-, Download- und Löschaktionen.
+
+---
+
+## Dokumentationshinweis
+
+Verweise auf `admin/fonts-local.php` sind veraltet. Verwendet in aktueller Dokumentation ausschließlich `/admin/font-manager`.

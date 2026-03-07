@@ -1,152 +1,66 @@
-# Beiträge & Blog (Posts)
+# 365CMS – Beiträge & Blog
 
+Kurzbeschreibung: Verwaltung chronologischer Inhalte wie News und Blog-Beiträge im Admin-Bereich.
 
-Verwaltung dynamischer Inhalte für den Blog- oder News-Bereich des 365CMS.
+Letzte Aktualisierung: 2026-03-07
 
----
-
-## Inhaltsverzeichnis
-
-1. [Überblick](#1-überblick)
-2. [Beitrag erstellen](#2-beitrag-erstellen)
-3. [Kategorien & Tags](#3-kategorien--tags)
-4. [Veröffentlichungs-Workflow](#4-veröffentlichungs-workflow)
-5. [Kommentare](#5-kommentare)
-6. [Technische Details](#6-technische-details)
+**Admin-Route:** `/admin/posts`
 
 ---
 
-## 1. Überblick
+## Überblick
 
-URL: `/admin/posts.php`
-
-Beiträge sind chronologische Inhalte (neueste zuerst). Sie sind über:
-- **Blog-Archiv-URL** (`/blog/` oder konfigurierbar)
-- **Kategorie-Archive** (`/kategorie/name/`)
-- **Tag-Archive** (`/tag/name/`)
-- **RSS-Feed** (`/feed.xml`)
-- **Suche** (`/suche/?q=...`)
-
-erreichbar.
+Beiträge sind die dynamischen, chronologischen Inhalte des Systems. Sie werden typischerweise in Blog-Listen, Feeds, thematischen Übersichten und Suchergebnissen verwendet.
 
 ---
 
-## 2. Beitrag erstellen
+## Typische Inhalte eines Beitrags
 
-### Pflichtfelder
-| Feld | Beschreibung |
+| Feld | Zweck |
 |---|---|
-| **Titel** | Überschrift des Beitrags |
-| **Inhalt** | Vollständiger Text (SunEditor WYSIWYG) |
+| Titel | Überschrift des Beitrags |
+| Slug | URL-Segment |
+| Inhalt | Hauptinhalt des Beitrags |
+| Auszug | Kurztext für Listen, Cards und Suchergebnisse |
+| Featured Image | Bild für Listen, Social und SEO-Vorschau |
+| Kategorien | thematische Einordnung |
+| Tags | zusätzliche Schlagwörter |
+| SEO-Daten | Meta- und Vorschauinformationen |
 
-### Optionale Felder
-| Feld | Beschreibung |
+---
+
+## Redaktioneller Workflow
+
+Im aktuellen Redaktionsfluss greifen mehrere Systeme zusammen:
+
+- Editor mit klassischem und blockbasiertem Inhalt
+- Featured-Image-Picker aus der Medienbibliothek
+- SEO-Karten unter dem Editor
+- Listen- und Einzellöschung mit stabilisiertem Delete-Flow
+
+---
+
+## Besondere Bezüge
+
+| Bereich | Nutzen |
 |---|---|
-| **Auszug** | Kurzbeschreibung (auto-generiert wenn leer: erste 55 Wörter) |
-| **Beitragsbild** | Featured Image (erscheint in Listenansichten und Social Sharing) |
-| **Kategorien** | 1 oder mehrere Kategorien (hierarchisch) |
-| **Tags** | Schlagworte (flach, durch Komma getrennt eingeben) |
-| **Autor** | Kann auf anderen Admin/Editor geändert werden |
-| **Lesezeit** | Auto-berechnet (ca. 200 Wörter/Minute) |
-
-### Status-Optionen
-
-| Status | Beschreibung |
-|---|---|
-| `published` | Sofort öffentlich sichtbar |
-| `draft` | Entwurf, nur Admin sichtbar |
-| `private` | Nur für eingeloggte Mitglieder |
-| `scheduled` | Automatisch veröffentlichen zu gesetztem Datum |
-| `trash` | Gelöscht (30 Tage im Papierkorb) |
+| Kategorien und Tags | Organisation und spätere Filterung |
+| SEO-Center | globale SEO-Vorgaben und technische Auswertung |
+| Redirect-Manager | 404- und Umleitungsbezug bei URL-Änderungen |
+| Sitemap | Veröffentlichung fließt in SEO-Sitemaps ein |
 
 ---
 
-## 3. Kategorien & Tags
+## Aktuelle Hinweise
 
-### Kategorien (hierarchisch)
-- Strukturierung in Oberkategorien und Unterkategorien
-- Beispiel: „IT-Sicherheit" → „Verschlüsselung", „Firewalls", „Zero-Day"
-- Jeder Beitrag sollte mindestens einer Kategorie zugewiesen sein
-- Standard-Kategorie: „Allgemein" (konfigurierbar in `admin/settings.php`)
-
-### Tags (flach)
-- Querschneidende Schlagwörter ohne Hierarchie
-- Freitext-Eingabe mit Autocomplete aus bestehenden Tags
-- Best Practice: 3–8 Tags pro Beitrag
-
-### Kategorie-Verwaltung
-Kategorien und Tags direkt aus dem Beitrags-Editor hinzufügen oder über:
-- `Admin → Inhalte → Kategorien` für Massenverwaltung
-- Umbenennung, Slug-Änderung, Beschreibungen
+- Die Dokumentation alter Monolithen wie `/admin/seo.php` ist für den Beitragsworkflow nicht mehr aktuell.
+- Beitragslöschungen wurden in den neueren 2.1.x-Ständen robuster gemacht.
+- SEO-Vorschau und Redaktionshilfen sind direkter Teil des Editors geworden.
 
 ---
 
-## 4. Veröffentlichungs-Workflow
+## Verwandte Dokumente
 
-### Zeitplanung
-```
-Beitrag verfassen → Status: "scheduled" wählen
-→ Datum/Uhrzeit setzen → Speichern
-→ CRON-Job veröffentlicht automatisch zum gesetzten Zeitpunkt
-```
-
-**CRON-Konfiguration:** Entweder Server-Cron oder CMS-interner CRON-Simulator
-
-### Revisionen
-- Automatische Speicherung alle 2 Minuten (Autosave)
-- Verlauf aller manuellen Speicherungen
-- Rückgabe zu beliebiger Revision
-- Max. Revisionen pro Beitrag: 20 (konfigurierbar)
-
-### Workflow für mehrere Autoren (geplant)
-- `submitted` – Autor hat eingereicht, wartet auf Freigabe
-- `approved` – Redakteur hat freigegeben für Veröffentlichung
-- E-Mail-Benachrichtigung an Redakteur bei Einreichung
-
----
-
-## 5. Kommentare
-
-Kommentare pro Beitrag aktivierbar/deaktivierbar:
-
-**Moderations-Einstellungen:**
-| Einstellung | Beschreibung |
-|---|---|
-| `comments_open` | Kommentare für diesen Beitrag erlauben |
-| `comment_status` | `open`, `closed`, `moderated` |
-| `auto_approve` | Kommentare von bekannten Nutzern ohne Moderation |
-| `blacklist_words` | Kommentare mit diesen Wörtern werden gehalten |
-
-**Anti-Spam:** Honeypot-Feld und Rate-Limiting (max. 5 Kommentare/Stunde per IP)
-
----
-
-## 6. Technische Details
-
-**Controller:** `CMS\Admin\PostsController`
-
-```php
-// Beitrag speichern
-$post = new CMS\Models\Post([
-    'type'       => 'post',
-    'title'      => sanitize_text($title),
-    'slug'       => sanitize_slug($slug),
-    'content'    => wp_kses_post($content),
-    'excerpt'    => sanitize_text($excerpt),
-    'status'     => $status,
-    'author_id'  => $currentUserId,
-    'categories' => $categoryIds,
-    'tags'       => $tagNames,
-]);
-$postId = $post->save();
-```
-
-**RSS-Feed URL:** `/feed.xml` oder `/feed/rss`
-
-**Hooks:**
-```php
-do_action('cms_post_published', $postId, $authorId);
-do_action('cms_post_scheduled', $postId, $publishDate);
-add_filter('cms_post_excerpt_length', fn() => 55);
-add_filter('cms_post_excerpt_more', fn() => '…');
-```
+- [PAGES.md](PAGES.md)
+- [../seo-performance/SEO.md](../seo-performance/SEO.md)
+- [../media/MEDIA.md](../media/MEDIA.md)

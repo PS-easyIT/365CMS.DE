@@ -1,137 +1,58 @@
-# CMS-Firewall & Sicherheit
+# 365CMS – Firewall
 
-**Datei:** `admin/cms-firewall.php`
+Kurzbeschreibung: Schutz vor missbräuchlichen Anfragen, IP-Sperren, Blockregeln und sicherheitsrelevanten Zugriffsmustern.
 
----
+Letzte Aktualisierung: 2026-03-07
 
-## Übersicht
-
-Die CMS-Firewall bietet mehrschichtigen Schutz gegen Angriffe, Bots und unerwünschten Traffic. Sie kombiniert IP-Blocking, Request-Filterung, User-Agent-Analyse und Rate-Limiting zu einem integrierten Sicherheitssystem.
+**Admin-Route:** `/admin/firewall`
 
 ---
 
-## Firewall-Regeln
+## Überblick
 
-### IP-Management
+Die Firewall ist das zentrale Admin-Modul für anwendungsnahe Abwehrmaßnahmen. Sie arbeitet zusammen mit Login-Schutz, AntiSpam und Security-Audit.
 
-#### IP-Blacklist (manuell)
-Einzelne IPs oder IP-Bereiche manuell sperren:
-```
-203.0.113.5              # Einzelne IP
-192.168.1.0/24           # IP-Bereich (CIDR)
-```
+Typische Aufgaben:
 
-#### IP-Whitelist
-Vertrauenswürdige IPs von allen Checks ausnehmen:
-- Eigene Server-IPs
-- Office-Netzwerk
-- Monitoring-Dienste
-
-#### Automatische IP-Sperre
-Nach konfigurierbarer Anzahl fehlgeschlagener Login-Versuche wird die IP automatisch gesperrt. Konfiguration:
-- **Schwellwert:** Standard 5 Versuche
-- **Zeitraum:** Standard 15 Minuten
-- **Sperrdauer:** Standard 60 Minuten (oder permanent)
-
-### Request-Filterung
-
-| Regel | Beschreibung |
-|-------|--------------|
-| **SQL-Injection** | Erkennt typische SQL-Injection-Muster in GET/POST |
-| **XSS-Vektoren** | Blockiert Script-Injection-Versuche |
-| **Path Traversal** | Verhindert `../` Directory-Traversal |
-| **PHP-Injection** | Blockiert direkte PHP-Ausführungsversuche |
-| **Null-Byte** | Filtert Null-Byte-Attacken |
-
-### User-Agent-Blocking
-Bekannte Malware-Scanner, Scraper und Bot-User-Agents blockieren:
-- Automatische Aktualisierung der Blacklist
-- Eigene User-Agent-Muster hinzufügen
-- Whitelist für legitime Bots (Googlebot, Bingbot)
+- IP-Adressen oder Bereiche blockieren
+- regelbasierte Filter pflegen
+- Sperren aktivieren oder aufheben
+- sicherheitsrelevante Änderungen protokollieren
 
 ---
 
-## Security-Audit
+## Datenquellen
 
-**Datei:** `admin/security-audit.php`
-
-Der Security-Audit führt einen automatischen Scan durch und bewertet die Sicherheitslage mit einem Score (0–100):
-
-### Prüfbereiche
-
-| Bereich | Prüfungen |
-|---------|-----------|
-| **PHP-Konfiguration** | `display_errors`, `expose_php`, `allow_url_fopen` |
-| **Verzeichnisse** | Schreibberechtigungen, `.htaccess` vorhanden |
-| **Datenbank** | Prepared Statements, Standard-Präfix |
-| **HTTPS** | SSL-Zertifikat, HSTS-Header |
-| **Sessions** | `session.cookie_httponly`, `session.cookie_secure` |
-| **Authentifizierung** | Passwort-Hashing, Brute-Force-Schutz |
-| **Dateiberechtigungen** | `config.php` nicht web-zugreifbar |
-
-### Score-Bewertung
-
-| Score | Status |
-|-------|--------|
-| 90–100 | ✅ Ausgezeichnet |
-| 70–89 | 🟡 Gut |
-| 50–69 | 🟠 Verbesserungsbedarf |
-| < 50 | 🔴 Kritisch |
+| Bereich | Zweck |
+|---|---|
+| `blocked_ips` | persistente oder temporäre Sperren |
+| `failed_logins` | Fehlanmeldungen |
+| `login_attempts` | Rate-Limiting und Login-Muster |
+| `firewall_rules` | benutzerdefinierte Firewall-Regeln |
+| `audit_log` | Nachvollziehbarkeit von Admin-Aktionen |
 
 ---
 
-## Rate Limiting
+## Regelarten
 
-Konfigurierbare Anfragen-Limits:
+Je nach Konfiguration können Regeln unter anderem auf Folgendes zielen:
 
-| Bereich | Standard | Zeitraum |
-|---------|---------|---------|
-| Login-Versuche | 5 | 15 Minuten |
-| API-Anfragen | 60 | 1 Minute |
-| Formular-Submissions | 10 | 5 Minuten |
-| Media-Uploads | 20 | 1 Stunde |
+- einzelne IP-Adresse
+- CIDR-Bereich
+- Länderkennung
+- User-Agent-Muster
+- bekannte Angriffssignaturen in Requests
 
----
-
-## Failed-Login Protokoll
-
-Das Failed-Login-Log zeichnet auf:
-- Zeitstempel
-- IP-Adresse
-- Versuchter Benutzername
-- User-Agent
-- Referrer
-
-Automatische Bereinigung nach konfigurierbarem Zeitraum (Standard: 30 Tage).
+Die aktuelle Modul-Implementierung prüft Eingaben strenger als ältere Stände, insbesondere bei IP-Bereichen, Länderkennungen und benutzerdefinierten Regeln.
 
 ---
 
-## Blockierte IPs verwalten
+## Typische Admin-Aktionen
 
-**Admin → Firewall → Blockierte IPs**
+- Firewall-Einstellungen speichern
+- Regel anlegen
+- Regel löschen
+- Regel aktivieren oder deaktivieren
+- gesperrte IPs prüfen
 
-| Aktion | Beschreibung |
-|--------|--------------|
-| **Entsperren** | IP manuell aus der Blacklist entfernen |
-| **Details** | Grund der Sperre und Zeitstempel einsehen |
-| **Exportieren** | Blacklist als CSV exportieren |
-| **Importieren** | Externe Blacklist importieren |
-
----
-
-## Datenbank-Tabellen
-
-| Tabelle | Inhalt |
-|---------|--------|
-| `cms_blocked_ips` | IP-Sperrliste mit Grund und Ablauf |
-| `cms_failed_logins` | Fehlgeschlagene Login-Versuche |
-| `cms_login_attempts` | Alle Login-Versuche (für Rate Limiting) |
-| `cms_activity_log` | Vollständiges Aktivitätsprotokoll |
-
----
-
-## Verwandte Seiten
-
-- [AntiSpam-Einstellungen](ANTISPAM.md)
-- [Security-Audit](SECURITY-AUDIT.md)
-- [DSGVO](DSGVO.md)
+Diese Aktionen werden im aktuellen Arbeitsstand zusätzlich auditierbar protokolliert.

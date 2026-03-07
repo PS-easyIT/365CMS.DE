@@ -1,23 +1,36 @@
-# User & Group Management
+# 365CMS – Benutzer, Gruppen & Rollen
 
-**Ordner:** `doc/admin/users/`
+Kurzbeschreibung: Überblick über die aktuelle Benutzerverwaltung mit dynamischen Rollen, Gruppen und Rechtezuordnung.
 
-Verwaltung von Benutzern, Gruppen und Zugriffsrechten.
+Letzte Aktualisierung: 2026-03-07
 
-## Module
+---
 
-### 1. Benutzerverwaltung
-- **Datei:** `admin/users.php`
-- Liste aller registrierten Benutzer.
-- Bearbeiten von Profilen, Rollen (Admin, Editor, Member) und Status.
-- Manuelles Hinzufügen von Benutzern.
+## Überblick
 
-### 2. Gruppen (`GROUPS.md`)
-- **Datei:** `admin/groups.php`
-- Erstellen von Benutzergruppen für differenzierte Rechtevergabe.
-- Zuweisung von Zugriffsrechten auf bestimmte Inhalte oder Funktionen.
+Die Benutzerverwaltung ist im aktuellen Stand auf drei Hauptbereiche verteilt:
 
-### 3. Abonnements (`SUBSCRIPTIONS.md`)
-- **Datei:** `admin/subscriptions.php`
-- Verwaltung von Mitgliedschafts-Plänen.
-- Siehe detaillierte Dokumentation in `SUBSCRIPTIONS.md`.
+| Route | Zweck |
+|---|---|
+| `/admin/users` | Benutzerkonten und Profile |
+| `/admin/groups` | Gruppen und Mitgliedschaften |
+| `/admin/roles` | Rollen, Capabilities und Rechte-Matrix |
+
+---
+
+## Wichtige Dokumente
+
+| Dokument | Schwerpunkt |
+|---|---|
+| [USERS.md](USERS.md) | Benutzerkonten und Listenansicht |
+| [GROUPS.md](GROUPS.md) | Gruppenverwaltung |
+| [RBAC.md](RBAC.md) | Rollen und Berechtigungen |
+
+---
+
+## Aktuelle Hinweise
+
+- Rollen werden nicht mehr starr aus Hardcodes abgeleitet, sondern dynamisch geladen.
+- `Auth::hasCapability()` berücksichtigt gespeicherte Rollenrechte aus `role_permissions`.
+- Filter- und Dropdown-Logik der Benutzerverwaltung nutzt dieselbe Rollenquelle wie die Rechteverwaltung.
+

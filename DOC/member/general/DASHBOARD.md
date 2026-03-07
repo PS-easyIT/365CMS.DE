@@ -1,136 +1,73 @@
-# Member Dashboard
+# 365CMS – Member Dashboard
 
+Kurzbeschreibung: Detaildokumentation der persönlichen Startseite unter `/member` mit Willkommensbereich, Statuskarten, Info-Widgets und Plugin-Kacheln.
 
-Das Member-Dashboard ist die persönliche Startseite jedes eingeloggten Benutzers und bündelt die wichtigsten Informationen auf einen Blick.
+Letzte Aktualisierung: 2026-03-07
 
----
-
-## Inhaltsverzeichnis
-
-1. [Überblick](#1-überblick)
-2. [Dashboard-Widgets](#2-dashboard-widgets)
-3. [Plugin-Widgets](#3-plugin-widgets)
-4. [Zugang & Routing](#4-zugang--routing)
-5. [Personalisierung](#5-personalisierung)
-6. [Technische Details](#6-technische-details)
+**Route:** `/member`
 
 ---
 
-## 1. Überblick
+## Überblick
 
-URL: `/member` oder `/member/index.php`
+Das Dashboard rendert `member/partials/dashboard-view.php` und kombiniert mehrere Datenquellen:
 
-Das Dashboard kombiniert:
-- **System-Widgets** (immer vorhanden, fest)
-- **Plan-Widgets** (abhängig vom aktuellen Abo-Paket)
-- **Plugin-Widgets** (von aktivierten Plugins injiziert)
+- `dashboardData` aus dem Controller bzw. `MemberService`
+- Design- und Modul-Settings aus der Datenbank
+- Plugin-Widgets aus Hooks und `PluginDashboardRegistry`
 
 ---
 
-## 2. Dashboard-Widgets
+## Sichtbare Hauptbereiche
 
-### Willkommens-Widget
-- Begrüßung mit Vorname des Mitglieds
-- Anzeige des aktuellen Abo-Plans (z.B. „Free", „Pro", „Business")
-- Ablaufdatum des Abos (sofern zeitlich begrenzt)
-
-### Aktivitäts-Feed
-- Letzte 10 Aktionen des Benutzers im System
-- Zeitstempel, Aktivitätstyp und Link zur betreffenden Seite
-- Typen: `login`, `profile_update`, `order`, `message_sent`, `file_uploaded`
-
-### Benachrichtigungs-Widget
-- Die 5 neuesten ungelesenen Benachrichtigungen
-- Link zu `/member/notifications` für alle Benachrichtigungen
-- Ungelesene Anzahl als Badge
-
-### Statistik-Kacheln
-
-| Kachel | Beschreibung |
+| Bereich | Beschreibung |
 |---|---|
-| Nachrichten | Anzahl ungelesener Nachrichten |
-| Favoriten | Anzahl gespeicherter Favoriten |
-| Dateien | Genutzter Speicherplatz von max. Limit |
-| Aktive Tickets | Offene Support-Anfragen (falls Support-Plugin aktiv) |
+| Header | Begrüßung, optionales Logo, letzter Login |
+| Onboarding-Banner | administrativ konfigurierbare Einstiegs-Checkliste |
+| Notifications-Banner | kompakte Meldungs- und Digest-Zusammenfassung |
+| Schnellstart-Leiste | Direktlinks zu Profil, Sicherheit, Nachrichten usw. |
+| Statuskarten | Konto, Abo, Aktivität und Sicherheit |
+| Informations-Widgets | administrativ gepflegte Custom Widgets |
+| Plugin-Kacheln | registrierte Plugin-Bereiche plus Schnelllinks |
 
 ---
 
-## 3. Plugin-Widgets
+## Wichtige Settings
 
-Aktivierte Plugins können eigene Dashboard-Widgets registrieren:
+Die View liest unter anderem folgende Schalter aus `settings`:
 
-```php
-CMS\Hooks::addAction('member_dashboard_widgets', function($registry) {
-    $registry->register('my-plugin-widget', [
-        'title'    => 'Mein Plugin',
-        'callback' => 'MyPlugin::renderDashboardWidget',
-        'priority' => 20,
-        'plans'    => ['pro', 'business'],
-    ]);
-});
-```
-
-**Aktuelle Plugin-Widgets (wenn installiert):**
-- `cms-experts`: Experten-Profilstatus und Anfragen
-- `cms-events`: Nächste angemeldete Veranstaltungen
-- `cms-jobads`: Aktive Stellenanzeigen
+- `member_dashboard_show_welcome`
+- `member_dashboard_show_quickstart`
+- `member_dashboard_show_stats`
+- `member_dashboard_show_custom_widgets`
+- `member_dashboard_show_plugin_widgets`
+- `member_dashboard_show_notifications_panel`
+- `member_dashboard_show_onboarding_panel`
+- `member_dashboard_plugin_order`
 
 ---
 
-## 4. Zugang & Routing
+## Plugin-Integration
 
-Zugang nur für eingeloggte Benutzer – automatischer Auth-Check im `MemberController`:
+Aktuell greifen zwei Mechanismen ineinander:
 
-```php
-if (!$auth->isLoggedIn()) {
-    header('Location: /login?redirect=/member');
-    exit;
-}
-```
+1. Filter `member_dashboard_widgets`
+2. `PluginDashboardRegistry`
 
-**Schnellnavigation:**
-```
-/member                  → Dashboard (diese Seite)
-/member/profile          → Profil bearbeiten
-/member/notifications    → Alle Benachrichtigungen
-/member/subscription     → Abo & Upgrade
-/member/media            → Eigene Dateien
-/member/messages         → Direktnachrichten
-/member/favorites        → Favoritenliste
-/member/privacy          → Datenschutz & DSGVO
-/member/security         → Sicherheitseinstellungen
-```
+Registry-Widgets werden priorisiert sortiert; statische Feature-Kacheln werden nur ergänzend angezeigt, wenn kein Registry-Widget denselben Plugin-Slug bereits belegt.
 
 ---
 
-## 5. Personalisierung
+## Besondere Hinweise
 
-- **Widget-Reihenfolge:** Admin-seitig über `design-dashboard-widgets.php` konfigurierbar
-- **Geplant (Roadmap):** Drag-and-Drop-Widget-Sortierung durch Mitglieder
-- **Responsive:** Grid bricht bei mobilen Geräten auf einspaltigen Layout um
-
----
-
-## 6. Technische Details
-
-**Controller:** `CMS\Member\MemberController`
-
-```php
-$controller->render('dashboard-view', [
-    'notifications' => $memberService->getRecentNotifications($user->id, 5),
-    'stats'         => $memberService->getDashboardStats($user->id),
-    'activities'    => $memberService->getRecentActivities($user->id, 10),
-    'subscription'  => $memberService->getUserSubscription($user->id),
-    'pluginWidgets' => CMS\Hooks::applyFilters('member_dashboard_widgets', []),
-]);
-```
-
-**Hooks:**
-```php
-add_action('member_dashboard_widgets', 'mein_plugin_widget_registrieren');
-add_filter('member_dashboard_stats', 'mein_plugin_stats_erweitern', 10, 2);
-```
+- Administratoren sehen im Dashboard zusätzlich einen Link zurück in den Admin-Bereich.
+- Die konkrete Reihenfolge der Sektionen wird über `member_dashboard_section_order` gesteuert.
+- Die Kachelspalten orientieren sich an `member_dashboard_columns`.
 
 ---
 
-*Letzte Aktualisierung: 22. Februar 2026 – Version 1.8.0*
+## Verwandte Dokumente
+
+- [../README.md](../README.md)
+- [../HOOKS.md](../HOOKS.md)
+- [SUBSCRIPTION.md](SUBSCRIPTION.md)

@@ -1,193 +1,112 @@
-# Member-Bereich – Sicherheitsmodell
+# 365CMS – Sicherheit im Mitgliederbereich
+
+Kurzbeschreibung: Sicherheitsmodell des Member-Bereichs mit Login-Pflicht, CSRF-Schutz, Sanitizing und Escaping.
+
+Letzte Aktualisierung: 2026-03-07
 
 ---
 
-## Sicherheitsarchitektur
+## Sicherheitsprinzip
 
-Der Member-Bereich implementiert ein **mehrschichtiges Sicherheitsmodell** (Defense in Depth):
+Der Member-Bereich folgt einem mehrschichtigen Schutzmodell:
 
-```
-Schicht 1: Routing-Schutz (Nur /member/* ist Member-Bereich)
-     ↓
-Schicht 2: Auth-Check im MemberController-Konstruktor
-     ↓
-Schicht 3: CSRF-Token-Validierung bei jedem POST
-     ↓
-Schicht 4: Input-Sanitization via getPost()
-     ↓
-Schicht 5: Output-Escaping in Views mit htmlspecialchars()
-```
+1. Login-Pflicht vor jeder Member-Seite
+2. serverseitige CSRF-Prüfung für Formulare
+3. zentrale Sanitization über `getPost()`
+4. Escaping in allen Views
+5. Schutz gemeinsamer Services über Core-Klassen
 
 ---
 
-## 1. Authentifizierung & Autorisierung
+## Zugriffsschutz
 
-### Zugriffsschutz (Konstruktor)
+Die Basisprüfung erfolgt im Konstruktor des `MemberController`:
 
-```php
-// Jede Member-Seite prüft automatisch:
-if (!Auth::instance()->isLoggedIn()) {
-    redirect('/login');     // Nicht eingeloggt → Login-Seite
-}
-if (Auth::instance()->isAdmin()) {
-    redirect('/admin');     // Admin → Admin-Panel
-}
-```
-
-**Ergebnis:** Der Member-Bereich ist ausschließlich für Mitglieder zugänglich.  
-- Nicht eingeloggte Besucher → `/login`
-- Admins → `/admin`
-
-### Session-Sicherheit
-
-- Sessions werden nach dem Login regeneriert (`session_regenerate_id(true)`)
-- Session-Cookies: `HttpOnly`, `Secure` (HTTPS), `SameSite=Lax`
-- Session-Lifetime: Konfigurierbar über `config.php`
+- nicht eingeloggte Nutzer werden weitergeleitet
+- angemeldete Nutzer dürfen fortfahren
+- Administratoren werden im aktuellen Stand nicht pauschal ausgeschlossen
 
 ---
 
-## 2. CSRF-Schutz
+## CSRF-Schutz
 
-**Jedes Formular im Member-Bereich** verwendet CSRF-Token-Schutz.
+Wichtige Token-Namen im Member-Bereich:
 
-### Token generieren (Controller)
+| Kontext | Token |
+|---|---|
+| Profil | `member_profile` |
+| Passwort ändern | `change_password` |
+| 2FA umschalten | `toggle_2fa` |
+| Benachrichtigungen | `member_notifications` |
+| Datenschutz speichern | `privacy_settings` |
+| Datenexport | `data_export` |
+| Account-Löschung | `account_delete` |
 
-```php
-$csrfToken = $controller->generateToken('member_profile');
-// Intern: Security::instance()->generateToken('member_profile')
-// Speichert: $_SESSION['csrf_token_member_profile'] = random_bytes(32)
-```
-
-### Token in Form (View)
-
-```html
-<input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-```
-
-### Token verifizieren (Controller)
-
-```php
-if (!$controller->verifyToken($controller->getPost('csrf_token'), 'member_profile')) {
-    $controller->setError('Sicherheitsüberprüfung fehlgeschlagen.');
-    // Kein weiterführender Code wird ausgeführt
-}
-```
-
-### Token-Aktionsnamen
-
-| Seite | Aktion | Token-Name |
-|-------|--------|-----------|
-| Profil | Profil speichern | `member_profile` |
-| Sicherheit | Passwort ändern | `change_password` |
-| Sicherheit | 2FA toggle | `toggle_2fa` |
-| Benachrichtigungen | Präferenzen speichern | `member_notifications` |
-| Datenschutz | Einstellungen speichern | `privacy_settings` |
-| Datenschutz | Daten exportieren | `data_export` |
-| Datenschutz | Account löschen | `account_delete` |
+Die Erzeugung und Prüfung läuft über `Security::instance()` und die Hilfsmethoden des Controllers.
 
 ---
 
-## 3. Input-Sanitization
+## Eingabesäuberung
 
-### Sanitization-Typen (via `getPost()`)
+`MemberController::getPost()` unterstützt:
 
-```php
-// Alle POST-Daten werden sanitized:
-$email    = $controller->getPost('email',   'email');     // sanitize_email()
-$url      = $controller->getPost('website', 'url');       // esc_url_raw()
-$name     = $controller->getPost('name',    'text');      // sanitize_text_field()
-$bio      = $controller->getPost('bio',     'textarea');  // sanitize_textarea_field()
-$count    = $controller->getPost('count',   'int');       // (int)
-```
+- `text`
+- `email`
+- `url`
+- `textarea`
+- `int`
+- `bool`
 
-### Direkte `$_POST`-Zugriffe
-
-**Verboten in Views.** Alle POST-Daten **müssen** über `$controller->getPost()` gelesen werden.
+Direkte Verarbeitung unbereinigter Formulardaten sollte im Member-Bereich vermieden werden.
 
 ---
 
-## 4. Output-Escaping (XSS-Schutz)
+## Ausgabehärtung
 
-### Regeln für Views
+Für View-Dateien gilt:
 
-| Kontext | Funktion | Beispiel |
-|---------|----------|---------|
-| HTML-Inhalt | `htmlspecialchars()` | `<?php echo htmlspecialchars($user->username); ?>` |
-| HTML-Attribut | `htmlspecialchars()` | `value="<?php echo htmlspecialchars($val); ?>"` |
-| Style-Attribut | `htmlspecialchars()` | `style="background: <?php echo htmlspecialchars($color); ?>"` |
-| URL | `htmlspecialchars()` | `href="<?php echo htmlspecialchars($url); ?>"` |
-| Integer | `(int)` | `echo (int)$count;` |
+- Texte mit `htmlspecialchars()` escapen
+- Attribute mit `htmlspecialchars(..., ENT_QUOTES)` absichern, wenn nötig
+- numerische Werte casten
+- URLs nur escaped ausgeben
 
-### Kritische Stellen
+Besonders wichtig sind dynamische Bereiche wie:
 
-```php
-// ✅ Correct - alle Views escapen konsequent:
-echo htmlspecialchars($securityData['score_message']);
-echo htmlspecialchars($session['last_activity']);
-echo htmlspecialchars($notification['color'] ?? '#667eea');  // in style-attr!
-echo htmlspecialchars((string)($dataOverview['profile_records'] ?? 0));
-```
+- Notification-Farben und Labels
+- Session- und Geräteinformationen
+- Benutzernamen und frei pflegbare Profilfelder
 
 ---
 
-## 5. Direktzugriff-Schutz
+## Datenschutz- und Löschprozesse
 
-Alle View-Dateien sind durch `ABSPATH`-Guard geschützt:
-
-```php
-if (!defined('ABSPATH')) {
-    exit;
-}
-```
-
-Nur wenn die Anwendung korrekt gebootstrapped wurde (via `config.php`), ist `ABSPATH` definiert.
+Die Löschanforderung läuft nicht als Sofortlöschung, sondern als markierter Prozess mit Karenzzeit. Export- und Löschfunktionen sind damit sowohl sicherheits- als auch DSGVO-relevant.
 
 ---
 
-## 6. Passwort-Sicherheit
+## Bekannte Grenzen des aktuellen Stands
 
-- Hashing: **BCrypt** mit Cost-Factor 12 (`PASSWORD_BCRYPT`)
-- Validierung in `MemberService::changePassword()`:
-  - Aktuelles Passwort muss korrekt sein
-  - Neues Passwort: min. 8 Zeichen (clientseitig + serverseitig)
-  - Bestätigungs-Match erforderlich
-- Passwort-Stärke-Anzeige im Frontend (schwach/mittel/stark)
+Einige clientseitig sichtbare Komfortfunktionen sind eher Platzhalter bzw. Integrationspunkte als vollständig ausgebauter Security-Workflow, etwa:
 
----
-
-## 7. Account-Löschung (DSGVO Art. 17)
-
-Die Löschung ist ein mehrstufiger, sicherer Prozess:
-
-1. **Browser:** Doppelte `confirm()`-Dialoge
-2. **Controller:** CSRF-Token-Prüfung
-3. **Service:** `requestAccountDeletion()` markiert Account statt sofortiger Löschung
-4. **Karenzzeit:** 30 Tage bis zur endgültigen Löschung
-5. **Auslöser:** Cronjob prüft täglich ablaufende Löschanfragen
+- Session-Terminierung per UI
+- komplette „alle Benachrichtigungen gelesen“-Automatik
+- Paketauswahl mit nachgelagertem Payment-Flow
 
 ---
 
-## 8. Bekannte Limitierungen
+## Checkliste für Erweiterungen
 
-| Thema | Status | Hinweis |
-|-------|--------|---------|
-| `terminateSession()` | ⚠️ Platzhalter | Session-Terminierung via AJAX noch nicht implementiert |
-| `markAllAsRead()` | ⚠️ Platzhalter | AJAX-Endpunkt für Benachrichtigungen fehlt noch |
-| `selectPackage()` | ⚠️ Platzhalter | Payment-Plugin-Integration ausstehend |
-| Rate Limiting | ⚠️ Empfohlen | Für POST-Endpunkte des Member-Bereichs empfohlen |
+- eigene Member-Routen auf Login prüfen
+- eigene Formulare mit CSRF absichern
+- Eingaben sanitizen
+- Ausgaben escapen
+- für Datenzugriffe Prepared Statements verwenden
 
 ---
 
-## 9. Security-Checkliste für Erweiterungen
+## Verwandte Dokumente
 
-Alle Plugins, die den Member-Bereich erweitern, müssen:
-
-- [ ] Eigene Menü-URLs durch `isLoggedIn()` absichern
-- [ ] Alle eigenen Formulare mit CSRF-Token schützen
-- [ ] Alle POST-Eingaben sanitizen
-- [ ] Alle Ausgaben mit `htmlspecialchars()` escapen
-- [ ] Keine direkten DB-Queries ohne Prepared Statements
-- [ ] Keine `$_SESSION`-Manipulation ohne vorherige Validierung
----
-
-*Letzte Aktualisierung: 22. Februar 2026 – Version 1.8.0*
+- [README.md](README.md)
+- [CONTROLLERS.md](CONTROLLERS.md)
+- [HOOKS.md](HOOKS.md)
+- [../core/SECURITY.md](../core/SECURITY.md)

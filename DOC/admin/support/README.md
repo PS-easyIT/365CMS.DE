@@ -1,141 +1,46 @@
-# Support-Ticket-System
+# 365CMS – Support / Dokumentation
 
-**Datei:** `admin/support.php`
+Kurzbeschreibung: Einordnung der früheren Support-Seite im aktuellen 365CMS-Stand.
 
----
-
-## Übersicht
-
-Das integrierte Support-Ticket-System ermöglicht Kommunikation zwischen Mitgliedern und Administratoren. Tickets werden priorisiert, kategorisiert und mit Status-Tracking verwaltet.
+Letzte Aktualisierung: 2026-03-07
 
 ---
 
-## Ticket-Übersicht
+## Aktueller Status
 
-### Dashboard-Statistiken
+Die frühere Route `/admin/support` ist im aktuellen Core **keine eigenständige Support-Ticket-Oberfläche mehr**.
 
-| Kachel | Inhalt |
-|--------|--------|
-| **Offen** | Tickets mit Status `open` |
-| **In Bearbeitung** | Tickets mit Status `in_progress` |
-| **Gelöst** | Tickets dieser Woche |
-| **Ø Antwortzeit** | Durchschnittliche Reaktionszeit |
+`CMS/admin/support.php` fungiert derzeit nur noch als **Legacy-Weiterleitung** auf:
 
-### Ticket-Tabelle
-
-| Spalte | Beschreibung |
-|--------|--------------|
-| **#** | Ticket-ID |
-| **Betreff** | Kurzbeschreibung des Problems |
-| **Benutzer** | Ersteller des Tickets |
-| **Kategorie** | Technisch, Abrechnung, Account, Allgemein |
-| **Priorität** | Niedrig / Mittel / Hoch / Kritisch |
-| **Status** | Offen / In Bearbeitung / Wartend / Gelöst / Geschlossen |
-| **Erstellt** | Datum und Uhrzeit |
-| **Letzte Aktivität** | Letzter Kommentar-Zeitstempel |
+- `/admin/documentation`
 
 ---
 
-## Ticket-Status
+## Was das konkret bedeutet
 
-| Status | Bedeutung | Wer setzt ihn? |
-|--------|-----------|----------------|
-| `open` | Neues Ticket, unbearbeitet | System (automatisch) |
-| `in_progress` | Admin arbeitet daran | Admin |
-| `waiting` | Warte auf Benutzer-Antwort | Admin |
-| `resolved` | Lösung bereitgestellt | Admin |
-| `closed` | Endgültig geschlossen | Admin oder Benutzer |
-| `escalated` | An höhere Ebene weitergeleitet | Admin |
+- In der Sidebar gibt es keinen führenden Support-Bereich mehr.
+- Bestehende Altlinks auf `/admin/support` bleiben nutzbar, landen aber in der lokalen Dokumentationsansicht.
+- Aussagen über ein aktiv gepflegtes Core-Ticket-System gelten für den aktuellen Stand nicht mehr als Referenz.
 
 ---
 
-## Prioritäten
+## Empfohlene aktuelle Einstiege
 
-| Priorität | Farbe | Reaktionszeit (SLA) |
-|-----------|-------|---------------------|
-| **Kritisch** | 🔴 Rot | < 2 Stunden |
-| **Hoch** | 🟠 Orange | < 8 Stunden |
-| **Mittel** | 🟡 Gelb | < 24 Stunden |
-| **Niedrig** | 🟢 Grün | < 72 Stunden |
-
----
-
-## Ticket-Detailansicht
-
-### Konversations-Thread
-- Chronologische Darstellung aller Nachrichten
-- Unterscheidung Benutzer vs. Admin (Farbe, Seite)
-- Zeitstempel für jede Nachricht
-- Datei-Anhänge möglich (Bilder, PDFs)
-
-### Admin-Aktionen im Detail
-- **Antworten** – Nachricht im Thread hinzufügen
-- **Status ändern** – Schnell-Dropdown
-- **Priorität ändern** – Schnell-Dropdown
-- **Kategorie ändern** – Umklassifizierung
-- **Zuweisen** – Ticket einem anderen Admin zuweisen
-- **Interne Notiz** – Nur für Admins sichtbar
-- **Schließen** – Ticket als gelöst markieren
+| Route | Zweck |
+|---|---|
+| `/admin/documentation` | lokale Projektdokumentation im Admin |
+| `/admin/info` | Betriebs- und Systeminformationen |
+| `/admin/diagnose` | technische Diagnose und Prüfungen |
 
 ---
 
-## Kategorien verwalten
+## Historischer Kontext
 
-Standard-Kategorien (erweiterbar):
-- Technisches Problem
-- Abrechnung / Zahlungen
-- Account & Profil
-- Feature-Anfrage
-- Allgemeine Frage
+Ältere Dokumentationsstände beschrieben ein internes Support-Ticket-System mit eigenen Tabellen und Statuslogik. Diese Dokumentation ist für den verifizierten Stand 2.3.1 nicht mehr maßgeblich, solange die aktuelle Core-Implementierung nur eine Weiterleitung bereitstellt.
 
 ---
 
-## E-Mail-Benachrichtigungen
+## Verwandte Dokumente
 
-| Ereignis | Empfänger |
-|----------|-----------|
-| Neues Ticket erstellt | Alle Admins |
-| Admin antwortet | Ticket-Ersteller |
-| Benutzer antwortet | Zuständiger Admin |
-| Ticket gelöst | Ticket-Ersteller |
-| SLA-Überschreitung | Alle Admins |
-
----
-
-## Datenbank-Tabellen
-
-| Tabelle | Inhalt |
-|---------|--------|
-| `cms_support_tickets` | Ticket-Grunddaten |
-| `cms_support_messages` | Nachrichten-Thread |
-
-### `cms_support_tickets`
-
-| Spalte | Typ | Beschreibung |
-|--------|-----|--------------|
-| `id` | INT | Primärschlüssel |
-| `user_id` | INT | Ersteller |
-| `subject` | VARCHAR | Betreff |
-| `category` | VARCHAR | Kategorie |
-| `priority` | ENUM | niedrig/mittel/hoch/kritisch |
-| `status` | ENUM | open/in_progress/waiting/resolved/closed |
-| `assigned_to` | INT | Zuständiger Admin |
-| `created_at` | TIMESTAMP | Erstellungszeitpunkt |
-| `updated_at` | TIMESTAMP | Letzte Aktualisierung |
-
----
-
-## Member-Bereich Integration
-
-Mitglieder können im Member-Dashboard:
-- Tickets erstellen
-- Eigene Tickets einsehen und beantworten
-- Ticket-Status verfolgen
-- Tickets schließen
-
----
-
-## Verwandte Seiten
-
-- [Member-Dashboard](../member/README.md)
-- [Benachrichtigungen](../member/NOTIFICATIONS.md)
+- [../README.md](../README.md)
+- [../system-settings/README.md](../system-settings/README.md)

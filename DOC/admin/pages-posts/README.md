@@ -1,85 +1,50 @@
-# Content Management – Übersicht
+# 365CMS – Inhalte: Seiten, Beiträge & Landing Pages
 
-Verwaltung aller inhaltlichen Elemente der 365CMS Website.
+Kurzbeschreibung: Überblick über die Content-Module im Admin-Bereich und ihre aktuelle Aufgabenverteilung.
 
----
-
-## Inhaltsverzeichnis
-
-1. [Module](#1-module)
-2. [Inhaltstypen im Überblick](#2-inhaltstypen-im-überblick)
-3. [Editor (SunEditor)](#3-editor-suneditor)
-4. [Medien in Inhalten](#4-medien-in-inhalten)
+Letzte Aktualisierung: 2026-03-07
 
 ---
 
-## 1. Module
+## Überblick
 
-| Modul | Datei | Dokumentation |
-|---|---|---|
-| **Landing Page** | `admin/landing-page.php` | [LANDING-PAGE.md](../landing-page/LANDING-PAGE.md) |
-| **Seiten** | `admin/pages.php` | [PAGES.md](PAGES.md) |
-| **Beiträge** | `admin/posts.php` | [POSTS.md](POSTS.md) |
-| **SEO** | `admin/seo.php` | [SEO.md](../seo-performance/SEO.md) |
-| **Medien** | `admin/media.php` | [media/README.md](../media/README.md) |
+Die Inhaltsverwaltung im Admin ist auf mehrere spezialisierte Bereiche verteilt:
 
----
-
-## 2. Inhaltstypen im Überblick
-
-| Typ | Hierarchisch | RSS-Feed | Kategorien | URL-Muster |
-|---|---|---|---|---|
-| **Page** | ✅ Ja | ❌ Nein | ❌ Nein | `/slug/` |
-| **Post** | ❌ Nein | ✅ Ja | ✅ Ja | `/blog/slug/` |
-| **Landing Page** | — | ❌ Nein | — | `/` |
-| **Plugin-CPT** | Variabel | Variabel | Variabel | konfigurierbar |
-
-**Plugin Custom Post Types (CPT):**  
-Plugins können eigene Inhaltstypen registrieren (z.B. `cms-experts` → Experten-Profile, `cms-events` → Veranstaltungen).
+| Route | Zweck |
+|---|---|
+| `/admin/pages` | statische Seiten verwalten |
+| `/admin/posts` | Blog- und News-Beiträge verwalten |
+| `/admin/landing-page` | Landing-Page-Bausteine und Homepage-Sektionen |
+| `/admin/table-of-contents` | Inhaltsverzeichnis-Logik und TOC-Einstellungen |
+| `/admin/site-tables` | benutzerdefinierte Datentabellen |
 
 ---
 
-## 3. Editor (SunEditor)
+## Editor-Stack
 
-365CMS verwendet **SunEditor 2.47.x** als WYSIWYG-Editor.
+Im aktuellen Stand nutzt 365CMS im Content-Bereich mehrere Editorkomponenten:
 
-**Verfügbare Toolbar-Elemente:**
-```
-Überschriften (H1–H6) | Fett | Kursiv | Unterstrichen | Durchgestrichen
-Aufzählung | Nummerierung | Zitat | Horizontale Linie | Link | Bild | Video
-Tabelle | Code-Block | HTML-Quellcode | Vollbild
-```
+- **SunEditor** für klassische Rich-Text-Bearbeitung
+- **Editor.js** für blockbasierte Inhalte
+- **SEO-Karten** unter Seiten und Beiträgen für Meta-Daten, Lesbarkeit und Vorschau
 
-**Bilder einfügen:**
-- Aus der Medienbibliothek wählen (Pop-up)
-- URL direkt eingeben
-- Upload per Drag & Drop direkt in den Editor
-
-**HTML-Modus aktivieren:**
-- Klick auf `</>` in der Toolbar
-- Roher HTML-Code bearbeitbar
-- SunEditor filtert automatisch unsicheres HTML
+Die SEO-spezifischen Global-Einstellungen liegen nicht mehr in einem alten Monolithen `seo.php`, sondern im [SEO-Center](../seo-performance/SEO.md).
 
 ---
 
-## 4. Medien in Inhalten
+## Wichtige Fachdokumente
 
-### Beitragsbild (Featured Image)
-- Wird in Listen-Ansichten, Social-Sharing und RSS-Feed verwendet
-- Empfohlene Größe: 1200×630 px (16:10 Verhältnis)
-- Wird automatisch auf verschiedene Größen skaliert
+| Dokument | Schwerpunkt |
+|---|---|
+| [PAGES.md](PAGES.md) | statische Seiten |
+| [POSTS.md](POSTS.md) | Beiträge und Blog-Workflow |
+| [../landing-page/LANDING-PAGE.md](../landing-page/LANDING-PAGE.md) | Landing-Page-Builder |
+| [../media/MEDIA.md](../media/MEDIA.md) | Medienbibliothek und Dateinutzung |
 
-### Medien-Shortcodes
-```php
-// Bild einbetten
-[cms_image id="42" size="medium" align="center"]
+---
 
-// Galerie
-[cms_gallery ids="42,43,44" columns="3"]
+## Aktuelle Hinweise
 
-// Dokument-Download
-[cms_download id="55" label="Whitepaper herunterladen"]
-```
-
-### Externe Medien
-Externe YouTube/Vimeo-URLs werden automatisch als embed erkannt und in Responsive-Player umgewandelt.
+- Lösch-Workflows für Seiten und Beiträge wurden in 2.1.2 stabilisiert.
+- Featured Images, Slugs und Redaktionshilfen sind stärker mit SEO und Medienverwaltung verzahnt.
+- Historische Verweise auf `/admin/seo.php` oder alte Monolith-Seiten sind in diesem Bereich nicht mehr korrekt.

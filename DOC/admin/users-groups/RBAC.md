@@ -1,98 +1,52 @@
-# RBAC – Rollen & Berechtigungen
+# 365CMS – Rollen & Berechtigungen
 
-**Datei:** `admin/rbac.php`
+Kurzbeschreibung: Dokumentation der dynamischen Rollen- und Rechteverwaltung im Admin.
 
----
+Letzte Aktualisierung: 2026-03-07
 
-## Übersicht
-
-Das Role-Based Access Control (RBAC) System ermöglicht granulare Berechtigungsverwaltung auf Gruppen-Ebene. Statt einzelne Benutzer mit Rechten zu versehen, werden Benutzergruppen Capabilities zugewiesen.
+**Admin-Route:** `/admin/roles`
 
 ---
 
-## Konzept
+## Überblick
 
-```
-Benutzer → Gruppe → Capabilities
-```
-
-Ein Benutzer gehört einer Gruppe an. Die Gruppe hat eine Menge von 8 Capabilities, die bestimmen, was der Benutzer im System tun darf.
+Die Rechteverwaltung basiert auf Rollen und Capabilities. Anders als in älteren Dokumentationsständen werden Rollen nicht mehr ausschließlich statisch behandelt, sondern können aus dem Datenmodell heraus erweitert und in der Oberfläche gepflegt werden.
 
 ---
 
-## Vordefinierte Rollen
+## Typische Aufgaben
 
-| Rolle | Beschreibung | Standard-Capabilities |
-|-------|--------------|----------------------|
-| `admin` | Vollzugriff | Alle Capabilities |
-| `editor` | Inhalte verwalten | `edit_posts`, `publish_posts`, `upload_media`, `manage_pages` |
-| `moderator` | Moderation | `edit_posts`, `moderate_comments`, `view_analytics` |
-| `member` | Basis-Mitglied | `view_content`, `edit_own_profile` |
-
----
-
-## 8 Granulare Capabilities
-
-| Capability | Beschreibung |
-|-----------|--------------|
-| `manage_users` | Benutzer erstellen, bearbeiten, löschen |
-| `manage_content` | Seiten und Beiträge verwalten |
-| `publish_posts` | Beiträge und Seiten veröffentlichen |
-| `upload_media` | Medien hochladen und verwalten |
-| `manage_plugins` | Plugins aktivieren/deaktivieren |
-| `manage_themes` | Themes aktivieren und anpassen |
-| `view_analytics` | Statistiken und Reports einsehen |
-| `manage_settings` | Systemeinstellungen ändern |
+| Aufgabe | Beschreibung |
+|---|---|
+| Rollen anzeigen | bestehende Rollen prüfen |
+| Rechte-Matrix pflegen | Capabilities pro Rolle setzen |
+| neue Rolle anlegen | zusätzliche Rollen definieren |
+| neue Rechte anlegen | Capability-Satz erweitern |
 
 ---
 
-## Gruppen-Verwaltung
+## Datenmodell
 
-### Gruppe erstellen
-1. **Name** – Eindeutiger Gruppenname (z.B. "Redaktion", "Partner")
-2. **Beschreibung** – Optionale Erklärung des Zwecks
-3. **Capabilities** – Checkboxen für jede der 8 Capabilities
-4. **Mitglieder** – Bestehende Benutzer zuweisen
+Für die aktuelle Rollenlogik sind vor allem relevant:
 
-### Gruppe bearbeiten
-- Capabilities können jederzeit angepasst werden
-- Änderungen gelten sofort für alle Mitglieder der Gruppe
-- Benutzer werden in der Mitgliederliste angezeigt
+- `roles`
+- `role_permissions`
 
-### Gruppe löschen
-- Alle Mitglieder werden automatisch in die Standard-Gruppe verschoben
-- Nicht möglich bei "admin"-Gruppe
+Die Capability-Prüfung im Core liest diese Daten mit aus, sodass neu angelegte Rollen sofort wirksam werden können.
 
 ---
 
-## Capability-Prüfung im Code
+## Aktueller Stand
 
-```php
-// In PHP-Dateien
-$auth = \CMS\Auth::instance();
-
-if ($auth->hasCapability('manage_users')) {
-    // Benutzer-Management anzeigen
-}
-
-if ($auth->hasCapability('publish_posts')) {
-    // Veröffentlichungs-Button anzeigen
-}
-```
+- Rollen- und Rechteverwaltung ist dynamisch.
+- Benutzerverwaltung und Rechteverwaltung greifen auf dieselbe Rollenquelle zu.
+- Neue Rollen und Capabilities lassen sich direkt über die Admin-Oberfläche ergänzen.
 
 ---
 
-## RBAC-Seite im Admin
+## Verwandte Dokumente
 
-Die `rbac.php` zeigt:
-- Alle Gruppen mit ihren Capabilities in einer Matrix-Ansicht
-- Farbkodierung: ✅ Berechtigt / ❌ Nicht berechtigt
-- Schnell-Edit: Einzelne Capabilities per Klick umschalten
-- Bulk-Edit: Gesamte Gruppe neu konfigurieren
+- [USERS.md](USERS.md)
+- [GROUPS.md](GROUPS.md)
+- [../../core/SECURITY.md](../../core/SECURITY.md)
 
----
-
-## Verwandte Seiten
-
-- [Benutzerverwaltung](USERS.md)
-- [Gruppen](GROUPS.md)

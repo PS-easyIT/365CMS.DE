@@ -1,189 +1,43 @@
-# Suchmaschinenoptimierung (SEO)
+# 365CMS – SEO-Center
 
+Kurzbeschreibung: Überblick über die in 2.3.1 auf mehrere Unterseiten aufgeteilte SEO-Verwaltung.
 
-Globale SEO-Einstellungen und Tools zur Optimierung der Sichtbarkeit in Suchmaschinen.
-
----
-
-## Inhaltsverzeichnis
-
-1. [Überblick](#1-überblick)
-2. [Meta-Tags (Global)](#2-meta-tags-global)
-3. [Indexierungssteuerung](#3-indexierungssteuerung)
-4. [XML-Sitemap](#4-xml-sitemap)
-5. [Robots.txt](#5-robotstxt)
-6. [Open Graph & Social Sharing](#6-open-graph--social-sharing)
-7. [Strukturierte Daten (Schema.org)](#7-strukturierte-daten-schemaorg)
-8. [Technische Details](#8-technische-details)
+Letzte Aktualisierung: 2026-03-07
 
 ---
 
-## 1. Überblick
+## Überblick
 
-URL: `/admin/seo.php`
+SEO ist in 365CMS nicht mehr eine einzelne Seite, sondern ein mehrteiliges SEO-Center mit klar getrennten Verantwortlichkeiten.
 
-Die globalen SEO-Einstellungen gelten für alle Seiten und Beiträge. Einzelne Seiten/Beiträge können diese Werte überschreiben (Einstellung direkt im Seiten-/Beitrags-Editor).
-
-**Priorität der Einstellungen:** Seite/Beitrag > Kategorie > Global
-
----
-
-## 2. Meta-Tags (Global)
-
-### Titel-Format
-
-Das Titel-Format definiert den `<title>` Tag für alle Seiten:
-
-| Platzhalter | Wert |
+| Route | Zweck |
 |---|---|
-| `%title%` | Titel der Seite/des Beitrags |
-| `%site_name%` | Website-Name aus den allgemeinen Einstellungen |
-| `%page%` | Seitenzahl bei paginierten Archiven |
-| `%sep%` | Trennzeichen (Standard: ` | `) |
-
-**Beispiele:**
-
-| Seitentyp | Format | Ergebnis |
-|---|---|---|
-| Einzelseite | `%title% %sep% %site_name%` | „Über uns \| MeineCMS" |
-| Blog-Archiv | `Blog %sep% %site_name%` | „Blog \| MeineCMS" |
-| Kategorie | `%category% %sep% %site_name%` | „IT-Sicherheit \| MeineCMS" |
-| Startseite | `%site_name% – %tagline%` | „MeineCMS – Ihr Partner" |
-
-### Standard-Meta-Description
-- Wird verwendet wenn keine individuelle Description gesetzt ist
-- Max. 160 Zeichen
-- Platzhalter `%excerpt%` für automatischen Auszug
-
-### Keywords
-- Legacy-Feld (wird von Google nicht mehr bewertet)
-- Kann für interne Zwecke oder andere Suchmaschinen noch verwendet werden
+| `/admin/seo-dashboard` | Gesamtüberblick, zentrale Kennzahlen und Schnellzugriffe |
+| `/admin/analytics` | Traffic- und Seitenaufrufdaten |
+| `/admin/seo-audit` | Audits, Befunde und Optimierungshinweise |
+| `/admin/seo-meta` | Titel, Beschreibungen, Meta-Templates |
+| `/admin/seo-social` | Open Graph, Social-Media-Metadaten |
+| `/admin/seo-schema` | strukturierte Daten und Schema-Management |
+| `/admin/seo-sitemap` | Sitemap- und `robots.txt`-Einstellungen |
+| `/admin/seo-technical` | technische SEO-Aspekte |
+| `/admin/redirect-manager` | 404-Logs und Weiterleitungen |
 
 ---
 
-## 3. Indexierungssteuerung
+## Fachliche Aufteilung
 
-### Seitentypen-spezifische `noindex`-Einstellungen:
-
-| Seitentyp | Standard | Empfehlung |
-|---|---|---|
-| Einzelne Seiten | index | ✅ index |
-| Einzelne Beiträge | index | ✅ index |
-| Tag-Archive | noindex | ✅ noindex |
-| Autoren-Archiv | noindex | ✅ noindex |
-| Suche-Seite | noindex | ✅ noindex |
-| Login/Register | noindex | ✅ noindex |
-| Admin-Bereich | noindex | ✅ noindex |
-| 404-Seite | noindex | ✅ noindex |
-
-**Canonical URLs:**
-- Automatische `<link rel="canonical">` für alle öffentlichen Seiten
-- Verhindert Duplicate Content (z.B. bei paginierten Archiven)
+Das Dashboard dient als Einstieg und verlinkt gezielt in die Spezialseiten. Meta-Daten, Social Media, strukturierte Daten, Sitemaps, technisches SEO und Redirects werden getrennt gepflegt.
 
 ---
 
-## 4. XML-Sitemap
+## Wichtige technische Bezüge
 
-**Sitemap-URL:** `/sitemap.xml`
-
-**Enthält standardmäßig:**
-- Alle veröffentlichten Seiten
-- Alle veröffentlichten Beiträge
-- Kategorie-Archive (optional)
-- Tag-Archive (optional)
-
-**Konfigurierbar:**
-| Einstellung | Beschreibung |
-|---|---|
-| Seiten einschließen | ✅ Standard |
-| Beiträge einschließen | ✅ Standard |
-| Bilder einschließen | ✅ Standard |
-| Änderungsfrequenz | `always`, `hourly`, `daily`, `weekly`, `monthly`, `never` |
-| Priorität | 0.1 bis 1.0 (Standard: 0.5, Startseite: 1.0) |
-| Max. URLs pro Sitemap | 50.000 (bei mehr: Split in Teil-Sitemaps) |
-
-**Automatische Aktualisierung:** Sitemap wird bei jeder Veröffentlichung/Änderung neu generiert und gecacht.
-
-**Google Search Console:** Sitemap-URL für schnellere Indexierung eintragen.
+- SEO-Unterseiten teilen sich eine gemeinsame Subnavigation
+- das System arbeitet mit spezialisierten Entry-Points statt einem Monolithen
+- Audit-Daten werden im aktuellen Arbeitsstand robuster normalisiert dargestellt
 
 ---
 
-## 5. Robots.txt
+## Dokumentationshinweis
 
-Editor für `/robots.txt` direkt im Admin:
-
-```
-User-agent: *
-Allow: /
-Disallow: /admin/
-Disallow: /member/
-Disallow: /install.php
-Disallow: /config.php
-Disallow: /cache/
-
-Sitemap: https://www.meine-website.de/sitemap.xml
-```
-
-**⚠️ Achtung:** Fehler in `robots.txt` können die gesamte Website aus dem Google-Index ausschließen!
-
----
-
-## 6. Open Graph & Social Sharing
-
-Konfiguration der Social-Media-Vorschau-Cards:
-
-| Typ | Plattformen | Keys |
-|---|---|---|
-| **Open Graph** | Facebook, LinkedIn, Discord | `og:title`, `og:description`, `og:image`, `og:type` |
-| **Twitter Cards** | Twitter/X | `twitter:card`, `twitter:title`, `twitter:image` |
-
-**Empfohlene OG-Bild-Größe:** 1200×630 px, max. 8 MB  
-**Twitter Card Typ:** `summary_large_image` (Großbild-Vorschau)
-
-**Standard-OG-Bild:** Wird verwendet wenn kein seitenspezifisches Bild gesetzt ist.
-
----
-
-## 7. Strukturierte Daten (Schema.org)
-
-Automatisch generierte JSON-LD Snippets:
-
-| Schema-Typ | Für |
-|---|---|
-| `WebSite` | Startseite (mit Sitelinks-Suchbox) |
-| `BlogPosting` | Blog-Beiträge |
-| `WebPage` | Statische Seiten |
-| `Organization` | Über-uns-Seite (wenn konfiguriert) |
-| `BreadcrumbList` | Breadcrumb-Navigation |
-
-Zusätzliche Schemas können via Plugin oder Hook hinzugefügt werden.
-
----
-
-## 8. Technische Details
-
-**Service:** `CMS\Services\SEOService`
-
-```php
-// Meta-Tags für eine Seite rendern
-$seo = SEOService::instance();
-
-echo $seo->renderMetaTags($postId);
-// Gibt <title>, <meta description>, <link canonical>, OG-Tags aus
-
-// Sitemap generieren
-$seo->generateSitemap();
-// Schreibt /sitemap.xml und invalidiert Cache
-
-// Strukturierte Daten
-echo $seo->renderStructuredData($postId);
-// Gibt JSON-LD <script> Block aus
-```
-
-**Hooks:**
-```php
-add_filter('cms_seo_title', 'my_title_modifier', 10, 2);
-add_filter('cms_seo_meta_tags', 'my_meta_tags', 10, 2);
-add_filter('cms_seo_structured_data', 'my_schema_extend', 10, 2);
-do_action('cms_sitemap_generated', $sitemapPath);
-```
+Alle älteren Verweise auf `/admin/seo.php` sind veraltet. In aktuellen Dokumenten soll immer die konkrete Unterseite genannt werden.

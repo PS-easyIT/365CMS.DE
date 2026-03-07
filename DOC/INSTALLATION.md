@@ -1,65 +1,65 @@
-﻿# 365CMS – Installations-Anleitung
+﻿# 365CMS – Installation
 
-Diese Anleitung führt euch Schritt für Schritt durch die Installation des 365CMS – von den Voraussetzungen bis zum ersten Login.
+Kurzbeschreibung: Einrichtung einer neuen 365CMS-Instanz aus dem Repository oder aus einem Deployment-Paket.
 
----
+Letzte Aktualisierung: 2026-03-07
 
-## Inhaltsverzeichnis
-
-1. [System-Voraussetzungen](#1-system-voraussetzungen)
-2. [Dateien hochladen](#2-dateien-hochladen)
-3. [Datenbank anlegen](#3-datenbank-anlegen)
-4. [config.php anpassen](#4-configphp-anpassen)
-5. [Webserver konfigurieren](#5-webserver-konfigurieren)
-6. [Erster Start](#6-erster-start)
-7. [Produktions-Checkliste](#7-produktions-checkliste)
-8. [Troubleshooting](#8-troubleshooting)
+Diese Anleitung beschreibt den aktuellen Stand der Codebasis **2.3.1**. Wichtig dabei: `CMS/config.php` ist heute nur noch ein **Kompatibilitäts-Stub**. Die eigentliche Konfiguration liegt in `CMS/config/app.php`.
 
 ---
 
-## 1. System-Voraussetzungen
+## Überblick
+
+Für neue Installationen gibt es aktuell zwei praktikable Wege:
+
+1. **Repository-Checkout / manuelle Einrichtung**  
+   Ihr bearbeitet `CMS/config/app.php` direkt und ersetzt die Platzhalterwerte.
+2. **Deployment mit Installer**  
+   Einige Deployment-Pakete oder Build-Artefakte enthalten zusätzlich einen Installer, der `CMS/config/app.php` beschreibt. Im reinen Repository-Checkout ist dieser Installer nicht zwingend enthalten.
+
+Wenn ihr direkt aus diesem Repository deployt, ist der **manuelle Weg über `CMS/config/app.php` der verlässlich dokumentierte Pfad**.
+
+---
+
+## Systemvoraussetzungen
 
 | Komponente | Minimum | Empfohlen |
-|------------|---------|-----------|
-| **PHP** | 8.2 | 8.3+ |
-| **MySQL** | 8.0 | 8.0+ |
-| **MariaDB** | 10.6 | 10.11+ |
-| **Webserver** | Apache 2.4 / Nginx 1.18 | latest |
-| **PHP-Extensions** | pdo_mysql, mbstring, json, openssl | + curl, gd |
-| **Speicher** | 128 MB RAM | 256 MB+ |
-| **Festplatte** | 100 MB | 1 GB+ (inkl. Uploads) |
+|---|---:|---:|
+| PHP | 8.2 | 8.3+ |
+| MySQL | 8.0 | 8.0+ |
+| MariaDB | 10.6 | 10.11+ |
+| Webserver | Apache 2.4 / Nginx 1.18 | aktuelle stabile Version |
+| PHP-Erweiterungen | `pdo_mysql`, `mbstring`, `json`, `openssl` | zusätzlich `curl`, `gd`, `zip`, `intl` |
+| Arbeitsspeicher | 128 MB | 256 MB+ |
 
-**PHP-Extensions prüfen:**
-```bash
-php -m | grep -E "pdo|mbstring|json|openssl|curl|gd"
-```
+Empfohlen für Admin- und Update-Funktionen:
 
----
-
-## 2. Dateien hochladen
-
-### Option A: Git (empfohlen)
-```bash
-git clone https://github.com/PS-easyIT/365CMS.DE.git /var/www/html/cms
-cd /var/www/html/cms
-```
-
-### Option B: FTP
-1. Alle Dateien aus dem `CMS/`-Ordner in euer Webroot hochladen
-2. Rechte setzen:
-   ```bash
-   chmod 755 /var/www/html/cms
-   chmod 644 /var/www/html/cms/config.php
-   chmod 777 /var/www/html/cms/uploads
-   chmod 777 /var/www/html/cms/cache
-   chmod 777 /var/www/html/cms/logs
-   ```
-
-**⚠️ Wichtig:** Die `config.php` enthält Datenbank-Zugangsdaten – **niemals** im Web-Root ohne `.htaccess`-Schutz!
+- `curl` für externe HTTP-Anfragen
+- `zip` für Paket- und Doku-Synchronisation
+- `gd` oder `imagick` für Bildverarbeitung
 
 ---
 
-## 3. Datenbank anlegen
+## Zielstruktur beim Deployment
+
+In produktiven Installationen ist in der Regel der Inhalt des Ordners `CMS/` das eigentliche Webroot.
+
+| Pfad | Zweck |
+|---|---|
+| `CMS/index.php` | Frontend-Einstiegspunkt |
+| `CMS/config.php` | Stub, lädt `config/app.php` |
+| `CMS/config/app.php` | echte Konfiguration |
+| `CMS/core/` | Bootstrap, Router, Datenbank, Services |
+| `CMS/admin/` | Admin-Einstiegspunkte und Module |
+| `CMS/themes/` | aktive Themes |
+| `CMS/plugins/` | installierte Plugins |
+| `CMS/backups/` | lokale Backups |
+| `CMS/logs/` | Log-Dateien |
+| `CMS/cache/` | Laufzeit- und Schema-Flags |
+
+---
+
+## Datenbank anlegen
 
 ```sql
 CREATE DATABASE cms365 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -68,142 +68,152 @@ GRANT ALL PRIVILEGES ON cms365.* TO 'cms365user'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-Die Tabellen werden **automatisch** beim ersten Start über den aktuellen Schema-/Migrationspfad angelegt.
+Die Kern-Tabellen werden anschließend beim ersten erfolgreichen Start über `CMS\SchemaManager` erzeugt.
 
 ---
 
-## 4. config.php anpassen
+## Konfiguration in `CMS/config/app.php`
 
-Öffnet `CMS/config.php` und passt folgende Werte an:
+Öffnet `CMS/config/app.php` und ersetzt **alle Platzhalterwerte**.
+
+Die wichtigsten Konstanten sind:
+
+| Konstante | Zweck |
+|---|---|
+| `DB_HOST` | Datenbank-Host |
+| `DB_NAME` | Datenbankname |
+| `DB_USER` | Datenbankbenutzer |
+| `DB_PASS` | Datenbankpasswort |
+| `DB_PREFIX` | Tabellenpräfix |
+| `SITE_URL` | vollständige Basis-URL ohne Trailing Slash |
+| `ADMIN_EMAIL` | zentrale Admin-Adresse |
+| `CMS_DEBUG` | Debug-Modus |
+| `AUTH_KEY`, `SECURE_AUTH_KEY`, `NONCE_KEY` | Sicherheits-Keys |
+
+Empfehlungen:
+
+- `SITE_URL` exakt auf die produktive URL setzen
+- `CMS_DEBUG` in Produktion auf `false`
+- Sicherheits-Keys mit kryptographisch sicheren Zufallswerten befüllen
+- Platzhalter wie `YOUR_...` vollständig entfernen
+
+Beispiel für einen sicheren Key:
 
 ```php
-// Datenbank
-define('DB_HOST', 'localhost');       // DB-Server
-define('DB_NAME', 'cms365');          // Datenbankname
-define('DB_USER', 'cms365user');      // DB-Benutzer
-define('DB_PASS', 'SICHERES_PASSWORT'); // DB-Passwort
-
-// Website
-define('SITE_NAME', 'Meine Website');
-define('SITE_URL',  'https://meine-domain.de'); // Kein Trailing Slash!
-define('ADMIN_EMAIL', 'admin@meine-domain.de');
-
-// Sicherheitsschlüssel – UNBEDINGT ÄNDERN!
-define('AUTH_KEY',         'zufaelliger-string-min-32-zeichen');
-define('SECURE_AUTH_KEY',  'zufaelliger-string-min-32-zeichen');
-define('NONCE_KEY',        'zufaelliger-string-min-32-zeichen');
-
-// Produktionsmodus
-define('CMS_DEBUG', false); // Auf false setzen für Produktion!
-```
-
-**Sicherheitsschlüssel generieren:**
-```php
-echo bin2hex(random_bytes(32));
+bin2hex(random_bytes(32))
 ```
 
 ---
 
-## 5. Webserver konfigurieren
+## Dateirechte
 
-### Apache (`.htaccess` bereits enthalten)
+| Pfad | Empfehlung |
+|---|---|
+| Verzeichnisse | `755` |
+| normale Dateien | `644` |
+| `CMS/config.php` | `640` oder `644` |
+| `CMS/config/app.php` | `640` oder `644` |
+| `CMS/logs/` | nur serverseitig beschreibbar |
+| `CMS/cache/` | serverseitig beschreibbar |
+| `CMS/backups/` | nicht öffentlich auslieferbar |
 
-Die Datei `CMS/.htaccess` ist bereits konfiguriert. Stellt sicher, dass `mod_rewrite` aktiviert ist:
+Keine pauschalen `777`-Rechte in Produktion verwenden.
 
-```bash
-a2enmod rewrite
-systemctl restart apache2
-```
+---
 
-**Wichtige Apache-Direktiven:**
-```apache
-AllowOverride All
-Options -Indexes
-```
+## Webserver konfigurieren
+
+### Apache
+
+Voraussetzungen:
+
+- `mod_rewrite` aktiv
+- `AllowOverride All` für das Webroot
+- Verzeichnisindexe deaktiviert
 
 ### Nginx
 
+Der zentrale Punkt ist die Übergabe unbekannter Pfade an `index.php`:
+
 ```nginx
-server {
-    listen 80;
-    server_name meine-domain.de;
-    root /var/www/html/cms;
-    index index.php;
-
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
-
-    location ~ \.php$ {
-        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
-        include fastcgi_params;
-    }
-
-    # Logs-Ordner schützen
-    location ~ ^/(logs|cache|config)/ {
-        deny all;
-    }
+location / {
+    try_files $uri $uri/ /index.php?$query_string;
 }
 ```
 
----
+Zusätzlich sollten sensible Verzeichnisse nicht direkt ausgeliefert werden, insbesondere:
 
-## 6. Erster Start
-
-1. Browser öffnen: `https://meine-domain.de`
-2. CMS erkennt die fehlende Installation und leitet zu `/install.php` weiter
-3. Installationsassistent ausfüllen:
-   - Admin-Benutzername
-   - Admin-Passwort (mind. 12 Zeichen)
-   - Admin-E-Mail
-4. Nach erfolgreicher Installation: `/install.php` löschen!
-5. Admin-Login: `https://meine-domain.de/admin`
+- `config/`
+- `logs/`
+- `cache/`
+- `backups/`
 
 ---
 
-## 7. Produktions-Checkliste
+## Erster Start
 
-Vor dem Live-Gang folgendes prüfen:
+Nach korrekter Konfiguration:
 
-- [ ] `CMS_DEBUG` auf `false` gesetzt
-- [ ] Sicherheitsschlüssel in `config.php` geändert
-- [ ] `install.php` gelöscht
-- [ ] HTTPS aktiviert (SSL-Zertifikat)
-- [ ] `logs/`, `cache/`, `uploads/` außerhalb des Web-Roots oder via `.htaccess` gesperrt
-- [ ] Regelmäßige Backups eingerichtet (→ Admin > Backup)
-- [ ] Starke Passwörter für alle Admin-Konten
-- [ ] Dateiberechtigungen korrekt (keine 777 in Produktion außer uploads/cache)
-- [ ] `config.php` nicht über Browser aufrufbar
+1. Browser auf die produktive `SITE_URL` öffnen
+2. 365CMS lädt `CMS/config.php`
+3. der Stub lädt `CMS/config/app.php`
+4. `CMS\Bootstrap` initialisiert Services und Routing
+5. `CMS\Database` und `CMS\SchemaManager` legen die Basisstruktur an
+6. falls noch kein Admin existiert, wird ein Standard-Admin erzeugt
+
+Wichtig: Der erste generierte Admin-Zugang wird vom Schema-Setup in die Logs geschrieben. Prüft nach dem Erststart daher insbesondere `CMS/logs/` bzw. die temporären Zugangsdaten und ändert das Kennwort sofort.
 
 ---
 
-## 8. Troubleshooting
+## Produktions-Checkliste
 
-### "500 Internal Server Error"
-```bash
-# PHP-Fehlerlog prüfen
-tail -f /var/log/apache2/error.log
-# oder
-cat /var/www/html/cms/logs/error.log
-```
+- [ ] Platzhalter in `CMS/config/app.php` vollständig ersetzt
+- [ ] starke Sicherheits-Keys gesetzt
+- [ ] `CMS_DEBUG` in Produktion deaktiviert
+- [ ] HTTPS aktiv
+- [ ] `config/`, `logs/`, `cache/`, `backups/` serverseitig geschützt
+- [ ] erstes Admin-Passwort geändert
+- [ ] regelmäßige Backups eingerichtet
+- [ ] Schreibrechte auf notwendige Verzeichnisse begrenzt
 
-Häufige Ursachen:
-- PHP-Extension fehlt (pdo_mysql!)
-- Dateiberechtigungen falsch
-- `.htaccess` nicht unterstützt (Apache: AllowOverride All)
+---
 
-### "Database connection failed"
-- DB-Zugangsdaten in `config.php` prüfen
-- MySQL-Dienst läuft? `systemctl status mysql`
-- DB-Benutzer hat Rechte? `SHOW GRANTS FOR 'user'@'localhost';`
+## Troubleshooting
 
-### "Page not found" für alle Seiten außer Startseite
-- `mod_rewrite` aktivieren (Apache)
-- Nginx: `try_files`-Direktive prüfen
-- `.htaccess`-Datei vorhanden?
+### Weiterleitung auf eine Installations- oder Konfigurationsseite
 
-### Leere Seiten (White Screen)
-- `CMS_DEBUG` temporär auf `true` setzen
-- PHP-Fehler-Ausgabe: `ini_set('display_errors', 1)` in `config.php`
+Ursache meist:
+
+- `CMS/config/app.php` fehlt
+- oder enthält noch Platzhalterwerte wie `YOUR_DB_USER`
+
+### Datenbankverbindung schlägt fehl
+
+Prüfen:
+
+- `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS`
+- Rechte des Datenbankbenutzers
+- Erreichbarkeit des Datenbankservers
+
+### Pretty URLs funktionieren nicht
+
+Prüfen:
+
+- Apache-Rewrite bzw. Nginx-`try_files`
+- korrektes Webroot
+- `SITE_URL` ohne Tippfehler und ohne Trailing Slash
+
+### Admin lädt, aber Teilfunktionen fehlen
+
+Typische Ursachen:
+
+- fehlende PHP-Erweiterungen (`curl`, `zip`, `gd`)
+- nicht beschreibbare Verzeichnisse (`cache`, `logs`, `backups`)
+- veraltete oder nicht migrierte Tabellenstruktur
+
+Weiterführend:
+
+- [System & Monitoring](admin/system-settings/SYSTEM.md)
+- [Systemarchitektur](core/ARCHITECTURE.md)
+- [Datenbank-Schema](core/DATABASE-SCHEMA.md)
 

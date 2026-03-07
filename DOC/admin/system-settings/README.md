@@ -1,28 +1,49 @@
-# System & Performance
+# 365CMS – System, Betrieb & Wartung
 
-**Ordner:** `doc/admin/system/`
+Kurzbeschreibung: Überblick über Konfiguration, Updates, Backups, Info-Ansichten und Diagnose im Admin-Bereich.
 
-Tools zur Wartung, Optimierung und Überwachung des CMS.
+Letzte Aktualisierung: 2026-03-07
 
-## Module
+---
 
-### 1. System Status (`README.md`)
-- **Datei:** `admin/system.php`
-- Detaillierte Server-Informationen (PHPInfo, MySQL Variablen).
-- Error Logs Einsicht.
+## Überblick
 
-### 2. Performance (`PERFORMANCE.md`)
-- **Datei:** `admin/performance.php`
-- Cache-Verwaltung (Page Cache, Object Cache).
-- Datenbank-Optimierung (Overhead bereinigen).
-- Asset-Minimierung (CSS/JS).
+Der frühere, monolithische Bereich „System“ wurde in mehrere klar getrennte Einstiege aufgeteilt.
 
-### 3. Updates (`UPDATES.md`)
-- **Datei:** `admin/updates.php`
-- Core-Updates (One-Click Update von GitHub).
-- Plugin- und Theme-Updates.
-- Prüfung der Systemanforderungen für Updates.
+### System-Gruppe
 
-### 4. Backup (`BACKUP.md`)
-- **Datei:** `admin/backup.php`
-- Siehe separate Dokumentation.
+| Route | Zweck |
+|---|---|
+| `/admin/settings` | allgemeine Systemeinstellungen |
+| `/admin/backups` | Backups erstellen, auflisten und löschen |
+| `/admin/updates` | Core-, Theme- und Plugin-Updates |
+
+### Info-Gruppe
+
+| Route | Zweck |
+|---|---|
+| `/admin/info` | Systeminformationen und Betriebsübersicht |
+| `/admin/documentation` | lokale Dokumentationsansicht im Admin |
+
+### Diagnose-Gruppe
+
+| Route | Zweck |
+|---|---|
+| `/admin/diagnose` | zentrale Diagnoseübersicht |
+| `/admin/monitor-response-time` | Response-Time-Monitoring |
+| `/admin/monitor-cron-status` | Cron-Status |
+| `/admin/monitor-disk-usage` | Festplattennutzung |
+| `/admin/monitor-scheduled-tasks` | geplante Aufgaben |
+| `/admin/monitor-health-check` | Health-Checks |
+| `/admin/monitor-email-alerts` | Mail-Benachrichtigungen |
+
+### Performance-Gruppe
+
+| Route | Zweck |
+|---|---|
+| `/admin/performance` | Gesamtübersicht |
+| `/admin/performance-cache` | Cache-Verwaltung |
+| `/admin/performance-media` | Medien-Optimierung |
+| `/admin/performance-database` | Datenbank-Wartung |
+| `/admin/performance-settings` | Laufzeit-Optionen |
+| `/admin/performance-sessions` | Session-Bereinigung und Status |

@@ -1,141 +1,74 @@
-# Sicherheits-Center
+# 365CMS – Sicherheits-Center
 
+Kurzbeschreibung: Detaildokumentation der Sicherheitsseite mit Passwortformular, 2FA-Hinweisen, Session-Ansicht und Login-Verlauf.
 
-Das Sicherheits-Center gibt Mitgliedern die Kontrolle über den Schutz ihres Kontos – von aktiven Sessions bis zur Zwei-Faktor-Authentifizierung.
+Letzte Aktualisierung: 2026-03-07
 
----
-
-## Inhaltsverzeichnis
-
-1. [Überblick](#1-überblick)
-2. [Login-Verlauf](#2-login-verlauf)
-3. [Aktive Sessions](#3-aktive-sessions)
-4. [Zwei-Faktor-Authentifizierung (2FA)](#4-zwei-faktor-authentifizierung-2fa)
-5. [Passwort-Sicherheit](#5-passwort-sicherheit)
-6. [Sicherheits-Warnungen](#6-sicherheits-warnungen)
-7. [Technische Details](#7-technische-details)
+**Route:** `/member/security`
 
 ---
 
-## 1. Überblick
+## Überblick
 
-URL: `/member/security`
+Die View kombiniert vier Hauptblöcke:
 
-Das Sicherheits-Center zeigt aktuelle Risiken und gibt Empfehlungen für bessere Kontosicherheit.
-
-**Sicherheits-Score** (Fortschrittsbalken):
-- 0–40: Gering 🔴 – 2FA deaktiviert, schwaches Passwort
-- 41–70: Mittel 🟡 – 2FA deaktiviert aber bekannt
-- 71–100: Hoch 🟢 – 2FA aktiv, starkes Passwort, keine unbekannten Sessions
+- Sicherheits-Score und Empfehlungen
+- Passwortänderung
+- Zwei-Faktor-Authentifizierung
+- aktive Sessions und Login-Historie
 
 ---
 
-## 2. Login-Verlauf
+## Passwortänderung
 
-Anzeige der letzten 20 Anmeldungen:
+Das Passwortformular arbeitet aktuell mit:
 
-| Spalte | Beschreibung |
-|---|---|
-| **Datum/Uhrzeit** | Zeitstempel des Logins |
-| **IP-Adresse** | IPv4/IPv6 (letzte Stellen maskiert: `192.168.xxx.xxx`) |
-| **Browser** | User-Agent vereinfacht (z.B. „Chrome 120 / Windows") |
-| **Standort** | Land/Stadt via GeoIP (wenn aktiviert) |
-| **Status** | ✅ Erfolgreich / ❌ Fehlgeschlagen |
-| **Aktuell** | 📍 Badge für die aktuelle Session |
+- `action=change_password`
+- CSRF-Token `change_password`
 
-**Aufbewahrung:** Login-Log 90 Tage, danach automatische Bereinigung.
-
-Ein 🚨-Symbol markiert Logins von bisher unbekanntem Gerät/Browser-Fingerprint.
+Die Verarbeitung läuft über `MemberController::handleSecurityActions()` und `MemberService::changePassword()`.
 
 ---
 
-## 3. Aktive Sessions
+## Zwei-Faktor-Authentifizierung
 
-Alle derzeit angemeldeten Instanzen des Kontos:
+Die aktuelle View schaltet 2FA nicht über den alten Toggle-POST des Controllers um, sondern verweist auf dedizierte Routen:
 
-- **Anzeige:** Gerät/Browser, letzter Zugriff, IP
-- **Eigene Session:** Hervorgehoben, kann nicht beendet werden
-- **Session beenden:** Einzeln oder alle anderen mit einem Klick
-- Sofortige Invalidierung → Benutzer wird auf `/login` umgeleitet
+- `/mfa-setup`
+- `/mfa-disable`
 
----
-
-## 4. Zwei-Faktor-Authentifizierung (2FA)
-
-### Einrichtung
-1. **„2FA aktivieren"** klicken
-2. QR-Code mit Authenticator-App scannen (Google Authenticator, Authy, etc.)
-3. 6-stelligen Code aus der App eingeben (Bestätigung)
-4. **Backup-Codes** herunterladen und sicher aufbewahren (10 Codes à 8 Stellen)
-
-### Technische Spezifikation
-- **Methode:** TOTP (Time-based One-Time Password, RFC 6238)
-- **Algorithmus:** SHA-1, 30-Sekunden-Fenster, 6 Stellen
-- **Speicherung:** Secrets AES-256-verschlüsselt in `cms_user_meta`
-
-### Backup-Codes
-- 10 Einmal-Codes für Notfälle (z.B. Handy verloren)
-- Jeder Code nur einmal verwendbar
-- Neue Codes generieren invalidiert alle alten sofort
-
-### 2FA deaktivieren
-- Passwort + aktuellen 2FA-Code eingeben
-- Sicherheitsbenachrichtigung per E-Mail nach Deaktivierung
+Damit ist für die aktuelle Doku wichtig: Die Oberfläche zeigt 2FA-Status und Aktionen, die eigentliche Aktivierung/Deaktivierung ist aber in einen separaten Flow ausgelagert.
 
 ---
 
-## 5. Passwort-Sicherheit
+## Sitzungen und Login-Verlauf
 
-### Stärke-Indikator
+Die Seite kann aktive Sitzungen mit Gerät, IP, Ort und Aktivitätszeit anzeigen.
 
-| Stärke | Kriterien |
-|---|---|
-| ❌ Zu schwach | < 8 Zeichen ODER nur Kleinbuchstaben |
-| ⚠️ Schwach | 8–11 Zeichen, 2 Zeichenklassen |
-| ✅ Mittel | 12+ Zeichen, 3 Zeichenklassen |
-| 💪 Stark | 16+ Zeichen, alle 4 Zeichenklassen |
+Wichtig:
 
-### Optionaler Passwort-Ablauf (Admin-konfigurierbar)
-- Maximale Passwort-Gültigkeit (z.B. 180 Tage)
-- Erinnerung 14 Tage vor Ablauf
+- Einzel- und Sammel-Buttons zum Beenden von Sessions sind in der aktuellen View JavaScript-Platzhalter.
+- Die UI ist vorhanden, die Endpunkte müssen für produktive Nutzung separat verifiziert werden.
+
+Zusätzlich wird ein Login-Verlauf mit Erfolg/Fehlschlag dargestellt.
 
 ---
 
-## 6. Sicherheits-Warnungen
+## Sicherheits-Score
 
-Automatische E-Mail-Benachrichtigungen bei:
-- Login von **neuem Gerät/Browser**
-- **Passwort-Änderung**
-- **2FA-Änderung** (Aktivierung/Deaktivierung)
-- **Account-Löschungsanfrage**
-- Mehr als **5 fehlgeschlagene Loginversuche** (Rate Limiting aktiv)
+`securityData` enthält in der View u. a.:
 
----
-
-## 7. Technische Details
-
-**Services:** `CMS\Security`, `CMS\Services\MemberService`
-
-```php
-// 2FA Secret generieren
-$secret = $security->generate2FASecret();
-
-// 2FA-Code verifizieren
-$valid = $security->verify2FAToken($userSecret, $userCode);
-
-// Session beenden
-$security->invalidateSession($sessionToken);
-
-// Login loggen
-$security->logLogin($userId, $ip, $userAgent, $success);
-```
-
-**Datenbank:**
-- `cms_login_log` – Login-History
-- `cms_sessions` – Aktive Sessions (Token, User-Agent, IP, ts_last_activity)
-- `cms_user_meta` Key `two_factor_secret` (AES-256 verschlüsselt)
-- `cms_user_meta` Key `two_factor_backup_codes` (bcrypt-gehasht)
+- `score`
+- `score_message`
+- `password_changed`
+- `2fa_enabled`
+- `recommendations`
+- `login_history`
 
 ---
 
-*Letzte Aktualisierung: 22. Februar 2026 – Version 1.8.0*
+## Verwandte Dokumente
+
+- [PROFILE.md](PROFILE.md)
+- [PRIVACY.md](PRIVACY.md)
+- [../SECURITY.md](../SECURITY.md)

@@ -1,126 +1,103 @@
-# DSGVO – Datenschutz-Grundverordnung
+# 365CMS – DSGVO: Auskunft & Löschung
 
-**Dateien:** `admin/data-access.php`, `admin/data-deletion.php`, `admin/legal-sites.php`
+Kurzbeschreibung: Bearbeitung von Datenschutzanfragen nach Art. 15 und Art. 17 DSGVO im aktuellen Admin-Workflow.
 
----
+Letzte Aktualisierung: 2026-03-07
 
-## Übersicht
-
-Die DSGVO-Suite deckt die wichtigsten datenschutzrechtlichen Anforderungen ab:
-- **Art. 15 DSGVO** – Recht auf Auskunft
-- **Art. 17 DSGVO** – Recht auf Löschung ("Recht auf Vergessenwerden")
-- **Art. 13/14 DSGVO** – Informationspflichten (Cookie-Richtlinie, Datenschutzerklärung)
+**Admin-Route:** `/admin/data-requests`
 
 ---
 
-## Datenzugriff (Art. 15 DSGVO) – `data-access.php`
+## Überblick
 
-### Funktionsweise
-1. Benutzer oder Betroffene stellt Auskunftsantrag
-2. Admin lädt Antrag in der Verwaltung
-3. System sammelt alle gespeicherten Daten des Benutzerkontos
-4. Exportiert alles als JSON oder PDF
+Die frühere Aufteilung auf separate Seiten für Datenauskunft und Datenlöschung ist im aktuellen Stand in einer Sammelseite zusammengeführt.
 
-### Gesammelte Datenkategorien
+Der Entry-Point `CMS/admin/data-requests.php` lädt dafür zwei Module:
 
-| Kategorie | Quelle |
-|-----------|--------|
-| Profildaten | `cms_users`, `cms_user_meta` |
-| Login-Protokoll | `cms_login_attempts`, `cms_failed_logins` |
-| Aktivitäten | `cms_activity_log` |
-| Bestellungen | `cms_orders` |
-| Abonnements | `cms_user_subscriptions` |
-| Nachrichten (Metadaten) | `cms_messages` |
-| Cookie-Einwilligungen | `cms_cookie_consents` |
-| Medien-Uploads | `cms_media` |
-
-### Antrag-Workflow
-```
-Antrag eingehen → Admin-Prüfung → Datensatz generieren → Versand an Betroffene
-(max. 30 Tage Bearbeitungszeit nach DSGVO Art. 12)
-```
-
-### Export-Format
-```json
-{
-  "auskunft_erstellt": "2026-02-22T10:00:00Z",
-  "betroffene_person": {
-    "id": 42,
-    "username": "max.muster",
-    "email": "max@example.de",
-    "registriert_am": "2026-01-15T08:30:00Z"
-  },
-  "profildaten": { ... },
-  "bestellhistorie": [ ... ],
-  "login_protokoll": [ ... ]
-}
-```
+- `PrivacyRequestsModule`
+- `DeletionRequestsModule`
 
 ---
 
-## Datenlöschung (Art. 17 DSGVO) – `data-deletion.php`
+## Anfragearten
 
-### Lösch-Workflow
-1. **Antrag erfassen** – Betroffener Person oder Benutzername eingeben
-2. **Datensatz prüfen** – Admin sieht alle zu löschenden Datenpunkte
-3. **Bestätigung** – Zweifache Bestätigung (Modal + Texteingabe)
-4. **Durchführung** – Kaskadierte Löschung aller verknüpften Daten
-5. **Protokollierung** – Löschnachweis wird generiert und aufbewahrt
-
-### Löschverhalten
-
-| Datenpunkt | Aktion |
-|------------|--------|
-| Benutzerkonto | Vollständige Löschung |
-| Profildaten | Vollständige Löschung |
-| Bestellungen | Anonymisierung (Pflicht nach §147 AO: 10 Jahre Aufbewahrung!) |
-| Nachrichten | Inhalt gelöscht, Metadaten anonymisiert |
-| Login-Protokoll | Vollständige Löschung |
-| Medien-Uploads | Dateien gelöscht, DB-Einträge entfernt |
-| Cookie-Consents | Anonymisierung (Nachweis-Pflicht!) |
-
-### Lösch-Nachweis
-Nach jeder Löschung wird ein Protokoll erstellt:
-- Zeitstempel
-- Admin der die Löschung durchgeführt hat
-- Art der gelöschten Daten
-- Nicht-löschbare Daten mit Rechtsbegründung
+| Typ | Zweck | Modul |
+|---|---|---|
+| Auskunftsanfrage | Datenexport und Bearbeitung nach Art. 15 DSGVO | `PrivacyRequestsModule` |
+| Löschanfrage | Bearbeitung von Lösch- bzw. Vergessenwerden-Anfragen | `DeletionRequestsModule` |
 
 ---
 
-## Rechtstexte & Legal-Sites – `admin/legal-sites.php`
+## Serverseitige Aktionen
 
-### Generierbare Dokumente
+Die Sammelseite arbeitet mit dem CSRF-Token `admin_data_requests` und wertet `scope` plus `action` aus.
 
-| Dokument | Pflicht | Generator |
-|----------|---------|-----------|
-| Datenschutzerklärung | ✅ | ✅ |
-| Impressum | ✅ (DE) | ✅ |
-| Cookie-Richtlinie | ✅ | ✅ (via Cookie-Manager) |
-| AGB | ⚙️ (bei Verkauf) | ✅ |
-| Widerrufsbelehrung | ✅ (bei Verkauf) | ✅ |
+### Auskunftsanfragen
 
-### Legal-Sites Verknüpfung
-Rechtstexte werden mit CMS-Seiten verknüpft:
-- Seite auswählen oder neu erstellen
-- Automatische Verlinkung im Footer-Theme
-- Abo-System verweist automatisch auf AGB/Widerruf
+| Aktion | Bedeutung |
+|---|---|
+| `process` | Anfrage in Bearbeitung setzen |
+| `complete` | Anfrage abschließen |
+| `reject` | Anfrage ablehnen |
+| `delete` | Anfrageeintrag entfernen |
 
----
+### Löschanfragen
 
-## Fristen-Übersicht (DSGVO)
-
-| Anforderung | Frist | Quelle |
-|-------------|-------|--------|
-| Auskunftsanfrage beantworten | 30 Tage | Art. 12 DSGVO |
-| Löschantrag erfüllen | Unverzüglich | Art. 17 DSGVO |
-| Datenpanne melden (Behörde) | 72 Stunden | Art. 33 DSGVO |
-| Datenpanne melden (Betroffene) | Ohne unangemessene Verzögerung | Art. 34 DSGVO |
+| Aktion | Bedeutung |
+|---|---|
+| `process` | Anfrage vorbereiten oder in Bearbeitung nehmen |
+| `execute` | Löschung ausführen |
+| `reject` | Antrag ablehnen |
+| `delete` | Anfrageeintrag entfernen |
 
 ---
 
-## Verwandte Seiten
+## Typische Datenquellen bei einer Auskunft
 
-- [Cookie-Manager](COOKIES.md)
-- [Rechtstexte-Generator](LEGAL.md)
-- [Firewall & Sicherheit](FIREWALL.md)
+Je nach Benutzer und aktivierten Modulen können unter anderem folgende Bereiche relevant sein:
+
+| Bereich | Typische Tabellen |
+|---|---|
+| Profildaten | `users`, `user_meta` |
+| Sitzungen und Login-Historie | `sessions`, `login_attempts`, `failed_logins` |
+| Aktivitätsprotokolle | `activity_log`, ggf. `audit_log` |
+| Bestellungen und Abos | `orders`, `user_subscriptions`, `subscription_plans` |
+| Nachrichten | `messages` |
+| Medien | `media` |
+| Datenschutzanfragen | `privacy_requests` |
+
+---
+
+## Löschlogik und Grenzen
+
+Nicht jede Information kann immer physisch entfernt werden. In der Praxis ist zu unterscheiden zwischen:
+
+- **vollständiger Löschung**, wenn keine Aufbewahrungspflicht entgegensteht
+- **Anonymisierung**, wenn Fach- oder Steuerrecht Daten weiterhin erfordert
+- **Ablehnung oder Teilablehnung**, wenn Rechtsgründe eine weitere Speicherung notwendig machen
+
+Besonders bei Bestellungen, Rechnungs- und Zahlungsbezug ist die gesetzliche Aufbewahrungspflicht zu berücksichtigen.
+
+---
+
+## Fristen und Bearbeitung
+
+| Vorgang | Richtwert |
+|---|---|
+| Auskunft beantworten | in der Regel innerhalb von 30 Tagen |
+| Löschantrag bearbeiten | unverzüglich, unter Beachtung gesetzlicher Pflichten |
+| Ablehnung dokumentieren | mit nachvollziehbarer Begründung |
+
+---
+
+## Verknüpfung mit Legal Sites
+
+Die eigentlichen Rechtstexte werden nicht hier, sondern unter `/admin/legal-sites` gepflegt. Der Bereich `/admin/data-requests` ist für operative Datenschutzanfragen zuständig, nicht für die Pflege von Datenschutzerklärung oder Impressum.
+
+---
+
+## Verwandte Dokumente
+
+- [README.md](README.md)
+- [COOKIES.md](COOKIES.md)
+- [LEGAL.md](LEGAL.md)

@@ -1,121 +1,56 @@
-# Benutzerverwaltung
+# 365CMS – Benutzerverwaltung
 
-**Datei:** `admin/users.php`
+Kurzbeschreibung: Verwaltung von Benutzerkonten, Status, Rollen, Gruppenbezug und Bearbeitungsabläufen im Admin.
 
----
+Letzte Aktualisierung: 2026-03-07
 
-## Übersicht
-
-Die Benutzerverwaltung ist der zentrale Bereich zur Verwaltung aller registrierten Accounts. Sie bietet vollständige CRUD-Operationen, Rollen-Zuweisung, Gruppen-Management, Grid.js-Listenansicht und Bulk-Aktionen.
+**Admin-Route:** `/admin/users`
 
 ---
 
-## Statistiken-Übersicht (Stat-Cards)
+## Überblick
 
-Oben auf der Listenansicht werden vier KPI-Kacheln angezeigt:
-
-| Kachel | Inhalt |
-|--------|--------|
-| **Gesamt** | Alle registrierten Benutzer |
-| **Aktiv** | Benutzer mit Status `active` |
-| **Admins** | Benutzer mit Rolle `admin` |
-| **Mitglieder** | Benutzer mit Rolle `member` |
+Die Benutzerverwaltung ist die zentrale Oberfläche für alle registrierten Accounts. Sie bündelt Listenansicht, Filter, Bearbeitung und statusabhängige Aktionen.
 
 ---
 
-## Benutzer-Tabelle
+## Typische Funktionen
 
-Die Hauptliste wird über **Grid.js** geladen und serverseitig aus der Admin-API befüllt.
-
-### Filter & Suche
-- **Grid.js-Suche** über die API-Liste
-- **Rollen-Tabs:** Alle, vorhandene Rollen, Gesperrt
-- **Bulk-Auswahl** per Checkbox direkt in der Liste
-
-### Tabellenspalten
-
-| Spalte | Beschreibung |
-|--------|--------------|
-| **Benutzer** | Login-Name mit Avatar-Initials und optionalem Anzeigenamen |
-| **E-Mail** | E-Mail-Adresse |
-| **Rolle** | Farbiges Rollen-Badge |
-| **Gruppen** | Anzahl zugewiesener Gruppen |
-| **Status** | Aktiv / Inaktiv Badge |
-| **Erstellt** | Registrierungsdatum |
-| **Aktionen** | Bearbeiten · Löschen (nicht für den eigenen Account oder geschützte Admins) |
-
-### Aktionen pro Benutzer
-- ✏️ **Bearbeiten** – Öffnet die Detail-/Bearbeitungsansicht
-- 🔑 **Passwort ändern** – Direkt in der Bearbeitungsansicht, optional leer lassen
-- 🗑️ **Löschen** – Permanente Löschung mit zentralem Bestätigungs-Modal
+| Funktion | Beschreibung |
+|---|---|
+| Suche | Benutzer schnell nach Name oder Mail finden |
+| Rollenfilter | Ansicht nach dynamisch verfügbaren Rollen eingrenzen |
+| Bearbeiten | Profil- und Kontodaten ändern |
+| Statussteuerung | aktivieren, deaktivieren, sperren |
+| Gruppenbezug | Mitgliedschaften sichtbar machen |
 
 ---
 
-## Neuen Benutzer erstellen
+## Aktueller Stand
 
-**Felder:**
-- Benutzername (alphanumerisch, eindeutig)
-- E-Mail (valide E-Mail, eindeutig)
-- Anzeigename
-- Passwort (min. 12 Zeichen inkl. Policy)
-- Rolle (Admin, Editor, Moderator, Member)
-- Standardstatus: `active`
+Wichtige Korrekturen der neueren Releases:
+
+- Rollen-Dropdowns und Filter greifen auf die gleiche dynamische Rollenquelle zu wie die Rechteverwaltung.
+- Capability-Prüfungen arbeiten mit den in `role_permissions` gespeicherten Rechten.
+- Medien- und andere abhängige Bereiche können Benutzerzustände konsistenter auswerten.
 
 ---
 
-## Benutzer bearbeiten
+## Datenbasis
 
-Die Bearbeitungsansicht ist als eigene Admin-Seite aufgebaut. Passwort-Feld leer lassen = Passwort nicht ändern.
+Relevant sind insbesondere:
 
-**Zusätzlich sichtbar:**
-- Letzter Login-Zeitstempel
-- Interne Benutzer-ID
-- Gruppen-Mitgliedschaften
-- Rolle/Status mit Schutz für Self-Edit
-
----
-
-## Bulk-Aktionen
-
-Über Checkboxen mehrere Benutzer auswählen und dann:
-
-| Aktion | Beschreibung |
-|--------|--------------|
-| **Aktivieren** | Status auf `active` setzen |
-| **Deaktivieren** | Status auf `inactive` setzen |
-| **Sperren** | Status auf `banned` setzen |
-| **Löschen** | Permanente Massenlöschung (mit Bestätigung) |
-| **Rolle → Admin** | Alle markierten Benutzer werden zu Admins |
-| **Rolle → Member** | Alle markierten Benutzer werden zu Membern |
-
-Administrator-Accounts bleiben bei Lösch-Bulk-Aktionen geschützt.
+- `users`
+- `user_meta`
+- `sessions`
+- `login_attempts`
+- `failed_logins`
 
 ---
 
-## Datenbank-Tabellen
+## Verwandte Dokumente
 
-| Tabelle | Inhalt |
-|---------|--------|
-| `cms_users` | Benutzer-Grunddaten |
-| `cms_user_meta` | Erweiterte Metadaten (Avatar, Bio, Social Links) |
-| `cms_sessions` | Aktive Sessions |
-| `cms_login_attempts` | Login-Versuche (für Rate Limiting) |
-| `cms_failed_logins` | Fehlgeschlagene Logins |
+- [GROUPS.md](GROUPS.md)
+- [RBAC.md](RBAC.md)
+- [../member/README.md](../member/README.md)
 
----
-
-## Sicherheitshinweise
-
-- Alle Passwörter werden BCrypt-gehasht gespeichert
-- Admins können andere Admins nicht löschen (Schutz vor Selbst-Aussperrung)
-- Der aktuell angemeldete Benutzer kann sich nicht selbst löschen oder seine eigene Rolle/Status versehentlich entwerten
-- Gelöschte Benutzer werden aus allen Sessions entfernt
-- CSRF-Token für alle Formulare und AJAX-Anfragen verpflichtend
-
----
-
-## Verwandte Seiten
-
-- [Gruppen & Berechtigungen](GROUPS.md)
-- [RBAC-Verwaltung](RBAC.md)
-- [Member-Dashboard Admin](../member/README.md)

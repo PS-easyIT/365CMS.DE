@@ -1,103 +1,99 @@
- ---
-## Sicheres, modulares und erweiterbares Content Management System => [WWW.365CMS.DE](HTTPS://365CMS.DE)
-![PHP](https://img.shields.io/badge/php-%23777BB4.svg?style=for-the-badge&logo=php&logoColor=white)![MySQL](https://img.shields.io/badge/mysql-4479A1.svg?style=for-the-badge&logo=mysql&logoColor=white)![MariaDB](https://img.shields.io/badge/MariaDB-003545?style=for-the-badge&logo=mariadb&logoColor=white)![HTML5](https://img.shields.io/badge/html5-%23E34F26.svg?style=for-the-badge&logo=html5&logoColor=white)![CSS3](https://img.shields.io/badge/css3-%231572B6.svg?style=for-the-badge&logo=css3&logoColor=white)
-## 
+# 365CMS – Dokumentationsindex
+
+Kurzbeschreibung: Zentraler Einstiegspunkt in die Projektdokumentation des Haupt-Repositorys `365CMS.DE`.
+
+Letzte Aktualisierung: 2026-03-07
+
+Die Dokumentation beschreibt den aktuell verifizierten Stand **365CMS 2.3.1** mit SEO-Center, Performance-Center, Monitoring-Unterseiten, Legal-/Security-Modulen, WebP-Massenkonvertierung und gehärtetem Font-Self-Hosting.
 
 ---
 
-## Haupt-Dokumente
+## Schnellstart
 
-> Dokumentationsstand: **365CMS 2.3.1** – inklusive SEO-Suite, Performance-Center, Monitoring-Unterseiten, WebP-Massenkonvertierung und lokalem Font-Self-Hosting.
-
-| Datei | Beschreibung | Zielgruppe |
-|-------|-------------|------------|
-| [README.md](README.md) | Übersicht & Einstieg | Alle |
-| [INSTALLATION.md](INSTALLATION.md) | Schritt-für-Schritt-Installation | Admins |
-
----
-
-## core/ – Technische Kern-Dokumentation
-
-| Datei | Beschreibung | Zielgruppe |
-|-------|-------------|------------|
-| [ARCHITECTURE.md](core/ARCHITECTURE.md) | Systemschichten, Patterns, Request-Lifecycle | Entwickler |
-| [CORE-CLASSES.md](core/CORE-CLASSES.md) | Alle 11 Core-Klassen mit Methoden & Beispielen | Entwickler |
-| [DATABASE-SCHEMA.md](core/DATABASE-SCHEMA.md) | 22 Tabellen mit SQL, Indizes und Beispiel-Queries | Devs/DBA |
-| [HOOKS-REFERENCE.md](core/HOOKS-REFERENCE.md) | Alle Actions & Filters mit Beispielen | Plugin-Devs |
-| [API-REFERENCE.md](core/API-REFERENCE.md) | REST-API-Endpunkte | Entwickler |
-| [SECURITY.md](core/SECURITY.md) | CSRF, XSS, SQL-Injection, Rate-Limiting, Header | Alle Devs |
-| [SECURITY-ARCHITECTURE.md](core/SECURITY-ARCHITECTURE.md) | Vertiefte Security-Analyse | Senior Devs |
-| [SERVICES.md](core/SERVICES.md) | Alle 15 Service-Klassen erklärt (inkl. MessageService) | Entwickler |
-| [STATUS.md](core/STATUS.md) | Implementierungsstand & Roadmap | PM/Devs |
-| [SYSTEM-DOCUMENTATION.md](core/SYSTEM-DOCUMENTATION.md) | Vollständige technische Dokumentation | Architekten |
+| Ziel | Dokument |
+|---|---|
+| Projektüberblick | [README.md](README.md) |
+| Installation | [INSTALLATION.md](INSTALLATION.md) |
+| Root-README | [../README.md](../README.md) |
+| Changelog | [../Changelog.md](../Changelog.md) |
 
 ---
 
-## admin/ – Admin-Panel
+## Kernsystem
 
-| Datei | Beschreibung | Zielgruppe |
-|-------|-------------|------------|
-| [README.md](admin/README.md) | Admin-Bereich komplett – alle 27 Seiten erklärt | Admins |
-| [GUIDE.md](admin/GUIDE.md) | Schritt-für-Schritt Admin-Handbuch | Admins/Support |
-| [FILESTRUCTURE.md](admin/FILESTRUCTURE.md) | Dateistruktur des Admin-Verzeichnisses | Entwickler |
-| [PANEL-INTEGRATION.md](admin/PANEL-INTEGRATION.md) | Wie Plugins Admin-Seiten hinzufügen | Plugin-Devs |
-
----
-
-## member/ – Mitglieder-Bereich
-
-| Datei | Beschreibung | Zielgruppe |
-|-------|-------------|------------|
-| [README.md](member/README.md) | Member-Bereich komplett – alle Seiten und Architektur | Alle |
-| [CONTROLLERS.md](member/CONTROLLERS.md) | Controller-Klassen der Member-Seiten | Entwickler |
-| [VIEWS.md](member/VIEWS.md) | Templates & Partials | Entwickler/Designer |
-| [HOOKS.md](member/HOOKS.md) | Member-spezifische Hooks | Plugin-Devs |
-| [SECURITY.md](member/SECURITY.md) | Sicherheit & DSGVO im Member-Bereich | Security/Devs |
+| Dokument | Zweck |
+|---|---|
+| [core/README.md](core/README.md) | Einstieg in die Core-Dokumentation |
+| [core/ARCHITECTURE.md](core/ARCHITECTURE.md) | Bootstrap, Routing, Services, Module |
+| [core/CORE-CLASSES.md](core/CORE-CLASSES.md) | zentrale Kernklassen |
+| [core/DATABASE-SCHEMA.md](core/DATABASE-SCHEMA.md) | Basisschema und Modultabellen |
+| [core/HOOKS-REFERENCE.md](core/HOOKS-REFERENCE.md) | Actions, Filter und Integrationspunkte |
+| [core/API-REFERENCE.md](core/API-REFERENCE.md) | technische Referenzen und Schnittstellen |
+| [core/SERVICES.md](core/SERVICES.md) | Service-Layer |
+| [core/SECURITY.md](core/SECURITY.md) | Sicherheitsmodell im Core |
+| [core/STATUS.md](core/STATUS.md) | Implementierungs- und Betriebsstatus |
 
 ---
 
-## theme/ – Theme-Entwicklung
+## Admin-Bereich
 
-| Datei | Beschreibung | Zielgruppe |
-|-------|-------------|------------|
-| [README.md](theme/README.md) | Theme-System Übersicht & verfügbare Themes | Alle |
-| [THEME-DEVELOPMENT.md](theme/THEME-DEVELOPMENT.md) | Theme erstellen von Grund auf (Anfänger) | Designer/Devs |
-| [DESIGN-SYSTEM.md](theme/DESIGN-SYSTEM.md) | CSS-Variablen, Farb-System, Typografie | Designer |
-| [COMPONENTS.md](theme/COMPONENTS.md) | UI-Komponenten-Bibliothek | Designer/Devs |
-| [JAVASCRIPT.md](theme/JAVASCRIPT.md) | JavaScript-Muster und Best Practices | Entwickler |
-| [DEVELOPMENT.md](theme/DEVELOPMENT.md) | Entwicklungs-Workflow & Tools | Entwickler |
-| [CHANGELOG.md](theme/CHANGELOG.md) | Theme-Versionshistorie | Alle |
+| Dokument | Zweck |
+|---|---|
+| [admin/README.md](admin/README.md) | Überblick über Navigation und Bereiche |
+| [admin/GUIDE.md](admin/GUIDE.md) | operativer Leitfaden für Administratoren |
+| [admin/FILESTRUCTURE.md](admin/FILESTRUCTURE.md) | Admin-Dateistruktur und Routing |
+| [admin/PANEL-INTEGRATION.md](admin/PANEL-INTEGRATION.md) | Integration eigener Admin-Seiten |
 
----
+### Wichtige Teilbereiche
 
-## plugins/ – Plugin-Entwicklung
-
-| Datei | Beschreibung | Zielgruppe |
-|-------|-------------|------------|
-| [GUIDE.md](plugins/GUIDE.md) | Plugin in 10 Minuten (Schnellstart) | Einsteiger |
-| [PLUGIN-DEVELOPMENT.md](plugins/PLUGIN-DEVELOPMENT.md) | Vollständiger Plugin-Leitfaden (alle Themen) | Entwickler |
-| [PLUGIN-LIST.MD](plugins/PLUGIN-LIST.MD) | Alle verfügbaren Plugins | Alle |
-| [PLUGINS-SUMMARY.md](plugins/PLUGINS-SUMMARY.md) | Plugin-Zusammenfassung & Empfehlungen | PM/Devs |
-
----
-
-## feature/ – Feature-Planung & Status (intern)
-
-| Datei | Beschreibung |
-|-------|-------------|
-| [MARKETPLACE-KONZEPT.md](feature/MARKETPLACE-KONZEPT.md) | Marketplace-Feature-Konzept |
-| [PROJEKT-STATUS.md](feature/PROJEKT-STATUS.md) | Projekt-Gesamtstatus & Ampel-Übersicht |
-| [ROADMAP_FEB2026.md](feature/ROADMAP_FEB2026.md) | Konsolidierte Roadmap (81 Items: Critical→Low) |
-| [CORE-CMS-FEATURES.md](feature/CORE-CMS-FEATURES.md) | Vollständige Core-Feature-Liste mit Status |
-| [PLUGIN-LIST.MD](feature/PLUGIN-LIST.MD) | Alle 60 geplanten Plugins mit Details |
-| [NEW-PLUGIN-CONCEPTS.md](feature/NEW-PLUGIN-CONCEPTS.md) | Neue Plugin-Ideen (Newsletter, Forum, Shop, CRM…) |
+| Bereich | Dokument |
+|---|---|
+| Dashboard | [admin/dashboard/README.md](admin/dashboard/README.md) |
+| Seiten & Beiträge | [admin/pages-posts/README.md](admin/pages-posts/README.md) |
+| Medien | [admin/media/README.md](admin/media/README.md) |
+| Benutzer & Gruppen | [admin/users-groups/README.md](admin/users-groups/README.md) |
+| Themes & Design | [admin/themes-design/README.md](admin/themes-design/README.md) |
+| Plugins | [admin/plugins/PLUGINS.md](admin/plugins/PLUGINS.md) |
+| SEO | [admin/seo-performance/SEO.md](admin/seo-performance/SEO.md) |
+| Recht & Sicherheit | [admin/legal-security/README.md](admin/legal-security/README.md) |
+| System, Betrieb & Wartung | [admin/system-settings/README.md](admin/system-settings/README.md) |
+| Aboverwaltung | [admin/subscription/SUBSCRIPTION-SYSTEM.md](admin/subscription/SUBSCRIPTION-SYSTEM.md) |
 
 ---
 
-## audits/ – Audit-Berichte 2026
+## Mitgliederbereich
 
-| Datei | Beschreibung |
-|-------|-------------|
+| Dokument | Zweck |
+|---|---|
+| [member/README.md](member/README.md) | Gesamtüberblick über `/member` |
+| [member/CONTROLLERS.md](member/CONTROLLERS.md) | Controller und Einstiegspunkte |
+| [member/VIEWS.md](member/VIEWS.md) | Views, Partials und View-Daten |
+| [member/HOOKS.md](member/HOOKS.md) | Member-Hooks für Plugins |
+| [member/SECURITY.md](member/SECURITY.md) | Zugriff, Datenschutz, Sessions |
+
+---
+
+## Theme- und Plugin-Entwicklung
+
+| Dokument | Zweck |
+|---|---|
+| [theme/README.md](theme/README.md) | Theme-System und verfügbare Leitfäden |
+| [theme/THEME-DEVELOPMENT.md](theme/THEME-DEVELOPMENT.md) | Theme-Erstellung |
+| [plugins/GUIDE.md](plugins/GUIDE.md) | schneller Plugin-Einstieg |
+| [plugins/PLUGIN-DEVELOPMENT.md](plugins/PLUGIN-DEVELOPMENT.md) | vollständiger Plugin-Leitfaden |
+
+---
+
+## Audits, Feature-Dokumente und Workflows
+
+| Bereich | Dokumente |
+|---|---|
+| Audits | `DOC/audits/*.md` |
+| Feature-Konzepte | `DOC/feature/*.md` |
+| Workflows | `DOC/workflow/*.md` |
+
+Diese Dokumente enthalten teils Planungs- oder Bewertungsstände. Für aktuelle technische Aussagen haben Core-, Admin- und Member-Dokumente Vorrang.
+
 | [PERFORMANCE-AUDIT.md](audits/PERFORMANCE-AUDIT.md) | Performance-Analyse (Score: 5.8/10) |
 | [SECURITY-AUDIT.md](audits/SECURITY-AUDIT.md) | Security-Analyse (Score: 5.2/10, 7 P1-Findings) |
 | [CORE-AUDIT.md](audits/CORE-AUDIT.md) | Core-Architektur-Audit (Score: 5.4/10) |

@@ -1,53 +1,43 @@
-# Medienbibliothek
+# 365CMS – Medienverwaltung
 
-Zentrale Verwaltung aller hochgeladenen Dateien im 365CMS – Bilder, Dokumente, Videos und sonstige Medien.
+Kurzbeschreibung: Überblick über Medienbibliothek, Upload-Workflows, Schutzbereiche und zugehörige Dokumente.
 
----
-
-## Inhaltsverzeichnis
-
-1. [Überblick](#1-überblick)
-2. [Ansichten & Navigation](#2-ansichten--navigation)
-3. [Dateien hochladen](#3-dateien-hochladen)
-4. [Bild-Bearbeitung](#4-bild-bearbeitung)
-5. [Metadaten verwalten](#5-metadaten-verwalten)
-6. [Suche & Filter](#6-suche--filter)
-7. [Technische Details](#7-technische-details)
+Letzte Aktualisierung: 2026-03-07
 
 ---
 
-## 1. Überblick
+## Überblick
 
-URL: `/admin/media.php`
+Die Medienverwaltung ist unter `/admin/media` erreichbar und steuert Upload, Suche, Filter, Dateioperationen und Vorschaulogik für den globalen Medienbestand.
 
-Die Medienbibliothek speichert alle hochgeladenen Dateien in:
-- **Filesystem:** `/uploads/YYYY/MM/dateiname.ext`
-- **Datenbank:** Tabelle `cms_media` (Metadaten, Alt-Texte, Owner)
+Wesentliche Merkmale im aktuellen Stand:
 
-**Unterstützte Dateitypen (konfigurierbar):**
+- Standardmäßig **Listenansicht**
+- Such- und Kategorien-Filter
+- Datei- und Ordnerlöschung
+- robusterer Redirect nach Aktionen
+- URL-sichere Vorschaulinks auch bei Leerzeichen und Umlauten
+- geschützter `member`-Ordner mit zusätzlicher Bestätigung
 
-| Kategorie | Formate |
+---
+
+## Dokumente in diesem Bereich
+
+| Dokument | Schwerpunkt |
 |---|---|
-| Bilder | JPG, PNG, GIF, WebP, SVG, AVIF |
-| Dokumente | PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX |
-| Audio | MP3, WAV, OGG |
-| Video | MP4, WebM, OGV |
-| Archive | ZIP, TAR.GZ |
+| [MEDIA.md](MEDIA.md) | Funktionen, Datenmodell und Sicherheitsaspekte |
 
 ---
 
-## 2. Ansichten & Navigation
+## Verknüpfte Bereiche
 
-### Grid-Ansicht (Standard)
-- Thumbnail-Kacheln in einstellbarer Größe (klein/mittel/groß)
-- Hover-Effekt zeigt Dateiname und -größe
-- Mehrfach-Auswahl per Checkbox zum Bulk-Löschen
-
-### Listen-Ansicht
-Tabelle mit:
-
-| Spalte | Beschreibung |
+| Bereich | Bezug |
 |---|---|
+| Seiten & Beiträge | Featured Images und Einbettungen |
+| Media-Proxy | kontrollierte Auslieferung |
+| Performance | Bildgrößen, WebP und Medienoptimierung |
+| Member-Bereich | geschützter Medienordner |
+
 | Thumbnail | Kleines Vorschaubild |
 | Dateiname | Original-Dateiname mit Link zur Bearbeitungsseite |
 | Typ | MIME-Type |

@@ -1,133 +1,101 @@
 # Theme & Plugin Marketplace
 
-**Dateien:** `admin/theme-marketplace.php`, `admin/plugin-marketplace.php`
+Kurzbeschreibung: Beschreibt die Marketplace-Oberflächen für Themes und Plugins im aktuellen Admin-Bereich.
+
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ---
 
-## Übersicht
+## Überblick
 
-Der integrierte Marketplace ermöglicht das Durchsuchen, Installieren und Aktivieren von Themes und Plugins direkt aus dem Admin-Bereich.
+365CMS enthält zwei getrennte Marketplace-Oberflächen:
 
----
+- Theme Marketplace: `/admin/theme-marketplace`
+- Plugin Marketplace: `/admin/plugin-marketplace`
 
-## Theme-Marketplace
-
-**Datei:** `admin/theme-marketplace.php`
-
-### Verfügbare Themes
-
-| Theme | Zielgruppe | Hauptfarbe |
-|-------|-----------|------------|
-| **365Network** | Netzwerk-Plattformen | Blau |
-| **academy365** | Bildung & Kurse | Grün |
-| **buildbase** | Bauwesen & Handwerk | Orange |
-| **business** | Unternehmensseiten | Dunkelblau |
-| **cms-default** | Standard / Entwicklung | Grau |
-| **logilink** | Logistik & Transport | Rot |
-| **medcarepro** | Gesundheitswesen | Teal |
-| **personalflow** | HR & Recruiting | Violett |
-| **technexus** | IT & Technologie | Dunkelgrün |
-
-### Theme-Karte zeigt
-- Theme-Name und Beschreibung
-- Screenshot-Vorschau
-- Aktiv/Inaktiv Status Badge
-- **Vorschau** – Öffnet Theme-Preview im neuen Tab
-- **Aktivieren** – Setzt Theme als aktives Theme
-- **Anpassen** – Öffnet direkt den Customizer für dieses Theme
-
-### Theme installieren (extern)
-1. Theme-ZIP hochladen
-2. ZIP wird entpackt nach `/CMS/themes/`
-3. Theme erscheint automatisch in der Liste
-4. `theme.json` wird ausgelesen für Metadaten
+Beide Seiten sind Admin-only und arbeiten mit dedizierten Modulen und Views.
 
 ---
 
-## Plugin-Marketplace
+## Theme Marketplace
 
-**Datei:** `admin/plugin-marketplace.php`
+### Route und Technik
 
-### Aktueller Stand
-- Der Bereich ist derzeit bewusst als **Coming-Soon-Vorschau** umgesetzt.
-- Die Seite nutzt das zentrale Admin-Layout und verweist für produktive Aktionen aktuell auf:
-    - `Admin → Plugins` für Upload, Aktivierung und Verwaltung
-    - `Admin → Updates` für vorhandene Update-Flows
+- Route: `/admin/theme-marketplace`
+- Entry Point: `CMS/admin/theme-marketplace.php`
+- Modul: `CMS/admin/modules/themes/ThemeMarketplaceModule.php`
+- View: `CMS/admin/views/themes/marketplace.php`
 
-### Suche & Filter
-- **Volltextsuche** in Plugin-Name und Beschreibung
-- **Kategorien:** Content, Commerce, Security, SEO, Integration, Tools
+### Funktionsumfang
 
-### Verfügbare Plugins
+Die Oberfläche zeigt einen Katalog aus Theme-Metadaten und unterstützt aktuell insbesondere:
 
-| Plugin | Kategorie | Beschreibung |
-|--------|-----------|--------------|
-| **cms-experts** | Content | Experten-Verzeichnis mit Profilen und Suche |
-| **cms-companies** | Content | Firmen-Verzeichnis mit Logos und Kontakt |
-| **cms-events** | Content | Event-Management mit Kalender |
-| **cms-speakers** | Content | Referenten-Verwaltung für Konferenzen |
-| **cms-jobads** | Content | Stellenanzeigen-Portal |
-| **cms-importer** | Tools | WordPress XML-Import, JSON-Import, CSV-Import |
+- Theme-Katalog auf Basis der Registry
+- Screenshot-/Vorschaudarstellung
+- Statusanzeige für
+    - aktiv
+    - installiert
+    - Update verfügbar
+- Installation per Formularaktion `install`
 
-### Plugin installieren (aktueller Weg)
+### Wichtige Einordnung
 
-**Schritt 1 – Upload:**
-```
-Admin → Plugins → Neu installieren → ZIP hochladen
-```
-
-**Schritt 2 – Aktivierung:**
-```
-Admin → Plugins → [Plugin-Name] → Aktivieren
-```
-
-**Schritt 3 – Konfiguration:**
-Plugins zeigen nach Aktivierung ggf. eigene Menüpunkte in der Admin-Sidebar.
-
-> Hinweis: Die eigentliche Marketplace-Registry mit Suche, Lizenzprüfung und 1-Klick-Installation ist noch nicht produktiv angebunden.
-
-### Plugin-Struktur (Mindest-Anforderung)
-
-```
-plugins/
-└── mein-plugin/
-    └── mein-plugin.php   (Hauptdatei mit Plugin-Header)
-```
-
-### Plugin-Header
-
-```php
-<?php
-/**
- * Plugin Name: Mein Plugin
- * Description: Kurze Beschreibung
- * Author: Entwicklername
- * Author URI: https://example.de
- */
-```
+Der Theme Marketplace existiert, wird aber derzeit **nicht** als Standardpunkt in der Sidebar ausgegeben. Für die tägliche Arbeit ist primär die Route `/admin/themes` relevant.
 
 ---
 
-## Updates
+## Plugin Marketplace
 
-### Update-Manager – `admin/updates.php`
+### Route und Technik
 
-Zeigt verfügbare Updates für:
-- **CMS Core** – Via GitHub Release API
-- **Plugins** – Via plugin-eigene Update-URLs
-- **Themes** – Via theme.json Version-Check
+- Route: `/admin/plugin-marketplace`
+- Entry Point: `CMS/admin/plugin-marketplace.php`
+- Modul: `CMS/admin/modules/plugins/PluginMarketplaceModule.php`
+- View: `CMS/admin/views/plugins/marketplace.php`
 
-### Update-Prozess
-1. Update-Verfügbarkeit wird beim Dashboard-Aufruf geprüft (gecacht 6h)
-2. "Jetzt aktualisieren" startet den Download
-3. Backup wird vor Update automatisch erstellt
-4. Dateien werden ersetzt
-5. Datenbank-Migration läuft automatisch (falls vorhanden)
+### Funktionsumfang
+
+Aktuell dokumentierter und im View sichtbarer Umfang:
+
+- Kachelübersicht verfügbarer Plugins
+- KPI-Karten für
+    - verfügbar
+    - installiert
+    - installierbar
+- Volltextsuche im Frontend
+- Kategoriefilter
+- Installation per POST-Aktion `install`
+
+### Sidebar-Verhalten
+
+Der Plugin Marketplace wird in der Sidebar nur eingeblendet, wenn die Einstellung `marketplace_enabled` nicht deaktiviert wurde.
+
+---
+
+## Unterschied zur regulären Verwaltung
+
+Marketplace und Verwaltung sind bewusst getrennt:
+
+- `/admin/themes` und `/admin/plugins` sind die operativen Verwaltungsseiten
+- `/admin/theme-marketplace` und `/admin/plugin-marketplace` dienen dem katalogbasierten Entdecken und Installieren
+
+Für produktive Pflege bestehender Installationen bleiben daher die klassischen Verwaltungsseiten die wichtigste Referenz.
+
+---
+
+## Sicherheit
+
+Beide Marketplace-Seiten verwenden:
+
+- Admin-Zugriffskontrolle
+- CSRF-Token-Prüfung
+- Redirect nach POST
+- Session-basierte Erfolgs-/Fehlermeldungen
 
 ---
 
 ## Verwandte Seiten
 
-- [Plugins verwalten](PLUGINS.md)
-- [Themes & Design](README.md)
-- [Theme-Customizer](CUSTOMIZER.md)
+- [Themes & Design – Überblick](README.md)
+- [Plugins – Überblick](../plugins/PLUGINS.md)
+- [Updates](../system-settings/UPDATES.md)

@@ -1,133 +1,87 @@
-# Datenschutz & Privatsphäre
+# 365CMS – Datenschutz & Privatsphäre
 
+Kurzbeschreibung: Detaildokumentation der Datenschutzseite im Mitgliederbereich mit Export-, Sichtbarkeits- und Löschfunktionen.
 
-DSGVO-konformes Datenschutz-Center für Mitglieder. Ermöglicht die Verwaltung aller persönlichen Daten und rechtlicher Einwilligungen.
+Letzte Aktualisierung: 2026-03-07
 
----
-
-## Inhaltsverzeichnis
-
-1. [Überblick](#1-überblick)
-2. [Datenkategorien](#2-datenkategorien)
-3. [Daten-Export (DSGVO Art. 20)](#3-daten-export-dsgvo-art-20)
-4. [Daten löschen (DSGVO Art. 17)](#4-daten-löschen-dsgvo-art-17)
-5. [Einwilligungen verwalten](#5-einwilligungen-verwalten)
-6. [Konto endgültig löschen](#6-konto-endgültig-löschen)
-7. [Technische Details](#7-technische-details)
+**Route:** `/member/privacy`
 
 ---
 
-## 1. Überblick
+## Überblick
 
-URL: `/member/privacy`
+Die Seite kombiniert drei Funktionsgruppen:
 
-Das Datenschutz-Center erfüllt die Anforderungen der **DSGVO (EU 2016/679)**:
-- **Recht auf Auskunft** (Art. 15) – Datenkategorien einsehen
-- **Recht auf Datenübertragbarkeit** (Art. 20) – Export als JSON/CSV
-- **Recht auf Löschung** (Art. 17) – Account-Löschung beantragen
-- **Einwilligungsverwaltung** (Art. 7) – Zustimmungen verwalten
+1. Privatsphäre-Einstellungen speichern
+2. persönliche Daten exportieren
+3. Account-Löschung beantragen
 
-Alle Aktionen auf dieser Seite verwenden separate CSRF-Tokens.
+Dafür verwendet die View drei getrennte CSRF-Tokens:
 
----
-
-## 2. Datenkategorien
-
-Übersicht der gespeicherten Daten:
-
-| Kategorie | Dateninhalt | Gespeichert in |
-|---|---|---|
-| **Profildaten** | Name, E-Mail, Telefon, Bio | `cms_users`, `cms_user_meta` |
-| **Login-Daten** | Letzte Anmeldungen, IP-Adressen | `cms_login_log` |
-| **Bestellungen** | Rechnungen, Abo-History | `cms_orders`, `cms_subscriptions` |
-| **Nachrichten** | Gesendete/empfangene Direktnachrichten | `cms_messages` |
-| **Mediendaten** | Hochgeladene Dateien | `/uploads/members/{id}/` |
-| **Benachrichtigungen** | Log aller System-Notifications | `cms_notifications` |
-| **Cookies** | Session-Cookie, optionale Analytics | Browser |
+- `privacy_settings`
+- `data_export`
+- `account_delete`
 
 ---
 
-## 3. Daten-Export (DSGVO Art. 20)
+## Aktuell serverseitig gespeicherte Privatsphäre-Felder
 
-1. Klick auf **„Meine Daten exportieren"**
-2. CSRF-Token-Validierung
-3. System erstellt ZIP-Archiv mit:
-   - `profile.json` – Profildaten
-   - `orders.json` – Bestellhistorie
-   - `messages.json` – Nachrichtenverläufe
-   - `activity.json` – Login- und Aktivitätslog
-4. Download-Link per E-Mail (gültig 24 Stunden)
+Der Handler `handlePrivacyActions()` persistiert im aktuellen Stand verlässlich nur:
 
-**Wartezeit:** Asynchrone Verarbeitung, max. 15 Minuten bei großen Datensätzen.
-
-```php
-$memberService->requestDataExport($user->id);
-// Feuert: do_action('cms_member_data_export_requested', $userId)
-```
+- `profile_visibility`
+- `show_email`
+- `show_activity`
 
 ---
 
-## 4. Daten löschen (DSGVO Art. 17)
+## Wichtiger Implementierungshinweis
 
-| Kategorie | Einzeln löschbar | Hinweis |
-|---|---|---|
-| Login-Log | ✅ Ja | Sicherheitslog der letzten 90 Tage |
-| Nachrichten | ✅ Ja | Eigene Seite der Konversation |
-| Hochgeladene Dateien | ✅ Ja | Nur eigene Dateien |
-| Profildaten | ❌ Nein | Nur via Account-Löschung |
-| Bestelldaten | ❌ Nein | Aufbewahrungspflicht 10 Jahre (§ 147 AO) |
+Die View zeigt zusätzlich weitere Toggle-Felder wie:
 
----
+- `allow_contact`
+- `data_sharing`
+- `analytics_tracking`
+- `third_party_cookies`
 
-## 5. Einwilligungen verwalten
-
-| Einwilligung | Standard | Widerrufbar |
-|---|---|---|
-| **Notwendige Cookies** | ✅ Pflicht | ❌ Nein |
-| **Newsletter** | ❌ Opt-in | ✅ Ja |
-| **Analytics** | ❌ Opt-in | ✅ Ja |
-| **Profil-Sichtbarkeit** | ✅ aktiv | ✅ Ja |
-| **Mitgliederverzeichnis** | ✅ aktiv | ✅ Ja |
-
-Widerruf wird sofort wirksam. Newsletter-Widerruf sendet Abmelde-Bestätigung per E-Mail.
+Diese Felder sind in der Oberfläche sichtbar, werden im aktuellen Server-Handler aber **noch nicht vollständig übernommen**. Für technische Dokumentation ist daher entscheidend: sichtbar heißt hier nicht automatisch persistiert.
 
 ---
 
-## 6. Konto endgültig löschen
+## Datenübersicht
 
-> ⚠️ **Diese Aktion ist nicht umkehrbar!**
+Die Seite zeigt zusammenfassende Zähler aus `dataOverview`, etwa zu:
 
-**Prozess:**
-1. Klick auf „Konto löschen"
-2. Passwort zur Bestätigung eingeben
-3. Checkbox: „Ich verstehe, dass alle meine Daten gelöscht werden"
-4. 30-Tage-Übergangsfrist (Deaktivierung, nicht sofortige Löschung)
-5. Reaktivierung innerhalb der 30 Tage möglich
-6. Endgültige Löschung per E-Mail bestätigt
-
-**Was wird gelöscht:** Profildaten, Avatar, Benachrichtigungen, Login-Logs  
-**Was bleibt:** Bestelldaten (steuerliche Pflicht), publizierte Inhalte (anonymisiert)
+- Profilinformationen
+- Aktivitäten
+- Login-Verlauf
+- Einstellungen
+- Dateien und Gesamtgröße
+- Sessions
 
 ---
 
-## 7. Technische Details
+## Datenexport
 
-**CSRF-Tokens (drei separate):**
-```php
-$data = [
-    'csrfPrivacy' => Security::instance()->generateToken('privacy_settings'),
-    'csrfExport'  => Security::instance()->generateToken('data_export'),
-    'csrfDelete'  => Security::instance()->generateToken('account_delete'),
-];
-```
+Die Aktion `export_data` ruft `MemberService::exportUserData()` auf und liefert den Export derzeit direkt als JSON-Download aus.
 
-**Hooks:**
-```php
-do_action('cms_member_data_export_requested', $userId);
-do_action('cms_member_consent_updated', $userId, $consentKey, $newValue);
-do_action('cms_member_account_deletion_requested', $userId, $scheduledDate);
-```
+Die Exportdatei wird mit einem tagesbasierten Dateinamen ausgeliefert.
 
 ---
 
-*Letzte Aktualisierung: 22. Februar 2026 – Version 1.8.0*
+## Account-Löschung
+
+Die Aktion `delete_account` ruft `requestAccountDeletion()` auf und markiert den Account laut aktueller Controller-Logik für eine Löschung mit Karenzzeit.
+
+Die View enthält zusätzlich:
+
+- Passwortfeld zur Bestätigung
+- doppelte Bestätigungsdialoge im Browser
+- Warnhinweise zur Irreversibilität
+
+---
+
+## Verwandte Dokumente
+
+- [SECURITY.md](SECURITY.md)
+- [../SECURITY.md](../SECURITY.md)
+- [../../admin/legal-security/DSGVO.md](../../admin/legal-security/DSGVO.md)

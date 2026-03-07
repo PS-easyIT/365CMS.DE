@@ -1,162 +1,121 @@
-# Bestellverwaltung & Abonnements
+# Bestellungen & Zuweisung
 
-**Dateien:** `admin/orders.php`, `admin/subscription-settings.php`
+Kurzbeschreibung: Dokumentiert die aktuelle Bestellverwaltung inklusive Statuspflege und manueller Paketzuweisung.
 
----
-
-## Übersicht
-
-Die Subscription-/Bestellverwaltung steuert kostenpflichtige Mitgliedschaften, Transaktionen und Zahlungsanbieter.
+Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 ---
 
-## Bestellübersicht – `admin/orders.php`
+## Route und Technik
 
-### Dashboard-KPIs
+- Route: `/admin/orders`
+- Entry Point: `CMS/admin/orders.php`
+- Modul: `CMS/admin/modules/subscriptions/OrdersModule.php`
+- View: `CMS/admin/views/subscriptions/orders.php`
 
-| Kachel | Beschreibung |
-|--------|--------------|
-| **Umsatz (Monat)** | Gesamtumsatz im aktuellen Monat |
-| **Aktive Abos** | Anzahl aktiver Subscriptions |
-| **Neue Bestellungen** | Bestellungen der letzten 30 Tage |
-| **Ausstehend** | Offene / unbestätigte Bestellungen |
+Die Seite bündelt zwei Aufgaben:
 
-### Bestelltabelle
-
-| Spalte | Beschreibung |
-|--------|--------------|
-| **Bestell-ID** | Eindeutige Bestellnummer |
-| **Benutzer** | Besteller (Name + E-Mail) |
-| **Paket** | Abonnement-Paket-Name |
-| **Betrag** | Zahlungsbetrag in EUR |
-| **Zahlungsmethode** | Stripe, PayPal, SEPA, Überweisung |
-| **Status** | Ausstehend / Bezahlt / Fehlgeschlagen / Erstattet |
-| **Datum** | Bestellzeitpunkt |
-| **Aktionen** | Anzeigen, Rechnung, Erstatten |
+1. Bestellungen verwalten
+2. Abos/Pakete manuell Benutzern zuweisen
 
 ---
 
-## Bestellstatus
+## KPI-Bereich
 
-| Status | Farbe | Beschreibung |
-|--------|-------|--------------|
-| `pending` | 🟡 Gelb | Warte auf Zahlung |
-| `completed` | 🟢 Grün | Zahlung erfolgreich |
-| `failed` | 🔴 Rot | Zahlung fehlgeschlagen |
-| `refunded` | 🔵 Blau | Vollständig erstattet |
-| `partial_refund` | 🟠 Orange | Teilweise erstattet |
-| `cancelled` | ⚫ Grau | Storniert |
+Die Oberfläche zeigt vier Kennzahlen:
 
----
+- Gesamt
+- Offen
+- Bezahlt
+- Umsatz
 
-## Bestelldetails
-
-### Anzeigen einer Bestellung
-- Benutzerinformationen (Name, E-Mail, Adresse)
-- Paketinformationen (Name, Laufzeit, Preis)
-- Zahlungsdetails (Methode, Transaction-ID, Datum)
-- Rechnung als PDF
-- Rechnungsnummer (automatisch generiert)
-
-### Rechnung generieren
-- Automatisch beim Kauf als PDF erzeugt
-- Enthält: Rechnungsnummer, Datum, Positionen, MwSt., Gesamtbetrag
-- Logo und Firmendaten aus den [allgemeinen Einstellungen](../system-settings/README.md)
-
-### Erstattung
-1. Bestellung öffnen
-2. "Erstatten" wählen
-3. Betrag eingeben (Voll- oder Teilerstattung)
-4. Grund eingeben
-5. Bestätigen → API-Ruf an Zahlungsanbieter
+Die Werte werden direkt aus `OrdersModule::getData()` geliefert.
 
 ---
 
-## Abonnement-Einstellungen – `admin/subscription-settings.php`
+## Bestellliste
 
-### Pakete verwalten
+Die Tabelle enthält aktuell unter anderem:
 
-| Paket-Feld | Beschreibung |
-|------------|--------------|
-| **Name** | Paket-Bezeichnung |
-| **Beschreibung** | Kurztext für Checkout |
-| **Preis** | Betrag in EUR |
-| **Laufzeit** | Monatlich / Vierteljährlich / Jährlich / Einmalig |
-| **Testphase** | Kostenlose Testphase in Tagen (0 = deaktiviert) |
-| **Features** | Liste der enthaltenen Funktionen |
-| **Benutzerrolle** | Welche Rolle nach Kauf zugewiesen wird |
-| **Sichtbarkeit** | Öffentlich / Privat / Versteckt |
+- Bestellung / Paketname
+- Kunde
+- Betrag inkl. optionaler Steueranzeige
+- Status
+- Zahlungsmethode
+- Datum
+- Aktionsmenü
 
-### Standard-Pakete
+Filterbar sind Bestellungen über den Status:
 
-| Paket | Preis | Zielgruppe |
-|-------|-------|------------|
-| **Free** | 0€/Monat | Basisnutzer |
-| **Basic** | 9,90€/Monat | Mitglieder |
-| **Pro** | 29,90€/Monat | Professionelle |
-| **Business** | 79,90€/Monat | Unternehmen |
+- `pending`
+- `paid`
+- `cancelled`
+- `refunded`
+- `failed`
 
 ---
 
-## Zahlungsanbieter
+## Statusmodell
 
-| Anbieter | Status | Konfiguration |
-|---------|--------|---------------|
-| **Stripe** | Aktiv (empfohlen) | Öffentlicher + Privater Schlüssel |
-| **PayPal** | Optional | Client-ID + Secret |
-| **SEPA** | Optional | Bankdaten, Mandat-Verwaltung |
-| **Überweisung** | Optional | Bankverbindung als Info-Text |
+Im aktuellen Modul sind folgende Statuswerte zulässig:
 
-### Stripe-Konfiguration
-```
-Öffentlicher Schlüssel: pk_live_...
-Privater Schlüssel:     sk_live_...
-Webhook-URL:            https://deinedomain.de/cms/payment/webhook
-Webhook-Secret:         whsec_...
-```
+| Status | Darstellung |
+|---|---|
+| `pending` | Offen |
+| `paid` | Bezahlt |
+| `cancelled` | Storniert |
+| `refunded` | Erstattet |
+| `failed` | Fehlgeschlagen |
+
+Ältere Begriffe wie `completed` oder `partial_refund` gehören nicht zum aktuellen Kernstatusmodell dieser Seite.
 
 ---
 
-## Statistiken & Auswertungen
+## Paketzuweisung
 
-| Report | Verfügbar als |
-|--------|---------------|
-| **Umsatz-Übersicht** | Tabelle + Chart |
-| **Neue Abonnenten** | Tabelle + Chart |
-| **Abonnement-Ablauf** | Tabelle (kommende 30 Tage) |
-| **Umsatz nach Paket** | Kreisdiagramm |
-| **Zahlungsfluss** | Zeitreihen-Chart |
+Ein zentrales Merkmal der Seite ist die manuelle Paketzuweisung per Modal.
+
+Pflichtfelder:
+
+- Benutzer
+- Paket
+- Abrechnungsintervall
+
+Unterstützte Intervalle:
+
+- `monthly`
+- `yearly`
+- `lifetime`
+
+Die Zuweisung wird intern über `CMS\SubscriptionManager::instance()->assignSubscription()` ausgeführt.
 
 ---
 
-## Datenbank
+## Wichtige Datenbankbesonderheit
 
-| Tabelle | Beschreibung |
-|---------|--------------|
-| `cms_orders` | Bestellungen |
-| `cms_subscriptions` | Aktive Abonnements |
-| `cms_subscription_packages` | Paket-Definitionen |
-| `cms_payment_methods` | Gespeicherte Zahlungsmethoden |
+Die aktuelle Implementierung bevorzugt in der Bestelltabelle den Schlüssel:
 
-### `cms_orders`
+- `plan_id`
 
-| Spalte | Typ | Beschreibung |
-|--------|-----|--------------|
-| `id` | INT | Primärschlüssel |
-| `user_id` | INT | Käufer |
-| `package_id` | INT | Paket-Referenz |
-| `amount` | DECIMAL | Betrag |
-| `currency` | VARCHAR | Währung (EUR) |
-| `payment_method` | VARCHAR | stripe/paypal/sepa |
-| `transaction_id` | VARCHAR | Anbieter-Transaktions-ID |
-| `status` | ENUM | pending/completed/failed/refunded |
-| `invoice_number` | VARCHAR | Rechnungsnummer |
-| `created_at` | TIMESTAMP | Bestelldatum |
+Für ältere Installationen wird zusätzlich noch `package_id` berücksichtigt. Diese Kompatibilität ist wichtig für migrationsnahe Systeme.
+
+---
+
+## Unterstützte Aktionen
+
+Die Seite verarbeitet derzeit insbesondere:
+
+- Status ändern
+- Bestellung löschen
+- Paket aus Bestellung in die Zuweisungsmaske übernehmen
+- direkte Paketzuweisung an Benutzer
+
+Ein vollautomatisiertes Rechnungs-, Refund- oder Payment-Gateway-Backoffice ist hier nicht vollständig abgebildet.
 
 ---
 
 ## Verwandte Seiten
 
-- [Benutzerverwaltung](../users-groups/USERS.md)
-- [Mitglieder](../member/README.md)
-- [Analytics](../seo-performance/ANALYTICS.md)
+- [Abo-System](SUBSCRIPTION-SYSTEM.md)
+- [Mitgliedschaften im Member-Bereich](../../member/general/SUBSCRIPTION.md)
+- [Aboverwaltung – Überblick](../member/README.md)

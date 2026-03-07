@@ -1,26 +1,38 @@
-# Update Management
-**Datei:** `admin/updates.php`
+# 365CMS – Updates
 
-Zentrales Update-Center für das CMS.
+Kurzbeschreibung: Core-, Theme- und Plugin-Updates via GitHub-basierter Update-Logik.
 
-## Quellen
-- **Core:** Updates via GitHub API (`PS-easyIT/WordPress-365network`).
-- **Plugins/Themes:** Updates via `plugin.json` / `theme.json` Metadaten.
+Letzte Aktualisierung: 2026-03-07
 
-## Prozess
+**Admin-Route:** `/admin/updates`
 
-### 1. Check
-- Prüft regelmäßig auf neue Versionen.
-- Vergleicht lokale Version mit Remote-Tags/Releases.
+---
 
-### 2. System-Check
-- Prüft vor dem Update die Kompatibilität (PHP-Version, Extensions).
-- Warnt bei fehlenden Schreibrechten.
+## Überblick
 
-### 3. Installation
-1. Wartungsmodus aktivieren.
-2. Backup erstellen (optional aber empfohlen).
-3. Paket herunterladen und entpacken.
-4. Dateien überschreiben.
-5. Datenbank-Migrationen ausführen (`install.php` Logik).
-6. Wartungsmodus deaktivieren.
+Das Update-Center nutzt standardmäßig GitHub als Quelle.
+
+- Repository: `PS-easyIT/365CMS.DE`
+- API: `https://api.github.com`
+
+Beide Werte können über Einstellungen überschrieben werden.
+
+---
+
+## Unterstützte Bereiche
+
+| Bereich | Beschreibung |
+|---|---|
+| Core | prüft das neueste Release des Haupt-Repositorys |
+| Plugins | wertet plugin-spezifische Update-Metadaten aus |
+| Themes | prüft Theme-Metadaten gegen Remote-Stand |
+| History | zeigt protokollierte Update-Historie |
+
+---
+
+## Sicherheitsrelevante Punkte
+
+- GitHub-Abfragen laufen per cURL mit TLS-Prüfung
+- externe Update-URLs werden per SSRF-Guard abgesichert
+- Downloads können per SHA-256 verifiziert werden
+- fehlende `zip`- oder `curl`-Extensions schränken Funktionen ein
