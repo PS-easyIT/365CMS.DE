@@ -149,14 +149,9 @@ class MeridianCMSDefaultTheme
     public function outputMetaTags(): void
     {
         try {
-            $seo     = \CMS\Services\SEOService::getInstance();
-            $metaDesc = $seo->getMetaDescription();
+            $seo = \CMS\Services\SEOService::getInstance();
+            echo $seo->renderCurrentHeadTags();
         } catch (\Throwable $e) {
-            $metaDesc = '';
-        }
-
-        if ($metaDesc && trim($metaDesc) !== '') {
-            echo '<meta name="description" content="' . htmlspecialchars($metaDesc, ENT_QUOTES, 'UTF-8') . '">' . "\n";
         }
         echo '<meta name="theme-color" content="#f7f6f2">' . "\n";
     }

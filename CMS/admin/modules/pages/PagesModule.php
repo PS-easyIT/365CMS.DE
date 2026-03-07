@@ -14,6 +14,8 @@ if (!defined('ABSPATH')) {
 use CMS\Database;
 use CMS\PageManager;
 use CMS\Security;
+use CMS\Services\RedirectService;
+use CMS\Services\SEOService;
 
 class PagesModule
 {
@@ -94,6 +96,7 @@ class PagesModule
         return [
             'page'   => $page,
             'isNew'  => $page === null,
+            'seoMeta' => $id !== null ? SEOService::getInstance()->getContentMeta('page', $id) : SEOService::getInstance()->getContentMeta('page', 0),
         ];
     }
 
@@ -118,13 +121,23 @@ class PagesModule
         $featuredImage = trim($post['featured_image'] ?? '');
         $metaTitle  = trim($post['meta_title'] ?? '');
         $metaDesc   = trim($post['meta_description'] ?? '');
+        $slug       = $this->normalizeSlug($slug !== '' ? $slug : $this->pageManager->generateSlug($title));
 
         if ($title === '') {
             return ['success' => false, 'error' => 'Titel darf nicht leer sein.'];
         }
 
+        if ($slug === '') {
+            return ['success' => false, 'error' => 'Bitte einen gültigen Slug angeben.'];
+        }
+
+        if ($this->isSlugTaken($slug, $id)) {
+            return ['success' => false, 'error' => 'Dieser Slug ist bereits vergeben.'];
+        }
+
         try {
             if ($id > 0) {
+                $existing = $this->db->get_row("SELECT slug FROM {$this->prefix}pages WHERE id = ? LIMIT 1", [$id]);
                 // Update
                 $this->db->execute(
                     "UPDATE {$this->prefix}pages 
@@ -135,6 +148,8 @@ class PagesModule
                      WHERE id = ?",
                     [$title, $slug, $content, $status, $hideTitle, $featuredImage, $metaTitle, $metaDesc, $id]
                 );
+                SEOService::getInstance()->saveContentMeta('page', $id, $post);
+                $this->createSlugRedirectIfNeeded((string)($existing->slug ?? ''), $slug);
                 return ['success' => true, 'id' => $id, 'message' => 'Seite aktualisiert.'];
             } else {
                 // Create
@@ -147,6 +162,11 @@ class PagesModule
                          WHERE id = ?",
                         [$featuredImage, $metaTitle, $metaDesc, $newId]
                     );
+                    $this->db->execute(
+                        "UPDATE {$this->prefix}pages SET slug = ? WHERE id = ?",
+                        [$slug, $newId]
+                    );
+                    SEOService::getInstance()->saveContentMeta('page', $newId, $post);
                 }
                 return ['success' => true, 'id' => $newId, 'message' => 'Seite erstellt.'];
             }
@@ -219,5 +239,42 @@ class PagesModule
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler bei der Bulk-Aktion.'];
         }
+    }
+
+    private function normalizeSlug(string $slug): string
+    {
+        $slug = strtolower(trim($slug));
+        $slug = preg_replace('/[^a-z0-9\-]/', '-', $slug) ?? $slug;
+        $slug = preg_replace('/-+/', '-', $slug) ?? $slug;
+        return trim($slug, '-');
+    }
+
+    private function isSlugTaken(string $slug, int $ignoreId = 0): bool
+    {
+        $params = [$slug];
+        $sql = "SELECT COUNT(*) FROM {$this->prefix}pages WHERE slug = ?";
+
+        if ($ignoreId > 0) {
+            $sql .= " AND id != ?";
+            $params[] = $ignoreId;
+        }
+
+        return (int)$this->db->get_var($sql, $params) > 0;
+    }
+
+    private function createSlugRedirectIfNeeded(string $oldSlug, string $newSlug): void
+    {
+        $oldSlug = trim($oldSlug);
+        $newSlug = trim($newSlug);
+
+        if ($oldSlug === '' || $newSlug === '' || $oldSlug === $newSlug) {
+            return;
+        }
+
+        RedirectService::getInstance()->createAutomaticRedirect(
+            '/' . $oldSlug,
+            '/' . $newSlug,
+            'Automatisch bei Seiten-Slug-Änderung angelegt'
+        );
     }
 }

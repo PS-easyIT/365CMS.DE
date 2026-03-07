@@ -16,29 +16,24 @@ if (!defined('ABSPATH')) {
 $settings = $data['settings'] ?? [];
 $stats    = $data['stats'] ?? [];
 $widgets  = $data['widgets'] ?? [];
-
-$profileFields = [
-    'first_name'  => 'Vorname',
-    'last_name'   => 'Nachname',
-    'bio'         => 'Biografie',
-    'website'     => 'Website',
-    'phone'       => 'Telefon',
-    'company'     => 'Firma',
-    'position'    => 'Position',
-    'location'    => 'Standort',
-    'social'      => 'Social-Media-Links',
-    'avatar'      => 'Profilbild',
-];
+$profileFields = $data['profileFields'] ?? [];
+$overview = $data['overview'] ?? [];
 ?>
 
-<div class="container-xl" id="member-overview">
-    <!-- Header -->
-    <div class="page-header d-flex align-items-center mb-4">
-        <div>
-            <h2 class="page-title">Member Dashboard</h2>
-            <div class="text-muted mt-1">Mitgliederbereich konfigurieren</div>
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <div class="page-pretitle">Mitglieder &amp; Zugriff</div>
+                <h2 class="page-title">Member Dashboard</h2>
+                <div class="text-muted mt-1">Mitgliederbereich konfigurieren</div>
+            </div>
         </div>
     </div>
+</div>
+
+<div class="page-body">
+<div class="container-xl">
 
     <?php if ($alert): ?>
         <div class="alert alert-<?php echo htmlspecialchars($alert['type']); ?> alert-dismissible" role="alert">
@@ -46,6 +41,8 @@ $profileFields = [
             <a class="btn-close" data-bs-dismiss="alert" aria-label="Close"></a>
         </div>
     <?php endif; ?>
+
+    <?php require __DIR__ . '/subnav.php'; ?>
 
     <!-- KPI Cards -->
     <div class="row row-deck row-cards mb-4">
@@ -75,107 +72,95 @@ $profileFields = [
         </div>
     </div>
 
-    <form method="post">
-        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-        <input type="hidden" name="action" value="save">
-
-        <div class="row">
-            <div class="col-lg-8">
-                <!-- Allgemeine Einstellungen -->
-                <div class="card mb-3" id="member-general">
-                    <div class="card-header">
-                        <h3 class="card-title">Allgemein</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-check form-switch">
-                                <input type="checkbox" name="dashboard_enabled" class="form-check-input" value="1"
-                                       <?php echo !empty($settings['dashboard_enabled']) ? 'checked' : ''; ?>>
-                                <span class="form-check-label">Member-Dashboard aktiviert</span>
-                            </label>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-check form-switch">
-                                <input type="checkbox" name="registration_enabled" class="form-check-input" value="1"
-                                       <?php echo !empty($settings['registration_enabled']) ? 'checked' : ''; ?>>
-                                <span class="form-check-label">Registrierung erlauben</span>
-                            </label>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-check form-switch">
-                                <input type="checkbox" name="email_verification" class="form-check-input" value="1"
-                                       <?php echo !empty($settings['email_verification']) ? 'checked' : ''; ?>>
-                                <span class="form-check-label">E-Mail-Verifizierung erforderlich</span>
-                            </label>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Standard-Rolle für neue Mitglieder</label>
-                            <select name="default_role" class="form-select">
-                                <option value="member" <?php echo ($settings['default_role'] ?? 'member') === 'member' ? 'selected' : ''; ?>>Mitglied</option>
-                                <option value="author" <?php echo ($settings['default_role'] ?? '') === 'author' ? 'selected' : ''; ?>>Autor</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="form-label">Willkommensnachricht</label>
-                            <textarea name="welcome_message" class="form-control" rows="3" placeholder="Wird auf dem Dashboard des Mitglieds angezeigt..."><?php echo htmlspecialchars($settings['welcome_message'] ?? ''); ?></textarea>
-                        </div>
-                    </div>
+    <div class="row row-cards mb-4">
+        <div class="col-12">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h3 class="card-title">Aktueller Dashboard-Status</h3>
                 </div>
-
-                <!-- Dashboard Widgets -->
-                <div class="card mb-3" id="member-widgets">
-                    <div class="card-header">
-                        <h3 class="card-title">Dashboard Widgets</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <?php foreach ($widgets as $key => $label): ?>
-                                <div class="col-md-6 mb-2">
-                                    <label class="form-check">
-                                        <input type="checkbox" name="widgets[<?php echo htmlspecialchars($key); ?>]"
-                                               class="form-check-input" value="1"
-                                               <?php echo in_array($key, $settings['widgets'] ?? []) ? 'checked' : ''; ?>>
-                                        <span class="form-check-label"><?php echo htmlspecialchars($label); ?></span>
-                                    </label>
-                                </div>
-                            <?php endforeach; ?>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                            <span>Dashboard aktiv</span>
+                            <span class="badge <?php echo !empty($settings['dashboard_enabled']) ? 'bg-success-lt text-success' : 'bg-danger-lt text-danger'; ?>">
+                                <?php echo !empty($settings['dashboard_enabled']) ? 'Aktiv' : 'Deaktiviert'; ?>
+                            </span>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Profile Fields -->
-                <div class="card mb-3" id="member-profile-fields">
-                    <div class="card-header">
-                        <h3 class="card-title">Profil-Felder</h3>
-                    </div>
-                    <div class="card-body">
-                        <p class="text-muted small mb-3">Wähle aus, welche Felder im Mitglieder-Profil angezeigt werden.</p>
-                        <div class="row">
-                            <?php foreach ($profileFields as $key => $label): ?>
-                                <div class="col-md-6 mb-2">
-                                    <label class="form-check">
-                                        <input type="checkbox" name="profile_fields[<?php echo htmlspecialchars($key); ?>]"
-                                               class="form-check-input" value="1"
-                                               <?php echo in_array($key, $settings['profile_fields'] ?? []) ? 'checked' : ''; ?>>
-                                        <span class="form-check-label"><?php echo htmlspecialchars($label); ?></span>
-                                    </label>
-                                </div>
-                            <?php endforeach; ?>
+                        <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                            <span>Registrierung</span>
+                            <span class="badge <?php echo !empty($overview['registrationEnabled']) ? 'bg-success-lt text-success' : 'bg-secondary-lt text-secondary'; ?>">
+                                <?php echo !empty($overview['registrationEnabled']) ? 'Erlaubt' : 'Geschlossen'; ?>
+                            </span>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4">
-                <div class="card sticky-top" style="top: 1rem;">
-                    <div class="card-body">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-device-floppy" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2"/><path d="M12 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M14 4l0 4l-6 0l0 -4"/></svg>
-                            Einstellungen speichern
-                        </button>
+                        <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                            <span>E-Mail-Verifizierung</span>
+                            <span class="badge <?php echo !empty($overview['verificationEnabled']) ? 'bg-primary-lt text-primary' : 'bg-secondary-lt text-secondary'; ?>">
+                                <?php echo !empty($overview['verificationEnabled']) ? 'Aktiv' : 'Optional'; ?>
+                            </span>
+                        </div>
+                        <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                            <span>Sichtbare Profil-Felder</span>
+                            <strong><?php echo (int)($overview['enabledProfileFields'] ?? 0); ?></strong>
+                        </div>
+                        <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                            <span>Aktive Kern-Widgets</span>
+                            <strong><?php echo (int)($overview['enabledWidgets'] ?? 0); ?></strong>
+                        </div>
+                        <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                            <span>Eigene Info-Widgets</span>
+                            <strong><?php echo (int)($overview['customWidgetCount'] ?? 0); ?></strong>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </form>
+    </div>
+
+    <div class="row row-cards">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h3 class="card-title">Widget-Vorschau</h3>
+                </div>
+                <div class="card-body">
+                    <?php if (empty($settings['widgets'])): ?>
+                        <p class="text-muted mb-0">Aktuell sind noch keine Kern-Widgets aktiviert.</p>
+                    <?php else: ?>
+                        <div class="d-flex flex-wrap gap-2">
+                            <?php foreach ($settings['widgets'] as $widgetKey): ?>
+                                <span class="badge bg-azure-lt text-azure">
+                                    <?php echo htmlspecialchars((string)($widgets[$widgetKey]['label'] ?? $widgetKey)); ?>
+                                </span>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h3 class="card-title">Profil-Vorschau</h3>
+                </div>
+                <div class="card-body">
+                    <?php if (empty($settings['profile_fields'])): ?>
+                        <p class="text-muted mb-0">Noch keine zusätzlichen Profil-Felder ausgewählt.</p>
+                    <?php else: ?>
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            <?php foreach ($settings['profile_fields'] as $fieldKey): ?>
+                                <span class="badge bg-green-lt text-green">
+                                    <?php echo htmlspecialchars((string)($profileFields[$fieldKey]['label'] ?? $fieldKey)); ?>
+                                </span>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="text-muted small">
+                        Abo-Menüpunkt für Mitglieder: <strong><?php echo !empty($overview['subscriptionVisible']) ? 'sichtbar' : 'ausgeblendet'; ?></strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 </div>

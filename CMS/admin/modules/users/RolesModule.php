@@ -60,6 +60,8 @@ class RolesModule
             'capabilities' => $capabilities,
             'permissions'  => $permissions,
             'roleCounts'   => $roleCounts,
+            'customRoles'  => $this->getCustomRoles($roles),
+            'customCapabilities' => $this->getCustomCapabilities($capabilities),
         ];
     }
 
@@ -132,14 +134,90 @@ class RolesModule
         }
     }
 
+    public function updateRole(array $post): array
+    {
+        $currentRole = $this->sanitizeRoleSlug((string)($post['current_role'] ?? ''));
+        $newRole     = $this->sanitizeRoleSlug((string)($post['role_slug'] ?? ''));
+
+        if ($currentRole === '' || $newRole === '') {
+            return ['success' => false, 'error' => 'Bitte gültige Rollen-Slugs angeben.'];
+        }
+
+        if (in_array($currentRole, self::ROLES, true)) {
+            return ['success' => false, 'error' => 'Systemrollen können nicht umbenannt werden.'];
+        }
+
+        if ($currentRole !== $newRole && in_array($newRole, $this->getKnownRoles(), true)) {
+            return ['success' => false, 'error' => 'Die Zielrolle existiert bereits.'];
+        }
+
+        try {
+            $this->ensureTable();
+
+            $this->db->execute(
+                "UPDATE {$this->prefix}role_permissions SET role = ? WHERE role = ?",
+                [$newRole, $currentRole]
+            );
+
+            $this->db->execute(
+                "UPDATE {$this->prefix}users SET role = ? WHERE role = ?",
+                [$newRole, $currentRole]
+            );
+
+            return ['success' => true, 'message' => 'Rolle wurde aktualisiert.'];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Fehler beim Bearbeiten der Rolle: ' . $e->getMessage()];
+        }
+    }
+
+    public function deleteRole(array $post): array
+    {
+        $role         = $this->sanitizeRoleSlug((string)($post['role_slug'] ?? ''));
+        $fallbackRole = $this->sanitizeRoleSlug((string)($post['fallback_role'] ?? 'member'));
+
+        if ($role === '') {
+            return ['success' => false, 'error' => 'Ungültige Rolle.'];
+        }
+
+        if (in_array($role, self::ROLES, true)) {
+            return ['success' => false, 'error' => 'Systemrollen können nicht gelöscht werden.'];
+        }
+
+        if ($fallbackRole === '' || $fallbackRole === $role) {
+            $fallbackRole = 'member';
+        }
+
+        try {
+            $this->ensureTable();
+
+            $this->db->execute(
+                "UPDATE {$this->prefix}users SET role = ? WHERE role = ?",
+                [$fallbackRole, $role]
+            );
+
+            $this->db->execute(
+                "DELETE FROM {$this->prefix}role_permissions WHERE role = ?",
+                [$role]
+            );
+
+            return ['success' => true, 'message' => 'Rolle wurde gelöscht.'];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Fehler beim Löschen der Rolle: ' . $e->getMessage()];
+        }
+    }
+
     /**
      * Neue Berechtigung anlegen
      */
     public function addCapability(array $post): array
     {
-        $capability = $this->sanitizeCapability((string)($post['capability_slug'] ?? ''));
+        $rawCapability = (string)($post['capability_slug'] ?? '');
+        $capability    = $this->sanitizeCapability($rawCapability);
         if ($capability === '') {
-            return ['success' => false, 'error' => 'Bitte eine gültige Berechtigung im Format modul.aktion angeben.'];
+            return [
+                'success' => false,
+                'error'   => 'Bitte eine gültige Berechtigung im Format modul.aktion angeben, z. B. shop.orders.view.',
+            ];
         }
 
         $capabilities = $this->getKnownCapabilities();
@@ -160,9 +238,64 @@ class RolesModule
                 );
             }
 
-            return ['success' => true, 'message' => 'Neue Berechtigung wurde angelegt.'];
+            return ['success' => true, 'message' => 'Neue Berechtigung wurde angelegt: ' . $capability];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler beim Anlegen der Berechtigung: ' . $e->getMessage()];
+        }
+    }
+
+    public function updateCapability(array $post): array
+    {
+        $currentCapability = $this->sanitizeCapability((string)($post['current_capability'] ?? ''));
+        $newCapability     = $this->sanitizeCapability((string)($post['capability_slug'] ?? ''));
+
+        if ($currentCapability === '' || $newCapability === '') {
+            return ['success' => false, 'error' => 'Bitte gültige Berechtigungen angeben.'];
+        }
+
+        if ($this->isCoreCapability($currentCapability)) {
+            return ['success' => false, 'error' => 'Systemrechte können nicht umbenannt werden.'];
+        }
+
+        if ($currentCapability !== $newCapability && $this->capabilityExists($newCapability)) {
+            return ['success' => false, 'error' => 'Diese Ziel-Berechtigung existiert bereits.'];
+        }
+
+        try {
+            $this->ensureTable();
+            $this->db->execute(
+                "UPDATE {$this->prefix}role_permissions SET capability = ? WHERE capability = ?",
+                [$newCapability, $currentCapability]
+            );
+
+            return ['success' => true, 'message' => 'Berechtigung wurde aktualisiert.'];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Fehler beim Bearbeiten der Berechtigung: ' . $e->getMessage()];
+        }
+    }
+
+    public function deleteCapability(array $post): array
+    {
+        $capability = $this->sanitizeCapability((string)($post['capability_slug'] ?? ''));
+
+        if ($capability === '') {
+            return ['success' => false, 'error' => 'Ungültige Berechtigung.'];
+        }
+
+        if ($this->isCoreCapability($capability)) {
+            return ['success' => false, 'error' => 'Systemrechte können nicht gelöscht werden.'];
+        }
+
+        try {
+            $this->ensureTable();
+            $this->db->execute(
+                "DELETE FROM {$this->prefix}role_permissions WHERE capability = ?",
+                [$capability]
+            );
+
+            return ['success' => true, 'message' => 'Berechtigung wurde gelöscht.'];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Fehler beim Löschen der Berechtigung: ' . $e->getMessage()];
         }
     }
 
@@ -337,6 +470,53 @@ class RolesModule
         return $labels;
     }
 
+    private function getCustomRoles(array $roles): array
+    {
+        return array_values(array_filter($roles, fn (string $role): bool => !in_array($role, self::ROLES, true)));
+    }
+
+    private function getCustomCapabilities(array $capabilities): array
+    {
+        $custom = [];
+
+        foreach ($capabilities as $group => $caps) {
+            foreach ($caps as $capability) {
+                if ($this->isCoreCapability($capability)) {
+                    continue;
+                }
+
+                $custom[] = [
+                    'group' => $group,
+                    'capability' => $capability,
+                ];
+            }
+        }
+
+        return $custom;
+    }
+
+    private function capabilityExists(string $capability): bool
+    {
+        foreach ($this->getKnownCapabilities() as $caps) {
+            if (in_array($capability, $caps, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isCoreCapability(string $capability): bool
+    {
+        foreach (self::CAPABILITIES as $caps) {
+            if (in_array($capability, $caps, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function sanitizeRoleSlug(string $role): string
     {
         $role = strtolower(trim($role));
@@ -349,7 +529,16 @@ class RolesModule
     private function sanitizeCapability(string $capability): string
     {
         $capability = strtolower(trim($capability));
+
+        if ($capability === '') {
+            return '';
+        }
+
+        $capability = str_replace(['\\', '/', ':'], '.', $capability);
+        $capability = preg_replace('/\s+/', '.', $capability) ?? '';
         $capability = preg_replace('/[^a-z0-9._-]+/', '-', $capability) ?? '';
+        $capability = preg_replace('/\.{2,}/', '.', $capability) ?? '';
+        $capability = preg_replace('/-{2,}/', '-', $capability) ?? '';
         $capability = trim($capability, '.-_');
 
         if ($capability === '' || !preg_match('/^[a-z0-9_-]+(?:\.[a-z0-9_-]+)+$/', $capability)) {

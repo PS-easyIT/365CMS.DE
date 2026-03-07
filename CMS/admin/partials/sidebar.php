@@ -198,12 +198,12 @@ $menuGroups = [
         'type'     => 'group',
         'label'    => 'Member Dashboard',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 5a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v14l-4 -2l-4 2l-4 -2l-4 2z"/><path d="M8 7h8"/><path d="M8 11h8"/></svg>',
-        'slugs'    => ['member-dashboard'],
+        'slugs'    => ['member-dashboard', 'member-dashboard-general', 'member-dashboard-widgets', 'member-dashboard-profile-fields'],
         'children' => [
-            ['label' => 'Übersicht',           'slug' => 'member-dashboard', 'url' => $siteUrl . '/admin/member-dashboard#member-overview'],
-            ['label' => 'Allgemein',           'slug' => 'member-dashboard', 'url' => $siteUrl . '/admin/member-dashboard#member-general'],
-            ['label' => 'Dashboard Widgets',   'slug' => 'member-dashboard', 'url' => $siteUrl . '/admin/member-dashboard#member-widgets'],
-            ['label' => 'Profil-Felder',       'slug' => 'member-dashboard', 'url' => $siteUrl . '/admin/member-dashboard#member-profile-fields'],
+            ['label' => 'Übersicht',           'slug' => 'member-dashboard', 'url' => $siteUrl . '/admin/member-dashboard'],
+            ['label' => 'Allgemein',           'slug' => 'member-dashboard-general', 'url' => $siteUrl . '/admin/member-dashboard-general'],
+            ['label' => 'Dashboard Widgets',   'slug' => 'member-dashboard-widgets', 'url' => $siteUrl . '/admin/member-dashboard-widgets'],
+            ['label' => 'Profil-Felder',       'slug' => 'member-dashboard-profile-fields', 'url' => $siteUrl . '/admin/member-dashboard-profile-fields'],
         ],
     ],
 

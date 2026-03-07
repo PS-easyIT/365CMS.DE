@@ -12,6 +12,8 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Database;
+use CMS\Services\RedirectService;
+use CMS\Services\SEOService;
 
 class PostsModule
 {
@@ -128,6 +130,7 @@ class PostsModule
             'post'       => $post ? (array)$post : null,
             'isNew'      => $post === null,
             'categories' => array_map(fn($c) => (array)$c, $categories),
+            'seoMeta'    => $id !== null ? SEOService::getInstance()->getContentMeta('post', $id) : SEOService::getInstance()->getContentMeta('post', 0),
         ];
     }
 
@@ -151,17 +154,23 @@ class PostsModule
         $featuredImage = trim($post['featured_image'] ?? '');
         $metaTitle  = trim($post['meta_title'] ?? '');
         $metaDesc   = trim($post['meta_description'] ?? '');
+        $slug       = $this->normalizeSlug($slug !== '' ? $slug : $this->generateSlug($title));
 
         if ($title === '') {
             return ['success' => false, 'error' => 'Titel darf nicht leer sein.'];
         }
 
         if ($slug === '') {
-            $slug = $this->generateSlug($title);
+            return ['success' => false, 'error' => 'Bitte einen gültigen Slug angeben.'];
+        }
+
+        if ($this->isSlugTaken($slug, $id)) {
+            return ['success' => false, 'error' => 'Dieser Slug ist bereits vergeben.'];
         }
 
         try {
             if ($id > 0) {
+                $existing = $this->db->get_row("SELECT slug, status FROM {$this->prefix}posts WHERE id = ? LIMIT 1", [$id]);
                 $this->db->execute(
                     "UPDATE {$this->prefix}posts 
                      SET title = ?, slug = ?, content = ?, excerpt = ?, status = ?,
@@ -171,6 +180,9 @@ class PostsModule
                      WHERE id = ?",
                     [$title, $slug, $content, $excerpt, $status, $categoryId ?: null, $featuredImage, $metaTitle, $metaDesc, $id]
                 );
+
+                SEOService::getInstance()->saveContentMeta('post', $id, $post);
+                $this->createSlugRedirectIfNeeded((string)($existing->slug ?? ''), $slug, '/blog/');
                 return ['success' => true, 'id' => $id, 'message' => 'Beitrag aktualisiert.'];
             } else {
                 $this->db->execute(
@@ -180,6 +192,7 @@ class PostsModule
                     [$title, $slug, $content, $excerpt, $status, $categoryId ?: null, $featuredImage, $metaTitle, $metaDesc, $userId]
                 );
                 $newId = (int)$this->db->lastInsertId();
+                SEOService::getInstance()->saveContentMeta('post', $newId, $post);
                 return ['success' => true, 'id' => $newId, 'message' => 'Beitrag erstellt.'];
             }
         } catch (\Throwable $e) {
@@ -303,5 +316,42 @@ class PostsModule
         $slug = preg_replace('/[^a-z0-9\-]/', '-', $slug) ?? $slug;
         $slug = preg_replace('/-+/', '-', $slug) ?? $slug;
         return trim($slug, '-');
+    }
+
+    private function normalizeSlug(string $slug): string
+    {
+        $slug = mb_strtolower(trim($slug));
+        $slug = preg_replace('/[^a-z0-9\-]/', '-', $slug) ?? $slug;
+        $slug = preg_replace('/-+/', '-', $slug) ?? $slug;
+        return trim($slug, '-');
+    }
+
+    private function isSlugTaken(string $slug, int $ignoreId = 0): bool
+    {
+        $params = [$slug];
+        $sql = "SELECT COUNT(*) FROM {$this->prefix}posts WHERE slug = ?";
+
+        if ($ignoreId > 0) {
+            $sql .= " AND id != ?";
+            $params[] = $ignoreId;
+        }
+
+        return (int)$this->db->get_var($sql, $params) > 0;
+    }
+
+    private function createSlugRedirectIfNeeded(string $oldSlug, string $newSlug, string $prefix): void
+    {
+        $oldSlug = trim($oldSlug);
+        $newSlug = trim($newSlug);
+
+        if ($oldSlug === '' || $newSlug === '' || $oldSlug === $newSlug) {
+            return;
+        }
+
+        RedirectService::getInstance()->createAutomaticRedirect(
+            rtrim($prefix, '/') . '/' . $oldSlug,
+            rtrim($prefix, '/') . '/' . $newSlug,
+            'Automatisch bei Beitrags-Slug-Änderung angelegt'
+        );
     }
 }

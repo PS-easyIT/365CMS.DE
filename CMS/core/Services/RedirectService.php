@@ -250,6 +250,45 @@ final class RedirectService
         return ['success' => true, 'message' => '404-Protokoll wurde geleert.'];
     }
 
+    public function createAutomaticRedirect(string $sourcePath, string $targetUrl, string $notes = 'Automatisch bei Slug-Änderung angelegt'): array
+    {
+        $source = $this->normalizePath($sourcePath);
+        $target = trim($targetUrl);
+
+        if ($source === '' || $source === '/' || $target === '') {
+            return ['success' => false, 'error' => 'Ungültige Redirect-Daten.'];
+        }
+
+        if (!$this->isValidTarget($target)) {
+            return ['success' => false, 'error' => 'Ungültige Ziel-URL.'];
+        }
+
+        try {
+            $existing = $this->db->get_row(
+                "SELECT id FROM {$this->prefix}redirect_rules WHERE source_path = ? LIMIT 1",
+                [$source]
+            );
+
+            $payload = [
+                'source_path'   => $source,
+                'target_url'    => $target,
+                'redirect_type' => 301,
+                'is_active'     => 1,
+                'notes'         => $notes,
+            ];
+
+            if ($existing) {
+                $this->db->update('redirect_rules', $payload, ['id' => (int)$existing->id]);
+                return ['success' => true, 'message' => 'Automatische Weiterleitung aktualisiert.'];
+            }
+
+            $this->db->insert('redirect_rules', $payload);
+            return ['success' => true, 'message' => 'Automatische Weiterleitung angelegt.'];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Redirect konnte nicht angelegt werden: ' . $e->getMessage()];
+        }
+    }
+
     private function normalizePath(string $path): string
     {
         $path = trim($path);

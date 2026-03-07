@@ -34,7 +34,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $result = match ($action) {
         'save_permissions' => $module->savePermissions($_POST),
         'add_role' => $module->addRole($_POST),
+        'update_role' => $module->updateRole($_POST),
+        'delete_role' => $module->deleteRole($_POST),
         'add_capability' => $module->addCapability($_POST),
+        'update_capability' => $module->updateCapability($_POST),
+        'delete_capability' => $module->deleteCapability($_POST),
         default => ['success' => false, 'error' => 'Unbekannte Aktion.'],
     };
 
