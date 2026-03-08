@@ -316,13 +316,34 @@ class BackupService
         string $filePath,
         string $fileName
     ): bool {
+        if (MailQueueService::getInstance()->shouldQueue()) {
+            $result = MailService::getInstance()->queueWithAttachment(
+                $to,
+                $subject,
+                $message,
+                $filePath,
+                $fileName,
+                false,
+                [
+                    'X-365CMS-Test-Source' => 'backup-email',
+                ],
+                null,
+                'backup-email'
+            );
+
+            return !empty($result['success']);
+        }
+
         return MailService::getInstance()->sendWithAttachment(
             $to,
             $subject,
             $message,
             $filePath,
             $fileName,
-            false // Plain-Text-Nachricht
+            false, // Plain-Text-Nachricht
+            [
+                'X-365CMS-Test-Source' => 'backup-email',
+            ]
         );
     }
     

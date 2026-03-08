@@ -1354,5 +1354,11 @@ if ( ! isset($wpdb) || ! ($wpdb instanceof CMS_WPDB_Compat) ) {
  * @return bool
  */
 function cms_mail(string $to, string $subject, string $body, array $headers = []): bool {
+    $queue = \CMS\Services\MailQueueService::getInstance();
+    if ($queue->shouldQueue($headers)) {
+        $result = $queue->enqueue($to, $subject, $body, $headers, null, 'cms_mail_helper');
+        return !empty($result['success']);
+    }
+
     return \CMS\Services\MailService::getInstance()->send($to, $subject, $body, $headers);
 }

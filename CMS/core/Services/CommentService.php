@@ -184,6 +184,22 @@ class CommentService
             . '<strong>E-Mail:</strong> ' . htmlspecialchars($email, ENT_QUOTES) . '</p>'
             . '<p><a href="' . htmlspecialchars((string) SITE_URL, ENT_QUOTES) . '/admin/comments">➡️ Zur Moderation</a></p>';
 
-        MailService::getInstance()->send($to, $subject, $body);
+        $headers = [
+            'X-365CMS-Test-Source' => 'comments-pending-moderation',
+        ];
+
+        if (MailQueueService::getInstance()->shouldQueue($headers)) {
+            MailQueueService::getInstance()->enqueue(
+                $to,
+                $subject,
+                $body,
+                $headers,
+                null,
+                'comments-pending-moderation'
+            );
+            return;
+        }
+
+        MailService::getInstance()->send($to, $subject, $body, $headers);
     }
 }

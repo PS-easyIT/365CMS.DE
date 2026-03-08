@@ -166,6 +166,127 @@ class MailService
         }
     }
 
+    /**
+     * @return array{success:bool,error?:string,transport?:string,provider?:string,source?:string,retryable?:bool,error_category?:string,recommended_delay?:int,message_id?:string}
+     */
+    public function sendPlainDetailed(string $to, string $subject, string $plainBody, array $headers = []): array
+    {
+        try {
+            $email = $this->createBaseEmail($to, $subject, $headers)
+                ->text($plainBody);
+
+            return $this->dispatchMessageDetailed($to, $subject, $email, function () use ($to, $subject, $plainBody, $headers): bool {
+                return $this->sendMessageFallback($to, $subject, $plainBody, $headers, false);
+            }, $headers);
+        } catch (\Throwable $e) {
+            $config = $this->getEffectiveConfig();
+            $classification = $this->classifyDeliveryFailure($e->getMessage(), $config);
+            $source = $this->resolveSource($headers);
+
+            $this->logFailure($to, $subject, 'mail_exception', $e->getMessage(), $headers, $source, $config);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'transport' => (string) ($config['transport_label'] ?? 'Mailversand'),
+                'provider' => (string) ($config['provider'] ?? 'mail'),
+                'source' => $source,
+                'retryable' => (bool) ($classification['retryable'] ?? false),
+                'error_category' => (string) ($classification['category'] ?? 'temporary'),
+                'recommended_delay' => (int) ($classification['recommended_delay'] ?? 300),
+            ];
+        }
+    }
+
+    /**
+     * @return array{success:bool,error?:string,transport?:string,provider?:string,source?:string,retryable?:bool,error_category?:string,recommended_delay?:int,message_id?:string}
+     */
+    public function sendWithAttachmentDetailed(
+        string $to,
+        string $subject,
+        string $body,
+        string $attachmentPath,
+        string $attachmentName = '',
+        bool $isHtml = true,
+        array $headers = [],
+        string $attachmentMimeType = ''
+    ): array {
+        if (!file_exists($attachmentPath) || !is_readable($attachmentPath)) {
+            return [
+                'success' => false,
+                'error' => 'Anhang nicht lesbar: ' . $attachmentPath,
+                'retryable' => false,
+                'error_category' => 'configuration',
+                'recommended_delay' => 0,
+            ];
+        }
+
+        try {
+            $attachmentName = $attachmentName !== '' ? $attachmentName : basename($attachmentPath);
+            $mimeType = $attachmentMimeType !== '' ? $attachmentMimeType : (mime_content_type($attachmentPath) ?: 'application/octet-stream');
+            $email = $this->createBaseEmail($to, $subject, $headers)
+                ->attachFromPath($attachmentPath, $attachmentName, $mimeType);
+
+            if ($isHtml) {
+                $email
+                    ->html($body)
+                    ->text($this->createPlainTextBody($body));
+            } else {
+                $email->text($body);
+            }
+
+            return $this->dispatchMessageDetailed($to, $subject, $email, function () use ($to, $subject, $body, $attachmentPath, $attachmentName, $isHtml, $headers): bool {
+                return $this->sendWithAttachmentFallback($to, $subject, $body, $attachmentPath, $attachmentName, $isHtml, $headers);
+            }, $headers);
+        } catch (\Throwable $e) {
+            $config = $this->getEffectiveConfig();
+            $classification = $this->classifyDeliveryFailure($e->getMessage(), $config);
+            $source = $this->resolveSource($headers);
+
+            $this->logFailure($to, $subject, 'mail_exception', $e->getMessage(), $headers, $source, $config);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'transport' => (string) ($config['transport_label'] ?? 'Mailversand'),
+                'provider' => (string) ($config['provider'] ?? 'mail'),
+                'source' => $source,
+                'retryable' => (bool) ($classification['retryable'] ?? false),
+                'error_category' => (string) ($classification['category'] ?? 'temporary'),
+                'recommended_delay' => (int) ($classification['recommended_delay'] ?? 300),
+            ];
+        }
+    }
+
+    /**
+     * @return array{success:bool,message?:string,error?:string,id?:int}
+     */
+    public function queueWithAttachment(
+        string $to,
+        string $subject,
+        string $body,
+        string $attachmentPath,
+        string $attachmentName = '',
+        bool $isHtml = true,
+        array $headers = [],
+        ?\DateTimeInterface $availableAt = null,
+        string $source = 'system',
+        ?int $maxAttempts = null
+    ): array {
+        return MailQueueService::getInstance()->enqueueWithAttachment(
+            $to,
+            $subject,
+            $body,
+            $attachmentPath,
+            $attachmentName,
+            $isHtml,
+            $headers,
+            $availableAt,
+            $source,
+            $maxAttempts
+        );
+    }
+
     public function send(string $to, string $subject, string $htmlBody, array $headers = []): bool
     {
         $result = $this->sendDetailed($to, $subject, $htmlBody, $headers);
@@ -175,17 +296,9 @@ class MailService
 
     public function sendPlain(string $to, string $subject, string $plainBody, array $headers = []): bool
     {
-        try {
-            $email = $this->createBaseEmail($to, $subject, $headers)
-                ->text($plainBody);
+        $result = $this->sendPlainDetailed($to, $subject, $plainBody, $headers);
 
-            return $this->dispatchMessage($to, $subject, $email, function () use ($to, $subject, $plainBody, $headers): bool {
-                return $this->sendMessageFallback($to, $subject, $plainBody, $headers, false);
-            }, $headers);
-        } catch (\Throwable $e) {
-            $this->logFailure($to, $subject, 'mail_exception', $e->getMessage(), $headers);
-            return false;
-        }
+        return !empty($result['success']);
     }
 
     public function sendWithAttachment(
@@ -197,32 +310,9 @@ class MailService
         bool $isHtml = true,
         array $headers = []
     ): bool {
-        if (!file_exists($attachmentPath) || !is_readable($attachmentPath)) {
-            $this->logFailure($to, $subject, 'attachment_missing', 'Anhang nicht lesbar: ' . $attachmentPath, $headers);
-            return false;
-        }
+        $result = $this->sendWithAttachmentDetailed($to, $subject, $htmlBody, $attachmentPath, $attachmentName, $isHtml, $headers);
 
-        try {
-            $attachmentName = $attachmentName !== '' ? $attachmentName : basename($attachmentPath);
-            $mimeType = mime_content_type($attachmentPath) ?: 'application/octet-stream';
-            $email = $this->createBaseEmail($to, $subject, $headers)
-                ->attachFromPath($attachmentPath, $attachmentName, $mimeType);
-
-            if ($isHtml) {
-                $email
-                    ->html($htmlBody)
-                    ->text($this->createPlainTextBody($htmlBody));
-            } else {
-                $email->text($htmlBody);
-            }
-
-            return $this->dispatchMessage($to, $subject, $email, function () use ($to, $subject, $htmlBody, $attachmentPath, $attachmentName, $isHtml, $headers): bool {
-                return $this->sendWithAttachmentFallback($to, $subject, $htmlBody, $attachmentPath, $attachmentName, $isHtml, $headers);
-            }, $headers);
-        } catch (\Throwable $e) {
-            $this->logFailure($to, $subject, 'mail_exception', $e->getMessage(), $headers);
-            return false;
-        }
+        return !empty($result['success']);
     }
 
     private function createBaseEmail(string $to, string $subject, array $headers = []): Email

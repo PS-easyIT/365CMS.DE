@@ -13,6 +13,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\Database;
 use CMS\SchemaManager;
+use CMS\Services\MailQueueService;
 use CMS\Services\MailService;
 use CMS\Services\SystemService;
 use CMS\AuditLogger;
@@ -51,6 +52,7 @@ class SystemInfoModule
             'scheduled_tasks' => $this->getScheduledTasksData(),
             'health' => $this->getHealthChecksData(),
             'email_alerts' => $this->getMonitoringSettings(),
+            'mail_queue' => $this->getMailQueueData(),
         ];
     }
 
@@ -80,6 +82,8 @@ class SystemInfoModule
             'repair_tables' => $this->repairTables(),
             'save_monitoring_alerts' => $this->saveMonitoringSettings($post),
             'send_monitoring_test_email' => $this->sendMonitoringTestEmail($post),
+            'run_mail_queue_now' => $this->runMailQueueNow($post),
+            'release_mail_queue_stale' => $this->releaseMailQueueStale(),
             default => ['success' => false, 'error' => 'Unbekannte Aktion.'],
         };
     }
@@ -362,7 +366,10 @@ class SystemInfoModule
             $recipient = trim((string)($settings['monitor_alert_email'] ?? ''));
         }
 
-        $result = MailService::getInstance()->sendBackendTestEmail($recipient, 'monitor-email-alerts');
+        $queue = MailQueueService::getInstance();
+        $result = $queue->shouldQueue()
+            ? MailService::getInstance()->queueBackendTestEmail($recipient, 'monitor-email-alerts')
+            : MailService::getInstance()->sendBackendTestEmail($recipient, 'monitor-email-alerts');
 
         AuditLogger::instance()->log(
             AuditLogger::CAT_SYSTEM,
@@ -374,11 +381,54 @@ class SystemInfoModule
                 'recipient' => $recipient,
                 'result' => !empty($result['success']) ? 'success' : 'error',
                 'transport' => $result['transport'] ?? null,
+                'queued' => isset($result['id']),
             ],
             !empty($result['success']) ? 'info' : 'warning'
         );
 
         return $result;
+    }
+
+    private function runMailQueueNow(array $post): array
+    {
+        $limit = max(1, min(100, (int) ($post['queue_run_limit'] ?? 25)));
+        $result = MailQueueService::getInstance()->processDueJobs($limit, 'monitoring', true);
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            'system.monitoring.mail_queue_run',
+            !empty($result['success']) ? 'Mail-Queue aus der Diagnose manuell ausgeführt.' : 'Mail-Queue-Lauf aus der Diagnose fehlgeschlagen.',
+            'monitoring',
+            null,
+            $result,
+            !empty($result['success']) ? 'info' : 'warning'
+        );
+
+        return $result;
+    }
+
+    private function releaseMailQueueStale(): array
+    {
+        $queue = MailQueueService::getInstance();
+        $config = $queue->getConfiguration();
+        $released = $queue->releaseStaleProcessingJobs((int) ($config['lock_timeout_seconds'] ?? 900));
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            'system.monitoring.mail_queue_release_stale',
+            'Verwaiste Mail-Queue-Locks aus der Diagnose freigegeben.',
+            'monitoring',
+            null,
+            ['released' => $released],
+            'warning'
+        );
+
+        return [
+            'success' => true,
+            'message' => $released > 0
+                ? $released . ' verwaiste Mail-Queue-Locks wurden freigegeben.'
+                : 'Keine verwaisten Mail-Queue-Locks gefunden.',
+        ];
     }
 
     private function getMonitoringOverview(): array
@@ -513,6 +563,11 @@ class SystemInfoModule
             'passed' => $passed,
             'total' => count($checks),
         ];
+    }
+
+    private function getMailQueueData(): array
+    {
+        return MailQueueService::getInstance()->getDiagnosticsData(100);
     }
 
     private function measureResponseTime(string $url): array

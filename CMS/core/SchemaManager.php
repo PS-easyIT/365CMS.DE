@@ -26,7 +26,7 @@ if (!defined('ABSPATH')) {
 class SchemaManager
 {
     /** Flag-Datei-Version – erhöhen wenn Schema geändert wird */
-    public const SCHEMA_VERSION = 'v12';
+    public const SCHEMA_VERSION = 'v13';
 
     private Database $db;
     private string $prefix;
@@ -593,6 +593,10 @@ class SchemaManager
                 sent_at DATETIME DEFAULT NULL,
                 locked_at DATETIME DEFAULT NULL,
                 last_attempt_at DATETIME DEFAULT NULL,
+                attachment_path VARCHAR(500) DEFAULT NULL,
+                attachment_name VARCHAR(255) DEFAULT NULL,
+                attachment_mime VARCHAR(150) DEFAULT NULL,
+                error_category VARCHAR(50) DEFAULT NULL,
                 last_error TEXT DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -600,6 +604,7 @@ class SchemaManager
                 INDEX idx_status_available (status, available_at),
                 INDEX idx_available_at (available_at),
                 INDEX idx_locked_at (locked_at),
+                INDEX idx_error_category (error_category),
                 INDEX idx_created_at (created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 

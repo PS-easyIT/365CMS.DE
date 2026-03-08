@@ -52,6 +52,8 @@
 - `CMS/core/Services/SearchService.php` nutzt `TNTSearch`.
 - `CMS/core/Services/TranslationService.php` nutzt `Symfony Translation`.
 - `CMS/core/Services/MailService.php` erzeugt E-Mails mit `Symfony Mime` und sendet SMTP-Nachrichten über `Symfony Mailer` (`EsmtpTransport`).
+- `CMS/core/Services/MailQueueService.php` verarbeitet asynchronen Mailversand, Retries und Backoff über dieselbe lokale `mailer/`- und `mime/`-Kette.
+- `CMS/cron.php` ist der zentrale Cron-Einstieg für den Queue-Versand und nutzt damit ebenfalls die lokal eingebundenen Mail-Assets.
 - `CMS/core/Bootstrap.php` bindet `PhotoSwipe` ein und registriert die Kernservices.
 - `CMS/admin/partials/header.php` und `CMS/admin/partials/footer.php` binden `tabler/` direkt ein.
 - `CMS/admin/media.php`, `CMS/admin/views/media/library.php` und `CMS/assets/js/admin-media-integrations.js` binden `elFinder` und `FilePond` aktiv in die Medienverwaltung ein.

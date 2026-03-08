@@ -27,6 +27,7 @@ Der Diagnosebereich umfasst eine zentrale Einstiegsseite und sechs spezialisiert
 | `/admin/diagnose` | `views/system/diagnose.php` | Datenbank-Diagnose, Tabellenprüfung |
 | `/admin/monitor-response-time` | `views/system/response-time.php` | Antwortzeiten-Monitoring |
 | `/admin/monitor-cron-status` | `views/system/cron-status.php` | Cron-Job-Übersicht und -Status |
+| `/admin/monitor-mail-queue` | `views/system/mail-queue.php` | Queue-Historie, Retry-Gründe und stale Locks |
 | `/admin/monitor-disk-usage` | `views/system/disk-usage.php` | Speicher- und Verzeichnisnutzung |
 | `/admin/monitor-scheduled-tasks` | `views/system/scheduled-tasks.php` | Geplante Aufgaben und deren Ausführungsstatus |
 | `/admin/monitor-health-check` | `views/system/health-check.php` | Allgemeine Systemgesundheitsprüfungen |
@@ -55,6 +56,10 @@ Misst und protokolliert Antwortzeiten des Systems, um Engpässe frühzeitig zu e
 Zeigt den aktuellen Status von Cron-Jobs, letzte Ausführung und eventuelle Fehler.
 
 Zusätzlich wird geprüft, ob eine zentrale Datei `CMS/cron.php` vorhanden ist. Darüber kann u. a. der Hook `cms_cron_mail_queue` für die Mail-Queue-Verarbeitung per Web-Cron oder CLI ausgelöst werden.
+
+### Mail-Queue
+
+Zeigt die aktuelle Queue-Auslastung, die letzten Jobs, Fehlerkategorien (z. B. `oauth`, `throttle`, `recipient`) und erkennt stale Locks für hängengebliebene `processing`-Jobs.
 
 ### Disk-Usage
 
