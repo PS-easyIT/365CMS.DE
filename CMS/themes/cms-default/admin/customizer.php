@@ -581,6 +581,8 @@ if (!isset($config[$activeTab])) {
     $activeTab = 'header';
 }
 
+$customizerCsrfToken = Security::instance()->generateToken('theme_customizer');
+
 // 2. Speichern verarbeiten
 $success = null;
 $error   = null;
@@ -745,7 +747,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         <form method="POST" action="?tab=<?php echo htmlspecialchars($activeTab); ?>" enctype="multipart/form-data">
             <input type="hidden" name="action" value="save_theme_options">
             <input type="hidden" name="active_section" value="<?php echo htmlspecialchars($activeTab); ?>">
-            <input type="hidden" name="csrf_token" value="<?php echo Security::instance()->generateToken('theme_customizer'); ?>">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($customizerCsrfToken); ?>">
 
             <div class="customizer-layout">
                 <!-- Sidebar Tabs -->
@@ -855,7 +857,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         <form id="reset-form" method="POST" action="?tab=<?php echo htmlspecialchars($activeTab); ?>" style="display:none;">
             <input type="hidden" name="action" value="reset_theme_tab">
             <input type="hidden" name="active_section" value="<?php echo htmlspecialchars($activeTab); ?>">
-            <input type="hidden" name="csrf_token" value="<?php echo Security::instance()->generateToken('theme_customizer'); ?>">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($customizerCsrfToken); ?>">
         </form>
         <?php endif; ?>
 
