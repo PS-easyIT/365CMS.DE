@@ -24,16 +24,6 @@
 
 ---
 
-## Release-Fokus 2.3.x
-
-- **SEO-Center** mit getrennten Unterseiten für Dashboard, Audit, Meta, Social, Schema, Sitemap, Technik und Redirects
-- **Performance-Center** mit separaten Bereichen für Cache, Medien, Datenbank, Einstellungen und Sessions
-- **Monitoring-Unterseiten** für Response-Time, Cron-Status, Disk-Usage, Scheduled Tasks, Health-Checks und E-Mail-Alerts
-- **Legal-/Privacy-Refactoring** mit Sammelroute `/admin/data-requests`
-- **Medien- und Font-Workflows** mit WebP-Massenkonvertierung, Self-Hosting und Audit-Logging
-
----
-
 ## Dokumentationsbereiche
 
 ### Core

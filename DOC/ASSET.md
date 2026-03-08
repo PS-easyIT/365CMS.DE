@@ -42,8 +42,6 @@ Gesamtliste aller 24 Bibliotheken (aktiv) plus 1 Referenz-Bundle. Quelle: `CMS/a
 | misc intern | – | css/js/images | `css/`, `js/`, `images/` | lokal | Intern |
 | referenz: msgraph | – | SDK-Notizen | `msgraph/` | lokal | Referenz, nicht aktiv |
 
-> 🔴 **Breaking Change:** Produktiver Autoload erfolgt ausschließlich über `CMS/assets/autoload.php`. `ASSETS/` ist Staging und wird nicht deployt.
-
 ---
 
 ## CSS-Architektur <!-- UPDATED: 2026-03-08 -->
