@@ -12,9 +12,11 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Database;
+use CMS\Hooks;
 use CMS\PageManager;
 use CMS\Security;
 use CMS\Services\RedirectService;
+use CMS\Services\ContentLocalizationService;
 use CMS\Services\SEOService;
 
 class PagesModule
@@ -117,6 +119,8 @@ class PagesModule
             ? $post['status']
             : $defaultStatus;
         $content    = $post['content'] ?? '';
+        $titleEn    = trim($post['title_en'] ?? '');
+        $contentEn  = $post['content_en'] ?? '';
         $hideTitle  = (int)($post['hide_title'] ?? 0);
         $featuredImage = trim($post['featured_image'] ?? '');
         $metaTitle  = trim($post['meta_title'] ?? '');
@@ -135,38 +139,74 @@ class PagesModule
             return ['success' => false, 'error' => 'Dieser Slug ist bereits vergeben.'];
         }
 
+        $savePayload = [
+            'title' => $title,
+            'title_en' => $titleEn,
+            'slug' => $slug,
+            'status' => $status,
+            'content' => $content,
+            'content_en' => $contentEn,
+            'hide_title' => $hideTitle,
+            'featured_image' => $featuredImage,
+            'meta_title' => $metaTitle,
+            'meta_description' => $metaDesc,
+        ];
+
+        $filteredPayload = Hooks::applyFilters('cms_prepare_page_save_payload', $savePayload, $post, $id, $userId);
+        if (is_array($filteredPayload)) {
+            $savePayload = array_merge($savePayload, $filteredPayload);
+        }
+
         try {
             if ($id > 0) {
                 $existing = $this->db->get_row("SELECT slug FROM {$this->prefix}pages WHERE id = ? LIMIT 1", [$id]);
                 // Update
                 $this->db->execute(
                     "UPDATE {$this->prefix}pages 
-                     SET title = ?, slug = ?, content = ?, status = ?,
+                     SET title = ?, title_en = ?, slug = ?, content = ?, content_en = ?, status = ?,
                          hide_title = ?, featured_image = ?,
                          meta_title = ?, meta_description = ?,
                          updated_at = NOW()
                      WHERE id = ?",
-                    [$title, $slug, $content, $status, $hideTitle, $featuredImage, $metaTitle, $metaDesc, $id]
+                    [
+                        (string)$savePayload['title'],
+                        (string)($savePayload['title_en'] ?? ''),
+                        (string)$savePayload['slug'],
+                        (string)$savePayload['content'],
+                        (string)($savePayload['content_en'] ?? ''),
+                        (string)$savePayload['status'],
+                        (int)$savePayload['hide_title'],
+                        (string)$savePayload['featured_image'],
+                        (string)$savePayload['meta_title'],
+                        (string)$savePayload['meta_description'],
+                        $id,
+                    ]
                 );
                 SEOService::getInstance()->saveContentMeta('page', $id, $post);
                 $this->createSlugRedirectIfNeeded((string)($existing->slug ?? ''), $slug);
+                Hooks::doAction('cms_after_page_save', $id, $savePayload, $post);
                 return ['success' => true, 'id' => $id, 'message' => 'Seite aktualisiert.'];
             } else {
                 // Create
-                $newId = $this->pageManager->createPage($title, $content, $status, $userId, $hideTitle);
+                $newId = $this->pageManager->createPage((string)$savePayload['title'], (string)$savePayload['content'], (string)$savePayload['status'], $userId, (int)$savePayload['hide_title']);
                 if ($newId > 0) {
                     // Update meta fields
                     $this->db->execute(
                         "UPDATE {$this->prefix}pages 
-                         SET featured_image = ?, meta_title = ?, meta_description = ?
+                         SET slug = ?, title_en = ?, content_en = ?, featured_image = ?, meta_title = ?, meta_description = ?
                          WHERE id = ?",
-                        [$featuredImage, $metaTitle, $metaDesc, $newId]
-                    );
-                    $this->db->execute(
-                        "UPDATE {$this->prefix}pages SET slug = ? WHERE id = ?",
-                        [$slug, $newId]
+                        [
+                            (string)$savePayload['slug'],
+                            (string)($savePayload['title_en'] ?? ''),
+                            (string)($savePayload['content_en'] ?? ''),
+                            (string)$savePayload['featured_image'],
+                            (string)$savePayload['meta_title'],
+                            (string)$savePayload['meta_description'],
+                            $newId,
+                        ]
                     );
                     SEOService::getInstance()->saveContentMeta('page', $newId, $post);
+                    Hooks::doAction('cms_after_page_save', $newId, $savePayload, $post);
                 }
                 return ['success' => true, 'id' => $newId, 'message' => 'Seite erstellt.'];
             }
@@ -276,5 +316,13 @@ class PagesModule
             '/' . $newSlug,
             'Automatisch bei Seiten-Slug-Änderung angelegt'
         );
+
+        foreach (ContentLocalizationService::getInstance()->getContentLocales() as $locale) {
+            RedirectService::getInstance()->createAutomaticRedirect(
+                '/' . $oldSlug . '/' . $locale,
+                '/' . $newSlug . '/' . $locale,
+                'Automatisch bei lokalisiertem Seiten-Slug angelegt'
+            );
+        }
     }
 }

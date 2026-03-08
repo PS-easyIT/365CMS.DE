@@ -45,44 +45,20 @@ class PageManager
     private function ensureColumns(): void
     {
         try {
-            $stmt = $this->db->query(
-                "SHOW COLUMNS FROM {$this->prefix}pages LIKE 'hide_title'"
-            );
-            if (!$stmt->fetch()) {
-                $this->db->query(
-                    "ALTER TABLE {$this->prefix}pages 
-                     ADD COLUMN hide_title TINYINT(1) NOT NULL DEFAULT 0"
-                );
-            }
+            $columns = [
+                'hide_title' => "ALTER TABLE {$this->prefix}pages ADD COLUMN hide_title TINYINT(1) NOT NULL DEFAULT 0",
+                'featured_image' => "ALTER TABLE {$this->prefix}pages ADD COLUMN featured_image VARCHAR(500) DEFAULT NULL AFTER hide_title",
+                'meta_title' => "ALTER TABLE {$this->prefix}pages ADD COLUMN meta_title VARCHAR(255) DEFAULT NULL AFTER featured_image",
+                'meta_description' => "ALTER TABLE {$this->prefix}pages ADD COLUMN meta_description TEXT DEFAULT NULL AFTER meta_title",
+                'title_en' => "ALTER TABLE {$this->prefix}pages ADD COLUMN title_en VARCHAR(255) DEFAULT NULL AFTER title",
+                'content_en' => "ALTER TABLE {$this->prefix}pages ADD COLUMN content_en LONGTEXT DEFAULT NULL AFTER content",
+            ];
 
-            $stmt2 = $this->db->query(
-                "SHOW COLUMNS FROM {$this->prefix}pages LIKE 'featured_image'"
-            );
-            if (!$stmt2->fetch()) {
-                $this->db->query(
-                    "ALTER TABLE {$this->prefix}pages 
-                     ADD COLUMN featured_image VARCHAR(500) DEFAULT NULL AFTER hide_title"
-                );
-            }
-
-            $stmt3 = $this->db->query(
-                "SHOW COLUMNS FROM {$this->prefix}pages LIKE 'meta_title'"
-            );
-            if (!$stmt3->fetch()) {
-                $this->db->query(
-                    "ALTER TABLE {$this->prefix}pages 
-                     ADD COLUMN meta_title VARCHAR(255) DEFAULT NULL AFTER featured_image"
-                );
-            }
-
-            $stmt4 = $this->db->query(
-                "SHOW COLUMNS FROM {$this->prefix}pages LIKE 'meta_description'"
-            );
-            if (!$stmt4->fetch()) {
-                $this->db->query(
-                    "ALTER TABLE {$this->prefix}pages 
-                     ADD COLUMN meta_description TEXT DEFAULT NULL AFTER meta_title"
-                );
+            foreach ($columns as $column => $sql) {
+                $stmt = $this->db->query("SHOW COLUMNS FROM {$this->prefix}pages LIKE '{$column}'");
+                if (!$stmt->fetch()) {
+                    $this->db->query($sql);
+                }
             }
         } catch (\Throwable $e) {
             error_log('PageManager::ensureColumns() warning: ' . $e->getMessage());
@@ -118,7 +94,7 @@ class PageManager
         $values = [];
         
         foreach ($data as $key => $value) {
-            if (in_array($key, ['title', 'content', 'status', 'slug', 'hide_title', 'featured_image', 'meta_title', 'meta_description'], true)) {
+            if (in_array($key, ['title', 'title_en', 'content', 'content_en', 'status', 'slug', 'hide_title', 'featured_image', 'meta_title', 'meta_description'], true)) {
                 $fields[] = "$key = ?";
                 $values[] = $value;
             }
@@ -197,8 +173,8 @@ class PageManager
     public function search(string $query): array
     {
         $term = '%' . $query . '%';
-        $stmt = $this->db->prepare("SELECT * FROM {$this->prefix}pages WHERE (title LIKE ? OR content LIKE ?) AND status = 'published' ORDER BY created_at DESC LIMIT 20");
-        $stmt->execute([$term, $term]);
+        $stmt = $this->db->prepare("SELECT * FROM {$this->prefix}pages WHERE (title LIKE ? OR content LIKE ? OR title_en LIKE ? OR content_en LIKE ?) AND status = 'published' ORDER BY created_at DESC LIMIT 20");
+        $stmt->execute([$term, $term, $term, $term]);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 

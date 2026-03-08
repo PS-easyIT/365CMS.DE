@@ -12,6 +12,8 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Database;
+use CMS\Hooks;
+use CMS\Services\ContentLocalizationService;
 use CMS\Services\RedirectService;
 use CMS\Services\SEOService;
 
@@ -34,6 +36,9 @@ class PostsModule
     {
         $columns = [
             'featured_image' => "ALTER TABLE {$this->prefix}posts ADD COLUMN featured_image VARCHAR(500) DEFAULT NULL AFTER excerpt",
+            'title_en' => "ALTER TABLE {$this->prefix}posts ADD COLUMN title_en VARCHAR(255) DEFAULT NULL AFTER title",
+            'content_en' => "ALTER TABLE {$this->prefix}posts ADD COLUMN content_en LONGTEXT DEFAULT NULL AFTER content",
+            'excerpt_en' => "ALTER TABLE {$this->prefix}posts ADD COLUMN excerpt_en TEXT DEFAULT NULL AFTER excerpt",
             'meta_title' => "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_title VARCHAR(255) DEFAULT NULL AFTER allow_comments",
             'meta_description' => "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_description TEXT DEFAULT NULL AFTER meta_title",
         ];
@@ -149,7 +154,10 @@ class PostsModule
 
         $status     = in_array($post['status'] ?? '', ['published', 'draft'], true) ? $post['status'] : $defaultStatus;
         $content    = $post['content'] ?? '';
+        $titleEn    = trim($post['title_en'] ?? '');
+        $contentEn  = $post['content_en'] ?? '';
         $excerpt    = trim($post['excerpt'] ?? '');
+        $excerptEn  = trim($post['excerpt_en'] ?? '');
         $categoryId = (int)($post['category_id'] ?? 0);
         $featuredImage = trim($post['featured_image'] ?? '');
         $metaTitle  = trim($post['meta_title'] ?? '');
@@ -168,31 +176,81 @@ class PostsModule
             return ['success' => false, 'error' => 'Dieser Slug ist bereits vergeben.'];
         }
 
+        $savePayload = [
+            'title' => $title,
+            'title_en' => $titleEn,
+            'slug' => $slug,
+            'content' => $content,
+            'content_en' => $contentEn,
+            'excerpt' => $excerpt,
+            'excerpt_en' => $excerptEn,
+            'status' => $status,
+            'category_id' => $categoryId ?: null,
+            'featured_image' => $featuredImage,
+            'meta_title' => $metaTitle,
+            'meta_description' => $metaDesc,
+        ];
+
+        $filteredPayload = Hooks::applyFilters('cms_prepare_post_save_payload', $savePayload, $post, $id, $userId);
+        if (is_array($filteredPayload)) {
+            $savePayload = array_merge($savePayload, $filteredPayload);
+        }
+
         try {
             if ($id > 0) {
                 $existing = $this->db->get_row("SELECT slug, status FROM {$this->prefix}posts WHERE id = ? LIMIT 1", [$id]);
                 $this->db->execute(
                     "UPDATE {$this->prefix}posts 
-                     SET title = ?, slug = ?, content = ?, excerpt = ?, status = ?,
+                     SET title = ?, title_en = ?, slug = ?, content = ?, content_en = ?, excerpt = ?, excerpt_en = ?, status = ?,
                          category_id = ?, featured_image = ?,
                          meta_title = ?, meta_description = ?,
                          updated_at = NOW()
                      WHERE id = ?",
-                    [$title, $slug, $content, $excerpt, $status, $categoryId ?: null, $featuredImage, $metaTitle, $metaDesc, $id]
+                    [
+                        (string)$savePayload['title'],
+                        (string)($savePayload['title_en'] ?? ''),
+                        (string)$savePayload['slug'],
+                        (string)$savePayload['content'],
+                        (string)($savePayload['content_en'] ?? ''),
+                        (string)$savePayload['excerpt'],
+                        (string)($savePayload['excerpt_en'] ?? ''),
+                        (string)$savePayload['status'],
+                        $savePayload['category_id'],
+                        (string)$savePayload['featured_image'],
+                        (string)$savePayload['meta_title'],
+                        (string)$savePayload['meta_description'],
+                        $id,
+                    ]
                 );
 
                 SEOService::getInstance()->saveContentMeta('post', $id, $post);
                 $this->createSlugRedirectIfNeeded((string)($existing->slug ?? ''), $slug, '/blog/');
+                Hooks::doAction('cms_after_post_save', $id, $savePayload, $post);
                 return ['success' => true, 'id' => $id, 'message' => 'Beitrag aktualisiert.'];
             } else {
                 $this->db->execute(
                     "INSERT INTO {$this->prefix}posts
-                     (title, slug, content, excerpt, status, category_id, featured_image, meta_title, meta_description, author_id, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
-                    [$title, $slug, $content, $excerpt, $status, $categoryId ?: null, $featuredImage, $metaTitle, $metaDesc, $userId]
+                     (title, title_en, slug, content, content_en, excerpt, excerpt_en, status, category_id, featured_image, meta_title, meta_description, author_id, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
+                    [
+                        (string)$savePayload['title'],
+                        (string)($savePayload['title_en'] ?? ''),
+                        (string)$savePayload['slug'],
+                        (string)$savePayload['content'],
+                        (string)($savePayload['content_en'] ?? ''),
+                        (string)$savePayload['excerpt'],
+                        (string)($savePayload['excerpt_en'] ?? ''),
+                        (string)$savePayload['status'],
+                        $savePayload['category_id'],
+                        (string)$savePayload['featured_image'],
+                        (string)$savePayload['meta_title'],
+                        (string)$savePayload['meta_description'],
+                        $userId,
+                    ]
                 );
                 $newId = (int)$this->db->lastInsertId();
                 SEOService::getInstance()->saveContentMeta('post', $newId, $post);
+                Hooks::doAction('cms_after_post_save', $newId, $savePayload, $post);
                 return ['success' => true, 'id' => $newId, 'message' => 'Beitrag erstellt.'];
             }
         } catch (\Throwable $e) {
@@ -353,5 +411,13 @@ class PostsModule
             rtrim($prefix, '/') . '/' . $newSlug,
             'Automatisch bei Beitrags-Slug-Änderung angelegt'
         );
+
+        foreach (ContentLocalizationService::getInstance()->getContentLocales() as $locale) {
+            RedirectService::getInstance()->createAutomaticRedirect(
+                rtrim($prefix, '/') . '/' . $oldSlug . '/' . $locale,
+                rtrim($prefix, '/') . '/' . $newSlug . '/' . $locale,
+                'Automatisch bei lokalisiertem Beitrags-Slug angelegt'
+            );
+        }
     }
 }
