@@ -125,6 +125,14 @@ final class SiteTableService
         'linux' => ['layout' => 'compact', 'image_position' => 'top', 'image_fit' => 'contain', 'image_ratio' => 'square', 'meta_layout' => 'stacked'],
     ];
 
+    private const DEFAULT_META_LABELS = [
+        'audience' => 'Zielgruppe',
+        'owner' => 'Verantwortlich',
+        'update_cycle' => 'Update-Zyklus',
+        'focus' => 'Fokus',
+        'kpi' => 'KPI',
+    ];
+
     public static function getInstance(): self
     {
         return self::$instance ??= new self();
@@ -409,17 +417,24 @@ final class SiteTableService
                 }] ?? '');
             }
         }
-        $metaItems = $this->buildHubMetaItems($metaSettings, $template);
+        $metaItems = $this->buildHubMetaItems($metaSettings, $template, $templateProfile);
         $cardDesign = is_array($templateProfile['card_design'] ?? null) ? $templateProfile['card_design'] : [];
+        $cardSchema = is_array($templateProfile['card_schema'] ?? null) ? $templateProfile['card_schema'] : [];
+        $colorSettings = is_array($templateProfile['colors'] ?? null) ? $templateProfile['colors'] : [];
         $cardLayout = $this->normalizeOption((string)($cardDesign['layout'] ?? 'standard'), ['standard', 'feature', 'compact'], 'standard');
         $cardImagePosition = $this->normalizeOption((string)($cardDesign['image_position'] ?? 'top'), ['top', 'left', 'right'], 'top');
         $cardImageFit = $this->normalizeOption((string)($cardDesign['image_fit'] ?? 'cover'), ['cover', 'contain'], 'cover');
         $cardImageRatio = $this->normalizeOption((string)($cardDesign['image_ratio'] ?? 'wide'), ['wide', 'square', 'portrait'], 'wide');
         $cardMetaLayout = $this->normalizeOption((string)($cardDesign['meta_layout'] ?? 'split'), ['split', 'stacked'], 'split');
+        $cardColumns = max(1, min(3, (int)($cardSchema['columns'] ?? 2)));
+        $styleVariables = $this->buildHubStyleVariables($colorSettings);
 
         $html = '<section class="cms-hub-site cms-hub-site--' . htmlspecialchars($template, ENT_QUOTES, 'UTF-8') . '"';
         if ($pageSlug !== '') {
             $html .= ' data-hub-slug="' . htmlspecialchars($pageSlug, ENT_QUOTES, 'UTF-8') . '"';
+        }
+        if ($styleVariables !== '') {
+            $html .= ' style="' . htmlspecialchars($styleVariables, ENT_QUOTES, 'UTF-8') . '"';
         }
         $html .= '>';
         $html .= '<div class="cms-hub-site__hero">';
@@ -469,7 +484,7 @@ final class SiteTableService
         }
 
         if ($cards !== []) {
-            $html .= '<div class="cms-hub-site__grid cms-hub-site__grid--' . htmlspecialchars($cardLayout, ENT_QUOTES, 'UTF-8') . '">';
+            $html .= '<div class="cms-hub-site__grid cms-hub-site__grid--' . htmlspecialchars($cardLayout, ENT_QUOTES, 'UTF-8') . ' cms-hub-site__grid--cols-' . $cardColumns . '">';
             foreach ($cards as $card) {
                 $url = htmlspecialchars((string)$card['url'], ENT_QUOTES, 'UTF-8');
                 $title = htmlspecialchars((string)$card['title'], ENT_QUOTES, 'UTF-8');
@@ -478,6 +493,8 @@ final class SiteTableService
                 $meta = htmlspecialchars((string)$card['meta'], ENT_QUOTES, 'UTF-8');
                 $metaLeft = htmlspecialchars((string)($card['meta_left'] ?? ''), ENT_QUOTES, 'UTF-8');
                 $metaRight = htmlspecialchars((string)($card['meta_right'] ?? ''), ENT_QUOTES, 'UTF-8');
+                $buttonText = htmlspecialchars((string)($card['button_text'] ?? ''), ENT_QUOTES, 'UTF-8');
+                $buttonLink = trim((string)($card['button_link'] ?? ''));
                 $imageUrl = trim((string)($card['image_url'] ?? ''));
                 $imageAlt = htmlspecialchars((string)($card['image_alt'] ?? $card['title'] ?? ''), ENT_QUOTES, 'UTF-8');
                 $hasImage = $imageUrl !== '';
@@ -492,17 +509,29 @@ final class SiteTableService
                 $cardArticleClass .= ' cms-hub-site__card--meta-' . htmlspecialchars($cardMetaLayout, ENT_QUOTES, 'UTF-8');
 
                 $html .= '<article class="' . $cardArticleClass . '">';
-                $html .= '<a class="' . $cardLinkClass . '" href="' . $url . '">';
+                $html .= '<div class="' . $cardLinkClass . '">';
                 if ($hasImage) {
+                    if ($url !== '#') {
+                        $html .= '<a class="cms-hub-site__card-media-link" href="' . $url . '">';
+                    }
                     $html .= '<div class="cms-hub-site__card-media cms-hub-site__card-media--' . htmlspecialchars($cardImageRatio, ENT_QUOTES, 'UTF-8') . ' cms-hub-site__card-media--fit-' . htmlspecialchars($cardImageFit, ENT_QUOTES, 'UTF-8') . '">';
                     $html .= '<img src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . $imageAlt . '" loading="lazy">';
                     $html .= '</div>';
+                    if ($url !== '#') {
+                        $html .= '</a>';
+                    }
                 }
                 $html .= '<div class="cms-hub-site__card-content">';
                 if ($badge !== '') {
                     $html .= '<span class="cms-hub-site__card-badge">' . $badge . '</span>';
                 }
-                $html .= '<h3 class="cms-hub-site__card-title">' . $title . '</h3>';
+                $html .= '<h3 class="cms-hub-site__card-title">';
+                if ($url !== '#') {
+                    $html .= '<a class="cms-hub-site__card-title-link" href="' . $url . '">' . $title . '</a>';
+                } else {
+                    $html .= $title;
+                }
+                $html .= '</h3>';
                 if ($summary !== '') {
                     $html .= '<p class="cms-hub-site__card-summary">' . nl2br($summary) . '</p>';
                 }
@@ -517,10 +546,20 @@ final class SiteTableService
                     $html .= '<span class="cms-hub-site__card-meta cms-hub-site__card-meta--right">' . $metaRight . '</span>';
                 }
                 $html .= '</div>';
-                $html .= '<span class="cms-hub-site__card-arrow" aria-hidden="true">→</span>';
+                if ($url !== '#') {
+                    $html .= '<span class="cms-hub-site__card-arrow" aria-hidden="true">→</span>';
+                }
+                $html .= '</div>';
+                if ($buttonText !== '') {
+                    $buttonHref = $buttonLink !== '' ? htmlspecialchars($buttonLink, ENT_QUOTES, 'UTF-8') : $url;
+                    if ($buttonHref !== '#') {
+                        $html .= '<a class="cms-hub-site__card-button" href="' . $buttonHref . '">' . $buttonText . '</a>';
+                    } else {
+                        $html .= '<span class="cms-hub-site__card-button">' . $buttonText . '</span>';
+                    }
+                }
                 $html .= '</div>';
                 $html .= '</div>';
-                $html .= '</a>';
                 $html .= '</article>';
             }
             $html .= '</div>';
@@ -556,6 +595,8 @@ final class SiteTableService
                 'meta_right' => mb_substr(trim((string)($row['meta_right'] ?? $row['metaRight'] ?? $row['Meta rechts'] ?? '')), 0, 120),
                 'image_url' => mb_substr(trim((string)($row['image_url'] ?? $row['imageUrl'] ?? $row['Bild'] ?? '')), 0, 500),
                 'image_alt' => mb_substr(trim((string)($row['image_alt'] ?? $row['imageAlt'] ?? '')), 0, 160),
+                'button_text' => mb_substr(trim((string)($row['button_text'] ?? $row['buttonText'] ?? $row['Button-Text'] ?? '')), 0, 80),
+                'button_link' => mb_substr(trim((string)($row['button_link'] ?? $row['buttonLink'] ?? $row['Button-Link'] ?? '')), 0, 500),
             ];
         }
 
@@ -621,9 +662,13 @@ final class SiteTableService
         return $profiles['general-it'] ?? [
             'base_template' => 'general-it',
             'meta' => [],
+            'meta_labels' => self::DEFAULT_META_LABELS,
             'links' => self::TEMPLATE_PLACEHOLDERS['general-it']['links'],
             'sections' => self::TEMPLATE_PLACEHOLDERS['general-it']['sections'],
+            'colors' => $this->getDefaultTemplateColors('general-it'),
+            'card_schema' => $this->getDefaultCardSchema(),
             'card_design' => self::DEFAULT_TEMPLATE_CARD_DESIGN['general-it'],
+            'starter_cards' => [],
         ];
     }
 
@@ -634,9 +679,13 @@ final class SiteTableService
             $defaults[$key] = [
                 'base_template' => $key,
                 'meta' => [],
+                'meta_labels' => self::DEFAULT_META_LABELS,
                 'links' => $placeholder['links'] ?? [],
                 'sections' => $placeholder['sections'] ?? [],
+                'colors' => $this->getDefaultTemplateColors($key),
+                'card_schema' => $this->getDefaultCardSchema(),
                 'card_design' => self::DEFAULT_TEMPLATE_CARD_DESIGN[$key] ?? self::DEFAULT_TEMPLATE_CARD_DESIGN['general-it'],
+                'starter_cards' => [],
             ];
         }
 
@@ -662,9 +711,13 @@ final class SiteTableService
             $defaults[$key] = [
                 'base_template' => in_array($baseTemplate, array_keys(self::TEMPLATE_PLACEHOLDERS), true) ? $baseTemplate : 'general-it',
                 'meta' => is_array($profile['meta'] ?? null) ? $profile['meta'] : [],
+                'meta_labels' => is_array($profile['meta_labels'] ?? null) ? array_merge(self::DEFAULT_META_LABELS, $profile['meta_labels']) : self::DEFAULT_META_LABELS,
                 'links' => is_array($profile['links'] ?? null) ? $profile['links'] : [],
                 'sections' => is_array($profile['sections'] ?? null) ? $profile['sections'] : [],
+                'colors' => is_array($profile['colors'] ?? null) ? array_merge($this->getDefaultTemplateColors($baseTemplate), $profile['colors']) : $this->getDefaultTemplateColors($baseTemplate),
+                'card_schema' => is_array($profile['card_schema'] ?? null) ? array_merge($this->getDefaultCardSchema(), $profile['card_schema']) : $this->getDefaultCardSchema(),
                 'card_design' => is_array($profile['card_design'] ?? null) ? $profile['card_design'] : (self::DEFAULT_TEMPLATE_CARD_DESIGN[$baseTemplate] ?? self::DEFAULT_TEMPLATE_CARD_DESIGN['general-it']),
+                'starter_cards' => is_array($profile['starter_cards'] ?? null) ? $profile['starter_cards'] : [],
             ];
         }
 
@@ -699,7 +752,7 @@ final class SiteTableService
         return array_slice($normalized, 0, 4);
     }
 
-    private function buildHubMetaItems(array $settings, string $template): array
+    private function buildHubMetaItems(array $settings, string $template, array $profile = []): array
     {
         $defaults = [
             'general-it' => ['audience' => 'IT-Leitung', 'owner' => 'IT-Operations', 'cycle' => 'Monatlich', 'focus' => 'Architektur & Betrieb', 'kpi' => 'Servicequalität'],
@@ -709,12 +762,14 @@ final class SiteTableService
             'linux' => ['audience' => 'Admins & Platform Team', 'owner' => 'Platform Engineering', 'cycle' => 'Wöchentlich', 'focus' => 'Automatisierung & Hardening', 'kpi' => 'Deployment-Health'],
         ][$template] ?? [];
 
+        $labels = array_merge(self::DEFAULT_META_LABELS, is_array($profile['meta_labels'] ?? null) ? $profile['meta_labels'] : []);
+
         $map = [
-            'Zielgruppe' => trim((string)($settings['hub_meta_audience'] ?? '')) ?: (string)($defaults['audience'] ?? ''),
-            'Verantwortlich' => trim((string)($settings['hub_meta_owner'] ?? '')) ?: (string)($defaults['owner'] ?? ''),
-            'Update-Zyklus' => trim((string)($settings['hub_meta_update_cycle'] ?? '')) ?: (string)($defaults['cycle'] ?? ''),
-            'Fokus' => trim((string)($settings['hub_meta_focus'] ?? '')) ?: (string)($defaults['focus'] ?? ''),
-            'KPI' => trim((string)($settings['hub_meta_kpi'] ?? '')) ?: (string)($defaults['kpi'] ?? ''),
+            (string)($labels['audience'] ?? 'Zielgruppe') => trim((string)($settings['hub_meta_audience'] ?? '')) ?: (string)($defaults['audience'] ?? ''),
+            (string)($labels['owner'] ?? 'Verantwortlich') => trim((string)($settings['hub_meta_owner'] ?? '')) ?: (string)($defaults['owner'] ?? ''),
+            (string)($labels['update_cycle'] ?? 'Update-Zyklus') => trim((string)($settings['hub_meta_update_cycle'] ?? '')) ?: (string)($defaults['cycle'] ?? ''),
+            (string)($labels['focus'] ?? 'Fokus') => trim((string)($settings['hub_meta_focus'] ?? '')) ?: (string)($defaults['focus'] ?? ''),
+            (string)($labels['kpi'] ?? 'KPI') => trim((string)($settings['hub_meta_kpi'] ?? '')) ?: (string)($defaults['kpi'] ?? ''),
         ];
 
         $items = [];
@@ -726,6 +781,65 @@ final class SiteTableService
         }
 
         return array_slice($items, 0, 5);
+    }
+
+    private function buildHubStyleVariables(array $colors): string
+    {
+        $palette = array_merge($this->getDefaultTemplateColors('general-it'), $colors);
+
+        $pairs = [
+            '--cms-hub-hero-start' => $this->normalizeColorValue((string)($palette['hero_start'] ?? '#1f2937'), '#1f2937'),
+            '--cms-hub-hero-end' => $this->normalizeColorValue((string)($palette['hero_end'] ?? '#0f172a'), '#0f172a'),
+            '--cms-hub-accent' => $this->normalizeColorValue((string)($palette['accent'] ?? '#2563eb'), '#2563eb'),
+            '--cms-hub-surface' => $this->normalizeColorValue((string)($palette['surface'] ?? '#ffffff'), '#ffffff'),
+            '--cms-hub-card-bg' => $this->normalizeColorValue((string)($palette['card_background'] ?? '#ffffff'), '#ffffff'),
+            '--cms-hub-card-text' => $this->normalizeColorValue((string)($palette['card_text'] ?? '#0f172a'), '#0f172a'),
+            '--cms-hub-section-bg' => $this->normalizeColorValue((string)($palette['section_background'] ?? '#ffffff'), '#ffffff'),
+        ];
+
+        $chunks = [];
+        foreach ($pairs as $key => $value) {
+            $chunks[] = $key . ':' . $value;
+        }
+
+        return implode(';', $chunks);
+    }
+
+    private function normalizeColorValue(string $value, string $fallback): string
+    {
+        $value = trim($value);
+        if ((bool)preg_match('/^#[0-9a-fA-F]{6}$/', $value)) {
+            return strtolower($value);
+        }
+
+        return strtolower($fallback);
+    }
+
+    private function getDefaultCardSchema(): array
+    {
+        return [
+            'columns' => 2,
+            'title_label' => 'Titel',
+            'summary_label' => 'Kurzbeschreibung',
+            'badge_label' => 'Badge',
+            'meta_left_label' => 'Meta links',
+            'meta_right_label' => 'Meta rechts',
+            'image_label' => 'Bild-URL',
+            'image_alt_label' => 'Bild-Alt',
+            'button_text_label' => 'Button-Text',
+            'button_link_label' => 'Button-Link',
+        ];
+    }
+
+    private function getDefaultTemplateColors(string $template): array
+    {
+        return match ($template) {
+            'microsoft-365' => ['hero_start' => '#0f4c81', 'hero_end' => '#2563eb', 'accent' => '#2563eb', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#0f172a', 'section_background' => '#f8fbff'],
+            'datenschutz' => ['hero_start' => '#0f766e', 'hero_end' => '#115e59', 'accent' => '#0f766e', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#0f172a', 'section_background' => '#f0fdfa'],
+            'compliance' => ['hero_start' => '#4c1d95', 'hero_end' => '#6d28d9', 'accent' => '#6d28d9', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#0f172a', 'section_background' => '#faf5ff'],
+            'linux' => ['hero_start' => '#111827', 'hero_end' => '#b45309', 'accent' => '#b45309', 'surface' => '#111827', 'card_background' => '#111827', 'card_text' => '#f3f4f6', 'section_background' => '#111827'],
+            default => ['hero_start' => '#1f2937', 'hero_end' => '#0f172a', 'accent' => '#2563eb', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#0f172a', 'section_background' => '#ffffff'],
+        };
     }
 
     private function normalizeColumns(array $columns): array

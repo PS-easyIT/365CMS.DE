@@ -9,6 +9,7 @@ $site = $data['site'] ?? null;
 $isNew = (bool)($data['isNew'] ?? true);
 $defaults = $data['defaults'] ?? [];
 $templateOptions = $data['templateOptions'] ?? [];
+$templateProfiles = $data['templateProfiles'] ?? [];
 $settings = $site['settings'] ?? $defaults;
 $cards = $site['cards'] ?? [];
 ?>
@@ -97,12 +98,12 @@ $cards = $site['cards'] ?? [];
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Template-Profil</label>
-                                    <select class="form-select" name="hub_template">
+                                    <select class="form-select" name="hub_template" id="hubTemplateSelect">
                                         <?php foreach ($templateOptions as $value => $label): ?>
                                             <option value="<?php echo htmlspecialchars((string)$value); ?>" <?php echo (($settings['hub_template'] ?? '') === $value) ? 'selected' : ''; ?>><?php echo htmlspecialchars((string)$label); ?></option>
                                         <?php endforeach; ?>
                                     </select>
-                                    <div class="form-hint">Layouts, Header-Links und Designvorgaben bearbeitest du zentral im Tab <strong>Templates</strong>.</div>
+                                    <div class="form-hint">Layouts, Header-Links und Designvorgaben bearbeitest du zentral im Tab <strong>Templates</strong>. Beim Neuanlegen werden die Starter-Kacheln des gewählten Templates automatisch übernommen.</div>
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label">Hero-Titel</label>
@@ -128,6 +129,9 @@ $cards = $site['cards'] ?? [];
                         <div class="card-header d-flex align-items-center justify-content-between">
                             <h3 class="card-title mb-0">Hub-Kacheln</h3>
                             <button type="button" class="btn btn-outline-primary btn-sm" id="addCard">Kachel hinzufügen</button>
+                        </div>
+                        <div class="card-body border-bottom bg-body-secondary">
+                            <div class="small text-secondary" id="cardSchemaHint">Die Felder orientieren sich am gewählten Template-Profil.</div>
                         </div>
                         <div class="card-body p-0">
                             <div id="cardsContainer"></div>
@@ -170,15 +174,64 @@ $cards = $site['cards'] ?? [];
 <script>
 (function () {
     var cards = <?php echo json_encode($cards, JSON_UNESCAPED_UNICODE); ?>;
+    var templateProfiles = <?php echo json_encode($templateProfiles, JSON_UNESCAPED_UNICODE); ?>;
     var container = document.getElementById('cardsContainer');
     var emptyState = document.getElementById('cardsEmpty');
     var input = document.getElementById('cardsJsonInput');
     var form = document.getElementById('hubSiteForm');
     var titleInput = form.querySelector('input[name="site_name"]');
+    var templateSelect = document.getElementById('hubTemplateSelect');
     var slugPreviewInput = document.getElementById('hubSlugPreviewInput');
     var openPublicAfterSaveInput = document.getElementById('openPublicAfterSaveInput');
     var saveAndOpenPublicButton = document.getElementById('saveAndOpenPublicButton');
     var copySlugPreviewButton = document.getElementById('copySlugPreviewButton');
+    var cardSchemaHint = document.getElementById('cardSchemaHint');
+    var initialTemplateValue = templateSelect ? templateSelect.value : 'general-it';
+
+    function getTemplateProfile() {
+        var key = templateSelect ? templateSelect.value : initialTemplateValue;
+        return templateProfiles[key] || templateProfiles['general-it'] || {};
+    }
+
+    function getCardSchema() {
+        var profile = getTemplateProfile();
+        var schema = profile.card_schema || {};
+
+        return {
+            columns: Math.min(3, Math.max(1, parseInt(schema.columns || 2, 10) || 2)),
+            title_label: schema.title_label || 'Titel',
+            summary_label: schema.summary_label || 'Kurzbeschreibung',
+            badge_label: schema.badge_label || 'Badge',
+            meta_left_label: schema.meta_left_label || 'Meta links',
+            meta_right_label: schema.meta_right_label || 'Meta rechts',
+            image_label: schema.image_label || 'Bild-URL',
+            image_alt_label: schema.image_alt_label || 'Bild-Alt',
+            button_text_label: schema.button_text_label || 'Button-Text',
+            button_link_label: schema.button_link_label || 'Button-Link'
+        };
+    }
+
+    function defaultCard() {
+        return { title: '', url: '#', badge: '', meta: '', meta_left: '', meta_right: '', image_url: '', image_alt: '', summary: '', button_text: '', button_link: '' };
+    }
+
+    function normalizeCard(card) {
+        return Object.assign(defaultCard(), card || {});
+    }
+
+    function applyStarterCardsIfNeeded(force) {
+        var profile = getTemplateProfile();
+        var starters = Array.isArray(profile.starter_cards) ? profile.starter_cards : [];
+        if ((!force && cards.length > 0) || starters.length === 0) {
+            return;
+        }
+
+        cards = starters.map(function (card) {
+            return normalizeCard(card);
+        });
+        sync();
+        render();
+    }
 
     function slugify(value) {
         return (value || '')
@@ -219,22 +272,30 @@ $cards = $site['cards'] ?? [];
     }
 
     function render() {
+        var schema = getCardSchema();
         container.innerHTML = '';
         emptyState.classList.toggle('d-none', cards.length !== 0);
+        if (cardSchemaHint) {
+            cardSchemaHint.textContent = 'Template-Vorgabe: ' + schema.columns + ' Kachel' + (schema.columns === 1 ? '' : 'n') + ' pro Reihe. Beschriftungen und Starter-Kacheln kommen aus dem gewählten Template-Profil.';
+        }
 
         cards.forEach(function (card, index) {
+            card = normalizeCard(card);
+            cards[index] = card;
             var html = '';
             html += '<div class="border-bottom p-3">';
             html += '  <div class="row g-2">';
-            html += '    <div class="col-md-6"><label class="form-label small">Titel</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.title || '') + '" data-index="' + index + '" data-key="title"></div>';
+            html += '    <div class="col-md-6"><label class="form-label small">' + escapeHtml(schema.title_label) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.title || '') + '" data-index="' + index + '" data-key="title"></div>';
             html += '    <div class="col-md-6"><label class="form-label small">URL</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.url || '') + '" data-index="' + index + '" data-key="url"></div>';
-            html += '    <div class="col-md-6"><label class="form-label small">Badge</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.badge || '') + '" data-index="' + index + '" data-key="badge"></div>';
+            html += '    <div class="col-md-6"><label class="form-label small">' + escapeHtml(schema.badge_label) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.badge || '') + '" data-index="' + index + '" data-key="badge"></div>';
             html += '    <div class="col-md-6"><label class="form-label small">Legacy Meta</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.meta || '') + '" data-index="' + index + '" data-key="meta"></div>';
-            html += '    <div class="col-md-6"><label class="form-label small">Meta links</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.meta_left || '') + '" data-index="' + index + '" data-key="meta_left"></div>';
-            html += '    <div class="col-md-6"><label class="form-label small">Meta rechts</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.meta_right || '') + '" data-index="' + index + '" data-key="meta_right"></div>';
-            html += '    <div class="col-md-8"><label class="form-label small">Bild-URL</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.image_url || '') + '" data-index="' + index + '" data-key="image_url" placeholder="https://… oder /uploads/...\"></div>';
-            html += '    <div class="col-md-4"><label class="form-label small">Bild-Alt</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.image_alt || '') + '" data-index="' + index + '" data-key="image_alt"></div>';
-            html += '    <div class="col-12"><label class="form-label small">Kurzbeschreibung</label><textarea class="form-control form-control-sm" rows="3" data-index="' + index + '" data-key="summary">' + escapeHtml(card.summary || '') + '</textarea></div>';
+            html += '    <div class="col-md-6"><label class="form-label small">' + escapeHtml(schema.meta_left_label) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.meta_left || '') + '" data-index="' + index + '" data-key="meta_left"></div>';
+            html += '    <div class="col-md-6"><label class="form-label small">' + escapeHtml(schema.meta_right_label) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.meta_right || '') + '" data-index="' + index + '" data-key="meta_right"></div>';
+            html += '    <div class="col-md-6"><label class="form-label small">' + escapeHtml(schema.button_text_label) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.button_text || '') + '" data-index="' + index + '" data-key="button_text"></div>';
+            html += '    <div class="col-md-6"><label class="form-label small">' + escapeHtml(schema.button_link_label) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.button_link || '') + '" data-index="' + index + '" data-key="button_link"></div>';
+            html += '    <div class="col-md-8"><label class="form-label small">' + escapeHtml(schema.image_label) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.image_url || '') + '" data-index="' + index + '" data-key="image_url" placeholder="https://… oder /uploads/..."></div>';
+            html += '    <div class="col-md-4"><label class="form-label small">' + escapeHtml(schema.image_alt_label) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.image_alt || '') + '" data-index="' + index + '" data-key="image_alt"></div>';
+            html += '    <div class="col-12"><label class="form-label small">' + escapeHtml(schema.summary_label) + '</label><textarea class="form-control form-control-sm" rows="3" data-index="' + index + '" data-key="summary">' + escapeHtml(card.summary || '') + '</textarea></div>';
             html += '    <div class="col-12 text-end"><button type="button" class="btn btn-outline-danger btn-sm remove-card" data-index="' + index + '">Entfernen</button></div>';
             html += '  </div>';
             html += '</div>';
@@ -245,9 +306,16 @@ $cards = $site['cards'] ?? [];
     }
 
     document.getElementById('addCard').addEventListener('click', function () {
-        cards.push({ title: '', url: '', badge: '', meta: '', meta_left: '', meta_right: '', image_url: '', image_alt: '', summary: '' });
+        cards.push(defaultCard());
         render();
     });
+
+    if (templateSelect) {
+        templateSelect.addEventListener('change', function () {
+            applyStarterCardsIfNeeded(cards.length === 0);
+            render();
+        });
+    }
 
     titleInput.addEventListener('input', updateSlugPreview);
     copySlugPreviewButton.addEventListener('click', function () {
@@ -287,6 +355,8 @@ $cards = $site['cards'] ?? [];
         render();
     });
 
+    cards = cards.map(function (card) { return normalizeCard(card); });
+    applyStarterCardsIfNeeded(<?php echo $isNew ? 'true' : 'false'; ?>);
     render();
     updateSlugPreview();
 })();

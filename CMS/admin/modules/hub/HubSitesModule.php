@@ -235,6 +235,7 @@ class HubSitesModule
             'isNew' => $site === null,
             'defaults' => self::DEFAULT_SETTINGS,
             'templateOptions' => $this->getTemplateProfileChoices(),
+            'templateProfiles' => $this->getTemplateProfiles(),
         ];
     }
 
@@ -285,8 +286,38 @@ class HubSitesModule
                     'focus' => '',
                     'kpi' => '',
                 ],
+                'meta_labels' => [
+                    'audience' => 'Zielgruppe',
+                    'owner' => 'Verantwortlich',
+                    'update_cycle' => 'Update-Zyklus',
+                    'focus' => 'Fokus',
+                    'kpi' => 'KPI',
+                ],
                 'links' => [],
                 'sections' => [],
+                'colors' => [
+                    'hero_start' => '#1f2937',
+                    'hero_end' => '#0f172a',
+                    'accent' => '#2563eb',
+                    'surface' => '#ffffff',
+                    'card_background' => '#ffffff',
+                    'card_text' => '#0f172a',
+                    'section_background' => '#ffffff',
+                ],
+                'card_schema' => [
+                    'columns' => 2,
+                    'min_cards' => 1,
+                    'max_cards' => 3,
+                    'title_label' => 'Titel',
+                    'summary_label' => 'Kurzbeschreibung',
+                    'badge_label' => 'Badge',
+                    'meta_left_label' => 'Meta links',
+                    'meta_right_label' => 'Meta rechts',
+                    'image_label' => 'Bild-URL',
+                    'image_alt_label' => 'Bild-Alt',
+                    'button_text_label' => 'Button-Text',
+                    'button_link_label' => 'Button-Link',
+                ],
                 'card_design' => [
                     'layout' => 'standard',
                     'image_position' => 'top',
@@ -294,6 +325,7 @@ class HubSitesModule
                     'image_ratio' => 'wide',
                     'meta_layout' => 'split',
                 ],
+                'starter_cards' => [],
             ];
         }
 
@@ -383,6 +415,8 @@ class HubSitesModule
                 'meta_right' => mb_substr(trim(strip_tags((string)($card['meta_right'] ?? ''))), 0, 120),
                 'image_url' => mb_substr(trim((string)($card['image_url'] ?? '')), 0, 500),
                 'image_alt' => mb_substr(trim(strip_tags((string)($card['image_alt'] ?? ''))), 0, 160),
+                'button_text' => mb_substr(trim(strip_tags((string)($card['button_text'] ?? ''))), 0, 80),
+                'button_link' => mb_substr(trim((string)($card['button_link'] ?? '')), 0, 500),
             ];
         }
 
@@ -526,8 +560,38 @@ class HubSitesModule
                 'focus' => mb_substr(trim(strip_tags((string)($post['template_meta_focus'] ?? ''))), 0, 160),
                 'kpi' => mb_substr(trim(strip_tags((string)($post['template_meta_kpi'] ?? ''))), 0, 120),
             ],
+            'meta_labels' => [
+                'audience' => mb_substr(trim(strip_tags((string)($post['template_label_audience'] ?? 'Zielgruppe'))), 0, 80),
+                'owner' => mb_substr(trim(strip_tags((string)($post['template_label_owner'] ?? 'Verantwortlich'))), 0, 80),
+                'update_cycle' => mb_substr(trim(strip_tags((string)($post['template_label_update_cycle'] ?? 'Update-Zyklus'))), 0, 80),
+                'focus' => mb_substr(trim(strip_tags((string)($post['template_label_focus'] ?? 'Fokus'))), 0, 80),
+                'kpi' => mb_substr(trim(strip_tags((string)($post['template_label_kpi'] ?? 'KPI'))), 0, 80),
+            ],
             'links' => json_decode($this->normalizeJsonArray((string)($post['template_links_json'] ?? '[]'), 'link'), true) ?: [],
             'sections' => json_decode($this->normalizeJsonArray((string)($post['template_sections_json'] ?? '[]'), 'section'), true) ?: [],
+            'colors' => [
+                'hero_start' => $this->normalizeColor((string)($post['template_color_hero_start'] ?? '#1f2937'), '#1f2937'),
+                'hero_end' => $this->normalizeColor((string)($post['template_color_hero_end'] ?? '#0f172a'), '#0f172a'),
+                'accent' => $this->normalizeColor((string)($post['template_color_accent'] ?? '#2563eb'), '#2563eb'),
+                'surface' => $this->normalizeColor((string)($post['template_color_surface'] ?? '#ffffff'), '#ffffff'),
+                'card_background' => $this->normalizeColor((string)($post['template_color_card_background'] ?? '#ffffff'), '#ffffff'),
+                'card_text' => $this->normalizeColor((string)($post['template_color_card_text'] ?? '#0f172a'), '#0f172a'),
+                'section_background' => $this->normalizeColor((string)($post['template_color_section_background'] ?? '#ffffff'), '#ffffff'),
+            ],
+            'card_schema' => [
+                'columns' => $this->normalizeNumber((int)($post['template_card_columns'] ?? 2), 1, 3, 2),
+                'min_cards' => 1,
+                'max_cards' => 3,
+                'title_label' => mb_substr(trim(strip_tags((string)($post['template_card_title_label'] ?? 'Titel'))), 0, 80),
+                'summary_label' => mb_substr(trim(strip_tags((string)($post['template_card_summary_label'] ?? 'Kurzbeschreibung'))), 0, 80),
+                'badge_label' => mb_substr(trim(strip_tags((string)($post['template_card_badge_label'] ?? 'Badge'))), 0, 80),
+                'meta_left_label' => mb_substr(trim(strip_tags((string)($post['template_card_meta_left_label'] ?? 'Meta links'))), 0, 80),
+                'meta_right_label' => mb_substr(trim(strip_tags((string)($post['template_card_meta_right_label'] ?? 'Meta rechts'))), 0, 80),
+                'image_label' => mb_substr(trim(strip_tags((string)($post['template_card_image_label'] ?? 'Bild-URL'))), 0, 80),
+                'image_alt_label' => mb_substr(trim(strip_tags((string)($post['template_card_image_alt_label'] ?? 'Bild-Alt'))), 0, 80),
+                'button_text_label' => mb_substr(trim(strip_tags((string)($post['template_card_button_text_label'] ?? 'Button-Text'))), 0, 80),
+                'button_link_label' => mb_substr(trim(strip_tags((string)($post['template_card_button_link_label'] ?? 'Button-Link'))), 0, 80),
+            ],
             'card_design' => [
                 'layout' => $this->normalizeSetting((string)($post['hub_card_layout'] ?? 'standard'), ['standard', 'feature', 'compact'], 'standard'),
                 'image_position' => $this->normalizeSetting((string)($post['hub_card_image_position'] ?? 'top'), ['top', 'left', 'right'], 'top'),
@@ -535,6 +599,7 @@ class HubSitesModule
                 'image_ratio' => $this->normalizeSetting((string)($post['hub_card_image_ratio'] ?? 'wide'), ['wide', 'square', 'portrait'], 'wide'),
                 'meta_layout' => $this->normalizeSetting((string)($post['hub_card_meta_layout'] ?? 'split'), ['split', 'stacked'], 'split'),
             ],
+            'starter_cards' => $this->normalizeStarterCards((string)($post['template_starter_cards_json'] ?? '[]')),
         ];
 
         $this->saveTemplateProfiles($profiles);
@@ -782,9 +847,19 @@ class HubSitesModule
                 'base_template' => $key,
                 'summary' => $preset['summary'] ?? '',
                 'meta' => $preset['meta'] ?? [],
+                'meta_labels' => [
+                    'audience' => 'Zielgruppe',
+                    'owner' => 'Verantwortlich',
+                    'update_cycle' => 'Update-Zyklus',
+                    'focus' => 'Fokus',
+                    'kpi' => 'KPI',
+                ],
                 'links' => $preset['links'] ?? [],
                 'sections' => $preset['sections'] ?? [],
+                'colors' => $this->defaultTemplateColors($key),
+                'card_schema' => $this->defaultCardSchema(),
                 'card_design' => $preset['card_design'] ?? [],
+                'starter_cards' => $this->defaultStarterCards($key),
             ], null);
         }
 
@@ -798,9 +873,13 @@ class HubSitesModule
             'base_template' => 'general-it',
             'summary' => '',
             'meta' => ['audience' => '', 'owner' => '', 'update_cycle' => '', 'focus' => '', 'kpi' => ''],
+            'meta_labels' => ['audience' => 'Zielgruppe', 'owner' => 'Verantwortlich', 'update_cycle' => 'Update-Zyklus', 'focus' => 'Fokus', 'kpi' => 'KPI'],
             'links' => [],
             'sections' => [],
+            'colors' => $this->defaultTemplateColors('general-it'),
+            'card_schema' => $this->defaultCardSchema(),
             'card_design' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split'],
+            'starter_cards' => [],
         ];
 
         return [
@@ -814,8 +893,38 @@ class HubSitesModule
                 'focus' => mb_substr(trim(strip_tags((string)($profile['meta']['focus'] ?? $fallback['meta']['focus'] ?? ''))), 0, 160),
                 'kpi' => mb_substr(trim(strip_tags((string)($profile['meta']['kpi'] ?? $fallback['meta']['kpi'] ?? ''))), 0, 120),
             ],
+            'meta_labels' => [
+                'audience' => mb_substr(trim(strip_tags((string)($profile['meta_labels']['audience'] ?? $fallback['meta_labels']['audience'] ?? 'Zielgruppe'))), 0, 80),
+                'owner' => mb_substr(trim(strip_tags((string)($profile['meta_labels']['owner'] ?? $fallback['meta_labels']['owner'] ?? 'Verantwortlich'))), 0, 80),
+                'update_cycle' => mb_substr(trim(strip_tags((string)($profile['meta_labels']['update_cycle'] ?? $fallback['meta_labels']['update_cycle'] ?? 'Update-Zyklus'))), 0, 80),
+                'focus' => mb_substr(trim(strip_tags((string)($profile['meta_labels']['focus'] ?? $fallback['meta_labels']['focus'] ?? 'Fokus'))), 0, 80),
+                'kpi' => mb_substr(trim(strip_tags((string)($profile['meta_labels']['kpi'] ?? $fallback['meta_labels']['kpi'] ?? 'KPI'))), 0, 80),
+            ],
             'links' => json_decode($this->normalizeJsonArray(json_encode($profile['links'] ?? $fallback['links'] ?? [], JSON_UNESCAPED_UNICODE) ?: '[]', 'link'), true) ?: [],
             'sections' => json_decode($this->normalizeJsonArray(json_encode($profile['sections'] ?? $fallback['sections'] ?? [], JSON_UNESCAPED_UNICODE) ?: '[]', 'section'), true) ?: [],
+            'colors' => [
+                'hero_start' => $this->normalizeColor((string)($profile['colors']['hero_start'] ?? $fallback['colors']['hero_start'] ?? '#1f2937'), '#1f2937'),
+                'hero_end' => $this->normalizeColor((string)($profile['colors']['hero_end'] ?? $fallback['colors']['hero_end'] ?? '#0f172a'), '#0f172a'),
+                'accent' => $this->normalizeColor((string)($profile['colors']['accent'] ?? $fallback['colors']['accent'] ?? '#2563eb'), '#2563eb'),
+                'surface' => $this->normalizeColor((string)($profile['colors']['surface'] ?? $fallback['colors']['surface'] ?? '#ffffff'), '#ffffff'),
+                'card_background' => $this->normalizeColor((string)($profile['colors']['card_background'] ?? $fallback['colors']['card_background'] ?? '#ffffff'), '#ffffff'),
+                'card_text' => $this->normalizeColor((string)($profile['colors']['card_text'] ?? $fallback['colors']['card_text'] ?? '#0f172a'), '#0f172a'),
+                'section_background' => $this->normalizeColor((string)($profile['colors']['section_background'] ?? $fallback['colors']['section_background'] ?? '#ffffff'), '#ffffff'),
+            ],
+            'card_schema' => [
+                'columns' => $this->normalizeNumber((int)($profile['card_schema']['columns'] ?? $fallback['card_schema']['columns'] ?? 2), 1, 3, 2),
+                'min_cards' => 1,
+                'max_cards' => 3,
+                'title_label' => mb_substr(trim(strip_tags((string)($profile['card_schema']['title_label'] ?? $fallback['card_schema']['title_label'] ?? 'Titel'))), 0, 80),
+                'summary_label' => mb_substr(trim(strip_tags((string)($profile['card_schema']['summary_label'] ?? $fallback['card_schema']['summary_label'] ?? 'Kurzbeschreibung'))), 0, 80),
+                'badge_label' => mb_substr(trim(strip_tags((string)($profile['card_schema']['badge_label'] ?? $fallback['card_schema']['badge_label'] ?? 'Badge'))), 0, 80),
+                'meta_left_label' => mb_substr(trim(strip_tags((string)($profile['card_schema']['meta_left_label'] ?? $fallback['card_schema']['meta_left_label'] ?? 'Meta links'))), 0, 80),
+                'meta_right_label' => mb_substr(trim(strip_tags((string)($profile['card_schema']['meta_right_label'] ?? $fallback['card_schema']['meta_right_label'] ?? 'Meta rechts'))), 0, 80),
+                'image_label' => mb_substr(trim(strip_tags((string)($profile['card_schema']['image_label'] ?? $fallback['card_schema']['image_label'] ?? 'Bild-URL'))), 0, 80),
+                'image_alt_label' => mb_substr(trim(strip_tags((string)($profile['card_schema']['image_alt_label'] ?? $fallback['card_schema']['image_alt_label'] ?? 'Bild-Alt'))), 0, 80),
+                'button_text_label' => mb_substr(trim(strip_tags((string)($profile['card_schema']['button_text_label'] ?? $fallback['card_schema']['button_text_label'] ?? 'Button-Text'))), 0, 80),
+                'button_link_label' => mb_substr(trim(strip_tags((string)($profile['card_schema']['button_link_label'] ?? $fallback['card_schema']['button_link_label'] ?? 'Button-Link'))), 0, 80),
+            ],
             'card_design' => [
                 'layout' => $this->normalizeSetting((string)($profile['card_design']['layout'] ?? $fallback['card_design']['layout'] ?? 'standard'), ['standard', 'feature', 'compact'], 'standard'),
                 'image_position' => $this->normalizeSetting((string)($profile['card_design']['image_position'] ?? $fallback['card_design']['image_position'] ?? 'top'), ['top', 'left', 'right'], 'top'),
@@ -823,6 +932,7 @@ class HubSitesModule
                 'image_ratio' => $this->normalizeSetting((string)($profile['card_design']['image_ratio'] ?? $fallback['card_design']['image_ratio'] ?? 'wide'), ['wide', 'square', 'portrait'], 'wide'),
                 'meta_layout' => $this->normalizeSetting((string)($profile['card_design']['meta_layout'] ?? $fallback['card_design']['meta_layout'] ?? 'split'), ['split', 'stacked'], 'split'),
             ],
+            'starter_cards' => $this->normalizeStarterCards(json_encode($profile['starter_cards'] ?? $fallback['starter_cards'] ?? [], JSON_UNESCAPED_UNICODE) ?: '[]'),
         ];
     }
 
@@ -871,6 +981,102 @@ class HubSitesModule
 
         $decoded = json_decode((string)$row->settings_json, true);
         return array_merge(self::DEFAULT_SETTINGS, is_array($decoded) ? $decoded : []);
+    }
+
+    private function normalizeColor(string $value, string $fallback): string
+    {
+        $value = trim($value);
+        if ((bool)preg_match('/^#[0-9a-fA-F]{6}$/', $value)) {
+            return strtolower($value);
+        }
+
+        return strtolower($fallback);
+    }
+
+    private function normalizeNumber(int $value, int $min, int $max, int $fallback): int
+    {
+        if ($value < $min || $value > $max) {
+            return $fallback;
+        }
+
+        return $value;
+    }
+
+    private function normalizeStarterCards(string $json): array
+    {
+        $cards = json_decode($json, true);
+        if (!is_array($cards)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach (array_slice($cards, 0, 3) as $card) {
+            if (!is_array($card)) {
+                continue;
+            }
+
+            $normalized[] = [
+                'title' => mb_substr(trim(strip_tags((string)($card['title'] ?? ''))), 0, 160),
+                'summary' => mb_substr(trim((string)($card['summary'] ?? '')), 0, 600),
+                'badge' => mb_substr(trim(strip_tags((string)($card['badge'] ?? ''))), 0, 80),
+                'meta_left' => mb_substr(trim(strip_tags((string)($card['meta_left'] ?? ''))), 0, 120),
+                'meta_right' => mb_substr(trim(strip_tags((string)($card['meta_right'] ?? ''))), 0, 120),
+                'image_url' => mb_substr(trim((string)($card['image_url'] ?? '')), 0, 500),
+                'image_alt' => mb_substr(trim(strip_tags((string)($card['image_alt'] ?? ''))), 0, 160),
+                'button_text' => mb_substr(trim(strip_tags((string)($card['button_text'] ?? ''))), 0, 80),
+                'button_link' => mb_substr(trim((string)($card['button_link'] ?? '')), 0, 500),
+                'url' => mb_substr(trim((string)($card['url'] ?? '#')), 0, 500),
+            ];
+        }
+
+        return $normalized;
+    }
+
+    private function defaultCardSchema(): array
+    {
+        return [
+            'columns' => 2,
+            'min_cards' => 1,
+            'max_cards' => 3,
+            'title_label' => 'Titel',
+            'summary_label' => 'Kurzbeschreibung',
+            'badge_label' => 'Badge',
+            'meta_left_label' => 'Meta links',
+            'meta_right_label' => 'Meta rechts',
+            'image_label' => 'Bild-URL',
+            'image_alt_label' => 'Bild-Alt',
+            'button_text_label' => 'Button-Text',
+            'button_link_label' => 'Button-Link',
+        ];
+    }
+
+    private function defaultTemplateColors(string $template): array
+    {
+        return match ($template) {
+            'microsoft-365' => ['hero_start' => '#0f4c81', 'hero_end' => '#2563eb', 'accent' => '#2563eb', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#0f172a', 'section_background' => '#f8fbff'],
+            'datenschutz' => ['hero_start' => '#0f766e', 'hero_end' => '#115e59', 'accent' => '#0f766e', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#0f172a', 'section_background' => '#f0fdfa'],
+            'compliance' => ['hero_start' => '#4c1d95', 'hero_end' => '#6d28d9', 'accent' => '#6d28d9', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#0f172a', 'section_background' => '#faf5ff'],
+            'linux' => ['hero_start' => '#111827', 'hero_end' => '#b45309', 'accent' => '#b45309', 'surface' => '#111827', 'card_background' => '#111827', 'card_text' => '#f3f4f6', 'section_background' => '#111827'],
+            default => ['hero_start' => '#1f2937', 'hero_end' => '#0f172a', 'accent' => '#2563eb', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#0f172a', 'section_background' => '#ffffff'],
+        };
+    }
+
+    private function defaultStarterCards(string $template): array
+    {
+        return match ($template) {
+            'microsoft-365' => [
+                ['title' => 'Teams & Meetings', 'summary' => 'Platzhalter für Collaboration-, Telefonie- und Meeting-Szenarien.', 'badge' => 'Collaboration', 'meta_left' => 'Use Case', 'meta_right' => 'Priorität', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Mehr erfahren', 'button_link' => '#teams', 'url' => '#teams'],
+                ['title' => 'SharePoint & Intranet', 'summary' => 'Platzhalter für Dokumentenmanagement, Wissensräume und Portale.', 'badge' => 'Knowledge', 'meta_left' => 'Owner', 'meta_right' => 'Status', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Bereich öffnen', 'button_link' => '#sharepoint', 'url' => '#sharepoint'],
+            ],
+            'linux' => [
+                ['title' => 'Platform Engineering', 'summary' => 'Platzhalter für Server, Container und Plattform-Bausteine.', 'badge' => 'Platform', 'meta_left' => 'Stack', 'meta_right' => 'Health', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Stack ansehen', 'button_link' => '#plattform', 'url' => '#plattform'],
+                ['title' => 'Automation', 'summary' => 'Platzhalter für CI/CD, Provisioning und Shell-Automatisierung.', 'badge' => 'Automation', 'meta_left' => 'Pipeline', 'meta_right' => 'Owner', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Pipelines öffnen', 'button_link' => '#automation', 'url' => '#automation'],
+            ],
+            default => [
+                ['title' => 'Bereich 1', 'summary' => 'Platzhalter für den ersten thematischen Kachelbereich.', 'badge' => 'Bereich', 'meta_left' => 'Label links', 'meta_right' => 'Label rechts', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Mehr erfahren', 'button_link' => '#bereich-1', 'url' => '#bereich-1'],
+                ['title' => 'Bereich 2', 'summary' => 'Platzhalter für den zweiten thematischen Kachelbereich.', 'badge' => 'Bereich', 'meta_left' => 'Label links', 'meta_right' => 'Label rechts', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Mehr erfahren', 'button_link' => '#bereich-2', 'url' => '#bereich-2'],
+            ],
+        };
     }
 
     private function hasTableSlugColumn(): bool
