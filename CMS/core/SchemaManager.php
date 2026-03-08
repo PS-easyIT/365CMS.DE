@@ -26,7 +26,7 @@ if (!defined('ABSPATH')) {
 class SchemaManager
 {
     /** Flag-Datei-Version – erhöhen wenn Schema geändert wird */
-    public const SCHEMA_VERSION = 'v15';
+    public const SCHEMA_VERSION = 'v16';
 
     private Database $db;
     private string $prefix;
@@ -636,6 +636,19 @@ class SchemaManager
                 UNIQUE KEY idx_slug (slug),
                 INDEX idx_source (source)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
+
+            // Benutzer-Favoriten (Member-Dashboard Merkliste)
+            "CREATE TABLE IF NOT EXISTS {$p}favorites (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                user_id INT UNSIGNED NOT NULL,
+                post_id BIGINT UNSIGNED NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_user_post (user_id, post_id),
+                INDEX idx_user_id (user_id),
+                INDEX idx_post_id (post_id),
+                FOREIGN KEY (user_id) REFERENCES {$p}users(id) ON DELETE CASCADE,
+                FOREIGN KEY (post_id) REFERENCES {$p}posts(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET={$c} COMMENT='Benutzer-Merkliste'" ,
 
             // Benachrichtigungen (Member-Dashboard + Theme-Header-Badge)
             "CREATE TABLE IF NOT EXISTS {$p}notifications (
