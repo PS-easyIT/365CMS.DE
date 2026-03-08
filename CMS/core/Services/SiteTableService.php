@@ -22,6 +22,8 @@ final class SiteTableService
     private Database $db;
     private string $prefix;
 
+    private const TEMPLATE_SETTING_KEY = 'hub_site_templates';
+
     private const DEFAULT_SETTINGS = [
         'responsive' => true,
         'style_theme' => 'default',
@@ -113,6 +115,14 @@ final class SiteTableService
                 ['title' => 'Shell, CI/CD & Hardening', 'text' => 'Platzhalter für Automatisierung, Pipelines, Monitoring und Security-Baselines.', 'actionLabel' => 'Hardening ansehen', 'actionUrl' => '#hardening'],
             ],
         ],
+    ];
+
+    private const DEFAULT_TEMPLATE_CARD_DESIGN = [
+        'general-it' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split'],
+        'microsoft-365' => ['layout' => 'feature', 'image_position' => 'left', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split'],
+        'datenschutz' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'contain', 'image_ratio' => 'square', 'meta_layout' => 'stacked'],
+        'compliance' => ['layout' => 'feature', 'image_position' => 'right', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split'],
+        'linux' => ['layout' => 'compact', 'image_position' => 'top', 'image_fit' => 'contain', 'image_ratio' => 'square', 'meta_layout' => 'stacked'],
     ];
 
     public static function getInstance(): self
@@ -372,7 +382,9 @@ final class SiteTableService
     private function renderHubMarkup(array $table): string
     {
         $settings = array_merge(self::DEFAULT_SETTINGS, $table['settings']);
-        $template = (string)($settings['hub_template'] ?? 'general-it');
+        $templateKey = (string)($settings['hub_template'] ?? 'general-it');
+        $templateProfile = $this->getTemplateProfile($templateKey);
+        $template = (string)($templateProfile['base_template'] ?? $templateKey ?: 'general-it');
         $pageSlug = trim((string)($settings['hub_slug'] ?? ''));
         $heroTitle = trim((string)($settings['hub_hero_title'] ?? '')) ?: (string)($table['name'] ?? 'Hub Site');
         $heroText = trim((string)($settings['hub_hero_text'] ?? '')) ?: trim((string)($table['description'] ?? ''));
@@ -380,14 +392,30 @@ final class SiteTableService
         $ctaLabel = trim((string)($settings['hub_cta_label'] ?? ''));
         $ctaUrl = trim((string)($settings['hub_cta_url'] ?? ''));
         $cards = $this->normalizeHubCards($table['rows']);
-        $quickLinks = $this->normalizeHubLinks((string)($settings['hub_links_json'] ?? '[]'), $template);
-        $sections = $this->normalizeHubSections((string)($settings['hub_sections_json'] ?? '[]'), $template);
-        $metaItems = $this->buildHubMetaItems($settings, $template);
-        $cardLayout = $this->normalizeOption((string)($settings['hub_card_layout'] ?? 'standard'), ['standard', 'feature', 'compact'], 'standard');
-        $cardImagePosition = $this->normalizeOption((string)($settings['hub_card_image_position'] ?? 'top'), ['top', 'left', 'right'], 'top');
-        $cardImageFit = $this->normalizeOption((string)($settings['hub_card_image_fit'] ?? 'cover'), ['cover', 'contain'], 'cover');
-        $cardImageRatio = $this->normalizeOption((string)($settings['hub_card_image_ratio'] ?? 'wide'), ['wide', 'square', 'portrait'], 'wide');
-        $cardMetaLayout = $this->normalizeOption((string)($settings['hub_card_meta_layout'] ?? 'split'), ['split', 'stacked'], 'split');
+        $quickLinks = $this->normalizeTemplateLinks($templateProfile, $template);
+        $sections = $this->normalizeTemplateSections($templateProfile, $template);
+        $metaSettings = array_merge([
+            'hub_meta_audience' => (string)($templateProfile['meta']['audience'] ?? ''),
+            'hub_meta_owner' => (string)($templateProfile['meta']['owner'] ?? ''),
+            'hub_meta_update_cycle' => (string)($templateProfile['meta']['update_cycle'] ?? ''),
+            'hub_meta_focus' => (string)($templateProfile['meta']['focus'] ?? ''),
+            'hub_meta_kpi' => (string)($templateProfile['meta']['kpi'] ?? ''),
+        ], $settings);
+        foreach (['hub_meta_audience', 'hub_meta_owner', 'hub_meta_update_cycle', 'hub_meta_focus', 'hub_meta_kpi'] as $metaKey) {
+            if (trim((string)($metaSettings[$metaKey] ?? '')) === '') {
+                $metaSettings[$metaKey] = (string)($templateProfile['meta'][str_replace('hub_meta_', '', $metaKey)] ?? $templateProfile['meta'][match ($metaKey) {
+                    'hub_meta_update_cycle' => 'update_cycle',
+                    default => str_replace('hub_meta_', '', $metaKey),
+                }] ?? '');
+            }
+        }
+        $metaItems = $this->buildHubMetaItems($metaSettings, $template);
+        $cardDesign = is_array($templateProfile['card_design'] ?? null) ? $templateProfile['card_design'] : [];
+        $cardLayout = $this->normalizeOption((string)($cardDesign['layout'] ?? 'standard'), ['standard', 'feature', 'compact'], 'standard');
+        $cardImagePosition = $this->normalizeOption((string)($cardDesign['image_position'] ?? 'top'), ['top', 'left', 'right'], 'top');
+        $cardImageFit = $this->normalizeOption((string)($cardDesign['image_fit'] ?? 'cover'), ['cover', 'contain'], 'cover');
+        $cardImageRatio = $this->normalizeOption((string)($cardDesign['image_ratio'] ?? 'wide'), ['wide', 'square', 'portrait'], 'wide');
+        $cardMetaLayout = $this->normalizeOption((string)($cardDesign['meta_layout'] ?? 'split'), ['split', 'stacked'], 'split');
 
         $html = '<section class="cms-hub-site cms-hub-site--' . htmlspecialchars($template, ENT_QUOTES, 'UTF-8') . '"';
         if ($pageSlug !== '') {
@@ -560,6 +588,87 @@ final class SiteTableService
         }
 
         return array_slice($normalized, 0, 6);
+    }
+
+    private function normalizeTemplateLinks(array $templateProfile, string $template): array
+    {
+        $links = $templateProfile['links'] ?? [];
+        if (!is_array($links) || $links === []) {
+            $links = self::TEMPLATE_PLACEHOLDERS[$template]['links'] ?? self::TEMPLATE_PLACEHOLDERS['general-it']['links'];
+        }
+
+        return $this->normalizeHubLinks(json_encode($links, JSON_UNESCAPED_UNICODE) ?: '[]', $template);
+    }
+
+    private function normalizeTemplateSections(array $templateProfile, string $template): array
+    {
+        $sections = $templateProfile['sections'] ?? [];
+        if (!is_array($sections) || $sections === []) {
+            $sections = self::TEMPLATE_PLACEHOLDERS[$template]['sections'] ?? self::TEMPLATE_PLACEHOLDERS['general-it']['sections'];
+        }
+
+        return $this->normalizeHubSections(json_encode($sections, JSON_UNESCAPED_UNICODE) ?: '[]', $template);
+    }
+
+    private function getTemplateProfile(string $key): array
+    {
+        $profiles = $this->getTemplateProfiles();
+        $key = trim($key);
+        if ($key !== '' && isset($profiles[$key])) {
+            return $profiles[$key];
+        }
+
+        return $profiles['general-it'] ?? [
+            'base_template' => 'general-it',
+            'meta' => [],
+            'links' => self::TEMPLATE_PLACEHOLDERS['general-it']['links'],
+            'sections' => self::TEMPLATE_PLACEHOLDERS['general-it']['sections'],
+            'card_design' => self::DEFAULT_TEMPLATE_CARD_DESIGN['general-it'],
+        ];
+    }
+
+    private function getTemplateProfiles(): array
+    {
+        $defaults = [];
+        foreach (self::TEMPLATE_PLACEHOLDERS as $key => $placeholder) {
+            $defaults[$key] = [
+                'base_template' => $key,
+                'meta' => [],
+                'links' => $placeholder['links'] ?? [],
+                'sections' => $placeholder['sections'] ?? [],
+                'card_design' => self::DEFAULT_TEMPLATE_CARD_DESIGN[$key] ?? self::DEFAULT_TEMPLATE_CARD_DESIGN['general-it'],
+            ];
+        }
+
+        $row = $this->db->fetchOne(
+            "SELECT option_value FROM {$this->prefix}settings WHERE option_name = ? LIMIT 1",
+            [self::TEMPLATE_SETTING_KEY]
+        );
+
+        if (!$row || empty($row['option_value'])) {
+            return $defaults;
+        }
+
+        $stored = json_decode((string)$row['option_value'], true);
+        if (!is_array($stored)) {
+            return $defaults;
+        }
+
+        foreach ($stored as $key => $profile) {
+            if (!is_array($profile)) {
+                continue;
+            }
+            $baseTemplate = (string)($profile['base_template'] ?? $key);
+            $defaults[$key] = [
+                'base_template' => in_array($baseTemplate, array_keys(self::TEMPLATE_PLACEHOLDERS), true) ? $baseTemplate : 'general-it',
+                'meta' => is_array($profile['meta'] ?? null) ? $profile['meta'] : [],
+                'links' => is_array($profile['links'] ?? null) ? $profile['links'] : [],
+                'sections' => is_array($profile['sections'] ?? null) ? $profile['sections'] : [],
+                'card_design' => is_array($profile['card_design'] ?? null) ? $profile['card_design'] : (self::DEFAULT_TEMPLATE_CARD_DESIGN[$baseTemplate] ?? self::DEFAULT_TEMPLATE_CARD_DESIGN['general-it']),
+            ];
+        }
+
+        return $defaults;
     }
 
     private function normalizeHubSections(string $json, string $template): array

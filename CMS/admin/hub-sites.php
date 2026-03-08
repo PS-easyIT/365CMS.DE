@@ -51,6 +51,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             exit;
 
+        case 'save-template':
+            $result = $module->saveTemplate($_POST);
+            $_SESSION['admin_alert'] = [
+                'type' => $result['success'] ? 'success' : 'danger',
+                'message' => $result['message'] ?? $result['error'] ?? '',
+            ];
+            if (!empty($result['success'])) {
+                header('Location: ' . SITE_URL . '/admin/hub-sites?action=template-edit&key=' . rawurlencode((string)($result['key'] ?? '')));
+            } else {
+                header('Location: ' . SITE_URL . '/admin/hub-sites?action=templates');
+            }
+            exit;
+
+        case 'duplicate-template':
+            $result = $module->duplicateTemplate((string)($_POST['key'] ?? ''));
+            $_SESSION['admin_alert'] = [
+                'type' => $result['success'] ? 'success' : 'danger',
+                'message' => $result['message'] ?? $result['error'] ?? '',
+            ];
+            if (!empty($result['success'])) {
+                header('Location: ' . SITE_URL . '/admin/hub-sites?action=template-edit&key=' . rawurlencode((string)($result['key'] ?? '')));
+            } else {
+                header('Location: ' . SITE_URL . '/admin/hub-sites?action=templates');
+            }
+            exit;
+
+        case 'delete-template':
+            $result = $module->deleteTemplate((string)($_POST['key'] ?? ''));
+            $_SESSION['admin_alert'] = [
+                'type' => $result['success'] ? 'success' : 'danger',
+                'message' => $result['message'] ?? $result['error'] ?? '',
+            ];
+            header('Location: ' . SITE_URL . '/admin/hub-sites?action=templates');
+            exit;
+
         case 'delete':
             $result = $module->delete((int)($_POST['id'] ?? 0));
             $_SESSION['admin_alert'] = [
@@ -88,6 +123,25 @@ if ($viewAction === 'edit') {
     require __DIR__ . '/partials/header.php';
     require __DIR__ . '/partials/sidebar.php';
     require __DIR__ . '/views/hub/edit.php';
+    require __DIR__ . '/partials/footer.php';
+} elseif ($viewAction === 'template-edit') {
+    $key = isset($_GET['key']) ? (string)$_GET['key'] : null;
+    $data = $module->getTemplateEditData($key);
+    $pageTitle = $data['isNew'] ? 'Neues Hub-Template' : 'Hub-Template bearbeiten';
+    $activePage = 'hub-sites';
+
+    require __DIR__ . '/partials/header.php';
+    require __DIR__ . '/partials/sidebar.php';
+    require __DIR__ . '/views/hub/template-edit.php';
+    require __DIR__ . '/partials/footer.php';
+} elseif ($viewAction === 'templates') {
+    $data = $module->getTemplateListData();
+    $pageTitle = 'Hub-Site Templates';
+    $activePage = 'hub-sites';
+
+    require __DIR__ . '/partials/header.php';
+    require __DIR__ . '/partials/sidebar.php';
+    require __DIR__ . '/views/hub/templates.php';
     require __DIR__ . '/partials/footer.php';
 } else {
     $data = $module->getListData();

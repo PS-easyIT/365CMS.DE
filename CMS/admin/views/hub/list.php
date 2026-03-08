@@ -30,6 +30,11 @@ $templateOptions = $data['templateOptions'] ?? [];
 
 <div class="page-body">
     <div class="container-xl">
+        <ul class="nav nav-tabs mb-4">
+            <li class="nav-item"><a class="nav-link active" href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites">Content</a></li>
+            <li class="nav-item"><a class="nav-link" href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites?action=templates">Templates</a></li>
+        </ul>
+
         <?php if (!empty($alert)): ?>
             <div class="alert alert-<?php echo $alert['type'] === 'success' ? 'success' : 'danger'; ?> alert-dismissible mb-3" role="alert">
                 <?php echo htmlspecialchars((string)$alert['message']); ?>

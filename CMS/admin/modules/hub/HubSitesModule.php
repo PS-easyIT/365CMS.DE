@@ -12,6 +12,9 @@ class HubSitesModule
     private Database $db;
     private string $prefix;
     private ?bool $hasTableSlugColumn = null;
+    private ?array $templateProfilesCache = null;
+
+    private const TEMPLATE_SETTING_KEY = 'hub_site_templates';
 
     private const TEMPLATE_OPTIONS = [
         'general-it' => 'IT Themen Allgemein',
@@ -200,7 +203,7 @@ class HubSitesModule
             'sites' => $sites,
             'total' => count($sites),
             'search' => $search,
-            'templateOptions' => self::TEMPLATE_OPTIONS,
+            'templateOptions' => $this->getTemplateProfileChoices(),
         ];
     }
 
@@ -231,8 +234,73 @@ class HubSitesModule
             'site' => $site,
             'isNew' => $site === null,
             'defaults' => self::DEFAULT_SETTINGS,
-            'templateOptions' => self::TEMPLATE_OPTIONS,
-            'templatePresets' => self::TEMPLATE_PRESETS,
+            'templateOptions' => $this->getTemplateProfileChoices(),
+        ];
+    }
+
+    public function getTemplateListData(): array
+    {
+        $profiles = $this->getTemplateProfiles();
+        $items = [];
+
+        foreach ($profiles as $key => $profile) {
+            $items[] = [
+                'key' => $key,
+                'label' => (string)($profile['label'] ?? $key),
+                'base_template' => (string)($profile['base_template'] ?? 'general-it'),
+                'summary' => (string)($profile['summary'] ?? ''),
+                'usage_count' => $this->countTemplateUsage($key),
+            ];
+        }
+
+        usort($items, static fn(array $a, array $b): int => strcasecmp($a['label'], $b['label']));
+
+        return [
+            'templates' => $items,
+            'baseTemplateOptions' => self::TEMPLATE_OPTIONS,
+        ];
+    }
+
+    public function getTemplateEditData(?string $key): array
+    {
+        $profiles = $this->getTemplateProfiles();
+        $normalizedKey = $key !== null ? $this->sanitizeTemplateKey($key) : '';
+        $template = null;
+
+        if ($normalizedKey !== '' && isset($profiles[$normalizedKey])) {
+            $template = $profiles[$normalizedKey];
+            $template['key'] = $normalizedKey;
+        }
+
+        if ($template === null) {
+            $template = [
+                'key' => '',
+                'label' => '',
+                'base_template' => 'general-it',
+                'summary' => '',
+                'meta' => [
+                    'audience' => '',
+                    'owner' => '',
+                    'update_cycle' => '',
+                    'focus' => '',
+                    'kpi' => '',
+                ],
+                'links' => [],
+                'sections' => [],
+                'card_design' => [
+                    'layout' => 'standard',
+                    'image_position' => 'top',
+                    'image_fit' => 'cover',
+                    'image_ratio' => 'wide',
+                    'meta_layout' => 'split',
+                ],
+            ];
+        }
+
+        return [
+            'template' => $template,
+            'isNew' => $normalizedKey === '' || !isset($profiles[$normalizedKey]),
+            'baseTemplateOptions' => self::TEMPLATE_OPTIONS,
         ];
     }
 
@@ -253,10 +321,13 @@ class HubSitesModule
 
         $slug = $this->buildUniqueHubSlug($name, $id > 0 ? $id : null);
 
+        $existingSettings = $id > 0 ? $this->getExistingHubSettings($id) : self::DEFAULT_SETTINGS;
+        $templateChoices = $this->getTemplateProfileChoices();
+
         $settings = [
             'content_mode' => 'hub',
             'hub_slug' => $slug,
-            'hub_template' => array_key_exists((string)($post['hub_template'] ?? ''), self::TEMPLATE_OPTIONS) ? (string)$post['hub_template'] : 'general-it',
+            'hub_template' => array_key_exists((string)($post['hub_template'] ?? ''), $templateChoices) ? (string)$post['hub_template'] : 'general-it',
             'hub_badge' => mb_substr(trim(strip_tags((string)($post['hub_badge'] ?? ''))), 0, 80),
             'hub_hero_title' => mb_substr(trim(strip_tags((string)($post['hub_hero_title'] ?? ''))), 0, 160),
             'hub_hero_text' => mb_substr(trim((string)($post['hub_hero_text'] ?? '')), 0, 1200),
@@ -267,13 +338,27 @@ class HubSitesModule
             'hub_meta_update_cycle' => mb_substr(trim(strip_tags((string)($post['hub_meta_update_cycle'] ?? ''))), 0, 120),
             'hub_meta_focus' => mb_substr(trim(strip_tags((string)($post['hub_meta_focus'] ?? ''))), 0, 160),
             'hub_meta_kpi' => mb_substr(trim(strip_tags((string)($post['hub_meta_kpi'] ?? ''))), 0, 120),
-            'hub_links_json' => $this->normalizeJsonArray((string)($post['hub_links_json'] ?? '[]'), 'link'),
-            'hub_sections_json' => $this->normalizeJsonArray((string)($post['hub_sections_json'] ?? '[]'), 'section'),
-            'hub_card_layout' => $this->normalizeSetting((string)($post['hub_card_layout'] ?? 'standard'), ['standard', 'feature', 'compact'], 'standard'),
-            'hub_card_image_position' => $this->normalizeSetting((string)($post['hub_card_image_position'] ?? 'top'), ['top', 'left', 'right'], 'top'),
-            'hub_card_image_fit' => $this->normalizeSetting((string)($post['hub_card_image_fit'] ?? 'cover'), ['cover', 'contain'], 'cover'),
-            'hub_card_image_ratio' => $this->normalizeSetting((string)($post['hub_card_image_ratio'] ?? 'wide'), ['wide', 'square', 'portrait'], 'wide'),
-            'hub_card_meta_layout' => $this->normalizeSetting((string)($post['hub_card_meta_layout'] ?? 'split'), ['split', 'stacked'], 'split'),
+            'hub_links_json' => array_key_exists('hub_links_json', $post)
+                ? $this->normalizeJsonArray((string)$post['hub_links_json'], 'link')
+                : (string)($existingSettings['hub_links_json'] ?? '[]'),
+            'hub_sections_json' => array_key_exists('hub_sections_json', $post)
+                ? $this->normalizeJsonArray((string)$post['hub_sections_json'], 'section')
+                : (string)($existingSettings['hub_sections_json'] ?? '[]'),
+            'hub_card_layout' => array_key_exists('hub_card_layout', $post)
+                ? $this->normalizeSetting((string)$post['hub_card_layout'], ['standard', 'feature', 'compact'], 'standard')
+                : (string)($existingSettings['hub_card_layout'] ?? 'standard'),
+            'hub_card_image_position' => array_key_exists('hub_card_image_position', $post)
+                ? $this->normalizeSetting((string)$post['hub_card_image_position'], ['top', 'left', 'right'], 'top')
+                : (string)($existingSettings['hub_card_image_position'] ?? 'top'),
+            'hub_card_image_fit' => array_key_exists('hub_card_image_fit', $post)
+                ? $this->normalizeSetting((string)$post['hub_card_image_fit'], ['cover', 'contain'], 'cover')
+                : (string)($existingSettings['hub_card_image_fit'] ?? 'cover'),
+            'hub_card_image_ratio' => array_key_exists('hub_card_image_ratio', $post)
+                ? $this->normalizeSetting((string)$post['hub_card_image_ratio'], ['wide', 'square', 'portrait'], 'wide')
+                : (string)($existingSettings['hub_card_image_ratio'] ?? 'wide'),
+            'hub_card_meta_layout' => array_key_exists('hub_card_meta_layout', $post)
+                ? $this->normalizeSetting((string)$post['hub_card_meta_layout'], ['split', 'stacked'], 'split')
+                : (string)($existingSettings['hub_card_meta_layout'] ?? 'split'),
         ];
 
         $normalizedCards = [];
@@ -415,6 +500,89 @@ class HubSitesModule
         }
     }
 
+    public function saveTemplate(array $post): array
+    {
+        $profiles = $this->getTemplateProfiles();
+        $existingKey = $this->sanitizeTemplateKey((string)($post['template_key'] ?? ''));
+        $label = mb_substr(trim(strip_tags((string)($post['template_label'] ?? ''))), 0, 120);
+        $baseTemplate = $this->normalizeSetting((string)($post['base_template'] ?? 'general-it'), array_keys(self::TEMPLATE_OPTIONS), 'general-it');
+
+        if ($label === '') {
+            return ['success' => false, 'error' => 'Template-Name darf nicht leer sein.'];
+        }
+
+        $key = $existingKey !== '' && isset($profiles[$existingKey])
+            ? $existingKey
+            : $this->buildUniqueTemplateKey($label, $profiles);
+
+        $profiles[$key] = [
+            'label' => $label,
+            'base_template' => $baseTemplate,
+            'summary' => mb_substr(trim((string)($post['template_summary'] ?? '')), 0, 600),
+            'meta' => [
+                'audience' => mb_substr(trim(strip_tags((string)($post['template_meta_audience'] ?? ''))), 0, 120),
+                'owner' => mb_substr(trim(strip_tags((string)($post['template_meta_owner'] ?? ''))), 0, 120),
+                'update_cycle' => mb_substr(trim(strip_tags((string)($post['template_meta_update_cycle'] ?? ''))), 0, 120),
+                'focus' => mb_substr(trim(strip_tags((string)($post['template_meta_focus'] ?? ''))), 0, 160),
+                'kpi' => mb_substr(trim(strip_tags((string)($post['template_meta_kpi'] ?? ''))), 0, 120),
+            ],
+            'links' => json_decode($this->normalizeJsonArray((string)($post['template_links_json'] ?? '[]'), 'link'), true) ?: [],
+            'sections' => json_decode($this->normalizeJsonArray((string)($post['template_sections_json'] ?? '[]'), 'section'), true) ?: [],
+            'card_design' => [
+                'layout' => $this->normalizeSetting((string)($post['hub_card_layout'] ?? 'standard'), ['standard', 'feature', 'compact'], 'standard'),
+                'image_position' => $this->normalizeSetting((string)($post['hub_card_image_position'] ?? 'top'), ['top', 'left', 'right'], 'top'),
+                'image_fit' => $this->normalizeSetting((string)($post['hub_card_image_fit'] ?? 'cover'), ['cover', 'contain'], 'cover'),
+                'image_ratio' => $this->normalizeSetting((string)($post['hub_card_image_ratio'] ?? 'wide'), ['wide', 'square', 'portrait'], 'wide'),
+                'meta_layout' => $this->normalizeSetting((string)($post['hub_card_meta_layout'] ?? 'split'), ['split', 'stacked'], 'split'),
+            ],
+        ];
+
+        $this->saveTemplateProfiles($profiles);
+
+        return ['success' => true, 'key' => $key, 'message' => 'Template gespeichert.'];
+    }
+
+    public function duplicateTemplate(string $key): array
+    {
+        $profiles = $this->getTemplateProfiles();
+        $key = $this->sanitizeTemplateKey($key);
+
+        if ($key === '' || !isset($profiles[$key])) {
+            return ['success' => false, 'error' => 'Template nicht gefunden.'];
+        }
+
+        $copy = $profiles[$key];
+        $copy['label'] = ((string)($copy['label'] ?? 'Template')) . ' (Kopie)';
+        $newKey = $this->buildUniqueTemplateKey((string)$copy['label'], $profiles);
+        $profiles[$newKey] = $copy;
+        $this->saveTemplateProfiles($profiles);
+
+        return ['success' => true, 'key' => $newKey, 'message' => 'Template kopiert.'];
+    }
+
+    public function deleteTemplate(string $key): array
+    {
+        $profiles = $this->getTemplateProfiles();
+        $key = $this->sanitizeTemplateKey($key);
+
+        if ($key === '' || !isset($profiles[$key])) {
+            return ['success' => false, 'error' => 'Template nicht gefunden.'];
+        }
+
+        if (isset(self::TEMPLATE_PRESETS[$key])) {
+            return ['success' => false, 'error' => 'Standard-Templates können nicht gelöscht werden. Du kannst sie aber bearbeiten, kopieren und umbenennen.'];
+        }
+
+        if ($this->countTemplateUsage($key) > 0) {
+            return ['success' => false, 'error' => 'Template wird noch von Hub-Sites verwendet und kann nicht gelöscht werden.'];
+        }
+
+        unset($profiles[$key]);
+        $this->saveTemplateProfiles($profiles);
+
+        return ['success' => true, 'message' => 'Template gelöscht.'];
+    }
+
     private function buildUniqueHubSlug(string $title, ?int $excludeId = null): string
     {
         $baseSlug = $this->sanitizeSlug($title);
@@ -529,6 +697,180 @@ class HubSitesModule
     private function normalizeSetting(string $value, array $allowed, string $fallback): string
     {
         return in_array($value, $allowed, true) ? $value : $fallback;
+    }
+
+    private function getTemplateProfileChoices(): array
+    {
+        $choices = [];
+        foreach ($this->getTemplateProfiles() as $key => $profile) {
+            $choices[$key] = (string)($profile['label'] ?? $key);
+        }
+
+        return $choices;
+    }
+
+    private function getTemplateProfiles(): array
+    {
+        if ($this->templateProfilesCache !== null) {
+            return $this->templateProfilesCache;
+        }
+
+        $defaultProfiles = $this->buildDefaultTemplateProfiles();
+        $row = $this->db->get_row(
+            "SELECT option_value FROM {$this->prefix}settings WHERE option_name = ? LIMIT 1",
+            [self::TEMPLATE_SETTING_KEY]
+        );
+
+        $stored = [];
+        if ($row && !empty($row->option_value)) {
+            $decoded = json_decode((string)$row->option_value, true);
+            if (is_array($decoded)) {
+                foreach ($decoded as $key => $profile) {
+                    if (!is_array($profile)) {
+                        continue;
+                    }
+                    $normalizedKey = $this->sanitizeTemplateKey((string)$key);
+                    if ($normalizedKey === '') {
+                        continue;
+                    }
+                    $stored[$normalizedKey] = $this->normalizeTemplateProfile($normalizedKey, $profile, $defaultProfiles[$normalizedKey] ?? null);
+                }
+            }
+        }
+
+        foreach ($defaultProfiles as $key => $profile) {
+            if (!isset($stored[$key])) {
+                $stored[$key] = $profile;
+            }
+        }
+
+        $this->templateProfilesCache = $stored;
+        return $this->templateProfilesCache;
+    }
+
+    private function saveTemplateProfiles(array $profiles): void
+    {
+        $payload = [];
+        foreach ($profiles as $key => $profile) {
+            if (!is_array($profile)) {
+                continue;
+            }
+            $normalizedKey = $this->sanitizeTemplateKey((string)$key);
+            if ($normalizedKey === '') {
+                continue;
+            }
+            $payload[$normalizedKey] = $this->normalizeTemplateProfile($normalizedKey, $profile, null);
+        }
+
+        $json = json_encode($payload, JSON_UNESCAPED_UNICODE);
+        $exists = (int)($this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?", [self::TEMPLATE_SETTING_KEY]) ?? 0);
+        if ($exists > 0) {
+            $this->db->update('settings', ['option_value' => $json], ['option_name' => self::TEMPLATE_SETTING_KEY]);
+        } else {
+            $this->db->insert('settings', ['option_name' => self::TEMPLATE_SETTING_KEY, 'option_value' => $json]);
+        }
+
+        $this->templateProfilesCache = $payload;
+    }
+
+    private function buildDefaultTemplateProfiles(): array
+    {
+        $profiles = [];
+        foreach (self::TEMPLATE_PRESETS as $key => $preset) {
+            $profiles[$key] = $this->normalizeTemplateProfile($key, [
+                'label' => self::TEMPLATE_OPTIONS[$key] ?? $key,
+                'base_template' => $key,
+                'summary' => $preset['summary'] ?? '',
+                'meta' => $preset['meta'] ?? [],
+                'links' => $preset['links'] ?? [],
+                'sections' => $preset['sections'] ?? [],
+                'card_design' => $preset['card_design'] ?? [],
+            ], null);
+        }
+
+        return $profiles;
+    }
+
+    private function normalizeTemplateProfile(string $key, array $profile, ?array $fallback): array
+    {
+        $fallback = $fallback ?? [
+            'label' => $key,
+            'base_template' => 'general-it',
+            'summary' => '',
+            'meta' => ['audience' => '', 'owner' => '', 'update_cycle' => '', 'focus' => '', 'kpi' => ''],
+            'links' => [],
+            'sections' => [],
+            'card_design' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split'],
+        ];
+
+        return [
+            'label' => mb_substr(trim(strip_tags((string)($profile['label'] ?? $fallback['label']))), 0, 120),
+            'base_template' => $this->normalizeSetting((string)($profile['base_template'] ?? $fallback['base_template']), array_keys(self::TEMPLATE_OPTIONS), 'general-it'),
+            'summary' => mb_substr(trim((string)($profile['summary'] ?? $fallback['summary'])), 0, 600),
+            'meta' => [
+                'audience' => mb_substr(trim(strip_tags((string)($profile['meta']['audience'] ?? $fallback['meta']['audience'] ?? ''))), 0, 120),
+                'owner' => mb_substr(trim(strip_tags((string)($profile['meta']['owner'] ?? $fallback['meta']['owner'] ?? ''))), 0, 120),
+                'update_cycle' => mb_substr(trim(strip_tags((string)($profile['meta']['update_cycle'] ?? $fallback['meta']['update_cycle'] ?? ''))), 0, 120),
+                'focus' => mb_substr(trim(strip_tags((string)($profile['meta']['focus'] ?? $fallback['meta']['focus'] ?? ''))), 0, 160),
+                'kpi' => mb_substr(trim(strip_tags((string)($profile['meta']['kpi'] ?? $fallback['meta']['kpi'] ?? ''))), 0, 120),
+            ],
+            'links' => json_decode($this->normalizeJsonArray(json_encode($profile['links'] ?? $fallback['links'] ?? [], JSON_UNESCAPED_UNICODE) ?: '[]', 'link'), true) ?: [],
+            'sections' => json_decode($this->normalizeJsonArray(json_encode($profile['sections'] ?? $fallback['sections'] ?? [], JSON_UNESCAPED_UNICODE) ?: '[]', 'section'), true) ?: [],
+            'card_design' => [
+                'layout' => $this->normalizeSetting((string)($profile['card_design']['layout'] ?? $fallback['card_design']['layout'] ?? 'standard'), ['standard', 'feature', 'compact'], 'standard'),
+                'image_position' => $this->normalizeSetting((string)($profile['card_design']['image_position'] ?? $fallback['card_design']['image_position'] ?? 'top'), ['top', 'left', 'right'], 'top'),
+                'image_fit' => $this->normalizeSetting((string)($profile['card_design']['image_fit'] ?? $fallback['card_design']['image_fit'] ?? 'cover'), ['cover', 'contain'], 'cover'),
+                'image_ratio' => $this->normalizeSetting((string)($profile['card_design']['image_ratio'] ?? $fallback['card_design']['image_ratio'] ?? 'wide'), ['wide', 'square', 'portrait'], 'wide'),
+                'meta_layout' => $this->normalizeSetting((string)($profile['card_design']['meta_layout'] ?? $fallback['card_design']['meta_layout'] ?? 'split'), ['split', 'stacked'], 'split'),
+            ],
+        ];
+    }
+
+    private function countTemplateUsage(string $key): int
+    {
+        return (int)($this->db->get_var(
+            "SELECT COUNT(*) FROM {$this->prefix}site_tables
+             WHERE COALESCE(JSON_UNQUOTE(JSON_EXTRACT(settings_json, '$.content_mode')), 'table') = 'hub'
+               AND JSON_UNQUOTE(JSON_EXTRACT(settings_json, '$.hub_template')) = ?",
+            [$key]
+        ) ?? 0);
+    }
+
+    private function buildUniqueTemplateKey(string $label, array $profiles): string
+    {
+        $base = $this->sanitizeTemplateKey($label);
+        if ($base === '') {
+            $base = 'hub-template';
+        }
+
+        $key = $base;
+        $suffix = 2;
+        while (isset($profiles[$key])) {
+            $key = $base . '-' . $suffix;
+            $suffix++;
+        }
+
+        return $key;
+    }
+
+    private function sanitizeTemplateKey(string $value): string
+    {
+        $value = strtolower(trim($value));
+        $value = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $value = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value) ?: $value;
+        $value = (string)preg_replace('/[^a-z0-9]+/i', '-', $value);
+        return trim($value, '-');
+    }
+
+    private function getExistingHubSettings(int $id): array
+    {
+        $row = $this->db->get_row("SELECT settings_json FROM {$this->prefix}site_tables WHERE id = ? LIMIT 1", [$id]);
+        if (!$row || empty($row->settings_json)) {
+            return self::DEFAULT_SETTINGS;
+        }
+
+        $decoded = json_decode((string)$row->settings_json, true);
+        return array_merge(self::DEFAULT_SETTINGS, is_array($decoded) ? $decoded : []);
     }
 
     private function hasTableSlugColumn(): bool
