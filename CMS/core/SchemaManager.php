@@ -26,7 +26,7 @@ if (!defined('ABSPATH')) {
 class SchemaManager
 {
     /** Flag-Datei-Version – erhöhen wenn Schema geändert wird */
-    public const SCHEMA_VERSION = 'v11';
+    public const SCHEMA_VERSION = 'v12';
 
     private Database $db;
     private string $prefix;
@@ -584,15 +584,22 @@ class SchemaManager
                 subject VARCHAR(255) NOT NULL,
                 body LONGTEXT,
                 headers LONGTEXT COMMENT 'JSON-Daten',
+                content_type VARCHAR(20) NOT NULL DEFAULT 'html',
+                source VARCHAR(100) NOT NULL DEFAULT 'system',
                 status ENUM('pending','processing','sent','failed') NOT NULL DEFAULT 'pending',
                 attempts INT UNSIGNED NOT NULL DEFAULT 0,
+                max_attempts INT UNSIGNED NOT NULL DEFAULT 5,
                 available_at DATETIME DEFAULT NULL,
                 sent_at DATETIME DEFAULT NULL,
+                locked_at DATETIME DEFAULT NULL,
+                last_attempt_at DATETIME DEFAULT NULL,
                 last_error TEXT DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_status (status),
+                INDEX idx_status_available (status, available_at),
                 INDEX idx_available_at (available_at),
+                INDEX idx_locked_at (locked_at),
                 INDEX idx_created_at (created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 

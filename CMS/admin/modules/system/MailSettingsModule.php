@@ -9,6 +9,7 @@ use CMS\AuditLogger;
 use CMS\Services\AzureMailTokenProvider;
 use CMS\Services\GraphApiService;
 use CMS\Services\MailLogService;
+use CMS\Services\MailQueueService;
 use CMS\Services\MailService;
 use CMS\Services\SettingsService;
 
@@ -16,11 +17,13 @@ class MailSettingsModule
 {
     private SettingsService $settings;
     private MailLogService $mailLogs;
+    private MailQueueService $mailQueue;
 
     public function __construct()
     {
         $this->settings = SettingsService::getInstance();
         $this->mailLogs = MailLogService::getInstance();
+        $this->mailQueue = MailQueueService::getInstance();
     }
 
     public function getData(): array
@@ -32,6 +35,7 @@ class MailSettingsModule
         $stats = $this->mailLogs->getStats();
         $azure = AzureMailTokenProvider::getInstance()->getConfiguration();
         $graphConfig = GraphApiService::getInstance()->getConfiguration();
+        $queueDashboard = $this->mailQueue->getDashboardData(25);
 
         return [
             'transport' => [
@@ -67,9 +71,12 @@ class MailSettingsModule
             'transport_info' => $transportInfo,
             'mail_logs' => $recentLogs,
             'mail_stats' => $stats,
-            'queue_stats' => [
-                'pending' => (int) ($stats['queued_pending'] ?? 0),
-                'failed' => (int) ($stats['queued_failed'] ?? 0),
+            'queue' => $queueDashboard,
+            'queue_stats' => $queueDashboard['stats'] ?? [
+                'pending' => 0,
+                'processing' => 0,
+                'sent' => 0,
+                'failed' => 0,
             ],
         ];
     }
@@ -214,7 +221,7 @@ class MailSettingsModule
 
     public function sendTestEmail(array $post): array
     {
-        $recipient = trim((string) ($post['test_email_recipient'] ?? ''));
+        $recipient = trim((string) ($post['test_email_recipient'] ?? $post['test_recipient'] ?? ''));
         $result = MailService::getInstance()->sendBackendTestEmail($recipient, 'admin-mail-settings');
 
         AuditLogger::instance()->log(
@@ -226,6 +233,105 @@ class MailSettingsModule
             [
                 'recipient' => $recipient,
                 'transport' => $result['transport'] ?? null,
+                'result' => !empty($result['success']) ? 'success' : 'error',
+            ],
+            !empty($result['success']) ? 'info' : 'warning'
+        );
+
+        return $result;
+    }
+
+    public function saveQueue(array $post): array
+    {
+        $saved = $this->mailQueue->saveConfiguration([
+            'enabled' => !empty($post['queue_enabled']),
+            'batch_size' => (int) ($post['queue_batch_size'] ?? 10),
+            'max_attempts' => (int) ($post['queue_max_attempts'] ?? 5),
+            'retry_delay_seconds' => (int) ($post['queue_retry_delay_seconds'] ?? 300),
+            'throttle_delay_seconds' => (int) ($post['queue_throttle_delay_seconds'] ?? 900),
+            'lock_timeout_seconds' => (int) ($post['queue_lock_timeout_seconds'] ?? 900),
+        ]);
+
+        if (!$saved) {
+            return ['success' => false, 'error' => 'Queue-Einstellungen konnten nicht gespeichert werden.'];
+        }
+
+        if (!empty($post['regenerate_queue_cron_token'])) {
+            $this->mailQueue->rotateCronToken();
+        }
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            'setting.mail.queue.save',
+            'Mail-Queue-Einstellungen gespeichert.',
+            'setting',
+            null,
+            [
+                'enabled' => !empty($post['queue_enabled']),
+                'batch_size' => (int) ($post['queue_batch_size'] ?? 10),
+                'max_attempts' => (int) ($post['queue_max_attempts'] ?? 5),
+            ],
+            'info'
+        );
+
+        return ['success' => true, 'message' => 'Queue-Einstellungen gespeichert.'];
+    }
+
+    public function runQueueNow(array $post): array
+    {
+        $limit = max(1, min(100, (int) ($post['queue_run_limit'] ?? 0)));
+        $result = $this->mailQueue->processDueJobs($limit > 0 ? $limit : null, 'admin-manual', true);
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            'mail.queue.run',
+            !empty($result['success']) ? 'Mail-Queue manuell ausgeführt.' : 'Mail-Queue-Lauf fehlgeschlagen.',
+            'system',
+            null,
+            $result,
+            !empty($result['success']) ? 'info' : 'warning'
+        );
+
+        return $result;
+    }
+
+    public function releaseQueueStale(): array
+    {
+        $config = $this->mailQueue->getConfiguration();
+        $released = $this->mailQueue->releaseStaleProcessingJobs((int) ($config['lock_timeout_seconds'] ?? 900));
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            'mail.queue.release_stale',
+            'Stale Mail-Queue-Jobs wurden freigegeben.',
+            'system',
+            null,
+            ['released' => $released],
+            'warning'
+        );
+
+        return [
+            'success' => true,
+            'message' => $released > 0
+                ? $released . ' verwaiste Queue-Jobs wurden freigegeben.'
+                : 'Keine verwaisten Queue-Jobs gefunden.',
+        ];
+    }
+
+    public function enqueueQueueTestEmail(array $post): array
+    {
+        $recipient = trim((string) ($post['queue_test_recipient'] ?? $post['test_recipient'] ?? ''));
+        $result = MailService::getInstance()->queueBackendTestEmail($recipient, 'admin-mail-queue');
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            'setting.mail.queue.enqueue_test',
+            !empty($result['success']) ? 'Test-E-Mail wurde in die Queue gelegt.' : 'Test-E-Mail konnte nicht in die Queue gelegt werden.',
+            'setting',
+            null,
+            [
+                'recipient' => $recipient,
+                'queue_id' => $result['id'] ?? null,
                 'result' => !empty($result['success']) ? 'success' : 'error',
             ],
             !empty($result['success']) ? 'info' : 'warning'

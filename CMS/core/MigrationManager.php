@@ -30,7 +30,7 @@ class MigrationManager
      * Aktuelle Schema-Version – erhöhen wenn neue Migrations hinzukommen.
      * Wird in cms_settings (option_name = 'db_schema_version') gespeichert.
      */
-    private const SCHEMA_VERSION = 'v8';
+    private const SCHEMA_VERSION = 'v9';
 
     public function __construct(Database $db)
     {
@@ -92,17 +92,31 @@ class MigrationManager
                 `subject` VARCHAR(255) NOT NULL,
                 `body` LONGTEXT,
                 `headers` LONGTEXT,
+                `content_type` VARCHAR(20) NOT NULL DEFAULT 'html',
+                `source` VARCHAR(100) NOT NULL DEFAULT 'system',
                 `status` ENUM('pending','processing','sent','failed') NOT NULL DEFAULT 'pending',
                 `attempts` INT UNSIGNED NOT NULL DEFAULT 0,
+                `max_attempts` INT UNSIGNED NOT NULL DEFAULT 5,
                 `available_at` DATETIME DEFAULT NULL,
                 `sent_at` DATETIME DEFAULT NULL,
+                `locked_at` DATETIME DEFAULT NULL,
+                `last_attempt_at` DATETIME DEFAULT NULL,
                 `last_error` TEXT DEFAULT NULL,
                 `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX `idx_status` (`status`),
+                INDEX `idx_status_available` (`status`, `available_at`),
                 INDEX `idx_available_at` (`available_at`),
+                INDEX `idx_locked_at` (`locked_at`),
                 INDEX `idx_created_at` (`created_at`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+            "ALTER TABLE `{$p}mail_queue` ADD COLUMN `content_type` VARCHAR(20) NOT NULL DEFAULT 'html' AFTER `headers`",
+            "ALTER TABLE `{$p}mail_queue` ADD COLUMN `source` VARCHAR(100) NOT NULL DEFAULT 'system' AFTER `content_type`",
+            "ALTER TABLE `{$p}mail_queue` ADD COLUMN `max_attempts` INT UNSIGNED NOT NULL DEFAULT 5 AFTER `attempts`",
+            "ALTER TABLE `{$p}mail_queue` ADD COLUMN `locked_at` DATETIME DEFAULT NULL AFTER `sent_at`",
+            "ALTER TABLE `{$p}mail_queue` ADD COLUMN `last_attempt_at` DATETIME DEFAULT NULL AFTER `locked_at`",
+            "ALTER TABLE `{$p}mail_queue` ADD INDEX `idx_status_available` (`status`, `available_at`)",
+            "ALTER TABLE `{$p}mail_queue` ADD INDEX `idx_locked_at` (`locked_at`)",
             // RBAC: member_dashboard_access on roles
             "ALTER TABLE `{$p}roles` ADD COLUMN `member_dashboard_access` TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Zugriff auf Member-Dashboard' AFTER `capabilities`",
             // RBAC: sort_order on roles

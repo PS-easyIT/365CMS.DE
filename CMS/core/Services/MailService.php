@@ -107,7 +107,35 @@ class MailService
         ];
     }
 
-    public function send(string $to, string $subject, string $htmlBody, array $headers = []): bool
+    /**
+     * @return array{success:bool,message?:string,error?:string,id?:int}
+     */
+    public function queueBackendTestEmail(string $to, string $source = 'admin-queue'): array
+    {
+        $recipient = trim($to);
+        if (filter_var($recipient, FILTER_VALIDATE_EMAIL) === false) {
+            return ['success' => false, 'error' => 'Bitte eine gültige Empfänger-E-Mail-Adresse angeben.'];
+        }
+
+        $transport = $this->getTransportInfo();
+
+        return MailQueueService::getInstance()->enqueue(
+            $recipient,
+            '365CMS Test-E-Mail (Queue)',
+            $this->buildBackendTestBody($recipient, $source, $transport),
+            [
+                'X-365CMS-Test-Mail' => '1',
+                'X-365CMS-Test-Source' => $source,
+            ],
+            null,
+            $source
+        );
+    }
+
+    /**
+     * @return array{success:bool,error?:string,transport?:string,provider?:string,source?:string,retryable?:bool,error_category?:string,recommended_delay?:int,message_id?:string}
+     */
+    public function sendDetailed(string $to, string $subject, string $htmlBody, array $headers = []): array
     {
         try {
             $plainBody = $this->createPlainTextBody($htmlBody);
@@ -115,13 +143,34 @@ class MailService
                 ->html($htmlBody)
                 ->text($plainBody);
 
-            return $this->dispatchMessage($to, $subject, $email, function () use ($to, $subject, $htmlBody, $headers): bool {
+            return $this->dispatchMessageDetailed($to, $subject, $email, function () use ($to, $subject, $htmlBody, $headers): bool {
                 return $this->sendMessageFallback($to, $subject, $htmlBody, $headers, true);
             }, $headers);
         } catch (\Throwable $e) {
-            $this->logFailure($to, $subject, 'mail_exception', $e->getMessage(), $headers);
-            return false;
+            $config = $this->getEffectiveConfig();
+            $classification = $this->classifyDeliveryFailure($e->getMessage(), $config);
+            $source = $this->resolveSource($headers);
+
+            $this->logFailure($to, $subject, 'mail_exception', $e->getMessage(), $headers, $source, $config);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'transport' => (string) ($config['transport_label'] ?? 'Mailversand'),
+                'provider' => (string) ($config['provider'] ?? 'mail'),
+                'source' => $source,
+                'retryable' => (bool) ($classification['retryable'] ?? false),
+                'error_category' => (string) ($classification['category'] ?? 'temporary'),
+                'recommended_delay' => (int) ($classification['recommended_delay'] ?? 300),
+            ];
         }
+    }
+
+    public function send(string $to, string $subject, string $htmlBody, array $headers = []): bool
+    {
+        $result = $this->sendDetailed($to, $subject, $htmlBody, $headers);
+
+        return !empty($result['success']);
     }
 
     public function sendPlain(string $to, string $subject, string $plainBody, array $headers = []): bool
@@ -221,8 +270,73 @@ class MailService
     }
 
     /**
+     * @return array{success:bool,error?:string,transport?:string,provider?:string,source?:string,retryable?:bool,error_category?:string,recommended_delay?:int,message_id?:string}
+     */
+    private function dispatchMessageDetailed(string $to, string $subject, Email $email, callable $fallback, array $headers = []): array
+    {
+        $config = $this->getEffectiveConfig();
+        $source = $this->resolveSource($headers);
+
+        if ($config['use_smtp']) {
+            $result = $this->sendViaSymfony($email, $config);
+            if (!empty($result['success'])) {
+                $this->logSuccess($to, $subject, $config, $result['message_id'] ?? null, $headers, $source);
+
+                return [
+                    'success' => true,
+                    'transport' => (string) ($config['transport_label'] ?? 'SMTP'),
+                    'provider' => (string) ($config['provider'] ?? 'smtp'),
+                    'source' => $source,
+                    'message_id' => isset($result['message_id']) ? (string) $result['message_id'] : null,
+                ];
+            }
+
+            $error = (string) ($result['error'] ?? 'Unbekannter SMTP-Fehler');
+            $this->logFailure($to, $subject, (string) ($config['provider'] ?? 'smtp'), $error, $headers, $source, $config);
+
+            return [
+                'success' => false,
+                'error' => $error,
+                'transport' => (string) ($config['transport_label'] ?? 'SMTP'),
+                'provider' => (string) ($config['provider'] ?? 'smtp'),
+                'source' => $source,
+                'retryable' => !empty($result['retryable']),
+                'error_category' => (string) ($result['error_category'] ?? 'temporary'),
+                'recommended_delay' => (int) ($result['recommended_delay'] ?? 300),
+            ];
+        }
+
+        $success = (bool) $fallback();
+        if ($success) {
+            $this->logSuccess($to, $subject, $config, null, $headers, $source);
+
+            return [
+                'success' => true,
+                'transport' => (string) ($config['transport_label'] ?? 'PHP mail() Fallback'),
+                'provider' => (string) ($config['provider'] ?? 'mail'),
+                'source' => $source,
+            ];
+        }
+
+        $error = 'PHP mail() konnte die Nachricht nicht versenden.';
+        $classification = $this->classifyDeliveryFailure($error, $config);
+        $this->logFailure($to, $subject, 'mail', $error, $headers, $source, $config);
+
+        return [
+            'success' => false,
+            'error' => $error,
+            'transport' => (string) ($config['transport_label'] ?? 'PHP mail() Fallback'),
+            'provider' => (string) ($config['provider'] ?? 'mail'),
+            'source' => $source,
+            'retryable' => (bool) ($classification['retryable'] ?? false),
+            'error_category' => (string) ($classification['category'] ?? 'temporary'),
+            'recommended_delay' => (int) ($classification['recommended_delay'] ?? 300),
+        ];
+    }
+
+    /**
      * @param array<string, mixed> $config
-     * @return array{success:bool,message_id?:string,error?:string}
+     * @return array{success:bool,message_id?:string,error?:string,retryable?:bool,error_category?:string,recommended_delay?:int}
      */
     private function sendViaSymfony(Email $email, array $config): array
     {
@@ -241,9 +355,17 @@ class MailService
                 'host' => $config['smtp_host'],
             ]);
 
+            $classification = $this->classifyDeliveryFailure($e->getMessage(), $config);
+            if (!empty($classification['clear_token_cache']) && (string) ($config['auth_mode'] ?? '') === 'oauth2') {
+                AzureMailTokenProvider::getInstance()->clearCache();
+            }
+
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
+                'retryable' => (bool) ($classification['retryable'] ?? false),
+                'error_category' => (string) ($classification['category'] ?? 'temporary'),
+                'recommended_delay' => (int) ($classification['recommended_delay'] ?? 300),
             ];
         } finally {
             try {
@@ -578,6 +700,80 @@ class MailService
 
         $messageId = trim($sentMessage->getMessageId());
         return $messageId !== '' ? $messageId : null;
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     * @return array{retryable:bool,category:string,recommended_delay:int,clear_token_cache:bool}
+     */
+    private function classifyDeliveryFailure(string $error, array $config): array
+    {
+        $message = strtolower(trim($error));
+        $category = 'temporary';
+        $retryable = true;
+        $clearTokenCache = false;
+
+        $containsAny = static function (string $haystack, array $needles): bool {
+            foreach ($needles as $needle) {
+                if ($needle !== '' && str_contains($haystack, $needle)) {
+                    return true;
+                }
+            }
+
+            return false;
+        };
+
+        if ($containsAny($message, [
+            'recipient address rejected', 'mailbox unavailable', 'user unknown', 'no such user', '5.1.1', '5.1.0',
+            'bad destination mailbox address', 'invalid recipient', 'relay access denied', 'not permitted to send',
+        ])) {
+            $category = 'recipient';
+            $retryable = false;
+        } elseif ($containsAny($message, [
+            'invalid client', 'aadsts7000215', 'aadsts700016', 'unauthorized_client', 'invalid_scope', 'consent',
+            'service principal', 'authentication unsuccessful', 'username and password not accepted', '535 5.7',
+            'client secret', 'application was not found', 'tenant',
+        ])) {
+            $category = 'configuration';
+            $retryable = false;
+        } elseif ($containsAny($message, [
+            'too many requests', 'rate limit', 'throttle', 'server busy', 'try again later', 'temporarily deferred',
+            '4.7.', '429',
+        ])) {
+            $category = 'throttle';
+        } elseif ($containsAny($message, [
+            'expired token', 'token expired', 'invalid_token', 'temporarily unavailable', 'temporarily_unavailable',
+            'token has expired', 'access token',
+        ])) {
+            $category = 'oauth';
+            $clearTokenCache = true;
+        } elseif ($containsAny($message, [
+            'timed out', 'timeout', 'could not connect', 'connection refused', 'connection reset', 'broken pipe',
+            'temporary failure', 'service unavailable', '421 ', '451 ', '4.4.', 'network',
+        ])) {
+            $category = 'network';
+        }
+
+        if ((string) ($config['auth_mode'] ?? '') === 'oauth2' && $category === 'temporary' && str_contains($message, 'oauth')) {
+            $category = 'oauth';
+            $clearTokenCache = true;
+        }
+
+        return [
+            'retryable' => $retryable,
+            'category' => $category,
+            'recommended_delay' => $this->resolveRetryDelayForCategory($category),
+            'clear_token_cache' => $clearTokenCache,
+        ];
+    }
+
+    private function resolveRetryDelayForCategory(string $category): int
+    {
+        return match ($category) {
+            'throttle' => max(60, $this->settings->getInt('mail', 'queue_throttle_delay_seconds', 900)),
+            'oauth', 'network', 'temporary' => max(60, $this->settings->getInt('mail', 'queue_retry_delay_seconds', 300)),
+            default => 0,
+        };
     }
 
     /**

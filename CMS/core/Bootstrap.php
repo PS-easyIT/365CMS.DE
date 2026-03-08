@@ -214,6 +214,10 @@ class Bootstrap
         $this->container->singleton(Services\MailLogService::class, fn() => Services\MailLogService::getInstance());
         $this->container->singleton('mail.logs', fn() => Services\MailLogService::getInstance());
 
+        // MailQueueService – asynchroner Mailversand mit Cron-Worker und Retry-Backoff
+        $this->container->singleton(Services\MailQueueService::class, fn() => Services\MailQueueService::getInstance());
+        $this->container->singleton('mail.queue', fn() => Services\MailQueueService::getInstance());
+
         // GraphApiService – Microsoft Graph via Client-Credentials
         $this->container->singleton(Services\GraphApiService::class, fn() => Services\GraphApiService::getInstance());
         $this->container->singleton('graph', fn() => Services\GraphApiService::getInstance());
@@ -368,6 +372,7 @@ class Bootstrap
         }
 
         // Initialize hooks
+        Hooks::addAction('cms_cron_mail_queue', [Services\MailQueueService::getInstance(), 'handleCronHook'], 10);
         Hooks::doAction('cms_init');
         Hooks::doAction('cms_init_' . $this->mode); // H-12: Modus-spezifischer Hook
     }

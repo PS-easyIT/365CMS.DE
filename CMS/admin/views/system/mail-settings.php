@@ -11,7 +11,11 @@ $graph = $data['graph'] ?? [];
 $transportInfo = $data['transport_info'] ?? [];
 $mailLogs = $data['mail_logs']['rows'] ?? [];
 $mailStats = $data['mail_stats'] ?? [];
+$queue = $data['queue'] ?? [];
 $queueStats = $data['queue_stats'] ?? [];
+$queueConfig = $queue['config'] ?? [];
+$queueRecentJobs = $queue['recent_jobs'] ?? [];
+$queueLastRun = $queue['last_run'] ?? [];
 $currentTab = $currentTab ?? 'transport';
 $mailBaseUrl = (defined('SITE_URL') ? SITE_URL : '') . '/admin/mail-settings';
 ?>
@@ -334,28 +338,167 @@ $mailBaseUrl = (defined('SITE_URL') ? SITE_URL : '') . '/admin/mail-settings';
             </div>
         </div>
     <?php else: ?>
-        <div class="row row-cards">
+        <div class="row row-cards mb-4">
+            <div class="col-sm-6 col-lg-3">
+                <div class="card"><div class="card-body"><div class="subheader">Pending</div><div class="h1 mb-0"><?php echo (int) ($queueStats['pending'] ?? 0); ?></div></div></div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card"><div class="card-body"><div class="subheader">Processing</div><div class="h1 mb-0 text-primary"><?php echo (int) ($queueStats['processing'] ?? 0); ?></div></div></div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card"><div class="card-body"><div class="subheader">Versendet</div><div class="h1 mb-0 text-success"><?php echo (int) ($queueStats['sent'] ?? 0); ?></div></div></div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card"><div class="card-body"><div class="subheader">Final fehlgeschlagen</div><div class="h1 mb-0 text-danger"><?php echo (int) ($queueStats['failed'] ?? 0); ?></div></div></div>
+            </div>
+        </div>
+
+        <div class="row row-cards mb-4">
             <div class="col-12 col-xl-6">
-                <div class="card h-100">
-                    <div class="card-header"><h3 class="card-title">Mail-Queue</h3></div>
+                <form method="post" class="card h-100">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                    <input type="hidden" name="tab" value="queue">
+                    <div class="card-header"><h3 class="card-title">Queue-Konfiguration</h3></div>
                     <div class="card-body">
-                        <p class="text-secondary mb-3">Die Queue-Tabelle ist vorbereitet, damit zukünftige Cron-/Worker-Prozesse asynchronen Versand übernehmen können.</p>
-                        <dl class="row mb-0">
-                            <dt class="col-6">Offene Jobs</dt><dd class="col-6"><?php echo (int) ($queueStats['pending'] ?? 0); ?></dd>
-                            <dt class="col-6">Fehlerhafte Jobs</dt><dd class="col-6"><?php echo (int) ($queueStats['failed'] ?? 0); ?></dd>
-                        </dl>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="queue_enabled" value="1" <?php echo !empty($queueConfig['enabled']) ? 'checked' : ''; ?>>
+                                    <span class="form-check-label">Asynchronen Mailversand per Queue aktivieren</span>
+                                </label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Batch-Größe pro Lauf</label>
+                                <input type="number" class="form-control" name="queue_batch_size" min="1" max="100" value="<?php echo (int) ($queueConfig['batch_size'] ?? 10); ?>">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Maximale Versuche pro Job</label>
+                                <input type="number" class="form-control" name="queue_max_attempts" min="1" max="20" value="<?php echo (int) ($queueConfig['max_attempts'] ?? 5); ?>">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Retry-Delay (Sekunden)</label>
+                                <input type="number" class="form-control" name="queue_retry_delay_seconds" min="60" max="86400" value="<?php echo (int) ($queueConfig['retry_delay_seconds'] ?? 300); ?>">
+                                <div class="form-hint">Für Netzwerk- und OAuth2-Transientfehler.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Throttle-Delay (Sekunden)</label>
+                                <input type="number" class="form-control" name="queue_throttle_delay_seconds" min="60" max="86400" value="<?php echo (int) ($queueConfig['throttle_delay_seconds'] ?? 900); ?>">
+                                <div class="form-hint">Für 429/4.7.x/Rate-Limit-Situationen.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Lock-Timeout (Sekunden)</label>
+                                <input type="number" class="form-control" name="queue_lock_timeout_seconds" min="60" max="86400" value="<?php echo (int) ($queueConfig['lock_timeout_seconds'] ?? 900); ?>">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Cron-Token</label>
+                                <input type="text" class="form-control" value="<?php echo htmlspecialchars((string) ($queueConfig['cron_token'] ?? '')); ?>" readonly>
+                                <label class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" name="regenerate_queue_cron_token" value="1">
+                                    <span class="form-check-label">Cron-Token beim Speichern neu erzeugen</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                    <div class="card-footer d-flex justify-content-between gap-2 flex-wrap">
+                        <button type="submit" name="action" value="save_queue" class="btn btn-primary">Queue speichern</button>
+                        <span class="text-secondary small align-self-center">Konfiguration gilt für Cron und manuellen Worker-Lauf.</span>
+                    </div>
+                </form>
             </div>
             <div class="col-12 col-xl-6">
                 <div class="card h-100">
-                    <div class="card-header"><h3 class="card-title">Nächste Schritte</h3></div>
+                    <div class="card-header"><h3 class="card-title">Worker &amp; Cron</h3></div>
                     <div class="card-body">
-                        <ul class="text-secondary small ps-3 mb-0">
-                            <li class="mb-2">Worker oder Cron-Prozess anlegen, der <code>cms_mail_queue</code> verarbeitet.</li>
-                            <li class="mb-2">Retries und Backoff abhängig von SMTP-/OAuth2-Fehlern ergänzen.</li>
-                            <li>Optional Webhooks oder Teams-/Slack-Benachrichtigungen auf Mail-Fehler aufsetzen.</li>
-                        </ul>
+                        <div class="mb-3">
+                            <label class="form-label">Webhook-/Cron-URL</label>
+                            <input type="text" class="form-control" value="<?php echo htmlspecialchars((string) ($queueConfig['cron_url'] ?? '')); ?>" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">CLI-Beispiel</label>
+                            <input type="text" class="form-control" value="<?php echo htmlspecialchars((string) ($queueConfig['cli_command'] ?? '')); ?>" readonly>
+                        </div>
+                        <div class="mb-3 small text-secondary">
+                            Der Worker verarbeitet <code>cms_mail_queue</code> über <code>/cron.php</code> und nutzt abgestufte Retries für Netzwerk-, SMTP- und OAuth2-Transientfehler.
+                        </div>
+                        <hr>
+                        <form method="post" class="row g-3 align-items-end">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                            <input type="hidden" name="tab" value="queue">
+                            <div class="col-md-6">
+                                <label class="form-label">Queue-Testempfänger</label>
+                                <input type="email" name="queue_test_recipient" class="form-control" value="<?php echo htmlspecialchars((string) ($transport['test_recipient'] ?? '')); ?>" placeholder="admin@example.com">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Run-Limit</label>
+                                <input type="number" name="queue_run_limit" class="form-control" min="1" max="100" value="<?php echo (int) ($queueConfig['batch_size'] ?? 10); ?>">
+                            </div>
+                            <div class="col-md-3 d-grid">
+                                <button type="submit" name="action" value="run_queue_now" class="btn btn-primary">Worker jetzt ausführen</button>
+                            </div>
+                            <div class="col-md-6 d-grid">
+                                <button type="submit" name="action" value="enqueue_queue_test" class="btn btn-outline-primary">Test-E-Mail in Queue legen</button>
+                            </div>
+                            <div class="col-md-6 d-grid">
+                                <button type="submit" name="action" value="release_queue_stale" class="btn btn-outline-secondary">Verwaiste Processing-Jobs freigeben</button>
+                            </div>
+                        </form>
+
+                        <hr>
+                        <div class="small text-secondary">
+                            <strong>Letzter Lauf:</strong>
+                            <?php if (!empty($queueLastRun['executed_at'])): ?>
+                                <?php echo htmlspecialchars((string) $queueLastRun['executed_at']); ?> · Worker: <?php echo htmlspecialchars((string) ($queueLastRun['worker'] ?? '—')); ?> ·
+                                verarbeitet: <?php echo (int) ($queueLastRun['processed'] ?? 0); ?> ·
+                                versendet: <?php echo (int) ($queueLastRun['sent'] ?? 0); ?> ·
+                                retried: <?php echo (int) ($queueLastRun['retried'] ?? 0); ?> ·
+                                final fehlgeschlagen: <?php echo (int) ($queueLastRun['failed_final'] ?? 0); ?>
+                            <?php else: ?>
+                                Noch kein Worker-Lauf protokolliert.
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">Letzte Queue-Jobs</h3></div>
+                    <div class="table-responsive">
+                        <table class="table table-vcenter card-table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Erstellt</th>
+                                    <th>Status</th>
+                                    <th>Empfänger</th>
+                                    <th>Betreff</th>
+                                    <th>Versuche</th>
+                                    <th>Quelle</th>
+                                    <th>Nächster Lauf</th>
+                                    <th>Fehler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($queueRecentJobs)): ?>
+                                    <tr>
+                                        <td colspan="9" class="text-center text-secondary py-4">Noch keine Queue-Jobs vorhanden.</td>
+                                    </tr>
+                                <?php else: ?>
+                                    <?php foreach ($queueRecentJobs as $job): ?>
+                                        <tr>
+                                            <td><?php echo (int) ($job->id ?? 0); ?></td>
+                                            <td class="text-nowrap"><?php echo htmlspecialchars((string) ($job->created_at ?? '')); ?></td>
+                                            <td><span class="badge bg-<?php echo match ((string) ($job->status ?? 'pending')) { 'sent' => 'success', 'processing' => 'primary', 'failed' => 'danger', default => 'warning' }; ?>-lt"><?php echo htmlspecialchars((string) ($job->status ?? 'pending')); ?></span></td>
+                                            <td class="text-break"><?php echo htmlspecialchars((string) ($job->recipient ?? '')); ?></td>
+                                            <td class="text-break"><?php echo htmlspecialchars((string) ($job->subject ?? '')); ?></td>
+                                            <td><?php echo (int) ($job->attempts ?? 0); ?> / <?php echo (int) ($job->max_attempts ?? 0); ?></td>
+                                            <td><?php echo htmlspecialchars((string) ($job->source ?? 'system')); ?></td>
+                                            <td class="text-nowrap"><?php echo htmlspecialchars((string) ($job->available_at ?? $job->sent_at ?? '—')); ?></td>
+                                            <td class="text-break text-secondary small"><?php echo htmlspecialchars((string) ($job->last_error ?? '—')); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

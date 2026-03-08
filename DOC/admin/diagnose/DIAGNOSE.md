@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die Diagnose-Oberflächen und Monitoring-Werkzeuge für den laufenden Betrieb von 365CMS.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-08 · Version 2.3.1
 
 ---
 
@@ -53,6 +53,8 @@ Misst und protokolliert Antwortzeiten des Systems, um Engpässe frühzeitig zu e
 ### Cron-Job Status
 
 Zeigt den aktuellen Status von Cron-Jobs, letzte Ausführung und eventuelle Fehler.
+
+Zusätzlich wird geprüft, ob eine zentrale Datei `CMS/cron.php` vorhanden ist. Darüber kann u. a. der Hook `cms_cron_mail_queue` für die Mail-Queue-Verarbeitung per Web-Cron oder CLI ausgelöst werden.
 
 ### Disk-Usage
 

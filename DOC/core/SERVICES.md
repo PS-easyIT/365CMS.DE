@@ -2,9 +2,9 @@
 
 Kurzbeschreibung: Übersicht über den Service-Layer des 365CMS mit Aufgabenfeldern und typischen Einsatzbeispielen der zentralen Services.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-08 · Version 2.3.1
 
-Der Service-Layer enthält die **Geschäftslogik** des CMS. Alle 30 Service-Klassen sind im Namespace `CMS\Services` und befinden sich in `core/Services/`.
+Der Service-Layer enthält die **Geschäftslogik** des CMS. Die zentralen Service-Klassen liegen im Namespace `CMS\Services` und befinden sich in `core/Services/`.
 
 ---
 
@@ -22,8 +22,11 @@ Der Service-Layer enthält die **Geschäftslogik** des CMS. Alle 30 Service-Klas
 | `EditorService` | `EditorService.php` | Inhalts-Editor (SunEditor) |
 | `FeedService` | `FeedService.php` | RSS-/Atom-Feed-Generierung |
 | `FileUploadService` | `FileUploadService.php` | Datei-Upload-Verarbeitung & Validierung |
+| `GraphApiService` | `GraphApiService.php` | Microsoft-Graph-Zugriff via Client-Credentials |
 | `ImageService` | `ImageService.php` | Bildverarbeitung (Resize, WebP, Thumbnails) |
 | `LandingPageService` | `LandingPageService.php` | Landing-Page-Builder |
+| `MailLogService` | `MailLogService.php` | Persistente Versandprotokolle für Admin & Diagnose |
+| `MailQueueService` | `MailQueueService.php` | Mail-Queue, Cron-Worker, Retries und Backoff |
 | `MailService` | `MailService.php` | E-Mail-Versand (SMTP/Symfony Mailer) |
 | `MediaService` | `MediaService.php` | Datei-Upload & Medienverwaltung |
 | `MemberService` | `MemberService.php` | Member-Dashboard-Logik |
@@ -34,6 +37,7 @@ Der Service-Layer enthält die **Geschäftslogik** des CMS. Alle 30 Service-Klas
 | `SearchService` | `SearchService.php` | Volltextsuche (TNTSearch) |
 | `SeoAnalysisService` | `SeoAnalysisService.php` | SEO-Analyse & Scoring pro Seite |
 | `SEOService` | `SEOService.php` | Meta-Tags, Sitemap, Robots.txt |
+| `SettingsService` | `SettingsService.php` | Gruppierte und optional verschlüsselte Laufzeit-Einstellungen |
 | `SiteTableService` | `SiteTableService.php` | Tabellen-Verwaltung |
 | `StatusService` | `StatusService.php` | System-Status-Checks |
 | `SystemService` | `SystemService.php` | System-Infos, DB-Status |
@@ -42,6 +46,7 @@ Der Service-Layer enthält die **Geschäftslogik** des CMS. Alle 30 Service-Klas
 | `TranslationService` | `TranslationService.php` | Übersetzungssystem (i18n) |
 | `UpdateService` | `UpdateService.php` | CMS-Update-Prüfung (GitHub Release API) |
 | `UserService` | `UserService.php` | Benutzer-Verwaltung (CRUD) |
+| `AzureMailTokenProvider` | `AzureMailTokenProvider.php` | XOAUTH2-Tokenbeschaffung und -Caching für Microsoft 365 SMTP |
 
 ---
 
