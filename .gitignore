@@ -35,13 +35,13 @@ pnpm-debug.log*
 package-lock.json
 # yarn.lock # Einkommentieren, wenn Yarn verwendet wird
 
-ASSETS/
+/ASSETS/
 
 # Dev/Local Folders (Komplette Ordner ignorieren)
-BACKUP/
-PLUGINS/
-ASSETS/test_import/
-ASSETS/test_import/*
+/BACKUP/
+/PLUGINS/
+/ASSETS/test_import/
+/ASSETS/test_import/*
 
 # ----------------------------------------------------------------------
 # CMS v2 SPECIFIC

@@ -1,0 +1,704 @@
+/**
+ * 365CMS Admin – Tabler Overrides & Custom Branding
+ *
+ * Ergänzt tabler.min.css mit 365CMS-spezifischen Design-Tokens
+ * und Legacy-Klassenmappings für die schrittweise Migration.
+ *
+ * @package CMSv2\Assets
+ * @version 2026.03
+ */
+
+/* ═══════════════════════════════════════════════════════
+   DESIGN TOKENS (365CMS Branding)
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+    /* Brand Colors — mapped to Tabler variables */
+    --tblr-primary:             #3b82f6;
+    --tblr-primary-rgb:         59, 130, 246;
+
+    /* Sidebar (dark theme) */
+    --cms-sidebar-bg:           #0c1526;
+    --cms-sidebar-surface:      #172033;
+    --cms-sidebar-surface-hover:#1e2d45;
+    --cms-sidebar-border:       #1e3350;
+    --cms-sidebar-border-subtle:#16273f;
+    --cms-sidebar-text:         #e2e8f0;
+    --cms-sidebar-text-muted:   #94a3b8;
+    --cms-sidebar-accent:       #3b82f6;
+    --cms-sidebar-accent-glow:  rgba(59, 130, 246, 0.18);
+    --cms-sidebar-width:        260px;
+
+    /* Legacy aliases (backward compat for existing admin pages) */
+    --admin-primary:            var(--tblr-primary);
+    --admin-primary-dark:       #2563eb;
+    --admin-primary-light:      #eff6ff;
+    --admin-sidebar-width:      var(--cms-sidebar-width);
+    --sidebar-width:            var(--cms-sidebar-width);
+    --card-radius:              var(--tblr-border-radius, 8px);
+    --card-border:              1px solid var(--tblr-border-color, #e2e8f0);
+    --card-shadow:              var(--tblr-shadow-card, 0 1px 4px rgba(0,0,0,0.06));
+    --card-shadow-hover:        0 4px 12px rgba(0,0,0,0.1);
+    --card-bg:                  var(--tblr-bg-surface, #fff);
+    --card-header-bg:           #f8fafc;
+}
+
+
+/* ═══════════════════════════════════════════════════════
+   BODY
+   ═══════════════════════════════════════════════════════ */
+
+body.admin-body {
+    background: var(--tblr-body-bg, #f1f5f9);
+}
+
+/* Container volle Breite im Admin (Tabler-Default 1140px ist zu schmal) */
+body.admin-body .container-xl {
+    max-width: 100%;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+}
+
+/* Page wrapper offset for sidebar (override Tabler default 15rem) */
+@media (min-width: 992px) {
+    .navbar-vertical ~ .page-wrapper,
+    .page > .page-wrapper {
+        margin-left: var(--cms-sidebar-width);
+    }
+}
+
+/* .admin-content (inline-rendering pages) works with Tabler sidebar */
+.navbar-vertical ~ .admin-content {
+    margin-left: var(--cms-sidebar-width);
+    padding: 2rem;
+    min-height: 100vh;
+    width: calc(100% - var(--cms-sidebar-width));
+    box-sizing: border-box;
+}
+
+
+/* ═══════════════════════════════════════════════════════
+   NAVBAR VERTICAL (SIDEBAR) – komplett überarbeitet
+   ═══════════════════════════════════════════════════════ */
+
+.navbar-vertical {
+    --tblr-navbar-bg: var(--cms-sidebar-bg);
+    width: var(--cms-sidebar-width);
+    box-shadow: 2px 0 20px rgba(0, 0, 0, 0.4);
+}
+
+/* Brand / Logo */
+.navbar-vertical .navbar-brand {
+    padding: 0.6rem 0;
+    min-height: 3.5rem;
+    justify-content: flex-start;
+    padding-left: 0.75rem;
+}
+
+.navbar-vertical .navbar-brand img {
+    max-height: 72px;
+    width: auto;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,.45));
+}
+
+/* ── Nav Links (Haupteinträge: LINKSBÜNDIG) ─────────── */
+.navbar-vertical .nav-link {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: left;
+    color: var(--cms-sidebar-text-muted);
+    border-left: 3px solid transparent;
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.4;
+    gap: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background 0.15s ease, color 0.15s ease, border-left-color 0.15s ease;
+    margin: 1px 0.4rem;
+}
+
+.navbar-vertical .nav-link:hover {
+    background: var(--cms-sidebar-surface-hover);
+    color: var(--cms-sidebar-text);
+    border-left-color: var(--cms-sidebar-border);
+}
+
+.navbar-vertical .nav-link.active,
+.navbar-vertical .nav-item.active > .nav-link {
+    background: var(--cms-sidebar-accent-glow);
+    color: #60a5fa;
+    font-weight: 600;
+    border-left-color: var(--cms-sidebar-accent);
+}
+
+/* ── Nav Link Icon (SVG) ────────────────────────────── */
+.navbar-vertical .nav-link-icon {
+    width: 1.5rem;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.6rem;
+    flex-shrink: 0;
+    color: inherit;
+    opacity: 0.7;
+}
+
+.navbar-vertical .nav-link-icon .icon {
+    width: 20px;
+    height: 20px;
+}
+
+.navbar-vertical .nav-link:hover .nav-link-icon,
+.navbar-vertical .nav-link.active .nav-link-icon {
+    opacity: 1;
+}
+
+/* ── Nav Link Title (Text immer links) ──────────────── */
+.navbar-vertical .nav-link-title {
+    flex: 1;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Dropdown-Toggle-Pfeil ──────────────────────────── */
+.navbar-vertical .nav-link.dropdown-toggle::after {
+    margin-left: auto;
+    flex-shrink: 0;
+    opacity: 0.4;
+    transition: transform 0.24s ease, opacity 0.24s ease;
+}
+
+.navbar-vertical .nav-item.show > .nav-link.dropdown-toggle::after {
+    transform: rotate(90deg);
+    opacity: 0.75;
+}
+
+/* ── Dropdown-Menü (Sidebar-Submenü) ────────────────── */
+.navbar-vertical .dropdown-menu {
+    background: var(--cms-sidebar-surface);
+    border: none;
+    border-radius: 0 0 6px 6px;
+    border-left: 3px solid var(--cms-sidebar-accent);
+    padding: 0.25rem 0;
+    box-shadow: none;
+    margin: 0;
+    position: static !important;
+    transform: none !important;
+}
+
+.navbar-vertical .dropdown-menu .dropdown-item {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: left;
+    color: var(--cms-sidebar-text-muted);
+    font-size: 0.82rem;
+    padding: 0.4rem 0.6rem 0.4rem 2.6rem;
+    border-radius: 5px;
+    border-left: 2px solid transparent;
+    margin: 1px 0.35rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.navbar-vertical .dropdown-menu .dropdown-item:hover {
+    background: var(--cms-sidebar-surface-hover);
+    color: var(--cms-sidebar-text);
+    border-left-color: var(--cms-sidebar-border);
+}
+
+.navbar-vertical .dropdown-menu .dropdown-item.active {
+    background: rgba(59, 130, 246, 0.1);
+    color: #60a5fa;
+    font-weight: 600;
+    border-left-color: var(--cms-sidebar-accent);
+}
+
+.navbar-vertical .dropdown-menu .dropdown-item .nav-link-icon {
+    width: 1.15rem;
+    min-width: 1.15rem;
+    margin-right: 0.4rem;
+    flex-shrink: 0;
+    opacity: 0.6;
+}
+
+.navbar-vertical .dropdown-menu .dropdown-item .nav-link-icon .icon {
+    width: 15px;
+    height: 15px;
+}
+
+.navbar-vertical .dropdown-menu .dropdown-item:hover .nav-link-icon,
+.navbar-vertical .dropdown-menu .dropdown-item.active .nav-link-icon {
+    opacity: 1;
+}
+
+/* ── Sidebar-Trenner ────────────────────────────────── */
+.navbar-vertical .nav-divider {
+    height: 1px;
+    background: var(--cms-sidebar-border-subtle);
+    margin: 0.35rem 0.5rem;
+}
+
+.navbar-vertical .nav-spacer--plugins-start,
+.navbar-vertical .nav-spacer--plugins-end {
+    display: block;
+    height: 25px;
+    flex: 0 0 25px;
+}
+
+.navbar-vertical .nav-item--plugin > .nav-link {
+    background: rgba(56, 189, 248, 0.04);
+    border-left-color: rgba(56, 189, 248, 0.18);
+}
+
+.navbar-vertical .nav-item--plugin-first,
+.navbar-vertical .nav-item--plugin-last {
+    position: relative;
+}
+
+.navbar-vertical .nav-item--plugin-first::before,
+.navbar-vertical .nav-item--plugin-last::after {
+    content: '';
+    position: absolute;
+    left: 0.9rem;
+    right: 0.9rem;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(30, 51, 80, 0.25) 8%, rgba(30, 51, 80, 0.9) 50%, rgba(30, 51, 80, 0.25) 92%, transparent 100%);
+    pointer-events: none;
+}
+
+.navbar-vertical .nav-item--plugin-first::before {
+    top: -12px;
+}
+
+.navbar-vertical .nav-item--plugin-last::after {
+    bottom: -12px;
+}
+
+.navbar-vertical .nav-item--plugin > .nav-link:hover {
+    background: rgba(56, 189, 248, 0.1);
+    border-left-color: rgba(56, 189, 248, 0.45);
+}
+
+.navbar-vertical .nav-item--plugin.active > .nav-link,
+.navbar-vertical .nav-item--plugin > .nav-link.active {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.2), rgba(56, 189, 248, 0.08));
+    border-left-color: #38bdf8;
+}
+
+.navbar-vertical .nav-item--plugin > .dropdown-menu {
+    border-left-color: #38bdf8;
+    background: linear-gradient(180deg, rgba(18, 31, 52, 0.98), rgba(16, 27, 45, 0.98));
+}
+
+/* ── Sidebar-Footer ─────────────────────────────────── */
+.navbar-vertical .sidebar-footer {
+    border-top: 1px solid var(--cms-sidebar-border);
+    padding: 0.5rem 0.45rem;
+    margin-top: auto;
+}
+
+.navbar-vertical .sidebar-footer .nav-link {
+    font-size: 0.82rem;
+    padding: 0.4rem 0.75rem;
+    opacity: 0.7;
+}
+
+.navbar-vertical .sidebar-footer .nav-link:hover {
+    opacity: 1;
+}
+
+.navbar-vertical .sidebar-footer .nav-link[href*="logout"]:hover {
+    background: rgba(239, 68, 68, 0.12);
+    color: #f87171;
+    border-left-color: #ef4444;
+}
+
+/* ── Gruppen-Label (nicht-klickbare Überschrift) ──── */
+.navbar-vertical .nav-section-label {
+    padding: 0.7rem 0.75rem 0.15rem 0.75rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #3d5166;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-align: left;
+}
+
+
+/* ═══════════════════════════════════════════════════════
+   PAGE HEADER
+   ═══════════════════════════════════════════════════════ */
+
+.page-header .page-title {
+    font-size: 1.375rem;
+    font-weight: 700;
+}
+
+.page-header .page-pretitle {
+    font-size: 0.85rem;
+}
+
+/* Header actions */
+.page-header .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+
+
+/* ═══════════════════════════════════════════════════════
+   MODAL COMPATIBILITY (legacy .active pattern)
+   ═══════════════════════════════════════════════════════ */
+
+/* Support for modals toggled via classList.add('active') */
+.modal {
+    display: none;
+}
+
+.modal.active {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(2px);
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 5vh;
+    overflow-y: auto;
+}
+
+.modal.active .modal-content {
+    background: var(--tblr-bg-surface, #fff);
+    border-radius: var(--tblr-border-radius-lg, 8px);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.175);
+    max-width: 600px;
+    width: 90%;
+    animation: modalSlideIn 0.2s ease-out;
+}
+
+.modal.active .modal-content.modal-lg {
+    max-width: 900px;
+}
+
+@keyframes modalSlideIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+
+/* ═══════════════════════════════════════════════════════
+   LEGACY CLASS MAPPINGS (transition helpers)
+   ═══════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════
+   CARD COMPATIBILITY (admin-card → card transition)
+   ═══════════════════════════════════════════════════════ */
+
+/* .admin-card / .admin-section — legacy classes still in use */
+.admin-card,
+.admin-section {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: var(--card-radius);
+    box-shadow: var(--card-shadow);
+    border: var(--card-border);
+    margin-bottom: 1.5rem;
+}
+
+/* Cards without card-body still get padding (transition helper) */
+.card:not(:has(.card-body)):not(:has(.card-header)) {
+    padding: 1.5rem;
+}
+
+.admin-card h3,
+.admin-section h3,
+.card:not(:has(.card-header)) > h3 {
+    color: #1e293b;
+    margin-bottom: 1.25rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+/* Legacy stat-card */
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e2e8f0;
+}
+
+.stat-card h3 {
+    color: #64748b;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--tblr-primary);
+}
+
+.stat-label {
+    color: #64748b;
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+}
+
+/* Legacy dashboard grid */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+/* Legacy info-grid */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.info-card {
+    background: #fff;
+    padding: 1.5rem;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.info-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.info-list li {
+    padding: 0.5rem 0;
+    color: #475569;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.info-list li:last-child {
+    border-bottom: none;
+}
+
+/* Legacy users-table */
+.users-table-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+}
+
+.users-table thead {
+    background: #f8fafc;
+}
+
+.users-table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #475569;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.users-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    color: #1e293b;
+}
+
+/* Legacy badges */
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.status-badge.active {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-badge.inactive {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.role-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.role-badge.admin {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.role-badge.member {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+/* Legacy alerts (keep for existing pages) */
+.alert-error {
+    background: #fee2e2;
+    color: #991b1b;
+    border-left: 4px solid #ef4444;
+}
+
+/* Legacy empty state */
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    background: white;
+    border-radius: 8px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   Grid.js Tabler Integration
+   ══════════════════════════════════════════════════════════ */
+.gridjs-cms { font-size: .875rem; }
+.gridjs-cms .gridjs-wrapper { border: var(--card-border, 1px solid #e2e8f0); border-radius: 8px; overflow: hidden; }
+.gridjs-cms .gridjs-table { margin: 0; }
+.gridjs-cms .gridjs-thead th { background: #f8fafc; color: #475569; font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .02em; padding: .75rem 1rem; }
+.gridjs-cms .gridjs-tbody td { padding: .65rem 1rem; color: #1e293b; border-top: 1px solid #f1f5f9; vertical-align: middle; }
+.gridjs-cms .gridjs-tbody tr:hover td { background: #fafbfd; }
+.gridjs-cms .gridjs-footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: .75rem 1rem; }
+.gridjs-cms .gridjs-pagination .gridjs-pages button { border: 1px solid #e2e8f0; background: #fff; color: #475569; border-radius: 6px; padding: .35rem .65rem; min-width: 2rem; font-size: .8rem; cursor: pointer; }
+.gridjs-cms .gridjs-pagination .gridjs-pages button:hover { background: #f1f5f9; }
+.gridjs-cms .gridjs-pagination .gridjs-pages button.gridjs-currentPage { background: var(--admin-primary, #3b82f6); color: #fff; border-color: var(--admin-primary, #3b82f6); }
+.gridjs-cms .gridjs-pagination .gridjs-pages button[disabled] { opacity: .4; cursor: default; }
+.gridjs-cms .gridjs-pagination .gridjs-summary { font-size: .8rem; color: #64748b; }
+.gridjs-cms .gridjs-loading-bar { background: var(--admin-primary, #3b82f6); }
+.gridjs-cms .gridjs-notfound, .gridjs-cms .gridjs-error { text-align: center; padding: 2rem; color: #94a3b8; }
+.gridjs-search-wrap { margin-bottom: 1rem; }
+.gridjs-search-wrap .gridjs-input { border: 2px solid #e2e8f0; border-radius: 8px; padding: .55rem .85rem; font-size: .875rem; width: 320px; max-width: 100%; transition: border-color .15s; }
+.gridjs-search-wrap .gridjs-input:focus { border-color: var(--admin-primary, #3b82f6); outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,.12); }
+
+.empty-state .text-muted {
+    color: #94a3b8;
+    margin-top: 0.5rem;
+}
+
+/* Legacy form group */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-text {
+    display: block;
+    color: #64748b;
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+}
+
+/* Quick actions */
+.quick-actions {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    border: 1px solid #e2e8f0;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+/* Plugin/Theme cards */
+.plugin-card,
+.theme-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.plugin-card.active,
+.theme-card.active {
+    border-color: var(--tblr-primary);
+    background: #eff6ff;
+}
+
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════ */
+
+@media (max-width: 991.98px) {
+    /* Sidebar als Overlay auf Mobil */
+    .navbar-vertical {
+        width: 100%;
+        max-width: 280px;
+    }
+
+    .navbar-vertical .navbar-brand {
+        justify-content: flex-start;
+        padding-left: 0.5rem;
+    }
+
+    /* Content volle Breite */
+    .navbar-vertical ~ .page-wrapper,
+    .page > .page-wrapper {
+        margin-left: 0;
+    }
+
+    .navbar-vertical ~ .admin-content {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .sidebar-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        z-index: 999;
+        backdrop-filter: blur(2px);
+    }
+
+    .sidebar-backdrop.active {
+        display: block;
+    }
+}
