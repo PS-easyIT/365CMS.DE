@@ -244,12 +244,15 @@ final class WebAuthnAdapter
         }
 
         $db = Database::instance();
+        $credentialId = $this->extractBinaryString($data->credentialId ?? null, 'credentialId');
+        $aaguid = $this->normalizeAaguid($data->AAGUID ?? null);
+
         $db->insert('passkey_credentials', [
             'user_id'         => $userId,
-            'credential_id'   => base64_encode($data->credentialId->getBinaryString()),
+            'credential_id'   => base64_encode($credentialId),
             'public_key'      => $data->credentialPublicKey,
             'sign_count'      => $data->signatureCounter ?? 0,
-            'aaguid'          => $data->AAGUID ?? null,
+            'aaguid'          => $aaguid,
             'attestation_fmt' => $data->attestationFormat ?? null,
             'name'            => $name,
         ]);
@@ -399,5 +402,35 @@ final class WebAuthnAdapter
         }
 
         return base64_encode($binary);
+    }
+
+    private function extractBinaryString(mixed $value, string $fieldName): string
+    {
+        if ($value instanceof ByteBuffer) {
+            return $value->getBinaryString();
+        }
+
+        if (is_string($value) && $value !== '') {
+            return $value;
+        }
+
+        throw new \RuntimeException('Ungültiger WebAuthn-Wert für ' . $fieldName . '.');
+    }
+
+    private function normalizeAaguid(mixed $value): ?string
+    {
+        if ($value instanceof ByteBuffer) {
+            $value = $value->getBinaryString();
+        }
+
+        if (!is_string($value) || $value === '') {
+            return null;
+        }
+
+        if (preg_match('/^[a-f0-9-]{16,64}$/i', $value)) {
+            return strtolower($value);
+        }
+
+        return strtolower(bin2hex($value));
     }
 }

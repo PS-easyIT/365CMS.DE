@@ -425,26 +425,15 @@ class Auth
      * speichert es als "pending" (noch nicht aktiv) in user_meta und
      * gibt die Setup-Daten für das Frontend zurück.
      *
-     * @return array{secret: string, qr_url: string, otp_uri: string}
+     * @return array{secret: string, qr_url: string, otp_uri: string, qr_data_uri: string}
      */
     public function setupMfaSecret(int $userId): array
     {
-        $db     = Database::instance();
-        $totp   = Totp::instance();
-        $secret = $totp->generateSecret();
-
-        // Pending-Secret speichern (wird erst nach Code-Bestätigung aktiviert)
-        $this->setUserMeta($userId, 'mfa_pending_secret', $secret);
-
         // Account-Label: Benutzername oder E-Mail
         $user  = $this->getUserById($userId);
         $label = $user ? $user->email : (string)$userId;
 
-        return [
-            'secret'  => $secret,
-            'qr_url'  => $totp->getQrCodeUrl($secret, $label, SITE_NAME),
-            'otp_uri' => $totp->getOtpAuthUri($secret, $label, SITE_NAME),
-        ];
+        return \CMS\Auth\MFA\TotpAdapter::instance()->startSetup($userId, $label);
     }
 
     /**

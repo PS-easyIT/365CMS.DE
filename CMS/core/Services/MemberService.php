@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace CMS\Services;
 
+use CMS\Auth\MFA\BackupCodesManager;
+use CMS\Auth\Passkey\WebAuthnAdapter;
 use CMS\Database;
 use CMS\Security;
 
@@ -324,9 +326,18 @@ class MemberService
         $pwChanged   = $meta['password_changed_at'] ?? null;
         $lastLogin   = $meta['last_login'] ?? null;
         $lastLoginIp = $meta['last_login_ip'] ?? null;
+        $backupCount = BackupCodesManager::instance()->getRemainingCount($userId);
+        $hasBackupCodes = $backupCount > 0;
+        $passkeysAvailable = WebAuthnAdapter::instance()->isAvailable();
+        $passkeyCount = $passkeysAvailable
+            ? count(WebAuthnAdapter::instance()->getCredentialsForUser($userId))
+            : 0;
+        $hasPasskeys = $passkeyCount > 0;
 
         // ── Score berechnen ───────────────────────────────────────────
-        $score = 40; // Basis
+        // Gewichtet so, dass typische Sicherheitsstufen sichtbar staffeln:
+        // Basis 25 + MFA 30 + Backup-Codes 10 + Passkeys 15 + frisches Passwort 20 = 100.
+        $score = 25; // Basis
         $recs  = [];
 
         if ($twoFA) {
@@ -334,6 +345,22 @@ class MemberService
             $recs[] = ['done' => true,  'text' => 'Zwei-Faktor-Authentifizierung ist aktiv'];
         } else {
             $recs[] = ['done' => false, 'text' => 'Zwei-Faktor-Authentifizierung aktivieren (+30 Punkte)'];
+        }
+
+        if ($twoFA && $hasBackupCodes) {
+            $score += 10;
+            $recs[] = ['done' => true, 'text' => 'Backup-Codes sind hinterlegt (' . $backupCount . ' verfügbar)'];
+        } elseif ($twoFA) {
+            $recs[] = ['done' => false, 'text' => 'Backup-Codes erzeugen und sicher ablegen (+10 Punkte)'];
+        } else {
+            $recs[] = ['done' => false, 'text' => 'Nach Aktivierung von MFA Backup-Codes erzeugen (+10 Punkte)'];
+        }
+
+        if ($passkeysAvailable && $hasPasskeys) {
+            $score += 15;
+            $recs[] = ['done' => true, 'text' => 'Passkeys sind registriert (' . $passkeyCount . ' Gerät' . ($passkeyCount === 1 ? '' : 'e') . ')'];
+        } elseif ($passkeysAvailable) {
+            $recs[] = ['done' => false, 'text' => 'Mindestens einen Passkey registrieren (+15 Punkte)'];
         }
 
         if ($pwChanged) {
@@ -353,7 +380,7 @@ class MemberService
 
         $score = min(100, $score);
 
-        if ($score >= 80) {
+        if ($score >= 85) {
             $scoreMsg = 'Sehr gut! Dein Account ist gut geschützt.';
         } elseif ($score >= 50) {
             $scoreMsg = 'Guter Start – ein paar Maßnahmen können die Sicherheit erhöhen.';
@@ -363,8 +390,11 @@ class MemberService
 
         return [
             '2fa_enabled'      => $twoFA,
+            'backup_count'     => $backupCount,
             'last_login'       => $lastLogin,
             'last_login_ip'    => $lastLoginIp,
+            'passkey_count'    => $passkeyCount,
+            'passkeys_available' => $passkeysAvailable,
             'password_changed' => $pwChanged,
             'score'            => $score,
             'score_message'    => $scoreMsg,
