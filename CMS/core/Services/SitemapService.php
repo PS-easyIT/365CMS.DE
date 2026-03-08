@@ -21,9 +21,26 @@ if (file_exists($vendorAutoload)) {
     require_once $vendorAutoload;
 }
 
-$outputModeFile = ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'melbahja-seo' . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR . 'Sitemap' . DIRECTORY_SEPARATOR . 'OutputMode.php';
-if (file_exists($outputModeFile)) {
-    require_once $outputModeFile;
+$seoSrcDir = ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'melbahja-seo' . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR;
+foreach ([
+    'Interfaces' . DIRECTORY_SEPARATOR . 'SeoInterface.php',
+    'Interfaces' . DIRECTORY_SEPARATOR . 'SitemapInterface.php',
+    'Interfaces' . DIRECTORY_SEPARATOR . 'SitemapBuilderInterface.php',
+    'Interfaces' . DIRECTORY_SEPARATOR . 'SitemapSetupableInterface.php',
+    'Exceptions' . DIRECTORY_SEPARATOR . 'SeoException.php',
+    'Exceptions' . DIRECTORY_SEPARATOR . 'SitemapException.php',
+    'Utils' . DIRECTORY_SEPARATOR . 'Utils.php',
+    'Sitemap' . DIRECTORY_SEPARATOR . 'OutputMode.php',
+    'Sitemap' . DIRECTORY_SEPARATOR . 'SitemapUrl.php',
+    'Sitemap' . DIRECTORY_SEPARATOR . 'IndexBuilder.php',
+    'Sitemap' . DIRECTORY_SEPARATOR . 'LinksBuilder.php',
+    'Sitemap' . DIRECTORY_SEPARATOR . 'NewsBuilder.php',
+    'Sitemap.php',
+] as $seoFile) {
+    $seoPath = $seoSrcDir . $seoFile;
+    if (file_exists($seoPath)) {
+        require_once $seoPath;
+    }
 }
 
 final class SitemapService

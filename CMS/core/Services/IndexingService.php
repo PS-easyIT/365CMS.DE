@@ -24,6 +24,22 @@ if (file_exists($vendorAutoload)) {
     require_once $vendorAutoload;
 }
 
+$seoSrcDir = ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'melbahja-seo' . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR;
+foreach ([
+    'Exceptions' . DIRECTORY_SEPARATOR . 'SeoException.php',
+    'Interfaces' . DIRECTORY_SEPARATOR . 'SeoInterface.php',
+    'Utils' . DIRECTORY_SEPARATOR . 'HttpClient.php',
+    'Indexing' . DIRECTORY_SEPARATOR . 'IndexNowEngine.php',
+    'Indexing' . DIRECTORY_SEPARATOR . 'URLIndexingType.php',
+    'Indexing' . DIRECTORY_SEPARATOR . 'IndexNowIndexer.php',
+    'Indexing' . DIRECTORY_SEPARATOR . 'GoogleIndexer.php',
+] as $seoFile) {
+    $seoPath = $seoSrcDir . $seoFile;
+    if (file_exists($seoPath)) {
+        require_once $seoPath;
+    }
+}
+
 final class IndexingService
 {
     private static ?self $instance = null;

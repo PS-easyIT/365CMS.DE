@@ -5,7 +5,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$seoActionToken = \CMS\Security::instance()->generateToken('admin_seo_suite');
+$seoActionToken = (string) ($csrfToken ?? '');
+if ($seoActionToken === '') {
+    $seoActionToken = \CMS\Security::instance()->generateToken('admin_seo_suite');
+}
 $seoActionEndpoint = SITE_URL . '/admin/seo-sitemap';
 $seoReturnTo = (string) ($_SERVER['REQUEST_URI'] ?? '/admin/seo-sitemap');
 

@@ -25,6 +25,19 @@ if (file_exists($vendorAutoload)) {
     require_once $vendorAutoload;
 }
 
+$seoSrcDir = ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'melbahja-seo' . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR;
+foreach ([
+    'Interfaces' . DIRECTORY_SEPARATOR . 'SeoInterface.php',
+    'Interfaces' . DIRECTORY_SEPARATOR . 'SchemaInterface.php',
+    'Schema' . DIRECTORY_SEPARATOR . 'Thing.php',
+    'Schema.php',
+] as $seoFile) {
+    $seoPath = $seoSrcDir . $seoFile;
+    if (file_exists($seoPath)) {
+        require_once $seoPath;
+    }
+}
+
 class SEOService
 {
     private static ?self $instance = null;
