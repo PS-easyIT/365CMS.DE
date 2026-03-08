@@ -194,6 +194,7 @@ $lpBtns = array_values(array_filter($lpBtns, fn($b) => !empty($b['text']) && !em
 $safe = fn(string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
 $renderLandingHtml = static function (string $html): string {
     $allowedTags = '<p><a><strong><em><ul><ol><li><h2><h3><h4><br><hr><img><blockquote><code>';
+    $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
     if ($html === '') {
         return '';

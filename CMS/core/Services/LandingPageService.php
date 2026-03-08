@@ -228,8 +228,8 @@ class LandingPageService
                     'sort_order' => $row['sort_order']
                 ];
             }
-            
-            return $features;
+
+            return $this->mergeWithDefaultFeatures($features);
         } catch (\Exception $e) {
             error_log('LandingPageService::getFeatures() Error: ' . $e->getMessage());
             return $this->getDefaultFeatures();
@@ -833,6 +833,50 @@ class LandingPageService
 
             $this->saveFeature(null, $feature);
         }
+    }
+
+    private function mergeWithDefaultFeatures(array $features): array
+    {
+        $defaultFeatures = $this->getDefaultFeatures();
+
+        if (count($features) >= count($defaultFeatures)) {
+            usort($features, static fn(array $a, array $b): int => ((int)($a['sort_order'] ?? 0)) <=> ((int)($b['sort_order'] ?? 0)));
+            return $features;
+        }
+
+        $merged = $features;
+        $existingTitles = [];
+        $existingSortOrders = [];
+
+        foreach ($features as $feature) {
+            $title = trim((string)($feature['title'] ?? ''));
+            if ($title !== '') {
+                $existingTitles[] = mb_strtolower($title);
+            }
+
+            $sortOrder = (int)($feature['sort_order'] ?? 0);
+            if ($sortOrder > 0) {
+                $existingSortOrders[] = $sortOrder;
+            }
+        }
+
+        foreach ($defaultFeatures as $feature) {
+            $defaultTitle = mb_strtolower(trim((string)($feature['title'] ?? '')));
+            $defaultSortOrder = (int)($feature['sort_order'] ?? 0);
+
+            if (
+                ($defaultTitle !== '' && in_array($defaultTitle, $existingTitles, true))
+                || ($defaultSortOrder > 0 && in_array($defaultSortOrder, $existingSortOrders, true))
+            ) {
+                continue;
+            }
+
+            $merged[] = $feature;
+        }
+
+        usort($merged, static fn(array $a, array $b): int => ((int)($a['sort_order'] ?? 0)) <=> ((int)($b['sort_order'] ?? 0)));
+
+        return $merged;
     }
 
     private function upgradeLegacyFooterDefaults(): void

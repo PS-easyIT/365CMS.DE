@@ -581,8 +581,6 @@ if (!isset($config[$activeTab])) {
     $activeTab = 'header';
 }
 
-$customizerCsrfToken = Security::instance()->generateToken('theme_customizer');
-
 // 2. Speichern verarbeiten
 $success = null;
 $error   = null;
@@ -670,6 +668,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
     }
 }
+
+$customizerCsrfToken = Security::instance()->generateToken('theme_customizer');
 ?>
 <?php if (!$embedInAdminLayout): ?>
 <!DOCTYPE html>
