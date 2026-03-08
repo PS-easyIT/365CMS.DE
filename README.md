@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.5.3-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.5.4-blue.svg)](Changelog.md)
 ![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
@@ -13,8 +13,6 @@
 [Website](https://365cms.de) • [Dokumentationsindex](DOC/INDEX.md) • [Changelog](Changelog.md) • [Theme-Doku](DOC/theme/README.md) • [Plugin-Doku](DOC/plugins/GUIDE.md)
 
 </div>
-
----
 
 ## ✨ Warum 365CMS?
 
