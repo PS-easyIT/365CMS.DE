@@ -1,83 +1,243 @@
 # 365CMS – Core-Klassen Referenz
-
-Kurzbeschreibung: Detailübersicht der zentralen Core-Klassen mit Aufgaben, Lifecycle und typischen Zugriffsmustern.
-
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
-
-Alle 22 Core-Klassen des 365CMS im Detail – Aufgaben, wichtigste Methoden und Verwendungsbeispiele.  
-Zusätzlich: 3 Interfaces in `Contracts/` und 1 Registry in `Member/`.
-
----
+> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
-
-1. [Bootstrap](#1-bootstrap)
-2. [Database](#2-database)
-3. [Security](#3-security)
-4. [Auth](#4-auth)
-5. [Router](#5-router)
-6. [Hooks](#6-hooks)
-7. [PluginManager](#7-pluginmanager)
-8. [ThemeManager](#8-thememanager)
-9. [CacheManager](#9-cachemanager)
-10. [PageManager](#10-pagemanager)
-11. [SubscriptionManager](#11-subscriptionmanager)
-12. [Api](#12-api)
-13. [Debug](#13-debug)
-14. [WP\_Error](#14-wp_error)
-15. [AuditLogger](#15-auditlogger)
-16. [Container](#16-container)
-17. [Logger](#17-logger)
-18. [SchemaManager](#18-schemamanager)
-19. [MigrationManager](#19-migrationmanager)
-20. [TableOfContents](#20-tableofcontents)
-21. [Totp](#21-totp)
-22. [Contracts (Interfaces)](#22-contracts-interfaces)
-23. [Member – PluginDashboardRegistry](#23-member--plugindashboardregistry)
+- <a>Überblick</a>
+- <a>Bootstrap & Container</a>
+- <a>Router</a>
+- <a>Database & Schema</a>
+- <a>Auth & Security</a>
+- <a>Hooks & Plugins</a>
+- <a>Themes & Templates</a>
+- <a>Cache</a>
+- <a>Mail</a>
+- <a>Upload & Assets</a>
+- <a>Search</a>
+- <a>Translation</a>
+- <a>API</a>
+- <a>Logging</a>
+- <a>Subscription</a>
+- <a>Hilfsklassen & Contracts</a>
 
 ---
 
-## 1. Bootstrap
+## Überblick <!-- UPDATED: 2026-03-08 -->
+Referenz der zentralen Core-Klassen (Namespaces `CMS\*` und `CMS\Services\*`). Jede Sektion nennt Pfad, Aufgabe, zentrale Public-Methoden und ein kurzes Anwendungsbeispiel.
 
-**Datei:** `core/Bootstrap.php`  
-**Namespace:** `CMS`  
-**Aufgabe:** Orchestriert die Initialisierung aller anderen Core-Klassen.
+---
 
+## Bootstrap & Container <!-- UPDATED: 2026-03-08 -->
+**Bootstrap** (`core/Bootstrap.php`, `CMS\Bootstrap`)
+- Aufgabe: Betriebsmodus bestimmen (`web|admin|api|cli`), Konstanten sichern, Vendor-Autoload laden, Container befüllen, Migrationen ausführen, Plugins/Themes laden.
+- Wichtige Methoden: `instance()`, `initializeCore()`, `loadDependencies()`, `detectMode()`.
+- Beispiel:
 ```php
-// Verwendung (wird automatisch in index.php aufgerufen)
-$bootstrap = CMS\Bootstrap::instance();
+$bootstrap = \CMS\Bootstrap::instance();
+$router = \CMS\Container::instance()->get(\CMS\Router::class);
 ```
 
-**Wichtige Methoden:**
-
-| Methode | Rückgabe | Beschreibung |
-|---------|----------|--------------|
-| `instance()` | `Bootstrap` | Singleton-Instanz holen |
-| `loadDependencies()` | `void` | Lädt alle Core-PHP-Dateien |
-| `initializeCore()` | `void` | Initialisiert DB, Security, Auth |
-| `loadPlugins()` | `void` | Aktive Plugins laden |
-| `loadTheme()` | `void` | Aktives Theme laden |
-| `route()` | `void` | Request an Router übergeben |
-
-**Lifecycle:**
-1. `config.php` ist bereits geladen
-2. `Bootstrap::instance()` startet den Prozess
-3. `loadDependencies()` lädt alle Core-Klassen
-4. `initializeCore()` verbindet DB, setzt Security-Header, startet Session
-5. `loadPlugins()` lädt aktive Plugins aus DB
-6. `loadTheme()` aktiviert das eingestellte Theme
-7. `route()` entscheidet, welcher Controller antwortet
+**Container** (`core/Container.php`, `CMS\Container`)
+- Aufgabe: DI-Container mit Singleton-/Instance-Bindings.
+- Wichtige Methoden: `instance()`, `bindInstance($id, $obj)`, `singleton($id, callable)`, `get($id)`, `has($id)`.
 
 ---
 
-## 2. Database
-
-**Datei:** `core/Database.php`  
-**Namespace:** `CMS`  
-**Aufgabe:** Sicherer PDO-Wrapper für alle Datenbankzugriffe.
-
+## Router <!-- UPDATED: 2026-03-08 -->
+**Router** (`core/Router.php`, `CMS\Router`)
+- Aufgabe: URL-Routing für Web, Admin, API; Standardrouten registrieren; Dispatch mit Parameter-Matching.
+- Wichtige Public-Methoden: `instance()`, `addRoute($method, $path, $callback)`, `dispatch()`.
+- Hilfs-Privates (wichtig für Verhalten): `requireAdmin()`, `jsonAdminPosts/pages/users`, `render*`-Handler.
+- Beispiel:
 ```php
-$db = CMS\Database::instance();
+$router = \CMS\Router::instance();
+$router->addRoute('GET', '/health', fn() => print('ok'));
+$router->dispatch();
+```
+
+---
+
+## Database & Schema <!-- UPDATED: 2026-03-08 -->
+**Database** (`core/Database.php`, `CMS\Database`)
+- Aufgabe: PDO-Wrapper mit Helpern.
+- Wichtige Methoden: `instance()`, `getPdo()`, `query($sql)`, `execute($sql, $params)`, `get_row()`, `get_results()`, `get_var()`, `insert($table, $data)`, `update($table, $data, $where)`, `delete()`, `transaction(callable)`, `getPrefix()`.
+- Beispiel:
+```php
+$db = \CMS\Database::instance();
+$user = $db->get_row("SELECT * FROM {$db->getPrefix()}users WHERE id = 1");
+```
+
+**SchemaManager** (`core/SchemaManager.php`, `CMS\SchemaManager`)
+- Aufgabe: Basistabellen (SCHEMA_VERSION v14) via `createTables()`, Flag-Datei, Default-Admin, Content-Spalten ergänzen.
+- Wichtige Methoden: `createTables()`, `clearFlag()`, `getFlagFile()`.
+
+**MigrationManager** (`core/MigrationManager.php`, `CMS\MigrationManager`)
+- Aufgabe: Inkrementelle Migrationen nach SCHEMA_VERSION; Tabellen/Spalten nachziehen (z. B. passkey_credentials, mail_log/-queue).
+- Wichtige Methoden: `run()`.
+
+---
+
+## Auth & Security <!-- UPDATED: 2026-03-08 -->
+**Auth** (`core/Auth.php`, `CMS\Auth`)
+- Aufgabe: Login/Logout/Registration, Session-User laden, Passwort-Policy.
+- Wichtige Methoden: `instance()`, `login($username,$password)`, `logout()`, `register($data)`, `changePassword($userId,$old,$new)`, `validatePasswordPolicy($pw)`, `currentUser()`, `isAdmin()`.
+- Beispiel:
+```php
+$auth = \CMS\Auth::instance();
+if ($auth->login('user', 'secret')) { /* ... */ }
+```
+
+**Security** (`core/Security.php`, `CMS\Security`)
+- Aufgabe: CSRF-Token, Security-Header, Session-Härtung.
+- Wichtige Methoden: `instance()`, `generateToken($action)`, `verifyToken($token,$action)`, `verifyPersistentToken($token,$action)`, `init()`, `sanitizeInput($data)`.
+- Beispiel:
+```php
+$token = \CMS\Security::instance()->generateToken('admin_form');
+if (!\CMS\Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'admin_form')) { die('forbidden'); }
+```
+
+**Totp** (`core/Totp.php`, `CMS\Totp`)
+- Aufgabe: TOTP 2FA (shared secret, QR, verify).
+- Wichtige Methoden: `generateSecret()`, `getQrCodeUrl($label,$secret)`, `verifyCode($secret,$code)`.
+
+---
+
+## Hooks & Plugins <!-- UPDATED: 2026-03-08 -->
+**Hooks** (`core/Hooks.php`, `CMS\Hooks`)
+- Aufgabe: Action/Filter-System ähnlich WP.
+- Wichtige Methoden: `addAction($hook,$cb,$priority=10)`, `doAction($hook,...$args)`, `addFilter($hook,$cb,$priority=10)`, `applyFilters($hook,$value,...$args)`.
+
+**PluginManager** (`core/PluginManager.php`, `CMS\PluginManager`)
+- Aufgabe: Plugins laden/aktivieren, Hooks registrieren, Plugin-Routen für Admin/Member.
+- Wichtige Methoden: `instance()`, `loadPlugins()`, `activate($slug)`, `deactivate($slug)`, `getActivePlugins()`.
+
+---
+
+## Themes & Templates <!-- UPDATED: 2026-03-08 -->
+**ThemeManager** (`core/ThemeManager.php`, `CMS\ThemeManager`)
+- Aufgabe: Aktives Theme laden, Templates/Assets bereitstellen (nicht im API/CLI-Modus).
+- Wichtige Methoden: `instance()`, `loadTheme()`, `getActiveTheme()`, `renderTemplate($template,$data=[])`.
+
+**PageManager** (`core/PageManager.php`, `CMS\PageManager`)
+- Aufgabe: Seiten/Beiträge laden, Slugs auflösen, Breadcrumb/TOC-Hilfen.
+- Wichtige Methoden: `getPageBySlug($slug)`, `getPostBySlug($slug)`, `search($term,$type)`.
+
+---
+
+## Cache <!-- UPDATED: 2026-03-08 -->
+**CacheManager** (`core/CacheManager.php`, `CMS\CacheManager`)
+- Aufgabe: Key/Value-Cache mit optionalen Treibern.
+- Wichtige Methoden: `instance()`, `get($key,$default=null)`, `set($key,$value,$ttl=null)`, `remember($key,$ttl,callable)`, `delete($key)`, `clear()`.
+- Beispiel:
+```php
+$cache = \CMS\CacheManager::instance();
+$posts = $cache->remember('latest_posts', 300, fn() => fetchPosts());
+```
+
+---
+
+## Mail <!-- UPDATED: 2026-03-08 -->
+**MailService** (`core/Services/MailService.php`, `CMS\Services\MailService`)
+- Aufgabe: Versand über Symfony Mailer/SMTP/OAuth2, Templates, Fallbacks.
+- Wichtige Methoden: `getInstance()`, `send($to,$subject,$body,$opts=[])`, `sendBackendTestEmail($recipient)`.
+
+**MailQueueService** (`core/Services/MailQueueService.php`)
+- Aufgabe: Queue mit Status/Retry/Backoff.
+- Wichtige Methoden: `enqueue($message)`, `dequeueBatch($limit)`, `markSent($id)`, `markFailed($id,$error)`.
+
+**MailLogService** (`core/Services/MailLogService.php`)
+- Aufgabe: Log-Abfrage fürs Admin-Grid; schreibt/liest `mail_log`.
+- Wichtige Methoden: `log(array $data)`, `getRecent($limit,$page,$search,$status)`.
+
+**AzureMailTokenProvider** (`core/Services/AzureMailTokenProvider.php`)
+- Aufgabe: XOAUTH2-Token-Caching für Microsoft 365 SMTP.
+- Wichtige Methoden: `getInstance()`, `getAccessToken()`, `clearToken()`.
+
+---
+
+## Upload & Assets <!-- UPDATED: 2026-03-08 -->
+**FileUploadService** (`core/Services/FileUploadService.php`)
+- Aufgabe: FilePond-kompatible Upload-Verarbeitung inkl. CSRF/Auth.
+- Wichtige Methoden: `getInstance()`, `handleUploadRequest()`.
+
+**ImageService** (`core/Services/ImageService.php`)
+- Aufgabe: Bildbearbeitung/Thumbnails (GD).
+- Wichtige Methoden: `getInstance()`, `resize($path,$w,$h,$crop=false)`, `optimize($path)`.
+
+**Asset-Ladepfad**
+- Externe Libraries werden über `CMS/assets/autoload.php` geladen; Frontend-Assets via Hooks `head`/`body_end` (PhotoSwipe, CookieConsent, Fonts).
+
+---
+
+## Search <!-- UPDATED: 2026-03-08 -->
+**SearchService** (`core/Services/SearchService.php`)
+- Aufgabe: TNTSearch-Volltextsuche; Indexierung/Abfrage.
+- Wichtige Methoden: `getInstance()`, `indexContent($entity,$data)`, `search($query,$limit=20)`, `reindexAll()`.
+
+---
+
+## Translation <!-- UPDATED: 2026-03-08 -->
+**TranslationService** (`core/Services/TranslationService.php`)
+- Aufgabe: Symfony-Translation gestützt, Sprachdateien laden.
+- Wichtige Methoden: `getInstance()`, `setLocale($locale)`, `trans($key,array $params=[],?string $locale=null)`, `addResource($locale,$domain,$path)`.
+
+---
+
+## API <!-- UPDATED: 2026-03-08 -->
+**Api** (`core/Api.php`, `CMS\Api`)
+- Aufgabe: REST-Handler für v1-Endpunkte (Pages, Status); ruft Services und Renderer.
+- Wichtige Methoden: `instance()`, `handleRequest($resource,$slug=null)`.
+- Beispiel:
+```php
+\CMS\Api::instance()->handleRequest('pages', 'welcome');
+```
+
+---
+
+## Logging <!-- UPDATED: 2026-03-08 -->
+**Logger** (`core/Logger.php`, `CMS\Logger`)
+- Aufgabe: PSR-3-kompatibles Logging, Tagesrotation, Channels.
+- Wichtige Methoden: `instance()`, `log($level,$message,array $context=[])`, `withChannel($channel)`, Helfer `cms_log()` (global).
+
+**AuditLogger** (`core/AuditLogger.php`, `CMS\AuditLogger`)
+- Aufgabe: Sicherheitsrelevante Events in `audit_log` erfassen.
+- Wichtige Methoden: `instance()`, `log($category,$action,$entityType,$entityId,$severity='info',$meta=[])`.
+
+---
+
+## Subscription <!-- UPDATED: 2026-03-08 -->
+**SubscriptionManager** (`core/SubscriptionManager.php`, `CMS\SubscriptionManager`)
+- Aufgabe: Pläne/Bestellungen/Status prüfen.
+- Wichtige Methoden: `instance()`, `getUserPlan($userId)`, `checkLimit($userId,$resource)`, `hasFeature($userId,$feature)`.
+
+---
+
+## Hilfsklassen & Contracts <!-- UPDATED: 2026-03-08 -->
+- **Hooks/SEO/Redirects**: `Services\SEOService`, `Services\RedirectService` (Meta/Redirect-Tabellen & Rendering).
+- **CookieConsentService** (`core/Services/CookieConsentService.php`): Banner/Consent-API, Public-Page-Renderer.
+- **EditorService / EditorJsService / EditorJsRenderer**: WYSIWYG/Block-Rendering.
+- **FeedService**: SimplePie RSS/Atom.
+- **MessageService / MemberService / UserService / StatusService / DashboardService / LandingPageService / AnalyticsService / TrackingService / BackupService / SystemService / ThemeCustomizer / UpdateService / PdfService**: jeweilige Fachservices, als Singletons via Container registriert.
+- **Contracts**: `core/Contracts/LoggerInterface.php` (PSR-3 ähnlich), `core/Contracts/CacheInterface.php` (falls vorhanden), werden von Logger/CacheManager erfüllt.
+
+---
+
+## Quick Reference (Grouped) <!-- UPDATED: 2026-03-08 -->
+| Gruppe | Klassen (Pfad) | Kern-Methoden |
+|---|---|---|
+| Router | `core/Router.php` | `instance()`, `addRoute()`, `dispatch()` |
+| Database | `core/Database.php` | `query()`, `execute()`, `get_row()`, `get_results()`, `insert()`, `update()` |
+| Schema | `core/SchemaManager.php`, `core/MigrationManager.php` | `createTables()`, `run()` |
+| Auth/Security | `core/Auth.php`, `core/Security.php`, `core/Totp.php` | `login()`, `logout()`, `register()`, `verifyToken()`, `generateToken()`, `verifyCode()` |
+| Hooks/Plugins | `core/Hooks.php`, `core/PluginManager.php` | `addAction()`, `doAction()`, `addFilter()`, `applyFilters()`, `loadPlugins()` |
+| Themes/Templates | `core/ThemeManager.php`, `core/PageManager.php` | `loadTheme()`, `renderTemplate()`, `getPageBySlug()` |
+| Cache | `core/CacheManager.php` | `get()`, `set()`, `remember()`, `delete()`, `clear()` |
+| Mail | `core/Services/MailService.php`, `MailQueueService.php`, `MailLogService.php`, `AzureMailTokenProvider.php` | `send()`, `enqueue()`, `getRecent()`, `getAccessToken()` |
+| Upload/Assets | `core/Services/FileUploadService.php`, `ImageService.php`, Autoload in `CMS/assets/autoload.php` | `handleUploadRequest()`, `resize()` |
+| Search | `core/Services/SearchService.php` | `search()`, `indexContent()`, `reindexAll()` |
+| Translation | `core/Services/TranslationService.php` | `setLocale()`, `trans()`, `addResource()` |
+| API | `core/Api.php` | `handleRequest()` |
+| Logging | `core/Logger.php`, `core/AuditLogger.php` | `log()`, `withChannel()`, `log()` (audit) |
+| Subscription | `core/SubscriptionManager.php` | `getUserPlan()`, `checkLimit()`, `hasFeature()` |
 // oder WordPress-Stil:
 $db = CMS\Database::get_instance();
 ```
