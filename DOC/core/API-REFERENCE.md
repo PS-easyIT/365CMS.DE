@@ -1,727 +1,278 @@
-﻿# 365CMS – API-Referenz
+# 365CMS – API-Referenz
+> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
 
-Kurzbeschreibung: Referenz der wichtigsten öffentlichen Core-Klassen, Methoden und typischen Verwendungsbeispiele im 365CMS.
-
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
-
-Vollständige API-Dokumentation aller Core-Klassen und Methoden.
-
-## Core-Klassen
-
-- [Bootstrap](#bootstrap)
-- [Database](#database)
-- [Security](#security)
-- [Auth](#auth)
-- [Router](#router)
-- [Hooks](#hooks)
-- [PluginManager](#pluginmanager)
-- [ThemeManager](#thememanager)
+Dokumentation der REST-API (`/api/v1/`) mit Authentifizierung, Endpunkten, Fehlerbehandlung und Beispielen.
 
 ---
 
-## Bootstrap
+<!-- UPDATED: 2026-03-08 -->
+## 1 · Übersicht
 
-**Namespace:** `CMS\Bootstrap`  
-**Datei:** `core/Bootstrap.php`
+Die 365CMS REST-API folgt dem Muster `/api/v1/{endpoint}/{id}`. Alle Antworten werden als `Content-Type: application/json` zurückgegeben.
 
-### Beschreibung
-Zentrale Bootstrap-Klasse, die das gesamte CMS initialisiert.
+| Eigenschaft | Wert |
+|-------------|------|
+| Base-URL | `https://example.com/api/v1/` |
+| Controller | `CMS\Api` (`core/Api.php`) |
+| Routing | `handleRequest(string $endpoint, ?string $id)` |
+| Format | JSON |
+| Authentifizierung | JWT Bearer-Token, Session, API-Key |
+| Rate-Limiting | 60 Requests / 60 Sekunden pro IP |
 
-### Methoden
+### Erfolgs-Response
 
-#### `instance(): self`
-Gibt die Singleton-Instanz zurück.
-
-**Return:** `Bootstrap` Instanz
-
-**Beispiel:**
-```php
-$app = CMS\Bootstrap::instance();
-```
-
-#### `run(): void`
-Startet das CMS und führt das Routing durch.
-
-**Beispiel:**
-```php
-$app->run();
-```
-
-#### `db(): Database`
-Gibt die Database-Instanz zurück.
-
-**Return:** `Database` Instanz
-
-**Beispiel:**
-```php
-$db = $app->db();
-```
-
-#### `auth(): Auth`
-Gibt die Auth-Instanz zurück.
-
-**Return:** `Auth` Instanz
-
-#### `security(): Security`
-Gibt die Security-Instanz zurück.
-
-**Return:** `Security` Instanz
-
----
-
-## Database
-
-**Namespace:** `CMS\Database`  
-**Datei:** `core/Database.php`
-
-### Beschreibung
-Datenbank-Abstraktionsschicht mit PDO.
-
-### Methoden
-
-#### `instance(): self`
-Singleton-Instanz.
-
-#### `prepare(string $sql): PDOStatement`
-Erstellt ein Prepared Statement.
-
-**Parameter:**
-- `$sql` (string) - SQL-Query
-
-**Return:** `PDOStatement`
-
-**Beispiel:**
-```php
-$db = CMS\Database::instance();
-$stmt = $db->prepare("SELECT * FROM {$db->prefix()}users WHERE id = ?");
-$stmt->execute([$userId]);
-```
-
-#### `query(string $sql): PDOStatement`
-Führt eine SQL-Query direkt aus.
-
-**Parameter:**
-- `$sql` (string) - SQL-Query
-
-**Return:** `PDOStatement`
-
-**Beispiel:**
-```php
-$stmt = $db->query("SELECT COUNT(*) FROM {$db->prefix()}users");
-$count = $stmt->fetchColumn();
-```
-
-#### `insert(string $table, array $data): int`
-Fügt Daten in eine Tabelle ein.
-
-**Parameter:**
-- `$table` (string) - Tabellenname (ohne Präfix)
-- `$data` (array) - Assoziatives Array mit Spaltennamen und Werten
-
-**Return:** `int` - Insert-ID
-
-**Beispiel:**
-```php
-$userId = $db->insert('users', [
-    'username' => 'john',
-    'email' => 'john@example.com',
-    'password' => password_hash('secret', PASSWORD_BCRYPT)
-]);
-```
-
-#### `update(string $table, array $data, array $where): bool`
-Aktualisiert Daten in einer Tabelle.
-
-**Parameter:**
-- `$table` (string) - Tabellenname
-- `$data` (array) - Zu aktualisierende Daten
-- `$where` (array) - WHERE-Bedingungen
-
-**Return:** `bool` - Erfolg
-
-**Beispiel:**
-```php
-$success = $db->update('users', 
-    ['email' => 'newemail@example.com'],
-    ['id' => $userId]
-);
-```
-
-#### `delete(string $table, array $where): bool`
-Löscht Daten aus einer Tabelle.
-
-**Parameter:**
-- `$table` (string) - Tabellenname
-- `$where` (array) - WHERE-Bedingungen
-
-**Return:** `bool` - Erfolg
-
-**Beispiel:**
-```php
-$success = $db->delete('users', ['id' => $userId]);
-```
-
-#### `prefix(): string`
-Gibt den Tabellen-Präfix zurück.
-
-**Return:** `string` - Präfix (Standard: 'cms_')
-
-**Beispiel:**
-```php
-$tableName = $db->prefix() . 'custom_table';
-```
-
-#### `getPdo(): PDO`
-Gibt die PDO-Instanz zurück.
-
-**Return:** `PDO`
-
----
-
-## Security
-
-**Namespace:** `CMS\Security`  
-**Datei:** `core/Security.php`
-
-### Beschreibung
-Sicherheitsfunktionen: CSRF, XSS, Input-Sanitization.
-
-### Methoden
-
-#### `instance(): self`
-Singleton-Instanz.
-
-#### `init(): void`
-Initialisiert Sicherheitsmaßnahmen (Headers, Session).
-
-#### `generateToken(string $action = 'default'): string`
-Generiert ein CSRF-Token.
-
-**Parameter:**
-- `$action` (string) - Eindeutiger Action-Name
-
-**Return:** `string` - Token
-
-**Beispiel:**
-```php
-$token = $security->generateToken('login_form');
-echo '<input type="hidden" name="csrf_token" value="' . $token . '">';
-```
-
-#### `verifyToken(string $token, string $action = 'default'): bool`
-Verifiziert ein CSRF-Token.
-
-**Parameter:**
-- `$token` (string) - Zu überprüfendes Token
-- `$action` (string) - Action-Name
-
-**Return:** `bool` - Gültig?
-
-**Beispiel:**
-```php
-if (!$security->verifyToken($_POST['csrf_token'], 'login_form')) {
-    die('CSRF check failed');
+```json
+{
+    "data": { ... }
 }
 ```
 
-#### `sanitize(string $input, string $type = 'text'): string`
-Säubert Input-Daten.
+### Fehler-Response
 
-**Parameter:**
-- `$input` (string) - Zu säubernder Input
-- `$type` (string) - Typ: 'text', 'email', 'url', 'int', 'html'
-
-**Return:** `string` - Gesäuberter Wert
-
-**Beispiel:**
-```php
-$clean = $security->sanitize($_POST['name'], 'text');
-$email = $security->sanitize($_POST['email'], 'email');
-$html = $security->sanitize($_POST['content'], 'html');
-```
-
-#### `escape(string $output): string`
-Escaped Output für HTML.
-
-**Parameter:**
-- `$output` (string) - Auszugebender Text
-
-**Return:** `string` - Escaped Text
-
-**Beispiel:**
-```php
-echo $security->escape($userInput);
-```
-
-#### `validateEmail(string $email): bool`
-Validiert E-Mail-Adresse.
-
-**Parameter:**
-- `$email` (string) - E-Mail-Adresse
-
-**Return:** `bool` - Gültig?
-
-#### `validateUrl(string $url): bool`
-Validiert URL.
-
-**Parameter:**
-- `$url` (string) - URL
-
-**Return:** `bool` - Gültig?
-
-#### `hashPassword(string $password): string`
-Hasht ein Passwort (BCrypt, Cost 12).
-
-**Parameter:**
-- `$password` (string) - Klartext-Passwort
-
-**Return:** `string` - Gehashtes Passwort
-
-**Beispiel:**
-```php
-$hash = $security->hashPassword('userpassword');
-```
-
-#### `verifyPassword(string $password, string $hash): bool`
-Verifiziert ein Passwort gegen einen Hash.
-
-**Parameter:**
-- `$password` (string) - Klartext-Passwort
-- `$hash` (string) - Gespeicherter Hash
-
-**Return:** `bool` - Korrekt?
-
-**Beispiel:**
-```php
-if ($security->verifyPassword($inputPassword, $storedHash)) {
-    // Login successful
-}
-```
-
-#### `checkRateLimit(string $identifier, int $maxAttempts = 5, int $timeWindow = 300): bool`
-Prüft Rate-Limiting.
-
-**Parameter:**
-- `$identifier` (string) - Eindeutiger Identifier (z.B. IP + Action)
-- `$maxAttempts` (int) - Max. Versuche
-- `$timeWindow` (int) - Zeitfenster in Sekunden
-
-**Return:** `bool` - Erlaubt?
-
-**Beispiel:**
-```php
-if (!$security->checkRateLimit('login_' . $ip, 5, 300)) {
-    die('Too many attempts');
-}
-```
-
-#### `getClientIp(): string`
-Gibt die Client-IP zurück.
-
-**Return:** `string` - IP-Adresse
-
----
-
-## Auth
-
-**Namespace:** `CMS\Auth`  
-**Datei:** `core/Auth.php`
-
-### Beschreibung
-Authentifizierungs- und Benutzerverwaltung.
-
-### Methoden
-
-#### `instance(): self`
-Singleton-Instanz.
-
-#### `login(string $username, string $password): bool|string`
-Meldet einen Benutzer an.
-
-**Parameter:**
-- `$username` (string) - Username oder E-Mail
-- `$password` (string) - Passwort
-
-**Return:** `bool|string` - `true` bei Erfolg, Fehlermeldung bei Fehler
-
-**Beispiel:**
-```php
-$result = $auth->login($_POST['username'], $_POST['password']);
-if ($result === true) {
-    redirect('/member');
-} else {
-    echo $result; // Fehlermeldung
-}
-```
-
-#### `register(array $data): bool|string`
-Registriert einen neuen Benutzer.
-
-**Parameter:**
-- `$data` (array) - User-Daten (username, email, password, display_name)
-
-**Return:** `bool|string` - `true` bei Erfolg, Fehlermeldung bei Fehler
-
-**Beispiel:**
-```php
-$result = $auth->register([
-    'username' => 'john',
-    'email' => 'john@example.com',
-    'password' => 'secret123',
-    'display_name' => 'John Doe'
-]);
-```
-
-#### `logout(): void`
-Meldet den aktuellen Benutzer ab.
-
-**Beispiel:**
-```php
-$auth->logout();
-```
-
-#### `isLoggedIn(): bool`
-Prüft, ob ein User eingeloggt ist.
-
-**Return:** `bool`
-
-**Beispiel:**
-```php
-if ($auth->isLoggedIn()) {
-    // User ist eingeloggt
-}
-```
-
-#### `currentUser(): ?object`
-Gibt den aktuellen User zurück.
-
-**Return:** `object|null` - User-Objekt oder null
-
-**Beispiel:**
-```php
-$user = $auth->currentUser();
-if ($user) {
-    echo $user->display_name;
-    echo $user->email;
-}
-```
-
-#### `hasRole(string $role): bool`
-Prüft ob User eine bestimmte Rolle hat.
-
-**Parameter:**
-- `$role` (string) - Rollenname
-
-**Return:** `bool`
-
-**Beispiel:**
-```php
-if ($auth->hasRole('admin')) {
-    // User ist Admin
-}
-```
-
-#### `isAdmin(): bool`
-Prüft ob User Admin ist.
-
-**Return:** `bool`
-
-**Beispiel:**
-```php
-if ($auth->isAdmin()) {
-    // Admin-Funktionen
+```json
+{
+    "error": "Fehlermeldung"
 }
 ```
 
 ---
 
-## Router
+<!-- UPDATED: 2026-03-08 -->
+## 2 · Authentifizierung
 
-**Namespace:** `CMS\Router`  
-**Datei:** `core/Router.php`
+Die API unterstützt drei Authentifizierungsmethoden:
 
-### Beschreibung
-URL-Routing und Request-Handling.
+### 2.1 JWT Bearer-Token (empfohlen)
 
-### Methoden
+**Bibliothek:** firebase/php-jwt (HS256)
+**Service:** `CMS\Services\JwtService` (`core/Services/JwtService.php`)
 
-#### `instance(): self`
-Singleton-Instanz.
+| Konfiguration | Beschreibung | Standard |
+|---------------|-------------|----------|
+| `JWT_SECRET` | HMAC-Schlüssel für HS256 (Pflicht) | `AUTH_KEY` |
+| `JWT_TTL` | Token-Lebensdauer in Sekunden | `3600` (1 Stunde) |
+| `JWT_ISSUER` | `iss`-Claim | `SITE_URL` |
 
-#### `addRoute(string $method, string $path, callable $callback): void`
-Fügt eine neue Route hinzu.
-
-**Parameter:**
-- `$method` (string) - HTTP-Methode ('GET', 'POST', etc.)
-- `$path` (string) - URL-Pfad (kann :parameter enthalten)
-- `$callback` (callable) - Callback-Funktion
-
-**Beispiel:**
 ```php
-$router->addRoute('GET', '/custom-page', function() {
-    echo '<h1>Custom Page</h1>';
-});
+// Token generieren
+$jwt = CMS\Services\JwtService::getInstance();
+$token = $jwt->generate(['user_id' => 42, 'role' => 'admin']);
 
-$router->addRoute('GET', '/user/:id', function($id) {
-    echo '<h1>User ' . $id . '</h1>';
-});
+// Token validieren
+$payload = $jwt->validate($token);
+// → ['user_id' => 42, 'role' => 'admin', 'iat' => ..., 'exp' => ..., 'iss' => ...]
 ```
 
-#### `dispatch(): void`
-Verarbeitet die aktuelle Anfrage.
+**Header-Format:**
 
-#### `redirect(string $url): void`
-Leitet zu einer URL weiter.
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
+```
 
-**Parameter:**
-- `$url` (string) - Ziel-URL (relativ oder absolut)
+### 2.2 Session-Authentifizierung
 
-**Beispiel:**
-```php
-$router->redirect('/member');
-$router->redirect('https://example.com');
+Für Browser-basierte Aufrufe (z. B. aus dem Admin-Panel) wird die bestehende PHP-Session genutzt. `Auth::instance()->isLoggedIn()` prüft den Session-Status.
+
+### 2.3 API-Key
+
+API-Keys können über die Admin-Einstellungen generiert und im Header übergeben werden:
+
+```
+X-API-Key: dein-api-key-hier
 ```
 
 ---
 
-## Hooks
+<!-- UPDATED: 2026-03-08 -->
+## 3 · Endpunkte
 
-**Namespace:** `CMS\Hooks`  
-**Datei:** `core/Hooks.php`
+| Methode | Route | Auth | Parameter | Response | Beschreibung |
+|---------|-------|------|-----------|----------|-------------|
+| `GET` | `/api/v1/status` | Keine | – | `{"data":{"status":"ok","version":"2.5.4"}}` | System-Status |
+| `GET` | `/api/v1/pages` | Session/JWT | `?q=suchbegriff` | `{"data":[...]}` | Seiten durchsuchen |
+| `GET` | `/api/v1/pages/{slug}` | Session/JWT | – | `{"data":{...}}` | Einzelne Seite per Slug |
+| `GET` | `/api/v1/users` | Admin | – | `{"data":[...]}` | Benutzer auflisten (max. 50) |
+| `GET` | `/api/v1/users/{id}` | Admin | – | `{"data":{...}}` | Einzelnen Benutzer laden |
 
-### Beschreibung
-WordPress-ähnliches Hook-System für Actions & Filters.
+### Berechtigungen
 
-### Statische Methoden
-
-#### `addAction(string $tag, callable $callback, int $priority = 10): void`
-Registriert eine Action.
-
-**Parameter:**
-- `$tag` (string) - Hook-Name
-- `$callback` (callable) - Callback-Funktion
-- `$priority` (int) - Priorität (niedrig = früh)
-
-**Beispiel:**
-```php
-CMS\Hooks::addAction('cms_init', function() {
-    // Code beim System-Start
-}, 10);
-```
-
-#### `doAction(string $tag, ...$args): void`
-Führt alle an einen Hook registrierten Actions aus.
-
-**Parameter:**
-- `$tag` (string) - Hook-Name
-- `$args` (mixed) - Beliebige Parameter
-
-**Beispiel:**
-```php
-CMS\Hooks::doAction('user_registered', $userId);
-```
-
-#### `addFilter(string $tag, callable $callback, int $priority = 10): void`
-Registriert einen Filter.
-
-**Parameter:**
-- `$tag` (string) - Filter-Name
-- `$callback` (callable) - Callback-Funktion (muss Wert zurückgeben!)
-- `$priority` (int) - Priorität
-
-**Beispiel:**
-```php
-CMS\Hooks::addFilter('template_name', function($template) {
-    return $template === 'old' ? 'new' : $template;
-}, 10);
-```
-
-#### `applyFilters(string $tag, $value, ...$args): mixed`
-Wendet alle Filter auf einen Wert an.
-
-**Parameter:**
-- `$tag` (string) - Filter-Name
-- `$value` (mixed) - Zu filternder Wert
-- `$args` (mixed) - Zusätzliche Parameter
-
-**Return:** `mixed` - Gefilterter Wert
-
-**Beispiel:**
-```php
-$template = CMS\Hooks::applyFilters('template_name', 'home');
-```
-
-#### `removeAction(string $tag, callable $callback, int $priority = 10): bool`
-Entfernt eine Action.
-
-**Return:** `bool` - Erfolg
-
-#### `removeFilter(string $tag, callable $callback, int $priority = 10): bool`
-Entfernt einen Filter.
-
-**Return:** `bool` - Erfolg
+| Endpunkt | Mindest-Rolle |
+|----------|--------------|
+| `status` | Öffentlich (keine Authentifizierung nötig) |
+| `pages` | Authentifizierter Benutzer (`isLoggedIn()`) |
+| `users` | Administrator (`isAdmin()`) |
 
 ---
 
-## PluginManager
+<!-- UPDATED: 2026-03-08 -->
+## 4 · Error-Codes und Error-Response-Format
 
-**Namespace:** `CMS\PluginManager`  
-**Datei:** `core/PluginManager.php`
+Alle Fehler werden als JSON mit passendem HTTP-Statuscode zurückgegeben:
 
-### Beschreibung
-Verwaltung von Plugins.
-
-### Methoden
-
-#### `instance(): self`
-Singleton-Instanz.
-
-#### `loadPlugins(): void`
-Lädt alle aktiven Plugins.
-
-#### `getAvailablePlugins(): array`
-Gibt alle verfügbaren Plugins zurück.
-
-**Return:** `array` - Plugin-Array mit Metadaten
-
-**Beispiel:**
-```php
-$plugins = $manager->getAvailablePlugins();
-foreach ($plugins as $plugin) {
-    echo $plugin['name'];
-    echo $plugin['version'];
-    echo $plugin['active'] ? 'Aktiv' : 'Inaktiv';
+```json
+{
+    "error": "Beschreibung des Fehlers"
 }
 ```
 
-#### `activatePlugin(string $plugin): bool|string`
-Aktiviert ein Plugin.
+| HTTP-Code | Bedeutung | Typischer Auslöser |
+|-----------|-----------|-------------------|
+| `400` | Bad Request | Ungültige Parameter |
+| `401` | Unauthorized | Fehlende oder ungültige Authentifizierung |
+| `403` | Forbidden | Unzureichende Berechtigungen (z. B. kein Admin) |
+| `404` | Not Found | Endpunkt oder Ressource nicht gefunden |
+| `429` | Too Many Requests | Rate-Limit überschritten |
+| `500` | Internal Server Error | Unerwarteter Serverfehler |
 
-**Parameter:**
-- `$plugin` (string) - Plugin-Verzeichnisname
+### JWT-spezifische Fehler
 
-**Return:** `bool|string` - `true` oder Fehlermeldung
-
-**Beispiel:**
-```php
-$result = $manager->activatePlugin('my-plugin');
-```
-
-#### `deactivatePlugin(string $plugin): bool|string`
-Deaktiviert ein Plugin.
-
-**Parameter:**
-- `$plugin` (string) - Plugin-Verzeichnisname
-
-**Return:** `bool|string` - `true` oder Fehlermeldung
+| Fehler | Ursache |
+|--------|---------|
+| `Token expired` | Token-Lebensdauer (`JWT_TTL`) überschritten |
+| `Signature invalid` | Falscher `JWT_SECRET` oder manipulierter Token |
+| `Token not yet valid` | `nbf`-Claim liegt in der Zukunft |
 
 ---
 
-## ThemeManager
+<!-- UPDATED: 2026-03-08 -->
+## 5 · Rate Limiting
 
-**Namespace:** `CMS\ThemeManager`  
-**Datei:** `core/ThemeManager.php`
+Die API verwendet DB-basiertes Rate-Limiting über `Security::checkDbRateLimit()`:
 
-### Beschreibung
-Verwaltung von Themes.
+| Parameter | Wert |
+|-----------|------|
+| Max. Anfragen | 60 pro IP |
+| Zeitfenster | 60 Sekunden |
+| Identifier | Client-IP (`Security::getClientIp()`) |
+| Scope | `api` |
 
-### Methoden
+Bei Überschreitung:
 
-#### `instance(): self`
-Singleton-Instanz.
-
-#### `loadTheme(): void`
-Lädt das aktive Theme.
-
-#### `render(string $template, array $data = []): void`
-Rendert ein Template.
-
-**Parameter:**
-- `$template` (string) - Template-Name (ohne .php)
-- `$data` (array) - Daten für Template
-
-**Beispiel:**
-```php
-$theme->render('home', ['title' => 'Welcome']);
 ```
+HTTP/1.1 429 Too Many Requests
+Retry-After: 60
+Content-Type: application/json
 
-#### `getHeader(): void`
-Inkludiert header.php.
-
-#### `getFooter(): void`
-Inkludiert footer.php.
-
-#### `getAvailableThemes(): array`
-Gibt alle verfügbaren Themes zurück.
-
-**Return:** `array` - Theme-Array mit Metadaten
-
-**Beispiel:**
-```php
-$themes = $manager->getAvailableThemes();
-```
-
-#### `switchTheme(string $theme): bool|string`
-Wechselt das aktive Theme.
-
-**Parameter:**
-- `$theme` (string) - Theme-Verzeichnisname
-
-**Return:** `bool|string` - `true` oder Fehlermeldung
-
-**Beispiel:**
-```php
-$result = $manager->switchTheme('new-theme');
-```
-
-#### `getThemePath(): string`
-Gibt den absoluten Theme-Pfad zurück.
-
-**Return:** `string` - Dateisystem-Pfad
-
-#### `getThemeUrl(): string`
-Gibt die Theme-URL zurück.
-
-**Return:** `string` - HTTP-URL
-
-**Beispiel:**
-```php
-$url = $manager->getThemeUrl();
-echo '<link rel="stylesheet" href="' . $url . '/style.css">';
+{"error": "Rate limit exceeded. Please try again later."}
 ```
 
 ---
 
-## Helper-Funktionen
+<!-- UPDATED: 2026-03-08 -->
+## 6 · WebAuthn/Passkey API-Endpunkte
 
-**Datei:** `includes/functions.php`
+Die WebAuthn-Integration ermöglicht passwortlose Authentifizierung via FIDO2/Passkeys. Die Endpunkte werden über den Auth-Controller bereitgestellt:
 
-### Escaping
+| Methode | Route | Auth | Beschreibung |
+|---------|-------|------|-------------|
+| `POST` | `/api/v1/webauthn/register/options` | Session | Registrierungs-Challenge generieren |
+| `POST` | `/api/v1/webauthn/register/verify` | Session | Passkey-Registrierung verifizieren |
+| `POST` | `/api/v1/webauthn/login/options` | Keine | Login-Challenge generieren |
+| `POST` | `/api/v1/webauthn/login/verify` | Keine | Passkey-Login verifizieren |
 
-- `esc_html(string $text): string` - HTML-Escape
-- `esc_url(string $url): string` - URL-Escape
-- `esc_attr(string $text): string` - Attribut-Escape
+### Registrierungs-Flow
 
-### Sanitization
+```bash
+# 1. Challenge anfordern (eingeloggt)
+curl -s -X POST https://example.com/api/v1/webauthn/register/options \
+  -H "Cookie: PHPSESSID=abc123"
 
-- `sanitize_text(string $text): string` - Text säubern
-- `sanitize_email(string $email): string` - E-Mail validieren
+# 2. Browser führt navigator.credentials.create() aus
 
-### Options
+# 3. Ergebnis verifizieren
+curl -s -X POST https://example.com/api/v1/webauthn/register/verify \
+  -H "Content-Type: application/json" \
+  -H "Cookie: PHPSESSID=abc123" \
+  -d '{"attestation": "..."}'
+```
 
-- `get_option(string $key, $default = null): mixed` - Option abrufen
-- `update_option(string $key, $value): bool` - Option speichern
+### Login-Flow
 
-### Auth-Helpers
+```bash
+# 1. Challenge anfordern
+curl -s -X POST https://example.com/api/v1/webauthn/login/options \
+  -H "Content-Type: application/json" \
+  -d '{"username": "max"}'
 
-- `is_logged_in(): bool` - User eingeloggt?
-- `is_admin(): bool` - User ist Admin?
-- `current_user(): ?object` - Aktueller User
+# 2. Browser führt navigator.credentials.get() aus
 
-### Utilities
+# 3. Ergebnis verifizieren
+curl -s -X POST https://example.com/api/v1/webauthn/login/verify \
+  -H "Content-Type: application/json" \
+  -d '{"assertion": "..."}'
+```
 
-- `redirect(string $url): void` - Weiterleitung
-- `format_date(string $date, string $format = 'd.m.Y'): string` - Datum formatieren
-- `time_ago(string $datetime): string` - "vor X Minuten"
-- `dd(...$vars): void` - Debug & Die
-- `generate_random_string(int $length = 32): string` - Zufallsstring
+---
+
+<!-- UPDATED: 2026-03-08 -->
+## 7 · curl-Beispiele
+
+### System-Status abfragen
+
+```bash
+curl -s https://example.com/api/v1/status | jq
+```
+
+```json
+{
+    "data": {
+        "status": "ok",
+        "version": "2.5.4"
+    }
+}
+```
+
+### JWT-Token generieren und verwenden
+
+```bash
+# Token per Login erhalten (Implementierung via Auth-Endpunkt)
+TOKEN="eyJhbGciOiJIUzI1NiIs..."
+
+# Seiten auflisten
+curl -s https://example.com/api/v1/pages \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+# Seite per Slug laden
+curl -s https://example.com/api/v1/pages/ueber-uns \
+  -H "Authorization: Bearer $TOKEN" | jq
+```
+
+### Seiten durchsuchen
+
+```bash
+curl -s "https://example.com/api/v1/pages?q=kontakt" \
+  -H "Authorization: Bearer $TOKEN" | jq
+```
+
+### Benutzer verwalten (Admin)
+
+```bash
+# Alle Benutzer auflisten
+curl -s https://example.com/api/v1/users \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq
+
+# Einzelnen Benutzer laden
+curl -s https://example.com/api/v1/users/42 \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq
+```
+
+### Fehler-Beispiele
+
+```bash
+# 401 – Nicht authentifiziert
+curl -s https://example.com/api/v1/pages
+# → {"error": "Unauthorized"}
+
+# 403 – Kein Admin
+curl -s https://example.com/api/v1/users \
+  -H "Authorization: Bearer $MEMBER_TOKEN"
+# → {"error": "Forbidden"}
+
+# 404 – Seite nicht gefunden
+curl -s https://example.com/api/v1/pages/nicht-vorhanden \
+  -H "Authorization: Bearer $TOKEN"
+# → {"error": "Page not found"}
+
+# 429 – Rate-Limit überschritten
+# → {"error": "Rate limit exceeded. Please try again later."}
+```
