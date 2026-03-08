@@ -1,933 +1,1574 @@
-# 365CMS – Core-Klassen Referenz
+# 365CMS – Core-Klassen-Referenz
+<!-- UPDATED: 2026-03-08 -->
+
 > **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
 
+Dieses Dokument beschreibt die zentralen PHP-Klassen des 365CMS-Kerns. Alle Klassen
+befinden sich im Namespace `CMS\` (Kern) bzw. `CMS\Services\` (Service-Schicht) und
+liegen unter `CMS/core/`.
+
+---
+
 ## Inhaltsverzeichnis
-- <a>Überblick</a>
-- <a>Bootstrap & Container</a>
-- <a>Router</a>
-- <a>Database & Schema</a>
-- <a>Auth & Security</a>
-- <a>Hooks & Plugins</a>
-- <a>Themes & Templates</a>
-- <a>Cache</a>
-- <a>Mail</a>
-- <a>Upload & Assets</a>
-- <a>Search</a>
-- <a>Translation</a>
-- <a>API</a>
-- <a>Logging</a>
-- <a>Subscription</a>
-- <a>Hilfsklassen & Contracts</a>
+
+| Nr. | Gruppe | Klassen |
+|-----|--------|---------|
+| 1 | [Bootstrap & Container](#1-bootstrap--container) | `Bootstrap`, `Container` |
+| 2 | [Router](#2-router) | `Router` |
+| 3 | [Database](#3-database) | `Database`, `SchemaManager`, `MigrationManager` |
+| 4 | [Auth & Session](#4-auth--session) | `Auth`, `AuthManager`, `Totp` |
+| 5 | [Security](#5-security) | `Security` |
+| 6 | [Cache](#6-cache) | `CacheManager` |
+| 7 | [Hooks](#7-hooks) | `Hooks` |
+| 8 | [Logger & Audit](#8-logger--audit) | `Logger`, `AuditLogger`, `Debug` |
+| 9 | [Seiten & Inhalte](#9-seiten--inhalte) | `PageManager`, `EditorJsRenderer` |
+| 10 | [Theme & Template](#10-theme--template) | `ThemeManager`, `ThemeCustomizer` |
+| 11 | [Plugin-System](#11-plugin-system) | `PluginManager` |
+| 12 | [API](#12-api) | `Api` |
+| 13 | [Mail](#13-mail) | `MailService` |
+| 14 | [Suche](#14-suche) | `SearchService` |
+| 15 | [Übersetzung](#15-übersetzung) | `TranslationService` |
+| 16 | [Upload & Medien](#16-upload--medien) | `FileUploadService`, `MediaService`, `ImageService` |
+| 17 | [Settings](#17-settings) | `SettingsService` |
+| 18 | [Backup](#18-backup) | `BackupService` |
+| 19 | [Contracts (Interfaces)](#19-contracts-interfaces) | `DatabaseInterface`, `CacheInterface`, `LoggerInterface` |
 
 ---
 
-## Überblick <!-- UPDATED: 2026-03-08 -->
-Referenz der zentralen Core-Klassen (Namespaces `CMS\*` und `CMS\Services\*`). Jede Sektion nennt Pfad, Aufgabe, zentrale Public-Methoden und ein kurzes Anwendungsbeispiel.
+## 1. Bootstrap & Container
+<!-- UPDATED: 2026-03-08 -->
 
----
+### 1.1 Bootstrap
 
-## Bootstrap & Container <!-- UPDATED: 2026-03-08 -->
-**Bootstrap** (`core/Bootstrap.php`, `CMS\Bootstrap`)
-- Aufgabe: Betriebsmodus bestimmen (`web|admin|api|cli`), Konstanten sichern, Vendor-Autoload laden, Container befüllen, Migrationen ausführen, Plugins/Themes laden.
-- Wichtige Methoden: `instance()`, `initializeCore()`, `loadDependencies()`, `detectMode()`.
-- Beispiel:
+| | |
+|---|---|
+| **Namespace** | `CMS\Bootstrap` |
+| **Pfad** | `CMS/core/Bootstrap.php` |
+| **Pattern** | Singleton |
+
+Zentraler Einstiegspunkt des CMS. Initialisiert alle Kernkomponenten (Security,
+Database, Auth, Router, Plugins, Themes), erkennt den Betriebsmodus und startet
+den Request-Lebenszyklus.
+
+**Betriebsmodi** (automatisch erkannt):
+
+| Modus | Trigger |
+|-------|---------|
+| `cli` | `PHP_SAPI === 'cli'` |
+| `api` | Request-URI beginnt mit `/api/` |
+| `admin` | Request-URI beginnt mit `/admin/` |
+| `web` | Alle anderen Anfragen (Standard) |
+
+**Wichtige Methoden:**
+
 ```php
-$bootstrap = \CMS\Bootstrap::instance();
-$router = \CMS\Container::instance()->get(\CMS\Router::class);
+public static function instance(): self       // Singleton-Zugriff
+public function run(): void                    // Startet den kompletten Request-Zyklus
+public function db(): Database                 // Gibt die Database-Instanz zurück
+public function auth(): Auth                   // Gibt die Auth-Instanz zurück
+public function security(): Security           // Gibt die Security-Instanz zurück
+public function container(): Container         // Gibt den DI-Container zurück
 ```
 
-**Container** (`core/Container.php`, `CMS\Container`)
-- Aufgabe: DI-Container mit Singleton-/Instance-Bindings.
-- Wichtige Methoden: `instance()`, `bindInstance($id, $obj)`, `singleton($id, callable)`, `get($id)`, `has($id)`.
+**Beispiel:**
+
+```php
+// CMS starten (index.php)
+$app = \CMS\Bootstrap::instance();
+$app->run();
+
+// Aus einem Plugin auf Kernkomponenten zugreifen
+$db = \CMS\Bootstrap::instance()->db();
+```
 
 ---
 
-## Router <!-- UPDATED: 2026-03-08 -->
-**Router** (`core/Router.php`, `CMS\Router`)
-- Aufgabe: URL-Routing für Web, Admin, API; Standardrouten registrieren; Dispatch mit Parameter-Matching.
-- Wichtige Public-Methoden: `instance()`, `addRoute($method, $path, $callback)`, `dispatch()`.
-- Hilfs-Privates (wichtig für Verhalten): `requireAdmin()`, `jsonAdminPosts/pages/users`, `render*`-Handler.
-- Beispiel:
+### 1.2 Container
+
+| | |
+|---|---|
+| **Namespace** | `CMS\Container` |
+| **Pfad** | `CMS/core/Container.php` |
+| **Pattern** | Singleton, Dependency-Injection-Container |
+
+Einfacher DI-Container mit Lazy-Auflösung, Singleton-Registrierung und
+transientem Binding. Ermöglicht schrittweise Migration der bestehenden
+Singleton-Klassen.
+
+**Wichtige Methoden:**
+
+```php
+public static function instance(): self
+public function bind(string $abstract, \Closure $factory): void       // Transiente Factory
+public function singleton(string $abstract, \Closure $factory): void  // Singleton-Factory
+public function bindInstance(string $abstract, mixed $resolved): void // Bereits existierende Instanz
+public function make(string $abstract): mixed                         // Service auflösen
+public function get(string $abstract): mixed                          // Alias für make()
+public function has(string $abstract): bool                           // Prüft ob Service registriert
+public function registered(): array                                   // Alle registrierten Keys
+public function forget(string $abstract): void                        // Service entfernen
+public function flush(): void                                         // Alle Services entfernen
+```
+
+**Beispiel:**
+
+```php
+$container = \CMS\Container::instance();
+
+// Singleton registrieren
+$container->singleton('db', fn() => \CMS\Database::instance());
+
+// Service auflösen (gibt stets dieselbe Instanz zurück)
+$db = $container->make('db');
+
+// Vorhandene Instanz einbinden
+$container->bindInstance('logger', $myLogger);
+```
+
+---
+
+## 2. Router
+<!-- UPDATED: 2026-03-08 -->
+
+| | |
+|---|---|
+| **Namespace** | `CMS\Router` |
+| **Pfad** | `CMS/core/Router.php` |
+| **Pattern** | Singleton |
+
+Zentrales URL-Routing- und Request-Dispatching-System. Registriert automatisch
+Standard-Routen (Login, Register, Logout, Admin, Sitemap usw.) und unterstützt
+benutzerdefinierte Routen über `addRoute()`.
+
+**Wichtige Methoden:**
+
+```php
+public static function instance(): self
+public function addRoute(string $method, string $path, callable $callback): void
+public function dispatch(): void
+public function redirect(string $url): void
+public function serveSitemap(): void
+```
+
+**Vordefinierte Routen (Auszug):**
+
+| Methode | Pfad | Handler |
+|---------|------|---------|
+| GET | `/` | `renderHome()` |
+| GET/POST | `/login` | `renderLogin()` / `handleLogin()` |
+| GET/POST | `/register` | `renderRegister()` / `handleRegister()` |
+| GET | `/logout` | `handleLogout()` |
+| GET | `/admin/*` | `renderAdmin()` / `renderAdminPage()` |
+| GET | `/member/*` | `renderMember()` / `renderMemberPage()` |
+
+**Beispiel:**
+
 ```php
 $router = \CMS\Router::instance();
-$router->addRoute('GET', '/health', fn() => print('ok'));
+
+// Eigene Route registrieren
+$router->addRoute('GET', '/kontakt', function () {
+    // Kontaktseite rendern
+});
+
+// Request verarbeiten
 $router->dispatch();
 ```
 
 ---
 
-## Database & Schema <!-- UPDATED: 2026-03-08 -->
-**Database** (`core/Database.php`, `CMS\Database`)
-- Aufgabe: PDO-Wrapper mit Helpern.
-- Wichtige Methoden: `instance()`, `getPdo()`, `query($sql)`, `execute($sql, $params)`, `get_row()`, `get_results()`, `get_var()`, `insert($table, $data)`, `update($table, $data, $where)`, `delete()`, `transaction(callable)`, `getPrefix()`.
-- Beispiel:
+## 3. Database
+<!-- UPDATED: 2026-03-08 -->
+
+### 3.1 Database
+
+| | |
+|---|---|
+| **Namespace** | `CMS\Database` |
+| **Pfad** | `CMS/core/Database.php` |
+| **Pattern** | Singleton |
+| **Implements** | `CMS\Contracts\DatabaseInterface` |
+
+PDO-basierter Datenbank-Wrapper mit Prepared Statements und WordPress-kompatibler API.
+Stellt sowohl OOP- als auch statische Convenience-Methoden bereit. Beim ersten
+Instanziieren wird automatisch `SchemaManager::createTables()` aufgerufen.
+
+**Wichtige Methoden:**
+
+```php
+// Singleton
+public static function instance(): self
+public static function get_instance(): self  // WordPress-kompatibler Alias
+
+// Query-Ausführung
+public function prepare(string $sql): \PDOStatement|false
+public function query(string $sql): \PDOStatement
+public function execute(string $sql, array $params = []): \PDOStatement
+
+// CRUD
+public function insert(string $table, array $data): int|bool
+public function update(string $table, array $data, array $where): bool
+public function delete(string $table, array $where): bool
+
+// Daten abrufen
+public function get_row(string $query, array $params = []): ?object
+public function get_var(string $query, array $params = []): mixed
+public function get_results(string $query, array $params = []): array
+public function get_col(string $query, array $params = []): array
+
+// Hilfsmethoden
+public function affected_rows(): int
+public function insert_id(): int
+public function prefix(string $table = ''): string
+public function getPrefix(): string
+public function getPdo(): \PDO
+public function getConnection(): \PDO
+public function repairTables(): void
+
+// Statische Convenience-Methoden
+public static function fetchAll(string $query, array $params = []): array
+public static function fetchOne(string $query, array $params = []): ?array
+public static function exec(string $query, array $params = []): bool
+```
+
+**Beispiel:**
+
 ```php
 $db = \CMS\Database::instance();
-$user = $db->get_row("SELECT * FROM {$db->getPrefix()}users WHERE id = 1");
-```
-
-**SchemaManager** (`core/SchemaManager.php`, `CMS\SchemaManager`)
-- Aufgabe: Basistabellen (SCHEMA_VERSION v14) via `createTables()`, Flag-Datei, Default-Admin, Content-Spalten ergänzen.
-- Wichtige Methoden: `createTables()`, `clearFlag()`, `getFlagFile()`.
-
-**MigrationManager** (`core/MigrationManager.php`, `CMS\MigrationManager`)
-- Aufgabe: Inkrementelle Migrationen nach SCHEMA_VERSION; Tabellen/Spalten nachziehen (z. B. passkey_credentials, mail_log/-queue).
-- Wichtige Methoden: `run()`.
-
----
-
-## Auth & Security <!-- UPDATED: 2026-03-08 -->
-**Auth** (`core/Auth.php`, `CMS\Auth`)
-- Aufgabe: Login/Logout/Registration, Session-User laden, Passwort-Policy.
-- Wichtige Methoden: `instance()`, `login($username,$password)`, `logout()`, `register($data)`, `changePassword($userId,$old,$new)`, `validatePasswordPolicy($pw)`, `currentUser()`, `isAdmin()`.
-- Beispiel:
-```php
-$auth = \CMS\Auth::instance();
-if ($auth->login('user', 'secret')) { /* ... */ }
-```
-
-**Security** (`core/Security.php`, `CMS\Security`)
-- Aufgabe: CSRF-Token, Security-Header, Session-Härtung.
-- Wichtige Methoden: `instance()`, `generateToken($action)`, `verifyToken($token,$action)`, `verifyPersistentToken($token,$action)`, `init()`, `sanitizeInput($data)`.
-- Beispiel:
-```php
-$token = \CMS\Security::instance()->generateToken('admin_form');
-if (!\CMS\Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'admin_form')) { die('forbidden'); }
-```
-
-**Totp** (`core/Totp.php`, `CMS\Totp`)
-- Aufgabe: TOTP 2FA (shared secret, QR, verify).
-- Wichtige Methoden: `generateSecret()`, `getQrCodeUrl($label,$secret)`, `verifyCode($secret,$code)`.
-
----
-
-## Hooks & Plugins <!-- UPDATED: 2026-03-08 -->
-**Hooks** (`core/Hooks.php`, `CMS\Hooks`)
-- Aufgabe: Action/Filter-System ähnlich WP.
-- Wichtige Methoden: `addAction($hook,$cb,$priority=10)`, `doAction($hook,...$args)`, `addFilter($hook,$cb,$priority=10)`, `applyFilters($hook,$value,...$args)`.
-
-**PluginManager** (`core/PluginManager.php`, `CMS\PluginManager`)
-- Aufgabe: Plugins laden/aktivieren, Hooks registrieren, Plugin-Routen für Admin/Member.
-- Wichtige Methoden: `instance()`, `loadPlugins()`, `activate($slug)`, `deactivate($slug)`, `getActivePlugins()`.
-
----
-
-## Themes & Templates <!-- UPDATED: 2026-03-08 -->
-**ThemeManager** (`core/ThemeManager.php`, `CMS\ThemeManager`)
-- Aufgabe: Aktives Theme laden, Templates/Assets bereitstellen (nicht im API/CLI-Modus).
-- Wichtige Methoden: `instance()`, `loadTheme()`, `getActiveTheme()`, `renderTemplate($template,$data=[])`.
-
-**PageManager** (`core/PageManager.php`, `CMS\PageManager`)
-- Aufgabe: Seiten/Beiträge laden, Slugs auflösen, Breadcrumb/TOC-Hilfen.
-- Wichtige Methoden: `getPageBySlug($slug)`, `getPostBySlug($slug)`, `search($term,$type)`.
-
----
-
-## Cache <!-- UPDATED: 2026-03-08 -->
-**CacheManager** (`core/CacheManager.php`, `CMS\CacheManager`)
-- Aufgabe: Key/Value-Cache mit optionalen Treibern.
-- Wichtige Methoden: `instance()`, `get($key,$default=null)`, `set($key,$value,$ttl=null)`, `remember($key,$ttl,callable)`, `delete($key)`, `clear()`.
-- Beispiel:
-```php
-$cache = \CMS\CacheManager::instance();
-$posts = $cache->remember('latest_posts', 300, fn() => fetchPosts());
-```
-
----
-
-## Mail <!-- UPDATED: 2026-03-08 -->
-**MailService** (`core/Services/MailService.php`, `CMS\Services\MailService`)
-- Aufgabe: Versand über Symfony Mailer/SMTP/OAuth2, Templates, Fallbacks.
-- Wichtige Methoden: `getInstance()`, `send($to,$subject,$body,$opts=[])`, `sendBackendTestEmail($recipient)`.
-
-**MailQueueService** (`core/Services/MailQueueService.php`)
-- Aufgabe: Queue mit Status/Retry/Backoff.
-- Wichtige Methoden: `enqueue($message)`, `dequeueBatch($limit)`, `markSent($id)`, `markFailed($id,$error)`.
-
-**MailLogService** (`core/Services/MailLogService.php`)
-- Aufgabe: Log-Abfrage fürs Admin-Grid; schreibt/liest `mail_log`.
-- Wichtige Methoden: `log(array $data)`, `getRecent($limit,$page,$search,$status)`.
-
-**AzureMailTokenProvider** (`core/Services/AzureMailTokenProvider.php`)
-- Aufgabe: XOAUTH2-Token-Caching für Microsoft 365 SMTP.
-- Wichtige Methoden: `getInstance()`, `getAccessToken()`, `clearToken()`.
-
----
-
-## Upload & Assets <!-- UPDATED: 2026-03-08 -->
-**FileUploadService** (`core/Services/FileUploadService.php`)
-- Aufgabe: FilePond-kompatible Upload-Verarbeitung inkl. CSRF/Auth.
-- Wichtige Methoden: `getInstance()`, `handleUploadRequest()`.
-
-**ImageService** (`core/Services/ImageService.php`)
-- Aufgabe: Bildbearbeitung/Thumbnails (GD).
-- Wichtige Methoden: `getInstance()`, `resize($path,$w,$h,$crop=false)`, `optimize($path)`.
-
-**Asset-Ladepfad**
-- Externe Libraries werden über `CMS/assets/autoload.php` geladen; Frontend-Assets via Hooks `head`/`body_end` (PhotoSwipe, CookieConsent, Fonts).
-
----
-
-## Search <!-- UPDATED: 2026-03-08 -->
-**SearchService** (`core/Services/SearchService.php`)
-- Aufgabe: TNTSearch-Volltextsuche; Indexierung/Abfrage.
-- Wichtige Methoden: `getInstance()`, `indexContent($entity,$data)`, `search($query,$limit=20)`, `reindexAll()`.
-
----
-
-## Translation <!-- UPDATED: 2026-03-08 -->
-**TranslationService** (`core/Services/TranslationService.php`)
-- Aufgabe: Symfony-Translation gestützt, Sprachdateien laden.
-- Wichtige Methoden: `getInstance()`, `setLocale($locale)`, `trans($key,array $params=[],?string $locale=null)`, `addResource($locale,$domain,$path)`.
-
----
-
-## API <!-- UPDATED: 2026-03-08 -->
-**Api** (`core/Api.php`, `CMS\Api`)
-- Aufgabe: REST-Handler für v1-Endpunkte (Pages, Status); ruft Services und Renderer.
-- Wichtige Methoden: `instance()`, `handleRequest($resource,$slug=null)`.
-- Beispiel:
-```php
-\CMS\Api::instance()->handleRequest('pages', 'welcome');
-```
-
----
-
-## Logging <!-- UPDATED: 2026-03-08 -->
-**Logger** (`core/Logger.php`, `CMS\Logger`)
-- Aufgabe: PSR-3-kompatibles Logging, Tagesrotation, Channels.
-- Wichtige Methoden: `instance()`, `log($level,$message,array $context=[])`, `withChannel($channel)`, Helfer `cms_log()` (global).
-
-**AuditLogger** (`core/AuditLogger.php`, `CMS\AuditLogger`)
-- Aufgabe: Sicherheitsrelevante Events in `audit_log` erfassen.
-- Wichtige Methoden: `instance()`, `log($category,$action,$entityType,$entityId,$severity='info',$meta=[])`.
-
----
-
-## Subscription <!-- UPDATED: 2026-03-08 -->
-**SubscriptionManager** (`core/SubscriptionManager.php`, `CMS\SubscriptionManager`)
-- Aufgabe: Pläne/Bestellungen/Status prüfen.
-- Wichtige Methoden: `instance()`, `getUserPlan($userId)`, `checkLimit($userId,$resource)`, `hasFeature($userId,$feature)`.
-
----
-
-## Hilfsklassen & Contracts <!-- UPDATED: 2026-03-08 -->
-- **Hooks/SEO/Redirects**: `Services\SEOService`, `Services\RedirectService` (Meta/Redirect-Tabellen & Rendering).
-- **CookieConsentService** (`core/Services/CookieConsentService.php`): Banner/Consent-API, Public-Page-Renderer.
-- **EditorService / EditorJsService / EditorJsRenderer**: WYSIWYG/Block-Rendering.
-- **FeedService**: SimplePie RSS/Atom.
-- **MessageService / MemberService / UserService / StatusService / DashboardService / LandingPageService / AnalyticsService / TrackingService / BackupService / SystemService / ThemeCustomizer / UpdateService / PdfService**: jeweilige Fachservices, als Singletons via Container registriert.
-- **Contracts**: `core/Contracts/LoggerInterface.php` (PSR-3 ähnlich), `core/Contracts/CacheInterface.php` (falls vorhanden), werden von Logger/CacheManager erfüllt.
-
----
-
-## Quick Reference (Grouped) <!-- UPDATED: 2026-03-08 -->
-| Gruppe | Klassen (Pfad) | Kern-Methoden |
-|---|---|---|
-| Router | `core/Router.php` | `instance()`, `addRoute()`, `dispatch()` |
-| Database | `core/Database.php` | `query()`, `execute()`, `get_row()`, `get_results()`, `insert()`, `update()` |
-| Schema | `core/SchemaManager.php`, `core/MigrationManager.php` | `createTables()`, `run()` |
-| Auth/Security | `core/Auth.php`, `core/Security.php`, `core/Totp.php` | `login()`, `logout()`, `register()`, `verifyToken()`, `generateToken()`, `verifyCode()` |
-| Hooks/Plugins | `core/Hooks.php`, `core/PluginManager.php` | `addAction()`, `doAction()`, `addFilter()`, `applyFilters()`, `loadPlugins()` |
-| Themes/Templates | `core/ThemeManager.php`, `core/PageManager.php` | `loadTheme()`, `renderTemplate()`, `getPageBySlug()` |
-| Cache | `core/CacheManager.php` | `get()`, `set()`, `remember()`, `delete()`, `clear()` |
-| Mail | `core/Services/MailService.php`, `MailQueueService.php`, `MailLogService.php`, `AzureMailTokenProvider.php` | `send()`, `enqueue()`, `getRecent()`, `getAccessToken()` |
-| Upload/Assets | `core/Services/FileUploadService.php`, `ImageService.php`, Autoload in `CMS/assets/autoload.php` | `handleUploadRequest()`, `resize()` |
-| Search | `core/Services/SearchService.php` | `search()`, `indexContent()`, `reindexAll()` |
-| Translation | `core/Services/TranslationService.php` | `setLocale()`, `trans()`, `addResource()` |
-| API | `core/Api.php` | `handleRequest()` |
-| Logging | `core/Logger.php`, `core/AuditLogger.php` | `log()`, `withChannel()`, `log()` (audit) |
-| Subscription | `core/SubscriptionManager.php` | `getUserPlan()`, `checkLimit()`, `hasFeature()` |
-// oder WordPress-Stil:
-$db = CMS\Database::get_instance();
-```
-
-**Wichtige Methoden:**
-
-| Methode | Rückgabe | Beschreibung |
-|---------|----------|--------------|
-| `instance()` | `Database` | Singleton-Instanz |
-| `prepare(string $sql)` | `PDOStatement` | Prepared Statement erstellen |
-| `query(string $sql)` | `PDOStatement` | Direktes Query (nur für SELECT ohne Parameter) |
-| `insert(string $table, array $data)` | `int` | Zeile einfügen, gibt Insert-ID zurück |
-| `update(string $table, array $data, array $where)` | `int` | Zeilen aktualisieren |
-| `delete(string $table, array $where)` | `int` | Zeilen löschen |
-| `get_row(string $sql, array $params)` | `object\|null` | Eine Zeile lesen |
-| `get_results(string $sql, array $params)` | `array` | Mehrere Zeilen lesen |
-| `get_var(string $sql, array $params)` | `mixed` | Einzelnen Wert lesen |
-| `getPrefix()` | `string` | Tabellen-Prefix (`cms_`) |
-| `last_insert_id()` | `int` | Letzte Insert-ID |
-
-**Verwendungsbeispiele:**
-
-```php
-$db = CMS\Database::instance();
-
-// Einzelne Zeile lesen
-$user = $db->get_row(
-    "SELECT * FROM {$db->getPrefix()}users WHERE id = ?",
-    [$userId]
-);
-
-// Mehrere Zeilen
-$posts = $db->get_results(
-    "SELECT * FROM {$db->getPrefix()}posts WHERE status = ? ORDER BY created_at DESC",
-    ['published']
-);
 
 // Einfügen
-$newId = $db->insert('cms_posts', [
-    'title'   => 'Mein Post',
-    'content' => 'Inhalt...',
-    'user_id' => $userId,
-    'status'  => 'draft',
+$db->insert('pages', [
+    'title'   => 'Neue Seite',
+    'slug'    => 'neue-seite',
+    'content' => '<p>Inhalt</p>',
+    'status'  => 'published',
 ]);
 
-// Aktualisieren
-$db->update(
-    'cms_posts',
-    ['status' => 'published'],
-    ['id' => $postId]
+$newId = $db->insert_id();
+
+// Abfrage mit Prepared Statement
+$page = $db->get_row(
+    "SELECT * FROM {$db->getPrefix()}pages WHERE id = ?",
+    [$newId]
 );
 
-// Prepared Statement (für komplexe Queries)
-$stmt = $db->prepare(
-    "SELECT * FROM {$db->getPrefix()}users WHERE role = ? AND active = ?"
+// Statische Nutzung
+$all = \CMS\Database::fetchAll(
+    "SELECT * FROM cms_pages WHERE status = ?",
+    ['published']
 );
-$stmt->execute(['member', 1]);
-$members = $stmt->fetchAll(PDO::FETCH_OBJ);
 ```
 
-**Tabellen-Prefix:**  
-Alle CMS-Tabellen nutzen das Prefix `cms_`. Immer `$db->getPrefix()` nutzen!
+### 3.2 SchemaManager
 
----
+| | |
+|---|---|
+| **Namespace** | `CMS\SchemaManager` |
+| **Pfad** | `CMS/core/SchemaManager.php` |
 
-## 3. Security
-
-**Datei:** `core/Security.php`  
-**Namespace:** `CMS`  
-**Aufgabe:** CSRF-Schutz, XSS-Prävention, Input-Sanitization, Rate-Limiting.
+Erstellt und aktualisiert die Datenbanktabellen des CMS. Wird automatisch von
+`Database::__construct()` aufgerufen.
 
 ```php
-$security = CMS\Security::instance();
+public function __construct(Database $db)
+public function createTables(): void        // Erstellt alle CMS-Tabellen
+public function getFlagFile(): string       // Pfad zur Schema-Flag-Datei
+public function clearFlag(): void           // Flag zurücksetzen (erzwingt erneutes Prüfen)
 ```
 
-**Wichtige Methoden:**
+### 3.3 MigrationManager
 
-| Methode | Rückgabe | Beschreibung |
-|---------|----------|--------------|
-| `init()` | `void` | Security-Header setzen, Session starten |
-| `generateNonce(string $action)` | `string` | CSRF-Token erzeugen |
-| `verifyNonce(string $nonce, string $action)` | `bool` | CSRF-Token prüfen |
-| `sanitize(string $input)` | `string` | HTML-Tags entfernen |
-| `sanitizeHtml(string $input)` | `string` | Nur sichere HTML-Tags erlauben |
-| `hashPassword(string $password)` | `string` | Sicherer Password-Hash (bcrypt) |
-| `verifyPassword(string $password, string $hash)` | `bool` | Passwort prüfen |
-| `checkRateLimit(string $key, int $max, int $window)` | `bool` | Rate-Limit prüfen |
-| `getClientIp()` | `string` | IP-Adresse des Clients |
-| `escapeOutput(string $data)` | `string` | HTML-Ausgabe escapen |
+| | |
+|---|---|
+| **Namespace** | `CMS\MigrationManager` |
+| **Pfad** | `CMS/core/MigrationManager.php` |
 
-**CSRF-Schutz in Formularen:**
+Führt Datenbankmigrationen aus und repariert Tabellenstrukturen.
 
 ```php
-// In einem Formular (Ausgabe):
-$security = CMS\Security::instance();
-$nonce = $security->generateNonce('save_profile');
-echo '<input type="hidden" name="_nonce" value="' . $nonce . '">';
-
-// Beim Verarbeiten (Eingabe prüfen):
-if (!$security->verifyNonce($_POST['_nonce'] ?? '', 'save_profile')) {
-    http_response_code(403);
-    die('Sicherheitscheck fehlgeschlagen');
-}
-```
-
-**Rate Limiting:**
-
-```php
-// Max. 5 Login-Versuche in 5 Minuten
-if (!$security->checkRateLimit('login_' . $security->getClientIp(), 5, 300)) {
-    die('Zu viele Versuche. Bitte 5 Minuten warten.');
-}
+public function __construct(Database $db)
+public function run(): void                 // Ausstehende Migrationen ausführen
+public function repairTables(): void        // Tabellenstruktur reparieren
 ```
 
 ---
 
-## 4. Auth
+## 4. Auth & Session
+<!-- UPDATED: 2026-03-08 -->
 
-**Datei:** `core/Auth.php`  
-**Namespace:** `CMS`  
-**Aufgabe:** Benutzer-Authentifizierung, Session-Verwaltung, Rechte-Prüfung.
+### 4.1 Auth
 
-```php
-$auth = CMS\Auth::instance();
-```
+| | |
+|---|---|
+| **Namespace** | `CMS\Auth` |
+| **Pfad** | `CMS/core/Auth.php` |
+| **Pattern** | Singleton |
+
+Kernklasse für Authentifizierung und Session-Verwaltung. Unterstützt
+rollenbasierte Zugangskontrolle, Passwort-Richtlinien und MFA (TOTP).
+
+**Session-Lebenszeiten:**
+
+| Rolle | Dauer |
+|-------|-------|
+| Admin | 8 Stunden |
+| Member | 30 Tage |
 
 **Wichtige Methoden:**
 
-| Methode | Rückgabe | Beschreibung |
-|---------|----------|--------------|
-| `login(string $user, string $pass)` | `bool\|string` | Login – true oder Fehlermeldung |
-| `logout()` | `void` | Session beenden |
-| `isLoggedIn()` | `bool` | Ist User eingeloggt? |
-| `isAdmin()` | `bool` | Hat User Admin-Rechte? |
-| `getCurrentUser()` | `object\|null` | Aktuell eingeloggter User |
-| `getUserById(int $id)` | `object\|null` | User nach ID laden |
-| `hasRole(string $role)` | `bool` | Hat User bestimmte Rolle? |
-| `register(array $data)` | `int\|string` | Neuen User anlegen |
+```php
+// Singleton & Status
+public static function instance(): self
+public static function isLoggedIn(): bool
+public static function hasRole(string $role): bool
+public static function isAdmin(): bool
+public static function getCurrentUser(): ?object
+public function currentUser(): ?object
+public function hasCapability(string $cap): bool
 
-**Verwendungsbeispiele:**
+// Login / Logout / Registrierung
+public function login(string $username, string $password): bool|string
+public function logout(): void
+public function register(array $data): bool|string
+public static function validatePasswordPolicy(string $password): true|string
+
+// MFA (TOTP)
+public function isMfaEnabled(int $userId): bool
+public function setupMfaSecret(int $userId): array
+public function confirmMfaSetup(int $userId, string $code): bool
+public function verifyMfaCode(int $userId, string $code): bool
+public function disableMfa(int $userId): void
+```
+
+**Beispiel:**
 
 ```php
-$auth = CMS\Auth::instance();
+$auth = \CMS\Auth::instance();
 
-// Login-Check am Anfang jeder geschützten Seite
-if (!$auth->isLoggedIn()) {
+// Login
+$result = $auth->login('admin', 'geheim123');
+if ($result === true) {
+    echo 'Angemeldet!';
+} else {
+    echo 'Fehler: ' . $result;  // Fehlermeldung als String
+}
+
+// Zugriffsschutz
+if (!\CMS\Auth::isAdmin()) {
     header('Location: /login');
     exit;
 }
 
-// Admin-Check
-if (!$auth->isAdmin()) {
-    header('Location: /');
-    exit;
-}
-
-// Aktuellen User holen
-$user = $auth->getCurrentUser();
-echo 'Hallo, ' . htmlspecialchars($user->username);
-
-// Manueller Login
-$result = $auth->login('username', 'password');
-if ($result === true) {
-    header('Location: /member');
-} else {
-    echo 'Fehler: ' . $result; // Fehlermeldung
-}
+// Aktuellen Benutzer abrufen
+$user = \CMS\Auth::getCurrentUser();
+echo $user->username;
 ```
 
-**Rollen:**
-- `admin` – Voller Zugriff auf alle Funktionen
-- `member` – Normales Mitglied, Zugriff auf Member-Bereich
-- `subscriber` – Einfacher Leser
+### 4.2 AuthManager
 
----
+| | |
+|---|---|
+| **Namespace** | `CMS\Auth\AuthManager` |
+| **Pfad** | `CMS/core/Auth/AuthManager.php` |
+| **Pattern** | Singleton |
 
-## 5. Router
-
-**Datei:** `core/Router.php`  
-**Namespace:** `CMS`  
-**Aufgabe:** URL-Routing – mappt URLs auf Controller/Callbacks.
-
-```php
-$router = CMS\Router::instance();
-```
+Zentraler Authentifizierungs-Dispatcher, der verschiedene Auth-Provider
+koordiniert: Session, Passkey/WebAuthn, LDAP und MFA (TOTP + Backup-Codes).
 
 **Wichtige Methoden:**
 
-| Methode | Rückgabe | Beschreibung |
-|---------|----------|--------------|
-| `addRoute(string $method, string $path, callable $callback)` | `void` | Route registrieren |
-| `dispatch()` | `void` | Aktuelle URL auflösen und Handler aufrufen |
-| `redirect(string $url, int $code)` | `void` | HTTP-Redirect |
-| `current()` | `string` | Aktuelle URL |
+```php
+public static function instance(): self
+public function passkey(): WebAuthnAdapter
+public function ldap(): LdapAuthProvider
+public function totp(): TotpAdapter
+public function backupCodes(): BackupCodesManager
+public function login(string $username, string $password): bool|string
+public function authenticateViaPasskey(/* ... */): bool|string
+public function authenticateViaLdap(string $username, string $password): bool|string
+public function verifyMfa(string $code): bool|string
+public function getAvailableProviders(): array
+public function isPasskeyAvailable(): bool
+public function isLdapEnabled(): bool
+```
 
-**Routen in Plugins registrieren:**
+**Beispiel:**
 
 ```php
-// In eurem Plugin:
-CMS\Hooks::addAction('routes_registered', function() {
-    $router = CMS\Router::instance();
-    $router->addRoute('GET', '/mein-plugin', function() {
-        // Template rendern
-        include PLUGIN_PATH . 'mein-plugin/templates/index.php';
-    });
-    $router->addRoute('POST', '/mein-plugin/save', function() {
-        // Daten verarbeiten
-    });
+$authMgr = \CMS\Auth\AuthManager::instance();
+
+// Verfügbare Auth-Methoden prüfen
+$providers = $authMgr->getAvailableProviders();
+
+// Login mit LDAP
+if ($authMgr->isLdapEnabled()) {
+    $result = $authMgr->authenticateViaLdap('user@firma.de', 'password');
+}
+```
+
+### 4.3 Totp
+
+| | |
+|---|---|
+| **Namespace** | `CMS\Totp` |
+| **Pfad** | `CMS/core/Totp.php` |
+| **Pattern** | Singleton |
+
+TOTP-Implementierung (RFC 6238) für Zwei-Faktor-Authentifizierung.
+
+```php
+public static function instance(): self
+public function generateSecret(): string
+public function generateCode(string $secret, ?int $timestamp = null): string
+public function verifyCode(string $secret, string $code): bool
+public function getOtpAuthUri(string $secret, string $account, string $issuer): string
+public function getQrCodeUrl(string $secret, string $account, string $issuer): string
+```
+
+---
+
+## 5. Security
+<!-- UPDATED: 2026-03-08 -->
+
+| | |
+|---|---|
+| **Namespace** | `CMS\Security` |
+| **Pfad** | `CMS/core/Security.php` |
+| **Pattern** | Singleton |
+
+Zentrale Sicherheitsklasse für CSRF-Schutz, XSS-Prävention, Input-Sanitization,
+CSP-Nonce-Generierung, Rate-Limiting und Security-Header.
+
+**Wichtige Methoden:**
+
+```php
+// Singleton & Init
+public static function instance(): self
+public function init(): void                   // Session starten, Nonce erzeugen, Security-Headers
+
+// CSP Nonce (H-03)
+public function getNonce(): string
+public function nonceAttr(): string            // Gibt nonce="..." Attribut zurück
+
+// CSRF-Token
+public function generateNonceField(string $action = 'default'): void
+public function createNonce(string $action = 'default'): string
+public function generateToken(string $action = 'default'): string
+public function verifyNonce(string $token, string $action = 'default'): bool
+public function verifyToken(string $token, string $action = 'default'): bool
+public function verifyPersistentToken(string $token, string $action = 'default'): bool
+
+// Sanitization & Validation
+public static function sanitize(string $input, string $type = 'text'): string
+public static function escape(string|int $output): string
+public static function validateEmail(string $email): bool
+public static function validateUrl(string $url): bool
+
+// Passwort-Hashing
+public static function hashPassword(string $password): string
+public static function verifyPassword(string $password, string $hash): bool
+
+// Rate-Limiting
+public static function checkRateLimit(string $identifier, int $maxAttempts = 5,
+                                      int $timeWindow = 300): bool
+public static function checkDbRateLimit(string $ip, string $action,
+                                        int $max, int $window): bool
+public static function getClientIp(): string
+
+// Security-Header
+public function getSecurityHeaderProfile(): array
+```
+
+**Beispiel:**
+
+```php
+$sec = \CMS\Security::instance();
+
+// CSRF-Token in Formularen
+echo '<form method="POST">';
+$sec->generateNonceField('edit_page');
+echo '<button type="submit">Speichern</button></form>';
+
+// Token serverseitig prüfen
+if (!$sec->verifyNonce($_POST['_nonce'] ?? '', 'edit_page')) {
+    die('Ungültiges CSRF-Token');
+}
+
+// Input bereinigen
+$title = \CMS\Security::sanitize($_POST['title'], 'text');
+$email = \CMS\Security::sanitize($_POST['email'], 'email');
+
+// CSP-Nonce in Templates
+echo '<script ' . $sec->nonceAttr() . '>console.log("safe");</script>';
+```
+
+---
+
+## 6. Cache
+<!-- UPDATED: 2026-03-08 -->
+
+| | |
+|---|---|
+| **Namespace** | `CMS\CacheManager` |
+| **Pfad** | `CMS/core/CacheManager.php` |
+| **Pattern** | Singleton |
+| **Implements** | `CMS\Contracts\CacheInterface` |
+
+Zweistufiges Caching-System mit APCu als L1 (In-Memory) und File-basiertem L2-Cache.
+Unterstützt LiteSpeed-Integration und HMAC-gesicherte Cache-Dateien.
+
+**Cache-Architektur:**
+
+| Ebene | Backend | Geschwindigkeit |
+|-------|---------|-----------------|
+| L1 | APCu (wenn verfügbar) | Sub-Millisekunde |
+| L2 | Dateisystem | Millisekunden |
+
+**Wichtige Methoden:**
+
+```php
+public static function instance(): self
+
+// Einzelwerte
+public function get(string $key, mixed $default = null): mixed
+public function set(string $key, mixed $value, ?int $ttl = null): bool
+public function has(string $key): bool
+public function delete(string $key): bool
+
+// Batch-Operationen
+public function getMultiple(array $keys, mixed $default = null): array
+public function setMultiple(array $values, ?int $ttl = null): bool
+public function deleteMultiple(array $keys): bool
+
+// Cache leeren
+public function flush(): bool
+public function clear(): bool
+public function clearAll(): array   // Alle Cache-Schichten leeren, gibt Status zurück
+
+// HTTP-Cache-Header
+public function setCacheHeaders(int $ttl = 300, bool $private = false): void
+
+// Status & Info
+public function getStatus(): array
+```
+
+**Beispiel:**
+
+```php
+$cache = \CMS\CacheManager::instance();
+
+// Wert setzen (TTL: 600 Sekunden)
+$cache->set('menu_main', $menuData, 600);
+
+// Wert lesen
+$menu = $cache->get('menu_main');
+
+// Cache-Aside-Pattern
+$pages = $cache->get('all_pages');
+if ($pages === null) {
+    $pages = \CMS\Database::fetchAll(
+        "SELECT * FROM cms_pages WHERE status = 'published'"
+    );
+    $cache->set('all_pages', $pages, 3600);
+}
+
+// Kompletten Cache leeren
+$result = $cache->clearAll();
+// Gibt ['apcu' => true, 'file' => true, 'litespeed' => false] zurück
+```
+
+---
+
+## 7. Hooks
+<!-- UPDATED: 2026-03-08 -->
+
+| | |
+|---|---|
+| **Namespace** | `CMS\Hooks` |
+| **Pfad** | `CMS/core/Hooks.php` |
+| **Pattern** | Statische Klasse (kein Singleton) |
+
+WordPress-kompatibles Action/Filter-System für die Plugin-Architektur.
+Alle Methoden sind statisch aufrufbar.
+
+**Wichtige Methoden:**
+
+```php
+// Actions (Seiteneffekte auslösen)
+public static function addAction(string $tag, callable $callback,
+                                 int $priority = 10): void
+public static function doAction(string $tag, ...$args): void
+public static function removeAction(string $tag, callable $callback,
+                                    int $priority = 10): bool
+
+// Filters (Werte transformieren)
+public static function addFilter(string $tag, callable $callback,
+                                 int $priority = 10): void
+public static function applyFilters(string $tag, $value, ...$args): mixed
+public static function removeFilter(string $tag, callable $callback,
+                                    int $priority = 10): bool
+```
+
+**Priorisierung:** Niedrigere Werte werden zuerst ausgeführt (Standard: 10).
+
+**Beispiel:**
+
+```php
+// Action registrieren (z. B. in einem Plugin)
+\CMS\Hooks::addAction('plugin_loaded', function (string $plugin) {
+    error_log("Plugin geladen: $plugin");
 });
+
+// Filter registrieren: Seitentitel anpassen
+\CMS\Hooks::addFilter('page_title', function (string $title) {
+    return $title . ' | Meine Seite';
+}, 20);
+
+// Action auslösen
+\CMS\Hooks::doAction('after_page_save', $pageId, $pageData);
+
+// Filter anwenden
+$title = \CMS\Hooks::applyFilters('page_title', $rawTitle);
 ```
 
 ---
 
-## 6. Hooks
+## 8. Logger & Audit
+<!-- UPDATED: 2026-03-08 -->
 
-**Datei:** `core/Hooks.php`  
-**Namespace:** `CMS`  
-**Aufgabe:** WordPress-ähnliches Action/Filter-System für Plugin-Erweiterbarkeit.
+### 8.1 Logger
 
-```php
-// Statische Klasse – kein instance() nötig!
-CMS\Hooks::addAction(...);
-CMS\Hooks::addFilter(...);
-```
+| | |
+|---|---|
+| **Namespace** | `CMS\Logger` |
+| **Pfad** | `CMS/core/Logger.php` |
+| **Pattern** | Singleton |
+| **Implements** | `CMS\Contracts\LoggerInterface` |
 
-**Alle Methoden:**
+PSR-3-kompatibles Logging-System mit Level-basierter Filterung und optionaler
+AuditLogger-Integration ab Level `CRITICAL`.
 
-| Methode | Beschreibung |
-|---------|--------------|
-| `addAction(string $tag, callable $cb, int $priority = 10)` | Action-Hook registrieren |
-| `doAction(string $tag, ...$args)` | Action-Hook feuern |
-| `addFilter(string $tag, callable $cb, int $priority = 10)` | Filter-Hook registrieren |
-| `applyFilters(string $tag, mixed $value, ...$args)` | Filter anwenden und Wert zurückgeben |
-| `removeAction(string $tag, callable $cb)` | Action-Hook entfernen |
-| `removeFilter(string $tag, callable $cb)` | Filter-Hook entfernen |
-| `hasAction(string $tag)` | Prüfen ob Hook registriert |
+**Log-Level (aufsteigend):**
 
-**Vollständiges Beispiel:**
+| Level | Konstante | Bedeutung |
+|-------|-----------|-----------|
+| debug | `Logger::DEBUG` | Detaillierte Debugging-Informationen |
+| info | `Logger::INFO` | Informationsmeldungen |
+| notice | `Logger::NOTICE` | Normale, aber beachtenswerte Ereignisse |
+| warning | `Logger::WARNING` | Warnungen (Standard-Minimum) |
+| error | `Logger::ERROR` | Laufzeitfehler |
+| critical | `Logger::CRITICAL` | Kritische Bedingung → AuditLogger |
+| alert | `Logger::ALERT` | Sofortige Maßnahme erforderlich |
+| emergency | `Logger::EMERGENCY` | System ist unbrauchbar |
 
-```php
-// In eurem Plugin (mein-plugin.php):
+**Konfiguration:**
 
-// 1. Action: Code ausführen wenn Event eintritt
-CMS\Hooks::addAction('user_registered', function(int $userId) {
-    // Willkommens-E-Mail senden
-    $user = CMS\Database::instance()->get_row(
-        "SELECT * FROM cms_users WHERE id = ?", [$userId]
-    );
-    mail($user->email, 'Willkommen!', 'Danke für deine Registrierung.');
-}, 10);
-
-// 2. Filter: Wert verändern
-CMS\Hooks::addFilter('page_title', function(string $title) {
-    return $title . ' | 365 Network';
-}, 10);
-
-// 3. Filter mit mehreren Parametern
-CMS\Hooks::addFilter('post_content', function(string $content, int $postId) {
-    // Shortcodes ersetzen
-    return str_replace('[datum]', date('d.m.Y'), $content);
-}, 10);
-```
-
-→ Vollständige Hook-Liste: [HOOKS-REFERENCE.md](HOOKS-REFERENCE.md)
-
----
-
-## 7. PluginManager
-
-**Datei:** `core/PluginManager.php`  
-**Namespace:** `CMS`  
-**Aufgabe:** Verwaltet das Laden, Aktivieren und Deaktivieren von Plugins.
-
-```php
-$pm = CMS\PluginManager::instance();
-```
+| Konstante | Standard | Beschreibung |
+|-----------|----------|--------------|
+| `LOG_PATH` | `ABSPATH . 'logs/'` | Verzeichnis für Log-Dateien |
+| `LOG_LEVEL` | `'warning'` | Minimaler Log-Level |
+| `CMS_DEBUG` | `false` | `true` → Debug-Level aktiv, Ausgabe auf STDERR |
 
 **Wichtige Methoden:**
 
-| Methode | Rückgabe | Beschreibung |
-|---------|----------|--------------|
-| `loadPlugins()` | `void` | Alle aktiven Plugins laden |
-| `getActivePlugins()` | `array` | Liste aktiver Plugin-Slugs |
-| `isPluginActive(string $slug)` | `bool` | Ist Plugin aktiv? |
-| `activatePlugin(string $slug)` | `bool` | Plugin aktivieren |
-| `deactivatePlugin(string $slug)` | `bool` | Plugin deaktivieren |
-| `getPluginInfo(string $slug)` | `array\|null` | Plugin-Metadaten |
-
----
-
-## 8. ThemeManager
-
-**Datei:** `core/ThemeManager.php`  
-**Namespace:** `CMS`  
-**Aufgabe:** Lädt das aktive Theme und rendert Templates.
-
 ```php
-$tm = CMS\ThemeManager::instance();
+public static function instance(string $channel = 'cms'): self
+public function log(string $level, string $message, array $context = []): void
+public function emergency(string $message, array $context = []): void
+public function alert(string $message, array $context = []): void
+public function critical(string $message, array $context = []): void
+public function error(string $message, array $context = []): void
+public function warning(string $message, array $context = []): void
+public function notice(string $message, array $context = []): void
+public function info(string $message, array $context = []): void
+public function debug(string $message, array $context = []): void
+public function isLevelEnabled(string $level): bool
+public function withChannel(string $channel): self   // Neuer Logger mit anderem Channel
 ```
 
-**Wichtige Methoden:**
-
-| Methode | Rückgabe | Beschreibung |
-|---------|----------|--------------|
-| `getActiveTheme()` | `string` | Slug des aktiven Themes |
-| `getThemePath()` | `string` | Absoluter Pfad zum aktiven Theme |
-| `render(string $template, array $data)` | `void` | Template rendern |
-| `getTemplatePart(string $part)` | `string` | Teil-Template laden |
-| `getSetting(string $key, mixed $default)` | `mixed` | Theme-Einstellung lesen |
-| `getAssetUrl(string $file)` | `string` | URL zu Theme-Asset |
-| `getAllThemes()` | `array` | Alle installierten Themes |
-
----
-
-## 9. CacheManager
-
-**Datei:** `core/CacheManager.php`  
-**Namespace:** `CMS`  
-**Aufgabe:** Datei-basiertes Caching für DB-Queries und Template-Fragmente.
+**Beispiel:**
 
 ```php
-$cache = CMS\CacheManager::instance();
-```
-
-**Wichtige Methoden:**
-
-| Methode | Rückgabe | Beschreibung |
-|---------|----------|--------------|
-| `get(string $key)` | `mixed\|null` | Cache-Eintrag lesen (null = kein Cache) |
-| `set(string $key, mixed $data, int $ttl = 3600)` | `bool` | Cache-Eintrag speichern |
-| `delete(string $key)` | `bool` | Cache-Eintrag löschen |
-| `flush()` | `bool` | Gesamten Cache leeren |
-| `remember(string $key, callable $fn, int $ttl)` | `mixed` | Cache-oder-Callback-Pattern |
-
-**Cache-oder-Callback Pattern (empfohlen):**
-
-```php
-$cache = CMS\CacheManager::instance();
-
-$topPosts = $cache->remember('top_posts', function() {
-    // Diese DB-Query wird nur ausgeführt, wenn kein Cache existiert
-    $db = CMS\Database::instance();
-    return $db->get_results(
-        "SELECT * FROM cms_posts ORDER BY views DESC LIMIT 10",
-        []
-    );
-}, 1800); // 30 Minuten cachen
-```
-
----
-
-## 10. PageManager
-
-**Datei:** `core/PageManager.php`  
-**Namespace:** `CMS`  
-**Aufgabe:** Verwaltet statische Seiten, Meta-Tags und Head-Ausgabe.
-
-```php
-$pm = CMS\PageManager::instance();
-```
-
-**Wichtige Methoden:**
-
-| Methode | Rückgabe | Beschreibung |
-|---------|----------|--------------|
-| `getPage(int $id)` | `object\|null` | Seite nach ID |
-| `getPageBySlug(string $slug)` | `object\|null` | Seite nach URL-Slug |
-| `setTitle(string $title)` | `void` | HTML-Title setzen |
-| `setMeta(string $name, string $content)` | `void` | Meta-Tag setzen |
-| `getMeta(string $name)` | `string` | Meta-Tag lesen |
-| `renderHead()` | `void` | `<head>`-Bereich ausgeben |
-
----
-
-## 11. SubscriptionManager
-
-**Datei:** `core/SubscriptionManager.php`  
-**Namespace:** `CMS`  
-**Aufgabe:** Abo-System – Pläne, Benutzer-Abos, Feature-Gating.
-
-```php
-$sm = CMS\SubscriptionManager::instance();
-```
-
-**Wichtige Methoden:**
-
-| Methode | Rückgabe | Beschreibung |
-|---------|----------|--------------|
-| `getUserSubscription(int $userId)` | `object\|null` | Aktives Abo des Users |
-| `hasFeature(int $userId, string $feature)` | `bool` | Darf User Feature nutzen? |
-| `getPlans()` | `array` | Alle Abo-Pläne |
-| `subscribe(int $userId, int $planId)` | `bool` | User subscriben |
-| `cancelSubscription(int $userId)` | `bool` | Abo kündigen |
-| `isExpired(int $userId)` | `bool` | Ist Abo abgelaufen? |
-
-```php
-// Feature-Prüfung im Template:
-$sm = CMS\SubscriptionManager::instance();
-if ($sm->hasFeature($user->id, 'premium_content')) {
-    echo $premiumContent;
-} else {
-    echo '<a href="/subscribe">Premium-Zugang freischalten</a>';
-}
-```
-
----
-
-## 12. Api
-
-**Datei:** `core/Api.php`  
-**Namespace:** `CMS`  
-**Aufgabe:** REST API v1 Controller. Handhabt `/api/v1/{endpoint}/{id}` mit Rate-Limiting (60 req/60 s pro IP).
-
-```php
-$api = CMS\Api::instance();
-```
-
-**Wichtige Methoden:**
-
-| Methode | Rückgabe | Beschreibung |
-|---------|----------|--------------|
-| `instance()` | `Api` | Singleton-Instanz |
-| `handleRequest(string $endpoint, ?string $id)` | `void` | Request an internen Handler dispatchen |
-
-Private Handler: `handlePages()`, `handleUsers()`, `sendResponse()`, `sendError()`.
-
----
-
-## 13. Debug
-
-**Datei:** `core/Debug.php`  
-**Namespace:** `CMS`  
-**Aufgabe:** Debug-System für Admin-Bereiche. Zeigt Fehler, Timing und Speicherverbrauch. Schreibt nach `logs/debug-YYYY-MM-DD.log`.
-
-> Rein **statische** Klasse – kein `instance()`.
-
-```php
-CMS\Debug::enable();
-CMS\Debug::log('Query dauert lange', 'warning', $queryData);
-```
-
-**Alle Methoden (static):**
-
-| Methode | Rückgabe | Beschreibung |
-|---------|----------|--------------|
-| `enable(bool $enable = true)` | `void` | Debug-Modus an/aus |
-| `isEnabled()` | `bool` | Ist Debug aktiv? |
-| `startTimer()` | `void` | Zeitmessung starten |
-| `getElapsedTime()` | `float` | Vergangene Zeit in Sekunden |
-| `log(string $message, string $type, mixed $data)` | `void` | Nachricht loggen |
-
----
-
-## 14. WP_Error
-
-**Datei:** `core/WP_Error.php`  
-**Namespace:** `CMS`  
-**Aufgabe:** WordPress-kompatible Fehlerklasse – einfacher Error-Container mit Code, Message und Data.
-
-```php
-$error = new CMS\WP_Error('not_found', 'Seite nicht gefunden.');
-if (is_wp_error($error)) {
-    echo $error->get_error_message();
-}
-```
-
-**Methoden:**
-
-| Methode | Rückgabe | Beschreibung |
-|---------|----------|--------------|
-| `__construct($code, $message, $data)` | — | Fehler erstellen |
-| `get_error_code()` | `string` | Fehlercode lesen |
-| `get_error_message()` | `string` | Fehlermeldung lesen |
-| `get_error_data()` | `array` | Zusatzdaten lesen |
-| `add(string $code, string $message, mixed $data)` | `void` | Weiteren Fehler hinzufügen |
-
-**Globale Funktion:** `is_wp_error(mixed $thing): bool`
-
----
-
-## 15. AuditLogger
-
-**Datei:** `core/AuditLogger.php`  
-**Namespace:** `CMS`  
-**Aufgabe:** Zentrales Sicherheits-Audit-Log – protokolliert sicherheitsrelevante Aktionen (Theme-Wechsel, Plugin-Aktivierung, Admin-Login, Rollenwechsel) in `{prefix}audit_log`.
-
-```php
-$audit = CMS\AuditLogger::instance();
-$audit->log('security', 'ip_blocked', '5 fehlgeschlagene Logins', 'ip', null, ['ip' => $ip]);
-```
-
-**Kategorien-Konstanten:** `CAT_AUTH`, `CAT_THEME`, `CAT_PLUGIN`, `CAT_USER`, `CAT_SETTING`, `CAT_MEDIA`, `CAT_SYSTEM`, `CAT_SECURITY`
-
-| Methode | Rückgabe | Beschreibung |
-|---------|----------|--------------|
-| `log(string $category, string $action, string $desc, ...)` | `void` | Audit-Eintrag schreiben |
-| `themeSwitch(string $from, string $to)` | `void` | Theme-Wechsel protokollieren |
-| `themeDelete(string $folder)` | `void` | Theme-Löschung protokollieren |
-| `themeFileEdit(string $theme, string $file)` | `void` | Theme-Datei-Bearbeitung |
-| `pluginAction(string $action, string $slug)` | `void` | Plugin aktivieren/deaktivieren |
-| `loginSuccess(string $username)` | `void` | Erfolgreicher Login |
-| `loginFailed(string $username)` | `void` | Fehlgeschlagener Login |
-| `userRoleChange(int $userId, string $old, string $new)` | `void` | Rollenwechsel |
-| `backupAction(string $action, string $file)` | `void` | Backup-Aktion |
-| `getRecent(int $limit, string $category)` | `array` | Letzte Einträge abrufen |
-
----
-
-## 16. Container
-
-**Datei:** `core/Container.php`  
-**Namespace:** `CMS`  
-**Aufgabe:** Einfacher Dependency-Injection-Container mit Factory-Bindings, Singletons und Lazy-Auflösung.
-
-```php
-$container = CMS\Container::instance();
-$container->singleton('mailer', fn() => new MailService());
-$mailer = $container->make('mailer');
-```
-
-| Methode | Rückgabe | Beschreibung |
-|---------|----------|--------------|
-| `bind(string $abstract, Closure $factory)` | `void` | Factory registrieren (jeder Aufruf = neue Instanz) |
-| `singleton(string $abstract, Closure $factory)` | `void` | Factory als Singleton registrieren |
-| `bindInstance(string $abstract, mixed $resolved)` | `void` | Fertige Instanz direkt binden |
-| `make(string $abstract)` | `mixed` | Auflösen (Factory oder Singleton) |
-| `has(string $abstract)` | `bool` | Prüfen ob Binding existiert |
-| `forget(string $abstract)` | `void` | Binding entfernen |
-| `flush()` | `void` | Alle Bindings leeren |
-
----
-
-## 17. Logger
-
-**Datei:** `core/Logger.php`  
-**Namespace:** `CMS`  
-**Implements:** `CMS\Contracts\LoggerInterface`  
-**Aufgabe:** PSR-3-kompatibles Logging-System mit täglicher Dateirotation, Channel-Support, Sensitive-Data-Filterung und automatischer AuditLogger-Spiegelung ab CRITICAL.
-
-```php
-$log = CMS\Logger::instance();           // Standard-Channel 'cms'
-$log->info('Seite gespeichert', ['id' => 42]);
-
-$pluginLog = CMS\Logger::instance('plugins');  // Eigener Channel
-$pluginLog->warning('Plugin veraltet', ['slug' => 'cms-forum']);
-```
-
-**Log-Level:** `EMERGENCY` > `ALERT` > `CRITICAL` > `ERROR` > `WARNING` > `NOTICE` > `INFO` > `DEBUG`
-
-| Methode | Rückgabe | Beschreibung |
-|---------|----------|--------------|
-| `instance(string $channel = 'cms')` | `Logger` | Singleton pro Channel |
-| `emergency/alert/critical/error/warning/notice/info/debug()` | `void` | Nachricht im jeweiligen Level loggen |
-| `log(string $level, string $message, array $context)` | `void` | Nachricht mit beliebigem Level |
-| `isLevelEnabled(string $level)` | `bool` | Ist Log-Level aktiv? |
-| `withChannel(string $channel)` | `Logger` | Geklonte Instanz mit anderem Channel |
-
----
-
-## 18. SchemaManager
-
-**Datei:** `core/SchemaManager.php`  
-**Namespace:** `CMS`  
-**Aufgabe:** Erstellt alle 30 CMS-Basis-Tabellen via `CREATE TABLE IF NOT EXISTS`. Legt Standard-Admin-Account an. Idempotent über Flag-Datei.
-
-> Kein Singleton – wird mit `new SchemaManager($db)` instanziiert.
-
-**Schema-Version:** `v10`
-
-```php
-$schema = new CMS\SchemaManager(CMS\Database::instance());
-$schema->createTables();
-```
-
-| Methode | Rückgabe | Beschreibung |
-|---------|----------|--------------|
-| `createTables()` | `void` | Alle 30 Tabellen erstellen |
-| `getFlagFile()` | `string` | Pfad zur Flag-Datei |
-| `clearFlag()` | `void` | Flag zurücksetzen (erzwingt Neu-Erstellung) |
-
----
-
-## 19. MigrationManager
-
-**Datei:** `core/MigrationManager.php`  
-**Namespace:** `CMS`  
-**Aufgabe:** Inkrementelle Spalten-Migrationen (ALTER TABLE). Wird nach SchemaManager ausgeführt.
-
-> Kein Singleton – wird mit `new MigrationManager($db)` instanziiert.
-
-**Schema-Version:** `v7` (gespeichert in `cms_settings` als `db_schema_version`)
-
-```php
-$migrator = new CMS\MigrationManager(CMS\Database::instance());
-$migrator->run();
-```
-
-| Methode | Rückgabe | Beschreibung |
-|---------|----------|--------------|
-| `run()` | `void` | Alle ausstehenden Migrationen ausführen |
-| `repairTables()` | `void` | Fehlende Spalten nachträglich ergänzen |
-
----
-
-## 20. TableOfContents
-
-**Datei:** `core/TableOfContents.php`  
-**Namespace:** `CMS`  
-**Aufgabe:** Parst HTML-Content, fügt Anker-IDs in Überschriften ein und erzeugt ein TOC-Widget. Unterstützt `[cms_toc]`-Shortcode und Auto-Insert.
-
-```php
-$toc = CMS\TableOfContents::instance();
-$result = $toc->process($htmlContent, 'post', $postId);
-echo $result['toc'];     // TOC-HTML
-echo $result['content'];  // Content mit Anker-IDs
-```
-
-| Methode | Rückgabe | Beschreibung |
-|---------|----------|--------------|
-| `getSetting(string $key, mixed $default)` | `mixed` | TOC-Einstellung aus DB |
-| `process(string $content, string $type, int $id)` | `array` | Content verarbeiten, TOC generieren |
-| `renderFromContent(string $content)` | `string` | TOC direkt aus Content rendern |
-
----
-
-## 21. Totp
-
-**Datei:** `core/Totp.php`  
-**Namespace:** `CMS`  
-**Aufgabe:** Pure-PHP TOTP-Implementierung (RFC 6238/4226/4648). Kompatibel mit Google Authenticator, Authy, MS Authenticator. 30-Sekunden-Intervall, 6 Ziffern, ±1 Fenster.
-
-```php
-$totp = CMS\Totp::instance();
-$secret = $totp->generateSecret();
-$uri = $totp->getOtpAuthUri($secret, 'user@example.com', '365CMS');
-
-// Prüfung
-if ($totp->verifyCode($secret, $_POST['code'])) {
-    echo '2FA erfolgreich';
-}
-```
-
-| Methode | Rückgabe | Beschreibung |
-|---------|----------|--------------|
-| `generateSecret()` | `string` | Base32-Secret erzeugen (32 Zeichen) |
-| `generateCode(string $secret, ?int $ts)` | `string` | 6-stelligen Code generieren |
-| `verifyCode(string $secret, string $code)` | `bool` | Code validieren (±1 Zeitfenster) |
-| `getOtpAuthUri(string $secret, string $account, string $issuer)` | `string` | OTP-Auth-URI für QR-Code |
-| `base32Encode(string $data)` | `string` | Base32-Kodierung |
-| `base32Decode(string $data)` | `string` | Base32-Dekodierung |
-
----
-
-## 22. Contracts (Interfaces)
-
-**Verzeichnis:** `core/Contracts/`
-
-Drei Interfaces für Dependency Injection und Testbarkeit:
-
-| Interface | Datei | Zweck |
-|-----------|-------|-------|
-| `CacheInterface` | `CacheInterface.php` | PSR-16-ähnlicher Cache-Contract |
-| `DatabaseInterface` | `DatabaseInterface.php` | Datenbank-Abstraktionsschicht |
-| `LoggerInterface` | `LoggerInterface.php` | PSR-3-kompatibler Logger |
-
----
-
-## 23. Member – PluginDashboardRegistry
-
-**Datei:** `core/Member/PluginDashboardRegistry.php`  
-**Namespace:** `CMS\Member`  
-**Aufgabe:** Zentrale Registrierung für Plugin-Bereiche im Member-Dashboard. Plugins registrieren sich via `member_dashboard_init`-Hook.
-
-```php
-$registry = CMS\Member\PluginDashboardRegistry::instance();
-
-// Plugin registriert sich:
-$registry->register([
-    'slug'      => 'mein-plugin',
-    'label'     => 'Mein Plugin',
-    'icon'      => 'fas fa-star',
-    'callback'  => [$this, 'renderMemberPage'],
+$log = \CMS\Logger::instance();
+
+$log->info('Seite gespeichert', ['page_id' => 42]);
+$log->error('Upload fehlgeschlagen', [
+    'file'  => $name,
+    'error' => $e->getMessage(),
 ]);
+
+// Channel-spezifisches Logging
+$pluginLog = $log->withChannel('mein-plugin');
+$pluginLog->warning('Deprecated API-Aufruf');
 ```
 
-| Methode | Rückgabe | Beschreibung |
-|---------|----------|--------------|
-| `register(array $config)` | `void` | Plugin-Bereich registrieren |
-| `getSection(string $slug)` | `?array` | Registrierten Bereich abrufen |
-| `getAll()` | `array` | Alle Registrierungen |
-| `getMenuItems(string $current)` | `array` | Menüeinträge für Sidebar |
-| `getDashboardWidgets(object $user)` | `array` | Dashboard-Widgets sammeln |
-| `handleRoute(string $slug, array $params)` | `void` | Route an Plugin dispatchen |
+### 8.2 AuditLogger
+
+| | |
+|---|---|
+| **Namespace** | `CMS\AuditLogger` |
+| **Pfad** | `CMS/core/AuditLogger.php` |
+| **Pattern** | Singleton |
+
+Protokolliert sicherheitsrelevante Aktionen in der Tabelle `{prefix}audit_log`.
+
+**Kategorien:**
+
+| Konstante | Beschreibung |
+|-----------|-------------|
+| `CAT_AUTH` | Login, Logout, Passwort-Reset |
+| `CAT_THEME` | Theme aktivieren, löschen, Code-Edit |
+| `CAT_PLUGIN` | Plugin aktivieren, deaktivieren, installieren |
+| `CAT_USER` | Benutzer erstellen, Rollen, löschen |
+| `CAT_SETTING` | Admin-Einstellungen |
+| `CAT_MEDIA` | Upload, löschen |
+| `CAT_SYSTEM` | Backup, Updates, Cache-Flush |
+| `CAT_SECURITY` | CSP, Firewall, IP-Sperren |
+
+**Wichtige Methoden:**
+
+```php
+public static function instance(): self
+public function log(string $category, string $action, string $message,
+                    string $entity = '', ?int $entityId = null,
+                    array $context = [], string $severity = 'info'): void
+
+// Convenience-Methoden
+public function themeSwitch(string $from, string $to): void
+public function themeDelete(string $folder): void
+public function themeFileEdit(string $theme, string $file): void
+public function pluginAction(string $action, string $slug): void
+public function loginSuccess(string $username): void
+public function loginFailed(string $username): void
+public function userRoleChange(int $userId, string $oldRole, string $newRole): void
+public function backupAction(string $action, string $file): void
+public function getRecent(int $limit = 50, string $category = ''): array
+```
+
+**Beispiel:**
+
+```php
+$audit = \CMS\AuditLogger::instance();
+
+// Allgemeiner Eintrag
+$audit->log('setting', 'setting.changed', 'SMTP-Passwort aktualisiert');
+
+// Convenience
+$audit->loginFailed('hacker@evil.com');
+$audit->pluginAction('activate', 'cms-companies');
+```
+
+### 8.3 Debug
+
+| | |
+|---|---|
+| **Namespace** | `CMS\Debug` |
+| **Pfad** | `CMS/core/Debug.php` |
+| **Pattern** | Statische Klasse |
+
+Entwickler-Debug-Werkzeuge mit Timer und Log-Sammlung.
+
+```php
+public static function enable(bool $enable = true): void
+public static function isEnabled(): bool
+public static function startTimer(): void
+public static function getElapsedTime(): float
+public static function log(string $message, string $type = 'info', mixed $data = null): void
+public static function success(string $message, mixed $data = null): void
+public static function warning(string $message, mixed $data = null): void
+public static function error(string $message, mixed $data = null): void
+public static function exception(\Throwable $e, string $context = ''): void
+public static function getLogs(): array
+```
+
+---
+
+## 9. Seiten & Inhalte
+<!-- UPDATED: 2026-03-08 -->
+
+### 9.1 PageManager
+
+| | |
+|---|---|
+| **Namespace** | `CMS\PageManager` |
+| **Pfad** | `CMS/core/PageManager.php` |
+| **Pattern** | Singleton |
+
+Verwaltung von Seiten, Inhalten, Revisionen und Seitensuche. Führt beim
+Start automatische Schema-Migrationen durch (z. B. `hide_title`, `featured_image`,
+`meta_title`, `meta_description`).
+
+**Wichtige Methoden:**
+
+```php
+public static function instance(): self
+public function createPage(string $title, string $content, string $status,
+                           int $authorId, int $hideTitle = 0): int
+public function updatePage(int $id, array $data): bool
+public function deletePage(int $id): bool
+public function getPage(int $id): ?array
+public function getPageBySlug(string $slug): ?array
+public function listPages(): array
+public function search(string $query): array
+public function generateSlug(string $title): string
+public function getRevisions(int $pageId): array
+```
+
+**Beispiel:**
+
+```php
+$pm = \CMS\PageManager::instance();
+
+// Seite erstellen
+$pageId = $pm->createPage('Impressum', '<p>...</p>', 'published', 1);
+
+// Seite per Slug laden
+$page = $pm->getPageBySlug('impressum');
+
+// Seite aktualisieren
+$pm->updatePage($pageId, [
+    'title'   => 'Impressum & Datenschutz',
+    'content' => '<p>Aktualisierter Inhalt</p>',
+]);
+
+// Suche
+$results = $pm->search('Datenschutz');
+```
+
+### 9.2 EditorJsRenderer
+
+| | |
+|---|---|
+| **Namespace** | `CMS\Services\EditorJsRenderer` |
+| **Pfad** | `CMS/core/Services/EditorJsRenderer.php` |
+
+Rendert EditorJS-JSON-Daten in HTML.
+
+```php
+public static function getInstance(): self
+public function render(string|array $data): string
+```
+
+**Beispiel:**
+
+```php
+$html = \CMS\Services\EditorJsRenderer::getInstance()->render($editorJsJson);
+```
+
+---
+
+## 10. Theme & Template
+<!-- UPDATED: 2026-03-08 -->
+
+### 10.1 ThemeManager
+
+| | |
+|---|---|
+| **Namespace** | `CMS\ThemeManager` |
+| **Pfad** | `CMS/core/ThemeManager.php` |
+| **Pattern** | Singleton |
+
+Verwaltet das Laden, Rendern und Wechseln von Themes. Lazy Loading für
+Theme-Settings (H-22) – DB-Zugriff erst beim ersten echten Zugriff.
+Im API-/CLI-Modus wird ThemeManager nicht geladen (H-12).
+
+**Wichtige Methoden:**
+
+```php
+public static function instance(): self
+
+// Laden & Rendern
+public function loadTheme(): void
+public function render(string $template, array $data = []): void
+public function getHeader(): void
+public function getFooter(): void
+public function renderCustomStyles(): void
+
+// Theme-Informationen
+public function getActiveThemeSlug(): string
+public function getThemePath(): string
+public function getThemeUrl(): string
+public function getCurrentTheme(): array
+public function getAvailableThemes(): array
+
+// Theme-Verwaltung
+public function switchTheme(string $theme): bool|string
+public function deleteTheme(string $folder): bool|string
+public function healthCheckTheme(string $theme): bool|string
+
+// Seiten-Meta
+public function getSiteTitle(): string
+public function getSiteDescription(): string
+
+// Menü-Verwaltung
+public function getSiteMenu(): array
+public function getMenu(string $location): array
+public function saveMenu(string $location, array $items): bool
+public function getMenuLocations(): array
+public function saveCustomMenuLocations(array $locations): bool
+```
+
+**Beispiel:**
+
+```php
+$theme = \CMS\ThemeManager::instance();
+
+// Seite rendern
+$theme->render('page', [
+    'title'   => $page['title'],
+    'content' => $page['content'],
+]);
+
+// Theme wechseln
+$result = $theme->switchTheme('starter-developer');
+if ($result !== true) {
+    echo 'Fehler: ' . $result;
+}
+
+// Menü abrufen
+$mainMenu = $theme->getMenu('primary');
+```
+
+### 10.2 ThemeCustomizer
+
+| | |
+|---|---|
+| **Namespace** | `CMS\Services\ThemeCustomizer` |
+| **Pfad** | `CMS/core/Services/ThemeCustomizer.php` |
+| **Pattern** | Singleton |
+
+Verwaltet Theme-Anpassungen (Farben, Schriften, Layout) mit Export/Import-Funktion
+und dynamischer CSS-Generierung.
+
+**Wichtige Methoden:**
+
+```php
+public static function instance(): ThemeCustomizer
+public function setTheme(string $themeSlug): void
+public function getTheme(): string
+public function getThemeConfig(): array
+public function getThemeMetadata(): array
+public function getCustomizationOptions(): array
+public function get(string $category, string $key, $default = null): mixed
+public function getCategory(string $category): array
+public function set(string $category, string $key, $value, ?int $userId = null): bool
+public function setMultiple(array $settings, ?int $userId = null): bool
+public function reset(string $category, string $key, ?int $userId = null): bool
+public function resetAll(?int $userId = null): bool
+public function generateCSS(): string
+public function export(?int $userId = null): array
+public function import(array $data, ?int $userId = null): bool
+```
+
+**Beispiel:**
+
+```php
+$customizer = \CMS\Services\ThemeCustomizer::instance();
+
+// Farbe setzen
+$customizer->set('colors', 'primary', '#3b82f6');
+
+// Alle Farben abrufen
+$colors = $customizer->getCategory('colors');
+
+// CSS generieren
+$css = $customizer->generateCSS();
+
+// Einstellungen exportieren / importieren
+$backup = $customizer->export();
+$customizer->import($backup);
+```
+
+---
+
+## 11. Plugin-System
+<!-- UPDATED: 2026-03-08 -->
+
+| | |
+|---|---|
+| **Namespace** | `CMS\PluginManager` |
+| **Pfad** | `CMS/core/PluginManager.php` |
+| **Pattern** | Singleton |
+
+Verwaltet den Lebenszyklus von Plugins: Laden, Aktivieren, Deaktivieren,
+Installieren und Löschen. Fehlerhafte Plugins werden automatisch deaktiviert
+(C-07/H-25 – Crash-Schutz).
+
+**Wichtige Methoden:**
+
+```php
+public static function instance(): self
+public function loadPlugins(): void                         // Alle aktiven Plugins laden
+public function isPluginActive(string $slug): bool          // Prüft ob Plugin aktiv
+public function getAvailablePlugins(): array                // Alle installierten Plugins
+public function getActivePlugins(): array                   // Aktive Plugin-Slugs
+public function activatePlugin(string $plugin): bool|string
+public function deactivatePlugin(string $plugin): bool|string
+public function deletePlugin(string $plugin): bool|string
+public function installPlugin(array $file): bool|string     // Upload & Installation
+```
+
+**Beispiel:**
+
+```php
+$pm = \CMS\PluginManager::instance();
+
+// Plugin aktivieren
+$result = $pm->activatePlugin('cms-companies');
+if ($result !== true) {
+    echo 'Fehler: ' . $result;
+}
+
+// Prüfen ob Plugin aktiv
+if ($pm->isPluginActive('cms-companies')) {
+    // Plugin-spezifische Logik
+}
+
+// Alle Plugins auflisten
+$plugins = $pm->getAvailablePlugins();
+```
+
+---
+
+## 12. API
+<!-- UPDATED: 2026-03-08 -->
+
+| | |
+|---|---|
+| **Namespace** | `CMS\Api` |
+| **Pfad** | `CMS/core/Api.php` |
+| **Pattern** | Singleton |
+
+REST-API-Controller (V1) mit integriertem Rate-Limiting (M-19: max. 60 Anfragen
+pro 60 Sekunden pro IP).
+
+**Endpunkte:** `/api/v1/{endpoint}/{id}`
+
+| Endpoint | Beschreibung |
+|----------|-------------|
+| `status` | Systemstatus und Version |
+| `pages` | Seitenverwaltung (CRUD) |
+| `users` | Benutzerverwaltung |
+
+**Wichtige Methoden:**
+
+```php
+public static function instance(): self
+public function handleRequest(string $endpoint, ?string $id = null): void
+```
+
+**Beispiel:**
+
+```php
+// Wird normalerweise vom Router aufgerufen:
+$api = \CMS\Api::instance();
+$api->handleRequest('pages', '42');
+
+// Antwort (JSON):
+// {"id": 42, "title": "Startseite", "slug": "startseite", ...}
+```
+
+---
+
+## 13. Mail
+<!-- UPDATED: 2026-03-08 -->
+
+| | |
+|---|---|
+| **Namespace** | `CMS\Services\MailService` |
+| **Pfad** | `CMS/core/Services/MailService.php` |
+| **Pattern** | Singleton |
+
+Zentraler Mail-Service mit Unterstützung für PHP `mail()`, klassisches SMTP
+und Microsoft 365 SMTP via Azure OAuth2/XOAUTH2. Konfiguration über
+`{prefix}settings` oder `config/app.php`.
+
+**Wichtige Methoden:**
+
+```php
+public static function getInstance(): self
+
+// Einfache API (gibt bool zurück)
+public function send(string $to, string $subject, string $htmlBody,
+                     array $headers = []): bool
+public function sendPlain(string $to, string $subject, string $plainBody,
+                          array $headers = []): bool
+public function sendWithAttachment(string $to, string $subject,
+                                   string $htmlBody, string $attachmentPath,
+                                   string $attachmentName,
+                                   array $headers = []): bool
+
+// Detaillierte API (gibt Status-Array zurück)
+public function sendDetailed(string $to, string $subject,
+                             string $htmlBody, array $headers = []): array
+public function sendPlainDetailed(string $to, string $subject,
+                                  string $plainBody, array $headers = []): array
+public function sendWithAttachmentDetailed(/* ... */): array
+
+// Queue & Test
+public function queueBackendTestEmail(string $to, string $source = 'admin-queue'): array
+public function queueWithAttachment(/* ... */): array
+public function sendBackendTestEmail(string $to, string $source = 'admin'): array
+
+// Diagnose
+public function getTransportInfo(): array
+```
+
+**Beispiel:**
+
+```php
+$mail = \CMS\Services\MailService::getInstance();
+
+// Einfache HTML-Mail
+$mail->send('user@example.com', 'Willkommen!', '<h1>Hallo!</h1>');
+
+// Detailliert mit Fehlerbehandlung
+$result = $mail->sendDetailed('admin@example.com', 'Bericht', $html);
+if (!$result['success']) {
+    echo 'Fehler: ' . $result['error'];
+}
+```
+
+---
+
+## 14. Suche
+<!-- UPDATED: 2026-03-08 -->
+
+| | |
+|---|---|
+| **Namespace** | `CMS\Services\SearchService` |
+| **Pfad** | `CMS/core/Services/SearchService.php` |
+| **Pattern** | Singleton (`final` class) |
+
+Volltextsuche via TNTSearch (SQLite-Engine) mit GermanStemmer. Unterstützt
+fuzzy Search, Highlighting, Snippets und erweiterbare Index-Definitionen
+über Hooks.
+
+**Wichtige Methoden:**
+
+```php
+public static function getInstance(): self
+public function isAvailable(): bool
+public function getUnavailableReason(): string
+
+// Indexverwaltung
+public function registerIndex(string $name, string $query,
+                              string $primaryKey = 'id'): void
+public function buildIndex(string $name): bool
+public function rebuildAllIndices(): array
+public function getIndexDefinitions(): array
+
+// Suche
+public function search(string $query, string $indexName = 'pages',
+                       int $limit = 50, bool $fuzzy = false): array
+public function searchAll(string $query, int $limit = 50,
+                          bool $fuzzy = false): array
+
+// Darstellung
+public function highlight(string $text, string $query,
+                          string $tag = 'mark'): string
+public function snippet(string $text, string $query, int $length = 200): string
+
+// Hooks für Live-Updates
+public function onPageSaved(int $pageId): void
+public function onPageDeleted(int $pageId): void
+public function onPostSaved(int $postId): void
+public function onPostDeleted(int $postId): void
+```
+
+**Beispiel:**
+
+```php
+$search = \CMS\Services\SearchService::getInstance();
+
+if ($search->isAvailable()) {
+    // Suche über alle Indizes
+    $results = $search->searchAll('Datenschutz', 20, fuzzy: true);
+
+    foreach ($results as $hit) {
+        $snippet = $search->snippet($hit['content'], 'Datenschutz');
+        echo $search->highlight($snippet, 'Datenschutz');
+    }
+}
+```
+
+---
+
+## 15. Übersetzung
+<!-- UPDATED: 2026-03-08 -->
+
+| | |
+|---|---|
+| **Namespace** | `CMS\Services\TranslationService` |
+| **Pfad** | `CMS/core/Services/TranslationService.php` |
+| **Pattern** | Singleton (`final` class) |
+
+Internationalisierung über Symfony Translation (wenn verfügbar) mit Fallback-Katalog
+für Shared-Hosting-Umgebungen.
+
+**Wichtige Methoden:**
+
+```php
+public static function getInstance(): self
+public function getLocale(): string
+public function getAvailableLocales(): array
+public function translate(string $message, string $domain = 'default',
+                          array $parameters = []): string
+public function translatePlural(string $single, string $plural, int $number,
+                                string $domain = 'default'): string
+```
+
+**Beispiel:**
+
+```php
+$t = \CMS\Services\TranslationService::getInstance();
+
+echo $t->translate('welcome_message');
+echo $t->translate('greeting', 'default', ['%name%' => 'Max']);
+
+// Plural
+echo $t->translatePlural('%count% Seite', '%count% Seiten', 5);
+
+// Locale
+echo $t->getLocale(); // 'de'
+```
+
+---
+
+## 16. Upload & Medien
+<!-- UPDATED: 2026-03-08 -->
+
+### 16.1 FileUploadService
+
+| | |
+|---|---|
+| **Namespace** | `CMS\Services\FileUploadService` |
+| **Pfad** | `CMS/core/Services/FileUploadService.php` |
+| **Pattern** | Singleton (`final` class) |
+
+FilePond-kompatibler Upload-Endpunkt für Datei-Uploads.
+
+```php
+public static function getInstance(): self
+public function handleUploadRequest(): array
+// Gibt ['success' => bool, 'status' => int, 'data' => [...]] zurück
+```
+
+### 16.2 MediaService
+
+| | |
+|---|---|
+| **Namespace** | `CMS\Services\MediaService` |
+| **Pfad** | `CMS/core/Services/MediaService.php` |
+| **Pattern** | Multiton (pro Root-Verzeichnis eine Instanz) |
+
+Umfassende Medienverwaltung mit Kategorien, Ordnerstruktur und Einstellungen.
+
+**Wichtige Methoden:**
+
+```php
+public static function getInstance(string $customRoot = ''): self
+
+// Dateiverwaltung
+public function getItems(string $path = ''): array|\CMS\WP_Error
+public function uploadFile(array $file, string $targetPath = ''): string|\CMS\WP_Error
+public function deleteItem(string $path): bool|\CMS\WP_Error
+public function renameItem(string $oldPath, string $newName): bool|\CMS\WP_Error
+public function createFolder(string $name, string $parentPath = ''): bool|\CMS\WP_Error
+
+// Kategorien
+public function getCategories(): array
+public function addCategory(string $name, string $slug = ''): bool|\CMS\WP_Error
+public function deleteCategory(string $slug): bool|\CMS\WP_Error
+public function assignCategory(string $filePath,
+                               string $categorySlug): bool|\CMS\WP_Error
+
+// Einstellungen & Info
+public function getSettings(): array
+public function saveSettings(array $settings): bool|\CMS\WP_Error
+public function getDiskUsage(): array
+public function formatSize(int $bytes): string
+```
+
+**Beispiel:**
+
+```php
+$media = \CMS\Services\MediaService::getInstance();
+
+// Datei hochladen
+$result = $media->uploadFile($_FILES['avatar'], 'member/avatars');
+if ($result instanceof \CMS\WP_Error) {
+    echo 'Fehler: ' . $result->get_error_message();
+}
+
+// Ordnerinhalt auflisten
+$items = $media->getItems('images');
+
+// Speicherverbrauch
+$usage = $media->getDiskUsage();
+echo $media->formatSize($usage['total']); // z. B. "1.2 GB"
+```
+
+### 16.3 ImageService
+
+| | |
+|---|---|
+| **Namespace** | `CMS\Services\ImageService` |
+| **Pfad** | `CMS/core/Services/ImageService.php` |
+| **Pattern** | Singleton (`final` class) |
+
+GD-basierte Bildbearbeitung mit WebP-/AVIF-Konvertierung und Wasserzeichen.
+
+**Wichtige Methoden:**
+
+```php
+public static function getInstance(): self
+public function isAvailable(): bool
+public function getInfo(): array
+
+// Skalierung
+public function resize(string $source, string $dest, int $maxWidth,
+                       int $maxHeight, bool $keepAspect = true,
+                       int $quality = 0): bool
+public function createThumbnail(string $sourcePath, string $destPath,
+                                int $width, int $height): bool
+public function createSquareThumbnail(string $sourcePath,
+                                     string $destPath, int $size): bool
+public function createAllThumbnails(string $sourcePath,
+                                   ?array $sizes = null): array
+
+// Bearbeitung
+public function crop(string $source, string $dest, int $x, int $y,
+                     int $width, int $height): bool
+public function rotate(string $source, string $dest, float $angle): bool
+public function autoOrient(string $sourcePath): bool
+
+// Konvertierung
+public function convertToWebP(string $source, string $dest,
+                              int $quality = 82): bool
+public function convertToAvif(string $source, string $dest,
+                              int $quality = 82): bool
+
+// Extras
+public function addWatermark(string $source, string $dest, string $watermark,
+                             string $position = 'bottom-right',
+                             int $opacity = 50): bool
+public function getDimensions(string $path): ?array
+public function setDefaultQuality(int $quality): void
+```
+
+**Beispiel:**
+
+```php
+$img = \CMS\Services\ImageService::getInstance();
+
+if ($img->isAvailable()) {
+    // Thumbnail erstellen
+    $img->createThumbnail(
+        '/uploads/foto.jpg',
+        '/uploads/thumb/foto_sm.jpg',
+        300, 300
+    );
+
+    // WebP-Konvertierung
+    $img->convertToWebP('/uploads/foto.jpg', '/uploads/foto.webp');
+
+    // Alle Standardgrößen erzeugen
+    $thumbs = $img->createAllThumbnails('/uploads/foto.jpg');
+}
+```
+
+---
+
+## 17. Settings
+<!-- UPDATED: 2026-03-08 -->
+
+| | |
+|---|---|
+| **Namespace** | `CMS\Services\SettingsService` |
+| **Pfad** | `CMS/core/Services/SettingsService.php` |
+| **Pattern** | Singleton |
+
+Zentrale Settings-Abstraktion mit Gruppen-/Key-Struktur und optionaler
+AES-256-CBC-Verschlüsselung für Secrets.
+
+**Wichtige Methoden:**
+
+```php
+public static function getInstance(): self
+
+// Lesen
+public function get(string $group, string $key,
+                    mixed $default = null): mixed
+public function getString(string $group, string $key,
+                          string $default = ''): string
+public function getInt(string $group, string $key, int $default = 0): int
+public function getBool(string $group, string $key,
+                        bool $default = false): bool
+public function getGroup(string $group): array
+
+// Schreiben
+public function set(string $group, string $key, mixed $value,
+                    bool $encrypted = false, int $autoload = 0): bool
+public function setMany(string $group, array $values,
+                        array $encryptedKeys = [], int $autoload = 0): bool
+public function forget(string $group, string $key): bool
+```
+
+**Beispiel:**
+
+```php
+$settings = \CMS\Services\SettingsService::getInstance();
+
+// Einfacher Zugriff
+$siteName = $settings->getString('site', 'name', '365CMS');
+$perPage  = $settings->getInt('site', 'posts_per_page', 10);
+
+// Verschlüsseltes Secret speichern
+$settings->set('smtp', 'password', 'geheim', encrypted: true);
+
+// Mehrere Werte auf einmal
+$settings->setMany('smtp', [
+    'host' => 'smtp.office365.com',
+    'port' => 587,
+    'user' => 'noreply@firma.de',
+], encryptedKeys: ['password']);
+```
+
+---
+
+## 18. Backup
+<!-- UPDATED: 2026-03-08 -->
+
+| | |
+|---|---|
+| **Namespace** | `CMS\Services\BackupService` |
+| **Pfad** | `CMS/core/Services/BackupService.php` |
+| **Pattern** | Singleton |
+
+Backup-Service für Datenbank und vollständige Systemsicherungen mit
+E-Mail-Versand und optionalem S3-Upload.
+
+**Wichtige Methoden:**
+
+```php
+public static function getInstance(): self
+public function createFullBackup(): array
+public function createDatabaseBackup(?string $targetDir = null): string
+public function emailDatabaseBackup(string $email): bool
+public function uploadToS3(string $backupPath, array $s3Config): bool
+public function getBackupHistory(int $limit = 20): array
+public function listBackups(): array
+public function deleteBackup(string $backupName): bool
+```
+
+**Beispiel:**
+
+```php
+$backup = \CMS\Services\BackupService::getInstance();
+
+// Datenbank-Backup erstellen
+$path = $backup->createDatabaseBackup();
+
+// Backup per E-Mail versenden
+$backup->emailDatabaseBackup('admin@example.com');
+
+// Backup-Verlauf anzeigen
+$history = $backup->getBackupHistory(10);
+```
+
+---
+
+## 19. Contracts (Interfaces)
+<!-- UPDATED: 2026-03-08 -->
+
+Die Contracts ermöglichen Dependency Injection, Mocking in Tests und alternative
+Implementierungen.
+
+### 19.1 DatabaseInterface
+
+| | |
+|---|---|
+| **Namespace** | `CMS\Contracts\DatabaseInterface` |
+| **Pfad** | `CMS/core/Contracts/DatabaseInterface.php` |
+| **Implementiert von** | `CMS\Database` |
+
+Definiert die CRUD-Operationen (`insert`, `update`, `delete`, `get_row`,
+`get_results` usw.).
+
+### 19.2 CacheInterface
+
+| | |
+|---|---|
+| **Namespace** | `CMS\Contracts\CacheInterface` |
+| **Pfad** | `CMS/core/Contracts/CacheInterface.php` |
+| **Implementiert von** | `CMS\CacheManager` |
+
+PSR-16-orientiertes Interface (`get`, `set`, `delete`, `has`, `flush`).
+
+### 19.3 LoggerInterface
+
+| | |
+|---|---|
+| **Namespace** | `CMS\Contracts\LoggerInterface` |
+| **Pfad** | `CMS/core/Contracts/LoggerInterface.php` |
+| **Implementiert von** | `CMS\Logger` |
+
+PSR-3-kompatibles Interface mit allen acht Log-Level-Methoden.
+
+---
+
+## Weitere Kern-Services (Kurzübersicht)
+<!-- UPDATED: 2026-03-08 -->
+
+Die folgenden Services im Namespace `CMS\Services\` bieten spezialisierte
+Funktionalität:
+
+| Service | Pfad | Beschreibung |
+|---------|------|-------------|
+| `SitemapService` | `Services/SitemapService.php` | XML-Sitemap-Generierung (Pages, Posts, Images, News) |
+| `SeoAnalysisService` | `Services/SeoAnalysisService.php` | SEO-Analyse und Optimierungsvorschläge |
+| `SEOService` | `Services/SEOService.php` | SEO-Meta-Tags und Open-Graph-Verwaltung |
+| `AnalyticsService` | `Services/AnalyticsService.php` | Analyse und Statistik-Auswertung |
+| `TrackingService` | `Services/TrackingService.php` | Besucher-Tracking |
+| `JwtService` | `Services/JwtService.php` | JWT-Token-Verwaltung für API-Authentifizierung |
+| `UserService` | `Services/UserService.php` | Benutzerverwaltung und Profil-Operationen |
+| `MemberService` | `Services/MemberService.php` | Mitgliederbereich-Logik |
+| `CommentService` | `Services/CommentService.php` | Kommentarsystem |
+| `FeedService` | `Services/FeedService.php` | RSS-/Atom-Feed-Generierung |
+| `PdfService` | `Services/PdfService.php` | PDF-Generierung |
+| `EditorService` | `Services/EditorService.php` | Code-Editor-Backend |
+| `EditorJsService` | `Services/EditorJsService.php` | EditorJS-Integration und -Verwaltung |
+| `PurifierService` | `Services/PurifierService.php` | HTML-Purifier (XSS-Schutz für Inhalte) |
+| `CookieConsentService` | `Services/CookieConsentService.php` | Cookie-Consent-Verwaltung (DSGVO) |
+| `RedirectService` | `Services/RedirectService.php` | URL-Redirect-Verwaltung (301/302) |
+| `IndexingService` | `Services/IndexingService.php` | Suchindex-Verwaltung |
+| `StatusService` | `Services/StatusService.php` | Systemstatus und Gesundheitsprüfungen |
+| `SystemService` | `Services/SystemService.php` | Systeminformationen und -wartung |
+| `UpdateService` | `Services/UpdateService.php` | CMS-Update-Verwaltung |
+| `DashboardService` | `Services/DashboardService.php` | Admin-Dashboard-Widgets und -Daten |
+| `MailQueueService` | `Services/MailQueueService.php` | Asynchrone Mail-Queue |
+| `MailLogService` | `Services/MailLogService.php` | Mail-Versand-Protokollierung |
+| `LandingPageService` | `Services/LandingPageService.php` | Landing-Page-Builder |
+| `SiteTableService` | `Services/SiteTableService.php` | Mehrstufige Seitentabellen-Verwaltung |
+| `ElfinderService` | `Services/ElfinderService.php` | elFinder-Dateimanager-Integration |
+| `GraphApiService` | `Services/GraphApiService.php` | Microsoft Graph API-Anbindung |
+| `AzureMailTokenProvider` | `Services/AzureMailTokenProvider.php` | Azure AD OAuth2-Token für SMTP |
+
+---
+
+## Auth-Subsystem
+<!-- UPDATED: 2026-03-08 -->
+
+| Klasse | Pfad | Beschreibung |
+|--------|------|-------------|
+| `Auth\AuthManager` | `Auth/AuthManager.php` | Zentraler Auth-Dispatcher (siehe [4.2](#42-authmanager)) |
+| `Auth\MFA\TotpAdapter` | `Auth/MFA/TotpAdapter.php` | TOTP-Adapter für MFA-Integration |
+| `Auth\MFA\BackupCodesManager` | `Auth/MFA/BackupCodesManager.php` | Verwaltung von MFA-Backup-Codes |
+| `Auth\LDAP\LdapAuthProvider` | `Auth/LDAP/LdapAuthProvider.php` | LDAP/Active-Directory-Authentifizierung |
+| `Auth\Passkey\WebAuthnAdapter` | `Auth/Passkey/WebAuthnAdapter.php` | WebAuthn/Passkey-Authentifizierung |
+
+---
+
+*Generiert am 2026-03-08 – Diese Dokumentation basiert auf dem aktuellen Stand des
+365CMS-Quellcodes (Version 2.5.4).*
