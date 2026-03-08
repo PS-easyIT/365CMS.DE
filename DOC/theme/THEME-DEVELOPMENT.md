@@ -12,22 +12,10 @@
 - [8. Theme testen](#8-theme-testen)
 - [9. Best Practices](#9-best-practices)
 
-Dieser Guide führt euch durch die Erstellung eines einfachen Themes auf Basis der aktuellen 2.3.1-Architektur.
+Dieser Guide führt euch durch die Erstellung eines einfachen Themes auf Basis der aktuellen 2.5.4-Architektur.
 
 ---
 <!-- UPDATED: 2026-03-08 -->
-
-## Inhaltsverzeichnis
-
-1. [Voraussetzungen](#1-voraussetzungen)
-2. [Theme-Grundstruktur erstellen](#2-theme-grundstruktur-erstellen)
-3. [theme.json konfigurieren](#3-themejson-konfigurieren)
-4. [Template-Dateien](#4-template-dateien)
-5. [CSS & JavaScript](#5-css--javascript)
-6. [Theme-Einstellungen nutzbar machen](#6-theme-einstellungen-nutzbar-machen)
-7. [Hooks in Templates](#7-hooks-in-templates)
-8. [Theme testen](#8-theme-testen)
-9. [Best Practices](#9-best-practices)
 
 ---
 

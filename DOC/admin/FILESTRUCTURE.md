@@ -10,7 +10,7 @@
 - [🔒 Sicherheitsmuster](#sicherheitsmuster)
 - [🧭 Navigations-Reihenfolge (Sidebar)](#navigations-reihenfolge-sidebar)
 
-Der Admin-Bereich ist in 365CMS 2.3.1 kein flaches Sammelbecken einzelner „Alles-in-einer-Datei“-Seiten mehr, sondern eine modulare Struktur aus:
+Der Admin-Bereich ist in 365CMS kein flaches Sammelbecken einzelner „Alles-in-einer-Datei“-Seiten mehr, sondern eine modulare Struktur aus:
 
 - **Entry-Points** unter `CMS/admin/`
 - **Modulen** unter `CMS/admin/modules/`
