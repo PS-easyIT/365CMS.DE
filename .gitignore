@@ -40,15 +40,13 @@ ASSETS/
 # Dev/Local Folders (Komplette Ordner ignorieren)
 BACKUP/
 PLUGINS/
-DOC/workflow/
-DOC/workflow/*
 DOC/audits/
 DOC/feature/
 DOC/feature
 DOC/feature/*.*
 DOC/feature/*/
-AASSETS/test_import/
-AASSETS/test_import/*
+ASSETS/test_import/
+ASSETS/test_import/*
 
 # ----------------------------------------------------------------------
 # CMS v2 SPECIFIC
