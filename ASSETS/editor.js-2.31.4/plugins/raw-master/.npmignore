@@ -1,0 +1,5 @@
+.idea/
+src/
+.jshintrc
+vite.config.js
+yarn.lock

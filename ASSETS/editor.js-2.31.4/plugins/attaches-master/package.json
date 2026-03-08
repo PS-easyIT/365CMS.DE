@@ -1,0 +1,48 @@
+{
+  "name": "@editorjs/attaches",
+  "version": "1.3.2",
+  "keywords": [
+    "codex editor",
+    "attaches",
+    "editor.js",
+    "editorjs"
+  ],
+  "description": "Attaches Tool for Editor.js",
+  "license": "MIT",
+  "repository": "https://github.com/editor-js/attaches",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/attaches.umd.js",
+  "module": "./dist/attaches.mjs",
+  "exports": {
+    ".": {
+      "import": "./dist/attaches.mjs",
+      "require": "./dist/attaches.umd.js"
+    }
+  },
+  "scripts": {
+    "dev": "concurrently \"vite\" \"node ./dev/server.js\"",
+    "build": "vite build"
+  },
+  "author": {
+    "name": "CodeX",
+    "email": "team@codex.so"
+  },
+  "devDependencies": {
+    "@editorjs/editorjs": "2.30.0-rc.12",
+    "concurrently": "^9.0.1",
+    "formidable": "^3.5.1",
+    "postcss-nested": "^7.0.2",
+    "postcss-nested-ancestors": "^3.0.0",
+    "vite": "^5.3.1",
+    "vite-plugin-css-injected-by-js": "^3.5.1"
+  },
+  "dependencies": {
+    "@codexteam/ajax": "^4.2.0",
+    "@codexteam/icons": "^0.3.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

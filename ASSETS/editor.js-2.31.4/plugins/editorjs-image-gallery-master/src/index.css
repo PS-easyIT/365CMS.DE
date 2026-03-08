@@ -1,0 +1,19 @@
+.image-gallery {
+    padding: 20px 0;
+}
+
+.image-gallery textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #e4e4e4;
+    border-radius: 3px;
+    outline: none;
+    font-size: 14px;
+    height: 100px;
+    resize: none;
+    display: flex;
+}
+
+.textarea-hide {
+    display: none !important;
+}

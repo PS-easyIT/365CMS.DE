@@ -1,0 +1,46 @@
+<script src="https://cdn.jsdelivr.net/npm/@editorjs/editorjs@latest"></script>
+<script src="../dist/bundle.js"></script>
+
+<div id="editorjs"></div>
+
+<button id="save-button">Save</button>
+<pre id="output"></pre>
+
+<script>
+    /**
+     * Initialize the Editor
+     */
+    const editor = new EditorJS({
+        /**
+         * Create a holder for the Editor and pass its ID
+         */
+        holder : 'editorjs',
+
+        /**
+         * Available Tools list.
+         * Pass Tool's class or Settings object for each Tool you want to use
+         */
+        tools: {
+            imageGallery: {
+                class: ImageGallery,
+                inlineToolbar : true
+            },
+        },
+
+        /**
+         * Previously saved data that should be rendered
+         */
+        data: {}
+    });
+
+
+    const saveButton = document.getElementById('save-button');
+    const output = document.getElementById('output');
+
+    saveButton.addEventListener('click', () => {
+        editor.save().then( savedData => {
+            output.innerHTML = JSON.stringify(savedData, null, 4);
+        })
+    })
+</script>
+

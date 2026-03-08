@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Attaches Plugin Test | EditorJS</title>
+  </head>
+  <body>
+    <div id="editorjs"></div>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/editorjs@latest"></script>
+    <script type="module">
+      import AttachesTool from "../src/index.js";
+      const editor = new EditorJS({
+        holder: "editorjs",
+        data: {
+          time: 1700475383740,
+          blocks: [],
+        },
+
+        tools: {
+          image: {
+            class: AttachesTool,
+            config: {
+              endpoint: "http://localhost:8008/uploadFile"
+            },
+          },
+        },
+      });
+    </script>
+  </body>
+</html>

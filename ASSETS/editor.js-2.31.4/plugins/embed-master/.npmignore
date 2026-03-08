@@ -1,0 +1,8 @@
+.idea/
+docs/
+src/
+test/
+vite.config.js
+postcss.config.js
+.babelrc
+yarn.lock

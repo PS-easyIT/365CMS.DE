@@ -37,8 +37,6 @@ pnpm-debug.log*
 package-lock.json
 # yarn.lock # Einkommentieren, wenn Yarn verwendet wird
 
-/ASSETS/
-
 # Dev/Local Folders (Komplette Ordner ignorieren)
 /BACKUP/
 /PLUGINS/
@@ -78,3 +76,5 @@ secrets/
 .htpasswd
 .htaccess.local
 .gitlog_365cms.txt
+
+/ASSETS/msgraph-sdk-php-2.56.0/

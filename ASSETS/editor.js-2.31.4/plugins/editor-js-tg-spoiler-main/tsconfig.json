@@ -1,0 +1,11 @@
+{
+  "include": ["src/**/*"],
+  "compilerOptions": {
+    "allowJs": true,
+    "declaration": true,
+    "target": "ES6",
+    "strict": true,
+    "outDir": "dist",
+    "moduleResolution": "nodenext"
+  }
+}

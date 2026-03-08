@@ -1,0 +1,26 @@
+name: Internal patterns test
+
+on: [pull_request]
+
+jobs:
+  lint:
+    name: Patterns
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org/
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - run: yarn install
+      - run: yarn build
+      - run: yarn test

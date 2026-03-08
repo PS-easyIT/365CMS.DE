@@ -1,0 +1,13 @@
+table.gridjs {
+  &-table {
+    width: 100%;
+    max-width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    display: table;
+    margin: 0;
+    padding: 0;
+    overflow: auto;
+    table-layout: fixed;
+  }
+}

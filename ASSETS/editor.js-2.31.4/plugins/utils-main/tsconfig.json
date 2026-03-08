@@ -1,0 +1,36 @@
+{
+  "compilerOptions" : {
+    "sourceMap": false,
+    "target": "es2017",
+    "declaration": true,
+    "baseUrl": "./",
+    "rootDir": "src",
+    "outDir": "dist",
+    "moduleResolution": "node", // This resolution strategy attempts to mimic the Node.js module resolution mechanism at runtime
+    "lib": ["dom", "es2017", "es2018", "es2019"],
+
+    // allows to import .json files for i18n
+    "resolveJsonModule": true,
+
+    // allows to omit export default in .json files
+    "allowSyntheticDefaultImports": true,
+
+    "experimentalDecorators": true,
+    "strictNullChecks": true,
+    "paths": {
+      "@utils/*": ["packages/*/src"]
+    },
+    "composite": true
+  },
+  "include": ["src/**/*"],
+  "exclude": [
+    "node_modules",
+    "packages/**/dist*",
+  ],
+  "references": [
+    { "path": "packages/dom" },
+    { "path": "packages/caret" },
+    { "path": "packages/helpers" },
+    { "path": "packages/keyboard" }
+  ]
+}
