@@ -1,10 +1,13 @@
 # Marketplace Workflow – 365CMS
 
-> **Bereich:** Plugin & Theme Marketplace · **Version:** 2.3.1  
+> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+>
+> **Bereich:** Plugin & Theme Marketplace · **Version:** 2.5.4  
 > **Admin-Seiten:** `admin/marketplace.php`, `admin/plugins.php`, `admin/themes.php`  
 > **Geplantes Feature:** Offizieller Marketplace-Dienst
 
 ---
+<!-- UPDATED: 2026-03-08 -->
 
 ## Übersicht: Marketplace-Typen
 

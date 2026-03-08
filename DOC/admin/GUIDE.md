@@ -1,8 +1,21 @@
-﻿# 365CMS – Admin-Handbuch
+# 365CMS – Admin-Handbuch
+> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
 
-Kurzbeschreibung: Operatives Handbuch für die häufigsten Aufgaben im aktuellen Admin-Bereich von 365CMS 2.3.1.
-
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+## Inhaltsverzeichnis
+- [Benutzer anlegen oder bearbeiten](#benutzer-anlegen-oder-bearbeiten)
+- [Inhalte pflegen](#inhalte-pflegen)
+- [Theme wechseln und Design anpassen](#theme-wechseln-und-design-anpassen)
+- [SEO prüfen und optimieren](#seo-prüfen-und-optimieren)
+- [Performance überwachen](#performance-überwachen)
+- [Sicherheit und Recht](#sicherheit-und-recht)
+- [System und Diagnose](#system-und-diagnose)
+- [Plugins verwalten](#plugins-verwalten)
+- [Backup erstellen](#backup-erstellen)
+- [Cache und Performance prüfen](#cache-und-performance-prüfen)
+- [Pakete und Bestellungen verwalten](#pakete-und-bestellungen-verwalten)
+- [Datenschutzanfragen bearbeiten](#datenschutzanfragen-bearbeiten)
+- [Systeminfo und Diagnose nutzen](#systeminfo-und-diagnose-nutzen)
+- [Wichtige Umstellungen gegenüber älteren Versionen](#wichtige-umstellungen-gegenüber-älteren-versionen)
 
 1. Browser öffnen: `https://eure-domain.de/admin`
 2. Zugangsdaten eingeben
@@ -11,6 +24,7 @@ Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 Von dort aus erreicht ihr die zentralen Bereiche über die Sidebar.
 
 ---
+<!-- UPDATED: 2026-03-08 -->
 
 ## Benutzer anlegen oder bearbeiten
 

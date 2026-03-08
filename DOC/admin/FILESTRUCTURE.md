@@ -1,8 +1,14 @@
 # 365CMS – Admin-Dateistruktur
+> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
 
-Kurzbeschreibung: Technischer Überblick über Aufbau, Routing und Verantwortlichkeiten im aktuellen Admin-Code.
-
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+## Inhaltsverzeichnis
+- [Hauptstruktur](#hauptstruktur)
+- [Rollen der Verzeichnisse](#rollen-der-verzeichnisse)
+- [Routing und Slugs](#routing-und-slugs)
+- [Typischer Aufbau eines Entry-Points](#typischer-aufbau-eines-entry-points)
+- [Beziehungen zu Core-Komponenten](#beziehungen-zu-core-komponenten)
+- [🔒 Sicherheitsmuster](#sicherheitsmuster)
+- [🧭 Navigations-Reihenfolge (Sidebar)](#navigations-reihenfolge-sidebar)
 
 Der Admin-Bereich ist in 365CMS 2.3.1 kein flaches Sammelbecken einzelner „Alles-in-einer-Datei“-Seiten mehr, sondern eine modulare Struktur aus:
 
@@ -12,6 +18,7 @@ Der Admin-Bereich ist in 365CMS 2.3.1 kein flaches Sammelbecken einzelner „All
 - **Partials** wie Header, Sidebar und Footer
 
 ---
+<!-- UPDATED: 2026-03-08 -->
 
 ## Hauptstruktur
 

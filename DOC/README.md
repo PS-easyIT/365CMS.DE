@@ -1,12 +1,15 @@
-﻿﻿# 365CMS – Projektdokumentation
+# 365CMS – Projektdokumentation
+> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
 
-Kurzbeschreibung: Einstieg in die technische und redaktionelle Dokumentation des Hauptprojekts `365CMS.DE`.
-
-Letzte Aktualisierung: 2026-03-07
-
-Diese Übersicht bezieht sich auf den verifizierten Stand **2.3.1**.
+## Inhaltsverzeichnis
+- [Womit ihr anfangen solltet](#womit-ihr-anfangen-solltet)
+- [Release-Fokus 2.3.x](#release-fokus-23x)
+- [Dokumentationsbereiche](#dokumentationsbereiche)
+- [Wichtige Hinweise](#wichtige-hinweise)
+- [Verwandte Einstiege](#verwandte-einstiege)
 
 ---
+<!-- UPDATED: 2026-03-08 -->
 
 ## Womit ihr anfangen solltet
 

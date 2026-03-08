@@ -1,12 +1,20 @@
-﻿# 365CMS – Installation
+# 365CMS – Installation
+> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
 
-Kurzbeschreibung: Einrichtung einer neuen 365CMS-Instanz aus dem Repository oder aus einem Deployment-Paket.
-
-Letzte Aktualisierung: 2026-03-07
-
-Diese Anleitung beschreibt den aktuellen Stand der Codebasis **2.3.1**. Wichtig dabei: `CMS/config.php` ist heute nur noch ein **Kompatibilitäts-Stub**. Die eigentliche Konfiguration liegt in `CMS/config/app.php`.
+## Inhaltsverzeichnis
+- [Überblick](#überblick)
+- [Systemvoraussetzungen](#systemvoraussetzungen)
+- [Zielstruktur beim Deployment](#zielstruktur-beim-deployment)
+- [Datenbank anlegen](#datenbank-anlegen)
+- [Konfiguration in `CMS/config/app.php`](#konfiguration-in-cmsconfigappphp)
+- [Dateirechte](#dateirechte)
+- [Webserver konfigurieren](#webserver-konfigurieren)
+- [Erster Start](#erster-start)
+- [Produktions-Checkliste](#produktions-checkliste)
+- [Troubleshooting](#troubleshooting)
 
 ---
+<!-- UPDATED: 2026-03-08 -->
 
 ## Überblick
 

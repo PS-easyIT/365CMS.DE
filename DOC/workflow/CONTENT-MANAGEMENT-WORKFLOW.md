@@ -1,10 +1,13 @@
 # Content-Management Workflow – 365CMS
 
-> **Bereich:** Inhalte · **Version:** 2.3.1  
+> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+>
+> **Bereich:** Inhalte · **Version:** 2.5.4  
 > **Services:** `EditorService`, `SEOService`, `MediaService`  
 > **Admin-Seiten:** `admin/editor.php`, `admin/pages.php`, `admin/landing-page.php`
 
 ---
+<!-- UPDATED: 2026-03-08 -->
 
 ## Übersicht: Content-Typen
 

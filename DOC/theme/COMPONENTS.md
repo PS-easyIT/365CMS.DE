@@ -1,8 +1,23 @@
-# Komponenten-Referenz – CMS Default Theme
+# 365CMS – Template-Komponenten
+> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
 
-Kurzbeschreibung: HTML/CSS-Referenz der wiederverwendbaren UI-Komponenten (Header, Footer, Cards, Buttons, Formulare, Alerts).
+## Inhaltsverzeichnis
+- [Header](#header)
+- [Navigation](#navigation)
+- [Footer](#footer)
+- [Buttons](#buttons)
+- [Cards](#cards)
+- [Badges & Tags](#badges-tags)
+- [Grid-Layouts](#grid-layouts)
+- [Formulare](#formulare)
+- [Alerts / Meldungen](#alerts-meldungen)
+- [Seitenstruktur](#seitenstruktur)
+- [Hero Section](#hero-section)
+- [Back to Top](#back-to-top)
+- [Scroll Animations](#scroll-animations)
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+---
+<!-- UPDATED: 2026-03-08 -->
 
 ## Header
 

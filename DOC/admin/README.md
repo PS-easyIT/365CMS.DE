@@ -1,12 +1,17 @@
-﻿# 365CMS – Admin-Bereich
+# 365CMS – Admin-Bereich
+> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
 
-Kurzbeschreibung: Überblick über die aktuelle Admin-Navigation, die wichtigsten Modulgruppen und die zugehörigen Fachdokumente.
-
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+## Inhaltsverzeichnis
+- [Überblick](#überblick)
+- [Aktuelle Menügruppen](#aktuelle-menügruppen)
+- [Relevante Fachdokumente](#relevante-fachdokumente)
+- [Hinweise zu Legacy-Routen](#hinweise-zu-legacy-routen)
+- [Sicherheitsmodell im Admin](#sicherheitsmodell-im-admin)
 
 Die Struktur folgt der aktuellen Sidebar-Konfiguration aus `CMS/admin/partials/sidebar.php`. Öffentliche Admin-Routen werden in der Dokumentation bewusst ohne `.php` beschrieben.
 
 ---
+<!-- UPDATED: 2026-03-08 -->
 
 ## Überblick
 

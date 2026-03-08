@@ -1,8 +1,22 @@
-# Theme-Entwicklung für 365CMS
+# 365CMS – Theme-Entwicklungsumgebung
+> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
 
-Kurzbeschreibung: Ausführliche Entwicklerreferenz für Theme-Struktur, Templates, Hooks, Assets und Theme-spezifische Admin-Integration in 365CMS.
+## Inhaltsverzeichnis
+- [Grundstruktur](#grundstruktur)
+- [Theme-Header](#theme-header)
+- [Template-Dateien](#template-dateien)
+- [Template-Hierarchie](#template-hierarchie)
+- [CSS & JavaScript](#css-javascript)
+- [Theme Functions](#theme-functions)
+- [Best Practices](#best-practices)
+- [Theme-Anpassungen](#theme-anpassungen)
+- [Beispiel: Minimales Theme](#beispiel-minimales-theme)
+- [🎨 Theme-Customization-API (2.3.1)](#theme-customization-api-231)
+- [Checkliste für Theme-Release](#checkliste-für-theme-release)
+- [Verfügbare Helper](#verfügbare-helper)
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+---
+<!-- UPDATED: 2026-03-08 -->
 
 ## 📋 Inhaltsverzeichnis
 

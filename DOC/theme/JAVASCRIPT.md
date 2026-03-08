@@ -1,13 +1,16 @@
-# JavaScript – navigation.js Referenz
+# 365CMS – Theme-JavaScript
+> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
 
-Kurzbeschreibung: Module, Events und Erweiterungspunkte des zentralen Theme-JavaScripts (Burger-Menü, Sticky Header, Dark Mode, Scroll-Animationen).
-
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+## Inhaltsverzeichnis
+- [Module-Übersicht](#module-übersicht)
+- [Custom Events](#custom-events)
+- [Eigenes JavaScript erweitern](#eigenes-javascript-erweitern)
 
 **Datei:** `themes/default/js/navigation.js`  
 **Ladeweise:** `<script defer>` im Footer
 
 ---
+<!-- UPDATED: 2026-03-08 -->
 
 ## Module-Übersicht
 

@@ -1,10 +1,23 @@
 # 365CMS – Plugin-Entwicklung
+> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
 
-Kurzbeschreibung: Vollständiger Leitfaden für Aufbau, Hooks, Admin-Integration, Member-Erweiterung und sichere Datenzugriffe in 365CMS-Plugins.
-
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+## Inhaltsverzeichnis
+- [Grundprinzipien](#grundprinzipien)
+- [Empfohlene Struktur](#empfohlene-struktur)
+- [Plugin-Hauptdatei](#plugin-hauptdatei)
+- [Hauptklasse](#hauptklasse)
+- [Wichtige Hooks im aktuellen Stand](#wichtige-hooks-im-aktuellen-stand)
+- [Datenbankzugriff](#datenbankzugriff)
+- [Admin-Seiten integrieren](#admin-seiten-integrieren)
+- [Formulare sicher verarbeiten](#formulare-sicher-verarbeiten)
+- [Member-Bereich erweitern](#member-bereich-erweitern)
+- [Eigene Routen](#eigene-routen)
+- [Sicherheits-Checkliste](#sicherheits-checkliste)
+- [Release-Checkliste](#release-checkliste)
+- [Verwandte Dokumente](#verwandte-dokumente)
 
 ---
+<!-- UPDATED: 2026-03-08 -->
 
 ## Grundprinzipien
 
