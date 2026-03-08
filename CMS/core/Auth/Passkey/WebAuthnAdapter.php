@@ -267,10 +267,11 @@ final class WebAuthnAdapter
         }
 
         $db = Database::instance();
+        $normalizedId = $this->normalizeCredentialId($credentialId);
         $stmt = $db->prepare(
             "SELECT * FROM {$db->getPrefix()}passkey_credentials WHERE credential_id = ? LIMIT 1"
         );
-        $stmt->execute([$credentialId]);
+        $stmt->execute([$normalizedId]);
         $row = $stmt->fetch();
         return $row ? (array)$row : null;
     }
@@ -383,5 +384,20 @@ final class WebAuthnAdapter
         }
 
         return $this->credentialsTableAvailable;
+    }
+
+    private function normalizeCredentialId(string $credentialId): string
+    {
+        $credentialId = trim($credentialId);
+        if ($credentialId === '') {
+            return '';
+        }
+
+        $binary = base64_decode(strtr($credentialId, '-_', '+/') . str_repeat('=', (4 - strlen($credentialId) % 4) % 4), true);
+        if ($binary === false) {
+            return $credentialId;
+        }
+
+        return base64_encode($binary);
     }
 }

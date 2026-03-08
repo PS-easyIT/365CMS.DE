@@ -18,6 +18,9 @@ $sessions = is_array($securityData['sessions'] ?? null) ? $securityData['session
 $credentials = is_array($securityData['credentials'] ?? null) ? $securityData['credentials'] : [];
 $passkeyPayload = is_array($securityData['passkey_payload'] ?? null) ? $securityData['passkey_payload'] : ['available' => false, 'options_json' => '{}'];
 $totpSetup = is_array($securityData['totp_setup'] ?? null) ? $securityData['totp_setup'] : null;
+$totpQrUrl = trim((string)($totpSetup['qr_data_uri'] ?? $totpSetup['qr_url'] ?? ''));
+$totpSecret = trim((string)($totpSetup['secret'] ?? ''));
+$totpOtpUri = trim((string)($totpSetup['otp_uri'] ?? ''));
 
 include __DIR__ . '/partials/header.php';
 ?>
@@ -88,13 +91,28 @@ include __DIR__ . '/partials/header.php';
                         </span>
                     </div>
                     <div class="card-body">
-                        <?php if ($totpSetup !== null && !empty($totpSetup['qr_data_uri'])): ?>
+                        <?php if ($totpSetup !== null): ?>
                             <div class="row g-4 align-items-center">
                                 <div class="col-md-4 text-center">
-                                    <img class="img-fluid rounded border" src="<?= htmlspecialchars((string)$totpSetup['qr_data_uri'], ENT_QUOTES) ?>" alt="TOTP QR-Code">
+                                    <?php if ($totpQrUrl !== ''): ?>
+                                        <img class="img-fluid rounded border" src="<?= htmlspecialchars($totpQrUrl, ENT_QUOTES) ?>" alt="TOTP QR-Code">
+                                    <?php else: ?>
+                                        <div class="border rounded p-4 bg-light text-secondary">QR-Code derzeit nicht verfügbar</div>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="col-md-8">
                                     <p class="text-secondary">Scanne den QR-Code mit deiner Authenticator-App und bestätige anschließend den 6-stelligen Code.</p>
+                                    <?php if ($totpSecret !== ''): ?>
+                                        <div class="mb-3">
+                                            <div class="small text-secondary mb-1">Manuelle Einrichtung</div>
+                                            <code><?= htmlspecialchars($totpSecret) ?></code>
+                                        </div>
+                                    <?php endif; ?>
+                                    <?php if ($totpOtpUri !== ''): ?>
+                                        <div class="mb-3 small text-secondary text-break">
+                                            OTP-URI: <a href="<?= htmlspecialchars($totpOtpUri, ENT_QUOTES) ?>"><?= htmlspecialchars($totpOtpUri) ?></a>
+                                        </div>
+                                    <?php endif; ?>
                                     <form method="post" action="" class="d-flex flex-wrap gap-2 align-items-end">
                                         <input type="hidden" name="action" value="totp_confirm">
                                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($controller->csrfToken('security_mfa'), ENT_QUOTES) ?>">
@@ -178,13 +196,24 @@ include __DIR__ . '/partials/header.php';
                                     <tr><td colspan="3" class="text-secondary">Noch keine Passkeys registriert.</td></tr>
                                 <?php else: ?>
                                     <?php foreach ($credentials as $credential): ?>
+                                        <?php
+                                        $credentialName = is_array($credential)
+                                            ? (string)($credential['name'] ?? 'Passkey')
+                                            : (string)($credential->name ?? 'Passkey');
+                                        $credentialCreatedAt = is_array($credential)
+                                            ? (string)($credential['created_at'] ?? '')
+                                            : (string)($credential->created_at ?? '');
+                                        $credentialRecordId = is_array($credential)
+                                            ? (int)($credential['id'] ?? 0)
+                                            : (int)($credential->id ?? 0);
+                                        ?>
                                         <tr>
-                                            <td><?= htmlspecialchars((string)($credential->name ?? 'Passkey')) ?></td>
-                                            <td><?= htmlspecialchars((string)($credential->created_at ?? '')) ?></td>
+                                            <td><?= htmlspecialchars($credentialName) ?></td>
+                                            <td><?= htmlspecialchars($credentialCreatedAt) ?></td>
                                             <td>
                                                 <form method="post" action="">
                                                     <input type="hidden" name="action" value="passkey_delete">
-                                                    <input type="hidden" name="credential_id" value="<?= (int)($credential->id ?? 0) ?>">
+                                                    <input type="hidden" name="credential_id" value="<?= $credentialRecordId ?>">
                                                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($controller->csrfToken('security_passkey'), ENT_QUOTES) ?>">
                                                     <button type="submit" class="btn btn-sm btn-outline-danger">Entfernen</button>
                                                 </form>

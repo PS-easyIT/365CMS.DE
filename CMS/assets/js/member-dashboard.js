@@ -1,6 +1,18 @@
 (function () {
     'use strict';
 
+    function toBase64UrlFromBufferSource(bufferSource) {
+        if (!bufferSource) {
+            return '';
+        }
+
+        const view = bufferSource instanceof Uint8Array
+            ? bufferSource
+            : new Uint8Array(bufferSource);
+
+        return toBase64Url(view);
+    }
+
     function toBase64Url(uint8Array) {
         let binary = '';
         uint8Array.forEach(function (byte) {
@@ -28,16 +40,20 @@
             return options;
         }
 
-        if (options.challenge) {
-            options.challenge = fromBase64Url(options.challenge);
+        const publicKey = options.publicKey && typeof options.publicKey === 'object'
+            ? options.publicKey
+            : options;
+
+        if (publicKey.challenge) {
+            publicKey.challenge = fromBase64Url(publicKey.challenge);
         }
 
-        if (options.user && options.user.id) {
-            options.user.id = fromBase64Url(options.user.id);
+        if (publicKey.user && publicKey.user.id) {
+            publicKey.user.id = fromBase64Url(publicKey.user.id);
         }
 
-        if (Array.isArray(options.excludeCredentials)) {
-            options.excludeCredentials = options.excludeCredentials.map(function (credential) {
+        if (Array.isArray(publicKey.excludeCredentials)) {
+            publicKey.excludeCredentials = publicKey.excludeCredentials.map(function (credential) {
                 if (credential.id) {
                     credential.id = fromBase64Url(credential.id);
                 }
@@ -45,7 +61,7 @@
             });
         }
 
-        return options;
+        return publicKey;
     }
 
     function initPasskeys() {
@@ -66,20 +82,24 @@
             }
 
             try {
+                trigger.setAttribute('disabled', 'disabled');
+
                 const credential = await navigator.credentials.create({
                     publicKey: normalizePublicKeyOptions(options)
                 });
 
-                if (!credential || !credential.response) {
+                if (!credential || !credential.response || !credential.response.clientDataJSON || !credential.response.attestationObject) {
                     window.alert('Der Passkey konnte nicht erstellt werden.');
                     return;
                 }
 
-                form.querySelector('input[name="client_data_json"]').value = toBase64Url(new Uint8Array(credential.response.clientDataJSON));
-                form.querySelector('input[name="attestation_object"]').value = toBase64Url(new Uint8Array(credential.response.attestationObject));
+                form.querySelector('input[name="client_data_json"]').value = toBase64UrlFromBufferSource(credential.response.clientDataJSON);
+                form.querySelector('input[name="attestation_object"]').value = toBase64UrlFromBufferSource(credential.response.attestationObject);
                 form.submit();
             } catch (error) {
                 window.alert(error && error.message ? error.message : 'Passkey-Registrierung wurde abgebrochen.');
+            } finally {
+                trigger.removeAttribute('disabled');
             }
         });
     }

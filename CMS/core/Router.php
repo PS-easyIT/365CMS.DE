@@ -691,11 +691,34 @@ class Router
     public function renderLogin(): void
     {
         if (Auth::instance()->isLoggedIn()) {
-            $this->redirect('/member');
+            $this->redirect($this->getSafePostLoginRedirect($_GET['redirect'] ?? null));
             return;
         }
-        
-        ThemeManager::instance()->render('login');
+
+        $redirectTarget = $this->getSafePostLoginRedirect($_GET['redirect'] ?? null);
+        $passkeyPayload = [
+            'available' => false,
+            'options_json' => '{}',
+        ];
+
+        try {
+            $authManager = \CMS\Auth\AuthManager::instance();
+            if ($authManager->isPasskeyAvailable()) {
+                $options = $authManager->getPasskeyLoginOptions();
+                $_SESSION['login_passkey_challenge'] = (string)($options['challenge'] ?? '');
+                $passkeyPayload = [
+                    'available' => true,
+                    'options_json' => json_encode($options['options'] ?? new \stdClass(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                ];
+            }
+        } catch (\Throwable $e) {
+            error_log('Router::renderLogin() Passkey-Setup fehlgeschlagen: ' . $e->getMessage());
+        }
+
+        ThemeManager::instance()->render('login', [
+            'login_redirect' => $redirectTarget,
+            'passkey_payload' => $passkeyPayload,
+        ]);
     }
     
     /**
@@ -704,9 +727,52 @@ class Router
     public function handleLogin(): void
     {
         $security = Security::instance();
+        $redirectTarget = $this->getSafePostLoginRedirect($_POST['redirect'] ?? $_GET['redirect'] ?? null);
         
         if (!$security->verifyToken($_POST['csrf_token'] ?? '', 'login')) {
             $_SESSION['error'] = 'Sicherheitsüberprüfung fehlgeschlagen.';
+            $this->redirect('/login');
+            return;
+        }
+
+        $action = (string)($_POST['action'] ?? 'password_login');
+
+        if ($action === 'passkey_login') {
+            $challenge = (string)($_SESSION['login_passkey_challenge'] ?? '');
+            unset($_SESSION['login_passkey_challenge']);
+
+            if ($challenge === '') {
+                $_SESSION['error'] = 'Die Passkey-Challenge ist abgelaufen. Bitte erneut versuchen.';
+                $this->redirect('/login');
+                return;
+            }
+
+            $clientDataJson = $this->base64UrlDecode((string)($_POST['client_data_json'] ?? ''));
+            $authenticatorData = $this->base64UrlDecode((string)($_POST['authenticator_data'] ?? ''));
+            $signature = $this->base64UrlDecode((string)($_POST['signature'] ?? ''));
+            $credentialId = trim((string)($_POST['credential_id'] ?? ''));
+
+            if ($clientDataJson === '' || $authenticatorData === '' || $signature === '' || $credentialId === '') {
+                $_SESSION['error'] = 'Die Passkey-Antwort war unvollständig. Bitte erneut versuchen.';
+                $this->redirect('/login');
+                return;
+            }
+
+            $result = \CMS\Auth\AuthManager::instance()->authenticateViaPasskey(
+                $clientDataJson,
+                $authenticatorData,
+                $signature,
+                $credentialId,
+                $challenge
+            );
+
+            if ($result === true) {
+                unset($_SESSION['auth_redirect_after_login']);
+                $this->redirect($redirectTarget);
+                return;
+            }
+
+            $_SESSION['error'] = (string)$result;
             $this->redirect('/login');
             return;
         }
@@ -716,9 +782,11 @@ class Router
         $result = Auth::instance()->login($loginInput, $_POST['password'] ?? '');
         
         if ($result === true) {
-            $this->redirect('/member');
+            unset($_SESSION['auth_redirect_after_login']);
+            $this->redirect($redirectTarget);
         } elseif ($result === 'MFA_REQUIRED') {
             // H-02: MFA-Challenge erforderlich – ausstehende User-ID ist bereits in Session
+            $_SESSION['auth_redirect_after_login'] = $redirectTarget;
             $this->redirect('/mfa-challenge');
         } else {
             $_SESSION['error'] = $result;
@@ -811,7 +879,8 @@ class Router
             'info'
         );
 
-        $this->redirect('/member');
+        $redirectTarget = $this->consumePostLoginRedirect();
+        $this->redirect($redirectTarget);
     }
 
     /**
@@ -1273,6 +1342,60 @@ class Router
         
         header('Location: ' . $url);
         exit;
+    }
+
+    private function base64UrlDecode(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        $value = strtr($value, '-_', '+/');
+        $padding = strlen($value) % 4;
+        if ($padding > 0) {
+            $value .= str_repeat('=', 4 - $padding);
+        }
+
+        return (string)(base64_decode($value, true) ?: '');
+    }
+
+    private function getSafePostLoginRedirect(mixed $candidate): string
+    {
+        $candidate = is_string($candidate) ? trim($candidate) : '';
+        if ($candidate === '') {
+            return '/member';
+        }
+
+        $parts = parse_url($candidate);
+        if ($parts === false) {
+            return '/member';
+        }
+
+        $siteHost = (string)(parse_url(SITE_URL, PHP_URL_HOST) ?? '');
+        $targetHost = (string)($parts['host'] ?? '');
+        if ($targetHost !== '' && $siteHost !== '' && strcasecmp($targetHost, $siteHost) !== 0) {
+            return '/member';
+        }
+
+        $path = (string)($parts['path'] ?? '/member');
+        if ($path === '' || !str_starts_with($path, '/')) {
+            $path = '/' . ltrim($path, '/');
+        }
+
+        if (in_array($path, ['/login', '/logout', '/mfa-challenge'], true)) {
+            return '/member';
+        }
+
+        $query = isset($parts['query']) && $parts['query'] !== '' ? '?' . $parts['query'] : '';
+        return $path . $query;
+    }
+
+    private function consumePostLoginRedirect(): string
+    {
+        $redirect = $this->getSafePostLoginRedirect($_SESSION['auth_redirect_after_login'] ?? null);
+        unset($_SESSION['auth_redirect_after_login']);
+        return $redirect;
     }
     
     /**

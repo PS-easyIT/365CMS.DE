@@ -10,6 +10,68 @@
 
 (function () {
 
+    function toBase64Url(bytes) {
+        let binary = '';
+        bytes.forEach((byte) => {
+            binary += String.fromCharCode(byte);
+        });
+        return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+    }
+
+    function toBase64UrlFromBufferSource(bufferSource) {
+        if (!bufferSource) {
+            return '';
+        }
+
+        const view = bufferSource instanceof Uint8Array
+            ? bufferSource
+            : new Uint8Array(bufferSource);
+
+        return toBase64Url(view);
+    }
+
+    function fromBase64Url(value) {
+        if (!value) {
+            return new Uint8Array();
+        }
+
+        const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = normalized + '==='.slice((normalized.length + 3) % 4);
+        const binary = atob(padded);
+        const bytes = new Uint8Array(binary.length);
+
+        for (let index = 0; index < binary.length; index += 1) {
+            bytes[index] = binary.charCodeAt(index);
+        }
+
+        return bytes;
+    }
+
+    function normalizePasskeyRequestOptions(options) {
+        if (!options || typeof options !== 'object') {
+            return options;
+        }
+
+        const publicKey = options.publicKey && typeof options.publicKey === 'object'
+            ? options.publicKey
+            : options;
+
+        if (publicKey.challenge) {
+            publicKey.challenge = fromBase64Url(publicKey.challenge);
+        }
+
+        if (Array.isArray(publicKey.allowCredentials)) {
+            publicKey.allowCredentials = publicKey.allowCredentials.map((credential) => {
+                if (credential && credential.id) {
+                    credential.id = fromBase64Url(credential.id);
+                }
+                return credential;
+            });
+        }
+
+        return publicKey;
+    }
+
     // ── Hilfsfunktionen ────────────────────────────────────────────────────
 
     /**
@@ -175,6 +237,59 @@
             btn.setAttribute('aria-label', isText ? 'Passwort anzeigen' : 'Passwort ausblenden');
         });
     });
+
+    // ── Passkey Login ─────────────────────────────────────────────────────
+
+    const passkeyLoginForm = $('[data-passkey-login-form]');
+    const passkeyLoginButton = $('[data-passkey-login-button]');
+
+    if (passkeyLoginForm && passkeyLoginButton) {
+        const passkeySupported = !!window.PublicKeyCredential
+            && !!navigator.credentials
+            && typeof navigator.credentials.get === 'function';
+
+        if (!passkeySupported) {
+            passkeyLoginButton.setAttribute('disabled', 'disabled');
+            passkeyLoginButton.setAttribute('aria-disabled', 'true');
+            passkeyLoginButton.title = 'Passkeys werden von diesem Browser nicht unterstützt.';
+        } else {
+            passkeyLoginButton.addEventListener('click', async () => {
+                const optionsJson = passkeyLoginForm.getAttribute('data-passkey-options') || '{}';
+                let options;
+
+                try {
+                    options = JSON.parse(optionsJson);
+                } catch (error) {
+                    window.alert('Die Passkey-Optionen konnten nicht gelesen werden.');
+                    return;
+                }
+
+                try {
+                    passkeyLoginButton.setAttribute('disabled', 'disabled');
+
+                    const credential = await navigator.credentials.get({
+                        publicKey: normalizePasskeyRequestOptions(options)
+                    });
+
+                    if (!credential || !credential.response || !credential.rawId || !credential.response.clientDataJSON || !credential.response.authenticatorData || !credential.response.signature) {
+                        window.alert('Die Passkey-Anmeldung konnte nicht abgeschlossen werden.');
+                        return;
+                    }
+
+                    passkeyLoginForm.querySelector('input[name="credential_id"]').value = toBase64UrlFromBufferSource(credential.rawId);
+                    passkeyLoginForm.querySelector('input[name="client_data_json"]').value = toBase64UrlFromBufferSource(credential.response.clientDataJSON);
+                    passkeyLoginForm.querySelector('input[name="authenticator_data"]').value = toBase64UrlFromBufferSource(credential.response.authenticatorData);
+                    passkeyLoginForm.querySelector('input[name="signature"]').value = toBase64UrlFromBufferSource(credential.response.signature);
+                    passkeyLoginForm.submit();
+                } catch (error) {
+                    window.alert(error && error.message ? error.message : 'Passkey-Anmeldung wurde abgebrochen.');
+                } finally {
+                    passkeyLoginButton.removeAttribute('disabled');
+                    passkeyLoginButton.removeAttribute('aria-disabled');
+                }
+            });
+        }
+    }
 
     // ── Copy-Link Buttons (Share) ──────────────────────────────────────────
 

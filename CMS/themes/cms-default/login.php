@@ -36,6 +36,8 @@ if (class_exists('\CMS\Security')) {
 
 $siteUrl   = SITE_URL;
 $siteTitle = function_exists('cms_get_site_name') ? cms_get_site_name() : (defined('SITE_NAME') ? SITE_NAME : '365CMS');
+$loginRedirect = isset($login_redirect) && is_string($login_redirect) ? $login_redirect : '/member';
+$passkeyPayload = is_array($passkey_payload ?? null) ? $passkey_payload : ['available' => false, 'options_json' => '{}'];
 ?>
 
 <main id="main" role="main" style="background:linear-gradient(135deg,#e3f2fd 0%,#f5f9fc 100%);min-height:calc(100vh - 200px);display:flex;align-items:center;padding:2rem 1.5rem;">
@@ -77,7 +79,9 @@ $siteTitle = function_exists('cms_get_site_name') ? cms_get_site_name() : (defin
 
             <!-- Login Form – Verarbeitung durch CMS Router POST /login -->
             <form method="POST" action="<?php echo htmlspecialchars($siteUrl, ENT_QUOTES, 'UTF-8'); ?>/login" novalidate>
+                <input type="hidden" name="action" value="password_login">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($loginRedirect, ENT_QUOTES, 'UTF-8'); ?>">
 
                 <div class="form-group">
                     <label class="form-label" for="username">Benutzername oder E-Mail</label>
@@ -120,6 +124,25 @@ $siteTitle = function_exists('cms_get_site_name') ? cms_get_site_name() : (defin
 
                 <button type="submit" class="btn-solid btn-solid--full auth-submit">Anmelden</button>
             </form>
+
+            <?php if (!empty($passkeyPayload['available'])) : ?>
+                <div class="auth-divider" aria-hidden="true"><span>oder</span></div>
+                <form method="POST"
+                      action="<?php echo htmlspecialchars($siteUrl, ENT_QUOTES, 'UTF-8'); ?>/login"
+                      data-passkey-login-form
+                      data-passkey-options='<?php echo htmlspecialchars((string)($passkeyPayload['options_json'] ?? '{}'), ENT_QUOTES, 'UTF-8'); ?>'>
+                    <input type="hidden" name="action" value="passkey_login">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($loginRedirect, ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="credential_id" value="">
+                    <input type="hidden" name="client_data_json" value="">
+                    <input type="hidden" name="authenticator_data" value="">
+                    <input type="hidden" name="signature" value="">
+                    <button type="button" class="btn-ghost btn-solid--full auth-submit" data-passkey-login-button aria-label="Mit Passkey anmelden">
+                        Mit Passkey anmelden
+                    </button>
+                </form>
+            <?php endif; ?>
 
             <!-- Footer Links -->
             <div class="auth-footer">

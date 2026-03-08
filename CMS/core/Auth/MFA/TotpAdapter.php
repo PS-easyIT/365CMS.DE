@@ -134,7 +134,7 @@ final class TotpAdapter
     /**
      * Beginnt den MFA-Einrichtungsflow: Erzeugt ein Pending-Secret.
      *
-     * @return array{secret: string, otp_uri: string}
+     * @return array{secret: string, otp_uri: string, qr_url: string}
      */
     public function startSetup(int $userId, string $accountLabel): array
     {
@@ -144,6 +144,7 @@ final class TotpAdapter
         return [
             'secret'  => $secret,
             'otp_uri' => $this->getOtpAuthUri($secret, $accountLabel),
+            'qr_url'  => Totp::instance()->getQrCodeUrl($secret, $accountLabel, defined('SITE_NAME') ? SITE_NAME : '365CMS'),
         ];
     }
 
