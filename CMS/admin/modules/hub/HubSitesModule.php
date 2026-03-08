@@ -6,6 +6,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Database;
+use CMS\Hooks;
 
 class HubSitesModule
 {
@@ -29,15 +30,24 @@ class HubSitesModule
         'hub_slug' => '',
         'hub_template' => 'general-it',
         'hub_badge' => '',
+        'hub_badge_en' => '',
         'hub_hero_title' => '',
+        'hub_hero_title_en' => '',
         'hub_hero_text' => '',
+        'hub_hero_text_en' => '',
         'hub_cta_label' => '',
+        'hub_cta_label_en' => '',
         'hub_cta_url' => '',
         'hub_meta_audience' => '',
+        'hub_meta_audience_en' => '',
         'hub_meta_owner' => '',
+        'hub_meta_owner_en' => '',
         'hub_meta_update_cycle' => '',
+        'hub_meta_update_cycle_en' => '',
         'hub_meta_focus' => '',
+        'hub_meta_focus_en' => '',
         'hub_meta_kpi' => '',
+        'hub_meta_kpi_en' => '',
         'hub_links_json' => '[]',
         'hub_sections_json' => '[]',
         'hub_card_layout' => 'standard',
@@ -362,15 +372,24 @@ class HubSitesModule
             'hub_slug' => $slug,
             'hub_template' => array_key_exists((string)($post['hub_template'] ?? ''), $templateChoices) ? (string)$post['hub_template'] : 'general-it',
             'hub_badge' => mb_substr(trim(strip_tags((string)($post['hub_badge'] ?? ''))), 0, 80),
+            'hub_badge_en' => mb_substr(trim(strip_tags((string)($post['hub_badge_en'] ?? ''))), 0, 80),
             'hub_hero_title' => mb_substr(trim(strip_tags((string)($post['hub_hero_title'] ?? ''))), 0, 160),
+            'hub_hero_title_en' => mb_substr(trim(strip_tags((string)($post['hub_hero_title_en'] ?? ''))), 0, 160),
             'hub_hero_text' => mb_substr(trim((string)($post['hub_hero_text'] ?? '')), 0, 1200),
+            'hub_hero_text_en' => mb_substr(trim((string)($post['hub_hero_text_en'] ?? '')), 0, 1200),
             'hub_cta_label' => mb_substr(trim(strip_tags((string)($post['hub_cta_label'] ?? ''))), 0, 60),
+            'hub_cta_label_en' => mb_substr(trim(strip_tags((string)($post['hub_cta_label_en'] ?? ''))), 0, 60),
             'hub_cta_url' => filter_var((string)($post['hub_cta_url'] ?? ''), FILTER_SANITIZE_URL),
             'hub_meta_audience' => mb_substr(trim(strip_tags((string)($post['hub_meta_audience'] ?? ''))), 0, 120),
+            'hub_meta_audience_en' => mb_substr(trim(strip_tags((string)($post['hub_meta_audience_en'] ?? ''))), 0, 120),
             'hub_meta_owner' => mb_substr(trim(strip_tags((string)($post['hub_meta_owner'] ?? ''))), 0, 120),
+            'hub_meta_owner_en' => mb_substr(trim(strip_tags((string)($post['hub_meta_owner_en'] ?? ''))), 0, 120),
             'hub_meta_update_cycle' => mb_substr(trim(strip_tags((string)($post['hub_meta_update_cycle'] ?? ''))), 0, 120),
+            'hub_meta_update_cycle_en' => mb_substr(trim(strip_tags((string)($post['hub_meta_update_cycle_en'] ?? ''))), 0, 120),
             'hub_meta_focus' => mb_substr(trim(strip_tags((string)($post['hub_meta_focus'] ?? ''))), 0, 160),
+            'hub_meta_focus_en' => mb_substr(trim(strip_tags((string)($post['hub_meta_focus_en'] ?? ''))), 0, 160),
             'hub_meta_kpi' => mb_substr(trim(strip_tags((string)($post['hub_meta_kpi'] ?? ''))), 0, 120),
+            'hub_meta_kpi_en' => mb_substr(trim(strip_tags((string)($post['hub_meta_kpi_en'] ?? ''))), 0, 120),
             'hub_links_json' => array_key_exists('hub_links_json', $post)
                 ? $this->normalizeJsonArray((string)$post['hub_links_json'], 'link')
                 : (string)($existingSettings['hub_links_json'] ?? '[]'),
@@ -394,6 +413,11 @@ class HubSitesModule
                 : (string)($existingSettings['hub_card_meta_layout'] ?? 'split'),
         ];
 
+        $filteredSettings = Hooks::applyFilters('cms_prepare_hub_settings_payload', $settings, $post, $id);
+        if (is_array($filteredSettings)) {
+            $settings = array_merge($settings, $filteredSettings);
+        }
+
         $normalizedCards = [];
         foreach ($cards as $card) {
             if (!is_array($card)) {
@@ -408,17 +432,30 @@ class HubSitesModule
 
             $normalizedCards[] = [
                 'title' => $title,
+                'title_en' => mb_substr(trim(strip_tags((string)($card['title_en'] ?? ''))), 0, 160),
                 'url' => $url !== '' ? $url : '#',
                 'summary' => mb_substr(trim((string)($card['summary'] ?? '')), 0, 600),
+                'summary_en' => mb_substr(trim((string)($card['summary_en'] ?? '')), 0, 600),
                 'badge' => mb_substr(trim(strip_tags((string)($card['badge'] ?? ''))), 0, 80),
+                'badge_en' => mb_substr(trim(strip_tags((string)($card['badge_en'] ?? ''))), 0, 80),
                 'meta' => mb_substr(trim(strip_tags((string)($card['meta'] ?? ''))), 0, 120),
+                'meta_en' => mb_substr(trim(strip_tags((string)($card['meta_en'] ?? ''))), 0, 120),
                 'meta_left' => mb_substr(trim(strip_tags((string)($card['meta_left'] ?? ''))), 0, 120),
+                'meta_left_en' => mb_substr(trim(strip_tags((string)($card['meta_left_en'] ?? ''))), 0, 120),
                 'meta_right' => mb_substr(trim(strip_tags((string)($card['meta_right'] ?? ''))), 0, 120),
+                'meta_right_en' => mb_substr(trim(strip_tags((string)($card['meta_right_en'] ?? ''))), 0, 120),
                 'image_url' => mb_substr(trim((string)($card['image_url'] ?? '')), 0, 500),
                 'image_alt' => mb_substr(trim(strip_tags((string)($card['image_alt'] ?? ''))), 0, 160),
+                'image_alt_en' => mb_substr(trim(strip_tags((string)($card['image_alt_en'] ?? ''))), 0, 160),
                 'button_text' => mb_substr(trim(strip_tags((string)($card['button_text'] ?? ''))), 0, 80),
+                'button_text_en' => mb_substr(trim(strip_tags((string)($card['button_text_en'] ?? ''))), 0, 80),
                 'button_link' => mb_substr(trim((string)($card['button_link'] ?? '')), 0, 500),
             ];
+        }
+
+        $filteredCards = Hooks::applyFilters('cms_prepare_hub_cards_payload', $normalizedCards, $post, $id);
+        if (is_array($filteredCards)) {
+            $normalizedCards = $filteredCards;
         }
 
         try {
@@ -442,6 +479,8 @@ class HubSitesModule
                 $params[] = $id;
 
                 $this->db->execute($sql, $params);
+
+                Hooks::doAction('cms_after_hub_save', $id, $settings, $normalizedCards, $post);
 
                 return ['success' => true, 'id' => $id, 'slug' => $slug, 'message' => 'Routing / Hub Site aktualisiert.'];
             }
@@ -471,6 +510,8 @@ class HubSitesModule
                  VALUES (" . implode(', ', $placeholders) . ")",
                 $params
             );
+
+            Hooks::doAction('cms_after_hub_save', (int)$this->db->insert_id(), $settings, $normalizedCards, $post);
 
             return ['success' => true, 'id' => (int)$this->db->insert_id(), 'slug' => $slug, 'message' => 'Routing / Hub Site erstellt.'];
         } catch (\Throwable $e) {

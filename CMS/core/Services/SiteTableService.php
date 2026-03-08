@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace CMS\Services;
 
 use CMS\Database;
+use CMS\Hooks;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -36,15 +37,24 @@ final class SiteTableService
         'hub_slug' => '',
         'hub_template' => 'general-it',
         'hub_badge' => '',
+        'hub_badge_en' => '',
         'hub_hero_title' => '',
+        'hub_hero_title_en' => '',
         'hub_hero_text' => '',
+        'hub_hero_text_en' => '',
         'hub_cta_label' => '',
+        'hub_cta_label_en' => '',
         'hub_cta_url' => '',
         'hub_meta_audience' => '',
+        'hub_meta_audience_en' => '',
         'hub_meta_owner' => '',
+        'hub_meta_owner_en' => '',
         'hub_meta_update_cycle' => '',
+        'hub_meta_update_cycle_en' => '',
         'hub_meta_focus' => '',
+        'hub_meta_focus_en' => '',
         'hub_meta_kpi' => '',
+        'hub_meta_kpi_en' => '',
         'hub_links_json' => '[]',
         'hub_sections_json' => '[]',
         'hub_card_layout' => 'standard',
@@ -260,7 +270,7 @@ final class SiteTableService
         return $this->renderHubMarkup($table);
     }
 
-    public function getHubPageBySlug(string $slug): ?array
+    public function getHubPageBySlug(string $slug, string $locale = 'de'): ?array
     {
         $slug = $this->sanitizeSlug($slug);
         if ($slug === '') {
@@ -291,15 +301,22 @@ final class SiteTableService
         ];
 
         $settings = array_merge(self::DEFAULT_SETTINGS, $table['settings']);
+        $localizedSettings = ContentLocalizationService::getInstance()->localizeHubSettings($settings, $locale, [
+            'slug' => $slug,
+            'table' => $table,
+        ]);
 
         return [
             'id' => (int)$table['id'],
-            'title' => (string)$table['name'],
+            'title' => trim((string)($localizedSettings['hub_hero_title'] ?? '')) !== ''
+                ? (string)$localizedSettings['hub_hero_title']
+                : (string)$table['name'],
             'slug' => $slug,
             'content_type' => 'hub',
-            'content' => $this->renderHubMarkup($table),
-            'meta_description' => trim((string)($settings['hub_hero_text'] ?? '')) !== ''
-                ? trim((string)$settings['hub_hero_text'])
+            'content_locale' => $locale,
+            'content' => $this->renderHubMarkup($table, $locale),
+            'meta_description' => trim((string)($localizedSettings['hub_hero_text'] ?? '')) !== ''
+                ? trim((string)$localizedSettings['hub_hero_text'])
                 : (string)$table['description'],
             'updated_at' => (string)($table['updated_at'] ?? ''),
         ];
@@ -387,11 +404,16 @@ final class SiteTableService
         ];
     }
 
-    private function renderHubMarkup(array $table): string
+    private function renderHubMarkup(array $table, string $locale = 'de'): string
     {
         $settings = array_merge(self::DEFAULT_SETTINGS, $table['settings']);
+        $settings = ContentLocalizationService::getInstance()->localizeHubSettings($settings, $locale, ['table' => $table]);
         $templateKey = (string)($settings['hub_template'] ?? 'general-it');
         $templateProfile = $this->getTemplateProfile($templateKey);
+        $templateProfile = Hooks::applyFilters('cms_hub_template_profile', $templateProfile, $templateKey, $locale, $table);
+        if (!is_array($templateProfile)) {
+            $templateProfile = $this->getTemplateProfile($templateKey);
+        }
         $template = (string)($templateProfile['base_template'] ?? $templateKey ?: 'general-it');
         $pageSlug = trim((string)($settings['hub_slug'] ?? ''));
         $heroTitle = trim((string)($settings['hub_hero_title'] ?? '')) ?: (string)($table['name'] ?? 'Hub Site');
@@ -399,9 +421,9 @@ final class SiteTableService
         $heroBadge = trim((string)($settings['hub_badge'] ?? ''));
         $ctaLabel = trim((string)($settings['hub_cta_label'] ?? ''));
         $ctaUrl = trim((string)($settings['hub_cta_url'] ?? ''));
-        $cards = $this->normalizeHubCards($table['rows']);
-        $quickLinks = $this->normalizeTemplateLinks($templateProfile, $template);
-        $sections = $this->normalizeTemplateSections($templateProfile, $template);
+        $cards = ContentLocalizationService::getInstance()->localizeHubCards($this->normalizeHubCards($table['rows']), $locale, ['table' => $table]);
+        $quickLinks = $this->normalizeTemplateLinks($templateProfile, $template, $locale);
+        $sections = $this->normalizeTemplateSections($templateProfile, $template, $locale);
         $metaSettings = array_merge([
             'hub_meta_audience' => (string)($templateProfile['meta']['audience'] ?? ''),
             'hub_meta_owner' => (string)($templateProfile['meta']['owner'] ?? ''),
@@ -417,7 +439,7 @@ final class SiteTableService
                 }] ?? '');
             }
         }
-        $metaItems = $this->buildHubMetaItems($metaSettings, $template, $templateProfile);
+        $metaItems = $this->buildHubMetaItems($metaSettings, $template, $templateProfile, $locale);
         $cardDesign = is_array($templateProfile['card_design'] ?? null) ? $templateProfile['card_design'] : [];
         $cardSchema = is_array($templateProfile['card_schema'] ?? null) ? $templateProfile['card_schema'] : [];
         $colorSettings = is_array($templateProfile['colors'] ?? null) ? $templateProfile['colors'] : [];
@@ -428,7 +450,7 @@ final class SiteTableService
         $cardMetaLayout = $this->normalizeOption((string)($cardDesign['meta_layout'] ?? 'split'), ['split', 'stacked'], 'split');
         $cardColumns = max(1, min(3, (int)($cardSchema['columns'] ?? 2)));
         $styleVariables = $this->buildHubStyleVariables($colorSettings);
-        $contentLanguage = $this->getTemplateContentLanguage($template);
+        $contentLanguage = $this->getTemplateContentLanguage($template, $locale);
 
         $html = '<section class="cms-hub-site cms-hub-site--' . htmlspecialchars($template, ENT_QUOTES, 'UTF-8') . '"';
         if ($pageSlug !== '') {
@@ -654,9 +676,11 @@ final class SiteTableService
         return array_slice($normalized, 0, 6);
     }
 
-    private function normalizeTemplateLinks(array $templateProfile, string $template): array
+    private function normalizeTemplateLinks(array $templateProfile, string $template, string $locale = 'de'): array
     {
-        $links = $templateProfile['links'] ?? [];
+        $links = $locale !== 'de' && is_array($templateProfile['links_' . $locale] ?? null)
+            ? ($templateProfile['links_' . $locale] ?? [])
+            : ($templateProfile['links'] ?? []);
         if (!is_array($links) || $links === []) {
             $links = self::TEMPLATE_PLACEHOLDERS[$template]['links'] ?? self::TEMPLATE_PLACEHOLDERS['general-it']['links'];
         }
@@ -664,9 +688,11 @@ final class SiteTableService
         return $this->normalizeHubLinks(json_encode($links, JSON_UNESCAPED_UNICODE) ?: '[]', $template);
     }
 
-    private function normalizeTemplateSections(array $templateProfile, string $template): array
+    private function normalizeTemplateSections(array $templateProfile, string $template, string $locale = 'de'): array
     {
-        $sections = $templateProfile['sections'] ?? [];
+        $sections = $locale !== 'de' && is_array($templateProfile['sections_' . $locale] ?? null)
+            ? ($templateProfile['sections_' . $locale] ?? [])
+            : ($templateProfile['sections'] ?? []);
         if (!is_array($sections) || $sections === []) {
             $sections = self::TEMPLATE_PLACEHOLDERS[$template]['sections'] ?? self::TEMPLATE_PLACEHOLDERS['general-it']['sections'];
         }
@@ -775,8 +801,53 @@ final class SiteTableService
         return array_slice($normalized, 0, 4);
     }
 
-    private function getTemplateContentLanguage(string $template): array
+    private function getTemplateContentLanguage(string $template, string $locale = 'de'): array
     {
+        if ($locale === 'en') {
+            return match ($template) {
+                'microsoft-365' => [
+                    'meta_icons' => ['audience' => '◈', 'owner' => '☁', 'update_cycle' => '↺', 'focus' => '✦', 'kpi' => '↑'],
+                    'quicklink_icons' => ['T', 'S', 'C', 'G'],
+                    'section_eyebrows' => ['Workspace Layer', 'Guardrails'],
+                    'section_icons' => ['☁', '✓'],
+                    'section_modifiers' => ['spotlight', 'stacked'],
+                    'section_notes' => ['Workloads & journeys', 'Policies & rollout'],
+                ],
+                'datenschutz' => [
+                    'meta_icons' => ['audience' => '§', 'owner' => '⚖', 'update_cycle' => '⏱', 'focus' => '✓', 'kpi' => '▣'],
+                    'quicklink_icons' => ['§', 'V', 'T', 'R'],
+                    'section_eyebrows' => ['Evidence', 'Obligations'],
+                    'section_icons' => ['✓', '⚖'],
+                    'section_modifiers' => ['trust', 'checklist'],
+                    'section_notes' => ['Documentation & proof', 'Deadlines & actions'],
+                ],
+                'linux' => [
+                    'meta_icons' => ['audience' => '⌘', 'owner' => '#', 'update_cycle' => '↻', 'focus' => '▤', 'kpi' => '●'],
+                    'quicklink_icons' => ['#', '□', '>', '!'],
+                    'section_eyebrows' => ['Runtime', 'Runbooks'],
+                    'section_icons' => ['⌘', '>'],
+                    'section_modifiers' => ['terminal', 'terminal'],
+                    'section_notes' => ['$ health=ok', '$ status=watch'],
+                ],
+                'compliance' => [
+                    'meta_icons' => ['audience' => '◎', 'owner' => '◆', 'update_cycle' => '↺', 'focus' => '◌', 'kpi' => '▲'],
+                    'quicklink_icons' => ['P', 'A', 'R', 'N'],
+                    'section_eyebrows' => ['Controls', 'Evidence'],
+                    'section_icons' => ['◆', '▲'],
+                    'section_modifiers' => ['spotlight', 'stacked'],
+                    'section_notes' => ['Controls & roles', 'Audit & evidence'],
+                ],
+                default => [
+                    'meta_icons' => ['audience' => '◎', 'owner' => '◆', 'update_cycle' => '↺', 'focus' => '◌', 'kpi' => '▲'],
+                    'quicklink_icons' => ['S', 'P', 'C', 'O'],
+                    'section_eyebrows' => ['Architecture', 'Operations'],
+                    'section_icons' => ['◆', '▲'],
+                    'section_modifiers' => ['spotlight', 'stacked'],
+                    'section_notes' => ['Blueprint & standards', 'Services & delivery'],
+                ],
+            };
+        }
+
         return match ($template) {
             'microsoft-365' => [
                 'meta_icons' => ['audience' => '◈', 'owner' => '☁', 'update_cycle' => '↺', 'focus' => '✦', 'kpi' => '↑'],
@@ -821,7 +892,7 @@ final class SiteTableService
         };
     }
 
-    private function buildHubMetaItems(array $settings, string $template, array $profile = []): array
+    private function buildHubMetaItems(array $settings, string $template, array $profile = [], string $locale = 'de'): array
     {
         $defaults = [
             'general-it' => ['audience' => 'IT-Leitung', 'owner' => 'IT-Operations', 'cycle' => 'Monatlich', 'focus' => 'Architektur & Betrieb', 'kpi' => 'Servicequalität'],
@@ -831,8 +902,14 @@ final class SiteTableService
             'linux' => ['audience' => 'Admins & Platform Team', 'owner' => 'Platform Engineering', 'cycle' => 'Wöchentlich', 'focus' => 'Automatisierung & Hardening', 'kpi' => 'Deployment-Health'],
         ][$template] ?? [];
 
-        $labels = array_merge(self::DEFAULT_META_LABELS, is_array($profile['meta_labels'] ?? null) ? $profile['meta_labels'] : []);
-        $contentLanguage = $this->getTemplateContentLanguage($template);
+        $defaultLabels = $locale === 'en'
+            ? ['audience' => 'Audience', 'owner' => 'Owner', 'update_cycle' => 'Update cycle', 'focus' => 'Focus', 'kpi' => 'KPI']
+            : self::DEFAULT_META_LABELS;
+        $profileLabels = $locale !== 'de' && is_array($profile['meta_labels_' . $locale] ?? null)
+            ? $profile['meta_labels_' . $locale]
+            : (is_array($profile['meta_labels'] ?? null) ? $profile['meta_labels'] : []);
+        $labels = array_merge($defaultLabels, $profileLabels);
+        $contentLanguage = $this->getTemplateContentLanguage($template, $locale);
 
         $map = [
             'audience' => ['label' => (string)($labels['audience'] ?? 'Zielgruppe'), 'value' => trim((string)($settings['hub_meta_audience'] ?? '')) ?: (string)($defaults['audience'] ?? '')],

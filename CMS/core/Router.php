@@ -21,6 +21,12 @@ class Router
     private string $requestUri;
     private string $requestMethod;
     private array $routes = [];
+    private array $requestContext = [
+        'uri' => '/',
+        'base_uri' => '/',
+        'locale' => 'de',
+        'is_localized' => false,
+    ];
     private bool $notFoundLogged = false;
     
     /**
@@ -505,7 +511,7 @@ class Router
         $this->addRoute('GET', '/blog/:slug', function(string $slug) {
             $db     = Database::instance();
             $prefix = $db->getPrefix();
-            $post   = $db->get_row(
+            $postRow = $db->get_row(
                 "SELECT p.*, u.display_name AS author_name, c.name AS category_name
                  FROM {$prefix}posts p
                  LEFT JOIN {$prefix}users u ON u.id = p.author_id
@@ -513,11 +519,15 @@ class Router
                  WHERE p.slug = ? AND p.status = 'published'",
                 [$slug]
             );
-            if (!$post) {
+            if (!$postRow) {
                 http_response_code(404);
                 ThemeManager::instance()->render('404');
                 return;
             }
+
+            $locale = (string)($this->requestContext['locale'] ?? 'de');
+            $postData = Services\ContentLocalizationService::getInstance()->localizePost((array)$postRow, $locale);
+            $post = (object)$postData;
             // View-Counter erhöhen
             $db->execute("UPDATE {$prefix}posts SET views = views + 1 WHERE id = ?", [(int)$post->id]);
             // Editor.js JSON → HTML konvertieren (falls Inhalt JSON ist)
@@ -533,7 +543,7 @@ class Router
                 );
                 return;
             }
-            ThemeManager::instance()->render('blog-single', ['post' => $post]);
+            ThemeManager::instance()->render('blog-single', ['post' => $post, 'contentLocale' => $locale]);
         });
 
         // SEO Routes
@@ -558,6 +568,8 @@ class Router
     {
         $method = $this->requestMethod;
         $uri    = $this->requestUri;
+        $this->requestContext = Services\ContentLocalizationService::getInstance()->resolveRequestContext($uri);
+        $routingUri = (string)($this->requestContext['base_uri'] ?? $uri);
 
         if (class_exists('\\CMS\\Services\\RedirectService')) {
             $redirect = Services\RedirectService::getInstance()->findRedirect($uri);
@@ -575,13 +587,13 @@ class Router
         $csrfBypassExact    = ['/login', '/register', '/logout', '/contact'];
 
         if (in_array($method, ['POST', 'PUT', 'DELETE', 'PATCH'], true)
-            && !in_array($uri, $csrfBypassExact, true)
-            && !array_reduce($csrfBypassPrefixes, fn($c, $p) => $c || str_starts_with($uri, $p), false)
+            && !in_array($routingUri, $csrfBypassExact, true)
+            && !array_reduce($csrfBypassPrefixes, fn($c, $p) => $c || str_starts_with($routingUri, $p), false)
         ) {
             $csrfToken = $_POST['csrf_token'] ?? '';
             if (!Security::instance()->verifyToken($csrfToken, 'form_guard')) {
                 http_response_code(403);
-                error_log('Router [C-04]: CSRF-Fehlschlag für ' . $method . ' ' . $uri);
+                error_log('Router [C-04]: CSRF-Fehlschlag für ' . $method . ' ' . $routingUri);
                 if ($this->isAjaxRequest()) {
                     header('Content-Type: application/json');
                     echo json_encode(['success' => false, 'error' => 'CSRF-Sicherheitsüberprüfung fehlgeschlagen.']);
@@ -594,14 +606,14 @@ class Router
         // ───────────────────────────────────────────────────────────────────────
         
         // Check exact match first
-        if (isset($this->routes[$method][$uri])) {
-            call_user_func($this->routes[$method][$uri]);
+        if (isset($this->routes[$method][$routingUri])) {
+            call_user_func($this->routes[$method][$routingUri]);
             return;
         }
         
         // Check pattern match
         foreach ($this->routes[$method] ?? [] as $pattern => $callback) {
-            $params = $this->matchRoute($pattern, $uri);
+            $params = $this->matchRoute($pattern, $routingUri);
             if ($params !== false) {
                 call_user_func_array($callback, $params);
                 return;
@@ -612,13 +624,15 @@ class Router
         try {
             $pageManager = PageManager::instance();
             // Remove leading slash for slug matching
-            $slug = trim($uri, '/');
+            $slug = trim($routingUri, '/');
             if (empty($slug)) {
                 $slug = 'home';
             }
             
             $page = $pageManager->getPageBySlug($slug);
             if ($page && $page['status'] === 'published') {
+                $locale = (string)($this->requestContext['locale'] ?? 'de');
+                $page = Services\ContentLocalizationService::getInstance()->localizePage($page, $locale);
                 // Editor.js JSON → HTML konvertieren (falls Inhalt JSON ist)
                 if (!empty($page['content'])) {
                     $page['content'] = $this->prepareRenderableContent((string) $page['content'], 'page', (int) ($page['id'] ?? 0));
@@ -634,13 +648,13 @@ class Router
                 }
                 // Render page template
                 $themeManager = ThemeManager::instance();
-                $themeManager->render('page', ['page' => $page]);
+                $themeManager->render('page', ['page' => $page, 'contentLocale' => $locale]);
                 return;
             }
 
-            $hubPage = Services\SiteTableService::getInstance()->getHubPageBySlug($slug);
+            $hubPage = Services\SiteTableService::getInstance()->getHubPageBySlug($slug, (string)($this->requestContext['locale'] ?? 'de'));
             if ($hubPage !== null) {
-                ThemeManager::instance()->render('page', ['page' => $hubPage]);
+                ThemeManager::instance()->render('page', ['page' => $hubPage, 'contentLocale' => (string)($this->requestContext['locale'] ?? 'de')]);
                 return;
             }
 
