@@ -391,6 +391,24 @@ function createDatabaseTables(PDO $pdo, string $prefix = 'cms_'): array {
             INDEX idx_created_at (created_at),
             INDEX idx_expires (expires_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+
+        'passkey_credentials' => "CREATE TABLE IF NOT EXISTS {$prefix}passkey_credentials (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            user_id INT UNSIGNED NOT NULL,
+            credential_id VARCHAR(255) NOT NULL,
+            public_key TEXT NOT NULL,
+            transports VARCHAR(255) DEFAULT NULL,
+            aaguid VARCHAR(64) DEFAULT NULL,
+            sign_count BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            name VARCHAR(255) DEFAULT NULL,
+            last_used_at TIMESTAMP NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY unique_credential_id (credential_id),
+            INDEX idx_user_id (user_id),
+            INDEX idx_last_used_at (last_used_at),
+            FOREIGN KEY (user_id) REFERENCES {$prefix}users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='WebAuthn Passkey-Credentials'",
         
         'login_attempts' => "CREATE TABLE IF NOT EXISTS {$prefix}login_attempts (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -1172,7 +1190,7 @@ if ($step === 'update') {
                 ]);
 
                 // 2. Fehlende Tabellen anlegen (CREATE TABLE IF NOT EXISTS – Daten bleiben)
-                $tableResults = createDatabaseTables($pdo);
+                $tableResults = createDatabaseTables($pdo, $existingConfig['db_prefix'] ?? 'cms_');
 
                 // 3. Zentrale Settings in DB aktualisieren
                 $prefix = 'cms_';
