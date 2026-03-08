@@ -5,21 +5,21 @@ declare(strict_types=1);
  * Meridian CMS Default Theme – Functions
  *
  * @package CMSDefault
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
-define('MERIDIAN_THEME_VERSION', '1.0.0');
+define('MERIDIAN_THEME_VERSION', '1.1.0');
 define('MERIDIAN_THEME_DIR',     THEME_PATH . 'cms-default/');
 define('MERIDIAN_THEME_URL',     \CMS\ThemeManager::instance()->getThemeUrl());
 
 /**
  * Meridian CMS Default Theme Bootstrap
  */
-class MeridianCMSDefaultTheme
+final class MeridianCMSDefaultTheme
 {
     private static ?self $instance = null;
 
@@ -139,9 +139,10 @@ class MeridianCMSDefaultTheme
 
     public function enqueueStyles(): void
     {
-        $themeUrl = MERIDIAN_THEME_URL;
-        $version  = MERIDIAN_THEME_VERSION;
-        echo '<link rel="stylesheet" href="' . htmlspecialchars($themeUrl, ENT_QUOTES, 'UTF-8') . '/style.css?v=' . $version . '">' . "\n";
+        $cssPath = MERIDIAN_THEME_DIR . 'style.css';
+        $version = file_exists($cssPath) ? (string)filemtime($cssPath) : MERIDIAN_THEME_VERSION;
+
+        echo '<link rel="stylesheet" href="' . htmlspecialchars(MERIDIAN_THEME_URL, ENT_QUOTES, 'UTF-8') . '/style.css?v=' . htmlspecialchars($version, ENT_QUOTES, 'UTF-8') . '">' . "\n";
     }
 
     // ─── Meta Tags ──────────────────────────────────────────────────────────
@@ -385,9 +386,10 @@ class MeridianCMSDefaultTheme
 
     public function enqueueScripts(): void
     {
-        $themeUrl = MERIDIAN_THEME_URL;
-        $version  = MERIDIAN_THEME_VERSION;
-        echo '<script src="' . htmlspecialchars($themeUrl, ENT_QUOTES, 'UTF-8') . '/js/theme.js?v=' . $version . '" defer></script>' . "\n";
+        $jsPath  = MERIDIAN_THEME_DIR . 'js/theme.js';
+        $version = file_exists($jsPath) ? (string)filemtime($jsPath) : MERIDIAN_THEME_VERSION;
+
+        echo '<script src="' . htmlspecialchars(MERIDIAN_THEME_URL, ENT_QUOTES, 'UTF-8') . '/js/theme.js?v=' . htmlspecialchars($version, ENT_QUOTES, 'UTF-8') . '" defer></script>' . "\n";
         // Footer-Code aus Customizer
         try {
             $footerCode = \CMS\Services\ThemeCustomizer::instance()->get('advanced', 'custom_footer_code', '');
@@ -763,6 +765,17 @@ function meridian_setting(string $section, string $key, mixed $default = null): 
     } catch (\Throwable $e) {
         return $default;
     }
+}
+
+/**
+ * URL-Helfer für den Mitgliederbereich.
+ */
+function meridian_member_area_url(string $path = 'dashboard'): string
+{
+    $normalized = trim($path, '/');
+    $target = $normalized === '' ? 'dashboard' : $normalized;
+
+    return rtrim((string)SITE_URL, '/') . '/member/' . $target;
 }
 
 /**

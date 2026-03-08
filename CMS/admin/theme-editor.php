@@ -23,7 +23,15 @@ $activeThemeSlug = $themeManager->getActiveThemeSlug();
 $customizerPath  = $themeManager->getThemePath() . 'admin/customizer.php';
 
 if (is_file($customizerPath)) {
+    $pageTitle = 'Theme Editor';
+    $activePage = 'theme-editor';
+    $pageAssets = [];
+    $embedInAdminLayout = true;
+
+    require __DIR__ . '/partials/header.php';
+    require __DIR__ . '/partials/sidebar.php';
     require $customizerPath;
+    require __DIR__ . '/partials/footer.php';
     return;
 }
 

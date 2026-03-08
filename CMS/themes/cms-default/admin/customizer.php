@@ -16,6 +16,8 @@ if (!defined('ABSPATH')) {
 use CMS\Services\ThemeCustomizer;
 use CMS\Security;
 
+$embedInAdminLayout = !empty($embedInAdminLayout);
+
 // Helper für Sidebar laden
 // Pfad-Logik für verschiedene Deployment-Szenarien
 $possiblePaths = [
@@ -562,6 +564,13 @@ $config = [
     ],
 ];
 
+if (class_exists('\\CMS\\Hooks')) {
+    $filteredConfig = \CMS\Hooks::applyFilters('theme_customizer_sections', $config, 'cms-default');
+    if (is_array($filteredConfig)) {
+        $config = $filteredConfig;
+    }
+}
+
 $customizer = ThemeCustomizer::instance();
 // Sicherstellen, dass das richtige Theme geladen ist
 if (class_exists('\CMS\ThemeManager')) {
@@ -591,6 +600,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $default = $default ? '1' : '0';
             }
             $customizer->set($resetTab, $fieldKey, (string)$default);
+        }
+        if (class_exists('\\CMS\\Hooks')) {
+            \CMS\Hooks::doAction('theme_customizer_save', 'cms-default', $resetTab, $config[$resetTab]['sections'] ?? [], ['mode' => 'reset']);
         }
         $success = 'Einstellungen für &bdquo;' . htmlspecialchars($config[$resetTab]['title']) . '&ldquo; auf Standardwerte zurückgesetzt.';
     }
@@ -649,11 +661,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 }
                 $customizer->set($sectionKey, $fieldKey, $value);
             }
+            if (class_exists('\\CMS\\Hooks')) {
+                \CMS\Hooks::doAction('theme_customizer_save', 'cms-default', $saveTab, $config[$saveTab]['sections'] ?? [], ['mode' => 'save']);
+            }
             $success = 'Einstellungen für &bdquo;' . htmlspecialchars($config[$saveTab]['title']) . '&ldquo; gespeichert.';
         }
     }
 }
 ?>
+<?php if (!$embedInAdminLayout): ?>
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -678,14 +694,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <?php renderAdminSidebar('theme-customizer'); ?>
 
     <div class="admin-content">
+<?php endif; ?>
+
+        <div class="page-header d-print-none">
+            <div class="container-xl">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="page-pretitle">Themes &amp; Design</div>
+                        <h2 class="page-title">🎨 Theme Customizer</h2>
+                        <div class="text-secondary mt-1">Passe das Aussehen deines Themes an.</div>
+                    </div>
+                    <div class="col-auto ms-auto d-print-none">
+                        <div class="btn-list">
+                            <a href="<?php echo SITE_URL; ?>/" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary">🌐 Seite ansehen</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="page-body">
+            <div class="container-xl">
+
+        <style>
+            .customizer-layout { display: flex; gap: 2rem; align-items: flex-start; }
+            .customizer-nav { width: 240px; flex-shrink: 0; background: #fff; border-radius: var(--tblr-border-radius-lg, 12px); border: 1px solid var(--tblr-border-color, #e6e7e9); overflow: hidden; }
+            .customizer-nav a { display: block; padding: 1rem 1.5rem; color: #64748b; text-decoration: none; border-left: 3px solid transparent; transition: all .2s; }
+            .customizer-nav a:hover { background: #f8fafc; color: var(--tblr-primary, #206bc4); }
+            .customizer-nav a.active { background: #eff6ff; color: var(--tblr-primary, #206bc4); border-left-color: var(--tblr-primary, #206bc4); font-weight: 600; }
+            .customizer-content { flex: 1; }
+            .form-actions-card { position: sticky; bottom: 1rem; z-index: 10; }
+            @media (max-width: 960px) {
+                .customizer-layout { flex-direction: column; }
+                .customizer-nav { width: 100%; }
+            }
+        </style>
 
         <div class="admin-page-header">
             <div>
-                <h2>🎨 Theme Customizer</h2>
-                <p>Passe das Aussehen deines Themes an.</p>
-            </div>
-            <div class="header-actions">
-                <a href="<?php echo SITE_URL; ?>/" target="_blank" class="btn btn-secondary">🌐 Seite ansehen</a>
             </div>
         </div>
 
@@ -811,6 +857,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             </div>
         </form>
 
+            </div>
+        </div>
+
+    <?php if (!$embedInAdminLayout): ?>
     </div>
 
     <!-- Bestätigungsmodal für Reset -->
@@ -990,3 +1040,170 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     </script>
 </body>
 </html>
+    <?php else: ?>
+    <!-- Bestätigungsmodal für Reset -->
+    <div id="confirm-reset-modal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width:480px;">
+            <div class="modal-header">
+                <h3>⚠️ Einstellungen zurücksetzen?</h3>
+                <button class="modal-close" onclick="closeResetModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Alle Einstellungen dieses Tabs werden auf die <strong>Standard-Designwerte</strong> des Themes zurückgesetzt.</p>
+                <p style="color:#64748b;font-size:.875rem;">Bereits gespeicherte Anpassungen gehen für diesen Bereich verloren.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeResetModal()">Abbrechen</button>
+                <button type="button" class="btn btn-danger" onclick="confirmReset()">↺ Zurücksetzen</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        var liveStyle = document.createElement('style');
+        liveStyle.id = 'customizer-live-preview';
+        document.head.appendChild(liveStyle);
+
+        function updateLivePreview() {
+            var rules = ':root {\n';
+            var mapping = {
+                'colors_accent_color':        '--accent',
+                'colors_accent_dark_color':   '--accent-dark',
+                'colors_ink_color':           '--ink',
+                'colors_ink_soft_color':      '--ink-soft',
+                'colors_ink_muted_color':     '--ink-muted',
+                'colors_ground_color':        '--ground',
+                'colors_surface_color':       '--surface',
+                'colors_surface_tint_color':  '--surface-tint',
+                'colors_rule_color':          '--rule',
+                'colors_header_bg_color':     '--header-bg-preview',
+                'colors_header_stripe_color': '--stripe-preview'
+            };
+            Object.keys(mapping).forEach(function(name) {
+                var inp = document.querySelector('input[name="'+ name +'"][type="color"]');
+                if (inp) { rules += '  ' + mapping[name] + ': ' + inp.value + ';\n'; }
+            });
+            rules += '}';
+            liveStyle.textContent = rules;
+
+            var hbg = document.querySelector('input[name="colors_header_bg_color"][type="color"]');
+            if (hbg) {
+                var headers = document.querySelectorAll('.site-header');
+                headers.forEach(function(h){ h.style.background = hbg.value; });
+            }
+        }
+
+        document.querySelectorAll('input[type="color"]').forEach(function(picker) {
+            var textInput = picker.nextElementSibling;
+            if (textInput && textInput.tagName === 'INPUT') {
+                picker.addEventListener('input', function() {
+                    textInput.value = this.value;
+                    updateLivePreview();
+                });
+                textInput.addEventListener('input', function() {
+                    var v = this.value.trim();
+                    if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+                        picker.value = v;
+                        updateLivePreview();
+                    }
+                });
+            }
+        });
+
+        var colorSection = document.querySelector('.customizer-content');
+        if (colorSection && document.querySelector('input[name="colors_accent_color"]')) {
+            var palette = document.createElement('div');
+            palette.id  = 'color-palette-preview';
+            palette.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;padding:1rem 0 0;';
+
+            var colorFields = [
+                { name: 'colors_accent_color',       label: 'Akzent' },
+                { name: 'colors_accent_dark_color',  label: 'Akzent Dunkel' },
+                { name: 'colors_ink_color',          label: 'Text' },
+                { name: 'colors_ground_color',       label: 'Hintergrund' },
+                { name: 'colors_surface_color',      label: 'Surface' },
+                { name: 'colors_header_bg_color',    label: 'Header' },
+                { name: 'colors_header_stripe_color', label: 'Streifen' }
+            ];
+
+            colorFields.forEach(function(cf) {
+                var inp = document.querySelector('input[name="'+cf.name+'"][type="color"]');
+                if (!inp) return;
+                var swatch = document.createElement('div');
+                swatch.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:2px;';
+                var dot = document.createElement('div');
+                dot.style.cssText = 'width:32px;height:32px;border-radius:50%;border:2px solid rgba(0,0,0,.1);background:'+inp.value+';';
+                var lbl = document.createElement('span');
+                lbl.style.cssText = 'font-size:0.68rem;color:#64748b;max-width:48px;text-align:center;line-height:1.2;';
+                lbl.textContent = cf.label;
+                swatch.appendChild(dot);
+                swatch.appendChild(lbl);
+                palette.appendChild(swatch);
+
+                inp.addEventListener('input', function() {
+                    dot.style.background = this.value;
+                });
+            });
+
+            var firstCard = document.querySelector('.customizer-content .admin-card');
+            if (firstCard) {
+                var previewWrap = document.createElement('div');
+                previewWrap.style.cssText = 'padding:1rem;border-bottom:1px solid #f1f5f9;background:#fafafa;';
+                var title = document.createElement('div');
+                title.style.cssText = 'font-size:.75rem;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;';
+                title.textContent = 'Farb-Vorschau';
+                previewWrap.appendChild(title);
+                previewWrap.appendChild(palette);
+                firstCard.insertBefore(previewWrap, firstCard.firstChild);
+            }
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                var btn = document.querySelector('button[type="submit"].btn-primary');
+                if (btn) { btn.click(); }
+            }
+        });
+    })();
+
+    function previewLogoUpload(input) {
+        if (!input.files || !input.files[0]) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var wrap = document.getElementById('logo-preview-wrap');
+            var img  = document.getElementById('logo-preview-img');
+            if (img && img.tagName === 'IMG') {
+                img.src = e.target.result;
+            } else if (wrap) {
+                wrap.innerHTML = '<img id="logo-preview-img" src="'+ e.target.result +'" style="max-height:48px;max-width:200px;">';
+            }
+            var urlField = document.querySelector('input[name="header_logo_url"]');
+            if (urlField) urlField.value = '';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+
+    function syncLogoUrlPreview(url) {
+        var wrap = document.getElementById('logo-preview-wrap');
+        if (!wrap) return;
+        if (url && url.match(/^https?:\/\//)) {
+            wrap.innerHTML = '<img id="logo-preview-img" src="'+ url +'" alt="Logo" style="max-height:48px;max-width:200px;" onerror="this.parentElement.innerHTML=\'<span style=color:#ef4444>Bild konnte nicht geladen werden</span>\'">';
+        }
+    }
+
+    function showResetConfirm() {
+        var modal = document.getElementById('confirm-reset-modal');
+        if (modal) { modal.style.display = 'flex'; }
+    }
+    function closeResetModal() {
+        var modal = document.getElementById('confirm-reset-modal');
+        if (modal) { modal.style.display = 'none'; }
+    }
+    function confirmReset() {
+        closeResetModal();
+        document.getElementById('reset-form').submit();
+    }
+    </script>
+    <?php endif; ?>

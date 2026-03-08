@@ -1,7 +1,7 @@
 /*
 Theme Name: Meridian CMS Default
 Description: Das offizielle CMS-Default Theme – editorial, klar, charakterstark. Warm Off-White + Near-Black + Deep Amber. Ideal für Blogs, Magazine und Wissensportale.
-Version: 1.0.1
+Version: 1.1.0
 Author: PHINIT.DE / Andreas Hepp
 Author URI: https://phinit.de
 Tags: editorial, magazine, blog, responsive, cms, default
@@ -2189,6 +2189,155 @@ footer, .site-footer { background: var(--ink); color: rgba(255,255,255,.5); marg
 .empty-state { text-align: center; padding: 4rem 1.5rem; color: var(--ink-muted); }
 .empty-state p { font-size: .9rem; line-height: 1.7; }
 
+/* === V2.5 INTEGRATIONEN === */
+.flash-banner {
+  border-radius: 0;
+  margin: 0;
+}
+
+.site-logo-image {
+  max-height: var(--logo-height, 48px);
+  display: block;
+  width: auto;
+}
+
+.site-logo-fallback {
+  display: none;
+  align-items: center;
+  gap: .4rem;
+}
+
+.site-logo--mobile {
+  text-decoration: none;
+}
+
+.site-logo-image--mobile {
+  max-height: 32px;
+}
+
+.site-logo-fallback--mobile {
+  gap: .3rem;
+}
+
+.logo-word--mobile {
+  font-size: 1rem;
+}
+
+.header-search {
+  display: none;
+  border-bottom: 1px solid var(--rule);
+  background: var(--surface);
+}
+
+.header-search.is-open {
+  display: block;
+}
+
+.header-search-form {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: .85rem 1.5rem;
+  display: flex;
+  gap: .75rem;
+  align-items: center;
+}
+
+.header-search-input {
+  flex: 1;
+}
+
+.category-bar-empty {
+  font-size: .8rem;
+  color: var(--ink-muted);
+}
+
+.mobile-nav-close {
+  margin-left: auto;
+}
+
+.mobile-nav-link--child {
+  padding-left: 2.5rem;
+  font-size: .83rem;
+  opacity: .8;
+}
+
+.mobile-nav-link--highlight {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.mobile-nav-divider {
+  height: 1px;
+  background: var(--rule);
+  margin: .5rem 1.25rem;
+}
+
+.mobile-nav-search-form {
+  display: flex;
+  gap: .5rem;
+}
+
+.mobile-nav-search-input {
+  flex: 1;
+}
+
+body.member-shell {
+  background: var(--ground);
+  color: var(--ink);
+}
+
+body.member-shell .member-sidebar,
+body.member-shell .member-topbar,
+body.member-shell .member-sidebar-greeting,
+body.member-shell .member-plugin-widget,
+body.member-shell .timeline-event-card,
+body.member-shell .card {
+  border-color: var(--rule);
+}
+
+body.member-shell .member-topbar,
+body.member-shell .member-sidebar {
+  background: var(--surface);
+}
+
+body.member-shell .member-brand-avatar,
+body.member-shell .member-sidebar .avatar,
+body.member-shell .member-topbar .avatar,
+body.member-shell .member-hero-card .btn-primary,
+body.member-shell .btn-primary {
+  background: var(--accent);
+}
+
+body.member-shell .member-topbar .page-pretitle,
+body.member-shell .text-secondary,
+body.member-shell .member-sidebar .nav-link-title {
+  color: var(--ink-muted);
+}
+
+body.member-shell .member-sidebar .nav-link.active,
+body.member-shell .member-sidebar .nav-link:hover,
+body.member-shell a,
+body.member-shell .btn-outline-primary {
+  color: var(--accent);
+}
+
+body.member-shell .btn-outline-primary,
+body.member-shell .progress-bar,
+body.member-shell .bg-primary,
+body.member-shell .bg-primary-lt {
+  border-color: var(--accent);
+}
+
+body.member-shell .member-sidebar .nav-link.active,
+body.member-shell .member-sidebar .nav-link:hover {
+  background: var(--accent-light);
+}
+
+body.member-shell .btn-outline-primary:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
 /* === RESPONSIVE === */
 @media (max-width: 960px) {
   .footer-main { grid-template-columns: 1fr 1fr; gap: 2rem; }
@@ -2207,6 +2356,7 @@ footer, .site-footer { background: var(--ink); color: rgba(255,255,255,.5); marg
   .sidebar { grid-template-columns: 1fr; }
   .nav-toggle { display: flex; }
   .primary-nav, .header-actions { display: none; }
+  .header-search-form { flex-wrap: wrap; }
 }
 @media (max-width: 520px) {
   .footer-main { grid-template-columns: 1fr; }
@@ -2214,4 +2364,5 @@ footer, .site-footer { background: var(--ink); color: rgba(255,255,255,.5); marg
   .footer-bottom-inner { flex-direction: column; align-items: flex-start; }
   .auth-card { padding: 1.75rem 1.25rem; }
   .page-wrap { padding: 0 1rem; margin: 1.5rem auto; }
+  .header-search-form { padding: .75rem 1rem; }
 }

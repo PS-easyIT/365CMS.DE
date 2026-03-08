@@ -29,7 +29,13 @@ $socialLinks = [
 
 </main><!-- Main Content Wrapper endet hier -->
 
-<footer>
+<?php
+if (class_exists('\\CMS\\Hooks')) {
+  \CMS\Hooks::doAction('before_footer');
+}
+?>
+
+<footer class="site-footer">
   <div class="footer-top-rule"></div>
   <div class="footer-main">
 
@@ -117,11 +123,10 @@ $socialLinks = [
   </div>
 </footer>
 
-<script src="<?php echo SITE_URL; ?>/themes/cms-default/js/theme.js?v=<?php echo defined('MERIDIAN_THEME_VERSION') ? MERIDIAN_THEME_VERSION : '1.0.0'; ?>" defer></script>
 <?php
-// Scripts, Cookie-Banner und Custom Footer Code via Hook ausgeben
 if (class_exists('\\CMS\\Hooks')) {
-    \CMS\Hooks::doAction('before_footer');
+  \CMS\Hooks::doAction('footer');
+  \CMS\Hooks::doAction('body_end');
 }
 ?>
 
