@@ -78,3 +78,4 @@ secrets/
 .gitlog_365cms.txt
 
 /ASSETS/msgraph-sdk-php-2.56.0/
+/TEST/
