@@ -129,16 +129,43 @@ if ($viewAction === 'edit') {
         $inlineJs = sprintf(
             "(function(){
                 if(typeof createCmsEditor!=='function'){console.warn('EditorJS nicht verfügbar');return;}
-                var inp=document.getElementById('contentInput');
-                var rawContent=inp?inp.value:'';
-                var ed=createCmsEditor('editorjs',rawContent,%s,%s);
                 var form=document.getElementById('postForm');
+                var editors={};
+                var enInitialized=false;
+
+                function bindEditor(key,holderId,inputId){
+                    var holder=document.getElementById(holderId);
+                    var input=document.getElementById(inputId);
+                    if(!holder||!input||editors[key]){return;}
+                    editors[key]={input:input,instance:createCmsEditor(holderId,input.value||'',%s,%s)};
+                }
+
+                bindEditor('de','editorjs','contentInput');
+
+                var enToggle=document.getElementById('postLangToggleEn');
+                if(enToggle){
+                    enToggle.addEventListener('click',function(){
+                        if(enInitialized){return;}
+                        bindEditor('en','editorjsEn','contentInputEn');
+                        enInitialized=true;
+                    });
+                }
+
                 if(form){form.addEventListener('submit',function(e){
-                    e.preventDefault();var f=this;
-                    ed.save().then(function(o){inp.value=JSON.stringify(o);f.submit();}).catch(function(){f.submit();});
+                    var keys=Object.keys(editors);
+                    if(keys.length===0){return;}
+                    e.preventDefault();
+                    var f=this;
+                    Promise.all(keys.map(function(key){
+                        var entry=editors[key];
+                        return entry.instance.save().then(function(output){
+                            entry.input.value=JSON.stringify(output);
+                        }).catch(function(){ /* submit fallback */ });
+                    })).finally(function(){f.submit();});
                 });}
             })();",
             json_encode((defined('SITE_URL') ? SITE_URL : '') . '/api/media'),
+            json_encode($editorMediaToken),
             json_encode($editorMediaToken)
         );
     }

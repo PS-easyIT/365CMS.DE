@@ -25,9 +25,12 @@ if (!in_array($postDefaultStatus, ['draft', 'published'], true)) {
 }
 
 $title      = htmlspecialchars($post['title'] ?? '');
+$titleEn    = htmlspecialchars($post['title_en'] ?? '');
 $slug       = htmlspecialchars($post['slug'] ?? '');
 $content    = $post['content'] ?? '';
+$contentEn  = $post['content_en'] ?? '';
 $excerpt    = htmlspecialchars($post['excerpt'] ?? '');
+$excerptEn  = htmlspecialchars($post['excerpt_en'] ?? '');
 $status     = $post['status'] ?? $postDefaultStatus;
 $categoryId = (int)($post['category_id'] ?? 0);
 $featuredImg = htmlspecialchars($post['featured_image'] ?? '');
@@ -82,12 +85,16 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
             $postTitleValue = (string)($post['title'] ?? '');
             $postSlugValue = (string)($post['slug'] ?? '');
             $postContentValue = (string)$content;
+            $postContentEnValue = (string)$contentEn;
             $postExcerptValue = (string)($post['excerpt'] ?? '');
+            $postTitleEnValue = (string)($post['title_en'] ?? '');
+            $postExcerptEnValue = (string)($post['excerpt_en'] ?? '');
             $postStatusValue = (string)$status;
             $postMetaTitleValue = (string)($post['meta_title'] ?? '');
             $postMetaDescriptionValue = (string)($post['meta_description'] ?? '');
             $postFeaturedImageValue = (string)($post['featured_image'] ?? '');
             $postPreviewUrl = htmlspecialchars(SITE_URL) . '/blog/' . ltrim($postSlugValue, '/');
+            $postPreviewUrlEn = $postPreviewUrl . '/en';
             $selectedCategoryName = 'Keine Kategorie';
             foreach ($categories as $cat) {
                 if ($categoryId === (int)($cat['id'] ?? 0)) {
@@ -147,7 +154,10 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
                             </button>
                             <?php if (!$isNew): ?>
                                 <a href="<?php echo $postPreviewUrl; ?>" class="btn btn-outline-secondary" target="_blank" rel="noopener noreferrer" title="Vorschau">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/></svg>
+                                    DE
+                                </a>
+                                <a href="<?php echo htmlspecialchars($postPreviewUrlEn); ?>" class="btn btn-outline-secondary" target="_blank" rel="noopener noreferrer" title="English preview">
+                                    EN
                                 </a>
                             <?php endif; ?>
                         </div>
@@ -156,25 +166,60 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
 
                 <div class="col-12">
                     <div class="card cms-edit-card cms-editor-card mb-3">
-                        <div class="card-header">
+                        <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
                             <h3 class="card-title">Inhalt</h3>
+                            <div class="btn-group" role="group" aria-label="Inhaltssprache wählen">
+                                <button class="btn btn-primary" type="button" id="postLangToggleDe" data-post-lang-toggle="de" aria-pressed="true">Deutsch</button>
+                                <button class="btn btn-outline-primary" type="button" id="postLangToggleEn" data-post-lang-toggle="en" aria-pressed="false">English</button>
+                            </div>
                         </div>
                         <div class="card-body">
-                            <?php if (!empty($useEditorJs)): ?>
-                            <div class="editorjs-wrap editorjs-wrap--post cms-editor-live-wrap"
-                                 style="--editorjs-content-width:<?php echo (int)$postEditorWidth; ?>px; --editorjs-content-padding-x:50px; --editorjs-content-width-expanded:1100px;">
-                                <div id="editorjs" class="editorjs-holder cms-editor-live-holder" style="min-height:300px;"></div>
+                            <div id="postLanguagePaneDe" data-post-lang-pane="de">
+                                <div class="mb-3 text-secondary small">Standardansicht unter <code><?php echo htmlspecialchars($postPreviewUrl); ?></code></div>
+                                <?php if (!empty($useEditorJs)): ?>
+                                <div class="editorjs-wrap editorjs-wrap--post cms-editor-live-wrap"
+                                     style="--editorjs-content-width:<?php echo (int)$postEditorWidth; ?>px; --editorjs-content-padding-x:50px; --editorjs-content-width-expanded:1100px;">
+                                    <div id="editorjs" class="editorjs-holder cms-editor-live-holder" style="min-height:300px;"></div>
+                                </div>
+                                <input type="hidden" name="content" id="contentInput" value="<?php echo htmlspecialchars($postContentValue); ?>">
+                                <?php else: ?>
+                                    <?php echo EditorService::getInstance()->render('content', $postContentValue, [
+                                        'height' => '420',
+                                        'context' => 'post',
+                                        'content_width' => $postEditorWidth,
+                                        'content_width_expanded' => 1100,
+                                        'content_padding_x' => 50,
+                                    ]); ?>
+                                <?php endif; ?>
                             </div>
-                            <input type="hidden" name="content" id="contentInput" value="<?php echo htmlspecialchars($postContentValue); ?>">
-                            <?php else: ?>
-                                <?php echo EditorService::getInstance()->render('content', $postContentValue, [
-                                    'height' => '420',
-                                    'context' => 'post',
-                                    'content_width' => $postEditorWidth,
-                                    'content_width_expanded' => 1100,
-                                    'content_padding_x' => 50,
-                                ]); ?>
-                            <?php endif; ?>
+                            <div id="postLanguagePaneEn" data-post-lang-pane="en" class="d-none">
+                                <div class="row g-3 mb-3">
+                                    <div class="col-lg-7">
+                                        <label class="form-label" for="titleEn">Englischer Titel</label>
+                                        <input type="text" class="form-control" id="titleEn" name="title_en" value="<?php echo htmlspecialchars($postTitleEnValue); ?>" placeholder="English article title">
+                                    </div>
+                                    <div class="col-lg-5">
+                                        <label class="form-label" for="excerptEn">Englische Kurzfassung</label>
+                                        <textarea class="form-control" id="excerptEn" name="excerpt_en" rows="2" placeholder="Short English summary"><?php echo htmlspecialchars($postExcerptEnValue); ?></textarea>
+                                    </div>
+                                </div>
+                                <div class="mb-3 text-secondary small">Die englische Version ist unter <code><?php echo htmlspecialchars($postPreviewUrlEn); ?></code> erreichbar.</div>
+                                <?php if (!empty($useEditorJs)): ?>
+                                <div class="editorjs-wrap editorjs-wrap--post cms-editor-live-wrap"
+                                     style="--editorjs-content-width:<?php echo (int)$postEditorWidth; ?>px; --editorjs-content-padding-x:50px; --editorjs-content-width-expanded:1100px;">
+                                    <div id="editorjsEn" class="editorjs-holder cms-editor-live-holder" style="min-height:300px;"></div>
+                                </div>
+                                <input type="hidden" name="content_en" id="contentInputEn" value="<?php echo htmlspecialchars($postContentEnValue); ?>">
+                                <?php else: ?>
+                                    <?php echo EditorService::getInstance()->render('content_en', $postContentEnValue, [
+                                        'height' => '420',
+                                        'context' => 'post',
+                                        'content_width' => $postEditorWidth,
+                                        'content_width_expanded' => 1100,
+                                        'content_padding_x' => 50,
+                                    ]); ?>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -397,6 +442,8 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
     var metaDescInput = document.getElementById('metaDesc');
     var statusInput = document.getElementById('status');
     var categoryInput = document.getElementById('categoryId');
+    var languageButtons = document.querySelectorAll('[data-post-lang-toggle]');
+    var languagePanes = document.querySelectorAll('[data-post-lang-pane]');
 
     var titleCount = document.getElementById('postTitleCount');
     var slugCount = document.getElementById('postSlugCount');
@@ -410,6 +457,19 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
     var statusMap = {
         draft: { label: 'Entwurf', className: 'badge bg-yellow-lt text-yellow' },
         published: { label: 'Veröffentlicht', className: 'badge bg-green-lt text-green' }
+    };
+
+    var switchLanguage = function(lang) {
+        languagePanes.forEach(function(pane) {
+            pane.classList.toggle('d-none', pane.getAttribute('data-post-lang-pane') !== lang);
+        });
+
+        languageButtons.forEach(function(button) {
+            var isActive = button.getAttribute('data-post-lang-toggle') === lang;
+            button.classList.toggle('btn-primary', isActive);
+            button.classList.toggle('btn-outline-primary', !isActive);
+            button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
     };
 
     var updateAnalysis = function() {
@@ -474,7 +534,14 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
         el.addEventListener('change', updateAnalysis);
     });
 
+    languageButtons.forEach(function(button) {
+        button.addEventListener('click', function() {
+            switchLanguage(button.getAttribute('data-post-lang-toggle') || 'de');
+        });
+    });
+
     updateAnalysis();
+    switchLanguage('de');
 })();
 </script>
 

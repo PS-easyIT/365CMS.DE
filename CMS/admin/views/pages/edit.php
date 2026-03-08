@@ -73,10 +73,13 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
             $pageSlugValue = (string)($page->slug ?? '');
             $pageStatusValue = (string)($page->status ?? $pageDefaultStatus);
             $pageContentValue = (string)($page->content ?? '');
+            $pageTitleEnValue = (string)($page->title_en ?? '');
+            $pageContentEnValue = (string)($page->content_en ?? '');
             $pageMetaTitleValue = (string)($page->meta_title ?? '');
             $pageMetaDescriptionValue = (string)($page->meta_description ?? '');
             $pageFeaturedImageValue = (string)($page->featured_image ?? '');
             $pagePreviewUrl = $siteUrl . '/' . ltrim($pageSlugValue, '/');
+            $pagePreviewUrlEn = rtrim($pagePreviewUrl, '/') . '/en';
             $pageFocusKeyphraseValue = (string)($seoMeta['focus_keyphrase'] ?? '');
             $pageCanonicalUrlValue = (string)($seoMeta['canonical_url'] ?? '');
             $pageRobotsIndexValue = !array_key_exists('robots_index', $seoMeta) || !empty($seoMeta['robots_index']);
@@ -152,7 +155,11 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                             <?php if (!$isNew): ?>
                                 <a href="<?= htmlspecialchars($pagePreviewUrl) ?>"
                                    class="btn btn-outline-secondary" target="_blank" rel="noopener">
-                                    Ansehen
+                                    DE
+                                </a>
+                                <a href="<?= htmlspecialchars($pagePreviewUrlEn) ?>"
+                                   class="btn btn-outline-secondary" target="_blank" rel="noopener">
+                                    EN
                                 </a>
                             <?php endif; ?>
                         </div>
@@ -161,25 +168,56 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
 
                 <div class="col-12">
                     <div class="card cms-edit-card cms-editor-card mb-3">
-                        <div class="card-header">
+                        <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
                             <h3 class="card-title">Inhalt</h3>
+                            <div class="btn-group" role="group" aria-label="Inhaltssprache wählen">
+                                <button class="btn btn-primary" type="button" id="pageLangToggleDe" data-lang-toggle="de" aria-pressed="true">Deutsch</button>
+                                <button class="btn btn-outline-primary" type="button" id="pageLangToggleEn" data-lang-toggle="en" aria-pressed="false">English</button>
+                            </div>
                         </div>
                         <div class="card-body">
-                            <?php if (!empty($useEditorJs)): ?>
-                            <div class="editorjs-wrap editorjs-wrap--page cms-editor-live-wrap"
-                                   style="--editorjs-content-width:<?= (int)$pageEditorWidth ?>px; --editorjs-content-padding-x:50px;">
-                                <div id="editorjs" class="editorjs-holder cms-editor-live-holder" style="min-height: 300px;"></div>
+                            <div id="pageLanguagePaneDe" data-page-lang-pane="de">
+                                <div class="mb-3">
+                                    <div class="text-secondary small mb-2">Standardansicht unter <code><?= htmlspecialchars($pagePreviewUrl) ?></code></div>
+                                </div>
+                                <?php if (!empty($useEditorJs)): ?>
+                                <div class="editorjs-wrap editorjs-wrap--page cms-editor-live-wrap"
+                                       style="--editorjs-content-width:<?= (int)$pageEditorWidth ?>px; --editorjs-content-padding-x:50px;">
+                                    <div id="editorjs" class="editorjs-holder cms-editor-live-holder" style="min-height: 300px;"></div>
+                                </div>
+                                <input type="hidden" name="content" id="editorContent"
+                                       value="<?= htmlspecialchars($pageContentValue) ?>">
+                                <?php else: ?>
+                                    <?= EditorService::getInstance()->render('content', $pageContentValue, [
+                                        'height' => '420',
+                                        'context' => 'page',
+                                        'content_width' => $pageEditorWidth,
+                                        'content_padding_x' => 50,
+                                    ]) ?>
+                                <?php endif; ?>
                             </div>
-                            <input type="hidden" name="content" id="editorContent"
-                                   value="<?= htmlspecialchars($pageContentValue) ?>">
-                            <?php else: ?>
-                                <?= EditorService::getInstance()->render('content', $pageContentValue, [
-                                    'height' => '420',
-                                    'context' => 'page',
-                                    'content_width' => $pageEditorWidth,
-                                    'content_padding_x' => 50,
-                                ]) ?>
-                            <?php endif; ?>
+                            <div id="pageLanguagePaneEn" data-page-lang-pane="en" class="d-none">
+                                <div class="mb-3">
+                                    <label class="form-label" for="pageTitleEn">Englischer Titel</label>
+                                    <input type="text" name="title_en" id="pageTitleEn" class="form-control" value="<?= htmlspecialchars($pageTitleEnValue) ?>" placeholder="English page title">
+                                    <div class="form-hint">Die englische Version ist unter <code><?= htmlspecialchars($pagePreviewUrlEn) ?></code> erreichbar.</div>
+                                </div>
+                                <?php if (!empty($useEditorJs)): ?>
+                                <div class="editorjs-wrap editorjs-wrap--page cms-editor-live-wrap"
+                                       style="--editorjs-content-width:<?= (int)$pageEditorWidth ?>px; --editorjs-content-padding-x:50px;">
+                                    <div id="editorjsEn" class="editorjs-holder cms-editor-live-holder" style="min-height: 300px;"></div>
+                                </div>
+                                <input type="hidden" name="content_en" id="editorContentEn"
+                                       value="<?= htmlspecialchars($pageContentEnValue) ?>">
+                                <?php else: ?>
+                                    <?= EditorService::getInstance()->render('content_en', $pageContentEnValue, [
+                                        'height' => '420',
+                                        'context' => 'page',
+                                        'content_width' => $pageEditorWidth,
+                                        'content_padding_x' => 50,
+                                    ]) ?>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -376,6 +414,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const metaTitleInput = document.getElementById('pageMetaTitle');
     const metaDescriptionInput = document.getElementById('pageMetaDescription');
     const statusSelect = document.getElementById('pageStatusSelect');
+    const languageButtons = document.querySelectorAll('[data-lang-toggle]');
+    const languagePanes = document.querySelectorAll('[data-page-lang-pane]');
     const titleCount = document.getElementById('pageTitleCount');
     const slugCount = document.getElementById('pageSlugCount');
     const metaTitleCount = document.getElementById('metaTitleCount');
@@ -387,6 +427,19 @@ document.addEventListener('DOMContentLoaded', function() {
         draft: { label: 'Entwurf', className: 'badge bg-yellow-lt text-yellow' },
         published: { label: 'Veröffentlicht', className: 'badge bg-green-lt text-green' },
         private: { label: 'Privat', className: 'badge bg-azure-lt text-azure' }
+    };
+
+    const switchLanguage = function (lang) {
+        languagePanes.forEach(function (pane) {
+            pane.classList.toggle('d-none', pane.getAttribute('data-page-lang-pane') !== lang);
+        });
+
+        languageButtons.forEach(function (button) {
+            const isActive = button.getAttribute('data-lang-toggle') === lang;
+            button.classList.toggle('btn-primary', isActive);
+            button.classList.toggle('btn-outline-primary', !isActive);
+            button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
     };
 
     const updateCounts = function () {
@@ -435,7 +488,14 @@ document.addEventListener('DOMContentLoaded', function() {
         el?.addEventListener('change', updateCounts);
     });
 
+    languageButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            switchLanguage(button.getAttribute('data-lang-toggle') || 'de');
+        });
+    });
+
     updateCounts();
+    switchLanguage('de');
 });
 </script>
 

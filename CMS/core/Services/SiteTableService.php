@@ -632,15 +632,23 @@ final class SiteTableService
 
             $cards[] = [
                 'title' => mb_substr($title, 0, 160),
+                'title_en' => mb_substr(trim((string)($row['title_en'] ?? $row['titleEn'] ?? '')), 0, 160),
                 'url' => $url !== '' ? $url : '#',
                 'summary' => mb_substr(trim((string)($row['summary'] ?? $row['Beschreibung'] ?? '')), 0, 600),
+                'summary_en' => mb_substr(trim((string)($row['summary_en'] ?? $row['summaryEn'] ?? '')), 0, 600),
                 'badge' => mb_substr(trim((string)($row['badge'] ?? $row['Kategorie'] ?? '')), 0, 80),
+                'badge_en' => mb_substr(trim((string)($row['badge_en'] ?? $row['badgeEn'] ?? '')), 0, 80),
                 'meta' => mb_substr(trim((string)($row['meta'] ?? $row['Meta'] ?? '')), 0, 120),
+                'meta_en' => mb_substr(trim((string)($row['meta_en'] ?? $row['metaEn'] ?? '')), 0, 120),
                 'meta_left' => mb_substr(trim((string)($row['meta_left'] ?? $row['metaLeft'] ?? $row['Meta links'] ?? $row['meta'] ?? '')), 0, 120),
+                'meta_left_en' => mb_substr(trim((string)($row['meta_left_en'] ?? $row['metaLeftEn'] ?? '')), 0, 120),
                 'meta_right' => mb_substr(trim((string)($row['meta_right'] ?? $row['metaRight'] ?? $row['Meta rechts'] ?? '')), 0, 120),
+                'meta_right_en' => mb_substr(trim((string)($row['meta_right_en'] ?? $row['metaRightEn'] ?? '')), 0, 120),
                 'image_url' => mb_substr(trim((string)($row['image_url'] ?? $row['imageUrl'] ?? $row['Bild'] ?? '')), 0, 500),
                 'image_alt' => mb_substr(trim((string)($row['image_alt'] ?? $row['imageAlt'] ?? '')), 0, 160),
+                'image_alt_en' => mb_substr(trim((string)($row['image_alt_en'] ?? $row['imageAltEn'] ?? '')), 0, 160),
                 'button_text' => mb_substr(trim((string)($row['button_text'] ?? $row['buttonText'] ?? $row['Button-Text'] ?? '')), 0, 80),
+                'button_text_en' => mb_substr(trim((string)($row['button_text_en'] ?? $row['buttonTextEn'] ?? '')), 0, 80),
                 'button_link' => mb_substr(trim((string)($row['button_link'] ?? $row['buttonLink'] ?? $row['Button-Link'] ?? '')), 0, 500),
             ];
         }
