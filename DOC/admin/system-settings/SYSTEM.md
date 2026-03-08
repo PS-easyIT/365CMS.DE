@@ -12,7 +12,6 @@ Die systemnahen Werkzeuge sind heute auf mehrere Oberflächen verteilt statt in 
 | `/admin/diagnose` | Diagnosefokus und Prüfungen |
 | `/admin/monitor-response-time` | Antwortzeiten beobachten |
 | `/admin/monitor-cron-status` | Cron- und Job-Status |
-| `/admin/monitor-mail-queue` | Mail-Queue, Retry-Gründe und stale Locks |
 | `/admin/monitor-disk-usage` | Speicher- und Verzeichnisnutzung |
 | `/admin/monitor-scheduled-tasks` | geplante Aufgaben |
 | `/admin/monitor-health-check` | allgemeine Health-Checks |

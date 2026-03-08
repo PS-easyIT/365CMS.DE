@@ -40,11 +40,6 @@ ASSETS/
 # Dev/Local Folders (Komplette Ordner ignorieren)
 BACKUP/
 PLUGINS/
-DOC/audits/
-DOC/feature/
-DOC/feature
-DOC/feature/*.*
-DOC/feature/*/
 ASSETS/test_import/
 ASSETS/test_import/*
 
@@ -63,22 +58,11 @@ CMS/config/app.php
 CMS/config/app.php.backup.*
 CMS/config/media-settings.json
 
-# Dynamic Content & Cache
-CMSv2/backups/
-CMSv2/cache/
-CMSv2/logs/
-CMSv2/uploads/
-CMSv2/media/
-CMSv2/temp/
-CMSv2/tmp/
-
-# Vendor (falls Composer genutzt wird)
-vendor/
-CMSv2/vendor/
-
 # ----------------------------------------------------------------------
 # SECURITY & SENSITIVE FILES
 # ----------------------------------------------------------------------
+private/
+secrets/
 *.log
 *.sql
 *.sqlite
@@ -91,6 +75,4 @@ CMSv2/vendor/
 .env.*
 .htpasswd
 .htaccess.local
-private/
-secrets/
 .gitlog_365cms.txt

@@ -15,7 +15,6 @@ $systemNavGroups = [
         ['slug' => 'diagnose', 'label' => 'Diagnose Datenbank', 'url' => SITE_URL . '/admin/diagnose'],
         ['slug' => 'monitor-response-time', 'label' => 'Response-Time', 'url' => SITE_URL . '/admin/monitor-response-time'],
         ['slug' => 'monitor-cron-status', 'label' => 'Cron-Status', 'url' => SITE_URL . '/admin/monitor-cron-status'],
-        ['slug' => 'monitor-mail-queue', 'label' => 'Mail-Queue', 'url' => SITE_URL . '/admin/monitor-mail-queue'],
         ['slug' => 'monitor-disk-usage', 'label' => 'Disk-Usage', 'url' => SITE_URL . '/admin/monitor-disk-usage'],
         ['slug' => 'monitor-scheduled-tasks', 'label' => 'Scheduled Tasks', 'url' => SITE_URL . '/admin/monitor-scheduled-tasks'],
         ['slug' => 'monitor-health-check', 'label' => 'Health-Check', 'url' => SITE_URL . '/admin/monitor-health-check'],
