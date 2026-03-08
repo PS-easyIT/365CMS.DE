@@ -95,26 +95,6 @@ spl_autoload_register(function (string $class): void {
     }
 });
 
-// ─── Schema.org (Spatie) ───────────────────────────────────────────────────
-// PSR-4: Spatie\SchemaOrg\ → schema-org/
-// Hinweis: SEOService baut Schema.org derzeit manuell; Library als Reserve.
-spl_autoload_register(function (string $class): void {
-    $prefix = 'Spatie\\SchemaOrg\\';
-    $baseDir = CMS_VENDOR_PATH . 'schema-org' . DIRECTORY_SEPARATOR;
-
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
-        return;
-    }
-
-    $relativeClass = substr($class, $len);
-    $file = $baseDir . str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass) . '.php';
-
-    if (file_exists($file)) {
-        require_once $file;
-    }
-});
-
 // ─── Carbon (nesbot/carbon) ────────────────────────────────────────────────
 // PSR-4: Carbon\ → Carbon/
 // Genutzt von time_ago() in includes/functions.php (mit class_exists-Guard)

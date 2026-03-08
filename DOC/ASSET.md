@@ -36,7 +36,6 @@
 
 | Beschreibung | Name | Pfad | Website | GitHub | Status |
 |---|---|---|---|---|---|
-| Schema.org-Builder | Spatie Schema.org | `schema-org/` | https://spatie.be/docs/schema-org | https://github.com/spatie/schema-org | autoload-only / Reserve |
 | Lokale Referenznotizen für Graph-SDK | Microsoft Graph Notes | `msgraph/` | https://learn.microsoft.com/graph/ | https://github.com/microsoftgraph/msgraph-sdk-php | ungenutzt in Runtime, nur Referenzablage |
 
 ## Bootstrap-/Hilfsdatei
@@ -61,9 +60,10 @@
 - `CMS/core/Auth/LDAP/LdapAuthProvider.php` sowie `CMS/admin/modules/users/UserSettingsModule.php` nutzen `ldaprecord/` für LDAP-Login und Admin-Erstsync.
 - `CMS/core/Auth/Passkey/WebAuthnAdapter.php`, `CMS/core/Auth/MFA/TotpAdapter.php` und `CMS/core/Services/JwtService.php` verwenden `webauthn/`, `twofactorauth/` und `php-jwt/`.
 - `CMS/admin/media.php`, `CMS/admin/views/media/library.php` und `CMS/assets/js/admin-media-integrations.js` binden `elFinder` und `FilePond` produktiv ein.
-- `CMS/admin/partials/header.php` und `CMS/admin/partials/footer.php` binden `tabler/` direkt ein; zusätzliche `tabler/libs/*`-Sub-Libs sind aktuell nicht nachgewiesen.
+- `CMS/admin/partials/header.php` und `CMS/admin/partials/footer.php` binden `tabler/` direkt ein; zuvor ungenutzte `tabler/libs/*`-Sub-Libs wurden am 2026-03-08 aus dem Runtime-Baum entfernt.
 - `CMS/core/Bootstrap.php` und `CMS/assets/js/photoswipe-init.js` aktivieren `photoswipe/` für Frontend-Lightboxen.
-- `CMS/assets/autoload.php` hält `schema-org/` weiterhin nur als Reserve-Library vor; `SEOService` erzeugt JSON-LD aktuell manuell.
+- `CMS/core/Services/SEOService.php` erzeugt JSON-LD aktuell manuell; die frühere Reserve-Library `schema-org/` wurde am 2026-03-08 aus `CMS/assets/` entfernt.
+- `CMS/assets/filepond/locale/de-de.js` und `CMS/assets/filepond/locale/en-en.js` bleiben trotz fehlender direkter Treffer bewusst erhalten und wurden **nicht** bereinigt.
 - `CMS/assets/msgraph/README.md` dokumentiert ausdrücklich, dass `GraphApiService` aktuell cURL-basiert arbeitet und **kein** Runtime-SDK aus `CMS/assets/msgraph/` lädt.
 
 ## Detaildokumentation in `DOC/assets/`
