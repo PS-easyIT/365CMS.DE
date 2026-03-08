@@ -292,7 +292,8 @@ final class AuthManager
     {
         return function_exists('openssl_open')
             && defined('SITE_URL')
-            && !empty(SITE_URL);
+            && !empty(SITE_URL)
+            && $this->passkey()->isAvailable();
     }
 
     public function isLdapEnabled(): bool

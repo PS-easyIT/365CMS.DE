@@ -30,7 +30,7 @@ class MigrationManager
      * Aktuelle Schema-Version – erhöhen wenn neue Migrations hinzukommen.
      * Wird in cms_settings (option_name = 'db_schema_version') gespeichert.
      */
-    private const SCHEMA_VERSION = 'v10';
+    private const SCHEMA_VERSION = 'v11';
 
     public function __construct(Database $db)
     {
@@ -69,6 +69,20 @@ class MigrationManager
         $pdo = $this->db->getPdo();
 
         $migrations = [
+            "CREATE TABLE IF NOT EXISTS `{$p}passkey_credentials` (
+                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `user_id` INT UNSIGNED NOT NULL,
+                `credential_id` VARCHAR(512) NOT NULL,
+                `public_key` TEXT NOT NULL,
+                `sign_count` INT UNSIGNED NOT NULL DEFAULT 0,
+                `aaguid` VARCHAR(64) DEFAULT NULL,
+                `attestation_fmt` VARCHAR(32) DEFAULT NULL,
+                `name` VARCHAR(128) DEFAULT '',
+                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                `last_used_at` TIMESTAMP NULL DEFAULT NULL,
+                INDEX `idx_user` (`user_id`),
+                UNIQUE INDEX `idx_cred_id` (`credential_id`(255))
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
             "CREATE TABLE IF NOT EXISTS `{$p}mail_log` (
                 `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 `recipient` VARCHAR(255) NOT NULL,

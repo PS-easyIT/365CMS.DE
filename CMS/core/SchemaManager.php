@@ -26,7 +26,7 @@ if (!defined('ABSPATH')) {
 class SchemaManager
 {
     /** Flag-Datei-Version – erhöhen wenn Schema geändert wird */
-    public const SCHEMA_VERSION = 'v13';
+    public const SCHEMA_VERSION = 'v14';
 
     private Database $db;
     private string $prefix;
@@ -136,6 +136,22 @@ class SchemaManager
                 INDEX idx_user_id (user_id),
                 INDEX idx_last_activity (last_activity),
                 INDEX idx_expires (expires_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
+
+            // Passkey / WebAuthn credentials
+            "CREATE TABLE IF NOT EXISTS {$p}passkey_credentials (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                user_id INT UNSIGNED NOT NULL,
+                credential_id VARCHAR(512) NOT NULL,
+                public_key TEXT NOT NULL,
+                sign_count INT UNSIGNED NOT NULL DEFAULT 0,
+                aaguid VARCHAR(64) DEFAULT NULL,
+                attestation_fmt VARCHAR(32) DEFAULT NULL,
+                name VARCHAR(128) DEFAULT '',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_used_at TIMESTAMP NULL DEFAULT NULL,
+                INDEX idx_user (user_id),
+                UNIQUE INDEX idx_cred_id (credential_id(255))
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
             // Pages table

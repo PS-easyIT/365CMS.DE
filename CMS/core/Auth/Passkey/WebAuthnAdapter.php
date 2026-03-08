@@ -28,6 +28,7 @@ final class WebAuthnAdapter
     private static ?self $instance = null;
     private ?WebAuthn $webAuthn = null;
     private ?int $lastSignatureCounter = null;
+    private ?bool $credentialsTableAvailable = null;
 
     public static function instance(): self
     {
@@ -134,6 +135,8 @@ final class WebAuthnAdapter
 
         } catch (WebAuthnException $e) {
             return 'WebAuthn-Fehler: ' . $e->getMessage();
+        } catch (\Throwable $e) {
+            return 'Passkey konnte nicht gespeichert werden: ' . $e->getMessage();
         }
     }
 
@@ -197,6 +200,8 @@ final class WebAuthnAdapter
 
         } catch (WebAuthnException $e) {
             return 'WebAuthn-Fehler: ' . $e->getMessage();
+        } catch (\Throwable $e) {
+            return 'Passkey-Authentifizierung fehlgeschlagen: ' . $e->getMessage();
         }
     }
 
@@ -234,6 +239,10 @@ final class WebAuthnAdapter
 
     private function storeCredential(int $userId, \stdClass $data, string $name): void
     {
+        if (!$this->ensureCredentialsTable()) {
+            throw new \RuntimeException('Die Passkey-Speichertabelle ist nicht verfügbar.');
+        }
+
         $db = Database::instance();
         $db->insert('passkey_credentials', [
             'user_id'         => $userId,
@@ -253,6 +262,10 @@ final class WebAuthnAdapter
      */
     public function findCredentialById(string $credentialId): ?array
     {
+        if (!$this->ensureCredentialsTable()) {
+            return null;
+        }
+
         $db = Database::instance();
         $stmt = $db->prepare(
             "SELECT * FROM {$db->getPrefix()}passkey_credentials WHERE credential_id = ? LIMIT 1"
@@ -269,6 +282,10 @@ final class WebAuthnAdapter
      */
     public function getCredentialIdsForUser(int $userId): array
     {
+        if (!$this->ensureCredentialsTable()) {
+            return [];
+        }
+
         $db = Database::instance();
         $stmt = $db->prepare(
             "SELECT credential_id FROM {$db->getPrefix()}passkey_credentials WHERE user_id = ?"
@@ -284,6 +301,10 @@ final class WebAuthnAdapter
      */
     public function getCredentialsForUser(int $userId): array
     {
+        if (!$this->ensureCredentialsTable()) {
+            return [];
+        }
+
         $db = Database::instance();
         $stmt = $db->prepare(
             "SELECT id, name, attestation_fmt, created_at, last_used_at
@@ -300,6 +321,10 @@ final class WebAuthnAdapter
      */
     public function updateSignCount(int $credentialDbId, int $newCount): void
     {
+        if (!$this->ensureCredentialsTable()) {
+            return;
+        }
+
         $db = Database::instance();
         $db->update('passkey_credentials', [
             'sign_count'   => $newCount,
@@ -312,11 +337,51 @@ final class WebAuthnAdapter
      */
     public function deleteCredential(int $credentialDbId, int $userId): bool
     {
+        if (!$this->ensureCredentialsTable()) {
+            return false;
+        }
+
         $db = Database::instance();
         $stmt = $db->prepare(
             "DELETE FROM {$db->getPrefix()}passkey_credentials WHERE id = ? AND user_id = ?"
         );
         $stmt->execute([$credentialDbId, $userId]);
         return $stmt->rowCount() > 0;
+    }
+
+    public function isAvailable(): bool
+    {
+        return $this->ensureCredentialsTable();
+    }
+
+    private function ensureCredentialsTable(): bool
+    {
+        if ($this->credentialsTableAvailable !== null) {
+            return $this->credentialsTableAvailable;
+        }
+
+        $db = Database::instance();
+        $table = $db->getPrefix() . 'passkey_credentials';
+
+        try {
+            $stmt = $db->getPdo()->query("SHOW TABLES LIKE " . $db->getPdo()->quote($table));
+            if ($stmt !== false && $stmt->fetchColumn() !== false) {
+                return $this->credentialsTableAvailable = true;
+            }
+
+            $this->createTable();
+
+            $stmt = $db->getPdo()->query("SHOW TABLES LIKE " . $db->getPdo()->quote($table));
+            $this->credentialsTableAvailable = $stmt !== false && $stmt->fetchColumn() !== false;
+
+            if (!$this->credentialsTableAvailable) {
+                error_log('WebAuthnAdapter: passkey_credentials table could not be verified after createTable().');
+            }
+        } catch (\Throwable $e) {
+            $this->credentialsTableAvailable = false;
+            error_log('WebAuthnAdapter: passkey table unavailable: ' . $e->getMessage());
+        }
+
+        return $this->credentialsTableAvailable;
     }
 }
