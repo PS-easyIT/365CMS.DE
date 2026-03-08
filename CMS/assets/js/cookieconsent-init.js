@@ -1,94 +1,101 @@
 (function () {
     'use strict';
 
-    var cfg = window.CMS_COOKIECONSENT_CONFIG || {};
-    var cc = window.CookieConsent;
+    function bootConsent() {
+        var cfg = window.CMS_COOKIECONSENT_CONFIG || {};
+        var cc = window.CookieConsent;
 
-    if (!cc || typeof cc.run !== 'function') {
-        return;
-    }
-
-    var position = cfg.position === 'center' ? 'middle center' : 'bottom center';
-    var primary = cfg.primaryColor || '#3b82f6';
-    var categories = cfg.categories || {
-        necessary: {
-            enabled: true,
-            readOnly: true
-        },
-        analytics: {
-            enabled: false
-        },
-        marketing: {
-            enabled: false
+        if (!cc || typeof cc.run !== 'function' || !document.body) {
+            return;
         }
-    };
-    var sections = cfg.sections || [
-        {
-            title: 'Essenzielle Cookies',
-            description: 'Diese Cookies sind für den Betrieb der Website erforderlich.'
-        },
-        {
-            title: 'Analytics',
-            description: 'Hilft uns zu verstehen, wie Besucher die Website nutzen.',
-            linkedCategory: 'analytics'
-        },
-        {
-            title: 'Marketing',
-            description: 'Wird für personalisierte Inhalte und Kampagnen verwendet.',
-            linkedCategory: 'marketing'
-        }
-    ];
 
-    cc.run({
-        revision: 1,
-        autoclear_cookies: true,
-        page_scripts: true,
-        gui_options: {
-            consent_modal: {
-                layout: 'box',
-                position: position,
-                equal_weight_buttons: true,
-                flip_buttons: false
+        var position = cfg.position === 'center' ? 'middle center' : 'bottom center';
+        var primary = cfg.primaryColor || '#3b82f6';
+        var categories = cfg.categories || {
+            necessary: {
+                enabled: true,
+                readOnly: true
             },
-            preferences_modal: {
-                layout: 'box',
-                position: 'right',
-                equal_weight_buttons: true,
-                flip_buttons: false
+            analytics: {
+                enabled: false
+            },
+            marketing: {
+                enabled: false
             }
-        },
-        categories: categories,
-        language: {
-            default: 'de',
-            translations: {
-                de: {
+        };
+        var sections = cfg.sections || [
+            {
+                title: 'Essenzielle Cookies',
+                description: 'Diese Cookies sind für den Betrieb der Website erforderlich.'
+            },
+            {
+                title: 'Analytics',
+                description: 'Hilft uns zu verstehen, wie Besucher die Website nutzen.',
+                linkedCategory: 'analytics'
+            },
+            {
+                title: 'Marketing',
+                description: 'Wird für personalisierte Inhalte und Kampagnen verwendet.',
+                linkedCategory: 'marketing'
+            }
+        ];
+
+        try {
+            cc.run({
+                revision: 1,
+                autoclear_cookies: true,
+                page_scripts: true,
+                gui_options: {
                     consent_modal: {
-                        title: '🍪 Cookie-Einstellungen',
-                        description: (cfg.bannerText || 'Wir nutzen Cookies für eine optimale Website-Erfahrung.') + ' <a href="' + (cfg.policyUrl || '/datenschutz') + '">Datenschutz</a>',
-                        accept_all_btn: cfg.acceptText || 'Akzeptieren',
-                        accept_necessary_btn: cfg.essentialText || 'Nur Essenzielle',
-                        show_preferences_btn: 'Einstellungen'
+                        layout: 'box',
+                        position: position,
+                        equal_weight_buttons: true,
+                        flip_buttons: false
                     },
                     preferences_modal: {
-                        title: 'Cookie-Präferenzen',
-                        accept_all_btn: cfg.acceptText || 'Akzeptieren',
-                        accept_necessary_btn: cfg.essentialText || 'Nur Essenzielle',
-                        save_preferences_btn: 'Auswahl speichern',
-                        close_btn_label: 'Schließen',
-                        sections: sections
+                        layout: 'box',
+                        position: 'right',
+                        equal_weight_buttons: true,
+                        flip_buttons: false
                     }
+                },
+                categories: categories,
+                language: {
+                    default: 'de',
+                    translations: {
+                        de: {
+                            consent_modal: {
+                                title: '🍪 Cookie-Einstellungen',
+                                description: (cfg.bannerText || 'Wir nutzen Cookies für eine optimale Website-Erfahrung.') + ' <a href="' + (cfg.policyUrl || '/datenschutz') + '">Datenschutz</a>',
+                                accept_all_btn: cfg.acceptText || 'Akzeptieren',
+                                accept_necessary_btn: cfg.essentialText || 'Nur Essenzielle',
+                                show_preferences_btn: 'Einstellungen'
+                            },
+                            preferences_modal: {
+                                title: 'Cookie-Präferenzen',
+                                accept_all_btn: cfg.acceptText || 'Akzeptieren',
+                                accept_necessary_btn: cfg.essentialText || 'Nur Essenzielle',
+                                save_preferences_btn: 'Auswahl speichern',
+                                close_btn_label: 'Schließen',
+                                sections: sections
+                            }
+                        }
+                    }
+                },
+                onConsent: function () {
+                    window.dispatchEvent(new CustomEvent('cms-cookie-consent-change', { detail: cc.getUserPreferences() }));
+                },
+                onChange: function () {
+                    window.dispatchEvent(new CustomEvent('cms-cookie-consent-change', { detail: cc.getUserPreferences() }));
                 }
-            }
-        },
-        onConsent: function () {
-            window.dispatchEvent(new CustomEvent('cms-cookie-consent-change', { detail: cc.getUserPreferences() }));
-        },
-        onChange: function () {
-            window.dispatchEvent(new CustomEvent('cms-cookie-consent-change', { detail: cc.getUserPreferences() }));
-        }
-    });
+            });
 
-    document.documentElement.style.setProperty('--cc-btn-primary-bg', primary);
+            document.documentElement.style.setProperty('--cc-btn-primary-bg', primary);
+        } catch (error) {
+            console.warn('CookieConsent konnte nicht initialisiert werden:', error);
+            return;
+        }
+    }
 
     function updatePublicConsentPage() {
         var page = document.querySelector('[data-cms-consent-page]');
@@ -195,8 +202,12 @@
     });
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', updatePublicConsentPage);
+        document.addEventListener('DOMContentLoaded', function () {
+            bootConsent();
+            updatePublicConsentPage();
+        }, { once: true });
     } else {
+        bootConsent();
         updatePublicConsentPage();
     }
 

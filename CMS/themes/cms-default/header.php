@@ -85,7 +85,14 @@ $flashMsg    = meridian_get_flash();
     <div class="site-logo-group">
       <a href="<?php echo SITE_URL; ?>/" class="site-logo" aria-label="<?php echo htmlspecialchars($logoText); ?> – Startseite">
         <?php if ($logoType === 'image' && $logoUrl): ?>
-            <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($logoText); ?>" height="<?php echo $logoHeight; ?>" style="max-height:<?php echo $logoHeight; ?>px;display:block;width:auto;">
+        <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($logoText); ?>" height="<?php echo $logoHeight; ?>" style="max-height:<?php echo $logoHeight; ?>px;display:block;width:auto;" onerror="this.style.display='none';var fallback=this.nextElementSibling;if(fallback){fallback.style.display='inline-flex';}">
+        <span class="site-logo-fallback" style="display:none;align-items:center;gap:.4rem;">
+          <span class="logo-word"><?php echo htmlspecialchars($logoText); ?></span>
+          <span class="logo-dot"></span>
+          <?php if ($logoTagline): ?>
+          <span class="logo-tagline"><?php echo htmlspecialchars($logoTagline); ?></span>
+          <?php endif; ?>
+        </span>
         <?php else: ?>
             <span class="logo-word"><?php echo htmlspecialchars($logoText); ?></span>
             <span class="logo-dot"></span>
@@ -222,7 +229,11 @@ $flashMsg    = meridian_get_flash();
   <div class="mobile-nav-header">
     <a href="<?php echo SITE_URL; ?>/" class="site-logo" aria-label="<?php echo htmlspecialchars($logoText); ?> – Startseite" style="text-decoration:none;">
       <?php if ($logoType === 'image' && $logoUrl): ?>
-        <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($logoText); ?>" height="32" style="max-height:32px;width:auto;">
+        <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($logoText); ?>" height="32" style="max-height:32px;width:auto;" onerror="this.style.display='none';var fallback=this.nextElementSibling;if(fallback){fallback.style.display='inline-flex';}">
+        <span class="site-logo-fallback" style="display:none;align-items:center;gap:.3rem;">
+          <span class="logo-word" style="font-size:1rem;"><?php echo htmlspecialchars($logoText); ?></span>
+          <span class="logo-dot"></span>
+        </span>
       <?php else: ?>
         <span class="logo-word" style="font-size:1rem;"><?php echo htmlspecialchars($logoText); ?></span>
         <span class="logo-dot"></span>

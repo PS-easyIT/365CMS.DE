@@ -38,7 +38,11 @@ final class FileUploadService
      */
     public function handleUploadRequest(): array
     {
-        if (!Auth::instance()->isAdmin()) {
+        $auth = Auth::instance();
+        $isAdmin = $auth->isAdmin();
+        $isLoggedIn = $auth->isLoggedIn();
+
+        if (!$isAdmin && !$isLoggedIn) {
             return [
                 'success' => false,
                 'status' => 403,
@@ -70,10 +74,44 @@ final class FileUploadService
             ];
         }
 
-        $targetPathRaw = (string)($_POST['path'] ?? '');
+        $targetPathRaw = (string)($_POST['target_path'] ?? $_POST['path'] ?? '');
         $targetPath = $this->sanitizePath($targetPathRaw);
 
-        $mediaService = new MediaService();
+        $mediaService = MediaService::getInstance();
+
+        if (!$isAdmin) {
+            $currentUser = $auth->getCurrentUser();
+            $userId = (int)($currentUser->id ?? 0);
+            $memberRoot = 'member/user-' . $userId;
+            $settings = $mediaService->getSettings();
+
+            if ($userId <= 0 || empty($settings['member_uploads_enabled'])) {
+                return [
+                    'success' => false,
+                    'status' => 403,
+                    'data' => [
+                        'error' => 'Uploads für Mitglieder sind nicht aktiviert.',
+                        'new_token' => Security::instance()->generateToken('media_action'),
+                    ],
+                ];
+            }
+
+            if ($targetPath === '') {
+                $targetPath = $memberRoot;
+            }
+
+            if ($targetPath !== $memberRoot && !str_starts_with($targetPath, $memberRoot . '/')) {
+                return [
+                    'success' => false,
+                    'status' => 403,
+                    'data' => [
+                        'error' => 'Upload-Ziel liegt außerhalb deines erlaubten Bereichs.',
+                        'new_token' => Security::instance()->generateToken('media_action'),
+                    ],
+                ];
+            }
+        }
+
         $uploadResult = $mediaService->uploadFile($uploadFile, $targetPath);
 
         if (is_wp_error($uploadResult)) {

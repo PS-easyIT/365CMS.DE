@@ -190,7 +190,7 @@ class DashboardModule
     {
         try {
             $rows = $this->db->get_results(
-                "SELECT action, details, user_id, created_at
+                "SELECT action, description AS details, user_id, created_at
                  FROM {$this->prefix}audit_log
                  ORDER BY created_at DESC
                  LIMIT 8"

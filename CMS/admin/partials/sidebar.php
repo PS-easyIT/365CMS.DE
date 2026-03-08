@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 $activePage = $activePage ?? '';
 $siteUrl    = defined('SITE_URL') ? SITE_URL : '';
 $assetsUrl  = defined('ASSETS_URL') ? ASSETS_URL : $siteUrl . '/assets';
-$sidebarLogoUrl = 'https://365cms.de/public_cms/images/LOGO_365CMS-75px.png';
+$sidebarLogoUrl = $assetsUrl . '/images/LOGO_365CMS-75px.png';
 $defaultPluginIcon = '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h10v10h-10z"/><path d="M14 7v-3a1 1 0 0 0 -1 -1h-2a1 1 0 0 0 -1 1v3"/><path d="M7 14h-3a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1h3"/><path d="M17 14h3a1 1 0 0 0 1 -1v-2a1 1 0 0 0 -1 -1h-3"/><path d="M14 17v3a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1v-3"/></svg>';
 
 // Marketplace ein-/ausblenden (DB-Setting, Default: aktiviert)
@@ -416,7 +416,7 @@ function buildSidebarPluginIcon(string $icon, string $fallback): string {
                      alt="<?= htmlspecialchars(defined('SITE_NAME') ? SITE_NAME : '365CMS') ?>"
                      height="75"
                      style="height:75px;width:auto;max-width:100%;"
-                     onerror="this.onerror=null;this.src='<?= htmlspecialchars($assetsUrl) ?>/images/logo.svg';this.style.height='75px';this.style.width='auto';">
+                     onerror="this.onerror=null;this.src='<?= htmlspecialchars($assetsUrl) ?>/images/LOGO_365CMS-75px.png';this.style.height='75px';this.style.width='auto';">
             </a>
         </h1>
 

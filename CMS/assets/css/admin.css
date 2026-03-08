@@ -4428,7 +4428,16 @@ input:checked + .slider:before { transform: translateX(22px); }
     flex-shrink: 0;
 }
 
-/* Compact form-label für Media Settings (scoped, nicht Tabler .form-label überschreiben) */\n.sc-body .form-label {\n    display: flex;\n    align-items: center;\n    gap: 0.5rem;\n    font-weight: 600;\n    font-size: 0.875rem;\n    color: #334155;\n    margin-bottom: 0.5rem;\n}
+/* Compact form-label für Media Settings (scoped, nicht Tabler .form-label überschreiben) */
+.sc-body .form-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #334155;
+    margin-bottom: 0.5rem;
+}
 
 /* Muted badge next to label (e.g. "Server: 128M") */
 .badge-muted {
