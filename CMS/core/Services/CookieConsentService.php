@@ -55,6 +55,10 @@ final class CookieConsentService
             return;
         }
 
+        if ($this->isAdminRequest()) {
+            return;
+        }
+
         $assetsBasePath = ASSETS_PATH . 'cookieconsent/';
         $assetsBaseUrl = SITE_URL . '/assets/cookieconsent';
 
@@ -80,6 +84,14 @@ final class CookieConsentService
         echo '<script src="' . htmlspecialchars($assetsBaseUrl . '/cookieconsent.umd.js', ENT_QUOTES, 'UTF-8') . '?v=20260307a" defer></script>' . "\n";
         echo '<script>window.CMS_COOKIECONSENT_CONFIG=' . json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ';</script>' . "\n";
         echo '<script src="' . htmlspecialchars(SITE_URL . '/assets/js/cookieconsent-init.js', ENT_QUOTES, 'UTF-8') . '?v=20260307a" defer></script>' . "\n";
+    }
+
+    private function isAdminRequest(): bool
+    {
+        $uri = $_SERVER['REQUEST_URI'] ?? '/';
+        $path = (string)(strtok((string)$uri, '?') ?: '/');
+
+        return $path === '/admin' || str_starts_with($path, '/admin/');
     }
 
     /**

@@ -919,9 +919,9 @@ function initializeLandingPageData(PDO $pdo, string $prefix = 'cms_'): bool {
     try {
         // Header section
         $headerData = json_encode([
-            'title' => 'IT Expert Network CMS',
-            'subtitle' => 'Modernes Content Management System',
-            'description' => 'Ein leistungsstarkes, sicheres und erweiterbares CMS für professionelle Websites.',
+            'title' => '365CMS – modernes CMS für Inhalte, Portale und Mitgliederbereiche',
+            'subtitle' => 'Landing Pages, Redaktion, Plugins, Member Area und Design Editor in einem System',
+            'description' => '365CMS vereint Content-Management, Design-Anpassung, Mitgliederfunktionen, System-Mails und modulare Business-Features in einer flexiblen Plattform für professionelle Websites und Portale.',
             'github_url' => 'https://github.com/PS-easyIT/WordPress-365network',
             'gitlab_url' => '',
             'version' => '2.5.4',
@@ -943,18 +943,18 @@ function initializeLandingPageData(PDO $pdo, string $prefix = 'cms_'): bool {
         
         // Feature sections (12 features for 4x3 grid)
         $features = [
-            ['icon' => '🚀', 'title' => 'Blitzschnell', 'description' => 'Optimierte Performance für schnelle Ladezeiten'],
-            ['icon' => '🔒', 'title' => 'Sicher', 'description' => 'Moderne Sicherheitsstandards und Verschlüsselung'],
-            ['icon' => '📱', 'title' => 'Responsive', 'description' => 'Perfekte Darstellung auf allen Geräten'],
-            ['icon' => '🎨', 'title' => 'Anpassbar', 'description' => 'Flexibles Theme-System für individuelle Designs'],
-            ['icon' => '🔌', 'title' => 'Erweiterbar', 'description' => 'Plugin-System für unbegrenzte Möglichkeiten'],
-            ['icon' => '📊', 'title' => 'Analytics', 'description' => 'Integrierte Statistiken und Monitoring'],
-            ['icon' => '👥', 'title' => 'Multi-User', 'description' => 'Rollen-basierte Benutzerverwaltung'],
-            ['icon' => '🌐', 'title' => 'SEO-Ready', 'description' => 'Suchmaschinenoptimiertes Framework'],
-            ['icon' => '⚡', 'title' => 'REST API', 'description' => 'Moderne API für Integrationen'],
-            ['icon' => '💾', 'title' => 'Backups', 'description' => 'Automatische Datensicherung'],
-            ['icon' => '🔄', 'title' => 'Updates', 'description' => 'Einfache Update-Verwaltung'],
-            ['icon' => '📝', 'title' => 'Editor', 'description' => 'Intuitiver Content-Editor']
+            ['icon' => '🧩', 'title' => 'Seiten & Content', 'description' => 'Erstelle Seiten, Beiträge, Landing Pages und strukturierte Inhalte zentral im CMS.'],
+            ['icon' => '🎨', 'title' => 'Design Editor', 'description' => 'Farben, Layouts, Header, Footer und Theme-Bereiche ohne Code anpassen.'],
+            ['icon' => '🔌', 'title' => 'Plugin-Ökosystem', 'description' => 'Unternehmen, Events, Experten, Jobs, Feeds und weitere Module flexibel ergänzen.'],
+            ['icon' => '👤', 'title' => 'Mitgliederbereich', 'description' => 'Dashboard, Profil, Sicherheit, Benachrichtigungen und persönliche Bereiche integriert.'],
+            ['icon' => '🛡️', 'title' => 'Rollen & Sicherheit', 'description' => 'Granulare Rechte, CSRF-Schutz, sichere Authentifizierung und moderne Security-Bausteine.'],
+            ['icon' => '🖼️', 'title' => 'Medienverwaltung', 'description' => 'Bilder, Dokumente, Uploads und Assets komfortabel organisieren und bereitstellen.'],
+            ['icon' => '✉️', 'title' => 'Mail & Zustellung', 'description' => 'SMTP, MIME, OAuth/XOAuth2 und Systemmails für zuverlässige Kommunikation.'],
+            ['icon' => '🌐', 'title' => 'SEO & Sichtbarkeit', 'description' => 'Meta-Daten, Redirects, saubere URLs und Suchmaschinenfreundlichkeit ab Werk.'],
+            ['icon' => '📣', 'title' => 'Kontakt & Leads', 'description' => 'Formulare, Newsletter, Anfragen und automatisierte Benachrichtigungen bündeln.'],
+            ['icon' => '⚙️', 'title' => 'Cron & Automationen', 'description' => 'Hintergrundjobs, Worker und geplante Aufgaben für wiederkehrende Prozesse.'],
+            ['icon' => '🚀', 'title' => 'Performance', 'description' => 'Saubere Assets, optimierte Auslieferung und schnelle Oberflächen für den Alltag.'],
+            ['icon' => '🧠', 'title' => 'Themes & Hooks', 'description' => 'Customizer, Hooks und Erweiterungspunkte für individuelle 365CMS-Lösungen.']
         ];
         
         $stmt = $pdo->prepare("INSERT INTO {$prefix}landing_sections (type, data, sort_order, created_at, updated_at) VALUES ('feature', ?, ?, NOW(), NOW())");
@@ -963,6 +963,51 @@ function initializeLandingPageData(PDO $pdo, string $prefix = 'cms_'): bool {
             $featureData = json_encode($feature);
             $stmt->execute([$featureData, $index + 1]);
         }
+
+        $contentData = json_encode([
+            'content_type' => 'features',
+            'content_text' => '',
+            'posts_count' => 5,
+        ]);
+        $stmt = $pdo->prepare("INSERT INTO {$prefix}landing_sections (type, data, sort_order, created_at, updated_at) VALUES ('content', ?, 50, NOW(), NOW())");
+        $stmt->execute([$contentData]);
+
+        $footerData = json_encode([
+            'content' => '<p><strong>365CMS</strong> verbindet Content-Management, Design Editor, Mitgliederbereich und modulare Business-Features in einer modernen Plattform.</p><p>Ideal für Unternehmensseiten, Portale, Netzwerke, Events und redaktionelle Websites mit Wachstumspotenzial.</p>',
+            'button_text' => 'Zum Login',
+            'button_url' => '/login',
+            'copyright' => '&copy; ' . date('Y') . ' 365CMS',
+            'show_footer' => true,
+        ]);
+        $stmt = $pdo->prepare("INSERT INTO {$prefix}landing_sections (type, data, sort_order, created_at, updated_at) VALUES ('footer', ?, 99, NOW(), NOW())");
+        $stmt->execute([$footerData]);
+
+        $designData = json_encode([
+            'card_border_radius' => 18,
+            'button_border_radius' => 12,
+            'card_icon_layout' => 'top',
+            'card_border_color' => '#e2e8f0',
+            'card_border_width' => '1px',
+            'card_shadow' => 'md',
+            'feature_columns' => 'auto',
+            'hero_padding' => 'md',
+            'feature_padding' => 'md',
+            'footer_bg' => '#0f172a',
+            'footer_text_color' => '#cbd5e1',
+            'content_section_bg' => '#ffffff',
+        ]);
+        $stmt = $pdo->prepare("INSERT INTO {$prefix}landing_sections (type, data, sort_order, created_at, updated_at) VALUES ('design', ?, 90, NOW(), NOW())");
+        $stmt->execute([$designData]);
+
+        $settingsData = json_encode([
+            'show_header' => true,
+            'show_content' => true,
+            'show_footer_section' => true,
+            'landing_slug' => '',
+            'maintenance_mode' => false,
+        ]);
+        $stmt = $pdo->prepare("INSERT INTO {$prefix}landing_sections (type, data, sort_order, created_at, updated_at) VALUES ('settings', ?, 100, NOW(), NOW())");
+        $stmt->execute([$settingsData]);
         
         return true;
     } catch (PDOException $e) {

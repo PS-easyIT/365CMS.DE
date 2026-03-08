@@ -44,6 +44,37 @@ class LandingPageService
     {
         $this->db = Database::instance();
     }
+
+    /**
+     * Stellt sicher, dass alle Basis-Sektionen der Landing Page vorhanden sind
+     * und aktualisiert ältere Standard-Inhalte auf die aktuellen 365CMS-Features.
+     */
+    public function ensureDefaults(): void
+    {
+        try {
+            if (!$this->hasSectionRecord('header')) {
+                $header = $this->getDefaultHeader();
+                unset($header['id']);
+                $this->updateHeader($header);
+            }
+
+            if ($this->countSectionsByType('feature') === 0) {
+                foreach ($this->getDefaultFeatures() as $feature) {
+                    $this->saveFeature(null, $feature);
+                }
+            } else {
+                $this->upgradeLegacyFeatureDefaults();
+            }
+
+            $this->ensureSingleSectionRecord('content', $this->getDefaultContentSettings(), 50);
+            $this->ensureSingleSectionRecord('footer', $this->getDefaultFooter(), 99);
+            $this->ensureSingleSectionRecord('design', $this->getDefaultDesign(), 90);
+            $this->ensureSingleSectionRecord('settings', $this->getDefaultSettings(), 100);
+            $this->upgradeLegacyFooterDefaults();
+        } catch (\Throwable $e) {
+            error_log('LandingPageService::ensureDefaults() Error: ' . $e->getMessage());
+        }
+    }
     
     /**
      * Get Landing Page Header
@@ -274,9 +305,9 @@ class LandingPageService
     {
         return [
             'id' => null,
-            'title' => 'IT Expert Network CMS',
-            'subtitle' => 'Modernes Content Management System',
-            'description' => 'Ein leistungsstarkes, sicheres und erweiterbares CMS für professionelle Websites.',
+            'title' => '365CMS – modernes CMS für Inhalte, Portale und Mitgliederbereiche',
+            'subtitle' => 'Landing Pages, Redaktion, Plugins, Member Area und Design Editor in einem System',
+            'description' => '365CMS vereint Content-Management, Design-Anpassung, Mitgliederfunktionen, System-Mails und modulare Business-Features in einer flexiblen Plattform für professionelle Websites und Portale.',
             'github_url' => 'https://github.com/PS-easyIT/WordPress-365network',
             'github_text' => '💻 GitHub Projekt',
             'gitlab_url' => '',
@@ -292,18 +323,18 @@ class LandingPageService
     private function getDefaultFeatures(): array
     {
         return [
-            ['id' => null, 'icon' => '🚀', 'title' => 'Blitzschnell', 'description' => 'Optimierte Performance für schnelle Ladezeiten', 'sort_order' => 1],
-            ['id' => null, 'icon' => '🔒', 'title' => 'Sicher', 'description' => 'Moderne Sicherheitsstandards und Verschlüsselung', 'sort_order' => 2],
-            ['id' => null, 'icon' => '📱', 'title' => 'Responsive', 'description' => 'Perfekte Darstellung auf allen Geräten', 'sort_order' => 3],
-            ['id' => null, 'icon' => '🎨', 'title' => 'Anpassbar', 'description' => 'Flexibles Theme-System für individuelle Designs', 'sort_order' => 4],
-            ['id' => null, 'icon' => '🔌', 'title' => 'Erweiterbar', 'description' => 'Plugin-System für unbegrenzte Möglichkeiten', 'sort_order' => 5],
-            ['id' => null, 'icon' => '📊', 'title' => 'Analytics', 'description' => 'Integrierte Statistiken und Monitoring', 'sort_order' => 6],
-            ['id' => null, 'icon' => '👥', 'title' => 'Multi-User', 'description' => 'Rollen-basierte Benutzerverwaltung', 'sort_order' => 7],
-            ['id' => null, 'icon' => '🌐', 'title' => 'SEO-Ready', 'description' => 'Suchmaschinenoptimiertes Framework', 'sort_order' => 8],
-            ['id' => null, 'icon' => '⚡', 'title' => 'REST API', 'description' => 'Moderne API für Integrationen', 'sort_order' => 9],
-            ['id' => null, 'icon' => '💾', 'title' => 'Backups', 'description' => 'Automatische Datensicherung', 'sort_order' => 10],
-            ['id' => null, 'icon' => '🔄', 'title' => 'Updates', 'description' => 'Einfache Update-Verwaltung', 'sort_order' => 11],
-            ['id' => null, 'icon' => '📝', 'title' => 'Editor', 'description' => 'Intuitiver Content-Editor', 'sort_order' => 12]
+            ['id' => null, 'icon' => '🧩', 'title' => 'Seiten & Content', 'description' => 'Erstelle Seiten, Beiträge, Landing Pages und strukturierte Inhalte zentral im CMS.', 'sort_order' => 1],
+            ['id' => null, 'icon' => '🎨', 'title' => 'Design Editor', 'description' => 'Farben, Layouts, Header, Footer und Theme-Bereiche ohne Code anpassen.', 'sort_order' => 2],
+            ['id' => null, 'icon' => '🔌', 'title' => 'Plugin-Ökosystem', 'description' => 'Unternehmen, Events, Experten, Jobs, Feeds und weitere Module flexibel ergänzen.', 'sort_order' => 3],
+            ['id' => null, 'icon' => '👤', 'title' => 'Mitgliederbereich', 'description' => 'Dashboard, Profil, Sicherheit, Benachrichtigungen und persönliche Bereiche integriert.', 'sort_order' => 4],
+            ['id' => null, 'icon' => '🛡️', 'title' => 'Rollen & Sicherheit', 'description' => 'Granulare Rechte, CSRF-Schutz, sichere Authentifizierung und moderne Security-Bausteine.', 'sort_order' => 5],
+            ['id' => null, 'icon' => '🖼️', 'title' => 'Medienverwaltung', 'description' => 'Bilder, Dokumente, Uploads und Assets komfortabel organisieren und bereitstellen.', 'sort_order' => 6],
+            ['id' => null, 'icon' => '✉️', 'title' => 'Mail & Zustellung', 'description' => 'SMTP, MIME, OAuth/XOAuth2 und Systemmails für zuverlässige Kommunikation.', 'sort_order' => 7],
+            ['id' => null, 'icon' => '🌐', 'title' => 'SEO & Sichtbarkeit', 'description' => 'Meta-Daten, Redirects, saubere URLs und Suchmaschinenfreundlichkeit ab Werk.', 'sort_order' => 8],
+            ['id' => null, 'icon' => '📣', 'title' => 'Kontakt & Leads', 'description' => 'Formulare, Newsletter, Anfragen und automatisierte Benachrichtigungen bündeln.', 'sort_order' => 9],
+            ['id' => null, 'icon' => '⚙️', 'title' => 'Cron & Automationen', 'description' => 'Hintergrundjobs, Worker und geplante Aufgaben für wiederkehrende Prozesse.', 'sort_order' => 10],
+            ['id' => null, 'icon' => '🚀', 'title' => 'Performance', 'description' => 'Saubere Assets, optimierte Auslieferung und schnelle Oberflächen für den Alltag.', 'sort_order' => 11],
+            ['id' => null, 'icon' => '🧠', 'title' => 'Themes & Hooks', 'description' => 'Customizer, Hooks und Erweiterungspunkte für individuelle 365CMS-Lösungen.', 'sort_order' => 12]
         ];
     }
     
@@ -312,17 +343,7 @@ class LandingPageService
      */
     public function initializeDefaults(): void
     {
-        // Insert default header
-        $header = $this->getDefaultHeader();
-        unset($header['id']);
-        $this->updateHeader($header);
-        
-        // Insert default features
-        $features = $this->getDefaultFeatures();
-        foreach ($features as $feature) {
-            unset($feature['id']);
-            $this->saveFeature(null, $feature);
-        }
+        $this->ensureDefaults();
     }
     
     /**
@@ -423,8 +444,10 @@ class LandingPageService
     {
         return array(
             'id' => null,
-            'content' => '<p>Kontaktieren Sie uns für weitere Informationen.</p>',
-            'copyright' => '&copy; ' . date('Y') . ' IT Expert Network',
+            'content' => '<p><strong>365CMS</strong> verbindet Content-Management, Design Editor, Mitgliederbereich und modulare Business-Features in einer modernen Plattform.</p><p>Ideal für Unternehmensseiten, Portale, Netzwerke, Events und redaktionelle Websites mit Wachstumspotenzial.</p>',
+            'button_text' => 'Zum Login',
+            'button_url' => '/login',
+            'copyright' => '&copy; ' . date('Y') . ' 365CMS',
             'show_footer' => true
         );
     }
@@ -624,6 +647,7 @@ class LandingPageService
     public function updateDesign(array $data): bool
     {
         $defaults = $this->getDefaultDesign();
+        $existing = $this->getDesign();
         $allowed = array_keys($defaults);
         unset($allowed[array_search('id', $allowed, true)]);
 
@@ -632,7 +656,7 @@ class LandingPageService
             if (array_key_exists($key, $data)) {
                 $designData[$key] = $data[$key];
             } else {
-                $designData[$key] = $defaults[$key];
+                $designData[$key] = $existing[$key] ?? $defaults[$key];
             }
         }
         // Sanitize numeric values
@@ -678,19 +702,116 @@ class LandingPageService
     {
         return [
             'id'                    => null,
-            'card_border_radius'    => 12,
-            'button_border_radius'  => 8,
+            'card_border_radius'    => 18,
+            'button_border_radius'  => 12,
             'card_icon_layout'      => 'top',
             'card_border_color'     => '#e2e8f0',
             'card_border_width'     => '1px',
-            'card_shadow'           => 'sm',
+            'card_shadow'           => 'md',
             'feature_columns'       => 'auto',
             'hero_padding'          => 'md',
             'feature_padding'       => 'md',
-            'footer_bg'             => '#1e293b',
-            'footer_text_color'     => '#94a3b8',
+            'footer_bg'             => '#0f172a',
+            'footer_text_color'     => '#cbd5e1',
             'content_section_bg'    => '#ffffff',
         ];
+    }
+
+    private function hasSectionRecord(string $type): bool
+    {
+        return $this->countSectionsByType($type) > 0;
+    }
+
+    private function countSectionsByType(string $type): int
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM {$this->db->prefix()}landing_sections WHERE type = ?");
+            if (!$stmt) {
+                return 0;
+            }
+
+            $stmt->execute([$type]);
+
+            return (int)$stmt->fetchColumn();
+        } catch (\Throwable $e) {
+            error_log('LandingPageService::countSectionsByType() Error: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    private function ensureSingleSectionRecord(string $type, array $data, int $sortOrder): void
+    {
+        if ($this->hasSectionRecord($type)) {
+            return;
+        }
+
+        $payload = $data;
+        unset($payload['id']);
+
+        $stmt = $this->db->prepare(
+            "INSERT INTO {$this->db->prefix()}landing_sections (type, data, sort_order, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())"
+        );
+
+        if ($stmt) {
+            $stmt->execute([$type, json_encode($payload), $sortOrder]);
+        }
+    }
+
+    private function upgradeLegacyFeatureDefaults(): void
+    {
+        $features = $this->getFeatures();
+        $legacyTitles = [
+            'Blitzschnell',
+            'Sicher',
+            'Responsive',
+            'Anpassbar',
+            'Erweiterbar',
+            'Analytics',
+            'Multi-User',
+            'SEO-Ready',
+            'REST API',
+            'Backups',
+            'Updates',
+            'Editor',
+        ];
+
+        $currentTitles = array_values(array_map(
+            static fn(array $feature): string => trim((string)($feature['title'] ?? '')),
+            $features
+        ));
+
+        if ($currentTitles !== $legacyTitles) {
+            return;
+        }
+
+        $deleteStmt = $this->db->prepare("DELETE FROM {$this->db->prefix()}landing_sections WHERE type = 'feature'");
+        if ($deleteStmt) {
+            $deleteStmt->execute();
+        }
+
+        foreach ($this->getDefaultFeatures() as $feature) {
+            $this->saveFeature(null, $feature);
+        }
+    }
+
+    private function upgradeLegacyFooterDefaults(): void
+    {
+        $footer = $this->getFooter();
+        $legacyContent = '<p>Kontaktieren Sie uns für weitere Informationen.</p>';
+        $currentContent = trim((string)($footer['content'] ?? ''));
+
+        if ($currentContent !== $legacyContent) {
+            return;
+        }
+
+        $defaultFooter = $this->getDefaultFooter();
+        $this->updateFooter([
+            'footer_content' => $defaultFooter['content'],
+            'footer_button_text' => $defaultFooter['button_text'],
+            'footer_button_url' => $defaultFooter['button_url'],
+            'footer_copyright' => $defaultFooter['copyright'],
+            'show_footer' => true,
+        ]);
     }
 
     // ── Plugin Override System ────────────────────────────────────────────────

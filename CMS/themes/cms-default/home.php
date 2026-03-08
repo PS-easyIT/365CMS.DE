@@ -144,15 +144,20 @@ $numRecent        = count($recentSidebar);
 // ── Landing Page Daten laden ──────────────────────────────
 $lpHeader      = [];
 $lpFeatures    = [];
+$lpFooter      = [];
 $lpColors      = [];
+$lpSettings    = ['show_footer_section' => true];
 $lpContentSets = ['content_type' => 'features', 'posts_count' => 6];
 
 try {
     $landingSvc    = \CMS\Services\LandingPageService::getInstance();
+    $landingSvc->ensureDefaults();
     $lpHeader      = $landingSvc->getHeader();
     $lpFeatures    = $landingSvc->getFeatures();
+    $lpFooter      = $landingSvc->getFooter();
     $lpColors      = $lpHeader['colors'] ?? [];
     $lpContentSets = $landingSvc->getContentSettings();
+    $lpSettings    = $landingSvc->getSettings();
     $lpDesign      = $landingSvc->getDesign();
 } catch (\Throwable $lpEx) {
     error_log('cms-default home.php LandingPageService: ' . $lpEx->getMessage());
@@ -206,6 +211,8 @@ $dBorderW    = $safe($lpDesign['card_border_width']  ?? '1px');
 $dShadow     = $lpDesign['card_shadow']       ?? 'sm';   // none|sm|md|lg
 $dColumns    = $lpDesign['feature_columns']   ?? 'auto'; // auto|2|3|4
 $dContentBg  = $safe($lpDesign['content_section_bg'] ?? '#ffffff');
+$dFooterBg   = $safe($lpDesign['footer_bg'] ?? '#0f172a');
+$dFooterText = $safe($lpDesign['footer_text_color'] ?? '#cbd5e1');
 
 $shadowMap = [
     'none' => 'none',
@@ -222,6 +229,12 @@ $columnMap = [
     '4'    => 'repeat(4,1fr)',
 ];
 $dColumnsVal = $columnMap[$dColumns] ?? $columnMap['auto'];
+
+$lpFooterContent    = (string)($lpFooter['content'] ?? '');
+$lpFooterButtonText = (string)($lpFooter['button_text'] ?? '');
+$lpFooterButtonUrl  = (string)($lpFooter['button_url'] ?? '');
+$lpFooterCopyright  = (string)($lpFooter['copyright'] ?? '');
+$showLandingFooter  = !empty($lpSettings['show_footer_section']) && !empty($lpFooter['show_footer']);
 
 // ── Layout: compact vs. standard ─────────────────────────
 $lpLayout    = $lpHeader['header_layout'] ?? 'standard';
@@ -291,6 +304,39 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
 .lp-feat-card__body  { flex: 1; }
 .lp-feat-card__title { font-size: 1rem; font-weight: 700; margin: 0 0 .4rem; color: #1e293b; }
 .lp-feat-card__desc  { font-size: .9rem; color: #64748b; margin: 0; line-height: 1.5; }
+.lp-footer-callout {
+    background: <?php echo $dFooterBg; ?>;
+    color: <?php echo $dFooterText; ?>;
+    padding: 3rem 1.5rem;
+}
+.lp-footer-callout__inner {
+    max-width: 1140px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1.5rem;
+    align-items: center;
+}
+.lp-footer-callout__content {
+    font-size: 1rem;
+    line-height: 1.7;
+}
+.lp-footer-callout__content p {
+    margin: 0 0 .75rem;
+}
+.lp-footer-callout__content p:last-child {
+    margin-bottom: 0;
+}
+.lp-footer-callout__copyright {
+    margin-top: 1rem;
+    font-size: .875rem;
+    opacity: .8;
+}
+@media (max-width: 768px) {
+    .lp-footer-callout__inner {
+        grid-template-columns: 1fr;
+    }
+}
 </style>
 
 <div class="landing-page">
@@ -477,6 +523,31 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
         <p><strong>Startseite noch nicht konfiguriert</strong></p>
         <p class="text-muted">Richte die Landing Page unter <a href="<?php echo SITE_URL; ?>/admin/landing-page.php">Admin → Landing Page</a> ein.</p>
     </div>
+    <?php endif; ?>
+
+    <?php if ($showLandingFooter && ($lpFooterContent !== '' || $lpFooterButtonText !== '' || $lpFooterCopyright !== '')): ?>
+    <section class="lp-footer-callout">
+        <div class="lp-footer-callout__inner">
+            <div>
+                <?php if ($lpFooterContent !== ''): ?>
+                <div class="lp-footer-callout__content"><?php echo $lpFooterContent; ?></div>
+                <?php endif; ?>
+                <?php if ($lpFooterCopyright !== ''): ?>
+                <div class="lp-footer-callout__copyright"><?php echo $lpFooterCopyright; ?></div>
+                <?php endif; ?>
+            </div>
+
+            <?php if ($lpFooterButtonText !== '' && $lpFooterButtonUrl !== ''): ?>
+            <div>
+                <a href="<?php echo $safe($lpFooterButtonUrl); ?>"
+                   class="btn-hero"
+                   style="background:var(--lp-btn);border-radius:<?php echo $dBtnBr; ?>px;">
+                    <?php echo $safe($lpFooterButtonText); ?>
+                </a>
+            </div>
+            <?php endif; ?>
+        </div>
+    </section>
     <?php endif; ?>
 
 </div><!-- /#lp-content -->

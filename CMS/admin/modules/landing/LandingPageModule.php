@@ -20,6 +20,7 @@ class LandingPageModule
     public function __construct()
     {
         $this->service = LandingPageService::getInstance();
+        $this->service->ensureDefaults();
     }
 
     /**
@@ -79,7 +80,13 @@ class LandingPageModule
     public function saveDesign(array $post): array
     {
         try {
-            $this->service->updateDesign($post);
+            $colorsSaved = $this->service->updateColors($post);
+            $designSaved = $this->service->updateDesign($post);
+
+            if (!$colorsSaved || !$designSaved) {
+                return ['success' => false, 'error' => 'Design konnte nicht vollständig gespeichert werden.'];
+            }
+
             return ['success' => true, 'message' => 'Design gespeichert.'];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];

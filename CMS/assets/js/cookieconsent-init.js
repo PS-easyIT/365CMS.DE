@@ -1,9 +1,19 @@
 (function () {
     'use strict';
 
+    var consentApi = null;
+
+    function getConsentApi() {
+        if (window.CookieConsent && typeof window.CookieConsent.run === 'function') {
+            return window.CookieConsent;
+        }
+
+        return consentApi;
+    }
+
     function bootConsent() {
         var cfg = window.CMS_COOKIECONSENT_CONFIG || {};
-        var cc = window.CookieConsent;
+        var cc = getConsentApi();
 
         if (!cc || typeof cc.run !== 'function' || !document.body) {
             return;
@@ -90,6 +100,8 @@
                 }
             });
 
+            consentApi = cc;
+
             document.documentElement.style.setProperty('--cc-btn-primary-bg', primary);
         } catch (error) {
             console.warn('CookieConsent konnte nicht initialisiert werden:', error);
@@ -105,7 +117,8 @@
 
         var statusText = page.querySelector('[data-cms-consent-status-text]');
         var statusDetail = page.querySelector('[data-cms-consent-status-detail]');
-        var preferences = typeof cc.getUserPreferences === 'function' ? cc.getUserPreferences() : null;
+        var cc = getConsentApi();
+        var preferences = cc && typeof cc.getUserPreferences === 'function' ? cc.getUserPreferences() : null;
         var acceptedCategories = preferences && Array.isArray(preferences.acceptedCategories)
             ? preferences.acceptedCategories
             : [];
@@ -190,6 +203,11 @@
         event.preventDefault();
 
         var action = trigger.getAttribute('data-cms-consent-action');
+        var cc = getConsentApi();
+        if (!cc) {
+            return;
+        }
+
         if (action === 'preferences' && typeof cc.showPreferences === 'function') {
             cc.showPreferences();
         } else if (action === 'accept-all' && typeof cc.acceptCategory === 'function') {

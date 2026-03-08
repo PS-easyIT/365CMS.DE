@@ -604,7 +604,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         if (class_exists('\\CMS\\Hooks')) {
             \CMS\Hooks::doAction('theme_customizer_save', 'cms-default', $resetTab, $config[$resetTab]['sections'] ?? [], ['mode' => 'reset']);
         }
-        $success = 'Einstellungen für &bdquo;' . htmlspecialchars($config[$resetTab]['title']) . '&ldquo; auf Standardwerte zurückgesetzt.';
+        $success = 'Einstellungen für „' . $config[$resetTab]['title'] . '“ auf Standardwerte zurückgesetzt.';
     }
 }
 
@@ -664,7 +664,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             if (class_exists('\\CMS\\Hooks')) {
                 \CMS\Hooks::doAction('theme_customizer_save', 'cms-default', $saveTab, $config[$saveTab]['sections'] ?? [], ['mode' => 'save']);
             }
-            $success = 'Einstellungen für &bdquo;' . htmlspecialchars($config[$saveTab]['title']) . '&ldquo; gespeichert.';
+            $success = 'Einstellungen für „' . $config[$saveTab]['title'] . '“ gespeichert.';
         }
     }
 }
@@ -845,17 +845,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             </button>
                         </div>
                     </div>
-
-                    <!-- Reset-Formular (versteckt, wird per JS gesendet) -->
-                    <form id="reset-form" method="POST" action="?tab=<?php echo htmlspecialchars($activeTab); ?>" style="display:none;">
-                        <input type="hidden" name="action" value="reset_theme_tab">
-                        <input type="hidden" name="active_section" value="<?php echo htmlspecialchars($activeTab); ?>">
-                        <input type="hidden" name="csrf_token" value="<?php echo Security::instance()->generateToken('theme_customizer'); ?>">
-                    </form>
                     <?php endif; ?>
                 </div>
             </div>
         </form>
+
+        <?php if (isset($config[$activeTab])): ?>
+        <!-- Reset-Formular (versteckt, wird per JS gesendet) -->
+        <form id="reset-form" method="POST" action="?tab=<?php echo htmlspecialchars($activeTab); ?>" style="display:none;">
+            <input type="hidden" name="action" value="reset_theme_tab">
+            <input type="hidden" name="active_section" value="<?php echo htmlspecialchars($activeTab); ?>">
+            <input type="hidden" name="csrf_token" value="<?php echo Security::instance()->generateToken('theme_customizer'); ?>">
+        </form>
+        <?php endif; ?>
 
             </div>
         </div>
