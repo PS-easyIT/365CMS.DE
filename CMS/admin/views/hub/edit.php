@@ -145,7 +145,50 @@ $hubSections = is_array($hubSections) ? $hubSections : [];
                                         <li>Meta-Felder</li>
                                         <li>Header-Links</li>
                                         <li>Designbereiche</li>
+                                        <li>Card-Layout-Vorgaben</li>
                                     </ul>
+                                </div>
+                                <div class="col-12">
+                                    <div class="row g-3 pt-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Card-Layout</label>
+                                            <select class="form-select" name="hub_card_layout" id="hubCardLayoutInput">
+                                                <option value="standard" <?php echo (($settings['hub_card_layout'] ?? 'standard') === 'standard') ? 'selected' : ''; ?>>Standard Grid</option>
+                                                <option value="feature" <?php echo (($settings['hub_card_layout'] ?? '') === 'feature') ? 'selected' : ''; ?>>Feature / großzügig</option>
+                                                <option value="compact" <?php echo (($settings['hub_card_layout'] ?? '') === 'compact') ? 'selected' : ''; ?>>Kompakt / dichter</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Bildposition</label>
+                                            <select class="form-select" name="hub_card_image_position" id="hubCardImagePositionInput">
+                                                <option value="top" <?php echo (($settings['hub_card_image_position'] ?? 'top') === 'top') ? 'selected' : ''; ?>>Oben</option>
+                                                <option value="left" <?php echo (($settings['hub_card_image_position'] ?? '') === 'left') ? 'selected' : ''; ?>>Links</option>
+                                                <option value="right" <?php echo (($settings['hub_card_image_position'] ?? '') === 'right') ? 'selected' : ''; ?>>Rechts</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Bilddarstellung</label>
+                                            <select class="form-select" name="hub_card_image_fit" id="hubCardImageFitInput">
+                                                <option value="cover" <?php echo (($settings['hub_card_image_fit'] ?? 'cover') === 'cover') ? 'selected' : ''; ?>>Cover</option>
+                                                <option value="contain" <?php echo (($settings['hub_card_image_fit'] ?? '') === 'contain') ? 'selected' : ''; ?>>Contain</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Bildformat</label>
+                                            <select class="form-select" name="hub_card_image_ratio" id="hubCardImageRatioInput">
+                                                <option value="wide" <?php echo (($settings['hub_card_image_ratio'] ?? 'wide') === 'wide') ? 'selected' : ''; ?>>Breit</option>
+                                                <option value="square" <?php echo (($settings['hub_card_image_ratio'] ?? '') === 'square') ? 'selected' : ''; ?>>Quadratisch</option>
+                                                <option value="portrait" <?php echo (($settings['hub_card_image_ratio'] ?? '') === 'portrait') ? 'selected' : ''; ?>>Hochformat</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Meta-Layout</label>
+                                            <select class="form-select" name="hub_card_meta_layout" id="hubCardMetaLayoutInput">
+                                                <option value="split" <?php echo (($settings['hub_card_meta_layout'] ?? 'split') === 'split') ? 'selected' : ''; ?>>Links / Rechts</option>
+                                                <option value="stacked" <?php echo (($settings['hub_card_meta_layout'] ?? '') === 'stacked') ? 'selected' : ''; ?>>Gestapelt</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -314,12 +357,18 @@ $hubSections = is_array($hubSections) ? $hubSections : [];
         var key = templateSelect.value || 'general-it';
         var preset = templatePresets[key] || {};
         var meta = preset.meta || {};
+        var cardDesign = preset.card_design || {};
 
         form.querySelector('input[name="hub_meta_audience"]').value = meta.audience || '';
         form.querySelector('input[name="hub_meta_owner"]').value = meta.owner || '';
         form.querySelector('input[name="hub_meta_update_cycle"]').value = meta.update_cycle || '';
         form.querySelector('input[name="hub_meta_focus"]').value = meta.focus || '';
         form.querySelector('input[name="hub_meta_kpi"]').value = meta.kpi || '';
+        document.getElementById('hubCardLayoutInput').value = cardDesign.layout || 'standard';
+        document.getElementById('hubCardImagePositionInput').value = cardDesign.image_position || 'top';
+        document.getElementById('hubCardImageFitInput').value = cardDesign.image_fit || 'cover';
+        document.getElementById('hubCardImageRatioInput').value = cardDesign.image_ratio || 'wide';
+        document.getElementById('hubCardMetaLayoutInput').value = cardDesign.meta_layout || 'split';
 
         hubLinks = Array.isArray(preset.links) ? JSON.parse(JSON.stringify(preset.links)) : [];
         hubSections = Array.isArray(preset.sections) ? JSON.parse(JSON.stringify(preset.sections)) : [];
@@ -353,7 +402,11 @@ $hubSections = is_array($hubSections) ? $hubSections : [];
             html += '    <div class="col-md-6"><label class="form-label small">Titel</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.title || '') + '" data-index="' + index + '" data-key="title"></div>';
             html += '    <div class="col-md-6"><label class="form-label small">URL</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.url || '') + '" data-index="' + index + '" data-key="url"></div>';
             html += '    <div class="col-md-6"><label class="form-label small">Badge</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.badge || '') + '" data-index="' + index + '" data-key="badge"></div>';
-            html += '    <div class="col-md-6"><label class="form-label small">Meta</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.meta || '') + '" data-index="' + index + '" data-key="meta"></div>';
+            html += '    <div class="col-md-6"><label class="form-label small">Legacy Meta</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.meta || '') + '" data-index="' + index + '" data-key="meta"></div>';
+            html += '    <div class="col-md-6"><label class="form-label small">Meta links</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.meta_left || '') + '" data-index="' + index + '" data-key="meta_left"></div>';
+            html += '    <div class="col-md-6"><label class="form-label small">Meta rechts</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.meta_right || '') + '" data-index="' + index + '" data-key="meta_right"></div>';
+            html += '    <div class="col-md-8"><label class="form-label small">Bild-URL</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.image_url || '') + '" data-index="' + index + '" data-key="image_url" placeholder="https://… oder /uploads/...\"></div>';
+            html += '    <div class="col-md-4"><label class="form-label small">Bild-Alt</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.image_alt || '') + '" data-index="' + index + '" data-key="image_alt"></div>';
             html += '    <div class="col-12"><label class="form-label small">Kurzbeschreibung</label><textarea class="form-control form-control-sm" rows="3" data-index="' + index + '" data-key="summary">' + escapeHtml(card.summary || '') + '</textarea></div>';
             html += '    <div class="col-12 text-end"><button type="button" class="btn btn-outline-danger btn-sm remove-card" data-index="' + index + '">Entfernen</button></div>';
             html += '  </div>';
@@ -405,7 +458,7 @@ $hubSections = is_array($hubSections) ? $hubSections : [];
     }
 
     document.getElementById('addCard').addEventListener('click', function () {
-        cards.push({ title: '', url: '', badge: '', meta: '', summary: '' });
+        cards.push({ title: '', url: '', badge: '', meta: '', meta_left: '', meta_right: '', image_url: '', image_alt: '', summary: '' });
         render();
     });
 

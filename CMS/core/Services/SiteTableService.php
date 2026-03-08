@@ -45,6 +45,11 @@ final class SiteTableService
         'hub_meta_kpi' => '',
         'hub_links_json' => '[]',
         'hub_sections_json' => '[]',
+        'hub_card_layout' => 'standard',
+        'hub_card_image_position' => 'top',
+        'hub_card_image_fit' => 'cover',
+        'hub_card_image_ratio' => 'wide',
+        'hub_card_meta_layout' => 'split',
     ];
 
     private const TEMPLATE_PLACEHOLDERS = [
@@ -378,6 +383,11 @@ final class SiteTableService
         $quickLinks = $this->normalizeHubLinks((string)($settings['hub_links_json'] ?? '[]'), $template);
         $sections = $this->normalizeHubSections((string)($settings['hub_sections_json'] ?? '[]'), $template);
         $metaItems = $this->buildHubMetaItems($settings, $template);
+        $cardLayout = $this->normalizeOption((string)($settings['hub_card_layout'] ?? 'standard'), ['standard', 'feature', 'compact'], 'standard');
+        $cardImagePosition = $this->normalizeOption((string)($settings['hub_card_image_position'] ?? 'top'), ['top', 'left', 'right'], 'top');
+        $cardImageFit = $this->normalizeOption((string)($settings['hub_card_image_fit'] ?? 'cover'), ['cover', 'contain'], 'cover');
+        $cardImageRatio = $this->normalizeOption((string)($settings['hub_card_image_ratio'] ?? 'wide'), ['wide', 'square', 'portrait'], 'wide');
+        $cardMetaLayout = $this->normalizeOption((string)($settings['hub_card_meta_layout'] ?? 'split'), ['split', 'stacked'], 'split');
 
         $html = '<section class="cms-hub-site cms-hub-site--' . htmlspecialchars($template, ENT_QUOTES, 'UTF-8') . '"';
         if ($pageSlug !== '') {
@@ -431,16 +441,36 @@ final class SiteTableService
         }
 
         if ($cards !== []) {
-            $html .= '<div class="cms-hub-site__grid">';
+            $html .= '<div class="cms-hub-site__grid cms-hub-site__grid--' . htmlspecialchars($cardLayout, ENT_QUOTES, 'UTF-8') . '">';
             foreach ($cards as $card) {
                 $url = htmlspecialchars((string)$card['url'], ENT_QUOTES, 'UTF-8');
                 $title = htmlspecialchars((string)$card['title'], ENT_QUOTES, 'UTF-8');
                 $summary = htmlspecialchars((string)$card['summary'], ENT_QUOTES, 'UTF-8');
                 $badge = htmlspecialchars((string)$card['badge'], ENT_QUOTES, 'UTF-8');
                 $meta = htmlspecialchars((string)$card['meta'], ENT_QUOTES, 'UTF-8');
+                $metaLeft = htmlspecialchars((string)($card['meta_left'] ?? ''), ENT_QUOTES, 'UTF-8');
+                $metaRight = htmlspecialchars((string)($card['meta_right'] ?? ''), ENT_QUOTES, 'UTF-8');
+                $imageUrl = trim((string)($card['image_url'] ?? ''));
+                $imageAlt = htmlspecialchars((string)($card['image_alt'] ?? $card['title'] ?? ''), ENT_QUOTES, 'UTF-8');
+                $hasImage = $imageUrl !== '';
+                $cardArticleClass = 'cms-hub-site__card';
+                $cardLinkClass = 'cms-hub-site__card-link';
 
-                $html .= '<article class="cms-hub-site__card">';
-                $html .= '<a class="cms-hub-site__card-link" href="' . $url . '">';
+                if ($hasImage) {
+                    $cardArticleClass .= ' cms-hub-site__card--image-' . htmlspecialchars($cardImagePosition, ENT_QUOTES, 'UTF-8');
+                    $cardLinkClass .= ' cms-hub-site__card-link--image-' . htmlspecialchars($cardImagePosition, ENT_QUOTES, 'UTF-8');
+                }
+
+                $cardArticleClass .= ' cms-hub-site__card--meta-' . htmlspecialchars($cardMetaLayout, ENT_QUOTES, 'UTF-8');
+
+                $html .= '<article class="' . $cardArticleClass . '">';
+                $html .= '<a class="' . $cardLinkClass . '" href="' . $url . '">';
+                if ($hasImage) {
+                    $html .= '<div class="cms-hub-site__card-media cms-hub-site__card-media--' . htmlspecialchars($cardImageRatio, ENT_QUOTES, 'UTF-8') . ' cms-hub-site__card-media--fit-' . htmlspecialchars($cardImageFit, ENT_QUOTES, 'UTF-8') . '">';
+                    $html .= '<img src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . $imageAlt . '" loading="lazy">';
+                    $html .= '</div>';
+                }
+                $html .= '<div class="cms-hub-site__card-content">';
                 if ($badge !== '') {
                     $html .= '<span class="cms-hub-site__card-badge">' . $badge . '</span>';
                 }
@@ -448,11 +478,19 @@ final class SiteTableService
                 if ($summary !== '') {
                     $html .= '<p class="cms-hub-site__card-summary">' . nl2br($summary) . '</p>';
                 }
-                $html .= '<div class="cms-hub-site__card-footer">';
-                if ($meta !== '') {
-                    $html .= '<span class="cms-hub-site__card-meta">' . $meta . '</span>';
+                $html .= '<div class="cms-hub-site__card-footer cms-hub-site__card-footer--' . htmlspecialchars($cardMetaLayout, ENT_QUOTES, 'UTF-8') . '">';
+                $html .= '<div class="cms-hub-site__card-meta-row">';
+                if ($metaLeft !== '') {
+                    $html .= '<span class="cms-hub-site__card-meta cms-hub-site__card-meta--left">' . $metaLeft . '</span>';
+                } elseif ($meta !== '') {
+                    $html .= '<span class="cms-hub-site__card-meta cms-hub-site__card-meta--left">' . $meta . '</span>';
                 }
+                if ($metaRight !== '') {
+                    $html .= '<span class="cms-hub-site__card-meta cms-hub-site__card-meta--right">' . $metaRight . '</span>';
+                }
+                $html .= '</div>';
                 $html .= '<span class="cms-hub-site__card-arrow" aria-hidden="true">→</span>';
+                $html .= '</div>';
                 $html .= '</div>';
                 $html .= '</a>';
                 $html .= '</article>';
@@ -486,10 +524,19 @@ final class SiteTableService
                 'summary' => mb_substr(trim((string)($row['summary'] ?? $row['Beschreibung'] ?? '')), 0, 600),
                 'badge' => mb_substr(trim((string)($row['badge'] ?? $row['Kategorie'] ?? '')), 0, 80),
                 'meta' => mb_substr(trim((string)($row['meta'] ?? $row['Meta'] ?? '')), 0, 120),
+                'meta_left' => mb_substr(trim((string)($row['meta_left'] ?? $row['metaLeft'] ?? $row['Meta links'] ?? $row['meta'] ?? '')), 0, 120),
+                'meta_right' => mb_substr(trim((string)($row['meta_right'] ?? $row['metaRight'] ?? $row['Meta rechts'] ?? '')), 0, 120),
+                'image_url' => mb_substr(trim((string)($row['image_url'] ?? $row['imageUrl'] ?? $row['Bild'] ?? '')), 0, 500),
+                'image_alt' => mb_substr(trim((string)($row['image_alt'] ?? $row['imageAlt'] ?? '')), 0, 160),
             ];
         }
 
         return $cards;
+    }
+
+    private function normalizeOption(string $value, array $allowed, string $fallback): string
+    {
+        return in_array($value, $allowed, true) ? $value : $fallback;
     }
 
     private function normalizeHubLinks(string $json, string $template): array

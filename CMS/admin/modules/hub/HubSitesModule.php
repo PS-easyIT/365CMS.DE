@@ -37,11 +37,17 @@ class HubSitesModule
         'hub_meta_kpi' => '',
         'hub_links_json' => '[]',
         'hub_sections_json' => '[]',
+        'hub_card_layout' => 'standard',
+        'hub_card_image_position' => 'top',
+        'hub_card_image_fit' => 'cover',
+        'hub_card_image_ratio' => 'wide',
+        'hub_card_meta_layout' => 'split',
     ];
 
     private const TEMPLATE_PRESETS = [
         'general-it' => [
             'summary' => 'Breites IT-Hub für Strategie, Betrieb, Infrastruktur und Security.',
+            'card_design' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split'],
             'meta' => [
                 'audience' => 'IT-Leitung',
                 'owner' => 'IT-Operations',
@@ -62,6 +68,7 @@ class HubSitesModule
         ],
         'microsoft-365' => [
             'summary' => 'Modern-Work-Hub mit Fokus auf Collaboration, Adoption und Governance.',
+            'card_design' => ['layout' => 'feature', 'image_position' => 'left', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split'],
             'meta' => [
                 'audience' => 'Workspace & Modern Work',
                 'owner' => 'M365-Team',
@@ -82,6 +89,7 @@ class HubSitesModule
         ],
         'datenschutz' => [
             'summary' => 'Strukturiertes Datenschutz-Hub für Nachweise, Prozesse und Rechtsgrundlagen.',
+            'card_design' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'contain', 'image_ratio' => 'square', 'meta_layout' => 'stacked'],
             'meta' => [
                 'audience' => 'DSB & Fachbereiche',
                 'owner' => 'Datenschutz',
@@ -102,6 +110,7 @@ class HubSitesModule
         ],
         'compliance' => [
             'summary' => 'Governance-/Compliance-Hub für Policies, Audits und Kontrolllandschaften.',
+            'card_design' => ['layout' => 'feature', 'image_position' => 'right', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split'],
             'meta' => [
                 'audience' => 'Management & Audit',
                 'owner' => 'Compliance Office',
@@ -122,6 +131,7 @@ class HubSitesModule
         ],
         'linux' => [
             'summary' => 'Technisches Linux-Hub für Platform Engineering, Automatisierung und Hardening.',
+            'card_design' => ['layout' => 'compact', 'image_position' => 'top', 'image_fit' => 'contain', 'image_ratio' => 'square', 'meta_layout' => 'stacked'],
             'meta' => [
                 'audience' => 'Admins & Platform Team',
                 'owner' => 'Platform Engineering',
@@ -259,6 +269,11 @@ class HubSitesModule
             'hub_meta_kpi' => mb_substr(trim(strip_tags((string)($post['hub_meta_kpi'] ?? ''))), 0, 120),
             'hub_links_json' => $this->normalizeJsonArray((string)($post['hub_links_json'] ?? '[]'), 'link'),
             'hub_sections_json' => $this->normalizeJsonArray((string)($post['hub_sections_json'] ?? '[]'), 'section'),
+            'hub_card_layout' => $this->normalizeSetting((string)($post['hub_card_layout'] ?? 'standard'), ['standard', 'feature', 'compact'], 'standard'),
+            'hub_card_image_position' => $this->normalizeSetting((string)($post['hub_card_image_position'] ?? 'top'), ['top', 'left', 'right'], 'top'),
+            'hub_card_image_fit' => $this->normalizeSetting((string)($post['hub_card_image_fit'] ?? 'cover'), ['cover', 'contain'], 'cover'),
+            'hub_card_image_ratio' => $this->normalizeSetting((string)($post['hub_card_image_ratio'] ?? 'wide'), ['wide', 'square', 'portrait'], 'wide'),
+            'hub_card_meta_layout' => $this->normalizeSetting((string)($post['hub_card_meta_layout'] ?? 'split'), ['split', 'stacked'], 'split'),
         ];
 
         $normalizedCards = [];
@@ -279,6 +294,10 @@ class HubSitesModule
                 'summary' => mb_substr(trim((string)($card['summary'] ?? '')), 0, 600),
                 'badge' => mb_substr(trim(strip_tags((string)($card['badge'] ?? ''))), 0, 80),
                 'meta' => mb_substr(trim(strip_tags((string)($card['meta'] ?? ''))), 0, 120),
+                'meta_left' => mb_substr(trim(strip_tags((string)($card['meta_left'] ?? ''))), 0, 120),
+                'meta_right' => mb_substr(trim(strip_tags((string)($card['meta_right'] ?? ''))), 0, 120),
+                'image_url' => mb_substr(trim((string)($card['image_url'] ?? '')), 0, 500),
+                'image_alt' => mb_substr(trim(strip_tags((string)($card['image_alt'] ?? ''))), 0, 160),
             ];
         }
 
@@ -505,6 +524,11 @@ class HubSitesModule
         }
 
         return json_encode($normalized, JSON_UNESCAPED_UNICODE) ?: '[]';
+    }
+
+    private function normalizeSetting(string $value, array $allowed, string $fallback): string
+    {
+        return in_array($value, $allowed, true) ? $value : $fallback;
     }
 
     private function hasTableSlugColumn(): bool
