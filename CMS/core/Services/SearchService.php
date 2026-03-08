@@ -250,7 +250,7 @@ final class SearchService
 
         try {
             $this->tnt->selectIndex($indexFile);
-            $this->tnt->fuzziness = $fuzzy;
+            $this->tnt->setFuzziness($fuzzy);
 
             $result = $this->tnt->search($query, $limit);
 
