@@ -10,6 +10,11 @@ use CMS\Services\ImageService;
 
 final class PerformanceModule
 {
+    private const MEDIA_EXCLUDED_PATH_PARTS = [
+        '/uploads/.elfinder/.tmb/',
+        '\\uploads\\.elfinder\\.tmb\\',
+    ];
+
     private const DEFAULT_SETTINGS = [
         'perf_lazy_loading' => '1',
         'perf_minify_css' => '0',
@@ -200,7 +205,7 @@ final class PerformanceModule
     private function getMediaMetrics(): array
     {
         $uploadDir = ABSPATH . 'uploads/';
-        $uploadSize = is_dir($uploadDir) ? $this->getDirSize($uploadDir) : 0;
+        $uploadSize = is_dir($uploadDir) ? $this->getDirSize($uploadDir, [$this, 'shouldExcludeMediaPath']) : 0;
         $imageService = ImageService::getInstance();
         $imageSupport = $imageService->getInfo();
 
@@ -236,7 +241,7 @@ final class PerformanceModule
         $convertibleFiles = 0;
         $convertibleBytes = 0;
         if (is_dir($uploadDir)) {
-            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($uploadDir, \FilesystemIterator::SKIP_DOTS));
+            $iterator = $this->createMediaIterator($uploadDir);
             foreach ($iterator as $file) {
                 if (!$file->isFile()) {
                     continue;
@@ -323,7 +328,7 @@ final class PerformanceModule
         $savedBytes = 0;
         $updatedReferences = 0;
 
-        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($uploadDir, \FilesystemIterator::SKIP_DOTS));
+        $iterator = $this->createMediaIterator($uploadDir);
         foreach ($iterator as $file) {
             if (!$file->isFile()) {
                 continue;
@@ -707,7 +712,7 @@ final class PerformanceModule
         return ['success' => true, 'message' => 'Performance-Einstellungen gespeichert.'];
     }
 
-    private function getDirSize(string $dir): int
+    private function getDirSize(string $dir, ?callable $excludePath = null): int
     {
         if (!is_dir($dir)) {
             return 0;
@@ -716,10 +721,41 @@ final class PerformanceModule
         $size = 0;
         $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS));
         foreach ($iterator as $file) {
+            if ($excludePath !== null && $excludePath($file->getPathname())) {
+                continue;
+            }
+
             $size += $file->getSize();
         }
 
         return $size;
+    }
+
+    private function createMediaIterator(string $uploadDir): \RecursiveIteratorIterator
+    {
+        $directoryIterator = new \RecursiveDirectoryIterator($uploadDir, \FilesystemIterator::SKIP_DOTS);
+        $filter = new \RecursiveCallbackFilterIterator(
+            $directoryIterator,
+            function (\SplFileInfo $current): bool {
+                return !$this->shouldExcludeMediaPath($current->getPathname());
+            }
+        );
+
+        return new \RecursiveIteratorIterator($filter);
+    }
+
+    private function shouldExcludeMediaPath(string $path): bool
+    {
+        $normalizedPath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path);
+
+        foreach (self::MEDIA_EXCLUDED_PATH_PARTS as $excludedPart) {
+            $normalizedExcludedPart = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $excludedPart);
+            if (str_contains($normalizedPath, $normalizedExcludedPart)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function replaceMediaReferences(string $sourcePath, string $webpPath, int $webpSize): int

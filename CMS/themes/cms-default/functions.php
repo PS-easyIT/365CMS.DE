@@ -832,7 +832,7 @@ function meridian_get_recent_posts(int $limit = 5, ?int $excludeId = null): arra
     try {
         $db     = \CMS\Database::instance();
         $prefix = $db->getPrefix();
-        $sql    = "SELECT p.id, p.title, p.slug, p.published_at, c.name AS category_name
+        $sql    = "SELECT p.id, p.title, p.slug, p.featured_image, p.published_at, p.created_at, c.name AS category_name
                    FROM {$prefix}posts p
                    LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
                    WHERE p.status = 'published'";
@@ -844,7 +844,7 @@ function meridian_get_recent_posts(int $limit = 5, ?int $excludeId = null): arra
         $sql .= ' ORDER BY p.published_at DESC LIMIT ?';
         $params[] = $limit;
         $rows = $db->get_results($sql, $params);
-        return $rows ? (array)$rows : [];
+        return $rows ? array_map(static fn(object $row): array => (array)$row, $rows) : [];
     } catch (\Throwable $e) {
         return [];
     }
@@ -869,7 +869,7 @@ function meridian_get_related_posts(int $categoryId, int $excludeId, int $limit 
              ORDER BY p.published_at DESC LIMIT ?",
             [$categoryId, $excludeId, $limit]
         );
-        return $rows ? (array)$rows : meridian_get_recent_posts($limit, $excludeId);
+        return $rows ? array_map(static fn(object $row): array => (array)$row, $rows) : meridian_get_recent_posts($limit, $excludeId);
     } catch (\Throwable $e) {
         return meridian_get_recent_posts($limit, $excludeId);
     }
@@ -935,7 +935,7 @@ function meridian_get_posts(array $args = []): array
         $params[] = (int)$args['offset'];
 
         $rows = $db->get_results($sql, $params);
-        return $rows ? (array)$rows : [];
+        return $rows ? array_map(static fn(object $row): array => (array)$row, $rows) : [];
 
     } catch (\Throwable $e) {
         // Fallback or log error
