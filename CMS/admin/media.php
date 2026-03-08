@@ -192,6 +192,8 @@ if (!empty($_SESSION['admin_alert'])) {
 }
 
 $csrfToken  = Security::instance()->generateToken('admin_media');
+$mediaActionToken = Security::instance()->generateToken('media_action');
+$mediaConnectorToken = Security::instance()->generateToken('media_connector');
 $activePage = match ($tab) {
     'categories' => 'media-categories',
     'settings' => 'media-settings',
@@ -221,6 +223,20 @@ switch ($tab) {
     default:
         $data      = $module->getLibraryData();
         $pageTitle = 'Medien';
+        $assetsUrl = defined('ASSETS_URL') ? ASSETS_URL : SITE_URL . '/assets';
+        $pageAssets = [
+            'css' => [
+                $assetsUrl . '/filepond/filepond.min.css',
+                $assetsUrl . '/elfinder/vendor/jquery-ui/jquery-ui-1.13.2.css',
+                $assetsUrl . '/elfinder/css/elfinder.min.css',
+                $assetsUrl . '/elfinder/css/theme.css',
+            ],
+            'js' => [
+                $assetsUrl . '/filepond/filepond.min.js',
+                $assetsUrl . '/js/admin-media-integrations.js?v=' . (@filemtime(ASSETS_PATH . 'js/admin-media-integrations.js') ?: time()),
+            ],
+        ];
+        $inlineJs = '';
         require __DIR__ . '/partials/header.php';
         require __DIR__ . '/partials/sidebar.php';
         require __DIR__ . '/views/media/library.php';

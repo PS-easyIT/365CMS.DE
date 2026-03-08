@@ -194,6 +194,29 @@ class Security
 
         return $valid;
     }
+
+    /**
+     * Verify CSRF token without invalidating it.
+     *
+     * Nützlich für UI-Komponenten mit vielen Folge-Requests innerhalb derselben
+     * Session (z. B. Dateimanager/Connectoren), bei denen ein Einmal-Token für
+     * jeden einzelnen Request unpraktisch wäre.
+     */
+    public function verifyPersistentToken(string $token, string $action = 'default'): bool
+    {
+        if (!isset($_SESSION['csrf_tokens'][$action])) {
+            return false;
+        }
+
+        $stored = $_SESSION['csrf_tokens'][$action];
+
+        if (time() - $stored['time'] > 3600) {
+            unset($_SESSION['csrf_tokens'][$action]);
+            return false;
+        }
+
+        return hash_equals($stored['token'], $token);
+    }
     
     /**
      * Sanitize input string (static wrapper)

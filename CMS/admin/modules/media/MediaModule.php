@@ -33,11 +33,11 @@ class MediaModule
     {
         $path     = trim($_GET['path'] ?? '');
         $category = trim($_GET['category'] ?? '');
-        $view     = trim($_GET['view'] ?? 'list');
+        $view     = trim($_GET['view'] ?? 'finder');
         $search   = trim($_GET['q'] ?? '');
 
-        if (!in_array($view, ['list', 'grid'], true)) {
-            $view = 'list';
+        if (!in_array($view, ['list', 'grid', 'finder'], true)) {
+            $view = 'finder';
         }
 
         $items = $this->service->getItems($path);

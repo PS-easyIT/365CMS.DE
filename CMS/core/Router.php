@@ -138,9 +138,38 @@ class Router
             $this->requireAdmin();
             $this->jsonAdminPosts();
         });
+        $this->addRoute('GET', '/api/v1/admin/pages', function () {
+            $this->requireAdmin();
+            $this->jsonAdminPages();
+        });
         $this->addRoute('GET', '/api/v1/admin/users', function () {
             $this->requireAdmin();
             $this->jsonAdminUsers();
+        });
+
+        $this->addRoute('GET', '/api/v1/admin/media/elfinder', function () {
+            $this->requireAdmin();
+            $token = (string)($_GET['csrf_token'] ?? ($_POST['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '')));
+            if (!Security::instance()->verifyPersistentToken($token, 'media_connector')) {
+                http_response_code(403);
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['error' => 'Sicherheitsüberprüfung fehlgeschlagen.']);
+                exit;
+            }
+
+            Services\ElfinderService::getInstance()->handleConnectorRequest();
+        });
+        $this->addRoute('POST', '/api/v1/admin/media/elfinder', function () {
+            $this->requireAdmin();
+            $token = (string)($_POST['csrf_token'] ?? ($_GET['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '')));
+            if (!Security::instance()->verifyPersistentToken($token, 'media_connector')) {
+                http_response_code(403);
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['error' => 'Sicherheitsüberprüfung fehlgeschlagen.']);
+                exit;
+            }
+
+            Services\ElfinderService::getInstance()->handleConnectorRequest();
         });
 
         // FilePond Upload API
@@ -1268,6 +1297,7 @@ class Router
         $offset  = ($page - 1) * $limit;
         $search  = trim($_GET['search'] ?? '');
         $status  = trim($_GET['status'] ?? 'all');
+        $category = max(0, (int)($_GET['category'] ?? 0));
         $sort    = in_array($_GET['sort'] ?? '', ['title', 'status', 'published_at', 'views', 'updated_at'], true)
                    ? $_GET['sort'] : 'updated_at';
         $order   = strtoupper($_GET['order'] ?? 'DESC') === 'ASC' ? 'ASC' : 'DESC';
@@ -1284,6 +1314,10 @@ class Router
             $where[]  = "(p.title LIKE ? OR p.slug LIKE ?)";
             $params[] = "%{$search}%";
             $params[] = "%{$search}%";
+        }
+        if ($category > 0) {
+            $where[] = 'p.category_id = ?';
+            $params[] = $category;
         }
         $whereStr = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
@@ -1315,6 +1349,63 @@ class Router
     }
 
     /**
+     * Grid.js JSON-API: Pages (Server-Side Pagination + Search + Sort).
+     */
+    private function jsonAdminPages(): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        $db     = Database::instance();
+        $prefix = $db->getPrefix();
+
+        $page    = max(1, (int)($_GET['page'] ?? 1));
+        $limit   = min(100, max(5, (int)($_GET['limit'] ?? 20)));
+        $offset  = ($page - 1) * $limit;
+        $search  = trim($_GET['search'] ?? '');
+        $status  = trim($_GET['status'] ?? '');
+        $sort    = in_array($_GET['sort'] ?? '', ['title', 'slug', 'status', 'updated_at', 'created_at'], true)
+                   ? $_GET['sort'] : 'updated_at';
+        $order   = strtoupper($_GET['order'] ?? 'DESC') === 'ASC' ? 'ASC' : 'DESC';
+
+        $where  = [];
+        $params = [];
+
+        if ($status !== '' && in_array($status, ['published', 'draft', 'private'], true)) {
+            $where[] = 'p.status = ?';
+            $params[] = $status;
+        }
+        if ($search !== '') {
+            $where[] = '(p.title LIKE ? OR p.slug LIKE ?)';
+            $params[] = "%{$search}%";
+            $params[] = "%{$search}%";
+        }
+
+        $whereStr = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+
+        $total = (int)$db->get_var(
+            "SELECT COUNT(*) FROM {$prefix}pages p {$whereStr}",
+            $params
+        );
+        $rows = $db->get_results(
+            "SELECT p.id, p.title, p.slug, p.status, p.updated_at, p.created_at,
+                    u.display_name AS author_name
+             FROM {$prefix}pages p
+             LEFT JOIN {$prefix}users u ON u.id = p.author_id
+             {$whereStr}
+             ORDER BY p.{$sort} {$order}
+             LIMIT {$limit} OFFSET {$offset}",
+            $params
+        ) ?: [];
+
+        echo json_encode([
+            'data'  => $rows,
+            'total' => $total,
+            'page'  => $page,
+            'limit' => $limit,
+        ]);
+        exit;
+    }
+
+    /**
      * Grid.js JSON-API: Users (Server-Side Pagination + Search + Sort).
      */
     private function jsonAdminUsers(): void
@@ -1328,6 +1419,7 @@ class Router
         $offset  = ($page - 1) * $limit;
         $search  = trim($_GET['search'] ?? '');
         $role    = trim($_GET['role'] ?? 'all');
+        $status  = trim($_GET['status'] ?? '');
         $sort    = in_array($_GET['sort'] ?? '', ['username', 'email', 'display_name', 'role', 'status', 'created_at'], true)
                    ? $_GET['sort'] : 'created_at';
         $order   = strtoupper($_GET['order'] ?? 'DESC') === 'ASC' ? 'ASC' : 'DESC';
@@ -1339,6 +1431,10 @@ class Router
         } elseif ($role !== 'all' && $role !== '') {
             $where[]  = "u.role = ?";
             $params[] = $role;
+        }
+        if ($status !== '' && in_array($status, ['active', 'inactive', 'banned'], true)) {
+            $where[] = 'u.status = ?';
+            $params[] = $status;
         }
         if ($search !== '') {
             $where[]  = "(u.username LIKE ? OR u.email LIKE ? OR u.display_name LIKE ?)";

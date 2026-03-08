@@ -148,6 +148,79 @@ if ($viewAction === 'edit') {
     $data       = $module->getListData();
     $pageTitle  = 'Beiträge';
     $activePage = 'posts';
+    $assetsUrl = defined('ASSETS_URL') ? ASSETS_URL : SITE_URL . '/assets';
+    $pageAssets = [
+        'css' => [
+            $assetsUrl . '/gridjs/mermaid.min.css',
+        ],
+        'js' => [
+            $assetsUrl . '/gridjs/gridjs.umd.js',
+            $assetsUrl . '/js/gridjs-init.js?v=' . (@filemtime(ASSETS_PATH . 'js/gridjs-init.js') ?: time()),
+        ],
+    ];
+    $inlineJs = sprintf(
+        "(function(){
+            if(typeof cmsGrid!=='function'){return;}
+            cmsGrid('#postsGrid', {
+                url: %s,
+                search: false,
+                limit: 20,
+                extraParams: {
+                    status: %s,
+                    category: %s,
+                    search: %s
+                },
+                sortMap: {0:'title',2:'status',4:'updated_at'},
+                columns: [
+                    {
+                        id: 'title',
+                        name: 'Titel',
+                        data: function(row){ return { id: row.id, title: row.title, slug: row.slug }; },
+                        formatter: function(cell){
+                            return gridjs.html(
+                                '<div>' +
+                                    '<a href=\"' + %s + '/admin/posts?action=edit&id=' + encodeURIComponent(cell.id) + '\" class=\"text-reset\">' + window.cmsEsc(cell.title || '') + '</a>' +
+                                    '<div class=\"text-secondary small\">/blog/' + window.cmsEsc(cell.slug || '') + '</div>' +
+                                '</div>'
+                            );
+                        }
+                    },
+                    {
+                        id: 'category_name',
+                        name: 'Kategorie',
+                        formatter: function(cell){
+                            return cell ? gridjs.html('<span class=\"badge bg-azure-lt\">' + window.cmsEsc(cell) + '</span>') : '–';
+                        }
+                    },
+                    {
+                        id: 'status',
+                        name: 'Status',
+                        formatter: function(cell){
+                            var cls = cell === 'published' ? 'success' : 'warning';
+                            var label = cell === 'published' ? 'Veröffentlicht' : 'Entwurf';
+                            return gridjs.html('<span class=\"badge bg-' + cls + '-lt\">' + label + '</span>');
+                        }
+                    },
+                    { id: 'author_name', name: 'Autor' },
+                    { id: 'updated_at', name: 'Datum' },
+                    {
+                        id: 'id',
+                        name: '',
+                        sort: false,
+                        formatter: function(cell){
+                            return gridjs.html('<a href=\"' + %s + '/admin/posts?action=edit&id=' + encodeURIComponent(cell) + '\" class=\"btn btn-ghost-primary btn-icon btn-sm\" title=\"Bearbeiten\">✎</a>');
+                        }
+                    }
+                ]
+            });
+        })();",
+        json_encode(SITE_URL . '/api/v1/admin/posts'),
+        json_encode((string)($data['filter'] ?? '')),
+        json_encode((int)($data['catFilter'] ?? 0)),
+        json_encode((string)($data['search'] ?? '')),
+        json_encode(SITE_URL),
+        json_encode(SITE_URL)
+    );
 
     require __DIR__ . '/partials/header.php';
     require __DIR__ . '/partials/sidebar.php';

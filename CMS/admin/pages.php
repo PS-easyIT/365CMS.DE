@@ -136,6 +136,74 @@ if ($action === 'edit') {
     }
 } else {
     $listData = $module->getListData();
+    $assetsUrl = defined('ASSETS_URL') ? ASSETS_URL : SITE_URL . '/assets';
+    $pageAssets = [
+        'css' => [
+            $assetsUrl . '/gridjs/mermaid.min.css',
+        ],
+        'js' => [
+            $assetsUrl . '/gridjs/gridjs.umd.js',
+            $assetsUrl . '/js/gridjs-init.js?v=' . (@filemtime(ASSETS_PATH . 'js/gridjs-init.js') ?: time()),
+        ],
+    ];
+    $inlineJs = sprintf(
+        "(function(){
+            if(typeof cmsGrid!=='function'){return;}
+            cmsGrid('#pagesGrid', {
+                url: %s,
+                search: false,
+                limit: 20,
+                extraParams: {
+                    status: %s,
+                    search: %s
+                },
+                sortMap: {0:'title',1:'slug',2:'status',3:'updated_at'},
+                columns: [
+                    {
+                        id: 'title',
+                        name: 'Titel',
+                        data: function(row){ return { id: row.id, title: row.title, slug: row.slug }; },
+                        formatter: function(cell){
+                            return gridjs.html(
+                                '<div>' +
+                                    '<a href=\"' + %s + '/admin/pages?action=edit&id=' + encodeURIComponent(cell.id) + '\" class=\"text-reset fw-medium\">' + window.cmsEsc(cell.title || '') + '</a>' +
+                                '</div>'
+                            );
+                        }
+                    },
+                    {
+                        id: 'slug',
+                        name: 'Slug',
+                        formatter: function(cell){ return '/' + window.cmsEsc(cell || ''); }
+                    },
+                    {
+                        id: 'status',
+                        name: 'Status',
+                        formatter: function(cell){
+                            var map = { published: 'bg-green', draft: 'bg-yellow', private: 'bg-purple' };
+                            var labelMap = { published: 'Veröffentlicht', draft: 'Entwurf', private: 'Privat' };
+                            return gridjs.html('<span class=\"badge ' + (map[cell] || 'bg-secondary') + '\">' + window.cmsEsc(labelMap[cell] || cell || '') + '</span>');
+                        }
+                    },
+                    { id: 'author_name', name: 'Autor' },
+                    { id: 'updated_at', name: 'Aktualisiert' },
+                    {
+                        id: 'id',
+                        name: '',
+                        sort: false,
+                        formatter: function(cell){
+                            return gridjs.html('<a href=\"' + %s + '/admin/pages?action=edit&id=' + encodeURIComponent(cell) + '\" class=\"btn btn-sm btn-outline-primary\">Bearbeiten</a>');
+                        }
+                    }
+                ]
+            });
+        })();",
+        json_encode(SITE_URL . '/api/v1/admin/pages'),
+        json_encode((string)($listData['filter'] ?? '')),
+        json_encode((string)($listData['search'] ?? '')),
+        json_encode(SITE_URL),
+        json_encode(SITE_URL)
+    );
     require_once __DIR__ . '/views/pages/list.php';
 }
 

@@ -146,83 +146,11 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                 </div>
             </div>
 
-            <div class="table-responsive">
-                <table class="table table-vcenter card-table">
-                    <thead>
-                        <tr>
-                            <th class="w-1"><input type="checkbox" class="form-check-input" id="selectAll"></th>
-                            <th>Benutzer</th>
-                            <th>E-Mail</th>
-                            <th>Rolle</th>
-                            <th>Status</th>
-                            <th>Registriert</th>
-                            <th class="w-1"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (empty($users)): ?>
-                            <tr><td colspan="7" class="text-center text-secondary py-4">Keine Benutzer gefunden.</td></tr>
-                        <?php else: ?>
-                            <?php foreach ($users as $u): ?>
-                                <tr>
-                                    <td><input type="checkbox" class="form-check-input row-select" value="<?php echo (int)$u->id; ?>"></td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <span class="avatar avatar-sm me-2 bg-<?php echo htmlspecialchars($getRoleColor((string)($u->role ?? 'member'))); ?>"><?php echo strtoupper(substr($u->username ?? '', 0, 2)); ?></span>
-                                            <div>
-                                                <a href="<?php echo htmlspecialchars($siteUrl); ?>/admin/users?action=edit&id=<?php echo (int)$u->id; ?>" class="text-reset"><?php echo htmlspecialchars($u->username ?? ''); ?></a>
-                                                <?php if (!empty($u->meta['first_name']) || !empty($u->meta['last_name'])): ?>
-                                                    <div class="text-secondary small"><?php echo htmlspecialchars(trim(($u->meta['first_name'] ?? '') . ' ' . ($u->meta['last_name'] ?? ''))); ?></div>
-                                                <?php endif; ?>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="text-secondary"><?php echo htmlspecialchars($u->email ?? ''); ?></td>
-                                    <td><span class="badge bg-<?php echo htmlspecialchars($getRoleColor((string)($u->role ?? 'member'))); ?>-lt"><?php echo htmlspecialchars((string)($availableRoles[$u->role ?? ''] ?? ucfirst((string)($u->role ?? 'member')))); ?></span></td>
-                                    <td><span class="badge bg-<?php echo match($u->status ?? '') { 'active' => 'green', 'inactive' => 'yellow', 'banned' => 'red', default => 'secondary' }; ?>-lt"><?php echo htmlspecialchars(match($u->status ?? '') { 'active' => 'Aktiv', 'inactive' => 'Inaktiv', 'banned' => 'Gesperrt', default => $u->status ?? '' }); ?></span></td>
-                                    <td class="text-secondary"><?php echo !empty($u->created_at) ? date('d.m.Y', strtotime($u->created_at)) : '–'; ?></td>
-                                    <td>
-                                        <div class="btn-list flex-nowrap">
-                                            <a href="<?php echo htmlspecialchars($siteUrl); ?>/admin/users?action=edit&id=<?php echo (int)$u->id; ?>" class="btn btn-ghost-primary btn-icon btn-sm" title="Bearbeiten">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"/><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z"/></svg>
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
+            <div class="card-body">
+                <div id="usersGrid"></div>
             </div>
-
-            <?php if ($pages > 1): ?>
-            <div class="card-footer d-flex align-items-center">
-                <p class="m-0 text-secondary">Seite <?php echo $curPage; ?> von <?php echo $pages; ?></p>
-                <ul class="pagination m-0 ms-auto">
-                    <li class="page-item <?php echo $curPage <= 1 ? 'disabled' : ''; ?>">
-                        <a class="page-link" href="<?php echo htmlspecialchars($siteUrl); ?>/admin/users?page=<?php echo $curPage - 1; ?>&role=<?php echo urlencode($filter['role']); ?>&status=<?php echo urlencode($filter['status']); ?>&q=<?php echo urlencode($filter['search']); ?>">Zurück</a>
-                    </li>
-                    <li class="page-item <?php echo $curPage >= $pages ? 'disabled' : ''; ?>">
-                        <a class="page-link" href="<?php echo htmlspecialchars($siteUrl); ?>/admin/users?page=<?php echo $curPage + 1; ?>&role=<?php echo urlencode($filter['role']); ?>&status=<?php echo urlencode($filter['status']); ?>&q=<?php echo urlencode($filter['search']); ?>">Weiter</a>
-                    </li>
-                </ul>
-            </div>
-            <?php endif; ?>
         </div>
 
     </div>
 </div>
 
-<!-- Bulk-Action Form -->
-<form id="bulkForm" method="post" class="d-none">
-    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-    <input type="hidden" name="action" value="bulk">
-    <input type="hidden" name="bulk_action" id="bulkAction">
-    <input type="hidden" name="ids[]" id="bulkIds">
-</form>
-
-<script>
-document.getElementById('selectAll')?.addEventListener('change', function() {
-    document.querySelectorAll('.row-select').forEach(function(cb) { cb.checked = this.checked; }.bind(this));
-});
-</script>

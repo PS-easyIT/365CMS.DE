@@ -85,6 +85,7 @@ if ($viewAction === 'edit') {
     $pageTitle  = $data['isNew'] ? 'Neuer Benutzer' : 'Benutzer bearbeiten';
     $activePage = 'users';
     $pageAssets = [];
+    $inlineJs = '';
 
     require __DIR__ . '/partials/header.php';
     require __DIR__ . '/partials/sidebar.php';
@@ -94,7 +95,91 @@ if ($viewAction === 'edit') {
     $data       = $module->getListData();
     $pageTitle  = 'Benutzer';
     $activePage = 'users';
-    $pageAssets = [];
+    $assetsUrl = defined('ASSETS_URL') ? ASSETS_URL : SITE_URL . '/assets';
+    $pageAssets = [
+        'css' => [
+            $assetsUrl . '/gridjs/mermaid.min.css',
+        ],
+        'js' => [
+            $assetsUrl . '/gridjs/gridjs.umd.js',
+            $assetsUrl . '/js/gridjs-init.js?v=' . (@filemtime(ASSETS_PATH . 'js/gridjs-init.js') ?: time()),
+        ],
+    ];
+    $inlineJs = sprintf(
+        "(function(){
+            if(typeof cmsGrid!=='function'){return;}
+            cmsGrid('#usersGrid', {
+                url: %s,
+                search: false,
+                limit: 20,
+                extraParams: {
+                    role: %s,
+                    status: %s,
+                    search: %s
+                },
+                sortMap: {0:'username',1:'email',2:'role',3:'status',4:'created_at'},
+                columns: [
+                    {
+                        id: 'username',
+                        name: 'Benutzer',
+                        data: function(row){ return { id: row.id, username: row.username, display_name: row.display_name, role: row.role }; },
+                        formatter: function(cell){
+                            var initials = (cell.username || '').substring(0, 2).toUpperCase();
+                            return gridjs.html(
+                                '<div class=\"d-flex align-items-center\">' +
+                                    '<span class=\"avatar avatar-sm me-2 bg-azure\">' + window.cmsEsc(initials) + '</span>' +
+                                    '<div>' +
+                                        '<a href=\"' + %s + '/admin/users?action=edit&id=' + encodeURIComponent(cell.id) + '\" class=\"text-reset\">' + window.cmsEsc(cell.username || '') + '</a>' +
+                                        (cell.display_name ? '<div class=\"text-secondary small\">' + window.cmsEsc(cell.display_name) + '</div>' : '') +
+                                    '</div>' +
+                                '</div>'
+                            );
+                        }
+                    },
+                    { id: 'email', name: 'E-Mail' },
+                    {
+                        id: 'role',
+                        name: 'Rolle',
+                        formatter: function(cell){
+                            return gridjs.html('<span class=\"badge bg-azure-lt\">' + window.cmsEsc(cell || '') + '</span>');
+                        }
+                    },
+                    {
+                        id: 'status',
+                        name: 'Status',
+                        formatter: function(cell){
+                            var map = { active: 'green', inactive: 'yellow', banned: 'red' };
+                            var labelMap = { active: 'Aktiv', inactive: 'Inaktiv', banned: 'Gesperrt' };
+                            var cls = map[cell] || 'secondary';
+                            var label = labelMap[cell] || cell || '';
+                            return gridjs.html('<span class=\"badge bg-' + cls + '-lt\">' + window.cmsEsc(label) + '</span>');
+                        }
+                    },
+                    {
+                        id: 'created_at',
+                        name: 'Registriert',
+                        formatter: function(cell){
+                            return cell ? window.cmsEsc(String(cell).substring(0, 10).split('-').reverse().join('.')) : '–';
+                        }
+                    },
+                    {
+                        id: 'id',
+                        name: '',
+                        sort: false,
+                        formatter: function(cell){
+                            return gridjs.html('<a href=\"' + %s + '/admin/users?action=edit&id=' + encodeURIComponent(cell) + '\" class=\"btn btn-ghost-primary btn-icon btn-sm\" title=\"Bearbeiten\">✎</a>');
+                        }
+                    }
+                ]
+            });
+        })();",
+        json_encode(SITE_URL . '/api/v1/admin/users'),
+        json_encode((string)($data['filter']['role'] ?? '')),
+        json_encode((string)($data['filter']['status'] ?? '')),
+        json_encode((string)($data['filter']['search'] ?? '')),
+        json_encode(SITE_URL),
+        json_encode(SITE_URL)
+    );
 
     require __DIR__ . '/partials/header.php';
     require __DIR__ . '/partials/sidebar.php';

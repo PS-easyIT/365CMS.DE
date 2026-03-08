@@ -138,97 +138,8 @@ $search     = $data['search'] ?? '';
                 </div>
             </div>
 
-            <!-- Bulk-Aktionen -->
-            <div class="card-body py-2 d-none" id="bulkBar">
-                <form method="post" id="bulkForm">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                    <input type="hidden" name="action" value="bulk">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="text-secondary"><strong id="selectedCount">0</strong> ausgewählt</span>
-                        <select name="bulk_action" class="form-select form-select-sm w-auto">
-                            <option value="">Aktion wählen…</option>
-                            <option value="publish">Veröffentlichen</option>
-                            <option value="draft">Als Entwurf</option>
-                            <option value="delete">Löschen</option>
-                        </select>
-                        <button type="submit" class="btn btn-sm btn-primary">Anwenden</button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Tabelle -->
-            <div class="table-responsive">
-                <table class="table table-vcenter card-table">
-                    <thead>
-                        <tr>
-                            <th class="w-1">
-                                <input class="form-check-input" type="checkbox" id="selectAll">
-                            </th>
-                            <th>Titel</th>
-                            <th>Kategorie</th>
-                            <th>Status</th>
-                            <th>Autor</th>
-                            <th>Datum</th>
-                            <th class="w-1"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    <?php if (empty($posts)): ?>
-                        <tr>
-                            <td colspan="7" class="text-center text-secondary py-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-lg mb-2" width="40" height="40" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 19a9 9 0 0 1 9 0a9 9 0 0 1 9 0"/><path d="M3 6a9 9 0 0 1 9 0a9 9 0 0 1 9 0"/><path d="M3 6l0 13"/><path d="M12 6l0 13"/><path d="M21 6l0 13"/></svg>
-                                <p class="mt-1 mb-0">Keine Beiträge gefunden.</p>
-                            </td>
-                        </tr>
-                    <?php else: ?>
-                        <?php foreach ($posts as $p): ?>
-                            <tr>
-                                <td>
-                                    <input class="form-check-input row-check" type="checkbox" name="ids[]" value="<?php echo (int)$p['id']; ?>" form="bulkForm">
-                                </td>
-                                <td>
-                                    <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/posts?action=edit&id=<?php echo (int)$p['id']; ?>" class="text-reset">
-                                        <?php echo htmlspecialchars($p['title']); ?>
-                                    </a>
-                                    <div class="text-secondary small">/blog/<?php echo htmlspecialchars($p['slug']); ?></div>
-                                </td>
-                                <td>
-                                    <?php if (!empty($p['category_name'])): ?>
-                                        <span class="badge bg-azure-lt"><?php echo htmlspecialchars($p['category_name']); ?></span>
-                                    <?php else: ?>
-                                        <span class="text-secondary">–</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php if ($p['status'] === 'published'): ?>
-                                        <span class="badge bg-success-lt">Veröffentlicht</span>
-                                    <?php else: ?>
-                                        <span class="badge bg-warning-lt">Entwurf</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="text-secondary"><?php echo htmlspecialchars($p['author'] ?? '–'); ?></td>
-                                <td class="text-secondary"><?php echo date('d.m.Y', strtotime($p['updated_at'] ?? $p['created_at'])); ?></td>
-                                <td>
-                                    <div class="btn-list flex-nowrap">
-                                        <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/posts?action=edit&id=<?php echo (int)$p['id']; ?>" class="btn btn-ghost-primary btn-icon btn-sm" title="Bearbeiten">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"/><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z"/><path d="M16 5l3 3"/></svg>
-                                        </a>
-                                        <form method="post" class="d-inline mb-0"
-                                              onsubmit="return confirm('Beitrag &bdquo;<?php echo htmlspecialchars($p['title'], ENT_QUOTES); ?>&ldquo; wirklich löschen?');">
-                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                                            <input type="hidden" name="action" value="delete">
-                                            <input type="hidden" name="id" value="<?php echo (int)$p['id']; ?>">
-                                            <button type="submit" class="btn btn-ghost-danger btn-icon btn-sm" title="Löschen">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/></svg>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                    </tbody>
-                </table>
+            <div class="card-body">
+                <div id="postsGrid"></div>
             </div>
         </div>
 
@@ -248,27 +159,4 @@ function applyFilters() {
     window.location.href = url + params.join('&');
 }
 
-// Select-All & Bulk
-(function() {
-    var selectAll = document.getElementById('selectAll');
-    var bulkBar   = document.getElementById('bulkBar');
-    var countEl   = document.getElementById('selectedCount');
-
-    function updateBulk() {
-        var checked = document.querySelectorAll('.row-check:checked').length;
-        countEl.textContent = checked;
-        bulkBar.classList.toggle('d-none', checked === 0);
-    }
-
-    if (selectAll) {
-        selectAll.addEventListener('change', function() {
-            document.querySelectorAll('.row-check').forEach(function(cb) { cb.checked = selectAll.checked; });
-            updateBulk();
-        });
-    }
-    document.querySelectorAll('.row-check').forEach(function(cb) {
-        cb.addEventListener('change', updateBulk);
-    });
-
-})();
 </script>
