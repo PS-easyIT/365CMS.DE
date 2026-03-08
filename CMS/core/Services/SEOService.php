@@ -20,6 +20,11 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+$vendorAutoload = ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'autoload.php';
+if (file_exists($vendorAutoload)) {
+    require_once $vendorAutoload;
+}
+
 class SEOService
 {
     private static ?self $instance = null;
@@ -28,6 +33,7 @@ class SEOService
     private SettingsService $settings;
     private Logger $logger;
     private string $prefix;
+    private ?string $lastSitemapError = null;
 
     public static function getInstance(): self
     {
@@ -384,6 +390,8 @@ class SEOService
 
     public function saveSitemapBundle(): bool
     {
+        $this->lastSitemapError = null;
+
         try {
             $service = $this->buildSitemapService(ABSPATH);
             $this->registerSitemapContent($service);
@@ -392,6 +400,7 @@ class SEOService
 
             return true;
         } catch (\Throwable $e) {
+            $this->lastSitemapError = $e->getMessage();
             $this->logger->error('SEOService::saveSitemapBundle() fehlgeschlagen.', [
                 'exception' => $e,
             ]);
@@ -570,6 +579,11 @@ class SEOService
     public function getTitleSeparator(): string
     {
         return $this->getSetting('title_separator', '|');
+    }
+
+    public function getLastSitemapError(): ?string
+    {
+        return $this->lastSitemapError;
     }
 
     private function getAnalyticsSetting(string $key, string $default = ''): string

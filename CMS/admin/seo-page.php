@@ -23,11 +23,20 @@ $activePage = $activePage ?? 'seo-dashboard';
 $module = new SeoSuiteModule();
 $alert = null;
 
+$redirectTarget = static function (string $fallback) : string {
+    $returnTo = (string) ($_POST['return_to'] ?? '');
+    if ($returnTo !== '' && str_starts_with($returnTo, '/admin/')) {
+        return $returnTo;
+    }
+
+    return $fallback;
+};
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postToken = $_POST['csrf_token'] ?? '';
     if (!Security::instance()->verifyToken($postToken, 'admin_seo_suite')) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-        header('Location: ' . SITE_URL . $seoRoutePath);
+        header('Location: ' . SITE_URL . $redirectTarget($seoRoutePath));
         exit;
     }
 
@@ -37,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'message' => $result['message'] ?? $result['error'] ?? 'Unbekannte Antwort.',
     ];
 
-    header('Location: ' . SITE_URL . $seoRoutePath);
+    header('Location: ' . SITE_URL . $redirectTarget($seoRoutePath));
     exit;
 }
 

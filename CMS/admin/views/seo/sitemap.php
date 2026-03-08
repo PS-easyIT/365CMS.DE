@@ -18,18 +18,6 @@ $indexing = $sitemap['indexing'] ?? [];
                 <div class="page-pretitle">SEO</div>
                 <h2 class="page-title">Sitemap &amp; Indexing</h2>
             </div>
-            <div class="col-auto ms-auto d-flex gap-2">
-                <form method="post">
-                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
-                    <input type="hidden" name="action" value="regenerate_sitemap_bundle">
-                    <button class="btn btn-outline-primary" type="submit">Sitemaps generieren</button>
-                </form>
-                <form method="post">
-                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
-                    <input type="hidden" name="action" value="save_robots">
-                    <button class="btn btn-outline-secondary" type="submit">robots.txt schreiben</button>
-                </form>
-            </div>
         </div>
     </div>
 </div>

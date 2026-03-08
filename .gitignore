@@ -80,3 +80,5 @@ secrets/
 /ASSETS/msgraph-sdk-php-2.56.0/
 /ASSETS/Legal-Sites/*.md
 /TEST/
+CMS/tmp-seo-test/pages.xml
+CMS/tmp-seo-test/sitemap.xml

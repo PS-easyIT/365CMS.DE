@@ -5,6 +5,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+$seoActionToken = \CMS\Security::instance()->generateToken('admin_seo_suite');
+$seoActionEndpoint = SITE_URL . '/admin/seo-sitemap';
+$seoReturnTo = (string) ($_SERVER['REQUEST_URI'] ?? '/admin/seo-sitemap');
+
 $seoSubnavItems = [
     ['slug' => 'seo-dashboard', 'label' => 'Dashboard', 'url' => SITE_URL . '/admin/seo-dashboard'],
     ['slug' => 'analytics', 'label' => 'Analytics', 'url' => SITE_URL . '/admin/analytics'],
@@ -19,12 +23,34 @@ $seoSubnavItems = [
 ?>
 <div class="card mb-4">
     <div class="card-body p-2">
-        <div class="nav nav-pills nav-pills-sm flex-wrap gap-2">
-            <?php foreach ($seoSubnavItems as $item): ?>
-                <a class="nav-link <?= ($activePage ?? '') === $item['slug'] ? 'active' : '' ?>" href="<?= htmlspecialchars($item['url']) ?>">
-                    <?= htmlspecialchars($item['label']) ?>
-                </a>
-            <?php endforeach; ?>
+        <div class="d-flex flex-column flex-lg-row gap-2 align-items-lg-center justify-content-between">
+            <div class="nav nav-pills nav-pills-sm flex-wrap gap-2">
+                <?php foreach ($seoSubnavItems as $item): ?>
+                    <a class="nav-link <?= ($activePage ?? '') === $item['slug'] ? 'active' : '' ?>" href="<?= htmlspecialchars($item['url']) ?>">
+                        <?= htmlspecialchars($item['label']) ?>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2">
+                <form method="post" action="<?= htmlspecialchars($seoActionEndpoint) ?>" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($seoActionToken) ?>">
+                    <input type="hidden" name="return_to" value="<?= htmlspecialchars($seoReturnTo) ?>">
+                    <input type="hidden" name="action" value="regenerate_sitemap_bundle">
+                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                        Sitemaps generieren
+                    </button>
+                </form>
+
+                <form method="post" action="<?= htmlspecialchars($seoActionEndpoint) ?>" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($seoActionToken) ?>">
+                    <input type="hidden" name="return_to" value="<?= htmlspecialchars($seoReturnTo) ?>">
+                    <input type="hidden" name="action" value="save_robots">
+                    <button type="submit" class="btn btn-outline-secondary btn-sm">
+                        robots.txt schreiben
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 </div>

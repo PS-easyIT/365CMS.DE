@@ -146,7 +146,7 @@ final class SeoSuiteModule
 
 			return $bundleSaved
 				? ['success' => true, 'message' => 'Sitemap-Bundle neu generiert.']
-				: ['success' => false, 'error' => 'Sitemap-Bundle konnte nicht geschrieben werden.'];
+				: ['success' => false, 'error' => 'Sitemap-Bundle konnte nicht geschrieben werden.' . ($this->seoService->getLastSitemapError() ? ' Ursache: ' . $this->seoService->getLastSitemapError() : '')];
 		} catch (\Throwable $e) {
 			return ['success' => false, 'error' => 'Sitemap-Bundle konnte nicht generiert werden: ' . $e->getMessage()];
 		}

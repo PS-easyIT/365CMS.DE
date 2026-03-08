@@ -16,6 +16,16 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+$vendorAutoload = ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'autoload.php';
+if (file_exists($vendorAutoload)) {
+    require_once $vendorAutoload;
+}
+
+$outputModeFile = ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'melbahja-seo' . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR . 'Sitemap' . DIRECTORY_SEPARATOR . 'OutputMode.php';
+if (file_exists($outputModeFile)) {
+    require_once $outputModeFile;
+}
+
 final class SitemapService
 {
     private string $baseUrl;
@@ -35,11 +45,13 @@ final class SitemapService
 
     private string $newsPublicationName = '365CMS';
     private string $newsLanguage = 'de';
+    private OutputMode $outputMode;
 
     public function __construct(string $baseUrl, string $saveDir)
     {
         $this->baseUrl = rtrim($baseUrl, '/');
         $this->saveDir = rtrim($saveDir, DIRECTORY_SEPARATOR);
+        $this->outputMode = $this->resolveOutputMode();
     }
 
     /**
@@ -49,9 +61,9 @@ final class SitemapService
      */
     public function generatePages(array $urls): void
     {
-        $this->pages = array_map(
-            fn(string|array $item): array => $this->normalizePageItem($item),
-            $urls
+        $this->pages = $this->normalizeItems(
+            $urls,
+            fn(string|array $item): array => $this->normalizePageItem($item)
         );
     }
 
@@ -62,9 +74,9 @@ final class SitemapService
      */
     public function generatePosts(array $posts): void
     {
-        $this->posts = array_map(
-            fn(array $item): array => $this->normalizePostItem($item),
-            $posts
+        $this->posts = $this->normalizeItems(
+            $posts,
+            fn(array $item): array => $this->normalizePostItem($item)
         );
     }
 
@@ -75,9 +87,9 @@ final class SitemapService
      */
     public function generateImages(array $items): void
     {
-        $this->images = array_map(
-            fn(array $item): array => $this->normalizeImageItem($item),
-            $items
+        $this->images = $this->normalizeItems(
+            $items,
+            fn(array $item): array => $this->normalizeImageItem($item)
         );
     }
 
@@ -90,9 +102,9 @@ final class SitemapService
     {
         $this->newsPublicationName = trim($pubName) !== '' ? trim($pubName) : '365CMS';
         $this->newsLanguage = trim($lang) !== '' ? trim($lang) : 'de';
-        $this->news = array_map(
-            fn(array $item): array => $this->normalizeNewsItem($item),
-            $articles
+        $this->news = $this->normalizeItems(
+            $articles,
+            fn(array $item): array => $this->normalizeNewsItem($item)
         );
     }
 
@@ -121,7 +133,7 @@ final class SitemapService
             baseUrl: $this->baseUrl,
             saveDir: $this->saveDir,
             indexName: 'sitemap.xml',
-            mode: OutputMode::TEMP,
+            mode: $this->outputMode,
         );
 
         if ($pages !== []) {
@@ -371,9 +383,13 @@ final class SitemapService
             return date(DATE_W3C);
         }
 
+        if ($stringValue === '0000-00-00 00:00:00' || $stringValue === '0000-00-00') {
+            return date(DATE_W3C);
+        }
+
         $timestamp = strtotime($stringValue);
         if ($timestamp === false) {
-            throw new \RuntimeException('Ungültiges Sitemap-Datum: ' . $stringValue);
+            return date(DATE_W3C);
         }
 
         return date(DATE_W3C, $timestamp);
@@ -381,9 +397,21 @@ final class SitemapService
 
     private function normalizePriority(mixed $value): float
     {
+        if (is_string($value)) {
+            $value = str_replace(',', '.', trim($value));
+        }
+
+        if ($value === '' || $value === null) {
+            return 0.8;
+        }
+
         $priority = (float) $value;
-        if ($priority < 0.0 || $priority > 1.0) {
-            throw new \RuntimeException('Sitemap-Priority muss zwischen 0.0 und 1.0 liegen.');
+        if ($priority < 0.0) {
+            return 0.0;
+        }
+
+        if ($priority > 1.0) {
+            return 1.0;
         }
 
         return $priority;
@@ -395,9 +423,64 @@ final class SitemapService
         $normalized = strtolower(trim($value));
 
         if (!in_array($normalized, $allowed, true)) {
-            throw new \RuntimeException('Ungültige changefreq für Sitemap: ' . $value);
+            return 'weekly';
         }
 
         return $normalized;
+    }
+
+    /**
+     * @template TInput
+     * @param array<int, TInput> $items
+     * @param callable(TInput): array<string, mixed> $normalizer
+     * @return array<int, array<string, mixed>>
+     */
+    private function normalizeItems(array $items, callable $normalizer): array
+    {
+        $normalized = [];
+
+        foreach ($items as $item) {
+            try {
+                $normalized[] = $normalizer($item);
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+
+        return $normalized;
+    }
+
+    private function resolveOutputMode(): OutputMode
+    {
+        $tempDir = sys_get_temp_dir();
+
+        if ($this->isDifferentWindowsVolume($tempDir, $this->saveDir)) {
+            return OutputMode::FILE;
+        }
+
+        return OutputMode::TEMP;
+    }
+
+    private function isDifferentWindowsVolume(string $sourcePath, string $targetPath): bool
+    {
+        if (DIRECTORY_SEPARATOR !== '\\') {
+            return false;
+        }
+
+        $sourceVolume = $this->extractWindowsVolume($sourcePath);
+        $targetVolume = $this->extractWindowsVolume($targetPath);
+
+        return $sourceVolume !== ''
+            && $targetVolume !== ''
+            && strcasecmp($sourceVolume, $targetVolume) !== 0;
+    }
+
+    private function extractWindowsVolume(string $path): string
+    {
+        if (preg_match('/^[A-Za-z]:/', $path, $matches) !== 1) {
+            return '';
+        }
+
+        return strtoupper($matches[0]);
     }
 }

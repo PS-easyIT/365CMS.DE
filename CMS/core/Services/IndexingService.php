@@ -19,6 +19,11 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+$vendorAutoload = ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'autoload.php';
+if (file_exists($vendorAutoload)) {
+    require_once $vendorAutoload;
+}
+
 final class IndexingService
 {
     private static ?self $instance = null;
