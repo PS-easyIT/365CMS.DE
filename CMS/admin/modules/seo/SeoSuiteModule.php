@@ -7,6 +7,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\Database;
 use CMS\Services\AnalyticsService;
+use CMS\Services\IndexingService;
 use CMS\Services\RedirectService;
 use CMS\Services\SEOService;
 use CMS\Services\SeoAnalysisService;
@@ -75,6 +76,8 @@ final class SeoSuiteModule
 	private const SITEMAP_EXTRA_DEFAULTS = [
 		'seo_sitemap_image_enabled' => '1',
 		'seo_sitemap_news_enabled' => '0',
+		'seo_sitemap_news_publication_name' => '365CMS',
+		'seo_sitemap_news_language' => 'de',
 	];
 
 	private Database $db;
@@ -82,6 +85,7 @@ final class SeoSuiteModule
 	private SEOService $seoService;
 	private SeoAnalysisService $analysisService;
 	private AnalyticsService $analyticsService;
+	private IndexingService $indexingService;
 	private RedirectService $redirectService;
 
 	public function __construct()
@@ -91,6 +95,7 @@ final class SeoSuiteModule
 		$this->seoService = SEOService::getInstance();
 		$this->analysisService = SeoAnalysisService::getInstance();
 		$this->analyticsService = AnalyticsService::getInstance();
+		$this->indexingService = IndexingService::getInstance();
 		$this->redirectService = RedirectService::getInstance();
 	}
 
@@ -119,6 +124,8 @@ final class SeoSuiteModule
 	{
 		return match ($action) {
 			'regenerate_sitemap', 'regenerate_sitemap_bundle' => $this->regenerateSitemapBundle(),
+			'submit_indexing_urls' => $this->submitIndexingUrls($post),
+			'delete_google_url' => $this->deleteGoogleUrl($post),
 			'save_templates' => $this->saveMetaTemplates($post),
 			'save_sitemap_settings' => $this->saveSitemapSettings($post),
 			'save_meta_defaults' => $this->saveMetaDefaults($post),
@@ -135,23 +142,7 @@ final class SeoSuiteModule
 	public function regenerateSitemapBundle(): array
 	{
 		try {
-			$bundleSaved = false;
-
-			if (method_exists($this->seoService, 'saveSitemapBundle')) {
-				$bundleSaved = (bool)$this->seoService->saveSitemapBundle();
-			} else {
-				$mainSaved = $this->seoService->saveSitemap();
-				$sitemapSettings = array_merge($this->seoService->getSitemapSettings(), $this->loadSettings(self::SITEMAP_EXTRA_DEFAULTS));
-				$imageSaved = !((string)($sitemapSettings['seo_sitemap_image_enabled'] ?? '1') === '1')
-					|| !method_exists($this->seoService, 'saveImageSitemap')
-					? true
-					: (bool)$this->seoService->saveImageSitemap();
-				$newsSaved = !((string)($sitemapSettings['seo_sitemap_news_enabled'] ?? '0') === '1')
-					|| !method_exists($this->seoService, 'saveNewsSitemap')
-					? true
-					: (bool)$this->seoService->saveNewsSitemap();
-				$bundleSaved = $mainSaved && $imageSaved && $newsSaved;
-			}
+			$bundleSaved = (bool)$this->seoService->saveSitemapBundle();
 
 			return $bundleSaved
 				? ['success' => true, 'message' => 'Sitemap-Bundle neu generiert.']
@@ -271,9 +262,73 @@ final class SeoSuiteModule
 			'seo_sitemap_ping_bing' => !empty($post['ping_bing']) ? '1' : '0',
 			'seo_sitemap_image_enabled' => !empty($post['image_enabled']) ? '1' : '0',
 			'seo_sitemap_news_enabled' => !empty($post['news_enabled']) ? '1' : '0',
+			'seo_sitemap_news_publication_name' => trim((string)($post['news_publication_name'] ?? '365CMS')),
+			'seo_sitemap_news_language' => trim((string)($post['news_language'] ?? 'de')),
 		]);
 
 		return ['success' => true, 'message' => 'Sitemap-Einstellungen gespeichert.'];
+	}
+
+	public function submitIndexingUrls(array $post): array
+	{
+		$rawUrls = trim((string)($post['urls'] ?? ''));
+		if ($rawUrls === '') {
+			return ['success' => false, 'error' => 'Bitte mindestens eine gültige URL angeben.'];
+		}
+
+		$targets = $post['submission_target'] ?? [];
+		$targets = is_array($targets) ? $targets : [$targets];
+		$targets = array_values(array_filter(array_map('strval', $targets)));
+
+		if ($targets === []) {
+			return ['success' => false, 'error' => 'Bitte mindestens ein Ziel für die URL-Submission wählen.'];
+		}
+
+		$messages = [];
+		$errors = [];
+
+		if (in_array('indexnow', $targets, true)) {
+			if ($this->indexingService->submitIndexNow($rawUrls)) {
+				$messages[] = 'IndexNow wurde angestoßen.';
+			} else {
+				$errors[] = 'IndexNow konnte die URLs nicht übermitteln.';
+			}
+		}
+
+		if (in_array('google', $targets, true)) {
+			$accessToken = trim((string)($post['google_access_token'] ?? ''));
+			if ($accessToken === '') {
+				$errors[] = 'Für Google fehlt ein Access-Token.';
+			} elseif ($this->indexingService->submitGoogle($rawUrls, $accessToken)) {
+				$messages[] = 'Google URL Notification wurde angestoßen.';
+			} else {
+				$errors[] = 'Google konnte die URLs nicht verarbeiten.';
+			}
+		}
+
+		if ($messages !== [] && $errors === []) {
+			return ['success' => true, 'message' => implode(' ', $messages)];
+		}
+
+		if ($messages !== [] && $errors !== []) {
+			return ['success' => false, 'error' => implode(' ', $messages) . ' ' . implode(' ', $errors)];
+		}
+
+		return ['success' => false, 'error' => implode(' ', $errors)];
+	}
+
+	public function deleteGoogleUrl(array $post): array
+	{
+		$url = trim((string)($post['google_delete_url'] ?? ''));
+		$accessToken = trim((string)($post['google_access_token'] ?? ''));
+
+		if ($url === '' || $accessToken === '') {
+			return ['success' => false, 'error' => 'Für das Entfernen aus Google werden URL und Access-Token benötigt.'];
+		}
+
+		return $this->indexingService->deleteGoogle($url, $accessToken)
+			? ['success' => true, 'message' => 'Google wurde über die Entfernung der URL informiert.']
+			: ['success' => false, 'error' => 'Google konnte die URL nicht aus dem Index entfernen.'];
 	}
 
 	public function saveAuditItem(array $post): array
@@ -493,6 +548,7 @@ final class SeoSuiteModule
 
 	private function getSchemaData(array $auditRows): array
 	{
+		$settings = $this->loadSettings(self::SCHEMA_DEFAULTS);
 		$distribution = array_map(static fn(object $row): array => [
 			'schema_type' => (string)($row->schema_type ?? 'WebPage'),
 			'count' => (int)($row->count ?? 0),
@@ -504,8 +560,14 @@ final class SeoSuiteModule
 		) ?: []);
 
 		return [
-			'settings' => $this->loadSettings(self::SCHEMA_DEFAULTS),
+			'settings' => $settings,
 			'distribution' => $distribution,
+			'renderer' => [
+				'name' => 'melbahja/seo',
+				'status' => is_dir(ABSPATH . 'assets/melbahja-seo') ? 'aktiv' : 'fehlt',
+				'schema_mode' => 'Melbahja\\Seo\\Schema + Thing',
+				'breadcrumbs_enabled' => !empty($settings['seo_schema_breadcrumb_enabled']),
+			],
 			'supported_types' => ['Article', 'BlogPosting', 'WebPage', 'BreadcrumbList', 'Organization', 'Person', 'FAQPage', 'HowTo', 'Review', 'Event'],
 			'examples' => array_slice($auditRows, 0, 8),
 		];
@@ -518,6 +580,14 @@ final class SeoSuiteModule
 		return [
 			'settings' => $settings,
 			'files' => $this->getSitemapFilesStatus(),
+			'indexing' => [
+				'indexnow_available' => $this->indexingService->hasIndexNowKey(),
+				'engines' => ['IndexNow', 'Google Indexing API'],
+				'notes' => [
+					'IndexNow-Key wird aus der Core-Konfiguration gelesen.',
+					'Google-Submission nutzt bewusst einen manuellen Access-Token pro Aktion.',
+				],
+			],
 			'counts' => [
 				'pages' => count(array_filter($auditRows, static fn(array $row): bool => ($row['type'] ?? '') === 'page')),
 				'posts' => count(array_filter($auditRows, static fn(array $row): bool => ($row['type'] ?? '') === 'post')),
@@ -611,7 +681,7 @@ final class SeoSuiteModule
 	private function getSitemapFilesStatus(): array
 	{
 		$result = [];
-		foreach (['sitemap.xml', 'image-sitemap.xml', 'news-sitemap.xml', 'robots.txt'] as $file) {
+		foreach (['sitemap.xml', 'pages.xml', 'posts.xml', 'images.xml', 'news.xml', 'robots.txt'] as $file) {
 			$path = ABSPATH . $file;
 			$exists = file_exists($path);
 			$result[$file] = [
