@@ -58,11 +58,13 @@ class LandingPageService
                 $this->updateHeader($header);
             }
 
-            if ($this->countSectionsByType('feature') === 0) {
+            $featureCount = $this->countSectionsByType('feature');
+            if ($featureCount === 0) {
                 foreach ($this->getDefaultFeatures() as $feature) {
                     $this->saveFeature(null, $feature);
                 }
             } else {
+                $this->backfillMissingDefaultFeatures();
                 $this->upgradeLegacyFeatureDefaults();
             }
 
@@ -790,6 +792,45 @@ class LandingPageService
         }
 
         foreach ($this->getDefaultFeatures() as $feature) {
+            $this->saveFeature(null, $feature);
+        }
+    }
+
+    private function backfillMissingDefaultFeatures(): void
+    {
+        $existingFeatures = $this->getFeatures();
+        $defaultFeatures = $this->getDefaultFeatures();
+
+        if (count($existingFeatures) >= count($defaultFeatures)) {
+            return;
+        }
+
+        $existingTitles = [];
+        $existingSortOrders = [];
+
+        foreach ($existingFeatures as $feature) {
+            $title = trim((string)($feature['title'] ?? ''));
+            if ($title !== '') {
+                $existingTitles[] = mb_strtolower($title);
+            }
+
+            $sortOrder = (int)($feature['sort_order'] ?? 0);
+            if ($sortOrder > 0) {
+                $existingSortOrders[] = $sortOrder;
+            }
+        }
+
+        foreach ($defaultFeatures as $feature) {
+            $defaultTitle = mb_strtolower(trim((string)($feature['title'] ?? '')));
+            $defaultSortOrder = (int)($feature['sort_order'] ?? 0);
+
+            if (
+                ($defaultTitle !== '' && in_array($defaultTitle, $existingTitles, true))
+                || ($defaultSortOrder > 0 && in_array($defaultSortOrder, $existingSortOrders, true))
+            ) {
+                continue;
+            }
+
             $this->saveFeature(null, $feature);
         }
     }

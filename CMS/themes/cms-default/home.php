@@ -192,6 +192,19 @@ $lpBtns = array_values(array_filter($lpBtns, fn($b) => !empty($b['text']) && !em
 
 // ── Farben mit Defaults ───────────────────────────────────
 $safe = fn(string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
+$renderLandingHtml = static function (string $html): string {
+    $allowedTags = '<p><a><strong><em><ul><ol><li><h2><h3><h4><br><hr><img><blockquote><code>';
+
+    if ($html === '') {
+        return '';
+    }
+
+    if (function_exists('sanitize_html')) {
+        return (string)sanitize_html($html, 'default');
+    }
+
+    return (string)strip_tags($html, $allowedTags);
+};
 
 $heroGradStart  = $safe($lpColors['hero_gradient_start'] ?? '#1a2744');
 $heroGradEnd    = $safe($lpColors['hero_gradient_end']   ?? '#0c1526');
@@ -235,6 +248,8 @@ $lpFooterButtonText = (string)($lpFooter['button_text'] ?? '');
 $lpFooterButtonUrl  = (string)($lpFooter['button_url'] ?? '');
 $lpFooterCopyright  = (string)($lpFooter['copyright'] ?? '');
 $showLandingFooter  = !empty($lpSettings['show_footer_section']) && !empty($lpFooter['show_footer']);
+$lpDescHtml         = $renderLandingHtml((string)$lpDesc);
+$lpFooterContentHtml = $renderLandingHtml($lpFooterContent);
 
 // ── Layout: compact vs. standard ─────────────────────────
 $lpLayout    = $lpHeader['header_layout'] ?? 'standard';
@@ -388,9 +403,9 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
             <?php endif; ?>
 
             <?php if ($lpDesc && $lpDesc !== $lpTitle && $lpDesc !== $lpSubtitle): ?>
-            <p style="color:var(--lp-text);opacity:.75;max-width:680px;margin:0 auto <?php echo $lpIsCompact ? '1rem' : '1.5rem';?>;font-size:<?php echo $lpIsCompact ? '.95rem' : '1rem';?>;">
-                <?php echo $safe($lpDesc); ?>
-            </p>
+            <div style="color:var(--lp-text);opacity:.75;max-width:680px;margin:0 auto <?php echo $lpIsCompact ? '1rem' : '1.5rem';?>;font-size:<?php echo $lpIsCompact ? '.95rem' : '1rem';?>;">
+                <?php echo $lpDescHtml; ?>
+            </div>
             <?php endif; ?>
 
             <?php if (!empty($lpBtns)): ?>
@@ -443,7 +458,7 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
                         <p class="lp-feat-card__title"><?php echo $safe($fTitle); ?></p>
                         <?php endif; ?>
                         <?php if ($fText): ?>
-                        <p class="lp-feat-card__desc"><?php echo $safe($fText); ?></p>
+                        <div class="lp-feat-card__desc"><?php echo $renderLandingHtml((string)$fText); ?></div>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -511,7 +526,7 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
     <?php if ($lpContentText): ?>
     <section style="max-width:860px;margin:3rem auto;padding:0 1.5rem;background:var(--lp-content-bg,#fff);">
         <div style="font-size:1.05rem;line-height:1.75;color:#1e293b;">
-            <?php echo nl2br(htmlspecialchars(strip_tags($lpContentText, '<p><a><strong><em><ul><ol><li><h2><h3><h4><br><hr><img>'))); ?>
+            <?php echo $renderLandingHtml((string)$lpContentText); ?>
         </div>
     </section>
     <?php endif; ?>
@@ -530,7 +545,7 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
         <div class="lp-footer-callout__inner">
             <div>
                 <?php if ($lpFooterContent !== ''): ?>
-                <div class="lp-footer-callout__content"><?php echo $lpFooterContent; ?></div>
+                <div class="lp-footer-callout__content"><?php echo $lpFooterContentHtml; ?></div>
                 <?php endif; ?>
                 <?php if ($lpFooterCopyright !== ''): ?>
                 <div class="lp-footer-callout__copyright"><?php echo $lpFooterCopyright; ?></div>
