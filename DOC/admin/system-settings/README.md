@@ -10,7 +10,7 @@ Der Bereich „System" wurde in mehrere klar getrennte Einstiege aufgeteilt.
 
 | Route | Zweck |
 |---|---|
-| `/admin/settings` | allgemeine Systemeinstellungen |
+| `/admin/settings` | allgemeine Systemeinstellungen inkl. SMTP-/Mail-Status und Testversand |
 | `/admin/backups` | Backups erstellen, auflisten und löschen |
 | `/admin/updates` | Core-, Theme- und Plugin-Updates |
 

@@ -29,7 +29,7 @@ Wichtige Grundsätze:
 | Dashboard | `/admin` | Gesamtüberblick, KPIs, Schnellzugriffe |
 | Seiten & Beiträge | `/admin/pages`, `/admin/posts`, `/admin/comments`, `/admin/table-of-contents`, `/admin/site-tables` | Content-Management |
 | Medienverwaltung | `/admin/media` | Dateien, Kategorien, Medieneinstellungen |
-| Benutzer & Gruppen | `/admin/users`, `/admin/groups`, `/admin/roles` | Benutzer, Teams, Rechte |
+| Benutzer & Gruppen | `/admin/users`, `/admin/groups`, `/admin/roles`, `/admin/user-settings` | Benutzer, Teams, Rechte und Auth-Einstellungen |
 | Member Dashboard | `/admin/member-dashboard` und Folgeseiten | Konfiguration des Mitgliederbereichs |
 | Aboverwaltung | `/admin/packages`, `/admin/orders`, `/admin/subscription-settings` | Pakete, Bestellungen, Zuweisungen |
 | Themes & Design | `/admin/themes`, `/admin/theme-editor`, `/admin/theme-explorer`, `/admin/menu-editor`, `/admin/landing-page`, `/admin/font-manager` | Design, Navigation, Fonts |

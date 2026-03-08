@@ -36,11 +36,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $currentTab = ($_POST['tab'] ?? 'general') === 'content' ? 'content' : 'general';
     if ($action === 'save') {
         $result = $module->saveSettings($_POST);
-        $_SESSION['admin_alert'] = [
-            'type'    => $result['success'] ? 'success' : 'danger',
-            'message' => $result['message'] ?? $result['error'] ?? '',
-        ];
+    } elseif ($action === 'send_test_email') {
+        $result = $module->sendTestEmail($_POST);
+    } else {
+        $result = ['success' => false, 'error' => 'Unbekannte Aktion.'];
     }
+
+    $_SESSION['admin_alert'] = [
+        'type'    => !empty($result['success']) ? 'success' : 'danger',
+        'message' => $result['message'] ?? $result['error'] ?? '',
+    ];
 
     header('Location: ' . SITE_URL . '/admin/settings?tab=' . $currentTab);
     exit;

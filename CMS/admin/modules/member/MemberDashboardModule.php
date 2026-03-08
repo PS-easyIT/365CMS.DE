@@ -219,10 +219,7 @@ class MemberDashboardModule
         try {
             $values = [
                 'member_dashboard_enabled'    => !empty($post['dashboard_enabled']) ? '1' : '0',
-                'member_registration_enabled' => !empty($post['registration_enabled']) ? '1' : '0',
-                'member_email_verification'   => !empty($post['email_verification']) ? '1' : '0',
                 'member_welcome_message'      => strip_tags($post['welcome_message'] ?? '', '<p><a><strong><em><br>'),
-                'member_default_role'         => $this->sanitizeRole((string)($post['default_role'] ?? 'member')),
                 'member_dashboard_greeting'   => $this->sanitizeTextSetting((string)($post['dashboard_greeting'] ?? 'Guten Tag, {name}!'), 120),
                 'member_dashboard_welcome_text' => strip_tags((string)($post['dashboard_welcome_text'] ?? ''), '<p><a><strong><em><br><ul><ol><li>'),
                 'member_dashboard_show_welcome' => !empty($post['show_welcome']) ? '1' : '0',

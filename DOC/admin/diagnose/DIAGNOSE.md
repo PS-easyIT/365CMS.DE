@@ -68,7 +68,7 @@ Bündelt übergreifende Gesundheitsprüfungen: PHP-Version, Speicher, Erreichbar
 
 ### E-Mail-Benachrichtigungen
 
-Konfiguriert Zieladressen und Schwellwerte für Monitoring-Benachrichtigungen per E-Mail.
+Konfiguriert Zieladressen und Schwellwerte für Monitoring-Benachrichtigungen per E-Mail und erlaubt einen direkten Testversand aus dem Backend über die zentrale Mail-Implementierung.
 
 ---
 

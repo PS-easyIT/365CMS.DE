@@ -59,6 +59,7 @@ Die Detaildokumentation für aktiv verwendete Bundles liegt gesammelt unter `DOC
 - `CMS/admin/partials/header.php` und `CMS/admin/partials/footer.php` binden `tabler/` direkt ein.
 - `CMS/admin/media.php`, `CMS/admin/views/media/library.php` und `CMS/assets/js/admin-media-integrations.js` binden `elFinder` und `FilePond` aktiv in die Medienverwaltung ein.
 - `CMS/admin/users.php`, `CMS/admin/pages.php`, `CMS/admin/posts.php` sowie `CMS/assets/js/gridjs-init.js` binden `Grid.js` aktiv in Admin-Listen ein.
+- `CMS/admin/user-settings.php`, `CMS/admin/modules/users/UserSettingsModule.php` und `CMS/core/Auth/LDAP/LdapAuthProvider.php` nutzen `ldaprecord/` zusätzlich für den LDAP-Erstsync im Admin.
 - `CMS/assets/elfinder/vendor/jquery/` und `CMS/assets/elfinder/vendor/jquery-ui/` enthalten die lokal gehosteten Frontend-Abhängigkeiten für den CDN-freien elFinder-Betrieb.
 - `CMS/assets/autoload.php` mappt die lokalen Namespaces für `mailer/`, `mime/` und die minimale `psr/`-Kompatibilität.
 - `CMS/core/Auth/Passkey/WebAuthnAdapter.php`, `CMS/core/Auth/MFA/TotpAdapter.php`, `CMS/core/Auth/LDAP/LdapAuthProvider.php` und `CMS/core/Services/JwtService.php` verwenden `webauthn/`, `twofactorauth/`, `ldaprecord/` und `php-jwt/`.
@@ -69,6 +70,7 @@ Die Detaildokumentation für aktiv verwendete Bundles liegt gesammelt unter `DOC
 - `DOC/assets/elfinder/README.md` – Admin-Dateimanager und lokaler Connector
 - `DOC/assets/filepond/README.md` – Upload-Widget und Upload-Endpoint
 - `DOC/assets/gridjs/README.md` – Server-seitige Admin-Tabellen
+- `DOC/assets/ldaprecord/README.md` – LDAP-Authentifizierung und Admin-Erstsynchronisierung
 - `DOC/assets/mime/README.md` – MIME-Erzeugung für Mail-Nachrichten
 - `DOC/assets/psr/README.md` – lokale Minimal-Kompatibilität für `Psr\\Log` und `Psr\\EventDispatcher`
 - `DOC/assets/simplepie/README.md` – gemeinsame Doku für `simplepielibrary/` und `simplepiesrc/`

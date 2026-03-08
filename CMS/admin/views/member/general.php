@@ -6,7 +6,6 @@ if (!defined('ABSPATH')) {
 }
 
 $settings = $data['settings'] ?? [];
-$roles    = $data['roles'] ?? [];
 ?>
 <div class="page-header d-print-none">
     <div class="container-xl">
@@ -14,7 +13,7 @@ $roles    = $data['roles'] ?? [];
             <div class="col">
                 <div class="page-pretitle">Mitglieder &amp; Zugriff</div>
                 <h2 class="page-title">Member Dashboard – Allgemein</h2>
-                <div class="text-muted mt-1">Grundfunktionen, Registrierung und Begrüßungslogik des Member-Bereichs steuern.</div>
+                <div class="text-muted mt-1">Grundfunktionen, Begrüßungslogik und Dashboard-Einstieg des Member-Bereichs steuern.</div>
             </div>
         </div>
     </div>
@@ -39,7 +38,7 @@ $roles    = $data['roles'] ?? [];
                 <div class="col-lg-8">
                     <div class="card mb-4">
                         <div class="card-header">
-                            <h3 class="card-title">Zugang &amp; Registrierung</h3>
+                            <h3 class="card-title">Zugang zum Member-Dashboard</h3>
                         </div>
                         <div class="card-body">
                             <div class="mb-3">
@@ -49,38 +48,19 @@ $roles    = $data['roles'] ?? [];
                                 </label>
                                 <div class="form-hint">Schaltet die zentrale Mitgliederoberfläche im Frontend ein oder aus.</div>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-check form-switch">
-                                    <input type="checkbox" name="registration_enabled" class="form-check-input" value="1" <?php echo !empty($settings['registration_enabled']) ? 'checked' : ''; ?>>
-                                    <span class="form-check-label">Öffentliche Registrierung erlauben</span>
-                                </label>
-                                <div class="form-hint">Steuert, ob neue Nutzerkonten über das Frontend angelegt werden dürfen.</div>
-                            </div>
-                            <div class="mb-0">
-                                <label class="form-check form-switch">
-                                    <input type="checkbox" name="email_verification" class="form-check-input" value="1" <?php echo !empty($settings['email_verification']) ? 'checked' : ''; ?>>
-                                    <span class="form-check-label">E-Mail-Verifizierung erzwingen</span>
-                                </label>
-                                <div class="form-hint">Praktisch für Portale mit sensiblen Profilen oder Community-Funktionen.</div>
+                            <div class="alert alert-info mb-0" role="alert">
+                                Öffentliche Registrierung, Standardrolle und Authentifizierungsoptionen werden zentral unter
+                                <a href="<?php echo htmlspecialchars((defined('SITE_URL') ? SITE_URL : '') . '/admin/user-settings'); ?>" class="alert-link">Benutzer &amp; Gruppen → Einstellungen</a>
+                                verwaltet.
                             </div>
                         </div>
                     </div>
 
                     <div class="card mb-4">
                         <div class="card-header">
-                            <h3 class="card-title">Standardrolle &amp; Kurztext</h3>
+                            <h3 class="card-title">Kurztext &amp; Hinweise</h3>
                         </div>
                         <div class="card-body">
-                            <div class="mb-3">
-                                <label class="form-label" for="default_role">Standard-Rolle für neue Mitglieder</label>
-                                <select id="default_role" name="default_role" class="form-select">
-                                    <?php foreach ($roles as $role): ?>
-                                        <option value="<?php echo htmlspecialchars((string)$role); ?>" <?php echo ($settings['default_role'] ?? 'member') === $role ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars(ucfirst(str_replace(['-', '_'], ' ', (string)$role))); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
                             <div>
                                 <label class="form-label" for="welcome_message">Interne Willkommensnachricht</label>
                                 <textarea id="welcome_message" name="welcome_message" class="form-control" rows="4" placeholder="Kurze Einführung für neue Mitglieder ..."><?php echo htmlspecialchars((string)($settings['welcome_message'] ?? '')); ?></textarea>
@@ -123,7 +103,7 @@ $roles    = $data['roles'] ?? [];
                             <h3 class="card-title">Speichern</h3>
                         </div>
                         <div class="card-body">
-                            <p class="text-muted small">Diese Seite steuert den Einstieg in den Member-Bereich: Zugang, Rolle, Begrüßung und Dashboard-Header.</p>
+                            <p class="text-muted small">Diese Seite steuert den Einstieg in den Member-Bereich: Aktivierung, Begrüßung und Dashboard-Header.</p>
                             <button type="submit" class="btn btn-primary w-100">Allgemeine Einstellungen speichern</button>
                         </div>
                     </div>

@@ -13,6 +13,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\Database;
 use CMS\SchemaManager;
+use CMS\Services\MailService;
 use CMS\Services\SystemService;
 use CMS\AuditLogger;
 
@@ -78,6 +79,7 @@ class SystemInfoModule
             'create_tables' => $this->createMissingTables(),
             'repair_tables' => $this->repairTables(),
             'save_monitoring_alerts' => $this->saveMonitoringSettings($post),
+            'send_monitoring_test_email' => $this->sendMonitoringTestEmail($post),
             default => ['success' => false, 'error' => 'Unbekannte Aktion.'],
         };
     }
@@ -350,6 +352,33 @@ class SystemInfoModule
         );
 
         return ['success' => true, 'message' => 'Monitoring- und E-Mail-Einstellungen gespeichert.'];
+    }
+
+    private function sendMonitoringTestEmail(array $post): array
+    {
+        $settings = $this->getMonitoringSettings();
+        $recipient = trim((string)($post['test_email_recipient'] ?? ''));
+        if ($recipient === '') {
+            $recipient = trim((string)($settings['monitor_alert_email'] ?? ''));
+        }
+
+        $result = MailService::getInstance()->sendBackendTestEmail($recipient, 'monitor-email-alerts');
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            'system.monitoring.mail_test',
+            !empty($result['success']) ? 'Monitoring-Test-E-Mail versendet' : 'Monitoring-Test-E-Mail fehlgeschlagen',
+            'monitoring',
+            null,
+            [
+                'recipient' => $recipient,
+                'result' => !empty($result['success']) ? 'success' : 'error',
+                'transport' => $result['transport'] ?? null,
+            ],
+            !empty($result['success']) ? 'info' : 'warning'
+        );
+
+        return $result;
     }
 
     private function getMonitoringOverview(): array

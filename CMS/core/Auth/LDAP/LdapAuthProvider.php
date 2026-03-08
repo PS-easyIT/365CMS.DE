@@ -91,6 +91,20 @@ final class LdapAuthProvider
      */
     public function syncLocalUser(array $ldapUser): ?int
     {
+        $result = $this->syncLocalUserDetailed($ldapUser);
+
+        return $result['success'] ? $result['user_id'] : null;
+    }
+
+    /**
+     * LDAP-Benutzer in der lokalen CMS-Datenbank anlegen oder aktualisieren.
+     * Liefert zusätzliche Statusinformationen für Admin-Sync-Läufe.
+     *
+     * @param array $ldapUser
+     * @return array{success: bool, action: string, user_id: int|null, message: string}
+     */
+    public function syncLocalUserDetailed(array $ldapUser): array
+    {
         $db = Database::instance();
         $prefix = $db->getPrefix();
 
@@ -103,23 +117,32 @@ final class LdapAuthProvider
 
         if ($email === '' || $username === '') {
             error_log('[LdapAuthProvider] Sync fehlgeschlagen – kein E-Mail oder Username im LDAP-Eintrag.');
-            return null;
+            return [
+                'success' => false,
+                'action' => 'skipped',
+                'user_id' => null,
+                'message' => 'LDAP-Eintrag ohne E-Mail oder Benutzername übersprungen.',
+            ];
         }
 
         // Bestehenden Benutzer suchen (via E-Mail oder LDAP-Meta)
-        $existing = $db->execute(
-            "SELECT id FROM {$prefix}users WHERE email = ? LIMIT 1",
-            [$email]
-        )->fetch();
+        $existingUserId = $this->findExistingUserId($email, (string)($ldapUser['dn'] ?? ''));
 
-        if ($existing) {
+        if ($existingUserId !== null) {
             // Nur Name aktualisieren
             $db->execute(
                 "UPDATE {$prefix}users SET display_name = ?, updated_at = NOW() WHERE id = ?",
-                [$name, (int)$existing->id]
+                [$name, $existingUserId]
             );
-            $this->setUserMeta((int)$existing->id, 'ldap_dn', $ldapUser['dn'] ?? '');
-            return (int)$existing->id;
+            $this->setUserMeta($existingUserId, 'ldap_dn', (string)($ldapUser['dn'] ?? ''));
+            $this->setUserMeta($existingUserId, 'ldap_synced', '1');
+
+            return [
+                'success' => true,
+                'action' => 'updated',
+                'user_id' => $existingUserId,
+                'message' => 'Bestehender LDAP-Benutzer aktualisiert.',
+            ];
         }
 
         // Neuen Benutzer anlegen – Zufallspasswort (LDAP übernimmt Auth)
@@ -134,13 +157,118 @@ final class LdapAuthProvider
 
         $userId = (int)$db->getPdo()->lastInsertId();
         if ($userId === 0) {
-            return null;
+            return [
+                'success' => false,
+                'action' => 'error',
+                'user_id' => null,
+                'message' => 'Lokaler Benutzer konnte nicht angelegt werden.',
+            ];
         }
 
         $this->setUserMeta($userId, 'ldap_dn', $ldapUser['dn'] ?? '');
         $this->setUserMeta($userId, 'ldap_synced', '1');
 
-        return $userId;
+        return [
+            'success' => true,
+            'action' => 'created',
+            'user_id' => $userId,
+            'message' => 'LDAP-Benutzer lokal angelegt.',
+        ];
+    }
+
+    /**
+     * Initiale LDAP-Synchronisierung aus dem Admin.
+     *
+     * @return array{success: bool, message: string, created: int, updated: int, skipped: int, errors: int, processed: int}
+     */
+    public function syncDirectoryUsers(int $limit = 250): array
+    {
+        if (!$this->isConfigured()) {
+            return [
+                'success' => false,
+                'message' => 'LDAP ist nicht konfiguriert.',
+                'created' => 0,
+                'updated' => 0,
+                'skipped' => 0,
+                'errors' => 0,
+                'processed' => 0,
+            ];
+        }
+
+        if (!extension_loaded('ldap')) {
+            return [
+                'success' => false,
+                'message' => 'PHP-LDAP-Extension ist nicht installiert.',
+                'created' => 0,
+                'updated' => 0,
+                'skipped' => 0,
+                'errors' => 0,
+                'processed' => 0,
+            ];
+        }
+
+        try {
+            $conn = $this->getConnection();
+            $conn->connect();
+            $conn->auth()->bindAsConfiguredUser();
+
+            $entries = $this->findDirectoryUsers($conn, max(1, min(1000, $limit)));
+
+            $created = 0;
+            $updated = 0;
+            $skipped = 0;
+            $errors = 0;
+
+            foreach ($entries as $entry) {
+                $result = $this->syncLocalUserDetailed($entry);
+                switch ($result['action']) {
+                    case 'created':
+                        $created++;
+                        break;
+                    case 'updated':
+                        $updated++;
+                        break;
+                    case 'skipped':
+                        $skipped++;
+                        break;
+                    default:
+                        if (!$result['success']) {
+                            $errors++;
+                        }
+                        break;
+                }
+            }
+
+            $processed = count($entries);
+            $message = sprintf(
+                'LDAP-Sync abgeschlossen: %d verarbeitet, %d neu, %d aktualisiert, %d übersprungen, %d Fehler.',
+                $processed,
+                $created,
+                $updated,
+                $skipped,
+                $errors
+            );
+
+            return [
+                'success' => true,
+                'message' => $message,
+                'created' => $created,
+                'updated' => $updated,
+                'skipped' => $skipped,
+                'errors' => $errors,
+                'processed' => $processed,
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'success' => false,
+                'message' => 'LDAP-Sync fehlgeschlagen: ' . $e->getMessage(),
+                'created' => 0,
+                'updated' => 0,
+                'skipped' => 0,
+                'errors' => 1,
+                'processed' => 0,
+            ];
+        }
     }
 
     /**
@@ -206,6 +334,25 @@ final class LdapAuthProvider
         return $results[0] ?? null;
     }
 
+    /**
+     * Mehrere Benutzer für einen Erstsync laden.
+     *
+     * @return array<int, array>
+     */
+    private function findDirectoryUsers(Connection $conn, int $limit): array
+    {
+        $filter = $this->buildDirectorySyncFilter();
+
+        $results = $conn->query()
+            ->rawFilter($filter)
+            ->in(LDAP_BASE_DN)
+            ->select(['cn', 'displayname', 'mail', 'samaccountname', 'uid', 'dn'])
+            ->limit($limit)
+            ->get();
+
+        return is_array($results) ? $results : [];
+    }
+
     // ── Connection-Management ────────────────────────────────────────────────
 
     private function getConnection(): Connection
@@ -249,6 +396,44 @@ final class LdapAuthProvider
         }
 
         return (string)$value;
+    }
+
+    private function findExistingUserId(string $email, string $dn): ?int
+    {
+        $db = Database::instance();
+        $prefix = $db->getPrefix();
+
+        if ($dn !== '') {
+            $stmt = $db->prepare(
+                "SELECT user_id FROM {$prefix}user_meta WHERE meta_key = 'ldap_dn' AND meta_value = ? LIMIT 1"
+            );
+            $stmt->execute([$dn]);
+            $metaRow = $stmt->fetch();
+            if ($metaRow && isset($metaRow->user_id)) {
+                return (int)$metaRow->user_id;
+            }
+        }
+
+        $stmt = $db->prepare(
+            "SELECT id FROM {$prefix}users WHERE email = ? LIMIT 1"
+        );
+        $stmt->execute([$email]);
+        $userRow = $stmt->fetch();
+
+        return $userRow && isset($userRow->id) ? (int)$userRow->id : null;
+    }
+
+    private function buildDirectorySyncFilter(): string
+    {
+        if (defined('LDAP_FILTER') && LDAP_FILTER !== '') {
+            if (str_contains(LDAP_FILTER, '{username}')) {
+                return str_replace('{username}', '*', LDAP_FILTER);
+            }
+
+            return LDAP_FILTER;
+        }
+
+        return '(&(objectClass=person)(|(mail=*)(uid=*)(sAMAccountName=*)))';
     }
 
     /**

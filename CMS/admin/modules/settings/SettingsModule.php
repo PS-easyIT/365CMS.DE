@@ -11,7 +11,9 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\AuditLogger;
 use CMS\Database;
+use CMS\Services\MailService;
 
 class SettingsModule
 {
@@ -21,7 +23,7 @@ class SettingsModule
     private const SETTINGS_KEYS = [
         'site_name', 'site_description', 'site_url', 'site_logo', 'admin_email',
         'language', 'timezone', 'date_format', 'time_format',
-        'posts_per_page', 'registration_enabled', 'comments_enabled',
+        'posts_per_page', 'comments_enabled',
         'maintenance_mode', 'maintenance_message',
         'google_analytics', 'robots_txt', 'marketplace_enabled',
         'setting_editor_type', 'setting_page_default_status',
@@ -87,7 +89,6 @@ class SettingsModule
                 'date_format'          => $settings['date_format'] ?? 'd.m.Y',
                 'time_format'          => $settings['time_format'] ?? 'H:i',
                 'posts_per_page'       => $settings['posts_per_page'] ?? '10',
-                'registration_enabled' => ($settings['registration_enabled'] ?? '0') === '1',
                 'comments_enabled'     => ($settings['comments_enabled'] ?? '1') === '1',
                 'maintenance_mode'     => ($settings['maintenance_mode'] ?? '0') === '1',
                 'maintenance_message'  => $settings['maintenance_message'] ?? 'Die Website wird gerade gewartet.',
@@ -100,6 +101,7 @@ class SettingsModule
                 'page_editor_width'    => (string)max(320, min(1600, (int)($settings['setting_page_editor_width'] ?? 1050))),
                 'post_editor_width'    => (string)max(320, min(1600, (int)($settings['setting_post_editor_width'] ?? 750))),
             ],
+            'mail'      => $this->getMailData($settings),
             'timezones' => self::TIMEZONES,
             'languages' => self::LANGUAGES,
         ];
@@ -143,7 +145,6 @@ class SettingsModule
                 'date_format'          => in_array($post['date_format'] ?? 'd.m.Y', ['d.m.Y', 'Y-m-d', 'm/d/Y', 'd/m/Y'], true) ? $post['date_format'] : 'd.m.Y',
                 'time_format'          => in_array($post['time_format'] ?? 'H:i', ['H:i', 'H:i:s', 'g:i A'], true) ? $post['time_format'] : 'H:i',
                 'posts_per_page'       => (string)max(1, min(100, (int)($post['posts_per_page'] ?? 10))),
-                'registration_enabled' => !empty($post['registration_enabled']) ? '1' : '0',
                 'comments_enabled'     => !empty($post['comments_enabled']) ? '1' : '0',
                 'maintenance_mode'     => !empty($post['maintenance_mode']) ? '1' : '0',
                 'maintenance_message'  => trim(strip_tags($post['maintenance_message'] ?? '', '<p><strong><em><br>')),
@@ -182,6 +183,28 @@ class SettingsModule
         }
     }
 
+    public function sendTestEmail(array $post): array
+    {
+        $recipient = trim((string)($post['test_email_recipient'] ?? ''));
+        $result = MailService::getInstance()->sendBackendTestEmail($recipient, 'admin-settings');
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            'setting.mail.test',
+            !empty($result['success']) ? 'Test-E-Mail aus den Admin-Einstellungen versendet' : 'Test-E-Mail aus den Admin-Einstellungen fehlgeschlagen',
+            'setting',
+            null,
+            [
+                'recipient' => $recipient,
+                'result' => !empty($result['success']) ? 'success' : 'error',
+                'transport' => $result['transport'] ?? null,
+            ],
+            !empty($result['success']) ? 'info' : 'warning'
+        );
+
+        return $result;
+    }
+
     private function loadSettings(): array
     {
         $settings = [];
@@ -196,5 +219,22 @@ class SettingsModule
             // Defaults werden in getData() gesetzt
         }
         return $settings;
+    }
+
+    /**
+     * @param array<string, string> $settings
+     * @return array<string, bool|int|string>
+     */
+    private function getMailData(array $settings): array
+    {
+        $transport = MailService::getInstance()->getTransportInfo();
+        $fallbackRecipient = trim((string)($settings['admin_email'] ?? ''));
+        if ($fallbackRecipient === '' && defined('ADMIN_EMAIL')) {
+            $fallbackRecipient = (string) ADMIN_EMAIL;
+        }
+
+        return $transport + [
+            'test_recipient' => $fallbackRecipient,
+        ];
     }
 }

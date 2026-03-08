@@ -11,6 +11,7 @@ if (!defined('ABSPATH')) {
  */
 
 $s          = $data['settings'];
+$mail       = $data['mail'] ?? [];
 $timezones  = $data['timezones'];
 $languages  = $data['languages'];
 $currentTab = ($currentTab ?? 'general') === 'content' ? 'content' : 'general';
@@ -30,9 +31,20 @@ $hideSettingsTabs = $hideSettingsTabs ?? false;
         </div>
     </div>
 
+    <?php if (!empty($alert)): ?>
+        <div class="alert alert-<?php echo htmlspecialchars($alert['type'] ?? 'info'); ?> mb-4" role="alert">
+            <?php echo htmlspecialchars($alert['message'] ?? ''); ?>
+        </div>
+    <?php endif; ?>
+
+    <form id="settings-test-email-form" method="post" class="d-none">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+        <input type="hidden" name="tab" value="<?php echo htmlspecialchars($currentTab); ?>">
+        <input type="hidden" name="action" value="send_test_email">
+    </form>
+
     <form method="post" autocomplete="off">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-        <input type="hidden" name="action" value="save">
         <input type="hidden" name="tab" value="<?php echo htmlspecialchars($currentTab); ?>">
 
         <?php if (!$hideSettingsTabs): ?>
@@ -132,6 +144,44 @@ $hideSettingsTabs = $hideSettingsTabs ?? false;
                 </div>
             </div>
 
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h3 class="card-title mb-0">E-Mail-Testversand</h3>
+                        <span class="badge bg-<?php echo !empty($mail['uses_smtp']) ? 'success' : 'warning'; ?>-lt">
+                            <?php echo htmlspecialchars((string)($mail['transport_label'] ?? 'Mailversand')); ?>
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Absender</label>
+                                <input type="text" class="form-control" value="<?php echo htmlspecialchars((string)(($mail['from_name'] ?? '') !== '' ? ($mail['from_name'] . ' <' . ($mail['from_email'] ?? '') . '>') : ($mail['from_email'] ?? ''))); ?>" readonly>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">SMTP-Host</label>
+                                <input type="text" class="form-control" value="<?php echo htmlspecialchars((string)($mail['host'] ?? '')); ?>" readonly>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Port / TLS</label>
+                                <input type="text" class="form-control" value="<?php echo htmlspecialchars((string)(($mail['port'] ?? '') . ' / ' . ($mail['encryption'] ?? 'none'))); ?>" readonly>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Test-E-Mail an</label>
+                            <input type="email" name="test_email_recipient" form="settings-test-email-form" class="form-control" value="<?php echo htmlspecialchars((string)($mail['test_recipient'] ?? '')); ?>" placeholder="admin@example.com" required>
+                            <div class="form-hint">Versendet eine Testnachricht direkt über die zentrale Mail-Implementierung des CMS.</div>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-2 align-items-center">
+                            <button type="submit" form="settings-test-email-form" class="btn btn-outline-primary">Test-E-Mail senden</button>
+                            <span class="text-secondary small">SMTP-Zugangsdaten werden aktuell aus der Systemkonfiguration geladen.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Inhalte -->
             <div class="col-lg-6 mb-4">
                 <div class="card">
@@ -142,10 +192,11 @@ $hideSettingsTabs = $hideSettingsTabs ?? false;
                             <input type="number" name="posts_per_page" class="form-control" value="<?php echo (int)$s['posts_per_page']; ?>" min="1" max="100">
                         </div>
                         <div class="mb-3">
-                            <label class="form-check form-switch">
-                                <input type="checkbox" class="form-check-input" name="registration_enabled" value="1" <?php echo $s['registration_enabled'] ? 'checked' : ''; ?>>
-                                <span class="form-check-label">Benutzerregistrierung aktivieren</span>
-                            </label>
+                            <div class="alert alert-info mb-0" role="alert">
+                                Benutzer-, Registrierungs- und Authentifizierungsoptionen werden jetzt unter
+                                <a href="<?php echo htmlspecialchars((defined('SITE_URL') ? SITE_URL : '') . '/admin/user-settings'); ?>" class="alert-link">Benutzer &amp; Gruppen → Einstellungen</a>
+                                verwaltet.
+                            </div>
                         </div>
                         <div>
                             <label class="form-check form-switch">
@@ -280,7 +331,7 @@ $hideSettingsTabs = $hideSettingsTabs ?? false;
         <?php endif; ?>
 
         <div class="d-flex justify-content-end">
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" class="btn btn-primary" name="action" value="save">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-device-floppy me-1" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2"/><path d="M12 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M14 4l0 4l-6 0l0 -4"/></svg>
                 Einstellungen speichern
             </button>

@@ -41,13 +41,13 @@ Diese Kandidaten können Platz sparen, sind aber architektonisch sensibler oder 
 
 | Priorität | Pfad | Empfehlung | Risiko |
 |---|---|---|---|
-| C | `CMS/assets/mailer/` | erst nach endgültiger Mail-Strategie entscheiden | mittel bis hoch |
 | C | `CMS/assets/tabler/libs/` große Teilbereiche | nur selektiv ausdünnen | hoch |
 
 **Begründung:**
 
-- `mailer/` ist derzeit unvollständig, könnte aber künftig wieder benötigt werden, sobald die fehlende Abhängigkeit sauber ergänzt ist.
 - `tabler/` ist aktiv im Einsatz; nur Teile unter `libs/` wirken potenziell überdimensioniert. Hier wäre ein blindes Löschen eher ein Abenteuer mit Nebenwirkungen.
+
+> Hinweis: `CMS/assets/mailer/` ist **nicht mehr outdated**. Der Symfony-Mailer ist produktiv eingebunden und wird zusammen mit `CMS/assets/mime/` und `CMS/assets/psr/` aktiv für den SMTP-Versand genutzt.
 
 ## Empfohlene Reihenfolge in der Praxis
 
@@ -89,12 +89,6 @@ Wenn du besonders vorsichtig vorgehen willst:
 | `CMS/assets/rate-limiter/` | sehr wahrscheinlich unnötig | Nur Autoloader- und Bundle-Treffer, keine Nutzung in Runtime-Code. |
 | `CMS/assets/schema-org/` | wahrscheinlich unnötig | `CMS/assets/autoload.php` dokumentiert selbst, dass `SEOService` Schema.org derzeit **manuell** erzeugt; die Library ist Reserve. |
 
-## Technisch vorhanden, aber derzeit nicht sauber produktiv
-
-| Pfad | Einstufung | Begründung |
-|---|---|---|
-| `CMS/assets/mailer/` | aktuell nicht produktiv | Das Bundle ist vorhanden, aber die Session-Historie und Codebasis zeigen, dass `symfony/mime` fehlt; damit ist die Mailer-Integration derzeit unvollständig. |
-
 ## Mögliche Platzfresser innerhalb von Bundles
 
 Diese Unterordner sind häufig nur für Entwicklung, Tests oder Alternativ-Distributionen relevant. Vor dem Löschen sollte einmal geprüft werden, ob sie für Updates oder Debugging bewusst mitgeführt werden.
@@ -121,8 +115,11 @@ Diese Einträge belegen Platz, sind aber aktiv in Benutzung oder systemintern no
 - `images/`
 - `js/`
 - `ldaprecord/`
+- `mailer/`
+- `mime/`
 - `photoswipe/`
 - `php-jwt/`
+- `psr/`
 - `simplepielibrary/`
 - `simplepiesrc/`
 - `suneditor/`
@@ -139,6 +136,8 @@ Diese Einträge belegen Platz, sind aber aktiv in Benutzung oder systemintern no
 - `CMS/core/Services/FileUploadService.php`, `CMS/admin/media.php` und `CMS/assets/js/admin-media-integrations.js` binden `FilePond` produktiv ein.
 - `CMS/core/Services/ElfinderService.php`, `CMS/admin/media.php` und `CMS/admin/views/media/library.php` binden `elFinder` produktiv ein.
 - `CMS/admin/users.php`, `CMS/admin/pages.php`, `CMS/admin/posts.php` und `CMS/assets/js/gridjs-init.js` binden `Grid.js` produktiv ein.
+- `CMS/admin/user-settings.php`, `CMS/admin/modules/users/UserSettingsModule.php` und `CMS/core/Auth/LDAP/LdapAuthProvider.php` binden `ldaprecord/` zusätzlich für den LDAP-Erstsync produktiv ein.
 - `CMS/core/Logger.php` implementiert eigenes Logging ohne Monolog.
 - `CMS/assets/autoload.php` enthält den Hinweis, dass `schema-org/` derzeit nur Reserve ist.
 - `CMS/core/Services/SEOService.php` erzeugt JSON-LD manuell via `<script type="application/ld+json">`.
+- `CMS/core/Services/MailService.php` nutzt `CMS/assets/mailer/`, `CMS/assets/mime/` und `CMS/assets/psr/` produktiv für SMTP-Test- und Systemmails.

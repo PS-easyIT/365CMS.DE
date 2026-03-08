@@ -45,6 +45,60 @@ class MailService
         return self::$instance ??= new self();
     }
 
+    /**
+     * @return array<string, bool|int|string>
+     */
+    public function getTransportInfo(): array
+    {
+        return [
+            'uses_smtp' => $this->useSmtp,
+            'transport' => $this->useSmtp ? 'smtp' : 'mail',
+            'transport_label' => $this->useSmtp ? 'SMTP via Symfony Mailer' : 'PHP mail() Fallback',
+            'host' => $this->smtpHost,
+            'port' => $this->smtpPort,
+            'encryption' => $this->smtpEncryption !== '' ? $this->smtpEncryption : 'none',
+            'username' => $this->smtpUser,
+            'from_email' => $this->fromEmail,
+            'from_name' => $this->fromName,
+        ];
+    }
+
+    /**
+     * @return array{success:bool,message?:string,error?:string,transport?:string}
+     */
+    public function sendBackendTestEmail(string $to, string $source = 'admin'): array
+    {
+        $recipient = trim($to);
+        if (filter_var($recipient, FILTER_VALIDATE_EMAIL) === false) {
+            return ['success' => false, 'error' => 'Bitte eine gültige Empfänger-E-Mail-Adresse angeben.'];
+        }
+
+        $transport = $this->getTransportInfo();
+        $sent = $this->send(
+            $recipient,
+            '365CMS Test-E-Mail',
+            $this->buildBackendTestBody($recipient, $source, $transport),
+            [
+                'X-365CMS-Test-Mail' => '1',
+                'X-365CMS-Test-Source' => $source,
+            ]
+        );
+
+        if (!$sent) {
+            return [
+                'success' => false,
+                'error' => 'Die Test-E-Mail konnte nicht versendet werden. Bitte SMTP-Konfiguration, Absenderadresse und Server-Erreichbarkeit prüfen.',
+                'transport' => (string)($transport['transport_label'] ?? ''),
+            ];
+        }
+
+        return [
+            'success' => true,
+            'message' => 'Test-E-Mail erfolgreich an ' . $recipient . ' versendet (' . ($transport['transport_label'] ?? 'Mailversand') . ').',
+            'transport' => (string)($transport['transport_label'] ?? ''),
+        ];
+    }
+
     private function __construct()
     {
         $this->smtpHost       = defined('SMTP_HOST')       ? SMTP_HOST       : '';
@@ -353,6 +407,33 @@ class MailService
     private function createPlainTextBody(string $htmlBody): string
     {
         return strip_tags(str_replace(['<br>', '<br/>', '<br />'], "\n", $htmlBody));
+    }
+
+    /**
+     * @param array<string, bool|int|string> $transport
+     */
+    private function buildBackendTestBody(string $recipient, string $source, array $transport): string
+    {
+        $siteName = defined('SITE_NAME') ? (string) SITE_NAME : '365CMS';
+        $siteUrl = defined('SITE_URL') ? (string) SITE_URL : '';
+        $timestamp = date('d.m.Y H:i:s');
+
+        return '<h2>365CMS Test-E-Mail</h2>'
+            . '<p>Diese Nachricht wurde erfolgreich aus dem 365CMS-Backend ausgelöst.</p>'
+            . '<ul>'
+            . '<li><strong>Empfänger:</strong> ' . htmlspecialchars($recipient, ENT_QUOTES) . '</li>'
+            . '<li><strong>Quelle:</strong> ' . htmlspecialchars($source, ENT_QUOTES) . '</li>'
+            . '<li><strong>Zeitpunkt:</strong> ' . htmlspecialchars($timestamp, ENT_QUOTES) . '</li>'
+            . '<li><strong>Transport:</strong> ' . htmlspecialchars((string)($transport['transport_label'] ?? 'Mailversand'), ENT_QUOTES) . '</li>'
+            . '<li><strong>SMTP-Host:</strong> ' . htmlspecialchars((string)($transport['host'] ?? '—'), ENT_QUOTES) . '</li>'
+            . '<li><strong>SMTP-Port:</strong> ' . htmlspecialchars((string)($transport['port'] ?? '—'), ENT_QUOTES) . '</li>'
+            . '<li><strong>Verschlüsselung:</strong> ' . htmlspecialchars((string)($transport['encryption'] ?? '—'), ENT_QUOTES) . '</li>'
+            . '<li><strong>Absender:</strong> ' . htmlspecialchars((string)($transport['from_name'] ?? ''), ENT_QUOTES) . ' &lt;' . htmlspecialchars((string)($transport['from_email'] ?? ''), ENT_QUOTES) . '&gt;</li>'
+            . '</ul>'
+            . '<p><strong>Website:</strong> ' . htmlspecialchars($siteName, ENT_QUOTES)
+            . ($siteUrl !== '' ? ' (<a href="' . htmlspecialchars($siteUrl, ENT_QUOTES) . '">' . htmlspecialchars($siteUrl, ENT_QUOTES) . '</a>)' : '')
+            . '</p>'
+            . '<p>Wenn diese Nachricht ankommt, ist die Backend-Testfunktion aktiv und nutzt die zentrale Mail-Implementierung des CMS.</p>';
     }
 
     /**
