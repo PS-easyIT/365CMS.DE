@@ -93,9 +93,4 @@ CMSv2/vendor/
 .htaccess.local
 private/
 secrets/
-DOC/ASSET_TODO.md
-DOC/ADMIN_ToDo.md
-DOC/CMS-ASSETS.md
-CMS/admin/ADMIN-DASHBOARD-TODO.md
-ADMIN_ToDo.md
 .gitlog_365cms.txt
