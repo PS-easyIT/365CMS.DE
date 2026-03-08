@@ -26,7 +26,7 @@ if (!defined('ABSPATH')) {
 class SchemaManager
 {
     /** Flag-Datei-Version – erhöhen wenn Schema geändert wird */
-    public const SCHEMA_VERSION = 'v10';
+    public const SCHEMA_VERSION = 'v11';
 
     private Database $db;
     private string $prefix;
@@ -555,6 +555,44 @@ class SchemaManager
                 INDEX idx_category (category),
                 INDEX idx_action (action),
                 INDEX idx_severity (severity),
+                INDEX idx_created_at (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
+
+            // Mail-Protokoll
+            "CREATE TABLE IF NOT EXISTS {$p}mail_log (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                recipient VARCHAR(255) NOT NULL,
+                subject VARCHAR(255) NOT NULL,
+                status ENUM('sent','failed') NOT NULL DEFAULT 'sent',
+                transport VARCHAR(50) NOT NULL DEFAULT 'smtp',
+                provider VARCHAR(50) NOT NULL DEFAULT 'default',
+                message_id VARCHAR(255) DEFAULT NULL,
+                error_message TEXT DEFAULT NULL,
+                meta LONGTEXT COMMENT 'JSON-Daten',
+                source VARCHAR(100) NOT NULL DEFAULT 'system',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_status (status),
+                INDEX idx_recipient (recipient),
+                INDEX idx_created_at (created_at),
+                INDEX idx_source (source)
+            ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
+
+            // Mail-Queue (Vorbereitung für asynchronen Versand)
+            "CREATE TABLE IF NOT EXISTS {$p}mail_queue (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                recipient VARCHAR(255) NOT NULL,
+                subject VARCHAR(255) NOT NULL,
+                body LONGTEXT,
+                headers LONGTEXT COMMENT 'JSON-Daten',
+                status ENUM('pending','processing','sent','failed') NOT NULL DEFAULT 'pending',
+                attempts INT UNSIGNED NOT NULL DEFAULT 0,
+                available_at DATETIME DEFAULT NULL,
+                sent_at DATETIME DEFAULT NULL,
+                last_error TEXT DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_status (status),
+                INDEX idx_available_at (available_at),
                 INDEX idx_created_at (created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 

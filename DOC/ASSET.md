@@ -1,8 +1,5 @@
 # Asset-Übersicht 365CMS
 
-Diese Übersicht listet **alle aktuellen Top-Level-Einträge** aus `CMS/assets/` auf.
-Die Detaildokumentation für aktiv verwendete Bundles liegt gesammelt unter `DOC/assets/`.
-
 ## Aktiv verwendete Bundles
 
 | Beschreibung | Name | Pfad | Website | GitHub | Status |

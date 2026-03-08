@@ -146,6 +146,52 @@ class Router
             $this->requireAdmin();
             $this->jsonAdminUsers();
         });
+        $this->addRoute('GET', '/api/v1/admin/mail/logs', function () {
+            $this->requireAdmin();
+            header('Content-Type: application/json; charset=utf-8');
+
+            $page = max(1, (int) ($_GET['page'] ?? 1));
+            $limit = min(200, max(10, (int) ($_GET['limit'] ?? 50)));
+            $search = trim((string) ($_GET['search'] ?? ''));
+            $status = trim((string) ($_GET['status'] ?? ''));
+
+            $result = Services\MailLogService::getInstance()->getRecent($limit, $page, $search, $status);
+            echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            exit;
+        });
+        $this->addRoute('POST', '/api/v1/admin/mail/test', function () {
+            $this->requireAdmin();
+
+            $token = (string) ($_POST['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''));
+            if (!Security::instance()->verifyToken($token, 'admin_mail_api')) {
+                http_response_code(403);
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['success' => false, 'error' => 'Sicherheitsüberprüfung fehlgeschlagen.']);
+                exit;
+            }
+
+            $recipient = trim((string) ($_POST['recipient'] ?? ''));
+            $result = Services\MailService::getInstance()->sendBackendTestEmail($recipient, 'admin-mail-api');
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            exit;
+        });
+        $this->addRoute('POST', '/api/v1/admin/graph/test', function () {
+            $this->requireAdmin();
+
+            $token = (string) ($_POST['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''));
+            if (!Security::instance()->verifyToken($token, 'admin_mail_api')) {
+                http_response_code(403);
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['success' => false, 'error' => 'Sicherheitsüberprüfung fehlgeschlagen.']);
+                exit;
+            }
+
+            $result = Services\GraphApiService::getInstance()->testConnection(true);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            exit;
+        });
 
         $this->addRoute('GET', '/api/v1/admin/media/elfinder', function () {
             $this->requireAdmin();

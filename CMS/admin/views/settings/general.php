@@ -37,12 +37,6 @@ $hideSettingsTabs = $hideSettingsTabs ?? false;
         </div>
     <?php endif; ?>
 
-    <form id="settings-test-email-form" method="post" class="d-none">
-        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-        <input type="hidden" name="tab" value="<?php echo htmlspecialchars($currentTab); ?>">
-        <input type="hidden" name="action" value="send_test_email">
-    </form>
-
     <form method="post" autocomplete="off">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
         <input type="hidden" name="tab" value="<?php echo htmlspecialchars($currentTab); ?>">
@@ -147,7 +141,7 @@ $hideSettingsTabs = $hideSettingsTabs ?? false;
             <div class="col-lg-6 mb-4">
                 <div class="card h-100">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h3 class="card-title mb-0">E-Mail-Testversand</h3>
+                        <h3 class="card-title mb-0">Mail-System</h3>
                         <span class="badge bg-<?php echo !empty($mail['uses_smtp']) ? 'success' : 'warning'; ?>-lt">
                             <?php echo htmlspecialchars((string)($mail['transport_label'] ?? 'Mailversand')); ?>
                         </span>
@@ -168,15 +162,15 @@ $hideSettingsTabs = $hideSettingsTabs ?? false;
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Test-E-Mail an</label>
-                            <input type="email" name="test_email_recipient" form="settings-test-email-form" class="form-control" value="<?php echo htmlspecialchars((string)($mail['test_recipient'] ?? '')); ?>" placeholder="admin@example.com" required>
-                            <div class="form-hint">Versendet eine Testnachricht direkt über die zentrale Mail-Implementierung des CMS.</div>
+                        <div class="alert alert-info mb-3" role="alert">
+                            Mail-Transport, Azure OAuth2, Microsoft Graph und Versand-Logs werden jetzt zentral unter
+                            <a href="<?php echo htmlspecialchars((defined('SITE_URL') ? SITE_URL : '') . '/admin/mail-settings'); ?>" class="alert-link">System → Mail &amp; Azure OAuth2</a>
+                            verwaltet.
                         </div>
 
                         <div class="d-flex flex-wrap gap-2 align-items-center">
-                            <button type="submit" form="settings-test-email-form" class="btn btn-outline-primary">Test-E-Mail senden</button>
-                            <span class="text-secondary small">SMTP-Zugangsdaten werden aktuell aus der Systemkonfiguration geladen.</span>
+                            <a href="<?php echo htmlspecialchars((defined('SITE_URL') ? SITE_URL : '') . '/admin/mail-settings'); ?>" class="btn btn-outline-primary">Mail-System öffnen</a>
+                            <span class="text-secondary small">Hier siehst du nur den aktiven Laufzeitstatus.</span>
                         </div>
                     </div>
                 </div>

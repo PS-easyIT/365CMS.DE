@@ -30,7 +30,7 @@ class MigrationManager
      * Aktuelle Schema-Version – erhöhen wenn neue Migrations hinzukommen.
      * Wird in cms_settings (option_name = 'db_schema_version') gespeichert.
      */
-    private const SCHEMA_VERSION = 'v7';
+    private const SCHEMA_VERSION = 'v8';
 
     public function __construct(Database $db)
     {
@@ -69,6 +69,40 @@ class MigrationManager
         $pdo = $this->db->getPdo();
 
         $migrations = [
+            "CREATE TABLE IF NOT EXISTS `{$p}mail_log` (
+                `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `recipient` VARCHAR(255) NOT NULL,
+                `subject` VARCHAR(255) NOT NULL,
+                `status` ENUM('sent','failed') NOT NULL DEFAULT 'sent',
+                `transport` VARCHAR(50) NOT NULL DEFAULT 'smtp',
+                `provider` VARCHAR(50) NOT NULL DEFAULT 'default',
+                `message_id` VARCHAR(255) DEFAULT NULL,
+                `error_message` TEXT DEFAULT NULL,
+                `meta` LONGTEXT,
+                `source` VARCHAR(100) NOT NULL DEFAULT 'system',
+                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX `idx_status` (`status`),
+                INDEX `idx_recipient` (`recipient`),
+                INDEX `idx_created_at` (`created_at`),
+                INDEX `idx_source` (`source`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+            "CREATE TABLE IF NOT EXISTS `{$p}mail_queue` (
+                `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `recipient` VARCHAR(255) NOT NULL,
+                `subject` VARCHAR(255) NOT NULL,
+                `body` LONGTEXT,
+                `headers` LONGTEXT,
+                `status` ENUM('pending','processing','sent','failed') NOT NULL DEFAULT 'pending',
+                `attempts` INT UNSIGNED NOT NULL DEFAULT 0,
+                `available_at` DATETIME DEFAULT NULL,
+                `sent_at` DATETIME DEFAULT NULL,
+                `last_error` TEXT DEFAULT NULL,
+                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX `idx_status` (`status`),
+                INDEX `idx_available_at` (`available_at`),
+                INDEX `idx_created_at` (`created_at`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
             // RBAC: member_dashboard_access on roles
             "ALTER TABLE `{$p}roles` ADD COLUMN `member_dashboard_access` TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Zugriff auf Member-Dashboard' AFTER `capabilities`",
             // RBAC: sort_order on roles
@@ -101,6 +135,7 @@ class MigrationManager
                 if (
                     !str_contains($msg, 'Duplicate column') &&
                     !str_contains($msg, 'Duplicate key name') &&
+                    !str_contains($msg, 'already exists') &&
                     !str_contains($msg, "doesn't exist") &&
                     !str_contains($msg, 'Multiple definition') &&
                     !str_contains($msg, "Can't DROP") &&

@@ -202,6 +202,22 @@ class Bootstrap
         $this->container->singleton(Services\MailService::class, fn() => Services\MailService::getInstance());
         $this->container->singleton('mail', fn() => Services\MailService::getInstance());
 
+        // SettingsService – zentrale Settings-Abstraktion für gruppierte/verschlüsselte Werte
+        $this->container->singleton(Services\SettingsService::class, fn() => Services\SettingsService::getInstance());
+        $this->container->singleton('settings', fn() => Services\SettingsService::getInstance());
+
+        // AzureMailTokenProvider – XOAUTH2 Token-Caching für Microsoft 365 SMTP
+        $this->container->singleton(Services\AzureMailTokenProvider::class, fn() => Services\AzureMailTokenProvider::getInstance());
+        $this->container->singleton('mail.azure', fn() => Services\AzureMailTokenProvider::getInstance());
+
+        // MailLogService – Versandhistorie für Admin & Diagnose
+        $this->container->singleton(Services\MailLogService::class, fn() => Services\MailLogService::getInstance());
+        $this->container->singleton('mail.logs', fn() => Services\MailLogService::getInstance());
+
+        // GraphApiService – Microsoft Graph via Client-Credentials
+        $this->container->singleton(Services\GraphApiService::class, fn() => Services\GraphApiService::getInstance());
+        $this->container->singleton('graph', fn() => Services\GraphApiService::getInstance());
+
         // SearchService – lazy Singleton (TNTSearch Volltextsuche)
         $this->container->singleton(Services\SearchService::class, fn() => Services\SearchService::getInstance());
         $this->container->singleton('search', fn() => Services\SearchService::getInstance());
