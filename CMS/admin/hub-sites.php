@@ -40,6 +40,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'message' => $result['message'] ?? $result['error'] ?? '',
             ];
             if (!empty($result['success'])) {
+                if (!empty($_POST['open_public_after_save']) && !empty($result['slug'])) {
+                    header('Location: ' . SITE_URL . '/' . ltrim((string)$result['slug'], '/'));
+                    exit;
+                }
+
                 header('Location: ' . SITE_URL . '/admin/hub-sites?action=edit&id=' . (int)($result['id'] ?? 0));
             } else {
                 header('Location: ' . SITE_URL . '/admin/hub-sites');
@@ -77,7 +82,7 @@ $viewAction = $_GET['action'] ?? 'list';
 if ($viewAction === 'edit') {
     $id = isset($_GET['id']) ? (int)$_GET['id'] : null;
     $data = $module->getEditData($id);
-    $pageTitle = $data['isNew'] ? 'Neue Routing / Hub Site' : 'Routing / Hub Site bearbeiten';
+    $pageTitle = $data['isNew'] ? 'Neue Hub-Site' : 'Hub-Site bearbeiten';
     $activePage = 'hub-sites';
 
     require __DIR__ . '/partials/header.php';
@@ -86,7 +91,7 @@ if ($viewAction === 'edit') {
     require __DIR__ . '/partials/footer.php';
 } else {
     $data = $module->getListData();
-    $pageTitle = 'Routing / Hub Sites';
+    $pageTitle = 'Hub-Sites';
     $activePage = 'hub-sites';
 
     require __DIR__ . '/partials/header.php';

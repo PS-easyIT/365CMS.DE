@@ -16,7 +16,7 @@ $templateOptions = $data['templateOptions'] ?? [];
         <div class="row align-items-center">
             <div class="col-auto">
                 <div class="page-pretitle">Seiten &amp; Beiträge</div>
-                <h2 class="page-title">Routing / Hub Sites</h2>
+                <h2 class="page-title">Hub-Sites</h2>
             </div>
             <div class="col-auto ms-auto">
                 <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites?action=edit" class="btn btn-primary">
@@ -75,7 +75,7 @@ $templateOptions = $data['templateOptions'] ?? [];
                     <tbody>
                     <?php if ($sites === []): ?>
                         <tr>
-                            <td colspan="6" class="text-center text-secondary py-4">Noch keine Routing / Hub Sites vorhanden.</td>
+                            <td colspan="6" class="text-center text-secondary py-4">Noch keine Hub-Sites vorhanden.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($sites as $site): ?>

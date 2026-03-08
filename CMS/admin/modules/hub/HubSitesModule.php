@@ -39,6 +39,109 @@ class HubSitesModule
         'hub_sections_json' => '[]',
     ];
 
+    private const TEMPLATE_PRESETS = [
+        'general-it' => [
+            'summary' => 'Breites IT-Hub für Strategie, Betrieb, Infrastruktur und Security.',
+            'meta' => [
+                'audience' => 'IT-Leitung',
+                'owner' => 'IT-Operations',
+                'update_cycle' => 'Monatlich',
+                'focus' => 'Architektur & Betrieb',
+                'kpi' => 'Servicequalität',
+            ],
+            'links' => [
+                ['label' => 'Strategie', 'url' => '#strategie'],
+                ['label' => 'Infrastruktur', 'url' => '#infrastruktur'],
+                ['label' => 'Security', 'url' => '#security'],
+                ['label' => 'Betrieb', 'url' => '#betrieb'],
+            ],
+            'sections' => [
+                ['title' => 'IT-Roadmap', 'text' => 'Platzhalter für strategische Themen, Modernisierung, Infrastruktur und operative Prioritäten.', 'actionLabel' => 'Mehr zur Roadmap', 'actionUrl' => '#roadmap'],
+                ['title' => 'Betriebsmodelle', 'text' => 'Platzhalter für Managed Services, Support-Level, SLA-Modelle und Betriebsverantwortung.', 'actionLabel' => 'Betrieb ansehen', 'actionUrl' => '#betrieb'],
+            ],
+        ],
+        'microsoft-365' => [
+            'summary' => 'Modern-Work-Hub mit Fokus auf Collaboration, Adoption und Governance.',
+            'meta' => [
+                'audience' => 'Workspace & Modern Work',
+                'owner' => 'M365-Team',
+                'update_cycle' => '14-tägig',
+                'focus' => 'Adoption & Governance',
+                'kpi' => 'Nutzungsquote',
+            ],
+            'links' => [
+                ['label' => 'Teams', 'url' => '#teams'],
+                ['label' => 'SharePoint', 'url' => '#sharepoint'],
+                ['label' => 'Security', 'url' => '#security'],
+                ['label' => 'Automation', 'url' => '#automation'],
+            ],
+            'sections' => [
+                ['title' => 'Collaboration Stack', 'text' => 'Platzhalter für Teams, Exchange, SharePoint und Viva-Szenarien.', 'actionLabel' => 'Workspace öffnen', 'actionUrl' => '#workspace'],
+                ['title' => 'Governance & Adoption', 'text' => 'Platzhalter für Richtlinien, Rollout-Phasen, Schulungen und Governance-Standards.', 'actionLabel' => 'Governance prüfen', 'actionUrl' => '#governance'],
+            ],
+        ],
+        'datenschutz' => [
+            'summary' => 'Strukturiertes Datenschutz-Hub für Nachweise, Prozesse und Rechtsgrundlagen.',
+            'meta' => [
+                'audience' => 'DSB & Fachbereiche',
+                'owner' => 'Datenschutz',
+                'update_cycle' => 'Quartalsweise',
+                'focus' => 'Nachweise & Prozesse',
+                'kpi' => 'Bearbeitungsstatus',
+            ],
+            'links' => [
+                ['label' => 'DSGVO', 'url' => '#dsgvo'],
+                ['label' => 'Verzeichnis', 'url' => '#vvt'],
+                ['label' => 'Risiken', 'url' => '#risiken'],
+                ['label' => 'Betroffenenrechte', 'url' => '#betroffenenrechte'],
+            ],
+            'sections' => [
+                ['title' => 'Prüfpfade & Nachweise', 'text' => 'Platzhalter für TOMs, AV-Verträge, Löschkonzepte und Nachweisführung.', 'actionLabel' => 'Nachweise ansehen', 'actionUrl' => '#nachweise'],
+                ['title' => 'Umsetzungspakete', 'text' => 'Platzhalter für Audits, Gap-Analysen, Schulungen und Datenschutz-Projekte.', 'actionLabel' => 'Pakete öffnen', 'actionUrl' => '#umsetzung'],
+            ],
+        ],
+        'compliance' => [
+            'summary' => 'Governance-/Compliance-Hub für Policies, Audits und Kontrolllandschaften.',
+            'meta' => [
+                'audience' => 'Management & Audit',
+                'owner' => 'Compliance Office',
+                'update_cycle' => 'Monatlich',
+                'focus' => 'Kontrollen & Policies',
+                'kpi' => 'Audit-Readiness',
+            ],
+            'links' => [
+                ['label' => 'Policies', 'url' => '#policies'],
+                ['label' => 'Audits', 'url' => '#audits'],
+                ['label' => 'Rollen', 'url' => '#rollen'],
+                ['label' => 'Nachweise', 'url' => '#nachweise'],
+            ],
+            'sections' => [
+                ['title' => 'Governance Framework', 'text' => 'Platzhalter für Richtlinienlandschaft, Rollenkonzepte und Kontrollmechanismen.', 'actionLabel' => 'Framework ansehen', 'actionUrl' => '#framework'],
+                ['title' => 'Audit-Vorbereitung', 'text' => 'Platzhalter für Auditpläne, Kontrollpunkte, Maßnahmenlisten und Dokumentation.', 'actionLabel' => 'Audit-Bereich öffnen', 'actionUrl' => '#audit'],
+            ],
+        ],
+        'linux' => [
+            'summary' => 'Technisches Linux-Hub für Platform Engineering, Automatisierung und Hardening.',
+            'meta' => [
+                'audience' => 'Admins & Platform Team',
+                'owner' => 'Platform Engineering',
+                'update_cycle' => 'Wöchentlich',
+                'focus' => 'Automatisierung & Hardening',
+                'kpi' => 'Deployment-Health',
+            ],
+            'links' => [
+                ['label' => 'Server', 'url' => '#server'],
+                ['label' => 'Container', 'url' => '#container'],
+                ['label' => 'Automation', 'url' => '#automation'],
+                ['label' => 'Hardening', 'url' => '#hardening'],
+            ],
+            'sections' => [
+                ['title' => 'Platform Engineering', 'text' => 'Platzhalter für Linux-Betrieb, Hosting, Kubernetes, Container und Plattform-Themen.', 'actionLabel' => 'Plattform öffnen', 'actionUrl' => '#plattform'],
+                ['title' => 'Shell, CI/CD & Hardening', 'text' => 'Platzhalter für Automatisierung, Pipelines, Monitoring und Security-Baselines.', 'actionLabel' => 'Hardening ansehen', 'actionUrl' => '#hardening'],
+            ],
+        ],
+    ];
+
     public function __construct()
     {
         $this->db = Database::instance();
@@ -119,6 +222,7 @@ class HubSitesModule
             'isNew' => $site === null,
             'defaults' => self::DEFAULT_SETTINGS,
             'templateOptions' => self::TEMPLATE_OPTIONS,
+            'templatePresets' => self::TEMPLATE_PRESETS,
         ];
     }
 

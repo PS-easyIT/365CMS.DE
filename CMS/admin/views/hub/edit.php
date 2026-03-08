@@ -9,6 +9,7 @@ $site = $data['site'] ?? null;
 $isNew = (bool)($data['isNew'] ?? true);
 $defaults = $data['defaults'] ?? [];
 $templateOptions = $data['templateOptions'] ?? [];
+$templatePresets = $data['templatePresets'] ?? [];
 $settings = $site['settings'] ?? $defaults;
 $cards = $site['cards'] ?? [];
 $hubLinks = json_decode((string)($settings['hub_links_json'] ?? '[]'), true);
@@ -27,8 +28,8 @@ $hubSections = is_array($hubSections) ? $hubSections : [];
                 </a>
             </div>
             <div class="col">
-                <div class="page-pretitle">Routing / Hub Sites</div>
-                <h2 class="page-title"><?php echo $isNew ? 'Neue Routing / Hub Site' : 'Routing / Hub Site bearbeiten'; ?></h2>
+                <div class="page-pretitle">Hub-Sites</div>
+                <h2 class="page-title"><?php echo $isNew ? 'Neue Hub-Site' : 'Hub-Site bearbeiten'; ?></h2>
             </div>
             <?php if (!$isNew): ?>
                 <div class="col-auto">
@@ -59,6 +60,7 @@ $hubSections = is_array($hubSections) ? $hubSections : [];
             <?php if (!$isNew): ?>
                 <input type="hidden" name="id" value="<?php echo (int)($site['id'] ?? 0); ?>">
             <?php endif; ?>
+            <input type="hidden" name="open_public_after_save" id="openPublicAfterSaveInput" value="0">
             <input type="hidden" name="cards_json" id="cardsJsonInput" value="<?php echo htmlspecialchars(json_encode($cards, JSON_UNESCAPED_UNICODE)); ?>">
             <input type="hidden" name="hub_links_json" id="hubLinksJsonInput" value="<?php echo htmlspecialchars(json_encode($hubLinks, JSON_UNESCAPED_UNICODE)); ?>">
             <input type="hidden" name="hub_sections_json" id="hubSectionsJsonInput" value="<?php echo htmlspecialchars(json_encode($hubSections, JSON_UNESCAPED_UNICODE)); ?>">
@@ -74,8 +76,11 @@ $hubSections = is_array($hubSections) ? $hubSections : [];
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Öffentlicher Slug</label>
-                                <input type="text" class="form-control" value="/<?php echo htmlspecialchars((string)($settings['hub_slug'] ?? '')); ?>" readonly>
-                                <div class="form-hint">Der Slug wird beim Speichern automatisch aus dem Titel erzeugt und als öffentliche Route im `cms-default` Theme bereitgestellt.</div>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="hubSlugPreviewInput" value="/<?php echo htmlspecialchars((string)($settings['hub_slug'] ?? '')); ?>" readonly>
+                                    <button type="button" class="btn btn-outline-secondary" id="copySlugPreviewButton">Slug kopieren</button>
+                                </div>
+                                <div class="form-hint">Der Slug wird beim Speichern automatisch aus dem Titel erzeugt und als öffentliche Route im `cms-default` Theme bereitgestellt. Schon vor dem ersten Speichern wird hier eine Live-Vorschau angezeigt.</div>
                             </div>
                             <div class="mb-0">
                                 <label class="form-label">Beschreibung</label>
@@ -106,7 +111,7 @@ $hubSections = is_array($hubSections) ? $hubSections : [];
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label">Hero-Text</label>
-                                    <textarea class="form-control" name="hub_hero_text" rows="4" placeholder="Ein kurzer Einleitungstext für diese Routing-/Sammelseite."><?php echo htmlspecialchars((string)($settings['hub_hero_text'] ?? '')); ?></textarea>
+                                    <textarea class="form-control" name="hub_hero_text" rows="4" placeholder="Ein kurzer Einleitungstext für diese Hub-Site."><?php echo htmlspecialchars((string)($settings['hub_hero_text'] ?? '')); ?></textarea>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">CTA Text</label>
@@ -115,6 +120,32 @@ $hubSections = is_array($hubSections) ? $hubSections : [];
                                 <div class="col-md-6">
                                     <label class="form-label">CTA URL</label>
                                     <input type="text" class="form-control" name="hub_cta_url" value="<?php echo htmlspecialchars((string)($settings['hub_cta_url'] ?? '')); ?>" placeholder="/themen">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-3">
+                        <div class="card-header d-flex align-items-center justify-content-between">
+                            <h3 class="card-title mb-0">Hub-Site Template-Editor</h3>
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="applyTemplatePresetButton">Template-Vorlage anwenden</button>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3 align-items-start">
+                                <div class="col-lg-7">
+                                    <div class="border rounded p-3 bg-body-tertiary">
+                                        <div class="text-uppercase text-secondary small mb-2">Aktives Template</div>
+                                        <div class="fw-semibold mb-1" id="templatePresetTitle"><?php echo htmlspecialchars((string)($templateOptions[$settings['hub_template'] ?? 'general-it'] ?? 'Hub-Site')); ?></div>
+                                        <p class="text-secondary mb-0" id="templatePresetSummary">Wähle ein Template und übernimm die passenden Presets für Meta-Felder, Header-Links und Designbereiche.</p>
+                                    </div>
+                                </div>
+                                <div class="col-lg-5">
+                                    <div class="small text-secondary mb-2">Beim Anwenden werden überschrieben:</div>
+                                    <ul class="small text-secondary mb-0 ps-3">
+                                        <li>Meta-Felder</li>
+                                        <li>Header-Links</li>
+                                        <li>Designbereiche</li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -176,7 +207,7 @@ $hubSections = is_array($hubSections) ? $hubSections : [];
 
                     <div class="card mb-3">
                         <div class="card-header d-flex align-items-center justify-content-between">
-                            <h3 class="card-title mb-0">Routing-Kacheln</h3>
+                            <h3 class="card-title mb-0">Hub-Kacheln</h3>
                             <button type="button" class="btn btn-outline-primary btn-sm" id="addCard">Kachel hinzufügen</button>
                         </div>
                         <div class="card-body p-0">
@@ -207,7 +238,8 @@ $hubSections = is_array($hubSections) ? $hubSections : [];
                                     Public Site im neuen Tab öffnen
                                 </a>
                             <?php endif; ?>
-                            <button type="submit" class="btn btn-primary w-100"><?php echo $isNew ? 'Hub Site erstellen' : 'Hub Site aktualisieren'; ?></button>
+                            <button type="submit" class="btn btn-primary w-100 mb-2"><?php echo $isNew ? 'Hub Site erstellen' : 'Hub Site aktualisieren'; ?></button>
+                            <button type="button" class="btn btn-outline-primary w-100" id="saveAndOpenPublicButton"><?php echo $isNew ? 'Erstellen & Public Site öffnen' : 'Speichern & Public Site öffnen'; ?></button>
                         </div>
                     </div>
                 </div>
@@ -222,14 +254,81 @@ $hubSections = is_array($hubSections) ? $hubSections : [];
     var container = document.getElementById('cardsContainer');
     var emptyState = document.getElementById('cardsEmpty');
     var input = document.getElementById('cardsJsonInput');
+    var form = document.getElementById('hubSiteForm');
+    var titleInput = form.querySelector('input[name="site_name"]');
+    var templateSelect = form.querySelector('select[name="hub_template"]');
+    var slugPreviewInput = document.getElementById('hubSlugPreviewInput');
+    var openPublicAfterSaveInput = document.getElementById('openPublicAfterSaveInput');
+    var saveAndOpenPublicButton = document.getElementById('saveAndOpenPublicButton');
+    var copySlugPreviewButton = document.getElementById('copySlugPreviewButton');
+    var applyTemplatePresetButton = document.getElementById('applyTemplatePresetButton');
+    var templatePresetTitle = document.getElementById('templatePresetTitle');
+    var templatePresetSummary = document.getElementById('templatePresetSummary');
     var hubLinks = <?php echo json_encode($hubLinks, JSON_UNESCAPED_UNICODE); ?>;
     var hubSections = <?php echo json_encode($hubSections, JSON_UNESCAPED_UNICODE); ?>;
+    var templateOptions = <?php echo json_encode($templateOptions, JSON_UNESCAPED_UNICODE); ?>;
+    var templatePresets = <?php echo json_encode($templatePresets, JSON_UNESCAPED_UNICODE); ?>;
     var hubLinksInput = document.getElementById('hubLinksJsonInput');
     var hubSectionsInput = document.getElementById('hubSectionsJsonInput');
     var hubLinksContainer = document.getElementById('hubLinksContainer');
     var hubSectionsContainer = document.getElementById('hubSectionsContainer');
     var hubLinksEmpty = document.getElementById('hubLinksEmpty');
     var hubSectionsEmpty = document.getElementById('hubSectionsEmpty');
+
+    function slugify(value) {
+        return (value || '')
+            .toString()
+            .trim()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+    }
+
+    function currentPublicUrl() {
+        var slugValue = (slugPreviewInput.value || '').replace(/^\//, '').trim();
+        return '<?php echo htmlspecialchars(rtrim(SITE_URL, '/'), ENT_QUOTES); ?>/' + slugValue;
+    }
+
+    function updateSlugPreview() {
+        var storedSlug = '<?php echo htmlspecialchars((string)($settings['hub_slug'] ?? ''), ENT_QUOTES); ?>';
+        var nextSlug = storedSlug;
+
+        if (!nextSlug) {
+            nextSlug = slugify(titleInput.value || '') || 'hub-site';
+        }
+
+        slugPreviewInput.value = '/' + nextSlug;
+        copySlugPreviewButton.disabled = nextSlug === '';
+    }
+
+    function updateTemplatePresetInfo() {
+        var key = templateSelect.value || 'general-it';
+        var preset = templatePresets[key] || {};
+        templatePresetTitle.textContent = templateOptions[key] || key;
+        templatePresetSummary.textContent = preset.summary || 'Für dieses Template sind noch keine Presets hinterlegt.';
+    }
+
+    function applyTemplatePreset() {
+        var key = templateSelect.value || 'general-it';
+        var preset = templatePresets[key] || {};
+        var meta = preset.meta || {};
+
+        form.querySelector('input[name="hub_meta_audience"]').value = meta.audience || '';
+        form.querySelector('input[name="hub_meta_owner"]').value = meta.owner || '';
+        form.querySelector('input[name="hub_meta_update_cycle"]').value = meta.update_cycle || '';
+        form.querySelector('input[name="hub_meta_focus"]').value = meta.focus || '';
+        form.querySelector('input[name="hub_meta_kpi"]').value = meta.kpi || '';
+
+        hubLinks = Array.isArray(preset.links) ? JSON.parse(JSON.stringify(preset.links)) : [];
+        hubSections = Array.isArray(preset.sections) ? JSON.parse(JSON.stringify(preset.sections)) : [];
+
+        renderHubLinks();
+        renderHubSections();
+        updateTemplatePresetInfo();
+        cmsAlert('Template-Vorlage wurde geladen.', 'success');
+    }
 
     function escapeHtml(value) {
         var div = document.createElement('div');
@@ -308,6 +407,24 @@ $hubSections = is_array($hubSections) ? $hubSections : [];
     document.getElementById('addCard').addEventListener('click', function () {
         cards.push({ title: '', url: '', badge: '', meta: '', summary: '' });
         render();
+    });
+
+    titleInput.addEventListener('input', updateSlugPreview);
+    templateSelect.addEventListener('change', updateTemplatePresetInfo);
+    applyTemplatePresetButton.addEventListener('click', function () {
+        applyTemplatePreset();
+    });
+    copySlugPreviewButton.addEventListener('click', function () {
+        copyHubSlug(currentPublicUrl());
+    });
+    saveAndOpenPublicButton.addEventListener('click', function () {
+        openPublicAfterSaveInput.value = '1';
+        form.submit();
+    });
+    form.addEventListener('submit', function () {
+        if (document.activeElement !== saveAndOpenPublicButton) {
+            openPublicAfterSaveInput.value = '0';
+        }
     });
 
     document.getElementById('addHubLink').addEventListener('click', function () {
@@ -407,6 +524,8 @@ $hubSections = is_array($hubSections) ? $hubSections : [];
     render();
     renderHubLinks();
     renderHubSections();
+    updateSlugPreview();
+    updateTemplatePresetInfo();
 })();
 
 function copyHubSlug(url) {
