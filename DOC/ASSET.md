@@ -15,7 +15,10 @@ Die Detaildokumentation für aktiv verwendete Bundles liegt gesammelt unter `DOC
 | Interne Bild-Assets | 365CMS Images | `images/` | – | – | aktiv, intern |
 | Interne JavaScripts | 365CMS JS | `js/` | – | – | aktiv, intern |
 | LDAP-Integration | LdapRecord | `ldaprecord/` | https://ldaprecord.com/ | https://github.com/DirectoryTree/LdapRecord | aktiv |
+| Mailer-Komponente | Symfony Mailer | `mailer/` | https://symfony.com/components/Mailer | https://github.com/symfony/mailer | aktiv |
+| MIME-Komponente | Symfony Mime | `mime/` | https://symfony.com/components/Mime | https://github.com/symfony/mime | aktiv |
 | JWT-Implementierung | firebase/php-jwt | `php-jwt/` | https://github.com/firebase/php-jwt | https://github.com/firebase/php-jwt | aktiv |
+| PSR-Kompatibilität | PSR Log / EventDispatcher | `psr/` | https://www.php-fig.org/psr/ | – | aktiv, lokal/minimal |
 | PHP-Dateimanager | elFinder | `elfinder/` | https://studio-42.github.io/elFinder/ | https://github.com/Studio-42/elFinder | aktiv |
 | Upload-Frontend | FilePond | `filepond/` | https://pqina.nl/filepond/ | https://github.com/pqina/filepond | aktiv |
 | Tabellen-UI | Grid.js | `gridjs/` | https://gridjs.io/ | https://github.com/grid-js/gridjs | aktiv |
@@ -34,9 +37,6 @@ Die Detaildokumentation für aktiv verwendete Bundles liegt gesammelt unter `DOC
 
 | Beschreibung | Name | Pfad | Website | GitHub | Status |
 |---|---|---|---|---|---|
-| Mailer-Komponente | Symfony Mailer | `mailer/` | https://symfony.com/components/Mailer | https://github.com/symfony/mailer | unvollständig / derzeit nicht produktiv |
-| Logging-Bibliothek | Monolog | `Monolog/` | https://seldaek.github.io/monolog/ | https://github.com/Seldaek/monolog | ungenutzt |
-| Request-Drosselung | Symfony RateLimiter | `rate-limiter/` | https://symfony.com/components/RateLimiter | https://github.com/symfony/rate-limiter | ungenutzt |
 | Schema.org-Builder | Spatie Schema.org | `schema-org/` | https://github.com/spatie/schema-org | https://github.com/spatie/schema-org | Reserve, aktuell manuell ersetzt |
 
 ## Bootstrap-/Hilfsdatei
@@ -54,11 +54,13 @@ Die Detaildokumentation für aktiv verwendete Bundles liegt gesammelt unter `DOC
 - `CMS/core/Services/FeedService.php` nutzt `SimplePie`.
 - `CMS/core/Services/SearchService.php` nutzt `TNTSearch`.
 - `CMS/core/Services/TranslationService.php` nutzt `Symfony Translation`.
+- `CMS/core/Services/MailService.php` erzeugt E-Mails mit `Symfony Mime` und sendet SMTP-Nachrichten über `Symfony Mailer` (`EsmtpTransport`).
 - `CMS/core/Bootstrap.php` bindet `PhotoSwipe` ein und registriert die Kernservices.
 - `CMS/admin/partials/header.php` und `CMS/admin/partials/footer.php` binden `tabler/` direkt ein.
 - `CMS/admin/media.php`, `CMS/admin/views/media/library.php` und `CMS/assets/js/admin-media-integrations.js` binden `elFinder` und `FilePond` aktiv in die Medienverwaltung ein.
 - `CMS/admin/users.php`, `CMS/admin/pages.php`, `CMS/admin/posts.php` sowie `CMS/assets/js/gridjs-init.js` binden `Grid.js` aktiv in Admin-Listen ein.
 - `CMS/assets/elfinder/vendor/jquery/` und `CMS/assets/elfinder/vendor/jquery-ui/` enthalten die lokal gehosteten Frontend-Abhängigkeiten für den CDN-freien elFinder-Betrieb.
+- `CMS/assets/autoload.php` mappt die lokalen Namespaces für `mailer/`, `mime/` und die minimale `psr/`-Kompatibilität.
 - `CMS/core/Auth/Passkey/WebAuthnAdapter.php`, `CMS/core/Auth/MFA/TotpAdapter.php`, `CMS/core/Auth/LDAP/LdapAuthProvider.php` und `CMS/core/Services/JwtService.php` verwenden `webauthn/`, `twofactorauth/`, `ldaprecord/` und `php-jwt/`.
 - `CMS/assets/autoload.php` kommentiert ausdrücklich: `SEOService baut Schema.org derzeit manuell; Library als Reserve.`
 
@@ -67,5 +69,8 @@ Die Detaildokumentation für aktiv verwendete Bundles liegt gesammelt unter `DOC
 - `DOC/assets/elfinder/README.md` – Admin-Dateimanager und lokaler Connector
 - `DOC/assets/filepond/README.md` – Upload-Widget und Upload-Endpoint
 - `DOC/assets/gridjs/README.md` – Server-seitige Admin-Tabellen
+- `DOC/assets/mime/README.md` – MIME-Erzeugung für Mail-Nachrichten
+- `DOC/assets/psr/README.md` – lokale Minimal-Kompatibilität für `Psr\\Log` und `Psr\\EventDispatcher`
 - `DOC/assets/simplepie/README.md` – gemeinsame Doku für `simplepielibrary/` und `simplepiesrc/`
+- `DOC/assets/symfony-mailer/README.md` – SMTP-Versand über lokale Symfony-Komponenten
 - `DOC/assets/tntsearch/README.md` – gemeinsame Doku für `tntsearchhelper/` und `tntsearchsrc/`

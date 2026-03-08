@@ -1,9 +1,9 @@
 <?php
 /**
- * Mail Service – Leichtgewichtiger SMTP/Mail-Service
+ * Mail Service – Symfony-basierter SMTP-/Mail-Service
  *
- * Sendet E-Mails über SMTP (TLS/SSL) oder PHP mail() als Fallback.
- * Keine externen Dependencies — reines PHP mit fsockopen().
+ * Sendet E-Mails über lokale Symfony-Mailer-/Mime-Komponenten aus `CMS/assets/`
+ * oder verwendet `mail()` als Fallback, wenn kein SMTP-Host konfiguriert ist.
  *
  * Verwendung:
  *   MailService::getInstance()->send('to@example.com', 'Betreff', '<p>HTML Body</p>');
@@ -20,7 +20,8 @@ declare(strict_types=1);
 
 namespace CMS\Services;
 
-use CMS\Logger;
+use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
+use Symfony\Component\Mime\Email;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -67,8 +68,19 @@ class MailService
      */
     public function send(string $to, string $subject, string $htmlBody, array $headers = []): bool
     {
-        $plainBody = strip_tags(str_replace(['<br>', '<br/>', '<br />'], "\n", $htmlBody));
-        return $this->sendMessage($to, $subject, $htmlBody, $plainBody, $headers);
+        try {
+            $plainBody = $this->createPlainTextBody($htmlBody);
+            $email = $this->createBaseEmail($to, $subject, $headers)
+                ->html($htmlBody)
+                ->text($plainBody);
+
+            return $this->dispatch($email, function () use ($to, $subject, $htmlBody, $headers): bool {
+                return $this->sendMessageFallback($to, $subject, $htmlBody, $headers, true);
+            });
+        } catch (\Throwable $e) {
+            $this->log("Mail-Fehler an {$to}: " . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -76,7 +88,17 @@ class MailService
      */
     public function sendPlain(string $to, string $subject, string $plainBody, array $headers = []): bool
     {
-        return $this->sendMessage($to, $subject, '', $plainBody, $headers);
+        try {
+            $email = $this->createBaseEmail($to, $subject, $headers)
+                ->text($plainBody);
+
+            return $this->dispatch($email, function () use ($to, $subject, $plainBody, $headers): bool {
+                return $this->sendMessageFallback($to, $subject, $plainBody, $headers, false);
+            });
+        } catch (\Throwable $e) {
+            $this->log("Mail-Fehler an {$to}: " . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -94,76 +116,243 @@ class MailService
         string $subject,
         string $htmlBody,
         string $attachmentPath,
-        string $attachmentName = ''
+        string $attachmentName = '',
+        bool $isHtml = true,
+        array $headers = []
     ): bool {
         if (!file_exists($attachmentPath) || !is_readable($attachmentPath)) {
             $this->log("Anhang nicht lesbar: {$attachmentPath}");
             return false;
         }
 
-        $attachmentName = $attachmentName ?: basename($attachmentPath);
-        $boundary       = '----=_CMS_' . bin2hex(random_bytes(16));
-        $plainBody      = strip_tags(str_replace(['<br>', '<br/>', '<br />'], "\n", $htmlBody));
+        try {
+            $attachmentName = $attachmentName !== '' ? $attachmentName : basename($attachmentPath);
+            $mimeType = mime_content_type($attachmentPath) ?: 'application/octet-stream';
+            $email = $this->createBaseEmail($to, $subject, $headers)
+                ->attachFromPath($attachmentPath, $attachmentName, $mimeType);
 
-        $body  = "--{$boundary}\r\n";
-        $body .= "Content-Type: text/html; charset=UTF-8\r\n";
-        $body .= "Content-Transfer-Encoding: quoted-printable\r\n\r\n";
-        $body .= quoted_printable_encode($htmlBody) . "\r\n\r\n";
+            if ($isHtml) {
+                $email
+                    ->html($htmlBody)
+                    ->text($this->createPlainTextBody($htmlBody));
+            } else {
+                $email->text($htmlBody);
+            }
 
-        $fileContent = chunk_split(base64_encode(file_get_contents($attachmentPath)));
-        $mimeType    = mime_content_type($attachmentPath) ?: 'application/octet-stream';
-
-        $body .= "--{$boundary}\r\n";
-        $body .= "Content-Type: {$mimeType}; name=\"{$attachmentName}\"\r\n";
-        $body .= "Content-Transfer-Encoding: base64\r\n";
-        $body .= "Content-Disposition: attachment; filename=\"{$attachmentName}\"\r\n\r\n";
-        $body .= $fileContent . "\r\n";
-        $body .= "--{$boundary}--";
-
-        $messageHeaders = $this->buildHeaders([
-            'Content-Type' => "multipart/mixed; boundary=\"{$boundary}\"",
-        ]);
-
-        if ($this->useSmtp) {
-            return $this->smtpSend($to, $subject, $body, $messageHeaders);
+            return $this->dispatch($email, function () use ($to, $subject, $htmlBody, $attachmentPath, $attachmentName, $isHtml, $headers): bool {
+                return $this->sendWithAttachmentFallback($to, $subject, $htmlBody, $attachmentPath, $attachmentName, $isHtml, $headers);
+            });
+        } catch (\Throwable $e) {
+            $this->log("Mail mit Anhang fehlgeschlagen an {$to}: " . $e->getMessage());
+            return false;
         }
-
-        return @mail($to, $subject, $body, $messageHeaders);
     }
 
     // ─── Internes ──────────────────────────────────────────────────────────
 
-    private function sendMessage(
-        string $to,
-        string $subject,
-        string $htmlBody,
-        string $plainBody,
-        array  $extraHeaders
-    ): bool {
-        $isHtml  = $htmlBody !== '';
-        $headers = $this->buildHeaders(
+    private function createBaseEmail(string $to, string $subject, array $headers = []): Email
+    {
+        $email = (new Email())
+            ->from($this->formatAddress($this->fromEmail, $this->fromName))
+            ->replyTo($this->fromEmail)
+            ->to($to)
+            ->subject($subject)
+            ->date(new \DateTimeImmutable());
+
+        $email->getHeaders()->addTextHeader('X-Mailer', '365CMS/' . (defined('CMS_VERSION') ? CMS_VERSION : '2.0'));
+
+        $this->applyHeaders($email, $headers);
+
+        return $email;
+    }
+
+    private function dispatch(Email $email, callable $fallback): bool
+    {
+        if ($this->useSmtp) {
+            return $this->sendViaSymfony($email);
+        }
+
+        return $fallback();
+    }
+
+    private function sendViaSymfony(Email $email): bool
+    {
+        $transport = $this->createTransport();
+
+        try {
+            $transport->send($email);
+            $transport->stop();
+            return true;
+        } catch (\Throwable $e) {
+            try {
+                $transport->stop();
+            } catch (\Throwable) {
+            }
+
+            $this->log('Symfony Mailer Fehler: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    private function createTransport(): EsmtpTransport
+    {
+        $encryption = strtolower(trim($this->smtpEncryption));
+        $transport = new EsmtpTransport(
+            $this->smtpHost,
+            $this->smtpPort,
+            $encryption === 'ssl'
+        );
+
+        if ($encryption === '') {
+            $transport->setAutoTls(false);
+        } elseif ($encryption === 'tls') {
+            $transport->setRequireTls(true);
+        } else {
+            $transport->setAutoTls(false);
+        }
+
+        if ($this->smtpUser !== '') {
+            $transport->setUsername($this->smtpUser);
+            $transport->setPassword($this->smtpPass);
+        }
+
+        $localDomain = $this->resolveLocalDomain();
+        if ($localDomain !== '') {
+            $transport->setLocalDomain($localDomain);
+        }
+
+        return $transport;
+    }
+
+    private function applyHeaders(Email $email, array $headers): void
+    {
+        foreach ($this->normalizeHeaders($headers) as $name => $value) {
+            $headerName = strtolower($name);
+
+            switch ($headerName) {
+                case 'reply-to':
+                    $email->replyTo(...$this->parseAddressList($value));
+                    break;
+                case 'cc':
+                    $email->cc(...$this->parseAddressList($value));
+                    break;
+                case 'bcc':
+                    $email->bcc(...$this->parseAddressList($value));
+                    break;
+                case 'from':
+                    $email->from(...$this->parseAddressList($value));
+                    break;
+                case 'sender':
+                    $addresses = $this->parseAddressList($value);
+                    if ($addresses !== []) {
+                        $email->sender($addresses[0]);
+                    }
+                    break;
+                case 'content-type':
+                case 'mime-version':
+                case 'x-mailer':
+                    break;
+                default:
+                    $email->getHeaders()->addTextHeader($name, $value);
+            }
+        }
+    }
+
+    /**
+     * @return array<string,string>
+     */
+    private function normalizeHeaders(array $headers): array
+    {
+        $normalized = [];
+
+        foreach ($headers as $key => $value) {
+            if (is_int($key)) {
+                if (!is_string($value) || !str_contains($value, ':')) {
+                    continue;
+                }
+
+                [$headerName, $headerValue] = explode(':', $value, 2);
+                $normalized[trim($headerName)] = trim($headerValue);
+                continue;
+            }
+
+            if (!is_scalar($value)) {
+                continue;
+            }
+
+            $normalized[(string) $key] = trim((string) $value);
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function parseAddressList(string $value): array
+    {
+        $addresses = array_map('trim', explode(',', $value));
+        return array_values(array_filter($addresses, static fn (string $address): bool => $address !== ''));
+    }
+
+    private function sendMessageFallback(string $to, string $subject, string $body, array $headers, bool $isHtml): bool
+    {
+        $messageHeaders = $this->buildHeaders(
             array_merge(
                 [
                     'Content-Type' => $isHtml
                         ? 'text/html; charset=UTF-8'
                         : 'text/plain; charset=UTF-8',
                 ],
-                $extraHeaders
+                $this->normalizeHeaders($headers)
             )
         );
 
-        $body = $isHtml ? $htmlBody : $plainBody;
+        return @mail($to, $subject, $body, $messageHeaders);
+    }
 
-        try {
-            if ($this->useSmtp) {
-                return $this->smtpSend($to, $subject, $body, $headers);
-            }
+    private function sendWithAttachmentFallback(
+        string $to,
+        string $subject,
+        string $body,
+        string $attachmentPath,
+        string $attachmentName,
+        bool $isHtml,
+        array $headers
+    ): bool {
+        $boundary = '----=_CMS_' . bin2hex(random_bytes(16));
+        $mimeType = mime_content_type($attachmentPath) ?: 'application/octet-stream';
+        $plainBody = $isHtml ? $this->createPlainTextBody($body) : $body;
 
-            return @mail($to, $subject, $body, $headers);
-        } catch (\Throwable $e) {
-            $this->log("Mail-Fehler an {$to}: " . $e->getMessage());
-            return false;
-        }
+        $messageBody  = "--{$boundary}\r\n";
+        $messageBody .= 'Content-Type: ' . ($isHtml ? 'text/html' : 'text/plain') . "; charset=UTF-8\r\n";
+        $messageBody .= "Content-Transfer-Encoding: quoted-printable\r\n\r\n";
+        $messageBody .= quoted_printable_encode($isHtml ? $body : $plainBody) . "\r\n\r\n";
+
+        $fileContent = chunk_split(base64_encode((string) file_get_contents($attachmentPath)));
+
+        $messageBody .= "--{$boundary}\r\n";
+        $messageBody .= "Content-Type: {$mimeType}; name=\"{$attachmentName}\"\r\n";
+        $messageBody .= "Content-Transfer-Encoding: base64\r\n";
+        $messageBody .= "Content-Disposition: attachment; filename=\"{$attachmentName}\"\r\n\r\n";
+        $messageBody .= $fileContent . "\r\n";
+        $messageBody .= "--{$boundary}--";
+
+        $messageHeaders = $this->buildHeaders(
+            array_merge(
+                [
+                    'Content-Type' => "multipart/mixed; boundary=\"{$boundary}\"",
+                ],
+                $this->normalizeHeaders($headers)
+            )
+        );
+
+        return @mail($to, $subject, $messageBody, $messageHeaders);
+    }
+
+    private function createPlainTextBody(string $htmlBody): string
+    {
+        return strip_tags(str_replace(['<br>', '<br/>', '<br />'], "\n", $htmlBody));
     }
 
     /**
@@ -197,116 +386,21 @@ class MailService
         if ($name === '') {
             return $email;
         }
-        // RFC 2822 Display-Name Format
+
         $safeName = str_replace(['"', '\\'], '', $name);
         return "\"{$safeName}\" <{$email}>";
     }
 
-    // ─── SMTP ──────────────────────────────────────────────────────────────
-
-    /**
-     * E-Mail über SMTP senden (TLS/SSL).
-     */
-    private function smtpSend(string $to, string $subject, string $body, string $headers): bool
+    private function resolveLocalDomain(): string
     {
-        $host = $this->smtpHost;
-        $port = $this->smtpPort;
+        $host = defined('SITE_URL') ? (string) parse_url((string) SITE_URL, PHP_URL_HOST) : '';
 
-        // SSL-Wrapper
-        if ($this->smtpEncryption === 'ssl') {
-            $host = 'ssl://' . $host;
+        if ($host !== '') {
+            return $host;
         }
 
-        $socket = @fsockopen($host, $port, $errno, $errstr, 15);
-        if (!$socket) {
-            $this->log("SMTP-Verbindung fehlgeschlagen: {$errstr} ({$errno})");
-            return false;
-        }
-
-        stream_set_timeout($socket, 30);
-
-        try {
-            $this->smtpReadResponse($socket, 220);
-
-            // EHLO
-            $this->smtpCommand($socket, 'EHLO ' . gethostname(), 250);
-
-            // STARTTLS
-            if ($this->smtpEncryption === 'tls') {
-                $this->smtpCommand($socket, 'STARTTLS', 220);
-                if (!stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT | STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT)) {
-                    throw new \RuntimeException('TLS-Handshake fehlgeschlagen');
-                }
-                // Nach TLS erneut EHLO
-                $this->smtpCommand($socket, 'EHLO ' . gethostname(), 250);
-            }
-
-            // AUTH LOGIN
-            if ($this->smtpUser !== '') {
-                $this->smtpCommand($socket, 'AUTH LOGIN', 334);
-                $this->smtpCommand($socket, base64_encode($this->smtpUser), 334);
-                $this->smtpCommand($socket, base64_encode($this->smtpPass), 235);
-            }
-
-            // Envelope
-            $this->smtpCommand($socket, 'MAIL FROM:<' . $this->fromEmail . '>', 250);
-            $this->smtpCommand($socket, 'RCPT TO:<' . $to . '>', 250);
-
-            // DATA
-            $this->smtpCommand($socket, 'DATA', 354);
-
-            // Message
-            $message  = "Subject: {$subject}\r\n";
-            $message .= "To: {$to}\r\n";
-            $message .= $headers . "\r\n";
-            $message .= "\r\n";
-            $message .= $body . "\r\n";
-            $message .= ".";
-
-            $this->smtpCommand($socket, $message, 250);
-
-            // QUIT
-            $this->smtpCommand($socket, 'QUIT', 221);
-
-            fclose($socket);
-            return true;
-
-        } catch (\Throwable $e) {
-            $this->log("SMTP-Fehler: " . $e->getMessage());
-            @fclose($socket);
-            return false;
-        }
-    }
-
-    /**
-     * @param resource $socket
-     */
-    private function smtpCommand($socket, string $command, int $expectedCode): string
-    {
-        fwrite($socket, $command . "\r\n");
-        return $this->smtpReadResponse($socket, $expectedCode);
-    }
-
-    /**
-     * @param resource $socket
-     */
-    private function smtpReadResponse($socket, int $expectedCode): string
-    {
-        $response = '';
-        while ($line = fgets($socket, 515)) {
-            $response .= $line;
-            // Letzte Zeile: Code + Leerzeichen (kein '-')
-            if (isset($line[3]) && $line[3] === ' ') {
-                break;
-            }
-        }
-
-        $code = (int) substr($response, 0, 3);
-        if ($code !== $expectedCode) {
-            throw new \RuntimeException("SMTP erwartet {$expectedCode}, bekommen {$code}: " . trim($response));
-        }
-
-        return $response;
+        $hostname = gethostname();
+        return is_string($hostname) ? $hostname : '';
     }
 
     private function log(string $message): void

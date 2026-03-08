@@ -54,7 +54,7 @@ core/
     ├── FileUploadService.php      Datei-Upload-Verarbeitung
     ├── ImageService.php           Bildverarbeitung (Resize, WebP)
     ├── LandingPageService.php     Landing Pages (Sections)
-    ├── MailService.php            E-Mail-Versand (SMTP/PHPMailer)
+    ├── MailService.php            E-Mail-Versand (SMTP/Symfony Mailer)
     ├── MediaService.php           Medienbibliothek & Upload
     ├── MemberService.php          Member-Dashboard-Logik
     ├── MessageService.php         Internes Nachrichten-System

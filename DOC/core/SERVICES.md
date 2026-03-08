@@ -24,7 +24,7 @@ Der Service-Layer enthält die **Geschäftslogik** des CMS. Alle 30 Service-Klas
 | `FileUploadService` | `FileUploadService.php` | Datei-Upload-Verarbeitung & Validierung |
 | `ImageService` | `ImageService.php` | Bildverarbeitung (Resize, WebP, Thumbnails) |
 | `LandingPageService` | `LandingPageService.php` | Landing-Page-Builder |
-| `MailService` | `MailService.php` | E-Mail-Versand (SMTP/PHPMailer) |
+| `MailService` | `MailService.php` | E-Mail-Versand (SMTP/Symfony Mailer) |
 | `MediaService` | `MediaService.php` | Datei-Upload & Medienverwaltung |
 | `MemberService` | `MemberService.php` | Member-Dashboard-Logik |
 | `MessageService` | `MessageService.php` | Internes Nachrichten-System (Threads, Soft-Delete) |
@@ -459,7 +459,7 @@ Bildverarbeitung: Resize, Crop, WebP-Konvertierung, Thumbnail-Generierung. Nutzt
 
 **Datei:** `core/Services/MailService.php`
 
-E-Mail-Versand über SMTP (PHPMailer). Unterstützt HTML-Templates und Anhänge.
+E-Mail-Versand über `Symfony Mime` und `Symfony Mailer` im lokalen Asset-Bundle. Unterstützt HTML-/Plain-Text-Nachrichten, Reply-To/CC/BCC-Header und Anhänge.
 
 ```php
 $mail = new CMS\Services\MailService();
