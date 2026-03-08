@@ -25,6 +25,8 @@ desktop.ini
 .project
 .settings/
 .classpath
+*.txt
+*.log
 
 # Node.js
 node_modules/

@@ -1,26 +1,29 @@
 # Symfony Mime
 
-## Zweck
+## Kurzbeschreibung
 
-`CMS/assets/mime/` erzeugt die eigentlichen MIME-Nachrichten für den Mailversand in 365CMS.
+`Symfony Mime` erzeugt in 365CMS die eigentlichen E-Mail-Objekte, Header und Anhänge für den lokalen Mail-Transport.
 
-## Aktive Verwendung im CMS
+## Quellordner
 
-- `Symfony\Component\Mime\Email` wird in `CMS/core/Services/MailService.php` direkt instanziiert.
-- HTML- und Plain-Text-Teile werden parallel aufgebaut.
-- Dateianhänge werden über `attachFromPath()` eingebunden.
-- Queue-Jobs aus `CMS/core/Services/MailQueueService.php` landen am Ende ebenfalls in denselben `Email`-Objekten.
+- `CMS/assets/mime/`
 
-## Lokale Anpassungen
+## Verwendung in 365CMS
 
-Die lokale Integration ist so angepasst, dass sie auch ohne vollständige Composer-Abhängigkeiten im CMS funktioniert:
+- Eingebunden in: `CMS/core/Services/MailService.php`, `CMS/core/Services/MailQueueService.php`
+- Funktion: Aufbau von `Symfony\Component\Mime\Email`-Objekten für SMTP-, Queue- und Attachment-Versand
 
-- `Address.php` validiert E-Mail-Adressen mit `filter_var()` weiter, falls `egulias/email-validator` nicht verfügbar ist.
-- `Encoder/IdnAddressEncoder.php` fällt sauber zurück, wenn `idn_to_ascii()` auf dem Zielsystem nicht vorhanden ist.
+## Abhängigkeiten
 
-## Relevante Dateien
+- Benötigt: `psr/` (indirekt über die Mailer-Kette)
+- Wird benötigt von: `mailer/`
 
-- `CMS/assets/mime/Address.php`
-- `CMS/assets/mime/Encoder/IdnAddressEncoder.php`
-- `CMS/core/Services/MailService.php`
-- `CMS/core/Services/MailQueueService.php`
+## Website / GitHub
+
+- Website: https://symfony.com/components/Mime
+- GitHub: https://github.com/symfony/mime
+
+## Stand
+
+- Zuletzt geprüft: 2026-03-08
+- Version: lokales Bundle in `CMS/assets/` (8.x-Linie laut Asset-Bestand)

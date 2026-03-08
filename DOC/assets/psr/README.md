@@ -1,22 +1,29 @@
 # PSR-Minimalkompatibilität
 
-## Zweck
+## Kurzbeschreibung
 
-`CMS/assets/psr/` enthält eine kleine lokale Kompatibilitätsschicht für Namespaces, die der lokale Symfony-Mailer-SMTP-Pfad benötigt.
+`CMS/assets/psr/` stellt eine kleine lokale PSR-Kompatibilitätsschicht für Logging und Event-Dispatching bereit, damit abhängige Bundles ohne Composer-Installation funktionieren.
 
-## Enthalten
+## Quellordner
 
-- `Psr\Log\LoggerInterface`
-- `Psr\Log\NullLogger`
-- `Psr\EventDispatcher\EventDispatcherInterface`
+- `CMS/assets/psr/`
 
-## Warum lokal?
+## Verwendung in 365CMS
 
-365CMS betreibt die Asset-Bundles direkt aus `CMS/assets/` ohne vorausgesetzte Composer-Installation im Runtime-System. Für den SMTP-Pfad von Symfony Mailer reicht eine minimale lokale Bereitstellung der benötigten PSR-Typen.
+- Eingebunden in: `CMS/assets/autoload.php`
+- Funktion: Bereitstellung von `Psr\Log` und `Psr\EventDispatcher` für `mailer/`, `translation/` und Teile von `ldaprecord/`
 
-## Relevante Dateien
+## Abhängigkeiten
 
-- `CMS/assets/psr/Log/LoggerInterface.php`
-- `CMS/assets/psr/Log/NullLogger.php`
-- `CMS/assets/psr/EventDispatcher/EventDispatcherInterface.php`
-- `CMS/assets/autoload.php`
+- Benötigt: –
+- Wird benötigt von: `mailer/`, `mime/` (über Mailer-Kette), `translation/`, Teile von `ldaprecord/`
+
+## Website / GitHub
+
+- Website: https://www.php-fig.org/psr/
+- GitHub: –
+
+## Stand
+
+- Zuletzt geprüft: 2026-03-08
+- Version: lokale Minimalimplementierung

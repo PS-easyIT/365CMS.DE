@@ -95,26 +95,6 @@ spl_autoload_register(function (string $class): void {
     }
 });
 
-// ─── Intervention Image ────────────────────────────────────────────────────
-// PSR-4: Intervention\Image\ → image/
-// Hinweis: ImageService nutzt aktuell natives GD, nicht Intervention.
-spl_autoload_register(function (string $class): void {
-    $prefix = 'Intervention\\Image\\';
-    $baseDir = CMS_VENDOR_PATH . 'image' . DIRECTORY_SEPARATOR;
-
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
-        return;
-    }
-
-    $relativeClass = substr($class, $len);
-    $file = $baseDir . str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass) . '.php';
-
-    if (file_exists($file)) {
-        require_once $file;
-    }
-});
-
 // ─── Schema.org (Spatie) ───────────────────────────────────────────────────
 // PSR-4: Spatie\SchemaOrg\ → schema-org/
 // Hinweis: SEOService baut Schema.org derzeit manuell; Library als Reserve.
@@ -161,26 +141,6 @@ spl_autoload_register(function (string $class): void {
 spl_autoload_register(function (string $class): void {
     $prefix = 'Symfony\\Component\\Translation\\';
     $baseDir = CMS_VENDOR_PATH . 'translation' . DIRECTORY_SEPARATOR;
-
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
-        return;
-    }
-
-    $relativeClass = substr($class, $len);
-    $file = $baseDir . str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass) . '.php';
-
-    if (file_exists($file)) {
-        require_once $file;
-    }
-});
-
-// ─── Symfony RateLimiter ───────────────────────────────────────────────────
-// PSR-4: Symfony\Component\RateLimiter\ → rate-limiter/
-// Reserve-Library, derzeit nicht aktiv genutzt
-spl_autoload_register(function (string $class): void {
-    $prefix = 'Symfony\\Component\\RateLimiter\\';
-    $baseDir = CMS_VENDOR_PATH . 'rate-limiter' . DIRECTORY_SEPARATOR;
 
     $len = strlen($prefix);
     if (strncmp($prefix, $class, $len) !== 0) {
@@ -272,11 +232,11 @@ spl_autoload_register(function (string $class): void {
     }
 });
 
-// ─── Symfony Mailer ────────────────────────────────────────────────────────
-// PSR-4: Symfony\Component\Mailer\ → mailer/
+// ─── PSR Log (minimale Kompatibilität) ─────────────────────────────────────
+// PSR-4: Psr\Log\ → psr/Log/
 spl_autoload_register(function (string $class): void {
-    $prefix = 'Symfony\\Component\\Mailer\\';
-    $baseDir = CMS_VENDOR_PATH . 'mailer' . DIRECTORY_SEPARATOR;
+    $prefix = 'Psr\\Log\\';
+    $baseDir = CMS_VENDOR_PATH . 'psr' . DIRECTORY_SEPARATOR . 'Log' . DIRECTORY_SEPARATOR;
 
     $len = strlen($prefix);
     if (strncmp($prefix, $class, $len) !== 0) {
@@ -310,11 +270,11 @@ spl_autoload_register(function (string $class): void {
     }
 });
 
-// ─── PSR Log (minimale Kompatibilität) ─────────────────────────────────────
-// PSR-4: Psr\Log\ → psr/Log/
+// ─── Symfony Mailer ────────────────────────────────────────────────────────
+// PSR-4: Symfony\Component\Mailer\ → mailer/
 spl_autoload_register(function (string $class): void {
-    $prefix = 'Psr\\Log\\';
-    $baseDir = CMS_VENDOR_PATH . 'psr' . DIRECTORY_SEPARATOR . 'Log' . DIRECTORY_SEPARATOR;
+    $prefix = 'Symfony\\Component\\Mailer\\';
+    $baseDir = CMS_VENDOR_PATH . 'mailer' . DIRECTORY_SEPARATOR;
 
     $len = strlen($prefix);
     if (strncmp($prefix, $class, $len) !== 0) {
