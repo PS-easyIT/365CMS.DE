@@ -1,10 +1,13 @@
 # Medien-Upload Workflow – 365CMS
 
-> **Bereich:** Medien-Verwaltung · **Version:** 2.3.1  
+> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+>
+> **Bereich:** Medien-Verwaltung · **Version:** 2.5.4  
 > **Service:** `core/Services/MediaService.php`  
 > **Admin-Seite:** `admin/media.php`
 
 ---
+<!-- UPDATED: 2026-03-08 -->
 
 ## Übersicht: Medien-Pipeline
 

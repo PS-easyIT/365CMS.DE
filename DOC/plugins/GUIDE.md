@@ -1,10 +1,18 @@
 # 365CMS – Plugin-Schnellstart
+> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
 
-Kurzbeschreibung: In wenigen Minuten ein lauffähiges 365CMS-Plugin mit sauberem Bootstrap, Hooks und Datenbankzugriff anlegen.
-
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+## Inhaltsverzeichnis
+- [Ziel](#ziel)
+- [Schritt 1: Ordner und Hauptdatei anlegen](#schritt-1-ordner-und-hauptdatei-anlegen)
+- [Schritt 2: Plugin-Klasse erstellen](#schritt-2-plugin-klasse-erstellen)
+- [Schritt 3: Plugin aktivieren](#schritt-3-plugin-aktivieren)
+- [Schritt 4: Datenbankzugriff ergänzen](#schritt-4-datenbankzugriff-ergänzen)
+- [Referenz-Plugins im Workspace](#referenz-plugins-im-workspace)
+- [Typische nächste Schritte](#typische-nächste-schritte)
+- [Weiterführende Dokumente](#weiterführende-dokumente)
 
 ---
+<!-- UPDATED: 2026-03-08 -->
 
 ## Ziel
 

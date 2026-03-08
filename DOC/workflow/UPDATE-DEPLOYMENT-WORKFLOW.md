@@ -1,10 +1,13 @@
 # Update & Deployment Workflow – 365CMS
 
-> **Bereich:** Updates & Deployments · **Version:** 2.3.1  
+> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+>
+> **Bereich:** Updates & Deployments · **Version:** 2.5.4  
 > **CMS-Update-System:** `core/Services/UpdateService.php`, `admin/updates.php`  
 > **GitHub:** PS-easyIT/365CMS.DE
 
 ---
+<!-- UPDATED: 2026-03-08 -->
 
 ## Übersicht: Update-Typen
 

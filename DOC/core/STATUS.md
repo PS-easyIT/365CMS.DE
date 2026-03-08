@@ -1,8 +1,16 @@
-﻿# 365CMS – Systemstatus
+# 365CMS – Systemstatus
+> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
 
-Kurzbeschreibung: Verifizierter Architektur-, Versions- und Funktionsstand des Hauptprojekts zum Release 2.3.1.
-
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+## Inhaltsverzeichnis
+- [Versionsstand](#versionsstand)
+- [Core- und Plattformstatus](#core--und-plattformstatus)
+- [Datenbankschema](#datenbankschema)
+- [Aktuelle Admin-Architektur](#aktuelle-admin-architektur)
+- [Wichtige Feature-Stände](#wichtige-feature-stände-in-254)
+- [Bekannte Grenzen](#bekannte-grenzen)
+- [Nächste geplante Features](#nächste-geplante-features)
+- [Deprecations](#deprecations)
+- [Verwandte Dokumente](#verwandte-dokumente)
 
 ---
 
@@ -10,10 +18,10 @@ Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 | Eigenschaft | Wert |
 |---|---|
-| CMS-Version | `2.3.1` |
+| CMS-Version | `2.5.4` |
 | Code-Referenz | `CMS/config/app.php` |
 | Update-Metadaten | `CMS/update.json` |
-| Release-Datum | `2026-03-07` |
+| Release-Datum | `2026-03-08` |
 | Projektstandard PHP | `8.3+` |
 | Update-Metadaten `min_php` | `8.2` |
 | Datenbank | MySQL 5.7+ / MariaDB 10.3+ |
@@ -74,7 +82,7 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 
 ---
 
-## Wichtige Feature-Stände in 2.3.1
+## Wichtige Feature-Stände in 2.5.4 <!-- UPDATED: 2026-03-08 -->
 
 | Bereich | Stand |
 |---|---|
@@ -86,6 +94,9 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 | WebP | ✅ Massenkonvertierung und Referenz-Umbiegung |
 | Legal/Privacy | ✅ Sammelroute `/admin/data-requests`, Legal-Sites-Autofill, Cookie-Manager-Hydration |
 | Rollen & Rechte | ✅ dynamische Rollen, `role_permissions`, DB-basierte Capability-Prüfung |
+| Editor.js | ✅ Block-basierter Content-Editor als primärer Editor |
+| WebAuthn/Passkey | ✅ FIDO2-Authentifizierung als alternative Login-Methode |
+| PDF-Export | ✅ DomPDF-Integration für Seiten- und Beitragsexport |
 
 ---
 
@@ -105,3 +116,24 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 - [DATABASE-SCHEMA.md](DATABASE-SCHEMA.md)
 - [SERVICES.md](SERVICES.md)
 - [SECURITY.md](SECURITY.md)
+
+---
+
+## Nächste geplante Features <!-- ADDED: 2026-03-08 -->
+
+| Feature | Priorität | Status |
+|---|---|---|
+| OAuth2-Provider für API | Hoch | 🔄 In Planung |
+| Plugin-Sandbox-Modus | Mittel | ❌ Ausstehend |
+| Multi-Site-Unterstützung | Niedrig | ❌ Ausstehend |
+| Vollständiger CLI-Modus | Mittel | 🔄 In Arbeit |
+
+---
+
+## Deprecations <!-- ADDED: 2026-03-08 -->
+
+| Element | Ersetzt durch | Entfernung geplant |
+|---|---|---|
+| SunEditor (Legacy WYSIWYG) | Editor.js (Block-Editor) | v3.0 |
+| `mailer/` (Legacy Mailer) | Symfony Mailer (`symfony-mailer/`) | v3.0 |
+| `WP_Error` Kompatibilitätsklasse | Native Exceptions | v3.0 |

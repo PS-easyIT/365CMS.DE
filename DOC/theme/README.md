@@ -1,10 +1,17 @@
 # 365CMS – Theme-System
+> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
 
-Kurzbeschreibung: Überblick über Theme-Aufbau, Theme-Verwaltung und die aktuellen Design-Werkzeuge im Hauptprojekt 365CMS.
-
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+## Inhaltsverzeichnis
+- [Überblick](#überblick)
+- [Typische Theme-Struktur](#typische-theme-struktur)
+- [Theme-Metadaten](#theme-metadaten)
+- [Verfügbare Themes im Workspace](#verfügbare-themes-im-workspace)
+- [Theme-Verwaltung im Admin](#theme-verwaltung-im-admin)
+- [Theme anpassen](#theme-anpassen)
+- [Einstieg in die Entwicklung](#einstieg-in-die-entwicklung)
 
 ---
+<!-- UPDATED: 2026-03-08 -->
 
 ## Überblick
 

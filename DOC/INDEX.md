@@ -1,12 +1,18 @@
 # 365CMS – Dokumentationsindex
+> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
 
-Kurzbeschreibung: Zentraler Einstiegspunkt in die Projektdokumentation des Haupt-Repositorys `365CMS.DE`.
-
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
-
-Die Dokumentation beschreibt den aktuell verifizierten Stand **365CMS 2.3.1** mit SEO-Center, Performance-Center, Monitoring-Unterseiten, Legal-/Security-Modulen, WebP-Massenkonvertierung und gehärtetem Font-Self-Hosting.
+## Inhaltsverzeichnis
+- [Schnellstart](#schnellstart)
+- [Kernsystem](#kernsystem)
+- [Admin-Bereich](#admin-bereich)
+- [Mitgliederbereich](#mitgliederbereich)
+- [Theme- und Plugin-Entwicklung](#theme-und-plugin-entwicklung)
+- [Audits, Feature-Dokumente und Workflows](#audits-feature-dokumente-und-workflows)
+- [workflow/ – Operative Workflows](#workflow-operative-workflows)
+- [Direktlinks für häufige Aufgaben](#direktlinks-für-häufige-aufgaben)
 
 ---
+<!-- UPDATED: 2026-03-08 -->
 
 ## Schnellstart
 

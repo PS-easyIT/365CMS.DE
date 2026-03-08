@@ -1,8 +1,20 @@
-# Design System – CMS Default Theme
+# 365CMS – Design-System
+> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
 
-Kurzbeschreibung: Design-Tokens (Farben, Typografie, Spacing, Schatten, Z-Index, Breakpoints, Dark Mode) als CSS Custom Properties.
+## Inhaltsverzeichnis
+- [Farbpalette (CSS Custom Properties)](#farbpalette-css-custom-properties)
+- [Typography](#typography)
+- [Spacing System](#spacing-system)
+- [Shadows](#shadows)
+- [Border Radius](#border-radius)
+- [Transitions](#transitions)
+- [Z-Index Scale](#z-index-scale)
+- [Breakpoints](#breakpoints)
+- [Dark Mode](#dark-mode)
+- [Animation Utilities](#animation-utilities)
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+---
+<!-- UPDATED: 2026-03-08 -->
 
 ## Farbpalette (CSS Custom Properties)
 
