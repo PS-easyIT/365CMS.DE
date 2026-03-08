@@ -26,7 +26,7 @@ if (!defined('ABSPATH')) {
 class SchemaManager
 {
     /** Flag-Datei-Version – erhöhen wenn Schema geändert wird */
-    public const SCHEMA_VERSION = 'v16';
+    public const SCHEMA_VERSION = 'v17';
 
     private Database $db;
     private string $prefix;
@@ -667,6 +667,22 @@ class SchemaManager
                 INDEX idx_created_at (created_at),
                 FOREIGN KEY (user_id) REFERENCES {$p}users(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET={$c} COMMENT='Member-Benachrichtigungen'",
+
+            // Sicherheits-Log (Firewall-Blocking, Rate-Limiting)
+            "CREATE TABLE IF NOT EXISTS {$p}security_log (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                action VARCHAR(50) NOT NULL DEFAULT 'blocked' COMMENT 'blocked|allowed|rate_limited|challenge',
+                ip_address VARCHAR(45) DEFAULT NULL,
+                request_uri VARCHAR(1000) DEFAULT NULL,
+                user_agent VARCHAR(500) DEFAULT NULL,
+                rule_matched VARCHAR(255) DEFAULT NULL,
+                user_id INT UNSIGNED DEFAULT NULL,
+                extra TEXT DEFAULT NULL COMMENT 'JSON-Zusatzdaten',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_action (action),
+                INDEX idx_ip_address (ip_address),
+                INDEX idx_created_at (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET={$c} COMMENT='Firewall-Sicherheitsprotokoll'",
 
             // Blog-Post-Tags (normalisiert – ersetzt CSV-Spalte posts.tags)
             "CREATE TABLE IF NOT EXISTS {$p}post_tags (
