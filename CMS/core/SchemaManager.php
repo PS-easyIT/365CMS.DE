@@ -26,7 +26,7 @@ if (!defined('ABSPATH')) {
 class SchemaManager
 {
     /** Flag-Datei-Version – erhöhen wenn Schema geändert wird */
-    public const SCHEMA_VERSION = 'v14';
+    public const SCHEMA_VERSION = 'v15';
 
     private Database $db;
     private string $prefix;
@@ -636,6 +636,47 @@ class SchemaManager
                 UNIQUE KEY idx_slug (slug),
                 INDEX idx_source (source)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
+
+            // Benachrichtigungen (Member-Dashboard + Theme-Header-Badge)
+            "CREATE TABLE IF NOT EXISTS {$p}notifications (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                user_id INT UNSIGNED NOT NULL,
+                type VARCHAR(50) NOT NULL DEFAULT 'system' COMMENT 'system|message|comment|event',
+                title VARCHAR(255) DEFAULT NULL,
+                message TEXT,
+                url VARCHAR(500) DEFAULT NULL COMMENT 'Ziel-Link (optional)',
+                is_read TINYINT(1) NOT NULL DEFAULT 0,
+                read_at TIMESTAMP NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_user_id (user_id),
+                INDEX idx_is_read (is_read),
+                INDEX idx_type (type),
+                INDEX idx_created_at (created_at),
+                FOREIGN KEY (user_id) REFERENCES {$p}users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET={$c} COMMENT='Member-Benachrichtigungen'",
+
+            // Blog-Post-Tags (normalisiert – ersetzt CSV-Spalte posts.tags)
+            "CREATE TABLE IF NOT EXISTS {$p}post_tags (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                slug VARCHAR(100) NOT NULL UNIQUE,
+                description TEXT,
+                post_count INT UNSIGNED NOT NULL DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_slug (slug)
+            ) ENGINE=InnoDB DEFAULT CHARSET={$c} COMMENT='Blog-Schlagwörter'",
+
+            // Blog-Post ↔ Tag Relation
+            "CREATE TABLE IF NOT EXISTS {$p}post_tag_rel (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                post_id BIGINT UNSIGNED NOT NULL,
+                tag_id INT UNSIGNED NOT NULL,
+                UNIQUE KEY unique_post_tag (post_id, tag_id),
+                INDEX idx_post_id (post_id),
+                INDEX idx_tag_id (tag_id),
+                FOREIGN KEY (post_id) REFERENCES {$p}posts(id) ON DELETE CASCADE,
+                FOREIGN KEY (tag_id) REFERENCES {$p}post_tags(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET={$c} COMMENT='Post-Tag-Zuordnung'",
         ];
 
         $pdo = $this->db->getPdo();
