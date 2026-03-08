@@ -428,6 +428,7 @@ final class SiteTableService
         $cardMetaLayout = $this->normalizeOption((string)($cardDesign['meta_layout'] ?? 'split'), ['split', 'stacked'], 'split');
         $cardColumns = max(1, min(3, (int)($cardSchema['columns'] ?? 2)));
         $styleVariables = $this->buildHubStyleVariables($colorSettings);
+        $contentLanguage = $this->getTemplateContentLanguage($template);
 
         $html = '<section class="cms-hub-site cms-hub-site--' . htmlspecialchars($template, ENT_QUOTES, 'UTF-8') . '"';
         if ($pageSlug !== '') {
@@ -449,7 +450,13 @@ final class SiteTableService
         if ($metaItems !== []) {
             $html .= '<div class="cms-hub-site__meta">';
             foreach ($metaItems as $metaItem) {
-                $html .= '<span class="cms-hub-site__meta-chip"><strong>' . htmlspecialchars((string)$metaItem['label'], ENT_QUOTES, 'UTF-8') . ':</strong> ' . htmlspecialchars((string)$metaItem['value'], ENT_QUOTES, 'UTF-8') . '</span>';
+                $html .= '<span class="cms-hub-site__meta-chip cms-hub-site__meta-chip--' . htmlspecialchars((string)($metaItem['key'] ?? 'meta'), ENT_QUOTES, 'UTF-8') . '">';
+                if (!empty($metaItem['icon'])) {
+                    $html .= '<span class="cms-hub-site__meta-chip-icon" aria-hidden="true">' . htmlspecialchars((string)$metaItem['icon'], ENT_QUOTES, 'UTF-8') . '</span>';
+                }
+                $html .= '<span class="cms-hub-site__meta-chip-label">' . htmlspecialchars((string)$metaItem['label'], ENT_QUOTES, 'UTF-8') . ':</span>';
+                $html .= '<span class="cms-hub-site__meta-chip-value">' . htmlspecialchars((string)$metaItem['value'], ENT_QUOTES, 'UTF-8') . '</span>';
+                $html .= '</span>';
             }
             $html .= '</div>';
         }
@@ -461,22 +468,38 @@ final class SiteTableService
 
         if ($quickLinks !== []) {
             $html .= '<nav class="cms-hub-site__quicklinks" aria-label="Hub-Navigation">';
-            foreach ($quickLinks as $link) {
-                $html .= '<a class="cms-hub-site__quicklink" href="' . htmlspecialchars((string)$link['url'], ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars((string)$link['label'], ENT_QUOTES, 'UTF-8') . '</a>';
+            foreach ($quickLinks as $index => $link) {
+                $icon = $contentLanguage['quicklink_icons'][$index] ?? '•';
+                $html .= '<a class="cms-hub-site__quicklink" href="' . htmlspecialchars((string)$link['url'], ENT_QUOTES, 'UTF-8') . '">';
+                $html .= '<span class="cms-hub-site__quicklink-icon" aria-hidden="true">' . htmlspecialchars((string)$icon, ENT_QUOTES, 'UTF-8') . '</span>';
+                $html .= '<span class="cms-hub-site__quicklink-label">' . htmlspecialchars((string)$link['label'], ENT_QUOTES, 'UTF-8') . '</span>';
+                $html .= '</a>';
             }
             $html .= '</nav>';
         }
 
         if ($sections !== []) {
             $html .= '<div class="cms-hub-site__sections cms-hub-site__sections--' . htmlspecialchars($template, ENT_QUOTES, 'UTF-8') . '">';
-            foreach ($sections as $section) {
-                $html .= '<article class="cms-hub-site__section-card">';
+            foreach ($sections as $index => $section) {
+                $sectionModifier = $contentLanguage['section_modifiers'][$index] ?? 'default';
+                $sectionEyebrow = $contentLanguage['section_eyebrows'][$index] ?? 'Section';
+                $sectionIcon = $contentLanguage['section_icons'][$index] ?? '◆';
+                $sectionNote = $contentLanguage['section_notes'][$index] ?? '';
+
+                $html .= '<article class="cms-hub-site__section-card cms-hub-site__section-card--' . htmlspecialchars($sectionModifier, ENT_QUOTES, 'UTF-8') . '">';
+                $html .= '<div class="cms-hub-site__section-head">';
+                $html .= '<span class="cms-hub-site__section-eyebrow">' . htmlspecialchars((string)$sectionEyebrow, ENT_QUOTES, 'UTF-8') . '</span>';
+                $html .= '<span class="cms-hub-site__section-icon" aria-hidden="true">' . htmlspecialchars((string)$sectionIcon, ENT_QUOTES, 'UTF-8') . '</span>';
+                $html .= '</div>';
                 $html .= '<h3 class="cms-hub-site__section-title">' . htmlspecialchars((string)$section['title'], ENT_QUOTES, 'UTF-8') . '</h3>';
                 if ((string)$section['text'] !== '') {
                     $html .= '<p class="cms-hub-site__section-text">' . nl2br(htmlspecialchars((string)$section['text'], ENT_QUOTES, 'UTF-8')) . '</p>';
                 }
                 if ((string)$section['actionLabel'] !== '' && (string)$section['actionUrl'] !== '') {
                     $html .= '<a class="cms-hub-site__section-link" href="' . htmlspecialchars((string)$section['actionUrl'], ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars((string)$section['actionLabel'], ENT_QUOTES, 'UTF-8') . '</a>';
+                }
+                if ($sectionNote !== '') {
+                    $html .= '<div class="cms-hub-site__section-note">' . htmlspecialchars((string)$sectionNote, ENT_QUOTES, 'UTF-8') . '</div>';
                 }
                 $html .= '</article>';
             }
@@ -752,6 +775,52 @@ final class SiteTableService
         return array_slice($normalized, 0, 4);
     }
 
+    private function getTemplateContentLanguage(string $template): array
+    {
+        return match ($template) {
+            'microsoft-365' => [
+                'meta_icons' => ['audience' => '◈', 'owner' => '☁', 'update_cycle' => '↺', 'focus' => '✦', 'kpi' => '↑'],
+                'quicklink_icons' => ['T', 'S', 'C', 'G'],
+                'section_eyebrows' => ['Workspace Layer', 'Guardrails'],
+                'section_icons' => ['☁', '✓'],
+                'section_modifiers' => ['spotlight', 'stacked'],
+                'section_notes' => ['Workloads & Journeys', 'Policies & Rollout'],
+            ],
+            'datenschutz' => [
+                'meta_icons' => ['audience' => '§', 'owner' => '⚖', 'update_cycle' => '⏱', 'focus' => '✓', 'kpi' => '▣'],
+                'quicklink_icons' => ['§', 'V', 'T', 'R'],
+                'section_eyebrows' => ['Nachweise', 'Pflichten'],
+                'section_icons' => ['✓', '⚖'],
+                'section_modifiers' => ['trust', 'checklist'],
+                'section_notes' => ['Dokumentation & Belege', 'Fristen & Maßnahmen'],
+            ],
+            'linux' => [
+                'meta_icons' => ['audience' => '⌘', 'owner' => '#', 'update_cycle' => '↻', 'focus' => '▤', 'kpi' => '●'],
+                'quicklink_icons' => ['#', '□', '>', '!'],
+                'section_eyebrows' => ['Runtime', 'Runbooks'],
+                'section_icons' => ['⌘', '>'],
+                'section_modifiers' => ['terminal', 'terminal'],
+                'section_notes' => ['$ health=ok', '$ status=watch'],
+            ],
+            'compliance' => [
+                'meta_icons' => ['audience' => '◎', 'owner' => '◆', 'update_cycle' => '↺', 'focus' => '◌', 'kpi' => '▲'],
+                'quicklink_icons' => ['P', 'A', 'R', 'N'],
+                'section_eyebrows' => ['Controls', 'Evidence'],
+                'section_icons' => ['◆', '▲'],
+                'section_modifiers' => ['spotlight', 'stacked'],
+                'section_notes' => ['Kontrollen & Rollen', 'Audit & Evidence'],
+            ],
+            default => [
+                'meta_icons' => ['audience' => '◎', 'owner' => '◆', 'update_cycle' => '↺', 'focus' => '◌', 'kpi' => '▲'],
+                'quicklink_icons' => ['S', 'P', 'C', 'B'],
+                'section_eyebrows' => ['Architektur', 'Betrieb'],
+                'section_icons' => ['◆', '▲'],
+                'section_modifiers' => ['spotlight', 'stacked'],
+                'section_notes' => ['Zielbild & Standards', 'Services & Delivery'],
+            ],
+        };
+    }
+
     private function buildHubMetaItems(array $settings, string $template, array $profile = []): array
     {
         $defaults = [
@@ -763,21 +832,27 @@ final class SiteTableService
         ][$template] ?? [];
 
         $labels = array_merge(self::DEFAULT_META_LABELS, is_array($profile['meta_labels'] ?? null) ? $profile['meta_labels'] : []);
+        $contentLanguage = $this->getTemplateContentLanguage($template);
 
         $map = [
-            (string)($labels['audience'] ?? 'Zielgruppe') => trim((string)($settings['hub_meta_audience'] ?? '')) ?: (string)($defaults['audience'] ?? ''),
-            (string)($labels['owner'] ?? 'Verantwortlich') => trim((string)($settings['hub_meta_owner'] ?? '')) ?: (string)($defaults['owner'] ?? ''),
-            (string)($labels['update_cycle'] ?? 'Update-Zyklus') => trim((string)($settings['hub_meta_update_cycle'] ?? '')) ?: (string)($defaults['cycle'] ?? ''),
-            (string)($labels['focus'] ?? 'Fokus') => trim((string)($settings['hub_meta_focus'] ?? '')) ?: (string)($defaults['focus'] ?? ''),
-            (string)($labels['kpi'] ?? 'KPI') => trim((string)($settings['hub_meta_kpi'] ?? '')) ?: (string)($defaults['kpi'] ?? ''),
+            'audience' => ['label' => (string)($labels['audience'] ?? 'Zielgruppe'), 'value' => trim((string)($settings['hub_meta_audience'] ?? '')) ?: (string)($defaults['audience'] ?? '')],
+            'owner' => ['label' => (string)($labels['owner'] ?? 'Verantwortlich'), 'value' => trim((string)($settings['hub_meta_owner'] ?? '')) ?: (string)($defaults['owner'] ?? '')],
+            'update_cycle' => ['label' => (string)($labels['update_cycle'] ?? 'Update-Zyklus'), 'value' => trim((string)($settings['hub_meta_update_cycle'] ?? '')) ?: (string)($defaults['cycle'] ?? '')],
+            'focus' => ['label' => (string)($labels['focus'] ?? 'Fokus'), 'value' => trim((string)($settings['hub_meta_focus'] ?? '')) ?: (string)($defaults['focus'] ?? '')],
+            'kpi' => ['label' => (string)($labels['kpi'] ?? 'KPI'), 'value' => trim((string)($settings['hub_meta_kpi'] ?? '')) ?: (string)($defaults['kpi'] ?? '')],
         ];
 
         $items = [];
-        foreach ($map as $label => $value) {
-            if ($value === '') {
+        foreach ($map as $key => $item) {
+            if ((string)($item['value'] ?? '') === '') {
                 continue;
             }
-            $items[] = ['label' => $label, 'value' => $value];
+            $items[] = [
+                'key' => $key,
+                'label' => (string)$item['label'],
+                'value' => (string)$item['value'],
+                'icon' => (string)($contentLanguage['meta_icons'][$key] ?? '•'),
+            ];
         }
 
         return array_slice($items, 0, 5);

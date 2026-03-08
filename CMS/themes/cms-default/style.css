@@ -2074,6 +2074,26 @@ footer {
   font-size: .74rem;
 }
 
+.cms-hub-site__meta-chip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,.16);
+  font-size: .72rem;
+  font-weight: 700;
+}
+
+.cms-hub-site__meta-chip-label {
+  font-weight: 700;
+}
+
+.cms-hub-site__meta-chip-value {
+  color: inherit;
+}
+
 .cms-hub-site__quicklinks {
   display: flex;
   flex-wrap: wrap;
@@ -2088,6 +2108,7 @@ footer {
 .cms-hub-site__quicklink {
   display: inline-flex;
   align-items: center;
+  gap: .45rem;
   padding: .5rem .8rem;
   border: 1px solid var(--rule);
   border-radius: 999px;
@@ -2095,6 +2116,23 @@ footer {
   font-size: .78rem;
   font-weight: 600;
   transition: all .18s;
+}
+
+.cms-hub-site__quicklink-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cms-hub-accent) 12%, white);
+  color: var(--cms-hub-accent);
+  font-size: .68rem;
+  font-weight: 800;
+}
+
+.cms-hub-site__quicklink-label {
+  line-height: 1;
 }
 
 .cms-hub-site__quicklink:hover {
@@ -2118,6 +2156,37 @@ footer {
   display: flex;
   flex-direction: column;
   gap: .8rem;
+}
+
+.cms-hub-site__section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .6rem;
+}
+
+.cms-hub-site__section-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  color: var(--cms-hub-accent);
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.cms-hub-site__section-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: .6rem;
+  background: color-mix(in srgb, var(--cms-hub-accent) 12%, white);
+  color: var(--cms-hub-accent);
+  font-size: .82rem;
+  font-weight: 800;
 }
 
 .cms-hub-site__section-title {
@@ -2145,6 +2214,13 @@ footer {
 
 .cms-hub-site__section-link:hover {
   text-decoration: underline;
+}
+
+.cms-hub-site__section-note {
+  margin-top: auto;
+  color: color-mix(in srgb, var(--cms-hub-accent) 72%, #0f172a);
+  font-size: .72rem;
+  font-weight: 700;
 }
 
 .cms-hub-site__cta {
@@ -2399,18 +2475,124 @@ footer {
 
 .cms-hub-site--microsoft-365 .cms-hub-site__hero-inner {
   background: linear-gradient(135deg, var(--cms-hub-hero-start) 0%, var(--cms-hub-hero-end) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.cms-hub-site--microsoft-365 .cms-hub-site__hero-inner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top right, rgba(255,255,255,.28), transparent 28%),
+    linear-gradient(90deg, rgba(255,255,255,.10) 0 1px, transparent 1px 120px),
+    linear-gradient(180deg, transparent, rgba(255,255,255,.06));
+  pointer-events: none;
 }
 
 .cms-hub-site--microsoft-365 .cms-hub-site__quicklinks {
   background: linear-gradient(135deg, rgba(37,99,235,.06), rgba(255,255,255,.92));
+  border-color: rgba(37, 99, 235, .16);
+  box-shadow: 0 18px 38px rgba(37, 99, 235, .08);
+}
+
+.cms-hub-site--microsoft-365 .cms-hub-site__quicklink {
+  background: rgba(255,255,255,.72);
+  border-radius: .85rem;
+  padding: .72rem .85rem;
+}
+
+.cms-hub-site--microsoft-365 .cms-hub-site__quicklink:hover {
+  background: rgba(255,255,255,.92);
+}
+
+.cms-hub-site--microsoft-365 .cms-hub-site__meta-chip {
+  background: rgba(255,255,255,.14);
+}
+
+.cms-hub-site--microsoft-365 .cms-hub-site__meta-chip-icon {
+  background: rgba(255,255,255,.2);
+}
+
+.cms-hub-site--microsoft-365 .cms-hub-site__section-card--spotlight {
+  background: linear-gradient(135deg, rgba(59, 130, 246, .06), rgba(255,255,255,.98));
+}
+
+.cms-hub-site--microsoft-365 .cms-hub-site__card {
+  border-color: rgba(37, 99, 235, .12);
+  box-shadow: 0 18px 42px rgba(37, 99, 235, .08);
+}
+
+.cms-hub-site--microsoft-365 .cms-hub-site__card-media {
+  background:
+    linear-gradient(135deg, rgba(96, 165, 250, .14), rgba(255, 255, 255, 0)),
+    linear-gradient(90deg, rgba(37,99,235,.10) 0 1px, transparent 1px 18px);
+}
+
+.cms-hub-site--microsoft-365 .cms-hub-site__card-button {
+  box-shadow: 0 10px 22px rgba(37, 99, 235, .18);
 }
 
 .cms-hub-site--datenschutz .cms-hub-site__hero-inner {
   background: linear-gradient(135deg, var(--cms-hub-hero-start) 0%, var(--cms-hub-hero-end) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.cms-hub-site--datenschutz .cms-hub-site__hero-inner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top left, rgba(255,255,255,.22), transparent 30%),
+    linear-gradient(180deg, rgba(15,118,110,.08), transparent 45%);
+  pointer-events: none;
+}
+
+.cms-hub-site--datenschutz .cms-hub-site__quicklinks {
+  background: linear-gradient(180deg, rgba(13, 148, 136, .05), rgba(255,255,255,.96));
+  border-color: rgba(15, 118, 110, .14);
+}
+
+.cms-hub-site--datenschutz .cms-hub-site__meta-chip {
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.12);
+}
+
+.cms-hub-site--datenschutz .cms-hub-site__meta-chip-icon {
+  background: rgba(255,255,255,.2);
 }
 
 .cms-hub-site--datenschutz .cms-hub-site__section-card {
   border-left: 4px solid var(--cms-hub-accent);
+  background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(240,253,250,.96));
+  box-shadow: 0 14px 34px rgba(15, 118, 110, .08);
+}
+
+.cms-hub-site--datenschutz .cms-hub-site__section-card--checklist {
+  background: linear-gradient(180deg, rgba(255,255,255,.99), rgba(248,255,253,.96));
+}
+
+.cms-hub-site--datenschutz .cms-hub-site__section-title::before {
+  content: "✓";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-right: .45rem;
+  border-radius: 999px;
+  background: rgba(13, 148, 136, .12);
+  color: #0f766e;
+  font-size: .7rem;
+}
+
+.cms-hub-site--datenschutz .cms-hub-site__card {
+  border-color: rgba(15, 118, 110, .14);
+}
+
+.cms-hub-site--datenschutz .cms-hub-site__card-button {
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.18);
 }
 
 .cms-hub-site--compliance .cms-hub-site__hero-inner {
@@ -2423,6 +2605,25 @@ footer {
 
 .cms-hub-site--linux .cms-hub-site__hero-inner {
   background: linear-gradient(135deg, var(--cms-hub-hero-start) 0%, var(--cms-hub-hero-end) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.cms-hub-site--linux .cms-hub-site__hero-inner::before {
+  content: "$ sudo systemctl status hub-site";
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: inline-flex;
+  align-items: center;
+  padding: .3rem .55rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, .28);
+  color: #f59e0b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .02em;
 }
 
 .cms-hub-site--linux .cms-hub-site__quicklinks,
@@ -2430,6 +2631,53 @@ footer {
 .cms-hub-site--linux .cms-hub-site__card {
   background: #111827;
   border-color: #374151;
+}
+
+.cms-hub-site--linux .cms-hub-site__quicklinks {
+  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, .06), 0 20px 40px rgba(0,0,0,.24);
+}
+
+.cms-hub-site--linux .cms-hub-site__quicklink {
+  border-left: 3px solid rgba(245, 158, 11, .45);
+  padding-left: .9rem;
+}
+
+.cms-hub-site--linux .cms-hub-site__meta-chip {
+  background: rgba(0,0,0,.22);
+  color: #e5e7eb;
+}
+
+.cms-hub-site--linux .cms-hub-site__meta-chip-icon {
+  background: rgba(245, 158, 11, .12);
+  color: #f59e0b;
+}
+
+.cms-hub-site--linux .cms-hub-site__section-head {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.cms-hub-site--linux .cms-hub-site__section-card--terminal::before {
+  content: "$";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: .45rem;
+  background: rgba(245, 158, 11, .08);
+  color: #f59e0b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 700;
+}
+
+.cms-hub-site--linux .cms-hub-site__card {
+  box-shadow: 0 22px 44px rgba(0,0,0,.26);
+}
+
+.cms-hub-site--linux .cms-hub-site__card-media {
+  background:
+    linear-gradient(135deg, rgba(245, 158, 11, .10), rgba(17,24,39,.92)),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0 1px, transparent 1px 9px);
 }
 
 .cms-hub-site--linux .cms-hub-site__quicklink,
@@ -2444,6 +2692,15 @@ footer {
 .cms-hub-site--linux .cms-hub-site__card-summary,
 .cms-hub-site--linux .cms-hub-site__card-meta {
   color: #d1d5db;
+}
+
+.cms-hub-site--linux .cms-hub-site__section-note {
+  color: #f59e0b;
+}
+
+.cms-hub-site--linux .cms-hub-site__card-button {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  color: #111827;
 }
 
 .cms-hub-site--microsoft-365 .cms-hub-site__card-badge {

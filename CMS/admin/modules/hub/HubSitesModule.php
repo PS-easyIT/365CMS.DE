@@ -49,70 +49,70 @@ class HubSitesModule
 
     private const TEMPLATE_PRESETS = [
         'general-it' => [
-            'summary' => 'Breites IT-Hub für Strategie, Betrieb, Infrastruktur und Security.',
+            'summary' => 'Breites IT-Hub für Strategie, Betrieb, Infrastruktur und Security mit neutraler, vielseitiger Informationsarchitektur.',
             'card_design' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split'],
             'meta' => [
-                'audience' => 'IT-Leitung',
+                'audience' => 'IT-Leitung & Fachbereiche',
                 'owner' => 'IT-Operations',
                 'update_cycle' => 'Monatlich',
-                'focus' => 'Architektur & Betrieb',
+                'focus' => 'Architektur, Betrieb & Security',
                 'kpi' => 'Servicequalität',
             ],
             'links' => [
                 ['label' => 'Strategie', 'url' => '#strategie'],
-                ['label' => 'Infrastruktur', 'url' => '#infrastruktur'],
+                ['label' => 'Plattform', 'url' => '#plattform'],
                 ['label' => 'Security', 'url' => '#security'],
-                ['label' => 'Betrieb', 'url' => '#betrieb'],
+                ['label' => 'Services', 'url' => '#services'],
             ],
             'sections' => [
-                ['title' => 'IT-Roadmap', 'text' => 'Platzhalter für strategische Themen, Modernisierung, Infrastruktur und operative Prioritäten.', 'actionLabel' => 'Mehr zur Roadmap', 'actionUrl' => '#roadmap'],
-                ['title' => 'Betriebsmodelle', 'text' => 'Platzhalter für Managed Services, Support-Level, SLA-Modelle und Betriebsverantwortung.', 'actionLabel' => 'Betrieb ansehen', 'actionUrl' => '#betrieb'],
+                ['title' => 'Roadmap & Architektur', 'text' => 'Platzhalter für Zielbilder, Modernisierung, Plattformentscheidungen und operative Prioritäten.', 'actionLabel' => 'Roadmap ansehen', 'actionUrl' => '#roadmap'],
+                ['title' => 'Services & Betriebsmodelle', 'text' => 'Platzhalter für Managed Services, Service-Catalog, SLA-Modelle und Zuständigkeiten.', 'actionLabel' => 'Services öffnen', 'actionUrl' => '#services'],
             ],
         ],
         'microsoft-365' => [
-            'summary' => 'Modern-Work-Hub mit Fokus auf Collaboration, Adoption und Governance.',
+            'summary' => 'Modern-Work-Hub mit Fokus auf Workloads, Adoption Journeys, Governance und messbaren Workspace-Nutzen.',
             'card_design' => ['layout' => 'feature', 'image_position' => 'left', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split'],
             'meta' => [
-                'audience' => 'Workspace & Modern Work',
-                'owner' => 'M365-Team',
+                'audience' => 'Workspace Owner & Fachbereiche',
+                'owner' => 'M365 Enablement',
                 'update_cycle' => '14-tägig',
-                'focus' => 'Adoption & Governance',
-                'kpi' => 'Nutzungsquote',
+                'focus' => 'Adoption, Governance & Automation',
+                'kpi' => 'Adoption Rate',
             ],
             'links' => [
                 ['label' => 'Teams', 'url' => '#teams'],
                 ['label' => 'SharePoint', 'url' => '#sharepoint'],
-                ['label' => 'Security', 'url' => '#security'],
-                ['label' => 'Automation', 'url' => '#automation'],
+                ['label' => 'Copilot', 'url' => '#copilot'],
+                ['label' => 'Governance', 'url' => '#governance'],
             ],
             'sections' => [
-                ['title' => 'Collaboration Stack', 'text' => 'Platzhalter für Teams, Exchange, SharePoint und Viva-Szenarien.', 'actionLabel' => 'Workspace öffnen', 'actionUrl' => '#workspace'],
-                ['title' => 'Governance & Adoption', 'text' => 'Platzhalter für Richtlinien, Rollout-Phasen, Schulungen und Governance-Standards.', 'actionLabel' => 'Governance prüfen', 'actionUrl' => '#governance'],
+                ['title' => 'Workload Journey', 'text' => 'Platzhalter für Teams, Exchange, SharePoint, Viva und Copilot entlang echter Nutzerpfade.', 'actionLabel' => 'Journey öffnen', 'actionUrl' => '#workspace'],
+                ['title' => 'Adoption & Guardrails', 'text' => 'Platzhalter für Enablement, Rollout-Stände, Policies und Governance-Standards.', 'actionLabel' => 'Guardrails prüfen', 'actionUrl' => '#governance'],
             ],
         ],
         'datenschutz' => [
-            'summary' => 'Strukturiertes Datenschutz-Hub für Nachweise, Prozesse und Rechtsgrundlagen.',
+            'summary' => 'Strukturiertes Datenschutz-Hub für Nachweise, Prüfpfade, Verantwortlichkeiten und belastbare Rechtsgrundlagen.',
             'card_design' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'contain', 'image_ratio' => 'square', 'meta_layout' => 'stacked'],
             'meta' => [
-                'audience' => 'DSB & Fachbereiche',
-                'owner' => 'Datenschutz',
+                'audience' => 'DSB, Legal & Fachbereiche',
+                'owner' => 'Datenschutz-Office',
                 'update_cycle' => 'Quartalsweise',
-                'focus' => 'Nachweise & Prozesse',
-                'kpi' => 'Bearbeitungsstatus',
+                'focus' => 'Nachweise, Prozesse & Fristen',
+                'kpi' => 'Prüfstatus',
             ],
             'links' => [
                 ['label' => 'DSGVO', 'url' => '#dsgvo'],
-                ['label' => 'Verzeichnis', 'url' => '#vvt'],
-                ['label' => 'Risiken', 'url' => '#risiken'],
+                ['label' => 'VVT', 'url' => '#vvt'],
+                ['label' => 'TOMs', 'url' => '#toms'],
                 ['label' => 'Betroffenenrechte', 'url' => '#betroffenenrechte'],
             ],
             'sections' => [
-                ['title' => 'Prüfpfade & Nachweise', 'text' => 'Platzhalter für TOMs, AV-Verträge, Löschkonzepte und Nachweisführung.', 'actionLabel' => 'Nachweise ansehen', 'actionUrl' => '#nachweise'],
-                ['title' => 'Umsetzungspakete', 'text' => 'Platzhalter für Audits, Gap-Analysen, Schulungen und Datenschutz-Projekte.', 'actionLabel' => 'Pakete öffnen', 'actionUrl' => '#umsetzung'],
+                ['title' => 'Nachweise & Prüfpfade', 'text' => 'Platzhalter für TOMs, AV-Verträge, Löschkonzepte und eine sauber nachvollziehbare Dokumentation.', 'actionLabel' => 'Nachweise ansehen', 'actionUrl' => '#nachweise'],
+                ['title' => 'Fristen & Umsetzungsbedarf', 'text' => 'Platzhalter für Betroffenenrechte, Risiken, Audits und priorisierte Maßnahmenpakete.', 'actionLabel' => 'Maßnahmen öffnen', 'actionUrl' => '#umsetzung'],
             ],
         ],
         'compliance' => [
-            'summary' => 'Governance-/Compliance-Hub für Policies, Audits und Kontrolllandschaften.',
+            'summary' => 'Governance-/Compliance-Hub für Policies, Audits, Rollenkonzepte und belastbare Kontrolllandschaften.',
             'card_design' => ['layout' => 'feature', 'image_position' => 'right', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split'],
             'meta' => [
                 'audience' => 'Management & Audit',
@@ -133,24 +133,24 @@ class HubSitesModule
             ],
         ],
         'linux' => [
-            'summary' => 'Technisches Linux-Hub für Platform Engineering, Automatisierung und Hardening.',
+            'summary' => 'Technisches Linux-Hub für Platform Engineering, Automatisierung, Observability und reproduzierbares Hardening.',
             'card_design' => ['layout' => 'compact', 'image_position' => 'top', 'image_fit' => 'contain', 'image_ratio' => 'square', 'meta_layout' => 'stacked'],
             'meta' => [
-                'audience' => 'Admins & Platform Team',
+                'audience' => 'Admins, SRE & Platform Team',
                 'owner' => 'Platform Engineering',
                 'update_cycle' => 'Wöchentlich',
-                'focus' => 'Automatisierung & Hardening',
-                'kpi' => 'Deployment-Health',
+                'focus' => 'Automation, Hardening & Runtime',
+                'kpi' => 'Runtime-Health',
             ],
             'links' => [
                 ['label' => 'Server', 'url' => '#server'],
                 ['label' => 'Container', 'url' => '#container'],
-                ['label' => 'Automation', 'url' => '#automation'],
+                ['label' => 'Pipelines', 'url' => '#pipelines'],
                 ['label' => 'Hardening', 'url' => '#hardening'],
             ],
             'sections' => [
-                ['title' => 'Platform Engineering', 'text' => 'Platzhalter für Linux-Betrieb, Hosting, Kubernetes, Container und Plattform-Themen.', 'actionLabel' => 'Plattform öffnen', 'actionUrl' => '#plattform'],
-                ['title' => 'Shell, CI/CD & Hardening', 'text' => 'Platzhalter für Automatisierung, Pipelines, Monitoring und Security-Baselines.', 'actionLabel' => 'Hardening ansehen', 'actionUrl' => '#hardening'],
+                ['title' => 'Platform Runtime', 'text' => 'Platzhalter für Linux-Betrieb, Container, Kubernetes, Compute-Stacks und Baseline-Services.', 'actionLabel' => 'Runtime öffnen', 'actionUrl' => '#plattform'],
+                ['title' => 'Shell, Pipelines & Hardening', 'text' => 'Platzhalter für Runbooks, CI/CD, Observability und Security-Baselines.', 'actionLabel' => 'Runbooks ansehen', 'actionUrl' => '#hardening'],
             ],
         ],
     ];
@@ -333,6 +333,7 @@ class HubSitesModule
             'template' => $template,
             'isNew' => $normalizedKey === '' || !isset($profiles[$normalizedKey]),
             'baseTemplateOptions' => self::TEMPLATE_OPTIONS,
+            'baseTemplateDefaults' => $this->buildDefaultTemplateProfiles(),
         ];
     }
 
@@ -847,17 +848,11 @@ class HubSitesModule
                 'base_template' => $key,
                 'summary' => $preset['summary'] ?? '',
                 'meta' => $preset['meta'] ?? [],
-                'meta_labels' => [
-                    'audience' => 'Zielgruppe',
-                    'owner' => 'Verantwortlich',
-                    'update_cycle' => 'Update-Zyklus',
-                    'focus' => 'Fokus',
-                    'kpi' => 'KPI',
-                ],
+                'meta_labels' => $this->defaultMetaLabels($key),
                 'links' => $preset['links'] ?? [],
                 'sections' => $preset['sections'] ?? [],
                 'colors' => $this->defaultTemplateColors($key),
-                'card_schema' => $this->defaultCardSchema(),
+                'card_schema' => $this->defaultCardSchema($key),
                 'card_design' => $preset['card_design'] ?? [],
                 'starter_cards' => $this->defaultStarterCards($key),
             ], null);
@@ -1032,22 +1027,108 @@ class HubSitesModule
         return $normalized;
     }
 
-    private function defaultCardSchema(): array
+    private function defaultMetaLabels(string $template): array
     {
-        return [
-            'columns' => 2,
-            'min_cards' => 1,
-            'max_cards' => 3,
-            'title_label' => 'Titel',
-            'summary_label' => 'Kurzbeschreibung',
-            'badge_label' => 'Badge',
-            'meta_left_label' => 'Meta links',
-            'meta_right_label' => 'Meta rechts',
-            'image_label' => 'Bild-URL',
-            'image_alt_label' => 'Bild-Alt',
-            'button_text_label' => 'Button-Text',
-            'button_link_label' => 'Button-Link',
-        ];
+        return match ($template) {
+            'microsoft-365' => [
+                'audience' => 'Use Case',
+                'owner' => 'Owner',
+                'update_cycle' => 'Rollout',
+                'focus' => 'Scope',
+                'kpi' => 'Adoption',
+            ],
+            'datenschutz' => [
+                'audience' => 'Geltungsbereich',
+                'owner' => 'Verantwortung',
+                'update_cycle' => 'Prüfintervall',
+                'focus' => 'Schutzziel',
+                'kpi' => 'Nachweis',
+            ],
+            'linux' => [
+                'audience' => 'Stack',
+                'owner' => 'Ops Owner',
+                'update_cycle' => 'Cadence',
+                'focus' => 'Layer',
+                'kpi' => 'Signal',
+            ],
+            'compliance' => [
+                'audience' => 'Scope',
+                'owner' => 'Control Owner',
+                'update_cycle' => 'Review',
+                'focus' => 'Policy Area',
+                'kpi' => 'Readiness',
+            ],
+            default => [
+                'audience' => 'Zielgruppe',
+                'owner' => 'Verantwortlich',
+                'update_cycle' => 'Update-Zyklus',
+                'focus' => 'Fokus',
+                'kpi' => 'KPI',
+            ],
+        };
+    }
+
+    private function defaultCardSchema(string $template = 'general-it'): array
+    {
+        $labels = match ($template) {
+            'microsoft-365' => [
+                'title_label' => 'Use Case / Thema',
+                'summary_label' => 'Business-Nutzen',
+                'badge_label' => 'Workload',
+                'meta_left_label' => 'Owner',
+                'meta_right_label' => 'Rollout',
+                'image_label' => 'Visual / Screenshot',
+                'image_alt_label' => 'Visual-Alt',
+                'button_text_label' => 'CTA-Text',
+                'button_link_label' => 'CTA-Link',
+            ],
+            'datenschutz' => [
+                'title_label' => 'Nachweis / Thema',
+                'summary_label' => 'Pflicht / Kontext',
+                'badge_label' => 'Rechtsbasis',
+                'meta_left_label' => 'Status',
+                'meta_right_label' => 'Frist',
+                'image_label' => 'Dokument / Grafik',
+                'image_alt_label' => 'Dokument-Alt',
+                'button_text_label' => 'Aktion',
+                'button_link_label' => 'Aktion-Link',
+            ],
+            'linux' => [
+                'title_label' => 'Service / Stack',
+                'summary_label' => 'Runbook / Kontext',
+                'badge_label' => 'Layer',
+                'meta_left_label' => 'Scope',
+                'meta_right_label' => 'State',
+                'image_label' => 'Diagramm / Icon',
+                'image_alt_label' => 'Diagramm-Alt',
+                'button_text_label' => 'Command / CTA',
+                'button_link_label' => 'Runbook-Link',
+            ],
+            'compliance' => [
+                'title_label' => 'Control / Thema',
+                'summary_label' => 'Risiko / Kontext',
+                'badge_label' => 'Control Family',
+                'meta_left_label' => 'Owner',
+                'meta_right_label' => 'Audit',
+                'image_label' => 'Control-Visual',
+                'image_alt_label' => 'Control-Alt',
+                'button_text_label' => 'Evidence-CTA',
+                'button_link_label' => 'Evidence-Link',
+            ],
+            default => [
+                'title_label' => 'Titel',
+                'summary_label' => 'Kurzbeschreibung',
+                'badge_label' => 'Badge',
+                'meta_left_label' => 'Meta links',
+                'meta_right_label' => 'Meta rechts',
+                'image_label' => 'Bild-URL',
+                'image_alt_label' => 'Bild-Alt',
+                'button_text_label' => 'Button-Text',
+                'button_link_label' => 'Button-Link',
+            ],
+        };
+
+        return ['columns' => 2, 'min_cards' => 1, 'max_cards' => 3] + $labels;
     }
 
     private function defaultTemplateColors(string $template): array
@@ -1065,16 +1146,29 @@ class HubSitesModule
     {
         return match ($template) {
             'microsoft-365' => [
-                ['title' => 'Teams & Meetings', 'summary' => 'Platzhalter für Collaboration-, Telefonie- und Meeting-Szenarien.', 'badge' => 'Collaboration', 'meta_left' => 'Use Case', 'meta_right' => 'Priorität', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Mehr erfahren', 'button_link' => '#teams', 'url' => '#teams'],
-                ['title' => 'SharePoint & Intranet', 'summary' => 'Platzhalter für Dokumentenmanagement, Wissensräume und Portale.', 'badge' => 'Knowledge', 'meta_left' => 'Owner', 'meta_right' => 'Status', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Bereich öffnen', 'button_link' => '#sharepoint', 'url' => '#sharepoint'],
+                ['title' => 'Teams & Meetings', 'summary' => 'Platzhalter für Collaboration-, Meeting-, Calling- und Workspace-Szenarien mit klarem Business-Nutzen.', 'badge' => 'Teams', 'meta_left' => 'Enablement', 'meta_right' => 'Rollout', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Use Case öffnen', 'button_link' => '#teams', 'url' => '#teams'],
+                ['title' => 'SharePoint & Intranet', 'summary' => 'Platzhalter für Wissensräume, Dokumentenmanagement, Intranet-Strecken und Content Governance.', 'badge' => 'SharePoint', 'meta_left' => 'Owner', 'meta_right' => 'Lifecycle', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Workspace öffnen', 'button_link' => '#sharepoint', 'url' => '#sharepoint'],
+                ['title' => 'Copilot & Automation', 'summary' => 'Platzhalter für Prompts, Agenten, Power Platform und Automation entlang echter Workflows.', 'badge' => 'Copilot', 'meta_left' => 'Scenario', 'meta_right' => 'Value', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Automation ansehen', 'button_link' => '#copilot', 'url' => '#copilot'],
+            ],
+            'datenschutz' => [
+                ['title' => 'Verzeichnis & Rechtsgrundlagen', 'summary' => 'Platzhalter für Verarbeitungstätigkeiten, Zwecke, Rechtsgrundlagen und Dokumentationsstand.', 'badge' => 'DSGVO', 'meta_left' => 'Status', 'meta_right' => 'Prüfung', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Nachweis öffnen', 'button_link' => '#vvt', 'url' => '#vvt'],
+                ['title' => 'TOMs & Verträge', 'summary' => 'Platzhalter für technische Maßnahmen, AV-Verträge und Lieferanten-Nachweise.', 'badge' => 'TOMs', 'meta_left' => 'Scope', 'meta_right' => 'Frist', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Maßnahmen prüfen', 'button_link' => '#toms', 'url' => '#toms'],
+                ['title' => 'Betroffenenrechte', 'summary' => 'Platzhalter für Auskunft, Löschung, Fristenmanagement und Eskalationspfade.', 'badge' => 'Rights', 'meta_left' => 'Case', 'meta_right' => 'SLA', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Fälle ansehen', 'button_link' => '#betroffenenrechte', 'url' => '#betroffenenrechte'],
             ],
             'linux' => [
-                ['title' => 'Platform Engineering', 'summary' => 'Platzhalter für Server, Container und Plattform-Bausteine.', 'badge' => 'Platform', 'meta_left' => 'Stack', 'meta_right' => 'Health', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Stack ansehen', 'button_link' => '#plattform', 'url' => '#plattform'],
-                ['title' => 'Automation', 'summary' => 'Platzhalter für CI/CD, Provisioning und Shell-Automatisierung.', 'badge' => 'Automation', 'meta_left' => 'Pipeline', 'meta_right' => 'Owner', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Pipelines öffnen', 'button_link' => '#automation', 'url' => '#automation'],
+                ['title' => 'Platform Runtime', 'summary' => 'Platzhalter für Hosts, Container, Kubernetes und stabile Runtime-Bausteine.', 'badge' => 'Runtime', 'meta_left' => 'Layer', 'meta_right' => 'Health', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Runtime ansehen', 'button_link' => '#plattform', 'url' => '#plattform'],
+                ['title' => 'Automation & Pipelines', 'summary' => 'Platzhalter für Provisioning, CI/CD, Shell-Automatisierung und wiederholbare Deployments.', 'badge' => 'Pipeline', 'meta_left' => 'Scope', 'meta_right' => 'Owner', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Pipelines öffnen', 'button_link' => '#pipelines', 'url' => '#pipelines'],
+                ['title' => 'Hardening & Observability', 'summary' => 'Platzhalter für Baselines, Monitoring, Logging und operative Security-Kontrollen.', 'badge' => 'Hardening', 'meta_left' => 'Signal', 'meta_right' => 'Baseline', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Runbook öffnen', 'button_link' => '#hardening', 'url' => '#hardening'],
+            ],
+            'compliance' => [
+                ['title' => 'Policies & Controls', 'summary' => 'Platzhalter für Richtlinien, Kontrollfamilien und zentrale Governance-Vorgaben.', 'badge' => 'Policy', 'meta_left' => 'Owner', 'meta_right' => 'Review', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Control öffnen', 'button_link' => '#policies', 'url' => '#policies'],
+                ['title' => 'Audit Readiness', 'summary' => 'Platzhalter für Audits, Evidence Packs, Maßnahmenlisten und Reifegrade.', 'badge' => 'Audit', 'meta_left' => 'Evidence', 'meta_right' => 'Status', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Audit ansehen', 'button_link' => '#audits', 'url' => '#audits'],
+                ['title' => 'Roles & Responsibilities', 'summary' => 'Platzhalter für Rollenmodelle, Kontrollverantwortung und Freigabepfade.', 'badge' => 'Governance', 'meta_left' => 'Role', 'meta_right' => 'Scope', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Rollen öffnen', 'button_link' => '#rollen', 'url' => '#rollen'],
             ],
             default => [
-                ['title' => 'Bereich 1', 'summary' => 'Platzhalter für den ersten thematischen Kachelbereich.', 'badge' => 'Bereich', 'meta_left' => 'Label links', 'meta_right' => 'Label rechts', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Mehr erfahren', 'button_link' => '#bereich-1', 'url' => '#bereich-1'],
-                ['title' => 'Bereich 2', 'summary' => 'Platzhalter für den zweiten thematischen Kachelbereich.', 'badge' => 'Bereich', 'meta_left' => 'Label links', 'meta_right' => 'Label rechts', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Mehr erfahren', 'button_link' => '#bereich-2', 'url' => '#bereich-2'],
+                ['title' => 'Architektur & Strategie', 'summary' => 'Platzhalter für Zielbilder, Prinzipien und priorisierte Initiativen im Themenfeld.', 'badge' => 'Strategie', 'meta_left' => 'Owner', 'meta_right' => 'Priorität', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Mehr erfahren', 'button_link' => '#strategie', 'url' => '#strategie'],
+                ['title' => 'Services & Betrieb', 'summary' => 'Platzhalter für Services, Zuständigkeiten, Support-Level und operative KPIs.', 'badge' => 'Betrieb', 'meta_left' => 'Scope', 'meta_right' => 'Status', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Service öffnen', 'button_link' => '#services', 'url' => '#services'],
+                ['title' => 'Security & Standards', 'summary' => 'Platzhalter für Schutzmaßnahmen, Richtlinien, Baselines und technische Leitplanken.', 'badge' => 'Security', 'meta_left' => 'Control', 'meta_right' => 'Review', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Standards prüfen', 'button_link' => '#security', 'url' => '#security'],
             ],
         };
     }
