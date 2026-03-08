@@ -24,6 +24,7 @@ class MenuEditorModule
         $this->db     = Database::instance();
         $this->prefix = $this->db->getPrefix();
         $this->ensureTables();
+        $this->syncThemeMenus();
     }
 
     /**
@@ -31,6 +32,8 @@ class MenuEditorModule
      */
     public function getData(int $currentMenuId = 0): array
     {
+        $this->syncThemeMenus();
+
         $menus     = $this->getMenus();
         $locations = $this->getMenuLocations();
         $pages     = $this->getPages();
@@ -74,16 +77,21 @@ class MenuEditorModule
 
         try {
             if ($menuId > 0) {
-                $this->db->query(
+                $this->db->execute(
                     "UPDATE {$this->prefix}menus SET name = ?, location = ? WHERE id = ?",
                     [$name, $location, $menuId]
                 );
                 return ['success' => true, 'message' => 'Menü aktualisiert.'];
             } else {
-                $this->db->query(
+                $this->db->execute(
                     "INSERT INTO {$this->prefix}menus (name, location) VALUES (?, ?)",
                     [$name, $location]
                 );
+
+                if ($location !== '') {
+                    ThemeManager::instance()->saveMenu($location, ThemeManager::instance()->getMenu($location));
+                }
+
                 return ['success' => true, 'message' => 'Menü erstellt.'];
             }
         } catch (\Throwable $e) {
@@ -101,6 +109,15 @@ class MenuEditorModule
         }
 
         try {
+            $menu = $this->db->get_row(
+                "SELECT * FROM {$this->prefix}menus WHERE id = ? LIMIT 1",
+                [$menuId]
+            );
+
+            if ($menu && !empty($menu->location)) {
+                ThemeManager::instance()->saveMenu((string)$menu->location, []);
+            }
+
             $this->db->query("DELETE FROM {$this->prefix}menu_items WHERE menu_id = ?", [$menuId]);
             $this->db->query("DELETE FROM {$this->prefix}menus WHERE id = ?", [$menuId]);
             return ['success' => true, 'message' => 'Menü gelöscht.'];
@@ -124,12 +141,17 @@ class MenuEditorModule
         }
 
         try {
+            $menu = $this->db->get_row(
+                "SELECT * FROM {$this->prefix}menus WHERE id = ? LIMIT 1",
+                [$menuId]
+            );
+
             // Alle bestehenden Items löschen
-            $this->db->query("DELETE FROM {$this->prefix}menu_items WHERE menu_id = ?", [$menuId]);
+            $this->db->execute("DELETE FROM {$this->prefix}menu_items WHERE menu_id = ?", [$menuId]);
 
             // Neue Items einfügen
             foreach ($items as $index => $item) {
-                $this->db->query(
+                $this->db->execute(
                     "INSERT INTO {$this->prefix}menu_items (menu_id, parent_id, title, url, target, icon, position) VALUES (?, ?, ?, ?, ?, ?, ?)",
                     [
                         $menuId,
@@ -141,6 +163,10 @@ class MenuEditorModule
                         $index,
                     ]
                 );
+            }
+
+            if ($menu && !empty($menu->location)) {
+                ThemeManager::instance()->saveMenu((string)$menu->location, $this->normalizeThemeItems($items));
             }
 
             return ['success' => true, 'message' => 'Menü-Items gespeichert.'];
@@ -184,22 +210,125 @@ class MenuEditorModule
      */
     private function getMenuLocations(): array
     {
-        $locations = ['primary' => 'Hauptnavigation', 'footer' => 'Footer-Menü'];
+        $locations = [];
 
         try {
-            $themeSlug = ThemeManager::instance()->getActiveThemeSlug();
-            $jsonPath  = THEME_PATH . $themeSlug . '/theme.json';
-            if (file_exists($jsonPath)) {
-                $json = json_decode(file_get_contents($jsonPath), true);
-                if (isset($json['menus']) && is_array($json['menus'])) {
-                    $locations = array_merge($locations, $json['menus']);
+            foreach (ThemeManager::instance()->getMenuLocations() as $location) {
+                if (is_array($location) && isset($location['slug'], $location['label'])) {
+                    $locations[(string)$location['slug']] = (string)$location['label'];
+                    continue;
+                }
+
+                if (is_string($location)) {
+                    $locations[$location] = $location;
                 }
             }
         } catch (\Throwable $e) {
-            // Defaults verwenden
+            // Fallback unten verwenden
+        }
+
+        if (empty($locations)) {
+            $locations = ['primary' => 'Hauptnavigation', 'footer' => 'Footer-Menü'];
         }
 
         return $locations;
+    }
+
+    /**
+     * Registrierte Theme-Menüs in die Admin-Tabellen spiegeln.
+     */
+    private function syncThemeMenus(): void
+    {
+        $locations = $this->getMenuLocations();
+
+        if (empty($locations)) {
+            return;
+        }
+
+        foreach ($locations as $slug => $label) {
+            $menu = $this->db->get_row(
+                "SELECT * FROM {$this->prefix}menus WHERE location = ? LIMIT 1",
+                [$slug]
+            );
+
+            if (!$menu) {
+                $this->db->execute(
+                    "INSERT INTO {$this->prefix}menus (name, location) VALUES (?, ?)",
+                    [$label, $slug]
+                );
+
+                $menu = $this->db->get_row(
+                    "SELECT * FROM {$this->prefix}menus WHERE location = ? LIMIT 1",
+                    [$slug]
+                );
+            }
+
+            if (!$menu) {
+                continue;
+            }
+
+            $this->syncMenuItemsFromThemeSettings((int)$menu->id, $slug);
+        }
+    }
+
+    /**
+     * Spiegelt die eigentlichen Theme-Menüeinträge in die Admin-Tabelle.
+     */
+    private function syncMenuItemsFromThemeSettings(int $menuId, string $location): void
+    {
+        $items = ThemeManager::instance()->getMenu($location);
+
+        $this->db->execute("DELETE FROM {$this->prefix}menu_items WHERE menu_id = ?", [$menuId]);
+
+        foreach ($items as $index => $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $title = trim((string)($item['label'] ?? $item['title'] ?? ''));
+            $url   = trim((string)($item['url'] ?? '#'));
+            $target = ((string)($item['target'] ?? '_self')) === '_blank' ? '_blank' : '_self';
+            $icon  = trim((string)($item['icon'] ?? ''));
+
+            if ($title === '') {
+                continue;
+            }
+
+            $this->db->execute(
+                "INSERT INTO {$this->prefix}menu_items (menu_id, parent_id, title, url, target, icon, position) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                [$menuId, 0, $title, $url, $target, $icon, $index]
+            );
+        }
+    }
+
+    /**
+     * Normalisiert Menü-Items aus dem Admin-Editor für ThemeManager::saveMenu().
+     */
+    private function normalizeThemeItems(array $items): array
+    {
+        $normalized = [];
+
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $label = trim(strip_tags((string)($item['title'] ?? $item['label'] ?? '')));
+            $url   = filter_var((string)($item['url'] ?? ''), FILTER_SANITIZE_URL);
+
+            if ($label === '' || $url === '') {
+                continue;
+            }
+
+            $normalized[] = [
+                'label'  => $label,
+                'url'    => $url,
+                'target' => ((string)($item['target'] ?? '_self')) === '_blank' ? '_blank' : '_self',
+                'icon'   => trim(strip_tags((string)($item['icon'] ?? ''))),
+            ];
+        }
+
+        return $normalized;
     }
 
     /**

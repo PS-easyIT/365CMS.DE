@@ -64,6 +64,61 @@ class Security
         $this->setSecurityHeaders();
         $this->startSession();
     }
+
+    private function isHttpsRequest(): bool
+    {
+        return !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function getBaseCspDirectives(string $nonce): array
+    {
+        $directives = [
+            "default-src 'self'",
+            "script-src 'self' 'nonce-{$nonce}'",
+            "style-src 'self' 'nonce-{$nonce}'",
+            "img-src 'self' data: https: blob:",
+            "font-src 'self' data: https:",
+            "connect-src 'self'",
+            "media-src 'self' data: blob:",
+            "object-src 'none'",
+            "frame-ancestors 'none'",
+            "base-uri 'self'",
+            "form-action 'self'",
+            "manifest-src 'self'",
+        ];
+
+        if ($this->isHttpsRequest()) {
+            $directives[] = 'upgrade-insecure-requests';
+        }
+
+        return $directives;
+    }
+
+    private function buildCspPolicy(array $directives): string
+    {
+        return implode('; ', $directives);
+    }
+
+    public function getSecurityHeaderProfile(): array
+    {
+        $isHttps = $this->isHttpsRequest();
+        $hstsEnabled = !CMS_DEBUG && $isHttps;
+
+        return [
+            'https' => $isHttps,
+            'csp_mode' => CMS_DEBUG ? 'report-only' : 'enforced',
+            'csp_uses_nonce' => true,
+            'trusted_types_enforced' => false,
+            'trusted_types_report_only' => true,
+            'hsts_enabled' => $hstsEnabled,
+            'hsts_include_subdomains' => $hstsEnabled,
+            'hsts_preload' => $hstsEnabled,
+            'hsts_value' => $hstsEnabled ? 'max-age=31536000; includeSubDomains; preload' : '',
+        ];
+    }
     
     /**
      * Set security headers
@@ -81,30 +136,28 @@ class Security
             header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
 
             // H-04: HSTS – nur über HTTPS senden, nicht im Debug-Modus
-            if (!CMS_DEBUG && (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')) {
-                header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+            if (!CMS_DEBUG && $this->isHttpsRequest()) {
+                header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
             }
 
-            // H-03: Nonce-basierte CSP (unsafe-inline entfernt)
-            // Alle inline <script> und <style> müssen das nonce-Attribut tragen!
             $nonce = $this->cspNonce;
-            $csp = implode('; ', [
-                "default-src 'self'",
-                "script-src 'self' 'nonce-{$nonce}'",
-                "style-src 'self' 'nonce-{$nonce}'",
-                "img-src 'self' data: https:",
-                "font-src 'self' data:",
-                "connect-src 'self'",
-                "frame-ancestors 'none'",
-                "base-uri 'self'",
-                "form-action 'self'",
-            ]);
+            $enforcedCsp = $this->buildCspPolicy(array_merge(
+                $this->getBaseCspDirectives($nonce),
+                ["trusted-types cms365 default sanitize-html dompurify"]
+            ));
+            $reportOnlyCsp = $this->buildCspPolicy(array_merge(
+                $this->getBaseCspDirectives($nonce),
+                [
+                    "trusted-types cms365 default sanitize-html dompurify",
+                    "require-trusted-types-for 'script'",
+                ]
+            ));
 
-            // Im Debug-Modus nur als Report-Only, damit bestehende Inline-Scripts nicht brechen
             if (CMS_DEBUG) {
-                header('Content-Security-Policy-Report-Only: ' . $csp);
+                header('Content-Security-Policy-Report-Only: ' . $reportOnlyCsp);
             } else {
-                header('Content-Security-Policy: ' . $csp);
+                header('Content-Security-Policy: ' . $enforcedCsp);
+                header('Content-Security-Policy-Report-Only: ' . $reportOnlyCsp);
             }
         }
     }

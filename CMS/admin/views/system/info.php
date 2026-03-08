@@ -55,6 +55,12 @@ $summaryCards = [
 
 $securityHighlights = [
     'HTTPS' => (string)($security['https_enabled'] ?? 'Unbekannt'),
+    'CSP' => (string)($security['csp_mode'] ?? 'Unbekannt'),
+    'CSP Nonce' => (string)($security['csp_nonce'] ?? 'Unbekannt'),
+    'Trusted Types' => (string)($security['trusted_types'] ?? 'Unbekannt'),
+    'HSTS' => (string)($security['hsts'] ?? 'Unbekannt'),
+    'HSTS preload' => (string)($security['hsts_preload'] ?? 'Unbekannt'),
+    'HSTS includeSubDomains' => (string)($security['hsts_include_subdomains'] ?? 'Unbekannt'),
     'Secure-Cookie' => (string)($security['session_secure'] ?? 'Unbekannt'),
     'HTTPOnly' => (string)($security['session_httponly'] ?? 'Unbekannt'),
     'SameSite' => (string)($security['session_samesite'] ?? 'Unbekannt'),

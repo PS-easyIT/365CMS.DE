@@ -738,6 +738,8 @@ class SystemService {
      * Get security status
      */
     public function getSecurityStatus(): array {
+        $headerProfile = Security::instance()->getSecurityHeaderProfile();
+
         return [
             'debug_mode' => defined('CMS_DEBUG') && CMS_DEBUG ? 'Aktiv ⚠️' : 'Deaktiviert ✓',
             'display_errors' => ini_get('display_errors') ? 'Aktiv ⚠️' : 'Deaktiviert ✓',
@@ -746,7 +748,15 @@ class SystemService {
             'session_samesite' => ini_get('session.cookie_samesite') ?: 'Nicht gesetzt ⚠️',
             'max_upload' => ini_get('upload_max_filesize'),
             'memory_limit' => ini_get('memory_limit'),
-            'https_enabled' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'Ja ✓' : 'Nein ⚠️'
+            'https_enabled' => $headerProfile['https'] ? 'Ja ✓' : 'Nein ⚠️',
+            'csp_mode' => $headerProfile['csp_mode'] === 'enforced' ? 'Erzwungen ✓' : 'Report-Only ⚠️',
+            'csp_nonce' => $headerProfile['csp_uses_nonce'] ? 'Aktiv ✓' : 'Nicht aktiv ⚠️',
+            'trusted_types' => $headerProfile['trusted_types_enforced']
+                ? 'Erzwungen ✓'
+                : ($headerProfile['trusted_types_report_only'] ? 'Report-Only ⚠️' : 'Nicht aktiv ⚠️'),
+            'hsts' => $headerProfile['hsts_enabled'] ? 'Aktiv ✓' : ($headerProfile['https'] ? 'Nicht aktiv ⚠️' : 'Nur mit HTTPS ℹ️'),
+            'hsts_include_subdomains' => $headerProfile['hsts_include_subdomains'] ? 'Aktiv ✓' : ($headerProfile['https'] ? 'Nicht aktiv ⚠️' : 'Nur mit HTTPS ℹ️'),
+            'hsts_preload' => $headerProfile['hsts_preload'] ? 'Aktiv ✓' : ($headerProfile['https'] ? 'Nicht aktiv ⚠️' : 'Nur mit HTTPS ℹ️'),
         ];
     }
     

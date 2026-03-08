@@ -98,6 +98,8 @@ class SecurityAuditModule
     {
         $checks = [];
         $abspath = defined('ABSPATH') ? ABSPATH : '';
+        $headerProfile = class_exists('\CMS\Security') ? \CMS\Security::instance()->getSecurityHeaderProfile() : [];
+        $htaccessStatus = $this->inspectHtaccessHeaders($abspath);
 
         // 1. HTTPS
         $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (int)($_SERVER['SERVER_PORT'] ?? 0) === 443;
@@ -178,6 +180,60 @@ class SecurityAuditModule
             'detail' => class_exists('\CMS\Security') ? 'CSRF-Token-System ist aktiv.' : 'Security-Klasse nicht gefunden.',
         ];
 
+        // 9. Content Security Policy
+        $cspStatus = (($headerProfile['csp_mode'] ?? '') === 'enforced' && !empty($headerProfile['csp_uses_nonce']))
+            ? 'ok'
+            : 'warning';
+        $checks[] = [
+            'name'   => 'Content-Security-Policy (CSP)',
+            'status' => $cspStatus,
+            'detail' => !empty($headerProfile['csp_uses_nonce'])
+                ? ('Nonce-basierte CSP aktiv; Modus: ' . (($headerProfile['csp_mode'] ?? 'report-only') === 'enforced' ? 'enforced' : 'report-only') . '.')
+                : 'Keine nonce-basierte CSP erkannt.',
+        ];
+
+        // 10. Trusted Types
+        $trustedTypesStatus = !empty($headerProfile['trusted_types_enforced'])
+            ? 'ok'
+            : (!empty($headerProfile['trusted_types_report_only']) ? 'warning' : 'critical');
+        $checks[] = [
+            'name'   => 'Trusted Types',
+            'status' => $trustedTypesStatus,
+            'detail' => !empty($headerProfile['trusted_types_enforced'])
+                ? 'Trusted Types werden erzwungen.'
+                : (!empty($headerProfile['trusted_types_report_only'])
+                    ? 'Trusted Types laufen aktuell im Report-Only-Modus zur Kompatibilitätsprüfung.'
+                    : 'Trusted Types sind nicht konfiguriert.'),
+        ];
+
+        // 11. HSTS
+        $hstsStatus = !$isHttps
+            ? 'warning'
+            : (!empty($headerProfile['hsts_enabled']) && !empty($headerProfile['hsts_include_subdomains']) && !empty($headerProfile['hsts_preload']) ? 'ok' : 'critical');
+        $checks[] = [
+            'name'   => 'Strict-Transport-Security (HSTS)',
+            'status' => $hstsStatus,
+            'detail' => !$isHttps
+                ? 'HSTS kann erst bei aktivem HTTPS vollständig bewertet werden.'
+                : (!empty($headerProfile['hsts_enabled'])
+                    ? 'HSTS aktiv mit includeSubDomains und preload.'
+                    : 'HSTS ist für HTTPS-Anfragen nicht vollständig aktiv.'),
+        ];
+
+        // 12. Apache-Fallback-Header
+        $fallbackStatus = !$htaccessStatus['exists']
+            ? 'warning'
+            : (($htaccessStatus['csp_setifempty'] && !$htaccessStatus['csp_has_unsafe_eval'] && $htaccessStatus['trusted_types_present'] && $htaccessStatus['hsts_include_subdomains'] && $htaccessStatus['hsts_preload']) ? 'ok' : 'warning');
+        $checks[] = [
+            'name'   => '.htaccess Sicherheits-Fallback',
+            'status' => $fallbackStatus,
+            'detail' => !$htaccessStatus['exists']
+                ? 'Keine .htaccess-Datei gefunden – Apache-Fallback kann nicht geprüft werden.'
+                : ($fallbackStatus === 'ok'
+                    ? 'Apache-Fallback für CSP/HSTS ist konsistent gehärtet.'
+                    : 'Apache-Fallback prüfen: setifempty, HSTS preload/includeSubDomains und Trusted-Types-Report-Only sollten aktiv sein.'),
+        ];
+
         // 9. Datenbank-Backup Alter
         $backupDir = $abspath . 'backups/';
         if (is_dir($backupDir)) {
@@ -196,7 +252,7 @@ class SecurityAuditModule
             ];
         }
 
-        // 10. Admin-Benutzer mit schwachen Passwörtern
+        // 13. Admin-Benutzer mit schwachen Passwörtern
         try {
             $weakAdmins = $this->db->get_var(
                 "SELECT COUNT(*) FROM {$this->prefix}users WHERE role = 'admin' AND LENGTH(password) < 50"
@@ -213,5 +269,20 @@ class SecurityAuditModule
         }
 
         return $checks;
+    }
+
+    private function inspectHtaccessHeaders(string $abspath): array
+    {
+        $path = $abspath . '.htaccess';
+        $content = file_exists($path) ? (string)file_get_contents($path) : '';
+
+        return [
+            'exists' => $content !== '',
+            'csp_setifempty' => preg_match('/Header\s+always\s+setifempty\s+Content-Security-Policy/i', $content) === 1,
+            'csp_has_unsafe_eval' => str_contains($content, "'unsafe-eval'"),
+            'trusted_types_present' => stripos($content, 'trusted-types') !== false,
+            'hsts_include_subdomains' => stripos($content, 'includeSubDomains') !== false,
+            'hsts_preload' => stripos($content, 'preload') !== false,
+        ];
     }
 }
