@@ -11,6 +11,10 @@ $defaults = $data['defaults'] ?? [];
 $templateOptions = $data['templateOptions'] ?? [];
 $settings = $site['settings'] ?? $defaults;
 $cards = $site['cards'] ?? [];
+$hubLinks = json_decode((string)($settings['hub_links_json'] ?? '[]'), true);
+$hubSections = json_decode((string)($settings['hub_sections_json'] ?? '[]'), true);
+$hubLinks = is_array($hubLinks) ? $hubLinks : [];
+$hubSections = is_array($hubSections) ? $hubSections : [];
 ?>
 
 <div class="page-header d-print-none">
@@ -28,7 +32,19 @@ $cards = $site['cards'] ?? [];
             </div>
             <?php if (!$isNew): ?>
                 <div class="col-auto">
-                    <span class="badge bg-azure-lt">Public URL: /<?php echo htmlspecialchars((string)($settings['hub_slug'] ?? '')); ?></span>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-azure-lt">Public URL: /<?php echo htmlspecialchars((string)($settings['hub_slug'] ?? '')); ?></span>
+                        <?php if (!empty($settings['hub_slug'])): ?>
+                            <button type="button"
+                                    class="btn btn-outline-secondary btn-sm"
+                                    onclick="copyHubSlug('<?php echo htmlspecialchars(SITE_URL . '/' . ltrim((string)$settings['hub_slug'], '/'), ENT_QUOTES); ?>')">
+                                Slug kopieren
+                            </button>
+                            <a href="<?php echo htmlspecialchars(SITE_URL . '/' . ltrim((string)$settings['hub_slug'], '/')); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">
+                                Public Site öffnen
+                            </a>
+                        <?php endif; ?>
+                    </div>
                 </div>
             <?php endif; ?>
         </div>
@@ -44,6 +60,8 @@ $cards = $site['cards'] ?? [];
                 <input type="hidden" name="id" value="<?php echo (int)($site['id'] ?? 0); ?>">
             <?php endif; ?>
             <input type="hidden" name="cards_json" id="cardsJsonInput" value="<?php echo htmlspecialchars(json_encode($cards, JSON_UNESCAPED_UNICODE)); ?>">
+            <input type="hidden" name="hub_links_json" id="hubLinksJsonInput" value="<?php echo htmlspecialchars(json_encode($hubLinks, JSON_UNESCAPED_UNICODE)); ?>">
+            <input type="hidden" name="hub_sections_json" id="hubSectionsJsonInput" value="<?php echo htmlspecialchars(json_encode($hubSections, JSON_UNESCAPED_UNICODE)); ?>">
 
             <div class="row g-4">
                 <div class="col-lg-8">
@@ -103,6 +121,60 @@ $cards = $site['cards'] ?? [];
                     </div>
 
                     <div class="card mb-3">
+                        <div class="card-header"><h3 class="card-title">Template-Designbereiche</h3></div>
+                        <div class="card-body">
+                            <ul class="nav nav-tabs mb-3" id="hubTemplateTabs" role="tablist">
+                                <li class="nav-item" role="presentation"><button class="nav-link active" type="button" data-hub-tab="meta">Meta</button></li>
+                                <li class="nav-item" role="presentation"><button class="nav-link" type="button" data-hub-tab="links">Header-Links</button></li>
+                                <li class="nav-item" role="presentation"><button class="nav-link" type="button" data-hub-tab="sections">Designbereiche</button></li>
+                            </ul>
+
+                            <div class="hub-tab-panel" data-hub-panel="meta">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Zielgruppe</label>
+                                        <input type="text" class="form-control" name="hub_meta_audience" value="<?php echo htmlspecialchars((string)($settings['hub_meta_audience'] ?? '')); ?>" placeholder="z. B. IT-Leitung / Fachbereiche">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Verantwortlich</label>
+                                        <input type="text" class="form-control" name="hub_meta_owner" value="<?php echo htmlspecialchars((string)($settings['hub_meta_owner'] ?? '')); ?>" placeholder="z. B. M365-Team">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Update-Zyklus</label>
+                                        <input type="text" class="form-control" name="hub_meta_update_cycle" value="<?php echo htmlspecialchars((string)($settings['hub_meta_update_cycle'] ?? '')); ?>" placeholder="monatlich">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Fokus</label>
+                                        <input type="text" class="form-control" name="hub_meta_focus" value="<?php echo htmlspecialchars((string)($settings['hub_meta_focus'] ?? '')); ?>" placeholder="Governance, Security …">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">KPI / Leitwert</label>
+                                        <input type="text" class="form-control" name="hub_meta_kpi" value="<?php echo htmlspecialchars((string)($settings['hub_meta_kpi'] ?? '')); ?>" placeholder="z. B. Audit-Readiness">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="hub-tab-panel d-none" data-hub-panel="links">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <p class="text-secondary mb-0">Links erscheinen direkt unter dem Headerbereich der Hub-Site als thematische Navigation.</p>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="addHubLink">Link hinzufügen</button>
+                                </div>
+                                <div id="hubLinksContainer"></div>
+                                <div class="text-center text-secondary py-4 d-none" id="hubLinksEmpty">Noch keine Header-Links vorhanden.</div>
+                            </div>
+
+                            <div class="hub-tab-panel d-none" data-hub-panel="sections">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <p class="text-secondary mb-0">Diese Bereiche verändern das Layout unterhalb des Headers je Template und dienen als Platzhalter für weitere Themenblöcke.</p>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="addHubSection">Designbereich hinzufügen</button>
+                                </div>
+                                <div id="hubSectionsContainer"></div>
+                                <div class="text-center text-secondary py-4 d-none" id="hubSectionsEmpty">Noch keine Designbereiche vorhanden.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-3">
                         <div class="card-header d-flex align-items-center justify-content-between">
                             <h3 class="card-title mb-0">Routing-Kacheln</h3>
                             <button type="button" class="btn btn-outline-primary btn-sm" id="addCard">Kachel hinzufügen</button>
@@ -130,6 +202,11 @@ $cards = $site['cards'] ?? [];
 
                     <div class="card">
                         <div class="card-body">
+                            <?php if (!$isNew && !empty($settings['hub_slug'])): ?>
+                                <a href="<?php echo htmlspecialchars(SITE_URL . '/' . ltrim((string)$settings['hub_slug'], '/')); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary w-100 mb-2">
+                                    Public Site im neuen Tab öffnen
+                                </a>
+                            <?php endif; ?>
                             <button type="submit" class="btn btn-primary w-100"><?php echo $isNew ? 'Hub Site erstellen' : 'Hub Site aktualisieren'; ?></button>
                         </div>
                     </div>
@@ -145,6 +222,14 @@ $cards = $site['cards'] ?? [];
     var container = document.getElementById('cardsContainer');
     var emptyState = document.getElementById('cardsEmpty');
     var input = document.getElementById('cardsJsonInput');
+    var hubLinks = <?php echo json_encode($hubLinks, JSON_UNESCAPED_UNICODE); ?>;
+    var hubSections = <?php echo json_encode($hubSections, JSON_UNESCAPED_UNICODE); ?>;
+    var hubLinksInput = document.getElementById('hubLinksJsonInput');
+    var hubSectionsInput = document.getElementById('hubSectionsJsonInput');
+    var hubLinksContainer = document.getElementById('hubLinksContainer');
+    var hubSectionsContainer = document.getElementById('hubSectionsContainer');
+    var hubLinksEmpty = document.getElementById('hubLinksEmpty');
+    var hubSectionsEmpty = document.getElementById('hubSectionsEmpty');
 
     function escapeHtml(value) {
         var div = document.createElement('div');
@@ -154,6 +239,8 @@ $cards = $site['cards'] ?? [];
 
     function sync() {
         input.value = JSON.stringify(cards);
+        hubLinksInput.value = JSON.stringify(hubLinks);
+        hubSectionsInput.value = JSON.stringify(hubSections);
     }
 
     function render() {
@@ -178,9 +265,59 @@ $cards = $site['cards'] ?? [];
         sync();
     }
 
+    function renderHubLinks() {
+        hubLinksContainer.innerHTML = '';
+        hubLinksEmpty.classList.toggle('d-none', hubLinks.length !== 0);
+
+        hubLinks.forEach(function (link, index) {
+            var html = '';
+            html += '<div class="border rounded p-3 mb-2">';
+            html += '  <div class="row g-2">';
+            html += '    <div class="col-md-5"><label class="form-label small">Link-Label</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(link.label || '') + '" data-hub-link-index="' + index + '" data-hub-link-key="label"></div>';
+            html += '    <div class="col-md-5"><label class="form-label small">URL / Anchor</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(link.url || '') + '" data-hub-link-index="' + index + '" data-hub-link-key="url"></div>';
+            html += '    <div class="col-md-2 d-flex align-items-end"><button type="button" class="btn btn-outline-danger btn-sm w-100 remove-hub-link" data-hub-link-index="' + index + '">Entfernen</button></div>';
+            html += '  </div>';
+            html += '</div>';
+            hubLinksContainer.insertAdjacentHTML('beforeend', html);
+        });
+
+        sync();
+    }
+
+    function renderHubSections() {
+        hubSectionsContainer.innerHTML = '';
+        hubSectionsEmpty.classList.toggle('d-none', hubSections.length !== 0);
+
+        hubSections.forEach(function (section, index) {
+            var html = '';
+            html += '<div class="border rounded p-3 mb-2">';
+            html += '  <div class="row g-2">';
+            html += '    <div class="col-md-6"><label class="form-label small">Titel</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(section.title || '') + '" data-hub-section-index="' + index + '" data-hub-section-key="title"></div>';
+            html += '    <div class="col-md-6"><label class="form-label small">CTA Label</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(section.actionLabel || '') + '" data-hub-section-index="' + index + '" data-hub-section-key="actionLabel"></div>';
+            html += '    <div class="col-md-12"><label class="form-label small">Beschreibung</label><textarea class="form-control form-control-sm" rows="3" data-hub-section-index="' + index + '" data-hub-section-key="text">' + escapeHtml(section.text || '') + '</textarea></div>';
+            html += '    <div class="col-md-8"><label class="form-label small">CTA URL</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(section.actionUrl || '') + '" data-hub-section-index="' + index + '" data-hub-section-key="actionUrl"></div>';
+            html += '    <div class="col-md-4 d-flex align-items-end"><button type="button" class="btn btn-outline-danger btn-sm w-100 remove-hub-section" data-hub-section-index="' + index + '">Entfernen</button></div>';
+            html += '  </div>';
+            html += '</div>';
+            hubSectionsContainer.insertAdjacentHTML('beforeend', html);
+        });
+
+        sync();
+    }
+
     document.getElementById('addCard').addEventListener('click', function () {
         cards.push({ title: '', url: '', badge: '', meta: '', summary: '' });
         render();
+    });
+
+    document.getElementById('addHubLink').addEventListener('click', function () {
+        hubLinks.push({ label: '', url: '' });
+        renderHubLinks();
+    });
+
+    document.getElementById('addHubSection').addEventListener('click', function () {
+        hubSections.push({ title: '', text: '', actionLabel: '', actionUrl: '' });
+        renderHubSections();
     });
 
     container.addEventListener('input', function (event) {
@@ -207,6 +344,81 @@ $cards = $site['cards'] ?? [];
         render();
     });
 
+    hubLinksContainer.addEventListener('input', function (event) {
+        var target = event.target;
+        var index = parseInt(target.dataset.hubLinkIndex || '-1', 10);
+        var key = target.dataset.hubLinkKey || '';
+        if (index < 0 || !hubLinks[index] || !key) {
+            return;
+        }
+        hubLinks[index][key] = target.value;
+        sync();
+    });
+
+    hubLinksContainer.addEventListener('click', function (event) {
+        var button = event.target.closest('.remove-hub-link');
+        if (!button) {
+            return;
+        }
+        var index = parseInt(button.dataset.hubLinkIndex || '-1', 10);
+        if (index < 0) {
+            return;
+        }
+        hubLinks.splice(index, 1);
+        renderHubLinks();
+    });
+
+    hubSectionsContainer.addEventListener('input', function (event) {
+        var target = event.target;
+        var index = parseInt(target.dataset.hubSectionIndex || '-1', 10);
+        var key = target.dataset.hubSectionKey || '';
+        if (index < 0 || !hubSections[index] || !key) {
+            return;
+        }
+        hubSections[index][key] = target.value;
+        sync();
+    });
+
+    hubSectionsContainer.addEventListener('click', function (event) {
+        var button = event.target.closest('.remove-hub-section');
+        if (!button) {
+            return;
+        }
+        var index = parseInt(button.dataset.hubSectionIndex || '-1', 10);
+        if (index < 0) {
+            return;
+        }
+        hubSections.splice(index, 1);
+        renderHubSections();
+    });
+
+    document.querySelectorAll('[data-hub-tab]').forEach(function (tabButton) {
+        tabButton.addEventListener('click', function () {
+            var tab = this.dataset.hubTab || 'meta';
+            document.querySelectorAll('[data-hub-tab]').forEach(function (button) {
+                button.classList.toggle('active', button === tabButton);
+            });
+            document.querySelectorAll('[data-hub-panel]').forEach(function (panel) {
+                panel.classList.toggle('d-none', panel.dataset.hubPanel !== tab);
+            });
+        });
+    });
+
     render();
+    renderHubLinks();
+    renderHubSections();
 })();
+
+function copyHubSlug(url) {
+    if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
+        cmsAlert('Kopieren wird von diesem Browser leider nicht unterstützt.', 'warning');
+        return;
+    }
+
+    navigator.clipboard.writeText(url).then(function () {
+        cmsAlert('Public URL wurde in die Zwischenablage kopiert.', 'success');
+    }).catch(function () {
+        cmsAlert('Public URL konnte nicht kopiert werden.', 'danger');
+    });
+}
 </script>

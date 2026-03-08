@@ -146,7 +146,7 @@ $menuGroups = [
             ['label' => 'Beiträge',             'slug' => 'posts',              'url' => $siteUrl . '/admin/posts'],
             ['label' => 'Kommentare',           'slug' => 'comments',           'url' => $siteUrl . '/admin/comments'],
             ['label' => 'Inhaltsverzeichnis',   'slug' => 'table-of-contents',  'url' => $siteUrl . '/admin/table-of-contents'],
-            ['label' => 'Routing / Hub Sites',  'slug' => 'hub-sites',          'url' => $siteUrl . '/admin/hub-sites'],
+            ['label' => 'Hub-Sites',            'slug' => 'hub-sites',          'url' => $siteUrl . '/admin/hub-sites'],
             ['label' => 'Tabellen',             'slug' => 'site-tables',        'url' => $siteUrl . '/admin/site-tables'],
             ['label' => 'Einstellungen',        'slug' => 'content-settings',   'url' => $siteUrl . '/admin/settings?tab=content'],
         ],

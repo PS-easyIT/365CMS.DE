@@ -30,6 +30,13 @@ class HubSitesModule
         'hub_hero_text' => '',
         'hub_cta_label' => '',
         'hub_cta_url' => '',
+        'hub_meta_audience' => '',
+        'hub_meta_owner' => '',
+        'hub_meta_update_cycle' => '',
+        'hub_meta_focus' => '',
+        'hub_meta_kpi' => '',
+        'hub_links_json' => '[]',
+        'hub_sections_json' => '[]',
     ];
 
     public function __construct()
@@ -141,6 +148,13 @@ class HubSitesModule
             'hub_hero_text' => mb_substr(trim((string)($post['hub_hero_text'] ?? '')), 0, 1200),
             'hub_cta_label' => mb_substr(trim(strip_tags((string)($post['hub_cta_label'] ?? ''))), 0, 60),
             'hub_cta_url' => filter_var((string)($post['hub_cta_url'] ?? ''), FILTER_SANITIZE_URL),
+            'hub_meta_audience' => mb_substr(trim(strip_tags((string)($post['hub_meta_audience'] ?? ''))), 0, 120),
+            'hub_meta_owner' => mb_substr(trim(strip_tags((string)($post['hub_meta_owner'] ?? ''))), 0, 120),
+            'hub_meta_update_cycle' => mb_substr(trim(strip_tags((string)($post['hub_meta_update_cycle'] ?? ''))), 0, 120),
+            'hub_meta_focus' => mb_substr(trim(strip_tags((string)($post['hub_meta_focus'] ?? ''))), 0, 160),
+            'hub_meta_kpi' => mb_substr(trim(strip_tags((string)($post['hub_meta_kpi'] ?? ''))), 0, 120),
+            'hub_links_json' => $this->normalizeJsonArray((string)($post['hub_links_json'] ?? '[]'), 'link'),
+            'hub_sections_json' => $this->normalizeJsonArray((string)($post['hub_sections_json'] ?? '[]'), 'section'),
         ];
 
         $normalizedCards = [];
@@ -215,7 +229,7 @@ class HubSitesModule
                 $params
             );
 
-            return ['success' => true, 'id' => (int)$this->db->lastInsertId(), 'slug' => $slug, 'message' => 'Routing / Hub Site erstellt.'];
+            return ['success' => true, 'id' => (int)$this->db->insert_id(), 'slug' => $slug, 'message' => 'Routing / Hub Site erstellt.'];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler beim Speichern: ' . $e->getMessage()];
         }
@@ -272,7 +286,7 @@ class HubSitesModule
                 $params
             );
 
-            return ['success' => true, 'id' => (int)$this->db->lastInsertId(), 'slug' => (string)$settings['hub_slug'], 'message' => 'Routing / Hub Site dupliziert.'];
+            return ['success' => true, 'id' => (int)$this->db->insert_id(), 'slug' => (string)$settings['hub_slug'], 'message' => 'Routing / Hub Site dupliziert.'];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler beim Duplizieren.'];
         }
@@ -341,6 +355,52 @@ class HubSitesModule
         $value = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value) ?: $value;
         $value = (string)preg_replace('/[^a-z0-9]+/i', '-', $value);
         return trim($value, '-');
+    }
+
+    private function normalizeJsonArray(string $json, string $mode): string
+    {
+        $items = json_decode($json, true);
+        if (!is_array($items)) {
+            return '[]';
+        }
+
+        $normalized = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            if ($mode === 'link') {
+                $label = mb_substr(trim(strip_tags((string)($item['label'] ?? ''))), 0, 80);
+                $url = mb_substr(trim((string)($item['url'] ?? '')), 0, 240);
+                if ($label === '') {
+                    continue;
+                }
+                $normalized[] = [
+                    'label' => $label,
+                    'url' => $url !== '' ? $url : '#',
+                ];
+                continue;
+            }
+
+            $title = mb_substr(trim(strip_tags((string)($item['title'] ?? ''))), 0, 120);
+            $text = mb_substr(trim((string)($item['text'] ?? '')), 0, 600);
+            $actionLabel = mb_substr(trim(strip_tags((string)($item['actionLabel'] ?? ''))), 0, 80);
+            $actionUrl = mb_substr(trim((string)($item['actionUrl'] ?? '')), 0, 240);
+
+            if ($title === '' && $text === '') {
+                continue;
+            }
+
+            $normalized[] = [
+                'title' => $title,
+                'text' => $text,
+                'actionLabel' => $actionLabel,
+                'actionUrl' => $actionUrl,
+            ];
+        }
+
+        return json_encode($normalized, JSON_UNESCAPED_UNICODE) ?: '[]';
     }
 
     private function hasTableSlugColumn(): bool

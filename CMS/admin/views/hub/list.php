@@ -88,6 +88,18 @@ $templateOptions = $data['templateOptions'] ?? [];
                                     <div class="text-secondary small">
                                         <code>/<?php echo htmlspecialchars((string)($site['hub_slug'] ?? '')); ?></code>
                                     </div>
+                                    <?php if (!empty($site['hub_slug'])): ?>
+                                        <div class="mt-2">
+                                            <button type="button"
+                                                    class="btn btn-outline-secondary btn-sm me-1"
+                                                    onclick="copyHubSlug('<?php echo htmlspecialchars(SITE_URL . '/' . ltrim((string)$site['hub_slug'], '/'), ENT_QUOTES); ?>')">
+                                                Slug kopieren
+                                            </button>
+                                            <a href="<?php echo htmlspecialchars(SITE_URL . '/' . ltrim((string)$site['hub_slug'], '/')); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">
+                                                Public Site öffnen
+                                            </a>
+                                        </div>
+                                    <?php endif; ?>
                                 </td>
                                 <td><span class="badge bg-azure-lt"><?php echo htmlspecialchars((string)($templateOptions[$site['template']] ?? $site['template'])); ?></span></td>
                                 <td><?php echo (int)$site['card_count']; ?></td>
@@ -99,6 +111,9 @@ $templateOptions = $data['templateOptions'] ?? [];
                                         </button>
                                         <div class="dropdown-menu dropdown-menu-end">
                                             <a class="dropdown-item" href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites?action=edit&id=<?php echo (int)$site['id']; ?>">Bearbeiten</a>
+                                            <?php if (!empty($site['hub_slug'])): ?>
+                                                <a class="dropdown-item" href="<?php echo htmlspecialchars(SITE_URL . '/' . ltrim((string)$site['hub_slug'], '/')); ?>" target="_blank" rel="noopener noreferrer">Public Site öffnen</a>
+                                            <?php endif; ?>
                                             <button class="dropdown-item" onclick="duplicateHubSite(<?php echo (int)$site['id']; ?>)">Duplizieren</button>
                                             <div class="dropdown-divider"></div>
                                             <button class="dropdown-item text-danger" onclick="deleteHubSite(<?php echo (int)$site['id']; ?>, '<?php echo htmlspecialchars(addslashes((string)$site['table_name']), ENT_QUOTES); ?>')">Löschen</button>
@@ -142,5 +157,18 @@ function deleteHubSite(id, name) {
 function duplicateHubSite(id) {
     document.getElementById('duplicateId').value = id;
     document.getElementById('duplicateForm').submit();
+}
+
+function copyHubSlug(url) {
+    if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
+        cmsAlert('Kopieren wird von diesem Browser leider nicht unterstützt.', 'warning');
+        return;
+    }
+
+    navigator.clipboard.writeText(url).then(function () {
+        cmsAlert('Public URL wurde in die Zwischenablage kopiert.', 'success');
+    }).catch(function () {
+        cmsAlert('Public URL konnte nicht kopiert werden.', 'danger');
+    });
 }
 </script>

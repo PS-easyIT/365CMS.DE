@@ -38,6 +38,76 @@ final class SiteTableService
         'hub_hero_text' => '',
         'hub_cta_label' => '',
         'hub_cta_url' => '',
+        'hub_meta_audience' => '',
+        'hub_meta_owner' => '',
+        'hub_meta_update_cycle' => '',
+        'hub_meta_focus' => '',
+        'hub_meta_kpi' => '',
+        'hub_links_json' => '[]',
+        'hub_sections_json' => '[]',
+    ];
+
+    private const TEMPLATE_PLACEHOLDERS = [
+        'general-it' => [
+            'links' => [
+                ['label' => 'Strategie', 'url' => '#strategie'],
+                ['label' => 'Infrastruktur', 'url' => '#infrastruktur'],
+                ['label' => 'Security', 'url' => '#security'],
+                ['label' => 'Betrieb', 'url' => '#betrieb'],
+            ],
+            'sections' => [
+                ['title' => 'IT-Roadmap', 'text' => 'Platzhalter für strategische Themen, Modernisierung, Infrastruktur und operative Prioritäten.', 'actionLabel' => 'Mehr zur Roadmap', 'actionUrl' => '#roadmap'],
+                ['title' => 'Betriebsmodelle', 'text' => 'Platzhalter für Managed Services, Support-Level, SLA-Modelle und Betriebsverantwortung.', 'actionLabel' => 'Betrieb ansehen', 'actionUrl' => '#betrieb'],
+            ],
+        ],
+        'microsoft-365' => [
+            'links' => [
+                ['label' => 'Teams', 'url' => '#teams'],
+                ['label' => 'SharePoint', 'url' => '#sharepoint'],
+                ['label' => 'Security', 'url' => '#security'],
+                ['label' => 'Automation', 'url' => '#automation'],
+            ],
+            'sections' => [
+                ['title' => 'Collaboration Stack', 'text' => 'Platzhalter für Teams, Exchange, SharePoint und Viva-Szenarien.', 'actionLabel' => 'Workspace öffnen', 'actionUrl' => '#workspace'],
+                ['title' => 'Governance & Adoption', 'text' => 'Platzhalter für Richtlinien, Rollout-Phasen, Schulungen und Governance-Standards.', 'actionLabel' => 'Governance prüfen', 'actionUrl' => '#governance'],
+            ],
+        ],
+        'datenschutz' => [
+            'links' => [
+                ['label' => 'DSGVO', 'url' => '#dsgvo'],
+                ['label' => 'Verzeichnis', 'url' => '#vvt'],
+                ['label' => 'Risiken', 'url' => '#risiken'],
+                ['label' => 'Betroffenenrechte', 'url' => '#betroffenenrechte'],
+            ],
+            'sections' => [
+                ['title' => 'Prüfpfade & Nachweise', 'text' => 'Platzhalter für TOMs, AV-Verträge, Löschkonzepte und Nachweisführung.', 'actionLabel' => 'Nachweise ansehen', 'actionUrl' => '#nachweise'],
+                ['title' => 'Umsetzungspakete', 'text' => 'Platzhalter für Audits, Gap-Analysen, Schulungen und Datenschutz-Projekte.', 'actionLabel' => 'Pakete öffnen', 'actionUrl' => '#umsetzung'],
+            ],
+        ],
+        'compliance' => [
+            'links' => [
+                ['label' => 'Policies', 'url' => '#policies'],
+                ['label' => 'Audits', 'url' => '#audits'],
+                ['label' => 'Rollen', 'url' => '#rollen'],
+                ['label' => 'Nachweise', 'url' => '#nachweise'],
+            ],
+            'sections' => [
+                ['title' => 'Governance Framework', 'text' => 'Platzhalter für Richtlinienlandschaft, Rollenkonzepte und Kontrollmechanismen.', 'actionLabel' => 'Framework ansehen', 'actionUrl' => '#framework'],
+                ['title' => 'Audit-Vorbereitung', 'text' => 'Platzhalter für Auditpläne, Kontrollpunkte, Maßnahmenlisten und Dokumentation.', 'actionLabel' => 'Audit-Bereich öffnen', 'actionUrl' => '#audit'],
+            ],
+        ],
+        'linux' => [
+            'links' => [
+                ['label' => 'Server', 'url' => '#server'],
+                ['label' => 'Container', 'url' => '#container'],
+                ['label' => 'Automation', 'url' => '#automation'],
+                ['label' => 'Hardening', 'url' => '#hardening'],
+            ],
+            'sections' => [
+                ['title' => 'Platform Engineering', 'text' => 'Platzhalter für Linux-Betrieb, Hosting, Kubernetes, Container und Plattform-Themen.', 'actionLabel' => 'Plattform öffnen', 'actionUrl' => '#plattform'],
+                ['title' => 'Shell, CI/CD & Hardening', 'text' => 'Platzhalter für Automatisierung, Pipelines, Monitoring und Security-Baselines.', 'actionLabel' => 'Hardening ansehen', 'actionUrl' => '#hardening'],
+            ],
+        ],
     ];
 
     public static function getInstance(): self
@@ -305,6 +375,9 @@ final class SiteTableService
         $ctaLabel = trim((string)($settings['hub_cta_label'] ?? ''));
         $ctaUrl = trim((string)($settings['hub_cta_url'] ?? ''));
         $cards = $this->normalizeHubCards($table['rows']);
+        $quickLinks = $this->normalizeHubLinks((string)($settings['hub_links_json'] ?? '[]'), $template);
+        $sections = $this->normalizeHubSections((string)($settings['hub_sections_json'] ?? '[]'), $template);
+        $metaItems = $this->buildHubMetaItems($settings, $template);
 
         $html = '<section class="cms-hub-site cms-hub-site--' . htmlspecialchars($template, ENT_QUOTES, 'UTF-8') . '"';
         if ($pageSlug !== '') {
@@ -320,11 +393,42 @@ final class SiteTableService
         if ($heroText !== '') {
             $html .= '<p class="cms-hub-site__lead">' . nl2br(htmlspecialchars($heroText, ENT_QUOTES, 'UTF-8')) . '</p>';
         }
+        if ($metaItems !== []) {
+            $html .= '<div class="cms-hub-site__meta">';
+            foreach ($metaItems as $metaItem) {
+                $html .= '<span class="cms-hub-site__meta-chip"><strong>' . htmlspecialchars((string)$metaItem['label'], ENT_QUOTES, 'UTF-8') . ':</strong> ' . htmlspecialchars((string)$metaItem['value'], ENT_QUOTES, 'UTF-8') . '</span>';
+            }
+            $html .= '</div>';
+        }
         if ($ctaLabel !== '' && $ctaUrl !== '') {
             $html .= '<a class="cms-hub-site__cta" href="' . htmlspecialchars($ctaUrl, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($ctaLabel, ENT_QUOTES, 'UTF-8') . '</a>';
         }
         $html .= '</div>';
         $html .= '</div>';
+
+        if ($quickLinks !== []) {
+            $html .= '<nav class="cms-hub-site__quicklinks" aria-label="Hub-Navigation">';
+            foreach ($quickLinks as $link) {
+                $html .= '<a class="cms-hub-site__quicklink" href="' . htmlspecialchars((string)$link['url'], ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars((string)$link['label'], ENT_QUOTES, 'UTF-8') . '</a>';
+            }
+            $html .= '</nav>';
+        }
+
+        if ($sections !== []) {
+            $html .= '<div class="cms-hub-site__sections cms-hub-site__sections--' . htmlspecialchars($template, ENT_QUOTES, 'UTF-8') . '">';
+            foreach ($sections as $section) {
+                $html .= '<article class="cms-hub-site__section-card">';
+                $html .= '<h3 class="cms-hub-site__section-title">' . htmlspecialchars((string)$section['title'], ENT_QUOTES, 'UTF-8') . '</h3>';
+                if ((string)$section['text'] !== '') {
+                    $html .= '<p class="cms-hub-site__section-text">' . nl2br(htmlspecialchars((string)$section['text'], ENT_QUOTES, 'UTF-8')) . '</p>';
+                }
+                if ((string)$section['actionLabel'] !== '' && (string)$section['actionUrl'] !== '') {
+                    $html .= '<a class="cms-hub-site__section-link" href="' . htmlspecialchars((string)$section['actionUrl'], ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars((string)$section['actionLabel'], ENT_QUOTES, 'UTF-8') . '</a>';
+                }
+                $html .= '</article>';
+            }
+            $html .= '</div>';
+        }
 
         if ($cards !== []) {
             $html .= '<div class="cms-hub-site__grid">';
@@ -386,6 +490,86 @@ final class SiteTableService
         }
 
         return $cards;
+    }
+
+    private function normalizeHubLinks(string $json, string $template): array
+    {
+        $links = json_decode($json, true);
+        if (!is_array($links) || $links === []) {
+            $links = self::TEMPLATE_PLACEHOLDERS[$template]['links'] ?? self::TEMPLATE_PLACEHOLDERS['general-it']['links'];
+        }
+
+        $normalized = [];
+        foreach ($links as $link) {
+            if (!is_array($link)) {
+                continue;
+            }
+            $label = trim((string)($link['label'] ?? ''));
+            $url = trim((string)($link['url'] ?? '#'));
+            if ($label === '') {
+                continue;
+            }
+            $normalized[] = ['label' => mb_substr($label, 0, 80), 'url' => $url !== '' ? $url : '#'];
+        }
+
+        return array_slice($normalized, 0, 6);
+    }
+
+    private function normalizeHubSections(string $json, string $template): array
+    {
+        $sections = json_decode($json, true);
+        if (!is_array($sections) || $sections === []) {
+            $sections = self::TEMPLATE_PLACEHOLDERS[$template]['sections'] ?? self::TEMPLATE_PLACEHOLDERS['general-it']['sections'];
+        }
+
+        $normalized = [];
+        foreach ($sections as $section) {
+            if (!is_array($section)) {
+                continue;
+            }
+            $title = trim((string)($section['title'] ?? ''));
+            $text = trim((string)($section['text'] ?? ''));
+            if ($title === '' && $text === '') {
+                continue;
+            }
+            $normalized[] = [
+                'title' => mb_substr($title, 0, 120),
+                'text' => mb_substr($text, 0, 600),
+                'actionLabel' => mb_substr(trim((string)($section['actionLabel'] ?? '')), 0, 80),
+                'actionUrl' => mb_substr(trim((string)($section['actionUrl'] ?? '')), 0, 240),
+            ];
+        }
+
+        return array_slice($normalized, 0, 4);
+    }
+
+    private function buildHubMetaItems(array $settings, string $template): array
+    {
+        $defaults = [
+            'general-it' => ['audience' => 'IT-Leitung', 'owner' => 'IT-Operations', 'cycle' => 'Monatlich', 'focus' => 'Architektur & Betrieb', 'kpi' => 'Servicequalität'],
+            'microsoft-365' => ['audience' => 'Workspace & Modern Work', 'owner' => 'M365-Team', 'cycle' => '14-tägig', 'focus' => 'Adoption & Governance', 'kpi' => 'Nutzungsquote'],
+            'datenschutz' => ['audience' => 'DSB & Fachbereiche', 'owner' => 'Datenschutz', 'cycle' => 'Quartalsweise', 'focus' => 'Nachweise & Prozesse', 'kpi' => 'Bearbeitungsstatus'],
+            'compliance' => ['audience' => 'Management & Audit', 'owner' => 'Compliance Office', 'cycle' => 'Monatlich', 'focus' => 'Kontrollen & Policies', 'kpi' => 'Audit-Readiness'],
+            'linux' => ['audience' => 'Admins & Platform Team', 'owner' => 'Platform Engineering', 'cycle' => 'Wöchentlich', 'focus' => 'Automatisierung & Hardening', 'kpi' => 'Deployment-Health'],
+        ][$template] ?? [];
+
+        $map = [
+            'Zielgruppe' => trim((string)($settings['hub_meta_audience'] ?? '')) ?: (string)($defaults['audience'] ?? ''),
+            'Verantwortlich' => trim((string)($settings['hub_meta_owner'] ?? '')) ?: (string)($defaults['owner'] ?? ''),
+            'Update-Zyklus' => trim((string)($settings['hub_meta_update_cycle'] ?? '')) ?: (string)($defaults['cycle'] ?? ''),
+            'Fokus' => trim((string)($settings['hub_meta_focus'] ?? '')) ?: (string)($defaults['focus'] ?? ''),
+            'KPI' => trim((string)($settings['hub_meta_kpi'] ?? '')) ?: (string)($defaults['kpi'] ?? ''),
+        ];
+
+        $items = [];
+        foreach ($map as $label => $value) {
+            if ($value === '') {
+                continue;
+            }
+            $items[] = ['label' => $label, 'value' => $value];
+        }
+
+        return array_slice($items, 0, 5);
     }
 
     private function normalizeColumns(array $columns): array
