@@ -29,6 +29,27 @@ if (file_exists($_htmlPurifierLib)) {
 }
 unset($_htmlPurifierLib);
 
+// schema-org/ (Spatie) – ersetzt durch melbahja/seo (Schema-Modul)
+
+// melbahja/seo – Sitemap, IndexNow, Schema
+// PSR-4: Melbahja\Seo\ → melbahja-seo/src/
+spl_autoload_register(function (string $class): void {
+    $prefix = 'Melbahja\\Seo\\';
+    $baseDir = CMS_VENDOR_PATH . 'melbahja-seo' . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR;
+
+    $len = strlen($prefix);
+    if (strncmp($prefix, $class, $len) !== 0) {
+        return;
+    }
+
+    $relativeClass = substr($class, $len);
+    $file = $baseDir . str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass) . '.php';
+
+    if (file_exists($file)) {
+        require_once $file;
+    }
+});
+
 // ─── SimplePie ─────────────────────────────────────────────────────────────
 // PSR-4: SimplePie\ → simplepiesrc/
 // Legacy: SimplePie_* → simplepielibrary/SimplePie/
