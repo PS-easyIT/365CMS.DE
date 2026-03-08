@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.5.3",
+  "version": "2.5.4",
   "min_php": "8.2",
   "released": "2026-03-08",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release 2.5.3: melbahja/seo als lokales Runtime-Bundle integriert, Schema.org auf Library-Ausgabe migriert, modulare Sitemaps mit IndexNow-/Google-Indexing-Service ergänzt und den SEO-Adminbereich für die neue Infrastruktur erweitert.",
+  "notes": "Release 2.5.4: Live-Fixes für Sitemap-Generierung und SEO-Admin-Härtung sowie die dauerhafte Integration des Passkey-Schemas in Core, Migrationen und Neuinstallationen.",
   "critical": false
 }

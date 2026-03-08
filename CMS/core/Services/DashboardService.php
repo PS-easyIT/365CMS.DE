@@ -412,7 +412,7 @@ class DashboardService {
             'mysql_version' => $this->db->get_var("SELECT VERSION()"),
             'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
             'os' => PHP_OS,
-            'cms_version' => defined('CMS_VERSION') ? CMS_VERSION : '2.1.1',
+            'cms_version' => defined('CMS_VERSION') ? CMS_VERSION : '2.5.4',
             'server_time' => date('Y-m-d H:i:s'),
             'timezone' => date_default_timezone_get(),
             'max_execution_time' => ini_get('max_execution_time'),

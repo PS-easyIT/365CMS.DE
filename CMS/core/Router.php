@@ -121,7 +121,7 @@ class Router
         // API Routes (v1)
         $this->addRoute('GET', '/api/v1/status', function() {
             header('Content-Type: application/json');
-            echo json_encode(['status' => 'ok', 'version' => defined('CMS_VERSION') ? CMS_VERSION : '2.1.1']);
+            echo json_encode(['status' => 'ok', 'version' => defined('CMS_VERSION') ? CMS_VERSION : '2.5.4']);
             exit;
         });
         
