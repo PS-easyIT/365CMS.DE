@@ -45,7 +45,6 @@ $siteName   = function_exists('cms_get_site_name') ? cms_get_site_name() : (defi
     endif;
     ?>
 
-    <?php \CMS\Hooks::doAction('head'); ?>
     <?php \CMS\Hooks::doAction('admin_head'); ?>
 </head>
 <body class="layout-fluid">

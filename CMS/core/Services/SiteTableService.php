@@ -30,6 +30,14 @@ final class SiteTableService
         'allow_export_csv' => true,
         'allow_export_json' => false,
         'allow_export_excel' => false,
+        'content_mode' => 'table',
+        'hub_slug' => '',
+        'hub_template' => 'general-it',
+        'hub_badge' => '',
+        'hub_hero_title' => '',
+        'hub_hero_text' => '',
+        'hub_cta_label' => '',
+        'hub_cta_url' => '',
     ];
 
     public static function getInstance(): self
@@ -45,14 +53,22 @@ final class SiteTableService
 
     public function replaceShortcodes(string $content): string
     {
-        if (!str_contains($content, '[site-table')) {
+        if (!str_contains($content, '[site-table') && !str_contains($content, '[hub-site')) {
             return $content;
         }
 
-        return (string) preg_replace_callback(
+        $content = (string) preg_replace_callback(
             '/\[site-table\s+id\s*=\s*["\']?(\d+)["\']?\s*\]/i',
             function (array $matches): string {
                 return $this->renderTableById((int) ($matches[1] ?? 0));
+            },
+            $content
+        );
+
+        return (string) preg_replace_callback(
+            '/\[hub-site\s+id\s*=\s*["\']?(\d+)["\']?\s*\]/i',
+            function (array $matches): string {
+                return $this->renderHubById((int) ($matches[1] ?? 0));
             },
             $content
         );
@@ -67,6 +83,10 @@ final class SiteTableService
         $table = $this->getTableById($tableId);
         if ($table === null) {
             return '';
+        }
+
+        if (($table['settings']['content_mode'] ?? 'table') === 'hub') {
+            return $this->renderHubMarkup($table);
         }
 
         $columns = $this->normalizeColumns($table['columns']);
@@ -127,6 +147,69 @@ final class SiteTableService
 
         $html .= '</tbody></table></div>';
         return $html;
+    }
+
+    public function renderHubById(int $tableId): string
+    {
+        if ($tableId <= 0) {
+            return '';
+        }
+
+        $table = $this->getTableById($tableId);
+        if ($table === null) {
+            return '';
+        }
+
+        if (($table['settings']['content_mode'] ?? 'table') !== 'hub') {
+            return '';
+        }
+
+        return $this->renderHubMarkup($table);
+    }
+
+    public function getHubPageBySlug(string $slug): ?array
+    {
+        $slug = $this->sanitizeSlug($slug);
+        if ($slug === '') {
+            return null;
+        }
+
+        $row = Database::fetchOne(
+            "SELECT id, table_name, description, columns_json, rows_json, settings_json, updated_at
+             FROM {$this->prefix}site_tables
+             WHERE COALESCE(JSON_UNQUOTE(JSON_EXTRACT(settings_json, '$.content_mode')), 'table') = 'hub'
+               AND JSON_UNQUOTE(JSON_EXTRACT(settings_json, '$.hub_slug')) = ?
+             LIMIT 1",
+            [$slug]
+        );
+
+        if (!$row) {
+            return null;
+        }
+
+        $table = [
+            'id' => (int)($row['id'] ?? 0),
+            'name' => (string)($row['table_name'] ?? 'Hub Site'),
+            'description' => trim((string)($row['description'] ?? '')),
+            'columns' => is_array(json_decode((string)($row['columns_json'] ?? '[]'), true)) ? json_decode((string)$row['columns_json'], true) : [],
+            'rows' => is_array(json_decode((string)($row['rows_json'] ?? '[]'), true)) ? json_decode((string)$row['rows_json'], true) : [],
+            'settings' => is_array(json_decode((string)($row['settings_json'] ?? '{}'), true)) ? json_decode((string)$row['settings_json'], true) : [],
+            'updated_at' => (string)($row['updated_at'] ?? ''),
+        ];
+
+        $settings = array_merge(self::DEFAULT_SETTINGS, $table['settings']);
+
+        return [
+            'id' => (int)$table['id'],
+            'title' => (string)$table['name'],
+            'slug' => $slug,
+            'content_type' => 'hub',
+            'content' => $this->renderHubMarkup($table),
+            'meta_description' => trim((string)($settings['hub_hero_text'] ?? '')) !== ''
+                ? trim((string)$settings['hub_hero_text'])
+                : (string)$table['description'],
+            'updated_at' => (string)($table['updated_at'] ?? ''),
+        ];
     }
 
     public function streamExportById(int $tableId, string $format, bool $respectFrontendPermissions = true): bool
@@ -209,6 +292,100 @@ final class SiteTableService
             'rows' => is_array(json_decode((string) ($row['rows_json'] ?? '[]'), true)) ? json_decode((string) $row['rows_json'], true) : [],
             'settings' => is_array(json_decode((string) ($row['settings_json'] ?? '{}'), true)) ? json_decode((string) $row['settings_json'], true) : [],
         ];
+    }
+
+    private function renderHubMarkup(array $table): string
+    {
+        $settings = array_merge(self::DEFAULT_SETTINGS, $table['settings']);
+        $template = (string)($settings['hub_template'] ?? 'general-it');
+        $pageSlug = trim((string)($settings['hub_slug'] ?? ''));
+        $heroTitle = trim((string)($settings['hub_hero_title'] ?? '')) ?: (string)($table['name'] ?? 'Hub Site');
+        $heroText = trim((string)($settings['hub_hero_text'] ?? '')) ?: trim((string)($table['description'] ?? ''));
+        $heroBadge = trim((string)($settings['hub_badge'] ?? ''));
+        $ctaLabel = trim((string)($settings['hub_cta_label'] ?? ''));
+        $ctaUrl = trim((string)($settings['hub_cta_url'] ?? ''));
+        $cards = $this->normalizeHubCards($table['rows']);
+
+        $html = '<section class="cms-hub-site cms-hub-site--' . htmlspecialchars($template, ENT_QUOTES, 'UTF-8') . '"';
+        if ($pageSlug !== '') {
+            $html .= ' data-hub-slug="' . htmlspecialchars($pageSlug, ENT_QUOTES, 'UTF-8') . '"';
+        }
+        $html .= '>';
+        $html .= '<div class="cms-hub-site__hero">';
+        $html .= '<div class="cms-hub-site__hero-inner">';
+        if ($heroBadge !== '') {
+            $html .= '<span class="cms-hub-site__badge">' . htmlspecialchars($heroBadge, ENT_QUOTES, 'UTF-8') . '</span>';
+        }
+        $html .= '<h2 class="cms-hub-site__title">' . htmlspecialchars($heroTitle, ENT_QUOTES, 'UTF-8') . '</h2>';
+        if ($heroText !== '') {
+            $html .= '<p class="cms-hub-site__lead">' . nl2br(htmlspecialchars($heroText, ENT_QUOTES, 'UTF-8')) . '</p>';
+        }
+        if ($ctaLabel !== '' && $ctaUrl !== '') {
+            $html .= '<a class="cms-hub-site__cta" href="' . htmlspecialchars($ctaUrl, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($ctaLabel, ENT_QUOTES, 'UTF-8') . '</a>';
+        }
+        $html .= '</div>';
+        $html .= '</div>';
+
+        if ($cards !== []) {
+            $html .= '<div class="cms-hub-site__grid">';
+            foreach ($cards as $card) {
+                $url = htmlspecialchars((string)$card['url'], ENT_QUOTES, 'UTF-8');
+                $title = htmlspecialchars((string)$card['title'], ENT_QUOTES, 'UTF-8');
+                $summary = htmlspecialchars((string)$card['summary'], ENT_QUOTES, 'UTF-8');
+                $badge = htmlspecialchars((string)$card['badge'], ENT_QUOTES, 'UTF-8');
+                $meta = htmlspecialchars((string)$card['meta'], ENT_QUOTES, 'UTF-8');
+
+                $html .= '<article class="cms-hub-site__card">';
+                $html .= '<a class="cms-hub-site__card-link" href="' . $url . '">';
+                if ($badge !== '') {
+                    $html .= '<span class="cms-hub-site__card-badge">' . $badge . '</span>';
+                }
+                $html .= '<h3 class="cms-hub-site__card-title">' . $title . '</h3>';
+                if ($summary !== '') {
+                    $html .= '<p class="cms-hub-site__card-summary">' . nl2br($summary) . '</p>';
+                }
+                $html .= '<div class="cms-hub-site__card-footer">';
+                if ($meta !== '') {
+                    $html .= '<span class="cms-hub-site__card-meta">' . $meta . '</span>';
+                }
+                $html .= '<span class="cms-hub-site__card-arrow" aria-hidden="true">→</span>';
+                $html .= '</div>';
+                $html .= '</a>';
+                $html .= '</article>';
+            }
+            $html .= '</div>';
+        }
+
+        $html .= '</section>';
+        return $html;
+    }
+
+    private function normalizeHubCards(array $rows): array
+    {
+        $cards = [];
+
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $title = trim((string)($row['title'] ?? $row['Titel'] ?? ''));
+            $url = trim((string)($row['url'] ?? $row['URL'] ?? '#'));
+
+            if ($title === '') {
+                continue;
+            }
+
+            $cards[] = [
+                'title' => mb_substr($title, 0, 160),
+                'url' => $url !== '' ? $url : '#',
+                'summary' => mb_substr(trim((string)($row['summary'] ?? $row['Beschreibung'] ?? '')), 0, 600),
+                'badge' => mb_substr(trim((string)($row['badge'] ?? $row['Kategorie'] ?? '')), 0, 80),
+                'meta' => mb_substr(trim((string)($row['meta'] ?? $row['Meta'] ?? '')), 0, 120),
+            ];
+        }
+
+        return $cards;
     }
 
     private function normalizeColumns(array $columns): array

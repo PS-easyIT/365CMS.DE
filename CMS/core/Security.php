@@ -67,13 +67,32 @@ class Security
 
     private function isHttpsRequest(): bool
     {
-        return !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+        if (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off') {
+            return true;
+        }
+
+        if ((int)($_SERVER['SERVER_PORT'] ?? 0) === 443) {
+            return true;
+        }
+
+        $forwardedProto = strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''));
+        if (in_array($forwardedProto, ['https', 'wss'], true)) {
+            return true;
+        }
+
+        $forwardedSsl = strtolower((string)($_SERVER['HTTP_X_FORWARDED_SSL'] ?? ''));
+        if (in_array($forwardedSsl, ['on', '1', 'true'], true)) {
+            return true;
+        }
+
+        $frontEndHttps = strtolower((string)($_SERVER['HTTP_FRONT_END_HTTPS'] ?? ''));
+        return in_array($frontEndHttps, ['on', '1'], true);
     }
 
     /**
      * @return array<int, string>
      */
-    private function getBaseCspDirectives(string $nonce): array
+    private function getBaseCspDirectives(string $nonce, bool $includeUpgradeInsecureRequests = true): array
     {
         $directives = [
             "default-src 'self'",
@@ -90,7 +109,7 @@ class Security
             "manifest-src 'self'",
         ];
 
-        if ($this->isHttpsRequest()) {
+        if ($includeUpgradeInsecureRequests && $this->isHttpsRequest()) {
             $directives[] = 'upgrade-insecure-requests';
         }
 
@@ -106,13 +125,14 @@ class Security
     {
         $isHttps = $this->isHttpsRequest();
         $hstsEnabled = !CMS_DEBUG && $isHttps;
+        $trustedTypesEnforced = !CMS_DEBUG;
 
         return [
             'https' => $isHttps,
             'csp_mode' => CMS_DEBUG ? 'report-only' : 'enforced',
             'csp_uses_nonce' => true,
-            'trusted_types_enforced' => false,
-            'trusted_types_report_only' => true,
+            'trusted_types_enforced' => $trustedTypesEnforced,
+            'trusted_types_report_only' => CMS_DEBUG,
             'hsts_enabled' => $hstsEnabled,
             'hsts_include_subdomains' => $hstsEnabled,
             'hsts_preload' => $hstsEnabled,
@@ -142,11 +162,14 @@ class Security
 
             $nonce = $this->cspNonce;
             $enforcedCsp = $this->buildCspPolicy(array_merge(
-                $this->getBaseCspDirectives($nonce),
-                ["trusted-types cms365 default sanitize-html dompurify"]
+                $this->getBaseCspDirectives($nonce, true),
+                [
+                    "trusted-types cms365 default sanitize-html dompurify",
+                    "require-trusted-types-for 'script'",
+                ]
             ));
             $reportOnlyCsp = $this->buildCspPolicy(array_merge(
-                $this->getBaseCspDirectives($nonce),
+                $this->getBaseCspDirectives($nonce, false),
                 [
                     "trusted-types cms365 default sanitize-html dompurify",
                     "require-trusted-types-for 'script'",
@@ -157,7 +180,6 @@ class Security
                 header('Content-Security-Policy-Report-Only: ' . $reportOnlyCsp);
             } else {
                 header('Content-Security-Policy: ' . $enforcedCsp);
-                header('Content-Security-Policy-Report-Only: ' . $reportOnlyCsp);
             }
         }
     }

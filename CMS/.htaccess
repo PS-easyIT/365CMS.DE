@@ -54,11 +54,7 @@ Options +FollowSymLinks
     # ── Content Security Policy (Fallback) ───────────────────────────────────
     # PHP setzt primär eine nonce-basierte CSP. Dieser Apache-Header dient nur
     # als Fallback, falls die PHP-Header nicht gesendet werden konnten.
-    Header always setifempty Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; media-src 'self' data: blob:; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; trusted-types cms365 default sanitize-html dompurify"
-
-    # Trusted Types zunächst zusätzlich im Report-Only-Modus beobachten, um
-    # Frontend/Admin-Kompatibilität ohne Produktionsbruch auszuwerten.
-    Header always setifempty Content-Security-Policy-Report-Only "trusted-types cms365 default sanitize-html dompurify; require-trusted-types-for 'script'"
+    Header always setifempty Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; media-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; trusted-types cms365 default sanitize-html dompurify; require-trusted-types-for 'script'"
 
     # ── HSTS – nur über HTTPS aktiv ──────────────────────────────────────────
     # PHP setzt primär HSTS; Apache liefert einen sicheren Fallback mit
@@ -79,6 +75,11 @@ Options +FollowSymLinks
     # Remove server signature
     Header unset Server
     Header unset X-Powered-By
+</IfModule>
+
+<IfModule mod_setenvif.c>
+    SetEnvIfNoCase X-Forwarded-Proto "^https$" HTTPS=on
+    SetEnvIfNoCase X-Forwarded-Ssl "^on$" HTTPS=on
 </IfModule>
 
 # Disable PHP execution in uploads

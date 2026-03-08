@@ -88,10 +88,16 @@ final class CookieConsentService
 
     private function isAdminRequest(): bool
     {
+        if (defined('CMS_MODE') && CMS_MODE !== 'web') {
+            return true;
+        }
+
         $uri = $_SERVER['REQUEST_URI'] ?? '/';
         $path = (string)(strtok((string)$uri, '?') ?: '/');
 
-        return $path === '/admin' || str_starts_with($path, '/admin/');
+        return $path === '/admin'
+            || str_starts_with($path, '/admin/')
+            || str_starts_with($path, '/api/');
     }
 
     /**

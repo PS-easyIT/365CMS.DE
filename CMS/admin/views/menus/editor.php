@@ -20,18 +20,25 @@ $locations   = $data['locations'] ?? [];
 $pages       = $data['pages'] ?? [];
 ?>
 
-<div class="container-xl">
-    <!-- Header -->
-    <div class="page-header d-flex align-items-center justify-content-between mb-4">
-        <div>
-            <h2 class="page-title">Menü Editor</h2>
-            <div class="text-muted mt-1">Navigationsmenüs verwalten</div>
+<div class="page-header d-print-none text-start">
+    <div class="container-xl">
+        <div class="row g-2 align-items-center justify-content-between">
+            <div class="col text-start">
+                <div class="page-pretitle">Themes &amp; Design</div>
+                <h2 class="page-title">Menü Editor</h2>
+                <div class="text-muted mt-1">Navigationsmenüs verwalten</div>
+            </div>
+            <div class="col-auto ms-auto">
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#menuModal">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14"/><path d="M5 12l14 0"/></svg>
+                    Neues Menü
+                </button>
+            </div>
         </div>
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#menuModal">
-            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14"/><path d="M5 12l14 0"/></svg>
-            Neues Menü
-        </button>
     </div>
+</div>
+
+<div class="container-xl mt-4">
 
     <?php if ($alert): ?>
         <div class="alert alert-<?php echo htmlspecialchars($alert['type']); ?> alert-dismissible" role="alert">

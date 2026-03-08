@@ -638,6 +638,12 @@ class Router
                 return;
             }
 
+            $hubPage = Services\SiteTableService::getInstance()->getHubPageBySlug($slug);
+            if ($hubPage !== null) {
+                ThemeManager::instance()->render('page', ['page' => $hubPage]);
+                return;
+            }
+
             // Debug-Logging: Hilft bei 404-Diagnose
             if (CMS_DEBUG) {
                 if ($page === null) {

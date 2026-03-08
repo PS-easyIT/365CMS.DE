@@ -100,9 +100,10 @@ class SecurityAuditModule
         $abspath = defined('ABSPATH') ? ABSPATH : '';
         $headerProfile = class_exists('\CMS\Security') ? \CMS\Security::instance()->getSecurityHeaderProfile() : [];
         $htaccessStatus = $this->inspectHtaccessHeaders($abspath);
+        $isHttps = (bool)($headerProfile['https'] ?? false);
+        $debugOn = defined('CMS_DEBUG') && CMS_DEBUG;
 
         // 1. HTTPS
-        $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (int)($_SERVER['SERVER_PORT'] ?? 0) === 443;
         $checks[] = [
             'name'   => 'HTTPS aktiv',
             'status' => $isHttps ? 'ok' : 'critical',
@@ -147,7 +148,6 @@ class SecurityAuditModule
         ];
 
         // 5. Debug-Modus
-        $debugOn = defined('CMS_DEBUG') && CMS_DEBUG;
         $checks[] = [
             'name'   => 'Debug-Modus',
             'status' => $debugOn ? 'warning' : 'ok',
@@ -188,7 +188,7 @@ class SecurityAuditModule
             'name'   => 'Content-Security-Policy (CSP)',
             'status' => $cspStatus,
             'detail' => !empty($headerProfile['csp_uses_nonce'])
-                ? ('Nonce-basierte CSP aktiv; Modus: ' . (($headerProfile['csp_mode'] ?? 'report-only') === 'enforced' ? 'enforced' : 'report-only') . '.')
+                ? ('Nonce-basierte CSP aktiv; Modus: ' . (($headerProfile['csp_mode'] ?? 'report-only') === 'enforced' ? 'enforced' : 'report-only') . (($debugOn && ($headerProfile['csp_mode'] ?? '') !== 'enforced') ? ' (Debug-Modus)' : '') . '.')
                 : 'Keine nonce-basierte CSP erkannt.',
         ];
 
@@ -217,13 +217,22 @@ class SecurityAuditModule
                 ? 'HSTS kann erst bei aktivem HTTPS vollständig bewertet werden.'
                 : (!empty($headerProfile['hsts_enabled'])
                     ? 'HSTS aktiv mit includeSubDomains und preload.'
-                    : 'HSTS ist für HTTPS-Anfragen nicht vollständig aktiv.'),
+                    : ($debugOn
+                        ? 'HSTS ist im Debug-Modus absichtlich nicht erzwungen.'
+                        : 'HSTS ist für HTTPS-Anfragen nicht vollständig aktiv.')),
         ];
 
         // 12. Apache-Fallback-Header
         $fallbackStatus = !$htaccessStatus['exists']
             ? 'warning'
-            : (($htaccessStatus['csp_setifempty'] && !$htaccessStatus['csp_has_unsafe_eval'] && $htaccessStatus['trusted_types_present'] && $htaccessStatus['hsts_include_subdomains'] && $htaccessStatus['hsts_preload']) ? 'ok' : 'warning');
+            : (($htaccessStatus['csp_setifempty']
+                && !$htaccessStatus['csp_has_unsafe_inline']
+                && !$htaccessStatus['csp_has_unsafe_eval']
+                && !$htaccessStatus['report_only_present']
+                && $htaccessStatus['trusted_types_present']
+                && $htaccessStatus['hsts_include_subdomains']
+                && $htaccessStatus['hsts_preload']
+                && $htaccessStatus['proxy_https_detection']) ? 'ok' : 'warning');
         $checks[] = [
             'name'   => '.htaccess Sicherheits-Fallback',
             'status' => $fallbackStatus,
@@ -231,7 +240,7 @@ class SecurityAuditModule
                 ? 'Keine .htaccess-Datei gefunden – Apache-Fallback kann nicht geprüft werden.'
                 : ($fallbackStatus === 'ok'
                     ? 'Apache-Fallback für CSP/HSTS ist konsistent gehärtet.'
-                    : 'Apache-Fallback prüfen: setifempty, HSTS preload/includeSubDomains und Trusted-Types-Report-Only sollten aktiv sein.'),
+                    : 'Apache-Fallback prüfen: kein Report-Only-Header im Produktivpfad, CSP ohne unsafe-inline/unsafe-eval, Trusted Types sowie HSTS inklusive Proxy-HTTPS-Erkennung sollten aktiv sein.'),
         ];
 
         // 9. Datenbank-Backup Alter
@@ -275,14 +284,18 @@ class SecurityAuditModule
     {
         $path = $abspath . '.htaccess';
         $content = file_exists($path) ? (string)file_get_contents($path) : '';
+        $normalizedContent = preg_replace('/^\s*#.*$/m', '', $content) ?: $content;
 
         return [
             'exists' => $content !== '',
-            'csp_setifempty' => preg_match('/Header\s+always\s+setifempty\s+Content-Security-Policy/i', $content) === 1,
-            'csp_has_unsafe_eval' => str_contains($content, "'unsafe-eval'"),
-            'trusted_types_present' => stripos($content, 'trusted-types') !== false,
-            'hsts_include_subdomains' => stripos($content, 'includeSubDomains') !== false,
-            'hsts_preload' => stripos($content, 'preload') !== false,
+            'csp_setifempty' => preg_match('/Header\s+always\s+setifempty\s+Content-Security-Policy\b/i', $normalizedContent) === 1,
+            'csp_has_unsafe_inline' => str_contains($normalizedContent, "'unsafe-inline'"),
+            'csp_has_unsafe_eval' => str_contains($normalizedContent, "'unsafe-eval'"),
+            'report_only_present' => preg_match('/Header\s+always\s+set(?:ifempty)?\s+Content-Security-Policy-Report-Only\b/i', $normalizedContent) === 1,
+            'trusted_types_present' => stripos($normalizedContent, 'trusted-types') !== false,
+            'hsts_include_subdomains' => stripos($normalizedContent, 'includeSubDomains') !== false,
+            'hsts_preload' => stripos($normalizedContent, 'preload') !== false,
+            'proxy_https_detection' => stripos($normalizedContent, 'X-Forwarded-Proto') !== false,
         ];
     }
 }

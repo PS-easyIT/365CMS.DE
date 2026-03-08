@@ -1,6 +1,10 @@
 (function () {
     'use strict';
 
+    if ((window.location && /^\/admin(?:\/|$)/.test(window.location.pathname || '')) || document.documentElement.classList.contains('admin')) {
+        return;
+    }
+
     var consentApi = null;
 
     function getConsentApi() {

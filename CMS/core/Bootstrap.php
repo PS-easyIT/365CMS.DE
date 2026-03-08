@@ -353,13 +353,45 @@ class Bootstrap
             Hooks::addAction('head', function () {
                 try {
                     $db = Database::instance();
+                    $localFontsRow = $db->get_row(
+                        "SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'privacy_use_local_fonts' LIMIT 1"
+                    );
+
+                    if (!$localFontsRow || (string)($localFontsRow->option_value ?? '0') !== '1') {
+                        return;
+                    }
+
+                    $requestedFontSlugs = Hooks::applyFilters('local_font_slugs', []);
+                    $requestedFontSlugs = array_values(array_unique(array_filter(array_map(
+                        static fn($slug): string => preg_replace('/[^a-z0-9_-]/i', '', (string)$slug) ?? '',
+                        is_array($requestedFontSlugs) ? $requestedFontSlugs : []
+                    ))));
+
+                    if ($requestedFontSlugs === []) {
+                        return;
+                    }
+
                     $fonts = $db->get_results(
-                        "SELECT css_path FROM {$db->getPrefix()}custom_fonts WHERE css_path IS NOT NULL AND css_path != ''"
+                        "SELECT slug, css_path FROM {$db->getPrefix()}custom_fonts WHERE css_path IS NOT NULL AND css_path != ''"
                     ) ?: [];
+
+                    $fontMap = [];
                     foreach ($fonts as $font) {
-                        $cssFile = ABSPATH . ltrim($font->css_path, '/');
+                        $slug = preg_replace('/[^a-z0-9_-]/i', '', (string)($font->slug ?? ''));
+                        if ($slug === '') {
+                            continue;
+                        }
+                        $fontMap[$slug] = (string)($font->css_path ?? '');
+                    }
+
+                    foreach ($requestedFontSlugs as $slug) {
+                        if (!isset($fontMap[$slug])) {
+                            continue;
+                        }
+
+                        $cssFile = ABSPATH . ltrim($fontMap[$slug], '/');
                         if (is_file($cssFile)) {
-                            echo '<link rel="stylesheet" href="' . SITE_URL . '/' . htmlspecialchars($font->css_path) . '">' . "\n";
+                            echo '<link rel="stylesheet" href="' . SITE_URL . '/' . htmlspecialchars($fontMap[$slug], ENT_QUOTES, 'UTF-8') . '">' . "\n";
                         }
                     }
                 } catch (\Throwable $e) {

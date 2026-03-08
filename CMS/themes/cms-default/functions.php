@@ -86,12 +86,7 @@ final class MeridianCMSDefaultTheme
     {
         // 1. CMS-weit: Local Fonts (DSGVO) haben Vorrang
         if ($this->isLocalFontsEnabled()) {
-            $localCssPath = defined('ASSETS_PATH') ? ASSETS_PATH . 'css/local-fonts.css' : '';
-            $localCssUrl  = defined('SITE_URL')    ? SITE_URL    . '/assets/css/local-fonts.css' : '';
-            if ($localCssPath && file_exists($localCssPath) && $localCssUrl) {
-                echo '<link rel="stylesheet" href="' . htmlspecialchars($localCssUrl, ENT_QUOTES, 'UTF-8') . '">' . "\n";
-            }
-            return; // Kein Google-Fonts-Request
+            return; // Nur bedarfsgerecht lokal geladene Fonts, keine Sammel-CSS und kein Google-Fallback
         }
 
         // 2. Customizer: google_fonts = false → gar keine externe Schrift
@@ -491,10 +486,43 @@ HTML;
             }
         }
     }
+
+    public function registerRequiredLocalFonts(array $fontSlugs): array
+    {
+        $required = [];
+
+        try {
+            $customizer = \CMS\Services\ThemeCustomizer::instance();
+            $required[] = (string)$customizer->get('typography', 'font_family_body', 'dm-sans');
+            $required[] = (string)$customizer->get('typography', 'font_family_heading', 'libre-baskerville');
+        } catch (\Throwable $e) {
+            $required[] = 'dm-sans';
+            $required[] = 'libre-baskerville';
+        }
+
+        $required[] = 'dm-mono';
+
+        foreach ($required as $slug) {
+            $slug = strtolower(trim((string)$slug));
+            $slug = preg_replace('/[^a-z0-9_-]+/i', '-', $slug) ?? '';
+            $slug = trim($slug, '-');
+
+            if ($slug === '') {
+                continue;
+            }
+
+            if (!in_array($slug, $fontSlugs, true)) {
+                $fontSlugs[] = $slug;
+            }
+        }
+
+        return $fontSlugs;
+    }
 }
 
 // Theme initialisieren
 MeridianCMSDefaultTheme::instance();
+\CMS\Hooks::addFilter('local_font_slugs', [MeridianCMSDefaultTheme::instance(), 'registerRequiredLocalFonts']);
 
 /**
  * Globaler Wrapper – direkt in header.php o.ä. Templates aufrufbar.

@@ -19,6 +19,7 @@ class TablesModule
 {
     private Database $db;
     private string $prefix;
+    private ?bool $hasTableSlugColumn = null;
 
     private const DEFAULT_SETTINGS = [
         'responsive'         => true,
@@ -59,6 +60,7 @@ class TablesModule
 
         $tables = $this->db->get_results(
             "SELECT id, table_name, description,
+                    settings_json,
                     JSON_LENGTH(columns_json) AS col_count,
                     JSON_LENGTH(rows_json)    AS row_count,
                     created_at, updated_at
@@ -69,10 +71,17 @@ class TablesModule
             $params
         ) ?: [];
 
-        $total = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}site_tables");
+        $tables = array_values(array_filter(array_map(function ($table): array {
+            $item = (array)$table;
+            $settings = json_decode((string)($item['settings_json'] ?? '{}'), true) ?: [];
+            $item['content_mode'] = (string)($settings['content_mode'] ?? 'table');
+            return $item;
+        }, $tables), static fn(array $table): bool => ($table['content_mode'] ?? 'table') !== 'hub'));
+
+        $total = count($tables);
 
         return [
-            'tables' => array_map(fn($t) => (array)$t, $tables),
+            'tables' => $tables,
             'total'  => $total,
             'search' => $search,
         ];
@@ -129,6 +138,7 @@ class TablesModule
 
         // Settings zusammenstellen
         $settings = self::DEFAULT_SETTINGS;
+        $settings['content_mode'] = 'table';
         foreach (self::DEFAULT_SETTINGS as $key => $default) {
             if (is_bool($default)) {
                 $settings[$key] = isset($post['setting_' . $key]);
@@ -142,22 +152,34 @@ class TablesModule
         $columnsJson  = json_encode($columns, JSON_UNESCAPED_UNICODE);
         $rowsJson     = json_encode($rows, JSON_UNESCAPED_UNICODE);
         $settingsJson = json_encode($settings, JSON_UNESCAPED_UNICODE);
+        $tableSlug    = $this->buildUniqueTableSlug($tableName, $id > 0 ? $id : null);
 
         try {
             if ($id > 0) {
-                $this->db->execute(
-                    "UPDATE {$this->prefix}site_tables 
-                     SET table_name = ?, description = ?, columns_json = ?, rows_json = ?, settings_json = ?, updated_at = NOW()
-                     WHERE id = ?",
-                    [$tableName, $description, $columnsJson, $rowsJson, $settingsJson, $id]
-                );
+                $params = [$tableName, $description, $columnsJson, $rowsJson, $settingsJson];
+                $sql = "UPDATE {$this->prefix}site_tables 
+                        SET table_name = ?, description = ?, columns_json = ?, rows_json = ?, settings_json = ?";
+                if ($this->hasTableSlugColumn()) {
+                    $sql .= ', table_slug = ?';
+                    $params[] = $tableSlug;
+                }
+                $sql .= ', updated_at = NOW() WHERE id = ?';
+                $params[] = $id;
+                $this->db->execute($sql, $params);
                 return ['success' => true, 'id' => $id, 'message' => 'Tabelle aktualisiert.'];
             } else {
+                $columns = ['table_name', 'description', 'columns_json', 'rows_json', 'settings_json', 'created_at', 'updated_at'];
+                $placeholders = ['?', '?', '?', '?', '?', 'NOW()', 'NOW()'];
+                $params = [$tableName, $description, $columnsJson, $rowsJson, $settingsJson];
+                if ($this->hasTableSlugColumn()) {
+                    $columns[] = 'table_slug';
+                    $placeholders[] = '?';
+                    $params[] = $tableSlug;
+                }
                 $this->db->execute(
-                    "INSERT INTO {$this->prefix}site_tables
-                     (table_name, description, columns_json, rows_json, settings_json, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, ?, NOW(), NOW())",
-                    [$tableName, $description, $columnsJson, $rowsJson, $settingsJson]
+                    "INSERT INTO {$this->prefix}site_tables (" . implode(', ', $columns) . ")
+                     VALUES (" . implode(', ', $placeholders) . ")",
+                    $params
                 );
                 $newId = (int)$this->db->lastInsertId();
                 return ['success' => true, 'id' => $newId, 'message' => 'Tabelle erstellt.'];
@@ -197,22 +219,90 @@ class TablesModule
         $sourceData = (array)$source;
 
         try {
+            $copyName = ($sourceData['table_name'] ?? 'Tabelle') . ' (Kopie)';
+            $columns = ['table_name', 'description', 'columns_json', 'rows_json', 'settings_json', 'created_at', 'updated_at'];
+            $placeholders = ['?', '?', '?', '?', '?', 'NOW()', 'NOW()'];
+            $params = [
+                $copyName,
+                $sourceData['description'] ?? '',
+                $sourceData['columns_json'] ?? '[]',
+                $sourceData['rows_json'] ?? '[]',
+                $sourceData['settings_json'] ?? '{}',
+            ];
+            if ($this->hasTableSlugColumn()) {
+                $columns[] = 'table_slug';
+                $placeholders[] = '?';
+                $params[] = $this->buildUniqueTableSlug((string)$copyName, null);
+            }
             $this->db->execute(
-                "INSERT INTO {$this->prefix}site_tables
-                 (table_name, description, columns_json, rows_json, settings_json, created_at, updated_at)
-                 VALUES (?, ?, ?, ?, ?, NOW(), NOW())",
-                [
-                    ($sourceData['table_name'] ?? 'Tabelle') . ' (Kopie)',
-                    $sourceData['description'] ?? '',
-                    $sourceData['columns_json'] ?? '[]',
-                    $sourceData['rows_json'] ?? '[]',
-                    $sourceData['settings_json'] ?? '{}',
-                ]
+                "INSERT INTO {$this->prefix}site_tables (" . implode(', ', $columns) . ")
+                 VALUES (" . implode(', ', $placeholders) . ")",
+                $params
             );
             $newId = (int)$this->db->lastInsertId();
             return ['success' => true, 'id' => $newId, 'message' => 'Tabelle dupliziert.'];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler beim Duplizieren.'];
         }
+    }
+
+    private function buildUniqueTableSlug(string $title, ?int $excludeId = null): string
+    {
+        $baseSlug = $this->sanitizeSlug($title);
+        if ($baseSlug === '') {
+            $baseSlug = 'tabelle';
+        }
+
+        $slug = $baseSlug;
+        $suffix = 2;
+
+        while ($this->tableSlugExists($slug, $excludeId)) {
+            $slug = $baseSlug . '-' . $suffix;
+            $suffix++;
+        }
+
+        return $slug;
+    }
+
+    private function tableSlugExists(string $slug, ?int $excludeId = null): bool
+    {
+        if (!$this->hasTableSlugColumn()) {
+            return false;
+        }
+
+        $sql = "SELECT id FROM {$this->prefix}site_tables WHERE table_slug = ?";
+        $params = [$slug];
+
+        if ($excludeId !== null) {
+            $sql .= ' AND id != ?';
+            $params[] = $excludeId;
+        }
+
+        return $this->db->get_var($sql . ' LIMIT 1', $params) !== null;
+    }
+
+    private function sanitizeSlug(string $value): string
+    {
+        $value = strtolower(trim($value));
+        $value = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $value = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value) ?: $value;
+        $value = (string)preg_replace('/[^a-z0-9]+/i', '-', $value);
+        return trim($value, '-');
+    }
+
+    private function hasTableSlugColumn(): bool
+    {
+        if ($this->hasTableSlugColumn !== null) {
+            return $this->hasTableSlugColumn;
+        }
+
+        try {
+            $column = $this->db->get_var("SHOW COLUMNS FROM {$this->prefix}site_tables LIKE 'table_slug'");
+            $this->hasTableSlugColumn = $column !== null;
+        } catch (\Throwable) {
+            $this->hasTableSlugColumn = false;
+        }
+
+        return $this->hasTableSlugColumn;
     }
 }
