@@ -213,13 +213,19 @@ class PostsModule
 
         try {
             if ($id > 0) {
-                $existing = $this->db->get_row("SELECT slug, status FROM {$this->prefix}posts WHERE id = ? LIMIT 1", [$id]);
+                $existing = $this->db->get_row("SELECT slug, status, published_at FROM {$this->prefix}posts WHERE id = ? LIMIT 1", [$id]);
+                // published_at setzen, wenn der Beitrag erstmals veröffentlicht wird
+                // oder falls ein bereits veröffentlichter Alt-Datensatz noch kein Datum besitzt.
+                $wasPublished = ($existing->status ?? '') === 'published';
+                $nowPublished = $savePayload['status'] === 'published';
+                $hasPublishedAt = !empty($existing->published_at ?? null);
+                $setPubAt = ($nowPublished && (!$wasPublished || !$hasPublishedAt)) ? ', published_at = NOW()' : '';
                 $this->db->execute(
                     "UPDATE {$this->prefix}posts 
                      SET title = ?, title_en = ?, slug = ?, content = ?, content_en = ?, excerpt = ?, excerpt_en = ?, status = ?,
                          category_id = ?, featured_image = ?,
                          meta_title = ?, meta_description = ?,
-                         updated_at = NOW()
+                         updated_at = NOW(){$setPubAt}
                      WHERE id = ?",
                     [
                         (string)$savePayload['title'],
@@ -243,10 +249,11 @@ class PostsModule
                 Hooks::doAction('cms_after_post_save', $id, $savePayload, $post);
                 return ['success' => true, 'id' => $id, 'message' => 'Beitrag aktualisiert.'];
             } else {
+                $pubAtValue = ($savePayload['status'] === 'published') ? 'NOW()' : 'NULL';
                 $this->db->execute(
                     "INSERT INTO {$this->prefix}posts
-                     (title, title_en, slug, content, content_en, excerpt, excerpt_en, status, category_id, featured_image, meta_title, meta_description, author_id, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
+                     (title, title_en, slug, content, content_en, excerpt, excerpt_en, status, category_id, featured_image, meta_title, meta_description, author_id, published_at, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, {$pubAtValue}, NOW(), NOW())",
                     [
                         (string)$savePayload['title'],
                         (string)($savePayload['title_en'] ?? ''),
@@ -315,7 +322,7 @@ class PostsModule
                     return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge gelöscht.'];
 
                 case 'publish':
-                    $this->db->execute("UPDATE {$this->prefix}posts SET status = 'published', updated_at = NOW() WHERE id IN ({$placeholders})", $ids);
+                    $this->db->execute("UPDATE {$this->prefix}posts SET status = 'published', published_at = COALESCE(published_at, NOW()), updated_at = NOW() WHERE id IN ({$placeholders})", $ids);
                     return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge veröffentlicht.'];
 
                 case 'draft':

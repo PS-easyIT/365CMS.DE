@@ -30,7 +30,7 @@ class MigrationManager
      * Aktuelle Schema-Version – erhöhen wenn neue Migrations hinzukommen.
      * Wird in cms_settings (option_name = 'db_schema_version') gespeichert.
      */
-    private const SCHEMA_VERSION = 'v11';
+    private const SCHEMA_VERSION = 'v12';
 
     public function __construct(Database $db)
     {
@@ -161,6 +161,11 @@ class MigrationManager
             // H-01: Audit-Log Action-Spalte (Fix für fehlende Spalte bei Update von alter Version)
             "ALTER TABLE `{$p}audit_log` ADD COLUMN `action` VARCHAR(100) NOT NULL DEFAULT 'unknown' AFTER `category`",
             "ALTER TABLE `{$p}audit_log` ADD INDEX `idx_action` (`action`)",
+                        // v12: published_at für Alt-Datensätze nachziehen, damit Sortierung/Datumsanzeige konsistent bleibt
+                        "UPDATE `{$p}posts`
+                         SET `published_at` = COALESCE(`created_at`, NOW())
+                         WHERE `status` = 'published'
+                             AND `published_at` IS NULL",
         ];
 
         foreach ($migrations as $sql) {
