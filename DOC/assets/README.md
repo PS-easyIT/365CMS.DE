@@ -63,3 +63,14 @@ Aktuelle Unterordner:
 - Mail-Stack: `mailer/` + `mime/` + `psr/`; Queue/Log über `MailQueueService`/`MailLogService`.
 - Search: TNTSearch nutzt lokale PHP-Libs; Indizes liegen außerhalb der DB (Filesystem).
 - Legacy/Reserve: `msgraph/` nur Doku/Notizen, kein Autoload; `mailer (legacy)` nur Fallback.
+
+---
+
+## Audit-Notiz zur Integration <!-- UPDATED: 2026-03-09 -->
+- Runtime-Assets werden im Hauptsystem nicht komplett einheitlich referenziert: neben `ASSETS_URL` existieren direkte `SITE_URL . '/assets'`-Verkettungen und einzelne feste Versionsstrings.
+- `CMS/core/Services/EditorJsService.php` ist aktuell das sauberste Beispiel für Datei-Existenzprüfung + `filemtime()`-basiertes Cache-Busting.
+- `CMS/core/Services/CookieConsentService.php` nutzt dagegen feste Query-Versionen (`?v=20260307a`), was bei späteren Asset-Änderungen dokumentiert nachgezogen werden muss.
+- Der Medienbereich greift tief auf interne elFinder-Unterpfade wie `elfinder/vendor/jquery-ui/*` und `elfinder/vendor/jquery/*` zu; diese Dateien existieren aktuell, sind aber bei Bibliotheksupdates besonders bruchanfällig.
+- Dompdf ist kein Teil des `CMS/assets`-Autoloads, sondern ein dokumentierter Sonderfall unter `CMS/vendor/dompdf/`.
+- Die produktiv eingebundenen Symfony-Bundles `mailer`, `mime` und `translation` deklarieren aktuell `PHP >= 8.4` in ihren Composer-Metadaten; diese Information muss mit der offiziellen 365CMS-Zielplattform und den lokalen Versionsangaben in der Dokumentation abgeglichen werden.
+- Auch externe Workspace-Repos koppeln teils direkt an Core-Assets: Theme-Customizer laden `assets/css/admin.css` / `assets/js/admin.js` direkt, `cms-experts` nutzt `assets/suneditor/css/suneditor.min.css`, und `cms-jobprofile-generator` bindet Core-CSS in eigenen Member-Layouts fest ein.

@@ -93,3 +93,13 @@ Gesamtliste aller 24 Bibliotheken (aktiv) plus 1 Referenz-Bundle. Quelle: `CMS/a
 - `DOC/assets/translation/README.md` – Übersetzung / I18n
 - `DOC/assets/twofactorauth/README.md` – TOTP / MFA
 - `DOC/assets/webauthn/README.md` – Passkeys / WebAuthn
+
+---
+
+## Audit-Notiz zur Runtime-Integration <!-- UPDATED: 2026-03-09 -->
+- Die produktive PHP-Dependency-Ladung erfolgt überwiegend über `CMS/assets/autoload.php`.
+- Aktuelle Ausnahme: PDF-Erzeugung lädt Dompdf separat aus `CMS/vendor/dompdf/autoload.php`.
+- Admin-, Member- und Frontend-nahe Komponenten verwenden aktuell mehrere Pfadmuster parallel: `ASSETS_URL`, `SITE_URL . '/assets'`, feste Versionsstrings und `filemtime()`.
+- Besonders update-sensibel sind tiefe Referenzen auf Drittanbieter-Unterstrukturen wie `CMS/assets/elfinder/vendor/jquery*` und `CMS/assets/elfinder/vendor/jquery-ui*`.
+- Für künftige Pflege ist eine zentrale Asset-/Versionierungs-Registry empfehlenswert, damit Pfadlogik, Existenzprüfung und Cache-Busting nicht über viele Dateien verstreut bleiben.
+- Wichtig für den PHP-8.3+-Audit: Die aktuell gebündelten Symfony-Komponenten unter `CMS/assets/mailer`, `CMS/assets/mime` und `CMS/assets/translation` deklarieren in ihren Composer-Metadaten `PHP >= 8.4`; das muss mit der offiziell unterstützten CMS-Zielplattform abgeglichen werden.
