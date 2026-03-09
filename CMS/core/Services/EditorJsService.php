@@ -430,7 +430,7 @@ final class EditorJsService
             $token = (string)$_POST['csrf_token'];
         }
 
-        if ($token === '' || !class_exists(\CMS\Security::class) || !\CMS\Security::instance()->verifyToken($token, 'editorjs_media')) {
+        if ($token === '' || !class_exists(\CMS\Security::class) || !\CMS\Security::instance()->verifyPersistentToken($token, 'editorjs_media')) {
             $this->json([
                 'success' => 0,
                 'message' => 'Ungültiges Sicherheitstoken für Editor.js-Uploads.',

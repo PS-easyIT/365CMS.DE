@@ -154,7 +154,7 @@ $pickerSiteUrl = defined('SITE_URL') ? (string)SITE_URL : '';
     function updatePreview(url) {
         var safeUrl = escapeHtml(url);
         inputEl.value = url;
-        previewEl.innerHTML = '<img src="' + safeUrl + '" alt="" class="img-fluid rounded mb-2">';
+        previewEl.innerHTML = '<img src="' + safeUrl + '" alt="" class="rounded mb-2" style="max-width:100%;max-height:120px;object-fit:cover;display:block;">';
         previewEl.classList.remove('d-none');
         if (emptyEl) {
             emptyEl.classList.add('d-none');

@@ -344,7 +344,7 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
                                 <div class="col-lg-4">
                                     <label class="form-label">Beitragsbild</label>
                                     <div id="featuredPreview" class="mb-2 <?php echo $postFeaturedImageValue !== '' ? '' : 'd-none'; ?>">
-                                        <img src="<?php echo htmlspecialchars($postFeaturedImageValue); ?>" class="img-fluid rounded" id="featuredImg" alt="Beitragsbild">
+                                        <img src="<?php echo htmlspecialchars($postFeaturedImageValue); ?>" class="rounded" id="featuredImg" alt="Beitragsbild" style="max-width:100%;max-height:120px;object-fit:cover;display:block;">
                                     </div>
                                     <div id="featuredEmpty" class="text-secondary small mb-2 <?php echo $postFeaturedImageValue !== '' ? 'd-none' : ''; ?>">Noch kein Beitragsbild ausgewählt.</div>
                                     <input type="hidden" name="featured_image" id="featuredInput" value="<?php echo htmlspecialchars($postFeaturedImageValue); ?>">

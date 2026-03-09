@@ -98,7 +98,7 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
             ?>
 
             <div class="row g-3">
-                <div class="col-lg-6 d-flex">
+                <div class="col-lg-4 d-flex">
                     <div class="card cms-edit-card cms-edit-top-card h-100 w-100">
                         <div class="card-body">
                             <div class="row g-3 align-items-end mb-3">
@@ -133,7 +133,7 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                     </div>
                 </div>
 
-                <div class="col-lg-6 d-flex">
+                <div class="col-lg-4 d-flex">
                     <div class="card cms-edit-card cms-edit-top-card h-100 w-100">
                         <div class="card-header">
                             <h3 class="card-title">Veröffentlichen</h3>
@@ -162,6 +162,29 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                                     EN
                                 </a>
                             <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contentheader Bild (sichtbar im Hauptformular) -->
+                <div class="col-lg-4 d-flex">
+                    <div class="card cms-edit-card cms-edit-top-card h-100 w-100">
+                        <div class="card-header">
+                            <h3 class="card-title">Contentheader Bild</h3>
+                        </div>
+                        <div class="card-body flex-fill">
+                            <div class="small text-secondary mb-2">Erscheint links vom Seitentitel im Content-Header.</div>
+                            <div id="featuredImagePreview" class="mb-2">
+                                <?php if ($pageFeaturedImageValue !== ''): ?>
+                                    <img src="<?= htmlspecialchars($pageFeaturedImageValue) ?>" alt="" class="img-fluid rounded" style="max-height:120px;object-fit:cover;width:100%;">
+                                <?php endif; ?>
+                            </div>
+                            <input type="hidden" name="featured_image" id="featuredImageInput" value="<?= htmlspecialchars($pageFeaturedImageValue) ?>">
+                            <div id="featuredImageEmpty" class="text-secondary small <?= $pageFeaturedImageValue !== '' ? 'd-none' : '' ?>">Noch kein Bild ausgewählt.</div>
+                            <div class="btn-list mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="featuredImageBtn">Bild auswählen</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary <?= $pageFeaturedImageValue === '' ? 'd-none' : '' ?>" id="featuredImageRemove">Entfernen</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -315,18 +338,8 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                         <div class="card-body">
                             <div class="row g-3 mb-4">
                                 <div class="col-lg-4">
-                                    <label class="form-label">Vorschaubild</label>
-                                    <div id="featuredImagePreview">
-                                        <?php if ($pageFeaturedImageValue !== ''): ?>
-                                            <img src="<?= htmlspecialchars($pageFeaturedImageValue) ?>" alt="" class="img-fluid rounded mb-2">
-                                        <?php endif; ?>
-                                    </div>
-                                    <input type="hidden" name="featured_image" id="featuredImageInput" value="<?= htmlspecialchars($pageFeaturedImageValue) ?>">
-                                    <div id="featuredImageEmpty" class="text-secondary small <?= $pageFeaturedImageValue !== '' ? 'd-none' : '' ?>">Noch kein Vorschaubild ausgewählt.</div>
-                                    <div class="btn-list mt-2">
-                                        <button type="button" class="btn btn-sm btn-outline-primary" id="featuredImageBtn">Bild auswählen</button>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="featuredImageRemove">Entfernen</button>
-                                    </div>
+                                    <label class="form-label">Vorschaubild / OG-Bild</label>
+                                    <div class="text-secondary small">Das Contentheader-Bild wird oben im Formular unter <strong>Contentheader Bild</strong> gesetzt. Hier kann ein abweichendes OG-Bild für Social Media hinterlegt werden.</div>
                                 </div>
                                 <div class="col-lg-4">
                                     <label class="form-label" for="pageSchemaType">Schema-Typ</label>

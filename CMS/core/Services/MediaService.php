@@ -275,7 +275,11 @@ class MediaService {
 
     private function sanitizeSizeSetting(string $size, string $fallback): string {
         $normalized = strtoupper(str_replace(' ', '', trim($size)));
-        return preg_match('/^\d+(?:\.\d+)?(?:B|K|KB|M|MB|G|GB)?$/', $normalized) ? $normalized : $fallback;
+        // Bare number without unit → treat as MB (matches what the admin form sends)
+        if (preg_match('/^\d+(?:\.\d+)?$/', $normalized)) {
+            $normalized .= 'M';
+        }
+        return preg_match('/^\d+(?:\.\d+)?(?:B|K|KB|M|MB|G|GB)$/', $normalized) ? $normalized : $fallback;
     }
 
     private function normalizeSettings(array $settings): array {

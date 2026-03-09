@@ -204,10 +204,14 @@ class MediaModule
     {
         $settings = $this->service->getSettings();
 
-        // Strings
+        // Size fields: form sends a plain number (MB); append 'M' if no unit suffix
         foreach (['max_upload_size', 'member_max_upload_size'] as $key) {
             if (isset($input[$key])) {
-                $settings[$key] = trim($input[$key]);
+                $val = trim((string)$input[$key]);
+                if (preg_match('/^\d+(?:\.\d+)?$/', $val)) {
+                    $val .= 'M';
+                }
+                $settings[$key] = $val;
             }
         }
 
