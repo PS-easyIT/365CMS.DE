@@ -105,7 +105,7 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
             ?>
 
             <div class="row g-3">
-                <div class="col-lg-6 d-flex">
+                <div class="col-lg-4 d-flex">
                     <div class="card cms-edit-card cms-edit-top-card h-100 w-100">
                         <div class="card-body">
                             <div class="mb-3">
@@ -123,7 +123,25 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
                     </div>
                 </div>
 
-                <div class="col-lg-6 d-flex">
+                <div class="col-lg-4 d-flex">
+                    <div class="card cms-edit-card cms-edit-top-card h-100 w-100">
+                        <div class="card-header"><h3 class="card-title">Beitragsbild</h3></div>
+                        <div class="card-body d-flex flex-column gap-2">
+                            <div id="featuredPreview" class="<?php echo $postFeaturedImageValue !== '' ? '' : 'd-none'; ?>">
+                                <img src="<?php echo htmlspecialchars($postFeaturedImageValue); ?>" class="rounded" id="featuredImg" alt="Beitragsbild" style="max-width:100%;max-height:120px;object-fit:cover;display:block;">
+                            </div>
+                            <div id="featuredEmpty" class="text-secondary small <?php echo $postFeaturedImageValue !== '' ? 'd-none' : ''; ?>">Noch kein Beitragsbild ausgewählt.</div>
+                            <input type="hidden" name="featured_image" id="featuredInput" value="<?php echo htmlspecialchars($postFeaturedImageValue); ?>">
+                            <input type="hidden" name="featured_image_temp_path" id="featuredInput_temp_path" value="">
+                            <div class="d-flex gap-2 mt-auto">
+                                <button type="button" class="btn btn-outline-primary btn-sm w-100" id="btnSelectImage">Bild auswählen</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm <?php echo $postFeaturedImageValue !== '' ? '' : 'd-none'; ?>" id="btnRemoveImage">Entfernen</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 d-flex">
                     <div class="card cms-edit-card cms-edit-top-card h-100 w-100">
                         <div class="card-header">
                             <h3 class="card-title">Veröffentlichung</h3>
@@ -341,17 +359,8 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
                         </summary>
                         <div class="card-body">
                             <div class="row g-3 mb-4">
-                                <div class="col-lg-4">
-                                    <label class="form-label">Beitragsbild</label>
-                                    <div id="featuredPreview" class="mb-2 <?php echo $postFeaturedImageValue !== '' ? '' : 'd-none'; ?>">
-                                        <img src="<?php echo htmlspecialchars($postFeaturedImageValue); ?>" class="rounded" id="featuredImg" alt="Beitragsbild" style="max-width:100%;max-height:120px;object-fit:cover;display:block;">
-                                    </div>
-                                    <div id="featuredEmpty" class="text-secondary small mb-2 <?php echo $postFeaturedImageValue !== '' ? 'd-none' : ''; ?>">Noch kein Beitragsbild ausgewählt.</div>
-                                    <input type="hidden" name="featured_image" id="featuredInput" value="<?php echo htmlspecialchars($postFeaturedImageValue); ?>">
-                                    <div class="d-flex gap-2">
-                                        <button type="button" class="btn btn-outline-secondary btn-sm w-100" id="btnSelectImage">Bild wählen</button>
-                                        <button type="button" class="btn btn-outline-danger btn-sm <?php echo $postFeaturedImageValue !== '' ? '' : 'd-none'; ?>" id="btnRemoveImage">Entfernen</button>
-                                    </div>
+                                <div class="col-12">
+                                    <p class="text-secondary small mb-0">Das Beitragsbild wird oben im Formular gesetzt. Hier kann ein separates OG-Bild für Social Media hinterlegt werden.</p>
                                 </div>
                                 <div class="col-lg-4">
                                     <label class="form-label" for="schemaType">Schema-Typ</label>
@@ -423,6 +432,8 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
         $pickerTitleInputId = 'title';
         $pickerSlugInputId = 'slug';
         $pickerDialogTitle = 'Beitragsbild auswählen';
+        $pickerIsNew = $isNew;
+        $pickerContentType = 'post';
         require __DIR__ . '/../partials/featured-image-picker.php';
         ?>
     </div>

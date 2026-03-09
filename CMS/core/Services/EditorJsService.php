@@ -618,20 +618,56 @@ final class EditorJsService
             ];
         }
 
+        // --- Slug / folder name -------------------------------------------------
         $slug = trim((string)($_POST['slug'] ?? ''));
-        $slug = preg_replace('/[^a-z0-9_-]+/i', '-', $slug) ?? 'artikelbild';
-        $slug = trim((string)$slug, '-_');
+        $slug = strtolower((string)preg_replace('/[^a-z0-9]+/i', '_', $slug));
+        $slug = trim($slug, '_');
         if ($slug === '') {
             $slug = 'artikelbild';
         }
 
+        // Content type: 'post' or 'page' (default: post)
+        $contentType = in_array($_POST['content_type'] ?? '', ['post', 'page'], true)
+            ? $_POST['content_type']
+            : 'post';
+
+        $baseFolder = $contentType === 'page' ? 'pages' : 'articles';
+
+        // If new (not yet saved), upload to temp; otherwise directly into slug folder
+        $isNew = !empty($_POST['is_new']);
+        $subFolder = $isNew ? 'temp' : $slug;
+        $targetPath = $baseFolder . '/' . $subFolder;
+
+        // --- Filename = slug.ext -----------------------------------------------
         $file = $_FILES['image'];
         $extension = strtolower((string)pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION));
         $file['name'] = $slug . ($extension !== '' ? '.' . $extension : '');
-
         $_FILES['image'] = $file;
 
-        return $this->handleFileUpload('image', true, 'articles');
+        $result = $this->handleFileUpload('image', true, $targetPath);
+
+        // --- Assign 'phinit-cover' category ------------------------------------
+        if ($result['success'] === 1 && isset($result['file']['url'])) {
+            $mediaService = MediaService::getInstance();
+            $mediaService->ensureCategory('PhinIT-Cover', 'phinit-cover');
+            // Derive relative path from the returned URL
+            $uploadUrl  = rtrim((string)(defined('UPLOAD_URL') ? UPLOAD_URL : ''), '/');
+            $fileUrl    = rtrim((string)$result['file']['url'], '/');
+            $relativePath = $uploadUrl !== '' && str_starts_with($fileUrl, $uploadUrl)
+                ? ltrim(substr($fileUrl, strlen($uploadUrl)), '/')
+                : '';
+            if ($relativePath !== '') {
+                $mediaService->assignCategory($relativePath, 'phinit-cover');
+            }
+
+            // Tell the client the temp path so it can be moved on save
+            $result['temp_path'] = $relativePath;
+            $result['target_folder'] = $targetPath;
+            $result['is_temp'] = $isNew;
+            $result['expected_folder'] = $baseFolder . '/' . $slug;
+        }
+
+        return $result;
     }
 
     /**

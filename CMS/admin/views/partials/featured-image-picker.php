@@ -16,6 +16,8 @@ $pickerSlugInputId = (string)($pickerSlugInputId ?? 'slug');
 $pickerDialogTitle = (string)($pickerDialogTitle ?? 'Bild auswählen');
 $pickerToken = (string)($editorMediaToken ?? '');
 $pickerSiteUrl = defined('SITE_URL') ? (string)SITE_URL : '';
+$pickerIsNew = isset($pickerIsNew) ? (bool)$pickerIsNew : true;
+$pickerContentType = (string)($pickerContentType ?? 'post'); // 'post' | 'page'
 ?>
 
 <div class="modal modal-blur fade" id="<?= htmlspecialchars($pickerModalId) ?>" tabindex="-1" aria-hidden="true">
@@ -63,6 +65,9 @@ $pickerSiteUrl = defined('SITE_URL') ? (string)SITE_URL : '';
     var slugInput = document.getElementById(<?= json_encode($pickerSlugInputId) ?>);
     var token = <?= json_encode($pickerToken) ?>;
     var apiUrl = <?= json_encode(rtrim($pickerSiteUrl, '/') . '/api/media') ?>;
+    var pickerIsNew = <?= $pickerIsNew ? 'true' : 'false' ?>;
+    var pickerContentType = <?= json_encode($pickerContentType) ?>;
+    var pickerTempPathInputId = <?= json_encode($pickerInputId . '_temp_path') ?>;
 
     if (!modalEl || !openBtn || !inputEl || !previewEl || !apiUrl) {
         return;
@@ -237,6 +242,8 @@ $pickerSiteUrl = defined('SITE_URL') ? (string)SITE_URL : '';
         formData.append('action', 'upload_featured');
         formData.append('image', file);
         formData.append('slug', getPreferredSlug());
+        formData.append('is_new', pickerIsNew ? '1' : '0');
+        formData.append('content_type', pickerContentType);
 
         fetch(apiUrl, {
             method: 'POST',
@@ -253,6 +260,13 @@ $pickerSiteUrl = defined('SITE_URL') ? (string)SITE_URL : '';
             }
 
             updatePreview(payload.file.url);
+            // Store temp path in hidden field so the save handler can move it
+            if (payload.temp_path) {
+                var tempEl = document.getElementById(pickerTempPathInputId);
+                if (tempEl) {
+                    tempEl.value = payload.temp_path;
+                }
+            }
             hideModal();
             loadItems();
         }).catch(function(error) {

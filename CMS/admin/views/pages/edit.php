@@ -180,6 +180,7 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                                 <?php endif; ?>
                             </div>
                             <input type="hidden" name="featured_image" id="featuredImageInput" value="<?= htmlspecialchars($pageFeaturedImageValue) ?>">
+                            <input type="hidden" name="featured_image_temp_path" id="featuredImageInput_temp_path" value="">
                             <div id="featuredImageEmpty" class="text-secondary small <?= $pageFeaturedImageValue !== '' ? 'd-none' : '' ?>">Noch kein Bild ausgewählt.</div>
                             <div class="btn-list mt-2">
                                 <button type="button" class="btn btn-sm btn-outline-primary" id="featuredImageBtn">Bild auswählen</button>
@@ -410,6 +411,8 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
         $pickerTitleInputId = 'pageTitle';
         $pickerSlugInputId = 'pageSlug';
         $pickerDialogTitle = 'Seitenbild auswählen';
+        $pickerIsNew = $isNew;
+        $pickerContentType = 'page';
         require __DIR__ . '/../partials/featured-image-picker.php';
         ?>
 

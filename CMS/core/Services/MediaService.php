@@ -852,6 +852,91 @@ class MediaService {
     }
 
     /**
+     * Ensure a custom category exists (creates it if missing).
+     * Returns the slug on success.
+     */
+    public function ensureCategory(string $name, string $slug): string
+    {
+        $meta = $this->loadMeta();
+        $existingSlugs = array_column($meta['categories'] ?? [], 'slug');
+        if (!in_array($slug, $existingSlugs, true)) {
+            $meta['categories'][] = [
+                'name'      => $name,
+                'slug'      => $slug,
+                'count'     => 0,
+                'is_system' => false,
+            ];
+            $this->saveMeta($meta);
+        }
+        return $slug;
+    }
+
+    /**
+     * Move a file to a new relative path inside the upload directory.
+     * Updates meta (keeps category, uploader etc.) and updates thumbnail variants.
+     * Returns the new relative path (forward slashes) or WP_Error.
+     */
+    public function moveFile(string $relativeOldPath, string $relativeNewPath): string|WP_Error
+    {
+        $relativeOldPath = trim(str_replace('\\', '/', $relativeOldPath), '/');
+        $relativeNewPath = trim(str_replace('\\', '/', $relativeNewPath), '/');
+
+        if ($relativeOldPath === $relativeNewPath) {
+            return $relativeNewPath;
+        }
+
+        $fullOld = $this->resolvePath($relativeOldPath);
+        if ($fullOld instanceof WP_Error) {
+            return $fullOld;
+        }
+
+        if (!file_exists($fullOld)) {
+            return new WP_Error('not_found', 'Quelldatei nicht gefunden: ' . $relativeOldPath);
+        }
+
+        $fullNew = rtrim($this->uploadPath, '/\\') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relativeNewPath);
+        $newDir  = dirname($fullNew);
+
+        if (!is_dir($newDir) && !mkdir($newDir, 0755, true)) {
+            return new WP_Error('mkdir_failed', 'Zielverzeichnis konnte nicht erstellt werden.');
+        }
+
+        // If destination exists, append a counter to avoid overwriting unrelated files
+        if (file_exists($fullNew) && $fullNew !== $fullOld) {
+            $ext     = pathinfo($relativeNewPath, PATHINFO_EXTENSION);
+            $base    = $ext !== '' ? substr($relativeNewPath, 0, -(strlen($ext) + 1)) : $relativeNewPath;
+            $counter = 1;
+            do {
+                $relativeNewPath = $base . '-' . $counter . ($ext !== '' ? '.' . $ext : '');
+                $fullNew = rtrim($this->uploadPath, '/\\') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relativeNewPath);
+                $counter++;
+            } while (file_exists($fullNew));
+        }
+
+        if (!rename($fullOld, $fullNew)) {
+            return new WP_Error('move_failed', 'Datei konnte nicht verschoben werden.');
+        }
+
+        // Move thumbnail variants as well
+        $oldVariants = $this->getGeneratedVariantPaths($fullOld);
+        $newVariants = $this->getGeneratedVariantPaths($fullNew);
+        foreach ($oldVariants as $i => $oldVariant) {
+            if (isset($newVariants[$i]) && file_exists($oldVariant)) {
+                @rename($oldVariant, $newVariants[$i]);
+            }
+        }
+
+        // Update meta: transfer entry from old path to new path
+        $meta = $this->loadMeta();
+        $existingMeta = $meta['files'][$relativeOldPath] ?? [];
+        unset($meta['files'][$relativeOldPath]);
+        $meta['files'][$relativeNewPath] = $existingMeta;
+        $this->saveMeta($meta);
+
+        return $relativeNewPath;
+    }
+
+    /**
      * Delete an item (file or folder)
      */
     public function deleteItem(string $path): bool|WP_Error {

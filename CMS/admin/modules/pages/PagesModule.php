@@ -17,6 +17,7 @@ use CMS\PageManager;
 use CMS\Security;
 use CMS\Services\RedirectService;
 use CMS\Services\ContentLocalizationService;
+use CMS\Services\MediaService;
 use CMS\Services\SEOService;
 
 class PagesModule
@@ -123,9 +124,23 @@ class PagesModule
         $contentEn  = $post['content_en'] ?? '';
         $hideTitle  = (int)($post['hide_title'] ?? 0);
         $featuredImage = trim($post['featured_image'] ?? '');
+        $featuredImageTempPath = trim($post['featured_image_temp_path'] ?? '');
         $metaTitle  = trim($post['meta_title'] ?? '');
         $metaDesc   = trim($post['meta_description'] ?? '');
         $slug       = $this->normalizeSlug($slug !== '' ? $slug : $this->pageManager->generateSlug($title));
+
+        // Move temp upload to slug subfolder (pages/{slug}/{filename})
+        if ($featuredImageTempPath !== '' && str_contains($featuredImageTempPath, '/temp/')) {
+            $mediaService = MediaService::getInstance();
+            $folderSlug   = strtolower((string)preg_replace('/[^a-z0-9]+/i', '_', $slug));
+            $folderSlug   = trim($folderSlug, '_');
+            $newRelPath   = 'pages/' . $folderSlug . '/' . basename($featuredImageTempPath);
+            $moved        = $mediaService->moveFile($featuredImageTempPath, $newRelPath);
+            if (!($moved instanceof \CMS\WP_Error)) {
+                $uploadUrl     = rtrim((string)(defined('UPLOAD_URL') ? UPLOAD_URL : ''), '/');
+                $featuredImage = $uploadUrl . '/' . ltrim((string)$moved, '/');
+            }
+        }
 
         if ($title === '') {
             return ['success' => false, 'error' => 'Titel darf nicht leer sein.'];
