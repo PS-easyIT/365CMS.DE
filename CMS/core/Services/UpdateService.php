@@ -83,7 +83,7 @@ class UpdateService
      */
     public function checkCoreUpdates(): array
     {
-        $currentVersion = CMS_VERSION ?? '2.5.4';
+        $currentVersion = CMS_VERSION ?? '2.5.11';
         
         // Check cache first
         $cacheKey = 'core_update_check';

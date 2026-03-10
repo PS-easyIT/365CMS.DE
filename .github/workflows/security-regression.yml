@@ -55,3 +55,6 @@ jobs:
 
       - name: Kommentar-Status-Regressionssuite ausführen
         run: php tests/comment-status/run.php
+
+      - name: DocumentationModule-Architekturcheck ausführen
+        run: php tests/documentation-module/run.php

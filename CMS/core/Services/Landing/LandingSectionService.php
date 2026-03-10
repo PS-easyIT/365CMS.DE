@@ -82,7 +82,7 @@ final class LandingSectionService
                 'github_text' => $data['github_text'] ?? '💻 GitHub Projekt',
                 'gitlab_url' => $data['gitlab_url'] ?? '',
                 'gitlab_text' => $data['gitlab_text'] ?? '🦊 GitLab Projekt',
-                'version' => $data['version'] ?? (defined('CMS_VERSION') ? CMS_VERSION : '2.5.4'),
+                'version' => $data['version'] ?? (defined('CMS_VERSION') ? CMS_VERSION : '2.5.11'),
                 'logo' => $data['logo'] ?? '',
                 'colors' => is_array($data['colors'] ?? null) ? $data['colors'] : $this->getDefaultColors(),
             ];
@@ -425,7 +425,7 @@ final class LandingSectionService
             'github_text' => '💻 GitHub Projekt',
             'gitlab_url' => '',
             'gitlab_text' => '🦊 GitLab Projekt',
-            'version' => defined('CMS_VERSION') ? CMS_VERSION : '2.5.4',
+            'version' => defined('CMS_VERSION') ? CMS_VERSION : '2.5.11',
             'colors' => $this->getDefaultColors(),
         ];
     }

@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.5.4",
+  "version": "2.5.11",
   "min_php": "8.4",
-  "released": "2026-03-08",
+  "released": "2026-03-10",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release 2.5.4: Live-Fixes für Sitemap-Generierung und SEO-Admin-Härtung sowie die dauerhafte Integration des Passkey-Schemas in Core, Migrationen und Neuinstallationen.",
+  "notes": "Release 2.5.11: Audit-Härtung mit Runtime-Fixes für Kommentare, Member-/Admin-Pfade, Architektur- und Contract-Checks, robusterer Cache-/Telemetry-Schiene sowie synchronisierter Core-Versionierung.",
   "critical": false
 }
