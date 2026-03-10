@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace CMS\Services;
 
 use CMS\Database;
+use CMS\Json;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -226,7 +227,7 @@ final class SeoAnalysisService
             return '';
         }
 
-        $decoded = json_decode($content, true);
+        $decoded = Json::decodeArray($content, []);
         if (is_array($decoded)) {
             $parts = [];
             $this->collectTextParts($decoded, $parts);

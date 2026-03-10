@@ -3,7 +3,12 @@ declare(strict_types=1);
 
 namespace CMS\Services;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use CMS\Database;
+use CMS\Json;
 
 /**
  * Dashboard Service - Business Logic für Dashboard-Statistiken
@@ -438,7 +443,7 @@ class DashboardService {
         ) ?: [];
         
         foreach ($activities as $activity) {
-            $activity->details = json_decode($activity->details ?? '{}');
+            $activity->details = Json::decodeObject($activity->details ?? null);
         }
         
         return $activities;

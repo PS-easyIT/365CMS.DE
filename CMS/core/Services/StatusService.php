@@ -3,6 +3,10 @@ declare(strict_types=1);
 
 namespace CMS\Services;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use CMS\Database;
 use WP_Error;
 
@@ -203,14 +207,13 @@ class StatusService {
      */
     public function checkPHP(): array {
         $checks = [];
+        $requiredPhpVersion = defined('CMS_MIN_PHP_VERSION') ? CMS_MIN_PHP_VERSION : '8.4.0';
         
         // PHP-Version
-        if (version_compare(PHP_VERSION, '8.0.0', '>=')) {
+        if (version_compare(PHP_VERSION, $requiredPhpVersion, '>=')) {
             $checks['version'] = ['status' => 'ok', 'message' => 'PHP ' . PHP_VERSION];
-        } elseif (version_compare(PHP_VERSION, '7.4.0', '>=')) {
-            $checks['version'] = ['status' => 'warning', 'message' => 'PHP ' . PHP_VERSION . ' (Update empfohlen)'];
         } else {
-            $checks['version'] = ['status' => 'critical', 'message' => 'PHP ' . PHP_VERSION . ' (veraltet!)'];
+            $checks['version'] = ['status' => 'critical', 'message' => 'PHP ' . PHP_VERSION . ' (mindestens ' . $requiredPhpVersion . ' erforderlich)'];
         }
         
         // Extensions

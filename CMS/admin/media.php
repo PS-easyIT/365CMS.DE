@@ -223,17 +223,16 @@ switch ($tab) {
     default:
         $data      = $module->getLibraryData();
         $pageTitle = 'Medien';
-        $assetsUrl = defined('ASSETS_URL') ? ASSETS_URL : SITE_URL . '/assets';
         $pageAssets = [
             'css' => [
-                $assetsUrl . '/filepond/filepond.min.css',
-                $assetsUrl . '/elfinder/vendor/jquery-ui/jquery-ui-1.13.2.css',
-                $assetsUrl . '/elfinder/css/elfinder.min.css',
-                $assetsUrl . '/elfinder/css/theme.css',
+                cms_asset_url('filepond/filepond.min.css'),
+                cms_asset_url('elfinder/vendor/jquery-ui/jquery-ui-1.13.2.css'),
+                cms_asset_url('elfinder/css/elfinder.min.css'),
+                cms_asset_url('elfinder/css/theme.css'),
             ],
             'js' => [
-                $assetsUrl . '/filepond/filepond.min.js',
-                $assetsUrl . '/js/admin-media-integrations.js?v=' . (@filemtime(ASSETS_PATH . 'js/admin-media-integrations.js') ?: time()),
+                cms_asset_url('filepond/filepond.min.js'),
+                cms_asset_url('js/admin-media-integrations.js'),
             ],
         ];
         $inlineJs = '';

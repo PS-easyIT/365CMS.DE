@@ -15,13 +15,21 @@ class Debug {
     
     private static bool $enabled = false; // enable via Debug::enable(CMS_DEBUG)
     private static array $logs = [];
+    private static array $queries = [];
+    private static array $checkpoints = [];
     private static float $start_time;
+    private const MAX_STORED_QUERIES = 100;
+    private const SLOW_QUERY_THRESHOLD_MS = 75.0;
     
     /**
      * Debug-Modus aktivieren/deaktivieren
      */
     public static function enable(bool $enable = true): void {
         self::$enabled = $enable;
+
+        if ($enable) {
+            self::startTimer();
+        }
     }
     
     /**
@@ -36,6 +44,16 @@ class Debug {
      */
     public static function startTimer(): void {
         self::$start_time = microtime(true);
+    }
+
+    /**
+     * Diagnostische Laufzeitdaten zurücksetzen.
+     */
+    public static function resetRuntimeProfile(): void {
+        self::$logs = [];
+        self::$queries = [];
+        self::$checkpoints = [];
+        self::startTimer();
     }
     
     /**
@@ -160,6 +178,67 @@ class Debug {
             ];
         }, self::$logs);
     }
+
+    /**
+     * Runtime-Messpunkt setzen.
+     */
+    public static function checkpoint(string $label, ?array $context = null): void {
+        if (!self::$enabled) {
+            return;
+        }
+
+        self::$checkpoints[] = [
+            'label' => $label,
+            'time_ms' => round(self::getElapsedTime() * 1000, 2),
+            'memory_mb' => round(memory_get_usage(true) / 1024 / 1024, 2),
+            'context' => $context,
+        ];
+    }
+
+    /**
+     * Query-Telemetrie für Diagnoseansichten liefern.
+     */
+    public static function getQueryTelemetry(): array {
+        $queries = self::$queries;
+        usort($queries, static function (array $left, array $right): int {
+            return ($right['execution_time_ms'] ?? 0) <=> ($left['execution_time_ms'] ?? 0);
+        });
+
+        $totalTime = 0.0;
+        $slowCount = 0;
+        foreach (self::$queries as $query) {
+            $duration = (float)($query['execution_time_ms'] ?? 0.0);
+            $totalTime += $duration;
+            if ($duration >= self::SLOW_QUERY_THRESHOLD_MS) {
+                $slowCount++;
+            }
+        }
+
+        return [
+            'count' => count(self::$queries),
+            'total_time_ms' => round($totalTime, 2),
+            'slow_count' => $slowCount,
+            'slow_threshold_ms' => self::SLOW_QUERY_THRESHOLD_MS,
+            'queries' => $queries,
+        ];
+    }
+
+    /**
+     * Snapshot der aktuellen Debug-Runtime.
+     */
+    public static function getRuntimeTelemetry(): array {
+        $queryTelemetry = self::getQueryTelemetry();
+
+        return [
+            'enabled' => self::$enabled,
+            'elapsed_time_ms' => round(self::getElapsedTime() * 1000, 2),
+            'memory_peak_mb' => round(memory_get_peak_usage(true) / 1024 / 1024, 2),
+            'memory_current_mb' => round(memory_get_usage(true) / 1024 / 1024, 2),
+            'log_count' => count(self::$logs),
+            'checkpoints' => self::$checkpoints,
+            'query' => $queryTelemetry,
+        ];
+    }
     
     /**
      * Debug-Info als HTML ausgeben
@@ -226,11 +305,25 @@ class Debug {
      * Datenbank-Query loggen
      */
     public static function query(string $sql, ?array $params = null, float $execution_time = 0): void {
-        self::log('SQL Query', 'info', [
+        $payload = [
             'sql' => $sql,
             'params' => $params,
             'execution_time_ms' => round($execution_time * 1000, 2)
-        ]);
+        ];
+
+        if (self::$enabled) {
+            self::$queries[] = [
+                'sql' => preg_replace('/\s+/', ' ', trim($sql)) ?? trim($sql),
+                'params' => $params,
+                'execution_time_ms' => (float)($payload['execution_time_ms'] ?? 0.0),
+            ];
+
+            if (count(self::$queries) > self::MAX_STORED_QUERIES) {
+                self::$queries = array_slice(self::$queries, -self::MAX_STORED_QUERIES);
+            }
+        }
+
+        self::log('SQL Query', 'info', $payload);
     }
     
     /**
@@ -251,6 +344,6 @@ class Debug {
      * Logs löschen
      */
     public static function clear(): void {
-        self::$logs = [];
+        self::resetRuntimeProfile();
     }
 }

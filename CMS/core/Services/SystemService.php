@@ -3,7 +3,12 @@ declare(strict_types=1);
 
 namespace CMS\Services;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use CMS\Database;
+use CMS\Debug;
 use CMS\Security;
 use PDO;
 
@@ -759,6 +764,21 @@ class SystemService {
             'hsts_preload' => $headerProfile['hsts_preload'] ? 'Aktiv ✓' : ($headerProfile['https'] ? 'Nicht aktiv ⚠️' : 'Nur mit HTTPS ℹ️'),
         ];
     }
+
+    /**
+     * Debug-only Runtime-/Query-Telemetrie für Diagnoseansichten.
+     */
+    public function getRuntimeTelemetry(): array
+    {
+        if (!defined('CMS_DEBUG') || !CMS_DEBUG) {
+            return [
+                'enabled' => false,
+                'message' => 'Runtime-Telemetrie ist nur im Debug-Modus aktiv.',
+            ];
+        }
+
+        return Debug::getRuntimeTelemetry();
+    }
     
     /**
      * Run all system checks
@@ -771,7 +791,8 @@ class SystemService {
             'file_permissions' => $this->checkFilePermissions(),
             'directory_sizes' => $this->getDirectorySizes(),
             'cms_statistics' => $this->getCMSStatistics(),
-            'security_status' => $this->getSecurityStatus()
+            'security_status' => $this->getSecurityStatus(),
+            'runtime_telemetry' => $this->getRuntimeTelemetry()
         ];
     }
 }

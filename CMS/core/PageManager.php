@@ -18,8 +18,8 @@ if (!defined('ABSPATH')) {
 class PageManager
 {
     private static ?self $instance = null;
-    private $db;
-    private $prefix;
+    private Database $db;
+    private string $prefix;
     
     /**
      * Singleton instance
@@ -90,6 +90,11 @@ class PageManager
      */
     public function updatePage(int $id, array $data): bool
     {
+        $currentPage = $this->getPage($id);
+        if ($currentPage === null) {
+            return false;
+        }
+
         $fields = [];
         $values = [];
         
@@ -103,6 +108,10 @@ class PageManager
         if (empty($fields)) {
             return false;
         }
+
+        if ($this->hasTrackedRevisionChanges($currentPage, $data) && !$this->storeRevisionSnapshot($currentPage)) {
+            return false;
+        }
         
         $fields[] = "updated_at = NOW()";
         $values[] = $id;
@@ -110,6 +119,24 @@ class PageManager
         $sql = "UPDATE {$this->prefix}pages SET " . implode(', ', $fields) . " WHERE id = ?";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute($values);
+    }
+
+    /**
+     * Prüft, ob sich revisionsrelevante Inhaltsfelder geändert haben.
+     */
+    private function hasTrackedRevisionChanges(array $currentPage, array $newData): bool
+    {
+        foreach (['title', 'content', 'excerpt'] as $field) {
+            if (!array_key_exists($field, $newData)) {
+                continue;
+            }
+
+            if ((string)($currentPage[$field] ?? '') !== (string)$newData[$field]) {
+                return true;
+            }
+        }
+
+        return false;
     }
     
     /**
@@ -179,11 +206,56 @@ class PageManager
     }
 
     /**
-     * Get Revisions (Placeholder for future)
+     * Speichert einen Revisions-Snapshot der aktuellen Seite.
+     */
+    private function storeRevisionSnapshot(array $page): bool
+    {
+        $pageId = (int)($page['id'] ?? 0);
+        if ($pageId <= 0) {
+            return false;
+        }
+
+        $sql = "INSERT INTO {$this->prefix}page_revisions (page_id, title, content, excerpt, author_id) VALUES (?, ?, ?, ?, ?)";
+        $stmt = $this->db->prepare($sql);
+
+        return $stmt->execute([
+            $pageId,
+            (string)($page['title'] ?? ''),
+            (string)($page['content'] ?? ''),
+            (string)($page['excerpt'] ?? ''),
+            (int)($page['author_id'] ?? 0),
+        ]);
+    }
+
+    /**
+     * Gibt gespeicherte Revisionen einer Seite zurück.
+     *
+     * @return array<int, array<string, mixed>>
      */
     public function getRevisions(int $pageId): array
     {
-        // TODO: Implement revisions table logic
-        return [];
+        if ($pageId <= 0) {
+            return [];
+        }
+
+        $sql = "SELECT pr.id,
+                       pr.page_id,
+                       pr.title,
+                       pr.content,
+                       pr.excerpt,
+                       pr.author_id,
+                       pr.created_at,
+                       u.username,
+                       u.display_name
+                FROM {$this->prefix}page_revisions pr
+                LEFT JOIN {$this->prefix}users u ON pr.author_id = u.id
+                WHERE pr.page_id = ?
+                ORDER BY pr.created_at DESC, pr.id DESC";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$pageId]);
+        $revisions = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        return $revisions ?: [];
     }
 }

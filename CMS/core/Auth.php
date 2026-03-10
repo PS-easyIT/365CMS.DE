@@ -132,7 +132,7 @@ class Auth
             // H-01: Fehlgeschlagenen Login protokollieren
             AuditLogger::instance()->loginFailed($username);
             if (function_exists('cms_log')) {
-                cms_log("Login fehlgeschlagen: Benutzer '{$username}' nicht gefunden", 'notice', 'auth');
+                cms_log('notice', "Login fehlgeschlagen: Benutzer '{$username}' nicht gefunden", ['category' => 'auth', 'username' => $username]);
             }
             return 'Ungültige Anmeldedaten.';
         }
@@ -142,7 +142,7 @@ class Auth
             // H-01: Fehlgeschlagenen Login protokollieren
             AuditLogger::instance()->loginFailed($username);
             if (function_exists('cms_log')) {
-                cms_log("Login fehlgeschlagen: Falsches Passwort für '{$username}'", 'notice', 'auth');
+                cms_log('notice', "Login fehlgeschlagen: Falsches Passwort für '{$username}'", ['category' => 'auth', 'username' => $username]);
             }
             return 'Ungültige Anmeldedaten.';
         }

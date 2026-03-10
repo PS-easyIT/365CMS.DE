@@ -118,7 +118,7 @@ class CacheManager implements CacheInterface
             return $default;
         }
 
-        $data = json_decode($payload, true);
+        $data = Json::decodeArray($payload, []);
         if (!is_array($data) || !array_key_exists('v', $data) || !isset($data['e'])) {
             if (file_exists($file)) { unlink($file); }
             return $default;
@@ -425,6 +425,192 @@ class CacheManager implements CacheInterface
             header("Pragma: cache");
             header("Cache-Control: max-age=$ttl");
         }
+    }
+
+    /**
+     * Sendet zentrale Response-Header für öffentliche und private Antworten.
+     */
+    public function sendResponseHeaders(string $profile = 'public', int $ttl = 300): void
+    {
+        if (headers_sent()) {
+            return;
+        }
+
+        $this->applyResponseHeaders($this->buildResponseHeaders($profile, $ttl));
+    }
+
+    /**
+     * @return array<string, string|array<int, string>|null>
+     */
+    private function buildResponseHeaders(string $profile = 'public', int $ttl = 300): array
+    {
+        if ($profile === 'private') {
+            return [
+                'Cache-Control' => 'private, no-store, no-cache, must-revalidate, max-age=0',
+                'Pragma' => 'no-cache',
+                'Expires' => '0',
+                'Surrogate-Control' => 'no-store',
+                'Vary' => ['Accept-Encoding', 'Cookie'],
+                'X-LiteSpeed-Cache-Control' => $this->useLiteSpeed ? 'no-cache, no-store' : null,
+            ];
+        }
+
+        $ttl = max(60, $ttl);
+        $expires = gmdate('D, d M Y H:i:s', time() + $ttl) . ' GMT';
+
+        return [
+            'Cache-Control' => 'public, max-age=' . $ttl . ', s-maxage=' . $ttl . ', stale-while-revalidate=60, stale-if-error=300',
+            'Expires' => $expires,
+            'Surrogate-Control' => 'max-age=' . $ttl . ', stale-while-revalidate=60, stale-if-error=300',
+            'Vary' => ['Accept-Encoding', 'Cookie'],
+            'X-LiteSpeed-Cache-Control' => $this->useLiteSpeed ? 'public, max-age=' . $ttl : null,
+        ];
+    }
+
+    /**
+     * @param array<string, string|array<int, string>|null> $headers
+     */
+    private function applyResponseHeaders(array $headers): void
+    {
+        foreach ($headers as $name => $value) {
+            if ($value === null) {
+                continue;
+            }
+
+            if ($name === 'Vary' && is_array($value)) {
+                $this->appendTokenHeader($name, $value);
+                continue;
+            }
+
+            if (is_string($value) && $value !== '') {
+                header($name . ': ' . $value);
+            }
+        }
+    }
+
+    /**
+     * @param array<int, string> $tokens
+     */
+    private function appendTokenHeader(string $name, array $tokens): void
+    {
+        $merged = $this->mergeHeaderTokenList(
+            $this->getCurrentHeaderValues($name),
+            $tokens
+        );
+
+        if ($merged === []) {
+            return;
+        }
+
+        header_remove($name);
+        header($name . ': ' . implode(', ', $merged));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function getCurrentHeaderValues(string $name): array
+    {
+        $values = [];
+
+        foreach (headers_list() as $headerLine) {
+            if (stripos($headerLine, $name . ':') !== 0) {
+                continue;
+            }
+
+            $rawValue = trim(substr($headerLine, strlen($name) + 1));
+            if ($rawValue === '') {
+                continue;
+            }
+
+            foreach (explode(',', $rawValue) as $token) {
+                $token = trim($token);
+                if ($token !== '') {
+                    $values[] = $token;
+                }
+            }
+        }
+
+        return $values;
+    }
+
+    /**
+     * @param array<int, string> ...$lists
+     * @return array<int, string>
+     */
+    private function mergeHeaderTokenList(array ...$lists): array
+    {
+        $merged = [];
+        $seen = [];
+
+        foreach ($lists as $list) {
+            foreach ($list as $token) {
+                $normalized = strtolower(trim($token));
+                if ($normalized === '' || isset($seen[$normalized])) {
+                    continue;
+                }
+
+                $seen[$normalized] = true;
+                $merged[] = trim($token);
+            }
+        }
+
+        return $merged;
+    }
+
+    /**
+     * Sendet ETag-/Last-Modified-Header für öffentliche Ressourcen und
+     * beantwortet bedingte GET-/HEAD-Requests bei unverändertem Stand mit 304.
+     *
+     * @return bool true = Response kann normal weiterlaufen, false = 304 gesendet
+     */
+    public function sendConditionalHeaders(string $resourceKey, int|string|null $lastModified): bool
+    {
+        if (headers_sent()) {
+            return true;
+        }
+
+        $timestamp = $this->normalizeLastModifiedTimestamp($lastModified);
+        if ($timestamp === null) {
+            return true;
+        }
+
+        $etag = '"' . sha1($resourceKey . '|' . $timestamp) . '"';
+        $lastModifiedHeader = gmdate('D, d M Y H:i:s', $timestamp) . ' GMT';
+
+        header('ETag: ' . $etag);
+        header('Last-Modified: ' . $lastModifiedHeader);
+
+        $ifNoneMatch = trim((string)($_SERVER['HTTP_IF_NONE_MATCH'] ?? ''));
+        if ($ifNoneMatch !== '' && $ifNoneMatch === $etag) {
+            http_response_code(304);
+            return false;
+        }
+
+        $ifModifiedSince = trim((string)($_SERVER['HTTP_IF_MODIFIED_SINCE'] ?? ''));
+        if ($ifModifiedSince !== '') {
+            $ifModifiedSinceTs = strtotime($ifModifiedSince);
+            if ($ifModifiedSinceTs !== false && $ifModifiedSinceTs >= $timestamp) {
+                http_response_code(304);
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function normalizeLastModifiedTimestamp(int|string|null $lastModified): ?int
+    {
+        if (is_int($lastModified)) {
+            return $lastModified > 0 ? $lastModified : null;
+        }
+
+        if (!is_string($lastModified) || trim($lastModified) === '') {
+            return null;
+        }
+
+        $timestamp = strtotime($lastModified);
+        return $timestamp !== false && $timestamp > 0 ? $timestamp : null;
     }
 
     private function getCacheFile(string $key): string

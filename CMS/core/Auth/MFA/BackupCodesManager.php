@@ -18,6 +18,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Database;
+use CMS\Json;
 use CMS\Security;
 
 final class BackupCodesManager
@@ -183,7 +184,7 @@ final class BackupCodesManager
             return [];
         }
 
-        $decoded = json_decode($row->meta_value, true);
+        $decoded = Json::decodeArray($row->meta_value ?? null, []);
         return is_array($decoded) ? $decoded : [];
     }
 

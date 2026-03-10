@@ -13,6 +13,8 @@ declare(strict_types=1);
 namespace CMS\Services;
 
 use CMS\Database;
+use CMS\Http\Client as HttpClient;
+use CMS\Json;
 use CMS\PluginManager;
 
 if (!defined('ABSPATH')) {
@@ -23,6 +25,7 @@ class UpdateService
 {
     private static ?self $instance = null;
     private Database $db;
+    private HttpClient $httpClient;
     
     /** Fallback-Werte – werden von DB-Setting überschrieben, wenn vorhanden */
     private const DEFAULT_GITHUB_REPO = 'PS-easyIT/365CMS.DE';
@@ -50,6 +53,7 @@ class UpdateService
     private function __construct()
     {
         $this->db = Database::instance();
+        $this->httpClient = HttpClient::getInstance();
         $this->loadUpdateConfig();
     }
 
@@ -174,7 +178,7 @@ class UpdateService
             return [];
         }
         
-        $themeData = json_decode(file_get_contents($themeJsonFile), true);
+        $themeData = Json::decodeArray(file_get_contents($themeJsonFile), []);
         $currentVersion = $themeData['version'] ?? '1.0.0';
         
         // Check GitHub for theme updates (konfigurierbar via DB)
@@ -186,7 +190,7 @@ class UpdateService
         }
         
         // Decode base64 content
-        $remoteThemeData = json_decode(base64_decode($response['content']), true);
+        $remoteThemeData = Json::decodeArray(base64_decode((string)($response['content'] ?? ''), true), []);
         $latestVersion = $remoteThemeData['version'] ?? $currentVersion;
         
         $updateAvailable = version_compare($latestVersion, $currentVersion, '>');
@@ -209,45 +213,84 @@ class UpdateService
      */
     private function fetchGitHubData(string $url): ?array
     {
-        if (!filter_var($url, FILTER_VALIDATE_URL) || !str_starts_with($url, 'https://api.github.com/')) {
+        if (!$this->isAllowedGitHubApiUrl($url)) {
             error_log('UpdateService: Invalid GitHub API URL: ' . $url);
             return null;
         }
 
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL            => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 10,
-            CURLOPT_CONNECTTIMEOUT => 5,
-            CURLOPT_USERAGENT      => '365CMS-UpdateChecker/1.0',
-            CURLOPT_HTTPHEADER     => ['Accept: application/vnd.github.v3+json'],
-            CURLOPT_SSL_VERIFYPEER => true,
+        if (!$this->isSafeExternalUrl($url)) {
+            error_log('UpdateService [L-10]: GitHub API URL blockiert (SSRF-Guard): ' . $url);
+            return null;
+        }
+
+        $response = $this->httpClient->get($url, [
+            'timeout' => 10,
+            'connectTimeout' => 5,
+            'userAgent' => '365CMS-UpdateChecker/1.0',
+            'headers' => ['Accept: application/vnd.github.v3+json'],
+            'allowedContentTypes' => ['application/json'],
+            'maxBytes' => 2097152,
         ]);
 
-        $response = curl_exec($ch);
-        $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlError = curl_error($ch);
-        curl_close($ch);
-
-        if ($response === false || $curlError !== '') {
-            error_log('UpdateService: cURL-Fehler bei ' . $url . ': ' . $curlError);
+        if (!$response['success']) {
+            error_log('UpdateService: HTTP-Fehler bei ' . $url . ': ' . (string) ($response['error'] ?? 'unbekannt'));
             return null;
         }
 
-        if ($httpCode !== 200) {
-            error_log('UpdateService: HTTP ' . $httpCode . ' bei ' . $url);
-            return null;
-        }
+        $data = Json::decode((string) ($response['body'] ?? ''), true, null);
 
-        $data = json_decode((string) $response, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            error_log('UpdateService: Ungültiges JSON von GitHub: ' . json_last_error_msg());
+        if (!is_array($data)) {
+            error_log('UpdateService: Ungültiges JSON von GitHub.');
             return null;
         }
 
         return $data;
+    }
+
+    private function isAllowedGitHubApiUrl(string $url): bool
+    {
+        if (!filter_var($url, FILTER_VALIDATE_URL) || !str_starts_with($url, 'https://')) {
+            return false;
+        }
+
+        $baseUrl = rtrim($this->githubApi, '/');
+        if (!filter_var($baseUrl, FILTER_VALIDATE_URL) || !str_starts_with($baseUrl, 'https://')) {
+            $baseUrl = self::DEFAULT_GITHUB_API;
+        }
+
+        $targetParts = parse_url($url);
+        $baseParts = parse_url($baseUrl);
+
+        if (!is_array($targetParts) || !is_array($baseParts)) {
+            return false;
+        }
+
+        $targetHost = strtolower((string)($targetParts['host'] ?? ''));
+        $baseHost = strtolower((string)($baseParts['host'] ?? ''));
+        if ($targetHost === '' || $baseHost === '' || $targetHost !== $baseHost) {
+            return false;
+        }
+
+        $targetScheme = strtolower((string)($targetParts['scheme'] ?? ''));
+        $baseScheme = strtolower((string)($baseParts['scheme'] ?? ''));
+        if ($targetScheme !== 'https' || $baseScheme !== 'https') {
+            return false;
+        }
+
+        $targetPort = (int)($targetParts['port'] ?? 443);
+        $basePort = (int)($baseParts['port'] ?? 443);
+        if ($targetPort !== $basePort) {
+            return false;
+        }
+
+        $basePath = rtrim((string)($baseParts['path'] ?? ''), '/');
+        $targetPath = (string)($targetParts['path'] ?? '');
+
+        if ($basePath !== '' && !str_starts_with($targetPath, $basePath . '/')) {
+            return $targetPath === $basePath;
+        }
+
+        return true;
     }
 
     /**
@@ -324,34 +367,23 @@ class UpdateService
             return null;
         }
 
-        if (!extension_loaded('curl')) {
-            error_log('UpdateService: cURL-Extension nicht verfügbar.');
-            return null;
-        }
-
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_CONNECTTIMEOUT => 5,
-            CURLOPT_TIMEOUT        => 10,
-            CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_SSL_VERIFYHOST => 2,
-            CURLOPT_HTTPHEADER     => [
-                'User-Agent: 365CMS-UpdateChecker/1.0',
-            ],
+        $response = $this->httpClient->get($url, [
+            'timeout' => 10,
+            'connectTimeout' => 5,
+            'headers' => ['Accept: application/json'],
+            'userAgent' => '365CMS-UpdateChecker/1.0',
+            'allowedContentTypes' => ['application/json'],
+            'maxBytes' => 1048576,
         ]);
 
-        $response = curl_exec($ch);
-        $curlError = curl_error($ch);
-        curl_close($ch);
-
-        if ($response === false || $curlError !== '') {
-            error_log('UpdateService: fetchPluginUpdate cURL-Fehler: ' . $curlError);
+        if (!$response['success']) {
+            error_log('UpdateService: fetchPluginUpdate HTTP-Fehler: ' . (string) ($response['error'] ?? 'unbekannt'));
             return null;
         }
 
-        return json_decode((string) $response, true) ?: null;
+        $data = Json::decode((string) ($response['body'] ?? ''), true, null);
+
+        return is_array($data) ? $data : null;
     }
 
     /**
@@ -434,8 +466,8 @@ class UpdateService
             
             $history = [];
             while ($row = $stmt->fetch(\PDO::FETCH_OBJ)) {
-                $data = json_decode($row->option_value, true);
-                if ($data) {
+                $data = Json::decode($row->option_value ?? null, true, null);
+                if (is_array($data)) {
                     $history[] = $data;
                 }
             }
@@ -477,10 +509,6 @@ class UpdateService
             return ['success' => false, 'message' => 'Ungültige Download-URL: nur HTTPS erlaubt.', 'sha256_verified' => false];
         }
 
-        if (!extension_loaded('curl')) {
-            return ['success' => false, 'message' => 'cURL ist nicht verfügbar.', 'sha256_verified' => false];
-        }
-
         if (!extension_loaded('zip')) {
             return ['success' => false, 'message' => 'ZIP-Extension ist nicht verfügbar.', 'sha256_verified' => false];
         }
@@ -490,34 +518,21 @@ class UpdateService
             . '365cms_upd_' . bin2hex(random_bytes(8)) . '.zip';
 
         try {
-            // Download via cURL
-            $fp = fopen($tmpFile, 'wb');
-            if ($fp === false) {
-                throw new \RuntimeException('Temporäre Datei nicht beschreibbar: ' . $tmpFile);
-            }
-
-            $ch = curl_init($downloadUrl);
-            curl_setopt_array($ch, [
-                CURLOPT_FILE           => $fp,
-                CURLOPT_FOLLOWLOCATION => false,
-                CURLOPT_CONNECTTIMEOUT => 10,
-                CURLOPT_TIMEOUT        => 120,
-                CURLOPT_SSL_VERIFYPEER => true,
-                CURLOPT_SSL_VERIFYHOST => 2,
-                CURLOPT_HTTPHEADER     => ['User-Agent: 365CMS-Updater/1.0'],
+            $response = $this->httpClient->get($downloadUrl, [
+                'timeout' => 120,
+                'connectTimeout' => 10,
+                'headers' => ['Accept: application/zip, application/octet-stream'],
+                'userAgent' => '365CMS-Updater/1.0',
+                'allowedContentTypes' => ['application/zip', 'application/octet-stream', 'application/x-zip-compressed'],
+                'maxBytes' => 268435456,
             ]);
 
-            $curlOk   = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $curlErr  = curl_error($ch);
-            curl_close($ch);
-            fclose($fp);
-
-            if (!$curlOk || $curlErr !== '') {
-                throw new \RuntimeException('Download-Fehler: ' . $curlErr);
+            if (!$response['success']) {
+                throw new \RuntimeException('Download-Fehler: ' . (string) ($response['error'] ?? 'unbekannt'));
             }
-            if ($httpCode !== 200) {
-                throw new \RuntimeException("Download fehlgeschlagen: HTTP {$httpCode}");
+
+            if (file_put_contents($tmpFile, (string) ($response['body'] ?? '')) === false) {
+                throw new \RuntimeException('Temporäre Datei nicht beschreibbar: ' . $tmpFile);
             }
 
             // H-19: SHA-256-Verifikation
@@ -592,11 +607,13 @@ class UpdateService
      */
     public function getSystemRequirements(): array
     {
+        $requiredPhpVersion = defined('CMS_MIN_PHP_VERSION') ? CMS_MIN_PHP_VERSION : '8.4.0';
+
         return [
             'php_version' => [
-                'required' => '8.1.0',
+                'required' => $requiredPhpVersion,
                 'current' => PHP_VERSION,
-                'met' => version_compare(PHP_VERSION, '8.1.0', '>='),
+                'met' => version_compare(PHP_VERSION, $requiredPhpVersion, '>='),
             ],
             'mysql_version' => [
                 'required' => '5.7.0',
@@ -669,7 +686,8 @@ class UpdateService
             $result = $stmt->fetch(\PDO::FETCH_OBJ);
             
             if ($result) {
-                return json_decode($result->cache_value, true);
+                $data = Json::decode($result->cache_value ?? null, true, null);
+                return is_array($data) ? $data : null;
             }
             
             return null;

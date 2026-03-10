@@ -5,6 +5,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!defined('CMS_ADMIN_MEMBER_VIEW')) {
+    exit;
+}
+
 $currentMemberPage = $activePage ?? 'member-dashboard';
 $memberNavItems = [
     ['slug' => 'member-dashboard', 'label' => 'Übersicht', 'url' => SITE_URL . '/admin/member-dashboard'],

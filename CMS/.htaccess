@@ -80,6 +80,7 @@ Options +FollowSymLinks
 <IfModule mod_setenvif.c>
     SetEnvIfNoCase X-Forwarded-Proto "^https$" HTTPS=on
     SetEnvIfNoCase X-Forwarded-Ssl "^on$" HTTPS=on
+    SetEnvIfNoCase Request_URI "^/uploads/" CMS_UPLOAD_REQUEST=1
 </IfModule>
 
 # Disable PHP execution in uploads
@@ -177,6 +178,11 @@ AddDefaultCharset UTF-8
 
 # Cache-Control headers (H-14)
 <IfModule mod_headers.c>
+    <FilesMatch ".+">
+        Header always set Content-Disposition "attachment" env=CMS_UPLOAD_REQUEST
+        Header always set X-Content-Type-Options "nosniff" env=CMS_UPLOAD_REQUEST
+    </FilesMatch>
+
     # Statische Bild-Assets – 1 Jahr, immutable (nie geändert ohne neuen Namen)
     <FilesMatch "\.(jpg|jpeg|gif|png|webp|ico|svg)$">
         Header set Cache-Control "public, max-age=31536000, immutable"
@@ -187,9 +193,14 @@ AddDefaultCharset UTF-8
         Header set Cache-Control "public, max-age=31536000, immutable"
     </FilesMatch>
 
-    # CSS / JS – 1 Monat (mit ?v= Cache-Busting in Templates)
+    # CSS / JS – 1 Jahr (Templates nutzen Query-/Filemtime-Versionierung)
     <FilesMatch "\.(css|js)$">
-        Header set Cache-Control "public, max-age=2592000, must-revalidate"
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+
+    # JSON/XML/Text-Feeds – kurze TTL für öffentliche Maschinenformate
+    <FilesMatch "\.(json|xml|txt)$">
+        Header set Cache-Control "public, max-age=300, stale-while-revalidate=60"
     </FilesMatch>
 
     # HTML – kein Caching (dynamische Seiten)

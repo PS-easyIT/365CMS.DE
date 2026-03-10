@@ -29,6 +29,8 @@ final class WebAuthnAdapter
     private ?WebAuthn $webAuthn = null;
     private ?int $lastSignatureCounter = null;
     private ?bool $credentialsTableAvailable = null;
+    /** @var array<string, bool>|null */
+    private ?array $credentialsTableColumns = null;
 
     public static function instance(): self
     {
@@ -370,13 +372,15 @@ final class WebAuthnAdapter
         try {
             $stmt = $db->getPdo()->query("SHOW TABLES LIKE " . $db->getPdo()->quote($table));
             if ($stmt !== false && $stmt->fetchColumn() !== false) {
-                return $this->credentialsTableAvailable = true;
+                $this->credentialsTableAvailable = $this->synchronizeCredentialsSchema($table);
+                return $this->credentialsTableAvailable;
             }
 
             $this->createTable();
 
             $stmt = $db->getPdo()->query("SHOW TABLES LIKE " . $db->getPdo()->quote($table));
-            $this->credentialsTableAvailable = $stmt !== false && $stmt->fetchColumn() !== false;
+            $tableExists = $stmt !== false && $stmt->fetchColumn() !== false;
+            $this->credentialsTableAvailable = $tableExists && $this->synchronizeCredentialsSchema($table);
 
             if (!$this->credentialsTableAvailable) {
                 error_log('WebAuthnAdapter: passkey_credentials table could not be verified after createTable().');
@@ -387,6 +391,69 @@ final class WebAuthnAdapter
         }
 
         return $this->credentialsTableAvailable;
+    }
+
+    private function synchronizeCredentialsSchema(string $table): bool
+    {
+        try {
+            $columns = $this->getCredentialsTableColumns($table);
+            $alterStatements = [];
+
+            $requiredColumns = [
+                'credential_id' => "ADD COLUMN credential_id VARCHAR(512) NOT NULL AFTER user_id",
+                'public_key' => "ADD COLUMN public_key TEXT NOT NULL AFTER credential_id",
+                'sign_count' => "ADD COLUMN sign_count INT UNSIGNED NOT NULL DEFAULT 0 AFTER public_key",
+                'aaguid' => "ADD COLUMN aaguid VARCHAR(64) DEFAULT NULL AFTER sign_count",
+                'attestation_fmt' => "ADD COLUMN attestation_fmt VARCHAR(32) DEFAULT NULL AFTER aaguid",
+                'name' => "ADD COLUMN name VARCHAR(128) DEFAULT '' AFTER attestation_fmt",
+                'created_at' => "ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER name",
+                'last_used_at' => "ADD COLUMN last_used_at TIMESTAMP NULL DEFAULT NULL AFTER created_at",
+            ];
+
+            foreach ($requiredColumns as $column => $ddl) {
+                if (!isset($columns[$column])) {
+                    $alterStatements[] = $ddl;
+                }
+            }
+
+            if ($alterStatements !== []) {
+                $db = Database::instance();
+                $db->getPdo()->exec(
+                    'ALTER TABLE ' . $table . "\n    " . implode(",\n    ", $alterStatements)
+                );
+                $columns = $this->getCredentialsTableColumns($table);
+            }
+
+            $this->credentialsTableColumns = $columns;
+
+            return isset($columns['credential_id'], $columns['public_key'], $columns['sign_count']);
+        } catch (\Throwable $e) {
+            error_log('WebAuthnAdapter: passkey schema synchronization failed: ' . $e->getMessage());
+            $this->credentialsTableColumns = null;
+            return false;
+        }
+    }
+
+    /**
+     * @return array<string, bool>
+     */
+    private function getCredentialsTableColumns(string $table): array
+    {
+        $db = Database::instance();
+        $stmt = $db->getPdo()->query('SHOW COLUMNS FROM ' . $table);
+        if ($stmt === false) {
+            return [];
+        }
+
+        $columns = [];
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $column) {
+            $name = (string)($column['Field'] ?? '');
+            if ($name !== '') {
+                $columns[$name] = true;
+            }
+        }
+
+        return $columns;
     }
 
     private function normalizeCredentialId(string $credentialId): string

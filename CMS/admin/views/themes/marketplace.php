@@ -82,12 +82,19 @@ $total   = $data['total'] ?? 0;
                         </div>
                         <div class="card-footer">
                             <?php if (empty($theme['installed'])): ?>
-                                <form method="post" class="d-inline">
-                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                                    <input type="hidden" name="action" value="install">
-                                    <input type="hidden" name="theme" value="<?php echo htmlspecialchars($slug); ?>">
-                                    <button type="submit" class="btn btn-primary btn-sm">Installieren</button>
-                                </form>
+                                <?php if (!empty($theme['install_supported'])): ?>
+                                    <form method="post" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                        <input type="hidden" name="action" value="install">
+                                        <input type="hidden" name="theme" value="<?php echo htmlspecialchars($slug); ?>">
+                                        <button type="submit" class="btn btn-primary btn-sm">Installieren</button>
+                                    </form>
+                                <?php else: ?>
+                                    <div class="d-flex flex-column gap-2">
+                                        <span class="badge bg-secondary-lt text-secondary">Nur manuell</span>
+                                        <span class="text-muted small">Für dieses Theme ist aktuell kein Installationspaket im Marketplace hinterlegt.</span>
+                                    </div>
+                                <?php endif; ?>
                             <?php elseif (!empty($theme['active'])): ?>
                                 <span class="text-muted small">Aktives Theme</span>
                             <?php else: ?>

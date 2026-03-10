@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
+if (!defined('CMS_ADMIN_SYSTEM_VIEW')) exit;
 
 $health = $data['health'] ?? [];
 $checks = $health['checks'] ?? [];

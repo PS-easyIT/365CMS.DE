@@ -73,7 +73,7 @@ class TablesModule
 
         $tables = array_values(array_filter(array_map(function ($table): array {
             $item = (array)$table;
-            $settings = json_decode((string)($item['settings_json'] ?? '{}'), true) ?: [];
+            $settings = \CMS\Json::decodeArray($item['settings_json'] ?? null, []);
             $item['content_mode'] = (string)($settings['content_mode'] ?? 'table');
             return $item;
         }, $tables), static fn(array $table): bool => ($table['content_mode'] ?? 'table') !== 'hub'));
@@ -100,11 +100,11 @@ class TablesModule
             );
             if ($table) {
                 $table = (array)$table;
-                $table['columns'] = json_decode($table['columns_json'] ?? '[]', true) ?: [];
-                $table['rows']    = json_decode($table['rows_json'] ?? '[]', true) ?: [];
+                $table['columns'] = \CMS\Json::decodeArray($table['columns_json'] ?? null, []);
+                $table['rows']    = \CMS\Json::decodeArray($table['rows_json'] ?? null, []);
                 $table['settings'] = array_merge(
                     self::DEFAULT_SETTINGS,
-                    json_decode($table['settings_json'] ?? '{}', true) ?: []
+                    \CMS\Json::decodeArray($table['settings_json'] ?? null, [])
                 );
             }
         }
@@ -130,8 +130,8 @@ class TablesModule
         }
 
         // Spalten & Zeilen aus JSON-Feldern
-        $columns = json_decode($post['columns_json'] ?? '[]', true);
-        $rows    = json_decode($post['rows_json'] ?? '[]', true);
+        $columns = \CMS\Json::decodeArray($post['columns_json'] ?? null, []);
+        $rows    = \CMS\Json::decodeArray($post['rows_json'] ?? null, []);
 
         if (!is_array($columns)) $columns = [];
         if (!is_array($rows))    $rows = [];

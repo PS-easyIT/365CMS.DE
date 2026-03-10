@@ -14,6 +14,7 @@ if (!defined('ABSPATH')) {
 use CMS\Database;
 use CMS\ThemeManager;
 use CMS\AuditLogger;
+use CMS\Http\Client as HttpClient;
 
 class FontManagerModule
 {
@@ -443,8 +444,28 @@ class FontManagerModule
         ];
     }
 
+    private function isAllowedFontUrl(string $url): bool
+    {
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            return false;
+        }
+
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+
+        if ($scheme !== 'https') {
+            return false;
+        }
+
+        return in_array($host, ['fonts.googleapis.com', 'fonts.gstatic.com'], true);
+    }
+
     private function fetchRemoteContent(string $url): string|false
     {
+        if (!$this->isAllowedFontUrl($url)) {
+            return false;
+        }
+
         $acceptHeader = str_contains($url, 'fonts.gstatic.com')
             ? 'font/woff2,font/woff,font/ttf,application/octet-stream,*/*;q=0.1'
             : 'text/css,*/*;q=0.1';
@@ -455,67 +476,20 @@ class FontManagerModule
             'Accept-Language: de-DE,de;q=0.9,en;q=0.8',
         ];
 
-        $context = stream_context_create([
-            'http' => [
-                'timeout' => 20,
-                'ignore_errors' => true,
-                'header' => implode("\r\n", $headers) . "\r\n",
-            ],
+        $response = HttpClient::getInstance()->get($url, [
+            'userAgent' => '365CMS-FontManager/1.0',
+            'headers' => $headers,
+            'timeout' => 20,
+            'connectTimeout' => 10,
+            'maxBytes' => str_contains($url, 'fonts.gstatic.com') ? 5 * 1024 * 1024 : 512 * 1024,
+            'allowedContentTypes' => str_contains($url, 'fonts.gstatic.com')
+                ? ['font/', 'application/octet-stream', 'application/font-', 'application/x-font-']
+                : ['text/css'],
         ]);
 
-        $content = @file_get_contents($url, false, $context);
-        if ($content !== false && $content !== '') {
-            return $content;
-        }
+        $content = (string) ($response['body'] ?? '');
 
-        if (function_exists('curl_init')) {
-            $ch = curl_init($url);
-            if ($ch !== false) {
-                curl_setopt_array($ch, [
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_CONNECTTIMEOUT => 10,
-                    CURLOPT_TIMEOUT => 20,
-                    CURLOPT_HTTPHEADER => $headers,
-                    CURLOPT_SSL_VERIFYPEER => true,
-                    CURLOPT_SSL_VERIFYHOST => 2,
-                ]);
-
-                $response = curl_exec($ch);
-                $curlError = function_exists('curl_error') ? (string)curl_error($ch) : '';
-                $statusCode = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-                curl_close($ch);
-
-                if (is_string($response) && $response !== '' && $statusCode >= 200 && $statusCode < 400) {
-                    return $response;
-                }
-
-                // FIX: Windows-/Shared-Hosting-Setups scheitern oft an fehlenden CA-Bundles – einmal kontrolliert mit gelockerter SSL-Prüfung nachfassen.
-                if (str_contains(strtolower($curlError), 'ssl') || $statusCode === 0) {
-                    $ch = curl_init($url);
-                    if ($ch !== false) {
-                        curl_setopt_array($ch, [
-                            CURLOPT_RETURNTRANSFER => true,
-                            CURLOPT_FOLLOWLOCATION => true,
-                            CURLOPT_CONNECTTIMEOUT => 10,
-                            CURLOPT_TIMEOUT => 20,
-                            CURLOPT_HTTPHEADER => $headers,
-                            CURLOPT_SSL_VERIFYPEER => false,
-                            CURLOPT_SSL_VERIFYHOST => 0,
-                        ]);
-                        $response = curl_exec($ch);
-                        $statusCode = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-                        curl_close($ch);
-
-                        if (is_string($response) && $response !== '' && $statusCode >= 200 && $statusCode < 400) {
-                            return $response;
-                        }
-                    }
-                }
-            }
-        }
-
-        return false;
+        return (($response['success'] ?? false) === true && $content !== '') ? $content : false;
     }
 
     /**

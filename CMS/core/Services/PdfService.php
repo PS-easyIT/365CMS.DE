@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace CMS\Services;
 
+use CMS\VendorRegistry;
+
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -171,15 +173,7 @@ final class PdfService
      */
     private function loadDompdf(): void
     {
-        $autoload = ABSPATH . 'vendor/dompdf/autoload.php';
-
-        if (!file_exists($autoload)) {
-            $this->loaded = false;
-            return;
-        }
-
-        require_once $autoload;
-        $this->loaded = true;
+        $this->loaded = VendorRegistry::instance()->loadPackage('dompdf');
     }
 
     /**

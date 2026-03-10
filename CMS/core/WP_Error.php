@@ -9,6 +9,12 @@
 
 declare(strict_types=1);
 
+namespace {
+    if (!defined('ABSPATH')) {
+        exit;
+    }
+}
+
 namespace CMS {
 
     if (!class_exists('\CMS\WP_Error')) {

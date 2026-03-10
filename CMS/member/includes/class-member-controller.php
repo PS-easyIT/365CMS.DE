@@ -6,6 +6,7 @@ namespace CMS\MemberArea;
 use CMS\Auth;
 use CMS\Database;
 use CMS\Hooks;
+use CMS\Json;
 use CMS\Security;
 use CMS\Auth\AuthManager;
 use CMS\Auth\MFA\BackupCodesManager;
@@ -443,7 +444,7 @@ final class MemberController
             }
         } catch (\Throwable) {
             $meta = $this->memberService->getUserMeta($this->getUserId());
-            $saved = json_decode((string)($meta['favorites'] ?? '[]'), true);
+            $saved = Json::decodeArray($meta['favorites'] ?? null, []);
             if (is_array($saved)) {
                 foreach ($saved as $item) {
                     if (!is_array($item)) {
@@ -468,6 +469,23 @@ final class MemberController
         return 'member/user-' . $userId;
     }
 
+    private function ensureMemberMediaRootExists(): bool
+    {
+        $memberRoot = rtrim((string)UPLOAD_PATH, '/\\') . DIRECTORY_SEPARATOR . 'member';
+        $userRoot = $memberRoot . DIRECTORY_SEPARATOR . 'user-' . $this->getUserId();
+
+        if (is_dir($userRoot)) {
+            return true;
+        }
+
+        if (!mkdir($userRoot, 0755, true) && !is_dir($userRoot)) {
+            error_log('MemberController::ensureMemberMediaRootExists() failed for ' . $userRoot);
+            return false;
+        }
+
+        return true;
+    }
+
     /**
      * @return array<string,mixed>
      */
@@ -475,7 +493,7 @@ final class MemberController
     {
         $mediaService = MediaService::getInstance();
         $path = $this->getMemberMediaPath();
-        $items = $mediaService->getItems($path);
+        $items = $this->ensureMemberMediaRootExists() ? $mediaService->getItems($path) : ['folders' => [], 'files' => []];
         if (!is_array($items)) {
             $items = ['folders' => [], 'files' => []];
         }
@@ -641,6 +659,11 @@ final class MemberController
         $mediaService = MediaService::getInstance();
         $memberPath = $this->getMemberMediaPath();
         $settings = $mediaService->getSettings();
+
+        if (!$this->ensureMemberMediaRootExists()) {
+            $this->flash('danger', 'Das persönliche Upload-Verzeichnis konnte nicht vorbereitet werden.');
+            $this->redirect('/member/media');
+        }
 
         if ($action === 'media_folder_create') {
             $folderName = trim((string)($_POST['folder_name'] ?? ''));

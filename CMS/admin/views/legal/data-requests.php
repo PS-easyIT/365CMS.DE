@@ -38,11 +38,12 @@ $statusBadges = [
 
 <div class="page-body">
     <div class="container-xl">
-        <?php if (!empty($alert)): ?>
-            <div class="alert alert-<?php echo htmlspecialchars($alert['type'] ?? 'info'); ?> mb-4" role="alert">
-                <?php echo htmlspecialchars($alert['message'] ?? ''); ?>
-            </div>
-        <?php endif; ?>
+        <?php
+        $alertData = $alert ?? [];
+        $alertDismissible = false;
+        $alertMarginClass = 'mb-4';
+        require __DIR__ . '/../partials/flash-alert.php';
+        ?>
 
         <div class="row row-deck row-cards mb-4">
             <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Auskunft gesamt</div><div class="h1 mb-0"><?php echo (int)($privacyStats['total'] ?? 0); ?></div></div></div></div>
@@ -73,7 +74,13 @@ $statusBadges = [
                             </thead>
                             <tbody>
                                 <?php if (empty($privacyRows)): ?>
-                                    <tr><td colspan="5" class="text-center text-secondary py-4">Keine Auskunftsanfragen vorhanden.</td></tr>
+                                    <?php
+                                    $emptyStateColspan = 5;
+                                    $emptyStateMessage = 'Keine Auskunftsanfragen vorhanden.';
+                                    $emptyStateSubtitle = 'Sobald Anfragen eingehen, werden sie hier zentral zur Bearbeitung aufgelistet.';
+                                    $emptyStateIcon = 'default';
+                                    require __DIR__ . '/../partials/empty-table-row.php';
+                                    ?>
                                 <?php else: ?>
                                     <?php foreach ($privacyRows as $row): ?>
                                         <tr>
@@ -133,7 +140,13 @@ $statusBadges = [
                             </thead>
                             <tbody>
                                 <?php if (empty($deletionRows)): ?>
-                                    <tr><td colspan="5" class="text-center text-secondary py-4">Keine Löschanträge vorhanden.</td></tr>
+                                    <?php
+                                    $emptyStateColspan = 5;
+                                    $emptyStateMessage = 'Keine Löschanträge vorhanden.';
+                                    $emptyStateSubtitle = 'Offene Löschanträge werden hier mit Status und Bearbeitungsaktionen angezeigt.';
+                                    $emptyStateIcon = 'default';
+                                    require __DIR__ . '/../partials/empty-table-row.php';
+                                    ?>
                                 <?php else: ?>
                                     <?php foreach ($deletionRows as $row): ?>
                                         <tr>

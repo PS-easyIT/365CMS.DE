@@ -323,541 +323,38 @@ function updateConfigFile(array $existing, array $updates): bool|string {
     return createConfigFile($data);
 }
 
+/**
+ * Lädt die zentralen Schema-Definitionen aus dem SchemaManager.
+ *
+ * @return array<string,string>
+ */
+function getCentralSchemaQueries(string $prefix = 'cms_', string $charset = 'utf8mb4'): array {
+    if (!defined('ABSPATH')) {
+        define('ABSPATH', __DIR__ . DIRECTORY_SEPARATOR);
+    }
+
+    require_once __DIR__ . '/core/SchemaManager.php';
+
+    return \CMS\SchemaManager::getSchemaQueries($prefix, $charset);
+}
+
+function clearSchemaManagerFlagFile(): void {
+    if (!defined('ABSPATH')) {
+        define('ABSPATH', __DIR__ . DIRECTORY_SEPARATOR);
+    }
+
+    require_once __DIR__ . '/core/SchemaManager.php';
+
+    $flagFile = ABSPATH . 'cache/db_schema_' . \CMS\SchemaManager::SCHEMA_VERSION . '.flag';
+    if (is_file($flagFile)) {
+        unlink($flagFile);
+    }
+}
+
 function createDatabaseTables(PDO $pdo, string $prefix = 'cms_'): array {
     $results = [];
-    
-    $tables = [
-        'users' => "CREATE TABLE IF NOT EXISTS {$prefix}users (
-            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            username VARCHAR(60) NOT NULL UNIQUE,
-            email VARCHAR(100) NOT NULL UNIQUE,
-            password VARCHAR(255) NOT NULL,
-            display_name VARCHAR(100) NOT NULL,
-            role VARCHAR(20) NOT NULL DEFAULT 'member',
-            status VARCHAR(20) NOT NULL DEFAULT 'active',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            last_login TIMESTAMP NULL,
-            INDEX idx_username (username),
-            INDEX idx_email (email),
-            INDEX idx_role (role)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-        
-        'user_meta' => "CREATE TABLE IF NOT EXISTS {$prefix}user_meta (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            user_id INT UNSIGNED NOT NULL,
-            meta_key VARCHAR(255) NOT NULL,
-            meta_value LONGTEXT,
-            INDEX idx_user_id (user_id),
-            INDEX idx_meta_key (meta_key),
-            FOREIGN KEY (user_id) REFERENCES {$prefix}users(id) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-        
-        'roles' => "CREATE TABLE IF NOT EXISTS {$prefix}roles (
-            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(50) NOT NULL UNIQUE,
-            display_name VARCHAR(100) NOT NULL,
-            description TEXT,
-            capabilities TEXT COMMENT 'JSON-Array mit Berechtigungen',
-            member_dashboard_access TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Zugriff auf Member-Dashboard',
-            sort_order INT NOT NULL DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_name (name)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-        
-        'settings' => "CREATE TABLE IF NOT EXISTS {$prefix}settings (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            option_name VARCHAR(191) NOT NULL UNIQUE,
-            option_value LONGTEXT,
-            autoload TINYINT(1) DEFAULT 1,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_option_name (option_name),
-            INDEX idx_autoload (autoload)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-        
-        'sessions' => "CREATE TABLE IF NOT EXISTS {$prefix}sessions (
-            id VARCHAR(128) PRIMARY KEY,
-            user_id INT UNSIGNED,
-            ip_address VARCHAR(45),
-            user_agent VARCHAR(255),
-            payload TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            expires_at TIMESTAMP NULL,
-            INDEX idx_user_id (user_id),
-            INDEX idx_last_activity (last_activity),
-            INDEX idx_created_at (created_at),
-            INDEX idx_expires (expires_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
 
-        'passkey_credentials' => "CREATE TABLE IF NOT EXISTS {$prefix}passkey_credentials (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            user_id INT UNSIGNED NOT NULL,
-            credential_id VARCHAR(255) NOT NULL,
-            public_key TEXT NOT NULL,
-            transports VARCHAR(255) DEFAULT NULL,
-            aaguid VARCHAR(64) DEFAULT NULL,
-            sign_count BIGINT UNSIGNED NOT NULL DEFAULT 0,
-            name VARCHAR(255) DEFAULT NULL,
-            last_used_at TIMESTAMP NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            UNIQUE KEY unique_credential_id (credential_id),
-            INDEX idx_user_id (user_id),
-            INDEX idx_last_used_at (last_used_at),
-            FOREIGN KEY (user_id) REFERENCES {$prefix}users(id) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='WebAuthn Passkey-Credentials'",
-        
-        'login_attempts' => "CREATE TABLE IF NOT EXISTS {$prefix}login_attempts (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            username VARCHAR(60),
-            ip_address VARCHAR(45),
-            action VARCHAR(30) NOT NULL DEFAULT 'login',
-            attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_username (username),
-            INDEX idx_ip (ip_address),
-            INDEX idx_action (action),
-            INDEX idx_ip_action (ip_address, action),
-            INDEX idx_time (attempted_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-
-        'blocked_ips' => "CREATE TABLE IF NOT EXISTS {$prefix}blocked_ips (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            ip_address VARCHAR(45) NOT NULL UNIQUE,
-            reason VARCHAR(255),
-            expires_at DATETIME,
-            permanent TINYINT(1) DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_ip (ip_address),
-            INDEX idx_expires (expires_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-
-        'activity_log' => "CREATE TABLE IF NOT EXISTS {$prefix}activity_log (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            user_id INT UNSIGNED,
-            action VARCHAR(100) NOT NULL,
-            entity_type VARCHAR(100),
-            entity_id BIGINT UNSIGNED,
-            description TEXT,
-            ip_address VARCHAR(45),
-            user_agent VARCHAR(500),
-            metadata LONGTEXT COMMENT 'JSON-Daten',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_user_id (user_id),
-            INDEX idx_action (action),
-            INDEX idx_entity_type (entity_type),
-            INDEX idx_entity_id (entity_id),
-            INDEX idx_created_at (created_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-
-        'pages' => "CREATE TABLE IF NOT EXISTS {$prefix}pages (
-            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            slug VARCHAR(200) NOT NULL UNIQUE,
-            title VARCHAR(255) NOT NULL,
-            title_en VARCHAR(255) DEFAULT NULL,
-            content LONGTEXT,
-            content_en LONGTEXT,
-            excerpt TEXT,
-            status VARCHAR(20) DEFAULT 'draft',
-            hide_title TINYINT(1) NOT NULL DEFAULT 0,
-            featured_image VARCHAR(500) DEFAULT NULL,
-            meta_title VARCHAR(255) DEFAULT NULL,
-            meta_description TEXT DEFAULT NULL,
-            author_id INT UNSIGNED,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            published_at TIMESTAMP NULL,
-            INDEX idx_slug (slug),
-            INDEX idx_status (status),
-            INDEX idx_author (author_id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-        
-        'page_revisions' => "CREATE TABLE IF NOT EXISTS {$prefix}page_revisions (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            page_id INT UNSIGNED NOT NULL,
-            title VARCHAR(255) NOT NULL,
-            content LONGTEXT,
-            excerpt TEXT,
-            author_id INT UNSIGNED,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_page_id (page_id),
-            INDEX idx_author (author_id),
-            INDEX idx_created_at (created_at),
-            FOREIGN KEY (page_id) REFERENCES {$prefix}pages(id) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-        
-        'cache' => "CREATE TABLE IF NOT EXISTS {$prefix}cache (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            cache_key VARCHAR(191) NOT NULL UNIQUE,
-            cache_value LONGTEXT,
-            expires_at TIMESTAMP NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_key (cache_key),
-            INDEX idx_expires (expires_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-        
-        'failed_logins' => "CREATE TABLE IF NOT EXISTS {$prefix}failed_logins (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            username VARCHAR(60),
-            ip_address VARCHAR(45),
-            attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            user_agent VARCHAR(255),
-            INDEX idx_username (username),
-            INDEX idx_ip (ip_address),
-            INDEX idx_time (attempted_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-
-        'landing_sections' => "CREATE TABLE IF NOT EXISTS {$prefix}landing_sections (
-            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            type VARCHAR(50) NOT NULL,
-            data TEXT,
-            sort_order INT DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_type (type),
-            INDEX idx_order (sort_order)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-
-        'media' => "CREATE TABLE IF NOT EXISTS {$prefix}media (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            filename VARCHAR(255) NOT NULL,
-            filepath VARCHAR(500) NOT NULL,
-            filetype VARCHAR(50),
-            filesize INT UNSIGNED,
-            title VARCHAR(255),
-            alt_text VARCHAR(255),
-            caption TEXT,
-            uploaded_by INT UNSIGNED,
-            uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_type (filetype),
-            INDEX idx_uploader (uploaded_by)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-        
-        'plugins' => "CREATE TABLE IF NOT EXISTS {$prefix}plugins (
-            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(100) NOT NULL UNIQUE,
-            slug VARCHAR(100) NOT NULL UNIQUE,
-            version VARCHAR(20) NOT NULL,
-            author VARCHAR(100),
-            description TEXT,
-            plugin_path VARCHAR(255) NOT NULL,
-            is_active TINYINT(1) DEFAULT 0,
-            auto_update TINYINT(1) DEFAULT 0,
-            settings LONGTEXT COMMENT 'JSON-Daten für Plugin-Einstellungen',
-            installed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            activated_at TIMESTAMP NULL,
-            INDEX idx_slug (slug),
-            INDEX idx_active (is_active)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-        
-        'plugin_meta' => "CREATE TABLE IF NOT EXISTS {$prefix}plugin_meta (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            plugin_id INT UNSIGNED NOT NULL,
-            meta_key VARCHAR(255) NOT NULL,
-            meta_value LONGTEXT,
-            INDEX idx_plugin_id (plugin_id),
-            INDEX idx_meta_key (meta_key),
-            FOREIGN KEY (plugin_id) REFERENCES {$prefix}plugins(id) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-        
-        'theme_customizations' => "CREATE TABLE IF NOT EXISTS {$prefix}theme_customizations (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            theme_slug VARCHAR(100) NOT NULL,
-            setting_category VARCHAR(100) NOT NULL COMMENT 'Kategorie aus theme.json (colors, typography, etc.)',
-            setting_key VARCHAR(255) NOT NULL COMMENT 'Einstellungs-Key aus theme.json',
-            setting_value LONGTEXT COMMENT 'Wert der Einstellung',
-            user_id INT UNSIGNED NULL COMMENT 'Optional: User-spezifische Anpassungen',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_theme_slug (theme_slug),
-            INDEX idx_category (setting_category),
-            INDEX idx_key (setting_key),
-            INDEX idx_user_id (user_id),
-            UNIQUE KEY unique_theme_setting (theme_slug, setting_category, setting_key, user_id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-        
-        'page_views' => "CREATE TABLE IF NOT EXISTS {$prefix}page_views (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            page_id INT UNSIGNED NULL,
-            page_slug VARCHAR(200),
-            page_title VARCHAR(255),
-            user_id INT UNSIGNED NULL,
-            session_id VARCHAR(128),
-            ip_address VARCHAR(45),
-            user_agent VARCHAR(500),
-            referrer VARCHAR(500),
-            visited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_page_id (page_id),
-            INDEX idx_page_slug (page_slug),
-            INDEX idx_user_id (user_id),
-            INDEX idx_session_id (session_id),
-            INDEX idx_visited_at (visited_at),
-            INDEX idx_date (visited_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-        
-        // ==================== SUBSCRIPTION SYSTEM ====================
-        
-        'subscription_plans' => "CREATE TABLE IF NOT EXISTS {$prefix}subscription_plans (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(100) NOT NULL,
-            slug VARCHAR(100) NOT NULL UNIQUE,
-            description TEXT,
-            price_monthly DECIMAL(10,2) DEFAULT 0.00,
-            price_yearly DECIMAL(10,2) DEFAULT 0.00,
-            
-            -- Feature Limits (-1 = unlimited, 0 = disabled)
-            limit_experts INT DEFAULT -1,
-            limit_companies INT DEFAULT -1,
-            limit_events INT DEFAULT -1,
-            limit_speakers INT DEFAULT -1,
-            limit_storage_mb INT DEFAULT 1000,
-            
-            -- Plugin Access Control
-            plugin_experts BOOLEAN DEFAULT 1,
-            plugin_companies BOOLEAN DEFAULT 1,
-            plugin_events BOOLEAN DEFAULT 1,
-            plugin_speakers BOOLEAN DEFAULT 1,
-            
-            -- Premium Features
-            feature_analytics BOOLEAN DEFAULT 0,
-            feature_advanced_search BOOLEAN DEFAULT 0,
-            feature_api_access BOOLEAN DEFAULT 0,
-            feature_custom_branding BOOLEAN DEFAULT 0,
-            feature_priority_support BOOLEAN DEFAULT 0,
-            feature_export_data BOOLEAN DEFAULT 0,
-            feature_integrations BOOLEAN DEFAULT 0,
-            feature_custom_domains BOOLEAN DEFAULT 0,
-            
-            -- Meta
-            is_active BOOLEAN DEFAULT 1,
-            sort_order INT DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            
-            INDEX idx_slug (slug),
-            INDEX idx_active (is_active),
-            INDEX idx_sort (sort_order)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Abo-Pakete mit Limits und Features'",
-        
-        'user_subscriptions' => "CREATE TABLE IF NOT EXISTS {$prefix}user_subscriptions (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT UNSIGNED NOT NULL,
-            plan_id INT NOT NULL,
-            
-            -- Status & Billing
-            status ENUM('active', 'cancelled', 'expired', 'trial', 'suspended') DEFAULT 'active',
-            billing_cycle ENUM('monthly', 'yearly', 'lifetime') DEFAULT 'monthly',
-            
-            -- Dates
-            start_date DATETIME NOT NULL,
-            end_date DATETIME,
-            next_billing_date DATETIME,
-            cancelled_at DATETIME,
-            
-            -- Tracking
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            
-            FOREIGN KEY (user_id) REFERENCES {$prefix}users(id) ON DELETE CASCADE,
-            FOREIGN KEY (plan_id) REFERENCES {$prefix}subscription_plans(id) ON DELETE CASCADE,
-            INDEX idx_user_id (user_id),
-            INDEX idx_plan_id (plan_id),
-            INDEX idx_status (status),
-            INDEX idx_dates (start_date, end_date)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Benutzer-Abo-Zuweisungen'",
-        
-        'user_groups' => "CREATE TABLE IF NOT EXISTS {$prefix}user_groups (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(100) NOT NULL,
-            slug VARCHAR(100) NOT NULL UNIQUE,
-            description TEXT,
-            role_id INT UNSIGNED NULL COMMENT 'Verknüpfte RBAC-Rolle',
-            plan_id INT,
-            is_active BOOLEAN DEFAULT 1,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            
-            FOREIGN KEY (plan_id) REFERENCES {$prefix}subscription_plans(id) ON DELETE SET NULL,
-            INDEX idx_slug (slug),
-            INDEX idx_active (is_active)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Gruppen für Abo-Verwaltung'",
-        
-        'user_group_members' => "CREATE TABLE IF NOT EXISTS {$prefix}user_group_members (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT UNSIGNED NOT NULL,
-            group_id INT NOT NULL,
-            joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            
-            FOREIGN KEY (user_id) REFERENCES {$prefix}users(id) ON DELETE CASCADE,
-            FOREIGN KEY (group_id) REFERENCES {$prefix}user_groups(id) ON DELETE CASCADE,
-            UNIQUE KEY unique_user_group (user_id, group_id),
-            INDEX idx_user_id (user_id),
-            INDEX idx_group_id (group_id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Gruppen-Mitgliedschaften'",
-        
-        'subscription_usage' => "CREATE TABLE IF NOT EXISTS {$prefix}subscription_usage (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT UNSIGNED NOT NULL,
-            resource_type VARCHAR(50) NOT NULL COMMENT 'experts, companies, events, speakers, storage',
-            current_count INT DEFAULT 0,
-            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            
-            FOREIGN KEY (user_id) REFERENCES {$prefix}users(id) ON DELETE CASCADE,
-            UNIQUE KEY unique_user_resource (user_id, resource_type),
-            INDEX idx_user_id (user_id),
-            INDEX idx_resource (resource_type)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Ressourcen-Nutzungszähler für Limits'",
-
-        'orders' => "CREATE TABLE IF NOT EXISTS {$prefix}orders (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            order_number VARCHAR(64) NOT NULL UNIQUE,
-            user_id INT UNSIGNED NULL,
-            plan_id INT NOT NULL,
-            status ENUM('pending', 'confirmed', 'cancelled', 'refunded') DEFAULT 'pending',
-            total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-            currency VARCHAR(3) DEFAULT 'EUR',
-            payment_method VARCHAR(50) DEFAULT NULL,
-            billing_cycle ENUM('monthly', 'yearly', 'lifetime') DEFAULT 'monthly',
-            
-            -- Contact & Billing Data
-            forename VARCHAR(100),
-            lastname VARCHAR(100),
-            company VARCHAR(100),
-            email VARCHAR(150),
-            phone VARCHAR(50),
-            street VARCHAR(255),
-            zip VARCHAR(20),
-            city VARCHAR(100),
-            country VARCHAR(100),
-            
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            
-            INDEX idx_order_number (order_number),
-            INDEX idx_user_id (user_id),
-            INDEX idx_plan_id (plan_id),
-            INDEX idx_status (status),
-            INDEX idx_created_at (created_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Bestellungen für Abos'",
-
-        'post_categories' => "CREATE TABLE IF NOT EXISTS {$prefix}post_categories (
-            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(100) NOT NULL,
-            slug VARCHAR(100) NOT NULL UNIQUE,
-            description TEXT,
-            parent_id INT UNSIGNED DEFAULT NULL,
-            sort_order INT DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_slug (slug),
-            INDEX idx_parent (parent_id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Blog-Kategorien'",
-
-        'posts' => "CREATE TABLE IF NOT EXISTS {$prefix}posts (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            title VARCHAR(255) NOT NULL,
-            title_en VARCHAR(255) DEFAULT NULL,
-            slug VARCHAR(255) NOT NULL UNIQUE,
-            content LONGTEXT,
-            content_en LONGTEXT,
-            excerpt TEXT,
-            excerpt_en TEXT,
-            featured_image VARCHAR(500),
-            status ENUM('draft','published','trash') NOT NULL DEFAULT 'draft',
-            author_id INT UNSIGNED NOT NULL,
-            category_id INT UNSIGNED DEFAULT NULL,
-            tags VARCHAR(500) COMMENT 'Kommagetrennte Tags',
-            views INT UNSIGNED DEFAULT 0,
-            allow_comments TINYINT(1) NOT NULL DEFAULT 1,
-            meta_title VARCHAR(255),
-            meta_description TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            published_at TIMESTAMP NULL,
-            INDEX idx_slug (slug),
-            INDEX idx_status (status),
-            INDEX idx_author (author_id),
-            INDEX idx_category (category_id),
-            INDEX idx_published (published_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Blog-Beiträge'",
-
-        // Kommentare (wird von antispam.php und ggf. Plugins verwendet)
-        'comments' => "CREATE TABLE IF NOT EXISTS {$prefix}comments (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            post_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
-            user_id INT UNSIGNED NULL,
-            author VARCHAR(100) NOT NULL DEFAULT '',
-            author_email VARCHAR(150) NOT NULL DEFAULT '',
-            author_ip VARCHAR(45) DEFAULT '',
-            content TEXT NOT NULL,
-            status ENUM('pending','approved','spam','trash') NOT NULL DEFAULT 'pending',
-            post_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_post_id (post_id),
-            INDEX idx_status (status),
-            INDEX idx_post_date (post_date),
-            INDEX idx_user_id (user_id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Kommentare'",
-
-        // Nachrichten-System (Member → Member)
-        'messages' => "CREATE TABLE IF NOT EXISTS {$prefix}messages (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            sender_id INT UNSIGNED NOT NULL,
-            recipient_id INT UNSIGNED NOT NULL,
-            subject VARCHAR(255) DEFAULT NULL,
-            body TEXT NOT NULL,
-            is_read TINYINT(1) NOT NULL DEFAULT 0,
-            read_at TIMESTAMP NULL,
-            parent_id BIGINT UNSIGNED DEFAULT NULL COMMENT 'Thread-Root-ID für Antworten',
-            deleted_by_sender TINYINT(1) NOT NULL DEFAULT 0,
-            deleted_by_recipient TINYINT(1) NOT NULL DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_sender (sender_id),
-            INDEX idx_recipient (recipient_id),
-            INDEX idx_parent (parent_id),
-            INDEX idx_read (is_read),
-            INDEX idx_created (created_at),
-            FOREIGN KEY (sender_id) REFERENCES {$prefix}users(id) ON DELETE CASCADE,
-            FOREIGN KEY (recipient_id) REFERENCES {$prefix}users(id) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Interne Nachrichten zwischen Mitgliedern'",
-
-        // H-01: Sicherheits-Audit-Log (AuditLogger-Klasse)
-        'audit_log' => "CREATE TABLE IF NOT EXISTS {$prefix}audit_log (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            user_id INT UNSIGNED NULL,
-            category VARCHAR(50) NOT NULL COMMENT 'auth|theme|plugin|user|setting|media|system|security',
-            action VARCHAR(100) NOT NULL,
-            entity_type VARCHAR(100),
-            entity_id BIGINT UNSIGNED NULL,
-            description TEXT,
-            ip_address VARCHAR(45),
-            user_agent VARCHAR(500),
-            metadata LONGTEXT COMMENT 'JSON-Daten',
-            severity ENUM('info','warning','critical') NOT NULL DEFAULT 'info',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_user_id (user_id),
-            INDEX idx_category (category),
-            INDEX idx_action (action),
-            INDEX idx_severity (severity),
-            INDEX idx_created_at (created_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Sicherheits-Audit-Log (H-01)'",
-
-        'custom_fonts' => "CREATE TABLE IF NOT EXISTS {$prefix}custom_fonts (
-            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(100) NOT NULL,
-            slug VARCHAR(100) NOT NULL,
-            format VARCHAR(20) NOT NULL DEFAULT 'woff2',
-            file_path VARCHAR(500) NOT NULL,
-            css_path VARCHAR(500) DEFAULT NULL,
-            source VARCHAR(50) NOT NULL DEFAULT 'upload' COMMENT 'upload|google-fonts-local',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE KEY idx_slug (slug),
-            INDEX idx_source (source)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Benutzerdefinierte Schriftarten'"
-    ];
+    $tables = getCentralSchemaQueries($prefix);
     
     foreach ($tables as $name => $sql) {
         try {
@@ -1025,6 +522,10 @@ function initializeLandingPageData(PDO $pdo, string $prefix = 'cms_'): bool {
 $step = $_POST['step'] ?? $_GET['step'] ?? 1;
 $errors = [];
 
+if (!defined('CMS_MIN_PHP_VERSION')) {
+    define('CMS_MIN_PHP_VERSION', '8.4.0');
+}
+
 // Prüfe auf bestehende Installation
 $existingConfig = parseExistingConfig();
 $isReinstall = $existingConfig !== false;
@@ -1033,6 +534,8 @@ $isReinstall = $existingConfig !== false;
 if ($step == 1) {
     $autoUrl = autoDetectUrl();
     $phpVersion = PHP_VERSION;
+    $requiredPhpVersion = CMS_MIN_PHP_VERSION;
+    $phpCompatible = version_compare($phpVersion, $requiredPhpVersion, '>=');
     $mysqlAvailable = extension_loaded('pdo_mysql');
     $writePermission = is_writable(__DIR__);
     
@@ -1121,10 +624,10 @@ if ($step == 1) {
                 <h2 style="margin: 2rem 0 1rem; color: #475569;">System-Überprüfung</h2>
                 
                 <div class="check-item">
-                    <span class="check-icon success">✓</span>
+                    <span class="check-icon <?php echo $phpCompatible ? 'success' : 'error'; ?>"><?php echo $phpCompatible ? '✓' : '✗'; ?></span>
                     <div>
                         <strong>PHP Version</strong><br>
-                        <small>Version <?php echo $phpVersion; ?> (erforderlich: 8.2+)</small>
+                        <small>Version <?php echo $phpVersion; ?> (erforderlich: <?php echo htmlspecialchars($requiredPhpVersion, ENT_QUOTES, 'UTF-8'); ?>+)</small>
                     </div>
                 </div>
                 
@@ -1169,7 +672,7 @@ if ($step == 1) {
                 <?php if ($isReinstall): ?>
                 <!-- Update empfohlen -->
                 <form method="post" action="?step=update" style="margin-top: 1.5rem;">
-                    <button type="submit" class="btn" style="background: linear-gradient(135deg,#10b981 0%,#059669 100%);" <?php echo (!$mysqlAvailable || !$writePermission) ? 'disabled' : ''; ?>>
+                    <button type="submit" class="btn" style="background: linear-gradient(135deg,#10b981 0%,#059669 100%);" <?php echo (!$phpCompatible || !$mysqlAvailable || !$writePermission) ? 'disabled' : ''; ?>>
                         🔄 Update / Schema-Reparatur (bestehende Daten bleiben erhalten)
                     </button>
                 </form>
@@ -1185,7 +688,7 @@ if ($step == 1) {
                         </p>
                         <form method="post" action="?step=2">
                             <input type="hidden" name="reinstall" value="1">
-                            <button type="submit" class="btn" style="background: linear-gradient(135deg,#ef4444 0%,#b91c1c 100%);" <?php echo (!$mysqlAvailable || !$writePermission) ? 'disabled' : ''; ?>>
+                            <button type="submit" class="btn" style="background: linear-gradient(135deg,#ef4444 0%,#b91c1c 100%);" <?php echo (!$phpCompatible || !$mysqlAvailable || !$writePermission) ? 'disabled' : ''; ?>>
                                 ❌ Ja, komplett neu installieren (alle Daten löschen)
                             </button>
                         </form>
@@ -1193,7 +696,7 @@ if ($step == 1) {
                 </details>
                 <?php else: ?>
                 <form method="post" action="?step=2" style="margin-top: 1.5rem;">
-                    <button type="submit" class="btn" <?php echo (!$mysqlAvailable || !$writePermission) ? 'disabled' : ''; ?>>
+                    <button type="submit" class="btn" <?php echo (!$phpCompatible || !$mysqlAvailable || !$writePermission) ? 'disabled' : ''; ?>>
                         Weiter zu Schritt 2 →
                     </button>
                 </form>
@@ -1257,6 +760,7 @@ if ($step === 'update') {
                 }
 
                 $newTables = array_keys(array_filter($tableResults, static fn($v) => $v === true));
+                clearSchemaManagerFlagFile();
                 $_SESSION['install_success'] = [
                     'username'       => '',
                     'site_url'       => $newSiteUrl,
@@ -1914,11 +1418,8 @@ if ($step == 4) {
                     initializeLandingPageData($pdo, $prefix);
                     
                     if ($adminResult === true) {
-                        // SchemaManager-Flag löschen → beim ersten CMS-Boot wird Schema neu geprüft
-                        $flagFile = __DIR__ . '/cache/db_schema_v7.flag';
-                        if (file_exists($flagFile)) {
-                            @unlink($flagFile);
-                        }
+                        // SchemaManager-Flag löschen → beim ersten CMS-Boot wird das aktuelle Schema neu geprüft
+                        clearSchemaManagerFlagFile();
                         // SUCCESS!
                         $_SESSION['install_success'] = [
                             'username' => $adminUsername,

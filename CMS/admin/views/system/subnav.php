@@ -5,6 +5,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!defined('CMS_ADMIN_SYSTEM_VIEW')) {
+    exit;
+}
+
 $currentSystemPage = $activePage ?? 'info';
 $systemNavGroups = [
     'Info' => [

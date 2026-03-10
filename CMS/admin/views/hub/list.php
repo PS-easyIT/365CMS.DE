@@ -35,12 +35,12 @@ $templateOptions = $data['templateOptions'] ?? [];
             <li class="nav-item"><a class="nav-link" href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites?action=templates">Templates</a></li>
         </ul>
 
-        <?php if (!empty($alert)): ?>
-            <div class="alert alert-<?php echo $alert['type'] === 'success' ? 'success' : 'danger'; ?> alert-dismissible mb-3" role="alert">
-                <?php echo htmlspecialchars((string)$alert['message']); ?>
-                <a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>
-            </div>
-        <?php endif; ?>
+        <?php
+        $alertData = $alert ?? [];
+        $alertDismissible = true;
+        $alertMarginClass = 'mb-3';
+        require __DIR__ . '/../partials/flash-alert.php';
+        ?>
 
         <div class="row row-deck row-cards mb-4">
             <div class="col-sm-6 col-lg-4">
@@ -79,9 +79,13 @@ $templateOptions = $data['templateOptions'] ?? [];
                     </thead>
                     <tbody>
                     <?php if ($sites === []): ?>
-                        <tr>
-                            <td colspan="6" class="text-center text-secondary py-4">Noch keine Hub-Sites vorhanden.</td>
-                        </tr>
+                        <?php
+                        $emptyStateColspan = 6;
+                        $emptyStateMessage = 'Noch keine Hub-Sites vorhanden.';
+                        $emptyStateSubtitle = 'Erstellen Sie eine Hub-Site, um Sammelseiten mit eigenem Slug bereitzustellen.';
+                        $emptyStateIcon = 'hub';
+                        require __DIR__ . '/../partials/empty-table-row.php';
+                        ?>
                     <?php else: ?>
                         <?php foreach ($sites as $site): ?>
                             <tr>

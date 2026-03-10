@@ -5,6 +5,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!defined('CMS_ADMIN_SEO_VIEW')) {
+    exit;
+}
+
 $social = $data['social'] ?? [];
 $settings = $social['settings'] ?? [];
 $examples = $social['examples'] ?? [];

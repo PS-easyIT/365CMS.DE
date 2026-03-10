@@ -5,6 +5,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!defined('CMS_ADMIN_SEO_VIEW')) {
+    exit;
+}
+
 $redirects = $data['redirects'] ?? [];
 $logs      = $data['logs'] ?? [];
 $stats     = $data['stats'] ?? [];

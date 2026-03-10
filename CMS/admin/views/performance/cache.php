@@ -1,11 +1,13 @@
 <?php
 declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
+if (!defined('CMS_ADMIN_PERFORMANCE_VIEW')) exit;
 
 $cache = $data['cache'] ?? [];
 $fileCache = $cache['file_cache'] ?? [];
 $apcu = $cache['apcu'] ?? [];
 $opcache = $cache['opcache'] ?? [];
+$warmup = $opcache['warmup'] ?? [];
 $dbCache = $cache['db_cache'] ?? [];
 $formatBytes = static function (int $bytes): string {
     if ($bytes >= 1073741824) return number_format($bytes / 1073741824, 2, ',', '.') . ' GB';
@@ -49,6 +51,7 @@ $formatAge = static function (?int $seconds): string {
                 <form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="action" value="clear_all_cache"><button type="submit" class="btn btn-primary w-100">Alle Cache-Layer leeren</button></form>
                 <form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="action" value="clear_file_cache"><button type="submit" class="btn btn-outline-primary w-100">Nur Datei-Cache leeren</button></form>
                 <form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="action" value="clear_opcache"><button type="submit" class="btn btn-outline-warning w-100">OPcache zurücksetzen</button></form>
+                <form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="action" value="warmup_opcache"><button type="submit" class="btn btn-outline-success w-100">Top-30 PHP-Dateien vorwärmen</button></form>
             </div></div>
         </div>
         <div class="col-lg-8">
@@ -58,6 +61,8 @@ $formatAge = static function (?int $seconds): string {
                 <tr><td class="text-muted">Älteste Cache-Datei</td><td><?php echo htmlspecialchars($formatAge($fileCache['oldest_age'] ?? null)); ?></td></tr>
                 <tr><td class="text-muted">Jüngste Cache-Datei</td><td><?php echo htmlspecialchars($formatAge($fileCache['newest_age'] ?? null)); ?></td></tr>
                 <tr><td class="text-muted">OPcache Speicher</td><td><?php echo htmlspecialchars($formatBytes((int)($opcache['used_memory'] ?? 0))); ?> genutzt / <?php echo htmlspecialchars($formatBytes((int)($opcache['free_memory'] ?? 0))); ?> frei</td></tr>
+                <tr><td class="text-muted">Warmup-Status</td><td><span class="badge bg-<?php echo !empty($warmup['is_current']) ? 'success' : 'warning'; ?>-lt"><?php echo !empty($warmup['is_current']) ? 'Aktuell' : 'Offen'; ?></span><?php if (!empty($warmup['last_generated_at'])): ?> <span class="text-secondary">letzter Lauf: <?php echo htmlspecialchars((string)$warmup['last_generated_at']); ?></span><?php endif; ?></td></tr>
+                <tr><td class="text-muted">Warmup-Kandidaten</td><td><?php echo (int)($warmup['candidate_count'] ?? 0); ?> Dateien / zuletzt kompiliert: <?php echo (int)($warmup['last_compiled'] ?? 0); ?> / Fehlversuche: <?php echo (int)($warmup['last_failed_count'] ?? 0); ?></td></tr>
             </tbody></table></div></div>
         </div>
     </div>

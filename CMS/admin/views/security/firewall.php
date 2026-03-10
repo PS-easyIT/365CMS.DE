@@ -174,14 +174,20 @@ $typeBadges = [
                             </thead>
                             <tbody>
                                 <?php if (empty($rules)): ?>
-                                <tr><td colspan="6" class="text-muted text-center">Keine Regeln vorhanden</td></tr>
+                                <?php
+                                $emptyStateColspan = 6;
+                                $emptyStateMessage = 'Keine Regeln vorhanden.';
+                                $emptyStateSubtitle = 'Legen Sie eine neue Firewall-Regel an oder aktivieren Sie vorhandene Schutzpfade.';
+                                $emptyStateIcon = 'shield';
+                                require __DIR__ . '/../partials/empty-table-row.php';
+                                ?>
                                 <?php else: ?>
                                 <?php foreach ($rules as $rule): ?>
                                 <tr>
                                     <td><span class="badge <?php echo $typeBadges[$rule['rule_type']] ?? 'bg-secondary'; ?>"><?php echo htmlspecialchars($typeLabels[$rule['rule_type']] ?? $rule['rule_type']); ?></span></td>
                                     <td><code><?php echo htmlspecialchars($rule['value']); ?></code></td>
                                     <td><?php echo htmlspecialchars($rule['reason'] ?? '-'); ?></td>
-                                    <td><?php echo $rule['expires_at'] ? htmlspecialchars($rule['expires_at']) : '<span class="text-muted">Permanent</span>'; ?></td>
+                                    <td><?php echo $rule['expires_at'] ? htmlspecialchars($rule['expires_at']) : '<span class="text-secondary">Permanent</span>'; ?></td>
                                     <td>
                                         <?php if ((int)$rule['is_active']): ?>
                                             <span class="badge bg-success">Aktiv</span>

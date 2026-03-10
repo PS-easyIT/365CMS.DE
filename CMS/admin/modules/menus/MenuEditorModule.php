@@ -135,7 +135,7 @@ class MenuEditorModule
             return ['success' => false, 'error' => 'Ungültige Menü-ID.'];
         }
 
-        $items = json_decode($itemsJson, true);
+        $items = \CMS\Json::decodeArray($itemsJson, []);
         if (!is_array($items)) {
             return ['success' => false, 'error' => 'Ungültiges JSON-Format.'];
         }

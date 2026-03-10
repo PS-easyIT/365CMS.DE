@@ -176,27 +176,10 @@ class PagesModule
             if ($id > 0) {
                 $existing = $this->db->get_row("SELECT slug FROM {$this->prefix}pages WHERE id = ? LIMIT 1", [$id]);
                 // Update
-                $this->db->execute(
-                    "UPDATE {$this->prefix}pages 
-                     SET title = ?, title_en = ?, slug = ?, content = ?, content_en = ?, status = ?,
-                         hide_title = ?, featured_image = ?,
-                         meta_title = ?, meta_description = ?,
-                         updated_at = NOW()
-                     WHERE id = ?",
-                    [
-                        (string)$savePayload['title'],
-                        (string)($savePayload['title_en'] ?? ''),
-                        (string)$savePayload['slug'],
-                        (string)$savePayload['content'],
-                        (string)($savePayload['content_en'] ?? ''),
-                        (string)$savePayload['status'],
-                        (int)$savePayload['hide_title'],
-                        (string)$savePayload['featured_image'],
-                        (string)$savePayload['meta_title'],
-                        (string)$savePayload['meta_description'],
-                        $id,
-                    ]
-                );
+                $updated = $this->pageManager->updatePage($id, $savePayload);
+                if (!$updated) {
+                    return ['success' => false, 'error' => 'Seite konnte nicht aktualisiert werden.'];
+                }
                 SEOService::getInstance()->saveContentMeta('page', $id, $post);
                 $this->createSlugRedirectIfNeeded((string)($existing->slug ?? ''), $slug);
                 Hooks::doAction('cms_after_page_save', $id, $savePayload, $post);

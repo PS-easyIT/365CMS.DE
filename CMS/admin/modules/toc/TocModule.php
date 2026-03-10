@@ -64,11 +64,11 @@ class TocModule
     public function getSettings(): array
     {
         try {
-            $row = $this->db->fetchOne(
+            $row = Database::fetchOne(
                 "SELECT option_value FROM {$this->prefix}settings WHERE option_name = 'toc_settings'"
             );
             if ($row && !empty($row['option_value'])) {
-                $saved = json_decode($row['option_value'], true);
+                $saved = \CMS\Json::decodeArray($row['option_value'] ?? null, []);
                 if (is_array($saved)) {
                     return array_merge(self::DEFAULTS, $saved);
                 }
@@ -113,17 +113,17 @@ class TocModule
         $json = json_encode($settings, JSON_UNESCAPED_UNICODE);
 
         try {
-            $existing = $this->db->fetchOne(
+            $existing = Database::fetchOne(
                 "SELECT id FROM {$this->prefix}settings WHERE option_name = 'toc_settings'"
             );
 
             if ($existing) {
-                $this->db->query(
+                $this->db->execute(
                     "UPDATE {$this->prefix}settings SET option_value = ? WHERE option_name = 'toc_settings'",
                     [$json]
                 );
             } else {
-                $this->db->query(
+                $this->db->execute(
                     "INSERT INTO {$this->prefix}settings (option_name, option_value) VALUES ('toc_settings', ?)",
                     [$json]
                 );

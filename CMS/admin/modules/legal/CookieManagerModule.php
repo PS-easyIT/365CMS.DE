@@ -146,7 +146,7 @@ class CookieManagerModule
             $settings[$row->option_name] = $row->option_value;
         }
 
-        $scanResults = json_decode((string)($settings['cookie_scan_results'] ?? '[]'), true);
+        $scanResults = \CMS\Json::decodeArray($settings['cookie_scan_results'] ?? null, []);
         if (!is_array($scanResults)) {
             $scanResults = [];
         }

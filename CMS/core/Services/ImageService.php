@@ -12,6 +12,8 @@ declare(strict_types=1);
 
 namespace CMS\Services;
 
+use CMS\Logger;
+
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -39,6 +41,8 @@ final class ImageService
         'large'  => [1024, 1024],
     ];
 
+    private Logger $logger;
+
     public static function getInstance(): self
     {
         return self::$instance ??= new self();
@@ -49,6 +53,7 @@ final class ImageService
         $this->gdAvailable = extension_loaded('gd') && function_exists('imagecreatetruecolor');
         $this->webpSupport = function_exists('imagewebp');
         $this->avifSupport = function_exists('imageavif');
+        $this->logger = Logger::instance()->withChannel('image');
     }
 
     // ──────────────────────────────────────────────────────────
@@ -314,7 +319,7 @@ final class ImageService
         imagedestroy($image);
 
         if ($success && $deleteOriginal && $webpPath !== $sourcePath) {
-            @unlink($sourcePath);
+            $this->deleteFile($sourcePath);
         }
 
         return $success ? $webpPath : null;
@@ -414,7 +419,7 @@ final class ImageService
             return false;
         }
 
-        $exif = @exif_read_data($sourcePath);
+        $exif = $this->readExifData($sourcePath);
         if ($exif === false || !isset($exif['Orientation'])) {
             return false;
         }
@@ -467,7 +472,7 @@ final class ImageService
             return null;
         }
 
-        $info = @getimagesize($path);
+        $info = $this->readImageSize($path);
         if ($info === false) {
             return null;
         }
@@ -595,12 +600,12 @@ final class ImageService
         $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
 
         $image = match ($ext) {
-            'jpg', 'jpeg' => @imagecreatefromjpeg($path),
-            'png'         => @imagecreatefrompng($path),
-            'gif'         => @imagecreatefromgif($path),
-            'webp'        => $this->webpSupport ? @imagecreatefromwebp($path) : false,
-            'bmp'         => function_exists('imagecreatefrombmp') ? @imagecreatefrombmp($path) : false,
-            'avif'        => $this->avifSupport ? @imagecreatefromavif($path) : false,
+            'jpg', 'jpeg' => $this->loadImageViaFunction('imagecreatefromjpeg', $path),
+            'png'         => $this->loadImageViaFunction('imagecreatefrompng', $path),
+            'gif'         => $this->loadImageViaFunction('imagecreatefromgif', $path),
+            'webp'        => $this->webpSupport ? $this->loadImageViaFunction('imagecreatefromwebp', $path) : false,
+            'bmp'         => function_exists('imagecreatefrombmp') ? $this->loadImageViaFunction('imagecreatefrombmp', $path) : false,
+            'avif'        => $this->avifSupport ? $this->loadImageViaFunction('imagecreatefromavif', $path) : false,
             default       => false,
         };
 
@@ -631,8 +636,8 @@ final class ImageService
 
         // Verzeichnis sicherstellen
         $dir = dirname($path);
-        if (!is_dir($dir)) {
-            @mkdir($dir, 0755, true);
+        if (!is_dir($dir) && !$this->ensureDirectoryExists($dir)) {
+            return false;
         }
 
         return match ($ext) {
@@ -667,5 +672,99 @@ final class ImageService
             'center'       => [(int)(($imgWidth - $wmWidth) / 2), (int)(($imgHeight - $wmHeight) / 2)],
             default        => [$imgWidth - $wmWidth - $padding, $imgHeight - $wmHeight - $padding],
         };
+    }
+
+    private function deleteFile(string $path): bool
+    {
+        if (!file_exists($path)) {
+            return true;
+        }
+
+        if (!is_writable($path) && !is_writable(dirname($path))) {
+            $this->logger->warning('Quelldatei konnte nicht gelöscht werden.', [
+                'operation' => 'unlink_preflight',
+                'path' => $path,
+            ]);
+
+            return false;
+        }
+
+        $result = $this->runFilesystemOperation('unlink', $path, static fn (): bool => unlink($path));
+        return $result === true;
+    }
+
+    private function readExifData(string $path): array|false
+    {
+        return $this->runFilesystemOperation('exif_read_data', $path, static fn (): array|false => exif_read_data($path));
+    }
+
+    private function readImageSize(string $path): array|false
+    {
+        return $this->runFilesystemOperation('getimagesize', $path, static fn (): array|false => getimagesize($path));
+    }
+
+    private function loadImageViaFunction(string $function, string $path): \GdImage|false
+    {
+        if (!function_exists($function) || !is_file($path) || !is_readable($path)) {
+            return false;
+        }
+
+        $result = $this->runFilesystemOperation($function, $path, static fn () => $function($path));
+        return $result instanceof \GdImage ? $result : false;
+    }
+
+    private function ensureDirectoryExists(string $directory): bool
+    {
+        if (is_dir($directory)) {
+            return is_writable($directory);
+        }
+
+        $parentDir = dirname($directory);
+        if ($parentDir === $directory || $parentDir === '') {
+            return false;
+        }
+
+        if (!is_dir($parentDir) && !$this->ensureDirectoryExists($parentDir)) {
+            return false;
+        }
+
+        if (!is_writable($parentDir)) {
+            $this->logger->warning('Bild-Zielverzeichnis ist nicht beschreibbar.', [
+                'operation' => 'mkdir_preflight',
+                'path' => $directory,
+                'parent' => $parentDir,
+            ]);
+
+            return false;
+        }
+
+        $result = $this->runFilesystemOperation('mkdir', $directory, static fn (): bool => mkdir($directory, 0755));
+        return $result === true || is_dir($directory);
+    }
+
+    private function runFilesystemOperation(string $operation, string $path, callable $callback): mixed
+    {
+        $warning = null;
+
+        set_error_handler(static function (int $severity, string $message) use (&$warning): bool {
+            $warning = $message;
+            return true;
+        });
+
+        try {
+            $result = $callback();
+        } finally {
+            restore_error_handler();
+        }
+
+        if (($result === false || $result === null) && $warning !== null) {
+            $this->logger->warning('Bildoperation fehlgeschlagen.', [
+                'operation' => $operation,
+                'path' => $path,
+                'warning' => $warning,
+            ]);
+        }
+
+        return $result;
     }
 }

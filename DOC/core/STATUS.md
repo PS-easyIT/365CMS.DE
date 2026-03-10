@@ -22,8 +22,8 @@
 | Code-Referenz | `CMS/config/app.php` |
 | Update-Metadaten | `CMS/update.json` |
 | Release-Datum | `2026-03-08` |
-| Projektstandard PHP | `8.3+` |
-| Update-Metadaten `min_php` | `8.2` |
+| Projektstandard PHP | `8.4+` |
+| Update-Metadaten `min_php` | `8.4` |
 | Datenbank | MySQL 5.7+ / MariaDB 10.3+ |
 
 ---
@@ -32,7 +32,7 @@
 
 | Bereich | Status | Hinweis |
 |---|---|---|
-| Bootstrap | ✅ produktiv | lädt Konfiguration, Autoloader, Container und Kernservices |
+| Bootstrap | ✅ produktiv | lädt Konfiguration, Autoloader, Container und Kernservices und validiert gebündelte PHP-Plattformanforderungen vor der Initialisierung |
 | Datenbank | ✅ produktiv | PDO-basierter Zugriff mit Helpern, Prepare-/Execute-Flow und SchemaManager |
 | Routing | ✅ produktiv | Frontend-, Admin-, Member- und Systemrouten aktiv |
 | Sicherheit | ✅ produktiv | CSRF, Escaping, Rate-Limits, Audit- und Firewall-Integration |
@@ -107,6 +107,12 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 | SMTP | konfigurierbar, aber nicht als vollständig entkoppelter Mail-Produktbaukasten dokumentiert |
 | REST-Authentifizierung | vorwiegend sessionnah; kein voll ausgebautes OAuth2-/API-Key-Konzept als Core-Standard |
 | Dokumentation alter Alt-Routen | in Restbeständen einzelner Legacy-Dokumente noch nachziehbar |
+
+## Plattform-Notiz <!-- ADDED: 2026-03-09 -->
+
+- Die offizielle Mindestplattform des Projekts ist PHP `8.4+`.
+- Hintergrund sind die produktiv gebündelten Symfony-Komponenten in `CMS/assets/mailer`, `CMS/assets/mime` und `CMS/assets/translation`, deren Composer-Metadaten PHP 8.4 voraussetzen.
+- Diese Vorgabe wird nicht nur dokumentiert, sondern zur Laufzeit auch über `CMS/config.php`, `CMS/core/Bootstrap.php`, `CMS/core/Services/StatusService.php`, `CMS/core/Services/UpdateService.php` und `CMS/install.php` aktiv geprüft bzw. signalisiert.
 
 ---
 

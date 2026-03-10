@@ -1,4 +1,10 @@
-<?php if (!defined('ABSPATH')) exit; ?>
+<?php
+declare(strict_types=1);
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+?>
 
 <!-- Plugin Marketplace -->
 <div class="page-header d-print-none">

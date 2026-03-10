@@ -151,9 +151,10 @@ class Security
         if (!headers_sent()) {
             header('X-Frame-Options: SAMEORIGIN');
             header('X-Content-Type-Options: nosniff');
-            header('X-XSS-Protection: 1; mode=block');
             header('Referrer-Policy: strict-origin-when-cross-origin');
             header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
+            header('Cross-Origin-Opener-Policy: same-origin');
+            header('Cross-Origin-Resource-Policy: same-site');
 
             // H-04: HSTS – nur über HTTPS senden, nicht im Debug-Modus
             if (!CMS_DEBUG && $this->isHttpsRequest()) {
@@ -234,6 +235,17 @@ class Security
      */
     public function generateToken(string $action = 'default'): string
     {
+        if (isset($_SESSION['csrf_tokens'][$action])) {
+            $stored = $_SESSION['csrf_tokens'][$action];
+            if (is_array($stored)
+                && isset($stored['token'], $stored['time'])
+                && is_string($stored['token'])
+                && (time() - (int)$stored['time']) <= 3600
+            ) {
+                return $stored['token'];
+            }
+        }
+
         $token = bin2hex(random_bytes(32));
         $_SESSION['csrf_tokens'][$action] = [
             'token' => $token,

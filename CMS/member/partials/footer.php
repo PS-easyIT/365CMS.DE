@@ -8,7 +8,6 @@ if (!defined('ABSPATH')) {
 $pageAssets = $pageAssets ?? [];
 $inlineJs = $inlineJs ?? '';
 $siteUrl = defined('SITE_URL') ? SITE_URL : '';
-$assetsUrl = defined('ASSETS_URL') ? ASSETS_URL : $siteUrl . '/assets';
 $pageKey = $pageKey ?? 'dashboard';
 ?>
             </div>
@@ -27,9 +26,9 @@ $pageKey = $pageKey ?? 'dashboard';
         </footer>
     </div>
 </div>
-<script src="<?= htmlspecialchars($assetsUrl) ?>/tabler/js/tabler.min.js" defer></script>
-<script src="<?= htmlspecialchars($assetsUrl) ?>/filepond/filepond.min.js" defer></script>
-<script src="<?= htmlspecialchars($assetsUrl) ?>/js/member-dashboard.js?v=<?= @filemtime(ASSETS_PATH . 'js/member-dashboard.js') ?: '' ?>" defer></script>
+<script src="<?= htmlspecialchars(cms_asset_url('tabler/js/tabler.min.js'), ENT_QUOTES) ?>" defer></script>
+<script src="<?= htmlspecialchars(cms_asset_url('filepond/filepond.min.js'), ENT_QUOTES) ?>" defer></script>
+<script src="<?= htmlspecialchars(cms_asset_url('js/member-dashboard.js'), ENT_QUOTES) ?>" defer></script>
 <?php if (!empty($pageAssets['js'])): ?>
     <?php foreach ((array)$pageAssets['js'] as $js): ?>
         <script src="<?= htmlspecialchars((string)$js) ?>" defer></script>

@@ -55,13 +55,13 @@ class GroupsModule
 
         try {
             if ($id > 0) {
-                $this->db->query(
+                $this->db->execute(
                     "UPDATE {$this->prefix}user_groups SET name = ?, description = ?, updated_at = NOW() WHERE id = ?",
                     [$name, $description, $id]
                 );
                 return ['success' => true, 'message' => 'Gruppe aktualisiert.'];
             } else {
-                $this->db->query(
+                $this->db->execute(
                     "INSERT INTO {$this->prefix}user_groups (name, description, created_at) VALUES (?, ?, NOW())",
                     [$name, $description]
                 );
@@ -82,8 +82,8 @@ class GroupsModule
         }
 
         try {
-            $this->db->query("DELETE FROM {$this->prefix}user_group_members WHERE group_id = ?", [$id]);
-            $this->db->query("DELETE FROM {$this->prefix}user_groups WHERE id = ?", [$id]);
+            $this->db->execute("DELETE FROM {$this->prefix}user_group_members WHERE group_id = ?", [$id]);
+            $this->db->execute("DELETE FROM {$this->prefix}user_groups WHERE id = ?", [$id]);
             return ['success' => true, 'message' => 'Gruppe gelöscht.'];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];

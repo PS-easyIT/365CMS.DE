@@ -20,10 +20,13 @@ if (file_exists(__DIR__ . '/config.php')) {
 require_once CORE_PATH . 'autoload.php';
 
 use CMS\Auth;
+use CMS\CacheManager;
 use CMS\Database;
 use CMS\Security;
 use CMS\SubscriptionManager;
 use CMS\ThemeManager;
+
+CacheManager::instance()->sendResponseHeaders('private');
 
 // Get parameters
 $planId = isset($_GET['plan']) ? (int)$_GET['plan'] : 0;

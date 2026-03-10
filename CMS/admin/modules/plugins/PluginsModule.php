@@ -46,7 +46,7 @@ class PluginsModule
                 // update.json lesen
                 $updateFile = $pluginsDir . $slug . '/update.json';
                 if (file_exists($updateFile)) {
-                    $upd = json_decode(file_get_contents($updateFile), true);
+                    $upd = \CMS\Json::decodeArray(file_get_contents($updateFile), []);
                     $info['version']     = $upd['version'] ?? $info['version'] ?? '-';
                     $info['last_update'] = $upd['date'] ?? '';
                 }
@@ -96,7 +96,7 @@ class PluginsModule
 
         // Fallback: settings table
         $row   = $this->db->get_row("SELECT option_value FROM {$this->prefix}settings WHERE option_name = 'active_plugins'");
-        $list  = $row ? json_decode($row->option_value, true) : [];
+        $list  = $row ? \CMS\Json::decodeArray($row->option_value ?? null, []) : [];
         if (!is_array($list)) $list = [];
         if (!in_array($slug, $list, true)) {
             $list[] = $slug;
@@ -130,7 +130,7 @@ class PluginsModule
         }
 
         $row   = $this->db->get_row("SELECT option_value FROM {$this->prefix}settings WHERE option_name = 'active_plugins'");
-        $list  = $row ? json_decode($row->option_value, true) : [];
+        $list  = $row ? \CMS\Json::decodeArray($row->option_value ?? null, []) : [];
         if (!is_array($list)) $list = [];
         $list = array_values(array_filter($list, fn($s) => $s !== $slug));
         $val  = json_encode($list);
@@ -192,7 +192,7 @@ class PluginsModule
         $row = $this->db->get_row(
             "SELECT option_value FROM {$this->prefix}settings WHERE option_name = 'active_plugins'"
         );
-        $list = $row ? json_decode($row->option_value, true) : [];
+        $list = $row ? \CMS\Json::decodeArray($row->option_value ?? null, []) : [];
         return is_array($list) && in_array($slug, $list, true);
     }
 

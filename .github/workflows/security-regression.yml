@@ -1,0 +1,39 @@
+name: Security Regression
+
+on:
+  push:
+    paths:
+      - 'CMS/**/*.php'
+      - 'tests/**/*.php'
+      - '.github/workflows/security-regression.yml'
+  pull_request:
+    paths:
+      - 'CMS/**/*.php'
+      - 'tests/**/*.php'
+      - '.github/workflows/security-regression.yml'
+
+jobs:
+  security-regression:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: PHP 8.4 einrichten
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Security-Regressionssuite ausführen
+        run: php tests/security/run.php
+
+      - name: HTTP-Cache-/Proxy-Regressionssuite ausführen
+        run: php tests/http-cache/run.php
+
+      - name: Runtime-/Query-Telemetrie-Regressionssuite ausführen
+        run: php tests/runtime-telemetry/run.php
+
+      - name: Architektur-Fitness-Checks ausführen
+        run: php tests/architecture/run.php

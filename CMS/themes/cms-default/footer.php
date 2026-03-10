@@ -18,6 +18,7 @@ $col1Title      = meridian_setting('footer', 'col1_title', 'Rubriken');
 $col2Title      = meridian_setting('footer', 'col2_title', 'Ressourcen');
 $col3Title      = meridian_setting('footer', 'col3_title', 'Über');
 $copyrightText  = meridian_copyright(meridian_setting('footer', 'copyright_text', ''));
+$aboutLinks     = function_exists('meridian_footer_about_links') ? meridian_footer_about_links() : [];
 
 $socialLinks = [
     'twitter'   => meridian_setting('footer', 'social_twitter', ''),
@@ -106,10 +107,9 @@ if (class_exists('\\CMS\\Hooks')) {
     <!-- About Column -->
     <div class="ft-col">
       <h4><?php echo htmlspecialchars($col3Title); ?></h4>
-      <a href="<?php echo SITE_URL; ?>/about">Über uns</a>
-      <a href="<?php echo SITE_URL; ?>/contact">Kontakt</a>
-      <a href="<?php echo SITE_URL; ?>/impressum">Impressum</a>
-      <a href="<?php echo SITE_URL; ?>/datenschutz">Datenschutz</a>
+      <?php foreach ($aboutLinks as $link): ?>
+      <a href="<?php echo htmlspecialchars(rtrim((string)SITE_URL, '/') . '/' . ltrim((string)($link['url'] ?? ''), '/'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string)($link['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></a>
+      <?php endforeach; ?>
     </div>
 
   </div>

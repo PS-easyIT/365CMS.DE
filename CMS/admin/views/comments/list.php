@@ -16,6 +16,18 @@ $comments = $data['comments'] ?? [];
 $counts   = $data['counts'] ?? [];
 $status   = $data['status'] ?? 'all';
 
+$commentField = static function (mixed $comment, string $key, mixed $default = ''): mixed {
+    if (is_array($comment)) {
+        return $comment[$key] ?? $default;
+    }
+
+    if (is_object($comment) && isset($comment->{$key})) {
+        return $comment->{$key};
+    }
+
+    return $default;
+};
+
 $tabs = [
     'all'      => ['label' => 'Alle',         'count' => $counts['all'] ?? 0],
     'pending'  => ['label' => 'Ausstehend',   'count' => $counts['pending'] ?? 0],
@@ -39,14 +51,12 @@ $tabs = [
 <div class="page-body">
     <div class="container-xl">
 
-        <?php if (!empty($alert)): ?>
-            <div class="alert alert-<?php echo $alert['type'] === 'success' ? 'success' : 'danger'; ?> alert-dismissible mb-3" role="alert">
-                <div class="d-flex">
-                    <div><?php echo htmlspecialchars($alert['message']); ?></div>
-                </div>
-                <a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>
-            </div>
-        <?php endif; ?>
+        <?php
+        $alertData = $alert ?? [];
+        $alertDismissible = true;
+        $alertMarginClass = 'mb-3';
+        require __DIR__ . '/../partials/flash-alert.php';
+        ?>
 
         <!-- KPIs -->
         <div class="row row-deck row-cards mb-4">
@@ -157,23 +167,25 @@ $tabs = [
                     </thead>
                     <tbody>
                     <?php if (empty($comments)): ?>
-                        <tr>
-                            <td colspan="7" class="text-center text-secondary py-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-lg mb-2" width="40" height="40" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 20l1.3 -3.9c-2.324 -3.437 -1.426 -7.872 2.1 -10.374c3.526 -2.501 8.59 -2.296 11.845 .48c3.255 2.777 3.695 7.266 1.029 10.501c-2.666 3.235 -7.615 4.215 -11.574 2.293l-4.7 1"/></svg>
-                                <p class="mt-1 mb-0">Keine Kommentare in dieser Ansicht.</p>
-                            </td>
-                        </tr>
+                        <?php
+                        $emptyStateColspan = 7;
+                        $emptyStateMessage = 'Keine Kommentare in dieser Ansicht.';
+                        $emptyStateSubtitle = 'Passen Sie den Statusfilter an oder warten Sie auf neue Moderationsfälle.';
+                        $emptyStateIcon = 'comments';
+                        require __DIR__ . '/../partials/empty-table-row.php';
+                        ?>
                     <?php else: ?>
                         <?php foreach ($comments as $c): ?>
                             <?php
-                            $cId       = (int)($c['id'] ?? $c->id ?? 0);
-                            $cAuthor   = $c['author'] ?? $c->author ?? '';
-                            $cEmail    = $c['author_email'] ?? $c->author_email ?? '';
-                            $cContent  = $c['content'] ?? $c->content ?? '';
-                            $cStatus   = $c['status'] ?? $c->status ?? '';
-                            $cDate     = $c['post_date'] ?? $c->post_date ?? '';
-                            $cPostTitle = $c['post_title'] ?? $c->post_title ?? '';
-                            $cPostSlug  = $c['post_slug'] ?? $c->post_slug ?? '';
+                            $cId        = (int)$commentField($c, 'id', 0);
+                            $cAuthor    = (string)$commentField($c, 'author', '');
+                            $cEmail     = (string)$commentField($c, 'author_email', '');
+                            $cContent   = (string)$commentField($c, 'content', '');
+                            $cStatus    = (string)$commentField($c, 'status', '');
+                            $cDate      = (string)$commentField($c, 'post_date', '');
+                            $cPostTitle = (string)$commentField($c, 'post_title', '');
+                            $cPostSlug  = (string)$commentField($c, 'post_slug', '');
+                            $cInitials  = strtoupper(mb_substr(trim($cAuthor), 0, 2));
                             ?>
                             <tr>
                                 <td>
@@ -181,7 +193,7 @@ $tabs = [
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        <span class="avatar avatar-sm me-2"><?php echo strtoupper(mb_substr($cAuthor, 0, 2)); ?></span>
+                                        <span class="avatar avatar-sm me-2"><?php echo htmlspecialchars($cInitials !== '' ? $cInitials : 'KO'); ?></span>
                                         <div>
                                             <div class="font-weight-medium"><?php echo htmlspecialchars($cAuthor); ?></div>
                                             <div class="text-secondary small"><?php echo htmlspecialchars($cEmail); ?></div>

@@ -3,7 +3,7 @@
 <div align="center">
 
 [![Version](https://img.shields.io/badge/version-2.5.4-blue.svg)](Changelog.md)
-![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?logo=php&logoColor=white)
+![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
 ![Status](https://img.shields.io/badge/status-aktiv-success)
@@ -105,10 +105,12 @@ Die aktuelle Arbeitsumgebung ist in drei Repositories aufgeteilt:
 
 ### Voraussetzungen
 
-- PHP `8.3+`
+- PHP `8.4+`
 - MySQL `5.7+` oder MariaDB `10.3+`
 - Apache `2.4+` mit `mod_rewrite`
 - PHP-Erweiterungen: `PDO`, `pdo_mysql`, `mbstring`, `json`
+
+> Hinweis: Die produktiv gebündelten Symfony-Komponenten unter `CMS/assets/` (`mailer`, `mime`, `translation`) erfordern PHP 8.4. 365CMS richtet seine offizielle Mindestplattform deshalb verbindlich auf PHP 8.4 aus und prüft diese Vorgabe bereits vor dem regulären Bootstrap.
 
 ### Installation
 
@@ -168,7 +170,7 @@ Der schnellste Einstieg ist der lokale Dokumentationsindex unter [`DOC/INDEX.md`
 
 | Bereich | Eingesetzte Komponenten |
 |---|---|
-| **Backend** | PHP 8.3+, PDO, MySQL/MariaDB |
+| **Backend** | PHP 8.4+, PDO, MySQL/MariaDB |
 | **Mail** | Symfony Mailer, Symfony Mime, Mail Queue, Microsoft-365/XOAuth2-Vorbereitung |
 | **Security/Auth** | HTMLPurifier, JWT, WebAuthn, TwoFactorAuth, LdapRecord |
 | **Editor & UI** | SunEditor, Editor.js, Tabler, Grid.js |

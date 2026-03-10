@@ -87,7 +87,7 @@ class TableOfContents
                 "SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'toc_settings'"
             );
             if ($row && !empty($row['option_value'])) {
-                $saved = json_decode($row['option_value'], true);
+                $saved = Json::decodeArray($row['option_value'] ?? null, []);
                 if (is_array($saved)) {
                     $this->settings = array_merge(self::DEFAULTS, $saved);
                     return;

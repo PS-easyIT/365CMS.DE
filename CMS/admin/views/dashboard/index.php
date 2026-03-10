@@ -176,13 +176,13 @@ function dashboardStatusBadge(string $status): string {
         // ─── Warnungen / Hinweise ─────────────────────────────────
         if (!empty($data['alerts'])):
             foreach ($data['alerts'] as $alert): ?>
-                <div class="alert alert-<?= htmlspecialchars($alert['type']) ?> alert-dismissible" role="alert">
+                <div class="alert alert-<?= htmlspecialchars((string) ($alert['type'] ?? 'info')) ?> alert-dismissible" role="alert">
                     <div class="d-flex">
                         <div><?= dashIcon('alert-triangle') ?></div>
                         <div class="ms-2">
-                            <?= htmlspecialchars($alert['message']) ?>
+                            <?= htmlspecialchars((string) ($alert['message'] ?? 'Hinweis')) ?>
                             <?php if (!empty($alert['url'])): ?>
-                                <a href="<?= htmlspecialchars($siteUrl . $alert['url']) ?>" class="alert-link ms-1">Anzeigen →</a>
+                                <a href="<?= htmlspecialchars($siteUrl . (string) ($alert['url'] ?? '')) ?>" class="alert-link ms-1">Anzeigen →</a>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -408,11 +408,11 @@ function dashboardStatusBadge(string $status): string {
                             <?php foreach ($data['activity'] as $entry): ?>
                                 <tr>
                                     <td>
-                                        <span class="badge bg-blue-lt"><?= htmlspecialchars($entry->action ?? '') ?></span>
+                                        <span class="badge bg-blue-lt"><?= htmlspecialchars((string) ($entry->action ?? '')) ?></span>
                                     </td>
-                                    <td class="text-secondary"><?= htmlspecialchars(mb_strimwidth($entry->details ?? '', 0, 60, '…')) ?></td>
+                                    <td class="text-secondary"><?= htmlspecialchars(mb_strimwidth((string) ($entry->details ?? ''), 0, 60, '…')) ?></td>
                                     <td class="text-secondary">
-                                        <?= htmlspecialchars($entry->created_at ?? '') ?>
+                                        <?= htmlspecialchars((string) ($entry->created_at ?? '')) ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace CMS\Services;
 
+use CMS\Http\Client as HttpClient;
 use CMS\Logger;
 
 if (!defined('ABSPATH')) {
@@ -20,11 +21,13 @@ class AzureMailTokenProvider
     private const GROUP = 'mail';
     private const CACHE_KEY = 'azure_token_cache';
     private const DEFAULT_SCOPE = 'https://outlook.office365.com/.default';
+    private const ALLOWED_TOKEN_HOSTS = ['login.microsoftonline.com'];
 
     private static ?self $instance = null;
 
     private SettingsService $settings;
     private Logger $logger;
+    private HttpClient $httpClient;
 
     public static function getInstance(): self
     {
@@ -35,6 +38,7 @@ class AzureMailTokenProvider
     {
         $this->settings = SettingsService::getInstance();
         $this->logger = Logger::instance()->withChannel('mail.azure');
+        $this->httpClient = HttpClient::getInstance();
     }
 
     /**
@@ -51,6 +55,7 @@ class AzureMailTokenProvider
         );
         $scope = $this->settings->getString(self::GROUP, 'azure_scope', self::DEFAULT_SCOPE);
         $customEndpoint = $this->settings->getString(self::GROUP, 'azure_token_endpoint');
+        $defaultTokenEndpoint = $this->buildTokenEndpoint($tenantId !== '' ? $tenantId : 'common');
 
         return [
             'configured' => $tenantId !== '' && $clientId !== '' && $this->settings->getString(self::GROUP, 'azure_client_secret') !== '' && $mailbox !== '',
@@ -58,9 +63,7 @@ class AzureMailTokenProvider
             'client_id' => $clientId,
             'mailbox' => $mailbox,
             'scope' => $scope !== '' ? $scope : self::DEFAULT_SCOPE,
-            'token_endpoint' => $customEndpoint !== ''
-                ? $customEndpoint
-                : $this->buildTokenEndpoint($tenantId !== '' ? $tenantId : 'common'),
+            'token_endpoint' => $this->normalizeTokenEndpoint($customEndpoint !== '' ? $customEndpoint : $defaultTokenEndpoint, $defaultTokenEndpoint),
         ];
     }
 
@@ -139,26 +142,19 @@ class AzureMailTokenProvider
      */
     private function requestToken(string $url, array $payload): array
     {
-        $ch = curl_init($url);
-        if ($ch === false) {
-            throw new \RuntimeException('cURL konnte für Azure OAuth2 nicht initialisiert werden.');
-        }
-
-        curl_setopt_array($ch, [
-            CURLOPT_POST => true,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 20,
-            CURLOPT_HTTPHEADER => ['Content-Type: application/x-www-form-urlencoded'],
-            CURLOPT_POSTFIELDS => http_build_query($payload, '', '&', PHP_QUERY_RFC3986),
+        $response = $this->httpClient->postForm($url, $payload, [
+            'userAgent' => '365CMS-AzureMail/1.0',
+            'timeout' => 20,
+            'connectTimeout' => 10,
+            'maxBytes' => 256 * 1024,
+            'allowedContentTypes' => ['application/json'],
         ]);
 
-        $body = curl_exec($ch);
-        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlError = curl_error($ch);
-        curl_close($ch);
+        $body = (string) ($response['body'] ?? '');
+        $httpCode = (int) ($response['status'] ?? 0);
 
-        if (!is_string($body) || $body === '') {
-            throw new \RuntimeException('Azure OAuth2 lieferte keine Antwort. ' . $curlError);
+        if ($body === '') {
+            throw new \RuntimeException('Azure OAuth2 lieferte keine Antwort. ' . (string) ($response['error'] ?? ''));
         }
 
         try {
@@ -167,15 +163,45 @@ class AzureMailTokenProvider
             throw new \RuntimeException('Azure OAuth2 lieferte ungültiges JSON: ' . $e->getMessage());
         }
 
-        if ($httpCode >= 400) {
+        if (($response['success'] ?? false) !== true || $httpCode >= 400) {
             $message = (string) ($decoded['error_description'] ?? $decoded['error'] ?? 'Unbekannter Azure-Fehler');
             $this->logger->warning('Azure-Tokenabruf fehlgeschlagen', [
                 'http_code' => $httpCode,
                 'message' => $message,
+                'client_error' => (string) ($response['error'] ?? ''),
             ]);
             throw new \RuntimeException('Azure OAuth2 Fehler (' . $httpCode . '): ' . trim($message));
         }
 
         return is_array($decoded) ? $decoded : [];
+    }
+
+    private function normalizeTokenEndpoint(string $url, string $fallback): string
+    {
+        $normalized = rtrim(trim($url), '/');
+        if ($normalized === '') {
+            return $fallback;
+        }
+
+        $parts = parse_url($normalized);
+        $host = strtolower((string)($parts['host'] ?? ''));
+        $scheme = strtolower((string)($parts['scheme'] ?? ''));
+        $path = (string)($parts['path'] ?? '');
+
+        if (!is_array($parts)
+            || $scheme !== 'https'
+            || $host === ''
+            || !in_array($host, self::ALLOWED_TOKEN_HOSTS, true)
+            || !str_ends_with($path, '/oauth2/v2.0/token')
+        ) {
+            $this->logger->warning('Azure-Token-Endpoint verworfen: Host, Schema oder Pfad nicht erlaubt', [
+                'url' => $url,
+                'fallback' => $fallback,
+                'allowed_hosts' => self::ALLOWED_TOKEN_HOSTS,
+            ]);
+            return $fallback;
+        }
+
+        return $normalized;
     }
 }

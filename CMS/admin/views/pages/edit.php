@@ -20,7 +20,6 @@ if (!defined('ABSPATH')) {
 use CMS\Services\EditorService;
 
 $siteUrl = defined('SITE_URL') ? SITE_URL : '';
-$assetsUrl = defined('ASSETS_URL') ? ASSETS_URL : $siteUrl . '/assets';
 $page    = $editData['page'] ?? null;
 $isNew   = $editData['isNew'] ?? true;
 $seoMeta = $editData['seoMeta'] ?? [];

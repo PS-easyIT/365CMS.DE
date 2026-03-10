@@ -5,14 +5,24 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!defined('CMS_ADMIN_SEO_VIEW')) {
+    exit;
+}
+
 $analytics = $data['analytics'] ?? [];
 $stats = $analytics['visitor_stats'] ?? [];
 $topPages = $analytics['top_pages'] ?? [];
+$featureUsage = $analytics['feature_usage'] ?? [];
+$featureTotals = $featureUsage['totals'] ?? [];
+$featureTop = $featureUsage['top_features'] ?? [];
+$featureAreas = $featureUsage['area_breakdown'] ?? [];
 $daily = $analytics['daily_traffic'] ?? [];
 $referrers = $analytics['referrers'] ?? [];
 $backlinks = $analytics['backlinks'] ?? [];
 $internalLinkSuggestions = $analytics['internal_link_suggestions'] ?? [];
 $coreWebVitals = $analytics['core_web_vitals'] ?? [];
+$coreWebVitalsMetrics = $coreWebVitals['metrics'] ?? [];
+$coreWebVitalsPages = $coreWebVitals['problem_pages'] ?? [];
 $trackingSettings = $analytics['tracking_settings'] ?? [];
 $hasTable = $analytics['has_page_views'] ?? false;
 ?>
@@ -87,6 +97,22 @@ $hasTable = $analytics['has_page_views'] ?? false;
                     </div>
                 </div>
             </div>
+            <div class="col-6 col-lg-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="subheader">Feature-Events 30 Tage</div>
+                        <div class="h1 mb-0"><?= number_format((int)($featureTotals['total_events'] ?? 0)) ?></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="subheader">Aktiv genutzte Features</div>
+                        <div class="h1 mb-0"><?= number_format((int)($featureTotals['unique_features'] ?? 0)) ?></div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="row g-4">
@@ -130,19 +156,92 @@ $hasTable = $analytics['has_page_views'] ?? false;
                         </table>
                     </div>
                 </div>
+                <div class="card mt-4">
+                    <div class="card-header d-flex align-items-center justify-content-between">
+                        <h3 class="card-title mb-0">Top-Features (30 Tage)</h3>
+                        <span class="badge bg-blue-lt"><?= number_format((int)($featureTotals['unique_actors'] ?? 0)) ?> aktive Akteure</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-vcenter card-table">
+                            <thead>
+                                <tr><th>Feature</th><th>Bereich</th><th class="text-end">Nutzungen</th><th class="text-end">Nutzer/Sessions</th><th>Zuletzt</th></tr>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($featureTop)): ?>
+                                    <tr><td colspan="5" class="text-center text-secondary py-3">Noch keine Feature-Metriken vorhanden.</td></tr>
+                                <?php else: ?>
+                                    <?php foreach ($featureTop as $feature): ?>
+                                        <tr>
+                                            <td>
+                                                <strong><?= htmlspecialchars((string)($feature['feature_label'] ?? 'Feature')) ?></strong>
+                                                <div class="text-secondary small"><code><?= htmlspecialchars((string)($feature['feature_key'] ?? '')) ?></code></div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-azure-lt text-azure"><?= htmlspecialchars((string)($feature['feature_area'] ?? '')) ?></span>
+                                                <?php if (!empty($feature['plugin_slug'])): ?>
+                                                    <div class="text-secondary small mt-1">Plugin: <?= htmlspecialchars((string)$feature['plugin_slug']) ?></div>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="text-end"><strong><?= number_format((int)($feature['total_uses'] ?? 0)) ?></strong></td>
+                                            <td class="text-end"><?= number_format((int)($feature['unique_actors'] ?? 0)) ?></td>
+                                            <td><?= htmlspecialchars((string)($feature['last_used_at'] ?? '—')) ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer text-secondary small">
+                        <?= htmlspecialchars((string)($featureUsage['note'] ?? '')) ?>
+                    </div>
+                </div>
             </div>
 
             <div class="col-lg-4">
                 <div class="card mb-3">
-                    <div class="card-header"><h3 class="card-title">Core Web Vitals (Schätzung)</h3></div>
+                    <div class="card-header"><h3 class="card-title">Feature-Mix</h3></div>
+                    <div class="list-group list-group-flush">
+                        <?php if (empty($featureAreas)): ?>
+                            <div class="list-group-item text-secondary text-center small">Noch keine Bereichsdaten vorhanden.</div>
+                        <?php else: ?>
+                            <?php foreach ($featureAreas as $area): ?>
+                                <div class="list-group-item d-flex justify-content-between align-items-center gap-3">
+                                    <div>
+                                        <div class="fw-semibold"><?= htmlspecialchars((string)($area['feature_area'] ?? '')) ?></div>
+                                        <div class="text-secondary small"><?= number_format((int)($area['feature_count'] ?? 0)) ?> Features · <?= number_format((int)($area['unique_actors'] ?? 0)) ?> Akteure</div>
+                                    </div>
+                                    <span class="badge bg-blue-lt"><?= number_format((int)($area['total_uses'] ?? 0)) ?></span>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <div class="card mb-3">
+                    <div class="card-header d-flex align-items-center justify-content-between">
+                        <h3 class="card-title mb-0">Core Web Vitals (Felddaten)</h3>
+                        <span class="badge bg-blue-lt"><?= number_format((int)($coreWebVitals['sample_count'] ?? 0)) ?> Samples</span>
+                    </div>
                     <div class="card-body">
-                        <div class="datagrid">
-                            <div class="datagrid-item"><div class="datagrid-title">TTFB</div><div class="datagrid-content"><?= (int)($coreWebVitals['ttfb_ms'] ?? 0) ?> ms</div></div>
-                            <div class="datagrid-item"><div class="datagrid-title">LCP*</div><div class="datagrid-content"><?= htmlspecialchars((string)($coreWebVitals['lcp_estimate'] ?? '—')) ?> s</div></div>
-                            <div class="datagrid-item"><div class="datagrid-title">INP*</div><div class="datagrid-content"><?= htmlspecialchars((string)($coreWebVitals['inp_estimate'] ?? '—')) ?> ms</div></div>
-                            <div class="datagrid-item"><div class="datagrid-title">CLS*</div><div class="datagrid-content"><?= htmlspecialchars((string)($coreWebVitals['cls_estimate'] ?? '—')) ?></div></div>
+                        <div class="datagrid mb-3">
+                            <?php foreach (['ttfb' => 'TTFB', 'lcp' => 'LCP', 'inp' => 'INP', 'cls' => 'CLS'] as $metricKey => $metricLabel): ?>
+                                <?php $metric = $coreWebVitalsMetrics[$metricKey] ?? []; ?>
+                                <?php $badgeClass = match ((string)($metric['rating'] ?? 'unknown')) {
+                                    'good' => 'bg-green-lt text-green',
+                                    'needs-improvement' => 'bg-yellow-lt text-yellow',
+                                    'poor' => 'bg-red-lt text-red',
+                                    default => 'bg-secondary-lt text-secondary',
+                                }; ?>
+                                <div class="datagrid-item">
+                                    <div class="datagrid-title"><?= htmlspecialchars($metricLabel) ?></div>
+                                    <div class="datagrid-content d-flex align-items-center justify-content-between gap-2">
+                                        <span><?= htmlspecialchars((string)($metric['display'] ?? '—')) ?></span>
+                                        <span class="badge <?= $badgeClass ?>"><?= htmlspecialchars((string)($metric['rating_label'] ?? 'Keine Daten')) ?></span>
+                                    </div>
+                                    <div class="text-secondary small mt-1"><?= htmlspecialchars((string)($metric['threshold'] ?? '')) ?></div>
+                                </div>
+                            <?php endforeach; ?>
                         </div>
-                        <div class="form-hint mt-2"><?= htmlspecialchars((string)($coreWebVitals['note'] ?? '')) ?></div>
+                        <div class="form-hint"><?= htmlspecialchars((string)($coreWebVitals['note'] ?? '')) ?></div>
                     </div>
                 </div>
                 <div class="card">
@@ -166,6 +265,30 @@ $hasTable = $analytics['has_page_views'] ?? false;
         <div class="row g-4 mt-1">
             <div class="col-lg-6">
                 <div class="card h-100">
+                    <div class="card-header"><h3 class="card-title">Langsamste Seiten (Felddaten)</h3></div>
+                    <div class="table-responsive">
+                        <table class="table table-vcenter card-table">
+                            <thead><tr><th>Pfad</th><th class="text-end">Samples</th><th class="text-end">Ø LCP</th><th class="text-end">Ø INP</th></tr></thead>
+                            <tbody>
+                                <?php if (empty($coreWebVitalsPages)): ?>
+                                    <tr><td colspan="4" class="text-center text-secondary py-4">Noch keine aussagekräftigen CWV-Pfade vorhanden.</td></tr>
+                                <?php else: ?>
+                                    <?php foreach ($coreWebVitalsPages as $page): ?>
+                                        <tr>
+                                            <td><code class="small"><?= htmlspecialchars((string)($page['page_path'] ?? '/')) ?></code></td>
+                                            <td class="text-end"><?= number_format((int)($page['samples'] ?? 0)) ?></td>
+                                            <td class="text-end"><?= isset($page['avg_lcp_ms']) && $page['avg_lcp_ms'] !== null ? number_format((int)$page['avg_lcp_ms']) . ' ms' : '—' ?></td>
+                                            <td class="text-end"><?= isset($page['avg_inp_ms']) && $page['avg_inp_ms'] !== null ? number_format((int)$page['avg_inp_ms']) . ' ms' : '—' ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card h-100">
                     <div class="card-header"><h3 class="card-title">Tracking & Suchmaschinen</h3></div>
                     <div class="card-body">
                         <form method="post" class="row g-3">
@@ -177,17 +300,25 @@ $hasTable = $analytics['has_page_views'] ?? false;
                             <div class="col-md-8"><label class="form-label">Matomo URL</label><input class="form-control" type="text" name="matomo_url" value="<?= htmlspecialchars((string)($trackingSettings['seo_analytics_matomo_url'] ?? '')) ?>"></div>
                             <div class="col-md-4"><label class="form-label">Matomo Site ID</label><input class="form-control" type="text" name="matomo_site_id" value="<?= htmlspecialchars((string)($trackingSettings['seo_analytics_matomo_site_id'] ?? '1')) ?>"></div>
                             <div class="col-md-6"><label class="form-label">Meta Pixel</label><input class="form-control" type="text" name="fb_pixel_id" value="<?= htmlspecialchars((string)($trackingSettings['seo_analytics_fb_pixel_id'] ?? '')) ?>"></div>
+                            <div class="col-md-6"><label class="form-label">CWV Sample-Rate (%)</label><input class="form-control" type="number" min="1" max="100" name="web_vitals_sample_rate" value="<?= htmlspecialchars((string)($trackingSettings['seo_analytics_web_vitals_sample_rate'] ?? '100')) ?>"></div>
                             <div class="col-md-6 d-flex flex-column gap-2 justify-content-end">
                                 <label class="form-check"><input class="form-check-input" type="checkbox" name="exclude_admins" value="1" <?= !empty($trackingSettings['seo_analytics_exclude_admins']) ? 'checked' : '' ?>><span class="form-check-label">Admins ausschließen</span></label>
                                 <label class="form-check"><input class="form-check-input" type="checkbox" name="respect_dnt" value="1" <?= !empty($trackingSettings['seo_analytics_respect_dnt']) ? 'checked' : '' ?>><span class="form-check-label">Do Not Track respektieren</span></label>
                                 <label class="form-check"><input class="form-check-input" type="checkbox" name="anonymize_ip" value="1" <?= !empty($trackingSettings['seo_analytics_anonymize_ip']) ? 'checked' : '' ?>><span class="form-check-label">IP anonymisieren</span></label>
+                            </div>
+                            <div class="col-md-6 d-flex flex-column gap-2 justify-content-end">
+                                <label class="form-check"><input class="form-check-input" type="checkbox" name="web_vitals_enabled" value="1" <?= !empty($trackingSettings['seo_analytics_web_vitals_enabled']) ? 'checked' : '' ?>><span class="form-check-label">Core-Web-Vitals-Felddaten erfassen</span></label>
+                                <div class="form-hint">Optional ergänzend: externe Google-/CrUX-Daten separat anbinden. Das interne Beacon misst reale Frontend-Felddaten ohne Drittservice.</div>
                             </div>
                             <div class="col-12"><button class="btn btn-primary" type="submit">Analytics speichern</button></div>
                         </form>
                     </div>
                 </div>
             </div>
-            <div class="col-lg-6">
+        </div>
+
+        <div class="row g-4 mt-1">
+            <div class="col-lg-12">
                 <div class="card h-100">
                     <div class="card-header"><h3 class="card-title">Internal-Linking-Ideen</h3></div>
                     <div class="table-responsive">

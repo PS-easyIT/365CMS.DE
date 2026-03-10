@@ -34,7 +34,7 @@ class ThemesModule
         foreach ($themes as $slug => &$theme) {
             $jsonPath = THEME_PATH . $slug . '/theme.json';
             if (file_exists($jsonPath)) {
-                $json = json_decode(file_get_contents($jsonPath), true);
+                $json = \CMS\Json::decodeArray(file_get_contents($jsonPath), []);
                 if ($json) {
                     $theme['json'] = $json;
                 }

@@ -1,63 +1,63 @@
 <?php
-// ULTRA-SIMPLE PROXY REPLACEMENT
-// This file replaces the previous version entirely to fix syntax errors and simplify.
+declare(strict_types=1);
 
-header('Content-Type: application/json');
-error_reporting(E_ALL);
-ini_set('display_errors', '0'); // Do not output errors as HTML
+/**
+ * Legacy-Medien-Proxy.
+ *
+ * H-07: Der frühere Sonderpfad mit eigener Session-/Debug-Logik wird nur noch
+ * als Kompatibilitätsadapter betrieben und leitet in die reguläre
+ * Bootstrap-/Router-Pipeline um.
+ */
 
-$log_file = __DIR__ . '/media_debug.log';
-
-function debug_log($msg) {
-    global $log_file;
-    file_put_contents($log_file, date('Y-m-d H:i:s') . " - " . $msg . "\n", FILE_APPEND);
+if (!defined('ABSPATH')) {
+    define('ABSPATH', __DIR__ . DIRECTORY_SEPARATOR);
 }
 
-debug_log("PROXY START");
+if (!defined('CMS_AJAX_REQUEST') && strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'POST') {
+    define('CMS_AJAX_REQUEST', true);
+}
+
+require_once __DIR__ . '/config.php';
+require_once CORE_PATH . 'autoload.php';
+
+use CMS\Bootstrap;
+use CMS\Logger;
 
 try {
-    // 1. Core definitions
-    if (!defined('ABSPATH')) define('ABSPATH', __DIR__ . '/');
-    if (!defined('CORE_PATH')) define('CORE_PATH', ABSPATH . 'core/');
-    if (!defined('CMS_AJAX_REQUEST')) define('CMS_AJAX_REQUEST', true);
+    $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+    $targetUri = $method === 'POST' ? '/api/upload' : '/member/media';
 
-    // 2. Load Config
-    if (file_exists(__DIR__ . '/config.php')) {
-        require_once __DIR__ . '/config.php';
-    } else {
-        throw new Exception("Config file not found");
+    $_SERVER['REQUEST_URI'] = $targetUri;
+    $_SERVER['PHP_SELF'] = $targetUri;
+    $_SERVER['SCRIPT_NAME'] = '/index.php';
+
+    Logger::instance()->warning('Legacy media-proxy endpoint used; forwarding to router pipeline.', [
+        'method' => $method,
+        'target_uri' => $targetUri,
+        'remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''),
+    ]);
+
+    Bootstrap::instance()->run();
+} catch (\Throwable $e) {
+    if (class_exists(Logger::class)) {
+        Logger::instance()->error('Legacy media-proxy forwarding failed.', [
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+        ]);
     }
 
-    // 3. Fallback constants if config missed them
-    if (!defined('UPLOAD_PATH')) define('UPLOAD_PATH', ABSPATH . 'uploads/');
-    if (!defined('UPLOAD_URL')) define('UPLOAD_URL', '/uploads/');
-
-    // 4. Session Handling
-    if (session_status() === PHP_SESSION_NONE) {
-        // Try to respect settings, but prioritize starting success
-        ini_set('session.cookie_httponly', '1');
-        @session_start();
-        debug_log("Session started: " . session_id());
+    if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'POST') {
+        http_response_code(500);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'success' => false,
+            'error' => 'Der Legacy-Medien-Proxy konnte nicht an die zentrale Pipeline übergeben werden.',
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
     }
 
-    // 5. Autoloader
-    if (file_exists(CORE_PATH . 'autoload.php')) {
-        require_once CORE_PATH . 'autoload.php';
-    } else {
-        throw new Exception("Autoloader not found at " . CORE_PATH);
-    }
-
-    // 6. Include Logic
-    $ajax_handler = __DIR__ . '/member/media-ajax.php';
-    if (file_exists($ajax_handler)) {
-        debug_log("Delegating to $ajax_handler");
-        require_once $ajax_handler;
-    } else {
-        throw new Exception("Handler file missing: $ajax_handler");
-    }
-
-} catch (Throwable $e) {
-    debug_log("FATAL: " . $e->getMessage());
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    http_response_code(302);
+    header('Location: ' . rtrim((string)SITE_URL, '/') . '/member/media');
+    exit;
 }

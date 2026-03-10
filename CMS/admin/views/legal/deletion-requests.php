@@ -84,19 +84,25 @@ $statusBadges = ['pending' => 'bg-warning', 'processing' => 'bg-blue', 'complete
             </thead>
             <tbody>
                 <?php if (empty($requests)): ?>
-                <tr><td colspan="7" class="text-muted text-center">Keine Löschanträge vorhanden</td></tr>
+                <?php
+                $emptyStateColspan = 7;
+                $emptyStateMessage = 'Keine Löschanträge vorhanden.';
+                $emptyStateSubtitle = 'Neue DSGVO-Löschanträge erscheinen hier automatisch zur Prüfung.';
+                $emptyStateIcon = 'default';
+                require __DIR__ . '/../partials/empty-table-row.php';
+                ?>
                 <?php else: ?>
                 <?php foreach ($requests as $r): ?>
                 <tr>
                     <td><?php echo (int)$r['id']; ?></td>
                     <td>
                         <div><?php echo htmlspecialchars($r['name'] ?? '-'); ?></div>
-                        <div class="text-muted small"><?php echo htmlspecialchars($r['email']); ?></div>
+                        <div class="text-secondary small"><?php echo htmlspecialchars($r['email']); ?></div>
                     </td>
                     <td><?php echo htmlspecialchars($r['username'] ?? '-'); ?></td>
                     <td><span class="badge <?php echo $statusBadges[$r['status']] ?? 'bg-secondary'; ?>"><?php echo htmlspecialchars($statusLabels[$r['status']] ?? $r['status']); ?></span></td>
-                    <td class="text-muted"><?php echo htmlspecialchars($r['created_at'] ?? ''); ?></td>
-                    <td class="text-muted"><?php echo htmlspecialchars($r['completed_at'] ?? '-'); ?></td>
+                    <td class="text-secondary"><?php echo htmlspecialchars($r['created_at'] ?? ''); ?></td>
+                    <td class="text-secondary"><?php echo htmlspecialchars($r['completed_at'] ?? '-'); ?></td>
                     <td>
                         <div class="dropdown">
                             <button class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="dropdown">

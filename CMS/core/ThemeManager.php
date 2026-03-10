@@ -15,6 +15,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (class_exists(__NAMESPACE__ . '\\ThemeManager', false)) {
+    return;
+}
+
 class ThemeManager
 {
     private static ?self $instance = null;
@@ -682,10 +686,7 @@ class ThemeManager
     public function getSiteMenu(): array
     {
         $this->loadSettings(); // H-22
-        if (isset($this->settings['site_menu'])) {
-            return json_decode($this->settings['site_menu'], true) ?: [];
-        }
-        return [];
+        return Json::decodeArray($this->settings['site_menu'] ?? null, []);
     }
 
     /**
@@ -701,7 +702,7 @@ class ThemeManager
             $result = $stmt->fetch();
 
             if ($result && $result->option_value) {
-                return json_decode($result->option_value, true) ?: [];
+                return Json::decodeArray($result->option_value ?? null, []);
             }
         } catch (\Exception $e) {
             error_log('ThemeManager::getMenu() Error: ' . $e->getMessage());
@@ -761,8 +762,8 @@ class ThemeManager
         $themeJsonFile = $this->themePath . 'theme.json';
         if (file_exists($themeJsonFile)) {
             try {
-                $json = json_decode((string)file_get_contents($themeJsonFile), true);
-                if (is_array($json) && isset($json['menus']) && is_array($json['menus'])) {
+                $json = Json::decodeArray(file_get_contents($themeJsonFile), []);
+                if (isset($json['menus']) && is_array($json['menus'])) {
                     $existingSlugs = array_column($locations, 'slug');
                     foreach ($json['menus'] as $slug => $label) {
                         if (!in_array($slug, $existingSlugs, true)) {
@@ -784,7 +785,7 @@ class ThemeManager
             $result = $stmt->fetch();
 
             if ($result && $result->option_value) {
-                $custom = json_decode($result->option_value, true) ?: [];
+                $custom = Json::decodeArray($result->option_value ?? null, []);
                 foreach ($custom as $loc) {
                     // Defensive: nur valide Array-Einträge mit 'slug'-Schlüssel verarbeiten
                     if (!is_array($loc) || !isset($loc['slug'], $loc['label'])) {

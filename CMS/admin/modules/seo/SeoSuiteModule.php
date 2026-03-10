@@ -71,6 +71,8 @@ final class SeoSuiteModule
 		'seo_analytics_exclude_admins' => '1',
 		'seo_analytics_respect_dnt' => '1',
 		'seo_analytics_anonymize_ip' => '1',
+		'seo_analytics_web_vitals_enabled' => '1',
+		'seo_analytics_web_vitals_sample_rate' => '100',
 	];
 
 	private const SITEMAP_EXTRA_DEFAULTS = [
@@ -246,6 +248,8 @@ final class SeoSuiteModule
 			'seo_analytics_exclude_admins' => !empty($post['exclude_admins']) ? '1' : '0',
 			'seo_analytics_respect_dnt' => !empty($post['respect_dnt']) ? '1' : '0',
 			'seo_analytics_anonymize_ip' => !empty($post['anonymize_ip']) ? '1' : '0',
+			'seo_analytics_web_vitals_enabled' => !empty($post['web_vitals_enabled']) ? '1' : '0',
+			'seo_analytics_web_vitals_sample_rate' => (string)max(1, min(100, (int)($post['web_vitals_sample_rate'] ?? 100))),
 		]);
 
 		return ['success' => true, 'message' => 'Analytics- und Tracking-Einstellungen gespeichert.'];
@@ -495,10 +499,11 @@ final class SeoSuiteModule
 			'visitor_stats' => $this->analyticsService->getVisitorStats(30),
 			'daily_traffic' => $dailyTraffic,
 			'top_pages' => $topPages,
+			'feature_usage' => $this->analyticsService->getFeatureUsageSummary(30),
 			'referrers' => array_slice($referrers, 0, 10),
 			'backlinks' => $backlinks,
 			'internal_link_suggestions' => array_slice($internalLinkSuggestions, 0, 10),
-			'core_web_vitals' => $this->getCoreWebVitalsEstimate(),
+			'core_web_vitals' => $this->analyticsService->getCoreWebVitals(30),
 			'tracking_settings' => $this->loadSettings(self::ANALYTICS_DEFAULTS),
 			'has_page_views' => $hasPageViews,
 		];
@@ -742,37 +747,6 @@ final class SeoSuiteModule
 		}
 	}
 
-	private function getCoreWebVitalsEstimate(): array
-	{
-		$ttfbMs = $this->measureResponseTime(SITE_URL);
-
-		return [
-			'ttfb_ms' => $ttfbMs,
-			'lcp_estimate' => $ttfbMs > 0 ? round(max(1.2, $ttfbMs / 1000 + 1.1), 2) : null,
-			'cls_estimate' => 0.03,
-			'inp_estimate' => $ttfbMs > 0 ? min(280, max(90, (int)round($ttfbMs * 0.6))) : null,
-			'note' => 'Serverseitige Schätzung auf Basis der Antwortzeit. Für echte CWV bitte Search Console / CrUX anbinden.',
-		];
-	}
-
-	private function measureResponseTime(string $url): int
-	{
-		try {
-			$start = microtime(true);
-			$context = stream_context_create([
-				'http' => [
-					'method' => 'GET',
-					'timeout' => 5,
-					'ignore_errors' => true,
-					'user_agent' => '365CMS SEO Suite',
-				],
-			]);
-			@file_get_contents($url, false, $context);
-			return (int)round((microtime(true) - $start) * 1000);
-		} catch (\Throwable) {
-			return 0;
-		}
-	}
 
 	private function scanBrokenLinks(array $auditRows): array
 	{

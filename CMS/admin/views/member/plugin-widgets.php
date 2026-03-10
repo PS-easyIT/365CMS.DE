@@ -5,6 +5,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!defined('CMS_ADMIN_MEMBER_VIEW')) {
+    exit;
+}
+
 $settings = $data['settings'] ?? [];
 $pluginWidgets = $data['pluginWidgets'] ?? [];
 $order = $settings['plugin_widget_order'] ?? [];

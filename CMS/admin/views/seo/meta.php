@@ -5,6 +5,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!defined('CMS_ADMIN_SEO_VIEW')) {
+    exit;
+}
+
 $meta = $data['meta'] ?? [];
 $settings = $meta['settings'] ?? [];
 $examples = $meta['examples'] ?? [];

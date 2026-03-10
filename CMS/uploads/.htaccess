@@ -1,0 +1,9 @@
+Options -Indexes
+<IfModule mod_headers.c>
+    Header always set Content-Disposition "attachment"
+    Header always set X-Content-Type-Options "nosniff"
+</IfModule>
+<FilesMatch "\.(php|php3|php4|php5|phtml|phar|cgi|pl|py|sh)$">
+    Require all denied
+</FilesMatch>
+Options -ExecCGI

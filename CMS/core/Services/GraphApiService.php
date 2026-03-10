@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace CMS\Services;
 
+use CMS\Http\Client as HttpClient;
 use CMS\Logger;
 
 if (!defined('ABSPATH')) {
@@ -24,11 +25,14 @@ class GraphApiService
     private const CACHE_KEY = 'token_cache';
     private const DEFAULT_SCOPE = 'https://graph.microsoft.com/.default';
     private const DEFAULT_BASE_URL = 'https://graph.microsoft.com/v1.0';
+    private const ALLOWED_GRAPH_HOSTS = ['graph.microsoft.com'];
+    private const ALLOWED_TOKEN_HOSTS = ['login.microsoftonline.com'];
 
     private static ?self $instance = null;
 
     private SettingsService $settings;
     private Logger $logger;
+    private HttpClient $httpClient;
 
     public static function getInstance(): self
     {
@@ -39,6 +43,7 @@ class GraphApiService
     {
         $this->settings = SettingsService::getInstance();
         $this->logger = Logger::instance()->withChannel('graph');
+        $this->httpClient = HttpClient::getInstance();
     }
 
     /**
@@ -49,18 +54,17 @@ class GraphApiService
         $tenantId = $this->settings->getString(self::GROUP, 'tenant_id');
         $clientId = $this->settings->getString(self::GROUP, 'client_id');
         $scope = $this->settings->getString(self::GROUP, 'scope', self::DEFAULT_SCOPE);
-        $baseUrl = rtrim($this->settings->getString(self::GROUP, 'base_url', self::DEFAULT_BASE_URL), '/');
+        $baseUrl = $this->normalizeGraphBaseUrl($this->settings->getString(self::GROUP, 'base_url', self::DEFAULT_BASE_URL));
         $customEndpoint = $this->settings->getString(self::GROUP, 'token_endpoint');
+        $defaultTokenEndpoint = 'https://login.microsoftonline.com/' . rawurlencode($tenantId !== '' ? $tenantId : 'common') . '/oauth2/v2.0/token';
 
         return [
             'configured' => $tenantId !== '' && $clientId !== '' && $this->settings->getString(self::GROUP, 'client_secret') !== '',
             'tenant_id' => $tenantId,
             'client_id' => $clientId,
             'scope' => $scope !== '' ? $scope : self::DEFAULT_SCOPE,
-            'base_url' => $baseUrl !== '' ? $baseUrl : self::DEFAULT_BASE_URL,
-            'token_endpoint' => $customEndpoint !== ''
-                ? $customEndpoint
-                : 'https://login.microsoftonline.com/' . rawurlencode($tenantId !== '' ? $tenantId : 'common') . '/oauth2/v2.0/token',
+            'base_url' => $baseUrl,
+            'token_endpoint' => $this->normalizeTokenEndpoint($customEndpoint !== '' ? $customEndpoint : $defaultTokenEndpoint, $defaultTokenEndpoint),
         ];
     }
 
@@ -173,7 +177,7 @@ class GraphApiService
      */
     private function requestToken(string $url, array $payload): array
     {
-        return $this->requestJson('POST', $url, ['Content-Type: application/x-www-form-urlencoded'], http_build_query($payload, '', '&', PHP_QUERY_RFC3986));
+        return $this->requestJson('POST', $url, [], http_build_query($payload, '', '&', PHP_QUERY_RFC3986));
     }
 
     /**
@@ -181,29 +185,21 @@ class GraphApiService
      */
     private function requestJson(string $method, string $url, array $headers = [], ?string $body = null): array
     {
-        $ch = curl_init($url);
-        if ($ch === false) {
-            throw new \RuntimeException('cURL konnte für Microsoft Graph nicht initialisiert werden.');
-        }
+        $options = [
+            'headers' => $headers,
+            'timeout' => 20,
+            'connectTimeout' => 5,
+            'allowedContentTypes' => ['application/json'],
+            'userAgent' => '365CMS-GraphClient/1.0',
+        ];
 
-        curl_setopt_array($ch, [
-            CURLOPT_CUSTOMREQUEST => $method,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 20,
-            CURLOPT_HTTPHEADER => $headers,
-        ]);
+        $response = strtoupper($method) === 'POST'
+            ? $this->httpClient->post($url, $body ?? '', $options)
+            : $this->httpClient->get($url, $options);
 
-        if ($body !== null) {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
-        }
-
-        $responseBody = curl_exec($ch);
-        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlError = curl_error($ch);
-        curl_close($ch);
-
-        if (!is_string($responseBody) || $responseBody === '') {
-            throw new \RuntimeException('Microsoft Graph lieferte keine Antwort. ' . $curlError);
+        $responseBody = (string) ($response['body'] ?? '');
+        if ($responseBody === '') {
+            throw new \RuntimeException('Microsoft Graph lieferte keine Antwort. ' . (string) ($response['error'] ?? '')); 
         }
 
         try {
@@ -212,11 +208,59 @@ class GraphApiService
             throw new \RuntimeException('Microsoft Graph lieferte ungültiges JSON: ' . $e->getMessage());
         }
 
-        if ($httpCode >= 400) {
+        if (!$response['success']) {
+            $httpCode = (int) ($response['status'] ?? 0);
             $error = $decoded['error']['message'] ?? $decoded['error_description'] ?? $decoded['error'] ?? 'Unbekannter Graph-Fehler';
             throw new \RuntimeException('Microsoft Graph Fehler (' . $httpCode . '): ' . trim((string) $error));
         }
 
         return is_array($decoded) ? $decoded : [];
+    }
+
+    private function normalizeGraphBaseUrl(string $url): string
+    {
+        return rtrim($this->normalizeAllowedUrl($url, self::DEFAULT_BASE_URL, self::ALLOWED_GRAPH_HOSTS, 'Microsoft-Graph-Basis-URL'), '/');
+    }
+
+    private function normalizeTokenEndpoint(string $url, string $fallback): string
+    {
+        $normalized = $this->normalizeAllowedUrl($url, $fallback, self::ALLOWED_TOKEN_HOSTS, 'Microsoft-Graph-Token-Endpoint');
+        $path = (string) (parse_url($normalized, PHP_URL_PATH) ?? '');
+
+        if (!str_ends_with($path, '/oauth2/v2.0/token')) {
+            $this->logger->warning('Microsoft-Graph-Token-Endpoint verworfen: unerwarteter Pfad', [
+                'url' => $url,
+                'fallback' => $fallback,
+            ]);
+            return $fallback;
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @param string[] $allowedHosts
+     */
+    private function normalizeAllowedUrl(string $url, string $fallback, array $allowedHosts, string $label): string
+    {
+        $normalized = rtrim(trim($url), '/');
+        if ($normalized === '') {
+            return rtrim($fallback, '/');
+        }
+
+        $parts = parse_url($normalized);
+        $host = strtolower((string)($parts['host'] ?? ''));
+        $scheme = strtolower((string)($parts['scheme'] ?? ''));
+
+        if (!is_array($parts) || $scheme !== 'https' || $host === '' || !in_array($host, $allowedHosts, true)) {
+            $this->logger->warning($label . ' verworfen: Host oder Schema nicht erlaubt', [
+                'url' => $url,
+                'fallback' => $fallback,
+                'allowed_hosts' => $allowedHosts,
+            ]);
+            return rtrim($fallback, '/');
+        }
+
+        return $normalized;
     }
 }

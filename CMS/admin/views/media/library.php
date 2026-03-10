@@ -75,7 +75,6 @@ function mediaFolderRequiresConfirmation(string $folderPath): bool {
     return $folderPath === 'member' || str_starts_with($folderPath, 'member/');
 }
 
-$assetsUrl = defined('ASSETS_URL') ? ASSETS_URL : SITE_URL . '/assets';
 $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
 ?>
 
@@ -257,9 +256,9 @@ $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
                         data-elfinder
                         data-connector-url="<?php echo htmlspecialchars($elFinderConnectorUrl, ENT_QUOTES); ?>"
                         data-csrf-token="<?php echo htmlspecialchars($mediaConnectorToken, ENT_QUOTES); ?>"
-                        data-jquery-script="<?php echo htmlspecialchars($assetsUrl . '/elfinder/vendor/jquery/jquery-3.7.1.min.js', ENT_QUOTES); ?>"
-                        data-jquery-ui-script="<?php echo htmlspecialchars($assetsUrl . '/elfinder/vendor/jquery-ui/jquery-ui-1.13.2.min.js', ENT_QUOTES); ?>"
-                        data-elfinder-script="<?php echo htmlspecialchars($assetsUrl . '/elfinder/js/elfinder.min.js', ENT_QUOTES); ?>"
+                        data-jquery-script="<?php echo htmlspecialchars(cms_asset_url('elfinder/vendor/jquery/jquery-3.7.1.min.js'), ENT_QUOTES); ?>"
+                        data-jquery-ui-script="<?php echo htmlspecialchars(cms_asset_url('elfinder/vendor/jquery-ui/jquery-ui-1.13.2.min.js'), ENT_QUOTES); ?>"
+                        data-elfinder-script="<?php echo htmlspecialchars(cms_asset_url('elfinder/js/elfinder.min.js'), ENT_QUOTES); ?>"
                         style="min-height: 70vh;"></div>
                 <?php elseif (empty($folders) && empty($files)): ?>
                     <div class="empty">

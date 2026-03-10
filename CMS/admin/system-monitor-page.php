@@ -49,6 +49,7 @@ if (!empty($_SESSION['admin_alert'])) {
 
 $csrfToken = Security::instance()->generateToken('admin_system_info');
 $data = $module->getData();
+defined('CMS_ADMIN_SYSTEM_VIEW') || define('CMS_ADMIN_SYSTEM_VIEW', true);
 
 require __DIR__ . '/partials/header.php';
 require __DIR__ . '/partials/sidebar.php';

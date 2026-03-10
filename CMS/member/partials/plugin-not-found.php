@@ -6,7 +6,7 @@ if (!defined('ABSPATH')) {
 }
 ?>
 <div class="empty">
-    <div class="empty-img"><img src="<?= htmlspecialchars((defined('ASSETS_URL') ? ASSETS_URL : SITE_URL . '/assets')) ?>/images/undraw_page_not_found.svg" height="128" alt="Plugin-Bereich nicht gefunden"></div>
+    <div class="empty-img"><img src="<?= htmlspecialchars(cms_asset_url('images/undraw_page_not_found.svg', false), ENT_QUOTES) ?>" height="128" alt="Plugin-Bereich nicht gefunden"></div>
     <p class="empty-title">Plugin-Bereich nicht gefunden</p>
     <p class="empty-subtitle text-secondary">
         Dieser Bereich wurde nicht registriert oder das Plugin ist aktuell nicht verfügbar.

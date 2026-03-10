@@ -211,14 +211,14 @@ final class DocumentationModule
 
             $hadExistingDocs = is_dir($docsRoot);
             if ($hadExistingDocs) {
-                if (!@rename($docsRoot, $backupDir)) {
+                if (!$this->renamePath($docsRoot, $backupDir, 'Der bestehende lokale /DOC-Ordner konnte nicht gesichert werden.')) {
                     throw new RuntimeException('Der bestehende lokale /DOC-Ordner konnte nicht gesichert werden.');
                 }
             }
 
-            if (!@rename($stagingDir, $docsRoot)) {
+            if (!$this->renamePath($stagingDir, $docsRoot, 'Der neue /DOC-Stand konnte nicht aktiviert werden.')) {
                 if ($hadExistingDocs && is_dir($backupDir)) {
-                    @rename($backupDir, $docsRoot);
+                    $this->renamePath($backupDir, $docsRoot, 'Der gesicherte /DOC-Ordner konnte nach fehlgeschlagener Aktivierung nicht wiederhergestellt werden.');
                 }
                 throw new RuntimeException('Der neue /DOC-Stand konnte nicht aktiviert werden.');
             }
@@ -237,7 +237,7 @@ final class DocumentationModule
             return ['success' => false, 'error' => 'DOC-Sync via GitHub fehlgeschlagen: ' . $e->getMessage()];
         } finally {
             if (is_file($zipFile)) {
-                @unlink($zipFile);
+                $this->deleteFile($zipFile);
             }
 
             if (is_dir($extractDir)) {
@@ -299,7 +299,7 @@ final class DocumentationModule
             $reasons[] = 'ZIP-Extension fehlt';
         }
         if (!$httpAvailable) {
-            $reasons[] = 'kein HTTPS-Download per cURL oder allow_url_fopen verfügbar';
+            $reasons[] = 'kein HTTPS-Download per zentralem cURL-HTTP-Client verfügbar';
         }
 
         return [
@@ -357,7 +357,7 @@ final class DocumentationModule
 
     private function canDownloadOverHttp(): bool
     {
-        return extension_loaded('curl') || filter_var((string) ini_get('allow_url_fopen'), FILTER_VALIDATE_BOOL);
+        return extension_loaded('curl') && class_exists('\\CMS\\Http\\Client');
     }
 
     /**
@@ -369,72 +369,36 @@ final class DocumentationModule
             return ['success' => false, 'error' => 'Es sind nur HTTPS-Downloads erlaubt.'];
         }
 
+        if (!class_exists('\\CMS\\Http\\Client')) {
+            return ['success' => false, 'error' => 'Der zentrale HTTP-Client ist nicht verfügbar.'];
+        }
+
         $parentDir = dirname($destination);
         if (!is_dir($parentDir) && !mkdir($parentDir, 0755, true) && !is_dir($parentDir)) {
             return ['success' => false, 'error' => 'Temporäres Download-Verzeichnis konnte nicht erstellt werden.'];
         }
 
-        if (extension_loaded('curl')) {
-            $fp = fopen($destination, 'wb');
-            if ($fp === false) {
-                return ['success' => false, 'error' => 'Temporäre ZIP-Datei konnte nicht geschrieben werden.'];
-            }
-
-            $ch = curl_init($url);
-            curl_setopt_array($ch, [
-                CURLOPT_FILE => $fp,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_MAXREDIRS => 5,
-                CURLOPT_CONNECTTIMEOUT => 10,
-                CURLOPT_TIMEOUT => 120,
-                CURLOPT_SSL_VERIFYPEER => true,
-                CURLOPT_SSL_VERIFYHOST => 2,
-                CURLOPT_HTTPHEADER => ['User-Agent: 365CMS-DocumentationSync/1.0'],
-            ]);
-
-            $curlOk = curl_exec($ch);
-            $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $curlErr = (string) curl_error($ch);
-            curl_close($ch);
-            fclose($fp);
-
-            if ($curlOk !== true || $curlErr !== '') {
-                @unlink($destination);
-                return ['success' => false, 'error' => 'Download-Fehler: ' . ($curlErr !== '' ? $curlErr : 'unbekannt')];
-            }
-
-            if ($httpCode < 200 || $httpCode >= 300) {
-                @unlink($destination);
-                return ['success' => false, 'error' => 'GitHub antwortete mit HTTP ' . $httpCode . '.'];
-            }
-
-            return ['success' => true];
-        }
-
-        if (!filter_var((string) ini_get('allow_url_fopen'), FILTER_VALIDATE_BOOL)) {
-            return ['success' => false, 'error' => 'Weder cURL noch allow_url_fopen stehen für HTTPS-Downloads zur Verfügung.'];
-        }
-
-        $context = stream_context_create([
-            'http' => [
-                'method' => 'GET',
-                'timeout' => 120,
-                'follow_location' => 1,
-                'header' => "User-Agent: 365CMS-DocumentationSync/1.0\r\n",
-            ],
-            'ssl' => [
-                'verify_peer' => true,
-                'verify_peer_name' => true,
-            ],
+        $response = \CMS\Http\Client::getInstance()->get($url, [
+            'userAgent' => '365CMS-DocumentationSync/1.0',
+            'timeout' => 120,
+            'connectTimeout' => 10,
+            'maxBytes' => 25 * 1024 * 1024,
+            'allowedContentTypes' => ['application/zip', 'application/octet-stream', 'application/x-zip-compressed'],
         ]);
 
-        $content = @file_get_contents($url, false, $context);
-        if ($content === false) {
-            return ['success' => false, 'error' => 'GitHub-ZIP konnte per HTTPS nicht geladen werden.'];
+        if (($response['success'] ?? false) !== true) {
+            if (is_file($destination)) {
+                unlink($destination);
+            }
+
+            return ['success' => false, 'error' => (string) ($response['error'] ?? 'GitHub-ZIP konnte per HTTPS nicht geladen werden.')];
         }
 
-        if (@file_put_contents($destination, $content) === false) {
-            @unlink($destination);
+        if (file_put_contents($destination, (string) ($response['body'] ?? '')) === false) {
+            if (is_file($destination)) {
+                unlink($destination);
+            }
+
             return ['success' => false, 'error' => 'Die geladene ZIP-Datei konnte nicht lokal gespeichert werden.'];
         }
 
@@ -493,7 +457,7 @@ final class DocumentationModule
                 continue;
             }
 
-            if (!@copy($item->getPathname(), $targetPath)) {
+            if (!$this->copyFile($item->getPathname(), $targetPath)) {
                 throw new RuntimeException('Datei konnte nicht kopiert werden: ' . $item->getPathname());
             }
         }
@@ -521,10 +485,178 @@ final class DocumentationModule
                 continue;
             }
 
-            @unlink($path);
+            if (!$this->deleteFile($path)) {
+                return false;
+            }
         }
 
-        return @rmdir($dir);
+        if (!is_writable($dir) && !is_writable(dirname($dir))) {
+            $this->logFilesystemFailure('rmdir_preflight', 'Verzeichnis oder Elternpfad ist nicht beschreibbar.', [
+                'path' => $dir,
+            ]);
+
+            return false;
+        }
+
+        $removed = $this->runFilesystemOperation('rmdir', 'Verzeichnis konnte nicht gelöscht werden.', [
+            'path' => $dir,
+        ], static fn (): bool => rmdir($dir));
+
+        return $removed === true;
+    }
+
+    private function renamePath(string $source, string $destination, string $message): bool
+    {
+        if (!file_exists($source)) {
+            $this->logFilesystemFailure('rename_preflight', $message, [
+                'source' => $source,
+                'destination' => $destination,
+                'reason' => 'source_missing',
+            ]);
+
+            return false;
+        }
+
+        $sourceParent = dirname($source);
+        $targetParent = dirname($destination);
+
+        if (!is_dir($targetParent)) {
+            $this->logFilesystemFailure('rename_preflight', $message, [
+                'source' => $source,
+                'destination' => $destination,
+                'reason' => 'target_parent_missing',
+            ]);
+
+            return false;
+        }
+
+        if (!is_writable($sourceParent) || !is_writable($targetParent)) {
+            $this->logFilesystemFailure('rename_preflight', $message, [
+                'source' => $source,
+                'destination' => $destination,
+                'reason' => 'path_not_writable',
+            ]);
+
+            return false;
+        }
+
+        $renamed = $this->runFilesystemOperation('rename', $message, [
+            'source' => $source,
+            'destination' => $destination,
+        ], static fn (): bool => rename($source, $destination));
+
+        return $renamed === true;
+    }
+
+    private function copyFile(string $source, string $destination): bool
+    {
+        if (!is_file($source) || !is_readable($source)) {
+            $this->logFilesystemFailure('copy_preflight', 'Datei konnte nicht kopiert werden.', [
+                'source' => $source,
+                'destination' => $destination,
+                'reason' => 'source_unreadable',
+            ]);
+
+            return false;
+        }
+
+        $targetParent = dirname($destination);
+        if (!is_dir($targetParent) || !is_writable($targetParent)) {
+            $this->logFilesystemFailure('copy_preflight', 'Datei konnte nicht kopiert werden.', [
+                'source' => $source,
+                'destination' => $destination,
+                'reason' => 'target_not_writable',
+            ]);
+
+            return false;
+        }
+
+        $copied = $this->runFilesystemOperation('copy', 'Datei konnte nicht kopiert werden.', [
+            'source' => $source,
+            'destination' => $destination,
+        ], static fn (): bool => copy($source, $destination));
+
+        return $copied === true;
+    }
+
+    private function deleteFile(string $path): bool
+    {
+        if (!file_exists($path)) {
+            return true;
+        }
+
+        if (!is_writable($path) && !is_writable(dirname($path))) {
+            $this->logFilesystemFailure('unlink_preflight', 'Datei konnte nicht gelöscht werden.', [
+                'path' => $path,
+                'reason' => 'path_not_writable',
+            ]);
+
+            return false;
+        }
+
+        $deleted = $this->runFilesystemOperation('unlink', 'Datei konnte nicht gelöscht werden.', [
+            'path' => $path,
+        ], static fn (): bool => unlink($path));
+
+        return $deleted === true;
+    }
+
+    private function readFileContents(string $fullPath): string
+    {
+        if (!is_file($fullPath) || !is_readable($fullPath)) {
+            $this->logFilesystemFailure('file_get_contents_preflight', 'Dokument konnte nicht gelesen werden.', [
+                'path' => $fullPath,
+                'reason' => 'file_unreadable',
+            ]);
+
+            return '';
+        }
+
+        $contents = $this->runFilesystemOperation('file_get_contents', 'Dokument konnte nicht gelesen werden.', [
+            'path' => $fullPath,
+        ], static fn (): string|false => file_get_contents($fullPath));
+
+        return is_string($contents) ? $contents : '';
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function logFilesystemFailure(string $operation, string $message, array $context = []): void
+    {
+        \CMS\Logger::instance()->withChannel('admin.documentation')->warning($message, array_merge([
+            'operation' => $operation,
+        ], $context));
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     * @param callable(): mixed $callback
+     */
+    private function runFilesystemOperation(string $operation, string $message, array $context, callable $callback): mixed
+    {
+        $warning = null;
+
+        set_error_handler(static function (int $severity, string $errorMessage) use (&$warning): bool {
+            $warning = $errorMessage;
+            return true;
+        });
+
+        try {
+            $result = $callback();
+        } finally {
+            restore_error_handler();
+        }
+
+        if ($result === false || $result === null) {
+            if ($warning !== null) {
+                $context['warning'] = $warning;
+            }
+
+            $this->logFilesystemFailure($operation, $message, $context);
+        }
+
+        return $result;
     }
 
     private function countSupportedDocuments(string $docsRoot): int
@@ -665,7 +797,7 @@ final class DocumentationModule
     private function buildDocumentMeta(string $fullPath, string $docsRoot): array
     {
         $relativePath = $this->relativePath($fullPath, $docsRoot);
-        $contents = (string) @file_get_contents($fullPath);
+        $contents = $this->readFileContents($fullPath);
         $extension = strtolower((string) pathinfo($fullPath, PATHINFO_EXTENSION));
 
         return [

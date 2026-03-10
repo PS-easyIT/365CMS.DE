@@ -48,6 +48,10 @@ try {
     // Log error and show friendly message
     error_log('CMS Fatal Error: ' . $e->getMessage());
     error_log('Stack trace: ' . $e->getTraceAsString());
+
+    if (class_exists('CMS\\CacheManager')) {
+        CMS\CacheManager::instance()->sendResponseHeaders('private');
+    }
     
     if (CMS_DEBUG) {
         echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>CMS Error</title>';

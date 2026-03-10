@@ -129,6 +129,17 @@ if ($viewAction === 'edit') {
     $data = $module->getTemplateEditData($key);
     $pageTitle = $data['isNew'] ? 'Neues Hub-Template' : 'Hub-Template bearbeiten';
     $activePage = 'hub-sites';
+    $pageAssets = ['css' => [], 'js' => []];
+
+    $hubTemplateCssPath = rtrim((string)ASSETS_PATH, '/\\') . DIRECTORY_SEPARATOR . 'css' . DIRECTORY_SEPARATOR . 'admin-hub-template-editor.css';
+    if (is_file($hubTemplateCssPath)) {
+        $pageAssets['css'][] = cms_asset_url('css/admin-hub-template-editor.css');
+    }
+
+    $hubTemplateJsPath = rtrim((string)ASSETS_PATH, '/\\') . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'admin-hub-template-editor.js';
+    if (is_file($hubTemplateJsPath)) {
+        $pageAssets['js'][] = cms_asset_url('js/admin-hub-template-editor.js');
+    }
 
     require __DIR__ . '/partials/header.php';
     require __DIR__ . '/partials/sidebar.php';

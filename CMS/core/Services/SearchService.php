@@ -14,6 +14,7 @@ namespace CMS\Services;
 
 use CMS\Database;
 use CMS\Hooks;
+use CMS\Logger;
 use TeamTNT\TNTSearch\TNTSearch;
 use TeamTNT\TNTSearch\Stemmer\GermanStemmer;
 use TeamTNT\TNTSearch\Support\Highlighter;
@@ -29,6 +30,7 @@ final class SearchService
     private readonly Database $db;
     private readonly string $prefix;
     private readonly string $storagePath;
+    private Logger $logger;
     private ?TNTSearch $tnt = null;
     private bool $available = false;
     private string $unavailableReason = '';
@@ -48,12 +50,13 @@ final class SearchService
     {
         $this->db     = Database::instance();
         $this->prefix = $this->db->getPrefix();
+        $this->logger = Logger::instance()->withChannel('search');
 
         // Storage-Pfad für SQLite-Indizes
         $this->storagePath = ABSPATH . '/cache/search/';
 
-        if (!is_dir($this->storagePath)) {
-            @mkdir($this->storagePath, 0755, true);
+        if (!is_dir($this->storagePath) && !$this->ensureDirectoryExists($this->storagePath)) {
+            $this->unavailableReason = 'Verzeichnis cache/search/ konnte nicht erstellt werden.';
         }
 
         $this->initTNTSearch();
@@ -109,6 +112,66 @@ final class SearchService
             error_log('SearchService: TNTSearch-Init fehlgeschlagen: ' . $e->getMessage());
             $this->available = false;
         }
+    }
+
+    private function ensureDirectoryExists(string $directory): bool
+    {
+        if (is_dir($directory)) {
+            return is_writable($directory);
+        }
+
+        $parentDir = dirname(rtrim($directory, '/\\'));
+        if ($parentDir === '' || $parentDir === $directory) {
+            $this->logger->warning('Search-Storage-Verzeichnis hat keinen gültigen Elternpfad.', [
+                'operation' => 'mkdir_preflight',
+                'path' => $directory,
+            ]);
+
+            return false;
+        }
+
+        if (!is_dir($parentDir) && !$this->ensureDirectoryExists($parentDir)) {
+            return false;
+        }
+
+        if (!is_writable($parentDir)) {
+            $this->logger->warning('Search-Storage-Elternpfad ist nicht beschreibbar.', [
+                'operation' => 'mkdir_preflight',
+                'path' => $directory,
+                'parent' => $parentDir,
+            ]);
+
+            return false;
+        }
+
+        $warning = null;
+        set_error_handler(static function (int $severity, string $message) use (&$warning): bool {
+            $warning = $message;
+            return true;
+        });
+
+        try {
+            $created = mkdir($directory, 0755);
+        } finally {
+            restore_error_handler();
+        }
+
+        if ($created || is_dir($directory)) {
+            return true;
+        }
+
+        $context = [
+            'operation' => 'mkdir',
+            'path' => $directory,
+        ];
+
+        if ($warning !== null) {
+            $context['warning'] = $warning;
+        }
+
+        $this->logger->warning('Search-Storage-Verzeichnis konnte nicht erstellt werden.', $context);
+
+        return false;
     }
 
     /**

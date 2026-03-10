@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
+if (!defined('CMS_ADMIN_PERFORMANCE_VIEW')) exit;
 
 $cache = $data['cache'] ?? [];
 $media = $data['media'] ?? [];

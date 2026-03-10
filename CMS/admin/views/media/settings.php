@@ -18,7 +18,7 @@ $diskUsage = $data['diskUsage'] ?? [];
 // Defaults
 $s = array_merge([
     'max_upload_size'         => 10,
-    'allowed_types'           => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'mp4', 'mp3'],
+    'allowed_types'           => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'mp4', 'mp3'],
     'organize_month_year'     => true,
     'sanitize_filename'       => true,
     'unique_filename'         => true,
@@ -47,7 +47,7 @@ $s = array_merge([
     'member_delete_own'       => true,
 ], $settings);
 
-$allTypes = ['jpg','jpeg','png','gif','webp','bmp','ico','svg','pdf','doc','docx','xls','xlsx','ppt','pptx','txt','csv','zip','rar','7z','tar','gz','mp4','webm','ogg','mov','mp3','wav','aac','flac'];
+$allTypes = ['jpg','jpeg','png','gif','webp','bmp','ico','pdf','doc','docx','xls','xlsx','ppt','pptx','txt','csv','zip','rar','7z','tar','gz','mp4','webm','ogg','mov','mp3','wav','aac','flac'];
 ?>
 
 <div class="page-header d-print-none">
@@ -89,6 +89,7 @@ $allTypes = ['jpg','jpeg','png','gif','webp','bmp','ico','svg','pdf','doc','docx
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Erlaubte Dateitypen</label>
+                                <div class="form-hint mb-2">SVG-Uploads sind gemäß Audit aus Sicherheitsgründen vollständig deaktiviert.</div>
                                 <div class="row">
                                     <?php
                                     $active = (array)$s['allowed_types'];

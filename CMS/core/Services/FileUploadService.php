@@ -13,6 +13,7 @@ namespace CMS\Services;
 
 use CMS\Auth;
 use CMS\Security;
+use CMS\WP_Error;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -78,6 +79,7 @@ final class FileUploadService
         $targetPath = $this->sanitizePath($targetPathRaw);
 
         $mediaService = MediaService::getInstance();
+        $validationSettings = null;
 
         if (!$isAdmin) {
             $currentUser = $auth->getCurrentUser();
@@ -110,11 +112,29 @@ final class FileUploadService
                     ],
                 ];
             }
+
+            $validationSettings = $mediaService->buildUploadValidationSettings($settings, true);
         }
 
-        $uploadResult = $mediaService->uploadFile($uploadFile, $targetPath);
+        if ($validationSettings === null) {
+            $validationSettings = $mediaService->buildUploadValidationSettings($mediaService->getSettings());
+        }
 
-        if (is_wp_error($uploadResult)) {
+        $validationResult = $mediaService->validateUploadFile($uploadFile, $validationSettings);
+        if ($validationResult instanceof WP_Error) {
+            return [
+                'success' => false,
+                'status' => 422,
+                'data' => [
+                    'error' => $validationResult->get_error_message(),
+                    'new_token' => Security::instance()->generateToken('media_action'),
+                ],
+            ];
+        }
+
+        $uploadResult = $mediaService->uploadFile($uploadFile, $targetPath, $validationSettings);
+
+        if ($uploadResult instanceof WP_Error) {
             return [
                 'success' => false,
                 'status' => 422,

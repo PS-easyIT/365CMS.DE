@@ -3,9 +3,13 @@ declare(strict_types=1);
 
 namespace CMS\Services;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use CMS\Database;
 use CMS\Security;
-use WP_Error;
+use CMS\WP_Error;
 
 /**
  * User Service - Business Logic für Benutzerverwaltung
@@ -80,7 +84,7 @@ class UserService {
     public function createUser(array $data): int|WP_Error {
         // Validierung
         $validation = $this->validateUserData($data, 'create');
-        if (is_wp_error($validation)) {
+        if ($validation instanceof WP_Error) {
             return $validation;
         }
         
@@ -157,7 +161,7 @@ class UserService {
         
         // Validierung
         $validation = $this->validateUserData($data, 'update');
-        if (is_wp_error($validation)) {
+        if ($validation instanceof WP_Error) {
             return $validation;
         }
         
@@ -397,11 +401,11 @@ class UserService {
                 default => false
             };
             
-            if ($result && !is_wp_error($result)) {
+            if ($result && !($result instanceof WP_Error)) {
                 $results['success']++;
             } else {
                 $results['failed']++;
-                $error_msg = is_wp_error($result) ? $result->get_error_message() : 'Unbekannter Fehler';
+                $error_msg = $result instanceof WP_Error ? $result->get_error_message() : 'Unbekannter Fehler';
                 $results['errors'][] = "User ID {$user_id}: {$error_msg}";
             }
         }
@@ -562,7 +566,7 @@ class UserService {
      * @return bool
      */
     private function logAction(string $action, int $user_id, array $details = []): bool {
-        return $this->db->insert('cms_activity_log', [
+        return $this->db->insert('activity_log', [
             'user_id' => $_SESSION['user_id'] ?? 0,
             'action' => $action,
             'object_type' => 'user',

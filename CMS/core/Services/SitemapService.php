@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace CMS\Services;
 
+use CMS\VendorRegistry;
 use Melbahja\Seo\Sitemap;
 use Melbahja\Seo\Sitemap\OutputMode;
 
@@ -16,32 +17,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$vendorAutoload = ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'autoload.php';
-if (file_exists($vendorAutoload)) {
-    require_once $vendorAutoload;
-}
-
-$seoSrcDir = ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'melbahja-seo' . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR;
-foreach ([
-    'Interfaces' . DIRECTORY_SEPARATOR . 'SeoInterface.php',
-    'Interfaces' . DIRECTORY_SEPARATOR . 'SitemapInterface.php',
-    'Interfaces' . DIRECTORY_SEPARATOR . 'SitemapBuilderInterface.php',
-    'Interfaces' . DIRECTORY_SEPARATOR . 'SitemapSetupableInterface.php',
-    'Exceptions' . DIRECTORY_SEPARATOR . 'SeoException.php',
-    'Exceptions' . DIRECTORY_SEPARATOR . 'SitemapException.php',
-    'Utils' . DIRECTORY_SEPARATOR . 'Utils.php',
-    'Sitemap' . DIRECTORY_SEPARATOR . 'OutputMode.php',
-    'Sitemap' . DIRECTORY_SEPARATOR . 'SitemapUrl.php',
-    'Sitemap' . DIRECTORY_SEPARATOR . 'IndexBuilder.php',
-    'Sitemap' . DIRECTORY_SEPARATOR . 'LinksBuilder.php',
-    'Sitemap' . DIRECTORY_SEPARATOR . 'NewsBuilder.php',
-    'Sitemap.php',
-] as $seoFile) {
-    $seoPath = $seoSrcDir . $seoFile;
-    if (file_exists($seoPath)) {
-        require_once $seoPath;
-    }
-}
+VendorRegistry::instance()->loadPackage('melbahja-seo');
 
 final class SitemapService
 {

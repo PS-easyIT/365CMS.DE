@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace CMS\Services;
 
 use CMS\Database;
+use CMS\Json;
 use PDO;
 
 if (!defined('ABSPATH')) {
@@ -121,10 +122,10 @@ class ThemeCustomizer
         }
         
         $json = file_get_contents($configPath);
-        $config = json_decode($json, true);
-        
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            error_log("Invalid theme.json: " . json_last_error_msg());
+        $config = Json::decodeArray($json, []);
+
+        if ($config === []) {
+            error_log("Invalid or empty theme.json: {$configPath}");
             $this->themeConfig = [];
             return;
         }

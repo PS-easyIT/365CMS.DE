@@ -57,6 +57,7 @@ if (!empty($_SESSION['admin_alert'])) {
 
 $csrfToken = Security::instance()->generateToken('admin_seo_suite');
 $data = $module->getData((string)$seoSection);
+defined('CMS_ADMIN_SEO_VIEW') || define('CMS_ADMIN_SEO_VIEW', true);
 
 require __DIR__ . '/partials/header.php';
 require __DIR__ . '/partials/sidebar.php';

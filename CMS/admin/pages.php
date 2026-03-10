@@ -163,14 +163,13 @@ if ($action === 'edit') {
     }
 } else {
     $listData = $module->getListData();
-    $assetsUrl = defined('ASSETS_URL') ? ASSETS_URL : SITE_URL . '/assets';
     $pageAssets = [
         'css' => [
-            $assetsUrl . '/gridjs/mermaid.min.css',
+            cms_asset_url('gridjs/mermaid.min.css'),
         ],
         'js' => [
-            $assetsUrl . '/gridjs/gridjs.umd.js',
-            $assetsUrl . '/js/gridjs-init.js?v=' . (@filemtime(ASSETS_PATH . 'js/gridjs-init.js') ?: time()),
+            cms_asset_url('gridjs/gridjs.umd.js'),
+            cms_asset_url('js/gridjs-init.js'),
         ],
     ];
     $inlineJs = sprintf(

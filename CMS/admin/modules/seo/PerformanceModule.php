@@ -7,6 +7,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\AuditLogger;
 use CMS\Services\ImageService;
+use CMS\Services\OpcacheWarmupService;
 
 final class PerformanceModule
 {
@@ -81,6 +82,7 @@ final class PerformanceModule
             'clear_all_cache' => $this->clearAllCacheLayers(),
             'clear_file_cache' => $this->clearFileCache(),
             'clear_opcache' => $this->clearOpcache(),
+            'warmup_opcache' => $this->warmupOpcache(),
             'optimize_database' => $this->optimizeDatabase(),
             'repair_tables' => $this->repairDatabase(),
             'clear_expired_sessions' => $this->clearExpiredSessions(),
@@ -130,6 +132,7 @@ final class PerformanceModule
     private function getCacheMetrics(): array
     {
         $status = $this->cacheManager->getStatus();
+        $warmupStatus = OpcacheWarmupService::getInstance()->getStatus(30);
         $cacheDir = ABSPATH . 'cache/';
         $oldestAge = null;
         $newestAge = null;
@@ -194,6 +197,7 @@ final class PerformanceModule
                 'cached_scripts' => (int)($status['opcache']['status']['opcache_statistics']['num_cached_scripts'] ?? 0),
                 'hits' => (int)($status['opcache']['status']['opcache_statistics']['hits'] ?? 0),
                 'misses' => (int)($status['opcache']['status']['opcache_statistics']['misses'] ?? 0),
+                'warmup' => $warmupStatus,
             ],
             'db_cache' => [
                 'active_entries' => $activeDbCache,
@@ -523,9 +527,15 @@ final class PerformanceModule
     private function clearAllCacheLayers(): array
     {
         $report = $this->cacheManager->clearAll();
+        $warmup = (!empty($report['opcache']))
+            ? OpcacheWarmupService::getInstance()->warmTopFiles(30, true)
+            : ['success' => false, 'message' => 'Warmup übersprungen, weil OPcache nicht geleert wurde.'];
         $details = [];
         foreach (($report['details'] ?? []) as $label => $message) {
             $details[] = $label . ': ' . $message;
+        }
+        if (!empty($report['opcache'])) {
+            $details[] = 'warmup: ' . ($warmup['message'] ?? 'nicht ausgeführt');
         }
 
         // ADDED: Vollständige Cache-Bereinigung im Audit-Log erfassen.
@@ -535,7 +545,7 @@ final class PerformanceModule
             'Alle Cache-Layer bereinigt',
             'cache',
             null,
-            ['details' => $report['details'] ?? []],
+            ['details' => $report['details'] ?? [], 'warmup' => $warmup],
             'warning'
         );
 
@@ -579,16 +589,44 @@ final class PerformanceModule
         }
 
         opcache_reset();
+        $warmup = OpcacheWarmupService::getInstance()->warmTopFiles(30, true);
         AuditLogger::instance()->log(
             AuditLogger::CAT_SYSTEM,
             'performance.cache.clear_opcache',
             'OPcache zurückgesetzt',
             'cache',
             null,
-            [],
+            ['warmup' => $warmup],
             'warning'
         );
-        return ['success' => true, 'message' => 'OPcache wurde geleert.'];
+
+        $message = 'OPcache wurde geleert. ' . ($warmup['message'] ?? 'Warmup nicht ausgeführt.');
+
+        return [
+            'success' => true,
+            'message' => $message,
+        ];
+    }
+
+    private function warmupOpcache(): array
+    {
+        $warmup = OpcacheWarmupService::getInstance()->warmTopFiles(30, true);
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            'performance.cache.warmup_opcache',
+            'OPcache-Warmup ausgeführt',
+            'cache',
+            null,
+            $warmup,
+            $warmup['success'] ?? false ? 'info' : 'warning'
+        );
+
+        return [
+            'success' => (bool)($warmup['success'] ?? false),
+            'message' => (string)($warmup['message'] ?? 'OPcache-Warmup wurde ausgeführt.'),
+            'error' => empty($warmup['success']) ? (string)($warmup['message'] ?? 'OPcache-Warmup fehlgeschlagen.') : null,
+        ];
     }
 
     private function optimizeDatabase(): array

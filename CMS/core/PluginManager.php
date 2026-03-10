@@ -161,7 +161,7 @@ class PluginManager
             $stmt->execute();
             $result = $stmt->fetch();
             if ($result && $result->option_value) {
-                return json_decode($result->option_value, true) ?: [];
+                return Json::decodeArray($result->option_value ?? null, []);
             }
             return [];
         } catch (\Exception $e) {

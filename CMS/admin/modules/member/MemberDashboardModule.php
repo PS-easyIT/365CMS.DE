@@ -437,8 +437,8 @@ class MemberDashboardModule
             'email_verification'   => ($settings['member_email_verification'] ?? '0') === '1',
             'welcome_message'      => $settings['member_welcome_message'] ?? '',
             'default_role'         => $settings['member_default_role'] ?? 'member',
-            'widgets'              => json_decode($settings['member_dashboard_widgets'] ?? '[]', true) ?: [],
-            'profile_fields'       => json_decode($settings['member_profile_fields'] ?? '[]', true) ?: [],
+            'widgets'              => \CMS\Json::decodeArray($settings['member_dashboard_widgets'] ?? null, []),
+            'profile_fields'       => \CMS\Json::decodeArray($settings['member_profile_fields'] ?? null, []),
             'dashboard_columns'    => (int)($settings['member_dashboard_columns'] ?? 3),
             'section_order'        => $settings['member_dashboard_section_order'] ?? 'stats,widgets,plugins',
             'dashboard_logo'       => $settings['member_dashboard_logo'] ?? '',
@@ -469,23 +469,23 @@ class MemberDashboardModule
                 'digest_frequency' => $settings['member_dashboard_notification_digest_frequency'] ?? 'daily',
                 'sender_name' => $settings['member_dashboard_notification_sender_name'] ?? '365CMS Member Hub',
                 'empty_text' => $settings['member_dashboard_notification_empty_text'] ?? 'Aktuell gibt es keine neuen Meldungen.',
-                'types' => json_decode($settings['member_dashboard_notification_types'] ?? '[]', true) ?: ['system', 'messages'],
+                'types' => \CMS\Json::decodeArray($settings['member_dashboard_notification_types'] ?? null, ['system', 'messages']),
             ],
             'onboarding'           => [
                 'enabled' => ($settings['member_dashboard_onboarding_enabled'] ?? '1') === '1',
                 'title' => $settings['member_dashboard_onboarding_title'] ?? 'So startest du optimal',
                 'intro' => $settings['member_dashboard_onboarding_intro'] ?? 'Begleite neue Mitglieder mit einer klaren Checkliste und gezielten nächsten Schritten.',
-                'steps' => json_decode($settings['member_dashboard_onboarding_steps'] ?? '[]', true) ?: [
+                'steps' => \CMS\Json::decodeArray($settings['member_dashboard_onboarding_steps'] ?? null, [
                     'Profil vervollständigen',
                     'Profilbild hochladen',
                     'Passwort & Sicherheit prüfen',
                     'Erste Bereiche im Member-Dashboard entdecken',
-                ],
+                ]),
                 'cta_label' => $settings['member_dashboard_onboarding_cta_label'] ?? 'Jetzt starten',
                 'cta_url' => $settings['member_dashboard_onboarding_cta_url'] ?? '/member/profile',
                 'require_profile_completion' => ($settings['member_dashboard_onboarding_require_profile_completion'] ?? '0') === '1',
             ],
-            'plugin_widget_order'  => json_decode($settings['member_dashboard_plugin_order'] ?? '[]', true) ?: [],
+            'plugin_widget_order'  => \CMS\Json::decodeArray($settings['member_dashboard_plugin_order'] ?? null, []),
         ];
     }
 

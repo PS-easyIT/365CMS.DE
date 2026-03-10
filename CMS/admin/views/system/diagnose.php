@@ -5,9 +5,14 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!defined('CMS_ADMIN_SYSTEM_VIEW')) {
+    exit;
+}
+
 $database    = $data['database'] ?? [];
 $tables      = $data['tables'] ?? [];
 $permissions = $data['permissions'] ?? [];
+$runtime     = $data['runtime'] ?? [];
 
 $missingCount = 0;
 $errorCount = 0;
@@ -73,6 +78,13 @@ foreach ($tables as $tableInfo) {
             <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">CMS-Tabellen</div><div class="h1 mb-0"><?php echo htmlspecialchars((string)($database['cms_tables'] ?? '-')); ?></div></div></div></div>
         </div>
 
+        <div class="row row-deck row-cards mb-4">
+            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Runtime-Telemetrie</div><div class="h1 mb-0 <?php echo !empty($runtime['enabled']) ? 'text-success' : 'text-muted'; ?>"><?php echo !empty($runtime['enabled']) ? 'Debug aktiv' : 'Inaktiv'; ?></div></div></div></div>
+            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Request-Laufzeit</div><div class="h1 mb-0"><?php echo htmlspecialchars((string)($runtime['elapsed_time_ms'] ?? '0')); ?> <span class="fs-5 text-secondary">ms</span></div></div></div></div>
+            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">SQL-Queries</div><div class="h1 mb-0"><?php echo htmlspecialchars((string)($runtime['query']['count'] ?? 0)); ?></div><div class="text-secondary small mt-1"><?php echo htmlspecialchars((string)($runtime['query']['total_time_ms'] ?? 0)); ?> ms gesamt</div></div></div></div>
+            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Messpunkte</div><div class="h1 mb-0"><?php echo htmlspecialchars((string)count($runtime['checkpoints'] ?? [])); ?></div><div class="text-secondary small mt-1">Peak <?php echo htmlspecialchars((string)($runtime['memory_peak_mb'] ?? 0)); ?> MB</div></div></div></div>
+        </div>
+
         <div class="row row-cards">
             <div class="col-12 col-xl-4">
                 <div class="card h-100">
@@ -121,6 +133,79 @@ foreach ($tables as $tableInfo) {
             </div>
 
             <div class="col-12">
+                <div class="card mb-4">
+                    <div class="card-header"><h3 class="card-title">Runtime- &amp; Query-Telemetrie</h3></div>
+                    <div class="card-body">
+                        <?php if (empty($runtime['enabled'])): ?>
+                            <div class="text-secondary">Debug-Modus ist derzeit nicht aktiv. Die zusätzlichen Query- und Laufzeitdaten werden nur bei aktiviertem `CMS_DEBUG` gesammelt.</div>
+                        <?php else: ?>
+                            <div class="row g-3">
+                                <div class="col-lg-6">
+                                    <div class="table-responsive">
+                                        <table class="table table-vcenter card-table table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>Messpunkt</th>
+                                                    <th>Zeit</th>
+                                                    <th>RAM</th>
+                                                    <th>Kontext</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php foreach (($runtime['checkpoints'] ?? []) as $checkpoint): ?>
+                                                    <tr>
+                                                        <td><code><?php echo htmlspecialchars((string)($checkpoint['label'] ?? '')); ?></code></td>
+                                                        <td><?php echo htmlspecialchars((string)($checkpoint['time_ms'] ?? '0')); ?> ms</td>
+                                                        <td><?php echo htmlspecialchars((string)($checkpoint['memory_mb'] ?? '0')); ?> MB</td>
+                                                        <td>
+                                                            <?php if (!empty($checkpoint['context']) && is_array($checkpoint['context'])): ?>
+                                                                <code><?php echo htmlspecialchars(json_encode($checkpoint['context'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '', ENT_QUOTES); ?></code>
+                                                            <?php else: ?>
+                                                                <span class="text-secondary">—</span>
+                                                            <?php endif; ?>
+                                                        </td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="col-lg-6">
+                                    <div class="mb-3 text-secondary small">
+                                        Langsame Queries ab <?php echo htmlspecialchars((string)($runtime['query']['slow_threshold_ms'] ?? 0)); ?> ms: <?php echo htmlspecialchars((string)($runtime['query']['slow_count'] ?? 0)); ?>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-vcenter card-table table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>Dauer</th>
+                                                    <th>SQL</th>
+                                                    <th>Parameter</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php foreach (($runtime['query']['queries'] ?? []) as $queryInfo): ?>
+                                                    <tr>
+                                                        <td><?php echo htmlspecialchars((string)($queryInfo['execution_time_ms'] ?? '0')); ?> ms</td>
+                                                        <td><code><?php echo htmlspecialchars((string)($queryInfo['sql'] ?? '')); ?></code></td>
+                                                        <td>
+                                                            <?php if (array_key_exists('params', $queryInfo) && $queryInfo['params'] !== null): ?>
+                                                                <code><?php echo htmlspecialchars(json_encode($queryInfo['params'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '', ENT_QUOTES); ?></code>
+                                                            <?php else: ?>
+                                                                <span class="text-secondary">—</span>
+                                                            <?php endif; ?>
+                                                        </td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
                 <div class="card">
                     <div class="card-header"><h3 class="card-title">Datenbank-Tabellen</h3></div>
                     <div class="table-responsive">

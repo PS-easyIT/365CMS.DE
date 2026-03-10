@@ -33,7 +33,7 @@ Wenn ihr direkt aus diesem Repository deployt, ist der **manuelle Weg über `CMS
 
 | Komponente | Minimum | Empfohlen |
 |---|---:|---:|
-| PHP | 8.2 | 8.3+ |
+| PHP | 8.4 | 8.4+ |
 | MySQL | 8.0 | 8.0+ |
 | MariaDB | 10.6 | 10.11+ |
 | Webserver | Apache 2.4 / Nginx 1.18 | aktuelle stabile Version |
@@ -45,6 +45,8 @@ Empfohlen für Admin- und Update-Funktionen:
 - `curl` für externe HTTP-Anfragen
 - `zip` für Paket- und Doku-Synchronisation
 - `gd` oder `imagick` für Bildverarbeitung
+
+Wichtig: 365CMS prüft die Mindestplattform inzwischen bereits sehr früh. Wenn die aktive Runtime unter PHP 8.4 liegt, blockieren `CMS/config.php`, Installer, Status-/Update-Prüfungen und der zentrale `Bootstrap` den regulären Start bzw. markieren die Umgebung als nicht kompatibel.
 
 ---
 
@@ -168,6 +170,8 @@ Nach korrekter Konfiguration:
 4. `CMS\Bootstrap` initialisiert Services und Routing
 5. `CMS\Database` und `CMS\SchemaManager` legen die Basisstruktur an
 6. falls noch kein Admin existiert, wird ein Standard-Admin erzeugt
+
+Vor Schritt 4 validiert der Bootstrap zusätzlich die produktiv gebündelten Composer-Manifeste von `mailer`, `mime` und `translation` gegen die offizielle Mindestplattform. So wird eine nicht unterstützte PHP-Laufzeit nicht erst mitten im Mail- oder Translation-Pfad sichtbar.
 
 Wichtig: Der erste generierte Admin-Zugang wird vom Schema-Setup in die Logs geschrieben. Prüft nach dem Erststart daher insbesondere `CMS/logs/` bzw. die temporären Zugangsdaten und ändert das Kennwort sofort.
 

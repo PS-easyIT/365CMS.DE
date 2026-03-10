@@ -5,6 +5,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!defined('CMS_ADMIN_SEO_VIEW')) {
+    exit;
+}
+
 $technical = $data['technical'] ?? [];
 $settings = $technical['settings'] ?? [];
 $brokenLinks = $technical['broken_links'] ?? [];

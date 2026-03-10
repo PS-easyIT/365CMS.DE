@@ -22,6 +22,8 @@ class AnalyticsService
     private static ?self $instance = null;
     private Database $db;
     private TrackingService $tracking;
+    private FeatureUsageService $featureUsage;
+    private CoreWebVitalsService $coreWebVitals;
     
     /**
      * Singleton instance
@@ -41,6 +43,8 @@ class AnalyticsService
     {
         $this->db = Database::instance();
         $this->tracking = TrackingService::getInstance();
+        $this->featureUsage = FeatureUsageService::getInstance();
+        $this->coreWebVitals = CoreWebVitalsService::getInstance();
     }
     
     /**
@@ -151,6 +155,30 @@ class AnalyticsService
     public function getTopPages(int $limit = 10): array
     {
         return $this->tracking->getTopPages(30, $limit);
+    }
+
+    /**
+     * Get Core Web Vitals field data (REAL DATA)
+     */
+    public function getCoreWebVitals(int $days = 30): array
+    {
+        return $this->coreWebVitals->getDashboardSummary($days);
+    }
+
+    /**
+     * Get feature usage statistics (REAL DATA)
+     */
+    public function getFeatureUsageSummary(int $days = 30): array
+    {
+        $totals = $this->featureUsage->getUsageTotals($days);
+
+        return [
+            'totals' => $totals,
+            'top_features' => $this->featureUsage->getTopFeatures($days, 10),
+            'area_breakdown' => $this->featureUsage->getAreaBreakdown($days),
+            'daily_usage' => $this->featureUsage->getDailyUsage($days),
+            'note' => 'Feature-Nutzung wird datensparsam pro Session und Funktion aggregiert (Throttle: 15 Minuten).',
+        ];
     }
     
     /**

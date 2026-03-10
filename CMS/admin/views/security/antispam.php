@@ -159,13 +159,19 @@ $typeLabels = ['word' => 'Wort', 'email' => 'E-Mail', 'ip' => 'IP-Adresse', 'dom
                             </thead>
                             <tbody>
                                 <?php if (empty($blacklist)): ?>
-                                <tr><td colspan="4" class="text-muted text-center">Keine Einträge</td></tr>
+                                <?php
+                                $emptyStateColspan = 4;
+                                $emptyStateMessage = 'Keine Einträge vorhanden.';
+                                $emptyStateSubtitle = 'Fügen Sie Wörter, Domains, E-Mails oder IP-Adressen zur Blacklist hinzu.';
+                                $emptyStateIcon = 'shield';
+                                require __DIR__ . '/../partials/empty-table-row.php';
+                                ?>
                                 <?php else: ?>
                                 <?php foreach ($blacklist as $item): ?>
                                 <tr>
                                     <td><span class="badge bg-secondary"><?php echo htmlspecialchars($typeLabels[$item['type']] ?? $item['type']); ?></span></td>
                                     <td><code><?php echo htmlspecialchars($item['value']); ?></code></td>
-                                    <td class="text-muted"><?php echo htmlspecialchars($item['created_at'] ?? ''); ?></td>
+                                    <td class="text-secondary"><?php echo htmlspecialchars($item['created_at'] ?? ''); ?></td>
                                     <td>
                                         <form method="post" class="d-inline">
                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">

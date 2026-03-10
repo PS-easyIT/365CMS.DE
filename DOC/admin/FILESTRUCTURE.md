@@ -87,6 +87,8 @@ Hier liegt die Fachlogik je Bereich, zum Beispiel für Legal, Security, System, 
 
 Dieses Verzeichnis enthält die eigentliche Ausgabe. Typische Unterordner sind `views/legal/`, `views/seo/`, `views/system/` und `views/performance/`.
 
+Die Dateien in diesen Unterordnern sind **keine eigenständigen Entry-Points**. Sie werden ausschließlich über ihre Eltern-Wrapper wie `seo-page.php`, `performance-page.php`, `member-dashboard-page.php` oder `system-monitor-page.php` geladen.
+
 ### `CMS/admin/partials/`
 
 Gemeinsame Oberflächenbausteine wie Header, Sidebar und Footer. Die Sidebar-Datei ist die maßgebliche Quelle für die sichtbare Admin-Navigation.
@@ -204,6 +206,13 @@ $csrfToken = Security::instance()->generateToken('my_action');
 // ❌ Falsch – überschreibt den Session-Token bei jedem Aufruf
 <input ... value="<?php echo Security::instance()->generateToken(); ?>">
 ```
+
+### Wrapper-gebundene Sub-Views
+
+- Views und Subnavigationen unter `CMS/admin/views/seo/`, `views/performance/`, `views/member/` und `views/system/` dürfen nur aus ihrem jeweiligen Wrapper geladen werden.
+- Wrapper setzen dafür explizite Kontext-Konstanten (`CMS_ADMIN_SEO_VIEW`, `CMS_ADMIN_PERFORMANCE_VIEW`, `CMS_ADMIN_MEMBER_VIEW`, `CMS_ADMIN_SYSTEM_VIEW`).
+- Jede neue Sub-View prüft neben `ABSPATH` auch ihre Wrapper-Konstante und beendet sich bei Direktaufruf sofort mit `exit;`.
+- Direkte Business-Logik, Auth-Prüfungen und CSRF-Verifikation bleiben in den Entry-Points bzw. Wrappern; Sub-Views rendern nur die bereits vorbereiteten Daten.
 
 ---
 

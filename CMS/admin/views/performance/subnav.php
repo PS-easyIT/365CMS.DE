@@ -5,6 +5,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!defined('CMS_ADMIN_PERFORMANCE_VIEW')) {
+    exit;
+}
+
 $currentPerformancePage = $activePage ?? 'performance';
 $performanceNavItems = [
     ['slug' => 'performance', 'label' => 'Übersicht', 'url' => SITE_URL . '/admin/performance'],

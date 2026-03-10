@@ -5,6 +5,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!defined('CMS_ADMIN_MEMBER_VIEW')) {
+    exit;
+}
+
 $settings = $data['settings'] ?? [];
 $modules = $settings['frontend_modules'] ?? [];
 ?>

@@ -23,6 +23,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (class_exists(__NAMESPACE__ . '\\SchemaManager', false)) {
+    return;
+}
+
 class SchemaManager
 {
     /** Flag-Datei-Version – erhöhen wenn Schema geändert wird */
@@ -39,42 +43,13 @@ class SchemaManager
         $this->charset = defined('DB_CHARSET') ? DB_CHARSET : 'utf8mb4';
     }
 
-    /**
-     * Gibt den Pfad zur Flag-Datei zurück.
-     */
-    public function getFlagFile(): string
+    public static function getSchemaQueries(string $prefix, string $charset): array
     {
-        return ABSPATH . 'cache/db_schema_' . self::SCHEMA_VERSION . '.flag';
-    }
+        $p = $prefix;
+        $c = $charset;
 
-    /**
-     * Erzwingt eine komplette Neu-Prüfung (Flag löschen).
-     */
-    public function clearFlag(): void
-    {
-        $flagFile = $this->getFlagFile();
-        if (is_file($flagFile)) {
-            unlink($flagFile); // M-03: kein @, is_file geprüft
-        }
-    }
-
-    /**
-     * Erstellt alle CMS-Tabellen (idempotent via CREATE TABLE IF NOT EXISTS).
-     * Wird beim ersten Request und nach repairTables() ausgeführt.
-     */
-    public function createTables(): void
-    {
-        $flagFile = $this->getFlagFile();
-        if (file_exists($flagFile)) {
-            return;
-        }
-
-        $p = $this->prefix;
-        $c = $this->charset;
-
-        $queries = [
-            // Users table
-            "CREATE TABLE IF NOT EXISTS {$p}users (
+        return [
+            'users' => "CREATE TABLE IF NOT EXISTS {$p}users (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 username VARCHAR(60) NOT NULL UNIQUE,
                 email VARCHAR(100) NOT NULL UNIQUE,
@@ -90,8 +65,7 @@ class SchemaManager
                 INDEX idx_role (role)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // User meta table
-            "CREATE TABLE IF NOT EXISTS {$p}user_meta (
+            'user_meta' => "CREATE TABLE IF NOT EXISTS {$p}user_meta (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 user_id INT UNSIGNED NOT NULL,
                 meta_key VARCHAR(255) NOT NULL,
@@ -101,8 +75,7 @@ class SchemaManager
                 FOREIGN KEY (user_id) REFERENCES {$p}users(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Roles table
-            "CREATE TABLE IF NOT EXISTS {$p}roles (
+            'roles' => "CREATE TABLE IF NOT EXISTS {$p}roles (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(50) NOT NULL UNIQUE,
                 display_name VARCHAR(100) NOT NULL,
@@ -115,8 +88,7 @@ class SchemaManager
                 INDEX idx_name (name)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Settings table
-            "CREATE TABLE IF NOT EXISTS {$p}settings (
+            'settings' => "CREATE TABLE IF NOT EXISTS {$p}settings (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 option_name VARCHAR(255) NOT NULL UNIQUE,
                 option_value LONGTEXT,
@@ -124,8 +96,7 @@ class SchemaManager
                 INDEX idx_key (option_name)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Sessions table
-            "CREATE TABLE IF NOT EXISTS {$p}sessions (
+            'sessions' => "CREATE TABLE IF NOT EXISTS {$p}sessions (
                 id VARCHAR(128) PRIMARY KEY,
                 user_id INT UNSIGNED,
                 ip_address VARCHAR(45),
@@ -138,8 +109,7 @@ class SchemaManager
                 INDEX idx_expires (expires_at)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Passkey / WebAuthn credentials
-            "CREATE TABLE IF NOT EXISTS {$p}passkey_credentials (
+            'passkey_credentials' => "CREATE TABLE IF NOT EXISTS {$p}passkey_credentials (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 user_id INT UNSIGNED NOT NULL,
                 credential_id VARCHAR(512) NOT NULL,
@@ -154,8 +124,7 @@ class SchemaManager
                 UNIQUE INDEX idx_cred_id (credential_id(255))
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Pages table
-            "CREATE TABLE IF NOT EXISTS {$p}pages (
+            'pages' => "CREATE TABLE IF NOT EXISTS {$p}pages (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 slug VARCHAR(200) NOT NULL UNIQUE,
                 title VARCHAR(255) NOT NULL,
@@ -175,8 +144,7 @@ class SchemaManager
                 INDEX idx_author (author_id)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Page revisions table
-            "CREATE TABLE IF NOT EXISTS {$p}page_revisions (
+            'page_revisions' => "CREATE TABLE IF NOT EXISTS {$p}page_revisions (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 page_id INT UNSIGNED NOT NULL,
                 title VARCHAR(255) NOT NULL,
@@ -189,8 +157,7 @@ class SchemaManager
                 INDEX idx_created_at (created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Landing sections table
-            "CREATE TABLE IF NOT EXISTS {$p}landing_sections (
+            'landing_sections' => "CREATE TABLE IF NOT EXISTS {$p}landing_sections (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 type VARCHAR(50) NOT NULL,
                 data TEXT,
@@ -201,8 +168,7 @@ class SchemaManager
                 INDEX idx_order (sort_order)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Activity log table
-            "CREATE TABLE IF NOT EXISTS {$p}activity_log (
+            'activity_log' => "CREATE TABLE IF NOT EXISTS {$p}activity_log (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 user_id INT UNSIGNED,
                 action VARCHAR(100) NOT NULL,
@@ -220,8 +186,7 @@ class SchemaManager
                 INDEX idx_created_at (created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Cache table
-            "CREATE TABLE IF NOT EXISTS {$p}cache (
+            'cache' => "CREATE TABLE IF NOT EXISTS {$p}cache (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 cache_key VARCHAR(191) NOT NULL UNIQUE,
                 cache_value LONGTEXT,
@@ -231,9 +196,7 @@ class SchemaManager
                 INDEX idx_expires (expires_at)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Login attempts (security)
-            // H-05: action-Spalte für DB-basiertes Rate-Limiting per Action + IP
-            "CREATE TABLE IF NOT EXISTS {$p}login_attempts (
+            'login_attempts' => "CREATE TABLE IF NOT EXISTS {$p}login_attempts (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 username VARCHAR(60),
                 ip_address VARCHAR(45),
@@ -246,8 +209,7 @@ class SchemaManager
                 INDEX idx_time (attempted_at)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Plugins table
-            "CREATE TABLE IF NOT EXISTS {$p}plugins (
+            'plugins' => "CREATE TABLE IF NOT EXISTS {$p}plugins (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(100) NOT NULL UNIQUE,
                 slug VARCHAR(100) NOT NULL UNIQUE,
@@ -265,8 +227,7 @@ class SchemaManager
                 INDEX idx_active (is_active)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Plugin meta table
-            "CREATE TABLE IF NOT EXISTS {$p}plugin_meta (
+            'plugin_meta' => "CREATE TABLE IF NOT EXISTS {$p}plugin_meta (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 plugin_id INT UNSIGNED NOT NULL,
                 meta_key VARCHAR(255) NOT NULL,
@@ -276,8 +237,7 @@ class SchemaManager
                 FOREIGN KEY (plugin_id) REFERENCES {$p}plugins(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Theme customizations table
-            "CREATE TABLE IF NOT EXISTS {$p}theme_customizations (
+            'theme_customizations' => "CREATE TABLE IF NOT EXISTS {$p}theme_customizations (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 theme_slug VARCHAR(100) NOT NULL,
                 setting_category VARCHAR(100) NOT NULL COMMENT 'Kategorie aus theme.json',
@@ -293,8 +253,7 @@ class SchemaManager
                 UNIQUE KEY unique_theme_setting (theme_slug, setting_category, setting_key, user_id)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Subscription plans table
-            "CREATE TABLE IF NOT EXISTS {$p}subscription_plans (
+            'subscription_plans' => "CREATE TABLE IF NOT EXISTS {$p}subscription_plans (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(100) NOT NULL,
                 slug VARCHAR(100) NOT NULL UNIQUE,
@@ -327,8 +286,7 @@ class SchemaManager
                 INDEX idx_sort (sort_order)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // User subscriptions table
-            "CREATE TABLE IF NOT EXISTS {$p}user_subscriptions (
+            'user_subscriptions' => "CREATE TABLE IF NOT EXISTS {$p}user_subscriptions (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id INT UNSIGNED NOT NULL,
                 plan_id INT NOT NULL,
@@ -346,8 +304,7 @@ class SchemaManager
                 INDEX idx_dates (start_date, end_date)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // User groups table
-            "CREATE TABLE IF NOT EXISTS {$p}user_groups (
+            'user_groups' => "CREATE TABLE IF NOT EXISTS {$p}user_groups (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(100) NOT NULL,
                 slug VARCHAR(100) NOT NULL UNIQUE,
@@ -361,8 +318,7 @@ class SchemaManager
                 INDEX idx_active (is_active)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // User group members table
-            "CREATE TABLE IF NOT EXISTS {$p}user_group_members (
+            'user_group_members' => "CREATE TABLE IF NOT EXISTS {$p}user_group_members (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id INT UNSIGNED NOT NULL,
                 group_id INT NOT NULL,
@@ -372,8 +328,7 @@ class SchemaManager
                 INDEX idx_group_id (group_id)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Subscription usage table
-            "CREATE TABLE IF NOT EXISTS {$p}subscription_usage (
+            'subscription_usage' => "CREATE TABLE IF NOT EXISTS {$p}subscription_usage (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id INT UNSIGNED NOT NULL,
                 resource_type VARCHAR(50) NOT NULL,
@@ -384,8 +339,7 @@ class SchemaManager
                 INDEX idx_resource (resource_type)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Blog post categories table
-            "CREATE TABLE IF NOT EXISTS {$p}post_categories (
+            'post_categories' => "CREATE TABLE IF NOT EXISTS {$p}post_categories (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(100) NOT NULL,
                 slug VARCHAR(100) NOT NULL UNIQUE,
@@ -397,8 +351,7 @@ class SchemaManager
                 INDEX idx_parent (parent_id)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Blog posts table
-            "CREATE TABLE IF NOT EXISTS {$p}posts (
+            'posts' => "CREATE TABLE IF NOT EXISTS {$p}posts (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 title VARCHAR(255) NOT NULL,
                 slug VARCHAR(255) NOT NULL UNIQUE,
@@ -423,8 +376,7 @@ class SchemaManager
                 INDEX idx_published (published_at)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Orders table
-            "CREATE TABLE IF NOT EXISTS {$p}orders (
+            'orders' => "CREATE TABLE IF NOT EXISTS {$p}orders (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 order_number VARCHAR(64) NOT NULL UNIQUE,
                 user_id INT UNSIGNED NULL,
@@ -452,8 +404,7 @@ class SchemaManager
                 INDEX idx_created_at (created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Blocked IPs table
-            "CREATE TABLE IF NOT EXISTS {$p}blocked_ips (
+            'blocked_ips' => "CREATE TABLE IF NOT EXISTS {$p}blocked_ips (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 ip_address VARCHAR(45) NOT NULL UNIQUE,
                 reason VARCHAR(255),
@@ -465,8 +416,7 @@ class SchemaManager
                 INDEX idx_expires (expires_at)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Failed Logins table
-            "CREATE TABLE IF NOT EXISTS {$p}failed_logins (
+            'failed_logins' => "CREATE TABLE IF NOT EXISTS {$p}failed_logins (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 username VARCHAR(60),
                 ip_address VARCHAR(45),
@@ -477,8 +427,7 @@ class SchemaManager
                 INDEX idx_time (attempted_at)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Media table
-            "CREATE TABLE IF NOT EXISTS {$p}media (
+            'media' => "CREATE TABLE IF NOT EXISTS {$p}media (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 filename VARCHAR(255) NOT NULL,
                 filepath VARCHAR(500) NOT NULL,
@@ -493,8 +442,7 @@ class SchemaManager
                 INDEX idx_uploader (uploaded_by)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Page Views table (Analytics)
-            "CREATE TABLE IF NOT EXISTS {$p}page_views (
+            'page_views' => "CREATE TABLE IF NOT EXISTS {$p}page_views (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 page_id INT UNSIGNED NULL,
                 page_slug VARCHAR(200),
@@ -513,8 +461,31 @@ class SchemaManager
                 INDEX idx_date (visited_at)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Kommentare (wird von antispam.php und ggf. Plugins verwendet)
-            "CREATE TABLE IF NOT EXISTS {$p}comments (
+            'core_web_vitals' => "CREATE TABLE IF NOT EXISTS {$p}core_web_vitals (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                page_path VARCHAR(500) NOT NULL,
+                page_title VARCHAR(255) DEFAULT '',
+                user_id INT UNSIGNED NULL,
+                session_id VARCHAR(128) DEFAULT NULL,
+                ip_address VARCHAR(45) DEFAULT '',
+                user_agent VARCHAR(500) DEFAULT '',
+                device_type VARCHAR(20) DEFAULT 'unknown',
+                effective_connection VARCHAR(32) DEFAULT '',
+                navigation_type VARCHAR(32) DEFAULT '',
+                viewport_width SMALLINT UNSIGNED NULL,
+                viewport_height SMALLINT UNSIGNED NULL,
+                ttfb_ms INT UNSIGNED NULL,
+                lcp_ms INT UNSIGNED NULL,
+                inp_ms INT UNSIGNED NULL,
+                cls DECIMAL(6,3) NULL,
+                recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_page_path (page_path(191)),
+                INDEX idx_user_id (user_id),
+                INDEX idx_session_id (session_id),
+                INDEX idx_recorded_at (recorded_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
+
+            'comments' => "CREATE TABLE IF NOT EXISTS {$p}comments (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 post_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
                 user_id INT UNSIGNED NULL,
@@ -531,8 +502,7 @@ class SchemaManager
                 INDEX idx_user_id (user_id)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c} COMMENT='Kommentare'",
 
-            // Messages table (Member-Dashboard Nachrichten)
-            "CREATE TABLE IF NOT EXISTS {$p}messages (
+            'messages' => "CREATE TABLE IF NOT EXISTS {$p}messages (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 sender_id INT UNSIGNED NOT NULL,
                 recipient_id INT UNSIGNED NOT NULL,
@@ -553,8 +523,7 @@ class SchemaManager
                 FOREIGN KEY (recipient_id) REFERENCES {$p}users(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET={$c} COMMENT='Benutzer-Nachrichten (Member-Dashboard)'",
 
-            // H-01: Sicherheits-Audit-Log (AuditLogger-Klasse)
-            "CREATE TABLE IF NOT EXISTS {$p}audit_log (
+            'audit_log' => "CREATE TABLE IF NOT EXISTS {$p}audit_log (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 user_id INT UNSIGNED NULL,
                 category VARCHAR(50) NOT NULL COMMENT 'auth|theme|plugin|user|setting|media|system|security',
@@ -574,8 +543,7 @@ class SchemaManager
                 INDEX idx_created_at (created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Mail-Protokoll
-            "CREATE TABLE IF NOT EXISTS {$p}mail_log (
+            'mail_log' => "CREATE TABLE IF NOT EXISTS {$p}mail_log (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 recipient VARCHAR(255) NOT NULL,
                 subject VARCHAR(255) NOT NULL,
@@ -593,8 +561,7 @@ class SchemaManager
                 INDEX idx_source (source)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Mail-Queue (Vorbereitung für asynchronen Versand)
-            "CREATE TABLE IF NOT EXISTS {$p}mail_queue (
+            'mail_queue' => "CREATE TABLE IF NOT EXISTS {$p}mail_queue (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 recipient VARCHAR(255) NOT NULL,
                 subject VARCHAR(255) NOT NULL,
@@ -624,7 +591,7 @@ class SchemaManager
                 INDEX idx_created_at (created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            "CREATE TABLE IF NOT EXISTS {$p}custom_fonts (
+            'custom_fonts' => "CREATE TABLE IF NOT EXISTS {$p}custom_fonts (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(100) NOT NULL,
                 slug VARCHAR(100) NOT NULL,
@@ -637,8 +604,22 @@ class SchemaManager
                 INDEX idx_source (source)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
-            // Benutzer-Favoriten (Member-Dashboard Merkliste)
-            "CREATE TABLE IF NOT EXISTS {$p}favorites (
+            'site_tables' => "CREATE TABLE IF NOT EXISTS {$p}site_tables (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                table_name VARCHAR(255) NOT NULL,
+                table_slug VARCHAR(191) DEFAULT NULL,
+                description TEXT DEFAULT NULL,
+                columns_json LONGTEXT DEFAULT NULL,
+                rows_json LONGTEXT DEFAULT NULL,
+                settings_json LONGTEXT DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY uniq_table_slug (table_slug),
+                INDEX idx_table_name (table_name),
+                INDEX idx_updated_at (updated_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET={$c} COMMENT='Site-Tabellen und Hub-Inhalte'",
+
+            'favorites' => "CREATE TABLE IF NOT EXISTS {$p}favorites (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 user_id INT UNSIGNED NOT NULL,
                 post_id BIGINT UNSIGNED NOT NULL,
@@ -648,10 +629,9 @@ class SchemaManager
                 INDEX idx_post_id (post_id),
                 FOREIGN KEY (user_id) REFERENCES {$p}users(id) ON DELETE CASCADE,
                 FOREIGN KEY (post_id) REFERENCES {$p}posts(id) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET={$c} COMMENT='Benutzer-Merkliste'" ,
+            ) ENGINE=InnoDB DEFAULT CHARSET={$c} COMMENT='Benutzer-Merkliste'",
 
-            // Benachrichtigungen (Member-Dashboard + Theme-Header-Badge)
-            "CREATE TABLE IF NOT EXISTS {$p}notifications (
+            'notifications' => "CREATE TABLE IF NOT EXISTS {$p}notifications (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 user_id INT UNSIGNED NOT NULL,
                 type VARCHAR(50) NOT NULL DEFAULT 'system' COMMENT 'system|message|comment|event',
@@ -668,8 +648,7 @@ class SchemaManager
                 FOREIGN KEY (user_id) REFERENCES {$p}users(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET={$c} COMMENT='Member-Benachrichtigungen'",
 
-            // Sicherheits-Log (Firewall-Blocking, Rate-Limiting)
-            "CREATE TABLE IF NOT EXISTS {$p}security_log (
+            'security_log' => "CREATE TABLE IF NOT EXISTS {$p}security_log (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 action VARCHAR(50) NOT NULL DEFAULT 'blocked' COMMENT 'blocked|allowed|rate_limited|challenge',
                 ip_address VARCHAR(45) DEFAULT NULL,
@@ -684,8 +663,7 @@ class SchemaManager
                 INDEX idx_created_at (created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c} COMMENT='Firewall-Sicherheitsprotokoll'",
 
-            // Blog-Post-Tags (normalisiert – ersetzt CSV-Spalte posts.tags)
-            "CREATE TABLE IF NOT EXISTS {$p}post_tags (
+            'post_tags' => "CREATE TABLE IF NOT EXISTS {$p}post_tags (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(100) NOT NULL,
                 slug VARCHAR(100) NOT NULL UNIQUE,
@@ -695,8 +673,7 @@ class SchemaManager
                 INDEX idx_slug (slug)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c} COMMENT='Blog-Schlagwörter'",
 
-            // Blog-Post ↔ Tag Relation
-            "CREATE TABLE IF NOT EXISTS {$p}post_tag_rel (
+            'post_tag_rel' => "CREATE TABLE IF NOT EXISTS {$p}post_tag_rel (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 post_id BIGINT UNSIGNED NOT NULL,
                 tag_id INT UNSIGNED NOT NULL,
@@ -707,6 +684,31 @@ class SchemaManager
                 FOREIGN KEY (tag_id) REFERENCES {$p}post_tags(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET={$c} COMMENT='Post-Tag-Zuordnung'",
         ];
+    }
+
+    /**
+     * Gibt den Pfad zur Flag-Datei zurück.
+     */
+    public function getFlagFile(): string
+    {
+        return ABSPATH . 'cache/db_schema_' . self::SCHEMA_VERSION . '.flag';
+    }
+
+    /**
+     * Erstellt alle CMS-Tabellen (idempotent via CREATE TABLE IF NOT EXISTS).
+     * Wird beim ersten Request und nach repairTables() ausgeführt.
+     */
+    public function createTables(): void
+    {
+        $flagFile = $this->getFlagFile();
+        if (file_exists($flagFile)) {
+            $this->ensureRuntimeSchema();
+            return;
+        }
+
+        $p = $this->prefix;
+        $c = $this->charset;
+        $queries = array_values(self::getSchemaQueries($p, $c));
 
         $pdo = $this->db->getPdo();
         foreach ($queries as $query) {
@@ -720,6 +722,7 @@ class SchemaManager
         // Migrations ausführen (fehlende Spalten ergänzen)
         (new MigrationManager($this->db))->run();
         $this->ensureContentColumns();
+        $this->ensureRuntimeSchema();
 
         // Standard-Admin anlegen falls noch kein Admin existiert
         $this->createDefaultAdmin();
@@ -810,6 +813,24 @@ class SchemaManager
             $this->prefix . 'posts',
             'meta_description',
             "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_description TEXT DEFAULT NULL AFTER meta_title"
+        );
+    }
+
+    private function ensureRuntimeSchema(): void
+    {
+        $siteTablesSql = self::getSchemaQueries($this->prefix, $this->charset)['site_tables'] ?? '';
+        if ($siteTablesSql !== '') {
+            try {
+                $this->db->getPdo()->exec($siteTablesSql);
+            } catch (\Throwable $e) {
+                error_log('SchemaManager::ensureRuntimeSchema() site_tables failed: ' . $e->getMessage());
+            }
+        }
+
+        $this->ensureColumnExists(
+            $this->prefix . 'site_tables',
+            'table_slug',
+            "ALTER TABLE {$this->prefix}site_tables ADD COLUMN table_slug VARCHAR(191) DEFAULT NULL AFTER table_name"
         );
     }
 

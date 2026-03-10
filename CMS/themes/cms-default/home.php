@@ -175,7 +175,7 @@ $lpLogo     = $lpHeader['logo']        ?? '';
 // ── CTA: LP-Buttons aus Admin ──────────────────────────
 $lpBtns = $lpHeader['header_buttons'] ?? [];
 if (is_string($lpBtns)) {
-    $lpBtns = @json_decode($lpBtns, true) ?? [];
+    $lpBtns = \CMS\Json::decodeArray($lpBtns, []);
 }
 if (!is_array($lpBtns)) {
     $lpBtns = [];

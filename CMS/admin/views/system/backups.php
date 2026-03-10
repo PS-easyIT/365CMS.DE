@@ -5,6 +5,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!defined('CMS_ADMIN_SYSTEM_VIEW')) {
+    exit;
+}
+
 /**
  * @var array $data Backup-Daten
  * @var string $csrfToken CSRF-Token

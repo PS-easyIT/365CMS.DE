@@ -12,6 +12,8 @@ declare(strict_types=1);
 
 namespace CMS\Services;
 
+use CMS\Json;
+
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -346,7 +348,7 @@ class EditorService
         }
 
         // Prüfe ob der Inhalt ein Editor.js JSON-Objekt ist
-        $decoded = json_decode($content, true);
+        $decoded = Json::decodeArray($content, []);
         if (is_array($decoded) && isset($decoded['blocks'])) {
             return EditorJsRenderer::getInstance()->render($decoded);
         }

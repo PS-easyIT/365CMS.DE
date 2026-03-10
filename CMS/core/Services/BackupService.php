@@ -13,6 +13,8 @@ declare(strict_types=1);
 namespace CMS\Services;
 
 use CMS\Database;
+use CMS\Http\Client as HttpClient;
+use CMS\Json;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -22,6 +24,7 @@ class BackupService
 {
     private static ?self $instance = null;
     private Database $db;
+    private HttpClient $httpClient;
     
     private const BACKUP_DIR = ABSPATH . 'backups/';
     
@@ -42,6 +45,7 @@ class BackupService
     private function __construct()
     {
         $this->db = Database::instance();
+        $this->httpClient = HttpClient::getInstance();
         $this->ensureBackupDir();
     }
     
@@ -389,27 +393,25 @@ class BackupService
         $stringToSign = "PUT\n\n{$this->getMimeType($filePath)}\n{$timestamp}\n/{$config['bucket']}/{$objectKey}";
         $signature = base64_encode(hash_hmac('sha1', $stringToSign, $config['secret_key'], true));
         
-        $context = stream_context_create([
-            'http' => [
-                'method' => 'PUT',
-                'header' => [
+        try {
+            $result = $this->httpClient->put($url, $fileContent, [
+                'timeout' => 120,
+                'connectTimeout' => 10,
+                'headers' => [
                     'Date: ' . $timestamp,
                     'Content-Type: ' . $this->getMimeType($filePath),
                     'Content-Length: ' . strlen($fileContent),
                     'Authorization: AWS ' . $config['access_key'] . ':' . $signature,
                 ],
-                'content' => $fileContent,
-            ],
-        ]);
-        
-        try {
-            $result = file_get_contents($url, false, $context);
+                'userAgent' => '365CMS-BackupService/1.0',
+                'maxBytes' => 1048576,
+            ]);
         } catch (\Throwable $e) {
-            error_log('BackupService::uploadToS3WithREST() file_get_contents Fehler: ' . $e->getMessage());
-            $result = false;
+            error_log('BackupService::uploadToS3WithREST() HTTP-Fehler: ' . $e->getMessage());
+            $result = ['success' => false];
         }
         
-        return $result !== false;
+        return !empty($result['success']);
     }
     
     /**
@@ -433,8 +435,8 @@ class BackupService
             
             $history = [];
             while ($row = $stmt->fetch(\PDO::FETCH_OBJ)) {
-                $data = json_decode($row->option_value, true);
-                if ($data) {
+                $data = Json::decode($row->option_value ?? null, true, null);
+                if (is_array($data)) {
                     $history[] = $data;
                 }
             }
@@ -470,10 +472,12 @@ class BackupService
                 $manifestFile = $path . '/manifest.json';
                 
                 if (file_exists($manifestFile)) {
-                    $manifest = json_decode(file_get_contents($manifestFile), true);
-                    $manifest['name'] = $item;
-                    $manifest['path'] = $path;
-                    $backups[] = $manifest;
+                    $manifest = Json::decodeArray(file_get_contents($manifestFile), []);
+                    if ($manifest !== []) {
+                        $manifest['name'] = $item;
+                        $manifest['path'] = $path;
+                        $backups[] = $manifest;
+                    }
                 }
             }
         }

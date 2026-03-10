@@ -15,15 +15,9 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$vendorAutoload = ABSPATH . 'assets/autoload.php';
-if (file_exists($vendorAutoload)) {
-    require_once $vendorAutoload;
-} else {
-    $devAutoload = dirname(ABSPATH) . DIRECTORY_SEPARATOR . 'ASSETS' . DIRECTORY_SEPARATOR . 'autoload.php';
-    if (file_exists($devAutoload)) {
-        require_once $devAutoload;
-    }
-}
+require_once __DIR__ . '/VendorRegistry.php';
+
+\CMS\VendorRegistry::instance()->loadAssetsAutoloader();
 
 spl_autoload_register(function ($class) {
     // Namespace-Prefix

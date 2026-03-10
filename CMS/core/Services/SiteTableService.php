@@ -11,6 +11,7 @@ namespace CMS\Services;
 
 use CMS\Database;
 use CMS\Hooks;
+use CMS\Json;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -294,9 +295,9 @@ final class SiteTableService
             'id' => (int)($row['id'] ?? 0),
             'name' => (string)($row['table_name'] ?? 'Hub Site'),
             'description' => trim((string)($row['description'] ?? '')),
-            'columns' => is_array(json_decode((string)($row['columns_json'] ?? '[]'), true)) ? json_decode((string)$row['columns_json'], true) : [],
-            'rows' => is_array(json_decode((string)($row['rows_json'] ?? '[]'), true)) ? json_decode((string)$row['rows_json'], true) : [],
-            'settings' => is_array(json_decode((string)($row['settings_json'] ?? '{}'), true)) ? json_decode((string)$row['settings_json'], true) : [],
+            'columns' => Json::decodeArray($row['columns_json'] ?? null, []),
+            'rows' => Json::decodeArray($row['rows_json'] ?? null, []),
+            'settings' => Json::decodeArray($row['settings_json'] ?? null, []),
             'updated_at' => (string)($row['updated_at'] ?? ''),
         ];
 
@@ -398,9 +399,9 @@ final class SiteTableService
             'id' => (int) ($row['id'] ?? 0),
             'name' => (string) ($row['table_name'] ?? 'Tabelle'),
             'description' => trim((string) ($row['description'] ?? '')),
-            'columns' => is_array(json_decode((string) ($row['columns_json'] ?? '[]'), true)) ? json_decode((string) $row['columns_json'], true) : [],
-            'rows' => is_array(json_decode((string) ($row['rows_json'] ?? '[]'), true)) ? json_decode((string) $row['rows_json'], true) : [],
-            'settings' => is_array(json_decode((string) ($row['settings_json'] ?? '{}'), true)) ? json_decode((string) $row['settings_json'], true) : [],
+            'columns' => Json::decodeArray($row['columns_json'] ?? null, []),
+            'rows' => Json::decodeArray($row['rows_json'] ?? null, []),
+            'settings' => Json::decodeArray($row['settings_json'] ?? null, []),
         ];
     }
 
@@ -422,8 +423,8 @@ final class SiteTableService
         $ctaLabel = trim((string)($settings['hub_cta_label'] ?? ''));
         $ctaUrl = trim((string)($settings['hub_cta_url'] ?? ''));
         $cards = ContentLocalizationService::getInstance()->localizeHubCards($this->normalizeHubCards($table['rows']), $locale, ['table' => $table]);
-        $quickLinks = $this->normalizeTemplateLinks($templateProfile, $template, $locale);
-        $sections = $this->normalizeTemplateSections($templateProfile, $template, $locale);
+        $quickLinks = $this->resolveHubLinks($settings, $templateProfile, $template, $locale);
+        $sections = $this->resolveHubSections($settings, $templateProfile, $template, $locale);
         $metaSettings = array_merge([
             'hub_meta_audience' => (string)($templateProfile['meta']['audience'] ?? ''),
             'hub_meta_owner' => (string)($templateProfile['meta']['owner'] ?? ''),
@@ -440,7 +441,7 @@ final class SiteTableService
             }
         }
         $metaItems = $this->buildHubMetaItems($metaSettings, $template, $templateProfile, $locale);
-        $cardDesign = is_array($templateProfile['card_design'] ?? null) ? $templateProfile['card_design'] : [];
+        $cardDesign = $this->resolveHubCardDesign($settings, $templateProfile, $template);
         $cardSchema = is_array($templateProfile['card_schema'] ?? null) ? $templateProfile['card_schema'] : [];
         $colorSettings = is_array($templateProfile['colors'] ?? null) ? $templateProfile['colors'] : [];
         $cardLayout = $this->normalizeOption((string)($cardDesign['layout'] ?? 'standard'), ['standard', 'feature', 'compact'], 'standard');
@@ -663,7 +664,7 @@ final class SiteTableService
 
     private function normalizeHubLinks(string $json, string $template): array
     {
-        $links = json_decode($json, true);
+        $links = Json::decodeArray($json, []);
         if (!is_array($links) || $links === []) {
             $links = self::TEMPLATE_PLACEHOLDERS[$template]['links'] ?? self::TEMPLATE_PLACEHOLDERS['general-it']['links'];
         }
@@ -684,6 +685,16 @@ final class SiteTableService
         return array_slice($normalized, 0, 6);
     }
 
+    private function resolveHubLinks(array $settings, array $templateProfile, string $template, string $locale = 'de'): array
+    {
+        $configuredLinks = $this->normalizeHubLinks((string)($settings['hub_links_json'] ?? '[]'), $template);
+        if ($configuredLinks !== []) {
+            return $configuredLinks;
+        }
+
+        return $this->normalizeTemplateLinks($templateProfile, $template, $locale);
+    }
+
     private function normalizeTemplateLinks(array $templateProfile, string $template, string $locale = 'de'): array
     {
         $links = $locale !== 'de' && is_array($templateProfile['links_' . $locale] ?? null)
@@ -694,6 +705,16 @@ final class SiteTableService
         }
 
         return $this->normalizeHubLinks(json_encode($links, JSON_UNESCAPED_UNICODE) ?: '[]', $template);
+    }
+
+    private function resolveHubSections(array $settings, array $templateProfile, string $template, string $locale = 'de'): array
+    {
+        $configuredSections = $this->normalizeHubSections((string)($settings['hub_sections_json'] ?? '[]'), $template);
+        if ($configuredSections !== []) {
+            return $configuredSections;
+        }
+
+        return $this->normalizeTemplateSections($templateProfile, $template, $locale);
     }
 
     private function normalizeTemplateSections(array $templateProfile, string $template, string $locale = 'de'): array
@@ -755,7 +776,7 @@ final class SiteTableService
             return $defaults;
         }
 
-        $stored = json_decode((string)$row['option_value'], true);
+        $stored = Json::decodeArray($row['option_value'] ?? null, []);
         if (!is_array($stored)) {
             return $defaults;
         }
@@ -783,7 +804,7 @@ final class SiteTableService
 
     private function normalizeHubSections(string $json, string $template): array
     {
-        $sections = json_decode($json, true);
+        $sections = Json::decodeArray($json, []);
         if (!is_array($sections) || $sections === []) {
             $sections = self::TEMPLATE_PLACEHOLDERS[$template]['sections'] ?? self::TEMPLATE_PLACEHOLDERS['general-it']['sections'];
         }
@@ -807,6 +828,40 @@ final class SiteTableService
         }
 
         return array_slice($normalized, 0, 4);
+    }
+
+    private function resolveHubCardDesign(array $settings, array $templateProfile, string $template): array
+    {
+        $defaultDesign = self::DEFAULT_TEMPLATE_CARD_DESIGN[$template] ?? self::DEFAULT_TEMPLATE_CARD_DESIGN['general-it'];
+        $profileDesign = is_array($templateProfile['card_design'] ?? null) ? $templateProfile['card_design'] : [];
+
+        return [
+            'layout' => $this->normalizeOption(
+                (string)($settings['hub_card_layout'] ?? ($profileDesign['layout'] ?? $defaultDesign['layout'] ?? 'standard')),
+                ['standard', 'feature', 'compact'],
+                'standard'
+            ),
+            'image_position' => $this->normalizeOption(
+                (string)($settings['hub_card_image_position'] ?? ($profileDesign['image_position'] ?? $defaultDesign['image_position'] ?? 'top')),
+                ['top', 'left', 'right'],
+                'top'
+            ),
+            'image_fit' => $this->normalizeOption(
+                (string)($settings['hub_card_image_fit'] ?? ($profileDesign['image_fit'] ?? $defaultDesign['image_fit'] ?? 'cover')),
+                ['cover', 'contain'],
+                'cover'
+            ),
+            'image_ratio' => $this->normalizeOption(
+                (string)($settings['hub_card_image_ratio'] ?? ($profileDesign['image_ratio'] ?? $defaultDesign['image_ratio'] ?? 'wide')),
+                ['wide', 'square', 'portrait'],
+                'wide'
+            ),
+            'meta_layout' => $this->normalizeOption(
+                (string)($settings['hub_card_meta_layout'] ?? ($profileDesign['meta_layout'] ?? $defaultDesign['meta_layout'] ?? 'split')),
+                ['split', 'stacked'],
+                'split'
+            ),
+        ];
     }
 
     private function getTemplateContentLanguage(string $template, string $locale = 'de'): array

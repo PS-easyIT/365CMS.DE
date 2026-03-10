@@ -22,12 +22,12 @@ $stats   = $d['stats'] ?? [];
 <div class="page-body">
     <div class="container-xl">
 
-<?php if (!empty($alert)): ?>
-<div class="alert alert-<?php echo htmlspecialchars((string)($alert['type'] ?? 'info')); ?> alert-dismissible mb-4" role="alert">
-    <div><?php echo htmlspecialchars((string)($alert['message'] ?? '')); ?></div>
-    <a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>
-</div>
-<?php endif; ?>
+<?php
+$alertData = $alert ?? [];
+$alertDismissible = true;
+$alertMarginClass = 'mb-4';
+require __DIR__ . '/../partials/flash-alert.php';
+?>
 
 <!-- KPI-Karten -->
 <div class="row row-deck row-cards mb-4">
@@ -81,16 +81,22 @@ $stats   = $d['stats'] ?? [];
             </thead>
             <tbody>
                 <?php if (empty($plugins)): ?>
-                <tr><td colspan="5" class="text-muted text-center">Keine Plugins installiert</td></tr>
+                <?php
+                $emptyStateColspan = 5;
+                $emptyStateMessage = 'Keine Plugins installiert.';
+                $emptyStateSubtitle = 'Installieren Sie Plugins über den Marktplatz oder laden Sie Pakete manuell nach.';
+                $emptyStateIcon = 'plugin';
+                require __DIR__ . '/../partials/empty-table-row.php';
+                ?>
                 <?php else: ?>
                 <?php foreach ($plugins as $p): ?>
                 <tr>
                     <td>
                         <div class="fw-bold"><?php echo htmlspecialchars($p['name']); ?></div>
                         <?php if (!empty($p['description'])): ?>
-                        <div class="text-muted small"><?php echo htmlspecialchars($p['description']); ?></div>
+                        <div class="text-secondary small"><?php echo htmlspecialchars($p['description']); ?></div>
                         <?php endif; ?>
-                        <div class="text-muted small"><code><?php echo htmlspecialchars($p['slug']); ?></code></div>
+                        <div class="text-secondary small"><code><?php echo htmlspecialchars($p['slug']); ?></code></div>
                     </td>
                     <td><?php echo htmlspecialchars($p['version'] ?? '-'); ?></td>
                     <td><?php echo htmlspecialchars($p['author'] ?? '-'); ?></td>

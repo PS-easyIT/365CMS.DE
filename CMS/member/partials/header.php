@@ -11,7 +11,6 @@ $pageAssets = $pageAssets ?? [];
 $controller = $controller ?? \CMS\MemberArea\MemberController::instance();
 $settings = $settings ?? $controller->getSettings();
 $siteUrl = defined('SITE_URL') ? SITE_URL : '';
-$assetsUrl = defined('ASSETS_URL') ? ASSETS_URL : $siteUrl . '/assets';
 $siteName = function_exists('cms_get_site_name') ? cms_get_site_name() : (defined('SITE_NAME') ? SITE_NAME : '365CMS');
 $design = is_array($settings['design'] ?? null) ? $settings['design'] : [];
 $bodyClass = 'member-shell member-page-' . preg_replace('/[^a-z0-9\-]+/i', '-', $pageKey);
@@ -27,9 +26,9 @@ $memberMenu = $controller->getMenuItems($pageKey);
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <meta name="robots" content="noindex,nofollow">
     <title><?= htmlspecialchars($pageTitle) ?> – <?= htmlspecialchars($siteName) ?></title>
-    <link rel="stylesheet" href="<?= htmlspecialchars($assetsUrl) ?>/tabler/css/tabler.min.css">
-    <link rel="stylesheet" href="<?= htmlspecialchars($assetsUrl) ?>/filepond/filepond.min.css">
-    <link rel="stylesheet" href="<?= htmlspecialchars($assetsUrl) ?>/css/member-dashboard.css?v=<?= @filemtime(ASSETS_PATH . 'css/member-dashboard.css') ?: '' ?>">
+    <link rel="stylesheet" href="<?= htmlspecialchars(cms_asset_url('tabler/css/tabler.min.css'), ENT_QUOTES) ?>">
+    <link rel="stylesheet" href="<?= htmlspecialchars(cms_asset_url('filepond/filepond.min.css'), ENT_QUOTES) ?>">
+    <link rel="stylesheet" href="<?= htmlspecialchars(cms_asset_url('css/member-dashboard.css'), ENT_QUOTES) ?>">
     <?php if (!empty($pageAssets['css'])): ?>
         <?php foreach ((array)$pageAssets['css'] as $css): ?>
             <link rel="stylesheet" href="<?= htmlspecialchars((string)$css) ?>">

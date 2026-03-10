@@ -59,8 +59,7 @@ final class CookieConsentService
             return;
         }
 
-        $assetsBasePath = ASSETS_PATH . 'cookieconsent/';
-        $assetsBaseUrl = SITE_URL . '/assets/cookieconsent';
+        $assetsBasePath = \cms_assets_path('cookieconsent');
 
         if (!is_dir($assetsBasePath)) {
             return;
@@ -80,10 +79,10 @@ final class CookieConsentService
             'sections' => $consentConfig['sections'],
         ];
 
-        echo '<link rel="stylesheet" href="' . htmlspecialchars($assetsBaseUrl . '/cookieconsent.css', ENT_QUOTES, 'UTF-8') . '?v=20260307a">' . "\n";
-        echo '<script src="' . htmlspecialchars($assetsBaseUrl . '/cookieconsent.umd.js', ENT_QUOTES, 'UTF-8') . '?v=20260307a" defer></script>' . "\n";
+        echo '<link rel="stylesheet" href="' . htmlspecialchars(\cms_asset_url('cookieconsent/cookieconsent.css'), ENT_QUOTES, 'UTF-8') . '">' . "\n";
+        echo '<script src="' . htmlspecialchars(\cms_asset_url('cookieconsent/cookieconsent.umd.js'), ENT_QUOTES, 'UTF-8') . '" defer></script>' . "\n";
         echo '<script>window.CMS_COOKIECONSENT_CONFIG=' . json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ';</script>' . "\n";
-        echo '<script src="' . htmlspecialchars(SITE_URL . '/assets/js/cookieconsent-init.js', ENT_QUOTES, 'UTF-8') . '?v=20260307a" defer></script>' . "\n";
+        echo '<script src="' . htmlspecialchars(\cms_asset_url('js/cookieconsent-init.js'), ENT_QUOTES, 'UTF-8') . '" defer></script>' . "\n";
     }
 
     private function isAdminRequest(): bool

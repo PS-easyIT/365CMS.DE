@@ -16,7 +16,6 @@ if (!defined('ABSPATH')) {
 }
 
 $siteUrl    = defined('SITE_URL') ? SITE_URL : '';
-$assetsUrl  = defined('ASSETS_URL') ? ASSETS_URL : $siteUrl . '/assets';
 $pageAssets = $pageAssets ?? [];
 $inlineJs   = $inlineJs ?? '';
 ?>
@@ -24,10 +23,10 @@ $inlineJs   = $inlineJs ?? '';
     </div><!-- /.page -->
 
     <!-- Tabler Core JS -->
-    <script src="<?= $assetsUrl ?>/tabler/js/tabler.min.js" defer></script>
+    <script src="<?= htmlspecialchars(cms_asset_url('tabler/js/tabler.min.js'), ENT_QUOTES) ?>" defer></script>
 
     <!-- Admin JS -->
-    <script src="<?= $assetsUrl ?>/js/admin.js?v=<?= @filemtime(ASSETS_PATH . 'js/admin.js') ?: '' ?>" defer></script>
+    <script src="<?= htmlspecialchars(cms_asset_url('js/admin.js'), ENT_QUOTES) ?>" defer></script>
 
     <?php
     // Zusätzliche Scripts aus $pageAssets['js']

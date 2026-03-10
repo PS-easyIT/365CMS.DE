@@ -28,7 +28,7 @@ class Bootstrap
     private Database $db;
     private Security $security;
     private Auth $auth;
-    private Router $router;
+    private ?Router $router = null;
     private PluginManager $pluginManager;
     /** @var ThemeManager|null Im API/CLI-Modus nicht geladen (H-12) */
     private ?ThemeManager $themeManager = null;
@@ -80,8 +80,154 @@ class Bootstrap
      */
     private function __construct()
     {
+        $this->mode = self::detectMode();
+        defined('CMS_MODE') || define('CMS_MODE', $this->mode);
+
         $this->loadDependencies();
+        Debug::enable(defined('CMS_DEBUG') && CMS_DEBUG);
+        Debug::resetRuntimeProfile();
+        Debug::checkpoint('bootstrap.dependencies_loaded', ['mode' => $this->mode]);
+        $this->validateBundledPhpPlatform();
         $this->initializeCore();
+        Debug::checkpoint('bootstrap.ready', ['mode' => $this->mode]);
+    }
+
+    /**
+     * H-08: Prüft, ob gebündelte Runtime-Libraries zur offiziellen PHP-Zielplattform passen.
+     */
+    private function validateBundledPhpPlatform(): void
+    {
+        $requiredPhpVersion = defined('CMS_MIN_PHP_VERSION') ? CMS_MIN_PHP_VERSION : '8.4.0';
+        $manifests = [
+            'symfony/mailer' => ABSPATH . 'assets/mailer/composer.json',
+            'symfony/mime' => ABSPATH . 'assets/mime/composer.json',
+            'symfony/translation' => ABSPATH . 'assets/translation/composer.json',
+        ];
+
+        $violations = [];
+
+        foreach ($manifests as $packageName => $manifestPath) {
+            $bundlePhpVersion = $this->extractMinimumPhpVersion($manifestPath);
+            if ($bundlePhpVersion === null) {
+                continue;
+            }
+
+            if (version_compare($requiredPhpVersion, $bundlePhpVersion, '<')) {
+                $violations[] = sprintf(
+                    '%s verlangt mindestens PHP %s, die offizielle CMS-Plattform ist aber nur auf %s gesetzt.',
+                    $packageName,
+                    $bundlePhpVersion,
+                    $requiredPhpVersion
+                );
+            }
+
+            if (version_compare(PHP_VERSION, $bundlePhpVersion, '<')) {
+                $violations[] = sprintf(
+                    '%s verlangt mindestens PHP %s, aktiv ist jedoch PHP %s.',
+                    $packageName,
+                    $bundlePhpVersion,
+                    PHP_VERSION
+                );
+            }
+        }
+
+        if ($violations === []) {
+            return;
+        }
+
+        $message = '365CMS konnte nicht starten, weil gebündelte Runtime-Abhängigkeiten eine höhere PHP-Version verlangen: ' . implode(' ', $violations);
+        error_log($message);
+
+        self::abortForPlatformMismatch($message);
+    }
+
+    private function extractMinimumPhpVersion(string $manifestPath): ?string
+    {
+        if (!is_file($manifestPath) || !is_readable($manifestPath)) {
+            return null;
+        }
+
+        $manifest = Json::decodeArray(file_get_contents($manifestPath), []);
+        $phpConstraint = is_array($manifest) ? ($manifest['require']['php'] ?? null) : null;
+
+        if (!is_string($phpConstraint) || trim($phpConstraint) === '') {
+            return null;
+        }
+
+        if (preg_match('/>=\s*([0-9]+(?:\.[0-9]+){0,2})/', $phpConstraint, $matches) === 1) {
+            return $this->normalizeVersion($matches[1]);
+        }
+
+        if (preg_match('/\^\s*([0-9]+(?:\.[0-9]+){0,2})/', $phpConstraint, $matches) === 1) {
+            return $this->normalizeVersion($matches[1]);
+        }
+
+        if (preg_match('/([0-9]+(?:\.[0-9]+){0,2})/', $phpConstraint, $matches) === 1) {
+            return $this->normalizeVersion($matches[1]);
+        }
+
+        return null;
+    }
+
+    private function normalizeVersion(string $version): string
+    {
+        $parts = explode('.', $version);
+        while (count($parts) < 3) {
+            $parts[] = '0';
+        }
+
+        return implode('.', array_slice($parts, 0, 3));
+    }
+
+    private static function abortForPlatformMismatch(string $message): never
+    {
+        if (PHP_SAPI === 'cli') {
+            fwrite(STDERR, $message . PHP_EOL);
+            exit(1);
+        }
+
+        http_response_code(503);
+
+        $requestUri = (string)($_SERVER['REQUEST_URI'] ?? '/');
+        $requestMethod = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+        $expectsJson = defined('CMS_AJAX_REQUEST')
+            || str_starts_with($requestUri, '/api/')
+            || $requestMethod === 'POST';
+
+        if ($expectsJson) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'success' => false,
+                'error' => $message,
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            exit;
+        }
+
+        header('Content-Type: text/html; charset=utf-8');
+        ?>
+        <!DOCTYPE html>
+        <html lang="de">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>365CMS – Plattformanforderung nicht erfüllt</title>
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #0f172a; margin: 0; padding: 2rem; }
+                .box { max-width: 760px; margin: 10vh auto; background: #fff; border-radius: 16px; padding: 2rem 2.25rem; box-shadow: 0 20px 45px rgba(15, 23, 42, 0.16); }
+                h1 { margin-top: 0; color: #b91c1c; }
+                p { line-height: 1.65; color: #475569; }
+            </style>
+        </head>
+        <body>
+            <div class="box">
+                <h1>⚠️ Plattformanforderung nicht erfüllt</h1>
+                <p><?php echo htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></p>
+                <p>Bitte die Hosting-Plattform und die offiziell deklarierte CMS-Mindestversion synchron halten, bevor 365CMS produktiv gebootet wird.</p>
+            </div>
+        </body>
+        </html>
+        <?php
+        exit;
     }
     
     /**
@@ -89,6 +235,7 @@ class Bootstrap
      */
     private function loadDependencies(): void
     {
+        require_once CORE_PATH . 'Debug.php';
         require_once CORE_PATH . 'Container.php';
         require_once CORE_PATH . 'Database.php';
         require_once CORE_PATH . 'Security.php';
@@ -96,23 +243,29 @@ class Bootstrap
         require_once CORE_PATH . 'Logger.php';
         require_once CORE_PATH . 'Totp.php';
         require_once CORE_PATH . 'Auth.php';
-        require_once CORE_PATH . 'Router.php';
         require_once CORE_PATH . 'PluginManager.php';
-        require_once CORE_PATH . 'ThemeManager.php';
         require_once CORE_PATH . 'Hooks.php';
         require_once CORE_PATH . 'CacheManager.php';
-        require_once CORE_PATH . 'PageManager.php';
-        require_once CORE_PATH . 'Api.php';
-        require_once CORE_PATH . 'SubscriptionManager.php';
         // H-10: Schema- und Migrations-Manager
         require_once CORE_PATH . 'SchemaManager.php';
         require_once CORE_PATH . 'MigrationManager.php';
+
+        if ($this->mode !== 'cli') {
+            require_once CORE_PATH . 'Router.php';
+            require_once CORE_PATH . 'PageManager.php';
+            require_once CORE_PATH . 'Api.php';
+            require_once CORE_PATH . 'SubscriptionManager.php';
+        }
+
+        if (in_array($this->mode, ['web', 'admin'], true)) {
+            require_once CORE_PATH . 'ThemeManager.php';
+        }
         
         if (file_exists(ABSPATH . 'includes/functions.php')) {
             require_once ABSPATH . 'includes/functions.php';
         }
         
-        if (file_exists(ABSPATH . 'includes/subscription-helpers.php')) {
+        if ($this->mode !== 'cli' && file_exists(ABSPATH . 'includes/subscription-helpers.php')) {
             require_once ABSPATH . 'includes/subscription-helpers.php';
         }
 
@@ -138,6 +291,7 @@ class Bootstrap
     private function ensureConstants(): void
     {
         defined('CMS_VERSION')   || define('CMS_VERSION',   '2.5.4');
+        defined('CMS_MIN_PHP_VERSION') || define('CMS_MIN_PHP_VERSION', '8.4.0');
         defined('SITE_NAME')     || define('SITE_NAME',     'CMS');
         defined('SITE_URL')      || define('SITE_URL',      '');
         defined('ADMIN_EMAIL')   || define('ADMIN_EMAIL',   '');
@@ -156,18 +310,16 @@ class Bootstrap
     private function initializeCore(): void
     {
         $this->ensureConstants();
+        Debug::checkpoint('bootstrap.constants_ready', ['mode' => $this->mode]);
 
         // H-06: Container initialisieren
         $this->container = Container::instance();
-
-        // H-12: Modus erkennen und als Konstante setzen
-        $this->mode = self::detectMode();
-        defined('CMS_MODE') || define('CMS_MODE', $this->mode);
 
         // Database – immer erforderlich
         $this->db = Database::instance();
         $this->container->bindInstance(Database::class, $this->db);
         $this->container->bindInstance('db', $this->db);
+        Debug::checkpoint('bootstrap.database_ready');
 
         // H-10: Inkrementelle DB-Migrationen ausführen (idempotent, version-basiert –
         // nur 1 DB-Query pro Request wenn bereits aktuell)
@@ -179,6 +331,7 @@ class Bootstrap
         if ($this->mode !== 'cli') {
             $this->security->init();
         }
+        Debug::checkpoint('bootstrap.security_ready');
 
         // Authentication – immer erforderlich
         $this->auth = Auth::instance();
@@ -234,33 +387,27 @@ class Bootstrap
         $this->container->singleton(Services\FeedService::class, fn() => Services\FeedService::getInstance());
         $this->container->singleton('feed', fn() => Services\FeedService::getInstance());
 
-        // CookieConsentService – lazy Singleton (Frontend Consent-Banner)
-        $this->container->singleton(Services\CookieConsentService::class, fn() => Services\CookieConsentService::getInstance());
-        $this->container->singleton('cookieconsent', fn() => Services\CookieConsentService::getInstance());
-
         // TranslationService – lazy Singleton (I18n)
         $this->container->singleton(Services\TranslationService::class, fn() => Services\TranslationService::getInstance());
         $this->container->singleton('translation', fn() => Services\TranslationService::getInstance());
 
-        // PdfService – lazy Singleton (Dompdf-basierte PDF-Erzeugung)
-        $this->container->singleton(Services\PdfService::class, fn() => Services\PdfService::getInstance());
-        $this->container->singleton('pdf', fn() => Services\PdfService::getInstance());
-
-        // EditorService – lazy Singleton (SunEditor WYSIWYG)
-        $this->container->singleton(Services\EditorService::class, fn() => Services\EditorService::getInstance());
-        $this->container->singleton('editor', fn() => Services\EditorService::getInstance());
-
         // EditorJsService – lazy Singleton (Editor.js Block-Editor)
-        $this->container->singleton(Services\EditorJsService::class, fn() => Services\EditorJsService::getInstance());
-        $this->container->singleton('editorjs', fn() => Services\EditorJsService::getInstance());
+        if ($this->mode !== 'cli') {
+            $this->container->singleton(Services\EditorJsService::class, fn() => Services\EditorJsService::getInstance());
+            $this->container->singleton('editorjs', fn() => Services\EditorJsService::getInstance());
+        }
 
         // EditorJsRenderer – lazy Singleton (Editor.js HTML-Rendering)
-        $this->container->singleton(Services\EditorJsRenderer::class, fn() => Services\EditorJsRenderer::getInstance());
-        $this->container->singleton('editorjs.renderer', fn() => Services\EditorJsRenderer::getInstance());
+        if ($this->mode !== 'cli') {
+            $this->container->singleton(Services\EditorJsRenderer::class, fn() => Services\EditorJsRenderer::getInstance());
+            $this->container->singleton('editorjs.renderer', fn() => Services\EditorJsRenderer::getInstance());
+        }
 
         // FileUploadService – lazy Singleton (FilePond-Upload)
-        $this->container->singleton(Services\FileUploadService::class, fn() => Services\FileUploadService::getInstance());
-        $this->container->singleton('fileupload', fn() => Services\FileUploadService::getInstance());
+        if ($this->mode !== 'cli') {
+            $this->container->singleton(Services\FileUploadService::class, fn() => Services\FileUploadService::getInstance());
+            $this->container->singleton('fileupload', fn() => Services\FileUploadService::getInstance());
+        }
 
         // CommentService – lazy Singleton (Kommentarsystem)
         $this->container->singleton(Services\CommentService::class, fn() => Services\CommentService::getInstance());
@@ -294,13 +441,15 @@ class Bootstrap
         $this->container->singleton(Services\LandingPageService::class, fn() => Services\LandingPageService::getInstance());
         $this->container->singleton('landingpage', fn() => Services\LandingPageService::getInstance());
 
-        // AnalyticsService – lazy Singleton (Seitenstatistiken)
-        $this->container->singleton(Services\AnalyticsService::class, fn() => Services\AnalyticsService::getInstance());
-        $this->container->singleton('analytics', fn() => Services\AnalyticsService::getInstance());
-
         // TrackingService – lazy Singleton (Seitenaufrufe)
-        $this->container->singleton(Services\TrackingService::class, fn() => Services\TrackingService::getInstance());
-        $this->container->singleton('tracking', fn() => Services\TrackingService::getInstance());
+        if ($this->mode !== 'cli') {
+            $this->container->singleton(Services\TrackingService::class, fn() => Services\TrackingService::getInstance());
+            $this->container->singleton('tracking', fn() => Services\TrackingService::getInstance());
+
+            // FeatureUsageService – datensparsame Admin-/Member-Funktionsmetriken
+            $this->container->singleton(Services\FeatureUsageService::class, fn() => Services\FeatureUsageService::getInstance());
+            $this->container->singleton('featureusage', fn() => Services\FeatureUsageService::getInstance());
+        }
 
         // BackupService – lazy Singleton (Datenbank-Backups)
         $this->container->singleton(Services\BackupService::class, fn() => Services\BackupService::getInstance());
@@ -310,39 +459,75 @@ class Bootstrap
         $this->container->singleton(Services\SystemService::class, fn() => Services\SystemService::instance());
         $this->container->singleton('system', fn() => Services\SystemService::instance());
 
-        // ThemeCustomizer – lazy Singleton (Theme-Anpassungen)
-        $this->container->singleton(Services\ThemeCustomizer::class, fn() => Services\ThemeCustomizer::instance());
-        $this->container->singleton('customizer', fn() => Services\ThemeCustomizer::instance());
-
         // UpdateService – lazy Singleton (Auto-Update-Prüfung)
         $this->container->singleton(Services\UpdateService::class, fn() => Services\UpdateService::getInstance());
         $this->container->singleton('update', fn() => Services\UpdateService::getInstance());
 
-        // Router – nur für Web/Admin (CLI routed anders)
-        $this->router = Router::instance();
-        $this->container->bindInstance(Router::class, $this->router);
+        if ($this->mode !== 'cli') {
+            // Router – nur für Web/Admin/API (CLI routed anders)
+            $this->router = Router::instance();
+            $this->container->bindInstance(Router::class, $this->router);
+        }
 
         // Plugin Manager – immer laden (Plugins können CLI-Hooks registrieren)
         $this->pluginManager = PluginManager::instance();
         $this->container->bindInstance(PluginManager::class, $this->pluginManager);
         $this->pluginManager->loadPlugins();
+        Debug::checkpoint('bootstrap.plugins_loaded');
 
-        // Theme Manager – nicht im API- oder CLI-Modus benötigt
-        if (!in_array($this->mode, ['api', 'cli'], true)) {
+        // Theme Manager – im Admin verfügbar, Theme-Runtime aber nur im Web-Pfad booten
+        if (in_array($this->mode, ['web', 'admin'], true)) {
             $this->themeManager = ThemeManager::instance();
             $this->container->bindInstance(ThemeManager::class, $this->themeManager);
-            $this->themeManager->loadTheme();
+            if ($this->mode === 'web') {
+                $this->themeManager->loadTheme();
+            }
         }
+        Debug::checkpoint('bootstrap.theme_state_ready', ['theme_loaded' => $this->mode === 'web']);
 
-        // Subscription Manager – nicht im CLI-Modus
-        if ($this->mode !== 'cli') {
+        // Subscription Manager – in Web/Admin verfügbar, API/CLI laden bei Bedarf direkt
+        if (in_array($this->mode, ['web', 'admin'], true)) {
             $sm = SubscriptionManager::instance();
             $this->container->bindInstance(SubscriptionManager::class, $sm);
         }
 
+        if ($this->mode !== 'cli') {
+            // PdfService – typischer Web-/Admin-Renderpfad
+            $this->container->singleton(Services\PdfService::class, fn() => Services\PdfService::getInstance());
+            $this->container->singleton('pdf', fn() => Services\PdfService::getInstance());
+        }
+
+        if (in_array($this->mode, ['web', 'admin'], true)) {
+            // EditorService – SunEditor / Content-Rendering in Web/Admin
+            $this->container->singleton(Services\EditorService::class, fn() => Services\EditorService::getInstance());
+            $this->container->singleton('editor', fn() => Services\EditorService::getInstance());
+
+            // ThemeCustomizer – Theme-bezogene Laufzeit-/Admin-Konfiguration
+            $this->container->singleton(Services\ThemeCustomizer::class, fn() => Services\ThemeCustomizer::instance());
+            $this->container->singleton('customizer', fn() => Services\ThemeCustomizer::instance());
+        }
+
+        if ($this->mode === 'admin') {
+            // AnalyticsService – nur im Admin-Diagnose-/SEO-Pfad
+            $this->container->singleton(Services\AnalyticsService::class, fn() => Services\AnalyticsService::getInstance());
+            $this->container->singleton('analytics', fn() => Services\AnalyticsService::getInstance());
+        }
+
+        if ($this->mode === 'web') {
+            Hooks::addAction('body_end', static function (): void {
+                Services\CoreWebVitalsService::getInstance()->renderTrackingScript();
+            }, 15);
+
+            // CookieConsentService – reiner Frontend-Consent-Banner
+            $this->container->singleton(Services\CookieConsentService::class, fn() => Services\CookieConsentService::getInstance());
+            $this->container->singleton('cookieconsent', fn() => Services\CookieConsentService::getInstance());
+        }
+
         // Frontend: CookieConsent im Theme-Footer ausgeben
         if ($this->mode === 'web') {
-            Hooks::addAction('body_end', [Services\CookieConsentService::getInstance(), 'render'], 20);
+            Hooks::addAction('body_end', static function (): void {
+                Services\CookieConsentService::getInstance()->render();
+            }, 20);
 
             // PhotoSwipe V5 — Lightbox für Bilder in Content-Bereichen
             Hooks::addAction('head', function () {
@@ -404,9 +589,16 @@ class Bootstrap
         }
 
         // Initialize hooks
-        Hooks::addAction('cms_cron_mail_queue', [Services\MailQueueService::getInstance(), 'handleCronHook'], 10);
+        Hooks::addAction('cms_cron_mail_queue', static function (...$args): void {
+            Services\MailQueueService::getInstance()->handleCronHook(...$args);
+        }, 10);
+
+        Services\OpcacheWarmupService::getInstance()->maybeWarmAfterDeploy(30);
+        Debug::checkpoint('bootstrap.opcache_checked');
+
         Hooks::doAction('cms_init');
         Hooks::doAction('cms_init_' . $this->mode); // H-12: Modus-spezifischer Hook
+        Debug::checkpoint('bootstrap.hooks_initialized', ['mode' => $this->mode]);
     }
     
     /**
@@ -414,6 +606,12 @@ class Bootstrap
      */
     public function run(): void
     {
+        if ($this->router === null) {
+            throw new \RuntimeException('Bootstrap::run() ist im Modus "' . $this->mode . '" ohne Router nicht verfügbar.');
+        }
+
+        Debug::checkpoint('bootstrap.run.start', ['mode' => $this->mode]);
+
         // Pre-routing hook
         Hooks::doAction('cms_before_route');
         
@@ -422,6 +620,7 @@ class Bootstrap
         
         // Handle routing
         $this->router->dispatch();
+        Debug::checkpoint('bootstrap.run.after_dispatch', ['mode' => $this->mode]);
         
         // Post-routing hook
         Hooks::doAction('cms_after_route');

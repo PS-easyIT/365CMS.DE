@@ -37,12 +37,12 @@ $search = $data['search'] ?? '';
 <div class="page-body">
     <div class="container-xl">
 
-        <?php if (!empty($alert)): ?>
-            <div class="alert alert-<?php echo $alert['type'] === 'success' ? 'success' : 'danger'; ?> alert-dismissible mb-3" role="alert">
-                <div class="d-flex"><div><?php echo htmlspecialchars($alert['message']); ?></div></div>
-                <a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>
-            </div>
-        <?php endif; ?>
+        <?php
+        $alertData = $alert ?? [];
+        $alertDismissible = true;
+        $alertMarginClass = 'mb-3';
+        require __DIR__ . '/../partials/flash-alert.php';
+        ?>
 
         <!-- KPI -->
         <div class="row row-deck row-cards mb-4">
@@ -100,12 +100,13 @@ $search = $data['search'] ?? '';
                     </thead>
                     <tbody>
                     <?php if (empty($tables)): ?>
-                        <tr>
-                            <td colspan="7" class="text-center text-secondary py-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-lg mb-2" width="40" height="40" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 10h18"/><path d="M10 3v18"/><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2z"/></svg>
-                                <p class="mt-1 mb-0">Keine Tabellen vorhanden.</p>
-                            </td>
-                        </tr>
+                        <?php
+                        $emptyStateColspan = 7;
+                        $emptyStateMessage = 'Keine Tabellen vorhanden.';
+                        $emptyStateSubtitle = 'Legen Sie Ihre erste Tabelle an oder passen Sie die Suche an.';
+                        $emptyStateIcon = 'table';
+                        require __DIR__ . '/../partials/empty-table-row.php';
+                        ?>
                     <?php else: ?>
                         <?php foreach ($tables as $t): ?>
                             <tr>

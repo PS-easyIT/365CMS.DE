@@ -5,6 +5,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!defined('CMS_ADMIN_SEO_VIEW')) {
+    exit;
+}
+
 $sitemap = $data['sitemap'] ?? [];
 $settings = $sitemap['settings'] ?? [];
 $files = $sitemap['files'] ?? [];

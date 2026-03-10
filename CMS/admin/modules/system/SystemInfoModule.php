@@ -12,6 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Database;
+use CMS\Http\Client as HttpClient;
 use CMS\SchemaManager;
 use CMS\Services\MailQueueService;
 use CMS\Services\MailService;
@@ -46,6 +47,7 @@ class SystemInfoModule
             'directories' => $this->getDirectorySizesSafe(),
             'statistics' => $this->getStatisticsSafe(),
             'security' => $this->getSecurityStatusSafe(),
+            'runtime' => $this->getRuntimeTelemetrySafe(),
             'monitoring' => $this->getMonitoringOverview(),
             'cron' => $this->getCronData(),
             'disk' => $this->getDiskUsageData(),
@@ -66,6 +68,7 @@ class SystemInfoModule
             'database' => $this->getDatabaseStatusSafe(),
             'tables' => $this->getTablesSafe(),
             'permissions' => $this->getPermissionsSafe(),
+            'runtime' => $this->getRuntimeTelemetrySafe(),
             'monitoring' => $this->getMonitoringOverview(),
             'health' => $this->getHealthChecksData(),
         ];
@@ -290,6 +293,18 @@ class SystemInfoModule
             return $this->service->getSecurityStatus();
         } catch (\Throwable) {
             return [];
+        }
+    }
+
+    private function getRuntimeTelemetrySafe(): array
+    {
+        try {
+            return $this->service->getRuntimeTelemetry();
+        } catch (\Throwable $e) {
+            return [
+                'enabled' => false,
+                'message' => $e->getMessage(),
+            ];
         }
     }
 
@@ -524,43 +539,19 @@ class SystemInfoModule
     {
         $start = microtime(true);
 
-        if (function_exists('curl_init')) {
-            $ch = curl_init($url);
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_TIMEOUT => 5,
-                CURLOPT_CONNECTTIMEOUT => 3,
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_SSL_VERIFYHOST => false,
-                CURLOPT_USERAGENT => '365CMS-Monitor/1.0',
-            ]);
-            curl_exec($ch);
-            $error = curl_error($ch);
-            $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-
-            return [
-                'url' => $url,
-                'duration_ms' => (int)round((microtime(true) - $start) * 1000),
-                'status_code' => $status,
-                'error' => $error !== '' ? $error : null,
-            ];
-        }
-
-        $context = stream_context_create(['http' => ['timeout' => 5, 'ignore_errors' => true]]);
-        $content = @file_get_contents($url, false, $context);
-        $headers = $http_response_header ?? [];
-        $status = 0;
-        if (!empty($headers[0]) && preg_match('/\s(\d{3})\s/', $headers[0], $matches)) {
-            $status = (int)$matches[1];
-        }
+        $response = HttpClient::getInstance()->get($url, [
+            'userAgent' => '365CMS-Monitor/1.0',
+            'timeout' => 5,
+            'connectTimeout' => 3,
+            'maxBytes' => 256 * 1024,
+            'allowPrivateHosts' => true,
+        ]);
 
         return [
             'url' => $url,
             'duration_ms' => (int)round((microtime(true) - $start) * 1000),
-            'status_code' => $status,
-            'error' => $content === false ? 'Anfrage fehlgeschlagen' : null,
+            'status_code' => (int) ($response['status'] ?? 0),
+            'error' => ($response['success'] ?? false) === true ? null : (string) ($response['error'] ?? 'Anfrage fehlgeschlagen'),
         ];
     }
 

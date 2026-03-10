@@ -3,7 +3,7 @@
   "name": "365CMS",
   "type": "core",
   "version": "2.5.4",
-  "min_php": "8.2",
+  "min_php": "8.4",
   "released": "2026-03-08",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",

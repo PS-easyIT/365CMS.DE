@@ -12,6 +12,8 @@ declare(strict_types=1);
 
 namespace CMS\Services;
 
+use CMS\Json;
+
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -37,7 +39,7 @@ final class EditorJsRenderer
     public function render(string|array $data): string
     {
         if (is_string($data)) {
-            $data = json_decode($data, true);
+            $data = Json::decodeArray($data, []);
         }
 
         if (!is_array($data) || !isset($data['blocks']) || !is_array($data['blocks'])) {

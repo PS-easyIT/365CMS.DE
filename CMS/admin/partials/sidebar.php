@@ -16,8 +16,8 @@ if (!defined('ABSPATH')) {
 
 $activePage = $activePage ?? '';
 $siteUrl    = defined('SITE_URL') ? SITE_URL : '';
-$assetsUrl  = defined('ASSETS_URL') ? ASSETS_URL : $siteUrl . '/assets';
-$sidebarLogoUrl = $assetsUrl . '/images/LOGO_365CMS-75px.png';
+$sidebarLogoUrl = cms_asset_url('images/LOGO_365CMS-75px.png', false);
+$sidebarLogoFallbackUrl = $sidebarLogoUrl;
 $defaultPluginIcon = '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h10v10h-10z"/><path d="M14 7v-3a1 1 0 0 0 -1 -1h-2a1 1 0 0 0 -1 1v3"/><path d="M7 14h-3a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1h3"/><path d="M17 14h3a1 1 0 0 0 1 -1v-2a1 1 0 0 0 -1 -1h-3"/><path d="M14 17v3a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1v-3"/></svg>';
 
 // Marketplace ein-/ausblenden (DB-Setting, Default: aktiviert)
@@ -377,33 +377,39 @@ if ($pluginMenuGroups !== []) {
 /**
  * Prüft ob ein Slug aktiv ist
  */
-function isSlugActive(string $slug, string $activePage): bool {
-    return $slug === $activePage;
+if (!function_exists('isSlugActive')) {
+    function isSlugActive(string $slug, string $activePage): bool {
+        return $slug === $activePage;
+    }
 }
 
 /**
  * Prüft ob eine Gruppe aktiv ist (irgendeins der Children)
  */
-function isGroupActive(array $slugs, string $activePage): bool {
-    return in_array($activePage, $slugs, true);
+if (!function_exists('isGroupActive')) {
+    function isGroupActive(array $slugs, string $activePage): bool {
+        return in_array($activePage, $slugs, true);
+    }
 }
 
-function buildSidebarPluginIcon(string $icon, string $fallback): string {
-    $icon = trim($icon);
+if (!function_exists('buildSidebarPluginIcon')) {
+    function buildSidebarPluginIcon(string $icon, string $fallback): string {
+        $icon = trim($icon);
 
-    if ($icon === '') {
-        return $fallback;
+        if ($icon === '') {
+            return $fallback;
+        }
+
+        if (str_starts_with($icon, '<')) {
+            return $icon;
+        }
+
+        if (preg_match('~^(https?://|/)~i', $icon) === 1) {
+            return '<img src="' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . '" alt="" class="icon" style="width:24px;height:24px;object-fit:contain;">';
+        }
+
+        return '<span class="icon d-inline-flex align-items-center justify-content-center" aria-hidden="true">' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . '</span>';
     }
-
-    if (str_starts_with($icon, '<')) {
-        return $icon;
-    }
-
-    if (preg_match('~^(https?://|/)~i', $icon) === 1) {
-        return '<img src="' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . '" alt="" class="icon" style="width:24px;height:24px;object-fit:contain;">';
-    }
-
-    return '<span class="icon d-inline-flex align-items-center justify-content-center" aria-hidden="true">' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . '</span>';
 }
 
 ?>
@@ -412,12 +418,12 @@ function buildSidebarPluginIcon(string $icon, string $fallback): string {
 
         <!-- Brand / Logo -->
         <h1 class="navbar-brand navbar-brand-autodark">
-            <a href="<?= htmlspecialchars($siteUrl) ?>/admin">
-                <img src="<?= htmlspecialchars($sidebarLogoUrl) ?>"
-                     alt="<?= htmlspecialchars(defined('SITE_NAME') ? SITE_NAME : '365CMS') ?>"
+            <a href="<?= htmlspecialchars((string) $siteUrl) ?>/admin">
+                <img src="<?= htmlspecialchars((string) $sidebarLogoUrl) ?>"
+                     alt="<?= htmlspecialchars((string) (defined('SITE_NAME') ? SITE_NAME : '365CMS')) ?>"
                      height="75"
                      style="height:75px;width:auto;max-width:100%;"
-                     onerror="this.onerror=null;this.src='<?= htmlspecialchars($assetsUrl) ?>/images/LOGO_365CMS-75px.png';this.style.height='75px';this.style.width='auto';">
+                     onerror="this.onerror=null;this.src='<?= htmlspecialchars((string) $sidebarLogoFallbackUrl) ?>';this.style.height='75px';this.style.width='auto';">
             </a>
         </h1>
 
@@ -446,10 +452,10 @@ function buildSidebarPluginIcon(string $icon, string $fallback): string {
 
                     <?php elseif ($item['type'] === 'item'): ?>
                         <!-- Einzelner Menüpunkt -->
-                        <li class="nav-item<?= isSlugActive($item['slug'], $activePage) ? ' active' : '' ?><?= !empty($item['class']) ? ' ' . htmlspecialchars((string)$item['class']) : '' ?>">
-                            <a class="nav-link" href="<?= htmlspecialchars($item['url']) ?>">
+                        <li class="nav-item<?= isSlugActive((string) ($item['slug'] ?? ''), $activePage) ? ' active' : '' ?><?= !empty($item['class']) ? ' ' . htmlspecialchars((string)$item['class']) : '' ?>">
+                            <a class="nav-link" href="<?= htmlspecialchars((string) ($item['url'] ?? '#')) ?>">
                                 <span class="nav-link-icon"><?= $item['icon'] ?></span>
-                                <span class="nav-link-title"><?= htmlspecialchars($item['label']) ?></span>
+                                <span class="nav-link-title"><?= htmlspecialchars((string) ($item['label'] ?? '')) ?></span>
                             </a>
                         </li>
 
@@ -458,17 +464,17 @@ function buildSidebarPluginIcon(string $icon, string $fallback): string {
                         <!-- Gruppe mit Untermenü -->
                         <li class="nav-item dropdown<?= $groupActive ? ' active' : '' ?><?= !empty($item['class']) ? ' ' . htmlspecialchars((string)$item['class']) : '' ?>">
                             <a class="nav-link dropdown-toggle<?= $groupActive ? ' show' : '' ?>"
-                               href="#sidebar-<?= htmlspecialchars($item['slugs'][0] ?? 'group') ?>"
+                               href="#sidebar-<?= htmlspecialchars((string) ($item['slugs'][0] ?? 'group')) ?>"
                                data-bs-toggle="dropdown" data-bs-auto-close="false"
                                role="button" aria-expanded="<?= $groupActive ? 'true' : 'false' ?>">
                                 <span class="nav-link-icon"><?= $item['icon'] ?></span>
-                                <span class="nav-link-title"><?= htmlspecialchars($item['label']) ?></span>
+                                <span class="nav-link-title"><?= htmlspecialchars((string) ($item['label'] ?? '')) ?></span>
                             </a>
                             <div class="dropdown-menu<?= $groupActive ? ' show' : '' ?>">
                                 <?php foreach ($item['children'] as $child): ?>
-                                    <a class="dropdown-item<?= isSlugActive($child['slug'], $activePage) ? ' active' : '' ?>"
-                                       href="<?= htmlspecialchars($child['url']) ?>">
-                                        <?= htmlspecialchars($child['label']) ?>
+                                    <a class="dropdown-item<?= isSlugActive((string) ($child['slug'] ?? ''), $activePage) ? ' active' : '' ?>"
+                                       href="<?= htmlspecialchars((string) ($child['url'] ?? '#')) ?>">
+                                        <?= htmlspecialchars((string) ($child['label'] ?? '')) ?>
                                     </a>
                                 <?php endforeach; ?>
                             </div>

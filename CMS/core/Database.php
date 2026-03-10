@@ -173,7 +173,12 @@ class Database implements DatabaseInterface
         if ($this->pdo === null) {
             throw new \RuntimeException('Database connection is not available. PDO is null.');
         }
-        return $this->pdo->query($sql);
+
+        $startedAt = microtime(true);
+        $statement = $this->pdo->query($sql);
+        $this->logQueryTelemetry($sql, null, $startedAt);
+
+        return $statement;
     }
 
     /**
@@ -197,14 +202,25 @@ class Database implements DatabaseInterface
         }
     }
 
+    private function logQueryTelemetry(string $sql, ?array $params, float $startedAt): void
+    {
+        if (!defined('CMS_DEBUG') || !CMS_DEBUG) {
+            return;
+        }
+
+        Debug::query($sql, $params, microtime(true) - $startedAt);
+    }
+
     /**
      * Execute query with parameters (prepared statement)
      */
     public function execute(string $sql, array $params = []): \PDOStatement
     {
+        $startedAt = microtime(true);
         $stmt = $this->prepare($sql);
         $this->bindParams($stmt, $params);
         $stmt->execute();
+        $this->logQueryTelemetry($sql, $params, $startedAt);
         return $stmt;
     }
 
@@ -228,6 +244,7 @@ class Database implements DatabaseInterface
      */
     public function insert(string $table, array $data): int|bool
     {
+        $startedAt = microtime(true);
         try {
             $table = $this->prefix . $table;
             $keys = array_keys($data);
@@ -246,6 +263,8 @@ class Database implements DatabaseInterface
                 return false;
             }
 
+            $this->logQueryTelemetry($sql, array_values($data), $startedAt);
+
             return (int) $this->pdo->lastInsertId();
         } catch (\PDOException $e) {
             $this->last_error = $e->getMessage();
@@ -258,6 +277,7 @@ class Database implements DatabaseInterface
      */
     public function update(string $table, array $data, array $where): bool
     {
+        $startedAt = microtime(true);
         try {
             $table = $this->prefix . $table;
             $set = [];
@@ -285,6 +305,8 @@ class Database implements DatabaseInterface
                 return false;
             }
 
+            $this->logQueryTelemetry($sql, $values, $startedAt);
+
             return true;
         } catch (\PDOException $e) {
             $this->last_error = $e->getMessage();
@@ -297,6 +319,7 @@ class Database implements DatabaseInterface
      */
     public function delete(string $table, array $where): bool
     {
+        $startedAt = microtime(true);
         $table = $this->prefix . $table;
         $whereClauses = [];
         $values = [];
@@ -309,7 +332,11 @@ class Database implements DatabaseInterface
         $sql  = "DELETE FROM `{$table}` WHERE " . implode(' AND ', $whereClauses);
         $stmt = $this->prepare($sql);
         $this->bindParams($stmt, $values);
-        return $stmt->execute();
+        $result = $stmt->execute();
+        if ($result) {
+            $this->logQueryTelemetry($sql, $values, $startedAt);
+        }
+        return $result;
     }
 
     /**
@@ -317,9 +344,7 @@ class Database implements DatabaseInterface
      */
     public function get_row(string $query, array $params = []): ?object
     {
-        $stmt = $this->prepare($query);
-        $this->bindParams($stmt, $params);
-        $stmt->execute();
+        $stmt = $this->execute($query, $params);
         $result = $stmt->fetch(PDO::FETCH_OBJ);
         return $result ?: null;
     }
@@ -329,9 +354,7 @@ class Database implements DatabaseInterface
      */
     public function get_var(string $query, array $params = []): mixed
     {
-        $stmt = $this->prepare($query);
-        $this->bindParams($stmt, $params);
-        $stmt->execute();
+        $stmt = $this->execute($query, $params);
         $result = $stmt->fetchColumn();
         return $result !== false ? $result : null;
     }
@@ -341,9 +364,7 @@ class Database implements DatabaseInterface
      */
     public function get_results(string $query, array $params = []): array
     {
-        $stmt = $this->prepare($query);
-        $this->bindParams($stmt, $params);
-        $stmt->execute();
+        $stmt = $this->execute($query, $params);
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 
@@ -352,9 +373,7 @@ class Database implements DatabaseInterface
      */
     public function get_col(string $query, array $params = []): array
     {
-        $stmt = $this->prepare($query);
-        $this->bindParams($stmt, $params);
-        $stmt->execute();
+        $stmt = $this->execute($query, $params);
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
@@ -373,6 +392,14 @@ class Database implements DatabaseInterface
      * Get last insert ID
      */
     public function insert_id(): int
+    {
+        return (int) $this->pdo->lastInsertId();
+    }
+
+    /**
+     * Kompatibilitätsalias für bestehende Module.
+     */
+    public function lastInsertId(): int
     {
         return (int) $this->pdo->lastInsertId();
     }
@@ -418,8 +445,7 @@ class Database implements DatabaseInterface
     public static function fetchAll(string $query, array $params = []): array
     {
         $db = self::instance();
-        $stmt = $db->prepare($query);
-        $stmt->execute($params);
+        $stmt = $db->execute($query, $params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -429,8 +455,7 @@ class Database implements DatabaseInterface
     public static function fetchOne(string $query, array $params = []): ?array
     {
         $db = self::instance();
-        $stmt = $db->prepare($query);
-        $stmt->execute($params);
+        $stmt = $db->execute($query, $params);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return $result ?: null;
     }
@@ -444,7 +469,7 @@ class Database implements DatabaseInterface
         if (empty($params)) {
             return (bool) $db->query($query);
         }
-        $stmt = $db->prepare($query);
-        return $stmt->execute($params);
+        $stmt = $db->execute($query, $params);
+        return $stmt->rowCount() >= 0;
     }
 }

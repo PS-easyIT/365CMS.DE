@@ -14,7 +14,7 @@
 
 ## Überblick <!-- UPDATED: 2026-03-08 -->
 
-365CMS ist ein modular aufgebautes Content-Management-System, das auf **PHP 8.3+** basiert und für den Betrieb auf Shared- und Managed-Hosting optimiert ist. Die Architektur trennt sechs Schichten klar voneinander: Core, Services, Plugins, Themes, Admin und Member/API.
+365CMS ist ein modular aufgebautes Content-Management-System, das auf **PHP 8.4+** basiert und für den Betrieb auf Shared- und Managed-Hosting optimiert ist. Die Architektur trennt sechs Schichten klar voneinander: Core, Services, Plugins, Themes, Admin und Member/API.
 
 **Zentrale Designprinzipien:**
 
@@ -24,7 +24,7 @@
 | Dependency Injection | Zentraler `Container` mit Lazy-Singletons und transient Bindings |
 | Modusabhängiger Bootstrap | `CMS_MODE` (`web`, `admin`, `api`, `cli`) steuert, welche Subsysteme initialisiert werden |
 | Hook-System | `Hooks`-Klasse ermöglicht lose Kopplung zwischen Core, Plugins, Themes und Services |
-| Kein Composer-Runtime | Vendor-Libraries liegen entpackt in `CMS/assets/`; eigener PSR-4-Autoloader via `spl_autoload_register()` |
+| Kein Composer-Runtime | Vendor-Libraries liegen entpackt in `CMS/assets/`; eigener PSR-4-Autoloader via `spl_autoload_register()` plus vorgelagerte Manifest-/Plattformprüfung im Bootstrap |
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -160,26 +160,31 @@ Jeder HTTP-Request durchläuft eine festgelegte Pipeline von Entry-Point bis zur
 └────────┬────────┘
          ▼
 ┌─────────────────┐
-│  4. initialize- │  Container::instance()
+│  4. Plattform-  │  Composer-Manifeste produktiver Bundles gegen
+│     prüfung     │  Runtime und CMS_MIN_PHP_VERSION validieren
+└────────┬────────┘
+         ▼
+┌─────────────────┐
+│  5. initialize- │  Container::instance()
 │     Core()      │  Database → Security → Auth → Logger → Cache
 │                 │  Lazy-Singletons: Mail, Search, SEO, PDF, …
 │                 │  MigrationManager->run() (idempotent)
 └────────┬────────┘
          ▼
 ┌─────────────────┐
-│  5. Plugins /   │  PluginManager->loadPlugins()  → Hooks, Routen
+│  6. Plugins /   │  PluginManager->loadPlugins()  → Hooks, Routen
 │     Themes      │  ThemeManager->loadTheme()     → nur web/admin
 └────────┬────────┘
          ▼
 ┌─────────────────┐
-│  6. Router      │  Redirect-Prüfung (RedirectService)
+│  7. Router      │  Redirect-Prüfung (RedirectService)
 │     ::dispatch()│  CSRF-Middleware (außer API/Admin/Member)
 │                 │  Route-Matching: exakt → :param-Pattern
 │                 │  → Controller-Callback → View/JSON/Redirect
 └────────┬────────┘
          ▼
 ┌─────────────────┐
-│  7. Rendering   │  Hooks (head, body_end, admin_head, …)
+│  8. Rendering   │  Hooks (head, body_end, admin_head, …)
 │                 │  Theme-Template oder JSON-Response
 │                 │  → HTTP Response an Client
 └─────────────────┘
@@ -339,12 +344,15 @@ Jeder Service wird unter seinem FQCN **und** einem Kurzalias registriert, sodass
 
 365CMS verwendet **keinen globalen Composer-Autoloader**. Stattdessen werden Vendor-Libraries entpackt unter `CMS/assets/` gepflegt und über einen eigenen Autoloader geladen.
 
+Da dieser Ansatz keine Composer-Installationsprüfung ausführt, übernimmt `Bootstrap` zusätzlich eine Fail-Fast-Validierung für die produktiv eingebundenen Symfony-Bundles (`mailer`, `mime`, `translation`). Stimmen Runtime oder offizielle CMS-Mindestplattform nicht mit den deklarierten Composer-Anforderungen überein, wird der Start kontrolliert mit 503/CLI-Fehler abgebrochen.
+
 ### Autoloader-Hierarchie
 
 ```text
 1. Core-Klassen       → require_once in Bootstrap::loadDependencies()
 2. Vendor-Autoloader  → CMS/assets/autoload.php  (Produktion)
-3. Dev-Fallback       → ASSETS/autoload.php       (nur lokale Entwicklung)
+3. Manifest-Prüfung   → Bootstrap validiert Mindest-PHP der Produktivbundles
+4. Dev-Fallback       → ASSETS/autoload.php       (nur lokale Entwicklung)
 ```
 
 ```php

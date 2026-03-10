@@ -11,25 +11,29 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$runtimeSiteName = function_exists('cms_get_site_name') ? cms_get_site_name() : (defined('SITE_NAME') ? SITE_NAME : '365CMS');
-$logoUrl       = meridian_setting('header', 'logo_url', '');
-$logoText      = meridian_setting('header', 'logo_text', $runtimeSiteName);
-$logoType      = meridian_setting('header', 'logo_type', 'text');
-$logoTagline   = meridian_setting('header', 'logo_tagline', '');
+$runtimeSiteName = (string) (function_exists('cms_get_site_name') ? cms_get_site_name() : (defined('SITE_NAME') ? SITE_NAME : '365CMS'));
+$logoUrl       = trim((string) meridian_setting('header', 'logo_url', ''));
+$logoText      = trim((string) meridian_setting('header', 'logo_text', $runtimeSiteName));
+$logoType      = (string) meridian_setting('header', 'logo_type', 'text');
+$logoTagline   = trim((string) meridian_setting('header', 'logo_tagline', ''));
 $logoHeight    = max(20, (int)meridian_setting('header', 'logo_height', 40));
-$headerTitle   = meridian_setting('header', 'header_title', '');
+$headerTitle   = trim((string) meridian_setting('header', 'header_title', ''));
 $showSearch    = (bool)meridian_setting('header', 'show_search_btn', true);
 $showLoginBtn  = (bool)meridian_setting('header', 'show_login_btn', true);
 $showRegBtn    = (bool)meridian_setting('header', 'show_register_btn', true);
-$headerBarMode = meridian_setting('navigation', 'header_bar_mode', 'categories');
+$headerBarMode = (string) meridian_setting('navigation', 'header_bar_mode', 'categories');
 $showCategoryBar = (bool)meridian_setting('layout', 'show_category_bar', true);
 $mobileMenuEnabled = (bool)meridian_setting('navigation', 'mobile_menu_enabled', true);
 $stickyHeader  = (bool)meridian_setting('layout', 'sticky_header', true);
 
+if ($logoText === '') {
+  $logoText = $runtimeSiteName;
+}
+
 $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $isLoggedIn  = meridian_is_logged_in();
 $flashMsg    = meridian_get_flash();
-$memberAreaUrl = meridian_member_area_url();
+$memberAreaUrl = (string) meridian_member_area_url();
 
 if (!$showCategoryBar) {
   $headerBarMode = 'none';
@@ -69,8 +73,8 @@ if (!$showCategoryBar) {
   } ?>
 
 <?php if ($flashMsg): ?>
-  <div class="alert alert-<?php echo htmlspecialchars($flashMsg['type'] ?? 'info'); ?> flash-banner" role="status">
-    <?php echo htmlspecialchars($flashMsg['message'] ?? ''); ?>
+  <div class="alert alert-<?php echo htmlspecialchars((string) ($flashMsg['type'] ?? 'info')); ?> flash-banner" role="status">
+    <?php echo htmlspecialchars((string) ($flashMsg['message'] ?? '')); ?>
 </div>
 <?php endif; ?>
 
@@ -82,42 +86,48 @@ if (!$showCategoryBar) {
 
     <!-- Logo + optionaler Titel daneben -->
     <div class="site-logo-group">
-      <a href="<?php echo SITE_URL; ?>/" class="site-logo" aria-label="<?php echo htmlspecialchars($logoText); ?> – Startseite">
+      <a href="<?php echo SITE_URL; ?>/" class="site-logo" aria-label="<?php echo htmlspecialchars((string) $logoText); ?> – Startseite">
         <?php if ($logoType === 'image' && $logoUrl): ?>
-        <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($logoText); ?>" height="<?php echo $logoHeight; ?>" class="site-logo-image" onerror="this.style.display='none';var fallback=this.nextElementSibling;if(fallback){fallback.style.display='inline-flex';}">
+        <img src="<?php echo htmlspecialchars((string) $logoUrl); ?>" alt="<?php echo htmlspecialchars((string) $logoText); ?>" height="<?php echo $logoHeight; ?>" class="site-logo-image" onerror="this.style.display='none';var fallback=this.nextElementSibling;if(fallback){fallback.style.display='inline-flex';}">
         <span class="site-logo-fallback">
-          <span class="logo-word"><?php echo htmlspecialchars($logoText); ?></span>
+          <span class="logo-word"><?php echo htmlspecialchars((string) $logoText); ?></span>
           <span class="logo-dot"></span>
           <?php if ($logoTagline): ?>
-          <span class="logo-tagline"><?php echo htmlspecialchars($logoTagline); ?></span>
+          <span class="logo-tagline"><?php echo htmlspecialchars((string) $logoTagline); ?></span>
           <?php endif; ?>
         </span>
         <?php else: ?>
-            <span class="logo-word"><?php echo htmlspecialchars($logoText); ?></span>
+            <span class="logo-word"><?php echo htmlspecialchars((string) $logoText); ?></span>
             <span class="logo-dot"></span>
             <?php if ($logoTagline): ?>
-            <span class="logo-tagline"><?php echo htmlspecialchars($logoTagline); ?></span>
+            <span class="logo-tagline"><?php echo htmlspecialchars((string) $logoTagline); ?></span>
             <?php endif; ?>
         <?php endif; ?>
       </a>
       <?php if ($headerTitle): ?>
-      <span class="header-site-title"><?php echo htmlspecialchars($headerTitle); ?></span>
+      <span class="header-site-title"><?php echo htmlspecialchars((string) $headerTitle); ?></span>
       <?php endif; ?>
     </div>
 
     <!-- Primary Nav -->
     <nav class="primary-nav">
         <?php
-        $navItems = [
+      $defaultNavItems = [
             ['label' => 'Startseite', 'href' => SITE_URL . '/'],
             ['label' => 'Blog',        'href' => SITE_URL . '/blog'],
         ];
+      $navItems = $defaultNavItems;
         if (class_exists('\CMS\ThemeManager')) {
             $primaryMenu = \CMS\ThemeManager::instance()->getMenu('primary');
             if (!empty($primaryMenu)) {
                 $navItems = $primaryMenu;
             }
         }
+
+      $navItems = meridian_filter_navigation_items($navItems);
+      if (empty($navItems)) {
+        $navItems = meridian_filter_navigation_items($defaultNavItems);
+      }
 
         foreach ($navItems as $item):
             $href    = is_array($item) ? ($item['href'] ?? $item['url'] ?? '#') : '#';
@@ -221,6 +231,7 @@ if (!$showCategoryBar) {
         try {
             $secMenu = \CMS\ThemeManager::instance()->getMenu('secondary') ?? [];
         } catch (\Throwable $e) {}
+        $secMenu = meridian_filter_navigation_items($secMenu);
         if (!empty($secMenu)):
             foreach ($secMenu as $item):
                 $mUrl   = $item['url'] ?? '#';
@@ -243,15 +254,15 @@ if (!$showCategoryBar) {
 <!-- Mobile Nav Panel (Slide-in von rechts) -->
 <nav id="mobileNavPanel" class="mobile-nav-panel" aria-hidden="true" inert aria-label="Mobile Navigation">
   <div class="mobile-nav-header">
-    <a href="<?php echo SITE_URL; ?>/" class="site-logo site-logo--mobile" aria-label="<?php echo htmlspecialchars($logoText); ?> – Startseite">
+    <a href="<?php echo SITE_URL; ?>/" class="site-logo site-logo--mobile" aria-label="<?php echo htmlspecialchars((string) $logoText); ?> – Startseite">
       <?php if ($logoType === 'image' && $logoUrl): ?>
-        <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($logoText); ?>" height="32" class="site-logo-image site-logo-image--mobile" onerror="this.style.display='none';var fallback=this.nextElementSibling;if(fallback){fallback.style.display='inline-flex';}">
+        <img src="<?php echo htmlspecialchars((string) $logoUrl); ?>" alt="<?php echo htmlspecialchars((string) $logoText); ?>" height="32" class="site-logo-image site-logo-image--mobile" onerror="this.style.display='none';var fallback=this.nextElementSibling;if(fallback){fallback.style.display='inline-flex';}">
         <span class="site-logo-fallback site-logo-fallback--mobile">
-          <span class="logo-word logo-word--mobile"><?php echo htmlspecialchars($logoText); ?></span>
+          <span class="logo-word logo-word--mobile"><?php echo htmlspecialchars((string) $logoText); ?></span>
           <span class="logo-dot"></span>
         </span>
       <?php else: ?>
-        <span class="logo-word logo-word--mobile"><?php echo htmlspecialchars($logoText); ?></span>
+        <span class="logo-word logo-word--mobile"><?php echo htmlspecialchars((string) $logoText); ?></span>
         <span class="logo-dot"></span>
       <?php endif; ?>
     </a>

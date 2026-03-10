@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
+if (!defined('CMS_ADMIN_SYSTEM_VIEW')) exit;
 
 $tasks = $data['scheduled_tasks']['tasks'] ?? [];
 ?>

@@ -25,6 +25,7 @@ class AuditLogger
 
     // ── Kategorien ────────────────────────────────────────────────────────────
     public const CAT_AUTH    = 'auth';       // Login, Logout, PW-Reset
+    public const CAT_CONTENT = 'content';    // Seiten, Beiträge, Rechtstexte
     public const CAT_THEME   = 'theme';      // Aktivieren, Löschen, Code-Edit
     public const CAT_PLUGIN  = 'plugin';     // Aktivieren, Deaktivieren, Install
     public const CAT_USER    = 'user';       // Erstellen, Rollen, Löschen

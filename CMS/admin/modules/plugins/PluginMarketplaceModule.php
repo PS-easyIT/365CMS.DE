@@ -9,6 +9,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\Http\Client as HttpClient;
+
 class PluginMarketplaceModule
 {
     private readonly \CMS\Database $db;
@@ -85,9 +87,20 @@ class PluginMarketplaceModule
         if ($tmpFile === false) {
             return ['success' => false, 'error' => 'Temporäre Datei konnte nicht erstellt werden.'];
         }
-        $context = stream_context_create(['http' => ['timeout' => 30]]);
-        $content = @file_get_contents($downloadUrl, false, $context);
-        if ($content === false) {
+        $response = HttpClient::getInstance()->get($downloadUrl, [
+            'userAgent' => '365CMS-PluginMarketplace/1.0',
+            'timeout' => 30,
+            'connectTimeout' => 10,
+            'maxBytes' => 25 * 1024 * 1024,
+            'allowedContentTypes' => ['application/zip', 'application/octet-stream', 'application/x-zip-compressed'],
+        ]);
+        $content = (string) ($response['body'] ?? '');
+
+        if (($response['success'] ?? false) !== true || $content === '') {
+            if (is_file($tmpFile)) {
+                unlink($tmpFile);
+            }
+
             return ['success' => false, 'error' => 'Download fehlgeschlagen.'];
         }
         file_put_contents($tmpFile, $content);
@@ -121,7 +134,7 @@ class PluginMarketplaceModule
         // Lokale index.json als Fallback
         $localIndex = defined('PLUGINS_PATH') ? dirname(PLUGINS_PATH) . '/index.json' : '';
         if (empty($registryUrl) && $localIndex && file_exists($localIndex)) {
-            $json = json_decode(file_get_contents($localIndex), true);
+            $json = \CMS\Json::decodeArray(file_get_contents($localIndex), []);
             return is_array($json) ? ($json['plugins'] ?? $json) : [];
         }
 
@@ -129,13 +142,20 @@ class PluginMarketplaceModule
             return $this->getBuiltinCatalog();
         }
 
-        $context = stream_context_create(['http' => ['timeout' => 10]]);
-        $content = @file_get_contents($registryUrl, false, $context);
-        if ($content === false) {
+        $response = HttpClient::getInstance()->get($registryUrl, [
+            'userAgent' => '365CMS-PluginMarketplace/1.0',
+            'timeout' => 10,
+            'connectTimeout' => 5,
+            'maxBytes' => 1024 * 1024,
+            'allowedContentTypes' => ['application/json', 'text/plain'],
+        ]);
+        $content = (string) ($response['body'] ?? '');
+
+        if (($response['success'] ?? false) !== true || $content === '') {
             return $this->getBuiltinCatalog();
         }
 
-        $data = json_decode($content, true);
+        $data = \CMS\Json::decodeArray($content, []);
         return is_array($data) ? ($data['plugins'] ?? $data) : [];
     }
 

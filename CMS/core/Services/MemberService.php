@@ -16,6 +16,7 @@ namespace CMS\Services;
 use CMS\Auth\MFA\BackupCodesManager;
 use CMS\Auth\Passkey\WebAuthnAdapter;
 use CMS\Database;
+use CMS\Json;
 use CMS\Security;
 
 if (!defined('ABSPATH')) {
@@ -178,7 +179,7 @@ class MemberService
         ];
 
         if ($raw) {
-            $saved = json_decode($raw, true);
+            $saved = Json::decodeArray($raw, []);
             if (is_array($saved)) {
                 return array_merge($defaults, $saved);
             }
@@ -235,7 +236,7 @@ class MemberService
         ];
 
         if ($raw) {
-            $saved = json_decode($raw, true);
+            $saved = Json::decodeArray($raw, []);
             if (is_array($saved)) {
                 return array_merge($defaults, $saved);
             }
@@ -476,7 +477,7 @@ class MemberService
         ];
 
         if ($sub && !empty($sub->features)) {
-            $features = json_decode($sub->features, true);
+            $features = Json::decodeArray($sub->features ?? null, []);
             if (is_array($features)) {
                 return array_merge($defaults, $features);
             }

@@ -5,6 +5,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!defined('CMS_ADMIN_SYSTEM_VIEW')) {
+    exit;
+}
+
 $transport = $data['transport'] ?? [];
 $azure = $data['azure'] ?? [];
 $graph = $data['graph'] ?? [];

@@ -5,6 +5,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!defined('CMS_ADMIN_SEO_VIEW')) {
+    exit;
+}
+
 $schema = $data['schema'] ?? [];
 $settings = $schema['settings'] ?? [];
 $distribution = $schema['distribution'] ?? [];

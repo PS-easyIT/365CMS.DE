@@ -5,6 +5,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!defined('CMS_ADMIN_SEO_VIEW')) {
+    exit;
+}
+
 $dashboard = $data['dashboard'] ?? [];
 $overview = $data['overview'] ?? [];
 $content = $overview['content'] ?? [];

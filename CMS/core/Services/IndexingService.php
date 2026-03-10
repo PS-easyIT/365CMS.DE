@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace CMS\Services;
 
 use CMS\Logger;
+use CMS\VendorRegistry;
 use Melbahja\Seo\Indexing\GoogleIndexer;
 use Melbahja\Seo\Indexing\IndexNowEngine;
 use Melbahja\Seo\Indexing\IndexNowIndexer;
@@ -19,26 +20,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$vendorAutoload = ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'autoload.php';
-if (file_exists($vendorAutoload)) {
-    require_once $vendorAutoload;
-}
-
-$seoSrcDir = ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'melbahja-seo' . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR;
-foreach ([
-    'Exceptions' . DIRECTORY_SEPARATOR . 'SeoException.php',
-    'Interfaces' . DIRECTORY_SEPARATOR . 'SeoInterface.php',
-    'Utils' . DIRECTORY_SEPARATOR . 'HttpClient.php',
-    'Indexing' . DIRECTORY_SEPARATOR . 'IndexNowEngine.php',
-    'Indexing' . DIRECTORY_SEPARATOR . 'URLIndexingType.php',
-    'Indexing' . DIRECTORY_SEPARATOR . 'IndexNowIndexer.php',
-    'Indexing' . DIRECTORY_SEPARATOR . 'GoogleIndexer.php',
-] as $seoFile) {
-    $seoPath = $seoSrcDir . $seoFile;
-    if (file_exists($seoPath)) {
-        require_once $seoPath;
-    }
-}
+VendorRegistry::instance()->loadPackage('melbahja-seo');
 
 final class IndexingService
 {

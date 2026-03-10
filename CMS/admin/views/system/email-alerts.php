@@ -5,6 +5,10 @@ if (!defined('ABSPATH')) {
 	exit;
 }
 
+if (!defined('CMS_ADMIN_SYSTEM_VIEW')) {
+	exit;
+}
+
 $settings = $data['email_alerts'] ?? [];
 ?>
 <div class="page-header d-print-none">
