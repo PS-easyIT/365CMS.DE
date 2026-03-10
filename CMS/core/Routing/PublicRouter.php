@@ -12,6 +12,7 @@ namespace CMS\Routing;
 use CMS\AuditLogger;
 use CMS\Auth;
 use CMS\Database;
+use CMS\Logger;
 use CMS\Router;
 use CMS\Security;
 use CMS\Services;
@@ -29,6 +30,9 @@ final class PublicRouter
 
     public function registerRoutes(): void
     {
+        $this->router->addRoute('GET', '/media-proxy.php', [$this, 'redirectLegacyMediaProxy']);
+        $this->router->addRoute('POST', '/media-proxy.php', [$this, 'handleLegacyMediaProxyUpload']);
+
         $this->router->addRoute('GET', '/login', [$this, 'renderLogin']);
         $this->router->addRoute('POST', '/login', [$this, 'handleLogin']);
         $this->router->addRoute('GET', '/register', [$this, 'renderRegister']);
@@ -45,6 +49,32 @@ final class PublicRouter
         $this->router->addRoute('POST', '/order', [$this, 'handleOrder']);
         $this->router->addRoute('POST', '/comments/post', [$this, 'handleCommentPost']);
         $this->router->addRoute('GET', '/cookie-einstellungen', [$this, 'renderCookiePreferencesPage']);
+    }
+
+    public function redirectLegacyMediaProxy(): void
+    {
+        Logger::instance()->warning('Legacy media-proxy route used; redirecting to member media.', [
+            'method' => 'GET',
+            'path' => '/media-proxy.php',
+            'remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''),
+        ]);
+
+        $this->router->redirect('/member/media', 302);
+    }
+
+    public function handleLegacyMediaProxyUpload(): void
+    {
+        Logger::instance()->warning('Legacy media-proxy upload route used; delegating to FileUploadService.', [
+            'method' => 'POST',
+            'path' => '/media-proxy.php',
+            'remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''),
+        ]);
+
+        $result = Services\FileUploadService::getInstance()->handleUploadRequest();
+        http_response_code((int)($result['status'] ?? 200));
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($result['data'] ?? ['error' => 'Unbekannter Fehler'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
     }
 
     public function renderLogin(): void

@@ -21,9 +21,6 @@ Options +FollowSymLinks
     RewriteRule ^config/ - [F,L]
     RewriteRule ^\.git - [F,L]
     
-    # Allow direct access to media handler
-    RewriteRule ^media-proxy\.php$ - [L]
-
     # Protect core directory from direct access
     RewriteRule ^core/ - [F,L]
     

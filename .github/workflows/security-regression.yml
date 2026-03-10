@@ -58,3 +58,18 @@ jobs:
 
       - name: DocumentationModule-Architekturcheck ausführen
         run: php tests/documentation-module/run.php
+
+      - name: SiteTableService-Architekturcheck ausführen
+        run: php tests/site-table-service/run.php
+
+      - name: SeoMetaService-Architekturcheck ausführen
+        run: php tests/seo-meta-service/run.php
+
+      - name: LandingSectionService-Architekturcheck ausführen
+        run: php tests/landing-section-service/run.php
+
+      - name: EditorJsMediaService-Architekturcheck ausführen
+        run: php tests/editorjs-media-service/run.php
+
+      - name: media-proxy-Regressionssuite ausführen
+        run: php tests/media-proxy/run.php

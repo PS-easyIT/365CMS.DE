@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.5.11",
+  "version": "2.5.15",
   "min_php": "8.4",
   "released": "2026-03-10",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release 2.5.11: Audit-Härtung mit Runtime-Fixes für Kommentare, Member-/Admin-Pfade, Architektur- und Contract-Checks, robusterer Cache-/Telemetry-Schiene sowie synchronisierter Core-Versionierung.",
+  "notes": "Release 2.5.15: EditorJsMediaService in Guard-, Upload-, Remote- und Library-Bausteine zerlegt, neue Architektur-Regression ergänzt und Audit-/Versionsdokumentation synchronisiert.",
   "critical": false
 }

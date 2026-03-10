@@ -52,7 +52,7 @@ final class ApiRouter
         header('Content-Type: application/json');
         echo json_encode([
             'status' => 'ok',
-            'version' => defined('CMS_VERSION') ? CMS_VERSION : '2.5.4',
+            'version' => defined('CMS_VERSION') ? CMS_VERSION : '2.5.15',
         ]);
         exit;
     }

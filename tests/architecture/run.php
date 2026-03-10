@@ -13,13 +13,11 @@ const ABSPATH_GUARD_PATTERN = '/if\s*\(\s*!defined\(\s*[\'\"]ABSPATH[\'\"]\s*\)\
 const FORBIDDEN_DEPENDENCY_PATTERN = '/(?:require|include)(?:_once)?\s*\(?[^\n;]*(admin\/|member\/|tests\/|DOC\/|BACKUP\/)/i';
 
 $lineLimitAllowList = [
-    'CMS/core/Services/SiteTableService.php',
     'CMS/core/Services/MailService.php',
     'CMS/core/ThemeManager.php',
     'CMS/core/SchemaManager.php',
     'CMS/core/Services/SystemService.php',
     'CMS/core/Services/ImageService.php',
-    'CMS/core/Services/SEO/SeoMetaService.php',
     'CMS/core/Services/ThemeCustomizer.php',
     'CMS/core/Services/UpdateService.php',
     'CMS/core/Services/MediaService.php',

@@ -290,7 +290,7 @@ class Bootstrap
      */
     private function ensureConstants(): void
     {
-        defined('CMS_VERSION')   || define('CMS_VERSION',   '2.5.11');
+        defined('CMS_VERSION')   || define('CMS_VERSION',   '2.5.15');
         defined('CMS_MIN_PHP_VERSION') || define('CMS_MIN_PHP_VERSION', '8.4.0');
         defined('SITE_NAME')     || define('SITE_NAME',     'CMS');
         defined('SITE_URL')      || define('SITE_URL',      '');
