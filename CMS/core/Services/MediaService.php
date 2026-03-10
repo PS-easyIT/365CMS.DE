@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace CMS\Services;
 
+use CMS\Contracts\LoggerInterface;
 use CMS\Json;
 use CMS\Logger;
 use CMS\Services\Media\ImageProcessor;
@@ -24,7 +25,7 @@ class MediaService {
     private string $uploadUrl;
     private string $metaFile;
     private string $settingsFile;
-    private Logger $logger;
+    private LoggerInterface $logger;
     private MediaRepository $repository;
     private UploadHandler $uploadHandler;
     private ImageProcessor $imageProcessor;
@@ -76,7 +77,8 @@ class MediaService {
             $this->uploadPath,
             $this->repository,
             $this->imageProcessor,
-            \Closure::fromCallable([$this, 'validateUploadFile'])
+            \Closure::fromCallable([$this, 'validateUploadFile']),
+            $this->logger
         );
 
         $settings = $this->getSettings();
@@ -195,51 +197,94 @@ class MediaService {
         return !empty($value);
     }
 
+    private function getSettingValue(array $settings, array $keys, mixed $fallback): mixed
+    {
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $settings)) {
+                return $settings[$key];
+            }
+        }
+
+        return $fallback;
+    }
+
+    /**
+     * @param array<int,string> $rawValues
+     * @param array<int,string> $allowedGroups
+     * @return array<int,string>
+     */
+    private function normalizeAllowedTypeSelection(array $rawValues, array $allowedGroups): array
+    {
+        $typeMap = $this->getTypeMap();
+        $normalized = [];
+
+        foreach ($rawValues as $value) {
+            $value = strtolower(trim((string) $value));
+            if ($value === '') {
+                continue;
+            }
+
+            if (in_array($value, $allowedGroups, true)) {
+                $normalized[$value] = true;
+                continue;
+            }
+
+            foreach ($allowedGroups as $group) {
+                if (in_array($value, $typeMap[$group] ?? [], true)) {
+                    $normalized[$group] = true;
+                    break;
+                }
+            }
+        }
+
+        return array_keys($normalized);
+    }
+
     private function normalizeSettings(array $settings): array {
         $defaults = $this->getDefaultSettings();
         $allTypes = array_keys($this->getTypeMap());
 
-        $allowedTypes = array_values(array_unique(array_intersect(
-            array_map('strval', (array)($settings['allowed_types'] ?? $defaults['allowed_types'])),
+        $allowedTypes = $this->normalizeAllowedTypeSelection(
+            array_map('strval', (array) $this->getSettingValue($settings, ['allowed_types'], $defaults['allowed_types'])),
             $allTypes
-        )));
+        );
         if ($allowedTypes === []) {
             $allowedTypes = $defaults['allowed_types'];
         }
 
-        $memberAllowedTypes = array_values(array_unique(array_intersect(
-            array_map('strval', (array)($settings['member_allowed_types'] ?? $defaults['member_allowed_types'])),
+        $memberAllowedTypes = $this->normalizeAllowedTypeSelection(
+            array_map('strval', (array) $this->getSettingValue($settings, ['member_allowed_types'], $defaults['member_allowed_types'])),
             ['image', 'document', 'video', 'audio']
-        )));
+        );
         if ($memberAllowedTypes === []) {
             $memberAllowedTypes = $defaults['member_allowed_types'];
         }
 
         return array_merge($defaults, [
-            'max_upload_size' => $this->sanitizeSizeSetting((string)($settings['max_upload_size'] ?? $defaults['max_upload_size']), $defaults['max_upload_size']),
+            'max_upload_size' => $this->sanitizeSizeSetting((string) $this->getSettingValue($settings, ['max_upload_size'], $defaults['max_upload_size']), $defaults['max_upload_size']),
             'allowed_types' => $allowedTypes,
             'auto_webp' => $this->normalizeBooleanSetting($settings, 'auto_webp', (bool) $defaults['auto_webp']),
             'strip_exif' => $this->normalizeBooleanSetting($settings, 'strip_exif', (bool) $defaults['strip_exif']),
-            'jpeg_quality' => max(60, min(100, (int)($settings['jpeg_quality'] ?? $defaults['jpeg_quality']))),
-            'max_width' => max(1, min(8000, (int)($settings['max_width'] ?? $defaults['max_width']))),
-            'max_height' => max(1, min(8000, (int)($settings['max_height'] ?? $defaults['max_height']))),
+            'jpeg_quality' => max(60, min(100, (int) $this->getSettingValue($settings, ['jpeg_quality'], $defaults['jpeg_quality']))),
+            'max_width' => max(1, min(8000, (int) $this->getSettingValue($settings, ['max_width'], $defaults['max_width']))),
+            'max_height' => max(1, min(8000, (int) $this->getSettingValue($settings, ['max_height'], $defaults['max_height']))),
             'organize_month_year' => $this->normalizeBooleanSetting($settings, 'organize_month_year', (bool) $defaults['organize_month_year']),
-            'sanitize_filenames' => $this->normalizeBooleanSetting($settings, 'sanitize_filenames', (bool) $defaults['sanitize_filenames']),
-            'unique_filenames' => $this->normalizeBooleanSetting($settings, 'unique_filenames', (bool) $defaults['unique_filenames']),
-            'lowercase_filenames' => $this->normalizeBooleanSetting($settings, 'lowercase_filenames', (bool) $defaults['lowercase_filenames']),
+            'sanitize_filenames' => $this->normalizeBooleanSetting($settings, array_key_exists('sanitize_filenames', $settings) ? 'sanitize_filenames' : 'sanitize_filename', (bool) $defaults['sanitize_filenames']),
+            'unique_filenames' => $this->normalizeBooleanSetting($settings, array_key_exists('unique_filenames', $settings) ? 'unique_filenames' : 'unique_filename', (bool) $defaults['unique_filenames']),
+            'lowercase_filenames' => $this->normalizeBooleanSetting($settings, array_key_exists('lowercase_filenames', $settings) ? 'lowercase_filenames' : 'lowercase_filename', (bool) $defaults['lowercase_filenames']),
             'member_uploads_enabled' => $this->normalizeBooleanSetting($settings, 'member_uploads_enabled', (bool) $defaults['member_uploads_enabled']),
-            'member_max_upload_size' => $this->sanitizeSizeSetting((string)($settings['member_max_upload_size'] ?? $defaults['member_max_upload_size']), $defaults['member_max_upload_size']),
+            'member_max_upload_size' => $this->sanitizeSizeSetting((string) $this->getSettingValue($settings, ['member_max_upload_size'], $defaults['member_max_upload_size']), $defaults['member_max_upload_size']),
             'member_allowed_types' => $memberAllowedTypes,
             'member_delete_own' => $this->normalizeBooleanSetting($settings, 'member_delete_own', (bool) $defaults['member_delete_own']),
             'generate_thumbnails' => $this->normalizeBooleanSetting($settings, 'generate_thumbnails', (bool) $defaults['generate_thumbnails']),
-            'thumb_small_w' => max(50, min(4000, (int)($settings['thumb_small_w'] ?? $defaults['thumb_small_w']))),
-            'thumb_small_h' => max(50, min(4000, (int)($settings['thumb_small_h'] ?? $defaults['thumb_small_h']))),
-            'thumb_medium_w' => max(50, min(4000, (int)($settings['thumb_medium_w'] ?? $defaults['thumb_medium_w']))),
-            'thumb_medium_h' => max(50, min(4000, (int)($settings['thumb_medium_h'] ?? $defaults['thumb_medium_h']))),
-            'thumb_large_w' => max(50, min(6000, (int)($settings['thumb_large_w'] ?? $defaults['thumb_large_w']))),
-            'thumb_large_h' => max(50, min(6000, (int)($settings['thumb_large_h'] ?? $defaults['thumb_large_h']))),
-            'thumb_banner_w' => max(50, min(6000, (int)($settings['thumb_banner_w'] ?? $defaults['thumb_banner_w']))),
-            'thumb_banner_h' => max(50, min(6000, (int)($settings['thumb_banner_h'] ?? $defaults['thumb_banner_h']))),
+            'thumb_small_w' => max(50, min(4000, (int) $this->getSettingValue($settings, ['thumb_small_w', 'thumbnail_small_w'], $defaults['thumb_small_w']))),
+            'thumb_small_h' => max(50, min(4000, (int) $this->getSettingValue($settings, ['thumb_small_h', 'thumbnail_small_h'], $defaults['thumb_small_h']))),
+            'thumb_medium_w' => max(50, min(4000, (int) $this->getSettingValue($settings, ['thumb_medium_w', 'thumbnail_medium_w'], $defaults['thumb_medium_w']))),
+            'thumb_medium_h' => max(50, min(4000, (int) $this->getSettingValue($settings, ['thumb_medium_h', 'thumbnail_medium_h'], $defaults['thumb_medium_h']))),
+            'thumb_large_w' => max(50, min(6000, (int) $this->getSettingValue($settings, ['thumb_large_w', 'thumbnail_large_w'], $defaults['thumb_large_w']))),
+            'thumb_large_h' => max(50, min(6000, (int) $this->getSettingValue($settings, ['thumb_large_h', 'thumbnail_large_h'], $defaults['thumb_large_h']))),
+            'thumb_banner_w' => max(50, min(6000, (int) $this->getSettingValue($settings, ['thumb_banner_w', 'thumbnail_banner_w'], $defaults['thumb_banner_w']))),
+            'thumb_banner_h' => max(50, min(6000, (int) $this->getSettingValue($settings, ['thumb_banner_h', 'thumbnail_banner_h'], $defaults['thumb_banner_h']))),
             'block_dangerous_types' => $this->normalizeBooleanSetting($settings, 'block_dangerous_types', (bool) $defaults['block_dangerous_types']),
             'validate_image_content' => $this->normalizeBooleanSetting($settings, 'validate_image_content', (bool) $defaults['validate_image_content']),
             'require_login_for_upload' => $this->normalizeBooleanSetting($settings, 'require_login_for_upload', (bool) $defaults['require_login_for_upload']),

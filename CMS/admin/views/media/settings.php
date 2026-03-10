@@ -15,26 +15,28 @@ if (!defined('ABSPATH')) {
 $settings  = $data['settings'] ?? [];
 $diskUsage = $data['diskUsage'] ?? [];
 
+$allTypes = ['jpg','jpeg','png','gif','webp','bmp','ico','pdf','doc','docx','xls','xlsx','ppt','pptx','txt','csv','zip','rar','7z','tar','gz','mp4','webm','ogg','mov','mp3','wav','aac','flac'];
+
 // Defaults
 $s = array_merge([
-    'max_upload_size'         => 10,
-    'allowed_types'           => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'mp4', 'mp3'],
+    'max_upload_size'         => '64M',
+    'allowed_types'           => $allTypes,
     'organize_month_year'     => true,
     'sanitize_filename'       => true,
     'unique_filename'         => true,
-    'lowercase_filename'      => true,
-    'auto_webp'               => false,
+    'lowercase_filename'      => false,
+    'auto_webp'               => true,
     'strip_exif'              => true,
     'jpeg_quality'            => 85,
     'max_width'               => 2560,
     'max_height'              => 2560,
-    'generate_thumbnails'     => true,
+    'generate_thumbnails'     => false,
     'thumbnail_small_w'       => 150,
     'thumbnail_small_h'       => 150,
-    'thumbnail_medium_w'      => 400,
-    'thumbnail_medium_h'      => 400,
-    'thumbnail_large_w'       => 800,
-    'thumbnail_large_h'       => 600,
+    'thumbnail_medium_w'      => 300,
+    'thumbnail_medium_h'      => 300,
+    'thumbnail_large_w'       => 1024,
+    'thumbnail_large_h'       => 1024,
     'thumbnail_banner_w'      => 1200,
     'thumbnail_banner_h'      => 400,
     'block_dangerous_types'   => true,
@@ -42,12 +44,10 @@ $s = array_merge([
     'require_login_for_upload'=> true,
     'protect_uploads_dir'     => true,
     'member_uploads_enabled'  => false,
-    'member_max_upload_size'  => 5,
-    'member_allowed_types'    => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'],
-    'member_delete_own'       => true,
+    'member_max_upload_size'  => '5M',
+    'member_allowed_types'    => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'rtf', 'csv'],
+    'member_delete_own'       => false,
 ], $settings);
-
-$allTypes = ['jpg','jpeg','png','gif','webp','bmp','ico','pdf','doc','docx','xls','xlsx','ppt','pptx','txt','csv','zip','rar','7z','tar','gz','mp4','webm','ogg','mov','mp3','wav','aac','flac'];
 ?>
 
 <div class="page-header d-print-none">

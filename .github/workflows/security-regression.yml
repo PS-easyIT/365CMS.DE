@@ -37,3 +37,21 @@ jobs:
 
       - name: Architektur-Fitness-Checks ausführen
         run: php tests/architecture/run.php
+
+      - name: Contract-/Interface-Checks ausführen
+        run: php tests/contracts/run.php
+
+      - name: Media-Settings-Regressionssuite ausführen
+        run: php tests/media-settings/run.php
+
+      - name: Rollen-/Capability-Regressionssuite ausführen
+        run: php tests/roles-capabilities/run.php
+
+      - name: Router-Fallback-Regressionssuite ausführen
+        run: php tests/router-fallbacks/run.php
+
+      - name: Admin-View-Guard-Regressionssuite ausführen
+        run: php tests/admin-view-guards/run.php
+
+      - name: Kommentar-Status-Regressionssuite ausführen
+        run: php tests/comment-status/run.php

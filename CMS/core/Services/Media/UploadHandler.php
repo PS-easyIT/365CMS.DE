@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace CMS\Services\Media;
 
 use CMS\Auth;
+use CMS\Contracts\LoggerInterface;
 use CMS\Logger;
 use CMS\WP_Error;
 
@@ -13,16 +14,17 @@ if (!defined('ABSPATH')) {
 
 final class UploadHandler
 {
-    private Logger $logger;
+    private LoggerInterface $logger;
     private ?\Closure $uploadValidator;
 
     public function __construct(
         private readonly string $uploadPath,
         private readonly MediaRepository $repository,
         private readonly ImageProcessor $imageProcessor,
-        ?\Closure $uploadValidator = null
+        ?\Closure $uploadValidator = null,
+        ?LoggerInterface $logger = null
     ) {
-        $this->logger = Logger::instance()->withChannel('media.upload');
+        $this->logger = $logger ?? Logger::instance()->withChannel('media.upload');
         $this->uploadValidator = $uploadValidator;
     }
 

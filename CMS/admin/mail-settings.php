@@ -76,5 +76,6 @@ $pageAssets = [];
 
 require __DIR__ . '/partials/header.php';
 require __DIR__ . '/partials/sidebar.php';
+defined('CMS_ADMIN_SYSTEM_VIEW') || define('CMS_ADMIN_SYSTEM_VIEW', true);
 require __DIR__ . '/views/system/mail-settings.php';
 require __DIR__ . '/partials/footer.php';

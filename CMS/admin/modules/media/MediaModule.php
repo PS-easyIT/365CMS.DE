@@ -19,6 +19,61 @@ class MediaModule
 {
     private MediaService $service;
 
+    /**
+     * @return array<string, array<int, string>>
+     */
+    private function getTypeMap(): array
+    {
+        return [
+            'image' => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico'],
+            'video' => ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'],
+            'audio' => ['mp3', 'wav', 'aac', 'flac', 'm4a'],
+            'document' => ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'rtf', 'csv'],
+            'archive' => ['zip', 'rar', '7z', 'tar', 'gz'],
+        ];
+    }
+
+    /**
+     * @param array<int, string> $groups
+     * @return array<int, string>
+     */
+    private function expandTypeGroups(array $groups): array
+    {
+        $typeMap = $this->getTypeMap();
+        $extensions = [];
+
+        foreach ($groups as $group) {
+            foreach ($typeMap[$group] ?? [] as $extension) {
+                $extensions[$extension] = true;
+            }
+        }
+
+        return array_keys($extensions);
+    }
+
+    /**
+     * @param array<string, mixed> $settings
+     * @return array<string, mixed>
+     */
+    private function buildSettingsViewModel(array $settings): array
+    {
+        return array_merge($settings, [
+            'allowed_types' => $this->expandTypeGroups(array_map('strval', (array) ($settings['allowed_types'] ?? []))),
+            'member_allowed_types' => $this->expandTypeGroups(array_map('strval', (array) ($settings['member_allowed_types'] ?? []))),
+            'sanitize_filename' => (bool) ($settings['sanitize_filenames'] ?? false),
+            'unique_filename' => (bool) ($settings['unique_filenames'] ?? false),
+            'lowercase_filename' => (bool) ($settings['lowercase_filenames'] ?? false),
+            'thumbnail_small_w' => (int) ($settings['thumb_small_w'] ?? 150),
+            'thumbnail_small_h' => (int) ($settings['thumb_small_h'] ?? 150),
+            'thumbnail_medium_w' => (int) ($settings['thumb_medium_w'] ?? 300),
+            'thumbnail_medium_h' => (int) ($settings['thumb_medium_h'] ?? 300),
+            'thumbnail_large_w' => (int) ($settings['thumb_large_w'] ?? 1024),
+            'thumbnail_large_h' => (int) ($settings['thumb_large_h'] ?? 1024),
+            'thumbnail_banner_w' => (int) ($settings['thumb_banner_w'] ?? 1200),
+            'thumbnail_banner_h' => (int) ($settings['thumb_banner_h'] ?? 400),
+        ]);
+    }
+
     public function __construct()
     {
         $this->service = MediaService::getInstance();
@@ -191,8 +246,10 @@ class MediaModule
      */
     public function getSettingsData(): array
     {
+        $settings = $this->service->getSettings();
+
         return [
-            'settings'  => $this->service->getSettings(),
+            'settings'  => $this->buildSettingsViewModel($settings),
             'diskUsage' => $this->service->getDiskUsage(),
         ];
     }

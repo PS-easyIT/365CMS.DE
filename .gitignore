@@ -83,3 +83,4 @@ secrets/
 CMS/tmp-seo-test/pages.xml
 CMS/tmp-seo-test/sitemap.xml
 DOC/audit/
+tests/

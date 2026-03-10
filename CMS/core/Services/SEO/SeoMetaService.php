@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace CMS\Services\SEO;
 
-use CMS\Database;
+use CMS\Contracts\DatabaseInterface;
 use CMS\VendorRegistry;
 use Melbahja\Seo\Schema;
 use Melbahja\Seo\Schema\Thing;
@@ -17,7 +17,7 @@ VendorRegistry::instance()->loadPackage('melbahja-seo');
 final class SeoMetaService
 {
     public function __construct(
-        private readonly Database $db,
+        private readonly DatabaseInterface $db,
         private readonly string $prefix
     ) {
         $this->ensureSeoMetaTable();

@@ -65,5 +65,6 @@ $data = $module->getData();
 
 require_once __DIR__ . '/partials/header.php';
 require_once __DIR__ . '/partials/sidebar.php';
+defined('CMS_ADMIN_SEO_VIEW') || define('CMS_ADMIN_SEO_VIEW', true);
 require_once __DIR__ . '/views/seo/redirects.php';
 require_once __DIR__ . '/partials/footer.php';

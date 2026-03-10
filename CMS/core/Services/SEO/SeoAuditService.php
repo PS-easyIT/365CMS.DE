@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace CMS\Services\SEO;
 
-use CMS\Database;
+use CMS\Contracts\DatabaseInterface;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 final class SeoAuditService
 {
     public function __construct(
-        private readonly Database $db,
+        private readonly DatabaseInterface $db,
         private readonly string $prefix
     ) {
     }

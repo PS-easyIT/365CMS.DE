@@ -148,9 +148,7 @@ class Router
         if (class_exists('\\CMS\\Services\\RedirectService')) {
             $redirect = Services\RedirectService::getInstance()->findRedirect($uri);
             if (is_array($redirect) && !empty($redirect['target_url'])) {
-                http_response_code((int)($redirect['redirect_type'] ?? 301));
-                header('Location: ' . (string)$redirect['target_url'], true, (int)($redirect['redirect_type'] ?? 301));
-                exit;
+                $this->redirect((string)$redirect['target_url'], (int)($redirect['redirect_type'] ?? 301));
             }
         }
 
@@ -353,7 +351,33 @@ class Router
         }
 
         http_response_code(404);
-        ThemeManager::instance()->render('404');
+
+        $rendered = '';
+
+        try {
+            ob_start();
+            ThemeManager::instance()->render('404');
+            $rendered = (string) ob_get_clean();
+        } catch (\Throwable $e) {
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+
+            error_log('Router 404 Render Error: ' . $e->getMessage());
+            $rendered = '';
+        }
+
+        if (trim($rendered) !== '') {
+            echo $rendered;
+            return;
+        }
+
+        echo $this->buildFallbackErrorPage(
+            404,
+            'Seite nicht gefunden',
+            'Die angeforderte Seite konnte nicht gefunden werden.',
+            $this->requestUri
+        );
     }
 
     public function getRequestLocale(): string
@@ -421,14 +445,66 @@ class Router
         return $html . $content;
     }
 
-    public function redirect(string $url): void
+    public function redirect(string $url, int $status = 302): void
     {
-        if (strpos($url, 'http') !== 0) {
-            $url = SITE_URL . $url;
+        $targetUrl = $this->resolveRedirectUrl($url);
+
+        if (!headers_sent()) {
+            http_response_code($status);
+            header('Location: ' . $targetUrl, true, $status);
+            exit;
         }
 
-        header('Location: ' . $url);
+        http_response_code($status);
+        echo $this->buildRedirectFallbackPage($targetUrl, $status);
         exit;
+    }
+
+    private function resolveRedirectUrl(string $url): string
+    {
+        if (preg_match('#^https?://#i', $url) === 1) {
+            return $url;
+        }
+
+        return SITE_URL . (str_starts_with($url, '/') ? $url : '/' . ltrim($url, '/'));
+    }
+
+    private function buildRedirectFallbackPage(string $targetUrl, int $status): string
+    {
+        $safeUrl = htmlspecialchars($targetUrl, ENT_QUOTES, 'UTF-8');
+        $safeStatus = max(300, min(399, $status));
+
+        return '<!DOCTYPE html>'
+            . '<html lang="de"><head><meta charset="utf-8">'
+            . '<meta http-equiv="refresh" content="0;url=' . $safeUrl . '">'
+            . '<meta name="robots" content="noindex,nofollow">'
+            . '<title>Weiterleitung</title></head><body>'
+            . '<h1>Weiterleitung</h1>'
+            . '<p>Die Seite leitet weiter (' . $safeStatus . '). Falls nichts passiert, nutze bitte diesen Link:</p>'
+            . '<p><a href="' . $safeUrl . '">' . $safeUrl . '</a></p>'
+            . '</body></html>';
+    }
+
+    private function buildFallbackErrorPage(int $status, string $title, string $message, string $path = ''): string
+    {
+        $safeTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
+        $safeMessage = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
+        $safePath = htmlspecialchars($path, ENT_QUOTES, 'UTF-8');
+        $details = $safePath !== '' ? '<p><small>Angefragter Pfad: ' . $safePath . '</small></p>' : '';
+
+        return '<!DOCTYPE html>'
+            . '<html lang="de"><head><meta charset="utf-8">'
+            . '<meta name="viewport" content="width=device-width, initial-scale=1">'
+            . '<meta name="robots" content="noindex,nofollow">'
+            . '<title>' . (int) $status . ' – ' . $safeTitle . '</title>'
+            . '<style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f8fafc;color:#0f172a}main{max-width:720px;margin:8vh auto;padding:2rem}a{color:#2563eb}h1{margin-bottom:.75rem}p{line-height:1.6}</style>'
+            . '</head><body><main>'
+            . '<p>' . (int) $status . '</p>'
+            . '<h1>' . $safeTitle . '</h1>'
+            . '<p>' . $safeMessage . '</p>'
+            . $details
+            . '<p><a href="' . htmlspecialchars(SITE_URL . '/', ENT_QUOTES, 'UTF-8') . '">Zur Startseite</a></p>'
+            . '</main></body></html>';
     }
 
     public function streamContentAsPdf(string $title, string $htmlContent, ?string $author): void

@@ -152,7 +152,7 @@ $tabs = [
             </div>
 
             <!-- Tabelle -->
-            <div class="table-responsive">
+            <div class="table-responsive comments-table-responsive">
                 <table class="table table-vcenter card-table">
                     <thead>
                         <tr>
@@ -239,7 +239,7 @@ $tabs = [
                                         </button>
                                         <div class="dropdown-menu dropdown-menu-end">
                                             <?php if ($cStatus !== 'approved'): ?>
-                                                <button class="dropdown-item" onclick="commentAction(<?php echo $cId; ?>, 'approve')">
+                                                <button class="dropdown-item" onclick="commentAction(<?php echo $cId; ?>, 'approved')">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="icon dropdown-item-icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg>
                                                     Freigeben
                                                 </button>
@@ -316,11 +316,20 @@ function deleteComment(id) {
     var selectAll = document.getElementById('selectAll');
     var bulkBar   = document.getElementById('bulkBar');
     var countEl   = document.getElementById('selectedCount');
+    var tableWrap = document.querySelector('.comments-table-responsive');
 
     function updateBulk() {
         var checked = document.querySelectorAll('.row-check:checked').length;
         countEl.textContent = checked;
         bulkBar.classList.toggle('d-none', checked === 0);
+    }
+
+    function setDropdownOverflow(open) {
+        if (!tableWrap) {
+            return;
+        }
+
+        tableWrap.style.overflow = open ? 'visible' : '';
     }
 
     if (selectAll) {
@@ -331,6 +340,16 @@ function deleteComment(id) {
     }
     document.querySelectorAll('.row-check').forEach(function(cb) {
         cb.addEventListener('change', updateBulk);
+    });
+
+    document.querySelectorAll('.comments-table-responsive .dropdown').forEach(function(dropdown) {
+        dropdown.addEventListener('show.bs.dropdown', function() {
+            setDropdownOverflow(true);
+        });
+
+        dropdown.addEventListener('hidden.bs.dropdown', function() {
+            setDropdownOverflow(false);
+        });
     });
 })();
 </script>

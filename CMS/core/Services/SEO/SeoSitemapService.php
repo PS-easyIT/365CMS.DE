@@ -3,9 +3,9 @@ declare(strict_types=1);
 
 namespace CMS\Services\SEO;
 
-use CMS\Database;
+use CMS\Contracts\DatabaseInterface;
+use CMS\Contracts\LoggerInterface;
 use CMS\Http\Client as HttpClient;
-use CMS\Logger;
 use CMS\Services\SitemapService;
 
 if (!defined('ABSPATH')) {
@@ -17,8 +17,8 @@ final class SeoSitemapService
     private ?string $lastSitemapError = null;
 
     public function __construct(
-        private readonly Database $db,
-        private readonly Logger $logger,
+        private readonly DatabaseInterface $db,
+        private readonly LoggerInterface $logger,
         private readonly HttpClient $httpClient,
         private readonly string $prefix,
         private readonly SeoMetaService $metaService
