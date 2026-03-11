@@ -23,6 +23,7 @@ final class RedirectService
 
     private readonly Database $db;
     private readonly string $prefix;
+    private ?bool $hasSiteTableSlugColumn = null;
 
     public static function getInstance(): self
     {
@@ -176,6 +177,11 @@ final class RedirectService
             'redirects' => array_map(static fn($row) => (array)$row, $redirects),
             'logs' => array_map(static fn($row) => (array)$row, $logs),
             'stats' => $stats,
+            'targets' => [
+                'pages' => $this->getAvailablePageTargets(),
+                'posts' => $this->getAvailablePostTargets(),
+                'hubs' => $this->getAvailableHubTargets(),
+            ],
         ];
     }
 
@@ -183,7 +189,7 @@ final class RedirectService
     {
         $id = (int)($post['redirect_id'] ?? 0);
         $source = $this->normalizePath((string)($post['source_path'] ?? ''));
-        $target = trim((string)($post['target_url'] ?? ''));
+        $target = $this->resolveTargetFromPost($post);
         $type = (int)($post['redirect_type'] ?? 301);
         $notes = trim((string)($post['notes'] ?? ''));
         $isActive = isset($post['is_active']) ? 1 : 0;
@@ -199,6 +205,9 @@ final class RedirectService
         }
         if (!$this->isValidTarget($target)) {
             return ['success' => false, 'error' => 'Die Ziel-URL ist ungültig.'];
+        }
+        if ($this->isSameTargetAsSource($source, $target)) {
+            return ['success' => false, 'error' => 'Quelle und Ziel dürfen nicht identisch sein.'];
         }
 
         $data = [
@@ -331,9 +340,198 @@ final class RedirectService
         return in_array($path, ['/favicon.ico', '/robots.txt', '/sitemap.xml'], true);
     }
 
+    private function resolveTargetFromPost(array $post): string
+    {
+        $targetKind = strtolower(trim((string)($post['target_kind'] ?? 'manual')));
+
+        return match ($targetKind) {
+            'page' => $this->getPageTargetUrl((int)($post['target_page_id'] ?? 0)),
+            'post' => $this->getPostTargetUrl((int)($post['target_post_id'] ?? 0)),
+            'hub' => $this->getHubTargetUrl((int)($post['target_hub_id'] ?? 0)),
+            default => $this->normalizeManualTarget((string)($post['target_url'] ?? ($post['target_url_manual'] ?? ''))),
+        };
+    }
+
     private function isValidTarget(string $target): bool
     {
         return str_starts_with($target, '/') || filter_var($target, FILTER_VALIDATE_URL) !== false;
+    }
+
+    private function isSameTargetAsSource(string $source, string $target): bool
+    {
+        if (!str_starts_with($target, '/')) {
+            return false;
+        }
+
+        return $this->normalizePath($target) === $source;
+    }
+
+    private function normalizeManualTarget(string $target): string
+    {
+        $target = trim($target);
+        if ($target === '') {
+            return '';
+        }
+
+        if (filter_var($target, FILTER_VALIDATE_URL) !== false) {
+            return $target;
+        }
+
+        return $this->normalizePath($target);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function getAvailablePageTargets(): array
+    {
+        $rows = $this->db->get_results(
+            "SELECT id, title, slug
+             FROM {$this->prefix}pages
+             WHERE status = 'published' AND slug IS NOT NULL AND slug != ''
+             ORDER BY title ASC
+             LIMIT 500"
+        ) ?: [];
+
+        return array_map(function ($row): array {
+            $title = trim((string)($row->title ?? ''));
+            $slug = trim((string)($row->slug ?? ''));
+
+            return [
+                'id' => (int)($row->id ?? 0),
+                'label' => $title !== '' ? $title : $slug,
+                'slug' => $slug,
+                'url' => '/' . ltrim($slug, '/'),
+            ];
+        }, $rows);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function getAvailablePostTargets(): array
+    {
+        $rows = $this->db->get_results(
+            "SELECT id, title, slug
+             FROM {$this->prefix}posts
+             WHERE status = 'published' AND slug IS NOT NULL AND slug != ''
+             ORDER BY title ASC
+             LIMIT 500"
+        ) ?: [];
+
+        return array_map(function ($row): array {
+            $title = trim((string)($row->title ?? ''));
+            $slug = trim((string)($row->slug ?? ''));
+
+            return [
+                'id' => (int)($row->id ?? 0),
+                'label' => $title !== '' ? $title : $slug,
+                'slug' => $slug,
+                'url' => '/blog/' . ltrim($slug, '/'),
+            ];
+        }, $rows);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function getAvailableHubTargets(): array
+    {
+        $selectSlug = $this->hasSiteTableSlugColumn() ? 'table_slug,' : "'' AS table_slug,";
+
+        $rows = $this->db->get_results(
+            "SELECT id, table_name, {$selectSlug}
+                    JSON_UNQUOTE(JSON_EXTRACT(settings_json, '$.hub_slug')) AS hub_slug
+             FROM {$this->prefix}site_tables
+             WHERE COALESCE(JSON_UNQUOTE(JSON_EXTRACT(settings_json, '$.content_mode')), 'table') = 'hub'
+             ORDER BY table_name ASC
+             LIMIT 300"
+        ) ?: [];
+
+        return array_map(function ($row): array {
+            $slug = trim((string)(($row->hub_slug ?? '') !== '' ? $row->hub_slug : ($row->table_slug ?? '')));
+            $label = trim((string)($row->table_name ?? ''));
+
+            return [
+                'id' => (int)($row->id ?? 0),
+                'label' => $label !== '' ? $label : $slug,
+                'slug' => $slug,
+                'url' => '/' . ltrim($slug, '/'),
+            ];
+        }, array_filter($rows, static function ($row): bool {
+            $hubSlug = trim((string)(($row->hub_slug ?? '') !== '' ? $row->hub_slug : ($row->table_slug ?? '')));
+            return $hubSlug !== '';
+        }));
+    }
+
+    private function getPageTargetUrl(int $id): string
+    {
+        if ($id <= 0) {
+            return '';
+        }
+
+        $slug = (string)$this->db->get_var(
+            "SELECT slug FROM {$this->prefix}pages WHERE id = ? AND status = 'published' LIMIT 1",
+            [$id]
+        );
+
+        return $slug !== '' ? '/' . ltrim($slug, '/') : '';
+    }
+
+    private function getPostTargetUrl(int $id): string
+    {
+        if ($id <= 0) {
+            return '';
+        }
+
+        $slug = (string)$this->db->get_var(
+            "SELECT slug FROM {$this->prefix}posts WHERE id = ? AND status = 'published' LIMIT 1",
+            [$id]
+        );
+
+        return $slug !== '' ? '/blog/' . ltrim($slug, '/') : '';
+    }
+
+    private function getHubTargetUrl(int $id): string
+    {
+        if ($id <= 0) {
+            return '';
+        }
+
+        $selectSlug = $this->hasSiteTableSlugColumn() ? 'table_slug,' : "'' AS table_slug,";
+        $row = $this->db->get_row(
+            "SELECT {$selectSlug}
+                    JSON_UNQUOTE(JSON_EXTRACT(settings_json, '$.hub_slug')) AS hub_slug
+             FROM {$this->prefix}site_tables
+             WHERE id = ?
+               AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(settings_json, '$.content_mode')), 'table') = 'hub'
+             LIMIT 1",
+            [$id]
+        );
+
+        if (!$row) {
+            return '';
+        }
+
+        $slug = trim((string)((($row->hub_slug ?? '') !== '') ? $row->hub_slug : ($row->table_slug ?? '')));
+
+        return $slug !== '' ? '/' . ltrim($slug, '/') : '';
+    }
+
+    private function hasSiteTableSlugColumn(): bool
+    {
+        if ($this->hasSiteTableSlugColumn !== null) {
+            return $this->hasSiteTableSlugColumn;
+        }
+
+        try {
+            $column = $this->db->get_var("SHOW COLUMNS FROM {$this->prefix}site_tables LIKE 'table_slug'");
+            $this->hasSiteTableSlugColumn = $column !== null;
+        } catch (\Throwable) {
+            $this->hasSiteTableSlugColumn = false;
+        }
+
+        return $this->hasSiteTableSlugColumn;
     }
 
     private function limitString(string $value, int $length): string

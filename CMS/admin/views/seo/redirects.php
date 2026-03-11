@@ -12,6 +12,7 @@ if (!defined('CMS_ADMIN_SEO_VIEW')) {
 $redirects = $data['redirects'] ?? [];
 $logs      = $data['logs'] ?? [];
 $stats     = $data['stats'] ?? [];
+$targets   = $data['targets'] ?? ['pages' => [], 'posts' => [], 'hubs' => []];
 ?>
 
 <div class="page-header d-print-none">
@@ -189,9 +190,47 @@ $stats     = $data['stats'] ?? [];
                         <input type="text" name="source_path" id="redirect-source" class="form-control" placeholder="/alter-pfad" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Ziel-URL</label>
-                        <input type="text" name="target_url" id="redirect-target" class="form-control" placeholder="/neuer-pfad oder https://..." required>
+                        <label class="form-label">Zieltyp</label>
+                        <select name="target_kind" id="redirect-target-kind" class="form-select">
+                            <option value="manual">Freie URL / externer Slug</option>
+                            <option value="page">Seite</option>
+                            <option value="post">Beitrag</option>
+                            <option value="hub">Hub Site</option>
+                        </select>
                     </div>
+                    <div class="mb-3" id="redirect-target-page-group" hidden>
+                        <label class="form-label">Ziel-Seite</label>
+                        <select name="target_page_id" id="redirect-target-page" class="form-select">
+                            <option value="">Bitte Seite wählen</option>
+                            <?php foreach (($targets['pages'] ?? []) as $pageTarget): ?>
+                                <option value="<?= (int)($pageTarget['id'] ?? 0) ?>"><?= htmlspecialchars((string)($pageTarget['label'] ?? '')) ?> — /<?= htmlspecialchars((string)($pageTarget['slug'] ?? '')) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="redirect-target-post-group" hidden>
+                        <label class="form-label">Ziel-Beitrag</label>
+                        <select name="target_post_id" id="redirect-target-post" class="form-select">
+                            <option value="">Bitte Beitrag wählen</option>
+                            <?php foreach (($targets['posts'] ?? []) as $postTarget): ?>
+                                <option value="<?= (int)($postTarget['id'] ?? 0) ?>"><?= htmlspecialchars((string)($postTarget['label'] ?? '')) ?> — /blog/<?= htmlspecialchars((string)($postTarget['slug'] ?? '')) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="redirect-target-hub-group" hidden>
+                        <label class="form-label">Ziel-Hub-Site</label>
+                        <select name="target_hub_id" id="redirect-target-hub" class="form-select">
+                            <option value="">Bitte Hub Site wählen</option>
+                            <?php foreach (($targets['hubs'] ?? []) as $hubTarget): ?>
+                                <option value="<?= (int)($hubTarget['id'] ?? 0) ?>"><?= htmlspecialchars((string)($hubTarget['label'] ?? '')) ?> — /<?= htmlspecialchars((string)($hubTarget['slug'] ?? '')) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="redirect-target-manual-group">
+                        <label class="form-label">Ziel-URL / Slug</label>
+                        <input type="text" name="target_url_manual" id="redirect-target-manual" class="form-control" placeholder="/neuer-pfad oder https://..." required>
+                        <div class="form-hint">Für interne Ziele reicht auch ein Slug wie <code>kontakt</code> oder ein Pfad wie <code>/kontakt</code>.</div>
+                    </div>
+                    <input type="hidden" name="target_url" id="redirect-target-hidden" value="">
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label">Typ</label>
@@ -231,10 +270,146 @@ $stats     = $data['stats'] ?? [];
     const titleElement = document.getElementById('redirect-modal-title');
     const idField = document.getElementById('redirect-id');
     const sourceField = document.getElementById('redirect-source');
-    const targetField = document.getElementById('redirect-target');
+    const targetKindField = document.getElementById('redirect-target-kind');
+    const targetPageField = document.getElementById('redirect-target-page');
+    const targetPostField = document.getElementById('redirect-target-post');
+    const targetHubField = document.getElementById('redirect-target-hub');
+    const targetManualField = document.getElementById('redirect-target-manual');
+    const targetHiddenField = document.getElementById('redirect-target-hidden');
+    const targetPageGroup = document.getElementById('redirect-target-page-group');
+    const targetPostGroup = document.getElementById('redirect-target-post-group');
+    const targetHubGroup = document.getElementById('redirect-target-hub-group');
+    const targetManualGroup = document.getElementById('redirect-target-manual-group');
     const typeField = document.getElementById('redirect-type');
     const notesField = document.getElementById('redirect-notes');
     const activeField = document.getElementById('redirect-active');
+    const form = modalElement.querySelector('form');
+    const targetCatalog = <?= json_encode($targets, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+
+    function normalizeTargetUrl(value) {
+        const trimmed = String(value || '').trim();
+
+        if (!trimmed) {
+            return '';
+        }
+
+        if (/^https?:\/\//i.test(trimmed)) {
+            return trimmed;
+        }
+
+        let normalized = trimmed;
+        if (!normalized.startsWith('/')) {
+            normalized = '/' + normalized;
+        }
+
+        if (normalized.length > 1) {
+            normalized = normalized.replace(/\/+$/, '');
+        }
+
+        return normalized || '/';
+    }
+
+    function findTargetByUrl(url) {
+        const normalized = normalizeTargetUrl(url);
+        const targetMaps = [
+            ['page', targetCatalog.pages || []],
+            ['post', targetCatalog.posts || []],
+            ['hub', targetCatalog.hubs || []]
+        ];
+
+        for (const [kind, items] of targetMaps) {
+            const match = items.find(function (item) {
+                return normalizeTargetUrl(item.url) === normalized;
+            });
+
+            if (match) {
+                return { kind: kind, item: match };
+            }
+        }
+
+        return null;
+    }
+
+    function updateTargetFieldVisibility() {
+        const kind = targetKindField.value || 'manual';
+
+        targetPageGroup.hidden = kind !== 'page';
+        targetPostGroup.hidden = kind !== 'post';
+        targetHubGroup.hidden = kind !== 'hub';
+        targetManualGroup.hidden = kind !== 'manual';
+
+        targetManualField.required = kind === 'manual';
+        targetPageField.required = kind === 'page';
+        targetPostField.required = kind === 'post';
+        targetHubField.required = kind === 'hub';
+    }
+
+    function setTargetKind(kind) {
+        targetKindField.value = kind;
+        updateTargetFieldVisibility();
+    }
+
+    function resetTargetSelectors() {
+        targetPageField.value = '';
+        targetPostField.value = '';
+        targetHubField.value = '';
+        targetManualField.value = '';
+        targetHiddenField.value = '';
+    }
+
+    function applyTargetValue(url) {
+        resetTargetSelectors();
+
+        const matchedTarget = findTargetByUrl(url);
+        if (matchedTarget) {
+            setTargetKind(matchedTarget.kind);
+
+            if (matchedTarget.kind === 'page') {
+                targetPageField.value = String(matchedTarget.item.id || '');
+            } else if (matchedTarget.kind === 'post') {
+                targetPostField.value = String(matchedTarget.item.id || '');
+            } else if (matchedTarget.kind === 'hub') {
+                targetHubField.value = String(matchedTarget.item.id || '');
+            }
+
+            targetHiddenField.value = matchedTarget.item.url || '';
+            return;
+        }
+
+        setTargetKind('manual');
+        targetManualField.value = url || '';
+        targetHiddenField.value = url || '';
+    }
+
+    function syncHiddenTargetValue() {
+        const kind = targetKindField.value || 'manual';
+
+        if (kind === 'page') {
+            const item = (targetCatalog.pages || []).find(function (entry) {
+                return String(entry.id) === String(targetPageField.value || '');
+            });
+            targetHiddenField.value = item ? (item.url || '') : '';
+            return;
+        }
+
+        if (kind === 'post') {
+            const item = (targetCatalog.posts || []).find(function (entry) {
+                return String(entry.id) === String(targetPostField.value || '');
+            });
+            targetHiddenField.value = item ? (item.url || '') : '';
+            return;
+        }
+
+        if (kind === 'hub') {
+            const item = (targetCatalog.hubs || []).find(function (entry) {
+                return String(entry.id) === String(targetHubField.value || '');
+            });
+            targetHiddenField.value = item ? (item.url || '') : '';
+            return;
+        }
+
+        targetHiddenField.value = targetManualField.value.trim();
+    }
 
     function getModalInstance() {
         if (typeof bootstrap === 'undefined' || !bootstrap.Modal) {
@@ -249,7 +424,8 @@ $stats     = $data['stats'] ?? [];
         titleElement.textContent = 'Weiterleitung anlegen';
         idField.value = '0';
         sourceField.value = '';
-        targetField.value = '';
+        setTargetKind('manual');
+        resetTargetSelectors();
         typeField.value = '301';
         notesField.value = '';
         activeField.checked = true;
@@ -278,13 +454,18 @@ $stats     = $data['stats'] ?? [];
         titleElement.textContent = 'Weiterleitung bearbeiten';
         idField.value = redirect.id || 0;
         sourceField.value = redirect.source_path || '';
-        targetField.value = redirect.target_url || '';
+        applyTargetValue(redirect.target_url || '');
         typeField.value = String(redirect.redirect_type || 301);
         notesField.value = redirect.notes || '';
         activeField.checked = String(redirect.is_active || '0') === '1' || redirect.is_active === 1;
         modal.show();
         window.setTimeout(function () {
-            targetField.focus();
+            if ((targetKindField.value || 'manual') === 'manual') {
+                targetManualField.focus();
+                return;
+            }
+
+            typeField.focus();
         }, 120);
     }
 
@@ -297,9 +478,7 @@ $stats     = $data['stats'] ?? [];
         resetRedirectForm();
         titleElement.textContent = '404-Fehler übernehmen';
         sourceField.value = log.request_path || '';
-        if (log.target_url) {
-            targetField.value = log.target_url;
-        }
+        applyTargetValue(log.target_url || '');
         if (log.redirect_type) {
             typeField.value = String(log.redirect_type);
         }
@@ -313,9 +492,31 @@ $stats     = $data['stats'] ?? [];
         notesField.value = noteParts.join(' | ');
         modal.show();
         window.setTimeout(function () {
-            targetField.focus();
+            if ((targetKindField.value || 'manual') === 'manual') {
+                targetManualField.focus();
+                return;
+            }
+
+            typeField.focus();
         }, 120);
     }
+
+    targetKindField.addEventListener('change', function () {
+        resetTargetSelectors();
+        updateTargetFieldVisibility();
+    });
+
+    [targetPageField, targetPostField, targetHubField, targetManualField].forEach(function (field) {
+        field.addEventListener('change', syncHiddenTargetValue);
+    });
+
+    if (form) {
+        form.addEventListener('submit', function () {
+            syncHiddenTargetValue();
+        });
+    }
+
+    updateTargetFieldVisibility();
 
     document.querySelectorAll('.js-create-redirect').forEach(function (button) {
         button.addEventListener('click', openCreateModal);
