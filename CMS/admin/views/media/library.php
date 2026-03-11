@@ -309,7 +309,7 @@ $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
                                 <div class="media-grid-item">
                                     <div class="media-grid-thumb">
                                         <?php if ($isImage): ?>
-                                            <img src="<?php echo htmlspecialchars((string)($file['url'] ?? (UPLOAD_URL . '/' . $fpath))); ?>" alt="<?php echo htmlspecialchars($fname); ?>" loading="lazy">
+                                            <img src="<?php echo htmlspecialchars((string)($file['preview_url'] ?? $file['url'] ?? (UPLOAD_URL . '/' . $fpath))); ?>" alt="<?php echo htmlspecialchars($fname); ?>" loading="lazy">
                                         <?php else: ?>
                                             <?php echo mediaTypeIcon($ftype); ?>
                                         <?php endif; ?>
@@ -389,6 +389,7 @@ $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
                                         $ftype = getFileType($fname);
                                         $fpath = (string)($file['path'] ?? trim(($path !== '' ? $path . '/' : '') . $fname, '/'));
                                         $fileUrl = (string)($file['url'] ?? (UPLOAD_URL . '/' . $fpath));
+                                        $previewUrl = (string)($file['preview_url'] ?? $fileUrl);
                                         $isImage = $ftype === 'image';
                                         $fsize = isset($file['size']) ? htmlspecialchars((string)($diskUsage['formatted'] ?? '')) : '—';
                                         if (isset($file['size'])) {
@@ -405,7 +406,7 @@ $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
                                         <tr>
                                             <td>
                                                 <?php if ($isImage): ?>
-                                                    <img src="<?php echo htmlspecialchars($fileUrl); ?>" alt="<?php echo htmlspecialchars($fname); ?>" class="media-thumb" loading="lazy">
+                                                    <img src="<?php echo htmlspecialchars($previewUrl); ?>" alt="<?php echo htmlspecialchars($fname); ?>" class="media-thumb" loading="lazy">
                                                 <?php else: ?>
                                                     <span class="media-thumb-icon"><?php echo mediaTypeIcon($ftype); ?></span>
                                                 <?php endif; ?>
