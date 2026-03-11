@@ -23,6 +23,31 @@ final class VendorRegistry
     {
     }
 
+    public function getDiagnostics(): array
+    {
+        $autoload = $this->getAutoloadDiagnostics();
+        $packages = $this->getPackageDiagnostics();
+        $bundles = $this->getBundledLibraryDiagnostics();
+        $platform = $this->getBundledPlatformDiagnostics();
+
+        return [
+            'autoload' => $autoload,
+            'packages' => $packages,
+            'bundles' => $bundles,
+            'platform' => $platform,
+            'summary' => [
+                'managed_total' => count($packages),
+                'managed_available' => count(array_filter($packages, static fn(array $package): bool => !empty($package['available']))),
+                'managed_loaded' => count(array_filter($packages, static fn(array $package): bool => !empty($package['loaded']))),
+                'bundle_total' => count($bundles),
+                'bundle_available' => count(array_filter($bundles, static fn(array $bundle): bool => !empty($bundle['available']))),
+                'bundle_ready' => count(array_filter($bundles, static fn(array $bundle): bool => !empty($bundle['runtime_ready']))),
+                'platform_warning_count' => count(array_filter($platform, static fn(array $entry): bool => empty($entry['cms_compatible']) || empty($entry['runtime_compatible']))),
+                'autoload_candidate_count' => count($autoload['candidates'] ?? []),
+            ],
+        ];
+    }
+
     public function loadAssetsAutoloader(): bool
     {
         if (($this->loadedPackages['assets-autoload'] ?? false) === true) {
@@ -103,6 +128,362 @@ final class VendorRegistry
             ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'autoload.php',
             dirname(ABSPATH) . DIRECTORY_SEPARATOR . 'ASSETS' . DIRECTORY_SEPARATOR . 'autoload.php',
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function getAutoloadDiagnostics(): array
+    {
+        $activePath = null;
+        $candidates = [];
+
+        foreach ($this->getAssetsAutoloadCandidates() as $candidate) {
+            $exists = is_file($candidate);
+            if ($activePath === null && $exists) {
+                $activePath = $candidate;
+            }
+
+            $candidates[] = [
+                'path' => $this->normalizeDisplayedPath($candidate),
+                'exists' => $exists,
+                'active' => $activePath === $candidate,
+            ];
+        }
+
+        return [
+            'loaded' => defined('CMS_VENDOR_PATH') || (($this->loadedPackages['assets-autoload'] ?? false) === true),
+            'active_path' => $activePath !== null ? $this->normalizeDisplayedPath($activePath) : null,
+            'candidates' => $candidates,
+        ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function getPackageDiagnostics(): array
+    {
+        $packages = [];
+
+        foreach ($this->getManagedPackageDefinitions() as $package => $definition) {
+            $packages[] = [
+                'package' => $package,
+                'label' => $definition['label'],
+                'path' => $this->normalizeDisplayedPath($definition['path']),
+                'available' => $this->pathExists($definition['path'], $definition['path_type']),
+                'loaded' => $this->isPackageLoaded($package),
+                'notes' => $definition['notes'],
+            ];
+        }
+
+        return $packages;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function getBundledLibraryDiagnostics(): array
+    {
+        $diagnostics = [];
+
+        foreach ($this->getBundledLibraryDefinitions() as $definition) {
+            $available = true;
+            foreach ($definition['paths'] as $path) {
+                if (!$this->pathExists($path['path'], $path['type'])) {
+                    $available = false;
+                    break;
+                }
+            }
+
+            $runtimeReady = $available && $this->isRuntimeSymbolReady($definition['symbol'], $definition['symbol_type']);
+
+            $diagnostics[] = [
+                'package' => $definition['package'],
+                'label' => $definition['label'],
+                'paths' => array_map(fn(array $path): string => $this->normalizeDisplayedPath($path['path']), $definition['paths']),
+                'available' => $available,
+                'runtime_ready' => $runtimeReady,
+                'notes' => $definition['notes'],
+            ];
+        }
+
+        return $diagnostics;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function getBundledPlatformDiagnostics(): array
+    {
+        $requiredPhpVersion = defined('CMS_MIN_PHP_VERSION') ? (string)CMS_MIN_PHP_VERSION : '8.4.0';
+        $diagnostics = [];
+
+        foreach ($this->getBundledPlatformManifestDefinitions() as $packageName => $manifestPath) {
+            $bundlePhpVersion = $this->extractMinimumPhpVersion($manifestPath);
+            $diagnostics[] = [
+                'package' => $packageName,
+                'manifest' => $this->normalizeDisplayedPath($manifestPath),
+                'exists' => is_file($manifestPath),
+                'required_php' => $bundlePhpVersion,
+                'cms_required_php' => $requiredPhpVersion,
+                'runtime_php' => PHP_VERSION,
+                'cms_compatible' => $bundlePhpVersion === null ? null : version_compare($requiredPhpVersion, $bundlePhpVersion, '>='),
+                'runtime_compatible' => $bundlePhpVersion === null ? null : version_compare(PHP_VERSION, $bundlePhpVersion, '>='),
+            ];
+        }
+
+        return $diagnostics;
+    }
+
+    /**
+     * @return array<string, array{label: string, path: string, path_type: string, notes: string}>
+     */
+    private function getManagedPackageDefinitions(): array
+    {
+        return [
+            'assets-autoload' => [
+                'label' => 'Zentraler Assets-Autoloader',
+                'path' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'autoload.php',
+                'path_type' => 'file',
+                'notes' => 'Lädt die produktiven Bundles aus CMS/assets/.',
+            ],
+            'dompdf' => [
+                'label' => 'Dompdf PDF-Renderer',
+                'path' => ABSPATH . 'vendor' . DIRECTORY_SEPARATOR . 'dompdf' . DIRECTORY_SEPARATOR . 'autoload.php',
+                'path_type' => 'file',
+                'notes' => 'Sonderpfad für PDF-Rendering außerhalb des Assets-Autoloaders.',
+            ],
+            'melbahja-seo' => [
+                'label' => 'melbahja/seo',
+                'path' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'melbahja-seo' . DIRECTORY_SEPARATOR . 'src',
+                'path_type' => 'dir',
+                'notes' => 'Schema-, Sitemap- und Indexing-Bundle für SEO-Funktionen.',
+            ],
+        ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function getBundledLibraryDefinitions(): array
+    {
+        $assets = ABSPATH . 'assets' . DIRECTORY_SEPARATOR;
+
+        return [
+            [
+                'package' => 'htmlpurifier',
+                'label' => 'HTMLPurifier',
+                'paths' => [['path' => $assets . 'htmlpurifier' . DIRECTORY_SEPARATOR . 'HTMLPurifier.auto.php', 'type' => 'file']],
+                'symbol' => 'HTMLPurifier',
+                'symbol_type' => 'class',
+                'notes' => 'HTML-Sanitizing für Rich-Content-Pfade.',
+            ],
+            [
+                'package' => 'simplepie',
+                'label' => 'SimplePie',
+                'paths' => [
+                    ['path' => $assets . 'simplepiesrc', 'type' => 'dir'],
+                    ['path' => $assets . 'simplepielibrary', 'type' => 'dir'],
+                ],
+                'symbol' => 'SimplePie',
+                'symbol_type' => 'class',
+                'notes' => 'RSS-/Atom-Parsing im Feed-Service.',
+            ],
+            [
+                'package' => 'tntsearch',
+                'label' => 'TNTSearch',
+                'paths' => [['path' => $assets . 'tntsearchsrc', 'type' => 'dir']],
+                'symbol' => '\\TeamTNT\\TNTSearch\\TNTSearch',
+                'symbol_type' => 'class',
+                'notes' => 'Volltextsuche für SearchService.',
+            ],
+            [
+                'package' => 'elfinder',
+                'label' => 'elFinder',
+                'paths' => [['path' => $assets . 'elfinder' . DIRECTORY_SEPARATOR . 'php', 'type' => 'dir']],
+                'symbol' => 'elFinder',
+                'symbol_type' => 'class',
+                'notes' => 'Dateimanager-Bibliothek für Medienverwaltung.',
+            ],
+            [
+                'package' => 'carbon',
+                'label' => 'Carbon',
+                'paths' => [['path' => $assets . 'Carbon', 'type' => 'dir']],
+                'symbol' => '\\Carbon\\Carbon',
+                'symbol_type' => 'class',
+                'notes' => 'Datums-/Zeit-Helfer in Core- und Theme-Pfaden.',
+            ],
+            [
+                'package' => 'symfony/translation',
+                'label' => 'Symfony Translation',
+                'paths' => [['path' => $assets . 'translation', 'type' => 'dir']],
+                'symbol' => '\\Symfony\\Component\\Translation\\Translator',
+                'symbol_type' => 'class',
+                'notes' => 'I18n-/Übersetzungs-Bundle.',
+            ],
+            [
+                'package' => 'lbuchs/webauthn',
+                'label' => 'WebAuthn',
+                'paths' => [['path' => $assets . 'webauthn', 'type' => 'dir']],
+                'symbol' => '\\lbuchs\\WebAuthn\\WebAuthn',
+                'symbol_type' => 'class',
+                'notes' => 'Passkey-/FIDO2-Unterstützung.',
+            ],
+            [
+                'package' => 'robthree/twofactorauth',
+                'label' => 'TwoFactorAuth',
+                'paths' => [['path' => $assets . 'twofactorauth', 'type' => 'dir']],
+                'symbol' => '\\RobThree\\Auth\\TwoFactorAuth',
+                'symbol_type' => 'class',
+                'notes' => 'TOTP-/MFA-Bundle.',
+            ],
+            [
+                'package' => 'ldaprecord',
+                'label' => 'LdapRecord',
+                'paths' => [['path' => $assets . 'ldaprecord', 'type' => 'dir']],
+                'symbol' => '\\LdapRecord\\Connection',
+                'symbol_type' => 'class',
+                'notes' => 'LDAP-/Verzeichnisintegration.',
+            ],
+            [
+                'package' => 'firebase/php-jwt',
+                'label' => 'Firebase JWT',
+                'paths' => [['path' => $assets . 'php-jwt', 'type' => 'dir']],
+                'symbol' => '\\Firebase\\JWT\\JWT',
+                'symbol_type' => 'class',
+                'notes' => 'JWT-Unterstützung.',
+            ],
+            [
+                'package' => 'psr/log',
+                'label' => 'PSR Log',
+                'paths' => [['path' => $assets . 'psr' . DIRECTORY_SEPARATOR . 'Log', 'type' => 'dir']],
+                'symbol' => '\\Psr\\Log\\LoggerInterface',
+                'symbol_type' => 'interface',
+                'notes' => 'PSR-Kompatibilität für Logging.',
+            ],
+            [
+                'package' => 'symfony/mime',
+                'label' => 'Symfony Mime',
+                'paths' => [['path' => $assets . 'mime', 'type' => 'dir']],
+                'symbol' => '\\Symfony\\Component\\Mime\\Email',
+                'symbol_type' => 'class',
+                'notes' => 'Mime-Komponenten für Mail- und Upload-Pfade.',
+            ],
+            [
+                'package' => 'symfony/mailer',
+                'label' => 'Symfony Mailer',
+                'paths' => [['path' => $assets . 'mailer', 'type' => 'dir']],
+                'symbol' => '\\Symfony\\Component\\Mailer\\Mailer',
+                'symbol_type' => 'class',
+                'notes' => 'Mail-Transport im Core.',
+            ],
+            [
+                'package' => 'psr/event-dispatcher',
+                'label' => 'PSR Event Dispatcher',
+                'paths' => [['path' => $assets . 'psr' . DIRECTORY_SEPARATOR . 'EventDispatcher', 'type' => 'dir']],
+                'symbol' => '\\Psr\\EventDispatcher\\EventDispatcherInterface',
+                'symbol_type' => 'interface',
+                'notes' => 'PSR-Event-Dispatcher-Kompatibilität.',
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function getBundledPlatformManifestDefinitions(): array
+    {
+        return [
+            'symfony/mailer' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'mailer' . DIRECTORY_SEPARATOR . 'composer.json',
+            'symfony/mime' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'mime' . DIRECTORY_SEPARATOR . 'composer.json',
+            'symfony/translation' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'translation' . DIRECTORY_SEPARATOR . 'composer.json',
+        ];
+    }
+
+    private function isPackageLoaded(string $package): bool
+    {
+        return match ($package) {
+            'assets-autoload' => defined('CMS_VENDOR_PATH') || (($this->loadedPackages['assets-autoload'] ?? false) === true),
+            'dompdf' => (($this->loadedPackages['dompdf'] ?? false) === true) || class_exists(\Dompdf\Dompdf::class, false),
+            'melbahja-seo' => (($this->loadedPackages['melbahja-seo'] ?? false) === true) || class_exists(\Melbahja\Seo\Schema::class, true),
+            default => false,
+        };
+    }
+
+    private function isRuntimeSymbolReady(string $symbol, string $type): bool
+    {
+        return match ($type) {
+            'interface' => interface_exists($symbol, true),
+            default => class_exists($symbol, true),
+        };
+    }
+
+    private function pathExists(string $path, string $type): bool
+    {
+        return match ($type) {
+            'dir' => is_dir($path),
+            default => is_file($path),
+        };
+    }
+
+    private function normalizeDisplayedPath(string $path): string
+    {
+        $normalized = str_replace('\\', '/', $path);
+        $normalizedAbs = str_replace('\\', '/', ABSPATH);
+        $normalizedRepo = str_replace('\\', '/', dirname(ABSPATH) . DIRECTORY_SEPARATOR);
+
+        if (str_starts_with($normalized, $normalizedAbs)) {
+            return 'CMS/' . ltrim(substr($normalized, strlen($normalizedAbs)), '/');
+        }
+
+        if (str_starts_with($normalized, $normalizedRepo)) {
+            return ltrim(substr($normalized, strlen($normalizedRepo)), '/');
+        }
+
+        return $normalized;
+    }
+
+    private function extractMinimumPhpVersion(string $manifestPath): ?string
+    {
+        if (!is_file($manifestPath) || !is_readable($manifestPath)) {
+            return null;
+        }
+
+        $raw = file_get_contents($manifestPath);
+        if ($raw === false) {
+            return null;
+        }
+
+        $manifest = Json::decodeArray($raw, []);
+        $phpConstraint = is_array($manifest) ? ($manifest['require']['php'] ?? null) : null;
+
+        if (!is_string($phpConstraint) || trim($phpConstraint) === '') {
+            return null;
+        }
+
+        if (preg_match('/>=\s*([0-9]+(?:\.[0-9]+){0,2})/', $phpConstraint, $matches) === 1) {
+            return $this->normalizeVersion($matches[1]);
+        }
+
+        if (preg_match('/\^\s*([0-9]+(?:\.[0-9]+){0,2})/', $phpConstraint, $matches) === 1) {
+            return $this->normalizeVersion($matches[1]);
+        }
+
+        if (preg_match('/([0-9]+(?:\.[0-9]+){0,2})/', $phpConstraint, $matches) === 1) {
+            return $this->normalizeVersion($matches[1]);
+        }
+
+        return null;
+    }
+
+    private function normalizeVersion(string $version): string
+    {
+        $parts = explode('.', $version);
+        while (count($parts) < 3) {
+            $parts[] = '0';
+        }
+
+        return implode('.', array_slice($parts, 0, 3));
     }
 
     /**

@@ -284,6 +284,8 @@ class FontManagerModule
             return ['success' => false, 'error' => 'Ungültige Font-ID.'];
         }
 
+        $warnings = [];
+
         try {
             // Font-Datei(en) löschen
             $font = $this->db->get_row(
@@ -293,12 +295,12 @@ class FontManagerModule
             if ($font && !empty($font->file_path)) {
                 $absPath = (defined('ABSPATH') ? ABSPATH : '') . ltrim($font->file_path, '/');
                 if (is_file($absPath)) {
-                    @unlink($absPath);
+                    $this->deleteFileIfExists($absPath, $warnings);
                 }
                 // CSS-Datei entfernen
                 $cssPath = preg_replace('/\.\w+$/', '.css', $absPath);
                 if ($cssPath && is_file($cssPath)) {
-                    @unlink($cssPath);
+                    $this->deleteFileIfExists($cssPath, $warnings);
                 }
             }
 
@@ -318,7 +320,12 @@ class FontManagerModule
                 'warning'
             );
 
-            return ['success' => true, 'message' => 'Schriftart gelöscht.'];
+            $message = 'Schriftart gelöscht.';
+            if (!empty($warnings)) {
+                $message .= ' Hinweise: ' . implode(' | ', $warnings);
+            }
+
+            return ['success' => true, 'message' => $message];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
         }
@@ -557,7 +564,7 @@ class FontManagerModule
                 continue;
             }
 
-            $content = @file_get_contents($file->getPathname());
+            $content = $this->readFileContents($file->getPathname());
             if (!is_string($content) || $content === '') {
                 continue;
             }
@@ -674,5 +681,31 @@ class FontManagerModule
         }
 
         return array_values(array_unique($families));
+    }
+
+    /**
+     * @param array<int, string> $warnings
+     */
+    private function deleteFileIfExists(string $path, array &$warnings): bool
+    {
+        if (!is_file($path)) {
+            return true;
+        }
+
+        if (!unlink($path)) {
+            $warnings[] = 'Datei konnte nicht gelöscht werden: ' . basename($path);
+            return false;
+        }
+
+        return true;
+    }
+
+    private function readFileContents(string $path): string|false
+    {
+        if (!is_file($path) || !is_readable($path)) {
+            return false;
+        }
+
+        return file_get_contents($path);
     }
 }

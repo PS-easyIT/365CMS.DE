@@ -32,6 +32,7 @@ final class PublicRouter
     {
         $this->router->addRoute('GET', '/media-proxy.php', [$this, 'redirectLegacyMediaProxy']);
         $this->router->addRoute('POST', '/media-proxy.php', [$this, 'handleLegacyMediaProxyUpload']);
+        $this->router->addRoute('GET', '/media-file', [$this, 'handleMediaDelivery']);
 
         $this->router->addRoute('GET', '/login', [$this, 'renderLogin']);
         $this->router->addRoute('POST', '/login', [$this, 'handleLogin']);
@@ -75,6 +76,11 @@ final class PublicRouter
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode($result['data'] ?? ['error' => 'Unbekannter Fehler'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
+    }
+
+    public function handleMediaDelivery(): void
+    {
+        Services\MediaDeliveryService::getInstance()->handleRequest();
     }
 
     public function renderLogin(): void
@@ -235,15 +241,14 @@ final class PublicRouter
         }
 
         $code = trim((string)($_POST['totp_code'] ?? ''));
-        if (!Auth::instance()->verifyMfaCode($pendingUserId, $code)) {
-            $_SESSION['error'] = 'Ungültiger oder abgelaufener Code. Bitte erneut versuchen.';
+        $mfaResult = \CMS\Auth\AuthManager::instance()->verifyMfa($code);
+        if ($mfaResult !== true) {
+            $_SESSION['error'] = is_string($mfaResult) && $mfaResult !== ''
+                ? $mfaResult
+                : 'Ungültiger oder abgelaufener Code. Bitte erneut versuchen.';
             $this->router->redirect('/mfa-challenge');
             return;
         }
-
-        unset($_SESSION['mfa_pending_user_id']);
-        $_SESSION['user_id'] = $pendingUserId;
-        session_regenerate_id(true);
 
         AuditLogger::instance()->log(
             AuditLogger::CAT_SECURITY,

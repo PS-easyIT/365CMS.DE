@@ -29,11 +29,17 @@ jobs:
       - name: Security-Regressionssuite ausführen
         run: php tests/security/run.php
 
+      - name: Vendor-/Drittpfad-Netzwerkmonitor ausführen
+        run: php tests/vendor-network-monitoring/run.php
+
       - name: HTTP-Cache-/Proxy-Regressionssuite ausführen
         run: php tests/http-cache/run.php
 
       - name: Runtime-/Query-Telemetrie-Regressionssuite ausführen
         run: php tests/runtime-telemetry/run.php
+
+      - name: Release-Smoke-Disziplin prüfen
+        run: php tests/release-smoke/run.php
 
       - name: Architektur-Fitness-Checks ausführen
         run: php tests/architecture/run.php
@@ -43,6 +49,9 @@ jobs:
 
       - name: Media-Settings-Regressionssuite ausführen
         run: php tests/media-settings/run.php
+
+      - name: Media-Delivery-Regressionssuite ausführen
+        run: php tests/media-delivery/run.php
 
       - name: Rollen-/Capability-Regressionssuite ausführen
         run: php tests/roles-capabilities/run.php
@@ -58,6 +67,9 @@ jobs:
 
       - name: DocumentationModule-Architekturcheck ausführen
         run: php tests/documentation-module/run.php
+
+      - name: DocumentationSyncService-Architekturcheck ausführen
+        run: php tests/documentation-sync-service/run.php
 
       - name: SiteTableService-Architekturcheck ausführen
         run: php tests/site-table-service/run.php

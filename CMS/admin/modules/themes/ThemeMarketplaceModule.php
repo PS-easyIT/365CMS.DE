@@ -20,6 +20,16 @@ use CMS\Database;
 
 class ThemeMarketplaceModule
 {
+    private const ALLOWED_MARKETPLACE_HOSTS = [
+        '365network.de',
+        'www.365network.de',
+        'api.github.com',
+        'codeload.github.com',
+        'github.com',
+        'objects.githubusercontent.com',
+        'raw.githubusercontent.com',
+    ];
+
     private ThemeManager $themeManager;
     private HttpClient $httpClient;
 
@@ -55,8 +65,13 @@ class ThemeMarketplaceModule
                 $theme['updateAvailable'] = false;
             }
 
-            $theme['install_supported'] = !empty($theme['download_url']);
-            $theme['manual_install_only'] = empty($theme['download_url']);
+            $theme['integrity_hash'] = $this->resolveIntegrityHash($theme);
+            $theme['integrity_hash_present'] = $theme['integrity_hash'] !== '';
+            $theme['install_supported'] = $this->canAutoInstall($theme);
+            $theme['manual_install_only'] = !$theme['install_supported'];
+            $theme['install_reason'] = $theme['install_supported']
+                ? 'Paket und SHA-256 vorhanden.'
+                : $this->getManualInstallReason($theme);
         }
         unset($theme);
 
@@ -87,15 +102,17 @@ class ThemeMarketplaceModule
         }
 
         $downloadUrl = trim((string) ($theme['download_url'] ?? ''));
-        if ($downloadUrl === '') {
+        $integrityHash = $this->resolveIntegrityHash($theme);
+
+        if (!$this->canAutoInstall($theme)) {
             return [
                 'success' => false,
-                'error' => 'Für dieses Theme ist aktuell kein Installationspaket im Marketplace hinterlegt. Bitte kopiere das Theme manuell nach /themes/ und aktiviere es anschließend in der Theme-Verwaltung.',
+                'error' => $this->getManualInstallReason($theme),
             ];
         }
 
-        if (!$this->isHttpsUrl($downloadUrl)) {
-            return ['success' => false, 'error' => 'Ungültige oder unsichere Download-URL für das Theme.'];
+        if (!$this->isAllowedMarketplaceUrl($downloadUrl)) {
+            return ['success' => false, 'error' => 'Download-URL liegt außerhalb der erlaubten Marketplace-Hosts.'];
         }
 
         if (!class_exists(\ZipArchive::class)) {
@@ -127,6 +144,10 @@ class ThemeMarketplaceModule
                 return ['success' => false, 'error' => 'Temporäres Theme-Paket konnte nicht geschrieben werden.'];
             }
 
+            if (!\CMS\Services\UpdateService::getInstance()->verifyDownloadIntegrity($tmpFile, $integrityHash)) {
+                return ['success' => false, 'error' => 'SHA-256-Prüfsumme des Theme-Pakets stimmt nicht. Installation aus Sicherheitsgründen abgebrochen.'];
+            }
+
             if (!mkdir($extractDir, 0775, true) && !is_dir($extractDir)) {
                 return ['success' => false, 'error' => 'Temporäres Entpack-Verzeichnis konnte nicht erstellt werden.'];
             }
@@ -134,6 +155,11 @@ class ThemeMarketplaceModule
             $zip = new \ZipArchive();
             if ($zip->open($tmpFile) !== true) {
                 return ['success' => false, 'error' => 'ZIP-Datei konnte nicht geöffnet werden.'];
+            }
+
+            if (!$this->validateZipEntries($zip, $slug)) {
+                $zip->close();
+                return ['success' => false, 'error' => 'Theme-Paket enthält ungültige oder unsichere Pfade.'];
             }
 
             if (!$zip->extractTo($extractDir)) {
@@ -240,7 +266,7 @@ class ThemeMarketplaceModule
     private function loadRemoteCatalog(): array
     {
         $repoUrl = $this->getMarketplaceUrl();
-        if (!$this->isHttpsUrl($repoUrl)) {
+        if (!$this->isAllowedMarketplaceUrl($repoUrl)) {
             return [];
         }
 
@@ -296,6 +322,7 @@ class ThemeMarketplaceModule
             $normalized['author'] = (string) ($normalized['author'] ?? '');
             $normalized['download_url'] = $this->resolveDownloadUrl($normalized, $sourceBase);
             $normalized['screenshot'] = $this->resolveAssetUrl((string) ($normalized['screenshot'] ?? ''), $sourceBase);
+            $normalized['sha256'] = $this->resolveIntegrityHash($normalized);
 
             $catalog[] = $normalized;
         }
@@ -310,11 +337,11 @@ class ThemeMarketplaceModule
             return [];
         }
 
-        if ($this->isHttpsUrl($manifest)) {
+        if ($this->isAllowedMarketplaceUrl($manifest)) {
             return $this->fetchRemoteJson($manifest);
         }
 
-        if ($this->isHttpsUrl($sourceBase)) {
+        if ($this->isAllowedMarketplaceUrl($sourceBase)) {
             return $this->fetchRemoteJson(rtrim($sourceBase, '/') . '/' . ltrim($manifest, '/'));
         }
 
@@ -334,7 +361,7 @@ class ThemeMarketplaceModule
 
     private function fetchRemoteJson(string $url): array
     {
-        if (!$this->isHttpsUrl($url)) {
+        if (!$this->isAllowedMarketplaceUrl($url)) {
             return [];
         }
 
@@ -363,12 +390,15 @@ class ThemeMarketplaceModule
                 continue;
             }
 
-            if ($this->isHttpsUrl($value)) {
+            if ($this->isAllowedMarketplaceUrl($value)) {
                 return $value;
             }
 
-            if ($this->isHttpsUrl($sourceBase)) {
-                return rtrim($sourceBase, '/') . '/' . ltrim($value, '/');
+            if ($this->isAllowedMarketplaceUrl($sourceBase)) {
+                $resolved = rtrim($sourceBase, '/') . '/' . ltrim($value, '/');
+                if ($this->isAllowedMarketplaceUrl($resolved)) {
+                    return $resolved;
+                }
             }
         }
 
@@ -382,15 +412,52 @@ class ThemeMarketplaceModule
             return '';
         }
 
-        if ($this->isHttpsUrl($value) || str_starts_with($value, '/')) {
+        if ($this->isAllowedMarketplaceUrl($value) || str_starts_with($value, '/')) {
             return $value;
         }
 
-        if ($this->isHttpsUrl($sourceBase)) {
-            return rtrim($sourceBase, '/') . '/' . ltrim($value, '/');
+        if ($this->isAllowedMarketplaceUrl($sourceBase)) {
+            $resolved = rtrim($sourceBase, '/') . '/' . ltrim($value, '/');
+            return $this->isAllowedMarketplaceUrl($resolved) ? $resolved : '';
         }
 
         return '';
+    }
+
+    private function resolveIntegrityHash(array $theme): string
+    {
+        foreach (['sha256', 'checksum_sha256'] as $key) {
+            $value = strtolower(trim((string)($theme[$key] ?? '')));
+            if ($value !== '' && preg_match('/^[0-9a-f]{64}$/', $value) === 1) {
+                return $value;
+            }
+        }
+
+        return '';
+    }
+
+    private function canAutoInstall(array $theme): bool
+    {
+        $downloadUrl = trim((string)($theme['download_url'] ?? ''));
+        $integrityHash = $this->resolveIntegrityHash($theme);
+
+        return $downloadUrl !== ''
+            && $integrityHash !== ''
+            && $this->isAllowedMarketplaceUrl($downloadUrl);
+    }
+
+    private function getManualInstallReason(array $theme): string
+    {
+        $downloadUrl = trim((string)($theme['download_url'] ?? ''));
+        if ($downloadUrl === '') {
+            return 'Für dieses Theme ist aktuell kein Installationspaket im Marketplace hinterlegt. Bitte kopiere das Theme manuell nach /themes/ und aktiviere es anschließend in der Theme-Verwaltung.';
+        }
+
+        if (!$this->isAllowedMarketplaceUrl($downloadUrl)) {
+            return 'Download-URL liegt außerhalb der erlaubten Marketplace-Hosts.';
+        }
+
+        return 'Für die automatische Installation fehlt eine gültige SHA-256-Prüfsumme. Bitte Paket manuell prüfen und installieren.';
     }
 
     private function findCatalogTheme(string $slug): ?array
@@ -430,6 +497,24 @@ class ThemeMarketplaceModule
     private function isHttpsUrl(string $url): bool
     {
         return filter_var($url, FILTER_VALIDATE_URL) !== false && str_starts_with($url, 'https://');
+    }
+
+    private function isAllowedMarketplaceUrl(string $url): bool
+    {
+        if (!$this->isHttpsUrl($url)) {
+            return false;
+        }
+
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        if ($host === '') {
+            return false;
+        }
+
+        if (in_array($host, self::ALLOWED_MARKETPLACE_HOSTS, true)) {
+            return true;
+        }
+
+        return str_ends_with($host, '.githubusercontent.com');
     }
 
     private function detectThemeDirectory(string $extractDir, string $slug): string
@@ -561,5 +646,51 @@ class ThemeMarketplaceModule
         }
 
         rmdir($path);
+    }
+
+    private function validateZipEntries(\ZipArchive $zip, string $expectedSlug): bool
+    {
+        $expectedSlug = trim($expectedSlug, '/\\');
+        if ($expectedSlug === '') {
+            return false;
+        }
+
+        $allowedRoots = [$expectedSlug];
+        $hasAllowedRoot = false;
+
+        for ($index = 0; $index < $zip->numFiles; $index++) {
+            $entryName = $zip->getNameIndex($index);
+            if (!is_string($entryName) || $entryName === '') {
+                return false;
+            }
+
+            $normalized = str_replace('\\', '/', $entryName);
+            $normalized = ltrim($normalized, '/');
+
+            if ($normalized === ''
+                || str_contains($normalized, '../')
+                || str_contains($normalized, '..\\')
+                || preg_match('~^[A-Za-z]:/~', $normalized) === 1
+            ) {
+                return false;
+            }
+
+            $segments = array_values(array_filter(explode('/', rtrim($normalized, '/')), static fn (string $segment): bool => $segment !== ''));
+            if ($segments === []) {
+                continue;
+            }
+
+            if ($index === 0 && preg_match('/^[a-f0-9]{7,}$/i', $segments[0]) === 1) {
+                $allowedRoots[] = $segments[0];
+            }
+
+            if (!in_array($segments[0], $allowedRoots, true)) {
+                return false;
+            }
+
+            $hasAllowedRoot = true;
+        }
+
+        return $hasAllowedRoot;
     }
 }

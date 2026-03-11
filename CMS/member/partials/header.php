@@ -17,6 +17,8 @@ $bodyClass = 'member-shell member-page-' . preg_replace('/[^a-z0-9\-]+/i', '-', 
 $displayName = $controller->getDisplayName();
 $avatar = $controller->getAvatarUrl();
 $memberMenu = $controller->getMenuItems($pageKey);
+$canAccessAdminPortal = $controller->canAccessAdminPortal();
+$adminPortalUrl = $controller->getAdminPortalUrl();
 ?>
 <!doctype html>
 <html lang="de">
@@ -91,6 +93,9 @@ $memberMenu = $controller->getMenuItems($pageKey);
                         <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
                             <a href="<?= htmlspecialchars($siteUrl) ?>/member/profile" class="dropdown-item">Profil</a>
                             <a href="<?= htmlspecialchars($siteUrl) ?>/member/security" class="dropdown-item">Sicherheit</a>
+                            <?php if ($canAccessAdminPortal): ?>
+                                <a href="<?= htmlspecialchars($siteUrl . $adminPortalUrl) ?>" class="dropdown-item">Adminmenü</a>
+                            <?php endif; ?>
                             <div class="dropdown-divider"></div>
                             <a href="<?= htmlspecialchars($siteUrl) ?>/logout" class="dropdown-item">Abmelden</a>
                         </div>

@@ -253,5 +253,4 @@ PERFORMANCE:
 
 - [core/Services/MediaService.php](../../CMS/core/Services/MediaService.php) – Service-Klasse
 - [admin/media.php](../../CMS/admin/media.php) – Admin-UI
-- [SECURITY-AUDIT.md](../audits/SECURITY-AUDIT.md) – S-07: Datei-Upload-Sicherheit
-- [PERFORMANCE-AUDIT.md](../audits/PERFORMANCE-AUDIT.md) – P-03: WebP-Konvertierung
+- [AUDIT_FACHBEREICHE.md](../audit/AUDIT_FACHBEREICHE.md) – Konsolidierter Upload-, Delivery- und WebP-Auditstand

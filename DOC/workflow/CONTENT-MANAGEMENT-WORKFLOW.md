@@ -204,4 +204,4 @@ TECHNISCH:
 - [admin/pages.php](../../CMS/admin/pages.php) – Seitenverwaltung
 - [core/Services/EditorService.php](../../CMS/core/Services/EditorService.php) – Editor-Service
 - [core/Services/SEOService.php](../../CMS/core/Services/SEOService.php) – SEO-Service
-- [FEATURE-AUDIT.md](../audits/FEATURE-AUDIT.md) – Content-Feature-Anforderungen
+- [AUDIT_FACHBEREICHE.md](../audit/AUDIT_FACHBEREICHE.md) – Konsolidierte Content-/Feature-Anforderungen

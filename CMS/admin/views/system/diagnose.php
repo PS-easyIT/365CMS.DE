@@ -13,6 +13,13 @@ $database    = $data['database'] ?? [];
 $tables      = $data['tables'] ?? [];
 $permissions = $data['permissions'] ?? [];
 $runtime     = $data['runtime'] ?? [];
+$bootstrapProfile = is_array($runtime['bootstrap'] ?? null) ? $runtime['bootstrap'] : [];
+$vendorRegistry = $data['vendor_registry'] ?? [];
+$registrySummary = is_array($vendorRegistry['summary'] ?? null) ? $vendorRegistry['summary'] : [];
+$autoloadDiagnostics = is_array($vendorRegistry['autoload'] ?? null) ? $vendorRegistry['autoload'] : [];
+$managedPackages = is_array($vendorRegistry['packages'] ?? null) ? $vendorRegistry['packages'] : [];
+$bundledLibraries = is_array($vendorRegistry['bundles'] ?? null) ? $vendorRegistry['bundles'] : [];
+$platformDiagnostics = is_array($vendorRegistry['platform'] ?? null) ? $vendorRegistry['platform'] : [];
 
 $missingCount = 0;
 $errorCount = 0;
@@ -79,10 +86,21 @@ foreach ($tables as $tableInfo) {
         </div>
 
         <div class="row row-deck row-cards mb-4">
-            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Runtime-Telemetrie</div><div class="h1 mb-0 <?php echo !empty($runtime['enabled']) ? 'text-success' : 'text-muted'; ?>"><?php echo !empty($runtime['enabled']) ? 'Debug aktiv' : 'Inaktiv'; ?></div></div></div></div>
+            <?php
+            $runtimeActive = !empty($runtime['enabled']) || !empty($runtime['profile_active']) || !empty($bootstrapProfile['active']);
+            $runtimeLabel = !empty($runtime['enabled']) ? 'Debug aktiv' : ($runtimeActive ? 'Profil aktiv' : 'Inaktiv');
+            ?>
+            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Runtime-Telemetrie</div><div class="h1 mb-0 <?php echo $runtimeActive ? 'text-success' : 'text-muted'; ?>"><?php echo htmlspecialchars($runtimeLabel); ?></div></div></div></div>
             <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Request-Laufzeit</div><div class="h1 mb-0"><?php echo htmlspecialchars((string)($runtime['elapsed_time_ms'] ?? '0')); ?> <span class="fs-5 text-secondary">ms</span></div></div></div></div>
             <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">SQL-Queries</div><div class="h1 mb-0"><?php echo htmlspecialchars((string)($runtime['query']['count'] ?? 0)); ?></div><div class="text-secondary small mt-1"><?php echo htmlspecialchars((string)($runtime['query']['total_time_ms'] ?? 0)); ?> ms gesamt</div></div></div></div>
-            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Messpunkte</div><div class="h1 mb-0"><?php echo htmlspecialchars((string)count($runtime['checkpoints'] ?? [])); ?></div><div class="text-secondary small mt-1">Peak <?php echo htmlspecialchars((string)($runtime['memory_peak_mb'] ?? 0)); ?> MB</div></div></div></div>
+            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Bootstrap-Modus</div><div class="h1 mb-0"><?php echo htmlspecialchars((string)($bootstrapProfile['mode'] ?? '—')); ?></div><div class="text-secondary small mt-1"><?php echo htmlspecialchars((string)($bootstrapProfile['bootstrap_ready_ms'] ?? 0)); ?> ms bis ready</div></div></div></div>
+        </div>
+
+        <div class="row row-deck row-cards mb-4">
+            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Registry-Pakete</div><div class="h1 mb-0"><?php echo htmlspecialchars((string)($registrySummary['managed_loaded'] ?? 0)); ?><span class="fs-5 text-secondary"> / <?php echo htmlspecialchars((string)($registrySummary['managed_total'] ?? 0)); ?></span></div><div class="text-secondary small mt-1">geladen via VendorRegistry</div></div></div></div>
+            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Assets-Autoloader</div><div class="h1 mb-0 <?php echo !empty($autoloadDiagnostics['loaded']) ? 'text-success' : 'text-danger'; ?>"><?php echo !empty($autoloadDiagnostics['loaded']) ? 'Aktiv' : 'Inaktiv'; ?></div><div class="text-secondary small mt-1"><?php echo htmlspecialchars((string)($autoloadDiagnostics['active_path'] ?? 'Kein aktiver Pfad')); ?></div></div></div></div>
+            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Runtime-Bundles</div><div class="h1 mb-0"><?php echo htmlspecialchars((string)($registrySummary['bundle_ready'] ?? 0)); ?><span class="fs-5 text-secondary"> / <?php echo htmlspecialchars((string)($registrySummary['bundle_total'] ?? 0)); ?></span></div><div class="text-secondary small mt-1">auflösbare Asset-Libraries</div></div></div></div>
+            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Plattform-Warnungen</div><div class="h1 mb-0 <?php echo ((int)($registrySummary['platform_warning_count'] ?? 0) > 0) ? 'text-warning' : 'text-success'; ?>"><?php echo htmlspecialchars((string)($registrySummary['platform_warning_count'] ?? 0)); ?></div><div class="text-secondary small mt-1">Composer-Manifeste gegen CMS/PHP</div></div></div></div>
         </div>
 
         <div class="row row-cards">
@@ -134,11 +152,283 @@ foreach ($tables as $tableInfo) {
 
             <div class="col-12">
                 <div class="card mb-4">
+                    <div class="card-header"><h3 class="card-title">Vendor- &amp; Asset-Registry</h3></div>
+                    <div class="card-body">
+                        <?php if (!empty($vendorRegistry['error'])): ?>
+                            <div class="alert alert-warning" role="alert">
+                                <?php echo htmlspecialchars((string)$vendorRegistry['error']); ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <div class="row g-4">
+                            <div class="col-12 col-xl-4">
+                                <div class="border rounded-3 h-100 p-3">
+                                    <div class="fw-semibold mb-2">Autoloader-Kandidaten</div>
+                                    <div class="text-secondary small mb-3">Zeigt, welcher produktive oder lokale Fallback-Autoloader aktuell gefunden wurde.</div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-vcenter mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Pfad</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php if (empty($autoloadDiagnostics['candidates']) || !is_array($autoloadDiagnostics['candidates'])): ?>
+                                                    <tr><td colspan="2" class="text-center text-secondary py-3">Keine Kandidaten ermittelt.</td></tr>
+                                                <?php else: ?>
+                                                    <?php foreach ($autoloadDiagnostics['candidates'] as $candidate): ?>
+                                                        <tr>
+                                                            <td><code><?php echo htmlspecialchars((string)($candidate['path'] ?? '')); ?></code></td>
+                                                            <td>
+                                                                <?php if (!empty($candidate['active'])): ?>
+                                                                    <span class="badge bg-success-lt">aktiv</span>
+                                                                <?php elseif (!empty($candidate['exists'])): ?>
+                                                                    <span class="badge bg-primary-lt">gefunden</span>
+                                                                <?php else: ?>
+                                                                    <span class="badge bg-danger-lt">fehlt</span>
+                                                                <?php endif; ?>
+                                                            </td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-xl-4">
+                                <div class="border rounded-3 h-100 p-3">
+                                    <div class="fw-semibold mb-2">Registrierte Produktivpakete</div>
+                                    <div class="text-secondary small mb-3">Zentrale Registry-Einträge, die Bundle-Sonderpfade und den Assets-Autoloader kapseln.</div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-vcenter mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Paket</th>
+                                                    <th>Verfügbar</th>
+                                                    <th>Geladen</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php if ($managedPackages === []): ?>
+                                                    <tr><td colspan="3" class="text-center text-secondary py-3">Keine Registry-Pakete vorhanden.</td></tr>
+                                                <?php else: ?>
+                                                    <?php foreach ($managedPackages as $package): ?>
+                                                        <tr>
+                                                            <td>
+                                                                <div class="fw-semibold"><?php echo htmlspecialchars((string)($package['label'] ?? $package['package'] ?? '')); ?></div>
+                                                                <div class="text-secondary small"><code><?php echo htmlspecialchars((string)($package['path'] ?? '')); ?></code></div>
+                                                            </td>
+                                                            <td><span class="badge bg-<?php echo !empty($package['available']) ? 'success' : 'danger'; ?>-lt"><?php echo !empty($package['available']) ? 'Ja' : 'Nein'; ?></span></td>
+                                                            <td><span class="badge bg-<?php echo !empty($package['loaded']) ? 'success' : 'secondary'; ?>-lt"><?php echo !empty($package['loaded']) ? 'Ja' : 'Nein'; ?></span></td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-xl-4">
+                                <div class="border rounded-3 h-100 p-3">
+                                    <div class="fw-semibold mb-2">Gebündelte Runtime-Libraries</div>
+                                    <div class="text-secondary small mb-3">Direkt aus `CMS/assets/autoload.php` abgeleitete Asset-/Vendor-Bundles mit Verfügbarkeits- und Laufzeitstatus.</div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-vcenter mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Library</th>
+                                                    <th>Datei</th>
+                                                    <th>Runtime</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php if ($bundledLibraries === []): ?>
+                                                    <tr><td colspan="3" class="text-center text-secondary py-3">Keine Asset-Libraries erkannt.</td></tr>
+                                                <?php else: ?>
+                                                    <?php foreach ($bundledLibraries as $library): ?>
+                                                        <tr>
+                                                            <td>
+                                                                <div class="fw-semibold"><?php echo htmlspecialchars((string)($library['label'] ?? $library['package'] ?? '')); ?></div>
+                                                                <div class="text-secondary small"><?php echo htmlspecialchars((string)($library['notes'] ?? '')); ?></div>
+                                                            </td>
+                                                            <td><span class="badge bg-<?php echo !empty($library['available']) ? 'success' : 'danger'; ?>-lt"><?php echo !empty($library['available']) ? 'vorhanden' : 'fehlt'; ?></span></td>
+                                                            <td><span class="badge bg-<?php echo !empty($library['runtime_ready']) ? 'success' : 'secondary'; ?>-lt"><?php echo !empty($library['runtime_ready']) ? 'auflösbar' : 'nicht aufgelöst'; ?></span></td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-4 mt-1">
+                            <div class="col-12">
+                                <div class="border rounded-3 p-3">
+                                    <div class="fw-semibold mb-2">Bundle-Plattformprüfung</div>
+                                    <div class="text-secondary small mb-3">Vergleicht die Composer-Manifeste der Symfony-Bundles mit der offiziellen CMS-Mindestplattform und der aktiven PHP-Runtime.</div>
+                                    <div class="table-responsive">
+                                        <table class="table table-vcenter table-striped mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Paket</th>
+                                                    <th>Manifest</th>
+                                                    <th>Bundle-PHP</th>
+                                                    <th>CMS-Minimum</th>
+                                                    <th>Runtime</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php if ($platformDiagnostics === []): ?>
+                                                    <tr><td colspan="6" class="text-center text-secondary py-3">Keine Manifestdaten vorhanden.</td></tr>
+                                                <?php else: ?>
+                                                    <?php foreach ($platformDiagnostics as $entry): ?>
+                                                        <?php
+                                                        $cmsCompatible = $entry['cms_compatible'] ?? null;
+                                                        $runtimeCompatible = $entry['runtime_compatible'] ?? null;
+                                                        $statusClass = ($cmsCompatible === false || $runtimeCompatible === false) ? 'warning' : 'success';
+                                                        $statusLabel = ($cmsCompatible === false || $runtimeCompatible === false) ? 'Prüfen' : 'OK';
+                                                        if (empty($entry['exists'])) {
+                                                            $statusClass = 'secondary';
+                                                            $statusLabel = 'Fehlt';
+                                                        }
+                                                        ?>
+                                                        <tr>
+                                                            <td><code><?php echo htmlspecialchars((string)($entry['package'] ?? '')); ?></code></td>
+                                                            <td><code><?php echo htmlspecialchars((string)($entry['manifest'] ?? '')); ?></code></td>
+                                                            <td><?php echo htmlspecialchars((string)($entry['required_php'] ?? '—')); ?></td>
+                                                            <td><?php echo htmlspecialchars((string)($entry['cms_required_php'] ?? '—')); ?></td>
+                                                            <td><?php echo htmlspecialchars((string)($entry['runtime_php'] ?? '—')); ?></td>
+                                                            <td><span class="badge bg-<?php echo $statusClass; ?>-lt"><?php echo htmlspecialchars($statusLabel); ?></span></td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="card mb-4">
                     <div class="card-header"><h3 class="card-title">Runtime- &amp; Query-Telemetrie</h3></div>
                     <div class="card-body">
-                        <?php if (empty($runtime['enabled'])): ?>
-                            <div class="text-secondary">Debug-Modus ist derzeit nicht aktiv. Die zusätzlichen Query- und Laufzeitdaten werden nur bei aktiviertem `CMS_DEBUG` gesammelt.</div>
+                        <?php if (empty($runtime['enabled']) && empty($bootstrapProfile['active'])): ?>
+                            <div class="text-secondary">Debug-Modus ist derzeit nicht aktiv. Ohne Profil- oder Debug-Laufzeitdaten können hier keine Bootstrap- oder Query-Messwerte gezeigt werden.</div>
                         <?php else: ?>
+                            <div class="card border-0 shadow-none mb-4">
+                                <div class="card-header px-0 pt-0"><h3 class="card-title">Bootstrap-Profil</h3></div>
+                                <div class="card-body px-0 pb-0">
+                                    <div class="row row-deck row-cards mb-3">
+                                        <div class="col-md-3"><div class="card"><div class="card-body"><div class="subheader">Kaltstart bis Ready</div><div class="h2 mb-0"><?php echo htmlspecialchars((string)($bootstrapProfile['bootstrap_ready_ms'] ?? '0')); ?> <span class="fs-5 text-secondary">ms</span></div></div></div></div>
+                                        <div class="col-md-3"><div class="card"><div class="card-body"><div class="subheader">Nach Bootstrap</div><div class="h2 mb-0"><?php echo htmlspecialchars((string)($bootstrapProfile['post_bootstrap_ms'] ?? '0')); ?> <span class="fs-5 text-secondary">ms</span></div></div></div></div>
+                                        <div class="col-md-3"><div class="card"><div class="card-body"><div class="subheader">Cold-Path-Anteil</div><div class="h2 mb-0"><?php echo htmlspecialchars((string)($bootstrapProfile['cold_path_share_percent'] ?? '0')); ?> <span class="fs-5 text-secondary">%</span></div></div></div></div>
+                                        <div class="col-md-3"><div class="card"><div class="card-body"><div class="subheader">Langsame Phasen</div><div class="h2 mb-0"><?php echo htmlspecialchars((string)($bootstrapProfile['slow_phase_count'] ?? 0)); ?></div><div class="text-secondary small mt-1">ab <?php echo htmlspecialchars((string)($bootstrapProfile['slow_phase_threshold_ms'] ?? 0)); ?> ms</div></div></div></div>
+                                    </div>
+
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-lg-4">
+                                            <div class="border rounded-3 h-100 p-3">
+                                                <div class="fw-semibold mb-2">Profil-Kontext</div>
+                                                <div class="small text-secondary mb-2">Getrennte Sicht auf CLI/API/Admin/Web statt reiner Bauchgefühl-Optimierung.</div>
+                                                <dl class="row mb-0">
+                                                    <dt class="col-5 text-secondary">Modus</dt><dd class="col-7 mb-2"><?php echo htmlspecialchars((string)($bootstrapProfile['mode'] ?? '—')); ?></dd>
+                                                    <dt class="col-5 text-secondary">Methode</dt><dd class="col-7 mb-2"><?php echo htmlspecialchars((string)($bootstrapProfile['request_method'] ?? '—')); ?></dd>
+                                                    <dt class="col-5 text-secondary">SAPI</dt><dd class="col-7 mb-2"><?php echo htmlspecialchars((string)($bootstrapProfile['sapi'] ?? '—')); ?></dd>
+                                                    <dt class="col-5 text-secondary">Pfad</dt><dd class="col-7 mb-0 text-break"><code><?php echo htmlspecialchars((string)($bootstrapProfile['request_uri'] ?? '—')); ?></code></dd>
+                                                </dl>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-8">
+                                            <div class="border rounded-3 h-100 p-3">
+                                                <div class="fw-semibold mb-2">Teuerste Bootstrap-Phasen</div>
+                                                <div class="text-secondary small mb-3">Zeigt die größten Segmente zwischen den Bootstrap-Checkpoints und macht Cold-Path-Kosten transparent.</div>
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm table-vcenter mb-0">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Von</th>
+                                                                <th>Nach</th>
+                                                                <th>Dauer</th>
+                                                                <th>RAM</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <?php if (empty($bootstrapProfile['top_phases'])): ?>
+                                                                <tr><td colspan="4" class="text-center text-secondary py-3">Noch keine Bootstrap-Phasen gemessen.</td></tr>
+                                                            <?php else: ?>
+                                                                <?php foreach (($bootstrapProfile['top_phases'] ?? []) as $phase): ?>
+                                                                    <tr>
+                                                                        <td><code><?php echo htmlspecialchars((string)($phase['from'] ?? '')); ?></code></td>
+                                                                        <td><code><?php echo htmlspecialchars((string)($phase['to'] ?? '')); ?></code></td>
+                                                                        <td><?php echo htmlspecialchars((string)($phase['delta_ms'] ?? '0')); ?> ms</td>
+                                                                        <td><?php echo htmlspecialchars((string)($phase['memory_mb'] ?? '0')); ?> MB</td>
+                                                                    </tr>
+                                                                <?php endforeach; ?>
+                                                            <?php endif; ?>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="table-responsive mb-4">
+                                        <table class="table table-vcenter card-table table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>Von</th>
+                                                    <th>Nach</th>
+                                                    <th>Dauer</th>
+                                                    <th>Gesamtzeit</th>
+                                                    <th>RAM</th>
+                                                    <th>Kontext</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php if (empty($bootstrapProfile['phases'])): ?>
+                                                    <tr><td colspan="6" class="text-center text-secondary py-4">Keine Bootstrap-Phasen vorhanden.</td></tr>
+                                                <?php else: ?>
+                                                    <?php foreach (($bootstrapProfile['phases'] ?? []) as $phase): ?>
+                                                        <tr>
+                                                            <td><code><?php echo htmlspecialchars((string)($phase['from'] ?? '')); ?></code></td>
+                                                            <td><code><?php echo htmlspecialchars((string)($phase['to'] ?? '')); ?></code></td>
+                                                            <td><?php echo htmlspecialchars((string)($phase['delta_ms'] ?? '0')); ?> ms</td>
+                                                            <td><?php echo htmlspecialchars((string)($phase['time_ms'] ?? '0')); ?> ms</td>
+                                                            <td><?php echo htmlspecialchars((string)($phase['memory_mb'] ?? '0')); ?> MB</td>
+                                                            <td>
+                                                                <?php if (!empty($phase['context']) && is_array($phase['context'])): ?>
+                                                                    <code><?php echo htmlspecialchars(json_encode($phase['context'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '', ENT_QUOTES); ?></code>
+                                                                <?php else: ?>
+                                                                    <span class="text-secondary">—</span>
+                                                                <?php endif; ?>
+                                                            </td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <?php if (empty($runtime['enabled'])): ?>
+                                        <div class="alert alert-info" role="alert">
+                                            Debug ist aktuell aus. Das Bootstrap-Profil läuft leichtgewichtig weiter, detaillierte SQL-Queries und Debug-Logs erscheinen jedoch nur mit aktiviertem <code>CMS_DEBUG</code>.
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+
+                            <?php if (!empty($runtime['enabled'])): ?>
                             <div class="row g-3">
                                 <div class="col-lg-6">
                                     <div class="table-responsive">
@@ -202,6 +492,7 @@ foreach ($tables as $tableInfo) {
                                     </div>
                                 </div>
                             </div>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </div>
                 </div>

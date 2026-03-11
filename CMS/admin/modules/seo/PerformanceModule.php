@@ -114,7 +114,7 @@ final class PerformanceModule
 
     private function getPhpInfo(): array
     {
-        $opcacheStatus = function_exists('opcache_get_status') ? @opcache_get_status(false) : false;
+        $opcacheStatus = $this->getOpcacheStatus();
 
         return [
             'version' => PHP_VERSION,
@@ -256,7 +256,7 @@ final class PerformanceModule
                     continue;
                 }
 
-                $dimensions = @getimagesize($file->getPathname()) ?: [0, 0];
+                $dimensions = $this->getImageSize($file->getPathname()) ?: [0, 0];
                 $largestImages[] = [
                     'path' => str_replace(ABSPATH, '', $file->getPathname()),
                     'size' => $file->getSize(),
@@ -354,7 +354,7 @@ final class PerformanceModule
             $webpSize = (int)filesize($webpPath);
             if ($webpSize <= 0 || $webpSize >= $originalSize) {
                 if ($webpPath !== $sourcePath && is_file($webpPath)) {
-                    @unlink($webpPath);
+                    $this->deleteFileIfExists($webpPath);
                 }
                 $skipped++;
                 continue;
@@ -363,7 +363,7 @@ final class PerformanceModule
             $updatedReferences += $this->replaceMediaReferences($sourcePath, $webpPath, $webpSize);
 
             if (is_file($sourcePath)) {
-                @unlink($sourcePath);
+                $this->deleteFileIfExists($sourcePath);
             }
 
             $converted++;
@@ -868,5 +868,41 @@ final class PerformanceModule
         }
 
         return $bytes . ' B';
+    }
+
+    private function getOpcacheStatus(): array|false
+    {
+        if (!function_exists('opcache_get_status')) {
+            return false;
+        }
+
+        return $this->runSuppressedOperation(static fn() => opcache_get_status(false));
+    }
+
+    private function getImageSize(string $path): array|false
+    {
+        return $this->runSuppressedOperation(static fn() => getimagesize($path));
+    }
+
+    private function deleteFileIfExists(string $path): bool
+    {
+        if (!is_file($path)) {
+            return true;
+        }
+
+        return unlink($path);
+    }
+
+    private function runSuppressedOperation(callable $operation): mixed
+    {
+        set_error_handler(static function (): bool {
+            return true;
+        });
+
+        try {
+            return $operation();
+        } finally {
+            restore_error_handler();
+        }
     }
 }

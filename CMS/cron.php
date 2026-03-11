@@ -29,9 +29,13 @@ spl_autoload_register(function ($class) {
     $file = $baseDir . str_replace('\\', '/', $relativeClass) . '.php';
 
     if (file_exists($file)) {
-        require $file;
+        require_once $file;
     }
 });
+
+if (PHP_SAPI !== 'cli') {
+    \CMS\CacheManager::instance()->sendResponseHeaders('private');
+}
 
 $respond = static function (array $payload, int $statusCode = 200): void {
     if (PHP_SAPI !== 'cli' && !headers_sent()) {

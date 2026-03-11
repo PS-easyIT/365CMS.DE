@@ -1,0 +1,319 @@
+(function () {
+    'use strict';
+
+    function parseJsonInput(id, fallback) {
+        var input = document.getElementById(id);
+        if (!input || !input.value) {
+            return fallback;
+        }
+
+        try {
+            return JSON.parse(input.value);
+        } catch (_error) {
+            return fallback;
+        }
+    }
+
+    function escapeHtml(value) {
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(value || ''));
+        return div.innerHTML;
+    }
+
+    function showAlert(type, message) {
+        if (typeof window.cmsAlert === 'function') {
+            window.cmsAlert(type, message);
+            return;
+        }
+
+        console[type === 'danger' ? 'error' : 'log'](message);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var form = document.getElementById('hubSiteForm');
+        var siteConfig = parseJsonInput('hubSiteConfigInput', {});
+        var templateProfiles = parseJsonInput('hubTemplateProfilesInput', {});
+        var cards = parseJsonInput('cardsJsonInput', []);
+        var container;
+        var emptyState;
+        var input;
+        var titleInput;
+        var templateSelect;
+        var slugPreviewInput;
+        var openPublicAfterSaveInput;
+        var saveAndOpenPublicButton;
+        var copySlugPreviewButton;
+        var cardSchemaHint;
+        var languageToggleButtons;
+        var initialTemplateValue;
+        var activeLanguage = 'de';
+
+        if (!form) {
+            return;
+        }
+
+        container = document.getElementById('cardsContainer');
+        emptyState = document.getElementById('cardsEmpty');
+        input = document.getElementById('cardsJsonInput');
+        titleInput = form.querySelector('input[name="site_name"]');
+        templateSelect = document.getElementById('hubTemplateSelect');
+        slugPreviewInput = document.getElementById('hubSlugPreviewInput');
+        openPublicAfterSaveInput = document.getElementById('openPublicAfterSaveInput');
+        saveAndOpenPublicButton = document.getElementById('saveAndOpenPublicButton');
+        copySlugPreviewButton = document.getElementById('copySlugPreviewButton');
+        cardSchemaHint = document.getElementById('cardSchemaHint');
+        languageToggleButtons = document.querySelectorAll('[data-hub-lang-toggle]');
+        initialTemplateValue = templateSelect ? templateSelect.value : 'general-it';
+        cards = Array.isArray(cards) ? cards : [];
+
+        function getTemplateProfile() {
+            var key = templateSelect ? templateSelect.value : initialTemplateValue;
+            return templateProfiles[key] || templateProfiles['general-it'] || {};
+        }
+
+        function getCardSchema() {
+            var profile = getTemplateProfile();
+            var schema = profile.card_schema || {};
+
+            return {
+                columns: Math.min(3, Math.max(1, parseInt(schema.columns || 2, 10) || 2)),
+                title_label: schema.title_label || 'Titel',
+                summary_label: schema.summary_label || 'Kurzbeschreibung',
+                badge_label: schema.badge_label || 'Badge',
+                meta_left_label: schema.meta_left_label || 'Meta links',
+                meta_right_label: schema.meta_right_label || 'Meta rechts',
+                image_label: schema.image_label || 'Bild-URL',
+                image_alt_label: schema.image_alt_label || 'Bild-Alt',
+                button_text_label: schema.button_text_label || 'Button-Text',
+                button_link_label: schema.button_link_label || 'Button-Link'
+            };
+        }
+
+        function defaultCard() {
+            return {
+                title: '',
+                title_en: '',
+                url: '#',
+                badge: '',
+                badge_en: '',
+                meta: '',
+                meta_en: '',
+                meta_left: '',
+                meta_left_en: '',
+                meta_right: '',
+                meta_right_en: '',
+                image_url: '',
+                image_alt: '',
+                image_alt_en: '',
+                summary: '',
+                summary_en: '',
+                button_text: '',
+                button_text_en: '',
+                button_link: ''
+            };
+        }
+
+        function normalizeCard(card) {
+            return Object.assign(defaultCard(), card || {});
+        }
+
+        function sync() {
+            input.value = JSON.stringify(cards);
+        }
+
+        function slugify(value) {
+            return String(value || '')
+                .trim()
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '');
+        }
+
+        function currentPublicUrl() {
+            var slugValue = (slugPreviewInput.value || '').replace(/^\//, '').trim();
+            return String(siteConfig.siteUrl || '').replace(/\/+$/, '') + '/' + slugValue;
+        }
+
+        function copyHubUrl(url) {
+            if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
+                showAlert('warning', 'Kopieren wird von diesem Browser leider nicht unterstützt.');
+                return;
+            }
+
+            navigator.clipboard.writeText(url).then(function () {
+                showAlert('success', 'Public URL wurde in die Zwischenablage kopiert.');
+            }).catch(function () {
+                showAlert('danger', 'Public URL konnte nicht kopiert werden.');
+            });
+        }
+
+        function updateSlugPreview() {
+            var storedSlug = String(siteConfig.storedSlug || '');
+            var nextSlug = storedSlug || slugify(titleInput ? titleInput.value : '') || 'hub-site';
+
+            slugPreviewInput.value = '/' + nextSlug;
+            if (copySlugPreviewButton) {
+                copySlugPreviewButton.disabled = nextSlug === '';
+            }
+        }
+
+        function applyStarterCardsIfNeeded(force) {
+            var profile = getTemplateProfile();
+            var starters = Array.isArray(profile.starter_cards) ? profile.starter_cards : [];
+
+            if ((!force && cards.length > 0) || starters.length === 0) {
+                return;
+            }
+
+            cards = starters.map(function (card) {
+                return normalizeCard(card);
+            });
+            sync();
+            render();
+        }
+
+        function setActiveLanguage(lang) {
+            activeLanguage = lang === 'en' ? 'en' : 'de';
+
+            document.querySelectorAll('[data-lang-pane]').forEach(function (pane) {
+                var isMatch = pane.getAttribute('data-lang-pane') === activeLanguage;
+                pane.classList.toggle('d-none', !isMatch);
+            });
+
+            languageToggleButtons.forEach(function (button) {
+                var isActive = button.getAttribute('data-hub-lang-toggle') === activeLanguage;
+                button.classList.toggle('btn-primary', isActive);
+                button.classList.toggle('btn-outline-primary', !isActive);
+                button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            });
+
+            render();
+        }
+
+        function render() {
+            var schema = getCardSchema();
+            var titleKey = activeLanguage === 'en' ? 'title_en' : 'title';
+            var badgeKey = activeLanguage === 'en' ? 'badge_en' : 'badge';
+            var metaKey = activeLanguage === 'en' ? 'meta_en' : 'meta';
+            var metaLeftKey = activeLanguage === 'en' ? 'meta_left_en' : 'meta_left';
+            var metaRightKey = activeLanguage === 'en' ? 'meta_right_en' : 'meta_right';
+            var imageAltKey = activeLanguage === 'en' ? 'image_alt_en' : 'image_alt';
+            var summaryKey = activeLanguage === 'en' ? 'summary_en' : 'summary';
+            var buttonTextKey = activeLanguage === 'en' ? 'button_text_en' : 'button_text';
+            var suffix = activeLanguage === 'en' ? ' (EN)' : '';
+
+            container.innerHTML = '';
+            emptyState.classList.toggle('d-none', cards.length !== 0);
+
+            if (cardSchemaHint) {
+                cardSchemaHint.textContent = 'Template-Vorgabe: ' + schema.columns + ' Kachel' + (schema.columns === 1 ? '' : 'n') + ' pro Reihe. Aktive Sprachansicht: ' + (activeLanguage === 'en' ? 'English' : 'Deutsch') + '.';
+            }
+
+            cards.forEach(function (card, index) {
+                var html = '';
+                card = normalizeCard(card);
+                cards[index] = card;
+                html += '<div class="border-bottom p-3">';
+                html += '  <div class="row g-2">';
+                html += '    <div class="col-md-6"><label class="form-label small">' + escapeHtml(schema.title_label + suffix) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card[titleKey] || '') + '" data-index="' + index + '" data-key="' + titleKey + '"></div>';
+                html += '    <div class="col-md-6"><label class="form-label small">URL</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.url || '') + '" data-index="' + index + '" data-key="url"></div>';
+                html += '    <div class="col-md-6"><label class="form-label small">' + escapeHtml(schema.badge_label + suffix) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card[badgeKey] || '') + '" data-index="' + index + '" data-key="' + badgeKey + '"></div>';
+                html += '    <div class="col-md-6"><label class="form-label small">Legacy Meta' + escapeHtml(suffix) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card[metaKey] || '') + '" data-index="' + index + '" data-key="' + metaKey + '"></div>';
+                html += '    <div class="col-md-6"><label class="form-label small">' + escapeHtml(schema.meta_left_label + suffix) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card[metaLeftKey] || '') + '" data-index="' + index + '" data-key="' + metaLeftKey + '"></div>';
+                html += '    <div class="col-md-6"><label class="form-label small">' + escapeHtml(schema.meta_right_label + suffix) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card[metaRightKey] || '') + '" data-index="' + index + '" data-key="' + metaRightKey + '"></div>';
+                html += '    <div class="col-md-6"><label class="form-label small">' + escapeHtml(schema.button_text_label + suffix) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card[buttonTextKey] || '') + '" data-index="' + index + '" data-key="' + buttonTextKey + '"></div>';
+                html += '    <div class="col-md-6"><label class="form-label small">' + escapeHtml(schema.button_link_label) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.button_link || '') + '" data-index="' + index + '" data-key="button_link"></div>';
+                html += '    <div class="col-md-8"><label class="form-label small">' + escapeHtml(schema.image_label) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.image_url || '') + '" data-index="' + index + '" data-key="image_url" placeholder="https://… oder /uploads/..."></div>';
+                html += '    <div class="col-md-4"><label class="form-label small">' + escapeHtml(schema.image_alt_label + suffix) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card[imageAltKey] || '') + '" data-index="' + index + '" data-key="' + imageAltKey + '"></div>';
+                html += '    <div class="col-12"><label class="form-label small">' + escapeHtml(schema.summary_label + suffix) + '</label><textarea class="form-control form-control-sm" rows="3" data-index="' + index + '" data-key="' + summaryKey + '">' + escapeHtml(card[summaryKey] || '') + '</textarea></div>';
+                html += '    <div class="col-12 text-end"><button type="button" class="btn btn-outline-danger btn-sm remove-card" data-index="' + index + '">Entfernen</button></div>';
+                html += '  </div>';
+                html += '</div>';
+                container.insertAdjacentHTML('beforeend', html);
+            });
+
+            sync();
+        }
+
+        document.getElementById('addCard').addEventListener('click', function () {
+            cards.push(defaultCard());
+            render();
+        });
+
+        if (templateSelect) {
+            templateSelect.addEventListener('change', function () {
+                applyStarterCardsIfNeeded(cards.length === 0);
+                render();
+            });
+        }
+
+        if (titleInput) {
+            titleInput.addEventListener('input', updateSlugPreview);
+        }
+
+        languageToggleButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                setActiveLanguage(button.getAttribute('data-hub-lang-toggle') || 'de');
+            });
+        });
+
+        if (copySlugPreviewButton) {
+            copySlugPreviewButton.addEventListener('click', function () {
+                copyHubUrl(currentPublicUrl());
+            });
+        }
+
+        document.querySelectorAll('[data-copy-hub-url]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                copyHubUrl(button.getAttribute('data-copy-hub-url') || currentPublicUrl());
+            });
+        });
+
+        if (saveAndOpenPublicButton) {
+            saveAndOpenPublicButton.addEventListener('click', function () {
+                openPublicAfterSaveInput.value = '1';
+                form.submit();
+            });
+        }
+
+        form.addEventListener('submit', function () {
+            if (document.activeElement !== saveAndOpenPublicButton) {
+                openPublicAfterSaveInput.value = '0';
+            }
+        });
+
+        container.addEventListener('input', function (event) {
+            var target = event.target;
+            var index = parseInt(target.dataset.index || '-1', 10);
+            var key = target.dataset.key || '';
+            if (index < 0 || !cards[index] || !key) {
+                return;
+            }
+            cards[index][key] = target.value;
+            sync();
+        });
+
+        container.addEventListener('click', function (event) {
+            var button = event.target.closest('.remove-card');
+            var index;
+            if (!button) {
+                return;
+            }
+            index = parseInt(button.dataset.index || '-1', 10);
+            if (index < 0) {
+                return;
+            }
+            cards.splice(index, 1);
+            render();
+        });
+
+        cards = cards.map(function (card) {
+            return normalizeCard(card);
+        });
+        applyStarterCardsIfNeeded(Boolean(siteConfig.isNew));
+        setActiveLanguage('de');
+        updateSlugPreview();
+    });
+})();

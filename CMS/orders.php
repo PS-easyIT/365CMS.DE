@@ -12,6 +12,17 @@ if (file_exists(__DIR__ . '/config.php')) {
     require_once __DIR__ . '/config.php';
 } else {
     // If config doesn't exist, redirect to install
+    if (!defined('ABSPATH')) {
+        define('ABSPATH', __DIR__ . DIRECTORY_SEPARATOR);
+    }
+
+    if (PHP_SAPI !== 'cli') {
+        require_once __DIR__ . '/core/Contracts/CacheInterface.php';
+        require_once __DIR__ . '/core/CacheManager.php';
+
+        \CMS\CacheManager::instance()->sendResponseHeaders('private');
+    }
+
     header('Location: install.php');
     exit;
 }

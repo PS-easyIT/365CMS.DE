@@ -101,6 +101,225 @@ $tests = [
 
         assertTrue($violations === [], implode(' | ', $violations));
     },
+    'Architekturregel: Legacy-Entry-Points senden private Cache-Header über den CacheManager' => static function () use ($projectRoot, $cmsRoot): void {
+        $targets = [
+            'CMS/config.php',
+            'CMS/install.php',
+            'CMS/cron.php',
+            'CMS/orders.php',
+            'CMS/index.php',
+        ];
+
+        $violations = [];
+
+        foreach ($targets as $relative) {
+            $fullPath = $projectRoot . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+            $content = file_get_contents($fullPath);
+
+            if ($content === false) {
+                $violations[] = $relative . ': Datei konnte nicht gelesen werden';
+                continue;
+            }
+
+            if (!str_contains($content, "sendResponseHeaders('private')")) {
+                $violations[] = $relative . ': private Cache-Header via CacheManager fehlen';
+            }
+        }
+
+        assertTrue($violations === [], implode(' | ', $violations));
+    },
+    'Architekturregel: Admin-Content- und Hub-Views laden zentrale Assets statt großer Inline-Skripte' => static function () use ($projectRoot): void {
+        $inlineScriptFreeViews = [
+            'CMS/admin/views/pages/edit.php',
+            'CMS/admin/views/posts/edit.php',
+            'CMS/admin/views/hub/edit.php',
+        ];
+
+        $entryPointAssets = [
+            'CMS/admin/pages.php' => ['admin-seo-editor.js', 'admin-content-editor.js'],
+            'CMS/admin/posts.php' => ['admin-seo-editor.js', 'admin-content-editor.js'],
+            'CMS/admin/hub-sites.php' => ['admin-hub-site-edit.js'],
+        ];
+
+        $violations = [];
+
+        foreach ($inlineScriptFreeViews as $relative) {
+            $fullPath = $projectRoot . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+            $content = file_get_contents($fullPath);
+
+            if ($content === false) {
+                $violations[] = $relative . ': Datei konnte nicht gelesen werden';
+                continue;
+            }
+
+            if (stripos($content, '<script') !== false) {
+                $violations[] = $relative . ': enthält weiterhin Inline-Script-Markup';
+            }
+        }
+
+        foreach ($entryPointAssets as $relative => $assets) {
+            $fullPath = $projectRoot . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+            $content = file_get_contents($fullPath);
+
+            if ($content === false) {
+                $violations[] = $relative . ': Datei konnte nicht gelesen werden';
+                continue;
+            }
+
+            foreach ($assets as $asset) {
+                if (!str_contains($content, $asset)) {
+                    $violations[] = $relative . ': bindet ' . $asset . ' nicht zentral ein';
+                }
+            }
+        }
+
+        assertTrue($violations === [], implode(' | ', $violations));
+    },
+    'Architekturregel: MFA-Public-Routen umgehen die generische form_guard-CSRF-Schranke' => static function () use ($projectRoot): void {
+        $routerPath = $projectRoot . DIRECTORY_SEPARATOR . 'CMS/core/Router.php';
+        $publicRouterPath = $projectRoot . DIRECTORY_SEPARATOR . 'CMS/core/Routing/PublicRouter.php';
+
+        $routerContent = file_get_contents($routerPath);
+        $publicRouterContent = file_get_contents($publicRouterPath);
+        $violations = [];
+
+        if ($routerContent === false) {
+            $violations[] = 'CMS/core/Router.php: Datei konnte nicht gelesen werden';
+        }
+
+        if ($publicRouterContent === false) {
+            $violations[] = 'CMS/core/Routing/PublicRouter.php: Datei konnte nicht gelesen werden';
+        }
+
+        if ($routerContent !== false) {
+            foreach (['/mfa-challenge', '/mfa-setup', '/mfa-disable'] as $route) {
+                if (!str_contains($routerContent, "'{$route}'")) {
+                    $violations[] = 'CMS/core/Router.php: MFA-Bypass für ' . $route . ' fehlt';
+                }
+            }
+        }
+
+        if ($publicRouterContent !== false) {
+            $expectedRoutes = [
+                "addRoute('POST', '/mfa-challenge'",
+                "addRoute('POST', '/mfa-setup'",
+                "addRoute('POST', '/mfa-disable'",
+                'AuthManager::instance()->verifyMfa($code)',
+            ];
+
+            foreach ($expectedRoutes as $needle) {
+                if (!str_contains($publicRouterContent, $needle)) {
+                    $violations[] = 'CMS/core/Routing/PublicRouter.php: erwartet ' . $needle;
+                }
+            }
+
+            if (str_contains($publicRouterContent, '$_SESSION[\'user_id\'] = $pendingUserId')) {
+                $violations[] = 'CMS/core/Routing/PublicRouter.php: setzt nach MFA weiterhin user_id manuell statt den zentralen AuthManager-Pfad zu nutzen';
+            }
+        }
+
+        assertTrue($violations === [], implode(' | ', $violations));
+    },
+    'Architekturregel: Admin-Section-Shells und Subnavs verwenden gemeinsame Layout-Bausteine' => static function () use ($projectRoot): void {
+        $sectionPages = [
+            'CMS/admin/performance-page.php',
+            'CMS/admin/member-dashboard-page.php',
+            'CMS/admin/system-monitor-page.php',
+        ];
+
+        $sectionSubnavs = [
+            'CMS/admin/views/performance/subnav.php',
+            'CMS/admin/views/member/subnav.php',
+            'CMS/admin/views/system/subnav.php',
+        ];
+
+        $violations = [];
+
+        foreach ($sectionPages as $relative) {
+            $fullPath = $projectRoot . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+            $content = file_get_contents($fullPath);
+
+            if ($content === false) {
+                $violations[] = $relative . ': Datei konnte nicht gelesen werden';
+                continue;
+            }
+
+            if (!str_contains($content, "partials/section-page-shell.php")) {
+                $violations[] = $relative . ': nutzt die gemeinsame Section-Shell nicht';
+            }
+        }
+
+        foreach ($sectionSubnavs as $relative) {
+            $fullPath = $projectRoot . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+            $content = file_get_contents($fullPath);
+
+            if ($content === false) {
+                $violations[] = $relative . ': Datei konnte nicht gelesen werden';
+                continue;
+            }
+
+            if (!str_contains($content, 'partials/section-subnav.php')) {
+                $violations[] = $relative . ': nutzt die gemeinsame Section-Subnav nicht';
+            }
+        }
+
+        assertTrue($violations === [], implode(' | ', $violations));
+    },
+    'Architekturregel: Diagnose bindet Vendor-/Asset-Registry sichtbar an' => static function () use ($projectRoot): void {
+        $targets = [
+            'CMS/core/VendorRegistry.php' => ['getDiagnostics(', 'getBundledLibraryDiagnostics(', 'getBundledPlatformDiagnostics('],
+            'CMS/admin/modules/system/SystemInfoModule.php' => ['vendor_registry', 'getVendorRegistryDiagnosticsSafe('],
+            'CMS/admin/views/system/diagnose.php' => ['Vendor- &amp; Asset-Registry', 'Bundle-Plattformprüfung', 'Registrierte Produktivpakete'],
+        ];
+
+        $violations = [];
+
+        foreach ($targets as $relative => $needles) {
+            $fullPath = $projectRoot . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+            $content = file_get_contents($fullPath);
+
+            if ($content === false) {
+                $violations[] = $relative . ': Datei konnte nicht gelesen werden';
+                continue;
+            }
+
+            foreach ($needles as $needle) {
+                if (!str_contains($content, $needle)) {
+                    $violations[] = $relative . ': erwartet ' . $needle;
+                }
+            }
+        }
+
+        assertTrue($violations === [], implode(' | ', $violations));
+    },
+    'Architekturregel: Bootstrap-Profile werden früh gemessen und im Admin sichtbar ausgewertet' => static function () use ($projectRoot): void {
+        $targets = [
+            'CMS/core/Bootstrap.php' => ["require_once CORE_PATH . 'Debug.php';", "Debug::checkpoint('bootstrap.start'", "Debug::resetRuntimeProfile(["],
+            'CMS/core/Debug.php' => ['getBootstrapTelemetry()', "'bootstrap' => self::getBootstrapTelemetry()", 'SLOW_PHASE_THRESHOLD_MS'],
+            'CMS/admin/views/system/diagnose.php' => ['Bootstrap-Profil', 'Kaltstart bis Ready', 'Cold-Path-Anteil'],
+            'tests/runtime-telemetry/run.php' => ['Bootstrap-Profil bleibt auch ohne Debug-Modus', 'bootstrap.start'],
+        ];
+
+        $violations = [];
+
+        foreach ($targets as $relative => $needles) {
+            $fullPath = $projectRoot . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+            $content = file_get_contents($fullPath);
+
+            if ($content === false) {
+                $violations[] = $relative . ': Datei konnte nicht gelesen werden';
+                continue;
+            }
+
+            foreach ($needles as $needle) {
+                if (!str_contains($content, $needle)) {
+                    $violations[] = $relative . ': erwartet ' . $needle;
+                }
+            }
+        }
+
+        assertTrue($violations === [], implode(' | ', $violations));
+    },
     'Architekturregel: Core-Dateien verwenden den CMS-Namespace' => static function () use ($projectRoot, $cmsRoot): void {
         $violations = [];
         $iterator = new RecursiveIteratorIterator(

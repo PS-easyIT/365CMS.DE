@@ -175,7 +175,7 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                             <div class="small text-secondary mb-2">Erscheint links vom Seitentitel im Content-Header.</div>
                             <div id="featuredImagePreview" class="mb-2">
                                 <?php if ($pageFeaturedImageValue !== ''): ?>
-                                    <img src="<?= htmlspecialchars($pageFeaturedImageValue) ?>" alt="" class="img-fluid rounded" style="max-height:120px;object-fit:cover;width:100%;">
+                                    <img src="<?= htmlspecialchars(\CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl($pageFeaturedImageValue, true)) ?>" alt="" class="img-fluid rounded" style="max-height:120px;object-fit:cover;width:100%;">
                                 <?php endif; ?>
                             </div>
                             <input type="hidden" name="featured_image" id="featuredImageInput" value="<?= htmlspecialchars($pageFeaturedImageValue) ?>">
@@ -413,165 +413,101 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
         $pickerIsNew = $isNew;
         $pickerContentType = 'page';
         require __DIR__ . '/../partials/featured-image-picker.php';
+
+        $pageContentUiConfig = [
+            'formId' => 'pageForm',
+            'removeButtonId' => 'featuredImageRemove',
+            'imageInputId' => 'featuredImageInput',
+            'previewContainerId' => 'featuredImagePreview',
+            'emptyStateId' => 'featuredImageEmpty',
+            'slugInputId' => 'pageSlug',
+            'previewUrlId' => 'pagePreviewUrl',
+            'previewBaseUrl' => rtrim($siteUrl, '/') . '/',
+            'statusSelectId' => 'pageStatusSelect',
+            'statusBadgeId' => 'pageStatusBadge',
+            'statusMap' => [
+                'draft' => ['label' => 'Entwurf', 'className' => 'badge bg-yellow-lt text-yellow'],
+                'published' => ['label' => 'Veröffentlicht', 'className' => 'badge bg-green-lt text-green'],
+                'private' => ['label' => 'Privat', 'className' => 'badge bg-azure-lt text-azure'],
+            ],
+            'languageToggleSelector' => '[data-lang-toggle]',
+            'languagePaneSelector' => '[data-page-lang-pane]',
+            'languageAttribute' => 'data-lang-toggle',
+            'languagePaneAttribute' => 'data-page-lang-pane',
+            'defaultLanguage' => 'de',
+            'countBindings' => [
+                ['sourceId' => 'pageTitle', 'targetId' => 'pageTitleCount'],
+                ['sourceId' => 'pageSlug', 'targetId' => 'pageSlugCount'],
+                ['sourceId' => 'pageMetaTitle', 'targetId' => 'metaTitleCount'],
+                ['sourceId' => 'pageMetaDescription', 'targetId' => 'metaDescriptionCount'],
+            ],
+        ];
+
+        $pageContentSeoConfig = [
+            'formId' => 'pageForm',
+            'titleId' => 'pageTitle',
+            'slugId' => 'pageSlug',
+            'metaTitleId' => 'pageMetaTitle',
+            'metaDescId' => 'pageMetaDescription',
+            'focusKeyphraseId' => 'pageFocusKeyphrase',
+            'ogTitleId' => 'pageOgTitle',
+            'ogDescriptionId' => 'pageOgDescription',
+            'ogImageId' => 'pageOgImage',
+            'twitterTitleId' => 'pageTwitterTitle',
+            'twitterDescriptionId' => 'pageTwitterDescription',
+            'twitterImageId' => 'pageTwitterImage',
+            'featuredImageId' => 'featuredImageInput',
+            'statusId' => 'pageStatusSelect',
+            'contentInputId' => 'editorContent',
+            'editorContainerId' => 'editorjs',
+            'serpTitleId' => 'pageSerpTitle',
+            'serpUrlId' => 'pageSerpUrl',
+            'serpDescriptionId' => 'pageSerpDescription',
+            'scoreBarId' => 'pageSeoScoreBar',
+            'scoreLabelId' => 'pageSeoScoreLabel',
+            'scoreBadgeId' => 'pageSeoScoreBadge',
+            'scoreRulesId' => 'pageSeoRules',
+            'socialTitleId' => 'pageSocialTitle',
+            'socialDescriptionId' => 'pageSocialDescription',
+            'socialImageId' => 'pageSocialImage',
+            'publishWarningId' => 'pagePublishWarning',
+            'slugStateId' => 'pageSlugState',
+            'wordCountId' => 'pageWordCount',
+            'densityId' => 'pageDensity',
+            'internalLinksId' => 'pageInternalLinks',
+            'externalLinksId' => 'pageExternalLinks',
+            'transitionWordsId' => 'pageTransitionWords',
+            'longSentencesId' => 'pageLongSentences',
+            'longParagraphsId' => 'pageLongParagraphs',
+            'missingAltId' => 'pageMissingAlt',
+            'readabilityBadgeId' => 'pageReadabilityBadge',
+            'readabilitySummaryId' => 'pageReadabilitySummary',
+            'previewBaseUrl' => rtrim($siteUrl, '/') . '/',
+            'siteName' => (string)SITE_NAME,
+            'siteTitleFormat' => (string)($seoTemplateSettings['site_title_format'] ?? '%%title%% %%sep%% %%sitename%%'),
+            'titleSeparator' => (string)($seoTemplateSettings['title_separator'] ?? '|'),
+            'minWords' => (int)($seoTemplateSettings['analysis_min_words'] ?? 300),
+            'maxSentenceWords' => (int)($seoTemplateSettings['analysis_sentence_words'] ?? 24),
+            'maxParagraphWords' => (int)($seoTemplateSettings['analysis_paragraph_words'] ?? 120),
+            'fallbackImage' => $pageFeaturedImageValue,
+        ];
+
+        $pageContentEditorJsConfig = !empty($useEditorJs) ? [
+            'formId' => 'pageForm',
+            'mediaUploadUrl' => rtrim((defined('SITE_URL') ? SITE_URL : ''), '/') . '/api/media',
+            'csrfToken' => $editorMediaToken ?? '',
+            'editors' => [
+                ['key' => 'de', 'holderId' => 'editorjs', 'inputId' => 'editorContent', 'lazy' => false],
+                ['key' => 'en', 'holderId' => 'editorjsEn', 'inputId' => 'editorContentEn', 'lazy' => true, 'activateButtonId' => 'pageLangToggleEn'],
+            ],
+        ] : null;
         ?>
+
+        <input type="hidden" id="contentEditorUiConfig" value="<?= htmlspecialchars((string) json_encode($pageContentUiConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES) ?>">
+        <input type="hidden" id="contentEditorSeoConfig" value="<?= htmlspecialchars((string) json_encode($pageContentSeoConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES) ?>">
+        <?php if ($pageContentEditorJsConfig !== null): ?>
+            <input type="hidden" id="contentEditorEditorJsConfig" value="<?= htmlspecialchars((string) json_encode($pageContentEditorJsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES) ?>">
+        <?php endif; ?>
 
     </div><!-- /.container-xl -->
 </div><!-- /.page-body -->
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Featured Image Remove
-    const removeBtn = document.getElementById('featuredImageRemove');
-    const imageInput = document.getElementById('featuredImageInput');
-    const preview = document.getElementById('featuredImagePreview');
-    const titleInput = document.querySelector('input[name="title"]');
-    const slugInput = document.querySelector('input[name="slug"]');
-    const metaTitleInput = document.getElementById('pageMetaTitle');
-    const metaDescriptionInput = document.getElementById('pageMetaDescription');
-    const statusSelect = document.getElementById('pageStatusSelect');
-    const languageButtons = document.querySelectorAll('[data-lang-toggle]');
-    const languagePanes = document.querySelectorAll('[data-page-lang-pane]');
-    const titleCount = document.getElementById('pageTitleCount');
-    const slugCount = document.getElementById('pageSlugCount');
-    const metaTitleCount = document.getElementById('metaTitleCount');
-    const metaDescriptionCount = document.getElementById('metaDescriptionCount');
-    const previewUrl = document.getElementById('pagePreviewUrl');
-    const statusBadge = document.getElementById('pageStatusBadge');
-
-    const statusMap = {
-        draft: { label: 'Entwurf', className: 'badge bg-yellow-lt text-yellow' },
-        published: { label: 'Veröffentlicht', className: 'badge bg-green-lt text-green' },
-        private: { label: 'Privat', className: 'badge bg-azure-lt text-azure' }
-    };
-
-    const switchLanguage = function (lang) {
-        languagePanes.forEach(function (pane) {
-            pane.classList.toggle('d-none', pane.getAttribute('data-page-lang-pane') !== lang);
-        });
-
-        languageButtons.forEach(function (button) {
-            const isActive = button.getAttribute('data-lang-toggle') === lang;
-            button.classList.toggle('btn-primary', isActive);
-            button.classList.toggle('btn-outline-primary', !isActive);
-            button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-        });
-    };
-
-    const updateCounts = function () {
-        if (titleInput && titleCount) {
-            titleCount.textContent = String(titleInput.value.length);
-        }
-
-        if (slugInput && slugCount) {
-            slugCount.textContent = String(slugInput.value.length);
-        }
-
-        if (metaTitleInput && metaTitleCount) {
-            metaTitleCount.textContent = String(metaTitleInput.value.length);
-        }
-
-        if (metaDescriptionInput && metaDescriptionCount) {
-            metaDescriptionCount.textContent = String(metaDescriptionInput.value.length);
-        }
-
-        if (previewUrl && slugInput) {
-            const slug = slugInput.value.trim().replace(/^\/+/, '');
-            previewUrl.textContent = slug ? '<?= htmlspecialchars($siteUrl) ?>/' + slug : '<?= htmlspecialchars($siteUrl) ?>/';
-        }
-
-        if (statusSelect && statusBadge) {
-            const currentStatus = statusMap[statusSelect.value] || statusMap.draft;
-            statusBadge.className = currentStatus.className;
-            statusBadge.textContent = currentStatus.label;
-        }
-    };
-
-    if (imageInput && imageInput.value) {
-        removeBtn?.classList.remove('d-none');
-    }
-
-    removeBtn?.addEventListener('click', function() {
-        imageInput.value = '';
-        preview.innerHTML = '';
-        const emptyState = document.getElementById('featuredImageEmpty');
-        emptyState?.classList.remove('d-none');
-        this.classList.add('d-none');
-    });
-
-    [titleInput, slugInput, metaTitleInput, metaDescriptionInput, statusSelect].forEach(function(el) {
-        el?.addEventListener('input', updateCounts);
-        el?.addEventListener('change', updateCounts);
-    });
-
-    languageButtons.forEach(function (button) {
-        button.addEventListener('click', function () {
-            switchLanguage(button.getAttribute('data-lang-toggle') || 'de');
-        });
-    });
-
-    updateCounts();
-    switchLanguage('de');
-});
-</script>
-
-<script src="<?= htmlspecialchars($siteUrl) ?>/assets/js/admin-seo-editor.js"></script>
-<script>
-(function () {
-    if (!window.cmsSeoEditor) {
-        return;
-    }
-
-    window.cmsSeoEditor.init({
-        formId: 'pageForm',
-        titleId: 'pageTitle',
-        slugId: 'pageSlug',
-        metaTitleId: 'pageMetaTitle',
-        metaDescId: 'pageMetaDescription',
-        focusKeyphraseId: 'pageFocusKeyphrase',
-        ogTitleId: 'pageOgTitle',
-        ogDescriptionId: 'pageOgDescription',
-        ogImageId: 'pageOgImage',
-        twitterTitleId: 'pageTwitterTitle',
-        twitterDescriptionId: 'pageTwitterDescription',
-        twitterImageId: 'pageTwitterImage',
-        featuredImageId: 'featuredImageInput',
-        statusId: 'pageStatusSelect',
-        contentInputId: 'editorContent',
-        editorContainerId: 'editorjs',
-        serpTitleId: 'pageSerpTitle',
-        serpUrlId: 'pageSerpUrl',
-        serpDescriptionId: 'pageSerpDescription',
-        scoreBarId: 'pageSeoScoreBar',
-        scoreLabelId: 'pageSeoScoreLabel',
-        scoreBadgeId: 'pageSeoScoreBadge',
-        scoreRulesId: 'pageSeoRules',
-        socialTitleId: 'pageSocialTitle',
-        socialDescriptionId: 'pageSocialDescription',
-        socialImageId: 'pageSocialImage',
-        publishWarningId: 'pagePublishWarning',
-        slugStateId: 'pageSlugState',
-        wordCountId: 'pageWordCount',
-        densityId: 'pageDensity',
-        internalLinksId: 'pageInternalLinks',
-        externalLinksId: 'pageExternalLinks',
-        transitionWordsId: 'pageTransitionWords',
-        longSentencesId: 'pageLongSentences',
-        longParagraphsId: 'pageLongParagraphs',
-        missingAltId: 'pageMissingAlt',
-        readabilityBadgeId: 'pageReadabilityBadge',
-        readabilitySummaryId: 'pageReadabilitySummary',
-        previewBaseUrl: '<?= htmlspecialchars($siteUrl) ?>/',
-        siteName: '<?= htmlspecialchars((string)SITE_NAME, ENT_QUOTES) ?>',
-        siteTitleFormat: '<?= htmlspecialchars((string)($seoTemplateSettings['site_title_format'] ?? '%%title%% %%sep%% %%sitename%%'), ENT_QUOTES) ?>',
-        titleSeparator: '<?= htmlspecialchars((string)($seoTemplateSettings['title_separator'] ?? '|'), ENT_QUOTES) ?>',
-        minWords: <?= (int)($seoTemplateSettings['analysis_min_words'] ?? 300) ?>,
-        maxSentenceWords: <?= (int)($seoTemplateSettings['analysis_sentence_words'] ?? 24) ?>,
-        maxParagraphWords: <?= (int)($seoTemplateSettings['analysis_paragraph_words'] ?? 120) ?>,
-        fallbackImage: '<?= htmlspecialchars($pageFeaturedImageValue, ENT_QUOTES) ?>'
-    });
-})();
-</script>
-
-<?php if (!empty($useEditorJs)): ?>
-<!-- EditorJS wird via $inlineJs in footer.php initialisiert -->
-<?php endif; ?>

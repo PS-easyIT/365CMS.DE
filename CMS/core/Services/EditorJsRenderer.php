@@ -318,7 +318,7 @@ final class EditorJsRenderer
     private function renderImage(array $data, array $tunes = []): string
     {
         $file = is_array($data['file'] ?? null) ? $data['file'] : [];
-        $imageUrl = (string)($file['url'] ?? '');
+        $imageUrl = \CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl((string)($file['url'] ?? ''), true);
 
         foreach (['Cropper', 'CropperTune'] as $tuneKey) {
             if (!empty($tunes[$tuneKey]['croppedImage']) && filter_var((string)$tunes[$tuneKey]['croppedImage'], FILTER_VALIDATE_URL)) {
@@ -357,7 +357,7 @@ final class EditorJsRenderer
     private function renderAttaches(array $data): string
     {
         $file = is_array($data['file'] ?? null) ? $data['file'] : [];
-        $url = (string)($file['url'] ?? '');
+        $url = \CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl((string)($file['url'] ?? ''), false);
         if (!filter_var($url, FILTER_VALIDATE_URL)) {
             return '';
         }

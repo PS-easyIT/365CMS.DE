@@ -405,10 +405,12 @@ final class SeoSitemapService
                 continue;
             }
 
-            @unlink($path);
+            if (!$this->deleteFile($path)) {
+                return;
+            }
         }
 
-        @rmdir($dir);
+        $this->removeDirectory($dir);
     }
 
     private function fallbackSitemapContent(string $fileName): string
@@ -419,5 +421,34 @@ final class SeoSitemapService
             'news.xml' => '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"></urlset>',
             default => '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>',
         };
+    }
+
+    private function deleteFile(string $path): bool
+    {
+        if (!is_file($path)) {
+            return true;
+        }
+
+        if (!unlink($path)) {
+            $this->logger->warning('SeoSitemapService: Temporäre Datei konnte nicht gelöscht werden.', [
+                'path' => $path,
+            ]);
+            return false;
+        }
+
+        return true;
+    }
+
+    private function removeDirectory(string $path): void
+    {
+        if (!is_dir($path)) {
+            return;
+        }
+
+        if (!rmdir($path)) {
+            $this->logger->warning('SeoSitemapService: Temporäres Verzeichnis konnte nicht gelöscht werden.', [
+                'path' => $path,
+            ]);
+        }
     }
 }

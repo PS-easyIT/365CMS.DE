@@ -18,6 +18,7 @@ use CMS\Services\MailQueueService;
 use CMS\Services\MailService;
 use CMS\Services\SystemService;
 use CMS\AuditLogger;
+use CMS\VendorRegistry;
 
 class SystemInfoModule
 {
@@ -71,6 +72,7 @@ class SystemInfoModule
             'runtime' => $this->getRuntimeTelemetrySafe(),
             'monitoring' => $this->getMonitoringOverview(),
             'health' => $this->getHealthChecksData(),
+            'vendor_registry' => $this->getVendorRegistryDiagnosticsSafe(),
         ];
     }
 
@@ -304,6 +306,31 @@ class SystemInfoModule
             return [
                 'enabled' => false,
                 'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    private function getVendorRegistryDiagnosticsSafe(): array
+    {
+        try {
+            return VendorRegistry::instance()->getDiagnostics();
+        } catch (\Throwable $e) {
+            return [
+                'error' => $e->getMessage(),
+                'autoload' => ['loaded' => false, 'active_path' => null, 'candidates' => []],
+                'packages' => [],
+                'bundles' => [],
+                'platform' => [],
+                'summary' => [
+                    'managed_total' => 0,
+                    'managed_available' => 0,
+                    'managed_loaded' => 0,
+                    'bundle_total' => 0,
+                    'bundle_available' => 0,
+                    'bundle_ready' => 0,
+                    'platform_warning_count' => 0,
+                    'autoload_candidate_count' => 0,
+                ],
             ];
         }
     }

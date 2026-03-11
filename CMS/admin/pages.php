@@ -102,6 +102,11 @@ if ($action === 'edit') {
     } else {
         EditorService::getInstance();
     }
+
+    $pageAssets['css'] = $pageAssets['css'] ?? [];
+    $pageAssets['js'] = $pageAssets['js'] ?? [];
+    $pageAssets['js'][] = cms_asset_url('js/admin-seo-editor.js');
+    $pageAssets['js'][] = cms_asset_url('js/admin-content-editor.js');
 }
 
 // ─── Layout rendern ────────────────────────────────────────────────────────
@@ -115,52 +120,6 @@ if ($action === 'edit') {
     $editData = $module->getEditData($id);
     $pageTitle = $editData['isNew'] ? 'Neue Seite' : 'Seite bearbeiten';
     require_once __DIR__ . '/views/pages/edit.php';
-
-    if ($useEditorJs) {
-        // EditorJS-Initialisierung (läuft in footer.php NACH den deferred Scripts)
-        $inlineJs = sprintf(
-            "(function(){
-                if(typeof createCmsEditor!=='function'){console.warn('EditorJS nicht verfügbar');return;}
-                var form=document.getElementById('pageForm');
-                var editors={};
-                var enInitialized=false;
-
-                function bindEditor(key,holderId,inputId){
-                    var holder=document.getElementById(holderId);
-                    var input=document.getElementById(inputId);
-                    if(!holder||!input||editors[key]){return;}
-                    editors[key]={input:input,instance:createCmsEditor(holderId,input.value||'',%s,%s)};
-                }
-
-                bindEditor('de','editorjs','editorContent');
-
-                var enToggle=document.getElementById('pageLangToggleEn');
-                if(enToggle){
-                    enToggle.addEventListener('click',function(){
-                        if(enInitialized){return;}
-                        bindEditor('en','editorjsEn','editorContentEn');
-                        enInitialized=true;
-                    });
-                }
-
-                if(form){form.addEventListener('submit',function(e){
-                    var keys=Object.keys(editors);
-                    if(keys.length===0){return;}
-                    e.preventDefault();
-                    var f=this;
-                    Promise.all(keys.map(function(key){
-                        var entry=editors[key];
-                        return entry.instance.save().then(function(output){
-                            entry.input.value=JSON.stringify(output);
-                        }).catch(function(){ /* submit fallback */ });
-                    })).finally(function(){f.submit();});
-                });}
-            })();",
-            json_encode((defined('SITE_URL') ? SITE_URL : '') . '/api/media'),
-            json_encode($editorMediaToken),
-            json_encode($editorMediaToken)
-        );
-    }
 } else {
     $listData = $module->getListData();
     $pageAssets = [

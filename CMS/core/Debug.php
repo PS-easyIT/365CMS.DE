@@ -14,12 +14,15 @@ if (!defined('ABSPATH')) {
 class Debug {
     
     private static bool $enabled = false; // enable via Debug::enable(CMS_DEBUG)
+    private static bool $runtimeProfileActive = false;
     private static array $logs = [];
     private static array $queries = [];
     private static array $checkpoints = [];
+    private static array $runtimeMeta = [];
     private static float $start_time;
     private const MAX_STORED_QUERIES = 100;
     private const SLOW_QUERY_THRESHOLD_MS = 75.0;
+    private const SLOW_PHASE_THRESHOLD_MS = 75.0;
     
     /**
      * Debug-Modus aktivieren/deaktivieren
@@ -49,10 +52,12 @@ class Debug {
     /**
      * Diagnostische Laufzeitdaten zurücksetzen.
      */
-    public static function resetRuntimeProfile(): void {
+    public static function resetRuntimeProfile(array $meta = []): void {
         self::$logs = [];
         self::$queries = [];
         self::$checkpoints = [];
+        self::$runtimeMeta = $meta;
+        self::$runtimeProfileActive = true;
         self::startTimer();
     }
     
@@ -183,7 +188,7 @@ class Debug {
      * Runtime-Messpunkt setzen.
      */
     public static function checkpoint(string $label, ?array $context = null): void {
-        if (!self::$enabled) {
+        if (!self::$enabled && !self::$runtimeProfileActive) {
             return;
         }
 
@@ -231,12 +236,98 @@ class Debug {
 
         return [
             'enabled' => self::$enabled,
+            'profile_active' => self::$runtimeProfileActive,
+            'profile_meta' => self::$runtimeMeta,
             'elapsed_time_ms' => round(self::getElapsedTime() * 1000, 2),
             'memory_peak_mb' => round(memory_get_peak_usage(true) / 1024 / 1024, 2),
             'memory_current_mb' => round(memory_get_usage(true) / 1024 / 1024, 2),
             'log_count' => count(self::$logs),
             'checkpoints' => self::$checkpoints,
             'query' => $queryTelemetry,
+            'bootstrap' => self::getBootstrapTelemetry(),
+        ];
+    }
+
+    /**
+     * Verdichtetes Bootstrap-Profil für Cold-Path-Analyse liefern.
+     */
+    private static function getBootstrapTelemetry(): array {
+        $checkpoints = array_values(array_filter(
+            self::$checkpoints,
+            static fn(array $checkpoint): bool => str_starts_with((string)($checkpoint['label'] ?? ''), 'bootstrap.')
+        ));
+
+        $mode = is_string(self::$runtimeMeta['mode'] ?? null) ? (string)self::$runtimeMeta['mode'] : 'unknown';
+        foreach ($checkpoints as $checkpoint) {
+            $contextMode = $checkpoint['context']['mode'] ?? null;
+            if ($mode === 'unknown' && is_string($contextMode) && $contextMode !== '') {
+                $mode = $contextMode;
+                break;
+            }
+        }
+
+        $readyMs = null;
+        $lastBootstrapMs = null;
+        foreach ($checkpoints as $checkpoint) {
+            $timeMs = (float)($checkpoint['time_ms'] ?? 0.0);
+            $lastBootstrapMs = $timeMs;
+            if (($checkpoint['label'] ?? '') === 'bootstrap.ready') {
+                $readyMs = $timeMs;
+            }
+        }
+
+        $phases = [];
+        for ($index = 1, $count = count($checkpoints); $index < $count; $index++) {
+            $previous = $checkpoints[$index - 1];
+            $current = $checkpoints[$index];
+            $deltaMs = round((float)($current['time_ms'] ?? 0.0) - (float)($previous['time_ms'] ?? 0.0), 2);
+
+            $phases[] = [
+                'from' => (string)($previous['label'] ?? ''),
+                'to' => (string)($current['label'] ?? ''),
+                'delta_ms' => max(0.0, $deltaMs),
+                'time_ms' => (float)($current['time_ms'] ?? 0.0),
+                'memory_mb' => (float)($current['memory_mb'] ?? 0.0),
+                'context' => is_array($current['context'] ?? null) ? $current['context'] : [],
+            ];
+        }
+
+        $topPhases = $phases;
+        usort($topPhases, static fn(array $left, array $right): int => ($right['delta_ms'] ?? 0) <=> ($left['delta_ms'] ?? 0));
+        $topPhases = array_slice($topPhases, 0, 5);
+
+        $slowPhaseCount = 0;
+        foreach ($phases as $phase) {
+            if ((float)($phase['delta_ms'] ?? 0.0) >= self::SLOW_PHASE_THRESHOLD_MS) {
+                $slowPhaseCount++;
+            }
+        }
+
+        $elapsedMs = round(self::getElapsedTime() * 1000, 2);
+        $bootstrapEndMs = $readyMs ?? $lastBootstrapMs;
+        $postBootstrapMs = $bootstrapEndMs !== null ? round(max(0.0, $elapsedMs - $bootstrapEndMs), 2) : null;
+        $coldPathShare = ($bootstrapEndMs !== null && $elapsedMs > 0.0)
+            ? round(($bootstrapEndMs / $elapsedMs) * 100, 1)
+            : null;
+
+        return [
+            'active' => self::$runtimeProfileActive,
+            'mode' => $mode,
+            'request_uri' => is_string(self::$runtimeMeta['request_uri'] ?? null) ? self::$runtimeMeta['request_uri'] : null,
+            'request_method' => is_string(self::$runtimeMeta['request_method'] ?? null) ? self::$runtimeMeta['request_method'] : null,
+            'sapi' => is_string(self::$runtimeMeta['sapi'] ?? null) ? self::$runtimeMeta['sapi'] : PHP_SAPI,
+            'checkpoint_count' => count($checkpoints),
+            'phase_count' => count($phases),
+            'bootstrap_ready_ms' => $readyMs,
+            'bootstrap_last_checkpoint_ms' => $lastBootstrapMs,
+            'total_elapsed_ms' => $elapsedMs,
+            'post_bootstrap_ms' => $postBootstrapMs,
+            'cold_path_share_percent' => $coldPathShare,
+            'slow_phase_threshold_ms' => self::SLOW_PHASE_THRESHOLD_MS,
+            'slow_phase_count' => $slowPhaseCount,
+            'timeline' => $checkpoints,
+            'phases' => $phases,
+            'top_phases' => $topPhases,
         ];
     }
     

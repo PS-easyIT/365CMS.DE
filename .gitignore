@@ -84,3 +84,5 @@ CMS/tmp-seo-test/pages.xml
 CMS/tmp-seo-test/sitemap.xml
 DOC/audit/
 tests/
+.github/workflows/
+DOC/assets/VENDOR-NETWORK-PATHS.md

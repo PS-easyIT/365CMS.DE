@@ -1,13 +1,13 @@
 # Update & Deployment Workflow – 365CMS
 
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-11 | **Version:** 2.5.30 | **Status:** Aktuell
 >
-> **Bereich:** Updates & Deployments · **Version:** 2.5.4  
+> **Bereich:** Updates & Deployments · **Version:** 2.5.30  
 > **CMS-Update-System:** `core/Services/UpdateService.php`, `admin/updates.php`  
 > **GitHub:** PS-easyIT/365CMS.DE
 
 ---
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-11 -->
 
 ## Übersicht: Update-Typen
 
@@ -108,6 +108,59 @@ $updater->runMigrations(from: '1.6.14', to: '1.6.15');
 [ ] Plugins testen (kritische Features)
 [ ] CMS-Version in Admin-Sidebar: neue Version sichtbar?
 ```
+
+### Phase 6a: Beta-Smoke nach Deployment
+
+Die Code-Ursachen früherer Produktiv-/Beta-Blocker sind inzwischen behoben – **der Pflicht-Retest nach jedem Release bleibt trotzdem fester Bestandteil der Abnahme**.
+
+1. Zuerst die Repo-Disziplin prüfen:
+
+```bash
+php tests/release-smoke/run.php
+```
+
+2. Danach die reale Beta-Instanz manuell in dieser Reihenfolge prüfen:
+
+```
+Öffentliche Pfade
+[ ] /
+[ ] /contact
+[ ] /search
+[ ] /blog
+
+Auth-Pfade
+[ ] /login
+[ ] /register
+
+Member-Retest
+[ ] /member/dashboard
+[ ] /member/privacy
+[ ] /member/media
+
+Admin-Retest
+[ ] /admin
+[ ] /admin/diagnose
+[ ] /admin/comments
+[ ] /admin/toc
+[ ] /admin/hub-sites
+[ ] /admin/site-tables
+[ ] /admin/users/new
+[ ] /admin/groups
+
+Fehlpfad
+[ ] /this-route-should-404
+```
+
+3. Zusätzliche Pflichtbeobachtungen:
+
+```
+[ ] Kommentar-POST im Blog einmal real absenden oder sichtbar gegenprüfen
+[ ] Featured-Image-/Member-Media-Upload einmal durchspielen
+[ ] Browser-Konsole und Netzwerk-Tab auf neue Fehler prüfen
+[ ] Fehlerlog und Audit-/Debug-Log nach dem Smoke-Test prüfen
+```
+
+**Regel:** Ein Release gilt erst dann als sauber abgenommen, wenn sowohl `php tests/release-smoke/run.php` grün ist als auch die obige Browser-Stichprobe auf der Beta ohne neue Blocker durchläuft.
 
 ### Phase 7: Wartungsmodus deaktivieren
 
@@ -211,6 +264,7 @@ NACH DEM UPDATE:
 [ ] Fehlerlog sauber (keine neuen Fehler)
 [ ] Admin-Login getestet
 [ ] Kritische Features getestet
+[ ] Beta-Smoke-Stichprobe auf `/`, `/login`, `/member/dashboard`, `/admin/diagnose` und `/this-route-should-404` durchgeführt
 [ ] Wartungsmodus deaktiviert
 [ ] CMS-Version in Admin prüfen
 ```

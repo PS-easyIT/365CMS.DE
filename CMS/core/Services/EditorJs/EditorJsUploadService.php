@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace CMS\Services\EditorJs;
 
+use CMS\Services\MediaDeliveryService;
 use CMS\Services\MediaService;
 
 if (!defined('ABSPATH')) {
@@ -136,9 +137,10 @@ final class EditorJsUploadService
         $normalizedTargetPath = trim($targetPath, '/');
         $relativePath = ($normalizedTargetPath !== '' ? $normalizedTargetPath . '/' : '') . ltrim($storedFile, '/');
         $fullPath = rtrim((string) UPLOAD_PATH, '/\\') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
+        $mediaDelivery = MediaDeliveryService::getInstance();
 
         return [
-            'url' => rtrim((string) UPLOAD_URL, '/') . '/' . $relativePath,
+            'url' => $mediaDelivery->buildAccessUrl($relativePath, true),
             'name' => basename($storedFile),
             'size' => file_exists($fullPath) ? (int) filesize($fullPath) : 0,
             'extension' => strtolower((string) pathinfo($storedFile, PATHINFO_EXTENSION)),

@@ -23,7 +23,7 @@ final class LandingDefaultsProvider
             'github_text' => '💻 GitHub Projekt',
             'gitlab_url' => '',
             'gitlab_text' => '🦊 GitLab Projekt',
-            'version' => defined('CMS_VERSION') ? CMS_VERSION : '2.5.15',
+            'version' => defined('CMS_VERSION') ? CMS_VERSION : '2.5.30',
             'colors' => $this->getDefaultColors(),
         ];
     }

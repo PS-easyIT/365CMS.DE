@@ -47,7 +47,7 @@ final class LandingHeaderService
                 'github_text' => $data['github_text'] ?? '💻 GitHub Projekt',
                 'gitlab_url' => $data['gitlab_url'] ?? '',
                 'gitlab_text' => $data['gitlab_text'] ?? '🦊 GitLab Projekt',
-                'version' => $data['version'] ?? (defined('CMS_VERSION') ? CMS_VERSION : '2.5.15'),
+                'version' => $data['version'] ?? (defined('CMS_VERSION') ? CMS_VERSION : '2.5.30'),
                 'logo' => $data['logo'] ?? '',
                 'colors' => is_array($data['colors'] ?? null) ? $data['colors'] : $this->defaults->getDefaultColors(),
             ];

@@ -116,6 +116,9 @@ if (!defined('ABSPATH')) {
                     $author      = htmlspecialchars($plugin['author'] ?? '-');
                     $category    = htmlspecialchars($plugin['category'] ?? '');
                     $isInstalled = !empty($plugin['installed']);
+                    $autoInstallSupported = !empty($plugin['auto_install_supported']);
+                    $installReason = htmlspecialchars((string)($plugin['install_reason'] ?? ''));
+                    $hashPresent = !empty($plugin['integrity_hash_present']);
                 ?>
                 <div class="col-sm-6 col-lg-4 plugin-card" data-name="<?php echo $name; ?>" data-category="<?php echo $category; ?>">
                     <div class="card">
@@ -135,13 +138,18 @@ if (!defined('ABSPATH')) {
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="text-muted small">
                                     v<?php echo $version; ?> · <?php echo $author; ?>
+                                    <?php if ($hashPresent): ?>
+                                        <div class="mt-1"><span class="badge bg-green-lt">SHA-256 verifiziert</span></div>
+                                    <?php else: ?>
+                                        <div class="mt-1"><span class="badge bg-warning-lt">Auto-Install gesperrt</span></div>
+                                    <?php endif; ?>
                                 </div>
                                 <?php if ($isInstalled): ?>
                                     <span class="badge bg-green-lt">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm me-1" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg>
                                         Installiert
                                     </span>
-                                <?php else: ?>
+                                <?php elseif ($autoInstallSupported): ?>
                                     <form method="POST" style="display:inline;">
                                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                         <input type="hidden" name="action" value="install">
@@ -151,6 +159,11 @@ if (!defined('ABSPATH')) {
                                             Installieren
                                         </button>
                                     </form>
+                                <?php else: ?>
+                                    <div class="text-end">
+                                        <span class="badge bg-secondary-lt mb-2">Nur manuell</span>
+                                        <div class="text-muted small" style="max-width: 220px;"><?php echo $installReason; ?></div>
+                                    </div>
                                 <?php endif; ?>
                             </div>
                         </div>

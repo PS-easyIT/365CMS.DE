@@ -147,7 +147,9 @@ final class FileUploadService
 
         $filename = (string)$uploadResult;
         $relativePath = trim($targetPath . '/' . $filename, '/');
-        $url = rtrim(UPLOAD_URL, '/') . '/' . str_replace('\\', '/', $relativePath);
+        $mediaDelivery = MediaDeliveryService::getInstance();
+        $url = $mediaDelivery->buildAccessUrl($relativePath, true);
+        $downloadUrl = $mediaDelivery->buildDeliveryUrl($relativePath, 'attachment');
 
         return [
             'success' => true,
@@ -157,6 +159,8 @@ final class FileUploadService
                 'filename' => $filename,
                 'path' => $relativePath,
                 'url' => $url,
+                'preview_url' => $mediaDelivery->buildPreviewUrl($relativePath),
+                'download_url' => $downloadUrl,
                 'new_token' => Security::instance()->generateToken('media_action'),
             ],
         ];

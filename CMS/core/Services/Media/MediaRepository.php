@@ -5,6 +5,7 @@ namespace CMS\Services\Media;
 
 use CMS\Auth;
 use CMS\Json;
+use CMS\Services\MediaDeliveryService;
 use CMS\WP_Error;
 
 if (!defined('ABSPATH')) {
@@ -177,13 +178,12 @@ final class MediaRepository
 
     public function buildPublicUrl(string $relativePath): string
     {
-        $normalizedPath = trim(str_replace('\\', '/', $relativePath), '/');
-        if ($normalizedPath === '') {
-            return $this->uploadUrl;
-        }
+        return MediaDeliveryService::getInstance()->buildAccessUrl($relativePath, false);
+    }
 
-        $segments = array_map(static fn(string $segment): string => rawurlencode($segment), explode('/', $normalizedPath));
-        return $this->uploadUrl . '/' . implode('/', $segments);
+    public function buildPreviewUrl(string $relativePath): string
+    {
+        return MediaDeliveryService::getInstance()->buildPreviewUrl($relativePath);
     }
 
     public function detectSystemCategory(string $relativePath): ?string
@@ -250,6 +250,7 @@ final class MediaRepository
                     'name' => $item,
                     'path' => $relativePath,
                     'url' => $this->buildPublicUrl($relativePath),
+                    'preview_url' => $this->buildPreviewUrl($relativePath),
                     'type' => pathinfo($itemPath, PATHINFO_EXTENSION),
                     'size' => filesize($itemPath),
                     'modified' => filemtime($itemPath),

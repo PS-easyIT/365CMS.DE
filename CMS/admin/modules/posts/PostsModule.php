@@ -14,6 +14,7 @@ if (!defined('ABSPATH')) {
 use CMS\Database;
 use CMS\Hooks;
 use CMS\Services\ContentLocalizationService;
+use CMS\Services\MediaDeliveryService;
 use CMS\Services\MediaService;
 use CMS\Services\RedirectService;
 use CMS\Services\SEOService;
@@ -169,13 +170,13 @@ class PostsModule
         // Move temp upload to slug subfolder (articles/{slug}/{filename})
         if ($featuredImageTempPath !== '' && str_contains($featuredImageTempPath, '/temp/')) {
             $mediaService = MediaService::getInstance();
+            $mediaDelivery = MediaDeliveryService::getInstance();
             $folderSlug   = strtolower((string)preg_replace('/[^a-z0-9]+/i', '_', $slug));
             $folderSlug   = trim($folderSlug, '_');
             $newRelPath   = 'articles/' . $folderSlug . '/' . basename($featuredImageTempPath);
             $moved        = $mediaService->moveFile($featuredImageTempPath, $newRelPath);
             if (!($moved instanceof \CMS\WP_Error)) {
-                $uploadUrl     = rtrim((string)(defined('UPLOAD_URL') ? UPLOAD_URL : ''), '/');
-                $featuredImage = $uploadUrl . '/' . ltrim((string)$moved, '/');
+                $featuredImage = $mediaDelivery->buildAccessUrl((string)$moved, true);
             }
         }
 

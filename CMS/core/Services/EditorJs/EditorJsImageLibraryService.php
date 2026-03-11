@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace CMS\Services\EditorJs;
 
+use CMS\Services\MediaDeliveryService;
+
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -22,7 +24,7 @@ final class EditorJsImageLibraryService
     {
         $items = [];
         $rootPath = rtrim((string) UPLOAD_PATH, '/\\');
-        $rootUrl = rtrim((string) UPLOAD_URL, '/');
+        $mediaDelivery = MediaDeliveryService::getInstance();
 
         if (!is_dir($rootPath)) {
             return [
@@ -58,7 +60,7 @@ final class EditorJsImageLibraryService
             $items[] = [
                 'name' => $file->getFilename(),
                 'path' => $relativePath,
-                'url' => $rootUrl . '/' . $relativePath,
+                'url' => $mediaDelivery->buildAccessUrl($relativePath, true),
                 'size' => $file->getSize(),
                 'modified' => $file->getMTime(),
             ];

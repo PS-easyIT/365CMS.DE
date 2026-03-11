@@ -15,6 +15,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (class_exists(__NAMESPACE__ . '\\Bootstrap', false)) {
+    return;
+}
+
 class Bootstrap
 {
     private static ?self $instance = null;
@@ -80,14 +84,24 @@ class Bootstrap
      */
     private function __construct()
     {
+        require_once CORE_PATH . 'Debug.php';
+
         $this->mode = self::detectMode();
         defined('CMS_MODE') || define('CMS_MODE', $this->mode);
 
-        $this->loadDependencies();
         Debug::enable(defined('CMS_DEBUG') && CMS_DEBUG);
-        Debug::resetRuntimeProfile();
+        Debug::resetRuntimeProfile([
+            'mode' => $this->mode,
+            'request_uri' => (string)($_SERVER['REQUEST_URI'] ?? '/'),
+            'request_method' => strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? (PHP_SAPI === 'cli' ? 'CLI' : 'GET'))),
+            'sapi' => PHP_SAPI,
+        ]);
+        Debug::checkpoint('bootstrap.start', ['mode' => $this->mode]);
+
+        $this->loadDependencies();
         Debug::checkpoint('bootstrap.dependencies_loaded', ['mode' => $this->mode]);
         $this->validateBundledPhpPlatform();
+        Debug::checkpoint('bootstrap.platform_validated', ['mode' => $this->mode]);
         $this->initializeCore();
         Debug::checkpoint('bootstrap.ready', ['mode' => $this->mode]);
     }
@@ -290,7 +304,7 @@ class Bootstrap
      */
     private function ensureConstants(): void
     {
-        defined('CMS_VERSION')   || define('CMS_VERSION',   '2.5.15');
+        defined('CMS_VERSION')   || define('CMS_VERSION',   '2.5.30');
         defined('CMS_MIN_PHP_VERSION') || define('CMS_MIN_PHP_VERSION', '8.4.0');
         defined('SITE_NAME')     || define('SITE_NAME',     'CMS');
         defined('SITE_URL')      || define('SITE_URL',      '');
@@ -324,6 +338,7 @@ class Bootstrap
         // H-10: Inkrementelle DB-Migrationen ausführen (idempotent, version-basiert –
         // nur 1 DB-Query pro Request wenn bereits aktuell)
         (new MigrationManager($this->db))->run();
+        Debug::checkpoint('bootstrap.migrations_checked');
 
         // Security init (setzt HTTP-Security-Header) – nicht im CLI-Modus
         $this->security = Security::instance();

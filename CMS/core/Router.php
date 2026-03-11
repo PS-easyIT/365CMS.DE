@@ -153,7 +153,7 @@ class Router
         }
 
         $csrfBypassPrefixes = ['/api/', '/admin/', '/member/', '/contact/'];
-        $csrfBypassExact = ['/login', '/register', '/logout', '/contact', '/comments/post'];
+        $csrfBypassExact = ['/login', '/register', '/logout', '/contact', '/comments/post', '/mfa-challenge', '/mfa-setup', '/mfa-disable'];
 
         if (in_array($method, ['POST', 'PUT', 'DELETE', 'PATCH'], true)
             && !in_array($routingUri, $csrfBypassExact, true)

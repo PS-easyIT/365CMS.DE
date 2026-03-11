@@ -26,5 +26,5 @@ Mehrere Admin-Aktionen werden zusätzlich über das zentrale `audit_log` nachvol
 
 - [ANTISPAM.md](ANTISPAM.md)
 - [FIREWALL.md](FIREWALL.md)
-- [SECURITY-AUDIT.md](SECURITY-AUDIT.md)
+- [../../audit/AUDIT_FACHBEREICHE.md](../../audit/AUDIT_FACHBEREICHE.md)
 - [../legal/README.md](../legal/README.md)

@@ -119,6 +119,12 @@ if ($viewAction === 'edit') {
     $data = $module->getEditData($id);
     $pageTitle = $data['isNew'] ? 'Neue Hub-Site' : 'Hub-Site bearbeiten';
     $activePage = 'hub-sites';
+    $pageAssets = [
+        'css' => [],
+        'js' => [
+            cms_asset_url('js/admin-hub-site-edit.js'),
+        ],
+    ];
 
     require __DIR__ . '/partials/header.php';
     require __DIR__ . '/partials/sidebar.php';

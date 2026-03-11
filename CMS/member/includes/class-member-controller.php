@@ -250,6 +250,34 @@ final class MemberController
         return '';
     }
 
+    public function canAccessAdminPortal(): bool
+    {
+        if ($this->auth->isAdmin()) {
+            return true;
+        }
+
+        foreach ($this->getAdminPortalCapabilities() as $capability) {
+            if ($this->auth->hasCapability($capability)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function getAdminPortalUrl(): string
+    {
+        return '/admin';
+    }
+
+    /**
+     * @return array<int,string>
+     */
+    private function getAdminPortalCapabilities(): array
+    {
+        return ['adminportal', 'admin.portal', 'admin-portal'];
+    }
+
     /**
      * @return array<int,array<string,mixed>>
      */
@@ -271,6 +299,10 @@ final class MemberController
             $items[] = ['slug' => 'subscription', 'label' => 'Abo & Bestellungen', 'icon' => '💳', 'url' => '/member/subscription', 'category' => 'account'];
         }
 
+        if ($this->canAccessAdminPortal()) {
+            $items[] = ['slug' => 'admin', 'label' => 'Adminmenü', 'icon' => '⚙️', 'url' => $this->getAdminPortalUrl(), 'category' => 'admin'];
+        }
+
         $items = Hooks::applyFilters('member_menu_items', $items);
 
         foreach ($items as &$item) {
@@ -282,7 +314,7 @@ final class MemberController
             return strcmp((string)($a['label'] ?? ''), (string)($b['label'] ?? ''));
         });
 
-        $coreOrder = ['dashboard', 'profile', 'security', 'notifications', 'messages', 'media', 'favorites', 'privacy', 'subscription'];
+        $coreOrder = ['dashboard', 'profile', 'security', 'notifications', 'messages', 'media', 'favorites', 'privacy', 'subscription', 'admin'];
         usort($items, static function (array $a, array $b) use ($coreOrder): int {
             $aIndex = array_search((string)($a['slug'] ?? ''), $coreOrder, true);
             $bIndex = array_search((string)($b['slug'] ?? ''), $coreOrder, true);

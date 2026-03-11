@@ -5,53 +5,35 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-use CMS\Auth;
-use CMS\Security;
-
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
-}
-
-require_once __DIR__ . '/modules/seo/PerformanceModule.php';
-
 $performanceSection   = $performanceSection ?? 'overview';
 $performanceRoutePath = $performanceRoutePath ?? '/admin/performance';
 $performanceViewFile  = $performanceViewFile ?? (__DIR__ . '/views/seo/performance.php');
 $pageTitle            = $pageTitle ?? 'Performance';
 $activePage           = $activePage ?? 'performance';
 $pageAssets           = $pageAssets ?? [];
-$module               = new PerformanceModule();
-$alert                = null;
+$sectionPageConfig = [
+    'section' => (string)$performanceSection,
+    'route_path' => (string)$performanceRoutePath,
+    'view_file' => (string)$performanceViewFile,
+    'page_title' => (string)$pageTitle,
+    'active_page' => (string)$activePage,
+    'page_assets' => is_array($pageAssets) ? $pageAssets : [],
+    'csrf_action' => 'admin_performance',
+    'guard_constant' => 'CMS_ADMIN_PERFORMANCE_VIEW',
+    'module_file' => __DIR__ . '/modules/seo/PerformanceModule.php',
+    'module_factory' => static function () {
+        return new PerformanceModule();
+    },
+    'post_handler' => static function ($module, string $section, array $postData): array {
+        if (!$module instanceof PerformanceModule) {
+            return ['success' => false, 'error' => 'Performance-Modul konnte nicht initialisiert werden.'];
+        }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $postToken = $_POST['csrf_token'] ?? '';
-    if (!Security::instance()->verifyToken($postToken, 'admin_performance')) {
-        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-        header('Location: ' . SITE_URL . $performanceRoutePath);
-        exit;
-    }
+        return $module->handleAction($section, (string)($postData['action'] ?? ''), $postData);
+    },
+    'data_loader' => static function ($module): array {
+        return $module instanceof PerformanceModule ? $module->getData() : [];
+    },
+];
 
-    $result = $module->handleAction((string)$performanceSection, (string)($_POST['action'] ?? ''), $_POST);
-    $_SESSION['admin_alert'] = [
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => $result['message'] ?? $result['error'] ?? 'Unbekannte Antwort.',
-    ];
-
-    header('Location: ' . SITE_URL . $performanceRoutePath);
-    exit;
-}
-
-if (!empty($_SESSION['admin_alert'])) {
-    $alert = $_SESSION['admin_alert'];
-    unset($_SESSION['admin_alert']);
-}
-
-$csrfToken = Security::instance()->generateToken('admin_performance');
-$data = $module->getData();
-defined('CMS_ADMIN_PERFORMANCE_VIEW') || define('CMS_ADMIN_PERFORMANCE_VIEW', true);
-
-require __DIR__ . '/partials/header.php';
-require __DIR__ . '/partials/sidebar.php';
-require $performanceViewFile;
-require __DIR__ . '/partials/footer.php';
+require __DIR__ . '/partials/section-page-shell.php';

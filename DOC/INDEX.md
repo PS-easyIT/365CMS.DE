@@ -1,5 +1,5 @@
 # 365CMS – Dokumentationsindex
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-11 | **Version:** 2.5.30 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Schnellstart](#schnellstart)
@@ -12,7 +12,7 @@
 - [Direktlinks für häufige Aufgaben](#direktlinks-für-häufige-aufgaben)
 
 ---
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-10 -->
 
 ## Schnellstart
 
@@ -38,6 +38,7 @@
 | [core/SERVICES.md](core/SERVICES.md) | Service-Layer |
 | [core/SECURITY.md](core/SECURITY.md) | Sicherheitsmodell im Core |
 | [core/STATUS.md](core/STATUS.md) | Implementierungs- und Betriebsstatus |
+| [assets/VENDOR-NETWORK-PATHS.md](assets/VENDOR-NETWORK-PATHS.md) | separat überwachte Vendor-/Drittpfad-Netzwerklogik |
 
 ---
 
@@ -107,10 +108,7 @@ Diese Dokumente enthalten teils Planungs- oder Bewertungsstände. Für aktuelle 
 
 | Dokument | Inhalt |
 |----------|--------|
-| [PERFORMANCE-AUDIT.md](audits/PERFORMANCE-AUDIT.md) | Performance-Analyse (Score: 5.8/10) |
-| [SECURITY-AUDIT.md](audits/SECURITY-AUDIT.md) | Security-Analyse (Score: 5.2/10, 7 P1-Findings) |
-| [CORE-AUDIT.md](audits/CORE-AUDIT.md) | Core-Architektur-Audit (Score: 5.4/10) |
-| [FEATURE-AUDIT.md](audits/FEATURE-AUDIT.md) | Feature- und Produktreife-Audit (Score: 6.1/10) |
+| [AUDIT_FACHBEREICHE.md](audit/AUDIT_FACHBEREICHE.md) | Konsolidierter Fachbericht für Core, Feature-Reife, Performance und Sicherheit |
 | [PLUGIN-AUDIT.md](audits/PLUGIN-AUDIT.md) | Plugin-System-Audit (Score: 5.1/10) |
 | [THEME-AUDIT.md](audits/THEME-AUDIT.md) | Theme-System-Audit (Score: 4.7/10) |
 
@@ -122,7 +120,7 @@ Diese Dokumente enthalten teils Planungs- oder Bewertungsstände. Für aktuelle 
 |-------|-------------|
 | [CONTENT-MANAGEMENT-WORKFLOW.md](workflow/CONTENT-MANAGEMENT-WORKFLOW.md) | Inhalte erstellen, SEO, Publish-Prozess |
 | [MEDIA-UPLOAD-WORKFLOW.md](workflow/MEDIA-UPLOAD-WORKFLOW.md) | Upload-Pipeline: MIME, EXIF, WebP |
-| [UPDATE-DEPLOYMENT-WORKFLOW.md](workflow/UPDATE-DEPLOYMENT-WORKFLOW.md) | CMS-Update, SHA-256-Verifikation, Deployment |
+| [UPDATE-DEPLOYMENT-WORKFLOW.md](workflow/UPDATE-DEPLOYMENT-WORKFLOW.md) | CMS-Update, SHA-256-Verifikation, Deployment und Beta-Smoke-Abnahme |
 | [MARKETPLACE-WORKFLOW.md](workflow/MARKETPLACE-WORKFLOW.md) | Plugin/Theme aus Marketplace installieren |
 | [API-INTEGRATION-WORKFLOW.md](workflow/API-INTEGRATION-WORKFLOW.md) | REST-API, Webhooks, externe Integrationen |
 | **Plugin-Konzept-Workflows** | | 

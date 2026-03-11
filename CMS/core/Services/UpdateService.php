@@ -23,6 +23,16 @@ if (!defined('ABSPATH')) {
 
 class UpdateService
 {
+    private const ALLOWED_UPDATE_HOSTS = [
+        '365network.de',
+        'www.365network.de',
+        'api.github.com',
+        'codeload.github.com',
+        'github.com',
+        'objects.githubusercontent.com',
+        'raw.githubusercontent.com',
+    ];
+
     private static ?self $instance = null;
     private Database $db;
     private HttpClient $httpClient;
@@ -83,7 +93,7 @@ class UpdateService
      */
     public function checkCoreUpdates(): array
     {
-        $currentVersion = CMS_VERSION ?? '2.5.15';
+        $currentVersion = CMS_VERSION ?? '2.5.30';
         
         // Check cache first
         $cacheKey = 'core_update_check';
@@ -356,8 +366,8 @@ class UpdateService
      */
     private function fetchPluginUpdate(string $url): ?array
     {
-        if (!filter_var($url, FILTER_VALIDATE_URL) || !str_starts_with($url, 'https://')) {
-            error_log('UpdateService: fetchPluginUpdate – URL nicht HTTPS oder ungültig: ' . $url);
+        if (!$this->isAllowedSensitiveRemoteUrl($url)) {
+            error_log('UpdateService: fetchPluginUpdate – URL liegt außerhalb der erlaubten Update-Hosts: ' . $url);
             return null;
         }
 
@@ -504,9 +514,8 @@ class UpdateService
         string $name,
         string $version
     ): array {
-        // SSRF-Guard: nur HTTPS
-        if (!str_starts_with($downloadUrl, 'https://')) {
-            return ['success' => false, 'message' => 'Ungültige Download-URL: nur HTTPS erlaubt.', 'sha256_verified' => false];
+        if (!$this->isAllowedSensitiveRemoteUrl($downloadUrl)) {
+            return ['success' => false, 'message' => 'Ungültige Download-URL: Host nicht in der Update-Allowlist.', 'sha256_verified' => false];
         }
 
         if (!extension_loaded('zip')) {
@@ -557,6 +566,12 @@ class UpdateService
             if ($zipResult !== true) {
                 throw new \RuntimeException('ZIP konnte nicht geöffnet werden (Fehlercode: ' . $zipResult . ')');
             }
+
+            if (!$this->validateZipEntries($zip)) {
+                $zip->close();
+                throw new \RuntimeException('Update-Paket enthält ungültige oder unsichere Pfade.');
+            }
+
             $zip->extractTo($targetDir);
             $zip->close();
 
@@ -721,6 +736,51 @@ class UpdateService
             error_log('UpdateService::setCache() Error: ' . $e->getMessage());
             return false;
         }
+    }
+
+    private function validateZipEntries(\ZipArchive $zip): bool
+    {
+        $hasEntries = false;
+
+        for ($index = 0; $index < $zip->numFiles; $index++) {
+            $entryName = $zip->getNameIndex($index);
+            if (!is_string($entryName) || $entryName === '') {
+                return false;
+            }
+
+            $normalized = str_replace('\\', '/', $entryName);
+            $normalized = ltrim($normalized, '/');
+
+            if ($normalized === ''
+                || str_contains($normalized, '../')
+                || str_contains($normalized, '..\\')
+                || preg_match('~^[A-Za-z]:/~', $normalized) === 1
+            ) {
+                return false;
+            }
+
+            $hasEntries = true;
+        }
+
+        return $hasEntries;
+    }
+
+    private function isAllowedSensitiveRemoteUrl(string $url): bool
+    {
+        if (!filter_var($url, FILTER_VALIDATE_URL) || !str_starts_with($url, 'https://')) {
+            return false;
+        }
+
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        if ($host === '') {
+            return false;
+        }
+
+        if (in_array($host, self::ALLOWED_UPDATE_HOSTS, true)) {
+            return true;
+        }
+
+        return str_ends_with($host, '.githubusercontent.com');
     }
 }
 

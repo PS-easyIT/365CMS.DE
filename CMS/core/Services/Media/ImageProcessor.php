@@ -21,17 +21,17 @@ final class ImageProcessor
             return new WP_Error('gd_missing', 'GD-Erweiterung ist nicht verfügbar');
         }
 
-        $imageInfo = @getimagesize($filePath);
+        $imageInfo = $this->getImageSize($filePath);
         if ($imageInfo === false) {
             return new WP_Error('invalid_image', 'Ungültige Bilddatei');
         }
 
         $mimeType = $imageInfo['mime'] ?? '';
         $source = match ($mimeType) {
-            'image/jpeg' => @imagecreatefromjpeg($filePath),
-            'image/png' => @imagecreatefrompng($filePath),
-            'image/gif' => @imagecreatefromgif($filePath),
-            'image/webp' => @imagecreatefromwebp($filePath),
+            'image/jpeg' => $this->createImageFromJpeg($filePath),
+            'image/png' => $this->createImageFromPng($filePath),
+            'image/gif' => $this->createImageFromGif($filePath),
+            'image/webp' => $this->createImageFromWebp($filePath),
             default => false,
         };
 
@@ -49,7 +49,7 @@ final class ImageProcessor
         imagealphablending($source, true);
         imagesavealpha($source, true);
 
-        $success = @imagewebp($source, $targetPath, max(1, min($quality, 100)));
+        $success = $this->writeWebp($source, $targetPath, max(1, min($quality, 100)));
         imagedestroy($source);
 
         if (!$success) {
@@ -57,5 +57,48 @@ final class ImageProcessor
         }
 
         return true;
+    }
+
+    private function getImageSize(string $filePath): array|false
+    {
+        return $this->runGdOperation(static fn() => getimagesize($filePath));
+    }
+
+    private function createImageFromJpeg(string $filePath)
+    {
+        return $this->runGdOperation(static fn() => imagecreatefromjpeg($filePath));
+    }
+
+    private function createImageFromPng(string $filePath)
+    {
+        return $this->runGdOperation(static fn() => imagecreatefrompng($filePath));
+    }
+
+    private function createImageFromGif(string $filePath)
+    {
+        return $this->runGdOperation(static fn() => imagecreatefromgif($filePath));
+    }
+
+    private function createImageFromWebp(string $filePath)
+    {
+        return $this->runGdOperation(static fn() => imagecreatefromwebp($filePath));
+    }
+
+    private function writeWebp(mixed $source, string $targetPath, int $quality): bool
+    {
+        return $this->runGdOperation(static fn() => imagewebp($source, $targetPath, $quality)) === true;
+    }
+
+    private function runGdOperation(callable $operation): mixed
+    {
+        set_error_handler(static function (): bool {
+            return true;
+        });
+
+        try {
+            return $operation();
+        } finally {
+            restore_error_handler();
+        }
     }
 }

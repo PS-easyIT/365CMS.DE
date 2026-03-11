@@ -128,7 +128,7 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
                         <div class="card-header"><h3 class="card-title">Beitragsbild</h3></div>
                         <div class="card-body d-flex flex-column gap-2">
                             <div id="featuredPreview" class="<?php echo $postFeaturedImageValue !== '' ? '' : 'd-none'; ?>">
-                                <img src="<?php echo htmlspecialchars($postFeaturedImageValue); ?>" class="rounded" id="featuredImg" alt="Beitragsbild" style="max-width:100%;max-height:120px;object-fit:cover;display:block;">
+                                <img src="<?php echo htmlspecialchars(\CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl($postFeaturedImageValue, true)); ?>" class="rounded" id="featuredImg" alt="Beitragsbild" style="max-width:100%;max-height:120px;object-fit:cover;display:block;">
                             </div>
                             <div id="featuredEmpty" class="text-secondary small <?php echo $postFeaturedImageValue !== '' ? 'd-none' : ''; ?>">Noch kein Beitragsbild ausgewählt.</div>
                             <input type="hidden" name="featured_image" id="featuredInput" value="<?php echo htmlspecialchars($postFeaturedImageValue); ?>">
@@ -435,185 +435,102 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
         $pickerIsNew = $isNew;
         $pickerContentType = 'post';
         require __DIR__ . '/../partials/featured-image-picker.php';
+
+        $postContentUiConfig = [
+            'formId' => 'postForm',
+            'removeButtonId' => 'btnRemoveImage',
+            'imageInputId' => 'featuredInput',
+            'previewContainerId' => 'featuredPreview',
+            'emptyStateId' => 'featuredEmpty',
+            'slugInputId' => 'slug',
+            'previewUrlId' => 'postPreviewUrl',
+            'previewBaseUrl' => rtrim((string)SITE_URL, '/') . '/blog/',
+            'statusSelectId' => 'status',
+            'statusBadgeId' => 'postStatusBadge',
+            'categorySelectId' => 'categoryId',
+            'categoryLabelId' => 'postCategoryLabel',
+            'statusMap' => [
+                'draft' => ['label' => 'Entwurf', 'className' => 'badge bg-yellow-lt text-yellow'],
+                'published' => ['label' => 'Veröffentlicht', 'className' => 'badge bg-green-lt text-green'],
+            ],
+            'languageToggleSelector' => '[data-post-lang-toggle]',
+            'languagePaneSelector' => '[data-post-lang-pane]',
+            'languageAttribute' => 'data-post-lang-toggle',
+            'languagePaneAttribute' => 'data-post-lang-pane',
+            'defaultLanguage' => 'de',
+            'countBindings' => [
+                ['sourceId' => 'title', 'targetId' => 'postTitleCount'],
+                ['sourceId' => 'slug', 'targetId' => 'postSlugCount'],
+                ['sourceId' => 'excerpt', 'targetId' => 'excerptCount'],
+                ['sourceId' => 'metaTitle', 'targetId' => 'metaTitleCount'],
+                ['sourceId' => 'metaDesc', 'targetId' => 'metaDescCount'],
+            ],
+        ];
+
+        $postContentSeoConfig = [
+            'formId' => 'postForm',
+            'titleId' => 'title',
+            'slugId' => 'slug',
+            'metaTitleId' => 'metaTitle',
+            'metaDescId' => 'metaDesc',
+            'focusKeyphraseId' => 'focusKeyphrase',
+            'ogTitleId' => 'ogTitle',
+            'ogDescriptionId' => 'ogDescription',
+            'ogImageId' => 'ogImage',
+            'twitterTitleId' => 'twitterTitle',
+            'twitterDescriptionId' => 'twitterDescription',
+            'twitterImageId' => 'twitterImage',
+            'featuredImageId' => 'featuredInput',
+            'statusId' => 'status',
+            'contentInputId' => 'contentInput',
+            'editorContainerId' => 'editorjs',
+            'serpTitleId' => 'postSerpTitle',
+            'serpUrlId' => 'postSerpUrl',
+            'serpDescriptionId' => 'postSerpDescription',
+            'scoreBarId' => 'postSeoScoreBar',
+            'scoreLabelId' => 'postSeoScoreLabel',
+            'scoreBadgeId' => 'postSeoScoreBadge',
+            'scoreRulesId' => 'postSeoRules',
+            'socialTitleId' => 'postSocialTitle',
+            'socialDescriptionId' => 'postSocialDescription',
+            'socialImageId' => 'postSocialImage',
+            'publishWarningId' => 'postPublishWarning',
+            'slugStateId' => 'postSlugState',
+            'wordCountId' => 'postWordCount',
+            'densityId' => 'postDensity',
+            'internalLinksId' => 'postInternalLinks',
+            'externalLinksId' => 'postExternalLinks',
+            'transitionWordsId' => 'postTransitionWords',
+            'longSentencesId' => 'postLongSentences',
+            'longParagraphsId' => 'postLongParagraphs',
+            'missingAltId' => 'postMissingAlt',
+            'readabilityBadgeId' => 'postReadabilityBadge',
+            'readabilitySummaryId' => 'postReadabilitySummary',
+            'previewBaseUrl' => rtrim((string)SITE_URL, '/') . '/blog/',
+            'siteName' => (string)SITE_NAME,
+            'siteTitleFormat' => (string)($seoTemplateSettings['site_title_format'] ?? '%%title%% %%sep%% %%sitename%%'),
+            'titleSeparator' => (string)($seoTemplateSettings['title_separator'] ?? '|'),
+            'minWords' => (int)($seoTemplateSettings['analysis_min_words'] ?? 300),
+            'maxSentenceWords' => (int)($seoTemplateSettings['analysis_sentence_words'] ?? 24),
+            'maxParagraphWords' => (int)($seoTemplateSettings['analysis_paragraph_words'] ?? 120),
+            'fallbackImage' => $postFeaturedImageValue,
+        ];
+
+        $postContentEditorJsConfig = !empty($useEditorJs) ? [
+            'formId' => 'postForm',
+            'mediaUploadUrl' => rtrim((defined('SITE_URL') ? SITE_URL : ''), '/') . '/api/media',
+            'csrfToken' => $editorMediaToken ?? '',
+            'editors' => [
+                ['key' => 'de', 'holderId' => 'editorjs', 'inputId' => 'contentInput', 'lazy' => false],
+                ['key' => 'en', 'holderId' => 'editorjsEn', 'inputId' => 'contentInputEn', 'lazy' => true, 'activateButtonId' => 'postLangToggleEn'],
+            ],
+        ] : null;
         ?>
+
+        <input type="hidden" id="contentEditorUiConfig" value="<?php echo htmlspecialchars((string) json_encode($postContentUiConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>">
+        <input type="hidden" id="contentEditorSeoConfig" value="<?php echo htmlspecialchars((string) json_encode($postContentSeoConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>">
+        <?php if ($postContentEditorJsConfig !== null): ?>
+            <input type="hidden" id="contentEditorEditorJsConfig" value="<?php echo htmlspecialchars((string) json_encode($postContentEditorJsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>">
+        <?php endif; ?>
     </div>
 </div>
-
-<script>
-// Featured Image Remove + Analyse
-(function() {
-    var btnRemove = document.getElementById('btnRemoveImage');
-    var featuredInput = document.getElementById('featuredInput');
-    var featuredPreview = document.getElementById('featuredPreview');
-    var featuredEmpty = document.getElementById('featuredEmpty');
-    var titleInput = document.getElementById('title');
-    var slugInput = document.getElementById('slug');
-    var excerptInput = document.getElementById('excerpt');
-    var metaTitleInput = document.getElementById('metaTitle');
-    var metaDescInput = document.getElementById('metaDesc');
-    var statusInput = document.getElementById('status');
-    var categoryInput = document.getElementById('categoryId');
-    var languageButtons = document.querySelectorAll('[data-post-lang-toggle]');
-    var languagePanes = document.querySelectorAll('[data-post-lang-pane]');
-
-    var titleCount = document.getElementById('postTitleCount');
-    var slugCount = document.getElementById('postSlugCount');
-    var excerptCount = document.getElementById('excerptCount');
-    var metaTitleCount = document.getElementById('metaTitleCount');
-    var metaDescCount = document.getElementById('metaDescCount');
-    var statusBadge = document.getElementById('postStatusBadge');
-    var categoryLabel = document.getElementById('postCategoryLabel');
-    var previewUrl = document.getElementById('postPreviewUrl');
-
-    var statusMap = {
-        draft: { label: 'Entwurf', className: 'badge bg-yellow-lt text-yellow' },
-        published: { label: 'Veröffentlicht', className: 'badge bg-green-lt text-green' }
-    };
-
-    var switchLanguage = function(lang) {
-        languagePanes.forEach(function(pane) {
-            pane.classList.toggle('d-none', pane.getAttribute('data-post-lang-pane') !== lang);
-        });
-
-        languageButtons.forEach(function(button) {
-            var isActive = button.getAttribute('data-post-lang-toggle') === lang;
-            button.classList.toggle('btn-primary', isActive);
-            button.classList.toggle('btn-outline-primary', !isActive);
-            button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-        });
-    };
-
-    var updateAnalysis = function() {
-        if (titleInput && titleCount) {
-            titleCount.textContent = String(titleInput.value.length);
-        }
-
-        if (slugInput && slugCount) {
-            slugCount.textContent = String(slugInput.value.length);
-        }
-
-        if (excerptInput && excerptCount) {
-            excerptCount.textContent = String(excerptInput.value.length);
-        }
-
-        if (metaTitleInput && metaTitleCount) {
-            metaTitleCount.textContent = String(metaTitleInput.value.length);
-        }
-
-        if (metaDescInput && metaDescCount) {
-            metaDescCount.textContent = String(metaDescInput.value.length);
-        }
-
-        if (statusInput && statusBadge) {
-            var statusConfig = statusMap[statusInput.value] || statusMap.draft;
-            statusBadge.className = statusConfig.className;
-            statusBadge.textContent = statusConfig.label;
-        }
-
-        if (categoryInput && categoryLabel) {
-            var selectedOption = categoryInput.options[categoryInput.selectedIndex];
-            categoryLabel.textContent = selectedOption ? selectedOption.text : 'Keine Kategorie';
-        }
-
-        if (previewUrl && slugInput) {
-            var slug = slugInput.value.trim().replace(/^\/+/, '');
-            previewUrl.textContent = slug ? '<?php echo htmlspecialchars(SITE_URL); ?>/blog/' + slug : '<?php echo htmlspecialchars(SITE_URL); ?>/blog/';
-        }
-    };
-
-    if (btnRemove) {
-        btnRemove.addEventListener('click', function() {
-            if (featuredInput) {
-                featuredInput.value = '';
-            }
-            if (featuredPreview) {
-                featuredPreview.classList.add('d-none');
-                featuredPreview.innerHTML = '';
-            }
-            if (featuredEmpty) {
-                featuredEmpty.classList.remove('d-none');
-            }
-            btnRemove.classList.add('d-none');
-        });
-    }
-
-    [titleInput, slugInput, excerptInput, metaTitleInput, metaDescInput, statusInput, categoryInput].forEach(function(el) {
-        if (!el) {
-            return;
-        }
-        el.addEventListener('input', updateAnalysis);
-        el.addEventListener('change', updateAnalysis);
-    });
-
-    languageButtons.forEach(function(button) {
-        button.addEventListener('click', function() {
-            switchLanguage(button.getAttribute('data-post-lang-toggle') || 'de');
-        });
-    });
-
-    updateAnalysis();
-    switchLanguage('de');
-})();
-</script>
-
-<script src="<?php echo htmlspecialchars(SITE_URL); ?>/assets/js/admin-seo-editor.js"></script>
-<script>
-(function () {
-    if (!window.cmsSeoEditor) {
-        return;
-    }
-
-    window.cmsSeoEditor.init({
-        formId: 'postForm',
-        titleId: 'title',
-        slugId: 'slug',
-        metaTitleId: 'metaTitle',
-        metaDescId: 'metaDesc',
-        focusKeyphraseId: 'focusKeyphrase',
-        ogTitleId: 'ogTitle',
-        ogDescriptionId: 'ogDescription',
-        ogImageId: 'ogImage',
-        twitterTitleId: 'twitterTitle',
-        twitterDescriptionId: 'twitterDescription',
-        twitterImageId: 'twitterImage',
-        featuredImageId: 'featuredInput',
-        statusId: 'status',
-        contentInputId: 'contentInput',
-        editorContainerId: 'editorjs',
-        serpTitleId: 'postSerpTitle',
-        serpUrlId: 'postSerpUrl',
-        serpDescriptionId: 'postSerpDescription',
-        scoreBarId: 'postSeoScoreBar',
-        scoreLabelId: 'postSeoScoreLabel',
-        scoreBadgeId: 'postSeoScoreBadge',
-        scoreRulesId: 'postSeoRules',
-        socialTitleId: 'postSocialTitle',
-        socialDescriptionId: 'postSocialDescription',
-        socialImageId: 'postSocialImage',
-        publishWarningId: 'postPublishWarning',
-        slugStateId: 'postSlugState',
-        wordCountId: 'postWordCount',
-        densityId: 'postDensity',
-        internalLinksId: 'postInternalLinks',
-        externalLinksId: 'postExternalLinks',
-        transitionWordsId: 'postTransitionWords',
-        longSentencesId: 'postLongSentences',
-        longParagraphsId: 'postLongParagraphs',
-        missingAltId: 'postMissingAlt',
-        readabilityBadgeId: 'postReadabilityBadge',
-        readabilitySummaryId: 'postReadabilitySummary',
-        previewBaseUrl: '<?php echo htmlspecialchars(SITE_URL); ?>/blog/',
-        siteName: '<?php echo htmlspecialchars((string)SITE_NAME, ENT_QUOTES); ?>',
-        siteTitleFormat: '<?php echo htmlspecialchars((string)($seoTemplateSettings['site_title_format'] ?? '%%title%% %%sep%% %%sitename%%'), ENT_QUOTES); ?>',
-        titleSeparator: '<?php echo htmlspecialchars((string)($seoTemplateSettings['title_separator'] ?? '|'), ENT_QUOTES); ?>',
-        minWords: <?php echo (int)($seoTemplateSettings['analysis_min_words'] ?? 300); ?>,
-        maxSentenceWords: <?php echo (int)($seoTemplateSettings['analysis_sentence_words'] ?? 24); ?>,
-        maxParagraphWords: <?php echo (int)($seoTemplateSettings['analysis_paragraph_words'] ?? 120); ?>,
-        fallbackImage: '<?php echo htmlspecialchars($postFeaturedImageValue, ENT_QUOTES); ?>'
-    });
-})();
-</script>
-
-<?php if (!empty($useEditorJs)): ?>
-<!-- EditorJS wird via $inlineJs in footer.php initialisiert -->
-<?php endif; ?>

@@ -58,7 +58,7 @@ class Api
         try {
             switch ($endpoint) {
                 case 'status':
-                    $this->sendResponse(['status' => 'ok', 'version' => defined('CMS_VERSION') ? CMS_VERSION : '2.5.15']);
+                    $this->sendResponse(['status' => 'ok', 'version' => defined('CMS_VERSION') ? CMS_VERSION : '2.5.30']);
                     break;
                     
                 case 'pages':

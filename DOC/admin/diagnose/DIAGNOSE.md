@@ -88,4 +88,4 @@ Alle Diagnoseseiten folgen dem Admin-Standardmuster:
 
 - [../system-settings/SYSTEM.md](../system-settings/SYSTEM.md)
 - [../system-settings/README.md](../system-settings/README.md)
-- [../security/SECURITY-AUDIT.md](../security/SECURITY-AUDIT.md)
+- [../../audit/AUDIT_FACHBEREICHE.md](../../audit/AUDIT_FACHBEREICHE.md)

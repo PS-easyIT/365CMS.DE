@@ -39,7 +39,16 @@ final class ElfinderService
             exit;
         }
 
-        $this->ensureRuntimeDirectories();
+        try {
+            $this->ensureRuntimeDirectories();
+        } catch (\RuntimeException $e) {
+            http_response_code(500);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'error' => $e->getMessage(),
+            ]);
+            exit;
+        }
 
         $opts = [
             'locale' => 'de',
@@ -103,9 +112,18 @@ final class ElfinderService
         $tmpDir = $baseDir . DIRECTORY_SEPARATOR . 'tmp';
 
         foreach ([$baseDir, $thumbDir, $tmpDir] as $dir) {
-            if (!is_dir($dir)) {
-                @mkdir($dir, 0775, true);
-            }
+            $this->ensureDirectory($dir);
+        }
+    }
+
+    private function ensureDirectory(string $dir): void
+    {
+        if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
+            throw new \RuntimeException('elFinder-Laufzeitverzeichnis konnte nicht erstellt werden: ' . $dir);
+        }
+
+        if (!is_writable($dir)) {
+            throw new \RuntimeException('elFinder-Laufzeitverzeichnis ist nicht beschreibbar: ' . $dir);
         }
     }
 }

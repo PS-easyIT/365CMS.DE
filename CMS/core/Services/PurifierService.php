@@ -66,11 +66,7 @@ class PurifierService
     private function __construct()
     {
         $this->available = class_exists('HTMLPurifier', true);
-        $this->cacheDir  = (defined('ABSPATH') ? ABSPATH : '') . 'cache/htmlpurifier';
-
-        if ($this->available && !is_dir($this->cacheDir)) {
-            @mkdir($this->cacheDir, 0755, true);
-        }
+        $this->cacheDir  = $this->resolveCacheDirectory();
     }
 
     /**
@@ -134,7 +130,9 @@ class PurifierService
         $config = \HTMLPurifier_Config::createDefault();
 
         // Cache-Verzeichnis für Serializer
-        $config->set('Cache.SerializerPath', $this->cacheDir);
+        if ($this->cacheDir !== '') {
+            $config->set('Cache.SerializerPath', $this->cacheDir);
+        }
 
         // Encoding
         $config->set('Core.Encoding', 'UTF-8');
@@ -210,5 +208,34 @@ class PurifierService
         $allowedTags = implode('', array_map(fn(string $el): string => "<{$el}>", $elements));
 
         return strip_tags($dirty, $allowedTags);
+    }
+
+    private function resolveCacheDirectory(): string
+    {
+        $candidates = [];
+
+        if (defined('ABSPATH')) {
+            $candidates[] = rtrim(ABSPATH, '\\/') . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'htmlpurifier';
+        }
+
+        $candidates[] = rtrim(sys_get_temp_dir(), '\\/') . DIRECTORY_SEPARATOR . '365cms-htmlpurifier';
+
+        foreach ($candidates as $candidate) {
+            if ($this->ensureDirectory($candidate)) {
+                return $candidate;
+            }
+        }
+
+        error_log('PurifierService: Kein beschreibbares Cache-Verzeichnis für HTMLPurifier verfügbar.');
+        return '';
+    }
+
+    private function ensureDirectory(string $dir): bool
+    {
+        if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
+            return false;
+        }
+
+        return is_writable($dir);
     }
 }

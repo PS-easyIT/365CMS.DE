@@ -24,6 +24,7 @@ final class FeedService
 
     private readonly string $cachePath;
     private readonly bool $available;
+    private readonly bool $cacheEnabled;
 
     /** Standard-Timeout für Feed-Fetches in Sekunden */
     private int $fetchTimeout = 15;
@@ -44,10 +45,7 @@ final class FeedService
         $this->cachePath = ABSPATH . '/cache/feeds/';
         $this->available = class_exists(\SimplePie\SimplePie::class);
         $this->userAgent = '365CMS/' . (defined('CMS_VERSION') ? CMS_VERSION : '2.0') . ' (SimplePie)';
-
-        if (!is_dir($this->cachePath)) {
-            @mkdir($this->cachePath, 0755, true);
-        }
+        $this->cacheEnabled = $this->ensureDirectory($this->cachePath, 'Feed-Cache-Verzeichnis');
     }
 
     // ──────────────────────────────────────────────────────────
@@ -249,7 +247,7 @@ final class FeedService
         $success = true;
         foreach ($files as $file) {
             if (is_file($file)) {
-                if (!@unlink($file)) {
+                if (!$this->deleteFile($file)) {
                     $success = false;
                 }
             }
@@ -285,11 +283,16 @@ final class FeedService
     {
         $feed = new \SimplePie\SimplePie();
         $feed->set_feed_url($url);
-        $feed->set_cache_location($this->cachePath);
-        $feed->set_cache_duration($this->cacheDuration);
         $feed->set_timeout($this->fetchTimeout);
         $feed->set_useragent($this->userAgent);
-        $feed->enable_cache(true);
+
+        if ($this->cacheEnabled) {
+            $feed->set_cache_location($this->cachePath);
+            $feed->set_cache_duration($this->cacheDuration);
+            $feed->enable_cache(true);
+        } else {
+            $feed->enable_cache(false);
+        }
 
         // SimplePie soll nicht automatisch sortieren
         $feed->enable_order_by_date(true);
@@ -369,5 +372,38 @@ final class FeedService
             'items'       => [],
             'error'       => $message,
         ];
+    }
+
+    private function ensureDirectory(string $path, string $label): bool
+    {
+        if (is_dir($path)) {
+            return is_writable($path);
+        }
+
+        if (!mkdir($path, 0755, true) && !is_dir($path)) {
+            error_log(sprintf('FeedService: %s konnte nicht erstellt werden: %s', $label, $path));
+            return false;
+        }
+
+        if (!is_writable($path)) {
+            error_log(sprintf('FeedService: %s ist nicht beschreibbar: %s', $label, $path));
+            return false;
+        }
+
+        return true;
+    }
+
+    private function deleteFile(string $path): bool
+    {
+        if (!is_file($path)) {
+            return true;
+        }
+
+        if (!unlink($path)) {
+            error_log('FeedService: Cache-Datei konnte nicht gelöscht werden: ' . $path);
+            return false;
+        }
+
+        return true;
     }
 }

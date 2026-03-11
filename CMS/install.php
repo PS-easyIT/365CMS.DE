@@ -16,6 +16,17 @@ declare(strict_types=1);
  * @package 365CMS
  */
 
+if (!defined('ABSPATH')) {
+    define('ABSPATH', __DIR__ . DIRECTORY_SEPARATOR);
+}
+
+if (PHP_SAPI !== 'cli') {
+    require_once __DIR__ . '/core/Contracts/CacheInterface.php';
+    require_once __DIR__ . '/core/CacheManager.php';
+
+    \CMS\CacheManager::instance()->sendResponseHeaders('private');
+}
+
 // Session für mehrstufiges Formular
 session_start();
 
@@ -234,7 +245,7 @@ define('NONCE_KEY',       '{$data['nonce_key']}');
 define('SITE_NAME',   '{$data['site_name']}');
 define('SITE_URL',    '{$data['site_url']}');
 define('ADMIN_EMAIL', '{$data['admin_email']}');
-define('CMS_VERSION', '2.5.15');
+define('CMS_VERSION', '2.5.30');
 
 // ─── Pfade ─────────────────────────────────────────────────────────────────
 define('CORE_PATH',   ABSPATH . 'core/');
@@ -426,7 +437,7 @@ function initializeLandingPageData(PDO $pdo, string $prefix = 'cms_'): bool {
             'description' => '365CMS vereint Content-Management, Design-Anpassung, Mitgliederfunktionen, System-Mails und modulare Business-Features in einer flexiblen Plattform für professionelle Websites und Portale.',
             'github_url' => 'https://github.com/PS-easyIT/WordPress-365network',
             'gitlab_url' => '',
-            'version' => '2.5.15',
+            'version' => '2.5.30',
             'logo' => '',
             'colors' => [
                 'hero_gradient_start' => '#1e293b',
