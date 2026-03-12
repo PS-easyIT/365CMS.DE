@@ -440,9 +440,9 @@ final class EditorJsRenderer
             return '';
         }
 
-        $html = '<div class="editorjs-block editorjs-gallery">';
+        $html = '<div class="editorjs-block editorjs-gallery" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;align-items:start;">';
         foreach ($urls as $url) {
-            $html .= '<figure class="editorjs-gallery__item"><img src="' . htmlspecialchars((string)$url, ENT_QUOTES, 'UTF-8') . '" alt="" loading="lazy"></figure>';
+            $html .= '<figure class="editorjs-gallery__item" style="margin:0;"><img src="' . htmlspecialchars((string)$url, ENT_QUOTES, 'UTF-8') . '" alt="" loading="lazy" style="display:block;width:100%;height:auto;"></figure>';
         }
         $html .= '</div>';
 
