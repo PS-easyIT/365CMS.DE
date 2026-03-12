@@ -24,6 +24,7 @@ class ThemeManager
     private static ?self $instance = null;
     private string $activeTheme;
     private string $themePath;
+    private ?string $loadedThemeSlug = null;
     /** @var array<string,string>|null  null = noch nicht geladen (H-22 Lazy Loading) */
     private ?array $settings = null;
     
@@ -88,6 +89,10 @@ class ThemeManager
      */
     public function loadTheme(): void
     {
+        if ($this->loadedThemeSlug === $this->activeTheme) {
+            return;
+        }
+
         // C-14: Pfad-Validierung
         if (!$this->validateThemePath($this->themePath)) {
             error_log('ThemeManager: Ungültiger Theme-Pfad abgewiesen: ' . $this->themePath);
@@ -118,6 +123,8 @@ class ThemeManager
                 return;
             }
         }
+
+        $this->loadedThemeSlug = $this->activeTheme;
 
         Hooks::doAction('theme_loaded', $this->activeTheme);
     }

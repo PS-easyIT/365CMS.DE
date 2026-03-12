@@ -17,6 +17,8 @@ use CMS\Services\EditorService;
 $post       = $data['post'] ?? null;
 $isNew      = $data['isNew'] ?? true;
 $categories = $data['categories'] ?? [];
+$availableTags = $data['tags'] ?? [];
+$postTagsData  = $data['postTags'] ?? [];
 $postEditorWidth = function_exists('get_option') ? (int)get_option('setting_post_editor_width', 750) : 750;
 $postEditorWidth = max(320, min(1600, $postEditorWidth));
 $postDefaultStatus = function_exists('get_option') ? (string)get_option('setting_post_default_status', 'draft') : 'draft';
@@ -36,6 +38,7 @@ $categoryId = (int)($post['category_id'] ?? 0);
 $featuredImg = htmlspecialchars($post['featured_image'] ?? '');
 $metaTitle  = htmlspecialchars($post['meta_title'] ?? '');
 $metaDesc   = htmlspecialchars($post['meta_description'] ?? '');
+$tagString  = htmlspecialchars(implode(', ', array_map(static fn(array $tag): string => (string)($tag['name'] ?? ''), $postTagsData)), ENT_QUOTES);
 $seoMeta = $data['seoMeta'] ?? [];
 $seoTemplateSettings = \CMS\Services\SeoAnalysisService::getInstance()->getSettings();
 $permalinkService = class_exists('\CMS\Services\PermalinkService') ? \CMS\Services\PermalinkService::getInstance() : null;
@@ -172,6 +175,18 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
+                            </div>
+                            <div class="mt-3">
+                                <label class="form-label" for="postTags">Tags</label>
+                                <input type="text" class="form-control" id="postTags" name="tags" value="<?php echo $tagString; ?>" list="postTagsSuggestions" placeholder="z. B. Microsoft 365, PowerShell, Security">
+                                <div class="form-hint">Mehrere Tags mit Komma trennen.</div>
+                                <?php if (!empty($availableTags)): ?>
+                                <datalist id="postTagsSuggestions">
+                                    <?php foreach ($availableTags as $tag): ?>
+                                    <option value="<?php echo htmlspecialchars((string)($tag['name'] ?? ''), ENT_QUOTES); ?>"></option>
+                                    <?php endforeach; ?>
+                                </datalist>
+                                <?php endif; ?>
                             </div>
                         </div>
                         <div class="card-footer d-flex gap-2">

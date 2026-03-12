@@ -23,9 +23,11 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-if (class_exists(__NAMESPACE__ . '\\SchemaManager', false)) {
+if (defined('CMS_SCHEMA_MANAGER_LOADED') || class_exists(__NAMESPACE__ . '\\SchemaManager', false)) {
     return;
 }
+
+define('CMS_SCHEMA_MANAGER_LOADED', true);
 
 class SchemaManager
 {

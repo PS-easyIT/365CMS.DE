@@ -125,8 +125,16 @@ final class EditorJsRenderer
     /** @param array<string,mixed> $data */
     private function renderParagraph(array $data): string
     {
-        $text = $this->sanitizeInline((string)($data['text'] ?? ''));
-        return $text !== '' ? '<div class="editorjs-block editorjs-paragraph"><p>' . $text . '</p></div>' : '';
+        $rawText = (string)($data['text'] ?? '');
+        $text = $this->sanitizeInline($rawText);
+
+        if ($text === '') {
+            return array_key_exists('text', $data)
+                ? '<div class="editorjs-block editorjs-paragraph"><p><br></p></div>'
+                : '';
+        }
+
+        return '<div class="editorjs-block editorjs-paragraph"><p>' . $text . '</p></div>';
     }
 
     /** @param array<string,mixed> $data */
@@ -238,11 +246,13 @@ final class EditorJsRenderer
     {
         $text = $this->sanitizeInline((string)($data['text'] ?? ''));
         $caption = $this->sanitizeInline((string)($data['caption'] ?? ''));
+        $alignment = (string)($data['alignment'] ?? 'left');
+        $alignmentClass = in_array($alignment, ['left', 'center'], true) ? ' editorjs-quote--' . $alignment : '';
         if ($text === '') {
             return '';
         }
 
-        $html = '<div class="editorjs-block editorjs-quote"><blockquote><p>' . $text . '</p>';
+        $html = '<div class="editorjs-block editorjs-quote' . $alignmentClass . '"><blockquote><p>' . $text . '</p>';
         if ($caption !== '') {
             $html .= '<cite>' . $caption . '</cite>';
         }

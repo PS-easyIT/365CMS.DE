@@ -130,14 +130,34 @@ class PostsModule
             );
         }
 
+        $postData = $post ? (array)$post : null;
+
         $categories = $this->db->get_results(
             "SELECT id, name FROM {$this->prefix}post_categories ORDER BY name ASC"
         ) ?: [];
 
+        $tags = $this->db->get_results(
+            "SELECT id, name, slug FROM {$this->prefix}post_tags ORDER BY name ASC"
+        ) ?: [];
+
+        $postTags = [];
+        if ($postData !== null) {
+            $postTags = $this->db->get_results(
+                "SELECT t.id, t.name, t.slug
+                 FROM {$this->prefix}post_tags t
+                 INNER JOIN {$this->prefix}post_tag_rel ptr ON ptr.tag_id = t.id
+                 WHERE ptr.post_id = ?
+                 ORDER BY t.name ASC",
+                [(int)($postData['id'] ?? 0)]
+            ) ?: [];
+        }
+
         return [
-            'post'       => $post ? (array)$post : null,
+            'post'       => $postData,
             'isNew'      => $post === null,
             'categories' => array_map(fn($c) => (array)$c, $categories),
+            'tags'       => array_map(fn($t) => (array)$t, $tags),
+            'postTags'   => array_map(fn($t) => (array)$t, $postTags),
             'seoMeta'    => $id !== null ? SEOService::getInstance()->getContentMeta('post', $id) : SEOService::getInstance()->getContentMeta('post', 0),
         ];
     }
@@ -166,6 +186,7 @@ class PostsModule
         $featuredImageTempPath = trim($post['featured_image_temp_path'] ?? '');
         $metaTitle  = trim($post['meta_title'] ?? '');
         $metaDesc   = trim($post['meta_description'] ?? '');
+        $rawTags    = $post['tags'] ?? '';
         $slug       = $this->normalizeSlug($slug !== '' ? $slug : $this->generateSlug($title));
 
         // Move temp upload to slug subfolder (articles/{slug}/{filename})
@@ -247,6 +268,7 @@ class PostsModule
                 );
 
                 SEOService::getInstance()->saveContentMeta('post', $id, $post);
+                $this->syncPostTags($id, $rawTags);
                 $this->createSlugRedirectIfNeeded((string)($existing->slug ?? ''), $slug, [
                     'published_at' => (string)($existing->published_at ?? ''),
                     'created_at' => (string)($existing->created_at ?? ''),
@@ -277,6 +299,7 @@ class PostsModule
                 );
                 $newId = (int)$this->db->lastInsertId();
                 SEOService::getInstance()->saveContentMeta('post', $newId, $post);
+                $this->syncPostTags($newId, $rawTags);
                 Hooks::doAction('cms_after_post_save', $newId, $savePayload, $post);
                 return ['success' => true, 'id' => $newId, 'message' => 'Beitrag erstellt.'];
             }
@@ -422,6 +445,83 @@ class PostsModule
         }
 
         return (int)$this->db->get_var($sql, $params) > 0;
+    }
+
+    /**
+     * @return array<int, array{name:string, slug:string}>
+     */
+    private function normalizeTagInput(string|array $rawTags): array
+    {
+        $tagValues = is_array($rawTags)
+            ? $rawTags
+            : (preg_split('/[,\n]+/', $rawTags) ?: []);
+        $normalized = [];
+        $seen = [];
+
+        foreach ($tagValues as $tagValue) {
+            $name = trim((string)$tagValue);
+            if ($name === '') {
+                continue;
+            }
+
+            $slug = $this->normalizeSlug($this->generateSlug($name));
+            if ($slug === '' || isset($seen[$slug])) {
+                continue;
+            }
+
+            $seen[$slug] = true;
+            $normalized[] = [
+                'name' => mb_substr($name, 0, 120),
+                'slug' => mb_substr($slug, 0, 160),
+            ];
+        }
+
+        return $normalized;
+    }
+
+    private function syncPostTags(int $postId, string|array $rawTags): void
+    {
+        if ($postId <= 0) {
+            return;
+        }
+
+        $tags = $this->normalizeTagInput($rawTags);
+
+        $this->db->execute(
+            "DELETE FROM {$this->prefix}post_tag_rel WHERE post_id = ?",
+            [$postId]
+        );
+
+        if ($tags === []) {
+            return;
+        }
+
+        foreach ($tags as $tag) {
+            $existingTagId = (int)($this->db->get_var(
+                "SELECT id FROM {$this->prefix}post_tags WHERE slug = ? LIMIT 1",
+                [$tag['slug']]
+            ) ?: 0);
+
+            if ($existingTagId <= 0) {
+                $this->db->execute(
+                    "INSERT INTO {$this->prefix}post_tags (name, slug) VALUES (?, ?)",
+                    [$tag['name'], $tag['slug']]
+                );
+                $existingTagId = (int)$this->db->lastInsertId();
+            } else {
+                $this->db->execute(
+                    "UPDATE {$this->prefix}post_tags SET name = ? WHERE id = ?",
+                    [$tag['name'], $existingTagId]
+                );
+            }
+
+            if ($existingTagId > 0) {
+                $this->db->execute(
+                    "INSERT IGNORE INTO {$this->prefix}post_tag_rel (post_id, tag_id) VALUES (?, ?)",
+                    [$postId, $existingTagId]
+                );
+            }
+        }
     }
 
     /**

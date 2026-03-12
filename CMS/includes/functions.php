@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-if (defined('CMS_GLOBAL_FUNCTIONS_LOADED')) {
+if (defined('CMS_GLOBAL_FUNCTIONS_LOADED') || function_exists('esc_html')) {
     return;
 }
 

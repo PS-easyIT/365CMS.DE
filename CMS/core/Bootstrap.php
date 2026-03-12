@@ -261,7 +261,9 @@ class Bootstrap
         require_once CORE_PATH . 'Hooks.php';
         require_once CORE_PATH . 'CacheManager.php';
         // H-10: Schema- und Migrations-Manager
-        require_once CORE_PATH . 'SchemaManager.php';
+        if (!class_exists(__NAMESPACE__ . '\SchemaManager', false)) {
+            require_once CORE_PATH . 'SchemaManager.php';
+        }
         require_once CORE_PATH . 'MigrationManager.php';
 
         if ($this->mode !== 'cli') {
@@ -271,11 +273,11 @@ class Bootstrap
             require_once CORE_PATH . 'SubscriptionManager.php';
         }
 
-        if (in_array($this->mode, ['web', 'admin'], true)) {
+        if (in_array($this->mode, ['web', 'admin'], true) && !class_exists(__NAMESPACE__ . '\ThemeManager', false)) {
             require_once CORE_PATH . 'ThemeManager.php';
         }
         
-        if (file_exists(ABSPATH . 'includes/functions.php')) {
+        if (file_exists(ABSPATH . 'includes/functions.php') && !defined('CMS_GLOBAL_FUNCTIONS_LOADED') && !function_exists('esc_html')) {
             require_once ABSPATH . 'includes/functions.php';
         }
         
