@@ -18,9 +18,15 @@
         return id ? document.getElementById(id) : null;
     }
 
-    function buildPreviewUrl(base, slug) {
+    function buildPreviewUrl(base, slug, template, placeholderSlug) {
+        var sanitizedTemplate = String(template || '');
         var sanitizedBase = String(base || '').replace(/\/+$/, '');
         var sanitizedSlug = String(slug || '').trim().replace(/^\/+/, '');
+        var fallbackSlug = String(placeholderSlug || 'beitrag').trim().replace(/^\/+/, '');
+
+        if (sanitizedTemplate !== '' && sanitizedTemplate.indexOf('{slug}') !== -1) {
+            return sanitizedTemplate.replace(/\{slug\}/g, sanitizedSlug !== '' ? sanitizedSlug : fallbackSlug);
+        }
 
         return sanitizedSlug !== '' ? sanitizedBase + '/' + sanitizedSlug : sanitizedBase + '/';
     }
@@ -69,7 +75,7 @@
             });
 
             if (previewUrl && slugInput) {
-                previewUrl.textContent = buildPreviewUrl(config.previewBaseUrl || '', slugInput.value);
+                previewUrl.textContent = buildPreviewUrl(config.previewBaseUrl || '', slugInput.value, config.previewUrlTemplate || '', config.previewPlaceholderSlug || 'beitrag');
             }
 
             if (statusSelect && statusBadge) {

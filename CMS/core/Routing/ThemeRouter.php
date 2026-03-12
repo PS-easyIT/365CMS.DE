@@ -29,13 +29,19 @@ final class ThemeRouter
 
     public function registerRoutes(): void
     {
+        $permalinkService = Services\PermalinkService::getInstance();
+        $currentPostRoutePattern = $permalinkService->buildPostRoutePattern();
+
         $this->router->addRoute('GET', '/', [$this, 'renderHome']);
         $this->router->addRoute('GET', '/search', [$this, 'renderSearch']);
         $this->router->addRoute('GET', '/contact', [$this, 'renderContact']);
         $this->router->addRoute('GET', '/kontakt', [$this, 'renderContact']);
         $this->router->addRoute('GET', '/site-table/export/:id/:format', [$this, 'streamSiteTableExport']);
         $this->router->addRoute('GET', '/blog', [$this, 'renderBlogIndex']);
-        $this->router->addRoute('GET', '/blog/:slug', [$this, 'renderBlogSingle']);
+        $this->router->addRoute('GET', $currentPostRoutePattern, [$this, 'renderBlogSingle']);
+        if ($currentPostRoutePattern !== Services\PermalinkService::LEGACY_POST_ROUTE_PATTERN) {
+            $this->router->addRoute('GET', Services\PermalinkService::LEGACY_POST_ROUTE_PATTERN, [$this, 'renderLegacyBlogSingle']);
+        }
         $this->router->addRoute('GET', '/sitemap.xml', [$this, 'serveSitemap']);
         $this->router->addRoute('GET', '/robots.txt', [$this, 'serveRobotsTxt']);
     }
@@ -341,8 +347,14 @@ final class ThemeRouter
         ]);
     }
 
-    public function renderBlogSingle(string $slug): void
+    public function renderBlogSingle(string ...$segments): void
     {
+        $slug = rawurldecode(trim((string)end($segments), '/'));
+        if ($slug === '') {
+            $this->router->render404();
+            return;
+        }
+
         $db = Database::instance();
         $prefix = $db->getPrefix();
         $postRow = $db->get_row(
@@ -355,12 +367,29 @@ final class ThemeRouter
         );
 
         if (!$postRow) {
+            if (Services\PermalinkService::getInstance()->usesSlugOnlyStructure() && count($segments) === 1 && $this->renderPageFallback($slug)) {
+                return;
+            }
+
             $this->router->render404();
             return;
         }
 
+        $requestContext = $this->router->getRequestContext();
+        $requestBaseUri = (string)($requestContext['base_uri'] ?? '');
         $locale = $this->router->getRequestLocale();
         $postData = Services\ContentLocalizationService::getInstance()->localizePost((array)$postRow, $locale);
+        $permalinkService = Services\PermalinkService::getInstance();
+        $canonicalBasePath = $permalinkService->buildPostPath($postData);
+        $canonicalPath = $permalinkService->buildPostPath($postData, $locale);
+
+        if ($requestBaseUri !== '' && $requestBaseUri !== $canonicalBasePath) {
+            $query = trim((string)($_SERVER['QUERY_STRING'] ?? ''));
+            $target = $canonicalPath . ($query !== '' ? '?' . $query : '');
+            $this->router->redirect($target, 301);
+            return;
+        }
+
         $post = (object)$postData;
         $db->execute("UPDATE {$prefix}posts SET views = views + 1 WHERE id = ?", [(int)$post->id]);
 
@@ -383,6 +412,11 @@ final class ThemeRouter
         ]);
     }
 
+    public function renderLegacyBlogSingle(string $slug): void
+    {
+        $this->renderBlogSingle($slug);
+    }
+
     public function serveSitemap(): void
     {
         header('Content-Type: application/xml; charset=utf-8');
@@ -395,5 +429,28 @@ final class ThemeRouter
         header('Content-Type: text/plain; charset=utf-8');
         echo Services\SEOService::getInstance()->generateRobotsTxt();
         exit;
+    }
+
+    private function renderPageFallback(string $slug): bool
+    {
+        $page = PageManager::instance()->getPageBySlug($slug);
+        if ($page !== null && ($page['status'] ?? '') === 'published') {
+            $locale = $this->router->getRequestLocale();
+            $page = Services\ContentLocalizationService::getInstance()->localizePage($page, $locale);
+            if (!empty($page['content'])) {
+                $page['content'] = $this->router->prepareRenderableContent((string)$page['content'], 'page', (int)($page['id'] ?? 0));
+            }
+
+            ThemeManager::instance()->render('page', ['page' => $page, 'contentLocale' => $locale]);
+            return true;
+        }
+
+        $hubPage = Services\SiteTableService::getInstance()->getHubPageBySlug($slug, $this->router->getRequestLocale());
+        if ($hubPage !== null) {
+            ThemeManager::instance()->render('page', ['page' => $hubPage, 'contentLocale' => $this->router->getRequestLocale()]);
+            return true;
+        }
+
+        return false;
     }
 }

@@ -544,10 +544,17 @@ final class PublicRouter
 
         if ($postId > 0) {
             $db = Database::instance();
-            $post = $db->get_row("SELECT slug FROM {$db->getPrefix()}posts WHERE id = ? LIMIT 1", [$postId]);
+            $post = $db->get_row("SELECT slug, published_at, created_at FROM {$db->getPrefix()}posts WHERE id = ? LIMIT 1", [$postId]);
             $slug = trim((string)($post->slug ?? ''));
             if ($slug !== '') {
-                return '/blog/' . rawurlencode($slug) . '#comments';
+                $path = class_exists('CMS\\Services\\PermalinkService')
+                    ? \CMS\Services\PermalinkService::getInstance()->buildPostPathFromValues(
+                        $slug,
+                        (string)($post->published_at ?? ''),
+                        (string)($post->created_at ?? '')
+                    )
+                    : '/blog/' . rawurlencode($slug);
+                return $path . '#comments';
             }
         }
 

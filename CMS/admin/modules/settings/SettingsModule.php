@@ -28,7 +28,8 @@ class SettingsModule
         'google_analytics', 'robots_txt', 'marketplace_enabled',
         'setting_editor_type', 'setting_page_default_status',
         'setting_post_default_status', 'setting_page_editor_width',
-        'setting_post_editor_width',
+        'setting_post_editor_width', 'setting_post_permalink_structure',
+        'setting_post_permalink_custom',
     ];
 
     private const TIMEZONES = [
@@ -62,6 +63,17 @@ class SettingsModule
     public function getData(): array
     {
         $settings = $this->loadSettings();
+        $postPermalinkStructure = class_exists('\CMS\Services\PermalinkService')
+            ? \CMS\Services\PermalinkService::normalizePostStructure((string)($settings['setting_post_permalink_structure'] ?? ''))
+            : '/blog/%postname%';
+        $postPermalinkPreset = class_exists('\CMS\Services\PermalinkService')
+            ? \CMS\Services\PermalinkService::inferPostStructurePreset($postPermalinkStructure)
+            : 'blog';
+        $postPermalinkCustom = trim((string)($settings['setting_post_permalink_custom'] ?? ''));
+        if ($postPermalinkPreset !== 'custom' && $postPermalinkCustom === '') {
+            $postPermalinkCustom = $postPermalinkStructure;
+        }
+
         $editorType = (string)($settings['setting_editor_type'] ?? 'editorjs');
         if (!in_array($editorType, ['editorjs', 'suneditor'], true)) {
             $editorType = 'editorjs';
@@ -100,6 +112,12 @@ class SettingsModule
                 'post_default_status'  => $postDefaultStatus,
                 'page_editor_width'    => (string)max(320, min(1600, (int)($settings['setting_page_editor_width'] ?? 1050))),
                 'post_editor_width'    => (string)max(320, min(1600, (int)($settings['setting_post_editor_width'] ?? 750))),
+                'post_permalink_structure' => $postPermalinkStructure,
+                'post_permalink_preset'    => $postPermalinkPreset,
+                'post_permalink_custom'    => $postPermalinkCustom,
+                'post_permalink_example'   => class_exists('\CMS\Services\PermalinkService')
+                    ? \CMS\Services\PermalinkService::buildExamplePath($postPermalinkStructure)
+                    : '/blog/beispielbeitrag',
             ],
             'mail'      => $this->getMailData($settings),
             'timezones' => self::TIMEZONES,
@@ -113,6 +131,20 @@ class SettingsModule
     public function saveSettings(array $post): array
     {
         try {
+            $permalinkPreset = (string)($post['post_permalink_preset'] ?? 'blog');
+            $permalinkCustom = trim((string)($post['post_permalink_custom'] ?? ''));
+            $permalinkStructure = match ($permalinkPreset) {
+                'dated' => class_exists('\CMS\Services\PermalinkService') ? \CMS\Services\PermalinkService::PRESET_DATED : '/%year%/%monthnum%/%day%/%postname%',
+                'slug' => class_exists('\CMS\Services\PermalinkService') ? \CMS\Services\PermalinkService::PRESET_SLUG : '/%postname%',
+                'year' => class_exists('\CMS\Services\PermalinkService') ? \CMS\Services\PermalinkService::PRESET_YEAR : '/%year%/%postname%',
+                'custom' => $permalinkCustom,
+                default => class_exists('\CMS\Services\PermalinkService') ? \CMS\Services\PermalinkService::PRESET_BLOG : '/blog/%postname%',
+            };
+
+            if (class_exists('\CMS\Services\PermalinkService')) {
+                $permalinkStructure = \CMS\Services\PermalinkService::normalizePostStructure($permalinkStructure);
+            }
+
             $editorType = (string)($post['editor_type'] ?? 'editorjs');
             if (!in_array($editorType, ['editorjs', 'suneditor'], true)) {
                 $editorType = 'editorjs';
@@ -156,6 +188,8 @@ class SettingsModule
                 'setting_post_default_status' => $postDefaultStatus,
                 'setting_page_editor_width' => (string)max(320, min(1600, (int)($post['page_editor_width'] ?? 1050))),
                 'setting_post_editor_width' => (string)max(320, min(1600, (int)($post['post_editor_width'] ?? 750))),
+                'setting_post_permalink_structure' => $permalinkStructure,
+                'setting_post_permalink_custom' => $permalinkPreset === 'custom' ? $permalinkCustom : '',
             ];
 
             foreach ($values as $key => $value) {
@@ -181,6 +215,504 @@ class SettingsModule
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
         }
+    }
+
+    public function repairImportedSlugs(): array
+    {
+        try {
+            $this->ensureImportItemsTable();
+
+            if (class_exists('CMS_Importer_DB')) {
+                \CMS_Importer_DB::create_tables();
+            }
+
+            if (!$this->tableExists('import_items')) {
+                $importLogCount = $this->tableExists('import_log')
+                    ? (int)($this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}import_log") ?? 0)
+                    : 0;
+
+                if ($importLogCount > 0) {
+                    return [
+                        'success' => false,
+                        'error' => 'Es wurden Import-Logs gefunden, aber keine Einzel-Mappings in `import_items`. Bitte die betroffenen XML-Dateien einmal mit der aktuellen Importer-Version erneut importieren, damit die Original-Slugs für die Nachkorrektur gespeichert werden.',
+                    ];
+                }
+
+                return ['success' => false, 'error' => 'Keine Import-Mappings gefunden. Bitte zuerst Inhalte mit dem WordPress-Importer importieren.'];
+            }
+
+            $mappingCount = (int)($this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}import_items") ?? 0);
+            if ($mappingCount === 0) {
+                $backfill = $this->backfillImportMappingsFromSources();
+                $mappingCount = (int)($this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}import_items") ?? 0);
+
+                if ($mappingCount > 0) {
+                    // weiter unten normal mit den neu aufgebauten Mappings fortfahren
+                } else {
+                $importLogCount = $this->tableExists('import_log')
+                    ? (int)($this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}import_log") ?? 0)
+                    : 0;
+
+                if ($importLogCount > 0) {
+                    return [
+                        'success' => false,
+                        'error' => sprintf(
+                            'Import-Logs sind vorhanden, aber `import_items` enthält noch keine nutzbaren Einträge. Ein automatischer Backfill hat %d Datei(en) geprüft und %d Mapping(s) aufgebaut, %d Treffer blieben uneindeutig oder fehlten. Bitte die betroffenen XML-Dateien mit der aktuellen Importer-Version erneut importieren, falls noch Inhalte ohne Mapping übrig sind.',
+                            (int)($backfill['files_scanned'] ?? 0),
+                            (int)($backfill['mappings_created'] ?? 0),
+                            (int)($backfill['unmatched_items'] ?? 0)
+                        ),
+                    ];
+                }
+
+                return ['success' => false, 'error' => 'Keine Import-Mappings gefunden. Bitte zuerst Inhalte mit dem WordPress-Importer importieren.'];
+                }
+            }
+
+            $rows = $this->db->get_results(
+                "SELECT ii.id, ii.target_type, ii.target_id, ii.source_slug, ii.source_url,
+                        p.slug AS post_slug, p.published_at AS post_published_at, p.created_at AS post_created_at,
+                        pg.slug AS page_slug
+                 FROM {$this->prefix}import_items ii
+                 LEFT JOIN {$this->prefix}posts p ON ii.target_type = 'post' AND p.id = ii.target_id
+                 LEFT JOIN {$this->prefix}pages pg ON ii.target_type = 'page' AND pg.id = ii.target_id
+                 WHERE ii.target_type IN ('post', 'page')
+                 ORDER BY ii.id DESC"
+            ) ?: [];
+
+            if ($rows === []) {
+                return ['success' => false, 'error' => 'Keine importierten Beiträge oder Seiten gefunden.'];
+            }
+
+            $permalinkService = class_exists('\CMS\Services\PermalinkService')
+                ? \CMS\Services\PermalinkService::getInstance()
+                : null;
+            $seenTargets = [];
+            $updatedPosts = 0;
+            $updatedPages = 0;
+            $checked = 0;
+            $skipped = 0;
+
+            foreach ($rows as $row) {
+                $targetType = trim((string)($row->target_type ?? ''));
+                $targetId = (int)($row->target_id ?? 0);
+                if ($targetId <= 0 || !in_array($targetType, ['post', 'page'], true)) {
+                    $skipped++;
+                    continue;
+                }
+
+                $targetKey = $targetType . ':' . $targetId;
+                if (isset($seenTargets[$targetKey])) {
+                    continue;
+                }
+                $seenTargets[$targetKey] = true;
+                $checked++;
+
+                $desiredSlug = class_exists('\CMS\Services\PermalinkService')
+                    ? \CMS\Services\PermalinkService::resolveImportedSourceSlug(
+                        (string)($row->source_slug ?? ''),
+                        (string)($row->source_url ?? '')
+                    )
+                    : trim((string)($row->source_slug ?? ''));
+
+                if ($desiredSlug === '') {
+                    $skipped++;
+                    continue;
+                }
+
+                if ($targetType === 'post') {
+                    $currentSlug = trim((string)($row->post_slug ?? ''));
+                    if ($currentSlug === '') {
+                        $skipped++;
+                        continue;
+                    }
+
+                    $newSlug = $this->ensureUniqueSlug('posts', $desiredSlug, $targetId);
+                    $newUrl = $permalinkService !== null
+                        ? $permalinkService->buildPostUrlFromValues($newSlug, (string)($row->post_published_at ?? ''), (string)($row->post_created_at ?? ''))
+                        : rtrim((string)SITE_URL, '/') . '/blog/' . ltrim($newSlug, '/');
+
+                    if ($newSlug !== $currentSlug) {
+                        $oldPath = $permalinkService !== null
+                            ? $permalinkService->buildPostPathFromValues($currentSlug, (string)($row->post_published_at ?? ''), (string)($row->post_created_at ?? ''))
+                            : '/blog/' . ltrim($currentSlug, '/');
+                        $newPath = $permalinkService !== null
+                            ? $permalinkService->buildPostPathFromValues($newSlug, (string)($row->post_published_at ?? ''), (string)($row->post_created_at ?? ''))
+                            : '/blog/' . ltrim($newSlug, '/');
+
+                        $this->db->execute(
+                            "UPDATE {$this->prefix}posts SET slug = ?, updated_at = NOW() WHERE id = ?",
+                            [$newSlug, $targetId]
+                        );
+
+                        if (class_exists('\CMS\Services\RedirectService')) {
+                            \CMS\Services\RedirectService::getInstance()->createAutomaticRedirect(
+                                $oldPath,
+                                $newPath,
+                                'Manuelle Import-Slug-Korrektur (Beiträge)'
+                            );
+
+                            if ($permalinkService !== null) {
+                                $legacyOldPath = $permalinkService->getLegacyPostPath($currentSlug);
+                                if ($legacyOldPath !== $oldPath) {
+                                    \CMS\Services\RedirectService::getInstance()->createAutomaticRedirect(
+                                        $legacyOldPath,
+                                        $newPath,
+                                        'Legacy-Weiterleitung nach Import-Slug-Korrektur'
+                                    );
+                                }
+                            }
+
+                            foreach (\CMS\Services\ContentLocalizationService::getInstance()->getContentLocales() as $locale) {
+                                if ($locale === 'de') {
+                                    continue;
+                                }
+
+                                $localizedOldPath = $permalinkService !== null
+                                    ? $permalinkService->buildPostPathFromValues($currentSlug, (string)($row->post_published_at ?? ''), (string)($row->post_created_at ?? ''), $locale)
+                                    : '/blog/' . ltrim($currentSlug, '/') . '/' . $locale;
+                                $localizedNewPath = $permalinkService !== null
+                                    ? $permalinkService->buildPostPathFromValues($newSlug, (string)($row->post_published_at ?? ''), (string)($row->post_created_at ?? ''), $locale)
+                                    : '/blog/' . ltrim($newSlug, '/') . '/' . $locale;
+
+                                \CMS\Services\RedirectService::getInstance()->createAutomaticRedirect(
+                                    $localizedOldPath,
+                                    $localizedNewPath,
+                                    'Lokalisierte Import-Slug-Korrektur (Beiträge)'
+                                );
+
+                                if ($permalinkService !== null) {
+                                    $localizedLegacyOldPath = $permalinkService->getLegacyPostPath($currentSlug, $locale);
+                                    if ($localizedLegacyOldPath !== $localizedOldPath) {
+                                        \CMS\Services\RedirectService::getInstance()->createAutomaticRedirect(
+                                            $localizedLegacyOldPath,
+                                            $localizedNewPath,
+                                            'Legacy-Weiterleitung bei lokalisierter Import-Slug-Korrektur'
+                                        );
+                                    }
+                                }
+                            }
+                        }
+
+                        $updatedPosts++;
+                    } else {
+                        $skipped++;
+                    }
+
+                    $this->db->execute(
+                        "UPDATE {$this->prefix}import_items SET target_slug = ?, target_url = ? WHERE target_type = 'post' AND target_id = ?",
+                        [$newSlug, $newUrl, $targetId]
+                    );
+
+                    continue;
+                }
+
+                $currentSlug = trim((string)($row->page_slug ?? ''));
+                if ($currentSlug === '') {
+                    $skipped++;
+                    continue;
+                }
+
+                $newSlug = $this->ensureUniqueSlug('pages', $desiredSlug, $targetId);
+                $newUrl = rtrim((string)SITE_URL, '/') . '/' . ltrim($newSlug, '/');
+
+                if ($newSlug !== $currentSlug) {
+                    $this->db->execute(
+                        "UPDATE {$this->prefix}pages SET slug = ?, updated_at = NOW() WHERE id = ?",
+                        [$newSlug, $targetId]
+                    );
+
+                    if (class_exists('\CMS\Services\RedirectService')) {
+                        \CMS\Services\RedirectService::getInstance()->createAutomaticRedirect(
+                            '/' . ltrim($currentSlug, '/'),
+                            '/' . ltrim($newSlug, '/'),
+                            'Manuelle Import-Slug-Korrektur (Seiten)'
+                        );
+
+                        foreach (\CMS\Services\ContentLocalizationService::getInstance()->getContentLocales() as $locale) {
+                            if ($locale === 'de') {
+                                continue;
+                            }
+
+                            \CMS\Services\RedirectService::getInstance()->createAutomaticRedirect(
+                                '/' . ltrim($currentSlug, '/') . '/' . $locale,
+                                '/' . ltrim($newSlug, '/') . '/' . $locale,
+                                'Lokalisierte Import-Slug-Korrektur (Seiten)'
+                            );
+                        }
+                    }
+
+                    $updatedPages++;
+                } else {
+                    $skipped++;
+                }
+
+                $this->db->execute(
+                    "UPDATE {$this->prefix}import_items SET target_slug = ?, target_url = ? WHERE target_type = 'page' AND target_id = ?",
+                    [$newSlug, $newUrl, $targetId]
+                );
+            }
+
+            return [
+                'success' => true,
+                'message' => sprintf(
+                    'Slug-Nachkorrektur abgeschlossen: %d Beitrag/Beiträge und %d Seite(n) aktualisiert, %d geprüft, %d ohne Änderung.',
+                    $updatedPosts,
+                    $updatedPages,
+                    $checked,
+                    $skipped
+                ),
+            ];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Slug-Nachkorrektur fehlgeschlagen: ' . $e->getMessage()];
+        }
+    }
+
+    private function ensureImportItemsTable(): void
+    {
+        $this->db->query(
+            "CREATE TABLE IF NOT EXISTS {$this->prefix}import_items (
+                id               BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                log_id           INT UNSIGNED DEFAULT NULL,
+                source_type      VARCHAR(50) NOT NULL,
+                source_wp_id     BIGINT UNSIGNED DEFAULT NULL,
+                source_reference VARCHAR(191) DEFAULT NULL,
+                source_slug      VARCHAR(255) DEFAULT NULL,
+                source_url       VARCHAR(500) DEFAULT NULL,
+                target_type      VARCHAR(50) NOT NULL,
+                target_id        BIGINT UNSIGNED DEFAULT NULL,
+                target_slug      VARCHAR(255) DEFAULT NULL,
+                target_url       VARCHAR(500) DEFAULT NULL,
+                created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_log (log_id),
+                INDEX idx_source_wp (source_type, source_wp_id),
+                INDEX idx_source_ref (source_type, source_reference),
+                INDEX idx_target (target_type, target_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+        );
+    }
+
+    /**
+     * @return array{files_scanned:int,mappings_created:int,unmatched_items:int}
+     */
+    private function backfillImportMappingsFromSources(): array
+    {
+        $result = [
+            'files_scanned' => 0,
+            'mappings_created' => 0,
+            'unmatched_items' => 0,
+        ];
+
+        $parser = $this->resolveImporterXmlParser();
+        if ($parser === null || !$this->tableExists('import_log')) {
+            return $result;
+        }
+
+        $logs = $this->db->get_results(
+            "SELECT id, filename FROM {$this->prefix}import_log ORDER BY id DESC"
+        ) ?: [];
+
+        if ($logs === []) {
+            return $result;
+        }
+
+        $sourceFiles = $this->getImporterSourceFiles();
+        if ($sourceFiles === []) {
+            return $result;
+        }
+
+        $processed = [];
+        foreach ($logs as $log) {
+            $filename = trim((string)($log->filename ?? ''));
+            if ($filename === '' || isset($processed[$filename]) || !isset($sourceFiles[$filename])) {
+                continue;
+            }
+
+            $processed[$filename] = true;
+            $parsed = $parser->parse($sourceFiles[$filename]);
+            if (!empty($parsed['errors'])) {
+                continue;
+            }
+
+            $result['files_scanned']++;
+            foreach (($parsed['posts'] ?? []) as $item) {
+                if ($this->backfillImportedContentMapping($item, 'post', 'post', (int)($log->id ?? 0))) {
+                    $result['mappings_created']++;
+                } else {
+                    $result['unmatched_items']++;
+                }
+            }
+
+            foreach (($parsed['pages'] ?? []) as $item) {
+                if ($this->backfillImportedContentMapping($item, 'page', 'page', (int)($log->id ?? 0))) {
+                    $result['mappings_created']++;
+                } else {
+                    $result['unmatched_items']++;
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    private function resolveImporterXmlParser(): ?object
+    {
+        if (class_exists('CMS_Importer_XML_Parser')) {
+            return new \CMS_Importer_XML_Parser();
+        }
+
+        $pluginDir = $this->resolveImporterPluginDir();
+        if ($pluginDir === '' || !is_file($pluginDir . 'includes/class-xml-parser.php')) {
+            return null;
+        }
+
+        require_once $pluginDir . 'includes/class-xml-parser.php';
+        return class_exists('CMS_Importer_XML_Parser') ? new \CMS_Importer_XML_Parser() : null;
+    }
+
+    private function resolveImporterPluginDir(): string
+    {
+        $candidates = [];
+
+        if (defined('CMS_IMPORTER_PLUGIN_DIR')) {
+            $candidates[] = (string) CMS_IMPORTER_PLUGIN_DIR;
+        }
+
+        $candidates[] = dirname(ABSPATH) . '/plugins/cms-importer/';
+        $candidates[] = dirname(dirname(ABSPATH)) . '/365CMS.DE-PLUGINS/cms-importer/';
+
+        foreach ($candidates as $candidate) {
+            $normalized = rtrim(str_replace('\\', '/', $candidate), '/') . '/';
+            if (is_dir($normalized)) {
+                return $normalized;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * @return array<string,string>
+     */
+    private function getImporterSourceFiles(): array
+    {
+        $files = [];
+
+        $pluginDir = $this->resolveImporterPluginDir();
+        if ($pluginDir !== '' && is_dir($pluginDir . 'wp_import_files/')) {
+            foreach (glob($pluginDir . 'wp_import_files/*.xml') ?: [] as $path) {
+                $files[basename($path)] = str_replace('\\', '/', $path);
+            }
+        }
+
+        if (defined('UPLOAD_PATH')) {
+            $importDir = rtrim(str_replace('\\', '/', (string) UPLOAD_PATH), '/') . '/import/';
+            if (is_dir($importDir)) {
+                foreach (glob($importDir . '*.xml') ?: [] as $path) {
+                    $files[basename($path)] = str_replace('\\', '/', $path);
+                }
+            }
+        }
+
+        return $files;
+    }
+
+    private function backfillImportedContentMapping(array $item, string $sourceType, string $targetType, int $logId): bool
+    {
+        $sourceWpId = (int)($item['wp_id'] ?? 0);
+        if ($sourceWpId <= 0) {
+            return false;
+        }
+
+        $existing = (int)($this->db->get_var(
+            "SELECT id FROM {$this->prefix}import_items WHERE source_type = ? AND source_wp_id = ? AND target_type = ? LIMIT 1",
+            [$sourceType, $sourceWpId, $targetType]
+        ) ?? 0);
+        if ($existing > 0) {
+            return true;
+        }
+
+        $desiredSlug = class_exists('\\CMS\\Services\\PermalinkService')
+            ? \CMS\Services\PermalinkService::resolveImportedSourceSlug((string)($item['slug'] ?? ''), (string)($item['link'] ?? ''))
+            : trim((string)($item['slug'] ?? ''));
+
+        $match = $this->findExistingContentMatch($targetType, $desiredSlug, (string)($item['title'] ?? ''), (string)($item['date'] ?? ''));
+        if ($match === null) {
+            return false;
+        }
+
+        $targetUrl = $targetType === 'post'
+            ? (class_exists('\\CMS\\Services\\PermalinkService')
+                ? \CMS\Services\PermalinkService::getInstance()->buildPostUrlFromValues((string)$match['slug'], (string)($match['published_at'] ?? ''), (string)($match['created_at'] ?? ''))
+                : rtrim((string)SITE_URL, '/') . '/blog/' . ltrim((string)$match['slug'], '/'))
+            : rtrim((string)SITE_URL, '/') . '/' . ltrim((string)$match['slug'], '/');
+
+        $this->db->insert('import_items', [
+            'log_id' => $logId > 0 ? $logId : null,
+            'source_type' => $sourceType,
+            'source_wp_id' => $sourceWpId,
+            'source_reference' => null,
+            'source_slug' => (string)($item['slug'] ?? ''),
+            'source_url' => (string)($item['link'] ?? ''),
+            'target_type' => $targetType,
+            'target_id' => (int)$match['id'],
+            'target_slug' => (string)$match['slug'],
+            'target_url' => $targetUrl,
+        ]);
+
+        return true;
+    }
+
+    /**
+     * @return array<string,mixed>|null
+     */
+    private function findExistingContentMatch(string $targetType, string $desiredSlug, string $title, string $sourceDate): ?array
+    {
+        $table = $targetType === 'post' ? 'posts' : 'pages';
+        $dateField = $targetType === 'post' ? 'COALESCE(published_at, created_at)' : 'created_at';
+
+        if ($desiredSlug !== '') {
+            $row = $this->db->get_row(
+                "SELECT id, slug, created_at, published_at FROM {$this->prefix}{$table} WHERE slug = ? LIMIT 1",
+                [$desiredSlug]
+            );
+            if ($row !== null) {
+                return (array)$row;
+            }
+        }
+
+        $title = trim($title);
+        if ($title === '') {
+            return null;
+        }
+
+        $rows = $this->db->get_results(
+            "SELECT id, slug, created_at, published_at FROM {$this->prefix}{$table} WHERE title = ? ORDER BY id ASC LIMIT 10",
+            [$title]
+        ) ?: [];
+
+        if (count($rows) === 1) {
+            return (array)$rows[0];
+        }
+
+        if ($sourceDate !== '') {
+            $sameDay = [];
+            $sourceDay = substr($sourceDate, 0, 10);
+            foreach ($rows as $row) {
+                $candidateDate = $targetType === 'post'
+                    ? (string)($row->published_at ?? $row->created_at ?? '')
+                    : (string)($row->created_at ?? '');
+                if ($candidateDate !== '' && substr($candidateDate, 0, 10) === $sourceDay) {
+                    $sameDay[] = (array)$row;
+                }
+            }
+
+            if (count($sameDay) === 1) {
+                return $sameDay[0];
+            }
+        }
+
+        return null;
     }
 
     public function sendTestEmail(array $post): array
@@ -219,6 +751,38 @@ class SettingsModule
             // Defaults werden in getData() gesetzt
         }
         return $settings;
+    }
+
+    private function tableExists(string $table): bool
+    {
+        try {
+            return $this->db->get_var("SHOW TABLES LIKE ?", [$this->prefix . $table]) !== null;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    private function ensureUniqueSlug(string $table, string $baseSlug, int $ignoreId): string
+    {
+        $slug = trim($baseSlug, '/');
+        $try = $slug;
+        $suffix = 2;
+
+        while ($try !== '') {
+            $count = (int)($this->db->get_var(
+                "SELECT COUNT(*) FROM {$this->prefix}{$table} WHERE slug = ? AND id != ?",
+                [$try, $ignoreId]
+            ) ?? 0);
+
+            if ($count === 0) {
+                return $try;
+            }
+
+            $try = $slug . '-' . $suffix;
+            $suffix++;
+        }
+
+        return $slug;
     }
 
     /**

@@ -138,6 +138,21 @@ $search     = $data['search'] ?? '';
                 </div>
             </div>
 
+            <div class="card-body py-2 d-none" id="bulkBarPosts">
+                <form method="post" id="bulkFormPosts" class="d-flex flex-wrap align-items-center gap-2">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                    <input type="hidden" name="action" value="bulk">
+                    <span class="text-secondary"><strong id="selectedCountPosts">0</strong> ausgewählt</span>
+                    <select name="bulk_action" class="form-select form-select-sm w-auto">
+                        <option value="">Aktion wählen…</option>
+                        <option value="publish">Veröffentlichen</option>
+                        <option value="draft">Als Entwurf setzen</option>
+                        <option value="delete">Löschen</option>
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-primary">Anwenden</button>
+                </form>
+            </div>
+
             <div class="card-body">
                 <div id="postsGrid"></div>
             </div>
@@ -159,4 +174,87 @@ function applyFilters() {
     window.location.href = url + params.join('&');
 }
 
+(function() {
+    var gridRoot = document.getElementById('postsGrid');
+    var bulkForm = document.getElementById('bulkFormPosts');
+    var bulkBar = document.getElementById('bulkBarPosts');
+    var countEl = document.getElementById('selectedCountPosts');
+    var selectedIds = new Set();
+
+    if (!gridRoot || !bulkForm || !bulkBar || !countEl) {
+        return;
+    }
+
+    function syncInputs() {
+        gridRoot.querySelectorAll('.bulk-row-check').forEach(function(checkbox) {
+            checkbox.checked = selectedIds.has(String(checkbox.value));
+        });
+
+        var allCheckboxes = Array.prototype.slice.call(gridRoot.querySelectorAll('.bulk-row-check'));
+        var selectAll = gridRoot.querySelector('.bulk-select-all');
+        if (selectAll) {
+            selectAll.checked = allCheckboxes.length > 0 && allCheckboxes.every(function(checkbox) {
+                return checkbox.checked;
+            });
+        }
+    }
+
+    function updateBulkState() {
+        countEl.textContent = String(selectedIds.size);
+        bulkBar.classList.toggle('d-none', selectedIds.size === 0);
+        syncInputs();
+    }
+
+    gridRoot.addEventListener('change', function(event) {
+        var target = event.target;
+
+        if (target.classList.contains('bulk-row-check')) {
+            if (target.checked) {
+                selectedIds.add(String(target.value));
+            } else {
+                selectedIds.delete(String(target.value));
+            }
+            updateBulkState();
+            return;
+        }
+
+        if (target.classList.contains('bulk-select-all')) {
+            gridRoot.querySelectorAll('.bulk-row-check').forEach(function(checkbox) {
+                checkbox.checked = target.checked;
+                if (target.checked) {
+                    selectedIds.add(String(checkbox.value));
+                } else {
+                    selectedIds.delete(String(checkbox.value));
+                }
+            });
+            updateBulkState();
+        }
+    });
+
+    bulkForm.addEventListener('submit', function(event) {
+        bulkForm.querySelectorAll('input[name="ids[]"]').forEach(function(input) {
+            input.remove();
+        });
+
+        if (selectedIds.size === 0) {
+            event.preventDefault();
+            return;
+        }
+
+        selectedIds.forEach(function(id) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'ids[]';
+            input.value = id;
+            bulkForm.appendChild(input);
+        });
+    });
+
+    var observer = new MutationObserver(function() {
+        syncInputs();
+    });
+
+    observer.observe(gridRoot, { childList: true, subtree: true });
+    updateBulkState();
+})();
 </script>

@@ -38,6 +38,7 @@ $metaTitle  = htmlspecialchars($post['meta_title'] ?? '');
 $metaDesc   = htmlspecialchars($post['meta_description'] ?? '');
 $seoMeta = $data['seoMeta'] ?? [];
 $seoTemplateSettings = \CMS\Services\SeoAnalysisService::getInstance()->getSettings();
+$permalinkService = class_exists('\CMS\Services\PermalinkService') ? \CMS\Services\PermalinkService::getInstance() : null;
 $focusKeyphrase = htmlspecialchars((string)($seoMeta['focus_keyphrase'] ?? ''));
 $canonicalUrl = htmlspecialchars((string)($seoMeta['canonical_url'] ?? ''));
 $robotsIndex = !array_key_exists('robots_index', $seoMeta) || !empty($seoMeta['robots_index']);
@@ -93,8 +94,17 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
             $postMetaTitleValue = (string)($post['meta_title'] ?? '');
             $postMetaDescriptionValue = (string)($post['meta_description'] ?? '');
             $postFeaturedImageValue = (string)($post['featured_image'] ?? '');
-            $postPreviewUrl = htmlspecialchars(SITE_URL) . '/blog/' . ltrim($postSlugValue, '/');
-            $postPreviewUrlEn = $postPreviewUrl . '/en';
+            $postPreviewUrlTemplate = $permalinkService !== null
+                ? $permalinkService->buildPostUrlTemplate((string)($post['published_at'] ?? ''), (string)($post['created_at'] ?? ''))
+                : rtrim((string)SITE_URL, '/') . '/blog/{slug}';
+            $postPreviewUrlTemplateEn = $permalinkService !== null
+                ? $permalinkService->buildPostUrlTemplate((string)($post['published_at'] ?? ''), (string)($post['created_at'] ?? ''), 'en')
+                : rtrim((string)SITE_URL, '/') . '/blog/{slug}/en';
+            $postPreviewUrl = str_replace('{slug}', ltrim($postSlugValue !== '' ? $postSlugValue : 'beitrag', '/'), $postPreviewUrlTemplate);
+            $postPreviewUrlEn = str_replace('{slug}', ltrim($postSlugValue !== '' ? $postSlugValue : 'beitrag', '/'), $postPreviewUrlTemplateEn);
+            $postPermalinkHint = $permalinkService !== null
+                ? $permalinkService->getPostPermalinkStructure()
+                : '/blog/%postname%';
             $selectedCategoryName = 'Keine Kategorie';
             foreach ($categories as $cat) {
                 if ($categoryId === (int)($cat['id'] ?? 0)) {
@@ -114,10 +124,8 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
                             </div>
                             <div class="mb-0">
                                 <label class="form-label" for="slug">Slug</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">/blog/</span>
-                                    <input type="text" class="form-control" id="slug" name="slug" value="<?php echo htmlspecialchars($postSlugValue); ?>" placeholder="wird automatisch generiert">
-                                </div>
+                                <input type="text" class="form-control" id="slug" name="slug" value="<?php echo htmlspecialchars($postSlugValue); ?>" placeholder="wird automatisch generiert">
+                                <div class="form-hint">Aktive Struktur: <code><?php echo htmlspecialchars($postPermalinkHint); ?></code></div>
                             </div>
                         </div>
                     </div>
@@ -445,6 +453,8 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
             'slugInputId' => 'slug',
             'previewUrlId' => 'postPreviewUrl',
             'previewBaseUrl' => rtrim((string)SITE_URL, '/') . '/blog/',
+            'previewUrlTemplate' => $postPreviewUrlTemplate,
+            'previewPlaceholderSlug' => 'beitrag',
             'statusSelectId' => 'status',
             'statusBadgeId' => 'postStatusBadge',
             'categorySelectId' => 'categoryId',
@@ -507,6 +517,8 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
             'readabilityBadgeId' => 'postReadabilityBadge',
             'readabilitySummaryId' => 'postReadabilitySummary',
             'previewBaseUrl' => rtrim((string)SITE_URL, '/') . '/blog/',
+            'previewUrlTemplate' => $postPreviewUrlTemplate,
+            'previewPlaceholderSlug' => 'beitrag',
             'siteName' => (string)SITE_NAME,
             'siteTitleFormat' => (string)($seoTemplateSettings['site_title_format'] ?? '%%title%% %%sep%% %%sitename%%'),
             'titleSeparator' => (string)($seoTemplateSettings['title_separator'] ?? '|'),

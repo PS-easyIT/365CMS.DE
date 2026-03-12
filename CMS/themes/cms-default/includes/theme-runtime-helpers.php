@@ -104,12 +104,11 @@ function meridian_route_exists(string $url): bool
         return true;
     }
 
-    if (str_starts_with($path, '/blog/')) {
-        $postSlug = trim(substr($path, strlen('/blog/')), '/');
-        if ($postSlug === '') {
-            return false;
-        }
+    $postSlug = class_exists('CMS\\Services\\PermalinkService')
+        ? \CMS\Services\PermalinkService::getInstance()->extractPostSlugFromPath($path)
+        : (str_starts_with($path, '/blog/') ? trim(substr($path, strlen('/blog/')), '/') : null);
 
+    if ($postSlug !== null && $postSlug !== '') {
         try {
             $db = \CMS\Database::instance();
             $row = $db->get_row(

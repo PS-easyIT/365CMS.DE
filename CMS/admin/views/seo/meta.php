@@ -12,6 +12,7 @@ if (!defined('CMS_ADMIN_SEO_VIEW')) {
 $meta = $data['meta'] ?? [];
 $settings = $meta['settings'] ?? [];
 $examples = $meta['examples'] ?? [];
+$permalinkService = class_exists('\CMS\Services\PermalinkService') ? \CMS\Services\PermalinkService::getInstance() : null;
 ?>
 <div class="page-header d-print-none"><div class="container-xl"><div class="row g-2 align-items-center"><div class="col"><div class="page-pretitle">SEO</div><h2 class="page-title">Meta-Daten & Variablen</h2></div></div></div></div>
 <div class="page-body"><div class="container-xl">
@@ -41,9 +42,16 @@ $examples = $meta['examples'] ?? [];
             </div></div>
             <div class="card"><div class="card-header"><h3 class="card-title">SERP-Beispiele</h3></div><div class="card-body">
                 <?php foreach ($examples as $example): ?>
+                    <?php
+                    $exampleUrl = (string)(($example['type'] ?? '') === 'post'
+                        ? (($permalinkService !== null && (!empty($example['published_at']) || !empty($example['created_at'])))
+                            ? $permalinkService->buildPostUrlFromValues((string)($example['slug'] ?? ''), (string)($example['published_at'] ?? ''), (string)($example['created_at'] ?? ''))
+                            : SITE_URL . '/blog/' . ($example['slug'] ?? ''))
+                        : SITE_URL . '/' . ($example['slug'] ?? ''));
+                    ?>
                     <div class="border rounded p-3 mb-3 bg-light">
                         <div class="text-primary fw-semibold mb-1"><?= htmlspecialchars((string)($example['resolved_meta_title'] ?? '')) ?></div>
-                        <div class="small text-success mb-1"><?= htmlspecialchars((string)($example['type'] === 'post' ? SITE_URL . '/blog/' . ($example['slug'] ?? '') : SITE_URL . '/' . ($example['slug'] ?? ''))) ?></div>
+                        <div class="small text-success mb-1"><?= htmlspecialchars($exampleUrl) ?></div>
                         <div class="small text-secondary"><?= htmlspecialchars((string)($example['resolved_meta_description'] ?? '')) ?></div>
                     </div>
                 <?php endforeach; ?>

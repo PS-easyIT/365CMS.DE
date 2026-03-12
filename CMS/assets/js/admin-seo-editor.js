@@ -237,7 +237,15 @@
             var passiveCount = countPassive(plainText);
             var longSentences = countLongSentences(sentences, config.maxSentenceWords || 24);
             var longParagraphs = countLongParagraphs(paragraphs, config.maxParagraphWords || 120);
-            var previewHref = (config.previewBaseUrl || '') + (slug ? slug : '…');
+            var previewHref = (function () {
+                var template = String(config.previewUrlTemplate || '');
+                var placeholderSlug = String(config.previewPlaceholderSlug || 'beitrag');
+                if (template !== '' && template.indexOf('{slug}') !== -1) {
+                    return template.replace(/\{slug\}/g, slug ? slug : placeholderSlug);
+                }
+
+                return (config.previewBaseUrl || '') + (slug ? slug : '…');
+            })();
             var ogImage = (ogImageInput && ogImageInput.value.trim()) || (twitterImageInput && twitterImageInput.value.trim()) || (featuredInput && featuredInput.value.trim()) || '';
             var socialResolvedTitle = ogTitle || (twitterTitleInput && twitterTitleInput.value.trim()) || resolvedTitle || config.siteName;
             var socialResolvedDesc = ogDescription || (twitterDescriptionInput && twitterDescriptionInput.value.trim()) || resolvedDesc || 'Social Preview';

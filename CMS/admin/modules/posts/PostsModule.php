@@ -16,6 +16,7 @@ use CMS\Hooks;
 use CMS\Services\ContentLocalizationService;
 use CMS\Services\MediaDeliveryService;
 use CMS\Services\MediaService;
+use CMS\Services\PermalinkService;
 use CMS\Services\RedirectService;
 use CMS\Services\SEOService;
 
@@ -214,7 +215,7 @@ class PostsModule
 
         try {
             if ($id > 0) {
-                $existing = $this->db->get_row("SELECT slug, status, published_at FROM {$this->prefix}posts WHERE id = ? LIMIT 1", [$id]);
+                $existing = $this->db->get_row("SELECT slug, status, published_at, created_at FROM {$this->prefix}posts WHERE id = ? LIMIT 1", [$id]);
                 // published_at setzen, wenn der Beitrag erstmals veröffentlicht wird
                 // oder falls ein bereits veröffentlichter Alt-Datensatz noch kein Datum besitzt.
                 $wasPublished = ($existing->status ?? '') === 'published';
@@ -246,7 +247,10 @@ class PostsModule
                 );
 
                 SEOService::getInstance()->saveContentMeta('post', $id, $post);
-                $this->createSlugRedirectIfNeeded((string)($existing->slug ?? ''), $slug, '/blog/');
+                $this->createSlugRedirectIfNeeded((string)($existing->slug ?? ''), $slug, [
+                    'published_at' => (string)($existing->published_at ?? ''),
+                    'created_at' => (string)($existing->created_at ?? ''),
+                ]);
                 Hooks::doAction('cms_after_post_save', $id, $savePayload, $post);
                 return ['success' => true, 'id' => $id, 'message' => 'Beitrag aktualisiert.'];
             } else {
@@ -420,7 +424,10 @@ class PostsModule
         return (int)$this->db->get_var($sql, $params) > 0;
     }
 
-    private function createSlugRedirectIfNeeded(string $oldSlug, string $newSlug, string $prefix): void
+    /**
+     * @param array<string, string> $postDates
+     */
+    private function createSlugRedirectIfNeeded(string $oldSlug, string $newSlug, array $postDates = []): void
     {
         $oldSlug = trim($oldSlug);
         $newSlug = trim($newSlug);
@@ -429,18 +436,48 @@ class PostsModule
             return;
         }
 
+        $permalinkService = PermalinkService::getInstance();
+        $publishedAt = (string)($postDates['published_at'] ?? '');
+        $createdAt = (string)($postDates['created_at'] ?? '');
+        $oldPath = $permalinkService->buildPostPathFromValues($oldSlug, $publishedAt, $createdAt);
+        $newPath = $permalinkService->buildPostPathFromValues($newSlug, $publishedAt, $createdAt);
+
         RedirectService::getInstance()->createAutomaticRedirect(
-            rtrim($prefix, '/') . '/' . $oldSlug,
-            rtrim($prefix, '/') . '/' . $newSlug,
+            $oldPath,
+            $newPath,
             'Automatisch bei Beitrags-Slug-Änderung angelegt'
         );
 
-        foreach (ContentLocalizationService::getInstance()->getContentLocales() as $locale) {
+        $legacyOldPath = $permalinkService->getLegacyPostPath($oldSlug);
+        if ($legacyOldPath !== $oldPath) {
             RedirectService::getInstance()->createAutomaticRedirect(
-                rtrim($prefix, '/') . '/' . $oldSlug . '/' . $locale,
-                rtrim($prefix, '/') . '/' . $newSlug . '/' . $locale,
+                $legacyOldPath,
+                $newPath,
+                'Legacy-Weiterleitung bei Beitrags-Slug-Änderung angelegt'
+            );
+        }
+
+        foreach (ContentLocalizationService::getInstance()->getContentLocales() as $locale) {
+            if ($locale === 'de') {
+                continue;
+            }
+
+            $localizedOldPath = $permalinkService->buildPostPathFromValues($oldSlug, $publishedAt, $createdAt, $locale);
+            $localizedNewPath = $permalinkService->buildPostPathFromValues($newSlug, $publishedAt, $createdAt, $locale);
+            RedirectService::getInstance()->createAutomaticRedirect(
+                $localizedOldPath,
+                $localizedNewPath,
                 'Automatisch bei lokalisiertem Beitrags-Slug angelegt'
             );
+
+            $localizedLegacyOldPath = $permalinkService->getLegacyPostPath($oldSlug, $locale);
+            if ($localizedLegacyOldPath !== $localizedOldPath) {
+                RedirectService::getInstance()->createAutomaticRedirect(
+                    $localizedLegacyOldPath,
+                    $localizedNewPath,
+                    'Legacy-Weiterleitung bei lokalisiertem Beitrags-Slug angelegt'
+                );
+            }
         }
     }
 }

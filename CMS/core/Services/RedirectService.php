@@ -412,7 +412,7 @@ final class RedirectService
     private function getAvailablePostTargets(): array
     {
         $rows = $this->db->get_results(
-            "SELECT id, title, slug
+            "SELECT id, title, slug, published_at, created_at
              FROM {$this->prefix}posts
              WHERE status = 'published' AND slug IS NOT NULL AND slug != ''
              ORDER BY title ASC
@@ -427,7 +427,13 @@ final class RedirectService
                 'id' => (int)($row->id ?? 0),
                 'label' => $title !== '' ? $title : $slug,
                 'slug' => $slug,
-                'url' => '/blog/' . ltrim($slug, '/'),
+                'url' => class_exists('CMS\\Services\\PermalinkService')
+                    ? PermalinkService::getInstance()->buildPostPathFromValues(
+                        $slug,
+                        (string)($row->published_at ?? ''),
+                        (string)($row->created_at ?? '')
+                    )
+                    : '/blog/' . ltrim($slug, '/'),
             ];
         }, $rows);
     }
@@ -484,12 +490,24 @@ final class RedirectService
             return '';
         }
 
-        $slug = (string)$this->db->get_var(
-            "SELECT slug FROM {$this->prefix}posts WHERE id = ? AND status = 'published' LIMIT 1",
+        $post = $this->db->get_row(
+            "SELECT slug, published_at, created_at FROM {$this->prefix}posts WHERE id = ? AND status = 'published' LIMIT 1",
             [$id]
         );
 
-        return $slug !== '' ? '/blog/' . ltrim($slug, '/') : '';
+        $slug = trim((string)($post->slug ?? ''));
+
+        if ($slug === '') {
+            return '';
+        }
+
+        return class_exists('CMS\\Services\\PermalinkService')
+            ? PermalinkService::getInstance()->buildPostPathFromValues(
+                $slug,
+                (string)($post->published_at ?? ''),
+                (string)($post->created_at ?? '')
+            )
+            : '/blog/' . ltrim($slug, '/');
     }
 
     private function getHubTargetUrl(int $id): string

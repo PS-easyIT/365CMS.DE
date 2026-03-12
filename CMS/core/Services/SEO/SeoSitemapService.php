@@ -6,6 +6,7 @@ namespace CMS\Services\SEO;
 use CMS\Contracts\DatabaseInterface;
 use CMS\Contracts\LoggerInterface;
 use CMS\Http\Client as HttpClient;
+use CMS\Services\PermalinkService;
 use CMS\Services\SitemapService;
 
 if (!defined('ABSPATH')) {
@@ -242,7 +243,7 @@ final class SeoSitemapService
     {
         $settings = $this->metaService->getSitemapSettings();
         $rows = $this->db->get_results(
-            "SELECT id, slug, updated_at
+            "SELECT id, slug, updated_at, published_at, created_at
              FROM {$this->prefix}posts
              WHERE status = 'published'
              ORDER BY updated_at DESC"
@@ -257,7 +258,11 @@ final class SeoSitemapService
 
             $seoMeta = $this->metaService->getContentMeta('post', (int) ($row->id ?? 0));
             $entries[] = [
-                'url' => $this->buildPathUrl('blog/' . $slug),
+                'url' => PermalinkService::getInstance()->buildPostUrlFromValues(
+                    $slug,
+                    (string) ($row->published_at ?? ''),
+                    (string) ($row->created_at ?? '')
+                ),
                 'lastmod' => (string) ($row->updated_at ?? date(DATE_W3C)),
                 'priority' => $seoMeta['sitemap_priority'] !== '' ? $seoMeta['sitemap_priority'] : $settings['posts_priority'],
                 'changefreq' => $seoMeta['sitemap_changefreq'] !== '' ? $seoMeta['sitemap_changefreq'] : $settings['posts_changefreq'],
@@ -298,7 +303,7 @@ final class SeoSitemapService
         }
 
         $posts = $this->db->get_results(
-            "SELECT p.id, p.slug, p.updated_at, p.title, p.featured_image, sm.og_image
+            "SELECT p.id, p.slug, p.updated_at, p.published_at, p.created_at, p.title, p.featured_image, sm.og_image
              FROM {$this->prefix}posts p
              LEFT JOIN {$this->prefix}seo_meta sm ON sm.content_type = 'post' AND sm.content_id = p.id
              WHERE p.status = 'published'"
@@ -311,7 +316,11 @@ final class SeoSitemapService
             }
 
             $rows[] = [
-                'url' => $this->buildPathUrl('blog/' . (string) ($post->slug ?? '')),
+                'url' => PermalinkService::getInstance()->buildPostUrlFromValues(
+                    (string) ($post->slug ?? ''),
+                    (string) ($post->published_at ?? ''),
+                    (string) ($post->created_at ?? '')
+                ),
                 'image' => $image,
                 'title' => (string) ($post->title ?? ''),
                 'lastmod' => (string) ($post->updated_at ?? date(DATE_W3C)),
@@ -329,7 +338,7 @@ final class SeoSitemapService
     private function getNewsSitemapEntries(): array
     {
         $rows = $this->db->get_results(
-            "SELECT slug, title, updated_at
+            "SELECT slug, title, updated_at, published_at, created_at
              FROM {$this->prefix}posts
              WHERE status = 'published'
              ORDER BY updated_at DESC
@@ -345,7 +354,11 @@ final class SeoSitemapService
             }
 
             $entries[] = [
-                'url' => $this->buildPathUrl('blog/' . $slug),
+                'url' => PermalinkService::getInstance()->buildPostUrlFromValues(
+                    $slug,
+                    (string) ($row->published_at ?? ''),
+                    (string) ($row->created_at ?? '')
+                ),
                 'title' => $title,
                 'publication_date' => (string) ($row->updated_at ?? date(DATE_W3C)),
                 'lastmod' => (string) ($row->updated_at ?? date(DATE_W3C)),

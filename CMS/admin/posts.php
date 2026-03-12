@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         case 'bulk':
             $bulkAction = $_POST['bulk_action'] ?? '';
-            $ids        = $_POST['ids'] ?? [];
+            $ids        = array_values(array_filter(array_map('intval', (array)($_POST['ids'] ?? []))));
             $result     = $module->bulkAction($bulkAction, $ids);
             $_SESSION['admin_alert'] = [
                 'type'    => $result['success'] ? 'success' : 'danger',
@@ -156,8 +156,16 @@ if ($viewAction === 'edit') {
                     category: %s,
                     search: %s
                 },
-                sortMap: {0:'title',2:'status',4:'updated_at'},
+                sortMap: {1:'title',3:'status',5:'updated_at'},
                 columns: [
+                    {
+                        id: 'id',
+                        name: gridjs.html('<input class=\"form-check-input bulk-select-all\" type=\"checkbox\" aria-label=\"Alle Beiträge auswählen\">'),
+                        sort: false,
+                        formatter: function(cell){
+                            return gridjs.html('<input class=\"form-check-input bulk-row-check\" type=\"checkbox\" value=\"' + encodeURIComponent(cell) + '\" aria-label=\"Beitrag auswählen\">');
+                        }
+                    },
                     {
                         id: 'title',
                         name: 'Titel',

@@ -208,6 +208,41 @@ $hideSettingsTabs = $hideSettingsTabs ?? false;
                 </div>
             </div>
 
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header"><h3 class="card-title">Website Slugs</h3></div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Beitrags-URL-Struktur</label>
+                            <select name="post_permalink_preset" class="form-select">
+                                <option value="blog" <?php echo ($s['post_permalink_preset'] ?? 'blog') === 'blog' ? 'selected' : ''; ?>>/blog/beitragsname</option>
+                                <option value="dated" <?php echo ($s['post_permalink_preset'] ?? '') === 'dated' ? 'selected' : ''; ?>>/jahr/monat/tag/beitragsname</option>
+                                <option value="slug" <?php echo ($s['post_permalink_preset'] ?? '') === 'slug' ? 'selected' : ''; ?>>/beitragsname</option>
+                                <option value="year" <?php echo ($s['post_permalink_preset'] ?? '') === 'year' ? 'selected' : ''; ?>>/jahr/beitragsname</option>
+                                <option value="custom" <?php echo ($s['post_permalink_preset'] ?? '') === 'custom' ? 'selected' : ''; ?>>Benutzerdefiniert</option>
+                            </select>
+                            <div class="form-hint">Erlaubte Platzhalter: <code>%year%</code>, <code>%monthnum%</code>, <code>%day%</code> und <code>%postname%</code>.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Benutzerdefinierte Struktur</label>
+                            <input type="text" name="post_permalink_custom" class="form-control" value="<?php echo htmlspecialchars((string)($s['post_permalink_custom'] ?? '')); ?>" placeholder="/%year%/%monthnum%/%day%/%postname%">
+                        </div>
+                        <div class="alert alert-info mb-3" role="alert">
+                            <div class="fw-semibold mb-1">Aktive Beispiel-URL</div>
+                            <code><?php echo htmlspecialchars((string)($s['post_permalink_example'] ?? '/blog/beispielbeitrag')); ?></code>
+                            <div class="small mt-1">Die Blog-Übersicht bleibt weiterhin unter <code>/blog</code> erreichbar.</div>
+                        </div>
+                        <div class="border rounded p-3 bg-light">
+                            <div class="fw-semibold mb-1">Manuelle Nachkorrektur importierter Slugs</div>
+                            <p class="text-secondary small mb-3">Prüft importierte Beiträge und Seiten aus dem WordPress-Importer und übernimmt – wenn möglich – den ursprünglichen Quell-Slug. Bereits verlinkte Pfade bleiben per Weiterleitung erreichbar.</p>
+                            <button type="submit" class="btn btn-outline-warning" name="action" value="repair_imported_slugs">
+                                Falsche Import-Slugs jetzt manuell korrigieren
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Wartung -->
             <div class="col-lg-6 mb-4">
                 <div class="card">
