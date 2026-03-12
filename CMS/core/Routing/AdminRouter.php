@@ -97,6 +97,9 @@ final class AdminRouter
             return;
         }
 
+        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
+            && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
         if (file_exists(ABSPATH . 'admin/partials/admin-menu.php')) {
             require_once ABSPATH . 'admin/partials/admin-menu.php';
         }
@@ -144,15 +147,25 @@ final class AdminRouter
             ]
         );
 
-        if (function_exists('renderAdminLayoutStart')) {
+        if ($isAjax) {
+            call_user_func($callback);
+            return;
+        }
+
+        if (function_exists('renderAdminLayoutStart') && function_exists('renderAdminLayoutEnd')) {
             renderAdminLayoutStart($title, $page);
-        }
-
-        call_user_func($callback);
-
-        if (function_exists('renderAdminLayoutEnd')) {
+            call_user_func($callback);
             renderAdminLayoutEnd();
+            return;
         }
+
+        $pageTitle = $title;
+        $activePage = $page;
+
+        require_once ABSPATH . 'admin/partials/header.php';
+        require_once ABSPATH . 'admin/partials/sidebar.php';
+        call_user_func($callback);
+        require_once ABSPATH . 'admin/partials/footer.php';
     }
 
     private function trackAdminFeature(string $page, string $routePath, string $label): void

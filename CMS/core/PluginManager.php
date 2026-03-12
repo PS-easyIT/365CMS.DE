@@ -134,10 +134,12 @@ class PluginManager
             'version'     => 'Version',
             'author'      => 'Author',
             'requires'    => 'Requires',
+            'requires_plugins' => 'Requires Plugins',
+            'requires_cms' => 'Requires CMS',
         ];
 
         foreach ($headers as $key => $header) {
-            if (preg_match('/' . $header . ':\s*(.+)/i', $content, $matches)) {
+            if (preg_match('/' . preg_quote($header, '/') . ':\s*(.+)/i', $content, $matches)) {
                 $data[$key] = trim($matches[1]);
             }
         }
@@ -212,12 +214,26 @@ class PluginManager
     {
         $pluginFile = PLUGIN_PATH . $plugin . '/' . $plugin . '.php';
         $data       = $this->getPluginData($pluginFile);
+        $updateData = $this->getPluginUpdateData($plugin);
 
-        if (!$data || empty($data['requires'])) {
+        $cmsRequirement = $this->resolveCmsRequirement($data ?: [], $updateData);
+        if ($cmsRequirement !== null && defined('CMS_VERSION') && version_compare(CMS_VERSION, $cmsRequirement, '<')) {
+            return sprintf(
+                'Benötigt 365CMS %s oder höher. Aktuell installiert: %s.',
+                $cmsRequirement,
+                CMS_VERSION
+            );
+        }
+
+        if (!$data) {
             return true;
         }
 
-        $required = array_filter(array_map('trim', explode(',', $data['requires'])));
+        $required = $this->resolvePluginDependencies($data);
+        if ($required === []) {
+            return true;
+        }
+
         $missing  = [];
 
         foreach ($required as $dep) {
@@ -234,6 +250,106 @@ class PluginManager
         }
 
         return true;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function getPluginUpdateData(string $plugin): array
+    {
+        $updateFile = PLUGIN_PATH . $plugin . '/update.json';
+        if (!file_exists($updateFile)) {
+            return [];
+        }
+
+        $raw = file_get_contents($updateFile);
+        if ($raw === false || $raw === '') {
+            return [];
+        }
+
+        return Json::decodeArray($raw, []);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return string[]
+     */
+    private function resolvePluginDependencies(array $data): array
+    {
+        $raw = (string) ($data['requires_plugins'] ?? $data['requires'] ?? '');
+        if ($raw === '') {
+            return [];
+        }
+
+        $required = [];
+        foreach (array_filter(array_map('trim', explode(',', $raw))) as $token) {
+            $slug = $this->normalizeDependencySlug($token);
+            if ($slug === '') {
+                continue;
+            }
+            $required[] = $slug;
+        }
+
+        return array_values(array_unique($required));
+    }
+
+    /**
+     * @param array<string, mixed> $headerData
+     * @param array<string, mixed> $updateData
+     */
+    private function resolveCmsRequirement(array $headerData, array $updateData): ?string
+    {
+        $candidates = [
+            (string) ($headerData['requires_cms'] ?? ''),
+            (string) ($updateData['requires_cms'] ?? ''),
+            (string) ($updateData['min_cms_version'] ?? ''),
+        ];
+
+        if (!empty($headerData['requires']) && empty($headerData['requires_plugins']) && $this->looksLikeVersionConstraint((string) $headerData['requires'])) {
+            $candidates[] = (string) $headerData['requires'];
+        }
+
+        foreach ($candidates as $candidate) {
+            $version = $this->extractVersionNumber($candidate);
+            if ($version !== null) {
+                return $version;
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizeDependencySlug(string $dependency): string
+    {
+        $dependency = trim($dependency);
+        if ($dependency === '' || $this->looksLikeVersionConstraint($dependency)) {
+            return '';
+        }
+
+        if (preg_match('/^([a-z0-9][a-z0-9_-]*)/i', $dependency, $matches)) {
+            return strtolower(trim($matches[1]));
+        }
+
+        return '';
+    }
+
+    private function looksLikeVersionConstraint(string $value): bool
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return false;
+        }
+
+        return preg_match('/^(?:365cms\s*)?(?:[><=~^]+\s*)?v?\d+(?:\.\d+)*(?:\+)?$/i', $value) === 1;
+    }
+
+    private function extractVersionNumber(string $value): ?string
+    {
+        if (preg_match('/\d+(?:\.\d+)+/', $value, $matches) === 1) {
+            return $matches[0];
+        }
+
+        return null;
     }
 
     /**

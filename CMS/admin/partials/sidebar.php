@@ -14,6 +14,26 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!function_exists('buildSidebarPluginIcon')) {
+    function buildSidebarPluginIcon(string $icon, string $fallback): string {
+        $icon = trim($icon);
+
+        if ($icon === '') {
+            return $fallback;
+        }
+
+        if (str_starts_with($icon, '<')) {
+            return $icon;
+        }
+
+        if (preg_match('~^(https?://|/)~i', $icon) === 1) {
+            return '<img src="' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . '" alt="" class="icon" style="width:24px;height:24px;object-fit:contain;">';
+        }
+
+        return '<span class="icon d-inline-flex align-items-center justify-content-center" aria-hidden="true">' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . '</span>';
+    }
+}
+
 $activePage = $activePage ?? '';
 $siteUrl    = defined('SITE_URL') ? SITE_URL : '';
 $sidebarLogoUrl = cms_asset_url('images/LOGO_365CMS-75px.png', false);
@@ -389,26 +409,6 @@ if (!function_exists('isSlugActive')) {
 if (!function_exists('isGroupActive')) {
     function isGroupActive(array $slugs, string $activePage): bool {
         return in_array($activePage, $slugs, true);
-    }
-}
-
-if (!function_exists('buildSidebarPluginIcon')) {
-    function buildSidebarPluginIcon(string $icon, string $fallback): string {
-        $icon = trim($icon);
-
-        if ($icon === '') {
-            return $fallback;
-        }
-
-        if (str_starts_with($icon, '<')) {
-            return $icon;
-        }
-
-        if (preg_match('~^(https?://|/)~i', $icon) === 1) {
-            return '<img src="' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . '" alt="" class="icon" style="width:24px;height:24px;object-fit:contain;">';
-        }
-
-        return '<span class="icon d-inline-flex align-items-center justify-content-center" aria-hidden="true">' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . '</span>';
     }
 }
 
