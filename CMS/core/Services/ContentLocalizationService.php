@@ -70,15 +70,42 @@ final class ContentLocalizationService
         return preg_match('/^[a-z]{2}(?:-[a-z]{2})?$/', $locale) === 1 ? $locale : '';
     }
 
+    public function getAlternateLocale(string $currentLocale): string
+    {
+        $currentLocale = $this->normalizeLocale($currentLocale);
+
+        if ($currentLocale !== '' && $currentLocale !== 'de') {
+            return 'de';
+        }
+
+        $locales = $this->getContentLocales();
+        return $locales[0] ?? 'en';
+    }
+
+    public function buildLocalizedPath(string $path, string $locale = 'de'): string
+    {
+        $locale = $this->normalizeLocale($locale);
+        $normalizedPath = $this->normalizePath($path);
+        $basePath = $this->resolveRequestContext($normalizedPath)['base_uri'] ?? $normalizedPath;
+        $basePath = $this->normalizePath((string) $basePath);
+
+        if ($locale === '' || $locale === 'de') {
+            return $basePath;
+        }
+
+        if ($basePath === '/') {
+            return '/' . $locale;
+        }
+
+        return rtrim($basePath, '/') . '/' . $locale;
+    }
+
     /**
      * @return array{uri:string,base_uri:string,locale:string,is_localized:bool}
      */
     public function resolveRequestContext(string $uri): array
     {
-        $uri = '/' . trim($uri, '/');
-        if ($uri === '//') {
-            $uri = '/';
-        }
+        $uri = $this->normalizePath($uri);
 
         $context = [
             'uri' => $uri,
@@ -94,12 +121,8 @@ final class ContentLocalizationService
             }
 
             $baseUri = substr($uri, 0, -strlen($needle));
-            if ($baseUri === false || $baseUri === '') {
+            if ($baseUri === false || $baseUri === '' || $baseUri === '/') {
                 $baseUri = '/';
-            }
-
-            if ($baseUri === '/' || $baseUri === '') {
-                continue;
             }
 
             $context['base_uri'] = $baseUri;
@@ -185,5 +208,13 @@ final class ContentLocalizationService
         $payload = Hooks::applyFilters('cms_localized_content_payload', $payload, $type, $locale);
 
         return is_array($payload) ? $payload : [];
+    }
+
+    private function normalizePath(string $path): string
+    {
+        $normalized = '/' . trim($path, '/');
+        $normalized = preg_replace('#/+#', '/', $normalized) ?? $normalized;
+
+        return $normalized === '/.' ? '/' : ($normalized !== '/' ? rtrim($normalized, '/') : '/');
     }
 }

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace CMS\Services\SiteTable;
 
+use CMS\Database;
 use CMS\Hooks;
 use CMS\Services\ContentLocalizationService;
 
@@ -12,8 +13,63 @@ if (!defined('ABSPATH')) {
 
 final class SiteTableHubRenderer
 {
+    public static function isHubRequestUri(string $requestUri): bool
+    {
+        $path = self::normalizeRequestPath($requestUri);
+
+        if ($path === '/' || self::isExcludedRequestPath($path) || self::isPostRequestPath($path)) {
+            return false;
+        }
+
+        $slug = trim($path, '/');
+        if ($slug === '' || str_contains($slug, '/')) {
+            return false;
+        }
+
+        try {
+            $db = Database::instance();
+            $contentType = $db->get_var(
+                "SELECT content_type FROM {$db->prefix()}pages WHERE slug = ? AND status = 'published' LIMIT 1",
+                [$slug]
+            );
+
+            return (string) $contentType === 'hub';
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
     public function __construct(private SiteTableTemplateRegistry $templateRegistry)
     {
+    }
+
+    private static function normalizeRequestPath(string $requestUri): string
+    {
+        $path = (string) (strtok($requestUri !== '' ? $requestUri : '/', '?') ?: '/');
+
+        try {
+            $context = ContentLocalizationService::getInstance()->resolveRequestContext($path);
+            $baseUri = trim((string) ($context['base_uri'] ?? ''));
+
+            return $baseUri !== '' ? $baseUri : $path;
+        } catch (\Throwable $e) {
+            return $path;
+        }
+    }
+
+    private static function isExcludedRequestPath(string $path): bool
+    {
+        return in_array($path, ['/login', '/register', '/search', '/404', '/error', '/blog'], true)
+            || str_starts_with($path, '/member')
+            || str_starts_with($path, '/dashboard')
+            || str_starts_with($path, '/kategorie/')
+            || str_starts_with($path, '/tag/')
+            || str_starts_with($path, '/author/');
+    }
+
+    private static function isPostRequestPath(string $path): bool
+    {
+        return preg_match('#^/blog/[^/]+$#', $path) === 1;
     }
 
     public function buildHubPage(array $table, string $slug, string $locale = 'de'): array

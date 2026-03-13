@@ -146,27 +146,17 @@ class MenuEditorModule
                 [$menuId]
             );
 
+            $normalizedItems = $this->sanitizeEditorItems($items);
+
             // Alle bestehenden Items löschen
             $this->db->execute("DELETE FROM {$this->prefix}menu_items WHERE menu_id = ?", [$menuId]);
 
-            // Neue Items einfügen
-            foreach ($items as $index => $item) {
-                $this->db->execute(
-                    "INSERT INTO {$this->prefix}menu_items (menu_id, parent_id, title, url, target, icon, position) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    [
-                        $menuId,
-                        (int)($item['parent_id'] ?? 0),
-                        trim(strip_tags($item['title'] ?? '')),
-                        filter_var($item['url'] ?? '', FILTER_SANITIZE_URL),
-                        ($item['target'] ?? '') === '_blank' ? '_blank' : '_self',
-                        trim(strip_tags($item['icon'] ?? '')),
-                        $index,
-                    ]
-                );
-            }
+            $position = 0;
+            $tree = $this->buildEditorTree($normalizedItems);
+            $this->insertEditorTree($menuId, $tree, 0, $position);
 
             if ($menu && !empty($menu->location)) {
-                ThemeManager::instance()->saveMenu((string)$menu->location, $this->normalizeThemeItems($items));
+                ThemeManager::instance()->saveMenu((string)$menu->location, $this->normalizeThemeItems($normalizedItems));
             }
 
             return ['success' => true, 'message' => 'Menü-Items gespeichert.'];
@@ -280,7 +270,122 @@ class MenuEditorModule
 
         $this->db->execute("DELETE FROM {$this->prefix}menu_items WHERE menu_id = ?", [$menuId]);
 
+        $position = 0;
+        $this->insertThemeItemsRecursive($menuId, $items, 0, $position);
+    }
+
+    /**
+     * Normalisiert Menü-Items aus dem Admin-Editor für ThemeManager::saveMenu().
+     */
+    private function normalizeThemeItems(array $items): array
+    {
+        $normalized = [];
+
+        foreach ($this->buildEditorTree($items) as $item) {
+            $node = $this->buildThemeNodeFromEditorItem($item);
+            if ($node !== null) {
+                $normalized[] = $node;
+            }
+        }
+
+        return $normalized;
+    }
+
+    private function sanitizeEditorItems(array $items): array
+    {
+        $normalized = [];
+
         foreach ($items as $index => $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $title = trim(strip_tags((string)($item['title'] ?? $item['label'] ?? '')));
+            $url = filter_var((string)($item['url'] ?? ''), FILTER_SANITIZE_URL);
+            if ($title === '' || $url === '') {
+                continue;
+            }
+
+            $id = trim((string)($item['id'] ?? 'item-' . $index));
+            if ($id === '') {
+                $id = 'item-' . $index;
+            }
+
+            $parentId = $item['parent_id'] ?? 0;
+            if (is_string($parentId)) {
+                $parentId = trim($parentId);
+            }
+
+            $normalized[] = [
+                'id' => (string) $id,
+                'title' => $title,
+                'url' => $url,
+                'target' => ((string)($item['target'] ?? '_self')) === '_blank' ? '_blank' : '_self',
+                'icon' => trim(strip_tags((string)($item['icon'] ?? ''))),
+                'parent_id' => $parentId === '' || $parentId === 0 || $parentId === '0' ? 0 : (string) $parentId,
+            ];
+        }
+
+        return $normalized;
+    }
+
+    private function buildEditorTree(array $items): array
+    {
+        $nodes = [];
+        foreach ($items as $item) {
+            if (!is_array($item) || empty($item['id'])) {
+                continue;
+            }
+
+            $item['children'] = [];
+            $nodes[(string)$item['id']] = $item;
+        }
+
+        $tree = [];
+        foreach ($nodes as $id => $item) {
+            $parentId = $item['parent_id'] ?? 0;
+            if ($parentId !== 0 && $parentId !== '0' && $parentId !== $id && isset($nodes[(string)$parentId])) {
+                $nodes[(string)$parentId]['children'][] = &$nodes[$id];
+                continue;
+            }
+
+            $tree[] = &$nodes[$id];
+        }
+
+        return array_values($tree);
+    }
+
+    private function insertEditorTree(int $menuId, array $items, int $parentDbId, int &$position): void
+    {
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $this->db->execute(
+                "INSERT INTO {$this->prefix}menu_items (menu_id, parent_id, title, url, target, icon, position) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                [
+                    $menuId,
+                    $parentDbId,
+                    (string) ($item['title'] ?? ''),
+                    (string) ($item['url'] ?? '#'),
+                    ((string)($item['target'] ?? '_self')) === '_blank' ? '_blank' : '_self',
+                    (string) ($item['icon'] ?? ''),
+                    $position++,
+                ]
+            );
+
+            $currentId = (int) $this->db->lastInsertId();
+            $children = is_array($item['children'] ?? null) ? $item['children'] : [];
+            if ($children !== []) {
+                $this->insertEditorTree($menuId, $children, $currentId, $position);
+            }
+        }
+    }
+
+    private function insertThemeItemsRecursive(int $menuId, array $items, int $parentId, int &$position): void
+    {
+        foreach ($items as $item) {
             if (!is_array($item)) {
                 continue;
             }
@@ -296,39 +401,50 @@ class MenuEditorModule
 
             $this->db->execute(
                 "INSERT INTO {$this->prefix}menu_items (menu_id, parent_id, title, url, target, icon, position) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                [$menuId, 0, $title, $url, $target, $icon, $index]
+                [$menuId, $parentId, $title, $url, $target, $icon, $position++]
             );
+
+            $currentId = (int) $this->db->lastInsertId();
+            $children = is_array($item['children'] ?? null) ? $item['children'] : [];
+            if ($children !== []) {
+                $this->insertThemeItemsRecursive($menuId, $children, $currentId, $position);
+            }
         }
     }
 
-    /**
-     * Normalisiert Menü-Items aus dem Admin-Editor für ThemeManager::saveMenu().
-     */
-    private function normalizeThemeItems(array $items): array
+    private function buildThemeNodeFromEditorItem(array $item): ?array
     {
-        $normalized = [];
+        $label = trim((string)($item['title'] ?? $item['label'] ?? ''));
+        $url   = filter_var((string)($item['url'] ?? ''), FILTER_SANITIZE_URL);
 
-        foreach ($items as $item) {
-            if (!is_array($item)) {
-                continue;
-            }
-
-            $label = trim(strip_tags((string)($item['title'] ?? $item['label'] ?? '')));
-            $url   = filter_var((string)($item['url'] ?? ''), FILTER_SANITIZE_URL);
-
-            if ($label === '' || $url === '') {
-                continue;
-            }
-
-            $normalized[] = [
-                'label'  => $label,
-                'url'    => $url,
-                'target' => ((string)($item['target'] ?? '_self')) === '_blank' ? '_blank' : '_self',
-                'icon'   => trim(strip_tags((string)($item['icon'] ?? ''))),
-            ];
+        if ($label === '' || $url === '') {
+            return null;
         }
 
-        return $normalized;
+        $node = [
+            'label'  => $label,
+            'url'    => $url,
+            'target' => ((string)($item['target'] ?? '_self')) === '_blank' ? '_blank' : '_self',
+            'icon'   => trim(strip_tags((string)($item['icon'] ?? ''))),
+        ];
+
+        $children = [];
+        foreach (($item['children'] ?? []) as $child) {
+            if (!is_array($child)) {
+                continue;
+            }
+
+            $childNode = $this->buildThemeNodeFromEditorItem($child);
+            if ($childNode !== null) {
+                $children[] = $childNode;
+            }
+        }
+
+        if ($children !== []) {
+            $node['children'] = $children;
+        }
+
+        return $node;
     }
 
     /**

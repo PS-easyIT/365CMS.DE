@@ -112,12 +112,17 @@ $pages       = $data['pages'] ?? [];
                                 <input type="text" id="newItemUrl" class="form-control" placeholder="URL (z.B. /seite)">
                             </div>
                             <div class="col-md-2">
+                                <select id="newItemParent" class="form-select">
+                                    <option value="0">Hauptebene</option>
+                                </select>
+                            </div>
+                            <div class="col-md-1">
                                 <select id="newItemTarget" class="form-select">
                                     <option value="_self">Gleich</option>
                                     <option value="_blank">Neu</option>
                                 </select>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <button type="button" class="btn btn-primary w-100" id="btnAddItem">Hinzufügen</button>
                             </div>
                         </div>
@@ -217,16 +222,98 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initiale Items aus PHP
     var menuItems = <?php echo json_encode(array_map(function($item) {
         return [
+            'id'        => (string)($item->id ?? ''),
             'title'     => $item->title ?? '',
             'url'       => $item->url ?? '#',
             'target'    => $item->target ?? '_self',
             'icon'      => $item->icon ?? '',
-            'parent_id' => (int)($item->parent_id ?? 0),
+            'parent_id' => (string)($item->parent_id ?? 0),
         ];
     }, $menuItems)); ?>;
 
     var listEl = document.getElementById('menuItemsList');
     var jsonInput = document.getElementById('menuItemsJson');
+    var newItemParent = document.getElementById('newItemParent');
+    var tempIdCounter = 0;
+
+    function nextTempId() {
+        tempIdCounter += 1;
+        return 'tmp-' + tempIdCounter;
+    }
+
+    function normalizeParentId(value) {
+        return value && value !== '0' ? String(value) : '0';
+    }
+
+    function getItemById(id) {
+        return menuItems.find(function(item) { return String(item.id) === String(id); }) || null;
+    }
+
+    function getItemDepth(item, visited) {
+        visited = visited || [];
+        var parentId = normalizeParentId(item.parent_id);
+        if (parentId === '0' || visited.indexOf(parentId) !== -1) {
+            return 0;
+        }
+
+        var parent = getItemById(parentId);
+        if (!parent) {
+            return 0;
+        }
+
+        return 1 + getItemDepth(parent, visited.concat([parentId]));
+    }
+
+    function collectDescendantIds(itemId, bucket) {
+        bucket = bucket || [];
+        menuItems.forEach(function(candidate) {
+            if (normalizeParentId(candidate.parent_id) === String(itemId) && bucket.indexOf(String(candidate.id)) === -1) {
+                bucket.push(String(candidate.id));
+                collectDescendantIds(candidate.id, bucket);
+            }
+        });
+
+        return bucket;
+    }
+
+    function buildParentOptions(currentId, selectedParentId) {
+        var descendants = currentId ? collectDescendantIds(currentId, []) : [];
+        var options = '<option value="0">Hauptebene</option>';
+
+        menuItems.forEach(function(candidate) {
+            var candidateId = String(candidate.id);
+            if (currentId && (candidateId === String(currentId) || descendants.indexOf(candidateId) !== -1)) {
+                return;
+            }
+
+            var depth = getItemDepth(candidate);
+            var prefix = depth > 0 ? Array(depth + 1).join('↳ ') : '';
+            var selected = normalizeParentId(selectedParentId) === candidateId ? ' selected' : '';
+            options += '<option value="' + escapeHtml(candidateId) + '"' + selected + '>' + escapeHtml(prefix + candidate.title) + '</option>';
+        });
+
+        return options;
+    }
+
+    function refreshParentSelects() {
+        if (newItemParent) {
+            newItemParent.innerHTML = buildParentOptions(null, '0');
+        }
+
+        if (!listEl) {
+            return;
+        }
+
+        listEl.querySelectorAll('.item-parent').forEach(function(select) {
+            var index = parseInt(select.dataset.index, 10);
+            var item = menuItems[index];
+            if (!item) {
+                return;
+            }
+
+            select.innerHTML = buildParentOptions(item.id, item.parent_id);
+        });
+    }
 
     function renderItems() {
         if (!listEl) return;
@@ -236,12 +323,20 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             var html = '';
             menuItems.forEach(function(item, idx) {
+                var depth = getItemDepth(item);
+                var prefix = depth > 0 ? Array(depth + 1).join('↳ ') : '';
                 html += '<div class="list-group-item d-flex align-items-center gap-3" data-index="' + idx + '">';
                 html += '<span class="cursor-grab text-muted">☰</span>';
                 html += '<div class="flex-fill">';
-                html += '<strong>' + escapeHtml(item.title) + '</strong>';
+                html += '<strong>' + escapeHtml(prefix + item.title) + '</strong>';
                 html += ' <span class="text-muted small">(' + escapeHtml(item.url) + ')</span>';
                 if (item.target === '_blank') html += ' <span class="badge bg-azure">extern</span>';
+                html += '<div class="mt-2">';
+                html += '<label class="form-label small text-muted mb-1">Unterpunkt von</label>';
+                html += '<select class="form-select form-select-sm item-parent" data-index="' + idx + '">';
+                html += buildParentOptions(item.id, item.parent_id);
+                html += '</select>';
+                html += '</div>';
                 html += '</div>';
                 html += '<button type="button" class="btn btn-sm btn-outline-danger remove-item" data-index="' + idx + '">×</button>';
                 html += '</div>';
@@ -252,6 +347,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (jsonInput) {
             jsonInput.value = JSON.stringify(menuItems);
         }
+
+        refreshParentSelects();
     }
 
     function escapeHtml(str) {
@@ -267,11 +364,15 @@ document.addEventListener('DOMContentLoaded', function() {
             var title  = document.getElementById('newItemTitle').value.trim();
             var url    = document.getElementById('newItemUrl').value.trim();
             var target = document.getElementById('newItemTarget').value;
+            var parentId = newItemParent ? normalizeParentId(newItemParent.value) : '0';
             if (!title || !url) return;
 
-            menuItems.push({ title: title, url: url, target: target, icon: '', parent_id: 0 });
+            menuItems.push({ id: nextTempId(), title: title, url: url, target: target, icon: '', parent_id: parentId });
             document.getElementById('newItemTitle').value = '';
             document.getElementById('newItemUrl').value = '';
+            if (newItemParent) {
+                newItemParent.value = '0';
+            }
             renderItems();
         });
     }
@@ -280,15 +381,24 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.add-page-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
             menuItems.push({
+                id: nextTempId(),
                 title: this.dataset.title,
                 url: this.dataset.url,
                 target: '_self',
                 icon: '',
-                parent_id: 0
+                parent_id: '0'
             });
             renderItems();
         });
     });
+
+    function removeItemAndChildren(itemId) {
+        var descendants = collectDescendantIds(itemId, []);
+        var idsToRemove = [String(itemId)].concat(descendants);
+        menuItems = menuItems.filter(function(item) {
+            return idsToRemove.indexOf(String(item.id)) === -1;
+        });
+    }
 
     // Remove Item (delegated)
     if (listEl) {
@@ -296,7 +406,32 @@ document.addEventListener('DOMContentLoaded', function() {
             var btn = e.target.closest('.remove-item');
             if (btn) {
                 var idx = parseInt(btn.dataset.index);
-                menuItems.splice(idx, 1);
+                if (!Number.isNaN(idx) && menuItems[idx]) {
+                    removeItemAndChildren(menuItems[idx].id);
+                }
+                renderItems();
+                return;
+            }
+
+            var parentSelect = e.target.closest('.item-parent');
+            if (parentSelect) {
+                var itemIndex = parseInt(parentSelect.dataset.index, 10);
+                if (!Number.isNaN(itemIndex) && menuItems[itemIndex]) {
+                    menuItems[itemIndex].parent_id = normalizeParentId(parentSelect.value);
+                    renderItems();
+                }
+            }
+        });
+
+        listEl.addEventListener('change', function(e) {
+            var parentSelect = e.target.closest('.item-parent');
+            if (!parentSelect) {
+                return;
+            }
+
+            var itemIndex = parseInt(parentSelect.dataset.index, 10);
+            if (!Number.isNaN(itemIndex) && menuItems[itemIndex]) {
+                menuItems[itemIndex].parent_id = normalizeParentId(parentSelect.value);
                 renderItems();
             }
         });
