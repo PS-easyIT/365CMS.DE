@@ -18,6 +18,7 @@ $fontStacks   = $data['fontStacks'] ?? [];
 $customFonts  = $data['customFonts'] ?? [];
 $headingFont  = $data['headingFont'] ?? 'system-ui';
 $bodyFont     = $data['bodyFont'] ?? 'system-ui';
+$useLocalFonts = !empty($data['useLocalFonts']);
 $fontSize     = $data['fontSize'] ?? '16';
 $lineHeight   = $data['lineHeight'] ?? '1.6';
 $scanResults  = $data['scanResults'] ?? ['theme' => '', 'scannedFiles' => 0, 'detectedFonts' => []];
@@ -73,6 +74,14 @@ $detectedInstallableFonts = array_values(array_filter($detectedFonts, static fn(
                     </div>
                 </div>
                 <div class="card-body">
+                    <div class="alert <?php echo $useLocalFonts ? 'alert-success' : 'alert-warning'; ?> mb-3">
+                        <?php if ($useLocalFonts): ?>
+                            Lokale Fonts sind für das Frontend aktiv. Externe Google-Font-Requests sollten damit unterdrückt werden.
+                        <?php else: ?>
+                            Lokale Fonts sind derzeit <strong>nicht</strong> fürs Frontend aktiviert. Solange der Schalter unten nicht gesetzt ist, bleibt der Google-Fonts-Fallback aktiv.
+                        <?php endif; ?>
+                    </div>
+
                     <p class="text-muted">Der Scan durchsucht das aktive Theme nach Google-Font-Imports und bekannten Schriftfamilien, damit du genutzte Fonts lokal self-hosten kannst.</p>
                     <div class="small text-muted mb-3"><?php echo (int)($scanResults['scannedFiles'] ?? 0); ?> Dateien geprüft</div>
                     <?php if ($detectedInstallableFonts !== []): ?>
@@ -271,6 +280,13 @@ $detectedInstallableFonts = array_values(array_filter($detectedFonts, static fn(
                             <label class="form-label">Zeilenhöhe</label>
                             <input type="number" name="line_height" class="form-control" value="<?php echo htmlspecialchars($lineHeight); ?>" min="1.0" max="2.5" step="0.1">
                         </div>
+                    </div>
+                    <div class="form-check form-switch mt-3">
+                        <input class="form-check-input" type="checkbox" role="switch" id="useLocalFontsSwitch" name="use_local_fonts" value="1" <?php echo $useLocalFonts ? 'checked' : ''; ?>>
+                        <label class="form-check-label" for="useLocalFontsSwitch">
+                            Lokale On-Prem-Fonts im Frontend aktivieren
+                        </label>
+                        <div class="form-hint">Schaltet Theme und Core auf lokal gespeicherte Schrift-CSS um und unterdrückt Google-Fonts-Requests im Frontend.</div>
                     </div>
                 </div>
                 <div class="card-footer text-end">

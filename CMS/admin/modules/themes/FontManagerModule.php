@@ -120,6 +120,7 @@ class FontManagerModule
         $settings = $this->getSettings();
         $customFonts = $this->getCustomFonts();
         $scanResults = $this->scanActiveThemeFonts($customFonts);
+        $useLocalFonts = $this->isLocalFontsEnabled();
 
         // Custom Fonts in Auswahl-Optionen und Font-Stacks integrieren
         $allFonts  = self::SYSTEM_FONTS;
@@ -138,6 +139,7 @@ class FontManagerModule
             'customFonts'   => $customFonts,
             'headingFont'   => $settings['font_heading'] ?? 'system-ui',
             'bodyFont'      => $settings['font_body'] ?? 'system-ui',
+            'useLocalFonts' => $useLocalFonts,
             'fontSize'      => $settings['font_size_base'] ?? '16',
             'lineHeight'    => $settings['font_line_height'] ?? '1.6',
             'scanResults'   => $scanResults,
@@ -248,6 +250,7 @@ class FontManagerModule
                 'font_body'        => preg_replace('/[^a-zA-Z0-9_-]/', '', $post['body_font'] ?? 'system-ui'),
                 'font_size_base'   => max(12, min(24, (int)($post['font_size'] ?? 16))),
                 'font_line_height' => max(1.0, min(2.5, (float)($post['line_height'] ?? 1.6))),
+                'privacy_use_local_fonts' => isset($post['use_local_fonts']) ? '1' : '0',
             ];
 
             foreach ($settings as $key => $value) {
@@ -269,10 +272,29 @@ class FontManagerModule
                 }
             }
 
-            return ['success' => true, 'message' => 'Schrifteinstellungen gespeichert.'];
+            return [
+                'success' => true,
+                'message' => isset($post['use_local_fonts'])
+                    ? 'Schrifteinstellungen gespeichert. Lokale On-Prem-Fonts sind jetzt im Frontend aktiv.'
+                    : 'Schrifteinstellungen gespeichert. Google-Fonts-Fallback bleibt aktiv.',
+            ];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
         }
+    }
+
+    private function isLocalFontsEnabled(): bool
+    {
+        try {
+            $value = $this->db->get_var(
+                "SELECT option_value FROM {$this->prefix}settings WHERE option_name = 'privacy_use_local_fonts' LIMIT 1"
+            );
+        } catch (\Throwable $e) {
+            return false;
+        }
+
+        $value = strtolower(trim((string) $value));
+        return in_array($value, ['1', 'true', 'yes', 'on'], true);
     }
 
     /**

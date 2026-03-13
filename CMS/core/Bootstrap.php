@@ -548,7 +548,9 @@ class Bootstrap
 
             // PhotoSwipe V5 — Lightbox für Bilder in Content-Bereichen
             Hooks::addAction('head', function () {
-                echo '<link rel="stylesheet" href="' . SITE_URL . '/assets/photoswipe/photoswipe.css">' . "\n";
+                $href = htmlspecialchars(SITE_URL . '/assets/photoswipe/photoswipe.css', ENT_QUOTES, 'UTF-8');
+                echo '<link rel="preload" as="style" href="' . $href . '" onload="this.onload=null;this.rel=\'stylesheet\'">' . "\n";
+                echo '<noscript><link rel="stylesheet" href="' . $href . '"></noscript>' . "\n";
             }, 30);
 
             // Custom Fonts (DSGVO-konform lokal gespeicherte Schriften)

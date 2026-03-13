@@ -79,7 +79,9 @@ final class CookieConsentService
             'sections' => $consentConfig['sections'],
         ];
 
-        echo '<link rel="stylesheet" href="' . htmlspecialchars(\cms_asset_url('cookieconsent/cookieconsent.css'), ENT_QUOTES, 'UTF-8') . '">' . "\n";
+        $cookieCssHref = htmlspecialchars(\cms_asset_url('cookieconsent/cookieconsent.css'), ENT_QUOTES, 'UTF-8');
+        echo '<link rel="preload" as="style" href="' . $cookieCssHref . '" onload="this.onload=null;this.rel=\'stylesheet\'">' . "\n";
+        echo '<noscript><link rel="stylesheet" href="' . $cookieCssHref . '"></noscript>' . "\n";
         echo '<script src="' . htmlspecialchars(\cms_asset_url('cookieconsent/cookieconsent.umd.js'), ENT_QUOTES, 'UTF-8') . '" defer></script>' . "\n";
         echo '<script>window.CMS_COOKIECONSENT_CONFIG=' . json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ';</script>' . "\n";
         echo '<script src="' . htmlspecialchars(\cms_asset_url('js/cookieconsent-init.js'), ENT_QUOTES, 'UTF-8') . '" defer></script>' . "\n";
