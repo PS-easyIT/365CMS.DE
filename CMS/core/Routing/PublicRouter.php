@@ -450,13 +450,15 @@ final class PublicRouter
         }
 
         $currentUser = Auth::getCurrentUser();
+        $isAnonymousComment = isset($currentUser->id) && !empty($_POST['comment_anonymous']);
         $result = Services\CommentService::getInstance()->createPendingComment(
             $postId,
             (string)($_POST['author'] ?? ''),
             (string)($_POST['email'] ?? ''),
             (string)($_POST['comment'] ?? ''),
             (string)($_SERVER['REMOTE_ADDR'] ?? ''),
-            isset($currentUser->id) ? (int)$currentUser->id : null
+            isset($currentUser->id) ? (int)$currentUser->id : null,
+            $isAnonymousComment
         );
 
         if ($result === false) {

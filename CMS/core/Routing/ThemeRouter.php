@@ -36,6 +36,7 @@ final class ThemeRouter
         $this->router->addRoute('GET', '/search', [$this, 'renderSearch']);
         $this->router->addRoute('GET', '/contact', [$this, 'renderContact']);
         $this->router->addRoute('GET', '/kontakt', [$this, 'renderContact']);
+        $this->router->addRoute('GET', '/author/:identifier', [$this, 'renderAuthorPage']);
         $this->router->addRoute('GET', '/site-table/export/:id/:format', [$this, 'streamSiteTableExport']);
         $this->router->addRoute('GET', '/blog', [$this, 'renderBlogIndex']);
         $this->router->addRoute('GET', $currentPostRoutePattern, [$this, 'renderBlogSingle']);
@@ -340,6 +341,49 @@ final class ThemeRouter
         ) ?: [];
 
         ThemeManager::instance()->render('blog', [
+            'posts' => $posts,
+            'total' => $total,
+            'currentPage' => $page,
+            'totalPages' => max(1, (int)ceil($total / $perPage)),
+            'perPage' => $perPage,
+        ]);
+    }
+
+    public function renderAuthorPage(string $identifier): void
+    {
+        $viewerIsLoggedIn = \CMS\Auth::instance()->isLoggedIn();
+        $memberService = Services\MemberService::getInstance();
+        $author = $memberService->getPublicAuthorProfile($identifier, $viewerIsLoggedIn);
+
+        if ($author === null) {
+            $this->router->render404();
+            return;
+        }
+
+        $db = Database::instance();
+        $prefix = $db->getPrefix();
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 10;
+        $offset = ($page - 1) * $perPage;
+        $authorId = (int)($author['id'] ?? 0);
+
+        $total = (int)$db->get_var(
+            "SELECT COUNT(*) FROM {$prefix}posts WHERE author_id = ? AND status = 'published'",
+            [$authorId]
+        );
+
+        $posts = $db->get_results(
+            "SELECT p.*, c.name AS category_name
+             FROM {$prefix}posts p
+             LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
+             WHERE p.author_id = ? AND p.status = 'published'
+             ORDER BY COALESCE(p.published_at, p.created_at) DESC
+             LIMIT {$perPage} OFFSET {$offset}",
+            [$authorId]
+        ) ?: [];
+
+        ThemeManager::instance()->render('author', [
+            'author' => $author,
             'posts' => $posts,
             'total' => $total,
             'currentPage' => $page,

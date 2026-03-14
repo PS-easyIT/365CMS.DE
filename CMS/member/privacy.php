@@ -15,6 +15,7 @@ $pageAssets = [];
 $memberService = \CMS\Services\MemberService::getInstance();
 $privacy = $memberService->getPrivacySettings($controller->getUserId());
 $overview = $memberService->getDataOverview($controller->getUserId());
+$publicProfileFields = $memberService->getPublicProfileFieldDefinitions();
 
 include __DIR__ . '/partials/header.php';
 ?>
@@ -42,6 +43,21 @@ include __DIR__ . '/partials/header.php';
                         <input class="form-check-input" type="checkbox" name="show_activity" value="1" <?= !empty($privacy['show_activity']) ? 'checked' : '' ?>>
                         <span class="form-check-label">Aktivitäten für andere Mitglieder sichtbar machen</span>
                     </label>
+                </div>
+                <hr>
+                <div class="mb-2">
+                    <h4 class="h5 mb-2">Öffentliche Profilfelder</h4>
+                    <p class="text-secondary small mb-3">Diese Angaben dürfen auf deiner öffentlichen Autorenseite angezeigt werden.</p>
+                </div>
+                <div class="row g-2">
+                    <?php foreach ($publicProfileFields as $fieldKey => $fieldDefinition): ?>
+                    <div class="col-sm-6">
+                        <label class="form-check">
+                            <input class="form-check-input" type="checkbox" name="public_profile_fields[]" value="<?= htmlspecialchars((string)$fieldKey, ENT_QUOTES) ?>" <?= in_array($fieldKey, (array)($privacy['public_profile_fields'] ?? []), true) ? 'checked' : '' ?>>
+                            <span class="form-check-label"><?= htmlspecialchars((string)($fieldDefinition['label'] ?? $fieldKey)) ?></span>
+                        </label>
+                    </div>
+                    <?php endforeach; ?>
                 </div>
             </div>
             <div class="card-footer text-end">

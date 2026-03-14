@@ -621,6 +621,7 @@ final class MemberController
                 'profile_visibility' => (string)($_POST['profile_visibility'] ?? 'members'),
                 'show_email' => !empty($_POST['show_email']),
                 'show_activity' => !empty($_POST['show_activity']),
+                'public_profile_fields' => array_values(array_filter(array_map('strval', (array)($_POST['public_profile_fields'] ?? [])))),
             ];
             $this->memberService->updatePrivacySettings($this->getUserId(), $settings);
             $this->flash('success', 'Datenschutzeinstellungen gespeichert.');

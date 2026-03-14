@@ -29,6 +29,19 @@ class MemberService
     private Database $db;
     private string $prefix;
 
+    private const PUBLIC_PROFILE_FIELDS = [
+        'avatar' => ['label' => 'Profilbild', 'type' => 'image'],
+        'bio' => ['label' => 'Über mich', 'type' => 'multiline'],
+        'company' => ['label' => 'Unternehmen', 'type' => 'text'],
+        'position' => ['label' => 'Position', 'type' => 'text'],
+        'website' => ['label' => 'Website', 'type' => 'url'],
+        'location' => ['label' => 'Ort', 'type' => 'text'],
+        'social' => ['label' => 'Social / Profil-Link', 'type' => 'url'],
+        'phone' => ['label' => 'Telefon', 'type' => 'text'],
+        'first_name' => ['label' => 'Vorname', 'type' => 'text'],
+        'last_name' => ['label' => 'Nachname', 'type' => 'text'],
+    ];
+
     // ── Singleton ─────────────────────────────────────────────────────────────
 
     public static function getInstance(): self
@@ -241,6 +254,7 @@ class MemberService
             'profile_visibility' => 'members',
             'show_email'         => false,
             'show_activity'      => true,
+            'public_profile_fields' => ['avatar', 'bio', 'company', 'position', 'website', 'location', 'social'],
         ];
 
         if ($raw) {
@@ -258,10 +272,147 @@ class MemberService
      */
     public function updatePrivacySettings(int $userId, array $settings): bool
     {
-        $allowed = ['profile_visibility', 'show_email', 'show_activity'];
-        $clean   = array_intersect_key($settings, array_flip($allowed));
+        $visibility = (string)($settings['profile_visibility'] ?? 'members');
+        if (!in_array($visibility, ['public', 'members', 'private'], true)) {
+            $visibility = 'members';
+        }
+
+        $requestedFields = $settings['public_profile_fields'] ?? [];
+        if (!is_array($requestedFields)) {
+            $requestedFields = [];
+        }
+
+        $allowedFields = array_keys(self::PUBLIC_PROFILE_FIELDS);
+        $publicFields = array_values(array_intersect($allowedFields, array_map('strval', $requestedFields)));
+
+        $clean = [
+            'profile_visibility' => $visibility,
+            'show_email' => !empty($settings['show_email']),
+            'show_activity' => !empty($settings['show_activity']),
+            'public_profile_fields' => $publicFields,
+        ];
+
         $this->setUserMeta($userId, 'privacy_settings', json_encode($clean));
         return true;
+    }
+
+    /**
+     * @return array<string,array{label:string,type:string}>
+     */
+    public function getPublicProfileFieldDefinitions(): array
+    {
+        return self::PUBLIC_PROFILE_FIELDS;
+    }
+
+    public function buildPublicAuthorPath(int $userId): string
+    {
+        return '/author/user-' . $userId;
+    }
+
+    /**
+     * @return array<string,mixed>|null
+     */
+    public function getPublicAuthorProfile(string $identifier, bool $viewerIsLoggedIn = false): ?array
+    {
+        $identifier = trim($identifier);
+        if ($identifier === '') {
+            return null;
+        }
+
+        $userId = 0;
+        if (preg_match('/^user-(\d+)$/', $identifier, $matches) === 1) {
+            $userId = (int)($matches[1] ?? 0);
+        } elseif (ctype_digit($identifier)) {
+            $userId = (int)$identifier;
+        }
+
+        $user = $userId > 0
+            ? $this->db->get_row(
+                "SELECT id, username, email, display_name, role, status, created_at
+                 FROM {$this->prefix}users
+                 WHERE id = ?
+                 LIMIT 1",
+                [$userId]
+            )
+            : $this->db->get_row(
+                "SELECT id, username, email, display_name, role, status, created_at
+                 FROM {$this->prefix}users
+                 WHERE username = ?
+                 LIMIT 1",
+                [$identifier]
+            );
+
+        if (!$user || (string)($user->status ?? 'active') === 'banned') {
+            return null;
+        }
+
+        $userId = (int)($user->id ?? 0);
+        if ($userId <= 0) {
+            return null;
+        }
+
+        $privacy = $this->getPrivacySettings($userId);
+        $visibility = (string)($privacy['profile_visibility'] ?? 'members');
+        if ($visibility === 'private' || ($visibility === 'members' && !$viewerIsLoggedIn)) {
+            return null;
+        }
+
+        $meta = $this->getUserMeta($userId);
+        $displayName = trim((string)($user->display_name ?? ''));
+        if ($displayName === '') {
+            $displayName = trim((string)($user->username ?? 'Autor'));
+        }
+
+        $allowedFields = $privacy['public_profile_fields'] ?? [];
+        if (!is_array($allowedFields)) {
+            $allowedFields = [];
+        }
+
+        $fieldDefinitions = $this->getPublicProfileFieldDefinitions();
+        $details = [];
+        foreach ($allowedFields as $fieldKey) {
+            $fieldKey = (string)$fieldKey;
+            if (!isset($fieldDefinitions[$fieldKey]) || in_array($fieldKey, ['avatar', 'bio'], true)) {
+                continue;
+            }
+
+            $value = trim((string)($meta[$fieldKey] ?? ''));
+            if ($value === '') {
+                continue;
+            }
+
+            $details[] = [
+                'key' => $fieldKey,
+                'label' => $fieldDefinitions[$fieldKey]['label'],
+                'type' => $fieldDefinitions[$fieldKey]['type'],
+                'value' => $value,
+            ];
+        }
+
+        if (!empty($privacy['show_email']) && !empty($user->email)) {
+            $details[] = [
+                'key' => 'email',
+                'label' => 'E-Mail',
+                'type' => 'email',
+                'value' => trim((string)$user->email),
+            ];
+        }
+
+        $avatarUrl = in_array('avatar', $allowedFields, true) ? trim((string)($meta['avatar'] ?? '')) : '';
+        $bio = in_array('bio', $allowedFields, true) ? trim((string)($meta['bio'] ?? '')) : '';
+
+        return [
+            'id' => $userId,
+            'slug' => 'user-' . $userId,
+            'username' => (string)($user->username ?? ''),
+            'display_name' => $displayName !== '' ? $displayName : 'Autor',
+            'bio' => $bio,
+            'avatar_url' => $avatarUrl,
+            'details' => $details,
+            'profile_visibility' => $visibility,
+            'show_activity' => !empty($privacy['show_activity']),
+            'profile_url' => $this->buildPublicAuthorPath($userId),
+        ];
     }
 
     /**

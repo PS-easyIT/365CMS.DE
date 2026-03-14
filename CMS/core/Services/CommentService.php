@@ -47,7 +47,11 @@ class CommentService
     public function getApprovedForPost(int $postId): array
     {
         return $this->db->get_results(
-            "SELECT id, author, author_email, content, post_date\n             FROM {$this->prefix}comments\n             WHERE post_id = ? AND status = 'approved'\n             ORDER BY post_date ASC",
+            "SELECT id, user_id, author, author_email, content, post_date,
+                    CASE WHEN user_id IS NOT NULL AND author = 'Anonym' THEN 1 ELSE 0 END AS is_anonymous
+             FROM {$this->prefix}comments
+             WHERE post_id = ? AND status = 'approved'
+             ORDER BY post_date ASC",
             [$postId]
         ) ?: [];
     }
@@ -61,9 +65,14 @@ class CommentService
         string $authorEmail,
         string $content,
         string $authorIp = '',
-        ?int $userId = null
+        ?int $userId = null,
+        bool $isAnonymous = false
     ): int|false {
         [$resolvedAuthorName, $resolvedAuthorEmail] = $this->resolveCommentAuthorIdentity($userId, $authorName, $authorEmail);
+
+        if (($userId ?? 0) > 0 && $isAnonymous) {
+            $resolvedAuthorName = 'Anonym';
+        }
 
         $authorName = trim(strip_tags($resolvedAuthorName));
         $authorName = mb_substr($authorName, 0, 100);
