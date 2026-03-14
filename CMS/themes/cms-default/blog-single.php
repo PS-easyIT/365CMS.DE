@@ -145,16 +145,37 @@ $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
       <h4>Einen Kommentar hinterlassen</h4>
       <?php
         $commentCsrf = '';
+        $commentUser = null;
+        $commentUserName = '';
+        $commentUserEmail = '';
         if (class_exists('\\CMS\\Security')) {
             $commentCsrf = \CMS\Security::instance()->generateToken('comment_' . ($post->id ?? 0));
+        }
+        if (class_exists('\\CMS\\Auth')) {
+            $commentUser = \CMS\Auth::instance()->getCurrentUser();
+            $commentUserName = trim((string)($commentUser->display_name ?? $commentUser->username ?? ''));
+            $commentUserEmail = trim((string)($commentUser->email ?? ''));
         }
       ?>
       <form method="post" action="<?php echo SITE_URL; ?>/comments/post">
          <input type="hidden" name="post_id" value="<?php echo (int)($post->id ?? 0); ?>">
          <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($commentCsrf, ENT_QUOTES, 'UTF-8'); ?>">
          <div class="form-2col">
+            <?php if ($commentUser && !empty($commentUser->id)): ?>
+            <div class="form-field form-full">
+              <label>Kommentar als angemeldetes Profil</label>
+              <div style="padding:12px 14px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;color:#334155;line-height:1.5;">
+                <strong><?php echo htmlspecialchars($commentUserName !== '' ? $commentUserName : 'Mitglied', ENT_QUOTES, 'UTF-8'); ?></strong>
+                <?php if ($commentUserEmail !== ''): ?>
+                <div style="font-size:.9rem;color:#64748b;"><?php echo htmlspecialchars($commentUserEmail, ENT_QUOTES, 'UTF-8'); ?></div>
+                <?php endif; ?>
+              </div>
+              <small style="display:block;margin-top:6px;color:#64748b;">Für angemeldete Nutzer wird automatisch das hinterlegte Profil verwendet.</small>
+            </div>
+            <?php else: ?>
             <div class="form-field"><label>Name <span style="color:#ef4444;">*</span></label><input type="text" name="author" placeholder="Dein Name" required maxlength="100"></div>
             <div class="form-field"><label>E-Mail <span style="color:#ef4444;">*</span></label><input type="email" name="email" placeholder="deine@email.de" required maxlength="200"></div>
+            <?php endif; ?>
             <div class="form-field form-full"><label>Kommentar <span style="color:#ef4444;">*</span></label><textarea name="comment" placeholder="Dein Kommentar …" required maxlength="2000" style="min-height:120px;"></textarea></div>
          </div>
          <button type="submit" class="btn-submit">Kommentar absenden →</button>

@@ -63,10 +63,12 @@ class CommentService
         string $authorIp = '',
         ?int $userId = null
     ): int|false {
-        $authorName = trim(strip_tags($authorName));
+        [$resolvedAuthorName, $resolvedAuthorEmail] = $this->resolveCommentAuthorIdentity($userId, $authorName, $authorEmail);
+
+        $authorName = trim(strip_tags($resolvedAuthorName));
         $authorName = mb_substr($authorName, 0, 100);
 
-        $authorEmail = trim($authorEmail);
+        $authorEmail = trim($resolvedAuthorEmail);
         $validatedEmail = filter_var($authorEmail, FILTER_VALIDATE_EMAIL);
 
         $cleanContent = trim(PurifierService::getInstance()->purify($content, 'strict'));
@@ -92,6 +94,48 @@ class CommentService
         $this->notifyAdminForPendingComment($postId, $authorName, (string) $validatedEmail);
 
         return $insertId;
+    }
+
+    /**
+     * Nutzt bei eingeloggten Nutzern immer das hinterlegte Profil statt frei gesendeter Formularwerte.
+     *
+     * @return array{0:string,1:string}
+     */
+    private function resolveCommentAuthorIdentity(?int $userId, string $fallbackName, string $fallbackEmail): array
+    {
+        $fallbackName = trim($fallbackName);
+        $fallbackEmail = trim($fallbackEmail);
+
+        if (($userId ?? 0) <= 0) {
+            return [$fallbackName, $fallbackEmail];
+        }
+
+        $user = $this->db->get_row(
+            "SELECT username, email, display_name
+             FROM {$this->prefix}users
+             WHERE id = ?
+             LIMIT 1",
+            [(int) $userId]
+        );
+
+        if (!$user) {
+            return [$fallbackName, $fallbackEmail];
+        }
+
+        $resolvedName = trim((string) ($user->display_name ?? ''));
+        if ($resolvedName === '') {
+            $resolvedName = trim((string) ($user->username ?? ''));
+        }
+        if ($resolvedName === '') {
+            $resolvedName = $fallbackName;
+        }
+
+        $resolvedEmail = trim((string) ($user->email ?? ''));
+        if ($resolvedEmail === '') {
+            $resolvedEmail = $fallbackEmail;
+        }
+
+        return [$resolvedName, $resolvedEmail];
     }
 
     public function getComments(string $status = 'all', int $limit = 50, int $offset = 0): array
