@@ -33,6 +33,7 @@ class CookieManagerModule
         'youtube' => ['name' => 'YouTube', 'provider' => 'Google', 'category_slug' => 'external_media', 'description' => 'Eingebettete YouTube-Videos.', 'patterns' => ['youtube.com/embed', 'youtu.be/', 'youtube-nocookie.com']],
         'vimeo' => ['name' => 'Vimeo', 'provider' => 'Vimeo', 'category_slug' => 'external_media', 'description' => 'Eingebettete Vimeo-Videos.', 'patterns' => ['player.vimeo.com', 'vimeo.com']],
         'google_maps' => ['name' => 'Google Maps', 'provider' => 'Google', 'category_slug' => 'external_media', 'description' => 'Karten und Standort-Einbindungen.', 'patterns' => ['maps.googleapis.com', 'www.google.com/maps/embed', 'google.com/maps/embed']],
+        'cms_feed' => ['name' => 'CMS Feed', 'provider' => '365CMS', 'category_slug' => 'external_media', 'description' => 'Öffentliche Feed-Archive und externe Feed-Daten für den Bereich CMS Feed.', 'patterns' => ['cms-feed', '/feed/', 'CMS_Feed']],
         'hubspot' => ['name' => 'HubSpot', 'provider' => 'HubSpot', 'category_slug' => 'marketing', 'description' => 'CRM-, Form- und Marketing-Automation.', 'patterns' => ['js.hs-scripts.com', 'hs-script-loader']],
         'cms_core' => ['name' => '365CMS Kernfunktionen', 'provider' => '365CMS', 'category_slug' => 'necessary', 'description' => 'Session-, Login-, Sicherheits- und Formularfunktionen.', 'patterns' => ['csrf_token', 'PHPSESSID'], 'is_essential' => true],
     ];
@@ -43,6 +44,7 @@ class CookieManagerModule
         $this->prefix = $this->db->getPrefix();
         $this->ensureTables();
         $this->ensureDefaultCategories();
+        $this->ensureManagedDefaultServices();
     }
 
     private function ensureTables(): void
@@ -105,6 +107,49 @@ class CookieManagerModule
         }
     }
 
+    private function ensureManagedDefaultServices(): void
+    {
+        foreach (['cms_core', 'cms_feed'] as $slug) {
+            if (!isset(self::CURATED_SERVICES[$slug])) {
+                continue;
+            }
+
+            $service = self::CURATED_SERVICES[$slug];
+            $existing = $this->db->get_row(
+                "SELECT id, category_slug, description, provider FROM {$this->prefix}cookie_services WHERE slug = ? LIMIT 1",
+                [$slug]
+            );
+
+            $data = [
+                'name' => (string)$service['name'],
+                'provider' => (string)$service['provider'],
+                'category_slug' => !empty($service['is_essential']) ? 'necessary' : (string)($service['category_slug'] ?? 'necessary'),
+                'description' => (string)($service['description'] ?? ''),
+                'cookie_names' => '',
+                'code_snippet' => '',
+                'is_essential' => !empty($service['is_essential']) ? 1 : 0,
+                'is_active' => 1,
+            ];
+
+            if ($existing !== null) {
+                $this->db->update('cookie_services', $data, ['slug' => $slug]);
+                continue;
+            }
+
+            $this->db->insert('cookie_services', [
+                'name' => (string)$service['name'],
+                'slug' => $slug,
+                'provider' => (string)$service['provider'],
+                'category_slug' => $data['category_slug'],
+                'description' => $data['description'],
+                'cookie_names' => '',
+                'code_snippet' => '',
+                'is_essential' => $data['is_essential'],
+                'is_active' => 1,
+            ]);
+        }
+    }
+
     public function getData(): array
     {
         $categories = $this->db->get_results(
@@ -124,6 +169,7 @@ class CookieManagerModule
             'cookie_lifetime_days',
             'cookie_policy_url',
             'cookie_accept_text',
+            'cookie_reject_text',
             'cookie_essential_text',
             'cookie_matomo_self_hosted_url',
             'cookie_matomo_site_id',
@@ -174,6 +220,7 @@ class CookieManagerModule
             'cookie_lifetime_days'   => (string)max(1, min(365, (int)($post['cookie_lifetime_days'] ?? 30))),
             'cookie_policy_url'      => trim((string)($post['cookie_policy_url'] ?? '/datenschutz')),
             'cookie_accept_text'     => trim((string)($post['cookie_accept_text'] ?? 'Akzeptieren')),
+            'cookie_reject_text'     => trim((string)($post['cookie_reject_text'] ?? 'Ablehnen')),
             'cookie_essential_text'  => trim((string)($post['cookie_essential_text'] ?? 'Nur Essenzielle')),
             'cookie_matomo_self_hosted_url' => $this->normalizeOptionalUrlForStorage((string)($post['cookie_matomo_self_hosted_url'] ?? '')),
             'cookie_matomo_site_id' => trim((string)($post['cookie_matomo_site_id'] ?? '1')),

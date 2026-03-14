@@ -77,6 +77,10 @@ $curatedServices = $d['curated_services'] ?? [];
                                     <input type="text" name="cookie_accept_text" class="form-control" value="<?php echo htmlspecialchars($settings['cookie_accept_text'] ?? 'Akzeptieren'); ?>">
                                 </div>
                                 <div class="col-md-6">
+                                    <label class="form-label">Ablehnen-Button</label>
+                                    <input type="text" name="cookie_reject_text" class="form-control" value="<?php echo htmlspecialchars($settings['cookie_reject_text'] ?? 'Ablehnen'); ?>">
+                                </div>
+                                <div class="col-md-6">
                                     <label class="form-label">Nur Essenzielle-Button</label>
                                     <input type="text" name="cookie_essential_text" class="form-control" value="<?php echo htmlspecialchars($settings['cookie_essential_text'] ?? 'Nur Essenzielle'); ?>">
                                 </div>
@@ -94,11 +98,18 @@ $curatedServices = $d['curated_services'] ?? [];
                                 </div>
                                 <div class="col-12">
                                     <div class="alert alert-info mb-0">
-                                        <div class="fw-bold mb-1">Öffentliche Consent-Seite</div>
-                                        <div class="small">
-                                            Nutzer können ihre Einwilligung öffentlich unter
-                                            <a href="<?php echo htmlspecialchars(SITE_URL . '/cookie-einstellungen'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars(SITE_URL . '/cookie-einstellungen'); ?></a>
-                                            einsehen und anpassen.
+                                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                                            <div>
+                                                <div class="fw-bold mb-1">Öffentliche Consent-Seite</div>
+                                                <div class="small">
+                                                    Nutzer können ihre Einwilligung öffentlich unter
+                                                    <a href="<?php echo htmlspecialchars(SITE_URL . '/cookie-einstellungen'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars(SITE_URL . '/cookie-einstellungen'); ?></a>
+                                                    einsehen und anpassen.
+                                                </div>
+                                            </div>
+                                            <a href="<?php echo htmlspecialchars(SITE_URL . '/cookie-einstellungen'); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">
+                                                Public Bereich öffnen
+                                            </a>
                                         </div>
                                     </div>
                                 </div>

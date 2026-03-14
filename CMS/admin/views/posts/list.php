@@ -147,8 +147,16 @@ $search     = $data['search'] ?? '';
                         <option value="">Aktion wählen…</option>
                         <option value="publish">Veröffentlichen</option>
                         <option value="draft">Als Entwurf setzen</option>
+                        <option value="set_author_display_name">Autoren-Anzeigenamen setzen</option>
+                        <option value="clear_author_display_name">Autoren-Anzeigenamen zurücksetzen</option>
                         <option value="delete">Löschen</option>
                     </select>
+                    <input type="text"
+                           name="bulk_author_display_name"
+                           id="bulkAuthorDisplayNamePosts"
+                           class="form-control form-control-sm w-auto d-none"
+                           maxlength="150"
+                           placeholder="Neuer Anzeigename für ausgewählte Beiträge">
                     <button type="submit" class="btn btn-sm btn-primary">Anwenden</button>
                 </form>
             </div>
@@ -179,10 +187,26 @@ function applyFilters() {
     var bulkForm = document.getElementById('bulkFormPosts');
     var bulkBar = document.getElementById('bulkBarPosts');
     var countEl = document.getElementById('selectedCountPosts');
+    var bulkActionSelect = bulkForm ? bulkForm.querySelector('[name="bulk_action"]') : null;
+    var bulkAuthorDisplayName = document.getElementById('bulkAuthorDisplayNamePosts');
     var selectedIds = new Set();
 
     if (!gridRoot || !bulkForm || !bulkBar || !countEl) {
         return;
+    }
+
+    function updateBulkActionUi() {
+        if (!bulkActionSelect || !bulkAuthorDisplayName) {
+            return;
+        }
+
+        var requiresName = bulkActionSelect.value === 'set_author_display_name';
+        bulkAuthorDisplayName.classList.toggle('d-none', !requiresName);
+        bulkAuthorDisplayName.required = requiresName;
+
+        if (!requiresName) {
+            bulkAuthorDisplayName.value = '';
+        }
     }
 
     function syncInputs() {
@@ -241,6 +265,12 @@ function applyFilters() {
             return;
         }
 
+        if (bulkActionSelect && bulkActionSelect.value === 'set_author_display_name' && bulkAuthorDisplayName && !bulkAuthorDisplayName.value.trim()) {
+            event.preventDefault();
+            bulkAuthorDisplayName.focus();
+            return;
+        }
+
         selectedIds.forEach(function(id) {
             var input = document.createElement('input');
             input.type = 'hidden';
@@ -255,6 +285,10 @@ function applyFilters() {
     });
 
     observer.observe(gridRoot, { childList: true, subtree: true });
+    if (bulkActionSelect) {
+        bulkActionSelect.addEventListener('change', updateBulkActionUi);
+    }
+    updateBulkActionUi();
     updateBulkState();
 })();
 </script>

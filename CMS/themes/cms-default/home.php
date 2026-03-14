@@ -22,7 +22,7 @@ $pdo = $db->getConnection();
 $heroPost = null;
 try {
     $stmt = $pdo->prepare(
-        "SELECT p.*, u.username AS author_name, c.name AS category_name, c.slug AS category_slug
+        "SELECT p.*, COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name, c.name AS category_name, c.slug AS category_slug
          FROM posts p
          LEFT JOIN users u ON p.author_id = u.id
          LEFT JOIN post_categories c ON p.category_id = c.id
@@ -41,7 +41,7 @@ $articleList = [];
 try {
     $excludeId = $heroPost ? (int) $heroPost->id : 0;
     $stmt = $pdo->prepare(
-        "SELECT p.*, u.username AS author_name, c.name AS category_name, c.slug AS category_slug
+        "SELECT p.*, COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name, c.name AS category_name, c.slug AS category_slug
          FROM posts p
          LEFT JOIN users u ON p.author_id = u.id
          LEFT JOIN post_categories c ON p.category_id = c.id
@@ -64,7 +64,7 @@ try {
     );
     $placeholders = $excludeIds ? implode(',', array_fill(0, count($excludeIds), '?')) : '0';
     $stmt = $pdo->prepare(
-        "SELECT p.*, u.username AS author_name, c.name AS category_name, c.slug AS category_slug
+        "SELECT p.*, COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name, c.name AS category_name, c.slug AS category_slug
          FROM posts p
          LEFT JOIN users u ON p.author_id = u.id
          LEFT JOIN post_categories c ON p.category_id = c.id
@@ -88,7 +88,7 @@ try {
     );
     $placeholders = implode(',', array_fill(0, count($allExclude), '?'));
     $stmt = $pdo->prepare(
-        "SELECT p.*, u.username AS author_name, c.name AS category_name, c.slug AS category_slug
+        "SELECT p.*, COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name, c.name AS category_name, c.slug AS category_slug
          FROM posts p
          LEFT JOIN users u ON p.author_id = u.id
          LEFT JOIN post_categories c ON p.category_id = c.id

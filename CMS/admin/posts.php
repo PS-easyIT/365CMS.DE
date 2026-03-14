@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'bulk':
             $bulkAction = $_POST['bulk_action'] ?? '';
             $ids        = array_values(array_filter(array_map('intval', (array)($_POST['ids'] ?? []))));
-            $result     = $module->bulkAction($bulkAction, $ids);
+            $result     = $module->bulkAction($bulkAction, $ids, $_POST);
             $_SESSION['admin_alert'] = [
                 'type'    => $result['success'] ? 'success' : 'danger',
                 'message' => $result['message'] ?? $result['error'] ?? '',

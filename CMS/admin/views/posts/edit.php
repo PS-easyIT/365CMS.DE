@@ -38,6 +38,7 @@ $categoryId = (int)($post['category_id'] ?? 0);
 $featuredImg = htmlspecialchars($post['featured_image'] ?? '');
 $metaTitle  = htmlspecialchars($post['meta_title'] ?? '');
 $metaDesc   = htmlspecialchars($post['meta_description'] ?? '');
+$authorDisplayName = htmlspecialchars($post['author_display_name'] ?? '', ENT_QUOTES);
 $tagString  = htmlspecialchars(implode(', ', array_map(static fn(array $tag): string => (string)($tag['name'] ?? ''), $postTagsData)), ENT_QUOTES);
 $seoMeta = $data['seoMeta'] ?? [];
 $seoTemplateSettings = \CMS\Services\SeoAnalysisService::getInstance()->getSettings();
@@ -187,6 +188,11 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
                                     <?php endforeach; ?>
                                 </datalist>
                                 <?php endif; ?>
+                            </div>
+                            <div class="mt-3">
+                                <label class="form-label" for="authorDisplayName">Autoren-Anzeigename im Artikel</label>
+                                <input type="text" class="form-control" id="authorDisplayName" name="author_display_name" value="<?php echo $authorDisplayName; ?>" maxlength="150" placeholder="Leer lassen = normaler 365CMS-Anzeigename des Autors">
+                                <div class="form-hint">Optionaler Override nur für diesen Beitrag. Wenn leer, wird automatisch der Anzeigename des zugewiesenen 365CMS-Autors verwendet.</div>
                             </div>
                         </div>
                         <div class="card-footer d-flex gap-2">

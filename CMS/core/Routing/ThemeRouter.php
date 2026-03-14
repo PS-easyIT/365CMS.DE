@@ -332,8 +332,10 @@ final class ThemeRouter
         $offset = ($page - 1) * $perPage;
         $total = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}posts WHERE status = 'published'");
         $posts = $db->get_results(
-            "SELECT p.*, c.name AS category_name
+            "SELECT p.*, c.name AS category_name,
+                    COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name
              FROM {$prefix}posts p
+             LEFT JOIN {$prefix}users u ON u.id = p.author_id
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
              WHERE p.status = 'published'
              ORDER BY p.published_at DESC
@@ -403,7 +405,7 @@ final class ThemeRouter
         $db = Database::instance();
         $prefix = $db->getPrefix();
         $postRow = $db->get_row(
-            "SELECT p.*, u.display_name AS author_name, c.name AS category_name
+            "SELECT p.*, COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name, c.name AS category_name
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}users u ON u.id = p.author_id
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
@@ -480,7 +482,7 @@ final class ThemeRouter
         $language = $locale === 'en' ? 'en' : 'de';
 
         $posts = $db->get_results(
-            "SELECT p.*, u.display_name AS author_name, c.name AS category_name
+            "SELECT p.*, COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name, c.name AS category_name
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}users u ON u.id = p.author_id
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id

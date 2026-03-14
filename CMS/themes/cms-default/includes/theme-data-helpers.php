@@ -128,7 +128,8 @@ function meridian_get_posts(array $args = []): array
         $db = \CMS\Database::instance();
         $prefix = $db->getPrefix();
 
-        $sql = "SELECT p.*, c.name AS category_name, c.slug AS category_slug, u.username AS author_name
+        $sql = "SELECT p.*, c.name AS category_name, c.slug AS category_slug,
+                   COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name
                 FROM {$prefix}posts p
                 LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
                 LEFT JOIN {$prefix}users u ON u.id = p.author_id

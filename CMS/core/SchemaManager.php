@@ -32,7 +32,7 @@ define('CMS_SCHEMA_MANAGER_LOADED', true);
 class SchemaManager
 {
     /** Flag-Datei-Version – erhöhen wenn Schema geändert wird */
-    public const SCHEMA_VERSION = 'v17';
+    public const SCHEMA_VERSION = 'v18';
 
     private Database $db;
     private string $prefix;
@@ -362,6 +362,7 @@ class SchemaManager
                 featured_image VARCHAR(500),
                 status ENUM('draft','published','trash') NOT NULL DEFAULT 'draft',
                 author_id INT UNSIGNED NOT NULL,
+                author_display_name VARCHAR(150) DEFAULT NULL,
                 category_id INT UNSIGNED DEFAULT NULL,
                 tags VARCHAR(500) COMMENT 'Kommagetrennte Tags',
                 views INT UNSIGNED DEFAULT 0,
@@ -815,6 +816,11 @@ class SchemaManager
             $this->prefix . 'posts',
             'meta_description',
             "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_description TEXT DEFAULT NULL AFTER meta_title"
+        );
+        $this->ensureColumnExists(
+            $this->prefix . 'posts',
+            'author_display_name',
+            "ALTER TABLE {$this->prefix}posts ADD COLUMN author_display_name VARCHAR(150) DEFAULT NULL AFTER author_id"
         );
     }
 

@@ -72,6 +72,7 @@ final class CookieConsentService
             'primaryColor' => $this->sanitizeHexColor($this->getSetting('cookie_primary_color', '#3b82f6')),
             'bannerText' => $this->getSetting('cookie_banner_text', 'Wir nutzen Cookies für eine optimale Website-Erfahrung.'),
             'acceptText' => $this->getSetting('cookie_accept_text', 'Akzeptieren'),
+            'rejectText' => $this->getSetting('cookie_reject_text', 'Ablehnen'),
             'essentialText' => $this->getSetting('cookie_essential_text', 'Nur Essenzielle'),
             'policyUrl' => $this->sanitizeUrl($this->getSetting('cookie_policy_url', '/datenschutz')),
             'preferencesUrl' => SITE_URL . '/cookie-einstellungen',
@@ -112,6 +113,8 @@ final class CookieConsentService
             'id' => 0,
             'title' => 'Cookie-Einstellungen & Einwilligung',
             'slug' => 'cookie-einstellungen',
+            'content_type' => 'cookie_consent',
+            'consent_overview' => $overview,
             'content' => $this->buildPublicConsentPageContent($overview),
             'updated_at' => (string)($overview['updated_at'] ?? ''),
         ];
@@ -301,6 +304,8 @@ final class CookieConsentService
         $categories = (array)($overview['categories'] ?? []);
         $serviceCount = (int)($overview['service_count'] ?? 0);
         $policyUrl = (string)($overview['policy_url'] ?? '/datenschutz');
+        $acceptText = trim($this->getSetting('cookie_accept_text', 'Akzeptieren'));
+        $rejectText = trim($this->getSetting('cookie_reject_text', 'Ablehnen'));
         $matomo = (array)($overview['matomo'] ?? []);
         $updatedAt = $this->formatOverviewTimestamp((string)($overview['updated_at'] ?? ''));
 
@@ -340,8 +345,8 @@ final class CookieConsentService
         $html .= '<p class="cms-consent-muted">Öffne die Präferenzen für eine feingranulare Auswahl oder bestätige mit einem Klick alle optionalen Kategorien.</p>';
         $html .= '<div class="cms-consent-actions">';
         $html .= '<button type="button" class="cms-consent-button cms-consent-button--primary" data-cms-consent-action="preferences">Auswahl anpassen</button>';
-        $html .= '<button type="button" class="cms-consent-button cms-consent-button--secondary" data-cms-consent-action="accept-all">Alle akzeptieren</button>';
-        $html .= '<button type="button" class="cms-consent-button cms-consent-button--ghost" data-cms-consent-action="essential">Nur essenzielle Dienste erlauben</button>';
+        $html .= '<button type="button" class="cms-consent-button cms-consent-button--secondary" data-cms-consent-action="accept-all">' . $this->escape($acceptText !== '' ? $acceptText : 'Akzeptieren') . '</button>';
+        $html .= '<button type="button" class="cms-consent-button cms-consent-button--ghost" data-cms-consent-action="reject">' . $this->escape($rejectText !== '' ? $rejectText : 'Ablehnen') . '</button>';
         $html .= '</div>';
         $html .= '</section>';
         $html .= '</div>';
@@ -642,5 +647,109 @@ final class CookieConsentService
     private function escapeAttr(string $value): string
     {
         return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+    }
+
+    public function hasConsentForCategory(string $categorySlug, bool $blockWithoutDecision = false): bool
+    {
+        $categorySlug = trim($categorySlug);
+        if ($categorySlug === '' || $categorySlug === 'necessary' || !$this->isEnabled()) {
+            return true;
+        }
+
+        $snapshot = $this->getRequestConsentSnapshot();
+        if ($snapshot === null) {
+            return !$blockWithoutDecision;
+        }
+
+        return in_array($categorySlug, $snapshot['accepted_categories'], true);
+    }
+
+    public function hasConsentForService(string $serviceSlug, string $fallbackCategory = '', bool $blockWithoutDecision = false): bool
+    {
+        $serviceSlug = trim($serviceSlug);
+        if ($serviceSlug === '' && $fallbackCategory === '') {
+            return true;
+        }
+
+        if (!$this->isEnabled()) {
+            return true;
+        }
+
+        $snapshot = $this->getRequestConsentSnapshot();
+        if ($snapshot === null) {
+            return !$blockWithoutDecision;
+        }
+
+        if ($serviceSlug !== '' && in_array($serviceSlug, $snapshot['accepted_services'], true)) {
+            return true;
+        }
+
+        if ($fallbackCategory !== '') {
+            return in_array($fallbackCategory, $snapshot['accepted_categories'], true);
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array{accepted_categories: array<int, string>, accepted_services: array<int, string>}|null
+     */
+    private function getRequestConsentSnapshot(): ?array
+    {
+        $cookieValue = $_COOKIE['cc_cookie'] ?? null;
+        if (!is_string($cookieValue) || trim($cookieValue) === '') {
+            return null;
+        }
+
+        $decoded = json_decode(rawurldecode($cookieValue), true);
+        if (!is_array($decoded)) {
+            $decoded = json_decode($cookieValue, true);
+        }
+
+        if (!is_array($decoded)) {
+            return null;
+        }
+
+        $acceptedCategories = array_values(array_filter(array_map(
+            static fn($value): string => is_scalar($value) ? trim((string)$value) : '',
+            is_array($decoded['categories'] ?? null) ? $decoded['categories'] : []
+        )));
+
+        if (!in_array('necessary', $acceptedCategories, true)) {
+            array_unshift($acceptedCategories, 'necessary');
+        }
+
+        return [
+            'accepted_categories' => array_values(array_unique($acceptedCategories)),
+            'accepted_services' => $this->flattenAcceptedServices(is_array($decoded['services'] ?? null) ? $decoded['services'] : []),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $services
+     * @return array<int, string>
+     */
+    private function flattenAcceptedServices(array $services): array
+    {
+        $acceptedServices = [];
+
+        foreach ($services as $serviceGroup) {
+            if (!is_array($serviceGroup)) {
+                continue;
+            }
+
+            foreach ($serviceGroup as $serviceSlug) {
+                if (!is_scalar($serviceSlug)) {
+                    continue;
+                }
+
+                $slug = trim((string)$serviceSlug);
+                if ($slug !== '') {
+                    $acceptedServices[] = $slug;
+                }
+            }
+        }
+
+        return array_values(array_unique($acceptedServices));
     }
 }

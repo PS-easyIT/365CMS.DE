@@ -6,6 +6,105 @@
     }
 
     var consentApi = null;
+    var lastFeedConsentState = null;
+
+    function getCookieValue(name) {
+        var prefix = name + '=';
+        var parts = document.cookie ? document.cookie.split('; ') : [];
+
+        for (var i = 0; i < parts.length; i += 1) {
+            if (parts[i].indexOf(prefix) === 0) {
+                return parts[i].slice(prefix.length);
+            }
+        }
+
+        return '';
+    }
+
+    function getConfiguredCategories() {
+        var cfg = window.CMS_COOKIECONSENT_CONFIG || {};
+
+        return cfg.categories && typeof cfg.categories === 'object'
+            ? cfg.categories
+            : {};
+    }
+
+    function parseStoredPreferences() {
+        var rawCookie = getCookieValue('cc_cookie');
+        var decoded = null;
+        var acceptedCategories = [];
+        var acceptedServices = {};
+        var configuredCategories = getConfiguredCategories();
+        var optionalCategories = Object.keys(configuredCategories).filter(function (slug) {
+            return slug && slug !== 'necessary';
+        });
+        var acceptType = 'custom';
+
+        if (!rawCookie) {
+            return null;
+        }
+
+        try {
+            decoded = JSON.parse(decodeURIComponent(rawCookie));
+        } catch (error) {
+            try {
+                decoded = JSON.parse(rawCookie);
+            } catch (_error) {
+                return null;
+            }
+        }
+
+        if (!decoded || typeof decoded !== 'object') {
+            return null;
+        }
+
+        acceptedCategories = Array.isArray(decoded.categories)
+            ? decoded.categories.filter(function (value) {
+                return typeof value === 'string' && value.trim() !== '';
+            }).map(function (value) {
+                return value.trim();
+            })
+            : [];
+
+        if (acceptedCategories.indexOf('necessary') === -1) {
+            acceptedCategories.unshift('necessary');
+        }
+
+        acceptedServices = decoded.services && typeof decoded.services === 'object'
+            ? decoded.services
+            : {};
+
+        if (acceptedCategories.length <= 1) {
+            acceptType = 'necessary';
+        } else if (optionalCategories.length > 0 && optionalCategories.every(function (slug) {
+            return acceptedCategories.indexOf(slug) !== -1;
+        })) {
+            acceptType = 'all';
+        }
+
+        return {
+            acceptType: acceptType,
+            acceptedCategories: acceptedCategories,
+            rejectedCategories: optionalCategories.filter(function (slug) {
+                return acceptedCategories.indexOf(slug) === -1;
+            }),
+            acceptedServices: acceptedServices,
+            rejectedServices: {}
+        };
+    }
+
+    function getConsentPreferences() {
+        var storedPreferences = parseStoredPreferences();
+        var cc = getConsentApi();
+
+        if (storedPreferences) {
+            return storedPreferences;
+        }
+
+        return cc && typeof cc.getUserPreferences === 'function'
+            ? cc.getUserPreferences()
+            : null;
+    }
 
     function getConsentApi() {
         if (window.CookieConsent && typeof window.CookieConsent.run === 'function') {
@@ -57,20 +156,20 @@
         try {
             cc.run({
                 revision: 1,
-                autoclear_cookies: true,
-                page_scripts: true,
-                gui_options: {
-                    consent_modal: {
+                autoClearCookies: true,
+                manageScriptTags: true,
+                guiOptions: {
+                    consentModal: {
                         layout: 'box',
                         position: position,
-                        equal_weight_buttons: true,
-                        flip_buttons: false
+                        equalWeightButtons: true,
+                        flipButtons: false
                     },
-                    preferences_modal: {
+                    preferencesModal: {
                         layout: 'box',
                         position: 'right',
-                        equal_weight_buttons: true,
-                        flip_buttons: false
+                        equalWeightButtons: true,
+                        flipButtons: false
                     }
                 },
                 categories: categories,
@@ -78,29 +177,32 @@
                     default: 'de',
                     translations: {
                         de: {
-                            consent_modal: {
+                            consentModal: {
                                 title: '🍪 Cookie-Einstellungen',
-                                description: (cfg.bannerText || 'Wir nutzen Cookies für eine optimale Website-Erfahrung.') + ' <a href="' + (cfg.policyUrl || '/datenschutz') + '">Datenschutz</a>',
-                                accept_all_btn: cfg.acceptText || 'Akzeptieren',
-                                accept_necessary_btn: cfg.essentialText || 'Nur Essenzielle',
-                                show_preferences_btn: 'Einstellungen'
+                                description: (cfg.bannerText || 'Wir nutzen Cookies für eine optimale Website-Erfahrung.')
+                                    + ' <a href="#preferences" data-cc="show-preferencesModal" class="cc__link">Einstellungen</a>'
+                                    + ' · <a href="' + (cfg.policyUrl || '/datenschutz') + '" class="cc__link">Datenschutz</a>',
+                                acceptAllBtn: cfg.acceptText || 'Akzeptieren',
+                                acceptNecessaryBtn: cfg.rejectText || cfg.essentialText || 'Ablehnen',
+                                showPreferencesBtn: 'Einstellungen',
+                                closeIconLabel: 'Schließen und ablehnen'
                             },
-                            preferences_modal: {
+                            preferencesModal: {
                                 title: 'Cookie-Präferenzen',
-                                accept_all_btn: cfg.acceptText || 'Akzeptieren',
-                                accept_necessary_btn: cfg.essentialText || 'Nur Essenzielle',
-                                save_preferences_btn: 'Auswahl speichern',
-                                close_btn_label: 'Schließen',
+                                acceptAllBtn: cfg.acceptText || 'Akzeptieren',
+                                acceptNecessaryBtn: cfg.essentialText || 'Nur Essenzielle',
+                                savePreferencesBtn: 'Auswahl speichern',
+                                closeIconLabel: 'Schließen',
                                 sections: sections
                             }
                         }
                     }
                 },
                 onConsent: function () {
-                    window.dispatchEvent(new CustomEvent('cms-cookie-consent-change', { detail: cc.getUserPreferences() }));
+                    window.dispatchEvent(new CustomEvent('cms-cookie-consent-change', { detail: getConsentPreferences() }));
                 },
                 onChange: function () {
-                    window.dispatchEvent(new CustomEvent('cms-cookie-consent-change', { detail: cc.getUserPreferences() }));
+                    window.dispatchEvent(new CustomEvent('cms-cookie-consent-change', { detail: getConsentPreferences() }));
                 }
             });
 
@@ -121,8 +223,7 @@
 
         var statusText = page.querySelector('[data-cms-consent-status-text]');
         var statusDetail = page.querySelector('[data-cms-consent-status-detail]');
-        var cc = getConsentApi();
-        var preferences = cc && typeof cc.getUserPreferences === 'function' ? cc.getUserPreferences() : null;
+        var preferences = getConsentPreferences();
         var acceptedCategories = preferences && Array.isArray(preferences.acceptedCategories)
             ? preferences.acceptedCategories
             : [];
@@ -198,6 +299,83 @@
         });
     }
 
+    function hasFeedConsentFromPreferences(preferences) {
+        if (!preferences) {
+            return false;
+        }
+
+        var acceptedCategories = Array.isArray(preferences.acceptedCategories)
+            ? preferences.acceptedCategories
+            : [];
+
+        if (acceptedCategories.indexOf('external_media') !== -1) {
+            return true;
+        }
+
+        var acceptedServices = preferences.acceptedServices && typeof preferences.acceptedServices === 'object'
+            ? preferences.acceptedServices
+            : {};
+        var externalServices = Array.isArray(acceptedServices.external_media)
+            ? acceptedServices.external_media
+            : [];
+
+        return externalServices.indexOf('cms_feed') !== -1;
+    }
+
+    function shouldReloadForFeedContent() {
+        var path = window.location && typeof window.location.pathname === 'string'
+            ? window.location.pathname
+            : '/';
+
+        if (path.length > 1 && path.charAt(path.length - 1) === '/') {
+            path = path.slice(0, -1);
+        }
+
+        return path === ''
+            || path === '/'
+            || /^\/[a-z]{2}$/i.test(path)
+            || path === '/feed'
+            || path === '/feeds'
+            || /^\/feed\//.test(path)
+            || /^\/feeds\//.test(path)
+            || document.querySelector('[data-cms-feed-protected]') !== null;
+    }
+
+    function syncFeedConsentState() {
+        var preferences = getConsentPreferences();
+        var hasConsent = hasFeedConsentFromPreferences(preferences);
+
+        updateFeedProtectedContent();
+
+        if (lastFeedConsentState !== null && hasConsent !== lastFeedConsentState && shouldReloadForFeedContent()) {
+            window.location.reload();
+            return;
+        }
+
+        lastFeedConsentState = hasConsent;
+    }
+
+    function updateFeedProtectedContent() {
+        var protectedSections = document.querySelectorAll('[data-cms-feed-protected]');
+        if (!protectedSections.length) {
+            return;
+        }
+
+        var preferences = getConsentPreferences();
+        var hasConsent = hasFeedConsentFromPreferences(preferences);
+
+        protectedSections.forEach(function (section) {
+            if (hasConsent) {
+                section.hidden = false;
+                section.removeAttribute('aria-hidden');
+                return;
+            }
+
+            section.hidden = true;
+            section.setAttribute('aria-hidden', 'true');
+        });
+    }
+
     document.addEventListener('click', function (event) {
         var trigger = event.target.closest('[data-cms-consent-action]');
         if (!trigger) {
@@ -216,22 +394,23 @@
             cc.showPreferences();
         } else if (action === 'accept-all' && typeof cc.acceptCategory === 'function') {
             cc.acceptCategory('all');
-        } else if (action === 'essential' && typeof cc.acceptCategory === 'function') {
+        } else if ((action === 'essential' || action === 'reject') && typeof cc.acceptCategory === 'function') {
             cc.acceptCategory('necessary');
         }
-
-        window.setTimeout(updatePublicConsentPage, 50);
     });
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function () {
             bootConsent();
             updatePublicConsentPage();
+            syncFeedConsentState();
         }, { once: true });
     } else {
         bootConsent();
         updatePublicConsentPage();
+        syncFeedConsentState();
     }
 
     window.addEventListener('cms-cookie-consent-change', updatePublicConsentPage);
+    window.addEventListener('cms-cookie-consent-change', syncFeedConsentState);
 })();

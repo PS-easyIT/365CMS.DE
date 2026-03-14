@@ -44,6 +44,7 @@ class PostsModule
             'excerpt_en' => "ALTER TABLE {$this->prefix}posts ADD COLUMN excerpt_en TEXT DEFAULT NULL AFTER excerpt",
             'meta_title' => "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_title VARCHAR(255) DEFAULT NULL AFTER allow_comments",
             'meta_description' => "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_description TEXT DEFAULT NULL AFTER meta_title",
+            'author_display_name' => "ALTER TABLE {$this->prefix}posts ADD COLUMN author_display_name VARCHAR(150) DEFAULT NULL AFTER author_id",
         ];
 
         foreach ($columns as $column => $sql) {
@@ -186,6 +187,7 @@ class PostsModule
         $featuredImageTempPath = trim($post['featured_image_temp_path'] ?? '');
         $metaTitle  = trim($post['meta_title'] ?? '');
         $metaDesc   = trim($post['meta_description'] ?? '');
+        $authorDisplayName = $this->sanitizeAuthorDisplayName((string)($post['author_display_name'] ?? ''));
         $rawTags    = $post['tags'] ?? '';
         $slug       = $this->normalizeSlug($slug !== '' ? $slug : $this->generateSlug($title));
 
@@ -227,6 +229,7 @@ class PostsModule
             'featured_image' => $featuredImage,
             'meta_title' => $metaTitle,
             'meta_description' => $metaDesc,
+            'author_display_name' => $authorDisplayName,
         ];
 
         $filteredPayload = Hooks::applyFilters('cms_prepare_post_save_payload', $savePayload, $post, $id, $userId);
@@ -247,7 +250,7 @@ class PostsModule
                     "UPDATE {$this->prefix}posts 
                      SET title = ?, title_en = ?, slug = ?, content = ?, content_en = ?, excerpt = ?, excerpt_en = ?, status = ?,
                          category_id = ?, featured_image = ?,
-                         meta_title = ?, meta_description = ?,
+                         meta_title = ?, meta_description = ?, author_display_name = ?,
                          updated_at = NOW(){$setPubAt}
                      WHERE id = ?",
                     [
@@ -263,6 +266,7 @@ class PostsModule
                         (string)$savePayload['featured_image'],
                         (string)$savePayload['meta_title'],
                         (string)$savePayload['meta_description'],
+                        (string)($savePayload['author_display_name'] ?? ''),
                         $id,
                     ]
                 );
@@ -279,8 +283,8 @@ class PostsModule
                 $pubAtValue = ($savePayload['status'] === 'published') ? 'NOW()' : 'NULL';
                 $this->db->execute(
                     "INSERT INTO {$this->prefix}posts
-                     (title, title_en, slug, content, content_en, excerpt, excerpt_en, status, category_id, featured_image, meta_title, meta_description, author_id, published_at, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, {$pubAtValue}, NOW(), NOW())",
+                     (title, title_en, slug, content, content_en, excerpt, excerpt_en, status, category_id, featured_image, meta_title, meta_description, author_id, author_display_name, published_at, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, {$pubAtValue}, NOW(), NOW())",
                     [
                         (string)$savePayload['title'],
                         (string)($savePayload['title_en'] ?? ''),
@@ -295,6 +299,7 @@ class PostsModule
                         (string)$savePayload['meta_title'],
                         (string)$savePayload['meta_description'],
                         $userId,
+                        (string)($savePayload['author_display_name'] ?? ''),
                     ]
                 );
                 $newId = (int)$this->db->lastInsertId();
@@ -334,7 +339,7 @@ class PostsModule
     /**
      * Bulk-Aktion
      */
-    public function bulkAction(string $action, array $ids): array
+    public function bulkAction(string $action, array $ids, array $payload = []): array
     {
         if (empty($ids)) {
             return ['success' => false, 'error' => 'Keine Einträge ausgewählt.'];
@@ -356,6 +361,24 @@ class PostsModule
                 case 'draft':
                     $this->db->execute("UPDATE {$this->prefix}posts SET status = 'draft', updated_at = NOW() WHERE id IN ({$placeholders})", $ids);
                     return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge als Entwurf gesetzt.'];
+
+                case 'set_author_display_name':
+                    $authorDisplayName = $this->sanitizeAuthorDisplayName((string) ($payload['bulk_author_display_name'] ?? ''));
+                    if ($authorDisplayName === '') {
+                        return ['success' => false, 'error' => 'Bitte einen Anzeigenamen für die Bulk-Aktion angeben.'];
+                    }
+
+                    $params = array_merge([$authorDisplayName], $ids);
+                    $this->db->execute(
+                        "UPDATE {$this->prefix}posts SET author_display_name = ?, updated_at = NOW() WHERE id IN ({$placeholders})",
+                        $params
+                    );
+
+                    return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge mit neuem Autoren-Anzeigenamen aktualisiert.'];
+
+                case 'clear_author_display_name':
+                    $this->db->execute("UPDATE {$this->prefix}posts SET author_display_name = NULL, updated_at = NOW() WHERE id IN ({$placeholders})", $ids);
+                    return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge auf den normalen 365CMS-Anzeigenamen zurückgesetzt.'];
 
                 default:
                     return ['success' => false, 'error' => 'Unbekannte Aktion.'];
@@ -413,6 +436,19 @@ class PostsModule
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler beim Löschen der Kategorie.'];
         }
+    }
+
+    private function sanitizeAuthorDisplayName(string $value): string
+    {
+        $value = trim(strip_tags($value));
+
+        if ($value === '') {
+            return '';
+        }
+
+        return function_exists('mb_substr')
+            ? mb_substr($value, 0, 150)
+            : substr($value, 0, 150);
     }
 
     /**

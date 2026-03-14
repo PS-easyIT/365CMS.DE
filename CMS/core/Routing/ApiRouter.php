@@ -203,9 +203,9 @@ final class ApiRouter
 
         $total = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}posts p {$whereStr}", $params);
         $rows = $db->get_results(
-            "SELECT p.id, p.title, p.slug, p.status, p.views, p.featured_image,
+                "SELECT p.id, p.title, p.slug, p.status, p.views, p.featured_image,
                     p.published_at, p.updated_at,
-                    u.display_name AS author_name,
+                    COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name,
                     u.role AS author_role,
                     c.name AS category_name,
                     CASE
@@ -269,8 +269,8 @@ final class ApiRouter
 
         $total = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}pages p {$whereStr}", $params);
         $rows = $db->get_results(
-            "SELECT p.id, p.title, p.slug, p.status, p.updated_at, p.created_at,
-                    u.display_name AS author_name
+                    "SELECT p.id, p.title, p.slug, p.status, p.updated_at, p.created_at,
+                        u.display_name AS author_name
              FROM {$prefix}pages p
              LEFT JOIN {$prefix}users u ON u.id = p.author_id
              {$whereStr}
