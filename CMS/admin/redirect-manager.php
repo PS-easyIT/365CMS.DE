@@ -34,6 +34,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'delete_redirect':
                 $result = $module->deleteRedirect((int)($_POST['id'] ?? 0));
                 break;
+            case 'delete_redirects_by_slug':
+                $result = $module->deleteRedirectsBySlug((string)($_POST['slug_filter'] ?? ''));
+                break;
             case 'toggle_redirect':
                 $result = $module->toggleRedirect((int)($_POST['id'] ?? 0));
                 break;

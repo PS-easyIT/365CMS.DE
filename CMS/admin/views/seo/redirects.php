@@ -62,6 +62,37 @@ $targets   = $data['targets'] ?? ['pages' => [], 'posts' => [], 'hubs' => []];
 
         <div class="card mb-4">
             <div class="card-header">
+                <h3 class="card-title">Weiterleitungen per Slug löschen</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" class="row g-3 align-items-end">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken ?? '') ?>">
+                    <input type="hidden" name="action" value="delete_redirects_by_slug">
+                    <div class="col-md-8 col-lg-6">
+                        <label class="form-label" for="redirect-slug-filter">Slug</label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="redirect-slug-filter"
+                            name="slug_filter"
+                            placeholder="z. B. kontakt oder blog"
+                            required
+                        >
+                        <div class="form-hint">Löscht Weiterleitungen, deren Quellpfad den Slug als eigenes Segment enthält – z. B. <code>*/kontakt/*</code>, <code>/kontakt</code> oder <code>/de/kontakt/team</code>.</div>
+                    </div>
+                    <div class="col-md-4 col-lg-3">
+                        <button
+                            type="submit"
+                            class="btn btn-outline-danger w-100"
+                            onclick="return confirm('Passende Weiterleitungen für diesen Slug wirklich löschen?')"
+                        >Slug-Regeln löschen</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
                 <h3 class="card-title">Weiterleitungen</h3>
             </div>
             <div class="table-responsive">

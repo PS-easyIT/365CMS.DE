@@ -246,6 +246,51 @@ final class RedirectService
         return ['success' => true, 'message' => 'Weiterleitung gelöscht.'];
     }
 
+    public function deleteRedirectsBySlug(string $slug): array
+    {
+        $normalizedSlug = $this->normalizeSlugFilter($slug);
+        if ($normalizedSlug === '') {
+            return ['success' => false, 'error' => 'Bitte einen gültigen Slug angeben.'];
+        }
+
+        $likePattern = '%' . $normalizedSlug . '%';
+        $candidates = $this->db->get_results(
+            "SELECT id, source_path
+             FROM {$this->prefix}redirect_rules
+             WHERE source_path LIKE ?",
+            [$likePattern]
+        ) ?: [];
+
+        $matchingIds = [];
+        foreach ($candidates as $candidate) {
+            $sourcePath = (string)($candidate->source_path ?? '');
+            if (!$this->pathContainsSlugSegment($sourcePath, $normalizedSlug)) {
+                continue;
+            }
+
+            $matchingIds[] = (int)($candidate->id ?? 0);
+        }
+
+        $matchingIds = array_values(array_filter($matchingIds, static fn(int $id): bool => $id > 0));
+        if ($matchingIds === []) {
+            return [
+                'success' => false,
+                'error' => sprintf('Keine Weiterleitungen mit dem Muster */%s/* gefunden.', $normalizedSlug),
+            ];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($matchingIds), '?'));
+        $this->db->execute(
+            "DELETE FROM {$this->prefix}redirect_rules WHERE id IN ({$placeholders})",
+            $matchingIds
+        );
+
+        return [
+            'success' => true,
+            'message' => sprintf('%d Weiterleitung(en) mit */%s/* wurden gelöscht.', count($matchingIds), $normalizedSlug),
+        ];
+    }
+
     public function toggleRedirect(int $id): array
     {
         $row = $this->db->get_row("SELECT is_active FROM {$this->prefix}redirect_rules WHERE id = ? LIMIT 1", [$id]);
@@ -561,5 +606,27 @@ final class RedirectService
     private function limitString(string $value, int $length): string
     {
         return mb_substr(trim($value), 0, $length);
+    }
+
+    private function normalizeSlugFilter(string $slug): string
+    {
+        $slug = trim($slug);
+        $slug = trim($slug, " \t\n\r\0\x0B/");
+        $slug = strtolower($slug);
+        $slug = preg_replace('/[^a-z0-9\-_]+/i', '-', $slug) ?? '';
+        $slug = trim($slug, '-');
+
+        return $slug;
+    }
+
+    private function pathContainsSlugSegment(string $path, string $slug): bool
+    {
+        $normalizedPath = trim($this->normalizePath($path), '/');
+        if ($normalizedPath === '') {
+            return false;
+        }
+
+        $segments = array_values(array_filter(explode('/', strtolower($normalizedPath)), static fn(string $segment): bool => $segment !== ''));
+        return in_array(strtolower($slug), $segments, true);
     }
 }

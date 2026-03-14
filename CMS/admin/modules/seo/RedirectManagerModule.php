@@ -29,6 +29,11 @@ class RedirectManagerModule
         return $this->service->deleteRedirect($id);
     }
 
+    public function deleteRedirectsBySlug(string $slug): array
+    {
+        return $this->service->deleteRedirectsBySlug($slug);
+    }
+
     public function toggleRedirect(int $id): array
     {
         return $this->service->toggleRedirect($id);
