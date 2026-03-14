@@ -12,6 +12,8 @@ if (!defined('ABSPATH')) {
 
 final class SiteTableRepository
 {
+    private ?bool $hasTableSlugColumn = null;
+
     public function __construct(
         private Database $db,
         private string $prefix,
@@ -40,16 +42,57 @@ final class SiteTableRepository
             return null;
         }
 
+        $selectSlug = $this->hasTableSlugColumn() ? ', table_slug' : ", '' AS table_slug";
+        $slugCondition = $this->hasTableSlugColumn()
+            ? "(JSON_UNQUOTE(JSON_EXTRACT(settings_json, '$.hub_slug')) = ? OR table_slug = ?)"
+            : "JSON_UNQUOTE(JSON_EXTRACT(settings_json, '$.hub_slug')) = ?";
+        $params = $this->hasTableSlugColumn() ? [$slug, $slug] : [$slug];
+
         $row = $this->db->fetchOne(
-            "SELECT id, table_name, description, columns_json, rows_json, settings_json, updated_at
+            "SELECT id, table_name, description, columns_json, rows_json, settings_json, updated_at{$selectSlug}
              FROM {$this->prefix}site_tables
              WHERE COALESCE(JSON_UNQUOTE(JSON_EXTRACT(settings_json, '$.content_mode')), 'table') = 'hub'
-               AND JSON_UNQUOTE(JSON_EXTRACT(settings_json, '$.hub_slug')) = ?
+               AND {$slugCondition}
              LIMIT 1",
-            [$slug]
+            $params
         );
 
         return is_array($row) ? $this->hydrateTable($row) : null;
+    }
+
+    public function getHubTableByDomain(string $domain): ?array
+    {
+        $domain = $this->normalizeDomainHost($domain);
+        if ($domain === '') {
+            return null;
+        }
+
+        $selectSlug = $this->hasTableSlugColumn() ? ', table_slug' : ", '' AS table_slug";
+        $rows = $this->db->fetchAll(
+            "SELECT id, table_name, description, columns_json, rows_json, settings_json, updated_at{$selectSlug}
+             FROM {$this->prefix}site_tables
+             WHERE COALESCE(JSON_UNQUOTE(JSON_EXTRACT(settings_json, '$.content_mode')), 'table') = 'hub'"
+        );
+
+        if (!is_array($rows)) {
+            return null;
+        }
+
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $settings = Json::decodeArray($row['settings_json'] ?? null, []);
+            $domains = is_array($settings['hub_domains'] ?? null) ? $settings['hub_domains'] : [];
+            foreach ($domains as $candidate) {
+                if ($this->normalizeDomainHost((string)$candidate) === $domain) {
+                    return $this->hydrateTable($row);
+                }
+            }
+        }
+
+        return null;
     }
 
     public function getStoredTemplateProfiles(string $settingKey): array
@@ -79,5 +122,42 @@ final class SiteTableRepository
             'settings' => Json::decodeArray($row['settings_json'] ?? null, []),
             'updated_at' => (string) ($row['updated_at'] ?? ''),
         ];
+    }
+
+    private function hasTableSlugColumn(): bool
+    {
+        if ($this->hasTableSlugColumn !== null) {
+            return $this->hasTableSlugColumn;
+        }
+
+        try {
+            $column = $this->db->get_var("SHOW COLUMNS FROM {$this->prefix}site_tables LIKE 'table_slug'");
+            $this->hasTableSlugColumn = $column !== null;
+        } catch (\Throwable) {
+            $this->hasTableSlugColumn = false;
+        }
+
+        return $this->hasTableSlugColumn;
+    }
+
+    private function normalizeDomainHost(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        $candidate = preg_match('#^https?://#i', $value) === 1 ? $value : 'https://' . ltrim($value, '/');
+        $parts = parse_url($candidate);
+        if ($parts === false) {
+            return '';
+        }
+
+        $host = strtolower(trim((string)($parts['host'] ?? ''), '.'));
+        if ($host === '') {
+            return '';
+        }
+
+        return $host;
     }
 }

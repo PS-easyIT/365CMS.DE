@@ -318,6 +318,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderItems() {
         if (!listEl) return;
 
+        sortMenuItemsByTree();
+
         if (menuItems.length === 0) {
             listEl.innerHTML = '<div class="list-group-item text-center text-muted py-5" id="emptyState">Noch keine Items. Füge oben ein Item hinzu.</div>';
         } else {
@@ -338,7 +340,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 html += '</select>';
                 html += '</div>';
                 html += '</div>';
+                html += '<div class="d-flex flex-column gap-2">';
+                html += '<button type="button" class="btn btn-sm btn-outline-secondary move-item-up" data-index="' + idx + '" aria-label="Item nach oben verschieben">↑</button>';
+                html += '<button type="button" class="btn btn-sm btn-outline-secondary move-item-down" data-index="' + idx + '" aria-label="Item nach unten verschieben">↓</button>';
                 html += '<button type="button" class="btn btn-sm btn-outline-danger remove-item" data-index="' + idx + '">×</button>';
+                html += '</div>';
                 html += '</div>';
             });
             listEl.innerHTML = html;
@@ -355,6 +361,125 @@ document.addEventListener('DOMContentLoaded', function() {
         var div = document.createElement('div');
         div.appendChild(document.createTextNode(str));
         return div.innerHTML;
+    }
+
+    function sortMenuItemsByTree() {
+        var grouped = {};
+        var ordered = [];
+
+        menuItems.forEach(function(item) {
+            var parentId = normalizeParentId(item.parent_id);
+            if (!grouped[parentId]) {
+                grouped[parentId] = [];
+            }
+            grouped[parentId].push(item);
+        });
+
+        function appendBranch(parentId, trail) {
+            (grouped[parentId] || []).forEach(function(item) {
+                var itemId = String(item.id);
+                if (trail.indexOf(itemId) !== -1) {
+                    return;
+                }
+
+                ordered.push(item);
+                appendBranch(itemId, trail.concat([itemId]));
+            });
+        }
+
+        appendBranch('0', []);
+
+        menuItems.forEach(function(item) {
+            if (ordered.indexOf(item) === -1) {
+                ordered.push(item);
+            }
+        });
+
+        menuItems = ordered;
+    }
+
+    function getSubtreeEndIndex(startIndex) {
+        var startItem = menuItems[startIndex];
+        var startDepth;
+        var index;
+
+        if (!startItem) {
+            return startIndex;
+        }
+
+        startDepth = getItemDepth(startItem);
+
+        for (index = startIndex + 1; index < menuItems.length; index += 1) {
+            if (getItemDepth(menuItems[index]) <= startDepth) {
+                return index - 1;
+            }
+        }
+
+        return menuItems.length - 1;
+    }
+
+    function moveItem(index, direction) {
+        var item = menuItems[index];
+        var parentId;
+        var itemDepth;
+        var siblingStarts = [];
+        var siblingPosition;
+        var startIndex;
+        var endIndex;
+        var blockLength;
+        var block;
+        var prevStart;
+        var nextStart;
+        var nextEnd;
+        var insertAt;
+        var scanIndex;
+
+        if (!item) {
+            return;
+        }
+
+        parentId = normalizeParentId(item.parent_id);
+        itemDepth = getItemDepth(item);
+
+        for (scanIndex = 0; scanIndex < menuItems.length; scanIndex += 1) {
+            if (normalizeParentId(menuItems[scanIndex].parent_id) === parentId && getItemDepth(menuItems[scanIndex]) === itemDepth) {
+                siblingStarts.push(scanIndex);
+            }
+        }
+
+        siblingPosition = siblingStarts.indexOf(index);
+        if (siblingPosition === -1) {
+            return;
+        }
+
+        startIndex = index;
+        endIndex = getSubtreeEndIndex(startIndex);
+        blockLength = endIndex - startIndex + 1;
+        block = menuItems.splice(startIndex, blockLength);
+
+        if (direction === 'up') {
+            prevStart = siblingStarts[siblingPosition - 1];
+            if (typeof prevStart !== 'number') {
+                menuItems.splice(startIndex, 0, block[0]);
+                if (block.length > 1) {
+                    menuItems.splice.apply(menuItems, [startIndex + 1, 0].concat(block.slice(1)));
+                }
+                return;
+            }
+
+            menuItems.splice.apply(menuItems, [prevStart, 0].concat(block));
+            return;
+        }
+
+        nextStart = siblingStarts[siblingPosition + 1];
+        if (typeof nextStart !== 'number') {
+            menuItems.splice.apply(menuItems, [startIndex, 0].concat(block));
+            return;
+        }
+
+        nextEnd = getSubtreeEndIndex(nextStart - blockLength);
+        insertAt = nextEnd + 1;
+        menuItems.splice.apply(menuItems, [insertAt, 0].concat(block));
     }
 
     // Add Item
@@ -410,6 +535,26 @@ document.addEventListener('DOMContentLoaded', function() {
                     removeItemAndChildren(menuItems[idx].id);
                 }
                 renderItems();
+                return;
+            }
+
+            var moveUpButton = e.target.closest('.move-item-up');
+            if (moveUpButton) {
+                var moveUpIndex = parseInt(moveUpButton.dataset.index, 10);
+                if (!Number.isNaN(moveUpIndex)) {
+                    moveItem(moveUpIndex, 'up');
+                    renderItems();
+                }
+                return;
+            }
+
+            var moveDownButton = e.target.closest('.move-item-down');
+            if (moveDownButton) {
+                var moveDownIndex = parseInt(moveDownButton.dataset.index, 10);
+                if (!Number.isNaN(moveDownIndex)) {
+                    moveItem(moveDownIndex, 'down');
+                    renderItems();
+                }
                 return;
             }
 

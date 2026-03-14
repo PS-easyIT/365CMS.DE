@@ -103,6 +103,31 @@ final class SiteTableService
         return $this->hubRenderer->buildHubPage($table, $slug, $locale);
     }
 
+    public function getHubPageByDomain(string $domain, string $locale = 'de'): ?array
+    {
+        $table = $this->repository->getHubTableByDomain($domain);
+        if ($table === null || !$this->isHubTable($table)) {
+            return null;
+        }
+
+        $slug = trim((string)($table['settings']['hub_slug'] ?? ''));
+        if ($slug === '') {
+            return null;
+        }
+
+        return $this->hubRenderer->buildHubPage($table, $slug, $locale);
+    }
+
+    public function hubExistsBySlug(string $slug): bool
+    {
+        $slug = $this->sanitizeSlug($slug);
+        if ($slug === '') {
+            return false;
+        }
+
+        return $this->repository->getHubTableBySlug($slug) !== null;
+    }
+
     public function streamExportById(int $tableId, string $format, bool $respectFrontendPermissions = true): bool
     {
         $table = $this->repository->getTableById($tableId);

@@ -20,6 +20,7 @@ class HubSitesModule
     private const DEFAULT_SETTINGS = [
         'content_mode' => 'hub',
         'hub_slug' => '',
+        'hub_domains' => [],
         'hub_template' => 'general-it',
         'hub_badge' => '',
         'hub_badge_en' => '',
@@ -149,13 +150,25 @@ class HubSitesModule
         $name = trim(strip_tags((string)($post['site_name'] ?? '')));
         $description = trim(strip_tags((string)($post['description'] ?? '')));
         $cards = \CMS\Json::decodeArray($post['cards_json'] ?? null, []);
+        $normalizedDomains = $this->normalizeHubDomains((string)($post['hub_domains'] ?? ''));
 
         if ($name === '') {
             return ['success' => false, 'error' => 'Name darf nicht leer sein.'];
         }
 
+        if (!empty($normalizedDomains['errors'])) {
+            return ['success' => false, 'error' => (string)$normalizedDomains['errors'][0]];
+        }
+
         if (!is_array($cards)) {
             $cards = [];
+        }
+
+        $hubDomains = $normalizedDomains['domains'] ?? [];
+        foreach ($hubDomains as $domain) {
+            if ($this->hubDomainExists((string)$domain, $id > 0 ? $id : null)) {
+                return ['success' => false, 'error' => 'Die Zusatzdomain „' . $domain . '“ ist bereits einer anderen Hub-Site zugeordnet.'];
+            }
         }
 
         $slug = $this->buildUniqueHubSlug($name, $id > 0 ? $id : null);
@@ -166,6 +179,7 @@ class HubSitesModule
         $settings = [
             'content_mode' => 'hub',
             'hub_slug' => $slug,
+            'hub_domains' => $hubDomains,
             'hub_template' => array_key_exists((string)($post['hub_template'] ?? ''), $templateChoices) ? (string)$post['hub_template'] : 'general-it',
             'hub_badge' => mb_substr(trim(strip_tags((string)($post['hub_badge'] ?? ''))), 0, 80),
             'hub_badge_en' => mb_substr(trim(strip_tags((string)($post['hub_badge_en'] ?? ''))), 0, 80),
@@ -343,6 +357,7 @@ class HubSitesModule
             $settings = \CMS\Json::decodeArray($data['settings_json'] ?? null, []);
             $settings = array_merge(self::DEFAULT_SETTINGS, $settings);
             $settings['hub_slug'] = $this->buildUniqueHubSlug($copyName, null);
+            $settings['hub_domains'] = [];
 
             $columns = ['table_name', 'description', 'columns_json', 'rows_json', 'settings_json', 'created_at', 'updated_at'];
             $placeholders = ['?', '?', '?', '?', '?', 'NOW()', 'NOW()'];
@@ -512,6 +527,104 @@ class HubSitesModule
 
         $decoded = \CMS\Json::decodeArray($row->settings_json ?? null, []);
         return array_merge(self::DEFAULT_SETTINGS, is_array($decoded) ? $decoded : []);
+    }
+
+    /**
+     * @return array{domains: array<int, string>, errors: array<int, string>}
+     */
+    private function normalizeHubDomains(string $rawDomains): array
+    {
+        $entries = preg_split('/[\r\n,;]+/', $rawDomains) ?: [];
+        $domains = [];
+        $errors = [];
+
+        foreach ($entries as $entry) {
+            $normalizedHost = $this->normalizeDomainHost($entry);
+            if ($normalizedHost === '') {
+                if (trim($entry) !== '') {
+                    $errors[] = 'Die Zusatzdomain „' . trim($entry) . '“ ist ungültig.';
+                }
+                continue;
+            }
+
+            if ($this->isMainDomainHost($normalizedHost)) {
+                $errors[] = 'Die Hauptdomain darf nicht als Hub-Zusatzdomain verwendet werden.';
+                continue;
+            }
+
+            $domains[] = $normalizedHost;
+        }
+
+        return [
+            'domains' => array_values(array_unique($domains)),
+            'errors' => array_values(array_unique($errors)),
+        ];
+    }
+
+    private function hubDomainExists(string $domain, ?int $excludeId = null): bool
+    {
+        $rows = $this->db->get_results(
+            "SELECT id, settings_json
+             FROM {$this->prefix}site_tables
+             WHERE COALESCE(JSON_UNQUOTE(JSON_EXTRACT(settings_json, '$.content_mode')), 'table') = 'hub'",
+            []
+        ) ?: [];
+
+        foreach ($rows as $row) {
+            $rowId = (int)($row->id ?? 0);
+            if ($excludeId !== null && $rowId === $excludeId) {
+                continue;
+            }
+
+            $settings = \CMS\Json::decodeArray($row->settings_json ?? null, []);
+            $domains = is_array($settings['hub_domains'] ?? null) ? $settings['hub_domains'] : [];
+            foreach ($domains as $candidate) {
+                if ($this->normalizeDomainHost((string)$candidate) === $domain) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function isMainDomainHost(string $host): bool
+    {
+        $siteHost = $this->normalizeDomainHost((string)(parse_url((string)SITE_URL, PHP_URL_HOST) ?? ''));
+        return $siteHost !== '' && $siteHost === $host;
+    }
+
+    private function normalizeDomainHost(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        $candidate = preg_match('#^https?://#i', $value) === 1 ? $value : 'https://' . ltrim($value, '/');
+        $parts = parse_url($candidate);
+        if ($parts === false) {
+            return '';
+        }
+
+        $host = strtolower(trim((string)($parts['host'] ?? ''), '.'));
+        if ($host === '') {
+            return '';
+        }
+
+        if (isset($parts['path']) && $parts['path'] !== '' && $parts['path'] !== '/') {
+            return '';
+        }
+
+        if (isset($parts['query']) || isset($parts['fragment'])) {
+            return '';
+        }
+
+        if (!preg_match('/^(?=.{1,253}$)(?:xn--)?[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.(?:xn--)?[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i', $host)) {
+            return '';
+        }
+
+        return $host;
     }
 
     private function hasTableSlugColumn(): bool

@@ -12,6 +12,8 @@ $templateOptions = $data['templateOptions'] ?? [];
 $templateProfiles = $data['templateProfiles'] ?? [];
 $settings = $site['settings'] ?? $defaults;
 $cards = $site['cards'] ?? [];
+$hubDomains = is_array($settings['hub_domains'] ?? null) ? $settings['hub_domains'] : [];
+$mainDomainHost = trim((string)(parse_url((string) SITE_URL, PHP_URL_HOST) ?? ''));
 ?>
 
 <div class="page-header d-print-none">
@@ -109,6 +111,11 @@ $cards = $site['cards'] ?? [];
                             <div class="mb-0">
                                 <label class="form-label">Beschreibung</label>
                                 <textarea class="form-control" name="description" rows="2"><?php echo htmlspecialchars((string)($site['description'] ?? '')); ?></textarea>
+                            </div>
+                            <div class="mt-3">
+                                <label class="form-label">Zusatzdomains</label>
+                                <textarea class="form-control" name="hub_domains" rows="4" placeholder="hub.example.de&#10;thema.example.org"><?php echo htmlspecialchars(implode("\n", array_map('strval', $hubDomains))); ?></textarea>
+                                <div class="form-hint">Eine Domain pro Zeile. Nur zusätzliche Domains/Subdomains, die auf die Startseite zeigen. Die Hauptdomain <code><?php echo htmlspecialchars($mainDomainHost); ?></code> ist hier ausdrücklich tabu.</div>
                             </div>
                         </div>
                     </div>

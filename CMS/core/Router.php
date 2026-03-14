@@ -145,6 +145,10 @@ class Router
 
         $this->applyRequestCacheHeaders($routingUri, $method);
 
+        if ($this->maybeRedirectHubAliasDomain($routingUri)) {
+            return;
+        }
+
         if (class_exists('\\CMS\\Services\\RedirectService')) {
             $redirect = Services\RedirectService::getInstance()->findRedirect($uri);
             if (is_array($redirect) && !empty($redirect['target_url'])) {
@@ -270,6 +274,47 @@ class Router
         }
 
         $this->render404();
+    }
+
+    private function maybeRedirectHubAliasDomain(string $routingUri): bool
+    {
+        if (!in_array($this->requestMethod, ['GET', 'HEAD'], true)) {
+            return false;
+        }
+
+        if ($routingUri !== '/') {
+            return false;
+        }
+
+        $requestHost = $this->normalizeHost((string)($_SERVER['HTTP_HOST'] ?? ''));
+        $mainHost = $this->normalizeHost((string)(parse_url((string)SITE_URL, PHP_URL_HOST) ?? ''));
+        if ($requestHost === '' || $mainHost === '' || $requestHost === $mainHost) {
+            return false;
+        }
+
+        $locale = $this->getRequestLocale();
+        $hubPage = Services\SiteTableService::getInstance()->getHubPageByDomain($requestHost, $locale);
+        if ($hubPage === null) {
+            return false;
+        }
+
+        $slug = trim((string)($hubPage['slug'] ?? ''), '/');
+        if ($slug === '') {
+            return false;
+        }
+
+        $targetPath = '/' . $slug;
+        if ($locale !== '' && $locale !== 'de') {
+            $targetPath = rtrim($targetPath, '/') . '/' . rawurlencode($locale);
+        }
+
+        $query = (string)(parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_QUERY) ?? '');
+        if ($query !== '') {
+            $targetPath .= '?' . $query;
+        }
+
+        $this->redirect($targetPath, 302);
+        return true;
     }
 
     private function matchRoute(string $pattern, string $uri): array|false
@@ -467,6 +512,20 @@ class Router
         }
 
         return SITE_URL . (str_starts_with($url, '/') ? $url : '/' . ltrim($url, '/'));
+    }
+
+    private function normalizeHost(string $value): string
+    {
+        $value = strtolower(trim($value));
+        if ($value === '') {
+            return '';
+        }
+
+        if (str_contains($value, ':')) {
+            $value = explode(':', $value, 2)[0];
+        }
+
+        return trim($value, '.');
     }
 
     private function buildRedirectFallbackPage(string $targetUrl, int $status): string
