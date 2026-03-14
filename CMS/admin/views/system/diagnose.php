@@ -13,6 +13,7 @@ $database    = $data['database'] ?? [];
 $tables      = $data['tables'] ?? [];
 $permissions = $data['permissions'] ?? [];
 $runtime     = $data['runtime'] ?? [];
+$errorReports = $data['error_reports'] ?? [];
 $bootstrapProfile = is_array($runtime['bootstrap'] ?? null) ? $runtime['bootstrap'] : [];
 $vendorRegistry = $data['vendor_registry'] ?? [];
 $registrySummary = is_array($vendorRegistry['summary'] ?? null) ? $vendorRegistry['summary'] : [];
@@ -94,6 +95,61 @@ foreach ($tables as $tableInfo) {
             <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Request-Laufzeit</div><div class="h1 mb-0"><?php echo htmlspecialchars((string)($runtime['elapsed_time_ms'] ?? '0')); ?> <span class="fs-5 text-secondary">ms</span></div></div></div></div>
             <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">SQL-Queries</div><div class="h1 mb-0"><?php echo htmlspecialchars((string)($runtime['query']['count'] ?? 0)); ?></div><div class="text-secondary small mt-1"><?php echo htmlspecialchars((string)($runtime['query']['total_time_ms'] ?? 0)); ?> ms gesamt</div></div></div></div>
             <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Bootstrap-Modus</div><div class="h1 mb-0"><?php echo htmlspecialchars((string)($bootstrapProfile['mode'] ?? '—')); ?></div><div class="text-secondary small mt-1"><?php echo htmlspecialchars((string)($bootstrapProfile['bootstrap_ready_ms'] ?? 0)); ?> ms bis ready</div></div></div></div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h3 class="card-title mb-0">Fehlerreports</h3>
+                <div class="text-secondary small">Reports aus CMS_Error-Alerts und Debug-Ausgaben</div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Datum</th>
+                            <th>Titel</th>
+                            <th>Code</th>
+                            <th>Quelle</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($errorReports)): ?>
+                            <tr><td colspan="5" class="text-center text-secondary py-4">Noch keine Fehlerreports vorhanden.</td></tr>
+                        <?php else: ?>
+                            <?php foreach ($errorReports as $report): ?>
+                                <tr>
+                                    <td class="text-nowrap"><?php echo !empty($report['created_at']) ? htmlspecialchars(date('d.m.Y H:i', strtotime((string)$report['created_at']))) : '–'; ?></td>
+                                    <td>
+                                        <div class="fw-semibold"><?php echo htmlspecialchars((string)($report['title'] ?? 'Fehlerreport')); ?></div>
+                                        <div class="text-secondary small"><?php echo htmlspecialchars((string)($report['message'] ?? '')); ?></div>
+                                    </td>
+                                    <td><?php echo !empty($report['error_code']) ? '<code>' . htmlspecialchars((string)$report['error_code']) . '</code>' : '<span class="text-secondary">–</span>'; ?></td>
+                                    <td class="text-secondary small"><?php echo !empty($report['source_url']) ? htmlspecialchars((string)$report['source_url']) : '–'; ?></td>
+                                    <td>
+                                        <?php $reportHasDetails = !empty($report['error_data']) || !empty($report['context']); ?>
+                                        <?php if ($reportHasDetails): ?>
+                                            <details>
+                                                <summary class="cursor-pointer">Anzeigen</summary>
+                                                <?php if (!empty($report['error_data'])): ?>
+                                                    <div class="mt-2 small text-secondary">Fehlerdaten</div>
+                                                    <pre class="bg-body-tertiary border rounded p-2 mb-2"><?php echo htmlspecialchars((string)json_encode($report['error_data'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?></pre>
+                                                <?php endif; ?>
+                                                <?php if (!empty($report['context'])): ?>
+                                                    <div class="small text-secondary">Kontext</div>
+                                                    <pre class="bg-body-tertiary border rounded p-2 mb-0"><?php echo htmlspecialchars((string)json_encode($report['context'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?></pre>
+                                                <?php endif; ?>
+                                            </details>
+                                        <?php else: ?>
+                                            <span class="text-secondary">–</span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <div class="row row-deck row-cards mb-4">

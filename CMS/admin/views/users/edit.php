@@ -46,10 +46,7 @@ $roleColors = [
     <div class="container-xl">
 
         <?php if (!empty($alert)): ?>
-            <div class="alert alert-<?php echo $alert['type'] === 'success' ? 'success' : 'danger'; ?> alert-dismissible" role="alert">
-                <div><?php echo htmlspecialchars($alert['message']); ?></div>
-                <a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>
-            </div>
+            <?php $alertData = $alert; $alertMarginClass = 'mb-4'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
         <form method="post" action="<?php echo htmlspecialchars($siteUrl); ?>/admin/users" id="userForm">

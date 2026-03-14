@@ -157,8 +157,10 @@ final class RedirectService
 
         $logs = $this->db->get_results(
             "SELECT nfl.*,
+                    rr.id AS redirect_id,
                     rr.target_url,
                     rr.redirect_type,
+                    rr.notes AS redirect_notes,
                     rr.is_active AS redirect_is_active
              FROM {$this->prefix}not_found_logs nfl
              LEFT JOIN {$this->prefix}redirect_rules rr ON rr.source_path = nfl.request_path
@@ -175,7 +177,11 @@ final class RedirectService
 
         return [
             'redirects' => array_map(static fn($row) => (array)$row, $redirects),
-            'logs' => array_map(static fn($row) => (array)$row, $logs),
+            'logs' => array_map(static function ($row): array {
+                $mapped = (array)$row;
+                $mapped['redirect_id'] = isset($mapped['redirect_id']) ? (int)$mapped['redirect_id'] : 0;
+                return $mapped;
+            }, $logs),
             'stats' => $stats,
             'targets' => [
                 'pages' => $this->getAvailablePageTargets(),

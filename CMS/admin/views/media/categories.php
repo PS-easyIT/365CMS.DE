@@ -31,10 +31,7 @@ $systemSlugs = ['themes', 'plugins', 'assets', 'fonts', 'dl-manager', 'form-uplo
     <div class="container-xl">
 
         <?php if (!empty($alert)): ?>
-            <div class="alert alert-<?php echo $alert['type'] === 'success' ? 'success' : 'danger'; ?> alert-dismissible mb-3" role="alert">
-                <div class="d-flex"><div><?php echo htmlspecialchars($alert['message']); ?></div></div>
-                <a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>
-            </div>
+            <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
         <div class="row">

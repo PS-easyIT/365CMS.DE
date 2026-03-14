@@ -12,6 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Database;
+use CMS\Services\ErrorReportService;
 use CMS\Services\UserService;
 
 class UsersModule
@@ -105,7 +106,13 @@ class UsersModule
             if ($id > 0) {
                 $result = $this->userService->updateUser($id, $data);
                 if ($result instanceof \CMS\WP_Error) {
-                    return ['success' => false, 'error' => $result->get_error_message()];
+                    return ErrorReportService::buildFailureResultFromWpError($result, [
+                        'title' => 'Benutzer konnte nicht aktualisiert werden',
+                        'source' => '/admin/users?action=edit&id=' . $id,
+                        'module' => 'users',
+                        'operation' => 'update',
+                        'user_id' => $id,
+                    ]);
                 }
                 return ['success' => true, 'id' => $id, 'message' => 'Benutzer aktualisiert.'];
             } else {
@@ -114,7 +121,12 @@ class UsersModule
                 }
                 $result = $this->userService->createUser($data);
                 if ($result instanceof \CMS\WP_Error) {
-                    return ['success' => false, 'error' => $result->get_error_message()];
+                    return ErrorReportService::buildFailureResultFromWpError($result, [
+                        'title' => 'Benutzer konnte nicht erstellt werden',
+                        'source' => '/admin/users?action=edit',
+                        'module' => 'users',
+                        'operation' => 'create',
+                    ]);
                 }
                 return ['success' => true, 'id' => $result, 'message' => 'Benutzer erstellt.'];
             }
@@ -130,7 +142,13 @@ class UsersModule
     {
         $result = $this->userService->deleteUser($id, false);
         if ($result instanceof \CMS\WP_Error) {
-            return ['success' => false, 'error' => $result->get_error_message()];
+            return ErrorReportService::buildFailureResultFromWpError($result, [
+                'title' => 'Benutzer konnte nicht deaktiviert werden',
+                'source' => '/admin/users',
+                'module' => 'users',
+                'operation' => 'delete',
+                'user_id' => $id,
+            ]);
         }
         return ['success' => true, 'message' => 'Benutzer deaktiviert.'];
     }

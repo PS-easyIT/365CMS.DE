@@ -159,9 +159,9 @@ $targets   = $data['targets'] ?? ['pages' => [], 'posts' => [], 'hubs' => []];
                                     <td>
                                         <button
                                             type="button"
-                                            class="btn btn-sm btn-outline-primary js-takeover-log"
+                                            class="btn btn-sm <?= !empty($log['redirect_id']) ? 'btn-outline-secondary' : 'btn-outline-primary' ?> js-takeover-log"
                                             data-log="<?= htmlspecialchars(json_encode($log, JSON_HEX_APOS | JSON_HEX_QUOT), ENT_QUOTES) ?>"
-                                        >Übernehmen</button>
+                                        ><?= !empty($log['redirect_id']) ? 'Bearbeiten' : 'Übernehmen' ?></button>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -476,13 +476,17 @@ $targets   = $data['targets'] ?? ['pages' => [], 'posts' => [], 'hubs' => []];
         }
 
         resetRedirectForm();
-        titleElement.textContent = '404-Fehler übernehmen';
+        titleElement.textContent = log.redirect_id ? '404-Weiterleitung bearbeiten' : '404-Fehler übernehmen';
+        idField.value = log.redirect_id || 0;
         sourceField.value = log.request_path || '';
         applyTargetValue(log.target_url || '');
         if (log.redirect_type) {
             typeField.value = String(log.redirect_type);
         }
         const noteParts = [];
+        if (log.redirect_notes) {
+            noteParts.push(String(log.redirect_notes));
+        }
         if (log.referrer_url) {
             noteParts.push('Referrer: ' + log.referrer_url);
         }

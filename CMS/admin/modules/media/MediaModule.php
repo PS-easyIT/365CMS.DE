@@ -14,6 +14,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Services\MediaService;
+use CMS\Services\ErrorReportService;
 
 class MediaModule
 {
@@ -150,7 +151,13 @@ class MediaModule
     {
         $result = $this->service->createFolder($name, $parentPath);
         if ($result instanceof \WP_Error) {
-            return ['success' => false, 'error' => $result->get_error_message()];
+            return ErrorReportService::buildFailureResultFromWpError($result, [
+                'title' => 'Ordner konnte nicht erstellt werden',
+                'source' => '/admin/media',
+                'module' => 'media',
+                'operation' => 'create_folder',
+                'path' => $parentPath,
+            ]);
         }
         return ['success' => true, 'message' => 'Ordner erstellt.'];
     }
@@ -162,7 +169,14 @@ class MediaModule
     {
         $result = $this->service->uploadFile($file, $targetPath);
         if ($result instanceof \WP_Error) {
-            return ['success' => false, 'error' => $result->get_error_message()];
+            return ErrorReportService::buildFailureResultFromWpError($result, [
+                'title' => 'Datei konnte nicht hochgeladen werden',
+                'source' => '/admin/media',
+                'module' => 'media',
+                'operation' => 'upload',
+                'path' => $targetPath,
+                'filename' => (string)($file['name'] ?? ''),
+            ]);
         }
         return ['success' => true, 'message' => 'Datei hochgeladen.'];
     }
@@ -174,7 +188,13 @@ class MediaModule
     {
         $result = $this->service->deleteItem($path);
         if ($result instanceof \WP_Error) {
-            return ['success' => false, 'error' => $result->get_error_message()];
+            return ErrorReportService::buildFailureResultFromWpError($result, [
+                'title' => 'Element konnte nicht gelöscht werden',
+                'source' => '/admin/media',
+                'module' => 'media',
+                'operation' => 'delete',
+                'path' => $path,
+            ]);
         }
         return ['success' => true, 'message' => 'Element gelöscht.'];
     }
@@ -186,7 +206,14 @@ class MediaModule
     {
         $result = $this->service->renameItem($oldPath, $newName);
         if ($result instanceof \WP_Error) {
-            return ['success' => false, 'error' => $result->get_error_message()];
+            return ErrorReportService::buildFailureResultFromWpError($result, [
+                'title' => 'Element konnte nicht umbenannt werden',
+                'source' => '/admin/media',
+                'module' => 'media',
+                'operation' => 'rename',
+                'path' => $oldPath,
+                'new_name' => $newName,
+            ]);
         }
         return ['success' => true, 'message' => 'Element umbenannt.'];
     }
@@ -198,7 +225,14 @@ class MediaModule
     {
         $result = $this->service->assignCategory($filePath, $categorySlug);
         if ($result instanceof \WP_Error) {
-            return ['success' => false, 'error' => $result->get_error_message()];
+            return ErrorReportService::buildFailureResultFromWpError($result, [
+                'title' => 'Kategorie konnte nicht zugewiesen werden',
+                'source' => '/admin/media/categories',
+                'module' => 'media',
+                'operation' => 'assign_category',
+                'path' => $filePath,
+                'category' => $categorySlug,
+            ]);
         }
         return ['success' => true, 'message' => 'Kategorie zugewiesen.'];
     }
@@ -222,7 +256,13 @@ class MediaModule
     {
         $result = $this->service->addCategory($name, $slug);
         if ($result instanceof \WP_Error) {
-            return ['success' => false, 'error' => $result->get_error_message()];
+            return ErrorReportService::buildFailureResultFromWpError($result, [
+                'title' => 'Kategorie konnte nicht erstellt werden',
+                'source' => '/admin/media/categories',
+                'module' => 'media',
+                'operation' => 'add_category',
+                'category' => $slug !== '' ? $slug : $name,
+            ]);
         }
         return ['success' => true, 'message' => 'Kategorie erstellt.'];
     }
@@ -234,7 +274,13 @@ class MediaModule
     {
         $result = $this->service->deleteCategory($slug);
         if ($result instanceof \WP_Error) {
-            return ['success' => false, 'error' => $result->get_error_message()];
+            return ErrorReportService::buildFailureResultFromWpError($result, [
+                'title' => 'Kategorie konnte nicht gelöscht werden',
+                'source' => '/admin/media/categories',
+                'module' => 'media',
+                'operation' => 'delete_category',
+                'category' => $slug,
+            ]);
         }
         return ['success' => true, 'message' => 'Kategorie gelöscht.'];
     }
@@ -290,7 +336,12 @@ class MediaModule
 
         $result = $this->service->saveSettings($settings);
         if ($result instanceof \WP_Error) {
-            return ['success' => false, 'error' => $result->get_error_message()];
+            return ErrorReportService::buildFailureResultFromWpError($result, [
+                'title' => 'Medien-Einstellungen konnten nicht gespeichert werden',
+                'source' => '/admin/media/settings',
+                'module' => 'media',
+                'operation' => 'save_settings',
+            ]);
         }
         return ['success' => true, 'message' => 'Einstellungen gespeichert.'];
     }

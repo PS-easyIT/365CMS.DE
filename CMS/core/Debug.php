@@ -338,6 +338,10 @@ class Debug {
         if (!self::$enabled || empty(self::$logs)) {
             return '';
         }
+
+        $reportTarget = defined('SITE_URL') ? SITE_URL . '/admin/error-report' : '/admin/error-report';
+        $reportToken = class_exists('\\CMS\\Security') ? \CMS\Security::instance()->generateToken('admin_error_report') : '';
+        $backTo = (string)($_SERVER['REQUEST_URI'] ?? '/admin/diagnose');
         
         $html = '<div class="debug-panel" style="' . ($collapsed ? 'max-height: 50px; overflow: hidden;' : '') . '">';
         $html .= '<div class="debug-header" onclick="this.parentElement.style.maxHeight=\'none\'; this.parentElement.style.overflow=\'visible\';" style="background: #1e293b; color: white; padding: 0.75rem; cursor: pointer; font-weight: 600;">';
@@ -359,9 +363,44 @@ class Debug {
             $html .= htmlspecialchars($entry['message']);
             
             if ($entry['data'] !== null) {
+                if (is_array($entry['data'])) {
+                    $metaParts = [];
+                    if (isset($entry['data']['code']) && $entry['data']['code'] !== '') {
+                        $metaParts[] = '<div><strong>Code:</strong> <code>' . htmlspecialchars((string)$entry['data']['code']) . '</code></div>';
+                    }
+                    if (isset($entry['data']['file']) && isset($entry['data']['line'])) {
+                        $metaParts[] = '<div><strong>Datei:</strong> ' . htmlspecialchars((string)$entry['data']['file']) . ':' . htmlspecialchars((string)$entry['data']['line']) . '</div>';
+                    }
+                    if ($metaParts !== []) {
+                        $html .= '<div style="margin-top: 0.5rem; font-size: 0.8125rem;">' . implode('', $metaParts) . '</div>';
+                    }
+                }
                 $html .= '<pre style="margin: 0.5rem 0 0 0; padding: 0.5rem; background: #f1f5f9; overflow-x: auto;">';
                 $html .= htmlspecialchars(print_r($entry['data'], true));
                 $html .= '</pre>';
+            }
+
+            if ($reportToken !== '' && in_array($entry['type'], ['error', 'exception'], true)) {
+                $errorCode = is_array($entry['data']) && isset($entry['data']['code']) ? (string)$entry['data']['code'] : '';
+                $errorDataJson = htmlspecialchars((string)json_encode(is_array($entry['data']) ? $entry['data'] : ['data' => $entry['data']], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES);
+                $contextJson = htmlspecialchars((string)json_encode([
+                    'type' => $entry['type'],
+                    'memory' => $entry['memory'] ?? null,
+                    'backtrace' => $entry['backtrace'] ?? [],
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES);
+
+                $html .= '<form method="post" action="' . htmlspecialchars($reportTarget, ENT_QUOTES) . '" style="margin-top:0.75rem; display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">';
+                $html .= '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($reportToken, ENT_QUOTES) . '">';
+                $html .= '<input type="hidden" name="back_to" value="' . htmlspecialchars($backTo, ENT_QUOTES) . '">';
+                $html .= '<input type="hidden" name="title" value="' . htmlspecialchars('Debug-Fehlerreport · ' . strtoupper($entry['type']), ENT_QUOTES) . '">';
+                $html .= '<input type="hidden" name="message" value="' . htmlspecialchars((string)$entry['message'], ENT_QUOTES) . '">';
+                $html .= '<input type="hidden" name="error_code" value="' . htmlspecialchars($errorCode, ENT_QUOTES) . '">';
+                $html .= '<input type="hidden" name="source_url" value="' . htmlspecialchars($backTo, ENT_QUOTES) . '">';
+                $html .= '<input type="hidden" name="error_data_json" value="' . $errorDataJson . '">';
+                $html .= '<input type="hidden" name="context_json" value="' . $contextJson . '">';
+                $html .= '<button type="submit" style="border:1px solid #94a3b8; background:#fff; color:#0f172a; padding:0.4rem 0.7rem; border-radius:0.45rem; cursor:pointer;">Report erstellen</button>';
+                $html .= '<span style="font-size:0.8rem; color:#475569;">Speichert den Fehler als Report im Adminbereich.</span>';
+                $html .= '</form>';
             }
             
             $html .= '</div>';

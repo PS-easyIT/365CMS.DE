@@ -16,6 +16,7 @@ use CMS\Http\Client as HttpClient;
 use CMS\SchemaManager;
 use CMS\Services\MailQueueService;
 use CMS\Services\MailService;
+use CMS\Services\ErrorReportService;
 use CMS\Services\SystemService;
 use CMS\AuditLogger;
 use CMS\VendorRegistry;
@@ -49,6 +50,7 @@ class SystemInfoModule
             'statistics' => $this->getStatisticsSafe(),
             'security' => $this->getSecurityStatusSafe(),
             'runtime' => $this->getRuntimeTelemetrySafe(),
+            'error_reports' => ErrorReportService::getInstance()->getRecentReports(15),
             'monitoring' => $this->getMonitoringOverview(),
             'cron' => $this->getCronData(),
             'disk' => $this->getDiskUsageData(),
@@ -70,6 +72,7 @@ class SystemInfoModule
             'tables' => $this->getTablesSafe(),
             'permissions' => $this->getPermissionsSafe(),
             'runtime' => $this->getRuntimeTelemetrySafe(),
+            'error_reports' => ErrorReportService::getInstance()->getRecentReports(15),
             'monitoring' => $this->getMonitoringOverview(),
             'health' => $this->getHealthChecksData(),
             'vendor_registry' => $this->getVendorRegistryDiagnosticsSafe(),
