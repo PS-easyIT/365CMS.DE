@@ -51,7 +51,7 @@ class MemberService
      * Profildaten aktualisieren.
      *
      * @param int   $userId
-     * @param array $data  Keys: first_name, last_name, email, bio, website, phone
+    * @param array $data  Keys: display_name, first_name, last_name, email, bio, website, phone, company, position, birth_date
      * @return true|string  true bei Erfolg, Fehlermeldung als String
      */
     public function updateProfile(int $userId, array $data): bool|string
@@ -75,8 +75,16 @@ class MemberService
             );
         }
 
+        if (array_key_exists('display_name', $data)) {
+            $displayName = trim((string)($data['display_name'] ?? ''));
+            $this->db->execute(
+                "UPDATE {$this->prefix}users SET display_name = ? WHERE id = ?",
+                [$displayName, $userId]
+            );
+        }
+
         // Meta-Felder
-        $metaFields = ['first_name', 'last_name', 'bio', 'website', 'phone', 'position', 'company'];
+        $metaFields = ['first_name', 'last_name', 'bio', 'website', 'phone', 'position', 'company', 'birth_date'];
         foreach ($metaFields as $field) {
             if (array_key_exists($field, $data)) {
                 $this->setUserMeta($userId, $field, (string)($data[$field] ?? ''));

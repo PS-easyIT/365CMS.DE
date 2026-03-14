@@ -158,13 +158,30 @@ class Router
 
         $csrfBypassPrefixes = ['/api/', '/admin/', '/member/', '/contact/'];
         $csrfBypassExact = ['/login', '/register', '/logout', '/contact', '/comments/post', '/mfa-challenge', '/mfa-setup', '/mfa-disable'];
+            $isThemeFavoriteToggle = $method === 'POST'
+                && (string) ($_POST['phinit_toggle_favorite'] ?? '') === '1'
+                && in_array((string) ($_POST['favorite_content_type'] ?? ''), ['post', 'page'], true)
+                && (int) ($_POST['favorite_content_id'] ?? 0) > 0;
+        $isProtectedMethod = in_array($method, ['POST', 'PUT', 'DELETE', 'PATCH'], true);
 
-        if (in_array($method, ['POST', 'PUT', 'DELETE', 'PATCH'], true)
+        if ($isProtectedMethod
             && !in_array($routingUri, $csrfBypassExact, true)
             && !array_reduce($csrfBypassPrefixes, fn(bool $carry, string $prefix): bool => $carry || str_starts_with($routingUri, $prefix), false)
         ) {
             $csrfToken = $_POST['csrf_token'] ?? '';
-            if (!Security::instance()->verifyToken($csrfToken, 'form_guard')) {
+            $hasValidThemeFavoriteToken = false;
+
+            if ($isThemeFavoriteToggle) {
+                $favoriteType = (string) ($_POST['favorite_content_type'] ?? '');
+                $favoriteId = (int) ($_POST['favorite_content_id'] ?? 0);
+                $favoriteAction = 'phinit_favorite_' . $favoriteType . '_' . $favoriteId;
+                $hasValidThemeFavoriteToken = Security::instance()->verifyPersistentToken(
+                    (string) ($_POST['favorite_csrf_token'] ?? ''),
+                    $favoriteAction
+                );
+            }
+
+            if (!$hasValidThemeFavoriteToken && !Security::instance()->verifyToken($csrfToken, 'form_guard')) {
                 http_response_code(403);
                 error_log('Router [C-04]: CSRF-Fehlschlag für ' . $method . ' ' . $routingUri);
                 if ($this->isAjaxRequest()) {

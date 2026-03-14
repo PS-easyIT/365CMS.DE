@@ -549,6 +549,7 @@ final class MemberController
         }
 
         $data = [
+            'display_name' => trim((string)($_POST['display_name'] ?? '')),
             'first_name' => trim((string)($_POST['first_name'] ?? '')),
             'last_name' => trim((string)($_POST['last_name'] ?? '')),
             'email' => trim((string)($_POST['email'] ?? '')),
@@ -557,6 +558,7 @@ final class MemberController
             'phone' => trim((string)($_POST['phone'] ?? '')),
             'company' => trim((string)($_POST['company'] ?? '')),
             'position' => trim((string)($_POST['position'] ?? '')),
+            'birth_date' => trim((string)($_POST['birth_date'] ?? '')),
         ];
 
         $result = $this->memberService->updateProfile($this->getUserId(), $data);
