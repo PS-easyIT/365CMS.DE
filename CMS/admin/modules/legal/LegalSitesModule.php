@@ -89,6 +89,11 @@ class LegalSitesModule
         'legal_profile_privacy_contact_name' => '',
         'legal_profile_privacy_contact_email' => '',
         'legal_profile_analytics_name'      => '',
+        'legal_profile_analytics_self_hosted' => '0',
+        'legal_profile_newsletter_provider' => '',
+        'legal_profile_external_media_providers' => '',
+        'legal_profile_webfonts_source'     => 'local',
+        'legal_profile_webfonts_provider'   => '',
         'legal_profile_payment_providers'   => '',
         'legal_profile_minimal_privacy_mode' => '0',
         'legal_profile_essential_cookie_name' => 'PHPSESSID',
@@ -422,6 +427,7 @@ class LegalSitesModule
             'legal_profile_has_webfonts',
             'legal_profile_has_shop',
             'legal_profile_minimal_privacy_mode',
+            'legal_profile_analytics_self_hosted',
         ];
 
         if (in_array($key, $booleanKeys, true)) {
@@ -446,6 +452,10 @@ class LegalSitesModule
 
         if ($key === 'legal_profile_return_costs') {
             return in_array((string)$value, ['customer', 'merchant'], true) ? (string)$value : 'customer';
+        }
+
+        if ($key === 'legal_profile_webfonts_source') {
+            return in_array((string)$value, ['local', 'external', 'mixed'], true) ? (string)$value : 'local';
         }
 
         if (in_array($key, ['legal_profile_email', 'legal_profile_privacy_contact_email'], true)) {
@@ -638,6 +648,11 @@ class LegalSitesModule
         $hostingProvider = $this->profileValue($profile, 'legal_profile_hosting_provider');
         $hostingAddress = $this->profileValue($profile, 'legal_profile_hosting_address');
         $analyticsName = $this->profileValue($profile, 'legal_profile_analytics_name');
+        $analyticsSelfHosted = $this->profileValue($profile, 'legal_profile_analytics_self_hosted', '0') === '1';
+        $newsletterProvider = $this->profileValue($profile, 'legal_profile_newsletter_provider');
+        $externalMediaProviders = $this->profileValue($profile, 'legal_profile_external_media_providers');
+        $webfontsSource = $this->profileValue($profile, 'legal_profile_webfonts_source', 'local');
+        $webfontsProvider = $this->profileValue($profile, 'legal_profile_webfonts_provider');
         $paymentProviders = $this->profileValue($profile, 'legal_profile_payment_providers');
         $minimalPrivacyMode = $this->profileValue($profile, 'legal_profile_minimal_privacy_mode', '0') === '1';
 
@@ -677,7 +692,11 @@ class LegalSitesModule
         }
 
         if ($profile['legal_profile_has_newsletter'] === '1') {
-            $html .= '<h3>7. Newsletter</h3><p>Wenn Sie sich für den Newsletter anmelden, wird Ihre E-Mail-Adresse zur Zustellung der gewünschten Informationen verarbeitet. Die Einwilligung kann jederzeit mit Wirkung für die Zukunft widerrufen werden.</p>';
+            $html .= '<h3>7. Newsletter</h3><p>Wenn Sie sich für den Newsletter anmelden, wird Ihre E-Mail-Adresse zur Zustellung der gewünschten Informationen verarbeitet. Die Einwilligung kann jederzeit mit Wirkung für die Zukunft widerrufen werden.';
+            if ($newsletterProvider !== '') {
+                $html .= ' Für Versand und Verwaltung wird ' . $this->escape($newsletterProvider) . ' eingesetzt.';
+            }
+            $html .= '</p>';
         }
 
         if ($profile['legal_profile_has_comments'] === '1') {
@@ -686,9 +705,14 @@ class LegalSitesModule
 
         if ($profile['legal_profile_has_analytics'] === '1') {
             $html .= '<h3>9. Analyse und Reichweitenmessung</h3><p>';
-            $html .= $analyticsName !== ''
-                ? 'Auf dieser Website wird ' . $this->escape($analyticsName) . ' zur Analyse von Nutzung und Reichweite eingesetzt. Eine Aktivierung erfolgt nur im Rahmen der jeweils gewählten Einwilligung.'
-                : 'Sofern Analyse- oder Trackingdienste eingesetzt werden, erfolgt deren Aktivierung ausschließlich nach entsprechender Einwilligung.';
+            if ($analyticsSelfHosted) {
+                $toolName = $analyticsName !== '' ? $this->escape($analyticsName) : 'eine selbst gehostete Analyselösung';
+                $html .= 'Auf dieser Website wird ' . $toolName . ' zur Reichweitenmessung eingesetzt. Die Analyselösung wird selbst gehostet, sodass die erhobenen Daten grundsätzlich auf dem eigenen Server verbleiben. Sofern die Messung ohne Marketing-Cookies und ohne Weitergabe an externe Dritte erfolgt, kann die Verarbeitung auf Grundlage berechtigter Interessen erfolgen; eine gesonderte Einwilligungsabfrage ist dann in der Regel nicht erforderlich.';
+            } else {
+                $html .= $analyticsName !== ''
+                    ? 'Auf dieser Website wird ' . $this->escape($analyticsName) . ' zur Analyse von Nutzung und Reichweite eingesetzt. Eine Aktivierung erfolgt nur im Rahmen der jeweils gewählten Einwilligung.'
+                    : 'Sofern Analyse- oder Trackingdienste eingesetzt werden, erfolgt deren Aktivierung ausschließlich nach entsprechender Einwilligung.';
+            }
             $html .= '</p>';
         }
 
@@ -696,12 +720,22 @@ class LegalSitesModule
             $html .= '<h3>10. Externe Inhalte und eingebundene Dienste</h3><p>';
             $parts = [];
             if ($profile['legal_profile_has_external_media'] === '1') {
-                $parts[] = 'Externe Medieninhalte oder Drittanbieter-Ressourcen können erst nach Ihrer Interaktion geladen werden';
+                $parts[] = $externalMediaProviders !== ''
+                    ? 'Externe Medieninhalte oder Drittanbieter-Ressourcen von ' . $this->escape($externalMediaProviders) . ' können erst nach Ihrer Interaktion geladen werden'
+                    : 'Externe Medieninhalte oder Drittanbieter-Ressourcen können erst nach Ihrer Interaktion geladen werden';
             }
             if ($profile['legal_profile_has_webfonts'] === '1') {
-                $parts[] = 'eingebundene Schriftarten werden datenschutzfreundlich und möglichst lokal bereitgestellt';
+                $parts[] = match ($webfontsSource) {
+                    'external' => $webfontsProvider !== ''
+                        ? 'Schriftarten werden über ' . $this->escape($webfontsProvider) . ' eingebunden'
+                        : 'Schriftarten werden über einen externen Anbieter eingebunden',
+                    'mixed' => $webfontsProvider !== ''
+                        ? 'Schriftarten werden teils lokal und teils über ' . $this->escape($webfontsProvider) . ' eingebunden'
+                        : 'Schriftarten werden teils lokal und teils extern eingebunden',
+                    default => 'eingebundene Schriftarten werden datenschutzfreundlich und möglichst lokal bereitgestellt',
+                };
             }
-            $html .= $this->escape(implode('. ', $parts)) . '.</p>';
+            $html .= implode('. ', $parts) . '.</p>';
         }
 
         if ($profile['legal_profile_has_shop'] === '1' || $paymentProviders !== '') {
@@ -731,11 +765,18 @@ class LegalSitesModule
         $serviceName = $this->profileValue($profile, 'legal_profile_additional_service_name');
         $serviceProvider = $this->profileValue($profile, 'legal_profile_additional_service_provider');
         $servicePurpose = $this->profileValue($profile, 'legal_profile_additional_service_purpose');
+        $analyticsEnabled = $this->profileValue($profile, 'legal_profile_has_analytics', '0') === '1';
+        $analyticsSelfHosted = $this->profileValue($profile, 'legal_profile_analytics_self_hosted', '0') === '1';
+        $analyticsName = $this->profileValue($profile, 'legal_profile_analytics_name', 'eine selbst gehostete Analyselösung');
 
         $html = '<h3>5. Technisch notwendige Cookies und Verbindungen</h3>';
         $html .= '<p>Diese Website verwendet ein reduziertes technisches Setup ohne optionalen Cookie-Manager. Es wird ausschließlich ein technisch erforderliches Cookie gesetzt:</p>';
         $html .= '<p><strong>' . $this->escape($cookieName) . '</strong><br>' . $this->escape($cookiePurpose) . '</p>';
         $html .= '<p>Beim Aufruf der Website wird eine Verbindung zu unserem eigenen Webserver bzw. zum eingesetzten Hosting hergestellt. Diese Verbindung ist technisch erforderlich, um Inhalte auszuliefern, Sicherheit zu gewährleisten und Server-Logs bereitzustellen.</p>';
+
+        if ($analyticsEnabled && $analyticsSelfHosted) {
+            $html .= '<p>Zusätzlich wird ' . $this->escape($analyticsName) . ' lokal bzw. auf eigener Infrastruktur zur Reichweitenmessung betrieben. Die Verarbeitung erfolgt ohne Einbindung eines externen Analyseanbieters.</p>';
+        }
 
         if ($serviceName !== '' || $serviceProvider !== '' || $servicePurpose !== '') {
             $label = $serviceName !== '' ? $serviceName : 'Zusätzlicher technischer Dienst';
@@ -746,7 +787,9 @@ class LegalSitesModule
 
             $html .= '<p>Zusätzlich wird eine weitere technisch erforderliche Verbindung zu <strong>' . $this->escape($label) . '</strong>' . $providerSuffix . ' aufgebaut. Zweck: ' . $purposeText . '</p>';
         } else {
-            $html .= '<p>Neben der Verbindung zum eigenen Server werden keine weiteren optionalen Tracking-, Marketing- oder Komfortdienste geladen.</p>';
+            $html .= $analyticsEnabled && $analyticsSelfHosted
+                ? '<p>Abgesehen von der lokal betriebenen Reichweitenmessung werden keine weiteren optionalen Tracking-, Marketing- oder Komfortdienste geladen.</p>'
+                : '<p>Neben der Verbindung zum eigenen Server werden keine weiteren optionalen Tracking-, Marketing- oder Komfortdienste geladen.</p>';
         }
 
         $html .= '<p>Da nur technisch erforderliche Cookies und Verbindungen verwendet werden, ist für dieses reduzierte Setup grundsätzlich keine Auswahlmaske für optionale Kategorien erforderlich.</p>';

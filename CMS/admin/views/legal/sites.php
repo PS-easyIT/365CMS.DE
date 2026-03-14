@@ -239,6 +239,110 @@ $profile = $d['profile'] ?? [];
                             </div>
                         </div>
 
+                        <div class="col-12">
+                            <div class="border rounded p-3 bg-light-subtle">
+                                <div class="subheader mb-2">Funktionsbezogene Datenschutz-Angaben</div>
+                                <div class="text-secondary small mb-3">Sobald du unter „Aktive Website-Funktionen“ etwas aktivierst, erscheinen hier passende Datenschutz-Bausteine und Zusatzangaben.</div>
+
+                                <div class="row g-3" id="legalPrivacyFeatureDetails">
+                                    <div class="col-12 d-none" data-privacy-feature="legal_profile_has_cookies">
+                                        <div class="border rounded p-3 bg-white">
+                                            <div class="fw-semibold mb-2">Cookie-/Consent-Banner</div>
+                                            <div class="text-secondary small">Wenn optionale Cookies oder Dienste eingesetzt werden, sollte der Datenschutztext auf Einwilligungsverwaltung und Widerrufsmöglichkeit verweisen. Für rein technisch notwendige Cookies kannst du alternativ das reduzierte Datenschutz-Setup oben verwenden.</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 d-none" data-privacy-feature="legal_profile_has_contact_form">
+                                        <div class="alert alert-secondary mb-0">Für das Kontaktformular wird im Datenschutztext automatisch ein Eintrag zur Anfragebearbeitung aufgenommen.</div>
+                                    </div>
+
+                                    <div class="col-12 d-none" data-privacy-feature="legal_profile_has_registration">
+                                        <div class="alert alert-secondary mb-0">Für Registrierung und Benutzerkonten wird automatisch ein Datenschutz-Abschnitt zur Kontoverwaltung erzeugt.</div>
+                                    </div>
+
+                                    <div class="col-12 d-none" data-privacy-feature="legal_profile_has_comments">
+                                        <div class="alert alert-secondary mb-0">Für Kommentare wird automatisch ein Hinweis zu Inhaltsdaten, Zeitstempeln und Missbrauchsschutz aufgenommen.</div>
+                                    </div>
+
+                                    <div class="col-12 d-none" data-privacy-feature="legal_profile_has_newsletter">
+                                        <div class="border rounded p-3 bg-white">
+                                            <div class="fw-semibold mb-2">Newsletter</div>
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Newsletter-Anbieter</label>
+                                                    <input type="text" name="legal_profile_newsletter_provider" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_newsletter_provider'] ?? ''); ?>" placeholder="z. B. Brevo, Mailchimp, CleverReach">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="text-secondary small pt-md-4">Wenn gesetzt, wird der Anbieter direkt im Datenschutztext genannt.</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 d-none" data-privacy-feature="legal_profile_has_analytics">
+                                        <div class="border rounded p-3 bg-white">
+                                            <div class="fw-semibold mb-2">Analytics / Reichweitenmessung</div>
+                                            <div class="row g-3 align-items-end">
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Self-Hosted Analytics?</label>
+                                                    <select name="legal_profile_analytics_self_hosted" class="form-select">
+                                                        <option value="0" <?php echo ($profile['legal_profile_analytics_self_hosted'] ?? '0') === '0' ? 'selected' : ''; ?>>Nein</option>
+                                                        <option value="1" <?php echo ($profile['legal_profile_analytics_self_hosted'] ?? '0') === '1' ? 'selected' : ''; ?>>Ja</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-8">
+                                                    <div class="text-secondary small">Bei selbst gehosteter, cookieloser Reichweitenmessung ohne Drittanbieter-Transfer kann eine Einwilligung in der Regel entbehrlich sein. Sobald Cookies oder externe Empfänger beteiligt sind, bleibt eine Consent-Abfrage erforderlich.</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 d-none" data-privacy-feature="legal_profile_has_external_media">
+                                        <div class="border rounded p-3 bg-white">
+                                            <div class="fw-semibold mb-2">Externe Medien / Drittinhalte</div>
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Verwendete Anbieter</label>
+                                                    <input type="text" name="legal_profile_external_media_providers" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_external_media_providers'] ?? ''); ?>" placeholder="z. B. YouTube, Vimeo, Google Maps">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="text-secondary small pt-md-4">Diese Anbieter werden im Datenschutztext bei den externen Inhalten erwähnt.</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 d-none" data-privacy-feature="legal_profile_has_webfonts">
+                                        <div class="border rounded p-3 bg-white">
+                                            <div class="fw-semibold mb-2">Webfonts</div>
+                                            <div class="row g-3">
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Bereitstellung</label>
+                                                    <select name="legal_profile_webfonts_source" class="form-select">
+                                                        <option value="local" <?php echo ($profile['legal_profile_webfonts_source'] ?? 'local') === 'local' ? 'selected' : ''; ?>>Lokal</option>
+                                                        <option value="external" <?php echo ($profile['legal_profile_webfonts_source'] ?? 'local') === 'external' ? 'selected' : ''; ?>>Externer Anbieter</option>
+                                                        <option value="mixed" <?php echo ($profile['legal_profile_webfonts_source'] ?? 'local') === 'mixed' ? 'selected' : ''; ?>>Gemischt</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-8">
+                                                    <label class="form-label">Anbieter / Quelle</label>
+                                                    <input type="text" name="legal_profile_webfonts_provider" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_webfonts_provider'] ?? ''); ?>" placeholder="z. B. Google Fonts, Bunny Fonts">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 d-none" data-privacy-feature="legal_profile_has_shop">
+                                        <div class="alert alert-secondary mb-0">Für Shop, Buchung oder Zahlungsabwicklung wird der Datenschutztext um Vertrags- und Zahlungsinformationen ergänzt. Zahlungsanbieter kannst du oben im Datenschutz-Setup hinterlegen.</div>
+                                    </div>
+
+                                    <div class="col-12" id="legalPrivacyFeatureEmptyState">
+                                        <div class="text-secondary small">Aktuell sind keine zusätzlichen Datenschutz-Bausteine aktiv.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="col-12 col-lg-6">
                             <div class="border rounded p-3 h-100 bg-light-subtle">
                                 <div class="subheader mb-2">AGB & Widerruf</div>
@@ -406,6 +510,7 @@ $profile = $d['profile'] ?? [];
 document.addEventListener('DOMContentLoaded', function () {
     var entityTypeSelect = document.getElementById('legalProfileEntityType');
     var entityHint = document.getElementById('legalProfileEntityHint');
+    var featureEmptyState = document.getElementById('legalPrivacyFeatureEmptyState');
 
     function updateLegalProfileRequirements() {
         if (!entityTypeSelect) {
@@ -443,10 +548,36 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function updatePrivacyFeatureDetails() {
+        var visibleCount = 0;
+
+        document.querySelectorAll('[data-privacy-feature]').forEach(function (block) {
+            var fieldName = block.getAttribute('data-privacy-feature');
+            var toggle = document.querySelector('input[name="' + fieldName + '"]');
+            var isEnabled = !!(toggle && toggle.checked);
+
+            block.classList.toggle('d-none', !isEnabled);
+
+            if (isEnabled) {
+                visibleCount += 1;
+            }
+        });
+
+        if (featureEmptyState) {
+            featureEmptyState.classList.toggle('d-none', visibleCount > 0);
+        }
+    }
+
     if (entityTypeSelect) {
         entityTypeSelect.addEventListener('change', updateLegalProfileRequirements);
         updateLegalProfileRequirements();
     }
+
+    document.querySelectorAll('input[name^="legal_profile_has_"]').forEach(function (toggle) {
+        toggle.addEventListener('change', updatePrivacyFeatureDetails);
+    });
+
+    updatePrivacyFeatureDetails();
 
     document.querySelectorAll('.js-insert-template').forEach(function (button) {
         button.addEventListener('click', function () {

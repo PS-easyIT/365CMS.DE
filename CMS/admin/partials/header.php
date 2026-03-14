@@ -34,6 +34,9 @@ $siteName   = function_exists('cms_get_site_name') ? cms_get_site_name() : (defi
     <!-- Tabler Core CSS -->
     <link rel="stylesheet" href="<?= htmlspecialchars(cms_asset_url('tabler/css/tabler.min.css'), ENT_QUOTES) ?>">
 
+    <!-- 365CMS Tabler Bridge / Legacy-Mappings -->
+    <link rel="stylesheet" href="<?= htmlspecialchars(cms_asset_url('css/admin-tabler.css'), ENT_QUOTES) ?>">
+
     <!-- 365CMS Admin Overrides -->
     <link rel="stylesheet" href="<?= htmlspecialchars(cms_asset_url('css/admin.css'), ENT_QUOTES) ?>">
 
