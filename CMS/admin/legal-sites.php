@@ -47,6 +47,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             default:
                 $result = ['success' => false, 'error' => 'Unbekannte Aktion.'];
         }
+
+        if ($action === 'save_profile') {
+            if ($result['success'] ?? false) {
+                unset($_SESSION['legal_sites_profile_old']);
+            } elseif (!empty($result['profile']) && is_array($result['profile'])) {
+                $_SESSION['legal_sites_profile_old'] = $result['profile'];
+            }
+        }
+
         $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
         header('Location: ' . SITE_URL . '/admin/legal-sites');
         exit;
@@ -63,6 +72,12 @@ $csrfToken  = Security::instance()->generateToken('admin_legal_sites');
 $pageTitle  = 'Legal Sites';
 $activePage = 'legal-sites';
 $data       = $module->getData();
+
+if (!empty($_SESSION['legal_sites_profile_old']) && is_array($_SESSION['legal_sites_profile_old'])) {
+    $data['profile'] = array_merge($data['profile'] ?? [], $_SESSION['legal_sites_profile_old']);
+    unset($_SESSION['legal_sites_profile_old']);
+}
+
 $data['templates'] = [
     'imprint'    => $module->getTemplateContent('imprint'),
     'privacy'    => $module->getTemplateContent('privacy'),

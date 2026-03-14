@@ -90,6 +90,12 @@ class LegalSitesModule
         'legal_profile_privacy_contact_email' => '',
         'legal_profile_analytics_name'      => '',
         'legal_profile_payment_providers'   => '',
+        'legal_profile_minimal_privacy_mode' => '0',
+        'legal_profile_essential_cookie_name' => 'PHPSESSID',
+        'legal_profile_essential_cookie_purpose' => 'Speichert technisch notwendige Sitzungs- und Sicherheitseinstellungen.',
+        'legal_profile_additional_service_name' => '',
+        'legal_profile_additional_service_provider' => '',
+        'legal_profile_additional_service_purpose' => '',
         'legal_profile_terms_scope'         => 'b2c',
         'legal_profile_contract_type'       => 'services',
         'legal_profile_return_costs'        => 'customer',
@@ -212,7 +218,11 @@ class LegalSitesModule
 
             $errors = $this->validateProfile($sanitized);
             if ($errors !== []) {
-                return ['success' => false, 'error' => implode(' ', $errors)];
+                return [
+                    'success' => false,
+                    'error' => implode(' ', $errors),
+                    'profile' => $sanitized,
+                ];
             }
 
             foreach ($sanitized as $key => $value) {
@@ -231,7 +241,11 @@ class LegalSitesModule
 
             return ['success' => true, 'message' => 'Standardwerte für Legal Sites gespeichert.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler beim Speichern der Standardwerte: ' . $e->getMessage()];
+            return [
+                'success' => false,
+                'error' => 'Fehler beim Speichern der Standardwerte: ' . $e->getMessage(),
+                'profile' => $sanitized ?? [],
+            ];
         }
     }
 
@@ -407,6 +421,7 @@ class LegalSitesModule
             'legal_profile_has_external_media',
             'legal_profile_has_webfonts',
             'legal_profile_has_shop',
+            'legal_profile_minimal_privacy_mode',
         ];
 
         if (in_array($key, $booleanKeys, true)) {
@@ -624,6 +639,7 @@ class LegalSitesModule
         $hostingAddress = $this->profileValue($profile, 'legal_profile_hosting_address');
         $analyticsName = $this->profileValue($profile, 'legal_profile_analytics_name');
         $paymentProviders = $this->profileValue($profile, 'legal_profile_payment_providers');
+        $minimalPrivacyMode = $this->profileValue($profile, 'legal_profile_minimal_privacy_mode', '0') === '1';
 
         $html = '<h2>Datenschutzerklärung</h2>';
         $html .= '<h3>1. Verantwortliche Stelle</h3><p>Verantwortlich für die Datenverarbeitung auf dieser Website ist:<br><strong>' . $this->escape($privacyContactName) . '</strong><br>' . $this->nl2brEscaped($this->buildAddress($profile));
@@ -650,7 +666,9 @@ class LegalSitesModule
         }
         $html .= ' Kontakt aufnehmen, werden Ihre Angaben ausschließlich zur Bearbeitung Ihrer Anfrage verarbeitet.</p>';
 
-        if ($profile['legal_profile_has_cookies'] === '1') {
+        if ($minimalPrivacyMode) {
+            $html .= $this->buildMinimalPrivacyModeSection($profile);
+        } elseif ($profile['legal_profile_has_cookies'] === '1') {
             $html .= '<h3>5. Cookies und Einwilligungsverwaltung</h3><p>Diese Website verwendet technisch notwendige Cookies. Soweit optionale Dienste eingesetzt werden, erfolgt deren Aktivierung erst nach Ihrer Auswahl im Consent-Banner. Bereits erteilte Einwilligungen können jederzeit angepasst oder widerrufen werden.</p>';
         }
 
@@ -700,6 +718,40 @@ class LegalSitesModule
         $html .= '<h3>15. Beschwerderecht</h3><p>Wenn Sie der Auffassung sind, dass die Verarbeitung Ihrer personenbezogenen Daten rechtswidrig erfolgt, können Sie sich bei einer zuständigen Datenschutzaufsichtsbehörde beschweren.</p>';
 
         return sanitize_html($html, 'default');
+    }
+
+    private function buildMinimalPrivacyModeSection(array $profile): string
+    {
+        $cookieName = $this->profileValue($profile, 'legal_profile_essential_cookie_name', 'PHPSESSID');
+        $cookiePurpose = $this->profileValue(
+            $profile,
+            'legal_profile_essential_cookie_purpose',
+            'Speichert technisch notwendige Sitzungs- und Sicherheitseinstellungen.'
+        );
+        $serviceName = $this->profileValue($profile, 'legal_profile_additional_service_name');
+        $serviceProvider = $this->profileValue($profile, 'legal_profile_additional_service_provider');
+        $servicePurpose = $this->profileValue($profile, 'legal_profile_additional_service_purpose');
+
+        $html = '<h3>5. Technisch notwendige Cookies und Verbindungen</h3>';
+        $html .= '<p>Diese Website verwendet ein reduziertes technisches Setup ohne optionalen Cookie-Manager. Es wird ausschließlich ein technisch erforderliches Cookie gesetzt:</p>';
+        $html .= '<p><strong>' . $this->escape($cookieName) . '</strong><br>' . $this->escape($cookiePurpose) . '</p>';
+        $html .= '<p>Beim Aufruf der Website wird eine Verbindung zu unserem eigenen Webserver bzw. zum eingesetzten Hosting hergestellt. Diese Verbindung ist technisch erforderlich, um Inhalte auszuliefern, Sicherheit zu gewährleisten und Server-Logs bereitzustellen.</p>';
+
+        if ($serviceName !== '' || $serviceProvider !== '' || $servicePurpose !== '') {
+            $label = $serviceName !== '' ? $serviceName : 'Zusätzlicher technischer Dienst';
+            $providerSuffix = $serviceProvider !== '' ? ' (' . $this->escape($serviceProvider) . ')' : '';
+            $purposeText = $servicePurpose !== ''
+                ? $this->escape($servicePurpose)
+                : 'Die Verbindung wird ausschließlich für einen technisch erforderlichen Zweck aufgebaut.';
+
+            $html .= '<p>Zusätzlich wird eine weitere technisch erforderliche Verbindung zu <strong>' . $this->escape($label) . '</strong>' . $providerSuffix . ' aufgebaut. Zweck: ' . $purposeText . '</p>';
+        } else {
+            $html .= '<p>Neben der Verbindung zum eigenen Server werden keine weiteren optionalen Tracking-, Marketing- oder Komfortdienste geladen.</p>';
+        }
+
+        $html .= '<p>Da nur technisch erforderliche Cookies und Verbindungen verwendet werden, ist für dieses reduzierte Setup grundsätzlich keine Auswahlmaske für optionale Kategorien erforderlich.</p>';
+
+        return $html;
     }
 
     private function buildTermsTemplate(array $profile): string

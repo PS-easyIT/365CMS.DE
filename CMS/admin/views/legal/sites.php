@@ -208,6 +208,33 @@ $profile = $d['profile'] ?? [];
                                         <label class="form-label">Zahlungsanbieter</label>
                                         <input type="text" name="legal_profile_payment_providers" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_payment_providers'] ?? ''); ?>" placeholder="z. B. Stripe, PayPal">
                                     </div>
+                                    <div class="col-12">
+                                        <label class="form-check mb-2">
+                                            <input type="checkbox" class="form-check-input" name="legal_profile_minimal_privacy_mode" value="1" <?php echo ($profile['legal_profile_minimal_privacy_mode'] ?? '0') === '1' ? 'checked' : ''; ?>>
+                                            <span class="form-check-label">Reduziertes Datenschutz-/Cookie-Setup verwenden</span>
+                                        </label>
+                                        <div class="text-secondary small">Geeignet, wenn kein aktiver Cookie-Manager benötigt wird und nur technisch notwendige Cookies bzw. sehr wenige technische Verbindungen eingesetzt werden.</div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Notwendiges Cookie</label>
+                                        <input type="text" name="legal_profile_essential_cookie_name" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_essential_cookie_name'] ?? 'PHPSESSID'); ?>" placeholder="z. B. PHPSESSID">
+                                    </div>
+                                    <div class="col-md-8">
+                                        <label class="form-label">Zweck des Cookies</label>
+                                        <input type="text" name="legal_profile_essential_cookie_purpose" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_essential_cookie_purpose'] ?? ''); ?>" placeholder="z. B. Speichert Sitzungs- und Sicherheitseinstellungen">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Zusätzlicher technischer Dienst</label>
+                                        <input type="text" name="legal_profile_additional_service_name" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_additional_service_name'] ?? ''); ?>" placeholder="z. B. CDN, Karten-API, Video-Dienst">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Anbieter / Zielsystem</label>
+                                        <input type="text" name="legal_profile_additional_service_provider" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_additional_service_provider'] ?? ''); ?>" placeholder="z. B. eigener Server, Cloudflare, Vimeo">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Zweck der Verbindung</label>
+                                        <input type="text" name="legal_profile_additional_service_purpose" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_additional_service_purpose'] ?? ''); ?>" placeholder="z. B. Auslieferung statischer Assets oder Video-Embed">
+                                    </div>
                                 </div>
                             </div>
                         </div>
