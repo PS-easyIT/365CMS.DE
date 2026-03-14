@@ -206,7 +206,12 @@ final class ApiRouter
             "SELECT p.id, p.title, p.slug, p.status, p.views, p.featured_image,
                     p.published_at, p.updated_at,
                     u.display_name AS author_name,
-                    c.name AS category_name
+                    u.role AS author_role,
+                    c.name AS category_name,
+                    CASE
+                        WHEN p.status = 'draft' AND COALESCE(u.role, 'member') <> 'admin' THEN 1
+                        ELSE 0
+                    END AS is_member_submission
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}users u ON u.id = p.author_id
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
@@ -215,6 +220,13 @@ final class ApiRouter
              LIMIT {$limit} OFFSET {$offset}",
             $params
         ) ?: [];
+
+        $rows = array_map(static function (object $row): object {
+            $row->is_member_submission = !empty($row->is_member_submission);
+            $row->submission_hint = $row->is_member_submission ? 'Member-Einreichung' : '';
+
+            return $row;
+        }, $rows);
 
         echo json_encode([
             'data' => $rows,
