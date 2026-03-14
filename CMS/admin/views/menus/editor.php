@@ -327,12 +327,29 @@ document.addEventListener('DOMContentLoaded', function() {
             menuItems.forEach(function(item, idx) {
                 var depth = getItemDepth(item);
                 var prefix = depth > 0 ? Array(depth + 1).join('↳ ') : '';
-                html += '<div class="list-group-item d-flex align-items-center gap-3" data-index="' + idx + '">';
+                html += '<div class="list-group-item d-flex align-items-start gap-3" data-index="' + idx + '">';
                 html += '<span class="cursor-grab text-muted">☰</span>';
                 html += '<div class="flex-fill">';
-                html += '<strong>' + escapeHtml(prefix + item.title) + '</strong>';
-                html += ' <span class="text-muted small">(' + escapeHtml(item.url) + ')</span>';
-                if (item.target === '_blank') html += ' <span class="badge bg-azure">extern</span>';
+                if (depth > 0) {
+                    html += '<div class="small text-muted mb-2">' + escapeHtml(prefix + 'Unterpunkt') + '</div>';
+                }
+                html += '<div class="row g-2">';
+                html += '<div class="col-md-4">';
+                html += '<label class="form-label small text-muted mb-1">Text</label>';
+                html += '<input type="text" class="form-control form-control-sm item-title" data-index="' + idx + '" value="' + escapeHtml(item.title) + '" placeholder="Menütext">';
+                html += '</div>';
+                html += '<div class="col-md-5">';
+                html += '<label class="form-label small text-muted mb-1">URL</label>';
+                html += '<input type="text" class="form-control form-control-sm item-url" data-index="' + idx + '" value="' + escapeHtml(item.url) + '" placeholder="/seite oder https://...">';
+                html += '</div>';
+                html += '<div class="col-md-3">';
+                html += '<label class="form-label small text-muted mb-1">Ziel</label>';
+                html += '<select class="form-select form-select-sm item-target" data-index="' + idx + '">';
+                html += '<option value="_self"' + (item.target === '_self' ? ' selected' : '') + '>Gleiches Fenster</option>';
+                html += '<option value="_blank"' + (item.target === '_blank' ? ' selected' : '') + '>Neuer Tab</option>';
+                html += '</select>';
+                html += '</div>';
+                html += '</div>';
                 html += '<div class="mt-2">';
                 html += '<label class="form-label small text-muted mb-1">Unterpunkt von</label>';
                 html += '<select class="form-select form-select-sm item-parent" data-index="' + idx + '">';
@@ -557,18 +574,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 return;
             }
+        });
 
-            var parentSelect = e.target.closest('.item-parent');
-            if (parentSelect) {
-                var itemIndex = parseInt(parentSelect.dataset.index, 10);
-                if (!Number.isNaN(itemIndex) && menuItems[itemIndex]) {
-                    menuItems[itemIndex].parent_id = normalizeParentId(parentSelect.value);
-                    renderItems();
+        listEl.addEventListener('input', function(e) {
+            var titleInput = e.target.closest('.item-title');
+            if (titleInput) {
+                var titleIndex = parseInt(titleInput.dataset.index, 10);
+                if (!Number.isNaN(titleIndex) && menuItems[titleIndex]) {
+                    menuItems[titleIndex].title = titleInput.value;
+                    if (jsonInput) {
+                        jsonInput.value = JSON.stringify(menuItems);
+                    }
+                }
+                return;
+            }
+
+            var urlInput = e.target.closest('.item-url');
+            if (urlInput) {
+                var urlIndex = parseInt(urlInput.dataset.index, 10);
+                if (!Number.isNaN(urlIndex) && menuItems[urlIndex]) {
+                    menuItems[urlIndex].url = urlInput.value;
+                    if (jsonInput) {
+                        jsonInput.value = JSON.stringify(menuItems);
+                    }
                 }
             }
         });
 
         listEl.addEventListener('change', function(e) {
+            var targetSelect = e.target.closest('.item-target');
+            if (targetSelect) {
+                var targetIndex = parseInt(targetSelect.dataset.index, 10);
+                if (!Number.isNaN(targetIndex) && menuItems[targetIndex]) {
+                    menuItems[targetIndex].target = targetSelect.value === '_blank' ? '_blank' : '_self';
+                    if (jsonInput) {
+                        jsonInput.value = JSON.stringify(menuItems);
+                    }
+                }
+                return;
+            }
+
             var parentSelect = e.target.closest('.item-parent');
             if (!parentSelect) {
                 return;

@@ -42,6 +42,7 @@ final class ThemeRouter
         if ($currentPostRoutePattern !== Services\PermalinkService::LEGACY_POST_ROUTE_PATTERN) {
             $this->router->addRoute('GET', Services\PermalinkService::LEGACY_POST_ROUTE_PATTERN, [$this, 'renderLegacyBlogSingle']);
         }
+        $this->router->addRoute('GET', '/feed', [$this, 'serveRssFeed']);
         $this->router->addRoute('GET', '/sitemap.xml', [$this, 'serveSitemap']);
         $this->router->addRoute('GET', '/robots.txt', [$this, 'serveRobotsTxt']);
     }
@@ -424,6 +425,77 @@ final class ThemeRouter
         exit;
     }
 
+    public function serveRssFeed(): void
+    {
+        $db = Database::instance();
+        $prefix = $db->getPrefix();
+        $locale = $this->router->getRequestLocale();
+        $siteTitle = defined('SITE_NAME') ? (string) SITE_NAME : '365CMS';
+        $siteDescription = 'Aktuelle Beiträge von ' . $siteTitle;
+        $feedUrl = SITE_URL . '/feed';
+        $language = $locale === 'en' ? 'en' : 'de';
+
+        $posts = $db->get_results(
+            "SELECT p.*, u.display_name AS author_name, c.name AS category_name
+             FROM {$prefix}posts p
+             LEFT JOIN {$prefix}users u ON u.id = p.author_id
+             LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
+             WHERE p.status = 'published'
+             ORDER BY COALESCE(p.published_at, p.created_at) DESC
+             LIMIT 25"
+        ) ?: [];
+
+        if (!headers_sent()) {
+            header('Content-Type: application/rss+xml; charset=utf-8');
+            header('X-Robots-Tag: noindex, follow', true);
+        }
+
+        echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+        echo "<rss version=\"2.0\">\n";
+        echo "<channel>\n";
+        echo '  <title>' . $this->escapeXml($siteTitle) . "</title>\n";
+        echo '  <link>' . $this->escapeXml(SITE_URL . '/') . "</link>\n";
+        echo '  <description>' . $this->escapeXml($siteDescription) . "</description>\n";
+        echo '  <language>' . $this->escapeXml($language) . "</language>\n";
+        echo '  <atom:link xmlns:atom="http://www.w3.org/2005/Atom" href="' . $this->escapeXml($feedUrl) . '" rel="self" type="application/rss+xml" />' . "\n";
+        echo '  <lastBuildDate>' . gmdate(DATE_RSS) . "</lastBuildDate>\n";
+
+        foreach ($posts as $postRow) {
+            $postData = Services\ContentLocalizationService::getInstance()->localizePost((array) $postRow, $locale);
+            $title = trim((string) ($postData['title'] ?? 'Beitrag'));
+            $link = SITE_URL . Services\PermalinkService::getInstance()->buildPostPath($postData, $locale);
+            $guid = $link;
+            $pubDate = (string) ($postData['published_at'] ?? $postData['created_at'] ?? '');
+            $excerpt = trim((string) ($postData['excerpt'] ?? ''));
+            $content = trim((string) ($postData['content'] ?? ''));
+            $description = $excerpt !== '' ? $excerpt : mb_substr(trim(strip_tags($content)), 0, 320);
+            $categoryName = trim((string) ($postData['category_name'] ?? ''));
+            $author = trim((string) ($postData['author_name'] ?? ''));
+
+            echo "  <item>\n";
+            echo '    <title>' . $this->escapeXml($title) . "</title>\n";
+            echo '    <link>' . $this->escapeXml($link) . "</link>\n";
+            echo '    <guid isPermaLink="true">' . $this->escapeXml($guid) . "</guid>\n";
+            if ($pubDate !== '') {
+                echo '    <pubDate>' . $this->escapeXml(gmdate(DATE_RSS, strtotime($pubDate))) . "</pubDate>\n";
+            }
+            if ($author !== '') {
+                echo '    <author>' . $this->escapeXml($author) . "</author>\n";
+            }
+            if ($categoryName !== '') {
+                echo '    <category>' . $this->escapeXml($categoryName) . "</category>\n";
+            }
+            if ($description !== '') {
+                echo '    <description>' . $this->wrapCdata($description) . "</description>\n";
+            }
+            echo "  </item>\n";
+        }
+
+        echo "</channel>\n";
+        echo "</rss>";
+        exit;
+    }
+
     public function serveRobotsTxt(): void
     {
         header('Content-Type: text/plain; charset=utf-8');
@@ -452,5 +524,15 @@ final class ThemeRouter
         }
 
         return false;
+    }
+
+    private function escapeXml(string $value): string
+    {
+        return htmlspecialchars($value, ENT_QUOTES | ENT_XML1, 'UTF-8');
+    }
+
+    private function wrapCdata(string $value): string
+    {
+        return '<![CDATA[' . str_replace(']]>', ']]]]><![CDATA[>', $value) . ']]>';
     }
 }
