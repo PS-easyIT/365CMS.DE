@@ -36,6 +36,11 @@ $settings    = $table['settings'] ?? $defaults;
                 <div class="page-pretitle">Tabellen</div>
                 <h2 class="page-title"><?php echo $isNew ? 'Neue Tabelle' : 'Tabelle bearbeiten'; ?></h2>
             </div>
+            <div class="col-auto">
+                <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/site-tables?action=settings" class="btn btn-outline-secondary btn-sm">
+                    Einstellungen
+                </a>
+            </div>
             <?php if (!$isNew): ?>
                 <div class="col-auto">
                     <span class="badge bg-azure-lt">Shortcodes: [site-table id="<?php echo (int)$table['id']; ?>"] · [table id=<?php echo (int)$table['id']; ?> /]</span>
@@ -142,10 +147,11 @@ $settings    = $table['settings'] ?? $defaults;
                             <div class="mb-3">
                                 <label class="form-label" for="setting_style_theme">Stil</label>
                                 <select class="form-select" id="setting_style_theme" name="setting_style_theme">
-                                    <?php foreach (['default' => 'Standard', 'stripe' => 'Gestreift', 'hover' => 'Hover', 'cell-border' => 'Rahmen'] as $val => $label): ?>
-                                        <option value="<?php echo $val; ?>" <?php echo ($settings['style_theme'] ?? '') === $val ? 'selected' : ''; ?>><?php echo $label; ?></option>
+                                    <?php foreach (($data['styleOptions'] ?? []) as $val => $style): ?>
+                                        <option value="<?php echo htmlspecialchars((string)$val); ?>" <?php echo ($settings['style_theme'] ?? '') === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars((string)($style['label'] ?? $val)); ?></option>
                                     <?php endforeach; ?>
                                 </select>
+                                <span class="form-hint">Verfügbare Stile werden zentral unter Tabellen → Einstellungen gesteuert.</span>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="setting_page_size">Zeilen pro Seite</label>

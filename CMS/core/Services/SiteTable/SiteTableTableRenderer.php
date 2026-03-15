@@ -3,12 +3,18 @@ declare(strict_types=1);
 
 namespace CMS\Services\SiteTable;
 
+use CMS\Database;
+use CMS\Json;
+
 if (!defined('ABSPATH')) {
     exit;
 }
 
 final class SiteTableTableRenderer
 {
+    /** @var array<string,mixed>|null */
+    private static ?array $displaySettings = null;
+
     public function __construct(private SiteTableTemplateRegistry $templateRegistry)
     {
     }
@@ -22,6 +28,7 @@ final class SiteTableTableRenderer
 
         $rows = $this->normalizeRows($table['rows'] ?? [], $columns);
         $settings = $this->getSettings($table);
+        $displaySettings = $this->loadDisplaySettings();
 
         $themeClassMap = [
             'default' => 'cms-site-table--default',
@@ -29,9 +36,12 @@ final class SiteTableTableRenderer
             'hover' => 'cms-site-table--hover',
             'cell-border' => 'cms-site-table--cell-border',
         ];
-        $themeClass = $themeClassMap[$settings['style_theme']] ?? $themeClassMap['default'];
+        $activeStyle = in_array((string) ($settings['style_theme'] ?? ''), $displaySettings['enabled_styles'], true)
+            ? (string) ($settings['style_theme'] ?? '')
+            : (string) $displaySettings['default_style'];
+        $themeClass = $themeClassMap[$activeStyle] ?? $themeClassMap['default'];
         $wrapperClasses = ['cms-site-table-wrap'];
-        if (!empty($settings['responsive'])) {
+        if (!empty($settings['responsive']) && !empty($displaySettings['responsive_default'])) {
             $wrapperClasses[] = 'cms-site-table-wrap--responsive';
         }
 
@@ -41,15 +51,23 @@ final class SiteTableTableRenderer
         $tableLabel = htmlspecialchars($ariaLabel !== '' ? $ariaLabel : (string) ($table['name'] ?? 'Tabelle'), ENT_QUOTES, 'UTF-8');
 
         $html = '<div class="' . implode(' ', $wrapperClasses) . '">';
-        $html .= '<div class="cms-site-table-meta">';
-        $html .= '<h3 class="cms-site-table-title">' . $tableName . '</h3>';
-        if (!empty($table['description'])) {
-            $html .= '<p class="cms-site-table-description">' . htmlspecialchars((string) $table['description'], ENT_QUOTES, 'UTF-8') . '</p>';
+        if (!empty($displaySettings['show_meta_panel'])) {
+            $metaHtml = '';
+            if (!empty($displaySettings['show_table_name'])) {
+                $metaHtml .= '<h3 class="cms-site-table-title">' . $tableName . '</h3>';
+            }
+            if (!empty($displaySettings['show_description']) && !empty($table['description'])) {
+                $metaHtml .= '<div class="cms-site-table-description">' . $this->renderEmbeddedContent((string) $table['description'], $tableId) . '</div>';
+            }
+            if (!empty($displaySettings['show_export_links'])) {
+                $metaHtml .= $this->renderExportLinks($tableId, $settings);
+            }
+            if ($metaHtml !== '') {
+                $html .= '<div class="cms-site-table-meta">' . $metaHtml . '</div>';
+            }
         }
-        $html .= $this->renderExportLinks($tableId, $settings);
-        $html .= '</div>';
         $html .= '<table class="cms-site-table ' . $themeClass . '" role="grid" aria-label="' . $tableLabel . '">';
-        if ($caption !== '') {
+        if (!empty($displaySettings['show_caption']) && $caption !== '') {
             $html .= '<caption>' . htmlspecialchars($caption, ENT_QUOTES, 'UTF-8') . '</caption>';
         }
         $html .= '<thead><tr>';
@@ -65,7 +83,7 @@ final class SiteTableTableRenderer
                 $html .= '<tr>';
                 foreach ($columns as $index => $column) {
                     $label = (string) ($column['label'] ?? ('Spalte ' . ($index + 1)));
-                    $html .= '<td>' . nl2br(htmlspecialchars((string) ($row[$label] ?? ''), ENT_QUOTES, 'UTF-8')) . '</td>';
+                    $html .= '<td>' . $this->renderEmbeddedContent((string) ($row[$label] ?? ''), $tableId) . '</td>';
                 }
                 $html .= '</tr>';
             }
@@ -188,5 +206,60 @@ final class SiteTableTableRenderer
         }
 
         return '<div class="cms-site-table-actions"><span>Export:</span> ' . implode(' <span aria-hidden="true">·</span> ', $links) . '</div>';
+    }
+
+    private function renderEmbeddedContent(string $value, int $currentTableId): string
+    {
+        if ($value === '') {
+            return '';
+        }
+
+        $placeholders = [];
+        $prepared = (string) preg_replace_callback(
+            '/\[(?:site-table|table)\s+id\s*=\s*["\']?(\d+)["\']?\s*\/?\]/i',
+            static function (array $matches) use (&$placeholders, $currentTableId): string {
+                $targetTableId = (int) ($matches[1] ?? 0);
+                if ($targetTableId <= 0 || $targetTableId === $currentTableId) {
+                    return (string) ($matches[0] ?? '');
+                }
+
+                $token = '%%CMS_SITE_TABLE_' . count($placeholders) . '%%';
+                $placeholders[$token] = \CMS\Services\SiteTableService::getInstance()->renderTableById($targetTableId);
+
+                return $token;
+            },
+            $value
+        );
+
+        $html = nl2br(htmlspecialchars($prepared, ENT_QUOTES, 'UTF-8'));
+
+        foreach ($placeholders as $token => $replacement) {
+            $html = str_replace(htmlspecialchars($token, ENT_QUOTES, 'UTF-8'), $replacement, $html);
+        }
+
+        return $html;
+    }
+
+    /** @return array<string,mixed> */
+    private function loadDisplaySettings(): array
+    {
+        if (self::$displaySettings !== null) {
+            return self::$displaySettings;
+        }
+
+        $db = Database::instance();
+        $row = $db->get_row(
+            "SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = ? LIMIT 1",
+            [SiteTableDisplaySettings::OPTION_KEY]
+        );
+
+        $saved = [];
+        if ($row && !empty($row->option_value)) {
+            $saved = Json::decodeArray($row->option_value ?? null, []);
+        }
+
+        self::$displaySettings = SiteTableDisplaySettings::normalize(is_array($saved) ? $saved : []);
+
+        return self::$displaySettings;
     }
 }

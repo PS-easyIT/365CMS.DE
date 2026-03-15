@@ -34,6 +34,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     switch ($action) {
+        case 'save_settings':
+            $result = $module->saveDisplaySettings($_POST);
+            $_SESSION['admin_alert'] = [
+                'type'    => $result['success'] ? 'success' : 'danger',
+                'message' => $result['message'] ?? $result['error'] ?? '',
+            ];
+            header('Location: ' . SITE_URL . '/admin/site-tables?action=settings');
+            exit;
+
         case 'save':
             $result = $module->save($_POST);
             $_SESSION['admin_alert'] = [
@@ -80,7 +89,16 @@ $csrfToken = Security::instance()->generateToken('admin_tables');
 // ─── View-Routing ────────────────────────────────────────
 $viewAction = $_GET['action'] ?? 'list';
 
-if ($viewAction === 'edit') {
+if ($viewAction === 'settings') {
+    $data       = $module->getSettingsData();
+    $pageTitle  = 'Tabellen-Einstellungen';
+    $activePage = 'site-tables';
+
+    require __DIR__ . '/partials/header.php';
+    require __DIR__ . '/partials/sidebar.php';
+    require __DIR__ . '/views/tables/settings.php';
+    require __DIR__ . '/partials/footer.php';
+} elseif ($viewAction === 'edit') {
     $id        = isset($_GET['id']) ? (int)$_GET['id'] : null;
     $data      = $module->getEditData($id);
     $pageTitle = $data['isNew'] ? 'Neue Tabelle' : 'Tabelle bearbeiten';

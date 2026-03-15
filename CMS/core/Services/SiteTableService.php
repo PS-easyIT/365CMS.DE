@@ -23,6 +23,9 @@ final class SiteTableService
 {
     private static ?self $instance = null;
 
+    /** @var array<int,int> */
+    private array $renderStack = [];
+
     private SiteTableRepository $repository;
 
     private SiteTableTemplateRegistry $templateRegistry;
@@ -66,6 +69,13 @@ final class SiteTableService
 
     public function renderTableById(int $tableId): string
     {
+        if ($tableId <= 0 || in_array($tableId, $this->renderStack, true)) {
+            return '';
+        }
+
+        $this->renderStack[] = $tableId;
+
+        try {
         $table = $this->repository->getTableById($tableId);
         if ($table === null) {
             return '';
@@ -76,6 +86,9 @@ final class SiteTableService
         }
 
         return $this->tableRenderer->renderTable($tableId, $table);
+        } finally {
+            array_pop($this->renderStack);
+        }
     }
 
     public function renderHubById(int $tableId): string

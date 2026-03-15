@@ -14,6 +14,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Database;
+use CMS\Services\SiteTable\SiteTableDisplaySettings;
 
 class TablesModule
 {
@@ -35,6 +36,15 @@ class TablesModule
         'page_size'          => 10,
         'highlight_rows'     => false,
         'custom_css'         => '',
+    ];
+
+    private const SETTINGS_BOOL_FIELDS = [
+        'show_meta_panel',
+        'show_table_name',
+        'show_description',
+        'show_export_links',
+        'show_caption',
+        'responsive_default',
     ];
 
     public function __construct()
@@ -92,6 +102,12 @@ class TablesModule
      */
     public function getEditData(?int $id): array
     {
+        $displaySettings = $this->loadDisplaySettings();
+        $styleOptions = array_intersect_key(
+            SiteTableDisplaySettings::styleOptions(),
+            array_flip($displaySettings['enabled_styles'])
+        );
+
         $table = null;
         if ($id !== null) {
             $table = $this->db->get_row(
@@ -106,14 +122,60 @@ class TablesModule
                     self::DEFAULT_SETTINGS,
                     \CMS\Json::decodeArray($table['settings_json'] ?? null, [])
                 );
+
+                $selectedStyle = (string) ($table['settings']['style_theme'] ?? '');
+                if (!isset($styleOptions[$selectedStyle])) {
+                    $table['settings']['style_theme'] = $displaySettings['default_style'];
+                }
             }
         }
 
         return [
-            'table'    => $table,
-            'isNew'    => $table === null,
-            'defaults' => self::DEFAULT_SETTINGS,
+            'table'            => $table,
+            'isNew'            => $table === null,
+            'defaults'         => self::DEFAULT_SETTINGS,
+            'displaySettings'  => $displaySettings,
+            'styleOptions'     => $styleOptions,
         ];
+    }
+
+    public function getSettingsData(): array
+    {
+        $settings = $this->loadDisplaySettings();
+
+        $tableCount = (int) ($this->db->get_var(
+            "SELECT COUNT(*) FROM {$this->prefix}site_tables WHERE COALESCE(JSON_UNQUOTE(JSON_EXTRACT(settings_json, '$.content_mode')), 'table') = 'table'"
+        ) ?? 0);
+
+        return [
+            'settings' => $settings,
+            'styleOptions' => SiteTableDisplaySettings::styleOptions(),
+            'stats' => [
+                'table_count' => $tableCount,
+                'enabled_style_count' => count($settings['enabled_styles']),
+            ],
+        ];
+    }
+
+    public function saveDisplaySettings(array $post): array
+    {
+        $settings = [];
+
+        foreach (self::SETTINGS_BOOL_FIELDS as $field) {
+            $settings[$field] = isset($post[$field]);
+        }
+
+        $enabledStyles = $post['enabled_styles'] ?? [];
+        $settings['enabled_styles'] = is_array($enabledStyles) ? $enabledStyles : [];
+        $settings['default_style'] = trim((string) ($post['default_style'] ?? 'default'));
+        $settings = SiteTableDisplaySettings::normalize($settings);
+
+        try {
+            $this->saveOption(SiteTableDisplaySettings::OPTION_KEY, json_encode($settings, JSON_UNESCAPED_UNICODE));
+            return ['success' => true, 'message' => 'Tabellen-Einstellungen gespeichert.'];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Fehler beim Speichern der Tabellen-Einstellungen: ' . $e->getMessage()];
+        }
     }
 
     /**
@@ -124,6 +186,7 @@ class TablesModule
         $id          = (int)($post['id'] ?? 0);
         $tableName   = trim($post['table_name'] ?? '');
         $description = trim($post['description'] ?? '');
+        $displaySettings = $this->loadDisplaySettings();
 
         if ($tableName === '') {
             return ['success' => false, 'error' => 'Tabellenname darf nicht leer sein.'];
@@ -147,6 +210,10 @@ class TablesModule
             } else {
                 $settings[$key] = trim((string)($post['setting_' . $key] ?? $default));
             }
+        }
+
+        if (!in_array((string) $settings['style_theme'], $displaySettings['enabled_styles'], true)) {
+            $settings['style_theme'] = $displaySettings['default_style'];
         }
 
         $columnsJson  = json_encode($columns, JSON_UNESCAPED_UNICODE);
@@ -304,5 +371,42 @@ class TablesModule
         }
 
         return $this->hasTableSlugColumn;
+    }
+
+    /** @return array<string,mixed> */
+    private function loadDisplaySettings(): array
+    {
+        $row = $this->db->get_row(
+            "SELECT option_value FROM {$this->prefix}settings WHERE option_name = ? LIMIT 1",
+            [SiteTableDisplaySettings::OPTION_KEY]
+        );
+
+        $saved = [];
+        if ($row && !empty($row->option_value)) {
+            $saved = \CMS\Json::decodeArray($row->option_value ?? null, []);
+        }
+
+        return SiteTableDisplaySettings::normalize(is_array($saved) ? $saved : []);
+    }
+
+    private function saveOption(string $key, string $value): void
+    {
+        $exists = (int) ($this->db->get_var(
+            "SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?",
+            [$key]
+        ) ?? 0);
+
+        if ($exists > 0) {
+            $this->db->execute(
+                "UPDATE {$this->prefix}settings SET option_value = ? WHERE option_name = ?",
+                [$value, $key]
+            );
+            return;
+        }
+
+        $this->db->execute(
+            "INSERT INTO {$this->prefix}settings (option_name, option_value) VALUES (?, ?)",
+            [$key, $value]
+        );
     }
 }
