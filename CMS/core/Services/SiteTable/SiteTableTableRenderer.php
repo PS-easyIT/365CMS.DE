@@ -5,6 +5,7 @@ namespace CMS\Services\SiteTable;
 
 use CMS\Database;
 use CMS\Json;
+use CMS\Services\PurifierService;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -72,7 +73,7 @@ final class SiteTableTableRenderer
         }
         $html .= '<thead><tr>';
         foreach ($columns as $column) {
-            $html .= '<th scope="col">' . htmlspecialchars((string) $column['label'], ENT_QUOTES, 'UTF-8') . '</th>';
+            $html .= '<th scope="col">' . $this->renderColumnLabel((string) ($column['label'] ?? '')) . '</th>';
         }
         $html .= '</tr></thead><tbody>';
 
@@ -159,11 +160,19 @@ final class SiteTableTableRenderer
             if (!is_array($column)) {
                 continue;
             }
-            $label = trim(strip_tags((string) ($column['label'] ?? ('Spalte ' . ($index + 1)))));
-            if ($label === '') {
+            $label = trim((string) ($column['label'] ?? ''));
+            $plainLabel = trim(html_entity_decode(strip_tags($label), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+
+            if ($plainLabel === '') {
                 $label = 'Spalte ' . ($index + 1);
+                $plainLabel = $label;
             }
-            $normalized[] = ['label' => mb_substr($label, 0, 120), 'type' => 'text'];
+
+            $normalized[] = [
+                'label' => $label,
+                'plain_label' => mb_substr($plainLabel, 0, 120),
+                'type' => 'text',
+            ];
         }
 
         return $normalized;
@@ -179,11 +188,12 @@ final class SiteTableTableRenderer
             $cleanRow = [];
             foreach ($columns as $index => $column) {
                 $label = (string) ($column['label'] ?? ('Spalte ' . ($index + 1)));
-                $value = $row[$label] ?? $row[$index] ?? '';
+                $plainLabel = (string) ($column['plain_label'] ?? $label);
+                $value = $row[$label] ?? $row[$plainLabel] ?? $row[$index] ?? '';
                 if (is_array($value) || is_object($value)) {
                     $value = '';
                 }
-                $cleanRow[$label] = mb_substr(trim((string) $value), 0, 5000);
+                $cleanRow[$label] = trim((string) $value);
             }
             $normalized[] = $cleanRow;
         }
@@ -231,13 +241,44 @@ final class SiteTableTableRenderer
             $value
         );
 
-        $html = nl2br(htmlspecialchars($prepared, ENT_QUOTES, 'UTF-8'));
+        $containsHtml = $this->containsHtml($prepared);
+        $html = $containsHtml
+            ? $this->sanitizeRichHtml($prepared)
+            : nl2br(htmlspecialchars($prepared, ENT_QUOTES, 'UTF-8'));
 
         foreach ($placeholders as $token => $replacement) {
-            $html = str_replace(htmlspecialchars($token, ENT_QUOTES, 'UTF-8'), $replacement, $html);
+            $html = str_replace(
+                $containsHtml ? $token : htmlspecialchars($token, ENT_QUOTES, 'UTF-8'),
+                $replacement,
+                $html
+            );
         }
 
         return $html;
+    }
+
+    private function renderColumnLabel(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        if ($this->containsHtml($value)) {
+            return $this->sanitizeRichHtml($value);
+        }
+
+        return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+    }
+
+    private function containsHtml(string $value): bool
+    {
+        return preg_match('/<\s*\/?\s*[a-z][^>]*>/i', $value) === 1;
+    }
+
+    private function sanitizeRichHtml(string $value): string
+    {
+        return PurifierService::getInstance()->purify($value, 'table');
     }
 
     /** @return array<string,mixed> */

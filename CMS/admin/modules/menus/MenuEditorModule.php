@@ -36,6 +36,7 @@ class MenuEditorModule
 
         $menus     = $this->getMenus();
         $locations = $this->getMenuLocations();
+        $locationOverview = $this->buildLocationOverview($locations, $menus);
         $pages     = $this->getPages();
 
         $currentMenu  = null;
@@ -58,6 +59,7 @@ class MenuEditorModule
             'currentMenu' => $currentMenu,
             'menuItems'   => $menuItems,
             'locations'   => $locations,
+            'locationOverview' => $locationOverview,
             'pages'       => $pages,
         ];
     }
@@ -257,8 +259,49 @@ class MenuEditorModule
                 continue;
             }
 
+            $currentName = trim((string) ($menu->name ?? ''));
+            if ($currentName === '' || $currentName === (string) $slug || $currentName !== (string) $label) {
+                $this->db->execute(
+                    "UPDATE {$this->prefix}menus SET name = ? WHERE id = ?",
+                    [$label, (int) $menu->id]
+                );
+            }
+
             $this->syncMenuItemsFromThemeSettings((int)$menu->id, $slug);
         }
+    }
+
+    /**
+     * Baut eine Übersicht aller registrierten Menüpositionen inkl. zugewiesenem Menü.
+     *
+     * @param array<string,string> $locations
+     * @param array<int,object>    $menus
+     * @return array<int,array<string,mixed>>
+     */
+    private function buildLocationOverview(array $locations, array $menus): array
+    {
+        $menusByLocation = [];
+
+        foreach ($menus as $menu) {
+            $location = trim((string) ($menu->location ?? ''));
+            if ($location === '') {
+                continue;
+            }
+
+            $menusByLocation[$location] = $menu;
+        }
+
+        $overview = [];
+        foreach ($locations as $slug => $label) {
+            $assignedMenu = $menusByLocation[$slug] ?? null;
+            $overview[] = [
+                'slug' => (string) $slug,
+                'label' => (string) $label,
+                'menu' => $assignedMenu,
+            ];
+        }
+
+        return $overview;
     }
 
     /**

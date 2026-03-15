@@ -38,6 +38,10 @@ final class MediaDeliveryService
             return $this->buildDeliveryUrl($normalizedPath, $preferInline ? 'inline' : 'attachment');
         }
 
+        if ($preferInline && $this->isInlineSafePath($normalizedPath)) {
+            return $this->buildDeliveryUrl($normalizedPath, 'inline');
+        }
+
         return $this->buildDirectUploadUrl($normalizedPath);
     }
 

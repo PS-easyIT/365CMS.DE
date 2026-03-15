@@ -17,6 +17,7 @@ $menus       = $data['menus'] ?? [];
 $currentMenu = $data['currentMenu'] ?? null;
 $menuItems   = $data['menuItems'] ?? [];
 $locations   = $data['locations'] ?? [];
+$locationOverview = $data['locationOverview'] ?? [];
 $pages       = $data['pages'] ?? [];
 ?>
 
@@ -74,6 +75,54 @@ $pages       = $data['pages'] ?? [];
                     <?php endif; ?>
                 </div>
             </div>
+
+            <?php if (!empty($locationOverview)): ?>
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h3 class="card-title">Theme-Positionen</h3>
+                </div>
+                <div class="list-group list-group-flush">
+                    <?php foreach ($locationOverview as $locationInfo): ?>
+                        <?php
+                        $locationSlug = (string) ($locationInfo['slug'] ?? '');
+                        $locationLabel = (string) ($locationInfo['label'] ?? $locationSlug);
+                        $assignedMenu = $locationInfo['menu'] ?? null;
+                        $assignedMenuId = (int) ($assignedMenu->id ?? 0);
+                        $isActiveLocation = $currentMenu && (int) $currentMenu->id === $assignedMenuId;
+                        ?>
+                        <div class="list-group-item<?php echo $isActiveLocation ? ' active' : ''; ?>">
+                            <div class="d-flex align-items-start justify-content-between gap-2">
+                                <div>
+                                    <div class="fw-medium"><?php echo htmlspecialchars($locationLabel); ?></div>
+                                    <div class="small <?php echo $isActiveLocation ? 'text-white-50' : 'text-muted'; ?>">
+                                        <code><?php echo htmlspecialchars($locationSlug); ?></code>
+                                        <?php if ($assignedMenu): ?>
+                                            · <?php echo htmlspecialchars((string) ($assignedMenu->name ?? '')); ?>
+                                        <?php else: ?>
+                                            · Noch kein Menü zugewiesen
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <?php if ($assignedMenu): ?>
+                                    <a href="<?php echo SITE_URL; ?>/admin/menu-editor?menu=<?php echo $assignedMenuId; ?>"
+                                       class="btn btn-sm <?php echo $isActiveLocation ? 'btn-light' : 'btn-outline-primary'; ?>">
+                                        Bearbeiten
+                                    </a>
+                                <?php else: ?>
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-primary"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#menuModal"
+                                            onclick="document.getElementById('editMenuId').value='0'; document.getElementById('editMenuName').value='<?php echo htmlspecialchars($locationLabel, ENT_QUOTES); ?>'; document.getElementById('editMenuLocation').value='<?php echo htmlspecialchars($locationSlug, ENT_QUOTES); ?>';">
+                                        Anlegen
+                                    </button>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
 
         <!-- Menu Items Editor -->

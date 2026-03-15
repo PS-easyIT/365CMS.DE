@@ -176,7 +176,6 @@ AddDefaultCharset UTF-8
 # Cache-Control headers (H-14)
 <IfModule mod_headers.c>
     <FilesMatch ".+">
-        Header always set Content-Disposition "attachment" env=CMS_UPLOAD_REQUEST
         Header always set X-Content-Type-Options "nosniff" env=CMS_UPLOAD_REQUEST
     </FilesMatch>
 

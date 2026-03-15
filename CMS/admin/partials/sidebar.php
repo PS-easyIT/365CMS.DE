@@ -160,10 +160,12 @@ $menuGroups = [
         'type'     => 'group',
         'label'    => 'Seiten & Beiträge',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><path d="M9 9l1 0"/><path d="M9 13l6 0"/><path d="M9 17l6 0"/></svg>',
-        'slugs'    => ['pages', 'posts', 'comments', 'table-of-contents', 'hub-sites', 'site-tables', 'content-settings'],
+        'slugs'    => ['pages', 'posts', 'post-categories', 'post-tags', 'comments', 'table-of-contents', 'hub-sites', 'site-tables', 'content-settings'],
         'children' => [
             ['label' => 'Seiten',               'slug' => 'pages',              'url' => $siteUrl . '/admin/pages'],
             ['label' => 'Beiträge',             'slug' => 'posts',              'url' => $siteUrl . '/admin/posts'],
+            ['label' => 'Kategorien',           'slug' => 'post-categories',    'url' => $siteUrl . '/admin/post-categories'],
+            ['label' => 'Tags',                 'slug' => 'post-tags',          'url' => $siteUrl . '/admin/post-tags'],
             ['label' => 'Kommentare',           'slug' => 'comments',           'url' => $siteUrl . '/admin/comments'],
             ['label' => 'Inhaltsverzeichnis',   'slug' => 'table-of-contents',  'url' => $siteUrl . '/admin/table-of-contents'],
             ['label' => 'Hub-Sites',            'slug' => 'hub-sites',          'url' => $siteUrl . '/admin/hub-sites'],

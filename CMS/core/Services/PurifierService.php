@@ -48,6 +48,10 @@ class PurifierService
             'elements'   => 'p,a,strong,b,em,i,u,ul,ol,li,br,h1,h2,h3,h4,h5,h6,blockquote,pre,code,img,table,thead,tbody,tfoot,tr,th,td,hr,span,div,figure,figcaption,dl,dt,dd,sub,sup,abbr,mark,del,ins,details,summary,video,source,audio',
             'attributes' => 'a.href,a.title,a.target,a.rel,img.src,img.alt,img.width,img.height,img.loading,td.colspan,td.rowspan,th.colspan,th.rowspan,span.class,div.class,pre.class,code.class,video.src,video.controls,video.width,video.height,source.src,source.type,audio.src,audio.controls,details.open',
         ],
+        'table' => [
+            'elements'   => 'p,a,strong,b,em,i,u,ul,ol,li,br,blockquote,pre,code,img,span,div,small,mark,sub,sup,table,thead,tbody,tfoot,tr,th,td,caption',
+            'attributes' => 'a.href,a.title,a.target,a.rel,a.class,img.src,img.alt,img.width,img.height,img.loading,img.class,td.colspan,td.rowspan,td.class,th.colspan,th.rowspan,th.class,span.class,div.class,p.class,table.class,caption.class,pre.class,code.class',
+        ],
         'strict' => [
             'elements'   => 'p,a,strong,b,em,i,u,br,ul,ol,li,blockquote,code,pre',
             'attributes' => 'a.href,a.title,a.rel',

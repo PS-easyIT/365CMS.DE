@@ -86,6 +86,18 @@ $hideSettingsTabs = $hideSettingsTabs ?? false;
                         <div class="mb-3">
                             <label class="form-label required">Website-URL</label>
                             <input type="url" name="site_url" class="form-control" value="<?php echo htmlspecialchars($s['site_url']); ?>" required>
+                            <div class="form-hint">Diese URL wird jetzt auch in der Runtime-Konfiguration (`config/app.php`) aktualisiert, damit `SITE_URL` zentral systemweit mitzieht.</div>
+                        </div>
+                        <div class="border rounded p-3 bg-light mb-0">
+                            <div class="fw-semibold mb-1">Zentrale URL-Umstellung</div>
+                            <div class="text-secondary small mb-3">
+                                Aktive Runtime-URL: <code><?php echo htmlspecialchars((string)($s['runtime_site_url'] ?? $s['site_url'])); ?></code><br>
+                                Beim Speichern kann 365CMS absolute Verweise von der alten Basis-URL auf die neue URL in Inhalten, Settings, Tabellen und Weiterleitungen mitmigrieren.
+                            </div>
+                            <label class="form-check form-switch">
+                                <input type="checkbox" class="form-check-input" name="migrate_site_url_references" value="1" checked>
+                                <span class="form-check-label">Alte absolute CMS-URLs zentral auf die neue Website-URL umstellen</span>
+                            </label>
                         </div>
                         <div>
                             <label class="form-label required">Admin-E-Mail</label>

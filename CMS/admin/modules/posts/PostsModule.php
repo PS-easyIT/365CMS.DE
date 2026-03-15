@@ -164,6 +164,50 @@ class PostsModule
     }
 
     /**
+     * Daten für die Admin-Ansicht der Beitrags-Kategorien.
+     */
+    public function getCategoryAdminData(): array
+    {
+        $categories = $this->db->get_results(
+            "SELECT c.id, c.name, c.slug, COUNT(p.id) AS post_count
+             FROM {$this->prefix}post_categories c
+             LEFT JOIN {$this->prefix}posts p ON p.category_id = c.id
+             GROUP BY c.id, c.name, c.slug
+             ORDER BY c.name ASC"
+        ) ?: [];
+
+        return [
+            'categories' => array_map(fn($category) => (array) $category, $categories),
+            'counts' => [
+                'total' => count($categories),
+                'assigned_posts' => array_sum(array_map(static fn($category): int => (int) ($category->post_count ?? 0), $categories)),
+            ],
+        ];
+    }
+
+    /**
+     * Daten für die Admin-Ansicht der Beitrags-Tags.
+     */
+    public function getTagAdminData(): array
+    {
+        $tags = $this->db->get_results(
+            "SELECT t.id, t.name, t.slug, COUNT(ptr.post_id) AS post_count
+             FROM {$this->prefix}post_tags t
+             LEFT JOIN {$this->prefix}post_tag_rel ptr ON ptr.tag_id = t.id
+             GROUP BY t.id, t.name, t.slug
+             ORDER BY t.name ASC"
+        ) ?: [];
+
+        return [
+            'tags' => array_map(fn($tag) => (array) $tag, $tags),
+            'counts' => [
+                'total' => count($tags),
+                'assigned_posts' => array_sum(array_map(static fn($tag): int => (int) ($tag->post_count ?? 0), $tags)),
+            ],
+        ];
+    }
+
+    /**
      * Post speichern
      */
     public function save(array $post, int $userId): array
@@ -435,6 +479,60 @@ class PostsModule
             return ['success' => true, 'message' => 'Kategorie gelöscht.'];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler beim Löschen der Kategorie.'];
+        }
+    }
+
+    /**
+     * Tag speichern.
+     */
+    public function saveTag(array $post): array
+    {
+        $id = (int) ($post['tag_id'] ?? 0);
+        $name = trim((string) ($post['tag_name'] ?? ''));
+        $slug = trim((string) ($post['tag_slug'] ?? ''));
+
+        if ($name === '') {
+            return ['success' => false, 'error' => 'Tag-Name darf nicht leer sein.'];
+        }
+
+        $slug = $this->normalizeSlug($slug !== '' ? $slug : $this->generateSlug($name));
+        if ($slug === '') {
+            return ['success' => false, 'error' => 'Bitte einen gültigen Tag-Slug angeben.'];
+        }
+
+        try {
+            if ($id > 0) {
+                $this->db->execute(
+                    "UPDATE {$this->prefix}post_tags SET name = ?, slug = ? WHERE id = ?",
+                    [$name, $slug, $id]
+                );
+
+                return ['success' => true, 'message' => 'Tag aktualisiert.'];
+            }
+
+            $this->db->execute(
+                "INSERT INTO {$this->prefix}post_tags (name, slug) VALUES (?, ?)",
+                [$name, $slug]
+            );
+
+            return ['success' => true, 'message' => 'Tag erstellt.'];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Fehler beim Speichern des Tags.'];
+        }
+    }
+
+    /**
+     * Tag löschen.
+     */
+    public function deleteTag(int $id): array
+    {
+        try {
+            $this->db->execute("DELETE FROM {$this->prefix}post_tag_rel WHERE tag_id = ?", [$id]);
+            $this->db->execute("DELETE FROM {$this->prefix}post_tags WHERE id = ?", [$id]);
+
+            return ['success' => true, 'message' => 'Tag gelöscht.'];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'Fehler beim Löschen des Tags.'];
         }
     }
 

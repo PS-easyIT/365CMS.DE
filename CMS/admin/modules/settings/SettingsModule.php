@@ -20,6 +20,28 @@ class SettingsModule
     private Database $db;
     private string $prefix;
 
+    /** @var array<int,array{table:string,column:string}> */
+    private const URL_MIGRATION_TARGETS = [
+        ['table' => 'settings', 'column' => 'option_value'],
+        ['table' => 'pages', 'column' => 'content'],
+        ['table' => 'pages', 'column' => 'content_en'],
+        ['table' => 'pages', 'column' => 'featured_image'],
+        ['table' => 'pages', 'column' => 'meta_description'],
+        ['table' => 'posts', 'column' => 'content'],
+        ['table' => 'posts', 'column' => 'content_en'],
+        ['table' => 'posts', 'column' => 'excerpt'],
+        ['table' => 'posts', 'column' => 'excerpt_en'],
+        ['table' => 'posts', 'column' => 'featured_image'],
+        ['table' => 'posts', 'column' => 'meta_description'],
+        ['table' => 'site_tables', 'column' => 'description'],
+        ['table' => 'site_tables', 'column' => 'rows_json'],
+        ['table' => 'site_tables', 'column' => 'settings_json'],
+        ['table' => 'redirect_rules', 'column' => 'target_url'],
+        ['table' => 'redirect_rules', 'column' => 'source_path'],
+        ['table' => 'mail_logs', 'column' => 'message_html'],
+        ['table' => 'mail_logs', 'column' => 'message_text'],
+    ];
+
     private const SETTINGS_KEYS = [
         'site_name', 'site_description', 'site_url', 'site_logo', 'admin_email',
         'language', 'timezone', 'date_format', 'time_format',
@@ -63,6 +85,7 @@ class SettingsModule
     public function getData(): array
     {
         $settings = $this->loadSettings();
+        $config = $this->parseExistingConfig();
         $postPermalinkStructure = class_exists('\CMS\Services\PermalinkService')
             ? \CMS\Services\PermalinkService::normalizePostStructure((string)($settings['setting_post_permalink_structure'] ?? ''))
             : '/blog/%postname%';
@@ -94,6 +117,7 @@ class SettingsModule
                 'site_name'            => $settings['site_name'] ?? (defined('SITE_NAME') ? SITE_NAME : ''),
                 'site_description'     => $settings['site_description'] ?? '',
                 'site_url'             => $settings['site_url'] ?? (defined('SITE_URL') ? SITE_URL : ''),
+                'runtime_site_url'     => $config['site_url'] ?? (defined('SITE_URL') ? SITE_URL : ''),
                 'site_logo'            => $settings['site_logo'] ?? '',
                 'admin_email'          => $settings['admin_email'] ?? '',
                 'language'             => $settings['language'] ?? 'de',
@@ -131,6 +155,11 @@ class SettingsModule
     public function saveSettings(array $post): array
     {
         try {
+            $existingConfig = $this->parseExistingConfig();
+            if ($existingConfig === false) {
+                return ['success' => false, 'error' => 'Die zentrale Konfigurationsdatei konnte nicht gelesen werden.'];
+            }
+
             $permalinkPreset = (string)($post['post_permalink_preset'] ?? 'blog');
             $permalinkCustom = trim((string)($post['post_permalink_custom'] ?? ''));
             $permalinkStructure = match ($permalinkPreset) {
@@ -165,11 +194,16 @@ class SettingsModule
                 $siteLogo = '';
             }
 
+            $newSiteUrl = rtrim(filter_var($post['site_url'] ?? '', FILTER_SANITIZE_URL), '/');
+            if ($newSiteUrl === '' || filter_var($newSiteUrl, FILTER_VALIDATE_URL) === false) {
+                return ['success' => false, 'error' => 'Bitte eine gültige Website-URL angeben.'];
+            }
+
             $values = [
                 'site_name'            => trim(strip_tags($post['site_name'] ?? '')),
                 'site_title'           => trim(strip_tags($post['site_name'] ?? '')),
                 'site_description'     => trim(strip_tags($post['site_description'] ?? '')),
-                'site_url'             => rtrim(filter_var($post['site_url'] ?? '', FILTER_SANITIZE_URL), '/'),
+                'site_url'             => $newSiteUrl,
                 'site_logo'            => $siteLogo,
                 'admin_email'          => filter_var($post['admin_email'] ?? '', FILTER_VALIDATE_EMAIL) ?: '',
                 'language'             => array_key_exists($post['language'] ?? 'de', self::LANGUAGES) ? $post['language'] : 'de',
@@ -192,6 +226,22 @@ class SettingsModule
                 'setting_post_permalink_custom' => $permalinkPreset === 'custom' ? $permalinkCustom : '',
             ];
 
+            $oldSiteUrl = rtrim((string)($existingConfig['site_url'] ?? ''), '/');
+            $shouldMigrateUrls = !empty($post['migrate_site_url_references'])
+                && $oldSiteUrl !== ''
+                && $oldSiteUrl !== $newSiteUrl;
+
+            $configResult = $this->updateConfigFile($existingConfig, [
+                'site_name' => $values['site_name'],
+                'site_url' => $newSiteUrl,
+                'admin_email' => $values['admin_email'],
+                'debug_mode' => $existingConfig['debug_mode'] ?? (defined('CMS_DEBUG') && CMS_DEBUG ? 'true' : 'false'),
+            ]);
+
+            if ($configResult !== true) {
+                return ['success' => false, 'error' => is_string($configResult) ? $configResult : 'Konfigurationsdatei konnte nicht aktualisiert werden.'];
+            }
+
             foreach ($values as $key => $value) {
                 $existing = $this->db->get_var(
                     "SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?",
@@ -211,10 +261,259 @@ class SettingsModule
                 }
             }
 
-            return ['success' => true, 'message' => 'Einstellungen gespeichert.'];
+            $migrationSummary = null;
+            if ($shouldMigrateUrls) {
+                $migrationSummary = $this->migrateSiteUrls($oldSiteUrl, $newSiteUrl);
+            }
+
+            $message = 'Einstellungen gespeichert. Runtime-URL aktualisiert auf ' . $newSiteUrl . '.';
+            if (is_array($migrationSummary)) {
+                $message .= sprintf(
+                    ' Absolute URL-Verweise migriert: %d Feld(er) aktualisiert, %d Datensatz/Durchlauf(e) betroffen.',
+                    (int)($migrationSummary['columns_updated'] ?? 0),
+                    (int)($migrationSummary['rows_affected'] ?? 0)
+                );
+            }
+
+            return ['success' => true, 'message' => $message];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
         }
+    }
+
+    /** @return array{columns_updated:int,rows_affected:int} */
+    private function migrateSiteUrls(string $oldUrl, string $newUrl): array
+    {
+        $summary = ['columns_updated' => 0, 'rows_affected' => 0];
+
+        foreach (self::URL_MIGRATION_TARGETS as $target) {
+            $table = $target['table'];
+            $column = $target['column'];
+
+            if (!$this->tableExists($table) || !$this->columnExists($table, $column)) {
+                continue;
+            }
+
+            $sql = "UPDATE {$this->prefix}{$table} SET {$column} = REPLACE({$column}, ?, ?) WHERE {$column} LIKE ?";
+            $this->db->execute($sql, [$oldUrl, $newUrl, '%' . $oldUrl . '%']);
+
+            $affected = $this->extractAffectedRows();
+            if ($affected > 0) {
+                $summary['columns_updated']++;
+                $summary['rows_affected'] += $affected;
+            }
+        }
+
+        return $summary;
+    }
+
+    private function extractAffectedRows(): int
+    {
+        try {
+            $pdo = $this->db->getPdo();
+            return (int) $pdo->query('SELECT ROW_COUNT()')->fetchColumn();
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    private function columnExists(string $table, string $column): bool
+    {
+        try {
+            return $this->db->get_var(
+                "SHOW COLUMNS FROM {$this->prefix}{$table} LIKE ?",
+                [$column]
+            ) !== null;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /** @return array<string,string>|false */
+    private function parseExistingConfig(): array|bool
+    {
+        $configPath = ABSPATH . 'config/app.php';
+        if (!is_file($configPath)) {
+            return false;
+        }
+
+        $content = file_get_contents($configPath);
+        if ($content === false) {
+            return false;
+        }
+
+        $clean = static fn(string $value): string => str_contains($value, 'YOUR_') ? '' : trim($value);
+        $config = [];
+
+        if (preg_match("/define\('DB_HOST',\s*'([^']+)'\);/", $content, $m)) {
+            $config['db_host'] = $m[1];
+        }
+        if (preg_match("/define\('DB_NAME',\s*'([^']+)'\);/", $content, $m)) {
+            $config['db_name'] = $clean($m[1]);
+        }
+        if (preg_match("/define\('DB_USER',\s*'([^']+)'\);/", $content, $m)) {
+            $config['db_user'] = $clean($m[1]);
+        }
+        if (preg_match("/define\('DB_PASS',\s*'([^']+)'\);/", $content, $m)) {
+            $config['db_pass'] = str_contains($m[1], 'YOUR_') ? '' : $m[1];
+        }
+        if (preg_match("/define\('DB_PREFIX',\s*'([^']+)'\);/", $content, $m)) {
+            $config['db_prefix'] = $m[1] !== '' ? $m[1] : 'cms_';
+        }
+        if (preg_match("/define\('SITE_NAME',\s*'([^']*)'\);/", $content, $m)) {
+            $config['site_name'] = $clean($m[1]);
+        }
+        if (preg_match("/define\('ADMIN_EMAIL',\s*'([^']*)'\);/", $content, $m)) {
+            $config['admin_email'] = $clean($m[1]);
+        }
+        if (preg_match("/define\('SITE_URL',\s*'([^']*)'\);/", $content, $m)) {
+            $config['site_url'] = $clean($m[1]);
+        }
+        if (preg_match("/define\('CMS_DEBUG',\s*(true|false)\);/", $content, $m)) {
+            $config['debug_mode'] = $m[1];
+        }
+        if (preg_match("/define\('AUTH_KEY',\s*'([^']*)'\);/", $content, $m)) {
+            $config['auth_key'] = str_contains($m[1], 'REPLACE_VIA_INSTALLER') ? '' : $m[1];
+        }
+        if (preg_match("/define\('SECURE_AUTH_KEY',\s*'([^']*)'\);/", $content, $m)) {
+            $config['secure_auth_key'] = str_contains($m[1], 'REPLACE_VIA_INSTALLER') ? '' : $m[1];
+        }
+        if (preg_match("/define\('NONCE_KEY',\s*'([^']*)'\);/", $content, $m)) {
+            $config['nonce_key'] = str_contains($m[1], 'REPLACE_VIA_INSTALLER') ? '' : $m[1];
+        }
+
+        return (!empty($config['db_user']) && !empty($config['db_name'])) ? $config : false;
+    }
+
+    /** @param array<string,string> $existing
+     *  @param array<string,string> $updates
+     */
+    private function updateConfigFile(array $existing, array $updates): bool|string
+    {
+        $data = [
+            'created_at' => date('Y-m-d H:i:s'),
+            'debug_mode' => $updates['debug_mode'] ?? $existing['debug_mode'] ?? 'false',
+            'db_host' => $existing['db_host'] ?? '',
+            'db_name' => $existing['db_name'] ?? '',
+            'db_user' => $existing['db_user'] ?? '',
+            'db_pass' => $existing['db_pass'] ?? '',
+            'db_prefix' => $existing['db_prefix'] ?? 'cms_',
+            'auth_key' => $existing['auth_key'] ?? '',
+            'secure_auth_key' => $existing['secure_auth_key'] ?? '',
+            'nonce_key' => $existing['nonce_key'] ?? '',
+            'site_name' => $updates['site_name'] ?? ($existing['site_name'] ?? ''),
+            'site_url' => $updates['site_url'] ?? ($existing['site_url'] ?? ''),
+            'admin_email' => $updates['admin_email'] ?? ($existing['admin_email'] ?? ''),
+        ];
+
+        $configDir = ABSPATH . 'config';
+        $configPath = $configDir . '/app.php';
+        $htaccessPath = $configDir . '/.htaccess';
+
+        if (!is_dir($configDir) && !mkdir($configDir, 0755, true) && !is_dir($configDir)) {
+            return 'Fehler: config/-Verzeichnis konnte nicht erstellt werden.';
+        }
+
+        $htaccessContent = "# Auto-generated by CMS Installer (C-02)\n"
+            . "<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n"
+            . "<IfModule !mod_authz_core.c>\n    Order Deny,Allow\n    Deny from all\n</IfModule>\n";
+        file_put_contents($htaccessPath, $htaccessContent);
+
+        if (is_file($configPath)) {
+            @copy($configPath, $configDir . '/app.php.backup.' . date('Y-m-d_H-i-s'));
+        }
+
+        $escape = static fn(string $value): string => str_replace(['\\', "'"], ['\\\\', "\\'"], $value);
+        $content = <<<PHP
+<?php
+/**
+ * CMS Application Configuration
+ *
+ * Automatisch erstellt am {$data['created_at']}
+ * C-01: Security-Keys via random_bytes() generiert – NICHT in VCS einchecken!
+ * C-02: Konfiguration in config/ isoliert (via .htaccess geschützt)
+ *
+ * @package 365CMS
+ */
+
+declare(strict_types=1);
+
+if (!defined('ABSPATH')) {
+    define('ABSPATH', dirname(__DIR__) . DIRECTORY_SEPARATOR);
+}
+
+define('CMS_DEBUG', {$data['debug_mode']});
+
+define('DB_HOST',    '{$escape($data['db_host'])}');
+define('DB_NAME',    '{$escape($data['db_name'])}');
+define('DB_USER',    '{$escape($data['db_user'])}');
+define('DB_PASS',    '{$escape($data['db_pass'])}');
+define('DB_CHARSET', 'utf8mb4');
+define('DB_PREFIX',  '{$escape($data['db_prefix'])}');
+
+define('AUTH_KEY',        '{$escape($data['auth_key'])}');
+define('SECURE_AUTH_KEY', '{$escape($data['secure_auth_key'])}');
+define('NONCE_KEY',       '{$escape($data['nonce_key'])}');
+
+define('SITE_NAME',    '{$escape($data['site_name'])}');
+define('SITE_URL',     '{$escape(rtrim($data['site_url'], '/'))}');
+define('ADMIN_EMAIL',  '{$escape($data['admin_email'])}');
+define('CMS_VERSION',  '2.5.30');
+
+define('CORE_PATH',   ABSPATH . 'core/');
+define('THEME_PATH',  ABSPATH . 'themes/');
+define('PLUGIN_PATH', ABSPATH . 'plugins/');
+define('UPLOAD_PATH', ABSPATH . 'uploads/');
+define('ASSETS_PATH', ABSPATH . 'assets/');
+
+define('SITE_URL_PATH', '/');
+define('ASSETS_URL',    SITE_URL . '/assets');
+define('UPLOAD_URL',    SITE_URL . '/uploads');
+
+define('DEFAULT_THEME',      'cms-default');
+define('SESSIONS_LIFETIME',  3600 * 2);
+define('MAX_LOGIN_ATTEMPTS', 5);
+define('LOGIN_TIMEOUT',      300);
+
+if (CMS_DEBUG) {
+    error_reporting(E_ALL);
+    ini_set('display_errors', '1');
+    ini_set('log_errors', '1');
+    ini_set('error_log', ABSPATH . 'logs/error.log');
+} else {
+    error_reporting(0);
+    ini_set('display_errors', '0');
+    ini_set('log_errors', '0');
+}
+
+date_default_timezone_set('Europe/Berlin');
+
+defined('LDAP_HOST')         || define('LDAP_HOST',         '');
+defined('LDAP_PORT')         || define('LDAP_PORT',         389);
+defined('LDAP_BASE_DN')      || define('LDAP_BASE_DN',      '');
+defined('LDAP_USERNAME')     || define('LDAP_USERNAME',      '');
+defined('LDAP_PASSWORD')     || define('LDAP_PASSWORD',      '');
+defined('LDAP_USE_SSL')      || define('LDAP_USE_SSL',      false);
+defined('LDAP_USE_TLS')      || define('LDAP_USE_TLS',      true);
+defined('LDAP_FILTER')       || define('LDAP_FILTER',       '');
+defined('LDAP_DEFAULT_ROLE') || define('LDAP_DEFAULT_ROLE', 'member');
+
+defined('JWT_SECRET')        || define('JWT_SECRET',  '');
+defined('JWT_TTL')           || define('JWT_TTL',     3600);
+defined('JWT_ISSUER')        || define('JWT_ISSUER',  SITE_URL);
+
+defined('SMTP_HOST')       || define('SMTP_HOST',       '');
+defined('SMTP_PORT')       || define('SMTP_PORT',       587);
+defined('SMTP_USER')       || define('SMTP_USER',       '');
+defined('SMTP_PASS')       || define('SMTP_PASS',       '');
+defined('SMTP_ENCRYPTION') || define('SMTP_ENCRYPTION', 'tls');
+defined('SMTP_FROM_EMAIL') || define('SMTP_FROM_EMAIL', ADMIN_EMAIL);
+defined('SMTP_FROM_NAME')  || define('SMTP_FROM_NAME',  SITE_NAME);
+PHP;
+
+        return file_put_contents($configPath, $content) !== false
+            ? true
+            : 'Fehler: config/app.php konnte nicht geschrieben werden.';
     }
 
     public function repairImportedSlugs(): array
