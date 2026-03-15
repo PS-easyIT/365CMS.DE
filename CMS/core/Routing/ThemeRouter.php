@@ -33,10 +33,15 @@ final class ThemeRouter
         $currentPostRoutePattern = $permalinkService->buildPostRoutePattern();
 
         $this->router->addRoute('GET', '/', [$this, 'renderHome']);
+        $this->router->addRoute('GET', '/sitemap', [$this, 'renderHtmlSitemap']);
         $this->router->addRoute('GET', '/search', [$this, 'renderSearch']);
         $this->router->addRoute('GET', '/contact', [$this, 'renderContact']);
         $this->router->addRoute('GET', '/kontakt', [$this, 'renderContact']);
+        $this->router->addRoute('GET', '/autoren', [$this, 'renderAuthorsIndex']);
+        $this->router->addRoute('GET', '/authors', [$this, 'renderAuthorsIndex']);
         $this->router->addRoute('GET', '/author/:identifier', [$this, 'renderAuthorPage']);
+        $this->router->addRoute('GET', '/kategorie/:slug', [$this, 'renderCategoryArchive']);
+        $this->router->addRoute('GET', '/tag/:slug', [$this, 'renderTagArchive']);
         $this->router->addRoute('GET', '/site-table/export/:id/:format', [$this, 'streamSiteTableExport']);
         $this->router->addRoute('GET', '/blog', [$this, 'renderBlogIndex']);
         $this->router->addRoute('GET', $currentPostRoutePattern, [$this, 'renderBlogSingle']);
@@ -332,7 +337,7 @@ final class ThemeRouter
         $offset = ($page - 1) * $perPage;
         $total = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}posts WHERE status = 'published'");
         $posts = $db->get_results(
-            "SELECT p.*, c.name AS category_name,
+            "SELECT p.*, c.name AS category_name, c.slug AS category_slug,
                     COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}users u ON u.id = p.author_id
@@ -349,6 +354,158 @@ final class ThemeRouter
             'totalPages' => max(1, (int)ceil($total / $perPage)),
             'perPage' => $perPage,
         ]);
+    }
+
+    public function renderCategoryArchive(string $slug): void
+    {
+        $slug = trim(rawurldecode($slug));
+        if ($slug === '') {
+            $this->router->render404();
+            return;
+        }
+
+        $db = Database::instance();
+        $prefix = $db->getPrefix();
+        $category = $db->get_row(
+            "SELECT id, name, slug, description
+             FROM {$prefix}post_categories
+             WHERE slug = ?
+             LIMIT 1",
+            [$slug]
+        );
+
+        if ($category === null) {
+            $this->router->render404();
+            return;
+        }
+
+        $query = trim((string) ($_GET['q'] ?? ''));
+        $page = max(1, (int) ($_GET['page'] ?? $_GET['p'] ?? 1));
+        $perPage = 10;
+        $offset = ($page - 1) * $perPage;
+
+        $where = ["p.status = 'published'", 'p.category_id = ?'];
+        $params = [(int) ($category->id ?? 0)];
+
+        if ($query !== '') {
+            $where[] = '(p.title LIKE ? OR p.excerpt LIKE ? OR p.content LIKE ?)';
+            $like = '%' . $query . '%';
+            array_push($params, $like, $like, $like);
+        }
+
+        $whereSql = implode(' AND ', $where);
+        $total = (int) $db->get_var(
+            "SELECT COUNT(*)
+             FROM {$prefix}posts p
+             WHERE {$whereSql}",
+            $params
+        );
+
+        $posts = $db->get_results(
+            "SELECT p.*, c.name AS category_name, c.slug AS category_slug,
+                    COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name
+             FROM {$prefix}posts p
+             LEFT JOIN {$prefix}users u ON u.id = p.author_id
+             LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
+             WHERE {$whereSql}
+             ORDER BY COALESCE(p.published_at, p.created_at) DESC
+             LIMIT {$perPage} OFFSET {$offset}",
+            $params
+        ) ?: [];
+
+        ThemeManager::instance()->render('category', [
+            'category' => (array) $category,
+            'posts' => $posts,
+            'query' => $query,
+            'total' => $total,
+            'currentPage' => $page,
+            'totalPages' => max(1, (int) ceil($total / $perPage)),
+            'perPage' => $perPage,
+        ]);
+    }
+
+    public function renderTagArchive(string $slug): void
+    {
+        $normalizedSlug = $this->normalizeArchiveSlug(rawurldecode($slug));
+        if ($normalizedSlug === '') {
+            $this->router->render404();
+            return;
+        }
+
+        $db = Database::instance();
+        $prefix = $db->getPrefix();
+        $query = trim((string) ($_GET['q'] ?? ''));
+        $page = max(1, (int) ($_GET['page'] ?? $_GET['p'] ?? 1));
+        $perPage = 10;
+
+        $rows = $db->get_results(
+            "SELECT p.*, c.name AS category_name,
+                    COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name
+             FROM {$prefix}posts p
+             LEFT JOIN {$prefix}users u ON u.id = p.author_id
+             LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
+             WHERE p.status = 'published' AND p.tags IS NOT NULL AND p.tags != ''
+             ORDER BY COALESCE(p.published_at, p.created_at) DESC"
+        ) ?: [];
+
+        $allMatchingPosts = [];
+        $matchingPosts = [];
+        $resolvedTagName = '';
+
+        foreach ($rows as $row) {
+            $post = (array) $row;
+            foreach ($this->parsePostTags((string) ($post['tags'] ?? '')) as $tag) {
+                if (($tag['slug'] ?? '') !== $normalizedSlug) {
+                    continue;
+                }
+
+                if ($resolvedTagName === '') {
+                    $resolvedTagName = (string) ($tag['name'] ?? '');
+                }
+
+                $allMatchingPosts[] = (object) $post;
+
+                if ($this->matchesArchiveSearch($post, $query)) {
+                    $matchingPosts[] = (object) $post;
+                }
+
+                break;
+            }
+        }
+
+        if ($allMatchingPosts === []) {
+            $this->router->render404();
+            return;
+        }
+
+        $total = count($matchingPosts);
+        $totalPages = max(1, (int) ceil($total / $perPage));
+        $page = min($page, $totalPages);
+        $offset = ($page - 1) * $perPage;
+        $posts = array_slice($matchingPosts, $offset, $perPage);
+
+        ThemeManager::instance()->render('tag', [
+            'tag' => [
+                'name' => $resolvedTagName !== '' ? $resolvedTagName : str_replace('-', ' ', $normalizedSlug),
+                'slug' => $normalizedSlug,
+            ],
+            'posts' => $posts,
+            'query' => $query,
+            'total' => $total,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+            'perPage' => $perPage,
+        ]);
+    }
+
+    public function renderAuthorsIndex(): void
+    {
+        ThemeManager::instance()->render('authors');
+    }
+
+    public function renderHtmlSitemap(): void
+    {
+        ThemeManager::instance()->render('sitemap');
     }
 
     public function renderAuthorPage(string $identifier): void
@@ -375,7 +532,7 @@ final class ThemeRouter
         );
 
         $posts = $db->get_results(
-            "SELECT p.*, c.name AS category_name
+            "SELECT p.*, c.name AS category_name, c.slug AS category_slug
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
              WHERE p.author_id = ? AND p.status = 'published'
@@ -405,7 +562,7 @@ final class ThemeRouter
         $db = Database::instance();
         $prefix = $db->getPrefix();
         $postRow = $db->get_row(
-            "SELECT p.*, COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name, c.name AS category_name
+            "SELECT p.*, COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name, c.name AS category_name, c.slug AS category_slug
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}users u ON u.id = p.author_id
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
@@ -570,6 +727,50 @@ final class ThemeRouter
         }
 
         return false;
+    }
+
+    private function normalizeArchiveSlug(string $value): string
+    {
+        $value = trim(mb_strtolower($value, 'UTF-8'));
+        if ($value === '') {
+            return '';
+        }
+
+        $value = str_replace(['ä', 'ö', 'ü', 'ß'], ['ae', 'oe', 'ue', 'ss'], $value);
+        $value = preg_replace('/[^a-z0-9]+/u', '-', $value) ?? '';
+
+        return trim($value, '-');
+    }
+
+    /**
+     * @return array<int,array{name:string,slug:string}>
+     */
+    private function parsePostTags(string $rawTags): array
+    {
+        $tags = [];
+
+        foreach (array_filter(array_map('trim', explode(',', $rawTags))) as $tagName) {
+            $tags[] = [
+                'name' => $tagName,
+                'slug' => $this->normalizeArchiveSlug($tagName),
+            ];
+        }
+
+        return $tags;
+    }
+
+    private function matchesArchiveSearch(array $post, string $query): bool
+    {
+        if ($query === '') {
+            return true;
+        }
+
+        $haystack = mb_strtolower(
+            trim((string) ($post['title'] ?? '')) . ' ' . trim((string) ($post['excerpt'] ?? '')) . ' ' . trim((string) ($post['content'] ?? '')),
+            'UTF-8'
+        );
+
+        return str_contains($haystack, mb_strtolower($query, 'UTF-8'));
     }
 
     private function escapeXml(string $value): string
