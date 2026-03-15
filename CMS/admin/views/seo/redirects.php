@@ -13,6 +13,7 @@ $redirects = $data['redirects'] ?? [];
 $logs      = $data['logs'] ?? [];
 $stats     = $data['stats'] ?? [];
 $targets   = $data['targets'] ?? ['pages' => [], 'posts' => [], 'hubs' => []];
+$resolvedLogsCount = count(array_filter($logs, static fn(array $log): bool => !empty($log['redirect_id'])));
 ?>
 
 <div class="page-header d-print-none">
@@ -154,8 +155,14 @@ $targets   = $data['targets'] ?? ['pages' => [], 'posts' => [], 'hubs' => []];
 
         <div class="card">
             <div class="card-header d-flex align-items-center justify-content-between">
-                <h3 class="card-title">Erkannte 404-Fehler</h3>
-                <div class="text-secondary small">Bei Bedarf direkt als 301/302 übernehmbar.</div>
+                <div>
+                    <h3 class="card-title mb-1">Erkannte 404-Fehler</h3>
+                    <div class="text-secondary small">Bei Bedarf direkt als 301/302 übernehmbar.</div>
+                </div>
+                <label class="form-check form-switch mb-0">
+                    <input type="checkbox" class="form-check-input" id="toggle-hide-resolved-404">
+                    <span class="form-check-label">Bereits übernommene ausblenden</span>
+                </label>
             </div>
             <div class="table-responsive">
                 <table class="table table-vcenter card-table">
@@ -173,9 +180,21 @@ $targets   = $data['targets'] ?? ['pages' => [], 'posts' => [], 'hubs' => []];
                         <?php if (empty($logs)): ?>
                             <tr><td colspan="6" class="text-center text-secondary py-4">Noch keine 404-Einträge protokolliert.</td></tr>
                         <?php else: ?>
+                            <tr class="js-hidden-resolved-empty" hidden>
+                                <td colspan="6" class="text-center text-secondary py-4">
+                                    Alle aktuell sichtbaren 404-Einträge sind bereits übernommen.
+                                    <span class="d-block small mt-1">Deaktiviere den Filter, um bearbeitete Einträge wieder einzublenden.</span>
+                                </td>
+                            </tr>
                             <?php foreach ($logs as $log): ?>
-                                <tr>
-                                    <td><code><?= htmlspecialchars($log['request_path']) ?></code></td>
+                                <?php $isResolvedLog = !empty($log['redirect_id']); ?>
+                                <tr class="<?= $isResolvedLog ? 'table-success' : '' ?>" data-log-resolved="<?= $isResolvedLog ? '1' : '0' ?>">
+                                    <td>
+                                        <code><?= htmlspecialchars($log['request_path']) ?></code>
+                                        <?php if ($isResolvedLog): ?>
+                                            <span class="badge bg-success-lt text-success ms-2">404 bereits übernommen</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?= (int)($log['hit_count'] ?? 0) ?></td>
                                     <td><?= !empty($log['last_seen_at']) ? date('d.m.Y H:i', strtotime((string)$log['last_seen_at'])) : '–' ?></td>
                                     <td class="text-secondary small"><?= htmlspecialchars($log['referrer_url'] ?? '–') ?></td>
@@ -183,6 +202,9 @@ $targets   = $data['targets'] ?? ['pages' => [], 'posts' => [], 'hubs' => []];
                                         <?php if (!empty($log['target_url'])): ?>
                                             <span class="badge <?= (int)($log['redirect_is_active'] ?? 0) === 1 ? 'bg-success' : 'bg-secondary' ?>"><?= (int)($log['redirect_type'] ?? 301) ?></span>
                                             <span class="text-secondary small"><?= htmlspecialchars($log['target_url']) ?></span>
+                                            <?php if ($isResolvedLog): ?>
+                                                <div class="text-success small mt-1">Schon mit vorhandener Weiterleitung verknüpft.</div>
+                                            <?php endif; ?>
                                         <?php else: ?>
                                             <span class="text-secondary">Keine</span>
                                         <?php endif; ?>
@@ -315,7 +337,12 @@ $targets   = $data['targets'] ?? ['pages' => [], 'posts' => [], 'hubs' => []];
     const notesField = document.getElementById('redirect-notes');
     const activeField = document.getElementById('redirect-active');
     const form = modalElement.querySelector('form');
+    const hideResolvedToggle = document.getElementById('toggle-hide-resolved-404');
+    const resolvedLogRows = Array.from(document.querySelectorAll('tr[data-log-resolved]'));
+    const hiddenResolvedEmptyState = document.querySelector('.js-hidden-resolved-empty');
     const targetCatalog = <?= json_encode($targets, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+    const resolvedLogsCount = <?= (int)$resolvedLogsCount ?>;
+    const hideResolvedStorageKey = 'cms-admin-hide-resolved-404';
 
     function normalizeTargetUrl(value) {
         const trimmed = String(value || '').trim();
@@ -325,6 +352,15 @@ $targets   = $data['targets'] ?? ['pages' => [], 'posts' => [], 'hubs' => []];
         }
 
         if (/^https?:\/\//i.test(trimmed)) {
+            try {
+                const absoluteUrl = new URL(trimmed, window.location.origin);
+                if (absoluteUrl.origin === window.location.origin) {
+                    return normalizeTargetUrl((absoluteUrl.pathname || '/') + (absoluteUrl.search || '') + (absoluteUrl.hash || ''));
+                }
+            } catch (error) {
+                return trimmed;
+            }
+
             return trimmed;
         }
 
@@ -462,6 +498,31 @@ $targets   = $data['targets'] ?? ['pages' => [], 'posts' => [], 'hubs' => []];
         activeField.checked = true;
     }
 
+    function applyResolvedFilter(hideResolved) {
+        if (!resolvedLogRows.length) {
+            if (hiddenResolvedEmptyState) {
+                hiddenResolvedEmptyState.hidden = true;
+            }
+            return;
+        }
+
+        let visibleRows = 0;
+
+        resolvedLogRows.forEach(function (row) {
+            const isResolved = row.dataset.logResolved === '1';
+            const shouldHide = hideResolved && isResolved;
+            row.hidden = shouldHide;
+
+            if (!shouldHide) {
+                visibleRows += 1;
+            }
+        });
+
+        if (hiddenResolvedEmptyState) {
+            hiddenResolvedEmptyState.hidden = !(hideResolved && visibleRows === 0 && resolvedLogsCount > 0);
+        }
+    }
+
     function openCreateModal() {
         const modal = getModalInstance();
         if (!modal) {
@@ -541,9 +602,25 @@ $targets   = $data['targets'] ?? ['pages' => [], 'posts' => [], 'hubs' => []];
         updateTargetFieldVisibility();
     });
 
-    [targetPageField, targetPostField, targetHubField, targetManualField].forEach(function (field) {
+    [targetPageField, targetPostField, targetHubField].forEach(function (field) {
         field.addEventListener('change', syncHiddenTargetValue);
     });
+
+    targetManualField.addEventListener('input', syncHiddenTargetValue);
+    targetManualField.addEventListener('change', syncHiddenTargetValue);
+
+    if (hideResolvedToggle) {
+        hideResolvedToggle.checked = window.localStorage.getItem(hideResolvedStorageKey) === '1';
+        applyResolvedFilter(hideResolvedToggle.checked);
+
+        hideResolvedToggle.addEventListener('change', function () {
+            const hideResolved = hideResolvedToggle.checked;
+            window.localStorage.setItem(hideResolvedStorageKey, hideResolved ? '1' : '0');
+            applyResolvedFilter(hideResolved);
+        });
+    } else {
+        applyResolvedFilter(false);
+    }
 
     if (form) {
         form.addEventListener('submit', function () {

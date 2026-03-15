@@ -216,6 +216,11 @@ final class RedirectService
             return ['success' => false, 'error' => 'Quelle und Ziel dürfen nicht identisch sein.'];
         }
 
+        $duplicateRedirect = $this->findRedirectBySourcePath($source);
+        if ($duplicateRedirect !== null && (int)($duplicateRedirect['id'] ?? 0) !== $id) {
+            return ['success' => false, 'error' => $this->buildDuplicateSourceError($source)];
+        }
+
         $data = [
             'source_path' => $source,
             'target_url' => $target,
@@ -233,6 +238,10 @@ final class RedirectService
             $this->db->insert('redirect_rules', $data);
             return ['success' => true, 'message' => 'Weiterleitung angelegt.'];
         } catch (\Throwable $e) {
+            if ($this->isDuplicateRedirectException($e)) {
+                return ['success' => false, 'error' => $this->buildDuplicateSourceError($source)];
+            }
+
             return ['success' => false, 'error' => 'Fehler beim Speichern: ' . $e->getMessage()];
         }
     }
@@ -399,7 +408,11 @@ final class RedirectService
             'page' => $this->getPageTargetUrl((int)($post['target_page_id'] ?? 0)),
             'post' => $this->getPostTargetUrl((int)($post['target_post_id'] ?? 0)),
             'hub' => $this->getHubTargetUrl((int)($post['target_hub_id'] ?? 0)),
-            default => $this->normalizeManualTarget((string)($post['target_url'] ?? ($post['target_url_manual'] ?? ''))),
+            default => $this->normalizeManualTarget((string)(
+                trim((string)($post['target_url_manual'] ?? '')) !== ''
+                    ? $post['target_url_manual']
+                    : ($post['target_url'] ?? '')
+            )),
         };
     }
 
@@ -429,6 +442,61 @@ final class RedirectService
         }
 
         return $this->normalizePath($target);
+    }
+
+    private function findRedirectBySourcePath(string $sourcePath): ?array
+    {
+        if ($sourcePath === '') {
+            return null;
+        }
+
+        $row = $this->db->get_row(
+            "SELECT id, source_path, target_url, is_active
+             FROM {$this->prefix}redirect_rules
+             WHERE source_path = ?
+             LIMIT 1",
+            [$sourcePath]
+        );
+
+        return $row ? (array)$row : null;
+    }
+
+    private function buildDuplicateSourceError(string $sourcePath): string
+    {
+        $duplicateRedirect = $this->findRedirectBySourcePath($sourcePath);
+        if ($duplicateRedirect === null) {
+            return sprintf(
+                'Für die Quelle %s existiert bereits eine Weiterleitung. Bitte vorhandene Regel bearbeiten statt doppelt anzulegen.',
+                $sourcePath
+            );
+        }
+
+        $duplicateTarget = trim((string)($duplicateRedirect['target_url'] ?? ''));
+        $duplicateStatus = (int)($duplicateRedirect['is_active'] ?? 0) === 1 ? 'aktive' : 'inaktive';
+
+        if ($duplicateTarget !== '') {
+            return sprintf(
+                'Für die Quelle %s existiert bereits eine %s Weiterleitung nach %s. Bitte vorhandene Regel bearbeiten statt doppelt anzulegen.',
+                $sourcePath,
+                $duplicateStatus,
+                $duplicateTarget
+            );
+        }
+
+        return sprintf(
+            'Für die Quelle %s existiert bereits eine %s Weiterleitung. Bitte vorhandene Regel bearbeiten statt doppelt anzulegen.',
+            $sourcePath,
+            $duplicateStatus
+        );
+    }
+
+    private function isDuplicateRedirectException(\Throwable $exception): bool
+    {
+        $message = strtolower($exception->getMessage());
+
+        return str_contains($message, 'duplicate entry')
+            || str_contains($message, 'idx_source_path')
+            || str_contains($message, 'sqlstate[23000]');
     }
 
     /**

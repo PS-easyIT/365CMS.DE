@@ -36,6 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $currentTab = ($_POST['tab'] ?? 'general') === 'content' ? 'content' : 'general';
     if ($action === 'save') {
         $result = $module->saveSettings($_POST);
+    } elseif ($action === 'run_site_url_migration') {
+        $result = $module->runSiteUrlMigration($_POST);
     } elseif ($action === 'repair_imported_slugs') {
         $result = $module->repairImportedSlugs();
     } elseif ($action === 'send_test_email') {

@@ -23,6 +23,7 @@ class SettingsModule
     /** @var array<int,array{table:string,column:string}> */
     private const URL_MIGRATION_TARGETS = [
         ['table' => 'settings', 'column' => 'option_value'],
+        ['table' => 'user_meta', 'column' => 'meta_value'],
         ['table' => 'pages', 'column' => 'content'],
         ['table' => 'pages', 'column' => 'content_en'],
         ['table' => 'pages', 'column' => 'featured_image'],
@@ -33,13 +34,28 @@ class SettingsModule
         ['table' => 'posts', 'column' => 'excerpt_en'],
         ['table' => 'posts', 'column' => 'featured_image'],
         ['table' => 'posts', 'column' => 'meta_description'],
+        ['table' => 'landing_sections', 'column' => 'data'],
+        ['table' => 'plugins', 'column' => 'settings'],
+        ['table' => 'plugin_meta', 'column' => 'meta_value'],
+        ['table' => 'theme_customizations', 'column' => 'setting_value'],
         ['table' => 'site_tables', 'column' => 'description'],
+        ['table' => 'site_tables', 'column' => 'columns_json'],
         ['table' => 'site_tables', 'column' => 'rows_json'],
         ['table' => 'site_tables', 'column' => 'settings_json'],
         ['table' => 'redirect_rules', 'column' => 'target_url'],
         ['table' => 'redirect_rules', 'column' => 'source_path'],
-        ['table' => 'mail_logs', 'column' => 'message_html'],
-        ['table' => 'mail_logs', 'column' => 'message_text'],
+        ['table' => 'messages', 'column' => 'body'],
+        ['table' => 'comments', 'column' => 'content'],
+        ['table' => 'activity_log', 'column' => 'description'],
+        ['table' => 'activity_log', 'column' => 'metadata'],
+        ['table' => 'audit_log', 'column' => 'description'],
+        ['table' => 'audit_log', 'column' => 'metadata'],
+        ['table' => 'mail_log', 'column' => 'error_message'],
+        ['table' => 'mail_log', 'column' => 'meta'],
+        ['table' => 'mail_queue', 'column' => 'body'],
+        ['table' => 'mail_queue', 'column' => 'headers'],
+        ['table' => 'mail_queue', 'column' => 'attachment_path'],
+        ['table' => 'mail_queue', 'column' => 'last_error'],
     ];
 
     private const SETTINGS_KEYS = [
@@ -227,9 +243,15 @@ class SettingsModule
             ];
 
             $oldSiteUrl = rtrim((string)($existingConfig['site_url'] ?? ''), '/');
+            $manualMigrationSource = rtrim((string) filter_var($post['migrate_from_site_url'] ?? '', FILTER_SANITIZE_URL), '/');
+            if ($manualMigrationSource !== '' && filter_var($manualMigrationSource, FILTER_VALIDATE_URL) === false) {
+                return ['success' => false, 'error' => 'Die optionale alte Basis-URL für die Migration ist ungültig.'];
+            }
+
+            $migrationSourceUrl = $manualMigrationSource !== '' ? $manualMigrationSource : $oldSiteUrl;
             $shouldMigrateUrls = !empty($post['migrate_site_url_references'])
-                && $oldSiteUrl !== ''
-                && $oldSiteUrl !== $newSiteUrl;
+                && $migrationSourceUrl !== ''
+                && $migrationSourceUrl !== $newSiteUrl;
 
             $configResult = $this->updateConfigFile($existingConfig, [
                 'site_name' => $values['site_name'],
@@ -263,13 +285,15 @@ class SettingsModule
 
             $migrationSummary = null;
             if ($shouldMigrateUrls) {
-                $migrationSummary = $this->migrateSiteUrls($oldSiteUrl, $newSiteUrl);
+                $migrationSummary = $this->migrateSiteUrls($migrationSourceUrl, $newSiteUrl);
             }
 
             $message = 'Einstellungen gespeichert. Runtime-URL aktualisiert auf ' . $newSiteUrl . '.';
             if (is_array($migrationSummary)) {
+                $migrationSourceLabel = $migrationSourceUrl !== '' ? $migrationSourceUrl : $oldSiteUrl;
                 $message .= sprintf(
-                    ' Absolute URL-Verweise migriert: %d Feld(er) aktualisiert, %d Datensatz/Durchlauf(e) betroffen.',
+                    ' Absolute URL-Verweise von %s migriert: %d Feld(er) aktualisiert, %d Datensatz/Durchlauf(e) betroffen.',
+                    $migrationSourceLabel !== '' ? $migrationSourceLabel : 'der alten Basis-URL',
                     (int)($migrationSummary['columns_updated'] ?? 0),
                     (int)($migrationSummary['rows_affected'] ?? 0)
                 );
@@ -281,10 +305,63 @@ class SettingsModule
         }
     }
 
+    public function runSiteUrlMigration(array $post): array
+    {
+        try {
+            $existingConfig = $this->parseExistingConfig();
+            if ($existingConfig === false) {
+                return ['success' => false, 'error' => 'Die zentrale Konfigurationsdatei konnte nicht gelesen werden.'];
+            }
+
+            $settings = $this->loadSettings();
+            $defaultTargetUrl = rtrim((string) ($settings['site_url'] ?? $existingConfig['site_url'] ?? (defined('SITE_URL') ? SITE_URL : '')), '/');
+            $targetSiteUrl = rtrim((string) filter_var($post['site_url'] ?? $defaultTargetUrl, FILTER_SANITIZE_URL), '/');
+
+            if ($targetSiteUrl === '' || filter_var($targetSiteUrl, FILTER_VALIDATE_URL) === false) {
+                return ['success' => false, 'error' => 'Bitte eine gültige Ziel-Website-URL angeben.'];
+            }
+
+            $manualMigrationSource = rtrim((string) filter_var($post['migrate_from_site_url'] ?? '', FILTER_SANITIZE_URL), '/');
+            if ($manualMigrationSource !== '' && filter_var($manualMigrationSource, FILTER_VALIDATE_URL) === false) {
+                return ['success' => false, 'error' => 'Die optionale alte Basis-URL für die Migration ist ungültig.'];
+            }
+
+            $fallbackSourceUrl = rtrim((string) ($existingConfig['site_url'] ?? ''), '/');
+            $migrationSourceUrl = $manualMigrationSource !== ''
+                ? $manualMigrationSource
+                : ($fallbackSourceUrl !== $targetSiteUrl ? $fallbackSourceUrl : '');
+
+            if ($migrationSourceUrl === '') {
+                return ['success' => false, 'error' => 'Bitte eine alte Basis-URL für die Nachmigration eintragen.'];
+            }
+
+            if ($migrationSourceUrl === $targetSiteUrl) {
+                return ['success' => false, 'error' => 'Alte Basis-URL und Ziel-Website-URL dürfen nicht identisch sein.'];
+            }
+
+            $migrationSummary = $this->migrateSiteUrls($migrationSourceUrl, $targetSiteUrl);
+
+            return [
+                'success' => true,
+                'message' => sprintf(
+                    'URL-Nachmigration ausgeführt: Verweise von %s auf %s geprüft. %d Feld(er) aktualisiert, %d Datensatz/Durchlauf(e) betroffen.',
+                    $migrationSourceUrl,
+                    $targetSiteUrl,
+                    (int) ($migrationSummary['columns_updated'] ?? 0),
+                    (int) ($migrationSummary['rows_affected'] ?? 0)
+                ),
+            ];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'URL-Nachmigration fehlgeschlagen: ' . $e->getMessage()];
+        }
+    }
+
     /** @return array{columns_updated:int,rows_affected:int} */
     private function migrateSiteUrls(string $oldUrl, string $newUrl): array
     {
         $summary = ['columns_updated' => 0, 'rows_affected' => 0];
+        $quotedOldUrl = $this->encodeUrlForJsonStorage($oldUrl);
+        $quotedNewUrl = $this->encodeUrlForJsonStorage($newUrl);
 
         foreach (self::URL_MIGRATION_TARGETS as $target) {
             $table = $target['table'];
@@ -294,8 +371,20 @@ class SettingsModule
                 continue;
             }
 
-            $sql = "UPDATE {$this->prefix}{$table} SET {$column} = REPLACE({$column}, ?, ?) WHERE {$column} LIKE ?";
-            $this->db->execute($sql, [$oldUrl, $newUrl, '%' . $oldUrl . '%']);
+            $quotedTable = $this->quoteIdentifier($this->prefix . $table);
+            $quotedColumn = $this->quoteIdentifier($column);
+
+            $sql = "UPDATE {$quotedTable}
+                    SET {$quotedColumn} = REPLACE(REPLACE({$quotedColumn}, ?, ?), ?, ?)
+                    WHERE {$quotedColumn} LIKE ? OR {$quotedColumn} LIKE ?";
+            $this->db->execute($sql, [
+                $quotedOldUrl,
+                $quotedNewUrl,
+                $oldUrl,
+                $newUrl,
+                '%' . $quotedOldUrl . '%',
+                '%' . $oldUrl . '%',
+            ]);
 
             $affected = $this->extractAffectedRows();
             if ($affected > 0) {
@@ -315,6 +404,16 @@ class SettingsModule
         } catch (\Throwable) {
             return 0;
         }
+    }
+
+    private function encodeUrlForJsonStorage(string $url): string
+    {
+        return str_replace('/', '\\/', $url);
+    }
+
+    private function quoteIdentifier(string $identifier): string
+    {
+        return '`' . str_replace('`', '``', $identifier) . '`';
     }
 
     private function columnExists(string $table, string $column): bool
