@@ -247,13 +247,36 @@ class ThemeManager
     }
 
     /**
+     * Rendert eine Theme-Datei mit validiertem lokalen Scope statt globalem extract().
+     *
+     * @param array<string,mixed> $data
+     */
+    private function renderScopedFile(string $file, array $data = []): void
+    {
+        $render = static function (string $__cmsFile, array $__cmsVars): void {
+            foreach ($__cmsVars as $__cmsKey => $__cmsValue) {
+                if (!is_string($__cmsKey) || preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $__cmsKey) !== 1) {
+                    continue;
+                }
+
+                if (in_array($__cmsKey, ['__cmsFile', '__cmsVars', 'render'], true)) {
+                    continue;
+                }
+
+                ${$__cmsKey} = $__cmsValue;
+            }
+
+            include $__cmsFile;
+        };
+
+        $render($file, $data);
+    }
+
+    /**
      * Render template
      */
     public function render(string $template, array $data = []): void
     {
-        // Extract data for template – EXTR_SKIP verhindert das Überschreiben existierender Variablen (LFI-Schutz)
-        extract($data, EXTR_SKIP);
-        
         // Allow plugins to modify template
         $template = Hooks::applyFilters('template_name', $template);
         
@@ -269,13 +292,13 @@ class ThemeManager
                 Hooks::doAction('before_render', $template);
                 
                 // Include header
-                $this->getHeader();
+                $this->getHeader($data);
                 
                 // Include template
-                include $file;
+                $this->renderScopedFile($file, $data);
                 
                 // Include footer
-                $this->getFooter();
+                $this->getFooter($data);
                 
                 // Track page view (for analytics)
                 $this->trackPageView($template, $data);
@@ -333,12 +356,12 @@ class ThemeManager
     /**
      * Get header
      */
-    public function getHeader(): void
+    public function getHeader(array $data = []): void
     {
         $headerFile = $this->themePath . 'header.php';
         if (file_exists($headerFile)) {
             Hooks::doAction('before_header');
-            include $headerFile;
+            $this->renderScopedFile($headerFile, $data);
             Hooks::doAction('after_header');
         }
     }
@@ -346,12 +369,12 @@ class ThemeManager
     /**
      * Get footer
      */
-    public function getFooter(): void
+    public function getFooter(array $data = []): void
     {
         $footerFile = $this->themePath . 'footer.php';
         if (file_exists($footerFile)) {
             Hooks::doAction('before_footer');
-            include $footerFile;
+            $this->renderScopedFile($footerFile, $data);
             Hooks::doAction('body_end');
             Hooks::doAction('after_footer');
         }
