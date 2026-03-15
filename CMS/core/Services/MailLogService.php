@@ -108,10 +108,26 @@ class MailLogService
             $params
         );
 
-        $rows = $this->db->get_results(
-            "SELECT * FROM {$this->prefix}mail_log {$whereSql} ORDER BY created_at DESC LIMIT {$limit} OFFSET {$offset}",
-            $params
-        ) ?: [];
+        $stmt = $this->db->prepare(
+            "SELECT * FROM {$this->prefix}mail_log {$whereSql} ORDER BY created_at DESC LIMIT ? OFFSET ?"
+        );
+
+        $bindIndex = 1;
+        foreach ($params as $param) {
+            if (is_int($param)) {
+                $stmt->bindValue($bindIndex, $param, \PDO::PARAM_INT);
+            } elseif ($param === null) {
+                $stmt->bindValue($bindIndex, null, \PDO::PARAM_NULL);
+            } else {
+                $stmt->bindValue($bindIndex, (string) $param, \PDO::PARAM_STR);
+            }
+            $bindIndex++;
+        }
+
+        $stmt->bindValue($bindIndex, $limit, \PDO::PARAM_INT);
+        $stmt->bindValue($bindIndex + 1, $offset, \PDO::PARAM_INT);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(\PDO::FETCH_OBJ) ?: [];
 
         return [
             'rows' => $rows,

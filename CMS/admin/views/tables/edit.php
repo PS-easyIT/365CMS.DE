@@ -38,7 +38,7 @@ $settings    = $table['settings'] ?? $defaults;
             </div>
             <?php if (!$isNew): ?>
                 <div class="col-auto">
-                    <span class="badge bg-azure-lt">Shortcode: [site-table id="<?php echo (int)$table['id']; ?>"]</span>
+                    <span class="badge bg-azure-lt">Shortcodes: [site-table id="<?php echo (int)$table['id']; ?>"] · [table id=<?php echo (int)$table['id']; ?> /]</span>
                 </div>
             <?php endif; ?>
         </div>

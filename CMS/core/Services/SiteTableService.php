@@ -47,12 +47,12 @@ final class SiteTableService
 
     public function replaceShortcodes(string $content): string
     {
-        if (!str_contains($content, '[site-table') && !str_contains($content, '[hub-site')) {
+        if (!str_contains($content, '[site-table') && !str_contains($content, '[table') && !str_contains($content, '[hub-site')) {
             return $content;
         }
 
         $content = (string) preg_replace_callback(
-            '/\[site-table\s+id\s*=\s*["\']?(\d+)["\']?\s*\]/i',
+            '/\[(?:site-table|table)\s+id\s*=\s*["\']?(\d+)["\']?\s*\/?\]/i',
             fn(array $matches): string => $this->renderTableById((int) ($matches[1] ?? 0)),
             $content
         );

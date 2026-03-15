@@ -100,7 +100,7 @@
 
 | Bereich | Dokumente |
 |---|---|
-| Audits | `DOC/audits/*.md` |
+| Audits | `DOC/audit/*.md` |
 | Feature-Konzepte | `DOC/feature/*.md` |
 | Workflows | `DOC/workflow/*.md` |
 
@@ -109,8 +109,8 @@ Diese Dokumente enthalten teils Planungs- oder Bewertungsstände. Für aktuelle 
 | Dokument | Inhalt |
 |----------|--------|
 | [AUDIT_FACHBEREICHE.md](audit/AUDIT_FACHBEREICHE.md) | Konsolidierter Fachbericht für Core, Feature-Reife, Performance und Sicherheit |
-| [PLUGIN-AUDIT.md](audits/PLUGIN-AUDIT.md) | Plugin-System-Audit (Score: 5.1/10) |
-| [THEME-AUDIT.md](audits/THEME-AUDIT.md) | Theme-System-Audit (Score: 4.7/10) |
+| [GESAMT-AUDIT_TODO.md](audit/GESAMT-AUDIT_TODO.md) | Zentrale ToDo-Sammelliste für Core- und Plugin-Auditpunkte (Stand: 15.03.2026) |
+| [NACHARBEIT_AUDIT_ToDo.md](audit/NACHARBEIT_AUDIT_ToDo.md) | Konsolidierte Nacharbeiten aus bestehenden CMS-/Theme-Audits |
 
 ---
 

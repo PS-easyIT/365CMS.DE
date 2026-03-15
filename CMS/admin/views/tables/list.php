@@ -70,7 +70,7 @@ $search = $data['search'] ?? '';
             <div class="card-header">
                 <div class="row w-100 g-2 align-items-center">
                     <div class="col">
-                        <span class="text-secondary">Shortcode: <code>[site-table id="X"]</code></span>
+                        <span class="text-secondary">Shortcodes: <code>[site-table id="X"]</code> oder <code>[table id=X /]</code></span>
                     </div>
                     <div class="col-auto">
                         <div class="input-icon">
@@ -115,7 +115,11 @@ $search = $data['search'] ?? '';
                                     <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/site-tables?action=edit&id=<?php echo (int)$t['id']; ?>" class="text-reset font-weight-medium">
                                         <?php echo htmlspecialchars($t['table_name']); ?>
                                     </a>
-                                    <div class="text-secondary small"><code>[site-table id="<?php echo (int)$t['id']; ?>"]</code></div>
+                                    <div class="text-secondary small">
+                                        <code>[site-table id="<?php echo (int)$t['id']; ?>"]</code>
+                                        <span aria-hidden="true">·</span>
+                                        <code>[table id=<?php echo (int)$t['id']; ?> /]</code>
+                                    </div>
                                 </td>
                                 <td class="text-secondary text-truncate" style="max-width:200px;"><?php echo htmlspecialchars($t['description'] ?? ''); ?></td>
                                 <td><?php echo (int)($t['col_count'] ?? 0); ?></td>

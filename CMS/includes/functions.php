@@ -309,12 +309,96 @@ function update_option(string $key, $value): bool {
 /**
  * Redirect helper
  */
-function redirect(string $url): void {
-    if (strpos($url, 'http') !== 0) {
-        $url = SITE_URL . $url;
+function cms_get_site_origin(): string {
+    $siteUrl = defined('SITE_URL') ? rtrim((string) SITE_URL, '/') : '';
+    if ($siteUrl === '') {
+        return '';
     }
-    header('Location: ' . $url);
+
+    $parts = parse_url($siteUrl);
+    if (!is_array($parts) || empty($parts['scheme']) || empty($parts['host'])) {
+        return '';
+    }
+
+    $port = isset($parts['port']) ? ':' . (int) $parts['port'] : '';
+
+    return strtolower((string) $parts['scheme']) . '://' . strtolower((string) $parts['host']) . $port;
+}
+
+/**
+ * Normalisiert Redirect-Ziele auf interne URLs.
+ */
+function cms_normalize_redirect_target(string $url, bool $allowExternal = false): ?string {
+    $candidate = trim($url);
+    if ($candidate === '') {
+        return null;
+    }
+
+    $stripped = strtolower((string) preg_replace('/[\x00-\x1f\s]/', '', $candidate));
+    if (preg_match('/^(javascript|data|vbscript|file):/i', $stripped)) {
+        return null;
+    }
+
+    if (filter_var($candidate, FILTER_VALIDATE_URL)) {
+        $parts = parse_url($candidate);
+        if (!is_array($parts) || empty($parts['scheme']) || empty($parts['host'])) {
+            return null;
+        }
+
+        $scheme = strtolower((string) $parts['scheme']);
+        if (!in_array($scheme, ['http', 'https'], true)) {
+            return null;
+        }
+
+        $targetOrigin = $scheme . '://' . strtolower((string) $parts['host']) . (isset($parts['port']) ? ':' . (int) $parts['port'] : '');
+        $siteOrigin = cms_get_site_origin();
+
+        if (!$allowExternal && $siteOrigin !== '' && $targetOrigin !== $siteOrigin) {
+            return null;
+        }
+
+        return $candidate;
+    }
+
+    $siteUrl = defined('SITE_URL') ? rtrim((string) SITE_URL, '/') : '';
+    if ($siteUrl === '') {
+        return str_starts_with($candidate, '/') ? $candidate : '/' . ltrim($candidate, '/');
+    }
+
+    if (str_starts_with($candidate, '//')) {
+        return null;
+    }
+
+    if (str_starts_with($candidate, '/')) {
+        return $siteUrl . $candidate;
+    }
+
+    if (str_starts_with($candidate, '?') || str_starts_with($candidate, '#')) {
+        return $siteUrl . '/' . $candidate;
+    }
+
+    return $siteUrl . '/' . ltrim($candidate, '/');
+}
+
+/**
+ * Führt einen sicheren Redirect aus.
+ */
+function safe_redirect(string $url, int $status = 302, bool $allowExternal = false): void {
+    $target = cms_normalize_redirect_target($url, $allowExternal);
+    if ($target === null) {
+        $target = cms_normalize_redirect_target('/', true) ?? '/';
+        error_log('CMS: Blocked redirect target "' . $url . '"');
+    }
+
+    header('Location: ' . $target, true, $status);
     exit;
+}
+
+/**
+ * Redirect helper
+ */
+function redirect(string $url, int $status = 302): void {
+    safe_redirect($url, $status);
 }
 
 /**
@@ -1139,7 +1223,13 @@ function wp_die(string $message = '', int $code = 500): void {
  * Redirect
  */
 function wp_redirect(string $location, int $status = 302): void {
-    redirect($location);
+    safe_redirect($location, $status);
+}
+
+if ( ! function_exists('wp_safe_redirect') ) {
+    function wp_safe_redirect(string $location, int $status = 302): void {
+        safe_redirect($location, $status);
+    }
 }
 
 /**
