@@ -86,3 +86,4 @@ DOC/audit/
 tests/
 .github/workflows/
 DOC/assets/VENDOR-NETWORK-PATHS.md
+CMS/tmp-m365lic-quantity-test.php
