@@ -15,6 +15,7 @@ use CMS\Database;
 use CMS\Router;
 use CMS\Security;
 use CMS\Services;
+use CMS\Version;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -52,7 +53,7 @@ final class ApiRouter
         header('Content-Type: application/json');
         echo json_encode([
             'status' => 'ok',
-            'version' => defined('CMS_VERSION') ? CMS_VERSION : '2.5.30',
+            'version' => defined('CMS_VERSION') ? CMS_VERSION : Version::CURRENT,
         ]);
         exit;
     }

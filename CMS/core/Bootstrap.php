@@ -252,6 +252,7 @@ class Bootstrap
     private function loadDependencies(): void
     {
         require_once CORE_PATH . 'Debug.php';
+        require_once CORE_PATH . 'Version.php';
         require_once CORE_PATH . 'Container.php';
         require_once CORE_PATH . 'Database.php';
         require_once CORE_PATH . 'Security.php';
@@ -308,7 +309,7 @@ class Bootstrap
      */
     private function ensureConstants(): void
     {
-        defined('CMS_VERSION')   || define('CMS_VERSION',   '2.5.30');
+        defined('CMS_VERSION')   || define('CMS_VERSION',   Version::CURRENT);
         defined('CMS_MIN_PHP_VERSION') || define('CMS_MIN_PHP_VERSION', '8.4.0');
         defined('SITE_NAME')     || define('SITE_NAME',     'CMS');
         defined('SITE_URL')      || define('SITE_URL',      '');

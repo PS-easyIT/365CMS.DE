@@ -557,7 +557,7 @@ define('NONCE_KEY',       '{$escape($data['nonce_key'])}');
 define('SITE_NAME',    '{$escape($data['site_name'])}');
 define('SITE_URL',     '{$escape(rtrim($data['site_url'], '/'))}');
 define('ADMIN_EMAIL',  '{$escape($data['admin_email'])}');
-define('CMS_VERSION',  '2.5.30');
+define('CMS_VERSION',  '2.6.0');
 
 define('CORE_PATH',   ABSPATH . 'core/');
 define('THEME_PATH',  ABSPATH . 'themes/');

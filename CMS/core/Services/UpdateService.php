@@ -16,6 +16,7 @@ use CMS\Database;
 use CMS\Http\Client as HttpClient;
 use CMS\Json;
 use CMS\PluginManager;
+use CMS\Version;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -93,7 +94,7 @@ class UpdateService
      */
     public function checkCoreUpdates(): array
     {
-        $currentVersion = CMS_VERSION ?? '2.5.30';
+        $currentVersion = CMS_VERSION ?? Version::CURRENT;
         
         // Check cache first
         $cacheKey = 'core_update_check';

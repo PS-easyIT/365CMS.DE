@@ -1,5 +1,5 @@
 # 365CMS – Projektdokumentation
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-16 | **Version:** 2.6.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Womit ihr anfangen solltet](#womit-ihr-anfangen-solltet)
@@ -9,7 +9,7 @@
 - [Verwandte Einstiege](#verwandte-einstiege)
 
 ---
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-16 -->
 
 ## Womit ihr anfangen solltet
 
@@ -17,6 +17,7 @@
 |---|---|
 | das System neu aufsetzt | [INSTALLATION.md](INSTALLATION.md) |
 | die Projektstruktur verstehen wollt | [core/ARCHITECTURE.md](core/ARCHITECTURE.md) |
+| einen Release-Snapshot des Core wollt | [core/STRUCTURE.md](core/STRUCTURE.md) |
 | das Admin-Panel nutzt | [admin/README.md](admin/README.md) |
 | den Member-Bereich betreut | [member/README.md](member/README.md) |
 | Plugins entwickelt | [plugins/PLUGIN-DEVELOPMENT.md](plugins/PLUGIN-DEVELOPMENT.md) |

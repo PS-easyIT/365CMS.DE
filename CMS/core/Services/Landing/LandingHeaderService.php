@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace CMS\Services\Landing;
 
 use CMS\Json;
+use CMS\Version;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -47,7 +48,7 @@ final class LandingHeaderService
                 'github_text' => $data['github_text'] ?? '💻 GitHub Projekt',
                 'gitlab_url' => $data['gitlab_url'] ?? '',
                 'gitlab_text' => $data['gitlab_text'] ?? '🦊 GitLab Projekt',
-                'version' => $data['version'] ?? (defined('CMS_VERSION') ? CMS_VERSION : '2.5.30'),
+                'version' => $data['version'] ?? (defined('CMS_VERSION') ? CMS_VERSION : Version::CURRENT),
                 'logo' => $data['logo'] ?? '',
                 'colors' => is_array($data['colors'] ?? null) ? $data['colors'] : $this->defaults->getDefaultColors(),
             ];

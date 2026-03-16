@@ -245,7 +245,7 @@ define('NONCE_KEY',       '{$data['nonce_key']}');
 define('SITE_NAME',   '{$data['site_name']}');
 define('SITE_URL',    '{$data['site_url']}');
 define('ADMIN_EMAIL', '{$data['admin_email']}');
-define('CMS_VERSION', '2.5.30');
+define('CMS_VERSION', '2.6.0');
 
 // ─── Pfade ─────────────────────────────────────────────────────────────────
 define('CORE_PATH',   ABSPATH . 'core/');
@@ -437,7 +437,7 @@ function initializeLandingPageData(PDO $pdo, string $prefix = 'cms_'): bool {
             'description' => '365CMS vereint Content-Management, Design-Anpassung, Mitgliederfunktionen, System-Mails und modulare Business-Features in einer flexiblen Plattform für professionelle Websites und Portale.',
             'github_url' => 'https://github.com/PS-easyIT/WordPress-365network',
             'gitlab_url' => '',
-            'version' => '2.5.30',
+            'version' => '2.6.0',
             'logo' => '',
             'colors' => [
                 'hero_gradient_start' => '#1e293b',

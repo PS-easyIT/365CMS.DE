@@ -9,6 +9,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\Database;
 use CMS\Json;
+use CMS\Version;
 
 /**
  * Dashboard Service - Business Logic für Dashboard-Statistiken
@@ -417,7 +418,7 @@ class DashboardService {
             'mysql_version' => $this->db->get_var("SELECT VERSION()"),
             'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
             'os' => PHP_OS,
-            'cms_version' => defined('CMS_VERSION') ? CMS_VERSION : '2.5.30',
+            'cms_version' => defined('CMS_VERSION') ? CMS_VERSION : Version::CURRENT,
             'server_time' => date('Y-m-d H:i:s'),
             'timezone' => date_default_timezone_get(),
             'max_execution_time' => ini_get('max_execution_time'),

@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace CMS\Services\Landing;
 
+use CMS\Version;
+
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -23,7 +25,7 @@ final class LandingDefaultsProvider
             'github_text' => '💻 GitHub Projekt',
             'gitlab_url' => '',
             'gitlab_text' => '🦊 GitLab Projekt',
-            'version' => defined('CMS_VERSION') ? CMS_VERSION : '2.5.30',
+            'version' => defined('CMS_VERSION') ? CMS_VERSION : Version::CURRENT,
             'colors' => $this->getDefaultColors(),
         ];
     }
