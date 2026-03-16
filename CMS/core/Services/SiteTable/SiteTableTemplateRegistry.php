@@ -63,6 +63,18 @@ final class SiteTableTemplateRegistry
                 ['title' => 'Betriebsmodelle', 'text' => 'Platzhalter für Managed Services, Support-Level, SLA-Modelle und Betriebsverantwortung.', 'actionLabel' => 'Betrieb ansehen', 'actionUrl' => '#betrieb'],
             ],
         ],
+        'general-table' => [
+            'links' => [
+                ['label' => 'Übersicht', 'url' => '#uebersicht'],
+                ['label' => 'Tabellen', 'url' => '#tabellen'],
+                ['label' => 'Vergleiche', 'url' => '#vergleiche'],
+                ['label' => 'Details', 'url' => '#details'],
+            ],
+            'sections' => [
+                ['title' => 'Tabellen-Übersicht', 'text' => 'Platzhalter für allgemeine Referenztabellen, Übersichten und strukturierte Vergleichsansichten.', 'actionLabel' => 'Tabellen öffnen', 'actionUrl' => '#tabellen'],
+                ['title' => 'Fachliche Details', 'text' => 'Platzhalter für erläuternde Texte, Hinweise und weiterführende Informationen unterhalb der Tabellen.', 'actionLabel' => 'Details ansehen', 'actionUrl' => '#details'],
+            ],
+        ],
         'microsoft-365' => [
             'links' => [
                 ['label' => 'Teams', 'url' => '#teams'],
@@ -73,6 +85,18 @@ final class SiteTableTemplateRegistry
             'sections' => [
                 ['title' => 'Collaboration Stack', 'text' => 'Platzhalter für Teams, Exchange, SharePoint und Viva-Szenarien.', 'actionLabel' => 'Workspace öffnen', 'actionUrl' => '#workspace'],
                 ['title' => 'Governance & Adoption', 'text' => 'Platzhalter für Richtlinien, Rollout-Phasen, Schulungen und Governance-Standards.', 'actionLabel' => 'Governance prüfen', 'actionUrl' => '#governance'],
+            ],
+        ],
+        'm365-table' => [
+            'links' => [
+                ['label' => 'Lizenzen', 'url' => '#lizenzen'],
+                ['label' => 'Features', 'url' => '#features'],
+                ['label' => 'Use Cases', 'url' => '#usecases'],
+                ['label' => 'Rollout', 'url' => '#rollout'],
+            ],
+            'sections' => [
+                ['title' => 'Lizenz- & Feature-Tabellen', 'text' => 'Platzhalter für SKU-Vergleiche, Funktionsmatrizen und Workload-Zuordnungen im Tabellenformat.', 'actionLabel' => 'Matrizen öffnen', 'actionUrl' => '#lizenzen'],
+                ['title' => 'Rollout & Use Cases', 'text' => 'Platzhalter für strukturierte Rollout-Tabellen, Verantwortlichkeiten und Business-Nutzen je Szenario.', 'actionLabel' => 'Use Cases ansehen', 'actionUrl' => '#usecases'],
             ],
         ],
         'datenschutz' => [
@@ -111,14 +135,29 @@ final class SiteTableTemplateRegistry
                 ['title' => 'Shell, CI/CD & Hardening', 'text' => 'Platzhalter für Automatisierung, Pipelines, Monitoring und Security-Baselines.', 'actionLabel' => 'Hardening ansehen', 'actionUrl' => '#hardening'],
             ],
         ],
+        'linux-table' => [
+            'links' => [
+                ['label' => 'Server', 'url' => '#server'],
+                ['label' => 'Pakete', 'url' => '#pakete'],
+                ['label' => 'Runbooks', 'url' => '#runbooks'],
+                ['label' => 'Hardening', 'url' => '#hardening'],
+            ],
+            'sections' => [
+                ['title' => 'System- & Paket-Tabellen', 'text' => 'Platzhalter für Paketstände, Systemvarianten, Baselines und technische Vergleichstabellen.', 'actionLabel' => 'Tabellen öffnen', 'actionUrl' => '#pakete'],
+                ['title' => 'Runbooks & Betriebsansichten', 'text' => 'Platzhalter für Wartungsfenster, Betriebsdaten und strukturierte Linux-Runbooks mit Tabellenbezug.', 'actionLabel' => 'Runbooks ansehen', 'actionUrl' => '#runbooks'],
+            ],
+        ],
     ];
 
     private const DEFAULT_TEMPLATE_CARD_DESIGN = [
-        'general-it' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split'],
-        'microsoft-365' => ['layout' => 'feature', 'image_position' => 'left', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split'],
-        'datenschutz' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'contain', 'image_ratio' => 'square', 'meta_layout' => 'stacked'],
-        'compliance' => ['layout' => 'feature', 'image_position' => 'right', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split'],
-        'linux' => ['layout' => 'compact', 'image_position' => 'top', 'image_fit' => 'contain', 'image_ratio' => 'square', 'meta_layout' => 'stacked'],
+        'general-it' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split', 'card_radius' => 20],
+        'general-table' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split', 'card_radius' => 20],
+        'microsoft-365' => ['layout' => 'feature', 'image_position' => 'left', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split', 'card_radius' => 20],
+        'm365-table' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split', 'card_radius' => 20],
+        'datenschutz' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'contain', 'image_ratio' => 'square', 'meta_layout' => 'stacked', 'card_radius' => 20],
+        'compliance' => ['layout' => 'feature', 'image_position' => 'right', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split', 'card_radius' => 20],
+        'linux' => ['layout' => 'compact', 'image_position' => 'top', 'image_fit' => 'contain', 'image_ratio' => 'square', 'meta_layout' => 'stacked', 'card_radius' => 20],
+        'linux-table' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'contain', 'image_ratio' => 'wide', 'meta_layout' => 'split', 'card_radius' => 20],
     ];
 
     private const DEFAULT_META_LABELS = [
@@ -149,9 +188,12 @@ final class SiteTableTemplateRegistry
         }
 
         return $profiles['general-it'] ?? [
+            'label' => 'general-it',
             'base_template' => 'general-it',
+            'summary' => '',
             'meta' => [],
             'meta_labels' => self::DEFAULT_META_LABELS,
+            'navigation' => ['toc_enabled' => false],
             'links' => self::TEMPLATE_PLACEHOLDERS['general-it']['links'],
             'sections' => self::TEMPLATE_PLACEHOLDERS['general-it']['sections'],
             'colors' => $this->getDefaultTemplateColors('general-it'),
@@ -163,81 +205,92 @@ final class SiteTableTemplateRegistry
 
     public function resolveHubLinks(array $settings, array $templateProfile, string $template, string $locale = 'de'): array
     {
-        $configuredLinks = $this->normalizeHubLinks(
-            $this->decodeConfiguredArray((string) ($settings['hub_links_json'] ?? '[]')),
-            $template
-        );
-        if ($configuredLinks !== []) {
-            return $configuredLinks;
-        }
-
         $links = $locale !== 'de' && is_array($templateProfile['links_' . $locale] ?? null)
             ? ($templateProfile['links_' . $locale] ?? [])
             : ($templateProfile['links'] ?? []);
 
-        return $this->normalizeHubLinks(is_array($links) ? $links : [], $template);
+        return $this->normalizeHubLinks(is_array($links) ? $links : [], '');
     }
 
     public function resolveHubSections(array $settings, array $templateProfile, string $template, string $locale = 'de'): array
     {
-        $configuredSections = $this->normalizeHubSections(
-            $this->decodeConfiguredArray((string) ($settings['hub_sections_json'] ?? '[]')),
-            $template
-        );
-        if ($configuredSections !== []) {
-            return $configuredSections;
-        }
-
         $sections = $locale !== 'de' && is_array($templateProfile['sections_' . $locale] ?? null)
             ? ($templateProfile['sections_' . $locale] ?? [])
             : ($templateProfile['sections'] ?? []);
 
-        return $this->normalizeHubSections(is_array($sections) ? $sections : [], $template);
+        return $this->normalizeHubSections(is_array($sections) ? $sections : [], '');
     }
 
     public function resolveHubCardDesign(array $settings, array $templateProfile, string $template): array
     {
         $defaultDesign = self::DEFAULT_TEMPLATE_CARD_DESIGN[$template] ?? self::DEFAULT_TEMPLATE_CARD_DESIGN['general-it'];
         $profileDesign = is_array($templateProfile['card_design'] ?? null) ? $templateProfile['card_design'] : [];
+        $genericDefaultDesign = [
+            'layout' => 'standard',
+            'image_position' => 'top',
+            'image_fit' => 'cover',
+            'image_ratio' => 'wide',
+            'meta_layout' => 'split',
+            'card_radius' => 20,
+        ];
+
+        $storedDesign = [
+            'layout' => (string) ($settings['hub_card_layout'] ?? ''),
+            'image_position' => (string) ($settings['hub_card_image_position'] ?? ''),
+            'image_fit' => (string) ($settings['hub_card_image_fit'] ?? ''),
+            'image_ratio' => (string) ($settings['hub_card_image_ratio'] ?? ''),
+            'meta_layout' => (string) ($settings['hub_card_meta_layout'] ?? ''),
+            'card_radius' => (int) ($settings['hub_card_radius'] ?? 0),
+        ];
+
+        $hasStoredCardDesign = false;
+        foreach ($storedDesign as $value) {
+            if ($value !== '') {
+                $hasStoredCardDesign = true;
+                break;
+            }
+        }
+
+        $useStoredCardDesign = $hasStoredCardDesign && $storedDesign !== $genericDefaultDesign;
 
         return [
             'layout' => $this->normalizeOption(
-                (string) ($settings['hub_card_layout'] ?? ($profileDesign['layout'] ?? $defaultDesign['layout'] ?? 'standard')),
+                $useStoredCardDesign ? $storedDesign['layout'] : (string) ($profileDesign['layout'] ?? $defaultDesign['layout'] ?? 'standard'),
                 ['standard', 'feature', 'compact'],
                 'standard'
             ),
             'image_position' => $this->normalizeOption(
-                (string) ($settings['hub_card_image_position'] ?? ($profileDesign['image_position'] ?? $defaultDesign['image_position'] ?? 'top')),
+                $useStoredCardDesign ? $storedDesign['image_position'] : (string) ($profileDesign['image_position'] ?? $defaultDesign['image_position'] ?? 'top'),
                 ['top', 'left', 'right'],
                 'top'
             ),
             'image_fit' => $this->normalizeOption(
-                (string) ($settings['hub_card_image_fit'] ?? ($profileDesign['image_fit'] ?? $defaultDesign['image_fit'] ?? 'cover')),
+                $useStoredCardDesign ? $storedDesign['image_fit'] : (string) ($profileDesign['image_fit'] ?? $defaultDesign['image_fit'] ?? 'cover'),
                 ['cover', 'contain'],
                 'cover'
             ),
             'image_ratio' => $this->normalizeOption(
-                (string) ($settings['hub_card_image_ratio'] ?? ($profileDesign['image_ratio'] ?? $defaultDesign['image_ratio'] ?? 'wide')),
+                $useStoredCardDesign ? $storedDesign['image_ratio'] : (string) ($profileDesign['image_ratio'] ?? $defaultDesign['image_ratio'] ?? 'wide'),
                 ['wide', 'square', 'portrait'],
                 'wide'
             ),
             'meta_layout' => $this->normalizeOption(
-                (string) ($settings['hub_card_meta_layout'] ?? ($profileDesign['meta_layout'] ?? $defaultDesign['meta_layout'] ?? 'split')),
+                $useStoredCardDesign ? $storedDesign['meta_layout'] : (string) ($profileDesign['meta_layout'] ?? $defaultDesign['meta_layout'] ?? 'split'),
                 ['split', 'stacked'],
                 'split'
+            ),
+            'card_radius' => $this->normalizeNumber(
+                $useStoredCardDesign ? (int) $storedDesign['card_radius'] : (int) ($profileDesign['card_radius'] ?? $defaultDesign['card_radius'] ?? 20),
+                0,
+                48,
+                20
             ),
         ];
     }
 
     public function buildHubMetaItems(array $settings, string $template, array $profile = [], string $locale = 'de'): array
     {
-        $defaults = [
-            'general-it' => ['audience' => 'IT-Leitung', 'owner' => 'IT-Operations', 'cycle' => 'Monatlich', 'focus' => 'Architektur & Betrieb', 'kpi' => 'Servicequalität'],
-            'microsoft-365' => ['audience' => 'Workspace & Modern Work', 'owner' => 'M365-Team', 'cycle' => '14-tägig', 'focus' => 'Adoption & Governance', 'kpi' => 'Nutzungsquote'],
-            'datenschutz' => ['audience' => 'DSB & Fachbereiche', 'owner' => 'Datenschutz', 'cycle' => 'Quartalsweise', 'focus' => 'Nachweise & Prozesse', 'kpi' => 'Bearbeitungsstatus'],
-            'compliance' => ['audience' => 'Management & Audit', 'owner' => 'Compliance Office', 'cycle' => 'Monatlich', 'focus' => 'Kontrollen & Policies', 'kpi' => 'Audit-Readiness'],
-            'linux' => ['audience' => 'Admins & Platform Team', 'owner' => 'Platform Engineering', 'cycle' => 'Wöchentlich', 'focus' => 'Automatisierung & Hardening', 'kpi' => 'Deployment-Health'],
-        ][$template] ?? [];
+        $profileMeta = is_array($profile['meta'] ?? null) ? $profile['meta'] : [];
 
         $defaultLabels = $locale === 'en'
             ? ['audience' => 'Audience', 'owner' => 'Owner', 'update_cycle' => 'Update cycle', 'focus' => 'Focus', 'kpi' => 'KPI']
@@ -249,11 +302,11 @@ final class SiteTableTemplateRegistry
         $contentLanguage = $this->getTemplateContentLanguage($template, $locale);
 
         $map = [
-            'audience' => ['label' => (string) ($labels['audience'] ?? 'Zielgruppe'), 'value' => trim((string) ($settings['hub_meta_audience'] ?? '')) ?: (string) ($defaults['audience'] ?? '')],
-            'owner' => ['label' => (string) ($labels['owner'] ?? 'Verantwortlich'), 'value' => trim((string) ($settings['hub_meta_owner'] ?? '')) ?: (string) ($defaults['owner'] ?? '')],
-            'update_cycle' => ['label' => (string) ($labels['update_cycle'] ?? 'Update-Zyklus'), 'value' => trim((string) ($settings['hub_meta_update_cycle'] ?? '')) ?: (string) ($defaults['cycle'] ?? '')],
-            'focus' => ['label' => (string) ($labels['focus'] ?? 'Fokus'), 'value' => trim((string) ($settings['hub_meta_focus'] ?? '')) ?: (string) ($defaults['focus'] ?? '')],
-            'kpi' => ['label' => (string) ($labels['kpi'] ?? 'KPI'), 'value' => trim((string) ($settings['hub_meta_kpi'] ?? '')) ?: (string) ($defaults['kpi'] ?? '')],
+            'audience' => ['label' => (string) ($labels['audience'] ?? 'Zielgruppe'), 'value' => trim((string) ($settings['hub_meta_audience'] ?? '')) ?: trim((string) ($profileMeta['audience'] ?? ''))],
+            'owner' => ['label' => (string) ($labels['owner'] ?? 'Verantwortlich'), 'value' => trim((string) ($settings['hub_meta_owner'] ?? '')) ?: trim((string) ($profileMeta['owner'] ?? ''))],
+            'update_cycle' => ['label' => (string) ($labels['update_cycle'] ?? 'Update-Zyklus'), 'value' => trim((string) ($settings['hub_meta_update_cycle'] ?? '')) ?: trim((string) ($profileMeta['update_cycle'] ?? ''))],
+            'focus' => ['label' => (string) ($labels['focus'] ?? 'Fokus'), 'value' => trim((string) ($settings['hub_meta_focus'] ?? '')) ?: trim((string) ($profileMeta['focus'] ?? ''))],
+            'kpi' => ['label' => (string) ($labels['kpi'] ?? 'KPI'), 'value' => trim((string) ($settings['hub_meta_kpi'] ?? '')) ?: trim((string) ($profileMeta['kpi'] ?? ''))],
         ];
 
         $items = [];
@@ -272,9 +325,10 @@ final class SiteTableTemplateRegistry
         return array_slice($items, 0, 5);
     }
 
-    public function buildHubStyleVariables(array $colors): string
+    public function buildHubStyleVariables(array $colors, array $cardDesign = []): string
     {
         $palette = array_merge($this->getDefaultTemplateColors('general-it'), $colors);
+        $cardRadius = $this->normalizeNumber((int) ($cardDesign['card_radius'] ?? 20), 0, 48, 20);
 
         $pairs = [
             '--cms-hub-hero-start' => $this->normalizeColorValue((string) ($palette['hero_start'] ?? '#1f2937'), '#1f2937'),
@@ -284,6 +338,7 @@ final class SiteTableTemplateRegistry
             '--cms-hub-card-bg' => $this->normalizeColorValue((string) ($palette['card_background'] ?? '#ffffff'), '#ffffff'),
             '--cms-hub-card-text' => $this->normalizeColorValue((string) ($palette['card_text'] ?? '#0f172a'), '#0f172a'),
             '--cms-hub-section-bg' => $this->normalizeColorValue((string) ($palette['section_background'] ?? '#ffffff'), '#ffffff'),
+            '--cms-hub-card-radius' => $cardRadius . 'px',
         ];
 
         $chunks = [];
@@ -306,6 +361,14 @@ final class SiteTableTemplateRegistry
                     'section_modifiers' => ['spotlight', 'stacked'],
                     'section_notes' => ['Workloads & journeys', 'Policies & rollout'],
                 ],
+                'm365-table' => [
+                    'meta_icons' => ['audience' => '◈', 'owner' => '☁', 'update_cycle' => '↺', 'focus' => '▦', 'kpi' => '↑'],
+                    'quicklink_icons' => ['L', 'F', 'U', 'R'],
+                    'section_eyebrows' => ['Matrizen', 'Use Cases'],
+                    'section_icons' => ['▦', '✓'],
+                    'section_modifiers' => ['spotlight', 'stacked'],
+                    'section_notes' => ['Tabellen & Vergleiche', 'Rollout & Nutzen'],
+                ],
                 'datenschutz' => [
                     'meta_icons' => ['audience' => '§', 'owner' => '⚖', 'update_cycle' => '⏱', 'focus' => '✓', 'kpi' => '▣'],
                     'quicklink_icons' => ['§', 'V', 'T', 'R'],
@@ -321,6 +384,22 @@ final class SiteTableTemplateRegistry
                     'section_icons' => ['⌘', '>'],
                     'section_modifiers' => ['terminal', 'terminal'],
                     'section_notes' => ['$ health=ok', '$ status=watch'],
+                ],
+                'linux-table' => [
+                    'meta_icons' => ['audience' => '⌘', 'owner' => '#', 'update_cycle' => '↻', 'focus' => '▦', 'kpi' => '●'],
+                    'quicklink_icons' => ['#', 'P', '>', '!'],
+                    'section_eyebrows' => ['Tabellen', 'Runbooks'],
+                    'section_icons' => ['▦', '>'],
+                    'section_modifiers' => ['terminal', 'terminal'],
+                    'section_notes' => ['$ tables=ok', '$ runbooks=ready'],
+                ],
+                'general-table' => [
+                    'meta_icons' => ['audience' => '◎', 'owner' => '◆', 'update_cycle' => '↺', 'focus' => '▦', 'kpi' => '▲'],
+                    'quicklink_icons' => ['Ü', 'T', 'V', 'D'],
+                    'section_eyebrows' => ['Tabellen', 'Details'],
+                    'section_icons' => ['▦', '▲'],
+                    'section_modifiers' => ['spotlight', 'stacked'],
+                    'section_notes' => ['Übersichten & Vergleiche', 'Details & Hinweise'],
                 ],
                 'compliance' => [
                     'meta_icons' => ['audience' => '◎', 'owner' => '◆', 'update_cycle' => '↺', 'focus' => '◌', 'kpi' => '▲'],
@@ -350,6 +429,14 @@ final class SiteTableTemplateRegistry
                 'section_modifiers' => ['spotlight', 'stacked'],
                 'section_notes' => ['Workloads & Journeys', 'Policies & Rollout'],
             ],
+            'm365-table' => [
+                'meta_icons' => ['audience' => '◈', 'owner' => '☁', 'update_cycle' => '↺', 'focus' => '▦', 'kpi' => '↑'],
+                'quicklink_icons' => ['L', 'F', 'U', 'R'],
+                'section_eyebrows' => ['Matrizen', 'Use Cases'],
+                'section_icons' => ['▦', '✓'],
+                'section_modifiers' => ['spotlight', 'stacked'],
+                'section_notes' => ['Tabellen & Vergleiche', 'Rollout & Nutzen'],
+            ],
             'datenschutz' => [
                 'meta_icons' => ['audience' => '§', 'owner' => '⚖', 'update_cycle' => '⏱', 'focus' => '✓', 'kpi' => '▣'],
                 'quicklink_icons' => ['§', 'V', 'T', 'R'],
@@ -365,6 +452,22 @@ final class SiteTableTemplateRegistry
                 'section_icons' => ['⌘', '>'],
                 'section_modifiers' => ['terminal', 'terminal'],
                 'section_notes' => ['$ health=ok', '$ status=watch'],
+            ],
+            'linux-table' => [
+                'meta_icons' => ['audience' => '⌘', 'owner' => '#', 'update_cycle' => '↻', 'focus' => '▦', 'kpi' => '●'],
+                'quicklink_icons' => ['#', 'P', '>', '!'],
+                'section_eyebrows' => ['Tabellen', 'Runbooks'],
+                'section_icons' => ['▦', '>'],
+                'section_modifiers' => ['terminal', 'terminal'],
+                'section_notes' => ['$ tables=ok', '$ runbooks=ready'],
+            ],
+            'general-table' => [
+                'meta_icons' => ['audience' => '◎', 'owner' => '◆', 'update_cycle' => '↺', 'focus' => '▦', 'kpi' => '▲'],
+                'quicklink_icons' => ['Ü', 'T', 'V', 'D'],
+                'section_eyebrows' => ['Tabellen', 'Details'],
+                'section_icons' => ['▦', '▲'],
+                'section_modifiers' => ['spotlight', 'stacked'],
+                'section_notes' => ['Übersichten & Vergleiche', 'Details & Hinweise'],
             ],
             'compliance' => [
                 'meta_icons' => ['audience' => '◎', 'owner' => '◆', 'update_cycle' => '↺', 'focus' => '◌', 'kpi' => '▲'],
@@ -394,9 +497,12 @@ final class SiteTableTemplateRegistry
         $defaults = [];
         foreach (self::TEMPLATE_PLACEHOLDERS as $key => $placeholder) {
             $defaults[$key] = [
+                'label' => $key,
                 'base_template' => $key,
+                'summary' => '',
                 'meta' => [],
                 'meta_labels' => self::DEFAULT_META_LABELS,
+                'navigation' => ['toc_enabled' => false],
                 'links' => $placeholder['links'] ?? [],
                 'sections' => $placeholder['sections'] ?? [],
                 'colors' => $this->getDefaultTemplateColors($key),
@@ -416,11 +522,16 @@ final class SiteTableTemplateRegistry
             $baseTemplate = in_array($baseTemplate, array_keys(self::TEMPLATE_PLACEHOLDERS), true) ? $baseTemplate : 'general-it';
 
             $defaults[$key] = [
+                'label' => (string) ($profile['label'] ?? $defaults[$key]['label'] ?? $key),
                 'base_template' => $baseTemplate,
+                'summary' => (string) ($profile['summary'] ?? $defaults[$key]['summary'] ?? ''),
                 'meta' => is_array($profile['meta'] ?? null) ? $profile['meta'] : [],
                 'meta_labels' => is_array($profile['meta_labels'] ?? null)
                     ? array_merge(self::DEFAULT_META_LABELS, $profile['meta_labels'])
                     : self::DEFAULT_META_LABELS,
+                'navigation' => is_array($profile['navigation'] ?? null)
+                    ? array_merge(['toc_enabled' => false], $profile['navigation'])
+                    : ['toc_enabled' => false],
                 'links' => is_array($profile['links'] ?? null) ? $profile['links'] : [],
                 'sections' => is_array($profile['sections'] ?? null) ? $profile['sections'] : [],
                 'colors' => is_array($profile['colors'] ?? null)
@@ -450,7 +561,7 @@ final class SiteTableTemplateRegistry
 
     private function normalizeHubLinks(array $links, string $template): array
     {
-        if ($links === []) {
+        if ($links === [] && $template !== '') {
             $links = self::TEMPLATE_PLACEHOLDERS[$template]['links'] ?? self::TEMPLATE_PLACEHOLDERS['general-it']['links'];
         }
 
@@ -472,7 +583,7 @@ final class SiteTableTemplateRegistry
 
     private function normalizeHubSections(array $sections, string $template): array
     {
-        if ($sections === []) {
+        if ($sections === [] && $template !== '') {
             $sections = self::TEMPLATE_PLACEHOLDERS[$template]['sections'] ?? self::TEMPLATE_PLACEHOLDERS['general-it']['sections'];
         }
 
@@ -512,6 +623,15 @@ final class SiteTableTemplateRegistry
         return strtolower($fallback);
     }
 
+    private function normalizeNumber(int $value, int $min, int $max, int $fallback): int
+    {
+        if ($value < $min || $value > $max) {
+            return $fallback;
+        }
+
+        return $value;
+    }
+
     private function getDefaultCardSchema(): array
     {
         return [
@@ -532,9 +652,12 @@ final class SiteTableTemplateRegistry
     {
         return match ($template) {
             'microsoft-365' => ['hero_start' => '#0f4c81', 'hero_end' => '#2563eb', 'accent' => '#2563eb', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#0f172a', 'section_background' => '#f8fbff'],
+            'm365-table' => ['hero_start' => '#0f4c81', 'hero_end' => '#2563eb', 'accent' => '#2563eb', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#0f172a', 'section_background' => '#f8fbff'],
+            'general-table' => ['hero_start' => '#1f2937', 'hero_end' => '#0f172a', 'accent' => '#2563eb', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#0f172a', 'section_background' => '#ffffff'],
             'datenschutz' => ['hero_start' => '#0f766e', 'hero_end' => '#115e59', 'accent' => '#0f766e', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#0f172a', 'section_background' => '#f0fdfa'],
             'compliance' => ['hero_start' => '#4c1d95', 'hero_end' => '#6d28d9', 'accent' => '#6d28d9', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#0f172a', 'section_background' => '#faf5ff'],
             'linux' => ['hero_start' => '#111827', 'hero_end' => '#b45309', 'accent' => '#b45309', 'surface' => '#111827', 'card_background' => '#111827', 'card_text' => '#f3f4f6', 'section_background' => '#111827'],
+            'linux-table' => ['hero_start' => '#111827', 'hero_end' => '#b45309', 'accent' => '#b45309', 'surface' => '#111827', 'card_background' => '#111827', 'card_text' => '#f3f4f6', 'section_background' => '#111827'],
             default => ['hero_start' => '#1f2937', 'hero_end' => '#0f172a', 'accent' => '#2563eb', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#0f172a', 'section_background' => '#ffffff'],
         };
     }

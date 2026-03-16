@@ -131,6 +131,7 @@ class HubSitesModule
             'isNew' => $site === null,
             'defaults' => self::DEFAULT_SETTINGS,
             'templateOptions' => $this->templateProfileManager->getChoices(),
+            'templateProfiles' => $this->templateProfileManager->getProfiles(),
         ];
     }
 
@@ -173,7 +174,6 @@ class HubSitesModule
 
         $slug = $this->buildUniqueHubSlug($name, $id > 0 ? $id : null);
 
-        $existingSettings = $id > 0 ? $this->getExistingHubSettings($id) : self::DEFAULT_SETTINGS;
         $templateChoices = $this->templateProfileManager->getChoices();
 
         $settings = [
@@ -202,25 +202,25 @@ class HubSitesModule
             'hub_meta_kpi_en' => mb_substr(trim(strip_tags((string)($post['hub_meta_kpi_en'] ?? ''))), 0, 120),
             'hub_links_json' => array_key_exists('hub_links_json', $post)
                 ? $this->normalizeJsonArray((string)$post['hub_links_json'], 'link')
-                : (string)($existingSettings['hub_links_json'] ?? '[]'),
+                : '[]',
             'hub_sections_json' => array_key_exists('hub_sections_json', $post)
                 ? $this->normalizeJsonArray((string)$post['hub_sections_json'], 'section')
-                : (string)($existingSettings['hub_sections_json'] ?? '[]'),
+                : '[]',
             'hub_card_layout' => array_key_exists('hub_card_layout', $post)
                 ? $this->normalizeSetting((string)$post['hub_card_layout'], ['standard', 'feature', 'compact'], 'standard')
-                : (string)($existingSettings['hub_card_layout'] ?? 'standard'),
+                : '',
             'hub_card_image_position' => array_key_exists('hub_card_image_position', $post)
                 ? $this->normalizeSetting((string)$post['hub_card_image_position'], ['top', 'left', 'right'], 'top')
-                : (string)($existingSettings['hub_card_image_position'] ?? 'top'),
+                : '',
             'hub_card_image_fit' => array_key_exists('hub_card_image_fit', $post)
                 ? $this->normalizeSetting((string)$post['hub_card_image_fit'], ['cover', 'contain'], 'cover')
-                : (string)($existingSettings['hub_card_image_fit'] ?? 'cover'),
+                : '',
             'hub_card_image_ratio' => array_key_exists('hub_card_image_ratio', $post)
                 ? $this->normalizeSetting((string)$post['hub_card_image_ratio'], ['wide', 'square', 'portrait'], 'wide')
-                : (string)($existingSettings['hub_card_image_ratio'] ?? 'wide'),
+                : '',
             'hub_card_meta_layout' => array_key_exists('hub_card_meta_layout', $post)
                 ? $this->normalizeSetting((string)$post['hub_card_meta_layout'], ['split', 'stacked'], 'split')
-                : (string)($existingSettings['hub_card_meta_layout'] ?? 'split'),
+                : '',
         ];
 
         $filteredSettings = Hooks::applyFilters('cms_prepare_hub_settings_payload', $settings, $post, $id);

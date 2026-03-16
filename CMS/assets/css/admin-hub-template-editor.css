@@ -287,10 +287,58 @@
     margin-bottom: .85rem;
 }
 
-.hub-template-preview__quicklink {
+.hub-template-preview__toc {
+    margin-bottom: .85rem;
+    padding: .75rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(15, 23, 42, .08);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, .94), rgba(248, 250, 252, .96));
+    box-shadow: 0 8px 22px rgba(15, 23, 42, .05);
+}
+
+.hub-template-preview__toc-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: .5rem;
+    margin-bottom: .6rem;
+}
+
+.hub-template-preview__toc-eyebrow {
     display: inline-flex;
     align-items: center;
     gap: .35rem;
+    font-size: .61rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--hub-preview-accent);
+}
+
+.hub-template-preview__toc-grid {
+    display: grid;
+    gap: .5rem;
+}
+
+.hub-template-preview__toc-item {
+    display: block;
+    padding: .55rem .6rem;
+    border-radius: .85rem;
+    background: rgba(255, 255, 255, .82);
+    border: 1px solid rgba(15, 23, 42, .06);
+}
+
+.hub-template-preview__toc-label {
+    display: block;
+    font-size: .69rem;
+    line-height: 1.35;
+    color: #0f172a;
+}
+
+.hub-template-preview__quicklink {
+    display: inline-flex;
+    align-items: center;
     padding: .28rem .55rem;
     border-radius: 999px;
     border: 1px solid rgba(15, 23, 42, .08);
@@ -300,27 +348,24 @@
     font-weight: 700;
 }
 
-.hub-template-preview__quicklink-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1rem;
-    height: 1rem;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--hub-preview-accent) 14%, white);
-    color: var(--hub-preview-accent);
-    font-size: .62rem;
-}
-
 .hub-template-preview--linux .hub-template-preview__quicklink {
     background: rgba(17, 24, 39, .82);
     border-color: rgba(245, 158, 11, .16);
     color: #e5e7eb;
 }
 
-.hub-template-preview--linux .hub-template-preview__quicklink-icon {
-    background: rgba(245, 158, 11, .12);
-    color: #f59e0b;
+.hub-template-preview--linux .hub-template-preview__toc {
+    background: linear-gradient(180deg, rgba(17, 24, 39, .88), rgba(15, 23, 42, .94));
+    border-color: rgba(245, 158, 11, .18);
+}
+
+.hub-template-preview--linux .hub-template-preview__toc-item {
+    background: rgba(11, 18, 32, .84);
+    border-color: rgba(245, 158, 11, .12);
+}
+
+.hub-template-preview--linux .hub-template-preview__toc-label {
+    color: #f8fafc;
 }
 
 .hub-template-preview__pill {

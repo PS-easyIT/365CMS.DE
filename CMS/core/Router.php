@@ -233,11 +233,22 @@ class Router
     private function dispatchDynamicPage(string $routingUri, string $uri): void
     {
         try {
-            $pageManager = PageManager::instance();
             $slug = trim($routingUri, '/');
             if ($slug === '') {
                 $slug = 'home';
             }
+
+            $hubPage = Services\SiteTableService::getInstance()->getHubPageBySlug($slug, $this->getRequestLocale());
+            if ($hubPage !== null) {
+                if (!$this->sendConditionalPublicPageHeaders('hub', $hubPage, $this->getRequestLocale())) {
+                    return;
+                }
+
+                ThemeManager::instance()->render('page', ['page' => $hubPage, 'contentLocale' => $this->getRequestLocale()]);
+                return;
+            }
+
+            $pageManager = PageManager::instance();
 
             $page = $pageManager->getPageBySlug($slug);
             if ($page && $page['status'] === 'published') {
@@ -261,16 +272,6 @@ class Router
                 }
 
                 ThemeManager::instance()->render('page', ['page' => $page, 'contentLocale' => $locale]);
-                return;
-            }
-
-            $hubPage = Services\SiteTableService::getInstance()->getHubPageBySlug($slug, $this->getRequestLocale());
-            if ($hubPage !== null) {
-                if (!$this->sendConditionalPublicPageHeaders('hub', $hubPage, $this->getRequestLocale())) {
-                    return;
-                }
-
-                ThemeManager::instance()->render('page', ['page' => $hubPage, 'contentLocale' => $this->getRequestLocale()]);
                 return;
             }
 

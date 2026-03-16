@@ -28,6 +28,13 @@ if (!defined('ABSPATH')) {
                             <span class="text-secondary small" id="templatePreviewCardCount">0 Karten</span>
                         </div>
                     </div>
+                    <div class="hub-template-preview__toc d-none" id="templatePreviewToc">
+                        <div class="hub-template-preview__toc-header">
+                            <span class="hub-template-preview__toc-eyebrow">TOC</span>
+                            <strong class="hub-template-preview__toc-title">Inhaltsverzeichnis</strong>
+                        </div>
+                        <div class="hub-template-preview__toc-grid" id="templatePreviewTocGrid"></div>
+                    </div>
                     <div class="hub-template-preview__quicklinks" id="templatePreviewQuicklinks"></div>
                     <div class="hub-template-preview__grid hub-template-preview__grid--2" id="templatePreviewGrid"></div>
                     <div class="hub-template-preview__sections" id="templatePreviewSections">

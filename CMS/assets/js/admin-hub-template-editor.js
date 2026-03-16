@@ -39,6 +39,8 @@
         var previewSummary = document.getElementById('templatePreviewSummary');
         var previewMeta = document.getElementById('templatePreviewMeta');
         var previewGrid = document.getElementById('templatePreviewGrid');
+        var previewToc = document.getElementById('templatePreviewToc');
+        var previewTocGrid = document.getElementById('templatePreviewTocGrid');
         var previewQuicklinks = document.getElementById('templatePreviewQuicklinks');
         var previewSections = document.getElementById('templatePreviewSections');
         var previewLayoutPill = document.getElementById('templatePreviewLayoutPill');
@@ -53,7 +55,7 @@
         var addStarterCardButton = document.getElementById('addStarterCard');
         var lastAppliedBaseTemplate = null;
 
-        if (!linksInput || !sectionsInput || !starterCardsInput || !linksContainer || !sectionsContainer || !starterCardsContainer || !linksEmpty || !sectionsEmpty || !starterCardsEmpty || !preview || !previewBadge || !previewTitle || !previewSummary || !previewMeta || !previewGrid || !previewQuicklinks || !previewSections || !previewLayoutPill || !previewTypePill || !previewImagePill || !previewColumnsBadge || !previewCardCount || !previewSectionTitle || !previewSectionText || !addTemplateLinkButton || !addTemplateSectionButton || !addStarterCardButton) {
+        if (!linksInput || !sectionsInput || !starterCardsInput || !linksContainer || !sectionsContainer || !starterCardsContainer || !linksEmpty || !sectionsEmpty || !starterCardsEmpty || !preview || !previewBadge || !previewTitle || !previewSummary || !previewMeta || !previewGrid || !previewToc || !previewTocGrid || !previewQuicklinks || !previewSections || !previewLayoutPill || !previewTypePill || !previewImagePill || !previewColumnsBadge || !previewCardCount || !previewSectionTitle || !previewSectionText || !addTemplateLinkButton || !addTemplateSectionButton || !addStarterCardButton) {
             return;
         }
 
@@ -102,6 +104,18 @@
             }
         }
 
+        function setCheckboxValue(name, value, previousDefault) {
+            var field = form.querySelector('[name="' + name + '"]');
+            if (!field) {
+                return;
+            }
+
+            var current = field.checked;
+            if (current === previousDefault) {
+                field.checked = value === true;
+            }
+        }
+
         function bindSwitchers() {
             form.querySelectorAll('[data-switcher]').forEach(function (switcher) {
                 switcher.addEventListener('click', function (event) {
@@ -146,6 +160,12 @@
             return cards.slice(0, 3);
         }
 
+        function getCardTocItems(cards) {
+            return (cards || []).filter(function (card) {
+                return card && card.title;
+            }).slice(0, 6);
+        }
+
         function applyBaseTemplateDefaults(baseTemplate, forceCollections) {
             if (!isNewTemplate) {
                 return;
@@ -158,6 +178,8 @@
             var colors = defaults.colors || {};
             var cardSchemaDefaults = defaults.card_schema || {};
             var cardDesignDefaults = defaults.card_design || {};
+            var navigationDefaults = defaults.navigation || {};
+            var previousNavigationDefaults = previousDefaults.navigation || {};
 
             setFieldValue('template_summary', defaults.summary || '', previousDefaults.summary || '');
             setFieldValue('template_label_audience', metaLabels.audience || 'Zielgruppe', (previousDefaults.meta_labels || {}).audience || '');
@@ -170,6 +192,7 @@
             setFieldValue('template_meta_update_cycle', meta.update_cycle || '', (previousDefaults.meta || {}).update_cycle || '');
             setFieldValue('template_meta_focus', meta.focus || '', (previousDefaults.meta || {}).focus || '');
             setFieldValue('template_meta_kpi', meta.kpi || '', (previousDefaults.meta || {}).kpi || '');
+            setCheckboxValue('template_toc_enabled', navigationDefaults.toc_enabled === true, previousNavigationDefaults.toc_enabled === true);
             setFieldValue('template_card_title_label', cardSchemaDefaults.title_label || 'Titel', (previousDefaults.card_schema || {}).title_label || '');
             setFieldValue('template_card_summary_label', cardSchemaDefaults.summary_label || 'Kurzbeschreibung', (previousDefaults.card_schema || {}).summary_label || '');
             setFieldValue('template_card_badge_label', cardSchemaDefaults.badge_label || 'Badge', (previousDefaults.card_schema || {}).badge_label || '');
@@ -323,6 +346,8 @@
             var baseTemplate = getValue('base_template', 'general-it');
             var defaults = getBaseTemplateDefaults(baseTemplate);
             var templateProfile = getTemplatePreviewProfile(baseTemplate);
+            var tocEnabledField = form.querySelector('[name="template_toc_enabled"]');
+            var tocEnabled = tocEnabledField ? tocEnabledField.checked === true : false;
             if (columns < 1 || columns > 3) {
                 columns = 2;
             }
@@ -370,14 +395,23 @@
             });
 
             previewQuicklinks.innerHTML = '';
-            getPreviewLinks(defaults).forEach(function (item, index) {
+            previewTocGrid.innerHTML = '';
+            getPreviewLinks(defaults).forEach(function (item) {
                 var link = document.createElement('span');
                 link.className = 'hub-template-preview__quicklink';
-                link.innerHTML = ''
-                    + '<span class="hub-template-preview__quicklink-icon">' + escapeHtml((templateProfile.linkIcons || [])[index] || '•') + '</span>'
-                    + '<span>' + escapeHtml(item.label || '') + '</span>';
+                link.textContent = item.label || '';
                 previewQuicklinks.appendChild(link);
             });
+
+            getCardTocItems(cards).forEach(function (card, index) {
+                var tocItem = document.createElement('div');
+                tocItem.className = 'hub-template-preview__toc-item';
+                tocItem.innerHTML = '<strong class="hub-template-preview__toc-label">' + escapeHtml(card.title || ('Karte ' + (index + 1))) + '</strong>';
+                previewTocGrid.appendChild(tocItem);
+            });
+
+            previewToc.classList.toggle('d-none', !tocEnabled || previewTocGrid.children.length === 0);
+            previewQuicklinks.classList.toggle('d-none', previewQuicklinks.children.length === 0);
 
             previewGrid.className = 'hub-template-preview__grid hub-template-preview__grid--' + columns;
             previewGrid.innerHTML = '';

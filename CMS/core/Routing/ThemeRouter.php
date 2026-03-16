@@ -708,6 +708,12 @@ final class ThemeRouter
 
     private function renderPageFallback(string $slug): bool
     {
+        $hubPage = Services\SiteTableService::getInstance()->getHubPageBySlug($slug, $this->router->getRequestLocale());
+        if ($hubPage !== null) {
+            ThemeManager::instance()->render('page', ['page' => $hubPage, 'contentLocale' => $this->router->getRequestLocale()]);
+            return true;
+        }
+
         $page = PageManager::instance()->getPageBySlug($slug);
         if ($page !== null && ($page['status'] ?? '') === 'published') {
             $locale = $this->router->getRequestLocale();
@@ -717,12 +723,6 @@ final class ThemeRouter
             }
 
             ThemeManager::instance()->render('page', ['page' => $page, 'contentLocale' => $locale]);
-            return true;
-        }
-
-        $hubPage = Services\SiteTableService::getInstance()->getHubPageBySlug($slug, $this->router->getRequestLocale());
-        if ($hubPage !== null) {
-            ThemeManager::instance()->render('page', ['page' => $hubPage, 'contentLocale' => $this->router->getRequestLocale()]);
             return true;
         }
 

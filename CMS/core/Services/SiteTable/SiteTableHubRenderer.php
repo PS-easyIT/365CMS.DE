@@ -18,8 +18,12 @@ final class SiteTableHubRenderer
     {
         $path = self::normalizeRequestPath($requestUri);
 
-        if ($path === '/' || self::isExcludedRequestPath($path) || self::isPostRequestPath($path)) {
+        if (self::isExcludedRequestPath($path) || self::isPostRequestPath($path)) {
             return false;
+        }
+
+        if ($path === '/') {
+            return self::isHubDomainRequest();
         }
 
         $slug = trim($path, '/');
@@ -35,6 +39,21 @@ final class SiteTableHubRenderer
             );
 
             return (string) $contentType === 'hub';
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    private static function isHubDomainRequest(): bool
+    {
+        $host = strtolower(trim((string) ($_SERVER['HTTP_HOST'] ?? ''), '.'));
+        if ($host === '') {
+            return false;
+        }
+
+        try {
+            return \CMS\Services\SiteTableService::getInstance()->getHubPageByDomain($host, 'de') !== null
+                || \CMS\Services\SiteTableService::getInstance()->getHubPageByDomain($host, 'en') !== null;
         } catch (\Throwable $e) {
             return false;
         }
@@ -99,7 +118,8 @@ final class SiteTableHubRenderer
 
     public function renderHubMarkup(array $table, string $locale = 'de'): string
     {
-        $settings = array_merge($this->templateRegistry->getDefaultSettings(), $table['settings'] ?? []);
+        $rawSettings = is_array($table['settings'] ?? null) ? $table['settings'] : [];
+        $settings = array_merge($this->templateRegistry->getDefaultSettings(), $rawSettings);
         $settings = ContentLocalizationService::getInstance()->localizeHubSettings($settings, $locale, ['table' => $table]);
         $templateKey = (string) ($settings['hub_template'] ?? 'general-it');
         $templateProfile = $this->templateRegistry->getTemplateProfile($templateKey);
@@ -115,9 +135,17 @@ final class SiteTableHubRenderer
         $heroBadge = trim((string) ($settings['hub_badge'] ?? ''));
         $ctaLabel = trim((string) ($settings['hub_cta_label'] ?? ''));
         $ctaUrl = trim((string) ($settings['hub_cta_url'] ?? ''));
-        $cards = ContentLocalizationService::getInstance()->localizeHubCards($this->normalizeHubCards($table['rows'] ?? []), $locale, ['table' => $table]);
+        $cards = $this->normalizeHubCards($table['rows'] ?? []);
+        if ($cards === []) {
+            $templateStarterCards = is_array($templateProfile['starter_cards'] ?? null) ? $templateProfile['starter_cards'] : [];
+            $cards = $this->normalizeHubCards($templateStarterCards);
+        }
+        $cards = ContentLocalizationService::getInstance()->localizeHubCards($cards, $locale, ['table' => $table]);
         $quickLinks = $this->templateRegistry->resolveHubLinks($settings, $templateProfile, $template, $locale);
+        $tocEntries = $this->buildCardTocEntries($cards);
         $sections = $this->templateRegistry->resolveHubSections($settings, $templateProfile, $template, $locale);
+        $navigationProfile = is_array($templateProfile['navigation'] ?? null) ? $templateProfile['navigation'] : [];
+        $tocEnabled = !empty($navigationProfile['toc_enabled']);
         $metaSettings = array_merge([
             'hub_meta_audience' => (string) ($templateProfile['meta']['audience'] ?? ''),
             'hub_meta_owner' => (string) ($templateProfile['meta']['owner'] ?? ''),
@@ -134,10 +162,10 @@ final class SiteTableHubRenderer
             }
         }
         $metaItems = $this->templateRegistry->buildHubMetaItems($metaSettings, $template, $templateProfile, $locale);
-        $cardDesign = $this->templateRegistry->resolveHubCardDesign($settings, $templateProfile, $template);
+        $cardDesign = $this->templateRegistry->resolveHubCardDesign($rawSettings, $templateProfile, $template);
         $cardSchema = is_array($templateProfile['card_schema'] ?? null) ? $templateProfile['card_schema'] : [];
         $colorSettings = is_array($templateProfile['colors'] ?? null) ? $templateProfile['colors'] : [];
-        $styleVariables = $this->templateRegistry->buildHubStyleVariables($colorSettings);
+        $styleVariables = $this->templateRegistry->buildHubStyleVariables($colorSettings, $cardDesign);
         $contentLanguage = $this->templateRegistry->getTemplateContentLanguage($template, $locale);
 
         $html = '<section class="cms-hub-site cms-hub-site--' . htmlspecialchars($template, ENT_QUOTES, 'UTF-8') . '"';
@@ -149,9 +177,12 @@ final class SiteTableHubRenderer
         }
         $html .= '>';
         $html .= $this->renderHero($heroBadge, $heroTitle, $heroText, $metaItems, $ctaLabel, $ctaUrl);
-        $html .= $this->renderQuickLinks($quickLinks, $contentLanguage);
+        $html .= $this->renderTableOfContents($tocEntries, $tocEnabled, $contentLanguage);
+        if (!$tocEnabled) {
+            $html .= $this->renderQuickLinks($quickLinks, $contentLanguage);
+        }
         $html .= $this->renderSections($sections, $template, $contentLanguage);
-        $html .= $this->renderCards($cards, $cardDesign, $cardSchema, (int) ($table['id'] ?? 0));
+        $html .= $this->renderCards($cards, $tocEntries, $cardDesign, $cardSchema, (int) ($table['id'] ?? 0), $template);
         $html .= '</section>';
 
         return $html;
@@ -194,15 +225,52 @@ final class SiteTableHubRenderer
         }
 
         $html = '<nav class="cms-hub-site__quicklinks" aria-label="Hub-Navigation">';
-        foreach ($quickLinks as $index => $link) {
-            $icon = $contentLanguage['quicklink_icons'][$index] ?? '•';
+        foreach ($quickLinks as $link) {
             $html .= '<a class="cms-hub-site__quicklink" href="' . htmlspecialchars((string) $link['url'], ENT_QUOTES, 'UTF-8') . '">';
-            $html .= '<span class="cms-hub-site__quicklink-icon" aria-hidden="true">' . htmlspecialchars((string) $icon, ENT_QUOTES, 'UTF-8') . '</span>';
             $html .= '<span class="cms-hub-site__quicklink-label">' . htmlspecialchars((string) $link['label'], ENT_QUOTES, 'UTF-8') . '</span>';
             $html .= '</a>';
         }
 
         return $html . '</nav>';
+    }
+
+    private function renderTableOfContents(array $tocEntries, bool $enabled, array $contentLanguage): string
+    {
+        if (!$enabled) {
+            return '';
+        }
+
+        $label = (string) ($contentLanguage['toc_label'] ?? 'Inhaltsverzeichnis');
+        $eyebrow = (string) ($contentLanguage['toc_eyebrow'] ?? 'Schnell zum richtigen Abschnitt');
+        $html = '<details class="cms-hub-site__toc">';
+        $html .= '<summary class="cms-hub-site__toc-summary">';
+        $html .= '<span class="cms-hub-site__toc-summary-copy">';
+        $html .= '<span class="cms-hub-site__toc-eyebrow">' . htmlspecialchars($eyebrow, ENT_QUOTES, 'UTF-8') . '</span>';
+        $html .= '<strong class="cms-hub-site__toc-title">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</strong>';
+        $html .= '</span>';
+        $html .= '<span class="cms-hub-site__toc-summary-icon" aria-hidden="true">⌄</span>';
+        $html .= '</summary>';
+        $html .= '<nav class="cms-hub-site__toc-panel" aria-label="' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '">';
+        if ($tocEntries === []) {
+            $html .= '<div class="cms-hub-site__toc-empty">Keine Karten mit Titel für das Inhaltsverzeichnis vorhanden.</div>';
+            $html .= '</nav></details>';
+
+            return $html;
+        }
+
+        $html .= '<ol class="cms-hub-site__toc-list">';
+
+        foreach ($tocEntries as $index => $entry) {
+            $html .= '<li class="cms-hub-site__toc-row">';
+            $html .= '<a class="cms-hub-site__toc-item" href="#' . htmlspecialchars((string) ($entry['anchor'] ?? ''), ENT_QUOTES, 'UTF-8') . '">';
+            $html .= '<span class="cms-hub-site__toc-label">' . htmlspecialchars((string) ($entry['label'] ?? ''), ENT_QUOTES, 'UTF-8') . '</span>';
+            $html .= '</a>';
+            $html .= '</li>';
+        }
+
+        $html .= '</ol></nav></details>';
+
+        return $html;
     }
 
     private function renderSections(array $sections, string $template, array $contentLanguage): string
@@ -239,7 +307,7 @@ final class SiteTableHubRenderer
         return $html . '</div>';
     }
 
-    private function renderCards(array $cards, array $cardDesign, array $cardSchema, int $currentTableId): string
+    private function renderCards(array $cards, array $tocEntries, array $cardDesign, array $cardSchema, int $currentTableId, string $template): string
     {
         if ($cards === []) {
             return '';
@@ -251,9 +319,10 @@ final class SiteTableHubRenderer
         $cardImageRatio = $this->normalizeOption((string) ($cardDesign['image_ratio'] ?? 'wide'), ['wide', 'square', 'portrait'], 'wide');
         $cardMetaLayout = $this->normalizeOption((string) ($cardDesign['meta_layout'] ?? 'split'), ['split', 'stacked'], 'split');
         $cardColumns = max(1, min(3, (int) ($cardSchema['columns'] ?? 2)));
+        $isTableTemplate = str_ends_with($template, '-table');
 
         $html = '<div class="cms-hub-site__grid cms-hub-site__grid--' . htmlspecialchars($cardLayout, ENT_QUOTES, 'UTF-8') . ' cms-hub-site__grid--cols-' . $cardColumns . '">';
-        foreach ($cards as $card) {
+        foreach ($cards as $index => $card) {
             $url = htmlspecialchars((string) ($card['url'] ?? '#'), ENT_QUOTES, 'UTF-8');
             $title = htmlspecialchars((string) ($card['title'] ?? ''), ENT_QUOTES, 'UTF-8');
             $summary = $this->renderCardSummary((string) ($card['summary'] ?? ''), $currentTableId);
@@ -274,8 +343,30 @@ final class SiteTableHubRenderer
                 $cardLinkClass .= ' cms-hub-site__card-link--image-' . htmlspecialchars($cardImagePosition, ENT_QUOTES, 'UTF-8');
             }
             $cardArticleClass .= ' cms-hub-site__card--meta-' . htmlspecialchars($cardMetaLayout, ENT_QUOTES, 'UTF-8');
+            if ($isTableTemplate) {
+                $cardArticleClass .= ' cms-hub-site__card--table';
+            }
 
-            $html .= '<article class="' . $cardArticleClass . '">';
+            $cardAnchor = trim((string) ($tocEntries[$index]['anchor'] ?? ''));
+            $html .= '<article class="' . $cardArticleClass . '"';
+            if ($cardAnchor !== '') {
+                $html .= ' id="' . htmlspecialchars($cardAnchor, ENT_QUOTES, 'UTF-8') . '"';
+            }
+            $html .= '>';
+            if ($isTableTemplate) {
+                $html .= '<div class="cms-hub-site__card-table-head">';
+                if ($badge !== '') {
+                    $html .= '<span class="cms-hub-site__card-badge cms-hub-site__card-badge--table">' . $badge . '</span>';
+                }
+                $html .= '<h3 class="cms-hub-site__card-title cms-hub-site__card-title--table">';
+                if ($url !== '#') {
+                    $html .= '<a class="cms-hub-site__card-title-link cms-hub-site__card-title-link--table" href="' . $url . '">' . $title . '</a>';
+                } else {
+                    $html .= $title;
+                }
+                $html .= '</h3>';
+                $html .= '</div>';
+            }
             $html .= '<div class="' . $cardLinkClass . '">';
             if ($hasImage) {
                 if ($url !== '#') {
@@ -289,16 +380,18 @@ final class SiteTableHubRenderer
                 }
             }
             $html .= '<div class="cms-hub-site__card-content">';
-            if ($badge !== '') {
+            if ($badge !== '' && !$isTableTemplate) {
                 $html .= '<span class="cms-hub-site__card-badge">' . $badge . '</span>';
             }
-            $html .= '<h3 class="cms-hub-site__card-title">';
-            if ($url !== '#') {
-                $html .= '<a class="cms-hub-site__card-title-link" href="' . $url . '">' . $title . '</a>';
-            } else {
-                $html .= $title;
+            if (!$isTableTemplate) {
+                $html .= '<h3 class="cms-hub-site__card-title">';
+                if ($url !== '#') {
+                    $html .= '<a class="cms-hub-site__card-title-link" href="' . $url . '">' . $title . '</a>';
+                } else {
+                    $html .= $title;
+                }
+                $html .= '</h3>';
             }
-            $html .= '</h3>';
             if ($summary !== '') {
                 $html .= '<div class="cms-hub-site__card-summary">' . $summary . '</div>';
             }
@@ -329,6 +422,60 @@ final class SiteTableHubRenderer
         }
 
         return $html . '</div>';
+    }
+
+    private function buildCardTocEntries(array $cards): array
+    {
+        $entries = [];
+        $usedAnchors = [];
+
+        foreach ($cards as $index => $card) {
+            if (!is_array($card)) {
+                continue;
+            }
+
+            $title = trim((string) ($card['title'] ?? ''));
+            if ($title === '') {
+                continue;
+            }
+
+            $entries[] = [
+                'anchor' => $this->buildCardAnchorId($title, $index, $usedAnchors),
+                'label' => $title,
+            ];
+        }
+
+        return $entries;
+    }
+
+    private function buildCardAnchorId(string $title, int $index, array &$usedAnchors): string
+    {
+        $normalized = html_entity_decode(strip_tags($title), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $normalized = strtr($normalized, [
+            'Ä' => 'Ae',
+            'Ö' => 'Oe',
+            'Ü' => 'Ue',
+            'ä' => 'ae',
+            'ö' => 'oe',
+            'ü' => 'ue',
+            'ß' => 'ss',
+        ]);
+        $normalized = mb_strtolower($normalized, 'UTF-8');
+        $normalized = preg_replace('/[^a-z0-9]+/u', '-', $normalized) ?? '';
+        $normalized = trim($normalized, '-');
+
+        $baseAnchor = $normalized !== '' ? 'hub-card-' . $normalized : 'hub-card-' . ($index + 1);
+        $anchor = $baseAnchor;
+        $suffix = 2;
+
+        while (isset($usedAnchors[$anchor])) {
+            $anchor = $baseAnchor . '-' . $suffix;
+            $suffix++;
+        }
+
+        $usedAnchors[$anchor] = true;
+
+        return $anchor;
     }
 
     private function renderCardSummary(string $value, int $currentTableId): string

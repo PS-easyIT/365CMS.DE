@@ -95,6 +95,17 @@ if (!defined('ABSPATH')) {
     </div>
 
     <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">Navigation & TOC</h3></div>
+        <div class="card-body">
+            <label class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" name="template_toc_enabled" value="1" <?php echo !empty($template['navigation']['toc_enabled']) ? 'checked' : ''; ?>>
+                <span class="form-check-label">TOC unter dem Header anzeigen</span>
+            </label>
+            <div class="form-hint mb-0">Erstellt im Public ein aufklappbares Inhaltsverzeichnis direkt aus den sichtbaren Card-Titeln und springt zu den jeweiligen Karten bzw. Tabellen.</div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
         <div class="card-header"><h3 class="card-title">Kachel-Schema</h3></div>
         <div class="card-body">
             <div class="row g-3">
@@ -133,6 +144,11 @@ if (!defined('ABSPATH')) {
                     </div>
                 </div>
                 <div class="col-md-4"><label class="form-label">Meta-Layout</label><select class="form-select" name="hub_card_meta_layout"><option value="split" <?php echo (($cardDesign['meta_layout'] ?? 'split') === 'split') ? 'selected' : ''; ?>>Links / Rechts</option><option value="stacked" <?php echo (($cardDesign['meta_layout'] ?? '') === 'stacked') ? 'selected' : ''; ?>>Gestapelt</option></select></div>
+                <div class="col-md-4">
+                    <label class="form-label">Card-Rundung (px)</label>
+                    <input type="number" class="form-control" name="template_card_radius" min="0" max="48" step="1" value="<?php echo (int)($cardDesign['card_radius'] ?? 20); ?>">
+                    <div class="form-hint">0 = eckig, höhere Werte = deutlich runder. Ganz ohne Card-Ballett.</div>
+                </div>
                 <div class="col-md-4">
                     <label class="form-label">Bildposition</label>
                     <input type="hidden" name="hub_card_image_position" value="<?php echo htmlspecialchars((string)($cardDesign['image_position'] ?? 'top')); ?>">
