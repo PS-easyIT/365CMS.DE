@@ -71,7 +71,7 @@ class PagesModule
              FROM {$this->prefix}pages p
              LEFT JOIN {$this->prefix}users u ON p.author_id = u.id
              {$whereClause}
-             ORDER BY p.updated_at DESC
+             ORDER BY p.created_at DESC
              LIMIT 200",
             $params
         ) ?: [];

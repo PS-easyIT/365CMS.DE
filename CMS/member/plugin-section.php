@@ -20,7 +20,16 @@ include __DIR__ . '/partials/header.php';
     </div>
     <div class="card-body">
         <?php \CMS\Hooks::doAction('member_plugin_section_head', $section, $user, $params ?? []); ?>
-        <?php call_user_func($section['render_callback'], $user, $params ?? []); ?>
+        <?php
+        $requestMethod = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+        $pluginCallback = $requestMethod === 'POST' && is_callable($section['post_callback'] ?? null)
+            ? $section['post_callback']
+            : ($section['render_callback'] ?? null);
+
+        if (is_callable($pluginCallback)) {
+            call_user_func($pluginCallback, $user, $params ?? []);
+        }
+        ?>
     </div>
 </div>
 <?php include __DIR__ . '/partials/footer.php';

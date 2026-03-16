@@ -42,6 +42,7 @@ namespace CMS\Member;
 
 use CMS\Auth;
 use CMS\Hooks;
+use CMS\ThemeManager;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -64,6 +65,9 @@ class PluginDashboardRegistry
      * @var array<string,bool>|null
      */
     private ?array $adminVisibility = null;
+
+    /** @var array<string,array<string,string>>|null */
+    private ?array $widgetMetaOverrides = null;
 
     // ── Singleton ────────────────────────────────────────────────────────────
 
@@ -144,7 +148,7 @@ class PluginDashboardRegistry
      *   category?:          string,
      *   priority?:          int,
      *   capability?:        string|null,
-     *   dashboard_widget?:  array|null,
+    *   dashboard_widget?:  array|bool|null,
      *   render_callback:    callable,
      *   post_callback?:     callable|null,
      * } $config
@@ -233,6 +237,43 @@ class PluginDashboardRegistry
         }
     }
 
+    private function loadWidgetMetaOverrides(): void
+    {
+        if ($this->widgetMetaOverrides !== null) {
+            return;
+        }
+
+        $this->widgetMetaOverrides = [];
+
+        try {
+            $db = \CMS\Database::instance();
+            $stmt = $db->prepare(
+                "SELECT option_name, option_value FROM {$db->getPrefix()}settings
+                 WHERE option_name LIKE 'member_dashboard_widget_meta_%'"
+            );
+
+            if ($stmt) {
+                $stmt->execute();
+                foreach ($stmt->fetchAll(\PDO::FETCH_OBJ) as $row) {
+                    $pluginSlug = substr((string) $row->option_name, strlen('member_dashboard_widget_meta_'));
+                    $decoded = \CMS\Json::decodeArray((string) ($row->option_value ?? ''), []);
+                    $this->widgetMetaOverrides[$pluginSlug] = is_array($decoded) ? $decoded : [];
+                }
+            }
+        } catch (\Throwable $e) {
+            $this->widgetMetaOverrides = [];
+        }
+    }
+
+    /**
+     * @return array<string,string>
+     */
+    private function getWidgetMetaOverride(string $pluginSlug): array
+    {
+        $this->loadWidgetMetaOverrides();
+        return $this->widgetMetaOverrides[$pluginSlug] ?? [];
+    }
+
     /**
      * Prüft ob ein Plugin-Bereich laut Admin-Einstellungen sichtbar ist.
      * Kein Eintrag in der DB = noch nie gesetzt = standardmäßig sichtbar.
@@ -266,8 +307,10 @@ class PluginDashboardRegistry
     }
 
     /**
-     * Gibt Dashboard-Widgets für alle sichtbaren Plugin-Bereiche zurück.
-     * Ist `dashboard_widget` null, wird dennoch ein Standard-Widget erzeugt.
+    * Gibt Dashboard-Widgets für alle sichtbaren Plugin-Bereiche zurück.
+    * Ist `dashboard_widget` null, wird dennoch ein Standard-Widget erzeugt.
+    * Mit `dashboard_widget === false` kann ein Bereich explizit von den
+    * Kacheln im generischen 365CMS-Member-Dashboard ausgeschlossen werden.
      */
     public function getDashboardWidgets(object $user): array
     {
@@ -279,7 +322,11 @@ class PluginDashboardRegistry
             if (!empty($section['parent_slug'])) {
                 continue;
             }
+            if (($section['dashboard_widget'] ?? null) === false) {
+                continue;
+            }
             $wConfig = $section['dashboard_widget'] ?? [];
+            $metaOverride = $this->getWidgetMetaOverride((string) ($section['plugin'] ?? $section['slug'] ?? ''));
 
             // Stats via Callback ermitteln
             $stats = null;
@@ -294,10 +341,10 @@ class PluginDashboardRegistry
             $widgets[] = [
                 'plugin'      => $section['plugin'],
                 'slug'        => $section['slug'],
-                'icon'        => $wConfig['icon'] ?? $section['icon'],
-                'title'       => $wConfig['title'] ?? $section['label'],
-                'description' => $wConfig['description'] ?? '',
-                'color'       => $wConfig['color'] ?? '#4f46e5',
+                'icon'        => $metaOverride['icon'] ?? $wConfig['icon'] ?? $section['icon'],
+                'title'       => $metaOverride['title'] ?? $wConfig['title'] ?? $section['label'],
+                'description' => $metaOverride['description'] ?? $wConfig['description'] ?? '',
+                'color'       => $metaOverride['color'] ?? $wConfig['color'] ?? '#4f46e5',
                 'link'        => '/member/plugin/' . $section['slug'],
                 'link_label'  => $wConfig['link_label'] ?? 'Öffnen',
                 'admin_link'  => $isAdmin && !empty($wConfig['admin_url']) ? $wConfig['admin_url'] : null,
@@ -344,13 +391,15 @@ class PluginDashboardRegistry
 
         $user = Auth::instance()->getCurrentUser();
 
-        // POST-Handling zuerst
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && is_callable($section['post_callback'])) {
-            call_user_func($section['post_callback'], $user, $params);
+        // Theme-Override bevorzugen, damit Plugin-Bereiche im Member-Design
+        // des aktiven Themes statt im generischen 365CMS-Wrapper erscheinen.
+        $themeFile = ThemeManager::instance()->getThemePath() . 'member/plugin-section.php';
+        if (file_exists($themeFile)) {
+            require $themeFile;
             return;
         }
 
-        // Page rendern
+        // Fallback auf den generischen Core-Wrapper.
         require_once ABSPATH . 'member/plugin-section.php';
     }
 

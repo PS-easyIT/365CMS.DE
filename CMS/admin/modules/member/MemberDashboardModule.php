@@ -402,8 +402,24 @@ class MemberDashboardModule
                 'member_dashboard_plugin_order' => json_encode($order, JSON_UNESCAPED_UNICODE),
             ];
 
-            foreach ($allowedPlugins as $pluginSlug) {
-                $values['member_dashboard_plugin_' . $pluginSlug] = !empty($post['plugin_visible'][$pluginSlug]) ? '1' : '0';
+            foreach ($pluginWidgets as $widget) {
+                $pluginSlug = (string) ($widget['plugin'] ?? '');
+                if ($pluginSlug === '') {
+                    continue;
+                }
+
+                if (!empty($widget['supports_frontend_widget'])) {
+                    $values['member_dashboard_plugin_' . $pluginSlug] = !empty($post['plugin_visible'][$pluginSlug]) ? '1' : '0';
+                }
+
+                $meta = [
+                    'title' => $this->sanitizeTextSetting((string) ($post['plugin_meta'][$pluginSlug]['title'] ?? ($widget['label'] ?? '')), 120),
+                    'description' => $this->sanitizeTextSetting((string) ($post['plugin_meta'][$pluginSlug]['description'] ?? ($widget['description'] ?? '')), 255),
+                    'icon' => $this->sanitizeTextSetting((string) ($post['plugin_meta'][$pluginSlug]['icon'] ?? ($widget['icon'] ?? '🔌')), 16),
+                    'color' => $this->sanitizeColor((string) ($post['plugin_meta'][$pluginSlug]['color'] ?? ($widget['color'] ?? '#4f46e5')), (string) ($widget['color'] ?? '#4f46e5')),
+                ];
+
+                $values['member_dashboard_widget_meta_' . $pluginSlug] = json_encode($meta, JSON_UNESCAPED_UNICODE);
             }
 
             $this->persistSettings($values);
@@ -587,6 +603,7 @@ class MemberDashboardModule
             $registry->init();
 
             $widgets = [];
+            $seenPlugins = [];
             foreach ($registry->getAll() as $section) {
                 if (!empty($section['parent_slug'])) {
                     continue;
@@ -597,15 +614,26 @@ class MemberDashboardModule
                 if ($plugin === '') {
                     continue;
                 }
+                if (isset($seenPlugins[$plugin])) {
+                    continue;
+                }
+                $seenPlugins[$plugin] = true;
+
+                $meta = $this->getPluginWidgetMeta($plugin);
+                $supportsFrontendWidget = ($section['dashboard_widget'] ?? null) !== false;
 
                 $widgets[] = [
                     'plugin' => $plugin,
                     'slug' => (string)($section['slug'] ?? $plugin),
-                    'label' => (string)($config['title'] ?? $section['label'] ?? $plugin),
-                    'description' => (string)($config['description'] ?? ''),
-                    'icon' => (string)($config['icon'] ?? $section['icon'] ?? '🔌'),
-                    'color' => (string)($config['color'] ?? '#4f46e5'),
+                    'label' => (string)($meta['title'] ?? $config['title'] ?? $section['label'] ?? $plugin),
+                    'description' => (string)($meta['description'] ?? $config['description'] ?? ''),
+                    'icon' => (string)($meta['icon'] ?? $config['icon'] ?? $section['icon'] ?? '🔌'),
+                    'color' => (string)($meta['color'] ?? $config['color'] ?? '#4f46e5'),
                     'priority' => (int)($section['priority'] ?? 50),
+                    'supports_frontend_widget' => $supportsFrontendWidget,
+                    'admin_note' => !$supportsFrontendWidget
+                        ? 'Theme-/Plugin-spezifischer Bereich ohne generische 365CMS-Dashboard-Kachel.'
+                        : '',
                 ];
             }
 
@@ -656,6 +684,30 @@ class MemberDashboardModule
         }
 
         return $widgets;
+    }
+
+    /**
+     * @return array<string,string>
+     */
+    private function getPluginWidgetMeta(string $pluginSlug): array
+    {
+        $key = 'member_dashboard_widget_meta_' . $pluginSlug;
+
+        try {
+            $raw = $this->db->get_var(
+                "SELECT option_value FROM {$this->prefix}settings WHERE option_name = ? LIMIT 1",
+                [$key]
+            );
+
+            if (!is_string($raw) || trim($raw) === '') {
+                return [];
+            }
+
+            $decoded = \CMS\Json::decodeArray($raw, []);
+            return is_array($decoded) ? $decoded : [];
+        } catch (\Throwable $e) {
+            return [];
+        }
     }
 
     private function sanitizeRole(string $role): string

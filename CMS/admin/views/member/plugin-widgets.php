@@ -64,6 +64,7 @@ if ($order !== []) {
                             <?php foreach ($pluginWidgets as $widget):
                                 $pluginSlug = (string)($widget['plugin'] ?? '');
                                 $visible = ($settings['member_dashboard_plugin_' . $pluginSlug] ?? '1') === '1';
+                                $supportsFrontendWidget = !empty($widget['supports_frontend_widget']);
                             ?>
                                 <div class="col-md-6 col-xl-4" data-plugin="<?php echo htmlspecialchars($pluginSlug); ?>" draggable="true">
                                     <div class="card card-sm h-100 border">
@@ -75,13 +76,40 @@ if ($order !== []) {
                                                 <div class="flex-fill">
                                                     <div class="fw-semibold"><?php echo htmlspecialchars((string)($widget['label'] ?? $pluginSlug)); ?></div>
                                                     <div class="text-muted small"><?php echo htmlspecialchars((string)($widget['description'] ?? '')); ?></div>
+                                                    <?php if (!empty($widget['admin_note'])): ?>
+                                                        <div class="text-azure small mt-1"><?php echo htmlspecialchars((string)($widget['admin_note'] ?? '')); ?></div>
+                                                    <?php endif; ?>
                                                 </div>
                                                 <span class="badge bg-secondary-lt text-secondary">⇅</span>
                                             </div>
-                                            <label class="form-check form-switch mb-0">
-                                                <input type="checkbox" class="form-check-input" name="plugin_visible[<?php echo htmlspecialchars($pluginSlug); ?>]" value="1" <?php echo $visible ? 'checked' : ''; ?>>
-                                                <span class="form-check-label">Im Frontend anzeigen</span>
-                                            </label>
+
+                                            <div class="row g-2 mb-3">
+                                                <div class="col-sm-8">
+                                                    <label class="form-label small mb-1">Titel</label>
+                                                    <input type="text" class="form-control form-control-sm" name="plugin_meta[<?php echo htmlspecialchars($pluginSlug); ?>][title]" maxlength="120" value="<?php echo htmlspecialchars((string)($widget['label'] ?? '')); ?>">
+                                                </div>
+                                                <div class="col-sm-4">
+                                                    <label class="form-label small mb-1">Icon</label>
+                                                    <input type="text" class="form-control form-control-sm" name="plugin_meta[<?php echo htmlspecialchars($pluginSlug); ?>][icon]" maxlength="16" value="<?php echo htmlspecialchars((string)($widget['icon'] ?? '🔌')); ?>">
+                                                </div>
+                                                <div class="col-12">
+                                                    <label class="form-label small mb-1">Beschreibung</label>
+                                                    <textarea class="form-control form-control-sm" name="plugin_meta[<?php echo htmlspecialchars($pluginSlug); ?>][description]" rows="3" maxlength="255"><?php echo htmlspecialchars((string)($widget['description'] ?? '')); ?></textarea>
+                                                </div>
+                                                <div class="col-sm-5">
+                                                    <label class="form-label small mb-1">Akzentfarbe</label>
+                                                    <input type="color" class="form-control form-control-color form-control-sm" name="plugin_meta[<?php echo htmlspecialchars($pluginSlug); ?>][color]" value="<?php echo htmlspecialchars((string)($widget['color'] ?? '#4f46e5')); ?>">
+                                                </div>
+                                            </div>
+
+                                            <?php if ($supportsFrontendWidget): ?>
+                                                <label class="form-check form-switch mb-0">
+                                                    <input type="checkbox" class="form-check-input" name="plugin_visible[<?php echo htmlspecialchars($pluginSlug); ?>]" value="1" <?php echo $visible ? 'checked' : ''; ?>>
+                                                    <span class="form-check-label">Im Frontend anzeigen</span>
+                                                </label>
+                                            <?php else: ?>
+                                                <div class="text-muted small">Diese Konfiguration steuert die Darstellung in Theme-/Plugin-spezifischen Member-Bereichen.</div>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                 </div>

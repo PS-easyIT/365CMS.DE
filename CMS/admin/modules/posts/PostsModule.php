@@ -99,7 +99,7 @@ class PostsModule
              LEFT JOIN {$this->prefix}users u ON p.author_id = u.id
              LEFT JOIN {$this->prefix}post_categories c ON p.category_id = c.id
              {$whereClause}
-             ORDER BY p.updated_at DESC
+             ORDER BY p.created_at DESC
              LIMIT 200",
             $params
         ) ?: [];

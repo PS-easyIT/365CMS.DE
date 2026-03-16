@@ -156,7 +156,7 @@ if ($viewAction === 'edit') {
                     category: %s,
                     search: %s
                 },
-                sortMap: {1:'title',3:'status',5:'updated_at'},
+                sortMap: {1:'title',3:'status',5:'created_at'},
                 columns: [
                     {
                         id: 'id',
@@ -196,7 +196,7 @@ if ($viewAction === 'edit') {
                         }
                     },
                     { id: 'author_name', name: 'Autor' },
-                    { id: 'updated_at', name: 'Datum' },
+                    { id: 'created_at', name: 'Erstellt am' },
                     {
                         id: 'id',
                         name: '',

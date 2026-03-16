@@ -144,7 +144,7 @@ if ($action === 'edit') {
                     status: %s,
                     search: %s
                 },
-                sortMap: {1:'title',2:'slug',3:'status',5:'updated_at'},
+                sortMap: {1:'title',2:'slug',3:'status',5:'created_at'},
                 columns: [
                     {
                         id: 'id',
@@ -181,7 +181,7 @@ if ($action === 'edit') {
                         }
                     },
                     { id: 'author_name', name: 'Autor' },
-                    { id: 'updated_at', name: 'Aktualisiert' },
+                    { id: 'created_at', name: 'Erstellt am' },
                     {
                         id: 'id',
                         name: '',

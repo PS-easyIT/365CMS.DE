@@ -177,9 +177,9 @@ final class ApiRouter
         $search = trim((string)($_GET['search'] ?? ''));
         $status = trim((string)($_GET['status'] ?? 'all'));
         $category = max(0, (int)($_GET['category'] ?? 0));
-        $sort = in_array($_GET['sort'] ?? '', ['title', 'status', 'published_at', 'views', 'updated_at'], true)
+        $sort = in_array($_GET['sort'] ?? '', ['title', 'status', 'published_at', 'views', 'updated_at', 'created_at'], true)
             ? (string)$_GET['sort']
-            : 'updated_at';
+            : 'created_at';
         $order = strtoupper((string)($_GET['order'] ?? 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
 
         $where = [];
@@ -204,7 +204,7 @@ final class ApiRouter
         $total = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}posts p {$whereStr}", $params);
         $rows = $db->get_results(
                 "SELECT p.id, p.title, p.slug, p.status, p.views, p.featured_image,
-                    p.published_at, p.updated_at,
+                    p.published_at, p.updated_at, p.created_at,
                     COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name,
                     u.role AS author_role,
                     c.name AS category_name,
@@ -251,7 +251,7 @@ final class ApiRouter
         $status = trim((string)($_GET['status'] ?? ''));
         $sort = in_array($_GET['sort'] ?? '', ['title', 'slug', 'status', 'updated_at', 'created_at'], true)
             ? (string)$_GET['sort']
-            : 'updated_at';
+            : 'created_at';
         $order = strtoupper((string)($_GET['order'] ?? 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
 
         $where = [];
