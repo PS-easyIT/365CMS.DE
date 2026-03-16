@@ -1,12 +1,12 @@
 # CMS Core – Übersicht
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-16 | **Version:** 2.6.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Verzeichnisstruktur](#verzeichnisstruktur)
 - [Wichtige Muster](#wichtige-muster)
 - [Dokumentation](#dokumentation)
 
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-16 -->
 
 Das `core/`-Verzeichnis enthält alle Kernklassen des 365CMS.  
 Die meisten Klassen folgen dem **Singleton-Pattern** und sind über PSR-4 autogeladen.
@@ -27,6 +27,7 @@ core/
 ├── Database.php              PDO-Wrapper mit prepared statements
 ├── Debug.php                 Debug-Logging, HTML-Ausgabe (statisch)
 ├── Hooks.php                 WordPress-ähnliches Action/Filter-System
+├── Json.php                  Null-sichere JSON-Helfer für Settings und Runtime-Pfade
 ├── Logger.php                PSR-3-kompatibles Logging mit Channel-Support
 ├── MigrationManager.php      Inkrementelle ALTER-TABLE-Migrationen
 ├── PageManager.php           Seitenverwaltung (CRUD, Suche, Revisions)
@@ -38,31 +39,48 @@ core/
 ├── TableOfContents.php       TOC-Widget, Anker-IDs, [cms_toc]-Shortcode
 ├── ThemeManager.php          Theme-Laden, Template-Rendering
 ├── Totp.php                  TOTP 2FA (RFC 6238, Google Authenticator)
+├── VendorRegistry.php        Registry für produktive Bundles und Plattformprüfung
+├── Version.php               Zentrale Release-Konstanten (Version, Datum, Status)
 ├── WP_Error.php              WordPress-kompatible Fehlerklasse
 ├── Contracts/
 │   ├── CacheInterface.php    PSR-16-ähnlicher Cache-Contract
 │   ├── DatabaseInterface.php Datenbank-Abstraktions-Contract
 │   └── LoggerInterface.php   PSR-3-kompatibler Logger-Contract
+├── Http/
+│   └── Client.php            SSRF-gehärteter HTTP-Client für Remote-Pfade
 ├── Member/
 │   └── PluginDashboardRegistry.php  Plugin-Bereiche im Member-Dashboard
+├── Routing/
+│   ├── AdminRouter.php       Teilrouter für Admin- und AJAX-Einstiege
+│   ├── ApiRouter.php         API-/Upload-/Elfinder-Routen
+│   ├── MemberRouter.php      Member-Dashboard- und Plugin-Routen
+│   ├── PublicRouter.php      Public-Routen inkl. Archive, Kommentare und Sitemaps
+│   └── ThemeRouter.php       Theme-spezifische Frontend-Dispatching-Hilfe
 └── Services/
     ├── AnalyticsService.php       Besucherstatistiken
     ├── BackupService.php          Datenbank-/Datei-Backups
     ├── CommentService.php         Kommentar-Verwaltung
+    ├── ContentLocalizationService.php Lokalisierte Basis-URIs und Sprachpfade
+    ├── CoreWebVitalsService.php   Feldmessung für Web Vitals
     ├── CookieConsentService.php   Cookie-Consent-Banner
     ├── DashboardService.php       Dashboard-Statistiken
+    ├── ErrorReportService.php     Persistente Fehlerreports mit Audit-Logging
     ├── EditorJsRenderer.php       Editor.js Block-Rendering
     ├── EditorJsService.php        Editor.js Integration
     ├── EditorService.php          Seiten-Editor Logik
+    ├── FeatureUsageService.php    Datensparsame Nutzungsmetriken für Admin/Member
     ├── FeedService.php            RSS-/Atom-Feed-Generierung
     ├── FileUploadService.php      Datei-Upload-Verarbeitung
     ├── ImageService.php           Bildverarbeitung (Resize, WebP)
     ├── LandingPageService.php     Landing Pages (Sections)
     ├── MailService.php            E-Mail-Versand (SMTP/Symfony Mailer)
+    ├── MediaDeliveryService.php   Kontrollierte Auslieferung privater Uploads
     ├── MediaService.php           Medienbibliothek & Upload
     ├── MemberService.php          Member-Dashboard-Logik
     ├── MessageService.php         Internes Nachrichten-System
+    ├── OpcacheWarmupService.php   Warmup der größten PHP-Dateien
     ├── PdfService.php             PDF-Generierung (DomPDF)
+    ├── PermalinkService.php       Beitrags-URL-Strukturen und Slug-Migration
     ├── PurifierService.php        HTML-Bereinigung (HTMLPurifier)
     ├── RedirectService.php        URL-Weiterleitungen
     ├── SearchService.php          Volltextsuche (TNTSearch)
@@ -77,6 +95,8 @@ core/
     ├── UpdateService.php          CMS-Update-Prüfung
     └── UserService.php            Benutzer-CRUD für Admin
 ```
+
+Seit `2.6.0` dokumentiert [STRUCTURE.md](STRUCTURE.md) zusätzlich den Release-Snapshot des Core-/Admin-Sopes mit neuen und entfernten Dateien seit `2.5.30`.
 
 ---
 
@@ -116,6 +136,7 @@ $user      = UserService::getInstance();
 
 | Datei                    | Inhalt                                        |
 |--------------------------|-----------------------------------------------|
+| [STRUCTURE.md](STRUCTURE.md)         | Release-Snapshot für `CMS/core`, `CMS/admin`, `CMS/config` |
 | [CORE-CLASSES.md](CORE-CLASSES.md) | Detailreferenz aller 22 Core-Klassen  |
 | [SERVICES.md](SERVICES.md)         | Alle 30 Service-Klassen dokumentiert  |
 | [SECURITY.md](SECURITY.md)         | Sicherheitsmodell                     |
