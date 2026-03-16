@@ -6,6 +6,7 @@ namespace CMS\Services\SiteTable;
 use CMS\Database;
 use CMS\Hooks;
 use CMS\Services\ContentLocalizationService;
+use CMS\Services\PurifierService;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -150,7 +151,7 @@ final class SiteTableHubRenderer
         $html .= $this->renderHero($heroBadge, $heroTitle, $heroText, $metaItems, $ctaLabel, $ctaUrl);
         $html .= $this->renderQuickLinks($quickLinks, $contentLanguage);
         $html .= $this->renderSections($sections, $template, $contentLanguage);
-        $html .= $this->renderCards($cards, $cardDesign, $cardSchema);
+        $html .= $this->renderCards($cards, $cardDesign, $cardSchema, (int) ($table['id'] ?? 0));
         $html .= '</section>';
 
         return $html;
@@ -238,7 +239,7 @@ final class SiteTableHubRenderer
         return $html . '</div>';
     }
 
-    private function renderCards(array $cards, array $cardDesign, array $cardSchema): string
+    private function renderCards(array $cards, array $cardDesign, array $cardSchema, int $currentTableId): string
     {
         if ($cards === []) {
             return '';
@@ -255,7 +256,7 @@ final class SiteTableHubRenderer
         foreach ($cards as $card) {
             $url = htmlspecialchars((string) ($card['url'] ?? '#'), ENT_QUOTES, 'UTF-8');
             $title = htmlspecialchars((string) ($card['title'] ?? ''), ENT_QUOTES, 'UTF-8');
-            $summary = htmlspecialchars((string) ($card['summary'] ?? ''), ENT_QUOTES, 'UTF-8');
+            $summary = $this->renderCardSummary((string) ($card['summary'] ?? ''), $currentTableId);
             $badge = htmlspecialchars((string) ($card['badge'] ?? ''), ENT_QUOTES, 'UTF-8');
             $meta = htmlspecialchars((string) ($card['meta'] ?? ''), ENT_QUOTES, 'UTF-8');
             $metaLeft = htmlspecialchars((string) ($card['meta_left'] ?? ''), ENT_QUOTES, 'UTF-8');
@@ -299,7 +300,7 @@ final class SiteTableHubRenderer
             }
             $html .= '</h3>';
             if ($summary !== '') {
-                $html .= '<p class="cms-hub-site__card-summary">' . nl2br($summary) . '</p>';
+                $html .= '<div class="cms-hub-site__card-summary">' . $summary . '</div>';
             }
             $html .= '<div class="cms-hub-site__card-footer cms-hub-site__card-footer--' . htmlspecialchars($cardMetaLayout, ENT_QUOTES, 'UTF-8') . '">';
             $html .= '<div class="cms-hub-site__card-meta-row">';
@@ -328,6 +329,45 @@ final class SiteTableHubRenderer
         }
 
         return $html . '</div>';
+    }
+
+    private function renderCardSummary(string $value, int $currentTableId): string
+    {
+        if ($value === '') {
+            return '';
+        }
+
+        $placeholders = [];
+        $prepared = (string) preg_replace_callback(
+            '/\[(?:site-table|table|hub-site)\s+id\s*=\s*["\']?(\d+)["\']?\s*\/?\]/i',
+            static function (array $matches) use (&$placeholders, $currentTableId): string {
+                $targetTableId = (int) ($matches[1] ?? 0);
+                if ($targetTableId <= 0 || $targetTableId === $currentTableId) {
+                    return '';
+                }
+
+                $token = '%%CMS_HUB_CARD_CONTENT_' . count($placeholders) . '%%';
+                $placeholders[$token] = \CMS\Services\SiteTableService::getInstance()->renderTableById($targetTableId);
+
+                return $token;
+            },
+            $value
+        );
+
+        $containsHtml = $this->containsHtml($prepared);
+        $html = $containsHtml
+            ? $this->sanitizeRichHtml($prepared)
+            : nl2br(htmlspecialchars($prepared, ENT_QUOTES, 'UTF-8'));
+
+        foreach ($placeholders as $token => $replacement) {
+            $html = str_replace(
+                $containsHtml ? $token : htmlspecialchars($token, ENT_QUOTES, 'UTF-8'),
+                $replacement,
+                $html
+            );
+        }
+
+        return trim($html);
     }
 
     private function normalizeHubCards(array $rows): array
@@ -374,5 +414,15 @@ final class SiteTableHubRenderer
     private function normalizeOption(string $value, array $allowed, string $fallback): string
     {
         return in_array($value, $allowed, true) ? $value : $fallback;
+    }
+
+    private function containsHtml(string $value): bool
+    {
+        return preg_match('/<\s*\/?\s*[a-z][^>]*>/i', $value) === 1;
+    }
+
+    private function sanitizeRichHtml(string $value): string
+    {
+        return PurifierService::getInstance()->purify($value, 'table');
     }
 }

@@ -698,6 +698,23 @@ class SchemaManager
     }
 
     /**
+     * Löscht die Schema-Flag-Datei, damit createTables() bei einer Reparatur
+     * das vollständige Schema erneut durchläuft.
+     */
+    public function clearFlag(): void
+    {
+        $flagFile = $this->getFlagFile();
+
+        if (!file_exists($flagFile)) {
+            return;
+        }
+
+        if (!@unlink($flagFile) && file_exists($flagFile)) {
+            error_log('SchemaManager::clearFlag() konnte Flag-Datei nicht löschen: ' . $flagFile);
+        }
+    }
+
+    /**
      * Erstellt alle CMS-Tabellen (idempotent via CREATE TABLE IF NOT EXISTS).
      * Wird beim ersten Request und nach repairTables() ausgeführt.
      */

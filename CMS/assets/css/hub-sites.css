@@ -410,6 +410,19 @@
     line-height: 1.7;
 }
 
+.cms-hub-site__card-summary > :first-child {
+    margin-top: 0;
+}
+
+.cms-hub-site__card-summary > :last-child {
+    margin-bottom: 0;
+}
+
+.cms-hub-site__card-summary .cms-site-table-wrap {
+    width: 100%;
+    max-width: 100%;
+}
+
 .cms-hub-site__card-footer {
     display: flex;
     align-items: center;

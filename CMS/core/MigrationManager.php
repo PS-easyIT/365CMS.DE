@@ -45,8 +45,18 @@ class MigrationManager
      */
     public function repairTables(): void
     {
-        (new SchemaManager($this->db))->clearFlag();
-        (new SchemaManager($this->db))->createTables();
+        $schemaManager = new SchemaManager($this->db);
+
+        if (method_exists($schemaManager, 'clearFlag')) {
+            $schemaManager->clearFlag();
+        } elseif (method_exists($schemaManager, 'getFlagFile')) {
+            $flagFile = $schemaManager->getFlagFile();
+            if (is_string($flagFile) && $flagFile !== '' && file_exists($flagFile)) {
+                @unlink($flagFile);
+            }
+        }
+
+        $schemaManager->createTables();
         // Bei Reparatur Schema-Version zurücksetzen damit run() erneut durchläuft
         $this->resetVersion();
         $this->run();
