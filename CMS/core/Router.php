@@ -165,6 +165,7 @@ class Router
         $isProtectedMethod = in_array($method, ['POST', 'PUT', 'DELETE', 'PATCH'], true);
 
         if ($isProtectedMethod
+            && !$this->isM365LicPublicEvaluationRequest($routingUri, $method)
             && !in_array($routingUri, $csrfBypassExact, true)
             && !array_reduce($csrfBypassPrefixes, fn(bool $carry, string $prefix): bool => $carry || str_starts_with($routingUri, $prefix), false)
         ) {
@@ -352,6 +353,51 @@ class Router
     {
         return !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
             && strtolower((string)$_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+    }
+
+    private function isM365LicPublicEvaluationRequest(string $routingUri, string $method): bool
+    {
+        if ($method !== 'POST') {
+            return false;
+        }
+
+        if (!isset($_POST['evaluation_csrf_token']) || !array_key_exists('requirements_payload', $_POST)) {
+            return false;
+        }
+
+        $routeSlug = $this->resolveM365LicRouteSlug();
+        if ($routeSlug === '') {
+            return false;
+        }
+
+        return in_array($routingUri, [
+            '/' . $routeSlug,
+            '/' . $routeSlug . '/eu-vergleich',
+        ], true);
+    }
+
+    private function resolveM365LicRouteSlug(): string
+    {
+        static $routeSlug = null;
+
+        if ($routeSlug !== null) {
+            return $routeSlug;
+        }
+
+        $routeSlug = '';
+
+        if (!class_exists('\\CMS_M365LIC_Repository')) {
+            return $routeSlug;
+        }
+
+        try {
+            $settings = \CMS_M365LIC_Repository::instance()->get_settings();
+            $routeSlug = trim((string) ($settings['route_slug'] ?? 'm365-lizenzberater'), '/');
+        } catch (\Throwable $e) {
+            $routeSlug = '';
+        }
+
+        return $routeSlug;
     }
 
     private function applyRequestCacheHeaders(string $routingUri, string $method): void
