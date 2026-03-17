@@ -15,6 +15,7 @@ if (!defined('ABSPATH')) {
 final class MediaDeliveryService
 {
     private const INLINE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico', 'avif'];
+    private const ELFINDER_TMB_PREFIX = '.elfinder/.tmb/';
 
     private static ?self $instance = null;
 
@@ -95,7 +96,7 @@ final class MediaDeliveryService
             $this->deny(400, 'Ungültiger Medienpfad.');
         }
 
-        if ($this->containsHiddenSegment($relativePath)) {
+        if ($this->containsHiddenSegment($relativePath) && !$this->isAllowedHiddenPath($relativePath)) {
             $this->deny(403, 'Der angeforderte Medienpfad ist nicht freigegeben.');
         }
 
@@ -156,6 +157,111 @@ final class MediaDeliveryService
         }
 
         return false;
+    }
+
+    private function isAllowedHiddenPath(string $relativePath): bool
+    {
+        if (!str_starts_with($relativePath, self::ELFINDER_TMB_PREFIX)) {
+            return false;
+        }
+
+        if (!$this->isInlineSafePath($relativePath)) {
+            return false;
+        }
+
+        if (Auth::instance()->isAdmin()) {
+            return true;
+        }
+
+        $sourcePath = $this->resolveElfinderThumbnailSourcePath($relativePath);
+        if ($sourcePath === null || $sourcePath === '') {
+            return false;
+        }
+
+        if ($this->containsHiddenSegment($sourcePath)) {
+            return false;
+        }
+
+        if ($this->isPrivateMemberPath($sourcePath)) {
+            return $this->canAccessPrivateMemberPath($sourcePath);
+        }
+
+        return true;
+    }
+
+    private function resolveElfinderThumbnailSourcePath(string $relativePath): ?string
+    {
+        if (!str_starts_with($relativePath, self::ELFINDER_TMB_PREFIX)) {
+            return null;
+        }
+
+        $thumbName = basename($relativePath);
+        if ($thumbName === '' || !str_ends_with(strtolower($thumbName), '.png')) {
+            return null;
+        }
+
+        $thumbId = substr($thumbName, 0, -4);
+        if (!is_string($thumbId) || $thumbId === '') {
+            return null;
+        }
+
+        foreach ($this->buildElfinderHashCandidates($thumbId) as $candidate) {
+            $decodedPath = $this->decodeElfinderHash($candidate);
+            if ($decodedPath !== null) {
+                return $decodedPath;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<int,string>
+     */
+    private function buildElfinderHashCandidates(string $thumbId): array
+    {
+        $candidates = [$thumbId];
+
+        if (preg_match('/^(.*?)(\d{9,13})$/', $thumbId, $matches) === 1 && !empty($matches[1])) {
+            $candidates[] = (string) $matches[1];
+        }
+
+        return array_values(array_unique(array_filter($candidates, static fn (string $value): bool => $value !== '')));
+    }
+
+    private function decodeElfinderHash(string $hash): ?string
+    {
+        $separatorPos = strpos($hash, '_');
+        if ($separatorPos === false || $separatorPos >= strlen($hash) - 1) {
+            return null;
+        }
+
+        $encodedPath = substr($hash, $separatorPos + 1);
+        if (!is_string($encodedPath) || $encodedPath === '') {
+            return null;
+        }
+
+        $encodedPath = strtr($encodedPath, '-_.', '+/=');
+        $padding = strlen($encodedPath) % 4;
+        if ($padding !== 0) {
+            $encodedPath .= str_repeat('=', 4 - $padding);
+        }
+
+        $decoded = base64_decode($encodedPath, true);
+        if (!is_string($decoded) || $decoded === '') {
+            return null;
+        }
+
+        if (function_exists('mb_check_encoding') && !\mb_check_encoding($decoded, 'UTF-8')) {
+            return null;
+        }
+
+        if (preg_match('/[\x00-\x1F\x7F]/', $decoded) === 1) {
+            return null;
+        }
+
+        $normalized = $this->normalizeRelativePath($decoded);
+        return $normalized !== '' ? $normalized : null;
     }
 
     private function resolveAbsolutePath(string $relativePath): string|WP_Error

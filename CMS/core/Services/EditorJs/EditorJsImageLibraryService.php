@@ -53,6 +53,10 @@ final class EditorJsImageLibraryService
             $absolutePath = $file->getPathname();
             $relativePath = ltrim(str_replace('\\', '/', substr($absolutePath, strlen($rootPath))), '/');
 
+            if ($relativePath === '' || $this->containsHiddenSegment($relativePath)) {
+                continue;
+            }
+
             if ($relativePath === 'member' || str_starts_with($relativePath, 'member/')) {
                 continue;
             }
@@ -74,5 +78,16 @@ final class EditorJsImageLibraryService
             'success' => 1,
             'items' => array_slice($items, 0, 250),
         ];
+    }
+
+    private function containsHiddenSegment(string $relativePath): bool
+    {
+        foreach (explode('/', $relativePath) as $segment) {
+            if ($segment !== '' && str_starts_with($segment, '.')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

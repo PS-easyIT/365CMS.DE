@@ -30,10 +30,8 @@ $pickerContentType = (string)($pickerContentType ?? 'post'); // 'post' | 'page'
             <div class="modal-body">
                 <div class="featured-picker__toolbar mb-3">
                     <div class="featured-picker__upload">
-                        <label class="btn btn-outline-primary btn-sm mb-0">
-                            Bild hochladen
-                            <input type="file" class="d-none" accept="image/*" data-role="featured-picker-upload">
-                        </label>
+                        <button type="button" class="btn btn-outline-primary btn-sm" data-role="featured-picker-upload-button">Bild hochladen</button>
+                        <input type="file" class="d-none" accept="image/*" data-role="featured-picker-upload">
                     </div>
                     <div class="featured-picker__search">
                         <input type="search" class="form-control form-control-sm" placeholder="Bilder filtern …" data-role="featured-picker-search">
@@ -76,6 +74,7 @@ $pickerContentType = (string)($pickerContentType ?? 'post'); // 'post' | 'page'
     var gridEl = modalEl.querySelector('[data-role="featured-picker-grid"]');
     var statusEl = modalEl.querySelector('[data-role="featured-picker-status"]');
     var searchEl = modalEl.querySelector('[data-role="featured-picker-search"]');
+    var uploadButton = modalEl.querySelector('[data-role="featured-picker-upload-button"]');
     var uploadEl = modalEl.querySelector('[data-role="featured-picker-upload"]');
     var modalInstance = typeof bootstrap !== 'undefined' && bootstrap.Modal
         ? bootstrap.Modal.getOrCreateInstance(modalEl)
@@ -279,9 +278,14 @@ $pickerContentType = (string)($pickerContentType ?? 'post'); // 'post' | 'page'
         });
     }
 
-    openBtn.addEventListener('click', function() {
-        showModal();
-        loadItems();
+    openBtn.addEventListener('click', function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        window.setTimeout(function() {
+            showModal();
+            loadItems();
+        }, 40);
     });
 
     modalEl.addEventListener('click', function(event) {
@@ -321,6 +325,15 @@ $pickerContentType = (string)($pickerContentType ?? 'post'); // 'post' | 'page'
     });
 
     searchEl && searchEl.addEventListener('input', filterItems);
+
+    uploadButton && uploadButton.addEventListener('click', function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (uploadEl) {
+            uploadEl.click();
+        }
+    });
 
     uploadEl && uploadEl.addEventListener('change', function() {
         var file = this.files && this.files[0] ? this.files[0] : null;

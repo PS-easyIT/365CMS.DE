@@ -175,6 +175,29 @@ $tests = [
 
         assertTrue($violations === [], implode(' | ', $violations));
     },
+    'Architekturregel: Featured-Image-Picker trennt Öffnen des Modals sauber vom Upload-Trigger' => static function () use ($projectRoot): void {
+        $pickerPath = $projectRoot . DIRECTORY_SEPARATOR . 'CMS/admin/views/partials/featured-image-picker.php';
+        $content = file_get_contents($pickerPath);
+        $violations = [];
+
+        if ($content === false) {
+            $violations[] = 'CMS/admin/views/partials/featured-image-picker.php: Datei konnte nicht gelesen werden';
+        } else {
+            if (!str_contains($content, 'data-role="featured-picker-upload-button"')) {
+                $violations[] = 'CMS/admin/views/partials/featured-image-picker.php: separater Upload-Button fehlt';
+            }
+
+            if (!str_contains($content, 'uploadEl.click()')) {
+                $violations[] = 'CMS/admin/views/partials/featured-image-picker.php: Upload wird nicht explizit per Script ausgelöst';
+            }
+
+            if (!str_contains($content, 'window.setTimeout(function() {')) {
+                $violations[] = 'CMS/admin/views/partials/featured-image-picker.php: Modal-Öffnung ist nicht gegen Ghost-Clicks entkoppelt';
+            }
+        }
+
+        assertTrue($violations === [], implode(' | ', $violations));
+    },
     'Architekturregel: MFA-Public-Routen umgehen die generische form_guard-CSRF-Schranke' => static function () use ($projectRoot): void {
         $routerPath = $projectRoot . DIRECTORY_SEPARATOR . 'CMS/core/Router.php';
         $publicRouterPath = $projectRoot . DIRECTORY_SEPARATOR . 'CMS/core/Routing/PublicRouter.php';
