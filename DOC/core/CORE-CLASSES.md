@@ -1,7 +1,7 @@
 # 365CMS – Core-Klassen-Referenz
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-16 -->
 
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-16 | **Version:** 2.6.0 | **Status:** Aktuell
 
 Dieses Dokument beschreibt die zentralen PHP-Klassen des 365CMS-Kerns. Alle Klassen
 befinden sich im Namespace `CMS\` (Kern) bzw. `CMS\Services\` (Service-Schicht) und
@@ -32,6 +32,7 @@ liegen unter `CMS/core/`.
 | 17 | [Settings](#17-settings) | `SettingsService` |
 | 18 | [Backup](#18-backup) | `BackupService` |
 | 19 | [Contracts (Interfaces)](#19-contracts-interfaces) | `DatabaseInterface`, `CacheInterface`, `LoggerInterface` |
+| 20 | [Utilities](#20-utilities) | `Version` |
 
 ---
 
@@ -1518,8 +1519,29 @@ PSR-3-kompatibles Interface mit allen acht Log-Level-Methoden.
 
 ---
 
+## 20. Utilities
+<!-- UPDATED: 2026-03-16 -->
+
+### 20.1 Version
+
+| | |
+|---|---|
+| **Namespace** | `CMS\Version` |
+| **Pfad** | `CMS/core/Version.php` |
+| **Pattern** | Statische Release-Konstanten |
+
+Zentrale, leichtgewichtige Quelle für die aktuelle Release-Version, das Release-Datum und den Release-Status des Core. Die Datei ergänzt die Konstante `CMS_VERSION` um eine explizite Klassenreferenz für Fallbacks in Bootstrap-, API- und Update-Pfaden.
+
+```php
+CMS\Version::CURRENT;       // '2.6.0'
+CMS\Version::RELEASE_DATE;  // '2026-03-16'
+CMS\Version::STATUS;        // 'stable'
+```
+
+---
+
 ## Weitere Kern-Services (Kurzübersicht)
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-16 -->
 
 Die folgenden Services im Namespace `CMS\Services\` bieten spezialisierte
 Funktionalität:
@@ -1570,5 +1592,5 @@ Funktionalität:
 
 ---
 
-*Generiert am 2026-03-08 – Diese Dokumentation basiert auf dem aktuellen Stand des
-365CMS-Quellcodes (Version 2.5.4).*
+*Generiert am 2026-03-16 – Diese Dokumentation basiert auf dem aktuellen Stand des
+365CMS-Quellcodes (Version 2.6.0).*

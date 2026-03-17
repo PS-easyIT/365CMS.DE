@@ -96,7 +96,7 @@ core/
     └── UserService.php            Benutzer-CRUD für Admin
 ```
 
-Seit `2.6.0` dokumentiert [STRUCTURE.md](STRUCTURE.md) zusätzlich den Release-Snapshot des Core-/Admin-Sopes mit neuen und entfernten Dateien seit `2.5.30`.
+Seit `2.6.0` dokumentiert [STRUCTURE.md](STRUCTURE.md) zusätzlich den Release-Snapshot des Core-/Admin-Scopes mit neuen und entfernten Dateien seit `2.5.30`.
 
 ---
 

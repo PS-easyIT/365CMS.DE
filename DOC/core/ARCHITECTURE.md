@@ -1,5 +1,5 @@
 # 365CMS – Architektur
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-16 | **Version:** 2.6.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -12,7 +12,7 @@
 
 ---
 
-## Überblick <!-- UPDATED: 2026-03-08 -->
+## Überblick <!-- UPDATED: 2026-03-16 -->
 
 365CMS ist ein modular aufgebautes Content-Management-System, das auf **PHP 8.4+** basiert und für den Betrieb auf Shared- und Managed-Hosting optimiert ist. Die Architektur trennt sechs Schichten klar voneinander: Core, Services, Plugins, Themes, Admin und Member/API.
 
@@ -28,7 +28,7 @@
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────┐
-│                        365CMS v2.5.4                                │
+│                        365CMS v2.6.0                                │
 │                                                                     │
 │  Presentation     → Themes (Frontend), Admin-Views, Member-Templates│
 │  Application      → Router, Hooks, PluginManager, ThemeManager      │
@@ -41,7 +41,7 @@
 
 ---
 
-## Systemschichten <!-- UPDATED: 2026-03-08 -->
+## Systemschichten <!-- UPDATED: 2026-03-16 -->
 
 Die Architektur ist in sechs logische Schichten gegliedert. Jede Schicht hat klar definierte Verantwortlichkeiten und kommuniziert nur über festgelegte Interfaces (Container, Hooks) mit benachbarten Schichten.
 
@@ -83,6 +83,7 @@ Kernklassen unter `CMS/core/`, Namespace `CMS\*`. Werden beim Bootstrap direkt g
 | `ThemeManager` | `core/ThemeManager.php` | Theme-Laden, Template-Hierarchie (nur `web`/`admin`) |
 | `SchemaManager` | `core/SchemaManager.php` | Initiales DB-Schema (`createTables()`) |
 | `MigrationManager` | `core/MigrationManager.php` | Inkrementelle Migrationen, `SCHEMA_VERSION`-basiert |
+| `Version` | `core/Version.php` | Zentrale Release-Version, Release-Datum und Status |
 
 ### Schicht 3 – Services
 
@@ -135,7 +136,7 @@ Themes unter `CMS/themes/<name>/` steuern das Frontend-Rendering. `ThemeManager`
 
 ---
 
-## Request-Lifecycle <!-- UPDATED: 2026-03-08 -->
+## Request-Lifecycle <!-- UPDATED: 2026-03-16 -->
 
 Jeder HTTP-Request durchläuft eine festgelegte Pipeline von Entry-Point bis zur gerenderten Ausgabe.
 
@@ -260,7 +261,7 @@ $this->addRoute('GET',  '/api/v1/pages',                    $callback);
 
 ---
 
-## Dependency Injection / Service Container <!-- UPDATED: 2026-03-08 -->
+## Dependency Injection / Service Container <!-- UPDATED: 2026-03-16 -->
 
 Der `CMS\Container` ist der zentrale DI-Container des Systems. Er verwaltet Service-Instanzen und ermöglicht Lazy-Loading von Dependencies.
 
@@ -340,7 +341,7 @@ Jeder Service wird unter seinem FQCN **und** einem Kurzalias registriert, sodass
 
 ---
 
-## Autoloading (PSR-4, Composer) <!-- UPDATED: 2026-03-08 -->
+## Autoloading (PSR-4, Composer) <!-- UPDATED: 2026-03-16 -->
 
 365CMS verwendet **keinen globalen Composer-Autoloader**. Stattdessen werden Vendor-Libraries entpackt unter `CMS/assets/` gepflegt und über einen eigenen Autoloader geladen.
 
@@ -420,7 +421,7 @@ Services werden im Container als Lazy-Singletons registriert. Die zugehörige Ve
 
 ---
 
-## Konfigurationsmanagement <!-- UPDATED: 2026-03-08 -->
+## Konfigurationsmanagement <!-- UPDATED: 2026-03-16 -->
 
 Die Konfiguration ist dreistufig aufgebaut: statische Datei, Bootstrap-Konstanten und Laufzeit-Settings aus der Datenbank.
 
@@ -445,7 +446,7 @@ Priorität   Quelle                    Beschreibung
 
 ```php
 // CMS/core/Bootstrap.php – ensureConstants()
-defined('CMS_VERSION')   || define('CMS_VERSION',   '2.5.4');
+defined('CMS_VERSION')   || define('CMS_VERSION',   Version::CURRENT);
 defined('SITE_NAME')     || define('SITE_NAME',     'CMS');
 defined('SITE_URL')      || define('SITE_URL',      '');
 defined('ADMIN_EMAIL')   || define('ADMIN_EMAIL',   '');
@@ -462,7 +463,7 @@ defined('ASSETS_PATH')   || define('ASSETS_PATH',   ABSPATH . 'assets/');
 |---|---|---|
 | `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS` | MySQL/MariaDB-Verbindung | `localhost`, `cms_db` |
 | `SITE_URL` | Basis-URL der Installation | `https://example.com` |
-| `CMS_VERSION` | Aktuelle Version | `2.5.4` |
+| `CMS_VERSION` | Aktuelle Version | `2.6.0` |
 | `LOG_PATH` | Verzeichnis für Log-Dateien | `ABSPATH . 'logs/'` |
 | `LOG_LEVEL` | Minimaler Log-Level | `WARNING` (oder `DEBUG` bei `CMS_DEBUG=true`) |
 | `CMS_DEBUG` | Debug-Modus | `false` |
@@ -485,7 +486,7 @@ $siteName = $settings->get('general', 'site_name', 'Mein CMS');
 
 ---
 
-## Fehlerbehandlung und Logging <!-- UPDATED: 2026-03-08 -->
+## Fehlerbehandlung und Logging <!-- UPDATED: 2026-03-16 -->
 
 365CMS verwendet ein zweistufiges Logging-System: den allgemeinen `Logger` für Anwendungs-Events und den `AuditLogger` für sicherheitsrelevante Aktionen.
 

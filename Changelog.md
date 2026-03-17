@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.5.30-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.0-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -24,6 +24,24 @@ Die folgenden Punkte sind **sinnvolle nächste Ausbaustufen**, die aus den aktue
 - **Diagnose 2.0 mit Bundle-/Registry-Historie** – sichtbare Bundle-/Registry-Statusdaten um Trends, Änderungsverlauf und aktive Warnhistorie ergänzen
 - **Weitere Service-Splits für Rest-Hotspots** – insbesondere verbleibende Theme-/Media-Restblöcke
 - **Proxy-/CDN-Realfall-Prüfung im Betrieb** – Header, Vary-Verhalten und Cache-Reaktionen auf echter Infrastruktur gezielt gegenmessen
+
+## [2.6.0] – 2026-03-16
+
+### Added
+
+- `PermalinkService` zentralisiert Beitrags-URL-Strukturen, Slug-Extraktion und Migrationspfade für beitragsbezogene Router- und Theme-Pfade.
+- `ErrorReportService` plus `/admin/error-report` ergänzen persistente Admin-Fehlerreports mit Audit-Log, Kontext und CSRF-geschütztem Redirect-Flow.
+- Neue Admin-Einstiege für Beitrags-Kategorien, Beitrags-Tags und Tabellen-Display-Defaults erweitern den Redaktionsbereich um eigene CRUD- und Preset-Pfade.
+
+### Changed
+
+- Theme-Dateien werden jetzt scoped gerendert, damit Werte aus einem Render-Kontext nicht mehr versehentlich in andere Templates durchsickern.
+- Routing-, Redirect- und Hub-/Schema-Pfade wurden für Archiv-/Sitemap-Routen, URL-Nachmigration und robustere Flag-Verwaltung in `SchemaManager`/`MigrationManager` erweitert.
+
+### Fixed
+
+- Kommentar- und Admin-JSON-Pfade verhalten sich konsistenter: eingeloggte Nutzer füllen Kommentarformulare sauberer vor, Moderation meldet Erfolg verlässlich zurück und Admin-/AJAX-Endpunkte für Posts, Seiten, Nutzer und Medien laufen stabiler.
+
 ### v2.5.30 — 11. März 2026 · Standard-Theme-Home-Split, Partials & Audit-Sync
 
 | Version | Typ | Bereich | Beschreibung |

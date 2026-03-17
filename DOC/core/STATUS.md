@@ -1,5 +1,5 @@
 # 365CMS – Systemstatus
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-16 | **Version:** 2.6.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Versionsstand](#versionsstand)
@@ -18,10 +18,10 @@
 
 | Eigenschaft | Wert |
 |---|---|
-| CMS-Version | `2.5.4` |
+| CMS-Version | `2.6.0` |
 | Code-Referenz | `CMS/config/app.php` |
 | Update-Metadaten | `CMS/update.json` |
-| Release-Datum | `2026-03-08` |
+| Release-Datum | `2026-03-16` |
 | Projektstandard PHP | `8.4+` |
 | Update-Metadaten `min_php` | `8.4` |
 | Datenbank | MySQL 5.7+ / MariaDB 10.3+ |
@@ -82,7 +82,7 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 
 ---
 
-## Wichtige Feature-Stände in 2.5.4 <!-- UPDATED: 2026-03-08 -->
+## Wichtige Feature-Stände in 2.6.0 <!-- UPDATED: 2026-03-16 -->
 
 | Bereich | Stand |
 |---|---|
@@ -90,13 +90,17 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 | Performance | ✅ eigenes Performance-Center mit Cache-, Medien-, Datenbank-, Settings- und Sessions-Unterseiten |
 | Monitoring | ✅ Response-Time, Cron-Status, Disk-Usage, Scheduled Tasks, Health-Check und E-Mail-Alerts |
 | Medien | ✅ Standard-Listenansicht, Schutzlogik für Member-Ordner, stabile Delete- und Preview-Flows |
+| Tabellen | ✅ eigene Tabellen-Display-Defaults mit wählbaren Stil-Presets und Admin-Settings-Seite |
+| Post-Taxonomien | ✅ Admin-Einstiege für Beitrags-Kategorien und Beitrags-Tags inklusive CRUD |
+| Fehlerreports | ✅ persistente Admin-Fehlerreports mit Audit-Logging und Redirect-kompatiblen Payloads |
 | Fonts | ✅ lokales Self-Hosting, Download-Fallbacks, Audit-Logging |
 | WebP | ✅ Massenkonvertierung und Referenz-Umbiegung |
-| Legal/Privacy | ✅ Sammelroute `/admin/data-requests`, Legal-Sites-Autofill, Cookie-Manager-Hydration |
+| Legal/Privacy | ✅ Sammelroute `/admin/data-requests`, Legal-Sites-Autofill, minimaler Datenschutzmodus, Cookie-Manager-Hydration |
 | Rollen & Rechte | ✅ dynamische Rollen, `role_permissions`, DB-basierte Capability-Prüfung |
 | Editor.js | ✅ Block-basierter Content-Editor als primärer Editor |
 | WebAuthn/Passkey | ✅ FIDO2-Authentifizierung als alternative Login-Methode |
 | PDF-Export | ✅ DomPDF-Integration für Seiten- und Beitragsexport |
+| Permalinks | ✅ zentraler `PermalinkService` für Beitrags-URL-Strukturen, Slug-Extraktion und Migrationspfade |
 
 ---
 
@@ -113,6 +117,12 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 - Die offizielle Mindestplattform des Projekts ist PHP `8.4+`.
 - Hintergrund sind die produktiv gebündelten Symfony-Komponenten in `CMS/assets/mailer`, `CMS/assets/mime` und `CMS/assets/translation`, deren Composer-Metadaten PHP 8.4 voraussetzen.
 - Diese Vorgabe wird nicht nur dokumentiert, sondern zur Laufzeit auch über `CMS/config.php`, `CMS/core/Bootstrap.php`, `CMS/core/Services/StatusService.php`, `CMS/core/Services/UpdateService.php` und `CMS/install.php` aktiv geprüft bzw. signalisiert.
+
+## Release-Notiz 2.6.0 <!-- ADDED: 2026-03-16 -->
+
+- `CMS/core/Version.php` bündelt Release-Version und -Datum als zentrale Core-Referenz.
+- `ThemeManager` rendert Theme-Dateien scoped, damit Template-Variablen nicht mehr ungewollt durch andere Render-Kontexte „wandern“.
+- `ApiRouter`, `PermalinkService`, `ErrorReportService`, `SiteTableDisplaySettings` sowie neue Admin-Einstiege für `post-categories`, `post-tags` und `error-report` erweitern Core/Admin ohne Breaking Change.
 
 ---
 

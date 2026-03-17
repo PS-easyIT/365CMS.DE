@@ -1,11 +1,11 @@
 # 365CMS – Services-Referenz
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-16 | **Version:** 2.6.0 | **Status:** Aktuell
 
 Vollständige Dokumentation des Service-Layers. Alle Service-Klassen liegen im Namespace `CMS\Services` unter `core/Services/`. Der `CacheManager` befindet sich im Root-Namespace `CMS` unter `core/CacheManager.php`.
 
 ---
 
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-16 -->
 ## 1 · Übersicht
 
 | Klasse | Datei | Aufgabe |
@@ -27,23 +27,31 @@ Vollständige Dokumentation des Service-Layers. Alle Service-Klassen liegen im N
 | `BackupService` | `BackupService.php` | Datenbank- und Datei-Backups |
 | `AnalyticsService` | `AnalyticsService.php` | Besucher-Statistiken & Auswertungen |
 | `CommentService` | `CommentService.php` | Kommentar-CRUD & Moderation |
+| `ContentLocalizationService` | `ContentLocalizationService.php` | Lokalisierte Basis-URIs und Pfadauflösung |
+| `CoreWebVitalsService` | `CoreWebVitalsService.php` | Feldmessung für Web Vitals |
 | `CookieConsentService` | `CookieConsentService.php` | Cookie-Consent-Banner (DSGVO) |
 | `DashboardService` | `DashboardService.php` | Admin-Dashboard-Widget-Daten |
+| `ErrorReportService` | `ErrorReportService.php` | Persistente Fehlerreports mit Audit-Logging |
 | `EditorJsService` | `EditorJsService.php` | Editor.js Block-Management |
 | `EditorJsRenderer` | `EditorJsRenderer.php` | Editor.js Block→HTML-Rendering |
 | `EditorService` | `EditorService.php` | SunEditor-Integration |
 | `ElfinderService` | `ElfinderService.php` | elFinder Dateimanager-Integration |
+| `FeatureUsageService` | `FeatureUsageService.php` | Datensparsame Nutzungsmetriken für Admin/Member |
 | `FeedService` | `FeedService.php` | RSS-/Atom-Feed-Generierung |
 | `GraphApiService` | `GraphApiService.php` | Microsoft Graph via Client-Credentials |
 | `JwtService` | `JwtService.php` | JWT-Token (firebase/php-jwt, HS256) |
 | `LandingPageService` | `LandingPageService.php` | Landing-Page-Builder |
+| `MediaDeliveryService` | `MediaDeliveryService.php` | Kontrollierte Auslieferung privater Uploads |
 | `MemberService` | `MemberService.php` | Member-Dashboard-Logik |
 | `MessageService` | `MessageService.php` | Internes Nachrichten-System (Threads, Soft-Delete) |
+| `OpcacheWarmupService` | `OpcacheWarmupService.php` | Signaturgesteuerter Warmup der größten PHP-Dateien |
 | `PdfService` | `PdfService.php` | PDF-Generierung via DomPDF |
+| `PermalinkService` | `PermalinkService.php` | Beitrags-URL-Strukturen, Slug-Extraktion und Migrationspfade |
 | `PurifierService` | `PurifierService.php` | HTML-Bereinigung via HTMLPurifier |
 | `RedirectService` | `RedirectService.php` | 301/302-Weiterleitungen |
 | `SettingsService` | `SettingsService.php` | Gruppierte, optional verschlüsselte Einstellungen |
 | `SiteTableService` | `SiteTableService.php` | Tabellen-Verwaltung |
+| `SiteTableDisplaySettings` | `SiteTable/SiteTableDisplaySettings.php` | Kanonische Tabellen-Display-Presets und Defaults |
 | `StatusService` | `StatusService.php` | System-Status-Checks |
 | `SystemService` | `SystemService.php` | Server-/DB-Infos fürs Admin-Panel |
 | `ThemeCustomizer` | `ThemeCustomizer.php` | Theme-Einstellungen (Farben, Fonts) |
@@ -470,7 +478,7 @@ $backup->cleanup(keepDays: 30);
 
 ---
 
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-16 -->
 ## 9 · Weitere Services
 
 ### AnalyticsService
@@ -516,6 +524,21 @@ $data = $dashboard->getWidgetData();
 // → user_count, post_count, recent_logins, system_status, top_pages
 ```
 
+### ErrorReportService
+
+**Datei:** `core/Services/ErrorReportService.php`
+
+Persistiert Admin-Fehlerreports in `error_reports`, normalisiert `WP_Error`-Kontext für Alerts/Form-Redirects und schreibt Audit-Einträge für neue Reports.
+
+```php
+$payload = CMS\Services\ErrorReportService::buildReportPayloadFromWpError($error, [
+    'source' => '/admin/users',
+    'title' => 'Benutzerverwaltung',
+]);
+
+$result = CMS\Services\ErrorReportService::getInstance()->createReport($payload);
+```
+
 ### EditorJsService / EditorJsRenderer
 
 **Dateien:** `core/Services/EditorJsService.php`, `core/Services/EditorJsRenderer.php`
@@ -539,6 +562,18 @@ elFinder-Dateimanager-Integration für die Admin-Oberfläche.
 **Datei:** `core/Services/FeedService.php`
 
 RSS- und Atom-Feed-Generierung für veröffentlichte Inhalte.
+
+### PermalinkService
+
+**Datei:** `core/Services/PermalinkService.php`
+
+Kapselt Beitrags-Permalink-Presets, Token-Normalisierung, URL-Beispiele, Slug-Extraktion und Legacy-/Migrationspfade für beitragsbezogene Router- und Theme-Pfade.
+
+```php
+$permalinks = CMS\Services\PermalinkService::getInstance();
+$path = $permalinks->buildPostPathFromValues('mein-beitrag', '2026-03-16 09:00:00');
+$slug = $permalinks->extractPostSlugFromPath('/blog/mein-beitrag');
+```
 
 ### GraphApiService
 
@@ -624,6 +659,17 @@ $settings->set('mail', 'smtp_host', 'smtp.example.com');
 **Datei:** `core/Services/SiteTableService.php`
 
 Tabellarische Daten-Verwaltung für Site-weite Anzeigen.
+
+### SiteTableDisplaySettings
+
+**Datei:** `core/Services/SiteTable/SiteTableDisplaySettings.php`
+
+Definiert die kanonischen Frontend-Display-Defaults für Content-Tabellen, validiert aktivierte Stilvarianten und begrenzt freigeschaltete Presets auf vier auswählbare Optionen.
+
+```php
+$settings = CMS\Services\SiteTable\SiteTableDisplaySettings::normalize($_POST);
+$styles = CMS\Services\SiteTable\SiteTableDisplaySettings::styleOptions();
+```
 
 ### StatusService
 
