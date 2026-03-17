@@ -30,17 +30,17 @@ Die folgenden Punkte sind **sinnvolle nächste Ausbaustufen**, die aus den aktue
 ### Added
 
 - `PermalinkService` zentralisiert Beitrags-URL-Strukturen, Slug-Extraktion und Migrationspfade für beitragsbezogene Router- und Theme-Pfade.
-- `ErrorReportService` plus `/admin/error-report` ergänzen persistente Admin-Fehlerreports mit Audit-Log, Kontext und CSRF-geschütztem Redirect-Flow.
-- Neue Admin-Einstiege für Beitrags-Kategorien, Beitrags-Tags und Tabellen-Display-Defaults erweitern den Redaktionsbereich um eigene CRUD- und Preset-Pfade.
+- `ErrorReportService` und `/admin/error-report` führen persistente Admin-Fehlerreports mit Audit-Log, Kontextdaten und CSRF-geschütztem Redirect-Flow ein.
+- Neue Admin-Einstiege für Beitrags-Kategorien, Beitrags-Tags und Tabellen-Display-Defaults erweitern den Redaktionsbereich um eigenständige CRUD-Ansichten und Preset-Verwaltung.
 
 ### Changed
 
-- Theme-Dateien werden jetzt scoped gerendert, damit Werte aus einem Render-Kontext nicht mehr versehentlich in andere Templates durchsickern.
-- Routing-, Redirect- und Hub-/Schema-Pfade wurden für Archiv-/Sitemap-Routen, URL-Nachmigration und robustere Flag-Verwaltung in `SchemaManager`/`MigrationManager` erweitert.
+- Theme-Dateien werden jetzt in isoliertem Scope gerendert, damit Werte aus einem Render-Kontext nicht mehr unbeabsichtigt in andere Templates durchsickern.
+- Routing-, Redirect- und Hub-/Schema-Pfade wurden für Archiv- und Sitemap-Routen, URL-Nachmigrationen und robustere Flag-Verwaltung in `SchemaManager` und `MigrationManager` erweitert.
 
 ### Fixed
 
-- Kommentar- und Admin-JSON-Pfade verhalten sich konsistenter: eingeloggte Nutzer füllen Kommentarformulare sauberer vor, Moderation meldet Erfolg verlässlich zurück und Admin-/AJAX-Endpunkte für Posts, Seiten, Nutzer und Medien laufen stabiler.
+- Kommentar- und Admin-JSON-Pfade verhalten sich konsistenter: eingeloggte Nutzer füllen Kommentarformulare zuverlässiger vor, Moderation meldet Erfolg verlässlich zurück und Admin-/AJAX-Endpunkte für Posts, Seiten, Nutzer und Medien reagieren stabiler.
 
 ### v2.5.30 — 11. März 2026 · Standard-Theme-Home-Split, Partials & Audit-Sync
 

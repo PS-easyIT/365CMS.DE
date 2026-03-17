@@ -1,7 +1,7 @@
 # 365CMS – Core-/Admin-Struktur-Snapshot
 > **Stand:** 2026-03-16 | **Version:** 2.6.0 | **Status:** Release-Snapshot
 
-Scope dieses Snapshots: `CMS/core/`, `CMS/admin/`, `CMS/config/` sowie versionsrelevante Core-Metadaten. Nicht enthalten sind `/plugins/`, `/themes/` und `/CMS/assets/`.
+Dieser Snapshot umfasst `CMS/core/`, `CMS/admin/`, `CMS/config/` sowie versionsrelevante Core-Metadaten. Nicht enthalten sind `/plugins/`, `/themes/` und `/CMS/assets/`.
 
 ---
 
@@ -159,15 +159,15 @@ CMS/
 
 | Pfad | Kurzbeschreibung |
 |---|---|
-| `CMS/admin/error-report.php` | POST-Entry-Point für Admin-Fehlerreports mit CSRF-Prüfung und Redirect-Normalisierung. |
-| `CMS/admin/post-categories.php` | Eigenständige Admin-Seite für CRUD von Beitrags-Kategorien. |
-| `CMS/admin/post-tags.php` | Eigenständige Admin-Seite für CRUD von Beitrags-Tags. |
-| `CMS/admin/views/posts/categories.php` | View für Kategorien-Dashboard, Formular und Tabellenliste. |
-| `CMS/admin/views/posts/tags.php` | View für Tag-Dashboard, Formular und Tabellenliste. |
-| `CMS/admin/views/tables/settings.php` | Admin-View für globale Tabellen-Display-Defaults und Stil-Presets. |
-| `CMS/core/Services/ErrorReportService.php` | Persistiert Fehlerreports, baut `WP_Error`-Payloads auf und schreibt Audit-Logs. |
+| `CMS/admin/error-report.php` | POST-Entry-Point für Admin-Fehlerreports mit CSRF-Prüfung und normalisiertem Redirect-Flow. |
+| `CMS/admin/post-categories.php` | Eigenständige Admin-Seite zum Verwalten von Beitrags-Kategorien. |
+| `CMS/admin/post-tags.php` | Eigenständige Admin-Seite zum Verwalten von Beitrags-Tags. |
+| `CMS/admin/views/posts/categories.php` | View für Kategorienübersicht, Formular und Tabellenliste. |
+| `CMS/admin/views/posts/tags.php` | View für Tag-Übersicht, Formular und Tabellenliste. |
+| `CMS/admin/views/tables/settings.php` | Admin-View für globale Tabellen-Defaults und Stil-Presets. |
+| `CMS/core/Services/ErrorReportService.php` | Persistiert Fehlerreports, bereitet `WP_Error`-Payloads auf und schreibt Audit-Logs. |
 | `CMS/core/Services/PermalinkService.php` | Zentralisiert Beitrags-Permalinks, Slug-Extraktion und URL-Migrationspfade. |
-| `CMS/core/Services/SiteTable/SiteTableDisplaySettings.php` | Kanonische Default-/Preset-Verwaltung für Tabellen-Anzeigeoptionen. |
+| `CMS/core/Services/SiteTable/SiteTableDisplaySettings.php` | Zentrale Default- und Preset-Verwaltung für Tabellen-Anzeigeoptionen. |
 
 ---
 
@@ -180,5 +180,5 @@ Im ausgewerteten Scope wurden seit `2.5.30` **keine Dateien entfernt**.
 ## Einordnung der Scope-Änderungen
 
 - **SemVer-Treiber:** ausschließlich additive Features und Erweiterungen → `MINOR`.
-- **Architektur-Richtung:** neue Services kapseln Permalinks, Fehlerreports und Tabellen-Defaults statt diese Logik weiter in bestehende Großmodule zu streuen.
-- **Admin-Richtung:** Beitrags-Taxonomien und Fehlerreporting haben jetzt eigene, klarere Einstiege statt versteckter Nebenpfade.
+- **Architektur-Richtung:** neue Services kapseln Permalinks, Fehlerreports und Tabellen-Defaults, statt diese Logik weiter in bestehenden Großmodulen zu belassen.
+- **Admin-Richtung:** Beitrags-Taxonomien und Fehlerreporting haben nun eigene, klar erkennbare Einstiege statt versteckter Nebenpfade.
