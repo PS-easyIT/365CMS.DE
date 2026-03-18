@@ -138,12 +138,14 @@ class SchemaManager
                 meta_title VARCHAR(255) DEFAULT NULL,
                 meta_description TEXT DEFAULT NULL,
                 author_id INT UNSIGNED,
+                category_id INT UNSIGNED DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 published_at TIMESTAMP NULL,
                 INDEX idx_slug (slug),
                 INDEX idx_status (status),
-                INDEX idx_author (author_id)
+                INDEX idx_author (author_id),
+                INDEX idx_category (category_id)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
             'page_revisions' => "CREATE TABLE IF NOT EXISTS {$p}page_revisions (

@@ -43,6 +43,7 @@ final class RedirectService
             "CREATE TABLE IF NOT EXISTS {$this->prefix}redirect_rules (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 source_path VARCHAR(255) NOT NULL,
+                site_scope VARCHAR(255) NOT NULL DEFAULT '',
                 target_url VARCHAR(500) NOT NULL,
                 redirect_type SMALLINT NOT NULL DEFAULT 301,
                 is_active TINYINT(1) NOT NULL DEFAULT 1,
@@ -51,7 +52,7 @@ final class RedirectService
                 last_hit_at DATETIME DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                UNIQUE KEY idx_source_path (source_path),
+                UNIQUE KEY idx_source_path_scope (source_path, site_scope),
                 INDEX idx_active (is_active)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
         );
@@ -60,6 +61,7 @@ final class RedirectService
             "CREATE TABLE IF NOT EXISTS {$this->prefix}not_found_logs (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 request_path VARCHAR(255) NOT NULL,
+                request_host VARCHAR(255) NOT NULL DEFAULT '',
                 request_method VARCHAR(10) NOT NULL DEFAULT 'GET',
                 referrer_url VARCHAR(500) DEFAULT NULL,
                 ip_address VARCHAR(64) DEFAULT NULL,
@@ -69,38 +71,54 @@ final class RedirectService
                 last_seen_at DATETIME NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                UNIQUE KEY idx_request_path (request_path),
+                UNIQUE KEY idx_request_path_host (request_path, request_host),
                 INDEX idx_last_seen (last_seen_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
         );
+
+        $this->ensureColumnExists('redirect_rules', 'site_scope', "VARCHAR(255) NOT NULL DEFAULT '' AFTER source_path");
+        $this->ensureColumnExists('not_found_logs', 'request_host', "VARCHAR(255) NOT NULL DEFAULT '' AFTER request_path");
+        $this->ensureRedirectIndexes();
     }
 
-    public function findRedirect(string $path): ?array
+    public function findRedirect(string $path, string $requestHost = ''): ?array
     {
         $normalized = $this->normalizePath($path);
         if ($this->shouldIgnorePath($normalized)) {
             return null;
         }
 
-        $rule = $this->db->get_row(
-            "SELECT * FROM {$this->prefix}redirect_rules WHERE source_path = ? AND is_active = 1 LIMIT 1",
+        $requestHost = $this->normalizeHost($requestHost);
+        $candidates = $this->db->get_results(
+            "SELECT * FROM {$this->prefix}redirect_rules WHERE source_path = ? AND is_active = 1",
             [$normalized]
-        );
+        ) ?: [];
 
-        if (!$rule) {
+        $bestMatch = null;
+        $bestScore = -1;
+        foreach ($candidates as $candidate) {
+            $score = $this->getRedirectSiteScore((array)$candidate, $normalized, $requestHost);
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $bestMatch = $candidate;
+            }
+        }
+
+        if (!$bestMatch || $bestScore < 0) {
             return null;
         }
 
         $this->db->execute(
             "UPDATE {$this->prefix}redirect_rules SET hits = hits + 1, last_hit_at = NOW() WHERE id = ?",
-            [(int)$rule->id]
+            [(int)$bestMatch->id]
         );
 
         return [
-            'id' => (int)$rule->id,
-            'source_path' => (string)$rule->source_path,
-            'target_url' => (string)$rule->target_url,
-            'redirect_type' => (int)$rule->redirect_type,
+            'id' => (int)$bestMatch->id,
+            'source_path' => (string)$bestMatch->source_path,
+            'site_scope' => (string)($bestMatch->site_scope ?? ''),
+            'target_url' => (string)$bestMatch->target_url,
+            'redirect_type' => (int)$bestMatch->redirect_type,
         ];
     }
 
@@ -111,15 +129,18 @@ final class RedirectService
             return;
         }
 
+        $requestHost = $this->normalizeHost((string)($context['request_host'] ?? ''));
+
         $existing = $this->db->get_row(
-            "SELECT id, hit_count FROM {$this->prefix}not_found_logs WHERE request_path = ? LIMIT 1",
-            [$normalized]
+            "SELECT id, hit_count FROM {$this->prefix}not_found_logs WHERE request_path = ? AND request_host = ? LIMIT 1",
+            [$normalized, $requestHost]
         );
 
         if ($existing) {
             $this->db->execute(
                 "UPDATE {$this->prefix}not_found_logs
                  SET hit_count = hit_count + 1,
+                     request_host = ?,
                      request_method = ?,
                      referrer_url = ?,
                      ip_address = ?,
@@ -127,6 +148,7 @@ final class RedirectService
                      last_seen_at = NOW()
                  WHERE id = ?",
                 [
+                    $requestHost,
                     (string)($context['request_method'] ?? 'GET'),
                     $this->limitString((string)($context['referrer_url'] ?? ''), 500),
                     $this->limitString((string)($context['ip_address'] ?? ''), 64),
@@ -139,6 +161,7 @@ final class RedirectService
 
         $this->db->insert('not_found_logs', [
             'request_path' => $normalized,
+            'request_host' => $requestHost,
             'request_method' => $this->limitString((string)($context['request_method'] ?? 'GET'), 10),
             'referrer_url' => $this->limitString((string)($context['referrer_url'] ?? ''), 500),
             'ip_address' => $this->limitString((string)($context['ip_address'] ?? ''), 64),
@@ -156,38 +179,37 @@ final class RedirectService
         ) ?: [];
 
         $logs = $this->db->get_results(
-            "SELECT nfl.*,
-                    rr.id AS redirect_id,
-                    rr.target_url,
-                    rr.redirect_type,
-                    rr.notes AS redirect_notes,
-                    rr.is_active AS redirect_is_active
-             FROM {$this->prefix}not_found_logs nfl
-             LEFT JOIN {$this->prefix}redirect_rules rr ON rr.source_path = nfl.request_path
-             ORDER BY nfl.last_seen_at DESC
+            "SELECT *
+             FROM {$this->prefix}not_found_logs
+             ORDER BY last_seen_at DESC
              LIMIT 200"
         ) ?: [];
+
+        $redirectRows = array_map(fn($row): array => (array)$row, $redirects);
+        $logRows = array_map(fn($row): array => $this->enrichLogWithRedirect((array)$row, $redirectRows), $logs);
+        $siteScopes = $this->getAvailableSiteScopes();
 
         $stats = [
             'redirects_total' => count($redirects),
             'redirects_active' => count(array_filter($redirects, static fn($row) => (int)$row->is_active === 1)),
-            'not_found_total' => count($logs),
-            'not_found_hits' => array_sum(array_map(static fn($row) => (int)$row->hit_count, $logs)),
+            'not_found_total' => count($logRows),
+            'not_found_hits' => array_sum(array_map(static fn($row) => (int)$row['hit_count'], $logRows)),
         ];
 
         return [
-            'redirects' => array_map(static fn($row) => (array)$row, $redirects),
-            'logs' => array_map(static function ($row): array {
-                $mapped = (array)$row;
-                $mapped['redirect_id'] = isset($mapped['redirect_id']) ? (int)$mapped['redirect_id'] : 0;
-                return $mapped;
-            }, $logs),
+            'redirects' => array_map(function (array $row): array {
+                $row['site_scope'] = (string)($row['site_scope'] ?? '');
+                $row['site_scope_label'] = $this->describeSiteScope((string)($row['site_scope'] ?? ''));
+                return $row;
+            }, $redirectRows),
+            'logs' => $logRows,
             'stats' => $stats,
             'targets' => [
                 'pages' => $this->getAvailablePageTargets(),
                 'posts' => $this->getAvailablePostTargets(),
                 'hubs' => $this->getAvailableHubTargets(),
             ],
+            'sites' => $siteScopes,
         ];
     }
 
@@ -195,6 +217,7 @@ final class RedirectService
     {
         $id = (int)($post['redirect_id'] ?? 0);
         $source = $this->normalizePath((string)($post['source_path'] ?? ''));
+        $siteScope = $this->normalizeSiteScopeInput((string)($post['site_scope'] ?? ''));
         $target = $this->resolveTargetFromPost($post);
         $type = (int)($post['redirect_type'] ?? 301);
         $notes = trim((string)($post['notes'] ?? ''));
@@ -216,13 +239,14 @@ final class RedirectService
             return ['success' => false, 'error' => 'Quelle und Ziel dürfen nicht identisch sein.'];
         }
 
-        $duplicateRedirect = $this->findRedirectBySourcePath($source);
+        $duplicateRedirect = $this->findRedirectBySourcePath($source, $siteScope);
         if ($duplicateRedirect !== null && (int)($duplicateRedirect['id'] ?? 0) !== $id) {
-            return ['success' => false, 'error' => $this->buildDuplicateSourceError($source)];
+            return ['success' => false, 'error' => $this->buildDuplicateSourceError($source, $siteScope)];
         }
 
         $data = [
             'source_path' => $source,
+            'site_scope' => $siteScope,
             'target_url' => $target,
             'redirect_type' => $type,
             'is_active' => $isActive,
@@ -239,7 +263,7 @@ final class RedirectService
             return ['success' => true, 'message' => 'Weiterleitung angelegt.'];
         } catch (\Throwable $e) {
             if ($this->isDuplicateRedirectException($e)) {
-                return ['success' => false, 'error' => $this->buildDuplicateSourceError($source)];
+                return ['success' => false, 'error' => $this->buildDuplicateSourceError($source, $siteScope)];
             }
 
             return ['success' => false, 'error' => 'Fehler beim Speichern: ' . $e->getMessage()];
@@ -334,12 +358,13 @@ final class RedirectService
 
         try {
             $existing = $this->db->get_row(
-                "SELECT id FROM {$this->prefix}redirect_rules WHERE source_path = ? LIMIT 1",
-                [$source]
+                "SELECT id FROM {$this->prefix}redirect_rules WHERE source_path = ? AND site_scope = ? LIMIT 1",
+                [$source, '']
             );
 
             $payload = [
                 'source_path'   => $source,
+                'site_scope'    => '',
                 'target_url'    => $target,
                 'redirect_type' => 301,
                 'is_active'     => 1,
@@ -379,6 +404,20 @@ final class RedirectService
         }
 
         return $path;
+    }
+
+    private function normalizeHost(string $host): string
+    {
+        $host = trim(strtolower($host));
+        if ($host === '') {
+            return '';
+        }
+
+        if (str_contains($host, ':')) {
+            $host = explode(':', $host, 2)[0];
+        }
+
+        return trim($host, '.');
     }
 
     private function shouldIgnorePath(string $path): bool
@@ -444,49 +483,296 @@ final class RedirectService
         return $this->normalizePath($target);
     }
 
-    private function findRedirectBySourcePath(string $sourcePath): ?array
+    private function normalizeSiteScopeInput(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '' || $value === 'global') {
+            return '';
+        }
+
+        if (str_starts_with($value, 'host:')) {
+            $host = $this->normalizeHost(substr($value, 5));
+            return $host !== '' ? 'host:' . $host : '';
+        }
+
+        if (str_starts_with($value, 'path:')) {
+            $path = $this->normalizePath(substr($value, 5));
+            return $path !== '' && $path !== '/' ? 'path:' . $path : '';
+        }
+
+        if (preg_match('#^https?://#i', $value) === 1 || str_contains($value, '.')) {
+            $host = $this->normalizeHost((string)(parse_url(preg_match('#^https?://#i', $value) === 1 ? $value : 'https://' . $value, PHP_URL_HOST) ?? $value));
+            return $host !== '' ? 'host:' . $host : '';
+        }
+
+        $path = $this->normalizePath($value);
+        return $path !== '' && $path !== '/' ? 'path:' . $path : '';
+    }
+
+    private function findRedirectBySourcePath(string $sourcePath, string $siteScope = ''): ?array
     {
         if ($sourcePath === '') {
             return null;
         }
 
+        $siteScope = $this->normalizeSiteScopeInput($siteScope);
+
         $row = $this->db->get_row(
-            "SELECT id, source_path, target_url, is_active
+            "SELECT id, source_path, site_scope, target_url, is_active
              FROM {$this->prefix}redirect_rules
              WHERE source_path = ?
+               AND site_scope = ?
              LIMIT 1",
-            [$sourcePath]
+            [$sourcePath, $siteScope]
         );
 
         return $row ? (array)$row : null;
     }
 
-    private function buildDuplicateSourceError(string $sourcePath): string
+    private function getRedirectSiteScore(array $redirect, string $requestPath, string $requestHost): int
     {
-        $duplicateRedirect = $this->findRedirectBySourcePath($sourcePath);
+        $siteScope = $this->normalizeSiteScopeInput((string)($redirect['site_scope'] ?? ''));
+        if ($siteScope === '') {
+            return 10;
+        }
+
+        if (str_starts_with($siteScope, 'host:')) {
+            return $requestHost !== '' && $this->normalizeHost(substr($siteScope, 5)) === $requestHost ? 100 : -1;
+        }
+
+        if (str_starts_with($siteScope, 'path:')) {
+            $scopePath = $this->normalizePath(substr($siteScope, 5));
+            if ($scopePath === '' || $scopePath === '/') {
+                return -1;
+            }
+
+            if ($requestPath === $scopePath || str_starts_with($requestPath, $scopePath . '/')) {
+                return 80 + strlen($scopePath);
+            }
+        }
+
+        return -1;
+    }
+
+    private function enrichLogWithRedirect(array $log, array $redirects): array
+    {
+        $requestPath = $this->normalizePath((string)($log['request_path'] ?? ''));
+        $requestHost = $this->normalizeHost((string)($log['request_host'] ?? ''));
+        $bestMatch = null;
+        $bestScore = -1;
+
+        foreach ($redirects as $redirect) {
+            if ($this->normalizePath((string)($redirect['source_path'] ?? '')) !== $requestPath) {
+                continue;
+            }
+
+            $score = $this->getRedirectSiteScore($redirect, $requestPath, $requestHost);
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $bestMatch = $redirect;
+            }
+        }
+
+        $log['redirect_id'] = (int)($bestMatch['id'] ?? 0);
+        $log['target_url'] = (string)($bestMatch['target_url'] ?? '');
+        $log['redirect_type'] = (int)($bestMatch['redirect_type'] ?? 0);
+        $log['redirect_notes'] = (string)($bestMatch['notes'] ?? '');
+        $log['redirect_is_active'] = (int)($bestMatch['is_active'] ?? 0);
+        $log['site_scope_match'] = (string)($bestMatch['site_scope'] ?? '');
+        $log['request_host'] = $requestHost;
+        $log['request_host_label'] = $requestHost !== '' ? $requestHost : 'Hauptsite / unbekannter Host';
+        $log['site_scope_suggestion'] = $this->suggestSiteScopeForRequest($requestPath, $requestHost);
+
+        return $log;
+    }
+
+    /**
+     * @return array<int, array<string, string>>
+     */
+    private function getAvailableSiteScopes(): array
+    {
+        $options = [
+            [
+                'value' => '',
+                'label' => 'Global / alle Sites',
+                'description' => 'Regel gilt host- und siteübergreifend.',
+            ],
+        ];
+
+        $mainHost = $this->normalizeHost((string)(parse_url((string)SITE_URL, PHP_URL_HOST) ?? ''));
+        if ($mainHost !== '') {
+            $options[] = [
+                'value' => 'host:' . $mainHost,
+                'label' => 'Hauptsite (' . $mainHost . ')',
+                'description' => 'Nur für die primäre Domain.',
+            ];
+        }
+
+        $seen = array_fill_keys(array_map(static fn(array $option): string => $option['value'], $options), true);
+        foreach ($this->loadHubSiteScopeOptions() as $option) {
+            $value = (string)($option['value'] ?? '');
+            if ($value === '' || isset($seen[$value])) {
+                continue;
+            }
+
+            $seen[$value] = true;
+            $options[] = $option;
+        }
+
+        return $options;
+    }
+
+    /**
+     * @return array<int, array<string, string>>
+     */
+    private function loadHubSiteScopeOptions(): array
+    {
+        $selectSlug = $this->hasSiteTableSlugColumn() ? 'table_slug,' : "'' AS table_slug,";
+        $rows = $this->db->get_results(
+            "SELECT table_name, {$selectSlug} settings_json,
+                    JSON_UNQUOTE(JSON_EXTRACT(settings_json, '$.hub_slug')) AS hub_slug
+             FROM {$this->prefix}site_tables
+             WHERE COALESCE(JSON_UNQUOTE(JSON_EXTRACT(settings_json, '$.content_mode')), 'table') = 'hub'
+             ORDER BY table_name ASC"
+        ) ?: [];
+
+        $options = [];
+        foreach ($rows as $row) {
+            $label = trim((string)($row->table_name ?? 'Hub-Site'));
+            $slug = trim((string)((($row->hub_slug ?? '') !== '') ? $row->hub_slug : ($row->table_slug ?? '')));
+            if ($slug !== '') {
+                $options[] = [
+                    'value' => 'path:/' . ltrim($slug, '/'),
+                    'label' => $label . ' (Pfad /' . ltrim($slug, '/') . ')',
+                    'description' => 'Greift für Pfade unterhalb dieser Hub-Site.',
+                ];
+            }
+
+            $settings = json_decode((string)($row->settings_json ?? ''), true);
+            $domains = is_array($settings['hub_domains'] ?? null) ? $settings['hub_domains'] : [];
+            foreach ($domains as $domain) {
+                $host = $this->normalizeHost((string)$domain);
+                if ($host === '') {
+                    continue;
+                }
+
+                $options[] = [
+                    'value' => 'host:' . $host,
+                    'label' => $label . ' (' . $host . ')',
+                    'description' => 'Nur für die zugewiesene Hub-Domain.',
+                ];
+            }
+        }
+
+        return $options;
+    }
+
+    private function suggestSiteScopeForRequest(string $requestPath, string $requestHost): string
+    {
+        foreach ($this->getAvailableSiteScopes() as $option) {
+            $value = (string)($option['value'] ?? '');
+            if ($value === '') {
+                continue;
+            }
+
+            if ($this->getRedirectSiteScore(['site_scope' => $value], $requestPath, $requestHost) >= 0) {
+                return $value;
+            }
+        }
+
+        return $requestHost !== '' ? 'host:' . $requestHost : '';
+    }
+
+    private function describeSiteScope(string $siteScope): string
+    {
+        $siteScope = $this->normalizeSiteScopeInput($siteScope);
+        if ($siteScope === '') {
+            return 'Global / alle Sites';
+        }
+
+        if (str_starts_with($siteScope, 'host:')) {
+            return 'Host: ' . substr($siteScope, 5);
+        }
+
+        if (str_starts_with($siteScope, 'path:')) {
+            return 'Pfadbereich: ' . substr($siteScope, 5);
+        }
+
+        return $siteScope;
+    }
+
+    private function ensureColumnExists(string $table, string $column, string $definition): void
+    {
+        try {
+            $exists = $this->db->get_var("SHOW COLUMNS FROM {$this->prefix}{$table} LIKE '{$column}'");
+            if ($exists === null) {
+                $this->db->getPdo()->exec("ALTER TABLE {$this->prefix}{$table} ADD COLUMN {$column} {$definition}");
+            }
+        } catch (\Throwable) {
+            // Schema-Upgrade darf bestehende Instanzen nicht blockieren.
+        }
+    }
+
+    private function ensureRedirectIndexes(): void
+    {
+        try {
+            $indexes = $this->db->get_results("SHOW INDEX FROM {$this->prefix}redirect_rules") ?: [];
+            $hasComposite = false;
+            $hasLegacy = false;
+
+            foreach ($indexes as $index) {
+                $keyName = (string)($index->Key_name ?? '');
+                if ($keyName === 'idx_source_path_scope') {
+                    $hasComposite = true;
+                }
+                if ($keyName === 'idx_source_path') {
+                    $hasLegacy = true;
+                }
+            }
+
+            if ($hasLegacy) {
+                $this->db->getPdo()->exec("ALTER TABLE {$this->prefix}redirect_rules DROP INDEX idx_source_path");
+            }
+
+            if (!$hasComposite) {
+                $this->db->getPdo()->exec("ALTER TABLE {$this->prefix}redirect_rules ADD UNIQUE INDEX idx_source_path_scope (source_path, site_scope)");
+            }
+        } catch (\Throwable) {
+            // Bestehende Installationen dürfen auch dann weiterlaufen, wenn ein Index-Upgrade scheitert.
+        }
+    }
+
+    private function buildDuplicateSourceError(string $sourcePath, string $siteScope = ''): string
+    {
+        $siteScope = $this->normalizeSiteScopeInput($siteScope);
+        $duplicateRedirect = $this->findRedirectBySourcePath($sourcePath, $siteScope);
         if ($duplicateRedirect === null) {
             return sprintf(
-                'Für die Quelle %s existiert bereits eine Weiterleitung. Bitte vorhandene Regel bearbeiten statt doppelt anzulegen.',
-                $sourcePath
+                'Für die Quelle %s existiert bereits eine Weiterleitung%s. Bitte vorhandene Regel bearbeiten statt doppelt anzulegen.',
+                $sourcePath,
+                $siteScope !== '' ? ' für ' . $this->describeSiteScope($siteScope) : ''
             );
         }
 
         $duplicateTarget = trim((string)($duplicateRedirect['target_url'] ?? ''));
         $duplicateStatus = (int)($duplicateRedirect['is_active'] ?? 0) === 1 ? 'aktive' : 'inaktive';
+        $duplicateScope = $this->describeSiteScope((string)($duplicateRedirect['site_scope'] ?? $siteScope));
 
         if ($duplicateTarget !== '') {
             return sprintf(
-                'Für die Quelle %s existiert bereits eine %s Weiterleitung nach %s. Bitte vorhandene Regel bearbeiten statt doppelt anzulegen.',
+                'Für die Quelle %s existiert bereits eine %s Weiterleitung für %s nach %s. Bitte vorhandene Regel bearbeiten statt doppelt anzulegen.',
                 $sourcePath,
                 $duplicateStatus,
+                $duplicateScope,
                 $duplicateTarget
             );
         }
 
         return sprintf(
-            'Für die Quelle %s existiert bereits eine %s Weiterleitung. Bitte vorhandene Regel bearbeiten statt doppelt anzulegen.',
+            'Für die Quelle %s existiert bereits eine %s Weiterleitung für %s. Bitte vorhandene Regel bearbeiten statt doppelt anzulegen.',
             $sourcePath,
-            $duplicateStatus
+            $duplicateStatus,
+            $duplicateScope
         );
     }
 

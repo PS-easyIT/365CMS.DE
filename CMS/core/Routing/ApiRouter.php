@@ -250,6 +250,7 @@ final class ApiRouter
         $offset = ($page - 1) * $limit;
         $search = trim((string)($_GET['search'] ?? ''));
         $status = trim((string)($_GET['status'] ?? ''));
+        $category = max(0, (int)($_GET['category'] ?? 0));
         $sort = in_array($_GET['sort'] ?? '', ['title', 'slug', 'status', 'updated_at', 'created_at'], true)
             ? (string)$_GET['sort']
             : 'created_at';
@@ -261,6 +262,10 @@ final class ApiRouter
             $where[] = 'p.status = ?';
             $params[] = $status;
         }
+        if ($category > 0) {
+            $where[] = 'p.category_id = ?';
+            $params[] = $category;
+        }
         if ($search !== '') {
             $where[] = '(p.title LIKE ? OR p.slug LIKE ?)';
             $params[] = "%{$search}%";
@@ -271,9 +276,11 @@ final class ApiRouter
         $total = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}pages p {$whereStr}", $params);
         $rows = $db->get_results(
                     "SELECT p.id, p.title, p.slug, p.status, p.updated_at, p.created_at,
-                        u.display_name AS author_name
+                        u.display_name AS author_name,
+                        c.name AS category_name
              FROM {$prefix}pages p
              LEFT JOIN {$prefix}users u ON u.id = p.author_id
+             LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
              {$whereStr}
              ORDER BY p.{$sort} {$order}
              LIMIT {$limit} OFFSET {$offset}",

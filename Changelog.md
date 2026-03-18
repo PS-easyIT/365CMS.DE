@@ -25,6 +25,45 @@ Die folgenden Punkte sind **sinnvolle nächste Ausbaustufen**, die aus den aktue
 - **Weitere Service-Splits für Rest-Hotspots** – insbesondere verbleibende Theme-/Media-Restblöcke
 - **Proxy-/CDN-Realfall-Prüfung im Betrieb** – Header, Vary-Verhalten und Cache-Reaktionen auf echter Infrastruktur gezielt gegenmessen
 
+## [2.6.1] – 2026-03-17
+
+### Changed
+
+- Der SEO-Admin trennt Weiterleitungen und erkannte `404` jetzt in zwei eigenständige Bereiche; neue Redirects lassen sich wieder direkt anlegen und Übernahmen aus dem `404`-Monitor können die passende Site-/Host-Zuordnung mitspeichern.
+- `RedirectService` bewertet Redirect-Regeln jetzt host- bzw. pfadbezogen über `site_scope`, protokolliert den anfragenden Host in `404`-Logs mit und verhindert Dubletten nur noch innerhalb desselben Site-Scope statt global über alle Sites hinweg.
+- Beiträge und Seiten teilen sich jetzt dieselbe Kategorienbasis im Redaktionsbereich; zusätzlich werden Microsoft-365-Standardkategorien wie Copilot, Teams, SharePoint Online, Exchange Online, Intune, Defender oder Power Platform automatisch zur Auswahl vorgehalten.
+- Das Theme `cms-phinit` modernisiert den Header mit dezenter Netzwerk-Animation, verfeinerten Hauptmenübuttons und ausgeblendeter Header-Logo-Fläche auf Mobile; zusätzlich wurde der Dark Mode für Core-/Hub-/Rich-Content-Tabellen sichtbar nachgezogen.
+- `cms-phinit` startet den frühen Dark-Mode-Init im Head jetzt über ein eigenes cachebares Theme-Asset statt über ein Inline-Skript direkt im `header.php`, wodurch der Header weiter flickerarm bleibt und zugleich template-seitig sauberer wird.
+- `cms-phinit` verlagert jetzt auch die umfangreiche Customizer-Logik für Unsaved-Warnung, Shortcut-Speichern, Preview-Drawer, Farb-Presets und Font-Previews in ein eigenes Admin-JS-Asset; im PHP-Fragment verbleibt nur noch passive JSON-Konfiguration.
+- `cms-phinit` lädt Google Analytics jetzt über ein eigenes consent-fähiges Theme-Asset statt über einen Inline-Bootstrap im Footer; zusätzlich feuert das Theme-Banner bei Änderungen ein zentrales `cms-cookie-consent-change`-Event für abhängige Frontend-Module.
+- `cms-phinit` liefert den Theme-Customizer jetzt auch ohne Inline-CSS-Block und ohne Inline-Event-Handler für Farb-Sync/Reset-Confirm aus; Styles und Bindings liegen zentral in `customizer-admin.css` und `customizer-admin.js`.
+- Das Theme `365Network` liefert seinen Admin-Customizer jetzt ebenfalls über ausgelagerte Assets statt über eingebettete CSS-/JS-Blöcke; Farb-Sync, Logo-Vorschau und Reset-Modal hängen an zentralen Klassen/Data-Attributen, und der Einstieg erzwingt nun zusätzlich einen expliziten Admin-Guard.
+- `365Network` zieht auch die Directory-Templates weiter glatt: Filter-Selects submitten zentral über `js/theme.js`, der 404-Zurück-Button nutzt keinen Inline-Handler mehr und wiederkehrende Reset-/Listen-Stile liegen jetzt in gemeinsamen CSS-Klassen statt direkt im Markup.
+
+### Fixed
+
+- Public-Routes mit `GET`-Handler reagieren jetzt auch auf `HEAD`-Requests korrekt, sodass Monitoring-, Header-Checks und SEO-Tools für Routen wie `/feed`, `/forgot-password` oder `/.well-known/security.txt` nicht mehr fälschlich in `404` laufen.
+- Sensible Recovery-Seiten wie `/forgot-password` verwenden jetzt dieselbe private/no-store-Cache-Strategie wie Login- und Registrierungsseiten.
+- RSS-Descriptions extrahieren für Editor.js-Inhalte jetzt robusten Plaintext statt rohe oder abgeschnittene JSON-Blockpayloads in Feed-Reader weiterzureichen; zusätzlich wurde der Regex-Fallback für abgeschnittene Editor.js-Payloads korrigiert, damit auch unvollständige JSON-Fragmente wieder lesbaren Text liefern.
+- `CMS/cron.php` stößt den bislang nur registrierten, aber nie ausgelösten Hook `cms_cron_hourly` jetzt kompatibel mit bestehenden Mail-Queue-Cron-Aufrufen an und drosselt ihn intern auf höchstens einen echten Lauf pro Stunde, sodass `cms-feed`-Fetch-Queue und Feed-Digests wieder automatisch nachziehen.
+- `cms-contact` nutzt in allen verbleibenden Admin-Views nun die zentralen Admin-Assets statt zusätzlicher Inline-Styles/-Scripts; Filter, Template-Auswahl, Modale, Statuswechsel und Sammelaktionen bleiben dabei funktional, aber die Views sind deutlich sauberer und wartbarer.
+- `cms-feed` lädt sein Public-JavaScript jetzt auf allen echten Feed-Routen inklusive Consent-Sperrseite, reagiert damit konsistent auf Cookie-Freigaben/-Entzüge und kommt in den öffentlichen Templates ohne die verbliebenen Inline-Styles/-Scripts für Reset-Links und Consent-Reload aus.
+- `cms-feed` liefert jetzt auch seinen großen Admin-View `page-admin.php` ohne direkte `onclick`-/`confirm`-Handler oder `javascript:void(0)`-Links aus; Bulk-Aktionen, Katalog-Importe, Tabs und Modal-Steuerung hängen stattdessen zentral an `assets/js/admin.js`.
+- `cms-events` liefert jetzt Admin-, Meta-Box-, Member- und Kalenderpfade ohne ausführbare Inline-Skripte, `onclick`-/`onchange`-Handler oder native Confirm-Dialoge aus; Bestätigungen, Modalsteuerung, Preview-Syncs, Formular-Toggles und die Monatsnavigation hängen stattdessen an zentralen Assets bzw. echten Navigationslinks.
+- `cms-phinit` bindet den Theme-Customizer jetzt ohne ausführbaren Inline-Skriptblock an und ersetzt die bisher per JavaScript injizierten Font-Preview-Styles durch eine zentrale CSS-Klasse.
+- Der frühere GA-Inline-Loader in `cms-phinit` wurde entfernt; Tracking wird nur noch über `assets/js/analytics-loader.js` und bei akzeptiertem Consent initialisiert.
+- Der verbleibende Customizer-Styleblock sowie `onclick`-/`oninput`-Handler im `cms-phinit`-Customizer wurden in zentrale Admin-Assets überführt.
+- Die Bulk-Bearbeitung von Beiträgen und Seiten kann jetzt Kategorien setzen oder entfernen; Seiten unterstützen außerdem erstmals eine eigene Einzelbearbeitung per Kategorieauswahl und Listenfilter.
+
+### Added
+
+- `ThemeRouter` liefert jetzt `security.txt` sowohl unter `/security.txt` als auch unter `/.well-known/security.txt` mit Kontakt, Canonical, Sprachenhinweis und Ablaufdatum aus.
+
+### Docs
+
+- Audit-, Sicherheits- und Theme-Dokumentation spiegeln jetzt die PhinIT-Live-/Testsite-Nacharbeit vom 17.03.2026 inklusive `security.txt`, Forgot-Password-Recovery und Feed-Härtung wider.
+- Audit-/Release-Notizen dokumentieren jetzt zusätzlich den getrennten Redirect-/404-Admin, site-spezifische Redirect-Scopes, den nachgezogenen Tabellen-Darkmode in `cms-phinit` sowie die bereinigten `cms-contact`-Admin-Views.
+
 ## [2.6.0] – 2026-03-16
 
 ### Added

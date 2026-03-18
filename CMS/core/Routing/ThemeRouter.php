@@ -11,6 +11,7 @@ namespace CMS\Routing;
 
 use CMS\Api;
 use CMS\Database;
+use CMS\Json;
 use CMS\PageManager;
 use CMS\PluginManager;
 use CMS\Router;
@@ -51,6 +52,8 @@ final class ThemeRouter
         $this->router->addRoute('GET', '/feed', [$this, 'serveRssFeed']);
         $this->router->addRoute('GET', '/sitemap.xml', [$this, 'serveSitemap']);
         $this->router->addRoute('GET', '/robots.txt', [$this, 'serveRobotsTxt']);
+        $this->router->addRoute('GET', '/security.txt', [$this, 'serveSecurityTxt']);
+        $this->router->addRoute('GET', '/.well-known/security.txt', [$this, 'serveSecurityTxt']);
     }
 
     public function renderHome(): void
@@ -511,8 +514,7 @@ final class ThemeRouter
     public function renderAuthorPage(string $identifier): void
     {
         $viewerIsLoggedIn = \CMS\Auth::instance()->isLoggedIn();
-        $memberService = Services\MemberService::getInstance();
-        $author = $memberService->getPublicAuthorProfile($identifier, $viewerIsLoggedIn);
+        $author = $this->resolveAuthorPageProfile($identifier, $viewerIsLoggedIn);
 
         if ($author === null) {
             $this->router->render404();
@@ -549,6 +551,87 @@ final class ThemeRouter
             'totalPages' => max(1, (int)ceil($total / $perPage)),
             'perPage' => $perPage,
         ]);
+    }
+
+    /**
+     * @return array<string,mixed>|null
+     */
+    private function resolveAuthorPageProfile(string $identifier, bool $viewerIsLoggedIn): ?array
+    {
+        $memberService = Services\MemberService::getInstance();
+        $author = $memberService->getPublicAuthorProfile($identifier, $viewerIsLoggedIn);
+        if ($author !== null) {
+            return $author;
+        }
+
+        $identifier = trim($identifier);
+        if ($identifier === '') {
+            return null;
+        }
+
+        $userId = 0;
+        if (preg_match('/^user-(\d+)$/', $identifier, $matches) === 1) {
+            $userId = (int) ($matches[1] ?? 0);
+        } elseif (ctype_digit($identifier)) {
+            $userId = (int) $identifier;
+        }
+
+        $db = Database::instance();
+        $prefix = $db->getPrefix();
+
+        $user = $userId > 0
+            ? $db->get_row(
+                "SELECT id, username, display_name, status
+                 FROM {$prefix}users
+                 WHERE id = ?
+                 LIMIT 1",
+                [$userId]
+            )
+            : $db->get_row(
+                "SELECT id, username, display_name, status
+                 FROM {$prefix}users
+                 WHERE username = ?
+                 LIMIT 1",
+                [$identifier]
+            );
+
+        if ($user === null || (string) ($user->status ?? 'active') === 'banned') {
+            return null;
+        }
+
+        $resolvedUserId = (int) ($user->id ?? 0);
+        if ($resolvedUserId <= 0) {
+            return null;
+        }
+
+        $publishedPosts = (int) $db->get_var(
+            "SELECT COUNT(*)
+             FROM {$prefix}posts
+             WHERE author_id = ? AND status = 'published'",
+            [$resolvedUserId]
+        );
+
+        if ($publishedPosts <= 0) {
+            return null;
+        }
+
+        $displayName = trim((string) ($user->display_name ?? ''));
+        if ($displayName === '') {
+            $displayName = trim((string) ($user->username ?? 'Autor'));
+        }
+
+        return [
+            'id' => $resolvedUserId,
+            'slug' => 'user-' . $resolvedUserId,
+            'username' => (string) ($user->username ?? ''),
+            'display_name' => $displayName !== '' ? $displayName : 'Autor',
+            'bio' => '',
+            'avatar_url' => '',
+            'details' => [],
+            'profile_visibility' => 'public',
+            'show_activity' => true,
+            'profile_url' => $memberService->buildPublicAuthorPath($resolvedUserId),
+        ];
     }
 
     public function renderBlogSingle(string ...$segments): void
@@ -671,7 +754,7 @@ final class ThemeRouter
             $pubDate = (string) ($postData['published_at'] ?? $postData['created_at'] ?? '');
             $excerpt = trim((string) ($postData['excerpt'] ?? ''));
             $content = trim((string) ($postData['content'] ?? ''));
-            $description = $excerpt !== '' ? $excerpt : mb_substr(trim(strip_tags($content)), 0, 320);
+            $description = $this->buildFeedDescription($excerpt, $content);
             $categoryName = trim((string) ($postData['category_name'] ?? ''));
             $author = trim((string) ($postData['author_name'] ?? ''));
 
@@ -703,6 +786,27 @@ final class ThemeRouter
     {
         header('Content-Type: text/plain; charset=utf-8');
         echo Services\SEOService::getInstance()->generateRobotsTxt();
+        exit;
+    }
+
+    public function serveSecurityTxt(): void
+    {
+        $canonicalUrl = rtrim(SITE_URL, '/') . '/.well-known/security.txt';
+        $contactEmail = $this->resolveSecurityContactEmail();
+        $expires = gmdate('Y-m-d\TH:i:s\Z', strtotime('+180 days'));
+
+        if (!headers_sent()) {
+            header('Content-Type: text/plain; charset=utf-8');
+        }
+
+        $lines = [
+            'Contact: mailto:' . $contactEmail,
+            'Canonical: ' . $canonicalUrl,
+            'Preferred-Languages: de, en',
+            'Expires: ' . $expires,
+        ];
+
+        echo implode("\n", $lines) . "\n";
         exit;
     }
 
@@ -781,5 +885,123 @@ final class ThemeRouter
     private function wrapCdata(string $value): string
     {
         return '<![CDATA[' . str_replace(']]>', ']]]]><![CDATA[>', $value) . ']]>';
+    }
+
+    private function buildFeedDescription(string $excerpt, string $content): string
+    {
+        $sources = array_values(array_filter([$excerpt, $content], static fn(string $value): bool => trim($value) !== ''));
+        if ($sources === []) {
+            return '';
+        }
+
+        foreach ($sources as $source) {
+            $plainText = $this->extractFeedPlainText($source);
+            if ($plainText !== '') {
+                return mb_substr($plainText, 0, 320);
+            }
+        }
+
+        return '';
+    }
+
+    private function extractFeedPlainText(string $source): string
+    {
+        $source = trim($source);
+        if ($source === '') {
+            return '';
+        }
+
+        $rendered = Services\EditorService::getInstance()->renderContent($source);
+        $plainText = $this->normalizeFeedPlainText($rendered);
+
+        if ($plainText !== '' && !$this->looksLikeEditorJsPayload($plainText)) {
+            return $plainText;
+        }
+
+        $editorJsText = $this->extractEditorJsSnippet($source);
+        if ($editorJsText !== '') {
+            return $editorJsText;
+        }
+
+        if ($source !== $rendered) {
+            $plainText = $this->normalizeFeedPlainText($source);
+        }
+
+        return $this->looksLikeEditorJsPayload($plainText) ? '' : $plainText;
+    }
+
+    private function normalizeFeedPlainText(string $value): string
+    {
+        $plainText = trim(html_entity_decode(strip_tags($value), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        $plainText = preg_replace('/\s+/u', ' ', $plainText) ?? '';
+
+        return trim($plainText);
+    }
+
+    private function looksLikeEditorJsPayload(string $value): bool
+    {
+        $normalized = ltrim($value);
+
+        return str_starts_with($normalized, '{"time":')
+            || str_starts_with($normalized, '{"blocks":')
+            || str_starts_with($normalized, '{"id":')
+            || str_contains($normalized, '"blocks":[{');
+    }
+
+    private function extractEditorJsSnippet(string $source): string
+    {
+        $decoded = Json::decodeArray($source, []);
+        if ($decoded !== [] && isset($decoded['blocks']) && is_array($decoded['blocks'])) {
+            $collected = [];
+            foreach ($decoded['blocks'] as $block) {
+                if (!is_array($block)) {
+                    continue;
+                }
+
+                $text = trim((string) ($block['data']['text'] ?? $block['data']['html'] ?? ''));
+                if ($text !== '') {
+                    $collected[] = $this->normalizeFeedPlainText($text);
+                }
+
+                if (count($collected) >= 3) {
+                    break;
+                }
+            }
+
+            return trim(implode(' ', array_filter($collected, static fn(string $value): bool => $value !== '')));
+        }
+
+        if (preg_match_all('/"(?:text|html)"\s*:\s*"((?:\\.|[^"\\\\])*)"/u', $source, $matches) === 1 || (isset($matches[1]) && $matches[1] !== [])) {
+            $parts = [];
+            foreach ($matches[1] as $rawMatch) {
+                $decodedMatch = json_decode('"' . $rawMatch . '"', true);
+                $text = is_string($decodedMatch) ? $decodedMatch : stripcslashes($rawMatch);
+                $text = $this->normalizeFeedPlainText($text);
+                if ($text !== '') {
+                    $parts[] = $text;
+                }
+                if (count($parts) >= 3) {
+                    break;
+                }
+            }
+
+            return trim(implode(' ', $parts));
+        }
+
+        return '';
+    }
+
+    private function resolveSecurityContactEmail(): string
+    {
+        if (defined('ADMIN_EMAIL')) {
+            $adminEmail = trim((string) ADMIN_EMAIL);
+            if ($adminEmail !== '') {
+                return $adminEmail;
+            }
+        }
+
+        $host = (string) (parse_url(SITE_URL, PHP_URL_HOST) ?: 'localhost');
+
+        return 'security@' . preg_replace('/^www\./i', '', $host);
     }
 }

@@ -22,7 +22,9 @@ if (!defined('ABSPATH')) {
 $siteUrl = defined('SITE_URL') ? SITE_URL : '';
 $counts  = $listData['counts'];
 $pages   = $listData['pages'];
+$categories = $listData['categories'] ?? [];
 $filter  = $listData['filter'];
+$catFilter = (int)($listData['catFilter'] ?? 0);
 $search  = $listData['search'];
 
 $statusLabels = [
@@ -109,6 +111,12 @@ $statusLabels = [
                             <option value="draft"<?= $filter === 'draft' ? ' selected' : '' ?>>Entwürfe</option>
                             <option value="private"<?= $filter === 'private' ? ' selected' : '' ?>>Privat</option>
                         </select>
+                        <select name="category" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+                            <option value="0">Alle Kategorien</option>
+                            <?php foreach ($categories as $category): ?>
+                                <option value="<?= (int)($category['id'] ?? 0) ?>"<?= $catFilter === (int)($category['id'] ?? 0) ? ' selected' : '' ?>><?= htmlspecialchars((string)($category['name'] ?? '')) ?></option>
+                            <?php endforeach; ?>
+                        </select>
                         <div class="input-group input-group-sm" style="width: 220px;">
                             <input type="text" name="q" class="form-control" placeholder="Suchen…"
                                    value="<?= htmlspecialchars($search) ?>">
@@ -129,7 +137,15 @@ $statusLabels = [
                         <option value="">Aktion wählen…</option>
                         <option value="publish">Veröffentlichen</option>
                         <option value="draft">Als Entwurf setzen</option>
+                        <option value="set_category">Kategorie setzen</option>
+                        <option value="clear_category">Kategorie entfernen</option>
                         <option value="delete">Löschen</option>
+                    </select>
+                    <select name="bulk_category_id" id="bulkCategoryPages" class="form-select form-select-sm w-auto d-none">
+                        <option value="0">Kategorie wählen…</option>
+                        <?php foreach ($categories as $category): ?>
+                            <option value="<?= (int)($category['id'] ?? 0) ?>"><?= htmlspecialchars((string)($category['name'] ?? '')) ?></option>
+                        <?php endforeach; ?>
                     </select>
                     <button type="submit" class="btn btn-sm btn-primary">Anwenden</button>
                 </form>
@@ -149,10 +165,26 @@ $statusLabels = [
     var bulkForm = document.getElementById('bulkFormPages');
     var bulkBar = document.getElementById('bulkBarPages');
     var countEl = document.getElementById('selectedCountPages');
+    var bulkActionSelect = bulkForm ? bulkForm.querySelector('[name="bulk_action"]') : null;
+    var bulkCategorySelect = document.getElementById('bulkCategoryPages');
     var selectedIds = new Set();
 
     if (!gridRoot || !bulkForm || !bulkBar || !countEl) {
         return;
+    }
+
+    function updateBulkActionUi() {
+        if (!bulkActionSelect || !bulkCategorySelect) {
+            return;
+        }
+
+        var requiresCategory = bulkActionSelect.value === 'set_category';
+        bulkCategorySelect.classList.toggle('d-none', !requiresCategory);
+        bulkCategorySelect.required = requiresCategory;
+
+        if (!requiresCategory) {
+            bulkCategorySelect.value = '0';
+        }
     }
 
     function syncInputs() {
@@ -211,6 +243,12 @@ $statusLabels = [
             return;
         }
 
+        if (bulkActionSelect && bulkActionSelect.value === 'set_category' && bulkCategorySelect && bulkCategorySelect.value === '0') {
+            event.preventDefault();
+            bulkCategorySelect.focus();
+            return;
+        }
+
         selectedIds.forEach(function(id) {
             var input = document.createElement('input');
             input.type = 'hidden';
@@ -225,6 +263,10 @@ $statusLabels = [
     });
 
     observer.observe(gridRoot, { childList: true, subtree: true });
+    if (bulkActionSelect) {
+        bulkActionSelect.addEventListener('change', updateBulkActionUi);
+    }
+    updateBulkActionUi();
     updateBulkState();
 })();
 </script>

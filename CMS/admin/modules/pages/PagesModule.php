@@ -27,11 +27,62 @@ class PagesModule
     private PageManager $pageManager;
     private string $prefix;
 
+    /** @var array<string,string> */
+    private const DEFAULT_MS365_CATEGORIES = [
+        'microsoft-365' => 'Microsoft 365 Allgemein',
+        'microsoft-copilot' => 'Microsoft Copilot',
+        'microsoft-teams' => 'Microsoft Teams',
+        'exchange-online' => 'Exchange Online',
+        'outlook' => 'Outlook',
+        'sharepoint-online' => 'SharePoint Online',
+        'onedrive-for-business' => 'OneDrive for Business',
+        'microsoft-entra-id' => 'Microsoft Entra ID',
+        'microsoft-intune' => 'Microsoft Intune',
+        'microsoft-defender' => 'Microsoft Defender',
+        'microsoft-purview' => 'Microsoft Purview',
+        'power-platform' => 'Power Platform',
+        'power-automate' => 'Power Automate',
+        'power-apps' => 'Power Apps',
+        'power-bi' => 'Power BI',
+        'planner-to-do' => 'Planner & To Do',
+        'microsoft-viva' => 'Microsoft Viva',
+        'microsoft-forms' => 'Microsoft Forms',
+        'microsoft-loop' => 'Microsoft Loop',
+        'windows-365' => 'Windows 365',
+    ];
+
     public function __construct()
     {
         $this->db          = Database::instance();
         $this->prefix      = $this->db->getPrefix();
         $this->pageManager = PageManager::instance();
+        $this->ensureDefaultCategories();
+    }
+
+    private function ensureDefaultCategories(): void
+    {
+        foreach (self::DEFAULT_MS365_CATEGORIES as $slug => $name) {
+            try {
+                $this->db->execute(
+                    "INSERT IGNORE INTO {$this->prefix}post_categories (name, slug) VALUES (?, ?)",
+                    [$name, $slug]
+                );
+            } catch (\Throwable $e) {
+                error_log(sprintf('PagesModule::ensureDefaultCategories(%s) warning: %s', $slug, $e->getMessage()));
+            }
+        }
+    }
+
+    private function categoryExists(int $categoryId): bool
+    {
+        if ($categoryId <= 0) {
+            return false;
+        }
+
+        return (int) $this->db->get_var(
+            "SELECT COUNT(*) FROM {$this->prefix}post_categories WHERE id = ?",
+            [$categoryId]
+        ) > 0;
     }
 
     /**
@@ -47,6 +98,7 @@ class PagesModule
 
         // Filter
         $statusFilter = $_GET['status'] ?? '';
+        $categoryFilter = (int)($_GET['category'] ?? 0);
         $search       = trim($_GET['q'] ?? '');
 
         // Query bauen
@@ -57,6 +109,10 @@ class PagesModule
             $where[]  = 'p.status = ?';
             $params[] = $statusFilter;
         }
+        if ($categoryFilter > 0) {
+            $where[] = 'p.category_id = ?';
+            $params[] = $categoryFilter;
+        }
         if ($search !== '') {
             $where[]  = '(p.title LIKE ? OR p.slug LIKE ?)';
             $params[] = "%{$search}%";
@@ -66,20 +122,28 @@ class PagesModule
         $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
         $pages = $this->db->get_results(
-            "SELECT p.id, p.title, p.slug, p.status, p.created_at, p.updated_at,
-                    u.display_name AS author
+            "SELECT p.id, p.title, p.slug, p.status, p.category_id, p.created_at, p.updated_at,
+                    u.display_name AS author,
+                    c.name AS category_name
              FROM {$this->prefix}pages p
              LEFT JOIN {$this->prefix}users u ON p.author_id = u.id
+             LEFT JOIN {$this->prefix}post_categories c ON c.id = p.category_id
              {$whereClause}
              ORDER BY p.created_at DESC
              LIMIT 200",
             $params
         ) ?: [];
 
+        $categories = $this->db->get_results(
+            "SELECT id, name, slug FROM {$this->prefix}post_categories ORDER BY name ASC"
+        ) ?: [];
+
         return [
             'pages'     => $pages,
+            'categories' => array_map(fn($category) => (array) $category, $categories),
             'counts'    => compact('total', 'published', 'drafts', 'private'),
             'filter'    => $statusFilter,
+            'catFilter' => $categoryFilter,
             'search'    => $search,
         ];
     }
@@ -97,9 +161,14 @@ class PagesModule
             );
         }
 
+        $categories = $this->db->get_results(
+            "SELECT id, name, slug FROM {$this->prefix}post_categories ORDER BY name ASC"
+        ) ?: [];
+
         return [
             'page'   => $page,
             'isNew'  => $page === null,
+            'categories' => array_map(fn($category) => (array) $category, $categories),
             'seoMeta' => $id !== null ? SEOService::getInstance()->getContentMeta('page', $id) : SEOService::getInstance()->getContentMeta('page', 0),
         ];
     }
@@ -124,6 +193,7 @@ class PagesModule
         $titleEn    = trim($post['title_en'] ?? '');
         $contentEn  = $post['content_en'] ?? '';
         $hideTitle  = (int)($post['hide_title'] ?? 0);
+        $categoryId = (int)($post['category_id'] ?? 0);
         $featuredImage = trim($post['featured_image'] ?? '');
         $featuredImageTempPath = trim($post['featured_image_temp_path'] ?? '');
         $metaTitle  = trim($post['meta_title'] ?? '');
@@ -151,6 +221,10 @@ class PagesModule
             return ['success' => false, 'error' => 'Bitte einen gültigen Slug angeben.'];
         }
 
+        if ($categoryId > 0 && !$this->categoryExists($categoryId)) {
+            return ['success' => false, 'error' => 'Die ausgewählte Kategorie existiert nicht mehr.'];
+        }
+
         if ($this->isSlugTaken($slug, $id)) {
             return ['success' => false, 'error' => 'Dieser Slug ist bereits vergeben.'];
         }
@@ -163,6 +237,7 @@ class PagesModule
             'content' => $content,
             'content_en' => $contentEn,
             'hide_title' => $hideTitle,
+            'category_id' => $categoryId > 0 ? $categoryId : null,
             'featured_image' => $featuredImage,
             'meta_title' => $metaTitle,
             'meta_description' => $metaDesc,
@@ -192,12 +267,13 @@ class PagesModule
                     // Update meta fields
                     $this->db->execute(
                         "UPDATE {$this->prefix}pages 
-                         SET slug = ?, title_en = ?, content_en = ?, featured_image = ?, meta_title = ?, meta_description = ?
+                             SET slug = ?, title_en = ?, content_en = ?, category_id = ?, featured_image = ?, meta_title = ?, meta_description = ?
                          WHERE id = ?",
                         [
                             (string)$savePayload['slug'],
                             (string)($savePayload['title_en'] ?? ''),
                             (string)($savePayload['content_en'] ?? ''),
+                                $savePayload['category_id'],
                             (string)$savePayload['featured_image'],
                             (string)$savePayload['meta_title'],
                             (string)$savePayload['meta_description'],
@@ -206,8 +282,9 @@ class PagesModule
                     );
                     SEOService::getInstance()->saveContentMeta('page', $newId, $post);
                     Hooks::doAction('cms_after_page_save', $newId, $savePayload, $post);
+                    return ['success' => true, 'id' => $newId, 'message' => 'Seite erstellt.'];
                 }
-                return ['success' => true, 'id' => $newId, 'message' => 'Seite erstellt.'];
+                return ['success' => false, 'error' => 'Seite konnte nicht erstellt werden.'];
             }
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Fehler beim Speichern: ' . $e->getMessage()];
@@ -240,7 +317,7 @@ class PagesModule
     /**
      * Bulk-Aktion ausführen
      */
-    public function bulkAction(string $action, array $ids): array
+    public function bulkAction(string $action, array $ids, array $payload = []): array
     {
         if (empty($ids)) {
             return ['success' => false, 'error' => 'Keine Einträge ausgewählt.'];
@@ -271,6 +348,31 @@ class PagesModule
                         $ids
                     );
                     return ['success' => true, 'message' => count($ids) . ' Seite(n) als Entwurf gespeichert.'];
+
+                case 'set_category':
+                    $categoryId = (int) ($payload['bulk_category_id'] ?? 0);
+                    if ($categoryId <= 0) {
+                        return ['success' => false, 'error' => 'Bitte eine Kategorie für die Bulk-Aktion auswählen.'];
+                    }
+
+                    if (!$this->categoryExists($categoryId)) {
+                        return ['success' => false, 'error' => 'Die ausgewählte Kategorie existiert nicht.'];
+                    }
+
+                    $params = array_merge([$categoryId], $ids);
+                    $this->db->execute(
+                        "UPDATE {$this->prefix}pages SET category_id = ?, updated_at = NOW() WHERE id IN ({$placeholders})",
+                        $params
+                    );
+
+                    return ['success' => true, 'message' => count($ids) . ' Seite(n) einer Kategorie zugewiesen.'];
+
+                case 'clear_category':
+                    $this->db->execute(
+                        "UPDATE {$this->prefix}pages SET category_id = NULL, updated_at = NOW() WHERE id IN ({$placeholders})",
+                        $ids
+                    );
+                    return ['success' => true, 'message' => count($ids) . ' Seite(n) aus der Kategorie entfernt.'];
 
                 default:
                     return ['success' => false, 'error' => 'Unbekannte Aktion.'];

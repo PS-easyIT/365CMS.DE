@@ -2,8 +2,8 @@
 declare(strict_types=1);
 
 /**
- * 404-Errors & Weiterleitung – Entry Point
- * Route: /admin/redirect-manager
+ * 404-Monitor – Entry Point
+ * Route: /admin/not-found-monitor
  */
 
 if (!defined('ABSPATH')) {
@@ -31,15 +31,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'save_redirect':
                 $result = $module->saveRedirect($_POST);
                 break;
-            case 'delete_redirect':
-                $result = $module->deleteRedirect((int)($_POST['id'] ?? 0));
-                break;
-            case 'delete_redirects_by_slug':
-                $result = $module->deleteRedirectsBySlug((string)($_POST['slug_filter'] ?? ''));
-                break;
-            case 'toggle_redirect':
-                $result = $module->toggleRedirect((int)($_POST['id'] ?? 0));
-                break;
             case 'clear_logs':
                 $result = $module->clearLogs();
                 break;
@@ -51,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'type' => $result['success'] ? 'success' : 'danger',
             'message' => $result['message'] ?? $result['error'] ?? '',
         ];
-        header('Location: ' . SITE_URL . '/admin/redirect-manager');
+        header('Location: ' . SITE_URL . '/admin/not-found-monitor');
         exit;
     }
 }
@@ -62,8 +53,8 @@ if (isset($_SESSION['admin_alert'])) {
 }
 
 $csrfToken = Security::instance()->generateToken('admin_redirect_manager');
-$pageTitle = 'Weiterleitungen';
-$activePage = 'redirect-manager';
+$pageTitle = '404-Monitor';
+$activePage = 'not-found-monitor';
 $pageAssets = [
     'js' => [
         cms_asset_url('js/admin-seo-redirects.js'),
@@ -74,5 +65,5 @@ $data = $module->getData();
 require_once __DIR__ . '/partials/header.php';
 require_once __DIR__ . '/partials/sidebar.php';
 defined('CMS_ADMIN_SEO_VIEW') || define('CMS_ADMIN_SEO_VIEW', true);
-require_once __DIR__ . '/views/seo/redirects.php';
+require_once __DIR__ . '/views/seo/not-found.php';
 require_once __DIR__ . '/partials/footer.php';

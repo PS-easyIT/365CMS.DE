@@ -164,7 +164,14 @@ Der schnellste Einstieg ist der lokale Dokumentationsindex unter [`DOC/INDEX.md`
 | **Operations** | Cache-Management, DB-Checks, Cron-Monitoring, Disk-Usage, Health-Check |
 | **Mail** | Symfony Mailer/Mime, Queue-Verarbeitung, Retry-Backoff, Transportdiagnose |
 | **Auth** | Rollen, Capabilities, Member-Dashboard, LDAP-Optionen, Login-Protokolle |
-| **Compliance** | Cookie-Consent, Datenexport, Löschanfragen, Legal-Sites |
+| **Compliance** | Cookie-Consent, Datenexport, Löschanfragen, Legal-Sites, `security.txt` |
+
+### Aktuelle Betriebsverbesserungen (März 2026)
+
+- Public-GET-Routen unterstützen jetzt auch `HEAD` sauber für Header-/Monitoring-Checks.
+- Recovery-/Auth-nahe Seiten wie `/forgot-password` senden private/no-store-Header statt im Public-Cache zu landen.
+- `security.txt` / `/.well-known/security.txt` können direkt aus dem Core ausgeliefert werden.
+- RSS-Feeds bereinigen Editor.js-Inhalte für `<description>` robuster zu Plaintext.
 
 ## 🧪 Technologie-Stack & wichtige Bundles
 

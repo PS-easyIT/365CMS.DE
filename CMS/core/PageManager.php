@@ -52,6 +52,7 @@ class PageManager
                 'meta_description' => "ALTER TABLE {$this->prefix}pages ADD COLUMN meta_description TEXT DEFAULT NULL AFTER meta_title",
                 'title_en' => "ALTER TABLE {$this->prefix}pages ADD COLUMN title_en VARCHAR(255) DEFAULT NULL AFTER title",
                 'content_en' => "ALTER TABLE {$this->prefix}pages ADD COLUMN content_en LONGTEXT DEFAULT NULL AFTER content",
+                'category_id' => "ALTER TABLE {$this->prefix}pages ADD COLUMN category_id INT UNSIGNED DEFAULT NULL AFTER author_id",
             ];
 
             foreach ($columns as $column => $sql) {
@@ -99,7 +100,7 @@ class PageManager
         $values = [];
         
         foreach ($data as $key => $value) {
-            if (in_array($key, ['title', 'title_en', 'content', 'content_en', 'status', 'slug', 'hide_title', 'featured_image', 'meta_title', 'meta_description'], true)) {
+            if (in_array($key, ['title', 'title_en', 'content', 'content_en', 'status', 'slug', 'hide_title', 'featured_image', 'meta_title', 'meta_description', 'category_id'], true)) {
                 $fields[] = "$key = ?";
                 $values[] = $value;
             }

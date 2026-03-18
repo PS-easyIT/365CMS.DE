@@ -22,6 +22,7 @@ use CMS\Services\EditorService;
 $siteUrl = defined('SITE_URL') ? SITE_URL : '';
 $page    = $editData['page'] ?? null;
 $isNew   = $editData['isNew'] ?? true;
+$categories = $editData['categories'] ?? [];
 $seoMeta = $editData['seoMeta'] ?? [];
 $seoTemplateSettings = \CMS\Services\SeoAnalysisService::getInstance()->getSettings();
 $pageEditorWidth = function_exists('get_option') ? (int)get_option('setting_page_editor_width', 1050) : 1050;
@@ -74,6 +75,8 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
             $pageContentValue = (string)($page->content ?? '');
             $pageTitleEnValue = (string)($page->title_en ?? '');
             $pageContentEnValue = (string)($page->content_en ?? '');
+            $pageHideTitleValue = (int)($page->hide_title ?? 0);
+            $pageCategoryIdValue = (int)($page->category_id ?? 0);
             $pageMetaTitleValue = (string)($page->meta_title ?? '');
             $pageMetaDescriptionValue = (string)($page->meta_description ?? '');
             $pageFeaturedImageValue = (string)($page->featured_image ?? '');
@@ -113,7 +116,7 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                                         <input type="checkbox" name="hide_title" value="1"
                                                class="form-check-input"
                                                id="hideTitle"
-                                               <?= !empty($page->hide_title) ? 'checked' : '' ?>>
+                                                 <?= $pageHideTitleValue === 1 ? 'checked' : '' ?>>
                                         <span class="form-check-label">Titel ausblenden</span>
                                     </label>
                                 </div>
@@ -144,6 +147,15 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                                     <option value="draft"<?= $pageStatusValue === 'draft' ? ' selected' : '' ?>>Entwurf</option>
                                     <option value="published"<?= $pageStatusValue === 'published' ? ' selected' : '' ?>>Veröffentlicht</option>
                                     <option value="private"<?= $pageStatusValue === 'private' ? ' selected' : '' ?>>Privat</option>
+                                </select>
+                            </div>
+                            <div class="mb-0">
+                                <label class="form-label" for="pageCategoryId">Kategorie</label>
+                                <select name="category_id" class="form-select" id="pageCategoryId">
+                                    <option value="0">Keine Kategorie</option>
+                                    <?php foreach ($categories as $category): ?>
+                                        <option value="<?= (int)($category['id'] ?? 0) ?>"<?= $pageCategoryIdValue === (int)($category['id'] ?? 0) ? ' selected' : '' ?>><?= htmlspecialchars((string)($category['name'] ?? '')) ?></option>
+                                    <?php endforeach; ?>
                                 </select>
                             </div>
                         </div>

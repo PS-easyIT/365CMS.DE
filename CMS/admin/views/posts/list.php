@@ -147,9 +147,17 @@ $search     = $data['search'] ?? '';
                         <option value="">Aktion wählen…</option>
                         <option value="publish">Veröffentlichen</option>
                         <option value="draft">Als Entwurf setzen</option>
+                        <option value="set_category">Kategorie setzen</option>
+                        <option value="clear_category">Kategorie entfernen</option>
                         <option value="set_author_display_name">Autoren-Anzeigenamen setzen</option>
                         <option value="clear_author_display_name">Autoren-Anzeigenamen zurücksetzen</option>
                         <option value="delete">Löschen</option>
+                    </select>
+                    <select name="bulk_category_id" id="bulkCategoryPosts" class="form-select form-select-sm w-auto d-none">
+                        <option value="0">Kategorie wählen…</option>
+                        <?php foreach ($categories as $cat): ?>
+                            <option value="<?php echo (int) ($cat['id'] ?? 0); ?>"><?php echo htmlspecialchars((string) ($cat['name'] ?? '')); ?></option>
+                        <?php endforeach; ?>
                     </select>
                     <input type="text"
                            name="bulk_author_display_name"
@@ -189,6 +197,7 @@ function applyFilters() {
     var countEl = document.getElementById('selectedCountPosts');
     var bulkActionSelect = bulkForm ? bulkForm.querySelector('[name="bulk_action"]') : null;
     var bulkAuthorDisplayName = document.getElementById('bulkAuthorDisplayNamePosts');
+    var bulkCategorySelect = document.getElementById('bulkCategoryPosts');
     var selectedIds = new Set();
 
     if (!gridRoot || !bulkForm || !bulkBar || !countEl) {
@@ -196,16 +205,22 @@ function applyFilters() {
     }
 
     function updateBulkActionUi() {
-        if (!bulkActionSelect || !bulkAuthorDisplayName) {
+        if (!bulkActionSelect || !bulkAuthorDisplayName || !bulkCategorySelect) {
             return;
         }
 
         var requiresName = bulkActionSelect.value === 'set_author_display_name';
+        var requiresCategory = bulkActionSelect.value === 'set_category';
         bulkAuthorDisplayName.classList.toggle('d-none', !requiresName);
         bulkAuthorDisplayName.required = requiresName;
+        bulkCategorySelect.classList.toggle('d-none', !requiresCategory);
+        bulkCategorySelect.required = requiresCategory;
 
         if (!requiresName) {
             bulkAuthorDisplayName.value = '';
+        }
+        if (!requiresCategory) {
+            bulkCategorySelect.value = '0';
         }
     }
 
@@ -268,6 +283,12 @@ function applyFilters() {
         if (bulkActionSelect && bulkActionSelect.value === 'set_author_display_name' && bulkAuthorDisplayName && !bulkAuthorDisplayName.value.trim()) {
             event.preventDefault();
             bulkAuthorDisplayName.focus();
+            return;
+        }
+
+        if (bulkActionSelect && bulkActionSelect.value === 'set_category' && bulkCategorySelect && bulkCategorySelect.value === '0') {
+            event.preventDefault();
+            bulkCategorySelect.focus();
             return;
         }
 

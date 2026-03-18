@@ -138,6 +138,7 @@ class Router
     public function dispatch(): void
     {
         $method = $this->requestMethod;
+        $routeMethod = $method === 'HEAD' ? 'GET' : $method;
         $uri = $this->requestUri;
         Debug::checkpoint('router.dispatch.start', ['method' => $method, 'uri' => $uri]);
         $this->requestContext = Services\ContentLocalizationService::getInstance()->resolveRequestContext($uri);
@@ -150,7 +151,10 @@ class Router
         }
 
         if (class_exists('\\CMS\\Services\\RedirectService')) {
-            $redirect = Services\RedirectService::getInstance()->findRedirect($uri);
+            $redirect = Services\RedirectService::getInstance()->findRedirect(
+                $uri,
+                (string)($_SERVER['HTTP_HOST'] ?? '')
+            );
             if (is_array($redirect) && !empty($redirect['target_url'])) {
                 $this->redirect((string)$redirect['target_url'], (int)($redirect['redirect_type'] ?? 301));
             }
@@ -195,16 +199,16 @@ class Router
             }
         }
 
-        if (isset($this->routes[$method][$routingUri])) {
-            Debug::checkpoint('router.route.exact_match', ['method' => $method, 'uri' => $routingUri]);
-            call_user_func($this->routes[$method][$routingUri]);
+        if (isset($this->routes[$routeMethod][$routingUri])) {
+            Debug::checkpoint('router.route.exact_match', ['method' => $routeMethod, 'uri' => $routingUri]);
+            call_user_func($this->routes[$routeMethod][$routingUri]);
             return;
         }
 
-        foreach ($this->routes[$method] ?? [] as $pattern => $callback) {
+        foreach ($this->routes[$routeMethod] ?? [] as $pattern => $callback) {
             $params = $this->matchRoute($pattern, $routingUri);
             if ($params !== false) {
-                Debug::checkpoint('router.route.pattern_match', ['method' => $method, 'pattern' => $pattern, 'uri' => $routingUri]);
+                Debug::checkpoint('router.route.pattern_match', ['method' => $routeMethod, 'pattern' => $pattern, 'uri' => $routingUri]);
                 call_user_func_array($callback, $params);
                 return;
             }
@@ -416,7 +420,7 @@ class Router
             }
         }
 
-        if (in_array($routingUri, ['/login', '/register', '/logout', '/mfa-challenge', '/mfa-setup', '/order'], true)) {
+        if (in_array($routingUri, ['/login', '/register', '/forgot-password', '/logout', '/mfa-challenge', '/mfa-setup', '/order'], true)) {
             $cache->sendResponseHeaders('private');
             return;
         }
@@ -451,6 +455,7 @@ class Router
         Debug::checkpoint('router.render_404', ['uri' => $this->requestUri]);
         if (!$this->notFoundLogged && class_exists('\\CMS\\Services\\RedirectService')) {
             Services\RedirectService::getInstance()->logNotFound($this->requestUri, [
+                'request_host' => (string)($_SERVER['HTTP_HOST'] ?? ''),
                 'request_method' => $this->requestMethod,
                 'referrer_url' => (string)($_SERVER['HTTP_REFERER'] ?? ''),
                 'ip_address' => (string)($_SERVER['REMOTE_ADDR'] ?? ''),

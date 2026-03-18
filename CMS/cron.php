@@ -78,15 +78,17 @@ try {
         $token = trim((string) ($_GET['token'] ?? ''));
     }
 
-    if ($task !== 'mail-queue') {
+    $supportedTasks = ['mail-queue', 'hourly', 'all'];
+    if (!in_array($task, $supportedTasks, true)) {
         $respond([
             'success' => false,
-            'error' => 'Unbekannte Cron-Task. Unterstützt wird aktuell nur "mail-queue".',
+            'error' => 'Unbekannte Cron-Task. Unterstützt werden aktuell "mail-queue", "hourly" und "all".',
         ], 400);
     }
 
     $app = CMS\Bootstrap::instance();
     $queue = CMS\Services\MailQueueService::getInstance();
+    $settings = CMS\Services\SettingsService::getInstance();
 
     if (PHP_SAPI !== 'cli') {
         $config = $queue->getConfiguration();
@@ -99,17 +101,65 @@ try {
         }
     }
 
-    $result = $queue->handleCronHook([
-        'limit' => $limit,
-        'force' => $force,
-    ]);
+    $runHourlyHooks = static function (bool $forceRun) use ($settings): array {
+        $lastRunRaw = $settings->getString('cron', 'hourly_last_run', '');
+        $lastRunTs = $lastRunRaw !== '' ? strtotime($lastRunRaw) : false;
+        $isDue = $forceRun || $lastRunTs === false || (time() - $lastRunTs) >= 3600;
+
+        if (!$isDue) {
+            return [
+                'success' => true,
+                'executed' => false,
+                'skipped' => true,
+                'reason' => 'Stündlicher Hook ist noch nicht fällig.',
+                'last_run' => $lastRunRaw,
+                'next_due_in_seconds' => max(0, 3600 - (time() - (int) $lastRunTs)),
+            ];
+        }
+
+        CMS\Hooks::doAction('cms_cron_hourly');
+
+        $executedAt = date('Y-m-d H:i:s');
+        $settings->set('cron', 'hourly_last_run', $executedAt, false, 0);
+
+        return [
+            'success' => true,
+            'executed' => true,
+            'skipped' => false,
+            'executed_at' => $executedAt,
+        ];
+    };
+
+    $result = [
+        'mail_queue' => null,
+        'hourly' => null,
+    ];
+
+    if ($task === 'mail-queue' || $task === 'all') {
+        $result['mail_queue'] = $queue->handleCronHook([
+            'limit' => $limit,
+            'force' => $force,
+        ]);
+    }
+
+    if ($task === 'hourly' || $task === 'all' || $task === 'mail-queue') {
+        $result['hourly'] = $runHourlyHooks($force);
+    }
+
+    $success = true;
+    if (is_array($result['mail_queue']) && array_key_exists('success', $result['mail_queue'])) {
+        $success = $success && !empty($result['mail_queue']['success']);
+    }
+    if (is_array($result['hourly']) && array_key_exists('success', $result['hourly'])) {
+        $success = $success && !empty($result['hourly']['success']);
+    }
 
     $respond([
-        'success' => !empty($result['success']),
-        'task' => 'mail-queue',
+        'success' => $success,
+        'task' => $task,
         'mode' => PHP_SAPI === 'cli' ? 'cli' : 'web',
         'result' => $result,
-    ], !empty($result['success']) ? 200 : 500);
+    ], $success ? 200 : 500);
 } catch (Throwable $e) {
     error_log('CMS Cron Error: ' . $e->getMessage());
     $respond([

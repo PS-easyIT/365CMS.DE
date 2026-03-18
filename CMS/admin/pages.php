@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $bulkIds    = isset($_POST['ids'])
                     ? array_values(array_filter(array_map('intval', (array)$_POST['ids'])))
                     : array_values(array_filter(array_map('intval', explode(',', (string)($_POST['bulk_ids'] ?? '')))));
-                $result     = $module->bulkAction($bulkAction, $bulkIds);
+                $result     = $module->bulkAction($bulkAction, $bulkIds, $_POST);
                 $_SESSION['admin_alert'] = [
                     'type'    => $result['success'] ? 'success' : 'danger',
                     'message' => $result['success'] ? $result['message'] : $result['error'],
@@ -142,9 +142,10 @@ if ($action === 'edit') {
                 limit: 20,
                 extraParams: {
                     status: %s,
+                    category: %s,
                     search: %s
                 },
-                sortMap: {1:'title',2:'slug',3:'status',5:'created_at'},
+                sortMap: {1:'title',2:'slug',4:'status',6:'created_at'},
                 columns: [
                     {
                         id: 'id',
@@ -172,6 +173,13 @@ if ($action === 'edit') {
                         formatter: function(cell){ return '/' + window.cmsEsc(cell || ''); }
                     },
                     {
+                        id: 'category_name',
+                        name: 'Kategorie',
+                        formatter: function(cell){
+                            return cell ? gridjs.html('<span class=\"badge bg-azure-lt\">' + window.cmsEsc(cell) + '</span>') : '–';
+                        }
+                    },
+                    {
                         id: 'status',
                         name: 'Status',
                         formatter: function(cell){
@@ -195,6 +203,7 @@ if ($action === 'edit') {
         })();",
         json_encode(SITE_URL . '/api/v1/admin/pages'),
         json_encode((string)($listData['filter'] ?? '')),
+        json_encode((int)($listData['catFilter'] ?? 0)),
         json_encode((string)($listData['search'] ?? '')),
         json_encode(SITE_URL),
         json_encode(SITE_URL)

@@ -1,6 +1,6 @@
-<!-- UPDATED: 2026-03-16 -->
+<!-- UPDATED: 2026-03-17 -->
 # 365CMS – Sicherheitsarchitektur
-> **Stand:** 2026-03-16 | **Version:** 2.6.0 | **Status:** Aktuell
+> **Stand:** 2026-03-17 | **Version:** 2.6.1 | **Status:** Aktuell
 
 Umfassende Dokumentation der Sicherheitsmechanismen, Authentifizierungsverfahren und
 Secure-Coding-Grundsätze im 365CMS.
@@ -569,11 +569,14 @@ Alte Einträge werden probabilistisch bereinigt (1:20-Chance bei jedem Request).
 |--------|------|--------------|
 | `X-Frame-Options` | `SAMEORIGIN` | Clickjacking |
 | `X-Content-Type-Options` | `nosniff` | MIME-Sniffing |
-| `X-XSS-Protection` | `1; mode=block` | Reflected XSS (Legacy-Browser) |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` | Referrer-Leakage |
 | `Permissions-Policy` | `geolocation=(), microphone=(), camera=()` | Sensor-Zugriff |
+| `Cross-Origin-Opener-Policy` | `same-origin` | Fenster-/Browsing-Context-Isolation |
+| `Cross-Origin-Resource-Policy` | `same-site` | ungewollte Cross-Origin-Ressourcennutzung |
 | `Strict-Transport-Security` | `max-age=31536000; includeSubDomains; preload` | Downgrade-Angriffe |
 | `Content-Security-Policy` | Nonce-basiert (siehe unten) | XSS |
+
+> Hinweis: Der App-Code setzt bewusst **keinen** veralteten `X-XSS-Protection`-Header mehr. Falls er auf einem Zielsystem trotzdem auftaucht, kommt er aus vorgeschalteter Server-/Hosting-Konfiguration und sollte dort entfernt werden.
 
 ### Content Security Policy
 
@@ -646,6 +649,7 @@ require-trusted-types-for 'script';
 | Updates | CMS-Updates zeitnah einspielen |
 | Plugins | Nur aus vertrauenswürdigen Quellen installieren |
 | MFA | Für alle Admin-Konten aktivieren |
+| `security.txt` | Unter `/.well-known/security.txt` oder `/security.txt` bereitstellen und nach Deployments extern prüfen |
 
 ### Audit-Logging
 

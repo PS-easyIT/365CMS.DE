@@ -25,11 +25,36 @@ class PostsModule
     private Database $db;
     private string $prefix;
 
+    /** @var array<string,string> */
+    private const DEFAULT_MS365_CATEGORIES = [
+        'microsoft-365' => 'Microsoft 365 Allgemein',
+        'microsoft-copilot' => 'Microsoft Copilot',
+        'microsoft-teams' => 'Microsoft Teams',
+        'exchange-online' => 'Exchange Online',
+        'outlook' => 'Outlook',
+        'sharepoint-online' => 'SharePoint Online',
+        'onedrive-for-business' => 'OneDrive for Business',
+        'microsoft-entra-id' => 'Microsoft Entra ID',
+        'microsoft-intune' => 'Microsoft Intune',
+        'microsoft-defender' => 'Microsoft Defender',
+        'microsoft-purview' => 'Microsoft Purview',
+        'power-platform' => 'Power Platform',
+        'power-automate' => 'Power Automate',
+        'power-apps' => 'Power Apps',
+        'power-bi' => 'Power BI',
+        'planner-to-do' => 'Planner & To Do',
+        'microsoft-viva' => 'Microsoft Viva',
+        'microsoft-forms' => 'Microsoft Forms',
+        'microsoft-loop' => 'Microsoft Loop',
+        'windows-365' => 'Windows 365',
+    ];
+
     public function __construct()
     {
         $this->db     = Database::instance();
         $this->prefix = $this->db->getPrefix();
         $this->ensureColumns();
+        $this->ensureDefaultCategories();
     }
 
     /**
@@ -57,6 +82,32 @@ class PostsModule
                 error_log(sprintf('PostsModule::ensureColumns(%s) warning: %s', $column, $e->getMessage()));
             }
         }
+    }
+
+    private function ensureDefaultCategories(): void
+    {
+        foreach (self::DEFAULT_MS365_CATEGORIES as $slug => $name) {
+            try {
+                $this->db->execute(
+                    "INSERT IGNORE INTO {$this->prefix}post_categories (name, slug) VALUES (?, ?)",
+                    [$name, $slug]
+                );
+            } catch (\Throwable $e) {
+                error_log(sprintf('PostsModule::ensureDefaultCategories(%s) warning: %s', $slug, $e->getMessage()));
+            }
+        }
+    }
+
+    private function categoryExists(int $categoryId): bool
+    {
+        if ($categoryId <= 0) {
+            return false;
+        }
+
+        return (int) $this->db->get_var(
+            "SELECT COUNT(*) FROM {$this->prefix}post_categories WHERE id = ?",
+            [$categoryId]
+        ) > 0;
     }
 
     /**
@@ -256,6 +307,10 @@ class PostsModule
             return ['success' => false, 'error' => 'Bitte einen gültigen Slug angeben.'];
         }
 
+        if ($categoryId > 0 && !$this->categoryExists($categoryId)) {
+            return ['success' => false, 'error' => 'Die ausgewählte Kategorie existiert nicht mehr.'];
+        }
+
         if ($this->isSlugTaken($slug, $id)) {
             return ['success' => false, 'error' => 'Dieser Slug ist bereits vergeben.'];
         }
@@ -405,6 +460,28 @@ class PostsModule
                 case 'draft':
                     $this->db->execute("UPDATE {$this->prefix}posts SET status = 'draft', updated_at = NOW() WHERE id IN ({$placeholders})", $ids);
                     return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge als Entwurf gesetzt.'];
+
+                case 'set_category':
+                    $categoryId = (int) ($payload['bulk_category_id'] ?? 0);
+                    if ($categoryId <= 0) {
+                        return ['success' => false, 'error' => 'Bitte eine Kategorie für die Bulk-Aktion auswählen.'];
+                    }
+
+                    if (!$this->categoryExists($categoryId)) {
+                        return ['success' => false, 'error' => 'Die ausgewählte Kategorie existiert nicht.'];
+                    }
+
+                    $params = array_merge([$categoryId], $ids);
+                    $this->db->execute(
+                        "UPDATE {$this->prefix}posts SET category_id = ?, updated_at = NOW() WHERE id IN ({$placeholders})",
+                        $params
+                    );
+
+                    return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge einer Kategorie zugewiesen.'];
+
+                case 'clear_category':
+                    $this->db->execute("UPDATE {$this->prefix}posts SET category_id = NULL, updated_at = NOW() WHERE id IN ({$placeholders})", $ids);
+                    return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge aus der Kategorie entfernt.'];
 
                 case 'set_author_display_name':
                     $authorDisplayName = $this->sanitizeAuthorDisplayName((string) ($payload['bulk_author_display_name'] ?? ''));

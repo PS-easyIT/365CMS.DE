@@ -127,7 +127,7 @@ Serverseitige Session-Verwaltung mit Ablaufsteuerung.
 
 ### `cms_pages` – Statische Seiten
 
-CMS-Seiten mit SEO-Feldern, Revisionen und Featured-Image-Unterstützung.
+CMS-Seiten mit SEO-Feldern, Revisionen, Featured-Image-Unterstützung und optionaler gemeinsamer Kategorienutzung über `post_categories`.
 
 | Feldname | Typ | Nullable | Default | Beschreibung |
 |---|---|---|---|---|
@@ -142,11 +142,12 @@ CMS-Seiten mit SEO-Feldern, Revisionen und Featured-Image-Unterstützung.
 | `meta_title` | VARCHAR(255) | Ja | NULL | SEO-Titel |
 | `meta_description` | TEXT | Ja | NULL | SEO-Beschreibung |
 | `author_id` | INT UNSIGNED | Ja | NULL | Autor (Referenz auf users.id) |
+| `category_id` | INT UNSIGNED | Ja | NULL | FK → post_categories.id |
 | `created_at` | TIMESTAMP | Ja | CURRENT_TIMESTAMP | Erstellungszeitpunkt |
 | `updated_at` | TIMESTAMP | Ja | ON UPDATE | Änderungszeitpunkt |
 | `published_at` | TIMESTAMP | Ja | NULL | Veröffentlichungszeitpunkt |
 
-**Indizes:** `idx_slug (slug)`, `idx_status (status)`, `idx_author (author_id)`, `UNIQUE (slug)`
+**Indizes:** `idx_slug (slug)`, `idx_status (status)`, `idx_author (author_id)`, `idx_category (category_id)`, `UNIQUE (slug)`
 
 ### `cms_page_revisions` – Seitenversionen
 
@@ -208,7 +209,7 @@ Blog-System mit Kategorien, Tags, View-Counter und Kommentar-Steuerung.
 
 ### `cms_post_categories` – Blog-Kategorien
 
-Hierarchische Kategorien für Blog-Beiträge (Self-Referencing via `parent_id`).
+Hierarchische Kategorien für Blog-Beiträge und statische Seiten (Self-Referencing via `parent_id`). Standardmäßig werden u. a. Microsoft-365-Bereiche wie Teams, SharePoint Online, Exchange Online, Copilot, Intune, Defender oder Power Platform als auswählbare Redaktionskategorien vorgehalten.
 
 | Feldname | Typ | Nullable | Default | Beschreibung |
 |---|---|---|---|---|

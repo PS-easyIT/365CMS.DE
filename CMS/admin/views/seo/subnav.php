@@ -22,7 +22,8 @@ $seoSubnavItems = [
     ['slug' => 'seo-schema', 'label' => 'Strukturierte Daten', 'url' => SITE_URL . '/admin/seo-schema'],
     ['slug' => 'seo-sitemap', 'label' => 'Sitemap', 'url' => SITE_URL . '/admin/seo-sitemap'],
     ['slug' => 'seo-technical', 'label' => 'Technisches SEO', 'url' => SITE_URL . '/admin/seo-technical'],
-    ['slug' => 'redirect-manager', 'label' => '404 & Weiterleitungen', 'url' => SITE_URL . '/admin/redirect-manager'],
+    ['slug' => 'redirect-manager', 'label' => 'Weiterleitungen', 'url' => SITE_URL . '/admin/redirect-manager'],
+    ['slug' => 'not-found-monitor', 'label' => '404-Monitor', 'url' => SITE_URL . '/admin/not-found-monitor'],
 ];
 ?>
 <div class="card mb-4">

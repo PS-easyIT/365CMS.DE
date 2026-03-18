@@ -38,6 +38,8 @@ final class PublicRouter
         $this->router->addRoute('POST', '/login', [$this, 'handleLogin']);
         $this->router->addRoute('GET', '/register', [$this, 'renderRegister']);
         $this->router->addRoute('POST', '/register', [$this, 'handleRegister']);
+        $this->router->addRoute('GET', '/forgot-password', [$this, 'renderForgotPassword']);
+        $this->router->addRoute('POST', '/forgot-password', [$this, 'renderForgotPassword']);
         $this->router->addRoute('GET', '/logout', [$this, 'handleLogout']);
 
         $this->router->addRoute('GET', '/mfa-challenge', [$this, 'renderMfaChallenge']);
@@ -379,6 +381,16 @@ final class PublicRouter
         }
 
         ThemeManager::instance()->render('register');
+    }
+
+    public function renderForgotPassword(): void
+    {
+        if (Auth::instance()->isLoggedIn()) {
+            $this->router->redirect('/member');
+            return;
+        }
+
+        ThemeManager::instance()->render('forgot-password');
     }
 
     public function handleRegister(): void

@@ -1,5 +1,5 @@
 # 365CMS – Projektdokumentation
-> **Stand:** 2026-03-16 | **Version:** 2.6.0 | **Status:** Aktuell
+> **Stand:** 2026-03-17 | **Version:** 2.6.1 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Womit ihr anfangen solltet](#womit-ihr-anfangen-solltet)
@@ -9,7 +9,7 @@
 - [Verwandte Einstiege](#verwandte-einstiege)
 
 ---
-<!-- UPDATED: 2026-03-16 -->
+<!-- UPDATED: 2026-03-17 -->
 
 ## Womit ihr anfangen solltet
 
@@ -45,7 +45,7 @@ Die Bereiche [`theme/`](theme/) und [`plugins/`](plugins/) enthalten Entwicklung
 
 ### Workflows und Audits
 
-Die Ordner [`workflow/`](workflow/) und [`audits/`](audits/) dokumentieren operative Abläufe und technische Bewertungen.
+Die Ordner [`workflow/`](workflow/) und [`audit/`](audit/) dokumentieren operative Abläufe, Live-Audits und technische Bewertungen.
 
 ---
 
@@ -55,6 +55,7 @@ Die Ordner [`workflow/`](workflow/) und [`audits/`](audits/) dokumentieren opera
 - Für **aktuelle Admin-Routen** gilt die Sidebar-Konfiguration aus `CMS/admin/partials/sidebar.php` als Referenz.
 - Für **Datenbankaussagen** ist [core/DATABASE-SCHEMA.md](core/DATABASE-SCHEMA.md) maßgeblich.
 - Für **Release-Änderungen** ist [../Changelog.md](../Changelog.md) die führende Datei.
+- Für **laufende Live-/Staging-Prüfungen** ist der Bereich [`audit/`](audit/) die erste Anlaufstelle, z. B. [`audit/TODO_PHINIT_LIVESITE_2026-03-17.md`](audit/TODO_PHINIT_LIVESITE_2026-03-17.md).
 
 ---
 
