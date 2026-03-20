@@ -114,7 +114,7 @@ $statusLabels = [
                         <select name="category" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
                             <option value="0">Alle Kategorien</option>
                             <?php foreach ($categories as $category): ?>
-                                <option value="<?= (int)($category['id'] ?? 0) ?>"<?= $catFilter === (int)($category['id'] ?? 0) ? ' selected' : '' ?>><?= htmlspecialchars((string)($category['name'] ?? '')) ?></option>
+                                <option value="<?= (int)($category['id'] ?? 0) ?>"<?= $catFilter === (int)($category['id'] ?? 0) ? ' selected' : '' ?>><?= htmlspecialchars((string)($category['option_label'] ?? $category['name'] ?? '')) ?></option>
                             <?php endforeach; ?>
                         </select>
                         <div class="input-group input-group-sm" style="width: 220px;">
@@ -144,7 +144,7 @@ $statusLabels = [
                     <select name="bulk_category_id" id="bulkCategoryPages" class="form-select form-select-sm w-auto d-none">
                         <option value="0">Kategorie wählen…</option>
                         <?php foreach ($categories as $category): ?>
-                            <option value="<?= (int)($category['id'] ?? 0) ?>"><?= htmlspecialchars((string)($category['name'] ?? '')) ?></option>
+                            <option value="<?= (int)($category['id'] ?? 0) ?>"><?= htmlspecialchars((string)($category['option_label'] ?? $category['name'] ?? '')) ?></option>
                         <?php endforeach; ?>
                     </select>
                     <button type="submit" class="btn btn-sm btn-primary">Anwenden</button>

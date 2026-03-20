@@ -170,7 +170,7 @@ final class PermalinkService
      */
     public function buildPostPath(array|object $post, string $locale = 'de'): string
     {
-        $slug = $this->readField($post, 'slug');
+        $slug = $this->readSlugField($post, $locale);
         $publishedAt = $this->readField($post, 'published_at');
         $createdAt = $this->readField($post, 'created_at');
 
@@ -216,7 +216,7 @@ final class PermalinkService
 
     public function extractPostSlugFromPath(string $path): ?string
     {
-        $path = $this->stripLocaleSuffix($this->normalizePath($path));
+        $path = $this->stripLocalizedAffix($this->normalizePath($path));
         if ($path === '') {
             return null;
         }
@@ -312,6 +312,20 @@ final class PermalinkService
         return trim((string) ($post->{$field} ?? ''));
     }
 
+    private function readSlugField(array|object $post, string $locale): string
+    {
+        $normalizedLocale = strtolower(trim($locale));
+        if ($normalizedLocale !== '' && $normalizedLocale !== 'de') {
+            $localizedField = 'slug_' . $normalizedLocale;
+            $localizedSlug = $this->readField($post, $localizedField);
+            if ($localizedSlug !== '') {
+                return $localizedSlug;
+            }
+        }
+
+        return $this->readField($post, 'slug');
+    }
+
     /**
      * @return array{0:string,1:string,2:string}
      */
@@ -335,7 +349,11 @@ final class PermalinkService
             return $normalized;
         }
 
-        return rtrim($normalized, '/') . '/' . rawurlencode($locale);
+        if ($normalized === '/') {
+            return '/' . rawurlencode($locale);
+        }
+
+        return '/' . rawurlencode($locale) . $normalized;
     }
 
     private function normalizePath(string $path): string
@@ -346,7 +364,7 @@ final class PermalinkService
         return rtrim($normalized, '/') ?: '/';
     }
 
-    private function stripLocaleSuffix(string $path): string
+    private function stripLocalizedAffix(string $path): string
     {
         $normalized = $this->normalizePath($path);
         if (!class_exists('CMS\\Services\\ContentLocalizationService')) {
@@ -357,6 +375,12 @@ final class PermalinkService
             foreach (ContentLocalizationService::getInstance()->getContentLocales() as $locale) {
                 if ($locale === 'de') {
                     continue;
+                }
+
+                $prefix = '/' . $locale;
+                if ($normalized === $prefix || str_starts_with($normalized, $prefix . '/')) {
+                    $stripped = substr($normalized, strlen($prefix));
+                    return $this->normalizePath($stripped === false || $stripped === '' ? '/' : $stripped);
                 }
 
                 $suffix = '/' . $locale;

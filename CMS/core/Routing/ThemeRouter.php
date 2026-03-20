@@ -67,6 +67,7 @@ final class ThemeRouter
         $type = (string)($_GET['type'] ?? '');
         $location = trim((string)($_GET['location'] ?? ''));
         $filter = trim((string)($_GET['filter'] ?? ''));
+        $contentLocale = $this->getResolvedContentLocale();
 
         $results = [];
         $pluginMgr = PluginManager::instance();
@@ -121,6 +122,9 @@ final class ThemeRouter
                     $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
                     $byId = [];
                     foreach ($rows as $row) {
+                        if (!$this->postMatchesLocaleAvailability($row, $contentLocale)) {
+                            continue;
+                        }
                         $byId[(int)$row['id']] = $row;
                     }
                     foreach ($ids as $id) {
@@ -134,8 +138,30 @@ final class ThemeRouter
                 }
             } elseif ($query !== '') {
                 $like = '%' . $query . '%';
-                $stmt = $db->prepare("SELECT * FROM {$prefix}posts WHERE status = 'published' AND (title LIKE ? OR content LIKE ? OR excerpt LIKE ?) ORDER BY created_at DESC LIMIT 20");
-                $stmt->execute([$like, $like, $like]);
+                $localeFilter = $this->buildPostLocaleAvailabilityExpression('p', $contentLocale);
+                if ($contentLocale === 'en') {
+                    $stmt = $db->prepare(
+                        "SELECT * FROM {$prefix}posts p
+                         WHERE p.status = 'published'
+                           AND {$localeFilter}
+                           AND (
+                               COALESCE(NULLIF(p.title_en, ''), p.title) LIKE ?
+                               OR COALESCE(NULLIF(p.content_en, ''), p.content) LIKE ?
+                               OR COALESCE(NULLIF(p.excerpt_en, ''), p.excerpt) LIKE ?
+                           )
+                         ORDER BY created_at DESC LIMIT 20"
+                    );
+                    $stmt->execute([$like, $like, $like]);
+                } else {
+                    $stmt = $db->prepare(
+                        "SELECT * FROM {$prefix}posts p
+                         WHERE p.status = 'published'
+                           AND {$localeFilter}
+                           AND (p.title LIKE ? OR p.content LIKE ? OR p.excerpt LIKE ?)
+                         ORDER BY created_at DESC LIMIT 20"
+                    );
+                    $stmt->execute([$like, $like, $like]);
+                }
                 $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
                 foreach ($rows as $row) {
                     $row['_type'] = 'post';
@@ -305,7 +331,7 @@ final class ThemeRouter
         }
 
         foreach (['contact', 'kontakt'] as $slug) {
-            $page = PageManager::instance()->getPageBySlug($slug);
+            $page = PageManager::instance()->getPageBySlug($slug, $locale);
             if ($page === null || ($page['status'] ?? '') !== 'published') {
                 continue;
             }
@@ -335,17 +361,19 @@ final class ThemeRouter
     {
         $db = Database::instance();
         $prefix = $db->getPrefix();
+        $locale = $this->getResolvedContentLocale();
+        $localeFilter = $this->buildPostLocaleAvailabilityExpression('p', $locale);
         $page = max(1, (int)($_GET['p'] ?? 1));
         $perPage = 9;
         $offset = ($page - 1) * $perPage;
-        $total = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}posts WHERE status = 'published'");
+        $total = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}posts p WHERE p.status = 'published' AND {$localeFilter}");
         $posts = $db->get_results(
             "SELECT p.*, c.name AS category_name, c.slug AS category_slug,
                     COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}users u ON u.id = p.author_id
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
-             WHERE p.status = 'published'
+             WHERE p.status = 'published' AND {$localeFilter}
              ORDER BY p.published_at DESC
              LIMIT {$perPage} OFFSET {$offset}"
         ) ?: [];
@@ -369,8 +397,9 @@ final class ThemeRouter
 
         $db = Database::instance();
         $prefix = $db->getPrefix();
+        $locale = $this->getResolvedContentLocale();
         $category = $db->get_row(
-            "SELECT id, name, slug, description
+            "SELECT id, name, slug, description, parent_id
              FROM {$prefix}post_categories
              WHERE slug = ?
              LIMIT 1",
@@ -387,8 +416,23 @@ final class ThemeRouter
         $perPage = 10;
         $offset = ($page - 1) * $perPage;
 
-        $where = ["p.status = 'published'", 'p.category_id = ?'];
-        $params = [(int) ($category->id ?? 0)];
+        $categoryIds = $this->getCategoryArchiveIds((int) ($category->id ?? 0));
+        if ($categoryIds === []) {
+            $categoryIds = [(int) ($category->id ?? 0)];
+        }
+
+        $categoryPlaceholders = implode(',', array_fill(0, count($categoryIds), '?'));
+        $categoryMatchSql = "(
+            p.category_id IN ({$categoryPlaceholders})
+            OR EXISTS (
+                SELECT 1
+                FROM {$prefix}post_category_rel pcr
+                WHERE pcr.post_id = p.id
+                  AND pcr.category_id IN ({$categoryPlaceholders})
+            )
+        )";
+        $where = ["p.status = 'published'", $this->buildPostLocaleAvailabilityExpression('p', $locale), $categoryMatchSql];
+        $params = array_merge($categoryIds, $categoryIds);
 
         if ($query !== '') {
             $where[] = '(p.title LIKE ? OR p.excerpt LIKE ? OR p.content LIKE ?)';
@@ -437,9 +481,69 @@ final class ThemeRouter
 
         $db = Database::instance();
         $prefix = $db->getPrefix();
+        $locale = $this->getResolvedContentLocale();
         $query = trim((string) ($_GET['q'] ?? ''));
         $page = max(1, (int) ($_GET['page'] ?? $_GET['p'] ?? 1));
         $perPage = 10;
+
+        $tagRow = $db->get_row(
+            "SELECT id, name, slug
+             FROM {$prefix}post_tags
+             WHERE slug = ?
+             LIMIT 1",
+            [$normalizedSlug]
+        );
+
+        if ($tagRow !== null) {
+            $where = ["p.status = 'published'", $this->buildPostLocaleAvailabilityExpression('p', $locale), 'ptr.tag_id = ?'];
+            $params = [(int) ($tagRow->id ?? 0)];
+
+            if ($query !== '') {
+                $where[] = '(p.title LIKE ? OR p.excerpt LIKE ? OR p.content LIKE ?)';
+                $like = '%' . $query . '%';
+                array_push($params, $like, $like, $like);
+            }
+
+            $whereSql = implode(' AND ', $where);
+            $total = (int) $db->get_var(
+                "SELECT COUNT(DISTINCT p.id)
+                 FROM {$prefix}posts p
+                 INNER JOIN {$prefix}post_tag_rel ptr ON ptr.post_id = p.id
+                 WHERE {$whereSql}",
+                $params
+            );
+
+            $totalPages = max(1, (int) ceil($total / $perPage));
+            $page = min($page, $totalPages);
+            $offset = ($page - 1) * $perPage;
+
+            $posts = $db->get_results(
+                "SELECT DISTINCT p.*, c.name AS category_name, c.slug AS category_slug,
+                        COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name
+                 FROM {$prefix}posts p
+                 INNER JOIN {$prefix}post_tag_rel ptr ON ptr.post_id = p.id
+                 LEFT JOIN {$prefix}users u ON u.id = p.author_id
+                 LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
+                 WHERE {$whereSql}
+                 ORDER BY COALESCE(p.published_at, p.created_at) DESC
+                 LIMIT {$perPage} OFFSET {$offset}",
+                $params
+            ) ?: [];
+
+            ThemeManager::instance()->render('tag', [
+                'tag' => [
+                    'name' => (string) ($tagRow->name ?? str_replace('-', ' ', $normalizedSlug)),
+                    'slug' => (string) ($tagRow->slug ?? $normalizedSlug),
+                ],
+                'posts' => $posts,
+                'query' => $query,
+                'total' => $total,
+                'currentPage' => $page,
+                'totalPages' => $totalPages,
+                'perPage' => $perPage,
+            ]);
+            return;
+        }
 
         $rows = $db->get_results(
             "SELECT p.*, c.name AS category_name,
@@ -447,7 +551,7 @@ final class ThemeRouter
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}users u ON u.id = p.author_id
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
-             WHERE p.status = 'published' AND p.tags IS NOT NULL AND p.tags != ''
+               WHERE p.status = 'published' AND " . $this->buildPostLocaleAvailabilityExpression('p', $locale) . " AND p.tags IS NOT NULL AND p.tags != ''
              ORDER BY COALESCE(p.published_at, p.created_at) DESC"
         ) ?: [];
 
@@ -523,13 +627,15 @@ final class ThemeRouter
 
         $db = Database::instance();
         $prefix = $db->getPrefix();
+        $locale = $this->getResolvedContentLocale();
         $page = max(1, (int)($_GET['page'] ?? 1));
         $perPage = 10;
         $offset = ($page - 1) * $perPage;
         $authorId = (int)($author['id'] ?? 0);
+        $localeFilter = $this->buildPostLocaleAvailabilityExpression('p', $locale);
 
         $total = (int)$db->get_var(
-            "SELECT COUNT(*) FROM {$prefix}posts WHERE author_id = ? AND status = 'published'",
+            "SELECT COUNT(*) FROM {$prefix}posts p WHERE p.author_id = ? AND p.status = 'published' AND {$localeFilter}",
             [$authorId]
         );
 
@@ -537,7 +643,7 @@ final class ThemeRouter
             "SELECT p.*, c.name AS category_name, c.slug AS category_slug
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
-             WHERE p.author_id = ? AND p.status = 'published'
+             WHERE p.author_id = ? AND p.status = 'published' AND {$localeFilter}
              ORDER BY COALESCE(p.published_at, p.created_at) DESC
              LIMIT {$perPage} OFFSET {$offset}",
             [$authorId]
@@ -644,16 +750,38 @@ final class ThemeRouter
 
         $db = Database::instance();
         $prefix = $db->getPrefix();
+        $locale = $this->router->getRequestLocale();
+        $localeAvailability = $this->buildPostLocaleAvailabilityExpression('p', $locale);
+        $slugField = $locale === 'en' ? '(p.slug_en = ? OR p.slug = ?)' : 'p.slug = ?';
+        $slugParams = $locale === 'en' ? [$slug, $slug] : [$slug];
         $postRow = $db->get_row(
             "SELECT p.*, COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name, c.name AS category_name, c.slug AS category_slug
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}users u ON u.id = p.author_id
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
-             WHERE p.slug = ? AND p.status = 'published'",
-            [$slug]
+             WHERE {$slugField} AND p.status = 'published' AND {$localeAvailability}",
+            $slugParams
         );
 
         if (!$postRow) {
+            if ($locale === 'de') {
+                $englishAvailability = $this->buildPostLocaleAvailabilityExpression('p', 'en');
+                $englishRow = $db->get_row(
+                    "SELECT p.*, COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name, c.name AS category_name, c.slug AS category_slug
+                     FROM {$prefix}posts p
+                     LEFT JOIN {$prefix}users u ON u.id = p.author_id
+                     LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
+                     WHERE (p.slug_en = ? OR p.slug = ?) AND p.status = 'published' AND {$englishAvailability}",
+                    [$slug, $slug]
+                );
+
+                if ($englishRow) {
+                    $englishPost = Services\ContentLocalizationService::getInstance()->localizePost((array) $englishRow, 'en');
+                    $this->router->redirect(Services\PermalinkService::getInstance()->buildPostPath($englishPost, 'en'), 301);
+                    return;
+                }
+            }
+
             if (Services\PermalinkService::getInstance()->usesSlugOnlyStructure() && count($segments) === 1 && $this->renderPageFallback($slug)) {
                 return;
             }
@@ -664,18 +792,23 @@ final class ThemeRouter
 
         $requestContext = $this->router->getRequestContext();
         $requestBaseUri = (string)($requestContext['base_uri'] ?? '');
-        $locale = $this->router->getRequestLocale();
         $postData = Services\ContentLocalizationService::getInstance()->localizePost((array)$postRow, $locale);
         $permalinkService = Services\PermalinkService::getInstance();
         $canonicalBasePath = $permalinkService->buildPostPath($postData);
         $canonicalPath = $permalinkService->buildPostPath($postData, $locale);
+        $localizedCanonicalContext = Services\ContentLocalizationService::getInstance()->resolveRequestContext($canonicalPath);
+        $expectedRequestBasePath = $locale === 'de'
+            ? $canonicalBasePath
+            : (string) ($localizedCanonicalContext['base_uri'] ?? $canonicalBasePath);
 
-        if ($requestBaseUri !== '' && $requestBaseUri !== $canonicalBasePath) {
+        if ($requestBaseUri !== '' && $requestBaseUri !== $expectedRequestBasePath) {
             $query = trim((string)($_SERVER['QUERY_STRING'] ?? ''));
             $target = $canonicalPath . ($query !== '' ? '?' . $query : '');
             $this->router->redirect($target, 301);
             return;
         }
+
+        $postData = $this->attachLegacyCompatibleTagsToPost($postData);
 
         $post = (object)$postData;
         $db->execute("UPDATE {$prefix}posts SET views = views + 1 WHERE id = ?", [(int)$post->id]);
@@ -716,6 +849,7 @@ final class ThemeRouter
         $db = Database::instance();
         $prefix = $db->getPrefix();
         $locale = $this->router->getRequestLocale();
+        $localeFilter = $this->buildPostLocaleAvailabilityExpression('p', $locale);
         $siteTitle = defined('SITE_NAME') ? (string) SITE_NAME : '365CMS';
         $siteDescription = 'Aktuelle Beiträge von ' . $siteTitle;
         $feedUrl = SITE_URL . '/feed';
@@ -726,7 +860,7 @@ final class ThemeRouter
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}users u ON u.id = p.author_id
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
-             WHERE p.status = 'published'
+               WHERE p.status = 'published' AND {$localeFilter}
              ORDER BY COALESCE(p.published_at, p.created_at) DESC
              LIMIT 25"
         ) ?: [];
@@ -818,7 +952,7 @@ final class ThemeRouter
             return true;
         }
 
-        $page = PageManager::instance()->getPageBySlug($slug);
+        $page = PageManager::instance()->getPageBySlug($slug, $this->router->getRequestLocale());
         if ($page !== null && ($page['status'] ?? '') === 'published') {
             $locale = $this->router->getRequestLocale();
             $page = Services\ContentLocalizationService::getInstance()->localizePage($page, $locale);
@@ -844,6 +978,104 @@ final class ThemeRouter
         $value = preg_replace('/[^a-z0-9]+/u', '-', $value) ?? '';
 
         return trim($value, '-');
+    }
+
+    /**
+     * @return array<int,int>
+     */
+    private function getCategoryArchiveIds(int $categoryId): array
+    {
+        if ($categoryId <= 0) {
+            return [];
+        }
+
+        $db = Database::instance();
+        $prefix = $db->getPrefix();
+        $rows = $db->get_results(
+            "SELECT id, parent_id FROM {$prefix}post_categories",
+            []
+        ) ?: [];
+
+        $byParent = [];
+        foreach ($rows as $row) {
+            $parentId = (int) ($row->parent_id ?? 0);
+            $byParent[$parentId][] = (int) ($row->id ?? 0);
+        }
+
+        $collected = [];
+        $walker = function (int $currentId) use (&$walker, &$collected, $byParent): void {
+            if ($currentId <= 0 || isset($collected[$currentId])) {
+                return;
+            }
+
+            $collected[$currentId] = true;
+            foreach ($byParent[$currentId] ?? [] as $childId) {
+                $walker((int) $childId);
+            }
+        };
+
+        $walker($categoryId);
+
+        return array_map('intval', array_keys($collected));
+    }
+
+    /**
+     * @param array<string,mixed> $postData
+     * @return array<string,mixed>
+     */
+    private function attachLegacyCompatibleTagsToPost(array $postData): array
+    {
+        $postId = (int) ($postData['id'] ?? 0);
+        if ($postId <= 0) {
+            return $postData;
+        }
+
+        $tagRows = $this->getPostTagRows($postId);
+        if ($tagRows !== []) {
+            $postData['tags'] = implode(', ', array_map(
+                static fn(array $tag): string => (string) ($tag['name'] ?? ''),
+                $tagRows
+            ));
+            $postData['tag_items'] = $tagRows;
+            return $postData;
+        }
+
+        $legacyTags = $this->parsePostTags((string) ($postData['tags'] ?? ''));
+        if ($legacyTags !== []) {
+            $postData['tag_items'] = $legacyTags;
+        }
+
+        return $postData;
+    }
+
+    /**
+     * @return array<int,array{name:string,slug:string}>
+     */
+    private function getPostTagRows(int $postId): array
+    {
+        if ($postId <= 0) {
+            return [];
+        }
+
+        $db = Database::instance();
+        $prefix = $db->getPrefix();
+        $rows = $db->get_results(
+            "SELECT t.name, t.slug
+             FROM {$prefix}post_tags t
+             INNER JOIN {$prefix}post_tag_rel ptr ON ptr.tag_id = t.id
+             WHERE ptr.post_id = ?
+             ORDER BY t.name ASC",
+            [$postId]
+        ) ?: [];
+
+        return array_values(array_filter(array_map(static function (object $row): array {
+            $name = trim((string) ($row->name ?? ''));
+            $slug = trim((string) ($row->slug ?? ''));
+
+            return $name !== '' && $slug !== ''
+                ? ['name' => $name, 'slug' => $slug]
+                : [];
+        }, $rows)));
     }
 
     /**
@@ -1003,5 +1235,107 @@ final class ThemeRouter
         $host = (string) (parse_url(SITE_URL, PHP_URL_HOST) ?: 'localhost');
 
         return 'security@' . preg_replace('/^www\./i', '', $host);
+    }
+
+    private function getResolvedContentLocale(): string
+    {
+        $locale = Services\ContentLocalizationService::getInstance()->normalizeLocale($this->router->getRequestLocale());
+
+        return $locale !== '' ? $locale : 'de';
+    }
+
+    private function buildPostLocaleAvailabilityExpression(string $alias, string $locale): string
+    {
+        $localization = Services\ContentLocalizationService::getInstance();
+        $locale = $localization->normalizeLocale($locale);
+        $baseContent = $this->buildBasePostContentExpression($alias);
+        $englishLegacyOnly = $this->buildLegacyEnglishOnlyPostExpression($alias);
+
+        if ($locale === '' || $locale === 'de') {
+            return "{$baseContent} AND NOT {$englishLegacyOnly}";
+        }
+
+        if (!in_array($locale, $localization->getContentLocales(), true)) {
+            return '1=1';
+        }
+
+        $localizedContent = $this->buildLocalizedPostContentExpression($alias, $locale);
+
+        if ($locale === 'en') {
+            return "({$localizedContent} OR {$englishLegacyOnly})";
+        }
+
+        return $localizedContent;
+    }
+
+    private function buildBasePostContentExpression(string $alias): string
+    {
+        return "(CHAR_LENGTH(TRIM(COALESCE({$alias}.content, ''))) > 0"
+            . " OR CHAR_LENGTH(TRIM(COALESCE({$alias}.excerpt, ''))) > 0"
+            . " OR CHAR_LENGTH(TRIM(COALESCE({$alias}.title, ''))) > 0)";
+    }
+
+    private function buildLocalizedPostContentExpression(string $alias, string $locale): string
+    {
+        return "(CHAR_LENGTH(TRIM(COALESCE({$alias}.content_{$locale}, ''))) > 0"
+            . " OR CHAR_LENGTH(TRIM(COALESCE({$alias}.excerpt_{$locale}, ''))) > 0"
+            . " OR CHAR_LENGTH(TRIM(COALESCE({$alias}.title_{$locale}, ''))) > 0)";
+    }
+
+    private function buildLegacyEnglishOnlyPostExpression(string $alias): string
+    {
+        $englishContent = $this->buildLocalizedPostContentExpression($alias, 'en');
+
+        return "(CHAR_LENGTH(TRIM(COALESCE({$alias}.slug_en, ''))) > 0 AND NOT {$englishContent})";
+    }
+
+    /**
+     * @param array<string, mixed> $post
+     */
+    private function postMatchesLocaleAvailability(array $post, string $locale): bool
+    {
+        $locale = Services\ContentLocalizationService::getInstance()->normalizeLocale($locale);
+        $hasBaseContent = $this->postHasBaseContent($post);
+        $hasEnglishContent = $this->postHasLocalizedContent($post, 'en');
+        $hasEnglishSlug = trim((string) ($post['slug_en'] ?? '')) !== '';
+        $isLegacyEnglishOnly = $hasEnglishSlug && !$hasEnglishContent;
+
+        if ($locale === '' || $locale === 'de') {
+            return $hasBaseContent && !$isLegacyEnglishOnly;
+        }
+
+        if ($locale === 'en') {
+            return $hasEnglishContent || $isLegacyEnglishOnly;
+        }
+
+        return $this->postHasLocalizedContent($post, $locale);
+    }
+
+    /**
+     * @param array<string, mixed> $post
+     */
+    private function postHasBaseContent(array $post): bool
+    {
+        foreach (['title', 'excerpt', 'content'] as $field) {
+            if (trim((string) ($post[$field] ?? '')) !== '') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array<string, mixed> $post
+     */
+    private function postHasLocalizedContent(array $post, string $locale): bool
+    {
+        foreach (['title', 'excerpt', 'content'] as $field) {
+            if (trim((string) ($post[$field . '_' . $locale] ?? '')) !== '') {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

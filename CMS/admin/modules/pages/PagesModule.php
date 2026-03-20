@@ -27,9 +27,14 @@ class PagesModule
     private PageManager $pageManager;
     private string $prefix;
 
+    private const DEFAULT_MS365_ROOT = [
+        'slug' => 'microsoft-365',
+        'name' => 'Microsoft 365',
+    ];
+
     /** @var array<string,string> */
-    private const DEFAULT_MS365_CATEGORIES = [
-        'microsoft-365' => 'Microsoft 365 Allgemein',
+    private const DEFAULT_MS365_CHILD_CATEGORIES = [
+        'microsoft-cloud-services' => 'Microsoft Cloud Services',
         'microsoft-copilot' => 'Microsoft Copilot',
         'microsoft-teams' => 'Microsoft Teams',
         'exchange-online' => 'Exchange Online',
@@ -56,21 +61,82 @@ class PagesModule
         $this->db          = Database::instance();
         $this->prefix      = $this->db->getPrefix();
         $this->pageManager = PageManager::instance();
+        $this->ensureCategoryColumns();
         $this->ensureDefaultCategories();
+    }
+
+    private function ensureCategoryColumns(): void
+    {
+        $columns = [
+            'parent_id' => "ALTER TABLE {$this->prefix}post_categories ADD COLUMN parent_id INT UNSIGNED DEFAULT NULL AFTER description",
+            'sort_order' => "ALTER TABLE {$this->prefix}post_categories ADD COLUMN sort_order INT DEFAULT 0 AFTER parent_id",
+            'alias_domains_json' => "ALTER TABLE {$this->prefix}post_categories ADD COLUMN alias_domains_json TEXT DEFAULT NULL AFTER sort_order",
+        ];
+
+        foreach ($columns as $column => $sql) {
+            try {
+                $stmt = $this->db->query("SHOW COLUMNS FROM {$this->prefix}post_categories LIKE '{$column}'");
+                if ($stmt instanceof \PDOStatement && !$stmt->fetch()) {
+                    $this->db->query($sql);
+                }
+            } catch (\Throwable $e) {
+                error_log(sprintf('PagesModule::ensureCategoryColumns(%s) warning: %s', $column, $e->getMessage()));
+            }
+        }
     }
 
     private function ensureDefaultCategories(): void
     {
-        foreach (self::DEFAULT_MS365_CATEGORIES as $slug => $name) {
-            try {
+        try {
+            $rootId = $this->getCategoryIdBySlug((string) self::DEFAULT_MS365_ROOT['slug']);
+
+            if ($rootId <= 0) {
                 $this->db->execute(
-                    "INSERT IGNORE INTO {$this->prefix}post_categories (name, slug) VALUES (?, ?)",
-                    [$name, $slug]
+                    "INSERT INTO {$this->prefix}post_categories (name, slug, parent_id, sort_order, alias_domains_json) VALUES (?, ?, NULL, ?, ?)",
+                    [
+                        (string) self::DEFAULT_MS365_ROOT['name'],
+                        (string) self::DEFAULT_MS365_ROOT['slug'],
+                        10,
+                        '[]',
+                    ]
                 );
-            } catch (\Throwable $e) {
-                error_log(sprintf('PagesModule::ensureDefaultCategories(%s) warning: %s', $slug, $e->getMessage()));
+                $rootId = (int) $this->db->lastInsertId();
+            } else {
+                $this->db->execute(
+                    "UPDATE {$this->prefix}post_categories SET name = ?, parent_id = NULL, sort_order = ? WHERE id = ?",
+                    [(string) self::DEFAULT_MS365_ROOT['name'], 10, $rootId]
+                );
             }
+
+            $sortOrder = 20;
+            foreach (self::DEFAULT_MS365_CHILD_CATEGORIES as $slug => $name) {
+                $categoryId = $this->getCategoryIdBySlug($slug);
+
+                if ($categoryId <= 0) {
+                    $this->db->execute(
+                        "INSERT INTO {$this->prefix}post_categories (name, slug, parent_id, sort_order, alias_domains_json) VALUES (?, ?, ?, ?, ?)",
+                        [$name, $slug, $rootId, $sortOrder, '[]']
+                    );
+                } else {
+                    $this->db->execute(
+                        "UPDATE {$this->prefix}post_categories SET name = ?, parent_id = ?, sort_order = ? WHERE id = ?",
+                        [$name, $rootId, $sortOrder, $categoryId]
+                    );
+                }
+
+                $sortOrder += 10;
+            }
+        } catch (\Throwable $e) {
+            error_log(sprintf('PagesModule::ensureDefaultCategories warning: %s', $e->getMessage()));
         }
+    }
+
+    private function getCategoryIdBySlug(string $slug): int
+    {
+        return (int) ($this->db->get_var(
+            "SELECT id FROM {$this->prefix}post_categories WHERE slug = ? LIMIT 1",
+            [$slug]
+        ) ?: 0);
     }
 
     private function categoryExists(int $categoryId): bool
@@ -135,12 +201,12 @@ class PagesModule
         ) ?: [];
 
         $categories = $this->db->get_results(
-            "SELECT id, name, slug FROM {$this->prefix}post_categories ORDER BY name ASC"
+            "SELECT id, name, slug, parent_id, sort_order FROM {$this->prefix}post_categories ORDER BY sort_order ASC, name ASC"
         ) ?: [];
 
         return [
             'pages'     => $pages,
-            'categories' => array_map(fn($category) => (array) $category, $categories),
+            'categories' => $this->buildOrderedCategoryOptions(array_map(fn($category) => (array) $category, $categories)),
             'counts'    => compact('total', 'published', 'drafts', 'private'),
             'filter'    => $statusFilter,
             'catFilter' => $categoryFilter,
@@ -162,13 +228,13 @@ class PagesModule
         }
 
         $categories = $this->db->get_results(
-            "SELECT id, name, slug FROM {$this->prefix}post_categories ORDER BY name ASC"
+            "SELECT id, name, slug, parent_id, sort_order FROM {$this->prefix}post_categories ORDER BY sort_order ASC, name ASC"
         ) ?: [];
 
         return [
             'page'   => $page,
             'isNew'  => $page === null,
-            'categories' => array_map(fn($category) => (array) $category, $categories),
+            'categories' => $this->buildOrderedCategoryOptions(array_map(fn($category) => (array) $category, $categories)),
             'seoMeta' => $id !== null ? SEOService::getInstance()->getContentMeta('page', $id) : SEOService::getInstance()->getContentMeta('page', 0),
         ];
     }
@@ -198,7 +264,9 @@ class PagesModule
         $featuredImageTempPath = trim($post['featured_image_temp_path'] ?? '');
         $metaTitle  = trim($post['meta_title'] ?? '');
         $metaDesc   = trim($post['meta_description'] ?? '');
-        $slug       = $this->normalizeSlug($slug !== '' ? $slug : $this->pageManager->generateSlug($title));
+        $primaryTitleForSlug = $title !== '' ? $title : $titleEn;
+        $slugSource = $slug !== '' ? $slug : $this->pageManager->generateSlug($primaryTitleForSlug);
+        $slug       = $this->normalizeSlug($slugSource);
 
         // Move temp upload to slug subfolder (pages/{slug}/{filename})
         if ($featuredImageTempPath !== '' && str_contains($featuredImageTempPath, '/temp/')) {
@@ -213,8 +281,8 @@ class PagesModule
             }
         }
 
-        if ($title === '') {
-            return ['success' => false, 'error' => 'Titel darf nicht leer sein.'];
+        if ($title === '' && $titleEn === '') {
+            return ['success' => false, 'error' => 'Mindestens ein Titel (DE oder EN) muss angegeben sein.'];
         }
 
         if ($slug === '') {
@@ -401,6 +469,53 @@ class PagesModule
         }
 
         return (int)$this->db->get_var($sql, $params) > 0;
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $rows
+     * @return array<int,array<string,mixed>>
+     */
+    private function buildOrderedCategoryOptions(array $rows): array
+    {
+        $byId = [];
+        foreach ($rows as $row) {
+            $id = (int) ($row['id'] ?? 0);
+            if ($id <= 0) {
+                continue;
+            }
+
+            $row['id'] = $id;
+            $row['parent_id'] = (int) ($row['parent_id'] ?? 0);
+            $byId[$id] = $row;
+        }
+
+        $byParent = [];
+        foreach ($byId as $id => $row) {
+            $parentId = (int) ($row['parent_id'] ?? 0);
+            if ($parentId > 0 && !isset($byId[$parentId])) {
+                $parentId = 0;
+            }
+            $byParent[$parentId][] = $id;
+        }
+
+        $flat = [];
+        $walker = function (int $parentId, int $depth) use (&$walker, &$flat, $byParent, $byId): void {
+            foreach ($byParent[$parentId] ?? [] as $categoryId) {
+                if (!isset($byId[$categoryId])) {
+                    continue;
+                }
+
+                $row = $byId[$categoryId];
+                $row['depth'] = $depth;
+                $row['option_label'] = str_repeat('— ', $depth) . (string) ($row['name'] ?? '');
+                $flat[] = $row;
+                $walker($categoryId, $depth + 1);
+            }
+        };
+
+        $walker(0, 0);
+
+        return $flat;
     }
 
     private function createSlugRedirectIfNeeded(string $oldSlug, string $newSlug): void

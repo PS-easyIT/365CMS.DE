@@ -58,6 +58,8 @@ final class SeoAuditService
     private function mapRows(array $rows, string $type): array
     {
         return array_map(static function (object $row) use ($type): array {
+            $mediaDelivery = \CMS\Services\MediaDeliveryService::getInstance();
+
             return [
                 'type' => $type,
                 'id' => (int) ($row->id ?? 0),
@@ -66,7 +68,7 @@ final class SeoAuditService
                 'status' => (string) ($row->status ?? ''),
                 'content' => (string) ($row->content ?? ''),
                 'excerpt' => (string) ($row->excerpt ?? ''),
-                'featured_image' => (string) ($row->featured_image ?? ''),
+                'featured_image' => $mediaDelivery->normalizeAdminVisibleUrl((string) ($row->featured_image ?? '')),
                 'meta_title' => (string) ($row->meta_title ?? ''),
                 'meta_description' => (string) ($row->meta_description ?? ''),
                 'canonical_url' => (string) ($row->canonical_url ?? ''),
@@ -74,12 +76,12 @@ final class SeoAuditService
                 'robots_follow' => (int) ($row->robots_follow ?? 1) === 1,
                 'og_title' => (string) ($row->og_title ?? ''),
                 'og_description' => (string) ($row->og_description ?? ''),
-                'og_image' => (string) ($row->og_image ?? ''),
+                'og_image' => $mediaDelivery->normalizeAdminVisibleUrl((string) ($row->og_image ?? '')),
                 'og_type' => (string) ($row->og_type ?? ''),
                 'twitter_card' => (string) ($row->twitter_card ?? ''),
                 'twitter_title' => (string) ($row->twitter_title ?? ''),
                 'twitter_description' => (string) ($row->twitter_description ?? ''),
-                'twitter_image' => (string) ($row->twitter_image ?? ''),
+                'twitter_image' => $mediaDelivery->normalizeAdminVisibleUrl((string) ($row->twitter_image ?? '')),
                 'focus_keyphrase' => (string) ($row->focus_keyphrase ?? ''),
                 'schema_type' => (string) ($row->schema_type ?? ''),
                 'sitemap_priority' => (string) ($row->sitemap_priority ?? ''),

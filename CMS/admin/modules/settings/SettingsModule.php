@@ -59,7 +59,7 @@ class SettingsModule
     ];
 
     private const SETTINGS_KEYS = [
-        'site_name', 'site_description', 'site_url', 'site_logo', 'admin_email',
+        'site_name', 'site_description', 'site_url', 'site_logo', 'site_favicon', 'admin_email',
         'language', 'timezone', 'date_format', 'time_format',
         'posts_per_page', 'comments_enabled',
         'maintenance_mode', 'maintenance_message',
@@ -135,6 +135,7 @@ class SettingsModule
                 'site_url'             => $settings['site_url'] ?? (defined('SITE_URL') ? SITE_URL : ''),
                 'runtime_site_url'     => $config['site_url'] ?? (defined('SITE_URL') ? SITE_URL : ''),
                 'site_logo'            => $settings['site_logo'] ?? '',
+                'site_favicon'         => $settings['site_favicon'] ?? '',
                 'admin_email'          => $settings['admin_email'] ?? '',
                 'language'             => $settings['language'] ?? 'de',
                 'timezone'             => $settings['timezone'] ?? 'Europe/Berlin',
@@ -210,6 +211,11 @@ class SettingsModule
                 $siteLogo = '';
             }
 
+            $siteFavicon = trim((string)($post['site_favicon'] ?? ''));
+            if ($siteFavicon !== '' && !str_starts_with($siteFavicon, '/') && filter_var($siteFavicon, FILTER_VALIDATE_URL) === false) {
+                $siteFavicon = '';
+            }
+
             $newSiteUrl = rtrim(filter_var($post['site_url'] ?? '', FILTER_SANITIZE_URL), '/');
             if ($newSiteUrl === '' || filter_var($newSiteUrl, FILTER_VALIDATE_URL) === false) {
                 return ['success' => false, 'error' => 'Bitte eine gültige Website-URL angeben.'];
@@ -221,6 +227,7 @@ class SettingsModule
                 'site_description'     => trim(strip_tags($post['site_description'] ?? '')),
                 'site_url'             => $newSiteUrl,
                 'site_logo'            => $siteLogo,
+                'site_favicon'         => $siteFavicon,
                 'admin_email'          => filter_var($post['admin_email'] ?? '', FILTER_VALIDATE_EMAIL) ?: '',
                 'language'             => array_key_exists($post['language'] ?? 'de', self::LANGUAGES) ? $post['language'] : 'de',
                 'timezone'             => in_array($post['timezone'] ?? '', self::TIMEZONES, true) ? $post['timezone'] : 'Europe/Berlin',

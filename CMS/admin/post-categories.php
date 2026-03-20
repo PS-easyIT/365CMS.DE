@@ -56,6 +56,18 @@ if (!empty($_SESSION['admin_alert'])) {
 
 $csrfToken = Security::instance()->generateToken('admin_post_categories');
 $data = $module->getCategoryAdminData();
+$editCategoryId = max(0, (int) ($_GET['edit'] ?? 0));
+$editCategory = null;
+
+if ($editCategoryId > 0) {
+    foreach (($data['categories'] ?? []) as $category) {
+        if ((int) ($category['id'] ?? 0) === $editCategoryId) {
+            $editCategory = $category;
+            break;
+        }
+    }
+}
+
 $pageTitle = 'Beitrags-Kategorien';
 $activePage = 'post-categories';
 

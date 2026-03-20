@@ -6,6 +6,84 @@
 (function () {
     'use strict';
 
+    var elfinderDependenciesPromise = null;
+
+    function normalizeMediaValue(value) {
+        if (!value) {
+            return '';
+        }
+
+        if (/^https?:\/\//i.test(value)) {
+            try {
+                var url = new URL(value, window.location.origin);
+                if (url.origin === window.location.origin) {
+                    return url.pathname + url.search + url.hash;
+                }
+            } catch (error) {
+                return value;
+            }
+        }
+
+        return value;
+    }
+
+    function createPreviewMarkup(previewElement, value) {
+        var variant = previewElement.dataset.previewVariant || 'logo';
+        previewElement.innerHTML = '';
+
+        if (!value) {
+            previewElement.hidden = true;
+            return;
+        }
+
+        var image = document.createElement('img');
+        image.src = value;
+        image.alt = variant === 'favicon' ? 'Favicon Vorschau' : 'Website-Logo Vorschau';
+        image.style.border = '1px solid var(--tblr-border-color)';
+        image.style.background = '#fff';
+
+        if (variant === 'favicon') {
+            previewElement.className = 'mt-2 d-flex align-items-center gap-2';
+            image.width = 32;
+            image.height = 32;
+            image.style.borderRadius = '8px';
+            image.style.padding = '4px';
+            image.style.objectFit = 'contain';
+
+            var code = document.createElement('code');
+            code.textContent = value;
+            previewElement.appendChild(image);
+            previewElement.appendChild(code);
+        } else {
+            previewElement.className = 'mt-2';
+            image.style.maxHeight = '48px';
+            image.style.maxWidth = '220px';
+            image.style.borderRadius = '6px';
+            image.style.padding = '6px';
+            previewElement.appendChild(image);
+        }
+
+        previewElement.hidden = false;
+    }
+
+    function updateLinkedPreview(input, previewId) {
+        var previewElement = null;
+
+        if (previewId) {
+            previewElement = document.getElementById(previewId);
+        }
+
+        if (!previewElement && input && input.id) {
+            previewElement = document.querySelector('[data-media-preview][data-input-id="' + input.id + '"]');
+        }
+
+        if (!previewElement) {
+            return;
+        }
+
+        createPreviewMarkup(previewElement, input.value.trim());
+    }
+
     function showMessage(type, message) {
         if (typeof window.cmsAlert === 'function') {
             window.cmsAlert(type, message);
@@ -37,6 +115,38 @@
             script.addEventListener('error', reject, { once: true });
             document.head.appendChild(script);
         });
+    }
+
+    function loadElfinderDependencies(config) {
+        if (elfinderDependenciesPromise) {
+            return elfinderDependenciesPromise;
+        }
+
+        elfinderDependenciesPromise = Promise.resolve()
+            .then(function () {
+                if (window.jQuery) {
+                    return;
+                }
+                return loadScript(config.jqueryScript || '');
+            })
+            .then(function () {
+                if (window.jQuery && window.jQuery.ui) {
+                    return;
+                }
+                return loadScript(config.jqueryUiScript || '');
+            })
+            .then(function () {
+                if (window.jQuery && window.jQuery.fn && window.jQuery.fn.elfinder) {
+                    return;
+                }
+                return loadScript(config.elfinderScript || '');
+            });
+
+        return elfinderDependenciesPromise;
+    }
+
+    function buildConnectorUrl(connectorUrl, csrfToken) {
+        return connectorUrl + (connectorUrl.indexOf('?') === -1 ? '?' : '&') + 'csrf_token=' + encodeURIComponent(csrfToken);
     }
 
     function initFilePond() {
@@ -135,31 +245,17 @@
             return;
         }
 
-        Promise.resolve()
-            .then(function () {
-                if (window.jQuery) {
-                    return;
-                }
-                return loadScript(jqueryScript);
-            })
-            .then(function () {
-                if (window.jQuery && window.jQuery.ui) {
-                    return;
-                }
-                return loadScript(jqueryUiScript);
-            })
-            .then(function () {
-                if (window.jQuery && window.jQuery.fn && window.jQuery.fn.elfinder) {
-                    return;
-                }
-                return loadScript(elfinderScript);
-            })
+        loadElfinderDependencies({
+            jqueryScript: jqueryScript,
+            jqueryUiScript: jqueryUiScript,
+            elfinderScript: elfinderScript
+        })
             .then(function () {
                 if (!(window.jQuery && window.jQuery.fn && window.jQuery.fn.elfinder)) {
                     throw new Error('elFinder UI nicht verfügbar');
                 }
 
-                var url = connectorUrl + (connectorUrl.indexOf('?') === -1 ? '?' : '&') + 'csrf_token=' + encodeURIComponent(csrfToken);
+                var url = buildConnectorUrl(connectorUrl, csrfToken);
                 window.jQuery(container).elfinder({
                     url: url,
                     lang: 'de',
@@ -175,8 +271,148 @@
             });
     }
 
+    function initMediaPickers() {
+        var modalElement = document.getElementById('settingsMediaPickerModal');
+        var openButtons = document.querySelectorAll('[data-open-media-picker]');
+        var clearButtons = document.querySelectorAll('[data-clear-media-input]');
+        var activeContext = null;
+        var pickerContainer;
+        var pickerInstance;
+
+        document.querySelectorAll('[data-media-preview]').forEach(function (previewElement) {
+            var inputId = previewElement.dataset.inputId || '';
+            var input = inputId ? document.getElementById(inputId) : null;
+            if (input) {
+                updateLinkedPreview(input);
+            }
+        });
+
+        if (!modalElement || !openButtons.length) {
+            clearButtons.forEach(function (button) {
+                button.addEventListener('click', function () {
+                    var input = document.getElementById(button.dataset.targetInput || '');
+                    if (!input) {
+                        return;
+                    }
+                    input.value = '';
+                    updateLinkedPreview(input, button.dataset.previewId || '');
+                });
+            });
+            return;
+        }
+
+        pickerContainer = modalElement.querySelector('[data-elfinder-picker]');
+        var titleElement = modalElement.querySelector('[data-media-picker-title]');
+        var bootstrapModal = window.bootstrap ? window.bootstrap.Modal.getOrCreateInstance(modalElement) : null;
+
+        function initPicker() {
+            if (!pickerContainer || pickerInstance) {
+                return Promise.resolve();
+            }
+
+            var connectorUrl = pickerContainer.dataset.connectorUrl || '';
+            var csrfToken = pickerContainer.dataset.csrfToken || '';
+            var jqueryScript = pickerContainer.dataset.jqueryScript || '';
+            var jqueryUiScript = pickerContainer.dataset.jqueryUiScript || '';
+            var elfinderScript = pickerContainer.dataset.elfinderScript || '';
+
+            if (!connectorUrl || !jqueryScript || !jqueryUiScript || !elfinderScript) {
+                pickerContainer.innerHTML = '<div class="alert alert-warning" role="alert">Medienpicker konnte nicht geladen werden.</div>';
+                return Promise.resolve();
+            }
+
+            return loadElfinderDependencies({
+                jqueryScript: jqueryScript,
+                jqueryUiScript: jqueryUiScript,
+                elfinderScript: elfinderScript
+            }).then(function () {
+                var url = buildConnectorUrl(connectorUrl, csrfToken);
+                pickerInstance = window.jQuery(pickerContainer).elfinder({
+                    url: url,
+                    lang: 'de',
+                    resizable: false,
+                    height: pickerContainer.offsetHeight || 640,
+                    customData: {
+                        csrf_token: csrfToken
+                    },
+                    getFileCallback: function (file) {
+                        if (!activeContext || !activeContext.input) {
+                            return;
+                        }
+
+                        var selectedValue = '';
+                        if (typeof file === 'string') {
+                            selectedValue = file;
+                        } else if (file && typeof file === 'object') {
+                            selectedValue = file.url || file.path || '';
+                        }
+
+                        selectedValue = normalizeMediaValue(selectedValue);
+                        activeContext.input.value = selectedValue;
+                        updateLinkedPreview(activeContext.input, activeContext.previewId || '');
+
+                        if (bootstrapModal) {
+                            bootstrapModal.hide();
+                        }
+                    },
+                    commandsOptions: {
+                        getfile: {
+                            onlyURL: false,
+                            multiple: false,
+                            folders: false,
+                            oncomplete: 'close'
+                        }
+                    }
+                }).elfinder('instance');
+            }).catch(function () {
+                pickerContainer.innerHTML = '<div class="alert alert-warning" role="alert">Medienpicker konnte nicht geladen werden.</div>';
+            });
+        }
+
+        openButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                var input = document.getElementById(button.dataset.targetInput || '');
+                if (!input) {
+                    return;
+                }
+
+                activeContext = {
+                    input: input,
+                    previewId: button.dataset.previewId || ''
+                };
+
+                if (titleElement) {
+                    titleElement.textContent = button.dataset.pickerTitle || 'Datei auswählen';
+                }
+
+                initPicker().then(function () {
+                    if (bootstrapModal) {
+                        bootstrapModal.show();
+                    }
+                });
+            });
+        });
+
+        clearButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                var input = document.getElementById(button.dataset.targetInput || '');
+                if (!input) {
+                    return;
+                }
+
+                input.value = '';
+                updateLinkedPreview(input, button.dataset.previewId || '');
+            });
+        });
+
+        modalElement.addEventListener('hidden.bs.modal', function () {
+            activeContext = null;
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         initFilePond();
         initElfinder();
+        initMediaPickers();
     });
 })();

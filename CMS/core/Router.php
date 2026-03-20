@@ -150,6 +150,10 @@ class Router
             return;
         }
 
+        if ($this->maybeRedirectCategoryAliasDomain($routingUri)) {
+            return;
+        }
+
         if (class_exists('\\CMS\\Services\\RedirectService')) {
             $redirect = Services\RedirectService::getInstance()->findRedirect(
                 $uri,
@@ -255,9 +259,16 @@ class Router
 
             $pageManager = PageManager::instance();
 
-            $page = $pageManager->getPageBySlug($slug);
+            $page = $pageManager->getPageBySlug($slug, $this->getRequestLocale());
             if ($page && $page['status'] === 'published') {
                 $locale = $this->getRequestLocale();
+
+                if (!empty($page['content'])) {
+                    $page['updated_at'] = Services\SiteTableService::getInstance()->resolveContentLastModified(
+                        (string) $page['content'],
+                        (string) ($page['updated_at'] ?? $page['created_at'] ?? '')
+                    );
+                }
 
                 if (!$this->sendConditionalPublicPageHeaders('page', $page, $locale)) {
                     return;
@@ -332,6 +343,42 @@ class Router
         }
 
         $query = (string)(parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_QUERY) ?? '');
+        if ($query !== '') {
+            $targetPath .= '?' . $query;
+        }
+
+        $this->redirect($targetPath, 302);
+        return true;
+    }
+
+    private function maybeRedirectCategoryAliasDomain(string $routingUri): bool
+    {
+        if (!in_array($this->requestMethod, ['GET', 'HEAD'], true)) {
+            return false;
+        }
+
+        if ($routingUri !== '/') {
+            return false;
+        }
+
+        $requestHost = $this->normalizeHost((string) ($_SERVER['HTTP_HOST'] ?? ''));
+        $mainHost = $this->normalizeHost((string) (parse_url((string) SITE_URL, PHP_URL_HOST) ?? ''));
+        if ($requestHost === '' || $mainHost === '' || $requestHost === $mainHost) {
+            return false;
+        }
+
+        $category = $this->findCategoryByAliasDomain($requestHost);
+        if ($category === null) {
+            return false;
+        }
+
+        $slug = trim((string) ($category['slug'] ?? ''), '/');
+        if ($slug === '') {
+            return false;
+        }
+
+        $targetPath = '/kategorie/' . rawurlencode($slug);
+        $query = (string) (parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_QUERY) ?? '');
         if ($query !== '') {
             $targetPath .= '?' . $query;
         }
@@ -595,6 +642,47 @@ class Router
         }
 
         return trim($value, '.');
+    }
+
+    /**
+     * @return array<string,mixed>|null
+     */
+    private function findCategoryByAliasDomain(string $domain): ?array
+    {
+        try {
+            $db = Database::instance();
+            $prefix = $db->getPrefix();
+            $column = $db->get_var("SHOW COLUMNS FROM {$prefix}post_categories LIKE 'alias_domains_json'");
+            if ($column === null) {
+                return null;
+            }
+
+            $rows = $db->get_results(
+                "SELECT id, slug, parent_id, alias_domains_json FROM {$prefix}post_categories",
+                []
+            ) ?: [];
+
+            foreach ($rows as $row) {
+                if ((int) ($row->parent_id ?? 0) > 0) {
+                    continue;
+                }
+
+                $domains = \CMS\Json::decodeArray((string) ($row->alias_domains_json ?? '[]'), []);
+                if (!is_array($domains)) {
+                    continue;
+                }
+
+                foreach ($domains as $candidate) {
+                    if ($this->normalizeHost((string) $candidate) === $domain) {
+                        return (array) $row;
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            error_log('Router category alias lookup failed: ' . $e->getMessage());
+        }
+
+        return null;
     }
 
     private function buildRedirectFallbackPage(string $targetUrl, int $status): string

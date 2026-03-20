@@ -39,7 +39,7 @@ final class MediaDeliveryService
             return $this->buildDeliveryUrl($normalizedPath, $preferInline ? 'inline' : 'attachment');
         }
 
-        if ($preferInline && $this->isInlineSafePath($normalizedPath)) {
+        if ($this->containsHiddenSegment($normalizedPath)) {
             return $this->buildDeliveryUrl($normalizedPath, 'inline');
         }
 
@@ -71,7 +71,31 @@ final class MediaDeliveryService
 
         $deliveryPrefix = rtrim((string) SITE_URL, '/') . '/media-file';
         if (str_starts_with($trimmedUrl, $deliveryPrefix)) {
-            return $trimmedUrl;
+            $queryString = (string) (parse_url($trimmedUrl, PHP_URL_QUERY) ?? '');
+            parse_str($queryString, $query);
+            $relativePath = $this->normalizeRelativePath((string) ($query['path'] ?? ''));
+            $disposition = strtolower(trim((string) ($query['disposition'] ?? 'attachment')));
+
+            if ($relativePath === '') {
+                return $trimmedUrl;
+            }
+
+            if (
+                !$preferInline
+                && $disposition === 'attachment'
+                && !$this->isInlineSafePath($relativePath)
+            ) {
+                return $trimmedUrl;
+            }
+
+            if (
+                $this->isPrivateMemberPath($relativePath)
+                || ($this->containsHiddenSegment($relativePath) && !$this->isAllowedHiddenPath($relativePath))
+            ) {
+                return $trimmedUrl;
+            }
+
+            return $this->buildAccessUrl($relativePath, $preferInline);
         }
 
         $uploadPrefix = rtrim((string) UPLOAD_URL, '/');
@@ -83,6 +107,33 @@ final class MediaDeliveryService
         $relativePath = implode('/', array_map('rawurldecode', explode('/', $relativePath)));
 
         return $this->buildAccessUrl($relativePath, $preferInline);
+    }
+
+    public function normalizeAdminVisibleUrl(string $url): string
+    {
+        $trimmedUrl = trim($url);
+        if ($trimmedUrl === '') {
+            return '';
+        }
+
+        $deliveryPrefix = rtrim((string) SITE_URL, '/') . '/media-file';
+        if (!str_starts_with($trimmedUrl, $deliveryPrefix)) {
+            return $this->normalizeUrl($trimmedUrl, false);
+        }
+
+        $queryString = (string) (parse_url($trimmedUrl, PHP_URL_QUERY) ?? '');
+        parse_str($queryString, $query);
+        $relativePath = $this->normalizeRelativePath((string) ($query['path'] ?? ''));
+
+        if (
+            $relativePath === ''
+            || $this->isPrivateMemberPath($relativePath)
+            || ($this->containsHiddenSegment($relativePath) && !$this->isAllowedHiddenPath($relativePath))
+        ) {
+            return $trimmedUrl;
+        }
+
+        return $this->buildDirectUploadUrl($relativePath);
     }
 
     public function handleRequest(): void

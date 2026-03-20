@@ -52,6 +52,7 @@ class ThemeManager
 
         // Hooks
         Hooks::addAction('head', [$this, 'renderCustomStyles']);
+        Hooks::addAction('head', [$this, 'renderSiteFavicon'], 5);
     }
 
     /**
@@ -687,6 +688,10 @@ class ThemeManager
      */
     public function getThemeUrl(): string
     {
+        if (function_exists('cms_runtime_base_url')) {
+            return \cms_runtime_base_url('themes/' . $this->activeTheme);
+        }
+
         return SITE_URL . '/themes/' . $this->activeTheme;
     }
 
@@ -894,5 +899,62 @@ class ThemeManager
         }
         
         echo "</style>\n";
+    }
+
+    /**
+     * Rendert globale Favicon-Tags auf Basis der Core-Einstellung `site_favicon`.
+     */
+    public function renderSiteFavicon(): void
+    {
+        $this->loadSettings();
+
+        $favicon = trim((string) ($this->settings['site_favicon'] ?? ''));
+        if ($favicon === '') {
+            return;
+        }
+
+        $faviconUrl = $this->normalizeSiteAssetUrl($favicon);
+        if ($faviconUrl === '') {
+            return;
+        }
+
+        $mimeType = $this->detectIconMimeType($faviconUrl);
+        $escapedUrl = htmlspecialchars($faviconUrl, ENT_QUOTES, 'UTF-8');
+        $escapedMime = htmlspecialchars($mimeType, ENT_QUOTES, 'UTF-8');
+
+        echo '<link rel="icon" href="' . $escapedUrl . '" type="' . $escapedMime . '">' . "\n";
+        echo '<link rel="shortcut icon" href="' . $escapedUrl . '" type="' . $escapedMime . '">' . "\n";
+        echo '<link rel="apple-touch-icon" href="' . $escapedUrl . '">' . "\n";
+    }
+
+    private function normalizeSiteAssetUrl(string $path): string
+    {
+        $path = trim($path);
+        if ($path === '') {
+            return '';
+        }
+
+        if (filter_var($path, FILTER_VALIDATE_URL) !== false) {
+            return $path;
+        }
+
+        if (function_exists('cms_runtime_base_url')) {
+            return \cms_runtime_base_url(ltrim($path, '/'));
+        }
+
+        return rtrim((string) SITE_URL, '/') . '/' . ltrim($path, '/');
+    }
+
+    private function detectIconMimeType(string $url): string
+    {
+        $path = strtolower((string) parse_url($url, PHP_URL_PATH));
+
+        return match (true) {
+            str_ends_with($path, '.svg') => 'image/svg+xml',
+            str_ends_with($path, '.png') => 'image/png',
+            str_ends_with($path, '.jpg'), str_ends_with($path, '.jpeg') => 'image/jpeg',
+            str_ends_with($path, '.webp') => 'image/webp',
+            default => 'image/x-icon',
+        };
     }
 }

@@ -120,7 +120,7 @@ $search     = $data['search'] ?? '';
                             <option value="0">Alle Kategorien</option>
                             <?php foreach ($categories as $cat): ?>
                                 <option value="<?php echo (int)$cat['id']; ?>" <?php if ($catFilter === (int)$cat['id']) echo 'selected'; ?>>
-                                    <?php echo htmlspecialchars($cat['name']); ?>
+                                    <?php echo htmlspecialchars((string) ($cat['option_label'] ?? $cat['name'] ?? '')); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -147,16 +147,15 @@ $search     = $data['search'] ?? '';
                         <option value="">Aktion wählen…</option>
                         <option value="publish">Veröffentlichen</option>
                         <option value="draft">Als Entwurf setzen</option>
-                        <option value="set_category">Kategorie setzen</option>
+                        <option value="set_category">Kategorie(n) setzen</option>
                         <option value="clear_category">Kategorie entfernen</option>
                         <option value="set_author_display_name">Autoren-Anzeigenamen setzen</option>
                         <option value="clear_author_display_name">Autoren-Anzeigenamen zurücksetzen</option>
                         <option value="delete">Löschen</option>
                     </select>
-                    <select name="bulk_category_id" id="bulkCategoryPosts" class="form-select form-select-sm w-auto d-none">
-                        <option value="0">Kategorie wählen…</option>
+                    <select name="bulk_category_ids[]" id="bulkCategoryPosts" class="form-select form-select-sm w-auto d-none" multiple size="6" aria-label="Bulk-Kategorien auswählen">
                         <?php foreach ($categories as $cat): ?>
-                            <option value="<?php echo (int) ($cat['id'] ?? 0); ?>"><?php echo htmlspecialchars((string) ($cat['name'] ?? '')); ?></option>
+                            <option value="<?php echo (int) ($cat['id'] ?? 0); ?>"><?php echo htmlspecialchars((string) ($cat['option_label'] ?? $cat['name'] ?? '')); ?></option>
                         <?php endforeach; ?>
                     </select>
                     <input type="text"
@@ -214,13 +213,14 @@ function applyFilters() {
         bulkAuthorDisplayName.classList.toggle('d-none', !requiresName);
         bulkAuthorDisplayName.required = requiresName;
         bulkCategorySelect.classList.toggle('d-none', !requiresCategory);
-        bulkCategorySelect.required = requiresCategory;
 
         if (!requiresName) {
             bulkAuthorDisplayName.value = '';
         }
         if (!requiresCategory) {
-            bulkCategorySelect.value = '0';
+            Array.prototype.forEach.call(bulkCategorySelect.options, function(option) {
+                option.selected = false;
+            });
         }
     }
 
@@ -286,7 +286,7 @@ function applyFilters() {
             return;
         }
 
-        if (bulkActionSelect && bulkActionSelect.value === 'set_category' && bulkCategorySelect && bulkCategorySelect.value === '0') {
+        if (bulkActionSelect && bulkActionSelect.value === 'set_category' && bulkCategorySelect && bulkCategorySelect.selectedOptions.length === 0) {
             event.preventDefault();
             bulkCategorySelect.focus();
             return;

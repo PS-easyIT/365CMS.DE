@@ -197,7 +197,12 @@ final class ApiRouter
             $params[] = "%{$search}%";
         }
         if ($category > 0) {
-            $where[] = 'p.category_id = ?';
+            $where[] = '(p.category_id = ? OR EXISTS (
+                SELECT 1
+                FROM {$prefix}post_category_rel pcr
+                WHERE pcr.post_id = p.id AND pcr.category_id = ?
+            ))';
+            $params[] = $category;
             $params[] = $category;
         }
         $whereStr = $where ? 'WHERE ' . implode(' AND ', $where) : '';

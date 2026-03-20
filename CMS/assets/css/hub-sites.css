@@ -744,6 +744,10 @@
     border-collapse: collapse;
 }
 
+.cms-hub-site .cms-site-table thead {
+    display: none;
+}
+
 .cms-hub-site .cms-site-table caption {
     caption-side: bottom;
     padding: 0.875rem 1rem 1rem;

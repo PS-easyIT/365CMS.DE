@@ -29,6 +29,7 @@ if (!in_array($postDefaultStatus, ['draft', 'published'], true)) {
 $title      = htmlspecialchars($post['title'] ?? '');
 $titleEn    = htmlspecialchars($post['title_en'] ?? '');
 $slug       = htmlspecialchars($post['slug'] ?? '');
+$slugEn     = htmlspecialchars($post['slug_en'] ?? '');
 $content    = $post['content'] ?? '';
 $contentEn  = $post['content_en'] ?? '';
 $excerpt    = htmlspecialchars($post['excerpt'] ?? '');
@@ -40,6 +41,7 @@ $metaTitle  = htmlspecialchars($post['meta_title'] ?? '');
 $metaDesc   = htmlspecialchars($post['meta_description'] ?? '');
 $authorDisplayName = htmlspecialchars($post['author_display_name'] ?? '', ENT_QUOTES);
 $tagString  = htmlspecialchars(implode(', ', array_map(static fn(array $tag): string => (string)($tag['name'] ?? ''), $postTagsData)), ENT_QUOTES);
+$additionalCategoryIds = array_values(array_filter(array_map('intval', (array)($data['additionalCategoryIds'] ?? [])), static fn(int $id): bool => $id > 0));
 $seoMeta = $data['seoMeta'] ?? [];
 $seoTemplateSettings = \CMS\Services\SeoAnalysisService::getInstance()->getSettings();
 $permalinkService = class_exists('\CMS\Services\PermalinkService') ? \CMS\Services\PermalinkService::getInstance() : null;
@@ -58,6 +60,12 @@ $schemaType = htmlspecialchars((string)($seoMeta['schema_type'] ?? 'Article'));
 $sitemapPriority = htmlspecialchars((string)($seoMeta['sitemap_priority'] ?? ''));
 $sitemapChangefreq = htmlspecialchars((string)($seoMeta['sitemap_changefreq'] ?? 'monthly'));
 $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
+$postHasBaseTitle = trim((string)($post['title'] ?? '')) !== '';
+$postHasBaseContent = trim(strip_tags((string)($post['content'] ?? ''))) !== '';
+$postHasEnTitle = trim((string)($post['title_en'] ?? '')) !== '';
+$postHasEnContent = trim(strip_tags((string)($post['content_en'] ?? ''))) !== '';
+$isEnglishOnlyPost = !$isNew && !$postHasBaseTitle && !$postHasBaseContent && ($postHasEnTitle || $postHasEnContent);
+$postDefaultLanguage = $isEnglishOnlyPost ? 'en' : 'de';
 ?>
 
 <div class="page-header d-print-none">
@@ -89,6 +97,7 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
             <?php
             $postTitleValue = (string)($post['title'] ?? '');
             $postSlugValue = (string)($post['slug'] ?? '');
+            $postSlugEnValue = (string)($post['slug_en'] ?? '');
             $postContentValue = (string)$content;
             $postContentEnValue = (string)$contentEn;
             $postExcerptValue = (string)($post['excerpt'] ?? '');
@@ -105,7 +114,7 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
                 ? $permalinkService->buildPostUrlTemplate((string)($post['published_at'] ?? ''), (string)($post['created_at'] ?? ''), 'en')
                 : rtrim((string)SITE_URL, '/') . '/blog/{slug}/en';
             $postPreviewUrl = str_replace('{slug}', ltrim($postSlugValue !== '' ? $postSlugValue : 'beitrag', '/'), $postPreviewUrlTemplate);
-            $postPreviewUrlEn = str_replace('{slug}', ltrim($postSlugValue !== '' ? $postSlugValue : 'beitrag', '/'), $postPreviewUrlTemplateEn);
+            $postPreviewUrlEn = str_replace('{slug}', ltrim($postSlugEnValue !== '' ? $postSlugEnValue : ($postSlugValue !== '' ? $postSlugValue : 'beitrag'), '/'), $postPreviewUrlTemplateEn);
             $postPermalinkHint = $permalinkService !== null
                 ? $permalinkService->getPostPermalinkStructure()
                 : '/blog/%postname%';
@@ -123,8 +132,11 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
                     <div class="card cms-edit-card cms-edit-top-card h-100 w-100">
                         <div class="card-body">
                             <div class="mb-3">
-                                <label class="form-label required" for="title">Titel</label>
-                                <input type="text" class="form-control" id="title" name="title" value="<?php echo htmlspecialchars($postTitleValue); ?>" required>
+                                <label class="form-label<?php echo $isEnglishOnlyPost ? '' : ' required'; ?>" for="title">Titel</label>
+                                <input type="text" class="form-control" id="title" name="title" value="<?php echo htmlspecialchars($postTitleValue); ?>"<?php echo $isEnglishOnlyPost ? '' : ' required'; ?>>
+                                <?php if ($isEnglishOnlyPost): ?>
+                                    <div class="form-hint text-azure mt-1">EN-only Beitrag erkannt: Titel und Inhalt liegen im Tab <strong>English</strong>. Das deutsche Basisfeld darf leer bleiben.</div>
+                                <?php endif; ?>
                             </div>
                             <div class="mb-0">
                                 <label class="form-label" for="slug">Slug</label>
@@ -172,10 +184,23 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
                                     <option value="0">Keine Kategorie</option>
                                     <?php foreach ($categories as $cat): ?>
                                         <option value="<?php echo (int)$cat['id']; ?>" <?php if ($categoryId === (int)$cat['id']) echo 'selected'; ?>>
-                                            <?php echo htmlspecialchars($cat['name']); ?>
+                                            <?php echo htmlspecialchars((string) ($cat['option_label'] ?? $cat['name'] ?? '')); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
+                                <div class="form-hint">Primäre Kategorie für Listen, Archive und Vorschau.</div>
+                            </div>
+                            <div class="mt-3">
+                                <label class="form-label" for="additionalCategoryIds">Zusätzliche Kategorien</label>
+                                <select class="form-select" id="additionalCategoryIds" name="additional_category_ids[]" multiple size="7">
+                                    <?php foreach ($categories as $cat): ?>
+                                        <?php $catIdValue = (int)($cat['id'] ?? 0); ?>
+                                        <option value="<?php echo $catIdValue; ?>" <?php echo in_array($catIdValue, $additionalCategoryIds, true) ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars((string) ($cat['option_label'] ?? $cat['name'] ?? '')); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="form-hint">Mehrfachauswahl mit <kbd>Strg</kbd>/<kbd>Cmd</kbd>. Die primäre Kategorie oben bleibt führend.</div>
                             </div>
                             <div class="mt-3">
                                 <label class="form-label" for="postTags">Tags</label>
@@ -216,12 +241,12 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
                         <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
                             <h3 class="card-title">Inhalt</h3>
                             <div class="btn-group" role="group" aria-label="Inhaltssprache wählen">
-                                <button class="btn btn-primary" type="button" id="postLangToggleDe" data-post-lang-toggle="de" aria-pressed="true">Deutsch</button>
-                                <button class="btn btn-outline-primary" type="button" id="postLangToggleEn" data-post-lang-toggle="en" aria-pressed="false">English</button>
+                                <button class="btn <?php echo $postDefaultLanguage === 'de' ? 'btn-primary' : 'btn-outline-primary'; ?>" type="button" id="postLangToggleDe" data-post-lang-toggle="de" aria-pressed="<?php echo $postDefaultLanguage === 'de' ? 'true' : 'false'; ?>">Deutsch</button>
+                                <button class="btn <?php echo $postDefaultLanguage === 'en' ? 'btn-primary' : 'btn-outline-primary'; ?>" type="button" id="postLangToggleEn" data-post-lang-toggle="en" aria-pressed="<?php echo $postDefaultLanguage === 'en' ? 'true' : 'false'; ?>">English</button>
                             </div>
                         </div>
                         <div class="card-body">
-                            <div id="postLanguagePaneDe" data-post-lang-pane="de">
+                            <div id="postLanguagePaneDe" data-post-lang-pane="de" class="<?php echo $postDefaultLanguage === 'de' ? '' : 'd-none'; ?>">
                                 <div class="mb-3 text-secondary small">Standardansicht unter <code><?php echo htmlspecialchars($postPreviewUrl); ?></code></div>
                                 <?php if (!empty($useEditorJs)): ?>
                                 <div class="editorjs-wrap editorjs-wrap--post cms-editor-live-wrap"
@@ -239,13 +264,18 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
                                     ]); ?>
                                 <?php endif; ?>
                             </div>
-                            <div id="postLanguagePaneEn" data-post-lang-pane="en" class="d-none">
+                            <div id="postLanguagePaneEn" data-post-lang-pane="en" class="<?php echo $postDefaultLanguage === 'en' ? '' : 'd-none'; ?>">
                                 <div class="row g-3 mb-3">
                                     <div class="col-lg-7">
                                         <label class="form-label" for="titleEn">Englischer Titel</label>
                                         <input type="text" class="form-control" id="titleEn" name="title_en" value="<?php echo htmlspecialchars($postTitleEnValue); ?>" placeholder="English article title">
                                     </div>
                                     <div class="col-lg-5">
+                                        <label class="form-label" for="slugEn">Englischer Slug</label>
+                                        <input type="text" class="form-control" id="slugEn" name="slug_en" value="<?php echo htmlspecialchars($postSlugEnValue); ?>" placeholder="optional: english-url-slug">
+                                        <div class="form-hint">Wenn leer, nutzt die EN-URL weiterhin den Standardslug.</div>
+                                    </div>
+                                    <div class="col-lg-12">
                                         <label class="form-label" for="excerptEn">Englische Kurzfassung</label>
                                         <textarea class="form-control" id="excerptEn" name="excerpt_en" rows="2" placeholder="Short English summary"><?php echo htmlspecialchars($postExcerptEnValue); ?></textarea>
                                     </div>
@@ -488,7 +518,7 @@ $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
             'languagePaneSelector' => '[data-post-lang-pane]',
             'languageAttribute' => 'data-post-lang-toggle',
             'languagePaneAttribute' => 'data-post-lang-pane',
-            'defaultLanguage' => 'de',
+            'defaultLanguage' => $postDefaultLanguage,
             'countBindings' => [
                 ['sourceId' => 'title', 'targetId' => 'postTitleCount'],
                 ['sourceId' => 'slug', 'targetId' => 'postSlugCount'],

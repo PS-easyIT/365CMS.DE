@@ -17,6 +17,7 @@ $languages  = $data['languages'];
 $currentTab = ($currentTab ?? 'general') === 'content' ? 'content' : 'general';
 $settingsBaseUrl = (defined('SITE_URL') ? SITE_URL : '') . '/admin/settings';
 $hideSettingsTabs = $hideSettingsTabs ?? false;
+$mediaConnectorToken = $mediaConnectorToken ?? '';
 ?>
 
 <div class="container-xl">
@@ -75,13 +76,88 @@ $hideSettingsTabs = $hideSettingsTabs ?? false;
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Website-Logo</label>
-                            <input type="text" name="site_logo" class="form-control" value="<?php echo htmlspecialchars($s['site_logo'] ?? ''); ?>" placeholder="/uploads/logo.svg oder https://...">
+                            <div class="input-group">
+                                <input
+                                    type="text"
+                                    id="siteLogoInput"
+                                    name="site_logo"
+                                    class="form-control"
+                                    value="<?php echo htmlspecialchars($s['site_logo'] ?? ''); ?>"
+                                    placeholder="/uploads/logo.svg oder https://..."
+                                    data-media-target-input>
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-secondary"
+                                    data-open-media-picker
+                                    data-target-input="siteLogoInput"
+                                    data-preview-id="siteLogoPreview"
+                                    data-picker-title="Website-Logo auswählen">
+                                    Medien
+                                </button>
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-secondary"
+                                    data-clear-media-input
+                                    data-target-input="siteLogoInput"
+                                    data-preview-id="siteLogoPreview">
+                                    Leeren
+                                </button>
+                            </div>
                             <div class="form-hint">Theme-unabhängiger Logo-Pfad bzw. eine URL, die Themes optional laden können.</div>
-                            <?php if (!empty($s['site_logo'])): ?>
-                                <div class="mt-2">
+                            <div
+                                id="siteLogoPreview"
+                                class="mt-2"
+                                data-media-preview
+                                data-preview-variant="logo"
+                                data-input-id="siteLogoInput"
+                                <?php echo empty($s['site_logo']) ? 'hidden' : ''; ?>>
+                                <?php if (!empty($s['site_logo'])): ?>
                                     <img src="<?php echo htmlspecialchars($s['site_logo']); ?>" alt="Website-Logo Vorschau" style="max-height:48px; max-width:220px; border-radius:6px; border:1px solid var(--tblr-border-color); padding:6px; background:#fff;">
-                                </div>
-                            <?php endif; ?>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Favicon</label>
+                            <div class="input-group">
+                                <input
+                                    type="text"
+                                    id="siteFaviconInput"
+                                    name="site_favicon"
+                                    class="form-control"
+                                    value="<?php echo htmlspecialchars($s['site_favicon'] ?? ''); ?>"
+                                    placeholder="/uploads/favicon.ico oder /uploads/favicon.png"
+                                    data-media-target-input>
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-secondary"
+                                    data-open-media-picker
+                                    data-target-input="siteFaviconInput"
+                                    data-preview-id="siteFaviconPreview"
+                                    data-picker-title="Favicon auswählen">
+                                    Medien
+                                </button>
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-secondary"
+                                    data-clear-media-input
+                                    data-target-input="siteFaviconInput"
+                                    data-preview-id="siteFaviconPreview">
+                                    Leeren
+                                </button>
+                            </div>
+                            <div class="form-hint">Globales Favicon für 365CMS. Unterstützt relative Pfade unterhalb der Website oder absolute HTTPS-URLs.</div>
+                            <div
+                                id="siteFaviconPreview"
+                                class="mt-2 d-flex align-items-center gap-2"
+                                data-media-preview
+                                data-preview-variant="favicon"
+                                data-input-id="siteFaviconInput"
+                                <?php echo empty($s['site_favicon']) ? 'hidden' : ''; ?>>
+                                <?php if (!empty($s['site_favicon'])): ?>
+                                    <img src="<?php echo htmlspecialchars($s['site_favicon']); ?>" alt="Favicon Vorschau" width="32" height="32" style="border-radius:8px; border:1px solid var(--tblr-border-color); padding:4px; background:#fff; object-fit:contain;">
+                                    <code><?php echo htmlspecialchars((string)$s['site_favicon']); ?></code>
+                                <?php endif; ?>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label required">Website-URL</label>
@@ -389,4 +465,28 @@ $hideSettingsTabs = $hideSettingsTabs ?? false;
             </button>
         </div>
     </form>
+
+    <?php if ($currentTab === 'general'): ?>
+        <div class="modal modal-blur fade" id="settingsMediaPickerModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" data-media-picker-title>Datei auswählen</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-secondary small mb-3">Doppelklick auf eine Datei übernimmt sie direkt in das aktuell gewählte Feld.</p>
+                        <div
+                            data-elfinder-picker
+                            data-connector-url="<?php echo htmlspecialchars(SITE_URL . '/api/v1/admin/media/elfinder', ENT_QUOTES); ?>"
+                            data-csrf-token="<?php echo htmlspecialchars($mediaConnectorToken, ENT_QUOTES); ?>"
+                            data-jquery-script="<?php echo htmlspecialchars(cms_asset_url('elfinder/vendor/jquery/jquery-3.7.1.min.js'), ENT_QUOTES); ?>"
+                            data-jquery-ui-script="<?php echo htmlspecialchars(cms_asset_url('elfinder/vendor/jquery-ui/jquery-ui-1.13.2.min.js'), ENT_QUOTES); ?>"
+                            data-elfinder-script="<?php echo htmlspecialchars(cms_asset_url('elfinder/js/elfinder.min.js'), ENT_QUOTES); ?>"
+                            style="min-height: 65vh;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 </div>

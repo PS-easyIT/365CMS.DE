@@ -6,7 +6,20 @@ if (!defined('ABSPATH')) {
 }
 
 $categories = $data['categories'] ?? [];
+$categoryOptions = $data['categoryOptions'] ?? [];
 $counts = $data['counts'] ?? [];
+$editCategory = $editCategory ?? null;
+
+$editCategoryId = (int) ($editCategory['id'] ?? 0);
+$editCategoryName = (string) ($editCategory['name'] ?? '');
+$editCategorySlug = (string) ($editCategory['slug'] ?? '');
+$editCategoryParentId = (int) ($editCategory['parent_id'] ?? 0);
+$editCategoryDomains = implode("\n", array_map('strval', $editCategory['domains'] ?? []));
+$isEditing = $editCategoryId > 0;
+$deleteCategoryOptions = array_values(array_filter(
+    $categoryOptions,
+    static fn(array $categoryOption): bool => (int) ($categoryOption['id'] ?? 0) > 0
+));
 ?>
 
 <div class="page-header d-print-none">
@@ -58,21 +71,45 @@ $counts = $data['counts'] ?? [];
         <div class="row row-cards">
             <div class="col-lg-4">
                 <div class="card">
-                    <div class="card-header"><h3 class="card-title">Neue Kategorie</h3></div>
+                    <div class="card-header"><h3 class="card-title"><?php echo $isEditing ? 'Kategorie bearbeiten' : 'Neue Kategorie'; ?></h3></div>
                     <div class="card-body">
                         <form method="post">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
                             <input type="hidden" name="action" value="save_category">
-                            <input type="hidden" name="cat_id" value="0">
+                            <input type="hidden" name="cat_id" value="<?php echo $editCategoryId; ?>">
                             <div class="mb-3">
                                 <label class="form-label" for="postCategoryName">Name</label>
-                                <input type="text" class="form-control" id="postCategoryName" name="cat_name" required>
+                                <input type="text" class="form-control" id="postCategoryName" name="cat_name" value="<?php echo htmlspecialchars($editCategoryName, ENT_QUOTES); ?>" required>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="postCategorySlug">Slug</label>
-                                <input type="text" class="form-control" id="postCategorySlug" name="cat_slug" placeholder="wird automatisch generiert">
+                                <input type="text" class="form-control" id="postCategorySlug" name="cat_slug" value="<?php echo htmlspecialchars($editCategorySlug, ENT_QUOTES); ?>" placeholder="wird automatisch generiert">
                             </div>
-                            <button type="submit" class="btn btn-primary w-100">Kategorie speichern</button>
+                            <div class="mb-3">
+                                <label class="form-label" for="postCategoryParent">Elternkategorie</label>
+                                <select class="form-select" id="postCategoryParent" name="parent_id">
+                                    <option value="0">— Hauptkategorie —</option>
+                                    <?php foreach ($categoryOptions as $categoryOption): ?>
+                                        <?php $optionId = (int) ($categoryOption['id'] ?? 0); ?>
+                                        <?php if ($optionId === $editCategoryId) { continue; } ?>
+                                        <option value="<?php echo $optionId; ?>" <?php if ($editCategoryParentId === $optionId) echo 'selected'; ?>>
+                                            <?php echo htmlspecialchars((string) ($categoryOption['option_label'] ?? $categoryOption['name'] ?? ''), ENT_QUOTES); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="form-hint">Unterkategorien können keine Fremddomain-Zuordnung erhalten.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="postCategoryDomains">Fremd-Domains für diese Hauptkategorie</label>
+                                <textarea class="form-control" id="postCategoryDomains" name="cat_domains" rows="4" placeholder="kategorie.example.de&#10;thema.example.org"><?php echo htmlspecialchars($editCategoryDomains, ENT_QUOTES); ?></textarea>
+                                <div class="form-hint">Nur für Hauptkategorien. Aufrufe der Domain werden auf das Kategorie-Archiv umgeleitet.</div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary flex-fill"><?php echo $isEditing ? 'Kategorie aktualisieren' : 'Kategorie speichern'; ?></button>
+                                <?php if ($isEditing): ?>
+                                    <a href="<?php echo htmlspecialchars(SITE_URL . '/admin/post-categories', ENT_QUOTES); ?>" class="btn btn-outline-secondary">Abbrechen</a>
+                                <?php endif; ?>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -86,26 +123,58 @@ $counts = $data['counts'] ?? [];
                                 <tr>
                                     <th>Name</th>
                                     <th>Slug</th>
+                                    <th>Ebene</th>
+                                    <th>Fremd-Domains</th>
                                     <th>Beiträge</th>
                                     <th class="w-1"></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php if ($categories === []): ?>
-                                    <tr><td colspan="4" class="text-secondary text-center py-4">Noch keine Kategorien vorhanden.</td></tr>
+                                    <tr><td colspan="6" class="text-secondary text-center py-4">Noch keine Kategorien vorhanden.</td></tr>
                                 <?php endif; ?>
                                 <?php foreach ($categories as $category): ?>
                                     <tr>
-                                        <td class="fw-medium"><?php echo htmlspecialchars((string) ($category['name'] ?? ''), ENT_QUOTES); ?></td>
+                                        <td class="fw-medium"><?php echo htmlspecialchars((string) ($category['option_label'] ?? $category['name'] ?? ''), ENT_QUOTES); ?></td>
                                         <td><code><?php echo htmlspecialchars((string) ($category['slug'] ?? ''), ENT_QUOTES); ?></code></td>
-                                        <td><?php echo (int) ($category['post_count'] ?? 0); ?></td>
                                         <td>
-                                            <form method="post" onsubmit="return confirm('Kategorie wirklich löschen? Zugeordnete Beiträge verlieren nur die Kategorie.');">
-                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
-                                                <input type="hidden" name="action" value="delete_category">
-                                                <input type="hidden" name="cat_id" value="<?php echo (int) ($category['id'] ?? 0); ?>">
-                                                <button type="submit" class="btn btn-ghost-danger btn-sm">Löschen</button>
-                                            </form>
+                                            <?php if (!empty($category['is_main_category'])): ?>
+                                                <span class="badge bg-azure-lt text-azure">Hauptkategorie</span>
+                                            <?php else: ?>
+                                                <span class="text-secondary"><?php echo htmlspecialchars((string) ($category['parent_name'] ?? 'Unterkategorie'), ENT_QUOTES); ?></span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php $domains = $category['domains'] ?? []; ?>
+                                            <?php if ($domains === []): ?>
+                                                <span class="text-secondary">—</span>
+                                            <?php else: ?>
+                                                <div class="d-flex flex-column gap-1">
+                                                    <?php foreach ($domains as $domain): ?>
+                                                        <code><?php echo htmlspecialchars((string) $domain, ENT_QUOTES); ?></code>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <div><?php echo (int) ($category['post_count_total'] ?? 0); ?></div>
+                                            <?php if ((int) ($category['post_count_total'] ?? 0) !== (int) ($category['post_count_direct'] ?? 0)): ?>
+                                                <div class="text-secondary small">direkt: <?php echo (int) ($category['post_count_direct'] ?? 0); ?></div>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                <a href="<?php echo htmlspecialchars(SITE_URL . '/admin/post-categories?edit=' . (int) ($category['id'] ?? 0), ENT_QUOTES); ?>" class="btn btn-outline-primary btn-sm">Bearbeiten</a>
+                                                <form method="post" class="js-delete-category-form"
+                                                      data-category-id="<?php echo (int) ($category['id'] ?? 0); ?>"
+                                                      data-category-name="<?php echo htmlspecialchars((string) ($category['name'] ?? ''), ENT_QUOTES); ?>"
+                                                      data-assigned-posts="<?php echo (int) ($category['assigned_post_count'] ?? $category['post_count_direct'] ?? 0); ?>">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                                                    <input type="hidden" name="action" value="delete_category">
+                                                    <input type="hidden" name="cat_id" value="<?php echo (int) ($category['id'] ?? 0); ?>">
+                                                    <button type="submit" class="btn btn-ghost-danger btn-sm">Löschen</button>
+                                                </form>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -114,6 +183,44 @@ $counts = $data['counts'] ?? [];
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal modal-blur fade" id="deleteCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" id="deleteCategoryModalForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Kategorie löschen</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                    <input type="hidden" name="action" value="delete_category">
+                    <input type="hidden" name="cat_id" id="deleteCategoryId" value="0">
+
+                    <p class="mb-2">Die Kategorie <strong id="deleteCategoryName"></strong> wird gelöscht.</p>
+                    <p class="text-secondary mb-0" id="deleteCategoryHint">Unterkategorien werden dabei zu Hauptkategorien.</p>
+
+                    <div class="mt-3 d-none" id="deleteCategoryReassignWrap">
+                        <label class="form-label" for="replacementCategoryId">Neue Kategorie für betroffene Beiträge</label>
+                        <select class="form-select" id="replacementCategoryId" name="replacement_category_id">
+                            <option value="0">Bitte auswählen…</option>
+                            <?php foreach ($deleteCategoryOptions as $categoryOption): ?>
+                                <option value="<?php echo (int) ($categoryOption['id'] ?? 0); ?>">
+                                    <?php echo htmlspecialchars((string) ($categoryOption['option_label'] ?? $categoryOption['name'] ?? ''), ENT_QUOTES); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="form-hint">Beiträge mit dieser Kategorie werden vor dem Löschen auf die gewählte Ersatzkategorie umgestellt.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary me-auto" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="submit" class="btn btn-danger">Kategorie löschen</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

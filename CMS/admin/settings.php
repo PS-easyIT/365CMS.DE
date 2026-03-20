@@ -61,10 +61,22 @@ if (!empty($_SESSION['admin_alert'])) {
 }
 
 $csrfToken  = Security::instance()->generateToken('admin_settings');
+$mediaConnectorToken = Security::instance()->generateToken('media_connector');
 $data       = $module->getData();
 $pageTitle  = $currentTab === 'content' ? 'Beiträge & Sites' : 'Allgemeine Einstellungen';
 $activePage = $currentTab === 'content' ? 'content-settings' : 'settings';
-$pageAssets = [];
+$pageAssets = $currentTab === 'general'
+    ? [
+        'css' => [
+            cms_asset_url('elfinder/vendor/jquery-ui/jquery-ui-1.13.2.css'),
+            cms_asset_url('elfinder/css/elfinder.min.css'),
+            cms_asset_url('elfinder/css/theme.css'),
+        ],
+        'js' => [
+            cms_asset_url('js/admin-media-integrations.js'),
+        ],
+    ]
+    : [];
 
 require __DIR__ . '/partials/header.php';
 require __DIR__ . '/partials/sidebar.php';

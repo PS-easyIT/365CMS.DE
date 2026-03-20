@@ -545,12 +545,97 @@ class Bootstrap
 
         // Frontend: CookieConsent im Theme-Footer ausgeben
         if ($this->mode === 'web') {
+            $shouldLoadPhotoSwipe = static function (): bool {
+                try {
+                    $enabled = Services\ThemeCustomizer::instance()->get('performance', 'enable_photoswipe', true);
+                    if (!filter_var($enabled, FILTER_VALIDATE_BOOLEAN)) {
+                        return false;
+                    }
+                } catch (\Throwable) {
+                }
+
+                $requestUri = (string) (strtok($_SERVER['REQUEST_URI'] ?? '/', '?') ?: '/');
+                $path = $requestUri;
+
+                try {
+                    $context = Services\ContentLocalizationService::getInstance()->resolveRequestContext($requestUri);
+                    $baseUri = (string) ($context['base_uri'] ?? $requestUri);
+                    if ($baseUri !== '') {
+                        $path = $baseUri;
+                    }
+                } catch (\Throwable) {
+                }
+
+                if (SiteTableHubRenderer::isHubRequestUri($requestUri)) {
+                    return true;
+                }
+
+                if (
+                    in_array($path, ['/', '/blog', '/search', '/404', '/error', '/login', '/register'], true)
+                    || str_starts_with($path, '/member')
+                    || str_starts_with($path, '/dashboard')
+                    || str_starts_with($path, '/kategorie/')
+                    || str_starts_with($path, '/tag/')
+                    || str_starts_with($path, '/author/')
+                    || $path === '/authors'
+                    || $path === '/autoren'
+                ) {
+                    if ($path !== '/') {
+                        return false;
+                    }
+                }
+
+                if ($path === '/') {
+                    try {
+                        $host = strtolower(trim((string) ($_SERVER['HTTP_HOST'] ?? ''), '.'));
+                        if ($host !== '') {
+                            $siteTableService = Services\SiteTableService::getInstance();
+                            return $siteTableService->getHubPageByDomain($host, 'de') !== null
+                                || $siteTableService->getHubPageByDomain($host, 'en') !== null;
+                        }
+                    } catch (\Throwable) {
+                    }
+
+                    return false;
+                }
+
+                try {
+                    $postSlug = Services\PermalinkService::getInstance()->extractPostSlugFromPath($path);
+                    if (is_string($postSlug) && trim($postSlug) !== '') {
+                        return true;
+                    }
+                } catch (\Throwable) {
+                }
+
+                if (preg_match('#^/blog/[^/]+$#', $path) === 1) {
+                    return true;
+                }
+
+                $slug = trim($path, '/');
+                if ($slug !== '' && !str_contains($slug, '/')) {
+                    try {
+                        if (Services\SiteTableService::getInstance()->hubExistsBySlug($slug)) {
+                            return true;
+                        }
+                    } catch (\Throwable) {
+                    }
+
+                    return true;
+                }
+
+                return false;
+            };
+
             Hooks::addAction('body_end', static function (): void {
                 Services\CookieConsentService::getInstance()->render();
             }, 20);
 
             // PhotoSwipe V5 — Lightbox für Bilder in Content-Bereichen
-            Hooks::addAction('head', function () {
+            Hooks::addAction('head', static function () use ($shouldLoadPhotoSwipe): void {
+                if (!$shouldLoadPhotoSwipe()) {
+                    return;
+                }
+
                 $href = htmlspecialchars(SITE_URL . '/assets/photoswipe/photoswipe.css', ENT_QUOTES, 'UTF-8');
                 echo '<link rel="preload" as="style" href="' . $href . '" onload="this.onload=null;this.rel=\'stylesheet\'">' . "\n";
                 echo '<noscript><link rel="stylesheet" href="' . $href . '"></noscript>' . "\n";
@@ -615,7 +700,11 @@ class Bootstrap
                     // Tabelle existiert noch nicht – ignorieren
                 }
             }, 15);
-            Hooks::addAction('body_end', function () {
+            Hooks::addAction('body_end', static function () use ($shouldLoadPhotoSwipe): void {
+                if (!$shouldLoadPhotoSwipe()) {
+                    return;
+                }
+
                 echo '<script type="module" src="' . SITE_URL . '/assets/js/photoswipe-init.js"></script>' . "\n";
             }, 10);
         }

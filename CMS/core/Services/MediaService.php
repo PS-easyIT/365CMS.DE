@@ -416,20 +416,6 @@ class MediaService {
             }
         }
 
-        $textExtensions = ['txt', 'csv', 'rtf', 'html', 'htm', 'xml'];
-        if (in_array($ext, $textExtensions, true) || $fileSize < 512 * 1024) {
-            $content = is_readable($tmpName)
-                ? file_get_contents($tmpName, false, null, 0, 65536)
-                : false;
-            if ($content !== false && (
-                stripos($content, '<?php') !== false ||
-                strpos($content, '<?=') !== false ||
-                strpos($content, '<%') !== false
-            )) {
-                return new WP_Error('php_code_detected', 'Die hochgeladene Datei enthält PHP- oder Server-Code und wurde abgelehnt.');
-            }
-        }
-
         if (($settings['validate_image_content'] ?? false) && $this->isImageExtension($ext) && $this->readImageSize($tmpName, 'upload_validation') === null) {
             return new WP_Error('invalid_image', 'Die Datei enthält keine gültigen Bilddaten.');
         }

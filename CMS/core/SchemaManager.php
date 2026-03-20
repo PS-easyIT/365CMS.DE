@@ -129,6 +129,7 @@ class SchemaManager
             'pages' => "CREATE TABLE IF NOT EXISTS {$p}pages (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 slug VARCHAR(200) NOT NULL UNIQUE,
+                slug_en VARCHAR(200) DEFAULT NULL,
                 title VARCHAR(255) NOT NULL,
                 content LONGTEXT,
                 excerpt TEXT,
@@ -143,6 +144,7 @@ class SchemaManager
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 published_at TIMESTAMP NULL,
                 INDEX idx_slug (slug),
+                INDEX idx_slug_en (slug_en),
                 INDEX idx_status (status),
                 INDEX idx_author (author_id),
                 INDEX idx_category (category_id)
@@ -350,6 +352,7 @@ class SchemaManager
                 description TEXT,
                 parent_id INT UNSIGNED DEFAULT NULL,
                 sort_order INT DEFAULT 0,
+                alias_domains_json TEXT DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_slug (slug),
                 INDEX idx_parent (parent_id)
@@ -359,6 +362,7 @@ class SchemaManager
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 title VARCHAR(255) NOT NULL,
                 slug VARCHAR(255) NOT NULL UNIQUE,
+                slug_en VARCHAR(255) DEFAULT NULL,
                 content LONGTEXT,
                 excerpt TEXT,
                 featured_image VARCHAR(500),
@@ -375,6 +379,7 @@ class SchemaManager
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 published_at TIMESTAMP NULL,
                 INDEX idx_slug (slug),
+                INDEX idx_slug_en (slug_en),
                 INDEX idx_status (status),
                 INDEX idx_author (author_id),
                 INDEX idx_category (category_id),
@@ -688,6 +693,17 @@ class SchemaManager
                 FOREIGN KEY (post_id) REFERENCES {$p}posts(id) ON DELETE CASCADE,
                 FOREIGN KEY (tag_id) REFERENCES {$p}post_tags(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET={$c} COMMENT='Post-Tag-Zuordnung'",
+
+            'post_category_rel' => "CREATE TABLE IF NOT EXISTS {$p}post_category_rel (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                post_id BIGINT UNSIGNED NOT NULL,
+                category_id INT UNSIGNED NOT NULL,
+                UNIQUE KEY unique_post_category (post_id, category_id),
+                INDEX idx_post_id (post_id),
+                INDEX idx_category_id (category_id),
+                FOREIGN KEY (post_id) REFERENCES {$p}posts(id) ON DELETE CASCADE,
+                FOREIGN KEY (category_id) REFERENCES {$p}post_categories(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET={$c} COMMENT='Post-Kategorie-Zuordnung'",
         ];
     }
 

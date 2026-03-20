@@ -46,6 +46,7 @@ class PageManager
     {
         try {
             $columns = [
+                'slug_en' => "ALTER TABLE {$this->prefix}pages ADD COLUMN slug_en VARCHAR(200) DEFAULT NULL AFTER slug",
                 'hide_title' => "ALTER TABLE {$this->prefix}pages ADD COLUMN hide_title TINYINT(1) NOT NULL DEFAULT 0",
                 'featured_image' => "ALTER TABLE {$this->prefix}pages ADD COLUMN featured_image VARCHAR(500) DEFAULT NULL AFTER hide_title",
                 'meta_title' => "ALTER TABLE {$this->prefix}pages ADD COLUMN meta_title VARCHAR(255) DEFAULT NULL AFTER featured_image",
@@ -178,10 +179,16 @@ class PageManager
     /**
      * Get Page by Slug (returns Array)
      */
-    public function getPageBySlug(string $slug): ?array
+    public function getPageBySlug(string $slug, string $locale = 'de'): ?array
     {
-        $stmt = $this->db->prepare("SELECT * FROM {$this->prefix}pages WHERE slug = ? LIMIT 1");
-        $stmt->execute([$slug]);
+        $normalizedLocale = strtolower(trim($locale));
+        if ($normalizedLocale === 'en') {
+            $stmt = $this->db->prepare("SELECT * FROM {$this->prefix}pages WHERE (slug_{$normalizedLocale} = ? OR slug = ?) LIMIT 1");
+            $stmt->execute([$slug, $slug]);
+        } else {
+            $stmt = $this->db->prepare("SELECT * FROM {$this->prefix}pages WHERE slug = ? LIMIT 1");
+            $stmt->execute([$slug]);
+        }
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
         return $result ?: null;
     }

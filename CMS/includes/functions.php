@@ -220,12 +220,135 @@ function cms_get_site_title(): string {
 }
 
 /**
+ * Liefert das aktuelle Request-Schema mit Proxy-Unterstützung.
+ */
+function cms_runtime_scheme(): string {
+    $forwardedProto = trim((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''));
+    if ($forwardedProto !== '') {
+        $parts = explode(',', $forwardedProto);
+        $scheme = strtolower(trim((string) ($parts[0] ?? '')));
+        if (in_array($scheme, ['http', 'https'], true)) {
+            return $scheme;
+        }
+    }
+
+    $requestScheme = strtolower(trim((string) ($_SERVER['REQUEST_SCHEME'] ?? '')));
+    if (in_array($requestScheme, ['http', 'https'], true)) {
+        return $requestScheme;
+    }
+
+    $https = strtolower((string) ($_SERVER['HTTPS'] ?? ''));
+    if ($https !== '' && $https !== 'off' && $https !== '0') {
+        return 'https';
+    }
+
+    $serverPort = (int) ($_SERVER['SERVER_PORT'] ?? 0);
+    if ($serverPort === 443) {
+        return 'https';
+    }
+
+    $siteScheme = strtolower((string) parse_url((string) (defined('SITE_URL') ? SITE_URL : ''), PHP_URL_SCHEME));
+    if (in_array($siteScheme, ['http', 'https'], true)) {
+        return $siteScheme;
+    }
+
+    return 'https';
+}
+
+/**
+ * Liefert den aktuellen Host der Anfrage mit einfacher Validierung.
+ */
+function cms_runtime_host(): string {
+    $candidates = [
+        (string) ($_SERVER['HTTP_X_FORWARDED_HOST'] ?? ''),
+        (string) ($_SERVER['HTTP_HOST'] ?? ''),
+        (string) ($_SERVER['SERVER_NAME'] ?? ''),
+    ];
+
+    foreach ($candidates as $candidate) {
+        $candidate = trim($candidate);
+        if ($candidate === '') {
+            continue;
+        }
+
+        $parts = explode(',', $candidate);
+        $host = strtolower(trim((string) ($parts[0] ?? ''), " \t\n\r\0\x0B."));
+        if ($host === '') {
+            continue;
+        }
+
+        if (preg_match('/^(?:\[[0-9a-f:]+\]|[a-z0-9.-]+)(?::\d+)?$/i', $host) === 1) {
+            return $host;
+        }
+    }
+
+    $siteHost = strtolower((string) parse_url((string) (defined('SITE_URL') ? SITE_URL : ''), PHP_URL_HOST));
+    $sitePort = (int) parse_url((string) (defined('SITE_URL') ? SITE_URL : ''), PHP_URL_PORT);
+    if ($siteHost === '') {
+        return '';
+    }
+
+    if ($sitePort > 0) {
+        return $siteHost . ':' . $sitePort;
+    }
+
+    return $siteHost;
+}
+
+/**
+ * Liefert die Runtime-Basis-URL der aktuellen Anfrage.
+ *
+ * Nutzt den aktuellen Request-Host, fällt außerhalb von HTTP-Requests aber sauber auf SITE_URL zurück.
+ */
+function cms_runtime_base_url(string $path = ''): string {
+    $siteUrl = trim((string) (defined('SITE_URL') ? SITE_URL : ''));
+    if ($siteUrl === '') {
+        if ($path === '') {
+            return '';
+        }
+
+        return '/' . ltrim($path, '/');
+    }
+
+    $siteParts = parse_url($siteUrl);
+    if (!is_array($siteParts) || empty($siteParts['host'])) {
+        return $path === '' ? $siteUrl : rtrim($siteUrl, '/') . '/' . ltrim($path, '/');
+    }
+
+    $scheme = cms_runtime_scheme();
+    $host = cms_runtime_host();
+    if ($host === '') {
+        $host = strtolower((string) $siteParts['host']);
+        $port = isset($siteParts['port']) ? (int) $siteParts['port'] : 0;
+        if ($port > 0) {
+            $host .= ':' . $port;
+        }
+    } elseif (!str_contains($host, ':') && isset($siteParts['port'])) {
+        $port = (int) $siteParts['port'];
+        $isDefaultPort = ($scheme === 'https' && $port === 443) || ($scheme === 'http' && $port === 80);
+        if ($port > 0 && !$isDefaultPort) {
+            $host .= ':' . $port;
+        }
+    }
+
+    $basePath = trim((string) ($siteParts['path'] ?? ''), '/');
+    $baseUrl = $scheme . '://' . $host;
+    if ($basePath !== '') {
+        $baseUrl .= '/' . $basePath;
+    }
+
+    if ($path === '') {
+        return $baseUrl;
+    }
+
+    return rtrim($baseUrl, '/') . '/' . ltrim($path, '/');
+}
+
+/**
  * Liefert die Basis-URL des Asset-Verzeichnisses oder einen Asset-Unterpfad.
  */
 function cms_assets_url(string $path = ''): string {
-    $baseUrl = defined('ASSETS_URL')
-        ? (string) ASSETS_URL
-        : rtrim((defined('SITE_URL') ? (string) SITE_URL : ''), '/') . '/assets';
+    $baseUrl = cms_runtime_base_url('assets');
 
     $baseUrl = rtrim(str_replace('\\', '/', $baseUrl), '/');
 
@@ -1264,7 +1387,7 @@ function add_query_arg($key, $value = false, $url = false): string {
  * Admin URL
  */
 function admin_url(string $path = ''): string {
-    return SITE_URL . '/admin/' . ltrim($path, '/');
+    return cms_runtime_base_url('admin/' . ltrim($path, '/'));
 }
 
 
@@ -1687,14 +1810,14 @@ if ( ! function_exists('wp_dequeue_script') ) {
 
 if ( ! function_exists('get_site_url') ) {
     function get_site_url( ?int $blog_id = null, string $path = '', string $scheme = '' ): string {
-        $url = defined('SITE_URL') ? SITE_URL : '';
+        $url = cms_runtime_base_url();
         return $path ? rtrim( $url, '/' ) . '/' . ltrim( $path, '/' ) : $url;
     }
 }
 
 if ( ! function_exists('home_url') ) {
     function home_url( string $path = '', string $scheme = '' ): string {
-        $url = defined('SITE_URL') ? SITE_URL : '';
+        $url = cms_runtime_base_url();
         return $path ? rtrim( $url, '/' ) . '/' . ltrim( $path, '/' ) : $url;
     }
 }
@@ -1707,7 +1830,7 @@ if ( ! function_exists('site_url') ) {
 
 if ( ! function_exists('plugins_url') ) {
     function plugins_url( string $path = '', string $plugin = '' ): string {
-        $base = defined('SITE_URL') ? SITE_URL . '/plugins' : '/plugins';
+        $base = cms_runtime_base_url('plugins');
         return $path ? rtrim( $base, '/' ) . '/' . ltrim( $path, '/' ) : $base;
     }
 }

@@ -10,19 +10,81 @@ function meridian_get_categories(int $limit = 0): array
     try {
         $db = \CMS\Database::instance();
         $prefix = $db->getPrefix();
-        $sql = "SELECT id, name, slug,
-                       (SELECT COUNT(*) FROM {$prefix}posts p WHERE p.category_id = c.id AND p.status = 'published') AS post_count
-                FROM {$prefix}post_categories c ORDER BY c.sort_order ASC, c.name ASC";
+        $categories = $db->get_results(
+            "SELECT c.id, c.name, c.slug, c.parent_id, c.sort_order,
+                    (SELECT COUNT(*) FROM {$prefix}posts p WHERE p.category_id = c.id AND p.status = 'published') AS post_count_direct
+             FROM {$prefix}post_categories c
+             ORDER BY c.sort_order ASC, c.name ASC"
+        );
+
+        $rows = $categories ? array_map(static fn($category): array => (array) $category, $categories) : [];
+        $ordered = meridian_build_category_tree_rows($rows);
+
         if ($limit > 0) {
-            $sql .= ' LIMIT ' . $limit;
+            $ordered = array_slice($ordered, 0, $limit);
         }
 
-        $categories = $db->get_results($sql);
-
-        return $categories ? array_map(static fn($category): array => (array)$category, $categories) : [];
+        return $ordered;
     } catch (\Throwable $e) {
         return [];
     }
+}
+
+/**
+ * @param array<int,array<string,mixed>> $rows
+ * @return array<int,array<string,mixed>>
+ */
+function meridian_build_category_tree_rows(array $rows): array
+{
+    $byId = [];
+    foreach ($rows as $row) {
+        $id = (int) ($row['id'] ?? 0);
+        if ($id <= 0) {
+            continue;
+        }
+
+        $row['id'] = $id;
+        $row['parent_id'] = (int) ($row['parent_id'] ?? 0);
+        $row['post_count_direct'] = (int) ($row['post_count_direct'] ?? $row['post_count'] ?? 0);
+        $byId[$id] = $row;
+    }
+
+    $byParent = [];
+    foreach ($byId as $id => $row) {
+        $parentId = (int) ($row['parent_id'] ?? 0);
+        if ($parentId > 0 && !isset($byId[$parentId])) {
+            $parentId = 0;
+        }
+        $byParent[$parentId][] = $id;
+    }
+
+    $flat = [];
+    $walker = function (int $parentId, int $depth) use (&$walker, &$flat, $byParent, $byId): int {
+        $branchTotal = 0;
+
+        foreach ($byParent[$parentId] ?? [] as $categoryId) {
+            if (!isset($byId[$categoryId])) {
+                continue;
+            }
+
+            $row = $byId[$categoryId];
+            $row['depth'] = $depth;
+            $row['name_plain'] = (string) ($row['name'] ?? '');
+            $row['name'] = str_repeat('— ', $depth) . (string) ($row['name'] ?? '');
+            $index = count($flat);
+            $flat[] = $row;
+            $childrenTotal = $walker($categoryId, $depth + 1);
+            $row['post_count'] = (int) ($row['post_count_direct'] ?? 0) + $childrenTotal;
+            $flat[$index] = $row;
+            $branchTotal += (int) $row['post_count'];
+        }
+
+        return $branchTotal;
+    };
+
+    $walker(0, 0);
+
+    return $flat;
 }
 
 function meridian_get_tags(int $limit = 30): array
@@ -174,12 +236,41 @@ function meridian_get_category_post_count(int $categoryId): int
     try {
         $db = \CMS\Database::instance();
         $prefix = $db->getPrefix();
+        $categories = $db->get_results(
+            "SELECT id, parent_id FROM {$prefix}post_categories",
+            []
+        ) ?: [];
+
+        $byParent = [];
+        foreach ($categories as $category) {
+            $byParent[(int) ($category->parent_id ?? 0)][] = (int) ($category->id ?? 0);
+        }
+
+        $categoryIds = [];
+        $walker = function (int $currentId) use (&$walker, &$categoryIds, $byParent): void {
+            if ($currentId <= 0 || isset($categoryIds[$currentId])) {
+                return;
+            }
+
+            $categoryIds[$currentId] = true;
+            foreach ($byParent[$currentId] ?? [] as $childId) {
+                $walker((int) $childId);
+            }
+        };
+
+        $walker($categoryId);
+        if ($categoryIds === []) {
+            return 0;
+        }
+
+        $ids = array_map('intval', array_keys($categoryIds));
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
         $row = $db->execute(
-            "SELECT COUNT(*) AS cnt FROM {$prefix}posts WHERE category_id = ? AND status = 'published'",
-            [$categoryId]
+            "SELECT COUNT(*) AS cnt FROM {$prefix}posts WHERE category_id IN ({$placeholders}) AND status = 'published'",
+            $ids
         )->fetch();
 
-        return $row ? (int)$row->cnt : 0;
+        return $row ? (int) $row->cnt : 0;
     } catch (\Throwable $e) {
         return 0;
     }

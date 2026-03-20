@@ -3,8 +3,9 @@
  * Content Localization Service
  *
  * Verwaltet sprachspezifische Content-Varianten für Seiten, Beiträge und Hub-Sites.
- * Die Standardsprache bleibt Deutsch; zusätzliche Sprachvarianten werden suffix-basiert
- * über Felder wie `title_en` bzw. `content_en` gespeichert.
+ * Die Standardsprache bleibt Deutsch; zusätzliche Sprachvarianten werden über
+ * Felder wie `title_en` bzw. `content_en` gespeichert und über Prefix-Pfade
+ * wie `/en/...` ausgeliefert.
  *
  * @package CMSv2\Core\Services
  */
@@ -97,7 +98,7 @@ final class ContentLocalizationService
             return '/' . $locale;
         }
 
-        return rtrim($basePath, '/') . '/' . $locale;
+        return '/' . $locale . $basePath;
     }
 
     /**
@@ -115,17 +116,30 @@ final class ContentLocalizationService
         ];
 
         foreach ($this->getContentLocales() as $locale) {
-            $needle = '/' . $locale;
-            if (!str_ends_with($uri, $needle)) {
+            $prefix = '/' . $locale;
+            if ($uri === $prefix || str_starts_with($uri, $prefix . '/')) {
+                $baseUri = substr($uri, strlen($prefix));
+                if ($baseUri === false || $baseUri === '' || $baseUri === '/') {
+                    $baseUri = '/';
+                }
+
+                $context['base_uri'] = $this->normalizePath($baseUri);
+                $context['locale'] = $locale;
+                $context['is_localized'] = true;
+                break;
+            }
+
+            $suffix = '/' . $locale;
+            if (!str_ends_with($uri, $suffix)) {
                 continue;
             }
 
-            $baseUri = substr($uri, 0, -strlen($needle));
+            $baseUri = substr($uri, 0, -strlen($suffix));
             if ($baseUri === false || $baseUri === '' || $baseUri === '/') {
                 $baseUri = '/';
             }
 
-            $context['base_uri'] = $baseUri;
+            $context['base_uri'] = $this->normalizePath($baseUri);
             $context['locale'] = $locale;
             $context['is_localized'] = true;
             break;
@@ -143,6 +157,20 @@ final class ContentLocalizationService
     public function localizePost(array $post, string $locale): array
     {
         return $this->localizeArrayPayload($post, ['title', 'content', 'excerpt', 'meta_title', 'meta_description'], $locale, 'post');
+    }
+
+    public function resolveLocalizedSlug(array $payload, string $locale): string
+    {
+        $locale = $this->normalizeLocale($locale);
+        if ($locale !== '' && $locale !== 'de') {
+            $localizedKey = 'slug_' . $locale;
+            $localizedSlug = trim((string) ($payload[$localizedKey] ?? ''));
+            if ($localizedSlug !== '') {
+                return $localizedSlug;
+            }
+        }
+
+        return trim((string) ($payload['slug'] ?? ''));
     }
 
     public function localizeHubSettings(array $settings, string $locale, array $context = []): array
