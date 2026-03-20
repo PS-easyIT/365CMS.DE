@@ -31,12 +31,6 @@ $pageDefaultStatus = function_exists('get_option') ? (string)get_option('setting
 if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
     $pageDefaultStatus = 'draft';
 }
-$pageHasBaseTitle = trim((string)($page->title ?? '')) !== '';
-$pageHasBaseContent = trim(strip_tags((string)($page->content ?? ''))) !== '';
-$pageHasEnTitle = trim((string)($page->title_en ?? '')) !== '';
-$pageHasEnContent = trim(strip_tags((string)($page->content_en ?? ''))) !== '';
-$isEnglishOnlyPage = !$isNew && !$pageHasBaseTitle && !$pageHasBaseContent && ($pageHasEnTitle || $pageHasEnContent);
-$pageDefaultLanguage = $isEnglishOnlyPage ? 'en' : 'de';
 ?>
 
 <!-- Page Header -->
@@ -111,13 +105,10 @@ $pageDefaultLanguage = $isEnglishOnlyPage ? 'en' : 'de';
                         <div class="card-body">
                             <div class="row g-3 align-items-end mb-3">
                                 <div class="col-md-8">
-                                     <label class="form-label<?= $isEnglishOnlyPage ? '' : ' required' ?>" for="pageTitle">Titel</label>
+                                     <label class="form-label required" for="pageTitle">Titel</label>
                                      <input type="text" name="title" id="pageTitle" class="form-control form-control-lg"
                                            placeholder="Seitentitel"
-                                         value="<?= htmlspecialchars($pageTitleValue) ?>"<?= $isEnglishOnlyPage ? '' : ' required' ?>>
-                                     <?php if ($isEnglishOnlyPage): ?>
-                                         <div class="form-hint text-azure mt-1">EN-only Seite erkannt: Titel und Inhalt liegen im Tab <strong>English</strong>. Das deutsche Basisfeld darf leer bleiben.</div>
-                                     <?php endif; ?>
+                                           value="<?= htmlspecialchars($pageTitleValue) ?>" required>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label d-block">&nbsp;</label>
@@ -215,12 +206,12 @@ $pageDefaultLanguage = $isEnglishOnlyPage ? 'en' : 'de';
                         <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
                             <h3 class="card-title">Inhalt</h3>
                             <div class="btn-group" role="group" aria-label="Inhaltssprache wählen">
-                                <button class="btn <?= $pageDefaultLanguage === 'de' ? 'btn-primary' : 'btn-outline-primary' ?>" type="button" id="pageLangToggleDe" data-lang-toggle="de" aria-pressed="<?= $pageDefaultLanguage === 'de' ? 'true' : 'false' ?>">Deutsch</button>
-                                <button class="btn <?= $pageDefaultLanguage === 'en' ? 'btn-primary' : 'btn-outline-primary' ?>" type="button" id="pageLangToggleEn" data-lang-toggle="en" aria-pressed="<?= $pageDefaultLanguage === 'en' ? 'true' : 'false' ?>">English</button>
+                                <button class="btn btn-primary" type="button" id="pageLangToggleDe" data-lang-toggle="de" aria-pressed="true">Deutsch</button>
+                                <button class="btn btn-outline-primary" type="button" id="pageLangToggleEn" data-lang-toggle="en" aria-pressed="false">English</button>
                             </div>
                         </div>
                         <div class="card-body">
-                            <div id="pageLanguagePaneDe" data-page-lang-pane="de" class="<?= $pageDefaultLanguage === 'de' ? '' : 'd-none' ?>">
+                            <div id="pageLanguagePaneDe" data-page-lang-pane="de">
                                 <div class="mb-3">
                                     <div class="text-secondary small mb-2">Standardansicht unter <code><?= htmlspecialchars($pagePreviewUrl) ?></code></div>
                                 </div>
@@ -240,7 +231,7 @@ $pageDefaultLanguage = $isEnglishOnlyPage ? 'en' : 'de';
                                     ]) ?>
                                 <?php endif; ?>
                             </div>
-                            <div id="pageLanguagePaneEn" data-page-lang-pane="en" class="<?= $pageDefaultLanguage === 'en' ? '' : 'd-none' ?>">
+                            <div id="pageLanguagePaneEn" data-page-lang-pane="en" class="d-none">
                                 <div class="mb-3">
                                     <label class="form-label" for="pageTitleEn">Englischer Titel</label>
                                     <input type="text" name="title_en" id="pageTitleEn" class="form-control" value="<?= htmlspecialchars($pageTitleEnValue) ?>" placeholder="English page title">
@@ -455,7 +446,7 @@ $pageDefaultLanguage = $isEnglishOnlyPage ? 'en' : 'de';
             'languagePaneSelector' => '[data-page-lang-pane]',
             'languageAttribute' => 'data-lang-toggle',
             'languagePaneAttribute' => 'data-page-lang-pane',
-            'defaultLanguage' => $pageDefaultLanguage,
+            'defaultLanguage' => 'de',
             'countBindings' => [
                 ['sourceId' => 'pageTitle', 'targetId' => 'pageTitleCount'],
                 ['sourceId' => 'pageSlug', 'targetId' => 'pageSlugCount'],

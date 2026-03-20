@@ -264,9 +264,7 @@ class PagesModule
         $featuredImageTempPath = trim($post['featured_image_temp_path'] ?? '');
         $metaTitle  = trim($post['meta_title'] ?? '');
         $metaDesc   = trim($post['meta_description'] ?? '');
-        $primaryTitleForSlug = $title !== '' ? $title : $titleEn;
-        $slugSource = $slug !== '' ? $slug : $this->pageManager->generateSlug($primaryTitleForSlug);
-        $slug       = $this->normalizeSlug($slugSource);
+        $slug       = $this->normalizeSlug($slug !== '' ? $slug : $this->pageManager->generateSlug($title));
 
         // Move temp upload to slug subfolder (pages/{slug}/{filename})
         if ($featuredImageTempPath !== '' && str_contains($featuredImageTempPath, '/temp/')) {
@@ -281,8 +279,8 @@ class PagesModule
             }
         }
 
-        if ($title === '' && $titleEn === '') {
-            return ['success' => false, 'error' => 'Mindestens ein Titel (DE oder EN) muss angegeben sein.'];
+        if ($title === '') {
+            return ['success' => false, 'error' => 'Titel darf nicht leer sein.'];
         }
 
         if ($slug === '') {

@@ -169,12 +169,33 @@ if ($viewAction === 'edit') {
                     {
                         id: 'title',
                         name: 'Titel',
-                        data: function(row){ return { id: row.id, title: row.title, slug: row.slug }; },
+                        data: function(row){
+                            return {
+                                id: row.id,
+                                title: row.title,
+                                title_en: row.title_en,
+                                display_title: row.display_title,
+                                slug: row.slug,
+                                slug_en: row.slug_en,
+                                display_slug: row.display_slug,
+                                is_english_only: !!row.is_english_only
+                            };
+                        },
                         formatter: function(cell){
+                            var title = cell.display_title || cell.title || cell.title_en || 'Ohne Titel';
+                            var baseSlug = cell.display_slug || cell.slug || cell.slug_en || '';
+                            var slugLine = baseSlug !== '' ? '/blog/' + window.cmsEsc(baseSlug) : '—';
+                            var localeBadge = cell.is_english_only
+                                ? '<span class=\"badge bg-blue-lt ms-2\">EN only</span>'
+                                : (cell.title_en ? '<span class=\"badge bg-secondary-lt ms-2\">EN</span>' : '');
+                            var englishSlugLine = cell.slug_en && cell.slug_en !== cell.slug
+                                ? '<div class=\"text-secondary small\">/en/blog/' + window.cmsEsc(cell.slug_en) + '</div>'
+                                : '';
                             return gridjs.html(
                                 '<div>' +
-                                    '<a href=\"' + %s + '/admin/posts?action=edit&id=' + encodeURIComponent(cell.id) + '\" class=\"text-reset\">' + window.cmsEsc(cell.title || '') + '</a>' +
-                                    '<div class=\"text-secondary small\">/blog/' + window.cmsEsc(cell.slug || '') + '</div>' +
+                                    '<a href=\"' + %s + '/admin/posts?action=edit&id=' + encodeURIComponent(cell.id) + '\" class=\"text-reset\">' + window.cmsEsc(title) + '</a>' + localeBadge +
+                                    '<div class=\"text-secondary small\">' + slugLine + '</div>' +
+                                    englishSlugLine +
                                 '</div>'
                             );
                         }

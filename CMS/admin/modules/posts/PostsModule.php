@@ -379,9 +379,9 @@ class PostsModule
     public function save(array $post, int $userId): array
     {
         $id         = (int)($post['id'] ?? 0);
-        $title      = trim($post['title'] ?? '');
-        $slug       = trim($post['slug'] ?? '');
-        $slugEn     = trim($post['slug_en'] ?? '');
+        $title      = trim((string)($post['title'] ?? ''));
+        $slug       = trim((string)($post['slug'] ?? ''));
+        $slugEn     = trim((string)($post['slug_en'] ?? ''));
         $defaultStatus = function_exists('get_option') ? (string)get_option('setting_post_default_status', 'draft') : 'draft';
         if (!in_array($defaultStatus, ['published', 'draft'], true)) {
             $defaultStatus = 'draft';
@@ -389,10 +389,10 @@ class PostsModule
 
         $status     = in_array($post['status'] ?? '', ['published', 'draft'], true) ? $post['status'] : $defaultStatus;
         $content    = $post['content'] ?? '';
-        $titleEn    = trim($post['title_en'] ?? '');
+        $titleEn    = trim((string)($post['title_en'] ?? ''));
         $contentEn  = $post['content_en'] ?? '';
-        $excerpt    = trim($post['excerpt'] ?? '');
-        $excerptEn  = trim($post['excerpt_en'] ?? '');
+        $excerpt    = trim((string)($post['excerpt'] ?? ''));
+        $excerptEn  = trim((string)($post['excerpt_en'] ?? ''));
         $categoryId = (int)($post['category_id'] ?? 0);
         $assignedCategoryIds = $this->normalizeSelectedCategoryIds($categoryId, $post['additional_category_ids'] ?? []);
         if ($categoryId <= 0 && $assignedCategoryIds !== []) {
@@ -404,10 +404,13 @@ class PostsModule
         $metaDesc   = trim($post['meta_description'] ?? '');
         $authorDisplayName = $this->sanitizeAuthorDisplayName((string)($post['author_display_name'] ?? ''));
         $rawTags    = $post['tags'] ?? '';
-        $primaryTitleForSlug = $title !== '' ? $title : $titleEn;
-        $slugSource = $slug !== '' ? $slug : ($slugEn !== '' ? $slugEn : $this->generateSlug($primaryTitleForSlug));
-        $slug       = $this->normalizeSlug($slugSource);
         $slugEn     = $this->normalizeSlug($slugEn);
+        $slugSource = $slug !== ''
+            ? $slug
+            : ($slugEn !== ''
+                ? $slugEn
+                : $this->generateSlug($title !== '' ? $title : $titleEn));
+        $slug       = $this->normalizeSlug($slugSource);
         $legacyTags = $this->serializeTagsForLegacyColumn($rawTags);
 
         // Move temp upload to slug subfolder (articles/{slug}/{filename})
@@ -424,7 +427,7 @@ class PostsModule
         }
 
         if ($title === '' && $titleEn === '') {
-            return ['success' => false, 'error' => 'Mindestens ein Titel (DE oder EN) muss angegeben sein.'];
+            return ['success' => false, 'error' => 'Bitte mindestens einen deutschen oder englischen Titel angeben.'];
         }
 
         if ($slug === '') {

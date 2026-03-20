@@ -60,12 +60,15 @@ $schemaType = htmlspecialchars((string)($seoMeta['schema_type'] ?? 'Article'));
 $sitemapPriority = htmlspecialchars((string)($seoMeta['sitemap_priority'] ?? ''));
 $sitemapChangefreq = htmlspecialchars((string)($seoMeta['sitemap_changefreq'] ?? 'monthly'));
 $hreflangGroup = htmlspecialchars((string)($seoMeta['hreflang_group'] ?? ''));
-$postHasBaseTitle = trim((string)($post['title'] ?? '')) !== '';
-$postHasBaseContent = trim(strip_tags((string)($post['content'] ?? ''))) !== '';
-$postHasEnTitle = trim((string)($post['title_en'] ?? '')) !== '';
-$postHasEnContent = trim(strip_tags((string)($post['content_en'] ?? ''))) !== '';
-$isEnglishOnlyPost = !$isNew && !$postHasBaseTitle && !$postHasBaseContent && ($postHasEnTitle || $postHasEnContent);
-$postDefaultLanguage = $isEnglishOnlyPost ? 'en' : 'de';
+$hasGermanVariant = trim((string)($post['title'] ?? '')) !== ''
+    || trim((string)($post['content'] ?? '')) !== ''
+    || trim((string)($post['excerpt'] ?? '')) !== '';
+$hasEnglishVariant = trim((string)($post['title_en'] ?? '')) !== ''
+    || trim((string)($post['content_en'] ?? '')) !== ''
+    || trim((string)($post['excerpt_en'] ?? '')) !== ''
+    || trim((string)($post['slug_en'] ?? '')) !== '';
+$isEnglishOnlyPost = !$hasGermanVariant && $hasEnglishVariant;
+$defaultContentLanguage = $isEnglishOnlyPost ? 'en' : 'de';
 ?>
 
 <div class="page-header d-print-none">
@@ -132,14 +135,14 @@ $postDefaultLanguage = $isEnglishOnlyPost ? 'en' : 'de';
                     <div class="card cms-edit-card cms-edit-top-card h-100 w-100">
                         <div class="card-body">
                             <div class="mb-3">
-                                <label class="form-label<?php echo $isEnglishOnlyPost ? '' : ' required'; ?>" for="title">Titel</label>
-                                <input type="text" class="form-control" id="title" name="title" value="<?php echo htmlspecialchars($postTitleValue); ?>"<?php echo $isEnglishOnlyPost ? '' : ' required'; ?>>
+                                <label class="form-label <?php echo $isEnglishOnlyPost ? '' : 'required'; ?>" for="title"><?php echo $isEnglishOnlyPost ? 'Deutscher Titel' : 'Titel'; ?></label>
+                                <input type="text" class="form-control" id="title" name="title" value="<?php echo htmlspecialchars($postTitleValue); ?>" <?php echo $isEnglishOnlyPost ? 'placeholder="Optional, falls du zusätzlich eine deutsche Variante pflegen möchtest"' : 'required'; ?>>
                                 <?php if ($isEnglishOnlyPost): ?>
-                                    <div class="form-hint text-azure mt-1">EN-only Beitrag erkannt: Titel und Inhalt liegen im Tab <strong>English</strong>. Das deutsche Basisfeld darf leer bleiben.</div>
+                                <div class="form-hint">Dieser Beitrag enthält aktuell nur englische Inhalte. Die Bearbeitung startet deshalb direkt in der EN-Ansicht; deutsche Felder bleiben optional.</div>
                                 <?php endif; ?>
                             </div>
                             <div class="mb-0">
-                                <label class="form-label" for="slug">Slug</label>
+                                <label class="form-label" for="slug"><?php echo $isEnglishOnlyPost ? 'Standard-Slug' : 'Slug'; ?></label>
                                 <input type="text" class="form-control" id="slug" name="slug" value="<?php echo htmlspecialchars($postSlugValue); ?>" placeholder="wird automatisch generiert">
                                 <div class="form-hint">Aktive Struktur: <code><?php echo htmlspecialchars($postPermalinkHint); ?></code></div>
                             </div>
@@ -241,12 +244,12 @@ $postDefaultLanguage = $isEnglishOnlyPost ? 'en' : 'de';
                         <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
                             <h3 class="card-title">Inhalt</h3>
                             <div class="btn-group" role="group" aria-label="Inhaltssprache wählen">
-                                <button class="btn <?php echo $postDefaultLanguage === 'de' ? 'btn-primary' : 'btn-outline-primary'; ?>" type="button" id="postLangToggleDe" data-post-lang-toggle="de" aria-pressed="<?php echo $postDefaultLanguage === 'de' ? 'true' : 'false'; ?>">Deutsch</button>
-                                <button class="btn <?php echo $postDefaultLanguage === 'en' ? 'btn-primary' : 'btn-outline-primary'; ?>" type="button" id="postLangToggleEn" data-post-lang-toggle="en" aria-pressed="<?php echo $postDefaultLanguage === 'en' ? 'true' : 'false'; ?>">English</button>
+                                <button class="btn btn-primary" type="button" id="postLangToggleDe" data-post-lang-toggle="de" aria-pressed="true">Deutsch</button>
+                                <button class="btn btn-outline-primary" type="button" id="postLangToggleEn" data-post-lang-toggle="en" aria-pressed="false">English</button>
                             </div>
                         </div>
                         <div class="card-body">
-                            <div id="postLanguagePaneDe" data-post-lang-pane="de" class="<?php echo $postDefaultLanguage === 'de' ? '' : 'd-none'; ?>">
+                            <div id="postLanguagePaneDe" data-post-lang-pane="de">
                                 <div class="mb-3 text-secondary small">Standardansicht unter <code><?php echo htmlspecialchars($postPreviewUrl); ?></code></div>
                                 <?php if (!empty($useEditorJs)): ?>
                                 <div class="editorjs-wrap editorjs-wrap--post cms-editor-live-wrap"
@@ -264,7 +267,7 @@ $postDefaultLanguage = $isEnglishOnlyPost ? 'en' : 'de';
                                     ]); ?>
                                 <?php endif; ?>
                             </div>
-                            <div id="postLanguagePaneEn" data-post-lang-pane="en" class="<?php echo $postDefaultLanguage === 'en' ? '' : 'd-none'; ?>">
+                            <div id="postLanguagePaneEn" data-post-lang-pane="en" class="d-none">
                                 <div class="row g-3 mb-3">
                                     <div class="col-lg-7">
                                         <label class="form-label" for="titleEn">Englischer Titel</label>
@@ -518,7 +521,7 @@ $postDefaultLanguage = $isEnglishOnlyPost ? 'en' : 'de';
             'languagePaneSelector' => '[data-post-lang-pane]',
             'languageAttribute' => 'data-post-lang-toggle',
             'languagePaneAttribute' => 'data-post-lang-pane',
-            'defaultLanguage' => $postDefaultLanguage,
+            'defaultLanguage' => $defaultContentLanguage,
             'countBindings' => [
                 ['sourceId' => 'title', 'targetId' => 'postTitleCount'],
                 ['sourceId' => 'slug', 'targetId' => 'postSlugCount'],
@@ -585,7 +588,7 @@ $postDefaultLanguage = $isEnglishOnlyPost ? 'en' : 'de';
             'csrfToken' => $editorMediaToken ?? '',
             'editors' => [
                 ['key' => 'de', 'holderId' => 'editorjs', 'inputId' => 'contentInput', 'lazy' => false],
-                ['key' => 'en', 'holderId' => 'editorjsEn', 'inputId' => 'contentInputEn', 'lazy' => true, 'activateButtonId' => 'postLangToggleEn'],
+                ['key' => 'en', 'holderId' => 'editorjsEn', 'inputId' => 'contentInputEn', 'lazy' => $defaultContentLanguage !== 'en', 'activateButtonId' => 'postLangToggleEn'],
             ],
         ] : null;
         ?>

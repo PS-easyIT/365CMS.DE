@@ -192,7 +192,9 @@ final class ApiRouter
             $params[] = $status;
         }
         if ($search !== '') {
-            $where[] = '(p.title LIKE ? OR p.slug LIKE ?)';
+            $where[] = '(p.title LIKE ? OR p.title_en LIKE ? OR p.slug LIKE ? OR p.slug_en LIKE ?)';
+            $params[] = "%{$search}%";
+            $params[] = "%{$search}%";
             $params[] = "%{$search}%";
             $params[] = "%{$search}%";
         }
@@ -209,7 +211,7 @@ final class ApiRouter
 
         $total = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}posts p {$whereStr}", $params);
         $rows = $db->get_results(
-                "SELECT p.id, p.title, p.slug, p.status, p.views, p.featured_image,
+                "SELECT p.id, p.title, p.title_en, p.slug, p.slug_en, p.status, p.views, p.featured_image,
                     p.published_at, p.updated_at, p.created_at,
                     COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name,
                     u.role AS author_role,
@@ -217,7 +219,20 @@ final class ApiRouter
                     CASE
                         WHEN p.status = 'draft' AND COALESCE(u.role, 'member') <> 'admin' THEN 1
                         ELSE 0
-                    END AS is_member_submission
+                    END AS is_member_submission,
+                    CASE
+                        WHEN CHAR_LENGTH(TRIM(COALESCE(p.title, ''))) = 0
+                             AND CHAR_LENGTH(TRIM(COALESCE(p.content, ''))) = 0
+                             AND CHAR_LENGTH(TRIM(COALESCE(p.excerpt, ''))) = 0
+                             AND (
+                                 CHAR_LENGTH(TRIM(COALESCE(p.title_en, ''))) > 0
+                                 OR CHAR_LENGTH(TRIM(COALESCE(p.content_en, ''))) > 0
+                                 OR CHAR_LENGTH(TRIM(COALESCE(p.excerpt_en, ''))) > 0
+                                 OR CHAR_LENGTH(TRIM(COALESCE(p.slug_en, ''))) > 0
+                             )
+                        THEN 1
+                        ELSE 0
+                    END AS is_english_only
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}users u ON u.id = p.author_id
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
@@ -230,6 +245,13 @@ final class ApiRouter
         $rows = array_map(static function (object $row): object {
             $row->is_member_submission = !empty($row->is_member_submission);
             $row->submission_hint = $row->is_member_submission ? 'Member-Einreichung' : '';
+            $row->is_english_only = !empty($row->is_english_only);
+            $row->display_title = trim((string)($row->title ?? '')) !== ''
+                ? (string)$row->title
+                : (string)($row->title_en ?? '');
+            $row->display_slug = trim((string)($row->slug ?? '')) !== ''
+                ? (string)$row->slug
+                : (string)($row->slug_en ?? '');
 
             return $row;
         }, $rows);
