@@ -19,6 +19,7 @@ $avatar = $controller->getAvatarUrl();
 $memberMenu = $controller->getMenuItems($pageKey);
 $canAccessAdminPortal = $controller->canAccessAdminPortal();
 $adminPortalUrl = $controller->getAdminPortalUrl();
+$showAdminHeaderLink = \CMS\Auth::isAdmin();
 ?>
 <!doctype html>
 <html lang="de">
@@ -106,6 +107,11 @@ $adminPortalUrl = $controller->getAdminPortalUrl();
                         <div class="page-pretitle">Member Area</div>
                         <h2 class="page-title mb-0"><?= htmlspecialchars($pageTitle) ?></h2>
                     </div>
+                    <?php if ($showAdminHeaderLink): ?>
+                        <a href="<?= htmlspecialchars($siteUrl . $adminPortalUrl, ENT_QUOTES) ?>" class="btn btn-outline-primary btn-sm">
+                            ⚙️ Admin
+                        </a>
+                    <?php endif; ?>
                 </div>
             </div>
         </header>
