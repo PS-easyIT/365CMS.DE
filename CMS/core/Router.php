@@ -568,6 +568,8 @@ class Router
             );
         }
 
+        $prepared = (string) Hooks::applyFilters('content_render', $prepared, $type, $id);
+
         return $prepared;
     }
 
