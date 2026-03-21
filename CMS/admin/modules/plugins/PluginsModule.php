@@ -42,6 +42,7 @@ class PluginsModule
                 $info['slug']   = $slug;
                 $info['path']   = $item->getPathname();
                 $info['active'] = $this->isActive($slug);
+                $info['protected'] = $this->isProtectedPlugin($slug);
 
                 // update.json lesen
                 $updateFile = $pluginsDir . $slug . '/update.json';
@@ -147,6 +148,9 @@ class PluginsModule
     {
         $slug = preg_replace('/[^a-z0-9_-]/', '', strtolower($slug));
         if ($slug === '') return ['success' => false, 'error' => 'Ungültiger Plugin-Slug.'];
+        if ($this->isProtectedPlugin($slug)) {
+            return ['success' => false, 'error' => 'Das mitgelieferte Kern-Plugin „cms-importer“ kann nicht gelöscht werden.'];
+        }
         if ($this->isActive($slug)) {
             return ['success' => false, 'error' => 'Plugin muss zuerst deaktiviert werden.'];
         }
@@ -232,5 +236,14 @@ class PluginsModule
         if (!rmdir($dir)) {
             throw new \RuntimeException('Plugin-Verzeichnis konnte nicht gelöscht werden: ' . $dir);
         }
+    }
+
+    private function isProtectedPlugin(string $slug): bool
+    {
+        if (!class_exists('\CMS\PluginManager')) {
+            return $slug === 'cms-importer';
+        }
+
+        return \CMS\PluginManager::instance()->isProtectedPlugin($slug);
     }
 }

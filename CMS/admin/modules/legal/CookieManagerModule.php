@@ -33,7 +33,6 @@ class CookieManagerModule
         'youtube' => ['name' => 'YouTube', 'provider' => 'Google', 'category_slug' => 'external_media', 'description' => 'Eingebettete YouTube-Videos.', 'patterns' => ['youtube.com/embed', 'youtu.be/', 'youtube-nocookie.com']],
         'vimeo' => ['name' => 'Vimeo', 'provider' => 'Vimeo', 'category_slug' => 'external_media', 'description' => 'Eingebettete Vimeo-Videos.', 'patterns' => ['player.vimeo.com', 'vimeo.com']],
         'google_maps' => ['name' => 'Google Maps', 'provider' => 'Google', 'category_slug' => 'external_media', 'description' => 'Karten und Standort-Einbindungen.', 'patterns' => ['maps.googleapis.com', 'www.google.com/maps/embed', 'google.com/maps/embed']],
-        'cms_feed' => ['name' => 'CMS Feed', 'provider' => '365CMS', 'category_slug' => 'external_media', 'description' => 'Öffentliche Feed-Archive und externe Feed-Daten für den Bereich CMS Feed.', 'patterns' => ['cms-feed', '/feed/', 'CMS_Feed']],
         'hubspot' => ['name' => 'HubSpot', 'provider' => 'HubSpot', 'category_slug' => 'marketing', 'description' => 'CRM-, Form- und Marketing-Automation.', 'patterns' => ['js.hs-scripts.com', 'hs-script-loader']],
         'cms_core' => ['name' => '365CMS Kernfunktionen', 'provider' => '365CMS', 'category_slug' => 'necessary', 'description' => 'Session-, Login-, Sicherheits- und Formularfunktionen.', 'patterns' => ['csrf_token', 'PHPSESSID'], 'is_essential' => true],
     ];
@@ -45,6 +44,7 @@ class CookieManagerModule
         $this->ensureTables();
         $this->ensureDefaultCategories();
         $this->ensureManagedDefaultServices();
+        $this->cleanupDeprecatedManagedServices();
     }
 
     private function ensureTables(): void
@@ -109,7 +109,7 @@ class CookieManagerModule
 
     private function ensureManagedDefaultServices(): void
     {
-        foreach (['cms_core', 'cms_feed'] as $slug) {
+        foreach (['cms_core'] as $slug) {
             if (!isset(self::CURATED_SERVICES[$slug])) {
                 continue;
             }
@@ -148,6 +148,30 @@ class CookieManagerModule
                 'is_active' => 1,
             ]);
         }
+    }
+
+    private function cleanupDeprecatedManagedServices(): void
+    {
+        $service = $this->db->get_row(
+            "SELECT id, name, provider, category_slug, cookie_names, code_snippet FROM {$this->prefix}cookie_services WHERE slug = ? LIMIT 1",
+            ['cms_feed']
+        );
+
+        if ($service === null) {
+            return;
+        }
+
+        $matchesLegacyManagedEntry = (string)($service->name ?? '') === 'CMS Feed'
+            && (string)($service->provider ?? '') === '365CMS'
+            && (string)($service->category_slug ?? '') === 'external_media'
+            && trim((string)($service->cookie_names ?? '')) === ''
+            && trim((string)($service->code_snippet ?? '')) === '';
+
+        if (!$matchesLegacyManagedEntry) {
+            return;
+        }
+
+        $this->db->delete('cookie_services', ['id' => (int)($service->id ?? 0)]);
     }
 
     public function getData(): array

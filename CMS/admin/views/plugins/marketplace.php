@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
                 <div class="text-secondary mt-1">Verfügbare Plugins durchsuchen und installieren</div>
             </div>
             <div class="col-auto ms-auto">
-                <a href="plugins.php" class="btn btn-outline-primary">
+                <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/plugins" class="btn btn-outline-primary">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14"/><path d="M5 12l14 0"/></svg>
                     Installierte Plugins
                 </a>
@@ -27,10 +27,10 @@ if (!defined('ABSPATH')) {
 <div class="page-body">
     <div class="container-xl">
 
-        <?php if (!empty($flashMessage)): ?>
-            <div class="alert alert-<?php echo htmlspecialchars($flashType); ?> alert-dismissible" role="alert">
+        <?php if (!empty($alert)): ?>
+            <div class="alert alert-<?php echo htmlspecialchars((string)($alert['type'] ?? 'info')); ?> alert-dismissible" role="alert">
                 <div class="d-flex">
-                    <div><?php echo htmlspecialchars($flashMessage); ?></div>
+                    <div><?php echo htmlspecialchars((string)($alert['message'] ?? '')); ?></div>
                 </div>
                 <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
             </div>
@@ -103,7 +103,7 @@ if (!defined('ABSPATH')) {
                 <div class="col-12">
                     <div class="card">
                         <div class="card-body text-center py-5">
-                            <div class="text-secondary">Keine Plugins im Marketplace verfügbar.</div>
+                            <div class="text-secondary">Keine Plugins im Marketplace verfügbar. Hinterlege optional eine Registry-URL oder eine lokale `index.json` oberhalb von `/plugins`.</div>
                         </div>
                     </div>
                 </div>

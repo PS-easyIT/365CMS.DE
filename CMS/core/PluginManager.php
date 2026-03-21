@@ -17,6 +17,8 @@ if (!defined('ABSPATH')) {
 
 class PluginManager
 {
+    private const PROTECTED_PLUGINS = ['cms-importer'];
+
     private static ?self $instance = null;
     private array $plugins = [];
     private array $activePlugins = [];
@@ -37,6 +39,13 @@ class PluginManager
     public function isPluginActive(string $slug): bool
     {
         return in_array($slug, $this->activePlugins, true);
+    }
+
+    public function isProtectedPlugin(string $slug): bool
+    {
+        $slug = strtolower(trim($slug));
+
+        return in_array($slug, self::PROTECTED_PLUGINS, true);
     }
 
     /**
@@ -162,10 +171,21 @@ class PluginManager
             }
             $stmt->execute();
             $result = $stmt->fetch();
+            $plugins = [];
             if ($result && $result->option_value) {
-                return Json::decodeArray($result->option_value ?? null, []);
+                $plugins = Json::decodeArray($result->option_value ?? null, []);
             }
-            return [];
+
+            if (!is_array($plugins)) {
+                $plugins = [];
+            }
+
+            $plugins = array_values(array_unique(array_filter(array_map(
+                static fn($plugin): string => strtolower(trim((string) $plugin)),
+                $plugins
+            ))));
+
+            return $plugins;
         } catch (\Exception $e) {
             error_log('PluginManager::getActivePlugins() Error: ' . $e->getMessage());
             return [];
@@ -449,6 +469,10 @@ class PluginManager
      */
     public function deletePlugin(string $plugin): bool|string
     {
+        if ($this->isProtectedPlugin($plugin)) {
+            return 'Das mitgelieferte Kern-Plugin „cms-importer“ kann nicht gelöscht werden.';
+        }
+
         if (in_array($plugin, $this->activePlugins)) {
             return 'Plugin muss zuerst deaktiviert werden.';
         }

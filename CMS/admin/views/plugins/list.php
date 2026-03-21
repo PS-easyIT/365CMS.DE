@@ -103,7 +103,12 @@ require __DIR__ . '/../partials/flash-alert.php';
                     <td>
                         <div class="d-flex flex-column gap-1 align-items-start">
                             <span class="badge <?php echo $p['active'] ? 'bg-success' : 'bg-secondary'; ?>"><?php echo $p['active'] ? 'Aktiv' : 'Inaktiv'; ?></span>
+                            <?php if (!empty($p['protected'])): ?>
+                            <span class="badge bg-blue-lt text-primary">Mitgeliefert</span>
+                            <span class="text-secondary small">Mit dem CMS ausgeliefert – kann deaktiviert, aber nicht gelöscht werden.</span>
+                            <?php else: ?>
                             <span class="text-secondary small"><?php echo $p['active'] ? 'Im System geladen und einsatzbereit.' : 'Deaktiviert – kann per Schieberegler aktiviert werden.'; ?></span>
+                            <?php endif; ?>
                         </div>
                     </td>
                     <td>
@@ -116,13 +121,15 @@ require __DIR__ . '/../partials/flash-alert.php';
                                     <input class="form-check-input" type="checkbox" <?php echo $p['active'] ? 'checked' : ''; ?> onchange="this.form.submit()">
                                 </label>
                             </form>
-                            <?php if (!$p['active']): ?>
+                            <?php if (!$p['active'] && empty($p['protected'])): ?>
                                 <form method="post" class="m-0">
                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="slug" value="<?php echo htmlspecialchars($p['slug']); ?>">
                                     <button class="btn btn-ghost-danger btn-sm" onclick="return confirm('Plugin endgültig löschen?')">Löschen</button>
                                 </form>
+                            <?php elseif (!empty($p['protected'])): ?>
+                                <span class="text-muted small">Systembestandteil</span>
                             <?php endif; ?>
                         </div>
                     </td>

@@ -156,50 +156,53 @@ class PluginMarketplaceModule
 
     private function loadRegistry(): array
     {
-        // index.json aus Plugin-Repository laden
         $registryUrl = '';
         $row = $this->db->get_row(
             "SELECT option_value FROM {$this->prefix}settings WHERE option_name = 'plugin_registry_url'"
         );
         $registryUrl = $row->option_value ?? '';
 
-        // Lokale index.json als Fallback
-        $localIndex = defined('PLUGINS_PATH') ? dirname(PLUGINS_PATH) . '/index.json' : '';
-        if (empty($registryUrl) && $localIndex && file_exists($localIndex)) {
-            $json = \CMS\Json::decodeArray(file_get_contents($localIndex), []);
-            return is_array($json) ? ($json['plugins'] ?? $json) : [];
+        if ($registryUrl !== '') {
+            if ($this->isAllowedMarketplaceUrl($registryUrl)) {
+                $response = HttpClient::getInstance()->get($registryUrl, [
+                    'userAgent' => '365CMS-PluginMarketplace/1.0',
+                    'timeout' => 10,
+                    'connectTimeout' => 5,
+                    'maxBytes' => 1024 * 1024,
+                    'allowedContentTypes' => ['application/json', 'text/plain'],
+                ]);
+                $content = (string) ($response['body'] ?? '');
+
+                if (($response['success'] ?? false) === true && $content !== '') {
+                    $data = \CMS\Json::decodeArray($content, []);
+                    $plugins = is_array($data) ? ($data['plugins'] ?? $data) : [];
+
+                    return $this->sanitizeCatalogEntries(is_array($plugins) ? $plugins : []);
+                }
+            }
+
+            return [];
         }
 
-        if (empty($registryUrl)) {
-            return $this->getBuiltinCatalog();
+        $localIndex = $this->resolveLocalRegistryPath();
+        if ($localIndex === '' || !is_file($localIndex)) {
+            return [];
         }
 
-        if (!$this->isAllowedMarketplaceUrl($registryUrl)) {
-            return $this->getBuiltinCatalog();
+        $content = file_get_contents($localIndex);
+        if ($content === false || $content === '') {
+            return [];
         }
 
-        $response = HttpClient::getInstance()->get($registryUrl, [
-            'userAgent' => '365CMS-PluginMarketplace/1.0',
-            'timeout' => 10,
-            'connectTimeout' => 5,
-            'maxBytes' => 1024 * 1024,
-            'allowedContentTypes' => ['application/json', 'text/plain'],
-        ]);
-        $content = (string) ($response['body'] ?? '');
-
-        if (($response['success'] ?? false) !== true || $content === '') {
-            return $this->getBuiltinCatalog();
-        }
-
-        $data = \CMS\Json::decodeArray($content, []);
-        $plugins = is_array($data) ? ($data['plugins'] ?? $data) : [];
+        $json = \CMS\Json::decodeArray($content, []);
+        $plugins = is_array($json) ? ($json['plugins'] ?? $json) : [];
 
         return $this->sanitizeCatalogEntries(is_array($plugins) ? $plugins : []);
     }
 
     private function getInstalledSlugs(): array
     {
-        $pluginsDir = defined('PLUGINS_PATH') ? PLUGINS_PATH : (defined('ABSPATH') ? ABSPATH . 'plugins/' : '');
+        $pluginsDir = $this->resolvePluginsDir();
         $slugs = [];
         if (is_dir($pluginsDir)) {
             foreach (new \DirectoryIterator($pluginsDir) as $item) {
@@ -208,22 +211,6 @@ class PluginMarketplaceModule
             }
         }
         return $slugs;
-    }
-
-    private function getBuiltinCatalog(): array
-    {
-        return [
-            ['slug' => 'cms-contact', 'name' => 'CMS Contact', 'description' => 'Kontaktformulare & Anfragen-Verwaltung', 'version' => '1.0.0', 'author' => '365 Network', 'category' => 'Kommunikation'],
-            ['slug' => 'cms-events', 'name' => 'CMS Events', 'description' => 'Events & Veranstaltungen verwalten', 'version' => '1.0.0', 'author' => '365 Network', 'category' => 'Inhalte'],
-            ['slug' => 'cms-companies', 'name' => 'CMS Companies', 'description' => 'Firmenverzeichnis & -profile', 'version' => '1.0.0', 'author' => '365 Network', 'category' => 'Verzeichnis'],
-            ['slug' => 'cms-experts', 'name' => 'CMS Experts', 'description' => 'Experten-Profile & -verzeichnis', 'version' => '1.0.0', 'author' => '365 Network', 'category' => 'Verzeichnis'],
-            ['slug' => 'cms-speakers', 'name' => 'CMS Speakers', 'description' => 'Referenten-Verwaltung', 'version' => '1.0.0', 'author' => '365 Network', 'category' => 'Verzeichnis'],
-            ['slug' => 'cms-booking', 'name' => 'CMS Booking', 'description' => 'Buchungssystem für Events & Termine', 'version' => '1.0.0', 'author' => '365 Network', 'category' => 'E-Commerce'],
-            ['slug' => 'cms-newsletter', 'name' => 'CMS Newsletter', 'description' => 'Newsletter- & E-Mail-Kampagnen', 'version' => '1.0.0', 'author' => '365 Network', 'category' => 'Kommunikation'],
-            ['slug' => 'cms-forum', 'name' => 'CMS Forum', 'description' => 'Community-Forum', 'version' => '1.0.0', 'author' => '365 Network', 'category' => 'Community'],
-            ['slug' => 'cms-feed', 'name' => 'CMS Feed', 'description' => 'RSS-Feeds & Social-Stream', 'version' => '1.0.0', 'author' => '365 Network', 'category' => 'Inhalte'],
-            ['slug' => 'cms-marketplace', 'name' => 'CMS Marketplace', 'description' => 'Marktplatz für Produkte & Dienstleistungen', 'version' => '1.0.0', 'author' => '365 Network', 'category' => 'E-Commerce'],
-        ];
     }
 
     private function sanitizeCatalogEntries(array $entries): array
@@ -349,5 +336,28 @@ class PluginMarketplaceModule
         }
 
         return $hasMatchingRoot;
+    }
+
+    private function resolvePluginsDir(): string
+    {
+        if (defined('PLUGIN_PATH')) {
+            return rtrim((string) PLUGIN_PATH, '/\\') . DIRECTORY_SEPARATOR;
+        }
+
+        if (defined('PLUGINS_PATH')) {
+            return rtrim((string) PLUGINS_PATH, '/\\') . DIRECTORY_SEPARATOR;
+        }
+
+        return defined('ABSPATH') ? ABSPATH . 'plugins/' : '';
+    }
+
+    private function resolveLocalRegistryPath(): string
+    {
+        $pluginsDir = $this->resolvePluginsDir();
+        if ($pluginsDir === '') {
+            return '';
+        }
+
+        return rtrim(dirname(rtrim($pluginsDir, '/\\')), '/\\') . DIRECTORY_SEPARATOR . 'index.json';
     }
 }

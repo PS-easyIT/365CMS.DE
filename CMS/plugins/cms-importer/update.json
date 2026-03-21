@@ -1,0 +1,21 @@
+{
+  "slug": "cms-importer",
+  "name": "CMS WordPress Importer",
+  "type": "plugin",
+  "license": "free",
+  "version": "1.6.0",
+  "min_cms_version": "0.26.0",
+  "min_php": "8.1",
+  "released": "2026-03-14",
+  "download_url": "",
+  "checksum_sha256": "",
+  "changelog": {
+    "1.6.0": "Erweitert den Rank-Math-JSON-Import um sinnvolle globale SEO-Defaults für 365CMS, akzeptiert Settings-only-Dateien in Vorschau und Import und verbessert die Übernahme von OG-Bildern aus Rank-Math-Metadaten.",
+    "1.5.1": "Erweitert den Importer um eine gezielte 365CMS-Autor-Zuordnung pro Import inklusive optionalem Autoren-Anzeigenamen, der direkt im Artikel gespeichert wird und bei leerem Feld automatisch auf den normalen 365CMS-Anzeigenamen zurückfällt.",
+    "1.5.0": "Erweitert den Importer um WordPress-Kommentare: Kommentare aus WXR-Beiträgen werden passend nach cms_comments übernommen, in Vorschau und Import-Ergebnis ausgewiesen und bei bereits vorhandenen Zielbeiträgen dedupliziert importiert.",
+    "1.4.0": "Erweitert den Importer um Rank-Math-Settings-JSON: Importiert ausschließlich die Weiterleitungen aus dem redirections-Bereich nach cms_redirect_rules, inklusive Vorschau, Upload-Unterstützung für .json und Ordner-Scan für XML/JSON.",
+    "1.3.0": "Ergänzt einen Dry-Run mit Zielvorschau für Uploads und Ordnerimporte, inklusive Import-/Skip-Entscheidungen, Ziel-Slugs, Bildkandidaten, Tabellen-Shortcode-Auflösung und Meta-Hinweisen vor dem echten Schreiben.",
+    "1.2.0": "Erweitert den WordPress-Import um TablePress-Tabellen nach cms_site_tables, SEO-Meta in cms_seo_meta, Taxonomie-Relationen, Bilddownload mit URL-Umschreibung, Attachment-Auflösung via _thumbnail_id sowie Shortcode-Konvertierung von [table id=...] zu [site-table id=...].",
+    "1.0.0": "Erstveröffentlichung: Import von WordPress WXR-Exportdateien (Posts & Pages), Meta-Mapping (Yoast/RankMath/SEOPress), Markdown-Bericht für unbekannte Meta-Felder, Drag & Drop Upload-Interface, Import-Protokoll."
+  }
+}
