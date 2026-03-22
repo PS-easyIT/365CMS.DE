@@ -18,6 +18,12 @@ $currentTab = ($currentTab ?? 'general') === 'content' ? 'content' : 'general';
 $settingsBaseUrl = (defined('SITE_URL') ? SITE_URL : '') . '/admin/settings';
 $hideSettingsTabs = $hideSettingsTabs ?? false;
 $mediaConnectorToken = $mediaConnectorToken ?? '';
+$defaultPluginRegistryUrl = 'https://365cms.de/marketplace/plugins/index.json';
+$defaultThemeMarketplaceUrl = 'https://365cms.de/marketplace/themes';
+$defaultCoreUpdateUrl = 'https://365cms.de/marketplace/core/365cms/update.json';
+$usesDefaultPluginRegistry = (($s['plugin_registry_url'] ?? $defaultPluginRegistryUrl) === $defaultPluginRegistryUrl);
+$usesDefaultThemeMarketplace = (($s['theme_marketplace_url'] ?? $defaultThemeMarketplaceUrl) === $defaultThemeMarketplaceUrl);
+$usesDefaultCoreUpdate = (($s['core_update_url'] ?? $defaultCoreUpdateUrl) === $defaultCoreUpdateUrl);
 ?>
 
 <div class="container-xl">
@@ -368,6 +374,57 @@ $mediaConnectorToken = $mediaConnectorToken ?? '';
                             <button type="submit" class="btn btn-outline-warning" name="action" value="repair_imported_slugs">
                                 Falsche Import-Slugs jetzt manuell korrigieren
                             </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header"><h3 class="card-title">Marketplace &amp; Updates</h3></div>
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                            <span class="badge bg-green-lt text-green">Offizielle 365CMS-Endpunkte</span>
+                            <span class="text-secondary small">Empfohlene produktive Standardwerte für Plugin-Marketplace, Theme-Katalog und Core-Updates.</span>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
+                                <label class="form-label mb-0">Plugin-Registry</label>
+                                <?php if ($usesDefaultPluginRegistry): ?>
+                                    <span class="badge bg-azure-lt text-azure">Produktiv-Standard aktiv</span>
+                                <?php else: ?>
+                                    <span class="badge bg-yellow-lt text-yellow">Individuell überschrieben</span>
+                                <?php endif; ?>
+                            </div>
+                            <input type="url" name="plugin_registry_url" class="form-control" value="<?php echo htmlspecialchars((string)($s['plugin_registry_url'] ?? 'https://365cms.de/marketplace/plugins/index.json')); ?>" placeholder="https://365cms.de/marketplace/plugins/index.json">
+                            <div class="form-hint">Zentraler JSON-Feed für den Plugin-Marketplace im Admin. Offizieller Standard: <code><?php echo htmlspecialchars($defaultPluginRegistryUrl); ?></code></div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
+                                <label class="form-label mb-0">Theme-Marketplace-Basis</label>
+                                <?php if ($usesDefaultThemeMarketplace): ?>
+                                    <span class="badge bg-azure-lt text-azure">Produktiv-Standard aktiv</span>
+                                <?php else: ?>
+                                    <span class="badge bg-yellow-lt text-yellow">Individuell überschrieben</span>
+                                <?php endif; ?>
+                            </div>
+                            <input type="url" name="theme_marketplace_url" class="form-control" value="<?php echo htmlspecialchars((string)($s['theme_marketplace_url'] ?? 'https://365cms.de/marketplace/themes')); ?>" placeholder="https://365cms.de/marketplace/themes">
+                            <div class="form-hint">Basis-URL für Theme-Katalog und Theme-Manifeste. Offizieller Standard: <code><?php echo htmlspecialchars($defaultThemeMarketplaceUrl); ?></code>. Das System ergänzt intern weiterhin <code>/index.json</code>.</div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
+                                <label class="form-label mb-0">Core-Update-Feed</label>
+                                <?php if ($usesDefaultCoreUpdate): ?>
+                                    <span class="badge bg-azure-lt text-azure">Produktiv-Standard aktiv</span>
+                                <?php else: ?>
+                                    <span class="badge bg-yellow-lt text-yellow">Individuell überschrieben</span>
+                                <?php endif; ?>
+                            </div>
+                            <input type="url" name="core_update_url" class="form-control" value="<?php echo htmlspecialchars((string)($s['core_update_url'] ?? 'https://365cms.de/marketplace/core/365cms/update.json')); ?>" placeholder="https://365cms.de/marketplace/core/365cms/update.json">
+                            <div class="form-hint">Expliziter Feed für 365CMS-Core-Updates. Offizieller Standard: <code><?php echo htmlspecialchars($defaultCoreUpdateUrl); ?></code>.</div>
+                        </div>
+                        <div class="alert alert-info mb-0" role="alert">
+                            Diese Felder machen die aktuell verwendeten zentralen Marketplace-Endpunkte sichtbar. Leere oder ungültige Werte fallen beim Speichern automatisch wieder auf die offiziellen 365CMS-Defaults zurück. So bleibt das System produktionssicher, auch wenn jemand hier einmal kreativ wird.
                         </div>
                     </div>
                 </div>

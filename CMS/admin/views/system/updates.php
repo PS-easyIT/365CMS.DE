@@ -119,25 +119,43 @@ $hasUpdates = $data['has_updates'];
                                 <td>
                                     <?php if (!empty($plugin['new_version'])): ?>
                                         <span class="text-warning"><?php echo htmlspecialchars($plugin['new_version']); ?></span>
+                                        <?php if (!empty($plugin['requires_cms']) || !empty($plugin['requires_php'])): ?>
+                                            <div class="text-muted small mt-1">
+                                                <?php if (!empty($plugin['requires_cms'])): ?>365CMS ab <?php echo htmlspecialchars((string) $plugin['requires_cms']); ?><?php endif; ?>
+                                                <?php if (!empty($plugin['requires_cms']) && !empty($plugin['requires_php'])): ?> · <?php endif; ?>
+                                                <?php if (!empty($plugin['requires_php'])): ?>PHP ab <?php echo htmlspecialchars((string) $plugin['requires_php']); ?><?php endif; ?>
+                                            </div>
+                                        <?php endif; ?>
                                     <?php else: ?>
                                         <span class="text-muted">-</span>
                                     <?php endif; ?>
                                 </td>
                                 <td>
                                     <?php if (!empty($plugin['new_version'])): ?>
-                                        <span class="badge bg-warning-lt">Update verfügbar</span>
+                                        <?php if (!empty($plugin['install_supported'])): ?>
+                                            <span class="badge bg-warning-lt">Update verfügbar</span>
+                                        <?php elseif (!empty($plugin['purchase_url'])): ?>
+                                            <span class="badge bg-orange-lt">Anfrage erforderlich</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary-lt">Manuell</span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($plugin['manual_reason'])): ?>
+                                            <div class="text-muted small mt-1"><?php echo htmlspecialchars((string) $plugin['manual_reason']); ?></div>
+                                        <?php endif; ?>
                                     <?php else: ?>
                                         <span class="badge bg-success-lt">Aktuell</span>
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <?php if (!empty($plugin['new_version'])): ?>
+                                    <?php if (!empty($plugin['new_version']) && !empty($plugin['install_supported'])): ?>
                                         <form method="post" class="d-inline">
                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                             <input type="hidden" name="action" value="install_plugin">
                                             <input type="hidden" name="plugin_slug" value="<?php echo htmlspecialchars($slug); ?>">
                                             <button type="submit" class="btn btn-sm btn-warning">Update</button>
                                         </form>
+                                    <?php elseif (!empty($plugin['purchase_url'])): ?>
+                                        <a href="<?php echo htmlspecialchars((string) $plugin['purchase_url']); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">Anfragen / Kaufen</a>
                                     <?php endif; ?>
                                 </td>
                             </tr>
@@ -160,6 +178,21 @@ $hasUpdates = $data['has_updates'];
                 <div class="alert alert-warning mb-0">
                     <strong>Theme-Update verfügbar:</strong>
                     <?php echo htmlspecialchars($theme['current_version'] ?? '-'); ?> → <?php echo htmlspecialchars($theme['latest_version'] ?? '-'); ?>
+                    <?php if (!empty($theme['requires_cms']) || !empty($theme['requires_php'])): ?>
+                        <div class="text-secondary small mt-1">
+                            <?php if (!empty($theme['requires_cms'])): ?>365CMS ab <?php echo htmlspecialchars((string) $theme['requires_cms']); ?><?php endif; ?>
+                            <?php if (!empty($theme['requires_cms']) && !empty($theme['requires_php'])): ?> · <?php endif; ?>
+                            <?php if (!empty($theme['requires_php'])): ?>PHP ab <?php echo htmlspecialchars((string) $theme['requires_php']); ?><?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+                    <?php if (!empty($theme['manual_reason'])): ?>
+                        <div class="text-secondary small mt-1"><?php echo htmlspecialchars((string) $theme['manual_reason']); ?></div>
+                    <?php endif; ?>
+                    <?php if (!empty($theme['purchase_url'])): ?>
+                        <div class="mt-2">
+                            <a href="<?php echo htmlspecialchars((string) $theme['purchase_url']); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">Anfragen / Kaufen</a>
+                        </div>
+                    <?php endif; ?>
                 </div>
             <?php else: ?>
                 <div class="text-success">

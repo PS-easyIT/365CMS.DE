@@ -16,6 +16,7 @@ use CMS\Database;
 use CMS\Http\Client as HttpClient;
 use CMS\Json;
 use CMS\PluginManager;
+use CMS\ThemeManager;
 use CMS\Version;
 
 if (!defined('ABSPATH')) {
@@ -25,6 +26,8 @@ if (!defined('ABSPATH')) {
 class UpdateService
 {
     private const ALLOWED_UPDATE_HOSTS = [
+        '365cms.de',
+        'www.365cms.de',
         '365network.de',
         'www.365network.de',
         'api.github.com',
@@ -41,11 +44,15 @@ class UpdateService
     /** Fallback-Werte – werden von DB-Setting überschrieben, wenn vorhanden */
     private const DEFAULT_GITHUB_REPO = 'PS-easyIT/365CMS.DE';
     private const DEFAULT_GITHUB_API = 'https://api.github.com';
+    private const DEFAULT_CORE_UPDATE_URL = 'https://365cms.de/marketplace/core/365cms/update.json';
+    private const DEFAULT_PLUGIN_REGISTRY_URL = 'https://365cms.de/marketplace/plugins/index.json';
+    private const DEFAULT_THEME_MARKETPLACE_URL = 'https://365cms.de/marketplace/themes';
     private const CACHE_DURATION = 3600; // 1 hour
 
     /** Aktive Konfiguration (aus DB oder Fallback) */
     private string $githubRepo;
     private string $githubApi;
+    private string $coreUpdateUrl;
     
     /**
      * Singleton instance
@@ -83,9 +90,15 @@ class UpdateService
                 "SELECT option_value FROM {$this->db->getPrefix()}settings WHERE option_name = 'update_github_api'"
             );
             $this->githubApi = (!empty($row2['option_value'])) ? rtrim($row2['option_value'], '/') : self::DEFAULT_GITHUB_API;
+
+            $row3 = $this->db->fetchOne(
+                "SELECT option_value FROM {$this->db->getPrefix()}settings WHERE option_name = 'core_update_url'"
+            );
+            $this->coreUpdateUrl = (!empty($row3['option_value'])) ? trim((string) $row3['option_value']) : self::DEFAULT_CORE_UPDATE_URL;
         } catch (\Throwable $e) {
             $this->githubRepo = self::DEFAULT_GITHUB_REPO;
             $this->githubApi  = self::DEFAULT_GITHUB_API;
+            $this->coreUpdateUrl = self::DEFAULT_CORE_UPDATE_URL;
         }
     }
     
@@ -102,6 +115,35 @@ class UpdateService
         
         if ($cached !== null) {
             return $cached;
+        }
+
+        $marketplaceRelease = $this->fetchMarketplaceJson($this->coreUpdateUrl, 512 * 1024);
+        if (is_array($marketplaceRelease) && !empty($marketplaceRelease)) {
+            $latestVersion = (string) ($marketplaceRelease['version'] ?? $marketplaceRelease['latest_version'] ?? '');
+
+            if ($latestVersion !== '') {
+                $result = [
+                    'current_version' => $currentVersion,
+                    'latest_version' => $latestVersion,
+                    'update_available' => version_compare($latestVersion, $currentVersion, '>'),
+                    'changelog' => $this->normalizeChangelogText($marketplaceRelease['changelog'] ?? $marketplaceRelease['notes'] ?? ''),
+                    'changelog_items' => $this->normalizeChangelogList($marketplaceRelease['changelog'] ?? []),
+                    'release_date' => (string) ($marketplaceRelease['released'] ?? $marketplaceRelease['published_at'] ?? ''),
+                    'download_url' => $this->resolveAllowedUpdateUrl((string) ($marketplaceRelease['download_url'] ?? '')),
+                    'sha256' => $this->resolveIntegrityHashValue($marketplaceRelease),
+                    'release_notes' => (string) ($marketplaceRelease['notes'] ?? ''),
+                    'purchase_url' => $this->resolveAllowedUpdateUrl((string) ($marketplaceRelease['purchase_url'] ?? '')),
+                    'is_paid' => $this->normalizeBooleanValue($marketplaceRelease['is_paid'] ?? false),
+                    'price_amount' => (string) ($marketplaceRelease['price_amount'] ?? $marketplaceRelease['price'] ?? ''),
+                    'price_currency' => strtoupper((string) ($marketplaceRelease['price_currency'] ?? 'EUR')),
+                    'requires_cms' => (string) ($marketplaceRelease['requires_cms'] ?? $marketplaceRelease['min_cms_version'] ?? ''),
+                    'requires_php' => (string) ($marketplaceRelease['requires_php'] ?? $marketplaceRelease['min_php'] ?? ''),
+                ];
+
+                $this->setCache($cacheKey, $result);
+
+                return $result;
+            }
         }
         
         // Fetch latest release from GitHub (konfigurierbar via DB)
@@ -127,11 +169,13 @@ class UpdateService
             'current_version' => $currentVersion,
             'latest_version' => $latestVersion,
             'update_available' => $updateAvailable,
-            'changelog' => $this->parseChangelog($release['body'] ?? ''),
+            'changelog' => trim((string) ($release['body'] ?? '')),
+            'changelog_items' => $this->parseChangelog($release['body'] ?? ''),
             'release_date' => isset($release['published_at']) 
                 ? date('Y-m-d', strtotime($release['published_at'])) 
                 : '',
             'download_url' => $release['zipball_url'] ?? '',
+            'sha256' => $this->resolveIntegrityHashValue($release),
             'release_notes' => $release['body'] ?? '',
         ];
         
@@ -148,29 +192,49 @@ class UpdateService
     {
         $pluginManager = PluginManager::instance();
         $plugins = $pluginManager->getAvailablePlugins();
+        $catalog = $this->loadPluginMarketplaceCatalog();
         
         $updates = [];
         
         foreach ($plugins as $folder => $plugin) {
             $currentVersion = $plugin['version'] ?? '1.0.0';
-            
-            // Check if plugin has update URL in metadata
-            if (isset($plugin['update_url']) && !empty($plugin['update_url'])) {
-                $updateInfo = $this->fetchPluginUpdate($plugin['update_url']);
-                
-                if ($updateInfo && version_compare($updateInfo['version'], $currentVersion, '>')) {
-                    $updates[$folder] = [
-                        'name' => $plugin['name'],
-                        'current_version' => $currentVersion,
-                        'new_version' => $updateInfo['version'],
-                        'update_available' => true,
-                        'download_url' => $updateInfo['download_url'] ?? '',
-                        // H-19: SHA-256-Prüfsumme aus update-Metadaten mitliefern
-                        'sha256' => $updateInfo['sha256'] ?? $updateInfo['checksum_sha256'] ?? '',
-                        'changelog' => $updateInfo['changelog'] ?? '',
-                    ];
-                }
+
+            $localUpdateData = $this->loadLocalJsonFile(PLUGIN_PATH . $folder . '/update.json');
+            $catalogEntry = $catalog[$folder] ?? [];
+
+            $updateInfo = array_replace($plugin, $localUpdateData, $catalogEntry);
+            $updateUrl = $this->resolveAllowedUpdateUrl((string) ($updateInfo['update_url'] ?? ''));
+            if ($updateUrl !== '') {
+                $remoteUpdate = $this->fetchPluginUpdate($updateUrl) ?? [];
+                $updateInfo = array_replace($updateInfo, $remoteUpdate);
             }
+
+            $latestVersion = (string) ($updateInfo['version'] ?? '');
+            if ($latestVersion === '' || !version_compare($latestVersion, (string) $currentVersion, '>')) {
+                continue;
+            }
+
+            $downloadUrl = $this->resolveAllowedUpdateUrl((string) ($updateInfo['download_url'] ?? ''));
+            $purchaseUrl = $this->resolveAllowedUpdateUrl((string) ($updateInfo['purchase_url'] ?? ''));
+            $isPaid = $this->normalizeBooleanValue($updateInfo['is_paid'] ?? false);
+
+            $updates[$folder] = [
+                'name' => (string) ($plugin['name'] ?? $catalogEntry['name'] ?? $folder),
+                'current_version' => (string) $currentVersion,
+                'new_version' => $latestVersion,
+                'update_available' => true,
+                'download_url' => $downloadUrl,
+                'sha256' => $this->resolveIntegrityHashValue($updateInfo),
+                'changelog' => $this->normalizeChangelogText($updateInfo['changelog'] ?? $updateInfo['notes'] ?? ''),
+                'purchase_url' => $purchaseUrl,
+                'is_paid' => $isPaid,
+                'price_amount' => (string) ($updateInfo['price_amount'] ?? $updateInfo['price'] ?? ''),
+                'price_currency' => strtoupper((string) ($updateInfo['price_currency'] ?? 'EUR')),
+                'requires_cms' => (string) ($updateInfo['requires_cms'] ?? $updateInfo['min_cms_version'] ?? ''),
+                'requires_php' => (string) ($updateInfo['requires_php'] ?? $updateInfo['min_php'] ?? ''),
+                'install_supported' => $downloadUrl !== '',
+                'manual_reason' => $this->buildMarketplaceReason($downloadUrl, $purchaseUrl, $isPaid, 'Plugin'),
+            ];
         }
         
         return $updates;
@@ -181,37 +245,333 @@ class UpdateService
      */
     public function checkThemeUpdates(): array
     {
-        // Get current theme
-        $themeDir = ABSPATH . 'themes/default';
-        $themeJsonFile = $themeDir . '/theme.json';
-        
+        $themeSlug = ThemeManager::instance()->getActiveThemeSlug();
+        $themeDir = rtrim((string) THEME_PATH, '/\\') . DIRECTORY_SEPARATOR . $themeSlug;
+        $themeJsonFile = $themeDir . DIRECTORY_SEPARATOR . 'theme.json';
+
         if (!file_exists($themeJsonFile)) {
             return [];
         }
-        
-        $themeData = Json::decodeArray(file_get_contents($themeJsonFile), []);
+
+        $themeData = Json::decodeArray((string) file_get_contents($themeJsonFile), []);
         $currentVersion = $themeData['version'] ?? '1.0.0';
-        
-        // Check GitHub for theme updates (konfigurierbar via DB)
-        $url = $this->githubApi . '/repos/' . $this->githubRepo . '/contents/themes/default/theme.json';
-        $response = $this->fetchGitHubData($url);
-        
-        if (!$response || !isset($response['content'])) {
-            return [];
+
+        $localUpdateData = $this->loadLocalJsonFile($themeDir . DIRECTORY_SEPARATOR . 'update.json');
+        $catalog = $this->loadThemeMarketplaceCatalog();
+        $catalogEntry = $catalog[$themeSlug] ?? [];
+
+        $updateInfo = array_replace($themeData, $localUpdateData, $catalogEntry);
+        $updateUrl = $this->resolveAllowedUpdateUrl((string) ($updateInfo['update_url'] ?? ''));
+        if ($updateUrl !== '') {
+            $remoteUpdate = $this->fetchPluginUpdate($updateUrl) ?? [];
+            $updateInfo = array_replace($updateInfo, $remoteUpdate);
         }
-        
-        // Decode base64 content
-        $remoteThemeData = Json::decodeArray(base64_decode((string)($response['content'] ?? ''), true), []);
-        $latestVersion = $remoteThemeData['version'] ?? $currentVersion;
+
+        $latestVersion = (string) ($updateInfo['version'] ?? $currentVersion);
         
         $updateAvailable = version_compare($latestVersion, $currentVersion, '>');
+        $downloadUrl = $this->resolveAllowedUpdateUrl((string) ($updateInfo['download_url'] ?? ''));
+        $purchaseUrl = $this->resolveAllowedUpdateUrl((string) ($updateInfo['purchase_url'] ?? ''));
+        $isPaid = $this->normalizeBooleanValue($updateInfo['is_paid'] ?? false);
         
         return [
+            'slug' => $themeSlug,
             'current_version' => $currentVersion,
             'latest_version' => $latestVersion,
             'update_available' => $updateAvailable,
-            'changelog' => $remoteThemeData['changelog'] ?? [],
+            'changelog' => $this->normalizeChangelogText($updateInfo['changelog'] ?? $updateInfo['notes'] ?? ''),
+            'download_url' => $downloadUrl,
+            'purchase_url' => $purchaseUrl,
+            'is_paid' => $isPaid,
+            'price_amount' => (string) ($updateInfo['price_amount'] ?? $updateInfo['price'] ?? ''),
+            'price_currency' => strtoupper((string) ($updateInfo['price_currency'] ?? 'EUR')),
+            'sha256' => $this->resolveIntegrityHashValue($updateInfo),
+            'requires_cms' => (string) ($updateInfo['requires_cms'] ?? $updateInfo['min_cms_version'] ?? ''),
+            'requires_php' => (string) ($updateInfo['requires_php'] ?? $updateInfo['min_php'] ?? ''),
+            'install_supported' => $downloadUrl !== '',
+            'manual_reason' => $this->buildMarketplaceReason($downloadUrl, $purchaseUrl, $isPaid, 'Theme'),
         ];
+    }
+
+    private function getSettingValue(string $optionName): string
+    {
+        try {
+            $row = $this->db->fetchOne(
+                "SELECT option_value FROM {$this->db->getPrefix()}settings WHERE option_name = ?",
+                [$optionName]
+            );
+
+            return trim((string) ($row['option_value'] ?? ''));
+        } catch (\Throwable $e) {
+            return '';
+        }
+    }
+
+    private function fetchMarketplaceJson(string $url, int $maxBytes = 1048576): ?array
+    {
+        if (!$this->isAllowedSensitiveRemoteUrl($url) || !$this->isSafeExternalUrl($url)) {
+            return null;
+        }
+
+        $response = $this->httpClient->get($url, [
+            'timeout' => 10,
+            'connectTimeout' => 5,
+            'headers' => ['Accept: application/json'],
+            'userAgent' => '365CMS-UpdateChecker/1.0',
+            'allowedContentTypes' => ['application/json', 'text/plain'],
+            'maxBytes' => $maxBytes,
+        ]);
+
+        if (!$response['success']) {
+            return null;
+        }
+
+        $data = Json::decode((string) ($response['body'] ?? ''), true, null);
+
+        return is_array($data) ? $data : null;
+    }
+
+    private function loadLocalJsonFile(string $filePath): array
+    {
+        if (!is_file($filePath)) {
+            return [];
+        }
+
+        $raw = file_get_contents($filePath);
+        if ($raw === false || $raw === '') {
+            return [];
+        }
+
+        return Json::decodeArray($raw, []);
+    }
+
+    private function loadPluginMarketplaceCatalog(): array
+    {
+        $registryUrl = $this->getSettingValue('plugin_registry_url');
+        if ($registryUrl === '') {
+            $registryUrl = self::DEFAULT_PLUGIN_REGISTRY_URL;
+        }
+
+        $data = $this->fetchMarketplaceJson($registryUrl);
+        if (!is_array($data)) {
+            return [];
+        }
+
+        $entries = is_array($data['plugins'] ?? null) ? $data['plugins'] : $data;
+        if (!is_array($entries)) {
+            return [];
+        }
+
+        return $this->normalizePluginCatalogEntries($entries, $this->resolveBaseUrl($registryUrl));
+    }
+
+    private function normalizePluginCatalogEntries(array $entries, string $sourceBase): array
+    {
+        $catalog = [];
+
+        foreach ($entries as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            $manifestData = $this->loadCatalogManifestData($entry, $sourceBase);
+            $normalized = array_replace($entry, $manifestData);
+            $slug = preg_replace('/[^a-z0-9_-]/', '', strtolower((string) ($normalized['slug'] ?? '')));
+            if ($slug === '') {
+                continue;
+            }
+
+            $normalized['slug'] = $slug;
+            $normalized['download_url'] = $this->resolveAllowedUpdateUrl((string) ($normalized['download_url'] ?? $normalized['package_url'] ?? $normalized['archive_url'] ?? ''), $sourceBase);
+            $normalized['update_url'] = $this->resolveAllowedUpdateUrl((string) ($normalized['update_url'] ?? ''), $sourceBase);
+            $normalized['purchase_url'] = $this->resolveAllowedUpdateUrl((string) ($normalized['purchase_url'] ?? $normalized['buy_url'] ?? $normalized['order_url'] ?? ''), $sourceBase);
+            $catalog[$slug] = $normalized;
+        }
+
+        return $catalog;
+    }
+
+    private function loadThemeMarketplaceCatalog(): array
+    {
+        $baseUrl = $this->getSettingValue('theme_marketplace_url');
+        if ($baseUrl === '') {
+            $baseUrl = self::DEFAULT_THEME_MARKETPLACE_URL;
+        }
+
+        $catalogUrl = rtrim($baseUrl, '/') . '/index.json';
+        $data = $this->fetchMarketplaceJson($catalogUrl);
+        if (!is_array($data)) {
+            return [];
+        }
+
+        return $this->normalizeThemeCatalogEntries($data, rtrim($baseUrl, '/'));
+    }
+
+    private function normalizeThemeCatalogEntries(array $data, string $sourceBase): array
+    {
+        $entries = [];
+
+        if (isset($data['themes']) && is_array($data['themes'])) {
+            $entries = $data['themes'];
+        } elseif (array_is_list($data)) {
+            $entries = $data;
+        }
+
+        $catalog = [];
+
+        foreach ($entries as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            $manifestData = $this->loadCatalogManifestData($entry, $sourceBase);
+            $normalized = array_replace($entry, $manifestData);
+            $slug = preg_replace('/[^a-z0-9_-]/', '', strtolower((string) ($normalized['slug'] ?? '')));
+            if ($slug === '') {
+                continue;
+            }
+
+            $normalized['slug'] = $slug;
+            $normalized['download_url'] = $this->resolveAllowedUpdateUrl((string) ($normalized['download_url'] ?? $normalized['package_url'] ?? $normalized['archive_url'] ?? ''), $sourceBase);
+            $normalized['update_url'] = $this->resolveAllowedUpdateUrl((string) ($normalized['update_url'] ?? ''), $sourceBase);
+            $normalized['purchase_url'] = $this->resolveAllowedUpdateUrl((string) ($normalized['purchase_url'] ?? $normalized['buy_url'] ?? $normalized['order_url'] ?? ''), $sourceBase);
+            $catalog[$slug] = $normalized;
+        }
+
+        return $catalog;
+    }
+
+    private function loadCatalogManifestData(array $entry, string $sourceBase): array
+    {
+        $manifest = trim((string) ($entry['manifest'] ?? ''));
+        if ($manifest === '') {
+            return [];
+        }
+
+        $manifestUrl = $this->resolveAllowedUpdateUrl($manifest, $sourceBase);
+        if ($manifestUrl !== '') {
+            return $this->fetchMarketplaceJson($manifestUrl, 512 * 1024) ?? [];
+        }
+
+        $manifestPath = rtrim($sourceBase, '/\\') . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, ltrim($manifest, '/\\'));
+        return $this->loadLocalJsonFile($manifestPath);
+    }
+
+    private function resolveAllowedUpdateUrl(string $value, string $baseUrl = ''): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        if ($this->isAllowedSensitiveRemoteUrl($value)) {
+            return $value;
+        }
+
+        if ($baseUrl !== '' && $this->isAllowedSensitiveRemoteUrl($baseUrl)) {
+            $resolved = rtrim($baseUrl, '/') . '/' . ltrim($value, '/');
+
+            return $this->isAllowedSensitiveRemoteUrl($resolved) ? $resolved : '';
+        }
+
+        return '';
+    }
+
+    private function resolveBaseUrl(string $url): string
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return '';
+        }
+
+        $scheme = (string) ($parts['scheme'] ?? '');
+        $host = (string) ($parts['host'] ?? '');
+        if ($scheme === '' || $host === '') {
+            return '';
+        }
+
+        $path = (string) ($parts['path'] ?? '');
+        $directory = preg_replace('~/[^/]+$~', '', $path) ?? '';
+
+        return $scheme . '://' . $host . $directory;
+    }
+
+    private function resolveIntegrityHashValue(array $data): string
+    {
+        foreach (['sha256', 'checksum_sha256'] as $key) {
+            $value = strtolower(trim((string) ($data[$key] ?? '')));
+            if ($value !== '' && preg_match('/^[0-9a-f]{64}$/', $value) === 1) {
+                return $value;
+            }
+        }
+
+        return '';
+    }
+
+    private function normalizeBooleanValue(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        $normalized = strtolower(trim((string) $value));
+
+        return in_array($normalized, ['1', 'true', 'yes', 'ja', 'paid'], true);
+    }
+
+    private function normalizeChangelogText(mixed $value): string
+    {
+        if (is_string($value)) {
+            return trim($value);
+        }
+
+        if (is_array($value)) {
+            $lines = [];
+
+            foreach ($value as $key => $entry) {
+                if (is_string($entry)) {
+                    $lines[] = is_string($key) ? $key . ': ' . $entry : $entry;
+                }
+            }
+
+            return implode("\n", $lines);
+        }
+
+        return '';
+    }
+
+    private function normalizeChangelogList(mixed $value): array
+    {
+        if (is_string($value)) {
+            return $this->parseChangelog($value);
+        }
+
+        if (is_array($value)) {
+            $items = [];
+
+            foreach ($value as $key => $entry) {
+                if (is_string($entry)) {
+                    $items[] = is_string($key) ? $key . ': ' . $entry : $entry;
+                }
+            }
+
+            return $items;
+        }
+
+        return [];
+    }
+
+    private function buildMarketplaceReason(string $downloadUrl, string $purchaseUrl, bool $isPaid, string $type): string
+    {
+        if ($isPaid && $purchaseUrl !== '') {
+            return $type . ' ist kostenpflichtig und wird über den Marketplace angefragt oder gekauft.';
+        }
+
+        if ($downloadUrl === '') {
+            return 'Keine direkte Download-URL im Marketplace hinterlegt.';
+        }
+
+        return '';
     }
     
     /**

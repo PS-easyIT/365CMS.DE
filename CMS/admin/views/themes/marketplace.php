@@ -46,6 +46,8 @@ $total   = $data['total'] ?? 0;
             <?php foreach ($catalog as $theme):
                 $slug = $theme['slug'] ?? '';
                 $name = $theme['name'] ?? $slug;
+                $purchaseUrl = (string) ($theme['purchase_url'] ?? '');
+                $isPaid = !empty($theme['is_paid']);
             ?>
                 <div class="col-sm-6 col-lg-4">
                     <div class="card">
@@ -67,9 +69,15 @@ $total   = $data['total'] ?? 0;
                                 <?php if (!empty($theme['updateAvailable'])): ?>
                                     <span class="badge bg-warning ms-2">Update</span>
                                 <?php endif; ?>
+                                <?php if ($isPaid): ?>
+                                    <span class="badge bg-orange-lt ms-2">Kostenpflichtig</span>
+                                <?php endif; ?>
                             </div>
                             <?php if (!empty($theme['description'])): ?>
                                 <p class="text-muted small mb-2"><?php echo htmlspecialchars($theme['description']); ?></p>
+                            <?php endif; ?>
+                            <?php if (!empty($theme['price_amount'])): ?>
+                                <div class="mb-2"><span class="badge bg-orange-lt"><?php echo htmlspecialchars((string) $theme['price_amount']); ?> <?php echo htmlspecialchars((string) ($theme['price_currency'] ?? 'EUR')); ?></span></div>
                             <?php endif; ?>
                             <div class="text-muted small">
                                 <?php if (!empty($theme['version'])): ?>
@@ -79,6 +87,13 @@ $total   = $data['total'] ?? 0;
                                     <span><?php echo htmlspecialchars($theme['author']); ?></span>
                                 <?php endif; ?>
                             </div>
+                            <?php if (!empty($theme['requires_cms']) || !empty($theme['requires_php'])): ?>
+                                <div class="text-muted small mt-2">
+                                    <?php if (!empty($theme['requires_cms'])): ?>365CMS ab <?php echo htmlspecialchars((string) $theme['requires_cms']); ?><?php endif; ?>
+                                    <?php if (!empty($theme['requires_cms']) && !empty($theme['requires_php'])): ?> · <?php endif; ?>
+                                    <?php if (!empty($theme['requires_php'])): ?>PHP ab <?php echo htmlspecialchars((string) $theme['requires_php']); ?><?php endif; ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
                         <div class="card-footer">
                             <?php if (empty($theme['installed'])): ?>
@@ -91,6 +106,12 @@ $total   = $data['total'] ?? 0;
                                             <input type="hidden" name="theme" value="<?php echo htmlspecialchars($slug); ?>">
                                             <button type="submit" class="btn btn-primary btn-sm">Installieren</button>
                                         </form>
+                                    </div>
+                                <?php elseif ($isPaid && $purchaseUrl !== ''): ?>
+                                    <div class="d-flex flex-column gap-2">
+                                        <span class="badge bg-orange-lt text-orange">Anfrage erforderlich</span>
+                                        <a href="<?php echo htmlspecialchars($purchaseUrl); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">Anfragen / Kaufen</a>
+                                        <span class="text-muted small"><?php echo htmlspecialchars((string)($theme['install_reason'] ?? 'Dieses Theme wird über den Marketplace auf Anfrage bereitgestellt.')); ?></span>
                                     </div>
                                 <?php else: ?>
                                     <div class="d-flex flex-column gap-2">

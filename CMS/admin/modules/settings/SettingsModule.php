@@ -64,6 +64,7 @@ class SettingsModule
         'posts_per_page', 'comments_enabled',
         'maintenance_mode', 'maintenance_message',
         'google_analytics', 'robots_txt', 'marketplace_enabled',
+        'plugin_registry_url', 'theme_marketplace_url', 'core_update_url',
         'setting_editor_type', 'setting_page_default_status',
         'setting_post_default_status', 'setting_page_editor_width',
         'setting_post_editor_width', 'setting_post_permalink_structure',
@@ -81,6 +82,12 @@ class SettingsModule
             'de' => 'tag',
             'en' => 'tag',
         ],
+    ];
+
+    private const MARKETPLACE_DEFAULTS = [
+        'plugin_registry_url' => 'https://365cms.de/marketplace/plugins/index.json',
+        'theme_marketplace_url' => 'https://365cms.de/marketplace/themes',
+        'core_update_url' => 'https://365cms.de/marketplace/core/365cms/update.json',
     ];
 
     private const TIMEZONES = [
@@ -166,6 +173,9 @@ class SettingsModule
                 'google_analytics'     => $settings['google_analytics'] ?? '',
                 'robots_txt'           => $settings['robots_txt'] ?? '',
                 'marketplace_enabled'  => ($settings['marketplace_enabled'] ?? '1') === '1',
+                'plugin_registry_url'  => $this->getMarketplaceSetting($settings, 'plugin_registry_url'),
+                'theme_marketplace_url'=> $this->getMarketplaceSetting($settings, 'theme_marketplace_url'),
+                'core_update_url'      => $this->getMarketplaceSetting($settings, 'core_update_url'),
                 'editor_type'          => $editorType,
                 'page_default_status'  => $pageDefaultStatus,
                 'post_default_status'  => $postDefaultStatus,
@@ -268,6 +278,19 @@ class SettingsModule
                 return ['success' => false, 'error' => 'Bitte eine gültige Website-URL angeben.'];
             }
 
+            $pluginRegistryUrl = $this->normalizeMarketplaceUrl(
+                (string)($post['plugin_registry_url'] ?? ''),
+                self::MARKETPLACE_DEFAULTS['plugin_registry_url']
+            );
+            $themeMarketplaceUrl = $this->normalizeMarketplaceUrl(
+                (string)($post['theme_marketplace_url'] ?? ''),
+                self::MARKETPLACE_DEFAULTS['theme_marketplace_url']
+            );
+            $coreUpdateUrl = $this->normalizeMarketplaceUrl(
+                (string)($post['core_update_url'] ?? ''),
+                self::MARKETPLACE_DEFAULTS['core_update_url']
+            );
+
             $values = [
                 'site_name'            => trim(strip_tags($post['site_name'] ?? '')),
                 'site_title'           => trim(strip_tags($post['site_name'] ?? '')),
@@ -287,6 +310,9 @@ class SettingsModule
                 'google_analytics'     => preg_match('/^(G-|UA-)[A-Za-z0-9-]+$/', $post['google_analytics'] ?? '') ? $post['google_analytics'] : '',
                 'robots_txt'           => strip_tags($post['robots_txt'] ?? ''),
                 'marketplace_enabled'  => !empty($post['marketplace_enabled']) ? '1' : '0',
+                'plugin_registry_url'  => $pluginRegistryUrl,
+                'theme_marketplace_url' => $themeMarketplaceUrl,
+                'core_update_url'      => $coreUpdateUrl,
                 'setting_editor_type' => $editorType,
                 'setting_page_default_status' => $pageDefaultStatus,
                 'setting_post_default_status' => $postDefaultStatus,
@@ -1215,6 +1241,31 @@ PHP;
         $value = (string)($settings['routing.' . $type . '_base_' . $locale] ?? '');
 
         return $this->normalizeRouteBase($value, $default);
+    }
+
+    private function getMarketplaceSetting(array $settings, string $key): string
+    {
+        $fallback = self::MARKETPLACE_DEFAULTS[$key] ?? '';
+        $value = trim((string)($settings[$key] ?? ''));
+
+        return $this->normalizeMarketplaceUrl($value, $fallback);
+    }
+
+    private function normalizeMarketplaceUrl(string $value, string $fallback): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return $fallback;
+        }
+
+        $sanitized = rtrim((string) filter_var($value, FILTER_SANITIZE_URL), '/');
+        $fallbackSanitized = rtrim((string) filter_var($fallback, FILTER_SANITIZE_URL), '/');
+
+        if ($sanitized === '' || filter_var($sanitized, FILTER_VALIDATE_URL) === false || !str_starts_with($sanitized, 'https://')) {
+            return $fallbackSanitized;
+        }
+
+        return $sanitized;
     }
 
     private function normalizeRouteBase(string $value, string $fallback): string

@@ -115,7 +115,13 @@ if (!defined('ABSPATH')) {
                     $version     = htmlspecialchars($plugin['version'] ?? '-');
                     $author      = htmlspecialchars($plugin['author'] ?? '-');
                     $category    = htmlspecialchars($plugin['category'] ?? '');
+                    $purchaseUrl = htmlspecialchars((string)($plugin['purchase_url'] ?? ''));
+                    $priceAmount = htmlspecialchars((string)($plugin['price_amount'] ?? ''));
+                    $priceCurrency = htmlspecialchars((string)($plugin['price_currency'] ?? 'EUR'));
+                    $requiresCms = htmlspecialchars((string)($plugin['requires_cms'] ?? ''));
+                    $requiresPhp = htmlspecialchars((string)($plugin['requires_php'] ?? ''));
                     $isInstalled = !empty($plugin['installed']);
+                    $isPaid = !empty($plugin['is_paid']);
                     $autoInstallSupported = !empty($plugin['auto_install_supported']);
                     $installReason = htmlspecialchars((string)($plugin['install_reason'] ?? ''));
                     $hashPresent = !empty($plugin['integrity_hash_present']);
@@ -132,9 +138,22 @@ if (!defined('ABSPATH')) {
                                     <?php if ($category): ?>
                                         <span class="badge bg-azure-lt"><?php echo $category; ?></span>
                                     <?php endif; ?>
+                                    <?php if ($isPaid): ?>
+                                        <span class="badge bg-orange-lt">Kostenpflichtig</span>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                             <p class="text-secondary"><?php echo $description; ?></p>
+                            <?php if ($priceAmount !== ''): ?>
+                                <div class="mb-2"><span class="badge bg-orange-lt"><?php echo $priceAmount . ' ' . $priceCurrency; ?></span></div>
+                            <?php endif; ?>
+                            <?php if ($requiresCms !== '' || $requiresPhp !== ''): ?>
+                                <div class="text-muted small mb-2">
+                                    <?php if ($requiresCms !== ''): ?>365CMS ab <?php echo $requiresCms; ?><?php endif; ?>
+                                    <?php if ($requiresCms !== '' && $requiresPhp !== ''): ?> · <?php endif; ?>
+                                    <?php if ($requiresPhp !== ''): ?>PHP ab <?php echo $requiresPhp; ?><?php endif; ?>
+                                </div>
+                            <?php endif; ?>
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="text-muted small">
                                     v<?php echo $version; ?> · <?php echo $author; ?>
@@ -159,6 +178,13 @@ if (!defined('ABSPATH')) {
                                             Installieren
                                         </button>
                                     </form>
+                                <?php elseif ($isPaid && $purchaseUrl !== ''): ?>
+                                    <div class="text-end">
+                                        <a href="<?php echo $purchaseUrl; ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm mb-2">
+                                            Anfragen / Kaufen
+                                        </a>
+                                        <div class="text-muted small" style="max-width: 220px;"><?php echo $installReason; ?></div>
+                                    </div>
                                 <?php else: ?>
                                     <div class="text-end">
                                         <span class="badge bg-secondary-lt mb-2">Nur manuell</span>

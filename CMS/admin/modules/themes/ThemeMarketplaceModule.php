@@ -21,6 +21,8 @@ use CMS\Database;
 class ThemeMarketplaceModule
 {
     private const ALLOWED_MARKETPLACE_HOSTS = [
+        '365cms.de',
+        'www.365cms.de',
         '365network.de',
         'www.365network.de',
         'api.github.com',
@@ -29,6 +31,8 @@ class ThemeMarketplaceModule
         'objects.githubusercontent.com',
         'raw.githubusercontent.com',
     ];
+
+    private const DEFAULT_MARKETPLACE_URL = 'https://365cms.de/marketplace/themes';
 
     private ThemeManager $themeManager;
     private HttpClient $httpClient;
@@ -202,14 +206,14 @@ class ThemeMarketplaceModule
      */
     private function getCatalog(): array
     {
-        $localCatalog = $this->loadLocalCatalog();
-        if ($localCatalog !== []) {
-            return $localCatalog;
-        }
-
         $remoteCatalog = $this->loadRemoteCatalog();
         if ($remoteCatalog !== []) {
             return $remoteCatalog;
+        }
+
+        $localCatalog = $this->loadLocalCatalog();
+        if ($localCatalog !== []) {
+            return $localCatalog;
         }
 
         return [];
@@ -225,9 +229,11 @@ class ThemeMarketplaceModule
             $row  = $db->get_row(
                 "SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'theme_marketplace_url'"
             );
-            return $row->option_value ?? '';
+            $value = trim((string) ($row->option_value ?? ''));
+
+            return $value !== '' ? $value : self::DEFAULT_MARKETPLACE_URL;
         } catch (\Throwable $e) {
-            return '';
+            return self::DEFAULT_MARKETPLACE_URL;
         }
     }
 
@@ -320,7 +326,15 @@ class ThemeMarketplaceModule
             $normalized['description'] = (string) ($normalized['description'] ?? '');
             $normalized['version'] = (string) ($normalized['version'] ?? '');
             $normalized['author'] = (string) ($normalized['author'] ?? '');
+            $normalized['manifest'] = (string) ($normalized['manifest'] ?? '');
+            $normalized['update_url'] = $this->resolveCatalogUrl($normalized, ['update_url'], $sourceBase);
             $normalized['download_url'] = $this->resolveDownloadUrl($normalized, $sourceBase);
+            $normalized['purchase_url'] = $this->resolveCatalogUrl($normalized, ['purchase_url', 'buy_url', 'order_url'], $sourceBase);
+            $normalized['is_paid'] = $this->normalizeBooleanValue($normalized['is_paid'] ?? false);
+            $normalized['price_amount'] = (string) ($normalized['price_amount'] ?? $normalized['price'] ?? '');
+            $normalized['price_currency'] = strtoupper((string) ($normalized['price_currency'] ?? 'EUR'));
+            $normalized['requires_cms'] = (string) ($normalized['requires_cms'] ?? $normalized['min_cms_version'] ?? '');
+            $normalized['requires_php'] = (string) ($normalized['requires_php'] ?? $normalized['min_php'] ?? '');
             $normalized['screenshot'] = $this->resolveAssetUrl((string) ($normalized['screenshot'] ?? ''), $sourceBase);
             $normalized['sha256'] = $this->resolveIntegrityHash($normalized);
 
@@ -328,6 +342,29 @@ class ThemeMarketplaceModule
         }
 
         return $catalog;
+    }
+
+    private function resolveCatalogUrl(array $theme, array $keys, string $sourceBase): string
+    {
+        foreach ($keys as $key) {
+            $value = trim((string) ($theme[$key] ?? ''));
+            if ($value === '') {
+                continue;
+            }
+
+            if ($this->isAllowedMarketplaceUrl($value)) {
+                return $value;
+            }
+
+            if ($this->isAllowedMarketplaceUrl($sourceBase)) {
+                $resolved = rtrim($sourceBase, '/') . '/' . ltrim($value, '/');
+                if ($this->isAllowedMarketplaceUrl($resolved)) {
+                    return $resolved;
+                }
+            }
+        }
+
+        return '';
     }
 
     private function loadManifestData(array $entry, string $sourceBase): array
@@ -448,6 +485,11 @@ class ThemeMarketplaceModule
 
     private function getManualInstallReason(array $theme): string
     {
+        $purchaseUrl = trim((string)($theme['purchase_url'] ?? ''));
+        if ($this->normalizeBooleanValue($theme['is_paid'] ?? false) && $purchaseUrl !== '') {
+            return 'Kostenpflichtiges Theme – bitte zuerst über den Marketplace erwerben oder anfragen.';
+        }
+
         $downloadUrl = trim((string)($theme['download_url'] ?? ''));
         if ($downloadUrl === '') {
             return 'Für dieses Theme ist aktuell kein Installationspaket im Marketplace hinterlegt. Bitte kopiere das Theme manuell nach /themes/ und aktiviere es anschließend in der Theme-Verwaltung.';
@@ -492,6 +534,17 @@ class ThemeMarketplaceModule
     {
         $value = strtolower(trim($value));
         return preg_replace('/[^a-z0-9_-]/', '', $value) ?? '';
+    }
+
+    private function normalizeBooleanValue(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        $normalized = strtolower(trim((string) $value));
+
+        return in_array($normalized, ['1', 'true', 'yes', 'ja', 'paid'], true);
     }
 
     private function isHttpsUrl(string $url): bool

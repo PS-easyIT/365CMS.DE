@@ -14,6 +14,8 @@ use CMS\Http\Client as HttpClient;
 class PluginMarketplaceModule
 {
     private const ALLOWED_MARKETPLACE_HOSTS = [
+        '365cms.de',
+        'www.365cms.de',
         '365network.de',
         'www.365network.de',
         'api.github.com',
@@ -22,6 +24,8 @@ class PluginMarketplaceModule
         'objects.githubusercontent.com',
         'raw.githubusercontent.com',
     ];
+
+    private const DEFAULT_REGISTRY_URL = 'https://365cms.de/marketplace/plugins/index.json';
 
     private readonly \CMS\Database $db;
     private readonly string $prefix;
@@ -156,32 +160,12 @@ class PluginMarketplaceModule
 
     private function loadRegistry(): array
     {
-        $registryUrl = '';
-        $row = $this->db->get_row(
-            "SELECT option_value FROM {$this->prefix}settings WHERE option_name = 'plugin_registry_url'"
-        );
-        $registryUrl = $row->option_value ?? '';
-
+        $registryUrl = $this->getRegistryUrl();
         if ($registryUrl !== '') {
-            if ($this->isAllowedMarketplaceUrl($registryUrl)) {
-                $response = HttpClient::getInstance()->get($registryUrl, [
-                    'userAgent' => '365CMS-PluginMarketplace/1.0',
-                    'timeout' => 10,
-                    'connectTimeout' => 5,
-                    'maxBytes' => 1024 * 1024,
-                    'allowedContentTypes' => ['application/json', 'text/plain'],
-                ]);
-                $content = (string) ($response['body'] ?? '');
-
-                if (($response['success'] ?? false) === true && $content !== '') {
-                    $data = \CMS\Json::decodeArray($content, []);
-                    $plugins = is_array($data) ? ($data['plugins'] ?? $data) : [];
-
-                    return $this->sanitizeCatalogEntries(is_array($plugins) ? $plugins : []);
-                }
+            $remoteRegistry = $this->loadRemoteRegistry($registryUrl);
+            if ($remoteRegistry !== []) {
+                return $remoteRegistry;
             }
-
-            return [];
         }
 
         $localIndex = $this->resolveLocalRegistryPath();
@@ -197,7 +181,46 @@ class PluginMarketplaceModule
         $json = \CMS\Json::decodeArray($content, []);
         $plugins = is_array($json) ? ($json['plugins'] ?? $json) : [];
 
-        return $this->sanitizeCatalogEntries(is_array($plugins) ? $plugins : []);
+        return $this->sanitizeCatalogEntries(is_array($plugins) ? $plugins : [], dirname($localIndex));
+    }
+
+    private function getRegistryUrl(): string
+    {
+        $row = $this->db->get_row(
+            "SELECT option_value FROM {$this->prefix}settings WHERE option_name = 'plugin_registry_url'"
+        );
+
+        $value = trim((string) ($row->option_value ?? ''));
+
+        return $value !== '' ? $value : self::DEFAULT_REGISTRY_URL;
+    }
+
+    private function loadRemoteRegistry(string $registryUrl): array
+    {
+        if (!$this->isAllowedMarketplaceUrl($registryUrl)) {
+            return [];
+        }
+
+        $response = HttpClient::getInstance()->get($registryUrl, [
+            'userAgent' => '365CMS-PluginMarketplace/1.0',
+            'timeout' => 10,
+            'connectTimeout' => 5,
+            'maxBytes' => 1024 * 1024,
+            'allowedContentTypes' => ['application/json', 'text/plain'],
+        ]);
+        $content = (string) ($response['body'] ?? '');
+
+        if (($response['success'] ?? false) !== true || $content === '') {
+            return [];
+        }
+
+        $data = \CMS\Json::decodeArray($content, []);
+        $plugins = is_array($data) ? ($data['plugins'] ?? $data) : [];
+
+        return $this->sanitizeCatalogEntries(
+            is_array($plugins) ? $plugins : [],
+            $this->resolveBasePath($registryUrl)
+        );
     }
 
     private function getInstalledSlugs(): array
@@ -213,7 +236,7 @@ class PluginMarketplaceModule
         return $slugs;
     }
 
-    private function sanitizeCatalogEntries(array $entries): array
+    private function sanitizeCatalogEntries(array $entries, string $sourceBase = ''): array
     {
         $sanitized = [];
 
@@ -222,23 +245,145 @@ class PluginMarketplaceModule
                 continue;
             }
 
-            $downloadUrl = trim((string) ($entry['download_url'] ?? ''));
-            if ($downloadUrl !== '' && !$this->isAllowedMarketplaceUrl($downloadUrl)) {
-                $entry['download_url'] = '';
+            $manifestData = $this->loadManifestData($entry, $sourceBase);
+            $normalized = array_merge($entry, $manifestData);
+
+            $downloadUrl = $this->resolveCatalogUrl($normalized, ['download_url', 'package_url', 'archive_url'], $sourceBase);
+            $purchaseUrl = $this->resolveCatalogUrl($normalized, ['purchase_url', 'buy_url', 'order_url'], $sourceBase);
+            $updateUrl = $this->resolveCatalogUrl($normalized, ['update_url'], $sourceBase);
+
+            $normalized['slug'] = preg_replace('/[^a-z0-9_-]/', '', strtolower((string)($normalized['slug'] ?? '')));
+            if (($normalized['slug'] ?? '') === '') {
+                continue;
             }
 
-            $entry['slug'] = preg_replace('/[^a-z0-9_-]/', '', strtolower((string)($entry['slug'] ?? '')));
-            $entry['name'] = (string)($entry['name'] ?? $entry['slug'] ?? '');
-            $entry['description'] = (string)($entry['description'] ?? '');
-            $entry['version'] = (string)($entry['version'] ?? '');
-            $entry['author'] = (string)($entry['author'] ?? '');
-            $entry['category'] = (string)($entry['category'] ?? '');
-            $entry['sha256'] = $this->resolveIntegrityHash($entry);
+            $normalized['name'] = (string)($normalized['name'] ?? $normalized['slug'] ?? '');
+            $normalized['description'] = (string)($normalized['description'] ?? '');
+            $normalized['version'] = (string)($normalized['version'] ?? '');
+            $normalized['author'] = (string)($normalized['author'] ?? '');
+            $normalized['category'] = (string)($normalized['category'] ?? '');
+            $normalized['manifest'] = (string)($normalized['manifest'] ?? '');
+            $normalized['update_url'] = $updateUrl;
+            $normalized['download_url'] = $downloadUrl;
+            $normalized['purchase_url'] = $purchaseUrl;
+            $normalized['is_paid'] = $this->normalizeBooleanValue($normalized['is_paid'] ?? false);
+            $normalized['price_amount'] = (string)($normalized['price_amount'] ?? $normalized['price'] ?? '');
+            $normalized['price_currency'] = strtoupper((string)($normalized['price_currency'] ?? 'EUR'));
+            $normalized['requires_cms'] = (string)($normalized['requires_cms'] ?? $normalized['min_cms_version'] ?? '');
+            $normalized['requires_php'] = (string)($normalized['requires_php'] ?? $normalized['min_php'] ?? '');
+            $normalized['sha256'] = $this->resolveIntegrityHash($normalized);
 
-            $sanitized[] = $entry;
+            $sanitized[] = $normalized;
         }
 
         return $sanitized;
+    }
+
+    private function loadManifestData(array $entry, string $sourceBase): array
+    {
+        $manifest = trim((string) ($entry['manifest'] ?? ''));
+        if ($manifest === '') {
+            return [];
+        }
+
+        if ($this->isAllowedMarketplaceUrl($manifest)) {
+            return $this->fetchRemoteJson($manifest);
+        }
+
+        if ($sourceBase !== '' && $this->isAllowedMarketplaceUrl($sourceBase)) {
+            return $this->fetchRemoteJson(rtrim($sourceBase, '/') . '/' . ltrim($manifest, '/'));
+        }
+
+        $manifestPath = rtrim($sourceBase, '/\\') . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, ltrim($manifest, '/\\'));
+        if (!is_file($manifestPath)) {
+            return [];
+        }
+
+        $content = file_get_contents($manifestPath);
+        if ($content === false || $content === '') {
+            return [];
+        }
+
+        $data = \CMS\Json::decodeArray($content, []);
+
+        return is_array($data) ? $data : [];
+    }
+
+    private function fetchRemoteJson(string $url): array
+    {
+        if (!$this->isAllowedMarketplaceUrl($url)) {
+            return [];
+        }
+
+        $response = HttpClient::getInstance()->get($url, [
+            'userAgent' => '365CMS-PluginMarketplace/1.0',
+            'timeout' => 10,
+            'connectTimeout' => 5,
+            'maxBytes' => 512 * 1024,
+            'allowedContentTypes' => ['application/json', 'text/plain'],
+        ]);
+        $content = (string) ($response['body'] ?? '');
+
+        if (($response['success'] ?? false) !== true || $content === '') {
+            return [];
+        }
+
+        $data = \CMS\Json::decodeArray($content, []);
+
+        return is_array($data) ? $data : [];
+    }
+
+    private function resolveCatalogUrl(array $entry, array $keys, string $sourceBase): string
+    {
+        foreach ($keys as $key) {
+            $value = trim((string) ($entry[$key] ?? ''));
+            if ($value === '') {
+                continue;
+            }
+
+            if ($this->isAllowedMarketplaceUrl($value)) {
+                return $value;
+            }
+
+            if ($sourceBase !== '' && $this->isAllowedMarketplaceUrl($sourceBase)) {
+                $resolved = rtrim($sourceBase, '/') . '/' . ltrim($value, '/');
+                if ($this->isAllowedMarketplaceUrl($resolved)) {
+                    return $resolved;
+                }
+            }
+        }
+
+        return '';
+    }
+
+    private function resolveBasePath(string $url): string
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return '';
+        }
+
+        $scheme = (string) ($parts['scheme'] ?? '');
+        $host = (string) ($parts['host'] ?? '');
+        if ($scheme === '' || $host === '') {
+            return '';
+        }
+
+        $path = (string) ($parts['path'] ?? '');
+        $directory = preg_replace('~/[^/]+$~', '', $path) ?? '';
+
+        return $scheme . '://' . $host . $directory;
+    }
+
+    private function normalizeBooleanValue(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        $normalized = strtolower(trim((string) $value));
+
+        return in_array($normalized, ['1', 'true', 'yes', 'ja', 'paid'], true);
     }
 
     private function canAutoInstall(array $plugin): bool
@@ -265,6 +410,11 @@ class PluginMarketplaceModule
 
     private function getManualInstallReason(array $plugin): string
     {
+        $purchaseUrl = trim((string)($plugin['purchase_url'] ?? ''));
+        if ($this->normalizeBooleanValue($plugin['is_paid'] ?? false) && $purchaseUrl !== '') {
+            return 'Kostenpflichtiges Plugin – bitte zuerst über den Marketplace erwerben oder anfragen.';
+        }
+
         $downloadUrl = trim((string)($plugin['download_url'] ?? ''));
         if ($downloadUrl === '') {
             return 'Keine Download-URL verfügbar. Plugin muss manuell installiert werden.';
