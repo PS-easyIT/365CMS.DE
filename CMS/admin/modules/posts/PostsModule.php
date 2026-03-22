@@ -98,6 +98,7 @@ class PostsModule
             'parent_id' => "ALTER TABLE {$this->prefix}post_categories ADD COLUMN parent_id INT UNSIGNED DEFAULT NULL AFTER description",
             'sort_order' => "ALTER TABLE {$this->prefix}post_categories ADD COLUMN sort_order INT DEFAULT 0 AFTER parent_id",
             'alias_domains_json' => "ALTER TABLE {$this->prefix}post_categories ADD COLUMN alias_domains_json TEXT DEFAULT NULL AFTER sort_order",
+            'replacement_category_id' => "ALTER TABLE {$this->prefix}post_categories ADD COLUMN replacement_category_id INT UNSIGNED DEFAULT NULL AFTER alias_domains_json",
         ];
 
         foreach ($columns as $column => $sql) {
@@ -325,7 +326,7 @@ class PostsModule
     public function getCategoryAdminData(): array
     {
         $categories = $this->db->get_results(
-            "SELECT c.id, c.name, c.slug, c.parent_id, c.sort_order, c.alias_domains_json,
+            "SELECT c.id, c.name, c.slug, c.parent_id, c.sort_order, c.alias_domains_json, c.replacement_category_id,
                     COUNT(p.id) AS post_count,
                     (
                         SELECT COUNT(DISTINCT p2.id)
@@ -335,7 +336,7 @@ class PostsModule
                     ) AS assigned_post_count
              FROM {$this->prefix}post_categories c
              LEFT JOIN {$this->prefix}posts p ON p.category_id = c.id
-             GROUP BY c.id, c.name, c.slug, c.parent_id, c.sort_order, c.alias_domains_json
+             GROUP BY c.id, c.name, c.slug, c.parent_id, c.sort_order, c.alias_domains_json, c.replacement_category_id
              ORDER BY c.sort_order ASC, c.name ASC"
         ) ?: [];
 
@@ -664,6 +665,7 @@ class PostsModule
         $name = trim($post['cat_name'] ?? '');
         $slug = trim($post['cat_slug'] ?? '');
         $parentId = (int) ($post['parent_id'] ?? 0);
+        $replacementCategoryId = (int) ($post['replacement_category_id'] ?? 0);
         $normalizedDomains = $this->normalizeCategoryDomains((string) ($post['cat_domains'] ?? ''));
 
         if ($name === '') {
@@ -687,6 +689,16 @@ class PostsModule
 
         if ($id > 0 && $parentId > 0 && $this->isCategoryDescendant($parentId, $id)) {
             return ['success' => false, 'error' => 'Die gewählte Elternkategorie liegt bereits unterhalb dieser Kategorie.'];
+        }
+
+        if ($replacementCategoryId > 0) {
+            if ($replacementCategoryId === $id) {
+                return ['success' => false, 'error' => 'Die Ersatzkategorie darf nicht identisch mit der aktuellen Kategorie sein.'];
+            }
+
+            if (!$this->categoryExists($replacementCategoryId)) {
+                return ['success' => false, 'error' => 'Die gewählte Ersatzkategorie existiert nicht.'];
+            }
         }
 
         if (!empty($normalizedDomains['errors'])) {
@@ -716,14 +728,14 @@ class PostsModule
         try {
             if ($id > 0) {
                 $this->db->execute(
-                    "UPDATE {$this->prefix}post_categories SET name = ?, slug = ?, parent_id = ?, alias_domains_json = ? WHERE id = ?",
-                    [$name, $slug, $parentId > 0 ? $parentId : null, $domainsJson, $id]
+                    "UPDATE {$this->prefix}post_categories SET name = ?, slug = ?, parent_id = ?, alias_domains_json = ?, replacement_category_id = ? WHERE id = ?",
+                    [$name, $slug, $parentId > 0 ? $parentId : null, $domainsJson, $replacementCategoryId > 0 ? $replacementCategoryId : null, $id]
                 );
                 return ['success' => true, 'message' => 'Kategorie aktualisiert.'];
             } else {
                 $this->db->execute(
-                    "INSERT INTO {$this->prefix}post_categories (name, slug, parent_id, alias_domains_json) VALUES (?, ?, ?, ?)",
-                    [$name, $slug, $parentId > 0 ? $parentId : null, $domainsJson]
+                    "INSERT INTO {$this->prefix}post_categories (name, slug, parent_id, alias_domains_json, replacement_category_id) VALUES (?, ?, ?, ?, ?)",
+                    [$name, $slug, $parentId > 0 ? $parentId : null, $domainsJson, $replacementCategoryId > 0 ? $replacementCategoryId : null]
                 );
                 return ['success' => true, 'message' => 'Kategorie erstellt.'];
             }
@@ -741,8 +753,135 @@ class PostsModule
             return ['success' => false, 'error' => 'Ungültige Kategorie.'];
         }
 
-        $assignedPostCount = $this->countAssignedPostsForCategory($id);
         $replacementId = (int) ($_POST['replacement_category_id'] ?? 0);
+
+        if ($replacementId <= 0) {
+            $replacementId = $this->getStoredReplacementCategoryId($id);
+        }
+
+        return $this->deleteCategoryResolved($id, $replacementId);
+    }
+
+    public function deleteCategoriesWithStoredReplacement(): array
+    {
+        $categories = $this->getCategoriesWithStoredReplacement();
+        if ($categories === []) {
+            return ['success' => false, 'error' => 'Es sind keine Kategorien mit hinterlegter Ersatzkategorie vorhanden.'];
+        }
+
+        $eligible = [];
+        $skippedInvalid = [];
+
+        foreach ($categories as $category) {
+            $categoryId = (int) ($category['id'] ?? 0);
+            $categoryName = trim((string) ($category['name'] ?? 'Kategorie'));
+            $replacementId = (int) ($category['replacement_category_id'] ?? 0);
+
+            if ($categoryId <= 0 || $replacementId <= 0 || $replacementId === $categoryId || !$this->categoryExists($replacementId)) {
+                $skippedInvalid[] = $categoryName;
+                continue;
+            }
+
+            $eligible[$categoryId] = [
+                'id' => $categoryId,
+                'name' => $categoryName,
+                'replacement_category_id' => $replacementId,
+            ];
+        }
+
+        if ($eligible === []) {
+            return ['success' => false, 'error' => 'Keine der Kategorien mit hinterlegter Ersatzkategorie ist aktuell löschbar.'];
+        }
+
+        $orderedCategories = [];
+        $cyclicCategories = [];
+        $pending = $eligible;
+
+        while ($pending !== []) {
+            $targetedPendingIds = [];
+            foreach ($pending as $pendingCategory) {
+                $targetId = (int) ($pendingCategory['replacement_category_id'] ?? 0);
+                if ($targetId > 0 && isset($pending[$targetId])) {
+                    $targetedPendingIds[$targetId] = true;
+                }
+            }
+
+            $progress = false;
+            foreach ($pending as $categoryId => $pendingCategory) {
+                if (isset($targetedPendingIds[$categoryId])) {
+                    continue;
+                }
+
+                $orderedCategories[] = $pendingCategory;
+                unset($pending[$categoryId]);
+                $progress = true;
+            }
+
+            if (!$progress) {
+                foreach ($pending as $pendingCategory) {
+                    $cyclicCategories[] = trim((string) ($pendingCategory['name'] ?? 'Kategorie'));
+                }
+                break;
+            }
+        }
+
+        $deletedNames = [];
+        $failedNames = [];
+
+        foreach ($orderedCategories as $category) {
+            $categoryId = (int) ($category['id'] ?? 0);
+            $categoryName = trim((string) ($category['name'] ?? 'Kategorie'));
+            $replacementId = (int) ($category['replacement_category_id'] ?? 0);
+            $result = $this->deleteCategoryResolved($categoryId, $replacementId);
+
+            if (!empty($result['success'])) {
+                $deletedNames[] = $categoryName;
+                continue;
+            }
+
+            $failedNames[] = $categoryName;
+        }
+
+        if ($deletedNames === []) {
+            $details = [];
+            if ($cyclicCategories !== []) {
+                $details[] = 'Zyklische Ersatzketten: ' . implode(', ', $cyclicCategories) . '.';
+            }
+            if ($skippedInvalid !== []) {
+                $details[] = 'Ungültige Ersatzkategorien: ' . implode(', ', $skippedInvalid) . '.';
+            }
+            if ($failedNames !== []) {
+                $details[] = 'Fehlgeschlagen: ' . implode(', ', $failedNames) . '.';
+            }
+
+            return ['success' => false, 'error' => trim('Es konnte keine Kategorie gelöscht werden. ' . implode(' ', $details))];
+        }
+
+        $messageParts = [];
+        $messageParts[] = count($deletedNames) . ' Kategorie/Kategorien mit Ersatzkategorie wurden gelöscht und automatisch umgestellt.';
+
+        if ($cyclicCategories !== []) {
+            $messageParts[] = count($cyclicCategories) . ' wegen zyklischer Ersatzketten übersprungen.';
+        }
+
+        if ($skippedInvalid !== []) {
+            $messageParts[] = count($skippedInvalid) . ' wegen ungültiger Ersatzkategorie übersprungen.';
+        }
+
+        if ($failedNames !== []) {
+            $messageParts[] = count($failedNames) . ' konnten nicht gelöscht werden.';
+        }
+
+        return ['success' => true, 'message' => implode(' ', $messageParts)];
+    }
+
+    private function deleteCategoryResolved(int $id, int $replacementId = 0): array
+    {
+        if ($id <= 0) {
+            return ['success' => false, 'error' => 'Ungültige Kategorie.'];
+        }
+
+        $assignedPostCount = $this->countAssignedPostsForCategory($id);
 
         if ($assignedPostCount > 0) {
             if ($replacementId <= 0) {
@@ -771,6 +910,7 @@ class PostsModule
             }
 
             $this->db->execute("UPDATE {$this->prefix}post_categories SET parent_id = NULL WHERE parent_id = ?", [$id]);
+            $this->db->execute("UPDATE {$this->prefix}post_categories SET replacement_category_id = NULL WHERE replacement_category_id = ?", [$id]);
             $this->db->execute("DELETE FROM {$this->prefix}post_categories WHERE id = ?", [$id]);
 
             return ['success' => true, 'message' => 'Kategorie gelöscht.'];
@@ -792,6 +932,53 @@ class PostsModule
              WHERE p.category_id = ? OR pcr.category_id = ?",
             [$categoryId, $categoryId]
         ) ?: 0);
+    }
+
+    private function getStoredReplacementCategoryId(int $categoryId): int
+    {
+        if ($categoryId <= 0) {
+            return 0;
+        }
+
+        $replacementId = (int) ($this->db->get_var(
+            "SELECT replacement_category_id FROM {$this->prefix}post_categories WHERE id = ? LIMIT 1",
+            [$categoryId]
+        ) ?: 0);
+
+        if ($replacementId <= 0 || $replacementId === $categoryId) {
+            return 0;
+        }
+
+        return $this->categoryExists($replacementId) ? $replacementId : 0;
+    }
+
+    /**
+     * @return array<int,array{id:int,name:string,replacement_category_id:int}>
+     */
+    private function getCategoriesWithStoredReplacement(): array
+    {
+        $rows = $this->db->get_results(
+            "SELECT id, name, replacement_category_id
+             FROM {$this->prefix}post_categories
+             WHERE replacement_category_id IS NOT NULL AND replacement_category_id > 0
+             ORDER BY name ASC"
+        ) ?: [];
+
+        $categories = [];
+        foreach ($rows as $row) {
+            $categoryId = (int) ($row->id ?? 0);
+            if ($categoryId <= 0) {
+                continue;
+            }
+
+            $categories[] = [
+                'id' => $categoryId,
+                'name' => trim((string) ($row->name ?? 'Kategorie')),
+                'replacement_category_id' => (int) ($row->replacement_category_id ?? 0),
+            ];
+        }
+
+        return $categories;
     }
 
     private function reassignPostsFromDeletedCategory(int $deletedCategoryId, int $replacementCategoryId): void
@@ -1036,6 +1223,7 @@ class PostsModule
             $row['id'] = $id;
             $row['parent_id'] = (int) ($row['parent_id'] ?? 0);
             $row['sort_order'] = (int) ($row['sort_order'] ?? 0);
+            $row['replacement_category_id'] = (int) ($row['replacement_category_id'] ?? 0);
             $row['post_count_direct'] = (int) ($row['post_count'] ?? 0);
             $row['domains'] = $this->decodeCategoryDomains((string) ($row['alias_domains_json'] ?? ''));
             $byId[$id] = $row;
@@ -1069,6 +1257,12 @@ class PostsModule
                     $row['parent_name'] = (string) ($byId[(int) $row['parent_id']]['name'] ?? '');
                 }
 
+                $replacementId = (int) ($row['replacement_category_id'] ?? 0);
+                $row['replacement_category_name'] = '';
+                if ($replacementId > 0 && isset($byId[$replacementId])) {
+                    $row['replacement_category_name'] = (string) ($byId[$replacementId]['name'] ?? '');
+                }
+
                 $index = count($flat);
                 $flat[] = $row;
                 $childrenTotal = $walker($categoryId, $depth + 1);
@@ -1080,6 +1274,8 @@ class PostsModule
                     unset($row['post_count_total']);
                     unset($row['parent_name']);
                     unset($row['is_main_category']);
+                    unset($row['replacement_category_id']);
+                    unset($row['replacement_category_name']);
                 }
 
                 $flat[$index] = $row;

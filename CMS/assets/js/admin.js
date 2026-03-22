@@ -27,9 +27,10 @@ function initPostCategoryDeleteFlow() {
     var reassignWrap = document.getElementById('deleteCategoryReassignWrap');
     var replacementSelect = document.getElementById('replacementCategoryId');
     var hintEl = document.getElementById('deleteCategoryHint');
+    var questionEl = document.getElementById('deleteCategoryQuestion');
     var submitButton = document.getElementById('deleteCategorySubmit');
 
-    if (!deleteCategoryForms.length || !modalElement || !categoryIdInput || !categoryNameEl || !reassignWrap || !replacementSelect || !hintEl || !submitButton) {
+    if (!deleteCategoryForms.length || !modalElement || !categoryIdInput || !categoryNameEl || !reassignWrap || !replacementSelect || !hintEl || !questionEl || !submitButton) {
         return;
     }
 
@@ -37,18 +38,30 @@ function initPostCategoryDeleteFlow() {
         ? bootstrap.Modal.getOrCreateInstance(modalElement)
         : null;
 
-    function configureReplacementOptions(categoryId) {
+    function configureReplacementOptions(categoryId, preferredReplacementId) {
         var availableOptions = 0;
+        var firstAvailableValue = '0';
+        var preferredValue = String(preferredReplacementId || '0');
+        var preferredAvailable = false;
         Array.prototype.forEach.call(replacementSelect.options, function(option) {
             var isPlaceholder = option.value === '0';
             option.disabled = !isPlaceholder && option.value === categoryId;
             option.selected = isPlaceholder;
             if (!option.disabled && !isPlaceholder) {
                 availableOptions += 1;
+                if (firstAvailableValue === '0') {
+                    firstAvailableValue = option.value;
+                }
+                if (option.value === preferredValue) {
+                    preferredAvailable = true;
+                }
             }
         });
-        replacementSelect.value = '0';
-        return availableOptions;
+        replacementSelect.value = preferredAvailable ? preferredValue : firstAvailableValue;
+        return {
+            availableOptions: availableOptions,
+            firstAvailableValue: firstAvailableValue,
+        };
     }
 
     deleteCategoryForms.forEach(function(form) {
@@ -74,20 +87,25 @@ function initPostCategoryDeleteFlow() {
 
             categoryIdInput.value = categoryId;
             categoryNameEl.textContent = categoryName;
-            var availableOptions = configureReplacementOptions(categoryId);
+            var preferredReplacementId = String(form.getAttribute('data-default-replacement-category-id') || '0');
+            var replacementState = configureReplacementOptions(categoryId, preferredReplacementId);
             submitButton.disabled = false;
+            submitButton.textContent = 'Kategorie löschen';
+            questionEl.classList.add('d-none');
 
             if (assignedPosts > 0) {
                 reassignWrap.classList.remove('d-none');
                 replacementSelect.required = true;
-                if (availableOptions <= 0) {
+                questionEl.classList.remove('d-none');
+                if (replacementState.availableOptions <= 0) {
                     replacementSelect.required = false;
                     replacementSelect.disabled = true;
                     submitButton.disabled = true;
                     hintEl.textContent = 'Es gibt aktuell keine andere Kategorie als Ersatz. Bitte lege zuerst eine weitere Kategorie an.';
                 } else {
                     replacementSelect.disabled = false;
-                    hintEl.textContent = assignedPosts + ' Beitrag/Beiträge sind dieser Kategorie zugeordnet. Bitte wähle eine Ersatzkategorie.';
+                    hintEl.textContent = assignedPosts + ' Beitrag/Beiträge sind dieser Kategorie zugeordnet und werden in die ausgewählte Ersatzkategorie verschoben.';
+                    submitButton.textContent = 'Verschieben & löschen';
                 }
             } else {
                 reassignWrap.classList.add('d-none');
@@ -107,6 +125,8 @@ function initPostCategoryDeleteFlow() {
         replacementSelect.required = false;
         replacementSelect.disabled = false;
         submitButton.disabled = false;
+        submitButton.textContent = 'Löschen bestätigen';
+        questionEl.classList.add('d-none');
         configureReplacementOptions('0');
         hintEl.textContent = 'Unterkategorien werden dabei zu Hauptkategorien.';
     });
@@ -120,9 +140,10 @@ function initPostTagDeleteFlow() {
     var reassignWrap = document.getElementById('deleteTagReassignWrap');
     var replacementSelect = document.getElementById('replacementTagId');
     var hintEl = document.getElementById('deleteTagHint');
+    var questionEl = document.getElementById('deleteTagQuestion');
     var submitButton = document.getElementById('deleteTagSubmit');
 
-    if (!deleteTagForms.length || !modalElement || !tagIdInput || !tagNameEl || !reassignWrap || !replacementSelect || !hintEl || !submitButton) {
+    if (!deleteTagForms.length || !modalElement || !tagIdInput || !tagNameEl || !reassignWrap || !replacementSelect || !hintEl || !questionEl || !submitButton) {
         return;
     }
 
@@ -132,16 +153,23 @@ function initPostTagDeleteFlow() {
 
     function configureReplacementOptions(tagId) {
         var availableOptions = 0;
+        var firstAvailableValue = '0';
         Array.prototype.forEach.call(replacementSelect.options, function(option) {
             var isPlaceholder = option.value === '0';
             option.disabled = !isPlaceholder && option.value === tagId;
             option.selected = isPlaceholder;
             if (!option.disabled && !isPlaceholder) {
                 availableOptions += 1;
+                if (firstAvailableValue === '0') {
+                    firstAvailableValue = option.value;
+                }
             }
         });
-        replacementSelect.value = '0';
-        return availableOptions;
+        replacementSelect.value = firstAvailableValue;
+        return {
+            availableOptions: availableOptions,
+            firstAvailableValue: firstAvailableValue,
+        };
     }
 
     deleteTagForms.forEach(function(form) {
@@ -167,20 +195,24 @@ function initPostTagDeleteFlow() {
 
             tagIdInput.value = tagId;
             tagNameEl.textContent = tagName;
-            var availableOptions = configureReplacementOptions(tagId);
+            var replacementState = configureReplacementOptions(tagId);
             submitButton.disabled = false;
+            submitButton.textContent = 'Tag löschen';
+            questionEl.classList.add('d-none');
 
             if (assignedPosts > 0) {
                 reassignWrap.classList.remove('d-none');
                 replacementSelect.required = true;
-                if (availableOptions <= 0) {
+                questionEl.classList.remove('d-none');
+                if (replacementState.availableOptions <= 0) {
                     replacementSelect.required = false;
                     replacementSelect.disabled = true;
                     submitButton.disabled = true;
                     hintEl.textContent = 'Es gibt aktuell keinen anderen Tag als Ersatz. Bitte lege zuerst einen weiteren Tag an.';
                 } else {
                     replacementSelect.disabled = false;
-                    hintEl.textContent = assignedPosts + ' Beitrag/Beiträge nutzen diesen Tag. Bitte wähle einen Ersatztag.';
+                    hintEl.textContent = assignedPosts + ' Beitrag/Beiträge nutzen diesen Tag und werden auf den ausgewählten Ersatztag umgestellt.';
+                    submitButton.textContent = 'Verschieben & löschen';
                 }
             } else {
                 reassignWrap.classList.add('d-none');
@@ -200,8 +232,48 @@ function initPostTagDeleteFlow() {
         replacementSelect.required = false;
         replacementSelect.disabled = false;
         submitButton.disabled = false;
+        submitButton.textContent = 'Löschen bestätigen';
+        questionEl.classList.add('d-none');
         configureReplacementOptions('0');
         hintEl.textContent = 'Zugeordnete Beziehungen werden dabei entfernt.';
+    });
+}
+
+function initReplacementCategoryBulkDeleteFlow() {
+    var bulkDeleteForms = document.querySelectorAll('.js-delete-replacement-categories-form');
+
+    if (!bulkDeleteForms.length) {
+        return;
+    }
+
+    bulkDeleteForms.forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+            var deleteCount = parseInt(form.getAttribute('data-delete-count') || '0', 10);
+            var previewRaw = String(form.getAttribute('data-delete-preview') || '');
+            var previewItems = previewRaw === ''
+                ? []
+                : previewRaw.split('|').map(function(item) {
+                    return item.trim();
+                }).filter(function(item) {
+                    return item !== '';
+                });
+
+            var message = 'Sollen wirklich ' + deleteCount + ' Kategorien mit hinterlegter Ersatzkategorie gelöscht werden?';
+
+            if (previewItems.length > 0) {
+                message += '\n\nBetroffene Kategorien:\n- ' + previewItems.join('\n- ');
+            }
+
+            if (deleteCount > previewItems.length) {
+                message += '\n- … und ' + (deleteCount - previewItems.length) + ' weitere';
+            }
+
+            message += '\n\nDie zugeordneten Beiträge werden automatisch in die jeweilige Ersatzkategorie verschoben.';
+
+            if (!window.confirm(message)) {
+                event.preventDefault();
+            }
+        });
     });
 }
 
@@ -239,5 +311,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     initPostCategoryDeleteFlow();
     initPostTagDeleteFlow();
+    initReplacementCategoryBulkDeleteFlow();
     
 });

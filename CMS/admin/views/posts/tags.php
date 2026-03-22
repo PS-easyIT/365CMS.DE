@@ -142,6 +142,7 @@ $deleteTagSubmitDisabled = count($deleteTagOptions) <= 1;
 
                     <p class="mb-2">Der Tag <strong id="deleteTagName"></strong> wird gelöscht.</p>
                     <p class="text-secondary mb-0" id="deleteTagHint">Zugeordnete Beziehungen werden dabei entfernt.</p>
+                    <p class="mt-3 mb-0 fw-medium d-none" id="deleteTagQuestion">In welchen Ersatztag sollen die zugeordneten Artikel verschoben werden?</p>
 
                     <div class="mt-3 d-none" id="deleteTagReassignWrap">
                         <label class="form-label" for="replacementTagId">Neuer Tag für betroffene Beiträge</label>
@@ -158,7 +159,7 @@ $deleteTagSubmitDisabled = count($deleteTagOptions) <= 1;
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-link link-secondary me-auto" data-bs-dismiss="modal">Abbrechen</button>
-                    <button type="submit" class="btn btn-danger" id="deleteTagSubmit" <?php echo $deleteTagSubmitDisabled ? 'disabled' : ''; ?>>Tag löschen</button>
+                    <button type="submit" class="btn btn-danger" id="deleteTagSubmit" <?php echo $deleteTagSubmitDisabled ? 'disabled' : ''; ?>>Löschen bestätigen</button>
                 </div>
             </form>
         </div>

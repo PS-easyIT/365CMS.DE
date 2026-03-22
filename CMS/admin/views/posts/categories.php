@@ -14,6 +14,7 @@ $editCategoryId = (int) ($editCategory['id'] ?? 0);
 $editCategoryName = (string) ($editCategory['name'] ?? '');
 $editCategorySlug = (string) ($editCategory['slug'] ?? '');
 $editCategoryParentId = (int) ($editCategory['parent_id'] ?? 0);
+$editCategoryReplacementId = (int) ($editCategory['replacement_category_id'] ?? 0);
 $editCategoryDomains = implode("\n", array_map('strval', $editCategory['domains'] ?? []));
 $isEditing = $editCategoryId > 0;
 $deleteCategoryOptions = array_values(array_filter(
@@ -21,6 +22,21 @@ $deleteCategoryOptions = array_values(array_filter(
     static fn(array $categoryOption): bool => (int) ($categoryOption['id'] ?? 0) > 0
 ));
 $deleteCategorySubmitDisabled = count($deleteCategoryOptions) <= 1;
+$replacementCategoryDeleteCount = count(array_filter(
+    $categories,
+    static fn(array $category): bool => (int) ($category['replacement_category_id'] ?? 0) > 0
+));
+$replacementCategoryDeletePreview = array_values(array_filter(array_map(
+    static function (array $category): string {
+        if ((int) ($category['replacement_category_id'] ?? 0) <= 0) {
+            return '';
+        }
+
+        return trim((string) ($category['name'] ?? ''));
+    },
+    $categories
+)));
+$replacementCategoryDeletePreview = array_slice($replacementCategoryDeletePreview, 0, 5);
 ?>
 
 <div class="page-header d-print-none">
@@ -105,6 +121,20 @@ $deleteCategorySubmitDisabled = count($deleteCategoryOptions) <= 1;
                                 <textarea class="form-control" id="postCategoryDomains" name="cat_domains" rows="4" placeholder="kategorie.example.de&#10;thema.example.org"><?php echo htmlspecialchars($editCategoryDomains, ENT_QUOTES); ?></textarea>
                                 <div class="form-hint">Nur für Hauptkategorien. Aufrufe der Domain werden auf das Kategorie-Archiv umgeleitet.</div>
                             </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="postCategoryReplacement">Ersatzkategorie beim Löschen</label>
+                                <select class="form-select" id="postCategoryReplacement" name="replacement_category_id">
+                                    <option value="0">— Keine automatische Ersatzkategorie —</option>
+                                    <?php foreach ($categoryOptions as $categoryOption): ?>
+                                        <?php $optionId = (int) ($categoryOption['id'] ?? 0); ?>
+                                        <?php if ($optionId === $editCategoryId) { continue; } ?>
+                                        <option value="<?php echo $optionId; ?>" <?php if ($editCategoryReplacementId === $optionId) echo 'selected'; ?>>
+                                            <?php echo htmlspecialchars((string) ($categoryOption['option_label'] ?? $categoryOption['name'] ?? ''), ENT_QUOTES); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="form-hint">Beim Löschen dieser Kategorie werden zugeordnete Beiträge automatisch in diese Ersatzkategorie verschoben.</div>
+                            </div>
                             <div class="d-flex gap-2">
                                 <button type="submit" class="btn btn-primary flex-fill"><?php echo $isEditing ? 'Kategorie aktualisieren' : 'Kategorie speichern'; ?></button>
                                 <?php if ($isEditing): ?>
@@ -117,7 +147,23 @@ $deleteCategorySubmitDisabled = count($deleteCategoryOptions) <= 1;
             </div>
             <div class="col-lg-8">
                 <div class="card">
-                    <div class="card-header"><h3 class="card-title">Vorhandene Kategorien</h3></div>
+                    <div class="card-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                        <div>
+                            <h3 class="card-title mb-1">Vorhandene Kategorien</h3>
+                            <div class="text-secondary small">Kategorien mit hinterlegter Ersatzkategorie können gesammelt gelöscht und automatisch umgestellt werden.</div>
+                        </div>
+                        <?php if ($replacementCategoryDeleteCount > 0): ?>
+                            <form method="post" class="d-inline-flex js-delete-replacement-categories-form"
+                                  data-delete-count="<?php echo $replacementCategoryDeleteCount; ?>"
+                                  data-delete-preview="<?php echo htmlspecialchars(implode('|', $replacementCategoryDeletePreview), ENT_QUOTES); ?>">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                                <input type="hidden" name="action" value="delete_categories_with_replacement">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                    <?php echo $replacementCategoryDeleteCount; ?> Kategorien mit Ersatz löschen
+                                </button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-vcenter card-table">
                             <thead>
@@ -125,6 +171,7 @@ $deleteCategorySubmitDisabled = count($deleteCategoryOptions) <= 1;
                                     <th>Name</th>
                                     <th>Slug</th>
                                     <th>Ebene</th>
+                                    <th>Ersatz</th>
                                     <th>Fremd-Domains</th>
                                     <th>Beiträge</th>
                                     <th class="w-1"></th>
@@ -132,7 +179,7 @@ $deleteCategorySubmitDisabled = count($deleteCategoryOptions) <= 1;
                             </thead>
                             <tbody>
                                 <?php if ($categories === []): ?>
-                                    <tr><td colspan="6" class="text-secondary text-center py-4">Noch keine Kategorien vorhanden.</td></tr>
+                                    <tr><td colspan="7" class="text-secondary text-center py-4">Noch keine Kategorien vorhanden.</td></tr>
                                 <?php endif; ?>
                                 <?php foreach ($categories as $category): ?>
                                     <tr>
@@ -143,6 +190,14 @@ $deleteCategorySubmitDisabled = count($deleteCategoryOptions) <= 1;
                                                 <span class="badge bg-azure-lt text-azure">Hauptkategorie</span>
                                             <?php else: ?>
                                                 <span class="text-secondary"><?php echo htmlspecialchars((string) ($category['parent_name'] ?? 'Unterkategorie'), ENT_QUOTES); ?></span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php $replacementName = trim((string) ($category['replacement_category_name'] ?? '')); ?>
+                                            <?php if ($replacementName === ''): ?>
+                                                <span class="text-secondary">—</span>
+                                            <?php else: ?>
+                                                <span><?php echo htmlspecialchars($replacementName, ENT_QUOTES); ?></span>
                                             <?php endif; ?>
                                         </td>
                                         <td>
@@ -169,7 +224,8 @@ $deleteCategorySubmitDisabled = count($deleteCategoryOptions) <= 1;
                                                 <form method="post" class="js-delete-category-form"
                                                       data-category-id="<?php echo (int) ($category['id'] ?? 0); ?>"
                                                       data-category-name="<?php echo htmlspecialchars((string) ($category['name'] ?? ''), ENT_QUOTES); ?>"
-                                                      data-assigned-posts="<?php echo (int) ($category['assigned_post_count'] ?? $category['post_count_direct'] ?? 0); ?>">
+                                                    data-assigned-posts="<?php echo (int) ($category['assigned_post_count'] ?? $category['post_count_direct'] ?? 0); ?>"
+                                                    data-default-replacement-category-id="<?php echo (int) ($category['replacement_category_id'] ?? 0); ?>">
                                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
                                                     <input type="hidden" name="action" value="delete_category">
                                                     <input type="hidden" name="cat_id" value="<?php echo (int) ($category['id'] ?? 0); ?>">
@@ -203,6 +259,7 @@ $deleteCategorySubmitDisabled = count($deleteCategoryOptions) <= 1;
 
                     <p class="mb-2">Die Kategorie <strong id="deleteCategoryName"></strong> wird gelöscht.</p>
                     <p class="text-secondary mb-0" id="deleteCategoryHint">Unterkategorien werden dabei zu Hauptkategorien.</p>
+                    <p class="mt-3 mb-0 fw-medium d-none" id="deleteCategoryQuestion">In welche Ersatzkategorie sollen die zugeordneten Artikel verschoben werden?</p>
 
                     <div class="mt-3 d-none" id="deleteCategoryReassignWrap">
                         <label class="form-label" for="replacementCategoryId">Neue Kategorie für betroffene Beiträge</label>
@@ -214,12 +271,12 @@ $deleteCategorySubmitDisabled = count($deleteCategoryOptions) <= 1;
                                 </option>
                             <?php endforeach; ?>
                         </select>
-                        <div class="form-hint">Beiträge mit dieser Kategorie werden vor dem Löschen auf die gewählte Ersatzkategorie umgestellt.</div>
+                        <div class="form-hint">Beiträge mit dieser Kategorie werden vor dem Löschen auf die gewählte Ersatzkategorie umgestellt. Ist in den Kategorie-Einstellungen bereits eine Ersatzkategorie hinterlegt, wird diese automatisch verwendet.</div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-link link-secondary me-auto" data-bs-dismiss="modal">Abbrechen</button>
-                    <button type="submit" class="btn btn-danger" id="deleteCategorySubmit" <?php echo $deleteCategorySubmitDisabled ? 'disabled' : ''; ?>>Kategorie löschen</button>
+                    <button type="submit" class="btn btn-danger" id="deleteCategorySubmit" <?php echo $deleteCategorySubmitDisabled ? 'disabled' : ''; ?>>Löschen bestätigen</button>
                 </div>
             </form>
         </div>
