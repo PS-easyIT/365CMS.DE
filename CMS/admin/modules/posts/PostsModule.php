@@ -366,6 +366,7 @@ class PostsModule
 
         return [
             'tags' => array_map(fn($tag) => (array) $tag, $tags),
+            'tagOptions' => array_map(fn($tag) => (array) $tag, $tags),
             'counts' => [
                 'total' => count($tags),
                 'assigned_posts' => array_sum(array_map(static fn($tag): int => (int) ($tag->post_count ?? 0), $tags)),
@@ -745,6 +746,10 @@ class PostsModule
 
         if ($assignedPostCount > 0) {
             if ($replacementId <= 0) {
+                if ($this->countAvailableReplacementCategories($id) <= 0) {
+                    return ['success' => false, 'error' => 'Es ist keine Ersatzkategorie verfügbar. Bitte lege zuerst eine weitere Kategorie an, bevor du diese löschst.'];
+                }
+
                 return ['success' => false, 'error' => 'Bitte eine neue Kategorie für die betroffenen Beiträge auswählen.'];
             }
 
@@ -878,8 +883,38 @@ class PostsModule
      */
     public function deleteTag(int $id): array
     {
+        if ($id <= 0) {
+            return ['success' => false, 'error' => 'Ungültiger Tag.'];
+        }
+
+        $assignedPostCount = $this->countAssignedPostsForTag($id);
+        $replacementId = (int) ($_POST['replacement_tag_id'] ?? 0);
+
+        if ($assignedPostCount > 0) {
+            if ($replacementId <= 0) {
+                if ($this->countAvailableReplacementTags($id) <= 0) {
+                    return ['success' => false, 'error' => 'Es ist kein Ersatztag verfügbar. Bitte lege zuerst einen weiteren Tag an, bevor du diesen löschst.'];
+                }
+
+                return ['success' => false, 'error' => 'Bitte einen Ersatztag für die betroffenen Beiträge auswählen.'];
+            }
+
+            if ($replacementId === $id) {
+                return ['success' => false, 'error' => 'Der Ersatztag darf nicht identisch mit dem zu löschenden Tag sein.'];
+            }
+
+            if (!$this->tagExists($replacementId)) {
+                return ['success' => false, 'error' => 'Der gewählte Ersatztag existiert nicht mehr.'];
+            }
+        }
+
         try {
-            $this->db->execute("DELETE FROM {$this->prefix}post_tag_rel WHERE tag_id = ?", [$id]);
+            if ($assignedPostCount > 0 && $replacementId > 0) {
+                $this->reassignPostsFromDeletedTag($id, $replacementId);
+            } else {
+                $this->db->execute("DELETE FROM {$this->prefix}post_tag_rel WHERE tag_id = ?", [$id]);
+            }
+
             $this->db->execute("DELETE FROM {$this->prefix}post_tags WHERE id = ?", [$id]);
 
             return ['success' => true, 'message' => 'Tag gelöscht.'];
@@ -1217,6 +1252,111 @@ class PostsModule
         }
 
         return false;
+    }
+
+    private function countAvailableReplacementCategories(int $excludeId): int
+    {
+        return (int) ($this->db->get_var(
+            "SELECT COUNT(*) FROM {$this->prefix}post_categories WHERE id != ?",
+            [$excludeId]
+        ) ?: 0);
+    }
+
+    private function tagExists(int $tagId): bool
+    {
+        if ($tagId <= 0) {
+            return false;
+        }
+
+        return (int) ($this->db->get_var(
+            "SELECT COUNT(*) FROM {$this->prefix}post_tags WHERE id = ?",
+            [$tagId]
+        ) ?: 0) > 0;
+    }
+
+    private function countAvailableReplacementTags(int $excludeId): int
+    {
+        return (int) ($this->db->get_var(
+            "SELECT COUNT(*) FROM {$this->prefix}post_tags WHERE id != ?",
+            [$excludeId]
+        ) ?: 0);
+    }
+
+    private function countAssignedPostsForTag(int $tagId): int
+    {
+        if ($tagId <= 0) {
+            return 0;
+        }
+
+        return (int) ($this->db->get_var(
+            "SELECT COUNT(DISTINCT post_id) FROM {$this->prefix}post_tag_rel WHERE tag_id = ?",
+            [$tagId]
+        ) ?: 0);
+    }
+
+    private function reassignPostsFromDeletedTag(int $deletedTagId, int $replacementTagId): void
+    {
+        $postRows = $this->db->get_results(
+            "SELECT DISTINCT post_id FROM {$this->prefix}post_tag_rel WHERE tag_id = ?",
+            [$deletedTagId]
+        ) ?: [];
+
+        $postIds = [];
+        foreach ($postRows as $row) {
+            $postId = (int) ($row->post_id ?? 0);
+            if ($postId > 0) {
+                $postIds[] = $postId;
+            }
+        }
+
+        if ($postIds !== []) {
+            $this->db->execute(
+                "INSERT IGNORE INTO {$this->prefix}post_tag_rel (post_id, tag_id)
+                 SELECT DISTINCT post_id, ?
+                 FROM {$this->prefix}post_tag_rel
+                 WHERE tag_id = ?",
+                [$replacementTagId, $deletedTagId]
+            );
+        }
+
+        $this->db->execute("DELETE FROM {$this->prefix}post_tag_rel WHERE tag_id = ?", [$deletedTagId]);
+
+        foreach ($postIds as $postId) {
+            $tagNames = $this->getPostTagNames($postId);
+            $this->db->execute(
+                "UPDATE {$this->prefix}posts SET tags = ?, updated_at = NOW() WHERE id = ?",
+                [implode(', ', $tagNames), $postId]
+            );
+        }
+    }
+
+    /**
+     * @return array<int,string>
+     */
+    private function getPostTagNames(int $postId): array
+    {
+        if ($postId <= 0) {
+            return [];
+        }
+
+        $rows = $this->db->get_results(
+            "SELECT t.name
+             FROM {$this->prefix}post_tags t
+             INNER JOIN {$this->prefix}post_tag_rel ptr ON ptr.tag_id = t.id
+             WHERE ptr.post_id = ?
+             ORDER BY t.name ASC",
+            [$postId]
+        ) ?: [];
+
+        $names = [];
+        foreach ($rows as $row) {
+            $name = trim((string) ($row->name ?? ''));
+            if ($name !== '') {
+                $names[] = $name;
+            }
+        }
+
+        return array_values(array_unique($names));
     }
 
     /**

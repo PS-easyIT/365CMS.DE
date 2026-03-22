@@ -20,6 +20,7 @@ $deleteCategoryOptions = array_values(array_filter(
     $categoryOptions,
     static fn(array $categoryOption): bool => (int) ($categoryOption['id'] ?? 0) > 0
 ));
+$deleteCategorySubmitDisabled = count($deleteCategoryOptions) <= 1;
 ?>
 
 <div class="page-header d-print-none">
@@ -218,7 +219,7 @@ $deleteCategoryOptions = array_values(array_filter(
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-link link-secondary me-auto" data-bs-dismiss="modal">Abbrechen</button>
-                    <button type="submit" class="btn btn-danger">Kategorie löschen</button>
+                    <button type="submit" class="btn btn-danger" id="deleteCategorySubmit" <?php echo $deleteCategorySubmitDisabled ? 'disabled' : ''; ?>>Kategorie löschen</button>
                 </div>
             </form>
         </div>

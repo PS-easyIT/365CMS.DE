@@ -41,8 +41,8 @@ final class ThemeRouter
         $this->router->addRoute('GET', '/autoren', [$this, 'renderAuthorsIndex']);
         $this->router->addRoute('GET', '/authors', [$this, 'renderAuthorsIndex']);
         $this->router->addRoute('GET', '/author/:identifier', [$this, 'renderAuthorPage']);
-        $this->registerArchiveRoutes('category', [$this, 'renderCategoryArchive']);
-        $this->registerArchiveRoutes('tag', [$this, 'renderTagArchive']);
+        $this->registerArchiveRoutes('category', [$this, 'renderCategoryArchive'], [$this, 'renderCategoryArchiveIndex']);
+        $this->registerArchiveRoutes('tag', [$this, 'renderTagArchive'], [$this, 'renderTagArchiveIndex']);
         $this->router->addRoute('GET', '/site-table/export/:id/:format', [$this, 'streamSiteTableExport']);
         $this->router->addRoute('GET', '/blog', [$this, 'renderBlogIndex']);
         $this->router->addRoute('GET', $currentPostRoutePattern, [$this, 'renderBlogSingle']);
@@ -56,9 +56,10 @@ final class ThemeRouter
         $this->router->addRoute('GET', '/.well-known/security.txt', [$this, 'serveSecurityTxt']);
     }
 
-    private function registerArchiveRoutes(string $type, callable $callback): void
+    private function registerArchiveRoutes(string $type, callable $archiveCallback, ?callable $indexCallback = null): void
     {
-        $paths = [];
+        $detailPaths = [];
+        $indexPaths = [];
 
         foreach (\cms_get_archive_locales() as $locale) {
             $basePath = '/' . ltrim((string) \cms_get_archive_base($type, $locale), '/');
@@ -66,11 +67,18 @@ final class ThemeRouter
                 continue;
             }
 
-            $paths[] = $basePath . '/:slug';
+            $indexPaths[] = $basePath;
+            $detailPaths[] = $basePath . '/:slug';
         }
 
-        foreach (array_values(array_unique($paths)) as $path) {
-            $this->router->addRoute('GET', $path, $callback);
+        if ($indexCallback !== null) {
+            foreach (array_values(array_unique($indexPaths)) as $path) {
+                $this->router->addRoute('GET', $path, $indexCallback);
+            }
+        }
+
+        foreach (array_values(array_unique($detailPaths)) as $path) {
+            $this->router->addRoute('GET', $path, $archiveCallback);
         }
     }
 
@@ -489,6 +497,33 @@ final class ThemeRouter
         ]);
     }
 
+    public function renderCategoryArchiveIndex(): void
+    {
+        $locale = $this->getResolvedContentLocale();
+        $query = trim((string) ($_GET['q'] ?? ''));
+        $page = max(1, (int) ($_GET['page'] ?? $_GET['p'] ?? 1));
+        $perPage = 18;
+        $overview = $this->buildArchiveOverviewPage($this->getPublishedCategoryOverview($locale), $query, $page, $perPage);
+
+        ThemeManager::instance()->render('category', [
+            'category' => [
+                'name' => $locale === 'en' ? 'Categories' : 'Kategorien',
+                'slug' => '',
+                'description' => $locale === 'en'
+                    ? 'Browse all editorial categories and jump directly into the right topic cluster.'
+                    : 'Alle Themenbereiche im Überblick – direkt zum passenden Fachbereich springen.',
+            ],
+            'posts' => [],
+            'query' => $query,
+            'total' => $overview['total'],
+            'currentPage' => $overview['currentPage'],
+            'totalPages' => $overview['totalPages'],
+            'perPage' => $perPage,
+            'isOverview' => true,
+            'overviewItems' => $overview['items'],
+        ]);
+    }
+
     public function renderTagArchive(string $slug): void
     {
         $normalizedSlug = $this->normalizeArchiveSlug(rawurldecode($slug));
@@ -620,6 +655,33 @@ final class ThemeRouter
             'currentPage' => $page,
             'totalPages' => $totalPages,
             'perPage' => $perPage,
+        ]);
+    }
+
+    public function renderTagArchiveIndex(): void
+    {
+        $locale = $this->getResolvedContentLocale();
+        $query = trim((string) ($_GET['q'] ?? ''));
+        $page = max(1, (int) ($_GET['page'] ?? $_GET['p'] ?? 1));
+        $perPage = 24;
+        $overview = $this->buildArchiveOverviewPage($this->getPublishedTagOverview($locale), $query, $page, $perPage);
+
+        ThemeManager::instance()->render('tag', [
+            'tag' => [
+                'name' => $locale === 'en' ? 'Tags' : 'Schlagwörter',
+                'slug' => '',
+                'description' => $locale === 'en'
+                    ? 'Explore recurring topics, tools, releases and keyword clusters across the blog.'
+                    : 'Alle Schlagwörter im Überblick – ideal für Serien, Tools, Releases und wiederkehrende Themen.',
+            ],
+            'posts' => [],
+            'query' => $query,
+            'total' => $overview['total'],
+            'currentPage' => $overview['currentPage'],
+            'totalPages' => $overview['totalPages'],
+            'perPage' => $perPage,
+            'isOverview' => true,
+            'overviewItems' => $overview['items'],
         ]);
     }
 
@@ -996,6 +1058,211 @@ final class ThemeRouter
         $value = preg_replace('/[^a-z0-9]+/u', '-', $value) ?? '';
 
         return trim($value, '-');
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $items
+     * @return array{items:array<int,array<string,mixed>>,total:int,currentPage:int,totalPages:int}
+     */
+    private function buildArchiveOverviewPage(array $items, string $query, int $page, int $perPage): array
+    {
+        if ($query !== '') {
+            $needle = mb_strtolower($query, 'UTF-8');
+            $items = array_values(array_filter($items, static function (array $item) use ($needle): bool {
+                $haystack = mb_strtolower(
+                    trim((string) ($item['title'] ?? '')) . ' ' . trim((string) ($item['description'] ?? '')) . ' ' . trim((string) ($item['slug'] ?? '')),
+                    'UTF-8'
+                );
+
+                return str_contains($haystack, $needle);
+            }));
+        }
+
+        $total = count($items);
+        $totalPages = max(1, (int) ceil($total / max(1, $perPage)));
+        $page = min(max(1, $page), $totalPages);
+        $offset = ($page - 1) * $perPage;
+
+        return [
+            'items' => array_slice($items, $offset, $perPage),
+            'total' => $total,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+        ];
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    private function getPublishedCategoryOverview(string $locale): array
+    {
+        $db = Database::instance();
+        $prefix = $db->getPrefix();
+        $localeFilter = $this->buildPostLocaleAvailabilityExpression('p', $locale);
+        $categories = $db->get_results(
+            "SELECT id, name, slug, description, parent_id
+             FROM {$prefix}post_categories
+             ORDER BY name ASC"
+        ) ?: [];
+
+        $postIdsByCategory = [];
+        foreach ($categories as $category) {
+            $categoryId = (int) ($category->id ?? 0);
+            if ($categoryId > 0) {
+                $postIdsByCategory[$categoryId] = [];
+            }
+        }
+
+        $primaryRows = $db->get_results(
+            "SELECT p.id AS post_id, p.category_id AS category_id
+             FROM {$prefix}posts p
+             WHERE p.status = 'published'
+               AND {$localeFilter}
+               AND p.category_id IS NOT NULL
+               AND p.category_id > 0"
+        ) ?: [];
+
+        foreach ($primaryRows as $row) {
+            $categoryId = (int) ($row->category_id ?? 0);
+            $postId = (int) ($row->post_id ?? 0);
+            if ($categoryId > 0 && $postId > 0) {
+                $postIdsByCategory[$categoryId][$postId] = true;
+            }
+        }
+
+        $relationRows = $db->get_results(
+            "SELECT p.id AS post_id, pcr.category_id AS category_id
+             FROM {$prefix}post_category_rel pcr
+             INNER JOIN {$prefix}posts p ON p.id = pcr.post_id
+             WHERE p.status = 'published'
+               AND {$localeFilter}"
+        ) ?: [];
+
+        foreach ($relationRows as $row) {
+            $categoryId = (int) ($row->category_id ?? 0);
+            $postId = (int) ($row->post_id ?? 0);
+            if ($categoryId > 0 && $postId > 0) {
+                $postIdsByCategory[$categoryId][$postId] = true;
+            }
+        }
+
+        $items = [];
+        foreach ($categories as $category) {
+            $categoryId = (int) ($category->id ?? 0);
+            $count = count($postIdsByCategory[$categoryId] ?? []);
+            $slug = trim((string) ($category->slug ?? ''));
+
+            if ($count <= 0 || $slug === '') {
+                continue;
+            }
+
+            $items[] = [
+                'title' => trim((string) ($category->name ?? 'Kategorie')),
+                'slug' => $slug,
+                'description' => trim((string) ($category->description ?? '')),
+                'count' => $count,
+                'url' => \cms_get_archive_url('category', $slug, $locale),
+            ];
+        }
+
+        usort($items, static function (array $left, array $right): int {
+            $countCompare = ((int) ($right['count'] ?? 0)) <=> ((int) ($left['count'] ?? 0));
+            if ($countCompare !== 0) {
+                return $countCompare;
+            }
+
+            return strnatcasecmp((string) ($left['title'] ?? ''), (string) ($right['title'] ?? ''));
+        });
+
+        return $items;
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    private function getPublishedTagOverview(string $locale): array
+    {
+        $db = Database::instance();
+        $prefix = $db->getPrefix();
+        $localeFilter = $this->buildPostLocaleAvailabilityExpression('p', $locale);
+        $tagPostMap = [];
+        $tagLabels = [];
+
+        $relationRows = $db->get_results(
+            "SELECT p.id AS post_id, t.name, t.slug
+             FROM {$prefix}post_tags t
+             INNER JOIN {$prefix}post_tag_rel ptr ON ptr.tag_id = t.id
+             INNER JOIN {$prefix}posts p ON p.id = ptr.post_id
+             WHERE p.status = 'published'
+               AND {$localeFilter}"
+        ) ?: [];
+
+        foreach ($relationRows as $row) {
+            $slug = trim((string) ($row->slug ?? ''));
+            $postId = (int) ($row->post_id ?? 0);
+            if ($slug === '' || $postId <= 0) {
+                continue;
+            }
+
+            $tagPostMap[$slug][$postId] = true;
+            $tagLabels[$slug] = trim((string) ($row->name ?? $slug));
+        }
+
+        $legacyRows = $db->get_results(
+            "SELECT p.id, p.tags
+             FROM {$prefix}posts p
+             WHERE p.status = 'published'
+               AND {$localeFilter}
+               AND p.tags IS NOT NULL
+               AND p.tags != ''"
+        ) ?: [];
+
+        foreach ($legacyRows as $row) {
+            $postId = (int) ($row->id ?? 0);
+            if ($postId <= 0) {
+                continue;
+            }
+
+            foreach ($this->parsePostTags((string) ($row->tags ?? '')) as $tag) {
+                $slug = trim((string) ($tag['slug'] ?? ''));
+                if ($slug === '') {
+                    continue;
+                }
+
+                $tagPostMap[$slug][$postId] = true;
+                if (!isset($tagLabels[$slug]) || trim((string) $tagLabels[$slug]) === '') {
+                    $tagLabels[$slug] = trim((string) ($tag['name'] ?? $slug));
+                }
+            }
+        }
+
+        $items = [];
+        foreach ($tagPostMap as $slug => $postMap) {
+            $count = count($postMap);
+            if ($count <= 0) {
+                continue;
+            }
+
+            $title = trim((string) ($tagLabels[$slug] ?? $slug));
+            $items[] = [
+                'title' => $title !== '' ? $title : $slug,
+                'slug' => (string) $slug,
+                'description' => '',
+                'count' => $count,
+                'url' => \cms_get_archive_url('tag', (string) $slug, $locale),
+            ];
+        }
+
+        usort($items, static function (array $left, array $right): int {
+            $countCompare = ((int) ($right['count'] ?? 0)) <=> ((int) ($left['count'] ?? 0));
+            if ($countCompare !== 0) {
+                return $countCompare;
+            }
+
+            return strnatcasecmp((string) ($left['title'] ?? ''), (string) ($right['title'] ?? ''));
+        });
+
+        return $items;
     }
 
     /**

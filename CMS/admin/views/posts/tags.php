@@ -6,7 +6,13 @@ if (!defined('ABSPATH')) {
 }
 
 $tags = $data['tags'] ?? [];
+$tagOptions = $data['tagOptions'] ?? [];
 $counts = $data['counts'] ?? [];
+$deleteTagOptions = array_values(array_filter(
+    $tagOptions,
+    static fn(array $tagOption): bool => (int) ($tagOption['id'] ?? 0) > 0
+));
+$deleteTagSubmitDisabled = count($deleteTagOptions) <= 1;
 ?>
 
 <div class="page-header d-print-none">
@@ -100,7 +106,10 @@ $counts = $data['counts'] ?? [];
                                         <td><code><?php echo htmlspecialchars((string) ($tag['slug'] ?? ''), ENT_QUOTES); ?></code></td>
                                         <td><?php echo (int) ($tag['post_count'] ?? 0); ?></td>
                                         <td>
-                                            <form method="post" onsubmit="return confirm('Tag wirklich löschen? Zugeordnete Beziehungen werden entfernt.');">
+                                            <form method="post" class="js-delete-tag-form"
+                                                  data-tag-id="<?php echo (int) ($tag['id'] ?? 0); ?>"
+                                                  data-tag-name="<?php echo htmlspecialchars((string) ($tag['name'] ?? ''), ENT_QUOTES); ?>"
+                                                  data-assigned-posts="<?php echo (int) ($tag['post_count'] ?? 0); ?>">
                                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
                                                 <input type="hidden" name="action" value="delete_tag">
                                                 <input type="hidden" name="tag_id" value="<?php echo (int) ($tag['id'] ?? 0); ?>">
@@ -114,6 +123,44 @@ $counts = $data['counts'] ?? [];
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal modal-blur fade" id="deleteTagModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" id="deleteTagModalForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Tag löschen</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                    <input type="hidden" name="action" value="delete_tag">
+                    <input type="hidden" name="tag_id" id="deleteTagId" value="0">
+
+                    <p class="mb-2">Der Tag <strong id="deleteTagName"></strong> wird gelöscht.</p>
+                    <p class="text-secondary mb-0" id="deleteTagHint">Zugeordnete Beziehungen werden dabei entfernt.</p>
+
+                    <div class="mt-3 d-none" id="deleteTagReassignWrap">
+                        <label class="form-label" for="replacementTagId">Neuer Tag für betroffene Beiträge</label>
+                        <select class="form-select" id="replacementTagId" name="replacement_tag_id">
+                            <option value="0">Bitte auswählen…</option>
+                            <?php foreach ($deleteTagOptions as $tagOption): ?>
+                                <option value="<?php echo (int) ($tagOption['id'] ?? 0); ?>">
+                                    <?php echo htmlspecialchars((string) ($tagOption['name'] ?? ''), ENT_QUOTES); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="form-hint">Beiträge mit diesem Tag werden vor dem Löschen auf den gewählten Ersatztag umgestellt.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary me-auto" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="submit" class="btn btn-danger" id="deleteTagSubmit" <?php echo $deleteTagSubmitDisabled ? 'disabled' : ''; ?>>Tag löschen</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
