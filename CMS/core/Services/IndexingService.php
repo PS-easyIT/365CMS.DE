@@ -139,6 +139,11 @@ final class IndexingService
         return $this->resolveIndexNowKey() !== '';
     }
 
+    public function getIndexNowKey(): string
+    {
+        return $this->resolveIndexNowKey();
+    }
+
     private function resolveIndexNowKey(): string
     {
         try {

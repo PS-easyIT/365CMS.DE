@@ -32,6 +32,7 @@ final class ThemeRouter
     {
         $permalinkService = Services\PermalinkService::getInstance();
         $currentPostRoutePattern = $permalinkService->buildPostRoutePattern();
+        $indexNowKey = Services\IndexingService::getInstance()->getIndexNowKey();
 
         $this->router->addRoute('GET', '/', [$this, 'renderHome']);
         $this->router->addRoute('GET', '/sitemap', [$this, 'renderHtmlSitemap']);
@@ -54,6 +55,9 @@ final class ThemeRouter
         $this->router->addRoute('GET', '/robots.txt', [$this, 'serveRobotsTxt']);
         $this->router->addRoute('GET', '/security.txt', [$this, 'serveSecurityTxt']);
         $this->router->addRoute('GET', '/.well-known/security.txt', [$this, 'serveSecurityTxt']);
+        if ($indexNowKey !== '') {
+            $this->router->addRoute('GET', '/' . $indexNowKey . '.txt', [$this, 'serveIndexNowKeyFile']);
+        }
     }
 
     private function registerArchiveRoutes(string $type, callable $archiveCallback, ?callable $indexCallback = null): void
@@ -1021,6 +1025,22 @@ final class ThemeRouter
         ];
 
         echo implode("\n", $lines) . "\n";
+        exit;
+    }
+
+    public function serveIndexNowKeyFile(): void
+    {
+        $indexNowKey = Services\IndexingService::getInstance()->getIndexNowKey();
+        if ($indexNowKey === '') {
+            http_response_code(404);
+            header('Content-Type: text/plain; charset=utf-8');
+            echo 'Page not found';
+            exit;
+        }
+
+        header('Content-Type: text/plain; charset=utf-8');
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        echo $indexNowKey;
         exit;
     }
 

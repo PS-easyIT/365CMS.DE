@@ -581,15 +581,22 @@ final class SeoSuiteModule
 	private function getSitemapData(array $auditRows): array
 	{
 		$settings = array_merge($this->seoService->getSitemapSettings(), $this->loadSettings(self::SITEMAP_EXTRA_DEFAULTS));
+		$indexNowKey = trim($this->indexingService->getIndexNowKey());
+		$indexNowKeyUrl = $indexNowKey !== ''
+			? rtrim((string) SITE_URL, '/') . '/' . rawurlencode($indexNowKey) . '.txt'
+			: '';
 
 		return [
 			'settings' => $settings,
 			'files' => $this->getSitemapFilesStatus(),
 			'indexing' => [
 				'indexnow_available' => $this->indexingService->hasIndexNowKey(),
+				'indexnow_key_file_active' => $indexNowKey !== '',
+				'indexnow_key_url' => $indexNowKeyUrl,
 				'engines' => ['IndexNow', 'Google Indexing API'],
 				'notes' => [
 					'IndexNow-Key wird aus der Core-Konfiguration gelesen.',
+					'Keydatei wird bei gesetztem Schlüssel dynamisch vom Core ausgeliefert.',
 					'Google-Submission nutzt bewusst einen manuellen Access-Token pro Aktion.',
 				],
 			],

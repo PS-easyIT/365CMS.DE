@@ -159,11 +159,23 @@ $indexing = $sitemap['indexing'] ?? [];
                 <div class="card mb-4">
                     <div class="card-header d-flex align-items-center justify-content-between">
                         <h3 class="card-title mb-0">IndexNow &amp; Google Submission</h3>
-                        <span class="badge <?= !empty($indexing['indexnow_available']) ? 'bg-success' : 'bg-warning text-dark' ?>">
-                            IndexNow-Key <?= !empty($indexing['indexnow_available']) ? 'bereit' : 'fehlt' ?>
-                        </span>
+                        <div class="d-flex flex-wrap gap-2 justify-content-end">
+                            <span class="badge <?= !empty($indexing['indexnow_available']) ? 'bg-success' : 'bg-warning text-dark' ?>">
+                                IndexNow-Key <?= !empty($indexing['indexnow_available']) ? 'bereit' : 'fehlt' ?>
+                            </span>
+                            <span class="badge <?= !empty($indexing['indexnow_key_file_active']) ? 'bg-primary' : 'bg-secondary' ?>">
+                                Keydatei <?= !empty($indexing['indexnow_key_file_active']) ? 'dynamisch aktiv' : 'inaktiv' ?>
+                            </span>
+                        </div>
                     </div>
                     <div class="card-body">
+                        <?php if (!empty($indexing['indexnow_key_file_active']) && !empty($indexing['indexnow_key_url'])): ?>
+                            <div class="alert alert-primary" role="status">
+                                <div class="fw-semibold mb-1">IndexNow-Keydatei dynamisch aktiv</div>
+                                <div class="small mb-2">Die Verifizierungsdatei wird automatisch vom Core ausgeliefert und ist erreichbar unter:</div>
+                                <div><a href="<?= htmlspecialchars((string) $indexing['indexnow_key_url']) ?>" target="_blank" rel="noopener noreferrer"><code><?= htmlspecialchars((string) $indexing['indexnow_key_url']) ?></code></a></div>
+                            </div>
+                        <?php endif; ?>
                         <div class="text-secondary small mb-3">
                             <?php foreach (($indexing['notes'] ?? []) as $note): ?>
                                 <div>• <?= htmlspecialchars((string) $note) ?></div>
