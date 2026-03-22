@@ -377,7 +377,7 @@ class Router
             return false;
         }
 
-        $targetPath = '/kategorie/' . rawurlencode($slug);
+        $targetPath = \cms_get_archive_path('category', $slug, $this->getRequestLocale());
         $query = (string) (parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_QUERY) ?? '');
         if ($query !== '') {
             $targetPath .= '?' . $query;

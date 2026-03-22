@@ -220,6 +220,302 @@ function cms_get_site_title(): string {
 }
 
 /**
+ * Liefert die unterstützten Frontend-Sprachen inklusive Basissprache.
+ *
+ * @return string[]
+ */
+function cms_get_archive_locales(): array {
+    static $locales = null;
+
+    if (is_array($locales)) {
+        return $locales;
+    }
+
+    $locales = ['de'];
+
+    try {
+        if (class_exists('\CMS\Services\ContentLocalizationService')) {
+            $extraLocales = \CMS\Services\ContentLocalizationService::getInstance()->getContentLocales();
+            foreach ($extraLocales as $locale) {
+                if (!is_string($locale)) {
+                    continue;
+                }
+
+                $normalized = strtolower(trim($locale));
+                if ($normalized === '' || in_array($normalized, $locales, true)) {
+                    continue;
+                }
+
+                $locales[] = $normalized;
+            }
+        }
+    } catch (\Throwable) {
+    }
+
+    return $locales;
+}
+
+/**
+ * Normalisiert die gewünschte Frontend-Sprache für Archiv-Routen.
+ */
+function cms_resolve_archive_locale(?string $locale = null): string {
+    $resolvedLocale = strtolower(trim((string) ($locale ?? '')));
+
+    try {
+        if ($resolvedLocale !== '' && class_exists('\CMS\Services\ContentLocalizationService')) {
+            $normalized = \CMS\Services\ContentLocalizationService::getInstance()->normalizeLocale($resolvedLocale);
+            if ($normalized !== '') {
+                $resolvedLocale = $normalized;
+            }
+        }
+    } catch (\Throwable) {
+    }
+
+    if ($resolvedLocale === '') {
+        try {
+            if (class_exists('\CMS\Services\ContentLocalizationService')) {
+                $context = \CMS\Services\ContentLocalizationService::getInstance()->resolveRequestContext((string) (parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?? '/'));
+                $normalized = strtolower(trim((string) ($context['locale'] ?? 'de')));
+                if ($normalized !== '') {
+                    $resolvedLocale = $normalized;
+                }
+            }
+        } catch (\Throwable) {
+        }
+    }
+
+    return $resolvedLocale !== '' ? $resolvedLocale : 'de';
+}
+
+/**
+ * Liefert den Fallback-Slug für Kategorie-/Tag-Archive je Sprache.
+ */
+function cms_get_default_archive_base(string $type, string $locale = 'de'): string {
+    $type = strtolower(trim($type));
+    $locale = cms_resolve_archive_locale($locale);
+
+    return match ($type) {
+        'category' => $locale === 'en' ? 'category' : 'kategorie',
+        'tag' => 'tag',
+        default => '',
+    };
+}
+
+/**
+ * Normalisiert einen Segment-Slug für öffentliche Archiv-Basen.
+ */
+function cms_normalize_archive_base(string $value, string $fallback): string {
+    $normalized = trim(mb_strtolower($value, 'UTF-8'));
+    $normalized = str_replace(['ä', 'ö', 'ü', 'ß'], ['ae', 'oe', 'ue', 'ss'], $normalized);
+    $normalized = preg_replace('/[^a-z0-9]+/u', '-', $normalized) ?? '';
+    $normalized = trim($normalized, '-');
+
+    return $normalized !== '' ? $normalized : $fallback;
+}
+
+/**
+ * Liefert die konfigurierte Archiv-Basis für Kategorien oder Tags.
+ */
+function cms_get_archive_base(string $type, ?string $locale = null): string {
+    static $cache = [];
+
+    $type = strtolower(trim($type));
+    if (!in_array($type, ['category', 'tag'], true)) {
+        return '';
+    }
+
+    $resolvedLocale = cms_resolve_archive_locale($locale);
+    $cacheKey = $type . '|' . $resolvedLocale;
+    if (isset($cache[$cacheKey])) {
+        return $cache[$cacheKey];
+    }
+
+    $default = cms_get_default_archive_base($type, $resolvedLocale);
+    $settingKey = $type . '_base_' . $resolvedLocale;
+    $value = $default;
+
+    try {
+        if (class_exists('\CMS\Services\SettingsService')) {
+            $value = \CMS\Services\SettingsService::getInstance()->getString('routing', $settingKey, $default);
+        } else {
+            $dbValue = \CMS\Database::instance()->get_var(
+                "SELECT option_value FROM " . \CMS\Database::instance()->prefix() . "settings WHERE option_name = ? LIMIT 1",
+                ['routing.' . $settingKey]
+            );
+
+            if (is_string($dbValue) && trim($dbValue) !== '') {
+                $value = $dbValue;
+            }
+        }
+    } catch (\Throwable) {
+        $value = $default;
+    }
+
+    $cache[$cacheKey] = cms_normalize_archive_base((string) $value, $default);
+
+    return $cache[$cacheKey];
+}
+
+/**
+ * Liefert alle gültigen Alias-Basen für einen Archiv-Typ.
+ *
+ * @return string[]
+ */
+function cms_get_archive_base_aliases(string $type): array {
+    static $aliases = [];
+
+    $type = strtolower(trim($type));
+    if (!in_array($type, ['category', 'tag'], true)) {
+        return [];
+    }
+
+    if (isset($aliases[$type])) {
+        return $aliases[$type];
+    }
+
+    $values = [];
+    foreach (cms_get_archive_locales() as $locale) {
+        $values[] = cms_get_default_archive_base($type, $locale);
+        $values[] = cms_get_archive_base($type, $locale);
+    }
+
+    $aliases[$type] = array_values(array_unique(array_filter(array_map(static function (string $value): string {
+        return trim($value);
+    }, $values))));
+
+    return $aliases[$type];
+}
+
+/**
+ * Analysiert einen Request-Pfad auf Kategorie-/Tag-Archiv-Routen.
+ *
+ * @return array{type:string,locale:string,base_uri:string,base_segment:string,tail:string}|null
+ */
+function cms_parse_archive_request_path(string $path): ?array {
+    $pathOnly = (string) (parse_url(trim($path), PHP_URL_PATH) ?? trim($path));
+    $pathOnly = '/' . ltrim($pathOnly !== '' ? $pathOnly : '/', '/');
+
+    try {
+        if (class_exists('\CMS\Services\ContentLocalizationService')) {
+            $context = \CMS\Services\ContentLocalizationService::getInstance()->resolveRequestContext($pathOnly);
+        } else {
+            $context = [
+                'base_uri' => $pathOnly,
+                'locale' => 'de',
+            ];
+        }
+    } catch (\Throwable) {
+        $context = [
+            'base_uri' => $pathOnly,
+            'locale' => 'de',
+        ];
+    }
+
+    $baseUri = '/' . trim((string) ($context['base_uri'] ?? $pathOnly), '/');
+    $baseUri = preg_replace('#/+#', '/', $baseUri) ?? $baseUri;
+    $baseUri = $baseUri === '' ? '/' : $baseUri;
+
+    $segments = array_values(array_filter(explode('/', trim($baseUri, '/')), static fn(string $segment): bool => $segment !== ''));
+    if ($segments === []) {
+        return null;
+    }
+
+    $firstSegment = strtolower(rawurldecode((string) ($segments[0] ?? '')));
+    foreach (['category', 'tag'] as $type) {
+        if (!in_array($firstSegment, cms_get_archive_base_aliases($type), true)) {
+            continue;
+        }
+
+        return [
+            'type' => $type,
+            'locale' => cms_resolve_archive_locale((string) ($context['locale'] ?? 'de')),
+            'base_uri' => $baseUri,
+            'base_segment' => $firstSegment,
+            'tail' => implode('/', array_slice($segments, 1)),
+        ];
+    }
+
+    return null;
+}
+
+/**
+ * Prüft, ob ein Request-Pfad auf ein Kategorie-/Tag-Archiv zeigt.
+ */
+function cms_is_archive_request_path(string $path, ?string $type = null): bool {
+    $archive = cms_parse_archive_request_path($path);
+    if ($archive === null) {
+        return false;
+    }
+
+    if ($type === null) {
+        return true;
+    }
+
+    return strtolower(trim($type)) === (string) ($archive['type'] ?? '');
+}
+
+/**
+ * Schreibt Legacy-/Alias-Pfade für Kategorie-/Tag-Archive auf die aktuelle CMS-Konfiguration um.
+ */
+function cms_rewrite_archive_path(string $path, ?string $locale = null): string {
+    $archive = cms_parse_archive_request_path($path);
+    if ($archive === null) {
+        return $path;
+    }
+
+    $targetLocale = cms_resolve_archive_locale($locale ?? (string) ($archive['locale'] ?? 'de'));
+    $rewritten = '/' . cms_get_archive_base((string) ($archive['type'] ?? ''), $targetLocale);
+    $tail = trim((string) ($archive['tail'] ?? ''), '/');
+
+    if ($tail !== '') {
+        $rewritten .= '/' . $tail;
+    }
+
+    $query = (string) (parse_url($path, PHP_URL_QUERY) ?? '');
+    if ($query !== '') {
+        $rewritten .= '?' . $query;
+    }
+
+    $fragment = (string) (parse_url($path, PHP_URL_FRAGMENT) ?? '');
+    if ($fragment !== '') {
+        $rewritten .= '#' . $fragment;
+    }
+
+    return $rewritten;
+}
+
+/**
+ * Liefert den lokalisierten Pfad zu einem Kategorie-/Tag-Archiv.
+ */
+function cms_get_archive_path(string $type, string $slug = '', ?string $locale = null): string {
+    $resolvedLocale = cms_resolve_archive_locale($locale);
+    $basePath = '/' . cms_get_archive_base($type, $resolvedLocale);
+    $normalizedSlug = trim($slug, '/');
+
+    if ($normalizedSlug !== '') {
+        $basePath .= '/' . rawurlencode(rawurldecode($normalizedSlug));
+    }
+
+    try {
+        if (class_exists('\CMS\Services\ContentLocalizationService')) {
+            return \CMS\Services\ContentLocalizationService::getInstance()->buildLocalizedPath($basePath, $resolvedLocale);
+        }
+    } catch (\Throwable) {
+    }
+
+    return $resolvedLocale !== '' && $resolvedLocale !== 'de'
+        ? '/' . $resolvedLocale . $basePath
+        : $basePath;
+}
+
+/**
+ * Liefert die absolute URL zu einem Kategorie-/Tag-Archiv.
+ */
+function cms_get_archive_url(string $type, string $slug = '', ?string $locale = null): string {
+    return cms_runtime_base_url(ltrim(cms_get_archive_path($type, $slug, $locale), '/'));
+}
+
+/**
  * Liefert das aktuelle Request-Schema mit Proxy-Unterstützung.
  */
 function cms_runtime_scheme(): string {

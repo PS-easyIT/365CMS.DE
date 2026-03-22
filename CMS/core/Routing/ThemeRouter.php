@@ -41,8 +41,8 @@ final class ThemeRouter
         $this->router->addRoute('GET', '/autoren', [$this, 'renderAuthorsIndex']);
         $this->router->addRoute('GET', '/authors', [$this, 'renderAuthorsIndex']);
         $this->router->addRoute('GET', '/author/:identifier', [$this, 'renderAuthorPage']);
-        $this->router->addRoute('GET', '/kategorie/:slug', [$this, 'renderCategoryArchive']);
-        $this->router->addRoute('GET', '/tag/:slug', [$this, 'renderTagArchive']);
+        $this->registerArchiveRoutes('category', [$this, 'renderCategoryArchive']);
+        $this->registerArchiveRoutes('tag', [$this, 'renderTagArchive']);
         $this->router->addRoute('GET', '/site-table/export/:id/:format', [$this, 'streamSiteTableExport']);
         $this->router->addRoute('GET', '/blog', [$this, 'renderBlogIndex']);
         $this->router->addRoute('GET', $currentPostRoutePattern, [$this, 'renderBlogSingle']);
@@ -54,6 +54,24 @@ final class ThemeRouter
         $this->router->addRoute('GET', '/robots.txt', [$this, 'serveRobotsTxt']);
         $this->router->addRoute('GET', '/security.txt', [$this, 'serveSecurityTxt']);
         $this->router->addRoute('GET', '/.well-known/security.txt', [$this, 'serveSecurityTxt']);
+    }
+
+    private function registerArchiveRoutes(string $type, callable $callback): void
+    {
+        $paths = [];
+
+        foreach (\cms_get_archive_locales() as $locale) {
+            $basePath = '/' . ltrim((string) \cms_get_archive_base($type, $locale), '/');
+            if ($basePath === '/') {
+                continue;
+            }
+
+            $paths[] = $basePath . '/:slug';
+        }
+
+        foreach (array_values(array_unique($paths)) as $path) {
+            $this->router->addRoute('GET', $path, $callback);
+        }
     }
 
     public function renderHome(): void

@@ -82,8 +82,8 @@ final class SiteTableHubRenderer
         return in_array($path, ['/login', '/register', '/search', '/404', '/error', '/blog'], true)
             || str_starts_with($path, '/member')
             || str_starts_with($path, '/dashboard')
-            || str_starts_with($path, '/kategorie/')
-            || str_starts_with($path, '/tag/')
+            || \cms_is_archive_request_path($path, 'category')
+            || \cms_is_archive_request_path($path, 'tag')
             || str_starts_with($path, '/author/');
     }
 

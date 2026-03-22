@@ -326,6 +326,37 @@ $mediaConnectorToken = $mediaConnectorToken ?? '';
                             <label class="form-label">Benutzerdefinierte Struktur</label>
                             <input type="text" name="post_permalink_custom" class="form-control" value="<?php echo htmlspecialchars((string)($s['post_permalink_custom'] ?? '')); ?>" placeholder="/%year%/%monthnum%/%day%/%postname%">
                         </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Kategorie-Basis (DE)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">/</span>
+                                    <input type="text" name="category_base_de" class="form-control" value="<?php echo htmlspecialchars((string)($s['category_base_de'] ?? 'kategorie')); ?>" placeholder="kategorie">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Kategorie-Basis (EN)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">/</span>
+                                    <input type="text" name="category_base_en" class="form-control" value="<?php echo htmlspecialchars((string)($s['category_base_en'] ?? 'category')); ?>" placeholder="category">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tag-Basis (DE)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">/</span>
+                                    <input type="text" name="tag_base_de" class="form-control" value="<?php echo htmlspecialchars((string)($s['tag_base_de'] ?? 'tag')); ?>" placeholder="tag">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tag-Basis (EN)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">/</span>
+                                    <input type="text" name="tag_base_en" class="form-control" value="<?php echo htmlspecialchars((string)($s['tag_base_en'] ?? 'tag')); ?>" placeholder="tag">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-hint mb-3">Die Archive werden sprachabhängig auf dieselben Theme-Templates <code>category.php</code> und <code>tag.php</code> geleitet. Beispiel: <code>/<?php echo htmlspecialchars((string)($s['category_base_de'] ?? 'kategorie')); ?>/azure</code> bzw. <code>/en/<?php echo htmlspecialchars((string)($s['category_base_en'] ?? 'category')); ?>/azure</code>.</div>
                         <div class="alert alert-info mb-3" role="alert">
                             <div class="fw-semibold mb-1">Aktive Beispiel-URL</div>
                             <code><?php echo htmlspecialchars((string)($s['post_permalink_example'] ?? '/blog/beispielbeitrag')); ?></code>

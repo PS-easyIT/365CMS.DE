@@ -84,7 +84,15 @@ final class SiteTableTableRenderer
                 $html .= '<tr>';
                 foreach ($columns as $index => $column) {
                     $label = (string) ($column['label'] ?? ('Spalte ' . ($index + 1)));
-                    $html .= '<td>' . $this->renderEmbeddedContent((string) ($row[$label] ?? ''), $tableId) . '</td>';
+                    $plainLabel = htmlspecialchars((string) ($column['plain_label'] ?? $label), ENT_QUOTES, 'UTF-8');
+                    $cellClasses = ['cms-site-table__cell'];
+                    if ($index === 0) {
+                        $cellClasses[] = 'cms-site-table__cell--primary';
+                    }
+
+                    $html .= '<td class="' . implode(' ', $cellClasses) . '" data-label="' . $plainLabel . '" data-col-index="' . ($index + 1) . '">'
+                        . $this->renderEmbeddedContent((string) ($row[$label] ?? ''), $tableId)
+                        . '</td>';
                 }
                 $html .= '</tr>';
             }

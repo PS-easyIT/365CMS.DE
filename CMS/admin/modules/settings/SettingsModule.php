@@ -68,6 +68,19 @@ class SettingsModule
         'setting_post_default_status', 'setting_page_editor_width',
         'setting_post_editor_width', 'setting_post_permalink_structure',
         'setting_post_permalink_custom',
+        'routing.category_base_de', 'routing.category_base_en',
+        'routing.tag_base_de', 'routing.tag_base_en',
+    ];
+
+    private const ARCHIVE_BASE_DEFAULTS = [
+        'category' => [
+            'de' => 'kategorie',
+            'en' => 'category',
+        ],
+        'tag' => [
+            'de' => 'tag',
+            'en' => 'tag',
+        ],
     ];
 
     private const TIMEZONES = [
@@ -112,6 +125,11 @@ class SettingsModule
         if ($postPermalinkPreset !== 'custom' && $postPermalinkCustom === '') {
             $postPermalinkCustom = $postPermalinkStructure;
         }
+
+        $categoryBaseDe = $this->getArchiveBaseSetting($settings, 'category', 'de');
+        $categoryBaseEn = $this->getArchiveBaseSetting($settings, 'category', 'en');
+        $tagBaseDe = $this->getArchiveBaseSetting($settings, 'tag', 'de');
+        $tagBaseEn = $this->getArchiveBaseSetting($settings, 'tag', 'en');
 
         $editorType = (string)($settings['setting_editor_type'] ?? 'editorjs');
         if (!in_array($editorType, ['editorjs', 'suneditor'], true)) {
@@ -159,6 +177,10 @@ class SettingsModule
                 'post_permalink_example'   => class_exists('\CMS\Services\PermalinkService')
                     ? \CMS\Services\PermalinkService::buildExamplePath($postPermalinkStructure)
                     : '/blog/beispielbeitrag',
+                'category_base_de'     => $categoryBaseDe,
+                'category_base_en'     => $categoryBaseEn,
+                'tag_base_de'          => $tagBaseDe,
+                'tag_base_en'          => $tagBaseEn,
             ],
             'mail'      => $this->getMailData($settings),
             'timezones' => self::TIMEZONES,
@@ -189,6 +211,31 @@ class SettingsModule
 
             if (class_exists('\CMS\Services\PermalinkService')) {
                 $permalinkStructure = \CMS\Services\PermalinkService::normalizePostStructure($permalinkStructure);
+            }
+
+            $categoryBaseDe = $this->normalizeRouteBase(
+                (string)($post['category_base_de'] ?? ''),
+                self::ARCHIVE_BASE_DEFAULTS['category']['de']
+            );
+            $categoryBaseEn = $this->normalizeRouteBase(
+                (string)($post['category_base_en'] ?? ''),
+                self::ARCHIVE_BASE_DEFAULTS['category']['en']
+            );
+            $tagBaseDe = $this->normalizeRouteBase(
+                (string)($post['tag_base_de'] ?? ''),
+                self::ARCHIVE_BASE_DEFAULTS['tag']['de']
+            );
+            $tagBaseEn = $this->normalizeRouteBase(
+                (string)($post['tag_base_en'] ?? ''),
+                self::ARCHIVE_BASE_DEFAULTS['tag']['en']
+            );
+
+            if ($categoryBaseDe === $tagBaseDe) {
+                return ['success' => false, 'error' => 'Die deutschen Slugs für Kategorie- und Tag-Archive müssen unterschiedlich sein.'];
+            }
+
+            if ($categoryBaseEn === $tagBaseEn) {
+                return ['success' => false, 'error' => 'Die englischen Slugs für Kategorie- und Tag-Archive müssen unterschiedlich sein.'];
             }
 
             $editorType = (string)($post['editor_type'] ?? 'editorjs');
@@ -247,6 +294,10 @@ class SettingsModule
                 'setting_post_editor_width' => (string)max(320, min(1600, (int)($post['post_editor_width'] ?? 750))),
                 'setting_post_permalink_structure' => $permalinkStructure,
                 'setting_post_permalink_custom' => $permalinkPreset === 'custom' ? $permalinkCustom : '',
+                'routing.category_base_de' => $categoryBaseDe,
+                'routing.category_base_en' => $categoryBaseEn,
+                'routing.tag_base_de' => $tagBaseDe,
+                'routing.tag_base_en' => $tagBaseEn,
             ];
 
             $oldSiteUrl = rtrim((string)($existingConfig['site_url'] ?? ''), '/');
@@ -1156,6 +1207,24 @@ PHP;
             // Defaults werden in getData() gesetzt
         }
         return $settings;
+    }
+
+    private function getArchiveBaseSetting(array $settings, string $type, string $locale): string
+    {
+        $default = self::ARCHIVE_BASE_DEFAULTS[$type][$locale] ?? '';
+        $value = (string)($settings['routing.' . $type . '_base_' . $locale] ?? '');
+
+        return $this->normalizeRouteBase($value, $default);
+    }
+
+    private function normalizeRouteBase(string $value, string $fallback): string
+    {
+        $normalized = trim(mb_strtolower($value, 'UTF-8'));
+        $normalized = str_replace(['ä', 'ö', 'ü', 'ß'], ['ae', 'oe', 'ue', 'ss'], $normalized);
+        $normalized = preg_replace('/[^a-z0-9]+/u', '-', $normalized) ?? '';
+        $normalized = trim($normalized, '-');
+
+        return $normalized !== '' ? $normalized : $fallback;
     }
 
     private function tableExists(string $table): bool

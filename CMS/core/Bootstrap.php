@@ -574,8 +574,8 @@ class Bootstrap
                     in_array($path, ['/', '/blog', '/search', '/404', '/error', '/login', '/register'], true)
                     || str_starts_with($path, '/member')
                     || str_starts_with($path, '/dashboard')
-                    || str_starts_with($path, '/kategorie/')
-                    || str_starts_with($path, '/tag/')
+                    || \cms_is_archive_request_path($path, 'category')
+                    || \cms_is_archive_request_path($path, 'tag')
                     || str_starts_with($path, '/author/')
                     || $path === '/authors'
                     || $path === '/autoren'
