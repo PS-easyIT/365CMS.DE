@@ -11,6 +11,8 @@ final class DocumentationGithubZipSync
         private readonly string $repoRoot,
         private readonly string $docsRoot,
         private readonly string $githubZipUrl,
+        private readonly string $approvedDocsBundleHash,
+        private readonly int $approvedDocsBundleFileCount,
         private readonly DocumentationSyncDownloader $downloader,
         private readonly DocumentationSyncFilesystem $filesystem
     ) {
@@ -32,6 +34,8 @@ final class DocumentationGithubZipSync
         $backupDir = $this->repoRoot . DIRECTORY_SEPARATOR . 'DOC.__backup_' . date('Ymd_His') . '_' . bin2hex(random_bytes(3));
 
         try {
+            $this->assertDocsRootLocation();
+
             $download = $this->downloader->downloadFile($this->githubZipUrl, $zipFile);
             if (($download['success'] ?? false) !== true) {
                 throw new RuntimeException((string) ($download['error'] ?? 'ZIP-Datei konnte nicht geladen werden.'));
@@ -62,6 +66,8 @@ final class DocumentationGithubZipSync
             if ($sourceDocs === null || !is_dir($sourceDocs)) {
                 throw new RuntimeException('Der Ordner /DOC wurde im heruntergeladenen Archiv nicht gefunden.');
             }
+
+            $this->assertApprovedDocsBundle($sourceDocs);
 
             if (is_dir($stagingDir)) {
                 $this->filesystem->deleteDirectory($stagingDir);
@@ -144,5 +150,28 @@ final class DocumentationGithubZipSync
         }
 
         return $hasEntries;
+    }
+
+    private function assertDocsRootLocation(): void
+    {
+        $expectedDocsRoot = rtrim($this->repoRoot, '\\/') . DIRECTORY_SEPARATOR . 'DOC';
+        if (rtrim($this->docsRoot, '\\/') !== $expectedDocsRoot) {
+            throw new RuntimeException('Der Doku-Sync darf /DOC nur direkt im Repository-Root neben /CMS verwalten.');
+        }
+    }
+
+    private function assertApprovedDocsBundle(string $sourceDocs): void
+    {
+        if (!preg_match('/^[0-9a-f]{64}$/', $this->approvedDocsBundleHash) || $this->approvedDocsBundleFileCount <= 0) {
+            throw new RuntimeException('Für den Doku-Sync ist kein gültiges freigegebenes Integritätsprofil hinterlegt.');
+        }
+
+        $integrity = $this->filesystem->calculateDirectoryIntegrity($sourceDocs);
+        $actualHash = strtolower((string) ($integrity['hash'] ?? ''));
+        $actualFileCount = (int) ($integrity['file_count'] ?? 0);
+
+        if ($actualHash !== $this->approvedDocsBundleHash || $actualFileCount !== $this->approvedDocsBundleFileCount) {
+            throw new RuntimeException('Der heruntergeladene /DOC-Baum entspricht nicht dem freigegebenen Dokumentations-Bundle.');
+        }
     }
 }

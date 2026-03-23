@@ -23,6 +23,8 @@ final class DocumentationModule
     private const GITHUB_DOC_BASE = 'https://github.com/PS-easyIT/365CMS.DE/blob/main/DOC/';
     private const GITHUB_DOC_TREE = 'https://github.com/PS-easyIT/365CMS.DE/tree/main/DOC';
     private const GITHUB_DOC_ZIP = 'https://codeload.github.com/PS-easyIT/365CMS.DE/zip/refs/heads/main';
+    private const APPROVED_DOC_BUNDLE_SHA256 = '284c5860b90e059019ba7eac1035b5777d78ca16b263aacc99066d1b47f52dcb';
+    private const APPROVED_DOC_BUNDLE_FILE_COUNT = 121;
     private const DEFAULT_REMOTE = 'origin';
     private const DEFAULT_BRANCH = 'main';
 
@@ -49,6 +51,8 @@ final class DocumentationModule
             $this->repoRoot,
             $this->docsRoot,
             self::GITHUB_DOC_ZIP,
+            self::APPROVED_DOC_BUNDLE_SHA256,
+            self::APPROVED_DOC_BUNDLE_FILE_COUNT,
             self::DEFAULT_REMOTE,
             self::DEFAULT_BRANCH
         );

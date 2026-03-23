@@ -7,6 +7,59 @@ if (!defined('ABSPATH')) {
 
 final class DocumentationSyncFilesystem
 {
+    /**
+     * @return array{hash: string, file_count: int}
+     */
+    public function calculateDirectoryIntegrity(string $root): array
+    {
+        if (!is_dir($root)) {
+            throw new RuntimeException('Integritätsprüfung erwartet ein vorhandenes Verzeichnis.');
+        }
+
+        $basePath = rtrim((string) realpath($root), '\\/');
+        if ($basePath === '') {
+            throw new RuntimeException('Integritätsprüfung konnte den Verzeichnispfad nicht auflösen.');
+        }
+
+        $entries = [];
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($basePath, FilesystemIterator::SKIP_DOTS)
+        );
+
+        /** @var SplFileInfo $item */
+        foreach ($iterator as $item) {
+            if (!$item->isFile()) {
+                continue;
+            }
+
+            $path = $item->getPathname();
+            $hash = hash_file('sha256', $path);
+            if ($hash === false) {
+                throw new RuntimeException('Integritätsprüfung konnte keine SHA-256-Prüfsumme berechnen: ' . $path);
+            }
+
+            $relative = substr($path, strlen($basePath) + 1);
+            if (!is_string($relative) || $relative === '') {
+                throw new RuntimeException('Integritätsprüfung konnte keinen relativen Pfad bestimmen.');
+            }
+
+            $entries[str_replace('\\', '/', $relative)] = strtolower($hash);
+        }
+
+        ksort($entries, SORT_STRING);
+
+        $payload = implode("\n", array_map(
+            static fn(string $relativePath, string $hash): string => $relativePath . ':' . $hash,
+            array_keys($entries),
+            $entries
+        ));
+
+        return [
+            'hash' => hash('sha256', $payload),
+            'file_count' => count($entries),
+        ];
+    }
+
     public function findDocDirectory(string $extractRoot): ?string
     {
         $iterator = new RecursiveIteratorIterator(

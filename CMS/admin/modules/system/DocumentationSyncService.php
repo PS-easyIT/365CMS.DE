@@ -21,6 +21,8 @@ final class DocumentationSyncService
         private readonly string $repoRoot,
         private readonly string $docsRoot,
         private readonly string $githubZipUrl,
+        private readonly string $approvedDocsBundleHash,
+        private readonly int $approvedDocsBundleFileCount,
         private readonly string $defaultRemote,
         private readonly string $defaultBranch
     ) {
@@ -38,6 +40,8 @@ final class DocumentationSyncService
             $this->repoRoot,
             $this->docsRoot,
             $this->githubZipUrl,
+            $this->approvedDocsBundleHash,
+            $this->approvedDocsBundleFileCount,
             $downloader,
             $filesystem
         );

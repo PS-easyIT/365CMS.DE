@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.6-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.7-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -24,6 +24,13 @@ Die folgenden Punkte sind **sinnvolle nächste Ausbaustufen**, die aus den aktue
 - **Diagnose 2.0 mit Bundle-/Registry-Historie** – sichtbare Bundle-/Registry-Statusdaten um Trends, Änderungsverlauf und aktive Warnhistorie ergänzen
 - **Weitere Service-Splits für Rest-Hotspots** – insbesondere verbleibende Theme-/Media-Restblöcke
 - **Proxy-/CDN-Realfall-Prüfung im Betrieb** – Header, Vary-Verhalten und Cache-Reaktionen auf echter Infrastruktur gezielt gegenmessen
+
+## [2.6.7] – 2026-03-23
+
+### Fixed
+
+- Der GitHub-Doku-Sync akzeptiert jetzt nur noch ein freigegebenes `/DOC`-Bundle per Tree-SHA-256 und Dateianzahl; Abweichungen vom freigegebenen Dokumentationsstand werden vor der Aktivierung blockiert.
+- Der Zielpfad des Doku-Syncs ist jetzt explizit auf `../DOC` direkt neben `/CMS` festgenagelt, damit der Sync kein anderes Verzeichnis aktiviert.
 
 ## [2.6.6] – 2026-03-23
 

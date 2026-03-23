@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.6.6",
+  "version": "2.6.7",
   "min_php": "8.4",
   "released": "2026-03-23",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release 2.6.6: Der GitHub-Doku-Sync validiert ZIP-Einträge jetzt vor dem Entpacken auf Traversals, absolute Pfade, NUL-/Steuerzeichen und punktbasierte Segmente, bevor `extractTo()` ausgeführt wird.",
+  "notes": "Release 2.6.7: Der GitHub-Doku-Sync akzeptiert nur noch ein freigegebenes `/DOC`-Bundle per Tree-SHA-256 + Dateianzahl und verwaltet den Zielpfad strikt als `../DOC` direkt neben `/CMS`.",
   "critical": false
 }
