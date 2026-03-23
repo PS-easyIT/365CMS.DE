@@ -166,6 +166,12 @@ Der schnellste Einstieg ist der lokale Dokumentationsindex unter [`DOC/INDEX.md`
 | **Auth** | Rollen, Capabilities, Member-Dashboard, LDAP-Optionen, Login-Protokolle |
 | **Compliance** | Cookie-Consent, Datenexport, Löschanfragen, Legal-Sites, `security.txt` |
 
+### Auditstatus 23.03.2026
+
+- Die aktuelle Vollprüfung deckt den First-Party-Dateibaum unter `CMS/` **ohne** die Root-Verzeichnisse `CMS/assets/` und `CMS/vendor/` ab und inventarisiert dafür `444` Dateien mit rund `5,15 MB` Code- und Runtime-Oberfläche.
+- Die stärksten offenen Risiken liegen derzeit bei `CMS/install.php`, der noch uneinheitlichen Versionslinie (`2.6.0` in Runtime/Installer vs. weitergezogene Release-Doku), dem ungehärteten Remote-Fetch im eingebauten Importer sowie im Umgang mit Laufzeit-Logs im Deploy-Baum.
+- Details und vollständige Dateiabdeckung stehen in [`DOC/audit/ToDo_Audit_23032026.md`](DOC/audit/ToDo_Audit_23032026.md) und [`DOC/audit/AUDIT_23032026_CMS_PHINIT-LIVE.md`](DOC/audit/AUDIT_23032026_CMS_PHINIT-LIVE.md). Ein bisschen weniger Monolith, ein bisschen mehr Release-Disziplin – und das Ding atmet deutlich entspannter.
+
 ### Aktuelle Betriebsverbesserungen (März 2026)
 
 - Public-GET-Routen unterstützen jetzt auch `HEAD` sauber für Header-/Monitoring-Checks.

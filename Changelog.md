@@ -48,6 +48,8 @@ Die folgenden Punkte sind **sinnvolle nächste Ausbaustufen**, die aus den aktue
 
 - Der neue Audit `DOC/audit/AUDIT_23032026_CMS_PHINIT-LIVE.md` dokumentiert den CMS- und Live-Site-Prüfstand vom 23.03.2026 inklusive öffentlicher PhinIT-Stichprobe.
 - `DOC/audit/NACHARBEIT_AUDIT_ToDo.md` führt jetzt zusätzlich den offenen Release-/Versionsabgleich sowie die reale Proxy-/CDN-/Tracking-Verifikation als aktive Nacharbeiten.
+- `DOC/audit/ToDo_Audit_23032026.md` wurde auf eine vollständige First-Party-Dateiabdeckung ohne die Root-Bundle-Ordner `CMS/assets/` und `CMS/vendor/` nachgezogen und nennt die aktuell wichtigsten Punkte zu Installer, Versionsdrift, Importer-Fetch und Log-Hygiene jetzt explizit.
+- `README.md` beschreibt den Auditstatus vom 23.03.2026 jetzt direkt im Betriebsabschnitt, damit offene Betriebs- und Sicherheitsbaustellen nicht nur im Audit-Ordner versteckt bleiben.
 
 ## [2.6.1] – 2026-03-17
 
