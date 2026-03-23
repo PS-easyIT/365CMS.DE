@@ -47,6 +47,120 @@ function generateSecurityKey(int $length = 64): string {
     return bin2hex(random_bytes($length / 2));
 }
 
+function getInstallerLockPath(): string {
+    return __DIR__ . '/config/install.lock';
+}
+
+function hasInstallerLock(): bool {
+    return is_file(getInstallerLockPath());
+}
+
+function writeInstallerLockFile(?array $config = null): void {
+    $lockPath = getInstallerLockPath();
+    $lockDir  = dirname($lockPath);
+
+    if (!is_dir($lockDir) && !mkdir($lockDir, 0755, true) && !is_dir($lockDir)) {
+        return;
+    }
+
+    $payload = [
+        'locked'     => true,
+        'created_at' => date(DATE_ATOM),
+        'site_url'   => trim((string) ($config['site_url'] ?? '')),
+    ];
+
+    $json = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    if (!is_string($json) || $json === '') {
+        return;
+    }
+
+    file_put_contents($lockPath, $json);
+}
+
+function canAccessInstalledInstaller(): bool {
+    if (PHP_SAPI === 'cli') {
+        return true;
+    }
+
+    try {
+        require_once __DIR__ . '/config.php';
+        require_once __DIR__ . '/core/autoload.php';
+
+        return class_exists('CMS\\Auth') && \CMS\Auth::isAdmin();
+    } catch (Throwable $e) {
+        error_log('install.php admin-guard failed: ' . $e->getMessage());
+        return false;
+    }
+}
+
+function denyInstalledInstallerAccess(): void {
+    http_response_code(403);
+    ?>
+    <!DOCTYPE html>
+    <html lang="de">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Installer deaktiviert</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem;
+            }
+            .card {
+                max-width: 720px;
+                width: 100%;
+                background: white;
+                border-radius: 16px;
+                padding: 3rem;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+            }
+            h1 {
+                color: #991b1b;
+                font-size: 2rem;
+                margin-bottom: 1rem;
+            }
+            p {
+                color: #475569;
+                margin-bottom: 1rem;
+                line-height: 1.6;
+            }
+            .hint {
+                background: #f8fafc;
+                border-left: 4px solid #2563eb;
+                padding: 1rem;
+                border-radius: 8px;
+                color: #1e293b;
+            }
+            code {
+                background: #eff6ff;
+                color: #1d4ed8;
+                padding: 0.1rem 0.35rem;
+                border-radius: 4px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <h1>🔒 Installer deaktiviert</h1>
+            <p>Für bestehende Installationen ist <code>install.php</code> öffentlich gesperrt.</p>
+            <p>Der Zugriff ist nur noch für bereits angemeldete Administratoren oder über die CLI vorgesehen.</p>
+            <div class="hint">
+                Wenn Wartung nötig ist, melden Sie sich zuerst im Admin-Bereich an oder entfernen Sie den Installer vollständig aus dem öffentlichen Deployment.
+            </div>
+        </div>
+    </body>
+    </html>
+    <?php
+    exit;
+}
+
 function parseExistingConfig(): array|bool {
     // C-02: config/app.php ist der primäre Speicherort (isoliert via .htaccess)
     $configPath = __DIR__ . '/config/app.php';
@@ -541,6 +655,16 @@ if (!defined('CMS_MIN_PHP_VERSION')) {
 $existingConfig = parseExistingConfig();
 $isReinstall = $existingConfig !== false;
 
+if ($existingConfig !== false) {
+    if (!hasInstallerLock()) {
+        writeInstallerLockFile($existingConfig);
+    }
+
+    if (!isset($_SESSION['install_success']) && !canAccessInstalledInstaller()) {
+        denyInstalledInstallerAccess();
+    }
+}
+
 // Step 1: Willkommen & System-Check
 if ($step == 1) {
     $autoUrl = autoDetectUrl();
@@ -772,6 +896,7 @@ if ($step === 'update') {
 
                 $newTables = array_keys(array_filter($tableResults, static fn($v) => $v === true));
                 clearSchemaManagerFlagFile();
+                writeInstallerLockFile($existingConfig + ['site_url' => $newSiteUrl]);
                 $_SESSION['install_success'] = [
                     'username'       => '',
                     'site_url'       => $newSiteUrl,
@@ -999,7 +1124,7 @@ if ($step == 2) {
         'db_host'   => $existingConfig['db_host']   ?? 'localhost',
         'db_name'   => $existingConfig['db_name']   ?? '',
         'db_user'   => $existingConfig['db_user']   ?? '',
-        'db_pass'   => $existingConfig['db_pass']   ?? '',
+        'db_pass'   => '',
         'db_prefix' => $existingConfig['db_prefix'] ?? 'cms_',
     ] : [
         'db_host'   => 'localhost',
@@ -1431,6 +1556,7 @@ if ($step == 4) {
                     if ($adminResult === true) {
                         // SchemaManager-Flag löschen → beim ersten CMS-Boot wird das aktuelle Schema neu geprüft
                         clearSchemaManagerFlagFile();
+                        writeInstallerLockFile(['site_url' => $siteConfig['site_url']]);
                         // SUCCESS!
                         $_SESSION['install_success'] = [
                             'username' => $adminUsername,

@@ -41,6 +41,7 @@ Die folgenden Punkte sind **sinnvolle nächste Ausbaustufen**, die aus den aktue
 
 ### Fixed
 
+- `install.php` sperrt bestehende Installationen jetzt per Install-Lock und Admin-Guard für öffentliche Zugriffe; zusätzlich wird das Datenbank-Passwort im Reinstall-Pfad nicht mehr aus der vorhandenen Konfiguration vorbefüllt.
 - Das Löschverhalten für Kategorien und Tags bricht bei inhaltlich verknüpften Beiträgen nicht mehr stumpf weg, sondern kann Ziele auf Ersatzkategorien/-tags umlenken.
 - Archiv- und Routingpfade für Kategorien/Tags verhalten sich in der mehrsprachigen CMS-Linie robuster und besser abgestimmt auf lokalisierte Inhaltsstrukturen.
 
