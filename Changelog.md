@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.0-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.2-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -25,7 +25,7 @@ Die folgenden Punkte sind **sinnvolle nächste Ausbaustufen**, die aus den aktue
 - **Weitere Service-Splits für Rest-Hotspots** – insbesondere verbleibende Theme-/Media-Restblöcke
 - **Proxy-/CDN-Realfall-Prüfung im Betrieb** – Header, Vary-Verhalten und Cache-Reaktionen auf echter Infrastruktur gezielt gegenmessen
 
-## [Unreleased] – 2026-03-23
+## [2.6.2] – 2026-03-23
 
 ### Added
 
@@ -35,6 +35,7 @@ Die folgenden Punkte sind **sinnvolle nächste Ausbaustufen**, die aus den aktue
 
 ### Changed
 
+- `CMS\Version` ist jetzt wieder die zentrale Release-Quelle für Runtime und Installer; `config/app.php`, Installer-Konfigwriter, Update-Metadaten und sichtbare Versions-Badges wurden auf den konsistenten Stand `2.6.2` nachgezogen.
 - Routing, Archive, Slug-Generierung und Inhaltslokalisierung wurden in mehreren Wellen weiter konsolidiert; insbesondere Kategorie-/Tag-Archive, Slug-Validierung in Seiten/Beiträgen sowie die allgemeine Inhaltsauflösung im Frontend wurden nachgeschärft.
 - Marketplace- und Update-Pfade wurden erweitert: Theme-/Plugin-Verwaltung, Update-Ansichten und die zugrunde liegende `UpdateService`-Logik unterstützen den jüngsten Ausbauzustand deutlich umfangreicher als im Stand `2.6.1`.
 - Der Mitgliederbereich blendet im Header jetzt gezielt einen Admin-Einstieg ein, wenn der aktuelle Nutzer entsprechende Rechte besitzt.

@@ -47,6 +47,12 @@ function generateSecurityKey(int $length = 64): string {
     return bin2hex(random_bytes($length / 2));
 }
 
+function getCmsVersion(): string {
+    require_once __DIR__ . '/core/Version.php';
+
+    return \CMS\Version::CURRENT;
+}
+
 function getInstallerLockPath(): string {
     return __DIR__ . '/config/install.lock';
 }
@@ -359,7 +365,9 @@ define('NONCE_KEY',       '{$data['nonce_key']}');
 define('SITE_NAME',   '{$data['site_name']}');
 define('SITE_URL',    '{$data['site_url']}');
 define('ADMIN_EMAIL', '{$data['admin_email']}');
-define('CMS_VERSION', '2.6.0');
+
+require_once ABSPATH . 'core/Version.php';
+define('CMS_VERSION', \CMS\Version::CURRENT);
 
 // ─── Pfade ─────────────────────────────────────────────────────────────────
 define('CORE_PATH',   ABSPATH . 'core/');
@@ -551,7 +559,7 @@ function initializeLandingPageData(PDO $pdo, string $prefix = 'cms_'): bool {
             'description' => '365CMS vereint Content-Management, Design-Anpassung, Mitgliederfunktionen, System-Mails und modulare Business-Features in einer flexiblen Plattform für professionelle Websites und Portale.',
             'github_url' => 'https://github.com/PS-easyIT/WordPress-365network',
             'gitlab_url' => '',
-            'version' => '2.6.0',
+            'version' => getCmsVersion(),
             'logo' => '',
             'colors' => [
                 'hero_gradient_start' => '#1e293b',
