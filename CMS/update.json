@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.6.3",
+  "version": "2.6.4",
   "min_php": "8.4",
   "released": "2026-03-23",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release 2.6.3: Der WordPress-Importer lädt Remote-Bilder jetzt über den zentralen Core-HTTP-Client mit aktivierter TLS-Prüfung, SSRF-Schutz sowie Größen- und Image-Content-Type-Limits statt über einen ungehärteten Direkt-Fetch.",
+  "notes": "Release 2.6.4: Die Audit-Dokumentation nutzt `FILEINVENTAR.md` jetzt konsequent als kanonische Scope-Quelle, sodass Audit und ToDo keine konkurrierenden Inventarstände wie 444 vs. 419 Dateien mehr mitschleppen.",
   "critical": false
 }
