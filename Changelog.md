@@ -39,13 +39,6 @@ Die folgenden Punkte sind **sinnvolle nächste Ausbaustufen**, die aus den aktue
 - `CMS\Http\Client` blockiert ungelöste Remote-Hosts im SSRF-Schutz jetzt standardmäßig, versucht vorab eine echte IPv4/IPv6-Auflösung und lässt ungelöste Hosts nur noch per explizitem `allowUnresolvedHosts`-Opt-in zu.
 - `UpdateService` nutzt dieselbe härtere DNS/IP-Auflösung und erlaubt bei fehlender Host-Auflösung keine sensiblen Remote-Ziele mehr stillschweigend durch.
 
-## [2.6.7] – 2026-03-23
-
-### Fixed
-
-- Der GitHub-Doku-Sync akzeptiert jetzt nur noch ein freigegebenes `/DOC`-Bundle per Tree-SHA-256 und Dateianzahl; Abweichungen vom freigegebenen Dokumentationsstand werden vor der Aktivierung blockiert.
-- Der Zielpfad des Doku-Syncs ist jetzt explizit auf `../DOC` direkt neben `/CMS` festgenagelt, damit der Sync kein anderes Verzeichnis aktiviert.
-
 ## [2.6.6] – 2026-03-23
 
 ### Fixed
