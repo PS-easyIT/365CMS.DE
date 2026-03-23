@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.6.9-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.6.10-blue.svg)](Changelog.md)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
@@ -169,7 +169,7 @@ Der schnellste Einstieg ist der lokale Dokumentationsindex unter [`DOC/INDEX.md`
 ### Auditstatus 23.03.2026
 
 - Die aktuelle Vollprüfung deckt den First-Party-Dateibaum unter `CMS/` **ohne** `CMS/vendor/` und `CMS/themes/` ab; aus `CMS/assets/` wurden nur `assets/css/` und `assets/js/` einbezogen. Der verifizierte Prüfscope umfasst `419` Dateien.
-- Die stärksten offenen Risiken liegen derzeit bei `CMS/install.php`; der frühere Direkt-Fetch des eingebauten Importers wurde inzwischen auf die zentrale Core-HTTP-Härtung umgestellt, die Audit-Dokumentation referenziert den verifizierten Scope konsistent über `FILEINVENTAR.md`, Debug-Logs liegen außerhalb des Release-Baums, der GitHub-Doku-Sync akzeptiert nur noch freigegebene `/DOC`-Bundles am festen Repo-Root-Zielpfad, der SSRF-Schutz blockiert ungelöste Remote-Hosts standardmäßig, und `session.cookie_secure` folgt jetzt echtem HTTPS auf Release `2.6.9`.
+- Die stärksten offenen Risiken liegen derzeit bei `CMS/install.php`; der frühere Direkt-Fetch des eingebauten Importers wurde inzwischen auf die zentrale Core-HTTP-Härtung umgestellt, die Audit-Dokumentation referenziert den verifizierten Scope konsistent über `FILEINVENTAR.md`, Debug-Logs liegen außerhalb des Release-Baums, der GitHub-Doku-Sync akzeptiert nur noch freigegebene `/DOC`-Bundles am festen Repo-Root-Zielpfad, der SSRF-Schutz blockiert ungelöste Remote-Hosts standardmäßig, `session.cookie_secure` folgt echtem HTTPS und Core-Updates laufen jetzt staging-basiert mit atomarem Ziel-Swap bzw. Rollback auf Release `2.6.10`.
 - Details und vollständige Dateiabdeckung stehen in [`DOC/audit/ToDo_Audit_23032026.md`](DOC/audit/ToDo_Audit_23032026.md) und [`DOC/audit/AUDIT_23032026_CMS_PHINIT-LIVE.md`](DOC/audit/AUDIT_23032026_CMS_PHINIT-LIVE.md). Ein bisschen weniger Monolith, ein bisschen mehr Release-Disziplin – und das Ding atmet deutlich entspannter.
 
 ### Aktuelle Betriebsverbesserungen (März 2026)

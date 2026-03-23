@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.6.9",
+  "version": "2.6.10",
   "min_php": "8.4",
   "released": "2026-03-23",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release 2.6.9: `session.cookie_secure` wird in Security, index.php und cron.php nur noch bei tatsächlich erkanntem HTTPS gesetzt; HTTP-Staging- und CLI-Läufe bleiben damit funktionsfähig.",
+  "notes": "Release 2.6.10: Core-Updates werden jetzt in ein Staging-Verzeichnis entpackt und anschließend per atomarem Verzeichnis-Swap bzw. rollback-fähigem Inhalts-Swap ins Ziel übernommen, sodass abgebrochene Installationen keine halbfertigen Live-Verzeichnisse hinterlassen.",
   "critical": false
 }

@@ -889,13 +889,14 @@ class UpdateService
     }
     
     /**
-     * H-19: Plugin/Theme-Update herunterladen und nach SHA-256-Verifikation installieren.
+     * H-19: Plugin/Theme/Core-Update herunterladen und staging-basiert installieren.
      *
      * Ablauf:
      *  1. Download der ZIP-Datei in einen temporären Pfad
      *  2. SHA-256-Prüfsumme verifizieren (Abbruch bei Mismatch)
-     *  3. ZIP in Zielverzeichnis extrahieren
-     *  4. Temporäre Datei löschen
+     *  3. ZIP in ein Staging-Verzeichnis extrahieren und Paketwurzel bestimmen
+     *  4. Ziel per atomarem Directory-Swap oder per Rollback-fähigem Inhalts-Swap austauschen
+     *  5. Temporäre Artefakte löschen
      *
      * @param  string $downloadUrl  HTTPS-URL zur ZIP-Datei
      * @param  string $sha256       Erwartete SHA-256-Prüfsumme (leer = Warnung, kein Abbruch)
@@ -921,9 +922,26 @@ class UpdateService
             return ['success' => false, 'message' => 'ZIP-Extension ist nicht verfügbar.', 'sha256_verified' => false];
         }
 
+        $targetDir = rtrim($targetDir, '/\\');
+        if ($targetDir === '') {
+            return ['success' => false, 'message' => 'Ungültiges Zielverzeichnis für das Update.', 'sha256_verified' => false];
+        }
+
+        $targetParentDir = dirname($targetDir);
+        if ($targetParentDir === '' || $targetParentDir === '.' || $targetParentDir === DIRECTORY_SEPARATOR) {
+            return ['success' => false, 'message' => 'Zielverzeichnis für das Update ist nicht staging-fähig.', 'sha256_verified' => false];
+        }
+
+        if (!is_dir($targetParentDir) && !mkdir($targetParentDir, 0755, true)) {
+            return ['success' => false, 'message' => 'Elternverzeichnis für das Update konnte nicht erstellt werden: ' . $targetParentDir, 'sha256_verified' => false];
+        }
+
         // Temporäre Datei erstellen (eigene .zip-Benennung, kein tempnam-Leak)
         $tmpFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR
             . '365cms_upd_' . bin2hex(random_bytes(8)) . '.zip';
+
+        $stagingRoot = $this->createAdjacentTemporaryDirectory($targetParentDir, '365cms_upd_stage_');
+        $backupPath = $this->buildAdjacentTemporaryPath($targetParentDir, '365cms_upd_backup_');
 
         try {
             $response = $this->httpClient->get($downloadUrl, [
@@ -971,8 +989,23 @@ class UpdateService
                 throw new \RuntimeException('Update-Paket enthält ungültige oder unsichere Pfade.');
             }
 
-            $zip->extractTo($targetDir);
+            if (!$zip->extractTo($stagingRoot)) {
+                $zip->close();
+                throw new \RuntimeException('Update-Paket konnte nicht in das Staging-Verzeichnis entpackt werden.');
+            }
+
             $zip->close();
+
+            $installSource = $this->detectExtractedInstallRoot($stagingRoot);
+            if (!$this->directoryHasContents($installSource)) {
+                throw new \RuntimeException('Update-Paket enthält keine installierbaren Dateien.');
+            }
+
+            if ($this->canUseAtomicDirectorySwap($type, $targetDir)) {
+                $this->swapDirectoryAtomically($installSource, $targetDir, $backupPath);
+            } else {
+                $this->swapDirectoryContentsWithRollback($installSource, $targetDir, $backupPath);
+            }
 
             // Temporäre Datei löschen
             if (file_exists($tmpFile)) { unlink($tmpFile); } // M-03
@@ -986,6 +1019,18 @@ class UpdateService
             if (file_exists($tmpFile)) { unlink($tmpFile); } // M-03
             error_log('UpdateService::downloadAndInstallUpdate() Fehler: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Fehler: ' . $e->getMessage(), 'sha256_verified' => false];
+        } finally {
+            if (is_file($tmpFile)) {
+                unlink($tmpFile);
+            }
+
+            if (is_dir($stagingRoot)) {
+                $this->removeDirectory($stagingRoot);
+            }
+
+            if (is_dir($backupPath)) {
+                $this->removeDirectory($backupPath);
+            }
         }
     }
 
@@ -1162,6 +1207,199 @@ class UpdateService
         }
 
         return $hasEntries;
+    }
+
+    private function createAdjacentTemporaryDirectory(string $parentDir, string $prefix): string
+    {
+        $path = $this->buildAdjacentTemporaryPath($parentDir, $prefix);
+
+        if (!mkdir($path, 0755, true) && !is_dir($path)) {
+            throw new \RuntimeException('Temporäres Update-Verzeichnis konnte nicht erstellt werden: ' . $path);
+        }
+
+        return $path;
+    }
+
+    private function buildAdjacentTemporaryPath(string $parentDir, string $prefix): string
+    {
+        $parentDir = rtrim($parentDir, '/\\');
+
+        do {
+            $path = $parentDir . DIRECTORY_SEPARATOR . $prefix . bin2hex(random_bytes(8));
+        } while (file_exists($path));
+
+        return $path;
+    }
+
+    private function detectExtractedInstallRoot(string $stagingRoot): string
+    {
+        $entries = $this->listDirectoryEntries($stagingRoot);
+
+        if (count($entries) === 1) {
+            $candidate = $stagingRoot . DIRECTORY_SEPARATOR . $entries[0];
+            if (is_dir($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return $stagingRoot;
+    }
+
+    private function directoryHasContents(string $directory): bool
+    {
+        return $this->listDirectoryEntries($directory) !== [];
+    }
+
+    /**
+     * @return string[]
+     */
+    private function listDirectoryEntries(string $directory): array
+    {
+        if (!is_dir($directory)) {
+            return [];
+        }
+
+        $entries = scandir($directory);
+        if ($entries === false) {
+            return [];
+        }
+
+        return array_values(array_filter($entries, static fn (string $entry): bool => $entry !== '.' && $entry !== '..'));
+    }
+
+    private function canUseAtomicDirectorySwap(string $type, string $targetDir): bool
+    {
+        if ($type === 'core') {
+            return false;
+        }
+
+        $absoluteRoot = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, (string) ABSPATH), DIRECTORY_SEPARATOR);
+        $normalizedTarget = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $targetDir), DIRECTORY_SEPARATOR);
+
+        return $normalizedTarget !== '' && $normalizedTarget !== $absoluteRoot;
+    }
+
+    private function swapDirectoryAtomically(string $sourceDir, string $targetDir, string $backupPath): void
+    {
+        $targetExists = is_dir($targetDir);
+        $backupCreated = false;
+
+        if ($targetExists) {
+            if (!rename($targetDir, $backupPath)) {
+                throw new \RuntimeException('Bestehendes Zielverzeichnis konnte nicht in das Backup verschoben werden: ' . $targetDir);
+            }
+
+            $backupCreated = true;
+        }
+
+        if (!rename($sourceDir, $targetDir)) {
+            if ($backupCreated && !is_dir($targetDir) && is_dir($backupPath)) {
+                rename($backupPath, $targetDir);
+            }
+
+            throw new \RuntimeException('Staging-Verzeichnis konnte nicht atomar in das Ziel verschoben werden: ' . $targetDir);
+        }
+
+        if ($backupCreated && is_dir($backupPath)) {
+            $this->removeDirectory($backupPath);
+        }
+    }
+
+    private function swapDirectoryContentsWithRollback(string $sourceDir, string $targetDir, string $backupPath): void
+    {
+        if (!is_dir($sourceDir)) {
+            throw new \RuntimeException('Staging-Quelle für das Update fehlt: ' . $sourceDir);
+        }
+
+        if (!is_dir($targetDir) && !mkdir($targetDir, 0755, true)) {
+            throw new \RuntimeException('Zielverzeichnis konnte nicht vorbereitet werden: ' . $targetDir);
+        }
+
+        if (!mkdir($backupPath, 0755, true) && !is_dir($backupPath)) {
+            throw new \RuntimeException('Rollback-Verzeichnis konnte nicht erstellt werden: ' . $backupPath);
+        }
+
+        $backedUpEntries = [];
+        $movedEntries = [];
+
+        try {
+            foreach ($this->listDirectoryEntries($targetDir) as $entry) {
+                $from = $targetDir . DIRECTORY_SEPARATOR . $entry;
+                $to = $backupPath . DIRECTORY_SEPARATOR . $entry;
+
+                if (!rename($from, $to)) {
+                    throw new \RuntimeException('Bestehender Zielinhalt konnte nicht ins Rollback-Verzeichnis verschoben werden: ' . $entry);
+                }
+
+                $backedUpEntries[] = $entry;
+            }
+
+            foreach ($this->listDirectoryEntries($sourceDir) as $entry) {
+                $from = $sourceDir . DIRECTORY_SEPARATOR . $entry;
+                $to = $targetDir . DIRECTORY_SEPARATOR . $entry;
+
+                if (!rename($from, $to)) {
+                    throw new \RuntimeException('Staging-Inhalt konnte nicht in das Ziel verschoben werden: ' . $entry);
+                }
+
+                $movedEntries[] = $entry;
+            }
+        } catch (\Throwable $e) {
+            foreach (array_reverse($movedEntries) as $entry) {
+                $current = $targetDir . DIRECTORY_SEPARATOR . $entry;
+                $rollback = $sourceDir . DIRECTORY_SEPARATOR . $entry;
+
+                if (file_exists($current)) {
+                    @rename($current, $rollback);
+                }
+            }
+
+            foreach (array_reverse($backedUpEntries) as $entry) {
+                $current = $backupPath . DIRECTORY_SEPARATOR . $entry;
+                $rollback = $targetDir . DIRECTORY_SEPARATOR . $entry;
+
+                if (file_exists($current)) {
+                    @rename($current, $rollback);
+                }
+            }
+
+            throw $e;
+        }
+
+        if (is_dir($backupPath)) {
+            $this->removeDirectory($backupPath);
+        }
+    }
+
+    private function removeDirectory(string $directory): void
+    {
+        if (!is_dir($directory)) {
+            return;
+        }
+
+        $entries = scandir($directory);
+        if ($entries === false) {
+            return;
+        }
+
+        foreach ($entries as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+
+            $path = $directory . DIRECTORY_SEPARATOR . $entry;
+
+            if (is_dir($path) && !is_link($path)) {
+                $this->removeDirectory($path);
+                continue;
+            }
+
+            if (file_exists($path) || is_link($path)) {
+                unlink($path);
+            }
+        }
+
+        rmdir($directory);
     }
 
     private function isAllowedSensitiveRemoteUrl(string $url): bool

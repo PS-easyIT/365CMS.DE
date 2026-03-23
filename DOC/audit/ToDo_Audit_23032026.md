@@ -40,7 +40,7 @@ Die Vollprüfung wurde auf den kompletten First-Party-Dateibaum von `CMS/` erwei
 - [x] **Step #7 / A-07 – Integritätsprüfung für Dokumentationsdownloads ergänzen und /DOC liegt immer dort wo CMS direkt liegt** → Der Doku-Sync akzeptiert jetzt nur noch ein freigegebenes `/DOC`-Bundle per Tree-SHA-256 + Dateianzahl und erzwingt den Zielpfad strikt auf `../DOC` direkt neben `/CMS`.
 - [x] **Step #8 / A-08 – DNS-Fallback im SSRF-Schutz härten** → HTTP-Client und UpdateService blockieren ungelöste Remote-Hosts jetzt standardmäßig, versuchen vorab eine echte IP-Auflösung per DNS/GetHostByName und erlauben ungelöste Hosts nur noch per explizitem Opt-in im HTTP-Client.
 - [x] **Step #9 / A-09 – `session.cookie_secure` an echtes HTTPS koppeln** → `Security`, `index.php` und `cron.php` setzen `session.cookie_secure` jetzt nur noch bei tatsächlich erkanntem HTTPS bzw. Proxy-HTTPS; CLI/HTTP-Staging bleiben funktionsfähig.
-- [ ] **Step #10 / A-10 – Update-Installationen atomar machen**
+- [x] **Step #10 / A-10 – Update-Installationen atomar machen** → `UpdateService` entpackt Update-ZIPs jetzt erst in ein benachbartes Staging-Verzeichnis und übernimmt sie anschließend per atomarem Directory-Swap bzw. rollback-fähigem Inhalts-Swap ins Live-Ziel.
 - [ ] **Step #11 / A-11 – HTTPS-/HSTS-Linie vereinheitlichen**
 - [ ] **Step #12 / A-12 – Installer-Monolith aufspalten**
 - [ ] **Step #13 / A-13 – `includes/functions.php` thematisch splitten**
