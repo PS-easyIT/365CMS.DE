@@ -193,7 +193,7 @@ class Security
         if (session_status() === PHP_SESSION_NONE) {
             // Start session with secure settings
             ini_set('session.cookie_httponly', '1');
-            ini_set('session.cookie_secure', '1');
+            ini_set('session.cookie_secure', $this->isHttpsRequest() ? '1' : '0');
             ini_set('session.use_strict_mode', '1');
             session_start();
             

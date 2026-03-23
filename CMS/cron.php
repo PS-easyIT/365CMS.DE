@@ -1,13 +1,40 @@
 <?php
 declare(strict_types=1);
 
+$isHttpsRequest = static function (): bool {
+    if (PHP_SAPI === 'cli') {
+        return false;
+    }
+
+    if (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off') {
+        return true;
+    }
+
+    if ((int) ($_SERVER['SERVER_PORT'] ?? 0) === 443) {
+        return true;
+    }
+
+    $forwardedProto = strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''));
+    if (in_array($forwardedProto, ['https', 'wss'], true)) {
+        return true;
+    }
+
+    $forwardedSsl = strtolower((string) ($_SERVER['HTTP_X_FORWARDED_SSL'] ?? ''));
+    if (in_array($forwardedSsl, ['on', '1', 'true'], true)) {
+        return true;
+    }
+
+    $frontEndHttps = strtolower((string) ($_SERVER['HTTP_FRONT_END_HTTPS'] ?? ''));
+    return in_array($frontEndHttps, ['on', '1'], true);
+};
+
 if (PHP_SAPI !== 'cli' && !headers_sent()) {
     header('Content-Type: application/json; charset=UTF-8');
 }
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
     ini_set('session.cookie_httponly', '1');
-    ini_set('session.cookie_secure', '1');
+    ini_set('session.cookie_secure', $isHttpsRequest() ? '1' : '0');
     ini_set('session.use_only_cookies', '1');
     ini_set('session.use_strict_mode', '1');
     ini_set('session.cookie_samesite', 'Strict');
