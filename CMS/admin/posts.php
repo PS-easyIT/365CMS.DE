@@ -178,7 +178,10 @@ if ($viewAction === 'edit') {
                                 slug: row.slug,
                                 slug_en: row.slug_en,
                                 display_slug: row.display_slug,
-                                is_english_only: !!row.is_english_only
+                                is_english_only: !!row.is_english_only,
+                                status: row.status,
+                                effective_status: row.effective_status,
+                                published_at: row.published_at
                             };
                         },
                         formatter: function(cell){
@@ -210,9 +213,19 @@ if ($viewAction === 'edit') {
                     {
                         id: 'status',
                         name: 'Status',
-                        formatter: function(cell){
-                            var cls = cell === 'published' ? 'success' : 'warning';
-                            var label = cell === 'published' ? 'Veröffentlicht' : 'Entwurf';
+                        formatter: function(cell, row){
+                            var effective = (row && row.cells && row.cells[1] && row.cells[1].data && row.cells[1].data.effective_status) || cell;
+                            var cls = 'warning';
+                            var label = 'Entwurf';
+
+                            if (effective === 'scheduled') {
+                                cls = 'azure';
+                                label = 'Geplant';
+                            } else if (effective === 'published') {
+                                cls = 'success';
+                                label = 'Veröffentlicht';
+                            }
+
                             return gridjs.html('<span class=\"badge bg-' + cls + '-lt\">' + label + '</span>');
                         }
                     },

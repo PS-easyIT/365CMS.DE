@@ -32,7 +32,7 @@ final class EditorJsMediaService
 
     public function handleMediaApiRequest(): void
     {
-        $this->requestGuard->ensureAdminAccess();
+        $this->requestGuard->ensureEditorAccess();
         $this->requestGuard->verifyMediaToken();
 
         $action = (string) ($_REQUEST['action'] ?? '');

@@ -25,6 +25,30 @@ Die folgenden Punkte sind **sinnvolle nächste Ausbaustufen**, die aus den aktue
 - **Weitere Service-Splits für Rest-Hotspots** – insbesondere verbleibende Theme-/Media-Restblöcke
 - **Proxy-/CDN-Realfall-Prüfung im Betrieb** – Header, Vary-Verhalten und Cache-Reaktionen auf echter Infrastruktur gezielt gegenmessen
 
+## [Unreleased] – 2026-03-23
+
+### Added
+
+- Die SEO-Linie erweitert die IndexNow-Integration um eine dynamische Keydatei-Auslieferung und zeigt im SEO-Admin zusätzlich Status- und URL-Informationen zur aktiven Keydatei an.
+- Kategorien und Tags unterstützen jetzt mehrsprachige Archivbasen sowie Ersatzkategorien/-tags beim Löschen, sodass Content-Umbauten ohne harte Abrisskante in Archiven und Listenpfaden möglich werden.
+- Der Core bringt einen deutlich ausgebauten Importer unter `CMS/plugins/cms-importer` mit Meta-Report, Admin-Oberfläche, Styles, JavaScript und Importlogik für größere Importpfade mit.
+
+### Changed
+
+- Routing, Archive, Slug-Generierung und Inhaltslokalisierung wurden in mehreren Wellen weiter konsolidiert; insbesondere Kategorie-/Tag-Archive, Slug-Validierung in Seiten/Beiträgen sowie die allgemeine Inhaltsauflösung im Frontend wurden nachgeschärft.
+- Marketplace- und Update-Pfade wurden erweitert: Theme-/Plugin-Verwaltung, Update-Ansichten und die zugrunde liegende `UpdateService`-Logik unterstützen den jüngsten Ausbauzustand deutlich umfangreicher als im Stand `2.6.1`.
+- Der Mitgliederbereich blendet im Header jetzt gezielt einen Admin-Einstieg ein, wenn der aktuelle Nutzer entsprechende Rechte besitzt.
+
+### Fixed
+
+- Das Löschverhalten für Kategorien und Tags bricht bei inhaltlich verknüpften Beiträgen nicht mehr stumpf weg, sondern kann Ziele auf Ersatzkategorien/-tags umlenken.
+- Archiv- und Routingpfade für Kategorien/Tags verhalten sich in der mehrsprachigen CMS-Linie robuster und besser abgestimmt auf lokalisierte Inhaltsstrukturen.
+
+### Docs
+
+- Der neue Audit `DOC/audit/AUDIT_23032026_CMS_PHINIT-LIVE.md` dokumentiert den CMS- und Live-Site-Prüfstand vom 23.03.2026 inklusive öffentlicher PhinIT-Stichprobe.
+- `DOC/audit/NACHARBEIT_AUDIT_ToDo.md` führt jetzt zusätzlich den offenen Release-/Versionsabgleich sowie die reale Proxy-/CDN-/Tracking-Verifikation als aktive Nacharbeiten.
+
 ## [2.6.1] – 2026-03-17
 
 ### Changed

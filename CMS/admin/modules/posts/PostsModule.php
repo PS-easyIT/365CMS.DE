@@ -205,7 +205,8 @@ class PostsModule
     public function getListData(): array
     {
         $total     = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts");
-        $published = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts WHERE status = 'published'");
+        $published = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts p WHERE " . cms_post_publication_where('p'));
+        $scheduled = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts WHERE status = 'published' AND published_at IS NOT NULL AND published_at > NOW()");
         $drafts    = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts WHERE status = 'draft'");
 
         $statusFilter   = $_GET['status'] ?? '';
@@ -215,9 +216,15 @@ class PostsModule
         $where  = [];
         $params = [];
 
-        if ($statusFilter !== '' && in_array($statusFilter, ['published', 'draft'], true)) {
-            $where[]  = 'p.status = ?';
-            $params[] = $statusFilter;
+        if ($statusFilter !== '') {
+            if ($statusFilter === 'published') {
+                $where[] = cms_post_publication_where('p');
+            } elseif ($statusFilter === 'scheduled') {
+                $where[] = "p.status = 'published' AND p.published_at IS NOT NULL AND p.published_at > NOW()";
+            } elseif ($statusFilter === 'draft') {
+                $where[]  = 'p.status = ?';
+                $params[] = $statusFilter;
+            }
         }
         if ($categoryFilter > 0) {
             $where[]  = "(p.category_id = ? OR EXISTS (
@@ -257,7 +264,7 @@ class PostsModule
         return [
             'posts'      => array_map(fn($p) => (array)$p, $posts),
             'categories' => $categories,
-            'counts'     => compact('total', 'published', 'drafts'),
+            'counts'     => compact('total', 'published', 'scheduled', 'drafts'),
             'filter'     => $statusFilter,
             'catFilter'  => $categoryFilter,
             'search'     => $search,
@@ -402,6 +409,8 @@ class PostsModule
         }
         $featuredImage = trim($post['featured_image'] ?? '');
         $featuredImageTempPath = trim($post['featured_image_temp_path'] ?? '');
+        $publishDateRaw = trim((string)($post['publish_date'] ?? ''));
+        $publishTimeRaw = trim((string)($post['publish_time'] ?? ''));
         $metaTitle  = trim($post['meta_title'] ?? '');
         $metaDesc   = trim($post['meta_description'] ?? '');
         $authorDisplayName = $this->sanitizeAuthorDisplayName((string)($post['author_display_name'] ?? ''));
@@ -448,6 +457,11 @@ class PostsModule
             return ['success' => false, 'error' => 'Dieser englische Slug ist bereits vergeben.'];
         }
 
+        $publishedAtInput = $this->normalizePublishedAtInput($publishDateRaw, $publishTimeRaw);
+        if ($publishedAtInput['error'] !== null) {
+            return ['success' => false, 'error' => (string) $publishedAtInput['error']];
+        }
+
         $savePayload = [
             'title' => $title,
             'title_en' => $titleEn,
@@ -464,6 +478,7 @@ class PostsModule
             'meta_title' => $metaTitle,
             'meta_description' => $metaDesc,
             'author_display_name' => $authorDisplayName,
+            'published_at' => $publishedAtInput['value'],
         ];
 
         $filteredPayload = Hooks::applyFilters('cms_prepare_post_save_payload', $savePayload, $post, $id, $userId);
@@ -474,18 +489,13 @@ class PostsModule
         try {
             if ($id > 0) {
                 $existing = $this->db->get_row("SELECT slug, status, published_at, created_at FROM {$this->prefix}posts WHERE id = ? LIMIT 1", [$id]);
-                // published_at setzen, wenn der Beitrag erstmals veröffentlicht wird
-                // oder falls ein bereits veröffentlichter Alt-Datensatz noch kein Datum besitzt.
-                $wasPublished = ($existing->status ?? '') === 'published';
-                $nowPublished = $savePayload['status'] === 'published';
-                $hasPublishedAt = !empty($existing->published_at ?? null);
-                $setPubAt = ($nowPublished && (!$wasPublished || !$hasPublishedAt)) ? ', published_at = NOW()' : '';
+                $resolvedPublishedAt = $this->resolvePublishedAtValue((string) $savePayload['status'], $savePayload['published_at'], $existing);
                 $this->db->execute(
                     "UPDATE {$this->prefix}posts 
                      SET title = ?, title_en = ?, slug = ?, slug_en = ?, content = ?, content_en = ?, excerpt = ?, excerpt_en = ?, status = ?,
                          category_id = ?, featured_image = ?, tags = ?,
-                         meta_title = ?, meta_description = ?, author_display_name = ?,
-                         updated_at = NOW(){$setPubAt}
+                         meta_title = ?, meta_description = ?, author_display_name = ?, published_at = ?,
+                         updated_at = NOW()
                      WHERE id = ?",
                     [
                         (string)$savePayload['title'],
@@ -503,6 +513,7 @@ class PostsModule
                         (string)$savePayload['meta_title'],
                         (string)$savePayload['meta_description'],
                         (string)($savePayload['author_display_name'] ?? ''),
+                        $resolvedPublishedAt,
                         $id,
                     ]
                 );
@@ -517,11 +528,11 @@ class PostsModule
                 Hooks::doAction('cms_after_post_save', $id, $savePayload, $post);
                 return ['success' => true, 'id' => $id, 'message' => 'Beitrag aktualisiert.'];
             } else {
-                $pubAtValue = ($savePayload['status'] === 'published') ? 'NOW()' : 'NULL';
+                $resolvedPublishedAt = $this->resolvePublishedAtValue((string) $savePayload['status'], $savePayload['published_at'], null);
                 $this->db->execute(
                     "INSERT INTO {$this->prefix}posts
                      (title, title_en, slug, slug_en, content, content_en, excerpt, excerpt_en, status, category_id, featured_image, tags, meta_title, meta_description, author_id, author_display_name, published_at, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, {$pubAtValue}, NOW(), NOW())",
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
                     [
                         (string)$savePayload['title'],
                         (string)($savePayload['title_en'] ?? ''),
@@ -539,6 +550,7 @@ class PostsModule
                         (string)$savePayload['meta_description'],
                         $userId,
                         (string)($savePayload['author_display_name'] ?? ''),
+                        $resolvedPublishedAt,
                     ]
                 );
                 $newId = (int)$this->db->lastInsertId();
@@ -1140,6 +1152,62 @@ class PostsModule
         $slug = preg_replace('/[^a-z0-9\-]/', '-', $slug) ?? $slug;
         $slug = preg_replace('/-+/', '-', $slug) ?? $slug;
         return trim($slug, '-');
+    }
+
+    /**
+     * @return array{value:?string,error:?string}
+     */
+    private function normalizePublishedAtInput(string $date, string $time): array
+    {
+        $date = trim($date);
+        $time = trim($time);
+
+        if ($date === '' && $time === '') {
+            return ['value' => null, 'error' => null];
+        }
+
+        if ($date === '') {
+            return ['value' => null, 'error' => 'Bitte ein Veröffentlichungsdatum angeben.'];
+        }
+
+        if ($time === '') {
+            $time = '00:00';
+        }
+
+        $publishedAt = \DateTimeImmutable::createFromFormat('!Y-m-d H:i', $date . ' ' . $time);
+        $errors = \DateTimeImmutable::getLastErrors();
+        $hasErrors = is_array($errors) && ((int) ($errors['warning_count'] ?? 0) > 0 || (int) ($errors['error_count'] ?? 0) > 0);
+
+        if (!$publishedAt instanceof \DateTimeImmutable || $hasErrors) {
+            return ['value' => null, 'error' => 'Bitte ein gültiges Veröffentlichungsdatum mit Uhrzeit angeben.'];
+        }
+
+        return ['value' => $publishedAt->format('Y-m-d H:i:s'), 'error' => null];
+    }
+
+    private function resolvePublishedAtValue(string $status, ?string $requestedPublishedAt, ?object $existing): ?string
+    {
+        $requestedPublishedAt = is_string($requestedPublishedAt) && trim($requestedPublishedAt) !== ''
+            ? trim($requestedPublishedAt)
+            : null;
+
+        $existingPublishedAt = $existing !== null && !empty($existing->published_at)
+            ? trim((string) $existing->published_at)
+            : null;
+
+        if ($status === 'draft') {
+            return $requestedPublishedAt;
+        }
+
+        if ($requestedPublishedAt !== null) {
+            return $requestedPublishedAt;
+        }
+
+        if ($existingPublishedAt !== null && $existingPublishedAt !== '') {
+            return $existingPublishedAt;
+        }
+
+        return date('Y-m-d H:i:s');
     }
 
     private function isSlugTaken(string $slug, int $ignoreId = 0): bool

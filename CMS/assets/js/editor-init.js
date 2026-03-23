@@ -213,9 +213,16 @@
 
     function fetchJson(url, options) {
         return fetch(url, options).then(function (response) {
-            return response.json().catch(function () {
-                return {};
-            }).then(function (payload) {
+            return response.text().then(function (bodyText) {
+                let payload = {};
+                if (bodyText) {
+                    try {
+                        payload = JSON.parse(bodyText);
+                    } catch (_error) {
+                        payload = { message: bodyText.trim() };
+                    }
+                }
+
                 if (!response.ok) {
                     const message = payload && (payload.message || payload.error)
                         ? String(payload.message || payload.error)

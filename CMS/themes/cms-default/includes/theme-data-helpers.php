@@ -12,7 +12,7 @@ function meridian_get_categories(int $limit = 0): array
         $prefix = $db->getPrefix();
         $categories = $db->get_results(
             "SELECT c.id, c.name, c.slug, c.parent_id, c.sort_order,
-                    (SELECT COUNT(*) FROM {$prefix}posts p WHERE p.category_id = c.id AND p.status = 'published') AS post_count_direct
+                    (SELECT COUNT(*) FROM {$prefix}posts p WHERE p.category_id = c.id AND " . cms_post_publication_where('p') . ") AS post_count_direct
              FROM {$prefix}post_categories c
              ORDER BY c.sort_order ASC, c.name ASC"
         );
@@ -92,7 +92,7 @@ function meridian_get_tags(int $limit = 30): array
     try {
         $db = \CMS\Database::instance();
         $prefix = $db->getPrefix();
-        $stmt = $db->execute("SELECT tags FROM {$prefix}posts WHERE status = 'published' AND tags IS NOT NULL AND tags != ''");
+        $stmt = $db->execute("SELECT tags FROM {$prefix}posts WHERE " . cms_post_publication_where() . " AND tags IS NOT NULL AND tags != ''");
         $rows = $stmt->fetchAll(\PDO::FETCH_COLUMN);
         $counts = [];
 
@@ -130,7 +130,7 @@ function meridian_get_recent_posts(int $limit = 5, ?int $excludeId = null): arra
         $sql = "SELECT p.id, p.title, p.slug, p.featured_image, p.published_at, p.created_at, c.name AS category_name
                 FROM {$prefix}posts p
                 LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
-                WHERE p.status = 'published'";
+                WHERE " . cms_post_publication_where('p');
         $params = [];
 
         if ($excludeId !== null) {
@@ -162,7 +162,7 @@ function meridian_get_related_posts(int $categoryId, int $excludeId, int $limit 
             "SELECT p.id, p.title, p.slug, p.featured_image, c.name AS category_name
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
-             WHERE p.status = 'published' AND p.category_id = ? AND p.id != ?
+             WHERE " . cms_post_publication_where('p') . " AND p.category_id = ? AND p.id != ?
              ORDER BY p.published_at DESC LIMIT ?",
             [$categoryId, $excludeId, $limit]
         );
@@ -195,7 +195,7 @@ function meridian_get_posts(array $args = []): array
                 FROM {$prefix}posts p
                 LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
                 LEFT JOIN {$prefix}users u ON u.id = p.author_id
-                WHERE p.status = 'published'";
+                WHERE " . cms_post_publication_where('p');
         $params = [];
 
         if (!empty($args['exclude'])) {
@@ -266,7 +266,7 @@ function meridian_get_category_post_count(int $categoryId): int
         $ids = array_map('intval', array_keys($categoryIds));
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         $row = $db->execute(
-            "SELECT COUNT(*) AS cnt FROM {$prefix}posts WHERE category_id IN ({$placeholders}) AND status = 'published'",
+            "SELECT COUNT(*) AS cnt FROM {$prefix}posts WHERE category_id IN ({$placeholders}) AND " . cms_post_publication_where(),
             $ids
         )->fetch();
 

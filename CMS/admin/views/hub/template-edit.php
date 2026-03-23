@@ -24,13 +24,16 @@ $sanitizeColor = static function (mixed $value, string $fallback): string {
 };
 
 $templatePreviewStyle = implode('; ', [
-    '--hub-preview-hero-start: ' . $sanitizeColor($templateColors['hero_start'] ?? '#1f2937', '#1f2937'),
-    '--hub-preview-hero-end: ' . $sanitizeColor($templateColors['hero_end'] ?? '#0f172a', '#0f172a'),
-    '--hub-preview-accent: ' . $sanitizeColor($templateColors['accent'] ?? '#2563eb', '#2563eb'),
+    '--hub-preview-hero-start: ' . $sanitizeColor($templateColors['hero_start'] ?? '#1e3a5f', '#1e3a5f'),
+    '--hub-preview-hero-end: ' . $sanitizeColor($templateColors['hero_end'] ?? '#0f2240', '#0f2240'),
+    '--hub-preview-accent: ' . $sanitizeColor($templateColors['accent'] ?? '#0d9488', '#0d9488'),
     '--hub-preview-surface: ' . $sanitizeColor($templateColors['surface'] ?? '#ffffff', '#ffffff'),
-    '--hub-preview-section: ' . $sanitizeColor($templateColors['section_background'] ?? '#ffffff', '#ffffff'),
+    '--hub-preview-section: ' . $sanitizeColor($templateColors['section_background'] ?? '#f1f5f9', '#f1f5f9'),
     '--hub-preview-card-bg: ' . $sanitizeColor($templateColors['card_background'] ?? '#ffffff', '#ffffff'),
-    '--hub-preview-card-text: ' . $sanitizeColor($templateColors['card_text'] ?? '#0f172a', '#0f172a'),
+    '--hub-preview-card-text: ' . $sanitizeColor($templateColors['card_text'] ?? '#1e293b', '#1e293b'),
+    '--hub-preview-table-head-start: ' . $sanitizeColor($templateColors['table_header_start'] ?? $templateColors['hero_start'] ?? '#1e3a5f', '#1e3a5f'),
+    '--hub-preview-table-head-end: ' . $sanitizeColor($templateColors['table_header_end'] ?? $templateColors['hero_end'] ?? '#0f2240', '#0f2240'),
+    '--hub-preview-radius: ' . max(0, min(48, (int)($cardDesign['card_radius'] ?? 20))) . 'px',
 ]);
 
 $editorPayload = json_encode([

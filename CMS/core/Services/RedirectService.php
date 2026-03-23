@@ -224,24 +224,44 @@ final class RedirectService
         $isActive = isset($post['is_active']) ? 1 : 0;
 
         if ($source === '' || $source === '/') {
-            return ['success' => false, 'error' => 'Bitte einen gültigen Quellpfad angeben.'];
+            return [
+                'success' => false,
+                'error' => 'Bitte einen gültigen Quellpfad angeben.',
+                'details' => ['Die Quelle darf nicht leer sein und nicht nur auf / zeigen.'],
+            ];
         }
         if ($target === '') {
-            return ['success' => false, 'error' => 'Bitte eine Ziel-URL angeben.'];
+            return [
+                'success' => false,
+                'error' => 'Bitte eine Ziel-URL angeben.',
+                'details' => $this->buildRedirectDetails($source, '', $siteScope, $type, $notes),
+            ];
         }
         if (!in_array($type, [301, 302], true)) {
             $type = 301;
         }
         if (!$this->isValidTarget($target)) {
-            return ['success' => false, 'error' => 'Die Ziel-URL ist ungültig.'];
+            return [
+                'success' => false,
+                'error' => 'Die Ziel-URL ist ungültig.',
+                'details' => $this->buildRedirectDetails($source, $target, $siteScope, $type, $notes),
+            ];
         }
         if ($this->isSameTargetAsSource($source, $target)) {
-            return ['success' => false, 'error' => 'Quelle und Ziel dürfen nicht identisch sein.'];
+            return [
+                'success' => false,
+                'error' => 'Quelle und Ziel dürfen nicht identisch sein.',
+                'details' => $this->buildRedirectDetails($source, $target, $siteScope, $type, $notes),
+            ];
         }
 
         $duplicateRedirect = $this->findRedirectBySourcePath($source, $siteScope);
         if ($duplicateRedirect !== null && (int)($duplicateRedirect['id'] ?? 0) !== $id) {
-            return ['success' => false, 'error' => $this->buildDuplicateSourceError($source, $siteScope)];
+            return [
+                'success' => false,
+                'error' => $this->buildDuplicateSourceError($source, $siteScope),
+                'details' => $this->buildDuplicateSourceDetails($duplicateRedirect),
+            ];
         }
 
         $data = [
@@ -255,18 +275,58 @@ final class RedirectService
 
         try {
             if ($id > 0) {
-                $this->db->update('redirect_rules', $data, ['id' => $id]);
-                return ['success' => true, 'message' => 'Weiterleitung aktualisiert.'];
+                if ($this->getRedirectById($id) === null) {
+                    return [
+                        'success' => false,
+                        'error' => 'Die ausgewählte Weiterleitung wurde nicht gefunden. Bitte die Seite neu laden und erneut versuchen.',
+                        'details' => $this->buildRedirectDetails($source, $target, $siteScope, $type, $notes),
+                    ];
+                }
+
+                $updated = $this->db->update('redirect_rules', $data, ['id' => $id]);
+                if ($updated !== true) {
+                    return [
+                        'success' => false,
+                        'error' => 'Fehler beim Aktualisieren: ' . $this->getLastDatabaseError(),
+                        'details' => $this->buildRedirectDetails($source, $target, $siteScope, $type, $notes),
+                    ];
+                }
+
+                return [
+                    'success' => true,
+                    'message' => 'Weiterleitung aktualisiert.',
+                    'details' => $this->buildRedirectDetails($source, $target, $siteScope, $type, $notes),
+                ];
             }
 
-            $this->db->insert('redirect_rules', $data);
-            return ['success' => true, 'message' => 'Weiterleitung angelegt.'];
+            $insertId = $this->db->insert('redirect_rules', $data);
+            if ($insertId === false) {
+                return [
+                    'success' => false,
+                    'error' => 'Fehler beim Speichern: ' . $this->getLastDatabaseError(),
+                    'details' => $this->buildRedirectDetails($source, $target, $siteScope, $type, $notes),
+                ];
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Weiterleitung angelegt.',
+                'details' => $this->buildRedirectDetails($source, $target, $siteScope, $type, $notes),
+            ];
         } catch (\Throwable $e) {
             if ($this->isDuplicateRedirectException($e)) {
-                return ['success' => false, 'error' => $this->buildDuplicateSourceError($source, $siteScope)];
+                return [
+                    'success' => false,
+                    'error' => $this->buildDuplicateSourceError($source, $siteScope),
+                    'details' => $duplicateRedirect !== null ? $this->buildDuplicateSourceDetails($duplicateRedirect) : $this->buildRedirectDetails($source, $target, $siteScope, $type, $notes),
+                ];
             }
 
-            return ['success' => false, 'error' => 'Fehler beim Speichern: ' . $e->getMessage()];
+            return [
+                'success' => false,
+                'error' => 'Fehler beim Speichern: ' . $e->getMessage(),
+                'details' => $this->buildRedirectDetails($source, $target, $siteScope, $type, $notes),
+            ];
         }
     }
 
@@ -529,6 +589,64 @@ final class RedirectService
         return $row ? (array)$row : null;
     }
 
+    private function getRedirectById(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+
+        $row = $this->db->get_row(
+            "SELECT id, source_path, site_scope, target_url, redirect_type, is_active, notes
+             FROM {$this->prefix}redirect_rules
+             WHERE id = ?
+             LIMIT 1",
+            [$id]
+        );
+
+        return $row ? (array)$row : null;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function buildRedirectDetails(string $source, string $target, string $siteScope, int $type, string $notes = ''): array
+    {
+        $details = [];
+
+        if ($source !== '') {
+            $details[] = 'Quelle: ' . $source;
+        }
+
+        if ($target !== '') {
+            $details[] = 'Ziel: ' . $target;
+        }
+
+        $details[] = 'Site: ' . $this->describeSiteScope($siteScope);
+        $details[] = 'Typ: ' . (in_array($type, [301, 302], true) ? (string)$type : '301');
+
+        $notes = trim($notes);
+        if ($notes !== '') {
+            $details[] = 'Notiz: ' . $this->limitString($notes, 160);
+        }
+
+        return $details;
+    }
+
+    /**
+     * @param array<string, mixed> $redirect
+     * @return array<int, string>
+     */
+    private function buildDuplicateSourceDetails(array $redirect): array
+    {
+        return $this->buildRedirectDetails(
+            (string)($redirect['source_path'] ?? ''),
+            (string)($redirect['target_url'] ?? ''),
+            (string)($redirect['site_scope'] ?? ''),
+            (int)($redirect['redirect_type'] ?? 301),
+            (string)($redirect['notes'] ?? '')
+        );
+    }
+
     private function getRedirectSiteScore(array $redirect, string $requestPath, string $requestHost): int
     {
         $siteScope = $this->normalizeSiteScopeInput((string)($redirect['site_scope'] ?? ''));
@@ -785,6 +903,12 @@ final class RedirectService
             || str_contains($message, 'sqlstate[23000]');
     }
 
+    private function getLastDatabaseError(): string
+    {
+        $message = trim((string)($this->db->last_error ?? ''));
+        return $message !== '' ? $message : 'Unbekannter Datenbankfehler.';
+    }
+
     /**
      * @return array<int, array<string, mixed>>
      */
@@ -819,7 +943,7 @@ final class RedirectService
         $rows = $this->db->get_results(
             "SELECT id, title, slug, published_at, created_at
              FROM {$this->prefix}posts
-             WHERE status = 'published' AND slug IS NOT NULL AND slug != ''
+             WHERE " . \cms_post_publication_where() . " AND slug IS NOT NULL AND slug != ''
              ORDER BY title ASC
              LIMIT 500"
         ) ?: [];
@@ -896,7 +1020,7 @@ final class RedirectService
         }
 
         $post = $this->db->get_row(
-            "SELECT slug, published_at, created_at FROM {$this->prefix}posts WHERE id = ? AND status = 'published' LIMIT 1",
+            "SELECT slug, published_at, created_at FROM {$this->prefix}posts WHERE id = ? AND " . \cms_post_publication_where() . " LIMIT 1",
             [$id]
         );
 

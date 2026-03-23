@@ -187,7 +187,7 @@ final class SearchService
 
         // Posts-Index (Blog)
         $this->indexDefinitions['posts'] = [
-            'query'      => "SELECT id, title, content, excerpt, slug FROM {$this->prefix}posts WHERE status = 'published'",
+            'query'      => "SELECT id, title, content, excerpt, slug FROM {$this->prefix}posts WHERE " . \cms_post_publication_where(),
             'primaryKey' => 'id',
         ];
     }
@@ -489,7 +489,10 @@ final class SearchService
 
             // Dokument aus DB holen
             $cols = implode(', ', array_merge(['id'], $fields));
-            $stmt = $this->db->prepare("SELECT {$cols} FROM {$table} WHERE id = ? AND status = 'published'");
+            $where = $table === "{$this->prefix}posts"
+                ? \cms_post_publication_where()
+                : "status = 'published'";
+            $stmt = $this->db->prepare("SELECT {$cols} FROM {$table} WHERE id = ? AND {$where}");
             $stmt->execute([$docId]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 

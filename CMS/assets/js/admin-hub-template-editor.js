@@ -203,7 +203,7 @@
             setFieldValue('template_card_button_text_label', cardSchemaDefaults.button_text_label || 'Button-Text', (previousDefaults.card_schema || {}).button_text_label || '');
             setFieldValue('template_card_button_link_label', cardSchemaDefaults.button_link_label || 'Button-Link', (previousDefaults.card_schema || {}).button_link_label || '');
 
-            ['hero_start', 'hero_end', 'accent', 'surface', 'section_background', 'card_background', 'card_text'].forEach(function (key) {
+            ['hero_start', 'hero_end', 'accent', 'surface', 'section_background', 'card_background', 'card_text', 'table_header_start', 'table_header_end'].forEach(function (key) {
                 var fieldName = 'template_color_' + key;
                 var field = form.querySelector('[name="' + fieldName + '"]');
                 if (!field) {
@@ -268,6 +268,19 @@
                     sectionStyles: ['spotlight', 'stacked'],
                     sectionNotes: ['Workloads & Journeys', 'Policies & Rollout']
                 },
+                'powershell-table': {
+                    badge: 'PowerShell Table',
+                    sectionTitle: 'Cmdlets & Runbooks',
+                    sectionText: 'Dunkler, skriptlastiger Table-Look für Module, Runbooks und operative Automatisierung im phinit-Stil.',
+                    cardPrefix: 'PS',
+                    mediaLabel: 'Shell',
+                    metaIcons: { audience: '⌁', owner: 'PS', update_cycle: '↻', focus: '▦', kpi: '●' },
+                    linkIcons: ['C', 'R', 'M', 'A'],
+                    sectionEyebrows: ['Cmdlets', 'Runbooks'],
+                    sectionIcons: ['⌁', '>'],
+                    sectionStyles: ['terminal', 'terminal'],
+                    sectionNotes: ['$ modules=ready', '$ jobs=green']
+                },
                 'datenschutz': {
                     badge: 'Datenschutz',
                     sectionTitle: 'Schutz & Nachweise',
@@ -306,6 +319,19 @@
                     sectionIcons: ['◆', '▲'],
                     sectionStyles: ['spotlight', 'stacked'],
                     sectionNotes: ['Kontrollen & Rollen', 'Audit & Evidence']
+                },
+                'datenschutz-compliance-table': {
+                    badge: 'Privacy & Compliance',
+                    sectionTitle: 'Nachweise & Controls',
+                    sectionText: 'Kombiniert Datenschutz und Compliance in einem phinit-konformen Table-Template mit klaren Reviews und Evidence-Fokus.',
+                    cardPrefix: 'Evidence',
+                    mediaLabel: 'Controls',
+                    metaIcons: { audience: '§', owner: '◆', update_cycle: '↺', focus: '▦', kpi: '▲' },
+                    linkIcons: ['N', 'C', 'F', 'A'],
+                    sectionEyebrows: ['Nachweise', 'Reviews'],
+                    sectionIcons: ['✓', '▲'],
+                    sectionStyles: ['trust', 'stacked'],
+                    sectionNotes: ['Nachweise & Kontrollen', 'Fristen & Audits']
                 },
                 'general-it': {
                     badge: 'General IT',
@@ -363,13 +389,16 @@
                 { key: 'kpi', label: getValue('template_label_kpi', (defaults.meta_labels || {}).kpi || 'KPI'), value: getValue('template_meta_kpi', (defaults.meta || {}).kpi || '') || (defaults.meta || {}).kpi || '' }
             ];
 
-            preview.style.setProperty('--hub-preview-hero-start', getValue('template_color_hero_start', '#1f2937'));
-            preview.style.setProperty('--hub-preview-hero-end', getValue('template_color_hero_end', '#0f172a'));
-            preview.style.setProperty('--hub-preview-accent', getValue('template_color_accent', '#2563eb'));
+            preview.style.setProperty('--hub-preview-hero-start', getValue('template_color_hero_start', '#1e3a5f'));
+            preview.style.setProperty('--hub-preview-hero-end', getValue('template_color_hero_end', '#0f2240'));
+            preview.style.setProperty('--hub-preview-accent', getValue('template_color_accent', '#0d9488'));
             preview.style.setProperty('--hub-preview-surface', getValue('template_color_surface', '#ffffff'));
-            preview.style.setProperty('--hub-preview-section', getValue('template_color_section_background', '#ffffff'));
+            preview.style.setProperty('--hub-preview-section', getValue('template_color_section_background', '#f1f5f9'));
             preview.style.setProperty('--hub-preview-card-bg', getValue('template_color_card_background', '#ffffff'));
-            preview.style.setProperty('--hub-preview-card-text', getValue('template_color_card_text', '#0f172a'));
+            preview.style.setProperty('--hub-preview-card-text', getValue('template_color_card_text', '#1e293b'));
+            preview.style.setProperty('--hub-preview-table-head-start', getValue('template_color_table_header_start', getValue('template_color_hero_start', '#1e3a5f')));
+            preview.style.setProperty('--hub-preview-table-head-end', getValue('template_color_table_header_end', getValue('template_color_hero_end', '#0f2240')));
+            preview.style.setProperty('--hub-preview-radius', Math.max(0, Math.min(48, parseInt(getValue('template_card_radius', '20'), 10) || 20)) + 'px');
             preview.className = 'hub-template-preview hub-template-preview--' + baseTemplate;
 
             previewBadge.textContent = templateProfile.badge;

@@ -22,6 +22,8 @@ class HubSitesModule
         'hub_slug' => '',
         'hub_domains' => [],
         'hub_template' => 'general-it',
+        'hub_feature_card_interval' => 0,
+        'hub_feature_cards_json' => '[]',
         'hub_badge' => '',
         'hub_badge_en' => '',
         'hub_hero_title' => '',
@@ -87,7 +89,7 @@ class HubSitesModule
             return [
                 'id' => (int)($item['id'] ?? 0),
                 'table_name' => (string)($item['table_name'] ?? ''),
-                'description' => (string)($item['description'] ?? ''),
+                'description' => trim(strip_tags((string)($item['description'] ?? ''))),
                 'hub_slug' => (string)(($item['hub_slug'] ?? '') !== '' ? $item['hub_slug'] : ($item['table_slug'] ?? '')),
                 'template' => (string)($settings['hub_template'] ?? 'general-it'),
                 'card_count' => count(\CMS\Json::decodeArray($item['rows_json'] ?? null, [])),
@@ -149,7 +151,7 @@ class HubSitesModule
     {
         $id = (int)($post['id'] ?? 0);
         $name = trim(strip_tags((string)($post['site_name'] ?? '')));
-        $description = trim(strip_tags((string)($post['description'] ?? '')));
+        $description = $this->sanitizeRichText((string)($post['description'] ?? ''), 4000);
         $cards = \CMS\Json::decodeArray($post['cards_json'] ?? null, []);
         $normalizedDomains = $this->normalizeHubDomains((string)($post['hub_domains'] ?? ''));
 
@@ -181,12 +183,18 @@ class HubSitesModule
             'hub_slug' => $slug,
             'hub_domains' => $hubDomains,
             'hub_template' => array_key_exists((string)($post['hub_template'] ?? ''), $templateChoices) ? (string)$post['hub_template'] : 'general-it',
+            'hub_feature_card_interval' => array_key_exists('hub_feature_card_interval', $post)
+                ? $this->normalizeNumber((int)($post['hub_feature_card_interval'] ?? 0), 0, 12, 0)
+                : 0,
+            'hub_feature_cards_json' => array_key_exists('hub_feature_cards_json', $post)
+                ? $this->normalizeFeatureCardsJson((string)$post['hub_feature_cards_json'])
+                : '[]',
             'hub_badge' => mb_substr(trim(strip_tags((string)($post['hub_badge'] ?? ''))), 0, 80),
             'hub_badge_en' => mb_substr(trim(strip_tags((string)($post['hub_badge_en'] ?? ''))), 0, 80),
             'hub_hero_title' => mb_substr(trim(strip_tags((string)($post['hub_hero_title'] ?? ''))), 0, 160),
             'hub_hero_title_en' => mb_substr(trim(strip_tags((string)($post['hub_hero_title_en'] ?? ''))), 0, 160),
-            'hub_hero_text' => mb_substr(trim((string)($post['hub_hero_text'] ?? '')), 0, 1200),
-            'hub_hero_text_en' => mb_substr(trim((string)($post['hub_hero_text_en'] ?? '')), 0, 1200),
+            'hub_hero_text' => $this->sanitizeRichText((string)($post['hub_hero_text'] ?? ''), 4000),
+            'hub_hero_text_en' => $this->sanitizeRichText((string)($post['hub_hero_text_en'] ?? ''), 4000),
             'hub_cta_label' => mb_substr(trim(strip_tags((string)($post['hub_cta_label'] ?? ''))), 0, 60),
             'hub_cta_label_en' => mb_substr(trim(strip_tags((string)($post['hub_cta_label_en'] ?? ''))), 0, 60),
             'hub_cta_url' => filter_var((string)($post['hub_cta_url'] ?? ''), FILTER_SANITIZE_URL),
@@ -241,11 +249,13 @@ class HubSitesModule
             }
 
             $normalizedCards[] = [
+                'is_feature' => $this->normalizeBoolean($card['is_feature'] ?? false),
+                'feature_spacing_top' => $this->normalizeNumber((int)($card['feature_spacing_top'] ?? 0), 0, 240, 0),
                 'title' => $title,
                 'title_en' => mb_substr(trim(strip_tags((string)($card['title_en'] ?? ''))), 0, 160),
                 'url' => $url !== '' ? $url : '#',
-                'summary' => mb_substr(trim((string)($card['summary'] ?? '')), 0, 600),
-                'summary_en' => mb_substr(trim((string)($card['summary_en'] ?? '')), 0, 600),
+                'summary' => mb_substr(trim((string)($card['summary'] ?? '')), 0, 4000),
+                'summary_en' => mb_substr(trim((string)($card['summary_en'] ?? '')), 0, 4000),
                 'badge' => mb_substr(trim(strip_tags((string)($card['badge'] ?? ''))), 0, 80),
                 'badge_en' => mb_substr(trim(strip_tags((string)($card['badge_en'] ?? ''))), 0, 80),
                 'meta' => mb_substr(trim(strip_tags((string)($card['meta'] ?? ''))), 0, 120),
@@ -516,6 +526,87 @@ class HubSitesModule
     private function normalizeSetting(string $value, array $allowed, string $fallback): string
     {
         return in_array($value, $allowed, true) ? $value : $fallback;
+    }
+
+    private function normalizeNumber(int $value, int $min, int $max, int $fallback): int
+    {
+        if ($value < $min || $value > $max) {
+            return $fallback;
+        }
+
+        return $value;
+    }
+
+    private function normalizeBoolean(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_int($value)) {
+            return $value === 1;
+        }
+
+        if (is_string($value)) {
+            return in_array(strtolower(trim($value)), ['1', 'true', 'yes', 'on'], true);
+        }
+
+        return false;
+    }
+
+    private function normalizeFeatureCardsJson(string $json): string
+    {
+        $items = \CMS\Json::decodeArray($json, []);
+        if (!is_array($items)) {
+            return '[]';
+        }
+
+        $normalized = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $title = mb_substr(trim(strip_tags((string)($item['title'] ?? ''))), 0, 160);
+            $titleEn = mb_substr(trim(strip_tags((string)($item['title_en'] ?? ''))), 0, 160);
+            $text = mb_substr(trim((string)($item['text'] ?? '')), 0, 4000);
+            $textEn = mb_substr(trim((string)($item['text_en'] ?? '')), 0, 4000);
+            $imageUrl = mb_substr(trim((string)($item['image_url'] ?? '')), 0, 500);
+            $imageAlt = mb_substr(trim(strip_tags((string)($item['image_alt'] ?? ''))), 0, 160);
+            $imageAltEn = mb_substr(trim(strip_tags((string)($item['image_alt_en'] ?? ''))), 0, 160);
+            $insertAfter = $this->normalizeNumber((int)($item['insert_after'] ?? 0), 0, 999, 0);
+            $featureSpacingTop = $this->normalizeNumber((int)($item['feature_spacing_top'] ?? 0), 0, 240, 0);
+
+            if ($title === '' && $titleEn === '' && $text === '' && $textEn === '' && $imageUrl === '') {
+                continue;
+            }
+
+            $normalized[] = [
+                'insert_after' => $insertAfter,
+                'feature_spacing_top' => $featureSpacingTop,
+                'title' => $title,
+                'title_en' => $titleEn,
+                'text' => $text,
+                'text_en' => $textEn,
+                'image_url' => $imageUrl,
+                'image_alt' => $imageAlt,
+                'image_alt_en' => $imageAltEn,
+            ];
+        }
+
+        return json_encode($normalized, JSON_UNESCAPED_UNICODE) ?: '[]';
+    }
+
+    private function sanitizeRichText(string $value, int $maxLength): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        $sanitized = \CMS\Services\PurifierService::getInstance()->purify($value, 'table');
+
+        return mb_substr(trim($sanitized), 0, $maxLength);
     }
 
     private function getExistingHubSettings(int $id): array

@@ -147,7 +147,7 @@ final class ThemeRouter
                 if (!empty($tntResult['ids'])) {
                     $ids = array_map('intval', $tntResult['ids']);
                     $ph = implode(',', array_fill(0, count($ids), '?'));
-                    $stmt = $db->prepare("SELECT * FROM {$prefix}posts WHERE id IN ({$ph}) AND status = 'published'");
+                    $stmt = $db->prepare("SELECT * FROM {$prefix}posts WHERE id IN ({$ph}) AND " . \cms_post_publication_where());
                     $stmt->execute($ids);
                     $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
                     $byId = [];
@@ -172,7 +172,7 @@ final class ThemeRouter
                 if ($contentLocale === 'en') {
                     $stmt = $db->prepare(
                         "SELECT * FROM {$prefix}posts p
-                         WHERE p.status = 'published'
+                                                 WHERE " . \cms_post_publication_where('p') . "
                            AND {$localeFilter}
                            AND (
                                COALESCE(NULLIF(p.title_en, ''), p.title) LIKE ?
@@ -185,7 +185,7 @@ final class ThemeRouter
                 } else {
                     $stmt = $db->prepare(
                         "SELECT * FROM {$prefix}posts p
-                         WHERE p.status = 'published'
+                                                 WHERE " . \cms_post_publication_where('p') . "
                            AND {$localeFilter}
                            AND (p.title LIKE ? OR p.content LIKE ? OR p.excerpt LIKE ?)
                          ORDER BY created_at DESC LIMIT 20"
@@ -396,14 +396,14 @@ final class ThemeRouter
         $page = max(1, (int)($_GET['p'] ?? 1));
         $perPage = 9;
         $offset = ($page - 1) * $perPage;
-        $total = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}posts p WHERE p.status = 'published' AND {$localeFilter}");
+        $total = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}posts p WHERE " . \cms_post_publication_where('p') . " AND {$localeFilter}");
         $posts = $db->get_results(
             "SELECT p.*, c.name AS category_name, c.slug AS category_slug,
                     COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}users u ON u.id = p.author_id
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
-             WHERE p.status = 'published' AND {$localeFilter}
+             WHERE " . \cms_post_publication_where('p') . " AND {$localeFilter}
              ORDER BY p.published_at DESC
              LIMIT {$perPage} OFFSET {$offset}"
         ) ?: [];
@@ -461,7 +461,7 @@ final class ThemeRouter
                   AND pcr.category_id IN ({$categoryPlaceholders})
             )
         )";
-        $where = ["p.status = 'published'", $this->buildPostLocaleAvailabilityExpression('p', $locale), $categoryMatchSql];
+        $where = [\cms_post_publication_where('p'), $this->buildPostLocaleAvailabilityExpression('p', $locale), $categoryMatchSql];
         $params = array_merge($categoryIds, $categoryIds);
 
         if ($query !== '') {
@@ -552,7 +552,7 @@ final class ThemeRouter
         );
 
         if ($tagRow !== null) {
-            $where = ["p.status = 'published'", $this->buildPostLocaleAvailabilityExpression('p', $locale), 'ptr.tag_id = ?'];
+            $where = [\cms_post_publication_where('p'), $this->buildPostLocaleAvailabilityExpression('p', $locale), 'ptr.tag_id = ?'];
             $params = [(int) ($tagRow->id ?? 0)];
 
             if ($query !== '') {
@@ -608,7 +608,7 @@ final class ThemeRouter
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}users u ON u.id = p.author_id
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
-               WHERE p.status = 'published' AND " . $this->buildPostLocaleAvailabilityExpression('p', $locale) . " AND p.tags IS NOT NULL AND p.tags != ''
+               WHERE " . \cms_post_publication_where('p') . " AND " . $this->buildPostLocaleAvailabilityExpression('p', $locale) . " AND p.tags IS NOT NULL AND p.tags != ''
              ORDER BY COALESCE(p.published_at, p.created_at) DESC"
         ) ?: [];
 
@@ -719,7 +719,7 @@ final class ThemeRouter
         $localeFilter = $this->buildPostLocaleAvailabilityExpression('p', $locale);
 
         $total = (int)$db->get_var(
-            "SELECT COUNT(*) FROM {$prefix}posts p WHERE p.author_id = ? AND p.status = 'published' AND {$localeFilter}",
+            "SELECT COUNT(*) FROM {$prefix}posts p WHERE p.author_id = ? AND " . \cms_post_publication_where('p') . " AND {$localeFilter}",
             [$authorId]
         );
 
@@ -727,7 +727,7 @@ final class ThemeRouter
             "SELECT p.*, c.name AS category_name, c.slug AS category_slug
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
-             WHERE p.author_id = ? AND p.status = 'published' AND {$localeFilter}
+             WHERE p.author_id = ? AND " . \cms_post_publication_where('p') . " AND {$localeFilter}
              ORDER BY COALESCE(p.published_at, p.created_at) DESC
              LIMIT {$perPage} OFFSET {$offset}",
             [$authorId]
@@ -797,7 +797,7 @@ final class ThemeRouter
         $publishedPosts = (int) $db->get_var(
             "SELECT COUNT(*)
              FROM {$prefix}posts
-             WHERE author_id = ? AND status = 'published'",
+             WHERE author_id = ? AND " . \cms_post_publication_where() . "",
             [$resolvedUserId]
         );
 
@@ -843,7 +843,7 @@ final class ThemeRouter
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}users u ON u.id = p.author_id
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
-             WHERE {$slugField} AND p.status = 'published' AND {$localeAvailability}",
+             WHERE {$slugField} AND " . \cms_post_publication_where('p') . " AND {$localeAvailability}",
             $slugParams
         );
 
@@ -855,7 +855,7 @@ final class ThemeRouter
                      FROM {$prefix}posts p
                      LEFT JOIN {$prefix}users u ON u.id = p.author_id
                      LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
-                     WHERE (p.slug_en = ? OR p.slug = ?) AND p.status = 'published' AND {$englishAvailability}",
+                     WHERE (p.slug_en = ? OR p.slug = ?) AND " . \cms_post_publication_where('p') . " AND {$englishAvailability}",
                     [$slug, $slug]
                 );
 
@@ -944,7 +944,7 @@ final class ThemeRouter
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}users u ON u.id = p.author_id
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
-               WHERE p.status = 'published' AND {$localeFilter}
+                             WHERE " . \cms_post_publication_where('p') . " AND {$localeFilter}
              ORDER BY COALESCE(p.published_at, p.created_at) DESC
              LIMIT 25"
         ) ?: [];
@@ -1136,7 +1136,7 @@ final class ThemeRouter
         $primaryRows = $db->get_results(
             "SELECT p.id AS post_id, p.category_id AS category_id
              FROM {$prefix}posts p
-             WHERE p.status = 'published'
+                         WHERE " . \cms_post_publication_where('p') . "
                AND {$localeFilter}
                AND p.category_id IS NOT NULL
                AND p.category_id > 0"
@@ -1154,7 +1154,7 @@ final class ThemeRouter
             "SELECT p.id AS post_id, pcr.category_id AS category_id
              FROM {$prefix}post_category_rel pcr
              INNER JOIN {$prefix}posts p ON p.id = pcr.post_id
-             WHERE p.status = 'published'
+                         WHERE " . \cms_post_publication_where('p') . "
                AND {$localeFilter}"
         ) ?: [];
 
@@ -1213,7 +1213,7 @@ final class ThemeRouter
              FROM {$prefix}post_tags t
              INNER JOIN {$prefix}post_tag_rel ptr ON ptr.tag_id = t.id
              INNER JOIN {$prefix}posts p ON p.id = ptr.post_id
-             WHERE p.status = 'published'
+                         WHERE " . \cms_post_publication_where('p') . "
                AND {$localeFilter}"
         ) ?: [];
 
@@ -1231,7 +1231,7 @@ final class ThemeRouter
         $legacyRows = $db->get_results(
             "SELECT p.id, p.tags
              FROM {$prefix}posts p
-             WHERE p.status = 'published'
+                         WHERE " . \cms_post_publication_where('p') . "
                AND {$localeFilter}
                AND p.tags IS NOT NULL
                AND p.tags != ''"

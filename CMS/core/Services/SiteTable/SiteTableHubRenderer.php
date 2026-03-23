@@ -109,9 +109,11 @@ final class SiteTableHubRenderer
             'content_type' => 'hub',
             'content_locale' => $locale,
             'content' => $this->renderHubMarkup($table, $locale),
-            'meta_description' => trim((string) ($localizedSettings['hub_hero_text'] ?? '')) !== ''
-                ? trim((string) $localizedSettings['hub_hero_text'])
-                : (string) ($table['description'] ?? ''),
+            'meta_description' => $this->buildHubMetaDescription(
+                trim((string) ($localizedSettings['hub_hero_text'] ?? '')) !== ''
+                    ? (string) $localizedSettings['hub_hero_text']
+                    : (string) ($table['description'] ?? '')
+            ),
             'updated_at' => (string) ($table['updated_at'] ?? ''),
         ];
     }
@@ -141,6 +143,9 @@ final class SiteTableHubRenderer
             $cards = $this->normalizeHubCards($templateStarterCards);
         }
         $cards = ContentLocalizationService::getInstance()->localizeHubCards($cards, $locale, ['table' => $table]);
+        $featureCardInterval = max(0, (int) ($settings['hub_feature_card_interval'] ?? 0));
+        $featureCards = $this->normalizeFeatureCards($settings['hub_feature_cards_json'] ?? []);
+        $featureCards = $this->localizeFeatureCards($featureCards, $locale);
         $quickLinks = $this->templateRegistry->resolveHubLinks($settings, $templateProfile, $template, $locale);
         $tocEntries = $this->buildCardTocEntries($cards);
         $sections = $this->templateRegistry->resolveHubSections($settings, $templateProfile, $template, $locale);
@@ -176,19 +181,19 @@ final class SiteTableHubRenderer
             $html .= ' style="' . htmlspecialchars($styleVariables, ENT_QUOTES, 'UTF-8') . '"';
         }
         $html .= '>';
-        $html .= $this->renderHero($heroBadge, $heroTitle, $heroText, $metaItems, $ctaLabel, $ctaUrl);
+        $html .= $this->renderHero($heroBadge, $heroTitle, $heroText, $metaItems, $ctaLabel, $ctaUrl, (int) ($table['id'] ?? 0));
         $html .= $this->renderTableOfContents($tocEntries, $tocEnabled, $contentLanguage);
         if (!$tocEnabled) {
             $html .= $this->renderQuickLinks($quickLinks, $contentLanguage);
         }
         $html .= $this->renderSections($sections, $template, $contentLanguage);
-        $html .= $this->renderCards($cards, $tocEntries, $cardDesign, $cardSchema, (int) ($table['id'] ?? 0), $template);
+        $html .= $this->renderCards($cards, $featureCards, $featureCardInterval, $tocEntries, $cardDesign, $cardSchema, (int) ($table['id'] ?? 0), $template, $contentLanguage);
         $html .= '</section>';
 
         return $html;
     }
 
-    private function renderHero(string $heroBadge, string $heroTitle, string $heroText, array $metaItems, string $ctaLabel, string $ctaUrl): string
+    private function renderHero(string $heroBadge, string $heroTitle, string $heroText, array $metaItems, string $ctaLabel, string $ctaUrl, int $currentTableId): string
     {
         $html = '<div class="cms-hub-site__hero"><div class="cms-hub-site__hero-inner">';
         if ($heroBadge !== '') {
@@ -196,7 +201,10 @@ final class SiteTableHubRenderer
         }
         $html .= '<h2 class="cms-hub-site__title">' . htmlspecialchars($heroTitle, ENT_QUOTES, 'UTF-8') . '</h2>';
         if ($heroText !== '') {
-            $html .= '<p class="cms-hub-site__lead">' . nl2br(htmlspecialchars($heroText, ENT_QUOTES, 'UTF-8')) . '</p>';
+            $heroTextHtml = $this->renderCardSummary($heroText, $currentTableId);
+            if ($heroTextHtml !== '') {
+                $html .= '<div class="cms-hub-site__lead">' . $heroTextHtml . '</div>';
+            }
         }
         if ($metaItems !== []) {
             $html .= '<div class="cms-hub-site__meta">';
@@ -216,6 +224,13 @@ final class SiteTableHubRenderer
         }
 
         return $html . '</div></div>';
+    }
+
+    private function buildHubMetaDescription(string $value): string
+    {
+        $plain = trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags($value), ENT_QUOTES | ENT_HTML5, 'UTF-8')) ?? '');
+
+        return mb_substr($plain, 0, 320);
     }
 
     private function renderQuickLinks(array $quickLinks, array $contentLanguage): string
@@ -307,7 +322,7 @@ final class SiteTableHubRenderer
         return $html . '</div>';
     }
 
-    private function renderCards(array $cards, array $tocEntries, array $cardDesign, array $cardSchema, int $currentTableId, string $template): string
+    private function renderCards(array $cards, array $featureCards, int $featureCardInterval, array $tocEntries, array $cardDesign, array $cardSchema, int $currentTableId, string $template, array $contentLanguage = []): string
     {
         if ($cards === []) {
             return '';
@@ -320,9 +335,21 @@ final class SiteTableHubRenderer
         $cardMetaLayout = $this->normalizeOption((string) ($cardDesign['meta_layout'] ?? 'split'), ['split', 'stacked'], 'split');
         $cardColumns = max(1, min(3, (int) ($cardSchema['columns'] ?? 2)));
         $isTableTemplate = str_ends_with($template, '-table');
+        $defaultCardCtaLabel = trim((string) ($contentLanguage['card_cta_label'] ?? '… weiter Lesen'));
+        $supportsFeatureCards = $this->templateRegistry->templateSupportsFeatureCards($template);
+        $featureCardInsertMap = $this->buildFeatureCardInsertMap($featureCards, $featureCardInterval, $supportsFeatureCards);
+        $renderedStandardCards = 0;
 
         $html = '<div class="cms-hub-site__grid cms-hub-site__grid--' . htmlspecialchars($cardLayout, ENT_QUOTES, 'UTF-8') . ' cms-hub-site__grid--cols-' . $cardColumns . '">';
         foreach ($cards as $index => $card) {
+            $isFeatureCard = $supportsFeatureCards && $this->isFeatureCard($card);
+
+            if ($isFeatureCard) {
+                $html .= $this->renderFeatureCard($card, $currentTableId, $defaultCardCtaLabel);
+
+                continue;
+            }
+
             $url = htmlspecialchars((string) ($card['url'] ?? '#'), ENT_QUOTES, 'UTF-8');
             $title = htmlspecialchars((string) ($card['title'] ?? ''), ENT_QUOTES, 'UTF-8');
             $summary = $this->renderCardSummary((string) ($card['summary'] ?? ''), $currentTableId);
@@ -330,11 +357,14 @@ final class SiteTableHubRenderer
             $meta = htmlspecialchars((string) ($card['meta'] ?? ''), ENT_QUOTES, 'UTF-8');
             $metaLeft = htmlspecialchars((string) ($card['meta_left'] ?? ''), ENT_QUOTES, 'UTF-8');
             $metaRight = htmlspecialchars((string) ($card['meta_right'] ?? ''), ENT_QUOTES, 'UTF-8');
-            $buttonText = htmlspecialchars((string) ($card['button_text'] ?? ''), ENT_QUOTES, 'UTF-8');
+            $buttonText = trim((string) ($card['button_text'] ?? ''));
             $buttonLink = trim((string) ($card['button_link'] ?? ''));
             $imageUrl = trim((string) ($card['image_url'] ?? ''));
             $imageAlt = htmlspecialchars((string) ($card['image_alt'] ?? $card['title'] ?? ''), ENT_QUOTES, 'UTF-8');
             $hasImage = $imageUrl !== '';
+            $cardTarget = $buttonLink !== '' ? $buttonLink : html_entity_decode($url, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $cardTarget = trim($cardTarget) !== '' ? trim($cardTarget) : '#';
+            $cardButtonLabel = $buttonText !== '' ? $buttonText : ($cardTarget !== '#' ? $defaultCardCtaLabel : '');
             $cardArticleClass = 'cms-hub-site__card';
             $cardLinkClass = 'cms-hub-site__card-link';
 
@@ -406,19 +436,34 @@ final class SiteTableHubRenderer
                 $html .= '<span class="cms-hub-site__card-meta cms-hub-site__card-meta--right">' . $metaRight . '</span>';
             }
             $html .= '</div>';
-            if ($url !== '#') {
-                $html .= '<span class="cms-hub-site__card-arrow" aria-hidden="true">→</span>';
-            }
-            $html .= '</div>';
-            if ($buttonText !== '') {
-                $buttonHref = $buttonLink !== '' ? htmlspecialchars($buttonLink, ENT_QUOTES, 'UTF-8') : $url;
+            if ($cardButtonLabel !== '') {
+                $buttonLabel = htmlspecialchars($cardButtonLabel, ENT_QUOTES, 'UTF-8');
+                $buttonHref = htmlspecialchars($cardTarget, ENT_QUOTES, 'UTF-8');
                 if ($buttonHref !== '#') {
-                    $html .= '<a class="cms-hub-site__card-button" href="' . $buttonHref . '">' . $buttonText . '</a>';
+                    $html .= '<a class="cms-hub-site__card-button" href="' . $buttonHref . '">' . $buttonLabel . '</a>';
                 } else {
-                    $html .= '<span class="cms-hub-site__card-button">' . $buttonText . '</span>';
+                    $html .= '<span class="cms-hub-site__card-button">' . $buttonLabel . '</span>';
                 }
             }
+            $html .= '</div>';
             $html .= '</div></div></article>';
+
+            $renderedStandardCards++;
+            if (isset($featureCardInsertMap[$renderedStandardCards])) {
+                foreach ($featureCardInsertMap[$renderedStandardCards] as $featureCard) {
+                    $html .= $this->renderFeatureCard($featureCard, $currentTableId, $defaultCardCtaLabel);
+                }
+            }
+        }
+
+        foreach ($featureCardInsertMap as $position => $queuedFeatureCards) {
+            if ($position <= $renderedStandardCards) {
+                continue;
+            }
+
+            foreach ($queuedFeatureCards as $featureCard) {
+                $html .= $this->renderFeatureCard($featureCard, $currentTableId, $defaultCardCtaLabel);
+            }
         }
 
         return $html . '</div>';
@@ -434,18 +479,122 @@ final class SiteTableHubRenderer
                 continue;
             }
 
+            if ($this->isFeatureCard($card)) {
+                continue;
+            }
+
             $title = trim((string) ($card['title'] ?? ''));
             if ($title === '') {
                 continue;
             }
 
-            $entries[] = [
+            $entries[$index] = [
                 'anchor' => $this->buildCardAnchorId($title, $index, $usedAnchors),
                 'label' => $title,
             ];
         }
 
         return $entries;
+    }
+
+    /**
+     * @return array<int, list<array<string, mixed>>>
+     */
+    private function buildFeatureCardInsertMap(array $featureCards, int $featureCardInterval, bool $supportsFeatureCards): array
+    {
+        if (!$supportsFeatureCards || $featureCards === []) {
+            return [];
+        }
+
+        $insertMap = [];
+        $hasExplicitPositions = false;
+
+        foreach ($featureCards as $featureCard) {
+            $insertAfter = max(0, (int) ($featureCard['insert_after'] ?? 0));
+            if ($insertAfter > 0) {
+                $hasExplicitPositions = true;
+                $insertMap[$insertAfter] ??= [];
+                $insertMap[$insertAfter][] = $featureCard;
+            }
+        }
+
+        if ($hasExplicitPositions || $featureCardInterval <= 0) {
+            ksort($insertMap);
+
+            return $insertMap;
+        }
+
+        foreach (array_values($featureCards) as $index => $featureCard) {
+            $legacyPosition = ($index + 1) * $featureCardInterval;
+            $insertMap[$legacyPosition] ??= [];
+            $insertMap[$legacyPosition][] = $featureCard;
+        }
+
+        ksort($insertMap);
+
+        return $insertMap;
+    }
+
+
+    private function renderFeatureCard(array $featureCard, int $currentTableId, string $defaultCardCtaLabel = ''): string
+    {
+        $title = htmlspecialchars((string) ($featureCard['title'] ?? ''), ENT_QUOTES, 'UTF-8');
+        $badge = htmlspecialchars((string) ($featureCard['badge'] ?? ''), ENT_QUOTES, 'UTF-8');
+        $text = $this->renderCardSummary((string) ($featureCard['text'] ?? $featureCard['summary'] ?? ''), $currentTableId);
+        $imageUrl = trim((string) ($featureCard['image_url'] ?? ''));
+        $imageAlt = htmlspecialchars((string) ($featureCard['image_alt'] ?? $featureCard['title'] ?? ''), ENT_QUOTES, 'UTF-8');
+        $featureSpacingTop = max(0, min(240, (int) ($featureCard['feature_spacing_top'] ?? 0)));
+        $buttonText = trim((string) ($featureCard['button_text'] ?? ''));
+        $buttonLink = trim((string) ($featureCard['button_link'] ?? ''));
+        if ($buttonLink === '') {
+            $buttonLink = trim((string) ($featureCard['url'] ?? ''));
+        }
+        $buttonTarget = $buttonLink !== '' ? $buttonLink : '#';
+        $buttonLabel = $buttonText !== ''
+            ? $buttonText
+            : ($buttonTarget !== '#' ? $defaultCardCtaLabel : '');
+
+        if ($title === '' && $text === '' && $imageUrl === '') {
+            return '';
+        }
+
+        $html = '<article class="cms-hub-site__feature-card"';
+        if ($featureSpacingTop > 0) {
+            $html .= ' style="margin-top: ' . $featureSpacingTop . 'px"';
+        }
+        $html .= '>';
+        if ($imageUrl !== '') {
+            $html .= '<div class="cms-hub-site__feature-card-media">';
+            $html .= '<img src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . $imageAlt . '" loading="lazy">';
+            $html .= '</div>';
+        }
+        $html .= '<div class="cms-hub-site__feature-card-content">';
+        if ($badge !== '') {
+            $html .= '<span class="cms-hub-site__card-badge">' . $badge . '</span>';
+        }
+        if ($title !== '') {
+            $html .= '<h3 class="cms-hub-site__feature-card-title">' . $title . '</h3>';
+        }
+        if ($text !== '') {
+            $html .= '<div class="cms-hub-site__feature-card-text">' . $text . '</div>';
+        }
+        if ($buttonLabel !== '') {
+            $html .= '<div class="cms-hub-site__feature-card-actions">';
+            if ($buttonTarget !== '#') {
+                $html .= '<a class="cms-hub-site__card-button" href="' . htmlspecialchars($buttonTarget, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($buttonLabel, ENT_QUOTES, 'UTF-8') . '</a>';
+            } else {
+                $html .= '<span class="cms-hub-site__card-button">' . htmlspecialchars($buttonLabel, ENT_QUOTES, 'UTF-8') . '</span>';
+            }
+            $html .= '</div>';
+        }
+        $html .= '</div></article>';
+
+        return $html;
+    }
+
+    private function isFeatureCard(array $card): bool
+    {
+        return !empty($card['is_feature']) || (string) ($card['display_variant'] ?? '') === 'feature';
     }
 
     private function buildCardAnchorId(string $title, int $index, array &$usedAnchors): string
@@ -533,11 +682,13 @@ final class SiteTableHubRenderer
             }
 
             $cards[] = [
+                'is_feature' => !empty($row['is_feature']) || !empty($row['isFeature']) || (string) ($row['display_variant'] ?? '') === 'feature',
+                'feature_spacing_top' => max(0, min(240, (int) ($row['feature_spacing_top'] ?? $row['featureSpacingTop'] ?? 0))),
                 'title' => mb_substr($title, 0, 160),
                 'title_en' => mb_substr(trim((string) ($row['title_en'] ?? $row['titleEn'] ?? '')), 0, 160),
                 'url' => $url !== '' ? $url : '#',
-                'summary' => mb_substr(trim((string) ($row['summary'] ?? $row['Beschreibung'] ?? '')), 0, 600),
-                'summary_en' => mb_substr(trim((string) ($row['summary_en'] ?? $row['summaryEn'] ?? '')), 0, 600),
+                'summary' => mb_substr(trim((string) ($row['summary'] ?? $row['Beschreibung'] ?? '')), 0, 4000),
+                'summary_en' => mb_substr(trim((string) ($row['summary_en'] ?? $row['summaryEn'] ?? '')), 0, 4000),
                 'badge' => mb_substr(trim((string) ($row['badge'] ?? $row['Kategorie'] ?? '')), 0, 80),
                 'badge_en' => mb_substr(trim((string) ($row['badge_en'] ?? $row['badgeEn'] ?? '')), 0, 80),
                 'meta' => mb_substr(trim((string) ($row['meta'] ?? $row['Meta'] ?? '')), 0, 120),
@@ -556,6 +707,67 @@ final class SiteTableHubRenderer
         }
 
         return $cards;
+    }
+
+    private function normalizeFeatureCards(array|string $rows): array
+    {
+        if (is_string($rows)) {
+            $decoded = \CMS\Json::decodeArray($rows, []);
+            $rows = is_array($decoded) ? $decoded : [];
+        }
+
+        $featureCards = [];
+
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $title = trim((string) ($row['title'] ?? ''));
+            $titleEn = trim((string) ($row['title_en'] ?? $row['titleEn'] ?? ''));
+            $text = trim((string) ($row['text'] ?? ''));
+            $textEn = trim((string) ($row['text_en'] ?? $row['textEn'] ?? ''));
+            $imageUrl = trim((string) ($row['image_url'] ?? $row['imageUrl'] ?? ''));
+
+            if ($title === '' && $titleEn === '' && $text === '' && $textEn === '' && $imageUrl === '') {
+                continue;
+            }
+
+            $featureCards[] = [
+                'insert_after' => max(0, (int) ($row['insert_after'] ?? $row['insertAfter'] ?? 0)),
+                'feature_spacing_top' => max(0, min(240, (int) ($row['feature_spacing_top'] ?? $row['featureSpacingTop'] ?? 0))),
+                'title' => mb_substr($title, 0, 160),
+                'title_en' => mb_substr($titleEn, 0, 160),
+                'text' => mb_substr($text, 0, 4000),
+                'text_en' => mb_substr($textEn, 0, 4000),
+                'image_url' => mb_substr($imageUrl, 0, 500),
+                'image_alt' => mb_substr(trim((string) ($row['image_alt'] ?? $row['imageAlt'] ?? '')), 0, 160),
+                'image_alt_en' => mb_substr(trim((string) ($row['image_alt_en'] ?? $row['imageAltEn'] ?? '')), 0, 160),
+            ];
+        }
+
+        return $featureCards;
+    }
+
+    private function localizeFeatureCards(array $featureCards, string $locale): array
+    {
+        if ($locale === 'de') {
+            return $featureCards;
+        }
+
+        return array_map(static function (array $card): array {
+            if (trim((string) ($card['title_en'] ?? '')) !== '') {
+                $card['title'] = (string) $card['title_en'];
+            }
+            if (trim((string) ($card['text_en'] ?? '')) !== '') {
+                $card['text'] = (string) $card['text_en'];
+            }
+            if (trim((string) ($card['image_alt_en'] ?? '')) !== '') {
+                $card['image_alt'] = (string) $card['image_alt_en'];
+            }
+
+            return $card;
+        }, $featureCards);
     }
 
     private function normalizeOption(string $value, array $allowed, string $fallback): string

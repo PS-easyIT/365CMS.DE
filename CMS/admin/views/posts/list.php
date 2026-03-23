@@ -51,7 +51,7 @@ $search     = $data['search'] ?? '';
 
         <!-- KPIs -->
         <div class="row row-deck row-cards mb-4">
-            <div class="col-sm-6 col-lg-4">
+            <div class="col-sm-6 col-lg-3">
                 <div class="card card-sm">
                     <div class="card-body">
                         <div class="row align-items-center">
@@ -68,7 +68,7 @@ $search     = $data['search'] ?? '';
                     </div>
                 </div>
             </div>
-            <div class="col-sm-6 col-lg-4">
+            <div class="col-sm-6 col-lg-3">
                 <div class="card card-sm">
                     <div class="card-body">
                         <div class="row align-items-center">
@@ -85,7 +85,24 @@ $search     = $data['search'] ?? '';
                     </div>
                 </div>
             </div>
-            <div class="col-sm-6 col-lg-4">
+            <div class="col-sm-6 col-lg-3">
+                <div class="card card-sm">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <span class="bg-azure text-white avatar">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 7v5l3 3"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/></svg>
+                                </span>
+                            </div>
+                            <div class="col">
+                                <div class="font-weight-medium"><?php echo (int)($counts['scheduled'] ?? 0); ?></div>
+                                <div class="text-secondary">Geplant</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
                 <div class="card card-sm">
                     <div class="card-body">
                         <div class="row align-items-center">
@@ -112,6 +129,7 @@ $search     = $data['search'] ?? '';
                         <select class="form-select form-select-sm" id="statusFilter" onchange="applyFilters()">
                             <option value="">Alle Status</option>
                             <option value="published" <?php if ($filter === 'published') echo 'selected'; ?>>Veröffentlicht</option>
+                            <option value="scheduled" <?php if ($filter === 'scheduled') echo 'selected'; ?>>Geplant</option>
                             <option value="draft" <?php if ($filter === 'draft') echo 'selected'; ?>>Entwurf</option>
                         </select>
                     </div>

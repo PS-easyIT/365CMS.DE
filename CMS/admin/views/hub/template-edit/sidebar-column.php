@@ -37,6 +37,36 @@ if (!defined('ABSPATH')) {
                     </div>
                     <div class="hub-template-preview__quicklinks" id="templatePreviewQuicklinks"></div>
                     <div class="hub-template-preview__grid hub-template-preview__grid--2" id="templatePreviewGrid"></div>
+                    <div class="hub-template-preview__table-card" id="templatePreviewTableCard">
+                        <div class="hub-template-preview__table-card-head">
+                            <span class="hub-template-preview__table-card-badge">Table Card</span>
+                            <strong class="hub-template-preview__table-card-title">Tabellenkarte</strong>
+                        </div>
+                        <div class="hub-template-preview__table-wrap">
+                            <table class="hub-template-preview__table" aria-hidden="true">
+                                <thead>
+                                    <tr>
+                                        <th>Spalte</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Eintrag A</td>
+                                        <td>Live</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Eintrag B</td>
+                                        <td>Preview</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Eintrag C</td>
+                                        <td>Draft</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                     <div class="hub-template-preview__sections" id="templatePreviewSections">
                         <div class="hub-template-preview__section-card">
                             <div class="hub-template-preview__section-head">

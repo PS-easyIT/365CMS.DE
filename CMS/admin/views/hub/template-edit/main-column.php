@@ -90,6 +90,8 @@ if (!defined('ABSPATH')) {
                 <div class="col-md-4"><label class="form-label">Bereichs-Hintergrund</label><input type="color" class="form-control form-control-color" name="template_color_section_background" value="<?php echo htmlspecialchars((string)($templateColors['section_background'] ?? '#ffffff')); ?>"></div>
                 <div class="col-md-6"><label class="form-label">Card-Hintergrund</label><input type="color" class="form-control form-control-color" name="template_color_card_background" value="<?php echo htmlspecialchars((string)($templateColors['card_background'] ?? '#ffffff')); ?>"></div>
                 <div class="col-md-6"><label class="form-label">Card-Text</label><input type="color" class="form-control form-control-color" name="template_color_card_text" value="<?php echo htmlspecialchars((string)($templateColors['card_text'] ?? '#0f172a')); ?>"></div>
+                <div class="col-md-6"><label class="form-label">Tabellenkopf Verlauf Start</label><input type="color" class="form-control form-control-color" name="template_color_table_header_start" value="<?php echo htmlspecialchars((string)($templateColors['table_header_start'] ?? $templateColors['hero_start'] ?? '#1f2937')); ?>"></div>
+                <div class="col-md-6"><label class="form-label">Tabellenkopf Verlauf Ende</label><input type="color" class="form-control form-control-color" name="template_color_table_header_end" value="<?php echo htmlspecialchars((string)($templateColors['table_header_end'] ?? $templateColors['hero_end'] ?? '#0f172a')); ?>"></div>
             </div>
         </div>
     </div>

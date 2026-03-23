@@ -120,8 +120,13 @@ if ($viewAction === 'edit') {
     $pageTitle = $data['isNew'] ? 'Neue Hub-Site' : 'Hub-Site bearbeiten';
     $activePage = 'hub-sites';
     $pageAssets = [
-        'css' => [],
+        'css' => [
+            cms_asset_url('suneditor/css/suneditor.min.css'),
+            cms_asset_url('css/admin-hub-site-edit.css'),
+        ],
         'js' => [
+            cms_asset_url('suneditor/suneditor.min.js'),
+            cms_asset_url('suneditor/lang/de.js'),
             cms_asset_url('js/admin-hub-site-edit.js'),
         ],
     ];

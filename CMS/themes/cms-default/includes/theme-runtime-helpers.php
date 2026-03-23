@@ -112,7 +112,7 @@ function meridian_route_exists(string $url): bool
         try {
             $db = \CMS\Database::instance();
             $row = $db->get_row(
-                "SELECT id FROM {$db->getPrefix()}posts WHERE slug = ? AND status = 'published' LIMIT 1",
+                "SELECT id FROM {$db->getPrefix()}posts WHERE slug = ? AND " . cms_post_publication_where() . " LIMIT 1",
                 [$postSlug]
             );
 

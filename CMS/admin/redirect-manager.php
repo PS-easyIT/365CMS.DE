@@ -50,6 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['admin_alert'] = [
             'type' => $result['success'] ? 'success' : 'danger',
             'message' => $result['message'] ?? $result['error'] ?? '',
+            'details' => is_array($result['details'] ?? null) ? $result['details'] : [],
         ];
         header('Location: ' . SITE_URL . '/admin/redirect-manager');
         exit;

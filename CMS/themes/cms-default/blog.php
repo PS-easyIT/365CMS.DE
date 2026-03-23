@@ -40,7 +40,7 @@ $sidebarCats   = meridian_get_categories(8);
 $tagCloud      = [];
 try {
     $pdo = \CMS\Database::instance()->getConnection();
-    $stmt = $pdo->query("SELECT tags FROM posts WHERE status = 'published' AND tags IS NOT NULL AND tags != ''");
+    $stmt = $pdo->query("SELECT tags FROM posts WHERE " . \cms_post_publication_where() . " AND tags IS NOT NULL AND tags != ''");
     $tagRows = $stmt->fetchAll(\PDO::FETCH_COLUMN);
     $tagCounts = [];
     foreach ($tagRows as $row) {

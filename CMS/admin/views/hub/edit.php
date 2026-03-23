@@ -69,11 +69,14 @@ $mainDomainHost = trim((string)(parse_url((string) SITE_URL, PHP_URL_HOST) ?? ''
             <?php endif; ?>
             <input type="hidden" name="open_public_after_save" id="openPublicAfterSaveInput" value="0">
             <input type="hidden" name="cards_json" id="cardsJsonInput" value="<?php echo htmlspecialchars(json_encode($cards, JSON_UNESCAPED_UNICODE)); ?>">
+            <input type="hidden" name="hub_feature_cards_json" id="featureCardsJsonInput" value="<?php echo htmlspecialchars((string)($settings['hub_feature_cards_json'] ?? '[]')); ?>">
+            <input type="hidden" name="hub_feature_card_interval" id="hubFeatureCardIntervalInput" value="0">
             <input type="hidden" id="hubTemplateProfilesInput" value="<?php echo htmlspecialchars((string) json_encode($templateProfiles, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>">
             <input type="hidden" id="hubSiteConfigInput" value="<?php echo htmlspecialchars((string) json_encode([
                 'isNew' => $isNew,
                 'siteUrl' => rtrim((string) SITE_URL, '/'),
                 'storedSlug' => (string) ($settings['hub_slug'] ?? ''),
+                'legacyFeatureCardInterval' => (int) ($settings['hub_feature_card_interval'] ?? 0),
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>">
 
             <div class="row g-4">
@@ -110,7 +113,7 @@ $mainDomainHost = trim((string)(parse_url((string) SITE_URL, PHP_URL_HOST) ?? ''
                             </div>
                             <div class="mb-0">
                                 <label class="form-label">Beschreibung</label>
-                                <textarea class="form-control" name="description" rows="2"><?php echo htmlspecialchars((string)($site['description'] ?? '')); ?></textarea>
+                                <textarea class="form-control" id="hubSiteDescriptionEditor" name="description" rows="4" data-editor="hub-richtext" data-source="form"><?php echo htmlspecialchars((string)($site['description'] ?? '')); ?></textarea>
                             </div>
                             <div class="mt-3">
                                 <label class="form-label">Zusatzdomains</label>
@@ -149,7 +152,7 @@ $mainDomainHost = trim((string)(parse_url((string) SITE_URL, PHP_URL_HOST) ?? ''
                                         </div>
                                         <div class="col-12">
                                             <label class="form-label">Hero-Text</label>
-                                            <textarea class="form-control" name="hub_hero_text" rows="4" placeholder="Ein kurzer Einleitungstext für diese Hub-Site."><?php echo htmlspecialchars((string)($settings['hub_hero_text'] ?? '')); ?></textarea>
+                                            <textarea class="form-control" id="hubHeroTextEditorDe" name="hub_hero_text" rows="5" placeholder="Ein kurzer Einleitungstext für diese Hub-Site." data-editor="hub-richtext" data-source="form"><?php echo htmlspecialchars((string)($settings['hub_hero_text'] ?? '')); ?></textarea>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">CTA Text</label>
@@ -192,7 +195,7 @@ $mainDomainHost = trim((string)(parse_url((string) SITE_URL, PHP_URL_HOST) ?? ''
                                         </div>
                                         <div class="col-12">
                                             <label class="form-label">Hero text (EN)</label>
-                                            <textarea class="form-control" name="hub_hero_text_en" rows="4" placeholder="Short English intro for this hub."><?php echo htmlspecialchars((string)($settings['hub_hero_text_en'] ?? '')); ?></textarea>
+                                            <textarea class="form-control" id="hubHeroTextEditorEn" name="hub_hero_text_en" rows="5" placeholder="Short English intro for this hub." data-editor="hub-richtext" data-source="form"><?php echo htmlspecialchars((string)($settings['hub_hero_text_en'] ?? '')); ?></textarea>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">CTA label (EN)</label>
@@ -230,7 +233,7 @@ $mainDomainHost = trim((string)(parse_url((string) SITE_URL, PHP_URL_HOST) ?? ''
                             <button type="button" class="btn btn-outline-primary btn-sm" id="addCard">Kachel hinzufügen</button>
                         </div>
                         <div class="card-body border-bottom bg-body-secondary">
-                            <div class="small text-secondary" id="cardSchemaHint">Die Felder orientieren sich am gewählten Template-Profil.</div>
+                            <div class="small text-secondary" id="cardSchemaHint">Die Felder orientieren sich am gewählten Template-Profil. Jede normale Kachel kann direkt als Feature-Kachel in Vollbreite markiert werden.</div>
                         </div>
                         <div class="card-body p-0">
                             <div id="cardsContainer"></div>

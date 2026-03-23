@@ -26,7 +26,7 @@ try {
          FROM posts p
          LEFT JOIN users u ON p.author_id = u.id
          LEFT JOIN post_categories c ON p.category_id = c.id
-         WHERE p.status = 'published'
+         WHERE " . cms_post_publication_where('p') . "
          ORDER BY p.published_at DESC
          LIMIT 1"
     );
@@ -45,7 +45,7 @@ try {
          FROM posts p
          LEFT JOIN users u ON p.author_id = u.id
          LEFT JOIN post_categories c ON p.category_id = c.id
-         WHERE p.status = 'published' AND p.id != :exclude
+         WHERE " . cms_post_publication_where('p') . " AND p.id != :exclude
          ORDER BY p.published_at DESC
          LIMIT 5"
     );
@@ -68,7 +68,7 @@ try {
          FROM posts p
          LEFT JOIN users u ON p.author_id = u.id
          LEFT JOIN post_categories c ON p.category_id = c.id
-         WHERE p.status = 'published' AND p.id NOT IN ($placeholders)
+         WHERE " . cms_post_publication_where('p') . " AND p.id NOT IN ($placeholders)
          ORDER BY p.views DESC
          LIMIT 3"
     );
@@ -92,7 +92,7 @@ try {
          FROM posts p
          LEFT JOIN users u ON p.author_id = u.id
          LEFT JOIN post_categories c ON p.category_id = c.id
-         WHERE p.status = 'published' AND p.id NOT IN ($placeholders)
+         WHERE " . cms_post_publication_where('p') . " AND p.id NOT IN ($placeholders)
          ORDER BY p.published_at DESC
          LIMIT 2"
     );
@@ -111,7 +111,7 @@ $sidebarCats = meridian_get_categories(8);
 // Sidebar: Tags sammeln
 $tagCloud = [];
 try {
-    $stmt = $pdo->query("SELECT tags FROM posts WHERE status = 'published' AND tags IS NOT NULL AND tags != ''");
+    $stmt = $pdo->query("SELECT tags FROM posts WHERE " . cms_post_publication_where() . " AND tags IS NOT NULL AND tags != ''");
     $tagRows = $stmt->fetchAll(\PDO::FETCH_COLUMN);
     $tagCounts = [];
 

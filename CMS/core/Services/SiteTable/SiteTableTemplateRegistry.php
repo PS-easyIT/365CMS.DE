@@ -22,6 +22,8 @@ final class SiteTableTemplateRegistry
         'content_mode' => 'table',
         'hub_slug' => '',
         'hub_template' => 'general-it',
+        'hub_feature_card_interval' => 0,
+        'hub_feature_cards_json' => '[]',
         'hub_badge' => '',
         'hub_badge_en' => '',
         'hub_hero_title' => '',
@@ -99,6 +101,18 @@ final class SiteTableTemplateRegistry
                 ['title' => 'Rollout & Use Cases', 'text' => 'Platzhalter für strukturierte Rollout-Tabellen, Verantwortlichkeiten und Business-Nutzen je Szenario.', 'actionLabel' => 'Use Cases ansehen', 'actionUrl' => '#usecases'],
             ],
         ],
+        'powershell-table' => [
+            'links' => [
+                ['label' => 'Cmdlets', 'url' => '#cmdlets'],
+                ['label' => 'Runbooks', 'url' => '#runbooks'],
+                ['label' => 'Module', 'url' => '#module'],
+                ['label' => 'Automation', 'url' => '#automation'],
+            ],
+            'sections' => [
+                ['title' => 'Cmdlet- & Modul-Tabellen', 'text' => 'Platzhalter für Cmdlet-Übersichten, Modul-Vergleiche, Parameter-Tabellen und wiederkehrende Shell-Referenzen.', 'actionLabel' => 'Cmdlets öffnen', 'actionUrl' => '#cmdlets'],
+                ['title' => 'Runbooks & Automation', 'text' => 'Platzhalter für Betriebsrunbooks, Scheduling, Aufgabenketten und PowerShell-basierte Automationspfade.', 'actionLabel' => 'Runbooks ansehen', 'actionUrl' => '#runbooks'],
+            ],
+        ],
         'datenschutz' => [
             'links' => [
                 ['label' => 'DSGVO', 'url' => '#dsgvo'],
@@ -121,6 +135,18 @@ final class SiteTableTemplateRegistry
             'sections' => [
                 ['title' => 'Governance Framework', 'text' => 'Platzhalter für Richtlinienlandschaft, Rollenkonzepte und Kontrollmechanismen.', 'actionLabel' => 'Framework ansehen', 'actionUrl' => '#framework'],
                 ['title' => 'Audit-Vorbereitung', 'text' => 'Platzhalter für Auditpläne, Kontrollpunkte, Maßnahmenlisten und Dokumentation.', 'actionLabel' => 'Audit-Bereich öffnen', 'actionUrl' => '#audit'],
+            ],
+        ],
+        'datenschutz-compliance-table' => [
+            'links' => [
+                ['label' => 'Nachweise', 'url' => '#nachweise'],
+                ['label' => 'Controls', 'url' => '#controls'],
+                ['label' => 'Fristen', 'url' => '#fristen'],
+                ['label' => 'Audits', 'url' => '#audits'],
+            ],
+            'sections' => [
+                ['title' => 'Nachweis- & Kontrolltabellen', 'text' => 'Platzhalter für kombinierte DSGVO-/Compliance-Tabellen zu Nachweisen, Rollen, Maßnahmen und Kontrollfamilien.', 'actionLabel' => 'Kontrollen öffnen', 'actionUrl' => '#controls'],
+                ['title' => 'Fristen, Audits & Maßnahmen', 'text' => 'Platzhalter für Fristen-Tracking, Auditpunkte, Reviews und priorisierte Maßnahmenlisten im Tabellenkontext.', 'actionLabel' => 'Audits ansehen', 'actionUrl' => '#audits'],
             ],
         ],
         'linux' => [
@@ -154,8 +180,10 @@ final class SiteTableTemplateRegistry
         'general-table' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split', 'card_radius' => 20],
         'microsoft-365' => ['layout' => 'feature', 'image_position' => 'left', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split', 'card_radius' => 20],
         'm365-table' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split', 'card_radius' => 20],
+        'powershell-table' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'contain', 'image_ratio' => 'wide', 'meta_layout' => 'split', 'card_radius' => 20],
         'datenschutz' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'contain', 'image_ratio' => 'square', 'meta_layout' => 'stacked', 'card_radius' => 20],
         'compliance' => ['layout' => 'feature', 'image_position' => 'right', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split', 'card_radius' => 20],
+        'datenschutz-compliance-table' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split', 'card_radius' => 20],
         'linux' => ['layout' => 'compact', 'image_position' => 'top', 'image_fit' => 'contain', 'image_ratio' => 'square', 'meta_layout' => 'stacked', 'card_radius' => 20],
         'linux-table' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'contain', 'image_ratio' => 'wide', 'meta_layout' => 'split', 'card_radius' => 20],
     ];
@@ -225,62 +253,51 @@ final class SiteTableTemplateRegistry
     {
         $defaultDesign = self::DEFAULT_TEMPLATE_CARD_DESIGN[$template] ?? self::DEFAULT_TEMPLATE_CARD_DESIGN['general-it'];
         $profileDesign = is_array($templateProfile['card_design'] ?? null) ? $templateProfile['card_design'] : [];
-        $genericDefaultDesign = [
-            'layout' => 'standard',
-            'image_position' => 'top',
-            'image_fit' => 'cover',
-            'image_ratio' => 'wide',
-            'meta_layout' => 'split',
-            'card_radius' => 20,
-        ];
-
-        $storedDesign = [
-            'layout' => (string) ($settings['hub_card_layout'] ?? ''),
-            'image_position' => (string) ($settings['hub_card_image_position'] ?? ''),
-            'image_fit' => (string) ($settings['hub_card_image_fit'] ?? ''),
-            'image_ratio' => (string) ($settings['hub_card_image_ratio'] ?? ''),
-            'meta_layout' => (string) ($settings['hub_card_meta_layout'] ?? ''),
-            'card_radius' => (int) ($settings['hub_card_radius'] ?? 0),
-        ];
-
-        $hasStoredCardDesign = false;
-        foreach ($storedDesign as $value) {
-            if ($value !== '') {
-                $hasStoredCardDesign = true;
-                break;
+        $resolveStringValue = static function (string $settingKey, string $designKey, string $fallback) use ($settings, $profileDesign, $defaultDesign): string {
+            $storedValue = trim((string) ($settings[$settingKey] ?? ''));
+            if ($storedValue !== '') {
+                return $storedValue;
             }
-        }
 
-        $useStoredCardDesign = $hasStoredCardDesign && $storedDesign !== $genericDefaultDesign;
+            return (string) ($profileDesign[$designKey] ?? $defaultDesign[$designKey] ?? $fallback);
+        };
+
+        $resolveNumberValue = static function (string $settingKey, string $designKey, int $fallback) use ($settings, $profileDesign, $defaultDesign): int {
+            if (array_key_exists($settingKey, $settings) && $settings[$settingKey] !== '' && $settings[$settingKey] !== null) {
+                return (int) $settings[$settingKey];
+            }
+
+            return (int) ($profileDesign[$designKey] ?? $defaultDesign[$designKey] ?? $fallback);
+        };
 
         return [
             'layout' => $this->normalizeOption(
-                $useStoredCardDesign ? $storedDesign['layout'] : (string) ($profileDesign['layout'] ?? $defaultDesign['layout'] ?? 'standard'),
+                $resolveStringValue('hub_card_layout', 'layout', 'standard'),
                 ['standard', 'feature', 'compact'],
                 'standard'
             ),
             'image_position' => $this->normalizeOption(
-                $useStoredCardDesign ? $storedDesign['image_position'] : (string) ($profileDesign['image_position'] ?? $defaultDesign['image_position'] ?? 'top'),
+                $resolveStringValue('hub_card_image_position', 'image_position', 'top'),
                 ['top', 'left', 'right'],
                 'top'
             ),
             'image_fit' => $this->normalizeOption(
-                $useStoredCardDesign ? $storedDesign['image_fit'] : (string) ($profileDesign['image_fit'] ?? $defaultDesign['image_fit'] ?? 'cover'),
+                $resolveStringValue('hub_card_image_fit', 'image_fit', 'cover'),
                 ['cover', 'contain'],
                 'cover'
             ),
             'image_ratio' => $this->normalizeOption(
-                $useStoredCardDesign ? $storedDesign['image_ratio'] : (string) ($profileDesign['image_ratio'] ?? $defaultDesign['image_ratio'] ?? 'wide'),
+                $resolveStringValue('hub_card_image_ratio', 'image_ratio', 'wide'),
                 ['wide', 'square', 'portrait'],
                 'wide'
             ),
             'meta_layout' => $this->normalizeOption(
-                $useStoredCardDesign ? $storedDesign['meta_layout'] : (string) ($profileDesign['meta_layout'] ?? $defaultDesign['meta_layout'] ?? 'split'),
+                $resolveStringValue('hub_card_meta_layout', 'meta_layout', 'split'),
                 ['split', 'stacked'],
                 'split'
             ),
             'card_radius' => $this->normalizeNumber(
-                $useStoredCardDesign ? (int) $storedDesign['card_radius'] : (int) ($profileDesign['card_radius'] ?? $defaultDesign['card_radius'] ?? 20),
+                $resolveNumberValue('hub_card_radius', 'card_radius', 20),
                 0,
                 48,
                 20
@@ -338,6 +355,8 @@ final class SiteTableTemplateRegistry
             '--cms-hub-card-bg' => $this->normalizeColorValue((string) ($palette['card_background'] ?? '#ffffff'), '#ffffff'),
             '--cms-hub-card-text' => $this->normalizeColorValue((string) ($palette['card_text'] ?? '#0f172a'), '#0f172a'),
             '--cms-hub-section-bg' => $this->normalizeColorValue((string) ($palette['section_background'] ?? '#ffffff'), '#ffffff'),
+            '--cms-hub-table-head-start' => $this->normalizeColorValue((string) ($palette['table_header_start'] ?? $palette['hero_start'] ?? '#1f2937'), '#1f2937'),
+            '--cms-hub-table-head-end' => $this->normalizeColorValue((string) ($palette['table_header_end'] ?? $palette['hero_end'] ?? '#0f172a'), '#0f172a'),
             '--cms-hub-card-radius' => $cardRadius . 'px',
         ];
 
@@ -347,6 +366,11 @@ final class SiteTableTemplateRegistry
         }
 
         return implode(';', $chunks);
+    }
+
+    public function templateSupportsFeatureCards(string $template): bool
+    {
+        return in_array($template, ['general-it', 'microsoft-365', 'datenschutz', 'compliance'], true);
     }
 
     public function getTemplateContentLanguage(string $template, string $locale = 'de'): array
@@ -368,6 +392,14 @@ final class SiteTableTemplateRegistry
                     'section_icons' => ['▦', '✓'],
                     'section_modifiers' => ['spotlight', 'stacked'],
                     'section_notes' => ['Tabellen & Vergleiche', 'Rollout & Nutzen'],
+                ],
+                'powershell-table' => [
+                    'meta_icons' => ['audience' => '⌁', 'owner' => 'PS', 'update_cycle' => '↻', 'focus' => '▦', 'kpi' => '●'],
+                    'quicklink_icons' => ['C', 'R', 'M', 'A'],
+                    'section_eyebrows' => ['Cmdlets', 'Runbooks'],
+                    'section_icons' => ['⌁', '>'],
+                    'section_modifiers' => ['terminal', 'terminal'],
+                    'section_notes' => ['$ modules=ready', '$ jobs=green'],
                 ],
                 'datenschutz' => [
                     'meta_icons' => ['audience' => '§', 'owner' => '⚖', 'update_cycle' => '⏱', 'focus' => '✓', 'kpi' => '▣'],
@@ -409,6 +441,15 @@ final class SiteTableTemplateRegistry
                     'section_modifiers' => ['spotlight', 'stacked'],
                     'section_notes' => ['Controls & roles', 'Audit & evidence'],
                 ],
+                'datenschutz-compliance-table' => [
+                    'meta_icons' => ['audience' => '§', 'owner' => '◆', 'update_cycle' => '↺', 'focus' => '▦', 'kpi' => '▲'],
+                    'quicklink_icons' => ['N', 'C', 'F', 'A'],
+                    'section_eyebrows' => ['Evidence', 'Reviews'],
+                    'section_icons' => ['✓', '▲'],
+                    'section_modifiers' => ['trust', 'stacked'],
+                    'section_notes' => ['Nachweise & Kontrollen', 'Fristen & Audits'],
+                    'card_cta_label' => '… read more',
+                ],
                 default => [
                     'meta_icons' => ['audience' => '◎', 'owner' => '◆', 'update_cycle' => '↺', 'focus' => '◌', 'kpi' => '▲'],
                     'quicklink_icons' => ['S', 'P', 'C', 'O'],
@@ -416,6 +457,7 @@ final class SiteTableTemplateRegistry
                     'section_icons' => ['◆', '▲'],
                     'section_modifiers' => ['spotlight', 'stacked'],
                     'section_notes' => ['Blueprint & standards', 'Services & delivery'],
+                    'card_cta_label' => '… read more',
                 ],
             };
         }
@@ -428,6 +470,7 @@ final class SiteTableTemplateRegistry
                 'section_icons' => ['☁', '✓'],
                 'section_modifiers' => ['spotlight', 'stacked'],
                 'section_notes' => ['Workloads & Journeys', 'Policies & Rollout'],
+                'card_cta_label' => '… weiter Lesen',
             ],
             'm365-table' => [
                 'meta_icons' => ['audience' => '◈', 'owner' => '☁', 'update_cycle' => '↺', 'focus' => '▦', 'kpi' => '↑'],
@@ -436,6 +479,16 @@ final class SiteTableTemplateRegistry
                 'section_icons' => ['▦', '✓'],
                 'section_modifiers' => ['spotlight', 'stacked'],
                 'section_notes' => ['Tabellen & Vergleiche', 'Rollout & Nutzen'],
+                'card_cta_label' => '… weiter Lesen',
+            ],
+            'powershell-table' => [
+                'meta_icons' => ['audience' => '⌁', 'owner' => 'PS', 'update_cycle' => '↻', 'focus' => '▦', 'kpi' => '●'],
+                'quicklink_icons' => ['C', 'R', 'M', 'A'],
+                'section_eyebrows' => ['Cmdlets', 'Runbooks'],
+                'section_icons' => ['⌁', '>'],
+                'section_modifiers' => ['terminal', 'terminal'],
+                'section_notes' => ['$ modules=ready', '$ jobs=green'],
+                'card_cta_label' => '… weiter Lesen',
             ],
             'datenschutz' => [
                 'meta_icons' => ['audience' => '§', 'owner' => '⚖', 'update_cycle' => '⏱', 'focus' => '✓', 'kpi' => '▣'],
@@ -444,6 +497,7 @@ final class SiteTableTemplateRegistry
                 'section_icons' => ['✓', '⚖'],
                 'section_modifiers' => ['trust', 'checklist'],
                 'section_notes' => ['Dokumentation & Belege', 'Fristen & Maßnahmen'],
+                'card_cta_label' => '… weiter Lesen',
             ],
             'linux' => [
                 'meta_icons' => ['audience' => '⌘', 'owner' => '#', 'update_cycle' => '↻', 'focus' => '▤', 'kpi' => '●'],
@@ -452,6 +506,7 @@ final class SiteTableTemplateRegistry
                 'section_icons' => ['⌘', '>'],
                 'section_modifiers' => ['terminal', 'terminal'],
                 'section_notes' => ['$ health=ok', '$ status=watch'],
+                'card_cta_label' => '… weiter Lesen',
             ],
             'linux-table' => [
                 'meta_icons' => ['audience' => '⌘', 'owner' => '#', 'update_cycle' => '↻', 'focus' => '▦', 'kpi' => '●'],
@@ -460,6 +515,7 @@ final class SiteTableTemplateRegistry
                 'section_icons' => ['▦', '>'],
                 'section_modifiers' => ['terminal', 'terminal'],
                 'section_notes' => ['$ tables=ok', '$ runbooks=ready'],
+                'card_cta_label' => '… weiter Lesen',
             ],
             'general-table' => [
                 'meta_icons' => ['audience' => '◎', 'owner' => '◆', 'update_cycle' => '↺', 'focus' => '▦', 'kpi' => '▲'],
@@ -468,6 +524,7 @@ final class SiteTableTemplateRegistry
                 'section_icons' => ['▦', '▲'],
                 'section_modifiers' => ['spotlight', 'stacked'],
                 'section_notes' => ['Übersichten & Vergleiche', 'Details & Hinweise'],
+                'card_cta_label' => '… weiter Lesen',
             ],
             'compliance' => [
                 'meta_icons' => ['audience' => '◎', 'owner' => '◆', 'update_cycle' => '↺', 'focus' => '◌', 'kpi' => '▲'],
@@ -476,6 +533,16 @@ final class SiteTableTemplateRegistry
                 'section_icons' => ['◆', '▲'],
                 'section_modifiers' => ['spotlight', 'stacked'],
                 'section_notes' => ['Kontrollen & Rollen', 'Audit & Evidence'],
+                'card_cta_label' => '… weiter Lesen',
+            ],
+            'datenschutz-compliance-table' => [
+                'meta_icons' => ['audience' => '§', 'owner' => '◆', 'update_cycle' => '↺', 'focus' => '▦', 'kpi' => '▲'],
+                'quicklink_icons' => ['N', 'C', 'F', 'A'],
+                'section_eyebrows' => ['Nachweise', 'Reviews'],
+                'section_icons' => ['✓', '▲'],
+                'section_modifiers' => ['trust', 'stacked'],
+                'section_notes' => ['Nachweise & Kontrollen', 'Fristen & Audits'],
+                'card_cta_label' => '… weiter Lesen',
             ],
             default => [
                 'meta_icons' => ['audience' => '◎', 'owner' => '◆', 'update_cycle' => '↺', 'focus' => '◌', 'kpi' => '▲'],
@@ -484,6 +551,7 @@ final class SiteTableTemplateRegistry
                 'section_icons' => ['◆', '▲'],
                 'section_modifiers' => ['spotlight', 'stacked'],
                 'section_notes' => ['Zielbild & Standards', 'Services & Delivery'],
+                'card_cta_label' => '… weiter Lesen',
             ],
         };
     }
@@ -651,14 +719,16 @@ final class SiteTableTemplateRegistry
     private function getDefaultTemplateColors(string $template): array
     {
         return match ($template) {
-            'microsoft-365' => ['hero_start' => '#0f4c81', 'hero_end' => '#2563eb', 'accent' => '#2563eb', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#0f172a', 'section_background' => '#f8fbff'],
-            'm365-table' => ['hero_start' => '#0f4c81', 'hero_end' => '#2563eb', 'accent' => '#2563eb', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#0f172a', 'section_background' => '#f8fbff'],
-            'general-table' => ['hero_start' => '#1f2937', 'hero_end' => '#0f172a', 'accent' => '#2563eb', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#0f172a', 'section_background' => '#ffffff'],
-            'datenschutz' => ['hero_start' => '#0f766e', 'hero_end' => '#115e59', 'accent' => '#0f766e', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#0f172a', 'section_background' => '#f0fdfa'],
-            'compliance' => ['hero_start' => '#4c1d95', 'hero_end' => '#6d28d9', 'accent' => '#6d28d9', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#0f172a', 'section_background' => '#faf5ff'],
-            'linux' => ['hero_start' => '#111827', 'hero_end' => '#b45309', 'accent' => '#b45309', 'surface' => '#111827', 'card_background' => '#111827', 'card_text' => '#f3f4f6', 'section_background' => '#111827'],
-            'linux-table' => ['hero_start' => '#111827', 'hero_end' => '#b45309', 'accent' => '#b45309', 'surface' => '#111827', 'card_background' => '#111827', 'card_text' => '#f3f4f6', 'section_background' => '#111827'],
-            default => ['hero_start' => '#1f2937', 'hero_end' => '#0f172a', 'accent' => '#2563eb', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#0f172a', 'section_background' => '#ffffff'],
+            'microsoft-365' => ['hero_start' => '#2d547a', 'hero_end' => '#1e3a5f', 'accent' => '#14b8a6', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#1e293b', 'section_background' => '#eef4fb', 'table_header_start' => '#2d547a', 'table_header_end' => '#1e3a5f'],
+            'm365-table' => ['hero_start' => '#2d547a', 'hero_end' => '#1e3a5f', 'accent' => '#14b8a6', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#1e293b', 'section_background' => '#eef4fb', 'table_header_start' => '#2d547a', 'table_header_end' => '#1e3a5f'],
+            'powershell-table' => ['hero_start' => '#0f2240', 'hero_end' => '#2d547a', 'accent' => '#14b8a6', 'surface' => '#111827', 'card_background' => '#162030', 'card_text' => '#f8fafc', 'section_background' => '#111827', 'table_header_start' => '#2d547a', 'table_header_end' => '#14b8a6'],
+            'general-table' => ['hero_start' => '#1e3a5f', 'hero_end' => '#0f2240', 'accent' => '#0d9488', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#1e293b', 'section_background' => '#f1f5f9', 'table_header_start' => '#0f2240', 'table_header_end' => '#2d547a'],
+            'datenschutz' => ['hero_start' => '#0f2240', 'hero_end' => '#0d9488', 'accent' => '#0d9488', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#1e293b', 'section_background' => '#f2fbfa', 'table_header_start' => '#0d9488', 'table_header_end' => '#1e3a5f'],
+            'compliance' => ['hero_start' => '#1e3a5f', 'hero_end' => '#0f2240', 'accent' => '#e8a838', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#1e293b', 'section_background' => '#fbf8f1', 'table_header_start' => '#1e3a5f', 'table_header_end' => '#e8a838'],
+            'datenschutz-compliance-table' => ['hero_start' => '#0f2240', 'hero_end' => '#1e3a5f', 'accent' => '#e8a838', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#1e293b', 'section_background' => '#f7f8f6', 'table_header_start' => '#0d9488', 'table_header_end' => '#1e3a5f'],
+            'linux' => ['hero_start' => '#111827', 'hero_end' => '#0f2240', 'accent' => '#e8a838', 'surface' => '#111827', 'card_background' => '#111827', 'card_text' => '#f1f5f9', 'section_background' => '#111827', 'table_header_start' => '#1e3a5f', 'table_header_end' => '#e8a838'],
+            'linux-table' => ['hero_start' => '#111827', 'hero_end' => '#0f2240', 'accent' => '#e8a838', 'surface' => '#111827', 'card_background' => '#111827', 'card_text' => '#f1f5f9', 'section_background' => '#111827', 'table_header_start' => '#1e3a5f', 'table_header_end' => '#e8a838'],
+            default => ['hero_start' => '#1e3a5f', 'hero_end' => '#0f2240', 'accent' => '#0d9488', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#1e293b', 'section_background' => '#f1f5f9', 'table_header_start' => '#1e3a5f', 'table_header_end' => '#0f2240'],
         };
     }
 }

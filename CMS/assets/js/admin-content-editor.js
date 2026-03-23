@@ -40,6 +40,9 @@
         var slugInput = getElement(config.slugInputId);
         var previewUrl = getElement(config.previewUrlId);
         var statusSelect = getElement(config.statusSelectId);
+        var publishDateInput = getElement(config.publishDateId);
+        var publishTimeInput = getElement(config.publishTimeId);
+        var publishWarning = getElement(config.publishWarningId);
         var statusBadge = getElement(config.statusBadgeId);
         var categorySelect = getElement(config.categorySelectId);
         var categoryLabel = getElement(config.categoryLabelId);
@@ -50,6 +53,28 @@
 
         if (!form) {
             return;
+        }
+
+        function resolvePublishDate() {
+            var dateValue = publishDateInput ? String(publishDateInput.value || '').trim() : '';
+            var timeValue = publishTimeInput ? String(publishTimeInput.value || '').trim() : '';
+
+            if (dateValue === '') {
+                return null;
+            }
+
+            return new Date(dateValue + 'T' + (timeValue !== '' ? timeValue : '00:00'));
+        }
+
+        function isScheduledPublication() {
+            var publishAt;
+
+            if (!statusSelect || statusSelect.value !== 'published') {
+                return false;
+            }
+
+            publishAt = resolvePublishDate();
+            return publishAt instanceof Date && !Number.isNaN(publishAt.getTime()) && publishAt.getTime() > Date.now();
         }
 
         function switchLanguage(lang) {
@@ -79,10 +104,24 @@
             }
 
             if (statusSelect && statusBadge) {
-                var currentStatus = statusMap[statusSelect.value] || statusMap.draft || null;
+                var resolvedStatusKey = isScheduledPublication() ? 'scheduled' : statusSelect.value;
+                var currentStatus = statusMap[resolvedStatusKey] || statusMap.draft || null;
                 if (currentStatus) {
                     statusBadge.className = currentStatus.className || statusBadge.className;
                     statusBadge.textContent = currentStatus.label || statusBadge.textContent;
+                }
+            }
+
+            if (publishWarning) {
+                if (isScheduledPublication()) {
+                    publishWarning.textContent = 'Dieser Beitrag ist geplant und wird automatisch zum gewählten Termin veröffentlicht.';
+                    publishWarning.classList.remove('d-none', 'alert-warning');
+                    publishWarning.classList.add('alert-info');
+                } else {
+                    publishWarning.textContent = '';
+                    publishWarning.classList.add('d-none');
+                    publishWarning.classList.remove('alert-info');
+                    publishWarning.classList.add('alert-warning');
                 }
             }
 
@@ -126,6 +165,16 @@
         if (statusSelect) {
             statusSelect.addEventListener('input', updateUi);
             statusSelect.addEventListener('change', updateUi);
+        }
+
+        if (publishDateInput) {
+            publishDateInput.addEventListener('input', updateUi);
+            publishDateInput.addEventListener('change', updateUi);
+        }
+
+        if (publishTimeInput) {
+            publishTimeInput.addEventListener('input', updateUi);
+            publishTimeInput.addEventListener('change', updateUi);
         }
 
         if (categorySelect) {

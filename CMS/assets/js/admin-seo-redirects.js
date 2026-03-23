@@ -214,8 +214,9 @@
             }
 
             resetForm();
-            titleElement.textContent = payload.redirect_id ? options.editTitle : options.createTitle;
-            idField.value = payload.id || payload.redirect_id || 0;
+            const redirectId = payload.redirect_id || payload.id || 0;
+            titleElement.textContent = redirectId ? options.editTitle : options.createTitle;
+            idField.value = redirectId;
             sourceField.value = payload.source_path || payload.request_path || '';
             applySuggestedSiteScope(payload.site_scope || payload.site_scope_match || payload.site_scope_suggestion || '');
             applyTargetValue(payload.target_url || '');

@@ -15,9 +15,30 @@ if (!defined('ABSPATH')) {
 
 final class EditorJsRequestGuard
 {
-    public function ensureAdminAccess(): void
+    public function ensureEditorAccess(): void
     {
-        if (!class_exists(\CMS\Auth::class) || !\CMS\Auth::instance()->isAdmin()) {
+        if (!class_exists(\CMS\Auth::class) || !\CMS\Auth::instance()->isLoggedIn()) {
+            throw new \RuntimeException('Nicht autorisiert.', 403);
+        }
+
+        if (\CMS\Auth::instance()->isAdmin()) {
+            return;
+        }
+
+        $currentUser = \CMS\Auth::instance()->currentUser();
+        $userId = (int) ($currentUser->id ?? 0);
+
+        if ($userId <= 0 || !class_exists(\CMS\Services\MemberService::class)) {
+            throw new \RuntimeException('Nicht autorisiert.', 403);
+        }
+
+        try {
+            $permissions = \CMS\Services\MemberService::getInstance()->getUserPermissions($userId);
+        } catch (\Throwable) {
+            throw new \RuntimeException('Nicht autorisiert.', 403);
+        }
+
+        if (empty($permissions['can_post'])) {
             throw new \RuntimeException('Nicht autorisiert.', 403);
         }
     }

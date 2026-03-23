@@ -516,6 +516,78 @@ function cms_get_archive_url(string $type, string $slug = '', ?string $locale = 
 }
 
 /**
+ * SQL-Fragment für öffentlich sichtbare Blog-Beiträge.
+ */
+function cms_post_publication_where(string $alias = ''): string {
+    $normalizedAlias = trim($alias);
+    if ($normalizedAlias !== '') {
+        $normalizedAlias = rtrim($normalizedAlias, '.') . '.';
+    }
+
+    return "({$normalizedAlias}status = 'published' AND ({$normalizedAlias}published_at IS NULL OR {$normalizedAlias}published_at <= NOW()))";
+}
+
+/**
+ * Prüft, ob ein Beitrag bereits öffentlich sichtbar ist.
+ *
+ * @param array<string,mixed>|object $post
+ */
+function cms_post_is_publicly_visible(array|object $post): bool {
+    $status = is_array($post)
+        ? (string) ($post['status'] ?? '')
+        : (string) ($post->status ?? '');
+
+    if ($status !== 'published') {
+        return false;
+    }
+
+    $publishedAt = is_array($post)
+        ? trim((string) ($post['published_at'] ?? ''))
+        : trim((string) ($post->published_at ?? ''));
+
+    if ($publishedAt === '') {
+        return true;
+    }
+
+    $timestamp = strtotime($publishedAt);
+    if ($timestamp === false) {
+        return true;
+    }
+
+    return $timestamp <= time();
+}
+
+/**
+ * Prüft, ob ein Beitrag als geplant markiert ist.
+ *
+ * @param array<string,mixed>|object $post
+ */
+function cms_post_is_scheduled(array|object $post): bool {
+    $status = is_array($post)
+        ? (string) ($post['status'] ?? '')
+        : (string) ($post->status ?? '');
+
+    if ($status !== 'published') {
+        return false;
+    }
+
+    $publishedAt = is_array($post)
+        ? trim((string) ($post['published_at'] ?? ''))
+        : trim((string) ($post->published_at ?? ''));
+
+    if ($publishedAt === '') {
+        return false;
+    }
+
+    $timestamp = strtotime($publishedAt);
+    if ($timestamp === false) {
+        return false;
+    }
+
+    return $timestamp > time();
+}
+
+/**
  * Liefert das aktuelle Request-Schema mit Proxy-Unterstützung.
  */
 function cms_runtime_scheme(): string {

@@ -37,6 +37,20 @@ $excerptEn  = htmlspecialchars($post['excerpt_en'] ?? '');
 $status     = $post['status'] ?? $postDefaultStatus;
 $categoryId = (int)($post['category_id'] ?? 0);
 $featuredImg = htmlspecialchars($post['featured_image'] ?? '');
+$publishedAtValue = (string)($post['published_at'] ?? '');
+$publishDate = '';
+$publishTime = '';
+if ($publishedAtValue !== '') {
+    $publishedTimestamp = strtotime($publishedAtValue);
+    if ($publishedTimestamp !== false) {
+        $publishDate = date('Y-m-d', $publishedTimestamp);
+        $publishTime = date('H:i', $publishedTimestamp);
+    }
+} elseif ($isNew) {
+    $publishDate = date('Y-m-d');
+    $publishTime = date('H:i');
+}
+$isScheduledPost = $status === 'published' && $publishedAtValue !== '' && strtotime($publishedAtValue) > time();
 $metaTitle  = htmlspecialchars($post['meta_title'] ?? '');
 $metaDesc   = htmlspecialchars($post['meta_description'] ?? '');
 $authorDisplayName = htmlspecialchars($post['author_display_name'] ?? '', ENT_QUOTES);
@@ -193,6 +207,17 @@ $defaultContentLanguage = $isEnglishOnlyPost ? 'en' : 'de';
                                 </select>
                                 <div class="form-hint">Primäre Kategorie für Listen, Archive und Vorschau.</div>
                             </div>
+                            <div class="row g-2 mt-1">
+                                <div class="col-sm-7">
+                                    <label class="form-label" for="publishDate">Veröffentlichungsdatum</label>
+                                    <input type="date" class="form-control" id="publishDate" name="publish_date" value="<?php echo htmlspecialchars($publishDate); ?>">
+                                </div>
+                                <div class="col-sm-5">
+                                    <label class="form-label" for="publishTime">Uhrzeit</label>
+                                    <input type="time" class="form-control" id="publishTime" name="publish_time" value="<?php echo htmlspecialchars($publishTime); ?>" step="60">
+                                </div>
+                            </div>
+                            <div class="form-hint mt-2">Wenn der Status auf <strong>Veröffentlicht</strong> steht und Datum/Uhrzeit in der Zukunft liegen, wird der Beitrag automatisch erst zu diesem Zeitpunkt öffentlich sichtbar.</div>
                             <div class="mt-3">
                                 <label class="form-label" for="additionalCategoryIds">Zusätzliche Kategorien</label>
                                 <select class="form-select" id="additionalCategoryIds" name="additional_category_ids[]" multiple size="7">
@@ -334,10 +359,10 @@ $defaultContentLanguage = $isEnglishOnlyPost ? 'en' : 'de';
                             </div>
                             <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
                                 <span class="text-secondary small">Vorschau-URL</span>
-                                <span class="badge bg-success-lt text-success" id="postSlugState">Slug gültig</span>
+                                <span class="badge <?php echo $isScheduledPost ? 'bg-azure-lt text-azure' : 'bg-success-lt text-success'; ?>" id="postSlugState"><?php echo $isScheduledPost ? 'Geplant' : 'Slug gültig'; ?></span>
                             </div>
                             <div class="form-control-plaintext text-break small mb-3" id="postPreviewUrl"><?php echo htmlspecialchars($postPreviewUrl); ?></div>
-                            <div id="postPublishWarning" class="alert alert-warning mb-0" role="alert"></div>
+                            <div id="postPublishWarning" class="alert <?php echo $isScheduledPost ? 'alert-info' : 'alert-warning'; ?> mb-0<?php echo $isScheduledPost ? '' : ' d-none'; ?>" role="alert"><?php echo $isScheduledPost ? 'Dieser Beitrag ist geplant und wird automatisch zum gewählten Termin veröffentlicht.' : ''; ?></div>
                         </div>
                     </div>
                 </div>
@@ -510,12 +535,16 @@ $defaultContentLanguage = $isEnglishOnlyPost ? 'en' : 'de';
             'previewUrlTemplate' => $postPreviewUrlTemplate,
             'previewPlaceholderSlug' => 'beitrag',
             'statusSelectId' => 'status',
+            'publishDateId' => 'publishDate',
+            'publishTimeId' => 'publishTime',
+            'publishWarningId' => 'postPublishWarning',
             'statusBadgeId' => 'postStatusBadge',
             'categorySelectId' => 'categoryId',
             'categoryLabelId' => 'postCategoryLabel',
             'statusMap' => [
                 'draft' => ['label' => 'Entwurf', 'className' => 'badge bg-yellow-lt text-yellow'],
                 'published' => ['label' => 'Veröffentlicht', 'className' => 'badge bg-green-lt text-green'],
+                'scheduled' => ['label' => 'Geplant', 'className' => 'badge bg-azure-lt text-azure'],
             ],
             'languageToggleSelector' => '[data-post-lang-toggle]',
             'languagePaneSelector' => '[data-post-lang-pane]',

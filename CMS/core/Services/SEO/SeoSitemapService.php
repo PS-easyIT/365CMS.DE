@@ -245,7 +245,7 @@ final class SeoSitemapService
         $rows = $this->db->get_results(
             "SELECT id, slug, updated_at, published_at, created_at
              FROM {$this->prefix}posts
-             WHERE status = 'published'
+               WHERE " . \cms_post_publication_where() . "
              ORDER BY updated_at DESC"
         ) ?: [];
 
@@ -306,7 +306,7 @@ final class SeoSitemapService
             "SELECT p.id, p.slug, p.updated_at, p.published_at, p.created_at, p.title, p.featured_image, sm.og_image
              FROM {$this->prefix}posts p
              LEFT JOIN {$this->prefix}seo_meta sm ON sm.content_type = 'post' AND sm.content_id = p.id
-             WHERE p.status = 'published'"
+               WHERE " . \cms_post_publication_where('p') . ""
         ) ?: [];
 
         foreach ($posts as $post) {
@@ -340,7 +340,7 @@ final class SeoSitemapService
         $rows = $this->db->get_results(
             "SELECT slug, title, updated_at, published_at, created_at
              FROM {$this->prefix}posts
-             WHERE status = 'published'
+               WHERE " . \cms_post_publication_where() . "
              ORDER BY updated_at DESC
              LIMIT 100"
         ) ?: [];

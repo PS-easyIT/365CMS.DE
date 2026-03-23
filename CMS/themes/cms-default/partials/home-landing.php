@@ -342,7 +342,7 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
              FROM posts p
              LEFT JOIN users u ON p.author_id = u.id
              LEFT JOIN post_categories c ON p.category_id = c.id
-             WHERE p.status = 'published'
+             WHERE " . cms_post_publication_where('p') . "
              ORDER BY p.published_at DESC
              LIMIT " . $lpPostsCount
         );

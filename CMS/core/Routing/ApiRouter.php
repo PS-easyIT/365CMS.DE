@@ -187,7 +187,11 @@ final class ApiRouter
         $params = [];
         if ($status === 'all') {
             $where[] = "p.status != 'trash'";
-        } elseif (in_array($status, ['published', 'draft', 'trash'], true)) {
+        } elseif ($status === 'published') {
+            $where[] = \cms_post_publication_where('p');
+        } elseif ($status === 'scheduled') {
+            $where[] = "p.status = 'published' AND p.published_at IS NOT NULL AND p.published_at > NOW()";
+        } elseif (in_array($status, ['draft', 'trash'], true)) {
             $where[] = 'p.status = ?';
             $params[] = $status;
         }
@@ -221,6 +225,14 @@ final class ApiRouter
                         ELSE 0
                     END AS is_member_submission,
                     CASE
+                        WHEN p.status = 'published' AND p.published_at IS NOT NULL AND p.published_at > NOW() THEN 1
+                        ELSE 0
+                    END AS is_scheduled,
+                    CASE
+                        WHEN p.status = 'published' AND p.published_at IS NOT NULL AND p.published_at > NOW() THEN 'scheduled'
+                        ELSE p.status
+                    END AS effective_status,
+                    CASE
                         WHEN CHAR_LENGTH(TRIM(COALESCE(p.title, ''))) = 0
                              AND CHAR_LENGTH(TRIM(COALESCE(p.content, ''))) = 0
                              AND CHAR_LENGTH(TRIM(COALESCE(p.excerpt, ''))) = 0
@@ -245,6 +257,7 @@ final class ApiRouter
         $rows = array_map(static function (object $row): object {
             $row->is_member_submission = !empty($row->is_member_submission);
             $row->submission_hint = $row->is_member_submission ? 'Member-Einreichung' : '';
+            $row->is_scheduled = !empty($row->is_scheduled);
             $row->is_english_only = !empty($row->is_english_only);
             $row->display_title = trim((string)($row->title ?? '')) !== ''
                 ? (string)$row->title

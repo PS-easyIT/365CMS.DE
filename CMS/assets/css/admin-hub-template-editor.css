@@ -1,5 +1,5 @@
 .hub-template-preview {
-    border-radius: 1rem;
+    border-radius: calc(var(--hub-preview-radius, 20px) + 4px);
     overflow: hidden;
     background: #f6f8fb;
     border: 1px solid rgba(15, 23, 42, .08);
@@ -17,11 +17,25 @@
         linear-gradient(180deg, #f7fdfc, #f0fdfa);
 }
 
+.hub-template-preview--datenschutz-compliance-table {
+    background:
+        radial-gradient(circle at top left, rgba(15, 118, 110, .10), transparent 34%),
+        radial-gradient(circle at top right, rgba(232, 168, 56, .14), transparent 24%),
+        linear-gradient(180deg, #f8fbfc, #f5f7fa);
+}
+
 .hub-template-preview--linux {
     background:
         radial-gradient(circle at top right, rgba(180, 83, 9, .18), transparent 28%),
         linear-gradient(180deg, #111827, #0b1220);
     border-color: rgba(180, 83, 9, .24);
+}
+
+.hub-template-preview--powershell-table {
+    background:
+        radial-gradient(circle at top right, rgba(20, 184, 166, .16), transparent 32%),
+        linear-gradient(180deg, #0f2240, #162030);
+    border-color: rgba(20, 184, 166, .22);
 }
 
 .hub-template-switcher {
@@ -265,6 +279,10 @@
     background: rgba(15, 23, 42, .52);
 }
 
+.hub-template-preview--powershell-table .hub-template-preview__body {
+    background: rgba(15, 34, 64, .52);
+}
+
 .hub-template-preview__toolbar {
     display: flex;
     align-items: center;
@@ -290,7 +308,7 @@
 .hub-template-preview__toc {
     margin-bottom: .85rem;
     padding: .75rem;
-    border-radius: 1rem;
+    border-radius: var(--hub-preview-radius, 20px);
     border: 1px solid rgba(15, 23, 42, .08);
     background:
         linear-gradient(180deg, rgba(255, 255, 255, .94), rgba(248, 250, 252, .96));
@@ -405,7 +423,7 @@
     background: var(--hub-preview-card-bg);
     color: var(--hub-preview-card-text);
     border: 1px solid rgba(15, 23, 42, .08);
-    border-radius: .9rem;
+    border-radius: var(--hub-preview-radius, 20px);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -587,6 +605,94 @@
     background: linear-gradient(135deg, #f59e0b, #fbbf24);
 }
 
+.hub-template-preview__table-card {
+    margin-top: .85rem;
+    border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: var(--hub-preview-radius, 20px);
+    overflow: hidden;
+    background: var(--hub-preview-card-bg);
+    color: var(--hub-preview-card-text);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .06);
+}
+
+.hub-template-preview__table-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .6rem;
+    padding: .72rem .85rem;
+    border-bottom: 1px solid rgba(255, 255, 255, .12);
+    background: linear-gradient(135deg, var(--hub-preview-table-head-start), var(--hub-preview-table-head-end));
+    color: #fff;
+}
+
+.hub-template-preview__table-card-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: .18rem .48rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.14);
+    background: rgba(255,255,255,.12);
+    font-size: .58rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.hub-template-preview__table-card-title {
+    font-size: .72rem;
+    font-weight: 800;
+}
+
+.hub-template-preview__table-wrap {
+    overflow: hidden;
+}
+
+.hub-template-preview__table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.hub-template-preview__table th,
+.hub-template-preview__table td {
+    padding: .56rem .72rem;
+    text-align: left;
+    font-size: .64rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--hub-preview-card-text) 10%, white 90%);
+}
+
+.hub-template-preview__table thead th {
+    background: color-mix(in srgb, var(--hub-preview-card-bg) 88%, var(--hub-preview-card-text) 12%);
+    color: var(--hub-preview-card-text);
+    font-size: .58rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.hub-template-preview__table tbody td {
+    color: color-mix(in srgb, var(--hub-preview-card-text) 88%, white 12%);
+    background: transparent;
+}
+
+.hub-template-preview__table tbody tr:nth-child(even) td {
+    background: color-mix(in srgb, var(--hub-preview-card-bg) 90%, var(--hub-preview-card-text) 10%);
+}
+
+.hub-template-preview__table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.hub-template-preview--linux .hub-template-preview__table-card {
+    border-color: rgba(245, 158, 11, .18);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, .28);
+}
+
+.hub-template-preview--linux .hub-template-preview__table thead th,
+.hub-template-preview--linux .hub-template-preview__table td {
+    border-bottom-color: rgba(245, 158, 11, .12);
+}
+
 .hub-template-preview__section {
     margin-top: .85rem;
     background: var(--hub-preview-section);
@@ -605,7 +711,7 @@
 .hub-template-preview__section-card {
     background: var(--hub-preview-section);
     border: 1px solid rgba(15, 23, 42, .08);
-    border-radius: .9rem;
+    border-radius: var(--hub-preview-radius, 20px);
     padding: .78rem;
     display: flex;
     flex-direction: column;
