@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.2-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.3-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -24,6 +24,12 @@ Die folgenden Punkte sind **sinnvolle nächste Ausbaustufen**, die aus den aktue
 - **Diagnose 2.0 mit Bundle-/Registry-Historie** – sichtbare Bundle-/Registry-Statusdaten um Trends, Änderungsverlauf und aktive Warnhistorie ergänzen
 - **Weitere Service-Splits für Rest-Hotspots** – insbesondere verbleibende Theme-/Media-Restblöcke
 - **Proxy-/CDN-Realfall-Prüfung im Betrieb** – Header, Vary-Verhalten und Cache-Reaktionen auf echter Infrastruktur gezielt gegenmessen
+
+## [2.6.3] – 2026-03-23
+
+### Fixed
+
+- Der WordPress-Importer lädt Remote-Bilder jetzt über den zentralen Core-HTTP-Client mit aktivierter TLS-Prüfung, SSRF-Schutz sowie Größen- und Image-Content-Type-Limits statt über einen ungehärteten Direkt-Fetch.
 
 ## [2.6.2] – 2026-03-23
 

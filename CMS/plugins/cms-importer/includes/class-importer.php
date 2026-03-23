@@ -1149,36 +1149,30 @@ class CMS_Importer_Service
     }
 
     /**
-     * Lädt eine Remote-URL herunter (cURL bevorzugt, fgc als Fallback).
+     * Lädt eine Remote-Bild-URL über den zentralen Core-HTTP-Client herunter.
+     * Erzwingt TLS-Prüfung, SSRF-Schutz, Größenlimit und zulässige Bild-Content-Types.
      */
     private function fetch_remote_file(string $url): ?string
     {
-        if (function_exists('curl_init')) {
-            $ch = curl_init($url);
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_MAXREDIRS      => 5,
-                CURLOPT_TIMEOUT        => 20,
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_USERAGENT      => 'CMS-Importer/' . CMS_IMPORTER_VERSION,
-            ]);
-            $body = curl_exec($ch);
-            $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-
-            if ($code === 200 && is_string($body) && strlen($body) > 0) {
-                return $body;
-            }
+        if (!class_exists('CMS\\Http\\Client')) {
             return null;
         }
 
-        $ctx  = stream_context_create(['http' => [
-            'timeout'    => 20,
-            'user_agent' => 'CMS-Importer/' . CMS_IMPORTER_VERSION,
-        ]]);
-        $body = @file_get_contents($url, false, $ctx);
-        return ($body !== false && strlen($body) > 0) ? $body : null;
+        $response = \CMS\Http\Client::getInstance()->get($url, [
+            'userAgent' => 'CMS-Importer/' . CMS_IMPORTER_VERSION,
+            'timeout' => 20,
+            'connectTimeout' => 5,
+            'maxBytes' => 10 * 1024 * 1024,
+            'allowedContentTypes' => ['image/'],
+        ]);
+
+        if (($response['success'] ?? false) !== true) {
+            error_log('CMS_Importer: Remote-Dateidownload blockiert oder fehlgeschlagen: ' . (string) ($response['error'] ?? 'Unbekannter Fehler') . ' – URL: ' . $url);
+            return null;
+        }
+
+        $body = (string) ($response['body'] ?? '');
+        return $body !== '' ? $body : null;
     }
 
     /**
