@@ -61,6 +61,8 @@ Die folgenden Punkte sind aus den alten Audit-Berichten, Restthemen und Betriebs
 - **Weitere Service-Splits für Rest-Hotspots** – insbesondere verbleibende Theme-/Media-Restblöcke
 - **Proxy-/CDN-Realfall-Prüfung im Betrieb** – Header, Vary-Verhalten und Cache-Reaktionen auf echter Infrastruktur gezielt gegenmessen
 
+- **Login Prüfung über Cookie** - Login Hinterlegung soll neben IP auch über Cookie erfolgen. Es darf nicht möglich sein in einem Inkognitofenster oder anderem System den Login zu erhalten. Daher Noch zusätzlich ein Login Cookie setzen was max 2h gilt oder mit Logout gelöscht wird.
+
 
 ### Kritisch / hoch
 
