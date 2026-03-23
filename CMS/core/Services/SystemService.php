@@ -754,6 +754,7 @@ class SystemService {
             'max_upload' => ini_get('upload_max_filesize'),
             'memory_limit' => ini_get('memory_limit'),
             'https_enabled' => $headerProfile['https'] ? 'Ja ✓' : 'Nein ⚠️',
+            'https_redirect' => (string)($headerProfile['https_redirect_managed_by'] ?? 'Reverse-Proxy / Webserver'),
             'csp_mode' => $headerProfile['csp_mode'] === 'enforced' ? 'Erzwungen ✓' : 'Report-Only ⚠️',
             'csp_nonce' => $headerProfile['csp_uses_nonce'] ? 'Aktiv ✓' : 'Nicht aktiv ⚠️',
             'trusted_types' => $headerProfile['trusted_types_enforced']

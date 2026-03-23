@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.10-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.11-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -15,6 +15,17 @@
 | 🎨 | `style` | Design- / UI-Änderungen |
 
 ---
+
+## [2.6.11] – 2026-03-23
+
+### Changed
+
+- Die HTTPS-Strategie ist jetzt verbindlich auf Redirects durch Reverse-Proxy/Webserver und nicht mehr auf einen halb-kommentierten `.htaccess`-Sonderpfad ausgerichtet; der ausgelieferte Apache-Fallback normalisiert nur noch Proxy-HTTPS für dieselbe Sicherheitslinie.
+- `Security` und die Systemdiagnose weisen die aktive Redirect-Verantwortung jetzt explizit aus und erzeugen HSTS nur noch über eine zentrale HTTPS-/HSTS-Konfiguration mit demselben HTTPS-Erkennungsmodell wie der Apache-Fallback.
+
+### Docs
+
+- Audit und ToDo führen zusätzlich einen neuen offenen Security-Backlogpunkt für ein signiertes, kurzlebiges Login-/Device-Cookie mit, damit Browser-/Gerätebindung nicht als lose Notiz im Doku-Rand hängen bleibt.
 
 ## [2.6.10] – 2026-03-23
 

@@ -41,7 +41,7 @@ Die Vollprüfung wurde auf den kompletten First-Party-Dateibaum von `CMS/` erwei
 - [x] **Step #8 / A-08 – DNS-Fallback im SSRF-Schutz härten** → HTTP-Client und UpdateService blockieren ungelöste Remote-Hosts jetzt standardmäßig, versuchen vorab eine echte IP-Auflösung per DNS/GetHostByName und erlauben ungelöste Hosts nur noch per explizitem Opt-in im HTTP-Client.
 - [x] **Step #9 / A-09 – `session.cookie_secure` an echtes HTTPS koppeln** → `Security`, `index.php` und `cron.php` setzen `session.cookie_secure` jetzt nur noch bei tatsächlich erkanntem HTTPS bzw. Proxy-HTTPS; CLI/HTTP-Staging bleiben funktionsfähig.
 - [x] **Step #10 / A-10 – Update-Installationen atomar machen** → `UpdateService` entpackt Update-ZIPs jetzt erst in ein benachbartes Staging-Verzeichnis und übernimmt sie anschließend per atomarem Directory-Swap bzw. rollback-fähigem Inhalts-Swap ins Live-Ziel.
-- [ ] **Step #11 / A-11 – HTTPS-/HSTS-Linie vereinheitlichen**
+- [x] **Step #11 / A-11 – HTTPS-/HSTS-Linie vereinheitlichen** → Die ausgelieferte HTTPS-Strategie ist jetzt klar auf Redirects am Reverse-Proxy/Webserver festgelegt; `.htaccess`, `Security` und Diagnose folgen derselben HTTPS-/HSTS-Linie ohne halb-aktive Kommentar-Redirects.
 - [ ] **Step #12 / A-12 – Installer-Monolith aufspalten**
 - [ ] **Step #13 / A-13 – `includes/functions.php` thematisch splitten**
 - [ ] **Step #14 / A-14 – Importer-Monolith weiter zerlegen**
@@ -49,6 +49,7 @@ Die Vollprüfung wurde auf den kompletten First-Party-Dateibaum von `CMS/` erwei
 - [ ] **Step #16 / A-16 – Media-Delivery um Range-/Streaming ergänzen**
 - [ ] **Step #17 / A-17 – große Admin-Views modularisieren**
 - [ ] **Step #18 / A-18 – Upload-Beispiel-/Betriebsdaten sauber trennen**
+- [ ] **Step #19 / A-19 – Login zusätzlich an ein kurzlebiges Device-Cookie binden**
 
 ## Funde und Verbesserungen
 
@@ -61,7 +62,7 @@ Die folgenden Punkte sind aus den alten Audit-Berichten, Restthemen und Betriebs
 - **Weitere Service-Splits für Rest-Hotspots** – insbesondere verbleibende Theme-/Media-Restblöcke
 - **Proxy-/CDN-Realfall-Prüfung im Betrieb** – Header, Vary-Verhalten und Cache-Reaktionen auf echter Infrastruktur gezielt gegenmessen
 
-- **Login Prüfung über Cookie** - Login Hinterlegung soll neben IP auch über Cookie erfolgen. Es darf nicht möglich sein in einem Inkognitofenster oder anderem System den Login zu erhalten. Daher Noch zusätzlich ein Login Cookie setzen was max 2h gilt oder mit Logout gelöscht wird.
+- **Login Prüfung über Cookie** – Der Login soll zusätzlich an ein signiertes Device-Cookie mit maximal 2 Stunden Laufzeit gebunden werden; Inkognito-/Fremdsystem-Sessions ohne dieses Cookie dürfen keinen bestehenden Login übernehmen und Logout muss das Cookie löschen.
 
 
 ### Kritisch / hoch
@@ -96,6 +97,7 @@ Die folgenden Punkte sind aus den alten Audit-Berichten, Restthemen und Betriebs
 | A-16 | niedrig-mittel | `CMS/core/Services/MediaDeliveryService.php` | Medienauslieferung ist sicher aufgebaut, aber **ohne Range-/Streaming-Optimierung** für größere Dateien. | Range-Requests / effizientere Binärausgabe für größere Downloads ergänzen. |
 | A-17 | niedrig-mittel | `CMS/admin/views/*` | Viele Views/Partials sind groß und HTML-lastig; künftige Änderungen werden dadurch diff-lastiger. | View-Komponenten stärker modularisieren und gemeinsame Teilbausteine extrahieren. |
 | A-18 | niedrig-mittel | `CMS/uploads/SidebarRahmenThumnail_V5_CopilotLizenzen.png`, `CMS/uploads/.htaccess` | Im Audit-Scope liegt mindestens eine echte Upload-Datei bereits im Repo-/Laufzeitbaum. Das ist nicht per se falsch, erschwert aber die Trennung von Code und Betriebsdaten. | Deploy-Artefakte und Beispiel-/Betriebsuploads sauber trennen; produktive Uploads nicht versionieren. |
+| A-19 | mittel | `CMS/core/Auth.php`, `CMS/core/Routing/PublicRouter.php`, `CMS/core/Security.php` | Logins hängen aktuell im Wesentlichen an Session + IP-/Rate-Limit-Kontext, aber nicht zusätzlich an einem kurzlebigen Device-Cookie. Dadurch kann ein Login in einem fremden Browser-Kontext leichter übernommen werden, solange nur die Sessionlage passt. | Ein signiertes Login-/Device-Cookie mit maximal 2 Stunden TTL ergänzen, bei jedem geschützten Request mitprüfen und beim Logout hart löschen. |
 
 ## Positiv bestätigt
 

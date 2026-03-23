@@ -80,6 +80,9 @@ define('DEFAULT_THEME',      'cms-default');
 define('SESSIONS_LIFETIME',  3600 * 2); // 2 Stunden
 define('MAX_LOGIN_ATTEMPTS', 5);
 define('LOGIN_TIMEOUT',      300); // 5 Minuten
+defined('CMS_HTTPS_REDIRECT_STRATEGY') || define('CMS_HTTPS_REDIRECT_STRATEGY', 'upstream');
+defined('CMS_HSTS_MODE') || define('CMS_HSTS_MODE', 'https-only');
+defined('CMS_HSTS_MAX_AGE') || define('CMS_HSTS_MAX_AGE', 31536000);
 
 // ─── Fehler-Reporting ──────────────────────────────────────────────────────
 if (CMS_DEBUG) {

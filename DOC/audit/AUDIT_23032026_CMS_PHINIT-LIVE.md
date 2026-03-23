@@ -314,6 +314,7 @@ Im Blog-Listing wurden Bilder sowohl über direkte Upload-Pfade als auch über `
 | Hoch | Importer-Remote-Fetch ohne zentrale Härtung | TLS-/SSRF-/Host-Disziplin weicht vom gehärteten Core-HTTP-Pfad ab |
 | Mittel | fehlende Proxy-/Netzwerk-Realfallprüfung | Doku-/Code-Aussage und echtes Produktionsverhalten können auseinanderlaufen |
 | Mittel | große Wartungsblöcke im Core und in eingebauten Plugins | höhere Regressionswahrscheinlichkeit bei Folgeänderungen |
+| Mittel | Login nur sessionbasiert ohne separates Device-Cookie | bestehende Logins sind nicht zusätzlich an einen kurzlebigen Browser-/Geräte-Nachweis gebunden |
 | Mittel | Inventar-/Scope-Drift und Debug-Logziel im Release-Baum | unnötige Informations-, Audit- und Release-Unschärfe |
 | Niedrig bis mittel | Live-Site-Backend ohne produktive Stichprobe | Admin-/Member-Ränder bleiben auf Code-/Testebene statt Realbetrieb verifiziert |
 

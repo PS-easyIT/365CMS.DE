@@ -11,10 +11,11 @@ Options +FollowSymLinks
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteBase /
-    
-    # Redirect to HTTPS (uncomment in production)
-    # RewriteCond %{HTTPS} off
-    # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # HTTPS-Strategie: Redirects werden verbindlich am Reverse-Proxy / VirtualHost
+    # verwaltet. Diese ausgelieferte .htaccess setzt deshalb keinen lokalen
+    # Produktiv-Redirect mehr, sondern normalisiert nur die Erkennung von HTTPS
+    # für nachgelagerte Security-Header und Routing-Pfade.
     
     # Block access to sensitive files and directories
     RewriteRule ^config\.php$ - [F,L]
@@ -54,8 +55,8 @@ Options +FollowSymLinks
     Header always setifempty Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; media-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; trusted-types cms365 default sanitize-html dompurify; require-trusted-types-for 'script'"
 
     # ── HSTS – nur über HTTPS aktiv ──────────────────────────────────────────
-    # PHP setzt primär HSTS; Apache liefert einen sicheren Fallback mit
-    # includeSubDomains + preload.
+    # Der Core setzt HSTS primär selbst, sobald HTTPS oder Proxy-HTTPS erkannt
+    # wurde. Apache liefert nur den Fallback für exakt denselben Fall.
     Header always setifempty Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" env=HTTPS
 
     # ── Cross-Origin-Opener-Policy (COOP) ────────────────────────────────────
@@ -75,6 +76,8 @@ Options +FollowSymLinks
 </IfModule>
 
 <IfModule mod_setenvif.c>
+    # Reverse-Proxy-/CDN-HTTPS auf den lokalen HTTPS-Status abbilden, damit
+    # HSTS und Security-Checks dieselbe Entscheidung treffen wie der Core.
     SetEnvIfNoCase X-Forwarded-Proto "^https$" HTTPS=on
     SetEnvIfNoCase X-Forwarded-Ssl "^on$" HTTPS=on
     SetEnvIfNoCase Request_URI "^/uploads/" CMS_UPLOAD_REQUEST=1

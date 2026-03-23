@@ -121,14 +121,47 @@ class Security
         return implode('; ', $directives);
     }
 
+    private function getHttpsRedirectStrategy(): string
+    {
+        $strategy = strtolower(trim((string) (defined('CMS_HTTPS_REDIRECT_STRATEGY') ? CMS_HTTPS_REDIRECT_STRATEGY : 'upstream')));
+
+        return in_array($strategy, ['upstream', 'apache', 'core', 'disabled'], true) ? $strategy : 'upstream';
+    }
+
+    private function getHstsValue(): string
+    {
+        $mode = strtolower(trim((string) (defined('CMS_HSTS_MODE') ? CMS_HSTS_MODE : 'https-only')));
+        $isHttps = $this->isHttpsRequest();
+
+        if (CMS_DEBUG || $mode === 'disabled' || !$isHttps) {
+            return '';
+        }
+
+        $maxAge = defined('CMS_HSTS_MAX_AGE') ? max(0, (int) CMS_HSTS_MAX_AGE) : 31536000;
+        if ($maxAge <= 0) {
+            return '';
+        }
+
+        return 'max-age=' . $maxAge . '; includeSubDomains; preload';
+    }
+
     public function getSecurityHeaderProfile(): array
     {
         $isHttps = $this->isHttpsRequest();
-        $hstsEnabled = !CMS_DEBUG && $isHttps;
+        $hstsValue = $this->getHstsValue();
+        $hstsEnabled = $hstsValue !== '';
         $trustedTypesEnforced = !CMS_DEBUG;
+        $redirectStrategy = $this->getHttpsRedirectStrategy();
 
         return [
             'https' => $isHttps,
+            'https_redirect_strategy' => $redirectStrategy,
+            'https_redirect_managed_by' => match ($redirectStrategy) {
+                'apache' => '.htaccess / Apache',
+                'core' => 'Core-PHP',
+                'disabled' => 'deaktiviert',
+                default => 'Reverse-Proxy / Webserver',
+            },
             'csp_mode' => CMS_DEBUG ? 'report-only' : 'enforced',
             'csp_uses_nonce' => true,
             'trusted_types_enforced' => $trustedTypesEnforced,
@@ -136,7 +169,8 @@ class Security
             'hsts_enabled' => $hstsEnabled,
             'hsts_include_subdomains' => $hstsEnabled,
             'hsts_preload' => $hstsEnabled,
-            'hsts_value' => $hstsEnabled ? 'max-age=31536000; includeSubDomains; preload' : '',
+            'hsts_mode' => defined('CMS_HSTS_MODE') ? (string) CMS_HSTS_MODE : 'https-only',
+            'hsts_value' => $hstsValue,
         ];
     }
     
@@ -157,8 +191,9 @@ class Security
             header('Cross-Origin-Resource-Policy: same-site');
 
             // H-04: HSTS – nur über HTTPS senden, nicht im Debug-Modus
-            if (!CMS_DEBUG && $this->isHttpsRequest()) {
-                header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
+            $hstsValue = $this->getHstsValue();
+            if ($hstsValue !== '') {
+                header('Strict-Transport-Security: ' . $hstsValue);
             }
 
             $nonce = $this->cspNonce;
