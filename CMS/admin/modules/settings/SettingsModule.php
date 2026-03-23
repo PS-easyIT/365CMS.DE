@@ -651,6 +651,18 @@ define('PLUGIN_PATH', ABSPATH . 'plugins/');
 define('UPLOAD_PATH', ABSPATH . 'uploads/');
 define('ASSETS_PATH', ABSPATH . 'assets/');
 
+
+$cmsLogDir = dirname(ABSPATH) . DIRECTORY_SEPARATOR . 'var' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR;
+if (!is_dir($cmsLogDir) && !@mkdir($cmsLogDir, 0755, true) && !is_dir($cmsLogDir)) {
+    $cmsLogDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '365cms-logs' . DIRECTORY_SEPARATOR;
+    if (!is_dir($cmsLogDir)) {
+        @mkdir($cmsLogDir, 0755, true);
+    }
+}
+
+defined('LOG_PATH') || define('LOG_PATH', $cmsLogDir);
+defined('CMS_ERROR_LOG') || define('CMS_ERROR_LOG', rtrim(LOG_PATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'error.log');
+
 define('SITE_URL_PATH', '/');
 define('ASSETS_URL',    SITE_URL . '/assets');
 define('UPLOAD_URL',    SITE_URL . '/uploads');
@@ -664,7 +676,7 @@ if (CMS_DEBUG) {
     error_reporting(E_ALL);
     ini_set('display_errors', '1');
     ini_set('log_errors', '1');
-    ini_set('error_log', ABSPATH . 'logs/error.log');
+    ini_set('error_log', CMS_ERROR_LOG);
 } else {
     error_reporting(0);
     ini_set('display_errors', '0');

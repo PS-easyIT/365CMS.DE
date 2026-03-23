@@ -35,9 +35,9 @@ Die Vollprüfung wurde auf den kompletten First-Party-Dateibaum von `CMS/` erwei
 - [x] **Step #2 / A-02 – Versionsstand vereinheitlichen** → `CMS\Version` ist wieder die zentrale Quelle; Runtime, Installer-Konfigwriter, `CMS/update.json` sowie README-/Changelog-Badges laufen jetzt konsistent auf Release `2.6.2`.
 - [x] **Step #3 / A-03 – Importer-Remote-Fetch auf Core-HTTP-Härtung umstellen** → Der Importer lädt Remote-Bilder jetzt über `CMS\Http\Client` mit TLS-Prüfung, SSRF-Schutz sowie Größen- und Image-Content-Type-Limits.
 - [x] **Step #4 / A-04 – Inventar- und Scope-Dokumentation dauerhaft vereinheitlichen** → `FILEINVENTAR.md` bleibt die kanonische Quelle; Audit und ToDo referenzieren jetzt nur noch den verifizierten 419-Dateien-Scope statt konkurrierender eingebetteter Inventarstände.
-- [ ] **Step #5 / A-05 – Debug-Logziel aus dem Release-Baum ziehen**
+- [x] **Step #5 / A-05 – Debug-Logziel aus dem Release-Baum ziehen** → `LOG_PATH`/`CMS_ERROR_LOG` zeigen jetzt standardmäßig auf ein externes Logverzeichnis (`../var/logs` bzw. Fallback `sys_get_temp_dir()`); `SystemService` liest und leert denselben aktiven Pfad.
 - [ ] **Step #6 / A-06 – ZIP-Entry-Validierung vor `extractTo()` ergänzen**
-- [ ] **Step #7 / A-07 – Integritätsprüfung für Dokumentationsdownloads ergänzen**
+- [ ] **Step #7 / A-07 – Integritätsprüfung für Dokumentationsdownloads ergänzen und /DOC liegt immer dort wo CMS direkt liegt**
 - [ ] **Step #8 / A-08 – DNS-Fallback im SSRF-Schutz härten**
 - [ ] **Step #9 / A-09 – `session.cookie_secure` an echtes HTTPS koppeln**
 - [ ] **Step #10 / A-10 – Update-Installationen atomar machen**

@@ -583,7 +583,7 @@ class SystemService {
      * Get recent error logs
      */
     public function getErrorLogs(int $limit = 100): array {
-        $log_file = dirname(dirname(__DIR__)) . '/logs/error.log';
+        $log_file = defined('CMS_ERROR_LOG') ? CMS_ERROR_LOG : (rtrim((defined('LOG_PATH') ? LOG_PATH : (ABSPATH . 'logs/')), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'error.log');
         $logs = [];
         
         if (!file_exists($log_file)) {
@@ -628,7 +628,7 @@ class SystemService {
      * Clear error logs
      */
     public function clearErrorLogs(): bool {
-        $log_file = dirname(dirname(__DIR__)) . '/logs/error.log';
+        $log_file = defined('CMS_ERROR_LOG') ? CMS_ERROR_LOG : (rtrim((defined('LOG_PATH') ? LOG_PATH : (ABSPATH . 'logs/')), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'error.log');
         
         try {
             if (file_exists($log_file)) {

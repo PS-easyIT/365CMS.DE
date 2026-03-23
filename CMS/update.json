@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.6.4",
+  "version": "2.6.5",
   "min_php": "8.4",
   "released": "2026-03-23",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release 2.6.4: Die Audit-Dokumentation nutzt `FILEINVENTAR.md` jetzt konsequent als kanonische Scope-Quelle, sodass Audit und ToDo keine konkurrierenden Inventarstände wie 444 vs. 419 Dateien mehr mitschleppen.",
+  "notes": "Release 2.6.5: Debug-Logs wandern standardmäßig in ein externes Logverzeichnis außerhalb des CMS-Release-Baums; Konfig-Writer und SystemService nutzen dafür denselben aktiven `LOG_PATH`/`CMS_ERROR_LOG`-Pfad.",
   "critical": false
 }
