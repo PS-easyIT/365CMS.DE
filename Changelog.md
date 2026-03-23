@@ -16,15 +16,6 @@
 
 ---
 
-## 🔭 Feature-Vorschau
-
-Die folgenden Punkte sind **sinnvolle nächste Ausbaustufen**, die aus den aktuellen Audit-Berichten, Restthemen und Betriebsanforderungen abgeleitet wurden, aber **noch nicht produktiv eingebaut** sind:
-
-- **CrUX-/PageSpeed-Vergleichsdaten im Performance-Center** – externe Felddaten zusätzlich zu den internen CWV-Messwerten anzeigen
-- **Diagnose 2.0 mit Bundle-/Registry-Historie** – sichtbare Bundle-/Registry-Statusdaten um Trends, Änderungsverlauf und aktive Warnhistorie ergänzen
-- **Weitere Service-Splits für Rest-Hotspots** – insbesondere verbleibende Theme-/Media-Restblöcke
-- **Proxy-/CDN-Realfall-Prüfung im Betrieb** – Header, Vary-Verhalten und Cache-Reaktionen auf echter Infrastruktur gezielt gegenmessen
-
 ## [2.6.9] – 2026-03-23
 
 ### Fixed

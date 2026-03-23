@@ -52,6 +52,16 @@ Die Vollprüfung wurde auf den kompletten First-Party-Dateibaum von `CMS/` erwei
 
 ## Funde und Verbesserungen
 
+## ZUSÄTZLICH
+
+Die folgenden Punkte sind aus den alten Audit-Berichten, Restthemen und Betriebsanforderungen abgeleitet worden, aber **noch nicht produktiv eingebaut**:
+
+- **CrUX-/PageSpeed-Vergleichsdaten im Performance-Center** – externe Felddaten zusätzlich zu den internen CWV-Messwerten anzeigen
+- **Diagnose 2.0 mit Bundle-/Registry-Historie** – sichtbare Bundle-/Registry-Statusdaten um Trends, Änderungsverlauf und aktive Warnhistorie ergänzen
+- **Weitere Service-Splits für Rest-Hotspots** – insbesondere verbleibende Theme-/Media-Restblöcke
+- **Proxy-/CDN-Realfall-Prüfung im Betrieb** – Header, Vary-Verhalten und Cache-Reaktionen auf echter Infrastruktur gezielt gegenmessen
+
+
 ### Kritisch / hoch
 
 | ID | Priorität | Bereich / Dateien | Befund | Verbesserung |
