@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.7-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.8-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -24,6 +24,13 @@ Die folgenden Punkte sind **sinnvolle nächste Ausbaustufen**, die aus den aktue
 - **Diagnose 2.0 mit Bundle-/Registry-Historie** – sichtbare Bundle-/Registry-Statusdaten um Trends, Änderungsverlauf und aktive Warnhistorie ergänzen
 - **Weitere Service-Splits für Rest-Hotspots** – insbesondere verbleibende Theme-/Media-Restblöcke
 - **Proxy-/CDN-Realfall-Prüfung im Betrieb** – Header, Vary-Verhalten und Cache-Reaktionen auf echter Infrastruktur gezielt gegenmessen
+
+## [2.6.8] – 2026-03-23
+
+### Fixed
+
+- `CMS\Http\Client` blockiert ungelöste Remote-Hosts im SSRF-Schutz jetzt standardmäßig, versucht vorab eine echte IPv4/IPv6-Auflösung und lässt ungelöste Hosts nur noch per explizitem `allowUnresolvedHosts`-Opt-in zu.
+- `UpdateService` nutzt dieselbe härtere DNS/IP-Auflösung und erlaubt bei fehlender Host-Auflösung keine sensiblen Remote-Ziele mehr stillschweigend durch.
 
 ## [2.6.7] – 2026-03-23
 

@@ -699,19 +699,19 @@ class UpdateService
             return false;
         }
 
-        // Alle DNS-Auflösungen prüfen (IPv4 + IPv6)
-        $records = @dns_get_record($host, DNS_A | DNS_AAAA);
-        if (empty($records)) {
-            // DNS-Auflösung fehlgeschlagen → nicht blockieren (könnte Netzwerkproblem sein)
-            // Aber statisch offensichtliche private Hostnamen blocken:
-            if (in_array(strtolower($host), ['localhost', 'localhost.localdomain', 'ip6-localhost', 'ip6-loopback'], true)) {
-                return false;
-            }
-            return true;
+        $host = strtolower((string) $host);
+
+        if (in_array($host, ['localhost', 'localhost.localdomain', 'ip6-localhost', 'ip6-loopback'], true)) {
+            return false;
         }
 
-        foreach ($records as $record) {
-            $ip = $record['ip'] ?? $record['ipv6'] ?? '';
+        $resolvedIps = $this->resolveHostIps($host);
+        if ($resolvedIps === []) {
+            error_log('UpdateService [M-20]: SSRF-Blockierung – Host "' . $host . '" konnte nicht zuverlässig aufgelöst werden.');
+            return false;
+        }
+
+        foreach ($resolvedIps as $ip) {
             if ($ip !== '' && $this->isPrivateOrReservedIp($ip)) {
                 error_log('UpdateService [M-20]: SSRF-Blockierung – Host "' . $host . '" löst auf private IP auf: ' . $ip);
                 return false;
@@ -719,6 +719,44 @@ class UpdateService
         }
 
         return true;
+    }
+
+    /**
+     * @return string[]
+     */
+    private function resolveHostIps(string $host): array
+    {
+        if (filter_var($host, FILTER_VALIDATE_IP)) {
+            return [$host];
+        }
+
+        $ips = [];
+
+        if (function_exists('dns_get_record')) {
+            $records = @dns_get_record($host, DNS_A | DNS_AAAA);
+            if (is_array($records)) {
+                foreach ($records as $record) {
+                    $ip = trim((string) ($record['ip'] ?? $record['ipv6'] ?? ''));
+                    if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP)) {
+                        $ips[] = $ip;
+                    }
+                }
+            }
+        }
+
+        if ($ips === [] && function_exists('gethostbynamel')) {
+            $fallbackRecords = @gethostbynamel($host);
+            if (is_array($fallbackRecords)) {
+                foreach ($fallbackRecords as $ip) {
+                    $ip = trim((string) $ip);
+                    if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP)) {
+                        $ips[] = $ip;
+                    }
+                }
+            }
+        }
+
+        return array_values(array_unique($ips));
     }
 
     /**

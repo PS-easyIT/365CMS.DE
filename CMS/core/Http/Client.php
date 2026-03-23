@@ -29,7 +29,8 @@ final class Client
      *   connectTimeout?: int,
      *   maxBytes?: int,
      *   allowedContentTypes?: string[],
-     *   allowPrivateHosts?: bool
+    *   allowPrivateHosts?: bool,
+    *   allowUnresolvedHosts?: bool
      * } $options
      * @return array{success: bool, status: int, body: string, headers: array<string,string>, contentType: string, error?: string}
      */
@@ -47,7 +48,8 @@ final class Client
      *   connectTimeout?: int,
      *   maxBytes?: int,
      *   allowedContentTypes?: string[],
-     *   allowPrivateHosts?: bool
+    *   allowPrivateHosts?: bool,
+    *   allowUnresolvedHosts?: bool
      * } $options
      * @return array{success: bool, status: int, body: string, headers: array<string,string>, contentType: string, error?: string}
      */
@@ -67,7 +69,8 @@ final class Client
      *   connectTimeout?: int,
      *   maxBytes?: int,
      *   allowedContentTypes?: string[],
-     *   allowPrivateHosts?: bool
+    *   allowPrivateHosts?: bool,
+    *   allowUnresolvedHosts?: bool
      * } $options
      * @return array{success: bool, status: int, body: string, headers: array<string,string>, contentType: string, error?: string}
      */
@@ -90,7 +93,8 @@ final class Client
      *   connectTimeout?: int,
      *   maxBytes?: int,
      *   allowedContentTypes?: string[],
-     *   allowPrivateHosts?: bool
+    *   allowPrivateHosts?: bool,
+    *   allowUnresolvedHosts?: bool
      * } $options
      * @return array{success: bool, status: int, body: string, headers: array<string,string>, contentType: string, error?: string}
      */
@@ -110,7 +114,8 @@ final class Client
      *   connectTimeout?: int,
      *   maxBytes?: int,
      *   allowedContentTypes?: string[],
-     *   allowPrivateHosts?: bool
+    *   allowPrivateHosts?: bool,
+    *   allowUnresolvedHosts?: bool
      * } $options
      * @return array{success: bool, status: int, body: string, headers: array<string,string>, contentType: string, error?: string}
      */
@@ -125,7 +130,7 @@ final class Client
             return $this->failure('Nur HTTP- und HTTPS-URLs sind erlaubt.');
         }
 
-        if (!(bool) ($options['allowPrivateHosts'] ?? false) && !$this->isSafeExternalUrl($url)) {
+        if (!(bool) ($options['allowPrivateHosts'] ?? false) && !$this->isSafeExternalUrl($url, (bool) ($options['allowUnresolvedHosts'] ?? false))) {
             return $this->failure('URL wurde durch den SSRF-Schutz blockiert.');
         }
 
@@ -255,7 +260,7 @@ final class Client
         ) === false;
     }
 
-    private function isSafeExternalUrl(string $url): bool
+    private function isSafeExternalUrl(string $url, bool $allowUnresolvedHosts = false): bool
     {
         $host = strtolower((string) parse_url($url, PHP_URL_HOST));
         if ($host === '') {
@@ -266,13 +271,13 @@ final class Client
             return false;
         }
 
-        $records = @dns_get_record($host, DNS_A | DNS_AAAA);
-        if (empty($records)) {
-            return true;
+        $resolvedIps = $this->resolveHostIps($host);
+        if ($resolvedIps === []) {
+            error_log('CMS\\Http\\Client: SSRF-Blockierung – Host "' . $host . '" konnte nicht zuverlässig aufgelöst werden.');
+            return $allowUnresolvedHosts;
         }
 
-        foreach ($records as $record) {
-            $ip = $record['ip'] ?? $record['ipv6'] ?? '';
+        foreach ($resolvedIps as $ip) {
             if ($ip !== '' && $this->isPrivateOrReservedIp($ip)) {
                 error_log('CMS\\Http\\Client: SSRF-Blockierung – Host "' . $host . '" löst auf private IP auf: ' . $ip);
                 return false;
@@ -280,5 +285,43 @@ final class Client
         }
 
         return true;
+    }
+
+    /**
+     * @return string[]
+     */
+    private function resolveHostIps(string $host): array
+    {
+        if (filter_var($host, FILTER_VALIDATE_IP)) {
+            return [$host];
+        }
+
+        $ips = [];
+
+        if (function_exists('dns_get_record')) {
+            $records = @dns_get_record($host, DNS_A | DNS_AAAA);
+            if (is_array($records)) {
+                foreach ($records as $record) {
+                    $ip = trim((string) ($record['ip'] ?? $record['ipv6'] ?? ''));
+                    if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP)) {
+                        $ips[] = $ip;
+                    }
+                }
+            }
+        }
+
+        if ($ips === [] && function_exists('gethostbynamel')) {
+            $fallbackRecords = @gethostbynamel($host);
+            if (is_array($fallbackRecords)) {
+                foreach ($fallbackRecords as $ip) {
+                    $ip = trim((string) $ip);
+                    if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP)) {
+                        $ips[] = $ip;
+                    }
+                }
+            }
+        }
+
+        return array_values(array_unique($ips));
     }
 }

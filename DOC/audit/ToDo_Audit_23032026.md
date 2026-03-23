@@ -38,7 +38,7 @@ Die Vollprüfung wurde auf den kompletten First-Party-Dateibaum von `CMS/` erwei
 - [x] **Step #5 / A-05 – Debug-Logziel aus dem Release-Baum ziehen** → `LOG_PATH`/`CMS_ERROR_LOG` zeigen jetzt standardmäßig auf ein externes Logverzeichnis (`../var/logs` bzw. Fallback `sys_get_temp_dir()`); `SystemService` liest und leert denselben aktiven Pfad.
 - [x] **Step #6 / A-06 – ZIP-Entry-Validierung vor `extractTo()` ergänzen** → Der GitHub-Doku-Sync validiert ZIP-Einträge jetzt vor `extractTo()` auf Traversals, absolute Pfade, NUL-/Steuerzeichen sowie leere oder punktbasierte Segmente.
 - [x] **Step #7 / A-07 – Integritätsprüfung für Dokumentationsdownloads ergänzen und /DOC liegt immer dort wo CMS direkt liegt** → Der Doku-Sync akzeptiert jetzt nur noch ein freigegebenes `/DOC`-Bundle per Tree-SHA-256 + Dateianzahl und erzwingt den Zielpfad strikt auf `../DOC` direkt neben `/CMS`.
-- [ ] **Step #8 / A-08 – DNS-Fallback im SSRF-Schutz härten**
+- [x] **Step #8 / A-08 – DNS-Fallback im SSRF-Schutz härten** → HTTP-Client und UpdateService blockieren ungelöste Remote-Hosts jetzt standardmäßig, versuchen vorab eine echte IP-Auflösung per DNS/GetHostByName und erlauben ungelöste Hosts nur noch per explizitem Opt-in im HTTP-Client.
 - [ ] **Step #9 / A-09 – `session.cookie_secure` an echtes HTTPS koppeln**
 - [ ] **Step #10 / A-10 – Update-Installationen atomar machen**
 - [ ] **Step #11 / A-11 – HTTPS-/HSTS-Linie vereinheitlichen**
