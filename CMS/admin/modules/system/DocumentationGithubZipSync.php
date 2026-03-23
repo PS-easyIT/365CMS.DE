@@ -47,6 +47,11 @@ final class DocumentationGithubZipSync
                 throw new RuntimeException('GitHub-ZIP konnte nicht geöffnet werden (Fehlercode: ' . $zipResult . ').');
             }
 
+            if (!$this->validateZipEntries($zip)) {
+                $zip->close();
+                throw new RuntimeException('GitHub-ZIP enthält unsichere oder unerwartete Archiv-Einträge.');
+            }
+
             if (!$zip->extractTo($extractDir)) {
                 $zip->close();
                 throw new RuntimeException('GitHub-ZIP konnte nicht entpackt werden.');
@@ -101,5 +106,43 @@ final class DocumentationGithubZipSync
                 $this->filesystem->deleteDirectory($stagingDir);
             }
         }
+    }
+
+    private function validateZipEntries(ZipArchive $zip): bool
+    {
+        $hasEntries = false;
+
+        for ($index = 0; $index < $zip->numFiles; $index++) {
+            $entryName = $zip->getNameIndex($index);
+            if (!is_string($entryName) || $entryName === '') {
+                return false;
+            }
+
+            if (str_contains($entryName, "\0") || preg_match('/[\x00-\x1F\x7F]/', $entryName) === 1) {
+                return false;
+            }
+
+            $normalized = str_replace('\\', '/', $entryName);
+            $normalized = ltrim($normalized, '/');
+
+            if ($normalized === ''
+                || str_contains($normalized, '../')
+                || str_contains($normalized, '..\\')
+                || preg_match('~^[A-Za-z]:/~', $normalized) === 1
+            ) {
+                return false;
+            }
+
+            $segments = array_values(array_filter(explode('/', rtrim($normalized, '/')), static fn(string $segment): bool => $segment !== ''));
+            foreach ($segments as $segment) {
+                if ($segment === '.' || $segment === '..') {
+                    return false;
+                }
+            }
+
+            $hasEntries = true;
+        }
+
+        return $hasEntries;
     }
 }
