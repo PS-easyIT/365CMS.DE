@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.13-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.14-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -15,6 +15,13 @@
 | 🎨 | `style` | Design- / UI-Änderungen |
 
 ---
+
+## [2.6.14] – 2026-03-23
+
+### Changed
+
+- Der WordPress-Importer wurde entlang der Audit-Aufgabe A-14 weiter zerlegt: `CMS/plugins/cms-importer/includes/class-importer.php` delegiert Preview-/Planungslogik und Meta-/Reporting jetzt an die neuen Traits `trait-importer-preview.php` und `trait-importer-reporting.php`, statt diese Blöcke weiter im Service-Monolithen zu halten.
+- `CMS/plugins/cms-importer/includes/class-admin.php` nutzt Cleanup-/Backfill-/Reporting-Helfer nun über `trait-admin-cleanup.php`; damit bleiben Admin-Entry-Point und bestehende UI-Flows stabil, während die bislang sehr großen Bereinigungs- und Verlaufsroutinen separat wart- und testbarer werden.
 
 ## [2.6.13] – 2026-03-23
 
