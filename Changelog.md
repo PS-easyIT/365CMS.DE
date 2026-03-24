@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.50-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.51-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,16 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.6.51 — 24. März 2026 · Audit-Batch 033, Backup-Modul gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.51** | 🔴 fix | Admin/System | **Backup-Modul mit internen RBAC- und CSRF-Gates abgesichert**: `CMS/admin/modules/system/BackupsModule.php` validiert Lese- und Schreibzugriffe jetzt auch intern und verlässt sich nicht nur auf den äußeren Admin-Entry-Point. |
+| **2.6.51** | 🔴 security | Admin/System | **Backup-Metadaten und Löschpfade stärker eingegrenzt**: nur noch erlaubte Backup-Namen, Typen und Dateiendungen gelangen in UI- und Delete-Pfade; lose Manifest-/History-Daten werden vor der Anzeige serverseitig normalisiert. |
+| **2.6.51** | 🟡 refactor | Admin/System | **Audit- und Fehlerpfade vereinheitlicht**: erfolgreiche Create-/Delete-Aktionen werden explizit auditiert; technische Fehlerdetails landen gekürzt im Logger statt roh im UI-Kontext. |
 
 ---
 

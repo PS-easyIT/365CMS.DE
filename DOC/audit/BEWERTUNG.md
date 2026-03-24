@@ -229,6 +229,12 @@ ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu ausz
 |---|---|---|---|
 | `CMS/admin/modules/member/MemberDashboardModule.php` | umgesetzt | Interne RBAC-/CSRF-Gates, auditierte Save-Pfade und weniger N+1-Settings-Zugriffe nachgezogen. | Das Member-Dashboard-Modul prüft Rechte und Tokens jetzt auch intern pro Bereich, lädt Member-Settings und Plugin-Meta gebündelt und protokolliert erfolgreiche sicherheitsrelevante Konfigurationsänderungen explizit. |
 
+### Delta Batch 033
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/BackupsModule.php` | umgesetzt | Interne RBAC-/CSRF-Gates, Backup-Namens-/Typvalidierung und auditierte Mutationen nachgezogen. | Das Backup-Modul prüft Lese- und Schreibzugriffe jetzt auch intern, akzeptiert für UI und Löschpfade nur noch whitelisted Backup-Namen/-Typen und protokolliert erfolgreiche Create-/Delete-Aktionen sowie Fehlerpfade kontrolliert statt lose Metadaten oder rohe Fehlertexte durchzureichen. |
+
 ## Grundlage
 
 Diese Datei bewertet den aktuellen CMS-Codebestand **dateiweise** nach:
@@ -380,7 +386,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/modules/subscriptions/OrdersModule.php` | Orders-Logik | DB, Abos, Zahlungsdaten | 80 | 76 | 84 | 80 |
 | `CMS/admin/modules/subscriptions/PackagesModule.php` | Paket-Logik | DB, Paket-CRUD | 82 | 80 | 84 | 82 |
 | `CMS/admin/modules/subscriptions/SubscriptionSettingsModule.php` | Billing-Settings-Logik | Settings, Gateway-Optionen | 78 | 74 | 84 | 78 |
-| `CMS/admin/modules/system/BackupsModule.php` | Backup-Logik | FS, Dumps, Restore | 74 | 62 | 82 | 73 |
+| `CMS/admin/modules/system/BackupsModule.php` | Backup-Logik | FS, Dumps, Restore | 90 | 66 | 87 | 82 |
 | `CMS/admin/modules/system/DocumentationCatalog.php` | Doku-Katalog | Doku-Service, Quellen | 84 | 88 | 84 | 85 |
 | `CMS/admin/modules/system/DocumentationGitSync.php` | Git-Doku-Sync | Git/Remote, FS | 72 | 62 | 82 | 72 |
 | `CMS/admin/modules/system/DocumentationGithubZipSync.php` | GitHub-Zip-Sync | Remote-Zip, FS | 72 | 62 | 82 | 72 |
@@ -736,7 +742,7 @@ Verwendete Referenzbasis für die Einordnung:
 | Kategorie | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt | Schwächste Dateien | Stärkste Dateien | Audit-Fokus |
 |---|---:|---:|---:|---:|---:|---|---|---|
 | **Admin – Entry-Points** | 81 | 83,4 | 84,1 | 84,8 | 83,9 | `theme-editor.php`, `theme-marketplace.php` | `diagnose.php`, `index.php`, `info.php`, `support.php`, `system-*.php` | Remote-Zugriffe in Marketplace-/Theme-Entrypoints härten |
-| **Admin – Module** | 55 | 81,1 | 74,3 | 84,3 | 80,2 | `BackupsModule.php`, `DocumentationGitSync.php`, `DocumentationGithubZipSync.php` | `PostsCategoryViewModelBuilder.php`, `SystemInfoModule.php` | Performance- und Qualitäts-Gates für große Module priorisieren |
+| **Admin – Module** | 55 | 81,4 | 74,4 | 84,4 | 80,4 | `DocumentationGitSync.php`, `DocumentationGithubZipSync.php`, `DocumentationSyncDownloader.php` | `PostsCategoryViewModelBuilder.php`, `SystemInfoModule.php` | Performance- und Qualitäts-Gates für große Module priorisieren |
 | **Admin – Layout-Partials** | 4 | 87,5 | 91,0 | 84,3 | 87,5 | `sidebar.php` | `section-page-shell.php` | Bereits stark; nur Regressionen verhindern |
 | **Admin – Views** | 89 | 84,4 | 83,9 | 83,7 | 83,4 | `posts/edit.php`, `pages/edit.php`, `landing/page.php` | `member/subnav.php`, `performance/subnav.php`, `seo/subnav.php` | Editor-Komplexität und Formularpfade weiter entkoppeln |
 | **Admin – View-Partials** | 8 | 89,5 | 94,4 | 84,9 | 89,6 | `featured-image-picker.php` | `content-advanced-seo-panel.php`, `content-preview-card.php`, `content-readability-card.php`, `content-seo-score-panel.php` | Sehr guter Standard – als Referenzmuster konservieren |
