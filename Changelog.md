@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.51-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.53-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,26 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.6.53 — 24. März 2026 · Audit-Batch 035, Doku-Downloader gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.53** | 🔴 fix | Admin/Documentation | **Doku-Downloader gegen falsche Ziele und nicht-zipartige Responses gehärtet**: `CMS/admin/modules/system/DocumentationSyncDownloader.php` akzeptiert nur noch dedizierte Temp-Zieldateien und erwartete GitHub-ZIP-URLs. |
+| **2.6.53** | 🔴 security | Admin/Documentation | **ZIP-Signatur- und Größenprüfungen ergänzt**: zu kleine, zu große oder nicht mit ZIP-Magic beginnende Responses werden vor dem Schreiben verworfen; Remote-Fehler werden nur noch generisch an die UI gegeben. |
+| **2.6.53** | 🟡 refactor | Admin/Documentation | **Download-Pfade auditierbar gemacht**: erfolgreiche und fehlgeschlagene Downloads werden mit sanitierter URL-/Pfad-Kontextinfo geloggt und auditiert. |
+
+---
+
+### v2.6.52 — 24. März 2026 · Audit-Batch 034, GitHub-ZIP-Doku-Sync gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.52** | 🔴 fix | Admin/Documentation | **GitHub-ZIP-Sync gegen fehlerhafte Quellen und Archive gehärtet**: `CMS/admin/modules/system/DocumentationGithubZipSync.php` validiert ZIP-URL und Integritätsprofil jetzt auch intern, statt sich nur auf Vorprüfungen außerhalb des Moduls zu verlassen. |
+| **2.6.52** | 🔴 security | Admin/Documentation | **Archivgrenzen und Kontext-Sanitizing nachgeschärft**: ZIP-Dateien mit zu vielen Einträgen oder zu großer Gesamtgröße werden früh verworfen; Audit- und Logger-Kontexte enthalten keine rohen Exception-Texte oder kompletten Fremd-URLs mehr. |
+| **2.6.52** | 🟡 refactor | Admin/Documentation | **Erfolgspfad auditiert**: erfolgreiche GitHub-ZIP-Syncs werden explizit protokolliert und liefern strukturierte Dokumentenzahlen statt lose impliziter Seiteneffekte. |
 
 ---
 

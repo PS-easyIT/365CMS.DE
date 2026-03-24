@@ -7,6 +7,15 @@ if (!defined('ABSPATH')) {
 
 final class DocumentationGithubZipSync
 {
+    private const ALLOWED_ZIP_HOSTS = [
+        'codeload.github.com',
+        'github.com',
+        'raw.githubusercontent.com',
+    ];
+    private const MAX_ZIP_ENTRIES = 2500;
+    private const MAX_ARCHIVE_BYTES = 50 * 1024 * 1024;
+    private const MAX_LOG_VALUE_LENGTH = 240;
+
     public function __construct(
         private readonly string $repoRoot,
         private readonly string $docsRoot,
@@ -35,6 +44,8 @@ final class DocumentationGithubZipSync
 
         try {
             $this->assertDocsRootLocation();
+            $this->assertGithubZipUrl();
+            $this->assertApprovedBundleConfiguration();
             $this->assertWorkingPaths($zipFile, $extractDir, $stagingDir, $backupDir);
 
             $download = $this->downloader->downloadFile($this->githubZipUrl, $zipFile);
@@ -96,14 +107,22 @@ final class DocumentationGithubZipSync
                 $this->filesystem->deleteDirectory($backupDir);
             }
 
+            $documentCount = $this->filesystem->countSupportedDocuments($this->docsRoot);
+
+            $this->logSuccess('documentation.sync.github_zip.completed', 'DOC-Sync via GitHub-Download abgeschlossen.', [
+                'zip_url' => $this->sanitizeUrlForLog($this->githubZipUrl),
+                'docs_root' => $this->sanitizePathForLog($this->docsRoot),
+                'document_count' => $documentCount,
+            ]);
+
             return [
                 'success' => true,
-                'message' => 'Der lokale Ordner /DOC wurde per GitHub-Download synchronisiert. ' . $this->filesystem->countSupportedDocuments($this->docsRoot) . ' Dokumente sind jetzt lokal verfügbar.',
+                'message' => 'Der lokale Ordner /DOC wurde per GitHub-Download synchronisiert. ' . $documentCount . ' Dokumente sind jetzt lokal verfügbar.',
             ];
         } catch (Throwable $e) {
             return $this->failResult('documentation.sync.github_zip.failed', 'DOC-Sync via GitHub konnte nicht abgeschlossen werden.', $e, [
-                'zip_url' => $this->githubZipUrl,
-                'docs_root' => $this->docsRoot,
+                'zip_url' => $this->sanitizeUrlForLog($this->githubZipUrl),
+                'docs_root' => $this->sanitizePathForLog($this->docsRoot),
             ]);
         } finally {
             if (is_file($zipFile)) {
@@ -121,6 +140,11 @@ final class DocumentationGithubZipSync
     private function validateZipEntries(ZipArchive $zip): bool
     {
         $hasEntries = false;
+        $totalUncompressedSize = 0;
+
+        if ($zip->numFiles < 1 || $zip->numFiles > self::MAX_ZIP_ENTRIES) {
+            return false;
+        }
 
         for ($index = 0; $index < $zip->numFiles; $index++) {
             $entryName = $zip->getNameIndex($index);
@@ -148,6 +172,25 @@ final class DocumentationGithubZipSync
                 if ($segment === '.' || $segment === '..') {
                     return false;
                 }
+
+                if (preg_match('/[\x00-\x1F\x7F]/', $segment) === 1) {
+                    return false;
+                }
+            }
+
+            $stat = $zip->statIndex($index);
+            if (!is_array($stat)) {
+                return false;
+            }
+
+            $entrySize = (int)($stat['size'] ?? 0);
+            if ($entrySize < 0) {
+                return false;
+            }
+
+            $totalUncompressedSize += $entrySize;
+            if ($totalUncompressedSize > self::MAX_ARCHIVE_BYTES) {
+                return false;
             }
 
             $hasEntries = true;
@@ -194,16 +237,38 @@ final class DocumentationGithubZipSync
 
     private function assertApprovedDocsBundle(string $sourceDocs): void
     {
-        if (!preg_match('/^[0-9a-f]{64}$/', $this->approvedDocsBundleHash) || $this->approvedDocsBundleFileCount <= 0) {
-            throw new RuntimeException('Für den Doku-Sync ist kein gültiges freigegebenes Integritätsprofil hinterlegt.');
-        }
-
         $integrity = $this->filesystem->calculateDirectoryIntegrity($sourceDocs);
         $actualHash = strtolower((string) ($integrity['hash'] ?? ''));
         $actualFileCount = (int) ($integrity['file_count'] ?? 0);
 
-        if ($actualHash !== $this->approvedDocsBundleHash || $actualFileCount !== $this->approvedDocsBundleFileCount) {
+        if ($actualHash !== strtolower($this->approvedDocsBundleHash) || $actualFileCount !== $this->approvedDocsBundleFileCount) {
             throw new RuntimeException('Der heruntergeladene /DOC-Baum entspricht nicht dem freigegebenen Dokumentations-Bundle.');
+        }
+    }
+
+    private function assertGithubZipUrl(): void
+    {
+        if (!filter_var($this->githubZipUrl, FILTER_VALIDATE_URL) || !str_starts_with($this->githubZipUrl, 'https://')) {
+            throw new RuntimeException('Die GitHub-ZIP-Quelle für den Doku-Sync ist ungültig konfiguriert.');
+        }
+
+        $host = strtolower((string) parse_url($this->githubZipUrl, PHP_URL_HOST));
+        $path = (string) parse_url($this->githubZipUrl, PHP_URL_PATH);
+
+        if ($host === ''
+            || !in_array($host, self::ALLOWED_ZIP_HOSTS, true)
+            || $path === ''
+            || preg_match('/[\x00-\x1F\x7F]/', $path) === 1
+            || (!str_contains($path, '/zip/') && !str_contains($path, '/zipball/'))
+        ) {
+            throw new RuntimeException('Die GitHub-ZIP-Quelle für den Doku-Sync ist ungültig konfiguriert.');
+        }
+    }
+
+    private function assertApprovedBundleConfiguration(): void
+    {
+        if (preg_match('/^[0-9a-f]{64}$/', strtolower($this->approvedDocsBundleHash)) !== 1 || $this->approvedDocsBundleFileCount <= 0) {
+            throw new RuntimeException('Für den Doku-Sync ist kein gültiges freigegebenes Integritätsprofil hinterlegt.');
         }
     }
 
@@ -219,7 +284,8 @@ final class DocumentationGithubZipSync
     /** @param array<string, mixed> $context */
     private function failResult(string $action, string $message, Throwable $exception, array $context = []): array
     {
-        $context['exception'] = $exception->getMessage();
+        $context['exception'] = $exception::class;
+        $context['message'] = $this->sanitizeLogString($exception->getMessage(), self::MAX_LOG_VALUE_LENGTH);
 
         \CMS\Logger::instance()->withChannel('admin.documentation')->error($message, $context);
         \CMS\AuditLogger::instance()->log(
@@ -233,5 +299,45 @@ final class DocumentationGithubZipSync
         );
 
         return ['success' => false, 'error' => $message . ' Bitte Logs prüfen.'];
+    }
+
+    /** @param array<string, mixed> $context */
+    private function logSuccess(string $action, string $message, array $context = []): void
+    {
+        \CMS\Logger::instance()->withChannel('admin.documentation')->info($message, $context);
+        \CMS\AuditLogger::instance()->log(
+            \CMS\AuditLogger::CAT_SYSTEM,
+            $action,
+            $message,
+            'documentation',
+            null,
+            $context,
+            'info'
+        );
+    }
+
+    private function sanitizeUrlForLog(string $url): string
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return $this->sanitizeLogString($url, self::MAX_LOG_VALUE_LENGTH);
+        }
+
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        $path = (string) ($parts['path'] ?? '');
+
+        return $this->sanitizeLogString(($host !== '' ? $host : 'invalid-host') . $path, self::MAX_LOG_VALUE_LENGTH);
+    }
+
+    private function sanitizePathForLog(string $path): string
+    {
+        return $this->sanitizeLogString(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path), self::MAX_LOG_VALUE_LENGTH);
+    }
+
+    private function sanitizeLogString(string $value, int $maxLength): string
+    {
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', trim($value)) ?? '';
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
     }
 }

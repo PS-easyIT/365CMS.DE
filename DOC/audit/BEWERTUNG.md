@@ -235,6 +235,18 @@ ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu ausz
 |---|---|---|---|
 | `CMS/admin/modules/system/BackupsModule.php` | umgesetzt | Interne RBAC-/CSRF-Gates, Backup-Namens-/Typvalidierung und auditierte Mutationen nachgezogen. | Das Backup-Modul prüft Lese- und Schreibzugriffe jetzt auch intern, akzeptiert für UI und Löschpfade nur noch whitelisted Backup-Namen/-Typen und protokolliert erfolgreiche Create-/Delete-Aktionen sowie Fehlerpfade kontrolliert statt lose Metadaten oder rohe Fehlertexte durchzureichen. |
 
+### Delta Batch 034
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationGithubZipSync.php` | umgesetzt | Zusätzliche URL-/Archiv-Gates, Bundle-Konfig-Checks und sanitierte Audit-Kontexte nachgezogen. | Der GitHub-ZIP-Sync akzeptiert nur noch sauber validierte ZIP-Quellen, begrenzt Archivgröße und Eintragsanzahl, protokolliert Erfolg/Fehler strukturiert und schreibt keine rohen Exception-Texte oder kompletten Remote-URLs mehr in die Audit-/Logger-Kontexte. |
+
+### Delta Batch 035
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationSyncDownloader.php` | umgesetzt | Strengere Download-Ziel-/URL-Validierung, ZIP-Signatur-Checks und auditierte Response-Pfade nachgezogen. | Der Doku-Downloader akzeptiert nur noch dedizierte Temp-Ziele und erwartete GitHub-ZIP-URLs, verwirft zu kleine, zu große oder nicht-zipartige Responses früh und protokolliert Erfolge/Fehler kontrolliert statt rohe Remote-Fehler an die Oberfläche zu geben. |
+
 ## Grundlage
 
 Diese Datei bewertet den aktuellen CMS-Codebestand **dateiweise** nach:
@@ -389,10 +401,10 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/modules/system/BackupsModule.php` | Backup-Logik | FS, Dumps, Restore | 90 | 66 | 87 | 82 |
 | `CMS/admin/modules/system/DocumentationCatalog.php` | Doku-Katalog | Doku-Service, Quellen | 84 | 88 | 84 | 85 |
 | `CMS/admin/modules/system/DocumentationGitSync.php` | Git-Doku-Sync | Git/Remote, FS | 72 | 62 | 82 | 72 |
-| `CMS/admin/modules/system/DocumentationGithubZipSync.php` | GitHub-Zip-Sync | Remote-Zip, FS | 72 | 62 | 82 | 72 |
+| `CMS/admin/modules/system/DocumentationGithubZipSync.php` | GitHub-Zip-Sync | Remote-Zip, FS | 88 | 65 | 86 | 80 |
 | `CMS/admin/modules/system/DocumentationModule.php` | Doku-Logik | Renderer, Sync, Catalog | 86 | 76 | 86 | 83 |
 | `CMS/admin/modules/system/DocumentationRenderer.php` | Doku-Renderer | Markdown→HTML, Escaping | 87 | 78 | 86 | 84 |
-| `CMS/admin/modules/system/DocumentationSyncDownloader.php` | Doku-Downloader | HTTP/Remote, FS | 72 | 62 | 82 | 72 |
+| `CMS/admin/modules/system/DocumentationSyncDownloader.php` | Doku-Downloader | HTTP/Remote, FS | 88 | 67 | 86 | 80 |
 | `CMS/admin/modules/system/DocumentationSyncEnvironment.php` | Doku-Env-Check | Runtime/Env-Checks | 84 | 88 | 84 | 85 |
 | `CMS/admin/modules/system/DocumentationSyncFilesystem.php` | Doku-FS-Logik | FS, Pfade, Speicherung | 88 | 74 | 86 | 84 |
 | `CMS/admin/modules/system/DocumentationSyncService.php` | Doku-Sync-Orchestrator | Downloader, FS, GitSync | 84 | 67 | 87 | 80 |
@@ -742,7 +754,7 @@ Verwendete Referenzbasis für die Einordnung:
 | Kategorie | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt | Schwächste Dateien | Stärkste Dateien | Audit-Fokus |
 |---|---:|---:|---:|---:|---:|---|---|---|
 | **Admin – Entry-Points** | 81 | 83,4 | 84,1 | 84,8 | 83,9 | `theme-editor.php`, `theme-marketplace.php` | `diagnose.php`, `index.php`, `info.php`, `support.php`, `system-*.php` | Remote-Zugriffe in Marketplace-/Theme-Entrypoints härten |
-| **Admin – Module** | 55 | 81,4 | 74,4 | 84,4 | 80,4 | `DocumentationGitSync.php`, `DocumentationGithubZipSync.php`, `DocumentationSyncDownloader.php` | `PostsCategoryViewModelBuilder.php`, `SystemInfoModule.php` | Performance- und Qualitäts-Gates für große Module priorisieren |
+| **Admin – Module** | 55 | 82,0 | 74,6 | 84,6 | 80,6 | `DocumentationGitSync.php`, `SeoSuiteModule.php`, `PerformanceModule.php` | `PostsCategoryViewModelBuilder.php`, `SystemInfoModule.php` | Performance- und Qualitäts-Gates für große Module priorisieren |
 | **Admin – Layout-Partials** | 4 | 87,5 | 91,0 | 84,3 | 87,5 | `sidebar.php` | `section-page-shell.php` | Bereits stark; nur Regressionen verhindern |
 | **Admin – Views** | 89 | 84,4 | 83,9 | 83,7 | 83,4 | `posts/edit.php`, `pages/edit.php`, `landing/page.php` | `member/subnav.php`, `performance/subnav.php`, `seo/subnav.php` | Editor-Komplexität und Formularpfade weiter entkoppeln |
 | **Admin – View-Partials** | 8 | 89,5 | 94,4 | 84,9 | 89,6 | `featured-image-picker.php` | `content-advanced-seo-panel.php`, `content-preview-card.php`, `content-readability-card.php`, `content-seo-score-panel.php` | Sehr guter Standard – als Referenzmuster konservieren |

@@ -8,6 +8,10 @@ if (!defined('ABSPATH')) {
 final class DocumentationSyncDownloader
 {
     private const MAX_DOWNLOAD_BYTES = 25 * 1024 * 1024;
+    private const MIN_DOWNLOAD_BYTES = 128;
+    private const MAX_LOG_VALUE_LENGTH = 220;
+    private const ZIP_MAGIC_HEADERS = ["PK\x03\x04", "PK\x05\x06", "PK\x07\x08"];
+    private const DOWNLOAD_FILE_PREFIX = '365cms_doc_sync_';
 
     private const ALLOWED_DOWNLOAD_HOSTS = [
         'codeload.github.com',
@@ -25,19 +29,29 @@ final class DocumentationSyncDownloader
     public function downloadFile(string $url, string $destination): array
     {
         if (!$this->isAllowedDownloadUrl($url)) {
+            $this->logFailure('documentation.sync.download.invalid_url', 'Der Dokumentations-Download liegt außerhalb der erlaubten GitHub-Hosts.', [
+                'url' => $this->sanitizeUrlForLog($url),
+            ]);
             return ['success' => false, 'error' => 'Der Dokumentations-Download liegt außerhalb der erlaubten GitHub-Hosts.'];
         }
 
         if (!$this->isAllowedDestination($destination)) {
+            $this->logFailure('documentation.sync.download.invalid_destination', 'Die temporäre ZIP-Zieldatei liegt außerhalb des erlaubten Temp-Bereichs.', [
+                'destination' => $this->sanitizePathForLog($destination),
+            ]);
             return ['success' => false, 'error' => 'Die temporäre ZIP-Zieldatei liegt außerhalb des erlaubten Temp-Bereichs.'];
         }
 
         if (!class_exists('\\CMS\\Http\\Client')) {
+            $this->logFailure('documentation.sync.download.missing_http_client', 'Der zentrale HTTP-Client ist nicht verfügbar.', []);
             return ['success' => false, 'error' => 'Der zentrale HTTP-Client ist nicht verfügbar.'];
         }
 
         $parentDir = dirname($destination);
         if (!is_dir($parentDir) && !mkdir($parentDir, 0755, true) && !is_dir($parentDir)) {
+            $this->logFailure('documentation.sync.download.parent_create_failed', 'Temporäres Download-Verzeichnis konnte nicht erstellt werden.', [
+                'destination' => $this->sanitizePathForLog($destination),
+            ]);
             return ['success' => false, 'error' => 'Temporäres Download-Verzeichnis konnte nicht erstellt werden.'];
         }
 
@@ -54,22 +68,48 @@ final class DocumentationSyncDownloader
                 $this->filesystem->deleteFile($destination);
             }
 
-            return ['success' => false, 'error' => (string) ($response['error'] ?? 'GitHub-ZIP konnte per HTTPS nicht geladen werden.')];
+            $this->logFailure('documentation.sync.download.failed', 'GitHub-ZIP konnte per HTTPS nicht geladen werden.', [
+                'url' => $this->sanitizeUrlForLog($url),
+                'error' => $this->sanitizeLogString((string) ($response['error'] ?? ''), self::MAX_LOG_VALUE_LENGTH),
+            ]);
+
+            return ['success' => false, 'error' => 'GitHub-ZIP konnte per HTTPS nicht geladen werden.'];
         }
 
         $body = (string) ($response['body'] ?? '');
-        if ($body === '') {
-            return ['success' => false, 'error' => 'Der GitHub-Download lieferte keinen ZIP-Inhalt zurück.'];
-        }
-
-        $written = file_put_contents($destination, $body, LOCK_EX);
-        if (!is_int($written) || $written < 1) {
+        $bodyLength = strlen($body);
+        if ($body === '' || $bodyLength < self::MIN_DOWNLOAD_BYTES || $bodyLength > self::MAX_DOWNLOAD_BYTES || !$this->hasZipMagicHeader($body)) {
             if (is_file($destination)) {
                 $this->filesystem->deleteFile($destination);
             }
 
+            $this->logFailure('documentation.sync.download.invalid_body', 'Der GitHub-Download lieferte keinen gültigen ZIP-Inhalt zurück.', [
+                'url' => $this->sanitizeUrlForLog($url),
+                'bytes' => $bodyLength,
+            ]);
+
+            return ['success' => false, 'error' => 'Der GitHub-Download lieferte keinen ZIP-Inhalt zurück.'];
+        }
+
+        $written = file_put_contents($destination, $body, LOCK_EX);
+        if (!is_int($written) || $written < self::MIN_DOWNLOAD_BYTES || $written > self::MAX_DOWNLOAD_BYTES) {
+            if (is_file($destination)) {
+                $this->filesystem->deleteFile($destination);
+            }
+
+            $this->logFailure('documentation.sync.download.write_failed', 'Die geladene ZIP-Datei konnte nicht lokal gespeichert werden.', [
+                'destination' => $this->sanitizePathForLog($destination),
+                'bytes' => is_int($written) ? $written : 0,
+            ]);
+
             return ['success' => false, 'error' => 'Die geladene ZIP-Datei konnte nicht lokal gespeichert werden.'];
         }
+
+        $this->logSuccess('documentation.sync.download.completed', 'GitHub-ZIP erfolgreich heruntergeladen.', [
+            'url' => $this->sanitizeUrlForLog($url),
+            'destination' => $this->sanitizePathForLog($destination),
+            'bytes' => $written,
+        ]);
 
         return ['success' => true];
     }
@@ -78,6 +118,11 @@ final class DocumentationSyncDownloader
     {
         $destination = trim($destination);
         if ($destination === '' || !str_ends_with(strtolower($destination), '.zip')) {
+            return false;
+        }
+
+        $fileName = basename($destination);
+        if (!str_starts_with($fileName, self::DOWNLOAD_FILE_PREFIX) || preg_match('/^365cms_doc_sync_[a-f0-9]{12}\.zip$/i', $fileName) !== 1) {
             return false;
         }
 
@@ -111,11 +156,83 @@ final class DocumentationSyncDownloader
             return false;
         }
 
-        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
-        if ($host === '') {
+        if (preg_match('/[\x00-\x1F\x7F]/', $url) === 1) {
             return false;
         }
 
-        return in_array($host, self::ALLOWED_DOWNLOAD_HOSTS, true);
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        $user = (string) parse_url($url, PHP_URL_USER);
+        $pass = (string) parse_url($url, PHP_URL_PASS);
+
+        if ($host === '' || $path === '' || $user !== '' || $pass !== '') {
+            return false;
+        }
+
+        return in_array($host, self::ALLOWED_DOWNLOAD_HOSTS, true)
+            && (str_contains($path, '/zip/') || str_contains($path, '/zipball/'));
+    }
+
+    private function hasZipMagicHeader(string $body): bool
+    {
+        foreach (self::ZIP_MAGIC_HEADERS as $header) {
+            if (str_starts_with($body, $header)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** @param array<string, mixed> $context */
+    private function logFailure(string $action, string $message, array $context): void
+    {
+        \CMS\Logger::instance()->withChannel('admin.documentation')->warning($message, $context);
+        \CMS\AuditLogger::instance()->log(
+            \CMS\AuditLogger::CAT_SYSTEM,
+            $action,
+            $message,
+            'documentation',
+            null,
+            $context,
+            'warning'
+        );
+    }
+
+    /** @param array<string, mixed> $context */
+    private function logSuccess(string $action, string $message, array $context): void
+    {
+        \CMS\Logger::instance()->withChannel('admin.documentation')->info($message, $context);
+        \CMS\AuditLogger::instance()->log(
+            \CMS\AuditLogger::CAT_SYSTEM,
+            $action,
+            $message,
+            'documentation',
+            null,
+            $context,
+            'info'
+        );
+    }
+
+    private function sanitizeUrlForLog(string $url): string
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return $this->sanitizeLogString($url, self::MAX_LOG_VALUE_LENGTH);
+        }
+
+        return $this->sanitizeLogString(strtolower((string) ($parts['host'] ?? 'invalid-host')) . (string) ($parts['path'] ?? ''), self::MAX_LOG_VALUE_LENGTH);
+    }
+
+    private function sanitizePathForLog(string $path): string
+    {
+        return $this->sanitizeLogString(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path), self::MAX_LOG_VALUE_LENGTH);
+    }
+
+    private function sanitizeLogString(string $value, int $maxLength): string
+    {
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', trim($value)) ?? '';
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
     }
 }
