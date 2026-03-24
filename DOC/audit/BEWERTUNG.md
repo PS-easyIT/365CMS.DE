@@ -175,6 +175,24 @@ ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu ausz
 |---|---|---|---|
 | `CMS/admin/modules/legal/CookieManagerModule.php` | umgesetzt | Modulzugriff, Mutationsvalidierung, Settings-Persistenz und Scanner-Grenzen nachgezogen. | Der Cookie-Manager akzeptiert weniger unsaubere Konfigurationspayloads, auditierbare Mutationen laufen kontrollierter und der Scanner bleibt durch Größen-/Mengenlimits deutlich berechenbarer. |
 
+### Delta Batch 024
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/AzureMailTokenProvider.php` | umgesetzt | Konfiguration, Token-Endpoint, Cache-Validierung und Response-Handling restriktiver gemacht. | Der Azure-Mail-Tokenpfad akzeptiert weniger unsaubere Tenant-/Scope-/Endpoint-Werte, verwirft abgelaufene oder kaputte Cache-Einträge früher und reagiert kontrollierter auf Remote-Fehler und ungewöhnliche Antworten. |
+
+### Delta Batch 025
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/FeedService.php` | umgesetzt | Feed-URL-Validierung, Ausgabesanitisierung und Cache-Cleanup restriktiver gemacht. | Der Feed-Service blockt private/reservierte Remote-Ziele, begrenzt Batch-/Item-Mengen, sanitisiert Feed-HTML serverseitig und leakt Parser- bzw. Remote-Fehler nicht mehr roh an Aufrufer. |
+
+### Delta Batch 026
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationModule.php` | umgesetzt | Modulzugriff, Repo-/DOC-Layout-Checks und Fehlerpfade restriktiver gemacht. | Der Doku-Orchestrator validiert Dokumentauswahl und lokale Pfade früher, kapselt Render-/Sync-Fehler generisch und verlässt sich weniger auf lose Annahmen aus Entry oder Unterservices. |
+
 ## Grundlage
 
 Diese Datei bewertet den aktuellen CMS-Codebestand **dateiweise** nach:
@@ -330,7 +348,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/modules/system/DocumentationCatalog.php` | Doku-Katalog | Doku-Service, Quellen | 84 | 88 | 84 | 85 |
 | `CMS/admin/modules/system/DocumentationGitSync.php` | Git-Doku-Sync | Git/Remote, FS | 72 | 62 | 82 | 72 |
 | `CMS/admin/modules/system/DocumentationGithubZipSync.php` | GitHub-Zip-Sync | Remote-Zip, FS | 72 | 62 | 82 | 72 |
-| `CMS/admin/modules/system/DocumentationModule.php` | Doku-Logik | Renderer, Sync, Catalog | 80 | 74 | 84 | 79 |
+| `CMS/admin/modules/system/DocumentationModule.php` | Doku-Logik | Renderer, Sync, Catalog | 86 | 76 | 86 | 83 |
 | `CMS/admin/modules/system/DocumentationRenderer.php` | Doku-Renderer | Markdown→HTML, Escaping | 87 | 78 | 86 | 84 |
 | `CMS/admin/modules/system/DocumentationSyncDownloader.php` | Doku-Downloader | HTTP/Remote, FS | 72 | 62 | 82 | 72 |
 | `CMS/admin/modules/system/DocumentationSyncEnvironment.php` | Doku-Env-Check | Runtime/Env-Checks | 84 | 88 | 84 | 85 |
@@ -494,7 +512,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `core/SchemaManager.php` | Verwaltet DB-Schemas und strukturierte Tabellenänderungen. | Database, MigrationManager, UpdateService | 76 | 74 | 82 | 77 |
 | `core/Security.php` | Stellt Kernfunktionen für Tokens und Schutzmechanismen bereit. | Auth, Session, CSRF/Token-Logik | 76 | 78 | 84 | 79 |
 | `core/Services/AnalyticsService.php` | Bündelt Metriken und einfache Analytics-Auswertungen. | Database, TrackingService, Seo/Reporting | 76 | 76 | 82 | 78 |
-| `core/Services/AzureMailTokenProvider.php` | Beschafft Zugriffstoken für Azure-/Graph-Mailversand. | GraphApiService, Konfiguration, externe APIs | 68 | 72 | 82 | 74 |
+| `core/Services/AzureMailTokenProvider.php` | Beschafft Zugriffstoken für Azure-/Graph-Mailversand. | GraphApiService, Konfiguration, externe APIs | 82 | 74 | 85 | 80 |
 | `core/Services/BackupService.php` | Erstellt Sicherungen von Daten oder Dateien. | Database, Dateisystem, Zip/Archiv | 70 | 66 | 80 | 72 |
 | `core/Services/CommentService.php` | Verarbeitet Kommentarlogik und zugehörige Aktionen. | Database, Security, Content/Member-Kontext | 84 | 80 | 85 | 83 |
 | `core/Services/ContentLocalizationService.php` | Unterstützt Lokalisierung von Inhalten und Varianten. | TranslationService, Database, Routing | 82 | 80 | 84 | 82 |
@@ -514,7 +532,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `core/Services/ElfinderService.php` | Adapter/Service für elFinder-Dateiverwaltung. | Dateisystem, Auth, externe elFinder-Assets | 68 | 70 | 78 | 72 |
 | `core/Services/ErrorReportService.php` | Sammelt und meldet Fehlerberichte strukturiert. | Logger, MailService, AuditLogger | 78 | 76 | 82 | 79 |
 | `core/Services/FeatureUsageService.php` | Erfasst oder aggregiert Feature-Nutzungsdaten. | Database, AnalyticsService, PluginManager | 80 | 84 | 84 | 83 |
-| `core/Services/FeedService.php` | Verarbeitet externe oder interne Feed-Inhalte. | Http\Client, XML/Feed-Library, Cache | 72 | 73 | 80 | 75 |
+| `core/Services/FeedService.php` | Verarbeitet externe oder interne Feed-Inhalte. | Http\Client, XML/Feed-Library, Cache | 84 | 76 | 84 | 81 |
 | `core/Services/FileUploadService.php` | Kapselt generische Datei-Uploads und Validierung. | Security, Dateisystem, MediaService | 77 | 74 | 84 | 78 |
 | `core/Services/GraphApiService.php` | Wrapper für Microsoft Graph-bezogene Aufrufe. | Http\Client, AzureMailTokenProvider, Konfiguration | 80 | 71 | 85 | 79 |
 | `core/Services/ImageService.php` | Allzweckservice für Bildverarbeitung und Bildpfade. | ImageProcessor, MediaService, Dateisystem | 76 | 72 | 82 | 77 |
@@ -682,7 +700,7 @@ Verwendete Referenzbasis für die Einordnung:
 | Kategorie | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt | Schwächste Dateien | Stärkste Dateien | Audit-Fokus |
 |---|---:|---:|---:|---:|---:|---|---|---|
 | **Admin – Entry-Points** | 81 | 83,4 | 84,1 | 84,8 | 83,9 | `theme-editor.php`, `theme-marketplace.php` | `diagnose.php`, `index.php`, `info.php`, `support.php`, `system-*.php` | Remote-Zugriffe in Marketplace-/Theme-Entrypoints härten |
-| **Admin – Module** | 55 | 80,2 | 73,9 | 84,2 | 79,5 | `LegalSitesModule.php`, `MemberDashboardModule.php` | `PostsCategoryViewModelBuilder.php`, `SystemInfoModule.php` | Performance- und Qualitäts-Gates für große Module priorisieren |
+| **Admin – Module** | 55 | 80,3 | 73,9 | 84,2 | 79,6 | `LegalSitesModule.php`, `MemberDashboardModule.php` | `PostsCategoryViewModelBuilder.php`, `SystemInfoModule.php` | Performance- und Qualitäts-Gates für große Module priorisieren |
 | **Admin – Layout-Partials** | 4 | 87,5 | 91,0 | 84,3 | 87,5 | `sidebar.php` | `section-page-shell.php` | Bereits stark; nur Regressionen verhindern |
 | **Admin – Views** | 89 | 84,4 | 83,9 | 83,7 | 83,4 | `posts/edit.php`, `pages/edit.php`, `landing/page.php` | `member/subnav.php`, `performance/subnav.php`, `seo/subnav.php` | Editor-Komplexität und Formularpfade weiter entkoppeln |
 | **Admin – View-Partials** | 8 | 89,5 | 94,4 | 84,9 | 89,6 | `featured-image-picker.php` | `content-advanced-seo-panel.php`, `content-preview-card.php`, `content-readability-card.php`, `content-seo-score-panel.php` | Sehr guter Standard – als Referenzmuster konservieren |
@@ -690,7 +708,7 @@ Verwendete Referenzbasis für die Einordnung:
 | **Core – Contracts** | 3 | 94,0 | 95,0 | 92,0 | 94,0 | – | alle Contracts | Referenzniveau halten, keine unnötige Aufblähung |
 | **Core – Auth Provider & MFA** | 5 | 69,6 | 79,0 | 83,2 | 77,4 | `LdapAuthProvider.php`, `WebAuthnAdapter.php` | `TotpAdapter.php`, `AuthManager.php` | LDAP-, Passkey- und MFA-Randfälle gezielt testen |
 | **Core – Routing** | 6 | 76,3 | 79,8 | 82,7 | 79,7 | `ApiRouter.php` | `ThemeArchiveRepository.php` | API-/Routing-Validierung und Request-Härtung vertiefen |
-| **Core – Allgemeine Services** | 42 | 79,3 | 77,7 | 82,7 | 78,8 | `AzureMailTokenProvider.php`, `FeedService.php`, `MailService.php` | `PurifierService.php`, `PermalinkService.php`, `StatusService.php` | Externe APIs, Token-Handling und Fehlerpfade robuster machen |
+| **Core – Allgemeine Services** | 42 | 79,9 | 77,8 | 82,9 | 79,0 | `FeedService.php`, `MailService.php`, `EditorJsRemoteMediaService.php` | `PurifierService.php`, `PermalinkService.php`, `StatusService.php` | Externe APIs, Remote-URLs und Fehlerpfade robuster machen |
 | **Core – EditorJs Services** | 9 | 79,0 | 79,9 | 83,2 | 80,8 | `EditorJsRemoteMediaService.php`, `EditorJsUploadService.php` | `EditorJsSanitizer.php`, `EditorJsRequestGuard.php` | Remote-Media und Upload-Härtung priorisieren |
 | **Core – Landing Services** | 9 | 81,8 | 82,6 | 84,0 | 82,7 | `LandingPluginService.php` | `LandingSanitizer.php` | Sanitizer-Qualität halten, Plugin-Integration schärfer absichern |
 | **Core – Media Services** | 3 | 73,7 | 74,0 | 82,0 | 76,7 | `UploadHandler.php` | `MediaRepository.php` | Upload-Pfade, Dateitypen und Filesystem-Grenzen prüfen |

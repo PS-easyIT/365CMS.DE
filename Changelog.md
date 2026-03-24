@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.41-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.44-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,36 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.6.44 — 24. März 2026 · Audit-Batch 026, Dokumentations-Modul gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.44** | 🔴 fix | Admin/System | **Dokumentations-Modul gegen lose Pfad- und Zugriffsannahmen gehärtet**: `CMS/admin/modules/system/DocumentationModule.php` prüft Admin-Zugriff jetzt auch intern, validiert Repository-/`/DOC`-Layout vor Datenaufbau und Sync-Aufruf und akzeptiert ausgewählte Dokumente nur noch in erwarteten Längen und Dateitypen. |
+| **2.6.44** | 🔴 fix | Admin/System | **Render- und Sync-Fehler laufen kontrollierter**: unerwartete Ausnahmen werden intern gekürzt geloggt und nach außen nur noch mit generischen, UI-tauglichen Meldungen beantwortet. |
+| **2.6.44** | 🟡 refactor | Admin/System | **Fehlerzustände liefern konsistente View-Daten**: das Modul gibt auch bei Fehlkonfigurationen strukturierte Antwortpayloads zurück, damit die Doku-Oberfläche stabil und ohne lose Spezialfälle rendern kann. |
+
+---
+
+### v2.6.43 — 24. März 2026 · Audit-Batch 025, Feed-Service gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.43** | 🔴 fix | Core/Feeds | **Feed-Service gegen unsichere Remote-Ziele und rohe Fehlerpfade gehärtet**: `CMS/core/Services/FeedService.php` validiert Feed-URLs jetzt auf erlaubte HTTP(S)-Schemes, blockiert Hosts mit Credentials sowie private/reservierte Zielnetze und begrenzt Batch-Listen auf eine kontrollierte Anzahl valider Feed-Quellen. |
+| **2.6.43** | 🔴 fix | Core/Feeds | **Feed-Metadaten und Items werden defensiver normalisiert**: Titel, Kategorien, Autoren, GUIDs sowie Link-/Bild-Ziele werden serverseitig bereinigt, während Feed-Beschreibungen und -Inhalte über `PurifierService` sanitisiert werden. |
+| **2.6.43** | 🟡 refactor | Core/Feeds | **Cache- und Logging-Pfade vereinheitlicht**: Cache-Dateien werden nur noch innerhalb des echten Feed-Cache-Roots gelöscht, Parser-/Remote-Fehler werden gekürzt geloggt und nach außen nur noch generisch beantwortet. |
+
+---
+
+### v2.6.42 — 24. März 2026 · Audit-Batch 024, Azure-Mail-Token-Provider gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.42** | 🔴 fix | Core/Integration | **Azure-Mail-Token-Provider gegen Konfigurationsdrift und unsaubere Endpunkte gehärtet**: `CMS/core/Services/AzureMailTokenProvider.php` validiert Tenant-/Client-/Mailbox-/Scope-Werte restriktiver, akzeptiert nur noch sichere Microsoft-Login-Tokenpfade und verwirft Query-/Fragment-Anteile an benutzerdefinierten Token-Endpunkten. |
+| **2.6.42** | 🔴 fix | Core/Integration | **Token-Cache und Remote-Antworten defensiver gemacht**: gecachte Tokens werden nur noch bei sauberer Form und ausreichender Restlaufzeit wiederverwendet; kaputte oder abgelaufene Cache-Einträge werden aktiv entfernt, während Remote-JSON und Fehlermeldungen serverseitig begrenzt und bereinigt werden. |
+| **2.6.42** | 🟡 refactor | Core/Integration | **Azure-OAuth2-Fehlerpfade vereinheitlicht**: Token-Typen werden konsistent normalisiert und Response-/Remote-Fehler laufen über kleine zentrale Helper statt über lose Einzelprüfungen. |
 
 ---
 
