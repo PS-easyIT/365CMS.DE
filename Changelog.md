@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.19-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.20-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -15,6 +15,13 @@
 | 🎨 | `style` | Design- / UI-Änderungen |
 
 ---
+
+## [2.6.20] – 2026-03-24
+
+### Docs
+
+- Der Auditbericht `AUDIT_23032026_CMS_PHINIT-LIVE.md` enthält jetzt einen klaren Abschluss-Nachtrag zum Umsetzungsstand vom `24.03.2026`: Der ursprüngliche Pflicht-Backlog `A-01` bis `A-19` ist vollständig abgearbeitet, während die Befundabschnitte als historischer Prüfstand erhalten bleiben.
+- `ToDo_Audit_23032026.md` weist den Auditlauf nun explizit als abgeschlossen aus und entfernt die inzwischen erledigte zusätzliche Device-Cookie-Notiz aus dem offenen Zusatz-Backlog.
 
 ## [2.6.19] – 2026-03-24
 

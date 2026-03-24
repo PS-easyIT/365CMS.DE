@@ -62,8 +62,6 @@ Die folgenden Punkte sind aus den alten Audit-Berichten, Restthemen und Betriebs
 - **Weitere Service-Splits für Rest-Hotspots** – insbesondere verbleibende Theme-/Media-Restblöcke
 - **Proxy-/CDN-Realfall-Prüfung im Betrieb** – Header, Vary-Verhalten und Cache-Reaktionen auf echter Infrastruktur gezielt gegenmessen
 
-- **Login Prüfung über Cookie** – Der Login soll zusätzlich an ein signiertes Device-Cookie mit maximal 2 Stunden Laufzeit gebunden werden; Inkognito-/Fremdsystem-Sessions ohne dieses Cookie dürfen keinen bestehenden Login übernehmen und Logout muss das Cookie löschen.
-
 
 ### Kritisch / hoch
 
@@ -121,6 +119,8 @@ Die folgenden Punkte sind aus den alten Audit-Berichten, Restthemen und Betriebs
 Die vollständige Dateiliste und Bereichszählung wird ausschließlich in `DOC/audit/FILEINVENTAR.md` geführt. Dieses ToDo referenziert nur noch den verifizierten Prüfscope von `419` Dateien.
 
 ## Abschluss
+
+**Stand 24.03.2026:** Alle Audit-Steps `#1` bis `#19` wurden vollständig umgesetzt, versioniert, committet und gepusht. Der Pflicht-Backlog dieses Audits ist damit abgeschlossen.
 
 Die erweiterte Vollprüfung bestätigt erneut: 365CMS ist aktuell eher ein Fall für **gezielten Struktur- und Betriebs-Feinschliff** als für akute Feuerwehreinsätze. Die drei schärfsten ToDos sind jetzt glasklar:
 

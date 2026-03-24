@@ -370,3 +370,13 @@ Für den aktuellen Stand gilt daher:
 - **nächster sinnvoller Schwerpunkt:** Versionsabgleich + Realbetriebstests + weiterer Abbau großer Wartungsblöcke
 
 Unterm Strich: technisch stabil, organisatorisch an einer Stelle unscharf – also eher Feinschliff als Feuerwehreinsatz.
+
+## Nachtrag – Umsetzungsstand 24.03.2026
+
+Der Pflicht-Backlog dieses Auditlaufs (`A-01` bis `A-19`) wurde am `24.03.2026` vollständig umgesetzt und jeweils einzeln mit Changelog-Eintrag sowie Git-Commit nachgezogen.
+
+Damit gilt für diesen Auditstand jetzt zusätzlich:
+
+- Die ursprünglichen Maßnahmen aus `DOC/audit/ToDo_Audit_23032026.md` sind vollständig abgearbeitet.
+- Der Audit- und ToDo-Stand ist nicht mehr „offen“, sondern dokumentiert einen abgeschlossenen Nacharbeitslauf.
+- Die Befund- und Bewertungsabschnitte oberhalb bleiben bewusst als historischer Prüfstand vom `23.03.2026` erhalten.
