@@ -8,6 +8,7 @@ $blacklist = $d['blacklist'] ?? [];
 $settings  = $d['settings'] ?? [];
 $stats     = $d['stats'] ?? [];
 $typeLabels = ['word' => 'Wort', 'email' => 'E-Mail', 'ip' => 'IP-Adresse', 'domain' => 'Domain'];
+$hasRecaptchaSecret = trim((string)($settings['antispam_recaptcha_secret'] ?? '')) !== '';
 ?>
 
 <div class="page-header d-print-none">
@@ -23,6 +24,10 @@ $typeLabels = ['word' => 'Wort', 'email' => 'E-Mail', 'ip' => 'IP-Adresse', 'dom
 
 <div class="page-body">
     <div class="container-xl">
+
+        <?php if (!empty($alert)): ?>
+            <?php $alertData = $alert; $alertMarginClass = 'mb-4'; require __DIR__ . '/../partials/flash-alert.php'; ?>
+        <?php endif; ?>
 
         <div class="row row-deck row-cards mb-4">
             <div class="col-sm-6 col-lg-3">
@@ -101,12 +106,13 @@ $typeLabels = ['word' => 'Wort', 'email' => 'E-Mail', 'ip' => 'IP-Adresse', 'dom
 
                             <div class="mb-3">
                                 <label class="form-label">Site Key</label>
-                                <input type="text" name="antispam_recaptcha_key" class="form-control" value="<?php echo htmlspecialchars($settings['antispam_recaptcha_key'] ?? ''); ?>">
+                                <input type="text" name="antispam_recaptcha_key" class="form-control" value="<?php echo htmlspecialchars($settings['antispam_recaptcha_key'] ?? ''); ?>" autocomplete="off" spellcheck="false" maxlength="255">
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label">Secret Key</label>
-                                <input type="password" name="antispam_recaptcha_secret" class="form-control" value="<?php echo htmlspecialchars($settings['antispam_recaptcha_secret'] ?? ''); ?>">
+                                <input type="password" name="antispam_recaptcha_secret" class="form-control" value="" autocomplete="new-password" maxlength="255" placeholder="<?php echo $hasRecaptchaSecret ? 'Bestehendes Secret bleibt bei leerem Feld erhalten' : ''; ?>">
+                                <small class="form-hint">Vorhandene Secrets werden aus Sicherheitsgründen nicht erneut im Formular angezeigt.</small>
                             </div>
 
                             <button type="submit" class="btn btn-primary w-100">Einstellungen speichern</button>
@@ -177,7 +183,7 @@ $typeLabels = ['word' => 'Wort', 'email' => 'E-Mail', 'ip' => 'IP-Adresse', 'dom
                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                                             <input type="hidden" name="action" value="delete_blacklist">
                                             <input type="hidden" name="id" value="<?php echo (int)$item['id']; ?>">
-                                            <button type="submit" class="btn btn-ghost-danger btn-sm" onclick="return confirm('Eintrag löschen?')">×</button>
+                                            <button type="button" class="btn btn-ghost-danger btn-sm" aria-label="Eintrag löschen" onclick="cmsConfirm({title:'Eintrag löschen?',message:'Der Blacklist-Eintrag wird unwiderruflich entfernt.',confirmText:'Löschen',confirmClass:'btn-danger',onConfirm:()=>this.closest('form').submit()})">×</button>
                                         </form>
                                     </td>
                                 </tr>

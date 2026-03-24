@@ -45,7 +45,7 @@ class BackupsModule
             }
             return ['success' => false, 'error' => 'Backup konnte nicht erstellt werden.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+            return ['success' => false, 'error' => 'Vollständiges Backup konnte nicht erstellt werden.'];
         }
     }
 
@@ -61,7 +61,7 @@ class BackupsModule
             }
             return ['success' => false, 'error' => 'DB-Backup konnte nicht erstellt werden.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+            return ['success' => false, 'error' => 'Datenbank-Backup konnte nicht erstellt werden.'];
         }
     }
 
@@ -81,7 +81,7 @@ class BackupsModule
             }
             return ['success' => false, 'error' => 'Backup konnte nicht gelöscht werden.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+            return ['success' => false, 'error' => 'Backup konnte nicht gelöscht werden.'];
         }
     }
 

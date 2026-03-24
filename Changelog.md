@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.21-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.24-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,41 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.6.24 — 24. März 2026 · Audit-Batch 006, Member-/Legal-Härtung
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.24** | 🔴 fix | Admin/Member | **Member-Dashboard-Settings gehärtet**: `CMS/admin/modules/member/MemberDashboardModule.php` normalisiert Dashboard-Logo und Onboarding-CTA-URLs defensiver und führt Speicherroutinen bei Fehlern über einen zentralen, auditierbaren Generic-Error-Pfad statt rohe Exception-Texte an die UI weiterzugeben. |
+| **2.6.24** | 🔴 fix | Admin/Legal | **Cookie-Manager robuster gemacht**: `CMS/admin/modules/legal/CookieManagerModule.php` begrenzt Policy-URLs, Slugs, Matomo-Site-IDs und Bannertexte strenger, hält Dateisystem-Scans von Symlinks fern und behandelt Persistenzfehler nur noch generisch im UI. |
+| **2.6.24** | 🔴 fix | Admin/Legal | **Legal-Sites-Fehlerpfade vereinheitlicht**: `CMS/admin/modules/legal/LegalSitesModule.php` leakt in Save-, Profil- und Seitengenerierungs-Pfaden keine rohen Exceptions mehr, sondern protokolliert Fehler zentral auditierbar. |
+
+---
+
+### v2.6.23 — 24. März 2026 · Audit-Batch 005, SEO-/Performance-/Settings-Härtung
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.23** | 🔴 fix | Admin/SEO | **SEO-Suite defensiver gemacht**: `CMS/admin/modules/seo/SeoSuiteModule.php` validiert Indexing-URLs jetzt hostgebunden gegen die eigene Site, dedupliziert Submission-Listen, normalisiert Sitemap-Prioritäten/-Frequenzen und nutzt für Broken-Link-Prüfungen die konfigurierbare Permalink-Struktur statt harter `/blog/`-Annahmen. |
+| **2.6.23** | 🔴 fix | Admin/Performance | **Performance-Dateipfade robuster abgesichert**: `CMS/admin/modules/seo/PerformanceModule.php` überspringt Symlinks in Cache-, Session- und Medienläufen, begrenzt numerische Settings sauberer und leakt bei Settings-Fehlern keine rohen Exceptions mehr ins UI. |
+| **2.6.23** | 🔴 fix | Admin/Settings | **Allgemeine Einstellungen und Config-Writer gehärtet**: `CMS/admin/modules/settings/SettingsModule.php` normalisiert Logo-/Favicon-Referenzen strenger, schreibt `config/app.php` und `config/.htaccess` kontrollierter über temporäre Dateien und reduziert Fehlerdetail-Leaks in Save-, Migrations- und Slug-Repair-Pfaden. |
+| **2.6.23** | 🟡 refactor | Admin/Settings | **Settings-Entry vereinheitlicht**: `CMS/admin/settings.php` akzeptiert nur noch bekannte POST-Aktionen und `CMS/admin/views/settings/general.php` nutzt jetzt den gemeinsamen Flash-Alert-Partial statt eigener Alert-Duplikate. |
+
+---
+
+### v2.6.22 — 24. März 2026 · Audit-Batch 001, Antispam-Härtung & Versions-Sync
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.22** | 🔴 fix | Admin/Security | **AntiSpam-Flow gehärtet**: `CMS/admin/antispam.php`, `CMS/admin/modules/security/AntispamModule.php` und `CMS/admin/views/security/antispam.php` verarbeiten Mutationen jetzt mit Action-Allowlist, konsistentem Redirect-/Flash-Flow, generischeren Fehlerantworten und ohne vorbelegtes reCAPTCHA-Secret im Formular. |
+| **2.6.22** | 🔴 fix | Core/Backups | **Backup-Pfade und I/O-Failsafes gehärtet**: `CMS/core/Services/BackupService.php` akzeptiert Zielverzeichnisse nur noch innerhalb des Backup-Roots, validiert Backup-Namen, liest Manifeste defensiver ein, folgt beim Löschen keinen Symlinks blind und beseitigt den Mail-Backup-Fehler mit `filesize()` nach dem Löschen der Temp-Datei. |
+| **2.6.22** | 🔴 fix | Admin/System | **Backup-Modul leakt keine Rohfehler mehr**: `CMS/admin/modules/system/BackupsModule.php` gibt in der UI nur noch generische Fehlermeldungen aus, statt interne Exception-Texte direkt durchzureichen. |
+| **2.6.22** | 🔴 fix | Admin/Themes | **Theme-Dateieditor gegen Traversal und Oversize-Dateien gehärtet**: `CMS/admin/theme-explorer.php`, `CMS/admin/modules/themes/ThemeEditorModule.php` und `CMS/admin/views/themes/editor.php` begrenzen Aktionen, normalisieren Pfade, erzwingen Theme-Root + Größenlimit, ignorieren Symlinks und schreiben Dateien mit `LOCK_EX`. |
+| **2.6.22** | 🟡 refactor | Admin/Marketplace | **Marketplace-Entrypoints vereinheitlicht**: `CMS/admin/plugin-marketplace.php` und `CMS/admin/theme-marketplace.php` erlauben nur noch die erwartete Installationsaktion und behandeln CSRF-/Aktionsfehler jetzt konsistent über Redirect + Flash-Alert; die bereits vorhandenen SHA-256-/Allowlist-Gates der Module wurden dabei erneut verifiziert. |
+| **2.6.22** | 🔵 docs | Audit | **Inkrementelles Prüfprotokoll eingeführt**: `DOC/audit/ToDoPrüfung.md` dokumentiert die Abarbeitung von `PRÜFUNG.MD` ab jetzt schrittweise; `DOC/audit/BEWERTUNG.md` enthält zusätzlich eine Delta-Sektion für bereits umgesetzte Audit-Batches. |
+| **2.6.22** | ⬜ chore | Versionierung | **Release-Quellen wieder synchronisiert**: `CMS/core/Version.php`, `CMS/update.json` und der Changelog-Badge wurden auf denselben Release-Stand gezogen, damit Laufzeit-, Updater- und Doku-Version nicht länger auseinanderlaufen. |
 
 ---
 

@@ -21,26 +21,31 @@ if (!Auth::instance()->isAdmin()) {
 require_once __DIR__ . '/modules/themes/ThemeMarketplaceModule.php';
 $module    = new ThemeMarketplaceModule();
 $alert     = null;
+$redirectUrl = SITE_URL . '/admin/theme-marketplace';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $postToken = $_POST['csrf_token'] ?? '';
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    $postToken = (string)($_POST['csrf_token'] ?? '');
     if (!Security::instance()->verifyToken($postToken, 'admin_theme_marketplace')) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-        header('Location: ' . SITE_URL . '/admin/theme-marketplace');
+        header('Location: ' . $redirectUrl);
         exit;
     }
 
-    $action = $_POST['action'] ?? '';
-    if ($action === 'install') {
-        $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', $_POST['theme'] ?? '');
-        $result = $module->installTheme($slug);
-        $_SESSION['admin_alert'] = [
-            'type'    => $result['success'] ? 'success' : 'danger',
-            'message' => $result['message'] ?? $result['error'] ?? '',
-        ];
+    $action = (string)($_POST['action'] ?? '');
+    if ($action !== 'install') {
+        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Unbekannte oder nicht erlaubte Aktion.'];
+        header('Location: ' . $redirectUrl);
+        exit;
     }
 
-    header('Location: ' . SITE_URL . '/admin/theme-marketplace');
+    $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', (string)($_POST['theme'] ?? ''));
+    $result = $module->installTheme($slug);
+    $_SESSION['admin_alert'] = [
+        'type'    => !empty($result['success']) ? 'success' : 'danger',
+        'message' => $result['message'] ?? $result['error'] ?? 'Unbekannte Antwort.',
+    ];
+
+    header('Location: ' . $redirectUrl);
     exit;
 }
 

@@ -32,6 +32,18 @@ final class PerformanceModule
         'perf_session_timeout_member' => '2592000',
     ];
 
+    private const BOOLEAN_SETTING_KEYS = [
+        'perf_lazy_loading',
+        'perf_minify_css',
+        'perf_minify_js',
+        'perf_gzip',
+        'perf_browser_cache',
+        'perf_page_cache',
+        'perf_webp_uploads',
+        'perf_strip_exif',
+        'perf_auto_clear_content_cache',
+    ];
+
     private readonly \CMS\Database $db;
     private readonly \CMS\CacheManager $cacheManager;
     private readonly \CMS\Services\SystemService $systemService;
@@ -564,6 +576,10 @@ final class PerformanceModule
 
         $count = 0;
         foreach (glob($cacheDir . '*') ?: [] as $file) {
+            if (is_link($file)) {
+                continue;
+            }
+
             if (is_file($file) && unlink($file)) {
                 $count++;
             }
@@ -689,6 +705,10 @@ final class PerformanceModule
         if (is_dir($sessionDir)) {
             $threshold = time() - 86400;
             foreach (glob($sessionDir . '*') ?: [] as $file) {
+                if (is_link($file)) {
+                    continue;
+                }
+
                 if (is_file($file) && filemtime($file) < $threshold && unlink($file)) {
                     $fileCount++;
                 }
@@ -716,12 +736,18 @@ final class PerformanceModule
         $settings = $this->getSettings();
 
         foreach ($settings as $key => $default) {
-            if (in_array($key, ['perf_lazy_loading', 'perf_minify_css', 'perf_minify_js', 'perf_gzip', 'perf_browser_cache', 'perf_page_cache', 'perf_webp_uploads', 'perf_strip_exif', 'perf_auto_clear_content_cache'], true)) {
+            if (in_array($key, self::BOOLEAN_SETTING_KEYS, true)) {
                 $settings[$key] = !empty($post[$key]) ? '1' : '0';
                 continue;
             }
 
-            $settings[$key] = (string)max(0, (int)($post[$key] ?? $default));
+            $settings[$key] = match ($key) {
+                'perf_browser_cache_ttl' => (string)max(0, min(31536000, (int)($post[$key] ?? $default))),
+                'perf_html_cache_ttl' => (string)max(0, min(86400, (int)($post[$key] ?? $default))),
+                'perf_session_timeout_admin' => (string)max(300, min(604800, (int)($post[$key] ?? $default))),
+                'perf_session_timeout_member' => (string)max(300, min(31536000, (int)($post[$key] ?? $default))),
+                default => (string)max(0, (int)($post[$key] ?? $default)),
+            };
         }
 
         try {
@@ -734,7 +760,17 @@ final class PerformanceModule
                 }
             }
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Performance-Einstellungen konnten nicht gespeichert werden: ' . $e->getMessage()];
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SETTING,
+                'performance.settings.save_failed',
+                'Performance-Einstellungen konnten nicht gespeichert werden',
+                'setting',
+                null,
+                ['exception' => $e->getMessage()],
+                'error'
+            );
+
+            return ['success' => false, 'error' => 'Performance-Einstellungen konnten nicht gespeichert werden. Bitte Logs prüfen.'];
         }
 
         AuditLogger::instance()->log(
@@ -759,6 +795,10 @@ final class PerformanceModule
         $size = 0;
         $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS));
         foreach ($iterator as $file) {
+            if ($file->isLink()) {
+                continue;
+            }
+
             if ($excludePath !== null && $excludePath($file->getPathname())) {
                 continue;
             }
@@ -775,6 +815,10 @@ final class PerformanceModule
         $filter = new \RecursiveCallbackFilterIterator(
             $directoryIterator,
             function (\SplFileInfo $current): bool {
+                if ($current->isLink()) {
+                    return false;
+                }
+
                 return !$this->shouldExcludeMediaPath($current->getPathname());
             }
         );
@@ -886,6 +930,10 @@ final class PerformanceModule
 
     private function deleteFileIfExists(string $path): bool
     {
+        if (is_link($path)) {
+            return false;
+        }
+
         if (!is_file($path)) {
             return true;
         }

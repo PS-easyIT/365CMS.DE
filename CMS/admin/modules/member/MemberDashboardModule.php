@@ -12,6 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Database;
+use CMS\AuditLogger;
 
 class MemberDashboardModule
 {
@@ -223,14 +224,14 @@ class MemberDashboardModule
                 'member_dashboard_greeting'   => $this->sanitizeTextSetting((string)($post['dashboard_greeting'] ?? 'Guten Tag, {name}!'), 120),
                 'member_dashboard_welcome_text' => strip_tags((string)($post['dashboard_welcome_text'] ?? ''), '<p><a><strong><em><br><ul><ol><li>'),
                 'member_dashboard_show_welcome' => !empty($post['show_welcome']) ? '1' : '0',
-                'member_dashboard_logo'       => trim((string)($post['dashboard_logo'] ?? '')),
+                'member_dashboard_logo'       => $this->normalizeAssetReference((string)($post['dashboard_logo'] ?? '')),
             ];
 
             $this->persistSettings($values);
 
             return ['success' => true, 'message' => 'Allgemeine Member-Dashboard-Einstellungen gespeichert.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+			return $this->failResult('member.dashboard.general.save_failed', 'Allgemeine Member-Dashboard-Einstellungen konnten nicht gespeichert werden.', $e);
         }
     }
 
@@ -268,7 +269,7 @@ class MemberDashboardModule
 
             return ['success' => true, 'message' => 'Widget- und Layout-Einstellungen gespeichert.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+			return $this->failResult('member.dashboard.widgets.save_failed', 'Widget- und Layout-Einstellungen konnten nicht gespeichert werden.', $e);
         }
     }
 
@@ -289,7 +290,7 @@ class MemberDashboardModule
 
             return ['success' => true, 'message' => 'Profil-Felder und Navigationssichtbarkeit gespeichert.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+			return $this->failResult('member.dashboard.profile.save_failed', 'Profil-Felder konnten nicht gespeichert werden.', $e);
         }
     }
 
@@ -309,7 +310,7 @@ class MemberDashboardModule
 
             return ['success' => true, 'message' => 'Design- und Farbvorgaben gespeichert.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+			return $this->failResult('member.dashboard.design.save_failed', 'Design- und Farbvorgaben konnten nicht gespeichert werden.', $e);
         }
     }
 
@@ -329,7 +330,7 @@ class MemberDashboardModule
 
             return ['success' => true, 'message' => 'Frontend-Module gespeichert.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+			return $this->failResult('member.dashboard.frontend_modules.save_failed', 'Frontend-Module konnten nicht gespeichert werden.', $e);
         }
     }
 
@@ -359,7 +360,7 @@ class MemberDashboardModule
 
             return ['success' => true, 'message' => 'Benachrichtigungseinstellungen gespeichert.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+			return $this->failResult('member.dashboard.notifications.save_failed', 'Benachrichtigungseinstellungen konnten nicht gespeichert werden.', $e);
         }
     }
 
@@ -375,7 +376,7 @@ class MemberDashboardModule
                 'member_dashboard_onboarding_intro' => trim(strip_tags((string)($post['onboarding_intro'] ?? ''))),
                 'member_dashboard_onboarding_steps' => json_encode($steps, JSON_UNESCAPED_UNICODE),
                 'member_dashboard_onboarding_cta_label' => $this->sanitizeTextSetting((string)($post['onboarding_cta_label'] ?? 'Profil vervollständigen'), 80),
-                'member_dashboard_onboarding_cta_url' => trim((string)($post['onboarding_cta_url'] ?? '/member/profile')),
+                'member_dashboard_onboarding_cta_url' => $this->normalizeActionUrl((string)($post['onboarding_cta_url'] ?? '/member/profile'), '/member/profile'),
                 'member_dashboard_onboarding_require_profile_completion' => !empty($post['onboarding_require_profile_completion']) ? '1' : '0',
             ];
 
@@ -383,7 +384,7 @@ class MemberDashboardModule
 
             return ['success' => true, 'message' => 'Onboarding-Einstellungen gespeichert.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+			return $this->failResult('member.dashboard.onboarding.save_failed', 'Onboarding-Einstellungen konnten nicht gespeichert werden.', $e);
         }
     }
 
@@ -426,7 +427,7 @@ class MemberDashboardModule
 
             return ['success' => true, 'message' => 'Plugin-Widgets gespeichert.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+			return $this->failResult('member.dashboard.plugin_widgets.save_failed', 'Plugin-Widgets konnten nicht gespeichert werden.', $e);
         }
     }
 
@@ -739,5 +740,60 @@ class MemberDashboardModule
         }
 
         return $fallback;
+    }
+
+    private function normalizeAssetReference(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        if (str_starts_with($value, '/')) {
+            return '/' . ltrim($value, '/');
+        }
+
+        $sanitized = trim((string)filter_var($value, FILTER_SANITIZE_URL));
+        if ($sanitized === '' || filter_var($sanitized, FILTER_VALIDATE_URL) === false) {
+            return '';
+        }
+
+        $scheme = strtolower((string)parse_url($sanitized, PHP_URL_SCHEME));
+        return in_array($scheme, ['http', 'https'], true) ? $sanitized : '';
+    }
+
+    private function normalizeActionUrl(string $value, string $fallback): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return $fallback;
+        }
+
+        if (str_starts_with($value, '/')) {
+            return '/' . ltrim($value, '/');
+        }
+
+        $sanitized = trim((string)filter_var($value, FILTER_SANITIZE_URL));
+        if ($sanitized === '' || filter_var($sanitized, FILTER_VALIDATE_URL) === false) {
+            return $fallback;
+        }
+
+        $scheme = strtolower((string)parse_url($sanitized, PHP_URL_SCHEME));
+        return in_array($scheme, ['http', 'https'], true) ? $sanitized : $fallback;
+    }
+
+    private function failResult(string $action, string $message, \Throwable $e): array
+    {
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            $action,
+            $message,
+            'member_dashboard',
+            null,
+            ['exception' => $e->getMessage()],
+            'error'
+        );
+
+        return ['success' => false, 'error' => $message . ' Bitte Logs prüfen.'];
     }
 }

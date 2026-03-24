@@ -38,11 +38,7 @@ $usesDefaultCoreUpdate = (($s['core_update_url'] ?? $defaultCoreUpdateUrl) === $
         </div>
     </div>
 
-    <?php if (!empty($alert)): ?>
-        <div class="alert alert-<?php echo htmlspecialchars($alert['type'] ?? 'info'); ?> mb-4" role="alert">
-            <?php echo htmlspecialchars($alert['message'] ?? ''); ?>
-        </div>
-    <?php endif; ?>
+    <?php require dirname(__DIR__) . '/partials/flash-alert.php'; ?>
 
     <form method="post" autocomplete="off">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">

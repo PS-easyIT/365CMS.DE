@@ -15,11 +15,13 @@ use CMS\ThemeManager;
 
 class ThemeEditorModule
 {
+    private const ALLOWED_PATH_PATTERN = '/^[A-Za-z0-9._\/-]+$/';
     private ThemeManager $themeManager;
     private string $themePath;
     private string $themeSlug;
 
     private const ALLOWED_EXTENSIONS = ['php', 'css', 'js', 'json', 'html', 'txt', 'md'];
+    private const MAX_EDITABLE_BYTES = 1048576;
 
     public function __construct()
     {
@@ -37,11 +39,21 @@ class ThemeEditorModule
 
         $fileContent  = '';
         $fileLanguage = 'plaintext';
+        $fileWarning  = null;
+
+        $currentFile = $this->normalizeRelativePath($currentFile);
 
         if ($currentFile !== '') {
             $safePath = $this->resolveSafePath($currentFile);
-            if ($safePath && file_exists($safePath)) {
-                $fileContent  = file_get_contents($safePath);
+            if ($safePath && is_file($safePath)) {
+                $fileSize = filesize($safePath);
+                if ($fileSize === false || $fileSize > self::MAX_EDITABLE_BYTES) {
+                    $fileWarning = 'Die ausgewählte Datei ist zu groß für die sichere Browser-Bearbeitung.';
+                } else {
+                    $contents = file_get_contents($safePath);
+                    $fileContent = is_string($contents) ? $contents : '';
+                }
+
                 $fileLanguage = $this->getLanguage($currentFile);
             }
         }
@@ -52,6 +64,7 @@ class ThemeEditorModule
             'currentFile'  => $currentFile,
             'fileContent'  => $fileContent,
             'fileLanguage' => $fileLanguage,
+            'fileWarning'  => $fileWarning,
         ];
     }
 
@@ -60,7 +73,8 @@ class ThemeEditorModule
      */
     public function saveFile(string $relativePath, string $content): array
     {
-        if (empty($relativePath)) {
+        $relativePath = $this->normalizeRelativePath($relativePath);
+        if ($relativePath === '') {
             return ['success' => false, 'error' => 'Kein Dateipfad angegeben.'];
         }
 
@@ -69,13 +83,22 @@ class ThemeEditorModule
             return ['success' => false, 'error' => 'Ungültiger Dateipfad.'];
         }
 
-        if (!file_exists($safePath)) {
+        if (!is_file($safePath)) {
             return ['success' => false, 'error' => 'Datei nicht gefunden.'];
         }
 
         $ext = strtolower(pathinfo($safePath, PATHINFO_EXTENSION));
         if (!in_array($ext, self::ALLOWED_EXTENSIONS, true)) {
             return ['success' => false, 'error' => 'Dateityp nicht erlaubt.'];
+        }
+
+        $fileSize = filesize($safePath);
+        if ($fileSize === false || $fileSize > self::MAX_EDITABLE_BYTES) {
+            return ['success' => false, 'error' => 'Datei ist zu groß für die sichere Bearbeitung im Browser.'];
+        }
+
+        if (!is_writable($safePath)) {
+            return ['success' => false, 'error' => 'Datei ist nicht beschreibbar.'];
         }
 
         // PHP-Syntax prüfen vor dem Speichern
@@ -87,7 +110,7 @@ class ThemeEditorModule
             }
         }
 
-        if (file_put_contents($safePath, $content) === false) {
+        if (file_put_contents($safePath, $content, LOCK_EX) === false) {
             return ['success' => false, 'error' => 'Datei konnte nicht gespeichert werden.'];
         }
 
@@ -99,23 +122,32 @@ class ThemeEditorModule
      */
     private function resolveSafePath(string $relativePath): ?string
     {
-        // Gefährliche Zeichen entfernen
-        $relativePath = str_replace(['..', "\0"], '', $relativePath);
+        $relativePath = $this->normalizeRelativePath($relativePath);
+        if ($relativePath === '' || !$this->isAllowedRelativePath($relativePath)) {
+            return null;
+        }
 
-        $fullPath = $this->themePath . $relativePath;
+        if ($relativePath === '.' || str_starts_with($relativePath, '../') || str_contains($relativePath, '/../')) {
+            return null;
+        }
+
         $realBase = realpath($this->themePath);
-        $realFile = realpath(dirname($fullPath)) . DIRECTORY_SEPARATOR . basename($fullPath);
-
         if ($realBase === false) {
             return null;
         }
 
-        // Verifizieren, dass der Pfad innerhalb des Theme-Verzeichnisses liegt
+        $fullPath = $realBase . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
+        $realFile = realpath($fullPath);
+        if ($realFile === false) {
+            return null;
+        }
+
+        $realBase = rtrim($realBase, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
         if (!str_starts_with($realFile, $realBase)) {
             return null;
         }
 
-        return $fullPath;
+        return $realFile;
     }
 
     /**
@@ -130,8 +162,13 @@ class ThemeEditorModule
             if ($item === '.' || $item === '..') {
                 continue;
             }
+
             $path     = $dir . $item;
             $relative = $prefix . $item;
+
+            if (is_link($path)) {
+                continue;
+            }
 
             if (is_dir($path)) {
                 $files[] = [
@@ -142,7 +179,8 @@ class ThemeEditorModule
                 ];
             } else {
                 $ext = strtolower(pathinfo($item, PATHINFO_EXTENSION));
-                if (in_array($ext, self::ALLOWED_EXTENSIONS, true)) {
+                $fileSize = filesize($path);
+                if (in_array($ext, self::ALLOWED_EXTENSIONS, true) && $fileSize !== false && $fileSize <= self::MAX_EDITABLE_BYTES) {
                     $files[] = [
                         'name' => $item,
                         'path' => $relative,
@@ -171,5 +209,19 @@ class ThemeEditorModule
             'md'   => 'markdown',
             default => 'plaintext',
         };
+    }
+
+    private function normalizeRelativePath(string $relativePath): string
+    {
+        $relativePath = preg_replace('/[\x00-\x1F\x7F]/u', '', trim($relativePath)) ?? '';
+        $relativePath = str_replace('\\', '/', $relativePath);
+        $relativePath = preg_replace('#/+#', '/', $relativePath) ?? '';
+
+        return ltrim($relativePath, '/');
+    }
+
+    private function isAllowedRelativePath(string $relativePath): bool
+    {
+        return preg_match(self::ALLOWED_PATH_PATTERN, $relativePath) === 1;
     }
 }

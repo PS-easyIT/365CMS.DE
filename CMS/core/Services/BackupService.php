@@ -27,6 +27,8 @@ class BackupService
     private HttpClient $httpClient;
     
     private const BACKUP_DIR = ABSPATH . 'backups/';
+    private const MANIFEST_MAX_BYTES = 262144;
+    private const BACKUP_NAME_PATTERN = '/^[a-z0-9][a-z0-9._-]{2,120}$/i';
     
     /**
      * Singleton instance
@@ -54,14 +56,20 @@ class BackupService
      */
     private function ensureBackupDir(): void
     {
-        if (!is_dir(self::BACKUP_DIR)) {
-            mkdir(self::BACKUP_DIR, 0755, true);
-            
-            // Create .htaccess to prevent direct access
-            file_put_contents(
-                self::BACKUP_DIR . '.htaccess',
-                "deny from all\n"
-            );
+        $backupRoot = $this->backupRoot();
+
+        if (!is_dir($backupRoot) && !mkdir($backupRoot, 0755, true) && !is_dir($backupRoot)) {
+            throw new \RuntimeException('Backup-Verzeichnis konnte nicht erstellt werden.');
+        }
+
+        $htaccessPath = $backupRoot . '.htaccess';
+        if (!is_file($htaccessPath) && file_put_contents($htaccessPath, "deny from all\n", LOCK_EX) === false) {
+            throw new \RuntimeException('Backup-Schutzdatei konnte nicht geschrieben werden.');
+        }
+
+        $indexPath = $backupRoot . 'index.html';
+        if (!is_file($indexPath) && file_put_contents($indexPath, '', LOCK_EX) === false) {
+            throw new \RuntimeException('Backup-Indexdatei konnte nicht geschrieben werden.');
         }
     }
     
@@ -72,10 +80,8 @@ class BackupService
     {
         try {
             $timestamp = date('Y-m-d_H-i-s');
-            $backupName = "full_backup_{$timestamp}";
-            $backupPath = self::BACKUP_DIR . $backupName . '/';
-            
-            mkdir($backupPath, 0755, true);
+            $backupName = $this->normalizeBackupName("full_backup_{$timestamp}");
+            $backupPath = $this->createBackupDirectory($backupName);
             
             // 1. Database backup
             $dbFile = $this->createDatabaseBackup($backupPath);
@@ -94,10 +100,10 @@ class BackupService
                 'cms_version' => CMS_VERSION ?? 'unknown',
             ];
             
-            file_put_contents(
-                $backupPath . 'manifest.json',
-                json_encode($manifest, JSON_PRETTY_PRINT)
-            );
+            $manifestJson = json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+            if (!is_string($manifestJson) || file_put_contents($backupPath . 'manifest.json', $manifestJson, LOCK_EX) === false) {
+                throw new \RuntimeException('Manifest konnte nicht geschrieben werden.');
+            }
             
             // Log backup
             $this->logBackup('full', $backupName, $manifest['size']);
@@ -112,7 +118,7 @@ class BackupService
             error_log('BackupService::createFullBackup() Error: ' . $e->getMessage());
             return [
                 'success' => false,
-                'error' => $e->getMessage(),
+                'error' => 'Vollständiges Backup konnte nicht erstellt werden.',
             ];
         }
     }
@@ -122,24 +128,31 @@ class BackupService
      */
     public function createDatabaseBackup(?string $targetDir = null): string
     {
-        $targetDir = $targetDir ?? self::BACKUP_DIR;
+        $targetDir = $this->resolveTargetDirectory($targetDir);
         $timestamp = date('Y-m-d_H-i-s');
         $filename = "database_{$timestamp}.sql";
         $filepath = $targetDir . $filename;
         
         try {
             $sql = $this->generateDatabaseDump();
-            file_put_contents($filepath, $sql);
+            if (file_put_contents($filepath, $sql, LOCK_EX) === false) {
+                throw new \RuntimeException('SQL-Backupdatei konnte nicht geschrieben werden.');
+            }
             
             // Compress
             if (extension_loaded('zlib')) {
                 $gzFilepath = $filepath . '.gz';
                 $gz = gzopen($gzFilepath, 'w9');
+                if ($gz === false) {
+                    throw new \RuntimeException('Komprimiertes Backup konnte nicht erstellt werden.');
+                }
                 gzwrite($gz, $sql);
                 gzclose($gz);
                 
                 // Remove uncompressed file
-                unlink($filepath);
+                if (is_file($filepath) && !unlink($filepath)) {
+                    throw new \RuntimeException('Temporäre SQL-Backupdatei konnte nicht entfernt werden.');
+                }
                 $filepath = $gzFilepath;
             }
             
@@ -253,14 +266,22 @@ class BackupService
     private function addDirectoryToZip(\ZipArchive $zip, string $path, string $basePath): void
     {
         $files = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($path),
+            new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::LEAVES_ONLY
         );
         
         foreach ($files as $file) {
+            if ($file->isLink() || !$file->isFile()) {
+                continue;
+            }
+
             if (!$file->isDir()) {
                 $filePath = $file->getRealPath();
-                $relativePath = $basePath . '/' . substr($filePath, strlen($path) + 1);
+                if ($filePath === false) {
+                    continue;
+                }
+
+                $relativePath = $basePath . '/' . str_replace('\\', '/', substr($filePath, strlen(rtrim($path, '\\/')) + 1));
                 $zip->addFile($filePath, $relativePath);
             }
         }
@@ -279,13 +300,18 @@ class BackupService
             
             // Compress
             $gz = gzopen($tempFile, 'w9');
+            if ($gz === false) {
+                throw new \RuntimeException('Temporäre Backup-Datei konnte nicht erstellt werden.');
+            }
             gzwrite($gz, $sql);
             gzclose($gz);
+
+            $backupSize = is_file($tempFile) ? (int)filesize($tempFile) : 0;
             
             $subject = 'CMS Database Backup - ' . date('Y-m-d H:i');
             $message = "Automatisches Datenbank-Backup vom " . date('Y-m-d H:i:s') . "\n\n";
             $message .= "CMS Version: " . (CMS_VERSION ?? 'unknown') . "\n";
-            $message .= "Backup Größe: " . $this->formatBytes(filesize($tempFile));
+            $message .= "Backup Größe: " . $this->formatBytes($backupSize);
             
             // Send email with attachment
             $sent = $this->sendEmailWithAttachment(
@@ -297,10 +323,12 @@ class BackupService
             );
             
             // Delete temp file
-            unlink($tempFile);
+            if (is_file($tempFile)) {
+                unlink($tempFile);
+            }
             
             if ($sent) {
-                $this->logBackup('email', 'database_' . date('Y-m-d_H-i'), filesize($tempFile));
+                $this->logBackup('email', 'database_' . date('Y-m-d_H-i'), $backupSize);
             }
             
             return $sent;
@@ -455,24 +483,42 @@ class BackupService
     {
         $backups = [];
         
-        if (!is_dir(self::BACKUP_DIR)) {
+        $backupRoot = $this->backupRoot();
+        if (!is_dir($backupRoot)) {
             return $backups;
         }
         
-        $items = scandir(self::BACKUP_DIR);
+        $items = scandir($backupRoot);
+        if ($items === false) {
+            return $backups;
+        }
         
         foreach ($items as $item) {
             if ($item === '.' || $item === '..' || $item === '.htaccess') {
                 continue;
             }
             
-            $path = self::BACKUP_DIR . $item;
+            if (!$this->isAllowedBackupName($item)) {
+                continue;
+            }
+
+            $path = $backupRoot . $item;
             
             if (is_dir($path)) {
                 $manifestFile = $path . '/manifest.json';
                 
-                if (file_exists($manifestFile)) {
-                    $manifest = Json::decodeArray(file_get_contents($manifestFile), []);
+                if (is_file($manifestFile)) {
+                    $manifestSize = filesize($manifestFile);
+                    if ($manifestSize === false || $manifestSize > self::MANIFEST_MAX_BYTES) {
+                        continue;
+                    }
+
+                    $manifestContents = file_get_contents($manifestFile);
+                    if (!is_string($manifestContents) || $manifestContents === '') {
+                        continue;
+                    }
+
+                    $manifest = Json::decodeArray($manifestContents, []);
                     if ($manifest !== []) {
                         $manifest['name'] = $item;
                         $manifest['path'] = $path;
@@ -495,13 +541,19 @@ class BackupService
      */
     public function deleteBackup(string $backupName): bool
     {
-        $backupPath = self::BACKUP_DIR . $backupName;
-        
-        if (!is_dir($backupPath)) {
+        try {
+            $normalizedName = $this->normalizeBackupName($backupName);
+            $backupPath = $this->backupRoot() . $normalizedName;
+
+            if (!is_dir($backupPath) || !$this->isWithinBackupRoot($backupPath)) {
+                return false;
+            }
+
+            return $this->deleteDirectory($backupPath);
+        } catch (\Throwable $e) {
+            error_log('BackupService::deleteBackup() Error: ' . $e->getMessage());
             return false;
         }
-        
-        return $this->deleteDirectory($backupPath);
     }
     
     /**
@@ -509,18 +561,37 @@ class BackupService
      */
     private function deleteDirectory(string $dir): bool
     {
-        if (!is_dir($dir)) {
+        $normalizedDir = rtrim($dir, '\\/');
+
+        if (!is_dir($normalizedDir) || !$this->isWithinBackupRoot($normalizedDir)) {
             return false;
         }
         
-        $files = array_diff(scandir($dir), ['.', '..']);
-        
-        foreach ($files as $file) {
-            $path = $dir . '/' . $file;
-            is_dir($path) ? $this->deleteDirectory($path) : unlink($path);
+        $files = scandir($normalizedDir);
+        if ($files === false) {
+            return false;
         }
         
-        return rmdir($dir);
+        foreach ($files as $file) {
+            if ($file === '.' || $file === '..') {
+                continue;
+            }
+
+            $path = $normalizedDir . DIRECTORY_SEPARATOR . $file;
+            if (is_link($path) || is_file($path)) {
+                if (!unlink($path)) {
+                    return false;
+                }
+
+                continue;
+            }
+
+            if (is_dir($path) && !$this->deleteDirectory($path)) {
+                return false;
+            }
+        }
+        
+        return rmdir($normalizedDir);
     }
     
     /**
@@ -530,7 +601,11 @@ class BackupService
     {
         $size = 0;
         
-        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir)) as $file) {
+        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)) as $file) {
+            if ($file->isLink()) {
+                continue;
+            }
+
             $size += $file->getSize();
         }
         
@@ -596,5 +671,59 @@ class BackupService
             error_log('BackupService::logBackup() Error: ' . $e->getMessage());
             return false;
         }
+    }
+
+    private function backupRoot(): string
+    {
+        return rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, self::BACKUP_DIR), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+    }
+
+    private function resolveTargetDirectory(?string $targetDir): string
+    {
+        if ($targetDir === null || trim($targetDir) === '') {
+            return $this->backupRoot();
+        }
+
+        $normalizedDir = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $targetDir), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        if (!$this->isWithinBackupRoot($normalizedDir)) {
+            throw new \RuntimeException('Ungültiges Backup-Zielverzeichnis.');
+        }
+
+        if (!is_dir($normalizedDir) && !mkdir($normalizedDir, 0755, true) && !is_dir($normalizedDir)) {
+            throw new \RuntimeException('Backup-Zielverzeichnis konnte nicht erstellt werden.');
+        }
+
+        return $normalizedDir;
+    }
+
+    private function createBackupDirectory(string $backupName): string
+    {
+        $backupPath = $this->backupRoot() . $this->normalizeBackupName($backupName) . DIRECTORY_SEPARATOR;
+        if (!mkdir($backupPath, 0755, true) && !is_dir($backupPath)) {
+            throw new \RuntimeException('Backup-Unterverzeichnis konnte nicht erstellt werden.');
+        }
+
+        return $backupPath;
+    }
+
+    private function normalizeBackupName(string $name): string
+    {
+        $name = trim($name);
+        if (!$this->isAllowedBackupName($name)) {
+            throw new \RuntimeException('Ungültiger Backup-Name.');
+        }
+
+        return $name;
+    }
+
+    private function isAllowedBackupName(string $name): bool
+    {
+        return preg_match(self::BACKUP_NAME_PATTERN, $name) === 1;
+    }
+
+    private function isWithinBackupRoot(string $path): bool
+    {
+        $normalizedPath = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        return str_starts_with($normalizedPath, $this->backupRoot());
     }
 }

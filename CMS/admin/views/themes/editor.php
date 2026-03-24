@@ -18,6 +18,7 @@ $files        = $data['files'] ?? [];
 $currentFile  = $data['currentFile'] ?? '';
 $fileContent  = $data['fileContent'] ?? '';
 $fileLanguage = $data['fileLanguage'] ?? 'plaintext';
+$fileWarning  = $data['fileWarning'] ?? null;
 
 function renderFileTree(array $items, string $currentFile, string $baseUrl): string
 {
@@ -57,11 +58,12 @@ function renderFileTree(array $items, string $currentFile, string $baseUrl): str
         </div>
     </div>
 
-    <?php if ($alert): ?>
-        <div class="alert alert-<?php echo htmlspecialchars($alert['type']); ?> alert-dismissible" role="alert">
-            <?php echo htmlspecialchars($alert['message']); ?>
-            <a class="btn-close" data-bs-dismiss="alert" aria-label="Close"></a>
-        </div>
+    <?php if (!empty($alert)): ?>
+        <?php $alertData = $alert; $alertMarginClass = 'mb-4'; require __DIR__ . '/../partials/flash-alert.php'; ?>
+    <?php endif; ?>
+
+    <?php if (!empty($fileWarning)): ?>
+        <?php $alertData = ['type' => 'warning', 'message' => (string)$fileWarning]; $alertMarginClass = 'mb-4'; require __DIR__ . '/../partials/flash-alert.php'; ?>
     <?php endif; ?>
 
     <div class="row">

@@ -9,6 +9,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\AuditLogger;
+
 class CookieManagerModule
 {
     private readonly \CMS\Database $db;
@@ -242,13 +244,13 @@ class CookieManagerModule
             'cookie_banner_style'    => in_array($post['cookie_banner_style'] ?? '', ['light', 'dark', 'custom'], true)
                 ? $post['cookie_banner_style'] : 'dark',
             'cookie_lifetime_days'   => (string)max(1, min(365, (int)($post['cookie_lifetime_days'] ?? 30))),
-            'cookie_policy_url'      => trim((string)($post['cookie_policy_url'] ?? '/datenschutz')),
-            'cookie_accept_text'     => trim((string)($post['cookie_accept_text'] ?? 'Akzeptieren')),
-            'cookie_reject_text'     => trim((string)($post['cookie_reject_text'] ?? 'Ablehnen')),
-            'cookie_essential_text'  => trim((string)($post['cookie_essential_text'] ?? 'Nur Essenzielle')),
+            'cookie_policy_url'      => $this->normalizePolicyUrl((string)($post['cookie_policy_url'] ?? '/datenschutz')),
+            'cookie_accept_text'     => $this->sanitizeText((string)($post['cookie_accept_text'] ?? 'Akzeptieren'), 80, 'Akzeptieren'),
+            'cookie_reject_text'     => $this->sanitizeText((string)($post['cookie_reject_text'] ?? 'Ablehnen'), 80, 'Ablehnen'),
+            'cookie_essential_text'  => $this->sanitizeText((string)($post['cookie_essential_text'] ?? 'Nur Essenzielle'), 80, 'Nur Essenzielle'),
             'cookie_matomo_self_hosted_url' => $this->normalizeOptionalUrlForStorage((string)($post['cookie_matomo_self_hosted_url'] ?? '')),
-            'cookie_matomo_site_id' => trim((string)($post['cookie_matomo_site_id'] ?? '1')),
-            'cookie_matomo_hosting_region' => trim((string)($post['cookie_matomo_hosting_region'] ?? 'Deutschland / EU')),
+            'cookie_matomo_site_id' => (string)max(1, min(999999, (int)($post['cookie_matomo_site_id'] ?? 1))),
+            'cookie_matomo_hosting_region' => $this->sanitizeText((string)($post['cookie_matomo_hosting_region'] ?? 'Deutschland / EU'), 120, 'Deutschland / EU'),
             'cookie_matomo_ip_anonymization' => isset($post['cookie_matomo_ip_anonymization']) ? '1' : '0',
             'cookie_matomo_respect_dnt' => isset($post['cookie_matomo_respect_dnt']) ? '1' : '0',
             'cookie_matomo_disable_cookies' => isset($post['cookie_matomo_disable_cookies']) ? '1' : '0',
@@ -266,8 +268,8 @@ class CookieManagerModule
                 }
             }
             return ['success' => true, 'message' => 'Cookie-Einstellungen gespeichert.'];
-        } catch (\Exception $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+        } catch (\Throwable $e) {
+			return $this->failResult('legal.cookies.settings.save_failed', 'Cookie-Einstellungen konnten nicht gespeichert werden.', $e);
         }
     }
 
@@ -279,8 +281,10 @@ class CookieManagerModule
             return ['success' => false, 'error' => 'Name ist erforderlich.'];
         }
 
-        $slug = $post['category_slug'] ?? '';
-        $slug = preg_replace('/[^a-z0-9-]/', '', strtolower(str_replace(' ', '-', $slug ?: $name))) ?? '';
+        $slug = $this->sanitizeSlug((string)($post['category_slug'] ?? ''), $name, 'category');
+        if ($slug === '') {
+            return ['success' => false, 'error' => 'Kategorie-Slug ist ungültig.'];
+        }
 
         $isRequired = isset($post['is_required']) || $slug === 'necessary' ? 1 : 0;
         $isActive = $isRequired === 1 ? 1 : (isset($post['is_active']) ? 1 : 0);
@@ -302,8 +306,8 @@ class CookieManagerModule
             }
             $this->db->insert('cookie_categories', $data);
             return ['success' => true, 'message' => 'Kategorie erstellt.'];
-        } catch (\Exception $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+        } catch (\Throwable $e) {
+			return $this->failResult('legal.cookies.category.save_failed', 'Kategorie konnte nicht gespeichert werden.', $e);
         }
     }
 
@@ -341,7 +345,13 @@ class CookieManagerModule
         }
 
         if ($slug === '') {
-            $slug = preg_replace('/[^a-z0-9-]/', '', strtolower(str_replace(' ', '-', $name))) ?? '';
+            $slug = $this->sanitizeSlug('', $name, 'service');
+        } else {
+            $slug = $this->sanitizeSlug($slug, $name, 'service');
+        }
+
+        if ($slug === '') {
+            return ['success' => false, 'error' => 'Service-Slug ist ungültig.'];
         }
 
         if ($isEssential === 1) {
@@ -378,7 +388,7 @@ class CookieManagerModule
             $this->db->insert('cookie_services', $data);
             return ['success' => true, 'message' => 'Service angelegt.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler beim Speichern: ' . $e->getMessage()];
+			return $this->failResult('legal.cookies.service.save_failed', 'Service konnte nicht gespeichert werden.', $e);
         }
     }
 
@@ -465,6 +475,10 @@ class CookieManagerModule
 
             $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($target, \FilesystemIterator::SKIP_DOTS));
             foreach ($iterator as $file) {
+                if ($file->isLink()) {
+                    continue;
+                }
+
                 if (!$file->isFile() || !in_array(strtolower($file->getExtension()), ['php', 'js', 'html', 'css'], true)) {
                     continue;
                 }
@@ -753,5 +767,63 @@ class CookieManagerModule
         }
 
         return $url;
+    }
+
+    private function normalizePolicyUrl(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return '/datenschutz';
+        }
+
+        if (str_starts_with($url, '/')) {
+            return '/' . ltrim($url, '/');
+        }
+
+        $sanitized = trim((string)filter_var($url, FILTER_SANITIZE_URL));
+        if ($sanitized === '' || filter_var($sanitized, FILTER_VALIDATE_URL) === false) {
+            return '/datenschutz';
+        }
+
+        $scheme = strtolower((string)parse_url($sanitized, PHP_URL_SCHEME));
+        return in_array($scheme, ['http', 'https'], true) ? $sanitized : '/datenschutz';
+    }
+
+    private function sanitizeText(string $value, int $maxLength, string $fallback = ''): string
+    {
+        $value = trim(strip_tags($value));
+        if ($value === '') {
+            return $fallback;
+        }
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
+    }
+
+    private function sanitizeSlug(string $value, string $fallbackSource, string $prefix): string
+    {
+        $source = $value !== '' ? $value : $fallbackSource;
+        $slug = preg_replace('/[^a-z0-9-]/', '', strtolower(str_replace(' ', '-', $source))) ?? '';
+        $slug = trim($slug, '-');
+
+        if ($slug === '') {
+            $slug = $prefix . '-' . date('His');
+        }
+
+        return function_exists('mb_substr') ? mb_substr($slug, 0, 120) : substr($slug, 0, 120);
+    }
+
+    private function failResult(string $action, string $message, \Throwable $e): array
+    {
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            $action,
+            $message,
+            'cookie_manager',
+            null,
+            ['exception' => $e->getMessage()],
+            'error'
+        );
+
+        return ['success' => false, 'error' => $message . ' Bitte Logs prüfen.'];
     }
 }

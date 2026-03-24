@@ -13,6 +13,16 @@ use CMS\AuditLogger;
 
 class AntispamModule
 {
+    private const SETTING_KEYS = [
+        'antispam_enabled',
+        'antispam_honeypot',
+        'antispam_min_time',
+        'antispam_max_links',
+        'antispam_block_empty_ua',
+        'antispam_recaptcha_key',
+        'antispam_recaptcha_secret',
+    ];
+
     private readonly \CMS\Database $db;
     private readonly string $prefix;
 
@@ -42,17 +52,7 @@ class AntispamModule
             "SELECT * FROM {$this->prefix}spam_blacklist ORDER BY type, value"
         ) ?: [];
 
-        // Settings (Batch-Abfrage)
-        $settingKeys = ['antispam_enabled', 'antispam_honeypot', 'antispam_min_time', 'antispam_max_links', 'antispam_block_empty_ua', 'antispam_recaptcha_key', 'antispam_recaptcha_secret'];
-        $placeholders = implode(',', array_fill(0, count($settingKeys), '?'));
-        $rows = $this->db->get_results(
-            "SELECT option_name, option_value FROM {$this->prefix}settings WHERE option_name IN ({$placeholders})",
-            $settingKeys
-        ) ?: [];
-        $settings = array_fill_keys($settingKeys, '');
-        foreach ($rows as $row) {
-            $settings[$row->option_name] = $row->option_value;
-        }
+        $settings = $this->loadSettings();
 
         // Spam-Statistiken
         $spamCount = 0;
@@ -85,14 +85,18 @@ class AntispamModule
 
     public function saveSettings(array $post): array
     {
+        $existingSettings = $this->loadSettings();
+        $recaptchaSecret = $this->sanitizeText((string)($post['antispam_recaptcha_secret'] ?? ''), 255);
         $keys = [
             'antispam_enabled'         => isset($post['antispam_enabled']) ? '1' : '0',
             'antispam_honeypot'        => isset($post['antispam_honeypot']) ? '1' : '0',
             'antispam_min_time'        => (string)max(0, min(60, (int)($post['antispam_min_time'] ?? 3))),
             'antispam_max_links'       => (string)max(0, min(50, (int)($post['antispam_max_links'] ?? 3))),
             'antispam_block_empty_ua'  => isset($post['antispam_block_empty_ua']) ? '1' : '0',
-            'antispam_recaptcha_key'   => trim($post['antispam_recaptcha_key'] ?? ''),
-            'antispam_recaptcha_secret' => trim($post['antispam_recaptcha_secret'] ?? ''),
+            'antispam_recaptcha_key'   => $this->sanitizeText((string)($post['antispam_recaptcha_key'] ?? ''), 255),
+            'antispam_recaptcha_secret' => $recaptchaSecret !== ''
+                ? $recaptchaSecret
+                : (string)($existingSettings['antispam_recaptcha_secret'] ?? ''),
         ];
 
         try {
@@ -114,16 +118,26 @@ class AntispamModule
                 'warning'
             );
             return ['success' => true, 'message' => 'AntiSpam-Einstellungen gespeichert.'];
-        } catch (\Exception $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+        } catch (\Throwable $e) {
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SECURITY,
+                'antispam.settings.save_failed',
+                'AntiSpam-Einstellungen konnten nicht gespeichert werden',
+                'setting',
+                null,
+                ['exception' => $e::class],
+                'error'
+            );
+
+            return ['success' => false, 'error' => 'AntiSpam-Einstellungen konnten nicht gespeichert werden.'];
         }
     }
 
     public function addBlacklist(array $post): array
     {
         $type  = in_array($post['bl_type'] ?? '', ['word', 'email', 'ip', 'domain'], true)
-            ? $post['bl_type'] : 'word';
-        $value = trim($post['bl_value'] ?? '');
+            ? (string)$post['bl_type'] : 'word';
+        $value = $this->sanitizeText((string)($post['bl_value'] ?? ''), 255);
         if ($value === '') {
             return ['success' => false, 'error' => 'Wert ist erforderlich.'];
         }
@@ -155,8 +169,18 @@ class AntispamModule
                 'warning'
             );
             return ['success' => true, 'message' => 'Blacklist-Eintrag hinzugefügt.'];
-        } catch (\Exception $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+        } catch (\Throwable $e) {
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SECURITY,
+                'antispam.blacklist.add_failed',
+                'AntiSpam-Blacklist-Eintrag konnte nicht hinzugefügt werden',
+                'spam_blacklist',
+                null,
+                ['type' => $type, 'exception' => $e::class],
+                'error'
+            );
+
+            return ['success' => false, 'error' => 'Blacklist-Eintrag konnte nicht hinzugefügt werden.'];
         }
     }
 
@@ -165,16 +189,62 @@ class AntispamModule
         if ($id <= 0) {
             return ['success' => false, 'error' => 'Ungültige ID.'];
         }
-        $this->db->delete('spam_blacklist', ['id' => $id]);
-        AuditLogger::instance()->log(
-            AuditLogger::CAT_SECURITY,
-            'antispam.blacklist.delete',
-            'AntiSpam-Blacklist-Eintrag gelöscht',
-            'spam_blacklist',
-            $id,
-            [],
-            'warning'
-        );
-        return ['success' => true, 'message' => 'Blacklist-Eintrag gelöscht.'];
+        try {
+            $deleted = $this->db->delete('spam_blacklist', ['id' => $id]);
+            if (!$deleted) {
+                return ['success' => false, 'error' => 'Blacklist-Eintrag konnte nicht gelöscht werden.'];
+            }
+
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SECURITY,
+                'antispam.blacklist.delete',
+                'AntiSpam-Blacklist-Eintrag gelöscht',
+                'spam_blacklist',
+                $id,
+                [],
+                'warning'
+            );
+
+            return ['success' => true, 'message' => 'Blacklist-Eintrag gelöscht.'];
+        } catch (\Throwable $e) {
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SECURITY,
+                'antispam.blacklist.delete_failed',
+                'AntiSpam-Blacklist-Eintrag konnte nicht gelöscht werden',
+                'spam_blacklist',
+                $id,
+                ['exception' => $e::class],
+                'error'
+            );
+
+            return ['success' => false, 'error' => 'Blacklist-Eintrag konnte nicht gelöscht werden.'];
+        }
+    }
+
+    private function loadSettings(): array
+    {
+        $placeholders = implode(',', array_fill(0, count(self::SETTING_KEYS), '?'));
+        $rows = $this->db->get_results(
+            "SELECT option_name, option_value FROM {$this->prefix}settings WHERE option_name IN ({$placeholders})",
+            self::SETTING_KEYS
+        ) ?: [];
+
+        $settings = array_fill_keys(self::SETTING_KEYS, '');
+        foreach ($rows as $row) {
+            $settings[$row->option_name] = (string)$row->option_value;
+        }
+
+        return $settings;
+    }
+
+    private function sanitizeText(string $value, int $maxLength): string
+    {
+        $value = preg_replace('/[\x00-\x1F\x7F]/u', '', trim($value)) ?? '';
+
+        if (function_exists('mb_substr')) {
+            return mb_substr($value, 0, $maxLength);
+        }
+
+        return substr($value, 0, $maxLength);
     }
 }

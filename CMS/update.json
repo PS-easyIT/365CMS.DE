@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.6.14",
+  "version": "2.6.24",
   "min_php": "8.4",
-  "released": "2026-03-23",
+  "released": "2026-03-24",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release 2.6.14: Der WordPress-Importer delegiert Preview-/Planungslogik, Meta-/Reporting und Admin-Cleanup jetzt an eigene Traits (`trait-importer-preview.php`, `trait-importer-reporting.php`, `trait-admin-cleanup.php`) und verkleinert damit die Monolith-Blöcke in `class-importer.php` und `class-admin.php` deutlich.",
+  "notes": "Release 2.6.24: Member-Dashboard-Settings normalisieren Asset- und CTA-URLs defensiver, Cookie-Manager begrenzt Policy-URLs, Slugs und Tracking-Felder strenger sowie mit Symlink-sicherem Scanner, und Legal-Sites-Fehlerpfade liefern nur noch generische UI-Fehler statt roher Exceptions.",
   "critical": false
 }

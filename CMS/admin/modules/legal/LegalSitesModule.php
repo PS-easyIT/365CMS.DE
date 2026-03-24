@@ -207,8 +207,8 @@ class LegalSitesModule
             );
 
             return ['success' => true, 'message' => 'Rechtliche Seiten gespeichert.'];
-        } catch (\Exception $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+        } catch (\Throwable $e) {
+			return $this->failResult('legal.sites.save_failed', 'Rechtliche Seiten konnten nicht gespeichert werden.', $e);
         }
     }
 
@@ -246,11 +246,10 @@ class LegalSitesModule
 
             return ['success' => true, 'message' => 'Standardwerte für Legal Sites gespeichert.'];
         } catch (\Throwable $e) {
-            return [
-                'success' => false,
-                'error' => 'Fehler beim Speichern der Standardwerte: ' . $e->getMessage(),
-                'profile' => $sanitized ?? [],
-            ];
+            $result = $this->failResult('legal.profile.save_failed', 'Standardwerte für Legal Sites konnten nicht gespeichert werden.', $e);
+            $result['profile'] = $sanitized ?? [];
+
+            return $result;
         }
     }
 
@@ -359,7 +358,7 @@ class LegalSitesModule
 
             return ['success' => true, 'message' => $title . ' wurde als Seite erstellt.', 'page_id' => $pageId];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler bei der Seitenerstellung: ' . $e->getMessage()];
+			return $this->failResult('legal.page.create_or_update_failed', 'Rechtstext-Seite konnte nicht erstellt oder aktualisiert werden.', $e);
         }
     }
 
@@ -1059,5 +1058,20 @@ class LegalSitesModule
     private function nl2brEscaped(string $value): string
     {
         return nl2br($this->escape($value), false);
+    }
+
+    private function failResult(string $action, string $message, \Throwable $e): array
+    {
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            $action,
+            $message,
+            'legal_site',
+            null,
+            ['exception' => $e->getMessage()],
+            'error'
+        );
+
+        return ['success' => false, 'error' => $message . ' Bitte Logs prüfen.'];
     }
 }

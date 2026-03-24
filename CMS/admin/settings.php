@@ -22,18 +22,31 @@ require_once __DIR__ . '/modules/settings/SettingsModule.php';
 $module    = new SettingsModule();
 $alert     = null;
 $currentTab = ($_GET['tab'] ?? 'general') === 'content' ? 'content' : 'general';
+$allowedActions = ['save', 'run_site_url_migration', 'repair_imported_slugs', 'send_test_email'];
+
+$buildRedirectUrl = static function (string $tab): string {
+	$normalizedTab = $tab === 'content' ? 'content' : 'general';
+	return SITE_URL . '/admin/settings?tab=' . $normalizedTab;
+};
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postToken = $_POST['csrf_token'] ?? '';
+    $redirectTab = ($_POST['tab'] ?? 'general') === 'content' ? 'content' : 'general';
+    $action = (string)($_POST['action'] ?? '');
+
     if (!Security::instance()->verifyToken($postToken, 'admin_settings')) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-        $redirectTab = ($_POST['tab'] ?? 'general') === 'content' ? 'content' : 'general';
-        header('Location: ' . SITE_URL . '/admin/settings?tab=' . $redirectTab);
+        header('Location: ' . $buildRedirectUrl($redirectTab));
         exit;
     }
 
-    $action = $_POST['action'] ?? '';
     $currentTab = ($_POST['tab'] ?? 'general') === 'content' ? 'content' : 'general';
+    if (!in_array($action, $allowedActions, true)) {
+        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Unbekannte Aktion.'];
+        header('Location: ' . $buildRedirectUrl($currentTab));
+        exit;
+    }
+
     if ($action === 'save') {
         $result = $module->saveSettings($_POST);
     } elseif ($action === 'run_site_url_migration') {
@@ -51,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'message' => $result['message'] ?? $result['error'] ?? '',
     ];
 
-    header('Location: ' . SITE_URL . '/admin/settings?tab=' . $currentTab);
+    header('Location: ' . $buildRedirectUrl($currentTab));
     exit;
 }
 

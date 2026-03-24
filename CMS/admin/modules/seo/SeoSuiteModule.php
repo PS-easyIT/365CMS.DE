@@ -6,8 +6,10 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Database;
+use CMS\AuditLogger;
 use CMS\Services\AnalyticsService;
 use CMS\Services\IndexingService;
+use CMS\Services\PermalinkService;
 use CMS\Services\RedirectService;
 use CMS\Services\SEOService;
 use CMS\Services\SeoAnalysisService;
@@ -82,6 +84,18 @@ final class SeoSuiteModule
 		'seo_sitemap_news_language' => 'de',
 	];
 
+	private const MAX_INDEXING_URLS = 100;
+
+	private const ALLOWED_CHANGEFREQ = [
+		'always',
+		'hourly',
+		'daily',
+		'weekly',
+		'monthly',
+		'yearly',
+		'never',
+	];
+
 	private Database $db;
 	private string $prefix;
 	private SEOService $seoService;
@@ -145,12 +159,35 @@ final class SeoSuiteModule
 	{
 		try {
 			$bundleSaved = (bool)$this->seoService->saveSitemapBundle();
+			$lastError = trim((string)$this->seoService->getLastSitemapError());
+
+			if (!$bundleSaved) {
+				AuditLogger::instance()->log(
+					AuditLogger::CAT_SETTING,
+					'seo.sitemap.regenerate_failed',
+					'Sitemap-Bundle konnte nicht geschrieben werden',
+					'seo',
+					null,
+					['reason' => $lastError],
+					'warning'
+				);
+			}
 
 			return $bundleSaved
 				? ['success' => true, 'message' => 'Sitemap-Bundle neu generiert.']
-				: ['success' => false, 'error' => 'Sitemap-Bundle konnte nicht geschrieben werden.' . ($this->seoService->getLastSitemapError() ? ' Ursache: ' . $this->seoService->getLastSitemapError() : '')];
+				: ['success' => false, 'error' => 'Sitemap-Bundle konnte nicht geschrieben werden. Bitte Serverrechte und Zielverzeichnis prüfen.'];
 		} catch (\Throwable $e) {
-			return ['success' => false, 'error' => 'Sitemap-Bundle konnte nicht generiert werden: ' . $e->getMessage()];
+			AuditLogger::instance()->log(
+				AuditLogger::CAT_SETTING,
+				'seo.sitemap.regenerate_exception',
+				'Sitemap-Bundle-Generierung fehlgeschlagen',
+				'seo',
+				null,
+				['exception' => $e->getMessage()],
+				'error'
+			);
+
+			return ['success' => false, 'error' => 'Sitemap-Bundle konnte nicht generiert werden. Bitte Logs prüfen.'];
 		}
 	}
 
@@ -192,10 +229,10 @@ final class SeoSuiteModule
 	{
 		$this->persistSettings([
 			'seo_social_default_og_type' => trim((string)($post['default_og_type'] ?? 'website')),
-			'seo_social_default_image' => trim((string)($post['default_image'] ?? '')),
+			'seo_social_default_image' => $this->normalizeOptionalUrl((string)($post['default_image'] ?? ''), true),
 			'seo_social_default_twitter_card' => trim((string)($post['default_twitter_card'] ?? 'summary_large_image')),
 			'seo_social_brand_name' => trim((string)($post['brand_name'] ?? '')),
-			'seo_social_facebook_page' => trim((string)($post['facebook_page'] ?? '')),
+			'seo_social_facebook_page' => $this->normalizeOptionalUrl((string)($post['facebook_page'] ?? ''), false),
 			'seo_social_twitter_profile' => trim((string)($post['twitter_profile'] ?? '')),
 			'seo_social_pinterest_rich_pins' => !empty($post['pinterest_rich_pins']) ? '1' : '0',
 		]);
@@ -214,7 +251,7 @@ final class SeoSuiteModule
 			'seo_schema_review_enabled' => !empty($post['review_enabled']) ? '1' : '0',
 			'seo_schema_event_enabled' => !empty($post['event_enabled']) ? '1' : '0',
 			'seo_schema_org_name' => trim((string)($post['org_name'] ?? '')),
-			'seo_schema_org_logo' => trim((string)($post['org_logo'] ?? '')),
+			'seo_schema_org_logo' => $this->normalizeOptionalUrl((string)($post['org_logo'] ?? ''), true),
 		]);
 
 		return ['success' => true, 'message' => 'Schema-Standards gespeichert.'];
@@ -240,11 +277,11 @@ final class SeoSuiteModule
 	{
 		$this->persistSettings([
 			'seo_analytics_gsc_property' => trim((string)($post['gsc_property'] ?? '')),
-			'seo_analytics_ga4_id' => trim((string)($post['ga4_id'] ?? '')),
-			'seo_analytics_matomo_url' => trim((string)($post['matomo_url'] ?? '')),
+			'seo_analytics_ga4_id' => $this->normalizeTrackingId((string)($post['ga4_id'] ?? ''), '/^G-[A-Z0-9\-]+$/i'),
+			'seo_analytics_matomo_url' => $this->normalizeOptionalUrl((string)($post['matomo_url'] ?? ''), false),
 			'seo_analytics_matomo_site_id' => trim((string)($post['matomo_site_id'] ?? '1')),
-			'seo_analytics_gtm_id' => trim((string)($post['gtm_id'] ?? '')),
-			'seo_analytics_fb_pixel_id' => trim((string)($post['fb_pixel_id'] ?? '')),
+			'seo_analytics_gtm_id' => $this->normalizeTrackingId((string)($post['gtm_id'] ?? ''), '/^GTM-[A-Z0-9\-]+$/i'),
+			'seo_analytics_fb_pixel_id' => $this->normalizeTrackingId((string)($post['fb_pixel_id'] ?? ''), '/^[0-9]{5,20}$/'),
 			'seo_analytics_exclude_admins' => !empty($post['exclude_admins']) ? '1' : '0',
 			'seo_analytics_respect_dnt' => !empty($post['respect_dnt']) ? '1' : '0',
 			'seo_analytics_anonymize_ip' => !empty($post['anonymize_ip']) ? '1' : '0',
@@ -258,16 +295,16 @@ final class SeoSuiteModule
 	public function saveSitemapSettings(array $post): array
 	{
 		$this->persistSettings([
-			'seo_sitemap_pages_priority' => trim((string)($post['pages_priority'] ?? '0.8')),
-			'seo_sitemap_pages_changefreq' => trim((string)($post['pages_changefreq'] ?? 'weekly')),
-			'seo_sitemap_posts_priority' => trim((string)($post['posts_priority'] ?? '0.6')),
-			'seo_sitemap_posts_changefreq' => trim((string)($post['posts_changefreq'] ?? 'monthly')),
+			'seo_sitemap_pages_priority' => $this->normalizeSitemapPriority((string)($post['pages_priority'] ?? '0.8'), '0.8'),
+			'seo_sitemap_pages_changefreq' => $this->normalizeSitemapChangefreq((string)($post['pages_changefreq'] ?? 'weekly'), 'weekly'),
+			'seo_sitemap_posts_priority' => $this->normalizeSitemapPriority((string)($post['posts_priority'] ?? '0.6'), '0.6'),
+			'seo_sitemap_posts_changefreq' => $this->normalizeSitemapChangefreq((string)($post['posts_changefreq'] ?? 'monthly'), 'monthly'),
 			'seo_sitemap_ping_google' => !empty($post['ping_google']) ? '1' : '0',
 			'seo_sitemap_ping_bing' => !empty($post['ping_bing']) ? '1' : '0',
 			'seo_sitemap_image_enabled' => !empty($post['image_enabled']) ? '1' : '0',
 			'seo_sitemap_news_enabled' => !empty($post['news_enabled']) ? '1' : '0',
 			'seo_sitemap_news_publication_name' => trim((string)($post['news_publication_name'] ?? '365CMS')),
-			'seo_sitemap_news_language' => trim((string)($post['news_language'] ?? 'de')),
+			'seo_sitemap_news_language' => $this->normalizeLanguageCode((string)($post['news_language'] ?? 'de')),
 		]);
 
 		return ['success' => true, 'message' => 'Sitemap-Einstellungen gespeichert.'];
@@ -275,10 +312,12 @@ final class SeoSuiteModule
 
 	public function submitIndexingUrls(array $post): array
 	{
-		$rawUrls = trim((string)($post['urls'] ?? ''));
-		if ($rawUrls === '') {
+		$urls = $this->parseSubmittedUrls((string)($post['urls'] ?? ''));
+		if ($urls === []) {
 			return ['success' => false, 'error' => 'Bitte mindestens eine gültige URL angeben.'];
 		}
+
+		$rawUrls = implode("\n", $urls);
 
 		$targets = $post['submission_target'] ?? [];
 		$targets = is_array($targets) ? $targets : [$targets];
@@ -323,7 +362,7 @@ final class SeoSuiteModule
 
 	public function deleteGoogleUrl(array $post): array
 	{
-		$url = trim((string)($post['google_delete_url'] ?? ''));
+		$url = $this->normalizeIndexingUrl((string)($post['google_delete_url'] ?? ''));
 		$accessToken = trim((string)($post['google_access_token'] ?? ''));
 
 		if ($url === '' || $accessToken === '') {
@@ -351,19 +390,19 @@ final class SeoSuiteModule
 
 		$this->seoService->saveContentMeta($contentType, $id, [
 			'focus_keyphrase' => (string)($post['focus_keyphrase'] ?? ''),
-			'canonical_url' => (string)($post['canonical_url'] ?? ''),
+			'canonical_url' => $this->normalizeOptionalUrl((string)($post['canonical_url'] ?? ''), false),
 			'robots_index' => !empty($post['robots_index']),
 			'robots_follow' => !empty($post['robots_follow']),
 			'og_title' => (string)($post['og_title'] ?? ''),
 			'og_description' => (string)($post['og_description'] ?? ''),
-			'og_image' => (string)($post['og_image'] ?? ''),
+			'og_image' => $this->normalizeOptionalUrl((string)($post['og_image'] ?? ''), true),
 			'twitter_title' => (string)($post['twitter_title'] ?? ''),
 			'twitter_description' => (string)($post['twitter_description'] ?? ''),
-			'twitter_image' => (string)($post['twitter_image'] ?? ''),
+			'twitter_image' => $this->normalizeOptionalUrl((string)($post['twitter_image'] ?? ''), true),
 			'twitter_card' => (string)($post['twitter_card'] ?? ''),
 			'schema_type' => (string)($post['schema_type'] ?? ''),
-			'sitemap_priority' => (string)($post['sitemap_priority'] ?? ''),
-			'sitemap_changefreq' => (string)($post['sitemap_changefreq'] ?? ''),
+			'sitemap_priority' => $this->normalizeSitemapPriority((string)($post['sitemap_priority'] ?? ''), ''),
+			'sitemap_changefreq' => $this->normalizeSitemapChangefreq((string)($post['sitemap_changefreq'] ?? ''), ''),
 			'hreflang_group' => (string)($post['hreflang_group'] ?? ''),
 		]);
 
@@ -758,12 +797,24 @@ final class SeoSuiteModule
 	private function scanBrokenLinks(array $auditRows): array
 	{
 		$validPaths = ['/'];
+		$permalinkService = PermalinkService::getInstance();
 		foreach ($auditRows as $row) {
 			$slug = trim((string)($row['slug'] ?? ''));
 			if ($slug === '') {
 				continue;
 			}
-			$validPaths[] = ($row['type'] ?? '') === 'post' ? '/blog/' . $slug : '/' . $slug;
+
+			if (($row['type'] ?? '') === 'post') {
+				$validPaths[] = $permalinkService->buildPostPathFromValues(
+					$slug,
+					(string)($row['published_at'] ?? ''),
+					(string)($row['created_at'] ?? '')
+				);
+				$validPaths[] = $permalinkService->getLegacyPostPath($slug);
+				continue;
+			}
+
+			$validPaths[] = '/' . ltrim($slug, '/');
 		}
 		$validPaths = array_values(array_unique($validPaths));
 
@@ -810,6 +861,108 @@ final class SeoSuiteModule
 		}
 
 		return array_slice(array_values($unique), 0, 50);
+	}
+
+	private function normalizeOptionalUrl(string $value, bool $allowRelative): string
+	{
+		$value = trim($value);
+		if ($value === '') {
+			return '';
+		}
+
+		if ($allowRelative && str_starts_with($value, '/')) {
+			return '/' . ltrim($value, '/');
+		}
+
+		$sanitized = trim((string)filter_var($value, FILTER_SANITIZE_URL));
+		if ($sanitized === '' || filter_var($sanitized, FILTER_VALIDATE_URL) === false) {
+			return '';
+		}
+
+		$scheme = strtolower((string)parse_url($sanitized, PHP_URL_SCHEME));
+		if (!in_array($scheme, ['http', 'https'], true)) {
+			return '';
+		}
+
+		return $sanitized;
+	}
+
+	private function normalizeTrackingId(string $value, string $pattern): string
+	{
+		$value = trim($value);
+		if ($value === '') {
+			return '';
+		}
+
+		return preg_match($pattern, $value) === 1 ? $value : '';
+	}
+
+	private function normalizeSitemapPriority(string $value, string $fallback): string
+	{
+		$value = trim(str_replace(',', '.', $value));
+		if ($value === '') {
+			return $fallback;
+		}
+
+		$priority = (float)$value;
+		$priority = max(0.0, min(1.0, $priority));
+
+		return number_format($priority, 1, '.', '');
+	}
+
+	private function normalizeSitemapChangefreq(string $value, string $fallback): string
+	{
+		$value = strtolower(trim($value));
+		if ($value === '') {
+			return $fallback;
+		}
+
+		return in_array($value, self::ALLOWED_CHANGEFREQ, true) ? $value : $fallback;
+	}
+
+	private function normalizeLanguageCode(string $value): string
+	{
+		$value = strtolower(trim($value));
+		return preg_match('/^[a-z]{2}(?:-[a-z]{2})?$/', $value) === 1 ? $value : 'de';
+	}
+
+	/**
+	 * @return list<string>
+	 */
+	private function parseSubmittedUrls(string $rawUrls): array
+	{
+		$lines = preg_split('/\r\n|\r|\n/', $rawUrls) ?: [];
+		$urls = [];
+
+		foreach ($lines as $line) {
+			$url = $this->normalizeIndexingUrl($line);
+			if ($url === '') {
+				continue;
+			}
+
+			$urls[$url] = $url;
+			if (count($urls) >= self::MAX_INDEXING_URLS) {
+				break;
+			}
+		}
+
+		return array_values($urls);
+	}
+
+	private function normalizeIndexingUrl(string $value): string
+	{
+		$url = $this->normalizeOptionalUrl($value, false);
+		if ($url === '') {
+			return '';
+		}
+
+		$siteHost = strtolower((string)parse_url((string)SITE_URL, PHP_URL_HOST));
+		$urlHost = strtolower((string)parse_url($url, PHP_URL_HOST));
+		if ($siteHost === '' || $urlHost === '' || $siteHost !== $urlHost) {
+			return '';
+		}
+
+		return $url;
 	}
 
 	private function normalizeAuditRows(array $auditRows): array
