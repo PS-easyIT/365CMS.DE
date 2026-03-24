@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.47-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.49-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,26 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.6.49 — 24. März 2026 · Audit-Batch 031, Documentation-Sync-Dateisystem gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.49** | 🔴 fix | Admin/Documentation | **Dateisystem-Grenzen des Doku-Syncs nachgeschärft**: `CMS/admin/modules/system/DocumentationSyncFilesystem.php` erlaubt Copy-, Rename-, Delete-, Count- und Integrity-Pfade nur noch innerhalb explizit verwalteter Repo-, DOC- und Temp-Roots. |
+| **2.6.49** | 🔴 security | Admin/Documentation | **Staging-, Backup- und Cleanup-Pfade isoliert**: auch noch nicht existierende Zielpfade werden über ihren aufgelösten Elternpfad gegen die erlaubten Arbeitsbereiche geprüft, bevor Dateisystem-Mutationen stattfinden. |
+| **2.6.49** | 🟡 refactor | Admin/Documentation | **Root-Kontext explizit verdrahtet**: `DocumentationSyncService` instanziiert den Filesystem-Dienst jetzt mit Repository-, DOC- und Temp-Root, sodass Guard-Logik nicht mehr implizit oder kontextfrei arbeiten muss. |
+
+---
+
+### v2.6.48 — 24. März 2026 · Audit-Batch 030, EditorJs Remote-Media-Service gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.48** | 🔴 fix | Core/EditorJs | **Remote-Media-Fetches für Editor.js deutlich restriktiver gemacht**: `CMS/core/Services/EditorJs/EditorJsRemoteMediaService.php` akzeptiert nur noch normalisierte HTTPS-URLs ohne eingebettete Credentials und blockt überlange oder zeilenumbruchhaltige Remote-URLs frühzeitig ab. |
+| **2.6.48** | 🔴 security | Core/EditorJs | **Remote-Metadaten und Preview-Bilder gehärtet**: fremdes HTML wird größenbegrenzt verarbeitet, Metadaten werden sauber gekürzt und bereinigt, Preview-Bilder nur noch als validierte sichere Remote-URLs übernommen. |
+| **2.6.48** | 🟡 refactor | Core/EditorJs | **Fehlerpfade bereinigt**: Netzwerk- und Remote-Fehler werden intern geloggt, aber gegenüber Editor.js nur noch generisch und UI-tauglich ausgegeben; der libxml-Fehlerzustand wird nach DOM-Verarbeitung wiederhergestellt. |
 
 ---
 

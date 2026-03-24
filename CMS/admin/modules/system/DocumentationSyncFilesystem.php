@@ -10,11 +10,28 @@ final class DocumentationSyncFilesystem
     /** @var list<string> */
     private const array SUPPORTED_DOC_EXTENSIONS = ['md', 'csv'];
 
+    private readonly string $repoRoot;
+    private readonly string $docsRoot;
+    private readonly string $tempRoot;
+
+    public function __construct(?string $repoRoot = null, ?string $docsRoot = null, ?string $tempRoot = null)
+    {
+        $resolvedRepoRoot = $repoRoot !== null ? realpath($repoRoot) : false;
+        $resolvedDocsRoot = $docsRoot !== null && file_exists($docsRoot) ? realpath($docsRoot) : false;
+        $resolvedTempRoot = $tempRoot !== null ? realpath($tempRoot) : realpath(sys_get_temp_dir());
+
+        $this->repoRoot = is_string($resolvedRepoRoot) ? rtrim($resolvedRepoRoot, '\\/') : '';
+        $this->docsRoot = is_string($resolvedDocsRoot) ? rtrim($resolvedDocsRoot, '\\/') : ($docsRoot !== null ? rtrim($docsRoot, '\\/') : '');
+        $this->tempRoot = is_string($resolvedTempRoot) ? rtrim($resolvedTempRoot, '\\/') : '';
+    }
+
     /**
      * @return array{hash: string, file_count: int}
      */
     public function calculateDirectoryIntegrity(string $root): array
     {
+        $this->assertManagedPath($root, 'integrity_root', true);
+
         if (!is_dir($root)) {
             throw new RuntimeException('Integritätsprüfung erwartet ein vorhandenes Verzeichnis.');
         }
@@ -73,6 +90,11 @@ final class DocumentationSyncFilesystem
 
     public function findDocDirectory(string $extractRoot): ?string
     {
+        if (!$this->isManagedPath($extractRoot, true)) {
+            $this->logFilesystemFailure('find_doc_root_preflight', 'Doku-Verzeichnis liegt außerhalb der erlaubten Sync-Roots.', ['path' => $extractRoot]);
+            return null;
+        }
+
         $resolvedExtractRoot = realpath($extractRoot);
         if ($resolvedExtractRoot === false || !is_dir($resolvedExtractRoot)) {
             return null;
@@ -109,6 +131,9 @@ final class DocumentationSyncFilesystem
 
     public function copyDirectory(string $source, string $destination): void
     {
+        $this->assertManagedPath($source, 'copy_source', true);
+        $this->assertManagedPath($destination, 'copy_destination', false);
+
         if (!is_dir($source)) {
             throw new RuntimeException('Quellverzeichnis für den Doku-Sync existiert nicht.');
         }
@@ -149,6 +174,11 @@ final class DocumentationSyncFilesystem
 
     public function countSupportedDocuments(string $docsRoot): int
     {
+        if (!$this->isManagedPath($docsRoot, true)) {
+            $this->logFilesystemFailure('count_preflight', 'Dokumentationspfad liegt außerhalb der erlaubten Sync-Roots.', ['path' => $docsRoot]);
+            return 0;
+        }
+
         if (!is_dir($docsRoot)) {
             return 0;
         }
@@ -177,6 +207,11 @@ final class DocumentationSyncFilesystem
 
     public function deleteDirectory(string $dir): bool
     {
+        if (!$this->isManagedPath($dir, file_exists($dir))) {
+            $this->logFilesystemFailure('rmdir_preflight', 'Verzeichnis liegt außerhalb der erlaubten Sync-Roots.', ['path' => $dir]);
+            return false;
+        }
+
         if (is_link($dir)) {
             return $this->deleteFile($dir);
         }
@@ -225,6 +260,15 @@ final class DocumentationSyncFilesystem
 
     public function renamePath(string $source, string $destination, string $message): bool
     {
+        if (!$this->isManagedPath($source, file_exists($source)) || !$this->isManagedPath($destination, file_exists($destination))) {
+            $this->logFilesystemFailure('rename_preflight', $message, [
+                'source' => $source,
+                'destination' => $destination,
+                'reason' => 'path_outside_allowed_roots',
+            ]);
+            return false;
+        }
+
         if (!file_exists($source)) {
             $this->logFilesystemFailure('rename_preflight', $message, [
                 'source' => $source,
@@ -271,6 +315,14 @@ final class DocumentationSyncFilesystem
 
     public function deleteFile(string $path): bool
     {
+        if (!$this->isManagedPath($path, file_exists($path))) {
+            $this->logFilesystemFailure('unlink_preflight', 'Datei liegt außerhalb der erlaubten Sync-Roots.', [
+                'path' => $path,
+                'reason' => 'path_outside_allowed_roots',
+            ]);
+            return false;
+        }
+
         if (!file_exists($path)) {
             return true;
         }
@@ -296,6 +348,15 @@ final class DocumentationSyncFilesystem
 
     private function copyFile(string $source, string $destination): bool
     {
+        if (!$this->isManagedPath($source, true) || !$this->isManagedPath($destination, false)) {
+            $this->logFilesystemFailure('copy_preflight', 'Datei konnte nicht kopiert werden.', [
+                'source' => $source,
+                'destination' => $destination,
+                'reason' => 'path_outside_allowed_roots',
+            ]);
+            return false;
+        }
+
         if (!is_file($source) || !is_readable($source)) {
             $this->logFilesystemFailure('copy_preflight', 'Datei konnte nicht kopiert werden.', [
                 'source' => $source,
@@ -366,5 +427,71 @@ final class DocumentationSyncFilesystem
 
         return $normalizedPath === $normalizedRoot
             || str_starts_with($normalizedPath, $normalizedRoot . DIRECTORY_SEPARATOR);
+    }
+
+    private function assertManagedPath(string $path, string $operation, bool $mustExist): void
+    {
+        if ($this->isManagedPath($path, $mustExist)) {
+            return;
+        }
+
+        $this->logFilesystemFailure($operation, 'Pfad liegt außerhalb der erlaubten Sync-Roots.', ['path' => $path]);
+        throw new RuntimeException('Pfad liegt außerhalb der erlaubten Sync-Roots.');
+    }
+
+    private function isManagedPath(string $path, bool $mustExist): bool
+    {
+        $normalizedPath = $this->normalizePathForGuard($path, $mustExist);
+        if ($normalizedPath === '') {
+            return false;
+        }
+
+        foreach ($this->getAllowedRoots() as $root) {
+            if ($root !== '' && $this->isPathInsideRoot($normalizedPath, $root)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function normalizePathForGuard(string $path, bool $mustExist): string
+    {
+        $path = trim($path);
+        if ($path === '') {
+            return '';
+        }
+
+        $resolved = realpath($path);
+        if (is_string($resolved)) {
+            return rtrim($resolved, '\\/');
+        }
+
+        if ($mustExist) {
+            return '';
+        }
+
+        $parent = dirname($path);
+        $resolvedParent = realpath($parent);
+        if (!is_string($resolvedParent) || $resolvedParent === '') {
+            return '';
+        }
+
+        return rtrim($resolvedParent, '\\/') . DIRECTORY_SEPARATOR . basename($path);
+    }
+
+    /** @return list<string> */
+    private function getAllowedRoots(): array
+    {
+        $roots = [];
+
+        foreach ([$this->repoRoot, $this->docsRoot, $this->tempRoot] as $root) {
+            $root = rtrim($root, '\\/');
+            if ($root !== '') {
+                $roots[] = $root;
+            }
+        }
+
+        return array_values(array_unique($roots));
     }
 }

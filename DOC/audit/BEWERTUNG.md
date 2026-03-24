@@ -211,6 +211,18 @@ ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu ausz
 |---|---|---|---|
 | `CMS/core/Services/MailService.php` | umgesetzt | Header-Injection-Schutz, TLS-Härtung und UI-taugliche Fehlerpfade nachgezogen. | Der zentrale Mail-Service validiert Header, Adressen und Betreff restriktiver, erzwingt TLS für nicht-lokale SMTP-/OAuth2-Transporte und leakt keine rohen Provider-Fehler mehr an Admin-Oberflächen oder API-Aufrufer. |
 
+### Delta Batch 030
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/EditorJs/EditorJsRemoteMediaService.php` | umgesetzt | HTTPS-/URL-Validierung, Remote-Fehlerpfade und Metadaten-Sanitizing deutlich verschärft. | Der Remote-Media-Service für Editor.js akzeptiert nur noch normalisierte HTTPS-URLs ohne eingebettete Credentials, kapselt Remote-Fehler generisch und begrenzt fremde Metadaten sowie Preview-Bilder restriktiver. |
+
+### Delta Batch 031
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationSyncFilesystem.php` | umgesetzt | Repo-/DOC-/Temp-Roots jetzt in allen Copy-/Rename-/Delete-Pfaden strikt erzwungen. | Der Doku-Sync-Dateisystem-Layer operiert nur noch innerhalb explizit verwalteter Arbeitsbereiche und lehnt ausreißende Staging-, Backup-, Extract- oder Cleanup-Pfade konsistent vor der Operation ab. |
+
 ## Grundlage
 
 Diese Datei bewertet den aktuellen CMS-Codebestand **dateiweise** nach:
@@ -370,7 +382,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/modules/system/DocumentationRenderer.php` | Doku-Renderer | Markdown→HTML, Escaping | 87 | 78 | 86 | 84 |
 | `CMS/admin/modules/system/DocumentationSyncDownloader.php` | Doku-Downloader | HTTP/Remote, FS | 72 | 62 | 82 | 72 |
 | `CMS/admin/modules/system/DocumentationSyncEnvironment.php` | Doku-Env-Check | Runtime/Env-Checks | 84 | 88 | 84 | 85 |
-| `CMS/admin/modules/system/DocumentationSyncFilesystem.php` | Doku-FS-Logik | FS, Pfade, Speicherung | 78 | 72 | 84 | 78 |
+| `CMS/admin/modules/system/DocumentationSyncFilesystem.php` | Doku-FS-Logik | FS, Pfade, Speicherung | 88 | 74 | 86 | 84 |
 | `CMS/admin/modules/system/DocumentationSyncService.php` | Doku-Sync-Orchestrator | Downloader, FS, GitSync | 84 | 67 | 87 | 80 |
 | `CMS/admin/modules/system/MailSettingsModule.php` | Mail-Settings-Logik | Mailservice, Settings | 78 | 74 | 84 | 78 |
 | `CMS/admin/modules/system/SupportModule.php` | Support-Logik | Tickets/Hinweise, leicht | 86 | 88 | 84 | 86 |
@@ -540,7 +552,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `core/Services/EditorJs/EditorJsAssetService.php` | Liefert Assets und Konfiguration für Editor.js. | EditorJsService, Theme/Asset-Layer, Dateisystem | 84 | 86 | 84 | 85 |
 | `core/Services/EditorJs/EditorJsImageLibraryService.php` | Bindet Bildbibliothek in Editor.js ein. | MediaService, EditorJsMediaService, Uploads | 79 | 78 | 83 | 80 |
 | `core/Services/EditorJs/EditorJsMediaService.php` | Vermittelt Mediendaten an Editor.js-Workflows. | MediaService, UploadHandler, RequestGuard | 73 | 76 | 82 | 77 |
-| `core/Services/EditorJs/EditorJsRemoteMediaService.php` | Holt oder verarbeitet Remote-Medien für Editor.js. | Http\Client, MediaService, Sanitizer | 68 | 70 | 80 | 73 |
+| `core/Services/EditorJs/EditorJsRemoteMediaService.php` | Holt oder verarbeitet Remote-Medien für Editor.js. | Http\Client, MediaService, Sanitizer | 86 | 72 | 84 | 80 |
 | `core/Services/EditorJs/EditorJsRequestGuard.php` | Prüft Berechtigungen und Request-Schutz für Editor.js. | Auth, Security, MemberService | 86 | 85 | 86 | 86 |
 | `core/Services/EditorJs/EditorJsSanitizer.php` | Säubert Editor.js-Blockdaten vor Speicherung/Rendern. | PurifierService, Security, EditorJsService | 90 | 86 | 86 | 87 |
 | `core/Services/EditorJs/EditorJsUploadService.php` | Upload-Workflow für Editor.js-Dateien und Bilder. | FileUploadService, MediaService, Security | 69 | 74 | 82 | 75 |
@@ -718,7 +730,7 @@ Verwendete Referenzbasis für die Einordnung:
 | Kategorie | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt | Schwächste Dateien | Stärkste Dateien | Audit-Fokus |
 |---|---:|---:|---:|---:|---:|---|---|---|
 | **Admin – Entry-Points** | 81 | 83,4 | 84,1 | 84,8 | 83,9 | `theme-editor.php`, `theme-marketplace.php` | `diagnose.php`, `index.php`, `info.php`, `support.php`, `system-*.php` | Remote-Zugriffe in Marketplace-/Theme-Entrypoints härten |
-| **Admin – Module** | 55 | 80,6 | 74,1 | 84,2 | 79,9 | `DocumentationGitSync.php`, `DocumentationGithubZipSync.php`, `DocumentationSyncDownloader.php` | `PostsCategoryViewModelBuilder.php`, `SystemInfoModule.php` | Performance- und Qualitäts-Gates für große Module priorisieren |
+| **Admin – Module** | 55 | 80,8 | 74,1 | 84,2 | 80,0 | `DocumentationGitSync.php`, `DocumentationGithubZipSync.php`, `DocumentationSyncDownloader.php` | `PostsCategoryViewModelBuilder.php`, `SystemInfoModule.php` | Performance- und Qualitäts-Gates für große Module priorisieren |
 | **Admin – Layout-Partials** | 4 | 87,5 | 91,0 | 84,3 | 87,5 | `sidebar.php` | `section-page-shell.php` | Bereits stark; nur Regressionen verhindern |
 | **Admin – Views** | 89 | 84,4 | 83,9 | 83,7 | 83,4 | `posts/edit.php`, `pages/edit.php`, `landing/page.php` | `member/subnav.php`, `performance/subnav.php`, `seo/subnav.php` | Editor-Komplexität und Formularpfade weiter entkoppeln |
 | **Admin – View-Partials** | 8 | 89,5 | 94,4 | 84,9 | 89,6 | `featured-image-picker.php` | `content-advanced-seo-panel.php`, `content-preview-card.php`, `content-readability-card.php`, `content-seo-score-panel.php` | Sehr guter Standard – als Referenzmuster konservieren |
@@ -726,8 +738,8 @@ Verwendete Referenzbasis für die Einordnung:
 | **Core – Contracts** | 3 | 94,0 | 95,0 | 92,0 | 94,0 | – | alle Contracts | Referenzniveau halten, keine unnötige Aufblähung |
 | **Core – Auth Provider & MFA** | 5 | 69,6 | 79,0 | 83,2 | 77,4 | `LdapAuthProvider.php`, `WebAuthnAdapter.php` | `TotpAdapter.php`, `AuthManager.php` | LDAP-, Passkey- und MFA-Randfälle gezielt testen |
 | **Core – Routing** | 6 | 76,3 | 79,8 | 82,7 | 79,7 | `ApiRouter.php` | `ThemeArchiveRepository.php` | API-/Routing-Validierung und Request-Härtung vertiefen |
-| **Core – Allgemeine Services** | 42 | 80,3 | 77,8 | 83,0 | 79,2 | `EditorJsRemoteMediaService.php`, `RemoteImageService.php`, `RemoteFileService.php` | `PurifierService.php`, `PermalinkService.php`, `StatusService.php` | Externe APIs, Remote-URLs und Fehlerpfade robuster machen |
-| **Core – EditorJs Services** | 9 | 79,0 | 79,9 | 83,2 | 80,8 | `EditorJsRemoteMediaService.php`, `EditorJsUploadService.php` | `EditorJsSanitizer.php`, `EditorJsRequestGuard.php` | Remote-Media und Upload-Härtung priorisieren |
+| **Core – Allgemeine Services** | 42 | 80,7 | 77,8 | 83,1 | 79,4 | `RemoteImageService.php`, `RemoteFileService.php`, `DocumentationSyncFilesystem.php` | `PurifierService.php`, `PermalinkService.php`, `StatusService.php` | Externe APIs, Remote-URLs und Fehlerpfade robuster machen |
+| **Core – EditorJs Services** | 9 | 81,0 | 80,1 | 83,6 | 81,6 | `EditorJsUploadService.php`, `EditorJsMediaService.php` | `EditorJsSanitizer.php`, `EditorJsRequestGuard.php` | Remote-Media und Upload-Härtung priorisieren |
 | **Core – Landing Services** | 9 | 81,8 | 82,6 | 84,0 | 82,7 | `LandingPluginService.php` | `LandingSanitizer.php` | Sanitizer-Qualität halten, Plugin-Integration schärfer absichern |
 | **Core – Media Services** | 3 | 73,7 | 74,0 | 82,0 | 76,7 | `UploadHandler.php` | `MediaRepository.php` | Upload-Pfade, Dateitypen und Filesystem-Grenzen prüfen |
 | **Core – SEO Services** | 8 | 82,1 | 82,5 | 84,0 | 83,0 | `SeoAuditService.php`, `SeoMetaRepository.php` | `SeoHeadRenderer.php`, `SeoSchemaRenderer.php` | Head-/Schema-Ausgabe weiter als Best Practice festigen |

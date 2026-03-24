@@ -35,7 +35,7 @@ final class DocumentationSyncService
         private readonly string $defaultRemote,
         private readonly string $defaultBranch
     ) {
-        $filesystem = new DocumentationSyncFilesystem();
+        $filesystem = new DocumentationSyncFilesystem($this->repoRoot, $this->docsRoot, sys_get_temp_dir());
         $downloader = new DocumentationSyncDownloader($filesystem);
 
         $this->environment = new DocumentationSyncEnvironment($this->repoRoot);
