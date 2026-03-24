@@ -117,6 +117,34 @@ ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu ausz
 |---|---|---|---|
 | `CMS/core/Services/FileUploadService.php` | umgesetzt | Nur noch echte POST-Uploads, segmentweise Pfadvalidierung, Einzeldatei-Prüfung und generische Fehlerantworten mit internem Logging/Audit statt roher `WP_Error`-Details. | Der zentrale Upload-Endpunkt verliert Traversal-/Payload-Schwächen und reduziert Detail-Leaks an API-/Public-Clients, ohne den Media-/EditorJS-Flow fachlich umzubauen. |
 
+### Delta Batch 015
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/comments.php` | umgesetzt | Kommentar-Entry nutzt jetzt die vorhandene View-Capability, akzeptiert nur noch bekannte POST-Aktionen und hält Redirects enger am validierten Statusfilter. | Der Entry trennt View- von Mutationsrechten sauberer und spiegelt keine losen Kommentar-Aktionen mehr in den Moderationsflow. |
+| `CMS/admin/modules/comments/CommentsModule.php` | umgesetzt | Moderations-, Delete- und Bulk-Pfade validieren IDs, Zielstatus und Vorhandensein der Kommentare serverseitig und protokollieren Fehl- bzw. Teilzustände intern über Logging/Audit. | Der Kommentar-Hotspot verliert mehrere Trust-Boundary-Schwächen: weniger unvalidierte Mutationen, klarere Rechtekanten und weniger stille Bulk-Fehlpfade. |
+| `CMS/admin/views/comments/list.php` | umgesetzt | Bulk-Bar, Checkboxen und Row-Actions richten sich an den tatsächlichen Rechten aus; Post-Ziele kommen vorbereitet aus dem Modul. | Die View koppelt Mutations-UI enger an den serverseitigen Rechtezustand und reduziert rohe Verkettungslogik im Template. |
+
+### Delta Batch 016
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationSyncService.php` | umgesetzt | Konfiggrenzen, Capability-Normalisierung und zentrale Fehler-/Erfolgspfade für den Doku-Sync-Orchestrator nachgezogen. | Der Orchestrator blockt inkonsistente Repo-/DOC-/ZIP-Konfiguration früher, protokolliert Sync-Erfolg und Abbruch zentral und verlässt sich weniger auf lose Roh-Rückgaben aus Unterservices. |
+
+### Delta Batch 017
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/firewall.php` | umgesetzt | Firewall-Entry verarbeitet nur noch bekannte Aktionen und behandelt CSRF-/Aktionsfehler konsistent über Redirect + Flash. | Der Entry spiegelt keine losen Security-Mutationen mehr direkt in den Request-Flow und bleibt beim Fehlerverhalten enger am gemeinsamen Admin-Muster. |
+| `CMS/admin/modules/security/FirewallModule.php` | umgesetzt | Regel- und Settings-Mutationen validieren Eingaben strenger, blocken Dubletten, leaken keine rohen Exceptions mehr und auditieren Fehlschläge kontrollierter. | Der Firewall-Hotspot verliert mehrere Trust-Boundary-Schwächen: weniger unvalidierte Regeln, weniger Detail-Leaks und klarere Pfade für Delete-/Toggle-/Save-Fehler. |
+| `CMS/admin/views/security/firewall.php` | umgesetzt | Flash-Alerts, kontrollierter Ablaufdatum-Output und bestätigtes Löschen via `cmsConfirm(...)` nachgezogen. | Die UI bleibt näher am restlichen Security-Backend, reduziert unescaped Inline-Ausgabe und entkoppelt sich vom rohen Browser-Confirm. |
+
+### Delta Batch 018
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/hub/HubTemplateProfileManager.php` | umgesetzt | Template-Persistenz härter validiert, URL-/JSON-Payloads begrenzt und Fehler-/Sync-Pfade sauber geloggt; Listen-Nutzung wird ohne N+1-Queries ermittelt. | Der Hub-Template-Hotspot verarbeitet weniger unbereinigte Profil-Daten, läuft robuster bei DB-/Sync-Fehlern und entlastet das Listing spürbar durch aggregierte Nutzungszähler. |
+
 ## Grundlage
 
 Diese Datei bewertet den aktuellen CMS-Codebestand **dateiweise** nach:
@@ -160,7 +188,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/analytics.php` | Analytics-Entry | SEO/Analytics-Modul, Layout, SEO-View | 84 | 86 | 85 | 85 |
 | `CMS/admin/antispam.php` | Antispam-Entry | `AntispamModule`, Security-View | 84 | 86 | 85 | 85 |
 | `CMS/admin/backups.php` | Backup-Entry | `BackupsModule`, System-View, I/O | 76 | 72 | 82 | 77 |
-| `CMS/admin/comments.php` | Kommentar-Entry | `CommentsModule`, Comments-View | 84 | 86 | 85 | 85 |
+| `CMS/admin/comments.php` | Kommentar-Entry | `CommentsModule`, Comments-View | 89 | 86 | 88 | 88 |
 | `CMS/admin/cookie-manager.php` | Cookie-Entry | `CookieManagerModule`, Legal-View | 80 | 78 | 84 | 80 |
 | `CMS/admin/data-requests.php` | DSGVO-Export-Entry | Legal-Modul, Legal-View | 84 | 86 | 85 | 85 |
 | `CMS/admin/deletion-requests.php` | Löschanfrage-Entry | Legal-Modul, Legal-View | 84 | 86 | 85 | 85 |
@@ -168,7 +196,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/diagnose.php` | Diagnose-Entry | System-Modul, Diagnose-View | 89 | 93 | 86 | 89 |
 | `CMS/admin/documentation.php` | Doku-Entry | Dokumentations-Module, Doku-View | 78 | 72 | 82 | 78 |
 | `CMS/admin/error-report.php` | Error-Report-Entry | Error-Services, Formular-Flow | 78 | 80 | 83 | 80 |
-| `CMS/admin/firewall.php` | Firewall-Entry | `FirewallModule`, Security-View | 80 | 78 | 84 | 80 |
+| `CMS/admin/firewall.php` | Firewall-Entry | `FirewallModule`, Security-View | 84 | 79 | 86 | 83 |
 | `CMS/admin/font-manager.php` | Font-Manager-Entry | Font-Modul, Theme-Fonts-View, FS | 78 | 76 | 84 | 79 |
 | `CMS/admin/groups.php` | Gruppen-Entry | `GroupsModule`, Users-View | 84 | 86 | 85 | 85 |
 | `CMS/admin/hub-sites.php` | Hub-Sites-Entry | Hub-Module, Hub-Views | 85 | 80 | 86 | 84 |
@@ -238,11 +266,11 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/updates.php` | Updates-Entry | `UpdatesModule`, System-View | 78 | 76 | 84 | 79 |
 | `CMS/admin/user-settings.php` | User-Settings-Entry | `UserSettingsModule`, Users-View | 84 | 86 | 85 | 85 |
 | `CMS/admin/users.php` | Users-Entry | `UsersModule`, Users-Views | 84 | 84 | 85 | 84 |
-| `CMS/admin/modules/comments/CommentsModule.php` | Kommentar-Logik | DB, Kommentarstatus, View-Daten | 80 | 76 | 84 | 80 |
+| `CMS/admin/modules/comments/CommentsModule.php` | Kommentar-Logik | DB, Kommentarstatus, View-Daten | 87 | 77 | 87 | 84 |
 | `CMS/admin/modules/dashboard/DashboardModule.php` | Dashboard-Datenlogik | `DashboardService`, DB, KPI-Builder | 80 | 74 | 84 | 79 |
 | `CMS/admin/modules/hub/HubSitesModule.php` | Hub-Sites-Logik | DB, Settings, Hub-Views | 83 | 71 | 85 | 80 |
 | `CMS/admin/modules/hub/HubTemplateProfileCatalog.php` | Hub-Profilkatalog | Profile, Defaults, Hub-Editor | 84 | 88 | 84 | 85 |
-| `CMS/admin/modules/hub/HubTemplateProfileManager.php` | Hub-Profilmanager | DB, JSON, Hub-Templates | 74 | 64 | 83 | 74 |
+| `CMS/admin/modules/hub/HubTemplateProfileManager.php` | Hub-Profilmanager | DB, JSON, Hub-Templates | 84 | 74 | 87 | 82 |
 | `CMS/admin/modules/landing/LandingPageModule.php` | Landing-Builder-Logik | DB/Settings, Landing-View | 80 | 74 | 84 | 79 |
 | `CMS/admin/modules/legal/CookieManagerModule.php` | Cookie-Manager-Logik | DB, Settings, Code-Snippets | 72 | 64 | 83 | 73 |
 | `CMS/admin/modules/legal/DeletionRequestsModule.php` | Löschanfragen-Logik | DB, DSGVO-Hooks | 80 | 76 | 84 | 80 |
@@ -257,7 +285,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/modules/posts/PostsCategoryViewModelBuilder.php` | Kategorie-ViewModel-Helfer | Posts-Modul, Kategorien-UI | 88 | 92 | 86 | 89 |
 | `CMS/admin/modules/posts/PostsModule.php` | Beitragslogik | DB, SEO, Media, Redirects | 83 | 66 | 86 | 79 |
 | `CMS/admin/modules/security/AntispamModule.php` | Antispam-Logik | Settings, Regeln, Security-View | 84 | 86 | 84 | 85 |
-| `CMS/admin/modules/security/FirewallModule.php` | Firewall-Logik | DB, Regeln, Security-Logs | 76 | 72 | 84 | 77 |
+| `CMS/admin/modules/security/FirewallModule.php` | Firewall-Logik | DB, Regeln, Security-Logs | 84 | 73 | 87 | 82 |
 | `CMS/admin/modules/security/SecurityAuditModule.php` | Security-Audit-Logik | Scanner, Settings, Reports | 78 | 68 | 84 | 77 |
 | `CMS/admin/modules/seo/AnalyticsModule.php` | SEO-Analytics-Logik | DB, PageViews, KPIs | 80 | 66 | 84 | 77 |
 | `CMS/admin/modules/seo/PerformanceModule.php` | Performance-Logik | DB, FS, Sessions, Cache | 76 | 58 | 84 | 73 |
@@ -277,7 +305,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/modules/system/DocumentationSyncDownloader.php` | Doku-Downloader | HTTP/Remote, FS | 72 | 62 | 82 | 72 |
 | `CMS/admin/modules/system/DocumentationSyncEnvironment.php` | Doku-Env-Check | Runtime/Env-Checks | 84 | 88 | 84 | 85 |
 | `CMS/admin/modules/system/DocumentationSyncFilesystem.php` | Doku-FS-Logik | FS, Pfade, Speicherung | 78 | 72 | 84 | 78 |
-| `CMS/admin/modules/system/DocumentationSyncService.php` | Doku-Sync-Orchestrator | Downloader, FS, GitSync | 76 | 66 | 83 | 75 |
+| `CMS/admin/modules/system/DocumentationSyncService.php` | Doku-Sync-Orchestrator | Downloader, FS, GitSync | 84 | 67 | 87 | 80 |
 | `CMS/admin/modules/system/MailSettingsModule.php` | Mail-Settings-Logik | Mailservice, Settings | 78 | 74 | 84 | 78 |
 | `CMS/admin/modules/system/SupportModule.php` | Support-Logik | Tickets/Hinweise, leicht | 86 | 88 | 84 | 86 |
 | `CMS/admin/modules/system/SystemInfoModule.php` | Systeminfo-Logik | Env/PHP/Serverdaten | 88 | 84 | 84 | 86 |
@@ -297,7 +325,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/partials/header.php` | Admin-Header | Meta, CSS, Cache-Header | 88 | 92 | 84 | 88 |
 | `CMS/admin/partials/section-page-shell.php` | Section-Shell | Auth, CSRF, Modul-Factory, View | 90 | 94 | 85 | 90 |
 | `CMS/admin/partials/sidebar.php` | Admin-Sidebar | Navigation, DB-Settings, Icons | 84 | 86 | 84 | 84 |
-| `CMS/admin/views/comments/list.php` | Kommentar-Liste | Comments-Modul, Flash-Partial | 86 | 88 | 84 | 86 |
+| `CMS/admin/views/comments/list.php` | Kommentar-Liste | Comments-Modul, Flash-Partial | 88 | 88 | 86 | 87 |
 | `CMS/admin/views/dashboard/index.php` | Dashboard-UI | `DashboardModule`, Inline-Helfer, KPIs | 82 | 74 | 83 | 80 |
 | `CMS/admin/views/hub/edit.php` | Hub-Site-Edit-UI | Hub-Modul | 82 | 80 | 83 | 82 |
 | `CMS/admin/views/hub/list.php` | Hub-Site-Liste | Hub-Modul | 86 | 88 | 84 | 86 |
@@ -349,7 +377,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/views/posts/tags.php` | Post-Tags-UI | `PostsModule` | 86 | 88 | 84 | 86 |
 | `CMS/admin/views/security/antispam.php` | Antispam-UI | `AntispamModule` | 86 | 88 | 84 | 86 |
 | `CMS/admin/views/security/audit.php` | Security-Audit-UI | `SecurityAuditModule` | 84 | 84 | 83 | 84 |
-| `CMS/admin/views/security/firewall.php` | Firewall-UI | `FirewallModule` | 84 | 84 | 83 | 84 |
+| `CMS/admin/views/security/firewall.php` | Firewall-UI | `FirewallModule` | 87 | 84 | 85 | 85 |
 | `CMS/admin/views/seo/analytics.php` | SEO-Analytics-UI | `AnalyticsModule` | 84 | 82 | 83 | 83 |
 | `CMS/admin/views/seo/audit.php` | SEO-Audit-UI | SEO-Suite | 84 | 82 | 83 | 83 |
 | `CMS/admin/views/seo/dashboard.php` | SEO-Dashboard-UI | SEO-Module | 86 | 88 | 84 | 86 |
@@ -623,8 +651,8 @@ Verwendete Referenzbasis für die Einordnung:
 
 | Kategorie | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt | Schwächste Dateien | Stärkste Dateien | Audit-Fokus |
 |---|---:|---:|---:|---:|---:|---|---|---|
-| **Admin – Entry-Points** | 81 | 83,3 | 84,0 | 84,7 | 83,9 | `theme-editor.php`, `theme-marketplace.php` | `diagnose.php`, `index.php`, `info.php`, `support.php`, `system-*.php` | Remote-Zugriffe in Marketplace-/Theme-Entrypoints härten |
-| **Admin – Module** | 55 | 79,1 | 73,3 | 83,8 | 78,7 | `HubTemplateProfileManager.php`, `LegalSitesModule.php`, `MemberDashboardModule.php` | `PostsCategoryViewModelBuilder.php`, `SystemInfoModule.php` | Performance- und Qualitäts-Gates für große Module priorisieren |
+| **Admin – Entry-Points** | 81 | 83,4 | 84,1 | 84,8 | 83,9 | `theme-editor.php`, `theme-marketplace.php` | `diagnose.php`, `index.php`, `info.php`, `support.php`, `system-*.php` | Remote-Zugriffe in Marketplace-/Theme-Entrypoints härten |
+| **Admin – Module** | 55 | 79,8 | 73,5 | 84,1 | 79,1 | `LegalSitesModule.php`, `MemberDashboardModule.php`, `CookieManagerModule.php` | `PostsCategoryViewModelBuilder.php`, `SystemInfoModule.php` | Performance- und Qualitäts-Gates für große Module priorisieren |
 | **Admin – Layout-Partials** | 4 | 87,5 | 91,0 | 84,3 | 87,5 | `sidebar.php` | `section-page-shell.php` | Bereits stark; nur Regressionen verhindern |
 | **Admin – Views** | 89 | 84,4 | 83,9 | 83,7 | 83,4 | `posts/edit.php`, `pages/edit.php`, `landing/page.php` | `member/subnav.php`, `performance/subnav.php`, `seo/subnav.php` | Editor-Komplexität und Formularpfade weiter entkoppeln |
 | **Admin – View-Partials** | 8 | 89,5 | 94,4 | 84,9 | 89,6 | `featured-image-picker.php` | `content-advanced-seo-panel.php`, `content-preview-card.php`, `content-readability-card.php`, `content-seo-score-panel.php` | Sehr guter Standard – als Referenzmuster konservieren |

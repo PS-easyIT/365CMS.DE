@@ -13,15 +13,69 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\AuditLogger;
+use CMS\Database;
+use CMS\Logger;
 use CMS\Services\CommentService;
 
 class CommentsModule
 {
+    private const LIST_STATUSES = ['all', 'pending', 'approved', 'spam', 'trash'];
+    private const MODERATION_STATUSES = ['pending', 'approved', 'spam', 'trash'];
+    private const SUPPORTED_ACTIONS = ['status', 'delete', 'bulk'];
+    private const BULK_ACTIONS = ['approve', 'spam', 'trash', 'delete'];
+    private const MAX_BULK_IDS = 100;
+
     private CommentService $service;
+    private Database $db;
+    private string $prefix;
 
     public function __construct()
     {
         $this->service = CommentService::getInstance();
+        $this->db = Database::instance();
+        $this->prefix = $this->db->getPrefix();
+    }
+
+    public function canView(): bool
+    {
+        return function_exists('current_user_can') && current_user_can('comments.view');
+    }
+
+    public function canModerate(): bool
+    {
+        return function_exists('current_user_can') && current_user_can('comments.moderate');
+    }
+
+    public function canDelete(): bool
+    {
+        return function_exists('current_user_can') && current_user_can('comments.delete');
+    }
+
+    public function isSupportedAction(string $action): bool
+    {
+        return in_array(trim($action), self::SUPPORTED_ACTIONS, true);
+    }
+
+    public function normalizeStatusFilter(string $status): string
+    {
+        $status = trim($status);
+
+        if (!in_array($status, self::LIST_STATUSES, true)) {
+            return 'all';
+        }
+
+        return $status;
+    }
+
+    public function buildListUrl(string $status = 'all'): string
+    {
+        $status = $this->normalizeStatusFilter($status);
+        if ($status === 'all') {
+            return SITE_URL . '/admin/comments';
+        }
+
+        return SITE_URL . '/admin/comments?status=' . rawurlencode($status);
     }
 
     /**
@@ -30,18 +84,15 @@ class CommentsModule
     public function getListData(): array
     {
         $counts = $this->service->getCounts();
-        $status = $_GET['status'] ?? 'all';
-
-        if (!in_array($status, ['all', 'pending', 'approved', 'spam', 'trash'], true)) {
-            $status = 'all';
-        }
-
-        $comments = $this->service->getComments($status, 200, 0);
+        $status = $this->normalizeStatusFilter((string)($_GET['status'] ?? 'all'));
+        $comments = array_map(fn(mixed $comment): array => $this->normalizeComment($comment), $this->service->getComments($status, 200, 0));
 
         return [
             'comments' => $comments,
             'counts'   => $counts,
             'status'   => $status,
+            'canModerate' => $this->canModerate(),
+            'canDelete' => $this->canDelete(),
         ];
     }
 
@@ -50,6 +101,35 @@ class CommentsModule
      */
     public function updateStatus(int $id, string $status): array
     {
+        if (!$this->canModerate()) {
+            return $this->failResult('comments.status.denied', 'Sie dürfen Kommentare nicht moderieren.', [
+                'comment_id' => $id,
+                'status' => $status,
+            ]);
+        }
+
+        $status = trim($status);
+        if ($id <= 0) {
+            return $this->failResult('comments.status.invalid_id', 'Ungültige Kommentar-ID.', [
+                'comment_id' => $id,
+                'status' => $status,
+            ]);
+        }
+
+        if (!in_array($status, self::MODERATION_STATUSES, true)) {
+            return $this->failResult('comments.status.invalid_status', 'Ungültiger Kommentarstatus.', [
+                'comment_id' => $id,
+                'status' => $status,
+            ]);
+        }
+
+        if (!$this->commentExists($id)) {
+            return $this->failResult('comments.status.missing', 'Kommentar wurde nicht gefunden.', [
+                'comment_id' => $id,
+                'status' => $status,
+            ]);
+        }
+
         if ($this->service->updateStatus($id, $status)) {
             $labels = [
                 'approved' => 'Kommentar freigegeben.',
@@ -57,9 +137,21 @@ class CommentsModule
                 'spam'     => 'Kommentar als Spam markiert.',
                 'trash'    => 'Kommentar in den Papierkorb verschoben.',
             ];
+
+            $this->logSuccess(
+                'comments.status.updated',
+                'Kommentarstatus aktualisiert.',
+                ['comment_id' => $id, 'status' => $status],
+                $id
+            );
+
             return ['success' => true, 'message' => $labels[$status] ?? 'Status aktualisiert.'];
         }
-        return ['success' => false, 'error' => 'Fehler beim Ändern des Status.'];
+
+        return $this->failResult('comments.status.failed', 'Fehler beim Ändern des Status.', [
+            'comment_id' => $id,
+            'status' => $status,
+        ]);
     }
 
     /**
@@ -67,10 +159,32 @@ class CommentsModule
      */
     public function delete(int $id): array
     {
+        if (!$this->canDelete()) {
+            return $this->failResult('comments.delete.denied', 'Sie dürfen Kommentare nicht löschen.', [
+                'comment_id' => $id,
+            ]);
+        }
+
+        if ($id <= 0) {
+            return $this->failResult('comments.delete.invalid_id', 'Ungültige Kommentar-ID.', [
+                'comment_id' => $id,
+            ]);
+        }
+
+        if (!$this->commentExists($id)) {
+            return $this->failResult('comments.delete.missing', 'Kommentar wurde nicht gefunden.', [
+                'comment_id' => $id,
+            ]);
+        }
+
         if ($this->service->delete($id)) {
+            $this->logSuccess('comments.delete.completed', 'Kommentar gelöscht.', ['comment_id' => $id], $id);
             return ['success' => true, 'message' => 'Kommentar gelöscht.'];
         }
-        return ['success' => false, 'error' => 'Fehler beim Löschen.'];
+
+        return $this->failResult('comments.delete.failed', 'Fehler beim Löschen.', [
+            'comment_id' => $id,
+        ]);
     }
 
     /**
@@ -78,34 +192,73 @@ class CommentsModule
      */
     public function bulkAction(string $action, array $ids): array
     {
-        if (empty($ids)) {
-            return ['success' => false, 'error' => 'Keine Einträge ausgewählt.'];
+        $action = trim($action);
+        if (!in_array($action, self::BULK_ACTIONS, true)) {
+            return $this->failResult('comments.bulk.invalid_action', 'Unbekannte Aktion.', [
+                'bulk_action' => $action,
+            ]);
         }
 
-        $count   = 0;
-        $success = true;
+        if ($action === 'delete') {
+            if (!$this->canDelete()) {
+                return $this->failResult('comments.bulk.delete.denied', 'Sie dürfen Kommentare nicht löschen.', [
+                    'bulk_action' => $action,
+                ]);
+            }
+        } elseif (!$this->canModerate()) {
+            return $this->failResult('comments.bulk.moderation.denied', 'Sie dürfen Kommentare nicht moderieren.', [
+                'bulk_action' => $action,
+            ]);
+        }
 
-        foreach ($ids as $id) {
-            $id = (int)$id;
-            if ($id <= 0) continue;
+        $normalizedIds = $this->normalizeIds($ids);
+        if ($normalizedIds === []) {
+            return $this->failResult('comments.bulk.no_ids', 'Keine Einträge ausgewählt.', [
+                'bulk_action' => $action,
+            ]);
+        }
+
+        if (count($normalizedIds) > self::MAX_BULK_IDS) {
+            return $this->failResult('comments.bulk.limit_exceeded', 'Zu viele Kommentare ausgewählt.', [
+                'bulk_action' => $action,
+                'requested_count' => count($normalizedIds),
+            ]);
+        }
+
+        $existingIds = $this->getExistingCommentIds($normalizedIds);
+        if ($existingIds === []) {
+            return $this->failResult('comments.bulk.no_existing_ids', 'Es wurden keine gültigen Kommentare gefunden.', [
+                'bulk_action' => $action,
+                'requested_ids' => $normalizedIds,
+            ]);
+        }
+
+        $processed = 0;
+        $failed = 0;
+
+        foreach ($existingIds as $id) {
+            $operationSucceeded = false;
 
             switch ($action) {
                 case 'approve':
-                    $success = $this->service->updateStatus($id, 'approved') && $success;
+                    $operationSucceeded = $this->service->updateStatus($id, 'approved');
                     break;
                 case 'spam':
-                    $success = $this->service->updateStatus($id, 'spam') && $success;
+                    $operationSucceeded = $this->service->updateStatus($id, 'spam');
                     break;
                 case 'trash':
-                    $success = $this->service->updateStatus($id, 'trash') && $success;
+                    $operationSucceeded = $this->service->updateStatus($id, 'trash');
                     break;
                 case 'delete':
-                    $success = $this->service->delete($id) && $success;
+                    $operationSucceeded = $this->service->delete($id);
                     break;
-                default:
-                    return ['success' => false, 'error' => 'Unbekannte Aktion.'];
             }
-            $count++;
+
+            if ($operationSucceeded) {
+                $processed++;
+            } else {
+                $failed++;
+            }
         }
 
         $labels = [
@@ -115,9 +268,164 @@ class CommentsModule
             'delete'  => 'gelöscht',
         ];
 
-        return [
-            'success' => $success,
-            'message' => $count . ' Kommentar(e) ' . ($labels[$action] ?? 'bearbeitet') . '.',
+        $metadata = [
+            'bulk_action' => $action,
+            'requested_count' => count($normalizedIds),
+            'existing_count' => count($existingIds),
+            'processed_count' => $processed,
+            'failed_count' => $failed,
         ];
+
+        if ($processed === 0) {
+            return $this->failResult('comments.bulk.failed', 'Bulk-Aktion konnte nicht ausgeführt werden.', $metadata);
+        }
+
+        if ($failed > 0) {
+            $this->logFailure('comments.bulk.partial', 'Kommentar-Bulk-Aktion nur teilweise erfolgreich.', $metadata);
+
+            return [
+                'success' => false,
+                'error' => $processed . ' Kommentar(e) ' . ($labels[$action] ?? 'bearbeitet') . ', ' . $failed . ' fehlgeschlagen.',
+            ];
+        }
+
+        $this->logSuccess('comments.bulk.completed', 'Kommentar-Bulk-Aktion abgeschlossen.', $metadata);
+
+        return [
+            'success' => true,
+            'message' => $processed . ' Kommentar(e) ' . ($labels[$action] ?? 'bearbeitet') . '.',
+        ];
+    }
+
+    private function normalizeComment(mixed $comment): array
+    {
+        $commentId = (int)$this->commentField($comment, 'id', 0);
+        $author = trim((string)$this->commentField($comment, 'author', ''));
+        $content = trim((string)$this->commentField($comment, 'content', ''));
+        $postDate = (string)$this->commentField($comment, 'post_date', '');
+        $postSlug = trim((string)$this->commentField($comment, 'post_slug', ''));
+
+        return [
+            'id' => $commentId,
+            'post_id' => (int)$this->commentField($comment, 'post_id', 0),
+            'author' => $author,
+            'author_email' => trim((string)$this->commentField($comment, 'author_email', '')),
+            'content' => $content,
+            'status' => trim((string)$this->commentField($comment, 'status', 'pending')),
+            'post_date' => $postDate,
+            'post_title' => trim((string)$this->commentField($comment, 'post_title', '')),
+            'post_slug' => preg_replace('/[^a-zA-Z0-9\-_\/]/', '', $postSlug) ?? '',
+            'post_url' => $this->buildPostUrl($postSlug),
+        ];
+    }
+
+    private function commentField(mixed $comment, string $key, mixed $default = ''): mixed
+    {
+        if (is_array($comment)) {
+            return $comment[$key] ?? $default;
+        }
+
+        if (is_object($comment) && isset($comment->{$key})) {
+            return $comment->{$key};
+        }
+
+        return $default;
+    }
+
+    private function buildPostUrl(string $slug): string
+    {
+        $slug = trim($slug, "/ \t\n\r\0\x0B");
+        if ($slug === '') {
+            return '';
+        }
+
+        return SITE_URL . '/blog/' . rawurlencode($slug);
+    }
+
+    /**
+     * @param array<int, mixed> $ids
+     * @return array<int, int>
+     */
+    private function normalizeIds(array $ids): array
+    {
+        $normalized = [];
+
+        foreach ($ids as $id) {
+            $value = (int)$id;
+            if ($value <= 0) {
+                continue;
+            }
+
+            $normalized[$value] = $value;
+        }
+
+        return array_values($normalized);
+    }
+
+    private function commentExists(int $id): bool
+    {
+        return $this->getExistingCommentIds([$id]) !== [];
+    }
+
+    /**
+     * @param array<int, int> $ids
+     * @return array<int, int>
+     */
+    private function getExistingCommentIds(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+        $rows = $this->db->get_results(
+            "SELECT id FROM {$this->prefix}comments WHERE id IN ({$placeholders})",
+            $ids
+        ) ?: [];
+
+        $existing = [];
+        foreach ($rows as $row) {
+            $commentId = (int)($row->id ?? 0);
+            if ($commentId > 0) {
+                $existing[$commentId] = $commentId;
+            }
+        }
+
+        return array_values($existing);
+    }
+
+    private function failResult(string $action, string $message, array $context = []): array
+    {
+        $this->logFailure($action, $message, $context);
+
+        return ['success' => false, 'error' => $message];
+    }
+
+    private function logFailure(string $action, string $message, array $context = []): void
+    {
+        Logger::instance()->withChannel('admin.comments')->warning($message, $context);
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_CONTENT,
+            $action,
+            $message,
+            'comment',
+            isset($context['comment_id']) ? (int)$context['comment_id'] : null,
+            $context,
+            'warning'
+        );
+    }
+
+    private function logSuccess(string $action, string $message, array $context = [], ?int $commentId = null): void
+    {
+        Logger::instance()->withChannel('admin.comments')->info($message, $context);
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_CONTENT,
+            $action,
+            $message,
+            'comment',
+            $commentId,
+            $context,
+            'info'
+        );
     }
 }

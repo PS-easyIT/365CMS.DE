@@ -7,11 +7,18 @@ if (!defined('ABSPATH')) {
 
 require_once __DIR__ . '/HubTemplateProfileCatalog.php';
 
+use CMS\AuditLogger;
 use CMS\Database;
+use CMS\Logger;
 
 final class HubTemplateProfileManager
 {
     private const TEMPLATE_SETTING_KEY = 'hub_site_templates';
+    private const MAX_TEMPLATE_PROFILES = 100;
+    private const MAX_LINKS = 12;
+    private const MAX_SECTIONS = 24;
+    private const MAX_STARTER_CARDS = 3;
+    private const MAX_SETTINGS_BYTES = 262144;
 
     private Database $db;
     private string $prefix;
@@ -41,6 +48,7 @@ final class HubTemplateProfileManager
     public function getTemplateListData(): array
     {
         $profiles = $this->getTemplateProfiles();
+        $usageCounts = $this->getTemplateUsageCounts(array_keys($profiles));
         $items = [];
 
         foreach ($profiles as $key => $profile) {
@@ -49,7 +57,7 @@ final class HubTemplateProfileManager
                 'label' => (string)($profile['label'] ?? $key),
                 'base_template' => (string)($profile['base_template'] ?? 'general-it'),
                 'summary' => (string)($profile['summary'] ?? ''),
-                'usage_count' => $this->countTemplateUsage($key),
+                'usage_count' => (int)($usageCounts[$key] ?? 0),
             ];
         }
 
@@ -144,128 +152,165 @@ final class HubTemplateProfileManager
 
     public function saveTemplate(array $post): array
     {
-        $profiles = $this->getTemplateProfiles();
-        $existingKey = $this->sanitizeTemplateKey((string)($post['template_key'] ?? ''));
-        $label = mb_substr(trim(strip_tags((string)($post['template_label'] ?? ''))), 0, 120);
-        $templateOptions = HubTemplateProfileCatalog::getTemplateOptions();
-        $baseTemplate = $this->normalizeSetting((string)($post['base_template'] ?? 'general-it'), array_keys($templateOptions), 'general-it');
+        try {
+            $profiles = $this->getTemplateProfiles();
+            $existingKey = $this->sanitizeTemplateKey((string)($post['template_key'] ?? ''));
+            $label = $this->sanitizePlainText((string)($post['template_label'] ?? ''), 120);
+            $templateOptions = HubTemplateProfileCatalog::getTemplateOptions();
+            $baseTemplate = $this->normalizeSetting((string)($post['base_template'] ?? 'general-it'), array_keys($templateOptions), 'general-it');
 
-        if ($label === '') {
-            return ['success' => false, 'error' => 'Template-Name darf nicht leer sein.'];
+            if ($label === '') {
+                return ['success' => false, 'error' => 'Template-Name darf nicht leer sein.'];
+            }
+
+            $isExistingTemplate = $existingKey !== '' && isset($profiles[$existingKey]);
+            if (!$isExistingTemplate && count($profiles) >= self::MAX_TEMPLATE_PROFILES) {
+                return ['success' => false, 'error' => 'Es können maximal ' . self::MAX_TEMPLATE_PROFILES . ' Hub-Templates gespeichert werden.'];
+            }
+
+            $key = $isExistingTemplate
+                ? $existingKey
+                : $this->buildUniqueTemplateKey($label, $profiles);
+
+            $previousProfile = isset($profiles[$key]) && is_array($profiles[$key]) ? $profiles[$key] : null;
+
+            $profiles[$key] = [
+                'label' => $label,
+                'base_template' => $baseTemplate,
+                'summary' => $this->sanitizePlainText((string)($post['template_summary'] ?? ''), 600),
+                'meta' => [
+                    'audience' => $this->sanitizePlainText((string)($post['template_meta_audience'] ?? ''), 120),
+                    'owner' => $this->sanitizePlainText((string)($post['template_meta_owner'] ?? ''), 120),
+                    'update_cycle' => $this->sanitizePlainText((string)($post['template_meta_update_cycle'] ?? ''), 120),
+                    'focus' => $this->sanitizePlainText((string)($post['template_meta_focus'] ?? ''), 160),
+                    'kpi' => $this->sanitizePlainText((string)($post['template_meta_kpi'] ?? ''), 120),
+                ],
+                'meta_labels' => [
+                    'audience' => $this->sanitizePlainText((string)($post['template_label_audience'] ?? 'Zielgruppe'), 80),
+                    'owner' => $this->sanitizePlainText((string)($post['template_label_owner'] ?? 'Verantwortlich'), 80),
+                    'update_cycle' => $this->sanitizePlainText((string)($post['template_label_update_cycle'] ?? 'Update-Zyklus'), 80),
+                    'focus' => $this->sanitizePlainText((string)($post['template_label_focus'] ?? 'Fokus'), 80),
+                    'kpi' => $this->sanitizePlainText((string)($post['template_label_kpi'] ?? 'KPI'), 80),
+                ],
+                'navigation' => [
+                    'toc_enabled' => !empty($post['template_toc_enabled']),
+                ],
+                'links' => \CMS\Json::decodeArray($this->normalizeJsonArray((string)($post['template_links_json'] ?? '[]'), 'link'), []),
+                'sections' => \CMS\Json::decodeArray($this->normalizeJsonArray((string)($post['template_sections_json'] ?? '[]'), 'section'), []),
+                'colors' => [
+                    'hero_start' => $this->normalizeColor((string)($post['template_color_hero_start'] ?? '#1f2937'), '#1f2937'),
+                    'hero_end' => $this->normalizeColor((string)($post['template_color_hero_end'] ?? '#0f172a'), '#0f172a'),
+                    'accent' => $this->normalizeColor((string)($post['template_color_accent'] ?? '#2563eb'), '#2563eb'),
+                    'surface' => $this->normalizeColor((string)($post['template_color_surface'] ?? '#ffffff'), '#ffffff'),
+                    'card_background' => $this->normalizeColor((string)($post['template_color_card_background'] ?? '#ffffff'), '#ffffff'),
+                    'card_text' => $this->normalizeColor((string)($post['template_color_card_text'] ?? '#0f172a'), '#0f172a'),
+                    'section_background' => $this->normalizeColor((string)($post['template_color_section_background'] ?? '#ffffff'), '#ffffff'),
+                    'table_header_start' => $this->normalizeColor((string)($post['template_color_table_header_start'] ?? $post['template_color_hero_start'] ?? '#1f2937'), '#1f2937'),
+                    'table_header_end' => $this->normalizeColor((string)($post['template_color_table_header_end'] ?? $post['template_color_hero_end'] ?? '#0f172a'), '#0f172a'),
+                ],
+                'card_schema' => [
+                    'columns' => $this->normalizeNumber((int)($post['template_card_columns'] ?? 2), 1, 3, 2),
+                    'min_cards' => 1,
+                    'max_cards' => 3,
+                    'title_label' => $this->sanitizePlainText((string)($post['template_card_title_label'] ?? 'Titel'), 80),
+                    'summary_label' => $this->sanitizePlainText((string)($post['template_card_summary_label'] ?? 'Kurzbeschreibung'), 80),
+                    'badge_label' => $this->sanitizePlainText((string)($post['template_card_badge_label'] ?? 'Badge'), 80),
+                    'meta_left_label' => $this->sanitizePlainText((string)($post['template_card_meta_left_label'] ?? 'Meta links'), 80),
+                    'meta_right_label' => $this->sanitizePlainText((string)($post['template_card_meta_right_label'] ?? 'Meta rechts'), 80),
+                    'image_label' => $this->sanitizePlainText((string)($post['template_card_image_label'] ?? 'Bild-URL'), 80),
+                    'image_alt_label' => $this->sanitizePlainText((string)($post['template_card_image_alt_label'] ?? 'Bild-Alt'), 80),
+                    'button_text_label' => $this->sanitizePlainText((string)($post['template_card_button_text_label'] ?? 'Button-Text'), 80),
+                    'button_link_label' => $this->sanitizePlainText((string)($post['template_card_button_link_label'] ?? 'Button-Link'), 80),
+                ],
+                'card_design' => [
+                    'layout' => $this->normalizeSetting((string)($post['hub_card_layout'] ?? 'standard'), ['standard', 'feature', 'compact'], 'standard'),
+                    'image_position' => $this->normalizeSetting((string)($post['hub_card_image_position'] ?? 'top'), ['top', 'left', 'right'], 'top'),
+                    'image_fit' => $this->normalizeSetting((string)($post['hub_card_image_fit'] ?? 'cover'), ['cover', 'contain'], 'cover'),
+                    'image_ratio' => $this->normalizeSetting((string)($post['hub_card_image_ratio'] ?? 'wide'), ['wide', 'square', 'portrait'], 'wide'),
+                    'meta_layout' => $this->normalizeSetting((string)($post['hub_card_meta_layout'] ?? 'split'), ['split', 'stacked'], 'split'),
+                    'card_radius' => $this->normalizeNumber((int)($post['template_card_radius'] ?? 20), 0, 48, 20),
+                ],
+                'starter_cards' => $this->normalizeStarterCards((string)($post['template_starter_cards_json'] ?? '[]')),
+            ];
+
+            $profiles[$key] = $this->normalizeTemplateProfile($key, $profiles[$key], $previousProfile);
+
+            $this->saveTemplateProfiles($profiles);
+            $this->syncInheritedHubSitesWithTemplate($key, $previousProfile, $profiles[$key]);
+            $this->logSuccess(
+                'hub.template.saved',
+                'Hub-Template gespeichert.',
+                [
+                    'template_key' => $key,
+                    'base_template' => $baseTemplate,
+                    'is_new' => !$isExistingTemplate,
+                ]
+            );
+
+            return ['success' => true, 'key' => $key, 'message' => 'Template gespeichert.'];
+        } catch (\Throwable $e) {
+            return $this->failResult(
+                'hub.template.save.failed',
+                'Hub-Template konnte nicht gespeichert werden.',
+                $e,
+                ['template_key' => $this->sanitizeTemplateKey((string)($post['template_key'] ?? ''))]
+            );
         }
-
-        $key = $existingKey !== '' && isset($profiles[$existingKey])
-            ? $existingKey
-            : $this->buildUniqueTemplateKey($label, $profiles);
-
-        $previousProfile = isset($profiles[$key]) && is_array($profiles[$key]) ? $profiles[$key] : null;
-
-        $profiles[$key] = [
-            'label' => $label,
-            'base_template' => $baseTemplate,
-            'summary' => mb_substr(trim((string)($post['template_summary'] ?? '')), 0, 600),
-            'meta' => [
-                'audience' => mb_substr(trim(strip_tags((string)($post['template_meta_audience'] ?? ''))), 0, 120),
-                'owner' => mb_substr(trim(strip_tags((string)($post['template_meta_owner'] ?? ''))), 0, 120),
-                'update_cycle' => mb_substr(trim(strip_tags((string)($post['template_meta_update_cycle'] ?? ''))), 0, 120),
-                'focus' => mb_substr(trim(strip_tags((string)($post['template_meta_focus'] ?? ''))), 0, 160),
-                'kpi' => mb_substr(trim(strip_tags((string)($post['template_meta_kpi'] ?? ''))), 0, 120),
-            ],
-            'meta_labels' => [
-                'audience' => mb_substr(trim(strip_tags((string)($post['template_label_audience'] ?? 'Zielgruppe'))), 0, 80),
-                'owner' => mb_substr(trim(strip_tags((string)($post['template_label_owner'] ?? 'Verantwortlich'))), 0, 80),
-                'update_cycle' => mb_substr(trim(strip_tags((string)($post['template_label_update_cycle'] ?? 'Update-Zyklus'))), 0, 80),
-                'focus' => mb_substr(trim(strip_tags((string)($post['template_label_focus'] ?? 'Fokus'))), 0, 80),
-                'kpi' => mb_substr(trim(strip_tags((string)($post['template_label_kpi'] ?? 'KPI'))), 0, 80),
-            ],
-            'navigation' => [
-                'toc_enabled' => !empty($post['template_toc_enabled']),
-            ],
-            'links' => \CMS\Json::decodeArray($this->normalizeJsonArray((string)($post['template_links_json'] ?? '[]'), 'link'), []),
-            'sections' => \CMS\Json::decodeArray($this->normalizeJsonArray((string)($post['template_sections_json'] ?? '[]'), 'section'), []),
-            'colors' => [
-                'hero_start' => $this->normalizeColor((string)($post['template_color_hero_start'] ?? '#1f2937'), '#1f2937'),
-                'hero_end' => $this->normalizeColor((string)($post['template_color_hero_end'] ?? '#0f172a'), '#0f172a'),
-                'accent' => $this->normalizeColor((string)($post['template_color_accent'] ?? '#2563eb'), '#2563eb'),
-                'surface' => $this->normalizeColor((string)($post['template_color_surface'] ?? '#ffffff'), '#ffffff'),
-                'card_background' => $this->normalizeColor((string)($post['template_color_card_background'] ?? '#ffffff'), '#ffffff'),
-                'card_text' => $this->normalizeColor((string)($post['template_color_card_text'] ?? '#0f172a'), '#0f172a'),
-                'section_background' => $this->normalizeColor((string)($post['template_color_section_background'] ?? '#ffffff'), '#ffffff'),
-                'table_header_start' => $this->normalizeColor((string)($post['template_color_table_header_start'] ?? $post['template_color_hero_start'] ?? '#1f2937'), '#1f2937'),
-                'table_header_end' => $this->normalizeColor((string)($post['template_color_table_header_end'] ?? $post['template_color_hero_end'] ?? '#0f172a'), '#0f172a'),
-            ],
-            'card_schema' => [
-                'columns' => $this->normalizeNumber((int)($post['template_card_columns'] ?? 2), 1, 3, 2),
-                'min_cards' => 1,
-                'max_cards' => 3,
-                'title_label' => mb_substr(trim(strip_tags((string)($post['template_card_title_label'] ?? 'Titel'))), 0, 80),
-                'summary_label' => mb_substr(trim(strip_tags((string)($post['template_card_summary_label'] ?? 'Kurzbeschreibung'))), 0, 80),
-                'badge_label' => mb_substr(trim(strip_tags((string)($post['template_card_badge_label'] ?? 'Badge'))), 0, 80),
-                'meta_left_label' => mb_substr(trim(strip_tags((string)($post['template_card_meta_left_label'] ?? 'Meta links'))), 0, 80),
-                'meta_right_label' => mb_substr(trim(strip_tags((string)($post['template_card_meta_right_label'] ?? 'Meta rechts'))), 0, 80),
-                'image_label' => mb_substr(trim(strip_tags((string)($post['template_card_image_label'] ?? 'Bild-URL'))), 0, 80),
-                'image_alt_label' => mb_substr(trim(strip_tags((string)($post['template_card_image_alt_label'] ?? 'Bild-Alt'))), 0, 80),
-                'button_text_label' => mb_substr(trim(strip_tags((string)($post['template_card_button_text_label'] ?? 'Button-Text'))), 0, 80),
-                'button_link_label' => mb_substr(trim(strip_tags((string)($post['template_card_button_link_label'] ?? 'Button-Link'))), 0, 80),
-            ],
-            'card_design' => [
-                'layout' => $this->normalizeSetting((string)($post['hub_card_layout'] ?? 'standard'), ['standard', 'feature', 'compact'], 'standard'),
-                'image_position' => $this->normalizeSetting((string)($post['hub_card_image_position'] ?? 'top'), ['top', 'left', 'right'], 'top'),
-                'image_fit' => $this->normalizeSetting((string)($post['hub_card_image_fit'] ?? 'cover'), ['cover', 'contain'], 'cover'),
-                'image_ratio' => $this->normalizeSetting((string)($post['hub_card_image_ratio'] ?? 'wide'), ['wide', 'square', 'portrait'], 'wide'),
-                'meta_layout' => $this->normalizeSetting((string)($post['hub_card_meta_layout'] ?? 'split'), ['split', 'stacked'], 'split'),
-                'card_radius' => $this->normalizeNumber((int)($post['template_card_radius'] ?? 20), 0, 48, 20),
-            ],
-            'starter_cards' => $this->normalizeStarterCards((string)($post['template_starter_cards_json'] ?? '[]')),
-        ];
-
-        $profiles[$key] = $this->normalizeTemplateProfile($key, $profiles[$key], $previousProfile);
-
-        $this->saveTemplateProfiles($profiles);
-        $this->syncInheritedHubSitesWithTemplate($key, $previousProfile, $profiles[$key]);
-
-        return ['success' => true, 'key' => $key, 'message' => 'Template gespeichert.'];
     }
 
     public function duplicateTemplate(string $key): array
     {
-        $profiles = $this->getTemplateProfiles();
-        $key = $this->sanitizeTemplateKey($key);
+        try {
+            $profiles = $this->getTemplateProfiles();
+            $key = $this->sanitizeTemplateKey($key);
 
-        if ($key === '' || !isset($profiles[$key])) {
-            return ['success' => false, 'error' => 'Template nicht gefunden.'];
+            if ($key === '' || !isset($profiles[$key])) {
+                return ['success' => false, 'error' => 'Template nicht gefunden.'];
+            }
+
+            if (count($profiles) >= self::MAX_TEMPLATE_PROFILES) {
+                return ['success' => false, 'error' => 'Es können maximal ' . self::MAX_TEMPLATE_PROFILES . ' Hub-Templates gespeichert werden.'];
+            }
+
+            $copy = $profiles[$key];
+            $copy['label'] = ((string)($copy['label'] ?? 'Template')) . ' (Kopie)';
+            $newKey = $this->buildUniqueTemplateKey((string)$copy['label'], $profiles);
+            $profiles[$newKey] = $this->normalizeTemplateProfile($newKey, $copy, null);
+            $this->saveTemplateProfiles($profiles);
+            $this->logSuccess('hub.template.duplicated', 'Hub-Template kopiert.', ['template_key' => $key, 'new_template_key' => $newKey]);
+
+            return ['success' => true, 'key' => $newKey, 'message' => 'Template kopiert.'];
+        } catch (\Throwable $e) {
+            return $this->failResult('hub.template.duplicate.failed', 'Hub-Template konnte nicht dupliziert werden.', $e, ['template_key' => $key]);
         }
-
-        $copy = $profiles[$key];
-        $copy['label'] = ((string)($copy['label'] ?? 'Template')) . ' (Kopie)';
-        $newKey = $this->buildUniqueTemplateKey((string)$copy['label'], $profiles);
-        $profiles[$newKey] = $copy;
-        $this->saveTemplateProfiles($profiles);
-
-        return ['success' => true, 'key' => $newKey, 'message' => 'Template kopiert.'];
     }
 
     public function deleteTemplate(string $key): array
     {
-        $profiles = $this->getTemplateProfiles();
-        $key = $this->sanitizeTemplateKey($key);
+        try {
+            $profiles = $this->getTemplateProfiles();
+            $key = $this->sanitizeTemplateKey($key);
 
-        if ($key === '' || !isset($profiles[$key])) {
-            return ['success' => false, 'error' => 'Template nicht gefunden.'];
+            if ($key === '' || !isset($profiles[$key])) {
+                return ['success' => false, 'error' => 'Template nicht gefunden.'];
+            }
+
+            if (isset(HubTemplateProfileCatalog::getTemplatePresets()[$key])) {
+                return ['success' => false, 'error' => 'Standard-Templates können nicht gelöscht werden. Du kannst sie aber bearbeiten, kopieren und umbenennen.'];
+            }
+
+            if ($this->countTemplateUsage($key) > 0) {
+                return ['success' => false, 'error' => 'Template wird noch von Hub-Sites verwendet und kann nicht gelöscht werden.'];
+            }
+
+            unset($profiles[$key]);
+            $this->saveTemplateProfiles($profiles);
+            $this->logSuccess('hub.template.deleted', 'Hub-Template gelöscht.', ['template_key' => $key]);
+
+            return ['success' => true, 'message' => 'Template gelöscht.'];
+        } catch (\Throwable $e) {
+            return $this->failResult('hub.template.delete.failed', 'Hub-Template konnte nicht gelöscht werden.', $e, ['template_key' => $key]);
         }
-
-        if (isset(HubTemplateProfileCatalog::getTemplatePresets()[$key])) {
-            return ['success' => false, 'error' => 'Standard-Templates können nicht gelöscht werden. Du kannst sie aber bearbeiten, kopieren und umbenennen.'];
-        }
-
-        if ($this->countTemplateUsage($key) > 0) {
-            return ['success' => false, 'error' => 'Template wird noch von Hub-Sites verwendet und kann nicht gelöscht werden.'];
-        }
-
-        unset($profiles[$key]);
-        $this->saveTemplateProfiles($profiles);
-
-        return ['success' => true, 'message' => 'Template gelöscht.'];
     }
 
     private function normalizeJsonArray(string $json, string $mode): string
@@ -276,14 +321,15 @@ final class HubTemplateProfileManager
         }
 
         $normalized = [];
-        foreach ($items as $item) {
+        $limit = $mode === 'link' ? self::MAX_LINKS : self::MAX_SECTIONS;
+        foreach (array_slice($items, 0, $limit) as $item) {
             if (!is_array($item)) {
                 continue;
             }
 
             if ($mode === 'link') {
-                $label = mb_substr(trim(strip_tags((string)($item['label'] ?? ''))), 0, 80);
-                $url = mb_substr(trim((string)($item['url'] ?? '')), 0, 240);
+                $label = $this->sanitizePlainText((string)($item['label'] ?? ''), 80);
+                $url = $this->normalizeUrlValue((string)($item['url'] ?? ''), 240);
                 if ($label === '') {
                     continue;
                 }
@@ -294,10 +340,10 @@ final class HubTemplateProfileManager
                 continue;
             }
 
-            $title = mb_substr(trim(strip_tags((string)($item['title'] ?? ''))), 0, 120);
-            $text = mb_substr(trim((string)($item['text'] ?? '')), 0, 600);
-            $actionLabel = mb_substr(trim(strip_tags((string)($item['actionLabel'] ?? ''))), 0, 80);
-            $actionUrl = mb_substr(trim((string)($item['actionUrl'] ?? '')), 0, 240);
+            $title = $this->sanitizePlainText((string)($item['title'] ?? ''), 120);
+            $text = $this->sanitizePlainText((string)($item['text'] ?? ''), 600);
+            $actionLabel = $this->sanitizePlainText((string)($item['actionLabel'] ?? ''), 80);
+            $actionUrl = $this->normalizeUrlValue((string)($item['actionUrl'] ?? ''), 240);
 
             if ($title === '' && $text === '') {
                 continue;
@@ -354,6 +400,10 @@ final class HubTemplateProfileManager
             }
         }
 
+        if (count($stored) > self::MAX_TEMPLATE_PROFILES) {
+            $stored = array_slice($stored, 0, self::MAX_TEMPLATE_PROFILES, true);
+        }
+
         $this->templateProfilesCache = $stored;
         return $this->templateProfilesCache;
     }
@@ -373,11 +423,21 @@ final class HubTemplateProfileManager
         }
 
         $json = json_encode($payload, JSON_UNESCAPED_UNICODE) ?: '{}';
+        if (strlen($json) > self::MAX_SETTINGS_BYTES) {
+            throw new \RuntimeException('Hub-Template-Payload überschreitet das erlaubte Größenlimit.');
+        }
+
         $exists = (int)($this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?", [self::TEMPLATE_SETTING_KEY]) ?? 0);
         if ($exists > 0) {
-            $this->db->update('settings', ['option_value' => $json], ['option_name' => self::TEMPLATE_SETTING_KEY]);
+            $updated = $this->db->update('settings', ['option_value' => $json], ['option_name' => self::TEMPLATE_SETTING_KEY]);
+            if ($updated !== true) {
+                throw new \RuntimeException('Hub-Template-Settings konnten nicht aktualisiert werden.');
+            }
         } else {
-            $this->db->insert('settings', ['option_name' => self::TEMPLATE_SETTING_KEY, 'option_value' => $json]);
+            $insertId = $this->db->insert('settings', ['option_name' => self::TEMPLATE_SETTING_KEY, 'option_value' => $json]);
+            if ($insertId === false) {
+                throw new \RuntimeException('Hub-Template-Settings konnten nicht gespeichert werden.');
+            }
         }
 
         $this->templateProfilesCache = $payload;
@@ -474,12 +534,48 @@ final class HubTemplateProfileManager
 
     private function countTemplateUsage(string $key): int
     {
-        return (int)($this->db->get_var(
-            "SELECT COUNT(*) FROM {$this->prefix}site_tables
+        return (int)($this->getTemplateUsageCounts([$key])[$key] ?? 0);
+    }
+
+    /**
+     * @param array<int, string> $templateKeys
+     * @return array<string, int>
+     */
+    private function getTemplateUsageCounts(array $templateKeys): array
+    {
+        $normalizedKeys = [];
+        foreach ($templateKeys as $templateKey) {
+            $normalizedKey = $this->sanitizeTemplateKey((string)$templateKey);
+            if ($normalizedKey === '') {
+                continue;
+            }
+
+            $normalizedKeys[$normalizedKey] = 0;
+        }
+
+        if ($normalizedKeys === []) {
+            return [];
+        }
+
+        $rows = $this->db->get_results(
+            "SELECT JSON_UNQUOTE(JSON_EXTRACT(settings_json, '$.hub_template')) AS template_key,
+                    COUNT(*) AS usage_count
+             FROM {$this->prefix}site_tables
              WHERE COALESCE(JSON_UNQUOTE(JSON_EXTRACT(settings_json, '$.content_mode')), 'table') = 'hub'
-               AND JSON_UNQUOTE(JSON_EXTRACT(settings_json, '$.hub_template')) = ?",
-            [$key]
-        ) ?? 0);
+             GROUP BY JSON_UNQUOTE(JSON_EXTRACT(settings_json, '$.hub_template'))",
+            []
+        ) ?: [];
+
+        foreach ($rows as $row) {
+            $templateKey = $this->sanitizeTemplateKey((string)($row->template_key ?? ''));
+            if ($templateKey === '' || !array_key_exists($templateKey, $normalizedKeys)) {
+                continue;
+            }
+
+            $normalizedKeys[$templateKey] = max(0, (int)($row->usage_count ?? 0));
+        }
+
+        return $normalizedKeys;
     }
 
     private function buildUniqueTemplateKey(string $label, array $profiles): string
@@ -535,22 +631,22 @@ final class HubTemplateProfileManager
         }
 
         $normalized = [];
-        foreach (array_slice($cards, 0, 3) as $card) {
+        foreach (array_slice($cards, 0, self::MAX_STARTER_CARDS) as $card) {
             if (!is_array($card)) {
                 continue;
             }
 
             $normalized[] = [
-                'title' => mb_substr(trim(strip_tags((string)($card['title'] ?? ''))), 0, 160),
-                'summary' => mb_substr(trim((string)($card['summary'] ?? '')), 0, 600),
-                'badge' => mb_substr(trim(strip_tags((string)($card['badge'] ?? ''))), 0, 80),
-                'meta_left' => mb_substr(trim(strip_tags((string)($card['meta_left'] ?? ''))), 0, 120),
-                'meta_right' => mb_substr(trim(strip_tags((string)($card['meta_right'] ?? ''))), 0, 120),
-                'image_url' => mb_substr(trim((string)($card['image_url'] ?? '')), 0, 500),
-                'image_alt' => mb_substr(trim(strip_tags((string)($card['image_alt'] ?? ''))), 0, 160),
-                'button_text' => mb_substr(trim(strip_tags((string)($card['button_text'] ?? ''))), 0, 80),
-                'button_link' => mb_substr(trim((string)($card['button_link'] ?? '')), 0, 500),
-                'url' => mb_substr(trim((string)($card['url'] ?? '#')), 0, 500),
+                'title' => $this->sanitizePlainText((string)($card['title'] ?? ''), 160),
+                'summary' => $this->sanitizePlainText((string)($card['summary'] ?? ''), 600),
+                'badge' => $this->sanitizePlainText((string)($card['badge'] ?? ''), 80),
+                'meta_left' => $this->sanitizePlainText((string)($card['meta_left'] ?? ''), 120),
+                'meta_right' => $this->sanitizePlainText((string)($card['meta_right'] ?? ''), 120),
+                'image_url' => $this->normalizeUrlValue((string)($card['image_url'] ?? ''), 500),
+                'image_alt' => $this->sanitizePlainText((string)($card['image_alt'] ?? ''), 160),
+                'button_text' => $this->sanitizePlainText((string)($card['button_text'] ?? ''), 80),
+                'button_link' => $this->normalizeUrlValue((string)($card['button_link'] ?? ''), 500),
+                'url' => $this->normalizeUrlValue((string)($card['url'] ?? '#'), 500),
             ];
         }
 
@@ -560,6 +656,15 @@ final class HubTemplateProfileManager
     private function syncInheritedHubSitesWithTemplate(string $templateKey, ?array $previousProfile, array $currentProfile): void
     {
         if ($previousProfile === null) {
+            return;
+        }
+
+        $previousLinks = $this->normalizeComparableLinks($previousProfile['links'] ?? []);
+        $currentLinks = $this->normalizeComparableLinks($currentProfile['links'] ?? []);
+        $previousStarterCards = $this->normalizeComparableStarterCards($previousProfile['starter_cards'] ?? []);
+        $currentStarterCardsComparable = $this->normalizeComparableStarterCards($currentProfile['starter_cards'] ?? []);
+
+        if ($previousLinks === $currentLinks && $previousStarterCards === $currentStarterCardsComparable) {
             return;
         }
 
@@ -575,8 +680,6 @@ final class HubTemplateProfileManager
             return;
         }
 
-        $previousLinks = $this->normalizeComparableLinks($previousProfile['links'] ?? []);
-        $previousStarterCards = $this->normalizeComparableStarterCards($previousProfile['starter_cards'] ?? []);
         $currentStarterCards = $this->buildSiteRowsFromStarterCards($currentProfile['starter_cards'] ?? []);
 
         foreach ($sites as $site) {
@@ -614,14 +717,104 @@ final class HubTemplateProfileManager
                 continue;
             }
 
-            $this->db->update('site_tables', [
-                'settings_json' => json_encode($settings, JSON_UNESCAPED_UNICODE),
-                'rows_json' => json_encode($rows, JSON_UNESCAPED_UNICODE),
-                'updated_at' => date('Y-m-d H:i:s'),
-            ], [
+            $updatePayload = ['updated_at' => date('Y-m-d H:i:s')];
+            if ($settingsChanged) {
+                $updatePayload['settings_json'] = json_encode($settings, JSON_UNESCAPED_UNICODE);
+            }
+            if ($rowsChanged) {
+                $updatePayload['rows_json'] = json_encode($rows, JSON_UNESCAPED_UNICODE);
+            }
+
+            $updated = $this->db->update('site_tables', $updatePayload, [
                 'id' => $siteId,
             ]);
+
+            if ($updated !== true) {
+                $this->logFailure(
+                    'hub.template.sync_site.failed',
+                    'Vererbte Hub-Site konnte nach Template-Update nicht synchronisiert werden.',
+                    null,
+                    ['template_key' => $templateKey, 'site_id' => $siteId]
+                );
+            }
         }
+    }
+
+    private function normalizeUrlValue(string $value, int $maxLength): string
+    {
+        $value = trim($value);
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', '', $value) ?? '';
+        if ($value === '') {
+            return '';
+        }
+
+        $value = function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
+
+        if ($value === '#') {
+            return '#';
+        }
+
+        if (str_starts_with($value, '/')) {
+            return $value;
+        }
+
+        $scheme = strtolower((string) parse_url($value, PHP_URL_SCHEME));
+        if ($scheme === '') {
+            return '#';
+        }
+
+        if (!in_array($scheme, ['http', 'https'], true)) {
+            return '#';
+        }
+
+        return filter_var($value, FILTER_SANITIZE_URL) ?: '#';
+    }
+
+    private function sanitizePlainText(string $value, int $maxLength): string
+    {
+        $value = trim(strip_tags($value));
+        $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/u', ' ', $value) ?? '';
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
+    }
+
+    private function failResult(string $action, string $message, ?\Throwable $exception = null, array $context = []): array
+    {
+        $this->logFailure($action, $message, $exception, $context);
+
+        return ['success' => false, 'error' => $message . ' Bitte Logs prüfen.'];
+    }
+
+    private function logFailure(string $action, string $message, ?\Throwable $exception = null, array $context = []): void
+    {
+        if ($exception !== null) {
+            $context['exception'] = $exception->getMessage();
+        }
+
+        Logger::instance()->withChannel('admin.hub-template-profiles')->error($message, $context);
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_CONTENT,
+            $action,
+            $message,
+            'hub-template-profiles',
+            null,
+            $context,
+            'error'
+        );
+    }
+
+    private function logSuccess(string $action, string $message, array $context = []): void
+    {
+        Logger::instance()->withChannel('admin.hub-template-profiles')->info($message, $context);
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_CONTENT,
+            $action,
+            $message,
+            'hub-template-profiles',
+            null,
+            $context,
+            'info'
+        );
     }
 
     private function normalizeComparableLinks(mixed $links): array

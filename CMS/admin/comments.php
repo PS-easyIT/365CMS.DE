@@ -13,64 +13,57 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 use CMS\Security;
 
-if (!Auth::instance()->isAdmin()) {
+require_once __DIR__ . '/modules/comments/CommentsModule.php';
+
+$module = new CommentsModule();
+
+if (!Auth::isLoggedIn() || !$module->canView()) {
     header('Location: ' . SITE_URL);
     exit;
 }
 
-require_once __DIR__ . '/modules/comments/CommentsModule.php';
-$module    = new CommentsModule();
-$alert     = null;
+$alert  = null;
+$status = $module->normalizeStatusFilter((string)($_GET['status'] ?? 'all'));
 
 // ─── POST-Handling ───────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action    = $_POST['action'] ?? '';
+    $action    = trim((string)($_POST['action'] ?? ''));
     $postToken = $_POST['csrf_token'] ?? '';
 
-    if (!Security::instance()->verifyToken($postToken, 'admin_comments')) {
+    if (!$module->isSupportedAction($action)) {
+        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Unbekannte Kommentar-Aktion.'];
+    } elseif (!Security::instance()->verifyToken($postToken, 'admin_comments')) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-        header('Location: ' . SITE_URL . '/admin/comments');
-        exit;
-    }
+    } else {
+        $result = ['success' => false, 'error' => 'Aktion konnte nicht verarbeitet werden.'];
 
-    switch ($action) {
-        case 'status':
-            $id        = (int)($_POST['id'] ?? 0);
-            $newStatus = $_POST['new_status'] ?? '';
-            $result    = $module->updateStatus($id, $newStatus);
+        switch ($action) {
+            case 'status':
+                $result = $module->updateStatus(
+                    (int)($_POST['id'] ?? 0),
+                    (string)($_POST['new_status'] ?? '')
+                );
+                break;
+
+            case 'delete':
+                $result = $module->delete((int)($_POST['id'] ?? 0));
+                break;
+
+            case 'bulk':
+                $bulkAction = $_POST['bulk_action'] ?? '';
+                $ids        = is_array($_POST['ids'] ?? null) ? $_POST['ids'] : [];
+                $result     = $module->bulkAction((string)$bulkAction, $ids);
+                break;
+        }
+
             $_SESSION['admin_alert'] = [
                 'type'    => $result['success'] ? 'success' : 'danger',
                 'message' => $result['message'] ?? $result['error'] ?? '',
             ];
-            break;
-
-        case 'delete':
-            $id     = (int)($_POST['id'] ?? 0);
-            $result = $module->delete($id);
-            $_SESSION['admin_alert'] = [
-                'type'    => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
-            ];
-            break;
-
-        case 'bulk':
-            $bulkAction = $_POST['bulk_action'] ?? '';
-            $ids        = $_POST['ids'] ?? [];
-            $result     = $module->bulkAction($bulkAction, $ids);
-            $_SESSION['admin_alert'] = [
-                'type'    => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
-            ];
-            break;
     }
 
     // PRG-Redirect mit Status-Erhaltung
-    $redirectStatus = $_GET['status'] ?? '';
-    $redirectUrl    = SITE_URL . '/admin/comments';
-    if ($redirectStatus && in_array($redirectStatus, ['pending', 'approved', 'spam', 'trash'], true)) {
-        $redirectUrl .= '?status=' . $redirectStatus;
-    }
-    header('Location: ' . $redirectUrl);
+    header('Location: ' . $module->buildListUrl($status));
     exit;
 }
 

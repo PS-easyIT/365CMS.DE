@@ -19,14 +19,19 @@ if (!Auth::instance()->isAdmin()) {
 }
 
 require_once __DIR__ . '/modules/security/FirewallModule.php';
-$module    = new FirewallModule();
-$alert     = null;
+$module = new FirewallModule();
+$alert = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'admin_firewall')) {
-        $alert = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
+    $action = trim((string)($_POST['action'] ?? ''));
+
+    if (!$module->isSupportedAction($action)) {
+        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Unbekannte Firewall-Aktion.'];
+    } elseif (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'admin_firewall')) {
+        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
     } else {
-        $action = $_POST['action'] ?? '';
+        $result = ['success' => false, 'error' => 'Firewall-Aktion konnte nicht verarbeitet werden.'];
+
         switch ($action) {
             case 'save_settings':
                 $result = $module->saveSettings($_POST);
@@ -40,14 +45,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'toggle_rule':
                 $result = $module->toggleRule((int)($_POST['id'] ?? 0));
                 break;
-            default:
-                $result = ['success' => false, 'error' => 'Unbekannte Aktion.'];
         }
+
         $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
-        header('Location: ' . SITE_URL . '/admin/firewall');
-        exit;
     }
-    $csrfToken = Security::instance()->generateToken('admin_firewall');
+
+    header('Location: ' . SITE_URL . '/admin/firewall');
+    exit;
 }
 
 if (isset($_SESSION['admin_alert'])) {

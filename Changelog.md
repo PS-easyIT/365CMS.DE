@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.32-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.36-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,45 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.6.36 — 24. März 2026 · Audit-Batch 018, Hub-Template-Profile gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.36** | 🔴 fix | Admin/Hub | **Hub-Template-Profilmanager gegen unsaubere Payloads und stille Persistenzfehler gehärtet**: `CMS/admin/modules/hub/HubTemplateProfileManager.php` begrenzt Link-/Section-/Starter-Card-Payloads, normalisiert URL-Ziele restriktiver und behandelt fehlgeschlagene Settings-Speicherungen sowie Template-Mutationen nur noch generisch mit internem Logging/Audit. |
+| **2.6.36** | 🟠 perf | Admin/Hub | **Template-Nutzungszähler ohne N+1-Abfragen berechnet**: das Hub-Template-Listing holt Usage-Counts gesammelt per Aggregatabfrage statt für jedes Profil separat. |
+| **2.6.36** | 🟡 refactor | Admin/Hub | **Vererbte Hub-Sites werden nur noch bei echten Template-Änderungen nachgezogen**: der Profilmanager erkennt unveränderte Link-/Starter-Card-Vererbungen früher und protokolliert fehlschlagende Sync-Updates kontrolliert. |
+
+---
+
+### v2.6.35 — 24. März 2026 · Audit-Batch 017, Firewall-Flow gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.35** | 🔴 fix | Admin/Security | **Firewall-Entry auf Action-Whitelist gebracht**: `CMS/admin/firewall.php` akzeptiert nur noch bekannte POST-Aktionen und behandelt CSRF-/Aktionsfehler konsistent über Redirect + Flash-Alert. |
+| **2.6.35** | 🔴 fix | Admin/Security | **Firewall-Modul gegen unvalidierte Regeln und Fehlerdetail-Leaks gehärtet**: `CMS/admin/modules/security/FirewallModule.php` validiert IP-/CIDR-/Country-/UA-Regeln strenger, blockiert Dubletten, prüft Delete-/Toggle-Ziele serverseitig und beantwortet Save-/Mutationsfehler im UI nur noch generisch mit internem Logging/Audit. |
+| **2.6.35** | 🟡 refactor | Admin/Security | **Firewall-View an gemeinsamen Security-UI-Standard angenähert**: `CMS/admin/views/security/firewall.php` nutzt Flash-Alerts, rendert Ablaufdaten ohne unescaped Inline-HTML und bestätigt Löschaktionen über `cmsConfirm(...)` statt Browser-`confirm()`. |
+
+---
+
+### v2.6.34 — 24. März 2026 · Audit-Batch 016, Doku-Sync-Orchestrator gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.34** | 🔴 fix | Admin/System | **Doku-Sync-Orchestrator gegen Konfigurationsdrift gehärtet**: `CMS/admin/modules/system/DocumentationSyncService.php` validiert Repository-Root, `/DOC`-Ziel, Branch-/Remote-Werte, GitHub-ZIP-Quelle und Integritätsprofil jetzt zentral, bevor Unterservices den eigentlichen Sync starten. |
+| **2.6.34** | 🟡 refactor | Admin/System | **Capability- und Ergebnisfluss vereinheitlicht**: Nicht verfügbare oder inkonsistente Sync-Modi laufen jetzt über einen generischen, auditierbaren Fehlerpfad, während erfolgreiche Git-/GitHub-ZIP-Synchronisationen zusätzlich zentral geloggt und im Audit-Log festgehalten werden. |
+
+---
+
+### v2.6.33 — 24. März 2026 · Audit-Batch 015, Kommentar-Moderation gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.33** | 🔴 fix | Admin/Comments | **Kommentar-Entry an RBAC-Capabilities ausgerichtet**: `CMS/admin/comments.php` nutzt jetzt `comments.view` für den Zugriff, akzeptiert nur noch bekannte POST-Aktionen und hält Redirects enger am validierten Statusfilter. |
+| **2.6.33** | 🔴 fix | Admin/Comments | **Kommentar-Modul gegen unvalidierte Mutationen und stille Bulk-Fehler gehärtet**: `CMS/admin/modules/comments/CommentsModule.php` prüft IDs, Zielstatus, Kommentar-Existenz und Rechte serverseitig, begrenzt Bulk-Mengen und protokolliert Teil-/Fehlschläge intern per Logging und Audit-Log. |
+| **2.6.33** | 🟡 refactor | Admin/Comments | **Kommentar-View an Rechtezustand gekoppelt**: `CMS/admin/views/comments/list.php` rendert Bulk-Bar, Checkboxen und Row-Actions jetzt capability-basiert und nutzt vorbereitete Post-Ziele aus dem Modul statt roher Slug-Verkettung im Template. |
 
 ---
 

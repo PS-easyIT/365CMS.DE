@@ -37,6 +37,13 @@ $typeBadges = [
 <div class="page-body">
     <div class="container-xl">
 
+        <?php
+        $alertData = $alert ?? [];
+        $alertDismissible = true;
+        $alertMarginClass = 'mb-3';
+        require __DIR__ . '/../partials/flash-alert.php';
+        ?>
+
         <!-- KPI-Karten -->
         <div class="row row-deck row-cards mb-4">
             <div class="col-sm-6 col-lg-3">
@@ -187,7 +194,13 @@ $typeBadges = [
                                     <td><span class="badge <?php echo $typeBadges[$rule['rule_type']] ?? 'bg-secondary'; ?>"><?php echo htmlspecialchars($typeLabels[$rule['rule_type']] ?? $rule['rule_type']); ?></span></td>
                                     <td><code><?php echo htmlspecialchars($rule['value']); ?></code></td>
                                     <td><?php echo htmlspecialchars($rule['reason'] ?? '-'); ?></td>
-                                    <td><?php echo $rule['expires_at'] ? htmlspecialchars($rule['expires_at']) : '<span class="text-secondary">Permanent</span>'; ?></td>
+                                    <td>
+                                        <?php if (!empty($rule['expires_at'])): ?>
+                                            <?php echo htmlspecialchars((string)$rule['expires_at']); ?>
+                                        <?php else: ?>
+                                            <span class="text-secondary">Permanent</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td>
                                         <?php if ((int)$rule['is_active']): ?>
                                             <span class="badge bg-success">Aktiv</span>
@@ -207,7 +220,7 @@ $typeBadges = [
                                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                                                 <input type="hidden" name="action" value="delete_rule">
                                                 <input type="hidden" name="id" value="<?php echo (int)$rule['id']; ?>">
-                                                <button type="submit" class="btn btn-ghost-danger btn-sm" onclick="return confirm('Regel löschen?')">Löschen</button>
+                                                <button type="button" class="btn btn-ghost-danger btn-sm" onclick="deleteFirewallRule(this.form)">Löschen</button>
                                             </form>
                                         </div>
                                     </td>
@@ -223,3 +236,17 @@ $typeBadges = [
 </div>
     </div>
 </div>
+
+<script>
+function deleteFirewallRule(form) {
+    cmsConfirm({
+        title: 'Firewall-Regel löschen',
+        message: 'Diese Firewall-Regel wirklich löschen?',
+        confirmText: 'Löschen',
+        confirmClass: 'btn-danger',
+        onConfirm: function() {
+            form.submit();
+        }
+    });
+}
+</script>
