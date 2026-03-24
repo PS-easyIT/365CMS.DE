@@ -83,10 +83,12 @@ secrets/
 /TEST/
 CMS/tmp-seo-test/pages.xml
 CMS/tmp-seo-test/sitemap.xml
-DOC/audit/*
 tests/
 .github/workflows/
 DOC/assets/VENDOR-NETWORK-PATHS.md
 CMS/tmp*.php
 CMS/tmp-hub-template-dump.php
 DOC/audit/ToDo_Audit_23032026.md
+DOC/audit/ToDoPrüfung.md
+DOC/audit/PRÜFUNG.MD
+DOC/audit/_admin_pruefung_preview.md

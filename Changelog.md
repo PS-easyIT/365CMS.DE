@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.31-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.32-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,15 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.6.32 — 24. März 2026 · Audit-Batch 014, FileUploadService-Härtung
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.32** | 🔴 fix | Core/Uploads | **Zentralen Upload-Endpunkt enger abgesichert**: `CMS/core/Services/FileUploadService.php` akzeptiert nur noch echte `POST`-Uploads, prüft Dateipayloads auf Einzeldatei-Form und Pflichtfelder und validiert Zielpfade jetzt segmentweise gegen Traversal-, Dotfile- und Steuerzeichen-Pfade. |
+| **2.6.32** | 🔴 fix | Core/Uploads | **Upload-Fehlerpfade gegen Detail-Leaks vereinheitlicht**: Validierungs- und Persistenzfehler aus dem Media-Stack werden im Client nur noch generisch beantwortet, während technische Details intern geloggt und auditierbar protokolliert werden. |
 
 ---
 
