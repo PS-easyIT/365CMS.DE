@@ -15,7 +15,9 @@ declare(strict_types=1);
 
 namespace CMS\Services;
 
+use CMS\AuditLogger;
 use CMS\Database;
+use CMS\Logger;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -23,6 +25,13 @@ if (!defined('ABSPATH')) {
 
 class CommentService
 {
+    private const MAX_AUTHOR_LENGTH = 100;
+    private const MAX_EMAIL_LENGTH = 150;
+    private const MAX_CONTENT_LENGTH = 5000;
+    private const MAX_LIST_LIMIT = 200;
+    private const FLOOD_WINDOW_MINUTES = 15;
+    private const MAX_COMMENTS_PER_WINDOW = 5;
+
     private static ?self $instance = null;
 
     private Database $db;
@@ -46,8 +55,12 @@ class CommentService
      */
     public function getApprovedForPost(int $postId): array
     {
+        if ($postId <= 0) {
+            return [];
+        }
+
         return $this->db->get_results(
-            "SELECT id, user_id, author, author_email, content, post_date,
+            "SELECT id, user_id, author, content, post_date,
                     CASE WHEN user_id IS NOT NULL AND author = 'Anonym' THEN 1 ELSE 0 END AS is_anonymous
              FROM {$this->prefix}comments
              WHERE post_id = ? AND status = 'approved'
@@ -74,15 +87,40 @@ class CommentService
             $resolvedAuthorName = 'Anonym';
         }
 
-        $authorName = trim(strip_tags($resolvedAuthorName));
-        $authorName = mb_substr($authorName, 0, 100);
+        $authorName = $this->sanitizeAuthorName($resolvedAuthorName);
 
-        $authorEmail = trim($resolvedAuthorEmail);
+        $authorEmail = mb_substr(trim($resolvedAuthorEmail), 0, self::MAX_EMAIL_LENGTH);
         $validatedEmail = filter_var($authorEmail, FILTER_VALIDATE_EMAIL);
 
-        $cleanContent = trim(PurifierService::getInstance()->purify($content, 'strict'));
+        $cleanContent = $this->sanitizeCommentContent($content);
+        $normalizedIp = $this->normalizeIpAddress($authorIp);
 
         if ($postId <= 0 || $authorName === '' || $validatedEmail === false || $cleanContent === '') {
+            $this->logFailure('comments.create.invalid_payload', 'Kommentar mit ungültigen Eingaben verworfen.', [
+                'post_id' => $postId,
+                'user_id' => $userId,
+                'has_author' => $authorName !== '',
+                'has_valid_email' => $validatedEmail !== false,
+                'has_content' => $cleanContent !== '',
+            ]);
+            return false;
+        }
+
+        if (!$this->isCommentablePost($postId)) {
+            $this->logFailure('comments.create.post_not_commentable', 'Kommentar für nicht kommentierbaren Beitrag verworfen.', [
+                'post_id' => $postId,
+                'user_id' => $userId,
+            ]);
+            return false;
+        }
+
+        if ($this->isRateLimited((string) $validatedEmail, $normalizedIp, $userId)) {
+            $this->logFailure('comments.create.rate_limited', 'Kommentar wegen Kommentar-Flood-Limit verworfen.', [
+                'post_id' => $postId,
+                'user_id' => $userId,
+                'email_hash' => sha1(strtolower((string) $validatedEmail)),
+                'ip' => $normalizedIp,
+            ]);
             return false;
         }
 
@@ -91,14 +129,25 @@ class CommentService
             'user_id' => $userId,
             'author' => $authorName,
             'author_email' => (string) $validatedEmail,
-            'author_ip' => mb_substr($authorIp, 0, 45),
+            'author_ip' => $normalizedIp,
             'content' => $cleanContent,
             'status' => 'pending',
         ]);
 
         if ($insertId === false) {
+            $this->logFailure('comments.create.persist_failed', 'Kommentar konnte nicht gespeichert werden.', [
+                'post_id' => $postId,
+                'user_id' => $userId,
+            ]);
             return false;
         }
+
+        $this->logSuccess('comments.create.pending', 'Kommentar gespeichert und zur Moderation vorgemerkt.', [
+            'comment_id' => $insertId,
+            'post_id' => $postId,
+            'user_id' => $userId,
+            'is_anonymous' => $isAnonymous,
+        ], $insertId);
 
         $this->notifyAdminForPendingComment($postId, $authorName, (string) $validatedEmail);
 
@@ -149,6 +198,9 @@ class CommentService
 
     public function getComments(string $status = 'all', int $limit = 50, int $offset = 0): array
     {
+        $limit = max(1, min(self::MAX_LIST_LIMIT, $limit));
+        $offset = max(0, $offset);
+
         $where = '';
         $params = [];
 
@@ -218,6 +270,90 @@ class CommentService
         return $this->db->delete('comments', ['id' => $commentId]);
     }
 
+    private function sanitizeAuthorName(string $authorName): string
+    {
+        $authorName = trim(strip_tags($authorName));
+        $authorName = preg_replace('/\s+/u', ' ', $authorName) ?? '';
+
+        return mb_substr($authorName, 0, self::MAX_AUTHOR_LENGTH);
+    }
+
+    private function sanitizeCommentContent(string $content): string
+    {
+        $cleanContent = trim(PurifierService::getInstance()->purify($content, 'strict'));
+        if ($cleanContent === '') {
+            return '';
+        }
+
+        if (mb_strlen($cleanContent) > self::MAX_CONTENT_LENGTH) {
+            return '';
+        }
+
+        return $cleanContent;
+    }
+
+    private function normalizeIpAddress(string $authorIp): string
+    {
+        $authorIp = trim($authorIp);
+        if ($authorIp === '') {
+            return '';
+        }
+
+        return filter_var($authorIp, FILTER_VALIDATE_IP) ? mb_substr($authorIp, 0, 45) : '';
+    }
+
+    private function isCommentablePost(int $postId): bool
+    {
+        $row = $this->db->get_row(
+            "SELECT id, status, allow_comments
+             FROM {$this->prefix}posts
+             WHERE id = ?
+             LIMIT 1",
+            [$postId]
+        );
+
+        if (!$row) {
+            return false;
+        }
+
+        return (string) ($row->status ?? '') === 'published'
+            && (int) ($row->allow_comments ?? 0) === 1;
+    }
+
+    private function isRateLimited(string $email, string $ipAddress, ?int $userId): bool
+    {
+        $conditions = [];
+        $params = [];
+
+        if ($ipAddress !== '') {
+            $conditions[] = 'author_ip = ?';
+            $params[] = $ipAddress;
+        }
+
+        $conditions[] = 'author_email = ?';
+        $params[] = $email;
+
+        if (($userId ?? 0) > 0) {
+            $conditions[] = 'user_id = ?';
+            $params[] = (int) $userId;
+        }
+
+        if ($conditions === []) {
+            return false;
+        }
+
+        $query = implode(' OR ', $conditions);
+        $count = (int) ($this->db->get_var(
+            "SELECT COUNT(*)
+             FROM {$this->prefix}comments
+             WHERE ({$query})
+               AND post_date >= (NOW() - INTERVAL " . self::FLOOD_WINDOW_MINUTES . " MINUTE)",
+            $params
+        ) ?? 0);
+
+        return $count >= self::MAX_COMMENTS_PER_WINDOW;
+    }
+
     private function notifyAdminForPendingComment(int $postId, string $author, string $email): void
     {
         $to = defined('ADMIN_EMAIL') ? (string) ADMIN_EMAIL : '';
@@ -254,5 +390,33 @@ class CommentService
         }
 
         MailService::getInstance()->send($to, $subject, $body, $headers);
+    }
+
+    private function logFailure(string $action, string $message, array $context = []): void
+    {
+        Logger::instance()->withChannel('comments')->warning($message, $context);
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_CONTENT,
+            $action,
+            $message,
+            'comment',
+            isset($context['comment_id']) ? (int) $context['comment_id'] : null,
+            $context,
+            'warning'
+        );
+    }
+
+    private function logSuccess(string $action, string $message, array $context = [], ?int $commentId = null): void
+    {
+        Logger::instance()->withChannel('comments')->info($message, $context);
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_CONTENT,
+            $action,
+            $message,
+            'comment',
+            $commentId,
+            $context,
+            'info'
+        );
     }
 }

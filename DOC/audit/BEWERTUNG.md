@@ -145,6 +145,18 @@ ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu ausz
 |---|---|---|---|
 | `CMS/admin/modules/hub/HubTemplateProfileManager.php` | umgesetzt | Template-Persistenz härter validiert, URL-/JSON-Payloads begrenzt und Fehler-/Sync-Pfade sauber geloggt; Listen-Nutzung wird ohne N+1-Queries ermittelt. | Der Hub-Template-Hotspot verarbeitet weniger unbereinigte Profil-Daten, läuft robuster bei DB-/Sync-Fehlern und entlastet das Listing spürbar durch aggregierte Nutzungszähler. |
 
+### Delta Batch 019
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/GraphApiService.php` | umgesetzt | Graph-Konfiguration, Token-/API-Requests und Response-Handling restriktiver validiert; Testfehler bleiben nach außen generisch. | Der Service reduziert Konfigurationsdrift, unsaubere Endpoint-Pfade und Detail-Leaks im Graph-Testpfad, während Token-Abrufe jetzt sauber als Formular-Request und mit engeren Response-Grenzen laufen. |
+
+### Delta Batch 020
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/CommentService.php` | umgesetzt | Öffentliche Kommentar-Payloads, Post-Freigabe, Flood-Limits und Logging-/Audit-Pfade nachgezogen; öffentliche Ausgabe gibt keine Autor-Mail mehr mit aus. | Der Kommentar-Service blockt Missbrauch an der öffentlichen Eingabekante früher, reduziert unnötige personenbezogene Daten im Frontend und hält Persistenz-/Abbruchpfade nachvollziehbarer. |
+
 ## Grundlage
 
 Diese Datei bewertet den aktuellen CMS-Codebestand **dateiweise** nach:
@@ -466,7 +478,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `core/Services/AnalyticsService.php` | Bündelt Metriken und einfache Analytics-Auswertungen. | Database, TrackingService, Seo/Reporting | 76 | 76 | 82 | 78 |
 | `core/Services/AzureMailTokenProvider.php` | Beschafft Zugriffstoken für Azure-/Graph-Mailversand. | GraphApiService, Konfiguration, externe APIs | 68 | 72 | 82 | 74 |
 | `core/Services/BackupService.php` | Erstellt Sicherungen von Daten oder Dateien. | Database, Dateisystem, Zip/Archiv | 70 | 66 | 80 | 72 |
-| `core/Services/CommentService.php` | Verarbeitet Kommentarlogik und zugehörige Aktionen. | Database, Security, Content/Member-Kontext | 75 | 78 | 82 | 78 |
+| `core/Services/CommentService.php` | Verarbeitet Kommentarlogik und zugehörige Aktionen. | Database, Security, Content/Member-Kontext | 84 | 80 | 85 | 83 |
 | `core/Services/ContentLocalizationService.php` | Unterstützt Lokalisierung von Inhalten und Varianten. | TranslationService, Database, Routing | 82 | 80 | 84 | 82 |
 | `core/Services/CookieConsentService.php` | Verwaltet Consent-Status und Cookie-Banner-Logik. | Security, SettingsService, Frontend-Hooks | 83 | 82 | 84 | 83 |
 | `core/Services/CoreWebVitalsService.php` | Aggregiert oder bewertet Performance-Signale. | AnalyticsService, TrackingService, Frontend-Metriken | 85 | 72 | 84 | 80 |
@@ -486,7 +498,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `core/Services/FeatureUsageService.php` | Erfasst oder aggregiert Feature-Nutzungsdaten. | Database, AnalyticsService, PluginManager | 80 | 84 | 84 | 83 |
 | `core/Services/FeedService.php` | Verarbeitet externe oder interne Feed-Inhalte. | Http\Client, XML/Feed-Library, Cache | 72 | 73 | 80 | 75 |
 | `core/Services/FileUploadService.php` | Kapselt generische Datei-Uploads und Validierung. | Security, Dateisystem, MediaService | 77 | 74 | 84 | 78 |
-| `core/Services/GraphApiService.php` | Wrapper für Microsoft Graph-bezogene Aufrufe. | Http\Client, AzureMailTokenProvider, Konfiguration | 67 | 69 | 80 | 72 |
+| `core/Services/GraphApiService.php` | Wrapper für Microsoft Graph-bezogene Aufrufe. | Http\Client, AzureMailTokenProvider, Konfiguration | 80 | 71 | 85 | 79 |
 | `core/Services/ImageService.php` | Allzweckservice für Bildverarbeitung und Bildpfade. | ImageProcessor, MediaService, Dateisystem | 76 | 72 | 82 | 77 |
 | `core/Services/IndexingService.php` | Reicht URLs/Änderungen an Suchmaschinen-Indizierung weiter. | SitemapService, Http\Client, SEO-Settings | 74 | 77 | 82 | 78 |
 | `core/Services/JwtService.php` | Erzeugt und prüft JWTs für API-/Token-Szenarien. | Security, Json, Konfiguration | 68 | 84 | 82 | 78 |
@@ -660,7 +672,7 @@ Verwendete Referenzbasis für die Einordnung:
 | **Core – Contracts** | 3 | 94,0 | 95,0 | 92,0 | 94,0 | – | alle Contracts | Referenzniveau halten, keine unnötige Aufblähung |
 | **Core – Auth Provider & MFA** | 5 | 69,6 | 79,0 | 83,2 | 77,4 | `LdapAuthProvider.php`, `WebAuthnAdapter.php` | `TotpAdapter.php`, `AuthManager.php` | LDAP-, Passkey- und MFA-Randfälle gezielt testen |
 | **Core – Routing** | 6 | 76,3 | 79,8 | 82,7 | 79,7 | `ApiRouter.php` | `ThemeArchiveRepository.php` | API-/Routing-Validierung und Request-Härtung vertiefen |
-| **Core – Allgemeine Services** | 42 | 78,8 | 77,7 | 82,5 | 78,5 | `GraphApiService.php`, `AzureMailTokenProvider.php` | `PurifierService.php`, `PermalinkService.php`, `StatusService.php` | Externe APIs, Token-Handling und Fehlerpfade robuster machen |
+| **Core – Allgemeine Services** | 42 | 79,3 | 77,7 | 82,7 | 78,8 | `AzureMailTokenProvider.php`, `FeedService.php`, `MailService.php` | `PurifierService.php`, `PermalinkService.php`, `StatusService.php` | Externe APIs, Token-Handling und Fehlerpfade robuster machen |
 | **Core – EditorJs Services** | 9 | 79,0 | 79,9 | 83,2 | 80,8 | `EditorJsRemoteMediaService.php`, `EditorJsUploadService.php` | `EditorJsSanitizer.php`, `EditorJsRequestGuard.php` | Remote-Media und Upload-Härtung priorisieren |
 | **Core – Landing Services** | 9 | 81,8 | 82,6 | 84,0 | 82,7 | `LandingPluginService.php` | `LandingSanitizer.php` | Sanitizer-Qualität halten, Plugin-Integration schärfer absichern |
 | **Core – Media Services** | 3 | 73,7 | 74,0 | 82,0 | 76,7 | `UploadHandler.php` | `MediaRepository.php` | Upload-Pfade, Dateitypen und Filesystem-Grenzen prüfen |

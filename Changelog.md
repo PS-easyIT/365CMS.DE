@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.36-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.38-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,26 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.6.38 — 24. März 2026 · Audit-Batch 020, Kommentar-Service gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.38** | 🔴 fix | Core/Comments | **Öffentliche Kommentarerstellung gegen Missbrauch und geschlossene Posts gehärtet**: `CMS/core/Services/CommentService.php` akzeptiert nur noch valide Autor-/Mail-/Content-Payloads, blockiert Kommentare auf nicht veröffentlichten oder kommentargesperrten Beiträgen und normalisiert IP-Adressen defensiver. |
+| **2.6.38** | 🔴 fix | Core/Comments | **Kommentar-Flood-Limit und Logging-/Audit-Pfade ergänzt**: der Service begrenzt Kommentarfluten pro Mail/IP/User in einem Zeitfenster und protokolliert verworfene bzw. erfolgreiche Pending-Kommentare intern nachvollziehbar. |
+| **2.6.38** | 🟡 refactor | Core/Comments | **Öffentliche Ausgabe und Listenabrufe entschärft**: freigegebene Kommentarlisten leaken keine Autor-Mailadressen mehr ins Frontend und Admin-List-Reads werden zusätzlich auf sinnvolle Grenzen geklemmt. |
+
+---
+
+### v2.6.37 — 24. März 2026 · Audit-Batch 019, Microsoft-Graph-Service gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.37** | 🔴 fix | Core/Integration | **Microsoft-Graph-Service gegen Konfigurationsdrift und Response-Leaks gehärtet**: `CMS/core/Services/GraphApiService.php` validiert Tenant-/Client-/Scope-/Endpoint-Werte restriktiver, akzeptiert nur sichere Graph-/Token-Pfade und gibt bei Verbindungstests nur noch generische Fehlermeldungen nach außen. |
+| **2.6.37** | 🟡 refactor | Core/Integration | **Graph-Tokenabruf auf sauberen Form-Request umgestellt**: Client-Credentials werden jetzt als `application/x-www-form-urlencoded` über den HTTP-Client gesendet, inklusive fester Größen- und Content-Type-Grenzen für Antworten. |
+| **2.6.37** | 🟠 perf | Core/Integration | **Graph-Antworten defensiver normalisiert**: Organisationsdaten und Remote-Fehler werden gekürzt, bereinigt und auf ein erwartbares Schema reduziert, wodurch Folgepfade weniger Sonderfälle behandeln müssen. |
 
 ---
 

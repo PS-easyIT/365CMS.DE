@@ -27,6 +27,10 @@ class GraphApiService
     private const DEFAULT_BASE_URL = 'https://graph.microsoft.com/v1.0';
     private const ALLOWED_GRAPH_HOSTS = ['graph.microsoft.com'];
     private const ALLOWED_TOKEN_HOSTS = ['login.microsoftonline.com'];
+    private const ALLOWED_TOKEN_TENANTS = ['common', 'organizations', 'consumers'];
+    private const ALLOWED_GRAPH_BASE_PATHS = ['/v1.0', '/beta'];
+    private const MAX_RESPONSE_BYTES = 262144;
+    private const MAX_REMOTE_ERROR_LENGTH = 180;
 
     private static ?self $instance = null;
 
@@ -51,12 +55,12 @@ class GraphApiService
      */
     public function getConfiguration(): array
     {
-        $tenantId = $this->settings->getString(self::GROUP, 'tenant_id');
-        $clientId = $this->settings->getString(self::GROUP, 'client_id');
-        $scope = $this->settings->getString(self::GROUP, 'scope', self::DEFAULT_SCOPE);
+        $tenantId = $this->sanitizeTenantId($this->settings->getString(self::GROUP, 'tenant_id'));
+        $clientId = $this->sanitizeClientId($this->settings->getString(self::GROUP, 'client_id'));
+        $scope = $this->normalizeScope($this->settings->getString(self::GROUP, 'scope', self::DEFAULT_SCOPE));
         $baseUrl = $this->normalizeGraphBaseUrl($this->settings->getString(self::GROUP, 'base_url', self::DEFAULT_BASE_URL));
         $customEndpoint = $this->settings->getString(self::GROUP, 'token_endpoint');
-        $defaultTokenEndpoint = 'https://login.microsoftonline.com/' . rawurlencode($tenantId !== '' ? $tenantId : 'common') . '/oauth2/v2.0/token';
+        $defaultTokenEndpoint = $this->buildTokenEndpoint($tenantId !== '' ? $tenantId : 'common');
 
         return [
             'configured' => $tenantId !== '' && $clientId !== '' && $this->settings->getString(self::GROUP, 'client_secret') !== '',
@@ -96,12 +100,12 @@ class GraphApiService
             ];
         } catch (\Throwable $e) {
             $this->logger->warning('Microsoft-Graph-Test fehlgeschlagen', [
-                'exception' => $e,
+                'exception' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
-                'error' => $e->getMessage(),
+                'error' => 'Microsoft-Graph-Verbindung fehlgeschlagen. Konfiguration und Logs prüfen.',
             ];
         }
     }
@@ -169,7 +173,7 @@ class GraphApiService
             return [];
         }
 
-        return $items[0];
+        return $this->normalizeOrganization($items[0]);
     }
 
     /**
@@ -177,7 +181,15 @@ class GraphApiService
      */
     private function requestToken(string $url, array $payload): array
     {
-        return $this->requestJson('POST', $url, [], http_build_query($payload, '', '&', PHP_QUERY_RFC3986));
+        $response = $this->httpClient->postForm($url, $payload, [
+            'userAgent' => '365CMS-GraphClient/1.0',
+            'timeout' => 20,
+            'connectTimeout' => 10,
+            'maxBytes' => self::MAX_RESPONSE_BYTES,
+            'allowedContentTypes' => ['application/json'],
+        ]);
+
+        return $this->decodeJsonResponse($response, 'Microsoft-Graph-Token');
     }
 
     /**
@@ -189,7 +201,8 @@ class GraphApiService
             'headers' => $headers,
             'timeout' => 20,
             'connectTimeout' => 5,
-            'allowedContentTypes' => ['application/json'],
+            'maxBytes' => self::MAX_RESPONSE_BYTES,
+            'allowedContentTypes' => ['application/json', 'application/problem+json', 'text/json'],
             'userAgent' => '365CMS-GraphClient/1.0',
         ];
 
@@ -197,38 +210,57 @@ class GraphApiService
             ? $this->httpClient->post($url, $body ?? '', $options)
             : $this->httpClient->get($url, $options);
 
-        $responseBody = (string) ($response['body'] ?? '');
-        if ($responseBody === '') {
-            throw new \RuntimeException('Microsoft Graph lieferte keine Antwort. ' . (string) ($response['error'] ?? '')); 
-        }
-
-        try {
-            $decoded = json_decode($responseBody, true, 512, JSON_THROW_ON_ERROR);
-        } catch (\Throwable $e) {
-            throw new \RuntimeException('Microsoft Graph lieferte ungültiges JSON: ' . $e->getMessage());
-        }
-
-        if (!$response['success']) {
-            $httpCode = (int) ($response['status'] ?? 0);
-            $error = $decoded['error']['message'] ?? $decoded['error_description'] ?? $decoded['error'] ?? 'Unbekannter Graph-Fehler';
-            throw new \RuntimeException('Microsoft Graph Fehler (' . $httpCode . '): ' . trim((string) $error));
-        }
-
-        return is_array($decoded) ? $decoded : [];
+        return $this->decodeJsonResponse($response, 'Microsoft Graph');
     }
 
     private function normalizeGraphBaseUrl(string $url): string
     {
-        return rtrim($this->normalizeAllowedUrl($url, self::DEFAULT_BASE_URL, self::ALLOWED_GRAPH_HOSTS, 'Microsoft-Graph-Basis-URL'), '/');
+        $normalized = rtrim($this->normalizeAllowedUrl($url, self::DEFAULT_BASE_URL, self::ALLOWED_GRAPH_HOSTS, 'Microsoft-Graph-Basis-URL'), '/');
+        $parts = parse_url($normalized);
+        $path = (string)($parts['path'] ?? '');
+
+        if (!is_array($parts)
+            || isset($parts['query'])
+            || isset($parts['fragment'])
+            || !in_array($path, self::ALLOWED_GRAPH_BASE_PATHS, true)
+        ) {
+            $this->logger->warning('Microsoft-Graph-Basis-URL verworfen: Pfad nicht erlaubt', [
+                'url' => $url,
+                'fallback' => self::DEFAULT_BASE_URL,
+            ]);
+
+            return self::DEFAULT_BASE_URL;
+        }
+
+        return $normalized;
     }
 
     private function normalizeTokenEndpoint(string $url, string $fallback): string
     {
         $normalized = $this->normalizeAllowedUrl($url, $fallback, self::ALLOWED_TOKEN_HOSTS, 'Microsoft-Graph-Token-Endpoint');
-        $path = (string) (parse_url($normalized, PHP_URL_PATH) ?? '');
+        $parts = parse_url($normalized);
+        $path = (string) ($parts['path'] ?? '');
+
+        if (!is_array($parts) || isset($parts['query']) || isset($parts['fragment'])) {
+            $this->logger->warning('Microsoft-Graph-Token-Endpoint verworfen: Query oder Fragment nicht erlaubt', [
+                'url' => $url,
+                'fallback' => $fallback,
+            ]);
+            return $fallback;
+        }
 
         if (!str_ends_with($path, '/oauth2/v2.0/token')) {
             $this->logger->warning('Microsoft-Graph-Token-Endpoint verworfen: unerwarteter Pfad', [
+                'url' => $url,
+                'fallback' => $fallback,
+            ]);
+            return $fallback;
+        }
+
+        $segments = array_values(array_filter(explode('/', trim($path, '/'))));
+        $tenantSegment = rawurldecode((string)($segments[0] ?? ''));
+        if ($this->sanitizeTenantId($tenantSegment) === '') {
+            $this->logger->warning('Microsoft-Graph-Token-Endpoint verworfen: ungültiger Tenant-Pfad', [
                 'url' => $url,
                 'fallback' => $fallback,
             ]);
@@ -262,5 +294,158 @@ class GraphApiService
         }
 
         return $normalized;
+    }
+
+    private function buildTokenEndpoint(string $tenantId): string
+    {
+        $normalizedTenant = $this->sanitizeTenantId($tenantId);
+        if ($normalizedTenant === '') {
+            $normalizedTenant = 'common';
+        }
+
+        return 'https://login.microsoftonline.com/' . rawurlencode($normalizedTenant) . '/oauth2/v2.0/token';
+    }
+
+    private function sanitizeTenantId(string $value): string
+    {
+        $value = strtolower(trim($value));
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', '', $value) ?? '';
+        if ($value === '') {
+            return '';
+        }
+
+        if (in_array($value, self::ALLOWED_TOKEN_TENANTS, true)) {
+            return $value;
+        }
+
+        if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/', $value)) {
+            return $value;
+        }
+
+        if (preg_match('/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/', $value)) {
+            return $value;
+        }
+
+        $this->logger->warning('Microsoft-Graph-Tenant-ID verworfen', ['tenant_id' => $value]);
+        return '';
+    }
+
+    private function sanitizeClientId(string $value): string
+    {
+        $value = strtolower(trim($value));
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', '', $value) ?? '';
+        if ($value === '') {
+            return '';
+        }
+
+        if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/', $value)) {
+            return $value;
+        }
+
+        $this->logger->warning('Microsoft-Graph-Client-ID verworfen', ['client_id' => $value]);
+        return '';
+    }
+
+    private function normalizeScope(string $value): string
+    {
+        $value = trim($value);
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', '', $value) ?? '';
+        if ($value === '') {
+            return self::DEFAULT_SCOPE;
+        }
+
+        if (!preg_match('#^https://graph\.microsoft\.com/\.default$#i', $value)) {
+            $this->logger->warning('Microsoft-Graph-Scope verworfen', ['scope' => $value]);
+            return self::DEFAULT_SCOPE;
+        }
+
+        return self::DEFAULT_SCOPE;
+    }
+
+    /**
+     * @param array{success: bool, status: int, body: string, headers: array<string,string>, contentType: string, error?: string} $response
+     * @return array<string, mixed>
+     */
+    private function decodeJsonResponse(array $response, string $contextLabel): array
+    {
+        $responseBody = (string) ($response['body'] ?? '');
+        if ($responseBody === '') {
+            throw new \RuntimeException($contextLabel . ' lieferte keine Antwort.');
+        }
+
+        try {
+            $decoded = json_decode($responseBody, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\Throwable) {
+            throw new \RuntimeException($contextLabel . ' lieferte ungültiges JSON.');
+        }
+
+        if (($response['success'] ?? false) !== true) {
+            $httpCode = (int) ($response['status'] ?? 0);
+            $error = $this->extractRemoteError($decoded);
+            throw new \RuntimeException($contextLabel . ' Fehler (' . $httpCode . '): ' . $error);
+        }
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * @param array<string, mixed> $decoded
+     */
+    private function extractRemoteError(array $decoded): string
+    {
+        $message = $decoded['error']['message']
+            ?? $decoded['error_description']
+            ?? $decoded['error']['code']
+            ?? $decoded['error']
+            ?? 'Unbekannter Graph-Fehler';
+
+        return $this->sanitizeRemoteMessage((string) $message);
+    }
+
+    private function sanitizeRemoteMessage(string $value): string
+    {
+        $value = trim($value);
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value) ?? '';
+        $value = preg_replace('/\s+/u', ' ', $value) ?? '';
+        if ($value === '') {
+            return 'Unbekannter Graph-Fehler';
+        }
+
+        if (function_exists('mb_substr')) {
+            return mb_substr($value, 0, self::MAX_REMOTE_ERROR_LENGTH);
+        }
+
+        return substr($value, 0, self::MAX_REMOTE_ERROR_LENGTH);
+    }
+
+    /**
+     * @param array<string, mixed> $organization
+     * @return array<string, mixed>
+     */
+    private function normalizeOrganization(array $organization): array
+    {
+        $verifiedDomains = [];
+        $domains = $organization['verifiedDomains'] ?? [];
+
+        if (is_array($domains)) {
+            foreach (array_slice($domains, 0, 20) as $domain) {
+                if (!is_array($domain)) {
+                    continue;
+                }
+
+                $verifiedDomains[] = [
+                    'name' => $this->sanitizeRemoteMessage((string)($domain['name'] ?? '')),
+                    'type' => $this->sanitizeRemoteMessage((string)($domain['type'] ?? '')),
+                    'isDefault' => !empty($domain['isDefault']),
+                    'isInitial' => !empty($domain['isInitial']),
+                ];
+            }
+        }
+
+        return [
+            'id' => $this->sanitizeRemoteMessage((string)($organization['id'] ?? '')),
+            'displayName' => $this->sanitizeRemoteMessage((string)($organization['displayName'] ?? '')),
+            'verifiedDomains' => $verifiedDomains,
+        ];
     }
 }

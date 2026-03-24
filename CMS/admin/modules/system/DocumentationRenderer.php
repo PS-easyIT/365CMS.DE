@@ -7,6 +7,12 @@ if (!defined('ABSPATH')) {
 
 final class DocumentationRenderer
 {
+    private const MAX_RENDER_BYTES = 262144;
+    private const MAX_LINES = 4000;
+    private const MAX_TABLE_ROWS = 200;
+    private const MAX_TABLE_COLUMNS = 12;
+    private const MAX_CELL_LENGTH = 1000;
+
     /** @var \Closure(string, string): string */
     private readonly \Closure $linkResolver;
 
@@ -20,14 +26,26 @@ final class DocumentationRenderer
 
     public function renderDocument(string $contents, string $extension, string $currentDocument): string
     {
-        return strtolower($extension) === 'csv'
-            ? $this->renderCsv($contents)
+        $extension = strtolower(trim($extension));
+        $currentDocument = $this->normalizeCurrentDocument($currentDocument);
+        $contents = $this->limitContents($contents, $currentDocument, $extension !== 'csv' ? 'markdown' : 'csv');
+
+        return $extension === 'csv'
+            ? $this->renderCsv($contents, $currentDocument)
             : $this->renderMarkdown($contents, $currentDocument);
     }
 
     private function renderMarkdown(string $markdown, string $currentDocument): string
     {
-        $lines = preg_split('/\R/', str_replace(["\r\n", "\r"], "\n", $markdown)) ?: [];
+        $lines = preg_split('/\R/', str_replace(["\r\n", "\r"], "\n", $markdown), self::MAX_LINES + 1) ?: [];
+        if (count($lines) > self::MAX_LINES) {
+            $this->logRenderGuard('markdown_line_limit', 'Dokumentations-Rendering auf maximales Zeilenlimit begrenzt.', [
+                'document' => $currentDocument,
+                'max_lines' => self::MAX_LINES,
+            ]);
+            $lines = array_slice($lines, 0, self::MAX_LINES);
+        }
+
         $html = '';
         $paragraph = [];
         $listType = null;
@@ -172,11 +190,30 @@ final class DocumentationRenderer
             return '';
         }
 
+        if (count($tableLines) > self::MAX_TABLE_ROWS) {
+            $this->logRenderGuard('markdown_table_row_limit', 'Dokumentations-Tabelle auf maximales Zeilenlimit begrenzt.', [
+                'document' => $currentDocument,
+                'row_count' => count($tableLines),
+                'max_rows' => self::MAX_TABLE_ROWS,
+            ]);
+            $tableLines = array_slice($tableLines, 0, self::MAX_TABLE_ROWS);
+        }
+
         $rows = [];
         foreach ($tableLines as $line) {
             $trimmed = trim($line);
             $trimmed = trim($trimmed, '|');
-            $rows[] = array_map('trim', explode('|', $trimmed));
+            $cells = array_map('trim', explode('|', $trimmed, self::MAX_TABLE_COLUMNS + 1));
+            if (count($cells) > self::MAX_TABLE_COLUMNS) {
+                $this->logRenderGuard('markdown_table_column_limit', 'Dokumentations-Tabelle auf maximale Spaltenzahl begrenzt.', [
+                    'document' => $currentDocument,
+                    'column_count' => count($cells),
+                    'max_columns' => self::MAX_TABLE_COLUMNS,
+                ]);
+                $cells = array_slice($cells, 0, self::MAX_TABLE_COLUMNS);
+            }
+
+            $rows[] = array_map(fn (string $cell): string => $this->limitCellText($cell), $cells);
         }
 
         $tableLines = [];
@@ -227,12 +264,12 @@ final class DocumentationRenderer
 
     private function renderInline(string $text, string $currentDocument): string
     {
-        $rendered = htmlspecialchars($text, ENT_QUOTES);
+        $rendered = htmlspecialchars($this->limitCellText($text), ENT_QUOTES);
 
         $rendered = preg_replace_callback('/\[([^\]]+)\]\(([^\)]+)\)/', function (array $matches) use ($currentDocument): string {
             $label = $matches[1];
             $target = html_entity_decode($matches[2], ENT_QUOTES);
-            $href = ($this->linkResolver)($currentDocument, $target);
+            $href = $this->sanitizeHref((string) ($this->linkResolver)($currentDocument, $target));
             $isExternal = $this->isExternalUrl($href);
 
             return '<a href="' . htmlspecialchars($href, ENT_QUOTES) . '"'
@@ -255,14 +292,23 @@ final class DocumentationRenderer
         return preg_match('#^https?://#i', $url) === 1;
     }
 
-    private function renderCsv(string $contents): string
+    private function renderCsv(string $contents, string $currentDocument): string
     {
-        $lines = preg_split('/\R/', trim($contents)) ?: [];
+        $lines = preg_split('/\R/', trim($contents), self::MAX_LINES + 1) ?: [];
         if ($lines === []) {
             return '<div class="text-secondary">Keine CSV-Inhalte vorhanden.</div>';
         }
 
-        $rows = array_map(static fn (string $line): array => str_getcsv($line), $lines);
+        if (count($lines) > self::MAX_LINES) {
+            $this->logRenderGuard('csv_line_limit', 'CSV-Rendering auf maximales Zeilenlimit begrenzt.', [
+                'document' => $currentDocument,
+                'line_count' => count($lines),
+                'max_lines' => self::MAX_LINES,
+            ]);
+            $lines = array_slice($lines, 0, self::MAX_LINES);
+        }
+
+        $rows = array_map(fn (string $line): array => $this->normalizeCsvRow(str_getcsv($line)), $lines);
         $header = array_shift($rows) ?: [];
 
         $html = '<div class="table-responsive"><table class="table table-bordered table-striped table-sm">';
@@ -283,5 +329,98 @@ final class DocumentationRenderer
         $html .= '</tbody></table></div>';
 
         return $html;
+    }
+
+    private function normalizeCurrentDocument(string $currentDocument): string
+    {
+        $currentDocument = trim(str_replace('\\', '/', $currentDocument));
+        $segments = [];
+
+        foreach (explode('/', $currentDocument) as $segment) {
+            $segment = trim($segment);
+            if ($segment === '' || $segment === '.') {
+                continue;
+            }
+
+            if ($segment === '..') {
+                array_pop($segments);
+                continue;
+            }
+
+            $segments[] = preg_replace('/[^a-zA-Z0-9._\/-]/', '', $segment) ?? '';
+        }
+
+        return implode('/', array_filter($segments, static fn (string $segment): bool => $segment !== ''));
+    }
+
+    private function limitContents(string $contents, string $currentDocument, string $type): string
+    {
+        if (strlen($contents) <= self::MAX_RENDER_BYTES) {
+            return $contents;
+        }
+
+        $this->logRenderGuard('document_size_limit', 'Dokumentations-Rendering auf maximale Inhaltsgröße begrenzt.', [
+            'document' => $currentDocument,
+            'type' => $type,
+            'max_bytes' => self::MAX_RENDER_BYTES,
+        ]);
+
+        return substr($contents, 0, self::MAX_RENDER_BYTES);
+    }
+
+    private function limitCellText(string $text): string
+    {
+        $text = trim($text);
+
+        if (mb_strlen($text) > self::MAX_CELL_LENGTH) {
+            $text = rtrim(mb_substr($text, 0, self::MAX_CELL_LENGTH - 1)) . '…';
+        }
+
+        return $text;
+    }
+
+    private function sanitizeHref(string $href): string
+    {
+        $href = trim($href);
+        if ($href === '') {
+            return '#';
+        }
+
+        if ($href[0] === '#') {
+            return preg_match('/^#[a-zA-Z][a-zA-Z0-9_\-:.]*$/', $href) === 1 ? $href : '#';
+        }
+
+        if ($href[0] === '/') {
+            return str_contains($href, "\n") || str_contains($href, "\r") ? '#' : $href;
+        }
+
+        if ($this->isExternalUrl($href)) {
+            return filter_var($href, FILTER_VALIDATE_URL) ? $href : '#';
+        }
+
+        return '#';
+    }
+
+    /**
+     * @param array<int, mixed> $row
+     * @return array<int, string>
+     */
+    private function normalizeCsvRow(array $row): array
+    {
+        if (count($row) > self::MAX_TABLE_COLUMNS) {
+            $row = array_slice($row, 0, self::MAX_TABLE_COLUMNS);
+        }
+
+        return array_map(fn (mixed $cell): string => $this->limitCellText((string) $cell), $row);
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function logRenderGuard(string $operation, string $message, array $context = []): void
+    {
+        \CMS\Logger::instance()->withChannel('admin.documentation')->warning($message, array_merge([
+            'operation' => $operation,
+        ], $context));
     }
 }

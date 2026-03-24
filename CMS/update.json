@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.6.36",
+  "version": "2.6.38",
   "min_php": "8.4",
   "released": "2026-03-24",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release 2.6.36: Der Hub-Template-Profilmanager begrenzt Link-/Section-/Starter-Card-Payloads, normalisiert URL-Ziele restriktiver, erkennt fehlgeschlagene Settings-Speicherungen explizit, protokolliert Template-Mutationen und Sync-Fehler zentral und berechnet Nutzungszähler für das Template-Listing ohne N+1-Abfragen.",
+  "notes": "Release 2.6.38: Der Kommentar-Service validiert öffentliche Autor-/Mail-/Content-Payloads strenger, blockiert Kommentare auf nicht veröffentlichten oder kommentargesperrten Beiträgen, begrenzt Kommentarfluten pro Mail/IP/User, leakt keine Autor-Mailadressen mehr in öffentliche Kommentarlisten und protokolliert Persistenz-/Abbruchpfade nachvollziehbarer.",
   "critical": false
 }
