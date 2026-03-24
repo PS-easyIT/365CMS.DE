@@ -13,8 +13,9 @@ if (!defined('ABSPATH')) {
 
 use CMS\Database;
 use CMS\Hooks;
+use CMS\AuditLogger;
+use CMS\Logger;
 use CMS\PageManager;
-use CMS\Security;
 use CMS\Services\RedirectService;
 use CMS\Services\ContentLocalizationService;
 use CMS\Services\MediaDeliveryService;
@@ -55,6 +56,12 @@ class PagesModule
         'microsoft-loop' => 'Microsoft Loop',
         'windows-365' => 'Windows 365',
     ];
+
+    /** @var string[] */
+    private const ALLOWED_LIST_STATUSES = ['published', 'draft', 'private'];
+
+    /** @var string[] */
+    private const ALLOWED_BULK_ACTIONS = ['delete', 'publish', 'draft', 'set_category', 'clear_category'];
 
     public function __construct()
     {
@@ -163,15 +170,15 @@ class PagesModule
         $private   = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}pages WHERE status = 'private'");
 
         // Filter
-        $statusFilter = $_GET['status'] ?? '';
-        $categoryFilter = (int)($_GET['category'] ?? 0);
-        $search       = trim($_GET['q'] ?? '');
+        $statusFilter = $this->normalizeListStatus((string)($_GET['status'] ?? ''));
+        $categoryFilter = $this->normalizeExistingCategoryId((int)($_GET['category'] ?? 0));
+        $search       = $this->sanitizeSearchTerm((string)($_GET['q'] ?? ''));
 
         // Query bauen
         $where  = [];
         $params = [];
 
-        if ($statusFilter !== '' && in_array($statusFilter, ['published', 'draft', 'private'], true)) {
+        if ($statusFilter !== '') {
             $where[]  = 'p.status = ?';
             $params[] = $statusFilter;
         }
@@ -245,25 +252,25 @@ class PagesModule
     public function save(array $post, int $userId): array
     {
         $id     = (int)($post['id'] ?? 0);
-        $title  = trim($post['title'] ?? '');
+        $title  = $this->sanitizePlainText((string)($post['title'] ?? ''), 255);
         $slug   = trim($post['slug'] ?? '');
         $defaultStatus = function_exists('get_option') ? (string)get_option('setting_page_default_status', 'draft') : 'draft';
         if (!in_array($defaultStatus, ['published', 'draft', 'private'], true)) {
             $defaultStatus = 'draft';
         }
 
-        $status = in_array($post['status'] ?? '', ['published', 'draft', 'private'], true)
-            ? $post['status']
+        $status = in_array((string)($post['status'] ?? ''), ['published', 'draft', 'private'], true)
+            ? (string)$post['status']
             : $defaultStatus;
         $content    = $post['content'] ?? '';
-        $titleEn    = trim($post['title_en'] ?? '');
+        $titleEn    = $this->sanitizePlainText((string)($post['title_en'] ?? ''), 255);
         $contentEn  = $post['content_en'] ?? '';
         $hideTitle  = (int)($post['hide_title'] ?? 0);
         $categoryId = (int)($post['category_id'] ?? 0);
-        $featuredImage = trim($post['featured_image'] ?? '');
-        $featuredImageTempPath = trim($post['featured_image_temp_path'] ?? '');
-        $metaTitle  = trim($post['meta_title'] ?? '');
-        $metaDesc   = trim($post['meta_description'] ?? '');
+        $featuredImage = $this->sanitizeMediaReference((string)($post['featured_image'] ?? ''));
+        $featuredImageTempPath = $this->sanitizeMediaReference((string)($post['featured_image_temp_path'] ?? ''));
+        $metaTitle  = $this->sanitizePlainText((string)($post['meta_title'] ?? ''), 255);
+        $metaDesc   = $this->sanitizePlainText((string)($post['meta_description'] ?? ''), 2000);
         $slug       = $this->normalizeSlug($slug !== '' ? $slug : $this->pageManager->generateSlug($title));
 
         // Move temp upload to slug subfolder (pages/{slug}/{filename})
@@ -353,7 +360,12 @@ class PagesModule
                 return ['success' => false, 'error' => 'Seite konnte nicht erstellt werden.'];
             }
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler beim Speichern: ' . $e->getMessage()];
+            return $this->failResult(
+                'pages.save.failed',
+                'Seite konnte nicht gespeichert werden.',
+                $e,
+                ['page_id' => $id, 'status' => $status, 'category_id' => $categoryId, 'user_id' => $userId]
+            );
         }
     }
 
@@ -370,13 +382,17 @@ class PagesModule
             $success = $this->db->delete('pages', ['id' => $id]);
 
             if (!$success) {
-                $error = trim((string)$this->db->last_error);
-                return ['success' => false, 'error' => 'Fehler beim Löschen.' . ($error !== '' ? ' ' . $error : '')];
+                return $this->failResult(
+                    'pages.delete.failed',
+                    'Seite konnte nicht gelöscht werden.',
+                    null,
+                    ['page_id' => $id, 'db_last_error' => trim((string)$this->db->last_error)]
+                );
             }
 
             return ['success' => true, 'message' => 'Seite gelöscht.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler beim Löschen: ' . $e->getMessage()];
+            return $this->failResult('pages.delete.failed', 'Seite konnte nicht gelöscht werden.', $e, ['page_id' => $id]);
         }
     }
 
@@ -385,11 +401,17 @@ class PagesModule
      */
     public function bulkAction(string $action, array $ids, array $payload = []): array
     {
+        $action = $this->normalizeBulkAction($action);
+
         if (empty($ids)) {
             return ['success' => false, 'error' => 'Keine Einträge ausgewählt.'];
         }
 
-        $ids = array_map('intval', $ids);
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn(int $id): bool => $id > 0)));
+        if ($ids === []) {
+            return ['success' => false, 'error' => 'Keine gültigen Seiten-IDs ausgewählt.'];
+        }
+
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
 
         try {
@@ -444,8 +466,82 @@ class PagesModule
                     return ['success' => false, 'error' => 'Unbekannte Aktion.'];
             }
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler bei der Bulk-Aktion.'];
+            return $this->failResult(
+                'pages.bulk.failed',
+                'Bulk-Aktion für Seiten fehlgeschlagen.',
+                $e,
+                ['bulk_action' => $action, 'page_ids' => $ids]
+            );
         }
+    }
+
+    private function sanitizePlainText(string $value, int $maxLength): string
+    {
+        $value = trim(strip_tags($value));
+        $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/u', ' ', $value) ?? '';
+
+        return function_exists('mb_substr')
+            ? mb_substr($value, 0, $maxLength)
+            : substr($value, 0, $maxLength);
+    }
+
+    private function sanitizeMediaReference(string $value): string
+    {
+        $value = trim(str_replace('\\', '/', $value));
+        if ($value === '' || preg_match('/[\x00-\x1F\x7F]/', $value) === 1) {
+            return '';
+        }
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, 500) : substr($value, 0, 500);
+    }
+
+    private function sanitizeSearchTerm(string $value): string
+    {
+        return $this->sanitizePlainText($value, 120);
+    }
+
+    private function normalizeListStatus(string $status): string
+    {
+        $status = strtolower(trim($status));
+
+        return in_array($status, self::ALLOWED_LIST_STATUSES, true) ? $status : '';
+    }
+
+    private function normalizeExistingCategoryId(int $categoryId): int
+    {
+        return $this->categoryExists($categoryId) ? $categoryId : 0;
+    }
+
+    private function normalizeBulkAction(string $action): string
+    {
+        $action = trim($action);
+
+        return in_array($action, self::ALLOWED_BULK_ACTIONS, true) ? $action : '';
+    }
+
+    private function failResult(string $action, string $message, ?\Throwable $exception = null, array $context = []): array
+    {
+        $this->logFailure($action, $message, $exception, $context);
+
+        return ['success' => false, 'error' => $message . ' Bitte Logs prüfen.'];
+    }
+
+    private function logFailure(string $action, string $message, ?\Throwable $exception = null, array $context = []): void
+    {
+        if ($exception !== null) {
+            $context['exception'] = $exception->getMessage();
+        }
+
+        Logger::instance()->withChannel('admin.pages')->error($message, $context);
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_CONTENT,
+            $action,
+            $message,
+            'pages',
+            null,
+            $context,
+            'error'
+        );
     }
 
     private function normalizeSlug(string $slug): string

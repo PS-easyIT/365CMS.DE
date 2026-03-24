@@ -13,8 +13,10 @@ if (!defined('ABSPATH')) {
 
 require_once __DIR__ . '/PostsCategoryViewModelBuilder.php';
 
+use CMS\AuditLogger;
 use CMS\Database;
 use CMS\Hooks;
+use CMS\Logger;
 use CMS\Services\ContentLocalizationService;
 use CMS\Services\MediaDeliveryService;
 use CMS\Services\MediaService;
@@ -55,6 +57,20 @@ class PostsModule
         'microsoft-forms' => 'Microsoft Forms',
         'microsoft-loop' => 'Microsoft Loop',
         'windows-365' => 'Windows 365',
+    ];
+
+    /** @var string[] */
+    private const ALLOWED_LIST_STATUSES = ['published', 'scheduled', 'draft'];
+
+    /** @var string[] */
+    private const ALLOWED_BULK_ACTIONS = [
+        'delete',
+        'publish',
+        'draft',
+        'set_category',
+        'clear_category',
+        'set_author_display_name',
+        'clear_author_display_name',
     ];
 
     public function __construct()
@@ -213,9 +229,9 @@ class PostsModule
         $scheduled = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts WHERE status = 'published' AND published_at IS NOT NULL AND published_at > NOW()");
         $drafts    = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts WHERE status = 'draft'");
 
-        $statusFilter   = $_GET['status'] ?? '';
-        $categoryFilter = (int)($_GET['category'] ?? 0);
-        $search         = trim($_GET['q'] ?? '');
+        $statusFilter   = $this->normalizeListStatus((string)($_GET['status'] ?? ''));
+        $categoryFilter = $this->normalizeExistingCategoryId((int)($_GET['category'] ?? 0));
+        $search         = $this->sanitizeSearchTerm((string)($_GET['q'] ?? ''));
 
         $where  = [];
         $params = [];
@@ -392,7 +408,7 @@ class PostsModule
     public function save(array $post, int $userId): array
     {
         $id         = (int)($post['id'] ?? 0);
-        $title      = trim((string)($post['title'] ?? ''));
+        $title      = $this->sanitizePlainText((string)($post['title'] ?? ''), 255);
         $slug       = trim((string)($post['slug'] ?? ''));
         $slugEn     = trim((string)($post['slug_en'] ?? ''));
         $defaultStatus = function_exists('get_option') ? (string)get_option('setting_post_default_status', 'draft') : 'draft';
@@ -400,23 +416,23 @@ class PostsModule
             $defaultStatus = 'draft';
         }
 
-        $status     = in_array($post['status'] ?? '', ['published', 'draft'], true) ? $post['status'] : $defaultStatus;
+        $status     = in_array((string)($post['status'] ?? ''), ['published', 'draft'], true) ? (string)$post['status'] : $defaultStatus;
         $content    = $post['content'] ?? '';
-        $titleEn    = trim((string)($post['title_en'] ?? ''));
+        $titleEn    = $this->sanitizePlainText((string)($post['title_en'] ?? ''), 255);
         $contentEn  = $post['content_en'] ?? '';
-        $excerpt    = trim((string)($post['excerpt'] ?? ''));
-        $excerptEn  = trim((string)($post['excerpt_en'] ?? ''));
+        $excerpt    = $this->sanitizePlainText((string)($post['excerpt'] ?? ''), 2000);
+        $excerptEn  = $this->sanitizePlainText((string)($post['excerpt_en'] ?? ''), 2000);
         $categoryId = (int)($post['category_id'] ?? 0);
         $assignedCategoryIds = $this->normalizeSelectedCategoryIds($categoryId, $post['additional_category_ids'] ?? []);
         if ($categoryId <= 0 && $assignedCategoryIds !== []) {
             $categoryId = (int) ($assignedCategoryIds[0] ?? 0);
         }
-        $featuredImage = trim($post['featured_image'] ?? '');
-        $featuredImageTempPath = trim($post['featured_image_temp_path'] ?? '');
+        $featuredImage = $this->sanitizeMediaReference((string)($post['featured_image'] ?? ''));
+        $featuredImageTempPath = $this->sanitizeMediaReference((string)($post['featured_image_temp_path'] ?? ''));
         $publishDateRaw = trim((string)($post['publish_date'] ?? ''));
         $publishTimeRaw = trim((string)($post['publish_time'] ?? ''));
-        $metaTitle  = trim($post['meta_title'] ?? '');
-        $metaDesc   = trim($post['meta_description'] ?? '');
+        $metaTitle  = $this->sanitizePlainText((string)($post['meta_title'] ?? ''), 255);
+        $metaDesc   = $this->sanitizePlainText((string)($post['meta_description'] ?? ''), 2000);
         $authorDisplayName = $this->sanitizeAuthorDisplayName((string)($post['author_display_name'] ?? ''));
         $rawTags    = $post['tags'] ?? '';
         $slugEn     = $this->normalizeSlug($slugEn);
@@ -565,7 +581,12 @@ class PostsModule
                 return ['success' => true, 'id' => $newId, 'message' => 'Beitrag erstellt.'];
             }
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler beim Speichern: ' . $e->getMessage()];
+            return $this->failResult(
+                'posts.save.failed',
+                'Beitrag konnte nicht gespeichert werden.',
+                $e,
+                ['post_id' => $id, 'status' => $status, 'category_id' => $categoryId, 'user_id' => $userId]
+            );
         }
     }
 
@@ -582,13 +603,17 @@ class PostsModule
             $success = $this->db->delete('posts', ['id' => $id]);
 
             if (!$success) {
-                $error = trim((string)$this->db->last_error);
-                return ['success' => false, 'error' => 'Fehler beim Löschen.' . ($error !== '' ? ' ' . $error : '')];
+                return $this->failResult(
+                    'posts.delete.failed',
+                    'Beitrag konnte nicht gelöscht werden.',
+                    null,
+                    ['post_id' => $id, 'db_last_error' => trim((string)$this->db->last_error)]
+                );
             }
 
             return ['success' => true, 'message' => 'Beitrag gelöscht.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler beim Löschen: ' . $e->getMessage()];
+            return $this->failResult('posts.delete.failed', 'Beitrag konnte nicht gelöscht werden.', $e, ['post_id' => $id]);
         }
     }
 
@@ -597,11 +622,17 @@ class PostsModule
      */
     public function bulkAction(string $action, array $ids, array $payload = []): array
     {
+        $action = $this->normalizeBulkAction($action);
+
         if (empty($ids)) {
             return ['success' => false, 'error' => 'Keine Einträge ausgewählt.'];
         }
 
-        $ids          = array_map('intval', $ids);
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn(int $id): bool => $id > 0)));
+        if ($ids === []) {
+            return ['success' => false, 'error' => 'Keine gültigen Beitrags-IDs ausgewählt.'];
+        }
+
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
 
         try {
@@ -668,7 +699,12 @@ class PostsModule
                     return ['success' => false, 'error' => 'Unbekannte Aktion.'];
             }
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler bei Bulk-Aktion.'];
+            return $this->failResult(
+                'posts.bulk.failed',
+                'Bulk-Aktion für Beiträge fehlgeschlagen.',
+                $e,
+                ['bulk_action' => $action, 'post_ids' => $ids]
+            );
         }
     }
 
@@ -678,8 +714,8 @@ class PostsModule
     public function saveCategory(array $post): array
     {
         $id   = (int)($post['cat_id'] ?? 0);
-        $name = trim($post['cat_name'] ?? '');
-        $slug = trim($post['cat_slug'] ?? '');
+        $name = $this->sanitizePlainText((string)($post['cat_name'] ?? ''), 255);
+        $slug = trim((string)($post['cat_slug'] ?? ''));
         $parentId = (int) ($post['parent_id'] ?? 0);
         $replacementCategoryId = (int) ($post['replacement_category_id'] ?? 0);
         $normalizedDomains = $this->normalizeCategoryDomains((string) ($post['cat_domains'] ?? ''));
@@ -756,20 +792,23 @@ class PostsModule
                 return ['success' => true, 'message' => 'Kategorie erstellt.'];
             }
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler beim Speichern der Kategorie.'];
+            return $this->failResult(
+                'posts.category.save.failed',
+                'Kategorie konnte nicht gespeichert werden.',
+                $e,
+                ['category_id' => $id, 'parent_id' => $parentId, 'replacement_category_id' => $replacementCategoryId]
+            );
         }
     }
 
     /**
      * Kategorie löschen
      */
-    public function deleteCategory(int $id): array
+    public function deleteCategory(int $id, int $replacementId = 0): array
     {
         if ($id <= 0) {
             return ['success' => false, 'error' => 'Ungültige Kategorie.'];
         }
-
-        $replacementId = (int) ($_POST['replacement_category_id'] ?? 0);
 
         if ($replacementId <= 0) {
             $replacementId = $this->getStoredReplacementCategoryId($id);
@@ -931,7 +970,12 @@ class PostsModule
 
             return ['success' => true, 'message' => 'Kategorie gelöscht.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler beim Löschen der Kategorie.'];
+            return $this->failResult(
+                'posts.category.delete.failed',
+                'Kategorie konnte nicht gelöscht werden.',
+                $e,
+                ['category_id' => $id, 'replacement_category_id' => $replacementId]
+            );
         }
     }
 
@@ -1048,7 +1092,7 @@ class PostsModule
     public function saveTag(array $post): array
     {
         $id = (int) ($post['tag_id'] ?? 0);
-        $name = trim((string) ($post['tag_name'] ?? ''));
+        $name = $this->sanitizePlainText((string) ($post['tag_name'] ?? ''), 120);
         $slug = trim((string) ($post['tag_slug'] ?? ''));
 
         if ($name === '') {
@@ -1077,21 +1121,20 @@ class PostsModule
 
             return ['success' => true, 'message' => 'Tag erstellt.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler beim Speichern des Tags.'];
+            return $this->failResult('posts.tag.save.failed', 'Tag konnte nicht gespeichert werden.', $e, ['tag_id' => $id]);
         }
     }
 
     /**
      * Tag löschen.
      */
-    public function deleteTag(int $id): array
+    public function deleteTag(int $id, int $replacementId = 0): array
     {
         if ($id <= 0) {
             return ['success' => false, 'error' => 'Ungültiger Tag.'];
         }
 
         $assignedPostCount = $this->countAssignedPostsForTag($id);
-        $replacementId = (int) ($_POST['replacement_tag_id'] ?? 0);
 
         if ($assignedPostCount > 0) {
             if ($replacementId <= 0) {
@@ -1122,7 +1165,7 @@ class PostsModule
 
             return ['success' => true, 'message' => 'Tag gelöscht.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler beim Löschen des Tags.'];
+            return $this->failResult('posts.tag.delete.failed', 'Tag konnte nicht gelöscht werden.', $e, ['tag_id' => $id, 'replacement_tag_id' => $replacementId]);
         }
     }
 
@@ -1137,6 +1180,75 @@ class PostsModule
         return function_exists('mb_substr')
             ? mb_substr($value, 0, 150)
             : substr($value, 0, 150);
+    }
+
+    private function sanitizePlainText(string $value, int $maxLength): string
+    {
+        $value = trim(strip_tags($value));
+        $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/u', ' ', $value) ?? '';
+
+        return function_exists('mb_substr')
+            ? mb_substr($value, 0, $maxLength)
+            : substr($value, 0, $maxLength);
+    }
+
+    private function sanitizeMediaReference(string $value): string
+    {
+        $value = trim(str_replace('\\', '/', $value));
+        if ($value === '' || preg_match('/[\x00-\x1F\x7F]/', $value) === 1) {
+            return '';
+        }
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, 500) : substr($value, 0, 500);
+    }
+
+    private function sanitizeSearchTerm(string $value): string
+    {
+        return $this->sanitizePlainText($value, 120);
+    }
+
+    private function normalizeListStatus(string $status): string
+    {
+        $status = strtolower(trim($status));
+
+        return in_array($status, self::ALLOWED_LIST_STATUSES, true) ? $status : '';
+    }
+
+    private function normalizeExistingCategoryId(int $categoryId): int
+    {
+        return $this->categoryExists($categoryId) ? $categoryId : 0;
+    }
+
+    private function normalizeBulkAction(string $action): string
+    {
+        $action = trim($action);
+
+        return in_array($action, self::ALLOWED_BULK_ACTIONS, true) ? $action : '';
+    }
+
+    private function failResult(string $action, string $message, ?\Throwable $exception = null, array $context = []): array
+    {
+        $this->logFailure($action, $message, $exception, $context);
+
+        return ['success' => false, 'error' => $message . ' Bitte Logs prüfen.'];
+    }
+
+    private function logFailure(string $action, string $message, ?\Throwable $exception = null, array $context = []): void
+    {
+        if ($exception !== null) {
+            $context['exception'] = $exception->getMessage();
+        }
+
+        Logger::instance()->withChannel('admin.posts')->error($message, $context);
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_CONTENT,
+            $action,
+            $message,
+            'posts',
+            null,
+            $context,
+            'error'
+        );
     }
 
     /**

@@ -13,12 +13,19 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\AuditLogger;
+use CMS\Logger;
 use CMS\Services\MediaService;
 use CMS\Services\ErrorReportService;
+use CMS\WP_Error;
 
 class MediaModule
 {
     private MediaService $service;
+
+    private const ALLOWED_VIEWS = ['list', 'grid', 'finder'];
+    private const ALLOWED_TABS = ['library', 'categories', 'settings'];
+    private const SYSTEM_CATEGORY_SLUGS = ['themes', 'plugins', 'assets', 'fonts', 'dl-manager', 'form-uploads', 'member'];
 
     /**
      * @return array<string, array<int, string>>
@@ -87,17 +94,21 @@ class MediaModule
      */
     public function getLibraryData(): array
     {
-        $path     = trim($_GET['path'] ?? '');
-        $category = trim($_GET['category'] ?? '');
-        $view     = trim($_GET['view'] ?? 'finder');
-        $search   = trim($_GET['q'] ?? '');
+        $path     = $this->normalizeRelativePath((string)($_GET['path'] ?? ''));
+        $category = $this->normalizeCategorySlug((string)($_GET['category'] ?? ''));
+        $view     = $this->normalizeView((string)($_GET['view'] ?? 'finder'));
+        $search   = $this->sanitizeSearch((string)($_GET['q'] ?? ''));
 
-        if (!in_array($view, ['list', 'grid', 'finder'], true)) {
-            $view = 'finder';
+        if ($category !== '' && !$this->categoryExists($category)) {
+            $category = '';
         }
 
         $items = $this->service->getItems($path);
         if ($items instanceof \WP_Error) {
+            $this->logWpError('media.library.items_failed', $items, [
+                'operation' => 'list_items',
+                'path' => $path,
+            ]);
             $items = ['folders' => [], 'files' => []];
         }
 
@@ -138,7 +149,7 @@ class MediaModule
 
     public function requiresMemberConfirmation(string $path): bool
     {
-        $normalizedPath = trim(str_replace('\\', '/', $path), '/');
+        $normalizedPath = $this->normalizeRelativePath($path);
 
         return $normalizedPath !== ''
             && ($normalizedPath === 'member' || str_starts_with($normalizedPath, 'member/'));
@@ -149,14 +160,21 @@ class MediaModule
      */
     public function createFolder(string $name, string $parentPath): array
     {
-        $result = $this->service->createFolder($name, $parentPath);
-        if ($result instanceof \WP_Error) {
-            return ErrorReportService::buildFailureResultFromWpError($result, [
+        $normalizedParentPath = $this->normalizeRelativePath($parentPath);
+        $sanitizedName = $this->sanitizeFolderName($name);
+        if ($sanitizedName === '') {
+            return ['success' => false, 'error' => 'Ordnername ist ungültig.'];
+        }
+
+        $result = $this->service->createFolder($sanitizedName, $normalizedParentPath);
+        if ($result instanceof WP_Error) {
+            return $this->buildGenericFailureFromWpError($result, [
                 'title' => 'Ordner konnte nicht erstellt werden',
                 'source' => '/admin/media',
                 'module' => 'media',
                 'operation' => 'create_folder',
-                'path' => $parentPath,
+                'path' => $normalizedParentPath,
+                'folder_name' => $sanitizedName,
             ]);
         }
         return ['success' => true, 'message' => 'Ordner erstellt.'];
@@ -167,15 +185,22 @@ class MediaModule
      */
     public function uploadFile(array $file, string $targetPath): array
     {
-        $result = $this->service->uploadFile($file, $targetPath);
-        if ($result instanceof \WP_Error) {
-            return ErrorReportService::buildFailureResultFromWpError($result, [
+        $normalizedTargetPath = $this->normalizeRelativePath($targetPath);
+        $normalizedFile = $this->normalizeUploadFile($file);
+
+        if ($normalizedFile === null) {
+            return ['success' => false, 'error' => 'Upload-Datei ist ungültig.'];
+        }
+
+        $result = $this->service->uploadFile($normalizedFile, $normalizedTargetPath);
+        if ($result instanceof WP_Error) {
+            return $this->buildGenericFailureFromWpError($result, [
                 'title' => 'Datei konnte nicht hochgeladen werden',
                 'source' => '/admin/media',
                 'module' => 'media',
                 'operation' => 'upload',
-                'path' => $targetPath,
-                'filename' => (string)($file['name'] ?? ''),
+                'path' => $normalizedTargetPath,
+                'filename' => (string)($normalizedFile['name'] ?? ''),
             ]);
         }
         return ['success' => true, 'message' => 'Datei hochgeladen.'];
@@ -186,14 +211,19 @@ class MediaModule
      */
     public function deleteItem(string $path): array
     {
-        $result = $this->service->deleteItem($path);
-        if ($result instanceof \WP_Error) {
-            return ErrorReportService::buildFailureResultFromWpError($result, [
+        $normalizedPath = $this->normalizeRelativePath($path);
+        if ($normalizedPath === '') {
+            return ['success' => false, 'error' => 'Elementpfad ist ungültig.'];
+        }
+
+        $result = $this->service->deleteItem($normalizedPath);
+        if ($result instanceof WP_Error) {
+            return $this->buildGenericFailureFromWpError($result, [
                 'title' => 'Element konnte nicht gelöscht werden',
                 'source' => '/admin/media',
                 'module' => 'media',
                 'operation' => 'delete',
-                'path' => $path,
+                'path' => $normalizedPath,
             ]);
         }
         return ['success' => true, 'message' => 'Element gelöscht.'];
@@ -204,15 +234,21 @@ class MediaModule
      */
     public function renameItem(string $oldPath, string $newName): array
     {
-        $result = $this->service->renameItem($oldPath, $newName);
-        if ($result instanceof \WP_Error) {
-            return ErrorReportService::buildFailureResultFromWpError($result, [
+        $normalizedPath = $this->normalizeRelativePath($oldPath);
+        $sanitizedName = $this->sanitizeItemName($newName);
+        if ($normalizedPath === '' || $sanitizedName === '') {
+            return ['success' => false, 'error' => 'Umbenennen mit diesen Angaben ist nicht möglich.'];
+        }
+
+        $result = $this->service->renameItem($normalizedPath, $sanitizedName);
+        if ($result instanceof WP_Error) {
+            return $this->buildGenericFailureFromWpError($result, [
                 'title' => 'Element konnte nicht umbenannt werden',
                 'source' => '/admin/media',
                 'module' => 'media',
                 'operation' => 'rename',
-                'path' => $oldPath,
-                'new_name' => $newName,
+                'path' => $normalizedPath,
+                'new_name' => $sanitizedName,
             ]);
         }
         return ['success' => true, 'message' => 'Element umbenannt.'];
@@ -223,15 +259,26 @@ class MediaModule
      */
     public function assignCategory(string $filePath, string $categorySlug): array
     {
-        $result = $this->service->assignCategory($filePath, $categorySlug);
-        if ($result instanceof \WP_Error) {
-            return ErrorReportService::buildFailureResultFromWpError($result, [
+        $normalizedPath = $this->normalizeRelativePath($filePath);
+        $normalizedCategory = $this->normalizeCategorySlug($categorySlug);
+
+        if ($normalizedPath === '') {
+            return ['success' => false, 'error' => 'Dateipfad ist ungültig.'];
+        }
+
+        if ($normalizedCategory !== '' && !$this->categoryExists($normalizedCategory)) {
+            return ['success' => false, 'error' => 'Kategorie existiert nicht.'];
+        }
+
+        $result = $this->service->assignCategory($normalizedPath, $normalizedCategory);
+        if ($result instanceof WP_Error) {
+            return $this->buildGenericFailureFromWpError($result, [
                 'title' => 'Kategorie konnte nicht zugewiesen werden',
                 'source' => '/admin/media/categories',
                 'module' => 'media',
                 'operation' => 'assign_category',
-                'path' => $filePath,
-                'category' => $categorySlug,
+                'path' => $normalizedPath,
+                'category' => $normalizedCategory,
             ]);
         }
         return ['success' => true, 'message' => 'Kategorie zugewiesen.'];
@@ -254,14 +301,21 @@ class MediaModule
      */
     public function addCategory(string $name, string $slug = ''): array
     {
-        $result = $this->service->addCategory($name, $slug);
-        if ($result instanceof \WP_Error) {
-            return ErrorReportService::buildFailureResultFromWpError($result, [
+        $sanitizedName = $this->sanitizeCategoryName($name);
+        $normalizedSlug = $this->normalizeCategorySlug($slug !== '' ? $slug : $sanitizedName);
+
+        if ($sanitizedName === '' || $normalizedSlug === '' || in_array($normalizedSlug, self::SYSTEM_CATEGORY_SLUGS, true)) {
+            return ['success' => false, 'error' => 'Kategorie konnte mit diesen Angaben nicht erstellt werden.'];
+        }
+
+        $result = $this->service->addCategory($sanitizedName, $normalizedSlug);
+        if ($result instanceof WP_Error) {
+            return $this->buildGenericFailureFromWpError($result, [
                 'title' => 'Kategorie konnte nicht erstellt werden',
                 'source' => '/admin/media/categories',
                 'module' => 'media',
                 'operation' => 'add_category',
-                'category' => $slug !== '' ? $slug : $name,
+                'category' => $normalizedSlug,
             ]);
         }
         return ['success' => true, 'message' => 'Kategorie erstellt.'];
@@ -272,14 +326,19 @@ class MediaModule
      */
     public function deleteCategory(string $slug): array
     {
-        $result = $this->service->deleteCategory($slug);
-        if ($result instanceof \WP_Error) {
-            return ErrorReportService::buildFailureResultFromWpError($result, [
+        $normalizedSlug = $this->normalizeCategorySlug($slug);
+        if ($normalizedSlug === '' || in_array($normalizedSlug, self::SYSTEM_CATEGORY_SLUGS, true)) {
+            return ['success' => false, 'error' => 'Kategorie kann nicht gelöscht werden.'];
+        }
+
+        $result = $this->service->deleteCategory($normalizedSlug);
+        if ($result instanceof WP_Error) {
+            return $this->buildGenericFailureFromWpError($result, [
                 'title' => 'Kategorie konnte nicht gelöscht werden',
                 'source' => '/admin/media/categories',
                 'module' => 'media',
                 'operation' => 'delete_category',
-                'category' => $slug,
+                'category' => $normalizedSlug,
             ]);
         }
         return ['success' => true, 'message' => 'Kategorie gelöscht.'];
@@ -314,6 +373,10 @@ class MediaModule
                 if (preg_match('/^\d+(?:\.\d+)?$/', $val)) {
                     $val .= 'M';
                 }
+                if (preg_match('/^(\d+)(?:\.\d+)?M$/i', $val, $matches) === 1) {
+                    $mb = max(1, min(256, (int)$matches[1]));
+                    $val = $mb . 'M';
+                }
                 $settings[$key] = $val;
             }
         }
@@ -321,7 +384,13 @@ class MediaModule
         // Integers
         foreach (['jpeg_quality', 'max_width', 'max_height', 'thumbnail_small_w', 'thumbnail_small_h', 'thumbnail_medium_w', 'thumbnail_medium_h', 'thumbnail_large_w', 'thumbnail_large_h', 'thumbnail_banner_w', 'thumbnail_banner_h'] as $key) {
             if (isset($input[$key])) {
-                $settings[$key] = (int)$input[$key];
+                $value = (int)$input[$key];
+                $settings[$key] = match ($key) {
+                    'jpeg_quality' => max(60, min(100, $value)),
+                    'max_width', 'max_height' => max(1, min(8000, $value)),
+                    'thumbnail_large_w', 'thumbnail_large_h', 'thumbnail_banner_w', 'thumbnail_banner_h' => max(50, min(6000, $value)),
+                    default => max(50, min(4000, $value)),
+                };
             }
         }
 
@@ -331,12 +400,12 @@ class MediaModule
         }
 
         // Arrays
-        $settings['allowed_types']        = $input['allowed_types'] ?? ['image'];
-        $settings['member_allowed_types'] = $input['member_allowed_types'] ?? ['image'];
+        $settings['allowed_types']        = array_values(array_unique(array_map('strval', (array)($input['allowed_types'] ?? ['image']))));
+        $settings['member_allowed_types'] = array_values(array_unique(array_map('strval', (array)($input['member_allowed_types'] ?? ['image']))));
 
         $result = $this->service->saveSettings($settings);
-        if ($result instanceof \WP_Error) {
-            return ErrorReportService::buildFailureResultFromWpError($result, [
+        if ($result instanceof WP_Error) {
+            return $this->buildGenericFailureFromWpError($result, [
                 'title' => 'Medien-Einstellungen konnten nicht gespeichert werden',
                 'source' => '/admin/media/settings',
                 'module' => 'media',
@@ -344,5 +413,162 @@ class MediaModule
             ]);
         }
         return ['success' => true, 'message' => 'Einstellungen gespeichert.'];
+    }
+
+    public function normalizeTab(string $tab): string
+    {
+        $tab = strtolower(trim($tab));
+
+        return in_array($tab, self::ALLOWED_TABS, true) ? $tab : 'library';
+    }
+
+    public function normalizePath(string $path): string
+    {
+        return $this->normalizeRelativePath($path);
+    }
+
+    public function normalizeView(string $view): string
+    {
+        $view = strtolower(trim($view));
+
+        return in_array($view, self::ALLOWED_VIEWS, true) ? $view : 'finder';
+    }
+
+    public function normalizeCategory(string $slug): string
+    {
+        return $this->normalizeCategorySlug($slug);
+    }
+
+    public function normalizeSearch(string $search): string
+    {
+        return $this->sanitizeSearch($search);
+    }
+
+    private function normalizeRelativePath(string $path): string
+    {
+        $path = trim(str_replace('\\', '/', $path));
+        $path = preg_replace('#/+#', '/', $path) ?? '';
+        $path = trim($path, '/');
+
+        if ($path === '' || str_contains($path, '..') || preg_match('/[\x00-\x1F\x7F]/', $path) === 1) {
+            return '';
+        }
+
+        return preg_match('#^[A-Za-z0-9._\-/]+$#', $path) === 1 ? $path : '';
+    }
+
+    private function normalizeCategorySlug(string $slug): string
+    {
+        $slug = strtolower(trim(strip_tags($slug)));
+        $slug = preg_replace('/[^a-z0-9-]/', '-', $slug) ?? '';
+        $slug = preg_replace('/-+/', '-', $slug) ?? '';
+
+        return trim($slug, '-');
+    }
+
+    private function sanitizeCategoryName(string $name): string
+    {
+        $name = trim(strip_tags($name));
+
+        return function_exists('mb_substr') ? mb_substr($name, 0, 80) : substr($name, 0, 80);
+    }
+
+    private function sanitizeFolderName(string $name): string
+    {
+        $name = trim(strip_tags($name));
+        if ($name === '' || preg_match('/[\\\/\:\*\?"<>\|]/', $name) === 1) {
+            return '';
+        }
+
+        return function_exists('mb_substr') ? mb_substr($name, 0, 120) : substr($name, 0, 120);
+    }
+
+    private function sanitizeItemName(string $name): string
+    {
+        return $this->sanitizeFolderName($name);
+    }
+
+    private function sanitizeSearch(string $search): string
+    {
+        $search = trim(strip_tags($search));
+
+        return function_exists('mb_substr') ? mb_substr($search, 0, 120) : substr($search, 0, 120);
+    }
+
+    private function categoryExists(string $slug): bool
+    {
+        foreach ($this->service->getCategories() as $category) {
+            if (($category['slug'] ?? '') === $slug) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function normalizeUploadFile(array $file): ?array
+    {
+        $requiredKeys = ['name', 'type', 'tmp_name', 'error', 'size'];
+        foreach ($requiredKeys as $key) {
+            if (!array_key_exists($key, $file)) {
+                return null;
+            }
+        }
+
+        $name = trim((string)$file['name']);
+        $tmpName = (string)$file['tmp_name'];
+        if ($name === '' || $tmpName === '') {
+            return null;
+        }
+
+        return [
+            'name' => $name,
+            'type' => (string)$file['type'],
+            'tmp_name' => $tmpName,
+            'error' => (int)$file['error'],
+            'size' => max(0, (int)$file['size']),
+        ];
+    }
+
+    private function buildGenericFailureFromWpError(WP_Error $error, array $context): array
+    {
+        $payload = ErrorReportService::buildFailureResultFromWpError($error, $context);
+        $operation = (string)($context['operation'] ?? 'media_operation');
+        $title = (string)($context['title'] ?? 'Medien-Aktion fehlgeschlagen');
+
+        $this->logWpError('media.' . $operation . '.failed', $error, $context + [
+            'report_payload' => $payload['report_payload'] ?? [],
+            'error_details' => $payload['error_details'] ?? [],
+        ]);
+
+        return [
+            'success' => false,
+            'error' => $title . '. Bitte Logs prüfen.',
+            'report_payload' => $payload['report_payload'] ?? [],
+        ];
+    }
+
+    private function logWpError(string $action, WP_Error $error, array $context = []): void
+    {
+        $logContext = [
+            'error_code' => $error->get_error_code(),
+            'error_message' => $error->get_error_message(),
+            'error_data' => is_array($error->get_error_data()) ? $error->get_error_data() : [],
+            'context' => $context,
+        ];
+
+        Logger::instance()->withChannel('admin.media')->warning('Media-Aktion fehlgeschlagen.', $logContext);
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_MEDIA,
+            $action,
+            'Media-Aktion fehlgeschlagen',
+            'media',
+            null,
+            [
+                'error_code' => $error->get_error_code(),
+                'context' => $context,
+            ],
+            'warning'
+        );
     }
 }

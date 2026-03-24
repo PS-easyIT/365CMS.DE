@@ -915,25 +915,61 @@ class UpdateService
         string $version
     ): array {
         if (!$this->isAllowedSensitiveRemoteUrl($downloadUrl)) {
-            return ['success' => false, 'message' => 'Ungültige Download-URL: Host nicht in der Update-Allowlist.', 'sha256_verified' => false];
+            return $this->failInstallResult(
+                'updates.install.invalid_download_host',
+                'Download-Quelle für das Update ist nicht erlaubt.',
+                ['type' => $type, 'name' => $name, 'download_url' => $downloadUrl]
+            );
+        }
+
+        if (!$this->isSafeExternalUrl($downloadUrl)) {
+            return $this->failInstallResult(
+                'updates.install.unsafe_download_url',
+                'Download-Quelle für das Update konnte nicht verifiziert werden.',
+                ['type' => $type, 'name' => $name, 'download_url' => $downloadUrl]
+            );
         }
 
         if (!extension_loaded('zip')) {
-            return ['success' => false, 'message' => 'ZIP-Extension ist nicht verfügbar.', 'sha256_verified' => false];
+            return $this->failInstallResult(
+                'updates.install.zip_extension_missing',
+                'ZIP-Unterstützung ist auf diesem System nicht verfügbar.',
+                ['type' => $type, 'name' => $name]
+            );
         }
 
         $targetDir = rtrim($targetDir, '/\\');
         if ($targetDir === '') {
-            return ['success' => false, 'message' => 'Ungültiges Zielverzeichnis für das Update.', 'sha256_verified' => false];
+            return $this->failInstallResult(
+                'updates.install.invalid_target',
+                'Update-Zielverzeichnis ist ungültig.',
+                ['type' => $type, 'name' => $name]
+            );
+        }
+
+        if (!$this->isAllowedInstallTarget($targetDir, $type)) {
+            return $this->failInstallResult(
+                'updates.install.target_blocked',
+                'Update-Ziel liegt außerhalb der erlaubten Installationspfade.',
+                ['type' => $type, 'name' => $name, 'target_dir' => $targetDir]
+            );
         }
 
         $targetParentDir = dirname($targetDir);
         if ($targetParentDir === '' || $targetParentDir === '.' || $targetParentDir === DIRECTORY_SEPARATOR) {
-            return ['success' => false, 'message' => 'Zielverzeichnis für das Update ist nicht staging-fähig.', 'sha256_verified' => false];
+            return $this->failInstallResult(
+                'updates.install.target_not_stageable',
+                'Update-Ziel kann nicht sicher vorbereitet werden.',
+                ['type' => $type, 'name' => $name, 'target_dir' => $targetDir]
+            );
         }
 
         if (!is_dir($targetParentDir) && !mkdir($targetParentDir, 0755, true)) {
-            return ['success' => false, 'message' => 'Elternverzeichnis für das Update konnte nicht erstellt werden: ' . $targetParentDir, 'sha256_verified' => false];
+            return $this->failInstallResult(
+                'updates.install.parent_create_failed',
+                'Update-Arbeitsverzeichnis konnte nicht vorbereitet werden.',
+                ['type' => $type, 'name' => $name, 'target_parent' => $targetParentDir]
+            );
         }
 
         // Temporäre Datei erstellen (eigene .zip-Benennung, kein tempnam-Leak)
@@ -957,7 +993,12 @@ class UpdateService
                 throw new \RuntimeException('Download-Fehler: ' . (string) ($response['error'] ?? 'unbekannt'));
             }
 
-            if (file_put_contents($tmpFile, (string) ($response['body'] ?? '')) === false) {
+            $responseBody = (string) ($response['body'] ?? '');
+            if ($responseBody === '') {
+                throw new \RuntimeException('Update-Download war leer.');
+            }
+
+            if (file_put_contents($tmpFile, $responseBody, LOCK_EX) === false) {
                 throw new \RuntimeException('Temporäre Datei nicht beschreibbar: ' . $tmpFile);
             }
 
@@ -1017,8 +1058,18 @@ class UpdateService
 
         } catch (\Throwable $e) {
             if (file_exists($tmpFile)) { unlink($tmpFile); } // M-03
-            error_log('UpdateService::downloadAndInstallUpdate() Fehler: ' . $e->getMessage());
-            return ['success' => false, 'message' => 'Fehler: ' . $e->getMessage(), 'sha256_verified' => false];
+            return $this->failInstallResult(
+                'updates.install.failed',
+                'Update konnte nicht installiert werden.',
+                [
+                    'type' => $type,
+                    'name' => $name,
+                    'version' => $version,
+                    'target_dir' => $targetDir,
+                    'download_url' => $downloadUrl,
+                ],
+                $e
+            );
         } finally {
             if (is_file($tmpFile)) {
                 unlink($tmpFile);
@@ -1400,6 +1451,67 @@ class UpdateService
         }
 
         rmdir($directory);
+    }
+
+    private function isAllowedInstallTarget(string $targetDir, string $type): bool
+    {
+        $targetDir = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $targetDir), DIRECTORY_SEPARATOR);
+        if ($targetDir === '') {
+            return false;
+        }
+
+        if ($type === 'core') {
+            $root = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, (string) ABSPATH), DIRECTORY_SEPARATOR);
+
+            return $targetDir === $root && !is_link($targetDir);
+        }
+
+        $root = match ($type) {
+            'plugin' => defined('PLUGIN_PATH') ? (string) PLUGIN_PATH : (string) ABSPATH . 'plugins' . DIRECTORY_SEPARATOR,
+            'theme' => defined('THEME_PATH') ? (string) THEME_PATH : (string) ABSPATH . 'themes' . DIRECTORY_SEPARATOR,
+            default => '',
+        };
+
+        if ($root === '') {
+            return false;
+        }
+
+        $normalizedRoot = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $root), DIRECTORY_SEPARATOR);
+        if ($normalizedRoot === '') {
+            return false;
+        }
+
+        if ($targetDir !== $normalizedRoot && !str_starts_with($targetDir, $normalizedRoot . DIRECTORY_SEPARATOR)) {
+            return false;
+        }
+
+        if (is_link($targetDir)) {
+            return false;
+        }
+
+        $parentDir = dirname($targetDir);
+
+        return $parentDir !== '' && !is_link($parentDir);
+    }
+
+    private function failInstallResult(string $action, string $message, array $context = [], ?\Throwable $exception = null): array
+    {
+        if ($exception !== null) {
+            $context['exception'] = $exception->getMessage();
+        }
+
+        \CMS\Logger::instance()->withChannel('updates.service')->error($message, $context);
+        \CMS\AuditLogger::instance()->log(
+            \CMS\AuditLogger::CAT_SYSTEM,
+            $action,
+            $message,
+            'updates',
+            null,
+            $context,
+            'error'
+        );
+
+        return ['success' => false, 'message' => $message . ' Bitte Logs prüfen.', 'sha256_verified' => false];
     }
 
     private function isAllowedSensitiveRemoteUrl(string $url): bool

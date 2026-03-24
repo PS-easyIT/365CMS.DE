@@ -23,10 +23,11 @@ if (!Auth::instance()->isAdmin()) {
 require_once __DIR__ . '/modules/media/MediaModule.php';
 $module    = new MediaModule();
 $alert     = null;
-$tab       = $_GET['tab'] ?? 'library';
+$tab       = $module->normalizeTab((string)($_GET['tab'] ?? 'library'));
+$allowedActions = ['upload', 'create_folder', 'delete_item', 'rename_item', 'assign_category', 'add_category', 'delete_category', 'save_settings'];
 
 if ($tab === 'library') {
-    $requestedPath = trim((string)($_GET['path'] ?? ''));
+    $requestedPath = $module->normalizePath((string)($_GET['path'] ?? ''));
     $memberConfirmed = (string)($_GET['confirm_member'] ?? '') === '1';
 
     if ($module->requiresMemberConfirmation($requestedPath) && !$memberConfirmed) {
@@ -41,7 +42,7 @@ if ($tab === 'library') {
 
 // ─── POST-Handling ───────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action    = $_POST['action'] ?? '';
+    $action    = (string)($_POST['action'] ?? '');
     $postToken = $_POST['csrf_token'] ?? '';
 
     if (!Security::instance()->verifyToken($postToken, 'admin_media')) {
@@ -50,7 +51,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $path = $_POST['parent_path'] ?? $_POST['target_path'] ?? '';
+    if (!in_array($action, $allowedActions, true)) {
+        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Unbekannte Aktion.'];
+        header('Location: ' . SITE_URL . '/admin/media');
+        exit;
+    }
+
+    $path = (string)($_POST['parent_path'] ?? $_POST['target_path'] ?? '');
 
     if ($path === '') {
         $actionPath = $_POST['item_path'] ?? $_POST['old_path'] ?? $_POST['file_path'] ?? '';
@@ -61,6 +68,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    $path = $module->normalizePath($path);
+
     $redirectParams = [];
 
     if ($tab !== 'library') {
@@ -70,13 +79,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($path !== '') {
         $redirectParams['path'] = $path;
     } elseif (!empty($_GET['path'])) {
-        $redirectParams['path'] = (string)$_GET['path'];
+        $normalizedGetPath = $module->normalizePath((string)$_GET['path']);
+        if ($normalizedGetPath !== '') {
+            $redirectParams['path'] = $normalizedGetPath;
+        }
     }
 
-    foreach (['view', 'category', 'q', 'confirm_member'] as $key) {
-        if (isset($_GET[$key]) && $_GET[$key] !== '') {
-            $redirectParams[$key] = (string)$_GET[$key];
-        }
+    $normalizedView = $module->normalizeView((string)($_GET['view'] ?? 'finder'));
+    $normalizedCategory = $module->normalizeCategory((string)($_GET['category'] ?? ''));
+    $normalizedSearch = $module->normalizeSearch((string)($_GET['q'] ?? ''));
+    if ($normalizedView !== 'finder') {
+        $redirectParams['view'] = $normalizedView;
+    }
+    if ($normalizedCategory !== '') {
+        $redirectParams['category'] = $normalizedCategory;
+    }
+    if ($normalizedSearch !== '') {
+        $redirectParams['q'] = $normalizedSearch;
+    }
+    if ((string)($_GET['confirm_member'] ?? '') === '1') {
+        $redirectParams['confirm_member'] = '1';
     }
 
     $redir = SITE_URL . '/admin/media' . (!empty($redirectParams) ? '?' . http_build_query($redirectParams) : '');

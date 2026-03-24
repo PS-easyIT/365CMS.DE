@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.25-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.28-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,35 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.6.28 — 24. März 2026 · Audit-Batch 010, Posts-Härtung
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.28** | 🔴 fix | Admin/Content | **Posts-Entry auf Whitelist-Flow gebracht**: `CMS/admin/posts.php` akzeptiert nur noch bekannte POST-Aktionen und Views, typisiert Bulk-/Kategorie-Parameter defensiver und behandelt ungültige Mutationen konsistent über Redirect + Flash-Alert. |
+| **2.6.28** | 🔴 fix | Admin/Content | **Posts-Modul gegen Detail-Leaks und versteckte Request-Kopplung gehärtet**: `CMS/admin/modules/posts/PostsModule.php` normalisiert Listenfilter, Bulk-Aktionen sowie mehrere Text-/Meta-/Medienfelder zentral, entkoppelt Kategorie-/Tag-Löschpfade von direkten `$_POST`-Reads und gibt Fehler im UI nur noch generisch aus, während Details intern geloggt und auditierbar protokolliert werden. |
+
+---
+
+### v2.6.27 — 24. März 2026 · Audit-Batch 009, Update-Härtung
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.27** | 🔴 fix | Admin/System | **Update-Entry auf Aktions-Whitelist gebracht**: `CMS/admin/updates.php` akzeptiert nur noch bekannte POST-Aktionen, normalisiert Plugin-Slugs vor der Übergabe und behandelt ungültige Mutationen konsistent über Redirect + Flash-Alert. |
+| **2.6.27** | 🔴 fix | Admin/System | **Updates-Modul gegen Detail-Leaks gehärtet**: `CMS/admin/modules/system/UpdatesModule.php` normalisiert Plugin-Slugs zentral, trennt manuelle von direkt installierbaren Plugin-Updates und gibt Prüf-/Installationsfehler im UI nur noch generisch aus, während Details intern geloggt und auditierbar protokolliert werden. |
+| **2.6.27** | 🔴 fix | Core/Updates | **Update-Service enger an erlaubte Roots und sichere Downloads gebunden**: `CMS/core/Services/UpdateService.php` verlangt für Downloads jetzt zusätzlich den SSRF-/DNS-Sicherheitscheck, begrenzt Installationsziele auf erlaubte Core-/Plugin-/Theme-Pfade, verwirft leere Download-Bodies und beantwortet Installationsfehler nach außen generisch. |
+
+---
+
+### v2.6.26 — 24. März 2026 · Audit-Batch 008, Media-Härtung
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.26** | 🔴 fix | Admin/Media | **Media-Entry defensiver gemacht**: `CMS/admin/media.php` akzeptiert nur noch bekannte POST-Aktionen und normalisiert Redirect-Parameter wie `path`, `view`, `category` und `q`, bevor sie zurück in den Admin-Flow gespiegelt werden. |
+| **2.6.26** | 🔴 fix | Admin/Media | **Media-Modul gegen unnormalisierte Eingaben und Detail-Leaks gehärtet**: `CMS/admin/modules/media/MediaModule.php` bereinigt Pfade, Tabs, Views, Suchbegriffe, Datei-/Ordnernamen und Kategorie-Slugs zentral, blockiert System-Kategorien serverseitig und gibt Service-Fehler im UI nur noch generisch aus, während Details intern geloggt und auditierbar protokolliert werden. |
+| **2.6.26** | 🟡 refactor | Admin/Media | **Media-Settings enger begrenzt**: Uploadgrößen sowie Qualitäts- und Dimensionsfelder werden vor dem Persistieren konsistenter gekappt, damit das Modul weniger ungültige oder ausreißende Settings an den Service weiterreicht. |
 
 ---
 

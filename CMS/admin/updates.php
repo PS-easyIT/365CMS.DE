@@ -21,32 +21,43 @@ if (!Auth::instance()->isAdmin()) {
 require_once __DIR__ . '/modules/system/UpdatesModule.php';
 $module    = new UpdatesModule();
 $alert     = null;
+$allowedActions = [
+    'check_updates',
+    'install_core',
+    'install_plugin',
+];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $postToken = $_POST['csrf_token'] ?? '';
+    $postToken = (string)($_POST['csrf_token'] ?? '');
     if (!Security::instance()->verifyToken($postToken, 'admin_updates')) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
         header('Location: ' . SITE_URL . '/admin/updates');
         exit;
     }
 
-    $action = $_POST['action'] ?? '';
+    $action = (string)($_POST['action'] ?? '');
+
+    if (!in_array($action, $allowedActions, true)) {
+        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Ungültige Update-Aktion.'];
+        header('Location: ' . SITE_URL . '/admin/updates');
+        exit;
+    }
 
     if ($action === 'check_updates') {
-        $result = $module->checkAllUpdates();
+        $module->checkAllUpdates();
         $_SESSION['admin_alert'] = ['type' => 'info', 'message' => 'Update-Prüfung abgeschlossen.'];
     } elseif ($action === 'install_core') {
         $result = $module->installCoreUpdate();
         $_SESSION['admin_alert'] = [
             'type'    => $result['success'] ? 'success' : 'danger',
-            'message' => $result['message'] ?? $result['error'] ?? '',
+            'message' => $result['message'] ?? $result['error'] ?? 'Core-Update konnte nicht verarbeitet werden.',
         ];
     } elseif ($action === 'install_plugin') {
-        $slug   = preg_replace('/[^a-z0-9_-]/', '', $_POST['plugin_slug'] ?? '');
+        $slug   = (string) preg_replace('/[^a-z0-9_-]/', '', strtolower((string)($_POST['plugin_slug'] ?? '')));
         $result = $module->installPluginUpdate($slug);
         $_SESSION['admin_alert'] = [
             'type'    => $result['success'] ? 'success' : 'danger',
-            'message' => $result['message'] ?? $result['error'] ?? '',
+            'message' => $result['message'] ?? $result['error'] ?? 'Plugin-Update konnte nicht verarbeitet werden.',
         ];
     }
 

@@ -24,14 +24,22 @@ require_once __DIR__ . '/modules/posts/PostsModule.php';
 $module    = new PostsModule();
 $user      = Auth::instance()->getCurrentUser();
 $alert     = null;
+$allowedActions = ['save', 'delete', 'bulk', 'save_category', 'delete_category'];
+$allowedViews = ['list', 'edit'];
 
 // ─── POST-Handling ───────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action    = $_POST['action'] ?? '';
-    $postToken = $_POST['csrf_token'] ?? '';
+    $action    = (string)($_POST['action'] ?? '');
+    $postToken = (string)($_POST['csrf_token'] ?? '');
 
     if (!Security::instance()->verifyToken($postToken, 'admin_posts')) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig. Bitte erneut versuchen.'];
+        header('Location: ' . SITE_URL . '/admin/posts');
+        exit;
+    }
+
+    if (!in_array($action, $allowedActions, true)) {
+        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Unbekannte Beitrags-Aktion.'];
         header('Location: ' . SITE_URL . '/admin/posts');
         exit;
     }
@@ -41,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $module->save($_POST, (int)($user->id ?? 0));
             $_SESSION['admin_alert'] = [
                 'type'    => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
+                'message' => $result['message'] ?? $result['error'] ?? 'Beitrag konnte nicht gespeichert werden.',
             ];
             if ($result['success']) {
                 header('Location: ' . SITE_URL . '/admin/posts?action=edit&id=' . ($result['id'] ?? 0));
@@ -55,18 +63,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $module->delete($id);
             $_SESSION['admin_alert'] = [
                 'type'    => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
+                'message' => $result['message'] ?? $result['error'] ?? 'Beitrag konnte nicht gelöscht werden.',
             ];
             header('Location: ' . SITE_URL . '/admin/posts');
             exit;
 
         case 'bulk':
-            $bulkAction = $_POST['bulk_action'] ?? '';
+            $bulkAction = (string)($_POST['bulk_action'] ?? '');
             $ids        = array_values(array_filter(array_map('intval', (array)($_POST['ids'] ?? []))));
             $result     = $module->bulkAction($bulkAction, $ids, $_POST);
             $_SESSION['admin_alert'] = [
                 'type'    => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
+                'message' => $result['message'] ?? $result['error'] ?? 'Bulk-Aktion für Beiträge fehlgeschlagen.',
             ];
             header('Location: ' . SITE_URL . '/admin/posts');
             exit;
@@ -75,17 +83,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $module->saveCategory($_POST);
             $_SESSION['admin_alert'] = [
                 'type'    => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
+                'message' => $result['message'] ?? $result['error'] ?? 'Kategorie konnte nicht gespeichert werden.',
             ];
             header('Location: ' . SITE_URL . '/admin/posts');
             exit;
 
         case 'delete_category':
             $catId  = (int)($_POST['cat_id'] ?? 0);
-            $result = $module->deleteCategory($catId);
+            $replacementCategoryId = (int)($_POST['replacement_category_id'] ?? 0);
+            $result = $module->deleteCategory($catId, $replacementCategoryId);
             $_SESSION['admin_alert'] = [
                 'type'    => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
+                'message' => $result['message'] ?? $result['error'] ?? 'Kategorie konnte nicht gelöscht werden.',
             ];
             header('Location: ' . SITE_URL . '/admin/posts');
             exit;
@@ -103,7 +112,10 @@ $csrfToken = Security::instance()->generateToken('admin_posts');
 $editorMediaToken = Security::instance()->generateToken('editorjs_media');
 
 // ─── View-Routing ────────────────────────────────────────
-$viewAction = $_GET['action'] ?? 'list';
+$viewAction = (string)($_GET['action'] ?? 'list');
+if (!in_array($viewAction, $allowedViews, true)) {
+    $viewAction = 'list';
+}
 
 if ($viewAction === 'edit') {
     $id        = isset($_GET['id']) ? (int)$_GET['id'] : null;

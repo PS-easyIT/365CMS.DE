@@ -29,13 +29,25 @@ if (!Auth::instance()->isAdmin()) {
 require_once __DIR__ . '/modules/pages/PagesModule.php';
 $module    = new PagesModule();
 $alert     = null;
+$allowedActions = ['save', 'delete', 'bulk'];
+$allowedViews = ['list', 'edit'];
 
 // ─── POST-Verarbeitung ────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'admin_pages')) {
-        $alert = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig. Bitte erneut versuchen.'];
-    } else {
-        $postAction = $_POST['action'] ?? '';
+    $postToken = (string)($_POST['csrf_token'] ?? '');
+    $postAction = (string)($_POST['action'] ?? '');
+
+    if (!Security::instance()->verifyToken($postToken, 'admin_pages')) {
+        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig. Bitte erneut versuchen.'];
+        header('Location: ' . SITE_URL . '/admin/pages');
+        exit;
+    }
+
+    if (!in_array($postAction, $allowedActions, true)) {
+        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Unbekannte Seiten-Aktion.'];
+        header('Location: ' . SITE_URL . '/admin/pages');
+        exit;
+    }
 
         switch ($postAction) {
             case 'save':
@@ -47,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     header('Location: ' . SITE_URL . '/admin/pages?action=edit&id=' . $result['id']);
                     exit;
                 } else {
-                    $alert = ['type' => 'danger', 'message' => $result['error']];
+                    $alert = ['type' => 'danger', 'message' => $result['error'] ?? 'Seite konnte nicht gespeichert werden.'];
                 }
                 break;
 
@@ -56,25 +68,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $result = $module->delete($id);
                 $_SESSION['admin_alert'] = [
                     'type'    => $result['success'] ? 'success' : 'danger',
-                    'message' => $result['success'] ? $result['message'] : $result['error'],
+                    'message' => $result['message'] ?? $result['error'] ?? 'Seite konnte nicht gelöscht werden.',
                 ];
                 header('Location: ' . SITE_URL . '/admin/pages');
                 exit;
 
             case 'bulk':
-                $bulkAction = $_POST['bulk_action'] ?? '';
+                $bulkAction = (string)($_POST['bulk_action'] ?? '');
                 $bulkIds    = isset($_POST['ids'])
                     ? array_values(array_filter(array_map('intval', (array)$_POST['ids'])))
                     : array_values(array_filter(array_map('intval', explode(',', (string)($_POST['bulk_ids'] ?? '')))));
                 $result     = $module->bulkAction($bulkAction, $bulkIds, $_POST);
                 $_SESSION['admin_alert'] = [
                     'type'    => $result['success'] ? 'success' : 'danger',
-                    'message' => $result['success'] ? $result['message'] : $result['error'],
+                    'message' => $result['message'] ?? $result['error'] ?? 'Bulk-Aktion für Seiten fehlgeschlagen.',
                 ];
                 header('Location: ' . SITE_URL . '/admin/pages');
                 exit;
         }
-    }
+
     // Neues CSRF-Token nach verbrauchtem
     $csrfToken = Security::instance()->generateToken('admin_pages');
 }
@@ -89,7 +101,10 @@ $csrfToken = Security::instance()->generateToken('admin_pages');
 $editorMediaToken = Security::instance()->generateToken('editorjs_media');
 
 // ─── View bestimmen ────────────────────────────────────────────────────────
-$action = $_GET['action'] ?? 'list';
+$action = (string)($_GET['action'] ?? 'list');
+if (!in_array($action, $allowedViews, true)) {
+    $action = 'list';
+}
 
 $pageTitle  = 'Seiten';
 $activePage = 'pages';

@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.6.25",
+  "version": "2.6.28",
   "min_php": "8.4",
   "released": "2026-03-24",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release 2.6.25: Der Doku-Sync validiert Repository-/DOC-Ziele und Git-Refs defensiver, GitHub-ZIP-/Temp-/Staging-Pfade bleiben auf erlaubte Roots begrenzt, symbolische Links werden in Integritäts-, Copy- und Cleanup-Pfaden blockiert und die Admin-UI erhält nur noch generische Sync-Fehlermeldungen.",
+  "notes": "Release 2.6.28: Der Posts-Entry akzeptiert nur noch bekannte POST-Aktionen und Views, typisiert Bulk-/Kategorie-Parameter defensiver; das Posts-Modul normalisiert Listenfilter und ausgewählte Eingaben zentral, entkoppelt Kategorie-/Tag-Löschpfade von direkten Request-Reads und behandelt Fehler generisch mit internem Logging/Audit.",
   "critical": false
 }

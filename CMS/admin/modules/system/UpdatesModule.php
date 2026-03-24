@@ -11,6 +11,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\AuditLogger;
+use CMS\Logger;
 use CMS\Services\UpdateService;
 
 class UpdatesModule
@@ -83,7 +85,12 @@ class UpdatesModule
                 $version
             );
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+            return $this->failResult(
+                'updates.core.install_failed',
+                'Core-Update konnte nicht installiert werden.',
+                $e,
+                ['component' => 'core']
+            );
         }
     }
 
@@ -92,6 +99,8 @@ class UpdatesModule
      */
     public function installPluginUpdate(string $slug): array
     {
+        $slug = $this->normalizePluginSlug($slug);
+
         if (empty($slug)) {
             return ['success' => false, 'error' => 'Kein Plugin angegeben.'];
         }
@@ -103,6 +112,10 @@ class UpdatesModule
             }
 
             $plugin = $plugins[$slug];
+            if (empty($plugin['install_supported'])) {
+                return ['success' => false, 'error' => 'Für dieses Plugin ist nur ein manueller Update-Prozess verfügbar.'];
+            }
+
             $downloadUrl = $plugin['download_url'] ?? '';
             $sha256      = $plugin['sha256'] ?? '';
 
@@ -121,7 +134,12 @@ class UpdatesModule
                 $plugin['new_version']
             );
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+            return $this->failResult(
+                'updates.plugin.install_failed',
+                'Plugin-Update konnte nicht installiert werden.',
+                $e,
+                ['component' => 'plugin', 'slug' => $slug]
+            );
         }
     }
 
@@ -130,10 +148,12 @@ class UpdatesModule
         try {
             return $this->service->checkCoreUpdates();
         } catch (\Throwable $e) {
+            $this->logFailure('updates.core.check_failed', 'Core-Update-Prüfung fehlgeschlagen.', $e);
+
             return [
                 'current_version' => defined('CMS_VERSION') ? CMS_VERSION : '?.?.?',
                 'update_available' => false,
-                'error' => $e->getMessage(),
+                'error' => 'Core-Update-Prüfung derzeit nicht verfügbar.',
             ];
         }
     }
@@ -143,6 +163,7 @@ class UpdatesModule
         try {
             return $this->service->checkPluginUpdates();
         } catch (\Throwable $e) {
+            $this->logFailure('updates.plugins.check_failed', 'Plugin-Update-Prüfung fehlgeschlagen.', $e);
             return [];
         }
     }
@@ -152,7 +173,9 @@ class UpdatesModule
         try {
             return $this->service->checkThemeUpdates();
         } catch (\Throwable $e) {
-            return ['update_available' => false, 'error' => $e->getMessage()];
+            $this->logFailure('updates.theme.check_failed', 'Theme-Update-Prüfung fehlgeschlagen.', $e);
+
+            return ['update_available' => false, 'error' => 'Theme-Update-Prüfung derzeit nicht verfügbar.'];
         }
     }
 
@@ -161,6 +184,7 @@ class UpdatesModule
         try {
             return $this->service->getUpdateHistory(10);
         } catch (\Throwable $e) {
+            $this->logFailure('updates.history.load_failed', 'Update-Historie konnte nicht geladen werden.', $e);
             return [];
         }
     }
@@ -170,7 +194,38 @@ class UpdatesModule
         try {
             return $this->service->getSystemRequirements();
         } catch (\Throwable $e) {
+            $this->logFailure('updates.requirements.load_failed', 'Systemanforderungen konnten nicht geladen werden.', $e);
             return [];
         }
+    }
+
+    private function normalizePluginSlug(string $slug): string
+    {
+        return (string) preg_replace('/[^a-z0-9_-]/', '', strtolower(trim($slug)));
+    }
+
+    private function failResult(string $action, string $message, ?\Throwable $exception = null, array $context = []): array
+    {
+        $this->logFailure($action, $message, $exception, $context);
+
+        return ['success' => false, 'error' => $message . ' Bitte Logs prüfen.'];
+    }
+
+    private function logFailure(string $action, string $message, ?\Throwable $exception = null, array $context = []): void
+    {
+        if ($exception !== null) {
+            $context['exception'] = $exception->getMessage();
+        }
+
+        Logger::instance()->withChannel('admin.updates')->error($message, $context);
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            $action,
+            $message,
+            'updates',
+            null,
+            $context,
+            'error'
+        );
     }
 }
