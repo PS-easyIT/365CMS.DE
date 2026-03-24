@@ -43,7 +43,7 @@ Die Vollprüfung wurde auf den kompletten First-Party-Dateibaum von `CMS/` erwei
 - [x] **Step #10 / A-10 – Update-Installationen atomar machen** → `UpdateService` entpackt Update-ZIPs jetzt erst in ein benachbartes Staging-Verzeichnis und übernimmt sie anschließend per atomarem Directory-Swap bzw. rollback-fähigem Inhalts-Swap ins Live-Ziel.
 - [x] **Step #11 / A-11 – HTTPS-/HSTS-Linie vereinheitlichen** → Die ausgelieferte HTTPS-Strategie ist jetzt klar auf Redirects am Reverse-Proxy/Webserver festgelegt; `.htaccess`, `Security` und Diagnose folgen derselben HTTPS-/HSTS-Linie ohne halb-aktive Kommentar-Redirects.
 - [x] **Step #12 / A-12 – Installer-Monolith aufspalten** → `install.php` bootstrapped den Ablauf jetzt nur noch; Flow-/Update-Logik liegt in `install/InstallerController.php`, Setup-/DB-/Config-Logik in `install/InstallerService.php` und die HTML-Schritte in `install/views/*.php`.
-- [ ] **Step #13 / A-13 – `includes/functions.php` thematisch splitten**
+- [x] **Step #13 / A-13 – `includes/functions.php` thematisch splitten** → `includes/functions.php` lädt die globalen Helfer jetzt nur noch als Bootstrap; Escaping, Optionen/Runtime, Redirect/Auth, Rollen, Admin-Menüs, Übersetzungen, WP-Kompatibilität und Mail liegen getrennt unter `includes/functions/*.php`.
 - [ ] **Step #14 / A-14 – Importer-Monolith weiter zerlegen**
 - [ ] **Step #15 / A-15 – große Routing-/Admin-Hotspots verkleinern**
 - [ ] **Step #16 / A-16 – Media-Delivery um Range-/Streaming ergänzen**

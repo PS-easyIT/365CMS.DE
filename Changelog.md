@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.12-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.13-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -15,6 +15,14 @@
 | 🎨 | `style` | Design- / UI-Änderungen |
 
 ---
+
+## [2.6.13] – 2026-03-23
+
+### Changed
+
+- `CMS/includes/functions.php` ist jetzt nur noch der kanonische Bootstrap für globale Helfer und lädt die bisherige Sammellogik thematisch getrennt aus `CMS/includes/functions/*.php` nach, statt Escaping, Runtime, Redirects, Rollen, Admin-Menüs, Übersetzungen und WP-Kompatibilität weiter in einer Monolith-Datei zu bündeln.
+- Die ausgelagerten Helper-Gruppen halten die bestehende globale API bewusst stabil, verkleinern aber den Wartungshotspot deutlich: Escaping/String-Helfer, Optionen/Archiv-/Runtime-Helfer, Redirect/Auth, Rollen, Admin-Menüs, Übersetzungen, WP-Kompatibilität und Mail sind jetzt getrennt wart- und prüfbar.
+
 
 ## [2.6.12] – 2026-03-23
 
