@@ -368,142 +368,105 @@ $defaultContentLanguage = $isEnglishOnlyPost ? 'en' : 'de';
                 </div>
 
                 <div class="col-xl-4 d-flex">
-                    <div class="card cms-edit-card h-100 w-100">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h3 class="card-title">Lesbarkeits-Card</h3>
-                            <span class="badge bg-danger-lt text-danger" id="postReadabilityBadge">Kritisch</span>
-                        </div>
-                        <div class="card-body">
-                            <div class="text-secondary small mb-3" id="postReadabilitySummary">0 Wörter · 0 lange Sätze · 0 lange Absätze</div>
-                            <div class="row g-3">
-                                <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Wörter</div><div class="h3 m-0" id="postWordCount">0</div></div></div>
-                                <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Keyphrase-Dichte</div><div class="h3 m-0" id="postDensity">0%</div></div></div>
-                                <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Interne Links</div><div class="h3 m-0" id="postInternalLinks">0</div></div></div>
-                                <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Externe Links</div><div class="h3 m-0" id="postExternalLinks">0</div></div></div>
-                                <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Signalwörter</div><div class="h3 m-0" id="postTransitionWords">0</div></div></div>
-                                <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Bilder ohne Alt</div><div class="h3 m-0" id="postMissingAlt">0</div></div></div>
-                                <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Lange Sätze</div><div class="h3 m-0" id="postLongSentences">0</div></div></div>
-                                <div class="col-6"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Lange Absätze</div><div class="h3 m-0" id="postLongParagraphs">0</div></div></div>
-                            </div>
-                        </div>
-                    </div>
+                    <?php
+                    $readabilityCard = [
+                        'badgeId' => 'postReadabilityBadge',
+                        'summaryId' => 'postReadabilitySummary',
+                        'metrics' => [
+                            ['id' => 'postWordCount', 'label' => 'Wörter'],
+                            ['id' => 'postDensity', 'label' => 'Keyphrase-Dichte'],
+                            ['id' => 'postInternalLinks', 'label' => 'Interne Links'],
+                            ['id' => 'postExternalLinks', 'label' => 'Externe Links'],
+                            ['id' => 'postTransitionWords', 'label' => 'Signalwörter'],
+                            ['id' => 'postMissingAlt', 'label' => 'Bilder ohne Alt'],
+                            ['id' => 'postLongSentences', 'label' => 'Lange Sätze'],
+                            ['id' => 'postLongParagraphs', 'label' => 'Lange Absätze'],
+                        ],
+                    ];
+                    require __DIR__ . '/../partials/content-readability-card.php';
+                    ?>
                 </div>
 
                 <div class="col-xl-4 d-flex">
-                    <div class="card cms-edit-card h-100 w-100">
-                        <div class="card-header"><h3 class="card-title">Vorschau-Card</h3></div>
-                        <div class="card-body">
-                            <div class="text-uppercase text-secondary small mb-2">SERP</div>
-                            <div class="border rounded p-3 bg-light mb-4">
-                                <div id="postSerpTitle" class="fw-semibold text-primary mb-1"><?php echo htmlspecialchars($postMetaTitleValue ?: $postTitleValue); ?></div>
-                                <div id="postSerpUrl" class="small text-success mb-1"><?php echo htmlspecialchars($postPreviewUrl); ?></div>
-                                <div id="postSerpDescription" class="small text-secondary"><?php echo htmlspecialchars($postMetaDescriptionValue ?: 'Meta-Beschreibung wird automatisch aus dem ersten Absatz erzeugt.'); ?></div>
-                            </div>
-                            <div class="text-uppercase text-secondary small mb-2">Social</div>
-                            <div class="border rounded overflow-hidden bg-light">
-                                <img id="postSocialImage" src="<?php echo $ogImage !== '' ? $ogImage : $postFeaturedImageValue; ?>" alt="" style="display:<?php echo ($ogImage !== '' || $postFeaturedImageValue !== '') ? 'block' : 'none'; ?>; width:100%; height:160px; object-fit:cover;">
-                                <div class="p-3">
-                                    <div class="text-uppercase text-secondary small mb-1">facebook / x</div>
-                                    <div id="postSocialTitle" class="fw-semibold mb-1"><?php echo htmlspecialchars($ogTitle !== '' ? html_entity_decode($ogTitle, ENT_QUOTES, 'UTF-8') : ($postMetaTitleValue ?: $postTitleValue)); ?></div>
-                                    <div id="postSocialDescription" class="small text-secondary"><?php echo htmlspecialchars($ogDescription !== '' ? html_entity_decode($ogDescription, ENT_QUOTES, 'UTF-8') : ($postMetaDescriptionValue ?: 'Social-Vorschau aus SEO-Daten')); ?></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <?php
+                    $previewCard = [
+                        'serpTitleId' => 'postSerpTitle',
+                        'serpTitle' => $postMetaTitleValue ?: $postTitleValue,
+                        'serpUrlId' => 'postSerpUrl',
+                        'serpUrl' => $postPreviewUrl,
+                        'serpDescriptionId' => 'postSerpDescription',
+                        'serpDescription' => $postMetaDescriptionValue ?: 'Meta-Beschreibung wird automatisch aus dem ersten Absatz erzeugt.',
+                        'socialImageId' => 'postSocialImage',
+                        'socialImage' => $ogImage !== '' ? html_entity_decode($ogImage, ENT_QUOTES, 'UTF-8') : $postFeaturedImageValue,
+                        'socialImageVisible' => $ogImage !== '' || $postFeaturedImageValue !== '',
+                        'socialTitleId' => 'postSocialTitle',
+                        'socialTitle' => $ogTitle !== '' ? html_entity_decode($ogTitle, ENT_QUOTES, 'UTF-8') : ($postMetaTitleValue ?: $postTitleValue),
+                        'socialDescriptionId' => 'postSocialDescription',
+                        'socialDescription' => $ogDescription !== '' ? html_entity_decode($ogDescription, ENT_QUOTES, 'UTF-8') : ($postMetaDescriptionValue ?: 'Social-Vorschau aus SEO-Daten'),
+                    ];
+                    require __DIR__ . '/../partials/content-preview-card.php';
+                    ?>
                 </div>
 
                 <div class="col-12">
-                    <details class="card cms-edit-card" open>
-                        <summary class="card-header" style="cursor:pointer; list-style:none;">
-                            <div class="d-flex align-items-center justify-content-between w-100">
-                                <h3 class="card-title mb-0">SEO-Score &amp; Checkliste</h3>
-                                <div class="d-flex align-items-center gap-3">
-                                    <span class="badge bg-danger-lt text-danger" id="postSeoScoreBadge">Rot</span>
-                                    <strong class="h2 mb-0" id="postSeoScoreLabel">0</strong>
-                                </div>
-                            </div>
-                        </summary>
-                        <div class="card-body">
-                            <div class="progress progress-sm mb-3"><div class="progress-bar bg-danger" id="postSeoScoreBar" style="width:0%"></div></div>
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-2"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Titel</div><div class="h3 m-0" id="postTitleCount">0</div><div class="text-secondary small">Zeichen</div></div></div>
-                                <div class="col-md-2"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Slug</div><div class="h3 m-0" id="postSlugCount">0</div><div class="text-secondary small">Zeichen</div></div></div>
-                                <div class="col-md-3"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Status</div><span class="badge bg-yellow-lt text-yellow" id="postStatusBadge">Entwurf</span></div></div>
-                                <div class="col-md-5"><div class="border rounded p-3 h-100"><div class="text-secondary small mb-1">Kategorie</div><div class="small" id="postCategoryLabel"><?php echo htmlspecialchars($selectedCategoryName); ?></div></div></div>
-                            </div>
-                            <div id="postSeoRules"></div>
-                        </div>
-                    </details>
+                    <?php
+                    $seoScorePanel = [
+                        'badgeId' => 'postSeoScoreBadge',
+                        'scoreLabelId' => 'postSeoScoreLabel',
+                        'scoreBarId' => 'postSeoScoreBar',
+                        'rulesId' => 'postSeoRules',
+                        'summaryCards' => [
+                            ['width' => 'col-md-2', 'label' => 'Titel', 'valueId' => 'postTitleCount', 'suffix' => 'Zeichen'],
+                            ['width' => 'col-md-2', 'label' => 'Slug', 'valueId' => 'postSlugCount', 'suffix' => 'Zeichen'],
+                            ['width' => 'col-md-3', 'label' => 'Status', 'badgeId' => 'postStatusBadge', 'badgeText' => 'Entwurf', 'badgeClass' => 'badge bg-yellow-lt text-yellow'],
+                            ['width' => 'col-md-5', 'label' => 'Kategorie', 'bodyText' => $selectedCategoryName],
+                        ],
+                    ];
+                    require __DIR__ . '/../partials/content-seo-score-panel.php';
+                    ?>
                 </div>
 
                 <div class="col-12">
-                    <details class="card cms-edit-card">
-                        <summary class="card-header" style="cursor:pointer; list-style:none;">
-                            <div class="d-flex align-items-center justify-content-between w-100">
-                                <h3 class="card-title mb-0">Erweitertes SEO &amp; Social</h3>
-                                <span class="text-secondary small">Canonical, Robots, Social, Schema, Sitemap, Bilder</span>
-                            </div>
-                        </summary>
-                        <div class="card-body">
-                            <div class="row g-3 mb-4">
-                                <div class="col-12">
-                                    <p class="text-secondary small mb-0">Das Beitragsbild wird oben im Formular gesetzt. Hier kann ein separates OG-Bild für Social Media hinterlegt werden.</p>
-                                </div>
-                                <div class="col-lg-4">
-                                    <label class="form-label" for="schemaType">Schema-Typ</label>
-                                    <select class="form-select" id="schemaType" name="schema_type">
-                                        <?php foreach (['Article', 'BlogPosting', 'FAQPage', 'HowTo', 'Person', 'Event'] as $type): ?>
-                                            <option value="<?php echo htmlspecialchars($type); ?>" <?php echo $schemaType === $type ? 'selected' : ''; ?>><?php echo htmlspecialchars($type); ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                    <label class="form-label mt-3" for="sitemapPriority">Sitemap Priority</label>
-                                    <input type="text" class="form-control" id="sitemapPriority" name="sitemap_priority" value="<?php echo $sitemapPriority; ?>" placeholder="0.6">
-                                    <label class="form-label mt-3" for="sitemapChangefreq">Sitemap Changefreq</label>
-                                    <select class="form-select" id="sitemapChangefreq" name="sitemap_changefreq">
-                                        <?php foreach (['always', 'daily', 'weekly', 'monthly', 'yearly'] as $freq): ?>
-                                            <option value="<?php echo htmlspecialchars($freq); ?>" <?php echo $sitemapChangefreq === $freq ? 'selected' : ''; ?>><?php echo htmlspecialchars($freq); ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <div class="col-lg-4 d-flex flex-column justify-content-end gap-2">
-                                    <label class="form-check"><input class="form-check-input" type="checkbox" name="robots_index" value="1" <?php echo $robotsIndex ? 'checked' : ''; ?>><span class="form-check-label">index</span></label>
-                                    <label class="form-check"><input class="form-check-input" type="checkbox" name="robots_follow" value="1" <?php echo $robotsFollow ? 'checked' : ''; ?>><span class="form-check-label">follow</span></label>
-                                    <label class="form-label mt-2" for="hreflangGroup">hreflang-Gruppe</label>
-                                    <input type="text" class="form-control" id="hreflangGroup" name="hreflang_group" value="<?php echo $hreflangGroup; ?>" placeholder="z. B. blog-ki-strategie">
-                                </div>
-                                <div class="col-lg-6">
-                                    <label class="form-label" for="ogTitle">OG-Titel</label>
-                                    <input type="text" class="form-control" id="ogTitle" name="og_title" value="<?php echo $ogTitle; ?>">
-                                </div>
-                                <div class="col-lg-6">
-                                    <label class="form-label" for="ogImage">OG-Bild</label>
-                                    <input type="text" class="form-control" id="ogImage" name="og_image" value="<?php echo $ogImage; ?>">
-                                </div>
-                                <div class="col-lg-6">
-                                    <label class="form-label" for="ogDescription">OG-Beschreibung</label>
-                                    <textarea class="form-control" id="ogDescription" name="og_description" rows="3"><?php echo $ogDescription; ?></textarea>
-                                </div>
-                                <div class="col-lg-6">
-                                    <label class="form-label" for="twitterTitle">Twitter-/X-Titel</label>
-                                    <input type="text" class="form-control" id="twitterTitle" name="twitter_title" value="<?php echo $twitterTitle; ?>">
-                                    <label class="form-label mt-3" for="twitterCard">Twitter Card</label>
-                                    <select class="form-select" id="twitterCard" name="twitter_card">
-                                        <?php foreach (['summary_large_image', 'summary'] as $card): ?>
-                                            <option value="<?php echo htmlspecialchars($card); ?>" <?php echo $twitterCard === $card ? 'selected' : ''; ?>><?php echo htmlspecialchars($card); ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <div class="col-lg-6">
-                                    <label class="form-label" for="twitterDescription">Twitter-/X-Beschreibung</label>
-                                    <textarea class="form-control" id="twitterDescription" name="twitter_description" rows="3"><?php echo $twitterDescription; ?></textarea>
-                                </div>
-                                <div class="col-lg-6">
-                                    <label class="form-label" for="twitterImage">Twitter-/X-Bild</label>
-                                    <input type="text" class="form-control" id="twitterImage" name="twitter_image" value="<?php echo $twitterImage; ?>">
-                                </div>
-                            </div>
-                        </div>
-                    </details>
+                    <?php
+                    $advancedSeoPanel = [
+                        'hint' => 'Das Beitragsbild wird oben im Formular gesetzt. Hier kann ein separates OG-Bild für Social Media hinterlegt werden.',
+                        'schemaTypeId' => 'schemaType',
+                        'schemaTypeName' => 'schema_type',
+                        'schemaTypeValue' => html_entity_decode($schemaType, ENT_QUOTES, 'UTF-8'),
+                        'schemaTypeOptions' => ['Article', 'BlogPosting', 'FAQPage', 'HowTo', 'Person', 'Event'],
+                        'sitemapPriorityId' => 'sitemapPriority',
+                        'sitemapPriorityName' => 'sitemap_priority',
+                        'sitemapPriorityValue' => html_entity_decode($sitemapPriority, ENT_QUOTES, 'UTF-8'),
+                        'sitemapChangefreqId' => 'sitemapChangefreq',
+                        'sitemapChangefreqName' => 'sitemap_changefreq',
+                        'sitemapChangefreqValue' => html_entity_decode($sitemapChangefreq, ENT_QUOTES, 'UTF-8'),
+                        'sitemapChangefreqOptions' => ['always', 'daily', 'weekly', 'monthly', 'yearly'],
+                        'robotsIndexName' => 'robots_index',
+                        'robotsIndexChecked' => $robotsIndex,
+                        'robotsFollowName' => 'robots_follow',
+                        'robotsFollowChecked' => $robotsFollow,
+                        'hreflangGroupId' => 'hreflangGroup',
+                        'hreflangGroupName' => 'hreflang_group',
+                        'hreflangGroupValue' => html_entity_decode($hreflangGroup, ENT_QUOTES, 'UTF-8'),
+                        'ogTitleId' => 'ogTitle',
+                        'ogTitleValue' => html_entity_decode($ogTitle, ENT_QUOTES, 'UTF-8'),
+                        'ogImageId' => 'ogImage',
+                        'ogImageValue' => html_entity_decode($ogImage, ENT_QUOTES, 'UTF-8'),
+                        'ogDescriptionId' => 'ogDescription',
+                        'ogDescriptionValue' => html_entity_decode($ogDescription, ENT_QUOTES, 'UTF-8'),
+                        'twitterTitleId' => 'twitterTitle',
+                        'twitterTitleValue' => html_entity_decode($twitterTitle, ENT_QUOTES, 'UTF-8'),
+                        'twitterCardId' => 'twitterCard',
+                        'twitterCardName' => 'twitter_card',
+                        'twitterCardValue' => html_entity_decode($twitterCard, ENT_QUOTES, 'UTF-8'),
+                        'twitterCardOptions' => ['summary_large_image', 'summary'],
+                        'twitterDescriptionId' => 'twitterDescription',
+                        'twitterDescriptionValue' => html_entity_decode($twitterDescription, ENT_QUOTES, 'UTF-8'),
+                        'twitterImageId' => 'twitterImage',
+                        'twitterImageValue' => html_entity_decode($twitterImage, ENT_QUOTES, 'UTF-8'),
+                    ];
+                    require __DIR__ . '/../partials/content-advanced-seo-panel.php';
+                    ?>
                 </div>
             </div>
 

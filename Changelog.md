@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.16-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.17-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -15,6 +15,13 @@
 | 🎨 | `style` | Design- / UI-Änderungen |
 
 ---
+
+## [2.6.17] – 2026-03-24
+
+### Changed
+
+- `CMS/admin/views/posts/edit.php` und `CMS/admin/views/pages/edit.php` delegieren die wiederkehrenden Lesbarkeits-, Vorschau-, SEO-Score- und erweiterten SEO-Blöcke jetzt an gemeinsame Partials unter `CMS/admin/views/partials/`, wodurch zwei der größten Editor-Views deutlich diff-ärmer und wartbarer werden.
+- Die neuen Partials `content-readability-card.php`, `content-preview-card.php`, `content-seo-score-panel.php` und `content-advanced-seo-panel.php` kapseln die gemeinsamen Admin-Bausteine konfigurierbar, ohne die bestehenden IDs, Form-Felder oder Frontend-Hooks der Editor-JS-/SEO-Logik zu verbiegen.
 
 ## [2.6.16] – 2026-03-24
 
