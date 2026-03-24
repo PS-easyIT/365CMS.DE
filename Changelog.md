@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.17-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.18-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -15,6 +15,13 @@
 | 🎨 | `style` | Design- / UI-Änderungen |
 
 ---
+
+## [2.6.18] – 2026-03-24
+
+### Changed
+
+- Die versionierte Beispielgrafik `SidebarRahmenThumnail_V5_CopilotLizenzen.png` liegt nicht mehr im Runtime-Pfad `CMS/uploads/`, sondern unter `DOC/assets/examples/`; damit bleibt der Upload-Baum wieder sauber für echte Laufzeitdaten reserviert.
+- `DOC/assets/examples/README.md` dokumentiert die Trennlinie explizit: versionierte Demo-/Referenzdateien gehören in den Doku-/Beispielpfad und nicht in produktive Upload-Verzeichnisse. Kleine Repo-Hygiene, großer Frieden im Kopf. 😉
 
 ## [2.6.17] – 2026-03-24
 

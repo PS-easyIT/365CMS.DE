@@ -48,7 +48,7 @@ Die Vollprüfung wurde auf den kompletten First-Party-Dateibaum von `CMS/` erwei
 - [x] **Step #15 / A-15 – große Routing-/Admin-Hotspots verkleinern** → `ThemeRouter`, `PostsModule` und `HubTemplateProfileManager` delegieren Archiv-/Kategorie-/Template-Kataloglogik jetzt an kleinere Repository-, ViewModel- und Catalog-Helfer statt diese Wartungsblöcke weiter inline mitzuschleppen.
 - [x] **Step #16 / A-16 – Media-Delivery um Range-/Streaming ergänzen** → `MediaDeliveryService` unterstützt jetzt Byte-Range-Requests (`206`/`416`), sendet `Accept-Ranges`/`Content-Range` sauber aus und streamt Dateien in Chunks statt sie stumpf komplett per `readfile()` in einem Rutsch zu kippen.
 - [x] **Step #17 / A-17 – große Admin-Views modularisieren** → Die großen Editor-Views für Seiten und Beiträge teilen sich wiederkehrende SEO-/Readability-/Preview-Bausteine jetzt über gemeinsame Partials unter `admin/views/partials/`, statt dieselben HTML-Blöcke mehrfach als große Inline-Views zu pflegen.
-- [ ] **Step #18 / A-18 – Upload-Beispiel-/Betriebsdaten sauber trennen**
+- [x] **Step #18 / A-18 – Upload-Beispiel-/Betriebsdaten sauber trennen** → Die versionierte Beispielgrafik wurde aus `CMS/uploads/` nach `DOC/assets/examples/` verschoben; im Runtime-Upload-Pfad bleiben damit wieder nur Schutz-/Placeholder-Dateien statt gemischter Repo-Beispieluploads liegen.
 - [ ] **Step #19 / A-19 – Login zusätzlich an ein kurzlebiges Device-Cookie binden**
 
 ## Funde und Verbesserungen
