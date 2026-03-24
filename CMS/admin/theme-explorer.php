@@ -22,6 +22,7 @@ require_once __DIR__ . '/modules/themes/ThemeEditorModule.php';
 $module    = new ThemeEditorModule();
 $alert     = null;
 $redirectBase = SITE_URL . '/admin/theme-explorer';
+$allowedActions = ['save_file'];
 
 // Datei speichern
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
@@ -33,7 +34,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     }
 
     $action = (string)($_POST['action'] ?? '');
-    if ($action !== 'save_file') {
+    if (!in_array($action, $allowedActions, true)) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Unbekannte oder nicht erlaubte Aktion.'];
         header('Location: ' . $redirectBase);
         exit;

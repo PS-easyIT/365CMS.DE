@@ -21,13 +21,21 @@ if (!Auth::instance()->isAdmin()) {
 require_once __DIR__ . '/modules/hub/HubSitesModule.php';
 $module = new HubSitesModule();
 $alert = null;
+$allowedActions = ['save', 'save-template', 'duplicate-template', 'delete-template', 'delete', 'duplicate'];
+$allowedViews = ['list', 'edit', 'template-edit', 'templates'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? '';
-    $postToken = $_POST['csrf_token'] ?? '';
+    $action = (string)($_POST['action'] ?? '');
+    $postToken = (string)($_POST['csrf_token'] ?? '');
 
     if (!Security::instance()->verifyToken($postToken, 'admin_hub_sites')) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
+        header('Location: ' . SITE_URL . '/admin/hub-sites');
+        exit;
+    }
+
+    if (!in_array($action, $allowedActions, true)) {
+        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Unbekannte Hub-Sites-Aktion.'];
         header('Location: ' . SITE_URL . '/admin/hub-sites');
         exit;
     }
@@ -37,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $module->save($_POST);
             $_SESSION['admin_alert'] = [
                 'type' => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
+                'message' => $result['message'] ?? $result['error'] ?? 'Hub-Site konnte nicht gespeichert werden.',
             ];
             if (!empty($result['success'])) {
                 if (!empty($_POST['open_public_after_save']) && !empty($result['slug'])) {
@@ -55,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $module->saveTemplate($_POST);
             $_SESSION['admin_alert'] = [
                 'type' => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
+                'message' => $result['message'] ?? $result['error'] ?? 'Hub-Template konnte nicht gespeichert werden.',
             ];
             if (!empty($result['success'])) {
                 header('Location: ' . SITE_URL . '/admin/hub-sites?action=template-edit&key=' . rawurlencode((string)($result['key'] ?? '')));
@@ -68,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $module->duplicateTemplate((string)($_POST['key'] ?? ''));
             $_SESSION['admin_alert'] = [
                 'type' => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
+                'message' => $result['message'] ?? $result['error'] ?? 'Hub-Template konnte nicht dupliziert werden.',
             ];
             if (!empty($result['success'])) {
                 header('Location: ' . SITE_URL . '/admin/hub-sites?action=template-edit&key=' . rawurlencode((string)($result['key'] ?? '')));
@@ -81,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $module->deleteTemplate((string)($_POST['key'] ?? ''));
             $_SESSION['admin_alert'] = [
                 'type' => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
+                'message' => $result['message'] ?? $result['error'] ?? 'Hub-Template konnte nicht gelöscht werden.',
             ];
             header('Location: ' . SITE_URL . '/admin/hub-sites?action=templates');
             exit;
@@ -90,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $module->delete((int)($_POST['id'] ?? 0));
             $_SESSION['admin_alert'] = [
                 'type' => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
+                'message' => $result['message'] ?? $result['error'] ?? 'Hub-Site konnte nicht gelöscht werden.',
             ];
             header('Location: ' . SITE_URL . '/admin/hub-sites');
             exit;
@@ -99,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $module->duplicate((int)($_POST['id'] ?? 0));
             $_SESSION['admin_alert'] = [
                 'type' => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
+                'message' => $result['message'] ?? $result['error'] ?? 'Hub-Site konnte nicht dupliziert werden.',
             ];
             header('Location: ' . SITE_URL . '/admin/hub-sites');
             exit;
@@ -112,7 +120,10 @@ if (!empty($_SESSION['admin_alert'])) {
 }
 
 $csrfToken = Security::instance()->generateToken('admin_hub_sites');
-$viewAction = $_GET['action'] ?? 'list';
+$viewAction = (string)($_GET['action'] ?? 'list');
+if (!in_array($viewAction, $allowedViews, true)) {
+    $viewAction = 'list';
+}
 
 if ($viewAction === 'edit') {
     $id = isset($_GET['id']) ? (int)$_GET['id'] : null;

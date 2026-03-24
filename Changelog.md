@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.28-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.31-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,34 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.6.31 — 24. März 2026 · Audit-Batch 013, Hub-Sites-Härtung
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.31** | 🔴 fix | Admin/Hub | **Hub-Sites-Entry auf Whitelist-Flow gebracht**: `CMS/admin/hub-sites.php` akzeptiert nur noch bekannte POST-Aktionen und Views und behandelt Fehlfälle mit konsistenten Fallback-Meldungen statt losem Sonderverhalten. |
+| **2.6.31** | 🔴 fix | Admin/Hub | **Hub-Sites-Modul gegen Detail-Leaks und unsaubere Linkziele gehärtet**: `CMS/admin/modules/hub/HubSitesModule.php` normalisiert Suche, Plaintext-, CTA-, Card-, Bild- und Linkwerte zentraler, fällt bei unsicheren URLs auf sichere Defaults zurück und behandelt Save-/Delete-/Duplicate-Fehler im UI nur noch generisch mit internem Logging/Audit. |
+
+---
+
+### v2.6.30 — 24. März 2026 · Audit-Batch 012, Theme-Editor-Resthärtung
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.30** | 🔴 fix | Admin/Themes | **Theme-Explorer-Wrapper enger begrenzt**: `CMS/admin/theme-explorer.php` verarbeitet den Save-Flow jetzt nur noch über eine explizite Allowlist bekannter Aktionen. |
+| **2.6.30** | 🔴 fix | Admin/Themes | **Theme-Editor gegen Rest-Leaks und Binär-/Oversize-Inhalte gehärtet**: `CMS/admin/modules/themes/ThemeEditorModule.php` beantwortet unsichere Dateianfragen kontrolliert, blockiert Binärdaten und zu große neue Inhalte vor dem Schreiben und behandelt Syntax-/Schreibfehler nur noch generisch mit internem Logging/Audit. |
+| **2.6.30** | 🟡 refactor | Admin/Themes | **Theme-Editor-View defensiver gemacht**: `CMS/admin/views/themes/editor.php` schützt den Tree-Renderer gegen Redeclare-/Datentyp-Randfälle und escaped den Basis-Link stringenter. |
+
+---
+
+### v2.6.29 — 24. März 2026 · Audit-Batch 011, Pages-Härtung
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.29** | 🔴 fix | Admin/Content | **Pages-Entry auf Whitelist-Flow gebracht**: `CMS/admin/pages.php` akzeptiert nur noch bekannte POST-Aktionen und Views, leitet CSRF-/Aktionsfehler konsistent per Redirect + Flash zurück und typisiert Bulk-Parameter defensiver vor der Modulübergabe. |
+| **2.6.29** | 🔴 fix | Admin/Content | **Pages-Modul gegen Detail-Leaks und unnormalisierte Eingaben gehärtet**: `CMS/admin/modules/pages/PagesModule.php` normalisiert Listenfilter und Bulk-Aktionen zentral, sanitisiert Titel-/Meta-/Medienfelder vor Persistenz und behandelt Save-/Delete-/Bulk-Fehler im UI nur noch generisch mit internem Logging/Audit. |
 
 ---
 

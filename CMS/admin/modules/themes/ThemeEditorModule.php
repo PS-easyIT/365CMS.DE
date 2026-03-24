@@ -11,6 +11,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\AuditLogger;
+use CMS\Logger;
 use CMS\ThemeManager;
 
 class ThemeEditorModule
@@ -41,7 +43,8 @@ class ThemeEditorModule
         $fileLanguage = 'plaintext';
         $fileWarning  = null;
 
-        $currentFile = $this->normalizeRelativePath($currentFile);
+        $requestedFile = $this->normalizeRelativePath($currentFile);
+        $currentFile = $requestedFile;
 
         if ($currentFile !== '') {
             $safePath = $this->resolveSafePath($currentFile);
@@ -52,9 +55,17 @@ class ThemeEditorModule
                 } else {
                     $contents = file_get_contents($safePath);
                     $fileContent = is_string($contents) ? $contents : '';
+
+                    if (str_contains($fileContent, "\0")) {
+                        $fileContent = '';
+                        $fileWarning = 'Die ausgewählte Datei enthält Binärdaten und kann hier nicht sicher bearbeitet werden.';
+                    }
                 }
 
                 $fileLanguage = $this->getLanguage($currentFile);
+            } elseif ($requestedFile !== '') {
+                $currentFile = '';
+                $fileWarning = 'Die angeforderte Datei konnte nicht sicher geladen werden.';
             }
         }
 
@@ -97,6 +108,15 @@ class ThemeEditorModule
             return ['success' => false, 'error' => 'Datei ist zu groß für die sichere Bearbeitung im Browser.'];
         }
 
+        $contentBytes = strlen($content);
+        if ($contentBytes > self::MAX_EDITABLE_BYTES) {
+            return ['success' => false, 'error' => 'Der neue Dateiinhalt ist zu groß für die sichere Browser-Bearbeitung.'];
+        }
+
+        if (str_contains($content, "\0")) {
+            return ['success' => false, 'error' => 'Dateiinhalt enthält ungültige Binärdaten.'];
+        }
+
         if (!is_writable($safePath)) {
             return ['success' => false, 'error' => 'Datei ist nicht beschreibbar.'];
         }
@@ -106,12 +126,31 @@ class ThemeEditorModule
             try {
                 token_get_all($content, TOKEN_PARSE);
             } catch (\ParseError $e) {
-                return ['success' => false, 'error' => 'PHP-Syntaxfehler: ' . $e->getMessage()];
+                return $this->failResult(
+                    'themes.editor.syntax.failed',
+                    'Die PHP-Syntaxprüfung ist fehlgeschlagen.',
+                    $e,
+                    ['file' => $relativePath]
+                );
             }
         }
 
-        if (file_put_contents($safePath, $content, LOCK_EX) === false) {
-            return ['success' => false, 'error' => 'Datei konnte nicht gespeichert werden.'];
+        try {
+            if (file_put_contents($safePath, $content, LOCK_EX) === false) {
+                return $this->failResult(
+                    'themes.editor.write.failed',
+                    'Datei konnte nicht gespeichert werden.',
+                    null,
+                    ['file' => $relativePath]
+                );
+            }
+        } catch (\Throwable $e) {
+            return $this->failResult(
+                'themes.editor.write.failed',
+                'Datei konnte nicht gespeichert werden.',
+                $e,
+                ['file' => $relativePath]
+            );
         }
 
         return ['success' => true, 'message' => 'Datei gespeichert.'];
@@ -191,6 +230,14 @@ class ThemeEditorModule
             }
         }
 
+        usort($files, static function (array $left, array $right): int {
+            if (($left['type'] ?? '') !== ($right['type'] ?? '')) {
+                return ($left['type'] ?? '') === 'dir' ? -1 : 1;
+            }
+
+            return strcasecmp((string) ($left['name'] ?? ''), (string) ($right['name'] ?? ''));
+        });
+
         return $files;
     }
 
@@ -223,5 +270,30 @@ class ThemeEditorModule
     private function isAllowedRelativePath(string $relativePath): bool
     {
         return preg_match(self::ALLOWED_PATH_PATTERN, $relativePath) === 1;
+    }
+
+    private function failResult(string $action, string $message, ?\Throwable $exception = null, array $context = []): array
+    {
+        $this->logFailure($action, $message, $exception, $context);
+
+        return ['success' => false, 'error' => $message . ' Bitte Logs prüfen.'];
+    }
+
+    private function logFailure(string $action, string $message, ?\Throwable $exception = null, array $context = []): void
+    {
+        if ($exception !== null) {
+            $context['exception'] = $exception->getMessage();
+        }
+
+        Logger::instance()->withChannel('admin.theme-editor')->error($message, $context);
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            $action,
+            $message,
+            'themes',
+            null,
+            $context,
+            'error'
+        );
     }
 }

@@ -20,32 +20,35 @@ $fileContent  = $data['fileContent'] ?? '';
 $fileLanguage = $data['fileLanguage'] ?? 'plaintext';
 $fileWarning  = $data['fileWarning'] ?? null;
 
-function renderFileTree(array $items, string $currentFile, string $baseUrl): string
-{
-    $html = '<ul class="list-unstyled mb-0">';
-    foreach ($items as $item) {
-        if ($item['type'] === 'dir') {
-            $html .= '<li class="mb-1">';
-            $html .= '<div class="d-flex align-items-center py-1 px-2 text-muted fw-bold small">';
-            $html .= '<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-folder me-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 4h4l3 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2"/></svg>';
-            $html .= htmlspecialchars($item['name']);
-            $html .= '</div>';
-            if (!empty($item['children'])) {
-                $html .= '<div class="ms-3">' . renderFileTree($item['children'], $currentFile, $baseUrl) . '</div>';
+if (!function_exists('renderFileTree')) {
+    function renderFileTree(array $items, string $currentFile, string $baseUrl): string
+    {
+        $html = '<ul class="list-unstyled mb-0">';
+        foreach ($items as $item) {
+            if (($item['type'] ?? '') === 'dir') {
+                $html .= '<li class="mb-1">';
+                $html .= '<div class="d-flex align-items-center py-1 px-2 text-muted fw-bold small">';
+                $html .= '<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-folder me-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 4h4l3 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2"/></svg>';
+                $html .= htmlspecialchars((string)($item['name'] ?? ''));
+                $html .= '</div>';
+                if (!empty($item['children']) && is_array($item['children'])) {
+                    $html .= '<div class="ms-3">' . renderFileTree($item['children'], $currentFile, $baseUrl) . '</div>';
+                }
+                $html .= '</li>';
+            } else {
+                $path = (string)($item['path'] ?? '');
+                $isActive = ($path === $currentFile);
+                $html .= '<li>';
+                $html .= '<a href="' . htmlspecialchars($baseUrl, ENT_QUOTES) . '?file=' . urlencode($path) . '" class="d-flex align-items-center py-1 px-2 text-decoration-none rounded' . ($isActive ? ' bg-primary text-white' : ' text-body') . '">';
+                $html .= '<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-file-code me-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><path d="M10 13l-1 2l1 2"/><path d="M14 13l1 2l-1 2"/></svg>';
+                $html .= '<span class="small">' . htmlspecialchars((string)($item['name'] ?? '')) . '</span>';
+                $html .= '</a>';
+                $html .= '</li>';
             }
-            $html .= '</li>';
-        } else {
-            $isActive = ($item['path'] === $currentFile);
-            $html .= '<li>';
-            $html .= '<a href="' . $baseUrl . '?file=' . urlencode($item['path']) . '" class="d-flex align-items-center py-1 px-2 text-decoration-none rounded' . ($isActive ? ' bg-primary text-white' : ' text-body') . '">';
-            $html .= '<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-file-code me-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><path d="M10 13l-1 2l1 2"/><path d="M14 13l1 2l-1 2"/></svg>';
-            $html .= '<span class="small">' . htmlspecialchars($item['name']) . '</span>';
-            $html .= '</a>';
-            $html .= '</li>';
         }
+        $html .= '</ul>';
+        return $html;
     }
-    $html .= '</ul>';
-    return $html;
 }
 ?>
 

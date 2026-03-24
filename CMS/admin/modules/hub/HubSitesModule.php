@@ -7,8 +7,10 @@ if (!defined('ABSPATH')) {
 
 require_once __DIR__ . '/HubTemplateProfileManager.php';
 
+use CMS\AuditLogger;
 use CMS\Database;
 use CMS\Hooks;
+use CMS\Logger;
 
 class HubSitesModule
 {
@@ -16,6 +18,17 @@ class HubSitesModule
     private string $prefix;
     private HubTemplateProfileManager $templateProfileManager;
     private ?bool $hasTableSlugColumn = null;
+
+    /** @var string[] */
+    private const ALLOWED_CARD_LAYOUTS = ['standard', 'feature', 'compact'];
+    /** @var string[] */
+    private const ALLOWED_IMAGE_POSITIONS = ['top', 'left', 'right'];
+    /** @var string[] */
+    private const ALLOWED_IMAGE_FITS = ['cover', 'contain'];
+    /** @var string[] */
+    private const ALLOWED_IMAGE_RATIOS = ['wide', 'square', 'portrait'];
+    /** @var string[] */
+    private const ALLOWED_META_LAYOUTS = ['split', 'stacked'];
 
     private const DEFAULT_SETTINGS = [
         'content_mode' => 'hub',
@@ -61,7 +74,7 @@ class HubSitesModule
 
     public function getListData(): array
     {
-        $search = trim((string)($_GET['q'] ?? ''));
+        $search = $this->sanitizeSearchTerm((string)($_GET['q'] ?? ''));
         $where = '';
         $params = [];
         $selectSlug = $this->hasTableSlugColumn() ? 'table_slug,' : "'' AS table_slug,";
@@ -150,7 +163,7 @@ class HubSitesModule
     public function save(array $post): array
     {
         $id = (int)($post['id'] ?? 0);
-        $name = trim(strip_tags((string)($post['site_name'] ?? '')));
+        $name = $this->sanitizePlainText((string)($post['site_name'] ?? ''), 160);
         $description = $this->sanitizeRichText((string)($post['description'] ?? ''), 4000);
         $cards = \CMS\Json::decodeArray($post['cards_json'] ?? null, []);
         $normalizedDomains = $this->normalizeHubDomains((string)($post['hub_domains'] ?? ''));
@@ -197,7 +210,7 @@ class HubSitesModule
             'hub_hero_text_en' => $this->sanitizeRichText((string)($post['hub_hero_text_en'] ?? ''), 4000),
             'hub_cta_label' => mb_substr(trim(strip_tags((string)($post['hub_cta_label'] ?? ''))), 0, 60),
             'hub_cta_label_en' => mb_substr(trim(strip_tags((string)($post['hub_cta_label_en'] ?? ''))), 0, 60),
-            'hub_cta_url' => filter_var((string)($post['hub_cta_url'] ?? ''), FILTER_SANITIZE_URL),
+            'hub_cta_url' => $this->normalizeUrlValue((string)($post['hub_cta_url'] ?? ''), 500),
             'hub_meta_audience' => mb_substr(trim(strip_tags((string)($post['hub_meta_audience'] ?? ''))), 0, 120),
             'hub_meta_audience_en' => mb_substr(trim(strip_tags((string)($post['hub_meta_audience_en'] ?? ''))), 0, 120),
             'hub_meta_owner' => mb_substr(trim(strip_tags((string)($post['hub_meta_owner'] ?? ''))), 0, 120),
@@ -215,19 +228,19 @@ class HubSitesModule
                 ? $this->normalizeJsonArray((string)$post['hub_sections_json'], 'section')
                 : '[]',
             'hub_card_layout' => array_key_exists('hub_card_layout', $post)
-                ? $this->normalizeSetting((string)$post['hub_card_layout'], ['standard', 'feature', 'compact'], 'standard')
+                ? $this->normalizeSetting((string)$post['hub_card_layout'], self::ALLOWED_CARD_LAYOUTS, 'standard')
                 : '',
             'hub_card_image_position' => array_key_exists('hub_card_image_position', $post)
-                ? $this->normalizeSetting((string)$post['hub_card_image_position'], ['top', 'left', 'right'], 'top')
+                ? $this->normalizeSetting((string)$post['hub_card_image_position'], self::ALLOWED_IMAGE_POSITIONS, 'top')
                 : '',
             'hub_card_image_fit' => array_key_exists('hub_card_image_fit', $post)
-                ? $this->normalizeSetting((string)$post['hub_card_image_fit'], ['cover', 'contain'], 'cover')
+                ? $this->normalizeSetting((string)$post['hub_card_image_fit'], self::ALLOWED_IMAGE_FITS, 'cover')
                 : '',
             'hub_card_image_ratio' => array_key_exists('hub_card_image_ratio', $post)
-                ? $this->normalizeSetting((string)$post['hub_card_image_ratio'], ['wide', 'square', 'portrait'], 'wide')
+                ? $this->normalizeSetting((string)$post['hub_card_image_ratio'], self::ALLOWED_IMAGE_RATIOS, 'wide')
                 : '',
             'hub_card_meta_layout' => array_key_exists('hub_card_meta_layout', $post)
-                ? $this->normalizeSetting((string)$post['hub_card_meta_layout'], ['split', 'stacked'], 'split')
+                ? $this->normalizeSetting((string)$post['hub_card_meta_layout'], self::ALLOWED_META_LAYOUTS, 'split')
                 : '',
         ];
 
@@ -243,7 +256,7 @@ class HubSitesModule
             }
 
             $title = mb_substr(trim(strip_tags((string)($card['title'] ?? ''))), 0, 160);
-            $url = filter_var((string)($card['url'] ?? ''), FILTER_SANITIZE_URL);
+            $url = $this->normalizeUrlValue((string)($card['url'] ?? ''), 500);
             if ($title === '') {
                 continue;
             }
@@ -264,12 +277,12 @@ class HubSitesModule
                 'meta_left_en' => mb_substr(trim(strip_tags((string)($card['meta_left_en'] ?? ''))), 0, 120),
                 'meta_right' => mb_substr(trim(strip_tags((string)($card['meta_right'] ?? ''))), 0, 120),
                 'meta_right_en' => mb_substr(trim(strip_tags((string)($card['meta_right_en'] ?? ''))), 0, 120),
-                'image_url' => mb_substr(trim((string)($card['image_url'] ?? '')), 0, 500),
+                'image_url' => $this->normalizeUrlValue((string)($card['image_url'] ?? ''), 500),
                 'image_alt' => mb_substr(trim(strip_tags((string)($card['image_alt'] ?? ''))), 0, 160),
                 'image_alt_en' => mb_substr(trim(strip_tags((string)($card['image_alt_en'] ?? ''))), 0, 160),
                 'button_text' => mb_substr(trim(strip_tags((string)($card['button_text'] ?? ''))), 0, 80),
                 'button_text_en' => mb_substr(trim(strip_tags((string)($card['button_text_en'] ?? ''))), 0, 80),
-                'button_link' => mb_substr(trim((string)($card['button_link'] ?? '')), 0, 500),
+                'button_link' => $this->normalizeUrlValue((string)($card['button_link'] ?? ''), 500),
             ];
         }
 
@@ -335,22 +348,35 @@ class HubSitesModule
 
             return ['success' => true, 'id' => (int)$this->db->insert_id(), 'slug' => $slug, 'message' => 'Routing / Hub Site erstellt.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler beim Speichern: ' . $e->getMessage()];
+            return $this->failResult(
+                'hub.save.failed',
+                'Hub-Site konnte nicht gespeichert werden.',
+                $e,
+                ['site_id' => $id, 'hub_slug' => $slug, 'hub_template' => (string)($settings['hub_template'] ?? '')]
+            );
         }
     }
 
     public function delete(int $id): array
     {
+        if ($id <= 0) {
+            return ['success' => false, 'error' => 'Ungültige Hub-Site-ID.'];
+        }
+
         try {
             $this->db->execute("DELETE FROM {$this->prefix}site_tables WHERE id = ?", [$id]);
             return ['success' => true, 'message' => 'Routing / Hub Site gelöscht.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler beim Löschen.'];
+            return $this->failResult('hub.delete.failed', 'Hub-Site konnte nicht gelöscht werden.', $e, ['site_id' => $id]);
         }
     }
 
     public function duplicate(int $id): array
     {
+        if ($id <= 0) {
+            return ['success' => false, 'error' => 'Ungültige Hub-Site-ID.'];
+        }
+
         $source = $this->db->get_row(
             "SELECT * FROM {$this->prefix}site_tables WHERE id = ? LIMIT 1",
             [$id]
@@ -393,7 +419,7 @@ class HubSitesModule
 
             return ['success' => true, 'id' => (int)$this->db->insert_id(), 'slug' => (string)$settings['hub_slug'], 'message' => 'Routing / Hub Site dupliziert.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler beim Duplizieren.'];
+            return $this->failResult('hub.duplicate.failed', 'Hub-Site konnte nicht dupliziert werden.', $e, ['site_id' => $id]);
         }
     }
 
@@ -492,7 +518,7 @@ class HubSitesModule
 
             if ($mode === 'link') {
                 $label = mb_substr(trim(strip_tags((string)($item['label'] ?? ''))), 0, 80);
-                $url = mb_substr(trim((string)($item['url'] ?? '')), 0, 240);
+                $url = $this->normalizeUrlValue((string)($item['url'] ?? ''), 240);
                 if ($label === '') {
                     continue;
                 }
@@ -506,7 +532,7 @@ class HubSitesModule
             $title = mb_substr(trim(strip_tags((string)($item['title'] ?? ''))), 0, 120);
             $text = mb_substr(trim((string)($item['text'] ?? '')), 0, 600);
             $actionLabel = mb_substr(trim(strip_tags((string)($item['actionLabel'] ?? ''))), 0, 80);
-            $actionUrl = mb_substr(trim((string)($item['actionUrl'] ?? '')), 0, 240);
+            $actionUrl = $this->normalizeUrlValue((string)($item['actionUrl'] ?? ''), 240);
 
             if ($title === '' && $text === '') {
                 continue;
@@ -571,7 +597,7 @@ class HubSitesModule
             $titleEn = mb_substr(trim(strip_tags((string)($item['title_en'] ?? ''))), 0, 160);
             $text = mb_substr(trim((string)($item['text'] ?? '')), 0, 4000);
             $textEn = mb_substr(trim((string)($item['text_en'] ?? '')), 0, 4000);
-            $imageUrl = mb_substr(trim((string)($item['image_url'] ?? '')), 0, 500);
+            $imageUrl = $this->normalizeUrlValue((string)($item['image_url'] ?? ''), 500);
             $imageAlt = mb_substr(trim(strip_tags((string)($item['image_alt'] ?? ''))), 0, 160);
             $imageAltEn = mb_substr(trim(strip_tags((string)($item['image_alt_en'] ?? ''))), 0, 160);
             $insertAfter = $this->normalizeNumber((int)($item['insert_after'] ?? 0), 0, 999, 0);
@@ -607,6 +633,74 @@ class HubSitesModule
         $sanitized = \CMS\Services\PurifierService::getInstance()->purify($value, 'table');
 
         return mb_substr(trim($sanitized), 0, $maxLength);
+    }
+
+    private function sanitizePlainText(string $value, int $maxLength): string
+    {
+        $value = trim(strip_tags($value));
+        $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/u', ' ', $value) ?? '';
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
+    }
+
+    private function sanitizeSearchTerm(string $value): string
+    {
+        return $this->sanitizePlainText($value, 120);
+    }
+
+    private function normalizeUrlValue(string $value, int $maxLength): string
+    {
+        $value = trim($value);
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', '', $value) ?? '';
+        if ($value === '') {
+            return '';
+        }
+
+        $value = function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
+
+        if ($value === '#') {
+            return '#';
+        }
+
+        if (str_starts_with($value, '/')) {
+            return $value;
+        }
+
+        $scheme = strtolower((string) parse_url($value, PHP_URL_SCHEME));
+        if ($scheme === '') {
+            return '#';
+        }
+
+        if (!in_array($scheme, ['http', 'https'], true)) {
+            return '#';
+        }
+
+        return filter_var($value, FILTER_SANITIZE_URL) ?: '#';
+    }
+
+    private function failResult(string $action, string $message, ?\Throwable $exception = null, array $context = []): array
+    {
+        $this->logFailure($action, $message, $exception, $context);
+
+        return ['success' => false, 'error' => $message . ' Bitte Logs prüfen.'];
+    }
+
+    private function logFailure(string $action, string $message, ?\Throwable $exception = null, array $context = []): void
+    {
+        if ($exception !== null) {
+            $context['exception'] = $exception->getMessage();
+        }
+
+        Logger::instance()->withChannel('admin.hub-sites')->error($message, $context);
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_CONTENT,
+            $action,
+            $message,
+            'hub-sites',
+            null,
+            $context,
+            'error'
+        );
     }
 
     private function getExistingHubSettings(int $id): array
