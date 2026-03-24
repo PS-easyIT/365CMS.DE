@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace CMS\Services\EditorJs;
 
 use CMS\Http\Client as HttpClient;
+use CMS\Logger;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -17,9 +18,18 @@ if (!defined('ABSPATH')) {
 
 final class EditorJsRemoteMediaService
 {
+    private const MAX_REMOTE_URL_LENGTH = 2048;
+    private const MAX_METADATA_HTML_BYTES = 1048576;
+    private const MAX_METADATA_TITLE_LENGTH = 180;
+    private const MAX_METADATA_DESCRIPTION_LENGTH = 400;
+    private const MAX_METADATA_SITE_NAME_LENGTH = 120;
+
+    private Logger $logger;
+
     public function __construct(
         private readonly EditorJsUploadService $uploadService
     ) {
+        $this->logger = Logger::instance()->withChannel('editorjs.remote-media');
     }
 
     /**
@@ -29,12 +39,12 @@ final class EditorJsRemoteMediaService
      */
     public function fetchImageByUrl(array $payload = [], array $post = []): array
     {
-        $url = trim((string) ($payload['url'] ?? $post['url'] ?? ''));
+        $url = $this->normalizeRemoteUrl((string) ($payload['url'] ?? $post['url'] ?? ''));
 
-        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+        if ($url === '') {
             return [
                 'success' => 0,
-                'message' => 'Ungültige Bild-URL.',
+                'message' => 'Ungültige oder unsichere Bild-URL.',
             ];
         }
 
@@ -42,7 +52,7 @@ final class EditorJsRemoteMediaService
         if ($download['success'] !== true) {
             return [
                 'success' => 0,
-                'message' => (string) ($download['message'] ?? 'Bild konnte nicht geladen werden.'),
+                'message' => 'Bild konnte nicht geladen werden.',
             ];
         }
 
@@ -73,12 +83,12 @@ final class EditorJsRemoteMediaService
      */
     public function fetchLinkMetadata(array $payload = [], array $post = []): array
     {
-        $url = trim((string) ($payload['url'] ?? $payload['link'] ?? $post['url'] ?? ''));
+        $url = $this->normalizeRemoteUrl((string) ($payload['url'] ?? $payload['link'] ?? $post['url'] ?? ''));
 
-        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+        if ($url === '') {
             return [
                 'success' => 0,
-                'message' => 'Ungültige Link-URL.',
+                'message' => 'Ungültige oder unsichere Link-URL.',
             ];
         }
 
@@ -86,7 +96,7 @@ final class EditorJsRemoteMediaService
         if ($htmlResult['success'] !== true) {
             return [
                 'success' => 0,
-                'message' => (string) ($htmlResult['message'] ?? 'Metadaten konnten nicht geladen werden.'),
+                'message' => 'Metadaten konnten nicht geladen werden.',
             ];
         }
 
@@ -112,14 +122,27 @@ final class EditorJsRemoteMediaService
         ]);
 
         if (!$response['success']) {
+            $this->logger->warning('Remote-Bildabruf fehlgeschlagen', [
+                'url' => $this->maskUrlForLogs($url),
+                'error' => $this->sanitizeLogMessage((string) ($response['error'] ?? 'Remote-Datei konnte nicht geladen werden.')),
+                'status' => (int) ($response['status'] ?? 0),
+            ]);
+
             return [
                 'success' => false,
-                'message' => (string) ($response['error'] ?? 'Remote-Datei konnte nicht geladen werden.'),
+                'message' => 'Remote-Datei konnte nicht geladen werden.',
             ];
         }
 
         $content = (string) ($response['body'] ?? '');
         $contentType = (string) ($response['contentType'] ?? '');
+
+        if ($content === '' || !$this->isAllowedContentType($contentType, $allowedMimePrefixes)) {
+            return [
+                'success' => false,
+                'message' => 'Remote-Datei hat keinen erlaubten Typ.',
+            ];
+        }
 
         $extension = strtolower((string) pathinfo((string) parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION));
         if ($extension === '') {
@@ -158,21 +181,27 @@ final class EditorJsRemoteMediaService
             'userAgent' => '365CMS LinkTool/2.1',
             'timeout' => 10,
             'connectTimeout' => 5,
-            'maxBytes' => 1024 * 1024,
+            'maxBytes' => self::MAX_METADATA_HTML_BYTES,
             'allowedContentTypes' => ['text/html', 'application/xhtml+xml'],
         ]);
 
         $html = (string) ($response['body'] ?? '');
         if (!$response['success'] || trim($html) === '') {
+            $this->logger->warning('Remote-Link-Metadaten konnten nicht geladen werden', [
+                'url' => $this->maskUrlForLogs($url),
+                'error' => $this->sanitizeLogMessage((string) ($response['error'] ?? 'Remote-HTML konnte nicht geladen werden.')),
+                'status' => (int) ($response['status'] ?? 0),
+            ]);
+
             return [
                 'success' => false,
-                'message' => (string) ($response['error'] ?? 'Remote-HTML konnte nicht geladen werden.'),
+                'message' => 'Remote-HTML konnte nicht geladen werden.',
             ];
         }
 
         return [
             'success' => true,
-            'html' => $html,
+            'html' => mb_substr($html, 0, self::MAX_METADATA_HTML_BYTES),
         ];
     }
 
@@ -184,12 +213,13 @@ final class EditorJsRemoteMediaService
         $title = '';
         $description = '';
         $image = '';
-        $siteName = parse_url($sourceUrl, PHP_URL_HOST) ?: '';
+        $siteName = (string) (parse_url($sourceUrl, PHP_URL_HOST) ?: '');
 
         $doc = new \DOMDocument();
-        libxml_use_internal_errors(true);
+        $previousState = libxml_use_internal_errors(true);
         @$doc->loadHTML($html);
         libxml_clear_errors();
+        libxml_use_internal_errors($previousState);
 
         $titleNodes = $doc->getElementsByTagName('title');
         if ($titleNodes->length > 0) {
@@ -218,7 +248,7 @@ final class EditorJsRemoteMediaService
             }
 
             if ($image === '' && in_array($property, ['og:image', 'twitter:image'], true)) {
-                $image = $this->absolutizeUrl($content, $sourceUrl);
+                $image = $this->normalizeRemoteUrl($this->absolutizeUrl($content, $sourceUrl));
             }
 
             if ($siteName === '' && $property === 'og:site_name') {
@@ -231,11 +261,11 @@ final class EditorJsRemoteMediaService
         }
 
         return [
-            'title' => strip_tags($title),
-            'description' => strip_tags($description),
-            'site_name' => strip_tags((string) $siteName),
+            'title' => $this->sanitizeMetadataText($title, self::MAX_METADATA_TITLE_LENGTH),
+            'description' => $this->sanitizeMetadataText($description, self::MAX_METADATA_DESCRIPTION_LENGTH),
+            'site_name' => $this->sanitizeMetadataText((string) $siteName, self::MAX_METADATA_SITE_NAME_LENGTH),
             'image' => [
-                'url' => filter_var($image, FILTER_VALIDATE_URL) ?: '',
+                'url' => $image,
             ],
         ];
     }
@@ -271,5 +301,82 @@ final class EditorJsRemoteMediaService
         $dir = rtrim(str_replace('\\', '/', dirname($path)), '/');
 
         return $scheme . '://' . $host . $port . ($dir !== '' ? $dir : '') . '/' . ltrim($url, '/');
+    }
+
+    private function normalizeRemoteUrl(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '' || strlen($url) > self::MAX_REMOTE_URL_LENGTH) {
+            return '';
+        }
+
+        if (str_contains($url, "\r") || str_contains($url, "\n")) {
+            return '';
+        }
+
+        if (filter_var($url, FILTER_VALIDATE_URL) === false) {
+            return '';
+        }
+
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return '';
+        }
+
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $host = strtolower((string) ($parts['host'] ?? ''));
+
+        if ($scheme !== 'https' || $host === '' || isset($parts['user']) || isset($parts['pass'])) {
+            return '';
+        }
+
+        $path = (string) ($parts['path'] ?? '');
+        $query = isset($parts['query']) ? '?' . $parts['query'] : '';
+
+        return $scheme . '://' . $host
+            . (isset($parts['port']) ? ':' . (int) $parts['port'] : '')
+            . $path
+            . $query;
+    }
+
+    private function isAllowedContentType(string $contentType, array $allowedMimePrefixes): bool
+    {
+        foreach ($allowedMimePrefixes as $allowedType) {
+            if ($allowedType !== '' && stripos($contentType, $allowedType) === 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function sanitizeMetadataText(string $value, int $maxLength): string
+    {
+        $value = trim(strip_tags($value));
+        $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+
+        return mb_substr($value, 0, $maxLength);
+    }
+
+    private function sanitizeLogMessage(string $message): string
+    {
+        $message = str_replace(["\r", "\n", "\0"], ' ', $message);
+        $message = preg_replace('/\s+/u', ' ', $message) ?? $message;
+
+        return mb_substr(trim($message), 0, 300);
+    }
+
+    private function maskUrlForLogs(string $url): string
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return '';
+        }
+
+        $host = (string) ($parts['host'] ?? '');
+        $path = (string) ($parts['path'] ?? '');
+        $maskedPath = $path !== '' ? '/' . ltrim(basename($path), '/') : '';
+
+        return (($parts['scheme'] ?? 'https')) . '://' . $host . $maskedPath;
     }
 }

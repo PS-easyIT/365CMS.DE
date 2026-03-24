@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.44-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.47-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,36 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.6.47 — 24. März 2026 · Audit-Batch 029, Mail-Service gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.47** | 🔴 fix | Core/Mail | **Mail-Service gegen Header-Injection und rohe Transportfehler gehärtet**: `CMS/core/Services/MailService.php` validiert Header, Adresslisten, Empfänger, Absender und Betreff restriktiver und blockiert kritische Header-Overrides wie `To`, `Subject` oder `Return-Path`. |
+| **2.6.47** | 🔴 security | Core/Mail | **TLS-Enforcement für SMTP verschärft**: nicht-lokale SMTP-Hosts sowie OAuth2-basierte Mailtransporte laufen nicht mehr still ohne Verschlüsselung, sondern werden im Service auf TLS gehoben. |
+| **2.6.47** | 🟡 refactor | Core/Mail | **Fehlerpfade bereinigt**: UI- und API-Rückgaben aus den Detailed-Send-Pfaden verwenden klassifizierte, generische Fehlermeldungen statt roher Provider- oder Exception-Texte; interne Fehlertexte werden gekürzt und bereinigt geloggt. |
+
+---
+
+### v2.6.46 — 24. März 2026 · Audit-Batch 028, Landing-Page-Modul gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.46** | 🔴 fix | Admin/Landing | **Landing-Page-Modul gegen freie POST-Payloads und rohe Fehlerausgaben gehärtet**: `CMS/admin/modules/landing/LandingPageModule.php` prüft Admin-Zugriff jetzt auch intern, normalisiert Tabs serverseitig und akzeptiert bei Header-, Content-, Footer-, Design-, Feature- und Plugin-Mutationen nur noch explizit erlaubte Felder. |
+| **2.6.46** | 🟠 perf | Admin/Landing | **Kleinere Mutations-Payloads**: unnötige oder fremde POST-Felder werden vor den Service-Aufrufen verworfen, wodurch die Landing-Verwaltung weniger lose Daten weiterreicht und deterministischer speichert. |
+| **2.6.46** | 🟡 refactor | Admin/Landing | **Fehlerpfade vereinheitlicht**: statt roher Exception-Meldungen an die Oberfläche werden Fehler intern kanalisiert geloggt und generisch an die UI zurückgegeben. |
+
+---
+
+### v2.6.45 — 24. März 2026 · Audit-Batch 027, Legal-Sites-Modul gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.45** | 🔴 fix | Admin/Legal | **Legal-Sites-Modul gegen lose Seitenzuordnungen und ungebremste Payloads gehärtet**: `CMS/admin/modules/legal/LegalSitesModule.php` prüft Admin-Zugriff jetzt auch intern, validiert zugewiesene Rechtstext-Seiten serverseitig gegen veröffentlichte Seiten und begrenzt HTML- sowie Profilwerte deutlich strenger. |
+| **2.6.45** | 🟠 perf | Admin/Legal | **Settings-Zugriffe gebündelt**: Inhalte, Seiten-IDs und Profilwerte werden bei Lese- und Speicherpfaden stärker gesammelt verarbeitet statt über viele Einzelabfragen. |
+| **2.6.45** | 🟡 refactor | Admin/Legal | **Persistenz- und Fehlerpfade vereinheitlicht**: generierte Rechtstexte, Profilwerte und Seitensynchronisierungen nutzen konsistente Settings-Writer; Audit-Logs führen keine rohen Exception-Texte mehr. |
 
 ---
 

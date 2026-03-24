@@ -21,6 +21,7 @@ use CMS\Logger;
 use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mailer\Transport\Smtp\Auth\XOAuth2Authenticator;
 use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
+use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
 
 if (!defined('ABSPATH')) {
@@ -29,6 +30,23 @@ if (!defined('ABSPATH')) {
 
 class MailService
 {
+    private const MAX_SUBJECT_LENGTH = 255;
+    private const MAX_BODY_LENGTH = 200000;
+    private const MAX_ERROR_LENGTH = 500;
+    private const BLOCKED_HEADER_NAMES = [
+        'to',
+        'subject',
+        'date',
+        'return-path',
+        'received',
+        'message-id',
+        'resent-to',
+        'resent-from',
+        'resent-sender',
+        'resent-cc',
+        'resent-bcc',
+    ];
+
     private static ?self $instance = null;
 
     private SettingsService $settings;
@@ -138,6 +156,7 @@ class MailService
     public function sendDetailed(string $to, string $subject, string $htmlBody, array $headers = []): array
     {
         try {
+            $htmlBody = $this->normalizeBody($htmlBody);
             $plainBody = $this->createPlainTextBody($htmlBody);
             $email = $this->createBaseEmail($to, $subject, $headers)
                 ->html($htmlBody)
@@ -150,12 +169,13 @@ class MailService
             $config = $this->getEffectiveConfig();
             $classification = $this->classifyDeliveryFailure($e->getMessage(), $config);
             $source = $this->resolveSource($headers);
+            $publicError = $this->buildPublicErrorMessage($classification, $config);
 
             $this->logFailure($to, $subject, 'mail_exception', $e->getMessage(), $headers, $source, $config);
 
             return [
                 'success' => false,
-                'error' => $e->getMessage(),
+                'error' => $publicError,
                 'transport' => (string) ($config['transport_label'] ?? 'Mailversand'),
                 'provider' => (string) ($config['provider'] ?? 'mail'),
                 'source' => $source,
@@ -172,6 +192,7 @@ class MailService
     public function sendPlainDetailed(string $to, string $subject, string $plainBody, array $headers = []): array
     {
         try {
+            $plainBody = $this->normalizeBody($plainBody);
             $email = $this->createBaseEmail($to, $subject, $headers)
                 ->text($plainBody);
 
@@ -182,12 +203,13 @@ class MailService
             $config = $this->getEffectiveConfig();
             $classification = $this->classifyDeliveryFailure($e->getMessage(), $config);
             $source = $this->resolveSource($headers);
+            $publicError = $this->buildPublicErrorMessage($classification, $config);
 
             $this->logFailure($to, $subject, 'mail_exception', $e->getMessage(), $headers, $source, $config);
 
             return [
                 'success' => false,
-                'error' => $e->getMessage(),
+                'error' => $publicError,
                 'transport' => (string) ($config['transport_label'] ?? 'Mailversand'),
                 'provider' => (string) ($config['provider'] ?? 'mail'),
                 'source' => $source,
@@ -214,7 +236,7 @@ class MailService
         if (!file_exists($attachmentPath) || !is_readable($attachmentPath)) {
             return [
                 'success' => false,
-                'error' => 'Anhang nicht lesbar: ' . $attachmentPath,
+                'error' => 'Anhang ist nicht lesbar.',
                 'retryable' => false,
                 'error_category' => 'configuration',
                 'recommended_delay' => 0,
@@ -222,6 +244,7 @@ class MailService
         }
 
         try {
+            $body = $this->normalizeBody($body);
             $attachmentName = $attachmentName !== '' ? $attachmentName : basename($attachmentPath);
             $mimeType = $attachmentMimeType !== '' ? $attachmentMimeType : (mime_content_type($attachmentPath) ?: 'application/octet-stream');
             $email = $this->createBaseEmail($to, $subject, $headers)
@@ -242,12 +265,13 @@ class MailService
             $config = $this->getEffectiveConfig();
             $classification = $this->classifyDeliveryFailure($e->getMessage(), $config);
             $source = $this->resolveSource($headers);
+            $publicError = $this->buildPublicErrorMessage($classification, $config);
 
             $this->logFailure($to, $subject, 'mail_exception', $e->getMessage(), $headers, $source, $config);
 
             return [
                 'success' => false,
-                'error' => $e->getMessage(),
+                'error' => $publicError,
                 'transport' => (string) ($config['transport_label'] ?? 'Mailversand'),
                 'provider' => (string) ($config['provider'] ?? 'mail'),
                 'source' => $source,
@@ -318,12 +342,16 @@ class MailService
     private function createBaseEmail(string $to, string $subject, array $headers = []): Email
     {
         $config = $this->getEffectiveConfig();
+        $recipient = $this->sanitizeRequiredEmail($to, 'Empfänger-Adresse ist ungültig.');
+        $normalizedSubject = $this->sanitizeSubject($subject);
+        $fromEmail = $this->sanitizeSenderEmail((string) $config['from_email']);
+        $fromName = $this->sanitizeDisplayName((string) $config['from_name']);
 
         $email = (new Email())
-            ->from($this->formatAddress((string) $config['from_email'], (string) $config['from_name']))
-            ->replyTo((string) $config['from_email'])
-            ->to($to)
-            ->subject($subject)
+            ->from($this->formatAddress($fromEmail, $fromName))
+            ->replyTo($fromEmail)
+            ->to($recipient)
+            ->subject($normalizedSubject)
             ->date(new \DateTimeImmutable());
 
         $email->getHeaders()->addTextHeader('X-Mailer', '365CMS/' . (defined('CMS_VERSION') ? CMS_VERSION : '2.0'));
@@ -382,11 +410,16 @@ class MailService
             }
 
             $error = (string) ($result['error'] ?? 'Unbekannter SMTP-Fehler');
+            $classification = [
+                'retryable' => !empty($result['retryable']),
+                'category' => (string) ($result['error_category'] ?? 'temporary'),
+                'recommended_delay' => (int) ($result['recommended_delay'] ?? 300),
+            ];
             $this->logFailure($to, $subject, (string) ($config['provider'] ?? 'smtp'), $error, $headers, $source, $config);
 
             return [
                 'success' => false,
-                'error' => $error,
+                'error' => $this->buildPublicErrorMessage($classification, $config),
                 'transport' => (string) ($config['transport_label'] ?? 'SMTP'),
                 'provider' => (string) ($config['provider'] ?? 'smtp'),
                 'source' => $source,
@@ -477,9 +510,7 @@ class MailService
             $encryption === 'ssl'
         );
 
-        if ($encryption === '') {
-            $transport->setAutoTls(false);
-        } elseif ($encryption === 'tls') {
+        if ($encryption === 'tls') {
             $transport->setRequireTls(true);
         } else {
             $transport->setAutoTls(false);
@@ -535,6 +566,10 @@ class MailService
                 case 'x-mailer':
                     break;
                 default:
+                    if ($this->isBlockedHeaderName($headerName)) {
+                        break;
+                    }
+
                     $email->getHeaders()->addTextHeader($name, $value);
             }
         }
@@ -554,7 +589,13 @@ class MailService
                 }
 
                 [$headerName, $headerValue] = explode(':', $value, 2);
-                $normalized[trim($headerName)] = trim($headerValue);
+                $safeHeaderName = $this->sanitizeHeaderName($headerName);
+                $safeHeaderValue = $this->sanitizeHeaderValue($headerValue);
+                if ($safeHeaderName === '' || $safeHeaderValue === '') {
+                    continue;
+                }
+
+                $normalized[$safeHeaderName] = $safeHeaderValue;
                 continue;
             }
 
@@ -562,7 +603,13 @@ class MailService
                 continue;
             }
 
-            $normalized[(string) $key] = trim((string) $value);
+            $safeHeaderName = $this->sanitizeHeaderName((string) $key);
+            $safeHeaderValue = $this->sanitizeHeaderValue((string) $value);
+            if ($safeHeaderName === '' || $safeHeaderValue === '') {
+                continue;
+            }
+
+            $normalized[$safeHeaderName] = $safeHeaderValue;
         }
 
         return $normalized;
@@ -574,7 +621,22 @@ class MailService
     private function parseAddressList(string $value): array
     {
         $addresses = array_map('trim', explode(',', $value));
-        return array_values(array_filter($addresses, static fn (string $address): bool => $address !== ''));
+        $normalized = [];
+
+        foreach ($addresses as $address) {
+            if ($address === '') {
+                continue;
+            }
+
+            $safeAddress = $this->sanitizeAddressHeader($address);
+            if ($safeAddress === '') {
+                continue;
+            }
+
+            $normalized[] = $safeAddress;
+        }
+
+        return $normalized;
     }
 
     private function sendMessageFallback(string $to, string $subject, string $body, array $headers, bool $isHtml): bool
@@ -676,8 +738,8 @@ class MailService
      */
     private function buildHeaders(array $extra = [], string $fromEmail = '', string $fromName = ''): string
     {
-        $email = $fromEmail !== '' ? $fromEmail : (defined('SMTP_FROM_EMAIL') ? (string) SMTP_FROM_EMAIL : (defined('ADMIN_EMAIL') ? (string) ADMIN_EMAIL : 'noreply@localhost'));
-        $name = $fromName !== '' ? $fromName : (defined('SMTP_FROM_NAME') ? (string) SMTP_FROM_NAME : (defined('SITE_NAME') ? (string) SITE_NAME : 'CMS'));
+        $email = $this->sanitizeSenderEmail($fromEmail !== '' ? $fromEmail : (defined('SMTP_FROM_EMAIL') ? (string) SMTP_FROM_EMAIL : (defined('ADMIN_EMAIL') ? (string) ADMIN_EMAIL : 'noreply@localhost')));
+        $name = $this->sanitizeDisplayName($fromName !== '' ? $fromName : (defined('SMTP_FROM_NAME') ? (string) SMTP_FROM_NAME : (defined('SITE_NAME') ? (string) SITE_NAME : 'CMS')));
 
         $headers = [
             'From' => $this->formatAddress($email, $name),
@@ -686,7 +748,12 @@ class MailService
             'X-Mailer' => '365CMS/' . (defined('CMS_VERSION') ? CMS_VERSION : '2.0'),
         ];
 
-        foreach ($extra as $key => $value) {
+        foreach ($this->normalizeHeaders($extra) as $key => $value) {
+            $headerName = strtolower($key);
+            if ($this->isBlockedHeaderName($headerName)) {
+                continue;
+            }
+
             $headers[$key] = $value;
         }
 
@@ -704,7 +771,7 @@ class MailService
             return $email;
         }
 
-        $safeName = str_replace(['"', '\\'], '', $name);
+        $safeName = $this->sanitizeDisplayName($name);
         return '"' . $safeName . '" <' . $email . '>';
     }
 
@@ -750,12 +817,13 @@ class MailService
     {
         $transport = $config['driver'] ?? 'mail';
         $providerName = $config['provider'] ?? $provider;
+        $safeError = $this->sanitizeErrorMessage($error);
 
         $this->logger->error('Mail-Versand fehlgeschlagen', [
             'recipient' => $recipient,
             'subject' => $subject,
             'provider' => $providerName,
-            'error_text' => $error,
+            'error_text' => $safeError,
         ]);
 
         $this->mailLogs->log(
@@ -765,7 +833,7 @@ class MailService
             (string) $transport,
             (string) $providerName,
             null,
-            $error,
+            $safeError,
             [
                 'auth_mode' => $config['auth_mode'] ?? 'password',
                 'host' => $config['smtp_host'] ?? '',
@@ -779,7 +847,9 @@ class MailService
     private function resolveSource(array $headers): string
     {
         $normalized = $this->normalizeHeaders($headers);
-        return trim((string) ($normalized['X-365CMS-Test-Source'] ?? 'system'));
+        $source = trim((string) ($normalized['X-365CMS-Test-Source'] ?? 'system'));
+
+        return mb_substr($source !== '' ? $source : 'system', 0, 80);
     }
 
     private function extractMessageId(?SentMessage $sentMessage): ?string
@@ -877,34 +947,35 @@ class MailService
         $authMode = $this->settings->getString('mail', 'auth_mode', 'password');
         $authMode = $authMode === 'oauth2' ? 'oauth2' : 'password';
 
-        $smtpHost = $this->settings->getString(
+        $smtpHost = $this->normalizeSmtpHost($this->settings->getString(
             'mail',
             'smtp_host',
             $authMode === 'oauth2'
                 ? 'smtp.office365.com'
                 : (defined('SMTP_HOST') ? (string) SMTP_HOST : '')
-        );
+        ));
         if ($authMode === 'oauth2' && $smtpHost === '') {
             $smtpHost = 'smtp.office365.com';
         }
 
         $smtpPort = $this->settings->getInt('mail', 'smtp_port', defined('SMTP_PORT') ? (int) SMTP_PORT : 587);
-        $smtpEncryption = $this->settings->getString('mail', 'smtp_encryption', defined('SMTP_ENCRYPTION') ? (string) SMTP_ENCRYPTION : 'tls');
-        if (!in_array($smtpEncryption, ['tls', 'ssl', ''], true)) {
-            $smtpEncryption = 'tls';
-        }
+        $smtpEncryption = $this->normalizeEncryptionSetting($this->settings->getString('mail', 'smtp_encryption', defined('SMTP_ENCRYPTION') ? (string) SMTP_ENCRYPTION : 'tls'));
 
         $oauthMailbox = $this->settings->getString('mail', 'azure_mailbox');
-        $smtpUsername = $this->settings->getString('mail', 'smtp_username', defined('SMTP_USER') ? (string) SMTP_USER : '');
+        $smtpUsername = $this->sanitizeHeaderValue($this->settings->getString('mail', 'smtp_username', defined('SMTP_USER') ? (string) SMTP_USER : ''));
         if ($authMode === 'oauth2' && $oauthMailbox !== '') {
-            $smtpUsername = $oauthMailbox;
+            $smtpUsername = $this->sanitizeRequiredEmail($oauthMailbox, 'Azure-Mailbox ist ungültig.');
         }
 
         $smtpPassword = $this->settings->getString('mail', 'smtp_password', defined('SMTP_PASS') ? (string) SMTP_PASS : '');
-        $fromEmail = $this->settings->getString('mail', 'from_email', defined('SMTP_FROM_EMAIL') ? (string) SMTP_FROM_EMAIL : (defined('ADMIN_EMAIL') ? (string) ADMIN_EMAIL : 'noreply@localhost'));
-        $fromName = $this->settings->getString('mail', 'from_name', defined('SMTP_FROM_NAME') ? (string) SMTP_FROM_NAME : (defined('SITE_NAME') ? (string) SITE_NAME : 'CMS'));
+        $fromEmail = $this->sanitizeSenderEmail($this->settings->getString('mail', 'from_email', defined('SMTP_FROM_EMAIL') ? (string) SMTP_FROM_EMAIL : (defined('ADMIN_EMAIL') ? (string) ADMIN_EMAIL : 'noreply@localhost')));
+        $fromName = $this->sanitizeDisplayName($this->settings->getString('mail', 'from_name', defined('SMTP_FROM_NAME') ? (string) SMTP_FROM_NAME : (defined('SITE_NAME') ? (string) SITE_NAME : 'CMS')));
 
         $useSmtp = $driver === 'smtp' && $smtpHost !== '';
+        if ($useSmtp && $this->requiresTls($smtpHost, $authMode) && $smtpEncryption === '') {
+            $smtpEncryption = 'tls';
+        }
+
         $provider = $useSmtp
             ? ($authMode === 'oauth2' ? 'smtp-oauth2' : 'smtp-basic')
             : 'mail';
@@ -928,5 +999,147 @@ class MailService
             'from_email' => $fromEmail,
             'from_name' => $fromName,
         ];
+    }
+
+    private function normalizeBody(string $body): string
+    {
+        return mb_substr((string) $body, 0, self::MAX_BODY_LENGTH);
+    }
+
+    private function sanitizeRequiredEmail(string $email, string $errorMessage): string
+    {
+        $email = trim($this->sanitizeHeaderValue($email));
+        $validated = filter_var($email, FILTER_VALIDATE_EMAIL);
+
+        if ($validated === false) {
+            throw new \InvalidArgumentException($errorMessage);
+        }
+
+        return (string) $validated;
+    }
+
+    private function sanitizeSenderEmail(string $email): string
+    {
+        $fallback = defined('ADMIN_EMAIL') && filter_var((string) ADMIN_EMAIL, FILTER_VALIDATE_EMAIL)
+            ? (string) ADMIN_EMAIL
+            : 'noreply@localhost';
+
+        $email = trim($this->sanitizeHeaderValue($email));
+        $validated = filter_var($email, FILTER_VALIDATE_EMAIL);
+
+        return $validated !== false ? (string) $validated : $fallback;
+    }
+
+    private function sanitizeSubject(string $subject): string
+    {
+        $subject = trim($this->sanitizeHeaderValue($subject));
+        $subject = preg_replace('/\s+/u', ' ', $subject) ?? $subject;
+        $subject = mb_substr($subject, 0, self::MAX_SUBJECT_LENGTH);
+
+        if ($subject === '') {
+            throw new \InvalidArgumentException('Betreff fehlt.');
+        }
+
+        return $subject;
+    }
+
+    private function sanitizeDisplayName(string $name): string
+    {
+        $name = trim($this->sanitizeHeaderValue($name));
+        $name = str_replace(['"', '\\'], '', $name);
+
+        return mb_substr($name, 0, 120);
+    }
+
+    private function sanitizeHeaderName(string $name): string
+    {
+        $name = trim($name);
+        if ($name === '' || preg_match('/^[A-Za-z0-9-]+$/', $name) !== 1) {
+            return '';
+        }
+
+        return $name;
+    }
+
+    private function sanitizeHeaderValue(string $value): string
+    {
+        $value = str_replace(["\r", "\n", "\0"], ' ', $value);
+        $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/u', '', $value) ?? $value;
+        $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+
+        return trim($value);
+    }
+
+    private function sanitizeAddressHeader(string $value): string
+    {
+        try {
+            return Address::create($this->sanitizeHeaderValue($value))->toString();
+        } catch (\Throwable) {
+            return '';
+        }
+    }
+
+    private function isBlockedHeaderName(string $headerName): bool
+    {
+        return in_array(strtolower($headerName), self::BLOCKED_HEADER_NAMES, true);
+    }
+
+    private function sanitizeErrorMessage(string $error): string
+    {
+        return mb_substr($this->sanitizeHeaderValue($error), 0, self::MAX_ERROR_LENGTH);
+    }
+
+    /**
+     * @param array<string, mixed> $classification
+     * @param array<string, mixed> $config
+     */
+    private function buildPublicErrorMessage(array $classification, array $config): string
+    {
+        $transport = (string) ($config['transport_label'] ?? 'Mailversand');
+
+        return match ((string) ($classification['category'] ?? 'temporary')) {
+            'recipient' => 'Die Empfänger-Adresse wurde vom Mail-Transport abgelehnt.',
+            'configuration' => 'Der Mail-Transport ist aktuell nicht korrekt konfiguriert.',
+            'oauth' => 'Die Mail-Authentifizierung ist abgelaufen oder aktuell nicht verfügbar.',
+            'throttle' => 'Der Mail-Transport drosselt aktuell Anfragen. Bitte später erneut versuchen.',
+            'network' => 'Der Mail-Transport ist derzeit nicht erreichbar (' . $transport . ').',
+            default => 'Die E-Mail konnte über ' . $transport . ' derzeit nicht versendet werden.',
+        };
+    }
+
+    private function normalizeSmtpHost(string $host): string
+    {
+        $host = trim($this->sanitizeHeaderValue($host));
+        $host = trim($host, '.');
+
+        return mb_substr($host, 0, 255);
+    }
+
+    private function normalizeEncryptionSetting(string $encryption): string
+    {
+        $encryption = strtolower(trim($this->sanitizeHeaderValue($encryption)));
+
+        return in_array($encryption, ['tls', 'ssl', ''], true) ? $encryption : 'tls';
+    }
+
+    private function requiresTls(string $host, string $authMode): bool
+    {
+        if ($host === '') {
+            return false;
+        }
+
+        if ($authMode === 'oauth2') {
+            return true;
+        }
+
+        return !$this->isLocalSmtpHost($host);
+    }
+
+    private function isLocalSmtpHost(string $host): bool
+    {
+        $host = strtolower(trim($host));
+
+        return in_array($host, ['localhost', '127.0.0.1', '::1', 'mailhog', 'smtp'], true)
+            || str_ends_with($host, '.local');
     }
 }

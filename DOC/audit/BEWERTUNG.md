@@ -193,6 +193,24 @@ ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu ausz
 |---|---|---|---|
 | `CMS/admin/modules/system/DocumentationModule.php` | umgesetzt | Modulzugriff, Repo-/DOC-Layout-Checks und Fehlerpfade restriktiver gemacht. | Der Doku-Orchestrator validiert Dokumentauswahl und lokale Pfade früher, kapselt Render-/Sync-Fehler generisch und verlässt sich weniger auf lose Annahmen aus Entry oder Unterservices. |
 
+### Delta Batch 027
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/legal/LegalSitesModule.php` | umgesetzt | Modulzugriff, Seitenzuordnung, Settings-Reads und Eingaben restriktiver gemacht. | Das Legal-Sites-Modul validiert zugeordnete Seiten serverseitig, bündelt Settings-Zugriffe, begrenzt Profil-/HTML-Payloads und hält Fehlerpfade für UI und Audit-Log deutlich kontrollierter. |
+
+### Delta Batch 028
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/landing/LandingPageModule.php` | umgesetzt | Interne Guards, Whitelisting und generische Fehlerpfade für Admin-Mutationen nachgezogen. | Das Landing-Page-Modul normalisiert Tabs und Payloads serverseitig, lässt nur erlaubte Felder zu und gibt bei Fehlern keine rohen Exceptions mehr in die Admin-Oberfläche weiter. |
+
+### Delta Batch 029
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/MailService.php` | umgesetzt | Header-Injection-Schutz, TLS-Härtung und UI-taugliche Fehlerpfade nachgezogen. | Der zentrale Mail-Service validiert Header, Adressen und Betreff restriktiver, erzwingt TLS für nicht-lokale SMTP-/OAuth2-Transporte und leakt keine rohen Provider-Fehler mehr an Admin-Oberflächen oder API-Aufrufer. |
+
 ## Grundlage
 
 Diese Datei bewertet den aktuellen CMS-Codebestand **dateiweise** nach:
@@ -319,10 +337,10 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/modules/hub/HubSitesModule.php` | Hub-Sites-Logik | DB, Settings, Hub-Views | 83 | 71 | 85 | 80 |
 | `CMS/admin/modules/hub/HubTemplateProfileCatalog.php` | Hub-Profilkatalog | Profile, Defaults, Hub-Editor | 84 | 88 | 84 | 85 |
 | `CMS/admin/modules/hub/HubTemplateProfileManager.php` | Hub-Profilmanager | DB, JSON, Hub-Templates | 84 | 74 | 87 | 82 |
-| `CMS/admin/modules/landing/LandingPageModule.php` | Landing-Builder-Logik | DB/Settings, Landing-View | 80 | 74 | 84 | 79 |
+| `CMS/admin/modules/landing/LandingPageModule.php` | Landing-Builder-Logik | DB/Settings, Landing-View | 88 | 76 | 86 | 83 |
 | `CMS/admin/modules/legal/CookieManagerModule.php` | Cookie-Manager-Logik | DB, Settings, Code-Snippets | 84 | 74 | 86 | 82 |
 | `CMS/admin/modules/legal/DeletionRequestsModule.php` | Löschanfragen-Logik | DB, DSGVO-Hooks | 80 | 76 | 84 | 80 |
-| `CMS/admin/modules/legal/LegalSitesModule.php` | Rechtstexte-Logik | DB, Templates, Escaping | 74 | 62 | 83 | 73 |
+| `CMS/admin/modules/legal/LegalSitesModule.php` | Rechtstexte-Logik | DB, Templates, Escaping | 86 | 74 | 85 | 82 |
 | `CMS/admin/modules/legal/PrivacyRequestsModule.php` | Privacy-Request-Logik | DB, DSGVO-Prozess | 80 | 76 | 84 | 80 |
 | `CMS/admin/modules/media/MediaModule.php` | Medienlogik | `MediaService`, Upload, FS | 76 | 70 | 84 | 77 |
 | `CMS/admin/modules/member/MemberDashboardModule.php` | Member-Dashboard-Logik | DB, Settings, Widgets | 74 | 60 | 83 | 73 |
@@ -549,7 +567,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `core/Services/LandingPageService.php` | Oberer Service für Landing-Page-Renderlogik und Daten. | Landing-Subservices, ThemeManager, Hooks | 79 | 80 | 84 | 81 |
 | `core/Services/MailLogService.php` | Protokolliert Mail-Versand und Zustellstatus. | MailService, Database, Logger | 78 | 80 | 82 | 80 |
 | `core/Services/MailQueueService.php` | Verwaltet Warteschlange für asynchronen Mailversand. | MailService, Database, Cron/Queue-Logik | 76 | 78 | 82 | 79 |
-| `core/Services/MailService.php` | Zentraler Versandservice für E-Mails. | Konfiguration, Queue/Log, externe Mailer | 70 | 73 | 82 | 75 |
+| `core/Services/MailService.php` | Zentraler Versandservice für E-Mails. | Konfiguration, Queue/Log, externe Mailer | 88 | 74 | 86 | 83 |
 | `core/Services/Media/ImageProcessor.php` | Führt Bildtransformationen und Ableitungen aus. | GD/Imagick, Dateisystem, ImageService | 74 | 70 | 82 | 75 |
 | `core/Services/Media/MediaRepository.php` | Persistiert Metadaten von Medienobjekten. | Database, MediaService, Uploads | 78 | 80 | 84 | 81 |
 | `core/Services/Media/UploadHandler.php` | Operativer Handler für Datei- und Medienuploads. | FileUploadService, Security, Dateisystem | 69 | 72 | 80 | 74 |
@@ -700,7 +718,7 @@ Verwendete Referenzbasis für die Einordnung:
 | Kategorie | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt | Schwächste Dateien | Stärkste Dateien | Audit-Fokus |
 |---|---:|---:|---:|---:|---:|---|---|---|
 | **Admin – Entry-Points** | 81 | 83,4 | 84,1 | 84,8 | 83,9 | `theme-editor.php`, `theme-marketplace.php` | `diagnose.php`, `index.php`, `info.php`, `support.php`, `system-*.php` | Remote-Zugriffe in Marketplace-/Theme-Entrypoints härten |
-| **Admin – Module** | 55 | 80,3 | 73,9 | 84,2 | 79,6 | `LegalSitesModule.php`, `MemberDashboardModule.php` | `PostsCategoryViewModelBuilder.php`, `SystemInfoModule.php` | Performance- und Qualitäts-Gates für große Module priorisieren |
+| **Admin – Module** | 55 | 80,6 | 74,1 | 84,2 | 79,9 | `DocumentationGitSync.php`, `DocumentationGithubZipSync.php`, `DocumentationSyncDownloader.php` | `PostsCategoryViewModelBuilder.php`, `SystemInfoModule.php` | Performance- und Qualitäts-Gates für große Module priorisieren |
 | **Admin – Layout-Partials** | 4 | 87,5 | 91,0 | 84,3 | 87,5 | `sidebar.php` | `section-page-shell.php` | Bereits stark; nur Regressionen verhindern |
 | **Admin – Views** | 89 | 84,4 | 83,9 | 83,7 | 83,4 | `posts/edit.php`, `pages/edit.php`, `landing/page.php` | `member/subnav.php`, `performance/subnav.php`, `seo/subnav.php` | Editor-Komplexität und Formularpfade weiter entkoppeln |
 | **Admin – View-Partials** | 8 | 89,5 | 94,4 | 84,9 | 89,6 | `featured-image-picker.php` | `content-advanced-seo-panel.php`, `content-preview-card.php`, `content-readability-card.php`, `content-seo-score-panel.php` | Sehr guter Standard – als Referenzmuster konservieren |
@@ -708,7 +726,7 @@ Verwendete Referenzbasis für die Einordnung:
 | **Core – Contracts** | 3 | 94,0 | 95,0 | 92,0 | 94,0 | – | alle Contracts | Referenzniveau halten, keine unnötige Aufblähung |
 | **Core – Auth Provider & MFA** | 5 | 69,6 | 79,0 | 83,2 | 77,4 | `LdapAuthProvider.php`, `WebAuthnAdapter.php` | `TotpAdapter.php`, `AuthManager.php` | LDAP-, Passkey- und MFA-Randfälle gezielt testen |
 | **Core – Routing** | 6 | 76,3 | 79,8 | 82,7 | 79,7 | `ApiRouter.php` | `ThemeArchiveRepository.php` | API-/Routing-Validierung und Request-Härtung vertiefen |
-| **Core – Allgemeine Services** | 42 | 79,9 | 77,8 | 82,9 | 79,0 | `FeedService.php`, `MailService.php`, `EditorJsRemoteMediaService.php` | `PurifierService.php`, `PermalinkService.php`, `StatusService.php` | Externe APIs, Remote-URLs und Fehlerpfade robuster machen |
+| **Core – Allgemeine Services** | 42 | 80,3 | 77,8 | 83,0 | 79,2 | `EditorJsRemoteMediaService.php`, `RemoteImageService.php`, `RemoteFileService.php` | `PurifierService.php`, `PermalinkService.php`, `StatusService.php` | Externe APIs, Remote-URLs und Fehlerpfade robuster machen |
 | **Core – EditorJs Services** | 9 | 79,0 | 79,9 | 83,2 | 80,8 | `EditorJsRemoteMediaService.php`, `EditorJsUploadService.php` | `EditorJsSanitizer.php`, `EditorJsRequestGuard.php` | Remote-Media und Upload-Härtung priorisieren |
 | **Core – Landing Services** | 9 | 81,8 | 82,6 | 84,0 | 82,7 | `LandingPluginService.php` | `LandingSanitizer.php` | Sanitizer-Qualität halten, Plugin-Integration schärfer absichern |
 | **Core – Media Services** | 3 | 73,7 | 74,0 | 82,0 | 76,7 | `UploadHandler.php` | `MediaRepository.php` | Upload-Pfade, Dateitypen und Filesystem-Grenzen prüfen |

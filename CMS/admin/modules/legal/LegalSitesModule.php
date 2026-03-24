@@ -10,12 +10,20 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\AuditLogger;
+use CMS\Auth;
+use CMS\Logger;
 
 class LegalSitesModule
 {
+    private const MAX_LEGAL_HTML_LENGTH = 60000;
+    private const MAX_PROFILE_VALUE_LENGTH = 500;
+    private const MAX_PROFILE_TEXTAREA_LENGTH = 4000;
+    private const MAX_ERROR_CONTEXT_LENGTH = 180;
+
     private readonly \CMS\Database $db;
     private readonly \CMS\PageManager $pageManager;
     private readonly string $prefix;
+    private readonly Logger $logger;
 
     /** @var list<string> */
     private const array LEGAL_KEYS = [
@@ -121,30 +129,44 @@ class LegalSitesModule
         $this->db     = \CMS\Database::instance();
         $this->pageManager = \CMS\PageManager::instance();
         $this->prefix = $this->db->getPrefix();
+        $this->logger = Logger::instance()->withChannel('admin.legal-sites');
     }
 
     public function getData(): array
     {
+        if (!$this->canAccess()) {
+            return [
+                'pages' => [],
+                'assigned_pages' => [],
+                'all_pages' => [],
+                'profile' => array_merge(self::PROFILE_DEFAULTS, [
+                    'legal_profile_company_name' => '',
+                    'legal_profile_email' => '',
+                    'legal_profile_website' => '',
+                ]),
+                'page_configs' => self::PAGE_CONFIG,
+                'error' => 'Zugriff verweigert.',
+            ];
+        }
+
+        $settings = $this->loadSettingsMap(array_merge(self::LEGAL_KEYS, $this->getAssignmentKeys(), array_keys(self::PROFILE_DEFAULTS), [
+            'site_name',
+            'admin_email',
+            'site_url',
+        ]));
+
         $pages = [];
         foreach (self::LEGAL_KEYS as $key) {
-            $row = $this->db->get_row(
-                "SELECT option_value FROM {$this->prefix}settings WHERE option_name = ?",
-                [$key]
-            );
             $pages[$key] = [
                 'label'   => self::LABELS[$key],
-                'content' => $row->option_value ?? '',
+                'content' => (string) ($settings[$key] ?? ''),
             ];
         }
 
         // Zugewiesene Seiten-IDs
         $assignedPages = [];
-        foreach (['imprint_page_id', 'privacy_page_id', 'terms_page_id', 'revocation_page_id'] as $k) {
-            $row = $this->db->get_row(
-                "SELECT option_value FROM {$this->prefix}settings WHERE option_name = ?",
-                [$k]
-            );
-            $assignedPages[$k] = $row->option_value ?? '';
+        foreach ($this->getAssignmentKeys() as $k) {
+            $assignedPages[$k] = (string) ($settings[$k] ?? '');
         }
 
         // Alle veröffentlichten Seiten für Zuordnung
@@ -156,42 +178,43 @@ class LegalSitesModule
             'pages'          => $pages,
             'assigned_pages' => $assignedPages,
             'all_pages'      => array_map(fn($p) => (array)$p, $allPages),
-            'profile'        => $this->loadProfile(),
+            'profile'        => $this->loadProfile($settings),
             'page_configs'   => self::PAGE_CONFIG,
         ];
     }
 
     public function save(array $post): array
     {
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Sie dürfen rechtliche Seiten nicht bearbeiten.'];
+        }
+
         try {
+            $existingSettings = $this->loadSettingsMap(array_merge(self::LEGAL_KEYS, $this->getAssignmentKeys()));
+            $publishedPageIds = $this->getPublishedPageIds();
+
             // Rechtliche Inhalte speichern
             foreach (self::LEGAL_KEYS as $key) {
                 if (!array_key_exists($key, $post)) {
                     continue;
                 }
 
-                $value = strip_tags($post[$key] ?? '', '<p><a><strong><em><ul><ol><li><br><h2><h3><h4>');
-                $exists = $this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?", [$key]);
-                if ($exists) {
-                    $this->db->update('settings', ['option_value' => $value], ['option_name' => $key]);
-                } else {
-                    $this->db->insert('settings', ['option_name' => $key, 'option_value' => $value]);
-                }
+                $value = $this->sanitizeLegalContent($post[$key] ?? '');
+                $this->persistSetting($key, $value, $existingSettings);
             }
 
             // Seiten-Zuordnungen speichern
-            foreach (['imprint_page_id', 'privacy_page_id', 'terms_page_id', 'revocation_page_id'] as $k) {
+            foreach ($this->getAssignmentKeys() as $k) {
                 if (!array_key_exists($k, $post)) {
                     continue;
                 }
 
-                $value = (string)(int)($post[$k] ?? 0);
-                $exists = $this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?", [$k]);
-                if ($exists) {
-                    $this->db->update('settings', ['option_value' => $value], ['option_name' => $k]);
-                } else {
-                    $this->db->insert('settings', ['option_name' => $k, 'option_value' => $value]);
+                $pageId = (int)($post[$k] ?? 0);
+                if ($pageId > 0 && !isset($publishedPageIds[$pageId])) {
+                    return ['success' => false, 'error' => 'Eine ausgewählte Seite ist ungültig oder nicht veröffentlicht.'];
                 }
+
+                $this->persistSetting($k, (string)$pageId, $existingSettings);
             }
 
             $this->syncRelatedSettingsFromAssignments($post);
@@ -214,8 +237,13 @@ class LegalSitesModule
 
     public function saveProfile(array $post): array
     {
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Sie dürfen Standardwerte für Rechtstexte nicht bearbeiten.'];
+        }
+
         try {
             $sanitized = [];
+            $existingSettings = $this->loadSettingsMap(array_keys(self::PROFILE_DEFAULTS));
 
             foreach (array_keys(self::PROFILE_DEFAULTS) as $key) {
                 $sanitized[$key] = $this->sanitizeProfileValue($key, $post[$key] ?? self::PROFILE_DEFAULTS[$key]);
@@ -231,7 +259,7 @@ class LegalSitesModule
             }
 
             foreach ($sanitized as $key => $value) {
-                $this->saveSetting($key, $value);
+                $this->persistSetting($key, $value, $existingSettings);
             }
 
             AuditLogger::instance()->log(
@@ -262,6 +290,10 @@ class LegalSitesModule
 
     public function generateTemplate(string $type): array
     {
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Sie dürfen Rechtstext-Vorlagen nicht generieren.'];
+        }
+
         $templates = $this->getTemplates($this->loadProfile());
 
         if (!isset($templates[$type])) {
@@ -286,9 +318,17 @@ class LegalSitesModule
 
     public function createOrUpdatePage(string $type, int $userId): array
     {
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Sie dürfen Rechtstext-Seiten nicht erzeugen.'];
+        }
+
         $config = self::PAGE_CONFIG[$type] ?? null;
         if ($config === null) {
             return ['success' => false, 'error' => 'Unbekannter Seitentyp.'];
+        }
+
+        if ($userId <= 0) {
+            return ['success' => false, 'error' => 'Ungültiger Benutzerkontext für die Seitenerstellung.'];
         }
 
         try {
@@ -364,6 +404,10 @@ class LegalSitesModule
 
     public function createOrUpdateAllPages(int $userId): array
     {
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Sie dürfen Rechtstext-Seiten nicht erzeugen.'];
+        }
+
         $created = [];
         foreach (array_keys(self::PAGE_CONFIG) as $type) {
             $result = $this->createOrUpdatePage($type, $userId);
@@ -392,16 +436,10 @@ class LegalSitesModule
     }
 
     /** @return array<string, string> */
-    private function loadProfile(): array
+    private function loadProfile(array $settings = []): array
     {
-        $settings = [];
-        $keys = array_keys(self::PROFILE_DEFAULTS);
-        $rows = $this->db->get_results(
-            "SELECT option_name, option_value FROM {$this->prefix}settings WHERE option_name IN ('" . implode("','", $keys) . "')"
-        ) ?: [];
-
-        foreach ($rows as $row) {
-            $settings[$row->option_name] = (string)$row->option_value;
+        if ($settings === []) {
+            $settings = $this->loadSettingsMap(array_merge(array_keys(self::PROFILE_DEFAULTS), ['site_name', 'admin_email', 'site_url']));
         }
 
         $defaults = [
@@ -409,6 +447,16 @@ class LegalSitesModule
             'legal_profile_email'        => (string)$this->getSetting('admin_email', ''),
             'legal_profile_website'      => (string)$this->getSetting('site_url', defined('SITE_URL') ? (string)SITE_URL : ''),
         ];
+
+        if (isset($settings['site_name'])) {
+            $defaults['legal_profile_company_name'] = (string)$settings['site_name'];
+        }
+        if (isset($settings['admin_email'])) {
+            $defaults['legal_profile_email'] = (string)$settings['admin_email'];
+        }
+        if (isset($settings['site_url'])) {
+            $defaults['legal_profile_website'] = (string)$settings['site_url'];
+        }
 
         return array_merge(self::PROFILE_DEFAULTS, $defaults, $settings);
     }
@@ -461,6 +509,11 @@ class LegalSitesModule
             return filter_var((string)$value, FILTER_VALIDATE_EMAIL) ?: '';
         }
 
+        if ($key === 'legal_profile_phone') {
+            $phone = preg_replace('/[^0-9+()\-\/.\s]/', '', (string)$value) ?? '';
+            return trim($phone);
+        }
+
         if ($key === 'legal_profile_website') {
             $website = trim((string)$value);
             if ($website === '') {
@@ -473,7 +526,16 @@ class LegalSitesModule
             return $validated !== false ? (string)$validated : '';
         }
 
-        return trim(strip_tags((string)$value));
+        $normalizedValue = trim(strip_tags((string)$value));
+        $maxLength = in_array($key, [
+            'legal_profile_external_media_providers',
+            'legal_profile_payment_providers',
+            'legal_profile_hosting_address',
+            'legal_profile_essential_cookie_purpose',
+            'legal_profile_additional_service_purpose',
+        ], true) ? self::MAX_PROFILE_TEXTAREA_LENGTH : self::MAX_PROFILE_VALUE_LENGTH;
+
+        return $this->truncate($normalizedValue, $maxLength);
     }
 
     /** @return list<string> */
@@ -528,18 +590,14 @@ class LegalSitesModule
         );
     }
 
-    private function saveSetting(string $key, string $value): void
+    private function persistSetting(string $key, string $value, array &$existingSettings = []): void
     {
-        $exists = (int)$this->db->get_var(
-            "SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?",
-            [$key]
-        );
-
-        if ($exists > 0) {
+        if (array_key_exists($key, $existingSettings)) {
             $this->db->execute(
                 "UPDATE {$this->prefix}settings SET option_value = ? WHERE option_name = ?",
                 [$value, $key]
             );
+            $existingSettings[$key] = $value;
             return;
         }
 
@@ -547,6 +605,13 @@ class LegalSitesModule
             "INSERT INTO {$this->prefix}settings (option_name, option_value) VALUES (?, ?)",
             [$key, $value]
         );
+        $existingSettings[$key] = $value;
+    }
+
+    private function saveSetting(string $key, string $value): void
+    {
+        $existingSettings = $this->loadSettingsMap([$key]);
+        $this->persistSetting($key, $value, $existingSettings);
     }
 
     private function getSetting(string $key, string $fallback = ''): string
@@ -1062,16 +1127,106 @@ class LegalSitesModule
 
     private function failResult(string $action, string $message, \Throwable $e): array
     {
+        $sanitizedException = $this->sanitizeErrorContext($e->getMessage());
+
+        $this->logger->warning($message, [
+            'action' => $action,
+            'exception' => $e::class,
+            'message' => $sanitizedException,
+        ]);
+
         AuditLogger::instance()->log(
             AuditLogger::CAT_SETTING,
             $action,
             $message,
             'legal_site',
             null,
-            ['exception' => $e->getMessage()],
+            ['exception' => $e::class],
             'error'
         );
 
         return ['success' => false, 'error' => $message . ' Bitte Logs prüfen.'];
+    }
+
+    private function canAccess(): bool
+    {
+        return class_exists(Auth::class) && Auth::instance()->isAdmin();
+    }
+
+    /** @return list<string> */
+    private function getAssignmentKeys(): array
+    {
+        return ['imprint_page_id', 'privacy_page_id', 'terms_page_id', 'revocation_page_id'];
+    }
+
+    /**
+     * @param list<string> $keys
+     * @return array<string, string>
+     */
+    private function loadSettingsMap(array $keys): array
+    {
+        $keys = array_values(array_unique(array_filter($keys, static fn ($key): bool => is_string($key) && $key !== '')));
+        if ($keys === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($keys), '?'));
+        $rows = $this->db->get_results(
+            "SELECT option_name, option_value FROM {$this->prefix}settings WHERE option_name IN ($placeholders)",
+            $keys
+        ) ?: [];
+
+        $settings = [];
+        foreach ($rows as $row) {
+            $settings[(string)$row->option_name] = (string)$row->option_value;
+        }
+
+        return $settings;
+    }
+
+    /** @return array<int, true> */
+    private function getPublishedPageIds(): array
+    {
+        $rows = $this->db->get_results(
+            "SELECT id FROM {$this->prefix}pages WHERE status = 'published'"
+        ) ?: [];
+
+        $pageIds = [];
+        foreach ($rows as $row) {
+            $pageIds[(int)($row->id ?? 0)] = true;
+        }
+
+        unset($pageIds[0]);
+
+        return $pageIds;
+    }
+
+    private function sanitizeLegalContent(mixed $value): string
+    {
+        $value = (string)$value;
+        $value = $this->truncate($value, self::MAX_LEGAL_HTML_LENGTH);
+
+        return sanitize_html(strip_tags($value, '<p><a><strong><em><ul><ol><li><br><h2><h3><h4>'), 'default');
+    }
+
+    private function sanitizeErrorContext(string $value): string
+    {
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', trim($value)) ?? '';
+        $value = preg_replace('/\s+/u', ' ', $value) ?? '';
+
+        return $this->truncate($value, self::MAX_ERROR_CONTEXT_LENGTH);
+    }
+
+    private function truncate(string $value, int $maxLength): string
+    {
+        if ($maxLength <= 0 || $value === '') {
+            return $value;
+        }
+
+        if (function_exists('mb_substr')) {
+            return mb_substr($value, 0, $maxLength);
+        }
+
+        return substr($value, 0, $maxLength);
     }
 }
