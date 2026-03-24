@@ -157,6 +157,12 @@ ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu ausz
 |---|---|---|---|
 | `CMS/core/Services/CommentService.php` | umgesetzt | Öffentliche Kommentar-Payloads, Post-Freigabe, Flood-Limits und Logging-/Audit-Pfade nachgezogen; öffentliche Ausgabe gibt keine Autor-Mail mehr mit aus. | Der Kommentar-Service blockt Missbrauch an der öffentlichen Eingabekante früher, reduziert unnötige personenbezogene Daten im Frontend und hält Persistenz-/Abbruchpfade nachvollziehbarer. |
 
+### Delta Batch 021
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationRenderer.php` | umgesetzt | Doku-Rendering gegen übergroße Markdown-/CSV-Payloads, ausufernde Tabellen und unsaubere Linkziele begrenzt. | Der Renderer erzeugt HTML aus Repository-Dokumenten jetzt kontrollierter, validiert `href`-Ziele enger und hält große oder auffällige Dokumente durch serverseitige Limits und Logging besser im Zaum. |
+
 ## Grundlage
 
 Diese Datei bewertet den aktuellen CMS-Codebestand **dateiweise** nach:
@@ -313,7 +319,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/modules/system/DocumentationGitSync.php` | Git-Doku-Sync | Git/Remote, FS | 72 | 62 | 82 | 72 |
 | `CMS/admin/modules/system/DocumentationGithubZipSync.php` | GitHub-Zip-Sync | Remote-Zip, FS | 72 | 62 | 82 | 72 |
 | `CMS/admin/modules/system/DocumentationModule.php` | Doku-Logik | Renderer, Sync, Catalog | 80 | 74 | 84 | 79 |
-| `CMS/admin/modules/system/DocumentationRenderer.php` | Doku-Renderer | Markdown→HTML, Escaping | 82 | 74 | 84 | 80 |
+| `CMS/admin/modules/system/DocumentationRenderer.php` | Doku-Renderer | Markdown→HTML, Escaping | 87 | 78 | 86 | 84 |
 | `CMS/admin/modules/system/DocumentationSyncDownloader.php` | Doku-Downloader | HTTP/Remote, FS | 72 | 62 | 82 | 72 |
 | `CMS/admin/modules/system/DocumentationSyncEnvironment.php` | Doku-Env-Check | Runtime/Env-Checks | 84 | 88 | 84 | 85 |
 | `CMS/admin/modules/system/DocumentationSyncFilesystem.php` | Doku-FS-Logik | FS, Pfade, Speicherung | 78 | 72 | 84 | 78 |
@@ -664,7 +670,7 @@ Verwendete Referenzbasis für die Einordnung:
 | Kategorie | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt | Schwächste Dateien | Stärkste Dateien | Audit-Fokus |
 |---|---:|---:|---:|---:|---:|---|---|---|
 | **Admin – Entry-Points** | 81 | 83,4 | 84,1 | 84,8 | 83,9 | `theme-editor.php`, `theme-marketplace.php` | `diagnose.php`, `index.php`, `info.php`, `support.php`, `system-*.php` | Remote-Zugriffe in Marketplace-/Theme-Entrypoints härten |
-| **Admin – Module** | 55 | 79,8 | 73,5 | 84,1 | 79,1 | `LegalSitesModule.php`, `MemberDashboardModule.php`, `CookieManagerModule.php` | `PostsCategoryViewModelBuilder.php`, `SystemInfoModule.php` | Performance- und Qualitäts-Gates für große Module priorisieren |
+| **Admin – Module** | 55 | 79,9 | 73,6 | 84,1 | 79,2 | `LegalSitesModule.php`, `MemberDashboardModule.php`, `CookieManagerModule.php` | `PostsCategoryViewModelBuilder.php`, `SystemInfoModule.php` | Performance- und Qualitäts-Gates für große Module priorisieren |
 | **Admin – Layout-Partials** | 4 | 87,5 | 91,0 | 84,3 | 87,5 | `sidebar.php` | `section-page-shell.php` | Bereits stark; nur Regressionen verhindern |
 | **Admin – Views** | 89 | 84,4 | 83,9 | 83,7 | 83,4 | `posts/edit.php`, `pages/edit.php`, `landing/page.php` | `member/subnav.php`, `performance/subnav.php`, `seo/subnav.php` | Editor-Komplexität und Formularpfade weiter entkoppeln |
 | **Admin – View-Partials** | 8 | 89,5 | 94,4 | 84,9 | 89,6 | `featured-image-picker.php` | `content-advanced-seo-panel.php`, `content-preview-card.php`, `content-readability-card.php`, `content-seo-score-panel.php` | Sehr guter Standard – als Referenzmuster konservieren |

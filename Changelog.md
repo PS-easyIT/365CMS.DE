@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.38-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.39-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,16 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.6.39 — 24. März 2026 · Audit-Batch 021, Dokumentations-Renderer gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.39** | 🔴 fix | Admin/System | **Dokumentations-Renderer gegen ausufernde Render-Payloads gehärtet**: `CMS/admin/modules/system/DocumentationRenderer.php` begrenzt Markdown-/CSV-Größe, Zeilenanzahl sowie Tabellen- und Zellumfang, bevor Inhalte in HTML für den Admin-Bereich überführt werden. |
+| **2.6.39** | 🔴 fix | Admin/System | **Linkziele im Doku-HTML enger validiert**: erzeugte `href`-Werte werden auf saubere Anchors, interne Pfade oder valide HTTP(S)-URLs begrenzt, sodass keine losen Sonderziele im Admin-Rendering landen. |
+| **2.6.39** | 🟡 refactor | Admin/System | **Render-Grenzen werden nachvollziehbar geloggt**: begrenzte Dokumente, Tabellen und CSV-Ansichten schreiben jetzt Guard-Logs statt ungebremst oder still in große HTML-Ausgaben zu laufen. |
 
 ---
 
