@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.15-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.16-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -15,6 +15,13 @@
 | 🎨 | `style` | Design- / UI-Änderungen |
 
 ---
+
+## [2.6.16] – 2026-03-24
+
+### Changed
+
+- `CMS/core/Services/MediaDeliveryService.php` verarbeitet jetzt Byte-Range-Requests sauber mit `206 Partial Content`, `416 Range Not Satisfiable`, `Accept-Ranges` und passendem `Content-Range`, damit größere Medien und Resume-/Preview-Clients nicht mehr auf einen Alles-oder-nichts-Download festgenagelt sind.
+- Die Auslieferung streamt Mediendateien nun chunkweise über einen kontrollierten File-Handle statt sie vollständig per `readfile()` in einem Rutsch auszugeben; `HEAD`-Requests liefern die Header dazu ohne Response-Body.
 
 ## [2.6.15] – 2026-03-24
 

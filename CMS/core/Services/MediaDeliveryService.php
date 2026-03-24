@@ -16,6 +16,7 @@ final class MediaDeliveryService
 {
     private const INLINE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico', 'avif'];
     private const ELFINDER_TMB_PREFIX = '.elfinder/.tmb/';
+    private const STREAM_CHUNK_BYTES = 8192;
 
     private static ?self $instance = null;
 
@@ -173,16 +174,44 @@ final class MediaDeliveryService
         $filename = basename($absolutePath);
         $filesize = (int) filesize($absolutePath);
         $lastModified = filemtime($absolutePath) ?: time();
+        $range = $this->parseRangeHeader((string) ($_SERVER['HTTP_RANGE'] ?? ''), $filesize);
 
-        if (!headers_sent()) {
-            header('Content-Type: ' . $mimeType);
-            header('X-Content-Type-Options: nosniff');
-            header('Content-Length: ' . $filesize);
-            header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $lastModified) . ' GMT');
-            header('Content-Disposition: ' . ($inline ? 'inline' : 'attachment') . '; filename="' . $this->buildSafeFilename($filename) . '"');
+        if ($range instanceof WP_Error) {
+            if (!headers_sent()) {
+                http_response_code(416);
+                header('Content-Range: bytes */' . $filesize);
+            }
+
+            $this->deny(416, $range->get_error_message());
         }
 
-        readfile($absolutePath);
+        $rangeStart = $range['start'] ?? 0;
+        $rangeEnd = $range['end'] ?? max(0, $filesize - 1);
+        $contentLength = $rangeEnd >= $rangeStart ? ($rangeEnd - $rangeStart + 1) : 0;
+        $isPartial = $filesize > 0 && ($rangeStart > 0 || $rangeEnd < ($filesize - 1));
+
+        if (!headers_sent()) {
+            if ($isPartial) {
+                http_response_code(206);
+            }
+
+            header('Content-Type: ' . $mimeType);
+            header('X-Content-Type-Options: nosniff');
+            header('Accept-Ranges: bytes');
+            header('Content-Length: ' . $contentLength);
+            header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $lastModified) . ' GMT');
+            header('Content-Disposition: ' . ($inline ? 'inline' : 'attachment') . '; filename="' . $this->buildSafeFilename($filename) . '"');
+
+            if ($isPartial) {
+                header('Content-Range: bytes ' . $rangeStart . '-' . $rangeEnd . '/' . $filesize);
+            }
+        }
+
+        if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'HEAD') {
+            exit;
+        }
+
+        $this->streamFile($absolutePath, $rangeStart, $rangeEnd);
         exit;
     }
 
@@ -379,6 +408,104 @@ final class MediaDeliveryService
         }
 
         return $mimeType !== '' ? $mimeType : 'application/octet-stream';
+    }
+
+    /**
+     * @return array{start:int,end:int}|WP_Error
+     */
+    private function parseRangeHeader(string $rangeHeader, int $filesize): array|WP_Error
+    {
+        if ($filesize < 0) {
+            $filesize = 0;
+        }
+
+        $defaultRange = ['start' => 0, 'end' => max(0, $filesize - 1)];
+        $rangeHeader = trim($rangeHeader);
+        if ($rangeHeader === '') {
+            return $defaultRange;
+        }
+
+        if (!str_starts_with(strtolower($rangeHeader), 'bytes=')) {
+            return new WP_Error('invalid_range_header', 'Ungültiger Range-Header.');
+        }
+
+        $rangeSpec = trim(substr($rangeHeader, 6));
+        if ($rangeSpec === '' || str_contains($rangeSpec, ',')) {
+            return new WP_Error('invalid_range_header', 'Mehrere Byte-Bereiche werden nicht unterstützt.');
+        }
+
+        if (!preg_match('/^(\d*)-(\d*)$/', $rangeSpec, $matches)) {
+            return new WP_Error('invalid_range_header', 'Ungültiger Range-Header.');
+        }
+
+        $startRaw = $matches[1] ?? '';
+        $endRaw = $matches[2] ?? '';
+
+        if ($startRaw === '' && $endRaw === '') {
+            return new WP_Error('invalid_range_header', 'Ungültiger Range-Header.');
+        }
+
+        if ($filesize === 0) {
+            return new WP_Error('range_not_satisfiable', 'Die angeforderte Byte-Range ist für diese Datei nicht verfügbar.');
+        }
+
+        if ($startRaw === '') {
+            $suffixLength = (int) $endRaw;
+            if ($suffixLength <= 0) {
+                return new WP_Error('range_not_satisfiable', 'Die angeforderte Byte-Range ist für diese Datei nicht verfügbar.');
+            }
+
+            $suffixLength = min($suffixLength, $filesize);
+            return [
+                'start' => max(0, $filesize - $suffixLength),
+                'end' => $filesize - 1,
+            ];
+        }
+
+        $start = (int) $startRaw;
+        $end = $endRaw === '' ? ($filesize - 1) : (int) $endRaw;
+
+        if ($start < 0 || $start >= $filesize || $end < $start) {
+            return new WP_Error('range_not_satisfiable', 'Die angeforderte Byte-Range ist für diese Datei nicht verfügbar.');
+        }
+
+        return [
+            'start' => $start,
+            'end' => min($end, $filesize - 1),
+        ];
+    }
+
+    private function streamFile(string $absolutePath, int $start, int $end): void
+    {
+        $handle = fopen($absolutePath, 'rb');
+        if (!is_resource($handle)) {
+            $this->deny(500, 'Die Datei konnte nicht gelesen werden.');
+        }
+
+        try {
+            if ($start > 0 && fseek($handle, $start) !== 0) {
+                $this->deny(500, 'Die Datei konnte nicht gelesen werden.');
+            }
+
+            $bytesRemaining = max(0, $end - $start + 1);
+            while ($bytesRemaining > 0 && !feof($handle)) {
+                $chunkSize = min(self::STREAM_CHUNK_BYTES, $bytesRemaining);
+                $buffer = fread($handle, $chunkSize);
+                if ($buffer === false) {
+                    $this->deny(500, 'Die Datei konnte nicht gelesen werden.');
+                }
+
+                if ($buffer === '') {
+                    break;
+                }
+
+                echo $buffer;
+                flush();
+                $bytesRemaining -= strlen($buffer);
+            }
+        } finally {
+            fclose($handle);
+        }
     }
 
     private function buildSafeFilename(string $filename): string
