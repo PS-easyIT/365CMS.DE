@@ -1,6 +1,42 @@
 <?php
 declare(strict_types=1);
 
+$truncateForLog = static function (string $value, int $limit = 400): string {
+    $value = trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value) ?? '');
+    if ($value === '') {
+        return '';
+    }
+
+    return mb_substr($value, 0, $limit);
+};
+
+$normalizeCronTask = static function (mixed $task): string {
+    $task = strtolower(trim((string) $task));
+    return $task !== '' ? $task : 'mail-queue';
+};
+
+$normalizeCronLimit = static function (mixed $limit): ?int {
+    if ($limit === null || $limit === '') {
+        return null;
+    }
+
+    $normalized = filter_var($limit, FILTER_VALIDATE_INT);
+    if ($normalized === false) {
+        return null;
+    }
+
+    return min(100, max(1, (int) $normalized));
+};
+
+$getWebCronToken = static function (): string {
+    $headerToken = trim((string) ($_SERVER['HTTP_X_CMS_CRON_TOKEN'] ?? $_SERVER['HTTP_X_CRON_TOKEN'] ?? ''));
+    if ($headerToken !== '') {
+        return $headerToken;
+    }
+
+    return trim((string) ($_GET['token'] ?? ''));
+};
+
 $isHttpsRequest = static function (): bool {
     if (PHP_SAPI === 'cli') {
         return false;
@@ -30,15 +66,7 @@ $isHttpsRequest = static function (): bool {
 
 if (PHP_SAPI !== 'cli' && !headers_sent()) {
     header('Content-Type: application/json; charset=UTF-8');
-}
-
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    ini_set('session.cookie_httponly', '1');
-    ini_set('session.cookie_secure', $isHttpsRequest() ? '1' : '0');
-    ini_set('session.use_only_cookies', '1');
-    ini_set('session.use_strict_mode', '1');
-    ini_set('session.cookie_samesite', 'Strict');
-    session_start();
+    header('X-Robots-Tag: noindex, nofollow, noarchive');
 }
 
 require_once __DIR__ . '/config.php';
@@ -74,9 +102,15 @@ $respond = static function (array $payload, int $statusCode = 200): void {
         $json = '{"success":false,"error":"JSON-Ausgabe fehlgeschlagen."}';
     }
 
+    if (PHP_SAPI !== 'cli' && strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'HEAD') {
+        exit($statusCode === 200 ? 0 : 1);
+    }
+
     echo $json . PHP_EOL;
     exit($statusCode === 200 ? 0 : 1);
 };
+
+$cronLockHandle = null;
 
 try {
     $task = 'mail-queue';
@@ -87,11 +121,11 @@ try {
     if (PHP_SAPI === 'cli') {
         foreach (array_slice($_SERVER['argv'] ?? [], 1) as $argument) {
             if (str_starts_with($argument, '--task=')) {
-                $task = (string) substr($argument, 7);
+                $task = $normalizeCronTask(substr($argument, 7));
                 continue;
             }
             if (str_starts_with($argument, '--limit=')) {
-                $limit = (int) substr($argument, 8);
+                $limit = $normalizeCronLimit(substr($argument, 8));
                 continue;
             }
             if ($argument === '--force=1' || $argument === '--force' || $argument === '--force=true') {
@@ -99,10 +133,18 @@ try {
             }
         }
     } else {
-        $task = (string) ($_GET['task'] ?? 'mail-queue');
-        $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : null;
+        $requestMethod = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+        if (!in_array($requestMethod, ['GET', 'HEAD'], true)) {
+            $respond([
+                'success' => false,
+                'error' => 'HTTP-Methode für Cron nicht erlaubt.',
+            ], 405);
+        }
+
+        $task = $normalizeCronTask($_GET['task'] ?? 'mail-queue');
+        $limit = $normalizeCronLimit($_GET['limit'] ?? null);
         $force = !empty($_GET['force']);
-        $token = trim((string) ($_GET['token'] ?? ''));
+        $token = $getWebCronToken();
     }
 
     $supportedTasks = ['mail-queue', 'hourly', 'all'];
@@ -116,6 +158,20 @@ try {
     $app = CMS\Bootstrap::instance();
     $queue = CMS\Services\MailQueueService::getInstance();
     $settings = CMS\Services\SettingsService::getInstance();
+
+    $lockFile = rtrim((string) sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '365cms-cron-' . md5(ABSPATH) . '.lock';
+    $cronLockHandle = @fopen($lockFile, 'c+');
+    if (!is_resource($cronLockHandle) || !@flock($cronLockHandle, LOCK_EX | LOCK_NB)) {
+        if (is_resource($cronLockHandle)) {
+            @fclose($cronLockHandle);
+            $cronLockHandle = null;
+        }
+
+        $respond([
+            'success' => false,
+            'error' => 'Cron-Lauf bereits aktiv.',
+        ], 429);
+    }
 
     if (PHP_SAPI !== 'cli') {
         $config = $queue->getConfiguration();
@@ -188,9 +244,21 @@ try {
         'result' => $result,
     ], $success ? 200 : 500);
 } catch (Throwable $e) {
-    error_log('CMS Cron Error: ' . $e->getMessage());
+    error_log(
+        'CMS Cron Error [' . get_class($e) . ']: '
+        . $truncateForLog($e->getMessage())
+        . ' in '
+        . $truncateForLog($e->getFile(), 220)
+        . ':'
+        . (int) $e->getLine()
+    );
     $respond([
         'success' => false,
-        'error' => $e->getMessage(),
+        'error' => 'Cron-Lauf fehlgeschlagen. Details wurden intern protokolliert.',
     ], 500);
+} finally {
+    if (is_resource($cronLockHandle)) {
+        @flock($cronLockHandle, LOCK_UN);
+        @fclose($cronLockHandle);
+    }
 }
