@@ -12,6 +12,7 @@ if (!defined('CMS_ADMIN_SYSTEM_VIEW')) {
 /**
  * @var array $data Backup-Daten
  * @var string $csrfToken CSRF-Token
+ * @var array|null $alert Admin-Statusmeldung
  */
 
 $backups = $data['backups'];
@@ -47,6 +48,10 @@ $history = $data['history'];
             </div>
         </div>
     </div>
+
+    <?php if (!empty($alert)): ?>
+        <?php $alertData = $alert; $alertMarginClass = 'mb-4'; require __DIR__ . '/../partials/flash-alert.php'; ?>
+    <?php endif; ?>
 
     <!-- Vorhandene Backups -->
     <div class="card mb-4">
