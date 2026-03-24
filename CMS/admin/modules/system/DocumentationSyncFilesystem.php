@@ -7,6 +7,9 @@ if (!defined('ABSPATH')) {
 
 final class DocumentationSyncFilesystem
 {
+    /** @var list<string> */
+    private const array SUPPORTED_DOC_EXTENSIONS = ['md', 'csv'];
+
     /**
      * @return array{hash: string, file_count: int}
      */
@@ -14,6 +17,10 @@ final class DocumentationSyncFilesystem
     {
         if (!is_dir($root)) {
             throw new RuntimeException('Integritätsprüfung erwartet ein vorhandenes Verzeichnis.');
+        }
+
+        if (is_link($root)) {
+            throw new RuntimeException('Integritätsprüfung erlaubt keine symbolischen Links als Wurzelverzeichnis.');
         }
 
         $basePath = rtrim((string) realpath($root), '\\/');
@@ -28,6 +35,10 @@ final class DocumentationSyncFilesystem
 
         /** @var SplFileInfo $item */
         foreach ($iterator as $item) {
+            if ($item->isLink()) {
+                throw new RuntimeException('Integritätsprüfung erlaubt keine symbolischen Links im Dokumentations-Bundle.');
+            }
+
             if (!$item->isFile()) {
                 continue;
             }
@@ -62,6 +73,11 @@ final class DocumentationSyncFilesystem
 
     public function findDocDirectory(string $extractRoot): ?string
     {
+        $resolvedExtractRoot = realpath($extractRoot);
+        if ($resolvedExtractRoot === false || !is_dir($resolvedExtractRoot)) {
+            return null;
+        }
+
         $iterator = new RecursiveIteratorIterator(
             new RecursiveDirectoryIterator($extractRoot, FilesystemIterator::SKIP_DOTS),
             RecursiveIteratorIterator::SELF_FIRST
@@ -69,13 +85,22 @@ final class DocumentationSyncFilesystem
 
         /** @var SplFileInfo $item */
         foreach ($iterator as $item) {
+            if ($item->isLink()) {
+                continue;
+            }
+
             if (!$item->isDir() || strcasecmp($item->getFilename(), 'DOC') !== 0) {
                 continue;
             }
 
             $docPath = $item->getPathname();
+            $resolvedDocPath = realpath($docPath);
+            if ($resolvedDocPath === false || !$this->isPathInsideRoot($resolvedDocPath, $resolvedExtractRoot)) {
+                continue;
+            }
+
             if (is_file($docPath . DIRECTORY_SEPARATOR . 'README.md') || is_dir($docPath . DIRECTORY_SEPARATOR . 'admin')) {
-                return $docPath;
+                return $resolvedDocPath;
             }
         }
 
@@ -86,6 +111,10 @@ final class DocumentationSyncFilesystem
     {
         if (!is_dir($source)) {
             throw new RuntimeException('Quellverzeichnis für den Doku-Sync existiert nicht.');
+        }
+
+        if (is_link($source) || is_link($destination)) {
+            throw new RuntimeException('Doku-Sync verarbeitet keine symbolischen Links als Quell- oder Zielverzeichnis.');
         }
 
         if (!is_dir($destination) && !mkdir($destination, 0755, true) && !is_dir($destination)) {
@@ -99,6 +128,10 @@ final class DocumentationSyncFilesystem
 
         /** @var SplFileInfo $item */
         foreach ($iterator as $item) {
+            if ($item->isLink()) {
+                throw new RuntimeException('Doku-Sync verarbeitet keine symbolischen Links im Dokumentations-Bundle: ' . $item->getPathname());
+            }
+
             $targetPath = $destination . DIRECTORY_SEPARATOR . $iterator->getSubPathName();
 
             if ($item->isDir()) {
@@ -127,9 +160,13 @@ final class DocumentationSyncFilesystem
 
         /** @var SplFileInfo $item */
         foreach ($iterator as $item) {
+            if ($item->isLink()) {
+                continue;
+            }
+
             if ($item->isFile()) {
                 $extension = strtolower((string) pathinfo($item->getPathname(), PATHINFO_EXTENSION));
-                if (in_array($extension, ['md', 'csv'], true)) {
+                if (in_array($extension, self::SUPPORTED_DOC_EXTENSIONS, true)) {
                     $count++;
                 }
             }
@@ -140,6 +177,10 @@ final class DocumentationSyncFilesystem
 
     public function deleteDirectory(string $dir): bool
     {
+        if (is_link($dir)) {
+            return $this->deleteFile($dir);
+        }
+
         if (!is_dir($dir)) {
             return false;
         }
@@ -155,8 +196,17 @@ final class DocumentationSyncFilesystem
             }
 
             $path = $dir . DIRECTORY_SEPARATOR . $item;
+            if (is_link($path)) {
+                if (!$this->deleteFile($path)) {
+                    return false;
+                }
+                continue;
+            }
+
             if (is_dir($path)) {
-                $this->deleteDirectory($path);
+                if (!$this->deleteDirectory($path)) {
+                    return false;
+                }
                 continue;
             }
 
@@ -180,6 +230,15 @@ final class DocumentationSyncFilesystem
                 'source' => $source,
                 'destination' => $destination,
                 'reason' => 'source_missing',
+            ]);
+            return false;
+        }
+
+        if (is_link($source) || is_link($destination) || file_exists($destination)) {
+            $this->logFilesystemFailure('rename_preflight', $message, [
+                'source' => $source,
+                'destination' => $destination,
+                'reason' => is_link($source) || is_link($destination) ? 'symbolic_link_detected' : 'destination_exists',
             ]);
             return false;
         }
@@ -214,6 +273,14 @@ final class DocumentationSyncFilesystem
     {
         if (!file_exists($path)) {
             return true;
+        }
+
+        if (is_dir($path) && !is_link($path)) {
+            $this->logFilesystemFailure('unlink_preflight', 'Datei konnte nicht gelöscht werden.', [
+                'path' => $path,
+                'reason' => 'path_is_directory',
+            ]);
+            return false;
         }
 
         if (!is_writable($path) && !is_writable(dirname($path))) {
@@ -290,5 +357,14 @@ final class DocumentationSyncFilesystem
         }
 
         return $result;
+    }
+
+    private function isPathInsideRoot(string $path, string $root): bool
+    {
+        $normalizedPath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, rtrim($path, '\\/'));
+        $normalizedRoot = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, rtrim($root, '\\/'));
+
+        return $normalizedPath === $normalizedRoot
+            || str_starts_with($normalizedPath, $normalizedRoot . DIRECTORY_SEPARATOR);
     }
 }

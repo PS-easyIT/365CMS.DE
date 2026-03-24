@@ -32,6 +32,7 @@ final class DocumentationSyncService
         $this->environment = new DocumentationSyncEnvironment($this->repoRoot);
         $this->gitSync = new DocumentationGitSync(
             $this->repoRoot,
+            $this->docsRoot,
             $this->defaultRemote,
             $this->defaultBranch,
             $this->environment
@@ -52,6 +53,11 @@ final class DocumentationSyncService
      */
     public function syncDocsFromRepository(): array
     {
+        $layoutCheck = $this->assertRepositoryLayout();
+        if ($layoutCheck !== null) {
+            return $layoutCheck;
+        }
+
         $capabilities = $this->environment->getSyncCapabilities();
 
         if (($capabilities['can_sync'] ?? false) !== true) {
@@ -71,5 +77,21 @@ final class DocumentationSyncService
     public function getSyncCapabilities(): array
     {
         return $this->environment->getSyncCapabilities();
+    }
+
+    /** @return array{success: false, error: string}|null */
+    private function assertRepositoryLayout(): ?array
+    {
+        $resolvedRepoRoot = realpath($this->repoRoot);
+        if ($resolvedRepoRoot === false || !is_dir($resolvedRepoRoot)) {
+            return ['success' => false, 'error' => 'Repository-Root für den Doku-Sync ist ungültig. Bitte Logs prüfen.'];
+        }
+
+        $expectedDocsRoot = rtrim($resolvedRepoRoot, '\\/') . DIRECTORY_SEPARATOR . 'DOC';
+        if (rtrim($this->docsRoot, '\\/') !== $expectedDocsRoot || is_link($this->docsRoot)) {
+            return ['success' => false, 'error' => 'Doku-Sync darf nur den lokalen /DOC-Ordner im Repository-Root verwalten. Bitte Logs prüfen.'];
+        }
+
+        return null;
     }
 }

@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.24-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.25-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,16 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.6.25 — 24. März 2026 · Audit-Batch 007, Doku-Sync-Härtung
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.25** | 🔴 fix | Admin/System | **Git-basierter Doku-Sync defensiver gemacht**: `CMS/admin/modules/system/DocumentationGitSync.php` validiert Repository-/DOC-Ziele und Git-Ref-Teile vor dem Lauf, begrenzt Shell-Fehlerdetails auf interne Logs und liefert im Admin-UI nur noch generische Fehlermeldungen zurück. |
+| **2.6.25** | 🔴 fix | Admin/System | **GitHub-ZIP-Sync gegen Pfad- und Link-Fallen gehärtet**: `CMS/admin/modules/system/DocumentationGithubZipSync.php`, `DocumentationSyncDownloader.php` und `DocumentationSyncFilesystem.php` begrenzen Arbeits- und Downloadpfade auf erlaubte Roots, blockieren symbolische Links defensiver, verwerfen leere Download-Bodies und propagieren Cleanup-/Filesystem-Fehler sauberer. |
+| **2.6.25** | 🟡 refactor | Admin/System | **Dokumentations-Entry vereinheitlicht**: `CMS/admin/documentation.php` akzeptiert jetzt nur noch die erwartete Aktion `sync_docs`, und `DocumentationSyncService.php` prüft das erlaubte `/DOC`-Layout vor dem eigentlichen Sync zusätzlich vor. |
 
 ---
 

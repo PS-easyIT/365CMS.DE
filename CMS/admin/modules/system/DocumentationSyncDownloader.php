@@ -7,6 +7,8 @@ if (!defined('ABSPATH')) {
 
 final class DocumentationSyncDownloader
 {
+    private const MAX_DOWNLOAD_BYTES = 25 * 1024 * 1024;
+
     private const ALLOWED_DOWNLOAD_HOSTS = [
         'codeload.github.com',
         'github.com',
@@ -26,6 +28,10 @@ final class DocumentationSyncDownloader
             return ['success' => false, 'error' => 'Der Dokumentations-Download liegt außerhalb der erlaubten GitHub-Hosts.'];
         }
 
+        if (!$this->isAllowedDestination($destination)) {
+            return ['success' => false, 'error' => 'Die temporäre ZIP-Zieldatei liegt außerhalb des erlaubten Temp-Bereichs.'];
+        }
+
         if (!class_exists('\\CMS\\Http\\Client')) {
             return ['success' => false, 'error' => 'Der zentrale HTTP-Client ist nicht verfügbar.'];
         }
@@ -39,7 +45,7 @@ final class DocumentationSyncDownloader
             'userAgent' => '365CMS-DocumentationSync/1.0',
             'timeout' => 120,
             'connectTimeout' => 10,
-            'maxBytes' => 25 * 1024 * 1024,
+            'maxBytes' => self::MAX_DOWNLOAD_BYTES,
             'allowedContentTypes' => ['application/zip', 'application/octet-stream', 'application/x-zip-compressed'],
         ]);
 
@@ -51,8 +57,13 @@ final class DocumentationSyncDownloader
             return ['success' => false, 'error' => (string) ($response['error'] ?? 'GitHub-ZIP konnte per HTTPS nicht geladen werden.')];
         }
 
-        $written = file_put_contents($destination, (string) ($response['body'] ?? ''));
-        if (!is_int($written)) {
+        $body = (string) ($response['body'] ?? '');
+        if ($body === '') {
+            return ['success' => false, 'error' => 'Der GitHub-Download lieferte keinen ZIP-Inhalt zurück.'];
+        }
+
+        $written = file_put_contents($destination, $body, LOCK_EX);
+        if (!is_int($written) || $written < 1) {
             if (is_file($destination)) {
                 $this->filesystem->deleteFile($destination);
             }
@@ -61,6 +72,37 @@ final class DocumentationSyncDownloader
         }
 
         return ['success' => true];
+    }
+
+    private function isAllowedDestination(string $destination): bool
+    {
+        $destination = trim($destination);
+        if ($destination === '' || !str_ends_with(strtolower($destination), '.zip')) {
+            return false;
+        }
+
+        $tempRoot = realpath(sys_get_temp_dir());
+        $parentDir = dirname($destination);
+        $resolvedParent = realpath($parentDir);
+
+        if ($tempRoot === false || $resolvedParent === false || is_link($destination) || is_link($parentDir)) {
+            return false;
+        }
+
+        if ($this->isPathInsideRoot($destination, $tempRoot) === false || $this->isPathInsideRoot($resolvedParent, $tempRoot) === false) {
+            return false;
+        }
+
+        return !file_exists($destination);
+    }
+
+    private function isPathInsideRoot(string $path, string $root): bool
+    {
+        $normalizedPath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, rtrim($path, '\\/'));
+        $normalizedRoot = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, rtrim($root, '\\/'));
+
+        return $normalizedPath === $normalizedRoot
+            || str_starts_with($normalizedPath, $normalizedRoot . DIRECTORY_SEPARATOR);
     }
 
     private function isAllowedDownloadUrl(string $url): bool

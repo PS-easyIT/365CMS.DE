@@ -35,6 +35,7 @@ final class DocumentationGithubZipSync
 
         try {
             $this->assertDocsRootLocation();
+            $this->assertWorkingPaths($zipFile, $extractDir, $stagingDir, $backupDir);
 
             $download = $this->downloader->downloadFile($this->githubZipUrl, $zipFile);
             if (($download['success'] ?? false) !== true) {
@@ -100,7 +101,10 @@ final class DocumentationGithubZipSync
                 'message' => 'Der lokale Ordner /DOC wurde per GitHub-Download synchronisiert. ' . $this->filesystem->countSupportedDocuments($this->docsRoot) . ' Dokumente sind jetzt lokal verfügbar.',
             ];
         } catch (Throwable $e) {
-            return ['success' => false, 'error' => 'DOC-Sync via GitHub fehlgeschlagen: ' . $e->getMessage()];
+            return $this->failResult('documentation.sync.github_zip.failed', 'DOC-Sync via GitHub konnte nicht abgeschlossen werden.', $e, [
+                'zip_url' => $this->githubZipUrl,
+                'docs_root' => $this->docsRoot,
+            ]);
         } finally {
             if (is_file($zipFile)) {
                 $this->filesystem->deleteFile($zipFile);
@@ -158,6 +162,34 @@ final class DocumentationGithubZipSync
         if (rtrim($this->docsRoot, '\\/') !== $expectedDocsRoot) {
             throw new RuntimeException('Der Doku-Sync darf /DOC nur direkt im Repository-Root neben /CMS verwalten.');
         }
+
+        if (is_link($this->docsRoot)) {
+            throw new RuntimeException('Der lokale /DOC-Ordner darf kein symbolischer Link sein.');
+        }
+    }
+
+    private function assertWorkingPaths(string $zipFile, string $extractDir, string $stagingDir, string $backupDir): void
+    {
+        $repoRoot = rtrim((string) realpath($this->repoRoot), '\\/');
+        $tempRoot = rtrim((string) realpath(sys_get_temp_dir()), '\\/');
+
+        if ($repoRoot === '' || $tempRoot === '') {
+            throw new RuntimeException('Arbeitsverzeichnisse für den Doku-Sync konnten nicht sicher aufgelöst werden.');
+        }
+
+        if (!$this->isPathInsideRoot($zipFile, $tempRoot)
+            || !$this->isPathInsideRoot($extractDir, $tempRoot)
+            || !$this->isPathInsideRoot($stagingDir, $repoRoot)
+            || !$this->isPathInsideRoot($backupDir, $repoRoot)
+        ) {
+            throw new RuntimeException('Temporäre Arbeitsverzeichnisse des Doku-Sync liegen außerhalb der erlaubten Roots.');
+        }
+
+        foreach ([$zipFile, $extractDir, $stagingDir, $backupDir] as $path) {
+            if (is_link($path)) {
+                throw new RuntimeException('Der Doku-Sync verarbeitet keine symbolischen Links als Arbeitsverzeichnisse.');
+            }
+        }
     }
 
     private function assertApprovedDocsBundle(string $sourceDocs): void
@@ -173,5 +205,33 @@ final class DocumentationGithubZipSync
         if ($actualHash !== $this->approvedDocsBundleHash || $actualFileCount !== $this->approvedDocsBundleFileCount) {
             throw new RuntimeException('Der heruntergeladene /DOC-Baum entspricht nicht dem freigegebenen Dokumentations-Bundle.');
         }
+    }
+
+    private function isPathInsideRoot(string $path, string $root): bool
+    {
+        $normalizedPath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, rtrim($path, '\\/'));
+        $normalizedRoot = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, rtrim($root, '\\/'));
+
+        return $normalizedPath === $normalizedRoot
+            || str_starts_with($normalizedPath, $normalizedRoot . DIRECTORY_SEPARATOR);
+    }
+
+    /** @param array<string, mixed> $context */
+    private function failResult(string $action, string $message, Throwable $exception, array $context = []): array
+    {
+        $context['exception'] = $exception->getMessage();
+
+        \CMS\Logger::instance()->withChannel('admin.documentation')->error($message, $context);
+        \CMS\AuditLogger::instance()->log(
+            \CMS\AuditLogger::CAT_SYSTEM,
+            $action,
+            $message,
+            'documentation',
+            null,
+            $context,
+            'error'
+        );
+
+        return ['success' => false, 'error' => $message . ' Bitte Logs prüfen.'];
     }
 }

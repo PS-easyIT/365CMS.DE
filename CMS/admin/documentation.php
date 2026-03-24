@@ -22,6 +22,7 @@ require_once __DIR__ . '/modules/system/DocumentationModule.php';
 
 $module = new DocumentationModule();
 $alert = null;
+$allowedActions = ['sync_docs'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postToken = $_POST['csrf_token'] ?? '';
@@ -29,7 +30,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
     } else {
         $action = (string)($_POST['action'] ?? '');
-        if ($action === 'sync_docs') {
+        if (!in_array($action, $allowedActions, true)) {
+            $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Unbekannte Aktion.'];
+        } elseif ($action === 'sync_docs') {
             $result = $module->syncDocsFromRepository();
             $_SESSION['admin_alert'] = [
                 'type' => !empty($result['success']) ? 'success' : 'danger',
