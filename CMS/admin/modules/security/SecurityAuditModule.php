@@ -10,9 +10,16 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\AuditLogger;
+use CMS\Logger;
 
 class SecurityAuditModule
 {
+    private const MAX_AUDIT_LOG_ROWS = 50;
+    private const MAX_CHECK_NAME_LENGTH = 120;
+    private const MAX_CHECK_DETAIL_LENGTH = 320;
+    private const MAX_AUDIT_DETAIL_LENGTH = 240;
+    private const MAX_HTACCESS_BYTES = 131072;
+
     private readonly \CMS\Database $db;
     private readonly string $prefix;
 
@@ -24,73 +31,80 @@ class SecurityAuditModule
 
     public function getData(): array
     {
-        $checks = $this->performChecks();
-        $passed  = 0;
-        $warning = 0;
-        $critical = 0;
-        foreach ($checks as $c) {
-            if ($c['status'] === 'ok')       $passed++;
-            if ($c['status'] === 'warning')  $warning++;
-            if ($c['status'] === 'critical') $critical++;
+        if (!$this->canAccess()) {
+            return [
+                'checks' => [],
+                'stats' => ['passed' => 0, 'warning' => 0, 'critical' => 0, 'total' => 0],
+                'audit_log' => [],
+                'error' => 'Zugriff verweigert.',
+            ];
         }
 
-        // Audit-Log (letzte Login-Versuche etc.)
-        $auditLog = [];
-        try {
-            $auditLog = $this->db->get_results(
-                "SELECT * FROM {$this->prefix}audit_log ORDER BY created_at DESC LIMIT 50"
-            ) ?: [];
-        } catch (\Exception $e) {}
+        $checks = $this->performChecks();
 
         return [
             'checks'  => $checks,
-            'stats'   => ['passed' => $passed, 'warning' => $warning, 'critical' => $critical, 'total' => count($checks)],
-            // FIX: Audit-Log-Zeilen mit stabilen Anzeige-Keys an die View liefern.
-            'audit_log' => array_map(static function ($r): array {
-                $row = (array)$r;
-                if (!isset($row['details'])) {
-                    $row['details'] = (string)($row['description'] ?? '');
-                }
-                return $row;
-            }, $auditLog),
+            'stats'   => $this->summarizeChecks($checks),
+            'audit_log' => $this->fetchRecentAuditLog(),
         ];
     }
 
     public function runAudit(): array
     {
-        $checks = $this->performChecks();
-        $critical = 0;
-        foreach ($checks as $c) {
-            if ($c['status'] === 'critical') $critical++;
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Sie dürfen dieses Audit nicht ausführen.'];
         }
+
+        $checks = $this->performChecks();
+        $stats = $this->summarizeChecks($checks);
+
         AuditLogger::instance()->log(
             AuditLogger::CAT_SECURITY,
             'security.audit.run',
             'Sicherheits-Audit manuell ausgeführt',
             'security_audit',
             null,
-            ['critical' => $critical, 'total' => count($checks)],
-            $critical > 0 ? 'warning' : 'info'
+            [
+                'critical' => $stats['critical'],
+                'warning' => $stats['warning'],
+                'total' => $stats['total'],
+            ],
+            $stats['critical'] > 0 ? 'warning' : 'info'
         );
-        return ['success' => true, 'message' => "Audit abgeschlossen. {$critical} kritische Probleme gefunden."];
+
+        return ['success' => true, 'message' => "Audit abgeschlossen. {$stats['critical']} kritische Probleme gefunden."];
     }
 
     public function clearLog(): array
     {
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Sie dürfen Audit-Logs nicht bereinigen.'];
+        }
+
         try {
+            $olderEntries = (int) ($this->db->get_var(
+                "SELECT COUNT(*) FROM {$this->prefix}audit_log WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)"
+            ) ?? 0);
+
             $this->db->query("DELETE FROM {$this->prefix}audit_log WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)");
+
             AuditLogger::instance()->log(
                 AuditLogger::CAT_SECURITY,
                 'security.audit.clear_log',
                 'Alte Sicherheits-Audit-Logs bereinigt',
                 'security_audit',
                 null,
-                [],
+                ['deleted_entries' => $olderEntries],
                 'warning'
             );
+
             return ['success' => true, 'message' => 'Alte Audit-Einträge (> 30 Tage) gelöscht.'];
-        } catch (\Exception $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+        } catch (\Throwable $e) {
+            $this->logFailure('security.audit.clear_log_failed', 'Audit-Log-Bereinigung fehlgeschlagen.', [
+                'exception' => $e::class,
+            ]);
+
+            return ['success' => false, 'error' => 'Audit-Log-Bereinigung fehlgeschlagen.'];
         }
     }
 
@@ -100,129 +114,118 @@ class SecurityAuditModule
         $abspath = defined('ABSPATH') ? ABSPATH : '';
         $headerProfile = class_exists('\CMS\Security') ? \CMS\Security::instance()->getSecurityHeaderProfile() : [];
         $htaccessStatus = $this->inspectHtaccessHeaders($abspath);
-        $isHttps = (bool)($headerProfile['https'] ?? false);
+        $isHttps = (bool) ($headerProfile['https'] ?? false);
         $debugOn = defined('CMS_DEBUG') && CMS_DEBUG;
 
-        // 1. HTTPS
-        $checks[] = [
-            'name'   => 'HTTPS aktiv',
-            'status' => $isHttps ? 'ok' : 'critical',
-            'detail' => $isHttps ? 'Verbindung ist verschlüsselt.' : 'HTTPS ist nicht aktiv! Alle Daten werden unverschlüsselt übertragen.',
-        ];
+        $checks[] = $this->buildCheck(
+            'HTTPS aktiv',
+            $isHttps ? 'ok' : 'critical',
+            $isHttps ? 'Verbindung ist verschlüsselt.' : 'HTTPS ist nicht aktiv! Alle Daten werden unverschlüsselt übertragen.'
+        );
 
-        // 2. PHP Version
         $phpVersion = PHP_VERSION;
         $phpStatus  = match (true) {
             version_compare($phpVersion, '8.2.0', '>=') => 'ok',
             version_compare($phpVersion, '8.1.0', '>=') => 'warning',
             default                                      => 'critical',
         };
-        $checks[] = [
-            'name'   => 'PHP-Version (' . $phpVersion . ')',
-            'status' => $phpStatus,
-            'detail' => match ($phpStatus) {
+        $checks[] = $this->buildCheck(
+            'PHP-Version (' . $phpVersion . ')',
+            $phpStatus,
+            match ($phpStatus) {
                 'ok'       => 'PHP-Version ist aktuell.',
                 'warning'  => 'PHP 8.1 – Update auf 8.2+ empfohlen.',
                 'critical' => 'PHP-Version ist veraltet! Mindestens 8.1 erforderlich.',
-            },
-        ];
+            }
+        );
 
-        // 3. config.php Berechtigungen
         $configFile = $abspath . 'config.php';
-        if (file_exists($configFile)) {
+        if (is_file($configFile)) {
             $perms = substr(sprintf('%o', fileperms($configFile)), -4);
             $configOk = in_array($perms, ['0644', '0640', '0600'], true);
-            $checks[] = [
-                'name'   => 'config.php Berechtigungen (' . $perms . ')',
-                'status' => $configOk ? 'ok' : 'warning',
-                'detail' => $configOk ? 'Dateiberechtigungen sind korrekt.' : 'config.php sollte nicht öffentlich beschreibbar sein (empfohlen: 644 oder 640).',
-            ];
+            $checks[] = $this->buildCheck(
+                'config.php Berechtigungen (' . $perms . ')',
+                $configOk ? 'ok' : 'warning',
+                $configOk ? 'Dateiberechtigungen sind korrekt.' : 'config.php sollte nicht öffentlich beschreibbar sein (empfohlen: 644 oder 640).'
+            );
         }
 
-        // 4. install.php vorhanden
-        $installExists = file_exists($abspath . 'install.php');
-        $checks[] = [
-            'name'   => 'install.php entfernt',
-            'status' => $installExists ? 'warning' : 'ok',
-            'detail' => $installExists ? 'install.php existiert noch und sollte nach der Installation gelöscht werden.' : 'install.php wurde entfernt.',
-        ];
+        $installExists = is_file($abspath . 'install.php');
+        $checks[] = $this->buildCheck(
+            'install.php entfernt',
+            $installExists ? 'warning' : 'ok',
+            $installExists ? 'install.php existiert noch und sollte nach der Installation gelöscht werden.' : 'install.php wurde entfernt.'
+        );
 
-        // 5. Debug-Modus
-        $checks[] = [
-            'name'   => 'Debug-Modus',
-            'status' => $debugOn ? 'warning' : 'ok',
-            'detail' => $debugOn ? 'Debug-Modus ist aktiv. Sollte in Produktion deaktiviert sein.' : 'Debug-Modus ist deaktiviert.',
-        ];
+        $checks[] = $this->buildCheck(
+            'Debug-Modus',
+            $debugOn ? 'warning' : 'ok',
+            $debugOn ? 'Debug-Modus ist aktiv. Sollte in Produktion deaktiviert sein.' : 'Debug-Modus ist deaktiviert.'
+        );
 
-        // 6. uploads-Verzeichnis
         $uploadsDir = $abspath . 'uploads/';
         if (is_dir($uploadsDir)) {
-            $htaccess = file_exists($uploadsDir . '.htaccess');
-            $checks[] = [
-                'name'   => 'Uploads-Schutz (.htaccess)',
-                'status' => $htaccess ? 'ok' : 'warning',
-                'detail' => $htaccess ? 'Upload-Verzeichnis ist geschützt.' : 'Kein .htaccess im Upload-Verzeichnis. PHP-Ausführung sollte blockiert sein.',
-            ];
+            $htaccess = is_file($uploadsDir . '.htaccess');
+            $checks[] = $this->buildCheck(
+                'Uploads-Schutz (.htaccess)',
+                $htaccess ? 'ok' : 'warning',
+                $htaccess ? 'Upload-Verzeichnis ist geschützt.' : 'Kein .htaccess im Upload-Verzeichnis. PHP-Ausführung sollte blockiert sein.'
+            );
         }
 
-        // 7. Passwort-Policy
-        $checks[] = [
-            'name'   => 'Passwort-Policy',
-            'status' => method_exists('\CMS\Auth', 'validatePasswordPolicy') ? 'ok' : 'critical',
-            'detail' => method_exists('\CMS\Auth', 'validatePasswordPolicy')
-                ? 'Passwort-Policy ist implementiert.' : 'Keine Passwort-Policy-Validierung gefunden.',
-        ];
+        $checks[] = $this->buildCheck(
+            'Passwort-Policy',
+            method_exists('\CMS\Auth', 'validatePasswordPolicy') ? 'ok' : 'critical',
+            method_exists('\CMS\Auth', 'validatePasswordPolicy')
+                ? 'Passwort-Policy ist implementiert.'
+                : 'Keine Passwort-Policy-Validierung gefunden.'
+        );
 
-        // 8. CSRF-Schutz
-        $checks[] = [
-            'name'   => 'CSRF-Token-System',
-            'status' => class_exists('\CMS\Security') ? 'ok' : 'critical',
-            'detail' => class_exists('\CMS\Security') ? 'CSRF-Token-System ist aktiv.' : 'Security-Klasse nicht gefunden.',
-        ];
+        $checks[] = $this->buildCheck(
+            'CSRF-Token-System',
+            class_exists('\CMS\Security') ? 'ok' : 'critical',
+            class_exists('\CMS\Security') ? 'CSRF-Token-System ist aktiv.' : 'Security-Klasse nicht gefunden.'
+        );
 
-        // 9. Content Security Policy
         $cspStatus = (($headerProfile['csp_mode'] ?? '') === 'enforced' && !empty($headerProfile['csp_uses_nonce']))
             ? 'ok'
             : 'warning';
-        $checks[] = [
-            'name'   => 'Content-Security-Policy (CSP)',
-            'status' => $cspStatus,
-            'detail' => !empty($headerProfile['csp_uses_nonce'])
+        $checks[] = $this->buildCheck(
+            'Content-Security-Policy (CSP)',
+            $cspStatus,
+            !empty($headerProfile['csp_uses_nonce'])
                 ? ('Nonce-basierte CSP aktiv; Modus: ' . (($headerProfile['csp_mode'] ?? 'report-only') === 'enforced' ? 'enforced' : 'report-only') . (($debugOn && ($headerProfile['csp_mode'] ?? '') !== 'enforced') ? ' (Debug-Modus)' : '') . '.')
-                : 'Keine nonce-basierte CSP erkannt.',
-        ];
+                : 'Keine nonce-basierte CSP erkannt.'
+        );
 
-        // 10. Trusted Types
         $trustedTypesStatus = !empty($headerProfile['trusted_types_enforced'])
             ? 'ok'
             : (!empty($headerProfile['trusted_types_report_only']) ? 'warning' : 'critical');
-        $checks[] = [
-            'name'   => 'Trusted Types',
-            'status' => $trustedTypesStatus,
-            'detail' => !empty($headerProfile['trusted_types_enforced'])
+        $checks[] = $this->buildCheck(
+            'Trusted Types',
+            $trustedTypesStatus,
+            !empty($headerProfile['trusted_types_enforced'])
                 ? 'Trusted Types werden erzwungen.'
                 : (!empty($headerProfile['trusted_types_report_only'])
                     ? 'Trusted Types laufen aktuell im Report-Only-Modus zur Kompatibilitätsprüfung.'
-                    : 'Trusted Types sind nicht konfiguriert.'),
-        ];
+                    : 'Trusted Types sind nicht konfiguriert.')
+        );
 
-        // 11. HSTS
         $hstsStatus = !$isHttps
             ? 'warning'
             : (!empty($headerProfile['hsts_enabled']) && !empty($headerProfile['hsts_include_subdomains']) && !empty($headerProfile['hsts_preload']) ? 'ok' : 'critical');
-        $checks[] = [
-            'name'   => 'Strict-Transport-Security (HSTS)',
-            'status' => $hstsStatus,
-            'detail' => !$isHttps
+        $checks[] = $this->buildCheck(
+            'Strict-Transport-Security (HSTS)',
+            $hstsStatus,
+            !$isHttps
                 ? 'HSTS kann erst bei aktivem HTTPS vollständig bewertet werden.'
                 : (!empty($headerProfile['hsts_enabled'])
                     ? 'HSTS aktiv mit includeSubDomains und preload.'
                     : ($debugOn
                         ? 'HSTS ist im Debug-Modus absichtlich nicht erzwungen.'
-                        : 'HSTS ist für HTTPS-Anfragen nicht vollständig aktiv.')),
-        ];
+                        : 'HSTS ist für HTTPS-Anfragen nicht vollständig aktiv.'))
+        );
 
-        // 12. Apache-Fallback-Header
         $fallbackStatus = !$htaccessStatus['exists']
             ? 'warning'
             : (($htaccessStatus['csp_setifempty']
@@ -233,48 +236,49 @@ class SecurityAuditModule
                 && $htaccessStatus['hsts_include_subdomains']
                 && $htaccessStatus['hsts_preload']
                 && $htaccessStatus['proxy_https_detection']) ? 'ok' : 'warning');
-        $checks[] = [
-            'name'   => '.htaccess Sicherheits-Fallback',
-            'status' => $fallbackStatus,
-            'detail' => !$htaccessStatus['exists']
+        $checks[] = $this->buildCheck(
+            '.htaccess Sicherheits-Fallback',
+            $fallbackStatus,
+            !$htaccessStatus['exists']
                 ? 'Keine .htaccess-Datei gefunden – Apache-Fallback kann nicht geprüft werden.'
                 : ($fallbackStatus === 'ok'
                     ? 'Apache-Fallback für CSP/HSTS ist konsistent gehärtet.'
-                    : 'Apache-Fallback prüfen: kein Report-Only-Header im Produktivpfad, CSP ohne unsafe-inline/unsafe-eval, Trusted Types sowie HSTS inklusive Proxy-HTTPS-Erkennung sollten aktiv sein.'),
-        ];
+                    : 'Apache-Fallback prüfen: kein Report-Only-Header im Produktivpfad, CSP ohne unsafe-inline/unsafe-eval, Trusted Types sowie HSTS inklusive Proxy-HTTPS-Erkennung sollten aktiv sein.')
+        );
 
-        // 9. Datenbank-Backup Alter
         $backupDir = $abspath . 'backups/';
         if (is_dir($backupDir)) {
             $backups = glob($backupDir . '*.sql*');
             $lastBackup = 0;
-            foreach ($backups ?: [] as $b) {
-                $lastBackup = max($lastBackup, filemtime($b));
+            foreach ($backups ?: [] as $backupFile) {
+                $timestamp = @filemtime($backupFile);
+                if (is_int($timestamp) && $timestamp > 0) {
+                    $lastBackup = max($lastBackup, $timestamp);
+                }
             }
-            $daysSince = $lastBackup ? (int)ceil((time() - $lastBackup) / 86400) : 999;
-            $checks[] = [
-                'name'   => 'Letztes Backup',
-                'status' => $daysSince <= 7 ? 'ok' : ($daysSince <= 30 ? 'warning' : 'critical'),
-                'detail' => $lastBackup
-                    ? "Letztes Backup vor {$daysSince} Tagen."
-                    : 'Kein Datenbank-Backup gefunden.',
-            ];
+            $daysSince = $lastBackup ? (int) ceil((time() - $lastBackup) / 86400) : 999;
+            $checks[] = $this->buildCheck(
+                'Letztes Backup',
+                $daysSince <= 7 ? 'ok' : ($daysSince <= 30 ? 'warning' : 'critical'),
+                $lastBackup ? "Letztes Backup vor {$daysSince} Tagen." : 'Kein Datenbank-Backup gefunden.'
+            );
         }
 
-        // 13. Admin-Benutzer mit schwachen Passwörtern
         try {
             $weakAdmins = $this->db->get_var(
                 "SELECT COUNT(*) FROM {$this->prefix}users WHERE role = 'admin' AND LENGTH(password) < 50"
             );
-            $checks[] = [
-                'name'   => 'Admin-Passwort-Hashes',
-                'status' => ((int)$weakAdmins === 0) ? 'ok' : 'critical',
-                'detail' => ((int)$weakAdmins === 0)
+            $checks[] = $this->buildCheck(
+                'Admin-Passwort-Hashes',
+                ((int) $weakAdmins === 0) ? 'ok' : 'critical',
+                ((int) $weakAdmins === 0)
                     ? 'Alle Admin-Passwörter sind korrekt gehasht.'
-                    : "{$weakAdmins} Admin-Accounts haben möglicherweise schwache oder ungehashte Passwörter.",
-            ];
-        } catch (\Exception) {
-            // users-Tabelle existiert möglicherweise noch nicht
+                    : "{$weakAdmins} Admin-Accounts haben möglicherweise schwache oder ungehashte Passwörter."
+            );
+        } catch (\Throwable $e) {
+            $this->logFailure('security.audit.weak_admins_failed', 'Admin-Passwort-Hash-Prüfung konnte nicht ausgeführt werden.', [
+                'exception' => $e::class,
+            ]);
         }
 
         return $checks;
@@ -283,7 +287,38 @@ class SecurityAuditModule
     private function inspectHtaccessHeaders(string $abspath): array
     {
         $path = $abspath . '.htaccess';
-        $content = file_exists($path) ? (string)file_get_contents($path) : '';
+        $content = '';
+
+        if (is_file($path) && is_readable($path)) {
+            $warning = null;
+            set_error_handler(static function (int $severity, string $message) use (&$warning): bool {
+                $warning = $message;
+                return true;
+            });
+
+            try {
+                $rawContent = file_get_contents($path, false, null, 0, self::MAX_HTACCESS_BYTES + 1);
+            } finally {
+                restore_error_handler();
+            }
+
+            if (is_string($rawContent)) {
+                if (strlen($rawContent) > self::MAX_HTACCESS_BYTES) {
+                    $this->logFailure('security.audit.htaccess_limit', '.htaccess-Prüfung auf maximale Dateigröße begrenzt.', [
+                        'path' => $path,
+                        'max_bytes' => self::MAX_HTACCESS_BYTES,
+                    ]);
+                    $rawContent = substr($rawContent, 0, self::MAX_HTACCESS_BYTES);
+                }
+
+                $content = $rawContent;
+            } elseif ($warning !== null) {
+                $this->logFailure('security.audit.htaccess_read_failed', '.htaccess konnte für das Sicherheits-Audit nicht gelesen werden.', [
+                    'path' => $path,
+                ]);
+            }
+        }
+
         $normalizedContent = preg_replace('/^\s*#.*$/m', '', $content) ?: $content;
 
         return [
@@ -297,5 +332,127 @@ class SecurityAuditModule
             'hsts_preload' => stripos($normalizedContent, 'preload') !== false,
             'proxy_https_detection' => stripos($normalizedContent, 'X-Forwarded-Proto') !== false,
         ];
+    }
+
+    private function canAccess(): bool
+    {
+        return class_exists('\CMS\Auth') && \CMS\Auth::instance()->isAdmin();
+    }
+
+    /**
+     * @return array{passed:int, warning:int, critical:int, total:int}
+     */
+    private function summarizeChecks(array $checks): array
+    {
+        $summary = ['passed' => 0, 'warning' => 0, 'critical' => 0, 'total' => count($checks)];
+
+        foreach ($checks as $check) {
+            $status = (string) ($check['status'] ?? 'warning');
+            if ($status === 'ok') {
+                $summary['passed']++;
+            } elseif ($status === 'critical') {
+                $summary['critical']++;
+            } else {
+                $summary['warning']++;
+            }
+        }
+
+        return $summary;
+    }
+
+    /**
+     * @return array<int, array<string, scalar|null>>
+     */
+    private function fetchRecentAuditLog(): array
+    {
+        try {
+            $rows = $this->db->get_results(
+                "SELECT created_at, action, user_id, description, category, severity, ip_address, metadata
+                 FROM {$this->prefix}audit_log
+                 WHERE category IN (?, ?)
+                 ORDER BY created_at DESC
+                 LIMIT " . self::MAX_AUDIT_LOG_ROWS,
+                [AuditLogger::CAT_SECURITY, AuditLogger::CAT_AUTH]
+            ) ?: [];
+
+            return array_map(fn (mixed $row): array => $this->normalizeAuditLogRow($row), $rows);
+        } catch (\Throwable $e) {
+            $this->logFailure('security.audit.log_fetch_failed', 'Audit-Log konnte für das Sicherheits-Audit nicht geladen werden.', [
+                'exception' => $e::class,
+            ]);
+
+            return [];
+        }
+    }
+
+    /**
+     * @return array<string, scalar|null>
+     */
+    private function normalizeAuditLogRow(mixed $row): array
+    {
+        $data = is_object($row) ? get_object_vars($row) : (is_array($row) ? $row : []);
+        $metadataPreview = '';
+
+        if (!empty($data['metadata']) && is_string($data['metadata'])) {
+            $metadataPreview = $this->truncateText(trim($data['metadata']), self::MAX_AUDIT_DETAIL_LENGTH);
+        }
+
+        $details = trim((string) ($data['description'] ?? ''));
+        if ($details === '' && $metadataPreview !== '') {
+            $details = $metadataPreview;
+        }
+
+        return [
+            'created_at' => (string) ($data['created_at'] ?? ''),
+            'action' => $this->truncateText((string) ($data['action'] ?? ''), 120),
+            'user_id' => isset($data['user_id']) ? (int) $data['user_id'] : null,
+            'details' => $this->truncateText($details, self::MAX_AUDIT_DETAIL_LENGTH),
+            'category' => $this->truncateText((string) ($data['category'] ?? ''), 40),
+            'severity' => $this->truncateText((string) ($data['severity'] ?? ''), 20),
+            'ip_address' => $this->truncateText((string) ($data['ip_address'] ?? ''), 45),
+        ];
+    }
+
+    /**
+     * @return array{name:string, status:string, detail:string}
+     */
+    private function buildCheck(string $name, string $status, string $detail): array
+    {
+        if (!in_array($status, ['ok', 'warning', 'critical'], true)) {
+            $status = 'warning';
+        }
+
+        return [
+            'name' => $this->truncateText($name, self::MAX_CHECK_NAME_LENGTH),
+            'status' => $status,
+            'detail' => $this->truncateText($detail, self::MAX_CHECK_DETAIL_LENGTH),
+        ];
+    }
+
+    private function truncateText(string $text, int $maxLength): string
+    {
+        $text = trim(preg_replace('/\s+/u', ' ', $text) ?? $text);
+        if ($text === '' || mb_strlen($text) <= $maxLength) {
+            return $text;
+        }
+
+        return rtrim(mb_substr($text, 0, max(1, $maxLength - 1))) . '…';
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function logFailure(string $action, string $message, array $context = []): void
+    {
+        Logger::instance()->withChannel('admin.security-audit')->warning($message, $context);
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SECURITY,
+            $action,
+            $message,
+            'security_audit',
+            null,
+            $context,
+            'warning'
+        );
     }
 }

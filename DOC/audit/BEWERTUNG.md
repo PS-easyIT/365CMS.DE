@@ -163,6 +163,18 @@ ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu ausz
 |---|---|---|---|
 | `CMS/admin/modules/system/DocumentationRenderer.php` | umgesetzt | Doku-Rendering gegen übergroße Markdown-/CSV-Payloads, ausufernde Tabellen und unsaubere Linkziele begrenzt. | Der Renderer erzeugt HTML aus Repository-Dokumenten jetzt kontrollierter, validiert `href`-Ziele enger und hält große oder auffällige Dokumente durch serverseitige Limits und Logging besser im Zaum. |
 
+### Delta Batch 022
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/security/SecurityAuditModule.php` | umgesetzt | Modulzugriff, Audit-Log-Ausgabe, Check-Texte und `.htaccess`-Inspektion defensiver gemacht; Fehlerpfade bleiben generisch. | Das Sicherheits-Audit verarbeitet weniger rohe Audit-Daten, begrenzt große/ungewöhnliche Prüfausgaben serverseitig und vermeidet Detail-Leaks bei Log-Bereinigung oder Teilfehlern im Audit-Lauf. |
+
+### Delta Batch 023
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/legal/CookieManagerModule.php` | umgesetzt | Modulzugriff, Mutationsvalidierung, Settings-Persistenz und Scanner-Grenzen nachgezogen. | Der Cookie-Manager akzeptiert weniger unsaubere Konfigurationspayloads, auditierbare Mutationen laufen kontrollierter und der Scanner bleibt durch Größen-/Mengenlimits deutlich berechenbarer. |
+
 ## Grundlage
 
 Diese Datei bewertet den aktuellen CMS-Codebestand **dateiweise** nach:
@@ -290,7 +302,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/modules/hub/HubTemplateProfileCatalog.php` | Hub-Profilkatalog | Profile, Defaults, Hub-Editor | 84 | 88 | 84 | 85 |
 | `CMS/admin/modules/hub/HubTemplateProfileManager.php` | Hub-Profilmanager | DB, JSON, Hub-Templates | 84 | 74 | 87 | 82 |
 | `CMS/admin/modules/landing/LandingPageModule.php` | Landing-Builder-Logik | DB/Settings, Landing-View | 80 | 74 | 84 | 79 |
-| `CMS/admin/modules/legal/CookieManagerModule.php` | Cookie-Manager-Logik | DB, Settings, Code-Snippets | 72 | 64 | 83 | 73 |
+| `CMS/admin/modules/legal/CookieManagerModule.php` | Cookie-Manager-Logik | DB, Settings, Code-Snippets | 84 | 74 | 86 | 82 |
 | `CMS/admin/modules/legal/DeletionRequestsModule.php` | Löschanfragen-Logik | DB, DSGVO-Hooks | 80 | 76 | 84 | 80 |
 | `CMS/admin/modules/legal/LegalSitesModule.php` | Rechtstexte-Logik | DB, Templates, Escaping | 74 | 62 | 83 | 73 |
 | `CMS/admin/modules/legal/PrivacyRequestsModule.php` | Privacy-Request-Logik | DB, DSGVO-Prozess | 80 | 76 | 84 | 80 |
@@ -304,7 +316,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/modules/posts/PostsModule.php` | Beitragslogik | DB, SEO, Media, Redirects | 83 | 66 | 86 | 79 |
 | `CMS/admin/modules/security/AntispamModule.php` | Antispam-Logik | Settings, Regeln, Security-View | 84 | 86 | 84 | 85 |
 | `CMS/admin/modules/security/FirewallModule.php` | Firewall-Logik | DB, Regeln, Security-Logs | 84 | 73 | 87 | 82 |
-| `CMS/admin/modules/security/SecurityAuditModule.php` | Security-Audit-Logik | Scanner, Settings, Reports | 78 | 68 | 84 | 77 |
+| `CMS/admin/modules/security/SecurityAuditModule.php` | Security-Audit-Logik | Scanner, Settings, Reports | 86 | 73 | 86 | 82 |
 | `CMS/admin/modules/seo/AnalyticsModule.php` | SEO-Analytics-Logik | DB, PageViews, KPIs | 80 | 66 | 84 | 77 |
 | `CMS/admin/modules/seo/PerformanceModule.php` | Performance-Logik | DB, FS, Sessions, Cache | 76 | 58 | 84 | 73 |
 | `CMS/admin/modules/seo/RedirectManagerModule.php` | Redirect-Logik | Redirect-Service, DB | 82 | 78 | 84 | 81 |
@@ -670,7 +682,7 @@ Verwendete Referenzbasis für die Einordnung:
 | Kategorie | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt | Schwächste Dateien | Stärkste Dateien | Audit-Fokus |
 |---|---:|---:|---:|---:|---:|---|---|---|
 | **Admin – Entry-Points** | 81 | 83,4 | 84,1 | 84,8 | 83,9 | `theme-editor.php`, `theme-marketplace.php` | `diagnose.php`, `index.php`, `info.php`, `support.php`, `system-*.php` | Remote-Zugriffe in Marketplace-/Theme-Entrypoints härten |
-| **Admin – Module** | 55 | 79,9 | 73,6 | 84,1 | 79,2 | `LegalSitesModule.php`, `MemberDashboardModule.php`, `CookieManagerModule.php` | `PostsCategoryViewModelBuilder.php`, `SystemInfoModule.php` | Performance- und Qualitäts-Gates für große Module priorisieren |
+| **Admin – Module** | 55 | 80,2 | 73,9 | 84,2 | 79,5 | `LegalSitesModule.php`, `MemberDashboardModule.php` | `PostsCategoryViewModelBuilder.php`, `SystemInfoModule.php` | Performance- und Qualitäts-Gates für große Module priorisieren |
 | **Admin – Layout-Partials** | 4 | 87,5 | 91,0 | 84,3 | 87,5 | `sidebar.php` | `section-page-shell.php` | Bereits stark; nur Regressionen verhindern |
 | **Admin – Views** | 89 | 84,4 | 83,9 | 83,7 | 83,4 | `posts/edit.php`, `pages/edit.php`, `landing/page.php` | `member/subnav.php`, `performance/subnav.php`, `seo/subnav.php` | Editor-Komplexität und Formularpfade weiter entkoppeln |
 | **Admin – View-Partials** | 8 | 89,5 | 94,4 | 84,9 | 89,6 | `featured-image-picker.php` | `content-advanced-seo-panel.php`, `content-preview-card.php`, `content-readability-card.php`, `content-seo-score-panel.php` | Sehr guter Standard – als Referenzmuster konservieren |

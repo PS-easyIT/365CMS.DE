@@ -9,12 +9,32 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\Auth;
 use CMS\AuditLogger;
+use CMS\Logger;
 
 class CookieManagerModule
 {
     private readonly \CMS\Database $db;
     private readonly string $prefix;
+
+    private const int MAX_CATEGORY_NAME_LENGTH = 100;
+    private const int MAX_CATEGORY_DESCRIPTION_LENGTH = 1000;
+    private const int MAX_CATEGORY_SCRIPTS_LENGTH = 20000;
+    private const int MAX_SERVICE_NAME_LENGTH = 150;
+    private const int MAX_PROVIDER_LENGTH = 120;
+    private const int MAX_SERVICE_DESCRIPTION_LENGTH = 2000;
+    private const int MAX_COOKIE_NAMES_LENGTH = 1000;
+    private const int MAX_CODE_SNIPPET_LENGTH = 30000;
+    private const int MAX_SETTING_TEXT_LENGTH = 1000;
+    private const int MAX_SETTING_HTML_LENGTH = 5000;
+    private const int MAX_SCAN_FILES = 400;
+    private const int MAX_SCAN_FILE_BYTES = 262144;
+    private const int MAX_SCAN_PAGE_ROWS = 100;
+    private const int MAX_SCAN_RESULTS = 25;
+    private const int MAX_SCAN_SOURCES_PER_SERVICE = 5;
+    private const int MAX_SCAN_SOURCE_LENGTH = 160;
+    private const int MAX_SORT_ORDER = 10000;
 
     /** @var array<int, array<string, mixed>> */
     private const array DEFAULT_CATEGORIES = [
@@ -178,6 +198,17 @@ class CookieManagerModule
 
     public function getData(): array
     {
+        if (!$this->canAccess()) {
+            return [
+                'categories' => [],
+                'services' => [],
+                'settings' => [],
+                'scan_results' => [],
+                'curated_services' => self::CURATED_SERVICES,
+                'error' => 'Zugriff verweigert.',
+            ];
+        }
+
         $categories = $this->db->get_results(
             "SELECT * FROM {$this->prefix}cookie_categories ORDER BY sort_order, name"
         ) ?: [];
@@ -209,14 +240,7 @@ class CookieManagerModule
             'cookie_scan_last_run',
         ];
         $placeholders = implode(',', array_fill(0, count($settingKeys), '?'));
-        $rows = $this->db->get_results(
-            "SELECT option_name, option_value FROM {$this->prefix}settings WHERE option_name IN ({$placeholders})",
-            $settingKeys
-        ) ?: [];
-        $settings = array_fill_keys($settingKeys, '');
-        foreach ($rows as $row) {
-            $settings[$row->option_name] = $row->option_value;
-        }
+        $settings = $this->getSettingsMap($settingKeys, array_fill_keys($settingKeys, ''));
 
         $scanResults = \CMS\Json::decodeArray($settings['cookie_scan_results'] ?? null, []);
         if (!is_array($scanResults)) {
@@ -235,12 +259,16 @@ class CookieManagerModule
 
     public function saveSettings(array $post): array
     {
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+        }
+
         $keys = [
             'cookie_banner_enabled'  => isset($post['cookie_banner_enabled']) ? '1' : '0',
             'cookie_consent_enabled' => isset($post['cookie_banner_enabled']) ? '1' : '0',
             'cookie_banner_position' => in_array($post['cookie_banner_position'] ?? '', ['bottom', 'top', 'center'], true)
                 ? $post['cookie_banner_position'] : 'bottom',
-            'cookie_banner_text'     => strip_tags($post['cookie_banner_text'] ?? '', '<p><a><strong><em><br>'),
+            'cookie_banner_text'     => $this->sanitizeLimitedHtml((string)($post['cookie_banner_text'] ?? ''), self::MAX_SETTING_HTML_LENGTH, '<p><a><strong><em><br>'),
             'cookie_banner_style'    => in_array($post['cookie_banner_style'] ?? '', ['light', 'dark', 'custom'], true)
                 ? $post['cookie_banner_style'] : 'dark',
             'cookie_lifetime_days'   => (string)max(1, min(365, (int)($post['cookie_lifetime_days'] ?? 30))),
@@ -255,18 +283,26 @@ class CookieManagerModule
             'cookie_matomo_respect_dnt' => isset($post['cookie_matomo_respect_dnt']) ? '1' : '0',
             'cookie_matomo_disable_cookies' => isset($post['cookie_matomo_disable_cookies']) ? '1' : '0',
             'cookie_matomo_log_retention_days' => (string)max(1, min(3650, (int)($post['cookie_matomo_log_retention_days'] ?? 180))),
-            'cookie_matomo_dsgvo_note' => strip_tags((string)($post['cookie_matomo_dsgvo_note'] ?? ''), '<p><a><strong><em><br><ul><ol><li>'),
+            'cookie_matomo_dsgvo_note' => $this->sanitizeLimitedHtml((string)($post['cookie_matomo_dsgvo_note'] ?? ''), self::MAX_SETTING_HTML_LENGTH, '<p><a><strong><em><br><ul><ol><li>'),
         ];
 
         try {
-            foreach ($keys as $key => $value) {
-                $exists = $this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?", [$key]);
-                if ($exists) {
-                    $this->db->update('settings', ['option_value' => $value], ['option_name' => $key]);
-                } else {
-                    $this->db->insert('settings', ['option_name' => $key, 'option_value' => $value]);
-                }
-            }
+            $this->storeSettings($keys);
+
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SETTING,
+                'legal.cookies.settings.save',
+                'Cookie-Einstellungen gespeichert',
+                'cookie_manager',
+                null,
+                [
+                    'consent_enabled' => $keys['cookie_consent_enabled'],
+                    'banner_position' => $keys['cookie_banner_position'],
+                    'banner_style' => $keys['cookie_banner_style'],
+                ],
+                'info'
+            );
+
             return ['success' => true, 'message' => 'Cookie-Einstellungen gespeichert.'];
         } catch (\Throwable $e) {
 			return $this->failResult('legal.cookies.settings.save_failed', 'Cookie-Einstellungen konnten nicht gespeichert werden.', $e);
@@ -275,8 +311,12 @@ class CookieManagerModule
 
     public function saveCategory(array $post): array
     {
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+        }
+
         $id   = (int)($post['category_id'] ?? 0);
-        $name = trim($post['category_name'] ?? '');
+        $name = $this->sanitizeText((string)($post['category_name'] ?? ''), self::MAX_CATEGORY_NAME_LENGTH);
         if ($name === '') {
             return ['success' => false, 'error' => 'Name ist erforderlich.'];
         }
@@ -292,19 +332,41 @@ class CookieManagerModule
         $data = [
             'name'        => $name,
             'slug'        => $slug,
-            'description' => strip_tags($post['category_description'] ?? ''),
+            'description' => $this->sanitizeText((string)($post['category_description'] ?? ''), self::MAX_CATEGORY_DESCRIPTION_LENGTH),
             'is_required' => $isRequired,
             'is_active'   => $isActive,
-            'scripts'     => strip_tags($post['category_scripts'] ?? '', '<script><noscript>'),
-            'sort_order'  => (int)($post['sort_order'] ?? 0),
+            'scripts'     => $this->sanitizeLimitedHtml((string)($post['category_scripts'] ?? ''), self::MAX_CATEGORY_SCRIPTS_LENGTH, '<script><noscript>'),
+            'sort_order'  => max(-self::MAX_SORT_ORDER, min(self::MAX_SORT_ORDER, (int)($post['sort_order'] ?? 0))),
         ];
 
         try {
+            if ($this->slugExistsInTable('cookie_categories', $slug, $id)) {
+                return ['success' => false, 'error' => 'Der Kategorie-Slug ist bereits vergeben.'];
+            }
+
             if ($id > 0) {
                 $this->db->update('cookie_categories', $data, ['id' => $id]);
+                AuditLogger::instance()->log(
+                    AuditLogger::CAT_SETTING,
+                    'legal.cookies.category.update',
+                    'Cookie-Kategorie aktualisiert',
+                    'cookie_category',
+                    $id,
+                    ['slug' => $slug, 'is_required' => $isRequired, 'is_active' => $isActive],
+                    'warning'
+                );
                 return ['success' => true, 'message' => 'Kategorie aktualisiert.'];
             }
             $this->db->insert('cookie_categories', $data);
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SETTING,
+                'legal.cookies.category.create',
+                'Cookie-Kategorie erstellt',
+                'cookie_category',
+                null,
+                ['slug' => $slug, 'is_required' => $isRequired, 'is_active' => $isActive],
+                'warning'
+            );
             return ['success' => true, 'message' => 'Kategorie erstellt.'];
         } catch (\Throwable $e) {
 			return $this->failResult('legal.cookies.category.save_failed', 'Kategorie konnte nicht gespeichert werden.', $e);
@@ -313,29 +375,57 @@ class CookieManagerModule
 
     public function deleteCategory(int $id): array
     {
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+        }
+
         if ($id <= 0) {
             return ['success' => false, 'error' => 'Ungültige ID.'];
         }
         $cat = $this->db->get_row(
-            "SELECT is_required FROM {$this->prefix}cookie_categories WHERE id = ?",
+            "SELECT id, slug, is_required FROM {$this->prefix}cookie_categories WHERE id = ?",
             [$id]
         );
         if ($cat && (int)$cat->is_required === 1) {
             return ['success' => false, 'error' => 'Pflicht-Kategorien können nicht gelöscht werden.'];
         }
+
+        $assignedServices = (int)$this->db->get_var(
+            "SELECT COUNT(*) FROM {$this->prefix}cookie_services WHERE category_slug = ?",
+            [(string)($cat->slug ?? '')]
+        );
+        if ($assignedServices > 0) {
+            return ['success' => false, 'error' => 'Kategorie wird noch von Services verwendet und kann nicht gelöscht werden.'];
+        }
+
         $this->db->delete('cookie_categories', ['id' => $id]);
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            'legal.cookies.category.delete',
+            'Cookie-Kategorie gelöscht',
+            'cookie_category',
+            $id,
+            ['slug' => (string)($cat->slug ?? '')],
+            'warning'
+        );
+
         return ['success' => true, 'message' => 'Kategorie gelöscht.'];
     }
 
     public function saveService(array $post): array
     {
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+        }
+
         $id = (int)($post['service_id'] ?? 0);
-        $name = trim((string)($post['service_name'] ?? ''));
+        $name = $this->sanitizeText((string)($post['service_name'] ?? ''), self::MAX_SERVICE_NAME_LENGTH);
         $slug = trim((string)($post['service_slug'] ?? ''));
-        $provider = trim((string)($post['service_provider'] ?? ''));
+        $provider = $this->sanitizeText((string)($post['service_provider'] ?? ''), self::MAX_PROVIDER_LENGTH);
         $categorySlug = trim((string)($post['category_slug'] ?? 'necessary'));
-        $description = trim((string)($post['service_description'] ?? ''));
-        $cookieNames = trim((string)($post['cookie_names'] ?? ''));
+        $description = $this->sanitizeText((string)($post['service_description'] ?? ''), self::MAX_SERVICE_DESCRIPTION_LENGTH);
+        $cookieNames = $this->sanitizeCookieNames((string)($post['cookie_names'] ?? ''));
         $codeSnippet = trim((string)($post['code_snippet'] ?? ''));
         $isEssential = isset($post['is_essential']) ? 1 : 0;
         $isActive = $isEssential === 1 ? 1 : (isset($post['is_active']) ? 1 : 0);
@@ -374,18 +464,40 @@ class CookieManagerModule
             'category_slug' => $categorySlug,
             'description' => $description,
             'cookie_names' => $cookieNames,
-            'code_snippet' => strip_tags($codeSnippet, '<script><noscript><iframe><img><div><span><a>'),
+            'code_snippet' => $this->sanitizeLimitedHtml($codeSnippet, self::MAX_CODE_SNIPPET_LENGTH, '<script><noscript><iframe><img><div><span><a>'),
             'is_essential' => $isEssential,
             'is_active' => $isActive,
         ];
 
         try {
+            if ($this->slugExistsInTable('cookie_services', $slug, $id)) {
+                return ['success' => false, 'error' => 'Der Service-Slug ist bereits vergeben.'];
+            }
+
             if ($id > 0) {
                 $this->db->update('cookie_services', $data, ['id' => $id]);
+                AuditLogger::instance()->log(
+                    AuditLogger::CAT_SETTING,
+                    'legal.cookies.service.update',
+                    'Cookie-Service aktualisiert',
+                    'cookie_service',
+                    $id,
+                    ['slug' => $slug, 'category_slug' => $categorySlug, 'is_essential' => $isEssential, 'is_active' => $isActive],
+                    'warning'
+                );
                 return ['success' => true, 'message' => 'Service aktualisiert.'];
             }
 
             $this->db->insert('cookie_services', $data);
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SETTING,
+                'legal.cookies.service.create',
+                'Cookie-Service angelegt',
+                'cookie_service',
+                null,
+                ['slug' => $slug, 'category_slug' => $categorySlug, 'is_essential' => $isEssential, 'is_active' => $isActive],
+                'warning'
+            );
             return ['success' => true, 'message' => 'Service angelegt.'];
         } catch (\Throwable $e) {
 			return $this->failResult('legal.cookies.service.save_failed', 'Service konnte nicht gespeichert werden.', $e);
@@ -394,12 +506,16 @@ class CookieManagerModule
 
     public function deleteService(int $id): array
     {
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+        }
+
         if ($id <= 0) {
             return ['success' => false, 'error' => 'Ungültige ID.'];
         }
 
         $service = $this->db->get_row(
-            "SELECT is_essential FROM {$this->prefix}cookie_services WHERE id = ? LIMIT 1",
+            "SELECT id, slug, is_essential FROM {$this->prefix}cookie_services WHERE id = ? LIMIT 1",
             [$id]
         );
         if ($service && (int)$service->is_essential === 1) {
@@ -407,11 +523,26 @@ class CookieManagerModule
         }
 
         $this->db->delete('cookie_services', ['id' => $id]);
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            'legal.cookies.service.delete',
+            'Cookie-Service gelöscht',
+            'cookie_service',
+            $id,
+            ['slug' => (string)($service->slug ?? '')],
+            'warning'
+        );
+
         return ['success' => true, 'message' => 'Service gelöscht.'];
     }
 
     public function importCuratedService(string $slug, bool $selfHosted = false): array
     {
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+        }
+
         $slug = trim($slug);
         if (!isset(self::CURATED_SERVICES[$slug])) {
             return ['success' => false, 'error' => 'Unbekannter Standard-Service.'];
@@ -449,18 +580,42 @@ class CookieManagerModule
 
         if ($existing > 0) {
             $this->db->update('cookie_services', $data, ['slug' => $slug]);
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SETTING,
+                'legal.cookies.service.import.update',
+                'Standard-Service aktualisiert',
+                'cookie_service',
+                null,
+                ['slug' => $slug, 'self_hosted' => $selfHosted ? '1' : '0'],
+                'info'
+            );
             return ['success' => true, 'message' => 'Vorhandener Service wurde auf die gewählte Matomo-Konfiguration aktualisiert.'];
         }
 
         $this->db->insert('cookie_services', $data);
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            'legal.cookies.service.import',
+            'Standard-Service übernommen',
+            'cookie_service',
+            null,
+            ['slug' => $slug, 'self_hosted' => $selfHosted ? '1' : '0'],
+            'info'
+        );
 
         return ['success' => true, 'message' => 'Standard-Service wurde übernommen.'];
     }
 
     public function runScanner(): array
     {
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+        }
+
         $detected = [];
         $sources = [];
+        $scannedFiles = 0;
 
         $scanTargets = [
             defined('ABSPATH') ? ABSPATH . 'themes/' : '',
@@ -475,6 +630,10 @@ class CookieManagerModule
 
             $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($target, \FilesystemIterator::SKIP_DOTS));
             foreach ($iterator as $file) {
+                if ($scannedFiles >= self::MAX_SCAN_FILES) {
+                    break;
+                }
+
                 if ($file->isLink()) {
                     continue;
                 }
@@ -483,43 +642,64 @@ class CookieManagerModule
                     continue;
                 }
 
-                $content = @file_get_contents($file->getPathname());
+                $size = (int)$file->getSize();
+                if ($size <= 0 || $size > self::MAX_SCAN_FILE_BYTES) {
+                    continue;
+                }
+
+                $content = @file_get_contents($file->getPathname(), false, null, 0, self::MAX_SCAN_FILE_BYTES + 1);
                 if (!is_string($content) || $content === '') {
                     continue;
                 }
 
-                $this->collectMatches($content, str_replace((string)ABSPATH, '', $file->getPathname()), $detected, $sources);
+                $scannedFiles++;
+                $this->collectMatches($content, $this->normalizeScanSource(str_replace((string)ABSPATH, '', $file->getPathname())), $detected, $sources);
             }
         }
 
         try {
-            $pageRows = $this->db->get_results("SELECT slug, title, content FROM {$this->prefix}pages ORDER BY id DESC LIMIT 250") ?: [];
+            $pageRows = $this->db->get_results("SELECT slug, title, content FROM {$this->prefix}pages ORDER BY id DESC LIMIT " . self::MAX_SCAN_PAGE_ROWS) ?: [];
             foreach ($pageRows as $row) {
                 $content = (string)($row->content ?? '');
                 if ($content !== '') {
-                    $this->collectMatches($content, 'DB: page/' . ($row->slug ?: $row->title ?: 'unbekannt'), $detected, $sources);
+                    $this->collectMatches($content, $this->normalizeScanSource('DB: page/' . ($row->slug ?: $row->title ?: 'unbekannt')), $detected, $sources);
                 }
             }
 
             $this->scanConfiguredAnalyticsServices($detected, $sources);
             $this->scanSnippetSettings($detected, $sources);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logFailure('legal.cookies.scan.read_failed', 'Cookie-Scanner konnte nicht vollständig ausgeführt werden.', $e, ['scanned_files' => $scannedFiles]);
         }
 
         $results = [];
         foreach ($detected as $slug => $name) {
+            if (count($results) >= self::MAX_SCAN_RESULTS) {
+                break;
+            }
+
             $results[] = [
                 'slug' => $slug,
                 'name' => $name,
                 'provider' => self::CURATED_SERVICES[$slug]['provider'] ?? '',
                 'category_slug' => self::CURATED_SERVICES[$slug]['category_slug'] ?? 'necessary',
-                'sources' => array_values(array_unique($sources[$slug] ?? [])),
+                'sources' => array_slice(array_values(array_unique($sources[$slug] ?? [])), 0, self::MAX_SCAN_SOURCES_PER_SERVICE),
                 'self_hostable' => $slug === 'matomo',
             ];
         }
 
         $this->storeSetting('cookie_scan_results', json_encode($results, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '[]');
         $this->storeSetting('cookie_scan_last_run', date('Y-m-d H:i:s'));
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            'legal.cookies.scan.run',
+            'Cookie-Scanner ausgeführt',
+            'cookie_manager',
+            null,
+            ['matches' => count($results), 'scanned_files' => $scannedFiles],
+            'info'
+        );
 
         return ['success' => true, 'message' => count($results) . ' Services/Signaturen erkannt.', 'results' => $results];
     }
@@ -531,7 +711,13 @@ class CookieManagerModule
             foreach ((array)($service['patterns'] ?? []) as $pattern) {
                 if ($pattern !== '' && str_contains($contentLower, strtolower((string)$pattern))) {
                     $detected[$slug] = (string)$service['name'];
-                    $sources[$slug][] = $source;
+                    if (!isset($sources[$slug])) {
+                        $sources[$slug] = [];
+                    }
+
+                    if (count($sources[$slug]) < self::MAX_SCAN_SOURCES_PER_SERVICE) {
+                        $sources[$slug][] = $this->normalizeScanSource($source);
+                    }
                     break;
                 }
             }
@@ -594,13 +780,14 @@ class CookieManagerModule
         $settings = $this->getSettingsMap($settingNames);
         foreach ($settings as $optionName => $content) {
             if ($this->shouldScanSettingValue($optionName, $content)) {
-                $this->collectMatches($content, 'DB: setting/' . $optionName, $detected, $sources);
+                $this->collectMatches($content, $this->normalizeScanSource('DB: setting/' . $optionName), $detected, $sources);
             }
         }
     }
 
-    /** @return array<string, string> */
-    private function getSettingsMap(array $settingNames): array
+    /** @param array<string, string> $defaults
+     *  @return array<string, string> */
+    private function getSettingsMap(array $settingNames, array $defaults = []): array
     {
         if ($settingNames === []) {
             return [];
@@ -612,7 +799,7 @@ class CookieManagerModule
             $settingNames
         ) ?: [];
 
-        $settings = [];
+        $settings = $defaults;
         foreach ($rows as $row) {
             $settings[(string)$row->option_name] = (string)$row->option_value;
         }
@@ -685,12 +872,23 @@ class CookieManagerModule
             }
 
             $slug = (string)($result['slug'] ?? '');
-            $sources = array_values(array_filter(array_map('strval', (array)($result['sources'] ?? []))));
+            if ($slug === '' || !isset(self::CURATED_SERVICES[$slug])) {
+                continue;
+            }
+
+            $sources = array_slice(
+                array_values(array_filter(array_map(fn($value) => $this->normalizeScanSource((string)$value), (array)($result['sources'] ?? [])))),
+                0,
+                self::MAX_SCAN_SOURCES_PER_SERVICE
+            );
 
             if ($this->isStoredResultFalsePositive($slug, $sources)) {
                 continue;
             }
 
+            $result['name'] = $this->sanitizeText((string)($result['name'] ?? self::CURATED_SERVICES[$slug]['name']), self::MAX_SERVICE_NAME_LENGTH, (string)self::CURATED_SERVICES[$slug]['name']);
+            $result['provider'] = $this->sanitizeText((string)($result['provider'] ?? self::CURATED_SERVICES[$slug]['provider']), self::MAX_PROVIDER_LENGTH, (string)self::CURATED_SERVICES[$slug]['provider']);
+            $result['category_slug'] = $this->sanitizeSlug((string)($result['category_slug'] ?? self::CURATED_SERVICES[$slug]['category_slug']), (string)self::CURATED_SERVICES[$slug]['category_slug'], 'necessary');
             $result['sources'] = $sources;
             $result['self_hostable'] = $slug === 'matomo';
             $normalized[] = $result;
@@ -735,6 +933,46 @@ class CookieManagerModule
         }
 
         $this->db->insert('settings', ['option_name' => $key, 'option_value' => $value]);
+    }
+
+    /** @param array<string, string> $values */
+    private function storeSettings(array $values): void
+    {
+        if ($values === []) {
+            return;
+        }
+
+        $existing = $this->getExistingSettingNames(array_keys($values));
+        foreach ($values as $key => $value) {
+            if (isset($existing[$key])) {
+                $this->db->update('settings', ['option_value' => $value], ['option_name' => $key]);
+                continue;
+            }
+
+            $this->db->insert('settings', ['option_name' => $key, 'option_value' => $value]);
+        }
+    }
+
+    /** @param list<string> $keys
+     *  @return array<string, true> */
+    private function getExistingSettingNames(array $keys): array
+    {
+        if ($keys === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($keys), '?'));
+        $rows = $this->db->get_results(
+            "SELECT option_name FROM {$this->prefix}settings WHERE option_name IN ({$placeholders})",
+            $keys
+        ) ?: [];
+
+        $existing = [];
+        foreach ($rows as $row) {
+            $existing[(string)$row->option_name] = true;
+        }
+
+        return $existing;
     }
 
     private function sanitizeOptionalUrl(string $url): string
@@ -799,6 +1037,35 @@ class CookieManagerModule
         return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
     }
 
+    private function sanitizeLimitedHtml(string $value, int $maxLength, string $allowedTags = ''): string
+    {
+        $value = trim(strip_tags($value, $allowedTags));
+        if ($value === '') {
+            return '';
+        }
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
+    }
+
+    private function sanitizeCookieNames(string $value): string
+    {
+        $parts = preg_split('/[,\n\r;]+/', $value) ?: [];
+        $normalized = [];
+
+        foreach ($parts as $part) {
+            $cookie = preg_replace('/[^a-zA-Z0-9_.-]/', '', trim((string)$part)) ?? '';
+            if ($cookie === '' || isset($normalized[$cookie])) {
+                continue;
+            }
+
+            $normalized[$cookie] = $cookie;
+        }
+
+        $result = implode(', ', array_values($normalized));
+
+        return function_exists('mb_substr') ? mb_substr($result, 0, self::MAX_COOKIE_NAMES_LENGTH) : substr($result, 0, self::MAX_COOKIE_NAMES_LENGTH);
+    }
+
     private function sanitizeSlug(string $value, string $fallbackSource, string $prefix): string
     {
         $source = $value !== '' ? $value : $fallbackSource;
@@ -812,15 +1079,66 @@ class CookieManagerModule
         return function_exists('mb_substr') ? mb_substr($slug, 0, 120) : substr($slug, 0, 120);
     }
 
+    private function slugExistsInTable(string $table, string $slug, int $excludeId = 0): bool
+    {
+        $query = "SELECT COUNT(*) FROM {$this->prefix}{$table} WHERE slug = ?";
+        $params = [$slug];
+
+        if ($excludeId > 0) {
+            $query .= ' AND id != ?';
+            $params[] = $excludeId;
+        }
+
+        return (int)$this->db->get_var($query, $params) > 0;
+    }
+
+    private function normalizeScanSource(string $source): string
+    {
+        $source = trim(str_replace('\\', '/', $source));
+        $source = preg_replace('#/+#', '/', $source) ?? $source;
+
+        if (defined('ABSPATH')) {
+            $source = str_replace(str_replace('\\', '/', (string)ABSPATH), '', $source);
+        }
+
+        $source = ltrim($source, '/');
+        if (str_starts_with($source, 'DB: ')) {
+            $source = 'DB: ' . ltrim(substr($source, 4), '/');
+        }
+
+        if ($source === '') {
+            return 'unbekannt';
+        }
+
+        return function_exists('mb_substr') ? mb_substr($source, 0, self::MAX_SCAN_SOURCE_LENGTH) : substr($source, 0, self::MAX_SCAN_SOURCE_LENGTH);
+    }
+
+    private function canAccess(): bool
+    {
+        return Auth::instance()->isAdmin();
+    }
+
+    /** @param array<string, scalar|null> $context */
+    private function logFailure(string $action, string $message, \Throwable $e, array $context = []): void
+    {
+        Logger::error($message, [
+            'module' => 'CookieManagerModule',
+            'action' => $action,
+            'exception' => $e::class,
+        ] + $context);
+    }
+
     private function failResult(string $action, string $message, \Throwable $e): array
     {
+        $this->logFailure($action, $message, $e);
+
         AuditLogger::instance()->log(
             AuditLogger::CAT_SETTING,
             $action,
             $message,
             'cookie_manager',
             null,
-            ['exception' => $e->getMessage()],
+            ['exception' => $e::class],
             'error'
         );
 

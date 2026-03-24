@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.39-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.41-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,26 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.6.41 — 24. März 2026 · Audit-Batch 023, Cookie-Manager-Modul gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.41** | 🔴 fix | Admin/Legal | **Cookie-Manager-Modul gegen unsaubere Mutationen und lose Zugriffsannahmen gehärtet**: `CMS/admin/modules/legal/CookieManagerModule.php` prüft Admin-Zugriff jetzt auch intern, validiert Kategorie-/Service-Payloads strenger und blockiert doppelte Slugs sowie das Löschen noch verwendeter Kategorien serverseitig. |
+| **2.6.41** | 🔴 fix | Admin/Legal | **Cookie-Scanner begrenzt und normalisiert**: Datei- und DB-Scans lesen nur noch begrenzte Größen/Mengen, kürzen Quellen/Resultate und normalisieren gespeicherte Treffer auf bekannte kuratierte Services zurück. |
+| **2.6.41** | 🟡 refactor | Admin/Legal | **Settings- und Audit-Pfade vereinheitlicht**: Cookie-Settings werden gesammelt persistiert statt per wiederholtem Existenz-Check, während Mutationen und Scanner-Läufe zusätzlich nachvollziehbar im Audit-Log landen. |
+
+---
+
+### v2.6.40 — 24. März 2026 · Audit-Batch 022, Security-Audit-Modul gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.40** | 🔴 fix | Admin/Security | **Security-Audit-Modul gegen rohe Audit-Daten und Detail-Leaks gehärtet**: `CMS/admin/modules/security/SecurityAuditModule.php` liest nur noch relevante Security-/Auth-Logfelder, begrenzt Audit-Details und Check-Texte serverseitig und schützt den Modulzugriff zusätzlich gegen unberechtigte Aufrufe ab. |
+| **2.6.40** | 🔴 fix | Admin/Security | **Log-Bereinigung und Teilfehler liefern nur noch generische UI-Meldungen**: Fehlschläge bei `clearLog()`, Passwort-Hash-Checks oder Audit-Log-Ladevorgängen werden intern geloggt und auditierbar protokolliert, ohne rohe Exception-Texte in die Oberfläche zu leaken. |
+| **2.6.40** | 🟡 refactor | Admin/Security | **.htaccess-Inspektion und Audit-Checks defensiver normalisiert**: Header-Fallback-Prüfung liest die Root-`.htaccess` nur noch begrenzt ein und das Modul bündelt Status-/Textnormalisierung zentral über kleine Helper. |
 
 ---
 
