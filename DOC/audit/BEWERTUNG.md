@@ -5,13 +5,13 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 037
+### Gesamtstand nach Batch 038
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 445 | 81,81 | 80,76 | 83,60 | 82,05 |
+| 445 | 81,82 | 80,79 | 83,60 | 82,07 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **37 umgesetzte Audit-Batches**. Zuletzt wurde `CMS/admin/modules/system/DocumentationGitSync.php` auf Ref-, Parallelitäts- und lokalen Änderungszustand-Ebene deutlich härter gezogen.
+Der aktuelle Nachpflege-Stand umfasst damit **38 umgesetzte Audit-Batches**. Zuletzt wurde `CMS/admin/modules/seo/SeoSuiteModule.php` auf Input-, Persistenz- und Fehlerkontext-Ebene weiter nachgeschärft.
 
 ### Delta Batch 001
 
@@ -267,6 +267,12 @@ Der aktuelle Nachpflege-Stand umfasst damit **37 umgesetzte Audit-Batches**. Zul
 |---|---|---|---|
 | `CMS/admin/modules/system/DocumentationGitSync.php` | umgesetzt | Remote-Ref-Prüfung, Parallel-Lock, Local-Change-Gate und robustere Runtime-Fehlerpfade nachgezogen. | Der Git-basierte Doku-Sync serialisiert parallele Läufe, überschreibt lokale `/DOC`-Änderungen nicht mehr still, prüft den Ziel-Ref vor dem Checkout und kapselt Status-/Runtime-Fehler weiter in sanitierte, auditierbare Modulpfade. |
 
+### Delta Batch 038
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/seo/SeoSuiteModule.php` | umgesetzt | Allowlist-Gates für Submission-/Social-Werte, sanitierte Fehlerkontexte, N+1-freies Settings-Persistieren und bereinigte Sitemap-Dateistatusdaten nachgezogen. | Das SEO-Suite-Modul akzeptiert weniger lose Admin-Payloads, speichert Settings effizienter und gibt weder rohe Fehlertexte noch absolute Dateisystempfade unnötig in UI-/Audit-Kontexte weiter. |
+
 ## Grundlage
 
 Diese Datei bewertet den aktuellen CMS-Codebestand **dateiweise** nach:
@@ -413,7 +419,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/modules/seo/PerformanceModule.php` | Performance-Logik | DB, FS, Sessions, Cache | 76 | 58 | 84 | 73 |
 | `CMS/admin/modules/seo/RedirectManagerModule.php` | Redirect-Logik | Redirect-Service, DB | 82 | 78 | 84 | 81 |
 | `CMS/admin/modules/seo/SeoDashboardModule.php` | SEO-Dashboard-Logik | SEO-Services, KPIs | 84 | 82 | 84 | 83 |
-| `CMS/admin/modules/seo/SeoSuiteModule.php` | SEO-Suite-Kernlogik | SEO/Analytics/Indexing/Redirect | 76 | 56 | 84 | 72 |
+| `CMS/admin/modules/seo/SeoSuiteModule.php` | SEO-Suite-Kernlogik | SEO/Analytics/Indexing/Redirect | 84 | 68 | 86 | 79 |
 | `CMS/admin/modules/settings/SettingsModule.php` | Settings-Kernlogik | DB, Mail, URL-Migration | 76 | 60 | 84 | 74 |
 | `CMS/admin/modules/subscriptions/OrdersModule.php` | Orders-Logik | DB, Abos, Zahlungsdaten | 80 | 76 | 84 | 80 |
 | `CMS/admin/modules/subscriptions/PackagesModule.php` | Paket-Logik | DB, Paket-CRUD | 82 | 80 | 84 | 82 |

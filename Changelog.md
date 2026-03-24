@@ -20,6 +20,16 @@
 
 ---
 
+### v2.6.56 — 24. März 2026 · Audit-Batch 038, SEO-Suite-Modul nachgeschärft
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.56** | 🔴 fix | Admin/SEO | **Submission- und Social-Defaults restriktiver validiert**: `CMS/admin/modules/seo/SeoSuiteModule.php` akzeptiert Submission-Ziele, OG-Typen und Twitter-Card-Werte nur noch über explizite Allowlists; Matomo-Site-IDs werden serverseitig auf positive Ganzzahlen reduziert. |
+| **2.6.56** | 🟠 perf | Admin/SEO | **Settings-Persistenz ohne N+1-Existenzchecks**: beim Speichern von SEO-Einstellungen werden vorhandene Setting-Keys jetzt gesammelt vorgeladen, statt pro Einzelwert erst ein zusätzlicher COUNT-Query zu laufen. |
+| **2.6.56** | 🟡 refactor | Admin/SEO | **Fehler- und Statusdaten bereinigt**: Audit-Fehlertexte werden sanitisiert protokolliert und Sitemap-Dateistatusdaten liefern keine absoluten Serverpfade mehr an die Admin-Oberfläche weiter. |
+
+---
+
 ### v2.6.55 — 24. März 2026 · Audit-Batch 037, Git-Doku-Sync gehärtet
 
 | Version | Typ | Bereich | Beschreibung |

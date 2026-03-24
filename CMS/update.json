@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.6.55",
+  "version": "2.6.56",
   "min_php": "8.4",
   "released": "2026-03-24",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release 2.6.55: Der Git-basierte Doku-Sync fetcht restriktiver, prüft Remote-Refs vor dem Checkout, blockt parallele Synchronisationen per Lockfile, überschreibt keine lokalen /DOC-Änderungen still und hält Git-Fehlerpfade weiter generisch mit sanitierter interner Protokollierung.",
+  "notes": "Release 2.6.56: Das SEO-Suite-Modul validiert Submission-Targets und Social-Defaults restriktiver, sanitisiert technische Fehlerkontexte, reduziert N+1-Settings-Checks beim Speichern und gibt Sitemap-Dateistatus ohne absolute Serverpfade zurück.",
   "critical": false
 }

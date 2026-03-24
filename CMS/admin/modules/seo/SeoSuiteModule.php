@@ -85,6 +85,9 @@ final class SeoSuiteModule
 	];
 
 	private const MAX_INDEXING_URLS = 100;
+	private const ALLOWED_SUBMISSION_TARGETS = ['indexnow', 'google'];
+	private const ALLOWED_OG_TYPES = ['website', 'article', 'profile'];
+	private const ALLOWED_TWITTER_CARDS = ['summary', 'summary_large_image'];
 
 	private const ALLOWED_CHANGEFREQ = [
 		'always',
@@ -159,7 +162,7 @@ final class SeoSuiteModule
 	{
 		try {
 			$bundleSaved = (bool)$this->seoService->saveSitemapBundle();
-			$lastError = trim((string)$this->seoService->getLastSitemapError());
+			$lastError = $this->sanitizeLogValue((string)$this->seoService->getLastSitemapError(), 240);
 
 			if (!$bundleSaved) {
 				AuditLogger::instance()->log(
@@ -183,7 +186,7 @@ final class SeoSuiteModule
 				'Sitemap-Bundle-Generierung fehlgeschlagen',
 				'seo',
 				null,
-				['exception' => $e->getMessage()],
+				['exception' => $this->sanitizeLogValue($e->getMessage(), 240)],
 				'error'
 			);
 
@@ -228,9 +231,9 @@ final class SeoSuiteModule
 	public function saveSocialDefaults(array $post): array
 	{
 		$this->persistSettings([
-			'seo_social_default_og_type' => trim((string)($post['default_og_type'] ?? 'website')),
+			'seo_social_default_og_type' => $this->normalizeAllowedValue((string)($post['default_og_type'] ?? 'website'), self::ALLOWED_OG_TYPES, 'website'),
 			'seo_social_default_image' => $this->normalizeOptionalUrl((string)($post['default_image'] ?? ''), true),
-			'seo_social_default_twitter_card' => trim((string)($post['default_twitter_card'] ?? 'summary_large_image')),
+			'seo_social_default_twitter_card' => $this->normalizeAllowedValue((string)($post['default_twitter_card'] ?? 'summary_large_image'), self::ALLOWED_TWITTER_CARDS, 'summary_large_image'),
 			'seo_social_brand_name' => trim((string)($post['brand_name'] ?? '')),
 			'seo_social_facebook_page' => $this->normalizeOptionalUrl((string)($post['facebook_page'] ?? ''), false),
 			'seo_social_twitter_profile' => trim((string)($post['twitter_profile'] ?? '')),
@@ -279,7 +282,7 @@ final class SeoSuiteModule
 			'seo_analytics_gsc_property' => trim((string)($post['gsc_property'] ?? '')),
 			'seo_analytics_ga4_id' => $this->normalizeTrackingId((string)($post['ga4_id'] ?? ''), '/^G-[A-Z0-9\-]+$/i'),
 			'seo_analytics_matomo_url' => $this->normalizeOptionalUrl((string)($post['matomo_url'] ?? ''), false),
-			'seo_analytics_matomo_site_id' => trim((string)($post['matomo_site_id'] ?? '1')),
+			'seo_analytics_matomo_site_id' => $this->normalizePositiveIntString($post['matomo_site_id'] ?? '1', '1'),
 			'seo_analytics_gtm_id' => $this->normalizeTrackingId((string)($post['gtm_id'] ?? ''), '/^GTM-[A-Z0-9\-]+$/i'),
 			'seo_analytics_fb_pixel_id' => $this->normalizeTrackingId((string)($post['fb_pixel_id'] ?? ''), '/^[0-9]{5,20}$/'),
 			'seo_analytics_exclude_admins' => !empty($post['exclude_admins']) ? '1' : '0',
@@ -321,7 +324,10 @@ final class SeoSuiteModule
 
 		$targets = $post['submission_target'] ?? [];
 		$targets = is_array($targets) ? $targets : [$targets];
-		$targets = array_values(array_filter(array_map('strval', $targets)));
+		$targets = array_values(array_unique(array_filter(array_map(
+			fn($target): string => $this->normalizeAllowedValue((string)$target, self::ALLOWED_SUBMISSION_TARGETS, ''),
+			$targets
+		))));
 
 		if ($targets === []) {
 			return ['success' => false, 'error' => 'Bitte mindestens ein Ziel für die URL-Submission wählen.'];
@@ -737,7 +743,7 @@ final class SeoSuiteModule
 			$exists = file_exists($path);
 			$result[$file] = [
 				'exists' => $exists,
-				'path' => $path,
+				'path' => '/' . $file,
 				'updated_at' => $exists ? date('d.m.Y H:i', (int)filemtime($path)) : null,
 				'size' => $exists ? (int)filesize($path) : 0,
 			];
@@ -772,11 +778,26 @@ final class SeoSuiteModule
 
 	private function persistSettings(array $values): void
 	{
+		if ($values === []) {
+			return;
+		}
+
+		$keys = array_map('strval', array_keys($values));
+		$placeholders = implode(',', array_fill(0, count($keys), '?'));
+		$existingRows = $this->db->get_results(
+			"SELECT option_name FROM {$this->prefix}settings WHERE option_name IN ({$placeholders})",
+			$keys
+		) ?: [];
+		$existing = [];
+		foreach ($existingRows as $row) {
+			$name = (string)($row->option_name ?? '');
+			if ($name !== '') {
+				$existing[$name] = true;
+			}
+		}
+
 		foreach ($values as $key => $value) {
-			$exists = (int)$this->db->get_var(
-				"SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?",
-				[(string)$key]
-			) > 0;
+			$exists = isset($existing[(string)$key]);
 
 			if ($exists) {
 				$this->db->execute(
@@ -887,6 +908,13 @@ final class SeoSuiteModule
 		return $sanitized;
 	}
 
+	private function normalizeAllowedValue(string $value, array $allowed, string $fallback): string
+	{
+		$value = strtolower(trim($value));
+
+		return in_array($value, $allowed, true) ? $value : $fallback;
+	}
+
 	private function normalizeTrackingId(string $value, string $pattern): string
 	{
 		$value = trim($value);
@@ -895,6 +923,13 @@ final class SeoSuiteModule
 		}
 
 		return preg_match($pattern, $value) === 1 ? $value : '';
+	}
+
+	private function normalizePositiveIntString(mixed $value, string $fallback): string
+	{
+		$number = (int)$value;
+
+		return $number > 0 ? (string)$number : $fallback;
 	}
 
 	private function normalizeSitemapPriority(string $value, string $fallback): string
@@ -986,5 +1021,12 @@ final class SeoSuiteModule
 
 			return $row;
 		}, $auditRows);
+	}
+
+	private function sanitizeLogValue(string $value, int $maxLength = 240): string
+	{
+		$value = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', trim($value)) ?? '';
+
+		return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
 	}
 }
