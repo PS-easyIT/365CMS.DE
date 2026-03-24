@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.20-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.21-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -16,212 +16,213 @@
 
 ---
 
-## [2.6.20] – 2026-03-24
+## 📜 Vollständige Versionshistorie
 
-### Docs
+---
 
-- Der Auditbericht `AUDIT_23032026_CMS_PHINIT-LIVE.md` enthält jetzt einen klaren Abschluss-Nachtrag zum Umsetzungsstand vom `24.03.2026`: Der ursprüngliche Pflicht-Backlog `A-01` bis `A-19` ist vollständig abgearbeitet, während die Befundabschnitte als historischer Prüfstand erhalten bleiben.
-- `ToDo_Audit_23032026.md` weist den Auditlauf nun explizit als abgeschlossen aus und entfernt die inzwischen erledigte zusätzliche Device-Cookie-Notiz aus dem offenen Zusatz-Backlog.
+### v2.6.21 — 24. März 2026 · Backup-Admin-Fix & Changelog-Konsolidierung
 
-## [2.6.19] – 2026-03-24
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.21** | 🔴 fix | Admin/System | **Leere Backup-Seite behoben**: `CMS/admin/backups.php` setzt vor dem Rendern jetzt denselben `CMS_ADMIN_SYSTEM_VIEW`-Guard wie die übrigen Systemseiten, sodass `/admin/backups` nicht mehr per sofortigem View-`exit` in einer weißen/leeren Seite endet. |
+| **2.6.21** | 🎨 style | Admin/UX | **Backup-Alerts wieder sichtbar**: `CMS/admin/views/system/backups.php` rendert Session- und Statusmeldungen jetzt über den gemeinsamen Partial `admin/views/partials/flash-alert.php`, damit Erstellen/Löschen/CSRF-Fehler im UI klar sichtbar werden. |
+| **2.6.21** | 🔵 docs | Changelog/Release | **Changelog vollständig vereinheitlicht**: Die gemischten oberen Release-Blöcke wurden auf dasselbe tabellarische Format wie die Historie darunter umgebaut, damit alle Versionen konsistent lesbar und gleich aufgebaut sind. |
 
-### Fixed
+---
 
-- `CMS/core/Auth.php` bindet eingeloggte Sessions jetzt zusätzlich an ein signiertes Device-Cookie `cms_device` mit maximal 2 Stunden TTL; fehlt das Cookie oder passt seine Signatur/Sitzungsbindung nicht mehr, wird die Session beim nächsten Check sauber invalidiert.
-- `CMS/core/Auth/AuthManager.php` setzt dieselbe Gerätebindung auch für Passkey- und MFA-abgeschlossene Logins, und Logout räumt Session-Cookie plus Device-Cookie gemeinsam ab, damit fremde oder inkognitoartige Browser-Kontexte keine bestehende Login-Lage mehr „mitbenutzen“ können.
+### v2.6.19 — 24. März 2026 · Device-Cookie-Bindung für Logins
 
-## [2.6.18] – 2026-03-24
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.19** | 🔴 fix | Core/Auth | **Sessions an Device-Cookie gebunden**: `CMS/core/Auth.php` bindet eingeloggte Sessions jetzt zusätzlich an ein signiertes Device-Cookie `cms_device` mit maximal zwei Stunden TTL; fehlt das Cookie oder passt Signatur/Sitzungsbindung nicht mehr, wird die Session beim nächsten Check sauber invalidiert. |
+| **2.6.19** | 🔴 fix | Core/Auth/MFA | **Passkey- und MFA-Logins ziehen mit**: `CMS/core/Auth/AuthManager.php` setzt dieselbe Gerätebindung auch für Passkey- und MFA-abgeschlossene Logins, und Logout räumt Session-Cookie plus Device-Cookie gemeinsam ab. |
 
-### Changed
+---
 
-- Die versionierte Beispielgrafik `SidebarRahmenThumnail_V5_CopilotLizenzen.png` liegt nicht mehr im Runtime-Pfad `CMS/uploads/`, sondern unter `DOC/assets/examples/`; damit bleibt der Upload-Baum wieder sauber für echte Laufzeitdaten reserviert.
-- `DOC/assets/examples/README.md` dokumentiert die Trennlinie explizit: versionierte Demo-/Referenzdateien gehören in den Doku-/Beispielpfad und nicht in produktive Upload-Verzeichnisse. Kleine Repo-Hygiene, großer Frieden im Kopf. 😉
+### v2.6.18 — 24. März 2026 · Upload-Beispiele von Runtime getrennt
 
-## [2.6.17] – 2026-03-24
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.18** | ⬜ chore | Uploads/Docs | **Beispielgrafik aus Runtime-Pfad entfernt**: Die versionierte Datei `SidebarRahmenThumnail_V5_CopilotLizenzen.png` liegt nicht mehr unter `CMS/uploads/`, sondern unter `DOC/assets/examples/`; damit bleibt der Upload-Baum für echte Laufzeitdaten reserviert. |
+| **2.6.18** | 🔵 docs | Docs/Assets | **Trennlinie dokumentiert**: `DOC/assets/examples/README.md` hält jetzt explizit fest, dass versionierte Demo-/Referenzdateien in den Doku-/Beispielpfad und nicht in produktive Upload-Verzeichnisse gehören. |
 
-### Changed
+---
 
-- `CMS/admin/views/posts/edit.php` und `CMS/admin/views/pages/edit.php` delegieren die wiederkehrenden Lesbarkeits-, Vorschau-, SEO-Score- und erweiterten SEO-Blöcke jetzt an gemeinsame Partials unter `CMS/admin/views/partials/`, wodurch zwei der größten Editor-Views deutlich diff-ärmer und wartbarer werden.
-- Die neuen Partials `content-readability-card.php`, `content-preview-card.php`, `content-seo-score-panel.php` und `content-advanced-seo-panel.php` kapseln die gemeinsamen Admin-Bausteine konfigurierbar, ohne die bestehenden IDs, Form-Felder oder Frontend-Hooks der Editor-JS-/SEO-Logik zu verbiegen.
+### v2.6.17 — 24. März 2026 · Große Editor-Views modularisiert
 
-## [2.6.16] – 2026-03-24
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.17** | 🟡 refactor | Admin/Views | **Seiten- und Beitragseditor entschlackt**: `CMS/admin/views/posts/edit.php` und `CMS/admin/views/pages/edit.php` delegieren die wiederkehrenden Lesbarkeits-, Vorschau-, SEO-Score- und erweiterten SEO-Blöcke jetzt an gemeinsame Partials unter `CMS/admin/views/partials/`. |
+| **2.6.17** | 🟡 refactor | Admin/Partials | **Gemeinsame SEO-/Preview-Bausteine extrahiert**: `content-readability-card.php`, `content-preview-card.php`, `content-seo-score-panel.php` und `content-advanced-seo-panel.php` kapseln die gemeinsamen Admin-Blöcke, ohne bestehende IDs, Form-Felder oder Frontend-Hooks der Editor-/SEO-Logik zu verbiegen. |
 
-### Changed
+---
 
-- `CMS/core/Services/MediaDeliveryService.php` verarbeitet jetzt Byte-Range-Requests sauber mit `206 Partial Content`, `416 Range Not Satisfiable`, `Accept-Ranges` und passendem `Content-Range`, damit größere Medien und Resume-/Preview-Clients nicht mehr auf einen Alles-oder-nichts-Download festgenagelt sind.
-- Die Auslieferung streamt Mediendateien nun chunkweise über einen kontrollierten File-Handle statt sie vollständig per `readfile()` in einem Rutsch auszugeben; `HEAD`-Requests liefern die Header dazu ohne Response-Body.
+### v2.6.16 — 24. März 2026 · Media-Delivery mit Range-Streaming
 
-## [2.6.15] – 2026-03-24
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.16** | 🟠 perf | Core/Media | **Byte-Range-Requests sauber unterstützt**: `CMS/core/Services/MediaDeliveryService.php` verarbeitet jetzt `206 Partial Content`, `416 Range Not Satisfiable`, `Accept-Ranges` und passendes `Content-Range`, damit größere Medien und Resume-/Preview-Clients nicht mehr auf einen Alles-oder-nichts-Download festgenagelt sind. |
+| **2.6.16** | 🟠 perf | Core/Streaming | **Auslieferung streamt chunkweise**: Mediendateien werden nun über einen kontrollierten File-Handle in Chunks statt per `readfile()` in einem Rutsch ausgegeben; `HEAD`-Requests liefern die Header ohne Response-Body. |
 
-### Changed
+---
 
-- `CMS/core/Routing/ThemeRouter.php` delegiert Kategorie-/Tag-Archivdaten, Legacy-Tag-Normalisierung und veröffentlichte Archiv-Overviews jetzt an das neue `ThemeArchiveRepository`, wodurch der große Routing-Pfad deutlich schmaler und gezielter testbar bleibt.
-- `CMS/admin/modules/posts/PostsModule.php` nutzt für Kategorienäume, Optionslabels und Admin-Row-Metadaten jetzt den neuen `PostsCategoryViewModelBuilder`, statt diese ViewModel-Logik weiter direkt im Modul zu halten.
-- `CMS/admin/modules/hub/HubTemplateProfileManager.php` bezieht Template-Optionen, Presets und Default-Profile jetzt aus `HubTemplateProfileCatalog`; die umfangreichen Inline-Kataloge und Default-Helfer liegen damit separat und verkleinern den Hub-Admin-Hotspot spürbar.
+### v2.6.15 — 24. März 2026 · Routing- und Admin-Hotspots verkleinert
 
-## [2.6.14] – 2026-03-23
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.15** | 🟡 refactor | Core/Routing | **`ThemeRouter` delegiert Archivlogik**: Kategorie-/Tag-Archivdaten, Legacy-Tag-Normalisierung und veröffentlichte Archiv-Overviews liegen jetzt im neuen `ThemeArchiveRepository`, wodurch der große Routing-Pfad deutlich schmaler und gezielter testbar bleibt. |
+| **2.6.15** | 🟡 refactor | Admin/Posts | **Kategorien-ViewModel ausgelagert**: `CMS/admin/modules/posts/PostsModule.php` nutzt für Kategorienäume, Optionslabels und Admin-Row-Metadaten jetzt den neuen `PostsCategoryViewModelBuilder`, statt diese Logik weiter direkt im Modul zu halten. |
+| **2.6.15** | 🟡 refactor | Admin/Hub | **Template-Katalog separiert**: `CMS/admin/modules/hub/HubTemplateProfileManager.php` bezieht Template-Optionen, Presets und Default-Profile jetzt aus `HubTemplateProfileCatalog`; umfangreiche Inline-Kataloge und Default-Helfer sind damit aus dem Hotspot herausgezogen. |
 
-### Changed
+---
 
-- Der WordPress-Importer wurde entlang der Audit-Aufgabe A-14 weiter zerlegt: `CMS/plugins/cms-importer/includes/class-importer.php` delegiert Preview-/Planungslogik und Meta-/Reporting jetzt an die neuen Traits `trait-importer-preview.php` und `trait-importer-reporting.php`, statt diese Blöcke weiter im Service-Monolithen zu halten.
-- `CMS/plugins/cms-importer/includes/class-admin.php` nutzt Cleanup-/Backfill-/Reporting-Helfer nun über `trait-admin-cleanup.php`; damit bleiben Admin-Entry-Point und bestehende UI-Flows stabil, während die bislang sehr großen Bereinigungs- und Verlaufsroutinen separat wart- und testbarer werden.
+### v2.6.14 — 23. März 2026 · Importer weiter zerlegt
 
-## [2.6.13] – 2026-03-23
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.14** | 🟡 refactor | Plugins/Importer | **Importer-Preview und Reporting ausgelagert**: `CMS/plugins/cms-importer/includes/class-importer.php` delegiert Preview-/Planungslogik und Meta-/Reporting jetzt an `trait-importer-preview.php` und `trait-importer-reporting.php`, statt diese Blöcke weiter im Service-Monolithen zu halten. |
+| **2.6.14** | 🟡 refactor | Plugins/Importer/Admin | **Admin-Cleanup aus Entry-Point gelöst**: `CMS/plugins/cms-importer/includes/class-admin.php` nutzt Cleanup-/Backfill-/Reporting-Helfer nun über `trait-admin-cleanup.php`; UI-Flows bleiben stabil, während die bislang sehr großen Bereinigungs- und Verlaufsroutinen separat wart- und testbarer werden. |
 
-### Changed
+---
 
-- `CMS/includes/functions.php` ist jetzt nur noch der kanonische Bootstrap für globale Helfer und lädt die bisherige Sammellogik thematisch getrennt aus `CMS/includes/functions/*.php` nach, statt Escaping, Runtime, Redirects, Rollen, Admin-Menüs, Übersetzungen und WP-Kompatibilität weiter in einer Monolith-Datei zu bündeln.
-- Die ausgelagerten Helper-Gruppen halten die bestehende globale API bewusst stabil, verkleinern aber den Wartungshotspot deutlich: Escaping/String-Helfer, Optionen/Archiv-/Runtime-Helfer, Redirect/Auth, Rollen, Admin-Menüs, Übersetzungen, WP-Kompatibilität und Mail sind jetzt getrennt wart- und prüfbar.
+### v2.6.13 — 23. März 2026 · Global-Helper thematisch gesplittet
 
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.13** | 🟡 refactor | Core/Bootstrap | **`includes/functions.php` auf Loader-Rolle reduziert**: `CMS/includes/functions.php` ist jetzt nur noch der kanonische Bootstrap für globale Helfer und lädt die bisherige Sammellogik thematisch getrennt aus `CMS/includes/functions/*.php` nach. |
+| **2.6.13** | 🟡 refactor | Core/Helpers | **Helper-Gruppen getrennt wartbar**: Escaping/String-Helfer, Optionen/Archiv-/Runtime, Redirect/Auth, Rollen, Admin-Menüs, Übersetzungen, WP-Kompatibilität und Mail bleiben API-stabil, sind aber jetzt deutlich getrennt wart- und prüfbar. |
 
-## [2.6.12] – 2026-03-23
+---
 
-### Changed
+### v2.6.12 — 23. März 2026 · Installer-Monolith aufgespalten
 
-- `CMS/install.php` ist jetzt nur noch ein schlanker Bootstrap und delegiert den mehrstufigen Installer-Ablauf an einen dedizierten `InstallerController` statt UI, Datenbank, Konfigurationsschreibzugriffe und Success-Flow weiter in einer Datei zu mischen.
-- `InstallerService` kapselt die Setup-, Lock-, Config-, Schema- und Datenbanklogik des Installers zentral, während die HTML-Schritte unter `CMS/install/views/` als getrennte Views gerendert werden und damit gezielter wart- und testbar bleiben.
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.12** | 🟡 refactor | Core/Installer | **`install.php` auf Bootstrap reduziert**: `CMS/install.php` delegiert den mehrstufigen Installer-Ablauf jetzt an einen dedizierten `InstallerController`, statt UI, Datenbank, Konfigurationsschreibzugriffe und Success-Flow weiter in einer Datei zu mischen. |
+| **2.6.12** | 🟡 refactor | Core/Installer/Views | **Setup- und View-Logik sauber getrennt**: `InstallerService` kapselt Setup-, Lock-, Config-, Schema- und Datenbanklogik zentral, während die HTML-Schritte unter `CMS/install/views/` als getrennte Views gerendert werden. |
 
+---
 
-## [2.6.11] – 2026-03-23
+### v2.6.11 — 23. März 2026 · HTTPS-/HSTS-Linie vereinheitlicht
 
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.11** | 🟡 refactor | Security/HTTPS | **Redirect-Verantwortung klargezogen**: Die HTTPS-Strategie ist jetzt verbindlich auf Redirects durch Reverse-Proxy/Webserver ausgerichtet; der ausgelieferte Apache-Fallback normalisiert nur noch Proxy-HTTPS für dieselbe Sicherheitslinie. |
+| **2.6.11** | 🟡 refactor | Security/HSTS | **HSTS folgt zentraler HTTPS-Erkennung**: `Security` und die Systemdiagnose weisen die aktive Redirect-Verantwortung jetzt explizit aus und erzeugen HSTS nur noch über eine zentrale HTTPS-/HSTS-Konfiguration mit demselben HTTPS-Erkennungsmodell wie der Apache-Fallback. |
+| **2.6.11** | 🔵 docs | Audit/Security | **Device-Cookie als offener Backlogpunkt dokumentiert**: Audit und ToDo führten zusätzlich einen neuen Security-Punkt für ein signiertes, kurzlebiges Login-/Device-Cookie mit, damit Browser-/Gerätebindung nicht als lose Randnotiz hängen bleibt. |
 
-### Changed
+---
 
-- Die HTTPS-Strategie ist jetzt verbindlich auf Redirects durch Reverse-Proxy/Webserver und nicht mehr auf einen halb-kommentierten `.htaccess`-Sonderpfad ausgerichtet; der ausgelieferte Apache-Fallback normalisiert nur noch Proxy-HTTPS für dieselbe Sicherheitslinie.
-- `Security` und die Systemdiagnose weisen die aktive Redirect-Verantwortung jetzt explizit aus und erzeugen HSTS nur noch über eine zentrale HTTPS-/HSTS-Konfiguration mit demselben HTTPS-Erkennungsmodell wie der Apache-Fallback.
+### v2.6.10 — 23. März 2026 · Updates atomar gemacht
 
-### Docs
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.10** | 🔴 fix | Core/Updates | **Updates landen zuerst im Staging**: Core-Updates werden nicht mehr direkt in das Live-Ziel entpackt, sondern zuerst in ein benachbartes Staging-Verzeichnis extrahiert und erst danach per atomarem Verzeichnis-Swap oder rollback-fähigem Inhalts-Swap übernommen. |
+| **2.6.10** | 🔴 fix | Core/Rollback | **Halbfertige Installationen verhindert**: Abgebrochene oder fehlschlagende Installationen hinterlassen keine inkonsistenten Update-Zustände mehr; bestehende Inhalte werden vor dem Umschalten in ein temporäres Backup verschoben und bei Fehlern wiederhergestellt. |
 
-- Audit und ToDo führen zusätzlich einen neuen offenen Security-Backlogpunkt für ein signiertes, kurzlebiges Login-/Device-Cookie mit, damit Browser-/Gerätebindung nicht als lose Notiz im Doku-Rand hängen bleibt.
+---
 
-## [2.6.10] – 2026-03-23
+### v2.6.9 — 23. März 2026 · `session.cookie_secure` an HTTPS gekoppelt
 
-### Fixed
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.9** | 🔴 fix | Core/Sessions | **Secure-Flag nur noch bei echtem HTTPS**: `Security::startSession()`, `index.php` und `cron.php` setzen `session.cookie_secure` jetzt nur noch bei tatsächlich erkanntem HTTPS bzw. Proxy-HTTPS statt pauschal immer auf `1`. |
+| **2.6.9** | 🔴 fix | Betrieb/Staging | **HTTP-Setups bleiben funktionsfähig**: HTTP-Staging-Setups und CLI-nahe Cron-Läufe verlieren damit nicht mehr unnötig ihre Session-Cookies durch eine erzwungene Secure-Flag auf Nicht-HTTPS-Anfragen. |
 
-- Core-Updates werden nicht mehr direkt in das Live-Ziel entpackt, sondern zuerst in ein benachbartes Staging-Verzeichnis extrahiert und erst danach per atomarem Verzeichnis-Swap oder rollback-fähigem Inhalts-Swap übernommen.
-- Abgebrochene oder fehlschlagende Installationen hinterlassen damit keine halbfertigen Update-Zustände mehr im Zielverzeichnis; bestehende Inhalte werden vor dem Umschalten in ein temporäres Backup verschoben und bei Fehlern wiederhergestellt.
+---
 
-## [2.6.9] – 2026-03-23
+### v2.6.8 — 23. März 2026 · SSRF-DNS-Fallback gehärtet
 
-### Fixed
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.8** | 🔴 fix | Security/HTTP | **Ungelöste Remote-Hosts werden standardmäßig blockiert**: `CMS\Http\Client` versucht vorab eine echte IPv4/IPv6-Auflösung und lässt ungelöste Hosts nur noch per explizitem `allowUnresolvedHosts`-Opt-in zu. |
+| **2.6.8** | 🔴 fix | Core/Updates | **`UpdateService` folgt derselben DNS-Härte**: Sensible Remote-Ziele werden bei fehlender Host-Auflösung nicht mehr stillschweigend durchgewunken. |
 
-- `Security::startSession()`, `index.php` und `cron.php` setzen `session.cookie_secure` jetzt nur noch bei tatsächlich erkanntem HTTPS bzw. Proxy-HTTPS statt pauschal immer auf `1`.
-- HTTP-Staging-Setups und CLI-nahe Cron-Läufe verlieren damit nicht mehr unnötig ihre Session-Cookies durch eine erzwungene Secure-Flag auf Nicht-HTTPS-Anfragen.
+---
 
-## [2.6.8] – 2026-03-23
+### v2.6.6 — 23. März 2026 · ZIP-Einträge vor `extractTo()` validiert
 
-### Fixed
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.6** | 🔴 fix | Admin/System | **GitHub-Doku-Sync validiert ZIP-Inhalte vor dem Entpacken**: ZIP-Einträge werden jetzt vor `extractTo()` auf Traversals, absolute Pfade, NUL-/Steuerzeichen sowie leere oder punktbasierte Segmente geprüft. |
 
-- `CMS\Http\Client` blockiert ungelöste Remote-Hosts im SSRF-Schutz jetzt standardmäßig, versucht vorab eine echte IPv4/IPv6-Auflösung und lässt ungelöste Hosts nur noch per explizitem `allowUnresolvedHosts`-Opt-in zu.
-- `UpdateService` nutzt dieselbe härtere DNS/IP-Auflösung und erlaubt bei fehlender Host-Auflösung keine sensiblen Remote-Ziele mehr stillschweigend durch.
+---
 
-## [2.6.6] – 2026-03-23
+### v2.6.5 — 23. März 2026 · Debug-Logs aus Release-Baum herausgezogen
 
-### Fixed
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.5** | 🔴 fix | Core/Logging | **Logs liegen standardmäßig außerhalb des Release-Baums**: Debug-Logs landen nicht mehr im `CMS/logs/`-Verzeichnis, sondern über `LOG_PATH`/`CMS_ERROR_LOG` in einem externen Logpfad; Konfig-Writer und `SystemService` nutzen denselben aktiven Pfad. |
 
-- Der GitHub-Doku-Sync validiert ZIP-Einträge jetzt vor `extractTo()` auf Traversals, absolute Pfade, NUL-/Steuerzeichen sowie leere oder punktbasierte Segmente.
+---
 
-## [2.6.5] – 2026-03-23
+### v2.6.4 — 23. März 2026 · Audit-Scope sauber konsolidiert
 
-### Fixed
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.4** | 🔵 docs | Audit/Scope | **`FILEINVENTAR.md` als kanonische Quelle verankert**: Die Audit-Dokumentation nutzt `FILEINVENTAR.md` jetzt konsequent als Scope-Quelle; konkurrierende eingebettete Inventarstände und alte 444-Dateien-Referenzen wurden aus Audit und ToDo entfernt. |
 
-- Debug-Logs landen standardmäßig nicht mehr im `CMS/logs/`-Release-Baum, sondern über `LOG_PATH`/`CMS_ERROR_LOG` in einem externen Logverzeichnis; Konfig-Writer und `SystemService` nutzen denselben aktiven Pfad.
+---
 
-## [2.6.4] – 2026-03-23
+### v2.6.3 — 23. März 2026 · Importer-Fetch auf Core-HTTP-Härtung umgestellt
 
-### Docs
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.3** | 🔴 fix | Plugins/Importer | **Remote-Bilder laufen über den zentralen HTTP-Client**: Der WordPress-Importer lädt Remote-Bilder jetzt mit aktivierter TLS-Prüfung, SSRF-Schutz sowie Größen- und Image-Content-Type-Limits statt über einen ungehärteten Direkt-Fetch. |
 
-- Die Audit-Dokumentation nutzt `FILEINVENTAR.md` jetzt konsequent als kanonische Scope-Quelle; konkurrierende eingebettete Inventarstände und alte 444-Dateien-Referenzen wurden aus Audit und ToDo entfernt.
+---
 
-## [2.6.3] – 2026-03-23
+### v2.6.2 — 23. März 2026 · Audit-Welle, SEO-Ausbau & Release-Abgleich
 
-### Fixed
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.2** | 🟢 feat | Core/SEO | **IndexNow und Archivlogik erweitert**: Die SEO-Linie erweitert die IndexNow-Integration um eine dynamische Keydatei-Auslieferung; Kategorien und Tags unterstützen jetzt mehrsprachige Archivbasen sowie Ersatzkategorien/-tags beim Löschen. |
+| **2.6.2** | 🟢 feat | Plugins/Importer | **Importer deutlich ausgebaut**: Der Core bringt einen erweiterten Importer unter `CMS/plugins/cms-importer` mit Meta-Report, Admin-Oberfläche, Styles, JavaScript und Importlogik für größere Importpfade mit. |
+| **2.6.2** | 🟡 refactor | Release/Runtime | **`CMS\Version` wieder zentrale Release-Quelle**: Runtime, Installer, Update-Metadaten und sichtbare Versions-Badges wurden auf den konsistenten Stand `2.6.2` nachgezogen. |
+| **2.6.2** | 🟡 refactor | Routing/Content | **Routing und Inhaltsauflösung nachgeschärft**: Kategorie-/Tag-Archive, Slug-Validierung in Seiten/Beiträgen sowie die allgemeine Inhaltsauflösung im Frontend wurden in mehreren Wellen weiter konsolidiert. |
+| **2.6.2** | 🟡 refactor | Marketplace/Updates | **Update- und Marketplace-Pfade erweitert**: Theme-/Plugin-Verwaltung, Update-Ansichten und die zugrunde liegende `UpdateService`-Logik unterstützen den jüngsten Ausbauzustand deutlich umfangreicher als im Stand `2.6.1`. |
+| **2.6.2** | 🟡 refactor | Member/Header | **Admin-Einstieg im Memberbereich eingeblendet**: Der Mitgliederbereich zeigt im Header jetzt gezielt einen Admin-Einstieg an, wenn der aktuelle Nutzer entsprechende Rechte besitzt. |
+| **2.6.2** | 🔴 fix | Core/Installer | **Installer hart abgesichert**: `install.php` sperrt bestehende Installationen jetzt per Install-Lock und Admin-Guard für öffentliche Zugriffe; zusätzlich wird das Datenbank-Passwort im Reinstall-Pfad nicht mehr aus der vorhandenen Konfiguration vorbefüllt. |
+| **2.6.2** | 🔴 fix | Routing/Archive | **Löschen von Kategorien/Tags robuster gemacht**: Das Löschverhalten bricht bei verknüpften Beiträgen nicht mehr stumpf weg, sondern kann Ziele auf Ersatzkategorien/-tags umlenken; Archiv- und Routingpfade verhalten sich in der mehrsprachigen CMS-Linie robuster. |
+| **2.6.2** | 🔵 docs | Audit | **Neuer Audit-Stand 23.03.2026 dokumentiert**: `DOC/audit/AUDIT_23032026_CMS_PHINIT-LIVE.md` hält den CMS- und Live-Site-Prüfstand inklusive öffentlicher PhinIT-Stichprobe fest. |
+| **2.6.2** | 🔵 docs | Audit/ToDo | **Nacharbeiten und Scope-Abdeckung nachgezogen**: `DOC/audit/NACHARBEIT_AUDIT_ToDo.md` sowie `DOC/audit/ToDo_Audit_23032026.md` dokumentieren den offenen Release-/Versionsabgleich, Proxy-/CDN-/Tracking-Verifikation und die vollständige First-Party-Dateiabdeckung explizit. |
+| **2.6.2** | 🔵 docs | README/Betrieb | **Auditstatus direkt in README verankert**: `README.md` beschreibt den Auditstatus vom `23.03.2026` jetzt direkt im Betriebsabschnitt, damit offene Betriebs- und Sicherheitsbaustellen nicht nur im Audit-Ordner versteckt bleiben. |
 
-- Der WordPress-Importer lädt Remote-Bilder jetzt über den zentralen Core-HTTP-Client mit aktivierter TLS-Prüfung, SSRF-Schutz sowie Größen- und Image-Content-Type-Limits statt über einen ungehärteten Direkt-Fetch.
+---
 
-## [2.6.2] – 2026-03-23
+### v2.6.1 — 17. März 2026 · Redirects, Theme-Polish & Frontend-Härtung
 
-### Added
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.1** | 🟡 refactor | SEO/Redirects | **Redirect- und `404`-Admin getrennt**: Der SEO-Admin trennt Weiterleitungen und erkannte `404` jetzt in zwei eigenständige Bereiche; neue Redirects lassen sich wieder direkt anlegen und Übernahmen aus dem `404`-Monitor können die passende Site-/Host-Zuordnung mitspeichern. |
+| **2.6.1** | 🟡 refactor | Core/RedirectService | **Redirect-Regeln site-spezifisch bewertet**: `RedirectService` arbeitet jetzt host- bzw. pfadbezogen über `site_scope`, protokolliert den anfragenden Host in `404`-Logs mit und verhindert Dubletten nur noch innerhalb desselben Site-Scope statt global über alle Sites hinweg. |
+| **2.6.1** | 🟡 refactor | Admin/Content | **Beiträge und Seiten teilen sich Kategorienbasis**: Zusätzlich werden Microsoft-365-Standardkategorien wie Copilot, Teams, SharePoint Online, Exchange Online, Intune, Defender oder Power Platform automatisch zur Auswahl vorgehalten. |
+| **2.6.1** | 🟡 refactor | Theme/cms-phinit | **`cms-phinit` modernisiert Header und Assets**: Header, Dark-Mode-Init, Customizer-Logik, Analytics-Loader und Consent-Eventing laufen jetzt deutlich stärker über zentrale, cachebare Assets statt über Inline-Blöcke. |
+| **2.6.1** | 🟡 refactor | Theme/365Network | **`365Network`-Customizer und Directory-Templates geglättet**: Admin-Customizer nutzt ausgelagerte Assets; Filter-Selects, Reset-/Listen-Stile und 404-Aktionen hängen an zentralen Klassen/Data-Attributen statt an Inline-Handlern. |
+| **2.6.1** | 🔴 fix | Routing/Public | **`HEAD`-Requests für Public-Routen korrigiert**: Monitoring-, Header-Checks und SEO-Tools laufen für Pfade wie `/feed`, `/forgot-password` oder `/.well-known/security.txt` nicht mehr fälschlich in `404`. |
+| **2.6.1** | 🔴 fix | Auth/Recovery | **Recovery-Seiten senden private Cache-Header**: Sensible Pfade wie `/forgot-password` verwenden jetzt dieselbe private/no-store-Cache-Strategie wie Login- und Registrierungsseiten. |
+| **2.6.1** | 🔴 fix | Feed/RSS | **RSS-Descriptions liefern robusten Plaintext**: Editor.js-Inhalte werden nicht mehr als rohe oder abgeschnittene JSON-Blockpayloads an Feed-Reader gereicht; auch unvollständige JSON-Fragmente liefern wieder lesbaren Text. |
+| **2.6.1** | 🔴 fix | Cron/Feeds | **`cms_cron_hourly` wird wieder wirklich ausgelöst**: `CMS/cron.php` stößt den bislang nur registrierten Hook kompatibel an und drosselt ihn intern auf höchstens einen echten Lauf pro Stunde, sodass `cms-feed`-Fetch-Queue und Feed-Digests wieder automatisch nachziehen. |
+| **2.6.1** | 🔴 fix | Plugins/cms-contact | **Verbleibende Admin-Views auf zentrale Assets umgestellt**: Filter, Template-Auswahl, Modale, Statuswechsel und Sammelaktionen bleiben funktional, kommen aber ohne zusätzliche Inline-Styles/-Scripts aus. |
+| **2.6.1** | 🔴 fix | Plugins/cms-feed | **Feed-Pfade und Admin-UI inline-frei gemacht**: Public-JavaScript lädt jetzt auf allen echten Feed-Routen inklusive Consent-Sperrseite, und der große Admin-View `page-admin.php` kommt ohne direkte `onclick`-/`confirm`-Handler oder `javascript:void(0)`-Links aus. |
+| **2.6.1** | 🔴 fix | Plugins/cms-events | **Admin-, Meta-Box-, Member- und Kalenderpfade entinline-ifiziert**: Bestätigungen, Modalsteuerung, Preview-Syncs, Formular-Toggles und Monatsnavigation hängen nun an zentralen Assets bzw. echten Navigationslinks. |
+| **2.6.1** | 🔴 fix | Theme/cms-phinit | **Customizer und Tracking ohne Inline-Skripte**: Font-Preview-Styles, Analytics-Loader sowie verbleibende `onclick`-/`oninput`-Handler wurden in zentrale Admin-/Theme-Assets überführt. |
+| **2.6.1** | 🔴 fix | Admin/Bulk-Editing | **Bulk-Bearbeitung für Seiten und Beiträge erweitert**: Kategorien lassen sich jetzt setzen oder entfernen; Seiten unterstützen erstmals auch eine eigene Einzelbearbeitung per Kategorieauswahl und Listenfilter. |
+| **2.6.1** | 🟢 feat | Core/Routing | **`security.txt` unter zwei Standardpfaden verfügbar**: `ThemeRouter` liefert jetzt `security.txt` sowohl unter `/security.txt` als auch unter `/.well-known/security.txt` mit Kontakt, Canonical, Sprachenhinweis und Ablaufdatum aus. |
+| **2.6.1** | 🔵 docs | Audit/Theme/Security | **Doku auf PhinIT-Live-Nacharbeit nachgezogen**: Audit-, Sicherheits- und Theme-Dokumentation spiegeln jetzt `security.txt`, Forgot-Password-Recovery, Feed-Härtung, Redirect-/404-Admin, site-spezifische Redirect-Scopes, Tabellen-Darkmode und bereinigte `cms-contact`-Views wider. |
 
-- Die SEO-Linie erweitert die IndexNow-Integration um eine dynamische Keydatei-Auslieferung und zeigt im SEO-Admin zusätzlich Status- und URL-Informationen zur aktiven Keydatei an.
-- Kategorien und Tags unterstützen jetzt mehrsprachige Archivbasen sowie Ersatzkategorien/-tags beim Löschen, sodass Content-Umbauten ohne harte Abrisskante in Archiven und Listenpfaden möglich werden.
-- Der Core bringt einen deutlich ausgebauten Importer unter `CMS/plugins/cms-importer` mit Meta-Report, Admin-Oberfläche, Styles, JavaScript und Importlogik für größere Importpfade mit.
+---
 
-### Changed
+### v2.6.0 — 16. März 2026 · Permalink-, Error-Report- und Redaktionsausbau
 
-- `CMS\Version` ist jetzt wieder die zentrale Release-Quelle für Runtime und Installer; `config/app.php`, Installer-Konfigwriter, Update-Metadaten und sichtbare Versions-Badges wurden auf den konsistenten Stand `2.6.2` nachgezogen.
-- Routing, Archive, Slug-Generierung und Inhaltslokalisierung wurden in mehreren Wellen weiter konsolidiert; insbesondere Kategorie-/Tag-Archive, Slug-Validierung in Seiten/Beiträgen sowie die allgemeine Inhaltsauflösung im Frontend wurden nachgeschärft.
-- Marketplace- und Update-Pfade wurden erweitert: Theme-/Plugin-Verwaltung, Update-Ansichten und die zugrunde liegende `UpdateService`-Logik unterstützen den jüngsten Ausbauzustand deutlich umfangreicher als im Stand `2.6.1`.
-- Der Mitgliederbereich blendet im Header jetzt gezielt einen Admin-Einstieg ein, wenn der aktuelle Nutzer entsprechende Rechte besitzt.
-
-### Fixed
-
-- `install.php` sperrt bestehende Installationen jetzt per Install-Lock und Admin-Guard für öffentliche Zugriffe; zusätzlich wird das Datenbank-Passwort im Reinstall-Pfad nicht mehr aus der vorhandenen Konfiguration vorbefüllt.
-- Das Löschverhalten für Kategorien und Tags bricht bei inhaltlich verknüpften Beiträgen nicht mehr stumpf weg, sondern kann Ziele auf Ersatzkategorien/-tags umlenken.
-- Archiv- und Routingpfade für Kategorien/Tags verhalten sich in der mehrsprachigen CMS-Linie robuster und besser abgestimmt auf lokalisierte Inhaltsstrukturen.
-
-### Docs
-
-- Der neue Audit `DOC/audit/AUDIT_23032026_CMS_PHINIT-LIVE.md` dokumentiert den CMS- und Live-Site-Prüfstand vom 23.03.2026 inklusive öffentlicher PhinIT-Stichprobe.
-- `DOC/audit/NACHARBEIT_AUDIT_ToDo.md` führt jetzt zusätzlich den offenen Release-/Versionsabgleich sowie die reale Proxy-/CDN-/Tracking-Verifikation als aktive Nacharbeiten.
-- `DOC/audit/ToDo_Audit_23032026.md` wurde auf eine vollständige First-Party-Dateiabdeckung ohne die Root-Bundle-Ordner `CMS/assets/` und `CMS/vendor/` nachgezogen und nennt die aktuell wichtigsten Punkte zu Installer, Versionsdrift, Importer-Fetch und Log-Hygiene jetzt explizit.
-- `README.md` beschreibt den Auditstatus vom 23.03.2026 jetzt direkt im Betriebsabschnitt, damit offene Betriebs- und Sicherheitsbaustellen nicht nur im Audit-Ordner versteckt bleiben.
-
-## [2.6.1] – 2026-03-17
-
-### Changed
-
-- Der SEO-Admin trennt Weiterleitungen und erkannte `404` jetzt in zwei eigenständige Bereiche; neue Redirects lassen sich wieder direkt anlegen und Übernahmen aus dem `404`-Monitor können die passende Site-/Host-Zuordnung mitspeichern.
-- `RedirectService` bewertet Redirect-Regeln jetzt host- bzw. pfadbezogen über `site_scope`, protokolliert den anfragenden Host in `404`-Logs mit und verhindert Dubletten nur noch innerhalb desselben Site-Scope statt global über alle Sites hinweg.
-- Beiträge und Seiten teilen sich jetzt dieselbe Kategorienbasis im Redaktionsbereich; zusätzlich werden Microsoft-365-Standardkategorien wie Copilot, Teams, SharePoint Online, Exchange Online, Intune, Defender oder Power Platform automatisch zur Auswahl vorgehalten.
-- Das Theme `cms-phinit` modernisiert den Header mit dezenter Netzwerk-Animation, verfeinerten Hauptmenübuttons und ausgeblendeter Header-Logo-Fläche auf Mobile; zusätzlich wurde der Dark Mode für Core-/Hub-/Rich-Content-Tabellen sichtbar nachgezogen.
-- `cms-phinit` startet den frühen Dark-Mode-Init im Head jetzt über ein eigenes cachebares Theme-Asset statt über ein Inline-Skript direkt im `header.php`, wodurch der Header weiter flickerarm bleibt und zugleich template-seitig sauberer wird.
-- `cms-phinit` verlagert jetzt auch die umfangreiche Customizer-Logik für Unsaved-Warnung, Shortcut-Speichern, Preview-Drawer, Farb-Presets und Font-Previews in ein eigenes Admin-JS-Asset; im PHP-Fragment verbleibt nur noch passive JSON-Konfiguration.
-- `cms-phinit` lädt Google Analytics jetzt über ein eigenes consent-fähiges Theme-Asset statt über einen Inline-Bootstrap im Footer; zusätzlich feuert das Theme-Banner bei Änderungen ein zentrales `cms-cookie-consent-change`-Event für abhängige Frontend-Module.
-- `cms-phinit` liefert den Theme-Customizer jetzt auch ohne Inline-CSS-Block und ohne Inline-Event-Handler für Farb-Sync/Reset-Confirm aus; Styles und Bindings liegen zentral in `customizer-admin.css` und `customizer-admin.js`.
-- Das Theme `365Network` liefert seinen Admin-Customizer jetzt ebenfalls über ausgelagerte Assets statt über eingebettete CSS-/JS-Blöcke; Farb-Sync, Logo-Vorschau und Reset-Modal hängen an zentralen Klassen/Data-Attributen, und der Einstieg erzwingt nun zusätzlich einen expliziten Admin-Guard.
-- `365Network` zieht auch die Directory-Templates weiter glatt: Filter-Selects submitten zentral über `js/theme.js`, der 404-Zurück-Button nutzt keinen Inline-Handler mehr und wiederkehrende Reset-/Listen-Stile liegen jetzt in gemeinsamen CSS-Klassen statt direkt im Markup.
-
-### Fixed
-
-- Public-Routes mit `GET`-Handler reagieren jetzt auch auf `HEAD`-Requests korrekt, sodass Monitoring-, Header-Checks und SEO-Tools für Routen wie `/feed`, `/forgot-password` oder `/.well-known/security.txt` nicht mehr fälschlich in `404` laufen.
-- Sensible Recovery-Seiten wie `/forgot-password` verwenden jetzt dieselbe private/no-store-Cache-Strategie wie Login- und Registrierungsseiten.
-- RSS-Descriptions extrahieren für Editor.js-Inhalte jetzt robusten Plaintext statt rohe oder abgeschnittene JSON-Blockpayloads in Feed-Reader weiterzureichen; zusätzlich wurde der Regex-Fallback für abgeschnittene Editor.js-Payloads korrigiert, damit auch unvollständige JSON-Fragmente wieder lesbaren Text liefern.
-- `CMS/cron.php` stößt den bislang nur registrierten, aber nie ausgelösten Hook `cms_cron_hourly` jetzt kompatibel mit bestehenden Mail-Queue-Cron-Aufrufen an und drosselt ihn intern auf höchstens einen echten Lauf pro Stunde, sodass `cms-feed`-Fetch-Queue und Feed-Digests wieder automatisch nachziehen.
-- `cms-contact` nutzt in allen verbleibenden Admin-Views nun die zentralen Admin-Assets statt zusätzlicher Inline-Styles/-Scripts; Filter, Template-Auswahl, Modale, Statuswechsel und Sammelaktionen bleiben dabei funktional, aber die Views sind deutlich sauberer und wartbarer.
-- `cms-feed` lädt sein Public-JavaScript jetzt auf allen echten Feed-Routen inklusive Consent-Sperrseite, reagiert damit konsistent auf Cookie-Freigaben/-Entzüge und kommt in den öffentlichen Templates ohne die verbliebenen Inline-Styles/-Scripts für Reset-Links und Consent-Reload aus.
-- `cms-feed` liefert jetzt auch seinen großen Admin-View `page-admin.php` ohne direkte `onclick`-/`confirm`-Handler oder `javascript:void(0)`-Links aus; Bulk-Aktionen, Katalog-Importe, Tabs und Modal-Steuerung hängen stattdessen zentral an `assets/js/admin.js`.
-- `cms-events` liefert jetzt Admin-, Meta-Box-, Member- und Kalenderpfade ohne ausführbare Inline-Skripte, `onclick`-/`onchange`-Handler oder native Confirm-Dialoge aus; Bestätigungen, Modalsteuerung, Preview-Syncs, Formular-Toggles und die Monatsnavigation hängen stattdessen an zentralen Assets bzw. echten Navigationslinks.
-- `cms-phinit` bindet den Theme-Customizer jetzt ohne ausführbaren Inline-Skriptblock an und ersetzt die bisher per JavaScript injizierten Font-Preview-Styles durch eine zentrale CSS-Klasse.
-- Der frühere GA-Inline-Loader in `cms-phinit` wurde entfernt; Tracking wird nur noch über `assets/js/analytics-loader.js` und bei akzeptiertem Consent initialisiert.
-- Der verbleibende Customizer-Styleblock sowie `onclick`-/`oninput`-Handler im `cms-phinit`-Customizer wurden in zentrale Admin-Assets überführt.
-- Die Bulk-Bearbeitung von Beiträgen und Seiten kann jetzt Kategorien setzen oder entfernen; Seiten unterstützen außerdem erstmals eine eigene Einzelbearbeitung per Kategorieauswahl und Listenfilter.
-
-### Added
-
-- `ThemeRouter` liefert jetzt `security.txt` sowohl unter `/security.txt` als auch unter `/.well-known/security.txt` mit Kontakt, Canonical, Sprachenhinweis und Ablaufdatum aus.
-
-### Docs
-
-- Audit-, Sicherheits- und Theme-Dokumentation spiegeln jetzt die PhinIT-Live-/Testsite-Nacharbeit vom 17.03.2026 inklusive `security.txt`, Forgot-Password-Recovery und Feed-Härtung wider.
-- Audit-/Release-Notizen dokumentieren jetzt zusätzlich den getrennten Redirect-/404-Admin, site-spezifische Redirect-Scopes, den nachgezogenen Tabellen-Darkmode in `cms-phinit` sowie die bereinigten `cms-contact`-Admin-Views.
-
-## [2.6.0] – 2026-03-16
-
-### Added
-
-- `PermalinkService` zentralisiert Beitrags-URL-Strukturen, Slug-Extraktion und Migrationspfade für beitragsbezogene Router- und Theme-Pfade.
-- `ErrorReportService` und `/admin/error-report` führen persistente Admin-Fehlerreports mit Audit-Log, Kontextdaten und CSRF-geschütztem Redirect-Flow ein.
-- Neue Admin-Einstiege für Beitrags-Kategorien, Beitrags-Tags und Tabellen-Display-Defaults erweitern den Redaktionsbereich um eigenständige CRUD-Ansichten und Preset-Verwaltung.
-
-### Changed
-
-- Theme-Dateien werden jetzt in isoliertem Scope gerendert, damit Werte aus einem Render-Kontext nicht mehr unbeabsichtigt in andere Templates durchsickern.
-- Routing-, Redirect- und Hub-/Schema-Pfade wurden für Archiv- und Sitemap-Routen, URL-Nachmigrationen und robustere Flag-Verwaltung in `SchemaManager` und `MigrationManager` erweitert.
-
-### Fixed
-
-- Kommentar- und Admin-JSON-Pfade verhalten sich konsistenter: eingeloggte Nutzer füllen Kommentarformulare zuverlässiger vor, Moderation meldet Erfolg verlässlich zurück und Admin-/AJAX-Endpunkte für Posts, Seiten, Nutzer und Medien reagieren stabiler.
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.0** | 🟢 feat | Core/Routing | **`PermalinkService` zentralisiert Beitrags-URL-Strukturen**: Slug-Extraktion, URL-Schemata und Migrationspfade für beitragsbezogene Router- und Theme-Pfade laufen jetzt über einen dedizierten Service. |
+| **2.6.0** | 🟢 feat | Admin/Error-Reporting | **Persistente Admin-Fehlerreports eingeführt**: `ErrorReportService` und `/admin/error-report` führen Audit-Log, Kontextdaten und einen CSRF-geschützten Redirect-Flow für nachvollziehbare Fehlerreports ein. |
+| **2.6.0** | 🟢 feat | Admin/Editorial | **Neue Redaktions-Einstiege ergänzt**: Eigenständige CRUD-Ansichten für Beitrags-Kategorien, Beitrags-Tags und Tabellen-Display-Defaults erweitern den Redaktionsbereich. |
+| **2.6.0** | 🟡 refactor | Theme/Rendering | **Theme-Dateien rendern in isoliertem Scope**: Werte aus einem Render-Kontext sickern nicht mehr unbeabsichtigt in andere Templates durch. |
+| **2.6.0** | 🟡 refactor | Routing/Schema | **Archiv-, Sitemap- und Hub-Pfade erweitert**: Routing-, Redirect- und Hub-/Schema-Pfade wurden für Archiv- und Sitemap-Routen, URL-Nachmigrationen und robustere Flag-Verwaltung in `SchemaManager` und `MigrationManager` nachgeschärft. |
+| **2.6.0** | 🔴 fix | Kommentare/Admin-JSON | **Kommentar- und Admin-JSON-Pfade stabilisiert**: Eingeloggte Nutzer füllen Kommentarformulare zuverlässiger vor, Moderation meldet Erfolg verlässlich zurück und Admin-/AJAX-Endpunkte für Posts, Seiten, Nutzer und Medien reagieren konsistenter. |
 
 ### v2.5.30 — 11. März 2026 · Standard-Theme-Home-Split, Partials & Audit-Sync
 
@@ -232,14 +233,7 @@
 | **2.5.30** | 🟢 feat | Core/Quality Gates | **Architektur-Suite bestätigt den Theme-Split**: `php tests/architecture/run.php` läuft nach dem Split erfolgreich durch; `home.php` liegt jetzt bei 131 LOC statt als weiterer großer Theme-Monolith im Laufzeitpfad zu bleiben. |
 | **2.5.30** | 🔵 docs | Audit/Release | **Audit- und Bewertungsstand nachgezogen**: Die Standard-Homepage gilt nicht mehr als dominanter Restblock; `AUDIT_FACHBEREICHE.md`, `AUDIT_BEWERTUNG.md` und `AUDIT_09032026.md` verschieben den Restdruck nun stärker auf große CSS-/Admin-Dateien und Proxy-/CDN-Realvalidierung. |
 
----
 
-
----
-
-## 📜 Vollständige Versionshistorie
-
----
 
 ### v2.5.29 — 11. März 2026 · Release-Smoke-Disziplin, Beta-Pflichtpfade & Audit-Sync
 

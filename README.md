@@ -166,12 +166,6 @@ Der schnellste Einstieg ist der lokale Dokumentationsindex unter [`DOC/INDEX.md`
 | **Auth** | Rollen, Capabilities, Member-Dashboard, LDAP-Optionen, Login-Protokolle |
 | **Compliance** | Cookie-Consent, Datenexport, Löschanfragen, Legal-Sites, `security.txt` |
 
-### Auditstatus 23.03.2026
-
-- Die aktuelle Vollprüfung deckt den First-Party-Dateibaum unter `CMS/` **ohne** `CMS/vendor/` und `CMS/themes/` ab; aus `CMS/assets/` wurden nur `assets/css/` und `assets/js/` einbezogen. Der verifizierte Prüfscope umfasst `419` Dateien.
-- Die stärksten offenen Risiken liegen derzeit nicht mehr in monolithischen Installer-/Global-Helper-Dateien, sondern in den Restpunkten ab A-15; der Installer läuft jetzt über Bootstrap + Controller/Service/Views, `CMS/includes/functions.php` dient nur noch als Loader für getrennte Helper-Gruppen unter `CMS/includes/functions/*.php` und der Importer trennt Preview-/Planungslogik, Meta-/Reporting sowie Admin-Cleanup inzwischen ebenfalls in eigene Trait-Bausteine. Der frühere Direkt-Fetch des eingebauten Importers wurde bereits auf die zentrale Core-HTTP-Härtung umgestellt, die Audit-Dokumentation referenziert den verifizierten Scope konsistent über `FILEINVENTAR.md`, Debug-Logs liegen außerhalb des Release-Baums, der GitHub-Doku-Sync akzeptiert nur noch freigegebene `/DOC`-Bundles am festen Repo-Root-Zielpfad, der SSRF-Schutz blockiert ungelöste Remote-Hosts standardmäßig, `session.cookie_secure` folgt echtem HTTPS, Core-Updates laufen staging-basiert mit atomarem Ziel-Swap bzw. Rollback und die HTTPS-/HSTS-Linie ist jetzt verbindlich auf Upstream-/Proxy-Redirect plus HTTPS-erkanntes HSTS im Core ausgerichtet — auf Release `2.6.21`.
-- Details und vollständige Dateiabdeckung stehen in [`DOC/audit/ToDo_Audit_23032026.md`](DOC/audit/ToDo_Audit_23032026.md) und [`DOC/audit/AUDIT_23032026_CMS_PHINIT-LIVE.md`](DOC/audit/AUDIT_23032026_CMS_PHINIT-LIVE.md). Ein bisschen weniger Monolith, ein bisschen mehr Release-Disziplin – und das Ding atmet deutlich entspannter.
-
 ### Aktuelle Betriebsverbesserungen (März 2026)
 
 - Public-GET-Routen unterstützen jetzt auch `HEAD` sauber für Header-/Monitoring-Checks.
@@ -201,4 +195,7 @@ Die vollständige Asset-Dokumentation liegt in [`DOC/ASSET.md`](DOC/ASSET.md) so
 
 ---
 
-**Kurz gesagt:** `365CMS.DE` ist die Core- und Betriebszentrale, `365CMS.DE-THEME` liefert das Design, `365CMS.DE-PLUGINS` die Fachmodule — zusammen ergibt das eine angenehm modulare CMS-Werkbank. 🛠️
+**Kurz gesagt:** `365CMS.DE` ist die Core- und Betriebszentrale, `365CMS.DE-THEME` liefert das Design, `365CMS.DE-PLUGINS` die Module — zusammen ergibt das eine angenehm modulare CMS-Werkbank. 🛠️
+
+**Zugriff auf Theme und Plugins** werden zum 01.04.2026 im Marketplace bereitgestellt.
+Speziele Plugins aus dem phin.network sind kostenpflichtig. Gängige Plugins wie Contact, Forum, usw. kostenfrei.
