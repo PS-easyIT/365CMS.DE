@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.14-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.15-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -15,6 +15,14 @@
 | 🎨 | `style` | Design- / UI-Änderungen |
 
 ---
+
+## [2.6.15] – 2026-03-24
+
+### Changed
+
+- `CMS/core/Routing/ThemeRouter.php` delegiert Kategorie-/Tag-Archivdaten, Legacy-Tag-Normalisierung und veröffentlichte Archiv-Overviews jetzt an das neue `ThemeArchiveRepository`, wodurch der große Routing-Pfad deutlich schmaler und gezielter testbar bleibt.
+- `CMS/admin/modules/posts/PostsModule.php` nutzt für Kategorienäume, Optionslabels und Admin-Row-Metadaten jetzt den neuen `PostsCategoryViewModelBuilder`, statt diese ViewModel-Logik weiter direkt im Modul zu halten.
+- `CMS/admin/modules/hub/HubTemplateProfileManager.php` bezieht Template-Optionen, Presets und Default-Profile jetzt aus `HubTemplateProfileCatalog`; die umfangreichen Inline-Kataloge und Default-Helfer liegen damit separat und verkleinern den Hub-Admin-Hotspot spürbar.
 
 ## [2.6.14] – 2026-03-23
 

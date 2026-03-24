@@ -11,6 +11,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+require_once __DIR__ . '/PostsCategoryViewModelBuilder.php';
+
 use CMS\Database;
 use CMS\Hooks;
 use CMS\Services\ContentLocalizationService;
@@ -24,6 +26,7 @@ class PostsModule
 {
     private Database $db;
     private string $prefix;
+    private PostsCategoryViewModelBuilder $categoryViewModelBuilder;
 
     private const DEFAULT_MS365_ROOT = [
         'slug' => 'microsoft-365',
@@ -58,6 +61,7 @@ class PostsModule
     {
         $this->db     = Database::instance();
         $this->prefix = $this->db->getPrefix();
+        $this->categoryViewModelBuilder = new PostsCategoryViewModelBuilder();
         $this->ensureColumns();
         $this->ensureCategoryColumns();
         $this->ensurePostCategoryRelationTable();
@@ -259,7 +263,7 @@ class PostsModule
             "SELECT id, name, slug, parent_id, sort_order FROM {$this->prefix}post_categories ORDER BY sort_order ASC, name ASC"
         ) ?: [];
 
-        $categories = $this->buildOrderedCategoryOptions(array_map(fn($c) => (array) $c, $categories));
+        $categories = $this->categoryViewModelBuilder->buildOrderedCategoryOptions(array_map(fn($c) => (array) $c, $categories));
 
         return [
             'posts'      => array_map(fn($p) => (array)$p, $posts),
@@ -318,7 +322,7 @@ class PostsModule
         return [
             'post'       => $postData,
             'isNew'      => $post === null,
-            'categories' => $this->buildOrderedCategoryOptions(array_map(fn($c) => (array)$c, $categories)),
+            'categories' => $this->categoryViewModelBuilder->buildOrderedCategoryOptions(array_map(fn($c) => (array)$c, $categories)),
             'tags'       => array_map(fn($t) => (array)$t, $tags),
             'postTags'   => array_map(fn($t) => (array)$t, $postTags),
             'postCategoryIds' => $postCategoryIds,
@@ -347,11 +351,11 @@ class PostsModule
              ORDER BY c.sort_order ASC, c.name ASC"
         ) ?: [];
 
-        $orderedCategories = $this->buildAdminCategoryRows(array_map(fn($category) => (array) $category, $categories));
+        $orderedCategories = $this->categoryViewModelBuilder->buildAdminCategoryRows(array_map(fn($category) => (array) $category, $categories));
 
         return [
             'categories' => $orderedCategories,
-            'categoryOptions' => $this->buildOrderedCategoryOptions(array_map(fn($category) => (array) $category, $categories)),
+            'categoryOptions' => $this->categoryViewModelBuilder->buildOrderedCategoryOptions(array_map(fn($category) => (array) $category, $categories)),
             'counts' => [
                 'total' => count($orderedCategories),
                 'assigned_posts' => array_sum(array_map(static fn(array $category): int => (int) ($category['post_count_direct'] ?? 0), $orderedCategories)),
@@ -1254,109 +1258,6 @@ class PostsModule
         return (int) $this->db->get_var($sql, $params) > 0;
     }
 
-    /**
-     * @param array<int,array<string,mixed>> $rows
-     * @return array<int,array<string,mixed>>
-     */
-    private function buildOrderedCategoryOptions(array $rows): array
-    {
-        return array_map(static function (array $row): array {
-            $row['option_label'] = (string) ($row['option_label'] ?? $row['name'] ?? '');
-            return $row;
-        }, $this->buildCategoryTreeRows($rows, false));
-    }
-
-    /**
-     * @param array<int,array<string,mixed>> $rows
-     * @return array<int,array<string,mixed>>
-     */
-    private function buildAdminCategoryRows(array $rows): array
-    {
-        return $this->buildCategoryTreeRows($rows, true);
-    }
-
-    /**
-     * @param array<int,array<string,mixed>> $rows
-     * @return array<int,array<string,mixed>>
-     */
-    private function buildCategoryTreeRows(array $rows, bool $includeAdminMeta): array
-    {
-        $byId = [];
-        foreach ($rows as $row) {
-            $id = (int) ($row['id'] ?? 0);
-            if ($id <= 0) {
-                continue;
-            }
-
-            $row['id'] = $id;
-            $row['parent_id'] = (int) ($row['parent_id'] ?? 0);
-            $row['sort_order'] = (int) ($row['sort_order'] ?? 0);
-            $row['replacement_category_id'] = (int) ($row['replacement_category_id'] ?? 0);
-            $row['post_count_direct'] = (int) ($row['post_count'] ?? 0);
-            $row['domains'] = $this->decodeCategoryDomains((string) ($row['alias_domains_json'] ?? ''));
-            $byId[$id] = $row;
-        }
-
-        $byParent = [];
-        foreach ($byId as $id => $row) {
-            $parentId = (int) ($row['parent_id'] ?? 0);
-            if ($parentId > 0 && !isset($byId[$parentId])) {
-                $parentId = 0;
-            }
-            $byParent[$parentId][] = $id;
-        }
-
-        $flat = [];
-        $walker = function (int $parentId, int $depth) use (&$walker, &$flat, $byParent, $byId, $includeAdminMeta): int {
-            $branchTotal = 0;
-
-            foreach ($byParent[$parentId] ?? [] as $categoryId) {
-                if (!isset($byId[$categoryId])) {
-                    continue;
-                }
-
-                $row = $byId[$categoryId];
-                $row['depth'] = $depth;
-                $row['option_label'] = str_repeat('— ', $depth) . (string) ($row['name'] ?? '');
-                $row['is_main_category'] = $depth === 0;
-                $row['parent_name'] = '';
-
-                if ((int) ($row['parent_id'] ?? 0) > 0 && isset($byId[(int) $row['parent_id']])) {
-                    $row['parent_name'] = (string) ($byId[(int) $row['parent_id']]['name'] ?? '');
-                }
-
-                $replacementId = (int) ($row['replacement_category_id'] ?? 0);
-                $row['replacement_category_name'] = '';
-                if ($replacementId > 0 && isset($byId[$replacementId])) {
-                    $row['replacement_category_name'] = (string) ($byId[$replacementId]['name'] ?? '');
-                }
-
-                $index = count($flat);
-                $flat[] = $row;
-                $childrenTotal = $walker($categoryId, $depth + 1);
-                $row['post_count_total'] = (int) ($row['post_count_direct'] ?? 0) + $childrenTotal;
-
-                if (!$includeAdminMeta) {
-                    unset($row['domains']);
-                    unset($row['post_count_direct']);
-                    unset($row['post_count_total']);
-                    unset($row['parent_name']);
-                    unset($row['is_main_category']);
-                    unset($row['replacement_category_id']);
-                    unset($row['replacement_category_name']);
-                }
-
-                $flat[$index] = $row;
-                $branchTotal += (int) ($row['post_count_total'] ?? ($row['post_count_direct'] ?? 0));
-            }
-
-            return $branchTotal;
-        };
-
-        $walker(0, 0);
-
-        return $flat;
-    }
 
     /**
      * @return array{domains: array<int,string>, errors: array<int,string>}

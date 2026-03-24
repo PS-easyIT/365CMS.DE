@@ -45,7 +45,7 @@ Die Vollprüfung wurde auf den kompletten First-Party-Dateibaum von `CMS/` erwei
 - [x] **Step #12 / A-12 – Installer-Monolith aufspalten** → `install.php` bootstrapped den Ablauf jetzt nur noch; Flow-/Update-Logik liegt in `install/InstallerController.php`, Setup-/DB-/Config-Logik in `install/InstallerService.php` und die HTML-Schritte in `install/views/*.php`.
 - [x] **Step #13 / A-13 – `includes/functions.php` thematisch splitten** → `includes/functions.php` lädt die globalen Helfer jetzt nur noch als Bootstrap; Escaping, Optionen/Runtime, Redirect/Auth, Rollen, Admin-Menüs, Übersetzungen, WP-Kompatibilität und Mail liegen getrennt unter `includes/functions/*.php`.
 - [x] **Step #14 / A-14 – Importer-Monolith weiter zerlegen** → Der Importer trennt Preview-/Planungslogik, Meta-/Reporting und Admin-Cleanup jetzt in eigenständige Traits; `class-importer.php` und `class-admin.php` bleiben damit funktionale Entry-Points, ohne die bisherigen Wartungsblöcke weiter als Einzelmonolith zu tragen.
-- [ ] **Step #15 / A-15 – große Routing-/Admin-Hotspots verkleinern**
+- [x] **Step #15 / A-15 – große Routing-/Admin-Hotspots verkleinern** → `ThemeRouter`, `PostsModule` und `HubTemplateProfileManager` delegieren Archiv-/Kategorie-/Template-Kataloglogik jetzt an kleinere Repository-, ViewModel- und Catalog-Helfer statt diese Wartungsblöcke weiter inline mitzuschleppen.
 - [ ] **Step #16 / A-16 – Media-Delivery um Range-/Streaming ergänzen**
 - [ ] **Step #17 / A-17 – große Admin-Views modularisieren**
 - [ ] **Step #18 / A-18 – Upload-Beispiel-/Betriebsdaten sauber trennen**
