@@ -42,7 +42,7 @@ Die Vollprüfung wurde auf den kompletten First-Party-Dateibaum von `CMS/` erwei
 - [x] **Step #9 / A-09 – `session.cookie_secure` an echtes HTTPS koppeln** → `Security`, `index.php` und `cron.php` setzen `session.cookie_secure` jetzt nur noch bei tatsächlich erkanntem HTTPS bzw. Proxy-HTTPS; CLI/HTTP-Staging bleiben funktionsfähig.
 - [x] **Step #10 / A-10 – Update-Installationen atomar machen** → `UpdateService` entpackt Update-ZIPs jetzt erst in ein benachbartes Staging-Verzeichnis und übernimmt sie anschließend per atomarem Directory-Swap bzw. rollback-fähigem Inhalts-Swap ins Live-Ziel.
 - [x] **Step #11 / A-11 – HTTPS-/HSTS-Linie vereinheitlichen** → Die ausgelieferte HTTPS-Strategie ist jetzt klar auf Redirects am Reverse-Proxy/Webserver festgelegt; `.htaccess`, `Security` und Diagnose folgen derselben HTTPS-/HSTS-Linie ohne halb-aktive Kommentar-Redirects.
-- [ ] **Step #12 / A-12 – Installer-Monolith aufspalten**
+- [x] **Step #12 / A-12 – Installer-Monolith aufspalten** → `install.php` bootstrapped den Ablauf jetzt nur noch; Flow-/Update-Logik liegt in `install/InstallerController.php`, Setup-/DB-/Config-Logik in `install/InstallerService.php` und die HTML-Schritte in `install/views/*.php`.
 - [ ] **Step #13 / A-13 – `includes/functions.php` thematisch splitten**
 - [ ] **Step #14 / A-14 – Importer-Monolith weiter zerlegen**
 - [ ] **Step #15 / A-15 – große Routing-/Admin-Hotspots verkleinern**

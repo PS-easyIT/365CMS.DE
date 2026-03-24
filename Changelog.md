@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.11-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.12-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -16,7 +16,16 @@
 
 ---
 
+## [2.6.12] – 2026-03-23
+
+### Changed
+
+- `CMS/install.php` ist jetzt nur noch ein schlanker Bootstrap und delegiert den mehrstufigen Installer-Ablauf an einen dedizierten `InstallerController` statt UI, Datenbank, Konfigurationsschreibzugriffe und Success-Flow weiter in einer Datei zu mischen.
+- `InstallerService` kapselt die Setup-, Lock-, Config-, Schema- und Datenbanklogik des Installers zentral, während die HTML-Schritte unter `CMS/install/views/` als getrennte Views gerendert werden und damit gezielter wart- und testbar bleiben.
+
+
 ## [2.6.11] – 2026-03-23
+
 
 ### Changed
 
