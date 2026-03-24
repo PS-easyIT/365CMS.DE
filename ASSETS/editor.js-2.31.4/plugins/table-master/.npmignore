@@ -1,8 +1,0 @@
-.idea/
-assets/
-src/
-.eslintrc
-postcss.config.js
-vite.config.js
-test.html
-yarn.lock
