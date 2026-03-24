@@ -5,6 +5,14 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
+### Gesamtstand nach Batch 037
+
+| Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
+|---:|---:|---:|---:|---:|
+| 445 | 81,81 | 80,76 | 83,60 | 82,05 |
+
+Der aktuelle Nachpflege-Stand umfasst damit **37 umgesetzte Audit-Batches**. Zuletzt wurde `CMS/admin/modules/system/DocumentationGitSync.php` auf Ref-, Parallelitäts- und lokalen Änderungszustand-Ebene deutlich härter gezogen.
+
 ### Delta Batch 001
 
 | Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
@@ -247,6 +255,18 @@ ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu ausz
 |---|---|---|---|
 | `CMS/admin/modules/system/DocumentationSyncDownloader.php` | umgesetzt | Strengere Download-Ziel-/URL-Validierung, ZIP-Signatur-Checks und auditierte Response-Pfade nachgezogen. | Der Doku-Downloader akzeptiert nur noch dedizierte Temp-Ziele und erwartete GitHub-ZIP-URLs, verwirft zu kleine, zu große oder nicht-zipartige Responses früh und protokolliert Erfolge/Fehler kontrolliert statt rohe Remote-Fehler an die Oberfläche zu geben. |
 
+### Delta Batch 036
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/cron.php` | umgesetzt | Web-Methoden begrenzt, Task-/Limit-Input normalisiert, Header-Token erlaubt, Parallel-Lock und generische Fehlerpfade ergänzt. | Der Root-Cron-Endpunkt akzeptiert im Web nur noch erwartete Aufrufarten, verhindert parallele Läufe per Lockfile und gibt bei Fehlern keine rohen technischen Details mehr preis; gleichzeitig wurden unnötiger Session-Start und Body-Ausgabe für `HEAD`-Checks vermieden. |
+
+### Delta Batch 037
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationGitSync.php` | umgesetzt | Remote-Ref-Prüfung, Parallel-Lock, Local-Change-Gate und robustere Runtime-Fehlerpfade nachgezogen. | Der Git-basierte Doku-Sync serialisiert parallele Läufe, überschreibt lokale `/DOC`-Änderungen nicht mehr still, prüft den Ziel-Ref vor dem Checkout und kapselt Status-/Runtime-Fehler weiter in sanitierte, auditierbare Modulpfade. |
+
 ## Grundlage
 
 Diese Datei bewertet den aktuellen CMS-Codebestand **dateiweise** nach:
@@ -400,7 +420,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/modules/subscriptions/SubscriptionSettingsModule.php` | Billing-Settings-Logik | Settings, Gateway-Optionen | 78 | 74 | 84 | 78 |
 | `CMS/admin/modules/system/BackupsModule.php` | Backup-Logik | FS, Dumps, Restore | 90 | 66 | 87 | 82 |
 | `CMS/admin/modules/system/DocumentationCatalog.php` | Doku-Katalog | Doku-Service, Quellen | 84 | 88 | 84 | 85 |
-| `CMS/admin/modules/system/DocumentationGitSync.php` | Git-Doku-Sync | Git/Remote, FS | 72 | 62 | 82 | 72 |
+| `CMS/admin/modules/system/DocumentationGitSync.php` | Git-Doku-Sync | Git/Remote, FS | 88 | 70 | 86 | 81 |
 | `CMS/admin/modules/system/DocumentationGithubZipSync.php` | GitHub-Zip-Sync | Remote-Zip, FS | 88 | 65 | 86 | 80 |
 | `CMS/admin/modules/system/DocumentationModule.php` | Doku-Logik | Renderer, Sync, Catalog | 86 | 76 | 86 | 83 |
 | `CMS/admin/modules/system/DocumentationRenderer.php` | Doku-Renderer | Markdown→HTML, Escaping | 87 | 78 | 86 | 84 |
@@ -695,7 +715,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `config/app.php` | Anwendungs-Konfigurationsvorlage | Bootstrap; DB-/App-Konstanten; Installer | 82 | 67 | 86 | 78 |
 | `config/media-meta.json` | Medienkategorien und Metadaten | Medienverwaltung; Kategorie-Mapping | 82 | 85 | 82 | 83 |
 | `config/media-settings.json` | Medien-Upload- und Typ-Einstellungen | Medienservice; Upload-Regeln | 82 | 85 | 82 | 83 |
-| `cron.php` | CLI/Web-Cron-Endpunkt | `config.php`; `Bootstrap`; `MailQueueService`; `SettingsService`; `CMS\Hooks` | 59 | 67 | 74 | 67 |
+| `cron.php` | CLI/Web-Cron-Endpunkt | `config.php`; `Bootstrap`; `MailQueueService`; `SettingsService`; `CMS\Hooks` | 76 | 74 | 82 | 77 |
 | `index.php` | Haupt-Entry-Point des CMS | `config.php`; Autoloader; `CMS\Bootstrap`; Theme-Error-Fallback | 78 | 67 | 82 | 76 |
 | `install.php` | Startpunkt des Installers | Installer-Bootstrap; Install-Controller | 75 | 67 | 82 | 75 |
 | `install/InstallerController.php` | Steuerung des Installationsablaufs | `InstallerService`; PDO; Install-Views; Session | 80 | 68 | 94 | 81 |

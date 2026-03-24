@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.6.50-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.6.55-blue.svg)](Changelog.md)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
@@ -26,6 +26,19 @@
 | **Business** | Aboverwaltung, Orders, Checkout, Gruppen, Legal-Sites, DSGVO-Workflows |
 | **Extensibility** | Theme-System, Theme-Customizer, Plugin-Marketplace, Hooks & Filters |
 | **Operations** | Monitoring, Cron-Checks, Cache-Management, Audit-Logs, Backups, Update-Workflows |
+
+## 📈 Audit-Stand März 2026
+
+Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 037** nachgezogen. Der aktuelle dokumentierte Gesamtstand über **445 bewertete Dateien** liegt bei:
+
+| Metrik | Stand |
+|---|---:|
+| **Security** | **81,81** |
+| **Speed** | **80,76** |
+| **PHP / Best Practices** | **83,60** |
+| **Gesamt** | **82,05** |
+
+Zuletzt wurde der Git-basierte Doku-Sync weiter abgesichert: Remote-Refs werden vor dem Checkout geprüft, parallele Läufe per Lockfile serialisiert, lokale `/DOC`-Änderungen nicht mehr still überschrieben und technische Fehler weiterhin nur intern sanitisiert protokolliert.
 
 ## 🧩 Funktionsumfang im Überblick
 

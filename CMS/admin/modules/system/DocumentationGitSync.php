@@ -7,6 +7,9 @@ if (!defined('ABSPATH')) {
 
 final class DocumentationGitSync
 {
+    /** @var resource|null */
+    private $syncLockHandle = null;
+
     public function __construct(
         private readonly string $repoRoot,
         private readonly string $docsRoot,
@@ -23,58 +26,92 @@ final class DocumentationGitSync
     {
         try {
             $this->assertSyncTargets();
+            $this->acquireSyncLock();
         } catch (RuntimeException $e) {
             return $this->failResult('documentation.sync.git.invalid_target', 'DOC-Sync via Git konnte nicht vorbereitet werden.', $e, [
-                'repo_root' => $this->repoRoot,
-                'docs_root' => $this->docsRoot,
+                'repo_root' => $this->sanitizePath($this->repoRoot),
+                'docs_root' => $this->sanitizePath($this->docsRoot),
             ]);
         }
 
-        $fetch = $this->environment->runCommand(sprintf(
-            'git -C %s fetch %s %s 2>&1',
-            escapeshellarg($this->repoRoot),
-            escapeshellarg($this->defaultRemote),
-            escapeshellarg($this->defaultBranch)
-        ));
+        try {
+            $fetch = $this->environment->runCommand(sprintf(
+                'git -C %s fetch --no-tags --prune --no-recurse-submodules %s %s 2>&1',
+                escapeshellarg($this->repoRoot),
+                escapeshellarg($this->defaultRemote),
+                escapeshellarg($this->defaultBranch)
+            ));
 
-        if (($fetch['exitCode'] ?? 1) !== 0) {
-            return $this->failResult('documentation.sync.git.fetch_failed', 'DOC-Sync via Git konnte nicht abgeschlossen werden.', null, [
-                'command' => 'fetch',
-                'output' => $this->limitCommandOutput((string) ($fetch['output'] ?? '')),
-                'exit_code' => (int) ($fetch['exitCode'] ?? 1),
+            if (($fetch['exitCode'] ?? 1) !== 0) {
+                return $this->failResult('documentation.sync.git.fetch_failed', 'DOC-Sync via Git konnte nicht abgeschlossen werden.', null, [
+                    'command' => 'fetch',
+                    'output' => $this->limitCommandOutput((string) ($fetch['output'] ?? '')),
+                    'exit_code' => (int) ($fetch['exitCode'] ?? 1),
+                ]);
+            }
+
+            if (!$this->remoteReferenceExists()) {
+                return $this->failResult('documentation.sync.git.missing_ref', 'DOC-Sync via Git konnte nicht abgeschlossen werden.', null, [
+                    'command' => 'rev-parse',
+                    'remote_ref' => $this->sanitizeRef($this->defaultRemote . '/' . $this->defaultBranch),
+                ]);
+            }
+
+            $localDocChanges = $this->getLocalDocStatus();
+            if ($localDocChanges !== '') {
+                return $this->failResult('documentation.sync.git.local_changes', 'DOC-Sync via Git wurde abgebrochen, weil lokale Änderungen im /DOC-Ordner vorliegen.', null, [
+                    'command' => 'status',
+                    'changes' => $localDocChanges,
+                ]);
+            }
+
+            $remoteRef = $this->defaultRemote . '/' . $this->defaultBranch;
+
+            $checkout = $this->environment->runCommand(sprintf(
+                'git -C %s checkout %s -- DOC 2>&1',
+                escapeshellarg($this->repoRoot),
+                escapeshellarg($remoteRef)
+            ));
+
+            if (($checkout['exitCode'] ?? 1) !== 0) {
+                return $this->failResult('documentation.sync.git.checkout_failed', 'DOC-Sync via Git konnte nicht abgeschlossen werden.', null, [
+                    'command' => 'checkout',
+                    'output' => $this->limitCommandOutput((string) ($checkout['output'] ?? '')),
+                    'exit_code' => (int) ($checkout['exitCode'] ?? 1),
+                ]);
+            }
+
+            $status = $this->environment->runCommand(sprintf(
+                'git -C %s status --short -- DOC 2>&1',
+                escapeshellarg($this->repoRoot)
+            ));
+
+            if (($status['exitCode'] ?? 1) !== 0) {
+                return $this->failResult('documentation.sync.git.status_failed', 'DOC-Sync via Git konnte nicht vollständig verifiziert werden.', null, [
+                    'command' => 'status',
+                    'output' => $this->limitCommandOutput((string) ($status['output'] ?? '')),
+                    'exit_code' => (int) ($status['exitCode'] ?? 1),
+                ]);
+            }
+
+            $statusOutput = $this->normalizeStatusOutput((string) ($status['output'] ?? ''));
+            $message = 'Der lokale Ordner /DOC wurde mit ' . $this->defaultRemote . '/' . $this->defaultBranch . ' synchronisiert.';
+
+            if ($statusOutput !== '') {
+                $message .= ' Geänderte Dateien: ' . $statusOutput;
+            } elseif (is_dir($this->repoRoot . DIRECTORY_SEPARATOR . 'DOC')) {
+                $message .= ' Keine weiteren Unterschiede im Arbeitsbaum für /DOC.';
+            }
+
+            return ['success' => true, 'message' => $message];
+        } catch (RuntimeException $e) {
+            return $this->failResult('documentation.sync.git.runtime_failed', 'DOC-Sync via Git konnte nicht abgeschlossen werden.', $e, [
+                'repo_root' => $this->sanitizePath($this->repoRoot),
+                'docs_root' => $this->sanitizePath($this->docsRoot),
             ]);
+        } finally {
+            $this->releaseSyncLock();
         }
-
-        $checkout = $this->environment->runCommand(sprintf(
-            'git -C %s checkout %s/%s -- DOC 2>&1',
-            escapeshellarg($this->repoRoot),
-            escapeshellarg($this->defaultRemote),
-            escapeshellarg($this->defaultBranch)
-        ));
-
-        if (($checkout['exitCode'] ?? 1) !== 0) {
-            return $this->failResult('documentation.sync.git.checkout_failed', 'DOC-Sync via Git konnte nicht abgeschlossen werden.', null, [
-                'command' => 'checkout',
-                'output' => $this->limitCommandOutput((string) ($checkout['output'] ?? '')),
-                'exit_code' => (int) ($checkout['exitCode'] ?? 1),
-            ]);
-        }
-
-        $status = $this->environment->runCommand(sprintf(
-            'git -C %s status --short -- DOC 2>&1',
-            escapeshellarg($this->repoRoot)
-        ));
-
-        $statusOutput = $this->normalizeStatusOutput((string) ($status['output'] ?? ''));
-        $message = 'Der lokale Ordner /DOC wurde mit ' . $this->defaultRemote . '/' . $this->defaultBranch . ' synchronisiert.';
-
-        if ($statusOutput !== '') {
-            $message .= ' Geänderte Dateien: ' . $statusOutput;
-        } elseif (is_dir($this->repoRoot . DIRECTORY_SEPARATOR . 'DOC')) {
-            $message .= ' Keine weiteren Unterschiede im Arbeitsbaum für /DOC.';
-        }
-
-        return ['success' => true, 'message' => $message];
     }
 
     private function assertSyncTargets(): void
@@ -107,6 +144,70 @@ final class DocumentationGitSync
         return $value !== '' && preg_match('/^[A-Za-z0-9._\/-]+$/', $value) === 1;
     }
 
+    private function remoteReferenceExists(): bool
+    {
+        $remoteRef = $this->defaultRemote . '/' . $this->defaultBranch;
+        $result = $this->environment->runCommand(sprintf(
+            'git -C %s rev-parse --verify --quiet %s^{commit} 2>&1',
+            escapeshellarg($this->repoRoot),
+            escapeshellarg($remoteRef)
+        ));
+
+        return ($result['exitCode'] ?? 1) === 0;
+    }
+
+    private function getLocalDocStatus(): string
+    {
+        $status = $this->environment->runCommand(sprintf(
+            'git -C %s status --short --untracked-files=all -- DOC 2>&1',
+            escapeshellarg($this->repoRoot)
+        ));
+
+        if (($status['exitCode'] ?? 1) !== 0) {
+            throw new RuntimeException('Lokaler DOC-Status konnte nicht geprüft werden.');
+        }
+
+        return $this->normalizeStatusOutput((string) ($status['output'] ?? ''));
+    }
+
+    private function acquireSyncLock(): void
+    {
+        $lockPath = $this->buildLockPath();
+        $handle = @fopen($lockPath, 'c+');
+
+        if ($handle === false) {
+            throw new RuntimeException('Synchronisations-Lock konnte nicht initialisiert werden.');
+        }
+
+        if (!@flock($handle, LOCK_EX | LOCK_NB)) {
+            fclose($handle);
+            throw new RuntimeException('Es läuft bereits eine Git-Dokumentationssynchronisation.');
+        }
+
+        $this->syncLockHandle = $handle;
+    }
+
+    private function releaseSyncLock(): void
+    {
+        if (!is_resource($this->syncLockHandle)) {
+            $this->syncLockHandle = null;
+
+            return;
+        }
+
+        @flock($this->syncLockHandle, LOCK_UN);
+        @fclose($this->syncLockHandle);
+        $this->syncLockHandle = null;
+    }
+
+    private function buildLockPath(): string
+    {
+        $tempRoot = sys_get_temp_dir();
+        $repoHash = hash('sha256', $this->repoRoot);
+
+        return rtrim($tempRoot, '\\/') . DIRECTORY_SEPARATOR . '365cms_doc_git_sync_' . $repoHash . '.lock';
+    }
+
     private function normalizeStatusOutput(string $output): string
     {
         $output = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', trim($output)) ?? '';
@@ -127,11 +228,21 @@ final class DocumentationGitSync
         return function_exists('mb_substr') ? mb_substr($output, 0, 1000) : substr($output, 0, 1000);
     }
 
+    private function sanitizePath(string $path): string
+    {
+        return $this->limitCommandOutput(str_replace('\\', '/', $path));
+    }
+
+    private function sanitizeRef(string $value): string
+    {
+        return preg_replace('/[^A-Za-z0-9._\/-]+/', '', $value) ?? '';
+    }
+
     /** @param array<string, mixed> $context */
     private function failResult(string $action, string $message, ?Throwable $exception = null, array $context = []): array
     {
         if ($exception !== null) {
-            $context['exception'] = $exception->getMessage();
+            $context['exception'] = $this->limitCommandOutput($exception->getMessage());
         }
 
         \CMS\Logger::instance()->withChannel('admin.documentation')->error($message, $context);

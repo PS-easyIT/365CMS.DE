@@ -20,6 +20,26 @@
 
 ---
 
+### v2.6.55 — 24. März 2026 · Audit-Batch 037, Git-Doku-Sync gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.55** | 🔴 fix | Admin/Documentation | **Git-basierter Doku-Sync mit Ref- und Status-Gates nachgeschärft**: `CMS/admin/modules/system/DocumentationGitSync.php` prüft den Remote-Ref jetzt explizit vor dem Checkout und bricht bei nicht prüfbarem oder inkonsistentem `/DOC`-Status kontrolliert ab. |
+| **2.6.55** | 🔴 security | Admin/Documentation | **Lokale Änderungen und Parallel-Läufe werden nicht mehr still überfahren**: laufende Git-Syncs werden per Lockfile serialisiert, und uncommittete bzw. untracked Änderungen unter `/DOC` blockieren den Sync mit auditierbarem Fehlerpfad. |
+| **2.6.55** | 🟡 refactor | Admin/Documentation | **Git-Aufrufe restriktiver und Log-Kontexte sauberer**: Fetches laufen mit reduzierten Nebeneffekten (`--no-tags --prune --no-recurse-submodules`), Ref-/Pfad-Kontexte werden sanitisiert und Runtime-Fehler landen zuverlässig im generischen Modul-Fehlerpfad. |
+
+---
+
+### v2.6.54 — 24. März 2026 · Audit-Batch 036, Root-Cron gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.54** | 🔴 fix | Core/Cron | **Root-Cron-Entry auf kontrollierte Web-Methoden und normalisierte Parameter begrenzt**: `CMS/cron.php` akzeptiert im Web nur noch `GET` und `HEAD`, normalisiert `task` und `limit` serverseitig und beantwortet `HEAD`-Checks ohne unnötigen Response-Body. |
+| **2.6.54** | 🔴 security | Core/Cron | **Token- und Fehlerpfade nachgeschärft**: Cron-Tokens können zusätzlich über Header transportiert werden, parallele Läufe werden per Lockfile abgefangen und rohe Exception-Details leaken nicht mehr direkt in JSON-Antworten. |
+| **2.6.54** | 🟡 refactor | Core/Cron | **Operative Schutzgeländer ergänzt**: der Entry verzichtet auf unnötigen Session-Start, setzt `X-Robots-Tag` für Web-Cron-Antworten und protokolliert technische Fehler nur noch intern in sanitierter Form. |
+
+---
+
 ### v2.6.53 — 24. März 2026 · Audit-Batch 035, Doku-Downloader gehärtet
 
 | Version | Typ | Bereich | Beschreibung |
