@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.18-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.19-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -15,6 +15,13 @@
 | 🎨 | `style` | Design- / UI-Änderungen |
 
 ---
+
+## [2.6.19] – 2026-03-24
+
+### Fixed
+
+- `CMS/core/Auth.php` bindet eingeloggte Sessions jetzt zusätzlich an ein signiertes Device-Cookie `cms_device` mit maximal 2 Stunden TTL; fehlt das Cookie oder passt seine Signatur/Sitzungsbindung nicht mehr, wird die Session beim nächsten Check sauber invalidiert.
+- `CMS/core/Auth/AuthManager.php` setzt dieselbe Gerätebindung auch für Passkey- und MFA-abgeschlossene Logins, und Logout räumt Session-Cookie plus Device-Cookie gemeinsam ab, damit fremde oder inkognitoartige Browser-Kontexte keine bestehende Login-Lage mehr „mitbenutzen“ können.
 
 ## [2.6.18] – 2026-03-24
 

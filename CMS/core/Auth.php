@@ -17,6 +17,9 @@ if (!defined('ABSPATH')) {
 
 class Auth
 {
+    private const DEVICE_COOKIE_NAME = 'cms_device';
+    private const DEVICE_COOKIE_TTL = 7200;
+
     private static ?self $instance = null;
     private ?object $currentUser = null;
     
@@ -56,6 +59,12 @@ class Auth
             return;
         }
 
+        $userId = (int)($_SESSION['user_id'] ?? 0);
+        if ($userId <= 0 || !$this->hasValidDeviceCookie($userId)) {
+            $this->forceExpireSession();
+            return;
+        }
+
         // M-17: Maximale Lebensdauer je Rolle
         $role        = (string)($_SESSION['user_role'] ?? 'member');
         $maxLifetime = ($role === 'admin')
@@ -80,6 +89,8 @@ class Auth
      */
     private function forceExpireSession(): void
     {
+        $this->clearDeviceCookie();
+
         if (session_status() !== PHP_SESSION_ACTIVE) {
             $this->currentUser = null;
             return;
@@ -161,6 +172,7 @@ class Auth
         $_SESSION['user_role']         = $user->role;
         $_SESSION['session_start_time'] = time(); // M-17: Startzeitstempel für Lifetime-Prüfung
         session_regenerate_id(true); // Prevent Fixation
+        $this->bindCurrentSessionToDeviceCookie((int)$user->id);
         
         $db->update('users', ['last_login' => date('Y-m-d H:i:s')], ['id' => $user->id]);
         $this->currentUser = $user;
@@ -324,6 +336,8 @@ class Auth
      */
     public function logout(): void
     {
+        $this->clearDeviceCookie();
+
         // Clear session data
         $_SESSION = [];
         
@@ -341,6 +355,31 @@ class Auth
         // Destroy session
         session_destroy();
         $this->currentUser = null;
+    }
+
+    public function bindCurrentSessionToDeviceCookie(int $userId): void
+    {
+        if ($userId <= 0 || session_status() !== PHP_SESSION_ACTIVE) {
+            return;
+        }
+
+        $sessionId = session_id();
+        if ($sessionId === '') {
+            return;
+        }
+
+        $issuedAt = time();
+        $expiresAt = $issuedAt + self::DEVICE_COOKIE_TTL;
+        $payload = implode('|', [
+            (string)$userId,
+            (string)$issuedAt,
+            (string)$expiresAt,
+            hash('sha256', $sessionId),
+        ]);
+        $signature = hash_hmac('sha256', $payload, $this->getDeviceCookieSigningKey());
+        $cookieValue = rtrim(strtr(base64_encode($payload . '|' . $signature), '+/', '-_'), '=');
+
+        $this->setDeviceCookie($cookieValue, $expiresAt);
     }
     
     /**
@@ -541,5 +580,97 @@ class Auth
             "DELETE FROM {$db->getPrefix()}user_meta WHERE user_id = ? AND meta_key = ?",
             [$userId, $key]
         );
+    }
+
+    private function hasValidDeviceCookie(int $userId): bool
+    {
+        $rawCookie = trim((string)($_COOKIE[self::DEVICE_COOKIE_NAME] ?? ''));
+        if ($rawCookie === '' || session_status() !== PHP_SESSION_ACTIVE) {
+            return false;
+        }
+
+        $normalizedCookie = strtr($rawCookie, '-_', '+/');
+        $padding = strlen($normalizedCookie) % 4;
+        if ($padding !== 0) {
+            $normalizedCookie .= str_repeat('=', 4 - $padding);
+        }
+
+        $decoded = base64_decode($normalizedCookie, true);
+        if (!is_string($decoded) || $decoded === '') {
+            return false;
+        }
+
+        $parts = explode('|', $decoded);
+        if (count($parts) !== 5) {
+            return false;
+        }
+
+        [$cookieUserId, $issuedAt, $expiresAt, $sessionHash, $signature] = $parts;
+        $payload = implode('|', [$cookieUserId, $issuedAt, $expiresAt, $sessionHash]);
+        $expectedSignature = hash_hmac('sha256', $payload, $this->getDeviceCookieSigningKey());
+
+        if (!hash_equals($expectedSignature, $signature)) {
+            return false;
+        }
+
+        $now = time();
+        if ((int)$cookieUserId !== $userId || (int)$expiresAt < $now || (int)$issuedAt > $now) {
+            return false;
+        }
+
+        $sessionId = session_id();
+        if ($sessionId === '') {
+            return false;
+        }
+
+        return hash_equals($sessionHash, hash('sha256', $sessionId));
+    }
+
+    private function getDeviceCookieSigningKey(): string
+    {
+        $jwtSecret = defined('JWT_SECRET') ? trim((string)JWT_SECRET) : '';
+        if ($jwtSecret !== '') {
+            return $jwtSecret;
+        }
+
+        $secureAuthKey = defined('SECURE_AUTH_KEY') ? trim((string)SECURE_AUTH_KEY) : '';
+        if ($secureAuthKey !== '') {
+            return $secureAuthKey;
+        }
+
+        $authKey = defined('AUTH_KEY') ? trim((string)AUTH_KEY) : '';
+        if ($authKey !== '') {
+            return $authKey;
+        }
+
+        return hash('sha256', __FILE__ . PHP_VERSION);
+    }
+
+    private function setDeviceCookie(string $value, int $expiresAt): void
+    {
+        $params = session_get_cookie_params();
+        setcookie(self::DEVICE_COOKIE_NAME, $value, [
+            'expires' => $expiresAt,
+            'path' => $params['path'] ?? '/',
+            'domain' => $params['domain'] ?? '',
+            'secure' => (bool)($params['secure'] ?? false),
+            'httponly' => true,
+            'samesite' => (string)($params['samesite'] ?? 'Lax'),
+        ]);
+        $_COOKIE[self::DEVICE_COOKIE_NAME] = $value;
+    }
+
+    private function clearDeviceCookie(): void
+    {
+        $params = session_get_cookie_params();
+        setcookie(self::DEVICE_COOKIE_NAME, '', [
+            'expires' => time() - 42000,
+            'path' => $params['path'] ?? '/',
+            'domain' => $params['domain'] ?? '',
+            'secure' => (bool)($params['secure'] ?? false),
+            'httponly' => true,
+            'samesite' => (string)($params['samesite'] ?? 'Lax'),
+        ]);
+        unset($_COOKIE[self::DEVICE_COOKIE_NAME]);
     }
 }

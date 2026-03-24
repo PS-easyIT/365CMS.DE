@@ -325,6 +325,7 @@ final class AuthManager
         $_SESSION['user_role']          = $user->role;
         $_SESSION['session_start_time'] = time();
         session_regenerate_id(true);
+        \CMS\Auth::instance()->bindCurrentSessionToDeviceCookie((int)$user->id);
 
         $db->update('users', ['last_login' => date('Y-m-d H:i:s')], ['id' => $userId]);
 
