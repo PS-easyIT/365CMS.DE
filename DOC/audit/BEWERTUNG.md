@@ -223,6 +223,12 @@ ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu ausz
 |---|---|---|---|
 | `CMS/admin/modules/system/DocumentationSyncFilesystem.php` | umgesetzt | Repo-/DOC-/Temp-Roots jetzt in allen Copy-/Rename-/Delete-Pfaden strikt erzwungen. | Der Doku-Sync-Dateisystem-Layer operiert nur noch innerhalb explizit verwalteter Arbeitsbereiche und lehnt ausreißende Staging-, Backup-, Extract- oder Cleanup-Pfade konsistent vor der Operation ab. |
 
+### Delta Batch 032
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/member/MemberDashboardModule.php` | umgesetzt | Interne RBAC-/CSRF-Gates, auditierte Save-Pfade und weniger N+1-Settings-Zugriffe nachgezogen. | Das Member-Dashboard-Modul prüft Rechte und Tokens jetzt auch intern pro Bereich, lädt Member-Settings und Plugin-Meta gebündelt und protokolliert erfolgreiche sicherheitsrelevante Konfigurationsänderungen explizit. |
+
 ## Grundlage
 
 Diese Datei bewertet den aktuellen CMS-Codebestand **dateiweise** nach:
@@ -355,7 +361,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/modules/legal/LegalSitesModule.php` | Rechtstexte-Logik | DB, Templates, Escaping | 86 | 74 | 85 | 82 |
 | `CMS/admin/modules/legal/PrivacyRequestsModule.php` | Privacy-Request-Logik | DB, DSGVO-Prozess | 80 | 76 | 84 | 80 |
 | `CMS/admin/modules/media/MediaModule.php` | Medienlogik | `MediaService`, Upload, FS | 76 | 70 | 84 | 77 |
-| `CMS/admin/modules/member/MemberDashboardModule.php` | Member-Dashboard-Logik | DB, Settings, Widgets | 74 | 60 | 83 | 73 |
+| `CMS/admin/modules/member/MemberDashboardModule.php` | Member-Dashboard-Logik | DB, Settings, Widgets | 88 | 72 | 86 | 83 |
 | `CMS/admin/modules/menus/MenuEditorModule.php` | Menülogik | DB, Menübaum, CRUD | 80 | 70 | 84 | 78 |
 | `CMS/admin/modules/pages/PagesModule.php` | Seitenlogik | DB, SEO, Kategorien, Bulk | 83 | 68 | 86 | 80 |
 | `CMS/admin/modules/plugins/PluginMarketplaceModule.php` | Plugin-Marketplace-Logik | Registry, Remote-Download | 72 | 66 | 82 | 73 |
@@ -730,7 +736,7 @@ Verwendete Referenzbasis für die Einordnung:
 | Kategorie | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt | Schwächste Dateien | Stärkste Dateien | Audit-Fokus |
 |---|---:|---:|---:|---:|---:|---|---|---|
 | **Admin – Entry-Points** | 81 | 83,4 | 84,1 | 84,8 | 83,9 | `theme-editor.php`, `theme-marketplace.php` | `diagnose.php`, `index.php`, `info.php`, `support.php`, `system-*.php` | Remote-Zugriffe in Marketplace-/Theme-Entrypoints härten |
-| **Admin – Module** | 55 | 80,8 | 74,1 | 84,2 | 80,0 | `DocumentationGitSync.php`, `DocumentationGithubZipSync.php`, `DocumentationSyncDownloader.php` | `PostsCategoryViewModelBuilder.php`, `SystemInfoModule.php` | Performance- und Qualitäts-Gates für große Module priorisieren |
+| **Admin – Module** | 55 | 81,1 | 74,3 | 84,3 | 80,2 | `BackupsModule.php`, `DocumentationGitSync.php`, `DocumentationGithubZipSync.php` | `PostsCategoryViewModelBuilder.php`, `SystemInfoModule.php` | Performance- und Qualitäts-Gates für große Module priorisieren |
 | **Admin – Layout-Partials** | 4 | 87,5 | 91,0 | 84,3 | 87,5 | `sidebar.php` | `section-page-shell.php` | Bereits stark; nur Regressionen verhindern |
 | **Admin – Views** | 89 | 84,4 | 83,9 | 83,7 | 83,4 | `posts/edit.php`, `pages/edit.php`, `landing/page.php` | `member/subnav.php`, `performance/subnav.php`, `seo/subnav.php` | Editor-Komplexität und Formularpfade weiter entkoppeln |
 | **Admin – View-Partials** | 8 | 89,5 | 94,4 | 84,9 | 89,6 | `featured-image-picker.php` | `content-advanced-seo-panel.php`, `content-preview-card.php`, `content-readability-card.php`, `content-seo-score-panel.php` | Sehr guter Standard – als Referenzmuster konservieren |

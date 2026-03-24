@@ -11,13 +11,31 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\Auth;
 use CMS\Database;
 use CMS\AuditLogger;
+use CMS\Logger;
+use CMS\Security;
 
 class MemberDashboardModule
 {
+    private const CSRF_ACTION = 'admin_member_dashboard';
+    private const READ_CAPABILITIES = ['manage_settings', 'manage_users'];
+    private const SECTION_CAPABILITIES = [
+        'general' => 'manage_settings',
+        'widgets' => 'manage_settings',
+        'profile-fields' => 'manage_users',
+        'design' => 'manage_settings',
+        'frontend-modules' => 'manage_settings',
+        'notifications' => 'manage_settings',
+        'onboarding' => 'manage_settings',
+        'plugin-widgets' => 'manage_settings',
+    ];
+    private const MAX_AUDIT_ERROR_LENGTH = 180;
+
     private Database $db;
     private string $prefix;
+    private Logger $logger;
 
     private const SETTINGS_KEYS = [
         'member_dashboard_enabled',
@@ -154,6 +172,7 @@ class MemberDashboardModule
     {
         $this->db     = Database::instance();
         $this->prefix = $this->db->getPrefix();
+        $this->logger = Logger::instance()->withChannel('admin.member-dashboard');
     }
 
     /**
@@ -161,10 +180,16 @@ class MemberDashboardModule
      */
     public function getData(): array
     {
-        $settings = $this->getSettings();
+        if (!$this->canRead()) {
+            return $this->emptyData();
+        }
+
+        $settingsMap = $this->loadSettingsMap();
+        $settings = $this->getSettings($settingsMap);
         $stats    = $this->getMemberStats();
         $widgets  = $this->getAvailableWidgets();
         $profileFields = $this->getProfileFieldDefinitions();
+        $pluginWidgets = $this->getPluginWidgets($settingsMap);
 
         return [
             'settings'  => $settings,
@@ -175,7 +200,7 @@ class MemberDashboardModule
             'sectionOrderOptions' => self::SECTION_ORDER_OPTIONS,
             'notificationTypes' => self::NOTIFICATION_TYPES,
             'digestFrequencies' => self::DIGEST_FREQUENCIES,
-            'pluginWidgets' => $this->getPluginWidgets(),
+            'pluginWidgets' => $pluginWidgets,
             'overview'  => [
                 'enabledWidgets'      => count($settings['widgets'] ?? []),
                 'enabledProfileFields'=> count($settings['profile_fields'] ?? []),
@@ -185,7 +210,7 @@ class MemberDashboardModule
                 'registrationEnabled' => !empty($settings['registration_enabled']),
                 'verificationEnabled' => !empty($settings['email_verification']),
                 'subscriptionVisible' => !empty($settings['subscription_visible']),
-                'pluginWidgetCount'   => count($this->getPluginWidgets()),
+                'pluginWidgetCount'   => count($pluginWidgets),
             ],
         ];
     }
@@ -202,7 +227,20 @@ class MemberDashboardModule
 
     public function saveSection(string $section, array $post): array
     {
-        return match ($section) {
+        $section = $this->normalizeSection($section);
+        if ($section === null) {
+            return ['success' => false, 'error' => 'Unbekannter Einstellungsbereich.'];
+        }
+
+        if (!$this->assertCsrf($post)) {
+            return ['success' => false, 'error' => 'Sicherheitstoken ungültig.'];
+        }
+
+        if (!$this->canWriteSection($section)) {
+            return ['success' => false, 'error' => 'Sie dürfen diesen Einstellungsbereich nicht bearbeiten.'];
+        }
+
+        $result = match ($section) {
             'general'        => $this->saveGeneralSettings($post),
             'widgets'        => $this->saveWidgetSettings($post),
             'profile-fields' => $this->saveProfileSettings($post),
@@ -213,6 +251,12 @@ class MemberDashboardModule
             'plugin-widgets' => $this->savePluginWidgetSettings($post),
             default          => ['success' => false, 'error' => 'Unbekannter Einstellungsbereich.'],
         };
+
+        if (!empty($result['success'])) {
+            $this->auditSectionSave($section);
+        }
+
+        return $result;
     }
 
     private function saveGeneralSettings(array $post): array
@@ -434,18 +478,10 @@ class MemberDashboardModule
     /**
      * Einstellungen laden
      */
-    private function getSettings(): array
+    private function getSettings(array $settings = []): array
     {
-        $settings = [];
-        try {
-            $rows = $this->db->get_results(
-                "SELECT option_name, option_value FROM {$this->prefix}settings WHERE option_name LIKE 'member_%'"
-            ) ?: [];
-            foreach ($rows as $row) {
-                $settings[$row->option_name] = $row->option_value;
-            }
-        } catch (\Throwable $e) {
-            // Defaults
+        if ($settings === []) {
+            $settings = $this->loadSettingsMap();
         }
 
         return [
@@ -512,14 +548,17 @@ class MemberDashboardModule
     private function getMemberStats(): array
     {
         try {
-            $total    = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}users");
-            $active   = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}users WHERE status = 'active'");
-            $thisWeek = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
+            $row = $this->db->get_row(
+                "SELECT COUNT(*) AS total,
+                        SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active,
+                        SUM(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) AS this_week
+                 FROM {$this->prefix}users"
+            );
 
             return [
-                'total'    => $total,
-                'active'   => $active,
-                'thisWeek' => $thisWeek,
+                'total'    => (int)($row->total ?? 0),
+                'active'   => (int)($row->active ?? 0),
+                'thisWeek' => (int)($row->this_week ?? 0),
             ];
         } catch (\Throwable $e) {
             return ['total' => 0, 'active' => 0, 'thisWeek' => 0];
@@ -593,7 +632,7 @@ class MemberDashboardModule
         return $roles;
     }
 
-    private function getPluginWidgets(): array
+    private function getPluginWidgets(array $settings = []): array
     {
         if (!class_exists('\\CMS\\Member\\PluginDashboardRegistry')) {
             return [];
@@ -602,6 +641,7 @@ class MemberDashboardModule
         try {
             $registry = \CMS\Member\PluginDashboardRegistry::instance();
             $registry->init();
+            $metaMap = $this->getPluginWidgetMetaMap($settings);
 
             $widgets = [];
             $seenPlugins = [];
@@ -620,7 +660,7 @@ class MemberDashboardModule
                 }
                 $seenPlugins[$plugin] = true;
 
-                $meta = $this->getPluginWidgetMeta($plugin);
+                $meta = $metaMap[$plugin] ?? [];
                 $supportsFrontendWidget = ($section['dashboard_widget'] ?? null) !== false;
 
                 $widgets[] = [
@@ -646,19 +686,16 @@ class MemberDashboardModule
 
     private function persistSettings(array $values): void
     {
+        $existingSettings = $this->loadSettingsMap(array_keys($values));
+
         foreach ($values as $key => $value) {
-            $this->upsertSetting((string)$key, (string)$value);
+            $this->upsertSetting((string)$key, (string)$value, array_key_exists((string)$key, $existingSettings));
         }
     }
 
-    private function upsertSetting(string $key, string $value): void
+    private function upsertSetting(string $key, string $value, bool $exists = false): void
     {
-        $existing = $this->db->get_var(
-            "SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?",
-            [$key]
-        );
-
-        if ((int)$existing > 0) {
+        if ($exists) {
             $this->db->execute(
                 "UPDATE {$this->prefix}settings SET option_value = ? WHERE option_name = ?",
                 [$value, $key]
@@ -688,27 +725,163 @@ class MemberDashboardModule
     }
 
     /**
-     * @return array<string,string>
+     * @param array<string, string> $settings
+     * @return array<string, array<string, string>>
      */
-    private function getPluginWidgetMeta(string $pluginSlug): array
+    private function getPluginWidgetMetaMap(array $settings = []): array
     {
-        $key = 'member_dashboard_widget_meta_' . $pluginSlug;
+        if ($settings === []) {
+            $settings = $this->loadSettingsMap();
+        }
 
-        try {
-            $raw = $this->db->get_var(
-                "SELECT option_value FROM {$this->prefix}settings WHERE option_name = ? LIMIT 1",
-                [$key]
-            );
+        $meta = [];
 
-            if (!is_string($raw) || trim($raw) === '') {
-                return [];
+        foreach ($settings as $key => $value) {
+            if (!str_starts_with((string)$key, 'member_dashboard_widget_meta_')) {
+                continue;
             }
 
-            $decoded = \CMS\Json::decodeArray($raw, []);
-            return is_array($decoded) ? $decoded : [];
+            $pluginSlug = substr((string)$key, strlen('member_dashboard_widget_meta_'));
+            if (!is_string($pluginSlug) || $pluginSlug === '') {
+                continue;
+            }
+
+            $decoded = \CMS\Json::decodeArray((string)$value, []);
+            if (is_array($decoded)) {
+                $meta[$pluginSlug] = $decoded;
+            }
+        }
+
+        return $meta;
+    }
+
+    /**
+     * @param list<string>|null $keys
+     * @return array<string, string>
+     */
+    private function loadSettingsMap(?array $keys = null): array
+    {
+        try {
+            if (is_array($keys) && $keys !== []) {
+                $keys = array_values(array_filter(array_map('strval', $keys), static fn(string $key): bool => $key !== ''));
+                if ($keys === []) {
+                    return [];
+                }
+
+                $placeholders = implode(',', array_fill(0, count($keys), '?'));
+                $rows = $this->db->get_results(
+                    "SELECT option_name, option_value FROM {$this->prefix}settings WHERE option_name IN ({$placeholders})",
+                    $keys
+                ) ?: [];
+            } else {
+                $rows = $this->db->get_results(
+                    "SELECT option_name, option_value FROM {$this->prefix}settings WHERE option_name LIKE 'member_%'"
+                ) ?: [];
+            }
+
+            $settings = [];
+            foreach ($rows as $row) {
+                $optionName = (string)($row->option_name ?? '');
+                if ($optionName === '') {
+                    continue;
+                }
+
+                $settings[$optionName] = (string)($row->option_value ?? '');
+            }
+
+            return $settings;
         } catch (\Throwable $e) {
             return [];
         }
+    }
+
+    private function canRead(): bool
+    {
+        if (!class_exists(Auth::class) || !Auth::isAdmin()) {
+            return false;
+        }
+
+        return $this->hasAnyCapability(self::READ_CAPABILITIES);
+    }
+
+    private function canWriteSection(string $section): bool
+    {
+        if (!class_exists(Auth::class) || !Auth::isAdmin()) {
+            return false;
+        }
+
+        $capability = self::SECTION_CAPABILITIES[$section] ?? 'manage_settings';
+
+        return Auth::instance()->hasCapability($capability);
+    }
+
+    private function hasAnyCapability(array $capabilities): bool
+    {
+        foreach ($capabilities as $capability) {
+            if (Auth::instance()->hasCapability((string)$capability)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function normalizeSection(string $section): ?string
+    {
+        $section = trim($section);
+
+        return array_key_exists($section, self::SECTION_CAPABILITIES) ? $section : null;
+    }
+
+    private function assertCsrf(array $post): bool
+    {
+        $token = (string)($post['csrf_token'] ?? '');
+
+        return class_exists(Security::class)
+            && Security::instance()->verifyToken($token, self::CSRF_ACTION);
+    }
+
+    private function auditSectionSave(string $section): void
+    {
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            'member.dashboard.' . str_replace('-', '_', $section) . '.saved',
+            'Member-Dashboard-Einstellungen gespeichert.',
+            'member_dashboard',
+            null,
+            [
+                'section' => $section,
+                'capability' => self::SECTION_CAPABILITIES[$section] ?? 'manage_settings',
+            ],
+            'info'
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function emptyData(): array
+    {
+        return [
+            'settings' => [],
+            'stats' => ['total' => 0, 'active' => 0, 'thisWeek' => 0],
+            'widgets' => [],
+            'profileFields' => [],
+            'roles' => [],
+            'sectionOrderOptions' => self::SECTION_ORDER_OPTIONS,
+            'notificationTypes' => self::NOTIFICATION_TYPES,
+            'digestFrequencies' => self::DIGEST_FREQUENCIES,
+            'pluginWidgets' => [],
+            'overview' => [
+                'enabledWidgets' => 0,
+                'enabledProfileFields' => 0,
+                'customWidgetCount' => 0,
+                'registrationEnabled' => false,
+                'verificationEnabled' => false,
+                'subscriptionVisible' => false,
+                'pluginWidgetCount' => 0,
+            ],
+        ];
     }
 
     private function sanitizeRole(string $role): string
@@ -784,13 +957,21 @@ class MemberDashboardModule
 
     private function failResult(string $action, string $message, \Throwable $e): array
     {
+        $sanitizedError = $this->sanitizeTextSetting($e->getMessage(), self::MAX_AUDIT_ERROR_LENGTH);
+
+        $this->logger->warning($message, [
+            'action' => $action,
+            'exception' => $e::class,
+            'message' => $sanitizedError,
+        ]);
+
         AuditLogger::instance()->log(
             AuditLogger::CAT_SETTING,
             $action,
             $message,
             'member_dashboard',
             null,
-            ['exception' => $e->getMessage()],
+            ['exception' => $e::class, 'message' => $sanitizedError],
             'error'
         );
 

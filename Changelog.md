@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.49-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.50-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,16 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.6.50 — 24. März 2026 · Audit-Batch 032, Member-Dashboard-Modul gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.50** | 🔴 fix | Admin/Member | **Member-Dashboard-Modul mit internen RBAC- und CSRF-Gates abgesichert**: `CMS/admin/modules/member/MemberDashboardModule.php` prüft Schreibzugriffe jetzt pro Bereich intern gegen Capability und Sicherheitstoken statt sich nur auf die äußere Admin-Shell zu verlassen. |
+| **2.6.50** | 🟠 perf | Admin/Member | **Settings- und KPI-Zugriffe gebündelt**: Member-Settings, Plugin-Widget-Metadaten und Dashboard-Statistiken werden deutlich kompakter geladen, wodurch wiederholte Einzelqueries im Modul entfallen. |
+| **2.6.50** | 🟡 refactor | Admin/Member | **Auditierbare Save-Pfade**: erfolgreiche Konfigurationsänderungen an Member-Dashboard-Bereichen werden explizit auditiert; Fehlerpfade loggen nur gekürzte technische Details statt rohe Exception-Texte zu streuen. |
 
 ---
 
