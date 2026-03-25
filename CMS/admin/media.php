@@ -147,41 +147,124 @@ function cms_admin_media_action_redirect_url(MediaModule $module, string $action
     };
 }
 
+/**
+ * @return array{files:list<array{name:string,type:string,tmp_name:string,error:int,size:int}>, error?:string}
+ */
+function cms_admin_media_normalize_upload_batch(array $files, string $field = 'files'): array
+{
+    $payload = $files[$field] ?? null;
+    if (!is_array($payload)) {
+        return ['files' => []];
+    }
+
+    $requiredKeys = ['name', 'type', 'tmp_name', 'error', 'size'];
+    foreach ($requiredKeys as $key) {
+        if (!array_key_exists($key, $payload)) {
+            return ['files' => [], 'error' => 'Upload-Daten sind unvollständig.'];
+        }
+    }
+
+    $names = $payload['name'];
+
+    if (!is_array($names)) {
+        return ['files' => [[
+            'name' => (string) $payload['name'],
+            'type' => (string) $payload['type'],
+            'tmp_name' => (string) $payload['tmp_name'],
+            'error' => (int) $payload['error'],
+            'size' => max(0, (int) $payload['size']),
+        ]]];
+    }
+
+    $count = count($names);
+    foreach ($requiredKeys as $key) {
+        if (!is_array($payload[$key]) || count($payload[$key]) !== $count) {
+            return ['files' => [], 'error' => 'Upload-Daten sind inkonsistent.'];
+        }
+    }
+
+    $normalizedFiles = [];
+
+    for ($index = 0; $index < $count; $index++) {
+        $file = [
+            'name' => (string) $payload['name'][$index],
+            'type' => (string) $payload['type'][$index],
+            'tmp_name' => (string) $payload['tmp_name'][$index],
+            'error' => (int) $payload['error'][$index],
+            'size' => max(0, (int) $payload['size'][$index]),
+        ];
+
+        if ($file['name'] === '' && $file['tmp_name'] === '' && $file['error'] === UPLOAD_ERR_NO_FILE) {
+            continue;
+        }
+
+        $normalizedFiles[] = $file;
+    }
+
+    return ['files' => $normalizedFiles];
+}
+
+/** @param list<string> $errors */
+function cms_admin_media_format_upload_errors(array $errors): string
+{
+    if ($errors === []) {
+        return '';
+    }
+
+    $visibleErrors = array_slice($errors, 0, 5);
+    $message = implode(', ', $visibleErrors);
+    $hiddenCount = count($errors) - count($visibleErrors);
+
+    if ($hiddenCount > 0) {
+        $message .= ' +' . $hiddenCount . ' weitere(s) Problem(e)';
+    }
+
+    return $message;
+}
+
 function cms_admin_media_handle_upload(MediaModule $module, string $path): array
 {
+    $uploadBatch = cms_admin_media_normalize_upload_batch($_FILES);
+    if (isset($uploadBatch['error'])) {
+        return [
+            'type' => 'danger',
+            'message' => (string) $uploadBatch['error'],
+        ];
+    }
+
+    $files = $uploadBatch['files'];
     $uploaded = 0;
     $errors   = [];
 
-    if (!empty($_FILES['files']['name'][0])) {
-        foreach ($_FILES['files']['name'] as $index => $name) {
-            $file = [
-                'name' => $_FILES['files']['name'][$index],
-                'type' => $_FILES['files']['type'][$index],
-                'tmp_name' => $_FILES['files']['tmp_name'][$index],
-                'error' => $_FILES['files']['error'][$index],
-                'size' => $_FILES['files']['size'][$index],
-            ];
-
-            $result = $module->uploadFile($file, $path);
-            if (!empty($result['success'])) {
-                $uploaded++;
-                continue;
-            }
-
-            $errors[] = htmlspecialchars((string) $name) . ': ' . (string) ($result['error'] ?? 'Fehler');
+    foreach ($files as $file) {
+        $result = $module->uploadFile($file, $path);
+        if (!empty($result['success'])) {
+            $uploaded++;
+            continue;
         }
+
+        $errors[] = htmlspecialchars((string) ($file['name'] ?? 'Datei')) . ': ' . (string) ($result['error'] ?? 'Fehler');
     }
+
+    if ($uploaded === 0 && $errors === []) {
+        return [
+            'type' => 'danger',
+            'message' => 'Es wurden keine gültigen Upload-Dateien übermittelt.',
+        ];
+    }
+
+    $formattedErrors = cms_admin_media_format_upload_errors($errors);
 
     if ($uploaded > 0) {
         return [
             'type' => 'success',
-            'message' => $uploaded . ' Datei(en) hochgeladen.' . (!empty($errors) ? ' Fehler: ' . implode(', ', $errors) : ''),
+            'message' => $uploaded . ' Datei(en) hochgeladen.' . ($formattedErrors !== '' ? ' Fehler: ' . $formattedErrors : ''),
         ];
     }
 
     return [
         'type' => 'danger',
-        'message' => 'Upload fehlgeschlagen.' . (!empty($errors) ? ' ' . implode(', ', $errors) : ''),
+        'message' => 'Upload fehlgeschlagen.' . ($formattedErrors !== '' ? ' ' . $formattedErrors : ''),
     ];
 }
 

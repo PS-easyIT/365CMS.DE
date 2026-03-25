@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.123-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.134-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,116 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.7.134 — 25. März 2026 · Audit-Batch 216, Legal-Sites-Entry bei Action-Gates und Template-Typen nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.134** | 🔴 fix | Admin/Legal Sites | **`legal-sites.php` begrenzt POST-Aktionen jetzt wieder explizit über eine kleine Allowlist und normalisiert `template_type` serverseitig vor dem Modulaufruf**: ungültige Aktionen oder Rechtstext-Typen laufen dadurch nicht mehr lose aus dem Request in die Mutationspfade. |
+| **2.7.134** | 🟠 perf | Admin/Legal Sites | **Der Wrapper hält seinen Dispatch-Pfad kompakter und vorhersehbarer**: unnötige Modulaufrufe für unzulässige Aktionen oder Template-Typen werden früher blockiert. |
+| **2.7.134** | 🟡 refactor | Admin/Legal Sites | **Der Entry hängt näher am gemeinsamen Admin-Wrapper-Muster**: Request-Gates und Typ-Normalisierung liegen sichtbar im Einstieg statt nur implizit über Handler-Map und Modul-Fallbacks zu wirken. |
+
+---
+
+### v2.7.133 — 25. März 2026 · Audit-Batch 215, Font-Download-Pfad bei Remote-Dateinamen gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.133** | 🔴 fix | Admin/Font Manager | **`FontManagerModule.php` akzeptiert beim Google-Font-Download jetzt nur noch eine kleine Anzahl erlaubter Remote-Fontdateien und normalisiert lokale Dateinamen aus Remote-URLs hart**: auffällige oder überlange Dateinamen laufen damit nicht mehr ungefiltert ins lokale Fonts-Verzeichnis. |
+| **2.7.133** | 🟠 perf | Admin/Font Manager | **Ausufernde Remote-CSS-Pakete werden früher abgewiesen**: der Download-Pfad stoppt kontrolliert, wenn ein Remote-Font-Stylesheet ungewöhnlich viele Dateien referenziert. |
+| **2.7.133** | 🟡 refactor | Admin/Font Manager | **Die lokale Dateinamenerzeugung hängt jetzt an einem kleinen, expliziten Helfer**: Remote-URL-Bestandteile werden nicht mehr lose inline zu lokalen Dateinamen zusammengesetzt, sondern über einen engeren Namensvertrag gebaut. |
+
+---
+
+### v2.7.132 — 25. März 2026 · Audit-Batch 214, Font-Delete-Pfad auf verwalteten Root begrenzt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.132** | 🔴 fix | Admin/Font Manager | **`FontManagerModule.php` löst lokale Font- und CSS-Dateien vor dem Löschen jetzt nur noch innerhalb von `uploads/fonts/` auf**: DB-basierte Pfadangaben können damit nicht mehr blind in Dateilöschungen außerhalb des verwalteten Fonts-Verzeichnisses durchschlagen. |
+| **2.7.132** | 🟠 perf | Admin/Font Manager | **Der Delete-Pfad scheitert früher und kontrollierter bei ungültigen Pfaden**: problematische Dateiangaben werden vor unnötigen Dateisystemzugriffen abgewiesen und nur als Hinweis in die Rückmeldung übernommen. |
+| **2.7.132** | 🟡 refactor | Admin/Font Manager | **Der Font-Lifecycle hängt näher an einem expliziten Root-Vertrag**: Pfadauflösung und Fonts-Verzeichnis werden in kleine Hilfsmethoden gebündelt, statt Löschpfade rohe DB-Werte direkt zu absoluten Dateisystempfaden zusammenzusetzen. |
+
+---
+
+### v2.7.131 — 25. März 2026 · Audit-Batch 213, Media-Upload-Wrapper bei Multi-File-Payloads gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.131** | 🔴 fix | Admin/Media | **`media.php` normalisiert Multi-Upload-Payloads jetzt robuster und verwirft unvollständige oder inkonsistente `$_FILES`-Strukturen früh**: Der Upload-Entry läuft damit nicht mehr blind durch vorausgesetzte Array-Formate, wenn ein Request kaputt oder manipuliert ankommt. |
+| **2.7.131** | 🟠 perf | Admin/Media | **Upload-Fehlerschwälle bleiben kompakter**: aggregierte Fehlermeldungen werden begrenzt, damit Flash-Nachrichten bei vielen problematischen Dateien nicht unnötig anwachsen. |
+| **2.7.131** | 🟡 refactor | Admin/Media | **Der Upload-Wrapper hängt näher an einem klaren Request-Vertrag**: Batch-Normalisierung und Fehlerformatierung sind sichtbar in kleine Helfer ausgelagert, statt die `$_FILES`-Struktur implizit direkt im Upload-Loop vorauszusetzen. |
+
+---
+
+### v2.7.130 — 25. März 2026 · Audit-Batch 212, Plugins-/Themes-Entrys bei Action-Gates nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.130** | 🔴 fix | Admin/Plugins & Admin/Themes | **`plugins.php` und `themes.php` begrenzen POST-Mutationen jetzt wieder explizit über kleine Action-Allowlists**: Ungültige Aktionen laufen dadurch nicht mehr nur implizit in den `match`-Fallback, sondern scheitern kontrolliert schon im Entry-Wrapper. |
+| **2.7.130** | 🟠 perf | Admin/Plugins & Admin/Themes | **Die Wrapper halten ihren Dispatch-Pfad kompakter und vorhersehbarer**: der POST-Block vermeidet unnötige Modulaufrufe für unzulässige Aktionen und bleibt näher am strengeren Update-/Marketplace-Muster. |
+| **2.7.130** | 🟡 refactor | Admin/Plugins | **`plugins.php` normalisiert Plugin-Slugs jetzt sichtbar vor dem Modulaufruf**: der Entry hängt damit konsistenter am vorhandenen Plugin-Slug-Vertrag, statt rohe Request-Werte direkt in Aktivierungs-, Deaktivierungs- und Löschpfade zu reichen. |
+
+---
+
+### v2.7.129 — 25. März 2026 · Audit-Batch 211, Theme-Marketplace bei Manifest- und Archiv-Gates nachgeschärft
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.129** | 🔴 fix | Admin/Themes | **`ThemeMarketplaceModule.php` validiert lokale Manifestpfade jetzt traversal-sicher innerhalb des Katalog-Roots**: Theme-Manifeste aus lokalen Index-Dateien dürfen damit nicht mehr über rohe Relative-Pfade aus dem erlaubten Katalogbereich ausbrechen oder übergroße JSON-Dateien ungebremst in den Marketplace-Pfad ziehen. |
+| **2.7.129** | 🟠 perf | Admin/Themes | **Auffällige Theme-Archive werden früher und billiger verworfen**: die ZIP-Prüfung blockt Pakete mit zu vielen Einträgen, Kontrollzeichen oder übergroßer unkomprimierter Gesamtmenge schon vor dem Entpacken. |
+| **2.7.129** | 🟡 refactor | Admin/Themes | **Der Theme-Marketplace hängt näher am strengeren Registry- und Paketvertrag des Plugin-Pendants**: Manifest-Normalisierung und Archiv-Gates sind sichtbarer zentralisiert, statt den lokalen Katalog- und ZIP-Pfad lockerer nebeneinander laufen zu lassen. |
+
+---
+
+### v2.7.128 — 25. März 2026 · Audit-Batch 210, Plugin-Marketplace auf zentralen staging-basierten Installationspfad gezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.128** | 🔴 fix | Admin/Plugins | **`PluginMarketplaceModule.php` delegiert Marketplace-Installationen jetzt an den zentralen `UpdateService`**: Plugin-Pakete laufen damit nicht mehr über einen separaten ZIP-/Extract-Pfad direkt ins Plugins-Verzeichnis, sondern nutzen denselben staging-basierten Installations- und Zielpfadvertrag wie reguläre Update-Installationen. |
+| **2.7.128** | 🟠 perf | Admin/Plugins | **Doppelte Download-, ZIP- und Cleanup-Logik im Marketplace-Modul entfällt**: der Plugin-Marketplace baut keinen zweiten Entpackpfad mehr parallel zum Update-Service auf und bleibt im Installationsfluss dadurch kompakter wartbar. |
+| **2.7.128** | 🟡 refactor | Admin/Plugins | **Marketplace-Installationen hängen jetzt näher am gemeinsamen Lifecycle für Integrität, Rollback und atomaren Verzeichnis-Swap**: der Modulpfad konzentriert sich wieder stärker auf Registry- und Marketplace-Logik statt auf eine eigene zweite Archiv-Installationspipeline. |
+
+---
+
+### v2.7.127 — 25. März 2026 · Audit-Batch 209, Marketplace-Entrys bei Action-Gates und Slug-Normalisierung nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.127** | 🔴 fix | Admin/Themes & Admin/Plugins | **`theme-marketplace.php` und `plugin-marketplace.php` validieren POST-Aktionen jetzt wieder über explizite Allowlists, und der Plugin-Marketplace normalisiert den angeforderten Slug vor dem Modulaufruf**: Die Entrys lassen damit keine losen Mutationen oder unsauberen Slug-Werte direkt in den Installationspfad laufen. |
+| **2.7.127** | 🟠 perf | Admin/Themes & Admin/Plugins | **Die Marketplace-Wrapper halten ihren Request-Flow kompakter und vorhersehbarer**: Aktionsfehler werden früh im Entry abgefangen, statt erst tiefer im Modulpfad auf denselben ungültigen Zustand zu reagieren. |
+| **2.7.127** | 🟡 refactor | Admin/Themes & Admin/Plugins | **Beide Marketplace-Entrys bleiben näher am gemeinsamen Admin-Wrapper-Muster**: Allowlist-, Flash- und Dispatch-Verhalten liegen wieder sichtbar im Einstieg statt implizit nur über `match`-Fallbacks zu leben. |
+
+---
+
+### v2.7.126 — 25. März 2026 · Audit-Batch 208, Update-Prüfung ohne direkten Doppelabruf nach Redirect
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.126** | 🔴 fix | Admin/System | **`UpdatesModule.php` hält Core-, Plugin- und Theme-Prüfstände jetzt als kleinen Snapshot zusammen, und `updates.php` übernimmt manuelle Check-Resultate per Session-Snapshot in den Folge-Request**: Eine explizite Update-Prüfung landet damit nach dem PRG-Redirect nicht sofort wieder in denselben Remote-Checks, obwohl der Stand gerade erst ermittelt wurde. |
+| **2.7.126** | 🟠 perf | Admin/System | **Doppelte Update-Checks im direkten Prüfen-→-Redirect-→-Rendern-Pfad entfallen**: Core-, Plugin- und Theme-Checks werden pro Modulinstanz wiederverwendet, statt im selben Bedienablauf mehrfach identisch aufgebaut zu werden. |
+| **2.7.126** | 🟡 refactor | Admin/System | **Der Update-Entry bleibt näher an einem kleinen Snapshot-Vertrag**: `checkAllUpdates()`, Snapshot-Hydration und PRG-Weitergabe bündeln den Prüffluss sichtbarer, statt Callback- und Folge-Request-Logik lose nebeneinander stehen zu lassen. |
+
+---
+
+### v2.7.125 — 25. März 2026 · Audit-Batch 207, Theme-Verwaltung bei Katalog- und Delete-Pfad nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.125** | 🔴 fix | Admin/Themes | **`ThemeManager.php` cached verfügbare Themes jetzt zentral inklusive `theme.json`- und Screenshot-Metadaten, während `ThemesModule.php` Delete-Aktionen wieder an den gemeinsamen Theme-Manager delegiert**: Theme-Listen und Löschpfade greifen damit näher auf denselben Lifecycle-Vertrag zu, statt Metadaten und Delete-Logik parallel zu duplizieren. |
+| **2.7.125** | 🟠 perf | Admin/Themes | **Theme-Listen vermeiden doppelte Dateisystem-Anreicherung im Modulpfad**: verfügbare Themes werden pro Theme-Manager-Instanz einmal aufgebaut und nicht mehr zusätzlich im `ThemesModule` erneut über `theme.json`- und Screenshot-Reads erweitert. |
+| **2.7.125** | 🟡 refactor | Admin/Themes | **Theme-Aktivierung und -Löschung halten den zentralen Runtime-Zustand sauberer konsistent**: `switchTheme()` und `deleteTheme()` invalidieren den verfügbaren Theme-Bestand jetzt sichtbar zentral, statt den Cache- und Lifecycle-Zustand implizit auseinanderlaufen zu lassen. |
+
+---
+
+### v2.7.124 — 25. März 2026 · Audit-Batch 206, Plugins-Modul bei Aktiv-Status und Delete-Vertrag nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.124** | 🔴 fix | Admin/Plugins | **`PluginsModule.php` cached aktive Plugin-Slugs jetzt pro Modulinstanz und delegiert Löschungen wieder an den zentralen `PluginManager`**: Plugin-Listen und Mutationspfade greifen damit auf denselben Aktivstatus-Index zu, während Delete-Aktionen Uninstall- und Delete-Hooks nicht mehr am Manager vorbei umgehen. |
+| **2.7.124** | 🟠 perf | Admin/Plugins | **Der Plugin-Listenpfad vermeidet wiederholte `active_plugins`-Lookups im selben Modul-Lebenszyklus**: `getData()` und Aktivstatus-Prüfungen lesen aktive Plugins nicht mehr pro Plugin erneut aus Settings oder Manager-Zustand zusammen. |
+| **2.7.124** | 🟡 refactor | Admin/Plugins | **Fallback-Persistenz und Aktivstatus-Auflösung bleiben näher an einem kleinen Modulvertrag**: `getActivePluginsLookup()` und `persistActivePlugins()` bündeln Lookup- und Fallback-Speicherpfade sichtbar, statt Aktivierungs-/Deaktivierungslogik mehrfach lose um dieselbe Settings-Struktur herumzubauen. |
 
 ---
 

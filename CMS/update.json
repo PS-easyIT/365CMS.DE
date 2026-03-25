@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.7.123",
+  "version": "2.7.134",
   "min_php": "8.4",
   "released": "2026-03-25",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release 2.7.123: `HubSitesModule.php` cached normalisierte Hub-Domain-Zuordnungen pro Modulinstanz, damit Zusatzdomain-Prüfungen keine wiederholten Vollscans aller Hub-Sites mehr auslösen.",
+  "notes": "Release 2.7.134: `CMS/admin/legal-sites.php` begrenzt POST-Aktionen jetzt explizit über eine Allowlist und normalisiert `template_type` serverseitig vor dem Modulaufruf, damit Rechtstext-Mutationen keine losen Aktionen oder unsauberen Template-Typen direkt aus dem Request übernehmen.",
   "critical": false
 }

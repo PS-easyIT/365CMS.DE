@@ -30,20 +30,7 @@ class ThemesModule
         $themes      = $this->themeManager->getAvailableThemes();
         $activeSlug  = $this->themeManager->getActiveThemeSlug();
 
-        // Theme-JSON-Daten anreichern
         foreach ($themes as $slug => &$theme) {
-            $jsonPath = THEME_PATH . $slug . '/theme.json';
-            if (file_exists($jsonPath)) {
-                $json = \CMS\Json::decodeArray(file_get_contents($jsonPath), []);
-                if ($json) {
-                    $theme['json'] = $json;
-                }
-            }
-            // Screenshot
-            $screenshotPath = THEME_PATH . $slug . '/screenshot.png';
-            if (file_exists($screenshotPath)) {
-                $theme['screenshot'] = '/themes/' . $slug . '/screenshot.png';
-            }
             $theme['isActive'] = ($slug === $activeSlug);
         }
         unset($theme);
@@ -82,45 +69,11 @@ class ThemesModule
             return ['success' => false, 'error' => 'Kein Theme angegeben.'];
         }
 
-        if ($slug === $this->themeManager->getActiveThemeSlug()) {
-            return ['success' => false, 'error' => 'Das aktive Theme kann nicht gelöscht werden.'];
+        $result = $this->themeManager->deleteTheme($slug);
+        if ($result !== true) {
+            return ['success' => false, 'error' => is_string($result) ? $result : 'Theme konnte nicht gelöscht werden.'];
         }
-
-        $themes = $this->themeManager->getAvailableThemes();
-        if (count($themes) <= 1) {
-            return ['success' => false, 'error' => 'Das letzte Theme kann nicht gelöscht werden.'];
-        }
-
-        $themeDir = THEME_PATH . basename($slug);
-        if (!is_dir($themeDir)) {
-            return ['success' => false, 'error' => 'Theme-Verzeichnis nicht gefunden.'];
-        }
-
-        $this->deleteDirectory($themeDir);
 
         return ['success' => true, 'message' => 'Theme "' . htmlspecialchars($slug) . '" wurde gelöscht.'];
-    }
-
-    /**
-     * Verzeichnis rekursiv löschen
-     */
-    private function deleteDirectory(string $dir): void
-    {
-        if (!is_dir($dir)) {
-            return;
-        }
-        $items = scandir($dir) ?: [];
-        foreach ($items as $item) {
-            if ($item === '.' || $item === '..') {
-                continue;
-            }
-            $path = $dir . '/' . $item;
-            if (is_dir($path)) {
-                $this->deleteDirectory($path);
-            } else {
-                unlink($path);
-            }
-        }
-        rmdir($dir);
     }
 }

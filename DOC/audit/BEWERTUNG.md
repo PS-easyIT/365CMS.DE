@@ -5,13 +5,79 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 205
+### Gesamtstand nach Batch 216
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 445 | 88,07 | 86,36 | 89,08 | 88,32 |
+| 445 | 88,20 | 86,50 | 89,23 | 88,49 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **205 umgesetzte Audit-Batches**. Das sind aktuell **205 von 444 Prüfplan-Punkten**. Zuletzt wurde der Hub-Sites-Domainpfad über einen Modul-Cache nachgezogen, damit Zusatzdomain-Prüfungen keine wiederholten Vollscans aller Hub-Sites mehr auslösen.
+Der aktuelle Nachpflege-Stand umfasst damit **216 umgesetzte Audit-Batches**. Das sind aktuell **216 von 444 Prüfplan-Punkten**. Zuletzt wurde der Legal-Sites-Entry bei Action-Gates und Template-Typen nachgezogen, damit Rechtstext-Mutationen keine losen Aktionen oder unsauberen Template-Typen direkt aus dem Request übernehmen.
+
+### Delta Batch 216
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/legal-sites.php` | umgesetzt | POST-Aktionen wieder explizit über eine Allowlist begrenzt und den `template_type` vor dem Modulaufruf serverseitig normalisiert, damit Rechtstext-Generierung und Seitenerstellung keine losen Aktionen oder unsauberen Typen direkt aus dem Request übernehmen. | Der Legal-Sites-Entry reduziert implizite Fallback-Dispatches im Mutationspfad, hält Request-Gates näher am übrigen Admin-Wrapper-Muster und blockt ungültige Template-Typen sichtbar früher, bevor sie tiefer in Template- oder Seitenerstellungslogik laufen. |
+
+### Delta Batch 215
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/FontManagerModule.php` | umgesetzt | Remote-Fontdownloads auf eine kleine Anzahl erlaubter Dateien begrenzt und lokal gespeicherte Dateinamen aus Remote-URLs hart normalisiert, damit auffällige oder überlange Dateinamen nicht ungefiltert im verwalteten Fonts-Verzeichnis landen. | Das Font-Manager-Modul reduziert vertrauensvolle Annahmen gegenüber Remote-URL-Pfaden im Download-Flow, hält lokale Font-Dateien näher an einem klaren Namens- und Mengenvertrag und verwirft ausufernde Remote-CSS-Pakete früher, bevor sie im lokalen Fonts-Root materialisiert werden. |
+
+### Delta Batch 214
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/FontManagerModule.php` | umgesetzt | Lokale Font- und CSS-Dateien vor Delete-Aktionen explizit an das verwaltete Verzeichnis `uploads/fonts/` gebunden, damit DB-basierte Pfade keine Löschoperationen außerhalb des vorgesehenen Fonts-Roots auslösen. | Das Font-Manager-Modul reduziert vertrauensvolle Dateisystemannahmen im Delete-Pfad, hält lokale Font-Löschungen näher an einem klaren Root-Vertrag und verwirft problematische Pfadangaben kontrollierter, bevor Dateien auf dem System angefasst werden. |
+
+### Delta Batch 213
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/media.php` | umgesetzt | Den Multi-Upload-Request im Media-Entry robuster normalisiert, unvollständige oder inkonsistente `$_FILES`-Strukturen früh verworfen und aggregierte Upload-Fehler auf eine kleine, kompaktere Ausgabe begrenzt, damit der Upload-Pfad bei problematischen Requests kontrollierter bleibt. | Der Media-Entry reduziert implizite Annahmen über die Form von Multi-Upload-Payloads, hält den Upload-Loop näher an einem expliziten Request-Vertrag und verhindert übermäßig anwachsende Flash-Meldungen, wenn mehrere Dateien in einem fehlerhaften Batch scheitern. |
+
+### Delta Batch 212
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/plugins.php` / `CMS/admin/themes.php` | umgesetzt | POST-Aktionen in den Plugin- und Theme-Entrys wieder explizit über Allowlists begrenzt und den Plugin-Slug vor dem Modulaufruf serverseitig normalisiert, damit Mutationspfade keine losen Aktionen oder unsauberen Slugs direkt aus dem Request übernehmen. | Die Entrys reduzieren implizite Fallback-Dispatches in Aktivierungs-, Deaktivierungs- und Löschpfaden, halten die Request-Gates näher am bereits strengeren Update-/Marketplace-Muster und blocken ungültige Aktionswerte sichtbar früher, bevor Modulmethoden unnötig angerufen werden. |
+
+### Delta Batch 211
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/ThemeMarketplaceModule.php` | umgesetzt | Lokale Manifestpfade traversal-sicher innerhalb des Katalog-Roots normalisiert und Theme-ZIPs zusätzlich gegen übermäßige Eintragsanzahl, Kontrollzeichen und unkomprimierte Gesamtgröße begrenzt, damit auffällige Marketplace-Pakete früher blockiert werden. | Das Theme-Marketplace-Modul reduziert lockere Dateipfadannahmen im lokalen Katalogpfad, hält Manifest-Reads näher an einem expliziten Root-Vertrag und verwirft problematische Theme-Archive kontrollierter schon vor dem Entpacken. |
+
+### Delta Batch 210
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/plugins/PluginMarketplaceModule.php` | umgesetzt | Marketplace-Installationen auf den zentralen `UpdateService` umgestellt, damit Plugin-Pakete nicht mehr über einen separaten ZIP-/Extract-Pfad direkt ins Plugins-Verzeichnis entpackt werden, sondern denselben staging-basierten Installations- und Rollback-Vertrag wie reguläre Updates nutzen. | Das Plugin-Marketplace-Modul reduziert parallele Download-, Archiv- und Cleanup-Logik im Installationspfad, hält Zielpfad- und Integritätsprüfungen näher am gemeinsamen Core-Service und bindet Marketplace-Installationen sauberer an denselben atomaren Verzeichnis-Swap wie der restliche Update-Lifecycle. |
+
+### Delta Batch 209
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/theme-marketplace.php` / `CMS/admin/plugin-marketplace.php` | umgesetzt | POST-Aktionen im Marketplace-Entry wieder explizit über Allowlists begrenzt und den Plugin-Slug vor dem Modulaufruf serverseitig normalisiert, damit Installationspfade keine losen Mutationen oder unsauberen Slug-Werte direkt aus dem Request übernehmen. | Die Marketplace-Entrys reduzieren implizite Fallback-Dispatches im POST-Pfad, halten Theme- und Plugin-Installationen näher am gemeinsamen Admin-Wrapper-Muster und blocken ungültige Aktions- oder Slug-Werte früher, bevor sie tiefer in den Installationsfluss wandern. |
+
+### Delta Batch 208
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/UpdatesModule.php` / `CMS/admin/updates.php` | umgesetzt | Core-, Plugin- und Theme-Checks pro Modulinstanz als Snapshot gebündelt und manuelle Update-Prüfresultate per Session-Snapshot über den PRG-Redirect in den Folge-Request übernommen, damit eine explizite Check-Aktion dieselben Remote-Reads nicht unmittelbar doppelt ausführt. | Der Update-Pfad reduziert direkte Doppelchecks im Prüfen-→-Redirect-→-Rendern-Ablauf, hält Core-, Plugin- und Theme-Status näher an einem kleinen Snapshot-Vertrag zusammen und entkoppelt den Entry sauberer von losem Callback-Verhalten. |
+
+### Delta Batch 207
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/core/ThemeManager.php` / `CMS/admin/modules/themes/ThemesModule.php` | umgesetzt | Verfügbare Themes pro Theme-Manager-Instanz inklusive `theme.json`-/Screenshot-Metadaten gecached, Theme-Wechsel und Löschpfade den Cache gezielt invalidieren lassen und Theme-Löschungen im Admin-Modul wieder an den zentralen Theme-Manager delegiert, damit Theme-Listen keine doppelte Dateisystem-Anreicherung fahren und Delete-Pfade Audit-/Lifecycle-Verträge nicht lokal umgehen. | Die Theme-Verwaltung reduziert wiederholte Dateisystem-Reads im Listenpfad, hält Theme-Metadaten näher an einem gemeinsamen Core-Vertrag und bindet Delete-Aktionen wieder sauber an den zentralen Theme-Lifecycle statt parallele Modul-Delete-Logik separat zu pflegen. |
+
+### Delta Batch 206
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/plugins/PluginsModule.php` | umgesetzt | Aktive Plugin-Slugs pro Modulinstanz gecached, Fallback-Persistenz der `active_plugins`-Settings über kleine Helfer gebündelt und Delete-Pfade wieder an den zentralen `PluginManager` delegiert, damit Plugin-Listen keine N+1-Status-Lookups fahren und Löschungen Uninstall-/Delete-Hooks nicht lokal umgehen. | Das Plugins-Modul reduziert wiederholte Aktivstatus-Lookups im Listen- und Mutationspfad, hält Fallback-Persistenz näher an einem gemeinsamen Modulvertrag und bindet Delete-Aktionen wieder sauber an den zentralen Plugin-Lifecycle statt parallele Dateisystemlogik separat zu pflegen. |
 
 ### Delta Batch 205
 

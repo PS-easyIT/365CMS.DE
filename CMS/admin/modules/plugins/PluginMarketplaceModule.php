@@ -10,6 +10,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Http\Client as HttpClient;
+use CMS\Services\UpdateService;
 
 class PluginMarketplaceModule
 {
@@ -35,6 +36,7 @@ class PluginMarketplaceModule
     private readonly \CMS\Database $db;
     private readonly string $prefix;
     private readonly HttpClient $httpClient;
+    private readonly UpdateService $updateService;
     /** @var array<int, array<string, mixed>>|null */
     private ?array $registryCache = null;
 
@@ -43,6 +45,7 @@ class PluginMarketplaceModule
         $this->db     = \CMS\Database::instance();
         $this->prefix = $this->db->getPrefix();
         $this->httpClient = HttpClient::getInstance();
+        $this->updateService = UpdateService::getInstance();
     }
 
     public function getData(): array
@@ -104,71 +107,28 @@ class PluginMarketplaceModule
             return ['success' => false, 'error' => 'Download-URL liegt außerhalb der erlaubten Marketplace-Hosts.'];
         }
 
-        // Download + Entpacken (vereinfachte Logik)
-        $pluginsDir = defined('PLUGINS_PATH') ? PLUGINS_PATH : (defined('ABSPATH') ? ABSPATH . 'plugins/' : '');
-        if (!$this->isAllowedPluginsDirectory($pluginsDir)) {
-            return ['success' => false, 'error' => 'Plugin-Zielverzeichnis ist ungültig oder nicht beschreibbar.'];
+        $pluginsDir = $this->resolvePluginsDir();
+        if ($pluginsDir === '') {
+            return ['success' => false, 'error' => 'Plugin-Zielverzeichnis ist nicht verfügbar.'];
         }
 
-        $targetDir  = $pluginsDir . $slug;
+        $targetDir = $pluginsDir . $slug . DIRECTORY_SEPARATOR;
 
         if (is_dir($targetDir)) {
             return ['success' => false, 'error' => 'Plugin ist bereits installiert.'];
         }
 
-        // Remote-Download
-        $tmpFile = tempnam(sys_get_temp_dir(), 'cms_plugin_');
-        if ($tmpFile === false) {
-            return ['success' => false, 'error' => 'Temporäre Datei konnte nicht erstellt werden.'];
-        }
-        $zip = new \ZipArchive();
+        $result = $this->updateService->downloadAndInstallUpdate(
+            $downloadUrl,
+            $integrityHash,
+            $targetDir,
+            'plugin',
+            (string) ($found['name'] ?? $slug),
+            (string) ($found['version'] ?? 'Marketplace')
+        );
 
-        try {
-            $response = HttpClient::getInstance()->get($downloadUrl, [
-                'userAgent' => '365CMS-PluginMarketplace/1.0',
-                'timeout' => 30,
-                'connectTimeout' => 10,
-                'maxBytes' => 25 * 1024 * 1024,
-                'allowedContentTypes' => ['application/zip', 'application/octet-stream', 'application/x-zip-compressed'],
-            ]);
-            $content = (string) ($response['body'] ?? '');
-
-            if (($response['success'] ?? false) !== true || $content === '') {
-                return ['success' => false, 'error' => 'Download fehlgeschlagen.'];
-            }
-
-            $written = file_put_contents($tmpFile, $content, LOCK_EX);
-            if (!is_int($written) || $written <= 0) {
-                return ['success' => false, 'error' => 'Plugin-Paket konnte nicht lokal gespeichert werden.'];
-            }
-
-            if (!\CMS\Services\UpdateService::getInstance()->verifyDownloadIntegrity($tmpFile, $integrityHash)) {
-                return ['success' => false, 'error' => 'SHA-256-Prüfsumme des Plugin-Pakets stimmt nicht. Installation aus Sicherheitsgründen abgebrochen.'];
-            }
-
-            if ($zip->open($tmpFile) !== true) {
-                return ['success' => false, 'error' => 'ZIP-Datei konnte nicht geöffnet werden.'];
-            }
-
-            if (!$this->validateZipEntries($zip, $slug)) {
-                return ['success' => false, 'error' => 'Plugin-Paket enthält ungültige oder unsichere Pfade.'];
-            }
-
-            if (!$zip->extractTo($pluginsDir)) {
-                return ['success' => false, 'error' => 'Plugin-Paket konnte nicht entpackt werden.'];
-            }
-        } finally {
-            if ($zip->status === \ZipArchive::ER_OK) {
-                $zip->close();
-            }
-
-            if (is_file($tmpFile)) {
-                unlink($tmpFile);
-            }
-        }
-
-        if (!is_dir($targetDir)) {
-            return ['success' => false, 'error' => 'Entpacken fehlgeschlagen – Verzeichnis nicht gefunden.'];
+        if (($result['success'] ?? false) !== true) {
+            return ['success' => false, 'error' => (string) ($result['message'] ?? 'Plugin konnte nicht installiert werden.')];
         }
 
         return ['success' => true, 'message' => "Plugin \"{$slug}\" installiert. Aktiviere es unter Plugin-Verwaltung."];
@@ -482,74 +442,6 @@ class PluginMarketplaceModule
         return str_ends_with($host, '.githubusercontent.com');
     }
 
-    private function validateZipEntries(\ZipArchive $zip, string $expectedSlug): bool
-    {
-        $expectedSlug = trim($expectedSlug, '/\\');
-        if ($expectedSlug === '') {
-            return false;
-        }
-
-        if ($zip->numFiles <= 0 || $zip->numFiles > self::MAX_ARCHIVE_ENTRIES) {
-            return false;
-        }
-
-        $hasMatchingRoot = false;
-        $totalUncompressedSize = 0;
-
-        for ($index = 0; $index < $zip->numFiles; $index++) {
-            $entryName = $zip->getNameIndex($index);
-            if (!is_string($entryName) || $entryName === '') {
-                return false;
-            }
-
-            $normalized = str_replace('\\', '/', $entryName);
-            $normalized = ltrim($normalized, '/');
-
-            if ($normalized === ''
-                || str_contains($normalized, '../')
-                || str_contains($normalized, '..\\')
-                || preg_match('/[\x00-\x1F\x7F]/', $normalized) === 1
-                || preg_match('~^[A-Za-z]:/~', $normalized) === 1
-            ) {
-                return false;
-            }
-
-            $stat = $zip->statIndex($index);
-            if (!is_array($stat)) {
-                return false;
-            }
-
-            $entrySize = (int)($stat['size'] ?? 0);
-            if ($entrySize < 0) {
-                return false;
-            }
-
-            $totalUncompressedSize += $entrySize;
-            if ($totalUncompressedSize > self::MAX_ARCHIVE_UNCOMPRESSED_BYTES) {
-                return false;
-            }
-
-            $segments = array_values(array_filter(explode('/', rtrim($normalized, '/')), static fn (string $segment): bool => $segment !== ''));
-            if ($segments === []) {
-                continue;
-            }
-
-            foreach ($segments as $segment) {
-                if ($segment === '.' || $segment === '..') {
-                    return false;
-                }
-            }
-
-            if ($segments[0] !== $expectedSlug) {
-                return false;
-            }
-
-            $hasMatchingRoot = true;
-        }
-
-        return $hasMatchingRoot;
-    }
-
     private function normalizeRelativeCatalogPath(string $path): string
     {
         $path = str_replace('\\', '/', trim($path));
@@ -571,24 +463,6 @@ class PluginMarketplaceModule
         }
 
         return implode('/', $segments);
-    }
-
-    private function isAllowedPluginsDirectory(string $pluginsDir): bool
-    {
-        $resolvedPluginsDir = realpath($pluginsDir);
-        if ($resolvedPluginsDir === false || !is_dir($resolvedPluginsDir) || !is_writable($resolvedPluginsDir)) {
-            return false;
-        }
-
-        $allowedRoot = defined('ABSPATH') ? realpath(ABSPATH) : false;
-        if ($allowedRoot === false) {
-            return false;
-        }
-
-        $normalizedPluginsDir = rtrim(str_replace('\\', '/', $resolvedPluginsDir), '/') . '/';
-        $normalizedAllowedRoot = rtrim(str_replace('\\', '/', $allowedRoot), '/') . '/';
-
-        return str_starts_with($normalizedPluginsDir, $normalizedAllowedRoot);
     }
 
     private function resolvePluginsDir(): string

@@ -20,6 +20,8 @@ class FontManagerModule
 {
     private Database $db;
     private string $prefix;
+    private const MAX_REMOTE_FONT_FILES = 20;
+    private const MAX_FONT_FILENAME_LENGTH = 180;
 
     private const SYSTEM_FONTS = [
         'system-ui'       => 'System UI (Standard)',
@@ -298,19 +300,22 @@ class FontManagerModule
         try {
             // Font-Datei(en) löschen
             $font = $this->db->get_row(
-                "SELECT file_path FROM {$this->prefix}custom_fonts WHERE id = ?",
+                "SELECT file_path, css_path FROM {$this->prefix}custom_fonts WHERE id = ?",
                 [$fontId]
             );
-            if ($font && !empty($font->file_path)) {
-                $absPath = (defined('ABSPATH') ? ABSPATH : '') . ltrim($font->file_path, '/');
-                if (is_file($absPath)) {
-                    $this->deleteFileIfExists($absPath, $warnings);
-                }
-                // CSS-Datei entfernen
-                $cssPath = preg_replace('/\.\w+$/', '.css', $absPath);
-                if ($cssPath && is_file($cssPath)) {
-                    $this->deleteFileIfExists($cssPath, $warnings);
-                }
+
+            $fontFilePath = $this->resolveManagedFontPath((string) ($font->file_path ?? ''));
+            if ($fontFilePath !== null) {
+                $this->deleteFileIfExists($fontFilePath, $warnings);
+            } elseif (!empty($font->file_path)) {
+                $warnings[] = 'Dateipfad liegt außerhalb des verwalteten Fonts-Verzeichnisses.';
+            }
+
+            $cssFilePath = $this->resolveManagedFontPath((string) ($font->css_path ?? ''));
+            if ($cssFilePath !== null) {
+                $this->deleteFileIfExists($cssFilePath, $warnings);
+            } elseif (!empty($font->css_path)) {
+                $warnings[] = 'CSS-Pfad liegt außerhalb des verwalteten Fonts-Verzeichnisses.';
             }
 
             $this->db->execute(
@@ -384,6 +389,10 @@ class FontManagerModule
         $downloadedFiles = [];
 
         if (preg_match_all('/url\(([^)]+?\.(woff2?|ttf|otf)[^)]*)\)/i', $css, $matches)) {
+            if (count($matches[1]) > self::MAX_REMOTE_FONT_FILES) {
+                return ['success' => false, 'error' => 'Zu viele Font-Dateien im Remote-CSS erkannt.'];
+            }
+
             foreach ($matches[1] as $remoteUrl) {
                 $remoteUrl = trim($remoteUrl, "'\" ");
                 if (!str_starts_with($remoteUrl, 'https://')) {
@@ -396,9 +405,13 @@ class FontManagerModule
                 if ($extension === '') {
                     $extension = 'woff2';
                 }
-                $fileName = $slug . '-' . basename($urlPath);
-                if (!str_ends_with(strtolower($fileName), '.' . $extension)) {
-                    $fileName .= '.' . $extension;
+                if (!in_array($extension, ['woff2', 'woff', 'ttf', 'otf'], true)) {
+                    continue;
+                }
+
+                $fileName = $this->buildManagedFontFileName($slug, $urlPath, $extension);
+                if ($fileName === null) {
+                    continue;
                 }
 
                 $localPath = $fontsDir . $fileName;
@@ -762,5 +775,93 @@ class FontManagerModule
         }
 
         return file_get_contents($path);
+    }
+
+    private function buildManagedFontFileName(string $slug, string $urlPath, string $extension): ?string
+    {
+        $baseName = basename($urlPath);
+        $baseName = preg_replace('/[^a-zA-Z0-9._-]/', '-', $baseName) ?? '';
+        $baseName = preg_replace('/-+/', '-', $baseName) ?? '';
+        $baseName = trim($baseName, '-_.');
+
+        if ($baseName === '' || preg_match('/[\x00-\x1F\x7F]/', $baseName) === 1) {
+            return null;
+        }
+
+        $expectedSuffix = '.' . strtolower($extension);
+        if (!str_ends_with(strtolower($baseName), $expectedSuffix)) {
+            $baseName .= $expectedSuffix;
+        }
+
+        $fileName = $slug . '-' . $baseName;
+        if (strlen($fileName) > self::MAX_FONT_FILENAME_LENGTH) {
+            $suffix = '-' . substr(sha1($fileName), 0, 12) . $expectedSuffix;
+            $maxBaseLength = self::MAX_FONT_FILENAME_LENGTH - strlen($suffix);
+            if ($maxBaseLength <= 0) {
+                return null;
+            }
+
+            $fileName = substr($slug . '-' . pathinfo($baseName, PATHINFO_FILENAME), 0, $maxBaseLength) . $suffix;
+        }
+
+        return $fileName;
+    }
+
+    private function getManagedFontsDirectory(): ?string
+    {
+        $basePath = defined('ABSPATH') ? (string) ABSPATH : '';
+        if ($basePath === '') {
+            return null;
+        }
+
+        $fontsDir = rtrim($basePath, '/\\') . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'fonts';
+
+        if (!is_dir($fontsDir)) {
+            return null;
+        }
+
+        $resolvedFontsDir = realpath($fontsDir);
+
+        return $resolvedFontsDir !== false ? rtrim($resolvedFontsDir, '/\\') : null;
+    }
+
+    private function resolveManagedFontPath(string $storedPath): ?string
+    {
+        $storedPath = trim(str_replace('\\', '/', $storedPath));
+        if ($storedPath === '') {
+            return null;
+        }
+
+        if (preg_match('/[\x00-\x1F\x7F]/', $storedPath) === 1 || str_contains($storedPath, '..')) {
+            return null;
+        }
+
+        $fontsDir = $this->getManagedFontsDirectory();
+        if ($fontsDir === null) {
+            return null;
+        }
+
+        $normalizedPrefix = 'uploads/fonts/';
+        if (!str_starts_with(strtolower($storedPath), $normalizedPrefix)) {
+            return null;
+        }
+
+        $relativePath = ltrim(substr($storedPath, strlen($normalizedPrefix)), '/');
+        if ($relativePath === '') {
+            return null;
+        }
+
+        $candidatePath = $fontsDir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
+        $resolvedCandidate = realpath($candidatePath);
+        if ($resolvedCandidate === false) {
+            return is_file($candidatePath) ? $candidatePath : null;
+        }
+
+        $normalizedFontsDir = str_replace('\\', '/', $fontsDir);
+        $normalizedCandidate = str_replace('\\', '/', $resolvedCandidate);
+
+        return str_starts_with($normalizedCandidate, $normalizedFontsDir . '/') || $normalizedCandidate === $normalizedFontsDir
+            ? $resolvedCandidate
+            : null;
     }
 }

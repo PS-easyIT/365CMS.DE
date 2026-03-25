@@ -58,6 +58,25 @@ function cms_admin_legal_sites_pull_alert(): ?array
     return is_array($alert) ? $alert : null;
 }
 
+/** @return array<string, true> */
+function cms_admin_legal_sites_allowed_actions(): array
+{
+    return [
+        'save' => true,
+        'save_profile' => true,
+        'generate' => true,
+        'create_page' => true,
+        'create_all_pages' => true,
+    ];
+}
+
+function cms_admin_legal_sites_normalize_template_type(array $post): string
+{
+    $type = strtolower(trim((string) ($post['template_type'] ?? '')));
+
+    return in_array($type, ['imprint', 'privacy', 'terms', 'revocation'], true) ? $type : '';
+}
+
 /**
  * @return array<string, callable(array, int): array>
  */
@@ -66,8 +85,8 @@ function cms_admin_legal_sites_action_handlers(LegalSitesModule $module): array
     return [
         'save' => static fn (array $post, int $userId): array => $module->save($post),
         'save_profile' => static fn (array $post, int $userId): array => $module->saveProfile($post),
-        'generate' => static fn (array $post, int $userId): array => $module->generateTemplate((string) ($post['template_type'] ?? '')),
-        'create_page' => static fn (array $post, int $userId): array => $module->createOrUpdatePage((string) ($post['template_type'] ?? ''), $userId),
+        'generate' => static fn (array $post, int $userId): array => $module->generateTemplate(cms_admin_legal_sites_normalize_template_type($post)),
+        'create_page' => static fn (array $post, int $userId): array => $module->createOrUpdatePage(cms_admin_legal_sites_normalize_template_type($post), $userId),
         'create_all_pages' => static fn (array $post, int $userId): array => $module->createOrUpdateAllPages($userId),
     ];
 }
@@ -120,12 +139,19 @@ function cms_admin_legal_sites_templates(LegalSitesModule $module): array
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = trim((string) ($_POST['action'] ?? ''));
+    $allowedActions = cms_admin_legal_sites_allowed_actions();
+
     if (!Security::instance()->verifyToken((string) ($_POST['csrf_token'] ?? ''), 'admin_legal_sites')) {
         cms_admin_legal_sites_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
         cms_admin_legal_sites_redirect();
     }
 
-    $action = (string) ($_POST['action'] ?? '');
+    if (!isset($allowedActions[$action])) {
+        cms_admin_legal_sites_flash(['type' => 'danger', 'message' => 'Unbekannte oder nicht erlaubte Aktion.']);
+        cms_admin_legal_sites_redirect();
+    }
+
     $result = cms_admin_legal_sites_handle_action($module, $action, $_POST, $userId);
     cms_admin_legal_sites_sync_profile_state($action, $result);
     cms_admin_legal_sites_flash_result($result);

@@ -57,6 +57,14 @@ function cms_admin_theme_marketplace_pull_alert(): ?array
     return is_array($alert) ? $alert : null;
 }
 
+/** @return array<string, true> */
+function cms_admin_theme_marketplace_allowed_actions(): array
+{
+    return [
+        'install' => true,
+    ];
+}
+
 function cms_admin_theme_marketplace_normalize_slug(array $post): string
 {
     return preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($post['theme'] ?? '')) ?? '';
@@ -72,9 +80,12 @@ function cms_admin_theme_marketplace_handle_action(ThemeMarketplaceModule $modul
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $action = (string)($_POST['action'] ?? '');
+    $allowedActions = cms_admin_theme_marketplace_allowed_actions();
 
     if (!Security::instance()->verifyToken((string) ($_POST['csrf_token'] ?? ''), 'admin_theme_marketplace')) {
         cms_admin_theme_marketplace_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
+    } elseif (!isset($allowedActions[$action])) {
+        cms_admin_theme_marketplace_flash(['type' => 'danger', 'message' => 'Unbekannte oder nicht erlaubte Aktion.']);
     } else {
         $result = cms_admin_theme_marketplace_handle_action($module, $action, $_POST);
         cms_admin_theme_marketplace_flash_result($result);

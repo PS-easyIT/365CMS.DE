@@ -57,6 +57,15 @@ function cms_admin_themes_pull_alert(): ?array
     return is_array($alert) ? $alert : null;
 }
 
+/** @return array<string, true> */
+function cms_admin_themes_allowed_actions(): array
+{
+    return [
+        'activate' => true,
+        'delete' => true,
+    ];
+}
+
 function cms_admin_themes_normalize_slug(array $post): string
 {
     return preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($post['theme'] ?? '')) ?? '';
@@ -69,16 +78,20 @@ function cms_admin_themes_handle_action(ThemesModule $module, string $action, ar
     return match ($action) {
         'activate' => $module->activateTheme($slug),
         'delete' => $module->deleteTheme($slug),
-        default => ['success' => false, 'error' => 'Unbekannte Aktion.'],
+        default => ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'],
     };
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postToken = (string) ($_POST['csrf_token'] ?? '');
+    $action = trim((string) ($_POST['action'] ?? ''));
+    $allowedActions = cms_admin_themes_allowed_actions();
+
     if (!Security::instance()->verifyToken($postToken, 'admin_themes')) {
         cms_admin_themes_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
+    } elseif (!isset($allowedActions[$action])) {
+        cms_admin_themes_flash(['type' => 'danger', 'message' => 'Unbekannte oder nicht erlaubte Aktion.']);
     } else {
-        $action = trim((string) ($_POST['action'] ?? ''));
         cms_admin_themes_flash_result(cms_admin_themes_handle_action($module, $action, $_POST));
     }
 

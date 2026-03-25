@@ -57,19 +57,35 @@ function cms_admin_plugin_marketplace_pull_alert(): ?array
     return is_array($alert) ? $alert : null;
 }
 
+/** @return array<string, true> */
+function cms_admin_plugin_marketplace_allowed_actions(): array
+{
+    return [
+        'install' => true,
+    ];
+}
+
+function cms_admin_plugin_marketplace_normalize_slug(array $post): string
+{
+    return (string) preg_replace('/[^a-z0-9_-]/', '', strtolower((string) ($post['slug'] ?? '')));
+}
+
 function cms_admin_plugin_marketplace_handle_action(PluginMarketplaceModule $module, string $action, array $post): array
 {
     return match ($action) {
-        'install' => $module->installPlugin((string) ($post['slug'] ?? '')),
+        'install' => $module->installPlugin(cms_admin_plugin_marketplace_normalize_slug($post)),
         default => ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'],
     };
 }
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $action = (string)($_POST['action'] ?? '');
+    $allowedActions = cms_admin_plugin_marketplace_allowed_actions();
 
     if (!Security::instance()->verifyToken((string) ($_POST['csrf_token'] ?? ''), 'admin_plugin_mp')) {
         cms_admin_plugin_marketplace_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
+    } elseif (!isset($allowedActions[$action])) {
+        cms_admin_plugin_marketplace_flash(['type' => 'danger', 'message' => 'Unbekannte oder nicht erlaubte Aktion.']);
     } else {
         $result = cms_admin_plugin_marketplace_handle_action($module, $action, $_POST);
         cms_admin_plugin_marketplace_flash_result($result);

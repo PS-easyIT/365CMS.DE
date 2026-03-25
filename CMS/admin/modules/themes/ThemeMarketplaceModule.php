@@ -20,6 +20,10 @@ use CMS\Database;
 
 class ThemeMarketplaceModule
 {
+    private const MAX_MANIFEST_BYTES = 524288;
+    private const MAX_ARCHIVE_ENTRIES = 2000;
+    private const MAX_ARCHIVE_UNCOMPRESSED_BYTES = 52428800;
+
     private const ALLOWED_MARKETPLACE_HOSTS = [
         '365cms.de',
         'www.365cms.de',
@@ -388,12 +392,27 @@ class ThemeMarketplaceModule
             return $this->fetchRemoteJson(rtrim($sourceBase, '/') . '/' . ltrim($manifest, '/'));
         }
 
-        $manifestPath = rtrim($sourceBase, '/\\') . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, ltrim($manifest, '/\\'));
+        $relativeManifestPath = $this->normalizeRelativeCatalogPath($manifest);
+        if ($relativeManifestPath === '') {
+            return [];
+        }
+
+        $manifestPath = rtrim($sourceBase, '/\\') . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relativeManifestPath);
         if (!is_file($manifestPath)) {
             return [];
         }
 
-        $content = file_get_contents($manifestPath);
+        $resolvedSourceBase = realpath($sourceBase);
+        $resolvedManifestPath = realpath($manifestPath);
+        if ($resolvedSourceBase === false || $resolvedManifestPath === false || !str_starts_with(str_replace('\\', '/', $resolvedManifestPath), rtrim(str_replace('\\', '/', $resolvedSourceBase), '/') . '/')) {
+            return [];
+        }
+
+        if (filesize($resolvedManifestPath) > self::MAX_MANIFEST_BYTES) {
+            return [];
+        }
+
+        $content = file_get_contents($resolvedManifestPath);
         if ($content === false) {
             return [];
         }
@@ -714,8 +733,13 @@ class ThemeMarketplaceModule
             return false;
         }
 
+        if ($zip->numFiles <= 0 || $zip->numFiles > self::MAX_ARCHIVE_ENTRIES) {
+            return false;
+        }
+
         $allowedRoots = [$expectedSlug];
         $hasAllowedRoot = false;
+        $totalUncompressedSize = 0;
 
         for ($index = 0; $index < $zip->numFiles; $index++) {
             $entryName = $zip->getNameIndex($index);
@@ -729,14 +753,36 @@ class ThemeMarketplaceModule
             if ($normalized === ''
                 || str_contains($normalized, '../')
                 || str_contains($normalized, '..\\')
+                || preg_match('/[\x00-\x1F\x7F]/', $normalized) === 1
                 || preg_match('~^[A-Za-z]:/~', $normalized) === 1
             ) {
+                return false;
+            }
+
+            $stat = $zip->statIndex($index);
+            if (!is_array($stat)) {
+                return false;
+            }
+
+            $entrySize = (int) ($stat['size'] ?? 0);
+            if ($entrySize < 0) {
+                return false;
+            }
+
+            $totalUncompressedSize += $entrySize;
+            if ($totalUncompressedSize > self::MAX_ARCHIVE_UNCOMPRESSED_BYTES) {
                 return false;
             }
 
             $segments = array_values(array_filter(explode('/', rtrim($normalized, '/')), static fn (string $segment): bool => $segment !== ''));
             if ($segments === []) {
                 continue;
+            }
+
+            foreach ($segments as $segment) {
+                if ($segment === '.' || $segment === '..') {
+                    return false;
+                }
             }
 
             if ($index === 0 && preg_match('/^[a-f0-9]{7,}$/i', $segments[0]) === 1) {
@@ -751,5 +797,28 @@ class ThemeMarketplaceModule
         }
 
         return $hasAllowedRoot;
+    }
+
+    private function normalizeRelativeCatalogPath(string $path): string
+    {
+        $path = str_replace('\\', '/', trim($path));
+        $path = ltrim($path, '/');
+
+        if ($path === '' || strlen($path) > 255 || preg_match('/[\x00-\x1F\x7F]/', $path) === 1) {
+            return '';
+        }
+
+        $segments = array_values(array_filter(explode('/', $path), static fn(string $segment): bool => $segment !== ''));
+        if ($segments === []) {
+            return '';
+        }
+
+        foreach ($segments as $segment) {
+            if ($segment === '.' || $segment === '..') {
+                return '';
+            }
+        }
+
+        return implode('/', $segments);
     }
 }

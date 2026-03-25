@@ -15,6 +15,8 @@ class PluginsModule
 {
     private readonly \CMS\Database $db;
     private readonly string $prefix;
+    /** @var array<string, bool>|null */
+    private ?array $activePluginsLookup = null;
 
     public function __construct()
     {
@@ -28,6 +30,7 @@ class PluginsModule
         $plugins    = [];
         $active     = 0;
         $inactive   = 0;
+        $activePluginsLookup = $this->getActivePluginsLookup();
 
         if (is_dir($pluginsDir)) {
             foreach (new \DirectoryIterator($pluginsDir) as $item) {
@@ -41,7 +44,7 @@ class PluginsModule
                 }
                 $info['slug']   = $slug;
                 $info['path']   = $item->getPathname();
-                $info['active'] = $this->isActive($slug);
+                $info['active'] = isset($activePluginsLookup[$slug]);
                 $info['protected'] = $this->isProtectedPlugin($slug);
 
                 // update.json lesen
@@ -87,6 +90,7 @@ class PluginsModule
                 if ($result !== true) {
                     return ['success' => false, 'error' => is_string($result) ? $result : 'Aktivierung fehlgeschlagen.'];
                 }
+                $this->resetActivePluginsLookup();
                 // ADDED: Plugin-Aktivierungen im Audit-Log dokumentieren.
                 AuditLogger::instance()->pluginAction('activate', $slug);
                 return ['success' => true, 'message' => "Plugin \"{$slug}\" aktiviert."];
@@ -95,19 +99,11 @@ class PluginsModule
             }
         }
 
-        // Fallback: settings table
-        $row   = $this->db->get_row("SELECT option_value FROM {$this->prefix}settings WHERE option_name = 'active_plugins'");
-        $list  = $row ? \CMS\Json::decodeArray($row->option_value ?? null, []) : [];
-        if (!is_array($list)) $list = [];
-        if (!in_array($slug, $list, true)) {
+        $list = array_keys($this->getActivePluginsLookup());
+        if (!isset($this->getActivePluginsLookup()[$slug])) {
             $list[] = $slug;
         }
-        $val = json_encode($list);
-        if ($row) {
-            $this->db->update('settings', ['option_value' => $val], ['option_name' => 'active_plugins']);
-        } else {
-            $this->db->insert('settings', ['option_name' => 'active_plugins', 'option_value' => $val]);
-        }
+        $this->persistActivePlugins($list);
         AuditLogger::instance()->pluginAction('activate', $slug);
         return ['success' => true, 'message' => "Plugin \"{$slug}\" aktiviert."];
     }
@@ -123,6 +119,7 @@ class PluginsModule
                 if ($result !== true) {
                     return ['success' => false, 'error' => is_string($result) ? $result : 'Deaktivierung fehlgeschlagen.'];
                 }
+                $this->resetActivePluginsLookup();
                 AuditLogger::instance()->pluginAction('deactivate', $slug);
                 return ['success' => true, 'message' => "Plugin \"{$slug}\" deaktiviert."];
             } catch (\Throwable $e) {
@@ -130,16 +127,11 @@ class PluginsModule
             }
         }
 
-        $row   = $this->db->get_row("SELECT option_value FROM {$this->prefix}settings WHERE option_name = 'active_plugins'");
-        $list  = $row ? \CMS\Json::decodeArray($row->option_value ?? null, []) : [];
-        if (!is_array($list)) $list = [];
-        $list = array_values(array_filter($list, fn($s) => $s !== $slug));
-        $val  = json_encode($list);
-        if ($row) {
-            $this->db->update('settings', ['option_value' => $val], ['option_name' => 'active_plugins']);
-        } else {
-            $this->db->insert('settings', ['option_name' => 'active_plugins', 'option_value' => $val]);
-        }
+        $list = array_values(array_filter(
+            array_keys($this->getActivePluginsLookup()),
+            static fn(string $activeSlug): bool => $activeSlug !== $slug
+        ));
+        $this->persistActivePlugins($list);
         AuditLogger::instance()->pluginAction('deactivate', $slug);
         return ['success' => true, 'message' => "Plugin \"{$slug}\" deaktiviert."];
     }
@@ -169,7 +161,15 @@ class PluginsModule
         }
 
         try {
-            $this->deleteDir($realPluginPath);
+            if (class_exists('\CMS\PluginManager')) {
+                $result = \CMS\PluginManager::instance()->deletePlugin($slug);
+                if ($result !== true) {
+                    return ['success' => false, 'error' => is_string($result) ? $result : 'Plugin konnte nicht gelöscht werden.'];
+                }
+                $this->resetActivePluginsLookup();
+            } else {
+                $this->deleteDir($realPluginPath);
+            }
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => 'Plugin konnte nicht gelöscht werden: ' . $e->getMessage()];
         }
@@ -190,14 +190,75 @@ class PluginsModule
 
     private function isActive(string $slug): bool
     {
-        if (class_exists('\CMS\PluginManager')) {
-            return \CMS\PluginManager::instance()->isPluginActive($slug);
+        return isset($this->getActivePluginsLookup()[$slug]);
+    }
+
+    /** @return array<string, bool> */
+    private function getActivePluginsLookup(): array
+    {
+        if ($this->activePluginsLookup !== null) {
+            return $this->activePluginsLookup;
         }
-        $row = $this->db->get_row(
-            "SELECT option_value FROM {$this->prefix}settings WHERE option_name = 'active_plugins'"
-        );
-        $list = $row ? \CMS\Json::decodeArray($row->option_value ?? null, []) : [];
-        return is_array($list) && in_array($slug, $list, true);
+
+        $activePlugins = [];
+
+        if (class_exists('\CMS\PluginManager')) {
+            $activePlugins = \CMS\PluginManager::instance()->getActivePlugins();
+        } else {
+            $row = $this->db->get_row(
+                "SELECT option_value FROM {$this->prefix}settings WHERE option_name = 'active_plugins'"
+            );
+            $activePlugins = $row ? \CMS\Json::decodeArray($row->option_value ?? null, []) : [];
+        }
+
+        if (!is_array($activePlugins)) {
+            $activePlugins = [];
+        }
+
+        $lookup = [];
+        foreach ($activePlugins as $activePlugin) {
+            $normalizedSlug = preg_replace('/[^a-z0-9_-]/', '', strtolower((string) $activePlugin)) ?? '';
+            if ($normalizedSlug === '') {
+                continue;
+            }
+
+            $lookup[$normalizedSlug] = true;
+        }
+
+        $this->activePluginsLookup = $lookup;
+
+        return $this->activePluginsLookup;
+    }
+
+    private function resetActivePluginsLookup(): void
+    {
+        $this->activePluginsLookup = null;
+    }
+
+    /** @param string[] $plugins */
+    private function persistActivePlugins(array $plugins): void
+    {
+        $normalizedPlugins = [];
+        foreach ($plugins as $plugin) {
+            $normalizedSlug = preg_replace('/[^a-z0-9_-]/', '', strtolower((string) $plugin)) ?? '';
+            if ($normalizedSlug === '') {
+                continue;
+            }
+
+            $normalizedPlugins[] = $normalizedSlug;
+        }
+
+        $normalizedPlugins = array_values(array_unique($normalizedPlugins));
+        $row = $this->db->get_row("SELECT option_value FROM {$this->prefix}settings WHERE option_name = 'active_plugins'");
+        $value = json_encode($normalizedPlugins);
+
+        if ($row) {
+            $this->db->update('settings', ['option_value' => $value], ['option_name' => 'active_plugins']);
+        } else {
+            $this->db->insert('settings', ['option_name' => 'active_plugins', 'option_value' => $value]);
+        }
+
+        $this->resetActivePluginsLookup();
     }
 
     private function parsePluginHeader(string $file): array

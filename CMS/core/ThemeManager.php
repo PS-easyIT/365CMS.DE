@@ -27,6 +27,8 @@ class ThemeManager
     private ?string $loadedThemeSlug = null;
     /** @var array<string,string>|null  null = noch nicht geladen (H-22 Lazy Loading) */
     private ?array $settings = null;
+    /** @var array<string, array<string, mixed>>|null */
+    private ?array $availableThemesCache = null;
     
     /**
      * Singleton instance
@@ -245,6 +247,8 @@ class ThemeManager
         // Runtime-Zustand aktualisieren
         $this->activeTheme = $default;
         $this->themePath   = THEME_PATH . $default . '/';
+        $this->loadedThemeSlug = null;
+        $this->resetAvailableThemesCache();
     }
 
     /**
@@ -433,6 +437,10 @@ class ThemeManager
      */
     public function getAvailableThemes(): array
     {
+        if ($this->availableThemesCache !== null) {
+            return $this->availableThemesCache;
+        }
+
         $themes = [];
         $themeDir = THEME_PATH;
         
@@ -452,6 +460,7 @@ class ThemeManager
             if (file_exists($themeFile)) {
                 $data = $this->getThemeData($themeFile);
                 if ($data) {
+                    $data = $this->enrichAvailableThemeData($dir, $data);
                     $data['folder'] = $dir;
                     $data['active'] = ($dir === $this->activeTheme);
                     $themes[$dir] = $data;
@@ -459,7 +468,7 @@ class ThemeManager
             }
         }
         
-        return $themes;
+        return $this->availableThemesCache = $themes;
     }
     
     /**
@@ -467,6 +476,11 @@ class ThemeManager
      */
     public function getCurrentTheme(): array
     {
+        $availableThemes = $this->getAvailableThemes();
+        if (isset($availableThemes[$this->activeTheme])) {
+            return $availableThemes[$this->activeTheme];
+        }
+
         $themeFile = $this->themePath . 'style.css';
         
         if (file_exists($themeFile)) {
@@ -555,6 +569,11 @@ class ThemeManager
 
             // C-15: Theme-Wechsel protokollieren
             AuditLogger::instance()->themeSwitch($this->activeTheme, $theme);
+
+            $this->activeTheme = $theme;
+            $this->themePath = THEME_PATH . $theme . '/';
+            $this->loadedThemeSlug = null;
+            $this->resetAvailableThemesCache();
 
             return true;
         } catch (\Exception $e) {
@@ -653,6 +672,7 @@ class ThemeManager
 
         try {
             $this->deleteDirectory($themeDir);
+            $this->resetAvailableThemesCache();
 
             // C-15: Theme-Löschung protokollieren
             AuditLogger::instance()->themeDelete($folder);
@@ -662,6 +682,50 @@ class ThemeManager
             error_log('ThemeManager::deleteTheme() Error: ' . $e->getMessage());
             return 'Fehler beim Löschen: ' . $e->getMessage();
         }
+    }
+
+    /** @param array<string, mixed> $data
+     *  @return array<string, mixed>
+     */
+    private function enrichAvailableThemeData(string $folder, array $data): array
+    {
+        $themeDir = rtrim(THEME_PATH, '/\\') . DIRECTORY_SEPARATOR . $folder . DIRECTORY_SEPARATOR;
+        $themeJson = $this->getThemeJsonData($themeDir);
+        if ($themeJson !== []) {
+            $data['json'] = $themeJson;
+            $data['description'] = (string) ($themeJson['description'] ?? $data['description'] ?? '');
+            $data['version'] = (string) ($themeJson['version'] ?? $data['version'] ?? '');
+            $data['author'] = (string) ($themeJson['author'] ?? $data['author'] ?? '');
+            $data['slug'] = (string) ($themeJson['slug'] ?? $folder);
+        }
+
+        $screenshotPath = $themeDir . 'screenshot.png';
+        if (is_file($screenshotPath)) {
+            $data['screenshot'] = '/themes/' . $folder . '/screenshot.png';
+        }
+
+        return $data;
+    }
+
+    /** @return array<string, mixed> */
+    private function getThemeJsonData(string $themeDir): array
+    {
+        $jsonPath = $themeDir . 'theme.json';
+        if (!is_file($jsonPath) || !is_readable($jsonPath)) {
+            return [];
+        }
+
+        $content = file_get_contents($jsonPath);
+        if ($content === false || $content === '') {
+            return [];
+        }
+
+        return Json::decodeArray($content, []);
+    }
+
+    private function resetAvailableThemesCache(): void
+    {
+        $this->availableThemesCache = null;
     }
 
     /**

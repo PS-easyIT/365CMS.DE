@@ -57,22 +57,41 @@ function cms_admin_plugins_pull_alert(): ?array
     return is_array($alert) ? $alert : null;
 }
 
+/** @return array<string, true> */
+function cms_admin_plugins_allowed_actions(): array
+{
+    return [
+        'activate' => true,
+        'deactivate' => true,
+        'delete' => true,
+    ];
+}
+
+function cms_admin_plugins_normalize_slug(array $post): string
+{
+    return (string) preg_replace('/[^a-z0-9_-]/', '', strtolower((string) ($post['slug'] ?? '')));
+}
+
 function cms_admin_plugins_handle_action(PluginsModule $module, string $action, array $post): array
 {
     return match ($action) {
-        'activate' => $module->activatePlugin((string) ($post['slug'] ?? '')),
-        'deactivate' => $module->deactivatePlugin((string) ($post['slug'] ?? '')),
-        'delete' => $module->deletePlugin((string) ($post['slug'] ?? '')),
-        default => ['success' => false, 'error' => 'Unbekannte Aktion.'],
+        'activate' => $module->activatePlugin(cms_admin_plugins_normalize_slug($post)),
+        'deactivate' => $module->deactivatePlugin(cms_admin_plugins_normalize_slug($post)),
+        'delete' => $module->deletePlugin(cms_admin_plugins_normalize_slug($post)),
+        default => ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'],
     };
 }
 
 // POST-Handler: Token ZUERST verifizieren, bevor ein neuer generiert wird
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = trim((string) ($_POST['action'] ?? ''));
+    $allowedActions = cms_admin_plugins_allowed_actions();
+
     if (!Security::instance()->verifyToken((string) ($_POST['csrf_token'] ?? ''), 'admin_plugins')) {
         cms_admin_plugins_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
+    } elseif (!isset($allowedActions[$action])) {
+        cms_admin_plugins_flash(['type' => 'danger', 'message' => 'Unbekannte oder nicht erlaubte Aktion.']);
     } else {
-        $action = trim((string) ($_POST['action'] ?? ''));
         cms_admin_plugins_flash_result(cms_admin_plugins_handle_action($module, $action, $_POST));
     }
 

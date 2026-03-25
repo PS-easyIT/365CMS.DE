@@ -18,6 +18,11 @@ use CMS\Services\UpdateService;
 class UpdatesModule
 {
     private UpdateService $service;
+    private ?array $coreData = null;
+    private ?array $pluginData = null;
+    private ?array $themeData = null;
+    private ?array $historyData = null;
+    private ?array $requirementsData = null;
 
     public function __construct()
     {
@@ -29,16 +34,16 @@ class UpdatesModule
      */
     public function getData(): array
     {
-        $core    = $this->getCoreSafe();
-        $plugins = $this->getPluginsSafe();
-        $theme   = $this->getThemeSafe();
+        $core    = $this->getCoreData();
+        $plugins = $this->getPluginData();
+        $theme   = $this->getThemeData();
 
         return [
             'core'     => $core,
             'plugins'  => $plugins,
             'theme'    => $theme,
-            'history'  => $this->getHistorySafe(),
-            'requirements' => $this->getRequirementsSafe(),
+            'history'  => $this->getHistoryData(),
+            'requirements' => $this->getRequirementsData(),
             'has_updates'  => ($core['update_available'] ?? false)
                 || !empty(array_filter($plugins, fn($p) => !empty($p['new_version'])))
                 || ($theme['update_available'] ?? false),
@@ -50,10 +55,32 @@ class UpdatesModule
      */
     public function checkAllUpdates(): array
     {
+        $this->refreshUpdateSnapshot();
+
+        return $this->exportUpdateSnapshot();
+    }
+
+    public function hydrateUpdateSnapshot(array $snapshot): void
+    {
+        if (isset($snapshot['core']) && is_array($snapshot['core'])) {
+            $this->coreData = $snapshot['core'];
+        }
+
+        if (isset($snapshot['plugins']) && is_array($snapshot['plugins'])) {
+            $this->pluginData = $snapshot['plugins'];
+        }
+
+        if (isset($snapshot['theme']) && is_array($snapshot['theme'])) {
+            $this->themeData = $snapshot['theme'];
+        }
+    }
+
+    public function exportUpdateSnapshot(): array
+    {
         return [
-            'core'    => $this->getCoreSafe(),
-            'plugins' => $this->getPluginsSafe(),
-            'theme'   => $this->getThemeSafe(),
+            'core' => $this->getCoreData(),
+            'plugins' => $this->getPluginData(),
+            'theme' => $this->getThemeData(),
         ];
     }
 
@@ -63,7 +90,7 @@ class UpdatesModule
     public function installCoreUpdate(): array
     {
         try {
-            $check = $this->service->checkCoreUpdates();
+            $check = $this->getCoreData();
             if (empty($check['update_available'])) {
                 return ['success' => false, 'error' => 'Kein Core-Update verfügbar.'];
             }
@@ -106,7 +133,7 @@ class UpdatesModule
         }
 
         try {
-            $plugins = $this->service->checkPluginUpdates();
+            $plugins = $this->getPluginData();
             if (!isset($plugins[$slug]) || empty($plugins[$slug]['new_version'])) {
                 return ['success' => false, 'error' => 'Kein Update für dieses Plugin verfügbar.'];
             }
@@ -158,6 +185,11 @@ class UpdatesModule
         }
     }
 
+    private function getCoreData(): array
+    {
+        return $this->coreData ??= $this->getCoreSafe();
+    }
+
     private function getPluginsSafe(): array
     {
         try {
@@ -166,6 +198,11 @@ class UpdatesModule
             $this->logFailure('updates.plugins.check_failed', 'Plugin-Update-Prüfung fehlgeschlagen.', $e);
             return [];
         }
+    }
+
+    private function getPluginData(): array
+    {
+        return $this->pluginData ??= $this->getPluginsSafe();
     }
 
     private function getThemeSafe(): array
@@ -179,6 +216,11 @@ class UpdatesModule
         }
     }
 
+    private function getThemeData(): array
+    {
+        return $this->themeData ??= $this->getThemeSafe();
+    }
+
     private function getHistorySafe(): array
     {
         try {
@@ -189,6 +231,11 @@ class UpdatesModule
         }
     }
 
+    private function getHistoryData(): array
+    {
+        return $this->historyData ??= $this->getHistorySafe();
+    }
+
     private function getRequirementsSafe(): array
     {
         try {
@@ -197,6 +244,18 @@ class UpdatesModule
             $this->logFailure('updates.requirements.load_failed', 'Systemanforderungen konnten nicht geladen werden.', $e);
             return [];
         }
+    }
+
+    private function getRequirementsData(): array
+    {
+        return $this->requirementsData ??= $this->getRequirementsSafe();
+    }
+
+    private function refreshUpdateSnapshot(): void
+    {
+        $this->coreData = $this->getCoreSafe();
+        $this->pluginData = $this->getPluginsSafe();
+        $this->themeData = $this->getThemeSafe();
     }
 
     private function normalizePluginSlug(string $slug): string

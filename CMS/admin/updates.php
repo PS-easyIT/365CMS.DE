@@ -57,6 +57,19 @@ function cms_admin_updates_pull_alert(): ?array
     return is_array($alert) ? $alert : null;
 }
 
+function cms_admin_updates_store_snapshot(array $snapshot): void
+{
+    $_SESSION['admin_updates_snapshot'] = $snapshot;
+}
+
+function cms_admin_updates_pull_snapshot(): ?array
+{
+    $snapshot = $_SESSION['admin_updates_snapshot'] ?? null;
+    unset($_SESSION['admin_updates_snapshot']);
+
+    return is_array($snapshot) ? $snapshot : null;
+}
+
 /** @return array<string, true> */
 function cms_admin_updates_allowed_actions(): array
 {
@@ -76,7 +89,7 @@ function cms_admin_updates_handle_action(UpdatesModule $module, string $action, 
 {
     return match ($action) {
         'check_updates' => ['success' => true, 'type' => 'info', 'message' => 'Update-Prüfung abgeschlossen.', 'callback' => static function () use ($module): void {
-            $module->checkAllUpdates();
+            cms_admin_updates_store_snapshot($module->checkAllUpdates());
         }],
         'install_core' => $module->installCoreUpdate(),
         'install_plugin' => $module->installPluginUpdate(cms_admin_updates_normalize_plugin_slug($post)),
@@ -120,6 +133,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $alert = cms_admin_updates_pull_alert();
+$snapshot = cms_admin_updates_pull_snapshot();
+
+if (is_array($snapshot)) {
+    $module->hydrateUpdateSnapshot($snapshot);
+}
 
 $csrfToken  = Security::instance()->generateToken('admin_updates');
 $data       = $module->getData();
