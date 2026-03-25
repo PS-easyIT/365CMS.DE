@@ -5,13 +5,25 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 216
+### Gesamtstand nach Batch 218
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 445 | 88,20 | 86,50 | 89,23 | 88,49 |
+| 445 | 88,22 | 86,50 | 89,25 | 88,51 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **216 umgesetzte Audit-Batches**. Das sind aktuell **216 von 444 Prüfplan-Punkten**. Zuletzt wurde der Legal-Sites-Entry bei Action-Gates und Template-Typen nachgezogen, damit Rechtstext-Mutationen keine losen Aktionen oder unsauberen Template-Typen direkt aus dem Request übernehmen.
+Der aktuelle Nachpflege-Stand umfasst damit **218 umgesetzte Audit-Batches**. Das sind aktuell **218 von 444 Prüfplan-Punkten**. Zuletzt wurde der Font-Manager-Entry bei Action-Allowlist und Wrapper-Normalisierung nachgezogen, damit Font-Delete- und Google-Font-Downloads keine losen oder unsauberen Request-Werte direkt aus dem Einstieg übernehmen.
+
+### Delta Batch 218
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/font-manager.php` | umgesetzt | POST-Aktionen wieder explizit über eine Allowlist begrenzt sowie `font_id` und Google-Font-Familien bereits im Wrapper serverseitig normalisiert, damit Font-Delete- und Download-Pfade keine losen oder unsauberen Request-Werte direkt übernehmen. | Der Font-Manager-Entry reduziert implizite Fallback-Dispatches im Mutationspfad, hält Request-Gates näher am übrigen Admin-Wrapper-Muster und blockt ungültige Action-, ID- oder Family-Werte sichtbar früher, bevor Modulmethoden unnötig angerufen werden. |
+
+### Delta Batch 217
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/mail-settings.php` | umgesetzt | POST-Aktionen explizit an die erlaubten Tabs gebunden, den `action`-Wert serverseitig normalisiert und Redirects nach Mutationen auf den kanonischen Bereich zurückgeführt, damit Mail-, Azure-, Graph-, Log- und Queue-Pfade keine losen oder bereichsfremden Aktionen direkt aus dem Request übernehmen. | Der Mail-Settings-Entry reduziert implizite Fallback-Dispatches zwischen Transport-, Azure-, Graph-, Logs- und Queue-Bereich, hält Request-Gates näher am übrigen Admin-Wrapper-Muster und blockt unzulässige Tab-/Action-Kombinationen sichtbar früher, bevor Modulmethoden unnötig angerufen werden. |
 
 ### Delta Batch 216
 

@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.7.134-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.7.136-blue.svg)](Changelog.md)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
@@ -29,16 +29,16 @@
 
 ## 📈 Audit-Stand März 2026
 
-Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 216** nachgezogen. Aktuell sind damit **216 von 444 Prüfplan-Punkten** geschafft. Der aktuelle dokumentierte Gesamtstand über **445 bewertete Dateien** liegt bei:
+Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 218** nachgezogen. Aktuell sind damit **218 von 444 Prüfplan-Punkten** geschafft. Der aktuelle dokumentierte Gesamtstand über **445 bewertete Dateien** liegt bei:
 
 | Metrik | Stand |
 |---|---:|
-| **Security** | **88,20** |
+| **Security** | **88,22** |
 | **Speed** | **86,50** |
-| **PHP / Best Practices** | **89,23** |
-| **Gesamt** | **88,49** |
+| **PHP / Best Practices** | **89,25** |
+| **Gesamt** | **88,51** |
 
-Zuletzt wurde der Legal-Sites-Entry bei seinen Request-Gates nachgezogen: `CMS/admin/legal-sites.php` begrenzt POST-Aktionen jetzt explizit über eine Allowlist und normalisiert `template_type` serverseitig vor dem Modulaufruf. Dadurch scheitern lose Aktionen oder ungültige Rechtstext-Typen früher bereits im Wrapper, bevor sie tiefer in die Template- und Seitenlogik laufen.
+Zuletzt wurde der Font-Manager-Entry bei seinen Request-Gates nachgezogen: `CMS/admin/font-manager.php` prüft POST-Aktionen jetzt explizit über eine Allowlist, normalisiert `font_id` serverseitig und säubert Google-Font-Familien bereits im Wrapper. Dadurch scheitern lose oder unsaubere Werte früher bereits im Einstieg, bevor sie tiefer in Delete- oder Download-Pfade laufen.
 
 ## 🧩 Funktionsumfang im Überblick
 

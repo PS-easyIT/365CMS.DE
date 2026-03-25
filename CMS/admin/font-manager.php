@@ -58,6 +58,45 @@ function cms_admin_font_manager_pull_alert(): ?array
 }
 
 /**
+ * @return list<string>
+ */
+function cms_admin_font_manager_allowed_actions(): array
+{
+    return [
+        'save',
+        'scan_theme_fonts',
+        'delete_font',
+        'download_google_font',
+        'download_detected_fonts',
+    ];
+}
+
+function cms_admin_font_manager_normalize_action(string $action): ?string
+{
+    $action = trim($action);
+
+    return in_array($action, cms_admin_font_manager_allowed_actions(), true) ? $action : null;
+}
+
+function cms_admin_font_manager_normalize_font_id(array $post): int
+{
+    return max(0, (int) ($post['font_id'] ?? 0));
+}
+
+function cms_admin_font_manager_normalize_google_font_family(array $post): string
+{
+    $fontFamily = trim((string) ($post['google_font_family'] ?? ''));
+    $fontFamily = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $fontFamily) ?? '';
+    $fontFamily = preg_replace('/\s+/u', ' ', $fontFamily) ?? '';
+
+    if (function_exists('mb_substr')) {
+        return trim(mb_substr($fontFamily, 0, 120));
+    }
+
+    return trim(substr($fontFamily, 0, 120));
+}
+
+/**
  * @return array<string, callable(array): array>
  */
 function cms_admin_font_manager_action_handlers(FontManagerModule $module): array
@@ -65,8 +104,8 @@ function cms_admin_font_manager_action_handlers(FontManagerModule $module): arra
     return [
         'save' => static fn (array $post): array => $module->saveSettings($post),
         'scan_theme_fonts' => static fn (array $post): array => $module->scanThemeFonts(),
-        'delete_font' => static fn (array $post): array => $module->deleteCustomFont((int) ($post['font_id'] ?? 0)),
-        'download_google_font' => static fn (array $post): array => $module->downloadGoogleFont(trim((string) ($post['google_font_family'] ?? ''))),
+        'delete_font' => static fn (array $post): array => $module->deleteCustomFont(cms_admin_font_manager_normalize_font_id($post)),
+        'download_google_font' => static fn (array $post): array => $module->downloadGoogleFont(cms_admin_font_manager_normalize_google_font_family($post)),
         'download_detected_fonts' => static fn (array $post): array => $module->downloadDetectedFonts(),
     ];
 }
@@ -80,9 +119,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         cms_admin_font_manager_redirect();
     }
 
-    $action = trim((string) ($_POST['action'] ?? ''));
-    if (!isset($actionHandlers[$action])) {
-        cms_admin_font_manager_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
+    $action = cms_admin_font_manager_normalize_action((string) ($_POST['action'] ?? ''));
+    if ($action === null || !isset($actionHandlers[$action])) {
+        cms_admin_font_manager_flash(['type' => 'danger', 'message' => 'Unbekannte oder nicht erlaubte Aktion.']);
         cms_admin_font_manager_redirect();
     }
 

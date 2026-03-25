@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.134-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.136-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,26 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.7.136 — 25. März 2026 · Audit-Batch 218, Font-Manager-Entry bei Action-Allowlist und Request-Normalisierung nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.136** | 🔴 fix | Admin/Font Manager | **`font-manager.php` prüft POST-Aktionen jetzt explizit über eine kleine Allowlist und normalisiert `font_id` sowie Google-Font-Familien bereits im Wrapper**: lose oder unsaubere Request-Werte laufen dadurch nicht mehr bloß deshalb in Delete- oder Download-Pfade, weil ein Handler existiert. |
+| **2.7.136** | 🟠 perf | Admin/Font Manager | **Der Entry verwirft ungültige Mutationen früher und billiger**: auffällige Action-, ID- oder Family-Werte scheitern vor unnötigen Modulaufrufen und bleiben im PRG-Flow kompakter. |
+| **2.7.136** | 🟡 refactor | Admin/Font Manager | **Der Font-Manager-Entry hängt näher am gemeinsamen Admin-Wrapper-Muster**: Allowlist und kleine Wrapper-Normalisierer für ID- und Family-Eingaben liegen sichtbar im Einstieg statt nur implizit über Handler und Modul-Fallbacks zu wirken. |
+
+---
+
+### v2.7.135 — 25. März 2026 · Audit-Batch 217, Mail-Settings-Entry bei tab-gebundenem Action-Dispatch nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.135** | 🔴 fix | Admin/System | **`mail-settings.php` bindet POST-Aktionen jetzt explizit an erlaubte Tabs und normalisiert den `action`-Wert serverseitig**: lose oder bereichsfremde Aktionen laufen dadurch nicht mehr bloß deshalb durch den Wrapper, weil irgendwo ein Handler existiert. |
+| **2.7.135** | 🟠 perf | Admin/System | **Redirect- und Dispatch-Pfade bleiben kompakter und vorhersehbarer**: der Entry springt nach Mutationen immer in den kanonischen Bereich zurück und vermeidet unnötige Modulaufrufe für tab-fremde Aktionen. |
+| **2.7.135** | 🟡 refactor | Admin/System | **Der Mail-Settings-Entry hängt näher am gemeinsamen Admin-Wrapper-Muster**: Action-Allowlist, Bereichsbindung und kanonischer PRG-Rücksprung liegen sichtbar im Einstieg statt nur implizit über die Handler-Map zu wirken. |
 
 ---
 
