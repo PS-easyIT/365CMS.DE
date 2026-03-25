@@ -19,8 +19,112 @@ use CMS\Security;
 use CMS\Services\EditorJsService;
 use CMS\Services\EditorService;
 
+const CMS_ADMIN_PAGES_ALLOWED_ACTIONS = ['save', 'delete', 'bulk'];
+const CMS_ADMIN_PAGES_ALLOWED_VIEWS = ['list', 'edit'];
+const CMS_ADMIN_PAGES_ALLOWED_BULK_ACTIONS = ['delete', 'publish', 'draft', 'set_category', 'clear_category'];
+const CMS_ADMIN_PAGES_WRITE_CAPABILITY = 'manage_pages';
+
+function cms_admin_pages_can_access(): bool
+{
+    return Auth::instance()->isAdmin() && Auth::instance()->hasCapability(CMS_ADMIN_PAGES_WRITE_CAPABILITY);
+}
+
+function cms_admin_pages_target_url(?int $id = null): string
+{
+    if ($id !== null && $id > 0) {
+        return SITE_URL . '/admin/pages?action=edit&id=' . $id;
+    }
+
+    return SITE_URL . '/admin/pages';
+}
+
+function cms_admin_pages_redirect(string $redirectUrl): never
+{
+    header('Location: ' . $redirectUrl);
+    exit;
+}
+
+function cms_admin_pages_flash(array $payload): void
+{
+    $_SESSION['admin_alert'] = [
+        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
+        'message' => trim((string) ($payload['message'] ?? '')),
+        'details' => is_array($payload['details'] ?? null) ? $payload['details'] : [],
+    ];
+}
+
+function cms_admin_pages_flash_result(array $result): void
+{
+    cms_admin_pages_flash([
+        'type' => !empty($result['success']) ? 'success' : 'danger',
+        'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
+        'details' => $result['details'] ?? [],
+    ]);
+}
+
+function cms_admin_pages_pull_alert(): ?array
+{
+    $alert = $_SESSION['admin_alert'] ?? null;
+    unset($_SESSION['admin_alert']);
+
+    return is_array($alert) ? $alert : null;
+}
+
+function cms_admin_pages_normalize_action(mixed $action): string
+{
+    $normalizedAction = trim((string) $action);
+
+    return in_array($normalizedAction, CMS_ADMIN_PAGES_ALLOWED_ACTIONS, true) ? $normalizedAction : '';
+}
+
+function cms_admin_pages_normalize_view(mixed $view): string
+{
+    $normalizedView = trim((string) $view);
+
+    return in_array($normalizedView, CMS_ADMIN_PAGES_ALLOWED_VIEWS, true) ? $normalizedView : 'list';
+}
+
+function cms_admin_pages_normalize_positive_id(mixed $id): int
+{
+    $normalizedId = filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+    return $normalizedId === false ? 0 : (int) $normalizedId;
+}
+
+function cms_admin_pages_normalize_bulk_action(mixed $bulkAction): string
+{
+    $normalizedBulkAction = trim((string) $bulkAction);
+
+    return in_array($normalizedBulkAction, CMS_ADMIN_PAGES_ALLOWED_BULK_ACTIONS, true) ? $normalizedBulkAction : '';
+}
+
+/**
+ * @return array<int,int>
+ */
+function cms_admin_pages_normalize_bulk_ids(mixed $ids, mixed $csvIds = ''): array
+{
+    $candidates = (array) $ids;
+    if ($candidates === [] && trim((string) $csvIds) !== '') {
+        $candidates = explode(',', (string) $csvIds);
+    }
+
+    $normalizedIds = [];
+    foreach ($candidates as $id) {
+        $normalizedId = cms_admin_pages_normalize_positive_id($id);
+        if ($normalizedId > 0) {
+            $normalizedIds[$normalizedId] = $normalizedId;
+        }
+
+        if (count($normalizedIds) >= 200) {
+            break;
+        }
+    }
+
+    return array_values($normalizedIds);
+}
+
 // ─── Auth-Check ────────────────────────────────────────────────────────────
-if (!Auth::instance()->isAdmin()) {
+if (!cms_admin_pages_can_access()) {
     header('Location: ' . SITE_URL);
     exit;
 }
@@ -29,82 +133,78 @@ if (!Auth::instance()->isAdmin()) {
 require_once __DIR__ . '/modules/pages/PagesModule.php';
 $module    = new PagesModule();
 $alert     = null;
-$allowedActions = ['save', 'delete', 'bulk'];
-$allowedViews = ['list', 'edit'];
 
 // ─── POST-Verarbeitung ────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postToken = (string)($_POST['csrf_token'] ?? '');
-    $postAction = (string)($_POST['action'] ?? '');
+    $postAction = cms_admin_pages_normalize_action($_POST['action'] ?? '');
 
     if (!Security::instance()->verifyToken($postToken, 'admin_pages')) {
-        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig. Bitte erneut versuchen.'];
-        header('Location: ' . SITE_URL . '/admin/pages');
-        exit;
+        cms_admin_pages_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig. Bitte erneut versuchen.']);
+        cms_admin_pages_redirect(cms_admin_pages_target_url());
     }
 
-    if (!in_array($postAction, $allowedActions, true)) {
-        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Unbekannte Seiten-Aktion.'];
-        header('Location: ' . SITE_URL . '/admin/pages');
-        exit;
+    if ($postAction === '') {
+        cms_admin_pages_flash(['type' => 'danger', 'message' => 'Unbekannte Seiten-Aktion.']);
+        cms_admin_pages_redirect(cms_admin_pages_target_url());
     }
 
-        switch ($postAction) {
-            case 'save':
-                $userId = Auth::instance()->getCurrentUser()->id ?? 0;
-                $result = $module->save($_POST, (int)$userId);
-                if ($result['success']) {
-                    // Redirect nach Save mit Erfolgsmeldung
-                    $_SESSION['admin_alert'] = ['type' => 'success', 'message' => $result['message']];
-                    header('Location: ' . SITE_URL . '/admin/pages?action=edit&id=' . $result['id']);
-                    exit;
-                } else {
-                    $alert = ['type' => 'danger', 'message' => $result['error'] ?? 'Seite konnte nicht gespeichert werden.'];
-                }
-                break;
+    switch ($postAction) {
+        case 'save':
+            $userId = Auth::instance()->getCurrentUser()->id ?? 0;
+            $result = $module->save($_POST, (int) $userId);
+            if ($result['success']) {
+                cms_admin_pages_flash_result($result);
+                cms_admin_pages_redirect(cms_admin_pages_target_url(cms_admin_pages_normalize_positive_id($result['id'] ?? 0)));
+            }
 
-            case 'delete':
-                $id     = (int)($_POST['id'] ?? 0);
-                $result = $module->delete($id);
-                $_SESSION['admin_alert'] = [
-                    'type'    => $result['success'] ? 'success' : 'danger',
-                    'message' => $result['message'] ?? $result['error'] ?? 'Seite konnte nicht gelöscht werden.',
-                ];
-                header('Location: ' . SITE_URL . '/admin/pages');
-                exit;
+            $alert = [
+                'type' => 'danger',
+                'message' => (string) ($result['error'] ?? 'Seite konnte nicht gespeichert werden.'),
+                'details' => is_array($result['details'] ?? null) ? $result['details'] : [],
+            ];
+            break;
 
-            case 'bulk':
-                $bulkAction = (string)($_POST['bulk_action'] ?? '');
-                $bulkIds    = isset($_POST['ids'])
-                    ? array_values(array_filter(array_map('intval', (array)$_POST['ids'])))
-                    : array_values(array_filter(array_map('intval', explode(',', (string)($_POST['bulk_ids'] ?? '')))));
-                $result     = $module->bulkAction($bulkAction, $bulkIds, $_POST);
-                $_SESSION['admin_alert'] = [
-                    'type'    => $result['success'] ? 'success' : 'danger',
-                    'message' => $result['message'] ?? $result['error'] ?? 'Bulk-Aktion für Seiten fehlgeschlagen.',
-                ];
-                header('Location: ' . SITE_URL . '/admin/pages');
-                exit;
-        }
+        case 'delete':
+            $id = cms_admin_pages_normalize_positive_id($_POST['id'] ?? 0);
+            if ($id < 1) {
+                cms_admin_pages_flash(['type' => 'danger', 'message' => 'Ungültige Seiten-ID.']);
+                cms_admin_pages_redirect(cms_admin_pages_target_url());
+            }
 
-    // Neues CSRF-Token nach verbrauchtem
-    $csrfToken = Security::instance()->generateToken('admin_pages');
+            $result = $module->delete($id);
+            cms_admin_pages_flash_result($result);
+            cms_admin_pages_redirect(cms_admin_pages_target_url());
+
+        case 'bulk':
+            $bulkAction = cms_admin_pages_normalize_bulk_action($_POST['bulk_action'] ?? '');
+            $bulkIds = cms_admin_pages_normalize_bulk_ids($_POST['ids'] ?? [], $_POST['bulk_ids'] ?? '');
+            if ($bulkAction === '') {
+                cms_admin_pages_flash(['type' => 'danger', 'message' => 'Unbekannte Bulk-Aktion für Seiten.']);
+                cms_admin_pages_redirect(cms_admin_pages_target_url());
+            }
+
+            if ($bulkIds === []) {
+                cms_admin_pages_flash(['type' => 'danger', 'message' => 'Bitte mindestens eine gültige Seite auswählen.']);
+                cms_admin_pages_redirect(cms_admin_pages_target_url());
+            }
+
+            $result = $module->bulkAction($bulkAction, $bulkIds, $_POST);
+            cms_admin_pages_flash_result($result);
+            cms_admin_pages_redirect(cms_admin_pages_target_url());
+    }
 }
 
 // Session-Alert abholen
-if (isset($_SESSION['admin_alert'])) {
-    $alert = $_SESSION['admin_alert'];
-    unset($_SESSION['admin_alert']);
+if ($alert === null) {
+    $alert = cms_admin_pages_pull_alert();
 }
 
 $csrfToken = Security::instance()->generateToken('admin_pages');
 $editorMediaToken = Security::instance()->generateToken('editorjs_media');
 
 // ─── View bestimmen ────────────────────────────────────────────────────────
-$action = (string)($_GET['action'] ?? 'list');
-if (!in_array($action, $allowedViews, true)) {
-    $action = 'list';
-}
+$action = cms_admin_pages_normalize_view($_GET['action'] ?? 'list');
 
 $pageTitle  = 'Seiten';
 $activePage = 'pages';
@@ -133,7 +233,7 @@ require_once __DIR__ . '/partials/header.php';
 require_once __DIR__ . '/partials/sidebar.php';
 
 if ($action === 'edit') {
-    $id       = isset($_GET['id']) ? (int)$_GET['id'] : null;
+    $id       = cms_admin_pages_normalize_positive_id($_GET['id'] ?? 0);
     $editData = $module->getEditData($id);
     $pageTitle = $editData['isNew'] ? 'Neue Seite' : 'Seite bearbeiten';
     require_once __DIR__ . '/views/pages/edit.php';

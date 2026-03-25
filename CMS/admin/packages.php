@@ -13,6 +13,14 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 use CMS\Security;
 
+const CMS_ADMIN_PACKAGES_ALLOWED_ACTIONS = [
+    'save',
+    'seed_defaults',
+    'delete',
+    'toggle',
+    'save_package_settings',
+];
+
 function cms_admin_packages_redirect(string $redirectBase): never
 {
     header('Location: ' . $redirectBase);
@@ -53,6 +61,20 @@ function cms_admin_packages_pull_alert(): ?array
     return is_array($alert) ? $alert : null;
 }
 
+function cms_admin_packages_normalize_action(mixed $action): string
+{
+    $normalizedAction = strtolower(trim((string)$action));
+
+    return in_array($normalizedAction, CMS_ADMIN_PACKAGES_ALLOWED_ACTIONS, true) ? $normalizedAction : '';
+}
+
+function cms_admin_packages_normalize_positive_id(mixed $id): int
+{
+    $normalizedId = (int)$id;
+
+    return $normalizedId > 0 ? $normalizedId : 0;
+}
+
 /**
  * @return array<string, callable(array): void>
  */
@@ -66,10 +88,10 @@ function cms_admin_packages_action_handlers(PackagesModule $module, Subscription
             cms_admin_packages_flash_result($module->seedDefaults());
         },
         'delete' => static function (array $post) use ($module): void {
-            cms_admin_packages_flash_result($module->delete((int) ($post['id'] ?? 0)));
+            cms_admin_packages_flash_result($module->delete(cms_admin_packages_normalize_positive_id($post['id'] ?? 0)));
         },
         'toggle' => static function (array $post) use ($module): void {
-            cms_admin_packages_flash_result($module->toggleStatus((int) ($post['id'] ?? 0)));
+            cms_admin_packages_flash_result($module->toggleStatus(cms_admin_packages_normalize_positive_id($post['id'] ?? 0)));
         },
         'save_package_settings' => static function (array $post) use ($settingsModule): void {
             cms_admin_packages_flash_action_result($settingsModule->savePackageSettings($post));
@@ -97,9 +119,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         cms_admin_packages_redirect($redirectBase);
     }
 
-    $action = trim((string) ($_POST['action'] ?? ''));
-    if (!isset($actionHandlers[$action])) {
+    $action = cms_admin_packages_normalize_action($_POST['action'] ?? '');
+    if ($action === '' || !isset($actionHandlers[$action])) {
         cms_admin_packages_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
+        cms_admin_packages_redirect($redirectBase);
+    }
+
+    if (in_array($action, ['delete', 'toggle'], true) && cms_admin_packages_normalize_positive_id($_POST['id'] ?? 0) <= 0) {
+        cms_admin_packages_flash(['type' => 'danger', 'message' => 'Ungültige Paket-ID.']);
         cms_admin_packages_redirect($redirectBase);
     }
 

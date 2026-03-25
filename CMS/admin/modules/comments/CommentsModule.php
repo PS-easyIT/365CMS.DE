@@ -17,6 +17,7 @@ use CMS\AuditLogger;
 use CMS\Database;
 use CMS\Logger;
 use CMS\Services\CommentService;
+use CMS\Services\PermalinkService;
 
 class CommentsModule
 {
@@ -304,6 +305,8 @@ class CommentsModule
         $content = trim((string)$this->commentField($comment, 'content', ''));
         $postDate = (string)$this->commentField($comment, 'post_date', '');
         $postSlug = trim((string)$this->commentField($comment, 'post_slug', ''));
+        $postPublishedAt = trim((string)$this->commentField($comment, 'post_published_at', ''));
+        $postCreatedAt = trim((string)$this->commentField($comment, 'post_created_at', ''));
 
         return [
             'id' => $commentId,
@@ -315,7 +318,7 @@ class CommentsModule
             'post_date' => $postDate,
             'post_title' => trim((string)$this->commentField($comment, 'post_title', '')),
             'post_slug' => preg_replace('/[^a-zA-Z0-9\-_\/]/', '', $postSlug) ?? '',
-            'post_url' => $this->buildPostUrl($postSlug),
+            'post_url' => $this->buildPostUrl($postSlug, $postPublishedAt, $postCreatedAt),
         ];
     }
 
@@ -332,14 +335,14 @@ class CommentsModule
         return $default;
     }
 
-    private function buildPostUrl(string $slug): string
+    private function buildPostUrl(string $slug, ?string $publishedAt = null, ?string $createdAt = null): string
     {
         $slug = trim($slug, "/ \t\n\r\0\x0B");
         if ($slug === '') {
             return '';
         }
 
-        return SITE_URL . '/blog/' . rawurlencode($slug);
+        return PermalinkService::getInstance()->buildPostUrlFromValues($slug, $publishedAt, $createdAt);
     }
 
     /**

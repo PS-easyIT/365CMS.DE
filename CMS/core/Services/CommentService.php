@@ -214,7 +214,8 @@ class CommentService
 
         return $this->db->get_results(
             "SELECT c.id, c.post_id, c.author, c.author_email, c.content, c.status, c.post_date,
-                    p.title AS post_title, p.slug AS post_slug
+                p.title AS post_title, p.slug AS post_slug,
+                p.published_at AS post_published_at, p.created_at AS post_created_at
              FROM {$this->prefix}comments c
              LEFT JOIN {$this->prefix}posts p ON p.id = c.post_id
              {$where}

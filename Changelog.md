@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.137-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.155-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,198 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.7.159 — 25. März 2026 · Audit-Batch 241, 404-Monitor-Entry bei Action- und Capability-Gates nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.159** | 🔴 fix | Admin/SEO | **`not-found-monitor.php` begrenzt 404-Mutationen jetzt wieder explizit über eine kleine Action-Allowlist und bindet den Entry an `manage_settings`**: Save-Redirect- und Log-Clear-Pfade übernehmen dadurch keine losen `action`-Werte oder pauschalen Admin-Zugriffe mehr direkt im Einstieg. |
+| **2.7.159** | 🟠 perf | Admin/SEO | **Der 404-Monitor verwirft unzulässige Mutationen früher und billiger**: unbekannte Aktionen oder capability-fremde Requests scheitern vor unnötigen Modulaufrufen und bleiben im PRG-Flow kompakter. |
+| **2.7.159** | 🟡 refactor | Admin/SEO | **Der 404-Monitor hängt näher am gemeinsamen SEO-Wrapper-Muster**: Action-Allowlist, Capability-Gate und Flash-/Redirect-Pfade liegen jetzt sichtbar zentral statt losem POST-Dispatch im Einstieg. |
+
+---
+
+### v2.7.158 — 25. März 2026 · Audit-Batch 240, Users-Entry bei Action-, ID-, Bulk- und View-Gates nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.158** | 🔴 fix | Admin/Users | **`users.php` normalisiert Benutzer-Aktionen, positive IDs, Bulk-IDs und View-Ziele jetzt bereits im Wrapper**: Save-, Delete- und Bulk-Pfade übernehmen dadurch keine losen `action`-/`id`-/`ids[]`- oder `action`-Query-Werte mehr direkt in das Modul. |
+| **2.7.158** | 🟠 perf | Admin/Users | **Der Users-Entry verwirft unzulässige Mutationen früher und billiger**: unbekannte Aktionen, ungültige Benutzer-IDs oder leere/unsaubere Bulk-Auswahlen scheitern vor unnötigen Modulaufrufen und bleiben im PRG-Flow kompakter. |
+| **2.7.158** | 🟡 refactor | Admin/Users | **Der Benutzer-Entry hängt näher am gemeinsamen Admin-Wrapper-Muster**: Flash-, Redirect-, View- und Bulk-Normalisierung liegen jetzt sichtbar in kleinen Helfern, und der Einstieg ist explizit an `manage_users` gebunden. |
+
+---
+
+### v2.7.157 — 25. März 2026 · Audit-Batch 239, Pages-Entry bei Action-, Bulk-, View- und Capability-Gates nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.157** | 🔴 fix | Admin/Pages | **`pages.php` normalisiert Seiten-Aktionen, Bulk-IDs und View-Ziele jetzt bereits im Wrapper und blockt ungültige Delete-/Bulk-Requests früher**: Delete- und Bulk-Pfade übernehmen dadurch keine losen `action`-, `id`-, `ids[]`- oder `bulk_ids`-Werte mehr direkt aus dem Request. |
+| **2.7.157** | 🟠 perf | Admin/Pages | **Der Pages-Entry verwirft unzulässige Seiten-Mutationen früher und billiger**: unbekannte Aktionen, ungültige Seiten-IDs oder leere Bulk-Auswahlen scheitern vor unnötigen Modulaufrufen und halten den PRG-Pfad kompakter. |
+| **2.7.157** | 🟡 refactor | Admin/Pages | **Der Seiten-Entry hängt näher an einem kleinen Capability-/Wrapper-Vertrag**: View-Normalisierung, Flash-/Redirect-Helfer und der Access-Guard über `manage_pages` liegen jetzt sichtbar zentral statt losem Request-Handling im Einstieg. |
+
+---
+
+### v2.7.156 — 25. März 2026 · Audit-Batch 238, Posts-Entry bei Action-, Bulk-, Kategorie- und View-Gates nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.156** | 🔴 fix | Admin/Posts | **`posts.php` normalisiert Beitrags-Aktionen, Bulk-Werte, positive IDs, Kategorie-IDs und View-Ziele jetzt bereits im Wrapper**: Save-, Delete-, Bulk- und Kategoriepfade übernehmen dadurch keine losen `action`-/`id`-/`cat_id`-/`ids[]`- oder `action`-Query-Werte mehr direkt aus dem Request. |
+| **2.7.156** | 🟠 perf | Admin/Posts | **Der Posts-Entry verwirft unzulässige Content-Mutationen früher und billiger**: unbekannte Aktionen, ungültige Beitrags-/Kategorie-IDs oder leere/unsaubere Bulk-Auswahlen scheitern vor unnötigen Modulaufrufen und bleiben im PRG-Flow kompakter. |
+| **2.7.156** | 🟡 refactor | Admin/Posts | **Der Beitrags-Entry hängt näher am gemeinsamen Admin-Wrapper-Muster**: Flash-, Redirect-, Bulk- und View-Normalisierung liegen jetzt sichtbar in kleinen Helfern statt losem Session- und Request-Handling im Einstieg. |
+
+---
+
+### v2.7.155 — 25. März 2026 · Audit-Batch 237, Privacy-Requests-Alias auf echten Redirect-Zweck zurückgebaut
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.155** | 🔴 fix | Admin/Legal | **`privacy-requests.php` bildet wieder nur noch seinen tatsächlichen Redirect-Zweck auf `/admin/data-requests` ab**: der Alias schleppt damit keinen unerreichbaren Legacy-POST-, Modul- oder View-Code mehr hinter einem sofortigen Redirect mit. |
+| **2.7.155** | 🟠 perf | Admin/Legal | **Der Privacy-Requests-Alias bleibt kompakter und vorhersehbarer**: tote Altlogik wird nicht mehr mitgeladen oder mitgepflegt, obwohl der Entry fachlich nur als Weiterleitung dient. |
+| **2.7.155** | 🟡 refactor | Admin/Legal | **Der Alias hängt näher am gemeinsamen Redirect-Entry-Muster**: Guard-, Ziel- und Redirect-Pfade liegen jetzt sichtbar klein und explizit im Einstieg statt hinter unerreichbarer Alt-Orchestrierung versteckt. |
+
+---
+
+### v2.7.154 — 25. März 2026 · Audit-Batch 236, Redirect-Manager-Entry bei Action-, ID-, Slug- und Capability-Gates nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.154** | 🔴 fix | Admin/SEO | **`redirect-manager.php` normalisiert Redirect-Aktionen, positive IDs und Slug-Filter jetzt bereits im Wrapper und bindet jede Mutation an `manage_settings`**: Save-, Delete-, Toggle- und Slug-Cleanup-Pfade übernehmen dadurch keine losen `action`-/`id`-/`slug_filter`-Werte oder pauschalen Admin-Zugriffe mehr stillschweigend im Einstieg. |
+| **2.7.154** | 🟠 perf | Admin/SEO | **Der Redirect-Manager verwirft unzulässige Mutationen früher und billiger**: unbekannte Aktionen, ungültige Redirect-IDs, leere Slug-Cleanup-Requests oder capability-fremde Zugriffe scheitern vor unnötigen Modulaufrufen im PRG-Flow. |
+| **2.7.154** | 🟡 refactor | Admin/SEO | **Der Redirect-Manager hängt näher am gemeinsamen Admin-Wrapper-Muster**: Action-Allowlist, Capability-Gates sowie Flash-/Redirect-Helfer liegen jetzt sichtbar zentral statt losem Switch-Dispatch und direktem Session-Handling im Einstieg. |
+
+---
+
+### v2.7.153 — 25. März 2026 · Audit-Batch 235, Firewall-Entry bei Action-, ID- und Capability-Gates nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.153** | 🔴 fix | Admin/Security | **`firewall.php` normalisiert Firewall-Aktionen und positive Regel-IDs jetzt bereits im Wrapper und bindet jede Mutation an eine explizite Capability**: Settings-, Toggle- und Delete-Pfade übernehmen dadurch keine losen `action`-/`id`-Werte oder pauschalen Vollzugriff nur wegen `isAdmin()` mehr stillschweigend im Einstieg. |
+| **2.7.153** | 🟠 perf | Admin/Security | **Der Firewall-Entry verwirft unzulässige Mutationen früher und billiger**: unbekannte Aktionen, ungültige Regel-IDs oder capability-fremde Requests scheitern vor unnötigen Modulaufrufen im PRG-Flow. |
+| **2.7.153** | 🟡 refactor | Admin/Security | **Der Firewall-Entry hängt näher am gemeinsamen Admin-Wrapper-Muster**: Action-, ID- und Capability-Gates liegen jetzt sichtbar in kleinen Helfern statt losem Request-Parsing und pauschalem Admin-Check im Einstieg. |
+
+---
+
+### v2.7.152 — 25. März 2026 · Audit-Batch 234, Packages-Entry bei Action-/ID-Gates nachgezogen und Logger-Fatal entschärft
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.152** | 🔴 fix | Admin/Subscriptions | **`packages.php` normalisiert Paket-Aktionen und positive IDs jetzt bereits im Wrapper**: Delete-, Toggle- und Settings-nahe Mutationen übernehmen dadurch keine losen `action`-/`id`-Werte mehr direkt aus `POST` in den Dispatch. |
+| **2.7.152** | 🟠 perf | Admin/Subscriptions | **Der Packages-Entry verwirft unzulässige Mutationen früher und billiger**: unbekannte Aktionen oder ungültige Paket-IDs scheitern vor unnötigen Modulaufrufen im PRG-Flow. |
+| **2.7.152** | 🟡 refactor | Admin/Subscriptions | **Der Packages-Entry hängt näher am gemeinsamen Admin-Wrapper-Muster**: Action- und ID-Normalisierung liegen jetzt sichtbar in kleinen Helfern statt losem Request-Parsing im Einstieg. |
+| **2.7.152** | 🔴 fix | Admin/Subscriptions | **`PackagesModule.php` nutzt den Core-Logger wieder über den vorhandenen Channel-Vertrag**: Ausnahme-Pfade rufen jetzt `Logger::instance()->withChannel('admin.packages')` auf statt eines statischen Nicht-API-Aufrufs, der sonst bei Fehlerfällen in einen zusätzlichen Fatal laufen konnte. |
+
+---
+
+### v2.7.151 — 25. März 2026 · Audit-Batch 233, Design-Settings-Redirect an manage_settings gebunden
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.151** | 🔴 fix | Admin/Themes | **`design-settings.php` bindet den Redirect auf den Theme-Editor jetzt explizit an `manage_settings` statt bloß an einen pauschalen Admin-Check**: der Design-/Theme-Customizing-Pfad leitet damit nicht mehr jeden Admin stillschweigend weiter, sondern nur noch Nutzer mit der tatsächlich passenden Settings-Berechtigung. |
+| **2.7.151** | 🟠 perf | Admin/Themes | **Der Design-Settings-Entry bleibt kompakt und verwirft unzulässige Zugriffe früher**: capability-fremde Requests scheitern vor dem Wechsel in den Theme-Editor und sparen unnötige Weiterleitungen in nachgelagerte Editor-Pfade. |
+| **2.7.151** | 🟡 refactor | Admin/Themes | **Der Redirect-Entry hängt näher an einem kleinen, expliziten Access-Vertrag**: Access- und Fallback-Pfade liegen jetzt sichtbar in kleinen Helfern statt nur lose an einem pauschalen `isAdmin()`-Check zu hängen. |
+
+---
+
+### v2.7.150 — 25. März 2026 · Audit-Batch 232, AntiSpam-Entry bei Action-, ID- und Capability-Gates nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.150** | 🔴 fix | Admin/Security | **`antispam.php` normalisiert AntiSpam-Aktionen und positive IDs jetzt bereits im Wrapper und bindet jede Mutation an eine explizite Capability**: Settings- und Blacklist-Pfade übernehmen dadurch keine losen `action`-/`id`-Werte oder pauschalen Vollzugriff nur wegen `isAdmin()` mehr stillschweigend im Einstieg. |
+| **2.7.150** | 🟠 perf | Admin/Security | **Der AntiSpam-Entry verwirft unzulässige Mutationen früher und billiger**: unbekannte Aktionen, ungültige IDs oder capability-fremde Requests scheitern vor unnötigen Modulaufrufen im PRG-Flow. |
+| **2.7.150** | 🟡 refactor | Admin/Security | **Der AntiSpam-Entry hängt näher am gemeinsamen Admin-Wrapper-Muster**: Action-/ID-Normalisierung, Pull-Alert und Redirect-Helfer liegen jetzt sichtbar zentral statt teils losem Session- und Request-Handling im Einstieg. |
+
+---
+
+### v2.7.149 — 25. März 2026 · Audit-Batch 231, Kommentar-Entry bei Action-, Status- und Bulk-Normalisierung nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.149** | 🔴 fix | Admin/Comments | **`comments.php` normalisiert Kommentar-Aktionen, Statuswerte, positive IDs und Bulk-IDs jetzt bereits im Wrapper**: Moderations-, Delete- und Bulk-Pfade übernehmen dadurch keine losen Request-Werte mehr direkt aus `POST` in das Kommentar-Modul. |
+| **2.7.149** | 🟠 perf | Admin/Comments | **Der Kommentar-Entry verwirft unzulässige Mutationen früher und billiger**: unbekannte Aktionen, rohe IDs, ungültige Statuswerte und ausufernde/unsaubere Bulk-IDs scheitern vor unnötigen Modulaufrufen. |
+| **2.7.149** | 🟡 refactor | Admin/Comments | **Der Kommentar-Entry hängt näher am gemeinsamen Admin-Wrapper-Muster**: Action-, Status-, ID- und Bulk-Normalisierung liegen jetzt sichtbar in kleinen Helfern statt losem Request-Parsing direkt im Dispatch. |
+| **2.7.149** | 🔴 fix | Admin/Backups | **`BackupsModule.php` nutzt wieder den vorhandenen Core-Logger-Vertrag**: Der produktive Fatal Error durch den nicht existierenden Aufruf `Logger::channel()` ist behoben, weil das Modul den Logger jetzt korrekt über `Logger::instance()->withChannel('admin.backups')` bezieht. |
+
+---
+
+### v2.7.148 — 25. März 2026 · Audit-Batch 230, gemeinsame SEO-Wrapper-Schicht auf Registry- und Action-Gates gezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.148** | 🔴 fix | Admin/SEO | **`seo-page.php` akzeptiert für die gemeinsamen SEO-Unterseiten jetzt nur noch kanonische Sections, View-Dateien, Routen und seitengebundene POST-Aktionen**: lose `section`-, `action`-, `view_file`- oder `return_to`-Werte laufen damit nicht mehr quer durch den zentralen Wrapper in falsche Render- oder Redirect-Pfade. |
+| **2.7.148** | 🟠 perf | Admin/SEO | **Die gemeinsame SEO-Eintrittsschicht verwirft unzulässige Unterseiten- und Mutationspfade früher und billiger**: unbekannte Actions oder fremde Redirect-Ziele scheitern vor unnötigen Modulaufrufen, View-Loads oder PRG-Sprüngen. |
+| **2.7.148** | 🟡 refactor | Admin/SEO | **Der SEO-Sammel-Wrapper hängt jetzt näher an einem expliziten Registry-Vertrag**: Section-Metadaten, Action-Allowlist sowie Flash-/Redirect-Helfer liegen sichtbar zentral statt lose aus variablen Konfigurationswerten zusammengebaut zu werden. |
+
+---
+
+### v2.7.147 — 25. März 2026 · Audit-Batch 229, Orders-Entry bei Action-, Status- und Billing-Normalisierung nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.147** | 🔴 fix | Admin/Orders | **`orders.php` normalisiert POST-Aktionen, positive IDs, Statuswerte und Billing-Cycles jetzt bereits im Wrapper**: Statuswechsel-, Delete- und Zuweisungspfade übernehmen dadurch keine losen Request-Werte mehr direkt in das Orders-Modul. |
+| **2.7.147** | 🟠 perf | Admin/Orders | **Der Orders-Entry verwirft unzulässige Bestellmutationen früher und billiger**: unbekannte Aktionen, rohe IDs und ungültige Status-/Billing-Werte scheitern vor unnötigen Modulaufrufen oder tieferen Guard-Pfaden. |
+| **2.7.147** | 🟡 refactor | Admin/Orders | **Der Orders-Entry hängt näher am gemeinsamen Admin-Wrapper-Muster**: Action-, ID-, Status- und Billing-Normalisierung liegen jetzt sichtbar in kleinen Helfern statt roher Request-Casts direkt im Dispatch. |
+
+---
+
+### v2.7.146 — 25. März 2026 · Audit-Batch 228, Site-Tables-Entry bei Action-, ID- und View-Gates nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.146** | 🔴 fix | Admin/Tables | **`site-tables.php` begrenzt POST-Mutationen jetzt wieder explizit über eine kleine Action-Allowlist und normalisiert IDs bereits im Wrapper**: Delete-, Duplicate- und Save-Redirect-Pfade übernehmen dadurch keine losen Aktionen oder rohen `id`-Werte mehr direkt aus dem Request. |
+| **2.7.146** | 🟠 perf | Admin/Tables | **Der Tabellen-Entry verwirft unzulässige Mutationen früher und billiger**: unbekannte Aktionen, ungültige IDs und unsaubere Edit-Redirect-Ziele scheitern vor unnötigen Modulaufrufen oder Redirect-Verzweigungen im PRG-Flow. |
+| **2.7.146** | 🟡 refactor | Admin/Tables | **Der Site-Tables-Entry hängt näher am gemeinsamen Admin-Wrapper-Muster**: Flash-, Redirect-, Allowlist- und View-Normalisierung liegen jetzt sichtbar in kleinen Helfern statt losem Switch- und Query-Handling im Einstieg. |
+
+---
+
+### v2.7.145 — 25. März 2026 · Audit-Batch 227, Kommentar-Post-Links auf zentralen Permalink-Service gezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.145** | 🔴 fix | Admin/Comments | **`CommentsModule.php` baut Beitrag-Links in der Kommentar-Moderation jetzt über den zentralen `PermalinkService` statt harte `/blog/{slug}`-Pfade zu verwenden**: Die Kommentarliste bleibt damit konsistent zur konfigurierbaren Post-Permalink-Struktur des Cores und läuft bei abweichenden Blog-URLs nicht in stille Fehlverlinkungen. |
+| **2.7.145** | 🟠 perf | Admin/Comments | **Die Kommentar-Moderation vermeidet zusätzlichen URL-Fallback-Müll im UI-Pfad**: `CommentService` liefert `published_at` und `created_at` direkt mit, sodass die Listenansicht Beitrag-URLs ohne nachträgliches Raten oder weitere Lookups sauber aufbauen kann. |
+| **2.7.145** | 🟡 refactor | Admin/Comments | **Der Kommentarpfad hängt näher am gemeinsamen Routing-/SEO-Vertrag des Cores**: Die Moderationsliste konsumiert jetzt denselben Permalink-Baustein wie Redirect-, SEO- und Post-Module statt einen isolierten Legacy-Linkpfad lokal nachzubauen. |
+
+---
+
+### v2.7.144 — 25. März 2026 · Audit-Batch 226, Error-Report-Entry bei Payload-Gates und Source-URL-Normalisierung nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.144** | 🔴 fix | Admin/System | **`error-report.php` begrenzt Report-Felder und JSON-Payloads jetzt bereits im Wrapper und akzeptiert `source_url` nur noch als interne/same-site Quelle**: ausufernde oder lose Fehlerreport-Daten laufen dadurch nicht mehr direkt aus dem Request in den Service-Pfad. |
+| **2.7.144** | 🟠 perf | Admin/System | **Der Error-Report-Entry verwirft auffällige Report-Payloads früher und billiger**: übergroße JSON-Strings und tiefere/ausufernde Strukturen scheitern vor unnötiger Service- und Datenbankarbeit im PRG-Flow. |
+| **2.7.144** | 🟡 refactor | Admin/System | **Der Error-Report-Entry hängt näher an einem kleinen, expliziten Request-Vertrag**: Feldbegrenzung, Source-URL-Normalisierung und JSON-Strukturgrenzen liegen sichtbar im Wrapper statt nur implizit über nachgelagerte Service-Limits zu wirken. |
+
+---
+
+### v2.7.143 — 25. März 2026 · Audit-Batch 225, Gruppen-Entry bei Action-Gates und ID-Normalisierung nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.143** | 🔴 fix | Admin/Users | **`groups.php` begrenzt Mutationen jetzt wieder explizit über eine kleine Action-Allowlist und normalisiert Gruppen-IDs bereits im Wrapper**: Delete-Pfade übernehmen dadurch keine losen Aktionen oder rohen IDs mehr direkt in das Gruppen-Modul. |
+| **2.7.143** | 🟠 perf | Admin/Users | **Der Gruppen-Entry verwirft unzulässige Delete-Anfragen früher und billiger**: ungültige Aktionswerte oder Gruppen-IDs scheitern vor unnötigen Modulaufrufen im PRG-Flow. |
+| **2.7.143** | 🟡 refactor | Admin/Users | **Der Gruppen-Entry hängt näher am gemeinsamen Admin-Wrapper-Muster**: Allowlist und ID-Normalisierung liegen sichtbar im Einstieg statt nur implizit über Handler-Map und rohe Casts zu wirken. |
+
+---
+
+### v2.7.142 — 25. März 2026 · Audit-Batch 224, DSGVO-Module bei Request-Typ-Gates nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.142** | 🔴 fix | Admin/Legal | **`PrivacyRequestsModule.php` und `DeletionRequestsModule.php` binden Mutationen jetzt explizit an den passenden Request-Typ**: Auskunfts- und Löschanträge werden damit nicht mehr allein per roher ID verarbeitet, wenn der Datensatz eigentlich zum anderen DSGVO-Pfad gehört. |
+| **2.7.142** | 🟠 perf | Admin/Legal | **Die DSGVO-Module blocken bereichsfremde IDs früher und billiger**: unnötige Update-, Delete- oder Hook-Aufrufe entfallen, wenn ein Request nicht zum erwarteten Typ gehört. |
+| **2.7.142** | 🟡 refactor | Admin/Legal | **Beide Module hängen näher an einem kleinen, expliziten Request-Vertrag**: `getRequestById()` kapselt den Typ-Guard sichtbar zentral statt dass einzelne Mutationspfade nur implizit oder gar nicht auf `type` achten. |
+
+---
+
+### v2.7.141 — 25. März 2026 · Audit-Batch 223, Cookie-Manager-Entry bei Request-Normalisierung nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.141** | 🔴 fix | Admin/Legal | **`cookie-manager.php` normalisiert POST-Aktionen, positive IDs, `service_slug` und Self-Hosted-Flags jetzt serverseitig bereits im Wrapper**: Delete- und Import-Pfade übernehmen dadurch keine losen oder unsauberen Request-Werte mehr direkt in Kategorie-, Service- oder kuratierte Dienst-Mutationen. |
+| **2.7.141** | 🟠 perf | Admin/Legal | **Der Cookie-Manager verwirft unzulässige Delete- und Import-Anfragen früher und billiger**: ungültige IDs oder unbekannte Service-Slugs scheitern vor unnötigen Modulaufrufen im PRG-Flow. |
+| **2.7.141** | 🟡 refactor | Admin/Legal | **Der Cookie-Manager-Entry hängt näher am gemeinsamen Admin-Wrapper-Muster**: Action-, ID- und Slug-Normalisierung liegen sichtbar im Einstieg statt nur implizit über Modulfallbacks oder rohe Request-Casts zu wirken. |
 
 ---
 

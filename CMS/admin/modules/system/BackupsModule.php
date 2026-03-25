@@ -34,7 +34,7 @@ class BackupsModule
     public function __construct()
     {
         $this->service = BackupService::getInstance();
-        $this->logger = Logger::channel('admin.backups');
+        $this->logger = Logger::instance()->withChannel('admin.backups');
     }
 
     /**

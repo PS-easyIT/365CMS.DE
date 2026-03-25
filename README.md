@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.7.140-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.7.159-blue.svg)](Changelog.md)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
@@ -29,16 +29,16 @@
 
 ## 📈 Audit-Stand März 2026
 
-Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 222** nachgezogen. Aktuell sind damit **222 von 444 Prüfplan-Punkten** geschafft. Der aktuelle dokumentierte Gesamtstand über **445 bewertete Dateien** liegt bei:
+Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 241** nachgezogen. Aktuell sind damit **241 von 444 Prüfplan-Punkten** geschafft. Der aktuelle dokumentierte Gesamtstand über **445 bewertete Dateien** liegt bei:
 
 | Metrik | Stand |
 |---|---:|
-| **Security** | **88,26** |
+| **Security** | **88,45** |
 | **Speed** | **86,51** |
-| **PHP / Best Practices** | **89,29** |
-| **Gesamt** | **88,55** |
+| **PHP / Best Practices** | **89,48** |
+| **Gesamt** | **88,74** |
 
-Zuletzt wurde der Backup-Entry nachgezogen: `CMS/admin/backups.php` prüft Aktionen jetzt explizit über eine kleine Allowlist und normalisiert `backup_name` serverseitig vor Delete-Dispatches. Dadurch scheitern lose Aktionen oder unsaubere Backup-Namen früher bereits im Wrapper, bevor sie tiefer in den Löschpfad laufen.
+Zuletzt wurde der 404-Monitor-Entry nachgezogen: `CMS/admin/not-found-monitor.php` begrenzt Redirect-Save- und Log-Clear-Aktionen jetzt explizit über eine kleine Action-Allowlist und bindet den Einstieg zusätzlich an `manage_settings`. Dadurch bleibt der 404-/Redirect-Pfad näher am gemeinsamen SEO-Wrapper-Vertrag und lässt weniger lose Aktionen oder pauschale Admin-Zugriffe still bis in das Redirect-Modul durchrutschen.
 
 ## 🧩 Funktionsumfang im Überblick
 

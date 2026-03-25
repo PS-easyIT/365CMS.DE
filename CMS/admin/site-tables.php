@@ -22,59 +22,128 @@ require_once __DIR__ . '/modules/tables/TablesModule.php';
 $module    = new TablesModule();
 $alert     = null;
 
+/**
+ * @return array{save_settings:save_settings,save:save,delete:delete,duplicate:duplicate}
+ */
+function cms_admin_site_tables_allowed_actions(): array
+{
+    return [
+        'save_settings' => 'save_settings',
+        'save' => 'save',
+        'delete' => 'delete',
+        'duplicate' => 'duplicate',
+    ];
+}
+
+/**
+ * @return array{list:list,settings:settings,edit:edit}
+ */
+function cms_admin_site_tables_allowed_views(): array
+{
+    return [
+        'list' => 'list',
+        'settings' => 'settings',
+        'edit' => 'edit',
+    ];
+}
+
+function cms_admin_site_tables_redirect(string $path = '/admin/site-tables'): never
+{
+    header('Location: ' . SITE_URL . $path);
+    exit;
+}
+
+function cms_admin_site_tables_flash(array $result): void
+{
+    $_SESSION['admin_alert'] = [
+        'type' => !empty($result['success']) ? 'success' : 'danger',
+        'message' => trim((string) ($result['message'] ?? $result['error'] ?? 'Unbekannte Antwort.')),
+    ];
+}
+
+function cms_admin_site_tables_normalize_action(mixed $action): string
+{
+    $action = is_string($action) ? trim($action) : '';
+    $allowedActions = cms_admin_site_tables_allowed_actions();
+
+    return $allowedActions[$action] ?? '';
+}
+
+function cms_admin_site_tables_normalize_view_action(mixed $action): string
+{
+    $action = is_string($action) ? trim($action) : '';
+    $allowedViews = cms_admin_site_tables_allowed_views();
+
+    return $allowedViews[$action] ?? 'list';
+}
+
+function cms_admin_site_tables_normalize_positive_id(mixed $value): int
+{
+    if (is_int($value)) {
+        return $value > 0 ? $value : 0;
+    }
+
+    if (!is_scalar($value)) {
+        return 0;
+    }
+
+    $value = trim((string) $value);
+    if ($value === '' || preg_match('/^[1-9][0-9]*$/', $value) !== 1) {
+        return 0;
+    }
+
+    return (int) $value;
+}
+
+function cms_admin_site_tables_edit_redirect_path(int $id): string
+{
+    return $id > 0
+        ? '/admin/site-tables?action=edit&id=' . $id
+        : '/admin/site-tables';
+}
+
 // ─── POST-Handling ───────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action    = $_POST['action'] ?? '';
-    $postToken = $_POST['csrf_token'] ?? '';
+    $action    = cms_admin_site_tables_normalize_action($_POST['action'] ?? '');
+    $postToken = (string) ($_POST['csrf_token'] ?? '');
 
     if (!Security::instance()->verifyToken($postToken, 'admin_tables')) {
-        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-        header('Location: ' . SITE_URL . '/admin/site-tables');
-        exit;
+        cms_admin_site_tables_flash(['success' => false, 'error' => 'Sicherheitstoken ungültig.']);
+        cms_admin_site_tables_redirect();
+    }
+
+    if ($action === '') {
+        cms_admin_site_tables_flash(['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.']);
+        cms_admin_site_tables_redirect();
     }
 
     switch ($action) {
         case 'save_settings':
             $result = $module->saveDisplaySettings($_POST);
-            $_SESSION['admin_alert'] = [
-                'type'    => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
-            ];
-            header('Location: ' . SITE_URL . '/admin/site-tables?action=settings');
-            exit;
+            cms_admin_site_tables_flash($result);
+            cms_admin_site_tables_redirect('/admin/site-tables?action=settings');
 
         case 'save':
             $result = $module->save($_POST);
-            $_SESSION['admin_alert'] = [
-                'type'    => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
-            ];
+            cms_admin_site_tables_flash($result);
             if ($result['success']) {
-                header('Location: ' . SITE_URL . '/admin/site-tables?action=edit&id=' . ($result['id'] ?? 0));
+                $resultId = cms_admin_site_tables_normalize_positive_id($result['id'] ?? 0);
+                cms_admin_site_tables_redirect(cms_admin_site_tables_edit_redirect_path($resultId));
             } else {
-                header('Location: ' . SITE_URL . '/admin/site-tables');
+                cms_admin_site_tables_redirect();
             }
-            exit;
 
         case 'delete':
-            $id     = (int)($_POST['id'] ?? 0);
+            $id     = cms_admin_site_tables_normalize_positive_id($_POST['id'] ?? 0);
             $result = $module->delete($id);
-            $_SESSION['admin_alert'] = [
-                'type'    => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
-            ];
-            header('Location: ' . SITE_URL . '/admin/site-tables');
-            exit;
+            cms_admin_site_tables_flash($result);
+            cms_admin_site_tables_redirect();
 
         case 'duplicate':
-            $id     = (int)($_POST['id'] ?? 0);
+            $id     = cms_admin_site_tables_normalize_positive_id($_POST['id'] ?? 0);
             $result = $module->duplicate($id);
-            $_SESSION['admin_alert'] = [
-                'type'    => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
-            ];
-            header('Location: ' . SITE_URL . '/admin/site-tables');
-            exit;
+            cms_admin_site_tables_flash($result);
+            cms_admin_site_tables_redirect();
     }
 }
 
@@ -87,7 +156,7 @@ if (!empty($_SESSION['admin_alert'])) {
 $csrfToken = Security::instance()->generateToken('admin_tables');
 
 // ─── View-Routing ────────────────────────────────────────
-$viewAction = $_GET['action'] ?? 'list';
+$viewAction = cms_admin_site_tables_normalize_view_action($_GET['action'] ?? 'list');
 
 if ($viewAction === 'settings') {
     $data       = $module->getSettingsData();
@@ -99,7 +168,8 @@ if ($viewAction === 'settings') {
     require __DIR__ . '/views/tables/settings.php';
     require __DIR__ . '/partials/footer.php';
 } elseif ($viewAction === 'edit') {
-    $id        = isset($_GET['id']) ? (int)$_GET['id'] : null;
+    $normalizedId = cms_admin_site_tables_normalize_positive_id($_GET['id'] ?? 0);
+    $id        = $normalizedId > 0 ? $normalizedId : null;
     $data      = $module->getEditData($id);
     $pageTitle = $data['isNew'] ? 'Neue Tabelle' : 'Tabelle bearbeiten';
     $activePage = 'site-tables';

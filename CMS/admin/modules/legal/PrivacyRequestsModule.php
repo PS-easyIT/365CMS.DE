@@ -11,6 +11,8 @@ if (!defined('ABSPATH')) {
 
 class PrivacyRequestsModule
 {
+    private const REQUEST_TYPE = 'export';
+
     private readonly \CMS\Database $db;
     private readonly string $prefix;
 
@@ -47,7 +49,7 @@ class PrivacyRequestsModule
         $requests = $this->db->get_results(
             "SELECT r.*, u.username FROM {$this->prefix}privacy_requests r
              LEFT JOIN {$this->prefix}users u ON r.user_id = u.id
-             WHERE r.type = 'export'
+             WHERE r.type = '" . self::REQUEST_TYPE . "'
              ORDER BY r.created_at DESC"
         ) ?: [];
 
@@ -77,6 +79,10 @@ class PrivacyRequestsModule
     public function processRequest(int $id): array
     {
         if ($id <= 0) return ['success' => false, 'error' => 'Ungültige ID.'];
+        if ($this->getRequestById($id) === null) {
+            return ['success' => false, 'error' => 'Auskunftsanfrage nicht gefunden.'];
+        }
+
         $this->db->update('privacy_requests', [
             'status'       => 'processing',
             'processed_at' => date('Y-m-d H:i:s'),
@@ -89,10 +95,11 @@ class PrivacyRequestsModule
         if ($id <= 0) return ['success' => false, 'error' => 'Ungültige ID.'];
 
         // Trigger DSGVO export hook
-        $request = $this->db->get_row(
-            "SELECT * FROM {$this->prefix}privacy_requests WHERE id = ?",
-            [$id]
-        );
+        $request = $this->getRequestById($id);
+        if ($request === null) {
+            return ['success' => false, 'error' => 'Auskunftsanfrage nicht gefunden.'];
+        }
+
         if ($request && class_exists('\CMS\Hooks')) {
             \CMS\Hooks::doAction('dsgvo_export_data', $request->user_id, $request->email);
         }
@@ -107,6 +114,10 @@ class PrivacyRequestsModule
     public function rejectRequest(int $id, string $reason): array
     {
         if ($id <= 0) return ['success' => false, 'error' => 'Ungültige ID.'];
+        if ($this->getRequestById($id) === null) {
+            return ['success' => false, 'error' => 'Auskunftsanfrage nicht gefunden.'];
+        }
+
         $this->db->update('privacy_requests', [
             'status'        => 'rejected',
             'reject_reason' => strip_tags($reason),
@@ -118,7 +129,25 @@ class PrivacyRequestsModule
     public function deleteRequest(int $id): array
     {
         if ($id <= 0) return ['success' => false, 'error' => 'Ungültige ID.'];
+        if ($this->getRequestById($id) === null) {
+            return ['success' => false, 'error' => 'Auskunftsanfrage nicht gefunden.'];
+        }
+
         $this->db->delete('privacy_requests', ['id' => $id]);
         return ['success' => true, 'message' => 'Anfrage gelöscht.'];
+    }
+
+    private function getRequestById(int $id): ?object
+    {
+        if ($id <= 0) {
+            return null;
+        }
+
+        $request = $this->db->get_row(
+            "SELECT * FROM {$this->prefix}privacy_requests WHERE id = ? AND type = ? LIMIT 1",
+            [$id, self::REQUEST_TYPE]
+        );
+
+        return is_object($request) ? $request : null;
     }
 }

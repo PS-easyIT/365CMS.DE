@@ -332,7 +332,7 @@ class PackagesModule
 
     private function failResult(string $action, string $message, \Throwable $e): array
     {
-        Logger::error($message, [
+        Logger::instance()->withChannel('admin.packages')->error($message, [
             'module' => 'PackagesModule',
             'action' => $action,
             'exception' => $e::class,

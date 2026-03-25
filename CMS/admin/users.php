@@ -13,7 +13,107 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 use CMS\Security;
 
-if (!Auth::instance()->isAdmin()) {
+const CMS_ADMIN_USERS_ALLOWED_ACTIONS = ['save', 'delete', 'bulk'];
+const CMS_ADMIN_USERS_ALLOWED_VIEWS = ['list', 'edit'];
+const CMS_ADMIN_USERS_ALLOWED_BULK_ACTIONS = ['activate', 'deactivate', 'delete', 'hard_delete'];
+const CMS_ADMIN_USERS_WRITE_CAPABILITY = 'manage_users';
+
+function cms_admin_users_can_access(): bool
+{
+    return Auth::instance()->isAdmin() && Auth::instance()->hasCapability(CMS_ADMIN_USERS_WRITE_CAPABILITY);
+}
+
+function cms_admin_users_target_url(?int $id = null): string
+{
+    if ($id !== null && $id > 0) {
+        return SITE_URL . '/admin/users?action=edit&id=' . $id;
+    }
+
+    return SITE_URL . '/admin/users';
+}
+
+function cms_admin_users_redirect(string $redirectUrl): never
+{
+    header('Location: ' . $redirectUrl);
+    exit;
+}
+
+function cms_admin_users_flash(array $payload): void
+{
+    $_SESSION['admin_alert'] = [
+        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
+        'message' => trim((string) ($payload['message'] ?? '')),
+        'details' => is_array($payload['details'] ?? null) ? $payload['details'] : [],
+    ];
+}
+
+function cms_admin_users_flash_result(array $result): void
+{
+    cms_admin_users_flash([
+        'type' => !empty($result['success']) ? 'success' : 'danger',
+        'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
+        'details' => $result['details'] ?? [],
+    ]);
+}
+
+function cms_admin_users_pull_alert(): ?array
+{
+    $alert = $_SESSION['admin_alert'] ?? null;
+    unset($_SESSION['admin_alert']);
+
+    return is_array($alert) ? $alert : null;
+}
+
+function cms_admin_users_normalize_action(mixed $action): string
+{
+    $normalizedAction = trim((string) $action);
+
+    return in_array($normalizedAction, CMS_ADMIN_USERS_ALLOWED_ACTIONS, true) ? $normalizedAction : '';
+}
+
+function cms_admin_users_normalize_view(mixed $view): string
+{
+    $normalizedView = trim((string) $view);
+
+    return in_array($normalizedView, CMS_ADMIN_USERS_ALLOWED_VIEWS, true) ? $normalizedView : 'list';
+}
+
+function cms_admin_users_normalize_positive_id(mixed $id): int
+{
+    $normalizedId = filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+    return $normalizedId === false ? 0 : (int) $normalizedId;
+}
+
+function cms_admin_users_normalize_bulk_action(mixed $bulkAction): string
+{
+    $normalizedBulkAction = trim((string) $bulkAction);
+
+    return in_array($normalizedBulkAction, CMS_ADMIN_USERS_ALLOWED_BULK_ACTIONS, true) ? $normalizedBulkAction : '';
+}
+
+/**
+ * @return array<int,int>
+ */
+function cms_admin_users_normalize_bulk_ids(mixed $ids): array
+{
+    $normalizedIds = [];
+
+    foreach ((array) $ids as $id) {
+        $normalizedId = cms_admin_users_normalize_positive_id($id);
+        if ($normalizedId > 0) {
+            $normalizedIds[$normalizedId] = $normalizedId;
+        }
+
+        if (count($normalizedIds) >= 200) {
+            break;
+        }
+    }
+
+    return array_values($normalizedIds);
+}
+
+if (!cms_admin_users_can_access()) {
     header('Location: ' . SITE_URL);
     exit;
 }
@@ -24,63 +124,68 @@ $alert     = null;
 
 // ─── POST-Handling ───────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action    = $_POST['action'] ?? '';
-    $postToken = $_POST['csrf_token'] ?? '';
+    $action    = cms_admin_users_normalize_action($_POST['action'] ?? '');
+    $postToken = (string) ($_POST['csrf_token'] ?? '');
 
     if (!Security::instance()->verifyToken($postToken, 'admin_users')) {
-        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-        header('Location: ' . SITE_URL . '/admin/users');
-        exit;
+        cms_admin_users_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
+        cms_admin_users_redirect(cms_admin_users_target_url());
+    }
+
+    if ($action === '') {
+        cms_admin_users_flash(['type' => 'danger', 'message' => 'Unbekannte Benutzer-Aktion.']);
+        cms_admin_users_redirect(cms_admin_users_target_url());
     }
 
     switch ($action) {
         case 'save':
             $result = $module->save($_POST);
-            $_SESSION['admin_alert'] = [
-                'type'    => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
-            ];
+            cms_admin_users_flash_result($result);
             if ($result['success'] && !empty($result['id'])) {
-                header('Location: ' . SITE_URL . '/admin/users?action=edit&id=' . $result['id']);
+                cms_admin_users_redirect(cms_admin_users_target_url(cms_admin_users_normalize_positive_id($result['id'] ?? 0)));
             } else {
-                header('Location: ' . SITE_URL . '/admin/users');
+                cms_admin_users_redirect(cms_admin_users_target_url());
             }
-            exit;
 
         case 'delete':
-            $id     = (int)($_POST['id'] ?? 0);
+            $id = cms_admin_users_normalize_positive_id($_POST['id'] ?? 0);
+            if ($id < 1) {
+                cms_admin_users_flash(['type' => 'danger', 'message' => 'Ungültige Benutzer-ID.']);
+                cms_admin_users_redirect(cms_admin_users_target_url());
+            }
+
             $result = $module->deleteUser($id);
-            $_SESSION['admin_alert'] = [
-                'type'    => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
-            ];
-            header('Location: ' . SITE_URL . '/admin/users');
-            exit;
+            cms_admin_users_flash_result($result);
+            cms_admin_users_redirect(cms_admin_users_target_url());
 
         case 'bulk':
-            $bulkAction = $_POST['bulk_action'] ?? '';
-            $ids        = array_filter(array_map('intval', $_POST['ids'] ?? []));
+            $bulkAction = cms_admin_users_normalize_bulk_action($_POST['bulk_action'] ?? '');
+            $ids = cms_admin_users_normalize_bulk_ids($_POST['ids'] ?? []);
+
+            if ($bulkAction === '') {
+                cms_admin_users_flash(['type' => 'danger', 'message' => 'Unbekannte Bulk-Aktion für Benutzer.']);
+                cms_admin_users_redirect(cms_admin_users_target_url());
+            }
+
+            if ($ids === []) {
+                cms_admin_users_flash(['type' => 'danger', 'message' => 'Bitte mindestens einen gültigen Benutzer auswählen.']);
+                cms_admin_users_redirect(cms_admin_users_target_url());
+            }
+
             $result     = $module->bulkAction($bulkAction, $ids);
-            $_SESSION['admin_alert'] = [
-                'type'    => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? '',
-            ];
-            header('Location: ' . SITE_URL . '/admin/users');
-            exit;
+            cms_admin_users_flash_result($result);
+            cms_admin_users_redirect(cms_admin_users_target_url());
     }
 }
 
 // ─── Session-Alert ───────────────────────────────────────
-if (!empty($_SESSION['admin_alert'])) {
-    $alert = $_SESSION['admin_alert'];
-    unset($_SESSION['admin_alert']);
-}
+$alert = cms_admin_users_pull_alert();
 
 $csrfToken  = Security::instance()->generateToken('admin_users');
-$viewAction = $_GET['action'] ?? 'list';
+$viewAction = cms_admin_users_normalize_view($_GET['action'] ?? 'list');
 
 if ($viewAction === 'edit') {
-    $id         = isset($_GET['id']) ? (int)$_GET['id'] : null;
+    $id         = cms_admin_users_normalize_positive_id($_GET['id'] ?? 0);
     $data       = $module->getEditData($id);
     $pageTitle  = $data['isNew'] ? 'Neuer Benutzer' : 'Benutzer bearbeiten';
     $activePage = 'users';

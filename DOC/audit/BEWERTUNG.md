@@ -5,13 +5,127 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 222
+### Gesamtstand nach Batch 241
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 445 | 88,26 | 86,51 | 89,29 | 88,55 |
+| 445 | 88,45 | 86,51 | 89,48 | 88,74 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **222 umgesetzte Audit-Batches**. Das sind aktuell **222 von 444 Prüfplan-Punkten**. Zuletzt wurde der Backup-Entry nachgezogen, damit Backup-Mutationen keine losen Aktionen oder unsauberen Backup-Namen direkt aus dem Request in den Löschpfad übernehmen.
+Der aktuelle Nachpflege-Stand umfasst damit **241 umgesetzte Audit-Batches**. Das sind aktuell **241 von 444 Prüfplan-Punkten**. Zuletzt wurde der 404-Monitor-Entry bei Action- und Capability-Gates nachgezogen, damit Redirect-Save- und Log-Clear-Pfade keine losen Aktionen oder pauschalen Admin-Zugriffe direkt aus dem SEO-Wrapper übernehmen.
+
+### Delta Batch 241
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/not-found-monitor.php` | umgesetzt | 404-Mutationen wieder explizit über eine kleine Action-Allowlist begrenzt und den Entry zusätzlich an `manage_settings` gebunden, damit Redirect-Save- und Log-Clear-Pfade keine losen Request-Werte oder pauschalen Admin-Zugriffe direkt im Einstieg übernehmen. | Der 404-Monitor reduziert implizite Request- und Rechteannahmen im Mutationspfad, hält Action- und Capability-Gates näher am übrigen SEO-/Admin-Wrapper-Muster und blockt unbekannte Aktionen oder capability-fremde Requests sichtbar früher, bevor Modulmethoden unnötig angesprungen werden. |
+
+### Delta Batch 240
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/users.php` | umgesetzt | Benutzer-Mutationen wieder explizit über eine kleine Action-Allowlist begrenzt, positive IDs und Bulk-IDs serverseitig vor dem Dispatch normalisiert, View-Ziele auf kanonische Modi zurückgeführt und den Entry an `manage_users` gebunden, damit User-Pfade keine losen Request-Werte oder bloß pauschale Admin-Zugriffe direkt im Einstieg übernehmen. | Der Users-Entry reduziert implizite Request- und Rechteannahmen im Mutationspfad, hält Action-, ID-, Bulk- und View-Gates näher am übrigen Admin-Wrapper-Muster und blockt unbekannte Aktionen, rohe Benutzer-IDs, leere Bulk-Auswahlen oder capability-fremde Zugriffe sichtbar früher, bevor Modulmethoden unnötig angesprungen werden. |
+
+### Delta Batch 239
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/pages.php` | umgesetzt | Seiten-Mutationen wieder explizit über eine kleine Action-Allowlist begrenzt, positive IDs und Bulk-IDs serverseitig vor dem Dispatch normalisiert, View-Ziele auf kanonische Modi zurückgeführt und den Entry an `manage_pages` gebunden, damit Seitenpfade keine losen Request-Werte oder capability-fremden Zugriffe direkt im Einstieg übernehmen. | Der Pages-Entry reduziert implizite Request- und Rechteannahmen im Mutations- und Renderpfad, hält Action-, ID-, Bulk-, View- und Capability-Gates näher am übrigen Admin-Wrapper-Muster und blockt unbekannte Aktionen, rohe Seiten-IDs, leere Bulk-Auswahlen oder falsche View-Modi sichtbar früher, bevor Modulmethoden unnötig angesprungen werden. |
+
+### Delta Batch 238
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/posts.php` | umgesetzt | Beitrags-Mutationen wieder explizit über kleine Action- und Bulk-Allowlists begrenzt, positive Beitrags- und Kategorie-IDs serverseitig vor dem Dispatch normalisiert und View-Ziele auf kanonische Modi zurückgeführt, damit Content-Pfade keine losen Request-Werte direkt aus `POST`/`GET` in Save-, Delete-, Bulk- oder Kategoriepfade übernehmen. | Der Posts-Entry reduziert implizite Request-Annahmen im Mutations- und Renderpfad, hält Action-, ID-, Bulk-, Kategorie- und View-Gates näher am übrigen Admin-Wrapper-Muster und blockt unbekannte Aktionen, rohe IDs oder leere Bulk-Auswahlen sichtbar früher, bevor Modulmethoden unnötig angesprungen werden. |
+
+### Delta Batch 237
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/privacy-requests.php` | umgesetzt | Den DSGVO-Alias wieder auf seinen tatsächlichen Redirect-Zweck reduziert und unerreichbaren Legacy-POST-, Modul- und View-Code hinter dem sofortigen Redirect entfernt, damit der Entry keine tote Altlogik mehr mitführt. | Der Privacy-Requests-Alias reduziert überflüssigen Ballast im Routing-Pfad, hängt näher am bereits bereinigten Redirect-Muster von Alias-Entrys und bleibt für spätere DSGVO-/Routing-Änderungen klarer wartbar, weil nur noch der echte Guard- und Ziel-Redirect übrig ist. |
+
+### Delta Batch 236
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/redirect-manager.php` | umgesetzt | Redirect-Mutationen wieder explizit über eine kleine Action-Allowlist begrenzt, positive IDs und Slug-Filter serverseitig vor dem Dispatch normalisiert sowie jede Mutation an `manage_settings` gebunden, damit Redirect-Pfade keine losen Request-Werte oder pauschalen Admin-Zugriffe direkt im Einstieg übernehmen. | Der Redirect-Manager reduziert implizite Request- und Rechteannahmen im Mutationspfad, hält Action-, ID-, Slug- und Capability-Gates näher am übrigen Admin-Wrapper-Muster und blockt unbekannte Aktionen, rohe IDs, leere Slug-Cleanup-Requests oder capability-fremde Zugriffe sichtbar früher, bevor Modulmethoden unnötig angesprungen werden. |
+
+### Delta Batch 235
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/firewall.php` | umgesetzt | Firewall-Mutationen wieder explizit über kleine Action-Allowlists begrenzt, positive Regel-IDs serverseitig vor Toggle-/Delete-Dispatches normalisiert und jede Mutation an eine explizite Capability gebunden, damit der Entry keine losen Request-Werte oder pauschalen Admin-Zugriffe direkt in Settings- und Regelpfade übernimmt. | Der Firewall-Entry reduziert implizite Request- und Rechteannahmen im Mutationspfad, hält Action-, ID- und Capability-Gates näher am übrigen Admin-Wrapper-Muster und blockt unbekannte Aktionen, rohe IDs oder capability-fremde Requests sichtbar früher, bevor Modulmethoden unnötig angesprungen werden. |
+
+### Delta Batch 234
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/packages.php` / `CMS/admin/modules/subscriptions/PackagesModule.php` | umgesetzt | Paket-Mutationen wieder explizit über eine kleine Action-Allowlist begrenzt, positive IDs serverseitig vor Delete-/Toggle-Dispatches normalisiert und den Modul-Logger auf den vorhandenen Channel-Vertrag zurückgeführt, damit Paketpfade keine losen Request-Werte oder versteckten Logger-Fatals mehr mittragen. | Der Packages-Pfad reduziert implizite Request-Annahmen im Mutations-Entry, hält Action-, ID- und Fehlerpfade näher am übrigen Admin-Wrapper-/Logger-Muster und blockt unbekannte Aktionen oder ungültige IDs sichtbar früher, bevor Modulmethoden unnötig angesprungen oder Fehlerfälle zusätzlich durch einen Logger-Fatal verschärft werden. |
+
+### Delta Batch 233
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/design-settings.php` | umgesetzt | Den Redirect-Entry explizit an `manage_settings` gebunden und Access-/Fallback-Pfade in kleine Helfer gezogen, damit der Einstieg nicht mehr nur über einen pauschalen Admin-Check den Theme-Editor öffnet. | Der Design-Settings-Entry reduziert implizite Rechteannahmen im Redirect-Pfad, hält Access- und Fallback-Logik näher an einem kleinen Wrapper-Vertrag und blockt capability-fremde Zugriffe sichtbar früher, bevor sie in nachgelagerte Theme-Editor-Pfade weitergeleitet werden. |
+
+### Delta Batch 232
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/antispam.php` | umgesetzt | AntiSpam-Mutationen wieder explizit über kleine Action-Allowlists begrenzt, positive IDs serverseitig vor Delete-Dispatches normalisiert und jede Aktion an eine explizite Capability gebunden, damit der Entry keine losen Request-Werte oder pauschalen Admin-Zugriffe direkt in Settings- und Blacklist-Pfade übernimmt. | Der AntiSpam-Entry reduziert implizite Request- und Rechteannahmen im Mutationspfad, hält Action-, ID- und Capability-Gates näher am übrigen Admin-Wrapper-Muster und blockt unbekannte Aktionen, rohe IDs oder capability-fremde Requests sichtbar früher, bevor Modulmethoden unnötig angesprungen werden. |
+
+### Delta Batch 231
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/comments.php` | umgesetzt | Kommentar-Mutationen wieder explizit über kleine Action-, Status- und Bulk-Allowlists begrenzt sowie positive Einzel- und Bulk-IDs serverseitig vor dem Dispatch normalisiert, damit der Kommentar-Entry keine losen Request-Werte direkt aus `POST` in Moderations-, Delete- oder Bulk-Pfade übernimmt. | Der Kommentar-Entry reduziert implizite Request-Annahmen im Mutationspfad, hält Action-, Status-, ID- und Bulk-Gates näher am übrigen Admin-Wrapper-Muster und blockt unbekannte Aktionen, rohe IDs oder ungültige Status-/Bulk-Werte sichtbar früher, bevor Modulmethoden unnötig angesprungen werden. |
+
+### Delta Batch 230
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/seo-page.php` | umgesetzt | Die gemeinsame SEO-Eintrittsschicht auf eine kanonische Section-Registry mit festen View-/Route-Metadaten, seitengebundenen Action-Allowlists und sicheren Redirect-Zielen gezogen, damit SEO-Unterseiten keine losen Konfigurations- oder POST-Werte direkt im zentralen Wrapper übernehmen. | Der SEO-Sammel-Wrapper reduziert implizite Vertrauensannahmen bei Section-, Render-, Redirect- und Mutationspfaden, hält seine Unterseiten näher an einem kleinen gemeinsamen Admin-Vertrag und blockt unbekannte Actions oder fremde Redirect-Ziele sichtbar früher, bevor Modulmethoden, View-Loads oder PRG-Sprünge unnötig angesprungen werden. |
+
+### Delta Batch 229
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/orders.php` | umgesetzt | Bestellmutationen wieder explizit über eine kleine Action-Allowlist begrenzt und Status-, Billing-, ID- sowie Action-Werte serverseitig vor dem Dispatch normalisiert, damit der Orders-Entry keine losen Request-Werte direkt aus `POST` in Status-, Delete- oder Zuweisungspfade übernimmt. | Der Orders-Entry reduziert implizite Request-Annahmen im Mutationspfad, hält Input-Gates näher am übrigen Admin-Wrapper-Muster und blockt ungültige Aktionen, rohe IDs oder unzulässige Status-/Billing-Werte sichtbar früher, bevor Modulmethoden oder tiefere Guard-Pfade unnötig angesprungen werden. |
+
+### Delta Batch 228
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/site-tables.php` | umgesetzt | Tabellen-Mutationen wieder explizit über eine kleine Action-Allowlist begrenzt, positive IDs serverseitig normalisiert und View-/Redirect-Pfade auf kanonische Modi zurückgeführt, damit Tabellen-Entry und View-Routing keine losen Request-Werte direkt aus `POST`/`GET` übernehmen. | Der Site-Tables-Entry reduziert implizite Request-Annahmen im Mutations- und Renderpfad, hält Flash-, Redirect- und View-Gates näher am übrigen Admin-Wrapper-Muster und blockt unzulässige Aktionen, rohe IDs oder unbekannte View-Modi sichtbar früher, bevor Modulmethoden oder falsche Redirect-Ziele unnötig angesprungen werden. |
+
+### Delta Batch 227
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/comments/CommentsModule.php` / `CMS/core/Services/CommentService.php` | umgesetzt | Beitrag-Links der Kommentar-Moderation auf den zentralen `PermalinkService` umgestellt und die benötigten Post-Datumswerte direkt im Comment-Listing mitgeführt, damit die Moderationsliste keine harten `/blog/{slug}`-Pfade mehr annimmt. | Die Kommentar-Moderation reduziert harte Routing-Annahmen im Admin-Listing, hängt ihre Beitrag-Links näher an den gemeinsamen Permalink-Vertrag des Cores und zeigt auch bei konfigurierbaren Post-Strukturen weiterhin auf die korrekten Beitrag-URLs statt still in Legacy-Pfade abzuweichen. |
+
+### Delta Batch 226
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/error-report.php` | umgesetzt | Report-Felder bereits im Wrapper serverseitig begrenzt, `source_url` auf interne/same-site Ziele normalisiert und JSON-Payloads in Größe, Tiefe und Struktur gedeckelt, damit Fehlerreports keine ausufernden oder losen Request-Daten direkt an den Service weiterreichen. | Der Error-Report-Entry reduziert vertrauensvolle Request-Annahmen im Report-Pfad, hält Feld- und Payload-Gates näher an einem kleinen Wrapper-Vertrag und blockt übergroße JSON-Strings oder unsaubere Source-Ziele sichtbar früher, bevor Service- und Datenbankpfade unnötig belastet werden. |
+
+### Delta Batch 225
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/groups.php` | umgesetzt | Mutationen wieder explizit über eine kleine Action-Allowlist begrenzt und Gruppen-IDs serverseitig vor Delete-Dispatches normalisiert, damit Gruppenpfade keine losen Aktionen oder rohen IDs direkt aus dem Request übernehmen. | Der Gruppen-Entry reduziert implizite Request-Annahmen im Mutationspfad, hält Delete-Gates näher am übrigen Admin-Wrapper-Muster und blockt ungültige Aktionswerte oder Gruppen-IDs sichtbar früher, bevor Modulmethoden unnötig angerufen werden. |
+
+### Delta Batch 224
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/legal/PrivacyRequestsModule.php` / `CMS/admin/modules/legal/DeletionRequestsModule.php` | umgesetzt | Mutationspfade explizit an den erwarteten Request-Typ gebunden, damit Auskunfts- und Löschanträge nicht mehr allein über rohe IDs Datensätze des jeweils anderen DSGVO-Pfads verändern oder löschen können. | Die DSGVO-Module reduzieren implizite Vertrauensannahmen gegenüber IDs im Mutationspfad, halten Hook-, Update- und Delete-Operationen näher an einem kleinen Typ-Vertrag und blocken bereichsfremde Requests sichtbar früher, bevor unnötige Seiteneffekte entstehen. |
+
+### Delta Batch 223
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/cookie-manager.php` | umgesetzt | Delete- und Import-Mutationen weiter serverseitig gehärtet, indem POST-Aktionen, positive IDs, `service_slug` und Self-Hosted-Flags bereits im Wrapper normalisiert und vor dem Dispatch auf Plausibilität geprüft werden. | Der Cookie-Manager-Entry reduziert implizite Request-Annahmen im Mutationspfad, hält Delete- und Import-Gates näher am übrigen Admin-Wrapper-Muster und blockt ungültige IDs oder unbekannte Service-Slugs sichtbar früher, bevor Modulmethoden unnötig angerufen werden. |
 
 ### Delta Batch 222
 

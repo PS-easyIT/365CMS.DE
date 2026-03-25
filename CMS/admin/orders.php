@@ -13,6 +13,9 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 use CMS\Security;
 
+const CMS_ADMIN_ORDERS_ALLOWED_STATUSES = ['pending', 'paid', 'cancelled', 'refunded', 'failed'];
+const CMS_ADMIN_ORDERS_ALLOWED_BILLING_CYCLES = ['monthly', 'yearly', 'lifetime'];
+
 /**
  * @return array{assign_subscription:update_status|delete}|array{}
  */
@@ -23,6 +26,46 @@ function cms_admin_orders_allowed_actions(): array
         'update_status' => 'update_status',
         'delete' => 'delete',
     ];
+}
+
+function cms_admin_orders_normalize_action(mixed $action): string
+{
+    $action = is_string($action) ? trim($action) : '';
+    $allowedActions = cms_admin_orders_allowed_actions();
+
+    return $allowedActions[$action] ?? '';
+}
+
+function cms_admin_orders_normalize_positive_id(mixed $value): int
+{
+    if (is_int($value)) {
+        return $value > 0 ? $value : 0;
+    }
+
+    if (!is_scalar($value)) {
+        return 0;
+    }
+
+    $value = trim((string) $value);
+    if ($value === '' || preg_match('/^[1-9][0-9]*$/', $value) !== 1) {
+        return 0;
+    }
+
+    return (int) $value;
+}
+
+function cms_admin_orders_normalize_status_value(mixed $status): string
+{
+    $status = is_string($status) ? strtolower(trim($status)) : '';
+
+    return in_array($status, CMS_ADMIN_ORDERS_ALLOWED_STATUSES, true) ? $status : '';
+}
+
+function cms_admin_orders_normalize_billing_cycle(mixed $billingCycle): string
+{
+    $billingCycle = is_string($billingCycle) ? strtolower(trim($billingCycle)) : '';
+
+    return in_array($billingCycle, CMS_ADMIN_ORDERS_ALLOWED_BILLING_CYCLES, true) ? $billingCycle : 'monthly';
 }
 
 function cms_admin_orders_redirect(): never
@@ -59,25 +102,22 @@ function cms_admin_orders_pull_alert(): ?array
 
 function cms_admin_orders_normalize_status_filter(string $status): string
 {
-    $status = strtolower(trim($status));
-    $allowed = ['pending', 'paid', 'cancelled', 'refunded', 'failed'];
-
-    return in_array($status, $allowed, true) ? $status : '';
+    return cms_admin_orders_normalize_status_value($status);
 }
 
 function cms_admin_orders_handle_action(OrdersModule $module, string $action, array $post): ?OrdersActionResult
 {
     return match ($action) {
         'assign_subscription' => $module->assignSubscription(
-            (int)($post['user_id'] ?? 0),
-            (int)($post['plan_id'] ?? 0),
-            (string)($post['billing_cycle'] ?? 'monthly')
+            cms_admin_orders_normalize_positive_id($post['user_id'] ?? 0),
+            cms_admin_orders_normalize_positive_id($post['plan_id'] ?? 0),
+            cms_admin_orders_normalize_billing_cycle($post['billing_cycle'] ?? 'monthly')
         ),
         'update_status' => $module->updateStatus(
-            (int)($post['id'] ?? 0),
-            (string)($post['status'] ?? '')
+            cms_admin_orders_normalize_positive_id($post['id'] ?? 0),
+            cms_admin_orders_normalize_status_value($post['status'] ?? '')
         ),
-        'delete' => $module->delete((int)($post['id'] ?? 0)),
+        'delete' => $module->delete(cms_admin_orders_normalize_positive_id($post['id'] ?? 0)),
         default => null,
     };
 }
@@ -98,8 +138,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         cms_admin_orders_redirect();
     }
 
-    $action = (string) ($_POST['action'] ?? '');
-    if (!isset($allowedActions[$action])) {
+    $action = cms_admin_orders_normalize_action($_POST['action'] ?? '');
+    if ($action === '') {
         cms_admin_orders_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
         cms_admin_orders_redirect();
     }

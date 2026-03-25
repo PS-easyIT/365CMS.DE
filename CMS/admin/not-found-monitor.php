@@ -13,7 +13,34 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 use CMS\Security;
 
-if (!Auth::instance()->isAdmin()) {
+const CMS_ADMIN_NOT_FOUND_MONITOR_ALLOWED_ACTIONS = ['save_redirect', 'clear_logs'];
+const CMS_ADMIN_NOT_FOUND_MONITOR_ACTION_CAPABILITIES = [
+    'save_redirect' => 'manage_settings',
+    'clear_logs' => 'manage_settings',
+];
+
+function cms_admin_not_found_monitor_can_access(): bool
+{
+    return Auth::instance()->isAdmin() && Auth::instance()->hasCapability('manage_settings');
+}
+
+function cms_admin_not_found_monitor_normalize_action(mixed $action): string
+{
+    $normalizedAction = trim((string) $action);
+
+    return in_array($normalizedAction, CMS_ADMIN_NOT_FOUND_MONITOR_ALLOWED_ACTIONS, true) ? $normalizedAction : '';
+}
+
+function cms_admin_not_found_monitor_can_run_action(string $action): bool
+{
+    $requiredCapability = CMS_ADMIN_NOT_FOUND_MONITOR_ACTION_CAPABILITIES[$action] ?? null;
+
+    return is_string($requiredCapability)
+        && $requiredCapability !== ''
+        && Auth::instance()->hasCapability($requiredCapability);
+}
+
+if (!cms_admin_not_found_monitor_can_access()) {
     header('Location: ' . SITE_URL);
     exit;
 }
@@ -87,7 +114,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         cms_admin_not_found_monitor_redirect(cms_admin_not_found_monitor_default_redirect());
     }
 
-    $action = (string) ($_POST['action'] ?? '');
+    $action = cms_admin_not_found_monitor_normalize_action($_POST['action'] ?? '');
+    if ($action === '') {
+        cms_admin_not_found_monitor_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
+        cms_admin_not_found_monitor_redirect(cms_admin_not_found_monitor_default_redirect());
+    }
+
+    if (!cms_admin_not_found_monitor_can_run_action($action)) {
+        cms_admin_not_found_monitor_flash(['type' => 'danger', 'message' => 'Keine Berechtigung für diese Aktion.']);
+        cms_admin_not_found_monitor_redirect(cms_admin_not_found_monitor_default_redirect());
+    }
+
     $result = cms_admin_not_found_monitor_handle_action($module, $action, $_POST);
 
     cms_admin_not_found_monitor_flash_result($result);

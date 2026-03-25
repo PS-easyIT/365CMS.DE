@@ -57,17 +57,45 @@ function cms_admin_cookie_manager_pull_alert(): ?array
     return is_array($alert) ? $alert : null;
 }
 
+function cms_admin_cookie_manager_normalize_action(mixed $value): ?string
+{
+    $action = strtolower(trim((string) $value));
+
+    return cms_admin_cookie_manager_is_allowed_action($action) ? $action : null;
+}
+
+function cms_admin_cookie_manager_normalize_positive_id(array $post): int
+{
+    $id = (int) ($post['id'] ?? 0);
+
+    return $id > 0 ? $id : 0;
+}
+
+function cms_admin_cookie_manager_normalize_service_slug(array $post): string
+{
+    return preg_replace('/[^a-z0-9_-]/', '', strtolower(trim((string) ($post['service_slug'] ?? '')))) ?? '';
+}
+
+function cms_admin_cookie_manager_normalize_self_hosted(array $post, string $serviceSlug): bool
+{
+    if ($serviceSlug !== 'matomo') {
+        return false;
+    }
+
+    return isset($post['self_hosted']) && (string) $post['self_hosted'] === '1';
+}
+
 function cms_admin_cookie_manager_handle_action(CookieManagerModule $module, string $action, array $post): array
 {
     return match ($action) {
         'save_settings' => $module->saveSettings($post),
         'save_category' => $module->saveCategory($post),
-        'delete_category' => $module->deleteCategory((int) ($post['id'] ?? 0)),
+        'delete_category' => $module->deleteCategory(cms_admin_cookie_manager_normalize_positive_id($post)),
         'save_service' => $module->saveService($post),
-        'delete_service' => $module->deleteService((int) ($post['id'] ?? 0)),
+        'delete_service' => $module->deleteService(cms_admin_cookie_manager_normalize_positive_id($post)),
         'import_curated_service' => $module->importCuratedService(
-            preg_replace('/[^a-z0-9_-]/', '', strtolower(trim((string) ($post['service_slug'] ?? '')))) ?? '',
-            isset($post['self_hosted']) && $post['self_hosted'] === '1'
+            cms_admin_cookie_manager_normalize_service_slug($post),
+            cms_admin_cookie_manager_normalize_self_hosted($post, cms_admin_cookie_manager_normalize_service_slug($post))
         ),
         'run_scan' => $module->runScanner(),
         default => ['success' => false, 'error' => 'Aktion konnte nicht verarbeitet werden.'],
@@ -99,9 +127,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         cms_admin_cookie_manager_redirect();
     }
 
-    $action = trim((string) ($_POST['action'] ?? ''));
-    if (!cms_admin_cookie_manager_is_allowed_action($action)) {
+    $action = cms_admin_cookie_manager_normalize_action($_POST['action'] ?? null);
+    if ($action === null) {
         cms_admin_cookie_manager_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
+        cms_admin_cookie_manager_redirect();
+    }
+
+    if (in_array($action, ['delete_category', 'delete_service'], true)
+        && cms_admin_cookie_manager_normalize_positive_id($_POST) <= 0
+    ) {
+        cms_admin_cookie_manager_flash(['type' => 'danger', 'message' => 'Ungültige ID.']);
+        cms_admin_cookie_manager_redirect();
+    }
+
+    if ($action === 'import_curated_service' && cms_admin_cookie_manager_normalize_service_slug($_POST) === '') {
+        cms_admin_cookie_manager_flash(['type' => 'danger', 'message' => 'Unbekannter Standard-Service.']);
         cms_admin_cookie_manager_redirect();
     }
 

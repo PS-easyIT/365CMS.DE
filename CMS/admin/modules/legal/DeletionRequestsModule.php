@@ -11,6 +11,8 @@ if (!defined('ABSPATH')) {
 
 class DeletionRequestsModule
 {
+    private const REQUEST_TYPE = 'deletion';
+
     private readonly \CMS\Database $db;
     private readonly string $prefix;
 
@@ -48,7 +50,7 @@ class DeletionRequestsModule
         $requests = $this->db->get_results(
             "SELECT r.*, u.username FROM {$this->prefix}privacy_requests r
              LEFT JOIN {$this->prefix}users u ON r.user_id = u.id
-             WHERE r.type = 'deletion'
+             WHERE r.type = '" . self::REQUEST_TYPE . "'
              ORDER BY r.created_at DESC"
         ) ?: [];
 
@@ -75,6 +77,10 @@ class DeletionRequestsModule
     public function processRequest(int $id): array
     {
         if ($id <= 0) return ['success' => false, 'error' => 'Ungültige ID.'];
+        if ($this->getRequestById($id) === null) {
+            return ['success' => false, 'error' => 'Löschantrag nicht gefunden.'];
+        }
+
         $this->db->update('privacy_requests', [
             'status'       => 'processing',
             'processed_at' => date('Y-m-d H:i:s'),
@@ -86,10 +92,7 @@ class DeletionRequestsModule
     {
         if ($id <= 0) return ['success' => false, 'error' => 'Ungültige ID.'];
 
-        $request = $this->db->get_row(
-            "SELECT * FROM {$this->prefix}privacy_requests WHERE id = ? AND type = 'deletion'",
-            [$id]
-        );
+        $request = $this->getRequestById($id);
         if (!$request) {
             return ['success' => false, 'error' => 'Löschantrag nicht gefunden.'];
         }
@@ -127,6 +130,10 @@ class DeletionRequestsModule
     public function rejectRequest(int $id, string $reason): array
     {
         if ($id <= 0) return ['success' => false, 'error' => 'Ungültige ID.'];
+        if ($this->getRequestById($id) === null) {
+            return ['success' => false, 'error' => 'Löschantrag nicht gefunden.'];
+        }
+
         $this->db->update('privacy_requests', [
             'status'        => 'rejected',
             'reject_reason' => strip_tags($reason),
@@ -138,7 +145,25 @@ class DeletionRequestsModule
     public function deleteRequest(int $id): array
     {
         if ($id <= 0) return ['success' => false, 'error' => 'Ungültige ID.'];
+        if ($this->getRequestById($id) === null) {
+            return ['success' => false, 'error' => 'Löschantrag nicht gefunden.'];
+        }
+
         $this->db->delete('privacy_requests', ['id' => $id]);
         return ['success' => true, 'message' => 'Antrag gelöscht.'];
+    }
+
+    private function getRequestById(int $id): ?object
+    {
+        if ($id <= 0) {
+            return null;
+        }
+
+        $request = $this->db->get_row(
+            "SELECT * FROM {$this->prefix}privacy_requests WHERE id = ? AND type = ? LIMIT 1",
+            [$id, self::REQUEST_TYPE]
+        );
+
+        return is_object($request) ? $request : null;
     }
 }
