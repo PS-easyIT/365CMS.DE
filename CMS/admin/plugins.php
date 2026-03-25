@@ -22,35 +22,64 @@ require_once __DIR__ . '/modules/plugins/PluginsModule.php';
 $module = new PluginsModule();
 $alert  = null;
 
-// POST-Handler: Token ZUERST verifizieren, bevor ein neuer generiert wird
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'admin_plugins')) {
-        $alert = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-    } else {
-        $action = $_POST['action'] ?? '';
-        switch ($action) {
-            case 'activate':
-                $result = $module->activatePlugin($_POST['slug'] ?? '');
-                break;
-            case 'deactivate':
-                $result = $module->deactivatePlugin($_POST['slug'] ?? '');
-                break;
-            case 'delete':
-                $result = $module->deletePlugin($_POST['slug'] ?? '');
-                break;
-            default:
-                $result = ['success' => false, 'error' => 'Unbekannte Aktion.'];
-        }
-        $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
-        header('Location: ' . SITE_URL . '/admin/plugins');
-        exit;
-    }
+function cms_admin_plugins_target_url(): string
+{
+    return SITE_URL . '/admin/plugins';
 }
 
-if (isset($_SESSION['admin_alert'])) {
-    $alert = $_SESSION['admin_alert'];
-    unset($_SESSION['admin_alert']);
+function cms_admin_plugins_redirect(): never
+{
+    header('Location: ' . cms_admin_plugins_target_url());
+    exit;
 }
+
+function cms_admin_plugins_flash(array $payload): void
+{
+    $_SESSION['admin_alert'] = [
+        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
+        'message' => trim((string) ($payload['message'] ?? '')),
+    ];
+}
+
+function cms_admin_plugins_flash_result(array $result): void
+{
+    cms_admin_plugins_flash([
+        'type' => !empty($result['success']) ? 'success' : 'danger',
+        'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
+    ]);
+}
+
+function cms_admin_plugins_pull_alert(): ?array
+{
+    $alert = $_SESSION['admin_alert'] ?? null;
+    unset($_SESSION['admin_alert']);
+
+    return is_array($alert) ? $alert : null;
+}
+
+function cms_admin_plugins_handle_action(PluginsModule $module, string $action, array $post): array
+{
+    return match ($action) {
+        'activate' => $module->activatePlugin((string) ($post['slug'] ?? '')),
+        'deactivate' => $module->deactivatePlugin((string) ($post['slug'] ?? '')),
+        'delete' => $module->deletePlugin((string) ($post['slug'] ?? '')),
+        default => ['success' => false, 'error' => 'Unbekannte Aktion.'],
+    };
+}
+
+// POST-Handler: Token ZUERST verifizieren, bevor ein neuer generiert wird
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!Security::instance()->verifyToken((string) ($_POST['csrf_token'] ?? ''), 'admin_plugins')) {
+        cms_admin_plugins_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
+    } else {
+        $action = trim((string) ($_POST['action'] ?? ''));
+        cms_admin_plugins_flash_result(cms_admin_plugins_handle_action($module, $action, $_POST));
+    }
+
+    cms_admin_plugins_redirect();
+}
+
+$alert = cms_admin_plugins_pull_alert();
 
 // Token NACH dem POST-Handler generieren (für das Formular-Rendering)
 $csrfToken = Security::instance()->generateToken('admin_plugins');

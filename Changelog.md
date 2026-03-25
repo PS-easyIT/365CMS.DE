@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.85-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.123-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,386 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.7.123 — 25. März 2026 · Audit-Batch 205, Hub-Sites-Zusatzdomains ohne wiederholten Vollscan
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.123** | 🔴 fix | Admin/Hub | **`HubSitesModule.php` cached normalisierte Zusatzdomain-Zuordnungen jetzt pro Modulinstanz**: Domain-Prüfungen für Hub-Sites greifen damit auf einen gemeinsamen Zuordnungsindex zu, statt pro Zusatzdomain erneut alle Hub-Sites samt `settings_json` zu durchlaufen. |
+| **2.7.123** | 🟠 perf | Admin/Hub | **Mehrere Zusatzdomain-Checks vermeiden wiederholte Tabellen-Vollscans**: Der Save-Pfad kann mehrere Domains gegen denselben Cache prüfen, ohne für jede einzelne Domain die komplette Hub-Site-Liste erneut zu decodieren. |
+| **2.7.123** | 🟡 refactor | Admin/Hub | **Der Domain-Validierungspfad bleibt näher an einem kleinen Modulvertrag**: `getHubDomainAssignments()` bündelt Laden und Normalisieren der Domain-Zuordnung sichtbar zentral, während Save-/Delete-/Duplicate-Pfade den Cache nach Mutationen gezielt invalidieren. |
+
+---
+
+### v2.7.122 — 25. März 2026 · Audit-Batch 204, Media-Modul bei Kategorien und Settings-Schlüsseln bereinigt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.122** | 🔴 fix | Admin/Media | **`MediaModule.php` cached Kategorien jetzt pro Modulinstanz und verwendet beim Speichern wieder die kanonischen Service-Keys**: Kategorieprüfungen und Listenpfade greifen damit auf denselben kleinen Kategorienbestand zu, während Dateinamen- und Thumbnail-Settings nicht mehr als Alias-Mix im Save-Pfad landen. |
+| **2.7.122** | 🟠 perf | Admin/Media | **Wiederholte Kategorien-Lookups entfallen im selben Modul-Lebenszyklus**: Bibliothek, Kategorien-Tab und Kategorievalidierung müssen den Medienservice nicht mehr mehrfach identisch nach Kategorien fragen. |
+| **2.7.122** | 🟡 refactor | Admin/Media | **Die Settings-Persistenz bleibt näher am eigentlichen Medien-Service-Vertrag**: `sanitize_filenames`, `unique_filenames`, `lowercase_filenames` sowie `thumb_*`-Werte werden wieder explizit auf ihre kanonischen Schlüssel abgebildet, statt auf tolerierte Legacy-Aliasse zu vertrauen. |
+
+---
+
+### v2.7.121 — 25. März 2026 · Audit-Batch 203, Plugin-Marketplace-Registry entschlackt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.121** | 🔴 fix | Admin/Plugins | **`PluginMarketplaceModule.php` cached die normalisierte Registry jetzt pro Modulinstanz und nutzt einen wiederverwendeten HTTP-Client**: Registry-Ladevorgänge bleiben konsistenter, ohne Remote- und lokale Katalogdaten bei erneutem Zugriff unnötig neu aufzubauen. |
+| **2.7.121** | 🟠 perf | Admin/Plugins | **Registry- und Manifest-Zugriffe vermeiden wiederholte Initialisierungskosten**: Das Modul lädt Marketplace-Daten über denselben HTTP-Client und denselben Cache-Pfad statt mehrere Neuladungen innerhalb desselben Lebenszyklus anzustoßen. |
+| **2.7.121** | 🟡 refactor | Admin/Plugins | **Die Registry-Logik bleibt näher an einem kleinen Modulvertrag**: `loadRegistry()` übernimmt das Caching sichtbar zentral, während Remote-JSON-Reads den vorbereiteten Client wiederverwenden statt ihren Transportzugang mehrfach selbst aufzubauen. |
+
+---
+
+### v2.7.120 — 25. März 2026 · Audit-Batch 202, Theme-Marketplace-Katalogpfad entschlackt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.120** | 🔴 fix | Admin/Themes | **`ThemeMarketplaceModule.php` sucht Installationsziele jetzt direkt im normalisierten Katalog statt über den kompletten angereicherten `getData()`-Pfad**: Die Theme-Suche für Installationen bleibt damit konsistenter und hängt nicht mehr an zusätzlichem Status- und Installations-Anreicherungsaufwand. |
+| **2.7.120** | 🟠 perf | Admin/Themes | **Der Marketplace-Katalog wird pro Modulinstanz zwischengespeichert**: Remote-/lokale Katalogdaten werden nicht mehrfach neu aufgebaut, wenn Listen- und Installationspfad nacheinander auf denselben Theme-Bestand zugreifen. |
+| **2.7.120** | 🟡 refactor | Admin/Themes | **Die Kataloglogik bleibt näher an einem kleinen Modulvertrag**: `getCatalog()` übernimmt das Caching sichtbar zentral, während `findCatalogTheme()` nur noch den schlanken Katalog durchsucht statt den kompletten View-Datenaufbau anzustoßen. |
+
+---
+
+### v2.7.119 — 25. März 2026 · Audit-Batch 201, Font-Manager-Settings ohne N+1-Existenzchecks
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.119** | 🔴 fix | Admin/Font Manager | **`FontManagerModule.php` lädt vorhandene Setting-Namen jetzt gesammelt vor und persistiert Font-Optionen über einen gemeinsamen Helfer**: Der Save-Pfad für Heading-, Body-, Größen-, Zeilenhöhen- und Local-Font-Settings läuft konsistenter, ohne pro Option erneut die Existenz in `settings` abzufragen. |
+| **2.7.119** | 🟠 perf | Admin/Font Manager | **Der Font-Settings-Save-Pfad vermeidet wiederholte Datenbank-Roundtrips**: Statt pro Schlüssel `COUNT(*)`-Existenzchecks plus Mutation auszuführen, wird der bekannte Settings-Bestand einmal vorgeladen und anschließend gezielt `UPDATE` oder `INSERT` genutzt. |
+| **2.7.119** | 🟡 refactor | Admin/Font Manager | **Die Persistenz bleibt näher an einem kleinen, klaren Modulvertrag**: `loadExistingSettings()` und `persistSetting()` bündeln Vorladen und Schreiblogik sichtbar, sodass `saveSettings()` stärker beim eigentlichen Font-Input bleibt. |
+
+---
+
+### v2.7.118 — 25. März 2026 · Audit-Batch 200, Cookie-Manager-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.118** | 🔴 fix | Admin/Legal | **`cookie-manager.php` bündelt Ziel-URL, Redirect-, Allowlist- und Dispatch-Pfade jetzt klarer über kleine Helfer**: Token-Fehler sowie Cookie-Manager-Aktionsrückgaben laufen konsistenter, ohne Redirect- und Action-Details lose im Einstieg zu verteilen. |
+| **2.7.118** | 🟠 perf | Admin/Legal | **Action- und Fehlerpfade bleiben kompakter wartbar**: Ziel-URL, Allowlist-Prüfung und Dispatch-Auflösung müssen nicht mehr in mehreren Request-Zweigen parallel gepflegt werden. |
+| **2.7.118** | 🟡 refactor | Admin/Legal | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: Ziel-URL-, Allowlist- und Dispatch-Details sind in kleine Helfer ausgelagert, während die Cookie-Verwaltung im Einstieg fokussiert bleibt. |
+
+---
+
+### v2.7.117 — 25. März 2026 · Audit-Batch 199, Legal-Sites-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.117** | 🔴 fix | Admin/Legal Sites | **`legal-sites.php` bündelt Ziel-URL, Redirect-, Profil-Session-State und Template-Aufbau jetzt klarer über kleine Helfer**: Token-Fehler sowie Profil-, Template- und Mutationsrückgaben laufen konsistenter, ohne Session- und Redirect-Details lose im Einstieg zu verteilen. |
+| **2.7.117** | 🟠 perf | Admin/Legal Sites | **Profil- und Template-Pfade bleiben kompakter wartbar**: Redirect-Ziel, Profil-State und Template-Aufbau müssen nicht mehr in mehreren Request-Zweigen parallel gepflegt werden. |
+| **2.7.117** | 🟡 refactor | Admin/Legal Sites | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: Ziel-URL-, Profil-State- und Template-Details sind in kleine Helfer ausgelagert, während die Legal-Sites-Verwaltung im Einstieg fokussiert bleibt. |
+
+---
+
+### v2.7.116 — 25. März 2026 · Audit-Batch 198, Error-Report-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.116** | 🔴 fix | Admin/System | **`error-report.php` bündelt Default-/Redirect-Ziel, JSON-Payload-Normalisierung und Report-Dispatch jetzt klarer über kleine Helfer**: Token-Fehler sowie Fehlerreport-Rückgaben laufen konsistenter, ohne Redirect- und Payload-Details lose im Einstieg zu verteilen. |
+| **2.7.116** | 🟠 perf | Admin/System | **Payload- und Redirect-Pfade bleiben kompakter wartbar**: Redirect-Auflösung, JSON-Dekodierung und Report-Payload müssen nicht mehr in mehreren Request-Zweigen parallel gepflegt werden. |
+| **2.7.116** | 🟡 refactor | Admin/System | **Der Entry bleibt näher am eigentlichen Service-Aufruf**: Default-URL-, Payload- und Dispatch-Details sind in kleine Helfer ausgelagert, während der Error-Report-Flow im Einstieg fokussiert bleibt. |
+
+---
+
+### v2.7.115 — 25. März 2026 · Audit-Batch 197, Theme-Explorer-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.115** | 🔴 fix | Admin/Themes | **`theme-explorer.php` bündelt Ziel-URL, Action-Allowlist, Redirect-, Flash-/Pull-Alert-Pfade und Save-Dispatch jetzt klarer über kleine Helfer**: Token-Fehler sowie Datei-Save-Rückgaben laufen konsistenter, ohne Session- und Redirect-Details lose im Einstieg zu verteilen. |
+| **2.7.115** | 🟠 perf | Admin/Themes | **Datei- und Fehlerpfade bleiben kompakter wartbar**: Redirect-Ziel, Action-Allowlist und Save-Rückmeldungen müssen nicht mehr in mehreren POST-Zweigen parallel gepflegt werden. |
+| **2.7.115** | 🟡 refactor | Admin/Themes | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: Ziel-URL-, Pull-Alert- und Dispatch-Details sind in kleine Helfer ausgelagert, während der Theme-Explorer im Einstieg fokussiert bleibt. |
+
+---
+
+### v2.7.114 — 25. März 2026 · Audit-Batch 196, Hub-Sites-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.114** | 🔴 fix | Admin/Hub | **`hub-sites.php` bündelt Action-Allowlist, View-Normalisierung, Redirect-Abgänge, Flash-/Pull-Alert-Pfade und Action-Dispatch jetzt klarer über kleine Helfer**: Token-Fehler sowie Listen-, Edit-, Template- und Mutationspfade laufen konsistenter, ohne Redirect- und Session-Details lose im Einstieg zu verteilen. |
+| **2.7.114** | 🟠 perf | Admin/Hub | **View- und Render-Pfade bleiben kompakter wartbar**: View-Auflösung, Asset-Konfiguration und Action-spezifische Redirect-Ziele müssen nicht mehr in mehreren `if`-/`switch`-Blöcken parallel gepflegt werden. |
+| **2.7.114** | 🟡 refactor | Admin/Hub | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: Allowlist-, Pull-Alert-, Dispatch- und Render-Konfiguration sind in kleine Helfer ausgelagert, während die Hub-Sites-Verwaltung im Einstieg fokussiert bleibt. |
+
+---
+
+### v2.7.113 — 25. März 2026 · Audit-Batch 195, Media-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.113** | 🔴 fix | Admin/Media | **`media.php` bündelt Action-Allowlist, Pfadauflösung, Redirect-Parameter, Upload-Rückmeldungen und Action-Dispatch jetzt klarer über kleine Helfer**: Token-Fehler, Member-Bestätigungs-nahe Redirects sowie Library-, Kategorie- und Settings-Aktionen laufen konsistenter, ohne Redirect- und Flash-Details lose im Einstieg zu verteilen. |
+| **2.7.113** | 🟠 perf | Admin/Media | **Upload- und Redirect-Pfade bleiben kompakter wartbar**: Redirect-Query-Aufbau, Action-spezifische Zielpfade und Upload-Rückmeldungen müssen nicht mehr in mehreren POST-Zweigen parallel gepflegt werden. |
+| **2.7.113** | 🟡 refactor | Admin/Media | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: Allowlist-, Pull-Alert-, Pfad- und Dispatch-Details sind in kleine Helfer ausgelagert, während die Medienverwaltung im Einstieg fokussiert bleibt. |
+
+---
+
+### v2.7.112 — 25. März 2026 · Audit-Batch 194, Theme-Editor-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.112** | 🔴 fix | Admin/Themes | **`theme-editor.php` bündelt Layout- und Fallback-Pfade jetzt klarer über kleine Helfer**: Customizer-Einbettung und Fallback-Ansicht laufen konsistenter über denselben kleinen Entry-Pfad, ohne Header-/Sidebar-/Footer-Aufbau lose in zwei Zweigen zu verteilen. |
+| **2.7.112** | 🟠 perf | Admin/Themes | **Customizer- und Fallback-Pfade bleiben kompakter wartbar**: Layout-Defaults, Fallback-Links und Render-Aufbau müssen nicht mehr in mehreren Zweigen parallel gepflegt werden. |
+| **2.7.112** | 🟡 refactor | Admin/Themes | **Der Entry bleibt näher an seinem eigentlichen Routing-Zweck**: Layout- und Fallback-Details sind in kleine Helfer ausgelagert, während die Theme-Editor-Entscheidung fokussiert bleibt. |
+
+---
+
+### v2.7.111 — 25. März 2026 · Audit-Batch 193, Updates-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.111** | 🔴 fix | Admin/System | **`updates.php` bündelt Redirect-, Flash-, Pull-Alert-, Allowlist- und Action-Dispatch-Pfade jetzt klarer über kleine Helfer**: Token-Fehler, Update-Prüfung sowie Core- und Plugin-Installationsrückgaben laufen konsistenter, ohne Session- und Redirect-Details lose im Einstieg zu verteilen. |
+| **2.7.111** | 🟠 perf | Admin/System | **Prüf- und Fehlerpfade bleiben kompakter wartbar**: Action-Allowlist, Plugin-Slug-Normalisierung, Flash-Aufbau und Redirect-Abgang müssen nicht mehr in mehreren Verzweigungen parallel gepflegt werden. |
+| **2.7.111** | 🟡 refactor | Admin/System | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: Alert-, Pull-Alert- und Dispatch-Details sind in kleine Helfer ausgelagert, während die Update-Verwaltungslogik fokussiert bleibt. |
+
+---
+
+### v2.7.110 — 25. März 2026 · Audit-Batch 192, Themes-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.110** | 🔴 fix | Admin/Themes | **`themes.php` bündelt Redirect-, Flash-, Pull-Alert- und Action-Dispatch-Pfade jetzt klarer über kleine Helfer**: Token-Fehler, Theme-Slug-Normalisierung sowie Aktivierungs- und Löschrückgaben laufen konsistenter, ohne Session- und Redirect-Details lose im Einstieg zu verteilen. |
+| **2.7.110** | 🟠 perf | Admin/Themes | **Aktivierungs- und Fehlerpfade bleiben kompakter wartbar**: Slug-Normalisierung, Flash-Aufbau und Redirect-Abgang müssen nicht mehr in mehreren Verzweigungen parallel gepflegt werden. |
+| **2.7.110** | 🟡 refactor | Admin/Themes | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: Alert-, Pull-Alert- und Dispatch-Details sind in kleine Helfer ausgelagert, während die Theme-Verwaltungslogik fokussiert bleibt. |
+
+---
+
+### v2.7.109 — 25. März 2026 · Audit-Batch 191, Plugins-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.109** | 🔴 fix | Admin/Plugins | **`plugins.php` bündelt Redirect-, Flash-, Pull-Alert- und Action-Dispatch-Pfade jetzt klarer über kleine Helfer**: Token-Fehler sowie Aktivierungs-, Deaktivierungs- und Löschrückgaben laufen konsistenter, ohne Session- und Redirect-Details lose im Einstieg zu verteilen. |
+| **2.7.109** | 🟠 perf | Admin/Plugins | **Aktivierungs- und Fehlerpfade bleiben kompakter wartbar**: Action-Dispatch, Flash-Aufbau und Redirect-Abgang müssen nicht mehr mehrfach direkt im POST-Block gepflegt werden. |
+| **2.7.109** | 🟡 refactor | Admin/Plugins | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: Alert-, Pull-Alert- und Dispatch-Details sind in kleine Helfer ausgelagert, während die Plugin-Verwaltungslogik fokussiert bleibt. |
+
+---
+
+### v2.7.108 — 25. März 2026 · Audit-Batch 190, Theme-Marketplace-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.108** | 🔴 fix | Admin/Themes | **`theme-marketplace.php` bündelt Redirect-, Flash-, Pull-Alert- und Action-Dispatch-Pfade jetzt klarer über kleine Helfer**: Token-Fehler und Installationsrückgaben laufen konsistenter, ohne Session- und Redirect-Details lose im Einstieg zu verteilen. |
+| **2.7.108** | 🟠 perf | Admin/Themes | **Installations- und Fehlerpfade bleiben kompakter wartbar**: Slug-Normalisierung, Flash-Aufbau und Redirect-Abgang müssen nicht mehr in mehreren Verzweigungen parallel gepflegt werden. |
+| **2.7.108** | 🟡 refactor | Admin/Themes | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: Alert-, Pull-Alert- und Dispatch-Details sind in kleine Helfer ausgelagert, während die Marketplace-Seitenlogik fokussiert bleibt. |
+
+---
+
+### v2.7.107 — 25. März 2026 · Audit-Batch 189, Plugin-Marketplace-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.107** | 🔴 fix | Admin/Plugins | **`plugin-marketplace.php` bündelt Redirect-, Flash-, Pull-Alert- und Action-Dispatch-Pfade jetzt klarer über kleine Helfer**: Token-Fehler und Installationsrückgaben laufen konsistenter, ohne Session- und Redirect-Details lose im Einstieg zu verteilen. |
+| **2.7.107** | 🟠 perf | Admin/Plugins | **Installations- und Fehlerpfade bleiben kompakter wartbar**: Action-Dispatch, Flash-Aufbau und Redirect-Abgang müssen nicht mehr mehrfach direkt im POST-Block gepflegt werden. |
+| **2.7.107** | 🟡 refactor | Admin/Plugins | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: Alert-, Pull-Alert- und Dispatch-Details sind in kleine Helfer ausgelagert, während die Marketplace-Seitenlogik fokussiert bleibt. |
+
+---
+
+### v2.7.106 — 25. März 2026 · Audit-Batch 188, Landing-Page-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.106** | 🔴 fix | Admin/Landing Page | **`landing-page.php` bündelt Redirect-, Flash-, Pull-Alert- und Action-Dispatch-Pfade jetzt klarer über kleine Helfer**: Token-Fehler und Aktionsrückgaben laufen konsistenter, ohne Handler- und Tab-Details lose im Einstieg zu verteilen. |
+| **2.7.106** | 🟠 perf | Admin/Landing Page | **Dispatch- und Fehlerpfade bleiben kompakter wartbar**: die Handler-Map und der tabbezogene Redirect-Abgang müssen nicht mehr in mehreren Verzweigungen parallel gepflegt werden. |
+| **2.7.106** | 🟡 refactor | Admin/Landing Page | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: Alert-, Pull-Alert-, Tab- und Dispatch-Details sind in kleine Helfer ausgelagert, während die Seitenlogik fokussiert bleibt. |
+
+---
+
+### v2.7.105 — 25. März 2026 · Audit-Batch 187, Firewall-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.105** | 🔴 fix | Admin/Firewall | **`firewall.php` bündelt Redirect-, Flash-, Pull-Alert- und Action-Dispatch-Pfade jetzt klarer über kleine Helfer**: Token-Fehler und Aktionsrückgaben laufen konsistenter, ohne Session- und Dispatch-Details lose im Einstieg zu verteilen. |
+| **2.7.105** | 🟠 perf | Admin/Firewall | **Dispatch- und Fehlerpfade bleiben kompakter wartbar**: Flash- und Pull-Alert-Pfade müssen nicht mehr mehrfach im POST-Block parallel gepflegt werden. |
+| **2.7.105** | 🟡 refactor | Admin/Firewall | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: Alert-, Pull-Alert- und Dispatch-Details sind in kleine Helfer ausgelagert, während die Seitenlogik fokussiert bleibt. |
+
+---
+
+### v2.7.104 — 25. März 2026 · Audit-Batch 186, Font-Manager-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.104** | 🔴 fix | Admin/Font Manager | **`font-manager.php` bündelt Redirect-, Flash-, Pull-Alert- und Action-Dispatch-Pfade jetzt klarer über kleine Helfer**: Token-Fehler und Aktionsrückgaben laufen konsistenter, ohne die Handler-Kette lose im Einstieg zu verteilen. |
+| **2.7.104** | 🟠 perf | Admin/Font Manager | **Dispatch- und Fehlerpfade bleiben kompakter wartbar**: die Handler-Map und der Redirect-Abgang müssen nicht mehr in mehreren `if`-/`elseif`-Zweigen parallel gepflegt werden. |
+| **2.7.104** | 🟡 refactor | Admin/Font Manager | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: Alert-, Pull-Alert- und Dispatch-Details sind in kleine Helfer ausgelagert, während die Seitenlogik fokussiert bleibt. |
+
+---
+
+### v2.7.103 — 25. März 2026 · Audit-Batch 185, Backups-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.103** | 🔴 fix | Admin/System | **`backups.php` bündelt Redirect-, Flash-, Pull-Alert- und Action-Dispatch-Pfade jetzt klarer über kleine Helfer**: Token-Fehler und Aktionsrückgaben laufen konsistenter, ohne Handler- und Alert-Details lose im Einstieg zu verteilen. |
+| **2.7.103** | 🟠 perf | Admin/System | **Dispatch- und Fehlerpfade bleiben kompakter wartbar**: die Handler-Map und der Redirect-Abgang müssen nicht mehr mehrfach im POST-Block parallel gepflegt werden. |
+| **2.7.103** | 🟡 refactor | Admin/System | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: Alert-, Pull-Alert- und Dispatch-Details sind in kleine Helfer ausgelagert, während die Seitenlogik fokussiert bleibt. |
+
+---
+
+### v2.7.102 — 25. März 2026 · Audit-Batch 184, Cookie-Manager-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.102** | 🔴 fix | Admin/Cookie Manager | **`cookie-manager.php` bündelt Action-Allowlist und Session-Alert-Pfade jetzt klarer über kleine Helfer**: Token-Fehler und Aktionsrückgaben laufen konsistenter, ohne Allowlist- und Alert-Details lose im Einstieg zu verteilen. |
+| **2.7.102** | 🟠 perf | Admin/Cookie Manager | **Alert- und Fehlerpfade bleiben kompakter wartbar**: die Allowlist wird nicht mehr als lose Werteliste direkt im Request-Flow behandelt. |
+| **2.7.102** | 🟡 refactor | Admin/Cookie Manager | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: Alert- und Allowlist-Details sind in kleine Helfer ausgelagert, während die Seitenlogik fokussiert bleibt. |
+
+---
+
+### v2.7.101 — 25. März 2026 · Audit-Batch 183, Packages-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.101** | 🔴 fix | Admin/Pakete | **`packages.php` bündelt Action-Dispatch und Session-Alert-Pfade jetzt klarer über kleine Handler-Helfer**: Paket- und Settings-Aktionen laufen konsistenter, ohne Switch-Logik und Redirects lose im Einstieg zu verteilen. |
+| **2.7.101** | 🟠 perf | Admin/Pakete | **Dispatch- und Fehlerpfade bleiben kompakter wartbar**: Handler-Map und Redirect-Flow müssen nicht mehr mehrfach im POST-Block gepflegt werden. |
+| **2.7.101** | 🟡 refactor | Admin/Pakete | **Der Entry bleibt näher an den eigentlichen Modulen**: Dispatch-Details liegen in kleinen Helfern, während der Seitenaufbau unverändert fokussiert bleibt. |
+
+---
+
+### v2.7.100 — 25. März 2026 · Audit-Batch 182, Orders-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.100** | 🔴 fix | Admin/Orders | **`orders.php` bündelt Action-Allowlist und Session-Alert-Pfade jetzt klarer über kleine Helfer**: Token-Fehler und Aktionsrückgaben laufen konsistenter, ohne Allowlist- und Alert-Details lose im Einstieg zu verteilen. |
+| **2.7.100** | 🟠 perf | Admin/Orders | **Alert- und Fehlerpfade bleiben kompakter wartbar**: die Allowlist wird nicht mehr erst im Request-Flow separat aufgebaut. |
+| **2.7.100** | 🟡 refactor | Admin/Orders | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: Alert- und Allowlist-Details sind in kleine Helfer ausgelagert, während die Seitenlogik fokussiert bleibt. |
+
+---
+
+### v2.7.99 — 25. März 2026 · Audit-Batch 181, Error-Report-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.99** | 🔴 fix | Admin/Error Report | **`error-report.php` bündelt Redirect-, Flash- und JSON-Normalisierung jetzt klarer über kleine Entry-Helfer**: Token-Fehler und Service-Rückgaben laufen konsistenter, ohne Request-Normalisierung lose im Einstieg zu verteilen. |
+| **2.7.99** | 🟠 perf | Admin/Error Report | **Payload- und Fehlerpfade bleiben kompakter wartbar**: JSON-Parsing und Alert-Aufbau werden nicht mehr implizit an mehreren Stellen behandelt. |
+| **2.7.99** | 🟡 refactor | Admin/Error Report | **Der Entry bleibt näher am eigentlichen Service-Aufruf**: Request-Normalisierung und Flash-Details sind in kleine Helfer ausgelagert, während die Endpoint-Logik fokussiert bleibt. |
+
+---
+
+### v2.7.98 — 25. März 2026 · Audit-Batch 180, Deletion-Requests-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.98** | 🔴 fix | Admin/DSGVO | **`deletion-requests.php` bündelt sein Redirect-Ziel jetzt klarer über einen kleinen Ziel-Helfer**: Guard- und Standard-Redirect nutzen denselben sichtbaren Zielpfad, statt die Ziel-URL lose auszuschreiben. |
+| **2.7.98** | 🟠 perf | Admin/DSGVO | **Redirect-Ziele bleiben kompakter wartbar**: Zielpfade müssen nicht mehr an mehreren Stellen parallel gepflegt werden. |
+| **2.7.98** | 🟡 refactor | Admin/DSGVO | **Der Entry bleibt näher an seinem eigentlichen Routing-Zweck**: Ziel-Details sind in einen kleinen Helfer ausgelagert, während der Einstieg minimal fokussiert bleibt. |
+
+---
+
+### v2.7.97 — 25. März 2026 · Audit-Batch 179, Design-Settings-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.97** | 🔴 fix | Admin/Design | **`design-settings.php` bündelt sein Redirect-Ziel jetzt klarer über einen kleinen Ziel-Helfer**: Guard- und Standard-Redirect nutzen denselben sichtbaren Zielpfad, statt die Ziel-URL lose auszuschreiben. |
+| **2.7.97** | 🟠 perf | Admin/Design | **Redirect-Ziele bleiben kompakter wartbar**: Zielpfade müssen nicht mehr an mehreren Stellen parallel gepflegt werden. |
+| **2.7.97** | 🟡 refactor | Admin/Design | **Der Entry bleibt näher an seinem eigentlichen Routing-Zweck**: Ziel-Details sind in einen kleinen Helfer ausgelagert, während der Einstieg minimal fokussiert bleibt. |
+
+---
+
+### v2.7.96 — 25. März 2026 · Audit-Batch 178, Legal-Sites-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.96** | 🔴 fix | Admin/Legal Sites | **`legal-sites.php` bündelt POST-Dispatch, Flash-Meldungen und Redirects jetzt klarer über kleine Entry-Helfer**: Action-Handler und PRG-Redirect laufen konsistenter, ohne die eigentliche Modul-Logik im Einstieg zu verteilen. |
+| **2.7.96** | 🟠 perf | Admin/Legal Sites | **Fehler- und Redirect-Pfade bleiben kompakter wartbar**: Session-Alerts, Handler-Map und Redirect-Aufbau werden nicht mehr mehrfach im POST-Block ausgeschrieben. |
+| **2.7.96** | 🟡 refactor | Admin/Legal Sites | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: Dispatch-Details sind in kleine Helfer ausgelagert, während die Seitenlogik unverändert fokussiert bleibt. |
+
+---
+
+### v2.7.95 — 25. März 2026 · Audit-Batch 177, Documentation-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.95** | 🔴 fix | Admin/Dokumentation | **`documentation.php` bündelt Dokumentauswahl, Aktionshandler, Flash-Meldungen und Redirects jetzt klarer über kleine Entry-Helfer**: Sync-Aktionen und PRG-Redirect laufen konsistenter, ohne die eigentliche Modul-Logik im Einstieg zu verteilen. |
+| **2.7.95** | 🟠 perf | Admin/Dokumentation | **Fehler- und Redirect-Pfade bleiben kompakter wartbar**: Dokumentauswahl, Handler und Redirect-Aufbau werden nicht mehr verstreut im Request-Flow definiert. |
+| **2.7.95** | 🟡 refactor | Admin/Dokumentation | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: Auswahl- und Dispatch-Details sind in kleine Helfer ausgelagert, während die Seitenlogik unverändert fokussiert bleibt. |
+
+---
+
+### v2.7.94 — 25. März 2026 · Audit-Batch 176, Mail-Settings-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.94** | 🔴 fix | Admin/System | **`mail-settings.php` koppelt Actions jetzt enger an dieselbe Handler-Map**: Dispatch und unbekannte Aktionen laufen konsistenter, ohne parallele Allowlist- und Handler-Definitionen im Einstieg zu pflegen. |
+| **2.7.94** | 🟠 perf | Admin/System | **Handler-Definitionen bleiben kompakter wartbar**: POST-Input und Aktionseinträge werden nicht mehr doppelt zwischen Allowlist und Handlern gepflegt. |
+| **2.7.94** | 🟡 refactor | Admin/System | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: Dispatch-Details sind auf die kleine Handler-Map konzentriert, während die Seitenlogik unverändert fokussiert bleibt. |
+
+---
+
+### v2.7.93 — 25. März 2026 · Audit-Batch 175, Gruppen-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.93** | 🔴 fix | Admin/Gruppen | **`groups.php` bündelt POST-Dispatch, Flash-Meldungen und Redirects jetzt klarer über kleine Entry-Helfer**: Action-Handler und PRG-Redirect laufen konsistenter, ohne die eigentliche Modul-Logik im Einstieg zu verteilen. |
+| **2.7.93** | 🟠 perf | Admin/Gruppen | **Fehler- und Redirect-Pfade bleiben kompakter wartbar**: Session-Alerts, Handler-Map und Redirect-Aufbau werden nicht mehr mehrfach im POST-Block ausgeschrieben. |
+| **2.7.93** | 🟡 refactor | Admin/Gruppen | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: Dispatch-Details sind in kleine Helfer ausgelagert, während die Seitenlogik unverändert fokussiert bleibt. |
+
+---
+
+### v2.7.92 — 25. März 2026 · Audit-Batch 174, Data-Requests-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.92** | 🔴 fix | Admin/DSGVO | **`data-requests.php` bündelt POST-Dispatch, Flash-Meldungen und Redirects jetzt klarer über kleine Entry-Helfer**: Scope-Aktionen und PRG-Redirect laufen konsistenter, ohne die eigentliche Modul-Logik im Einstieg zu verteilen. |
+| **2.7.92** | 🟠 perf | Admin/DSGVO | **Fehler- und Redirect-Pfade bleiben kompakter wartbar**: Session-Alerts und Redirect-Aufrufe werden nicht mehr getrennt zwischen Fehler- und Erfolgsfall behandelt. |
+| **2.7.92** | 🟡 refactor | Admin/DSGVO | **Der Entry bleibt näher an den eigentlichen Modulen**: Privacy- und Deletion-Dispatch bleiben fokussiert, während Redirect-Details in kleinen Helfern liegen. |
+
+---
+
+### v2.7.91 — 25. März 2026 · Audit-Batch 173, Settings-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.91** | 🔴 fix | Admin/Settings | **`settings.php` bündelt Tab-Normalisierung, POST-Dispatch, Flash-Meldungen und Redirects jetzt klarer über kleine Entry-Helfer**: Action-Handler und PRG-Redirect laufen konsistenter, ohne die eigentliche Modul-Logik im Einstieg zu verteilen. |
+| **2.7.91** | 🟠 perf | Admin/Settings | **Fehler- und Redirect-Pfade bleiben kompakter wartbar**: Tab-Normalisierung, Session-Alerts und Redirect-Aufbau werden nicht mehr mehrfach im POST-Block ausgeschrieben. |
+| **2.7.91** | 🟡 refactor | Admin/Settings | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: Dispatch-Details sind in kleine Helfer ausgelagert, während die Seitenlogik unverändert fokussiert bleibt. |
+
+---
+
+### v2.7.90 — 25. März 2026 · Audit-Batch 172, Comments-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.90** | 🔴 fix | Admin/Kommentare | **`comments.php` bündelt POST-Dispatch, Flash-Meldungen und Redirects jetzt klarer über kleine Entry-Helfer**: Aktionspfade und PRG-Redirect laufen konsistenter, ohne die eigentliche Modul-Logik im Einstieg zu verteilen. |
+| **2.7.90** | 🟠 perf | Admin/Kommentare | **Fehler- und Redirect-Pfade bleiben kompakter wartbar**: Session-Alerts und Redirect-Aufrufe werden nicht mehr mehrfach im POST-Block ausgeschrieben. |
+| **2.7.90** | 🟡 refactor | Admin/Kommentare | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: Dispatch-Details sind in kleine Helfer ausgelagert, während die Seitenlogik unverändert fokussiert bleibt. |
+
+---
+
+### v2.7.89 — 25. März 2026 · Audit-Batch 171, 404-Monitor-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.89** | 🔴 fix | Admin/SEO | **`not-found-monitor.php` bündelt POST-Dispatch, Flash-Meldungen und Redirects jetzt klarer über kleine Entry-Helfer**: Token-Fehler und Aktionsrückgaben laufen konsistenter über denselben PRG-Pfad, ohne die Modul-Logik im Einstieg zu verteilen. |
+| **2.7.89** | 🟠 perf | Admin/SEO | **Fehler- und Redirect-Pfade bleiben kompakter wartbar**: Action-Handler und Redirect-Ziel werden nicht mehr verstreut im POST-Block aufgebaut. |
+| **2.7.89** | 🟡 refactor | Admin/SEO | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: kleine Helfer kapseln Dispatch- und Session-Details, während der Seitenaufbau unverändert fokussiert bleibt. |
+
+---
+
+### v2.7.88 — 25. März 2026 · Audit-Batch 170, Menü-Editor-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.88** | 🔴 fix | Admin/Menüs | **`menu-editor.php` bündelt POST-Dispatch, Flash-Meldungen und Redirects jetzt klarer über kleine Entry-Helfer**: Action-Handler und PRG-Redirect laufen konsistenter, ohne die eigentliche Modul-Logik im Einstieg zu verteilen. |
+| **2.7.88** | 🟠 perf | Admin/Menüs | **Fehler- und Redirect-Pfade bleiben kompakter wartbar**: Session-Alerts, Handler-Map und Redirect-Aufbau werden nicht mehr mehrfach im POST-Block ausgeschrieben. |
+| **2.7.88** | 🟡 refactor | Admin/Menüs | **Der Entry bleibt näher am eigentlichen Modul-Aufruf**: Dispatch-Details sind in kleine Helfer ausgelagert, während die Seitenlogik unverändert fokussiert bleibt. |
+
+---
+
+### v2.7.87 — 25. März 2026 · Audit-Batch 169, Diagnose-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.87** | 🔴 fix | Admin/Monitoring | **Der Diagnose-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/diagnose.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `system-monitor-page.php`. |
+| **2.7.87** | 🟠 perf | Admin/Monitoring | **Änderungen an Diagnose-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.87** | 🟡 refactor | Admin/Monitoring | **Der Diagnose-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.86 — 25. März 2026 · Audit-Batch 168, Performance-Overview-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.86** | 🔴 fix | Admin/Performance | **Der Performance-Overview-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/performance.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `performance-page.php`. |
+| **2.7.86** | 🟠 perf | Admin/Performance | **Änderungen an Performance-Overview-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.86** | 🟡 refactor | Admin/Performance | **Der Overview-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
 
 ---
 

@@ -25,6 +25,12 @@ $privacyModule  = new PrivacyRequestsModule();
 $deletionModule = new DeletionRequestsModule();
 $alert          = null;
 
+function cms_admin_data_requests_redirect(): never
+{
+    header('Location: ' . SITE_URL . '/admin/data-requests');
+    exit;
+}
+
 function cms_admin_data_requests_normalize_alert(array $payload): array
 {
     return [
@@ -44,6 +50,14 @@ function cms_admin_data_requests_flash_result(array $result): void
         'type' => !empty($result['success']) ? 'success' : 'danger',
         'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
     ]);
+}
+
+function cms_admin_data_requests_pull_alert(): ?array
+{
+    $alert = $_SESSION['admin_alert'] ?? null;
+    unset($_SESSION['admin_alert']);
+
+    return is_array($alert) ? $alert : null;
 }
 
 function cms_admin_data_requests_handle_privacy_action(PrivacyRequestsModule $privacyModule, string $action, array $post): array
@@ -87,23 +101,20 @@ function cms_admin_data_requests_handle_scope_action(
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'admin_data_requests')) {
-        $alert = cms_admin_data_requests_normalize_alert(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
-    } else {
-        $scope  = (string)($_POST['scope'] ?? '');
-        $action = (string)($_POST['action'] ?? '');
-        $result = cms_admin_data_requests_handle_scope_action($privacyModule, $deletionModule, $scope, $action, $_POST);
-
-        cms_admin_data_requests_flash_result($result);
-        header('Location: ' . SITE_URL . '/admin/data-requests');
-        exit;
+    if (!Security::instance()->verifyToken((string) ($_POST['csrf_token'] ?? ''), 'admin_data_requests')) {
+        cms_admin_data_requests_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
+        cms_admin_data_requests_redirect();
     }
+
+    $scope  = (string) ($_POST['scope'] ?? '');
+    $action = (string) ($_POST['action'] ?? '');
+    $result = cms_admin_data_requests_handle_scope_action($privacyModule, $deletionModule, $scope, $action, $_POST);
+
+    cms_admin_data_requests_flash_result($result);
+    cms_admin_data_requests_redirect();
 }
 
-if (isset($_SESSION['admin_alert'])) {
-    $alert = $_SESSION['admin_alert'];
-    unset($_SESSION['admin_alert']);
-}
+$alert = cms_admin_data_requests_pull_alert();
 
 $csrfToken  = Security::instance()->generateToken('admin_data_requests');
 $pageTitle  = 'Auskunft & Löschen';

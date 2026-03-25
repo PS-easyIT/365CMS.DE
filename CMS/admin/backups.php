@@ -21,49 +21,75 @@ if (!Auth::instance()->isAdmin()) {
 require_once __DIR__ . '/modules/system/BackupsModule.php';
 $module    = new BackupsModule();
 $alert     = null;
-$redirectUrl = SITE_URL . '/admin/backups';
 
-function cms_admin_backups_redirect(string $redirectUrl): never
+function cms_admin_backups_target_url(): string
 {
-    header('Location: ' . $redirectUrl);
+    return SITE_URL . '/admin/backups';
+}
+
+function cms_admin_backups_redirect(): never
+{
+    header('Location: ' . cms_admin_backups_target_url());
     exit;
 }
 
-function cms_admin_backups_flash(array $result): void
+function cms_admin_backups_flash(array $payload): void
 {
     $_SESSION['admin_alert'] = [
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => (string) ($result['message'] ?? $result['error'] ?? 'Unbekannte Antwort.'),
+        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
+        'message' => trim((string) ($payload['message'] ?? '')),
     ];
 }
 
-$actionHandlers = [
-    'create_full' => static fn () => $module->createFullBackup(),
-    'create_db' => static fn () => $module->createDatabaseBackup(),
-    'delete' => static fn () => $module->deleteBackup((string) ($_POST['backup_name'] ?? '')),
-];
+function cms_admin_backups_flash_result(array $result): void
+{
+    cms_admin_backups_flash([
+        'type' => !empty($result['success']) ? 'success' : 'danger',
+        'message' => (string) ($result['message'] ?? $result['error'] ?? 'Unbekannte Antwort.'),
+    ]);
+}
+
+function cms_admin_backups_pull_alert(): ?array
+{
+    $alert = $_SESSION['admin_alert'] ?? null;
+    unset($_SESSION['admin_alert']);
+
+    return is_array($alert) ? $alert : null;
+}
+
+/**
+ * @return array<string, callable(array): array>
+ */
+function cms_admin_backups_action_handlers(BackupsModule $module): array
+{
+    return [
+        'create_full' => static fn (array $post): array => $module->createFullBackup(),
+        'create_db' => static fn (array $post): array => $module->createDatabaseBackup(),
+        'delete' => static fn (array $post): array => $module->deleteBackup((string) ($post['backup_name'] ?? '')),
+    ];
+}
+
+$actionHandlers = cms_admin_backups_action_handlers($module);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postToken = (string) ($_POST['csrf_token'] ?? '');
     if (!Security::instance()->verifyToken($postToken, 'admin_backups')) {
-        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-        cms_admin_backups_redirect($redirectUrl);
+        cms_admin_backups_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
+        cms_admin_backups_redirect();
     }
 
-    $action = (string) ($_POST['action'] ?? '');
+    $action = trim((string) ($_POST['action'] ?? ''));
     $handler = $actionHandlers[$action] ?? null;
-    $result = is_callable($handler)
-        ? $handler()
-        : ['success' => false, 'error' => 'Unbekannte Aktion.'];
+    if (!is_callable($handler)) {
+        cms_admin_backups_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
+        cms_admin_backups_redirect();
+    }
 
-    cms_admin_backups_flash($result);
-    cms_admin_backups_redirect($redirectUrl);
+    cms_admin_backups_flash_result($handler($_POST));
+    cms_admin_backups_redirect();
 }
 
-if (!empty($_SESSION['admin_alert'])) {
-    $alert = $_SESSION['admin_alert'];
-    unset($_SESSION['admin_alert']);
-}
+$alert = cms_admin_backups_pull_alert();
 
 $csrfToken  = Security::instance()->generateToken('admin_backups');
 $data       = $module->getData();

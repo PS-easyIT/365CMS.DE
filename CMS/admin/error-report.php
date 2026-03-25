@@ -14,9 +14,14 @@ if (!Auth::instance()->isAdmin()) {
     exit;
 }
 
+function cms_admin_error_report_default_url(): string
+{
+    return SITE_URL . '/admin/diagnose';
+}
+
 function cms_normalize_admin_report_redirect(string $target): string
 {
-    $fallback = SITE_URL . '/admin/diagnose';
+    $fallback = cms_admin_error_report_default_url();
     $target = trim($target);
     if ($target === '') {
         return $fallback;
@@ -42,7 +47,10 @@ function cms_normalize_admin_report_redirect(string $target): string
     return SITE_URL . $path . $query;
 }
 
-$redirectUrl = cms_normalize_admin_report_redirect((string)($_POST['back_to'] ?? ($_SERVER['HTTP_REFERER'] ?? '')));
+function cms_admin_error_report_resolve_redirect_url(array $post, array $server): string
+{
+    return cms_normalize_admin_report_redirect((string) ($post['back_to'] ?? ($server['HTTP_REFERER'] ?? '')));
+}
 
 function cms_admin_error_report_redirect(string $redirectUrl): never
 {
@@ -50,35 +58,61 @@ function cms_admin_error_report_redirect(string $redirectUrl): never
     exit;
 }
 
-function cms_admin_error_report_flash(array $result): void
+function cms_admin_error_report_flash(array $payload): void
 {
     $_SESSION['admin_alert'] = [
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => (string) ($result['message'] ?? $result['error'] ?? 'Fehlerreport konnte nicht verarbeitet werden.'),
+        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
+        'message' => trim((string) ($payload['message'] ?? 'Fehlerreport konnte nicht verarbeitet werden.')),
     ];
 }
+
+function cms_admin_error_report_flash_result(array $result): void
+{
+    cms_admin_error_report_flash([
+        'type' => !empty($result['success']) ? 'success' : 'danger',
+        'message' => (string) ($result['message'] ?? $result['error'] ?? 'Fehlerreport konnte nicht verarbeitet werden.'),
+    ]);
+}
+
+function cms_admin_error_report_decode_json_payload(string $payload): array
+{
+    $decoded = json_decode($payload, true);
+
+    return is_array($decoded) ? $decoded : [];
+}
+
+function cms_admin_error_report_build_payload(array $post, string $redirectUrl): array
+{
+    return [
+        'title' => (string) ($post['title'] ?? 'Fehlerreport'),
+        'message' => (string) ($post['message'] ?? ''),
+        'error_code' => (string) ($post['error_code'] ?? ''),
+        'source_url' => (string) ($post['source_url'] ?? $redirectUrl),
+        'error_data' => cms_admin_error_report_decode_json_payload((string) ($post['error_data_json'] ?? '[]')),
+        'context' => cms_admin_error_report_decode_json_payload((string) ($post['context_json'] ?? '[]')),
+    ];
+}
+
+function cms_admin_error_report_handle_request(array $post, string $redirectUrl): array
+{
+    return ErrorReportService::getInstance()->createReport(
+        cms_admin_error_report_build_payload($post, $redirectUrl)
+    );
+}
+
+$redirectUrl = cms_admin_error_report_resolve_redirect_url($_POST, $_SERVER);
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     cms_admin_error_report_redirect($redirectUrl);
 }
 
-if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'admin_error_report')) {
-    $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken für den Fehlerreport ist ungültig.'];
+if (!Security::instance()->verifyToken((string) ($_POST['csrf_token'] ?? ''), 'admin_error_report')) {
+    cms_admin_error_report_flash(['type' => 'danger', 'message' => 'Sicherheitstoken für den Fehlerreport ist ungültig.']);
     cms_admin_error_report_redirect($redirectUrl);
 }
 
-$errorData = json_decode((string)($_POST['error_data_json'] ?? '[]'), true);
-$context = json_decode((string)($_POST['context_json'] ?? '[]'), true);
+$result = cms_admin_error_report_handle_request($_POST, $redirectUrl);
 
-$result = ErrorReportService::getInstance()->createReport([
-    'title' => (string)($_POST['title'] ?? 'Fehlerreport'),
-    'message' => (string)($_POST['message'] ?? ''),
-    'error_code' => (string)($_POST['error_code'] ?? ''),
-    'source_url' => (string)($_POST['source_url'] ?? $redirectUrl),
-    'error_data' => is_array($errorData) ? $errorData : [],
-    'context' => is_array($context) ? $context : [],
-]);
-
-cms_admin_error_report_flash($result);
+cms_admin_error_report_flash_result($result);
 
 cms_admin_error_report_redirect($redirectUrl);

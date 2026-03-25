@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.7.85-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.7.123-blue.svg)](Changelog.md)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
@@ -29,16 +29,16 @@
 
 ## 📈 Audit-Stand März 2026
 
-Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 167** nachgezogen. Aktuell sind damit **167 von 444 Prüfplan-Punkten** geschafft. Der aktuelle dokumentierte Gesamtstand über **445 bewertete Dateien** liegt bei:
+Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 205** nachgezogen. Aktuell sind damit **205 von 444 Prüfplan-Punkten** geschafft. Der aktuelle dokumentierte Gesamtstand über **445 bewertete Dateien** liegt bei:
 
 | Metrik | Stand |
 |---|---:|
-| **Security** | **86,74** |
-| **Speed** | **85,12** |
-| **PHP / Best Practices** | **87,87** |
-| **Gesamt** | **86,94** |
+| **Security** | **88,07** |
+| **Speed** | **86,36** |
+| **PHP / Best Practices** | **89,08** |
+| **Gesamt** | **88,32** |
 
-Zuletzt wurden vier weitere SEO-Unterseiten weiter standardisiert: `CMS/admin/seo-audit.php`, `CMS/admin/seo-technical.php`, `CMS/admin/seo-sitemap.php` und `CMS/admin/seo-schema.php` nutzen jetzt ebenfalls denselben kleinen Konfigurations-Wrapper wie ihre Schwesterseiten, nachdem `CMS/admin/seo-page.php` zuvor den zentralen Normalisierungspfad erhalten hatte.
+Zuletzt wurde der Hub-Sites-Domainpfad nachgezogen: `CMS/admin/modules/hub/HubSitesModule.php` cached normalisierte Zusatzdomain-Zuordnungen pro Modulinstanz, wodurch Mehrfachprüfungen im Save-Pfad nicht mehr jedes Mal alle Hub-Sites erneut als JSON-Scan durchlaufen müssen.
 
 ## 🧩 Funktionsumfang im Überblick
 

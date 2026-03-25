@@ -20,9 +20,8 @@ if (!Auth::instance()->isAdmin()) {
 
 require_once __DIR__ . '/modules/system/DocumentationModule.php';
 
-$module = new DocumentationModule();
-$alert = null;
-$normalizeSelectedDoc = static function ($value): ?string {
+function cms_admin_documentation_normalize_selected_doc($value): ?string
+{
     $value = trim((string) $value);
     if ($value === '') {
         return null;
@@ -45,27 +44,54 @@ $normalizeSelectedDoc = static function ($value): ?string {
     $extension = strtolower((string) pathinfo($value, PATHINFO_EXTENSION));
 
     return in_array($extension, ['md', 'csv'], true) ? $value : null;
-};
-$selectedDoc = $normalizeSelectedDoc($_GET['doc'] ?? null);
-$buildDocumentationRedirect = static function (?string $selectedDoc): string {
+}
+
+function cms_admin_documentation_redirect_url(?string $selectedDoc): string
+{
     $redirect = SITE_URL . '/admin/documentation';
     if ($selectedDoc !== null) {
         $redirect .= '?doc=' . rawurlencode($selectedDoc);
     }
 
     return $redirect;
-};
+}
 
-$storeDocumentationAlert = static function (DocumentationSyncActionResult $result): void {
+function cms_admin_documentation_redirect(?string $selectedDoc): never
+{
+    header('Location: ' . cms_admin_documentation_redirect_url($selectedDoc));
+    exit;
+}
+
+function cms_admin_documentation_flash_result(DocumentationSyncActionResult $result): void
+{
     $_SESSION['admin_alert'] = [
         'type' => $result->isSuccess() ? 'success' : 'danger',
         'message' => $result->getMessage(),
     ];
-};
+}
 
-$actionHandlers = [
-    'sync_docs' => static fn () => $module->syncDocsFromRepository(),
-];
+function cms_admin_documentation_pull_alert(): ?array
+{
+    $alert = $_SESSION['admin_alert'] ?? null;
+    unset($_SESSION['admin_alert']);
+
+    return is_array($alert) ? $alert : null;
+}
+
+/**
+ * @return array<string, callable(): DocumentationSyncActionResult>
+ */
+function cms_admin_documentation_action_handlers(DocumentationModule $module): array
+{
+    return [
+        'sync_docs' => static fn (): DocumentationSyncActionResult => $module->syncDocsFromRepository(),
+    ];
+}
+
+$module = new DocumentationModule();
+$alert = null;
+$selectedDoc = cms_admin_documentation_normalize_selected_doc($_GET['doc'] ?? null);
+$actionHandlers = cms_admin_documentation_action_handlers($module);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postToken = (string) ($_POST['csrf_token'] ?? '');
@@ -78,17 +104,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ? $handler()
             : new DocumentationSyncActionResult(false, null, 'Unbekannte Aktion.');
 
-        $storeDocumentationAlert($result);
+        cms_admin_documentation_flash_result($result);
     }
 
-    header('Location: ' . $buildDocumentationRedirect($selectedDoc));
-    exit;
+    cms_admin_documentation_redirect($selectedDoc);
 }
 
-if (isset($_SESSION['admin_alert']) && is_array($_SESSION['admin_alert'])) {
-    $alert = $_SESSION['admin_alert'];
-    unset($_SESSION['admin_alert']);
-}
+$alert = cms_admin_documentation_pull_alert();
 
 $csrfToken = Security::instance()->generateToken('admin_documentation');
 $data = $module->getData($selectedDoc)->toArray();

@@ -22,86 +22,123 @@ require_once __DIR__ . '/modules/legal/LegalSitesModule.php';
 $module    = new LegalSitesModule();
 $alert     = null;
 $userId    = (int)(Auth::instance()->getCurrentUser()->id ?? 0);
-$redirectUrl = SITE_URL . '/admin/legal-sites';
 
-function cms_admin_legal_sites_redirect(string $redirectUrl): never
+function cms_admin_legal_sites_target_url(): string
 {
-    header('Location: ' . $redirectUrl);
+    return SITE_URL . '/admin/legal-sites';
+}
+
+function cms_admin_legal_sites_redirect(): never
+{
+    header('Location: ' . cms_admin_legal_sites_target_url());
     exit;
 }
 
-function cms_admin_legal_sites_flash(array $result): void
+function cms_admin_legal_sites_flash(array $payload): void
 {
     $_SESSION['admin_alert'] = [
+        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
+        'message' => trim((string) ($payload['message'] ?? '')),
+    ];
+}
+
+function cms_admin_legal_sites_flash_result(array $result): void
+{
+    cms_admin_legal_sites_flash([
         'type' => !empty($result['success']) ? 'success' : 'danger',
         'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
+    ]);
+}
+
+function cms_admin_legal_sites_pull_alert(): ?array
+{
+    $alert = $_SESSION['admin_alert'] ?? null;
+    unset($_SESSION['admin_alert']);
+
+    return is_array($alert) ? $alert : null;
+}
+
+/**
+ * @return array<string, callable(array, int): array>
+ */
+function cms_admin_legal_sites_action_handlers(LegalSitesModule $module): array
+{
+    return [
+        'save' => static fn (array $post, int $userId): array => $module->save($post),
+        'save_profile' => static fn (array $post, int $userId): array => $module->saveProfile($post),
+        'generate' => static fn (array $post, int $userId): array => $module->generateTemplate((string) ($post['template_type'] ?? '')),
+        'create_page' => static fn (array $post, int $userId): array => $module->createOrUpdatePage((string) ($post['template_type'] ?? ''), $userId),
+        'create_all_pages' => static fn (array $post, int $userId): array => $module->createOrUpdateAllPages($userId),
     ];
 }
 
 function cms_admin_legal_sites_handle_action(LegalSitesModule $module, string $action, array $post, int $userId): array
 {
-    switch ($action) {
-        case 'save':
-            return $module->save($post);
+    $handlers = cms_admin_legal_sites_action_handlers($module);
 
-        case 'save_profile':
-            return $module->saveProfile($post);
-
-        case 'generate':
-            return $module->generateTemplate((string) ($post['template_type'] ?? ''));
-
-        case 'create_page':
-            return $module->createOrUpdatePage((string) ($post['template_type'] ?? ''), $userId);
-
-        case 'create_all_pages':
-            return $module->createOrUpdateAllPages($userId);
+    if (!isset($handlers[$action])) {
+        return ['success' => false, 'error' => 'Unbekannte Aktion.'];
     }
 
-    return ['success' => false, 'error' => 'Unbekannte Aktion.'];
+    return $handlers[$action]($post, $userId);
+}
+
+function cms_admin_legal_sites_sync_profile_state(string $action, array $result): void
+{
+    if ($action !== 'save_profile') {
+        return;
+    }
+
+    if ($result['success'] ?? false) {
+        unset($_SESSION['legal_sites_profile_old']);
+        return;
+    }
+
+    if (!empty($result['profile']) && is_array($result['profile'])) {
+        $_SESSION['legal_sites_profile_old'] = $result['profile'];
+    }
+}
+
+function cms_admin_legal_sites_apply_old_profile(array $data): array
+{
+    if (!empty($_SESSION['legal_sites_profile_old']) && is_array($_SESSION['legal_sites_profile_old'])) {
+        $data['profile'] = array_merge($data['profile'] ?? [], $_SESSION['legal_sites_profile_old']);
+        unset($_SESSION['legal_sites_profile_old']);
+    }
+
+    return $data;
+}
+
+function cms_admin_legal_sites_templates(LegalSitesModule $module): array
+{
+    return [
+        'imprint'    => $module->getTemplateContent('imprint'),
+        'privacy'    => $module->getTemplateContent('privacy'),
+        'terms'      => $module->getTemplateContent('terms'),
+        'revocation' => $module->getTemplateContent('revocation'),
+    ];
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'admin_legal_sites')) {
-        $alert = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-    } else {
-        $action = (string) ($_POST['action'] ?? '');
-        $result = cms_admin_legal_sites_handle_action($module, $action, $_POST, $userId);
-
-        if ($action === 'save_profile') {
-            if ($result['success'] ?? false) {
-                unset($_SESSION['legal_sites_profile_old']);
-            } elseif (!empty($result['profile']) && is_array($result['profile'])) {
-                $_SESSION['legal_sites_profile_old'] = $result['profile'];
-            }
-        }
-
-        cms_admin_legal_sites_flash($result);
-        cms_admin_legal_sites_redirect($redirectUrl);
+    if (!Security::instance()->verifyToken((string) ($_POST['csrf_token'] ?? ''), 'admin_legal_sites')) {
+        cms_admin_legal_sites_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
+        cms_admin_legal_sites_redirect();
     }
-    $csrfToken = Security::instance()->generateToken('admin_legal_sites');
+
+    $action = (string) ($_POST['action'] ?? '');
+    $result = cms_admin_legal_sites_handle_action($module, $action, $_POST, $userId);
+    cms_admin_legal_sites_sync_profile_state($action, $result);
+    cms_admin_legal_sites_flash_result($result);
+    cms_admin_legal_sites_redirect();
 }
 
-if (isset($_SESSION['admin_alert'])) {
-    $alert = $_SESSION['admin_alert'];
-    unset($_SESSION['admin_alert']);
-}
+$alert = cms_admin_legal_sites_pull_alert();
 
 $csrfToken  = Security::instance()->generateToken('admin_legal_sites');
 $pageTitle  = 'Legal Sites';
 $activePage = 'legal-sites';
-$data       = $module->getData();
-
-if (!empty($_SESSION['legal_sites_profile_old']) && is_array($_SESSION['legal_sites_profile_old'])) {
-    $data['profile'] = array_merge($data['profile'] ?? [], $_SESSION['legal_sites_profile_old']);
-    unset($_SESSION['legal_sites_profile_old']);
-}
-
-$data['templates'] = [
-    'imprint'    => $module->getTemplateContent('imprint'),
-    'privacy'    => $module->getTemplateContent('privacy'),
-    'terms'      => $module->getTemplateContent('terms'),
-    'revocation' => $module->getTemplateContent('revocation'),
-];
+$data       = cms_admin_legal_sites_apply_old_profile($module->getData());
+$data['templates'] = cms_admin_legal_sites_templates($module);
 
 require_once __DIR__ . '/partials/header.php';
 require_once __DIR__ . '/partials/sidebar.php';

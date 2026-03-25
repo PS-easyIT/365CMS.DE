@@ -19,38 +19,66 @@ if (!Auth::instance()->isAdmin()) {
 }
 
 require_once __DIR__ . '/modules/plugins/PluginMarketplaceModule.php';
-$module    = new PluginMarketplaceModule();
-$alert     = null;
-$redirectUrl = SITE_URL . '/admin/plugin-marketplace';
+$module = new PluginMarketplaceModule();
+$alert = null;
 
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-    $postToken = (string)($_POST['csrf_token'] ?? '');
-    if (!Security::instance()->verifyToken($postToken, 'admin_plugin_mp')) {
-        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-        header('Location: ' . $redirectUrl);
-        exit;
-    }
+function cms_admin_plugin_marketplace_target_url(): string
+{
+    return SITE_URL . '/admin/plugin-marketplace';
+}
 
-    $action = (string)($_POST['action'] ?? '');
-    if ($action !== 'install') {
-        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Unbekannte oder nicht erlaubte Aktion.'];
-        header('Location: ' . $redirectUrl);
-        exit;
-    }
-
-    $result = $module->installPlugin((string)($_POST['slug'] ?? ''));
-    $_SESSION['admin_alert'] = [
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => $result['message'] ?? $result['error'] ?? 'Unbekannte Antwort.',
-    ];
-    header('Location: ' . $redirectUrl);
+function cms_admin_plugin_marketplace_redirect(): never
+{
+    header('Location: ' . cms_admin_plugin_marketplace_target_url());
     exit;
 }
 
-if (!empty($_SESSION['admin_alert'])) {
-    $alert = $_SESSION['admin_alert'];
-    unset($_SESSION['admin_alert']);
+function cms_admin_plugin_marketplace_flash(array $payload): void
+{
+    $_SESSION['admin_alert'] = [
+        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
+        'message' => trim((string) ($payload['message'] ?? '')),
+    ];
 }
+
+function cms_admin_plugin_marketplace_flash_result(array $result): void
+{
+    cms_admin_plugin_marketplace_flash([
+        'type' => !empty($result['success']) ? 'success' : 'danger',
+        'message' => (string) ($result['message'] ?? $result['error'] ?? 'Unbekannte Antwort.'),
+    ]);
+}
+
+function cms_admin_plugin_marketplace_pull_alert(): ?array
+{
+    $alert = $_SESSION['admin_alert'] ?? null;
+    unset($_SESSION['admin_alert']);
+
+    return is_array($alert) ? $alert : null;
+}
+
+function cms_admin_plugin_marketplace_handle_action(PluginMarketplaceModule $module, string $action, array $post): array
+{
+    return match ($action) {
+        'install' => $module->installPlugin((string) ($post['slug'] ?? '')),
+        default => ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'],
+    };
+}
+
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    $action = (string)($_POST['action'] ?? '');
+
+    if (!Security::instance()->verifyToken((string) ($_POST['csrf_token'] ?? ''), 'admin_plugin_mp')) {
+        cms_admin_plugin_marketplace_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
+    } else {
+        $result = cms_admin_plugin_marketplace_handle_action($module, $action, $_POST);
+        cms_admin_plugin_marketplace_flash_result($result);
+    }
+
+    cms_admin_plugin_marketplace_redirect();
+}
+
+$alert = cms_admin_plugin_marketplace_pull_alert();
 
 $csrfToken  = Security::instance()->generateToken('admin_plugin_mp');
 $pageTitle  = 'Plugin Marketplace';

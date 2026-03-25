@@ -34,11 +34,15 @@ class PluginMarketplaceModule
 
     private readonly \CMS\Database $db;
     private readonly string $prefix;
+    private readonly HttpClient $httpClient;
+    /** @var array<int, array<string, mixed>>|null */
+    private ?array $registryCache = null;
 
     public function __construct()
     {
         $this->db     = \CMS\Database::instance();
         $this->prefix = $this->db->getPrefix();
+        $this->httpClient = HttpClient::getInstance();
     }
 
     public function getData(): array
@@ -172,28 +176,32 @@ class PluginMarketplaceModule
 
     private function loadRegistry(): array
     {
+        if ($this->registryCache !== null) {
+            return $this->registryCache;
+        }
+
         $registryUrl = $this->getRegistryUrl();
         if ($registryUrl !== '') {
             $remoteRegistry = $this->loadRemoteRegistry($registryUrl);
             if ($remoteRegistry !== []) {
-                return $remoteRegistry;
+                return $this->registryCache = $remoteRegistry;
             }
         }
 
         $localIndex = $this->resolveLocalRegistryPath();
         if ($localIndex === '' || !is_file($localIndex)) {
-            return [];
+            return $this->registryCache = [];
         }
 
         $content = file_get_contents($localIndex);
         if ($content === false || $content === '') {
-            return [];
+            return $this->registryCache = [];
         }
 
         $json = \CMS\Json::decodeArray($content, []);
         $plugins = is_array($json) ? ($json['plugins'] ?? $json) : [];
 
-        return $this->sanitizeCatalogEntries(is_array($plugins) ? $plugins : [], dirname($localIndex));
+        return $this->registryCache = $this->sanitizeCatalogEntries(is_array($plugins) ? $plugins : [], dirname($localIndex));
     }
 
     private function getRegistryUrl(): string
@@ -213,7 +221,7 @@ class PluginMarketplaceModule
             return [];
         }
 
-        $response = HttpClient::getInstance()->get($registryUrl, [
+        $response = $this->httpClient->get($registryUrl, [
             'userAgent' => '365CMS-PluginMarketplace/1.0',
             'timeout' => 10,
             'connectTimeout' => 5,
@@ -342,7 +350,7 @@ class PluginMarketplaceModule
             return [];
         }
 
-        $response = HttpClient::getInstance()->get($url, [
+        $response = $this->httpClient->get($url, [
             'userAgent' => '365CMS-PluginMarketplace/1.0',
             'timeout' => 10,
             'connectTimeout' => 5,

@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.7.85",
+  "version": "2.7.123",
   "min_php": "8.4",
   "released": "2026-03-25",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release 2.7.85: Auch SEO-Audit, Technical, Sitemap und Schema nutzen jetzt denselben kleinen Konfigurations-Wrapper wie ihre Schwesterseiten, damit Wrapper-Metadaten im SEO-Bereich konsistenter gepflegt werden k\u00f6nnen.",
+  "notes": "Release 2.7.123: `HubSitesModule.php` cached normalisierte Hub-Domain-Zuordnungen pro Modulinstanz, damit Zusatzdomain-Prüfungen keine wiederholten Vollscans aller Hub-Sites mehr auslösen.",
   "critical": false
 }

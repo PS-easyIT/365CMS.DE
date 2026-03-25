@@ -28,6 +28,11 @@ function cms_admin_not_found_monitor_redirect(string $redirectUrl): never
     exit;
 }
 
+function cms_admin_not_found_monitor_default_redirect(): string
+{
+    return SITE_URL . '/admin/not-found-monitor';
+}
+
 function cms_admin_not_found_monitor_flash(array $payload): void
 {
     $_SESSION['admin_alert'] = [
@@ -46,35 +51,50 @@ function cms_admin_not_found_monitor_flash_result(array $result): void
     ]);
 }
 
+function cms_admin_not_found_monitor_pull_alert(): ?array
+{
+    $alert = $_SESSION['admin_alert'] ?? null;
+    unset($_SESSION['admin_alert']);
+
+    return is_array($alert) ? $alert : null;
+}
+
+/**
+ * @return array<string, callable(array): array>
+ */
+function cms_admin_not_found_monitor_action_handlers(RedirectManagerModule $module): array
+{
+    return [
+        'save_redirect' => static fn (array $post): array => $module->saveRedirect($post),
+        'clear_logs' => static fn (array $post): array => $module->clearLogs(),
+    ];
+}
+
 function cms_admin_not_found_monitor_handle_action(RedirectManagerModule $module, string $action, array $post): array
 {
-    switch ($action) {
-        case 'save_redirect':
-            return $module->saveRedirect($post);
+    $handlers = cms_admin_not_found_monitor_action_handlers($module);
 
-        case 'clear_logs':
-            return $module->clearLogs();
+    if (!isset($handlers[$action])) {
+        return ['success' => false, 'error' => 'Unbekannte Aktion.'];
     }
 
-    return ['success' => false, 'error' => 'Unbekannte Aktion.'];
+    return $handlers[$action]($post);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'admin_redirect_manager')) {
-        $alert = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-    } else {
-        $action = (string) ($_POST['action'] ?? '');
-        $result = cms_admin_not_found_monitor_handle_action($module, $action, $_POST);
-
-        cms_admin_not_found_monitor_flash_result($result);
-        cms_admin_not_found_monitor_redirect(SITE_URL . '/admin/not-found-monitor');
+    if (!Security::instance()->verifyToken((string) ($_POST['csrf_token'] ?? ''), 'admin_redirect_manager')) {
+        cms_admin_not_found_monitor_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
+        cms_admin_not_found_monitor_redirect(cms_admin_not_found_monitor_default_redirect());
     }
+
+    $action = (string) ($_POST['action'] ?? '');
+    $result = cms_admin_not_found_monitor_handle_action($module, $action, $_POST);
+
+    cms_admin_not_found_monitor_flash_result($result);
+    cms_admin_not_found_monitor_redirect(cms_admin_not_found_monitor_default_redirect());
 }
 
-if (isset($_SESSION['admin_alert'])) {
-    $alert = $_SESSION['admin_alert'];
-    unset($_SESSION['admin_alert']);
-}
+$alert = cms_admin_not_found_monitor_pull_alert();
 
 $csrfToken = Security::instance()->generateToken('admin_redirect_manager');
 $pageTitle = '404-Monitor';

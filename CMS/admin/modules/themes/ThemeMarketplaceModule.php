@@ -36,6 +36,8 @@ class ThemeMarketplaceModule
 
     private ThemeManager $themeManager;
     private HttpClient $httpClient;
+    /** @var array<int, array<string, mixed>>|null */
+    private ?array $catalogCache = null;
 
     public function __construct()
     {
@@ -206,17 +208,21 @@ class ThemeMarketplaceModule
      */
     private function getCatalog(): array
     {
+        if ($this->catalogCache !== null) {
+            return $this->catalogCache;
+        }
+
         $remoteCatalog = $this->loadRemoteCatalog();
         if ($remoteCatalog !== []) {
-            return $remoteCatalog;
+            return $this->catalogCache = $remoteCatalog;
         }
 
         $localCatalog = $this->loadLocalCatalog();
         if ($localCatalog !== []) {
-            return $localCatalog;
+            return $this->catalogCache = $localCatalog;
         }
 
-        return [];
+        return $this->catalogCache = [];
     }
 
     /**
@@ -504,7 +510,7 @@ class ThemeMarketplaceModule
 
     private function findCatalogTheme(string $slug): ?array
     {
-        foreach ($this->getData()['catalog'] as $theme) {
+        foreach ($this->getCatalog() as $theme) {
             if ($this->normalizeThemeKey((string) ($theme['slug'] ?? '')) === $slug) {
                 return $theme;
             }

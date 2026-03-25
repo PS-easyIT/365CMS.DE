@@ -5,13 +5,241 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 167
+### Gesamtstand nach Batch 205
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 445 | 86,74 | 85,12 | 87,87 | 86,94 |
+| 445 | 88,07 | 86,36 | 89,08 | 88,32 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **167 umgesetzte Audit-Batches**. Das sind aktuell **167 von 444 Prüfplan-Punkten**. Zuletzt wurden vier weitere SEO-Unterseiten auf denselben kleinen Konfigurations-Wrapper wie ihre Schwesterseiten nachgezogen.
+Der aktuelle Nachpflege-Stand umfasst damit **205 umgesetzte Audit-Batches**. Das sind aktuell **205 von 444 Prüfplan-Punkten**. Zuletzt wurde der Hub-Sites-Domainpfad über einen Modul-Cache nachgezogen, damit Zusatzdomain-Prüfungen keine wiederholten Vollscans aller Hub-Sites mehr auslösen.
+
+### Delta Batch 205
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/hub/HubSitesModule.php` | umgesetzt | Normalisierte Zusatzdomain-Zuordnungen pro Modulinstanz gecached und Save-/Delete-/Duplicate-Pfade den Cache nach Mutationen gezielt invalidieren lassen, damit Zusatzdomain-Prüfungen nicht pro Domain erneut alle Hub-Sites samt JSON-Settings lesen müssen. | Das Hub-Sites-Modul reduziert wiederholte Vollscans im Zusatzdomain-Validierungspfad, hält Domain-Konfliktprüfungen näher an einem gemeinsamen Datenindex und bleibt bei mehreren Hub-Domains pro Save-Vorgang deutlich schlanker und vertragsnäher. |
+
+### Delta Batch 204
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/media/MediaModule.php` | umgesetzt | Kategorien pro Modulinstanz gecached und die Persistenz von Dateinamen-/Thumbnail-Settings wieder auf die kanonischen Service-Keys gezogen, damit Kategorien nicht mehrfach identisch geladen werden und die Medien-Settings nicht auf tolerierte Alias-Namen angewiesen bleiben. | Das Media-Modul reduziert wiederholte Kategorie-Lookups im selben Request, hält Bibliothek, Kategorien-Tab und Kategorievalidierung näher an einem gemeinsamen Datenpfad und schreibt seine Einstellungen wieder explizit im erwarteten Medien-Service-Vertrag. |
+
+### Delta Batch 203
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/plugins/PluginMarketplaceModule.php` | umgesetzt | Die normalisierte Plugin-Registry pro Modulinstanz gecached und den HTTP-Client wiederverwendet, damit Registry- und Manifest-Zugriffe nicht mehrfach unnötig neu initialisiert werden. | Das Plugin-Marketplace-Modul reduziert wiederholte Registry-Ladevorgänge im selben Lebenszyklus, hält den Transportzugang zentraler und bleibt im Marketplace-Datenpfad näher an einem schlanken, wiederverwendbaren Modulvertrag. |
+
+### Delta Batch 202
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/ThemeMarketplaceModule.php` | umgesetzt | Den normalisierten Theme-Katalog pro Modulinstanz gecached und die Themensuche für Installationen direkt auf den schlanken Katalogpfad gezogen, statt erneut den kompletten angereicherten Marketplace-Datenaufbau auszulösen. | Das Theme-Marketplace-Modul reduziert wiederholte Remote-/Normalisierungsarbeit im Installationspfad, hält `findCatalogTheme()` näher am eigentlichen Suchzweck und entkoppelt die Installationslogik stärker vom View-spezifischen Statusaufbau. |
+
+### Delta Batch 201
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/FontManagerModule.php` | umgesetzt | Vorhandene Setting-Namen für den Font-Manager gesammelt vorgeladen und die Persistenz über einen gemeinsamen Helfer gebündelt, damit beim Speichern von Font-Optionen keine N+1-Existenzchecks pro Schlüssel mehr laufen. | Das Font-Manager-Modul reduziert wiederholte Datenbank-Roundtrips im Settings-Save-Pfad, hält `saveSettings()` näher an der eigentlichen Input-Normalisierung und schafft einen klareren Persistenzvertrag für weitere Font-Optionen. |
+
+### Delta Batch 200
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/cookie-manager.php` | umgesetzt | Ziel-URL, Redirect-, Allowlist- und Dispatch-Pfade über kleine Helfer gebündelt, damit Token-Checks sowie Cookie-Manager-Aktionen konsistenter bleiben. | Der Cookie-Manager-Entry reduziert verteilte Request-Logik im Einstieg, hält Fehler- und Redirect-Pfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt Ziel-, Allowlist- und Dispatch-Details mehrfach zu pflegen. |
+
+### Delta Batch 199
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/legal-sites.php` | umgesetzt | Ziel-URL, Redirect-, Profil-Session-State und Template-Aufbau über kleine Helfer gebündelt, damit Token-Checks sowie Profil-, Template- und Redirect-Pfade konsistenter bleiben. | Der Legal-Sites-Entry reduziert verteilte Request-Logik im Einstieg, hält Fehler- und Redirect-Pfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt Session-, Ziel- und Template-Details mehrfach zu pflegen. |
+
+### Delta Batch 198
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/error-report.php` | umgesetzt | Default-/Redirect-Ziel, JSON-Payload-Normalisierung und Report-Dispatch über kleine Helfer gebündelt, damit Token-Checks sowie Fehlerreport- und Redirect-Pfade konsistenter bleiben. | Der Error-Report-Entry reduziert verteilte Request-Logik im Einstieg, hält Fehler- und Redirect-Pfade kompakter und trennt Ziel-, Payload- und Dispatch-Details klarer vom eigentlichen Service-Aufruf. |
+
+### Delta Batch 197
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/theme-explorer.php` | umgesetzt | Ziel-URL, Action-Allowlist, Redirect-, Flash-/Pull-Alert-Pfade und Save-Dispatch über kleine Helfer gebündelt, damit Token-Checks sowie Datei-Save- und Fehlerpfade konsistenter bleiben. | Der Theme-Explorer-Entry reduziert verteilte POST-Logik im Einstieg, hält Fehler- und Redirect-Pfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt Session-, Ziel- und Dispatch-Details mehrfach zu pflegen. |
+
+### Delta Batch 196
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/hub-sites.php` | umgesetzt | Action-Allowlist, View-Normalisierung, Redirect-Abgänge, Flash-/Pull-Alert-Pfade, Action-Dispatch und Render-Konfiguration über kleine Helfer gebündelt, damit Listen-, Edit- und Template-Pfade konsistenter bleiben. | Der Hub-Sites-Entry reduziert verteilte Request- und Render-Logik im Einstieg, hält Fehler- und Redirect-Pfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt View-, Asset- und Dispatch-Details mehrfach zu pflegen. |
+
+### Delta Batch 195
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/media.php` | umgesetzt | Action-Allowlist, Pfadauflösung, Redirect-Parameter, Upload-Rückmeldungen und Action-Dispatch über kleine Helfer gebündelt, damit Token-Checks sowie Library-, Kategorie- und Settings-Aktionen konsistenter bleiben. | Der Media-Entry reduziert verteilte POST-Logik im Einstieg, hält Fehler- und Redirect-Pfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt Query-, Upload- und Dispatch-Details mehrfach zu pflegen. |
+
+### Delta Batch 194
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/theme-editor.php` | umgesetzt | Layout- und Fallback-Pfade über kleine Helfer gebündelt, damit Customizer-Einbettung, Fallback-Links und Admin-Layout-Aufbau konsistenter bleiben. | Der Theme-Editor-Entry reduziert verteilte Wrapper-Logik im Einstieg, hält Fallback-Pfade kompakter und bleibt näher an seinem eigentlichen Routing-Zweck statt Header-, Sidebar- und Fallback-Details mehrfach zu pflegen. |
+
+### Delta Batch 193
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/updates.php` | umgesetzt | Redirect-, Flash-, Pull-Alert-, Allowlist- und Action-Dispatch-Pfade über kleine Helfer gebündelt, damit Token-Checks, Update-Prüfung sowie Core- und Plugin-Installationsrückgaben konsistenter bleiben. | Der Updates-Entry reduziert verteilte POST-Logik im Einstieg, hält Fehlerpfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt Alert-, Redirect- und Dispatch-Details mehrfach zu pflegen. |
+
+### Delta Batch 192
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/themes.php` | umgesetzt | Redirect-, Flash-, Pull-Alert- und Action-Dispatch-Pfade über kleine Helfer gebündelt, damit Token-Checks, Theme-Slug-Normalisierung sowie Aktivierungs- und Löschrückgaben konsistenter bleiben. | Der Themes-Entry reduziert verteilte POST-Logik im Einstieg, hält Fehlerpfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt Alert-, Redirect- und Dispatch-Details mehrfach zu pflegen. |
+
+### Delta Batch 191
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/plugins.php` | umgesetzt | Redirect-, Flash-, Pull-Alert- und Action-Dispatch-Pfade über kleine Helfer gebündelt, damit Token-Checks sowie Aktivierungs-, Deaktivierungs- und Löschrückgaben konsistenter bleiben. | Der Plugins-Entry reduziert verteilte POST-Logik im Einstieg, hält Fehlerpfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt Alert-, Redirect- und Dispatch-Details mehrfach zu pflegen. |
+
+### Delta Batch 190
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/theme-marketplace.php` | umgesetzt | Redirect-, Flash-, Pull-Alert- und Action-Dispatch-Pfade über kleine Helfer gebündelt, damit Token-Checks, Theme-Slug-Normalisierung und Rückmeldungen konsistenter bleiben. | Der Theme-Marketplace-Entry reduziert verteilte POST-Logik im Einstieg, hält Fehlerpfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt Alert-, Redirect- und Dispatch-Details mehrfach zu pflegen. |
+
+### Delta Batch 189
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/plugin-marketplace.php` | umgesetzt | Redirect-, Flash-, Pull-Alert- und Action-Dispatch-Pfade über kleine Helfer gebündelt, damit Token-Checks, Installationsaktionen und Rückmeldungen konsistenter bleiben. | Der Plugin-Marketplace-Entry reduziert verteilte POST-Logik im Einstieg, hält Fehlerpfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt Alert-, Redirect- und Dispatch-Details mehrfach zu pflegen. |
+
+### Delta Batch 188
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/landing-page.php` | umgesetzt | Redirect-, Flash-, Pull-Alert- und Action-Dispatch-Pfade über kleine Helfer gebündelt, damit Token-Checks, Tab-Pfade und Rückmeldungen konsistenter bleiben. | Der Landing-Page-Entry reduziert verteilte POST-Logik im Einstieg, hält Fehlerpfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt Alert-, Tab- und Dispatch-Details mehrfach zu pflegen. |
+
+### Delta Batch 187
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/firewall.php` | umgesetzt | Redirect-, Flash-, Pull-Alert- und Action-Dispatch-Pfade über kleine Helfer gebündelt, damit Token-Checks, Aktionspfade und Rückmeldungen konsistenter bleiben. | Der Firewall-Entry reduziert verteilte POST-Logik im Einstieg, hält Fehlerpfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt Alert- und Dispatch-Details mehrfach zu pflegen. |
+
+### Delta Batch 186
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/font-manager.php` | umgesetzt | Redirect-, Flash-, Pull-Alert- und Action-Dispatch-Pfade über kleine Helfer gebündelt, damit Token-Checks, Aktionspfade und Rückmeldungen konsistenter bleiben. | Der Font-Manager-Entry reduziert verteilte POST-Logik im Einstieg, hält Fehlerpfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt Alert- und Dispatch-Details mehrfach zu pflegen. |
+
+### Delta Batch 185
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/backups.php` | umgesetzt | Redirect-, Flash-, Pull-Alert- und Action-Dispatch-Pfade über kleine Helfer gebündelt, damit Token-Checks, Aktionspfade und Rückmeldungen konsistenter bleiben. | Der Backups-Entry reduziert verteilte POST-Logik im Einstieg, hält Fehlerpfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt Alert- und Dispatch-Details mehrfach zu pflegen. |
+
+### Delta Batch 184
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/cookie-manager.php` | umgesetzt | Action-Allowlist und Session-Alert-Pfade über kleine Helfer gebündelt, damit Token-Checks, Aktionspfade und Rückmeldungen konsistenter bleiben. | Der Cookie-Manager-Entry reduziert verteilte POST-Logik im Einstieg, hält Fehlerpfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt Allowlist- und Alert-Details lose zu pflegen. |
+
+### Delta Batch 183
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/packages.php` | umgesetzt | Action-Dispatch und Session-Alert-Pfade über kleine Handler-Helfer gebündelt, damit Paket- und Settings-Aktionen konsistenter bleiben. | Der Packages-Entry reduziert verteilte Switch-Logik im Einstieg, hält Fehlerpfade kompakter und bleibt näher an den eigentlichen Modulen statt Flash- und Dispatch-Details mehrfach auszuschreiben. |
+
+### Delta Batch 182
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/orders.php` | umgesetzt | Action-Allowlist und Session-Alert-Pfade über kleine Helfer gebündelt, damit Token-Checks, Aktionspfade und Rückmeldungen konsistenter bleiben. | Der Orders-Entry reduziert verteilte POST-Logik im Einstieg, hält Fehlerpfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt Allowlist- und Alert-Details lose zu pflegen. |
+
+### Delta Batch 181
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/error-report.php` | umgesetzt | Redirect-, Flash- und JSON-Normalisierung über kleine Entry-Helfer gebündelt, damit Fehlerfälle, Token-Checks und Report-Payload konsistenter bleiben. | Der Error-Report-Entry reduziert verteilte POST-Logik im Einstieg, hält Fehlerpfade kompakter und trennt Request-Normalisierung klarer vom eigentlichen Service-Aufruf. |
+
+### Delta Batch 180
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/deletion-requests.php` | umgesetzt | Das Redirect-Ziel des Löschanträge-Entrys über einen kleinen Ziel-Helfer gebündelt, damit Weiterleitungen konsistenter und sichtbarer bleiben. | Der Löschanträge-Entry reduziert hart verteilte Zielpfade im Einstieg und bleibt näher an seinem eigentlichen Routing-Zweck statt Ziel-URLs lose auszuschreiben. |
+
+### Delta Batch 179
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/design-settings.php` | umgesetzt | Das Redirect-Ziel des Design-Entrys über einen kleinen Ziel-Helfer gebündelt, damit Weiterleitungen konsistenter und sichtbarer bleiben. | Der Design-Settings-Entry reduziert hart verteilte Zielpfade im Einstieg und bleibt näher an seinem eigentlichen Routing-Zweck statt Ziel-URLs lose auszuschreiben. |
+
+### Delta Batch 178
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/legal-sites.php` | umgesetzt | POST-Dispatch, Flash-Meldungen und Redirects über kleine Entry-Helfer gebündelt, damit Aktionspfade, Fehlerfälle und PRG-Flow konsistenter bleiben. | Der Legal-Sites-Entry reduziert verteilte POST-Logik im Einstieg, hält Fehlerpfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt Session- und Redirect-Details mehrfach auszuschreiben. |
+
+### Delta Batch 177
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/documentation.php` | umgesetzt | Aktionshandler, Flash-Meldungen und Redirects über kleine Entry-Helfer gebündelt, damit Dokumentauswahl, Fehlerfälle und PRG-Flow konsistenter bleiben. | Der Documentation-Entry reduziert verteilte Request-Logik im Einstieg, hält Fehlerpfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt Redirect- und Session-Details mehrfach auszuschreiben. |
+
+### Delta Batch 176
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/mail-settings.php` | umgesetzt | Action-Handler enger an die Handler-Map gekoppelt und POST-Dispatch über denselben kleinen Entry-Pfad gebündelt, damit Fehlerfälle und PRG-Flow konsistenter bleiben. | Der Mail-Settings-Entry reduziert doppelte Aktionsdefinitionen im Einstieg, hält Dispatch-Pfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt Handler- und Redirect-Details doppelt zu pflegen. |
+
+### Delta Batch 175
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/groups.php` | umgesetzt | POST-Dispatch, Flash-Meldungen und Redirects über kleine Entry-Helfer gebündelt, damit Aktionspfade, Fehlerfälle und PRG-Flow konsistenter bleiben. | Der Gruppen-Entry reduziert verteilte POST-Logik im Einstieg, hält Fehlerpfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt Session- und Redirect-Details mehrfach auszuschreiben. |
+
+### Delta Batch 174
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/data-requests.php` | umgesetzt | POST-Dispatch, Flash-Meldungen und Redirects über kleine Entry-Helfer gebündelt, damit Scope-Aktionen, Fehlerfälle und PRG-Flow konsistenter bleiben. | Der Data-Requests-Entry reduziert verteilte POST-Logik im Einstieg, hält Fehlerpfade kompakter und bleibt näher an den eigentlichen Modulen statt Session- und Redirect-Details mehrfach auszuschreiben. |
+
+### Delta Batch 173
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/settings.php` | umgesetzt | Tab-Normalisierung, POST-Dispatch, Flash-Meldungen und Redirects über kleine Entry-Helfer gebündelt, damit Aktionspfade, Fehlerfälle und PRG-Flow konsistenter bleiben. | Der Settings-Entry reduziert verteilte POST-Logik im Einstieg, hält Tab- und Fehlerpfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt Redirect- und Session-Details mehrfach auszuschreiben. |
+
+### Delta Batch 172
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/comments.php` | umgesetzt | POST-Dispatch, Flash-Meldungen und Redirects über kleine Entry-Helfer gebündelt, damit Aktionspfade, Fehlerfälle und PRG-Flow konsistenter bleiben. | Der Kommentare-Entry reduziert verteilte POST-Logik im Einstieg, hält Fehlerpfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt Session- und Redirect-Details mehrfach auszuschreiben. |
+
+### Delta Batch 171
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/not-found-monitor.php` | umgesetzt | POST-Dispatch, Flash-Meldungen und Redirects über kleine Entry-Helfer gebündelt, damit Aktionspfade, Fehlerfälle und PRG-Flow konsistenter bleiben. | Der 404-Monitor-Entry reduziert verteilte POST-Logik im Einstieg, hält Fehlerpfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt Session- und Redirect-Details mehrfach auszuschreiben. |
+
+### Delta Batch 170
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/menu-editor.php` | umgesetzt | POST-Dispatch, Flash-Meldungen und Redirects über kleine Entry-Helfer gebündelt, damit Aktionspfade, Fehlerfälle und PRG-Flow konsistenter bleiben. | Der Menü-Editor-Entry reduziert verteilte POST-Logik im Einstieg, hält Fehlerpfade kompakter und bleibt näher am eigentlichen Modul-Aufruf statt Session- und Redirect-Details mehrfach auszuschreiben. |
+
+### Delta Batch 169
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/diagnose.php` | umgesetzt | Den Diagnose-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `system-monitor-page.php` übergeben werden. | Der Diagnose-Entry reduziert weiteres Wrapper-Duplikat im Monitoring-Bereich, hält Metadaten-Änderungen zentraler und rundet die gemeinsame System-/Monitoring-Familie konsistent ab. |
+
+### Delta Batch 168
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/performance.php` | umgesetzt | Den Performance-Overview-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `performance-page.php` übergeben werden. | Der Performance-Overview-Entry reduziert weiteres Wrapper-Duplikat im Performance-Bereich, hält Metadaten-Änderungen zentraler und rundet die gemeinsame Performance-Familie konsistent ab. |
 
 ### Delta Batch 167
 

@@ -20,24 +20,6 @@ function cms_admin_mail_settings_allowed_tabs(): array
     return ['transport', 'azure', 'graph', 'logs', 'queue'];
 }
 
-function cms_admin_mail_settings_allowed_actions(): array
-{
-    return [
-        'save_transport',
-        'save_azure',
-        'save_graph',
-        'save_queue',
-        'send_test_email',
-        'run_queue_now',
-        'release_queue_stale',
-        'enqueue_queue_test',
-        'test_graph_connection',
-        'clear_logs',
-        'clear_azure_cache',
-        'clear_graph_cache',
-    ];
-}
-
 function cms_admin_mail_settings_normalize_tab(string $tab): string
 {
     return in_array($tab, cms_admin_mail_settings_allowed_tabs(), true) ? $tab : 'transport';
@@ -66,23 +48,23 @@ function cms_admin_mail_settings_flash_result(MailSettingsActionResult $result):
 }
 
 /**
- * @return array<string, callable(): MailSettingsActionResult>
+ * @return array<string, callable(array): MailSettingsActionResult>
  */
 function cms_admin_mail_settings_action_handlers(MailSettingsModule $module): array
 {
     return [
-        'save_transport' => static fn () => $module->saveTransport($_POST),
-        'save_azure' => static fn () => $module->saveAzure($_POST),
-        'save_graph' => static fn () => $module->saveGraph($_POST),
-        'save_queue' => static fn () => $module->saveQueue($_POST),
-        'send_test_email' => static fn () => $module->sendTestEmail($_POST),
-        'run_queue_now' => static fn () => $module->runQueueNow($_POST),
-        'release_queue_stale' => static fn () => $module->releaseQueueStale(),
-        'enqueue_queue_test' => static fn () => $module->enqueueQueueTestEmail($_POST),
-        'test_graph_connection' => static fn () => $module->testGraphConnection(),
-        'clear_logs' => static fn () => $module->clearLogs(),
-        'clear_azure_cache' => static fn () => $module->clearAzureCache(),
-        'clear_graph_cache' => static fn () => $module->clearGraphCache(),
+        'save_transport' => static fn (array $post): MailSettingsActionResult => $module->saveTransport($post),
+        'save_azure' => static fn (array $post): MailSettingsActionResult => $module->saveAzure($post),
+        'save_graph' => static fn (array $post): MailSettingsActionResult => $module->saveGraph($post),
+        'save_queue' => static fn (array $post): MailSettingsActionResult => $module->saveQueue($post),
+        'send_test_email' => static fn (array $post): MailSettingsActionResult => $module->sendTestEmail($post),
+        'run_queue_now' => static fn (array $post): MailSettingsActionResult => $module->runQueueNow($post),
+        'release_queue_stale' => static fn (array $post): MailSettingsActionResult => $module->releaseQueueStale(),
+        'enqueue_queue_test' => static fn (array $post): MailSettingsActionResult => $module->enqueueQueueTestEmail($post),
+        'test_graph_connection' => static fn (array $post): MailSettingsActionResult => $module->testGraphConnection(),
+        'clear_logs' => static fn (array $post): MailSettingsActionResult => $module->clearLogs(),
+        'clear_azure_cache' => static fn (array $post): MailSettingsActionResult => $module->clearAzureCache(),
+        'clear_graph_cache' => static fn (array $post): MailSettingsActionResult => $module->clearGraphCache(),
     ];
 }
 
@@ -110,12 +92,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $currentTab = cms_admin_mail_settings_normalize_tab((string) ($_POST['tab'] ?? $currentTab));
 
     $action = (string) ($_POST['action'] ?? '');
-    if (!in_array($action, cms_admin_mail_settings_allowed_actions(), true)) {
+    if (!isset($actionHandlers[$action])) {
         cms_admin_mail_settings_flash('danger', 'Unbekannte Aktion.');
         cms_admin_mail_settings_redirect($redirectBase, $currentTab);
     }
 
-    $result = $actionHandlers[$action]();
+    $result = $actionHandlers[$action]($_POST);
 
     cms_admin_mail_settings_flash_result($result);
 

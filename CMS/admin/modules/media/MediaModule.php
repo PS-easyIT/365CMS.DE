@@ -22,6 +22,10 @@ use CMS\WP_Error;
 class MediaModule
 {
     private MediaService $service;
+    /**
+     * @var array<int, array<string, mixed>>|null
+     */
+    private ?array $categoriesCache = null;
 
     private const ALLOWED_VIEWS = ['list', 'grid', 'finder'];
     private const ALLOWED_TABS = ['library', 'categories', 'settings'];
@@ -132,7 +136,7 @@ class MediaModule
             }));
         }
 
-        $categories = $this->service->getCategories();
+        $categories = $this->getCategories();
         $diskUsage  = $this->service->getDiskUsage();
 
         return [
@@ -292,7 +296,7 @@ class MediaModule
     public function getCategoriesData(): array
     {
         return [
-            'categories' => $this->service->getCategories(),
+            'categories' => $this->getCategories(),
         ];
     }
 
@@ -318,6 +322,9 @@ class MediaModule
                 'category' => $normalizedSlug,
             ]);
         }
+
+        $this->resetCategoriesCache();
+
         return ['success' => true, 'message' => 'Kategorie erstellt.'];
     }
 
@@ -341,6 +348,9 @@ class MediaModule
                 'category' => $normalizedSlug,
             ]);
         }
+
+        $this->resetCategoriesCache();
+
         return ['success' => true, 'message' => 'Kategorie gelöscht.'];
     }
 
@@ -382,21 +392,47 @@ class MediaModule
         }
 
         // Integers
-        foreach (['jpeg_quality', 'max_width', 'max_height', 'thumbnail_small_w', 'thumbnail_small_h', 'thumbnail_medium_w', 'thumbnail_medium_h', 'thumbnail_large_w', 'thumbnail_large_h', 'thumbnail_banner_w', 'thumbnail_banner_h'] as $key) {
-            if (isset($input[$key])) {
-                $value = (int)$input[$key];
-                $settings[$key] = match ($key) {
+        foreach ([
+            'jpeg_quality' => 'jpeg_quality',
+            'max_width' => 'max_width',
+            'max_height' => 'max_height',
+            'thumbnail_small_w' => 'thumb_small_w',
+            'thumbnail_small_h' => 'thumb_small_h',
+            'thumbnail_medium_w' => 'thumb_medium_w',
+            'thumbnail_medium_h' => 'thumb_medium_h',
+            'thumbnail_large_w' => 'thumb_large_w',
+            'thumbnail_large_h' => 'thumb_large_h',
+            'thumbnail_banner_w' => 'thumb_banner_w',
+            'thumbnail_banner_h' => 'thumb_banner_h',
+        ] as $inputKey => $settingsKey) {
+            if (isset($input[$inputKey])) {
+                $value = (int)$input[$inputKey];
+                $settings[$settingsKey] = match ($settingsKey) {
                     'jpeg_quality' => max(60, min(100, $value)),
                     'max_width', 'max_height' => max(1, min(8000, $value)),
-                    'thumbnail_large_w', 'thumbnail_large_h', 'thumbnail_banner_w', 'thumbnail_banner_h' => max(50, min(6000, $value)),
+                    'thumb_large_w', 'thumb_large_h', 'thumb_banner_w', 'thumb_banner_h' => max(50, min(6000, $value)),
                     default => max(50, min(4000, $value)),
                 };
             }
         }
 
         // Booleans
-        foreach (['auto_webp', 'strip_exif', 'organize_month_year', 'sanitize_filename', 'unique_filename', 'lowercase_filename', 'member_uploads_enabled', 'member_delete_own', 'generate_thumbnails', 'block_dangerous_types', 'validate_image_content', 'require_login_for_upload', 'protect_uploads_dir'] as $key) {
-            $settings[$key] = isset($input[$key]);
+        foreach ([
+            'auto_webp' => 'auto_webp',
+            'strip_exif' => 'strip_exif',
+            'organize_month_year' => 'organize_month_year',
+            'sanitize_filename' => 'sanitize_filenames',
+            'unique_filename' => 'unique_filenames',
+            'lowercase_filename' => 'lowercase_filenames',
+            'member_uploads_enabled' => 'member_uploads_enabled',
+            'member_delete_own' => 'member_delete_own',
+            'generate_thumbnails' => 'generate_thumbnails',
+            'block_dangerous_types' => 'block_dangerous_types',
+            'validate_image_content' => 'validate_image_content',
+            'require_login_for_upload' => 'require_login_for_upload',
+            'protect_uploads_dir' => 'protect_uploads_dir',
+        ] as $inputKey => $settingsKey) {
+            $settings[$settingsKey] = isset($input[$inputKey]);
         }
 
         // Arrays
@@ -497,13 +533,33 @@ class MediaModule
 
     private function categoryExists(string $slug): bool
     {
-        foreach ($this->service->getCategories() as $category) {
+        foreach ($this->getCategories() as $category) {
             if (($category['slug'] ?? '') === $slug) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function getCategories(): array
+    {
+        if ($this->categoriesCache !== null) {
+            return $this->categoriesCache;
+        }
+
+        $categories = $this->service->getCategories();
+        $this->categoriesCache = is_array($categories) ? $categories : [];
+
+        return $this->categoriesCache;
+    }
+
+    private function resetCategoriesCache(): void
+    {
+        $this->categoriesCache = null;
     }
 
     private function normalizeUploadFile(array $file): ?array

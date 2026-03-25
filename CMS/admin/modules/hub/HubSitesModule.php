@@ -18,6 +18,10 @@ class HubSitesModule
     private string $prefix;
     private HubTemplateProfileManager $templateProfileManager;
     private ?bool $hasTableSlugColumn = null;
+    /**
+     * @var array<string, int>|null
+     */
+    private ?array $hubDomainAssignmentsCache = null;
 
     /** @var string[] */
     private const ALLOWED_CARD_LAYOUTS = ['standard', 'feature', 'compact'];
@@ -365,6 +369,7 @@ class HubSitesModule
 
         try {
             $this->db->execute("DELETE FROM {$this->prefix}site_tables WHERE id = ?", [$id]);
+            $this->resetHubDomainAssignmentsCache();
             return ['success' => true, 'message' => 'Routing / Hub Site gelöscht.'];
         } catch (\Throwable $e) {
             return $this->failResult('hub.delete.failed', 'Hub-Site konnte nicht gelöscht werden.', $e, ['site_id' => $id]);
@@ -748,6 +753,30 @@ class HubSitesModule
 
     private function hubDomainExists(string $domain, ?int $excludeId = null): bool
     {
+        foreach ($this->getHubDomainAssignments() as $assignedDomain => $siteId) {
+            if ($assignedDomain !== $domain) {
+                continue;
+            }
+
+            if ($excludeId !== null && $siteId === $excludeId) {
+                return false;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function getHubDomainAssignments(): array
+    {
+        if ($this->hubDomainAssignmentsCache !== null) {
+            return $this->hubDomainAssignmentsCache;
+        }
+
         $rows = $this->db->get_results(
             "SELECT id, settings_json
              FROM {$this->prefix}site_tables
@@ -755,22 +784,31 @@ class HubSitesModule
             []
         ) ?: [];
 
+        $assignments = [];
+
         foreach ($rows as $row) {
             $rowId = (int)($row->id ?? 0);
-            if ($excludeId !== null && $rowId === $excludeId) {
-                continue;
-            }
-
             $settings = \CMS\Json::decodeArray($row->settings_json ?? null, []);
             $domains = is_array($settings['hub_domains'] ?? null) ? $settings['hub_domains'] : [];
+
             foreach ($domains as $candidate) {
-                if ($this->normalizeDomainHost((string)$candidate) === $domain) {
-                    return true;
+                $normalizedDomain = $this->normalizeDomainHost((string)$candidate);
+                if ($normalizedDomain === '') {
+                    continue;
                 }
+
+                $assignments[$normalizedDomain] = $rowId;
             }
         }
 
-        return false;
+        $this->hubDomainAssignmentsCache = $assignments;
+
+        return $this->hubDomainAssignmentsCache;
+    }
+
+    private function resetHubDomainAssignmentsCache(): void
+    {
+        $this->hubDomainAssignmentsCache = null;
     }
 
     private function isMainDomainHost(string $host): bool

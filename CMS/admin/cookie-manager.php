@@ -19,13 +19,17 @@ if (!Auth::instance()->isAdmin()) {
 }
 
 require_once __DIR__ . '/modules/legal/CookieManagerModule.php';
-$module      = new CookieManagerModule();
-$alert       = null;
-$redirectUrl = SITE_URL . '/admin/cookie-manager';
+$module = new CookieManagerModule();
+$alert  = null;
 
-function cms_admin_cookie_manager_redirect(string $redirectUrl): never
+function cms_admin_cookie_manager_target_url(): string
 {
-    header('Location: ' . $redirectUrl);
+    return SITE_URL . '/admin/cookie-manager';
+}
+
+function cms_admin_cookie_manager_redirect(): never
+{
+    header('Location: ' . cms_admin_cookie_manager_target_url());
     exit;
 }
 
@@ -45,71 +49,68 @@ function cms_admin_cookie_manager_flash_result(array $result): void
     ]);
 }
 
+function cms_admin_cookie_manager_pull_alert(): ?array
+{
+    $alert = $_SESSION['admin_alert'] ?? null;
+    unset($_SESSION['admin_alert']);
+
+    return is_array($alert) ? $alert : null;
+}
+
 function cms_admin_cookie_manager_handle_action(CookieManagerModule $module, string $action, array $post): array
 {
-    switch ($action) {
-        case 'save_settings':
-            return $module->saveSettings($post);
-
-        case 'save_category':
-            return $module->saveCategory($post);
-
-        case 'delete_category':
-            return $module->deleteCategory((int) ($post['id'] ?? 0));
-
-        case 'save_service':
-            return $module->saveService($post);
-
-        case 'delete_service':
-            return $module->deleteService((int) ($post['id'] ?? 0));
-
-        case 'import_curated_service':
-            $serviceSlug = preg_replace('/[^a-z0-9_-]/', '', strtolower(trim((string) ($post['service_slug'] ?? '')))) ?? '';
-
-            return $module->importCuratedService(
-                $serviceSlug,
-                isset($post['self_hosted']) && $post['self_hosted'] === '1'
-            );
-
-        case 'run_scan':
-            return $module->runScanner();
-    }
-
-    return ['success' => false, 'error' => 'Aktion konnte nicht verarbeitet werden.'];
+    return match ($action) {
+        'save_settings' => $module->saveSettings($post),
+        'save_category' => $module->saveCategory($post),
+        'delete_category' => $module->deleteCategory((int) ($post['id'] ?? 0)),
+        'save_service' => $module->saveService($post),
+        'delete_service' => $module->deleteService((int) ($post['id'] ?? 0)),
+        'import_curated_service' => $module->importCuratedService(
+            preg_replace('/[^a-z0-9_-]/', '', strtolower(trim((string) ($post['service_slug'] ?? '')))) ?? '',
+            isset($post['self_hosted']) && $post['self_hosted'] === '1'
+        ),
+        'run_scan' => $module->runScanner(),
+        default => ['success' => false, 'error' => 'Aktion konnte nicht verarbeitet werden.'],
+    };
 }
 
-/** @var list<string> $allowedActions */
-$allowedActions = [
-    'save_settings',
-    'save_category',
-    'delete_category',
-    'save_service',
-    'delete_service',
-    'import_curated_service',
-    'run_scan',
-];
+/** @return array<string, true> */
+function cms_admin_cookie_manager_allowed_actions(): array
+{
+    return [
+        'save_settings' => true,
+        'save_category' => true,
+        'delete_category' => true,
+        'save_service' => true,
+        'delete_service' => true,
+        'import_curated_service' => true,
+        'run_scan' => true,
+    ];
+}
+
+function cms_admin_cookie_manager_is_allowed_action(string $action): bool
+{
+    return isset(cms_admin_cookie_manager_allowed_actions()[$action]);
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'admin_cookies')) {
+    if (!Security::instance()->verifyToken((string) ($_POST['csrf_token'] ?? ''), 'admin_cookies')) {
         cms_admin_cookie_manager_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
-        cms_admin_cookie_manager_redirect($redirectUrl);
-    } else {
-        $action = trim((string)($_POST['action'] ?? ''));
-        if (!in_array($action, $allowedActions, true)) {
-            cms_admin_cookie_manager_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
-            cms_admin_cookie_manager_redirect($redirectUrl);
-        }
-
-        $result = cms_admin_cookie_manager_handle_action($module, $action, $_POST);
-        cms_admin_cookie_manager_flash_result($result);
-        cms_admin_cookie_manager_redirect($redirectUrl);
+        cms_admin_cookie_manager_redirect();
     }
+
+    $action = trim((string) ($_POST['action'] ?? ''));
+    if (!cms_admin_cookie_manager_is_allowed_action($action)) {
+        cms_admin_cookie_manager_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
+        cms_admin_cookie_manager_redirect();
+    }
+
+    $result = cms_admin_cookie_manager_handle_action($module, $action, $_POST);
+    cms_admin_cookie_manager_flash_result($result);
+    cms_admin_cookie_manager_redirect();
 }
 
-if (isset($_SESSION['admin_alert'])) {
-    $alert = $_SESSION['admin_alert'];
-    unset($_SESSION['admin_alert']);
-}
+$alert = cms_admin_cookie_manager_pull_alert();
 
 $csrfToken  = Security::instance()->generateToken('admin_cookies');
 $pageTitle  = 'Cookie Manager';

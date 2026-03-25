@@ -19,59 +19,88 @@ if (!Auth::instance()->isAdmin()) {
 }
 
 require_once __DIR__ . '/modules/settings/SettingsModule.php';
-$module    = new SettingsModule();
-$alert     = null;
-$currentTab = ($_GET['tab'] ?? 'general') === 'content' ? 'content' : 'general';
-$allowedActions = ['save', 'run_site_url_migration', 'repair_imported_slugs', 'send_test_email'];
 
-$buildRedirectUrl = static function (string $tab): string {
-	$normalizedTab = $tab === 'content' ? 'content' : 'general';
-	return SITE_URL . '/admin/settings?tab=' . $normalizedTab;
-};
+function cms_admin_settings_normalize_tab(string $tab): string
+{
+    return $tab === 'content' ? 'content' : 'general';
+}
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $postToken = $_POST['csrf_token'] ?? '';
-    $redirectTab = ($_POST['tab'] ?? 'general') === 'content' ? 'content' : 'general';
-    $action = (string)($_POST['action'] ?? '');
-
-    if (!Security::instance()->verifyToken($postToken, 'admin_settings')) {
-        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-        header('Location: ' . $buildRedirectUrl($redirectTab));
-        exit;
-    }
-
-    $currentTab = ($_POST['tab'] ?? 'general') === 'content' ? 'content' : 'general';
-    if (!in_array($action, $allowedActions, true)) {
-        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Unbekannte Aktion.'];
-        header('Location: ' . $buildRedirectUrl($currentTab));
-        exit;
-    }
-
-    if ($action === 'save') {
-        $result = $module->saveSettings($_POST);
-    } elseif ($action === 'run_site_url_migration') {
-        $result = $module->runSiteUrlMigration($_POST);
-    } elseif ($action === 'repair_imported_slugs') {
-        $result = $module->repairImportedSlugs();
-    } elseif ($action === 'send_test_email') {
-        $result = $module->sendTestEmail($_POST);
-    } else {
-        $result = ['success' => false, 'error' => 'Unbekannte Aktion.'];
-    }
-
-    $_SESSION['admin_alert'] = [
-        'type'    => !empty($result['success']) ? 'success' : 'danger',
-        'message' => $result['message'] ?? $result['error'] ?? '',
-    ];
-
-    header('Location: ' . $buildRedirectUrl($currentTab));
+function cms_admin_settings_redirect(string $tab): never
+{
+    header('Location: ' . cms_admin_settings_redirect_url($tab));
     exit;
 }
 
-if (!empty($_SESSION['admin_alert'])) {
-    $alert = $_SESSION['admin_alert'];
-    unset($_SESSION['admin_alert']);
+function cms_admin_settings_redirect_url(string $tab): string
+{
+    return SITE_URL . '/admin/settings?tab=' . cms_admin_settings_normalize_tab($tab);
 }
+
+function cms_admin_settings_flash(array $payload): void
+{
+    $_SESSION['admin_alert'] = [
+        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
+        'message' => trim((string) ($payload['message'] ?? '')),
+    ];
+}
+
+function cms_admin_settings_flash_result(array $result): void
+{
+    cms_admin_settings_flash([
+        'type' => !empty($result['success']) ? 'success' : 'danger',
+        'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
+    ]);
+}
+
+function cms_admin_settings_pull_alert(): ?array
+{
+    $alert = $_SESSION['admin_alert'] ?? null;
+    unset($_SESSION['admin_alert']);
+
+    return is_array($alert) ? $alert : null;
+}
+
+/**
+ * @return array<string, callable(array): array>
+ */
+function cms_admin_settings_action_handlers(SettingsModule $module): array
+{
+    return [
+        'save' => static fn (array $post): array => $module->saveSettings($post),
+        'run_site_url_migration' => static fn (array $post): array => $module->runSiteUrlMigration($post),
+        'repair_imported_slugs' => static fn (array $post): array => $module->repairImportedSlugs(),
+        'send_test_email' => static fn (array $post): array => $module->sendTestEmail($post),
+    ];
+}
+
+$module = new SettingsModule();
+$alert = null;
+$currentTab = cms_admin_settings_normalize_tab((string) ($_GET['tab'] ?? 'general'));
+$actionHandlers = cms_admin_settings_action_handlers($module);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $postToken = (string) ($_POST['csrf_token'] ?? '');
+    $redirectTab = cms_admin_settings_normalize_tab((string) ($_POST['tab'] ?? 'general'));
+    $action = (string) ($_POST['action'] ?? '');
+
+    if (!Security::instance()->verifyToken($postToken, 'admin_settings')) {
+        cms_admin_settings_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
+        cms_admin_settings_redirect($redirectTab);
+    }
+
+    $currentTab = $redirectTab;
+    if (!isset($actionHandlers[$action])) {
+        cms_admin_settings_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
+        cms_admin_settings_redirect($currentTab);
+    }
+
+    $result = $actionHandlers[$action]($_POST);
+    cms_admin_settings_flash_result($result);
+
+    cms_admin_settings_redirect($currentTab);
+}
+
+$alert = cms_admin_settings_pull_alert();
 
 $csrfToken  = Security::instance()->generateToken('admin_settings');
 $mediaConnectorToken = Security::instance()->generateToken('media_connector');

@@ -18,8 +18,13 @@ function cms_admin_deletion_requests_redirect(string $targetUrl): never
     exit;
 }
 
+function cms_admin_deletion_requests_target_url(): string
+{
+    return SITE_URL . '/admin/data-requests';
+}
+
 if (!Auth::instance()->isAdmin()) {
     cms_admin_deletion_requests_redirect(SITE_URL);
 }
 
-cms_admin_deletion_requests_redirect(SITE_URL . '/admin/data-requests');
+cms_admin_deletion_requests_redirect(cms_admin_deletion_requests_target_url());

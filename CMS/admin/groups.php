@@ -29,46 +29,68 @@ function cms_admin_groups_redirect(string $redirectUrl): never
     exit;
 }
 
-function cms_admin_groups_flash(array $result): void
+function cms_admin_groups_flash(array $payload): void
 {
     $_SESSION['admin_alert'] = [
-        'type'    => !empty($result['success']) ? 'success' : 'danger',
+        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
+        'message' => trim((string) ($payload['message'] ?? '')),
+    ];
+}
+
+function cms_admin_groups_flash_result(array $result): void
+{
+    cms_admin_groups_flash([
+        'type' => !empty($result['success']) ? 'success' : 'danger',
         'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
+    ]);
+}
+
+function cms_admin_groups_pull_alert(): ?array
+{
+    $alert = $_SESSION['admin_alert'] ?? null;
+    unset($_SESSION['admin_alert']);
+
+    return is_array($alert) ? $alert : null;
+}
+
+/**
+ * @return array<string, callable(array): array>
+ */
+function cms_admin_groups_action_handlers(GroupsModule $module): array
+{
+    return [
+        'save' => static fn (array $post): array => $module->save($post),
+        'delete' => static fn (array $post): array => $module->delete((int) ($post['id'] ?? 0)),
     ];
 }
 
 function cms_admin_groups_handle_action(GroupsModule $module, string $action, array $post): array
 {
-    switch ($action) {
-        case 'save':
-            return $module->save($post);
+    $handlers = cms_admin_groups_action_handlers($module);
 
-        case 'delete':
-            return $module->delete((int) ($post['id'] ?? 0));
+    if (!isset($handlers[$action])) {
+        return ['success' => false, 'error' => 'Unbekannte Aktion.'];
     }
 
-    return ['success' => false, 'error' => 'Unbekannte Aktion.'];
+    return $handlers[$action]($post);
 }
 
 // ─── POST-Handling ───────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action    = $_POST['action'] ?? '';
-    $postToken = $_POST['csrf_token'] ?? '';
+    $action = (string) ($_POST['action'] ?? '');
+    $postToken = (string) ($_POST['csrf_token'] ?? '');
 
     if (!Security::instance()->verifyToken($postToken, 'admin_groups')) {
-        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
+        cms_admin_groups_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
         cms_admin_groups_redirect($redirectUrl);
     }
 
-    $result = cms_admin_groups_handle_action($module, (string) $action, $_POST);
-    cms_admin_groups_flash($result);
+    $result = cms_admin_groups_handle_action($module, $action, $_POST);
+    cms_admin_groups_flash_result($result);
     cms_admin_groups_redirect($redirectUrl);
 }
 
-if (!empty($_SESSION['admin_alert'])) {
-    $alert = $_SESSION['admin_alert'];
-    unset($_SESSION['admin_alert']);
-}
+$alert = cms_admin_groups_pull_alert();
 
 $csrfToken  = Security::instance()->generateToken('admin_groups');
 $data       = $module->getData();

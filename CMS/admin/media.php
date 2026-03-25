@@ -24,12 +24,24 @@ require_once __DIR__ . '/modules/media/MediaModule.php';
 $module    = new MediaModule();
 $alert     = null;
 $tab       = $module->normalizeTab((string)($_GET['tab'] ?? 'library'));
-$allowedActions = ['upload', 'create_folder', 'delete_item', 'rename_item', 'assign_category', 'add_category', 'delete_category', 'save_settings'];
 
 function cms_admin_media_redirect(string $redirectUrl): never
 {
     header('Location: ' . $redirectUrl);
     exit;
+}
+
+function cms_admin_media_default_url(): string
+{
+    return SITE_URL . '/admin/media';
+}
+
+/**
+ * @return list<string>
+ */
+function cms_admin_media_allowed_actions(): array
+{
+    return ['upload', 'create_folder', 'delete_item', 'rename_item', 'assign_category', 'add_category', 'delete_category', 'save_settings'];
 }
 
 function cms_admin_media_flash(array $payload): void
@@ -48,6 +60,175 @@ function cms_admin_media_flash_result(array $result): void
     ]);
 }
 
+function cms_admin_media_pull_alert(): ?array
+{
+    if (empty($_SESSION['admin_alert']) || !is_array($_SESSION['admin_alert'])) {
+        return null;
+    }
+
+    $alert = $_SESSION['admin_alert'];
+    unset($_SESSION['admin_alert']);
+
+    return $alert;
+}
+
+function cms_admin_media_resolve_path(MediaModule $module, array $post): string
+{
+    $path = (string)($post['parent_path'] ?? $post['target_path'] ?? '');
+
+    if ($path !== '') {
+        return $module->normalizePath($path);
+    }
+
+    $actionPath = (string)($post['item_path'] ?? $post['old_path'] ?? $post['file_path'] ?? '');
+    if ($actionPath === '') {
+        return '';
+    }
+
+    $normalizedActionPath = trim(str_replace('\\', '/', $actionPath), '/');
+    $parentPath = trim(str_replace('\\', '/', dirname($normalizedActionPath)), '/.');
+
+    return $module->normalizePath($parentPath);
+}
+
+/**
+ * @return array<string, string>
+ */
+function cms_admin_media_redirect_params(MediaModule $module, string $tab, string $path): array
+{
+    $redirectParams = [];
+
+    if ($tab !== 'library') {
+        $redirectParams['tab'] = $tab;
+    }
+
+    if ($path !== '') {
+        $redirectParams['path'] = $path;
+    } else {
+        $normalizedGetPath = $module->normalizePath((string)($_GET['path'] ?? ''));
+        if ($normalizedGetPath !== '') {
+            $redirectParams['path'] = $normalizedGetPath;
+        }
+    }
+
+    $normalizedView = $module->normalizeView((string)($_GET['view'] ?? 'finder'));
+    $normalizedCategory = $module->normalizeCategory((string)($_GET['category'] ?? ''));
+    $normalizedSearch = $module->normalizeSearch((string)($_GET['q'] ?? ''));
+
+    if ($normalizedView !== 'finder') {
+        $redirectParams['view'] = $normalizedView;
+    }
+    if ($normalizedCategory !== '') {
+        $redirectParams['category'] = $normalizedCategory;
+    }
+    if ($normalizedSearch !== '') {
+        $redirectParams['q'] = $normalizedSearch;
+    }
+    if ((string)($_GET['confirm_member'] ?? '') === '1') {
+        $redirectParams['confirm_member'] = '1';
+    }
+
+    return $redirectParams;
+}
+
+function cms_admin_media_build_redirect_url(MediaModule $module, string $tab, string $path): string
+{
+    $redirectParams = cms_admin_media_redirect_params($module, $tab, $path);
+
+    return cms_admin_media_default_url() . (!empty($redirectParams) ? '?' . http_build_query($redirectParams) : '');
+}
+
+function cms_admin_media_action_redirect_url(MediaModule $module, string $action, string $tab, string $path): string
+{
+    return match ($action) {
+        'add_category', 'delete_category' => cms_admin_media_default_url() . '?tab=categories',
+        'save_settings' => cms_admin_media_default_url() . '?tab=settings',
+        default => cms_admin_media_build_redirect_url($module, $tab, $path),
+    };
+}
+
+function cms_admin_media_handle_upload(MediaModule $module, string $path): array
+{
+    $uploaded = 0;
+    $errors   = [];
+
+    if (!empty($_FILES['files']['name'][0])) {
+        foreach ($_FILES['files']['name'] as $index => $name) {
+            $file = [
+                'name' => $_FILES['files']['name'][$index],
+                'type' => $_FILES['files']['type'][$index],
+                'tmp_name' => $_FILES['files']['tmp_name'][$index],
+                'error' => $_FILES['files']['error'][$index],
+                'size' => $_FILES['files']['size'][$index],
+            ];
+
+            $result = $module->uploadFile($file, $path);
+            if (!empty($result['success'])) {
+                $uploaded++;
+                continue;
+            }
+
+            $errors[] = htmlspecialchars((string) $name) . ': ' . (string) ($result['error'] ?? 'Fehler');
+        }
+    }
+
+    if ($uploaded > 0) {
+        return [
+            'type' => 'success',
+            'message' => $uploaded . ' Datei(en) hochgeladen.' . (!empty($errors) ? ' Fehler: ' . implode(', ', $errors) : ''),
+        ];
+    }
+
+    return [
+        'type' => 'danger',
+        'message' => 'Upload fehlgeschlagen.' . (!empty($errors) ? ' ' . implode(', ', $errors) : ''),
+    ];
+}
+
+function cms_admin_media_handle_action(MediaModule $module, string $action, string $tab, string $path, array $post): array
+{
+    $redirectUrl = cms_admin_media_action_redirect_url($module, $action, $tab, $path);
+
+    return match ($action) {
+        'upload' => [
+            'flash' => cms_admin_media_handle_upload($module, $path),
+            'redirect_url' => $redirectUrl,
+        ],
+        'create_folder' => [
+            'result' => $module->createFolder(trim((string)($post['folder_name'] ?? '')), (string)($post['parent_path'] ?? '')),
+            'redirect_url' => $redirectUrl,
+        ],
+        'delete_item' => [
+            'result' => $module->deleteItem((string)($post['item_path'] ?? '')),
+            'redirect_url' => $redirectUrl,
+        ],
+        'rename_item' => [
+            'result' => $module->renameItem((string)($post['old_path'] ?? ''), trim((string)($post['new_name'] ?? ''))),
+            'redirect_url' => $redirectUrl,
+        ],
+        'assign_category' => [
+            'result' => $module->assignCategory((string)($post['file_path'] ?? ''), (string)($post['category_slug'] ?? '')),
+            'redirect_url' => $redirectUrl,
+        ],
+        'add_category' => [
+            'result' => $module->addCategory(trim((string)($post['name'] ?? '')), trim((string)($post['slug'] ?? ''))),
+            'redirect_url' => $redirectUrl,
+        ],
+        'delete_category' => [
+            'result' => $module->deleteCategory((string)($post['slug'] ?? '')),
+            'redirect_url' => $redirectUrl,
+        ],
+        'save_settings' => [
+            'result' => $module->saveSettings($post),
+            'redirect_url' => $redirectUrl,
+        ],
+        default => [
+            'flash' => ['type' => 'danger', 'message' => 'Unbekannte Aktion.'],
+            'redirect_url' => cms_admin_media_default_url(),
+        ],
+    };
+}
+
 if ($tab === 'library') {
     $requestedPath = $module->normalizePath((string)($_GET['path'] ?? ''));
     $memberConfirmed = (string)($_GET['confirm_member'] ?? '') === '1';
@@ -64,144 +245,32 @@ if ($tab === 'library') {
 // ─── POST-Handling ───────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action    = (string)($_POST['action'] ?? '');
-    $postToken = $_POST['csrf_token'] ?? '';
+    $postToken = (string)($_POST['csrf_token'] ?? '');
 
     if (!Security::instance()->verifyToken($postToken, 'admin_media')) {
         cms_admin_media_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
-        cms_admin_media_redirect(SITE_URL . '/admin/media');
+        cms_admin_media_redirect(cms_admin_media_default_url());
     }
 
-    if (!in_array($action, $allowedActions, true)) {
+    if (!in_array($action, cms_admin_media_allowed_actions(), true)) {
         cms_admin_media_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
-        cms_admin_media_redirect(SITE_URL . '/admin/media');
+        cms_admin_media_redirect(cms_admin_media_default_url());
     }
 
-    $path = (string)($_POST['parent_path'] ?? $_POST['target_path'] ?? '');
+    $path = cms_admin_media_resolve_path($module, $_POST);
+    $handledAction = cms_admin_media_handle_action($module, $action, $tab, $path, $_POST);
 
-    if ($path === '') {
-        $actionPath = $_POST['item_path'] ?? $_POST['old_path'] ?? $_POST['file_path'] ?? '';
-        if ($actionPath !== '') {
-            $normalizedActionPath = trim(str_replace('\\', '/', (string)$actionPath), '/');
-            $parentPath = trim(str_replace('\\', '/', dirname($normalizedActionPath)), '/.');
-            $path = $parentPath;
-        }
+    if (isset($handledAction['flash']) && is_array($handledAction['flash'])) {
+        cms_admin_media_flash($handledAction['flash']);
+    } elseif (isset($handledAction['result']) && is_array($handledAction['result'])) {
+        cms_admin_media_flash_result($handledAction['result']);
     }
 
-    $path = $module->normalizePath($path);
-
-    $redirectParams = [];
-
-    if ($tab !== 'library') {
-        $redirectParams['tab'] = $tab;
-    }
-
-    if ($path !== '') {
-        $redirectParams['path'] = $path;
-    } elseif (!empty($_GET['path'])) {
-        $normalizedGetPath = $module->normalizePath((string)$_GET['path']);
-        if ($normalizedGetPath !== '') {
-            $redirectParams['path'] = $normalizedGetPath;
-        }
-    }
-
-    $normalizedView = $module->normalizeView((string)($_GET['view'] ?? 'finder'));
-    $normalizedCategory = $module->normalizeCategory((string)($_GET['category'] ?? ''));
-    $normalizedSearch = $module->normalizeSearch((string)($_GET['q'] ?? ''));
-    if ($normalizedView !== 'finder') {
-        $redirectParams['view'] = $normalizedView;
-    }
-    if ($normalizedCategory !== '') {
-        $redirectParams['category'] = $normalizedCategory;
-    }
-    if ($normalizedSearch !== '') {
-        $redirectParams['q'] = $normalizedSearch;
-    }
-    if ((string)($_GET['confirm_member'] ?? '') === '1') {
-        $redirectParams['confirm_member'] = '1';
-    }
-
-    $redir = SITE_URL . '/admin/media' . (!empty($redirectParams) ? '?' . http_build_query($redirectParams) : '');
-
-    switch ($action) {
-        case 'upload':
-            $uploaded = 0;
-            $errors   = [];
-            if (!empty($_FILES['files']['name'][0])) {
-                foreach ($_FILES['files']['name'] as $i => $name) {
-                    $file = [
-                        'name'     => $_FILES['files']['name'][$i],
-                        'type'     => $_FILES['files']['type'][$i],
-                        'tmp_name' => $_FILES['files']['tmp_name'][$i],
-                        'error'    => $_FILES['files']['error'][$i],
-                        'size'     => $_FILES['files']['size'][$i],
-                    ];
-                    $result = $module->uploadFile($file, $path);
-                    if (!empty($result['success'])) {
-                        $uploaded++;
-                    } else {
-                        $errors[] = htmlspecialchars($name) . ': ' . ($result['error'] ?? 'Fehler');
-                    }
-                }
-            }
-            if ($uploaded > 0) {
-                cms_admin_media_flash(['type' => 'success', 'message' => $uploaded . ' Datei(en) hochgeladen.' . (!empty($errors) ? ' Fehler: ' . implode(', ', $errors) : '')]);
-            } else {
-                cms_admin_media_flash(['type' => 'danger', 'message' => 'Upload fehlgeschlagen.' . (!empty($errors) ? ' ' . implode(', ', $errors) : '')]);
-            }
-            cms_admin_media_redirect($redir);
-
-        case 'create_folder':
-            $folderName = trim($_POST['folder_name'] ?? '');
-            $parentPath = $_POST['parent_path'] ?? '';
-            $result = $module->createFolder($folderName, $parentPath);
-            cms_admin_media_flash_result($result);
-            cms_admin_media_redirect($redir);
-
-        case 'delete_item':
-            $itemPath = $_POST['item_path'] ?? '';
-            $result   = $module->deleteItem($itemPath);
-            cms_admin_media_flash_result($result);
-            cms_admin_media_redirect($redir);
-
-        case 'rename_item':
-            $oldPath = $_POST['old_path'] ?? '';
-            $newName = trim($_POST['new_name'] ?? '');
-            $result  = $module->renameItem($oldPath, $newName);
-            cms_admin_media_flash_result($result);
-            cms_admin_media_redirect($redir);
-
-        case 'assign_category':
-            $filePath = $_POST['file_path'] ?? '';
-            $catSlug  = $_POST['category_slug'] ?? '';
-            $result   = $module->assignCategory($filePath, $catSlug);
-            cms_admin_media_flash_result($result);
-            cms_admin_media_redirect($redir);
-
-        case 'add_category':
-            $name   = trim($_POST['name'] ?? '');
-            $slug   = trim($_POST['slug'] ?? '');
-            $result = $module->addCategory($name, $slug);
-            cms_admin_media_flash_result($result);
-            cms_admin_media_redirect(SITE_URL . '/admin/media?tab=categories');
-
-        case 'delete_category':
-            $slug   = $_POST['slug'] ?? '';
-            $result = $module->deleteCategory($slug);
-            cms_admin_media_flash_result($result);
-            cms_admin_media_redirect(SITE_URL . '/admin/media?tab=categories');
-
-        case 'save_settings':
-            $result = $module->saveSettings($_POST);
-            cms_admin_media_flash_result($result);
-            cms_admin_media_redirect(SITE_URL . '/admin/media?tab=settings');
-    }
+    cms_admin_media_redirect((string)($handledAction['redirect_url'] ?? cms_admin_media_default_url()));
 }
 
 // ─── Session-Alert abholen ───────────────────────────────
-if (!empty($_SESSION['admin_alert'])) {
-    $alert = $_SESSION['admin_alert'];
-    unset($_SESSION['admin_alert']);
-}
+$alert = cms_admin_media_pull_alert();
 
 $csrfToken  = Security::instance()->generateToken('admin_media');
 $mediaActionToken = Security::instance()->generateToken('media_action');

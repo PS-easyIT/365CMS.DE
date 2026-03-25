@@ -49,6 +49,14 @@ function cms_admin_orders_flash_result(OrdersActionResult $result): void
     ]);
 }
 
+function cms_admin_orders_pull_alert(): ?array
+{
+    $alert = $_SESSION['admin_alert'] ?? null;
+    unset($_SESSION['admin_alert']);
+
+    return is_array($alert) ? $alert : null;
+}
+
 function cms_admin_orders_normalize_status_filter(string $status): string
 {
     $status = strtolower(trim($status));
@@ -82,34 +90,31 @@ if (!Auth::instance()->isAdmin()) {
 require_once __DIR__ . '/modules/subscriptions/OrdersModule.php';
 $module    = new OrdersModule();
 $alert     = null;
+$allowedActions = cms_admin_orders_allowed_actions();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'admin_orders')) {
+    if (!Security::instance()->verifyToken((string) ($_POST['csrf_token'] ?? ''), 'admin_orders')) {
         cms_admin_orders_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
         cms_admin_orders_redirect();
-    } else {
-        $allowedActions = cms_admin_orders_allowed_actions();
-        $action = (string)($_POST['action'] ?? '');
-        if (!isset($allowedActions[$action])) {
-            cms_admin_orders_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
-            cms_admin_orders_redirect();
-        }
+    }
 
-        $result = cms_admin_orders_handle_action($module, $action, $_POST);
-        if ($result === null) {
-            cms_admin_orders_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
-            cms_admin_orders_redirect();
-        }
-
-        cms_admin_orders_flash_result($result);
+    $action = (string) ($_POST['action'] ?? '');
+    if (!isset($allowedActions[$action])) {
+        cms_admin_orders_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
         cms_admin_orders_redirect();
     }
+
+    $result = cms_admin_orders_handle_action($module, $action, $_POST);
+    if ($result === null) {
+        cms_admin_orders_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
+        cms_admin_orders_redirect();
+    }
+
+    cms_admin_orders_flash_result($result);
+    cms_admin_orders_redirect();
 }
 
-if (isset($_SESSION['admin_alert'])) {
-    $alert = $_SESSION['admin_alert'];
-    unset($_SESSION['admin_alert']);
-}
+$alert = cms_admin_orders_pull_alert();
 
 $csrfToken    = Security::instance()->generateToken('admin_orders');
 $statusFilter = cms_admin_orders_normalize_status_filter((string)($_GET['status'] ?? ''));

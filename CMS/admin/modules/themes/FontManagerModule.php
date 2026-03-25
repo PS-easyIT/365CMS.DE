@@ -253,23 +253,10 @@ class FontManagerModule
                 'privacy_use_local_fonts' => isset($post['use_local_fonts']) ? '1' : '0',
             ];
 
-            foreach ($settings as $key => $value) {
-                $existing = $this->db->get_var(
-                    "SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?",
-                    [$key]
-                );
+            $existingSettings = $this->loadExistingSettings(array_keys($settings));
 
-                if ((int)$existing > 0) {
-                    $this->db->execute(
-                        "UPDATE {$this->prefix}settings SET option_value = ? WHERE option_name = ?",
-                        [(string)$value, $key]
-                    );
-                } else {
-                    $this->db->execute(
-                        "INSERT INTO {$this->prefix}settings (option_name, option_value) VALUES (?, ?)",
-                        [$key, (string)$value]
-                    );
-                }
+            foreach ($settings as $key => $value) {
+                $this->persistSetting($key, (string)$value, $existingSettings);
             }
 
             return [
@@ -519,6 +506,52 @@ class FontManagerModule
         $content = (string) ($response['body'] ?? '');
 
         return (($response['success'] ?? false) === true && $content !== '') ? $content : false;
+    }
+
+    /** @param list<string> $keys
+     *  @return array<string, true>
+     */
+    private function loadExistingSettings(array $keys): array
+    {
+        $keys = array_values(array_filter(array_unique($keys), static fn (mixed $key): bool => is_string($key) && $key !== ''));
+        if ($keys === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($keys), '?'));
+        $rows = $this->db->get_results(
+            "SELECT option_name FROM {$this->prefix}settings WHERE option_name IN ({$placeholders})",
+            $keys
+        ) ?: [];
+
+        $existing = [];
+        foreach ($rows as $row) {
+            $optionName = trim((string) ($row->option_name ?? ''));
+            if ($optionName !== '') {
+                $existing[$optionName] = true;
+            }
+        }
+
+        return $existing;
+    }
+
+    /** @param array<string, true> $existingSettings */
+    private function persistSetting(string $key, string $value, array &$existingSettings): void
+    {
+        if (isset($existingSettings[$key])) {
+            $this->db->execute(
+                "UPDATE {$this->prefix}settings SET option_value = ? WHERE option_name = ?",
+                [$value, $key]
+            );
+
+            return;
+        }
+
+        $this->db->execute(
+            "INSERT INTO {$this->prefix}settings (option_name, option_value) VALUES (?, ?)",
+            [$key, $value]
+        );
+        $existingSettings[$key] = true;
     }
 
     /**

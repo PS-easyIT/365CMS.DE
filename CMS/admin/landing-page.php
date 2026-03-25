@@ -24,11 +24,16 @@ $module    = new LandingPageModule();
 $alert     = null;
 $redirectBase = SITE_URL . '/admin/landing-page';
 
-// Tab
-$tab = preg_replace('/[^a-z]/', '', $_GET['tab'] ?? 'header');
-$validTabs = ['header', 'content', 'footer', 'design', 'plugins'];
-if (!in_array($tab, $validTabs, true)) {
-    $tab = 'header';
+function cms_admin_landing_page_allowed_tabs(): array
+{
+    return ['header', 'content', 'footer', 'design', 'plugins'];
+}
+
+function cms_admin_landing_page_normalize_tab(string $tab): string
+{
+    $normalizedTab = preg_replace('/[^a-z]/', '', $tab);
+
+    return in_array($normalizedTab, cms_admin_landing_page_allowed_tabs(), true) ? $normalizedTab : 'header';
 }
 
 function cms_admin_landing_page_redirect(string $redirectUrl): never
@@ -45,61 +50,64 @@ function cms_admin_landing_page_tab_url(string $redirectBase, string $tab): stri
 function cms_admin_landing_page_flash(array $result): void
 {
     $_SESSION['admin_alert'] = [
-        'type'    => !empty($result['success']) ? 'success' : 'danger',
-        'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
+        'type'    => ($result['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
+        'message' => trim((string) ($result['message'] ?? '')),
     ];
 }
 
-function cms_admin_landing_page_handle_action(LandingPageModule $module, string $action, array $post): array
+function cms_admin_landing_page_flash_result(array $result): void
 {
-    if ($action === 'save_header') {
-        return $module->saveHeader($post);
-    }
-
-    if ($action === 'save_content') {
-        return $module->saveContent($post);
-    }
-
-    if ($action === 'save_footer') {
-        return $module->saveFooter($post);
-    }
-
-    if ($action === 'save_design') {
-        return $module->saveDesign($post);
-    }
-
-    if ($action === 'save_feature') {
-        return $module->saveFeature($post);
-    }
-
-    if ($action === 'delete_feature') {
-        return $module->deleteFeature((int) ($post['feature_id'] ?? 0));
-    }
-
-    if ($action === 'save_plugin') {
-        return $module->savePlugin($post);
-    }
-
-    return ['success' => false, 'error' => 'Unbekannte Aktion.'];
+    cms_admin_landing_page_flash([
+        'type' => !empty($result['success']) ? 'success' : 'danger',
+        'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
+    ]);
 }
 
+function cms_admin_landing_page_pull_alert(): ?array
+{
+    $alert = $_SESSION['admin_alert'] ?? null;
+    unset($_SESSION['admin_alert']);
+
+    return is_array($alert) ? $alert : null;
+}
+
+/**
+ * @return array<string, callable(array): array>
+ */
+function cms_admin_landing_page_action_handlers(LandingPageModule $module): array
+{
+    return [
+        'save_header' => static fn (array $post): array => $module->saveHeader($post),
+        'save_content' => static fn (array $post): array => $module->saveContent($post),
+        'save_footer' => static fn (array $post): array => $module->saveFooter($post),
+        'save_design' => static fn (array $post): array => $module->saveDesign($post),
+        'save_feature' => static fn (array $post): array => $module->saveFeature($post),
+        'delete_feature' => static fn (array $post): array => $module->deleteFeature((int) ($post['feature_id'] ?? 0)),
+        'save_plugin' => static fn (array $post): array => $module->savePlugin($post),
+    ];
+}
+
+$tab = cms_admin_landing_page_normalize_tab((string) ($_GET['tab'] ?? 'header'));
+$actionHandlers = cms_admin_landing_page_action_handlers($module);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $postToken = $_POST['csrf_token'] ?? '';
+    $postToken = (string) ($_POST['csrf_token'] ?? '');
     if (!Security::instance()->verifyToken($postToken, 'admin_landing_page')) {
-        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
+        cms_admin_landing_page_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
         cms_admin_landing_page_redirect(cms_admin_landing_page_tab_url($redirectBase, $tab));
     }
 
-    $action = $_POST['action'] ?? '';
-    $result = cms_admin_landing_page_handle_action($module, (string) $action, $_POST);
-    cms_admin_landing_page_flash($result);
+    $action = trim((string) ($_POST['action'] ?? ''));
+    if (!isset($actionHandlers[$action])) {
+        cms_admin_landing_page_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
+        cms_admin_landing_page_redirect(cms_admin_landing_page_tab_url($redirectBase, $tab));
+    }
+
+    cms_admin_landing_page_flash_result($actionHandlers[$action]($_POST));
     cms_admin_landing_page_redirect(cms_admin_landing_page_tab_url($redirectBase, $tab));
 }
 
-if (!empty($_SESSION['admin_alert'])) {
-    $alert = $_SESSION['admin_alert'];
-    unset($_SESSION['admin_alert']);
-}
+$alert = cms_admin_landing_page_pull_alert();
 
 $csrfToken  = Security::instance()->generateToken('admin_landing_page');
 $data       = $module->getData($tab);
