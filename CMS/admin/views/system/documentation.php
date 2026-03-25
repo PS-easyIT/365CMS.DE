@@ -41,12 +41,67 @@ $selectedPathLabel = $selectedPath !== '' ? $selectedPath : 'README.md';
 $alertData = is_array($alert ?? null) ? $alert : [];
 $alertMarginClass = 'mb-4';
 $syncButtonDisabled = $syncAvailable ? '' : ' disabled';
+$renderMetricCard = static function (string $label, string $value, string $valueClass = '', string $subValue = ''): void {
+    ?>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></div>
+                <div class="<?= $subValue === '' ? 'h1' : 'h3' ?> mb-<?= $subValue === '' ? '0' : '1' ?><?= $valueClass !== '' ? ' ' . htmlspecialchars($valueClass, ENT_QUOTES, 'UTF-8') : '' ?>"><?= htmlspecialchars($value, ENT_QUOTES, 'UTF-8') ?></div>
+                <?php if ($subValue !== ''): ?>
+                    <div class="small text-secondary text-truncate"><?= htmlspecialchars($subValue, ENT_QUOTES, 'UTF-8') ?></div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <?php
+};
+$renderCardHeaderTitle = static function (string $title, string $subtitle = '', bool $compactTitle = false): void {
+    ?>
+    <div class="card-header">
+        <div>
+            <h3 class="card-title<?= $compactTitle ? ' mb-1' : '' ?>"><?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?></h3>
+            <?php if ($subtitle !== ''): ?>
+                <div class="text-secondary small"><code><?= htmlspecialchars($subtitle, ENT_QUOTES, 'UTF-8') ?></code></div>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php
+};
+$renderAlertBlock = static function (string $type, string $message, string $title = '', string $detail = '', string $marginClass = ''): void {
+    ?>
+    <div class="alert alert-<?= htmlspecialchars($type, ENT_QUOTES, 'UTF-8') ?><?= $marginClass !== '' ? ' ' . htmlspecialchars($marginClass, ENT_QUOTES, 'UTF-8') : '' ?>" role="alert">
+        <?php if ($title !== ''): ?>
+            <strong><?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?></strong>
+        <?php endif; ?>
+        <?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?>
+        <?php if ($detail !== ''): ?>
+            <div class="small text-secondary mt-2"><?= htmlspecialchars($detail, ENT_QUOTES, 'UTF-8') ?></div>
+        <?php endif; ?>
+    </div>
+    <?php
+};
 $documentAdminUrl = static fn (array $document): string => (string) ($document['admin_url'] ?? '#');
 $documentTitle = static fn (array $document): string => (string) ($document['title'] ?? 'Dokument');
 $documentRelativePath = static fn (array $document): string => (string) ($document['relative_path'] ?? '');
 $documentExtension = static fn (array $document): string => strtoupper((string) ($document['extension'] ?? 'md'));
 $isActiveDocument = static fn (array $document): bool => (string) ($document['relative_path'] ?? '') === $selectedPath;
 $documentItemClass = static fn (array $document): string => $isActiveDocument($document) ? ' active' : '';
+$renderDocumentListItem = static function (array $document, bool $compact = false) use ($documentAdminUrl, $documentItemClass, $documentTitle, $documentRelativePath, $documentExtension): void {
+    ?>
+    <a href="<?= htmlspecialchars($documentAdminUrl($document), ENT_QUOTES, 'UTF-8') ?>" class="list-group-item list-group-item-action<?= $documentItemClass($document) ?>">
+        <div class="d-flex align-items-start justify-content-between gap-3">
+            <div>
+                <div class="<?= $compact ? 'fw-semibold small' : 'fw-semibold' ?>"><?= htmlspecialchars($documentTitle($document), ENT_QUOTES, 'UTF-8') ?></div>
+                <div class="text-secondary small"><?= htmlspecialchars($documentRelativePath($document), ENT_QUOTES, 'UTF-8') ?></div>
+            </div>
+            <?php if (!$compact): ?>
+                <span class="badge bg-azure-lt"><?= htmlspecialchars($documentExtension($document), ENT_QUOTES, 'UTF-8') ?></span>
+            <?php endif; ?>
+        </div>
+    </a>
+    <?php
+};
 $findSectionActive = static function (array $documents) use ($isActiveDocument): bool {
     foreach ($documents as $document) {
         if (is_array($document) && $isActiveDocument($document)) {
@@ -61,6 +116,91 @@ $sectionTitleValue = static fn (array $section, string $fallback): string => (st
 $sectionDescriptionValue = static fn (array $section): string => (string) ($section['description'] ?? '');
 $sectionDocCountValue = static fn (array $section, array $documents): int => (int) ($section['doc_count'] ?? count($documents));
 $sectionGithubUrl = static fn (array $section) => (string) ($section['github_url'] ?? $githubRootUrl);
+$renderSectionIntro = static function (string $description, string $githubUrl): void {
+    ?>
+    <div class="p-3 border-bottom bg-body-secondary">
+        <div class="small text-secondary mb-2"><?= htmlspecialchars($description, ENT_QUOTES, 'UTF-8') ?></div>
+        <a href="<?= htmlspecialchars($githubUrl, ENT_QUOTES, 'UTF-8') ?>" class="small" target="_blank" rel="noopener noreferrer">Bereich auf GitHub öffnen</a>
+    </div>
+    <?php
+};
+$renderSectionAccordionItem = static function (
+    string $sectionSlug,
+    string $sectionTitle,
+    int $sectionDocCount,
+    bool $sectionActive,
+    string $sectionDescription,
+    string $sectionGithubUrl,
+    array $documents
+) use ($renderSectionIntro, $renderDocumentListItem): void {
+    ?>
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="heading-<?php echo htmlspecialchars($sectionSlug, ENT_QUOTES, 'UTF-8'); ?>">
+            <button class="accordion-button<?php echo $sectionActive ? '' : ' collapsed'; ?>" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-<?php echo htmlspecialchars($sectionSlug, ENT_QUOTES, 'UTF-8'); ?>" aria-expanded="<?php echo $sectionActive ? 'true' : 'false'; ?>">
+                <span>
+                    <span class="fw-semibold"><?php echo htmlspecialchars($sectionTitle, ENT_QUOTES, 'UTF-8'); ?></span>
+                    <span class="text-secondary small ms-2"><?php echo htmlspecialchars((string) $sectionDocCount, ENT_QUOTES, 'UTF-8'); ?> Dateien</span>
+                </span>
+            </button>
+        </h2>
+        <div id="collapse-<?php echo htmlspecialchars($sectionSlug, ENT_QUOTES, 'UTF-8'); ?>" class="accordion-collapse collapse<?php echo $sectionActive ? ' show' : ''; ?>" data-bs-parent="#documentation-sections">
+            <div class="accordion-body p-0">
+                <?php $renderSectionIntro($sectionDescription, $sectionGithubUrl); ?>
+                <div class="list-group list-group-flush">
+                    <?php foreach ($documents as $document): ?>
+                        <?php if (!is_array($document)) { continue; } ?>
+                        <?php $renderDocumentListItem($document, true); ?>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php
+};
+$renderSelectedDocumentContent = static function (
+    string $selectedExcerpt,
+    string $documentationSourceText,
+    string $selectedHtml,
+    bool $isSelectedCsv
+) use ($renderAlertBlock): void {
+    ?>
+    <div class="card-body">
+        <?php if ($selectedExcerpt !== ''): ?>
+            <?php $renderAlertBlock('info', $selectedExcerpt); ?>
+        <?php endif; ?>
+
+        <div class="small text-secondary mb-4">
+            <?= htmlspecialchars($documentationSourceText, ENT_QUOTES, 'UTF-8') ?>
+        </div>
+
+        <?php if ($selectedHtml === ''): ?>
+            <div class="empty">
+                <div class="empty-img"><!-- decorative --></div>
+                <p class="empty-title">Kein Dokument ausgewählt</p>
+                <p class="empty-subtitle text-secondary">Wähle links eine Dokumentationsdatei aus, um sie direkt im Admin zu lesen.</p>
+            </div>
+        <?php else: ?>
+            <div class="documentation-rendered">
+                <?php echo $selectedHtml; ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($isSelectedCsv): ?>
+            <div class="mt-4 small text-secondary">CSV-Dateien werden tabellarisch dargestellt. Für Weiterverarbeitung kannst du zusätzlich die GitHub-Ansicht öffnen.</div>
+        <?php endif; ?>
+    </div>
+    <?php
+};
+$documentationSourceText = $docsRoot !== ''
+    ? 'Quelle: lokale Repository-Dokumentation unter ' . $docsRoot . '. Inhalt entspricht dem GitHub-Bereich /DOC des Projekts.'
+    : 'Quelle: lokale Repository-Dokumentation. Inhalt entspricht dem GitHub-Bereich /DOC des Projekts.';
+$metricCards = [
+    ['label' => 'Dokumente', 'value' => (string) $docCount, 'class' => '', 'sub' => ''],
+    ['label' => 'Bereiche', 'value' => (string) $sectionCount, 'class' => '', 'sub' => ''],
+    ['label' => 'Quelle', 'value' => 'Repo /DOC', 'class' => '', 'sub' => ''],
+    ['label' => 'Aktuell geladen', 'value' => $selectedPathLabel, 'class' => '', 'sub' => ''],
+    ['label' => 'Sync-Status', 'value' => $syncLabel, 'class' => $syncClass, 'sub' => $repoRoot !== '' ? $repoRoot : 'Repo-Pfad unbekannt'],
+];
 ?>
 
 <div class="page-header d-print-none">
@@ -91,90 +231,32 @@ $sectionGithubUrl = static fn (array $section) => (string) ($section['github_url
         <?php require __DIR__ . '/../partials/flash-alert.php'; ?>
 
         <?php if (!$available): ?>
-            <div class="alert alert-danger" role="alert">
-                <strong>Dokumentation nicht verfügbar:</strong>
-                <?php echo htmlspecialchars((string) $error); ?>
-                <div class="small text-secondary mt-2">Erwarteter Pfad: <code><?php echo htmlspecialchars($docsRoot); ?></code></div>
-            </div>
+            <?php $renderAlertBlock('danger', (string) $error, 'Dokumentation nicht verfügbar: ', 'Erwarteter Pfad: ' . $docsRoot); ?>
         <?php else: ?>
             <div class="row row-deck row-cards mb-4">
-                <div class="col-sm-6 col-lg-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="subheader">Dokumente</div>
-                            <div class="h1 mb-0"><?php echo htmlspecialchars((string) $docCount); ?></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-sm-6 col-lg-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="subheader">Bereiche</div>
-                            <div class="h1 mb-0"><?php echo htmlspecialchars((string) $sectionCount); ?></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-sm-6 col-lg-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="subheader">Quelle</div>
-                            <div class="h3 mb-0">Repo <code>/DOC</code></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-sm-6 col-lg-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="subheader">Aktuell geladen</div>
-                            <div class="small fw-semibold text-truncate"><?php echo htmlspecialchars($selectedPathLabel); ?></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-sm-6 col-lg-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="subheader">Sync-Status</div>
-                            <div class="h3 mb-1 <?php echo htmlspecialchars($syncClass); ?>"><?php echo htmlspecialchars($syncLabel); ?></div>
-                            <div class="small text-secondary text-truncate"><?php echo htmlspecialchars($repoRoot !== '' ? $repoRoot : 'Repo-Pfad unbekannt'); ?></div>
-                        </div>
-                    </div>
-                </div>
+                <?php foreach ($metricCards as $metricCard): ?>
+                    <?php $renderMetricCard($metricCard['label'], $metricCard['value'], $metricCard['class'], $metricCard['sub']); ?>
+                <?php endforeach; ?>
             </div>
 
             <?php if ($syncMessage !== ''): ?>
-                <div class="alert alert-<?php echo htmlspecialchars($syncAlertClass); ?> mb-4" role="alert">
-                    <div class="fw-semibold mb-1">Synchronisationsmodus: <?php echo htmlspecialchars($syncMode); ?></div>
-                    <div><?php echo htmlspecialchars($syncMessage); ?></div>
-                </div>
+                <?php $renderAlertBlock($syncAlertClass, $syncMessage, 'Synchronisationsmodus: ' . $syncMode, '', 'mb-4'); ?>
             <?php endif; ?>
 
             <div class="row row-cards">
                 <div class="col-12 col-xl-4">
                     <div class="card mb-4">
-                        <div class="card-header">
-                            <h3 class="card-title">Schnellstart</h3>
-                        </div>
+                        <?php $renderCardHeaderTitle('Schnellstart'); ?>
                         <div class="list-group list-group-flush">
                             <?php foreach ($featuredDocs as $document): ?>
                                 <?php if (!is_array($document)) { continue; } ?>
-                                <a href="<?php echo htmlspecialchars($documentAdminUrl($document)); ?>"
-                                   class="list-group-item list-group-item-action<?php echo $documentItemClass($document); ?>">
-                                    <div class="d-flex align-items-start justify-content-between gap-3">
-                                        <div>
-                                            <div class="fw-semibold"><?php echo htmlspecialchars($documentTitle($document)); ?></div>
-                                            <div class="text-secondary small"><?php echo htmlspecialchars($documentRelativePath($document)); ?></div>
-                                        </div>
-                                        <span class="badge bg-azure-lt"><?php echo htmlspecialchars($documentExtension($document)); ?></span>
-                                    </div>
-                                </a>
+                                <?php $renderDocumentListItem($document); ?>
                             <?php endforeach; ?>
                         </div>
                     </div>
 
                     <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Dokumentationsbereiche</h3>
-                        </div>
+                        <?php $renderCardHeaderTitle('Dokumentationsbereiche'); ?>
                         <div class="accordion accordion-flush" id="documentation-sections">
                             <?php foreach ($sections as $index => $section): ?>
                                 <?php
@@ -189,33 +271,7 @@ $sectionGithubUrl = static fn (array $section) => (string) ($section['github_url
                                 $sectionDocCount = $sectionDocCountValue($section, $documents);
                                 $sectionActive = $findSectionActive($documents);
                                 ?>
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header" id="heading-<?php echo htmlspecialchars($sectionSlug); ?>">
-                                        <button class="accordion-button<?php echo $sectionActive ? '' : ' collapsed'; ?>" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-<?php echo htmlspecialchars($sectionSlug); ?>" aria-expanded="<?php echo $sectionActive ? 'true' : 'false'; ?>">
-                                            <span>
-                                                <span class="fw-semibold"><?php echo htmlspecialchars($sectionTitle); ?></span>
-                                                <span class="text-secondary small ms-2"><?php echo htmlspecialchars((string) $sectionDocCount); ?> Dateien</span>
-                                            </span>
-                                        </button>
-                                    </h2>
-                                    <div id="collapse-<?php echo htmlspecialchars($sectionSlug); ?>" class="accordion-collapse collapse<?php echo $sectionActive ? ' show' : ''; ?>" data-bs-parent="#documentation-sections">
-                                        <div class="accordion-body p-0">
-                                            <div class="p-3 border-bottom bg-body-secondary">
-                                                <div class="small text-secondary mb-2"><?php echo htmlspecialchars($sectionDescription); ?></div>
-                                                <a href="<?php echo htmlspecialchars($sectionGithubUrl($section)); ?>" class="small" target="_blank" rel="noopener noreferrer">Bereich auf GitHub öffnen</a>
-                                            </div>
-                                            <div class="list-group list-group-flush">
-                                                <?php foreach ($documents as $document): ?>
-                                                    <?php if (!is_array($document)) { continue; } ?>
-                                                    <a href="<?php echo htmlspecialchars($documentAdminUrl($document)); ?>" class="list-group-item list-group-item-action<?php echo $documentItemClass($document); ?>">
-                                                        <div class="fw-semibold small"><?php echo htmlspecialchars($documentTitle($document)); ?></div>
-                                                        <div class="text-secondary small"><?php echo htmlspecialchars($documentRelativePath($document)); ?></div>
-                                                    </a>
-                                                <?php endforeach; ?>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                <?php $renderSectionAccordionItem($sectionSlug, $sectionTitle, $sectionDocCount, $sectionActive, $sectionDescription, $sectionGithubUrl($section), $documents); ?>
                             <?php endforeach; ?>
                         </div>
                     </div>
@@ -223,41 +279,8 @@ $sectionGithubUrl = static fn (array $section) => (string) ($section['github_url
 
                 <div class="col-12 col-xl-8">
                     <div class="card">
-                        <div class="card-header">
-                            <div>
-                                <h3 class="card-title mb-1"><?php echo htmlspecialchars($selectedTitle); ?></h3>
-                                <?php if ($selectedPath !== ''): ?>
-                                    <div class="text-secondary small"><code><?php echo htmlspecialchars($selectedPath); ?></code></div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <?php if ($selectedExcerpt !== ''): ?>
-                                <div class="alert alert-info" role="alert">
-                                    <?php echo htmlspecialchars($selectedExcerpt); ?>
-                                </div>
-                            <?php endif; ?>
-
-                            <div class="small text-secondary mb-4">
-                                Quelle: lokale Repository-Dokumentation unter <code><?php echo htmlspecialchars($docsRoot); ?></code>. Inhalt entspricht dem GitHub-Bereich <code>/DOC</code> des Projekts.
-                            </div>
-
-                            <?php if ($selectedHtml === ''): ?>
-                                <div class="empty">
-                                    <div class="empty-img"><!-- decorative --></div>
-                                    <p class="empty-title">Kein Dokument ausgewählt</p>
-                                    <p class="empty-subtitle text-secondary">Wähle links eine Dokumentationsdatei aus, um sie direkt im Admin zu lesen.</p>
-                                </div>
-                            <?php else: ?>
-                                <div class="documentation-rendered">
-                                    <?php echo $selectedHtml; ?>
-                                </div>
-                            <?php endif; ?>
-
-                            <?php if ($isSelectedCsv): ?>
-                                <div class="mt-4 small text-secondary">CSV-Dateien werden tabellarisch dargestellt. Für Weiterverarbeitung kannst du zusätzlich die GitHub-Ansicht öffnen.</div>
-                            <?php endif; ?>
-                        </div>
+                        <?php $renderCardHeaderTitle($selectedTitle, $selectedPath, true); ?>
+                        <?php $renderSelectedDocumentContent($selectedExcerpt, $documentationSourceText, $selectedHtml, $isSelectedCsv); ?>
                     </div>
                 </div>
             </div>

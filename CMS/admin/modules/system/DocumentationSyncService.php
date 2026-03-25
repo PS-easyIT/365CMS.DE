@@ -134,32 +134,7 @@ final class DocumentationSyncService
         try {
             $normalizedCapabilities = $this->getSyncCapabilities();
 
-            if (!$normalizedCapabilities->canSync()) {
-                return $this->failResult(
-                    'documentation.sync.unavailable',
-                    'Doku-Sync ist auf diesem Server nicht verfügbar.',
-                    [
-                        'capabilities' => $normalizedCapabilities->toLogContext(),
-                    ]
-                );
-            }
-
-            $syncMode = $normalizedCapabilities->mode();
-            if ($normalizedCapabilities->hasGit()) {
-                return $this->finalizeSyncResult($this->gitSync->sync(), 'git', $normalizedCapabilities);
-            }
-
-            if ($normalizedCapabilities->hasGithubZip() && $syncMode === 'github-zip') {
-                return $this->finalizeSyncResult($this->githubZipSync->sync(), 'github-zip', $normalizedCapabilities);
-            }
-
-            return $this->failResult(
-                'documentation.sync.invalid_capabilities',
-                'Doku-Sync ist auf diesem Server nicht konsistent konfiguriert.',
-                [
-                    'capabilities' => $normalizedCapabilities->toLogContext(),
-                ]
-            );
+            return $this->resolveSyncExecutionResult($normalizedCapabilities);
 
         } finally {
             $this->releaseSyncLock();
@@ -184,10 +159,7 @@ final class DocumentationSyncService
         }
 
         if ($logFailure === false) {
-            return DocumentationSyncServiceResult::fromArray([
-                'success' => false,
-                'error' => $failure['message'] . ' Bitte Logs prüfen.',
-            ]);
+            return $this->createFailureServiceResult($failure['message'] . ' Bitte Logs prüfen.');
         }
 
         return $this->failResult($failure['action'], $failure['message'], $failure['context']);
@@ -200,88 +172,88 @@ final class DocumentationSyncService
     {
         $resolvedRepoRoot = realpath($this->repoRoot);
         if ($resolvedRepoRoot === false || !is_dir($resolvedRepoRoot) || is_link($this->repoRoot)) {
-            return [
-                'action' => 'documentation.sync.invalid_repo_root',
-                'message' => 'Repository-Root für den Doku-Sync ist ungültig.',
-                'context' => [
+            return $this->createConfigurationFailure(
+                'documentation.sync.invalid_repo_root',
+                'Repository-Root für den Doku-Sync ist ungültig.',
+                [
                     'repo_root' => $this->repoRoot,
-                ],
-            ];
+                ]
+            );
         }
 
         if (!is_dir($resolvedRepoRoot . DIRECTORY_SEPARATOR . 'CMS')) {
-            return [
-                'action' => 'documentation.sync.invalid_repo_layout',
-                'message' => 'Repository-Layout für den Doku-Sync ist ungültig.',
-                'context' => [
+            return $this->createConfigurationFailure(
+                'documentation.sync.invalid_repo_layout',
+                'Repository-Layout für den Doku-Sync ist ungültig.',
+                [
                     'repo_root' => $resolvedRepoRoot,
-                ],
-            ];
+                ]
+            );
         }
 
         $expectedDocsRoot = rtrim($resolvedRepoRoot, '\\/') . DIRECTORY_SEPARATOR . 'DOC';
         if (rtrim($this->docsRoot, '\/') !== $expectedDocsRoot || is_link($this->docsRoot)) {
-            return [
-                'action' => 'documentation.sync.invalid_docs_root',
-                'message' => 'Doku-Sync darf nur den lokalen /DOC-Ordner im Repository-Root verwalten.',
-                'context' => [
+            return $this->createConfigurationFailure(
+                'documentation.sync.invalid_docs_root',
+                'Doku-Sync darf nur den lokalen /DOC-Ordner im Repository-Root verwalten.',
+                [
                     'docs_root' => $this->docsRoot,
                     'expected_docs_root' => $expectedDocsRoot,
-                ],
-            ];
+                ]
+            );
         }
 
         if (file_exists($this->docsRoot) && !is_dir($this->docsRoot)) {
-            return [
-                'action' => 'documentation.sync.docs_root_not_directory',
-                'message' => 'Der lokale /DOC-Pfad ist ungültig konfiguriert.',
-                'context' => [
+            return $this->createConfigurationFailure(
+                'documentation.sync.docs_root_not_directory',
+                'Der lokale /DOC-Pfad ist ungültig konfiguriert.',
+                [
                     'docs_root' => $this->docsRoot,
-                ],
-            ];
+                ]
+            );
         }
 
         if (!is_dir(dirname($this->docsRoot)) || !is_writable(dirname($this->docsRoot))) {
-            return [
-                'action' => 'documentation.sync.docs_parent_not_writable',
-                'message' => 'Der lokale /DOC-Zielpfad ist nicht beschreibbar.',
-                'context' => [
+            return $this->createConfigurationFailure(
+                'documentation.sync.docs_parent_not_writable',
+                'Der lokale /DOC-Zielpfad ist nicht beschreibbar.',
+                [
                     'docs_root' => $this->docsRoot,
                     'docs_parent' => dirname($this->docsRoot),
-                ],
-            ];
+                ]
+            );
         }
 
         if (!$this->isValidGitRefPart($this->defaultRemote) || !$this->isValidGitRefPart($this->defaultBranch)) {
-            return [
-                'action' => 'documentation.sync.invalid_git_ref',
-                'message' => 'Remote oder Branch für den Doku-Sync sind ungültig konfiguriert.',
-                'context' => [
+            return $this->createConfigurationFailure(
+                'documentation.sync.invalid_git_ref',
+                'Remote oder Branch für den Doku-Sync sind ungültig konfiguriert.',
+                [
                     'remote' => $this->defaultRemote,
                     'branch' => $this->defaultBranch,
-                ],
-            ];
+                ]
+            );
         }
 
         if (!$this->isValidGithubZipUrl($this->githubZipUrl)) {
-            return [
-                'action' => 'documentation.sync.invalid_zip_url',
-                'message' => 'Die GitHub-ZIP-Quelle für den Doku-Sync ist ungültig konfiguriert.',
-                'context' => [
+            return $this->createConfigurationFailure(
+                'documentation.sync.invalid_zip_url',
+                'Die GitHub-ZIP-Quelle für den Doku-Sync ist ungültig konfiguriert.',
+                [
                     'zip_url' => $this->githubZipUrl,
-                ],
-            ];
+                ]
+            );
         }
 
         if (!$this->isValidApprovedBundleConfiguration()) {
-            return [
-                'action' => 'documentation.sync.invalid_integrity_profile',
-                'message' => 'Das Integritätsprofil für den Doku-Sync ist ungültig konfiguriert.',
-                'context' => [
+            return $this->createConfigurationFailure(
+                'documentation.sync.invalid_integrity_profile',
+                'Das Integritätsprofil für den Doku-Sync ist ungültig konfiguriert.',
+                [
                     'approved_hash' => $this->approvedDocsBundleHash,
                     'approved_file_count' => $this->approvedDocsBundleFileCount,
-                ],
-            ];
+                ]
+            );
         }
 
         return null;
@@ -351,6 +323,35 @@ final class DocumentationSyncService
         );
     }
 
+    private function resolveSyncExecutionResult(DocumentationSyncCapabilities $capabilities): DocumentationSyncServiceResult
+    {
+        if (!$capabilities->canSync()) {
+            return $this->failResult(
+                'documentation.sync.unavailable',
+                'Doku-Sync ist auf diesem Server nicht verfügbar.',
+                [
+                    'capabilities' => $capabilities->toLogContext(),
+                ]
+            );
+        }
+
+        if ($capabilities->hasGit()) {
+            return $this->finalizeSyncResult($this->gitSync->sync(), 'git', $capabilities);
+        }
+
+        if ($capabilities->hasGithubZip() && $capabilities->mode() === 'github-zip') {
+            return $this->finalizeSyncResult($this->githubZipSync->sync(), 'github-zip', $capabilities);
+        }
+
+        return $this->failResult(
+            'documentation.sync.invalid_capabilities',
+            'Doku-Sync ist auf diesem Server nicht konsistent konfiguriert.',
+            [
+                'capabilities' => $capabilities->toLogContext(),
+            ]
+        );
+    }
+
     private function acquireSyncLock(): void
     {
         $lockPath = $this->buildLockPath();
@@ -394,13 +395,15 @@ final class DocumentationSyncService
      */
     private function finalizeSyncResult(array $result, string $mode, DocumentationSyncCapabilities $capabilities): DocumentationSyncServiceResult
     {
-        if (($result['success'] ?? false) === true) {
+        $serviceResult = $this->serviceResultFromArray($result);
+
+        if ($serviceResult->isSuccess()) {
             $this->logSuccess('documentation.sync.completed', 'Doku-Sync erfolgreich abgeschlossen.', [
                 'mode' => $mode,
                 'capabilities' => $capabilities->toLogContext(),
             ]);
 
-            return DocumentationSyncServiceResult::fromArray($result);
+            return $serviceResult;
         }
 
         $this->logFailure('documentation.sync.failed', 'Doku-Sync fehlgeschlagen.', [
@@ -409,7 +412,7 @@ final class DocumentationSyncService
             'result_error' => $this->sanitizeLogString((string) ($result['error'] ?? ''), 240),
         ]);
 
-        return DocumentationSyncServiceResult::fromArray($result);
+        return $serviceResult;
     }
 
     /** @param array<string, mixed> $context */
@@ -417,31 +420,61 @@ final class DocumentationSyncService
     {
         $this->logFailure($action, $message, $context);
 
-        return DocumentationSyncServiceResult::fromArray([
+        return $this->createFailureServiceResult($message . ' Bitte Logs prüfen.');
+    }
+
+    /**
+     * @param array{success: bool, message?: string, error?: string} $result
+     */
+    private function serviceResultFromArray(array $result): DocumentationSyncServiceResult
+    {
+        return DocumentationSyncServiceResult::fromArray($result);
+    }
+
+    private function createFailureServiceResult(string $message): DocumentationSyncServiceResult
+    {
+        return $this->serviceResultFromArray([
             'success' => false,
-            'error' => $message . ' Bitte Logs prüfen.',
+            'error' => $message,
         ]);
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     * @return array{action: string, message: string, context: array<string, mixed>}
+     */
+    private function createConfigurationFailure(string $action, string $message, array $context): array
+    {
+        return [
+            'action' => $action,
+            'message' => $message,
+            'context' => $context,
+        ];
     }
 
     /** @param array<string, mixed> $context */
     private function logFailure(string $action, string $message, array $context = []): void
     {
-        Logger::instance()->withChannel('admin.documentation')->warning($message, $context);
-        AuditLogger::instance()->log(
-            AuditLogger::CAT_SYSTEM,
-            $action,
-            $message,
-            'documentation',
-            null,
-            $context,
-            'warning'
-        );
+        $this->writeDocumentationLog('warning', $action, $message, $context);
     }
 
     /** @param array<string, mixed> $context */
     private function logSuccess(string $action, string $message, array $context = []): void
     {
-        Logger::instance()->withChannel('admin.documentation')->info($message, $context);
+        $this->writeDocumentationLog('info', $action, $message, $context);
+    }
+
+    /** @param array<string, mixed> $context */
+    private function writeDocumentationLog(string $level, string $action, string $message, array $context = []): void
+    {
+        $logger = Logger::instance()->withChannel('admin.documentation');
+
+        if ($level === 'warning') {
+            $logger->warning($message, $context);
+        } else {
+            $logger->info($message, $context);
+        }
+
         AuditLogger::instance()->log(
             AuditLogger::CAT_SYSTEM,
             $action,
@@ -449,7 +482,7 @@ final class DocumentationSyncService
             'documentation',
             null,
             $context,
-            'info'
+            $level
         );
     }
 

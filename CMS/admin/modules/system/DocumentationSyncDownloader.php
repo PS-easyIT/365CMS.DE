@@ -150,9 +150,9 @@ final class DocumentationSyncDownloader
 
         $validatedPayload = $this->validateResponsePayload($url, $destination, $response);
         if ($validatedPayload === null) {
-            return DocumentationDownloadResult::failure(
+            return $this->failureResultFromResponse(
+                $response,
                 'Der GitHub-Download lieferte keinen ZIP-Inhalt zurück.',
-                (int) ($response['status'] ?? 0),
                 strtolower(trim((string) ($response['contentType'] ?? ''))),
                 strlen((string) ($response['body'] ?? ''))
             );
@@ -185,10 +185,10 @@ final class DocumentationSyncDownloader
             'error' => $this->sanitizeLogString((string) ($response['error'] ?? ''), self::MAX_LOG_VALUE_LENGTH),
         ]);
 
-            return DocumentationDownloadResult::failure(
+        return $this->failureResultFromResponse(
+            $response,
             'GitHub-ZIP konnte per HTTPS nicht geladen werden.',
-                (int) ($response['status'] ?? 0),
-                (string) ($response['contentType'] ?? '')
+            (string) ($response['contentType'] ?? '')
         );
     }
 
@@ -230,16 +230,11 @@ final class DocumentationSyncDownloader
     {
         $written = file_put_contents($destination, $payload->body(), LOCK_EX);
         if (!is_int($written) || $written < self::MIN_DOWNLOAD_BYTES || $written > self::MAX_DOWNLOAD_BYTES) {
-            $this->deleteDestinationIfPresent($destination);
-
-            $this->logFailure('documentation.sync.download.write_failed', 'Die geladene ZIP-Datei konnte nicht lokal gespeichert werden.', [
-                'destination' => $this->sanitizePathForLog($destination),
-                'bytes' => is_int($written) ? $written : 0,
-            ]);
-
-            return DocumentationDownloadResult::failure(
+            return $this->failPersistDownloadedArchive(
+                'documentation.sync.download.write_failed',
+                $response,
                 'Die geladene ZIP-Datei konnte nicht lokal gespeichert werden.',
-                (int) ($response['status'] ?? 0),
+                $destination,
                 $payload->contentType(),
                 is_int($written) ? $written : 0
             );
@@ -247,15 +242,11 @@ final class DocumentationSyncDownloader
 
         $sha256 = hash_file('sha256', $destination);
         if (!is_string($sha256) || preg_match('/^[0-9a-f]{64}$/', $sha256) !== 1) {
-            $this->deleteDestinationIfPresent($destination);
-
-            $this->logFailure('documentation.sync.download.hash_failed', 'Die geladene ZIP-Datei konnte nicht mit einer Integritäts-Checksumme versehen werden.', [
-                'destination' => $this->sanitizePathForLog($destination),
-            ]);
-
-            return DocumentationDownloadResult::failure(
+            return $this->failPersistDownloadedArchive(
+                'documentation.sync.download.hash_failed',
+                $response,
                 'Die geladene ZIP-Datei konnte nicht lokal validiert werden.',
-                (int) ($response['status'] ?? 0),
+                $destination,
                 $payload->contentType(),
                 $written
             );
@@ -277,6 +268,27 @@ final class DocumentationSyncDownloader
         );
     }
 
+    /**
+     * @param array<string, mixed> $response
+     */
+    private function failPersistDownloadedArchive(
+        string $action,
+        array $response,
+        string $message,
+        string $destination,
+        string $contentType,
+        int $bytes
+    ): DocumentationDownloadResult {
+        $this->deleteDestinationIfPresent($destination);
+
+        $this->logFailure($action, $message, [
+            'destination' => $this->sanitizePathForLog($destination),
+            'bytes' => $bytes,
+        ]);
+
+        return $this->failureResultFromResponse($response, $message, $contentType, $bytes);
+    }
+
     private function ensureDestinationDirectory(string $destination): bool
     {
         $parentDir = dirname($destination);
@@ -296,7 +308,25 @@ final class DocumentationSyncDownloader
     {
         $this->logFailure($action, $message, $context);
 
-        return new DocumentationDownloadResult(false, $message);
+        return $this->failureResult($message);
+    }
+
+    private function failureResult(string $message, int $status = 0, string $contentType = '', int $bytes = 0): DocumentationDownloadResult
+    {
+        return DocumentationDownloadResult::failure($message, $status, $contentType, $bytes);
+    }
+
+    /**
+     * @param array<string, mixed> $response
+     */
+    private function failureResultFromResponse(array $response, string $message, ?string $contentType = null, ?int $bytes = null): DocumentationDownloadResult
+    {
+        return $this->failureResult(
+            $message,
+            (int) ($response['status'] ?? 0),
+            $contentType ?? (string) ($response['contentType'] ?? ''),
+            $bytes ?? 0
+        );
     }
 
     private function isAllowedDestination(string $destination): bool
@@ -406,22 +436,26 @@ final class DocumentationSyncDownloader
     /** @param array<string, mixed> $context */
     private function logFailure(string $action, string $message, array $context): void
     {
-        \CMS\Logger::instance()->withChannel('admin.documentation')->warning($message, $context);
-        \CMS\AuditLogger::instance()->log(
-            \CMS\AuditLogger::CAT_SYSTEM,
-            $action,
-            $message,
-            'documentation',
-            null,
-            $context,
-            'warning'
-        );
+        $this->writeDocumentationLog('warning', $action, $message, $context);
     }
 
     /** @param array<string, mixed> $context */
     private function logSuccess(string $action, string $message, array $context): void
     {
-        \CMS\Logger::instance()->withChannel('admin.documentation')->info($message, $context);
+        $this->writeDocumentationLog('info', $action, $message, $context);
+    }
+
+    /** @param array<string, mixed> $context */
+    private function writeDocumentationLog(string $level, string $action, string $message, array $context): void
+    {
+        $logger = \CMS\Logger::instance()->withChannel('admin.documentation');
+
+        if ($level === 'warning') {
+            $logger->warning($message, $context);
+        } else {
+            $logger->info($message, $context);
+        }
+
         \CMS\AuditLogger::instance()->log(
             \CMS\AuditLogger::CAT_SYSTEM,
             $action,
@@ -429,7 +463,7 @@ final class DocumentationSyncDownloader
             'documentation',
             null,
             $context,
-            'info'
+            $level
         );
     }
 

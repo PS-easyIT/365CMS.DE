@@ -145,10 +145,7 @@ final class DocumentationModule
                 $syncCapabilities
             );
         } catch (\Throwable $e) {
-            $this->logger->warning('Dokumentationsdaten konnten nicht geladen werden.', [
-                'exception' => $e::class,
-                'message' => $this->sanitizeUiText($e->getMessage()),
-            ]);
+            $this->logThrowableWarning('Dokumentationsdaten konnten nicht geladen werden.', $e);
 
             return $this->errorData('Die Dokumentation konnte gerade nicht geladen werden. Bitte Logs prüfen.');
         }
@@ -156,23 +153,17 @@ final class DocumentationModule
 
     public function syncDocsFromRepository(): DocumentationSyncActionResult
     {
-        if (!$this->canAccess()) {
-            return $this->denySyncResult('Sie dürfen die Dokumentation nicht synchronisieren.');
-        }
-
-        if (!$this->hasValidRepositoryLayout()) {
-            return $this->errorSyncResult('Das Dokumentationsmodul ist lokal nicht korrekt konfiguriert. Bitte Logs prüfen.');
+        $syncValidation = $this->validateSyncRequest();
+        if ($syncValidation instanceof DocumentationSyncActionResult) {
+            return $syncValidation;
         }
 
         try {
             return $this->sanitizeSyncResult($this->syncService->syncDocsFromRepository()->toArray());
         } catch (\Throwable $e) {
-            $this->logger->warning('Dokumentations-Sync ist unerwartet fehlgeschlagen.', [
-                'exception' => $e::class,
-                'message' => $this->sanitizeUiText($e->getMessage()),
-            ]);
+            $this->logThrowableWarning('Dokumentations-Sync ist unerwartet fehlgeschlagen.', $e);
 
-            return $this->errorSyncResult('Doku-Sync fehlgeschlagen. Bitte Logs prüfen.');
+            return $this->createSyncFailureResult('Doku-Sync fehlgeschlagen. Bitte Logs prüfen.');
         }
     }
 
@@ -187,25 +178,22 @@ final class DocumentationModule
         $resolvedDocsRoot = file_exists($this->docsRoot) ? realpath($this->docsRoot) : $this->docsRoot;
 
         if ($resolvedRepoRoot === false || !is_dir($resolvedRepoRoot) || is_link($this->repoRoot)) {
-            $this->logger->warning('Dokumentationsmodul: ungültiger Repository-Root.', [
+            return $this->logInvalidRepositoryLayout('Dokumentationsmodul: ungültiger Repository-Root.', [
                 'repo_root' => $this->repoRoot,
             ]);
-            return false;
         }
 
         if (!is_dir($resolvedRepoRoot . DIRECTORY_SEPARATOR . 'CMS')) {
-            $this->logger->warning('Dokumentationsmodul: Repository-Layout ungültig.', [
+            return $this->logInvalidRepositoryLayout('Dokumentationsmodul: Repository-Layout ungültig.', [
                 'repo_root' => $resolvedRepoRoot,
             ]);
-            return false;
         }
 
         if ($resolvedDocsRoot !== $this->docsRoot && (!is_string($resolvedDocsRoot) || !str_starts_with($resolvedDocsRoot, rtrim($resolvedRepoRoot, '\\/') . DIRECTORY_SEPARATOR))) {
-            $this->logger->warning('Dokumentationsmodul: DOC-Pfad liegt außerhalb des Repository-Roots.', [
+            return $this->logInvalidRepositoryLayout('Dokumentationsmodul: DOC-Pfad liegt außerhalb des Repository-Roots.', [
                 'docs_root' => $this->docsRoot,
                 'resolved_docs_root' => $resolvedDocsRoot,
             ]);
-            return false;
         }
 
         return true;
@@ -313,60 +301,84 @@ final class DocumentationModule
      */
     private function buildSelectedDocumentPayload(mixed $selectedDocument): array
     {
-        $payload = [
-            'selected_document' => is_array($selectedDocument) ? $selectedDocument : null,
-            'selected_html' => '',
-            'selected_raw' => '',
-            'is_selected_csv' => false,
-        ];
+        $payload = $this->defaultSelectedDocumentPayload(is_array($selectedDocument) ? $selectedDocument : null);
 
         if (!is_array($selectedDocument) || empty($selectedDocument['full_path'])) {
             return $payload;
         }
 
-        $fullPath = (string) $selectedDocument['full_path'];
-        if (!is_file($fullPath)) {
+        $fullPath = $this->resolveSelectedDocumentFullPath($selectedDocument);
+        if ($fullPath === null) {
             return $payload;
         }
 
         $selectedRaw = $this->catalog->readDocumentContents($fullPath);
-        $extension = strtolower((string) ($selectedDocument['extension'] ?? 'md'));
 
         $payload['selected_raw'] = $selectedRaw;
-        $payload['selected_html'] = $this->renderer->renderDocument(
-            $selectedRaw,
-            $this->normalizeDocumentExtension($extension),
-            (string) ($selectedDocument['relative_path'] ?? '')
-        );
-        $payload['is_selected_csv'] = $extension === 'csv';
+        $payload['selected_html'] = $this->renderSelectedDocumentHtml($selectedDocument, $selectedRaw);
+        $payload['is_selected_csv'] = strtolower((string) ($selectedDocument['extension'] ?? 'md')) === 'csv';
 
         return $payload;
     }
 
-    private function sanitizeSyncResult(array $result): DocumentationSyncActionResult
+    /**
+     * @param array<string, mixed>|null $selectedDocument
+     * @return array{selected_document: mixed, selected_html: string, selected_raw: string, is_selected_csv: bool}
+     */
+    private function defaultSelectedDocumentPayload(?array $selectedDocument): array
     {
-        $message = !empty($result['message'])
-            ? $this->sanitizeUiText((string) $result['message'])
-            : null;
-        $error = !empty($result['error'])
-            ? $this->sanitizeUiText((string) $result['error'])
-            : null;
+        return [
+            'selected_document' => $selectedDocument,
+            'selected_html' => '',
+            'selected_raw' => '',
+            'is_selected_csv' => false,
+        ];
+    }
 
-        return new DocumentationSyncActionResult(
-            !empty($result['success']),
-            $message,
-            $error
+    /**
+     * @param array<string, mixed> $selectedDocument
+     */
+    private function resolveSelectedDocumentFullPath(array $selectedDocument): ?string
+    {
+        $fullPath = (string) ($selectedDocument['full_path'] ?? '');
+
+        return $fullPath !== '' && is_file($fullPath) ? $fullPath : null;
+    }
+
+    /**
+     * @param array<string, mixed> $selectedDocument
+     */
+    private function renderSelectedDocumentHtml(array $selectedDocument, string $selectedRaw): string
+    {
+        $extension = strtolower((string) ($selectedDocument['extension'] ?? 'md'));
+
+        return $this->renderer->renderDocument(
+            $selectedRaw,
+            $this->normalizeDocumentExtension($extension),
+            (string) ($selectedDocument['relative_path'] ?? '')
         );
     }
 
-    private function denySyncResult(string $message): DocumentationSyncActionResult
+    private function sanitizeSyncResult(array $result): DocumentationSyncActionResult
     {
-        return new DocumentationSyncActionResult(false, null, $message);
+        return $this->createSyncActionResult(
+            !empty($result['success']),
+            $this->sanitizeOptionalUiText($result['message'] ?? null),
+            $this->sanitizeOptionalUiText($result['error'] ?? null)
+        );
     }
 
-    private function errorSyncResult(string $message): DocumentationSyncActionResult
+    private function validateSyncRequest(): ?DocumentationSyncActionResult
     {
-        return new DocumentationSyncActionResult(false, null, $message);
+        if (!$this->canAccess()) {
+            return $this->createSyncFailureResult('Sie dürfen die Dokumentation nicht synchronisieren.');
+        }
+
+        if (!$this->hasValidRepositoryLayout()) {
+            return $this->createSyncFailureResult('Das Dokumentationsmodul ist lokal nicht korrekt konfiguriert. Bitte Logs prüfen.');
+        }
+
+        return null;
     }
 
     private function errorData(string $message): DocumentationViewData
@@ -387,5 +399,42 @@ final class DocumentationModule
         }
 
         return substr($value, 0, $maxLength);
+    }
+
+    private function sanitizeOptionalUiText(mixed $value, int $maxLength = self::MAX_UI_ERROR_LENGTH): ?string
+    {
+        if (!is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        return $this->sanitizeUiText($value, $maxLength);
+    }
+
+    private function createSyncActionResult(bool $success, ?string $message = null, ?string $error = null): DocumentationSyncActionResult
+    {
+        return new DocumentationSyncActionResult($success, $message, $error);
+    }
+
+    private function createSyncFailureResult(string $message): DocumentationSyncActionResult
+    {
+        return $this->createSyncActionResult(false, null, $message);
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function logInvalidRepositoryLayout(string $message, array $context): bool
+    {
+        $this->logger->warning($message, $context);
+
+        return false;
+    }
+
+    private function logThrowableWarning(string $message, \Throwable $exception): void
+    {
+        $this->logger->warning($message, [
+            'exception' => $exception::class,
+            'message' => $this->sanitizeUiText($exception->getMessage()),
+        ]);
     }
 }

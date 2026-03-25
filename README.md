@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.6.95-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.7.20-blue.svg)](Changelog.md)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
@@ -29,16 +29,16 @@
 
 ## 📈 Audit-Stand März 2026
 
-Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 077** nachgezogen. Der aktuelle dokumentierte Gesamtstand über **445 bewertete Dateien** liegt bei:
+Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 102** nachgezogen. Der aktuelle dokumentierte Gesamtstand über **445 bewertete Dateien** liegt bei:
 
 | Metrik | Stand |
 |---|---:|
-| **Security** | **82,25** |
-| **Speed** | **81,21** |
-| **PHP / Best Practices** | **83,95** |
-| **Gesamt** | **82,46** |
+| **Security** | **82,50** |
+| **Speed** | **81,46** |
+| **PHP / Best Practices** | **84,20** |
+| **Gesamt** | **82,71** |
 
-Zuletzt wurde der Dokumentations-Downloader weiter standardisiert: `CMS/admin/modules/system/DocumentationSyncDownloader.php` nutzt jetzt benannte Erfolgs-/Fehlerfabriken für Download-Resultate und führt validierte Response-Payloads über ein kleines DTO statt über lose Body-/Content-Type-Arrays.
+Zuletzt wurde die Bestellübersicht weiter standardisiert: `CMS/admin/views/subscriptions/orders.php` bündelt ihr gewachsenes Aktionsmenü jetzt stärker über einen kleinen lokalen Renderer statt Statuswechsel, Zuweisung und Löschaktion direkt in jeder Tabellenzeile zu verteilen.
 
 ## 🧩 Funktionsumfang im Überblick
 

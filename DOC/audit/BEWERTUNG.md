@@ -5,13 +5,174 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 077
+### Gesamtstand nach Batch 102
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 445 | 82,25 | 81,21 | 83,95 | 82,46 |
+| 445 | 82,50 | 81,46 | 84,20 | 82,71 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **77 umgesetzte Audit-Batches**. Zuletzt wurde `CMS/admin/modules/system/DocumentationSyncDownloader.php` bei Result-Fabriken und validierten Download-Payloads weiter standardisiert.
+Der aktuelle Nachpflege-Stand umfasst damit **102 umgesetzte Audit-Batches**. Zuletzt wurde `CMS/admin/views/subscriptions/orders.php` beim Bestell-Aktionsmenü weiter standardisiert.
+
+### Delta Batch 102
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/subscriptions/orders.php` | umgesetzt | Gewachsenes Bestell-Aktionsmenü über kleinen lokalen Renderer gebündelt statt Statuswechsel, Zuweisung und Löschaktion direkt im Tabellen-Loop zu halten. | Die Bestellübersicht reduziert weiteres View-Markup-Duplikat, hält Aktionsanpassungen zentraler und bleibt in der Tabellenzeile kompakter wartbar. |
+
+### Delta Batch 101
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationSyncDownloader.php` | umgesetzt | Wiederkehrende Persistenz-Fehlerpfade für Schreib- und Hash-Fehler über kleinen Helfer gebündelt statt ähnlicher Cleanup- und Failure-Blöcke direkt im Archivpfad. | Der Dokumentations-Downloader reduziert weitere Lifecycle-Duplikate in Persistenz-Fehlern, hält Archiv-Änderungen zentraler und bleibt bei Schreib- und Hash-Fehlern konsistenter wartbar. |
+
+### Delta Batch 100
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationSyncService.php` | umgesetzt | Wiederkehrende Capability-Verzweigungen für Verfügbarkeit, Git- und GitHub-ZIP-Sync über kleinen Helfer gebündelt statt gestaffelter Inline-Auswahl direkt im Orchestrator-Einstieg. | Der Doku-Sync-Service reduziert weitere Orchestrator-Duplikate in der Sync-Auswahl, hält Capability-Änderungen zentraler und bleibt bei Moduspfaden konsistenter wartbar. |
+
+### Delta Batch 099
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/system/mail-settings.php` | umgesetzt | Wiederkehrende Status-Kartenkopf-Strukturen für Azure- und Graph-Konfiguration über kleinen lokalen Renderer gebündelt statt zweier leicht variierter Header-Blöcke mit Status-Badge. | Die Mail-Settings-View reduziert weitere Template-Duplikate in Konfigurationskarten, hält Header-Änderungen zentraler und bleibt bei Statusdarstellung konsistenter wartbar. |
+
+### Delta Batch 098
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationModule.php` | umgesetzt | Wiederkehrende Sync-Vorbedingungen für Zugriff und Repository-Layout über kleinen Guard-Helfer gebündelt statt leicht doppelter Failure-Pfade direkt im Sync-Einstieg. | Das Dokumentations-Modul reduziert weitere Orchestrator-Duplikate im Sync-Start, hält Guard-Änderungen zentraler und bleibt bei Zugriffs- und Layout-Fehlern konsistenter wartbar. |
+
+### Delta Batch 097
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/system/documentation.php` | umgesetzt | Wiederkehrende Accordion-Strukturen für Dokumentationsbereiche über kleinen lokalen Renderer gebündelt statt mehrfacher leicht variierter Header-, Collapse- und Dokumentlisten-Blöcke im Bereichs-Markup. | Die Doku-View reduziert weitere Template-Duplikate in Bereichs-Accordions, hält Strukturänderungen zentraler und bleibt bei Dokumentlisten konsistenter wartbar. |
+
+### Delta Batch 096
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/subscriptions/orders.php` | umgesetzt | Wiederkehrende Statuswechsel- und Delete-Formulare für Order-Aktionen über kleine lokale Renderer gebündelt statt mehrfacher leicht variierter Hidden-Field-Strukturen im Dropdown- und Delete-Pfad. | Die Orders-View reduziert weitere Template-Duplikate in Aktionspfaden, hält Formularänderungen zentraler und bleibt bei Mutations-Markup konsistenter wartbar. |
+
+### Delta Batch 095
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationSyncDownloader.php` | umgesetzt | Wiederkehrende Response-basierte Failure-Result-Erzeugung für Download-, Persistenz- und Validierungsfehler über kleinen Builder gebündelt statt mehrfacher leicht variierter `failureResult(...)`-Aufrufe mit Status-/Content-Type-/Bytes-Kombinationen. | Der Dokumentations-Downloader reduziert weitere Lifecycle-Duplikate in Fehlerpfaden, hält Result-Anpassungen zentraler und bleibt bei Download- und Persistenzfehlern konsistenter wartbar. |
+
+### Delta Batch 094
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationSyncService.php` | umgesetzt | Wiederkehrende Konfigurations-Failure-Arrays für Repo-, DOC-, Git- und Integritätsprüfung über kleinen Builder gebündelt statt mehrfacher leicht variierter Inline-Arrays in der Validierung. | Der Doku-Sync-Service reduziert weitere Orchestrator-Duplikate im Konfigurationspfad, hält Fehlermeldungen zentraler und bleibt bei Validierungsfehlern konsistenter wartbar. |
+
+### Delta Batch 093
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/system/mail-settings.php` | umgesetzt | Wiederkehrende einfache Kartenkopf-Strukturen für Transport-, Runtime-, Queue- und Worker-Karten über kleinen lokalen Renderer gebündelt statt mehrfacher identischer Header-Blöcke. | Die Mail-Settings-View reduziert weitere Template-Duplikate im Kartenaufbau, hält Überschriften konsistenter und vereinfacht künftige Änderungen an einfachen Header-Titeln. |
+
+### Delta Batch 092
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationModule.php` | umgesetzt | Wiederkehrende Repository-Layout-Warnings für ungültigen Repo-Root, CMS-Layout und DOC-Pfad über kleinen Hilfsweg gebündelt statt mehrfacher leicht variierter Warning-Blöcke in der Layout-Prüfung. | Das Dokumentations-Modul reduziert weitere Orchestrator-Duplikate in der Konfigurationsvalidierung, hält Logging-Änderungen zentraler und bleibt in Layout-Fehlerpfaden konsistenter wartbar. |
+
+### Delta Batch 091
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/system/documentation.php` | umgesetzt | Wiederkehrende Kartenkopf-Strukturen für Schnellstart-, Bereichs- und Dokumentkarten über kleinen lokalen Renderer gebündelt statt mehrfacher leicht variierter Header-Blöcke. | Die Doku-View reduziert weitere Template-Duplikate im Kartenaufbau, hält Überschriften konsistenter und vereinfacht künftige Anpassungen an Titel- oder Untertitelstrukturen. |
+
+### Delta Batch 090
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/subscriptions/orders.php` | umgesetzt | Wiederkehrende Select-Feld-Blöcke für Benutzer-, Paket- und Intervallauswahl im Zuweisungsmodal über kleinen lokalen Renderer und vorbereitete Optionslisten gebündelt statt dreier leicht variierter Inline-Blöcke. | Die Orders-View reduziert weitere Template-Duplikate im Assignment-Modal, hält Formularfelder konsistenter und vereinfacht künftige Änderungen an Auswahlfeldern oder Beschriftungen. |
+
+### Delta Batch 089
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationSyncDownloader.php` | umgesetzt | Wiederkehrende Audit- und Channel-Logs für Download-Erfolgs- und Fehlerpfade über kleinen gemeinsamen Hilfsweg gebündelt statt zweier fast identischer Logging-Methoden mit dupliziertem Logger-/Audit-Aufbau. | Der Dokumentations-Downloader reduziert weitere Lifecycle-Duplikate, hält Logging-Änderungen zentraler und bleibt bei Remote-, Validierungs- und Persistenzpfaden konsistenter wartbar. |
+
+### Delta Batch 088
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationSyncService.php` | umgesetzt | Wiederkehrende Audit- und Channel-Logs für Erfolgs- und Fehlerpfade über kleinen gemeinsamen Hilfsweg gebündelt statt zweier fast identischer Logging-Methoden mit dupliziertem Logger-/Audit-Aufbau. | Der Doku-Sync-Service reduziert weitere Orchestrator-Duplikate, hält Logging-Änderungen zentraler und bleibt bei Erfolgs- und Fehlerpfaden konsistenter wartbar. |
+
+### Delta Batch 087
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/system/mail-settings.php` | umgesetzt | Wiederkehrende Secret-Statushinweise und Lösch-Checkboxen für Transport-, Azure- und Graph-Secrets über kleinen lokalen Renderer gebündelt statt dreifacher leicht variierter Inline-Blöcke. | Die Mail-Settings-View reduziert weitere Template-Duplikate, hält Secret-Statusdarstellung konsistenter und vereinfacht künftige Änderungen an Formulartexten oder Reset-Optionen. |
+
+### Delta Batch 086
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationModule.php` | umgesetzt | Wiederkehrende Throwable-Warnings und Default-Payloads für ausgewählte Dokumente über kleine Hilfsmethoden gebündelt statt mehrfacher leicht variierter Inline-Blöcke im Orchestrator. | Das Dokumentations-Modul bleibt näher an seinen Read-/Write-Verträgen, reduziert weitere Orchestrator-Duplikate in Lade- und Sync-Pfaden und lässt sich für die nächsten Service-/Result-Schritte leichter lesen und nachziehen. |
+
+### Delta Batch 085
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/system/documentation.php` | umgesetzt | Wiederkehrende Alert-Blöcke, Bereichs-Einleitungen und der Quellhinweis über kleine Render-Helfer und vorbereitete Texte gebündelt statt mehrfacher leicht variierter Inline-Blöcke im Template. | Die Doku-View bleibt näher am Rendern, reduziert weitere Template-Duplikate in Sync-, Fehler- und Info-Bereichen und lässt sich für die nächsten Partial-/Builder-Schritte leichter lesen und nachziehen. |
+
+### Delta Batch 084
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/subscriptions/orders.php` | umgesetzt | Wiederkehrende Status-Badges, Primär-/Sekundärtextblöcke und Billing-Cycle-Optionen über kleine Render-Helfer und vorbereitete Listen gebündelt statt mehrfacher leicht variierter Inline-Blöcke im Tabellen- und Modal-Markup. | Die Orders-View bleibt näher am Rendern, reduziert weitere UI-Duplikate in Tabellen- und Modalpfaden und lässt sich für die nächsten Partial-/Builder-Schritte leichter lesen und nachziehen. |
+
+### Delta Batch 083
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationSyncDownloader.php` | umgesetzt | Failure-Resultate über kleinen Helper gebündelt statt Download-, Persistenz- und Validierungsfehler mehrfach separat direkt in Result-Objekte zu überführen. | Der Downloader trägt weniger verstreute Result-Erzeugung im Fehlerpfad, hält Remote- und Filesystem-Fehler klarer zusammen und lässt sich für weitere Payload-/Lifecycle-Schritte leichter lesen und nachziehen. |
+
+### Delta Batch 082
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationSyncService.php` | umgesetzt | ServiceResult-Erzeugung und Failure-Fallbacks über kleine Helper gebündelt statt Konfigurations- und Finalize-Pfade mehrfach lose Arrays direkt in Result-Objekte zu überführen. | Der Doku-Sync-Orchestrator trägt weniger doppelte Result-Konvertierung, hält Fehlerpfade klarer zusammen und lässt sich für weitere Objekt-/Result-Aufspaltungen leichter lesen und nachziehen. |
+
+## Bewertungsmatrix (letzter Vollstand)
+
+| Datei | Bereich | Fokus | Security | Speed | PHP/BP | Gesamt |
+|---|---|---|---:|---:|---:|---:|
+| `CMS/admin/views/subscriptions/orders.php` | Orders, Assignments, Modal | Tabellen, Status, Zuweisung | 91 | 82 | 93 | 89 |
+| `CMS/admin/views/system/documentation.php` | Doku-UI | Karten, Listen, Renderpfad | 90 | 81 | 92 | 88 |
+| `CMS/admin/views/system/mail-settings.php` | Transport, Azure, Graph, Queue | SMTP, OAuth2, Logs | 91 | 82 | 93 | 89 |
+| `CMS/admin/modules/system/DocumentationSyncService.php` | Doku-Sync | Capabilities, Result, Logging | 91 | 82 | 93 | 89 |
+| `CMS/admin/modules/system/DocumentationSyncDownloader.php` | Doku-Download | Remote, Persistenz, Logging | 92 | 82 | 93 | 90 |
+| `CMS/admin/modules/system/DocumentationModule.php` | Doku-Logik | Renderer, Sync, Catalog | 91 | 81 | 92 | 88 |
+
+### Delta Batch 081
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/system/mail-settings.php` | umgesetzt | Wiederkehrende Status-Badges, leere Tabellenzeilen und seitliche Hinweis-Karten über kleine Render-Helfer gebündelt statt mehrfacher Inline-Blöcke im Logs-, Queue- und OAuth2-Markup. | Die Mail-View bleibt näher am Rendern, reduziert wiederholte Badge-, Empty-State- und Sidebar-Struktur und lässt sich für weitere Partial-/Builder-Schritte leichter lesen und nachziehen. |
+
+### Delta Batch 080
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationModule.php` | umgesetzt | Ausgewählte Dokument-Payloads und Sync-Resultate über fokussierte Hilfsmethoden gebündelt statt Pfad-, Render-, Sanitizing- und Failure-Logik mehrfach inline im Modul zu mischen. | Der Doku-Orchestrator trägt weniger Inline-Lifecycle, hält Read-/Write-Helfer klarer getrennt und lässt sich für weitere Service-Aufspaltungen leichter lesen und nachziehen. |
+
+### Delta Batch 079
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/system/documentation.php` | umgesetzt | Wiederkehrende KPI-Karten sowie Schnellstart- und Bereichs-Dokumentlinks über kleine Render-Helfer und vorbereitete Kartenlisten gebündelt statt mehrfacher Inline-Blöcke im Markup. | Die Doku-View bleibt näher am Rendern, reduziert wiederholte Card- und Listenstruktur und lässt sich für weitere Partial-/Builder-Schritte leichter lesen und nachziehen. |
+
+### Delta Batch 078
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/subscriptions/orders.php` | umgesetzt | Wiederkehrende KPI-Karten, Leerzustände, Statuswechsel und Assignment-Felder über kleine Template-Helfer und vorbereitete Datenlisten gebündelt statt mehrfacher Inline-Blöcke im Markup. | Die Orders-View bleibt näher am Rendern, reduziert wiederholte Tabellen- und Dropdown-Struktur und lässt sich für weitere Partial-/Builder-Schritte leichter lesen und nachziehen. |
 
 ### Delta Batch 077
 
@@ -679,12 +840,12 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/modules/system/DocumentationCatalog.php` | Doku-Katalog | Doku-Service, Quellen | 88 | 90 | 85 | 88 |
 | `CMS/admin/modules/system/DocumentationGitSync.php` | Git-Doku-Sync | Git/Remote, FS | 88 | 70 | 86 | 81 |
 | `CMS/admin/modules/system/DocumentationGithubZipSync.php` | GitHub-Zip-Sync | Remote-Zip, FS | 90 | 68 | 89 | 83 |
-| `CMS/admin/modules/system/DocumentationModule.php` | Doku-Logik | Renderer, Sync, Catalog | 87 | 77 | 88 | 84 |
+| `CMS/admin/modules/system/DocumentationModule.php` | Doku-Logik | Renderer, Sync, Catalog | 89 | 79 | 90 | 86 |
 | `CMS/admin/modules/system/DocumentationRenderer.php` | Doku-Renderer | Markdown→HTML, Escaping | 89 | 81 | 86 | 85 |
-| `CMS/admin/modules/system/DocumentationSyncDownloader.php` | Doku-Downloader | HTTP/Remote, FS | 92 | 71 | 90 | 84 |
+| `CMS/admin/modules/system/DocumentationSyncDownloader.php` | Doku-Downloader | HTTP/Remote, FS | 93 | 72 | 91 | 85 |
 | `CMS/admin/modules/system/DocumentationSyncEnvironment.php` | Doku-Env-Check | Runtime/Env-Checks | 89 | 91 | 88 | 89 |
 | `CMS/admin/modules/system/DocumentationSyncFilesystem.php` | Doku-FS-Logik | FS, Pfade, Speicherung | 88 | 74 | 86 | 84 |
-| `CMS/admin/modules/system/DocumentationSyncService.php` | Doku-Sync-Orchestrator | Downloader, FS, GitSync | 89 | 71 | 90 | 84 |
+| `CMS/admin/modules/system/DocumentationSyncService.php` | Doku-Sync-Orchestrator | Downloader, FS, GitSync | 90 | 72 | 91 | 85 |
 | `CMS/admin/modules/system/MailSettingsModule.php` | Mail-Settings-Logik | Mailservice, Settings | 85 | 78 | 88 | 84 |
 | `CMS/admin/modules/system/SupportModule.php` | Support-Logik | Tickets/Hinweise, leicht | 86 | 88 | 84 | 86 |
 | `CMS/admin/modules/system/SystemInfoModule.php` | Systeminfo-Logik | Env/PHP/Serverdaten | 88 | 84 | 84 | 86 |
@@ -770,18 +931,18 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/views/seo/subnav.php` | SEO-Subnav | SEO-Views | 90 | 95 | 85 | 90 |
 | `CMS/admin/views/seo/technical.php` | SEO-Technical-UI | SEO-Suite, Redirects | 84 | 82 | 83 | 83 |
 | `CMS/admin/views/settings/general.php` | General-Settings-UI | `SettingsModule` | 86 | 88 | 84 | 86 |
-| `CMS/admin/views/subscriptions/orders.php` | Orders-UI | `OrdersModule` | 89 | 90 | 88 | 89 |
+| `CMS/admin/views/subscriptions/orders.php` | Orders-UI | `OrdersModule` | 90 | 92 | 90 | 91 |
 | `CMS/admin/views/subscriptions/packages.php` | Packages-UI | `PackagesModule` | 86 | 88 | 84 | 86 |
 | `CMS/admin/views/subscriptions/settings.php` | Billing-Settings-UI | Subscription-Settings-Modul | 86 | 87 | 85 | 86 |
 | `CMS/admin/views/system/backups.php` | Backup-UI | `BackupsModule` | 84 | 84 | 83 | 84 |
 | `CMS/admin/views/system/cron-status.php` | Cron-Status-UI | System-/Performance-Modul | 88 | 92 | 84 | 88 |
 | `CMS/admin/views/system/diagnose.php` | Diagnose-UI | System-Modul | 88 | 92 | 84 | 88 |
 | `CMS/admin/views/system/disk-usage.php` | Disk-Usage-UI | System-/FS-Daten | 88 | 90 | 84 | 87 |
-| `CMS/admin/views/system/documentation.php` | Doku-UI | Doku-Module, Renderer | 86 | 85 | 87 | 86 |
+| `CMS/admin/views/system/documentation.php` | Doku-UI | Doku-Module, Renderer | 88 | 87 | 89 | 88 |
 | `CMS/admin/views/system/email-alerts.php` | Email-Alerts-UI | System-/Log-Daten | 88 | 92 | 84 | 88 |
 | `CMS/admin/views/system/health-check.php` | Health-Check-UI | System-Modul | 88 | 92 | 84 | 88 |
 | `CMS/admin/views/system/info.php` | Systeminfo-UI | SystemInfo-Modul | 88 | 92 | 84 | 88 |
-| `CMS/admin/views/system/mail-settings.php` | Mail-Settings-UI | Mail-Modul | 88 | 88 | 88 | 88 |
+| `CMS/admin/views/system/mail-settings.php` | Mail-Settings-UI | Mail-Modul | 89 | 89 | 89 | 89 |
 | `CMS/admin/views/system/response-time.php` | Response-Time-UI | Perf-/System-Modul | 88 | 92 | 84 | 88 |
 | `CMS/admin/views/system/scheduled-tasks.php` | Scheduled-Tasks-UI | System-Modul | 88 | 92 | 84 | 88 |
 | `CMS/admin/views/system/subnav.php` | System-Subnav | System-Views | 90 | 95 | 85 | 90 |

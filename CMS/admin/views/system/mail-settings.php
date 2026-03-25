@@ -44,6 +44,11 @@ $queueJobStatusBadge = static function (string $status): string {
         default => 'warning',
     };
 };
+$renderStatusBadge = static function (string $badgeClass, string $label): void {
+    ?>
+    <span class="badge bg-<?php echo htmlspecialchars($badgeClass, ENT_QUOTES); ?>-lt"><?php echo htmlspecialchars($label); ?></span>
+    <?php
+};
 $renderMetricCard = static function (string $label, int $value, string $valueClass = ''): void {
     ?>
     <div class="col-sm-6 col-lg-3">
@@ -56,12 +61,51 @@ $renderMetricCard = static function (string $label, int $value, string $valueCla
     </div>
     <?php
 };
+$renderEmptyTableRow = static function (int $colspan, string $message): void {
+    ?>
+    <tr>
+        <td colspan="<?php echo $colspan; ?>" class="text-center text-secondary py-4"><?php echo htmlspecialchars($message); ?></td>
+    </tr>
+    <?php
+};
+$renderInfoCard = static function (string $title, callable $contentRenderer): void {
+    ?>
+    <div class="card h-100">
+        <div class="card-header"><h3 class="card-title"><?php echo htmlspecialchars($title); ?></h3></div>
+        <div class="card-body">
+            <?php $contentRenderer(); ?>
+        </div>
+    </div>
+    <?php
+};
+$renderCardHeaderTitle = static function (string $title): void {
+    ?>
+    <div class="card-header"><h3 class="card-title"><?php echo htmlspecialchars($title); ?></h3></div>
+    <?php
+};
+$renderStatusCardHeader = static function (string $title, bool $configured) use ($renderStatusBadge, $statusBadge, $statusLabel): void {
+    ?>
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0"><?php echo htmlspecialchars($title); ?></h3>
+        <?php $renderStatusBadge($statusBadge($configured), $statusLabel($configured, 'Konfiguriert', 'Unvollständig')); ?>
+    </div>
+    <?php
+};
 $renderReadonlyField = static function (string $label, string $value): void {
     ?>
     <div class="mb-3">
         <label class="form-label"><?php echo htmlspecialchars($label); ?></label>
         <input type="text" class="form-control" value="<?php echo htmlspecialchars($value); ?>" readonly>
     </div>
+    <?php
+};
+$renderSecretStatusField = static function (bool $configured, string $checkboxName, string $checkboxLabel) use ($statusLabel): void {
+    ?>
+    <div class="form-hint">Aktuell gespeichert: <?php echo $statusLabel($configured, 'Ja', 'Nein'); ?></div>
+    <label class="form-check mt-2">
+        <input class="form-check-input" type="checkbox" name="<?php echo htmlspecialchars($checkboxName, ENT_QUOTES); ?>" value="1">
+        <span class="form-check-label"><?php echo htmlspecialchars($checkboxLabel); ?></span>
+    </label>
     <?php
 };
 $logMetricCards = [
@@ -101,9 +145,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                 <div class="text-secondary mt-1">Zentraler Mailversand, Microsoft 365 SMTP-XOAUTH2, Graph-Zugang und Versandprotokolle.</div>
             </div>
             <div class="col-auto">
-                <span class="badge bg-<?php echo !empty($transportInfo['uses_smtp']) ? 'success' : 'warning'; ?>-lt">
-                    <?php echo htmlspecialchars((string) ($transportInfo['transport_label'] ?? 'Mailversand')); ?>
-                </span>
+                <?php $renderStatusBadge(!empty($transportInfo['uses_smtp']) ? 'success' : 'warning', (string) ($transportInfo['transport_label'] ?? 'Mailversand')); ?>
             </div>
         </div>
     </div>
@@ -131,7 +173,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                 <form method="post" class="card">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                     <input type="hidden" name="tab" value="transport">
-                    <div class="card-header"><h3 class="card-title">Transport-Konfiguration</h3></div>
+                    <?php $renderCardHeaderTitle('Transport-Konfiguration'); ?>
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-4">
@@ -175,11 +217,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                             <div class="col-md-6">
                                 <label class="form-label">SMTP-Passwort</label>
                                 <input type="password" name="smtp_password" class="form-control" value="" placeholder="Leer lassen = vorhandenes Secret behalten">
-                                <div class="form-hint">Aktuell gespeichert: <?php echo $statusLabel(!empty($transport['secret_configured']), 'Ja', 'Nein'); ?></div>
-                                <label class="form-check mt-2">
-                                    <input class="form-check-input" type="checkbox" name="clear_smtp_password" value="1">
-                                    <span class="form-check-label">Gespeichertes Passwort löschen</span>
-                                </label>
+                                <?php $renderSecretStatusField(!empty($transport['secret_configured']), 'clear_smtp_password', 'Gespeichertes Passwort löschen'); ?>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Absender-E-Mail</label>
@@ -199,7 +237,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
             </div>
             <div class="col-12 col-xl-4">
                 <div class="card h-100">
-                    <div class="card-header"><h3 class="card-title">Aktive Laufzeit</h3></div>
+                    <?php $renderCardHeaderTitle('Aktive Laufzeit'); ?>
                     <div class="card-body">
                         <dl class="row mb-0">
                             <dt class="col-5">Transport</dt><dd class="col-7"><?php echo htmlspecialchars((string) ($transportInfo['transport_label'] ?? '—')); ?></dd>
@@ -223,10 +261,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                 <form method="post" class="card">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                     <input type="hidden" name="tab" value="azure">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h3 class="card-title mb-0">Azure SMTP OAuth2</h3>
-                        <span class="badge bg-<?php echo $statusBadge(!empty($azure['configured'])); ?>-lt"><?php echo $statusLabel(!empty($azure['configured']), 'Konfiguriert', 'Unvollständig'); ?></span>
-                    </div>
+                    <?php $renderStatusCardHeader('Azure SMTP OAuth2', !empty($azure['configured'])); ?>
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-6">
@@ -240,11 +275,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                             <div class="col-md-6">
                                 <label class="form-label">Client-Secret</label>
                                 <input type="password" name="azure_client_secret" class="form-control" value="" placeholder="Leer lassen = vorhandenes Secret behalten">
-                                <div class="form-hint">Aktuell gespeichert: <?php echo $statusLabel(!empty($azure['client_secret_configured']), 'Ja', 'Nein'); ?></div>
-                                <label class="form-check mt-2">
-                                    <input class="form-check-input" type="checkbox" name="clear_azure_client_secret" value="1">
-                                    <span class="form-check-label">Gespeichertes Client-Secret löschen</span>
-                                </label>
+                                <?php $renderSecretStatusField(!empty($azure['client_secret_configured']), 'clear_azure_client_secret', 'Gespeichertes Client-Secret löschen'); ?>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Mailbox / SMTP-User</label>
@@ -267,17 +298,14 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                 </form>
             </div>
             <div class="col-12 col-xl-4">
-                <div class="card h-100">
-                    <div class="card-header"><h3 class="card-title">Hinweise</h3></div>
-                    <div class="card-body">
-                        <ul class="text-secondary small ps-3 mb-0">
-                            <li class="mb-2">SMTP-Auth-Modus im Transport auf <strong>Azure OAuth2 / XOAUTH2</strong> stellen.</li>
-                            <li class="mb-2">SMTP-Scope für App-only ist in der Regel <code>https://outlook.office365.com/.default</code>.</li>
-                            <li class="mb-2">Exchange Online benötigt Admin-Consent und in vielen Setups einen Exchange-Service-Principal.</li>
-                            <li>Die Access-Tokens werden verschlüsselt in der bestehenden <code>cms_settings</code>-Tabelle zwischengespeichert.</li>
-                        </ul>
-                    </div>
-                </div>
+                <?php $renderInfoCard('Hinweise', static function (): void { ?>
+                    <ul class="text-secondary small ps-3 mb-0">
+                        <li class="mb-2">SMTP-Auth-Modus im Transport auf <strong>Azure OAuth2 / XOAUTH2</strong> stellen.</li>
+                        <li class="mb-2">SMTP-Scope für App-only ist in der Regel <code>https://outlook.office365.com/.default</code>.</li>
+                        <li class="mb-2">Exchange Online benötigt Admin-Consent und in vielen Setups einen Exchange-Service-Principal.</li>
+                        <li>Die Access-Tokens werden verschlüsselt in der bestehenden <code>cms_settings</code>-Tabelle zwischengespeichert.</li>
+                    </ul>
+                <?php }); ?>
             </div>
         </div>
     <?php elseif ($isCurrentTab('graph')): ?>
@@ -286,10 +314,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                 <form method="post" class="card">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                     <input type="hidden" name="tab" value="graph">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h3 class="card-title mb-0">Microsoft Graph</h3>
-                        <span class="badge bg-<?php echo $statusBadge(!empty($graph['configured'])); ?>-lt"><?php echo $statusLabel(!empty($graph['configured']), 'Konfiguriert', 'Unvollständig'); ?></span>
-                    </div>
+                    <?php $renderStatusCardHeader('Microsoft Graph', !empty($graph['configured'])); ?>
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-6">
@@ -303,11 +328,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                             <div class="col-md-6">
                                 <label class="form-label">Client-Secret</label>
                                 <input type="password" name="graph_client_secret" class="form-control" value="" placeholder="Leer lassen = vorhandenes Secret behalten">
-                                <div class="form-hint">Aktuell gespeichert: <?php echo $statusLabel(!empty($graph['client_secret_configured']), 'Ja', 'Nein'); ?></div>
-                                <label class="form-check mt-2">
-                                    <input class="form-check-input" type="checkbox" name="clear_graph_client_secret" value="1">
-                                    <span class="form-check-label">Gespeichertes Client-Secret löschen</span>
-                                </label>
+                                <?php $renderSecretStatusField(!empty($graph['client_secret_configured']), 'clear_graph_client_secret', 'Gespeichertes Client-Secret löschen'); ?>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Scope</label>
@@ -331,13 +352,10 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                 </form>
             </div>
             <div class="col-12 col-xl-4">
-                <div class="card h-100">
-                    <div class="card-header"><h3 class="card-title">Lokal integrierte Basis</h3></div>
-                    <div class="card-body">
-                        <p class="text-secondary small mb-3">Die Graph-Anbindung läuft bewusst mit schlankem cURL-Client, damit die Deployment-Struktur von 365CMS ohne zusätzliche Composer-Abhängigkeiten stabil bleibt.</p>
-                        <div class="small text-secondary">Empfohlenes Standard-Scope: <code>https://graph.microsoft.com/.default</code></div>
-                    </div>
-                </div>
+                <?php $renderInfoCard('Lokal integrierte Basis', static function (): void { ?>
+                    <p class="text-secondary small mb-3">Die Graph-Anbindung läuft bewusst mit schlankem cURL-Client, damit die Deployment-Struktur von 365CMS ohne zusätzliche Composer-Abhängigkeiten stabil bleibt.</p>
+                    <div class="small text-secondary">Empfohlenes Standard-Scope: <code>https://graph.microsoft.com/.default</code></div>
+                <?php }); ?>
             </div>
         </div>
     <?php elseif ($isCurrentTab('logs')): ?>
@@ -371,14 +389,12 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                     </thead>
                     <tbody>
                         <?php if (empty($mailLogs)): ?>
-                            <tr>
-                                <td colspan="7" class="text-center text-secondary py-4">Noch keine Mail-Logs vorhanden.</td>
-                            </tr>
+                            <?php $renderEmptyTableRow(7, 'Noch keine Mail-Logs vorhanden.'); ?>
                         <?php else: ?>
                             <?php foreach ($mailLogs as $row): ?>
                                 <tr>
                                     <td class="text-nowrap"><?php echo htmlspecialchars((string) ($row->created_at ?? '')); ?></td>
-                                    <td><span class="badge bg-<?php echo $statusBadge(($row->status ?? '') === 'sent'); ?>-lt"><?php echo htmlspecialchars((string) ($row->status ?? '')); ?></span></td>
+                                    <td><?php $renderStatusBadge($statusBadge(($row->status ?? '') === 'sent'), (string) ($row->status ?? '')); ?></td>
                                     <td class="text-break"><?php echo htmlspecialchars((string) ($row->recipient ?? '')); ?></td>
                                     <td class="text-break"><?php echo htmlspecialchars((string) ($row->subject ?? '')); ?></td>
                                     <td><?php echo htmlspecialchars((string) ($row->provider ?? '')); ?></td>
@@ -406,7 +422,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                 <form method="post" class="card h-100">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                     <input type="hidden" name="tab" value="queue">
-                    <div class="card-header"><h3 class="card-title">Queue-Konfiguration</h3></div>
+                    <?php $renderCardHeaderTitle('Queue-Konfiguration'); ?>
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-12">
@@ -455,7 +471,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
             </div>
             <div class="col-12 col-xl-6">
                 <div class="card h-100">
-                    <div class="card-header"><h3 class="card-title">Worker &amp; Cron</h3></div>
+                    <?php $renderCardHeaderTitle('Worker & Cron'); ?>
                     <div class="card-body">
                         <?php foreach ($workerReadonlyFields as $field): ?>
                             <?php $renderReadonlyField($field['label'], $field['value']); ?>
@@ -496,7 +512,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
             </div>
             <div class="col-12">
                 <div class="card">
-                    <div class="card-header"><h3 class="card-title">Letzte Queue-Jobs</h3></div>
+                    <?php $renderCardHeaderTitle('Letzte Queue-Jobs'); ?>
                     <div class="table-responsive">
                         <table class="table table-vcenter card-table table-striped">
                             <thead>
@@ -514,15 +530,13 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                             </thead>
                             <tbody>
                                 <?php if (empty($queueRecentJobs)): ?>
-                                    <tr>
-                                        <td colspan="9" class="text-center text-secondary py-4">Noch keine Queue-Jobs vorhanden.</td>
-                                    </tr>
+                                    <?php $renderEmptyTableRow(9, 'Noch keine Queue-Jobs vorhanden.'); ?>
                                 <?php else: ?>
                                     <?php foreach ($queueRecentJobs as $job): ?>
                                         <tr>
                                             <td><?php echo (int) ($job->id ?? 0); ?></td>
                                             <td class="text-nowrap"><?php echo htmlspecialchars((string) ($job->created_at ?? '')); ?></td>
-                                            <td><span class="badge bg-<?php echo htmlspecialchars($queueJobStatusBadge((string) ($job->status ?? 'pending'))); ?>-lt"><?php echo htmlspecialchars((string) ($job->status ?? 'pending')); ?></span></td>
+                                            <td><?php $renderStatusBadge($queueJobStatusBadge((string) ($job->status ?? 'pending')), (string) ($job->status ?? 'pending')); ?></td>
                                             <td class="text-break"><?php echo htmlspecialchars((string) ($job->recipient ?? '')); ?></td>
                                             <td class="text-break"><?php echo htmlspecialchars((string) ($job->subject ?? '')); ?></td>
                                             <td><?php echo (int) ($job->attempts ?? 0); ?> / <?php echo (int) ($job->max_attempts ?? 0); ?></td>

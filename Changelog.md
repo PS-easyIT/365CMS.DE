@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.95-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.20-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,256 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.7.20 — 25. März 2026 · Audit-Batch 102, Bestellübersicht weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.20** | 🔴 fix | Admin/Subscriptions | **Das Bestell-Aktionsmenü läuft jetzt konsistenter über einen kleinen Renderer**: `CMS/admin/views/subscriptions/orders.php` behandelt Statuswechsel, Paketzuweisung und Löschaktion nicht mehr direkt als gewachsenen Dropdown-Block in jeder Tabellenzeile. |
+| **2.7.20** | 🟠 perf | Admin/Subscriptions | **Änderungen an Bestellaktionen bleiben zentraler wartbar**: der gemeinsame Menü-Renderer reduziert Markup-Duplikate in der Orders-Tabelle und erleichtert spätere Anpassungen an Aktionen oder Attribute. |
+| **2.7.20** | 🟡 refactor | Admin/Subscriptions | **Die Orders-View bleibt näher an kleinen View-Bausteinen**: die Tabellenzeile konzentriert sich stärker auf Daten statt auf das komplette Dropdown-Markup. |
+
+---
+
+### v2.7.19 — 25. März 2026 · Audit-Batch 101, Dokumentations-Downloader weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.19** | 🔴 fix | Admin/System | **Persistenz-Fehlerpfade laufen jetzt konsistenter über einen kleinen Downloader-Helfer**: `CMS/admin/modules/system/DocumentationSyncDownloader.php` behandelt Schreib- und Hash-Fehler für ZIP-Artefakte nicht mehr jeweils separat über ähnliche Cleanup- und Failure-Blöcke. |
+| **2.7.19** | 🟠 perf | Admin/System | **Änderungen an Archiv-Fehlerpfaden bleiben zentraler wartbar**: der gemeinsame Persistenz-Helfer reduziert Kopierlogik im Downloader und erleichtert spätere Anpassungen an Logging, Cleanup oder Failure-Metadaten. |
+| **2.7.19** | 🟡 refactor | Admin/System | **Der Dokumentations-Downloader bleibt näher an kleinen Infrastruktur-Bausteinen**: Persistenz-Fehler sind jetzt sichtbar standardisiert und halten den Archivpfad kompakter. |
+
+---
+
+### v2.7.18 — 25. März 2026 · Audit-Batch 100, Dokumentations-Sync-Service weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.18** | 🔴 fix | Admin/System | **Capability-Verzweigungen laufen jetzt konsistenter über einen kleinen Service-Helfer**: `CMS/admin/modules/system/DocumentationSyncService.php` baut Verfügbarkeits-, Git- und GitHub-ZIP-Auswahl im Sync-Einstieg nicht mehr direkt als gestaffelten Inline-Block auf. |
+| **2.7.18** | 🟠 perf | Admin/System | **Änderungen an der Sync-Auswahl bleiben zentraler wartbar**: der gemeinsame Helfer reduziert Kopierlogik im Orchestrator und erleichtert spätere Anpassungen an Capability- oder Moduspfade. |
+| **2.7.18** | 🟡 refactor | Admin/System | **Der Dokumentations-Sync-Service bleibt näher an kleinen Infrastruktur-Bausteinen**: Capability-basierte Sync-Auswahl ist jetzt sichtbar standardisiert und hält den Einstieg kompakter. |
+
+---
+
+### v2.7.17 — 25. März 2026 · Audit-Batch 099, Mail-Settings-View weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.17** | 🔴 fix | Admin/System | **Status-Kartenköpfe laufen jetzt konsistenter über einen kleinen View-Helfer**: `CMS/admin/views/system/mail-settings.php` baut Azure- und Graph-Header mit Status-Badge nicht mehr zweimal leicht variiert direkt im Template zusammen. |
+| **2.7.17** | 🟠 perf | Admin/System | **Änderungen an Konfigurationskarten bleiben zentraler wartbar**: der gemeinsame Status-Header reduziert Kopierlogik in der Mail-UI und erleichtert spätere Anpassungen an Titel oder Badge-Zustände. |
+| **2.7.17** | 🟡 refactor | Admin/System | **Die Mail-Settings-View bleibt näher an kleinen wiederverwendbaren Render-Bausteinen**: Status-Kartenköpfe sind jetzt sichtbar standardisiert und halten das Template kompakter. |
+
+---
+
+### v2.7.16 — 25. März 2026 · Audit-Batch 098, Dokumentations-Modul weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.16** | 🔴 fix | Admin/System | **Sync-Vorbedingungen laufen jetzt konsistenter über einen kleinen Modul-Helfer**: `CMS/admin/modules/system/DocumentationModule.php` verteilt Zugriffs- und Layout-Fehler im Sync-Einstieg nicht mehr über leicht doppelte Failure-Pfade, sondern bündelt sie vorab in einem Guard. |
+| **2.7.16** | 🟠 perf | Admin/System | **Änderungen am Sync-Einstieg bleiben zentraler wartbar**: der gemeinsame Guard reduziert Kopierlogik im Orchestrator und erleichtert spätere Anpassungen an Zugriff- oder Layout-Voraussetzungen. |
+| **2.7.16** | 🟡 refactor | Admin/System | **Das Dokumentations-Modul bleibt näher an kleinen Infrastruktur-Bausteinen**: Sync-Gates sind jetzt sichtbar standardisiert und halten den Einstieg kompakter. |
+
+---
+
+### v2.7.15 — 25. März 2026 · Audit-Batch 097, Dokumentations-View weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.15** | 🔴 fix | Admin/System | **Accordion-Bereiche laufen jetzt konsistenter über einen kleinen View-Helfer**: `CMS/admin/views/system/documentation.php` baut Header-, Collapse- und Dokumentlisten für Bereichs-Accordions nicht mehr mehrfach direkt im Template zusammen. |
+| **2.7.15** | 🟠 perf | Admin/System | **Bereichsänderungen bleiben zentraler wartbar**: der gemeinsame Accordion-Renderer reduziert Kopierlogik in der Dokumentations-UI und erleichtert spätere Anpassungen an Struktur, Beschriftung oder Collapse-Markup. |
+| **2.7.15** | 🟡 refactor | Admin/System | **Die Dokumentations-View bleibt näher an kleinen wiederverwendbaren Render-Bausteinen**: Bereichs-Accordions sind jetzt sichtbar standardisiert und halten das Template kompakter. |
+
+---
+
+### v2.7.14 — 25. März 2026 · Audit-Batch 096, Orders-View weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.14** | 🔴 fix | Admin/Subscriptions | **Statuswechsel- und Delete-Formulare laufen jetzt konsistenter über kleine View-Helfer**: `CMS/admin/views/subscriptions/orders.php` baut Dropdown-Mutationen und das versteckte Delete-Formular nicht mehr mehrfach über leicht variierte Hidden-Field-Strukturen auf. |
+| **2.7.14** | 🟠 perf | Admin/Subscriptions | **Aktionsänderungen bleiben zentraler wartbar**: die neuen lokalen Renderer reduzieren Kopierlogik in den Order-Aktionen und erleichtern spätere Anpassungen an Hidden-Felder oder Formularattribute. |
+| **2.7.14** | 🟡 refactor | Admin/Subscriptions | **Die Orders-View bleibt näher an kleinen wiederverwendbaren Formular-Bausteinen**: Status- und Delete-Aktionen sind jetzt sichtbar standardisiert und halten das Template kompakter. |
+
+---
+
+### v2.7.13 — 25. März 2026 · Audit-Batch 095, Dokumentations-Downloader weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.13** | 🔴 fix | Admin/System | **Response-basierte Failure-Resultate laufen jetzt konsistenter über einen kleinen Downloader-Builder**: `CMS/admin/modules/system/DocumentationSyncDownloader.php` baut Download-Fehler aus HTTP-Status, Content-Type und Byte-Zahlen nicht mehr mehrfach über leicht variierte `failureResult(...)`-Aufrufe zusammen. |
+| **2.7.13** | 🟠 perf | Admin/System | **Fehlerpfad-Änderungen bleiben zentraler wartbar**: der gemeinsame Response-Failure-Builder reduziert Kopierlogik in Download-, Persistenz- und Validierungsfehlern und erleichtert spätere Result-Anpassungen. |
+| **2.7.13** | 🟡 refactor | Admin/System | **Der Dokumentations-Downloader bleibt näher an kleinen Result-Helfern**: Response-getriebene Fehlerpfade sind jetzt sichtbar standardisiert und halten den Lifecycle kompakter. |
+
+---
+
+### v2.7.12 — 25. März 2026 · Audit-Batch 094, Dokumentations-Sync-Service weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.12** | 🔴 fix | Admin/System | **Konfigurations-Failure-Arrays laufen jetzt konsistenter über einen kleinen Service-Builder**: `CMS/admin/modules/system/DocumentationSyncService.php` baut Validierungsfehler für Repo-, DOC-, Git- und Integritätsprüfung nicht mehr mehrfach über leicht variierte Inline-Arrays auf. |
+| **2.7.12** | 🟠 perf | Admin/System | **Validierungsänderungen bleiben zentraler wartbar**: der gemeinsame Failure-Builder reduziert Kopierlogik im Konfigurationspfad und erleichtert spätere Kontext- oder Meldungsanpassungen. |
+| **2.7.12** | 🟡 refactor | Admin/System | **Der Doku-Sync-Service bleibt näher an kleinen Result-/Failure-Helfern**: Konfigurationsfehler sind jetzt sichtbar standardisiert und halten die Validierung kompakter. |
+
+---
+
+### v2.7.11 — 25. März 2026 · Audit-Batch 093, Mail-Settings-View weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.11** | 🔴 fix | Admin/System | **Einfache Kartenköpfe laufen jetzt konsistenter über einen kleinen View-Helfer**: `CMS/admin/views/system/mail-settings.php` baut Transport-, Runtime-, Queue- und Worker-Karten nicht mehr mehrfach über identische Header-Blöcke direkt im Template. |
+| **2.7.11** | 🟠 perf | Admin/System | **Header-Änderungen bleiben zentraler wartbar**: der gemeinsame Kartenkopf-Renderer reduziert Kopierlogik in der Mail-UI und erleichtert spätere Titelanpassungen. |
+| **2.7.11** | 🟡 refactor | Admin/System | **Die Mail-Settings-View bleibt näher an kleinen wiederverwendbaren Render-Bausteinen**: einfache Kartenüberschriften sind jetzt sichtbar standardisiert und halten das Template kompakter. |
+
+---
+
+### v2.7.10 — 25. März 2026 · Audit-Batch 092, Dokumentations-Modul weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.10** | 🔴 fix | Admin/System | **Repository-Layout-Warnings laufen jetzt konsistenter über einen kleinen Modul-Helfer**: `CMS/admin/modules/system/DocumentationModule.php` schreibt ungültige Repo-/DOC-Layout-Hinweise nicht mehr über mehrfach leicht variierte Warning-Blöcke direkt in `hasValidRepositoryLayout()`. |
+| **2.7.10** | 🟠 perf | Admin/System | **Layout-Prüfungen bleiben zentraler wartbar**: der gemeinsame Warning-Helfer reduziert Kopierlogik in der Repository-Validierung und erleichtert spätere Kontext- oder Log-Anpassungen. |
+| **2.7.10** | 🟡 refactor | Admin/System | **Das Dokumentations-Modul bleibt näher an kleinen Infrastruktur-Helfern**: Layout-Fehlerpfade sind jetzt sichtbar standardisiert und halten die Orchestrator-Methode kompakter. |
+
+---
+
+### v2.7.09 — 25. März 2026 · Audit-Batch 091, Dokumentations-View weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.09** | 🔴 fix | Admin/System | **Kartenköpfe laufen jetzt konsistenter über einen kleinen View-Helfer**: `CMS/admin/views/system/documentation.php` baut Schnellstart-, Bereichs- und Dokumentkarten nicht mehr über mehrfach leicht variierte Header-Blöcke zusammen. |
+| **2.7.09** | 🟠 perf | Admin/System | **Header-Änderungen bleiben zentraler wartbar**: der gemeinsame Kartenkopf-Renderer reduziert Kopierlogik im Dokumentations-UI und erleichtert spätere Titel-/Untertitel-Anpassungen. |
+| **2.7.09** | 🟡 refactor | Admin/System | **Die Dokumentations-View bleibt näher an kleinen wiederverwendbaren Render-Bausteinen**: Kartenüberschriften sind jetzt sichtbar standardisiert und halten das Template kompakter. |
+
+---
+
+### v2.7.08 — 25. März 2026 · Audit-Batch 090, Orders-View weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.08** | 🔴 fix | Admin/Subscriptions | **Select-Felder im Zuweisungsmodal laufen jetzt konsistenter über einen kleinen View-Helfer**: `CMS/admin/views/subscriptions/orders.php` baut Benutzer-, Paket- und Abrechnungsintervall-Auswahl nicht mehr als drei leicht variierte Inline-Blöcke auf. |
+| **2.7.08** | 🟠 perf | Admin/Subscriptions | **Modal-Optionen bleiben zentraler wartbar**: vorbereitete Optionslisten und der gemeinsame Select-Renderer reduzieren Kopierlogik im Zuweisungsdialog und erleichtern spätere Feldanpassungen. |
+| **2.7.08** | 🟡 refactor | Admin/Subscriptions | **Die Orders-View bleibt näher an kleinen wiederverwendbaren Render-Bausteinen**: das Assignment-Modal trägt weniger Template-Duplikate und bleibt klarer für weitere Partial- oder Builder-Schritte. |
+
+---
+
+### v2.7.07 — 25. März 2026 · Audit-Batch 089, Dokumentations-Downloader weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.07** | 🔴 fix | Admin/System | **Audit- und Channel-Logs laufen jetzt konsistenter über einen kleinen Downloader-Helfer**: `CMS/admin/modules/system/DocumentationSyncDownloader.php` schreibt Erfolgs- und Fehlerlogs nicht mehr über zwei fast identische Methodenpfade mit doppeltem Logger-/Audit-Aufbau. |
+| **2.7.07** | 🟠 perf | Admin/System | **Logging-Änderungen bleiben zentraler wartbar**: der gemeinsame Downloader-Logger reduziert Kopierlogik zwischen `logFailure()` und `logSuccess()` und erleichtert spätere Channel- oder Severity-Anpassungen. |
+| **2.7.07** | 🟡 refactor | Admin/System | **Der Dokumentations-Downloader bleibt näher an kleinen Infrastruktur-Helfern**: wiederkehrende Log-Ausleitung ist jetzt sichtbar standardisiert, während Download-Validierung und Persistenzpfade ihren Fachkontext behalten. |
+
+---
+
+### v2.7.06 — 25. März 2026 · Audit-Batch 088, Dokumentations-Sync-Service weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.06** | 🔴 fix | Admin/System | **Audit- und Channel-Logs laufen jetzt konsistenter über einen kleinen Service-Helfer**: `CMS/admin/modules/system/DocumentationSyncService.php` schreibt Erfolgs- und Fehlerlogs nicht mehr über zwei fast identische Methodenpfade mit doppeltem Logger-/Audit-Aufbau. |
+| **2.7.06** | 🟠 perf | Admin/System | **Logging-Änderungen bleiben zentraler wartbar**: der gemeinsame Dokumentations-Logger reduziert Kopierlogik zwischen `logFailure()` und `logSuccess()` und erleichtert spätere Channel- oder Severity-Anpassungen. |
+| **2.7.06** | 🟡 refactor | Admin/System | **Der Doku-Sync-Service bleibt näher an kleinen Infrastruktur-Helfern**: wiederkehrende Log-Ausleitung ist jetzt sichtbar standardisiert, während Erfolgs- und Fehlerpfade ihren Fachkontext behalten. |
+
+---
+
+### v2.7.05 — 25. März 2026 · Audit-Batch 087, Mail-Settings-View weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.05** | 🔴 fix | Admin/System | **Secret-Statushinweise laufen jetzt konsistenter über einen kleinen View-Helfer**: `CMS/admin/views/system/mail-settings.php` rendert den „Aktuell gespeichert“-Hinweis und die Reset-Checkbox für Transport-, Azure- und Graph-Secrets nicht mehr dreifach leicht variiert inline. |
+| **2.7.05** | 🟠 perf | Admin/System | **Formularfragmente bleiben leichter wartbar**: der neue lokale Renderer reduziert Kopierlogik in den drei Secret-Bereichen und macht spätere Beschriftungs- oder Zustandsänderungen zentraler. |
+| **2.7.05** | 🟡 refactor | Admin/System | **Die Mail-Settings-View bleibt näher an kleinen wiederverwendbaren Render-Bausteinen**: wiederkehrende Secret-Hinweise und Löschoptionen sind jetzt sichtbar standardisiert. |
+
+---
+
+### v2.7.04 — 25. März 2026 · Audit-Batch 086, Dokumentations-Modul weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.04** | 🔴 fix | Admin/System | **Throwable-Warnings laufen jetzt konsistenter über einen kleinen Modul-Helfer**: `CMS/admin/modules/system/DocumentationModule.php` protokolliert Lade- und Sync-Ausnahmen nicht mehr mehrfach über leicht variierte Inline-Logger-Blöcke, sondern nutzt einen gemeinsamen Warning-Helper. |
+| **2.7.04** | 🟠 perf | Admin/System | **Default-Payloads für ausgewählte Dokumente werden zentral vorbereitet**: der Orchestrator baut den leeren Read-Zustand nicht mehr ad hoc in `buildSelectedDocumentPayload()`, sondern nutzt einen kleinen Default-Payload-Helfer für stabilere Read-Pfade. |
+| **2.7.04** | 🟡 refactor | Admin/System | **Das Dokumentations-Modul bleibt noch näher an seinen Verträgen**: kleine Hilfsmethoden für Throwable-Logging und Initial-Payload reduzieren weitere Orchestrator-Duplikate und erleichtern die nächsten Service- oder Result-Schritte. |
+
+---
+
+### v2.7.03 — 25. März 2026 · Audit-Batch 085, Dokumentations-View weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.03** | 🔴 fix | Admin/System | **Alert-Blöcke laufen jetzt konsistenter über einen kleinen View-Helfer**: `CMS/admin/views/system/documentation.php` baut Fehler-, Sync- und Hinweisboxen nicht mehr mehrfach mit leicht variierten Inline-Blöcken zusammen, sondern nutzt einen gemeinsamen Alert-Renderer. |
+| **2.7.03** | 🟠 perf | Admin/System | **Bereichs-Einleitungen und Quellhinweise werden aus vorbereiteten Renderern/Texten aufgebaut**: Accordion-Intro und Source-Hinweis müssen nicht mehr mehrfach direkt im Template zusammengesetzt werden, wodurch der Informationspfad kompakter bleibt. |
+| **2.7.03** | 🟡 refactor | Admin/System | **Die Dokumentations-View bleibt noch näher am eigentlichen Rendern**: kleine Renderer für Alert- und Introblöcke reduzieren weitere Template-Duplikate und erleichtern die nächsten Partial- oder Builder-Schritte. |
+
+---
+
+### v2.7.02 — 25. März 2026 · Audit-Batch 084, Orders-View weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.02** | 🔴 fix | Admin/Subscriptions | **Status-Badges und Sekundärzeilen laufen jetzt konsistenter über kleine Render-Helfer**: `CMS/admin/views/subscriptions/orders.php` baut Kunden-, Assignment- und Statusanzeige nicht mehr mehrfach mit leicht variierten Inline-Blöcken zusammen, sondern nutzt gemeinsame Renderer für Badge- und Primär-/Sekundärtexte. |
+| **2.7.02** | 🟠 perf | Admin/Subscriptions | **Billing-Cycle-Optionen werden aus vorbereiteten Listen gerendert**: das Zuweisungs-Modal hält Monats-, Jahres- und Lifetime-Auswahl nicht mehr als feste Einzeloptionen im Markup verstreut vor, wodurch der Formularpfad kompakter und konsistenter bleibt. |
+| **2.7.02** | 🟡 refactor | Admin/Subscriptions | **Die Orders-View bleibt noch näher am eigentlichen Rendern**: kleine Renderer für Badge- und Textgruppen reduzieren weitere Template-Duplikate und erleichtern nächste Partial- oder Builder-Schritte in Tabellen- und Modalbereichen. |
+
+---
+
+### v2.7.01 — 25. März 2026 · Audit-Batch 083, Dokumentations-Downloader weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.01** | 🔴 fix | Admin/System | **Failure-Resultate laufen jetzt konsistenter über einen kleinen Downloader-Helfer**: `CMS/admin/modules/system/DocumentationSyncDownloader.php` baut Download-, Persistenz- und Hash-Fehler nicht mehr an mehreren Stellen separat als Result-Objekte auf, sondern nutzt einen fokussierten Failure-Builder. |
+| **2.7.01** | 🟠 perf | Admin/System | **Remote-Fehlerpfade tragen weniger verteilte Result-Erzeugung**: Validierungs-, HTTP- und Schreibfehler laufen über denselben Result-Helfer, wodurch der Download-Lifecycle weniger wiederholte Objektkonstruktion im Fehlerpfad mit sich herumträgt. |
+| **2.7.01** | 🟡 refactor | Admin/System | **Der Downloader bleibt näher an seinem Result-Vertrag**: kleine Failure-Helper reduzieren losen Result-Mix und erleichtern weitere Payload- oder Lifecycle-Aufspaltungen im Downloadpfad. |
+
+---
+
+### v2.7.00 — 25. März 2026 · Audit-Batch 082, Dokumentations-Sync-Service weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.00** | 🔴 fix | Admin/System | **Failure-Fallbacks laufen jetzt konsistenter über einen kleinen Service-Helfer**: `CMS/admin/modules/system/DocumentationSyncService.php` baut Konfigurations- und Fail-Responses nicht mehr mehrfach direkt über lose Ergebnis-Arrays auf, sondern nutzt einen fokussierten Failure-Builder für `DocumentationSyncServiceResult`. |
+| **2.7.00** | 🟠 perf | Admin/System | **Finalize- und Konfigpfade nutzen denselben Result-Wrapper**: der Orchestrator konvertiert Result-Arrays zentral in einen Service-Result-Vertrag, wodurch Erfolg- und Fehlerpfade weniger doppelte Array-zu-Objekt-Übergänge mit sich herumtragen. |
+| **2.7.00** | 🟡 refactor | Admin/System | **Der Doku-Sync-Orchestrator bleibt näher an seinen Verträgen**: kleine Helper für Result-Erzeugung reduzieren losen Array-Mix und erleichtern weitere Objekt- oder Result-Aufspaltungen im Sync-Service. |
+
+---
+
+### v2.6.99 — 25. März 2026 · Audit-Batch 081, Mail-Settings-View weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.99** | 🔴 fix | Admin/System | **Status-Badges laufen jetzt konsistenter über einen kleinen View-Helfer**: `CMS/admin/views/system/mail-settings.php` rendert Transport-, OAuth2-, Log- und Queue-Status nicht mehr über mehrfach ausgeschriebene Badge-Fragmente, sondern über einen gemeinsamen Badge-Renderer. |
+| **2.6.99** | 🟠 perf | Admin/System | **Empty States und Hinweis-Karten werden wiederverwendet aufgebaut**: leere Tabellenzeilen sowie die seitlichen Azure-/Graph-Hinweisboxen laufen über kleine Render-Helfer, wodurch Logs-, Queue- und Sidebar-Markup weniger doppelte UI-Struktur tragen. |
+| **2.6.99** | 🟡 refactor | Admin/System | **Die Mail-Settings-View bleibt näher am eigentlichen Rendern**: Badge-, Empty-State- und Info-Card-Helfer reduzieren Template-Duplikate und erleichtern weitere Partial- oder Builder-Schritte. |
+
+---
+
+### v2.6.98 — 25. März 2026 · Audit-Batch 080, Dokumentations-Modul weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.98** | 🔴 fix | Admin/System | **Sync-Resultate werden im Doku-Modul jetzt konsistenter gebaut**: `CMS/admin/modules/system/DocumentationModule.php` bündelt Sanitizing und Fehlererzeugung für Sync-Antworten über fokussierte Helfer, statt dieselbe Result-Logik mehrfach direkt im Modul zu verteilen. |
+| **2.6.98** | 🟠 perf | Admin/System | **Ausgewählte Dokumente laufen über klarere Payload-Helfer**: Pfadauflösung und Dokument-Rendering sind in kleine Methoden ausgelagert, wodurch der Read-Pfad für ausgewählte Dateien weniger Inline-Verzweigungen mit sich herumträgt. |
+| **2.6.98** | 🟡 refactor | Admin/System | **Der Doku-Orchestrator bleibt näher an seinen Verträgen**: Hilfsmethoden für Payload- und Failure-Aufbau reduzieren losen Lifecycle-Mix und erleichtern weitere Service-Aufspaltungen im Modul. |
+
+---
+
+### v2.6.97 — 25. März 2026 · Audit-Batch 079, Dokumentations-View weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.97** | 🔴 fix | Admin/System | **Dokumentations-KPI-Karten laufen jetzt über einen kleinen Render-Helfer**: `CMS/admin/views/system/documentation.php` baut Dokument-, Bereichs-, Quellen- und Sync-Karten aus einer vorbereiteten Kartenliste auf, statt dieselben Card-Blöcke mehrfach direkt im Markup auszuschreiben. |
+| **2.6.97** | 🟠 perf | Admin/System | **Schnellstart- und Bereichslinks nutzen denselben Dokument-Renderer**: wiederkehrende Listen-Items werden über einen lokalen Helfer gerendert, wodurch Featured-Docs und Bereichslisten weniger doppelte UI-Struktur im Renderpfad tragen. |
+| **2.6.97** | 🟡 refactor | Admin/System | **Die Dokumentations-View bleibt näher am eigentlichen Rendern**: kleine Render-Helfer für Metric-Cards und Dokument-Links reduzieren Template-Duplikate und erleichtern weitere Partial- oder Builder-Schritte. |
+
+---
+
+### v2.6.96 — 25. März 2026 · Audit-Batch 078, Orders-View weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.96** | 🔴 fix | Admin/Subscriptions | **KPI-Karten und Leerzustände laufen jetzt über kleine View-Helfer**: `CMS/admin/views/subscriptions/orders.php` rendert Kennzahlen und leere Tabellenzeilen aus vorbereiteten Datenlisten statt dieselben Card- und Empty-State-Blöcke mehrfach direkt im Markup auszuschreiben. |
+| **2.6.96** | 🟠 perf | Admin/Subscriptions | **Statuswechsel und Assignment-Anzeige nutzen vorbereitete Zwischenwerte**: verfügbare Übergänge, JSON-Payloads und Laufzeittexte werden lokal gebündelt, wodurch Dropdown- und Tabellenpfade weniger wiederholte UI-Logik im Renderpfad tragen. |
+| **2.6.96** | 🟡 refactor | Admin/Subscriptions | **Die Orders-View bleibt noch näher am eigentlichen Rendern**: kleine Template-Helfer für Metrics, Empty States und Assignment-Felder reduzieren Template-Duplikate und erleichtern weitere Partial- oder Builder-Schritte. |
 
 ---
 

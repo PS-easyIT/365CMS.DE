@@ -47,6 +47,115 @@ $filterButtonClass = static fn (string $filterValue) => $statusFilter === $filte
 $orderNumberLabel = static fn (array $order): string => (string) ($order['order_number'] ?? '#' . ($order['id'] ?? '0'));
 $customerName = static fn (array $order): string => (string) ($order['customer_name'] ?? $order['username'] ?? '–');
 $customerEmail = static fn (array $order): string => (string) ($order['customer_email'] ?? $order['user_email'] ?? '');
+$renderMetricCard = static function (string $label, string $value, string $valueClass = ''): void {
+    ?>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></div>
+                <div class="h1 mb-0<?= $valueClass !== '' ? ' ' . htmlspecialchars($valueClass, ENT_QUOTES, 'UTF-8') : '' ?>"><?= htmlspecialchars($value, ENT_QUOTES, 'UTF-8') ?></div>
+            </div>
+        </div>
+    </div>
+    <?php
+};
+$renderEmptyTableRow = static function (int $colspan, string $message): void {
+    ?>
+    <tr>
+        <td colspan="<?= $colspan ?>" class="text-center text-secondary py-4"><?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?></td>
+    </tr>
+    <?php
+};
+$renderStatusBadge = static function (string $label, string $class): void {
+    ?>
+    <span class="badge <?= htmlspecialchars($class, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></span>
+    <?php
+};
+$renderPrimarySecondaryText = static function (string $primary, string $secondary = ''): void {
+    ?>
+    <div><?= htmlspecialchars($primary, ENT_QUOTES, 'UTF-8') ?></div>
+    <?php if ($secondary !== ''): ?>
+        <div class="text-secondary small"><?= htmlspecialchars($secondary, ENT_QUOTES, 'UTF-8') ?></div>
+    <?php endif; ?>
+    <?php
+};
+$renderSelectField = static function (string $wrapperClass, string $label, string $name, string $id, array $options, bool $required = false): void {
+    ?>
+    <div class="<?= htmlspecialchars($wrapperClass, ENT_QUOTES, 'UTF-8') ?>">
+        <label class="form-label"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></label>
+        <select name="<?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8') ?>" id="<?= htmlspecialchars($id, ENT_QUOTES, 'UTF-8') ?>" class="form-select"<?= $required ? ' required' : '' ?>>
+            <?php foreach ($options as $option): ?>
+                <option value="<?= htmlspecialchars((string) ($option['value'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars((string) ($option['label'] ?? ''), ENT_QUOTES, 'UTF-8') ?></option>
+            <?php endforeach; ?>
+        </select>
+    </div>
+    <?php
+};
+$renderOrderStatusAction = static function (string $csrfToken, int $orderId, string $statusValue, string $label): void {
+    ?>
+    <form method="post" class="d-inline">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+        <input type="hidden" name="action" value="update_status">
+        <input type="hidden" name="id" value="<?= $orderId ?>">
+        <input type="hidden" name="status" value="<?= htmlspecialchars($statusValue, ENT_QUOTES, 'UTF-8') ?>">
+        <button type="submit" class="dropdown-item">→ <?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></button>
+    </form>
+    <?php
+};
+$renderOrderDeleteForm = static function (string $csrfToken, int $orderId, string $formId): void {
+    ?>
+    <form id="<?= htmlspecialchars($formId, ENT_QUOTES, 'UTF-8') ?>" method="post" class="d-none">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+        <input type="hidden" name="action" value="delete">
+        <input type="hidden" name="id" value="<?= $orderId ?>">
+    </form>
+    <?php
+};
+$renderOrderActionsMenu = static function (
+    string $csrfToken,
+    array $order,
+    array $availableTransitions,
+    array $statusLabels,
+    string $deleteFormId
+) use ($renderOrderStatusAction, $orderAssignPayload): void {
+    $orderId = (int) ($order['id'] ?? 0);
+    ?>
+    <div class="dropdown">
+        <a href="#" class="btn-action" data-bs-toggle="dropdown"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg></a>
+        <div class="dropdown-menu dropdown-menu-end">
+            <?php foreach ($availableTransitions as $statusTransition): ?>
+                <?php $renderOrderStatusAction($csrfToken, $orderId, $statusTransition, (string) $statusLabels[$statusTransition]['label']); ?>
+            <?php endforeach; ?>
+            <?php if (!empty($order['user_id'])): ?>
+                <button type="button" class="dropdown-item" data-assign-order="<?= $orderAssignPayload($order) ?>">Paket zuweisen</button>
+            <?php endif; ?>
+            <div class="dropdown-divider"></div>
+            <button type="button" class="dropdown-item text-danger" data-delete-order-form="<?= htmlspecialchars($deleteFormId, ENT_QUOTES, 'UTF-8') ?>" data-delete-order-number="#<?= htmlspecialchars((string) ($order['order_number'] ?? '#' . $orderId), ENT_QUOTES, 'UTF-8') ?>">Löschen</button>
+        </div>
+    </div>
+    <?php
+};
+$statusOptions = static function (array $currentOrder) use ($statusTransitions, $statusLabels): array {
+    $currentStatus = (string) ($currentOrder['status'] ?? '');
+
+    return array_values(array_filter(
+        $statusTransitions,
+        static fn (string $candidate): bool => $candidate !== $currentStatus && isset($statusLabels[$candidate])
+    ));
+};
+$orderAssignPayload = static fn (array $order): string => htmlspecialchars((string) json_encode($order, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
+$assignmentUserLabel = static fn (array $assignment): string => (string) ($assignment['username'] ?? $assignment['email'] ?? '–');
+$assignmentEmailLabel = static fn (array $assignment): string => (string) ($assignment['email'] ?? '');
+$assignmentPlanLabel = static fn (array $assignment): string => (string) ($assignment['plan_name'] ?? '–');
+$assignmentStatusClass = static fn (array $assignment): string => ((string) ($assignment['status'] ?? 'active')) === 'active' ? 'bg-success' : 'bg-secondary';
+$assignmentStatusLabel = static fn (array $assignment): string => (string) ($assignment['status'] ?? 'active');
+$assignmentBillingLabel = static fn (array $assignment): string => (string) ($assignment['billing_cycle'] ?? 'monthly');
+$assignmentRangeLabel = static function (array $assignment) use ($formatDate): array {
+    $startDate = $formatDate(isset($assignment['start_date']) ? (string) $assignment['start_date'] : null);
+    $endDate = !empty($assignment['end_date']) ? 'bis ' . $formatDate((string) $assignment['end_date']) : '';
+
+    return ['start' => $startDate, 'end' => $endDate];
+};
 $userOptionLabel = static function (array $user): string {
     $primary = (string) ($user['username'] ?: ($user['display_name'] ?: $user['email']));
     $email = !empty($user['email']) ? ' (' . (string) $user['email'] . ')' : '';
@@ -62,6 +171,43 @@ $planOptionLabel = static function (array $plan) use ($formatAmount): string {
 
     return $label;
 };
+$billingCycleOptions = [
+    'monthly' => 'Monatlich',
+    'yearly' => 'Jährlich',
+    'lifetime' => 'Lifetime',
+];
+
+$metricCards = [
+    ['label' => 'Gesamt', 'value' => (string) ((int) ($stats['total'] ?? 0)), 'class' => ''],
+    ['label' => 'Offen', 'value' => (string) ((int) ($stats['pending'] ?? 0)), 'class' => 'text-warning'],
+    ['label' => 'Bezahlt', 'value' => (string) ((int) ($stats['paid'] ?? 0)), 'class' => 'text-success'],
+    ['label' => 'Umsatz', 'value' => $formatAmount($stats['revenue'] ?? 0) . ' €', 'class' => ''],
+];
+$assignUserOptions = array_merge(
+    [['value' => '', 'label' => '– Benutzer wählen –']],
+    array_map(
+        static fn (array $user): array => [
+            'value' => (string) ((int) ($user['id'] ?? 0)),
+            'label' => $userOptionLabel($user),
+        ],
+        $users
+    )
+);
+$assignPlanOptions = array_merge(
+    [['value' => '', 'label' => '– Paket wählen –']],
+    array_map(
+        static fn (array $plan): array => [
+            'value' => (string) ((int) ($plan['id'] ?? 0)),
+            'label' => $planOptionLabel($plan),
+        ],
+        $plans
+    )
+);
+$assignCycleOptions = array_map(
+    static fn (string $label, string $value): array => ['value' => $value, 'label' => $label],
+    $billingCycleOptions,
+    array_keys($billingCycleOptions)
+);
 ?>
 
 <div class="page-header d-print-none">
@@ -88,38 +234,9 @@ $planOptionLabel = static function (array $plan) use ($formatAmount): string {
 
         <!-- KPI Cards -->
         <div class="row row-deck row-cards mb-4">
-            <div class="col-sm-6 col-lg-3">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="subheader">Gesamt</div>
-                        <div class="h1 mb-0"><?= (int)$stats['total'] ?></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="subheader">Offen</div>
-                        <div class="h1 mb-0 text-warning"><?= (int)$stats['pending'] ?></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="subheader">Bezahlt</div>
-                        <div class="h1 mb-0 text-success"><?= (int)$stats['paid'] ?></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="subheader">Umsatz</div>
-                        <div class="h1 mb-0"><?= number_format((float)$stats['revenue'], 2, ',', '.') ?> €</div>
-                    </div>
-                </div>
-            </div>
+            <?php foreach ($metricCards as $metricCard): ?>
+                <?php $renderMetricCard($metricCard['label'], $metricCard['value'], $metricCard['class']); ?>
+            <?php endforeach; ?>
         </div>
 
         <div class="card mb-3">
@@ -151,9 +268,14 @@ $planOptionLabel = static function (array $plan) use ($formatAmount): string {
                     </thead>
                     <tbody>
                         <?php if (empty($orders)): ?>
-                            <tr><td colspan="7" class="text-center text-secondary py-4">Keine Bestellungen gefunden.</td></tr>
+                            <?php $renderEmptyTableRow(7, 'Keine Bestellungen gefunden.'); ?>
                         <?php else: ?>
                             <?php foreach ($orders as $order): ?>
+                                <?php
+                                $statusMeta = $resolveStatusMeta((string) ($order['status'] ?? ''));
+                                $availableTransitions = $statusOptions($order);
+                                $deleteFormId = 'delOrder-' . (int) ($order['id'] ?? 0);
+                                ?>
                                 <tr>
                                     <td>
                                         <?php if (!empty($order['plan_name'])): ?>
@@ -162,8 +284,7 @@ $planOptionLabel = static function (array $plan) use ($formatAmount): string {
                                         <strong><?= htmlspecialchars($orderNumberLabel($order), ENT_QUOTES, 'UTF-8') ?></strong>
                                     </td>
                                     <td>
-                                        <div><?= htmlspecialchars($customerName($order), ENT_QUOTES, 'UTF-8') ?></div>
-                                        <div class="text-secondary small"><?= htmlspecialchars($customerEmail($order), ENT_QUOTES, 'UTF-8') ?></div>
+                                        <?php $renderPrimarySecondaryText($customerName($order), $customerEmail($order)); ?>
                                     </td>
                                     <td>
                                         <strong><?= $formatAmount($order['total_amount'] ?? 0) ?> <?= htmlspecialchars((string) ($order['currency'] ?? 'EUR'), ENT_QUOTES, 'UTF-8') ?></strong>
@@ -172,38 +293,13 @@ $planOptionLabel = static function (array $plan) use ($formatAmount): string {
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <?php $statusMeta = $resolveStatusMeta((string) ($order['status'] ?? '')); ?>
-                                        <span class="badge <?= htmlspecialchars($statusMeta['class'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($statusMeta['label'], ENT_QUOTES, 'UTF-8') ?></span>
+                                        <?php $renderStatusBadge((string) $statusMeta['label'], (string) $statusMeta['class']); ?>
                                     </td>
                                     <td class="text-secondary"><?= htmlspecialchars((string) ($order['payment_method'] ?? '–'), ENT_QUOTES, 'UTF-8') ?></td>
                                     <td class="text-secondary"><?= htmlspecialchars($formatDateTime(isset($order['created_at']) ? (string) $order['created_at'] : null), ENT_QUOTES, 'UTF-8') ?></td>
                                     <td>
-                                        <div class="dropdown">
-                                            <a href="#" class="btn-action" data-bs-toggle="dropdown"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg></a>
-                                            <div class="dropdown-menu dropdown-menu-end">
-                                                <?php foreach ($statusTransitions as $st): ?>
-                                                    <?php if ($st !== ($order['status'] ?? '')): ?>
-                                                        <form method="post" class="d-inline">
-                                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
-                                                            <input type="hidden" name="action" value="update_status">
-                                                            <input type="hidden" name="id" value="<?= (int)$order['id'] ?>">
-                                                            <input type="hidden" name="status" value="<?= htmlspecialchars($st, ENT_QUOTES, 'UTF-8') ?>">
-                                                            <button type="submit" class="dropdown-item">→ <?= htmlspecialchars($statusLabels[$st]['label'], ENT_QUOTES, 'UTF-8') ?></button>
-                                                        </form>
-                                                    <?php endif; ?>
-                                                <?php endforeach; ?>
-                                                <?php if (!empty($order['user_id'])): ?>
-                                                    <button type="button" class="dropdown-item" data-assign-order="<?= htmlspecialchars((string) json_encode($order, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>">Paket zuweisen</button>
-                                                <?php endif; ?>
-                                                <div class="dropdown-divider"></div>
-                                                <button type="button" class="dropdown-item text-danger" data-delete-order-form="delOrder-<?= (int)$order['id'] ?>" data-delete-order-number="#<?= htmlspecialchars($orderNumberLabel($order), ENT_QUOTES, 'UTF-8') ?>">Löschen</button>
-                                            </div>
-                                        </div>
-                                        <form id="delOrder-<?= (int)$order['id'] ?>" method="post" class="d-none">
-                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
-                                            <input type="hidden" name="action" value="delete">
-                                            <input type="hidden" name="id" value="<?= (int)$order['id'] ?>">
-                                        </form>
+                                        <?php $renderOrderActionsMenu($csrfToken, $order, $availableTransitions, $statusLabels, $deleteFormId); ?>
+                                        <?php $renderOrderDeleteForm($csrfToken, (int) ($order['id'] ?? 0), $deleteFormId); ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -230,21 +326,21 @@ $planOptionLabel = static function (array $plan) use ($formatAmount): string {
                     </thead>
                     <tbody>
                         <?php if (empty($assignments)): ?>
-                            <tr><td colspan="5" class="text-center text-secondary py-4">Noch keine Zuweisungen vorhanden.</td></tr>
+                            <?php $renderEmptyTableRow(5, 'Noch keine Zuweisungen vorhanden.'); ?>
                         <?php else: ?>
                             <?php foreach ($assignments as $assignment): ?>
+                                <?php $assignmentRange = $assignmentRangeLabel($assignment); ?>
                                 <tr>
                                     <td>
-                                        <div><?= htmlspecialchars((string) ($assignment['username'] ?? $assignment['email'] ?? '–'), ENT_QUOTES, 'UTF-8') ?></div>
-                                        <div class="text-secondary small"><?= htmlspecialchars((string) ($assignment['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
+                                        <?php $renderPrimarySecondaryText($assignmentUserLabel($assignment), $assignmentEmailLabel($assignment)); ?>
                                     </td>
-                                    <td><strong><?= htmlspecialchars((string) ($assignment['plan_name'] ?? '–'), ENT_QUOTES, 'UTF-8') ?></strong></td>
-                                    <td><span class="badge bg-success"><?= htmlspecialchars((string) ($assignment['status'] ?? 'active'), ENT_QUOTES, 'UTF-8') ?></span></td>
-                                    <td><?= htmlspecialchars((string) ($assignment['billing_cycle'] ?? 'monthly'), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><strong><?= htmlspecialchars($assignmentPlanLabel($assignment), ENT_QUOTES, 'UTF-8') ?></strong></td>
+                                    <td><?php $renderStatusBadge($assignmentStatusLabel($assignment), $assignmentStatusClass($assignment)); ?></td>
+                                    <td><?= htmlspecialchars($assignmentBillingLabel($assignment), ENT_QUOTES, 'UTF-8') ?></td>
                                     <td class="text-secondary">
-                                        <?= htmlspecialchars($formatDate(isset($assignment['start_date']) ? (string) $assignment['start_date'] : null), ENT_QUOTES, 'UTF-8') ?>
-                                        <?php if (!empty($assignment['end_date'])): ?>
-                                            <div class="small">bis <?= htmlspecialchars($formatDate((string) $assignment['end_date']), ENT_QUOTES, 'UTF-8') ?></div>
+                                        <?= htmlspecialchars($assignmentRange['start'], ENT_QUOTES, 'UTF-8') ?>
+                                        <?php if ($assignmentRange['end'] !== ''): ?>
+                                            <div class="small"><?= htmlspecialchars($assignmentRange['end'], ENT_QUOTES, 'UTF-8') ?></div>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
@@ -269,32 +365,9 @@ $planOptionLabel = static function (array $plan) use ($formatAmount): string {
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Benutzer</label>
-                        <select name="user_id" id="assign-user" class="form-select" required>
-                            <option value="">– Benutzer wählen –</option>
-                            <?php foreach ($users as $user): ?>
-                                <option value="<?= (int)$user['id'] ?>"><?= htmlspecialchars($userOptionLabel($user), ENT_QUOTES, 'UTF-8') ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Paket</label>
-                        <select name="plan_id" id="assign-plan" class="form-select" required>
-                            <option value="">– Paket wählen –</option>
-                            <?php foreach ($plans as $plan): ?>
-                                <option value="<?= (int)$plan['id'] ?>"><?= htmlspecialchars($planOptionLabel($plan), ENT_QUOTES, 'UTF-8') ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="mb-0">
-                        <label class="form-label">Abrechnungsintervall</label>
-                        <select name="billing_cycle" id="assign-cycle" class="form-select">
-                            <option value="monthly">Monatlich</option>
-                            <option value="yearly">Jährlich</option>
-                            <option value="lifetime">Lifetime</option>
-                        </select>
-                    </div>
+                    <?php $renderSelectField('mb-3', 'Benutzer', 'user_id', 'assign-user', $assignUserOptions, true); ?>
+                    <?php $renderSelectField('mb-3', 'Paket', 'plan_id', 'assign-plan', $assignPlanOptions, true); ?>
+                    <?php $renderSelectField('mb-0', 'Abrechnungsintervall', 'billing_cycle', 'assign-cycle', $assignCycleOptions); ?>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn me-auto" data-bs-dismiss="modal">Abbrechen</button>
