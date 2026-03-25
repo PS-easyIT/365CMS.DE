@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.25-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.27-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,26 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.7.27 — 25. März 2026 · Audit-Batch 109, Mail-Settings-Formular-Kontexte weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.27** | 🔴 fix | Admin/System | **Mail-Formulare nutzen jetzt denselben kleinen Kontext-Renderer**: `CMS/admin/views/system/mail-settings.php` rendert die wiederkehrenden Hidden-Felder für `csrf_token` und `tab` nicht mehr mehrfach direkt in Transport-, Azure-, Graph-, Log- und Queue-Formularen aus. |
+| **2.7.27** | 🟠 perf | Admin/System | **Pflege von Formular-Kontexten bleibt zentraler wartbar**: Änderungen an CSRF- oder Tab-Kontexten müssen nicht mehr an mehreren Stellen im Template synchron gehalten werden. |
+| **2.7.27** | 🟡 refactor | Admin/System | **Die Mail-Settings-View bleibt näher an kleinen View-Bausteinen**: die betroffenen Formulare konzentrieren sich stärker auf ihre eigentlichen Felder statt auf wiederholtes Hidden-Input-Markup. |
+
+---
+
+### v2.7.26 — 25. März 2026 · Audit-Batch 108, Settings-Config-Writer gegen globale Runtime-Fehler gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.26** | 🔴 fix | Admin/Settings | **Generierte `config/app.php`-Dateien werden vor dem Live-Swap validiert**: `CMS/admin/modules/settings/SettingsModule.php` prüft die erzeugte Runtime-Konfiguration jetzt auf erwartete Kernfragmente und gültige PHP-Syntax, bevor sie atomar geschrieben wird. |
+| **2.7.26** | 🟠 perf | Admin/Settings | **Fehlerhafte Settings-Generierungen brechen früher und kontrollierter ab**: der Config-Writer schaltet keine kaputte Konfiguration mehr live und reduziert damit teure Debug-/Rollback-Schleifen nach Permalink- oder allgemeinen Einstellungen. |
+| **2.7.26** | 🟡 refactor | Admin/Settings | **Der Settings-Writer bleibt enger an seiner Installer-Vorlage**: Log-Pfad- und HTTPS-/HSTS-Defaults laufen konsistenter mit der Installer-Konfiguration zusammen, wodurch Runtime- und Installationspfad weniger auseinanderdriften. |
 
 ---
 

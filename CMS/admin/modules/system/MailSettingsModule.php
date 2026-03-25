@@ -93,25 +93,44 @@ class MailSettingsModule
             ]);
         }
 
-        $mail = $this->settings->getGroup('mail');
-        $graph = $this->settings->getGroup('graph');
-        $transportInfo = MailService::getInstance()->getTransportInfo();
-        $recentLogs = $this->mailLogs->getRecent(50);
-        $stats = $this->mailLogs->getStats();
-        $azure = AzureMailTokenProvider::getInstance()->getConfiguration();
-        $graphConfig = GraphApiService::getInstance()->getConfiguration();
-        $queueDashboard = $this->mailQueue->getDashboardData(25);
+        try {
+            $mail = $this->settings->getGroup('mail');
+            $graph = $this->settings->getGroup('graph');
+            $transportInfo = MailService::getInstance()->getTransportInfo();
+            $recentLogs = $this->mailLogs->getRecent(50);
+            $stats = $this->mailLogs->getStats();
+            $azure = AzureMailTokenProvider::getInstance()->getConfiguration();
+            $graphConfig = GraphApiService::getInstance()->getConfiguration();
+            $queueDashboard = $this->mailQueue->getDashboardData(25);
 
-        return new MailSettingsViewData([
-            'transport' => $this->buildTransportData($mail, $transportInfo),
-            'azure' => $this->buildAzureData($mail, $azure),
-            'graph' => $this->buildGraphData($graph, $graphConfig),
-            'transport_info' => $transportInfo,
-            'mail_logs' => $recentLogs,
-            'mail_stats' => $stats,
-            'queue' => $queueDashboard,
-            'queue_stats' => is_array($queueDashboard['stats'] ?? null) ? $queueDashboard['stats'] : $this->defaultQueueStats(),
-        ]);
+            return new MailSettingsViewData([
+                'transport' => $this->buildTransportData($mail, $transportInfo),
+                'azure' => $this->buildAzureData($mail, $azure),
+                'graph' => $this->buildGraphData($graph, $graphConfig),
+                'transport_info' => $transportInfo,
+                'mail_logs' => $recentLogs,
+                'mail_stats' => $stats,
+                'queue' => $queueDashboard,
+                'queue_stats' => is_array($queueDashboard['stats'] ?? null) ? $queueDashboard['stats'] : $this->defaultQueueStats(),
+            ]);
+        } catch (\Throwable $e) {
+            Logger::instance()->withChannel('admin.mail-settings')->error('Mail-Settings-Daten konnten nicht geladen werden.', [
+                'exception' => $e::class,
+                'message' => $this->sanitizeText($e->getMessage(), self::MAX_TEXT_LENGTH),
+            ]);
+
+            return new MailSettingsViewData([
+                'transport' => [],
+                'azure' => [],
+                'graph' => [],
+                'transport_info' => [],
+                'mail_logs' => ['rows' => []],
+                'mail_stats' => [],
+                'queue' => ['config' => [], 'recent_jobs' => [], 'last_run' => []],
+                'queue_stats' => $this->defaultQueueStats(),
+                'error' => 'Mail-Einstellungen konnten gerade nicht geladen werden. Bitte Logs prüfen.',
+            ]);
+        }
     }
 
     public function saveTransport(array $post): MailSettingsActionResult

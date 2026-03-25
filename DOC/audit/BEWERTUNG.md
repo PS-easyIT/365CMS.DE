@@ -5,13 +5,25 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 107
+### Gesamtstand nach Batch 109
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 445 | 82,55 | 81,51 | 84,25 | 82,76 |
+| 445 | 82,68 | 81,64 | 84,38 | 82,90 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **107 umgesetzte Audit-Batches**. Das sind aktuell **107 von 444 Prüfplan-Punkten**. Zuletzt wurde `CMS/admin/modules/system/DocumentationSyncDownloader.php` bei den Response-Failure-Pfaden weiter standardisiert.
+Der aktuelle Nachpflege-Stand umfasst damit **109 umgesetzte Audit-Batches**. Das sind aktuell **109 von 444 Prüfplan-Punkten**. Zuletzt wurde `CMS/admin/views/system/mail-settings.php` beim wiederkehrenden Formular-Kontext für `csrf_token` und `tab` weiter standardisiert.
+
+### Delta Batch 109
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/system/mail-settings.php` | umgesetzt | Wiederkehrende Hidden-Felder für `csrf_token` und `tab` über kleinen lokalen Renderer gebündelt statt mehrfacher identischer Formular-Kontext-Blöcke in Transport-, Azure-, Graph-, Log- und Queue-Formularen. | Die Mail-Settings-View reduziert weiteres Template-Duplikat in Formular-Kontexten, hält CSRF-/Tab-Änderungen zentraler und bleibt bei späteren Formularanpassungen konsistenter wartbar. |
+
+### Delta Batch 108
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/settings/SettingsModule.php` | umgesetzt | Generierte `config/app.php` vor atomarem Schreiben auf erwartete Kernfragmente und gültige PHP-Syntax validiert, damit fehlerhafte Settings-Schreibläufe keine kaputte Runtime-Konfiguration live schalten. | Das Settings-Modul reduziert das Risiko globaler 500-Fehler nach Permalink- oder Allgemein-Änderungen, hält den Config-Writer näher an der Installer-Vorlage und bricht fehlerhafte Generierungen kontrolliert vor dem Live-Swap ab. |
 
 ### Delta Batch 107
 

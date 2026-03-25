@@ -117,6 +117,12 @@ $renderSecretStatusField = static function (bool $configured, string $checkboxNa
     </label>
     <?php
 };
+$renderFormContext = static function (string $tab) use ($csrfToken): void {
+    ?>
+    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) $csrfToken); ?>">
+    <input type="hidden" name="tab" value="<?php echo htmlspecialchars($tab, ENT_QUOTES); ?>">
+    <?php
+};
 $logMetricCards = [
     ['label' => 'Versendet', 'value' => (int) ($mailStats['sent'] ?? 0), 'class' => 'text-success'],
     ['label' => 'Fehlgeschlagen', 'value' => (int) ($mailStats['failed'] ?? 0), 'class' => 'text-danger'],
@@ -180,8 +186,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
         <div class="row row-cards">
             <div class="col-12 col-xl-8">
                 <form method="post" class="card">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                    <input type="hidden" name="tab" value="transport">
+                    <?php $renderFormContext('transport'); ?>
                     <?php $renderCardHeaderTitle('Transport-Konfiguration'); ?>
                     <div class="card-body">
                         <div class="row g-3">
@@ -268,8 +273,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
         <div class="row row-cards">
             <div class="col-12 col-xl-8">
                 <form method="post" class="card">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                    <input type="hidden" name="tab" value="azure">
+                    <?php $renderFormContext('azure'); ?>
                     <?php $renderStatusCardHeader('Azure SMTP OAuth2', !empty($azure['configured'])); ?>
                     <div class="card-body">
                         <div class="row g-3">
@@ -321,8 +325,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
         <div class="row row-cards">
             <div class="col-12 col-xl-8">
                 <form method="post" class="card">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                    <input type="hidden" name="tab" value="graph">
+                    <?php $renderFormContext('graph'); ?>
                     <?php $renderStatusCardHeader('Microsoft Graph', !empty($graph['configured'])); ?>
                     <div class="card-body">
                         <div class="row g-3">
@@ -374,8 +377,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h3 class="card-title mb-0">Mail-Log</h3>
                 <form method="post" class="m-0">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                    <input type="hidden" name="tab" value="logs">
+                    <?php $renderFormContext('logs'); ?>
                     <button type="submit" name="action" value="clear_logs" class="btn btn-outline-danger btn-sm">Logs leeren</button>
                 </form>
             </div>
@@ -421,8 +423,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
         <div class="row row-cards mb-4">
             <div class="col-12 col-xl-6">
                 <form method="post" class="card h-100">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                    <input type="hidden" name="tab" value="queue">
+                    <?php $renderFormContext('queue'); ?>
                     <?php $renderCardHeaderTitle('Queue-Konfiguration'); ?>
                     <div class="card-body">
                         <div class="row g-3">
@@ -482,8 +483,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                         </div>
                         <hr>
                         <form method="post" class="row g-3 align-items-end">
-                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                            <input type="hidden" name="tab" value="queue">
+                            <?php $renderFormContext('queue'); ?>
                             <div class="col-md-6">
                                 <label class="form-label">Queue-Testempfänger</label>
                                 <input type="email" name="queue_test_recipient" class="form-control" value="<?php echo htmlspecialchars((string) ($transport['test_recipient'] ?? '')); ?>" placeholder="admin@example.com">

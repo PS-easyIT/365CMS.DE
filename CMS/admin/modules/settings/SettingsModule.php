@@ -711,15 +711,15 @@ define('UPLOAD_PATH', ABSPATH . 'uploads/');
 define('ASSETS_PATH', ABSPATH . 'assets/');
 
 
-$cmsLogDir = dirname(ABSPATH) . DIRECTORY_SEPARATOR . 'var' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR;
-if (!is_dir($cmsLogDir) && !@mkdir($cmsLogDir, 0755, true) && !is_dir($cmsLogDir)) {
-    $cmsLogDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '365cms-logs' . DIRECTORY_SEPARATOR;
-    if (!is_dir($cmsLogDir)) {
-        @mkdir($cmsLogDir, 0755, true);
+\$cmsLogDir = dirname(ABSPATH) . DIRECTORY_SEPARATOR . 'var' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR;
+if (!is_dir(\$cmsLogDir) && !@mkdir(\$cmsLogDir, 0755, true) && !is_dir(\$cmsLogDir)) {
+    \$cmsLogDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '365cms-logs' . DIRECTORY_SEPARATOR;
+    if (!is_dir(\$cmsLogDir)) {
+        @mkdir(\$cmsLogDir, 0755, true);
     }
 }
 
-defined('LOG_PATH') || define('LOG_PATH', $cmsLogDir);
+defined('LOG_PATH') || define('LOG_PATH', \$cmsLogDir);
 defined('CMS_ERROR_LOG') || define('CMS_ERROR_LOG', rtrim(LOG_PATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'error.log');
 
 define('SITE_URL_PATH', '/');
@@ -730,6 +730,9 @@ define('DEFAULT_THEME',      'cms-default');
 define('SESSIONS_LIFETIME',  3600 * 2);
 define('MAX_LOGIN_ATTEMPTS', 5);
 define('LOGIN_TIMEOUT',      300);
+defined('CMS_HTTPS_REDIRECT_STRATEGY') || define('CMS_HTTPS_REDIRECT_STRATEGY', 'upstream');
+defined('CMS_HSTS_MODE') || define('CMS_HSTS_MODE', 'https-only');
+defined('CMS_HSTS_MAX_AGE') || define('CMS_HSTS_MAX_AGE', 31536000);
 
 if (CMS_DEBUG) {
     error_reporting(E_ALL);
@@ -766,6 +769,11 @@ defined('SMTP_ENCRYPTION') || define('SMTP_ENCRYPTION', 'tls');
 defined('SMTP_FROM_EMAIL') || define('SMTP_FROM_EMAIL', ADMIN_EMAIL);
 defined('SMTP_FROM_NAME')  || define('SMTP_FROM_NAME',  SITE_NAME);
 PHP;
+
+        $validationResult = $this->validateGeneratedPhpFile($content, 'config/app.php');
+        if ($validationResult !== true) {
+            return $validationResult;
+        }
 
         return $this->writeFileAtomically($configPath, $content)
             ? true
@@ -1450,6 +1458,46 @@ PHP;
         }
 
         @chmod($path, 0640);
+
+        return true;
+    }
+
+    private function validateGeneratedPhpFile(string $content, string $label): bool|string
+    {
+        if (!str_starts_with($content, "<?php")) {
+            return sprintf('Fehler: Die generierte Datei %s ist kein gültiges PHP-Dokument.', $label);
+        }
+
+        $requiredFragments = [
+            "define('DB_HOST'",
+            "define('DB_NAME'",
+            "define('SITE_URL'",
+            "defined('LOG_PATH') || define('LOG_PATH'",
+            "defined('CMS_ERROR_LOG') || define('CMS_ERROR_LOG'",
+        ];
+
+        foreach ($requiredFragments as $fragment) {
+            if (!str_contains($content, $fragment)) {
+                return sprintf('Fehler: Die generierte Datei %s ist unvollständig und wurde nicht geschrieben.', $label);
+            }
+        }
+
+        $tempPath = tempnam(sys_get_temp_dir(), 'cmscfg_validate_');
+        if ($tempPath === false) {
+            return 'Fehler: Die generierte Konfiguration konnte nicht validiert werden.';
+        }
+
+        try {
+            if (file_put_contents($tempPath, $content, LOCK_EX) === false) {
+                return 'Fehler: Die generierte Konfiguration konnte nicht validiert werden.';
+            }
+
+            if (@php_strip_whitespace($tempPath) === false) {
+                return sprintf('Fehler: Die generierte Datei %s enthält ungültiges PHP und wurde nicht geschrieben.', $label);
+            }
+        } finally {
+            @unlink($tempPath);
+        }
 
         return true;
     }

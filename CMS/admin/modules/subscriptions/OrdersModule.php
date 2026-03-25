@@ -210,11 +210,11 @@ class OrdersModule
     public function updateStatus(int $id, string $status): OrdersActionResult
     {
         if (!$this->canAccess()) {
-            return OrdersActionResult::failure('Zugriff verweigert.');
+            return $this->denyResult();
         }
 
         if ($id <= 0) {
-            return OrdersActionResult::failure('Ungültige ID.');
+            return $this->invalidIdResult();
         }
 
         $status = $this->normalizeStatus($status);
@@ -223,9 +223,9 @@ class OrdersModule
         }
 
         try {
-            $order = $this->getOrderSnapshot($id);
-            if ($order === null) {
-                return OrdersActionResult::failure('Bestellung wurde nicht gefunden.');
+            $order = $this->requireOrderSnapshot($id);
+            if ($order instanceof OrdersActionResult) {
+                return $order;
             }
 
             if (($order['status'] ?? '') === $status) {
@@ -243,12 +243,10 @@ class OrdersModule
                 "Bestellstatus für Bestellung #{$id} geändert.",
                 'order',
                 $id,
-                [
-                    'order_number' => $this->maskOrderNumber((string)($order['order_number'] ?? '')),
+                $this->buildOrderAuditContext($order, [
                     'from_status' => (string)($order['status'] ?? ''),
                     'to_status' => $status,
-                    'customer_email' => $this->maskEmail((string)($order['customer_email'] ?? '')),
-                ],
+                ]),
                 'info'
             );
 
@@ -264,17 +262,17 @@ class OrdersModule
     public function delete(int $id): OrdersActionResult
     {
         if (!$this->canAccess()) {
-            return OrdersActionResult::failure('Zugriff verweigert.');
+            return $this->denyResult();
         }
 
         if ($id <= 0) {
-            return OrdersActionResult::failure('Ungültige ID.');
+            return $this->invalidIdResult();
         }
 
         try {
-            $order = $this->getOrderSnapshot($id);
-            if ($order === null) {
-                return OrdersActionResult::failure('Bestellung wurde nicht gefunden.');
+            $order = $this->requireOrderSnapshot($id);
+            if ($order instanceof OrdersActionResult) {
+                return $order;
             }
 
             $deleted = $this->db->delete('orders', ['id' => $id]);
@@ -288,11 +286,9 @@ class OrdersModule
                 "Bestellung #{$id} gelöscht.",
                 'order',
                 $id,
-                [
-                    'order_number' => $this->maskOrderNumber((string)($order['order_number'] ?? '')),
+                $this->buildOrderAuditContext($order, [
                     'status' => (string)($order['status'] ?? ''),
-                    'customer_email' => $this->maskEmail((string)($order['customer_email'] ?? '')),
-                ],
+                ]),
                 'warning'
             );
 
@@ -429,6 +425,16 @@ class OrdersModule
         return OrdersActionResult::failure($message . ' Bitte Logs prüfen.');
     }
 
+    private function denyResult(): OrdersActionResult
+    {
+        return OrdersActionResult::failure('Zugriff verweigert.');
+    }
+
+    private function invalidIdResult(): OrdersActionResult
+    {
+        return OrdersActionResult::failure('Ungültige ID.');
+    }
+
     private function getOrderSnapshot(int $id): ?array
     {
         $row = $this->db->get_row(
@@ -437,6 +443,21 @@ class OrdersModule
         );
 
         return $row ? (array)$row : null;
+    }
+
+    private function requireOrderSnapshot(int $id): array|OrdersActionResult
+    {
+        $order = $this->getOrderSnapshot($id);
+
+        return $order ?? OrdersActionResult::failure('Bestellung wurde nicht gefunden.');
+    }
+
+    private function buildOrderAuditContext(array $order, array $extra = []): array
+    {
+        return $extra + [
+            'order_number' => $this->maskOrderNumber((string) ($order['order_number'] ?? '')),
+            'customer_email' => $this->maskEmail((string) ($order['customer_email'] ?? '')),
+        ];
     }
 
     private function normalizeStatus(string $status): string
