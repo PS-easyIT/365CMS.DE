@@ -15,11 +15,53 @@ if (!Auth::instance()->isAdmin()) {
 
 require_once __DIR__ . '/modules/seo/SeoSuiteModule.php';
 
-$seoSection = $seoSection ?? 'dashboard';
-$seoRoutePath = $seoRoutePath ?? '/admin/seo-dashboard';
-$seoViewFile = $seoViewFile ?? (__DIR__ . '/views/seo/dashboard.php');
-$pageTitle = $pageTitle ?? 'SEO';
-$activePage = $activePage ?? 'seo-dashboard';
+/**
+ * @param array<string, mixed> $pageConfig
+ * @return array{
+ *     section: string,
+ *     route_path: string,
+ *     view_file: string,
+ *     page_title: string,
+ *     active_page: string
+ * }
+ */
+function cms_admin_seo_normalize_page_config(array $pageConfig): array
+{
+    $defaults = [
+        'section' => 'dashboard',
+        'route_path' => '/admin/seo-dashboard',
+        'view_file' => __DIR__ . '/views/seo/dashboard.php',
+        'page_title' => 'SEO',
+        'active_page' => 'seo-dashboard',
+    ];
+
+    $normalized = array_merge($defaults, $pageConfig);
+
+    return [
+        'section' => (string) ($normalized['section'] ?? $defaults['section']),
+        'route_path' => (string) ($normalized['route_path'] ?? $defaults['route_path']),
+        'view_file' => (string) ($normalized['view_file'] ?? $defaults['view_file']),
+        'page_title' => (string) ($normalized['page_title'] ?? $defaults['page_title']),
+        'active_page' => (string) ($normalized['active_page'] ?? $defaults['active_page']),
+    ];
+}
+
+$seoPageConfig = cms_admin_seo_normalize_page_config(array_merge(
+    [
+        'section' => $seoSection ?? 'dashboard',
+        'route_path' => $seoRoutePath ?? '/admin/seo-dashboard',
+        'view_file' => $seoViewFile ?? (__DIR__ . '/views/seo/dashboard.php'),
+        'page_title' => $pageTitle ?? 'SEO',
+        'active_page' => $activePage ?? 'seo-dashboard',
+    ],
+    is_array($seoPageConfig ?? null) ? $seoPageConfig : []
+));
+
+$seoSection = $seoPageConfig['section'];
+$seoRoutePath = $seoPageConfig['route_path'];
+$seoViewFile = $seoPageConfig['view_file'];
+$pageTitle = $seoPageConfig['page_title'];
+$activePage = $seoPageConfig['active_page'];
 $module = new SeoSuiteModule();
 $alert = null;
 

@@ -44,15 +44,27 @@ function cms_normalize_admin_report_redirect(string $target): string
 
 $redirectUrl = cms_normalize_admin_report_redirect((string)($_POST['back_to'] ?? ($_SERVER['HTTP_REFERER'] ?? '')));
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+function cms_admin_error_report_redirect(string $redirectUrl): never
+{
     header('Location: ' . $redirectUrl);
     exit;
 }
 
+function cms_admin_error_report_flash(array $result): void
+{
+    $_SESSION['admin_alert'] = [
+        'type' => !empty($result['success']) ? 'success' : 'danger',
+        'message' => (string) ($result['message'] ?? $result['error'] ?? 'Fehlerreport konnte nicht verarbeitet werden.'),
+    ];
+}
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    cms_admin_error_report_redirect($redirectUrl);
+}
+
 if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'admin_error_report')) {
     $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken für den Fehlerreport ist ungültig.'];
-    header('Location: ' . $redirectUrl);
-    exit;
+    cms_admin_error_report_redirect($redirectUrl);
 }
 
 $errorData = json_decode((string)($_POST['error_data_json'] ?? '[]'), true);
@@ -67,10 +79,6 @@ $result = ErrorReportService::getInstance()->createReport([
     'context' => is_array($context) ? $context : [],
 ]);
 
-$_SESSION['admin_alert'] = [
-    'type' => !empty($result['success']) ? 'success' : 'danger',
-    'message' => $result['message'] ?? $result['error'] ?? 'Fehlerreport konnte nicht verarbeitet werden.',
-];
+cms_admin_error_report_flash($result);
 
-header('Location: ' . $redirectUrl);
-exit;
+cms_admin_error_report_redirect($redirectUrl);

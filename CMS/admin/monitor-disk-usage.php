@@ -5,10 +5,12 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$systemSection = 'disk';
-$systemRoutePath = '/admin/monitor-disk-usage';
-$systemViewFile = __DIR__ . '/views/system/disk-usage.php';
-$pageTitle = 'Monitoring · Disk Usage';
-$activePage = 'monitor-disk-usage';
+$systemMonitorPageConfig = [
+    'section' => 'disk',
+    'route_path' => '/admin/monitor-disk-usage',
+    'view_file' => __DIR__ . '/views/system/disk-usage.php',
+    'page_title' => 'Monitoring · Disk Usage',
+    'active_page' => 'monitor-disk-usage',
+];
 
 require __DIR__ . '/system-monitor-page.php';

@@ -26,17 +26,38 @@ $alert     = null;
 $tab       = $module->normalizeTab((string)($_GET['tab'] ?? 'library'));
 $allowedActions = ['upload', 'create_folder', 'delete_item', 'rename_item', 'assign_category', 'add_category', 'delete_category', 'save_settings'];
 
+function cms_admin_media_redirect(string $redirectUrl): never
+{
+    header('Location: ' . $redirectUrl);
+    exit;
+}
+
+function cms_admin_media_flash(array $payload): void
+{
+    $_SESSION['admin_alert'] = [
+        'type' => (string) ($payload['type'] ?? 'danger'),
+        'message' => (string) ($payload['message'] ?? ''),
+    ];
+}
+
+function cms_admin_media_flash_result(array $result): void
+{
+    cms_admin_media_flash([
+        'type' => !empty($result['success']) ? 'success' : 'danger',
+        'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
+    ]);
+}
+
 if ($tab === 'library') {
     $requestedPath = $module->normalizePath((string)($_GET['path'] ?? ''));
     $memberConfirmed = (string)($_GET['confirm_member'] ?? '') === '1';
 
     if ($module->requiresMemberConfirmation($requestedPath) && !$memberConfirmed) {
-        $_SESSION['admin_alert'] = [
+        cms_admin_media_flash([
             'type' => 'danger',
             'message' => 'Der Member-Ordner kann erst nach einer zusätzlichen Bestätigung geöffnet werden.',
-        ];
-        header('Location: ' . SITE_URL . '/admin/media');
-        exit;
+        ]);
+        cms_admin_media_redirect(SITE_URL . '/admin/media');
     }
 }
 
@@ -46,15 +67,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postToken = $_POST['csrf_token'] ?? '';
 
     if (!Security::instance()->verifyToken($postToken, 'admin_media')) {
-        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-        header('Location: ' . SITE_URL . '/admin/media');
-        exit;
+        cms_admin_media_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
+        cms_admin_media_redirect(SITE_URL . '/admin/media');
     }
 
     if (!in_array($action, $allowedActions, true)) {
-        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Unbekannte Aktion.'];
-        header('Location: ' . SITE_URL . '/admin/media');
-        exit;
+        cms_admin_media_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
+        cms_admin_media_redirect(SITE_URL . '/admin/media');
     }
 
     $path = (string)($_POST['parent_path'] ?? $_POST['target_path'] ?? '');
@@ -125,85 +144,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             if ($uploaded > 0) {
-                $_SESSION['admin_alert'] = ['type' => 'success', 'message' => $uploaded . ' Datei(en) hochgeladen.' . (!empty($errors) ? ' Fehler: ' . implode(', ', $errors) : '')];
+                cms_admin_media_flash(['type' => 'success', 'message' => $uploaded . ' Datei(en) hochgeladen.' . (!empty($errors) ? ' Fehler: ' . implode(', ', $errors) : '')]);
             } else {
-                $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Upload fehlgeschlagen.' . (!empty($errors) ? ' ' . implode(', ', $errors) : '')];
+                cms_admin_media_flash(['type' => 'danger', 'message' => 'Upload fehlgeschlagen.' . (!empty($errors) ? ' ' . implode(', ', $errors) : '')]);
             }
-            header('Location: ' . $redir);
-            exit;
+            cms_admin_media_redirect($redir);
 
         case 'create_folder':
             $folderName = trim($_POST['folder_name'] ?? '');
             $parentPath = $_POST['parent_path'] ?? '';
             $result = $module->createFolder($folderName, $parentPath);
-            $_SESSION['admin_alert'] = [
-                'type'    => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
-            ];
-            header('Location: ' . $redir);
-            exit;
+            cms_admin_media_flash_result($result);
+            cms_admin_media_redirect($redir);
 
         case 'delete_item':
             $itemPath = $_POST['item_path'] ?? '';
             $result   = $module->deleteItem($itemPath);
-            $_SESSION['admin_alert'] = [
-                'type'    => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
-            ];
-            header('Location: ' . $redir);
-            exit;
+            cms_admin_media_flash_result($result);
+            cms_admin_media_redirect($redir);
 
         case 'rename_item':
             $oldPath = $_POST['old_path'] ?? '';
             $newName = trim($_POST['new_name'] ?? '');
             $result  = $module->renameItem($oldPath, $newName);
-            $_SESSION['admin_alert'] = [
-                'type'    => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
-            ];
-            header('Location: ' . $redir);
-            exit;
+            cms_admin_media_flash_result($result);
+            cms_admin_media_redirect($redir);
 
         case 'assign_category':
             $filePath = $_POST['file_path'] ?? '';
             $catSlug  = $_POST['category_slug'] ?? '';
             $result   = $module->assignCategory($filePath, $catSlug);
-            $_SESSION['admin_alert'] = [
-                'type'    => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
-            ];
-            header('Location: ' . $redir);
-            exit;
+            cms_admin_media_flash_result($result);
+            cms_admin_media_redirect($redir);
 
         case 'add_category':
             $name   = trim($_POST['name'] ?? '');
             $slug   = trim($_POST['slug'] ?? '');
             $result = $module->addCategory($name, $slug);
-            $_SESSION['admin_alert'] = [
-                'type'    => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
-            ];
-            header('Location: ' . SITE_URL . '/admin/media?tab=categories');
-            exit;
+            cms_admin_media_flash_result($result);
+            cms_admin_media_redirect(SITE_URL . '/admin/media?tab=categories');
 
         case 'delete_category':
             $slug   = $_POST['slug'] ?? '';
             $result = $module->deleteCategory($slug);
-            $_SESSION['admin_alert'] = [
-                'type'    => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
-            ];
-            header('Location: ' . SITE_URL . '/admin/media?tab=categories');
-            exit;
+            cms_admin_media_flash_result($result);
+            cms_admin_media_redirect(SITE_URL . '/admin/media?tab=categories');
 
         case 'save_settings':
             $result = $module->saveSettings($_POST);
-            $_SESSION['admin_alert'] = [
-                'type'    => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
-            ];
-            header('Location: ' . SITE_URL . '/admin/media?tab=settings');
-            exit;
+            cms_admin_media_flash_result($result);
+            cms_admin_media_redirect(SITE_URL . '/admin/media?tab=settings');
     }
 }
 

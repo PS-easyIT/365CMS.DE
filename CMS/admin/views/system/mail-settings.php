@@ -117,6 +117,14 @@ $renderSecretStatusField = static function (bool $configured, string $checkboxNa
     </label>
     <?php
 };
+$renderActionButton = static function (string $action, string $label, string $class = 'btn btn-primary', array $attributes = []): void {
+    ?>
+    <button type="submit" name="action" value="<?php echo htmlspecialchars($action, ENT_QUOTES); ?>" class="<?php echo htmlspecialchars($class, ENT_QUOTES); ?>"
+        <?php foreach ($attributes as $attribute => $value): ?>
+            <?php echo ' ' . htmlspecialchars((string) $attribute, ENT_QUOTES) . '="' . htmlspecialchars((string) $value, ENT_QUOTES) . '"'; ?>
+        <?php endforeach; ?>><?php echo htmlspecialchars($label); ?></button>
+    <?php
+};
 $renderFormContext = static function (string $tab) use ($csrfToken): void {
     ?>
     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) $csrfToken); ?>">
@@ -244,8 +252,8 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                         </div>
                     </div>
                     <div class="card-footer d-flex gap-2 justify-content-between flex-wrap">
-                        <button type="submit" name="action" value="save_transport" class="btn btn-primary">Transport speichern</button>
-                        <button type="submit" formaction="<?php echo htmlspecialchars($mailBaseUrl . '?tab=transport'); ?>" name="action" value="send_test_email" class="btn btn-outline-primary">Test-E-Mail senden</button>
+                        <?php $renderActionButton('save_transport', 'Transport speichern'); ?>
+                        <?php $renderActionButton('send_test_email', 'Test-E-Mail senden', 'btn btn-outline-primary', ['formaction' => $mailBaseUrl . '?tab=transport']); ?>
                     </div>
                 </form>
             </div>
@@ -305,8 +313,8 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                         </div>
                     </div>
                     <div class="card-footer d-flex gap-2 flex-wrap">
-                        <button type="submit" name="action" value="save_azure" class="btn btn-primary">Azure speichern</button>
-                        <button type="submit" name="action" value="clear_azure_cache" class="btn btn-outline-secondary">Token-Cache leeren</button>
+                        <?php $renderActionButton('save_azure', 'Azure speichern'); ?>
+                        <?php $renderActionButton('clear_azure_cache', 'Token-Cache leeren', 'btn btn-outline-secondary'); ?>
                     </div>
                 </form>
             </div>
@@ -357,9 +365,9 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                         </div>
                     </div>
                     <div class="card-footer d-flex gap-2 flex-wrap">
-                        <button type="submit" name="action" value="save_graph" class="btn btn-primary">Graph speichern</button>
-                        <button type="submit" name="action" value="test_graph_connection" class="btn btn-outline-primary">Graph testen</button>
-                        <button type="submit" name="action" value="clear_graph_cache" class="btn btn-outline-secondary">Token-Cache leeren</button>
+                        <?php $renderActionButton('save_graph', 'Graph speichern'); ?>
+                        <?php $renderActionButton('test_graph_connection', 'Graph testen', 'btn btn-outline-primary'); ?>
+                        <?php $renderActionButton('clear_graph_cache', 'Token-Cache leeren', 'btn btn-outline-secondary'); ?>
                     </div>
                 </form>
             </div>
@@ -378,7 +386,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                 <h3 class="card-title mb-0">Mail-Log</h3>
                 <form method="post" class="m-0">
                     <?php $renderFormContext('logs'); ?>
-                    <button type="submit" name="action" value="clear_logs" class="btn btn-outline-danger btn-sm">Logs leeren</button>
+                    <?php $renderActionButton('clear_logs', 'Logs leeren', 'btn btn-outline-danger btn-sm'); ?>
                 </form>
             </div>
             <div class="table-responsive">
@@ -466,7 +474,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                         </div>
                     </div>
                     <div class="card-footer d-flex justify-content-between gap-2 flex-wrap">
-                        <button type="submit" name="action" value="save_queue" class="btn btn-primary">Queue speichern</button>
+                        <?php $renderActionButton('save_queue', 'Queue speichern'); ?>
                         <span class="text-secondary small align-self-center">Konfiguration gilt für Cron und manuellen Worker-Lauf.</span>
                     </div>
                 </form>
@@ -493,13 +501,13 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                                 <input type="number" name="queue_run_limit" class="form-control" min="1" max="100" value="<?php echo (int) ($queueConfig['batch_size'] ?? 10); ?>">
                             </div>
                             <div class="col-md-3 d-grid">
-                                <button type="submit" name="action" value="run_queue_now" class="btn btn-primary">Worker jetzt ausführen</button>
+                                <?php $renderActionButton('run_queue_now', 'Worker jetzt ausführen'); ?>
                             </div>
                             <div class="col-md-6 d-grid">
-                                <button type="submit" name="action" value="enqueue_queue_test" class="btn btn-outline-primary">Test-E-Mail in Queue legen</button>
+                                <?php $renderActionButton('enqueue_queue_test', 'Test-E-Mail in Queue legen', 'btn btn-outline-primary'); ?>
                             </div>
                             <div class="col-md-6 d-grid">
-                                <button type="submit" name="action" value="release_queue_stale" class="btn btn-outline-secondary">Verwaiste Processing-Jobs freigeben</button>
+                                <?php $renderActionButton('release_queue_stale', 'Verwaiste Processing-Jobs freigeben', 'btn btn-outline-secondary'); ?>
                             </div>
                         </form>
 

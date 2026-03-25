@@ -5,10 +5,12 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$systemSection = 'health-check';
-$systemRoutePath = '/admin/monitor-health-check';
-$systemViewFile = __DIR__ . '/views/system/health-check.php';
-$pageTitle = 'Monitoring · Health Check';
-$activePage = 'monitor-health-check';
+$systemMonitorPageConfig = [
+    'section' => 'health-check',
+    'route_path' => '/admin/monitor-health-check',
+    'view_file' => __DIR__ . '/views/system/health-check.php',
+    'page_title' => 'Monitoring · Health Check',
+    'active_page' => 'monitor-health-check',
+];
 
 require __DIR__ . '/system-monitor-page.php';

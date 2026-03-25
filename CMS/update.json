@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.7.28",
+  "version": "2.7.85",
   "min_php": "8.4",
   "released": "2026-03-25",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release 2.7.28: Das Orders-Modul bündelt wiederkehrende Mutations-Vorbedingungen und Audit-Kontexte für Status- und Delete-Pfade jetzt über kleine lokale Helfer, damit Bestellmutationen konsistenter gepflegt werden können.",
+  "notes": "Release 2.7.85: Auch SEO-Audit, Technical, Sitemap und Schema nutzen jetzt denselben kleinen Konfigurations-Wrapper wie ihre Schwesterseiten, damit Wrapper-Metadaten im SEO-Bereich konsistenter gepflegt werden k\u00f6nnen.",
   "critical": false
 }

@@ -394,19 +394,22 @@ final class DocumentationSyncService
         $serviceResult = $this->serviceResultFromArray($result);
 
         if ($serviceResult->isSuccess()) {
-            $this->logSuccess('documentation.sync.completed', 'Doku-Sync erfolgreich abgeschlossen.', [
-                'mode' => $mode,
-                'capabilities' => $capabilities->toLogContext(),
-            ]);
+            $this->logSuccess(
+                'documentation.sync.completed',
+                'Doku-Sync erfolgreich abgeschlossen.',
+                $this->buildSyncExecutionContext($mode, $capabilities)
+            );
 
             return $serviceResult;
         }
 
-        $this->logFailure('documentation.sync.failed', 'Doku-Sync fehlgeschlagen.', [
-            'mode' => $mode,
-            'capabilities' => $capabilities->toLogContext(),
-            'result_error' => $this->sanitizeLogString((string) ($result['error'] ?? ''), 240),
-        ]);
+        $this->logFailure(
+            'documentation.sync.failed',
+            'Doku-Sync fehlgeschlagen.',
+            $this->buildSyncExecutionContext($mode, $capabilities, [
+                'result_error' => $this->sanitizeLogString((string) ($result['error'] ?? ''), 240),
+            ])
+        );
 
         return $serviceResult;
     }
@@ -455,6 +458,16 @@ final class DocumentationSyncService
             'action' => $action,
             'message' => $message,
             'context' => $context,
+        ];
+    }
+
+    /** @param array<string, mixed> $context */
+    private function buildSyncExecutionContext(string $mode, DocumentationSyncCapabilities $capabilities, array $context = []): array
+    {
+        return [
+            'mode' => $mode,
+            'capabilities' => $capabilities->toLogContext(),
+            ...$context,
         ];
     }
 

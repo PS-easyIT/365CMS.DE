@@ -91,23 +91,28 @@ $renderSelectField = static function (string $wrapperClass, string $label, strin
     </div>
     <?php
 };
-$renderOrderStatusAction = static function (string $csrfToken, int $orderId, string $statusValue, string $label): void {
+$renderOrderFormContext = static function (string $csrfToken, string $action, ?int $orderId = null): void {
+    ?>
+    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+    <input type="hidden" name="action" value="<?= htmlspecialchars($action, ENT_QUOTES, 'UTF-8') ?>">
+    <?php if ($orderId !== null): ?>
+        <input type="hidden" name="id" value="<?= $orderId ?>">
+    <?php endif; ?>
+    <?php
+};
+$renderOrderStatusAction = static function (string $csrfToken, int $orderId, string $statusValue, string $label) use ($renderOrderFormContext): void {
     ?>
     <form method="post" class="d-inline">
-        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
-        <input type="hidden" name="action" value="update_status">
-        <input type="hidden" name="id" value="<?= $orderId ?>">
+        <?php $renderOrderFormContext($csrfToken, 'update_status', $orderId); ?>
         <input type="hidden" name="status" value="<?= htmlspecialchars($statusValue, ENT_QUOTES, 'UTF-8') ?>">
         <button type="submit" class="dropdown-item">→ <?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></button>
     </form>
     <?php
 };
-$renderOrderDeleteForm = static function (string $csrfToken, int $orderId, string $formId): void {
+$renderOrderDeleteForm = static function (string $csrfToken, int $orderId, string $formId) use ($renderOrderFormContext): void {
     ?>
     <form id="<?= htmlspecialchars($formId, ENT_QUOTES, 'UTF-8') ?>" method="post" class="d-none">
-        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
-        <input type="hidden" name="action" value="delete">
-        <input type="hidden" name="id" value="<?= $orderId ?>">
+        <?php $renderOrderFormContext($csrfToken, 'delete', $orderId); ?>
     </form>
     <?php
 };
@@ -358,8 +363,7 @@ $assignCycleOptions = array_map(
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <form method="post">
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
-                <input type="hidden" name="action" value="assign_subscription">
+                <?php $renderOrderFormContext($csrfToken, 'assign_subscription'); ?>
                 <div class="modal-header">
                     <h5 class="modal-title">Paket zuweisen</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>

@@ -28,46 +28,53 @@ $allowedActions = [
     'delete_blacklist',
 ];
 
-$storeAlert = static function (array $result): void {
+function cms_admin_antispam_redirect(string $redirectUrl): never
+{
+    header('Location: ' . $redirectUrl);
+    exit;
+}
+
+function cms_admin_antispam_flash(array $result): void
+{
     $_SESSION['admin_alert'] = [
         'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => $result['message'] ?? $result['error'] ?? 'Unbekannte Antwort.',
+        'message' => (string) ($result['message'] ?? $result['error'] ?? 'Unbekannte Antwort.'),
     ];
-};
+}
+
+function cms_admin_antispam_handle_action(AntispamModule $module, string $action, array $post): array
+{
+    switch ($action) {
+        case 'save_settings':
+            return $module->saveSettings($post);
+
+        case 'add_blacklist':
+            return $module->addBlacklist($post);
+
+        case 'delete_blacklist':
+            return $module->deleteBlacklist((int) ($post['id'] ?? 0));
+    }
+
+    return ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'];
+}
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $postToken = (string)($_POST['csrf_token'] ?? '');
     if (!Security::instance()->verifyToken($postToken, 'admin_antispam')) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-        header('Location: ' . $redirectUrl);
-        exit;
+        cms_admin_antispam_redirect($redirectUrl);
     }
 
     $action = (string)($_POST['action'] ?? '');
     if (!in_array($action, $allowedActions, true)) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Unbekannte oder nicht erlaubte Aktion.'];
-        header('Location: ' . $redirectUrl);
-        exit;
+        cms_admin_antispam_redirect($redirectUrl);
     }
 
-    switch ($action) {
-        case 'save_settings':
-            $result = $module->saveSettings($_POST);
-            break;
-        case 'add_blacklist':
-            $result = $module->addBlacklist($_POST);
-            break;
-        case 'delete_blacklist':
-            $result = $module->deleteBlacklist((int)($_POST['id'] ?? 0));
-            break;
-        default:
-            $result = ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'];
-            break;
-    }
+    $result = cms_admin_antispam_handle_action($module, $action, $_POST);
 
-    $storeAlert($result);
-    header('Location: ' . $redirectUrl);
-    exit;
+    cms_admin_antispam_flash($result);
+    cms_admin_antispam_redirect($redirectUrl);
 }
 
 if (!empty($_SESSION['admin_alert'])) {

@@ -183,10 +183,9 @@ final class DocumentationSyncDownloader
             $response,
             'GitHub-ZIP konnte per HTTPS nicht geladen werden.',
             $destination,
-            [
-                'url' => $this->sanitizeUrlForLog($url),
+            $this->buildDownloadLogContext($url, [
                 'error' => $this->sanitizeLogString((string) ($response['error'] ?? ''), self::MAX_LOG_VALUE_LENGTH),
-            ],
+            ]),
             (string) ($response['contentType'] ?? '')
         );
     }
@@ -210,11 +209,14 @@ final class DocumentationSyncDownloader
         ) {
             $this->deleteDestinationIfPresent($destination);
 
-            $this->logFailure('documentation.sync.download.invalid_body', 'Der GitHub-Download lieferte keinen gültigen ZIP-Inhalt zurück.', [
-                'url' => $this->sanitizeUrlForLog($url),
-                'bytes' => $bodyLength,
-                'content_type' => $this->sanitizeLogString($contentType, 80),
-            ]);
+            $this->logFailure(
+                'documentation.sync.download.invalid_body',
+                'Der GitHub-Download lieferte keinen gültigen ZIP-Inhalt zurück.',
+                $this->buildDownloadLogContext($url, [
+                    'bytes' => $bodyLength,
+                    'content_type' => $this->sanitizeLogString($contentType, 80),
+                ])
+            );
 
             return null;
         }
@@ -252,8 +254,7 @@ final class DocumentationSyncDownloader
         }
 
         $this->logSuccess('documentation.sync.download.completed', 'GitHub-ZIP erfolgreich heruntergeladen.', [
-            'url' => $this->sanitizeUrlForLog($url),
-            'destination' => $this->sanitizePathForLog($destination),
+            ...$this->buildDownloadLogContext($url, ['destination' => $this->sanitizePathForLog($destination)]),
             'bytes' => $written,
             'content_type' => $this->sanitizeLogString($payload->contentType(), 80),
             'sha256' => $sha256,
@@ -494,6 +495,12 @@ final class DocumentationSyncDownloader
     private function sanitizePathForLog(string $path): string
     {
         return $this->sanitizeLogString(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path), self::MAX_LOG_VALUE_LENGTH);
+    }
+
+    /** @param array<string, mixed> $context */
+    private function buildDownloadLogContext(string $url, array $context = []): array
+    {
+        return ['url' => $this->sanitizeUrlForLog($url), ...$context];
     }
 
     private function sanitizeLogString(string $value, int $maxLength): string

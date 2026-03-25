@@ -5,13 +5,355 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 110
+### Gesamtstand nach Batch 167
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 445 | 82,75 | 81,70 | 84,45 | 82,97 |
+| 445 | 86,74 | 85,12 | 87,87 | 86,94 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **110 umgesetzte Audit-Batches**. Das sind aktuell **110 von 444 Prüfplan-Punkten**. Zuletzt wurde `CMS/admin/modules/subscriptions/OrdersModule.php` bei wiederkehrenden Mutations-Vorbedingungen und Audit-Kontexten weiter standardisiert.
+Der aktuelle Nachpflege-Stand umfasst damit **167 umgesetzte Audit-Batches**. Das sind aktuell **167 von 444 Prüfplan-Punkten**. Zuletzt wurden vier weitere SEO-Unterseiten auf denselben kleinen Konfigurations-Wrapper wie ihre Schwesterseiten nachgezogen.
+
+### Delta Batch 167
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/seo-schema.php` | umgesetzt | Den Schema-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `seo-page.php` übergeben werden. | Der Schema-Entry reduziert weiteres Wrapper-Duplikat im SEO-Bereich, hält Metadaten-Änderungen zentraler und rundet die gemeinsame SEO-Unterseitenfamilie konsistent ab. |
+
+### Delta Batch 166
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/seo-sitemap.php` | umgesetzt | Den Sitemap-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `seo-page.php` übergeben werden. | Der Sitemap-Entry reduziert weiteres Wrapper-Duplikat im SEO-Bereich, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 165
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/seo-technical.php` | umgesetzt | Den Technical-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `seo-page.php` übergeben werden. | Der Technical-Entry reduziert weiteres Wrapper-Duplikat im SEO-Bereich, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 164
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/seo-audit.php` | umgesetzt | Den Audit-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `seo-page.php` übergeben werden. | Der Audit-Entry reduziert weiteres Wrapper-Duplikat im SEO-Bereich, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 163
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/seo-page.php` | umgesetzt | Das gemeinsame SEO-Seitengerüst über einen kleinen Normalisierungs-Helper auf einen zentralen Konfigurationspfad gezogen, statt Fallbacks lose direkt im Einstieg zu verteilen. | `seo-page.php` reduziert weiteres Shell-Duplikat im SEO-Bereich, hält Default- und Wrapper-Metadaten zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 162
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/seo-social.php` | umgesetzt | Den Social-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `seo-page.php` übergeben werden. | Der Social-Entry reduziert weiteres Wrapper-Duplikat im SEO-Bereich, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 161
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/seo-meta.php` | umgesetzt | Den Meta-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `seo-page.php` übergeben werden. | Der Meta-Entry reduziert weiteres Wrapper-Duplikat im SEO-Bereich, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 160
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/seo-dashboard.php` | umgesetzt | Den Dashboard-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `seo-page.php` übergeben werden. | Der Dashboard-Entry reduziert weiteres Wrapper-Duplikat im SEO-Bereich, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 159
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/analytics.php` | umgesetzt | Den Analytics-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `seo-page.php` übergeben werden. | Der Analytics-Entry reduziert weiteres Wrapper-Duplikat im SEO-Bereich, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 158
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/info.php` | umgesetzt | Den Info-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `system-monitor-page.php` übergeben werden. | Der Info-Entry reduziert weiteres Wrapper-Duplikat im System-Bereich, hält Metadaten-Änderungen zentraler und rundet die gemeinsame System-/Monitoring-Familie konsistent ab. |
+
+### Delta Batch 157
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/monitor-email-alerts.php` | umgesetzt | Den Email-Alerts-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `system-monitor-page.php` übergeben werden. | Der Email-Alerts-Entry reduziert weiteres Wrapper-Duplikat im Monitoring-Bereich, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 156
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/monitor-health-check.php` | umgesetzt | Den Health-Check-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `system-monitor-page.php` übergeben werden. | Der Health-Check-Entry reduziert weiteres Wrapper-Duplikat im Monitoring-Bereich, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 155
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/monitor-cron-status.php` | umgesetzt | Den Cron-Status-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `system-monitor-page.php` übergeben werden. | Der Cron-Status-Entry reduziert weiteres Wrapper-Duplikat im Monitoring-Bereich, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 154
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/system-monitor-page.php` | umgesetzt | Das gemeinsame System-Monitor-Seitengerüst über einen kleinen Normalisierungs-Helper auf einen zentralen Konfigurationspfad gezogen, statt Fallbacks lose direkt im Einstieg zu verteilen. | `system-monitor-page.php` reduziert weiteres Shell-Duplikat im Monitoring-Bereich, hält Default- und Wrapper-Metadaten zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 153
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/monitor-scheduled-tasks.php` | umgesetzt | Den Scheduled-Tasks-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `system-monitor-page.php` übergeben werden. | Der Scheduled-Tasks-Entry reduziert weiteres Wrapper-Duplikat im Monitoring-Bereich, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 152
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/monitor-disk-usage.php` | umgesetzt | Den Disk-Usage-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `system-monitor-page.php` übergeben werden. | Der Disk-Usage-Entry reduziert weiteres Wrapper-Duplikat im Monitoring-Bereich, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 151
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/monitor-response-time.php` | umgesetzt | Den Response-Time-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `system-monitor-page.php` übergeben werden. | Der Response-Time-Entry reduziert weiteres Wrapper-Duplikat im Monitoring-Bereich, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 150
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/performance-sessions.php` | umgesetzt | Den Sessions-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `performance-page.php` übergeben werden. | Der Sessions-Entry reduziert weiteres Wrapper-Duplikat im Performance-Bereich, hält Metadaten-Änderungen zentraler und rundet die gemeinsame Performance-Unterseitenfamilie konsistent ab. |
+
+### Delta Batch 149
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/performance-page.php` | umgesetzt | Das gemeinsame Performance-Seitengerüst über einen kleinen Normalisierungs-Helper auf einen zentralen Konfigurationspfad gezogen, statt Fallbacks lose direkt im Einstieg zu verteilen. | `performance-page.php` reduziert weiteres Shell-Duplikat im Performance-Bereich, hält Default- und Wrapper-Metadaten zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 148
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/performance-settings.php` | umgesetzt | Den Settings-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `performance-page.php` übergeben werden. | Der Settings-Entry reduziert weiteres Wrapper-Duplikat im Performance-Bereich, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 147
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/performance-media.php` | umgesetzt | Den Media-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `performance-page.php` übergeben werden. | Der Media-Entry reduziert weiteres Wrapper-Duplikat im Performance-Bereich, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 146
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/performance-database.php` | umgesetzt | Den Database-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `performance-page.php` übergeben werden. | Der Database-Entry reduziert weiteres Wrapper-Duplikat im Performance-Bereich, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 145
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/performance-cache.php` | umgesetzt | Den Cache-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `performance-page.php` übergeben werden. | Der Cache-Entry reduziert weiteres Wrapper-Duplikat im Performance-Bereich, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 144
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/member-dashboard-page.php` | umgesetzt | Das gemeinsame Member-Dashboard-Seitengerüst über einen kleinen Normalisierungs-Helper auf einen zentralen Konfigurationspfad gezogen, statt Fallbacks lose direkt im Einstieg zu verteilen. | `member-dashboard-page.php` reduziert weiteres Shell-Duplikat im Member-Dashboard, hält Default- und Wrapper-Metadaten zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 143
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/member-dashboard-widgets.php` | umgesetzt | Den Widgets-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `member-dashboard-page.php` übergeben werden. | Der Widgets-Entry reduziert weiteres Wrapper-Duplikat im Member-Dashboard, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 142
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/member-dashboard-profile-fields.php` | umgesetzt | Den Profile-Fields-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `member-dashboard-page.php` übergeben werden. | Der Profile-Fields-Entry reduziert weiteres Wrapper-Duplikat im Member-Dashboard, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 141
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/member-dashboard-plugin-widgets.php` | umgesetzt | Den Plugin-Widgets-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `member-dashboard-page.php` übergeben werden. | Der Plugin-Widgets-Entry reduziert weiteres Wrapper-Duplikat im Member-Dashboard, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 140
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/member-dashboard-onboarding.php` | umgesetzt | Den Onboarding-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `member-dashboard-page.php` übergeben werden. | Der Onboarding-Entry reduziert weiteres Wrapper-Duplikat im Member-Dashboard, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 139
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/member-dashboard-notifications.php` | umgesetzt | Den Notifications-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `member-dashboard-page.php` übergeben werden. | Der Notifications-Entry reduziert weiteres Wrapper-Duplikat im Member-Dashboard, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 138
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/member-dashboard-general.php` | umgesetzt | Den General-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `member-dashboard-page.php` übergeben werden. | Der General-Entry reduziert weiteres Wrapper-Duplikat im Member-Dashboard, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 137
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/member-dashboard-frontend-modules.php` | umgesetzt | Den Frontend-Modules-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `member-dashboard-page.php` übergeben werden. | Der Frontend-Modules-Entry reduziert weiteres Wrapper-Duplikat im Member-Dashboard, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 136
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/member-dashboard-design.php` | umgesetzt | Den Design-Entry auf einen kleinen Konfigurations-Wrapper umgestellt, sodass Section-, Route- und View-Metadaten nicht mehr als loses Variablenset an `member-dashboard-page.php` übergeben werden. | Der Design-Entry reduziert weiteres Wrapper-Duplikat im Member-Dashboard, hält Metadaten-Änderungen zentraler und bleibt bei späteren Unterseiten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 135
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/member-dashboard.php` | umgesetzt | Den Alias-Entry für das Member-Dashboard über kleinen Redirect-Helper standardisiert statt roher Header-/Exit-Aufrufe direkt im Einstieg. | Der Member-Dashboard-Entry reduziert weiteres Entry-Duplikat im Aliaspfad, hält Redirect-Änderungen zentraler und bleibt bei späteren Member-Dashboard-Navigationen konsistenter wartbar. |
+
+### Delta Batch 134
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/media.php` | umgesetzt | Wiederkehrende Redirect- und Session-Alert-Orchestrierung für Library-, Category- und Settings-Aktionen über kleine lokale Helper gebündelt statt mehrfacher ähnlicher POST-Abgänge im Media-Entry. | Der Media-Entry reduziert weiteres Entry-Duplikat im Media-POST-Pfad, hält Redirect-/Alert-Änderungen zentraler und bleibt bei späteren Medienaktionen konsistenter wartbar. |
+
+### Delta Batch 133
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/legal-sites.php` | umgesetzt | Wiederkehrende Redirect-, Session-Alert- und Aktionsauflösung für Save-, Profile-, Generate- und Page-Aktionen über kleine lokale Helper gebündelt statt mehrfacher ähnlicher POST-Orchestrierung im Legal-Sites-Entry. | Der Legal-Sites-Entry reduziert weiteres Entry-Duplikat im Legal-POST-Pfad, hält Redirect-/Alert-Änderungen zentraler und bleibt bei späteren Legal-Site-Aktionen konsistenter wartbar. |
+
+### Delta Batch 132
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/landing-page.php` | umgesetzt | Wiederkehrende Redirect-, Session-Alert- und Aktionsauflösung für Tab-bezogene Header-, Content-, Footer-, Design-, Feature- und Plugin-Aktionen über kleine lokale Helper gebündelt statt mehrfacher ähnlicher POST-Orchestrierung im Landing-Page-Entry. | Der Landing-Page-Entry reduziert weiteres Entry-Duplikat im Landing-POST-Pfad, hält Redirect-/Alert-Änderungen zentraler und bleibt bei späteren Landing-Page-Aktionen konsistenter wartbar. |
+
+### Delta Batch 131
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/hub-sites.php` | umgesetzt | Wiederkehrende Redirect- und Session-Alert-Orchestrierung für Save-, Template-, Duplicate- und Delete-Aktionen über kleine lokale Helper gebündelt statt mehrfacher ähnlicher POST-Abgänge im Hub-Sites-Entry. | Der Hub-Sites-Entry reduziert weiteres Entry-Duplikat im Hub-POST-Pfad, hält Redirect-/Alert-Änderungen zentraler und bleibt bei späteren Hub-Site-Aktionen konsistenter wartbar. |
+
+### Delta Batch 130
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/groups.php` | umgesetzt | Wiederkehrende Redirect-, Session-Alert- und Aktionsauflösung für Save- und Delete-Aktionen über kleine lokale Helper gebündelt statt mehrfacher ähnlicher POST-Orchestrierung im Gruppen-Entry. | Der Groups-Entry reduziert weiteres Entry-Duplikat im Users-POST-Pfad, hält Redirect-/Alert-Änderungen zentraler und bleibt bei späteren Gruppenaktionen konsistenter wartbar. |
+
+### Delta Batch 129
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/firewall.php` | umgesetzt | Wiederkehrende Redirect-, Session-Alert- und Aktionsauflösung für Settings- und Rule-Aktionen über kleine lokale Helper gebündelt statt mehrfacher ähnlicher POST-Orchestrierung im Firewall-Entry. | Der Firewall-Entry reduziert weiteres Entry-Duplikat im Security-POST-Pfad, hält Redirect-/Alert-Änderungen zentraler und bleibt bei späteren Firewall-Aktionen konsistenter wartbar. |
+
+### Delta Batch 128
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/error-report.php` | umgesetzt | Wiederkehrende Redirect- und Session-Alert-Orchestrierung für Report-Erstellung und Token-Fehler über kleine lokale Helper gebündelt statt mehrfacher ähnlicher POST-Abgänge im Error-Report-Entry. | Der Error-Report-Entry reduziert weiteres Entry-Duplikat im System-POST-Pfad, hält Redirect-/Alert-Änderungen zentraler und bleibt bei späteren Fehlerreport-Aktionen konsistenter wartbar. |
+
+### Delta Batch 127
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/documentation.php` | umgesetzt | Wiederkehrende Alert-Speicherung und Redirect-Auflösung für Doku-Sync-Aktionen über kleine lokale Helper gebündelt statt mehrfacher ähnlicher POST-Orchestrierung im Dokumentations-Entry. | Der Documentation-Entry reduziert weiteres Entry-Duplikat im System-POST-Pfad, hält Redirect-/Alert-Änderungen zentraler und bleibt bei späteren Doku-Aktionen konsistenter wartbar. |
+
+### Delta Batch 126
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/backups.php` | umgesetzt | Wiederkehrende Redirect- und Session-Alert-Orchestrierung für Create- und Delete-Aktionen über kleine lokale Helper gebündelt statt mehrfacher ähnlicher POST-Abgänge im Backup-Entry. | Der Backups-Entry reduziert weiteres Entry-Duplikat im System-POST-Pfad, hält Redirect-/Alert-Änderungen zentraler und bleibt bei späteren Backup-Aktionen konsistenter wartbar. |
+
+### Delta Batch 125
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/antispam.php` | umgesetzt | Wiederkehrende Redirect-, Session-Alert- und Aktionsauflösung für Settings- und Blacklist-Aktionen über kleine lokale Helper gebündelt statt mehrfacher identischer POST-Orchestrierung im Security-Entry. | Der AntiSpam-Entry reduziert weiteres Entry-Duplikat im Security-POST-Pfad, hält Redirect-/Alert-Änderungen zentraler und bleibt bei späteren AntiSpam-Aktionen konsistenter wartbar. |
+
+### Delta Batch 124
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/not-found-monitor.php` | umgesetzt | Wiederkehrende Redirect-, Session-Alert-, Details- und Aktionsauflösung für Redirect-Speicherung und Log-Bereinigung über kleine lokale Helper gebündelt statt mehrfacher identischer POST-Orchestrierung im SEO-Entry. | Der 404-Monitor-Entry reduziert weiteres Entry-Duplikat im SEO-POST-Pfad, hält Redirect-/Alert-Änderungen zentraler und bleibt bei späteren Redirect- und Log-Aktionen konsistenter wartbar. |
+
+### Delta Batch 123
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/design-settings.php` | umgesetzt | Den Alias-Entry für Design-Einstellungen über kleinen Redirect-Helper standardisiert statt roher Header-/Exit-Aufrufe direkt im Einstieg. | Der Design-Settings-Entry reduziert weiteres Entry-Duplikat im Aliaspfad, hält Redirect-Änderungen zentraler und bleibt bei späteren Theme-Navigationen konsistenter wartbar. |
+
+### Delta Batch 122
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/deletion-requests.php` | umgesetzt | Den Redirect-Alias auf Admin-Guard plus Ziel-Redirect verschlankt und unerreichbaren Altcode hinter dem sofortigen Redirect entfernt. | Der Deletion-Requests-Entry reduziert weiteres Entry-Ballast im DSGVO-Aliaspfad, hält Redirect-Änderungen zentraler und bleibt bei späteren Legal-Navigationen konsistenter wartbar. |
+
+### Delta Batch 121
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/data-requests.php` | umgesetzt | Wiederkehrende Alert-Normalisierung und Scope-Aktionsauflösung für Auskunfts- und Löschanträge über kleine lokale Helper gebündelt statt mehrfacher ähnlicher Verzweigungs- und Alert-Blöcke im DSGVO-POST-Flow. | Der Data-Requests-Entry reduziert weiteres Entry-Duplikat im DSGVO-POST-Pfad, hält Alert-/Dispatch-Änderungen zentraler und bleibt bei späteren Auskunfts- und Löschaktionen konsistenter wartbar. |
+
+### Delta Batch 120
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/cookie-manager.php` | umgesetzt | Wiederkehrende Redirect-, Session-Alert- und Aktionsauflösung für Save-, Delete-, Import- und Scan-Aktionen über kleine lokale Helper gebündelt statt mehrfacher identischer POST-Orchestrierung im Entry-Flow. | Der Cookie-Manager-Entry reduziert weiteres Entry-Duplikat im DSGVO-POST-Pfad, hält Redirect-/Alert-Änderungen zentraler und bleibt bei späteren Cookie-Aktionen konsistenter wartbar. |
+
+### Delta Batch 119
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/comments.php` | umgesetzt | Wiederkehrenden Session-Alert-Aufbau für unbekannte Aktion, ungültiges Token und Aktionsresultate über kleine lokale Helper gebündelt statt mehrfacher identischer Alert-Arrays im POST-Flow. | Der Comments-Entry reduziert weiteres Entry-Duplikat im Kommentar-POST-Pfad, hält Alert-Änderungen zentraler und bleibt bei späteren Kommentaraktionen konsistenter wartbar. |
+
+### Delta Batch 118
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/packages.php` | umgesetzt | Wiederkehrende Flash- und Redirect-Orchestrierung für Save-, Seed-, Delete-, Toggle- und Package-Settings-Aktionen über kleine lokale Helper gebündelt statt mehrfacher identischer Session-/Redirect-Blöcke im POST-Flow. | Der Packages-Entry reduziert weiteres Entry-Duplikat im POST-Pfad, hält Alert- und Redirect-Änderungen zentraler und bleibt bei späteren Paketaktionen konsistenter wartbar. |
+
+### Delta Batch 117
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/orders.php` | umgesetzt | Wiederkehrende Aktionsauflösung für `assign_subscription`, `update_status` und `delete` über kleinen lokalen Dispatch-Helper gebündelt statt gestaffelter Inline-Verzweigung mit wiederholtem Erfolgsablauf. | Der Orders-Entry reduziert weiteres Entry-Duplikat im POST-Flow, hält Aktionsänderungen zentraler und bleibt bei späteren Bestellaktionen konsistenter wartbar. |
+
+### Delta Batch 116
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/system/mail-settings.php` | umgesetzt | Wiederkehrende Submit-Button-Markup-Struktur über kleinen lokalen Renderer gebündelt statt mehrfacher identischer `button type="submit" name="action" ...`-Blöcke in Transport-, Azure-, Graph-, Log- und Queue-Bereichen. | Die Mail-Settings-View reduziert weiteres Template-Duplikat in Aktionsbereichen, hält Button-Änderungen zentraler und bleibt bei späteren Mail-Aktions-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 115
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/system/documentation.php` | umgesetzt | Wiederkehrende Dokumentlisten-Schleifen für Schnellstart und Bereichslisten über kleinen lokalen Renderer gebündelt statt mehrfacher identischer `foreach`-Blöcke mit demselben Array-Guard. | Die Dokumentations-View reduziert weiteres Template-Duplikat in Listenbereichen, hält Listenänderungen zentraler und bleibt bei späteren Dokumentkarten-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 114
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationSyncService.php` | umgesetzt | Wiederkehrenden Sync-Ausführungs-Kontext für Erfolgs- und Fehlerlogging über kleinen lokalen Helper gebündelt statt mehrfacher identischer `mode`-/`capabilities`-Metadaten in den Abschluss-Pfaden. | Der Doku-Sync-Service reduziert weiteres Orchestrator-Duplikat im Abschluss-Logging, hält Kontextänderungen zentraler und bleibt bei Sync-Erfolg und Sync-Fehlern konsistenter wartbar. |
+
+### Delta Batch 113
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationSyncDownloader.php` | umgesetzt | Wiederkehrenden URL-bezogenen Download-Log-Kontext über kleinen lokalen Helper gebündelt statt mehrfacher identischer URL-Metadaten in Response-, Validierungs- und Erfolgslogs. | Der Dokumentations-Downloader reduziert weiteres Infrastruktur-Duplikat im Logging, hält URL-bezogene Kontextänderungen zentraler und bleibt bei Download- und Validierungspfaden konsistenter wartbar. |
+
+### Delta Batch 112
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/subscriptions/SubscriptionSettingsModule.php` | umgesetzt | Wiederkehrende Save-Orchestrierung für Admin-Guard, Persistierung und Audit-Logging über kleine lokale Helfer gebündelt statt doppelter Erfolgsabläufe in allgemeinen und paketbezogenen Speicherpfaden. | Das Subscription-Settings-Modul reduziert weiteres Orchestrator-Duplikat in Einstellungs-Updates, hält Persistier- und Audit-Änderungen zentraler und bleibt bei späteren Save-Anpassungen konsistenter wartbar. |
+
+### Delta Batch 111
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/subscriptions/orders.php` | umgesetzt | Wiederkehrende Hidden-Felder für `csrf_token`, `action` und optionale `id`-Werte über kleinen lokalen Renderer gebündelt statt mehrfacher identischer Formular-Kontext-Blöcke in Statuswechsel-, Delete- und Zuweisungsformularen. | Die Orders-View reduziert weiteres Template-Duplikat in Mutationsformularen, hält Formular-Kontexte zentraler und bleibt bei späteren Bestellaktions-Anpassungen konsistenter wartbar. |
 
 ### Delta Batch 110
 

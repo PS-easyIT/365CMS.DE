@@ -5,10 +5,12 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$systemSection = 'email-alerts';
-$systemRoutePath = '/admin/monitor-email-alerts';
-$systemViewFile = __DIR__ . '/views/system/email-alerts.php';
-$pageTitle = 'Monitoring · E-Mail-Benachrichtigungen';
-$activePage = 'monitor-email-alerts';
+$systemMonitorPageConfig = [
+    'section' => 'email-alerts',
+    'route_path' => '/admin/monitor-email-alerts',
+    'view_file' => __DIR__ . '/views/system/email-alerts.php',
+    'page_title' => 'Monitoring · E-Mail-Benachrichtigungen',
+    'active_page' => 'monitor-email-alerts',
+];
 
 require __DIR__ . '/system-monitor-page.php';

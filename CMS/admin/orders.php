@@ -57,6 +57,23 @@ function cms_admin_orders_normalize_status_filter(string $status): string
     return in_array($status, $allowed, true) ? $status : '';
 }
 
+function cms_admin_orders_handle_action(OrdersModule $module, string $action, array $post): ?OrdersActionResult
+{
+    return match ($action) {
+        'assign_subscription' => $module->assignSubscription(
+            (int)($post['user_id'] ?? 0),
+            (int)($post['plan_id'] ?? 0),
+            (string)($post['billing_cycle'] ?? 'monthly')
+        ),
+        'update_status' => $module->updateStatus(
+            (int)($post['id'] ?? 0),
+            (string)($post['status'] ?? '')
+        ),
+        'delete' => $module->delete((int)($post['id'] ?? 0)),
+        default => null,
+    };
+}
+
 if (!Auth::instance()->isAdmin()) {
     header('Location: ' . SITE_URL);
     exit;
@@ -78,29 +95,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             cms_admin_orders_redirect();
         }
 
-        switch ($action) {
-            case 'assign_subscription':
-                $result = $module->assignSubscription(
-                    (int)($_POST['user_id'] ?? 0),
-                    (int)($_POST['plan_id'] ?? 0),
-                    (string)($_POST['billing_cycle'] ?? 'monthly')
-                );
-                cms_admin_orders_flash_result($result);
-                cms_admin_orders_redirect();
-
-            case 'update_status':
-                $id     = (int)($_POST['id'] ?? 0);
-                $status = (string)($_POST['status'] ?? '');
-                $result = $module->updateStatus($id, $status);
-                cms_admin_orders_flash_result($result);
-                cms_admin_orders_redirect();
-
-            case 'delete':
-                $id     = (int)($_POST['id'] ?? 0);
-                $result = $module->delete($id);
-                cms_admin_orders_flash_result($result);
-                cms_admin_orders_redirect();
+        $result = cms_admin_orders_handle_action($module, $action, $_POST);
+        if ($result === null) {
+            cms_admin_orders_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
+            cms_admin_orders_redirect();
         }
+
+        cms_admin_orders_flash_result($result);
+        cms_admin_orders_redirect();
     }
 }
 

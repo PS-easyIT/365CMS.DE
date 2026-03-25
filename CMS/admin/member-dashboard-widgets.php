@@ -5,10 +5,12 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$memberSection = 'widgets';
-$memberRoutePath = '/admin/member-dashboard-widgets';
-$memberViewFile = __DIR__ . '/views/member/widgets.php';
-$pageTitle = 'Member Dashboard – Widgets';
-$activePage = 'member-dashboard-widgets';
+$memberDashboardPageConfig = [
+    'section' => 'widgets',
+    'route_path' => '/admin/member-dashboard-widgets',
+    'view_file' => __DIR__ . '/views/member/widgets.php',
+    'page_title' => 'Member Dashboard – Widgets',
+    'active_page' => 'member-dashboard-widgets',
+];
 
 require __DIR__ . '/member-dashboard-page.php';

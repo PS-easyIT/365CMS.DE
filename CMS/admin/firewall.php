@@ -21,6 +21,40 @@ if (!Auth::instance()->isAdmin()) {
 require_once __DIR__ . '/modules/security/FirewallModule.php';
 $module = new FirewallModule();
 $alert = null;
+$redirectUrl = SITE_URL . '/admin/firewall';
+
+function cms_admin_firewall_redirect(string $redirectUrl): never
+{
+    header('Location: ' . $redirectUrl);
+    exit;
+}
+
+function cms_admin_firewall_flash(array $result): void
+{
+    $_SESSION['admin_alert'] = [
+        'type' => !empty($result['success']) ? 'success' : 'danger',
+        'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
+    ];
+}
+
+function cms_admin_firewall_handle_action(FirewallModule $module, string $action, array $post): array
+{
+    switch ($action) {
+        case 'save_settings':
+            return $module->saveSettings($post);
+
+        case 'add_rule':
+            return $module->addRule($post);
+
+        case 'delete_rule':
+            return $module->deleteRule((int) ($post['id'] ?? 0));
+
+        case 'toggle_rule':
+            return $module->toggleRule((int) ($post['id'] ?? 0));
+    }
+
+    return ['success' => false, 'error' => 'Firewall-Aktion konnte nicht verarbeitet werden.'];
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = trim((string)($_POST['action'] ?? ''));
@@ -30,28 +64,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'admin_firewall')) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
     } else {
-        $result = ['success' => false, 'error' => 'Firewall-Aktion konnte nicht verarbeitet werden.'];
-
-        switch ($action) {
-            case 'save_settings':
-                $result = $module->saveSettings($_POST);
-                break;
-            case 'add_rule':
-                $result = $module->addRule($_POST);
-                break;
-            case 'delete_rule':
-                $result = $module->deleteRule((int)($_POST['id'] ?? 0));
-                break;
-            case 'toggle_rule':
-                $result = $module->toggleRule((int)($_POST['id'] ?? 0));
-                break;
-        }
-
-        $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
+        $result = cms_admin_firewall_handle_action($module, $action, $_POST);
+        cms_admin_firewall_flash($result);
     }
 
-    header('Location: ' . SITE_URL . '/admin/firewall');
-    exit;
+    cms_admin_firewall_redirect($redirectUrl);
 }
 
 if (isset($_SESSION['admin_alert'])) {

@@ -22,31 +22,50 @@ require_once __DIR__ . '/modules/legal/LegalSitesModule.php';
 $module    = new LegalSitesModule();
 $alert     = null;
 $userId    = (int)(Auth::instance()->getCurrentUser()->id ?? 0);
+$redirectUrl = SITE_URL . '/admin/legal-sites';
+
+function cms_admin_legal_sites_redirect(string $redirectUrl): never
+{
+    header('Location: ' . $redirectUrl);
+    exit;
+}
+
+function cms_admin_legal_sites_flash(array $result): void
+{
+    $_SESSION['admin_alert'] = [
+        'type' => !empty($result['success']) ? 'success' : 'danger',
+        'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
+    ];
+}
+
+function cms_admin_legal_sites_handle_action(LegalSitesModule $module, string $action, array $post, int $userId): array
+{
+    switch ($action) {
+        case 'save':
+            return $module->save($post);
+
+        case 'save_profile':
+            return $module->saveProfile($post);
+
+        case 'generate':
+            return $module->generateTemplate((string) ($post['template_type'] ?? ''));
+
+        case 'create_page':
+            return $module->createOrUpdatePage((string) ($post['template_type'] ?? ''), $userId);
+
+        case 'create_all_pages':
+            return $module->createOrUpdateAllPages($userId);
+    }
+
+    return ['success' => false, 'error' => 'Unbekannte Aktion.'];
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'admin_legal_sites')) {
         $alert = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
     } else {
-        $action = $_POST['action'] ?? '';
-        switch ($action) {
-            case 'save':
-                $result = $module->save($_POST);
-                break;
-            case 'save_profile':
-                $result = $module->saveProfile($_POST);
-                break;
-            case 'generate':
-                $result = $module->generateTemplate($_POST['template_type'] ?? '');
-                break;
-            case 'create_page':
-                $result = $module->createOrUpdatePage($_POST['template_type'] ?? '', $userId);
-                break;
-            case 'create_all_pages':
-                $result = $module->createOrUpdateAllPages($userId);
-                break;
-            default:
-                $result = ['success' => false, 'error' => 'Unbekannte Aktion.'];
-        }
+        $action = (string) ($_POST['action'] ?? '');
+        $result = cms_admin_legal_sites_handle_action($module, $action, $_POST, $userId);
 
         if ($action === 'save_profile') {
             if ($result['success'] ?? false) {
@@ -56,9 +75,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
-        header('Location: ' . SITE_URL . '/admin/legal-sites');
-        exit;
+        cms_admin_legal_sites_flash($result);
+        cms_admin_legal_sites_redirect($redirectUrl);
     }
     $csrfToken = Security::instance()->generateToken('admin_legal_sites');
 }

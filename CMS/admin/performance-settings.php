@@ -5,10 +5,12 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$performanceSection = 'settings';
-$performanceRoutePath = '/admin/performance-settings';
-$performanceViewFile = __DIR__ . '/views/performance/settings.php';
-$pageTitle = 'Performance · Einstellungen';
-$activePage = 'performance-settings';
+$performancePageConfig = [
+    'section' => 'settings',
+    'route_path' => '/admin/performance-settings',
+    'view_file' => __DIR__ . '/views/performance/settings.php',
+    'page_title' => 'Performance · Einstellungen',
+    'active_page' => 'performance-settings',
+];
 
 require __DIR__ . '/performance-page.php';

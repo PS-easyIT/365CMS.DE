@@ -10,10 +10,12 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$systemSection = 'info';
-$systemRoutePath = '/admin/info';
-$systemViewFile = __DIR__ . '/views/system/info.php';
-$pageTitle = 'Info';
-$activePage = 'info';
+$systemMonitorPageConfig = [
+    'section' => 'info',
+    'route_path' => '/admin/info',
+    'view_file' => __DIR__ . '/views/system/info.php',
+    'page_title' => 'Info',
+    'active_page' => 'info',
+];
 
 require __DIR__ . '/system-monitor-page.php';

@@ -5,10 +5,12 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$memberSection = 'profile-fields';
-$memberRoutePath = '/admin/member-dashboard-profile-fields';
-$memberViewFile = __DIR__ . '/views/member/profile-fields.php';
-$pageTitle = 'Member Dashboard – Profil-Felder';
-$activePage = 'member-dashboard-profile-fields';
+$memberDashboardPageConfig = [
+    'section' => 'profile-fields',
+    'route_path' => '/admin/member-dashboard-profile-fields',
+    'view_file' => __DIR__ . '/views/member/profile-fields.php',
+    'page_title' => 'Member Dashboard – Profil-Felder',
+    'active_page' => 'member-dashboard-profile-fields',
+];
 
 require __DIR__ . '/member-dashboard-page.php';

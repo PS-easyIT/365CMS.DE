@@ -5,10 +5,12 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$seoSection = 'audit';
-$seoRoutePath = '/admin/seo-audit';
-$seoViewFile = __DIR__ . '/views/seo/audit.php';
-$pageTitle = 'SEO Audit';
-$activePage = 'seo-audit';
+$seoPageConfig = [
+    'section' => 'audit',
+    'route_path' => '/admin/seo-audit',
+    'view_file' => __DIR__ . '/views/seo/audit.php',
+    'page_title' => 'SEO Audit',
+    'active_page' => 'seo-audit',
+];
 
 require __DIR__ . '/seo-page.php';

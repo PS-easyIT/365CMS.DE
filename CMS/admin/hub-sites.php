@@ -21,8 +21,52 @@ if (!Auth::instance()->isAdmin()) {
 require_once __DIR__ . '/modules/hub/HubSitesModule.php';
 $module = new HubSitesModule();
 $alert = null;
+$redirectBase = SITE_URL . '/admin/hub-sites';
 $allowedActions = ['save', 'save-template', 'duplicate-template', 'delete-template', 'delete', 'duplicate'];
 $allowedViews = ['list', 'edit', 'template-edit', 'templates'];
+
+function cms_admin_hub_sites_redirect(string $redirectUrl): never
+{
+    header('Location: ' . $redirectUrl);
+    exit;
+}
+
+function cms_admin_hub_sites_flash(array $result, string $fallbackMessage): void
+{
+    $_SESSION['admin_alert'] = [
+        'type' => !empty($result['success']) ? 'success' : 'danger',
+        'message' => (string) ($result['message'] ?? $result['error'] ?? $fallbackMessage),
+    ];
+}
+
+function cms_admin_hub_sites_post_redirect(string $redirectBase, string $action, array $result, array $post): string
+{
+    if ($action === 'save') {
+        if (!empty($result['success'])) {
+            if (!empty($post['open_public_after_save']) && !empty($result['slug'])) {
+                return SITE_URL . '/' . ltrim((string) $result['slug'], '/');
+            }
+
+            return $redirectBase . '?action=edit&id=' . (int) ($result['id'] ?? 0);
+        }
+
+        return $redirectBase;
+    }
+
+    if ($action === 'save-template' || $action === 'duplicate-template') {
+        if (!empty($result['success'])) {
+            return $redirectBase . '?action=template-edit&key=' . rawurlencode((string) ($result['key'] ?? ''));
+        }
+
+        return $redirectBase . '?action=templates';
+    }
+
+    if ($action === 'delete-template') {
+        return $redirectBase . '?action=templates';
+    }
+
+    return $redirectBase;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string)($_POST['action'] ?? '');
@@ -30,87 +74,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!Security::instance()->verifyToken($postToken, 'admin_hub_sites')) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-        header('Location: ' . SITE_URL . '/admin/hub-sites');
-        exit;
+        cms_admin_hub_sites_redirect($redirectBase);
     }
 
     if (!in_array($action, $allowedActions, true)) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Unbekannte Hub-Sites-Aktion.'];
-        header('Location: ' . SITE_URL . '/admin/hub-sites');
-        exit;
+        cms_admin_hub_sites_redirect($redirectBase);
     }
 
     switch ($action) {
         case 'save':
             $result = $module->save($_POST);
-            $_SESSION['admin_alert'] = [
-                'type' => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? 'Hub-Site konnte nicht gespeichert werden.',
-            ];
-            if (!empty($result['success'])) {
-                if (!empty($_POST['open_public_after_save']) && !empty($result['slug'])) {
-                    header('Location: ' . SITE_URL . '/' . ltrim((string)$result['slug'], '/'));
-                    exit;
-                }
-
-                header('Location: ' . SITE_URL . '/admin/hub-sites?action=edit&id=' . (int)($result['id'] ?? 0));
-            } else {
-                header('Location: ' . SITE_URL . '/admin/hub-sites');
-            }
-            exit;
+            cms_admin_hub_sites_flash($result, 'Hub-Site konnte nicht gespeichert werden.');
+            cms_admin_hub_sites_redirect(cms_admin_hub_sites_post_redirect($redirectBase, $action, $result, $_POST));
 
         case 'save-template':
             $result = $module->saveTemplate($_POST);
-            $_SESSION['admin_alert'] = [
-                'type' => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? 'Hub-Template konnte nicht gespeichert werden.',
-            ];
-            if (!empty($result['success'])) {
-                header('Location: ' . SITE_URL . '/admin/hub-sites?action=template-edit&key=' . rawurlencode((string)($result['key'] ?? '')));
-            } else {
-                header('Location: ' . SITE_URL . '/admin/hub-sites?action=templates');
-            }
-            exit;
+            cms_admin_hub_sites_flash($result, 'Hub-Template konnte nicht gespeichert werden.');
+            cms_admin_hub_sites_redirect(cms_admin_hub_sites_post_redirect($redirectBase, $action, $result, $_POST));
 
         case 'duplicate-template':
             $result = $module->duplicateTemplate((string)($_POST['key'] ?? ''));
-            $_SESSION['admin_alert'] = [
-                'type' => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? 'Hub-Template konnte nicht dupliziert werden.',
-            ];
-            if (!empty($result['success'])) {
-                header('Location: ' . SITE_URL . '/admin/hub-sites?action=template-edit&key=' . rawurlencode((string)($result['key'] ?? '')));
-            } else {
-                header('Location: ' . SITE_URL . '/admin/hub-sites?action=templates');
-            }
-            exit;
+            cms_admin_hub_sites_flash($result, 'Hub-Template konnte nicht dupliziert werden.');
+            cms_admin_hub_sites_redirect(cms_admin_hub_sites_post_redirect($redirectBase, $action, $result, $_POST));
 
         case 'delete-template':
             $result = $module->deleteTemplate((string)($_POST['key'] ?? ''));
-            $_SESSION['admin_alert'] = [
-                'type' => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? 'Hub-Template konnte nicht gelöscht werden.',
-            ];
-            header('Location: ' . SITE_URL . '/admin/hub-sites?action=templates');
-            exit;
+            cms_admin_hub_sites_flash($result, 'Hub-Template konnte nicht gelöscht werden.');
+            cms_admin_hub_sites_redirect(cms_admin_hub_sites_post_redirect($redirectBase, $action, $result, $_POST));
 
         case 'delete':
             $result = $module->delete((int)($_POST['id'] ?? 0));
-            $_SESSION['admin_alert'] = [
-                'type' => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? 'Hub-Site konnte nicht gelöscht werden.',
-            ];
-            header('Location: ' . SITE_URL . '/admin/hub-sites');
-            exit;
+            cms_admin_hub_sites_flash($result, 'Hub-Site konnte nicht gelöscht werden.');
+            cms_admin_hub_sites_redirect(cms_admin_hub_sites_post_redirect($redirectBase, $action, $result, $_POST));
 
         case 'duplicate':
             $result = $module->duplicate((int)($_POST['id'] ?? 0));
-            $_SESSION['admin_alert'] = [
-                'type' => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? 'Hub-Site konnte nicht dupliziert werden.',
-            ];
-            header('Location: ' . SITE_URL . '/admin/hub-sites');
-            exit;
+            cms_admin_hub_sites_flash($result, 'Hub-Site konnte nicht dupliziert werden.');
+            cms_admin_hub_sites_redirect(cms_admin_hub_sites_post_redirect($redirectBase, $action, $result, $_POST));
     }
 }
 

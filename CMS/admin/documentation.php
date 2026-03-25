@@ -47,6 +47,22 @@ $normalizeSelectedDoc = static function ($value): ?string {
     return in_array($extension, ['md', 'csv'], true) ? $value : null;
 };
 $selectedDoc = $normalizeSelectedDoc($_GET['doc'] ?? null);
+$buildDocumentationRedirect = static function (?string $selectedDoc): string {
+    $redirect = SITE_URL . '/admin/documentation';
+    if ($selectedDoc !== null) {
+        $redirect .= '?doc=' . rawurlencode($selectedDoc);
+    }
+
+    return $redirect;
+};
+
+$storeDocumentationAlert = static function (DocumentationSyncActionResult $result): void {
+    $_SESSION['admin_alert'] = [
+        'type' => $result->isSuccess() ? 'success' : 'danger',
+        'message' => $result->getMessage(),
+    ];
+};
+
 $actionHandlers = [
     'sync_docs' => static fn () => $module->syncDocsFromRepository(),
 ];
@@ -62,17 +78,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ? $handler()
             : new DocumentationSyncActionResult(false, null, 'Unbekannte Aktion.');
 
-        $_SESSION['admin_alert'] = [
-            'type' => $result->isSuccess() ? 'success' : 'danger',
-            'message' => $result->getMessage(),
-        ];
+        $storeDocumentationAlert($result);
     }
 
-    $redirect = SITE_URL . '/admin/documentation';
-    if ($selectedDoc !== null) {
-        $redirect .= '?doc=' . rawurlencode($selectedDoc);
-    }
-    header('Location: ' . $redirect);
+    header('Location: ' . $buildDocumentationRedirect($selectedDoc));
     exit;
 }
 

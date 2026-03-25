@@ -102,6 +102,15 @@ $renderDocumentListItem = static function (array $document, bool $compact = fals
     </a>
     <?php
 };
+$renderDocumentList = static function (array $documents, bool $compact = false) use ($renderDocumentListItem): void {
+    foreach ($documents as $document) {
+        if (!is_array($document)) {
+            continue;
+        }
+
+        $renderDocumentListItem($document, $compact);
+    }
+};
 $findSectionActive = static function (array $documents) use ($isActiveDocument): bool {
     foreach ($documents as $document) {
         if (is_array($document) && $isActiveDocument($document)) {
@@ -147,10 +156,7 @@ $renderSectionAccordionItem = static function (
             <div class="accordion-body p-0">
                 <?php $renderSectionIntro($sectionDescription, $sectionGithubUrl); ?>
                 <div class="list-group list-group-flush">
-                    <?php foreach ($documents as $document): ?>
-                        <?php if (!is_array($document)) { continue; } ?>
-                        <?php $renderDocumentListItem($document, true); ?>
-                    <?php endforeach; ?>
+                    <?php $renderDocumentList($documents, true); ?>
                 </div>
             </div>
         </div>
@@ -248,10 +254,7 @@ $metricCards = [
                     <div class="card mb-4">
                         <?php $renderCardHeaderTitle('Schnellstart'); ?>
                         <div class="list-group list-group-flush">
-                            <?php foreach ($featuredDocs as $document): ?>
-                                <?php if (!is_array($document)) { continue; } ?>
-                                <?php $renderDocumentListItem($document); ?>
-                            <?php endforeach; ?>
+                            <?php $renderDocumentList($featuredDocs); ?>
                         </div>
                     </div>
 

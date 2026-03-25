@@ -5,10 +5,12 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$seoSection = 'schema';
-$seoRoutePath = '/admin/seo-schema';
-$seoViewFile = __DIR__ . '/views/seo/schema.php';
-$pageTitle = 'SEO Strukturierte Daten';
-$activePage = 'seo-schema';
+$seoPageConfig = [
+    'section' => 'schema',
+    'route_path' => '/admin/seo-schema',
+    'view_file' => __DIR__ . '/views/seo/schema.php',
+    'page_title' => 'SEO Strukturierte Daten',
+    'active_page' => 'seo-schema',
+];
 
 require __DIR__ . '/seo-page.php';

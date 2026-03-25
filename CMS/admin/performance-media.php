@@ -5,10 +5,12 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$performanceSection = 'media';
-$performanceRoutePath = '/admin/performance-media';
-$performanceViewFile = __DIR__ . '/views/performance/media.php';
-$pageTitle = 'Performance · Medien-Optimierung';
-$activePage = 'performance-media';
+$performancePageConfig = [
+    'section' => 'media',
+    'route_path' => '/admin/performance-media',
+    'view_file' => __DIR__ . '/views/performance/media.php',
+    'page_title' => 'Performance · Medien-Optimierung',
+    'active_page' => 'performance-media',
+];
 
 require __DIR__ . '/performance-page.php';

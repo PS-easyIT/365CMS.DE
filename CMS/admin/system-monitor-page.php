@@ -5,19 +5,59 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$systemSection = $systemSection ?? 'info';
-$systemRoutePath = $systemRoutePath ?? '/admin/info';
-$systemViewFile = $systemViewFile ?? (__DIR__ . '/views/system/info.php');
-$pageTitle = $pageTitle ?? 'Info & Diagnose';
-$activePage = $activePage ?? 'info';
-$pageAssets = $pageAssets ?? [];
+/**
+ * @param array<string, mixed> $pageConfig
+ * @return array{
+ *     section: string,
+ *     route_path: string,
+ *     view_file: string,
+ *     page_title: string,
+ *     active_page: string,
+ *     page_assets: array<int|string, mixed>
+ * }
+ */
+function cms_admin_system_monitor_normalize_page_config(array $pageConfig): array
+{
+    $defaults = [
+        'section' => 'info',
+        'route_path' => '/admin/info',
+        'view_file' => __DIR__ . '/views/system/info.php',
+        'page_title' => 'Info & Diagnose',
+        'active_page' => 'info',
+        'page_assets' => [],
+    ];
+
+    $normalized = array_merge($defaults, $pageConfig);
+
+    return [
+        'section' => (string) ($normalized['section'] ?? $defaults['section']),
+        'route_path' => (string) ($normalized['route_path'] ?? $defaults['route_path']),
+        'view_file' => (string) ($normalized['view_file'] ?? $defaults['view_file']),
+        'page_title' => (string) ($normalized['page_title'] ?? $defaults['page_title']),
+        'active_page' => (string) ($normalized['active_page'] ?? $defaults['active_page']),
+        'page_assets' => is_array($normalized['page_assets'] ?? null) ? $normalized['page_assets'] : [],
+    ];
+}
+
+$systemMonitorPageConfig = cms_admin_system_monitor_normalize_page_config(array_merge(
+    [
+        'section' => $systemSection ?? 'info',
+        'route_path' => $systemRoutePath ?? '/admin/info',
+        'view_file' => $systemViewFile ?? (__DIR__ . '/views/system/info.php'),
+        'page_title' => $pageTitle ?? 'Info & Diagnose',
+        'active_page' => $activePage ?? 'info',
+        'page_assets' => $pageAssets ?? [],
+    ],
+    is_array($systemMonitorPageConfig ?? null) ? $systemMonitorPageConfig : []
+));
+
 $sectionPageConfig = [
-    'section' => (string)$systemSection,
-    'route_path' => (string)$systemRoutePath,
-    'view_file' => (string)$systemViewFile,
-    'page_title' => (string)$pageTitle,
-    'active_page' => (string)$activePage,
-    'page_assets' => is_array($pageAssets) ? $pageAssets : [],
+    'section' => $systemMonitorPageConfig['section'],
+    'route_path' => $systemMonitorPageConfig['route_path'],
+    'view_file' => $systemMonitorPageConfig['view_file'],
+    'page_title' => $systemMonitorPageConfig['page_title'],
+    'active_page' => $systemMonitorPageConfig['active_page'],
+    'page_assets' => $systemMonitorPageConfig['page_assets'],
     'csrf_action' => 'admin_system_info',
     'guard_constant' => 'CMS_ADMIN_SYSTEM_VIEW',
     'module_file' => __DIR__ . '/modules/system/SystemInfoModule.php',

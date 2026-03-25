@@ -12,10 +12,14 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
+function cms_admin_design_settings_redirect(string $targetUrl): never
+{
+    header('Location: ' . $targetUrl);
     exit;
 }
 
-header('Location: ' . SITE_URL . '/admin/theme-editor');
-exit;
+if (!Auth::instance()->isAdmin()) {
+    cms_admin_design_settings_redirect(SITE_URL);
+}
+
+cms_admin_design_settings_redirect(SITE_URL . '/admin/theme-editor');

@@ -22,29 +22,52 @@ require_once __DIR__ . '/modules/seo/RedirectManagerModule.php';
 $module = new RedirectManagerModule();
 $alert = null;
 
+function cms_admin_not_found_monitor_redirect(string $redirectUrl): never
+{
+    header('Location: ' . $redirectUrl);
+    exit;
+}
+
+function cms_admin_not_found_monitor_flash(array $payload): void
+{
+    $_SESSION['admin_alert'] = [
+        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
+        'message' => trim((string) ($payload['message'] ?? '')),
+        'details' => is_array($payload['details'] ?? null) ? $payload['details'] : [],
+    ];
+}
+
+function cms_admin_not_found_monitor_flash_result(array $result): void
+{
+    cms_admin_not_found_monitor_flash([
+        'type' => !empty($result['success']) ? 'success' : 'danger',
+        'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
+        'details' => $result['details'] ?? [],
+    ]);
+}
+
+function cms_admin_not_found_monitor_handle_action(RedirectManagerModule $module, string $action, array $post): array
+{
+    switch ($action) {
+        case 'save_redirect':
+            return $module->saveRedirect($post);
+
+        case 'clear_logs':
+            return $module->clearLogs();
+    }
+
+    return ['success' => false, 'error' => 'Unbekannte Aktion.'];
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'admin_redirect_manager')) {
         $alert = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
     } else {
-        $action = $_POST['action'] ?? '';
-        switch ($action) {
-            case 'save_redirect':
-                $result = $module->saveRedirect($_POST);
-                break;
-            case 'clear_logs':
-                $result = $module->clearLogs();
-                break;
-            default:
-                $result = ['success' => false, 'error' => 'Unbekannte Aktion.'];
-        }
+        $action = (string) ($_POST['action'] ?? '');
+        $result = cms_admin_not_found_monitor_handle_action($module, $action, $_POST);
 
-        $_SESSION['admin_alert'] = [
-            'type' => $result['success'] ? 'success' : 'danger',
-            'message' => $result['message'] ?? $result['error'] ?? '',
-            'details' => is_array($result['details'] ?? null) ? $result['details'] : [],
-        ];
-        header('Location: ' . SITE_URL . '/admin/not-found-monitor');
-        exit;
+        cms_admin_not_found_monitor_flash_result($result);
+        cms_admin_not_found_monitor_redirect(SITE_URL . '/admin/not-found-monitor');
     }
 }
 

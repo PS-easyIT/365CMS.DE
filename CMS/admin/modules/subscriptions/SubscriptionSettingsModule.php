@@ -134,30 +134,24 @@ class SubscriptionSettingsModule
     public function saveSettings(array $post): SubscriptionSettingsActionResult
     {
         if (!$this->canAccess()) {
-            return SubscriptionSettingsActionResult::failure('Zugriff verweigert.');
+            return $this->denyResult();
         }
 
         try {
             $settings = $this->buildGeneralSettingsPayload($post);
 
-            $this->storeSettings($settings);
-
-            AuditLogger::instance()->log(
-                AuditLogger::CAT_SETTING,
+            return $this->storeSettingsWithAudit(
+                $settings,
                 'subscriptions.settings.save',
                 'Aboverwaltung-Einstellungen gespeichert',
-                'subscription_settings',
-                null,
                 [
                     'limits_enabled' => $settings['subscription_limits_enabled'],
                     'member_area_enabled' => $settings['subscription_member_area_enabled'],
                     'ordering_enabled' => $settings['subscription_ordering_enabled'],
                     'default_plan_id' => $settings['subscription_default_plan_id'],
                 ],
-                'info'
+                'Aboverwaltung-Einstellungen gespeichert.'
             );
-
-            return SubscriptionSettingsActionResult::success('Aboverwaltung-Einstellungen gespeichert.');
         } catch (\Throwable $e) {
             return $this->failResult('subscriptions.settings.save_failed', 'Aboverwaltung-Einstellungen konnten nicht gespeichert werden.', $e);
         }
@@ -166,20 +160,16 @@ class SubscriptionSettingsModule
     public function savePackageSettings(array $post): SubscriptionSettingsActionResult
     {
         if (!$this->canAccess()) {
-            return SubscriptionSettingsActionResult::failure('Zugriff verweigert.');
+            return $this->denyResult();
         }
 
         try {
             $settings = $this->buildPackageSettingsPayload($post);
 
-            $this->storeSettings($settings);
-
-            AuditLogger::instance()->log(
-                AuditLogger::CAT_SETTING,
+            return $this->storeSettingsWithAudit(
+                $settings,
                 'subscriptions.package_settings.save',
                 'Paket- und Abo-Einstellungen gespeichert',
-                'subscription_settings',
-                null,
                 [
                     'subscription_enabled' => $settings['subscription_enabled'],
                     'trial_enabled' => $settings['trial_enabled'],
@@ -189,10 +179,8 @@ class SubscriptionSettingsModule
                     'cancellation_page_id' => $settings['cancellation_page_id'],
                     'notification_email' => $settings['notification_email'] !== '' ? 'configured' : 'empty',
                 ],
-                'info'
+                'Paket- und Abo-Einstellungen gespeichert.'
             );
-
-            return SubscriptionSettingsActionResult::success('Paket- und Abo-Einstellungen gespeichert.');
         } catch (\Throwable $e) {
             return $this->failResult('subscriptions.package_settings.save_failed', 'Paket- und Abo-Einstellungen konnten nicht gespeichert werden.', $e);
         }
@@ -404,6 +392,37 @@ class SubscriptionSettingsModule
     private function canAccess(): bool
     {
         return Auth::instance()->isAdmin();
+    }
+
+    private function denyResult(): SubscriptionSettingsActionResult
+    {
+        return SubscriptionSettingsActionResult::failure('Zugriff verweigert.');
+    }
+
+    /**
+     * @param array<string, string> $settings
+     * @param array<string, scalar> $auditContext
+     */
+    private function storeSettingsWithAudit(
+        array $settings,
+        string $auditAction,
+        string $auditMessage,
+        array $auditContext,
+        string $successMessage
+    ): SubscriptionSettingsActionResult {
+        $this->storeSettings($settings);
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            $auditAction,
+            $auditMessage,
+            'subscription_settings',
+            null,
+            $auditContext,
+            'info'
+        );
+
+        return SubscriptionSettingsActionResult::success($successMessage);
     }
 
     private function failResult(string $action, string $message, \Throwable $e): SubscriptionSettingsActionResult

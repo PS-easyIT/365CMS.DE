@@ -13,6 +13,12 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 use CMS\Security;
 
+function cms_admin_member_dashboard_redirect(string $targetUrl): never
+{
+    header('Location: ' . $targetUrl);
+    exit;
+}
+
 $legacySection = (string)($_GET['section'] ?? 'overview');
 
 if ($legacySection !== '' && $legacySection !== 'overview') {
@@ -28,14 +34,12 @@ if ($legacySection !== '' && $legacySection !== 'overview') {
     ];
 
     if (isset($legacyRoutes[$legacySection])) {
-        header('Location: ' . SITE_URL . $legacyRoutes[$legacySection]);
-        exit;
+        cms_admin_member_dashboard_redirect(SITE_URL . $legacyRoutes[$legacySection]);
     }
 }
 
 if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
+    cms_admin_member_dashboard_redirect(SITE_URL);
 }
 
 $memberSection = 'overview';

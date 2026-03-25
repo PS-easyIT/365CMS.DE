@@ -13,6 +13,38 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 use CMS\Security;
 
+function cms_admin_packages_redirect(string $redirectBase): never
+{
+    header('Location: ' . $redirectBase);
+    exit;
+}
+
+function cms_admin_packages_flash(array $payload): void
+{
+    $_SESSION['admin_alert'] = [
+        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
+        'message' => trim((string) ($payload['message'] ?? '')),
+    ];
+}
+
+function cms_admin_packages_flash_result(array $result): void
+{
+    cms_admin_packages_flash([
+        'type' => !empty($result['success']) ? 'success' : 'danger',
+        'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
+    ]);
+}
+
+function cms_admin_packages_flash_action_result(SubscriptionSettingsActionResult $result): void
+{
+    $payload = $result->toArray();
+
+    cms_admin_packages_flash([
+        'type' => !empty($payload['success']) ? 'success' : 'danger',
+        'message' => (string) ($payload['message'] ?? $payload['error'] ?? ''),
+    ]);
+}
+
 if (!Auth::instance()->isAdmin()) {
     header('Location: ' . SITE_URL);
     exit;
@@ -35,50 +67,42 @@ $allowedActions = [
 // ─── POST-Verarbeitung ──────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'admin_packages')) {
-        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-        header('Location: ' . $redirectBase);
-        exit;
+        cms_admin_packages_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
+        cms_admin_packages_redirect($redirectBase);
     } else {
         $action = trim((string)($_POST['action'] ?? ''));
         if (!in_array($action, $allowedActions, true)) {
-            $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Unbekannte Aktion.'];
-            header('Location: ' . $redirectBase);
-            exit;
+            cms_admin_packages_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
+            cms_admin_packages_redirect($redirectBase);
         }
 
         switch ($action) {
             case 'save':
                 $result = $module->save($_POST);
-                $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
-                header('Location: ' . $redirectBase);
-                exit;
+                cms_admin_packages_flash_result($result);
+                cms_admin_packages_redirect($redirectBase);
 
             case 'seed_defaults':
                 $result = $module->seedDefaults();
-                $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
-                header('Location: ' . $redirectBase);
-                exit;
+                cms_admin_packages_flash_result($result);
+                cms_admin_packages_redirect($redirectBase);
 
             case 'delete':
                 $id = (int)($_POST['id'] ?? 0);
                 $result = $module->delete($id);
-                $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
-                header('Location: ' . $redirectBase);
-                exit;
+                cms_admin_packages_flash_result($result);
+                cms_admin_packages_redirect($redirectBase);
 
             case 'toggle':
                 $id = (int)($_POST['id'] ?? 0);
                 $result = $module->toggleStatus($id);
-                $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
-                header('Location: ' . $redirectBase);
-                exit;
+                cms_admin_packages_flash_result($result);
+                cms_admin_packages_redirect($redirectBase);
 
             case 'save_package_settings':
                 $result = $settingsModule->savePackageSettings($_POST);
-                $payload = $result->toArray();
-                $_SESSION['admin_alert'] = ['type' => !empty($payload['success']) ? 'success' : 'danger', 'message' => $payload['message'] ?? $payload['error'] ?? ''];
-                header('Location: ' . $redirectBase);
-                exit;
+                cms_admin_packages_flash_action_result($result);
+                cms_admin_packages_redirect($redirectBase);
         }
     }
 }

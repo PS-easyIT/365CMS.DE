@@ -21,6 +21,22 @@ if (!Auth::instance()->isAdmin()) {
 require_once __DIR__ . '/modules/system/BackupsModule.php';
 $module    = new BackupsModule();
 $alert     = null;
+$redirectUrl = SITE_URL . '/admin/backups';
+
+function cms_admin_backups_redirect(string $redirectUrl): never
+{
+    header('Location: ' . $redirectUrl);
+    exit;
+}
+
+function cms_admin_backups_flash(array $result): void
+{
+    $_SESSION['admin_alert'] = [
+        'type' => !empty($result['success']) ? 'success' : 'danger',
+        'message' => (string) ($result['message'] ?? $result['error'] ?? 'Unbekannte Antwort.'),
+    ];
+}
+
 $actionHandlers = [
     'create_full' => static fn () => $module->createFullBackup(),
     'create_db' => static fn () => $module->createDatabaseBackup(),
@@ -31,8 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postToken = (string) ($_POST['csrf_token'] ?? '');
     if (!Security::instance()->verifyToken($postToken, 'admin_backups')) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-        header('Location: ' . SITE_URL . '/admin/backups');
-        exit;
+        cms_admin_backups_redirect($redirectUrl);
     }
 
     $action = (string) ($_POST['action'] ?? '');
@@ -41,13 +56,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ? $handler()
         : ['success' => false, 'error' => 'Unbekannte Aktion.'];
 
-    $_SESSION['admin_alert'] = [
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => (string) ($result['message'] ?? $result['error'] ?? 'Unbekannte Antwort.'),
-    ];
-
-    header('Location: ' . SITE_URL . '/admin/backups');
-    exit;
+    cms_admin_backups_flash($result);
+    cms_admin_backups_redirect($redirectUrl);
 }
 
 if (!empty($_SESSION['admin_alert'])) {

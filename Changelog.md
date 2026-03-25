@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.28-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.85-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,576 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.7.85 — 25. März 2026 · Audit-Batch 167, SEO-Schema-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.85** | 🔴 fix | Admin/SEO | **Der SEO-Schema-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/seo-schema.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `seo-page.php`. |
+| **2.7.85** | 🟠 perf | Admin/SEO | **Änderungen an SEO-Schema-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.85** | 🟡 refactor | Admin/SEO | **Der Schema-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.84 — 25. März 2026 · Audit-Batch 166, SEO-Sitemap-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.84** | 🔴 fix | Admin/SEO | **Der SEO-Sitemap-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/seo-sitemap.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `seo-page.php`. |
+| **2.7.84** | 🟠 perf | Admin/SEO | **Änderungen an SEO-Sitemap-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.84** | 🟡 refactor | Admin/SEO | **Der Sitemap-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.83 — 25. März 2026 · Audit-Batch 165, SEO-Technical-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.83** | 🔴 fix | Admin/SEO | **Der SEO-Technical-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/seo-technical.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `seo-page.php`. |
+| **2.7.83** | 🟠 perf | Admin/SEO | **Änderungen an SEO-Technical-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.83** | 🟡 refactor | Admin/SEO | **Der Technical-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.82 — 25. März 2026 · Audit-Batch 164, SEO-Audit-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.82** | 🔴 fix | Admin/SEO | **Der SEO-Audit-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/seo-audit.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `seo-page.php`. |
+| **2.7.82** | 🟠 perf | Admin/SEO | **Änderungen an SEO-Audit-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.82** | 🟡 refactor | Admin/SEO | **Der Audit-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.81 — 25. März 2026 · Audit-Batch 163, SEO-Page-Konfigurationspfad weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.81** | 🔴 fix | Admin/SEO | **`seo-page.php` normalisiert Seitenkonfiguration jetzt zentral über einen kleinen Helper**: Fallbacks für Section-, Route-, View-, Titel- und Active-Page-Werte werden nicht mehr lose direkt im Einstieg verteilt, sondern über einen gemeinsamen Normalisierungspfad aufgelöst. |
+| **2.7.81** | 🟠 perf | Admin/SEO | **Änderungen an SEO-Seitenmetadaten bleiben zentraler wartbar**: Default- und Wrapper-Werte müssen nicht mehr an mehreren Stellen parallel angepasst werden. |
+| **2.7.81** | 🟡 refactor | Admin/SEO | **Das gemeinsame Seitengerüst bleibt näher an seinem eigentlichen Seitenvertrag**: Normalisierung und Fallbacks sind sichtbar gebündelt, während der restliche Request-Flow unverändert fokussiert bleibt. |
+
+---
+
+### v2.7.80 — 25. März 2026 · Audit-Batch 162, SEO-Social-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.80** | 🔴 fix | Admin/SEO | **Der SEO-Social-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/seo-social.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `seo-page.php`. |
+| **2.7.80** | 🟠 perf | Admin/SEO | **Änderungen an SEO-Social-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.80** | 🟡 refactor | Admin/SEO | **Der Social-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.79 — 25. März 2026 · Audit-Batch 161, SEO-Meta-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.79** | 🔴 fix | Admin/SEO | **Der SEO-Meta-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/seo-meta.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `seo-page.php`. |
+| **2.7.79** | 🟠 perf | Admin/SEO | **Änderungen an SEO-Meta-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.79** | 🟡 refactor | Admin/SEO | **Der Meta-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.78 — 25. März 2026 · Audit-Batch 160, SEO-Dashboard-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.78** | 🔴 fix | Admin/SEO | **Der SEO-Dashboard-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/seo-dashboard.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `seo-page.php`. |
+| **2.7.78** | 🟠 perf | Admin/SEO | **Änderungen an SEO-Dashboard-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.78** | 🟡 refactor | Admin/SEO | **Der Dashboard-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.77 — 25. März 2026 · Audit-Batch 159, Analytics-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.77** | 🔴 fix | Admin/SEO | **Der Analytics-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/analytics.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `seo-page.php`. |
+| **2.7.77** | 🟠 perf | Admin/SEO | **Änderungen an Analytics-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.77** | 🟡 refactor | Admin/SEO | **Der Analytics-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.76 — 25. März 2026 · Audit-Batch 158, Info-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.76** | 🔴 fix | Admin/System | **Der Info-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/info.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `system-monitor-page.php`. |
+| **2.7.76** | 🟠 perf | Admin/System | **Änderungen an Info-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.76** | 🟡 refactor | Admin/System | **Der Info-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.75 — 25. März 2026 · Audit-Batch 157, Monitor-Email-Alerts-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.75** | 🔴 fix | Admin/Monitoring | **Der Monitor-Email-Alerts-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/monitor-email-alerts.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `system-monitor-page.php`. |
+| **2.7.75** | 🟠 perf | Admin/Monitoring | **Änderungen an Email-Alerts-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.75** | 🟡 refactor | Admin/Monitoring | **Der Email-Alerts-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.74 — 25. März 2026 · Audit-Batch 156, Monitor-Health-Check-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.74** | 🔴 fix | Admin/Monitoring | **Der Monitor-Health-Check-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/monitor-health-check.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `system-monitor-page.php`. |
+| **2.7.74** | 🟠 perf | Admin/Monitoring | **Änderungen an Health-Check-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.74** | 🟡 refactor | Admin/Monitoring | **Der Health-Check-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.73 — 25. März 2026 · Audit-Batch 155, Monitor-Cron-Status-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.73** | 🔴 fix | Admin/Monitoring | **Der Monitor-Cron-Status-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/monitor-cron-status.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `system-monitor-page.php`. |
+| **2.7.73** | 🟠 perf | Admin/Monitoring | **Änderungen an Cron-Status-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.73** | 🟡 refactor | Admin/Monitoring | **Der Cron-Status-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.72 — 25. März 2026 · Audit-Batch 154, System-Monitor-Page-Konfigurationspfad weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.72** | 🔴 fix | Admin/Monitoring | **`system-monitor-page.php` normalisiert Seitenkonfiguration jetzt zentral über einen kleinen Helper**: Fallbacks für Section-, Route-, View-, Titel-, Active-Page- und Asset-Werte werden nicht mehr lose direkt im Einstieg verteilt, sondern über einen gemeinsamen Normalisierungspfad aufgelöst. |
+| **2.7.72** | 🟠 perf | Admin/Monitoring | **Änderungen an Monitoring-Seitenmetadaten bleiben zentraler wartbar**: Default- und Wrapper-Werte müssen nicht mehr an mehreren Stellen parallel angepasst werden. |
+| **2.7.72** | 🟡 refactor | Admin/Monitoring | **Das gemeinsame Seitengerüst bleibt näher an seinem eigentlichen Seitenvertrag**: Normalisierung und Fallbacks sind sichtbar gebündelt, während der restliche Shell-Aufbau unverändert fokussiert bleibt. |
+
+---
+
+### v2.7.71 — 25. März 2026 · Audit-Batch 153, Monitor-Scheduled-Tasks-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.71** | 🔴 fix | Admin/Monitoring | **Der Monitor-Scheduled-Tasks-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/monitor-scheduled-tasks.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `system-monitor-page.php`. |
+| **2.7.71** | 🟠 perf | Admin/Monitoring | **Änderungen an Scheduled-Tasks-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.71** | 🟡 refactor | Admin/Monitoring | **Der Scheduled-Tasks-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.70 — 25. März 2026 · Audit-Batch 152, Monitor-Disk-Usage-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.70** | 🔴 fix | Admin/Monitoring | **Der Monitor-Disk-Usage-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/monitor-disk-usage.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `system-monitor-page.php`. |
+| **2.7.70** | 🟠 perf | Admin/Monitoring | **Änderungen an Disk-Usage-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.70** | 🟡 refactor | Admin/Monitoring | **Der Disk-Usage-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.69 — 25. März 2026 · Audit-Batch 151, Monitor-Response-Time-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.69** | 🔴 fix | Admin/Monitoring | **Der Monitor-Response-Time-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/monitor-response-time.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `system-monitor-page.php`. |
+| **2.7.69** | 🟠 perf | Admin/Monitoring | **Änderungen an Response-Time-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.69** | 🟡 refactor | Admin/Monitoring | **Der Response-Time-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.68 — 25. März 2026 · Audit-Batch 150, Performance-Sessions-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.68** | 🔴 fix | Admin/Performance | **Der Performance-Sessions-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/performance-sessions.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `performance-page.php`. |
+| **2.7.68** | 🟠 perf | Admin/Performance | **Änderungen an Performance-Sessions-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.68** | 🟡 refactor | Admin/Performance | **Der Sessions-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.67 — 25. März 2026 · Audit-Batch 149, Performance-Page-Konfigurationspfad weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.67** | 🔴 fix | Admin/Performance | **`performance-page.php` normalisiert Seitenkonfiguration jetzt zentral über einen kleinen Helper**: Fallbacks für Section-, Route-, View-, Titel-, Active-Page- und Asset-Werte werden nicht mehr lose direkt im Einstieg verteilt, sondern über einen gemeinsamen Normalisierungspfad aufgelöst. |
+| **2.7.67** | 🟠 perf | Admin/Performance | **Änderungen an Performance-Seitenmetadaten bleiben zentraler wartbar**: Default- und Wrapper-Werte müssen nicht mehr an mehreren Stellen parallel angepasst werden. |
+| **2.7.67** | 🟡 refactor | Admin/Performance | **Das gemeinsame Seitengerüst bleibt näher an seinem eigentlichen Seitenvertrag**: Normalisierung und Fallbacks sind sichtbar gebündelt, während der restliche Shell-Aufbau unverändert fokussiert bleibt. |
+
+---
+
+### v2.7.66 — 25. März 2026 · Audit-Batch 148, Performance-Settings-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.66** | 🔴 fix | Admin/Performance | **Der Performance-Settings-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/performance-settings.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `performance-page.php`. |
+| **2.7.66** | 🟠 perf | Admin/Performance | **Änderungen an Performance-Settings-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.66** | 🟡 refactor | Admin/Performance | **Der Settings-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.65 — 25. März 2026 · Audit-Batch 147, Performance-Media-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.65** | 🔴 fix | Admin/Performance | **Der Performance-Media-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/performance-media.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `performance-page.php`. |
+| **2.7.65** | 🟠 perf | Admin/Performance | **Änderungen an Performance-Media-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.65** | 🟡 refactor | Admin/Performance | **Der Media-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.64 — 25. März 2026 · Audit-Batch 146, Performance-Database-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.64** | 🔴 fix | Admin/Performance | **Der Performance-Database-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/performance-database.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `performance-page.php`. |
+| **2.7.64** | 🟠 perf | Admin/Performance | **Änderungen an Performance-Database-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.64** | 🟡 refactor | Admin/Performance | **Der Database-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.63 — 25. März 2026 · Audit-Batch 145, Performance-Cache-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.63** | 🔴 fix | Admin/Performance | **Der Performance-Cache-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/performance-cache.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `performance-page.php`. |
+| **2.7.63** | 🟠 perf | Admin/Performance | **Änderungen an Performance-Cache-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.63** | 🟡 refactor | Admin/Performance | **Der Cache-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.62 — 25. März 2026 · Audit-Batch 144, Member-Dashboard-Page-Konfigurationspfad weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.62** | 🔴 fix | Admin/Member | **`member-dashboard-page.php` normalisiert Seitenkonfiguration jetzt zentral über einen kleinen Helper**: Fallbacks für Section-, Route-, View-, Titel-, Active-Page- und Asset-Werte werden nicht mehr lose direkt im Einstieg verteilt, sondern über einen gemeinsamen Normalisierungspfad aufgelöst. |
+| **2.7.62** | 🟠 perf | Admin/Member | **Änderungen an Member-Dashboard-Seitenmetadaten bleiben zentraler wartbar**: Default- und Wrapper-Werte müssen nicht mehr an mehreren Stellen parallel angepasst werden. |
+| **2.7.62** | 🟡 refactor | Admin/Member | **Das gemeinsame Seitengerüst bleibt näher an seinem eigentlichen Seitenvertrag**: Normalisierung und Fallbacks sind sichtbar gebündelt, während der restliche Shell-Aufbau unverändert fokussiert bleibt. |
+
+---
+
+### v2.7.61 — 25. März 2026 · Audit-Batch 143, Member-Dashboard-Widgets-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.61** | 🔴 fix | Admin/Member | **Der Member-Dashboard-Widgets-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/member-dashboard-widgets.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `member-dashboard-page.php`. |
+| **2.7.61** | 🟠 perf | Admin/Member | **Änderungen an Widgets-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.61** | 🟡 refactor | Admin/Member | **Der Widgets-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.60 — 25. März 2026 · Audit-Batch 142, Member-Dashboard-Profile-Fields-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.60** | 🔴 fix | Admin/Member | **Der Member-Dashboard-Profile-Fields-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/member-dashboard-profile-fields.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `member-dashboard-page.php`. |
+| **2.7.60** | 🟠 perf | Admin/Member | **Änderungen an Profile-Fields-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.60** | 🟡 refactor | Admin/Member | **Der Profile-Fields-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.59 — 25. März 2026 · Audit-Batch 141, Member-Dashboard-Plugin-Widgets-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.59** | 🔴 fix | Admin/Member | **Der Member-Dashboard-Plugin-Widgets-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/member-dashboard-plugin-widgets.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `member-dashboard-page.php`. |
+| **2.7.59** | 🟠 perf | Admin/Member | **Änderungen an Plugin-Widgets-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.59** | 🟡 refactor | Admin/Member | **Der Plugin-Widgets-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.58 — 25. März 2026 · Audit-Batch 140, Member-Dashboard-Onboarding-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.58** | 🔴 fix | Admin/Member | **Der Member-Dashboard-Onboarding-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/member-dashboard-onboarding.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `member-dashboard-page.php`. |
+| **2.7.58** | 🟠 perf | Admin/Member | **Änderungen an Onboarding-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.58** | 🟡 refactor | Admin/Member | **Der Onboarding-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.57 — 25. März 2026 · Audit-Batch 139, Member-Dashboard-Notifications-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.57** | 🔴 fix | Admin/Member | **Der Member-Dashboard-Notifications-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/member-dashboard-notifications.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `member-dashboard-page.php`. |
+| **2.7.57** | 🟠 perf | Admin/Member | **Änderungen an Notifications-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.57** | 🟡 refactor | Admin/Member | **Der Notifications-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.56 — 25. März 2026 · Audit-Batch 138, Member-Dashboard-General-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.56** | 🔴 fix | Admin/Member | **Der Member-Dashboard-General-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/member-dashboard-general.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `member-dashboard-page.php`. |
+| **2.7.56** | 🟠 perf | Admin/Member | **Änderungen an General-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.56** | 🟡 refactor | Admin/Member | **Der General-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.55 — 25. März 2026 · Audit-Batch 137, Member-Dashboard-Frontend-Modules-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.55** | 🔴 fix | Admin/Member | **Der Member-Dashboard-Frontend-Modules-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/member-dashboard-frontend-modules.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `member-dashboard-page.php`. |
+| **2.7.55** | 🟠 perf | Admin/Member | **Änderungen an Frontend-Modules-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.55** | 🟡 refactor | Admin/Member | **Der Frontend-Modules-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.54 — 25. März 2026 · Audit-Batch 136, Member-Dashboard-Design-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.54** | 🔴 fix | Admin/Member | **Der Member-Dashboard-Design-Entry nutzt jetzt denselben kleinen Konfigurations-Wrapper wie seine Schwesterseiten**: `CMS/admin/member-dashboard-design.php` übergibt Section-, Route- und View-Metadaten nicht mehr als lose Einzelvariablen, sondern als kompaktes Konfigurationsarray an `member-dashboard-page.php`. |
+| **2.7.54** | 🟠 perf | Admin/Member | **Änderungen an Design-Metadaten bleiben zentraler wartbar**: Section-Definitionen lassen sich konsistenter anpassen, ohne dass lose Variablensets pro Wrapper auseinanderdriften. |
+| **2.7.54** | 🟡 refactor | Admin/Member | **Der Design-Wrapper bleibt näher an seinem eigentlichen Zweck**: der Entry beschreibt nur noch seine Seitenkonfiguration statt wiederholt dieselbe Variablenstruktur auszuschreiben. |
+
+---
+
+### v2.7.53 — 25. März 2026 · Audit-Batch 135, Member-Dashboard-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.53** | 🔴 fix | Admin/Member | **Der Member-Dashboard-Entry nutzt jetzt denselben kleinen Redirect-Helper wie andere Alias-Entrys**: `CMS/admin/member-dashboard.php` kapselt Legacy-Section-Weiterleitungen und Admin-Redirects nicht mehr als rohe Header-Aufrufe direkt im Entry. |
+| **2.7.53** | 🟠 perf | Admin/Member | **Änderungen an Alias-Weiterleitungen bleiben zentraler wartbar**: Redirect-Verhalten für Legacy-Sektionen liegt sichtbar an einer Stelle und folgt dem gleichen Muster wie andere schlanke Admin-Entrys. |
+| **2.7.53** | 🟡 refactor | Admin/Member | **Der Member-Dashboard-Entry bleibt näher am eigentlichen Request-Flow**: der Einstieg konzentriert sich nur noch auf Legacy-Routing, Admin-Guard und Redirect statt auf offene Header-/Exit-Strecken. |
+
+---
+
+### v2.7.52 — 25. März 2026 · Audit-Batch 134, Media-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.52** | 🔴 fix | Admin/Media | **Media-POST-Aktionen nutzen jetzt denselben kleinen Redirect-/Flash-Rahmen**: `CMS/admin/media.php` baut Redirects und Session-Alerts für Library-, Category- und Settings-Aktionen nicht mehr mehrfach direkt im POST-Flow zusammen. |
+| **2.7.52** | 🟠 perf | Admin/Media | **Änderungen an Media-Aktionen bleiben zentraler wartbar**: Anpassungen an gemeinsamer Redirect- oder Alert-Logik müssen nicht mehr in mehreren Zweigen parallel nachgezogen werden. |
+| **2.7.52** | 🟡 refactor | Admin/Media | **Der Media-Entry bleibt näher am eigentlichen Request-Flow**: der POST-Pfad konzentriert sich stärker auf Token-Prüfung und Aktionsresultate statt auf wiederholte Redirect- und Alert-Orchestrierung. |
+
+---
+
+### v2.7.51 — 25. März 2026 · Audit-Batch 133, Legal-Sites-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.51** | 🔴 fix | Admin/Legal | **Legal-Site-POST-Aktionen nutzen jetzt denselben kleinen Redirect-/Flash-/Dispatch-Rahmen**: `CMS/admin/legal-sites.php` baut Redirects, Alerts und Aktionsauflösung für Save-, Profile-, Generate- und Page-Aktionen nicht mehr mehrfach direkt im POST-Flow zusammen. |
+| **2.7.51** | 🟠 perf | Admin/Legal | **Änderungen an Legal-Site-Aktionen bleiben zentraler wartbar**: Anpassungen an gemeinsamer Redirect-, Alert- oder Dispatch-Logik müssen nicht mehr in mehreren Zweigen parallel nachgezogen werden. |
+| **2.7.51** | 🟡 refactor | Admin/Legal | **Der Legal-Sites-Entry bleibt näher am eigentlichen Request-Flow**: der POST-Pfad konzentriert sich stärker auf Token-Prüfung und Aktionsauflösung statt auf wiederholte Redirect- und Alert-Orchestrierung. |
+
+---
+
+### v2.7.50 — 25. März 2026 · Audit-Batch 132, Landing-Page-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.50** | 🔴 fix | Admin/Landing | **Landing-Page-POST-Aktionen nutzen jetzt denselben kleinen Redirect-/Flash-/Dispatch-Rahmen**: `CMS/admin/landing-page.php` baut Redirects, Alerts und Aktionsauflösung für Header-, Content-, Footer-, Design-, Feature- und Plugin-Aktionen nicht mehr mehrfach direkt im POST-Flow zusammen. |
+| **2.7.50** | 🟠 perf | Admin/Landing | **Änderungen an Landing-Page-Aktionen bleiben zentraler wartbar**: Anpassungen an gemeinsamer Redirect-, Alert- oder Dispatch-Logik müssen nicht mehr in mehreren Zweigen parallel nachgezogen werden. |
+| **2.7.50** | 🟡 refactor | Admin/Landing | **Der Landing-Page-Entry bleibt näher am eigentlichen Request-Flow**: der POST-Pfad konzentriert sich stärker auf Token-Prüfung und Aktionsauflösung statt auf wiederholte Redirect- und Alert-Orchestrierung. |
+
+---
+
+### v2.7.49 — 25. März 2026 · Audit-Batch 131, Hub-Sites-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.49** | 🔴 fix | Admin/Hub | **Hub-Site-POST-Aktionen nutzen jetzt denselben kleinen Redirect-/Flash-Rahmen**: `CMS/admin/hub-sites.php` baut Redirects und Alerts für Save-, Template- und Duplicate-/Delete-Aktionen nicht mehr mehrfach direkt im POST-Flow zusammen. |
+| **2.7.49** | 🟠 perf | Admin/Hub | **Änderungen an Hub-Site-Aktionen bleiben zentraler wartbar**: Anpassungen an gemeinsamer Redirect- oder Alert-Logik müssen nicht mehr in mehreren Zweigen parallel nachgezogen werden. |
+| **2.7.49** | 🟡 refactor | Admin/Hub | **Der Hub-Sites-Entry bleibt näher am eigentlichen Request-Flow**: der POST-Pfad konzentriert sich stärker auf Token-Prüfung und resultatspezifische Weiterleitungen statt auf wiederholte Redirect- und Alert-Orchestrierung. |
+
+---
+
+### v2.7.48 — 25. März 2026 · Audit-Batch 130, Groups-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.48** | 🔴 fix | Admin/Users | **Gruppen-POST-Aktionen nutzen jetzt denselben kleinen Redirect-/Flash-/Dispatch-Rahmen**: `CMS/admin/groups.php` baut Redirects, Alerts und Aktionsauflösung für Save- und Delete-Aktionen nicht mehr mehrfach direkt im POST-Flow zusammen. |
+| **2.7.48** | 🟠 perf | Admin/Users | **Änderungen an Gruppen-Aktionen bleiben zentraler wartbar**: Anpassungen an gemeinsamer Redirect-, Alert- oder Dispatch-Logik müssen nicht mehr in mehreren Zweigen parallel nachgezogen werden. |
+| **2.7.48** | 🟡 refactor | Admin/Users | **Der Groups-Entry bleibt näher am eigentlichen Request-Flow**: der POST-Pfad konzentriert sich stärker auf Token-Prüfung und Aktionsauflösung statt auf wiederholte Redirect- und Alert-Orchestrierung. |
+
+---
+
+### v2.7.47 — 25. März 2026 · Audit-Batch 129, Firewall-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.47** | 🔴 fix | Admin/Security | **Firewall-POST-Aktionen nutzen jetzt denselben kleinen Redirect-/Flash-/Dispatch-Rahmen**: `CMS/admin/firewall.php` baut Redirects, Alerts und Aktionsauflösung für Settings- und Rule-Aktionen nicht mehr mehrfach direkt im POST-Flow zusammen. |
+| **2.7.47** | 🟠 perf | Admin/Security | **Änderungen an Firewall-Aktionen bleiben zentraler wartbar**: Anpassungen an gemeinsamer Redirect-, Alert- oder Dispatch-Logik müssen nicht mehr in mehreren Zweigen parallel nachgezogen werden. |
+| **2.7.47** | 🟡 refactor | Admin/Security | **Der Firewall-Entry bleibt näher am eigentlichen Request-Flow**: der POST-Pfad konzentriert sich stärker auf Supported-Action-/Token-Prüfung statt auf wiederholte Redirect- und Alert-Orchestrierung. |
+
+---
+
+### v2.7.46 — 25. März 2026 · Audit-Batch 128, Error-Report-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.46** | 🔴 fix | Admin/System | **Fehlerreport-POST-Aktionen nutzen jetzt denselben kleinen Redirect-/Flash-Rahmen**: `CMS/admin/error-report.php` baut Redirects und Alerts für Report-Erstellung und Token-Fehler nicht mehr mehrfach direkt im POST-Flow zusammen. |
+| **2.7.46** | 🟠 perf | Admin/System | **Änderungen an Fehlerreport-Aktionen bleiben zentraler wartbar**: Anpassungen an gemeinsamer Redirect- oder Alert-Logik müssen nicht mehr in mehreren Zweigen parallel nachgezogen werden. |
+| **2.7.46** | 🟡 refactor | Admin/System | **Der Error-Report-Entry bleibt näher am eigentlichen Request-Flow**: der POST-Pfad konzentriert sich stärker auf Redirect-Normalisierung und Report-Erstellung statt auf wiederholte Redirect- und Alert-Orchestrierung. |
+
+---
+
+### v2.7.45 — 25. März 2026 · Audit-Batch 127, Documentation-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.45** | 🔴 fix | Admin/System | **Dokumentations-POST-Aktionen nutzen jetzt denselben kleinen Alert-/Redirect-Rahmen**: `CMS/admin/documentation.php` baut Alert-Speicherung und Redirect-Aufbau für Doku-Sync-Aktionen nicht mehr mehrfach direkt im POST-Flow zusammen. |
+| **2.7.45** | 🟠 perf | Admin/System | **Änderungen an Dokumentations-Aktionen bleiben zentraler wartbar**: Anpassungen an gemeinsamer Alert- oder Redirect-Logik müssen nicht mehr in mehreren Zweigen parallel nachgezogen werden. |
+| **2.7.45** | 🟡 refactor | Admin/System | **Der Documentation-Entry bleibt näher am eigentlichen Request-Flow**: der POST-Pfad konzentriert sich stärker auf Token-Prüfung und Action-Dispatch statt auf wiederholte Alert- und Redirect-Orchestrierung. |
+
+---
+
+### v2.7.44 — 25. März 2026 · Audit-Batch 126, Backups-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.44** | 🔴 fix | Admin/System | **Backup-POST-Aktionen nutzen jetzt denselben kleinen Redirect-/Flash-Rahmen**: `CMS/admin/backups.php` baut Redirects und Session-Alerts für Full-, DB- und Delete-Aktionen nicht mehr mehrfach direkt im POST-Flow zusammen. |
+| **2.7.44** | 🟠 perf | Admin/System | **Änderungen an Backup-Aktionen bleiben zentraler wartbar**: Anpassungen an gemeinsamer Redirect- oder Alert-Logik müssen nicht mehr in mehreren Zweigen parallel nachgezogen werden. |
+| **2.7.44** | 🟡 refactor | Admin/System | **Der Backups-Entry bleibt näher am eigentlichen Request-Flow**: der POST-Pfad konzentriert sich stärker auf Token-Prüfung und Action-Handler statt auf wiederholte Session-Alert-Orchestrierung. |
+
+---
+
+### v2.7.43 — 25. März 2026 · Audit-Batch 125, AntiSpam-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.43** | 🔴 fix | Admin/Security | **AntiSpam-POST-Aktionen nutzen jetzt dieselben kleinen Redirect-/Flash-/Dispatch-Helfer**: `CMS/admin/antispam.php` baut Redirects, Alerts und Aktionsauflösung für Settings- und Blacklist-Aktionen nicht mehr mehrfach direkt im POST-Flow zusammen. |
+| **2.7.43** | 🟠 perf | Admin/Security | **Änderungen an AntiSpam-Aktionen bleiben zentraler wartbar**: Anpassungen an gemeinsamer Redirect-, Alert- oder Dispatch-Logik müssen nicht mehr in mehreren Zweigen parallel nachgezogen werden. |
+| **2.7.43** | 🟡 refactor | Admin/Security | **Der AntiSpam-Entry bleibt näher am eigentlichen Request-Flow**: der POST-Pfad konzentriert sich stärker auf Token-/Allowlist-Handling statt auf wiederholte Redirect- und Alert-Orchestrierung. |
+
+---
+
+### v2.7.42 — 25. März 2026 · Audit-Batch 124, 404-Monitor-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.42** | 🔴 fix | Admin/SEO | **404-Monitor-POST-Aktionen nutzen jetzt dieselben kleinen Redirect-/Flash-/Dispatch-Helfer**: `CMS/admin/not-found-monitor.php` baut Redirects, Alerts und Aktionsauflösung für Redirect-Speicherung und Log-Bereinigung nicht mehr mehrfach direkt im POST-Flow zusammen. |
+| **2.7.42** | 🟠 perf | Admin/SEO | **Änderungen an 404-Monitor-Aktionen bleiben zentraler wartbar**: Anpassungen an gemeinsamer Redirect-, Alert- oder Dispatch-Logik müssen nicht mehr in mehreren Zweigen parallel nachgezogen werden. |
+| **2.7.42** | 🟡 refactor | Admin/SEO | **Der 404-Monitor-Entry bleibt näher am eigentlichen Request-Flow**: der POST-Pfad konzentriert sich stärker auf Token-Prüfung und Resultatverarbeitung statt auf wiederholte Session-Alert-Orchestrierung. |
+
+---
+
+### v2.7.41 — 25. März 2026 · Audit-Batch 123, Design-Settings-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.41** | 🔴 fix | Admin/Themes | **Der Design-Settings-Entry nutzt jetzt denselben kleinen Redirect-Helper wie andere Alias-Entrys**: `CMS/admin/design-settings.php` kapselt Guard- und Weiterleitungslogik nicht mehr als rohe Header-Aufrufe direkt im Entry. |
+| **2.7.41** | 🟠 perf | Admin/Themes | **Änderungen am Alias-Redirect bleiben zentraler wartbar**: Redirect-Verhalten Richtung Theme-Editor liegt sichtbar an einer Stelle und folgt dem gleichen Muster wie andere schlanke Admin-Entrys. |
+| **2.7.41** | 🟡 refactor | Admin/Themes | **Der Design-Settings-Entry bleibt näher am eigentlichen Request-Flow**: der Einstieg konzentriert sich nur noch auf Admin-Guard und Redirect statt auf offene Header-/Exit-Strecken. |
+
+---
+
+### v2.7.40 — 25. März 2026 · Audit-Batch 122, Deletion-Requests-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.40** | 🔴 fix | Admin/Legal | **Der Deletion-Requests-Entry bildet jetzt nur noch seinen tatsächlichen Redirect-Zweck ab**: `CMS/admin/deletion-requests.php` schleppt keinen unerreichbaren POST-, Modul- und View-Altpfad mehr hinter einem sofortigen Redirect mit. |
+| **2.7.40** | 🟠 perf | Admin/Legal | **Änderungen am Alias-Entry bleiben zentraler wartbar**: Redirect-Verhalten für Löschanträge liegt sichtbar an einer Stelle, statt verdeckt von totem Altcode überlagert zu werden. |
+| **2.7.40** | 🟡 refactor | Admin/Legal | **Der Deletion-Requests-Entry bleibt näher am eigentlichen Request-Flow**: der Einstieg konzentriert sich nur noch auf Admin-Guard und Redirect statt auf nie erreichte DSGVO-Orchestrierung. |
+
+---
+
+### v2.7.39 — 25. März 2026 · Audit-Batch 121, Data-Requests-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.39** | 🔴 fix | Admin/Legal | **DSGVO-POST-Aktionen nutzen jetzt dieselben kleinen Alert-/Dispatch-Helfer**: `CMS/admin/data-requests.php` baut Alert-Normalisierung und Scope-Aktionsauflösung für Auskunfts- und Löschanträge nicht mehr mehrfach direkt im POST-Flow zusammen. |
+| **2.7.39** | 🟠 perf | Admin/Legal | **Änderungen an DSGVO-Aktionen bleiben zentraler wartbar**: Anpassungen an gemeinsamer Alert- oder Scope-Dispatch-Logik müssen nicht mehr in mehreren Zweigen parallel nachgezogen werden. |
+| **2.7.39** | 🟡 refactor | Admin/Legal | **Der Data-Requests-Entry bleibt näher am eigentlichen Request-Flow**: der POST-Pfad konzentriert sich stärker auf Token-/Scope-Handling statt auf wiederholte Scope-Verzweigung und Alert-Orchestrierung. |
+
+---
+
+### v2.7.38 — 25. März 2026 · Audit-Batch 120, Cookie-Manager-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.38** | 🔴 fix | Admin/Legal | **Cookie-POST-Aktionen nutzen jetzt dieselben kleinen Redirect-/Flash-/Dispatch-Helfer**: `CMS/admin/cookie-manager.php` baut Redirects, Session-Alerts und Aktionsauflösung für Save-, Delete-, Import- und Scan-Aktionen nicht mehr mehrfach direkt im POST-Flow zusammen. |
+| **2.7.38** | 🟠 perf | Admin/Legal | **Änderungen an Cookie-Aktionen bleiben zentraler wartbar**: Anpassungen an gemeinsamer Redirect-, Alert- oder Dispatch-Logik müssen nicht mehr in mehreren Zweigen parallel nachgezogen werden. |
+| **2.7.38** | 🟡 refactor | Admin/Legal | **Der Cookie-Manager-Entry bleibt näher am eigentlichen Request-Flow**: der POST-Pfad konzentriert sich stärker auf Token-/Allowlist-Handling statt auf wiederholte Redirect- und Alert-Orchestrierung. |
+
+---
+
+### v2.7.37 — 25. März 2026 · Audit-Batch 119, Comments-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.37** | 🔴 fix | Admin/Comments | **Kommentar-Aktionen nutzen jetzt dieselben kleinen Alert-Helfer**: `CMS/admin/comments.php` baut Session-Alerts für unbekannte Aktionen, ungültige CSRF-Tokens und verarbeitete Resultate nicht mehr mehrfach direkt im POST-Flow zusammen. |
+| **2.7.37** | 🟠 perf | Admin/Comments | **Änderungen an Comment-Alerts bleiben zentraler wartbar**: Anpassungen an gemeinsamer Alert-Struktur müssen nicht mehr in mehreren Zweigen parallel nachgezogen werden. |
+| **2.7.37** | 🟡 refactor | Admin/Comments | **Der Comments-Entry bleibt näher am eigentlichen Request-Flow**: der POST-Pfad konzentriert sich stärker auf Aktionsverarbeitung statt auf wiederholten Session-Alert-Aufbau. |
+
+---
+
+### v2.7.36 — 25. März 2026 · Audit-Batch 118, Packages-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.36** | 🔴 fix | Admin/Subscriptions | **Packages-POST-Aktionen nutzen jetzt dieselben kleinen Flash-/Redirect-Helfer**: `CMS/admin/packages.php` baut Session-Alerts und Redirect-Abgänge für Save-, Seed-, Delete-, Toggle- und Settings-Aktionen nicht mehr mehrfach direkt im POST-Flow zusammen. |
+| **2.7.36** | 🟠 perf | Admin/Subscriptions | **Änderungen an Packages-Aktionen bleiben zentraler wartbar**: Anpassungen an gemeinsamer Alert- oder Redirect-Logik müssen nicht mehr in mehreren Zweigen parallel nachgezogen werden. |
+| **2.7.36** | 🟡 refactor | Admin/Subscriptions | **Der Packages-Entry bleibt näher am eigentlichen Request-Flow**: der POST-Pfad konzentriert sich stärker auf Token-/Action-Handling statt auf wiederholte Session- und Redirect-Orchestrierung. |
+
+---
+
+### v2.7.35 — 25. März 2026 · Audit-Batch 117, Orders-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.35** | 🔴 fix | Admin/Subscriptions | **POST-Aktionen laufen jetzt über denselben kleinen Dispatch-Helfer**: `CMS/admin/orders.php` löst `assign_subscription`, `update_status` und `delete` nicht mehr als gestaffelten Inline-Block mit mehrfach ähnlichem Erfolgsablauf auf. |
+| **2.7.35** | 🟠 perf | Admin/Subscriptions | **Änderungen an Orders-Aktionen bleiben zentraler wartbar**: Anpassungen an der Parameterübergabe oder Aktionsauflösung müssen nicht mehr in mehreren Switch-Zweigen parallel nachgezogen werden. |
+| **2.7.35** | 🟡 refactor | Admin/Subscriptions | **Der Orders-Entry bleibt näher am eigentlichen Request-Flow**: der POST-Pfad konzentriert sich stärker auf Token-/Allowlist-Handling statt auf wiederholte Aktionsorchestrierung. |
+
+---
+
+### v2.7.34 — 25. März 2026 · Audit-Batch 116, Mail-Settings-View Button-Aktionen weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.34** | 🔴 fix | Admin/System | **Mail-Aktionsbuttons nutzen jetzt denselben kleinen Renderer**: `CMS/admin/views/system/mail-settings.php` baut wiederkehrende Submit-Buttons mit `name="action"` und variierenden Klassen/Attributen nicht mehr mehrfach direkt in Transport-, Azure-, Graph-, Log- und Queue-Bereichen zusammen. |
+| **2.7.34** | 🟠 perf | Admin/System | **Änderungen an Aktionsbuttons bleiben zentraler wartbar**: Anpassungen an gemeinsamer Submit-Button-Struktur müssen nicht mehr in mehreren Mail-Settings-Bereichen parallel nachgezogen werden. |
+| **2.7.34** | 🟡 refactor | Admin/System | **Die Mail-Settings-View bleibt näher an kleinen Render-Bausteinen**: die betroffenen Formulare konzentrieren sich stärker auf ihre Fachfelder statt auf wiederholtes Button-Markup. |
+
+---
+
+### v2.7.33 — 25. März 2026 · Audit-Batch 115, Dokumentations-View Listen weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.33** | 🔴 fix | Admin/System | **Dokumentlisten nutzen jetzt denselben kleinen Renderer**: `CMS/admin/views/system/documentation.php` rendert Schnellstart- und Bereichslisten nicht mehr mehrfach direkt über identische `foreach`-Blöcke mit demselben `is_array`-Guard. |
+| **2.7.33** | 🟠 perf | Admin/System | **Änderungen an Dokumentlisten bleiben zentraler wartbar**: Anpassungen an gemeinsamer Listenlogik müssen nicht mehr in mehreren View-Bereichen parallel nachgezogen werden. |
+| **2.7.33** | 🟡 refactor | Admin/System | **Die Dokumentations-View bleibt näher an kleinen Render-Bausteinen**: die betroffenen Karten konzentrieren sich stärker auf ihre Struktur statt auf wiederholte Listeniteration. |
+
+---
+
+### v2.7.32 — 25. März 2026 · Audit-Batch 114, Dokumentations-Sync-Service weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.32** | 🔴 fix | Admin/System | **Sync-Abschlusslogs nutzen jetzt denselben kleinen Ausführungs-Kontext-Helfer**: `CMS/admin/modules/system/DocumentationSyncService.php` baut `mode`- und `capabilities`-Kontext für Erfolgs- und Fehlerpfade nicht mehr mehrfach direkt in `finalizeSyncResult()` zusammen. |
+| **2.7.32** | 🟠 perf | Admin/System | **Änderungen an Sync-Kontexten bleiben zentraler wartbar**: Anpassungen an gemeinsamen Abschluss-Metadaten müssen nicht mehr in mehreren Logging-Pfaden parallel nachgezogen werden. |
+| **2.7.32** | 🟡 refactor | Admin/System | **Der Dokumentations-Sync-Service bleibt näher an kleinen Orchestrator-Bausteinen**: der Abschluss-Pfad konzentriert sich stärker auf Result-Verarbeitung statt auf wiederholten Kontextaufbau. |
+
+---
+
+### v2.7.31 — 25. März 2026 · Audit-Batch 113, Dokumentations-Downloader weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.31** | 🔴 fix | Admin/System | **Download-Logs nutzen jetzt denselben kleinen URL-Kontext-Helfer**: `CMS/admin/modules/system/DocumentationSyncDownloader.php` baut URL-basierte Kontextdaten für Response-, Validierungs- und Erfolgslogs nicht mehr mehrfach direkt in den jeweiligen Pfaden zusammen. |
+| **2.7.31** | 🟠 perf | Admin/System | **Änderungen an Download-Kontexten bleiben zentraler wartbar**: Anpassungen an URL-bezogenen Log-Metadaten müssen nicht mehr in mehreren Downloader-Pfaden parallel nachgezogen werden. |
+| **2.7.31** | 🟡 refactor | Admin/System | **Der Dokumentations-Downloader bleibt näher an kleinen Infrastruktur-Bausteinen**: die betroffenen Pfade konzentrieren sich stärker auf Download- und Validierungslogik statt auf wiederholten Kontextaufbau. |
+
+---
+
+### v2.7.30 — 25. März 2026 · Audit-Batch 112, Subscription-Settings-Modul weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.30** | 🔴 fix | Admin/Subscriptions | **Beide Einstellungs-Speicherpfade nutzen jetzt denselben kleinen Save-Helfer**: `CMS/admin/modules/subscriptions/SubscriptionSettingsModule.php` bündelt Admin-Guard, Persistierung und Audit-Logging für allgemeine und paketbezogene Abo-Einstellungen nicht mehr doppelt direkt in beiden Save-Methoden. |
+| **2.7.30** | 🟠 perf | Admin/Subscriptions | **Änderungen an Save-Orchestrierungen bleiben zentraler wartbar**: Anpassungen an gemeinsamem Persistier- oder Audit-Verhalten müssen nicht mehr in mehreren Settings-Pfaden parallel nachgezogen werden. |
+| **2.7.30** | 🟡 refactor | Admin/Subscriptions | **Das Subscription-Settings-Modul bleibt näher an kleinen Orchestrator-Bausteinen**: die Save-Methoden konzentrieren sich stärker auf ihre Payloads statt auf wiederholte Erfolgsabläufe. |
+
+---
+
+### v2.7.29 — 25. März 2026 · Audit-Batch 111, Orders-View Formular-Kontexte weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.29** | 🔴 fix | Admin/Subscriptions | **Bestellformulare nutzen jetzt denselben kleinen Kontext-Renderer**: `CMS/admin/views/subscriptions/orders.php` rendert die wiederkehrenden Hidden-Felder für `csrf_token`, `action` und optional `id` nicht mehr mehrfach direkt in Statuswechsel-, Delete- und Zuweisungsformularen aus. |
+| **2.7.29** | 🟠 perf | Admin/Subscriptions | **Änderungen an Formular-Kontexten bleiben zentraler wartbar**: Anpassungen an gemeinsamen Hidden-Feldern müssen nicht mehr über mehrere Bestellaktionspfade hinweg synchron gehalten werden. |
+| **2.7.29** | 🟡 refactor | Admin/Subscriptions | **Die Orders-View bleibt näher an kleinen Formular-Bausteinen**: die betroffenen Aktionen konzentrieren sich stärker auf ihren eigentlichen Zweck statt auf wiederholtes Kontext-Markup. |
 
 ---
 

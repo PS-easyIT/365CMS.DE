@@ -17,6 +17,22 @@ require_once __DIR__ . '/modules/comments/CommentsModule.php';
 
 $module = new CommentsModule();
 
+function cms_admin_comments_flash(array $payload): void
+{
+    $_SESSION['admin_alert'] = [
+        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
+        'message' => trim((string) ($payload['message'] ?? '')),
+    ];
+}
+
+function cms_admin_comments_flash_result(array $result): void
+{
+    cms_admin_comments_flash([
+        'type' => !empty($result['success']) ? 'success' : 'danger',
+        'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
+    ]);
+}
+
 if (!Auth::isLoggedIn() || !$module->canView()) {
     header('Location: ' . SITE_URL);
     exit;
@@ -31,9 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postToken = $_POST['csrf_token'] ?? '';
 
     if (!$module->isSupportedAction($action)) {
-        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Unbekannte Kommentar-Aktion.'];
+        cms_admin_comments_flash(['type' => 'danger', 'message' => 'Unbekannte Kommentar-Aktion.']);
     } elseif (!Security::instance()->verifyToken($postToken, 'admin_comments')) {
-        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
+        cms_admin_comments_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
     } else {
         $result = ['success' => false, 'error' => 'Aktion konnte nicht verarbeitet werden.'];
 
@@ -56,10 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
         }
 
-            $_SESSION['admin_alert'] = [
-                'type'    => $result['success'] ? 'success' : 'danger',
-                'message' => $result['message'] ?? $result['error'] ?? '',
-            ];
+        cms_admin_comments_flash_result($result);
     }
 
     // PRG-Redirect mit Status-Erhaltung

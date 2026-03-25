@@ -5,10 +5,12 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$performanceSection = 'database';
-$performanceRoutePath = '/admin/performance-database';
-$performanceViewFile = __DIR__ . '/views/performance/database.php';
-$pageTitle = 'Performance · Datenbank-Wartung';
-$activePage = 'performance-database';
+$performancePageConfig = [
+    'section' => 'database',
+    'route_path' => '/admin/performance-database',
+    'view_file' => __DIR__ . '/views/performance/database.php',
+    'page_title' => 'Performance · Datenbank-Wartung',
+    'active_page' => 'performance-database',
+];
 
 require __DIR__ . '/performance-page.php';

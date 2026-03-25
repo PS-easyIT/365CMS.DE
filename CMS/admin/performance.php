@@ -10,10 +10,12 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$performanceSection   = 'overview';
-$performanceRoutePath = '/admin/performance';
-$performanceViewFile  = __DIR__ . '/views/seo/performance.php';
-$pageTitle            = 'Performance';
-$activePage           = 'performance';
+$performancePageConfig = [
+    'section' => 'overview',
+    'route_path' => '/admin/performance',
+    'view_file' => __DIR__ . '/views/seo/performance.php',
+    'page_title' => 'Performance',
+    'active_page' => 'performance',
+];
 
 require __DIR__ . '/performance-page.php';
