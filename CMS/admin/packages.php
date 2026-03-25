@@ -75,7 +75,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             case 'save_package_settings':
                 $result = $settingsModule->savePackageSettings($_POST);
-                $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
+                $payload = $result->toArray();
+                $_SESSION['admin_alert'] = ['type' => !empty($payload['success']) ? 'success' : 'danger', 'message' => $payload['message'] ?? $payload['error'] ?? ''];
                 header('Location: ' . $redirectBase);
                 exit;
         }
@@ -90,7 +91,7 @@ if (isset($_SESSION['admin_alert'])) {
 $csrfToken  = Security::instance()->generateToken('admin_packages');
 $pageTitle  = 'Pakete & Abo-Einstellungen';
 $activePage = 'packages';
-$data       = array_merge($module->getData(), $settingsModule->getPackageData());
+$data       = array_merge($module->getData(), $settingsModule->getPackageData()->toArray());
 
 require_once __DIR__ . '/partials/header.php';
 require_once __DIR__ . '/partials/sidebar.php';

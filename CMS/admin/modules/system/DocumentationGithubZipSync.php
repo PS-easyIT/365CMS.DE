@@ -5,6 +5,23 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+final class DocumentationGithubZipWorkspace
+{
+    public function __construct(
+        public readonly string $zipFile,
+        public readonly string $extractDir,
+        public readonly string $stagingDir,
+        public readonly string $backupDir
+    ) {
+    }
+
+    /** @return list<string> */
+    public function cleanupDirectories(): array
+    {
+        return [$this->extractDir, $this->stagingDir];
+    }
+}
+
 final class DocumentationGithubZipSync
 {
     private const ALLOWED_ZIP_HOSTS = [
@@ -36,78 +53,30 @@ final class DocumentationGithubZipSync
             return ['success' => false, 'error' => 'ZIP-Extension ist für den GitHub-Doku-Sync nicht verfügbar.'];
         }
 
-        $tempBase = rtrim(sys_get_temp_dir(), '\\/') . DIRECTORY_SEPARATOR . '365cms_doc_sync_' . bin2hex(random_bytes(6));
-        $zipFile = $tempBase . '.zip';
-        $extractDir = $tempBase . '_extract';
-        $stagingDir = $this->repoRoot . DIRECTORY_SEPARATOR . 'DOC.__sync_' . bin2hex(random_bytes(4));
-        $backupDir = $this->repoRoot . DIRECTORY_SEPARATOR . 'DOC.__backup_' . date('Ymd_His') . '_' . bin2hex(random_bytes(3));
+        $workspace = $this->createWorkspace();
 
         try {
             $this->assertDocsRootLocation();
             $this->assertGithubZipUrl();
             $this->assertApprovedBundleConfiguration();
-            $this->assertWorkingPaths($zipFile, $extractDir, $stagingDir, $backupDir);
+            $this->assertWorkingPaths($workspace);
 
-            $download = $this->downloader->downloadFile($this->githubZipUrl, $zipFile);
-            if ($download->success !== true) {
-                throw new RuntimeException((string) ($download->error ?? 'ZIP-Datei konnte nicht geladen werden.'));
+            $download = $this->downloader->downloadFile($this->githubZipUrl, $workspace->zipFile);
+            if (!$download->isSuccess()) {
+                throw new RuntimeException((string) ($download->error() ?? 'ZIP-Datei konnte nicht geladen werden.'));
             }
 
-            $this->assertDownloadedArchive($zipFile, $download);
+            $this->assertDownloadedArchive($workspace->zipFile, $download);
+            $this->extractArchive($workspace);
 
-            if (!is_dir($extractDir) && !mkdir($extractDir, 0755, true) && !is_dir($extractDir)) {
-                throw new RuntimeException('Temporäres Entpack-Verzeichnis konnte nicht erstellt werden.');
-            }
-
-            $zip = new ZipArchive();
-            $zipResult = $zip->open($zipFile);
-            if ($zipResult !== true) {
-                throw new RuntimeException('GitHub-ZIP konnte nicht geöffnet werden (Fehlercode: ' . $zipResult . ').');
-            }
-
-            if (!$this->validateZipEntries($zip)) {
-                $zip->close();
-                throw new RuntimeException('GitHub-ZIP enthält unsichere oder unerwartete Archiv-Einträge.');
-            }
-
-            if (!$zip->extractTo($extractDir)) {
-                $zip->close();
-                throw new RuntimeException('GitHub-ZIP konnte nicht entpackt werden.');
-            }
-            $zip->close();
-
-            $sourceDocs = $this->filesystem->findDocDirectory($extractDir);
+            $sourceDocs = $this->filesystem->findDocDirectory($workspace->extractDir);
             if ($sourceDocs === null || !is_dir($sourceDocs)) {
                 throw new RuntimeException('Der Ordner /DOC wurde im heruntergeladenen Archiv nicht gefunden.');
             }
 
             $this->assertApprovedDocsBundle($sourceDocs);
-
-            if (is_dir($stagingDir)) {
-                $this->filesystem->deleteDirectory($stagingDir);
-            }
-
-            if (!mkdir($stagingDir, 0755, true) && !is_dir($stagingDir)) {
-                throw new RuntimeException('Staging-Verzeichnis für den Doku-Sync konnte nicht erstellt werden.');
-            }
-
-            $this->filesystem->copyDirectory($sourceDocs, $stagingDir);
-
-            $hadExistingDocs = is_dir($this->docsRoot);
-            if ($hadExistingDocs && !$this->filesystem->renamePath($this->docsRoot, $backupDir, 'Der bestehende lokale /DOC-Ordner konnte nicht gesichert werden.')) {
-                throw new RuntimeException('Der bestehende lokale /DOC-Ordner konnte nicht gesichert werden.');
-            }
-
-            if (!$this->filesystem->renamePath($stagingDir, $this->docsRoot, 'Der neue /DOC-Stand konnte nicht aktiviert werden.')) {
-                if ($hadExistingDocs && is_dir($backupDir)) {
-                    $this->filesystem->renamePath($backupDir, $this->docsRoot, 'Der gesicherte /DOC-Ordner konnte nach fehlgeschlagener Aktivierung nicht wiederhergestellt werden.');
-                }
-                throw new RuntimeException('Der neue /DOC-Stand konnte nicht aktiviert werden.');
-            }
-
-            if ($hadExistingDocs && is_dir($backupDir)) {
-                $this->filesystem->deleteDirectory($backupDir);
-            }
+            $this->stageDocsSnapshot($sourceDocs, $workspace);
+            $this->activateDocsSnapshot($workspace);
 
             $documentCount = $this->filesystem->countSupportedDocuments($this->docsRoot);
 
@@ -127,18 +96,94 @@ final class DocumentationGithubZipSync
                 'docs_root' => $this->sanitizePathForLog($this->docsRoot),
             ]);
         } finally {
-            if (is_file($zipFile)) {
-                $this->filesystem->deleteFile($zipFile);
+            $this->cleanupWorkspace($workspace);
+        }
+    }
+
+    private function createWorkspace(): DocumentationGithubZipWorkspace
+    {
+        $tempBase = rtrim(sys_get_temp_dir(), '\/') . DIRECTORY_SEPARATOR . '365cms_doc_sync_' . bin2hex(random_bytes(6));
+
+        return new DocumentationGithubZipWorkspace(
+            $tempBase . '.zip',
+            $tempBase . '_extract',
+            $this->repoRoot . DIRECTORY_SEPARATOR . 'DOC.__sync_' . bin2hex(random_bytes(4)),
+            $this->repoRoot . DIRECTORY_SEPARATOR . 'DOC.__backup_' . date('Ymd_His') . '_' . bin2hex(random_bytes(3))
+        );
+    }
+
+    private function extractArchive(DocumentationGithubZipWorkspace $workspace): void
+    {
+        if (!is_dir($workspace->extractDir) && !mkdir($workspace->extractDir, 0755, true) && !is_dir($workspace->extractDir)) {
+            throw new RuntimeException('Temporäres Entpack-Verzeichnis konnte nicht erstellt werden.');
+        }
+
+        $zip = new ZipArchive();
+        $zipResult = $zip->open($workspace->zipFile);
+        if ($zipResult !== true) {
+            throw new RuntimeException('GitHub-ZIP konnte nicht geöffnet werden (Fehlercode: ' . $zipResult . ').');
+        }
+
+        try {
+            if (!$this->validateZipEntries($zip)) {
+                throw new RuntimeException('GitHub-ZIP enthält unsichere oder unerwartete Archiv-Einträge.');
             }
-            if (is_dir($extractDir)) {
-                $this->filesystem->deleteDirectory($extractDir);
+
+            if (!$zip->extractTo($workspace->extractDir)) {
+                throw new RuntimeException('GitHub-ZIP konnte nicht entpackt werden.');
             }
-            if (is_dir($stagingDir)) {
-                $this->filesystem->deleteDirectory($stagingDir);
+        } finally {
+            $zip->close();
+        }
+    }
+
+    private function stageDocsSnapshot(string $sourceDocs, DocumentationGithubZipWorkspace $workspace): void
+    {
+        if (is_dir($workspace->stagingDir)) {
+            $this->filesystem->deleteDirectory($workspace->stagingDir);
+        }
+
+        if (!mkdir($workspace->stagingDir, 0755, true) && !is_dir($workspace->stagingDir)) {
+            throw new RuntimeException('Staging-Verzeichnis für den Doku-Sync konnte nicht erstellt werden.');
+        }
+
+        $this->filesystem->copyDirectory($sourceDocs, $workspace->stagingDir);
+    }
+
+    private function activateDocsSnapshot(DocumentationGithubZipWorkspace $workspace): void
+    {
+        $hadExistingDocs = is_dir($this->docsRoot);
+        if ($hadExistingDocs && !$this->filesystem->renamePath($this->docsRoot, $workspace->backupDir, 'Der bestehende lokale /DOC-Ordner konnte nicht gesichert werden.')) {
+            throw new RuntimeException('Der bestehende lokale /DOC-Ordner konnte nicht gesichert werden.');
+        }
+
+        if (!$this->filesystem->renamePath($workspace->stagingDir, $this->docsRoot, 'Der neue /DOC-Stand konnte nicht aktiviert werden.')) {
+            if ($hadExistingDocs && is_dir($workspace->backupDir)) {
+                $this->filesystem->renamePath($workspace->backupDir, $this->docsRoot, 'Der gesicherte /DOC-Ordner konnte nach fehlgeschlagener Aktivierung nicht wiederhergestellt werden.');
             }
-            if (is_dir($backupDir) && is_dir($this->docsRoot)) {
-                $this->filesystem->deleteDirectory($backupDir);
+
+            throw new RuntimeException('Der neue /DOC-Stand konnte nicht aktiviert werden.');
+        }
+
+        if ($hadExistingDocs && is_dir($workspace->backupDir)) {
+            $this->filesystem->deleteDirectory($workspace->backupDir);
+        }
+    }
+
+    private function cleanupWorkspace(DocumentationGithubZipWorkspace $workspace): void
+    {
+        if (is_file($workspace->zipFile)) {
+            $this->filesystem->deleteFile($workspace->zipFile);
+        }
+
+        foreach ($workspace->cleanupDirectories() as $directory) {
+            if (is_dir($directory)) {
+                $this->filesystem->deleteDirectory($directory);
             }
+        }
+
+        if (is_dir($workspace->backupDir) && is_dir($this->docsRoot)) {
+            $this->filesystem->deleteDirectory($workspace->backupDir);
         }
     }
 
@@ -216,7 +261,7 @@ final class DocumentationGithubZipSync
         }
     }
 
-    private function assertWorkingPaths(string $zipFile, string $extractDir, string $stagingDir, string $backupDir): void
+    private function assertWorkingPaths(DocumentationGithubZipWorkspace $workspace): void
     {
         $repoRoot = rtrim((string) realpath($this->repoRoot), '\\/');
         $tempRoot = rtrim((string) realpath(sys_get_temp_dir()), '\\/');
@@ -225,15 +270,15 @@ final class DocumentationGithubZipSync
             throw new RuntimeException('Arbeitsverzeichnisse für den Doku-Sync konnten nicht sicher aufgelöst werden.');
         }
 
-        if (!$this->isPathInsideRoot($zipFile, $tempRoot)
-            || !$this->isPathInsideRoot($extractDir, $tempRoot)
-            || !$this->isPathInsideRoot($stagingDir, $repoRoot)
-            || !$this->isPathInsideRoot($backupDir, $repoRoot)
+        if (!$this->isPathInsideRoot($workspace->zipFile, $tempRoot)
+            || !$this->isPathInsideRoot($workspace->extractDir, $tempRoot)
+            || !$this->isPathInsideRoot($workspace->stagingDir, $repoRoot)
+            || !$this->isPathInsideRoot($workspace->backupDir, $repoRoot)
         ) {
             throw new RuntimeException('Temporäre Arbeitsverzeichnisse des Doku-Sync liegen außerhalb der erlaubten Roots.');
         }
 
-        foreach ([$zipFile, $extractDir, $stagingDir, $backupDir] as $path) {
+        foreach ([$workspace->zipFile, $workspace->extractDir, $workspace->stagingDir, $workspace->backupDir] as $path) {
             if (is_link($path)) {
                 throw new RuntimeException('Der Doku-Sync verarbeitet keine symbolischen Links als Arbeitsverzeichnisse.');
             }
@@ -289,13 +334,13 @@ final class DocumentationGithubZipSync
         if ($archiveSize === false
             || $archiveSize < 1
             || $archiveSize > self::MAX_ARCHIVE_BYTES
-            || $archiveSize !== $download->bytes
+            || $archiveSize !== $download->bytes()
         ) {
             throw new RuntimeException('Die heruntergeladene ZIP-Datei hat eine ungültige Größe.');
         }
 
         $sha256 = hash_file('sha256', $zipFile);
-        if (!is_string($sha256) || $sha256 !== $download->sha256) {
+        if (!is_string($sha256) || $sha256 !== $download->sha256()) {
             throw new RuntimeException('Die heruntergeladene ZIP-Datei konnte nicht konsistent validiert werden.');
         }
     }

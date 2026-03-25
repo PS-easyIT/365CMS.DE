@@ -13,6 +13,53 @@ use CMS\Auth;
 use CMS\AuditLogger;
 use CMS\Logger;
 
+final class SubscriptionSettingsViewData
+{
+    public function __construct(
+        private array $settings,
+        private array $plans = [],
+        private array $pages = [],
+        private ?string $error = null,
+    ) {
+    }
+
+    public function toArray(): array
+    {
+        return [
+            'settings' => $this->settings,
+            'plans' => $this->plans,
+            'pages' => $this->pages,
+            'error' => $this->error,
+        ];
+    }
+}
+
+final class SubscriptionSettingsActionResult
+{
+    private function __construct(
+        private bool $success,
+        private string $message,
+    ) {
+    }
+
+    public static function success(string $message): self
+    {
+        return new self(true, $message);
+    }
+
+    public static function failure(string $message): self
+    {
+        return new self(false, $message);
+    }
+
+    public function toArray(): array
+    {
+        return $this->success
+            ? ['success' => true, 'message' => $this->message]
+            : ['success' => false, 'error' => $this->message];
+    }
+}
+
 class SubscriptionSettingsModule
 {
     private readonly \CMS\Database $db;
@@ -59,51 +106,39 @@ class SubscriptionSettingsModule
         $this->prefix = $this->db->getPrefix();
     }
 
-    public function getData(): array
+    public function getData(): SubscriptionSettingsViewData
     {
         if (!$this->canAccess()) {
-            return ['settings' => [], 'plans' => [], 'error' => 'Zugriff verweigert.'];
+            return new SubscriptionSettingsViewData([], [], [], 'Zugriff verweigert.');
         }
 
-        $settings = $this->getSettingsMap(self::GENERAL_SETTINGS_KEYS);
-
-        $plans = $this->db->get_results(
-            "SELECT id, name, slug, price_monthly, is_active FROM {$this->prefix}subscription_plans ORDER BY sort_order ASC, price_monthly ASC"
-        ) ?: [];
-
-        return ['settings' => $settings, 'plans' => array_map(fn($p) => (array)$p, $plans)];
+        return new SubscriptionSettingsViewData(
+            $this->getSettingsMap(self::GENERAL_SETTINGS_KEYS),
+            $this->mapRows($this->fetchPlans())
+        );
     }
 
-    public function getPackageData(): array
+    public function getPackageData(): SubscriptionSettingsViewData
     {
         if (!$this->canAccess()) {
-            return ['settings' => [], 'pages' => [], 'error' => 'Zugriff verweigert.'];
+            return new SubscriptionSettingsViewData([], [], [], 'Zugriff verweigert.');
         }
 
-        $settings = $this->getSettingsMap(self::PACKAGE_SETTINGS_KEYS);
-
-        // Seiten für Dropdowns laden
-        $pages = $this->db->get_results("SELECT id, title FROM {$this->prefix}pages WHERE status = 'published' ORDER BY title ASC") ?: [];
-
-        return ['settings' => $settings, 'pages' => array_map(fn($p) => (array)$p, $pages)];
+        return new SubscriptionSettingsViewData(
+            $this->getSettingsMap(self::PACKAGE_SETTINGS_KEYS),
+            [],
+            $this->mapRows($this->fetchPublishedPages())
+        );
     }
 
-    public function saveSettings(array $post): array
+    public function saveSettings(array $post): SubscriptionSettingsActionResult
     {
         if (!$this->canAccess()) {
-            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+            return SubscriptionSettingsActionResult::failure('Zugriff verweigert.');
         }
 
         try {
-            $planIds = $this->getSubscriptionPlanIds();
-            $settings = [
-                'subscription_limits_enabled' => isset($post['subscription_limits_enabled']) ? '1' : '0',
-                'subscription_member_area_enabled' => isset($post['subscription_member_area_enabled']) ? '1' : '0',
-                'subscription_ordering_enabled' => isset($post['subscription_ordering_enabled']) ? '1' : '0',
-                'subscription_public_pricing_enabled' => isset($post['subscription_public_pricing_enabled']) ? '1' : '0',
-                'subscription_default_plan_id' => $this->sanitizeExistingId($post['subscription_default_plan_id'] ?? 0, $planIds),
-                'subscription_disabled_notice' => $this->sanitizeText((string)($post['subscription_disabled_notice'] ?? self::GENERAL_SETTINGS_KEYS['subscription_disabled_notice']), self::MAX_NOTICE_LENGTH, self::GENERAL_SETTINGS_KEYS['subscription_disabled_notice']),
-            ];
+            $settings = $this->buildGeneralSettingsPayload($post);
 
             $this->storeSettings($settings);
 
@@ -122,37 +157,20 @@ class SubscriptionSettingsModule
                 'info'
             );
 
-            return ['success' => true, 'message' => 'Aboverwaltung-Einstellungen gespeichert.'];
+            return SubscriptionSettingsActionResult::success('Aboverwaltung-Einstellungen gespeichert.');
         } catch (\Throwable $e) {
             return $this->failResult('subscriptions.settings.save_failed', 'Aboverwaltung-Einstellungen konnten nicht gespeichert werden.', $e);
         }
     }
 
-    public function savePackageSettings(array $post): array
+    public function savePackageSettings(array $post): SubscriptionSettingsActionResult
     {
         if (!$this->canAccess()) {
-            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+            return SubscriptionSettingsActionResult::failure('Zugriff verweigert.');
         }
 
         try {
-            $pageIds = $this->getPublishedPageIds();
-            $settings = [
-                'subscription_enabled' => isset($post['subscription_enabled']) ? '1' : '0',
-                'trial_enabled' => isset($post['trial_enabled']) ? '1' : '0',
-                'trial_days' => (string)max(1, min(365, (int)($post['trial_days'] ?? self::PACKAGE_SETTINGS_KEYS['trial_days']))),
-                'auto_renewal' => isset($post['auto_renewal']) ? '1' : '0',
-                'grace_period_days' => (string)max(0, min(365, (int)($post['grace_period_days'] ?? self::PACKAGE_SETTINGS_KEYS['grace_period_days']))),
-                'cancellation_period_days' => (string)max(0, min(365, (int)($post['cancellation_period_days'] ?? self::PACKAGE_SETTINGS_KEYS['cancellation_period_days']))),
-                'payment_methods' => $this->sanitizeAllowedValue((string)($post['payment_methods'] ?? self::PACKAGE_SETTINGS_KEYS['payment_methods']), ['invoice', 'stripe', 'paypal', 'all'], self::PACKAGE_SETTINGS_KEYS['payment_methods']),
-                'invoice_prefix' => $this->sanitizeText((string)($post['invoice_prefix'] ?? self::PACKAGE_SETTINGS_KEYS['invoice_prefix']), self::MAX_PREFIX_LENGTH, self::PACKAGE_SETTINGS_KEYS['invoice_prefix']),
-                'invoice_next_number' => (string)max(1, min(99999999, (int)($post['invoice_next_number'] ?? self::PACKAGE_SETTINGS_KEYS['invoice_next_number']))),
-                'tax_rate' => (string)max(0, min(100, (int)($post['tax_rate'] ?? self::PACKAGE_SETTINGS_KEYS['tax_rate']))),
-                'tax_included' => isset($post['tax_included']) ? '1' : '0',
-                'notification_before_expiry' => (string)max(0, min(365, (int)($post['notification_before_expiry'] ?? self::PACKAGE_SETTINGS_KEYS['notification_before_expiry']))),
-                'notification_email' => $this->sanitizeOptionalEmail((string)($post['notification_email'] ?? self::PACKAGE_SETTINGS_KEYS['notification_email'])),
-                'terms_page_id' => $this->sanitizeExistingId($post['terms_page_id'] ?? 0, $pageIds),
-                'cancellation_page_id' => $this->sanitizeExistingId($post['cancellation_page_id'] ?? 0, $pageIds),
-            ];
+            $settings = $this->buildPackageSettingsPayload($post);
 
             $this->storeSettings($settings);
 
@@ -174,10 +192,47 @@ class SubscriptionSettingsModule
                 'info'
             );
 
-            return ['success' => true, 'message' => 'Paket- und Abo-Einstellungen gespeichert.'];
+            return SubscriptionSettingsActionResult::success('Paket- und Abo-Einstellungen gespeichert.');
         } catch (\Throwable $e) {
             return $this->failResult('subscriptions.package_settings.save_failed', 'Paket- und Abo-Einstellungen konnten nicht gespeichert werden.', $e);
         }
+    }
+
+    private function buildGeneralSettingsPayload(array $post): array
+    {
+        $planIds = $this->getExistingIds($this->fetchPlanIds());
+
+        return [
+            'subscription_limits_enabled' => isset($post['subscription_limits_enabled']) ? '1' : '0',
+            'subscription_member_area_enabled' => isset($post['subscription_member_area_enabled']) ? '1' : '0',
+            'subscription_ordering_enabled' => isset($post['subscription_ordering_enabled']) ? '1' : '0',
+            'subscription_public_pricing_enabled' => isset($post['subscription_public_pricing_enabled']) ? '1' : '0',
+            'subscription_default_plan_id' => $this->sanitizeExistingId($post['subscription_default_plan_id'] ?? 0, $planIds),
+            'subscription_disabled_notice' => $this->sanitizeText((string)($post['subscription_disabled_notice'] ?? self::GENERAL_SETTINGS_KEYS['subscription_disabled_notice']), self::MAX_NOTICE_LENGTH, self::GENERAL_SETTINGS_KEYS['subscription_disabled_notice']),
+        ];
+    }
+
+    private function buildPackageSettingsPayload(array $post): array
+    {
+        $pageIds = $this->getExistingIds($this->fetchPublishedPageIds());
+
+        return [
+            'subscription_enabled' => isset($post['subscription_enabled']) ? '1' : '0',
+            'trial_enabled' => isset($post['trial_enabled']) ? '1' : '0',
+            'trial_days' => $this->sanitizeIntRange($post['trial_days'] ?? self::PACKAGE_SETTINGS_KEYS['trial_days'], 1, 365),
+            'auto_renewal' => isset($post['auto_renewal']) ? '1' : '0',
+            'grace_period_days' => $this->sanitizeIntRange($post['grace_period_days'] ?? self::PACKAGE_SETTINGS_KEYS['grace_period_days'], 0, 365),
+            'cancellation_period_days' => $this->sanitizeIntRange($post['cancellation_period_days'] ?? self::PACKAGE_SETTINGS_KEYS['cancellation_period_days'], 0, 365),
+            'payment_methods' => $this->sanitizeAllowedValue((string)($post['payment_methods'] ?? self::PACKAGE_SETTINGS_KEYS['payment_methods']), ['invoice', 'stripe', 'paypal', 'all'], self::PACKAGE_SETTINGS_KEYS['payment_methods']),
+            'invoice_prefix' => $this->sanitizeText((string)($post['invoice_prefix'] ?? self::PACKAGE_SETTINGS_KEYS['invoice_prefix']), self::MAX_PREFIX_LENGTH, self::PACKAGE_SETTINGS_KEYS['invoice_prefix']),
+            'invoice_next_number' => $this->sanitizeIntRange($post['invoice_next_number'] ?? self::PACKAGE_SETTINGS_KEYS['invoice_next_number'], 1, 99999999),
+            'tax_rate' => $this->sanitizeIntRange($post['tax_rate'] ?? self::PACKAGE_SETTINGS_KEYS['tax_rate'], 0, 100),
+            'tax_included' => isset($post['tax_included']) ? '1' : '0',
+            'notification_before_expiry' => $this->sanitizeIntRange($post['notification_before_expiry'] ?? self::PACKAGE_SETTINGS_KEYS['notification_before_expiry'], 0, 365),
+            'notification_email' => $this->sanitizeOptionalEmail((string)($post['notification_email'] ?? self::PACKAGE_SETTINGS_KEYS['notification_email'])),
+            'terms_page_id' => $this->sanitizeExistingId($post['terms_page_id'] ?? 0, $pageIds),
+            'cancellation_page_id' => $this->sanitizeExistingId($post['cancellation_page_id'] ?? 0, $pageIds),
+        ];
     }
 
     /** @param array<string, string> $defaults
@@ -250,10 +305,38 @@ class SubscriptionSettingsModule
         }
     }
 
-    /** @return array<int, true> */
-    private function getSubscriptionPlanIds(): array
+    /** @return list<object> */
+    private function fetchPlans(): array
     {
-        $rows = $this->db->get_results("SELECT id FROM {$this->prefix}subscription_plans") ?: [];
+        return $this->db->get_results(
+            "SELECT id, name, slug, price_monthly, is_active FROM {$this->prefix}subscription_plans ORDER BY sort_order ASC, price_monthly ASC"
+        ) ?: [];
+    }
+
+    /** @return list<object> */
+    private function fetchPublishedPages(): array
+    {
+        return $this->db->get_results("SELECT id, title FROM {$this->prefix}pages WHERE status = 'published' ORDER BY title ASC") ?: [];
+    }
+
+    /** @return list<object> */
+    private function fetchPlanIds(): array
+    {
+        return $this->db->get_results("SELECT id FROM {$this->prefix}subscription_plans") ?: [];
+    }
+
+    /** @return list<object> */
+    private function fetchPublishedPageIds(): array
+    {
+        return $this->db->get_results("SELECT id FROM {$this->prefix}pages WHERE status = 'published'") ?: [];
+    }
+
+    /**
+     * @param list<object> $rows
+     * @return array<int, true>
+     */
+    private function getExistingIds(array $rows): array
+    {
         $ids = [];
         foreach ($rows as $row) {
             $id = (int)($row->id ?? 0);
@@ -265,19 +348,9 @@ class SubscriptionSettingsModule
         return $ids;
     }
 
-    /** @return array<int, true> */
-    private function getPublishedPageIds(): array
+    private function sanitizeIntRange(mixed $value, int $min, int $max): string
     {
-        $rows = $this->db->get_results("SELECT id FROM {$this->prefix}pages WHERE status = 'published'") ?: [];
-        $ids = [];
-        foreach ($rows as $row) {
-            $id = (int)($row->id ?? 0);
-            if ($id > 0) {
-                $ids[$id] = true;
-            }
-        }
-
-        return $ids;
+        return (string) max($min, min($max, (int) $value));
     }
 
     /** @param array<int, true> $allowedIds */
@@ -319,12 +392,21 @@ class SubscriptionSettingsModule
         return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
     }
 
+    /**
+     * @param list<object> $rows
+     * @return list<array<string, mixed>>
+     */
+    private function mapRows(array $rows): array
+    {
+        return array_map(static fn($row) => (array) $row, $rows);
+    }
+
     private function canAccess(): bool
     {
         return Auth::instance()->isAdmin();
     }
 
-    private function failResult(string $action, string $message, \Throwable $e): array
+    private function failResult(string $action, string $message, \Throwable $e): SubscriptionSettingsActionResult
     {
         Logger::error($message, [
             'module' => 'SubscriptionSettingsModule',
@@ -342,6 +424,6 @@ class SubscriptionSettingsModule
             'error'
         );
 
-        return ['success' => false, 'error' => $message . ' Bitte Logs prüfen.'];
+        return SubscriptionSettingsActionResult::failure($message . ' Bitte Logs prüfen.');
     }
 }

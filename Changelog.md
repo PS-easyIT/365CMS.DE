@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.77-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.95-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,186 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.6.95 — 25. März 2026 · Audit-Batch 077, Dokumentations-Downloader weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.95** | 🔴 fix | Admin/System | **Download-Resultate laufen jetzt über benannte Erfolgs-/Fehlerfabriken**: `CMS/admin/modules/system/DocumentationSyncDownloader.php` baut Fehl- und Erfolgsergebnisse über `DocumentationDownloadResult::failure()` und `::success()` auf, statt wiederholt dieselbe Parameterkette direkt in den Lifecycle zu schreiben. |
+| **2.6.95** | 🟠 perf | Admin/System | **Validierte ZIP-Antworten bleiben als kleines Payload-DTO zusammen**: der Downloader reicht Body und Content-Type nach der Prüfung als `DocumentationDownloadPayload` weiter, wodurch Persistenz- und Hash-Pfade weniger lose Response-Fragmente mit sich herumtragen. |
+| **2.6.95** | 🟡 refactor | Admin/System | **Der Downloader-Lifecycle spricht schärfere Zwischenverträge**: Result-Factory und Payload-DTO halten Validierung, Persistenz und Fehlerpfade expliziter getrennt und erleichtern weitere Zerlegung im Remote-/Filesystem-Pfad. |
+
+---
+
+### v2.6.94 — 25. März 2026 · Audit-Batch 076, Dokumentations-Sync-Service weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.94** | 🔴 fix | Admin/System | **Capability-Abfragen laufen jetzt über echte Objektmethoden**: `CMS/admin/modules/system/DocumentationSyncService.php` nutzt `canSync()`, `hasGit()` und `hasGithubZip()` direkt am Capability-Vertrag, statt diese Informationen sofort wieder über lose Array-Schlüssel auszulesen. |
+| **2.6.94** | 🟠 perf | Admin/System | **Logging und Finalisierung übernehmen vorbereitete Capability-Kontexte**: der Orchestrator reicht Capability-Daten über `toLogContext()` weiter, wodurch Erfolgs-, Fehler- und Unavailable-Pfade weniger eigene Array-Normalisierung mit sich herumtragen. |
+| **2.6.94** | 🟡 refactor | Admin/System | **Environment und Sync-Service teilen einen schärferen Objektvertrag**: `DocumentationSyncCapabilities` bietet jetzt Getter plus kleinen Log-Kontext-Helfer, sodass Capability-Normalisierung und Sync-Dispatch klarer voneinander getrennt bleiben. |
+
+---
+
+### v2.6.93 — 25. März 2026 · Audit-Batch 075, Mail-Settings-View weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.93** | 🔴 fix | Admin/System | **Mail-KPI-Karten laufen jetzt über eine kleine View-Schleife**: `CMS/admin/views/system/mail-settings.php` rendert Log- und Queue-Metriken aus vorbereiteten Kartenlisten statt dieselben Card-Blöcke mehrfach direkt im Markup auszuschreiben. |
+| **2.6.93** | 🟠 perf | Admin/System | **Readonly-Felder und Worker-Status werden wiederverwendet aufgebaut**: kleine Helfer bündeln Readonly-Eingaben und den Last-Run-Text, wodurch die View weniger wiederholte UI-Struktur im Renderpfad trägt. |
+| **2.6.93** | 🟡 refactor | Admin/System | **Die Mail-Settings-View bleibt näher am eigentlichen Rendern**: vorbereitete Karten-, Feld- und Statusdaten reduzieren Template-Duplikate und erleichtern weitere Partial- oder Builder-Schritte. |
+
+---
+
+### v2.6.92 — 25. März 2026 · Audit-Batch 074, Mail-Entry weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.92** | 🔴 fix | Admin/System | **Mail-Aktionen laufen jetzt über eine zentrale Action-Map**: `CMS/admin/mail-settings.php` bündelt den POST-Dispatch in einem kleinen Handler-Register statt die Modulmethoden direkt im Hauptfluss per langem `match` zu verdrahten. |
+| **2.6.92** | 🟠 perf | Admin/System | **Session-Alerts werden über einen kleinen Pull-Helfer übernommen**: der Wrapper räumt die Session konsistenter auf und hält den Entry-Fluss kompakter. |
+| **2.6.92** | 🟡 refactor | Admin/System | **Der Mail-Entry bleibt näher am eigentlichen Request-Flow**: Action-Map und Alert-Pull-Helfer reduzieren verstreute Dispatch- und Session-Logik und erleichtern weitere Wrapper-Anpassungen. |
+
+---
+
+### v2.6.91 — 25. März 2026 · Audit-Batch 073, Dokumentations-View weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.91** | 🔴 fix | Admin/System | **Dokument- und Bereichslinks laufen konsistenter über kleine View-Helfer**: `CMS/admin/views/system/documentation.php` bereitet Admin-URLs, GitHub-Links und Bereichs-Slugs jetzt zentral auf, statt diese Werte mehrfach inline im Listen- und Accordion-Markup zusammenzubauen. |
+| **2.6.91** | 🟠 perf | Admin/System | **Titel-, Pfad-, Extension- und Count-Ableitungen werden wiederverwendet**: Dokument- und Bereichsmetadaten laufen über lokale Helfer, wodurch die View weniger wiederholte UI-Logik im Renderpfad trägt. |
+| **2.6.91** | 🟡 refactor | Admin/System | **Die Dokumentations-View bleibt näher am eigentlichen Rendern**: kleine Helfer sammeln Listen- und Bereichsmetadaten zentral ein und reduzieren Template-Duplikate für weitere Partial- oder Builder-Schritte. |
+
+---
+
+### v2.6.90 — 25. März 2026 · Audit-Batch 072, Orders-View weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.90** | 🔴 fix | Admin/Subscriptions | **Bestell- und Kundenlabels laufen konsistenter über kleine View-Helfer**: `CMS/admin/views/subscriptions/orders.php` bereitet Bestellnummer, Kundenname und Kundenmail jetzt zentral auf, statt diese Werte mehrfach direkt im Tabellen-Markup zusammenzusetzen. |
+| **2.6.90** | 🟠 perf | Admin/Subscriptions | **Filter- und Select-Optionen nutzen wiederverwendete Template-Helfer**: Filterbutton-Klassen sowie Benutzer- und Paketlabels werden zentral aufgebaut, wodurch die View weniger wiederholte UI-Logik im Renderpfad trägt. |
+| **2.6.90** | 🟡 refactor | Admin/Subscriptions | **Die Orders-View bleibt näher am eigentlichen Rendern**: kleine lokale Helfer sammeln Anzeige- und Form-Labels ein und reduzieren Template-Duplikate für weitere Partial- oder Modal-Schritte. |
+
+---
+
+### v2.6.89 — 25. März 2026 · Audit-Batch 071, Dokumentations-Downloader weiter zerlegt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.89** | 🔴 fix | Admin/System | **Download-Fehlpfade laufen jetzt über einen gemeinsamen Reject-/Failure-Flow**: `CMS/admin/modules/system/DocumentationSyncDownloader.php` bündelt Host-, Ziel-, Verzeichnis- und HTTP-Fehler über kleine Helfer, statt alle Rückgaben direkt im großen `downloadFile()`-Block zu mischen. |
+| **2.6.89** | 🟠 perf | Admin/System | **Payload-Prüfung und Persistenz sind getrennt lesbar**: Response-Validierung, Datei-Persistenz und Cleanup verteilen sich jetzt auf fokussierte Helfer, wodurch der Downloader-Lifecycle klarer und gezielter weiter optimierbar bleibt. |
+| **2.6.89** | 🟡 refactor | Admin/System | **Der Download-Result-Vertrag ist expliziter geworden**: `DocumentationDownloadResult` kapselt Metadaten jetzt über Methoden wie `isSuccess()`, `bytes()` und `sha256()`, und `DocumentationGithubZipSync.php` liest diese Werte nicht mehr als lose Public-Properties aus. |
+
+---
+
+### v2.6.88 — 25. März 2026 · Audit-Batch 070, Dokumentations-Sync-Service-Verträge geschärft
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.88** | 🔴 fix | Admin/System | **Der Doku-Sync-Orchestrator liefert jetzt einen kleinen Service-Result-Vertrag**: `CMS/admin/modules/system/DocumentationSyncService.php` kapselt Sync-Ergebnisse über `DocumentationSyncServiceResult`, statt lose Erfolgs-/Fehler-Arrays über mehrere Ebenen durchzureichen. |
+| **2.6.88** | 🟠 perf | Admin/System | **Normalisierte Sync-Capabilities bleiben als Objekt erhalten**: der Service arbeitet intern mit `DocumentationSyncCapabilities` weiter, statt das Environment-Ergebnis sofort in lose Arrays zu zerlegen und wieder aufzubauen. |
+| **2.6.88** | 🟡 refactor | Admin/System | **Dokumentationsmodul und Sync-Service teilen schärfere Grenzen**: `CMS/admin/modules/system/DocumentationModule.php` konsumiert die Service-Objekte gezielt über `->toArray()`, wodurch Orchestrator und Modul klarer voneinander getrennt bleiben. |
+
+---
+
+### v2.6.87 — 25. März 2026 · Audit-Batch 069, Mail-Settings-View weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.87** | 🔴 fix | Admin/System | **Status- und Secret-Anzeigen laufen konsistenter über kleine View-Helfer**: `CMS/admin/views/system/mail-settings.php` nutzt vorbereitete Badge-/Label-Helfer für Konfigurationsstände statt verstreuter Inline-Entscheidungen. |
+| **2.6.87** | 🟠 perf | Admin/System | **Tabs, Selects und Checkboxen werden über wiederverwendete Template-Helfer bewertet**: wiederkehrende `active`-/`selected`-/`checked`-Logik muss nicht mehr mehrfach direkt im Markup aufgelöst werden. |
+| **2.6.87** | 🟡 refactor | Admin/System | **Die Mail-Settings-View bleibt näher am eigentlichen Rendern**: kleine lokale Helfer sammeln UI-Zustände zentral ein und reduzieren Template-Duplikate für die nächsten UI-Schritte. |
+
+---
+
+### v2.6.86 — 25. März 2026 · Audit-Batch 068, Dokumentationsmodul-Verträge geschärft
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.86** | 🔴 fix | Admin/System | **Sync-Antworten des Doku-Moduls laufen jetzt über einen kleinen Result-Vertrag**: `CMS/admin/modules/system/DocumentationModule.php` liefert `syncDocsFromRepository()` als `DocumentationSyncActionResult`, und `CMS/admin/documentation.php` leitet Flash-Typ und Meldung konsistent daraus ab. |
+| **2.6.86** | 🟠 perf | Admin/System | **Die Auswahl eines aktiven Dokuments wird über einen fokussierten Payload-Builder zusammengesetzt**: Render-HTML, Rohinhalt und CSV-Status entstehen jetzt in `buildSelectedDocumentPayload()` statt als größerer Inline-Block in `getData()`. |
+| **2.6.86** | 🟡 refactor | Admin/System | **Das Dokumentationsmodul spricht explizitere Read-/Write-Grenzen**: `DocumentationViewData` kapselt den View-Vertrag, während Sanitizing und Fehlerrückgaben für den Sync über kleine Helfer vereinheitlicht werden. |
+
+---
+
+### v2.6.85 — 25. März 2026 · Audit-Batch 067, Dokumentations-View weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.85** | 🔴 fix | Admin/System | **Alert-Kontext wird auch in der Doku-View defensiver und einheitlicher gespiegelt**: `CMS/admin/views/system/documentation.php` übergibt Flash-Daten jetzt konsistent als Array an den gemeinsamen Alert-Partial statt über einen losen Optional-Block. |
+| **2.6.85** | 🟠 perf | Admin/System | **Aktive Dokument- und Sync-Zustände laufen über kleine Template-Helfer**: aktive Links, Bereichsstatus, Sync-Alert-Klasse und Default-Pfadlabel müssen nicht mehr mehrfach inline ausgewertet werden. |
+| **2.6.85** | 🟡 refactor | Admin/System | **Die Dokumentations-View trägt weniger verstreute Zustandslogik**: vorbereitete Helfer halten das Template näher am eigentlichen Rendern und leichter lesbar für weitere UI-Schritte. |
+
+---
+
+### v2.6.84 — 25. März 2026 · Audit-Batch 066, Subscription-Settings-View weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.84** | 🔴 fix | Admin/Subscriptions | **Alert-Kontext wird defensiver und einheitlicher in die View gespiegelt**: `CMS/admin/views/subscriptions/settings.php` übernimmt Flash-Daten jetzt konsistent als Array-Kontext für den gemeinsamen Alert-Partial statt über einen losen Optional-Block. |
+| **2.6.84** | 🟠 perf | Admin/Subscriptions | **Checkbox- und Select-Zustände laufen über kleine Template-Helfer**: wiederkehrende `checked`-/`selected`-Bedingungen und vorbereitete Notice-Werte müssen nicht mehr mehrfach inline im Markup ausgewertet werden. |
+| **2.6.84** | 🟡 refactor | Admin/Subscriptions | **Die Settings-View trägt weniger Inline-Entscheidungslogik**: vorbereitete Default-/Notice-Werte halten das Template dümmer und näher am eigentlichen Rendern. |
+
+---
+
+### v2.6.83 — 25. März 2026 · Audit-Batch 065, GitHub-ZIP-Sync weiter zerlegt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.83** | 🔴 fix | Admin/System | **ZIP-Sync-Arbeitsverzeichnisse laufen jetzt über einen kleinen Workspace-Vertrag**: `CMS/admin/modules/system/DocumentationGithubZipSync.php` bündelt ZIP-, Extract-, Staging- und Backup-Pfade über `DocumentationGithubZipWorkspace`, statt diese quer durch den großen Sync-Block mitzuschleppen. |
+| **2.6.83** | 🟠 perf | Admin/System | **Archiv-, Staging- und Aktivierungsschritte sind separat gekapselt**: Extraktion, Snapshot-Staging, Aktivierung und Cleanup liegen jetzt in fokussierten Helfern, wodurch der ZIP-Sync-Lebenszyklus klarer lesbar und gezielter weiter optimierbar wird. |
+| **2.6.83** | 🟡 refactor | Admin/System | **Der GitHub-ZIP-Sync trägt weniger Lifecycle-Mix im Top-Level**: `sync()` konzentriert sich jetzt stärker auf den Ablauf, während Detailarbeit in kleine Methoden ausgelagert wurde. |
+
+---
+
+### v2.6.82 — 25. März 2026 · Audit-Batch 064, Mail-Settings-Verträge geschärft
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.82** | 🔴 fix | Admin/System | **Mail-Admin-Mutationen sprechen jetzt einen einheitlicheren Result-Vertrag**: `CMS/admin/modules/system/MailSettingsModule.php` liefert Save-, Test-, Queue- und Cache-Aktionen über `MailSettingsActionResult`, während `CMS/admin/mail-settings.php` Flash-Meldungen zentral daraus ableitet. |
+| **2.6.82** | 🟠 perf | Admin/System | **Read-Pfade sind sauberer in kleine Datenbausteine zerlegt**: Transport-, Azure-, Graph- und Queue-Stats werden im Modul über fokussierte Builder zusammengesetzt, statt als großer Inline-Sammelblock in `getData()` zu wohnen. |
+| **2.6.82** | 🟡 refactor | Admin/System | **Mail-Settings nutzen jetzt ein kleines View-DTO statt losem Array-Mix**: `MailSettingsViewData` hält den View-Vertrag explizit, sodass Wrapper und Modul weniger implizite Schlüsselannahmen teilen müssen. |
+
+---
+
+### v2.6.81 — 25. März 2026 · Audit-Batch 063, Doku-Sync-Environment weiter entkoppelt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.81** | 🔴 fix | Admin/System | **Doku-Sync-Kommandos sprechen jetzt einen schärferen Shell-Vertrag**: `DocumentationSyncEnvironment.php` liefert Shell-Ausführungen über `DocumentationShellCommandResult`, und `DocumentationGitSync.php` arbeitet damit statt mit losen `output`-/`exitCode`-Arrays. |
+| **2.6.81** | 🟠 perf | Admin/System | **Capability-Auflösung ist klarer von den Konsumenten getrennt**: `DocumentationSyncCapabilities` bündelt Git-/ZIP-Modi in einem kleinen Objekt, das `DocumentationSyncService.php` gezielt normalisiert weiterverarbeitet. |
+| **2.6.81** | 🟡 refactor | Admin/System | **Shell-/Capability-Layer wurden weiter entkoppelt**: `DocumentationSyncEnvironment.php` kapselt seine Read-Modelle jetzt expliziter, wodurch Doku-Sync-Aufrufer weniger implizite Array-Details kennen müssen. |
+
+---
+
+### v2.6.80 — 25. März 2026 · Audit-Batch 062, Subscription-Settings weiter zerlegt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.80** | 🔴 fix | Admin/Subscriptions | **Subscription-Settings sprechen jetzt einen einheitlicheren Result-Vertrag**: `CMS/admin/modules/subscriptions/SubscriptionSettingsModule.php` liefert Save-Antworten über ein kleines `SubscriptionSettingsActionResult`, während `subscription-settings.php` und `packages.php` Flash-Meldungen daraus konsistent ableiten. |
+| **2.6.80** | 🟠 perf | Admin/Subscriptions | **General- und Package-Settings werden über fokussierte Payload-Helfer gebaut**: wiederkehrende ID- und Range-Normalisierung ist aus den großen Save-Methoden herausgezogen und damit leichter weiter zu optimieren. |
+| **2.6.80** | 🟡 refactor | Admin/Subscriptions | **Read-Pfade nutzen jetzt ein kleines View-DTO statt losen Array-Mix**: `SubscriptionSettingsViewData` bündelt Settings-, Plan- und Seitenlisten, wodurch Modul- und Entry-Grenzen klarer bleiben. |
+
+---
+
+### v2.6.79 — 25. März 2026 · Audit-Batch 061, Orders-Modul weiter entknotet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.79** | 🔴 fix | Admin/Subscriptions | **Orders-Mutationen sprechen jetzt einen schärferen Fehlervertrag**: `CMS/admin/modules/subscriptions/OrdersModule.php` liefert Zuweisung, Statuswechsel und Löschung über ein kleines `OrdersActionResult`, während `CMS/admin/orders.php` Flash-Meldungen zentral aus genau diesem Result ableitet. |
+| **2.6.79** | 🟠 perf | Admin/Subscriptions | **Listen- und Statistik-Ladevorgänge wurden aus dem großen Sammelblock herausgezogen**: fokussierte Fetch-/Stats-Helfer für Orders, Assignments, Plans und Users machen den Datenpfad lesbarer und leichter weiter zu optimieren. |
+| **2.6.79** | 🟡 refactor | Admin/Subscriptions | **Dashboard-Daten kommen jetzt über ein kleines DTO statt über losen Array-Mix zurück**: `OrdersDashboardData` bündelt den Read-Pfad, während Modulzugriff und Fehlerbehandlung enger an einen konsistenten Modulkontrakt gezogen wurden. |
+
+---
+
+### v2.6.78 — 25. März 2026 · Audit-Batch 060, Orders-View weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.78** | 🔴 fix | Admin/Subscriptions | **Orders-View nutzt jetzt den gemeinsamen Flash-Alert-Standard**: `CMS/admin/views/subscriptions/orders.php` bindet die vorhandene Alert-Partial ein und übernimmt Session-/UI-Meldungen nicht länger über einen eigenen Inline-Alert-Block. |
+| **2.6.78** | 🟠 perf | Admin/Subscriptions | **Wiederkehrende Status-, Datums- und Betragsformatierung liegt jetzt lokal gebündelt vor**: kleine Helper für Status-Metadaten und Ausgabeformate reduzieren Template-Duplikate und halten die Orders-Tabelle lesbarer. |
+| **2.6.78** | 🟡 refactor | Admin/Subscriptions | **Inline-Handler wurden in datengetriebene Aktionen gezogen**: Assign-/Delete-Schaltflächen arbeiten nun über `data-*`-Attribute und ein zentrales Script statt über verteilte `onclick`-Fragmente pro Button. |
 
 ---
 

@@ -32,10 +32,35 @@ $syncLabel        = (string) ($syncCapabilities['label'] ?? ($gitAvailable ? 'Gi
 $syncMessage      = (string) ($syncCapabilities['message'] ?? '');
 $syncMode         = (string) ($syncCapabilities['mode'] ?? ($gitAvailable ? 'git' : 'none'));
 $syncClass        = $syncAvailable ? 'text-success' : 'text-warning';
+$syncAlertClass   = $syncAvailable ? 'success' : 'warning';
 $selectedPath     = is_array($selectedDocument) ? (string) ($selectedDocument['relative_path'] ?? '') : '';
 $selectedTitle    = is_array($selectedDocument) ? (string) ($selectedDocument['title'] ?? 'Dokument auswählen') : 'Dokument auswählen';
 $selectedExcerpt  = is_array($selectedDocument) ? (string) ($selectedDocument['excerpt'] ?? '') : '';
 $selectedGithub   = is_array($selectedDocument) ? (string) ($selectedDocument['github_url'] ?? $githubRootUrl) : $githubRootUrl;
+$selectedPathLabel = $selectedPath !== '' ? $selectedPath : 'README.md';
+$alertData = is_array($alert ?? null) ? $alert : [];
+$alertMarginClass = 'mb-4';
+$syncButtonDisabled = $syncAvailable ? '' : ' disabled';
+$documentAdminUrl = static fn (array $document): string => (string) ($document['admin_url'] ?? '#');
+$documentTitle = static fn (array $document): string => (string) ($document['title'] ?? 'Dokument');
+$documentRelativePath = static fn (array $document): string => (string) ($document['relative_path'] ?? '');
+$documentExtension = static fn (array $document): string => strtoupper((string) ($document['extension'] ?? 'md'));
+$isActiveDocument = static fn (array $document): bool => (string) ($document['relative_path'] ?? '') === $selectedPath;
+$documentItemClass = static fn (array $document): string => $isActiveDocument($document) ? ' active' : '';
+$findSectionActive = static function (array $documents) use ($isActiveDocument): bool {
+    foreach ($documents as $document) {
+        if (is_array($document) && $isActiveDocument($document)) {
+            return true;
+        }
+    }
+
+    return false;
+};
+$sectionSlugValue = static fn (array $section, int $index): string => (string) ($section['slug'] ?? ('section-' . $index));
+$sectionTitleValue = static fn (array $section, string $fallback): string => (string) ($section['title'] ?? $fallback);
+$sectionDescriptionValue = static fn (array $section): string => (string) ($section['description'] ?? '');
+$sectionDocCountValue = static fn (array $section, array $documents): int => (int) ($section['doc_count'] ?? count($documents));
+$sectionGithubUrl = static fn (array $section) => (string) ($section['github_url'] ?? $githubRootUrl);
 ?>
 
 <div class="page-header d-print-none">
@@ -50,7 +75,7 @@ $selectedGithub   = is_array($selectedDocument) ? (string) ($selectedDocument['g
                 <form method="post" class="d-inline">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                     <input type="hidden" name="action" value="sync_docs">
-                    <button type="submit" class="btn btn-primary"<?php echo $syncAvailable ? '' : ' disabled'; ?>>Lokalen /DOC-Ordner syncen</button>
+                    <button type="submit" class="btn btn-primary"<?php echo $syncButtonDisabled; ?>>Lokalen /DOC-Ordner syncen</button>
                 </form>
                 <a href="<?php echo htmlspecialchars($githubRootUrl); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary">GitHub /DOC öffnen</a>
                 <?php if ($selectedPath !== ''): ?>
@@ -63,9 +88,7 @@ $selectedGithub   = is_array($selectedDocument) ? (string) ($selectedDocument['g
 
 <div class="page-body">
     <div class="container-xl">
-        <?php if (!empty($alert)): ?>
-            <?php $alertData = $alert; $alertMarginClass = 'mb-4'; require __DIR__ . '/../partials/flash-alert.php'; ?>
-        <?php endif; ?>
+        <?php require __DIR__ . '/../partials/flash-alert.php'; ?>
 
         <?php if (!$available): ?>
             <div class="alert alert-danger" role="alert">
@@ -103,7 +126,7 @@ $selectedGithub   = is_array($selectedDocument) ? (string) ($selectedDocument['g
                     <div class="card">
                         <div class="card-body">
                             <div class="subheader">Aktuell geladen</div>
-                            <div class="small fw-semibold text-truncate"><?php echo htmlspecialchars($selectedPath !== '' ? $selectedPath : 'README.md'); ?></div>
+                            <div class="small fw-semibold text-truncate"><?php echo htmlspecialchars($selectedPathLabel); ?></div>
                         </div>
                     </div>
                 </div>
@@ -119,7 +142,7 @@ $selectedGithub   = is_array($selectedDocument) ? (string) ($selectedDocument['g
             </div>
 
             <?php if ($syncMessage !== ''): ?>
-                <div class="alert alert-<?php echo $syncAvailable ? 'success' : 'warning'; ?> mb-4" role="alert">
+                <div class="alert alert-<?php echo htmlspecialchars($syncAlertClass); ?> mb-4" role="alert">
                     <div class="fw-semibold mb-1">Synchronisationsmodus: <?php echo htmlspecialchars($syncMode); ?></div>
                     <div><?php echo htmlspecialchars($syncMessage); ?></div>
                 </div>
@@ -134,14 +157,14 @@ $selectedGithub   = is_array($selectedDocument) ? (string) ($selectedDocument['g
                         <div class="list-group list-group-flush">
                             <?php foreach ($featuredDocs as $document): ?>
                                 <?php if (!is_array($document)) { continue; } ?>
-                                <a href="<?php echo htmlspecialchars((string) ($document['admin_url'] ?? '#')); ?>"
-                                   class="list-group-item list-group-item-action<?php echo ((string) ($document['relative_path'] ?? '') === $selectedPath) ? ' active' : ''; ?>">
+                                <a href="<?php echo htmlspecialchars($documentAdminUrl($document)); ?>"
+                                   class="list-group-item list-group-item-action<?php echo $documentItemClass($document); ?>">
                                     <div class="d-flex align-items-start justify-content-between gap-3">
                                         <div>
-                                            <div class="fw-semibold"><?php echo htmlspecialchars((string) ($document['title'] ?? 'Dokument')); ?></div>
-                                            <div class="text-secondary small"><?php echo htmlspecialchars((string) ($document['relative_path'] ?? '')); ?></div>
+                                            <div class="fw-semibold"><?php echo htmlspecialchars($documentTitle($document)); ?></div>
+                                            <div class="text-secondary small"><?php echo htmlspecialchars($documentRelativePath($document)); ?></div>
                                         </div>
-                                        <span class="badge bg-azure-lt"><?php echo htmlspecialchars(strtoupper((string) ($document['extension'] ?? 'md'))); ?></span>
+                                        <span class="badge bg-azure-lt"><?php echo htmlspecialchars($documentExtension($document)); ?></span>
                                     </div>
                                 </a>
                             <?php endforeach; ?>
@@ -159,24 +182,19 @@ $selectedGithub   = is_array($selectedDocument) ? (string) ($selectedDocument['g
                                     continue;
                                 }
 
-                                $sectionSlug = (string) ($section['slug'] ?? ('section-' . $index));
-                                $sectionTitle = (string) ($section['title'] ?? $sectionSlug);
-                                $sectionDescription = (string) ($section['description'] ?? '');
+                                $sectionSlug = $sectionSlugValue($section, $index);
                                 $documents = is_array($section['documents'] ?? null) ? $section['documents'] : [];
-                                $sectionActive = false;
-                                foreach ($documents as $document) {
-                                    if (is_array($document) && (string) ($document['relative_path'] ?? '') === $selectedPath) {
-                                        $sectionActive = true;
-                                        break;
-                                    }
-                                }
+                                $sectionTitle = $sectionTitleValue($section, $sectionSlug);
+                                $sectionDescription = $sectionDescriptionValue($section);
+                                $sectionDocCount = $sectionDocCountValue($section, $documents);
+                                $sectionActive = $findSectionActive($documents);
                                 ?>
                                 <div class="accordion-item">
                                     <h2 class="accordion-header" id="heading-<?php echo htmlspecialchars($sectionSlug); ?>">
                                         <button class="accordion-button<?php echo $sectionActive ? '' : ' collapsed'; ?>" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-<?php echo htmlspecialchars($sectionSlug); ?>" aria-expanded="<?php echo $sectionActive ? 'true' : 'false'; ?>">
                                             <span>
                                                 <span class="fw-semibold"><?php echo htmlspecialchars($sectionTitle); ?></span>
-                                                <span class="text-secondary small ms-2"><?php echo htmlspecialchars((string) ($section['doc_count'] ?? count($documents))); ?> Dateien</span>
+                                                <span class="text-secondary small ms-2"><?php echo htmlspecialchars((string) $sectionDocCount); ?> Dateien</span>
                                             </span>
                                         </button>
                                     </h2>
@@ -184,15 +202,14 @@ $selectedGithub   = is_array($selectedDocument) ? (string) ($selectedDocument['g
                                         <div class="accordion-body p-0">
                                             <div class="p-3 border-bottom bg-body-secondary">
                                                 <div class="small text-secondary mb-2"><?php echo htmlspecialchars($sectionDescription); ?></div>
-                                                <a href="<?php echo htmlspecialchars((string) ($section['github_url'] ?? $githubRootUrl)); ?>" class="small" target="_blank" rel="noopener noreferrer">Bereich auf GitHub öffnen</a>
+                                                <a href="<?php echo htmlspecialchars($sectionGithubUrl($section)); ?>" class="small" target="_blank" rel="noopener noreferrer">Bereich auf GitHub öffnen</a>
                                             </div>
                                             <div class="list-group list-group-flush">
                                                 <?php foreach ($documents as $document): ?>
                                                     <?php if (!is_array($document)) { continue; } ?>
-                                                    <?php $isActive = (string) ($document['relative_path'] ?? '') === $selectedPath; ?>
-                                                    <a href="<?php echo htmlspecialchars((string) ($document['admin_url'] ?? '#')); ?>" class="list-group-item list-group-item-action<?php echo $isActive ? ' active' : ''; ?>">
-                                                        <div class="fw-semibold small"><?php echo htmlspecialchars((string) ($document['title'] ?? 'Dokument')); ?></div>
-                                                        <div class="text-secondary small"><?php echo htmlspecialchars((string) ($document['relative_path'] ?? '')); ?></div>
+                                                    <a href="<?php echo htmlspecialchars($documentAdminUrl($document)); ?>" class="list-group-item list-group-item-action<?php echo $documentItemClass($document); ?>">
+                                                        <div class="fw-semibold small"><?php echo htmlspecialchars($documentTitle($document)); ?></div>
+                                                        <div class="text-secondary small"><?php echo htmlspecialchars($documentRelativePath($document)); ?></div>
                                                     </a>
                                                 <?php endforeach; ?>
                                             </div>

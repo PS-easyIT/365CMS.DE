@@ -35,6 +35,16 @@ function cms_admin_subscription_settings_flash(array $payload): void
     ];
 }
 
+function cms_admin_subscription_settings_flash_result(SubscriptionSettingsActionResult $result): void
+{
+    $payload = $result->toArray();
+
+    cms_admin_subscription_settings_flash([
+        'type' => !empty($payload['success']) ? 'success' : 'danger',
+        'message' => (string)($payload['message'] ?? $payload['error'] ?? ''),
+    ]);
+}
+
 if (!Auth::instance()->isAdmin()) {
     header('Location: ' . SITE_URL);
     exit;
@@ -57,10 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $result = $module->saveSettings($_POST);
-        cms_admin_subscription_settings_flash([
-            'type' => $result['success'] ? 'success' : 'danger',
-            'message' => $result['message'] ?? $result['error'] ?? '',
-        ]);
+        cms_admin_subscription_settings_flash_result($result);
         cms_admin_subscription_settings_redirect();
     }
 }
@@ -73,7 +80,7 @@ if (isset($_SESSION['admin_alert'])) {
 $csrfToken  = Security::instance()->generateToken('admin_sub_settings');
 $pageTitle  = 'Aboverwaltung Einstellungen';
 $activePage = 'subscription-settings';
-$data       = $module->getData();
+$data       = $module->getData()->toArray();
 
 require_once __DIR__ . '/partials/header.php';
 require_once __DIR__ . '/partials/sidebar.php';

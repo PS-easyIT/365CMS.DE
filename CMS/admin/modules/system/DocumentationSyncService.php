@@ -15,6 +15,51 @@ use CMS\AuditLogger;
 use CMS\Auth;
 use CMS\Logger;
 
+final class DocumentationSyncServiceResult
+{
+    public function __construct(
+        private readonly bool $success,
+        private readonly ?string $message = null,
+        private readonly ?string $error = null
+    ) {
+    }
+
+    public function isSuccess(): bool
+    {
+        return $this->success;
+    }
+
+    /**
+     * @return array{success: bool, message?: string, error?: string}
+     */
+    public function toArray(): array
+    {
+        $payload = ['success' => $this->success];
+
+        if ($this->message !== null && $this->message !== '') {
+            $payload['message'] = $this->message;
+        }
+
+        if ($this->error !== null && $this->error !== '') {
+            $payload['error'] = $this->error;
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @param array{success: bool, message?: string, error?: string} $result
+     */
+    public static function fromArray(array $result): self
+    {
+        return new self(
+            ($result['success'] ?? false) === true,
+            isset($result['message']) ? (string) $result['message'] : null,
+            isset($result['error']) ? (string) $result['error'] : null
+        );
+    }
+}
+
 final class DocumentationSyncService
 {
     private const ALLOWED_ZIP_HOSTS = [
@@ -62,10 +107,7 @@ final class DocumentationSyncService
         );
     }
 
-    /**
-     * @return array{success: bool, message?: string, error?: string}
-     */
-    public function syncDocsFromRepository(): array
+    public function syncDocsFromRepository(): DocumentationSyncServiceResult
     {
         if (!$this->canAccess()) {
             return $this->failResult(
@@ -90,25 +132,24 @@ final class DocumentationSyncService
         }
 
         try {
-            $capabilities = $this->environment->getSyncCapabilities();
-            $normalizedCapabilities = $this->normalizeCapabilities($capabilities);
+            $normalizedCapabilities = $this->getSyncCapabilities();
 
-            if (($normalizedCapabilities['can_sync'] ?? false) !== true) {
+            if (!$normalizedCapabilities->canSync()) {
                 return $this->failResult(
                     'documentation.sync.unavailable',
                     'Doku-Sync ist auf diesem Server nicht verfügbar.',
                     [
-                        'capabilities' => $normalizedCapabilities,
+                        'capabilities' => $normalizedCapabilities->toLogContext(),
                     ]
                 );
             }
 
-            $syncMode = (string) ($normalizedCapabilities['mode'] ?? 'none');
-            if (($normalizedCapabilities['git'] ?? false) === true) {
+            $syncMode = $normalizedCapabilities->mode();
+            if ($normalizedCapabilities->hasGit()) {
                 return $this->finalizeSyncResult($this->gitSync->sync(), 'git', $normalizedCapabilities);
             }
 
-            if (($normalizedCapabilities['github_zip'] ?? false) === true && $syncMode === 'github-zip') {
+            if ($normalizedCapabilities->hasGithubZip() && $syncMode === 'github-zip') {
                 return $this->finalizeSyncResult($this->githubZipSync->sync(), 'github-zip', $normalizedCapabilities);
             }
 
@@ -116,7 +157,7 @@ final class DocumentationSyncService
                 'documentation.sync.invalid_capabilities',
                 'Doku-Sync ist auf diesem Server nicht konsistent konfiguriert.',
                 [
-                    'capabilities' => $normalizedCapabilities,
+                    'capabilities' => $normalizedCapabilities->toLogContext(),
                 ]
             );
 
@@ -125,10 +166,7 @@ final class DocumentationSyncService
         }
     }
 
-    /**
-     * @return array{can_sync: bool, git: bool, github_zip: bool, mode: string, label: string, message: string}
-     */
-    public function getSyncCapabilities(): array
+    public function getSyncCapabilities(): DocumentationSyncCapabilities
     {
         $configurationFailure = $this->getSyncConfigurationFailure();
         if ($configurationFailure !== null) {
@@ -138,8 +176,7 @@ final class DocumentationSyncService
         return $this->normalizeCapabilities($this->environment->getSyncCapabilities());
     }
 
-    /** @return array{success: false, error: string}|null */
-    private function assertSyncConfiguration(bool $logFailure = true): ?array
+    private function assertSyncConfiguration(bool $logFailure = true): ?DocumentationSyncServiceResult
     {
         $failure = $this->getSyncConfigurationFailure();
         if ($failure === null) {
@@ -147,7 +184,10 @@ final class DocumentationSyncService
         }
 
         if ($logFailure === false) {
-            return ['success' => false, 'error' => $failure['message'] . ' Bitte Logs prüfen.'];
+            return DocumentationSyncServiceResult::fromArray([
+                'success' => false,
+                'error' => $failure['message'] . ' Bitte Logs prüfen.',
+            ]);
         }
 
         return $this->failResult($failure['action'], $failure['message'], $failure['context']);
@@ -247,25 +287,21 @@ final class DocumentationSyncService
         return null;
     }
 
-    /**
-     * @param array<string, mixed> $capabilities
-     * @return array{can_sync: bool, git: bool, github_zip: bool, mode: string, label: string, message: string}
-     */
-    private function normalizeCapabilities(array $capabilities): array
+    private function normalizeCapabilities(DocumentationSyncCapabilities $capabilities): DocumentationSyncCapabilities
     {
-        $mode = (string) ($capabilities['mode'] ?? 'none');
+        $mode = $capabilities->mode();
         if (!in_array($mode, ['git', 'github-zip', 'none'], true)) {
             $mode = 'none';
         }
 
-        return [
-            'can_sync' => ($capabilities['can_sync'] ?? false) === true,
-            'git' => ($capabilities['git'] ?? false) === true,
-            'github_zip' => ($capabilities['github_zip'] ?? false) === true,
-            'mode' => $mode,
-            'label' => $this->sanitizeLogString((string) ($capabilities['label'] ?? 'Nicht verfügbar'), 120),
-            'message' => $this->sanitizeLogString((string) ($capabilities['message'] ?? 'Doku-Sync ist auf diesem Server nicht verfügbar.'), 240),
-        ];
+        return new DocumentationSyncCapabilities(
+            $capabilities->canSync(),
+            $capabilities->hasGit(),
+            $capabilities->hasGithubZip(),
+            $mode,
+            $this->sanitizeLogString($capabilities->label(), 120),
+            $this->sanitizeLogString($capabilities->message(), 240)
+        );
     }
 
     private function isValidGitRefPart(string $value): bool
@@ -303,19 +339,16 @@ final class DocumentationSyncService
         return class_exists(Auth::class) && Auth::instance()->isAdmin();
     }
 
-    /**
-     * @return array{can_sync: bool, git: bool, github_zip: bool, mode: string, label: string, message: string}
-     */
-    private function buildUnavailableCapabilities(string $message): array
+    private function buildUnavailableCapabilities(string $message): DocumentationSyncCapabilities
     {
-        return [
-            'can_sync' => false,
-            'git' => false,
-            'github_zip' => false,
-            'mode' => 'none',
-            'label' => 'Nicht verfügbar',
-            'message' => $this->sanitizeLogString($message, self::MAX_LOG_VALUE_LENGTH),
-        ];
+        return new DocumentationSyncCapabilities(
+            false,
+            false,
+            false,
+            'none',
+            'Nicht verfügbar',
+            $this->sanitizeLogString($message, self::MAX_LOG_VALUE_LENGTH)
+        );
     }
 
     private function acquireSyncLock(): void
@@ -358,35 +391,36 @@ final class DocumentationSyncService
 
     /**
      * @param array{success: bool, message?: string, error?: string} $result
-     * @param array<string, mixed> $capabilities
-     * @return array{success: bool, message?: string, error?: string}
      */
-    private function finalizeSyncResult(array $result, string $mode, array $capabilities): array
+    private function finalizeSyncResult(array $result, string $mode, DocumentationSyncCapabilities $capabilities): DocumentationSyncServiceResult
     {
         if (($result['success'] ?? false) === true) {
             $this->logSuccess('documentation.sync.completed', 'Doku-Sync erfolgreich abgeschlossen.', [
                 'mode' => $mode,
-                'capabilities' => $capabilities,
+                'capabilities' => $capabilities->toLogContext(),
             ]);
 
-            return $result;
+            return DocumentationSyncServiceResult::fromArray($result);
         }
 
         $this->logFailure('documentation.sync.failed', 'Doku-Sync fehlgeschlagen.', [
             'mode' => $mode,
-            'capabilities' => $capabilities,
+            'capabilities' => $capabilities->toLogContext(),
             'result_error' => $this->sanitizeLogString((string) ($result['error'] ?? ''), 240),
         ]);
 
-        return $result;
+        return DocumentationSyncServiceResult::fromArray($result);
     }
 
     /** @param array<string, mixed> $context */
-    private function failResult(string $action, string $message, array $context = []): array
+    private function failResult(string $action, string $message, array $context = []): DocumentationSyncServiceResult
     {
         $this->logFailure($action, $message, $context);
 
-        return ['success' => false, 'error' => $message . ' Bitte Logs prüfen.'];
+        return DocumentationSyncServiceResult::fromArray([
+            'success' => false,
+            'error' => $message . ' Bitte Logs prüfen.',
+        ]);
     }
 
     /** @param array<string, mixed> $context */

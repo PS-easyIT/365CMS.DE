@@ -60,11 +60,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $handler = $actionHandlers[$action] ?? null;
         $result = is_callable($handler)
             ? $handler()
-            : ['success' => false, 'error' => 'Unbekannte Aktion.'];
+            : new DocumentationSyncActionResult(false, null, 'Unbekannte Aktion.');
 
         $_SESSION['admin_alert'] = [
-            'type' => !empty($result['success']) ? 'success' : 'danger',
-            'message' => (string) ($result['message'] ?? $result['error'] ?? 'Unbekannte Antwort beim Doku-Sync.'),
+            'type' => $result->isSuccess() ? 'success' : 'danger',
+            'message' => $result->getMessage(),
         ];
     }
 
@@ -82,7 +82,7 @@ if (isset($_SESSION['admin_alert']) && is_array($_SESSION['admin_alert'])) {
 }
 
 $csrfToken = Security::instance()->generateToken('admin_documentation');
-$data = $module->getData($selectedDoc);
+$data = $module->getData($selectedDoc)->toArray();
 
 $pageTitle = 'Dokumentation';
 $activePage = 'documentation';

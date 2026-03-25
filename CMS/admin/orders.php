@@ -39,6 +39,16 @@ function cms_admin_orders_flash(array $payload): void
     ];
 }
 
+function cms_admin_orders_flash_result(OrdersActionResult $result): void
+{
+    $payload = $result->toArray();
+
+    cms_admin_orders_flash([
+        'type' => !empty($payload['success']) ? 'success' : 'danger',
+        'message' => (string)($payload['message'] ?? $payload['error'] ?? ''),
+    ]);
+}
+
 function cms_admin_orders_normalize_status_filter(string $status): string
 {
     $status = strtolower(trim($status));
@@ -75,20 +85,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     (int)($_POST['plan_id'] ?? 0),
                     (string)($_POST['billing_cycle'] ?? 'monthly')
                 );
-                cms_admin_orders_flash(['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? '']);
+                cms_admin_orders_flash_result($result);
                 cms_admin_orders_redirect();
 
             case 'update_status':
                 $id     = (int)($_POST['id'] ?? 0);
                 $status = (string)($_POST['status'] ?? '');
                 $result = $module->updateStatus($id, $status);
-                cms_admin_orders_flash(['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? '']);
+                cms_admin_orders_flash_result($result);
                 cms_admin_orders_redirect();
 
             case 'delete':
                 $id     = (int)($_POST['id'] ?? 0);
                 $result = $module->delete($id);
-                cms_admin_orders_flash(['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? '']);
+                cms_admin_orders_flash_result($result);
                 cms_admin_orders_redirect();
         }
     }
@@ -103,7 +113,7 @@ $csrfToken    = Security::instance()->generateToken('admin_orders');
 $statusFilter = cms_admin_orders_normalize_status_filter((string)($_GET['status'] ?? ''));
 $pageTitle    = 'Bestellungen & Zuweisung';
 $activePage   = 'orders';
-$data         = $module->getData($statusFilter);
+$data         = $module->getData($statusFilter)->toArray();
 
 require_once __DIR__ . '/partials/header.php';
 require_once __DIR__ . '/partials/sidebar.php';

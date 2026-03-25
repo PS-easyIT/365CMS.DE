@@ -31,6 +31,11 @@ $mailTabs = [
 ];
 $alertData = is_array($alert ?? null) ? $alert : [];
 $mailLogsApiUrl = (defined('SITE_URL') ? SITE_URL : '') . '/api/v1/admin/mail/logs';
+$isCurrentTab = static fn (string $tab): bool => $currentTab === $tab;
+$isSelected = static fn (string $value, string $expected): string => $value === $expected ? 'selected' : '';
+$isChecked = static fn (bool $condition): string => $condition ? 'checked' : '';
+$statusBadge = static fn (bool $condition): string => $condition ? 'success' : 'warning';
+$statusLabel = static fn (bool $condition, string $success, string $fallback): string => $condition ? $success : $fallback;
 $queueJobStatusBadge = static function (string $status): string {
     return match ($status) {
         'sent' => 'success',
@@ -39,6 +44,53 @@ $queueJobStatusBadge = static function (string $status): string {
         default => 'warning',
     };
 };
+$renderMetricCard = static function (string $label, int $value, string $valueClass = ''): void {
+    ?>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="subheader"><?php echo htmlspecialchars($label); ?></div>
+                <div class="h1 mb-0<?php echo $valueClass !== '' ? ' ' . htmlspecialchars($valueClass, ENT_QUOTES) : ''; ?>"><?php echo $value; ?></div>
+            </div>
+        </div>
+    </div>
+    <?php
+};
+$renderReadonlyField = static function (string $label, string $value): void {
+    ?>
+    <div class="mb-3">
+        <label class="form-label"><?php echo htmlspecialchars($label); ?></label>
+        <input type="text" class="form-control" value="<?php echo htmlspecialchars($value); ?>" readonly>
+    </div>
+    <?php
+};
+$logMetricCards = [
+    ['label' => 'Versendet', 'value' => (int) ($mailStats['sent'] ?? 0), 'class' => 'text-success'],
+    ['label' => 'Fehlgeschlagen', 'value' => (int) ($mailStats['failed'] ?? 0), 'class' => 'text-danger'],
+    ['label' => 'Queue offen', 'value' => (int) ($queueStats['pending'] ?? 0), 'class' => ''],
+    ['label' => 'Queue fehlgeschlagen', 'value' => (int) ($queueStats['failed'] ?? 0), 'class' => 'text-warning'],
+];
+$queueMetricCards = [
+    ['label' => 'Pending', 'value' => (int) ($queueStats['pending'] ?? 0), 'class' => ''],
+    ['label' => 'Processing', 'value' => (int) ($queueStats['processing'] ?? 0), 'class' => 'text-primary'],
+    ['label' => 'Versendet', 'value' => (int) ($queueStats['sent'] ?? 0), 'class' => 'text-success'],
+    ['label' => 'Final fehlgeschlagen', 'value' => (int) ($queueStats['failed'] ?? 0), 'class' => 'text-danger'],
+];
+$workerReadonlyFields = [
+    ['label' => 'Webhook-/Cron-URL', 'value' => (string) ($queueConfig['cron_url'] ?? '')],
+    ['label' => 'CLI-Beispiel', 'value' => (string) ($queueConfig['cli_command'] ?? '')],
+];
+$queueLastRunText = !empty($queueLastRun['executed_at'])
+    ? sprintf(
+        '%s · Worker: %s · verarbeitet: %d · versendet: %d · retried: %d · final fehlgeschlagen: %d',
+        (string) $queueLastRun['executed_at'],
+        (string) ($queueLastRun['worker'] ?? '—'),
+        (int) ($queueLastRun['processed'] ?? 0),
+        (int) ($queueLastRun['sent'] ?? 0),
+        (int) ($queueLastRun['retried'] ?? 0),
+        (int) ($queueLastRun['failed_final'] ?? 0)
+    )
+    : 'Noch kein Worker-Lauf protokolliert.';
 ?>
 <div class="container-xl" data-mail-api-token="<?php echo htmlspecialchars((string) ($apiCsrfToken ?? '')); ?>">
     <div class="page-header d-print-none mb-4">
@@ -65,7 +117,7 @@ $queueJobStatusBadge = static function (string $status): string {
         <ul class="nav nav-tabs">
             <?php foreach ($mailTabs as $tab => $label): ?>
                 <li class="nav-item">
-                    <a class="nav-link <?php echo $currentTab === $tab ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($mailBaseUrl . '?tab=' . rawurlencode($tab)); ?>">
+                    <a class="nav-link <?php echo $isCurrentTab($tab) ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($mailBaseUrl . '?tab=' . rawurlencode($tab)); ?>">
                         <?php echo htmlspecialchars($label); ?>
                     </a>
                 </li>
@@ -73,7 +125,7 @@ $queueJobStatusBadge = static function (string $status): string {
         </ul>
     </div>
 
-    <?php if ($currentTab === 'transport'): ?>
+    <?php if ($isCurrentTab('transport')): ?>
         <div class="row row-cards">
             <div class="col-12 col-xl-8">
                 <form method="post" class="card">
@@ -85,15 +137,15 @@ $queueJobStatusBadge = static function (string $status): string {
                             <div class="col-md-4">
                                 <label class="form-label">Versandmodus</label>
                                 <select name="driver" class="form-select">
-                                    <option value="mail" <?php echo (($transport['driver'] ?? 'mail') === 'mail') ? 'selected' : ''; ?>>PHP mail() Fallback</option>
-                                    <option value="smtp" <?php echo (($transport['driver'] ?? 'mail') === 'smtp') ? 'selected' : ''; ?>>SMTP via Symfony Mailer</option>
+                                    <option value="mail" <?php echo $isSelected((string) ($transport['driver'] ?? 'mail'), 'mail'); ?>>PHP mail() Fallback</option>
+                                    <option value="smtp" <?php echo $isSelected((string) ($transport['driver'] ?? 'mail'), 'smtp'); ?>>SMTP via Symfony Mailer</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Authentifizierung</label>
                                 <select name="auth_mode" class="form-select">
-                                    <option value="password" <?php echo (($transport['auth_mode'] ?? 'password') === 'password') ? 'selected' : ''; ?>>Benutzername + Passwort</option>
-                                    <option value="oauth2" <?php echo (($transport['auth_mode'] ?? 'password') === 'oauth2') ? 'selected' : ''; ?>>Azure OAuth2 / XOAUTH2</option>
+                                    <option value="password" <?php echo $isSelected((string) ($transport['auth_mode'] ?? 'password'), 'password'); ?>>Benutzername + Passwort</option>
+                                    <option value="oauth2" <?php echo $isSelected((string) ($transport['auth_mode'] ?? 'password'), 'oauth2'); ?>>Azure OAuth2 / XOAUTH2</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
@@ -111,9 +163,9 @@ $queueJobStatusBadge = static function (string $status): string {
                             <div class="col-md-3">
                                 <label class="form-label">Verschlüsselung</label>
                                 <select name="smtp_encryption" class="form-select">
-                                    <option value="tls" <?php echo (($transport['smtp_encryption'] ?? 'tls') === 'tls') ? 'selected' : ''; ?>>TLS / STARTTLS</option>
-                                    <option value="ssl" <?php echo (($transport['smtp_encryption'] ?? '') === 'ssl') ? 'selected' : ''; ?>>SSL</option>
-                                    <option value="" <?php echo (($transport['smtp_encryption'] ?? '') === '') ? 'selected' : ''; ?>>Keine</option>
+                                    <option value="tls" <?php echo $isSelected((string) ($transport['smtp_encryption'] ?? 'tls'), 'tls'); ?>>TLS / STARTTLS</option>
+                                    <option value="ssl" <?php echo $isSelected((string) ($transport['smtp_encryption'] ?? ''), 'ssl'); ?>>SSL</option>
+                                    <option value="" <?php echo $isSelected((string) ($transport['smtp_encryption'] ?? ''), ''); ?>>Keine</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
@@ -123,7 +175,7 @@ $queueJobStatusBadge = static function (string $status): string {
                             <div class="col-md-6">
                                 <label class="form-label">SMTP-Passwort</label>
                                 <input type="password" name="smtp_password" class="form-control" value="" placeholder="Leer lassen = vorhandenes Secret behalten">
-                                <div class="form-hint">Aktuell gespeichert: <?php echo !empty($transport['secret_configured']) ? 'Ja' : 'Nein'; ?></div>
+                                <div class="form-hint">Aktuell gespeichert: <?php echo $statusLabel(!empty($transport['secret_configured']), 'Ja', 'Nein'); ?></div>
                                 <label class="form-check mt-2">
                                     <input class="form-check-input" type="checkbox" name="clear_smtp_password" value="1">
                                     <span class="form-check-label">Gespeichertes Passwort löschen</span>
@@ -165,7 +217,7 @@ $queueJobStatusBadge = static function (string $status): string {
                 </div>
             </div>
         </div>
-    <?php elseif ($currentTab === 'azure'): ?>
+    <?php elseif ($isCurrentTab('azure')): ?>
         <div class="row row-cards">
             <div class="col-12 col-xl-8">
                 <form method="post" class="card">
@@ -173,7 +225,7 @@ $queueJobStatusBadge = static function (string $status): string {
                     <input type="hidden" name="tab" value="azure">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h3 class="card-title mb-0">Azure SMTP OAuth2</h3>
-                        <span class="badge bg-<?php echo !empty($azure['configured']) ? 'success' : 'warning'; ?>-lt"><?php echo !empty($azure['configured']) ? 'Konfiguriert' : 'Unvollständig'; ?></span>
+                        <span class="badge bg-<?php echo $statusBadge(!empty($azure['configured'])); ?>-lt"><?php echo $statusLabel(!empty($azure['configured']), 'Konfiguriert', 'Unvollständig'); ?></span>
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
@@ -188,7 +240,7 @@ $queueJobStatusBadge = static function (string $status): string {
                             <div class="col-md-6">
                                 <label class="form-label">Client-Secret</label>
                                 <input type="password" name="azure_client_secret" class="form-control" value="" placeholder="Leer lassen = vorhandenes Secret behalten">
-                                <div class="form-hint">Aktuell gespeichert: <?php echo !empty($azure['client_secret_configured']) ? 'Ja' : 'Nein'; ?></div>
+                                <div class="form-hint">Aktuell gespeichert: <?php echo $statusLabel(!empty($azure['client_secret_configured']), 'Ja', 'Nein'); ?></div>
                                 <label class="form-check mt-2">
                                     <input class="form-check-input" type="checkbox" name="clear_azure_client_secret" value="1">
                                     <span class="form-check-label">Gespeichertes Client-Secret löschen</span>
@@ -228,7 +280,7 @@ $queueJobStatusBadge = static function (string $status): string {
                 </div>
             </div>
         </div>
-    <?php elseif ($currentTab === 'graph'): ?>
+    <?php elseif ($isCurrentTab('graph')): ?>
         <div class="row row-cards">
             <div class="col-12 col-xl-8">
                 <form method="post" class="card">
@@ -236,7 +288,7 @@ $queueJobStatusBadge = static function (string $status): string {
                     <input type="hidden" name="tab" value="graph">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h3 class="card-title mb-0">Microsoft Graph</h3>
-                        <span class="badge bg-<?php echo !empty($graph['configured']) ? 'success' : 'warning'; ?>-lt"><?php echo !empty($graph['configured']) ? 'Konfiguriert' : 'Unvollständig'; ?></span>
+                        <span class="badge bg-<?php echo $statusBadge(!empty($graph['configured'])); ?>-lt"><?php echo $statusLabel(!empty($graph['configured']), 'Konfiguriert', 'Unvollständig'); ?></span>
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
@@ -251,7 +303,7 @@ $queueJobStatusBadge = static function (string $status): string {
                             <div class="col-md-6">
                                 <label class="form-label">Client-Secret</label>
                                 <input type="password" name="graph_client_secret" class="form-control" value="" placeholder="Leer lassen = vorhandenes Secret behalten">
-                                <div class="form-hint">Aktuell gespeichert: <?php echo !empty($graph['client_secret_configured']) ? 'Ja' : 'Nein'; ?></div>
+                                <div class="form-hint">Aktuell gespeichert: <?php echo $statusLabel(!empty($graph['client_secret_configured']), 'Ja', 'Nein'); ?></div>
                                 <label class="form-check mt-2">
                                     <input class="form-check-input" type="checkbox" name="clear_graph_client_secret" value="1">
                                     <span class="form-check-label">Gespeichertes Client-Secret löschen</span>
@@ -288,20 +340,11 @@ $queueJobStatusBadge = static function (string $status): string {
                 </div>
             </div>
         </div>
-    <?php elseif ($currentTab === 'logs'): ?>
+    <?php elseif ($isCurrentTab('logs')): ?>
         <div class="row row-cards mb-4">
-            <div class="col-sm-6 col-lg-3">
-                <div class="card"><div class="card-body"><div class="subheader">Versendet</div><div class="h1 mb-0 text-success"><?php echo (int) ($mailStats['sent'] ?? 0); ?></div></div></div>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <div class="card"><div class="card-body"><div class="subheader">Fehlgeschlagen</div><div class="h1 mb-0 text-danger"><?php echo (int) ($mailStats['failed'] ?? 0); ?></div></div></div>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <div class="card"><div class="card-body"><div class="subheader">Queue offen</div><div class="h1 mb-0"><?php echo (int) ($queueStats['pending'] ?? 0); ?></div></div></div>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <div class="card"><div class="card-body"><div class="subheader">Queue fehlgeschlagen</div><div class="h1 mb-0 text-warning"><?php echo (int) ($queueStats['failed'] ?? 0); ?></div></div></div>
-            </div>
+            <?php foreach ($logMetricCards as $card): ?>
+                <?php $renderMetricCard($card['label'], $card['value'], $card['class']); ?>
+            <?php endforeach; ?>
         </div>
 
         <div class="card">
@@ -335,7 +378,7 @@ $queueJobStatusBadge = static function (string $status): string {
                             <?php foreach ($mailLogs as $row): ?>
                                 <tr>
                                     <td class="text-nowrap"><?php echo htmlspecialchars((string) ($row->created_at ?? '')); ?></td>
-                                    <td><span class="badge bg-<?php echo (($row->status ?? '') === 'sent') ? 'success' : 'danger'; ?>-lt"><?php echo htmlspecialchars((string) ($row->status ?? '')); ?></span></td>
+                                    <td><span class="badge bg-<?php echo $statusBadge(($row->status ?? '') === 'sent'); ?>-lt"><?php echo htmlspecialchars((string) ($row->status ?? '')); ?></span></td>
                                     <td class="text-break"><?php echo htmlspecialchars((string) ($row->recipient ?? '')); ?></td>
                                     <td class="text-break"><?php echo htmlspecialchars((string) ($row->subject ?? '')); ?></td>
                                     <td><?php echo htmlspecialchars((string) ($row->provider ?? '')); ?></td>
@@ -353,18 +396,9 @@ $queueJobStatusBadge = static function (string $status): string {
         </div>
     <?php else: ?>
         <div class="row row-cards mb-4">
-            <div class="col-sm-6 col-lg-3">
-                <div class="card"><div class="card-body"><div class="subheader">Pending</div><div class="h1 mb-0"><?php echo (int) ($queueStats['pending'] ?? 0); ?></div></div></div>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <div class="card"><div class="card-body"><div class="subheader">Processing</div><div class="h1 mb-0 text-primary"><?php echo (int) ($queueStats['processing'] ?? 0); ?></div></div></div>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <div class="card"><div class="card-body"><div class="subheader">Versendet</div><div class="h1 mb-0 text-success"><?php echo (int) ($queueStats['sent'] ?? 0); ?></div></div></div>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <div class="card"><div class="card-body"><div class="subheader">Final fehlgeschlagen</div><div class="h1 mb-0 text-danger"><?php echo (int) ($queueStats['failed'] ?? 0); ?></div></div></div>
-            </div>
+            <?php foreach ($queueMetricCards as $card): ?>
+                <?php $renderMetricCard($card['label'], $card['value'], $card['class']); ?>
+            <?php endforeach; ?>
         </div>
 
         <div class="row row-cards mb-4">
@@ -377,7 +411,7 @@ $queueJobStatusBadge = static function (string $status): string {
                         <div class="row g-3">
                             <div class="col-12">
                                 <label class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" name="queue_enabled" value="1" <?php echo !empty($queueConfig['enabled']) ? 'checked' : ''; ?>>
+                                    <input class="form-check-input" type="checkbox" name="queue_enabled" value="1" <?php echo $isChecked(!empty($queueConfig['enabled'])); ?>>
                                     <span class="form-check-label">Asynchronen Mailversand per Queue aktivieren</span>
                                 </label>
                             </div>
@@ -423,14 +457,9 @@ $queueJobStatusBadge = static function (string $status): string {
                 <div class="card h-100">
                     <div class="card-header"><h3 class="card-title">Worker &amp; Cron</h3></div>
                     <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label">Webhook-/Cron-URL</label>
-                            <input type="text" class="form-control" value="<?php echo htmlspecialchars((string) ($queueConfig['cron_url'] ?? '')); ?>" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">CLI-Beispiel</label>
-                            <input type="text" class="form-control" value="<?php echo htmlspecialchars((string) ($queueConfig['cli_command'] ?? '')); ?>" readonly>
-                        </div>
+                        <?php foreach ($workerReadonlyFields as $field): ?>
+                            <?php $renderReadonlyField($field['label'], $field['value']); ?>
+                        <?php endforeach; ?>
                         <div class="mb-3 small text-secondary">
                             Der Worker verarbeitet <code>cms_mail_queue</code> über <code>/cron.php</code> und nutzt abgestufte Retries für Netzwerk-, SMTP- und OAuth2-Transientfehler.
                         </div>
@@ -460,15 +489,7 @@ $queueJobStatusBadge = static function (string $status): string {
                         <hr>
                         <div class="small text-secondary">
                             <strong>Letzter Lauf:</strong>
-                            <?php if (!empty($queueLastRun['executed_at'])): ?>
-                                <?php echo htmlspecialchars((string) $queueLastRun['executed_at']); ?> · Worker: <?php echo htmlspecialchars((string) ($queueLastRun['worker'] ?? '—')); ?> ·
-                                verarbeitet: <?php echo (int) ($queueLastRun['processed'] ?? 0); ?> ·
-                                versendet: <?php echo (int) ($queueLastRun['sent'] ?? 0); ?> ·
-                                retried: <?php echo (int) ($queueLastRun['retried'] ?? 0); ?> ·
-                                final fehlgeschlagen: <?php echo (int) ($queueLastRun['failed_final'] ?? 0); ?>
-                            <?php else: ?>
-                                Noch kein Worker-Lauf protokolliert.
-                            <?php endif; ?>
+                            <?php echo htmlspecialchars($queueLastRunText); ?>
                         </div>
                     </div>
                 </div>

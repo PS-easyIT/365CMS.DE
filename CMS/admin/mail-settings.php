@@ -57,10 +57,48 @@ function cms_admin_mail_settings_flash(string $type, string $message): void
     ];
 }
 
+function cms_admin_mail_settings_flash_result(MailSettingsActionResult $result): void
+{
+    cms_admin_mail_settings_flash(
+        $result->isSuccess() ? 'success' : 'danger',
+        $result->message() !== '' ? $result->message() : ($result->error() !== '' ? $result->error() : 'Unbekannte Antwort.')
+    );
+}
+
+/**
+ * @return array<string, callable(): MailSettingsActionResult>
+ */
+function cms_admin_mail_settings_action_handlers(MailSettingsModule $module): array
+{
+    return [
+        'save_transport' => static fn () => $module->saveTransport($_POST),
+        'save_azure' => static fn () => $module->saveAzure($_POST),
+        'save_graph' => static fn () => $module->saveGraph($_POST),
+        'save_queue' => static fn () => $module->saveQueue($_POST),
+        'send_test_email' => static fn () => $module->sendTestEmail($_POST),
+        'run_queue_now' => static fn () => $module->runQueueNow($_POST),
+        'release_queue_stale' => static fn () => $module->releaseQueueStale(),
+        'enqueue_queue_test' => static fn () => $module->enqueueQueueTestEmail($_POST),
+        'test_graph_connection' => static fn () => $module->testGraphConnection(),
+        'clear_logs' => static fn () => $module->clearLogs(),
+        'clear_azure_cache' => static fn () => $module->clearAzureCache(),
+        'clear_graph_cache' => static fn () => $module->clearGraphCache(),
+    ];
+}
+
+function cms_admin_mail_settings_pull_alert(): ?array
+{
+    $alert = $_SESSION['admin_alert'] ?? null;
+    unset($_SESSION['admin_alert']);
+
+    return is_array($alert) ? $alert : null;
+}
+
 $module = new MailSettingsModule();
 $alert = null;
 $redirectBase = SITE_URL . '/admin/mail-settings';
 $currentTab = cms_admin_mail_settings_normalize_tab((string) ($_GET['tab'] ?? 'transport'));
+$actionHandlers = cms_admin_mail_settings_action_handlers($module);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postToken = (string) ($_POST['csrf_token'] ?? '');
@@ -77,37 +115,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         cms_admin_mail_settings_redirect($redirectBase, $currentTab);
     }
 
-    $result = match ($action) {
-        'save_transport' => $module->saveTransport($_POST),
-        'save_azure' => $module->saveAzure($_POST),
-        'save_graph' => $module->saveGraph($_POST),
-        'save_queue' => $module->saveQueue($_POST),
-        'send_test_email' => $module->sendTestEmail($_POST),
-        'run_queue_now' => $module->runQueueNow($_POST),
-        'release_queue_stale' => $module->releaseQueueStale(),
-        'enqueue_queue_test' => $module->enqueueQueueTestEmail($_POST),
-        'test_graph_connection' => $module->testGraphConnection(),
-        'clear_logs' => $module->clearLogs(),
-        'clear_azure_cache' => $module->clearAzureCache(),
-        'clear_graph_cache' => $module->clearGraphCache(),
-    };
+    $result = $actionHandlers[$action]();
 
-    cms_admin_mail_settings_flash(
-        !empty($result['success']) ? 'success' : 'danger',
-        (string) ($result['message'] ?? $result['error'] ?? 'Unbekannte Antwort.')
-    );
+    cms_admin_mail_settings_flash_result($result);
 
     cms_admin_mail_settings_redirect($redirectBase, $currentTab);
 }
 
-if (!empty($_SESSION['admin_alert']) && is_array($_SESSION['admin_alert'])) {
-    $alert = $_SESSION['admin_alert'];
-    unset($_SESSION['admin_alert']);
-}
+$alert = cms_admin_mail_settings_pull_alert();
 
 $csrfToken = Security::instance()->generateToken('admin_mail_settings');
 $apiCsrfToken = Security::instance()->generateToken('admin_mail_api');
-$data = $module->getData();
+$data = $module->getData()->toArray();
 $pageTitle = 'System · Mail & Azure OAuth2';
 $activePage = 'mail-settings';
 $pageAssets = [];

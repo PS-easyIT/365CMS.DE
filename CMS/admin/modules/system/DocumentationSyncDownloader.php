@@ -8,13 +8,85 @@ if (!defined('ABSPATH')) {
 final class DocumentationDownloadResult
 {
     public function __construct(
-        public readonly bool $success,
-        public readonly ?string $error = null,
-        public readonly int $status = 0,
-        public readonly string $contentType = '',
-        public readonly int $bytes = 0,
-        public readonly string $sha256 = ''
+        private readonly bool $success,
+        private readonly ?string $error = null,
+        private readonly int $status = 0,
+        private readonly string $contentType = '',
+        private readonly int $bytes = 0,
+        private readonly string $sha256 = ''
     ) {
+    }
+
+    public function isSuccess(): bool
+    {
+        return $this->success;
+    }
+
+    public function error(): ?string
+    {
+        return $this->error;
+    }
+
+    public function status(): int
+    {
+        return $this->status;
+    }
+
+    public function contentType(): string
+    {
+        return $this->contentType;
+    }
+
+    public function bytes(): int
+    {
+        return $this->bytes;
+    }
+
+    public function sha256(): string
+    {
+        return $this->sha256;
+    }
+
+    public static function failure(
+        string $error,
+        int $status = 0,
+        string $contentType = '',
+        int $bytes = 0
+    ): self {
+        return new self(false, $error, $status, $contentType, $bytes);
+    }
+
+    public static function success(
+        int $status,
+        string $contentType,
+        int $bytes,
+        string $sha256
+    ): self {
+        return new self(true, null, $status, $contentType, $bytes, $sha256);
+    }
+}
+
+final class DocumentationDownloadPayload
+{
+    public function __construct(
+        private readonly string $body,
+        private readonly string $contentType
+    ) {
+    }
+
+    public function body(): string
+    {
+        return $this->body;
+    }
+
+    public function contentType(): string
+    {
+        return $this->contentType;
+    }
+
+    public function bytes(): int
+    {
+        return strlen($this->body);
     }
 }
 
@@ -40,61 +112,96 @@ final class DocumentationSyncDownloader
     public function downloadFile(string $url, string $destination): DocumentationDownloadResult
     {
         if (!$this->isAllowedDownloadUrl($url)) {
-            $this->logFailure('documentation.sync.download.invalid_url', 'Der Dokumentations-Download liegt außerhalb der erlaubten GitHub-Hosts.', [
-                'url' => $this->sanitizeUrlForLog($url),
-            ]);
-            return new DocumentationDownloadResult(false, 'Der Dokumentations-Download liegt außerhalb der erlaubten GitHub-Hosts.');
+            return $this->rejectDownload(
+                'documentation.sync.download.invalid_url',
+                'Der Dokumentations-Download liegt außerhalb der erlaubten GitHub-Hosts.',
+                ['url' => $this->sanitizeUrlForLog($url)]
+            );
         }
 
         if (!$this->isAllowedDestination($destination)) {
-            $this->logFailure('documentation.sync.download.invalid_destination', 'Die temporäre ZIP-Zieldatei liegt außerhalb des erlaubten Temp-Bereichs.', [
-                'destination' => $this->sanitizePathForLog($destination),
-            ]);
-            return new DocumentationDownloadResult(false, 'Die temporäre ZIP-Zieldatei liegt außerhalb des erlaubten Temp-Bereichs.');
+            return $this->rejectDownload(
+                'documentation.sync.download.invalid_destination',
+                'Die temporäre ZIP-Zieldatei liegt außerhalb des erlaubten Temp-Bereichs.',
+                ['destination' => $this->sanitizePathForLog($destination)]
+            );
         }
 
         if (!class_exists('\\CMS\\Http\\Client')) {
-            $this->logFailure('documentation.sync.download.missing_http_client', 'Der zentrale HTTP-Client ist nicht verfügbar.', []);
-            return new DocumentationDownloadResult(false, 'Der zentrale HTTP-Client ist nicht verfügbar.');
+            return $this->rejectDownload(
+                'documentation.sync.download.missing_http_client',
+                'Der zentrale HTTP-Client ist nicht verfügbar.'
+            );
         }
 
-        $parentDir = dirname($destination);
-        if (!is_dir($parentDir) && !mkdir($parentDir, 0755, true) && !is_dir($parentDir)) {
-            $this->logFailure('documentation.sync.download.parent_create_failed', 'Temporäres Download-Verzeichnis konnte nicht erstellt werden.', [
-                'destination' => $this->sanitizePathForLog($destination),
-            ]);
-            return new DocumentationDownloadResult(false, 'Temporäres Download-Verzeichnis konnte nicht erstellt werden.');
+        if (!$this->ensureDestinationDirectory($destination)) {
+            return $this->rejectDownload(
+                'documentation.sync.download.parent_create_failed',
+                'Temporäres Download-Verzeichnis konnte nicht erstellt werden.',
+                ['destination' => $this->sanitizePathForLog($destination)]
+            );
         }
 
-        $response = \CMS\Http\Client::getInstance()->get($url, [
+        $response = $this->requestDownload($url);
+
+        if (($response['success'] ?? false) !== true) {
+            return $this->handleFailedResponse($url, $destination, $response);
+        }
+
+        $validatedPayload = $this->validateResponsePayload($url, $destination, $response);
+        if ($validatedPayload === null) {
+            return DocumentationDownloadResult::failure(
+                'Der GitHub-Download lieferte keinen ZIP-Inhalt zurück.',
+                (int) ($response['status'] ?? 0),
+                strtolower(trim((string) ($response['contentType'] ?? ''))),
+                strlen((string) ($response['body'] ?? ''))
+            );
+        }
+
+        return $this->persistDownloadedArchive($url, $destination, $response, $validatedPayload);
+    }
+
+    /** @return array<string, mixed> */
+    private function requestDownload(string $url): array
+    {
+        return \CMS\Http\Client::getInstance()->get($url, [
             'userAgent' => '365CMS-DocumentationSync/1.0',
             'timeout' => 120,
             'connectTimeout' => 10,
             'maxBytes' => self::MAX_DOWNLOAD_BYTES,
             'allowedContentTypes' => self::ALLOWED_CONTENT_TYPES,
         ]);
+    }
 
-        if (($response['success'] ?? false) !== true) {
-            if (is_file($destination)) {
-                $this->filesystem->deleteFile($destination);
-            }
+    /**
+     * @param array<string, mixed> $response
+     */
+    private function handleFailedResponse(string $url, string $destination, array $response): DocumentationDownloadResult
+    {
+        $this->deleteDestinationIfPresent($destination);
 
-            $this->logFailure('documentation.sync.download.failed', 'GitHub-ZIP konnte per HTTPS nicht geladen werden.', [
-                'url' => $this->sanitizeUrlForLog($url),
-                'error' => $this->sanitizeLogString((string) ($response['error'] ?? ''), self::MAX_LOG_VALUE_LENGTH),
-            ]);
+        $this->logFailure('documentation.sync.download.failed', 'GitHub-ZIP konnte per HTTPS nicht geladen werden.', [
+            'url' => $this->sanitizeUrlForLog($url),
+            'error' => $this->sanitizeLogString((string) ($response['error'] ?? ''), self::MAX_LOG_VALUE_LENGTH),
+        ]);
 
-            return new DocumentationDownloadResult(
-                false,
-                'GitHub-ZIP konnte per HTTPS nicht geladen werden.',
+            return DocumentationDownloadResult::failure(
+            'GitHub-ZIP konnte per HTTPS nicht geladen werden.',
                 (int) ($response['status'] ?? 0),
                 (string) ($response['contentType'] ?? '')
-            );
-        }
+        );
+    }
 
+    /**
+     * @param array<string, mixed> $response
+     * @return DocumentationDownloadPayload|null
+     */
+    private function validateResponsePayload(string $url, string $destination, array $response): ?DocumentationDownloadPayload
+    {
         $body = (string) ($response['body'] ?? '');
         $bodyLength = strlen($body);
         $contentType = strtolower(trim((string) ($response['contentType'] ?? '')));
+
         if ($body === ''
             || $bodyLength < self::MIN_DOWNLOAD_BYTES
             || $bodyLength > self::MAX_DOWNLOAD_BYTES
@@ -102,9 +209,7 @@ final class DocumentationSyncDownloader
             || !$this->hasConsistentContentLength((array) ($response['headers'] ?? []), $bodyLength)
             || !$this->hasAllowedResponseContentType($contentType)
         ) {
-            if (is_file($destination)) {
-                $this->filesystem->deleteFile($destination);
-            }
+            $this->deleteDestinationIfPresent($destination);
 
             $this->logFailure('documentation.sync.download.invalid_body', 'Der GitHub-Download lieferte keinen gültigen ZIP-Inhalt zurück.', [
                 'url' => $this->sanitizeUrlForLog($url),
@@ -112,48 +217,46 @@ final class DocumentationSyncDownloader
                 'content_type' => $this->sanitizeLogString($contentType, 80),
             ]);
 
-            return new DocumentationDownloadResult(
-                false,
-                'Der GitHub-Download lieferte keinen ZIP-Inhalt zurück.',
-                (int) ($response['status'] ?? 0),
-                $contentType,
-                $bodyLength
-            );
+            return null;
         }
 
-        $written = file_put_contents($destination, $body, LOCK_EX);
+        return new DocumentationDownloadPayload($body, $contentType);
+    }
+
+    /**
+     * @param array<string, mixed> $response
+     */
+    private function persistDownloadedArchive(string $url, string $destination, array $response, DocumentationDownloadPayload $payload): DocumentationDownloadResult
+    {
+        $written = file_put_contents($destination, $payload->body(), LOCK_EX);
         if (!is_int($written) || $written < self::MIN_DOWNLOAD_BYTES || $written > self::MAX_DOWNLOAD_BYTES) {
-            if (is_file($destination)) {
-                $this->filesystem->deleteFile($destination);
-            }
+            $this->deleteDestinationIfPresent($destination);
 
             $this->logFailure('documentation.sync.download.write_failed', 'Die geladene ZIP-Datei konnte nicht lokal gespeichert werden.', [
                 'destination' => $this->sanitizePathForLog($destination),
                 'bytes' => is_int($written) ? $written : 0,
             ]);
 
-            return new DocumentationDownloadResult(
-                false,
+            return DocumentationDownloadResult::failure(
                 'Die geladene ZIP-Datei konnte nicht lokal gespeichert werden.',
                 (int) ($response['status'] ?? 0),
-                $contentType,
+                $payload->contentType(),
                 is_int($written) ? $written : 0
             );
         }
 
         $sha256 = hash_file('sha256', $destination);
         if (!is_string($sha256) || preg_match('/^[0-9a-f]{64}$/', $sha256) !== 1) {
-            $this->filesystem->deleteFile($destination);
+            $this->deleteDestinationIfPresent($destination);
 
             $this->logFailure('documentation.sync.download.hash_failed', 'Die geladene ZIP-Datei konnte nicht mit einer Integritäts-Checksumme versehen werden.', [
                 'destination' => $this->sanitizePathForLog($destination),
             ]);
 
-            return new DocumentationDownloadResult(
-                false,
+            return DocumentationDownloadResult::failure(
                 'Die geladene ZIP-Datei konnte nicht lokal validiert werden.',
                 (int) ($response['status'] ?? 0),
-                $contentType,
+                $payload->contentType(),
                 $written
             );
         }
@@ -162,18 +265,38 @@ final class DocumentationSyncDownloader
             'url' => $this->sanitizeUrlForLog($url),
             'destination' => $this->sanitizePathForLog($destination),
             'bytes' => $written,
-            'content_type' => $this->sanitizeLogString($contentType, 80),
+            'content_type' => $this->sanitizeLogString($payload->contentType(), 80),
             'sha256' => $sha256,
         ]);
 
-        return new DocumentationDownloadResult(
-            true,
-            null,
+        return DocumentationDownloadResult::success(
             (int) ($response['status'] ?? 0),
-            $contentType,
+            $payload->contentType(),
             $written,
             $sha256
         );
+    }
+
+    private function ensureDestinationDirectory(string $destination): bool
+    {
+        $parentDir = dirname($destination);
+
+        return is_dir($parentDir) || (mkdir($parentDir, 0755, true) || is_dir($parentDir));
+    }
+
+    private function deleteDestinationIfPresent(string $destination): void
+    {
+        if (is_file($destination)) {
+            $this->filesystem->deleteFile($destination);
+        }
+    }
+
+    /** @param array<string, mixed> $context */
+    private function rejectDownload(string $action, string $message, array $context = []): DocumentationDownloadResult
+    {
+        $this->logFailure($action, $message, $context);
+
+        return new DocumentationDownloadResult(false, $message);
     }
 
     private function isAllowedDestination(string $destination): bool

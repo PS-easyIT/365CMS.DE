@@ -5,9 +5,14 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$siteUrl  = defined('SITE_URL') ? SITE_URL : '';
 $settings = $data['settings'] ?? [];
 $plans    = $data['plans'] ?? [];
+$alertData = is_array($alert ?? null) ? $alert : [];
+$alertMarginClass = 'mb-4';
+$defaultPlanId = (int) ($settings['subscription_default_plan_id'] ?? 0);
+$disabledNotice = (string) ($settings['subscription_disabled_notice'] ?? '');
+$isChecked = static fn (string $key, string $default = '1'): string => (($settings[$key] ?? $default) === '1') ? 'checked' : '';
+$isSelectedPlan = static fn (int $planId): string => $defaultPlanId === $planId ? 'selected' : '';
 ?>
 
 <div class="page-header d-print-none">
@@ -24,13 +29,7 @@ $plans    = $data['plans'] ?? [];
 <div class="page-body">
     <div class="container-xl">
 
-        <?php if (!empty($alert)): ?>
-            <?php
-            $alertData = $alert;
-            $alertMarginClass = 'mb-4';
-            require __DIR__ . '/../partials/flash-alert.php';
-            ?>
-        <?php endif; ?>
+        <?php require __DIR__ . '/../partials/flash-alert.php'; ?>
 
         <form method="post">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
@@ -42,23 +41,23 @@ $plans    = $data['plans'] ?? [];
                         <div class="card-header"><h3 class="card-title">Betriebsmodus</h3></div>
                         <div class="card-body">
                             <label class="form-check form-switch mb-3">
-                                <input type="checkbox" name="subscription_limits_enabled" class="form-check-input" <?= ($settings['subscription_limits_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
+                                <input type="checkbox" name="subscription_limits_enabled" class="form-check-input" <?= $isChecked('subscription_limits_enabled') ?>>
                                 <span class="form-check-label">Abo-Limits systemweit durchsetzen</span>
                             </label>
                             <div class="form-hint mb-3">Wenn deaktiviert, gibt es im gesamten CMS keine Paket-Limits mehr – unabhängig von Zuweisungen oder Planstufen.</div>
 
                             <label class="form-check form-switch mb-3">
-                                <input type="checkbox" name="subscription_member_area_enabled" class="form-check-input" <?= ($settings['subscription_member_area_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
+                                <input type="checkbox" name="subscription_member_area_enabled" class="form-check-input" <?= $isChecked('subscription_member_area_enabled') ?>>
                                 <span class="form-check-label">Abo-Bereich im Member-Dashboard anzeigen</span>
                             </label>
 
                             <label class="form-check form-switch mb-3">
-                                <input type="checkbox" name="subscription_ordering_enabled" class="form-check-input" <?= ($settings['subscription_ordering_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
+                                <input type="checkbox" name="subscription_ordering_enabled" class="form-check-input" <?= $isChecked('subscription_ordering_enabled') ?>>
                                 <span class="form-check-label">Bestell- und Upgrade-Prozesse zulassen</span>
                             </label>
 
                             <label class="form-check form-switch mb-0">
-                                <input type="checkbox" name="subscription_public_pricing_enabled" class="form-check-input" <?= ($settings['subscription_public_pricing_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
+                                <input type="checkbox" name="subscription_public_pricing_enabled" class="form-check-input" <?= $isChecked('subscription_public_pricing_enabled') ?>>
                                 <span class="form-check-label">Pakete öffentlich kommunizieren</span>
                             </label>
                         </div>
@@ -74,7 +73,7 @@ $plans    = $data['plans'] ?? [];
                                 <select name="subscription_default_plan_id" class="form-select">
                                     <option value="0">– Keine automatische Zuweisung –</option>
                                     <?php foreach ($plans as $plan): ?>
-                                        <option value="<?= (int)$plan['id'] ?>" <?= (int)($settings['subscription_default_plan_id'] ?? 0) === (int)$plan['id'] ? 'selected' : '' ?>>
+                                        <option value="<?= (int)$plan['id'] ?>" <?= $isSelectedPlan((int) $plan['id']) ?>>
                                             <?= htmlspecialchars($plan['name']) ?>
                                         </option>
                                     <?php endforeach; ?>
@@ -92,7 +91,7 @@ $plans    = $data['plans'] ?? [];
                         <div class="card-header"><h3 class="card-title">Hinweis bei Deaktivierung</h3></div>
                         <div class="card-body">
                             <label class="form-label">Text für Admin-/Member-Hinweis</label>
-                            <textarea name="subscription_disabled_notice" class="form-control" rows="5"><?= htmlspecialchars($settings['subscription_disabled_notice'] ?? '') ?></textarea>
+                            <textarea name="subscription_disabled_notice" class="form-control" rows="5"><?= htmlspecialchars($disabledNotice) ?></textarea>
                             <div class="form-hint mt-2">Dieser Text kann für interne Hinweise oder spätere Frontend-Ausgaben verwendet werden, wenn die Aboverwaltung vollständig deaktiviert ist.</div>
                         </div>
                     </div>

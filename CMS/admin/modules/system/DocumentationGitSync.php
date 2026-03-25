@@ -42,11 +42,11 @@ final class DocumentationGitSync
                 escapeshellarg($this->defaultBranch)
             ));
 
-            if (($fetch['exitCode'] ?? 1) !== 0) {
+            if (!$fetch->isSuccess()) {
                 return $this->failResult('documentation.sync.git.fetch_failed', 'DOC-Sync via Git konnte nicht abgeschlossen werden.', null, [
                     'command' => 'fetch',
-                    'output' => $this->limitCommandOutput((string) ($fetch['output'] ?? '')),
-                    'exit_code' => (int) ($fetch['exitCode'] ?? 1),
+                    'output' => $this->limitCommandOutput($fetch->output()),
+                    'exit_code' => $fetch->exitCode(),
                 ]);
             }
 
@@ -73,11 +73,11 @@ final class DocumentationGitSync
                 escapeshellarg($remoteRef)
             ));
 
-            if (($checkout['exitCode'] ?? 1) !== 0) {
+            if (!$checkout->isSuccess()) {
                 return $this->failResult('documentation.sync.git.checkout_failed', 'DOC-Sync via Git konnte nicht abgeschlossen werden.', null, [
                     'command' => 'checkout',
-                    'output' => $this->limitCommandOutput((string) ($checkout['output'] ?? '')),
-                    'exit_code' => (int) ($checkout['exitCode'] ?? 1),
+                    'output' => $this->limitCommandOutput($checkout->output()),
+                    'exit_code' => $checkout->exitCode(),
                 ]);
             }
 
@@ -86,15 +86,15 @@ final class DocumentationGitSync
                 escapeshellarg($this->repoRoot)
             ));
 
-            if (($status['exitCode'] ?? 1) !== 0) {
+            if (!$status->isSuccess()) {
                 return $this->failResult('documentation.sync.git.status_failed', 'DOC-Sync via Git konnte nicht vollständig verifiziert werden.', null, [
                     'command' => 'status',
-                    'output' => $this->limitCommandOutput((string) ($status['output'] ?? '')),
-                    'exit_code' => (int) ($status['exitCode'] ?? 1),
+                    'output' => $this->limitCommandOutput($status->output()),
+                    'exit_code' => $status->exitCode(),
                 ]);
             }
 
-            $statusOutput = $this->normalizeStatusOutput((string) ($status['output'] ?? ''));
+            $statusOutput = $this->normalizeStatusOutput($status->output());
             $message = 'Der lokale Ordner /DOC wurde mit ' . $this->defaultRemote . '/' . $this->defaultBranch . ' synchronisiert.';
 
             if ($statusOutput !== '') {
@@ -153,7 +153,7 @@ final class DocumentationGitSync
             escapeshellarg($remoteRef)
         ));
 
-        return ($result['exitCode'] ?? 1) === 0;
+        return $result->isSuccess();
     }
 
     private function getLocalDocStatus(): string
@@ -163,11 +163,11 @@ final class DocumentationGitSync
             escapeshellarg($this->repoRoot)
         ));
 
-        if (($status['exitCode'] ?? 1) !== 0) {
+        if (!$status->isSuccess()) {
             throw new RuntimeException('Lokaler DOC-Status konnte nicht geprüft werden.');
         }
 
-        return $this->normalizeStatusOutput((string) ($status['output'] ?? ''));
+        return $this->normalizeStatusOutput($status->output());
     }
 
     private function acquireSyncLock(): void

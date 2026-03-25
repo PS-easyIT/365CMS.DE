@@ -10,6 +10,59 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\AuditLogger;
+use CMS\Auth;
+use CMS\Logger;
+
+final class OrdersDashboardData
+{
+    public function __construct(
+        private array $orders,
+        private array $stats,
+        private string $filter,
+        private array $assignments,
+        private array $plans,
+        private array $users,
+    ) {
+    }
+
+    public function toArray(): array
+    {
+        return [
+            'orders' => $this->orders,
+            'stats' => $this->stats,
+            'filter' => $this->filter,
+            'assignments' => $this->assignments,
+            'plans' => $this->plans,
+            'users' => $this->users,
+        ];
+    }
+}
+
+final class OrdersActionResult
+{
+    private function __construct(
+        private bool $success,
+        private string $message,
+    ) {
+    }
+
+    public static function success(string $message): self
+    {
+        return new self(true, $message);
+    }
+
+    public static function failure(string $message): self
+    {
+        return new self(false, $message);
+    }
+
+    public function toArray(): array
+    {
+        return $this->success
+            ? ['success' => true, 'message' => $this->message]
+            : ['success' => false, 'error' => $this->message];
+    }
+}
 
 class OrdersModule
 {
@@ -85,13 +138,179 @@ class OrdersModule
         return null;
     }
 
-    public function getData(string $statusFilter = ''): array
+    public function getData(string $statusFilter = ''): OrdersDashboardData
     {
+        if (!$this->canAccess()) {
+            return new OrdersDashboardData([], $this->defaultStats(), '', [], [], []);
+        }
+
         $table = $this->prefix . 'orders';
-        $where = '';
-        $params = [];
         $planColumn = $this->getOrderPlanColumn($table);
         $statusFilter = $this->normalizeStatus($statusFilter);
+
+        return new OrdersDashboardData(
+            $this->mapRows($this->fetchOrders($table, $planColumn, $statusFilter)),
+            $this->buildStats($table),
+            $statusFilter,
+            $this->mapRows($this->fetchAssignments()),
+            $this->mapRows($this->fetchPlans()),
+            $this->mapRows($this->fetchUsers()),
+        );
+    }
+
+    public function assignSubscription(int $userId, int $planId, string $billingCycle): OrdersActionResult
+    {
+        if (!$this->canAccess()) {
+            return OrdersActionResult::failure('Zugriff verweigert.');
+        }
+
+        if ($userId <= 0 || $planId <= 0) {
+            return OrdersActionResult::failure('Benutzer und Paket sind erforderlich.');
+        }
+
+        $billingCycle = $this->normalizeBillingCycle($billingCycle);
+
+        try {
+            $userExists = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}users WHERE id = ?", [$userId]);
+            $planExists = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}subscription_plans WHERE id = ?", [$planId]);
+            if ($userExists === 0 || $planExists === 0) {
+                return OrdersActionResult::failure('Benutzer oder Paket wurde nicht gefunden.');
+            }
+
+            $success = \CMS\SubscriptionManager::instance()->assignSubscription($userId, $planId, $billingCycle);
+
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SYSTEM,
+                $success ? 'subscription.assignment.created' : 'subscription.assignment.failed',
+                $success
+                    ? "Abonnement {$billingCycle} für Benutzer #{$userId} erstellt."
+                    : "Abonnement {$billingCycle} für Benutzer #{$userId} konnte nicht erstellt werden.",
+                'subscription',
+                $planId,
+                [
+                    'user_id' => $userId,
+                    'plan_id' => $planId,
+                    'billing_cycle' => $billingCycle,
+                ],
+                $success ? 'info' : 'warning'
+            );
+
+            return $success
+                ? OrdersActionResult::success('Paket wurde dem Benutzer zugewiesen.')
+                : OrdersActionResult::failure('Die Zuweisung konnte nicht gespeichert werden.');
+        } catch (\Throwable $e) {
+            return $this->failResult('orders.assign_subscription_failed', 'Die Zuweisung konnte nicht gespeichert werden.', $e, [
+                'user_id' => $userId,
+                'plan_id' => $planId,
+                'billing_cycle' => $billingCycle,
+            ]);
+        }
+    }
+
+    public function updateStatus(int $id, string $status): OrdersActionResult
+    {
+        if (!$this->canAccess()) {
+            return OrdersActionResult::failure('Zugriff verweigert.');
+        }
+
+        if ($id <= 0) {
+            return OrdersActionResult::failure('Ungültige ID.');
+        }
+
+        $status = $this->normalizeStatus($status);
+        if ($status === '') {
+            return OrdersActionResult::failure('Ungültiger Status.');
+        }
+
+        try {
+            $order = $this->getOrderSnapshot($id);
+            if ($order === null) {
+                return OrdersActionResult::failure('Bestellung wurde nicht gefunden.');
+            }
+
+            if (($order['status'] ?? '') === $status) {
+                return OrdersActionResult::success('Status war bereits gesetzt.');
+            }
+
+            $updated = $this->db->update('orders', ['status' => $status], ['id' => $id]);
+            if (!$updated) {
+                return OrdersActionResult::failure('Status konnte nicht aktualisiert werden.');
+            }
+
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SYSTEM,
+                'order.status.updated',
+                "Bestellstatus für Bestellung #{$id} geändert.",
+                'order',
+                $id,
+                [
+                    'order_number' => $this->maskOrderNumber((string)($order['order_number'] ?? '')),
+                    'from_status' => (string)($order['status'] ?? ''),
+                    'to_status' => $status,
+                    'customer_email' => $this->maskEmail((string)($order['customer_email'] ?? '')),
+                ],
+                'info'
+            );
+
+            return OrdersActionResult::success('Status aktualisiert.');
+        } catch (\Throwable $e) {
+            return $this->failResult('orders.update_status_failed', 'Status konnte nicht aktualisiert werden.', $e, [
+                'order_id' => $id,
+                'status' => $status,
+            ]);
+        }
+    }
+
+    public function delete(int $id): OrdersActionResult
+    {
+        if (!$this->canAccess()) {
+            return OrdersActionResult::failure('Zugriff verweigert.');
+        }
+
+        if ($id <= 0) {
+            return OrdersActionResult::failure('Ungültige ID.');
+        }
+
+        try {
+            $order = $this->getOrderSnapshot($id);
+            if ($order === null) {
+                return OrdersActionResult::failure('Bestellung wurde nicht gefunden.');
+            }
+
+            $deleted = $this->db->delete('orders', ['id' => $id]);
+            if (!$deleted) {
+                return OrdersActionResult::failure('Bestellung konnte nicht gelöscht werden.');
+            }
+
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SYSTEM,
+                'order.deleted',
+                "Bestellung #{$id} gelöscht.",
+                'order',
+                $id,
+                [
+                    'order_number' => $this->maskOrderNumber((string)($order['order_number'] ?? '')),
+                    'status' => (string)($order['status'] ?? ''),
+                    'customer_email' => $this->maskEmail((string)($order['customer_email'] ?? '')),
+                ],
+                'warning'
+            );
+
+            return OrdersActionResult::success('Bestellung gelöscht.');
+        } catch (\Throwable $e) {
+            return $this->failResult('orders.delete_failed', 'Bestellung konnte nicht gelöscht werden.', $e, [
+                'order_id' => $id,
+            ]);
+        }
+    }
+
+    /**
+     * @return list<object>
+     */
+    private function fetchOrders(string $table, ?string $planColumn, string $statusFilter): array
+    {
+        $where = '';
+        $params = [];
 
         if ($statusFilter !== '') {
             $where = ' WHERE o.status = ?';
@@ -105,7 +324,7 @@ class OrdersModule
             ? "LEFT JOIN {$this->prefix}subscription_plans sp ON o.{$planColumn} = sp.id"
             : '';
 
-        $orders = $this->db->get_results(
+        return $this->db->get_results(
             "SELECT o.*, {$planSelect} u.username, u.email as user_email, sp.name AS plan_name
              FROM {$table} o
              LEFT JOIN {$this->prefix}users u ON o.user_id = u.id
@@ -115,8 +334,14 @@ class OrdersModule
              LIMIT " . self::MAX_ORDERS,
             $params
         ) ?: [];
+    }
 
-        $assignments = $this->db->get_results(
+    /**
+     * @return list<object>
+     */
+    private function fetchAssignments(): array
+    {
+        return $this->db->get_results(
             "SELECT us.*, u.username, u.email, sp.name AS plan_name
              FROM {$this->prefix}user_subscriptions us
              LEFT JOIN {$this->prefix}users u ON us.user_id = u.id
@@ -124,145 +349,84 @@ class OrdersModule
              ORDER BY us.created_at DESC
                LIMIT " . self::MAX_ASSIGNMENTS
         ) ?: [];
+    }
 
-        $plans = $this->db->get_results(
+    /**
+     * @return list<object>
+     */
+    private function fetchPlans(): array
+    {
+        return $this->db->get_results(
             "SELECT id, name, price_monthly, price_yearly, is_active FROM {$this->prefix}subscription_plans WHERE is_active = 1 ORDER BY sort_order ASC, price_monthly ASC"
         ) ?: [];
+    }
 
-        $users = $this->db->get_results(
+    /**
+     * @return list<object>
+     */
+    private function fetchUsers(): array
+    {
+        return $this->db->get_results(
             "SELECT id, username, email, display_name FROM {$this->prefix}users ORDER BY username ASC LIMIT " . self::MAX_USERS
         ) ?: [];
+    }
 
-        // Stats
-        $stats = [
+    private function buildStats(string $table): array
+    {
+        return [
             'total'     => (int)$this->db->get_var("SELECT COUNT(*) FROM {$table}"),
             'pending'   => (int)$this->db->get_var("SELECT COUNT(*) FROM {$table} WHERE status = 'pending'"),
             'paid'      => (int)$this->db->get_var("SELECT COUNT(*) FROM {$table} WHERE status = 'paid'"),
             'revenue'   => (float)$this->db->get_var("SELECT COALESCE(SUM(total_amount), 0) FROM {$table} WHERE status = 'paid'"),
             'cancelled' => (int)$this->db->get_var("SELECT COUNT(*) FROM {$table} WHERE status = 'cancelled'"),
         ];
+    }
 
+    private function defaultStats(): array
+    {
         return [
-            'orders' => array_map(fn($r) => (array)$r, $orders),
-            'stats' => $stats,
-            'filter' => $statusFilter,
-            'assignments' => array_map(fn($r) => (array)$r, $assignments),
-            'plans' => array_map(fn($r) => (array)$r, $plans),
-            'users' => array_map(fn($r) => (array)$r, $users),
+            'total' => 0,
+            'pending' => 0,
+            'paid' => 0,
+            'revenue' => 0.0,
+            'cancelled' => 0,
         ];
     }
 
-    public function assignSubscription(int $userId, int $planId, string $billingCycle): array
+    /**
+     * @param list<object> $rows
+     * @return list<array<string, mixed>>
+     */
+    private function mapRows(array $rows): array
     {
-        if ($userId <= 0 || $planId <= 0) {
-            return ['success' => false, 'error' => 'Benutzer und Paket sind erforderlich.'];
-        }
-
-        $billingCycle = $this->normalizeBillingCycle($billingCycle);
-
-        $userExists = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}users WHERE id = ?", [$userId]);
-        $planExists = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}subscription_plans WHERE id = ?", [$planId]);
-        if ($userExists === 0 || $planExists === 0) {
-            return ['success' => false, 'error' => 'Benutzer oder Paket wurde nicht gefunden.'];
-        }
-
-        $success = \CMS\SubscriptionManager::instance()->assignSubscription($userId, $planId, $billingCycle);
-
-        AuditLogger::instance()->log(
-            AuditLogger::CAT_SYSTEM,
-            $success ? 'subscription.assignment.created' : 'subscription.assignment.failed',
-            $success
-                ? "Abonnement {$billingCycle} für Benutzer #{$userId} erstellt."
-                : "Abonnement {$billingCycle} für Benutzer #{$userId} konnte nicht erstellt werden.",
-            'subscription',
-            $planId,
-            [
-                'user_id' => $userId,
-                'plan_id' => $planId,
-                'billing_cycle' => $billingCycle,
-            ],
-            $success ? 'info' : 'warning'
-        );
-
-        return $success
-            ? ['success' => true, 'message' => 'Paket wurde dem Benutzer zugewiesen.']
-            : ['success' => false, 'error' => 'Die Zuweisung konnte nicht gespeichert werden.'];
+        return array_map(static fn($row) => (array)$row, $rows);
     }
 
-    public function updateStatus(int $id, string $status): array
+    private function canAccess(): bool
     {
-        if ($id <= 0) {
-            return ['success' => false, 'error' => 'Ungültige ID.'];
-        }
-
-        $status = $this->normalizeStatus($status);
-        if ($status === '') {
-            return ['success' => false, 'error' => 'Ungültiger Status.'];
-        }
-
-        $order = $this->getOrderSnapshot($id);
-        if ($order === null) {
-            return ['success' => false, 'error' => 'Bestellung wurde nicht gefunden.'];
-        }
-
-        if (($order['status'] ?? '') === $status) {
-            return ['success' => true, 'message' => 'Status war bereits gesetzt.'];
-        }
-
-        $updated = $this->db->update('orders', ['status' => $status], ['id' => $id]);
-        if (!$updated) {
-            return ['success' => false, 'error' => 'Status konnte nicht aktualisiert werden.'];
-        }
-
-        AuditLogger::instance()->log(
-            AuditLogger::CAT_SYSTEM,
-            'order.status.updated',
-            "Bestellstatus für Bestellung #{$id} geändert.",
-            'order',
-            $id,
-            [
-                'order_number' => $this->maskOrderNumber((string)($order['order_number'] ?? '')),
-                'from_status' => (string)($order['status'] ?? ''),
-                'to_status' => $status,
-                'customer_email' => $this->maskEmail((string)($order['customer_email'] ?? '')),
-            ],
-            'info'
-        );
-
-        return ['success' => true, 'message' => 'Status aktualisiert.'];
+        return class_exists(Auth::class) && Auth::instance()->isAdmin();
     }
 
-    public function delete(int $id): array
+    private function failResult(string $action, string $message, \Throwable $e, array $context = []): OrdersActionResult
     {
-        if ($id <= 0) {
-            return ['success' => false, 'error' => 'Ungültige ID.'];
-        }
-
-        $order = $this->getOrderSnapshot($id);
-        if ($order === null) {
-            return ['success' => false, 'error' => 'Bestellung wurde nicht gefunden.'];
-        }
-
-        $deleted = $this->db->delete('orders', ['id' => $id]);
-        if (!$deleted) {
-            return ['success' => false, 'error' => 'Bestellung konnte nicht gelöscht werden.'];
-        }
+        Logger::error($message, [
+            'module' => 'OrdersModule',
+            'action' => $action,
+            'exception' => $e::class,
+            'context' => $context,
+        ]);
 
         AuditLogger::instance()->log(
             AuditLogger::CAT_SYSTEM,
-            'order.deleted',
-            "Bestellung #{$id} gelöscht.",
+            $action,
+            $message,
             'order',
-            $id,
-            [
-                'order_number' => $this->maskOrderNumber((string)($order['order_number'] ?? '')),
-                'status' => (string)($order['status'] ?? ''),
-                'customer_email' => $this->maskEmail((string)($order['customer_email'] ?? '')),
-            ],
-            'warning'
+            isset($context['order_id']) ? (int)$context['order_id'] : null,
+            $context + ['exception' => $e::class],
+            'error'
         );
 
-        return ['success' => true, 'message' => 'Bestellung gelöscht.'];
+        return OrdersActionResult::failure($message . ' Bitte Logs prüfen.');
     }
 
     private function getOrderSnapshot(int $id): ?array
