@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.27-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.28-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,16 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.7.28 — 25. März 2026 · Audit-Batch 110, Orders-Modul weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.28** | 🔴 fix | Admin/Subscriptions | **Status- und Delete-Mutationen nutzen jetzt denselben kleinen Guard-Pfad**: `CMS/admin/modules/subscriptions/OrdersModule.php` bündelt die wiederkehrenden Vorbedingungen für ID- und Snapshot-Prüfung nicht mehr doppelt direkt in beiden Mutationspfaden. |
+| **2.7.28** | 🟠 perf | Admin/Subscriptions | **Audit-Kontexte für Bestellmutationen bleiben zentraler wartbar**: gemeinsame Maskierung und Kontextaufbereitung für Order-Nummer und Kundenmail müssen nicht mehr in mehreren Mutationszweigen separat gepflegt werden. |
+| **2.7.28** | 🟡 refactor | Admin/Subscriptions | **Das Orders-Modul bleibt näher an kleinen Orchestrator-Bausteinen**: Status- und Delete-Pfade konzentrieren sich stärker auf ihre eigentliche Mutation statt auf wiederholten Guard- und Audit-Kontext-Aufbau. |
 
 ---
 

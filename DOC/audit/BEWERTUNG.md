@@ -5,13 +5,19 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 109
+### Gesamtstand nach Batch 110
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 445 | 82,68 | 81,64 | 84,38 | 82,90 |
+| 445 | 82,75 | 81,70 | 84,45 | 82,97 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **109 umgesetzte Audit-Batches**. Das sind aktuell **109 von 444 Prüfplan-Punkten**. Zuletzt wurde `CMS/admin/views/system/mail-settings.php` beim wiederkehrenden Formular-Kontext für `csrf_token` und `tab` weiter standardisiert.
+Der aktuelle Nachpflege-Stand umfasst damit **110 umgesetzte Audit-Batches**. Das sind aktuell **110 von 444 Prüfplan-Punkten**. Zuletzt wurde `CMS/admin/modules/subscriptions/OrdersModule.php` bei wiederkehrenden Mutations-Vorbedingungen und Audit-Kontexten weiter standardisiert.
+
+### Delta Batch 110
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/subscriptions/OrdersModule.php` | umgesetzt | Wiederkehrende Mutations-Vorbedingungen und Audit-Kontexte für Status- und Delete-Pfade über kleine lokale Helfer gebündelt statt doppelter Guard- und Kontextlogik in beiden Methoden. | Das Orders-Modul reduziert weiteres Orchestrator-Duplikat in Bestellmutationen, hält Guard- und Audit-Änderungen zentraler und bleibt bei Status- und Delete-Anpassungen konsistenter wartbar. |
 
 ### Delta Batch 109
 

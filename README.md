@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.7.27-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.7.28-blue.svg)](Changelog.md)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
@@ -29,16 +29,16 @@
 
 ## 📈 Audit-Stand März 2026
 
-Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 109** nachgezogen. Aktuell sind damit **109 von 444 Prüfplan-Punkten** geschafft. Der aktuelle dokumentierte Gesamtstand über **445 bewertete Dateien** liegt bei:
+Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 110** nachgezogen. Aktuell sind damit **110 von 444 Prüfplan-Punkten** geschafft. Der aktuelle dokumentierte Gesamtstand über **445 bewertete Dateien** liegt bei:
 
 | Metrik | Stand |
 |---|---:|
-| **Security** | **82,68** |
-| **Speed** | **81,64** |
-| **PHP / Best Practices** | **84,38** |
-| **Gesamt** | **82,90** |
+| **Security** | **82,75** |
+| **Speed** | **81,70** |
+| **PHP / Best Practices** | **84,45** |
+| **Gesamt** | **82,97** |
 
-Zuletzt wurde die Mail-Settings-View weiter standardisiert: `CMS/admin/views/system/mail-settings.php` bündelt die wiederkehrenden Hidden-Felder für `csrf_token` und `tab` jetzt über einen kleinen lokalen Renderer, damit Transport-, Azure-, Graph-, Log- und Queue-Formulare denselben Formular-Kontext ohne Copy-&-Paste-Markup verwenden.
+Zuletzt wurde das Orders-Modul weiter standardisiert: `CMS/admin/modules/subscriptions/OrdersModule.php` bündelt die wiederkehrenden Mutations-Vorbedingungen und Audit-Kontexte für Status- und Delete-Pfade jetzt über kleine lokale Helfer, damit Bestellmutationen denselben Guard- und Logging-Kontext ohne Copy-&-Paste-Orchestrierung verwenden.
 
 ## 🧩 Funktionsumfang im Überblick
 
