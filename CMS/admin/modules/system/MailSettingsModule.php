@@ -6,6 +6,8 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\AuditLogger;
+use CMS\Auth;
+use CMS\Logger;
 use CMS\Services\AzureMailTokenProvider;
 use CMS\Services\GraphApiService;
 use CMS\Services\MailLogService;
@@ -15,6 +17,12 @@ use CMS\Services\SettingsService;
 
 class MailSettingsModule
 {
+    private const int MAX_TEXT_LENGTH = 190;
+    private const int MAX_HOST_LENGTH = 190;
+    private const int MAX_NAME_LENGTH = 120;
+    private const int MAX_SCOPE_LENGTH = 190;
+    private const int MAX_URL_LENGTH = 255;
+
     private SettingsService $settings;
     private MailLogService $mailLogs;
     private MailQueueService $mailQueue;
@@ -28,6 +36,25 @@ class MailSettingsModule
 
     public function getData(): array
     {
+        if (!$this->canAccess()) {
+            return [
+                'transport' => [],
+                'azure' => [],
+                'graph' => [],
+                'transport_info' => [],
+                'mail_logs' => [],
+                'mail_stats' => [],
+                'queue' => [],
+                'queue_stats' => [
+                    'pending' => 0,
+                    'processing' => 0,
+                    'sent' => 0,
+                    'failed' => 0,
+                ],
+                'error' => 'Zugriff verweigert.',
+            ];
+        }
+
         $mail = $this->settings->getGroup('mail');
         $graph = $this->settings->getGroup('graph');
         $transportInfo = MailService::getInstance()->getTransportInfo();
@@ -83,6 +110,10 @@ class MailSettingsModule
 
     public function saveTransport(array $post): array
     {
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+        }
+
         $driver = ($post['driver'] ?? 'mail') === 'smtp' ? 'smtp' : 'mail';
         $authMode = ($post['auth_mode'] ?? 'password') === 'oauth2' ? 'oauth2' : 'password';
         $smtpEncryption = (string) ($post['smtp_encryption'] ?? 'tls');
@@ -93,30 +124,42 @@ class MailSettingsModule
         $values = [
             'driver' => $driver,
             'auth_mode' => $authMode,
-            'smtp_host' => trim((string) ($post['smtp_host'] ?? '')),
+            'smtp_host' => $this->sanitizeHost((string) ($post['smtp_host'] ?? '')),
             'smtp_port' => max(1, min(65535, (int) ($post['smtp_port'] ?? 587))),
             'smtp_encryption' => $smtpEncryption,
-            'smtp_username' => trim((string) ($post['smtp_username'] ?? '')),
-            'from_email' => filter_var((string) ($post['from_email'] ?? ''), FILTER_VALIDATE_EMAIL) ?: '',
-            'from_name' => trim(strip_tags((string) ($post['from_name'] ?? ''))),
-            'test_recipient' => filter_var((string) ($post['test_recipient'] ?? ''), FILTER_VALIDATE_EMAIL) ?: '',
+            'smtp_username' => $this->sanitizeText((string) ($post['smtp_username'] ?? ''), self::MAX_TEXT_LENGTH),
+            'from_email' => $this->sanitizeEmail((string) ($post['from_email'] ?? '')),
+            'from_name' => $this->sanitizeText((string) ($post['from_name'] ?? ''), self::MAX_NAME_LENGTH),
+            'test_recipient' => $this->sanitizeEmail((string) ($post['test_recipient'] ?? '')),
         ];
 
-        if (!$this->settings->setMany('mail', $values, [], 0)) {
-            return ['success' => false, 'error' => 'Transport-Einstellungen konnten nicht gespeichert werden.'];
+        if ($driver === 'smtp' && $values['smtp_host'] === '') {
+            return ['success' => false, 'error' => 'Für SMTP muss ein gültiger SMTP-Host angegeben werden.'];
         }
 
-        $smtpPassword = trim((string) ($post['smtp_password'] ?? ''));
-        if ($smtpPassword !== '') {
-            $this->settings->set('mail', 'smtp_password', $smtpPassword, true, 0);
+        if ($values['from_email'] === '') {
+            return ['success' => false, 'error' => 'Bitte eine gültige Absender-E-Mail-Adresse angeben.'];
         }
 
-        if (!empty($post['clear_smtp_password'])) {
-            $this->settings->forget('mail', 'smtp_password');
-        }
+        try {
+            if (!$this->settings->setMany('mail', $values, [], 0)) {
+                return ['success' => false, 'error' => 'Transport-Einstellungen konnten nicht gespeichert werden.'];
+            }
 
-        if ($authMode !== 'oauth2') {
-            AzureMailTokenProvider::getInstance()->clearCache();
+            $smtpPassword = trim((string) ($post['smtp_password'] ?? ''));
+            if ($smtpPassword !== '') {
+                $this->settings->set('mail', 'smtp_password', $smtpPassword, true, 0);
+            }
+
+            if (!empty($post['clear_smtp_password'])) {
+                $this->settings->forget('mail', 'smtp_password');
+            }
+
+            if ($authMode !== 'oauth2') {
+                AzureMailTokenProvider::getInstance()->clearCache();
+            }
+        } catch (\Throwable $e) {
+            return $this->failResult('setting.mail.transport.save_failed', 'Transport-Einstellungen konnten nicht gespeichert werden.', $e);
         }
 
         AuditLogger::instance()->log(
@@ -128,8 +171,9 @@ class MailSettingsModule
             [
                 'driver' => $driver,
                 'auth_mode' => $authMode,
-                'smtp_host' => $values['smtp_host'],
+                'smtp_host' => $this->maskHost($values['smtp_host']),
                 'smtp_port' => $values['smtp_port'],
+                'from_email' => $this->maskEmail($values['from_email']),
             ],
             'info'
         );
@@ -139,27 +183,39 @@ class MailSettingsModule
 
     public function saveAzure(array $post): array
     {
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+        }
+
         $values = [
-            'azure_tenant_id' => trim((string) ($post['azure_tenant_id'] ?? '')),
-            'azure_client_id' => trim((string) ($post['azure_client_id'] ?? '')),
-            'azure_mailbox' => filter_var((string) ($post['azure_mailbox'] ?? ''), FILTER_VALIDATE_EMAIL) ?: '',
-            'azure_scope' => trim((string) ($post['azure_scope'] ?? 'https://outlook.office365.com/.default')),
-            'azure_token_endpoint' => trim((string) ($post['azure_token_endpoint'] ?? '')),
+            'azure_tenant_id' => $this->sanitizeText((string) ($post['azure_tenant_id'] ?? ''), self::MAX_TEXT_LENGTH),
+            'azure_client_id' => $this->sanitizeText((string) ($post['azure_client_id'] ?? ''), self::MAX_TEXT_LENGTH),
+            'azure_mailbox' => $this->sanitizeEmail((string) ($post['azure_mailbox'] ?? '')),
+            'azure_scope' => $this->sanitizeText((string) ($post['azure_scope'] ?? 'https://outlook.office365.com/.default'), self::MAX_SCOPE_LENGTH),
+            'azure_token_endpoint' => $this->sanitizeUrl((string) ($post['azure_token_endpoint'] ?? ''), true),
         ];
 
-        if (!$this->settings->setMany('mail', $values, [], 0)) {
-            return ['success' => false, 'error' => 'Azure-OAuth2-Einstellungen konnten nicht gespeichert werden.'];
+        if ($values['azure_tenant_id'] === '' || $values['azure_client_id'] === '') {
+            return ['success' => false, 'error' => 'Tenant-ID und Client-ID müssen gesetzt sein.'];
         }
 
-        $clientSecret = trim((string) ($post['azure_client_secret'] ?? ''));
-        if ($clientSecret !== '') {
-            $this->settings->set('mail', 'azure_client_secret', $clientSecret, true, 0);
-        }
-        if (!empty($post['clear_azure_client_secret'])) {
-            $this->settings->forget('mail', 'azure_client_secret');
-        }
+        try {
+            if (!$this->settings->setMany('mail', $values, [], 0)) {
+                return ['success' => false, 'error' => 'Azure-OAuth2-Einstellungen konnten nicht gespeichert werden.'];
+            }
 
-        AzureMailTokenProvider::getInstance()->clearCache();
+            $clientSecret = trim((string) ($post['azure_client_secret'] ?? ''));
+            if ($clientSecret !== '') {
+                $this->settings->set('mail', 'azure_client_secret', $clientSecret, true, 0);
+            }
+            if (!empty($post['clear_azure_client_secret'])) {
+                $this->settings->forget('mail', 'azure_client_secret');
+            }
+
+            AzureMailTokenProvider::getInstance()->clearCache();
+        } catch (\Throwable $e) {
+            return $this->failResult('setting.mail.azure.save_failed', 'Azure-OAuth2-Einstellungen konnten nicht gespeichert werden.', $e);
+        }
 
         AuditLogger::instance()->log(
             AuditLogger::CAT_SETTING,
@@ -168,9 +224,9 @@ class MailSettingsModule
             'setting',
             null,
             [
-                'tenant_id' => $values['azure_tenant_id'],
-                'client_id' => $values['azure_client_id'],
-                'mailbox' => $values['azure_mailbox'],
+                'tenant_id' => $this->maskIdentifier($values['azure_tenant_id']),
+                'client_id' => $this->maskIdentifier($values['azure_client_id']),
+                'mailbox' => $this->maskEmail($values['azure_mailbox']),
             ],
             'info'
         );
@@ -180,27 +236,39 @@ class MailSettingsModule
 
     public function saveGraph(array $post): array
     {
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+        }
+
         $values = [
-            'tenant_id' => trim((string) ($post['graph_tenant_id'] ?? '')),
-            'client_id' => trim((string) ($post['graph_client_id'] ?? '')),
-            'scope' => trim((string) ($post['graph_scope'] ?? 'https://graph.microsoft.com/.default')),
-            'base_url' => trim((string) ($post['graph_base_url'] ?? 'https://graph.microsoft.com/v1.0')),
-            'token_endpoint' => trim((string) ($post['graph_token_endpoint'] ?? '')),
+            'tenant_id' => $this->sanitizeText((string) ($post['graph_tenant_id'] ?? ''), self::MAX_TEXT_LENGTH),
+            'client_id' => $this->sanitizeText((string) ($post['graph_client_id'] ?? ''), self::MAX_TEXT_LENGTH),
+            'scope' => $this->sanitizeText((string) ($post['graph_scope'] ?? 'https://graph.microsoft.com/.default'), self::MAX_SCOPE_LENGTH),
+            'base_url' => $this->sanitizeUrl((string) ($post['graph_base_url'] ?? 'https://graph.microsoft.com/v1.0')),
+            'token_endpoint' => $this->sanitizeUrl((string) ($post['graph_token_endpoint'] ?? ''), true),
         ];
 
-        if (!$this->settings->setMany('graph', $values, [], 0)) {
-            return ['success' => false, 'error' => 'Graph-Einstellungen konnten nicht gespeichert werden.'];
+        if ($values['tenant_id'] === '' || $values['client_id'] === '' || $values['base_url'] === '') {
+            return ['success' => false, 'error' => 'Tenant-ID, Client-ID und Graph-Basis-URL müssen gültig gesetzt sein.'];
         }
 
-        $clientSecret = trim((string) ($post['graph_client_secret'] ?? ''));
-        if ($clientSecret !== '') {
-            $this->settings->set('graph', 'client_secret', $clientSecret, true, 0);
-        }
-        if (!empty($post['clear_graph_client_secret'])) {
-            $this->settings->forget('graph', 'client_secret');
-        }
+        try {
+            if (!$this->settings->setMany('graph', $values, [], 0)) {
+                return ['success' => false, 'error' => 'Graph-Einstellungen konnten nicht gespeichert werden.'];
+            }
 
-        GraphApiService::getInstance()->clearCache();
+            $clientSecret = trim((string) ($post['graph_client_secret'] ?? ''));
+            if ($clientSecret !== '') {
+                $this->settings->set('graph', 'client_secret', $clientSecret, true, 0);
+            }
+            if (!empty($post['clear_graph_client_secret'])) {
+                $this->settings->forget('graph', 'client_secret');
+            }
+
+            GraphApiService::getInstance()->clearCache();
+        } catch (\Throwable $e) {
+            return $this->failResult('setting.graph.save_failed', 'Graph-Einstellungen konnten nicht gespeichert werden.', $e);
+        }
 
         AuditLogger::instance()->log(
             AuditLogger::CAT_SETTING,
@@ -209,9 +277,9 @@ class MailSettingsModule
             'setting',
             null,
             [
-                'tenant_id' => $values['tenant_id'],
-                'client_id' => $values['client_id'],
-                'base_url' => $values['base_url'],
+                'tenant_id' => $this->maskIdentifier($values['tenant_id']),
+                'client_id' => $this->maskIdentifier($values['client_id']),
+                'base_url' => $this->maskUrl($values['base_url']),
             ],
             'info'
         );
@@ -221,8 +289,22 @@ class MailSettingsModule
 
     public function sendTestEmail(array $post): array
     {
-        $recipient = trim((string) ($post['test_email_recipient'] ?? $post['test_recipient'] ?? ''));
-        $result = MailService::getInstance()->sendBackendTestEmail($recipient, 'admin-mail-settings');
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+        }
+
+        $recipient = $this->sanitizeEmail((string) ($post['test_email_recipient'] ?? $post['test_recipient'] ?? ''));
+        if ($recipient === '') {
+            return ['success' => false, 'error' => 'Bitte eine gültige Empfänger-E-Mail-Adresse angeben.'];
+        }
+
+        try {
+            $result = MailService::getInstance()->sendBackendTestEmail($recipient, 'admin-mail-settings');
+        } catch (\Throwable $e) {
+            return $this->failResult('setting.mail.test_failed', 'Test-E-Mail konnte nicht versendet werden.', $e);
+        }
+
+        $result = $this->sanitizeActionResponse($result, ['transport']);
 
         AuditLogger::instance()->log(
             AuditLogger::CAT_SETTING,
@@ -231,8 +313,8 @@ class MailSettingsModule
             'setting',
             null,
             [
-                'recipient' => $recipient,
-                'transport' => $result['transport'] ?? null,
+                'recipient' => $this->maskEmail($recipient),
+                'transport' => $this->sanitizeText((string) ($result['transport'] ?? ''), 40),
                 'result' => !empty($result['success']) ? 'success' : 'error',
             ],
             !empty($result['success']) ? 'info' : 'warning'
@@ -243,21 +325,30 @@ class MailSettingsModule
 
     public function saveQueue(array $post): array
     {
-        $saved = $this->mailQueue->saveConfiguration([
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+        }
+
+        $queueConfig = [
             'enabled' => !empty($post['queue_enabled']),
-            'batch_size' => (int) ($post['queue_batch_size'] ?? 10),
-            'max_attempts' => (int) ($post['queue_max_attempts'] ?? 5),
-            'retry_delay_seconds' => (int) ($post['queue_retry_delay_seconds'] ?? 300),
-            'throttle_delay_seconds' => (int) ($post['queue_throttle_delay_seconds'] ?? 900),
-            'lock_timeout_seconds' => (int) ($post['queue_lock_timeout_seconds'] ?? 900),
-        ]);
+            'batch_size' => max(1, min(100, (int) ($post['queue_batch_size'] ?? 10))),
+            'max_attempts' => max(1, min(20, (int) ($post['queue_max_attempts'] ?? 5))),
+            'retry_delay_seconds' => max(30, min(86400, (int) ($post['queue_retry_delay_seconds'] ?? 300))),
+            'throttle_delay_seconds' => max(0, min(86400, (int) ($post['queue_throttle_delay_seconds'] ?? 900))),
+            'lock_timeout_seconds' => max(60, min(86400, (int) ($post['queue_lock_timeout_seconds'] ?? 900))),
+        ];
+
+        try {
+            $saved = $this->mailQueue->saveConfiguration($queueConfig);
+            if ($saved && !empty($post['regenerate_queue_cron_token'])) {
+                $this->mailQueue->rotateCronToken();
+            }
+        } catch (\Throwable $e) {
+            return $this->failResult('setting.mail.queue.save_failed', 'Queue-Einstellungen konnten nicht gespeichert werden.', $e);
+        }
 
         if (!$saved) {
             return ['success' => false, 'error' => 'Queue-Einstellungen konnten nicht gespeichert werden.'];
-        }
-
-        if (!empty($post['regenerate_queue_cron_token'])) {
-            $this->mailQueue->rotateCronToken();
         }
 
         AuditLogger::instance()->log(
@@ -267,9 +358,10 @@ class MailSettingsModule
             'setting',
             null,
             [
-                'enabled' => !empty($post['queue_enabled']),
-                'batch_size' => (int) ($post['queue_batch_size'] ?? 10),
-                'max_attempts' => (int) ($post['queue_max_attempts'] ?? 5),
+                'enabled' => $queueConfig['enabled'],
+                'batch_size' => $queueConfig['batch_size'],
+                'max_attempts' => $queueConfig['max_attempts'],
+                'cron_token_rotated' => !empty($post['regenerate_queue_cron_token']),
             ],
             'info'
         );
@@ -279,8 +371,18 @@ class MailSettingsModule
 
     public function runQueueNow(array $post): array
     {
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+        }
+
         $limit = max(1, min(100, (int) ($post['queue_run_limit'] ?? 0)));
-        $result = $this->mailQueue->processDueJobs($limit > 0 ? $limit : null, 'admin-manual', true);
+        try {
+            $result = $this->mailQueue->processDueJobs($limit > 0 ? $limit : null, 'admin-manual', true);
+        } catch (\Throwable $e) {
+            return $this->failResult('mail.queue.run_failed', 'Mail-Queue-Lauf konnte nicht gestartet werden.', $e);
+        }
+
+        $result = $this->sanitizeActionResponse($result);
 
         AuditLogger::instance()->log(
             AuditLogger::CAT_SYSTEM,
@@ -288,7 +390,7 @@ class MailSettingsModule
             !empty($result['success']) ? 'Mail-Queue manuell ausgeführt.' : 'Mail-Queue-Lauf fehlgeschlagen.',
             'system',
             null,
-            $result,
+            $this->summarizeQueueResult($result),
             !empty($result['success']) ? 'info' : 'warning'
         );
 
@@ -297,8 +399,16 @@ class MailSettingsModule
 
     public function releaseQueueStale(): array
     {
-        $config = $this->mailQueue->getConfiguration();
-        $released = $this->mailQueue->releaseStaleProcessingJobs((int) ($config['lock_timeout_seconds'] ?? 900));
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+        }
+
+        try {
+            $config = $this->mailQueue->getConfiguration();
+            $released = $this->mailQueue->releaseStaleProcessingJobs((int) ($config['lock_timeout_seconds'] ?? 900));
+        } catch (\Throwable $e) {
+            return $this->failResult('mail.queue.release_stale_failed', 'Verwaiste Queue-Jobs konnten nicht freigegeben werden.', $e);
+        }
 
         AuditLogger::instance()->log(
             AuditLogger::CAT_SYSTEM,
@@ -320,8 +430,22 @@ class MailSettingsModule
 
     public function enqueueQueueTestEmail(array $post): array
     {
-        $recipient = trim((string) ($post['queue_test_recipient'] ?? $post['test_recipient'] ?? ''));
-        $result = MailService::getInstance()->queueBackendTestEmail($recipient, 'admin-mail-queue');
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+        }
+
+        $recipient = $this->sanitizeEmail((string) ($post['queue_test_recipient'] ?? $post['test_recipient'] ?? ''));
+        if ($recipient === '') {
+            return ['success' => false, 'error' => 'Bitte eine gültige Empfänger-E-Mail-Adresse angeben.'];
+        }
+
+        try {
+            $result = MailService::getInstance()->queueBackendTestEmail($recipient, 'admin-mail-queue');
+        } catch (\Throwable $e) {
+            return $this->failResult('setting.mail.queue.enqueue_test_failed', 'Test-E-Mail konnte nicht in die Queue gelegt werden.', $e);
+        }
+
+        $result = $this->sanitizeActionResponse($result, ['id']);
 
         AuditLogger::instance()->log(
             AuditLogger::CAT_SETTING,
@@ -330,7 +454,7 @@ class MailSettingsModule
             'setting',
             null,
             [
-                'recipient' => $recipient,
+                'recipient' => $this->maskEmail($recipient),
                 'queue_id' => $result['id'] ?? null,
                 'result' => !empty($result['success']) ? 'success' : 'error',
             ],
@@ -342,7 +466,17 @@ class MailSettingsModule
 
     public function testGraphConnection(): array
     {
-        $result = GraphApiService::getInstance()->testConnection(true);
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+        }
+
+        try {
+            $result = GraphApiService::getInstance()->testConnection(true);
+        } catch (\Throwable $e) {
+            return $this->failResult('setting.graph.test_failed', 'Microsoft-Graph-Verbindungstest fehlgeschlagen.', $e);
+        }
+
+        $result = $this->sanitizeActionResponse($result, ['token_expires_at']);
 
         AuditLogger::instance()->log(
             AuditLogger::CAT_SETTING,
@@ -352,7 +486,7 @@ class MailSettingsModule
             null,
             [
                 'result' => !empty($result['success']) ? 'success' : 'error',
-                'organization' => $result['organization']['displayName'] ?? null,
+                'organization' => $this->sanitizeText((string) ($result['organization']['displayName'] ?? ''), self::MAX_NAME_LENGTH),
             ],
             !empty($result['success']) ? 'info' : 'warning'
         );
@@ -362,7 +496,17 @@ class MailSettingsModule
 
     public function clearLogs(): array
     {
-        if (!$this->mailLogs->clear()) {
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+        }
+
+        try {
+            $cleared = $this->mailLogs->clear();
+        } catch (\Throwable $e) {
+            return $this->failResult('mail.log.clear_failed', 'Mail-Logs konnten nicht geleert werden.', $e);
+        }
+
+        if (!$cleared) {
             return ['success' => false, 'error' => 'Mail-Logs konnten nicht geleert werden.'];
         }
 
@@ -381,15 +525,267 @@ class MailSettingsModule
 
     public function clearAzureCache(): array
     {
-        AzureMailTokenProvider::getInstance()->clearCache();
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+        }
+
+        try {
+            AzureMailTokenProvider::getInstance()->clearCache();
+        } catch (\Throwable $e) {
+            return $this->failResult('setting.mail.azure_cache.clear_failed', 'Azure-Token-Cache konnte nicht geleert werden.', $e);
+        }
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            'setting.mail.azure_cache.clear',
+            'Azure-Mail-Token-Cache wurde geleert.',
+            'setting',
+            null,
+            [],
+            'info'
+        );
 
         return ['success' => true, 'message' => 'Azure-Token-Cache wurde geleert.'];
     }
 
     public function clearGraphCache(): array
     {
-        GraphApiService::getInstance()->clearCache();
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+        }
+
+        try {
+            GraphApiService::getInstance()->clearCache();
+        } catch (\Throwable $e) {
+            return $this->failResult('setting.graph.cache.clear_failed', 'Graph-Token-Cache konnte nicht geleert werden.', $e);
+        }
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            'setting.graph.cache.clear',
+            'Graph-Token-Cache wurde geleert.',
+            'setting',
+            null,
+            [],
+            'info'
+        );
 
         return ['success' => true, 'message' => 'Graph-Token-Cache wurde geleert.'];
+    }
+
+    private function canAccess(): bool
+    {
+        return Auth::instance()->isAdmin();
+    }
+
+    private function sanitizeEmail(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        $value = function_exists('mb_substr') ? mb_substr($value, 0, self::MAX_TEXT_LENGTH) : substr($value, 0, self::MAX_TEXT_LENGTH);
+
+        return filter_var($value, FILTER_VALIDATE_EMAIL) ? $value : '';
+    }
+
+    private function sanitizeText(string $value, int $maxLength): string
+    {
+        $value = trim(strip_tags($value));
+        if ($value === '') {
+            return '';
+        }
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
+    }
+
+    private function sanitizeHost(string $value): string
+    {
+        $value = strtolower(trim($value));
+        if ($value === '') {
+            return '';
+        }
+
+        $value = function_exists('mb_substr') ? mb_substr($value, 0, self::MAX_HOST_LENGTH) : substr($value, 0, self::MAX_HOST_LENGTH);
+        if (preg_match('/^[a-z0-9.-]+$/', $value) !== 1) {
+            return '';
+        }
+
+        return trim($value, '.');
+    }
+
+    private function sanitizeUrl(string $value, bool $allowEmpty = false): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return $allowEmpty ? '' : '';
+        }
+
+        $value = filter_var($value, FILTER_SANITIZE_URL) ?: '';
+        $value = function_exists('mb_substr') ? mb_substr($value, 0, self::MAX_URL_LENGTH) : substr($value, 0, self::MAX_URL_LENGTH);
+        if ($value === '' || filter_var($value, FILTER_VALIDATE_URL) === false) {
+            return '';
+        }
+
+        $parts = parse_url($value);
+        if (!is_array($parts)) {
+            return '';
+        }
+
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $host = trim((string) ($parts['host'] ?? ''));
+        if (!in_array($scheme, ['http', 'https'], true) || $host === '' || isset($parts['user']) || isset($parts['pass'])) {
+            return '';
+        }
+
+        $normalized = $scheme . '://' . $host;
+        if (isset($parts['port'])) {
+            $normalized .= ':' . (int) $parts['port'];
+        }
+
+        $path = trim((string) ($parts['path'] ?? ''));
+        if ($path !== '') {
+            $normalized .= '/' . ltrim($path, '/');
+        }
+
+        return $normalized;
+    }
+
+    private function maskEmail(string $email): string
+    {
+        $email = trim($email);
+        if ($email === '' || !str_contains($email, '@')) {
+            return '';
+        }
+
+        [$local, $domain] = explode('@', $email, 2);
+        if ($local === '' || $domain === '') {
+            return '';
+        }
+
+        $first = function_exists('mb_substr') ? mb_substr($local, 0, 1) : substr($local, 0, 1);
+
+        return $first . '***@' . strtolower($domain);
+    }
+
+    private function maskIdentifier(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        $length = function_exists('mb_strlen') ? mb_strlen($value) : strlen($value);
+        if ($length <= 6) {
+            return '***';
+        }
+
+        $prefix = function_exists('mb_substr') ? mb_substr($value, 0, 3) : substr($value, 0, 3);
+        $suffix = function_exists('mb_substr') ? mb_substr($value, -3) : substr($value, -3);
+
+        return $prefix . '***' . $suffix;
+    }
+
+    private function maskHost(string $host): string
+    {
+        $host = trim($host);
+        if ($host === '') {
+            return '';
+        }
+
+        $parts = explode('.', $host);
+        if (count($parts) < 2) {
+            return '***';
+        }
+
+        return '***.' . implode('.', array_slice($parts, -2));
+    }
+
+    private function maskUrl(string $url): string
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return '';
+        }
+
+        $scheme = strtolower((string) ($parts['scheme'] ?? 'https'));
+        $host = $this->maskHost((string) ($parts['host'] ?? ''));
+        if ($host === '') {
+            return '';
+        }
+
+        return $scheme . '://' . $host;
+    }
+
+    /** @param array<string, mixed> $result */
+    private function summarizeQueueResult(array $result): array
+    {
+        return [
+            'success' => !empty($result['success']),
+            'processed' => max(0, (int) ($result['processed'] ?? 0)),
+            'sent' => max(0, (int) ($result['sent'] ?? 0)),
+            'failed' => max(0, (int) ($result['failed'] ?? 0)),
+            'message' => $this->sanitizeText((string) ($result['message'] ?? ''), self::MAX_TEXT_LENGTH),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $result
+     * @param list<string> $allowedExtraKeys
+     * @return array<string, mixed>
+     */
+    private function sanitizeActionResponse(array $result, array $allowedExtraKeys = []): array
+    {
+        $sanitized = [
+            'success' => !empty($result['success']),
+        ];
+
+        if (isset($result['message'])) {
+            $sanitized['message'] = $this->sanitizeText((string) $result['message'], self::MAX_TEXT_LENGTH);
+        }
+
+        if (isset($result['error'])) {
+            $sanitized['error'] = $this->sanitizeText((string) $result['error'], self::MAX_TEXT_LENGTH);
+        }
+
+        foreach ($allowedExtraKeys as $key) {
+            if (!array_key_exists($key, $result)) {
+                continue;
+            }
+
+            $value = $result[$key];
+            if (is_string($value)) {
+                $sanitized[$key] = $this->sanitizeText($value, self::MAX_TEXT_LENGTH);
+                continue;
+            }
+
+            if (is_int($value) || is_float($value) || is_bool($value) || $value === null) {
+                $sanitized[$key] = $value;
+            }
+        }
+
+        return $sanitized;
+    }
+
+    private function failResult(string $action, string $message, \Throwable $e): array
+    {
+        Logger::error($message, [
+            'module' => 'MailSettingsModule',
+            'action' => $action,
+            'exception' => $e::class,
+        ]);
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            $action,
+            $message,
+            'setting',
+            null,
+            ['exception' => $e::class],
+            'error'
+        );
+
+        return ['success' => false, 'error' => $message . ' Bitte Logs prüfen.'];
     }
 }

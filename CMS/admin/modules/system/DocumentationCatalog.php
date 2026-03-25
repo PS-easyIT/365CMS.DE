@@ -7,6 +7,9 @@ if (!defined('ABSPATH')) {
 
 final class DocumentationCatalog
 {
+    private const int MAX_DOCUMENT_READ_BYTES = 262144;
+    private const int MAX_METADATA_READ_BYTES = 32768;
+
     public function __construct(
         private readonly string $docsRoot,
         private readonly string $githubDocBase,
@@ -51,13 +54,20 @@ final class DocumentationCatalog
 
     public function readDocumentContents(string $fullPath): string
     {
-        if (!is_file($fullPath) || !is_readable($fullPath)) {
+        if (!$this->isReadableDocumentPath($fullPath)) {
             $this->logFilesystemFailure('file_get_contents_preflight', 'Dokument konnte nicht gelesen werden.', [
-                'path' => $fullPath,
+                'path' => $this->safeLogPath($fullPath),
                 'reason' => 'file_unreadable',
             ]);
 
             return '';
+        }
+
+        $size = filesize($fullPath);
+        $maxBytes = self::MAX_DOCUMENT_READ_BYTES;
+        $bytesToRead = $maxBytes;
+        if (is_int($size) && $size > 0) {
+            $bytesToRead = min($size, $maxBytes + 1);
         }
 
         $warning = null;
@@ -67,18 +77,26 @@ final class DocumentationCatalog
         });
 
         try {
-            $contents = file_get_contents($fullPath);
+            $contents = file_get_contents($fullPath, false, null, 0, $bytesToRead);
         } finally {
             restore_error_handler();
         }
 
         if (!is_string($contents)) {
-            $context = ['path' => $fullPath];
+            $context = ['path' => $this->safeLogPath($fullPath)];
             if ($warning !== null) {
-                $context['warning'] = $warning;
+                $context['warning'] = $this->sanitizeLogValue($warning, 180);
             }
             $this->logFilesystemFailure('file_get_contents', 'Dokument konnte nicht gelesen werden.', $context);
             return '';
+        }
+
+        if (strlen($contents) > $maxBytes) {
+            $this->logFilesystemFailure('file_read_truncated', 'Dokument wurde für die Admin-Ansicht auf die maximale Lesegröße begrenzt.', [
+                'path' => $this->safeLogPath($fullPath),
+                'max_bytes' => $maxBytes,
+            ]);
+            $contents = substr($contents, 0, $maxBytes);
         }
 
         return $contents;
@@ -183,7 +201,12 @@ final class DocumentationCatalog
     {
         $documents = [];
         $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS)
+            new RecursiveCallbackFilterIterator(
+                new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS),
+                static function (SplFileInfo $file): bool {
+                    return !$file->isLink();
+                }
+            )
         );
 
         /** @var SplFileInfo $file */
@@ -211,7 +234,7 @@ final class DocumentationCatalog
     private function buildDocumentMeta(string $fullPath): array
     {
         $relativePath = $this->relativePath($fullPath);
-        $contents = $this->readDocumentContents($fullPath);
+        $contents = $this->readMetadataContents($fullPath);
         $extension = strtolower((string) pathinfo($fullPath, PATHINFO_EXTENSION));
 
         return [
@@ -229,6 +252,16 @@ final class DocumentationCatalog
     {
         $relative = substr($fullPath, strlen(rtrim($this->docsRoot, '\\/')) + 1);
         return $this->normalizeRelativePath((string) $relative);
+    }
+
+    private function readMetadataContents(string $fullPath): string
+    {
+        if (!$this->isReadableDocumentPath($fullPath)) {
+            return '';
+        }
+
+        $contents = @file_get_contents($fullPath, false, null, 0, self::MAX_METADATA_READ_BYTES);
+        return is_string($contents) ? $contents : '';
     }
 
     private function extractTitle(string $relativePath, string $contents): string
@@ -464,6 +497,45 @@ final class DocumentationCatalog
         }
 
         return implode('/', $segments);
+    }
+
+    private function isReadableDocumentPath(string $fullPath): bool
+    {
+        if (!is_file($fullPath) || !is_readable($fullPath) || is_link($fullPath)) {
+            return false;
+        }
+
+        return $this->isWithinDocsRoot($fullPath);
+    }
+
+    private function isWithinDocsRoot(string $path): bool
+    {
+        $docsRoot = realpath($this->docsRoot);
+        $resolvedPath = realpath($path);
+        if ($docsRoot === false || $resolvedPath === false) {
+            return false;
+        }
+
+        $normalizedRoot = rtrim(str_replace('\\', '/', $docsRoot), '/') . '/';
+        $normalizedPath = str_replace('\\', '/', $resolvedPath);
+
+        return str_starts_with($normalizedPath, $normalizedRoot);
+    }
+
+    private function safeLogPath(string $fullPath): string
+    {
+        if ($this->isWithinDocsRoot($fullPath)) {
+            return $this->relativePath($fullPath);
+        }
+
+        return basename($fullPath);
+    }
+
+    private function sanitizeLogValue(string $value, int $maxLength): string
+    {
+        $value = trim(preg_replace('/\s+/u', ' ', $value) ?? '');
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
     }
 
     private function isExternalUrl(string $url): bool

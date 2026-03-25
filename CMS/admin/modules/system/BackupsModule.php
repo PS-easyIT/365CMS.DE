@@ -27,6 +27,7 @@ class BackupsModule
     private const WRITE_CAPABILITY = 'manage_settings';
     private const MAX_ERROR_LENGTH = 180;
     private const HISTORY_LIMIT = 15;
+    private const BACKUP_LIST_LIMIT = 25;
     private const BACKUP_NAME_PATTERN = '/^[a-z0-9][a-z0-9._-]{2,120}$/i';
     private const ALLOWED_BACKUP_TYPES = ['full', 'database', 'email'];
 
@@ -97,15 +98,27 @@ class BackupsModule
         }
 
         try {
-            $filename = $this->service->createDatabaseBackup();
-            $safeFilename = $this->normalizeBackupFileName($filename, ['sql', 'gz']);
+            $result = $this->service->createStandaloneDatabaseBackup();
+            if (empty($result['success'])) {
+                return ['success' => false, 'error' => 'DB-Backup konnte nicht erstellt werden.'];
+            }
 
-            if ($safeFilename !== '') {
+            $backupName = $this->normalizeBackupName((string) ($result['name'] ?? ''));
+            $backupFile = $this->normalizeBackupFileName((string) ($result['manifest']['database'] ?? ''), ['sql', 'gz']);
+
+            if ($backupName !== '') {
                 $this->auditAction('backup.database.created', 'Datenbank-Backup erstellt.', [
-                    'name' => $safeFilename,
+                    'name' => $backupName,
+                    'database' => $backupFile,
+                    'size' => isset($result['manifest']['size']) ? (int) $result['manifest']['size'] : 0,
                 ]);
 
-                return ['success' => true, 'message' => 'Datenbank-Backup erstellt. ' . $safeFilename];
+                $message = 'Datenbank-Backup erstellt.';
+                if ($backupName !== '') {
+                    $message .= ' ' . $backupName;
+                }
+
+                return ['success' => true, 'message' => $message];
             }
 
             return ['success' => false, 'error' => 'DB-Backup konnte nicht erstellt werden.'];
@@ -147,7 +160,7 @@ class BackupsModule
     private function listBackupsSafe(): array
     {
         try {
-            return $this->service->listBackups();
+            return $this->service->listBackups(self::BACKUP_LIST_LIMIT);
         } catch (\Throwable $e) {
             $this->logger->warning('Backup-Liste konnte nicht geladen werden.', [
                 'exception' => $e::class,
@@ -232,6 +245,7 @@ class BackupsModule
                 'date' => $date !== '' ? $date : ($timestamp > 0 ? date('Y-m-d H:i:s', $timestamp) : '-'),
                 'timestamp' => $timestamp,
                 'size' => $size,
+                'size_formatted' => $size > 0 ? $this->formatBytes($size) : '-',
                 'database' => $this->normalizeBackupFileName((string)($backup['database'] ?? ''), ['sql', 'gz']),
                 'files' => $this->normalizeBackupFileName((string)($backup['files'] ?? ''), ['zip']),
             ];
@@ -336,6 +350,22 @@ class BackupsModule
         return function_exists('mb_substr')
             ? mb_substr($value, 0, $maxLength)
             : substr($value, 0, $maxLength);
+    }
+
+    private function formatBytes(int $bytes): string
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $size = max(0, $bytes);
+        $unitIndex = 0;
+
+        while ($size >= 1024 && $unitIndex < count($units) - 1) {
+            $size /= 1024;
+            $unitIndex++;
+        }
+
+        $precision = $unitIndex === 0 ? 0 : 2;
+
+        return number_format($size, $precision, ',', '.') . ' ' . $units[$unitIndex];
     }
 
     /**

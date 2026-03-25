@@ -9,8 +9,16 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\AuditLogger;
+use CMS\Auth;
+use CMS\Logger;
+
 class PackagesModule
 {
+    private const int MAX_NAME_LENGTH = 120;
+    private const int MAX_SLUG_LENGTH = 120;
+    private const int MAX_DESCRIPTION_LENGTH = 2000;
+
     private readonly \CMS\Database $db;
     private readonly string $prefix;
 
@@ -33,6 +41,10 @@ class PackagesModule
 
     public function getData(): array
     {
+        if (!$this->canAccess()) {
+            return ['packages' => [], 'stats' => ['total' => 0, 'active' => 0, 'featured' => 0]];
+        }
+
         $table = $this->prefix . 'subscription_plans';
         $packages = $this->db->get_results(
             "SELECT sp.*,
@@ -69,24 +81,43 @@ class PackagesModule
 
     public function seedDefaults(): array
     {
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+        }
+
         try {
             \CMS\SubscriptionManager::instance()->seedDefaultPlans();
             $this->db->execute(
                 "UPDATE {$this->prefix}subscription_plans SET is_featured = CASE WHEN slug = ? THEN 1 ELSE 0 END",
                 ['professional']
             );
+
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SETTING,
+                'subscriptions.packages.seed_defaults',
+                'Standardpakete wurden erzeugt bzw. ergänzt.',
+                'subscriptions',
+                null,
+                ['featured_slug' => 'professional'],
+                'info'
+            );
+
             return ['success' => true, 'message' => 'Die 6 Standardpakete wurden hinterlegt bzw. ergänzt.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler beim Anlegen der Standardpakete: ' . $e->getMessage()];
+            return $this->failResult('subscriptions.packages.seed_defaults_failed', 'Die Standardpakete konnten nicht angelegt werden.', $e);
         }
     }
 
     public function save(array $post): array
     {
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+        }
+
         $id          = (int)($post['id'] ?? 0);
-        $name        = trim($post['name'] ?? '');
-        $slug        = trim($post['slug'] ?? '');
-        $description = trim($post['description'] ?? '');
+        $name        = $this->sanitizeText((string)($post['name'] ?? ''), self::MAX_NAME_LENGTH);
+        $slug        = $this->sanitizeSlug((string)($post['slug'] ?? ''));
+        $description = $this->sanitizeText((string)($post['description'] ?? ''), self::MAX_DESCRIPTION_LENGTH);
         $priceMonthly = max(0, (float)($post['price_monthly'] ?? 0));
         $priceYearly  = max(0, (float)($post['price_yearly'] ?? 0));
         $sortOrder   = max(0, (int)($post['sort_order'] ?? 0));
@@ -120,7 +151,13 @@ class PackagesModule
             return ['success' => false, 'error' => 'Paketname ist erforderlich.'];
         }
         if ($slug === '') {
-            $slug = preg_replace('/[^a-z0-9-]/', '', str_replace(' ', '-', strtolower($name))) ?? '';
+            $slug = $this->sanitizeSlug($name);
+        }
+        if ($slug === '') {
+            return ['success' => false, 'error' => 'Bitte einen gültigen Paket-Slug angeben.'];
+        }
+        if ($this->slugExists($slug, $id)) {
+            return ['success' => false, 'error' => 'Der Paket-Slug ist bereits vergeben.'];
         }
 
         $table = $this->prefix . 'subscription_plans';
@@ -142,48 +179,175 @@ class PackagesModule
 
             if ($id > 0) {
                 $this->db->update('subscription_plans', $data, ['id' => $id]);
+                AuditLogger::instance()->log(
+                    AuditLogger::CAT_SETTING,
+                    'subscriptions.packages.update',
+                    'Paket aktualisiert.',
+                    'subscriptions',
+                    null,
+                    ['id' => $id, 'slug' => $slug, 'featured' => $isFeatured],
+                    'info'
+                );
                 return ['success' => true, 'message' => 'Paket aktualisiert.'];
             } else {
                 if ($isFeatured === 1) {
                     $this->db->execute("UPDATE {$table} SET is_featured = 0");
                 }
                 $this->db->insert('subscription_plans', $data);
+                AuditLogger::instance()->log(
+                    AuditLogger::CAT_SETTING,
+                    'subscriptions.packages.create',
+                    'Paket erstellt.',
+                    'subscriptions',
+                    null,
+                    ['slug' => $slug, 'featured' => $isFeatured],
+                    'info'
+                );
                 return ['success' => true, 'message' => 'Paket erstellt.'];
             }
-        } catch (\Exception $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+        } catch (\Throwable $e) {
+            return $this->failResult('subscriptions.packages.save_failed', 'Paket konnte nicht gespeichert werden.', $e);
         }
     }
 
     public function delete(int $id): array
     {
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+        }
+
         if ($id <= 0) {
             return ['success' => false, 'error' => 'Ungültige ID.'];
         }
-        $activeSubscriptions = (int)$this->db->get_var(
-            "SELECT COUNT(*) FROM {$this->prefix}user_subscriptions WHERE plan_id = ? AND status = 'active'",
-            [$id]
-        );
-        if ($activeSubscriptions > 0) {
-            return ['success' => false, 'error' => 'Das Paket ist noch aktiven Benutzern zugewiesen.'];
-        }
 
-        $this->db->delete('subscription_plans', ['id' => $id]);
-        return ['success' => true, 'message' => 'Paket gelöscht.'];
+        try {
+            $plan = $this->db->get_row("SELECT id, slug FROM {$this->prefix}subscription_plans WHERE id = ?", [$id]);
+            if (!$plan) {
+                return ['success' => false, 'error' => 'Paket nicht gefunden.'];
+            }
+
+            $activeSubscriptions = (int)$this->db->get_var(
+                "SELECT COUNT(*) FROM {$this->prefix}user_subscriptions WHERE plan_id = ? AND status = 'active'",
+                [$id]
+            );
+            if ($activeSubscriptions > 0) {
+                return ['success' => false, 'error' => 'Das Paket ist noch aktiven Benutzern zugewiesen.'];
+            }
+
+            $this->db->delete('subscription_plans', ['id' => $id]);
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SETTING,
+                'subscriptions.packages.delete',
+                'Paket gelöscht.',
+                'subscriptions',
+                null,
+                ['id' => $id, 'slug' => (string)($plan->slug ?? '')],
+                'warning'
+            );
+
+            return ['success' => true, 'message' => 'Paket gelöscht.'];
+        } catch (\Throwable $e) {
+            return $this->failResult('subscriptions.packages.delete_failed', 'Paket konnte nicht gelöscht werden.', $e);
+        }
     }
 
     public function toggleStatus(int $id): array
     {
+        if (!$this->canAccess()) {
+            return ['success' => false, 'error' => 'Zugriff verweigert.'];
+        }
+
         if ($id <= 0) {
             return ['success' => false, 'error' => 'Ungültige ID.'];
         }
+
         $table   = $this->prefix . 'subscription_plans';
-        $current = $this->db->get_row("SELECT is_active FROM {$table} WHERE id = ?", [$id]);
-        if (!$current) {
-            return ['success' => false, 'error' => 'Paket nicht gefunden.'];
+
+        try {
+            $current = $this->db->get_row("SELECT slug, is_active FROM {$table} WHERE id = ?", [$id]);
+            if (!$current) {
+                return ['success' => false, 'error' => 'Paket nicht gefunden.'];
+            }
+
+            $newStatus = (int)$current->is_active === 1 ? 0 : 1;
+            $this->db->update('subscription_plans', ['is_active' => $newStatus], ['id' => $id]);
+
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SETTING,
+                'subscriptions.packages.toggle',
+                $newStatus ? 'Paket aktiviert.' : 'Paket deaktiviert.',
+                'subscriptions',
+                null,
+                ['id' => $id, 'slug' => (string)($current->slug ?? ''), 'active' => $newStatus],
+                'info'
+            );
+
+            return ['success' => true, 'message' => $newStatus ? 'Paket aktiviert.' : 'Paket deaktiviert.'];
+        } catch (\Throwable $e) {
+            return $this->failResult('subscriptions.packages.toggle_failed', 'Paketstatus konnte nicht geändert werden.', $e);
         }
-        $newStatus = (int)$current->is_active === 1 ? 0 : 1;
-        $this->db->update('subscription_plans', ['is_active' => $newStatus], ['id' => $id]);
-        return ['success' => true, 'message' => $newStatus ? 'Paket aktiviert.' : 'Paket deaktiviert.'];
+    }
+
+    private function canAccess(): bool
+    {
+        return class_exists(Auth::class) && Auth::instance()->isAdmin();
+    }
+
+    private function sanitizeText(string $value, int $maxLength): string
+    {
+        $value = trim(strip_tags($value));
+        if ($value === '') {
+            return '';
+        }
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
+    }
+
+    private function sanitizeSlug(string $value): string
+    {
+        $value = strtolower(trim($value));
+        $value = str_replace(' ', '-', $value);
+        $value = preg_replace('/[^a-z0-9-]/', '', $value) ?? '';
+        $value = preg_replace('/-+/', '-', $value) ?? '';
+        $value = trim($value, '-');
+
+        if ($value === '') {
+            return '';
+        }
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, self::MAX_SLUG_LENGTH) : substr($value, 0, self::MAX_SLUG_LENGTH);
+    }
+
+    private function slugExists(string $slug, int $excludeId): bool
+    {
+        $query = "SELECT COUNT(*) FROM {$this->prefix}subscription_plans WHERE slug = ?";
+        $params = [$slug];
+        if ($excludeId > 0) {
+            $query .= " AND id != ?";
+            $params[] = $excludeId;
+        }
+
+        return (int)$this->db->get_var($query, $params) > 0;
+    }
+
+    private function failResult(string $action, string $message, \Throwable $e): array
+    {
+        Logger::error($message, [
+            'module' => 'PackagesModule',
+            'action' => $action,
+            'exception' => $e::class,
+        ]);
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            $action,
+            $message,
+            'subscriptions',
+            null,
+            ['exception' => $e::class],
+            'error'
+        );
+
+        return ['success' => false, 'error' => $message . ' Bitte Logs prüfen.'];
     }
 }

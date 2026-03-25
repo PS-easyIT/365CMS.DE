@@ -28,7 +28,13 @@ class BackupService
     
     private const BACKUP_DIR = ABSPATH . 'backups/';
     private const MANIFEST_MAX_BYTES = 262144;
+    private const DEFAULT_BACKUP_LIST_LIMIT = 25;
+    private const MAX_BACKUP_LIST_LIMIT = 100;
+    private const MAX_S3_REST_UPLOAD_BYTES = 26214400;
     private const BACKUP_NAME_PATTERN = '/^[a-z0-9][a-z0-9._-]{2,120}$/i';
+    private const LEGACY_DATABASE_BACKUP_PATTERN = '/^database_[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}\.sql(?:\.gz)?$/i';
+    private const S3_BUCKET_PATTERN = '/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/';
+    private const S3_ENDPOINT_PATTERN = '/^[a-z0-9.-]+$/i';
     
     /**
      * Singleton instance
@@ -162,6 +168,50 @@ class BackupService
             throw $e;
         }
     }
+
+    /**
+     * Create standalone database backup with manifest container
+     */
+    public function createStandaloneDatabaseBackup(): array
+    {
+        try {
+            $timestamp = date('Y-m-d_H-i-s');
+            $backupName = $this->normalizeBackupName("database_backup_{$timestamp}");
+            $backupPath = $this->createBackupDirectory($backupName);
+            $dbFile = $this->createDatabaseBackup($backupPath);
+
+            $manifest = [
+                'timestamp' => time(),
+                'date' => $timestamp,
+                'type' => 'database',
+                'database' => $dbFile,
+                'files' => '',
+                'size' => $this->getDirectorySize($backupPath),
+                'cms_version' => CMS_VERSION ?? 'unknown',
+            ];
+
+            $manifestJson = json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+            if (!is_string($manifestJson) || file_put_contents($backupPath . 'manifest.json', $manifestJson, LOCK_EX) === false) {
+                throw new \RuntimeException('Manifest konnte nicht geschrieben werden.');
+            }
+
+            $this->logBackup('database', $backupName, (int) $manifest['size']);
+
+            return [
+                'success' => true,
+                'path' => $backupPath,
+                'name' => $backupName,
+                'manifest' => $manifest,
+            ];
+        } catch (\Throwable $e) {
+            error_log('BackupService::createStandaloneDatabaseBackup() Error: ' . $e->getMessage());
+
+            return [
+                'success' => false,
+                'error' => 'Datenbank-Backup konnte nicht erstellt werden.',
+            ];
+        }
+    }
     
     /**
      * Generate SQL dump
@@ -179,9 +229,16 @@ class BackupService
         $tables = $stmt->fetchAll(\PDO::FETCH_COLUMN);
         
         foreach ($tables as $table) {
+            if (!is_string($table) || $table === '' || preg_match('/^[A-Za-z0-9_]+$/', $table) !== 1) {
+                continue;
+            }
+
             // Table structure
             $createStmt = $this->db->query("SHOW CREATE TABLE `{$table}`");
             $create = $createStmt->fetch(\PDO::FETCH_ASSOC);
+            if (!is_array($create) || !isset($create['Create Table'])) {
+                continue;
+            }
             
             $sql .= "-- Table: {$table}\n";
             $sql .= "DROP TABLE IF EXISTS `{$table}`;\n";
@@ -189,29 +246,31 @@ class BackupService
             
             // Table data
             $dataStmt = $this->db->query("SELECT * FROM `{$table}`");
-            $rows = $dataStmt->fetchAll(\PDO::FETCH_ASSOC);
-            
-            if (!empty($rows)) {
-                foreach ($rows as $row) {
-                    $values = array_map(function($value) {
-                        if ($value === null) {
-                            return 'NULL';
-                        }
-                        // Handle numeric types without quotes
-                        if (is_int($value) || is_float($value)) {
-                            return (string)$value;
-                        }
-                        // Handle boolean
-                        if (is_bool($value)) {
-                            return $value ? '1' : '0';
-                        }
-                        // String values need escaping and quotes
-                        return "'" . addslashes((string)$value) . "'";
-                    }, array_values($row));
-                    
-                    $columns = '`' . implode('`, `', array_keys($row)) . '`';
-                    $sql .= "INSERT INTO `{$table}` ({$columns}) VALUES (" . implode(', ', $values) . ");\n";
-                }
+            $wroteRows = false;
+
+            while ($row = $dataStmt->fetch(\PDO::FETCH_ASSOC)) {
+                $values = array_map(function($value) {
+                    if ($value === null) {
+                        return 'NULL';
+                    }
+                    // Handle numeric types without quotes
+                    if (is_int($value) || is_float($value)) {
+                        return (string)$value;
+                    }
+                    // Handle boolean
+                    if (is_bool($value)) {
+                        return $value ? '1' : '0';
+                    }
+                    // String values need escaping and quotes
+                    return "'" . addslashes((string)$value) . "'";
+                }, array_values($row));
+
+                $columns = '`' . implode('`, `', array_keys($row)) . '`';
+                $sql .= "INSERT INTO `{$table}` ({$columns}) VALUES (" . implode(', ', $values) . ");\n";
+                $wroteRows = true;
+            }
+
+            if ($wroteRows) {
                 $sql .= "\n";
             }
         }
@@ -410,11 +469,28 @@ class BackupService
      */
     private function uploadToS3WithREST(string $filePath, array $config): bool
     {
+        if (!$this->isWithinBackupRoot($filePath) || !is_file($filePath) || !is_readable($filePath)) {
+            return false;
+        }
+
+        if (!$this->isValidS3RestConfig($config)) {
+            return false;
+        }
+
         // Simplified S3 upload via PUT request
         $objectKey = basename($filePath);
         $url = "https://{$config['bucket']}.{$config['endpoint']}/{$objectKey}";
-        
+
+        $fileSize = filesize($filePath);
+        if ($fileSize === false || $fileSize < 1 || $fileSize > self::MAX_S3_REST_UPLOAD_BYTES) {
+            return false;
+        }
+
         $fileContent = file_get_contents($filePath);
+        if (!is_string($fileContent) || $fileContent === '') {
+            return false;
+        }
+
         $timestamp = gmdate('D, d M Y H:i:s T');
         
         // Create signature
@@ -428,7 +504,7 @@ class BackupService
                 'headers' => [
                     'Date: ' . $timestamp,
                     'Content-Type: ' . $this->getMimeType($filePath),
-                    'Content-Length: ' . strlen($fileContent),
+                    'Content-Length: ' . $fileSize,
                     'Authorization: AWS ' . $config['access_key'] . ':' . $signature,
                 ],
                 'userAgent' => '365CMS-BackupService/1.0',
@@ -479,9 +555,10 @@ class BackupService
     /**
      * List available backups
      */
-    public function listBackups(): array
+    public function listBackups(int $limit = self::DEFAULT_BACKUP_LIST_LIMIT): array
     {
         $backups = [];
+        $limit = max(1, min(self::MAX_BACKUP_LIST_LIMIT, $limit));
         
         $backupRoot = $this->backupRoot();
         if (!is_dir($backupRoot)) {
@@ -492,40 +569,69 @@ class BackupService
         if ($items === false) {
             return $backups;
         }
+
+        $directoryCandidates = [];
         
         foreach ($items as $item) {
-            if ($item === '.' || $item === '..' || $item === '.htaccess') {
-                continue;
-            }
-            
-            if (!$this->isAllowedBackupName($item)) {
+            if ($item === '.' || $item === '..' || $item === '.htaccess' || $item === 'index.html') {
                 continue;
             }
 
             $path = $backupRoot . $item;
-            
-            if (is_dir($path)) {
-                $manifestFile = $path . '/manifest.json';
-                
-                if (is_file($manifestFile)) {
-                    $manifestSize = filesize($manifestFile);
-                    if ($manifestSize === false || $manifestSize > self::MANIFEST_MAX_BYTES) {
-                        continue;
-                    }
 
-                    $manifestContents = file_get_contents($manifestFile);
-                    if (!is_string($manifestContents) || $manifestContents === '') {
-                        continue;
-                    }
-
-                    $manifest = Json::decodeArray($manifestContents, []);
-                    if ($manifest !== []) {
-                        $manifest['name'] = $item;
-                        $manifest['path'] = $path;
-                        $backups[] = $manifest;
-                    }
-                }
+            if (is_dir($path) && $this->isAllowedBackupName($item)) {
+                $directoryCandidates[$item] = (int) (filemtime($path) ?: 0);
+                continue;
             }
+
+            if (is_file($path) && $this->isLegacyDatabaseBackupFile($item)) {
+                $timestamp = (int) (filemtime($path) ?: 0);
+                $size = (int) (filesize($path) ?: 0);
+                $backups[] = [
+                    'name' => $item,
+                    'path' => $path,
+                    'timestamp' => $timestamp,
+                    'date' => $timestamp > 0 ? date('Y-m-d H:i:s', $timestamp) : '-',
+                    'type' => 'database',
+                    'database' => $item,
+                    'files' => '',
+                    'size' => $size,
+                ];
+            }
+        }
+
+        arsort($directoryCandidates, SORT_NUMERIC);
+
+        foreach (array_keys($directoryCandidates) as $item) {
+            if (count($backups) >= $limit) {
+                break;
+            }
+
+            $path = $backupRoot . $item;
+            $manifestFile = $path . '/manifest.json';
+
+            if (!is_file($manifestFile)) {
+                continue;
+            }
+
+            $manifestSize = filesize($manifestFile);
+            if ($manifestSize === false || $manifestSize > self::MANIFEST_MAX_BYTES) {
+                continue;
+            }
+
+            $manifestContents = file_get_contents($manifestFile);
+            if (!is_string($manifestContents) || $manifestContents === '') {
+                continue;
+            }
+
+            $manifest = Json::decodeArray($manifestContents, []);
+            if ($manifest === []) {
+                continue;
+            }
+
+            $manifest['name'] = $item;
+            $manifest['path'] = $path;
+            $backups[] = $manifest;
         }
         
         // Sort by timestamp (newest first)
@@ -533,7 +639,7 @@ class BackupService
             return ($b['timestamp'] ?? 0) - ($a['timestamp'] ?? 0);
         });
         
-        return $backups;
+        return array_slice($backups, 0, $limit);
     }
     
     /**
@@ -542,7 +648,18 @@ class BackupService
     public function deleteBackup(string $backupName): bool
     {
         try {
-            $normalizedName = $this->normalizeBackupName($backupName);
+            $normalizedName = trim(basename($backupName));
+            if ($normalizedName === '') {
+                return false;
+            }
+
+            $backupPath = $this->backupRoot() . $normalizedName;
+
+            if ($this->isLegacyDatabaseBackupFile($normalizedName) && is_file($backupPath) && $this->isWithinBackupRoot($backupPath)) {
+                return unlink($backupPath);
+            }
+
+            $normalizedName = $this->normalizeBackupName($normalizedName);
             $backupPath = $this->backupRoot() . $normalizedName;
 
             if (!is_dir($backupPath) || !$this->isWithinBackupRoot($backupPath)) {
@@ -684,7 +801,7 @@ class BackupService
             return $this->backupRoot();
         }
 
-        $normalizedDir = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $targetDir), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $normalizedDir = $this->normalizeManagedPath($targetDir, false);
         if (!$this->isWithinBackupRoot($normalizedDir)) {
             throw new \RuntimeException('Ungültiges Backup-Zielverzeichnis.');
         }
@@ -699,6 +816,10 @@ class BackupService
     private function createBackupDirectory(string $backupName): string
     {
         $backupPath = $this->backupRoot() . $this->normalizeBackupName($backupName) . DIRECTORY_SEPARATOR;
+        if (!$this->isWithinBackupRoot($backupPath)) {
+            throw new \RuntimeException('Backup-Unterverzeichnis liegt außerhalb des Backup-Roots.');
+        }
+
         if (!mkdir($backupPath, 0755, true) && !is_dir($backupPath)) {
             throw new \RuntimeException('Backup-Unterverzeichnis konnte nicht erstellt werden.');
         }
@@ -721,9 +842,67 @@ class BackupService
         return preg_match(self::BACKUP_NAME_PATTERN, $name) === 1;
     }
 
+    private function isLegacyDatabaseBackupFile(string $name): bool
+    {
+        return preg_match(self::LEGACY_DATABASE_BACKUP_PATTERN, trim(basename($name))) === 1;
+    }
+
     private function isWithinBackupRoot(string $path): bool
     {
-        $normalizedPath = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-        return str_starts_with($normalizedPath, $this->backupRoot());
+        $backupRoot = $this->normalizeManagedPath($this->backupRoot(), true);
+        $normalizedPath = $this->normalizeManagedPath($path, file_exists($path));
+
+        if ($backupRoot === '' || $normalizedPath === '') {
+            return false;
+        }
+
+        return $normalizedPath === $backupRoot
+            || str_starts_with($normalizedPath, $backupRoot);
+    }
+
+    private function normalizeManagedPath(string $path, bool $mustExist): string
+    {
+        $path = trim($path);
+        if ($path === '') {
+            return '';
+        }
+
+        $resolved = realpath($path);
+        if (is_string($resolved)) {
+            return rtrim($resolved, '\\/') . DIRECTORY_SEPARATOR;
+        }
+
+        if ($mustExist) {
+            return '';
+        }
+
+        $parent = dirname($path);
+        $resolvedParent = realpath($parent);
+        if (!is_string($resolvedParent) || $resolvedParent === '') {
+            return '';
+        }
+
+        return rtrim($resolvedParent, '\\/') . DIRECTORY_SEPARATOR . basename($path) . DIRECTORY_SEPARATOR;
+    }
+
+    /** @param array<string, mixed> $config */
+    private function isValidS3RestConfig(array $config): bool
+    {
+        $bucket = strtolower(trim((string) ($config['bucket'] ?? '')));
+        $endpoint = strtolower(trim((string) ($config['endpoint'] ?? '')));
+
+        if ($bucket === '' || preg_match(self::S3_BUCKET_PATTERN, $bucket) !== 1) {
+            return false;
+        }
+
+        if ($endpoint === '' || preg_match(self::S3_ENDPOINT_PATTERN, $endpoint) !== 1) {
+            return false;
+        }
+
+        if (str_contains($endpoint, '/') || str_contains($endpoint, '@') || str_contains($endpoint, ':')) {
+            return false;
+        }
+
+        return true;
     }
 }

@@ -19,6 +19,12 @@ class SettingsModule
 {
     private Database $db;
     private string $prefix;
+    /** @var array<string,bool> */
+    private array $tableExistsCache = [];
+    /** @var array<string,bool> */
+    private array $columnExistsCache = [];
+
+    private const MAX_AUDIT_STRING_LENGTH = 240;
 
     /** @var array<int,array{table:string,column:string}> */
     private const URL_MIGRATION_TARGETS = [
@@ -342,13 +348,10 @@ class SettingsModule
                 return ['success' => false, 'error' => is_string($configResult) ? $configResult : 'Konfigurationsdatei konnte nicht aktualisiert werden.'];
             }
 
-            foreach ($values as $key => $value) {
-                $existing = $this->db->get_var(
-                    "SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?",
-                    [$key]
-                );
+            $existingSettingNames = $this->loadExistingSettingNames(array_keys($values));
 
-                if ((int)$existing > 0) {
+            foreach ($values as $key => $value) {
+                if (isset($existingSettingNames[$key])) {
                     $this->db->execute(
                         "UPDATE {$this->prefix}settings SET option_value = ? WHERE option_name = ?",
                         [$value, $key]
@@ -388,7 +391,7 @@ class SettingsModule
                     'language' => $values['language'],
                     'timezone' => $values['timezone'],
                     'marketplace_enabled' => $values['marketplace_enabled'],
-                    'url_migration' => $migrationSummary,
+                    'url_migration' => $this->summarizeMigrationSummary($migrationSummary),
                 ],
                 'warning'
             );
@@ -401,7 +404,7 @@ class SettingsModule
                 'Speichern der allgemeinen Einstellungen fehlgeschlagen',
                 'setting',
                 null,
-                ['exception' => $e->getMessage()],
+                ['exception' => $this->sanitizeExceptionMessage($e)],
                 'error'
             );
 
@@ -445,6 +448,20 @@ class SettingsModule
 
             $migrationSummary = $this->migrateSiteUrls($migrationSourceUrl, $targetSiteUrl);
 
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SETTING,
+                'settings.site_url.migration',
+                'URL-Nachmigration ausgeführt',
+                'setting',
+                null,
+                [
+                    'source_url' => $migrationSourceUrl,
+                    'target_url' => $targetSiteUrl,
+                    'summary' => $this->summarizeMigrationSummary($migrationSummary),
+                ],
+                'warning'
+            );
+
             return [
                 'success' => true,
                 'message' => sprintf(
@@ -462,7 +479,7 @@ class SettingsModule
                 'URL-Nachmigration fehlgeschlagen',
                 'setting',
                 null,
-                ['exception' => $e->getMessage()],
+                ['exception' => $this->sanitizeExceptionMessage($e)],
                 'error'
             );
 
@@ -532,12 +549,22 @@ class SettingsModule
 
     private function columnExists(string $table, string $column): bool
     {
+        $cacheKey = $table . '.' . $column;
+        if (array_key_exists($cacheKey, $this->columnExistsCache)) {
+            return $this->columnExistsCache[$cacheKey];
+        }
+
         try {
-            return $this->db->get_var(
+            $exists = $this->db->get_var(
                 "SHOW COLUMNS FROM {$this->prefix}{$table} LIKE ?",
                 [$column]
             ) !== null;
+            $this->columnExistsCache[$cacheKey] = $exists;
+
+            return $exists;
         } catch (\Throwable) {
+            $this->columnExistsCache[$cacheKey] = false;
+
             return false;
         }
     }
@@ -998,7 +1025,7 @@ PHP;
                 'Slug-Nachkorrektur fehlgeschlagen',
                 'setting',
                 null,
-                ['exception' => $e->getMessage()],
+                ['exception' => $this->sanitizeExceptionMessage($e)],
                 'error'
             );
 
@@ -1265,7 +1292,7 @@ PHP;
             'setting',
             null,
             [
-                'recipient' => $recipient,
+                'recipient' => $this->maskEmailAddress($recipient),
                 'result' => !empty($result['success']) ? 'success' : 'error',
                 'transport' => $result['transport'] ?? null,
             ],
@@ -1289,6 +1316,34 @@ PHP;
             // Defaults werden in getData() gesetzt
         }
         return $settings;
+    }
+
+    /**
+     * @param array<int,string> $keys
+     * @return array<string,true>
+     */
+    private function loadExistingSettingNames(array $keys): array
+    {
+        $keys = array_values(array_filter(array_map('strval', $keys), static fn(string $key): bool => $key !== ''));
+        if ($keys === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($keys), '?'));
+        $rows = $this->db->get_results(
+            "SELECT option_name FROM {$this->prefix}settings WHERE option_name IN ({$placeholders})",
+            $keys
+        ) ?: [];
+
+        $existing = [];
+        foreach ($rows as $row) {
+            $optionName = (string)($row->option_name ?? '');
+            if ($optionName !== '') {
+                $existing[$optionName] = true;
+            }
+        }
+
+        return $existing;
     }
 
     private function getArchiveBaseSetting(array $settings, string $type, string $locale): string
@@ -1367,14 +1422,31 @@ PHP;
             return false;
         }
 
-        if (is_file($path) && !@unlink($path)) {
+        if (@rename($tempPath, $path)) {
+            @chmod($path, 0640);
+            return true;
+        }
+
+        $backupPath = null;
+        if (is_file($path)) {
+            $backupPath = $path . '.swap.' . str_replace('.', '', uniqid('', true));
+            if (!@rename($path, $backupPath)) {
+                @unlink($tempPath);
+                return false;
+            }
+        }
+
+        if (!@rename($tempPath, $path)) {
+            if ($backupPath !== null && is_file($backupPath)) {
+                @rename($backupPath, $path);
+            }
+
             @unlink($tempPath);
             return false;
         }
 
-        if (!@rename($tempPath, $path)) {
-            @unlink($tempPath);
-            return false;
+        if ($backupPath !== null && is_file($backupPath)) {
+            @unlink($backupPath);
         }
 
         @chmod($path, 0640);
@@ -1384,9 +1456,18 @@ PHP;
 
     private function tableExists(string $table): bool
     {
+        if (array_key_exists($table, $this->tableExistsCache)) {
+            return $this->tableExistsCache[$table];
+        }
+
         try {
-            return $this->db->get_var("SHOW TABLES LIKE ?", [$this->prefix . $table]) !== null;
+            $exists = $this->db->get_var("SHOW TABLES LIKE ?", [$this->prefix . $table]) !== null;
+            $this->tableExistsCache[$table] = $exists;
+
+            return $exists;
         } catch (\Throwable) {
+            $this->tableExistsCache[$table] = false;
+
             return false;
         }
     }
@@ -1429,5 +1510,52 @@ PHP;
         return $transport + [
             'test_recipient' => $fallbackRecipient,
         ];
+    }
+
+    private function summarizeMigrationSummary(?array $summary): ?array
+    {
+        if (!is_array($summary)) {
+            return null;
+        }
+
+        return [
+            'columns_updated' => max(0, (int)($summary['columns_updated'] ?? 0)),
+            'rows_affected' => max(0, (int)($summary['rows_affected'] ?? 0)),
+        ];
+    }
+
+    private function sanitizeExceptionMessage(\Throwable $throwable): string
+    {
+        return $this->sanitizeAuditString($throwable->getMessage());
+    }
+
+    private function sanitizeAuditString(string $value): string
+    {
+        $value = trim(preg_replace('/\s+/u', ' ', $value) ?? '');
+        if ($value === '') {
+            return 'n/a';
+        }
+
+        return mb_substr($value, 0, self::MAX_AUDIT_STRING_LENGTH, 'UTF-8');
+    }
+
+    private function maskEmailAddress(string $email): string
+    {
+        $email = trim($email);
+        if ($email === '' || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            return '';
+        }
+
+        [$local, $domain] = explode('@', $email, 2);
+        $localLength = mb_strlen($local, 'UTF-8');
+        if ($localLength <= 2) {
+            $maskedLocal = mb_substr($local, 0, 1, 'UTF-8') . '*';
+        } else {
+            $maskedLocal = mb_substr($local, 0, 1, 'UTF-8')
+                . str_repeat('*', max(1, $localLength - 2))
+                . mb_substr($local, -1, 1, 'UTF-8');
+        }
+
+        return $maskedLocal . '@' . strtolower($domain);
     }
 }

@@ -21,37 +21,30 @@ if (!Auth::instance()->isAdmin()) {
 require_once __DIR__ . '/modules/system/BackupsModule.php';
 $module    = new BackupsModule();
 $alert     = null;
+$actionHandlers = [
+    'create_full' => static fn () => $module->createFullBackup(),
+    'create_db' => static fn () => $module->createDatabaseBackup(),
+    'delete' => static fn () => $module->deleteBackup((string) ($_POST['backup_name'] ?? '')),
+];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $postToken = $_POST['csrf_token'] ?? '';
+    $postToken = (string) ($_POST['csrf_token'] ?? '');
     if (!Security::instance()->verifyToken($postToken, 'admin_backups')) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
         header('Location: ' . SITE_URL . '/admin/backups');
         exit;
     }
 
-    $action = $_POST['action'] ?? '';
+    $action = (string) ($_POST['action'] ?? '');
+    $handler = $actionHandlers[$action] ?? null;
+    $result = is_callable($handler)
+        ? $handler()
+        : ['success' => false, 'error' => 'Unbekannte Aktion.'];
 
-    if ($action === 'create_full') {
-        $result = $module->createFullBackup();
-        $_SESSION['admin_alert'] = [
-            'type'    => $result['success'] ? 'success' : 'danger',
-            'message' => $result['message'] ?? $result['error'] ?? '',
-        ];
-    } elseif ($action === 'create_db') {
-        $result = $module->createDatabaseBackup();
-        $_SESSION['admin_alert'] = [
-            'type'    => $result['success'] ? 'success' : 'danger',
-            'message' => $result['message'] ?? $result['error'] ?? '',
-        ];
-    } elseif ($action === 'delete') {
-        $name   = basename($_POST['backup_name'] ?? '');
-        $result = $module->deleteBackup($name);
-        $_SESSION['admin_alert'] = [
-            'type'    => $result['success'] ? 'success' : 'danger',
-            'message' => $result['message'] ?? $result['error'] ?? '',
-        ];
-    }
+    $_SESSION['admin_alert'] = [
+        'type' => !empty($result['success']) ? 'success' : 'danger',
+        'message' => (string) ($result['message'] ?? $result['error'] ?? 'Unbekannte Antwort.'),
+    ];
 
     header('Location: ' . SITE_URL . '/admin/backups');
     exit;

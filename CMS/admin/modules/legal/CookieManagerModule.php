@@ -17,6 +17,10 @@ class CookieManagerModule
 {
     private readonly \CMS\Database $db;
     private readonly string $prefix;
+    /** @var array<string, true> */
+    private array $existingSettingNamesCache = [];
+    /** @var array<string, true> */
+    private array $existingCategorySlugsCache = [];
 
     private const int MAX_CATEGORY_NAME_LENGTH = 100;
     private const int MAX_CATEGORY_DESCRIPTION_LENGTH = 1000;
@@ -35,6 +39,17 @@ class CookieManagerModule
     private const int MAX_SCAN_SOURCES_PER_SERVICE = 5;
     private const int MAX_SCAN_SOURCE_LENGTH = 160;
     private const int MAX_SORT_ORDER = 10000;
+    /** @var list<string> */
+    private const array SCAN_SKIP_PATH_FRAGMENTS = [
+        '/cache/',
+        '/logs/',
+        '/uploads/',
+        '/vendor/',
+        '/node_modules/',
+        '/tests/',
+        '/staging/',
+        '/backup/',
+    ];
 
     /** @var array<int, array<string, mixed>> */
     private const array DEFAULT_CATEGORIES = [
@@ -109,22 +124,29 @@ class CookieManagerModule
 
     private function ensureDefaultCategories(): void
     {
-        foreach (self::DEFAULT_CATEGORIES as $category) {
-            $exists = (int)$this->db->get_var(
-                "SELECT COUNT(*) FROM {$this->prefix}cookie_categories WHERE slug = ?",
-                [$category['slug']]
-            );
+        if ($this->existingCategorySlugsCache === []) {
+            $rows = $this->db->get_results("SELECT slug FROM {$this->prefix}cookie_categories") ?: [];
+            foreach ($rows as $row) {
+                $slug = trim((string)($row->slug ?? ''));
+                if ($slug !== '') {
+                    $this->existingCategorySlugsCache[$slug] = true;
+                }
+            }
+        }
 
-            if ($exists === 0) {
+        foreach (self::DEFAULT_CATEGORIES as $category) {
+            $slug = (string)($category['slug'] ?? '');
+            if (!isset($this->existingCategorySlugsCache[$slug])) {
                 $this->db->insert('cookie_categories', [
                     'name' => $category['name'],
-                    'slug' => $category['slug'],
+                    'slug' => $slug,
                     'description' => $category['description'],
                     'is_required' => $category['is_required'],
                     'is_active' => 1,
                     'scripts' => '',
                     'sort_order' => $category['sort_order'],
                 ]);
+                $this->existingCategorySlugsCache[$slug] = true;
             }
         }
     }
@@ -263,6 +285,11 @@ class CookieManagerModule
             return ['success' => false, 'error' => 'Zugriff verweigert.'];
         }
 
+        $matomoSelfHostedUrl = $this->sanitizeOptionalUrl((string)($post['cookie_matomo_self_hosted_url'] ?? ''));
+        if (trim((string)($post['cookie_matomo_self_hosted_url'] ?? '')) !== '' && $matomoSelfHostedUrl === '') {
+            return ['success' => false, 'error' => 'Die Matomo-URL muss als gültige http(s)-URL ohne Zugangsdaten angegeben werden.'];
+        }
+
         $keys = [
             'cookie_banner_enabled'  => isset($post['cookie_banner_enabled']) ? '1' : '0',
             'cookie_consent_enabled' => isset($post['cookie_banner_enabled']) ? '1' : '0',
@@ -276,7 +303,7 @@ class CookieManagerModule
             'cookie_accept_text'     => $this->sanitizeText((string)($post['cookie_accept_text'] ?? 'Akzeptieren'), 80, 'Akzeptieren'),
             'cookie_reject_text'     => $this->sanitizeText((string)($post['cookie_reject_text'] ?? 'Ablehnen'), 80, 'Ablehnen'),
             'cookie_essential_text'  => $this->sanitizeText((string)($post['cookie_essential_text'] ?? 'Nur Essenzielle'), 80, 'Nur Essenzielle'),
-            'cookie_matomo_self_hosted_url' => $this->normalizeOptionalUrlForStorage((string)($post['cookie_matomo_self_hosted_url'] ?? '')),
+            'cookie_matomo_self_hosted_url' => $matomoSelfHostedUrl,
             'cookie_matomo_site_id' => (string)max(1, min(999999, (int)($post['cookie_matomo_site_id'] ?? 1))),
             'cookie_matomo_hosting_region' => $this->sanitizeText((string)($post['cookie_matomo_hosting_region'] ?? 'Deutschland / EU'), 120, 'Deutschland / EU'),
             'cookie_matomo_ip_anonymization' => isset($post['cookie_matomo_ip_anonymization']) ? '1' : '0',
@@ -628,41 +655,58 @@ class CookieManagerModule
                 continue;
             }
 
-            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($target, \FilesystemIterator::SKIP_DOTS));
-            foreach ($iterator as $file) {
-                if ($scannedFiles >= self::MAX_SCAN_FILES) {
-                    break;
-                }
+            try {
+                $iterator = new \RecursiveIteratorIterator(
+                    new \RecursiveCallbackFilterIterator(
+                        new \RecursiveDirectoryIterator($target, \FilesystemIterator::SKIP_DOTS),
+                        function (\SplFileInfo $current): bool {
+                            if ($current->isLink()) {
+                                return false;
+                            }
 
-                if ($file->isLink()) {
-                    continue;
-                }
+                            return !$this->shouldSkipScanPath($current->getPathname());
+                        }
+                    )
+                );
 
-                if (!$file->isFile() || !in_array(strtolower($file->getExtension()), ['php', 'js', 'html', 'css'], true)) {
-                    continue;
-                }
+                foreach ($iterator as $file) {
+                    if ($scannedFiles >= self::MAX_SCAN_FILES) {
+                        break;
+                    }
 
-                $size = (int)$file->getSize();
-                if ($size <= 0 || $size > self::MAX_SCAN_FILE_BYTES) {
-                    continue;
-                }
+                    if (!$file instanceof \SplFileInfo || !$file->isFile() || !in_array(strtolower($file->getExtension()), ['php', 'js', 'html', 'css'], true)) {
+                        continue;
+                    }
 
-                $content = @file_get_contents($file->getPathname(), false, null, 0, self::MAX_SCAN_FILE_BYTES + 1);
-                if (!is_string($content) || $content === '') {
-                    continue;
-                }
+                    $size = (int)$file->getSize();
+                    if ($size <= 0 || $size > self::MAX_SCAN_FILE_BYTES) {
+                        continue;
+                    }
 
-                $scannedFiles++;
-                $this->collectMatches($content, $this->normalizeScanSource(str_replace((string)ABSPATH, '', $file->getPathname())), $detected, $sources);
+                    $content = @file_get_contents($file->getPathname(), false, null, 0, self::MAX_SCAN_FILE_BYTES + 1);
+                    if (!is_string($content) || $content === '') {
+                        continue;
+                    }
+
+                    $scannedFiles++;
+                    $this->collectMatches($content, $this->buildFileScanSource($file->getPathname()), $detected, $sources);
+                }
+            } catch (\Throwable $e) {
+                $this->logFailure('legal.cookies.scan.target_failed', 'Cookie-Scanner konnte ein Zielverzeichnis nicht vollständig lesen.', $e, [
+                    'target' => $this->normalizeScanSource(str_replace((string)ABSPATH, '', $target)),
+                ]);
             }
         }
 
         try {
-            $pageRows = $this->db->get_results("SELECT slug, title, content FROM {$this->prefix}pages ORDER BY id DESC LIMIT " . self::MAX_SCAN_PAGE_ROWS) ?: [];
+            $pageRows = $this->db->get_results("SELECT id, slug, content FROM {$this->prefix}pages ORDER BY id DESC LIMIT " . self::MAX_SCAN_PAGE_ROWS) ?: [];
             foreach ($pageRows as $row) {
                 $content = (string)($row->content ?? '');
                 if ($content !== '') {
-                    $this->collectMatches($content, $this->normalizeScanSource('DB: page/' . ($row->slug ?: $row->title ?: 'unbekannt')), $detected, $sources);
+                    $pageSource = $row->slug !== ''
+                        ? 'DB: page/' . (string)$row->slug
+                        : 'DB: page/#' . (int)($row->id ?? 0);
+                    $this->collectMatches($content, $this->normalizeScanSource($pageSource), $detected, $sources);
                 }
             }
 
@@ -688,8 +732,10 @@ class CookieManagerModule
             ];
         }
 
-        $this->storeSetting('cookie_scan_results', json_encode($results, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '[]');
-        $this->storeSetting('cookie_scan_last_run', date('Y-m-d H:i:s'));
+        $this->storeSettings([
+            'cookie_scan_results' => json_encode($results, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '[]',
+            'cookie_scan_last_run' => date('Y-m-d H:i:s'),
+        ]);
 
         AuditLogger::instance()->log(
             AuditLogger::CAT_SETTING,
@@ -743,7 +789,7 @@ class CookieManagerModule
 
         if (($settings['seo_analytics_matomo_enabled'] ?? '0') === '1') {
             $matomoCode = trim((string)($settings['seo_analytics_matomo_code'] ?? ''));
-            $matomoUrl = trim((string)($settings['seo_analytics_matomo_url'] ?? ''));
+            $matomoUrl = $this->sanitizeOptionalUrl((string)($settings['seo_analytics_matomo_url'] ?? ''));
             if ($matomoCode !== '' || $matomoUrl !== '') {
                 $detected['matomo'] = self::CURATED_SERVICES['matomo']['name'];
                 $sources['matomo'][] = 'System: Analytics-Einstellungen (Matomo)';
@@ -926,13 +972,14 @@ class CookieManagerModule
 
     private function storeSetting(string $key, string $value): void
     {
-        $exists = $this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?", [$key]);
-        if ($exists) {
+        $this->warmSettingNamesCache([$key]);
+        if (isset($this->existingSettingNamesCache[$key])) {
             $this->db->update('settings', ['option_value' => $value], ['option_name' => $key]);
             return;
         }
 
         $this->db->insert('settings', ['option_name' => $key, 'option_value' => $value]);
+        $this->existingSettingNamesCache[$key] = true;
     }
 
     /** @param array<string, string> $values */
@@ -942,14 +989,34 @@ class CookieManagerModule
             return;
         }
 
-        $existing = $this->getExistingSettingNames(array_keys($values));
+        $this->warmSettingNamesCache(array_keys($values));
         foreach ($values as $key => $value) {
-            if (isset($existing[$key])) {
+            if (isset($this->existingSettingNamesCache[$key])) {
                 $this->db->update('settings', ['option_value' => $value], ['option_name' => $key]);
                 continue;
             }
 
             $this->db->insert('settings', ['option_name' => $key, 'option_value' => $value]);
+            $this->existingSettingNamesCache[$key] = true;
+        }
+    }
+
+    /** @param list<string> $keys */
+    private function warmSettingNamesCache(array $keys): void
+    {
+        $missing = [];
+        foreach ($keys as $key) {
+            if ($key !== '' && !isset($this->existingSettingNamesCache[$key])) {
+                $missing[] = $key;
+            }
+        }
+
+        if ($missing === []) {
+            return;
+        }
+
+        foreach ($this->getExistingSettingNames($missing) as $key => $exists) {
+            $this->existingSettingNamesCache[$key] = $exists;
         }
     }
 
@@ -986,25 +1053,33 @@ class CookieManagerModule
             $url = 'https://' . ltrim($url, '/');
         }
 
-        if (filter_var($url, FILTER_VALIDATE_URL)) {
-            return $url;
-        }
-
-        return '';
-    }
-
-    private function normalizeOptionalUrlForStorage(string $url): string
-    {
-        $url = trim($url);
-        if ($url === '') {
+        $url = trim((string)filter_var($url, FILTER_SANITIZE_URL));
+        if ($url === '' || filter_var($url, FILTER_VALIDATE_URL) === false) {
             return '';
         }
 
-        if (!preg_match('~^[a-z][a-z0-9+.-]*://~i', $url) && preg_match('~^[a-z0-9._-]+(?::\d+)?(?:/.*)?$~i', $url)) {
-            return 'https://' . ltrim($url, '/');
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return '';
         }
 
-        return $url;
+        $scheme = strtolower((string)($parts['scheme'] ?? ''));
+        $host = trim((string)($parts['host'] ?? ''));
+        if (!in_array($scheme, ['http', 'https'], true) || $host === '' || isset($parts['user']) || isset($parts['pass'])) {
+            return '';
+        }
+
+        $normalized = $scheme . '://' . $host;
+        if (isset($parts['port'])) {
+            $normalized .= ':' . (int)$parts['port'];
+        }
+
+        $path = trim((string)($parts['path'] ?? ''));
+        if ($path !== '') {
+            $normalized .= '/' . ltrim($path, '/');
+        }
+
+        return $normalized;
     }
 
     private function normalizePolicyUrl(string $url): string
@@ -1111,6 +1186,23 @@ class CookieManagerModule
         }
 
         return function_exists('mb_substr') ? mb_substr($source, 0, self::MAX_SCAN_SOURCE_LENGTH) : substr($source, 0, self::MAX_SCAN_SOURCE_LENGTH);
+    }
+
+    private function buildFileScanSource(string $path): string
+    {
+        return $this->normalizeScanSource(str_replace((string)ABSPATH, '', $path));
+    }
+
+    private function shouldSkipScanPath(string $path): bool
+    {
+        $normalizedPath = '/' . ltrim(str_replace('\\', '/', strtolower($path)), '/');
+        foreach (self::SCAN_SKIP_PATH_FRAGMENTS as $fragment) {
+            if (str_contains($normalizedPath, $fragment)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function canAccess(): bool

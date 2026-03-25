@@ -25,14 +25,16 @@ $plans    = $data['plans'] ?? [];
     <div class="container-xl">
 
         <?php if (!empty($alert)): ?>
-            <div class="alert alert-<?= htmlspecialchars($alert['type']) ?> alert-dismissible" role="alert">
-                <div><?= htmlspecialchars($alert['message']) ?></div>
-                <a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>
-            </div>
+            <?php
+            $alertData = $alert;
+            $alertMarginClass = 'mb-4';
+            require __DIR__ . '/../partials/flash-alert.php';
+            ?>
         <?php endif; ?>
 
         <form method="post">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+            <input type="hidden" name="action" value="save_settings">
 
             <div class="row g-4">
                 <div class="col-lg-6">

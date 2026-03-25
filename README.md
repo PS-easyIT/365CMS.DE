@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.6.56-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.6.77-blue.svg)](Changelog.md)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
@@ -29,16 +29,16 @@
 
 ## 📈 Audit-Stand März 2026
 
-Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 038** nachgezogen. Der aktuelle dokumentierte Gesamtstand über **445 bewertete Dateien** liegt bei:
+Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 059** nachgezogen. Der aktuelle dokumentierte Gesamtstand über **445 bewertete Dateien** liegt bei:
 
 | Metrik | Stand |
 |---|---:|
-| **Security** | **81,82** |
-| **Speed** | **80,79** |
-| **PHP / Best Practices** | **83,60** |
-| **Gesamt** | **82,07** |
+| **Security** | **82,07** |
+| **Speed** | **81,03** |
+| **PHP / Best Practices** | **83,76** |
+| **Gesamt** | **82,27** |
 
-Zuletzt wurde das SEO-Suite-Modul weiter nachgeschärft: Submission-Ziele und Social-Defaults laufen jetzt über klare Allowlists, Settings speichern ohne N+1-Existenzchecks und technische Fehler- bzw. Sitemap-Statusdaten bleiben deutlich sauberer und weniger geschwätzig.
+Zuletzt wurde der Doku-Downloadpfad weiter entkoppelt: `CMS/admin/modules/system/DocumentationSyncDownloader.php` liefert Download-Metadaten wie Status, Content-Type, Größe und SHA-256 jetzt über ein kleines Ergebnisobjekt, und `CMS/admin/modules/system/DocumentationGithubZipSync.php` validiert ZIP-Datei, Größe und Hash konsistent gegen genau diese Downloader-Metadaten statt mit losem Nachraten im Sync-Pfad.
 
 ## 🧩 Funktionsumfang im Überblick
 

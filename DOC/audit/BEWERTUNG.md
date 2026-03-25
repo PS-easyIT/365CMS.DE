@@ -1,17 +1,31 @@
 # BEWERTUNG
 
-## Inkrementelle Nachpflege — 24. März 2026
+## Inkrementelle Nachpflege — 25. März 2026
 
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 038
+### Gesamtstand nach Batch 059
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 445 | 81,82 | 80,79 | 83,60 | 82,07 |
+| 445 | 82,07 | 81,03 | 83,76 | 82,27 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **38 umgesetzte Audit-Batches**. Zuletzt wurde `CMS/admin/modules/seo/SeoSuiteModule.php` auf Input-, Persistenz- und Fehlerkontext-Ebene weiter nachgeschärft.
+Der aktuelle Nachpflege-Stand umfasst damit **59 umgesetzte Audit-Batches**. Zuletzt wurden `CMS/admin/modules/system/DocumentationSyncDownloader.php` und `CMS/admin/modules/system/DocumentationGithubZipSync.php` bei Header-/Hash-Konsistenz, Download-Metadaten und ZIP-Validierung weiter entkoppelt.
+
+### Delta Batch 059
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationSyncDownloader.php` | umgesetzt | Downloader-Policies über kleines Result-DTO gebündelt; Content-Type-/Content-Length-Konsistenz und SHA-256-Metadaten im Downloadpfad ergänzt. | Der Downloader verlässt sich nicht mehr nur auf Body-Magic und Dateigröße, sondern liefert kontrollierte Metadaten für Folgeschichten und blockt inkonsistente ZIP-Antworten früher. |
+| `CMS/admin/modules/system/DocumentationGithubZipSync.php` | umgesetzt | Heruntergeladene ZIP-Datei gegen Größe und Hash des Downloader-Ergebnisses validiert statt losem Datei-Nachraten. | Der ZIP-Sync erkennt inkonsistente Download-Artefakte früher und entkoppelt Validierungslogik sauberer zwischen Download- und Entpackpfad. |
+
+### Delta Batch 058
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/mail-settings.php` | umgesetzt | Entry-POST-Dispatch über kleine Allowlist-/Redirect-/Flash-Helfer vereinheitlicht; Tabs werden serverseitig normalisiert und Session-Alerts nur noch defensiv übernommen. | Der Mail-Entry verarbeitet keine losen Mutationen mehr, hält CSRF-/Aktionsfehler enger am gemeinsamen Admin-Standard und spiegelt weniger rohe Session-/Query-Werte in den Flow zurück. |
+| `CMS/admin/views/system/mail-settings.php` | umgesetzt | Gemeinsamen Flash-Alert-Partial eingebunden, Tab- und API-Konstanten lokal gebündelt und Queue-Status-Badge über kleinen Helper vereinheitlicht. | Die Mail-View reduziert eigenes Inline-Sonderverhalten, folgt dem UI-Standard enger und bleibt bei Alert-/Status-Ausgabe konsistenter und wartbarer. |
 
 ### Delta Batch 001
 
@@ -273,6 +287,127 @@ Der aktuelle Nachpflege-Stand umfasst damit **38 umgesetzte Audit-Batches**. Zul
 |---|---|---|---|
 | `CMS/admin/modules/seo/SeoSuiteModule.php` | umgesetzt | Allowlist-Gates für Submission-/Social-Werte, sanitierte Fehlerkontexte, N+1-freies Settings-Persistieren und bereinigte Sitemap-Dateistatusdaten nachgezogen. | Das SEO-Suite-Modul akzeptiert weniger lose Admin-Payloads, speichert Settings effizienter und gibt weder rohe Fehlertexte noch absolute Dateisystempfade unnötig in UI-/Audit-Kontexte weiter. |
 
+### Delta Batch 039
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/seo/PerformanceModule.php` | umgesetzt | N+1-freies Settings-Persistieren, sanitierte Warmup-/Fehlerkontexte, maskierte Session-Daten und bereinigte Pfadangaben nachgezogen. | Das Performance-Modul speichert Konfiguration effizienter, reduziert Server-/PII-Leaks in Session- und Pfaddaten und hält Audit-/Warmup-Kontexte deutlich kompakter und kontrollierter. |
+
+### Delta Batch 040
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/plugins/PluginMarketplaceModule.php` | umgesetzt | Relative Manifest-Gates, restriktivere ZIP-Validierung, Plugins-Root-Check und kontrollierteres Download-/Cleanup-Verhalten nachgezogen. | Das Marketplace-Modul blockt Traversal-Pfade in lokalen Manifesten früher, akzeptiert keine auffälligen ZIP-Strukturen mehr und führt Auto-Installationen mit robusteren Ziel- und Cleanup-Pfaden aus. |
+
+### Delta Batch 041
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/settings/SettingsModule.php` | umgesetzt | N+1-freies Settings-Persistieren, maskierte Audit-/Mail-Kontexte, auditierte URL-Migrationen und robusterer Config-Dateiersatz nachgezogen. | Das Settings-Modul speichert Konfiguration effizienter, reduziert unnötige PII-/Fehlerleaks im Audit-Trail und ersetzt kritische Runtime-Konfigurationsdateien kontrollierter ohne unnötiges Verlustfenster. |
+
+### Delta Batch 042
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/security/SecurityAuditModule.php` | umgesetzt | Log-Cleanup auf Security/Auth begrenzt, Audit-Detailpfade sanitisiert, IP-Maskierung und gezieltere Runtime-Konfigurationschecks nachgezogen. | Das Security-Audit-Modul räumt keine fachfremden Audit-Einträge mehr weg, zeigt weniger sensible Details im Security-Log und prüft die produktive Konfigurationslage gezielter. |
+
+### Delta Batch 043
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationRenderer.php` | umgesetzt | Linkziel-Limits, Resolver-Fehlerabfang, Href-Härtung gegen `//`-/Steuerzeichen-Fälle und Guard-Limits für große Codeblöcke nachgezogen. | Der Doku-Renderer bleibt bei fehlerhaften Linkzielen stabil, blockt problematische Hrefs früher und begrenzt große Markdown-Codefences kontrollierter, ohne die Admin-Ansicht zu sprengen. |
+
+### Delta Batch 044
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/legal/CookieManagerModule.php` | umgesetzt | Matomo-Self-Hosted-URLs restriktiver validiert, Scanner-Zielpfade stärker gestaffelt und Settings-/Kategorie-Lookups gebündelt. | Der Cookie-Manager speichert Tracking-Ziele kontrollierter, scannt weniger Low-Value-Dateibäume und reduziert unnötige Existenzabfragen in Settings- und Kategoriepfaden. |
+
+### Delta Batch 045
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/subscriptions/SubscriptionSettingsModule.php` | umgesetzt | Modulzugriff, Settings-Persistenz, Plan-/Seitenvalidierung und generische Fehler-/Auditpfade nachgezogen. | Die Subscription-Settings speichern Billing- und Default-Zuweisungen jetzt kontrollierter, vermeiden N+1-Settings-Queries und leaken keine rohen Exception-Texte mehr in die Admin-Oberfläche. |
+
+### Delta Batch 046
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/mail-settings.php` | umgesetzt | POST-Aktionsfläche per Allowlist begrenzt, Redirect-Basis vereinheitlicht und Fehlpfade konsistent gemacht. | Der Mail-Entry verarbeitet keine unerwarteten Mutationen mehr und hält CSRF-/Aktionsfehler enger am gemeinsamen Admin-Muster. |
+| `CMS/admin/modules/system/MailSettingsModule.php` | umgesetzt | Host-/Endpoint-/Empfänger-Validierung, Audit-Masking und generische Queue-/Graph-/Testpfade nachgezogen. | Die Mail-Settings speichern Transport- und Cloud-Endpunkte kontrollierter, maskieren sensible Identitätsdaten im Audit-Log und halten operative Testergebnisse kompakter und weniger plaudernd. |
+
+### Delta Batch 047
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/backups.php` | umgesetzt | POST-Aktionsfläche über zentralen Allowlist-Dispatch vereinheitlicht; unbekannte Aktionen liefern kontrollierte Fallbacks. | Der Backup-Entry verarbeitet Mutationen jetzt konsistent wie andere Admin-Wrapper und streut keine losen Sonderpfade mehr in den Request-Flow. |
+| `CMS/admin/modules/system/BackupsModule.php` | umgesetzt | Datenbank-Backups laufen jetzt über verwaltbare Container, Listen sind begrenzt und UI-Größen werden bereits serverseitig aufbereitet. | Das Modul arbeitet enger mit dem Service zusammen, vermeidet unverwaltbare DB-Backup-Artefakte und hält den Listenpfad bei wachsendem Backup-Bestand berechenbarer. |
+| `CMS/core/Services/BackupService.php` | umgesetzt | Standalone-DB-Backups erhalten Manifest-Container, Legacy-Dateien bleiben defensiv verwaltbar und große Listen werden vor dem Manifest-Parsing früher begrenzt. | Backup-Artefakte sind konsistenter verwaltbar; zugleich sinkt unnötiger I/O-Druck, weil für Admin-Listen weniger Manifest-Dateien eingelesen werden müssen. |
+
+### Delta Batch 048
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/documentation.php` | umgesetzt | `doc`-Parameter werden defensiver normalisiert, Redirects spiegeln nur noch validierte Dokumente und POST-Aktionen laufen über einen zentralen Dispatch-Fallback. | Der Doku-Entry hält Query- und Mutationspfade enger am gemeinsamen Admin-Muster und reicht weniger rohe Request-Werte in Redirect und Modulpfad durch. |
+| `CMS/admin/views/system/documentation.php` | umgesetzt | Statusmeldungen nutzen jetzt den gemeinsamen Flash-Alert-Partial statt eines eigenen Inline-Alerts. | Die Doku-View folgt dem etablierten Admin-UI-Kontrakt enger und reduziert Template-eigene Alert-Sonderlogik. |
+
+### Delta Batch 049
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationCatalog.php` | umgesetzt | Docs-Root-Gates, Symlink-Skip, begrenzte Preview-/Vollreads und kompaktere Logpfade nachgezogen. | Der Doku-Katalog scannt Dokumentbäume berechenbarer, liest weniger unnötige Daten pro Datei und vermeidet rohe absolute Pfadangaben in Fehlerkontexten. |
+
+### Delta Batch 050
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/packages.php` | umgesetzt | POST-Aktionsfläche per Allowlist begrenzt und Redirect-/Flash-Flow für CSRF- und Aktionsfehler vereinheitlicht. | Der Paket-Entry verarbeitet keine unerwarteten Mutationen mehr und folgt enger dem gemeinsamen Admin-Wrapper-Muster. |
+| `CMS/admin/modules/subscriptions/PackagesModule.php` | umgesetzt | Interne Admin-Guards, restriktivere Slug-/Text-Validierung, Audit-Logging und generische Fehlerpfade nachgezogen. | Die Paketlogik akzeptiert weniger lose Eingaben, protokolliert Mutationen nachvollziehbarer und leakt keine rohen Exception-Texte mehr in die Admin-Oberfläche. |
+
+### Delta Batch 051
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationSyncService.php` | umgesetzt | Interner Admin-Guard, gemeinsamer Sync-Lock und konfigurationsbewusste Capability-Ausgabe nachgezogen. | Der Doku-Sync-Orchestrator blockt direkte Nicht-Admin-Aufrufe selbst, serialisiert parallele Git-/ZIP-Syncs zentral und zeigt der Oberfläche kaputte Sync-Konfigurationen nicht mehr als scheinbar nutzbaren Modus an. |
+
+### Delta Batch 052
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/MailSettingsModule.php` | umgesetzt | Operative Queue-/Cache-/Test-Ausnahmen zentralisiert abgefangen, Unterservice-Rückgaben für die UI sanitisiert und Queue-Save-Audit um Token-Rotation ergänzt. | Das Mail-Settings-Modul reagiert robuster auf Sonderfälle aus Mail-/Graph-/Queue-Services, lässt weniger lose Antwortdaten in den Admin-Flow und protokolliert Queue-Mutationen nachvollziehbarer. |
+
+### Delta Batch 053
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/BackupService.php` | umgesetzt | Realpath-basierte Root-Gates, speicherschonender Tabellen-Dump und engerer REST-S3-Uploadpfad nachgezogen. | Der Backup-Service akzeptiert weniger ausreißende Zielpfade, erzeugt Datenbank-Dumps mit weniger Peak-Memory und verhindert ungebremste REST-Uploads von auffälligen oder zu großen Backup-Dateien. |
+
+### Delta Batch 054
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationGithubZipSync.php` | umgesetzt | ZIP-URL ohne Query-/Credential-Anteile, lokale Archivvalidierung vor dem Entpacken und gezielteres Cleanup/kompaktere Logpfade nachgezogen. | Der GitHub-ZIP-Sync akzeptiert weniger lose Quell-URLs, entpackt nur nochmals validierte Archive und hinterlässt nach Rollback/Restore weniger Repo-Artefakte oder unnötig absolute Pfadangaben im Log. |
+
+### Delta Batch 055
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/orders.php` | umgesetzt | POST-Dispatch auf Aktions-Allowlist gebracht, Statusfilter serverseitig normalisiert und Flash-/Redirect-Flow vereinheitlicht. | Der Orders-Entry verarbeitet keine losen Mutationen mehr und spiegelt weniger rohe Request-Werte in den Admin-Flow zurück. |
+| `CMS/admin/modules/subscriptions/OrdersModule.php` | umgesetzt | Status-/Billing-Normalisierung, Bestell-Existenzchecks und maskiertes Audit-Logging für Statuswechsel/Löschung nachgezogen. | Die Bestelllogik blockt ungültige oder verwaiste Mutationen früher, reduziert rohe Kundenkontexte im Audit-Trail und hält Listen-/Mutationspfade konsistenter. |
+
+### Delta Batch 056
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/subscription-settings.php` | umgesetzt | Entry-POST-Dispatch auf explizite Action-Allowlist gebracht, Flash-/Redirect-Flow vereinheitlicht und Session-Alert defensiver übernommen. | Der Wrapper verarbeitet keine impliziten Mutationen mehr und hält CSRF-/Aktionsfehler näher am gemeinsamen Admin-Standard. |
+| `CMS/admin/views/subscriptions/settings.php` | umgesetzt | Gemeinsamen Flash-Alert-Partial eingebunden und Mutation explizit als `save_settings` verdrahtet. | Die View reduziert eigenes Alert-Markup, folgt dem UI-Standard enger und macht den Save-Pfad für den Wrapper eindeutiger. |
+
+### Delta Batch 057
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationSyncEnvironment.php` | umgesetzt | Repo-Root früh validiert, Shell-Kommandos auf definierte Git-Subcommands begrenzt und auffällige Command-Payloads geblockt. | Die Environment-Schicht behandelt kaputte Arbeitsverzeichnisse und unsaubere Shell-Aufrufe früher als kontrollierten Nicht-Verfügbar-Zustand statt sie lose bis in Git-Pfade durchzureichen. |
+
 ## Grundlage
 
 Diese Datei bewertet den aktuellen CMS-Codebestand **dateiweise** nach:
@@ -315,14 +450,14 @@ Verwendete Referenzbasis für die Einordnung:
 |---|---|---|---:|---:|---:|---:|
 | `CMS/admin/analytics.php` | Analytics-Entry | SEO/Analytics-Modul, Layout, SEO-View | 84 | 86 | 85 | 85 |
 | `CMS/admin/antispam.php` | Antispam-Entry | `AntispamModule`, Security-View | 84 | 86 | 85 | 85 |
-| `CMS/admin/backups.php` | Backup-Entry | `BackupsModule`, System-View, I/O | 76 | 72 | 82 | 77 |
+| `CMS/admin/backups.php` | Backup-Entry | `BackupsModule`, System-View, I/O | 79 | 74 | 84 | 79 |
 | `CMS/admin/comments.php` | Kommentar-Entry | `CommentsModule`, Comments-View | 89 | 86 | 88 | 88 |
 | `CMS/admin/cookie-manager.php` | Cookie-Entry | `CookieManagerModule`, Legal-View | 80 | 78 | 84 | 80 |
 | `CMS/admin/data-requests.php` | DSGVO-Export-Entry | Legal-Modul, Legal-View | 84 | 86 | 85 | 85 |
 | `CMS/admin/deletion-requests.php` | Löschanfrage-Entry | Legal-Modul, Legal-View | 84 | 86 | 85 | 85 |
 | `CMS/admin/design-settings.php` | Design-Entry | Theme-Design-Modul, Theme-View | 84 | 86 | 85 | 85 |
 | `CMS/admin/diagnose.php` | Diagnose-Entry | System-Modul, Diagnose-View | 89 | 93 | 86 | 89 |
-| `CMS/admin/documentation.php` | Doku-Entry | Dokumentations-Module, Doku-View | 78 | 72 | 82 | 78 |
+| `CMS/admin/documentation.php` | Doku-Entry | Dokumentations-Module, Doku-View | 80 | 74 | 84 | 80 |
 | `CMS/admin/error-report.php` | Error-Report-Entry | Error-Services, Formular-Flow | 78 | 80 | 83 | 80 |
 | `CMS/admin/firewall.php` | Firewall-Entry | `FirewallModule`, Security-View | 84 | 79 | 86 | 83 |
 | `CMS/admin/font-manager.php` | Font-Manager-Entry | Font-Modul, Theme-Fonts-View, FS | 78 | 76 | 84 | 79 |
@@ -332,7 +467,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/info.php` | Info-Entry | SystemInfo-Modul, System-View | 89 | 93 | 86 | 89 |
 | `CMS/admin/landing-page.php` | Landing-Builder-Entry | `LandingPageModule`, Landing-View | 80 | 78 | 84 | 80 |
 | `CMS/admin/legal-sites.php` | Rechtstexte-Entry | `LegalSitesModule`, Legal-Views | 80 | 76 | 84 | 79 |
-| `CMS/admin/mail-settings.php` | Mail-Entry | `MailSettingsModule`, Mail-View, API-Test | 80 | 78 | 84 | 80 |
+| `CMS/admin/mail-settings.php` | Mail-Entry | `MailSettingsModule`, Mail-View, API-Test | 84 | 81 | 86 | 84 |
 | `CMS/admin/media.php` | Medien-Entry | `MediaModule`, Media-Views, Upload/FS | 76 | 72 | 82 | 77 |
 | `CMS/admin/member-dashboard-design.php` | Member-Design-Entry | Member-Modul, Member-View | 84 | 86 | 85 | 85 |
 | `CMS/admin/member-dashboard-frontend-modules.php` | Member-Module-Entry | Member-Modul, Member-View | 84 | 86 | 85 | 85 |
@@ -352,8 +487,8 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/monitor-response-time.php` | Response-Monitor-Entry | System-View | 89 | 93 | 86 | 89 |
 | `CMS/admin/monitor-scheduled-tasks.php` | Task-Monitor-Entry | System-View | 89 | 93 | 86 | 89 |
 | `CMS/admin/not-found-monitor.php` | 404-Monitor-Entry | Redirect-Modul, SEO-View | 84 | 86 | 85 | 85 |
-| `CMS/admin/orders.php` | Orders-Entry | `OrdersModule`, Subscription-View | 84 | 86 | 85 | 85 |
-| `CMS/admin/packages.php` | Pakete-Entry | `PackagesModule`, Subscription-View | 84 | 86 | 85 | 85 |
+| `CMS/admin/orders.php` | Orders-Entry | `OrdersModule`, Subscription-View | 86 | 87 | 87 | 87 |
+| `CMS/admin/packages.php` | Pakete-Entry | `PackagesModule`, Subscription-View | 86 | 87 | 86 | 86 |
 | `CMS/admin/pages.php` | Pages-Entry | `PagesModule`, Pages-Views, Editor | 87 | 85 | 86 | 86 |
 | `CMS/admin/performance-cache.php` | Cache-Entry | `PerformanceModule`, Performance-View | 84 | 86 | 85 | 85 |
 | `CMS/admin/performance-database.php` | DB-Perf-Entry | `PerformanceModule`, Performance-View | 84 | 84 | 85 | 84 |
@@ -381,7 +516,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/seo-technical.php` | SEO-Technical-Entry | SEO-Suite, Redirect/Link-Checks | 82 | 80 | 84 | 82 |
 | `CMS/admin/settings.php` | Settings-Entry | `SettingsModule`, Settings-View | 82 | 80 | 84 | 82 |
 | `CMS/admin/site-tables.php` | Site-Tables-Entry | `TablesModule`, Tables-Views | 80 | 78 | 84 | 80 |
-| `CMS/admin/subscription-settings.php` | Subscription-Settings-Entry | Billing-Modul, Subscription-View | 80 | 78 | 84 | 80 |
+| `CMS/admin/subscription-settings.php` | Subscription-Settings-Entry | Billing-Modul, Subscription-View | 84 | 81 | 86 | 84 |
 | `CMS/admin/support.php` | Support-Entry | `SupportModule`, Support-View | 89 | 93 | 86 | 89 |
 | `CMS/admin/system-info.php` | System-Info-Entry | `SystemInfoModule`, System-View | 89 | 93 | 86 | 89 |
 | `CMS/admin/system-monitor-page.php` | System-Monitor-Entry | Performance/System-View | 89 | 93 | 86 | 89 |
@@ -400,7 +535,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/modules/hub/HubTemplateProfileCatalog.php` | Hub-Profilkatalog | Profile, Defaults, Hub-Editor | 84 | 88 | 84 | 85 |
 | `CMS/admin/modules/hub/HubTemplateProfileManager.php` | Hub-Profilmanager | DB, JSON, Hub-Templates | 84 | 74 | 87 | 82 |
 | `CMS/admin/modules/landing/LandingPageModule.php` | Landing-Builder-Logik | DB/Settings, Landing-View | 88 | 76 | 86 | 83 |
-| `CMS/admin/modules/legal/CookieManagerModule.php` | Cookie-Manager-Logik | DB, Settings, Code-Snippets | 84 | 74 | 86 | 82 |
+| `CMS/admin/modules/legal/CookieManagerModule.php` | Cookie-Manager-Logik | DB, Settings, Code-Snippets | 85 | 76 | 87 | 83 |
 | `CMS/admin/modules/legal/DeletionRequestsModule.php` | Löschanfragen-Logik | DB, DSGVO-Hooks | 80 | 76 | 84 | 80 |
 | `CMS/admin/modules/legal/LegalSitesModule.php` | Rechtstexte-Logik | DB, Templates, Escaping | 86 | 74 | 85 | 82 |
 | `CMS/admin/modules/legal/PrivacyRequestsModule.php` | Privacy-Request-Logik | DB, DSGVO-Prozess | 80 | 76 | 84 | 80 |
@@ -408,33 +543,33 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/modules/member/MemberDashboardModule.php` | Member-Dashboard-Logik | DB, Settings, Widgets | 88 | 72 | 86 | 83 |
 | `CMS/admin/modules/menus/MenuEditorModule.php` | Menülogik | DB, Menübaum, CRUD | 80 | 70 | 84 | 78 |
 | `CMS/admin/modules/pages/PagesModule.php` | Seitenlogik | DB, SEO, Kategorien, Bulk | 83 | 68 | 86 | 80 |
-| `CMS/admin/modules/plugins/PluginMarketplaceModule.php` | Plugin-Marketplace-Logik | Registry, Remote-Download | 72 | 66 | 82 | 73 |
+| `CMS/admin/modules/plugins/PluginMarketplaceModule.php` | Plugin-Marketplace-Logik | Registry, Remote-Download | 84 | 72 | 86 | 81 |
 | `CMS/admin/modules/plugins/PluginsModule.php` | Plugin-Management-Logik | Settings, Aktivierung, FS | 78 | 80 | 84 | 80 |
 | `CMS/admin/modules/posts/PostsCategoryViewModelBuilder.php` | Kategorie-ViewModel-Helfer | Posts-Modul, Kategorien-UI | 88 | 92 | 86 | 89 |
 | `CMS/admin/modules/posts/PostsModule.php` | Beitragslogik | DB, SEO, Media, Redirects | 83 | 66 | 86 | 79 |
 | `CMS/admin/modules/security/AntispamModule.php` | Antispam-Logik | Settings, Regeln, Security-View | 84 | 86 | 84 | 85 |
 | `CMS/admin/modules/security/FirewallModule.php` | Firewall-Logik | DB, Regeln, Security-Logs | 84 | 73 | 87 | 82 |
-| `CMS/admin/modules/security/SecurityAuditModule.php` | Security-Audit-Logik | Scanner, Settings, Reports | 86 | 73 | 86 | 82 |
+| `CMS/admin/modules/security/SecurityAuditModule.php` | Security-Audit-Logik | Scanner, Settings, Reports | 90 | 78 | 86 | 85 |
 | `CMS/admin/modules/seo/AnalyticsModule.php` | SEO-Analytics-Logik | DB, PageViews, KPIs | 80 | 66 | 84 | 77 |
-| `CMS/admin/modules/seo/PerformanceModule.php` | Performance-Logik | DB, FS, Sessions, Cache | 76 | 58 | 84 | 73 |
+| `CMS/admin/modules/seo/PerformanceModule.php` | Performance-Logik | DB, FS, Sessions, Cache | 82 | 68 | 86 | 79 |
 | `CMS/admin/modules/seo/RedirectManagerModule.php` | Redirect-Logik | Redirect-Service, DB | 82 | 78 | 84 | 81 |
 | `CMS/admin/modules/seo/SeoDashboardModule.php` | SEO-Dashboard-Logik | SEO-Services, KPIs | 84 | 82 | 84 | 83 |
 | `CMS/admin/modules/seo/SeoSuiteModule.php` | SEO-Suite-Kernlogik | SEO/Analytics/Indexing/Redirect | 84 | 68 | 86 | 79 |
-| `CMS/admin/modules/settings/SettingsModule.php` | Settings-Kernlogik | DB, Mail, URL-Migration | 76 | 60 | 84 | 74 |
-| `CMS/admin/modules/subscriptions/OrdersModule.php` | Orders-Logik | DB, Abos, Zahlungsdaten | 80 | 76 | 84 | 80 |
-| `CMS/admin/modules/subscriptions/PackagesModule.php` | Paket-Logik | DB, Paket-CRUD | 82 | 80 | 84 | 82 |
-| `CMS/admin/modules/subscriptions/SubscriptionSettingsModule.php` | Billing-Settings-Logik | Settings, Gateway-Optionen | 78 | 74 | 84 | 78 |
-| `CMS/admin/modules/system/BackupsModule.php` | Backup-Logik | FS, Dumps, Restore | 90 | 66 | 87 | 82 |
-| `CMS/admin/modules/system/DocumentationCatalog.php` | Doku-Katalog | Doku-Service, Quellen | 84 | 88 | 84 | 85 |
+| `CMS/admin/modules/settings/SettingsModule.php` | Settings-Kernlogik | DB, Mail, URL-Migration | 84 | 72 | 86 | 81 |
+| `CMS/admin/modules/subscriptions/OrdersModule.php` | Orders-Logik | DB, Abos, Zahlungsdaten | 84 | 78 | 86 | 83 |
+| `CMS/admin/modules/subscriptions/PackagesModule.php` | Paket-Logik | DB, Paket-CRUD | 85 | 81 | 86 | 84 |
+| `CMS/admin/modules/subscriptions/SubscriptionSettingsModule.php` | Billing-Settings-Logik | Settings, Gateway-Optionen | 80 | 76 | 86 | 80 |
+| `CMS/admin/modules/system/BackupsModule.php` | Backup-Logik | FS, Dumps, Restore | 91 | 72 | 88 | 84 |
+| `CMS/admin/modules/system/DocumentationCatalog.php` | Doku-Katalog | Doku-Service, Quellen | 88 | 90 | 85 | 88 |
 | `CMS/admin/modules/system/DocumentationGitSync.php` | Git-Doku-Sync | Git/Remote, FS | 88 | 70 | 86 | 81 |
-| `CMS/admin/modules/system/DocumentationGithubZipSync.php` | GitHub-Zip-Sync | Remote-Zip, FS | 88 | 65 | 86 | 80 |
+| `CMS/admin/modules/system/DocumentationGithubZipSync.php` | GitHub-Zip-Sync | Remote-Zip, FS | 90 | 67 | 88 | 82 |
 | `CMS/admin/modules/system/DocumentationModule.php` | Doku-Logik | Renderer, Sync, Catalog | 86 | 76 | 86 | 83 |
-| `CMS/admin/modules/system/DocumentationRenderer.php` | Doku-Renderer | Markdown→HTML, Escaping | 87 | 78 | 86 | 84 |
-| `CMS/admin/modules/system/DocumentationSyncDownloader.php` | Doku-Downloader | HTTP/Remote, FS | 88 | 67 | 86 | 80 |
-| `CMS/admin/modules/system/DocumentationSyncEnvironment.php` | Doku-Env-Check | Runtime/Env-Checks | 84 | 88 | 84 | 85 |
+| `CMS/admin/modules/system/DocumentationRenderer.php` | Doku-Renderer | Markdown→HTML, Escaping | 89 | 81 | 86 | 85 |
+| `CMS/admin/modules/system/DocumentationSyncDownloader.php` | Doku-Downloader | HTTP/Remote, FS | 90 | 69 | 88 | 82 |
+| `CMS/admin/modules/system/DocumentationSyncEnvironment.php` | Doku-Env-Check | Runtime/Env-Checks | 87 | 89 | 86 | 87 |
 | `CMS/admin/modules/system/DocumentationSyncFilesystem.php` | Doku-FS-Logik | FS, Pfade, Speicherung | 88 | 74 | 86 | 84 |
-| `CMS/admin/modules/system/DocumentationSyncService.php` | Doku-Sync-Orchestrator | Downloader, FS, GitSync | 84 | 67 | 87 | 80 |
-| `CMS/admin/modules/system/MailSettingsModule.php` | Mail-Settings-Logik | Mailservice, Settings | 78 | 74 | 84 | 78 |
+| `CMS/admin/modules/system/DocumentationSyncService.php` | Doku-Sync-Orchestrator | Downloader, FS, GitSync | 87 | 69 | 88 | 82 |
+| `CMS/admin/modules/system/MailSettingsModule.php` | Mail-Settings-Logik | Mailservice, Settings | 84 | 77 | 87 | 83 |
 | `CMS/admin/modules/system/SupportModule.php` | Support-Logik | Tickets/Hinweise, leicht | 86 | 88 | 84 | 86 |
 | `CMS/admin/modules/system/SystemInfoModule.php` | Systeminfo-Logik | Env/PHP/Serverdaten | 88 | 84 | 84 | 86 |
 | `CMS/admin/modules/system/UpdatesModule.php` | Update-Logik | Remote/Versionen, FS | 76 | 70 | 84 | 77 |
@@ -521,16 +656,16 @@ Verwendete Referenzbasis für die Einordnung:
 | `CMS/admin/views/settings/general.php` | General-Settings-UI | `SettingsModule` | 86 | 88 | 84 | 86 |
 | `CMS/admin/views/subscriptions/orders.php` | Orders-UI | `OrdersModule` | 86 | 88 | 84 | 86 |
 | `CMS/admin/views/subscriptions/packages.php` | Packages-UI | `PackagesModule` | 86 | 88 | 84 | 86 |
-| `CMS/admin/views/subscriptions/settings.php` | Billing-Settings-UI | Subscription-Settings-Modul | 84 | 84 | 83 | 84 |
+| `CMS/admin/views/subscriptions/settings.php` | Billing-Settings-UI | Subscription-Settings-Modul | 86 | 86 | 84 | 85 |
 | `CMS/admin/views/system/backups.php` | Backup-UI | `BackupsModule` | 84 | 84 | 83 | 84 |
 | `CMS/admin/views/system/cron-status.php` | Cron-Status-UI | System-/Performance-Modul | 88 | 92 | 84 | 88 |
 | `CMS/admin/views/system/diagnose.php` | Diagnose-UI | System-Modul | 88 | 92 | 84 | 88 |
 | `CMS/admin/views/system/disk-usage.php` | Disk-Usage-UI | System-/FS-Daten | 88 | 90 | 84 | 87 |
-| `CMS/admin/views/system/documentation.php` | Doku-UI | Doku-Module, Renderer | 84 | 82 | 83 | 83 |
+| `CMS/admin/views/system/documentation.php` | Doku-UI | Doku-Module, Renderer | 85 | 83 | 84 | 84 |
 | `CMS/admin/views/system/email-alerts.php` | Email-Alerts-UI | System-/Log-Daten | 88 | 92 | 84 | 88 |
 | `CMS/admin/views/system/health-check.php` | Health-Check-UI | System-Modul | 88 | 92 | 84 | 88 |
 | `CMS/admin/views/system/info.php` | Systeminfo-UI | SystemInfo-Modul | 88 | 92 | 84 | 88 |
-| `CMS/admin/views/system/mail-settings.php` | Mail-Settings-UI | Mail-Modul | 84 | 84 | 83 | 84 |
+| `CMS/admin/views/system/mail-settings.php` | Mail-Settings-UI | Mail-Modul | 86 | 86 | 85 | 86 |
 | `CMS/admin/views/system/response-time.php` | Response-Time-UI | Perf-/System-Modul | 88 | 92 | 84 | 88 |
 | `CMS/admin/views/system/scheduled-tasks.php` | Scheduled-Tasks-UI | System-Modul | 88 | 92 | 84 | 88 |
 | `CMS/admin/views/system/subnav.php` | System-Subnav | System-Views | 90 | 95 | 85 | 90 |
@@ -593,7 +728,7 @@ Verwendete Referenzbasis für die Einordnung:
 | `core/Security.php` | Stellt Kernfunktionen für Tokens und Schutzmechanismen bereit. | Auth, Session, CSRF/Token-Logik | 76 | 78 | 84 | 79 |
 | `core/Services/AnalyticsService.php` | Bündelt Metriken und einfache Analytics-Auswertungen. | Database, TrackingService, Seo/Reporting | 76 | 76 | 82 | 78 |
 | `core/Services/AzureMailTokenProvider.php` | Beschafft Zugriffstoken für Azure-/Graph-Mailversand. | GraphApiService, Konfiguration, externe APIs | 82 | 74 | 85 | 80 |
-| `core/Services/BackupService.php` | Erstellt Sicherungen von Daten oder Dateien. | Database, Dateisystem, Zip/Archiv | 70 | 66 | 80 | 72 |
+| `core/Services/BackupService.php` | Erstellt Sicherungen von Daten oder Dateien. | Database, Dateisystem, Zip/Archiv | 78 | 75 | 83 | 79 |
 | `core/Services/CommentService.php` | Verarbeitet Kommentarlogik und zugehörige Aktionen. | Database, Security, Content/Member-Kontext | 84 | 80 | 85 | 83 |
 | `core/Services/ContentLocalizationService.php` | Unterstützt Lokalisierung von Inhalten und Varianten. | TranslationService, Database, Routing | 82 | 80 | 84 | 82 |
 | `core/Services/CookieConsentService.php` | Verwaltet Consent-Status und Cookie-Banner-Logik. | Security, SettingsService, Frontend-Hooks | 83 | 82 | 84 | 83 |

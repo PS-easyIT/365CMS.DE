@@ -44,6 +44,8 @@ final class PerformanceModule
         'perf_auto_clear_content_cache',
     ];
 
+    private const MAX_AUDIT_STRING_LENGTH = 240;
+
     private readonly \CMS\Database $db;
     private readonly \CMS\CacheManager $cacheManager;
     private readonly \CMS\Services\SystemService $systemService;
@@ -192,7 +194,7 @@ final class PerformanceModule
                 'size' => $fileCacheSizeText,
                 'size_bytes' => $fileCacheSizeBytes,
                 'writable' => (bool)($status['file_cache']['writable'] ?? false),
-                'directory' => (string)($status['file_cache']['directory'] ?? $cacheDir),
+                'directory' => '/cache/',
                 'oldest_age' => $oldestAge,
                 'newest_age' => $newestAge,
             ],
@@ -270,7 +272,7 @@ final class PerformanceModule
 
                 $dimensions = $this->getImageSize($file->getPathname()) ?: [0, 0];
                 $largestImages[] = [
-                    'path' => str_replace(ABSPATH, '', $file->getPathname()),
+                    'path' => $this->toRelativeRuntimePath($file->getPathname()),
                     'size' => $file->getSize(),
                     'width' => (int)($dimensions[0] ?? 0),
                     'height' => (int)($dimensions[1] ?? 0),
@@ -281,7 +283,7 @@ final class PerformanceModule
                     $convertibleFiles++;
                     $convertibleBytes += $file->getSize();
                     $conversionCandidates[] = [
-                        'path' => str_replace(ABSPATH, '', $file->getPathname()),
+                        'path' => $this->toRelativeRuntimePath($file->getPathname()),
                         'size' => $file->getSize(),
                         'extension' => $extension,
                     ];
@@ -519,12 +521,12 @@ final class PerformanceModule
             'expired_sessions' => $expiredSessions,
             'session_dir_files' => $sessionDirFiles,
             'session_dir_size' => $sessionDirSize,
-            'recent_sessions' => array_map(static function (object $session): array {
+            'recent_sessions' => array_map(function (object $session): array {
                 return [
                     'id' => (string)($session->id ?? ''),
                     'user_id' => (int)($session->user_id ?? 0),
-                    'ip_address' => (string)($session->ip_address ?? ''),
-                    'user_agent' => (string)($session->user_agent ?? ''),
+                    'ip_address' => $this->maskIpAddress((string)($session->ip_address ?? '')),
+                    'user_agent' => $this->sanitizeUserAgent((string)($session->user_agent ?? '')),
                     'last_activity' => (string)($session->last_activity ?? ''),
                     'expires_at' => (string)($session->expires_at ?? ''),
                 ];
@@ -557,7 +559,7 @@ final class PerformanceModule
             'Alle Cache-Layer bereinigt',
             'cache',
             null,
-            ['details' => $report['details'] ?? [], 'warmup' => $warmup],
+            ['details' => $this->sanitizeAuditArray((array)($report['details'] ?? [])), 'warmup' => $this->summarizeWarmupResult($warmup)],
             'warning'
         );
 
@@ -612,7 +614,7 @@ final class PerformanceModule
             'OPcache zurückgesetzt',
             'cache',
             null,
-            ['warmup' => $warmup],
+            ['warmup' => $this->summarizeWarmupResult($warmup)],
             'warning'
         );
 
@@ -634,7 +636,7 @@ final class PerformanceModule
             'OPcache-Warmup ausgeführt',
             'cache',
             null,
-            $warmup,
+            $this->summarizeWarmupResult($warmup),
             $warmup['success'] ?? false ? 'info' : 'warning'
         );
 
@@ -751,9 +753,10 @@ final class PerformanceModule
         }
 
         try {
+            $existing = $this->loadExistingSettingNames(array_keys($settings));
+
             foreach ($settings as $key => $value) {
-                $exists = (int)($this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?", [$key]) ?? 0);
-                if ($exists > 0) {
+                if (isset($existing[$key])) {
                     $this->db->update('settings', ['option_value' => $value], ['option_name' => $key]);
                 } else {
                     $this->db->insert('settings', ['option_name' => $key, 'option_value' => $value]);
@@ -766,7 +769,7 @@ final class PerformanceModule
                 'Performance-Einstellungen konnten nicht gespeichert werden',
                 'setting',
                 null,
-                ['exception' => $e->getMessage()],
+                ['exception' => $this->sanitizeAuditString($e->getMessage())],
                 'error'
             );
 
@@ -784,6 +787,30 @@ final class PerformanceModule
         );
 
         return ['success' => true, 'message' => 'Performance-Einstellungen gespeichert.'];
+    }
+
+    /** @param list<string> $keys @return array<string, true> */
+    private function loadExistingSettingNames(array $keys): array
+    {
+        if ($keys === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($keys), '?'));
+        $rows = $this->db->get_results(
+            "SELECT option_name FROM {$this->prefix}settings WHERE option_name IN ({$placeholders})",
+            $keys
+        ) ?: [];
+
+        $existing = [];
+        foreach ($rows as $row) {
+            $name = (string)($row->option_name ?? '');
+            if ($name !== '') {
+                $existing[$name] = true;
+            }
+        }
+
+        return $existing;
     }
 
     private function getDirSize(string $dir, ?callable $excludePath = null): int
@@ -939,6 +966,82 @@ final class PerformanceModule
         }
 
         return unlink($path);
+    }
+
+    private function toRelativeRuntimePath(string $path): string
+    {
+        $normalizedBase = str_replace('\\', '/', rtrim(ABSPATH, '\\/')) . '/';
+        $normalizedPath = str_replace('\\', '/', $path);
+
+        if (str_starts_with($normalizedPath, $normalizedBase)) {
+            return ltrim(substr($normalizedPath, strlen($normalizedBase)), '/');
+        }
+
+        return basename($normalizedPath);
+    }
+
+    private function maskIpAddress(string $ip): string
+    {
+        $ip = trim($ip);
+        if ($ip === '') {
+            return '';
+        }
+
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            $parts = explode('.', $ip);
+            if (count($parts) === 4) {
+                $parts[3] = '0';
+
+                return implode('.', $parts);
+            }
+        }
+
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            $segments = explode(':', $ip);
+            $segments = array_pad(array_slice($segments, 0, 4), 4, '');
+
+            return implode(':', $segments) . '::';
+        }
+
+        return $this->sanitizeAuditString($ip, 64);
+    }
+
+    private function sanitizeUserAgent(string $userAgent): string
+    {
+        return $this->sanitizeAuditString($userAgent, 160);
+    }
+
+    /** @param array<string, mixed> $values @return array<string, string> */
+    private function sanitizeAuditArray(array $values): array
+    {
+        $sanitized = [];
+        foreach ($values as $key => $value) {
+            $encodedValue = is_scalar($value)
+                ? (string)$value
+                : ((json_encode($value, JSON_UNESCAPED_UNICODE) ?: ''));
+            $sanitized[(string)$key] = $this->sanitizeAuditString($encodedValue, 160);
+        }
+
+        return $sanitized;
+    }
+
+    /** @param array<string, mixed> $warmup */
+    private function summarizeWarmupResult(array $warmup): array
+    {
+        return [
+            'success' => !empty($warmup['success']),
+            'message' => $this->sanitizeAuditString((string)($warmup['message'] ?? ''), 160),
+            'processed' => isset($warmup['processed']) ? (int)$warmup['processed'] : null,
+            'warmed' => isset($warmup['warmed']) ? (int)$warmup['warmed'] : null,
+            'failed' => isset($warmup['failed']) ? (int)$warmup['failed'] : null,
+        ];
+    }
+
+    private function sanitizeAuditString(string $value, int $maxLength = self::MAX_AUDIT_STRING_LENGTH): string
+    {
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', trim($value)) ?? '';
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
     }
 
     private function runSuppressedOperation(callable $operation): mixed

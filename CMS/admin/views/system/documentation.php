@@ -64,9 +64,7 @@ $selectedGithub   = is_array($selectedDocument) ? (string) ($selectedDocument['g
 <div class="page-body">
     <div class="container-xl">
         <?php if (!empty($alert)): ?>
-            <div class="alert alert-<?php echo htmlspecialchars($alert['type'] ?? 'info'); ?> mb-4" role="alert">
-                <?php echo htmlspecialchars($alert['message'] ?? ''); ?>
-            </div>
+            <?php $alertData = $alert; $alertMarginClass = 'mb-4'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
         <?php if (!$available): ?>

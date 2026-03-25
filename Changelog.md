@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.53-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.6.77-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,218 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.6.75 — 25. März 2026 · Audit-Batch 057, Doku-Sync-Environment enger gezogen
+
+### v2.6.77 — 25. März 2026 · Audit-Batch 059, Doku-Downloader weiter entkoppelt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.77** | 🔴 fix | Admin/System | **Downloader prüft Response-Header und Dateiintegrität jetzt konsequenter**: `CMS/admin/modules/system/DocumentationSyncDownloader.php` validiert `content-length` und Content-Type enger, schreibt nur konsistente ZIP-Antworten weg und erzeugt direkt eine SHA-256-Checksumme für den weiteren Sync-Pfad. |
+| **2.6.77** | 🔴 security | Admin/System | **GitHub-ZIP-Sync vertraut nicht mehr blind auf das gespeicherte Artefakt**: `CMS/admin/modules/system/DocumentationGithubZipSync.php` verifiziert heruntergeladene ZIP-Dateien zusätzlich gegen Größe und Hash des Downloader-Ergebnisses und blockiert inkonsistente Download-Artefakte vor dem Entpacken. |
+| **2.6.77** | 🟡 refactor | Admin/System | **Download-Ergebnis aus Array-Mix in kleines DTO gezogen**: `DocumentationDownloadResult` bündelt Status, Content-Type, Bytes und Hash, sodass Downloader- und ZIP-Sync-Pfade weniger lose Rückgabe-Arrays und implizite Nachprüfungen mit sich herumschleppen. |
+
+---
+
+### v2.6.76 — 25. März 2026 · Audit-Batch 058, Mail-Settings-Wrapper & View vereinheitlicht
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.76** | 🔴 fix | Admin/System | **Mail-Settings-Entry dispatcht POST-Aktionen jetzt über kleine Standard-Helper**: `CMS/admin/mail-settings.php` nutzt eine explizite Tab-/Action-Allowlist, vereinheitlicht Flash + Redirect und übernimmt Session-Alerts nur noch defensiv als Array. |
+| **2.6.76** | 🔴 security | Admin/System | **Mail-Settings-View folgt dem gemeinsamen Flash- und Statusmuster**: `CMS/admin/views/system/mail-settings.php` rendert Meldungen über den zentralen Flash-Partial, hält Tab-Definitionen lokal gebündelt und kapselt Queue-Status-Badges über einen kleinen Helper statt losem Inline-Mix. |
+| **2.6.76** | 🟡 refactor | Admin/System | **Mail-UI-Kontrakt bleibt enger am Admin-Standard**: API-/Tab-Konstanten und wiederkehrende View-Helfer liegen jetzt zentral im Template-Kontext, wodurch weniger implizite Sonderlogik zwischen Wrapper und View verteilt bleibt. |
+
+---
+
+### v2.6.75 — 25. März 2026 · Audit-Batch 057, Doku-Sync-Environment enger gezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.75** | 🔴 security | Admin/System | **Doku-Sync-Environment akzeptiert nur noch erwartete Git-Kommandos**: `CMS/admin/modules/system/DocumentationSyncEnvironment.php` blockiert jetzt Shell-Aufrufe außerhalb definierter Git-Subcommands sowie auffällige Kommando-Payloads mit Redirect-/Pipe-Spielereien deutlich früher. |
+| **2.6.75** | 🔴 fix | Admin/System | **Repository-Root wird vor Capability- und Command-Pfaden früher validiert**: ungültige oder symlinkartige Repo-Roots laufen nicht mehr halb in Capability- oder Git-Pfade hinein, sondern werden kontrolliert als nicht nutzbare Umgebung behandelt. |
+| **2.6.75** | 🟡 refactor | Admin/System | **Command-Sanitizing und Root-Normalisierung zentralisiert**: die Environment-Schicht bündelt Command-Längenlimit, Root-Normalisierung und Allowlist-Prüfung nun in kleinen Helpern statt losem Blindvertrauen auf Übergabestrings. |
+
+---
+
+### v2.6.74 — 25. März 2026 · Audit-Batch 056, Subscription-Settings-Wrapper vereinheitlicht
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.74** | 🔴 fix | Admin/Subscriptions | **Subscription-Settings-Entry akzeptiert nur noch die erwartete Mutation**: `CMS/admin/subscription-settings.php` nutzt jetzt eine explizite Action-Allowlist und behandelt CSRF-/Aktionsfehler konsistent per Flash + Redirect statt mit losem POST-Sonderpfad. |
+| **2.6.74** | 🔴 security | Admin/Subscriptions | **Flash-State wird defensiver übernommen**: Session-Alerts werden nur noch als Array akzeptiert und nicht mehr blind aus der Session in den View-Kontext gespiegelt. |
+| **2.6.74** | 🟡 refactor | Admin/Subscriptions | **Settings-View folgt dem gemeinsamen Alert-Partial**: `CMS/admin/views/subscriptions/settings.php` nutzt jetzt den bestehenden Flash-Alert-Baustein und sendet die Mutation explizit als `save_settings`, statt Wrapper-Logik implizit zu erraten. |
+
+---
+
+### v2.6.73 — 25. März 2026 · Audit-Batch 055, Orders-Admin restriktiver gemacht
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.73** | 🔴 fix | Admin/Subscriptions | **Orders-Entry akzeptiert nur noch bekannte Mutationen**: `CMS/admin/orders.php` dispatcht POST-Aktionen jetzt über eine explizite Allowlist, normalisiert Statusfilter serverseitig und behandelt CSRF-/Aktionsfehler konsistent per Flash + Redirect statt mit losem Wrapper-Verhalten. |
+| **2.6.73** | 🔴 security | Admin/Subscriptions | **Bestell-Mutationen prüfen Status, Existenz und Kontext enger**: `CMS/admin/modules/subscriptions/OrdersModule.php` validiert Billing-/Statuswerte zentral, bricht Statuswechsel und Löschungen bei fehlenden Bestellungen sauber ab und schreibt nur noch maskierte Bestell-/Mailkontexte ins Audit-Log. |
+| **2.6.73** | 🟡 refactor | Admin/Subscriptions | **Orders-Modul nutzt gemeinsame Limits und Helper statt losem Array-Mix**: Status-/Billing-Normalisierung, Snapshot-Reads und kompaktere Listenlimits reduzieren Dupplikate und halten die Bestellverwaltung besser auf Linie. |
+
+---
+
+### v2.6.72 — 25. März 2026 · Audit-Batch 054, GitHub-ZIP-Sync nachgeschärft
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.72** | 🔴 security | Admin/System | **GitHub-ZIP-Quellen bleiben jetzt enger auf saubere Archive beschränkt**: `CMS/admin/modules/system/DocumentationGithubZipSync.php` akzeptiert keine ZIP-URLs mehr mit Query-, Fragment- oder Credential-Anteilen und prüft die geladene Archivdatei lokal zusätzlich auf sichere Dateiform und Größe. |
+| **2.6.72** | 🔴 fix | Admin/System | **Rollback-Reste werden kontrollierter aufgeräumt**: nach erfolgreich wiederhergestelltem `/DOC`-Stand löscht der ZIP-Sync verbliebene Backup-Verzeichnisse gezielter, statt unnötige Alt-Artefakte im Repo-Root liegen zu lassen. |
+| **2.6.72** | 🟡 refactor | Admin/System | **Logpfade werden kompakter relativ zum Repo-Root ausgegeben**: Pfadkontexte zeigen weniger absolute Serverdetails und bleiben für Doku-Sync-Logs trotzdem nachvollziehbar. |
+
+---
+
+### v2.6.71 — 25. März 2026 · Audit-Batch 053, Backup-Service enger gezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.71** | 🔴 fix | Core/Backups | **Backup-Zielpfade werden jetzt realpath-basiert gegen den Backup-Root geprüft**: `CMS/core/Services/BackupService.php` akzeptiert Ziel- und Unterverzeichnisse nicht mehr nur per String-Präfix, sondern normalisiert bestehende und neue Pfade über ihren aufgelösten Root-Kontext. |
+| **2.6.71** | 🟠 perf | Core/Backups | **Datenbank-Dumps laufen speicherschonender über Tabellenzeilen**: der Dump-Pfad iteriert Tabelleninhalte jetzt zeilenweise statt jede Tabelle per `fetchAll()` vollständig in den Speicher zu ziehen. |
+| **2.6.71** | 🔴 security | Core/Backups | **REST-S3-Uploads wurden enger begrenzt**: Uploads akzeptieren nur noch lesbare Dateien innerhalb des Backup-Roots, blockieren auffällige Endpoint-/Bucket-Werte und laden keine übergroßen Backup-Dateien mehr blind komplett in den Request-Pfad. |
+
+---
+
+### v2.6.70 — 25. März 2026 · Audit-Batch 052, Mail-Admin-Operationen bereinigt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.70** | 🔴 fix | Admin/System | **Mail-Admin-Aktionen fangen Unterservice-Ausnahmen konsistenter ab**: `CMS/admin/modules/system/MailSettingsModule.php` kapselt Queue-Läufe, Testmails, Graph-Tests sowie Cache-/Log-Clears jetzt sauber über generische Fehlerpfade, statt sich auf implizit störungsfreie Unterservices zu verlassen. |
+| **2.6.70** | 🔴 security | Admin/System | **Unterservice-Rückgaben werden vor der UI-Nutzung sanitisiert**: Test-, Queue- und Graph-Antworten werden auf kompakte, UI-taugliche Message-/Error-Felder reduziert, damit keine ausufernden oder künftig detailreicheren Service-Payloads ungebremst in den Admin-Flow rutschen. |
+| **2.6.70** | 🟡 refactor | Admin/System | **Queue-Save-Pfad auditierbarer gemacht**: Queue-Konfiguration und optionale Cron-Token-Rotation laufen nun über einen gemeinsamen Guard-/Try-Catch-Pfad und protokollieren die Token-Neuerstellung explizit im Audit-Kontext mit. |
+
+---
+
+### v2.6.69 — 25. März 2026 · Audit-Batch 051, Doku-Sync-Orchestrator serialisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.69** | 🔴 fix | Admin/System | **Doku-Sync verlangt jetzt intern explizit Admin-Rechte**: `CMS/admin/modules/system/DocumentationSyncService.php` verlässt sich nicht mehr nur auf den äußeren Wrapper, sondern blockiert direkte Service-Aufrufe ohne Admin-Kontext selbstständig. |
+| **2.6.69** | 🔴 security | Admin/System | **Parallele Doku-Syncs werden zentral abgefangen**: Git- und ZIP-basierte Läufe teilen sich jetzt ein gemeinsames Lockfile im Orchestrator, sodass gleichzeitige Sync-Starts nicht mehr gegeneinander arbeiten oder denselben `/DOC`-Baum parallel anfassen. |
+| **2.6.69** | 🟡 refactor | Admin/System | **Capabilities berücksichtigen Fehlkonfigurationen früher**: Der Service meldet inkonsistente Repo-/DOC-/ZIP-/Integritätsprofile bereits im Statuspfad als „nicht verfügbar“, statt der Oberfläche trotz kaputter Sync-Konfiguration noch einen scheinbar nutzbaren Modus anzuzeigen. |
+
+---
+
+### v2.6.68 — 25. März 2026 · Audit-Batch 050, Paket-Admin restriktiver gemacht
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.68** | 🔴 fix | Admin/Subscriptions | **Paket-Entry akzeptiert nur noch bekannte Aktionen**: `CMS/admin/packages.php` prüft POST-Aktionen jetzt per Allowlist, leitet CSRF-/Aktionsfehler konsistent per Redirect + Flash zurück und vermeidet lose Wrapper-Sonderpfade. |
+| **2.6.68** | 🔴 security | Admin/Subscriptions | **Paket-Mutationen validieren Slugs und Zugriffe restriktiver**: `CMS/admin/modules/subscriptions/PackagesModule.php` prüft Admin-Zugriff intern, erzwingt valide/unique Slugs und gibt bei Save-/Delete-/Toggle-Fehlern keine rohen Exception-Texte mehr an die UI weiter. |
+| **2.6.68** | 🟡 refactor | Admin/Subscriptions | **Paket-Änderungen werden sauberer auditiert**: Erstellen, Aktualisieren, Löschen, Aktivieren und Standard-Seed-Läufe schreiben jetzt strukturierte Audit-Ereignisse statt nur lose Rückgabewerte zu liefern. |
+
+---
+
+### v2.6.67 — 25. März 2026 · Audit-Batch 049, Documentation-Katalog defensiver gemacht
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.67** | 🔴 fix | Admin/System | **Doku-Dateien werden kontrollierter gelesen**: `CMS/admin/modules/system/DocumentationCatalog.php` begrenzt Preview- und Vollreads serverseitig auf feste Maximalgrößen und kappt übergroße Dokumente für die Admin-Ansicht kontrolliert statt ungebremst komplette Dateien einzulesen. |
+| **2.6.67** | 🔴 security | Admin/System | **Docs-Root- und Symlink-Grenzen nachgezogen**: der Katalog liest nur noch echte Dateien innerhalb des `/DOC`-Roots, überspringt Symlinks im rekursiven Scan und loggt Dateipfade kompakter relativ statt mit rohen absoluten Serverpfaden. |
+| **2.6.67** | 🟠 perf | Admin/System | **Metadaten-Scanning mit weniger I/O**: Titel/Excerpts werden nur noch aus begrenzten Preview-Reads aufgebaut, sodass der Doku-Katalog beim Section-Scan weniger unnötige Datei-Last erzeugt. |
+
+---
+
+### v2.6.66 — 25. März 2026 · Audit-Batch 048, Documentation-Wrapper vereinheitlicht
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.66** | 🔴 fix | Admin/System | **Doku-Entry normalisiert Dokumentpfade jetzt defensiver**: `CMS/admin/documentation.php` begrenzt `doc`-Parameter auf erwartete Markdown-/CSV-Ziele, verwirft Traversal-artige Segmente und nutzt dieselbe normalisierte Auswahl für Redirect und Render-Aufruf. |
+| **2.6.66** | 🔴 security | Admin/System | **POST-Dispatch und Alert-State bleiben enger am Admin-Standard**: unbekannte Aktionen laufen über einen generischen Fallback; Session-Alerts werden nur noch als Array übernommen und nicht lose direkt gerendert. |
+| **2.6.66** | 🟡 refactor | Admin/System | **Doku-View nutzt den gemeinsamen Flash-Alert-Partial**: `CMS/admin/views/system/documentation.php` folgt jetzt dem etablierten Admin-Alert-Muster statt eigener Inline-Alert-Ausgabe. |
+
+---
+
+### v2.6.65 — 25. März 2026 · Audit-Batch 047, Backup-Flows vereinheitlicht
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.65** | 🔴 fix | Admin/System | **Backup-Entry und DB-Backups greifen jetzt sauber ineinander**: `CMS/admin/backups.php` dispatcht bekannte POST-Aktionen einheitlich; `CMS/admin/modules/system/BackupsModule.php` erzeugt reine Datenbank-Backups jetzt über verwaltbare Container statt als lose Root-Dateien. |
+| **2.6.65** | 🔴 security | Admin/System | **Legacy-Dateien bleiben kontrolliert verwaltbar**: `CMS/core/Services/BackupService.php` erkennt alte `database_*.sql(.gz)`-Backups weiter defensiv, listet sie mit Metadaten und erlaubt das Löschen nur innerhalb des Backup-Roots. |
+| **2.6.65** | 🟠 perf | Admin/System | **Große Backup-Listen werden früher begrenzt**: der Service priorisiert Verzeichniskandidaten vor dem Manifest-Parsing und lädt für die Admin-Liste nur noch die relevanten neuesten Backups statt stumpf jedes Manifest einzulesen. |
+
+---
+
+### v2.6.64 — 25. März 2026 · Audit-Batch 046, Mail-Settings gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.64** | 🔴 fix | Admin/System | **Mail-Entry und Mail-Settings validieren Aktionen, Hosts, URLs und Empfänger restriktiver**: `CMS/admin/mail-settings.php` akzeptiert nur noch bekannte POST-Aktionen; `CMS/admin/modules/system/MailSettingsModule.php` normalisiert SMTP-Host, Azure-/Graph-Endpunkte und Testempfänger jetzt enger und blockt unsaubere Werte deutlich früher. |
+| **2.6.64** | 🔴 security | Admin/System | **Sensible Auditdaten werden maskiert**: Empfängeradressen sowie Tenant-/Client-Kennungen landen nur noch maskiert in Audit-Kontexten; Queue-Läufe protokollieren keine rohen Ergebnis-Arrays mehr. |
+| **2.6.64** | 🟡 refactor | Admin/System | **Fehlerpfade generischer und interner abgesichert**: das Modul prüft Admin-Zugriff jetzt intern, gibt bei Save-/Graph-/Queue-/Testpfaden keine rohen Detailfehler mehr an die UI und auditiert Cache-Clears explizit. |
+
+---
+
+### v2.6.63 — 25. März 2026 · Audit-Batch 045, Subscription-Settings gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.63** | 🔴 fix | Admin/Subscriptions | **Abo-Settings validieren IDs und Pflichtwerte restriktiver**: `CMS/admin/modules/subscriptions/SubscriptionSettingsModule.php` akzeptiert Standardpläne sowie AGB-/Widerrufsseiten jetzt nur noch, wenn die referenzierten Datensätze tatsächlich existieren bzw. veröffentlicht sind. |
+| **2.6.63** | 🟠 perf | Admin/Subscriptions | **Settings-Laden und -Speichern gebündelt**: allgemeine und Paket-Settings werden gesammelt geladen und über einen gemeinsamen Persistenzpfad geschrieben, statt pro Option wiederholt eigene Existenzabfragen auszulösen. |
+| **2.6.63** | 🟡 refactor | Admin/Subscriptions | **Fehler- und Auditpfade vereinheitlicht**: das Modul prüft Admin-Zugriff jetzt auch intern, gibt keine rohen Exception-Texte mehr an die UI und protokolliert Save-Vorgänge strukturiert über Logger und Audit-Log. |
+
+---
+
+### v2.6.62 — 25. März 2026 · Audit-Batch 044, Cookie-Manager nachgeschärft
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.62** | 🔴 fix | Admin/Legal | **Matomo-Self-Hosted-URL jetzt strikt validiert**: `CMS/admin/modules/legal/CookieManagerModule.php` akzeptiert gespeicherte Matomo-URLs nur noch als saubere HTTP(S)-Ziele ohne eingebettete Zugangsdaten und bricht bei ungültigen Werten früh mit einer klaren Admin-Meldung ab. |
+| **2.6.62** | 🟠 perf | Admin/Legal | **Scanner- und Settings-Zugriffe stärker gestaffelt**: Low-Value-Pfade wie Cache-, Vendor-, Upload- oder Backup-Verzeichnisse werden im Cookie-Scanner übersprungen; Scan-Metadaten und Settings-Updates werden gebündelt statt in mehreren Einzelpfaden geschrieben. |
+| **2.6.62** | 🟡 refactor | Admin/Legal | **Kategorie-/Settings-Lookups entkoppelt**: Default-Kategorien und Setting-Existenzprüfungen nutzen interne Caches, wodurch wiederholte Datenbank-Existenzchecks im Modulpfad sauberer gebündelt werden. |
+
+---
+
+### v2.6.61 — 24. März 2026 · Audit-Batch 043, Documentation-Renderer gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.61** | 🔴 fix | Admin/Documentation | **Link-Resolver-Ausfälle bleiben lokal**: `CMS/admin/modules/system/DocumentationRenderer.php` fängt Resolver-Fehler für Markdown-Links jetzt kontrolliert ab und fällt auf sichere Platzhalter-Links zurück, statt das gesamte Rendering mitzureißen. |
+| **2.6.61** | 🔴 security | Admin/Documentation | **Href- und Render-Grenzen defensiver gemacht**: protokollrelative `//`-Links, Backslashes und Steuerzeichen werden verworfen; Linkziele werden gekappt und überlange Codeblöcke nur noch bis zu einem festen Maximalumfang gerendert. |
+| **2.6.61** | 🟡 refactor | Admin/Documentation | **Codeblock- und Link-Guards vereinheitlicht**: große Markdown-Codefences laufen jetzt über denselben Guard-/Log-Pfad wie andere Renderer-Limits und halten die Admin-Dokumentation auch bei Sonderfällen stabiler. |
+
+---
+
+### v2.6.60 — 24. März 2026 · Audit-Batch 042, Security-Audit-Modul nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.60** | 🔴 fix | Admin/Security | **Audit-Log-Cleanup auf Security/Auth begrenzt**: `CMS/admin/modules/security/SecurityAuditModule.php` zählt und löscht alte Logeinträge jetzt nur noch innerhalb der vom Modul tatsächlich angezeigten Sicherheits- und Auth-Kategorien. |
+| **2.6.60** | 🔴 security | Admin/Security | **Audit-Details und IP-Adressen defensiver gemacht**: Detailtexte werden sanitisiert, IP-Adressen im Audit-Log maskiert und `.htaccess`-Fehlerpfade ohne unnötige absolute Serverpfade protokolliert. |
+| **2.6.60** | 🟡 refactor | Admin/Security | **Prüfpfade gezielter auf Runtime-Konfiguration ausgedehnt**: Das Modul bewertet jetzt zusätzlich `config/app.php`-Berechtigungen und verwendet einen gemeinsamen Sanitize-Pfad für Security-Audit-Kontexte. |
+
+---
+
+### v2.6.59 — 24. März 2026 · Audit-Batch 041, Settings-Modul gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.59** | 🔴 fix | Admin/Settings | **Settings-Persistenz ohne N+1-Existenzchecks**: `CMS/admin/modules/settings/SettingsModule.php` lädt vorhandene Setting-Namen jetzt gesammelt vor, statt pro Option zusätzliche `COUNT(*)`-Abfragen auszuführen. |
+| **2.6.59** | 🔴 security | Admin/Settings | **Audit- und Mail-Kontexte defensiver gemacht**: Exception-Texte werden sanitisiert protokolliert, Test-Mail-Audits maskieren Empfängeradressen und URL-Migrationen landen mit kompakten Summaries statt roher Detail-Arrays im Audit-Log. |
+| **2.6.59** | 🟡 refactor | Admin/Settings | **Konfigurations-Schreibpfad robuster gemacht**: `config/app.php` und `.htaccess` werden mit sichererer Ersatzlogik geschrieben; Tabellen-/Spaltenprüfungen für die URL-Migration nutzen jetzt wiederverwendete Caches statt redundanter Wiederholungsabfragen. |
+
+---
+
+### v2.6.58 — 24. März 2026 · Audit-Batch 040, Plugin-Marketplace gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.58** | 🔴 fix | Admin/Marketplace | **Lokale Manifestpfade und Plugin-Zielverzeichnis restriktiver geprüft**: `CMS/admin/modules/plugins/PluginMarketplaceModule.php` akzeptiert lokale Manifestpfade nur noch ohne Traversal-Segmente und validiert das Plugins-Verzeichnis vor der Auto-Installation gegen Schreibbarkeit und erwarteten Runtime-Root. |
+| **2.6.58** | 🔴 security | Admin/Marketplace | **ZIP-Archive gegen auffällige Strukturen begrenzt**: Plugin-Pakete werden jetzt zusätzlich auf maximale Eintragsanzahl, unkomprimierte Gesamtgröße, Kontrollzeichen und segmentierte Pfadmanipulationen geprüft, bevor entpackt wird. |
+| **2.6.58** | 🟡 refactor | Admin/Marketplace | **Download-/Entpackpfade sauberer gekapselt**: temporäre Dateien werden kontrollierter aufgeräumt, Schreibfehler beim lokalen Paket-Store liefern klare Fehlpfade und Registry-/Manifest-Downloads nutzen zentrale Größenlimits. |
+
+---
+
+### v2.6.57 — 24. März 2026 · Audit-Batch 039, Performance-Modul nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.6.57** | 🔴 fix | Admin/Performance | **Performance-Settings ohne N+1-Existenzchecks gespeichert**: `CMS/admin/modules/seo/PerformanceModule.php` lädt vorhandene Setting-Namen jetzt gesammelt vor, statt pro Einzelwert zusätzliche COUNT-Abfragen auszuführen. |
+| **2.6.57** | 🔴 security | Admin/Performance | **Session- und Pfadkontexte defensiver gemacht**: Cache-Verzeichnisangaben und Medienpfade werden ohne unnötige Server-Interna ausgegeben; Session-Listen maskieren IP-Adressen und bereinigen User-Agents vor der View-Ausgabe. |
+| **2.6.57** | 🟡 refactor | Admin/Performance | **Audit-/Warmup-Kontexte bereinigt**: OPcache-Warmup- und Save-Fehlerpfade loggen nur noch sanitisierte Kurzkontexte statt potenziell ausufernde Detaildaten direkt ins Audit-Log zu kippen. |
 
 ---
 

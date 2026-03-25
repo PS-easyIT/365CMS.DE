@@ -19,6 +19,7 @@ class SecurityAuditModule
     private const MAX_CHECK_DETAIL_LENGTH = 320;
     private const MAX_AUDIT_DETAIL_LENGTH = 240;
     private const MAX_HTACCESS_BYTES = 131072;
+    private const AUDIT_LOG_RETENTION_DAYS = 30;
 
     private readonly \CMS\Database $db;
     private readonly string $prefix;
@@ -82,11 +83,16 @@ class SecurityAuditModule
         }
 
         try {
+            $auditCategories = $this->getAuditLogCategories();
             $olderEntries = (int) ($this->db->get_var(
-                "SELECT COUNT(*) FROM {$this->prefix}audit_log WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)"
+                "SELECT COUNT(*) FROM {$this->prefix}audit_log WHERE category IN (?, ?) AND created_at < DATE_SUB(NOW(), INTERVAL " . self::AUDIT_LOG_RETENTION_DAYS . " DAY)",
+                $auditCategories
             ) ?? 0);
 
-            $this->db->query("DELETE FROM {$this->prefix}audit_log WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)");
+            $this->db->execute(
+                "DELETE FROM {$this->prefix}audit_log WHERE category IN (?, ?) AND created_at < DATE_SUB(NOW(), INTERVAL " . self::AUDIT_LOG_RETENTION_DAYS . " DAY)",
+                $auditCategories
+            );
 
             AuditLogger::instance()->log(
                 AuditLogger::CAT_SECURITY,
@@ -94,11 +100,15 @@ class SecurityAuditModule
                 'Alte Sicherheits-Audit-Logs bereinigt',
                 'security_audit',
                 null,
-                ['deleted_entries' => $olderEntries],
+                [
+                    'deleted_entries' => $olderEntries,
+                    'retention_days' => self::AUDIT_LOG_RETENTION_DAYS,
+                    'categories' => $auditCategories,
+                ],
                 'warning'
             );
 
-            return ['success' => true, 'message' => 'Alte Audit-Einträge (> 30 Tage) gelöscht.'];
+            return ['success' => true, 'message' => 'Alte Sicherheits-Audit-Einträge (> 30 Tage) gelöscht.'];
         } catch (\Throwable $e) {
             $this->logFailure('security.audit.clear_log_failed', 'Audit-Log-Bereinigung fehlgeschlagen.', [
                 'exception' => $e::class,
@@ -139,16 +149,7 @@ class SecurityAuditModule
             }
         );
 
-        $configFile = $abspath . 'config.php';
-        if (is_file($configFile)) {
-            $perms = substr(sprintf('%o', fileperms($configFile)), -4);
-            $configOk = in_array($perms, ['0644', '0640', '0600'], true);
-            $checks[] = $this->buildCheck(
-                'config.php Berechtigungen (' . $perms . ')',
-                $configOk ? 'ok' : 'warning',
-                $configOk ? 'Dateiberechtigungen sind korrekt.' : 'config.php sollte nicht öffentlich beschreibbar sein (empfohlen: 644 oder 640).'
-            );
-        }
+        $checks = array_merge($checks, $this->buildConfigPermissionChecks($abspath));
 
         $installExists = is_file($abspath . 'install.php');
         $checks[] = $this->buildCheck(
@@ -305,7 +306,7 @@ class SecurityAuditModule
             if (is_string($rawContent)) {
                 if (strlen($rawContent) > self::MAX_HTACCESS_BYTES) {
                     $this->logFailure('security.audit.htaccess_limit', '.htaccess-Prüfung auf maximale Dateigröße begrenzt.', [
-                        'path' => $path,
+                        'path' => '.htaccess',
                         'max_bytes' => self::MAX_HTACCESS_BYTES,
                     ]);
                     $rawContent = substr($rawContent, 0, self::MAX_HTACCESS_BYTES);
@@ -314,7 +315,7 @@ class SecurityAuditModule
                 $content = $rawContent;
             } elseif ($warning !== null) {
                 $this->logFailure('security.audit.htaccess_read_failed', '.htaccess konnte für das Sicherheits-Audit nicht gelesen werden.', [
-                    'path' => $path,
+                    'path' => '.htaccess',
                 ]);
             }
         }
@@ -372,7 +373,7 @@ class SecurityAuditModule
                  WHERE category IN (?, ?)
                  ORDER BY created_at DESC
                  LIMIT " . self::MAX_AUDIT_LOG_ROWS,
-                [AuditLogger::CAT_SECURITY, AuditLogger::CAT_AUTH]
+                $this->getAuditLogCategories()
             ) ?: [];
 
             return array_map(fn (mixed $row): array => $this->normalizeAuditLogRow($row), $rows);
@@ -394,10 +395,10 @@ class SecurityAuditModule
         $metadataPreview = '';
 
         if (!empty($data['metadata']) && is_string($data['metadata'])) {
-            $metadataPreview = $this->truncateText(trim($data['metadata']), self::MAX_AUDIT_DETAIL_LENGTH);
+            $metadataPreview = $this->truncateText($this->sanitizeAuditText($data['metadata']), self::MAX_AUDIT_DETAIL_LENGTH);
         }
 
-        $details = trim((string) ($data['description'] ?? ''));
+        $details = $this->sanitizeAuditText((string) ($data['description'] ?? ''));
         if ($details === '' && $metadataPreview !== '') {
             $details = $metadataPreview;
         }
@@ -409,7 +410,7 @@ class SecurityAuditModule
             'details' => $this->truncateText($details, self::MAX_AUDIT_DETAIL_LENGTH),
             'category' => $this->truncateText((string) ($data['category'] ?? ''), 40),
             'severity' => $this->truncateText((string) ($data['severity'] ?? ''), 20),
-            'ip_address' => $this->truncateText((string) ($data['ip_address'] ?? ''), 45),
+            'ip_address' => $this->maskIpAddress((string) ($data['ip_address'] ?? '')),
         ];
     }
 
@@ -444,15 +445,122 @@ class SecurityAuditModule
      */
     private function logFailure(string $action, string $message, array $context = []): void
     {
-        Logger::instance()->withChannel('admin.security-audit')->warning($message, $context);
+        $sanitizedContext = $this->sanitizeAuditContext($context);
+
+        Logger::instance()->withChannel('admin.security-audit')->warning($message, $sanitizedContext);
         AuditLogger::instance()->log(
             AuditLogger::CAT_SECURITY,
             $action,
             $message,
             'security_audit',
             null,
-            $context,
+            $sanitizedContext,
             'warning'
         );
+    }
+
+    /**
+     * @return array<int,string>
+     */
+    private function getAuditLogCategories(): array
+    {
+        return [AuditLogger::CAT_SECURITY, AuditLogger::CAT_AUTH];
+    }
+
+    /**
+     * @return array<int, array{name:string,status:string,detail:string}>
+     */
+    private function buildConfigPermissionChecks(string $abspath): array
+    {
+        $checks = [];
+
+        $configFiles = [
+            ['label' => 'config.php', 'path' => $abspath . 'config.php', 'required' => true],
+            ['label' => 'config/app.php', 'path' => $abspath . 'config/app.php', 'required' => false],
+        ];
+
+        foreach ($configFiles as $configFile) {
+            $path = (string) ($configFile['path'] ?? '');
+            $label = (string) ($configFile['label'] ?? basename($path));
+            $required = !empty($configFile['required']);
+
+            if (!is_file($path)) {
+                if ($required) {
+                    $checks[] = $this->buildCheck(
+                        $label . ' vorhanden',
+                        'critical',
+                        $label . ' fehlt oder ist nicht lesbar.'
+                    );
+                }
+
+                continue;
+            }
+
+            $perms = substr(sprintf('%o', fileperms($path)), -4);
+            $configOk = in_array($perms, ['0644', '0640', '0600'], true);
+            $checks[] = $this->buildCheck(
+                $label . ' Berechtigungen (' . $perms . ')',
+                $configOk ? 'ok' : 'warning',
+                $configOk
+                    ? 'Dateiberechtigungen sind korrekt.'
+                    : ($label . ' sollte nicht öffentlich beschreibbar sein (empfohlen: 644 oder 640).')
+            );
+        }
+
+        return $checks;
+    }
+
+    /**
+     * @param array<string,mixed> $context
+     * @return array<string,mixed>
+     */
+    private function sanitizeAuditContext(array $context): array
+    {
+        foreach ($context as $key => $value) {
+            if (is_string($value)) {
+                $context[$key] = $this->sanitizeAuditText($value);
+            } elseif (is_array($value)) {
+                $context[$key] = $this->sanitizeAuditContext($value);
+            }
+        }
+
+        return $context;
+    }
+
+    private function sanitizeAuditText(string $value): string
+    {
+        $value = trim(preg_replace('/\s+/u', ' ', $value) ?? '');
+        if ($value === '') {
+            return '';
+        }
+
+        $value = preg_replace('/([A-Z0-9._%+-])[A-Z0-9._%+-]*@([A-Z0-9.-]+\.[A-Z]{2,})/iu', '$1***@$2', $value) ?? $value;
+        $value = preg_replace('/\b(\d{1,3}\.\d{1,3}\.)(\d{1,3})\.(\d{1,3})\b/', '$1***.***', $value) ?? $value;
+
+        return $this->truncateText($value, self::MAX_AUDIT_DETAIL_LENGTH);
+    }
+
+    private function maskIpAddress(string $ipAddress): string
+    {
+        $ipAddress = trim($ipAddress);
+        if ($ipAddress === '') {
+            return '';
+        }
+
+        if (filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            $parts = explode('.', $ipAddress);
+            if (count($parts) === 4) {
+                return $parts[0] . '.' . $parts[1] . '.***.***';
+            }
+        }
+
+        if (filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            $segments = explode(':', $ipAddress);
+            if (count($segments) > 2) {
+                return implode(':', array_slice($segments, 0, 2)) . ':****:****';
+            }
+        }
+
+        return $this->truncateText($ipAddress, 45);
     }
 }

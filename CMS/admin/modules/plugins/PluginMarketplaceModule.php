@@ -13,6 +13,11 @@ use CMS\Http\Client as HttpClient;
 
 class PluginMarketplaceModule
 {
+    private const MAX_REGISTRY_BYTES = 1048576;
+    private const MAX_MANIFEST_BYTES = 524288;
+    private const MAX_ARCHIVE_ENTRIES = 2000;
+    private const MAX_ARCHIVE_UNCOMPRESSED_BYTES = 52428800;
+
     private const ALLOWED_MARKETPLACE_HOSTS = [
         '365cms.de',
         'www.365cms.de',
@@ -97,6 +102,10 @@ class PluginMarketplaceModule
 
         // Download + Entpacken (vereinfachte Logik)
         $pluginsDir = defined('PLUGINS_PATH') ? PLUGINS_PATH : (defined('ABSPATH') ? ABSPATH . 'plugins/' : '');
+        if (!$this->isAllowedPluginsDirectory($pluginsDir)) {
+            return ['success' => false, 'error' => 'Plugin-Zielverzeichnis ist ungültig oder nicht beschreibbar.'];
+        }
+
         $targetDir  = $pluginsDir . $slug;
 
         if (is_dir($targetDir)) {
@@ -108,48 +117,51 @@ class PluginMarketplaceModule
         if ($tmpFile === false) {
             return ['success' => false, 'error' => 'Temporäre Datei konnte nicht erstellt werden.'];
         }
-        $response = HttpClient::getInstance()->get($downloadUrl, [
-            'userAgent' => '365CMS-PluginMarketplace/1.0',
-            'timeout' => 30,
-            'connectTimeout' => 10,
-            'maxBytes' => 25 * 1024 * 1024,
-            'allowedContentTypes' => ['application/zip', 'application/octet-stream', 'application/x-zip-compressed'],
-        ]);
-        $content = (string) ($response['body'] ?? '');
-
-        if (($response['success'] ?? false) !== true || $content === '') {
-            if (is_file($tmpFile)) {
-                unlink($tmpFile);
-            }
-
-            return ['success' => false, 'error' => 'Download fehlgeschlagen.'];
-        }
-        file_put_contents($tmpFile, $content);
-
-        if (!\CMS\Services\UpdateService::getInstance()->verifyDownloadIntegrity($tmpFile, $integrityHash)) {
-            if (is_file($tmpFile)) {
-                unlink($tmpFile);
-            }
-
-            return ['success' => false, 'error' => 'SHA-256-Prüfsumme des Plugin-Pakets stimmt nicht. Installation aus Sicherheitsgründen abgebrochen.'];
-        }
-
-        // ZIP entpacken
         $zip = new \ZipArchive();
-        if ($zip->open($tmpFile) !== true) {
-            unlink($tmpFile);
-            return ['success' => false, 'error' => 'ZIP-Datei konnte nicht geöffnet werden.'];
-        }
 
-        if (!$this->validateZipEntries($zip, $slug)) {
-            $zip->close();
-            unlink($tmpFile);
-            return ['success' => false, 'error' => 'Plugin-Paket enthält ungültige oder unsichere Pfade.'];
-        }
+        try {
+            $response = HttpClient::getInstance()->get($downloadUrl, [
+                'userAgent' => '365CMS-PluginMarketplace/1.0',
+                'timeout' => 30,
+                'connectTimeout' => 10,
+                'maxBytes' => 25 * 1024 * 1024,
+                'allowedContentTypes' => ['application/zip', 'application/octet-stream', 'application/x-zip-compressed'],
+            ]);
+            $content = (string) ($response['body'] ?? '');
 
-        $zip->extractTo($pluginsDir);
-        $zip->close();
-        unlink($tmpFile);
+            if (($response['success'] ?? false) !== true || $content === '') {
+                return ['success' => false, 'error' => 'Download fehlgeschlagen.'];
+            }
+
+            $written = file_put_contents($tmpFile, $content, LOCK_EX);
+            if (!is_int($written) || $written <= 0) {
+                return ['success' => false, 'error' => 'Plugin-Paket konnte nicht lokal gespeichert werden.'];
+            }
+
+            if (!\CMS\Services\UpdateService::getInstance()->verifyDownloadIntegrity($tmpFile, $integrityHash)) {
+                return ['success' => false, 'error' => 'SHA-256-Prüfsumme des Plugin-Pakets stimmt nicht. Installation aus Sicherheitsgründen abgebrochen.'];
+            }
+
+            if ($zip->open($tmpFile) !== true) {
+                return ['success' => false, 'error' => 'ZIP-Datei konnte nicht geöffnet werden.'];
+            }
+
+            if (!$this->validateZipEntries($zip, $slug)) {
+                return ['success' => false, 'error' => 'Plugin-Paket enthält ungültige oder unsichere Pfade.'];
+            }
+
+            if (!$zip->extractTo($pluginsDir)) {
+                return ['success' => false, 'error' => 'Plugin-Paket konnte nicht entpackt werden.'];
+            }
+        } finally {
+            if ($zip->status === \ZipArchive::ER_OK) {
+                $zip->close();
+            }
+
+            if (is_file($tmpFile)) {
+                unlink($tmpFile);
+            }
+        }
 
         if (!is_dir($targetDir)) {
             return ['success' => false, 'error' => 'Entpacken fehlgeschlagen – Verzeichnis nicht gefunden.'];
@@ -205,7 +217,7 @@ class PluginMarketplaceModule
             'userAgent' => '365CMS-PluginMarketplace/1.0',
             'timeout' => 10,
             'connectTimeout' => 5,
-            'maxBytes' => 1024 * 1024,
+            'maxBytes' => self::MAX_REGISTRY_BYTES,
             'allowedContentTypes' => ['application/json', 'text/plain'],
         ]);
         $content = (string) ($response['body'] ?? '');
@@ -294,12 +306,27 @@ class PluginMarketplaceModule
             return $this->fetchRemoteJson(rtrim($sourceBase, '/') . '/' . ltrim($manifest, '/'));
         }
 
-        $manifestPath = rtrim($sourceBase, '/\\') . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, ltrim($manifest, '/\\'));
+        $relativeManifestPath = $this->normalizeRelativeCatalogPath($manifest);
+        if ($relativeManifestPath === '') {
+            return [];
+        }
+
+        $manifestPath = rtrim($sourceBase, '/\\') . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relativeManifestPath);
         if (!is_file($manifestPath)) {
             return [];
         }
 
-        $content = file_get_contents($manifestPath);
+        $resolvedSourceBase = realpath($sourceBase);
+        $resolvedManifestPath = realpath($manifestPath);
+        if ($resolvedSourceBase === false || $resolvedManifestPath === false || !str_starts_with(str_replace('\\', '/', $resolvedManifestPath), rtrim(str_replace('\\', '/', $resolvedSourceBase), '/') . '/')) {
+            return [];
+        }
+
+        if (filesize($resolvedManifestPath) > self::MAX_MANIFEST_BYTES) {
+            return [];
+        }
+
+        $content = file_get_contents($resolvedManifestPath);
         if ($content === false || $content === '') {
             return [];
         }
@@ -319,7 +346,7 @@ class PluginMarketplaceModule
             'userAgent' => '365CMS-PluginMarketplace/1.0',
             'timeout' => 10,
             'connectTimeout' => 5,
-            'maxBytes' => 512 * 1024,
+            'maxBytes' => self::MAX_MANIFEST_BYTES,
             'allowedContentTypes' => ['application/json', 'text/plain'],
         ]);
         $content = (string) ($response['body'] ?? '');
@@ -454,7 +481,12 @@ class PluginMarketplaceModule
             return false;
         }
 
+        if ($zip->numFiles <= 0 || $zip->numFiles > self::MAX_ARCHIVE_ENTRIES) {
+            return false;
+        }
+
         $hasMatchingRoot = false;
+        $totalUncompressedSize = 0;
 
         for ($index = 0; $index < $zip->numFiles; $index++) {
             $entryName = $zip->getNameIndex($index);
@@ -468,14 +500,36 @@ class PluginMarketplaceModule
             if ($normalized === ''
                 || str_contains($normalized, '../')
                 || str_contains($normalized, '..\\')
+                || preg_match('/[\x00-\x1F\x7F]/', $normalized) === 1
                 || preg_match('~^[A-Za-z]:/~', $normalized) === 1
             ) {
+                return false;
+            }
+
+            $stat = $zip->statIndex($index);
+            if (!is_array($stat)) {
+                return false;
+            }
+
+            $entrySize = (int)($stat['size'] ?? 0);
+            if ($entrySize < 0) {
+                return false;
+            }
+
+            $totalUncompressedSize += $entrySize;
+            if ($totalUncompressedSize > self::MAX_ARCHIVE_UNCOMPRESSED_BYTES) {
                 return false;
             }
 
             $segments = array_values(array_filter(explode('/', rtrim($normalized, '/')), static fn (string $segment): bool => $segment !== ''));
             if ($segments === []) {
                 continue;
+            }
+
+            foreach ($segments as $segment) {
+                if ($segment === '.' || $segment === '..') {
+                    return false;
+                }
             }
 
             if ($segments[0] !== $expectedSlug) {
@@ -486,6 +540,47 @@ class PluginMarketplaceModule
         }
 
         return $hasMatchingRoot;
+    }
+
+    private function normalizeRelativeCatalogPath(string $path): string
+    {
+        $path = str_replace('\\', '/', trim($path));
+        $path = ltrim($path, '/');
+
+        if ($path === '' || strlen($path) > 255 || preg_match('/[\x00-\x1F\x7F]/', $path) === 1) {
+            return '';
+        }
+
+        $segments = array_values(array_filter(explode('/', $path), static fn(string $segment): bool => $segment !== ''));
+        if ($segments === []) {
+            return '';
+        }
+
+        foreach ($segments as $segment) {
+            if ($segment === '.' || $segment === '..') {
+                return '';
+            }
+        }
+
+        return implode('/', $segments);
+    }
+
+    private function isAllowedPluginsDirectory(string $pluginsDir): bool
+    {
+        $resolvedPluginsDir = realpath($pluginsDir);
+        if ($resolvedPluginsDir === false || !is_dir($resolvedPluginsDir) || !is_writable($resolvedPluginsDir)) {
+            return false;
+        }
+
+        $allowedRoot = defined('ABSPATH') ? realpath(ABSPATH) : false;
+        if ($allowedRoot === false) {
+            return false;
+        }
+
+        $normalizedPluginsDir = rtrim(str_replace('\\', '/', $resolvedPluginsDir), '/') . '/';
+        $normalizedAllowedRoot = rtrim(str_replace('\\', '/', $allowedRoot), '/') . '/';
+
+        return str_starts_with($normalizedPluginsDir, $normalizedAllowedRoot);
     }
 
     private function resolvePluginsDir(): string

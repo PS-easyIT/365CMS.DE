@@ -49,9 +49,11 @@ final class DocumentationGithubZipSync
             $this->assertWorkingPaths($zipFile, $extractDir, $stagingDir, $backupDir);
 
             $download = $this->downloader->downloadFile($this->githubZipUrl, $zipFile);
-            if (($download['success'] ?? false) !== true) {
-                throw new RuntimeException((string) ($download['error'] ?? 'ZIP-Datei konnte nicht geladen werden.'));
+            if ($download->success !== true) {
+                throw new RuntimeException((string) ($download->error ?? 'ZIP-Datei konnte nicht geladen werden.'));
             }
+
+            $this->assertDownloadedArchive($zipFile, $download);
 
             if (!is_dir($extractDir) && !mkdir($extractDir, 0755, true) && !is_dir($extractDir)) {
                 throw new RuntimeException('Temporäres Entpack-Verzeichnis konnte nicht erstellt werden.');
@@ -133,6 +135,9 @@ final class DocumentationGithubZipSync
             }
             if (is_dir($stagingDir)) {
                 $this->filesystem->deleteDirectory($stagingDir);
+            }
+            if (is_dir($backupDir) && is_dir($this->docsRoot)) {
+                $this->filesystem->deleteDirectory($backupDir);
             }
         }
     }
@@ -252,16 +257,46 @@ final class DocumentationGithubZipSync
             throw new RuntimeException('Die GitHub-ZIP-Quelle für den Doku-Sync ist ungültig konfiguriert.');
         }
 
-        $host = strtolower((string) parse_url($this->githubZipUrl, PHP_URL_HOST));
-        $path = (string) parse_url($this->githubZipUrl, PHP_URL_PATH);
+        $parts = parse_url($this->githubZipUrl);
+        if (!is_array($parts)) {
+            throw new RuntimeException('Die GitHub-ZIP-Quelle für den Doku-Sync ist ungültig konfiguriert.');
+        }
+
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        $path = (string) ($parts['path'] ?? '');
 
         if ($host === ''
             || !in_array($host, self::ALLOWED_ZIP_HOSTS, true)
             || $path === ''
             || preg_match('/[\x00-\x1F\x7F]/', $path) === 1
+            || isset($parts['query'])
+            || isset($parts['fragment'])
+            || isset($parts['user'])
+            || isset($parts['pass'])
             || (!str_contains($path, '/zip/') && !str_contains($path, '/zipball/'))
         ) {
             throw new RuntimeException('Die GitHub-ZIP-Quelle für den Doku-Sync ist ungültig konfiguriert.');
+        }
+    }
+
+    private function assertDownloadedArchive(string $zipFile, DocumentationDownloadResult $download): void
+    {
+        if (!is_file($zipFile) || !is_readable($zipFile) || is_link($zipFile)) {
+            throw new RuntimeException('Die heruntergeladene ZIP-Datei ist nicht als sichere lokale Datei verfügbar.');
+        }
+
+        $archiveSize = filesize($zipFile);
+        if ($archiveSize === false
+            || $archiveSize < 1
+            || $archiveSize > self::MAX_ARCHIVE_BYTES
+            || $archiveSize !== $download->bytes
+        ) {
+            throw new RuntimeException('Die heruntergeladene ZIP-Datei hat eine ungültige Größe.');
+        }
+
+        $sha256 = hash_file('sha256', $zipFile);
+        if (!is_string($sha256) || $sha256 !== $download->sha256) {
+            throw new RuntimeException('Die heruntergeladene ZIP-Datei konnte nicht konsistent validiert werden.');
         }
     }
 
@@ -331,7 +366,14 @@ final class DocumentationGithubZipSync
 
     private function sanitizePathForLog(string $path): string
     {
-        return $this->sanitizeLogString(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path), self::MAX_LOG_VALUE_LENGTH);
+        $normalizedPath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path);
+        $normalizedRepoRoot = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $this->repoRoot), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+
+        if (str_starts_with($normalizedPath, $normalizedRepoRoot)) {
+            $normalizedPath = substr($normalizedPath, strlen($normalizedRepoRoot)) ?: 'repo-root';
+        }
+
+        return $this->sanitizeLogString($normalizedPath, self::MAX_LOG_VALUE_LENGTH);
     }
 
     private function sanitizeLogString(string $value, int $maxLength): string

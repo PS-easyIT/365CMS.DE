@@ -9,9 +9,11 @@ final class DocumentationRenderer
 {
     private const MAX_RENDER_BYTES = 262144;
     private const MAX_LINES = 4000;
+    private const MAX_CODE_BLOCK_LINES = 800;
     private const MAX_TABLE_ROWS = 200;
     private const MAX_TABLE_COLUMNS = 12;
     private const MAX_CELL_LENGTH = 1000;
+    private const MAX_LINK_TARGET_LENGTH = 1000;
 
     /** @var \Closure(string, string): string */
     private readonly \Closure $linkResolver;
@@ -63,9 +65,7 @@ final class DocumentationRenderer
                 $html .= $this->closeList($listType);
 
                 if ($inCodeBlock) {
-                    $html .= '<pre class="bg-dark-lt p-3 rounded overflow-auto"><code>'
-                        . htmlspecialchars(implode("\n", $codeLines), ENT_QUOTES)
-                        . '</code></pre>';
+                    $html .= $this->renderCodeBlock($codeLines, $currentDocument);
                     $inCodeBlock = false;
                     $codeLines = [];
                 } else {
@@ -138,9 +138,7 @@ final class DocumentationRenderer
         }
 
         if ($inCodeBlock) {
-            $html .= '<pre class="bg-dark-lt p-3 rounded overflow-auto"><code>'
-                . htmlspecialchars(implode("\n", $codeLines), ENT_QUOTES)
-                . '</code></pre>';
+            $html .= $this->renderCodeBlock($codeLines, $currentDocument);
         }
 
         $html .= $this->flushTable($tableLines, $currentDocument);
@@ -268,8 +266,19 @@ final class DocumentationRenderer
 
         $rendered = preg_replace_callback('/\[([^\]]+)\]\(([^\)]+)\)/', function (array $matches) use ($currentDocument): string {
             $label = $matches[1];
-            $target = html_entity_decode($matches[2], ENT_QUOTES);
-            $href = $this->sanitizeHref((string) ($this->linkResolver)($currentDocument, $target));
+            $target = $this->limitLinkTarget(html_entity_decode($matches[2], ENT_QUOTES));
+
+            try {
+                $href = $this->sanitizeHref((string) ($this->linkResolver)($currentDocument, $target));
+            } catch (\Throwable $e) {
+                $this->logRenderGuard('link_resolution_failed', 'Dokumentations-Link konnte nicht aufgelöst werden.', [
+                    'document' => $currentDocument,
+                    'target' => $target,
+                    'exception' => $e::class,
+                ]);
+                $href = '#';
+            }
+
             $isExternal = $this->isExternalUrl($href);
 
             return '<a href="' . htmlspecialchars($href, ENT_QUOTES) . '"'
@@ -379,10 +388,25 @@ final class DocumentationRenderer
         return $text;
     }
 
+    private function limitLinkTarget(string $target): string
+    {
+        $target = trim($target);
+
+        if (mb_strlen($target) > self::MAX_LINK_TARGET_LENGTH) {
+            $target = mb_substr($target, 0, self::MAX_LINK_TARGET_LENGTH);
+        }
+
+        return $target;
+    }
+
     private function sanitizeHref(string $href): string
     {
         $href = trim($href);
         if ($href === '') {
+            return '#';
+        }
+
+        if (preg_match('/[\x00-\x1F\x7F]/u', $href) === 1 || str_contains($href, '\\')) {
             return '#';
         }
 
@@ -391,7 +415,11 @@ final class DocumentationRenderer
         }
 
         if ($href[0] === '/') {
-            return str_contains($href, "\n") || str_contains($href, "\r") ? '#' : $href;
+            if (str_starts_with($href, '//')) {
+                return '#';
+            }
+
+            return $href;
         }
 
         if ($this->isExternalUrl($href)) {
@@ -399,6 +427,25 @@ final class DocumentationRenderer
         }
 
         return '#';
+    }
+
+    /**
+     * @param array<int, string> $codeLines
+     */
+    private function renderCodeBlock(array $codeLines, string $currentDocument): string
+    {
+        if (count($codeLines) > self::MAX_CODE_BLOCK_LINES) {
+            $this->logRenderGuard('markdown_code_block_line_limit', 'Dokumentations-Codeblock auf maximales Zeilenlimit begrenzt.', [
+                'document' => $currentDocument,
+                'line_count' => count($codeLines),
+                'max_lines' => self::MAX_CODE_BLOCK_LINES,
+            ]);
+            $codeLines = array_slice($codeLines, 0, self::MAX_CODE_BLOCK_LINES);
+        }
+
+        return '<pre class="bg-dark-lt p-3 rounded overflow-auto"><code>'
+            . htmlspecialchars(implode("\n", $codeLines), ENT_QUOTES)
+            . '</code></pre>';
     }
 
     /**

@@ -9,8 +9,16 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\AuditLogger;
+
 class OrdersModule
 {
+    private const array ALLOWED_STATUSES = ['pending', 'paid', 'cancelled', 'refunded', 'failed'];
+    private const array ALLOWED_BILLING_CYCLES = ['monthly', 'yearly', 'lifetime'];
+    private const int MAX_ORDERS = 200;
+    private const int MAX_ASSIGNMENTS = 150;
+    private const int MAX_USERS = 500;
+
     private readonly \CMS\Database $db;
     private readonly string $prefix;
 
@@ -83,8 +91,9 @@ class OrdersModule
         $where = '';
         $params = [];
         $planColumn = $this->getOrderPlanColumn($table);
+        $statusFilter = $this->normalizeStatus($statusFilter);
 
-        if ($statusFilter !== '' && in_array($statusFilter, ['pending', 'paid', 'cancelled', 'refunded', 'failed'], true)) {
+        if ($statusFilter !== '') {
             $where = ' WHERE o.status = ?';
             $params[] = $statusFilter;
         }
@@ -103,7 +112,7 @@ class OrdersModule
              {$planJoin}
              {$where}
              ORDER BY o.created_at DESC
-             LIMIT 200",
+             LIMIT " . self::MAX_ORDERS,
             $params
         ) ?: [];
 
@@ -113,7 +122,7 @@ class OrdersModule
              LEFT JOIN {$this->prefix}users u ON us.user_id = u.id
              LEFT JOIN {$this->prefix}subscription_plans sp ON us.plan_id = sp.id
              ORDER BY us.created_at DESC
-             LIMIT 150"
+               LIMIT " . self::MAX_ASSIGNMENTS
         ) ?: [];
 
         $plans = $this->db->get_results(
@@ -121,7 +130,7 @@ class OrdersModule
         ) ?: [];
 
         $users = $this->db->get_results(
-            "SELECT id, username, email, display_name FROM {$this->prefix}users ORDER BY username ASC LIMIT 500"
+            "SELECT id, username, email, display_name FROM {$this->prefix}users ORDER BY username ASC LIMIT " . self::MAX_USERS
         ) ?: [];
 
         // Stats
@@ -149,9 +158,7 @@ class OrdersModule
             return ['success' => false, 'error' => 'Benutzer und Paket sind erforderlich.'];
         }
 
-        if (!in_array($billingCycle, ['monthly', 'yearly', 'lifetime'], true)) {
-            $billingCycle = 'monthly';
-        }
+        $billingCycle = $this->normalizeBillingCycle($billingCycle);
 
         $userExists = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}users WHERE id = ?", [$userId]);
         $planExists = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}subscription_plans WHERE id = ?", [$planId]);
@@ -160,6 +167,23 @@ class OrdersModule
         }
 
         $success = \CMS\SubscriptionManager::instance()->assignSubscription($userId, $planId, $billingCycle);
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            $success ? 'subscription.assignment.created' : 'subscription.assignment.failed',
+            $success
+                ? "Abonnement {$billingCycle} für Benutzer #{$userId} erstellt."
+                : "Abonnement {$billingCycle} für Benutzer #{$userId} konnte nicht erstellt werden.",
+            'subscription',
+            $planId,
+            [
+                'user_id' => $userId,
+                'plan_id' => $planId,
+                'billing_cycle' => $billingCycle,
+            ],
+            $success ? 'info' : 'warning'
+        );
+
         return $success
             ? ['success' => true, 'message' => 'Paket wurde dem Benutzer zugewiesen.']
             : ['success' => false, 'error' => 'Die Zuweisung konnte nicht gespeichert werden.'];
@@ -170,11 +194,41 @@ class OrdersModule
         if ($id <= 0) {
             return ['success' => false, 'error' => 'Ungültige ID.'];
         }
-        if (!in_array($status, ['pending', 'paid', 'cancelled', 'refunded', 'failed'], true)) {
+
+        $status = $this->normalizeStatus($status);
+        if ($status === '') {
             return ['success' => false, 'error' => 'Ungültiger Status.'];
         }
-        $table = $this->prefix . 'orders';
-        $this->db->update('orders', ['status' => $status], ['id' => $id]);
+
+        $order = $this->getOrderSnapshot($id);
+        if ($order === null) {
+            return ['success' => false, 'error' => 'Bestellung wurde nicht gefunden.'];
+        }
+
+        if (($order['status'] ?? '') === $status) {
+            return ['success' => true, 'message' => 'Status war bereits gesetzt.'];
+        }
+
+        $updated = $this->db->update('orders', ['status' => $status], ['id' => $id]);
+        if (!$updated) {
+            return ['success' => false, 'error' => 'Status konnte nicht aktualisiert werden.'];
+        }
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            'order.status.updated',
+            "Bestellstatus für Bestellung #{$id} geändert.",
+            'order',
+            $id,
+            [
+                'order_number' => $this->maskOrderNumber((string)($order['order_number'] ?? '')),
+                'from_status' => (string)($order['status'] ?? ''),
+                'to_status' => $status,
+                'customer_email' => $this->maskEmail((string)($order['customer_email'] ?? '')),
+            ],
+            'info'
+        );
+
         return ['success' => true, 'message' => 'Status aktualisiert.'];
     }
 
@@ -183,8 +237,80 @@ class OrdersModule
         if ($id <= 0) {
             return ['success' => false, 'error' => 'Ungültige ID.'];
         }
-        $table = $this->prefix . 'orders';
-        $this->db->delete('orders', ['id' => $id]);
+
+        $order = $this->getOrderSnapshot($id);
+        if ($order === null) {
+            return ['success' => false, 'error' => 'Bestellung wurde nicht gefunden.'];
+        }
+
+        $deleted = $this->db->delete('orders', ['id' => $id]);
+        if (!$deleted) {
+            return ['success' => false, 'error' => 'Bestellung konnte nicht gelöscht werden.'];
+        }
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            'order.deleted',
+            "Bestellung #{$id} gelöscht.",
+            'order',
+            $id,
+            [
+                'order_number' => $this->maskOrderNumber((string)($order['order_number'] ?? '')),
+                'status' => (string)($order['status'] ?? ''),
+                'customer_email' => $this->maskEmail((string)($order['customer_email'] ?? '')),
+            ],
+            'warning'
+        );
+
         return ['success' => true, 'message' => 'Bestellung gelöscht.'];
+    }
+
+    private function getOrderSnapshot(int $id): ?array
+    {
+        $row = $this->db->get_row(
+            "SELECT id, order_number, status, customer_email FROM {$this->prefix}orders WHERE id = ? LIMIT 1",
+            [$id]
+        );
+
+        return $row ? (array)$row : null;
+    }
+
+    private function normalizeStatus(string $status): string
+    {
+        $status = strtolower(trim($status));
+
+        return in_array($status, self::ALLOWED_STATUSES, true) ? $status : '';
+    }
+
+    private function normalizeBillingCycle(string $billingCycle): string
+    {
+        $billingCycle = strtolower(trim($billingCycle));
+
+        return in_array($billingCycle, self::ALLOWED_BILLING_CYCLES, true) ? $billingCycle : 'monthly';
+    }
+
+    private function maskEmail(string $email): string
+    {
+        $email = trim($email);
+        if ($email === '' || strpos($email, '@') === false) {
+            return '';
+        }
+
+        [$local, $domain] = explode('@', $email, 2);
+        $local = strlen($local) <= 2 ? str_repeat('*', max(1, strlen($local))) : substr($local, 0, 2) . str_repeat('*', max(1, strlen($local) - 2));
+
+        return $local . '@' . $domain;
+    }
+
+    private function maskOrderNumber(string $orderNumber): string
+    {
+        $orderNumber = trim($orderNumber);
+        $length = strlen($orderNumber);
+
+        if ($length <= 4) {
+            return str_repeat('*', $length);
+        }
+
+        return substr($orderNumber, 0, 2) . str_repeat('*', max(1, $length - 4)) . substr($orderNumber, -2);
     }
 }

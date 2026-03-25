@@ -22,6 +22,23 @@ $queueRecentJobs = $queue['recent_jobs'] ?? [];
 $queueLastRun = $queue['last_run'] ?? [];
 $currentTab = $currentTab ?? 'transport';
 $mailBaseUrl = (defined('SITE_URL') ? SITE_URL : '') . '/admin/mail-settings';
+$mailTabs = [
+    'transport' => 'Transport',
+    'azure' => 'Azure OAuth2',
+    'graph' => 'Microsoft Graph',
+    'logs' => 'Logs',
+    'queue' => 'Queue',
+];
+$alertData = is_array($alert ?? null) ? $alert : [];
+$mailLogsApiUrl = (defined('SITE_URL') ? SITE_URL : '') . '/api/v1/admin/mail/logs';
+$queueJobStatusBadge = static function (string $status): string {
+    return match ($status) {
+        'sent' => 'success',
+        'processing' => 'primary',
+        'failed' => 'danger',
+        default => 'warning',
+    };
+};
 ?>
 <div class="container-xl" data-mail-api-token="<?php echo htmlspecialchars((string) ($apiCsrfToken ?? '')); ?>">
     <div class="page-header d-print-none mb-4">
@@ -39,21 +56,14 @@ $mailBaseUrl = (defined('SITE_URL') ? SITE_URL : '') . '/admin/mail-settings';
         </div>
     </div>
 
-    <?php if (!empty($alert)): ?>
-        <div class="alert alert-<?php echo htmlspecialchars((string) ($alert['type'] ?? 'info')); ?> mb-4" role="alert">
-            <?php echo htmlspecialchars((string) ($alert['message'] ?? '')); ?>
-        </div>
-    <?php endif; ?>
+    <?php
+    $alertMarginClass = 'mb-4';
+    include __DIR__ . '/../partials/flash-alert.php';
+    ?>
 
     <div class="mb-4">
         <ul class="nav nav-tabs">
-            <?php foreach ([
-                'transport' => 'Transport',
-                'azure' => 'Azure OAuth2',
-                'graph' => 'Microsoft Graph',
-                'logs' => 'Logs',
-                'queue' => 'Queue',
-            ] as $tab => $label): ?>
+            <?php foreach ($mailTabs as $tab => $label): ?>
                 <li class="nav-item">
                     <a class="nav-link <?php echo $currentTab === $tab ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($mailBaseUrl . '?tab=' . rawurlencode($tab)); ?>">
                         <?php echo htmlspecialchars($label); ?>
@@ -338,7 +348,7 @@ $mailBaseUrl = (defined('SITE_URL') ? SITE_URL : '') . '/admin/mail-settings';
                 </table>
             </div>
             <div class="card-footer text-secondary small">
-                API: <code><?php echo htmlspecialchars((defined('SITE_URL') ? SITE_URL : '') . '/api/v1/admin/mail/logs'); ?></code>
+                API: <code><?php echo htmlspecialchars($mailLogsApiUrl); ?></code>
             </div>
         </div>
     <?php else: ?>
@@ -491,7 +501,7 @@ $mailBaseUrl = (defined('SITE_URL') ? SITE_URL : '') . '/admin/mail-settings';
                                         <tr>
                                             <td><?php echo (int) ($job->id ?? 0); ?></td>
                                             <td class="text-nowrap"><?php echo htmlspecialchars((string) ($job->created_at ?? '')); ?></td>
-                                            <td><span class="badge bg-<?php echo match ((string) ($job->status ?? 'pending')) { 'sent' => 'success', 'processing' => 'primary', 'failed' => 'danger', default => 'warning' }; ?>-lt"><?php echo htmlspecialchars((string) ($job->status ?? 'pending')); ?></span></td>
+                                            <td><span class="badge bg-<?php echo htmlspecialchars($queueJobStatusBadge((string) ($job->status ?? 'pending'))); ?>-lt"><?php echo htmlspecialchars((string) ($job->status ?? 'pending')); ?></span></td>
                                             <td class="text-break"><?php echo htmlspecialchars((string) ($job->recipient ?? '')); ?></td>
                                             <td class="text-break"><?php echo htmlspecialchars((string) ($job->subject ?? '')); ?></td>
                                             <td><?php echo (int) ($job->attempts ?? 0); ?> / <?php echo (int) ($job->max_attempts ?? 0); ?></td>

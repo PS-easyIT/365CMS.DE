@@ -23,48 +23,63 @@ $module          = new PackagesModule();
 require_once __DIR__ . '/modules/subscriptions/SubscriptionSettingsModule.php';
 $settingsModule  = new SubscriptionSettingsModule();
 $alert     = null;
+$redirectBase = SITE_URL . '/admin/packages';
+$allowedActions = [
+    'save',
+    'seed_defaults',
+    'delete',
+    'toggle',
+    'save_package_settings',
+];
 
 // ─── POST-Verarbeitung ──────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'admin_packages')) {
-        $alert = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
+        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
+        header('Location: ' . $redirectBase);
+        exit;
     } else {
-        $action = $_POST['action'] ?? '';
+        $action = trim((string)($_POST['action'] ?? ''));
+        if (!in_array($action, $allowedActions, true)) {
+            $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Unbekannte Aktion.'];
+            header('Location: ' . $redirectBase);
+            exit;
+        }
+
         switch ($action) {
             case 'save':
                 $result = $module->save($_POST);
                 $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
-                header('Location: ' . SITE_URL . '/admin/packages');
+                header('Location: ' . $redirectBase);
                 exit;
 
             case 'seed_defaults':
                 $result = $module->seedDefaults();
                 $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
-                header('Location: ' . SITE_URL . '/admin/packages');
+                header('Location: ' . $redirectBase);
                 exit;
 
             case 'delete':
                 $id = (int)($_POST['id'] ?? 0);
                 $result = $module->delete($id);
                 $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
-                header('Location: ' . SITE_URL . '/admin/packages');
+                header('Location: ' . $redirectBase);
                 exit;
 
             case 'toggle':
                 $id = (int)($_POST['id'] ?? 0);
                 $result = $module->toggleStatus($id);
                 $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
-                header('Location: ' . SITE_URL . '/admin/packages');
+                header('Location: ' . $redirectBase);
                 exit;
 
             case 'save_package_settings':
                 $result = $settingsModule->savePackageSettings($_POST);
                 $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
-                header('Location: ' . SITE_URL . '/admin/packages');
+                header('Location: ' . $redirectBase);
                 exit;
         }
     }
-    $csrfToken = Security::instance()->generateToken('admin_packages');
 }
 
 if (isset($_SESSION['admin_alert'])) {

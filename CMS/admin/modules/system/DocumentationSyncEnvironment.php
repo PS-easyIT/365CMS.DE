@@ -7,8 +7,14 @@ if (!defined('ABSPATH')) {
 
 final class DocumentationSyncEnvironment
 {
+    private const int MAX_COMMAND_LENGTH = 512;
+    private const array ALLOWED_GIT_SUBCOMMANDS = ['--version', 'fetch', 'checkout', 'status', 'rev-parse'];
+
+    private readonly string $normalizedRepoRoot;
+
     public function __construct(private readonly string $repoRoot)
     {
+        $this->normalizedRepoRoot = $this->normalizeRepoRoot($repoRoot);
     }
 
     /**
@@ -16,7 +22,7 @@ final class DocumentationSyncEnvironment
      */
     public function getSyncCapabilities(): array
     {
-        $hasGitCheckout = is_dir($this->repoRoot . DIRECTORY_SEPARATOR . '.git');
+        $hasGitCheckout = $this->normalizedRepoRoot !== '' && is_dir($this->normalizedRepoRoot . DIRECTORY_SEPARATOR . '.git');
         $gitAvailable = $hasGitCheckout && $this->isGitAvailable();
         $zipAvailable = extension_loaded('zip');
         $httpAvailable = $this->canDownloadOverHttp();
@@ -73,6 +79,11 @@ final class DocumentationSyncEnvironment
             return ['output' => 'Befehlsausführung ist auf diesem Server deaktiviert.', 'exitCode' => 1];
         }
 
+        $command = $this->sanitizeCommand($command);
+        if ($command === '' || !$this->isAllowedCommand($command)) {
+            return ['output' => 'Befehlsausführung ist für dieses Kommando nicht erlaubt.', 'exitCode' => 1];
+        }
+
         $output = [];
         $exitCode = 1;
         exec($command, $output, $exitCode);
@@ -106,5 +117,54 @@ final class DocumentationSyncEnvironment
     private function canDownloadOverHttp(): bool
     {
         return extension_loaded('curl') && class_exists('\\CMS\\Http\\Client');
+    }
+
+    private function normalizeRepoRoot(string $repoRoot): string
+    {
+        $repoRoot = trim($repoRoot);
+        if ($repoRoot === '' || is_link($repoRoot)) {
+            return '';
+        }
+
+        $resolved = realpath($repoRoot);
+        if ($resolved === false || !is_dir($resolved)) {
+            return '';
+        }
+
+        return rtrim($resolved, '\\/');
+    }
+
+    private function sanitizeCommand(string $command): string
+    {
+        $command = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', trim($command)) ?? '';
+        $command = preg_replace('/\s+/', ' ', $command) ?? '';
+
+        if ($command === '') {
+            return '';
+        }
+
+        return function_exists('mb_substr') ? mb_substr($command, 0, self::MAX_COMMAND_LENGTH) : substr($command, 0, self::MAX_COMMAND_LENGTH);
+    }
+
+    private function isAllowedCommand(string $command): bool
+    {
+        if (!preg_match('/^git(?:\s+-C\s+[^\s]+)?\s+(.+)$/', $command, $matches)) {
+            return false;
+        }
+
+        if (preg_match('/(?:^|\s)(?:;|&&|\|\||\||`|\$\(|>|<)/', $command) === 1) {
+            return str_ends_with($command, '2>&1') && preg_match('/(?:^|\s)(?:;|&&|\|\||\||`|\$\(|(?<!2)>|<)/', $command) !== 1;
+        }
+
+        $subcommand = strtolower(strtok((string)($matches[1] ?? ''), ' '));
+        if ($subcommand === '' || !in_array($subcommand, self::ALLOWED_GIT_SUBCOMMANDS, true)) {
+            return false;
+        }
+
+        if ($subcommand !== '--version' && $this->normalizedRepoRoot === '') {
+            return false;
+        }
+
+        return true;
     }
 }
