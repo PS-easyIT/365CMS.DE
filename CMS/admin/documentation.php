@@ -79,6 +79,21 @@ function cms_admin_documentation_pull_alert(): ?array
 }
 
 /**
+ * @return list<string>
+ */
+function cms_admin_documentation_allowed_actions(): array
+{
+    return ['sync_docs'];
+}
+
+function cms_admin_documentation_normalize_action($value): ?string
+{
+    $action = trim((string) $value);
+
+    return in_array($action, cms_admin_documentation_allowed_actions(), true) ? $action : null;
+}
+
+/**
  * @return array<string, callable(): DocumentationSyncActionResult>
  */
 function cms_admin_documentation_action_handlers(DocumentationModule $module): array
@@ -98,11 +113,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Security::instance()->verifyToken($postToken, 'admin_documentation')) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
     } else {
-        $action = (string) ($_POST['action'] ?? '');
+        $action = cms_admin_documentation_normalize_action($_POST['action'] ?? null);
         $handler = $actionHandlers[$action] ?? null;
         $result = is_callable($handler)
             ? $handler()
-            : new DocumentationSyncActionResult(false, null, 'Unbekannte Aktion.');
+            : new DocumentationSyncActionResult(false, null, 'Unbekannte oder nicht erlaubte Aktion.');
 
         cms_admin_documentation_flash_result($result);
     }

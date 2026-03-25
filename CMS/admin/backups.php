@@ -57,6 +57,30 @@ function cms_admin_backups_pull_alert(): ?array
     return is_array($alert) ? $alert : null;
 }
 
+/** @return array<string, true> */
+function cms_admin_backups_allowed_actions(): array
+{
+    return [
+        'create_full' => true,
+        'create_db' => true,
+        'delete' => true,
+    ];
+}
+
+function cms_admin_backups_normalize_action(mixed $value): ?string
+{
+    $action = strtolower(trim((string) $value));
+
+    return isset(cms_admin_backups_allowed_actions()[$action]) ? $action : null;
+}
+
+function cms_admin_backups_normalize_backup_name(array $post): string
+{
+    $name = trim(basename((string) ($post['backup_name'] ?? '')));
+
+    return preg_match('/^[a-z0-9][a-z0-9._-]{2,120}$/i', $name) === 1 ? $name : '';
+}
+
 /**
  * @return array<string, callable(array): array>
  */
@@ -65,7 +89,7 @@ function cms_admin_backups_action_handlers(BackupsModule $module): array
     return [
         'create_full' => static fn (array $post): array => $module->createFullBackup(),
         'create_db' => static fn (array $post): array => $module->createDatabaseBackup(),
-        'delete' => static fn (array $post): array => $module->deleteBackup((string) ($post['backup_name'] ?? '')),
+        'delete' => static fn (array $post): array => $module->deleteBackup(cms_admin_backups_normalize_backup_name($post)),
     ];
 }
 
@@ -78,7 +102,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         cms_admin_backups_redirect();
     }
 
-    $action = trim((string) ($_POST['action'] ?? ''));
+    $action = cms_admin_backups_normalize_action($_POST['action'] ?? null);
+    if ($action === null) {
+        cms_admin_backups_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
+        cms_admin_backups_redirect();
+    }
+
+    if ($action === 'delete' && cms_admin_backups_normalize_backup_name($_POST) === '') {
+        cms_admin_backups_flash(['type' => 'danger', 'message' => 'Ungültiger Backup-Name.']);
+        cms_admin_backups_redirect();
+    }
+
     $handler = $actionHandlers[$action] ?? null;
     if (!is_callable($handler)) {
         cms_admin_backups_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);

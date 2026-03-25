@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.136-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.137-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,46 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.7.140 — 25. März 2026 · Audit-Batch 222, Backup-Entry bei Action-Gates und Backup-Namen nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.140** | 🔴 fix | Admin/System | **`backups.php` begrenzt Backup-Mutationen jetzt wieder explizit über eine kleine Allowlist und normalisiert `backup_name` serverseitig vor Delete-Dispatches**: lose Aktionen oder unsaubere Backup-Namen laufen dadurch nicht mehr direkt aus dem Request in den Löschpfad. |
+| **2.7.140** | 🟠 perf | Admin/System | **Der Backup-Entry verwirft unzulässige Delete-Anfragen früher und billiger**: ungültige Aktionswerte oder Backup-Namen scheitern vor unnötigen Modulaufrufen im PRG-Flow. |
+| **2.7.140** | 🟡 refactor | Admin/System | **Der Backup-Entry hängt näher am gemeinsamen Admin-Wrapper-Muster**: Allowlist und Namensnormalisierung liegen sichtbar im Einstieg statt nur implizit über Handler-Map und Modulfallbacks zu wirken. |
+
+---
+
+### v2.7.139 — 25. März 2026 · Audit-Batch 221, DSGVO-Requests-Entry bei Scope-/Action-Gates nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.139** | 🔴 fix | Admin/Legal | **`data-requests.php` begrenzt DSGVO-Mutationen jetzt wieder explizit über scope-gebundene Allowlists und normalisiert `scope`, `action`, `id` sowie Ablehnungsgründe serverseitig**: lose oder bereichsfremde Aktionen laufen dadurch nicht mehr direkt aus dem Request in Auskunfts- oder Löschpfade. |
+| **2.7.139** | 🟠 perf | Admin/Legal | **Der Sammel-Entry verwirft unzulässige DSGVO-Mutationen früher und billiger**: ungültige Scope-/Action-Kombinationen und auffällige Request-Werte scheitern vor unnötigen Modulaufrufen im PRG-Flow. |
+| **2.7.139** | 🟡 refactor | Admin/Legal | **Der DSGVO-Entry hängt näher am gemeinsamen Admin-Wrapper-Muster**: Allowlist, Scope-/Action-Normalisierung und kleine Request-Helfer liegen sichtbar im Einstieg statt nur implizit über `match`-Fallbacks zu wirken. |
+
+---
+
+### v2.7.138 — 25. März 2026 · Audit-Batch 220, Theme-Marketplace auf zentralen staging-basierten Installationspfad gezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.138** | 🔴 fix | Admin/Themes | **`ThemeMarketplaceModule.php` delegiert Marketplace-Theme-Installationen jetzt an den zentralen `UpdateService`**: Theme-Pakete laufen damit nicht mehr über eine separate ZIP-/Download-/Extract-Pipeline direkt im Modul, sondern nutzen denselben staging-basierten Zielpfad-, Integritäts- und Rollback-Vertrag wie reguläre Theme-Updates. |
+| **2.7.138** | 🟠 perf | Admin/Themes | **Doppelte Download-, Entpack- und Cleanup-Logik im Theme-Marketplace-Installationspfad entfällt**: der Modulpfad bleibt im Installationsflow kompakter, weil er keinen zweiten Archiv-Lifecycle neben dem Update-Service mehr pflegt. |
+| **2.7.138** | 🟡 refactor | Admin/Themes | **Der Theme-Marketplace hängt jetzt näher am gemeinsamen Update-Lifecycle für Zielpfade, Logging und Rollback**: das Modul konzentriert sich wieder stärker auf Katalog- und Marketplace-Logik statt eine eigene zweite Installationspipeline zu unterhalten. |
+
+---
+
+### v2.7.137 — 25. März 2026 · Audit-Batch 219, Documentation-Entry bei Action-Allowlist nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.137** | 🔴 fix | Admin/System | **`documentation.php` prüft Sync-Aktionen jetzt wieder explizit über eine kleine Allowlist und normalisiert den `action`-Wert serverseitig vor dem Dispatch**: lose oder nicht erlaubte Aktionen laufen damit nicht mehr nur implizit deshalb in den PRG-/Fehlerpfad, weil ein Handler nachgeschlagen wird. |
+| **2.7.137** | 🟠 perf | Admin/System | **Der Doku-Entry hält seinen Dispatch-Pfad kompakter und vorhersehbarer**: unzulässige Sync-Aktionen werden vor unnötigen Modulaufrufen oder Ergebnisobjekten früh blockiert. |
+| **2.7.137** | 🟡 refactor | Admin/System | **Der Documentation-Entry hängt näher am gemeinsamen Admin-Wrapper-Muster**: Allowlist und Action-Normalisierung liegen sichtbar im Einstieg statt nur implizit über die Handler-Map zu wirken. |
 
 ---
 

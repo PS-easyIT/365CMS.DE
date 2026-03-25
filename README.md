@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.7.136-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.7.140-blue.svg)](Changelog.md)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
@@ -29,16 +29,16 @@
 
 ## 📈 Audit-Stand März 2026
 
-Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 218** nachgezogen. Aktuell sind damit **218 von 444 Prüfplan-Punkten** geschafft. Der aktuelle dokumentierte Gesamtstand über **445 bewertete Dateien** liegt bei:
+Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 222** nachgezogen. Aktuell sind damit **222 von 444 Prüfplan-Punkten** geschafft. Der aktuelle dokumentierte Gesamtstand über **445 bewertete Dateien** liegt bei:
 
 | Metrik | Stand |
 |---|---:|
-| **Security** | **88,22** |
-| **Speed** | **86,50** |
-| **PHP / Best Practices** | **89,25** |
-| **Gesamt** | **88,51** |
+| **Security** | **88,26** |
+| **Speed** | **86,51** |
+| **PHP / Best Practices** | **89,29** |
+| **Gesamt** | **88,55** |
 
-Zuletzt wurde der Font-Manager-Entry bei seinen Request-Gates nachgezogen: `CMS/admin/font-manager.php` prüft POST-Aktionen jetzt explizit über eine Allowlist, normalisiert `font_id` serverseitig und säubert Google-Font-Familien bereits im Wrapper. Dadurch scheitern lose oder unsaubere Werte früher bereits im Einstieg, bevor sie tiefer in Delete- oder Download-Pfade laufen.
+Zuletzt wurde der Backup-Entry nachgezogen: `CMS/admin/backups.php` prüft Aktionen jetzt explizit über eine kleine Allowlist und normalisiert `backup_name` serverseitig vor Delete-Dispatches. Dadurch scheitern lose Aktionen oder unsaubere Backup-Namen früher bereits im Wrapper, bevor sie tiefer in den Löschpfad laufen.
 
 ## 🧩 Funktionsumfang im Überblick
 

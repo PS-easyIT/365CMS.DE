@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.7.136",
+  "version": "2.7.140",
   "min_php": "8.4",
   "released": "2026-03-25",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release 2.7.136: `CMS/admin/font-manager.php` prüft POST-Aktionen jetzt wieder explizit über eine Allowlist, normalisiert `font_id` und Google-Font-Familien bereits im Wrapper und blockt unzulässige Mutationen früher, damit Font-Delete- und Download-Pfade keine losen oder unsauberen Request-Werte direkt übernehmen.",
+  "notes": "Release 2.7.140: `CMS/admin/backups.php` prüft Backup-Aktionen jetzt wieder explizit über eine kleine Allowlist und normalisiert `backup_name` serverseitig vor Delete-Dispatches, damit Löschpfade keine losen Aktionen oder unsauberen Backup-Namen direkt aus dem Request übernehmen.",
   "critical": false
 }

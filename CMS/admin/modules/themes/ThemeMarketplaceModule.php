@@ -17,6 +17,7 @@ if (!defined('ABSPATH')) {
 use CMS\Http\Client as HttpClient;
 use CMS\ThemeManager;
 use CMS\Database;
+use CMS\Services\UpdateService;
 
 class ThemeMarketplaceModule
 {
@@ -40,6 +41,7 @@ class ThemeMarketplaceModule
 
     private ThemeManager $themeManager;
     private HttpClient $httpClient;
+    private UpdateService $updateService;
     /** @var array<int, array<string, mixed>>|null */
     private ?array $catalogCache = null;
 
@@ -47,6 +49,7 @@ class ThemeMarketplaceModule
     {
         $this->themeManager = ThemeManager::instance();
         $this->httpClient = HttpClient::getInstance();
+        $this->updateService = UpdateService::getInstance();
     }
 
     /**
@@ -125,83 +128,24 @@ class ThemeMarketplaceModule
             return ['success' => false, 'error' => 'Download-URL liegt außerhalb der erlaubten Marketplace-Hosts.'];
         }
 
-        if (!class_exists(\ZipArchive::class)) {
-            return ['success' => false, 'error' => 'Die automatische Theme-Installation benötigt die PHP-Erweiterung ZipArchive.'];
+        $targetFolder = $this->determineThemeTargetFolder($theme, $slug);
+        $targetDir = rtrim(THEME_PATH, '/\\') . DIRECTORY_SEPARATOR . $targetFolder . DIRECTORY_SEPARATOR;
+
+        if (is_dir(rtrim($targetDir, '/\\'))) {
+            return ['success' => false, 'error' => 'Theme ist bereits installiert.'];
         }
 
-        $tmpFile = tempnam(sys_get_temp_dir(), 'cms_theme_');
-        if ($tmpFile === false) {
-            return ['success' => false, 'error' => 'Temporäre Datei konnte nicht erstellt werden.'];
-        }
+        $result = $this->updateService->downloadAndInstallUpdate(
+            $downloadUrl,
+            $integrityHash,
+            $targetDir,
+            'theme',
+            (string) ($theme['name'] ?? $slug),
+            (string) ($theme['version'] ?? 'Marketplace')
+        );
 
-        $extractDir = $tmpFile . '_dir';
-
-        try {
-            $response = $this->httpClient->get($downloadUrl, [
-                'timeout' => 30,
-                'connectTimeout' => 10,
-                'maxBytes' => 25 * 1024 * 1024,
-                'allowedContentTypes' => ['application/zip', 'application/octet-stream', 'application/x-zip-compressed'],
-                'userAgent' => '365CMS Theme Installer',
-            ]);
-
-            $content = (string) ($response['body'] ?? '');
-            if (($response['success'] ?? false) !== true || $content === '') {
-                return ['success' => false, 'error' => 'Theme-Paket konnte nicht heruntergeladen werden.'];
-            }
-
-            if (file_put_contents($tmpFile, $content) === false) {
-                return ['success' => false, 'error' => 'Temporäres Theme-Paket konnte nicht geschrieben werden.'];
-            }
-
-            if (!\CMS\Services\UpdateService::getInstance()->verifyDownloadIntegrity($tmpFile, $integrityHash)) {
-                return ['success' => false, 'error' => 'SHA-256-Prüfsumme des Theme-Pakets stimmt nicht. Installation aus Sicherheitsgründen abgebrochen.'];
-            }
-
-            if (!mkdir($extractDir, 0775, true) && !is_dir($extractDir)) {
-                return ['success' => false, 'error' => 'Temporäres Entpack-Verzeichnis konnte nicht erstellt werden.'];
-            }
-
-            $zip = new \ZipArchive();
-            if ($zip->open($tmpFile) !== true) {
-                return ['success' => false, 'error' => 'ZIP-Datei konnte nicht geöffnet werden.'];
-            }
-
-            if (!$this->validateZipEntries($zip, $slug)) {
-                $zip->close();
-                return ['success' => false, 'error' => 'Theme-Paket enthält ungültige oder unsichere Pfade.'];
-            }
-
-            if (!$zip->extractTo($extractDir)) {
-                $zip->close();
-                return ['success' => false, 'error' => 'Theme-Paket konnte nicht entpackt werden.'];
-            }
-
-            $zip->close();
-
-            $sourceDir = $this->detectThemeDirectory($extractDir, $slug);
-            if ($sourceDir === '') {
-                return ['success' => false, 'error' => 'Im Theme-Paket wurde kein gültiges Theme-Verzeichnis gefunden.'];
-            }
-
-            $targetFolder = $this->determineTargetFolder($sourceDir, $slug);
-            $targetDir = rtrim(THEME_PATH, '/\\') . DIRECTORY_SEPARATOR . $targetFolder;
-
-            if (is_dir($targetDir)) {
-                return ['success' => false, 'error' => 'Theme-Zielverzeichnis existiert bereits.'];
-            }
-
-            if (!$this->moveDirectory($sourceDir, $targetDir)) {
-                return ['success' => false, 'error' => 'Theme-Dateien konnten nicht in das Zielverzeichnis verschoben werden.'];
-            }
-        } finally {
-            if (is_file($tmpFile)) {
-                unlink($tmpFile);
-            }
-
-            if (is_dir($extractDir)) {
-                $this->removeDirectory($extractDir);
-            }
+        if (($result['success'] ?? false) !== true) {
+            return ['success' => false, 'error' => (string) ($result['message'] ?? 'Theme konnte nicht installiert werden.')];
         }
 
         return ['success' => true, 'message' => 'Theme „' . ((string) ($theme['name'] ?? $slug)) . '“ wurde installiert. Du kannst es jetzt in der Theme-Verwaltung aktivieren.'];
@@ -536,6 +480,25 @@ class ThemeMarketplaceModule
         }
 
         return null;
+    }
+
+    private function determineThemeTargetFolder(array $theme, string $fallbackSlug): string
+    {
+        $candidates = [
+            (string) ($theme['local_folder'] ?? ''),
+            (string) ($theme['slug'] ?? ''),
+            (string) ($theme['name'] ?? ''),
+            $fallbackSlug,
+        ];
+
+        foreach ($candidates as $candidate) {
+            $normalized = $this->normalizeThemeKey($candidate);
+            if ($normalized !== '') {
+                return $normalized;
+            }
+        }
+
+        return $fallbackSlug;
     }
 
     private function getInstalledThemeMap(array $installed): array

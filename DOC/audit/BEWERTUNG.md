@@ -5,13 +5,37 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 218
+### Gesamtstand nach Batch 222
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 445 | 88,22 | 86,50 | 89,25 | 88,51 |
+| 445 | 88,26 | 86,51 | 89,29 | 88,55 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **218 umgesetzte Audit-Batches**. Das sind aktuell **218 von 444 Prüfplan-Punkten**. Zuletzt wurde der Font-Manager-Entry bei Action-Allowlist und Wrapper-Normalisierung nachgezogen, damit Font-Delete- und Google-Font-Downloads keine losen oder unsauberen Request-Werte direkt aus dem Einstieg übernehmen.
+Der aktuelle Nachpflege-Stand umfasst damit **222 umgesetzte Audit-Batches**. Das sind aktuell **222 von 444 Prüfplan-Punkten**. Zuletzt wurde der Backup-Entry nachgezogen, damit Backup-Mutationen keine losen Aktionen oder unsauberen Backup-Namen direkt aus dem Request in den Löschpfad übernehmen.
+
+### Delta Batch 222
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/backups.php` | umgesetzt | Backup-Mutationen wieder explizit über eine kleine Allowlist begrenzt und `backup_name` serverseitig vor Delete-Dispatches normalisiert, damit Backup-Löschpfade keine losen Aktionen oder unsauberen Namen direkt aus dem Request übernehmen. | Der Backup-Entry reduziert implizite Fallback-Dispatches im Mutationspfad, hält Request-Gates näher am übrigen Admin-Wrapper-Muster und blockt ungültige Aktionswerte oder Backup-Namen sichtbar früher, bevor Modulmethoden unnötig angerufen werden. |
+
+### Delta Batch 221
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/data-requests.php` | umgesetzt | DSGVO-Mutationen wieder explizit über scope-gebundene Allowlists begrenzt und `scope`, `action`, `id` sowie Ablehnungsgründe serverseitig vor dem Dispatch normalisiert, damit Auskunfts- und Löschpfade keine losen oder bereichsfremden Aktionen direkt aus dem Request übernehmen. | Der DSGVO-Sammel-Entry reduziert implizite Fallback-Dispatches zwischen Auskunfts- und Löschpfad, hält Request-Gates näher am übrigen Admin-Wrapper-Muster und blockt unzulässige Scope-/Action-Kombinationen oder unsaubere Request-Werte sichtbar früher, bevor Modulmethoden unnötig angerufen werden. |
+
+### Delta Batch 220
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/ThemeMarketplaceModule.php` | umgesetzt | Marketplace-Installationen auf den zentralen `UpdateService` umgestellt, damit Theme-Pakete nicht mehr über einen separaten ZIP-/Extract-Pfad direkt ins Themes-Verzeichnis entpackt werden, sondern denselben staging-basierten Installations- und Rollback-Vertrag wie reguläre Updates nutzen. | Das Theme-Marketplace-Modul reduziert parallele Download-, Archiv- und Cleanup-Logik im Installationspfad, hält Zielpfad- und Integritätsprüfungen näher am gemeinsamen Core-Service und bindet Marketplace-Installationen sauberer an denselben atomaren Verzeichnis-Swap wie der restliche Update-Lifecycle. |
+
+### Delta Batch 219
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/documentation.php` | umgesetzt | Sync-Aktionen wieder explizit über eine Allowlist begrenzt und den `action`-Wert serverseitig vor dem Dispatch normalisiert, damit der Documentation-Entry keine losen oder nicht erlaubten Aktionen bloß implizit über die Handler-Map behandelt. | Der Documentation-Entry reduziert implizite Fallback-Dispatches im Sync-Pfad, hält Request-Gates näher am übrigen Admin-Wrapper-Muster und blockt unzulässige Aktionen sichtbar früher, bevor Modulmethoden oder Ergebnisobjekte unnötig aufgebaut werden. |
 
 ### Delta Batch 218
 
