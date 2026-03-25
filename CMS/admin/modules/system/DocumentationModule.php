@@ -123,16 +123,9 @@ final class DocumentationModule
 
     public function getData(?string $selectedDoc = null): DocumentationViewData
     {
-        if (!$this->canAccess()) {
-            return $this->errorData('Zugriff verweigert.');
-        }
-
-        if (!$this->hasValidRepositoryLayout()) {
-            return $this->errorData('Das Dokumentationsmodul ist lokal nicht korrekt konfiguriert.');
-        }
-
-        if (!is_dir($this->docsRoot)) {
-            return $this->errorData('Das Dokumentationsverzeichnis /DOC wurde im Repository nicht gefunden.');
+        $viewValidation = $this->validateViewRequest();
+        if ($viewValidation instanceof DocumentationViewData) {
+            return $viewValidation;
         }
 
         try {
@@ -376,6 +369,23 @@ final class DocumentationModule
 
         if (!$this->hasValidRepositoryLayout()) {
             return $this->createSyncFailureResult('Das Dokumentationsmodul ist lokal nicht korrekt konfiguriert. Bitte Logs prüfen.');
+        }
+
+        return null;
+    }
+
+    private function validateViewRequest(): ?DocumentationViewData
+    {
+        if (!$this->canAccess()) {
+            return $this->errorData('Zugriff verweigert.');
+        }
+
+        if (!$this->hasValidRepositoryLayout()) {
+            return $this->errorData('Das Dokumentationsmodul ist lokal nicht korrekt konfiguriert.');
+        }
+
+        if (!is_dir($this->docsRoot)) {
+            return $this->errorData('Das Dokumentationsverzeichnis /DOC wurde im Repository nicht gefunden.');
         }
 
         return null;

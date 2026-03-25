@@ -5,13 +5,25 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 102
+### Gesamtstand nach Batch 104
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 445 | 82,50 | 81,46 | 84,20 | 82,71 |
+| 445 | 82,52 | 81,48 | 84,22 | 82,73 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **102 umgesetzte Audit-Batches**. Zuletzt wurde `CMS/admin/views/subscriptions/orders.php` beim Bestell-Aktionsmenü weiter standardisiert.
+Der aktuelle Nachpflege-Stand umfasst damit **104 umgesetzte Audit-Batches**. Das sind aktuell **104 von 444 Prüfplan-Punkten**. Zuletzt wurde `CMS/admin/modules/system/DocumentationModule.php` bei den Lese-Vorbedingungen weiter standardisiert.
+
+### Delta Batch 104
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationModule.php` | umgesetzt | Wiederkehrende Lese-Vorbedingungen für Zugriff, Repository-Layout und DOC-Verfügbarkeit über kleinen Guard gebündelt statt gestaffelter Inline-Fehlerpfade direkt im Read-Orchestrator. | Das Dokumentations-Modul reduziert weitere Orchestrator-Duplikate im Lese-Pfad, hält Vorbedingungen zentraler und bleibt bei View-Fehlern konsistenter wartbar. |
+
+### Delta Batch 103
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/system/documentation.php` | umgesetzt | Gewachsenen Inhalt der ausgewählten Dokumentenkarte über kleinen lokalen Renderer gebündelt statt Excerpt, Quellenhinweis, Leerzustand und CSV-Hinweis direkt im Hauptlayout zu halten. | Die Dokumentations-Ansicht reduziert weiteres Panel-Markup-Duplikat, hält Zustandsänderungen zentraler und bleibt in der rechten Dokumentenkarte kompakter wartbar. |
 
 ### Delta Batch 102
 
@@ -144,11 +156,11 @@ Der aktuelle Nachpflege-Stand umfasst damit **102 umgesetzte Audit-Batches**. Zu
 | Datei | Bereich | Fokus | Security | Speed | PHP/BP | Gesamt |
 |---|---|---|---:|---:|---:|---:|
 | `CMS/admin/views/subscriptions/orders.php` | Orders, Assignments, Modal | Tabellen, Status, Zuweisung | 91 | 82 | 93 | 89 |
-| `CMS/admin/views/system/documentation.php` | Doku-UI | Karten, Listen, Renderpfad | 90 | 81 | 92 | 88 |
+| `CMS/admin/views/system/documentation.php` | Doku-UI | Karten, Listen, Renderpfad | 91 | 82 | 93 | 89 |
 | `CMS/admin/views/system/mail-settings.php` | Transport, Azure, Graph, Queue | SMTP, OAuth2, Logs | 91 | 82 | 93 | 89 |
 | `CMS/admin/modules/system/DocumentationSyncService.php` | Doku-Sync | Capabilities, Result, Logging | 91 | 82 | 93 | 89 |
 | `CMS/admin/modules/system/DocumentationSyncDownloader.php` | Doku-Download | Remote, Persistenz, Logging | 92 | 82 | 93 | 90 |
-| `CMS/admin/modules/system/DocumentationModule.php` | Doku-Logik | Renderer, Sync, Catalog | 91 | 81 | 92 | 88 |
+| `CMS/admin/modules/system/DocumentationModule.php` | Doku-Logik | Renderer, Sync, Catalog | 92 | 82 | 93 | 89 |
 
 ### Delta Batch 081
 

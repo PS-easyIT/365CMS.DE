@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.7.20-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.7.22-blue.svg)](Changelog.md)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
@@ -29,16 +29,16 @@
 
 ## 📈 Audit-Stand März 2026
 
-Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 102** nachgezogen. Der aktuelle dokumentierte Gesamtstand über **445 bewertete Dateien** liegt bei:
+Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 104** nachgezogen. Aktuell sind damit **104 von 444 Prüfplan-Punkten** geschafft. Der aktuelle dokumentierte Gesamtstand über **445 bewertete Dateien** liegt bei:
 
 | Metrik | Stand |
 |---|---:|
-| **Security** | **82,50** |
-| **Speed** | **81,46** |
-| **PHP / Best Practices** | **84,20** |
-| **Gesamt** | **82,71** |
+| **Security** | **82,52** |
+| **Speed** | **81,48** |
+| **PHP / Best Practices** | **84,22** |
+| **Gesamt** | **82,73** |
 
-Zuletzt wurde die Bestellübersicht weiter standardisiert: `CMS/admin/views/subscriptions/orders.php` bündelt ihr gewachsenes Aktionsmenü jetzt stärker über einen kleinen lokalen Renderer statt Statuswechsel, Zuweisung und Löschaktion direkt in jeder Tabellenzeile zu verteilen.
+Zuletzt wurde das Dokumentations-Modul weiter standardisiert: `CMS/admin/modules/system/DocumentationModule.php` bündelt wiederkehrende Lese-Vorbedingungen jetzt stärker über einen kleinen Guard statt Zugriff, Repository-Layout und DOC-Verfügbarkeit direkt im Read-Pfad zu verteilen.
 
 ## 🧩 Funktionsumfang im Überblick
 

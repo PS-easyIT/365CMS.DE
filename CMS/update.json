@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.7.20",
+  "version": "2.7.22",
   "min_php": "8.4",
   "released": "2026-03-25",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release 2.7.20: Die Bestellübersicht bündelt ihr gewachsenes Aktionsmenü jetzt stärker über einen kleinen lokalen Renderer, sodass Statuswechsel, Zuweisung und Löschaktion konsistenter bleiben und weniger doppelte Dropdown-Markup-Pfade tragen.",
+  "notes": "Release 2.7.22: Das Dokumentations-Modul bündelt wiederkehrende Lese-Vorbedingungen jetzt stärker über einen kleinen Guard, sodass Zugriff, Repository-Layout und DOC-Verfügbarkeit konsistenter bleiben und weniger doppelte View-Fehlerpfade tragen.",
   "critical": false
 }

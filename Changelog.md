@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.20-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.22-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,26 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.7.22 — 25. März 2026 · Audit-Batch 104, Dokumentations-Modul weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.22** | 🔴 fix | Admin/System | **Lese-Vorbedingungen laufen jetzt konsistenter über einen kleinen Modul-Guard**: `CMS/admin/modules/system/DocumentationModule.php` behandelt Zugriff, Repository-Layout und DOC-Verfügbarkeit nicht mehr direkt als gestaffelten Inline-Block im Read-Pfad. |
+| **2.7.22** | 🟠 perf | Admin/System | **Änderungen am Dokument-Ladepfad bleiben zentraler wartbar**: der gemeinsame View-Guard reduziert Kopierlogik im Modul und erleichtert spätere Anpassungen an Vorbedingungen oder Fehlermeldungen. |
+| **2.7.22** | 🟡 refactor | Admin/System | **Das Dokumentations-Modul bleibt näher an kleinen Orchestrator-Bausteinen**: der Read-Pfad konzentriert sich stärker auf Katalog- und Render-Aufbau statt auf Vorbedingungsprüfungen. |
+
+---
+
+### v2.7.21 — 25. März 2026 · Audit-Batch 103, Dokumentations-Ansicht weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.21** | 🔴 fix | Admin/System | **Die ausgewählte Dokumentenkarte läuft jetzt konsistenter über einen kleinen Renderer**: `CMS/admin/views/system/documentation.php` behandelt Excerpt, Quellenhinweis, Leerzustand und CSV-Hinweis nicht mehr direkt als gewachsenen Inhaltsblock im Hauptlayout. |
+| **2.7.21** | 🟠 perf | Admin/System | **Änderungen an der Dokumentenansicht bleiben zentraler wartbar**: der gemeinsame Content-Renderer reduziert Markup-Duplikate im rechten Dokumentenpanel und erleichtert spätere Anpassungen an Hinweise oder Zustände. |
+| **2.7.21** | 🟡 refactor | Admin/System | **Die Dokumentations-View bleibt näher an kleinen Render-Bausteinen**: das Hauptlayout konzentriert sich stärker auf die Kartenstruktur statt auf den kompletten Inhaltszustand. |
 
 ---
 
