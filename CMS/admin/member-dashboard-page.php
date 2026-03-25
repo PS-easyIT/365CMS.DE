@@ -29,6 +29,8 @@ $sectionPageConfig = [
             return ['success' => false, 'error' => 'Member-Dashboard-Modul konnte nicht initialisiert werden.'];
         }
 
+        $postData['_csrf_verified'] = true;
+
         $action = (string)($postData['action'] ?? '');
 
         return $action === 'save'

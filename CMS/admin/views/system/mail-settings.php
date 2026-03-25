@@ -61,6 +61,15 @@ $renderMetricCard = static function (string $label, int $value, string $valueCla
     </div>
     <?php
 };
+$renderMetricCardsRow = static function (array $cards) use ($renderMetricCard): void {
+    ?>
+    <div class="row row-cards mb-4">
+        <?php foreach ($cards as $card): ?>
+            <?php $renderMetricCard((string) ($card['label'] ?? ''), (int) ($card['value'] ?? 0), (string) ($card['class'] ?? '')); ?>
+        <?php endforeach; ?>
+    </div>
+    <?php
+};
 $renderEmptyTableRow = static function (int $colspan, string $message): void {
     ?>
     <tr>
@@ -359,11 +368,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
             </div>
         </div>
     <?php elseif ($isCurrentTab('logs')): ?>
-        <div class="row row-cards mb-4">
-            <?php foreach ($logMetricCards as $card): ?>
-                <?php $renderMetricCard($card['label'], $card['value'], $card['class']); ?>
-            <?php endforeach; ?>
-        </div>
+        <?php $renderMetricCardsRow($logMetricCards); ?>
 
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -411,11 +416,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
             </div>
         </div>
     <?php else: ?>
-        <div class="row row-cards mb-4">
-            <?php foreach ($queueMetricCards as $card): ?>
-                <?php $renderMetricCard($card['label'], $card['value'], $card['class']); ?>
-            <?php endforeach; ?>
-        </div>
+        <?php $renderMetricCardsRow($queueMetricCards); ?>
 
         <div class="row row-cards mb-4">
             <div class="col-12 col-xl-6">

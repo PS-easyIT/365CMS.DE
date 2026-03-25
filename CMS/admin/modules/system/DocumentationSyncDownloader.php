@@ -178,16 +178,15 @@ final class DocumentationSyncDownloader
      */
     private function handleFailedResponse(string $url, string $destination, array $response): DocumentationDownloadResult
     {
-        $this->deleteDestinationIfPresent($destination);
-
-        $this->logFailure('documentation.sync.download.failed', 'GitHub-ZIP konnte per HTTPS nicht geladen werden.', [
-            'url' => $this->sanitizeUrlForLog($url),
-            'error' => $this->sanitizeLogString((string) ($response['error'] ?? ''), self::MAX_LOG_VALUE_LENGTH),
-        ]);
-
-        return $this->failureResultFromResponse(
+        return $this->failDownloadResponse(
+            'documentation.sync.download.failed',
             $response,
             'GitHub-ZIP konnte per HTTPS nicht geladen werden.',
+            $destination,
+            [
+                'url' => $this->sanitizeUrlForLog($url),
+                'error' => $this->sanitizeLogString((string) ($response['error'] ?? ''), self::MAX_LOG_VALUE_LENGTH),
+            ],
             (string) ($response['contentType'] ?? '')
         );
     }
@@ -279,14 +278,10 @@ final class DocumentationSyncDownloader
         string $contentType,
         int $bytes
     ): DocumentationDownloadResult {
-        $this->deleteDestinationIfPresent($destination);
-
-        $this->logFailure($action, $message, [
+        return $this->failDownloadResponse($action, $response, $message, $destination, [
             'destination' => $this->sanitizePathForLog($destination),
             'bytes' => $bytes,
-        ]);
-
-        return $this->failureResultFromResponse($response, $message, $contentType, $bytes);
+        ], $contentType, $bytes);
     }
 
     private function ensureDestinationDirectory(string $destination): bool
@@ -327,6 +322,25 @@ final class DocumentationSyncDownloader
             $contentType ?? (string) ($response['contentType'] ?? ''),
             $bytes ?? 0
         );
+    }
+
+    /**
+     * @param array<string, mixed> $response
+     * @param array<string, mixed> $context
+     */
+    private function failDownloadResponse(
+        string $action,
+        array $response,
+        string $message,
+        string $destination,
+        array $context = [],
+        ?string $contentType = null,
+        ?int $bytes = null
+    ): DocumentationDownloadResult {
+        $this->deleteDestinationIfPresent($destination);
+        $this->logFailure($action, $message, $context);
+
+        return $this->failureResultFromResponse($response, $message, $contentType, $bytes);
     }
 
     private function isAllowedDestination(string $destination): bool

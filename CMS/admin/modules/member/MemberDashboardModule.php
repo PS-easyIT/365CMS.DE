@@ -835,6 +835,10 @@ class MemberDashboardModule
 
     private function assertCsrf(array $post): bool
     {
+        if (!empty($post['_csrf_verified'])) {
+            return true;
+        }
+
         $token = (string)($post['csrf_token'] ?? '');
 
         return class_exists(Security::class)

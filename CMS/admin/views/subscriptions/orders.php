@@ -111,6 +111,7 @@ $renderOrderDeleteForm = static function (string $csrfToken, int $orderId, strin
     </form>
     <?php
 };
+$orderAssignPayload = static fn (array $order): string => htmlspecialchars((string) json_encode($order, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
 $renderOrderActionsMenu = static function (
     string $csrfToken,
     array $order,
@@ -143,7 +144,6 @@ $statusOptions = static function (array $currentOrder) use ($statusTransitions, 
         static fn (string $candidate): bool => $candidate !== $currentStatus && isset($statusLabels[$candidate])
     ));
 };
-$orderAssignPayload = static fn (array $order): string => htmlspecialchars((string) json_encode($order, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
 $assignmentUserLabel = static fn (array $assignment): string => (string) ($assignment['username'] ?? $assignment['email'] ?? '–');
 $assignmentEmailLabel = static fn (array $assignment): string => (string) ($assignment['email'] ?? '');
 $assignmentPlanLabel = static fn (array $assignment): string => (string) ($assignment['plan_name'] ?? '–');

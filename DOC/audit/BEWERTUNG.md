@@ -5,13 +5,31 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 104
+### Gesamtstand nach Batch 107
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 445 | 82,52 | 81,48 | 84,22 | 82,73 |
+| 445 | 82,55 | 81,51 | 84,25 | 82,76 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **104 umgesetzte Audit-Batches**. Das sind aktuell **104 von 444 Prüfplan-Punkten**. Zuletzt wurde `CMS/admin/modules/system/DocumentationModule.php` bei den Lese-Vorbedingungen weiter standardisiert.
+Der aktuelle Nachpflege-Stand umfasst damit **107 umgesetzte Audit-Batches**. Das sind aktuell **107 von 444 Prüfplan-Punkten**. Zuletzt wurde `CMS/admin/modules/system/DocumentationSyncDownloader.php` bei den Response-Failure-Pfaden weiter standardisiert.
+
+### Delta Batch 107
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationSyncDownloader.php` | umgesetzt | Wiederkehrende Response-Failure-Pfade für Download- und Persistenzfehler über kleinen Helfer gebündelt statt separater Cleanup-/Failure-Abgänge mit ähnlichem Aufbau. | Der Dokumentations-Downloader reduziert weiteres Lifecycle-Duplikat in Failure-Pfaden, hält Cleanup und Result-Erzeugung zentraler und bleibt bei Remote- und Persistenzfehlern konsistenter wartbar. |
+
+### Delta Batch 106
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationSyncService.php` | umgesetzt | Wiederkehrende Capability-Fehlerpfade für unavailable- und invalid-capabilities über kleinen Helfer gebündelt statt separater Failure-Aufrufe mit identischem Kontextaufbau. | Der Doku-Sync-Service reduziert weiteres Orchestrator-Duplikat in Capability-Fehlern, hält Failure-Kontexte zentraler und bleibt bei Konfigurationsabweichungen konsistenter wartbar. |
+
+### Delta Batch 105
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/system/mail-settings.php` | umgesetzt | Wiederkehrende KPI-Kartenzeilen für Logs und Queue über kleinen lokalen Renderer gebündelt statt zweier fast identischer Kartenreihen direkt im Template. | Die Mail-Settings-View reduziert weiteres Template-Duplikat in Metrikbereichen, hält KPI-Änderungen zentraler und bleibt in Logs- und Queue-Tabs konsistenter wartbar. |
 
 ### Delta Batch 104
 
@@ -157,9 +175,9 @@ Der aktuelle Nachpflege-Stand umfasst damit **104 umgesetzte Audit-Batches**. Da
 |---|---|---|---:|---:|---:|---:|
 | `CMS/admin/views/subscriptions/orders.php` | Orders, Assignments, Modal | Tabellen, Status, Zuweisung | 91 | 82 | 93 | 89 |
 | `CMS/admin/views/system/documentation.php` | Doku-UI | Karten, Listen, Renderpfad | 91 | 82 | 93 | 89 |
-| `CMS/admin/views/system/mail-settings.php` | Transport, Azure, Graph, Queue | SMTP, OAuth2, Logs | 91 | 82 | 93 | 89 |
-| `CMS/admin/modules/system/DocumentationSyncService.php` | Doku-Sync | Capabilities, Result, Logging | 91 | 82 | 93 | 89 |
-| `CMS/admin/modules/system/DocumentationSyncDownloader.php` | Doku-Download | Remote, Persistenz, Logging | 92 | 82 | 93 | 90 |
+| `CMS/admin/views/system/mail-settings.php` | Transport, Azure, Graph, Queue | SMTP, OAuth2, Logs | 92 | 83 | 94 | 90 |
+| `CMS/admin/modules/system/DocumentationSyncService.php` | Doku-Sync | Capabilities, Result, Logging | 92 | 83 | 94 | 90 |
+| `CMS/admin/modules/system/DocumentationSyncDownloader.php` | Doku-Download | Remote, Persistenz, Logging | 93 | 83 | 94 | 91 |
 | `CMS/admin/modules/system/DocumentationModule.php` | Doku-Logik | Renderer, Sync, Catalog | 92 | 82 | 93 | 89 |
 
 ### Delta Batch 081

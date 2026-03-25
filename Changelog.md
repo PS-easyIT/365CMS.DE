@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.22-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.25-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,36 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.7.25 — 25. März 2026 · Audit-Batch 107, Dokumentations-Downloader weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.25** | 🔴 fix | Admin/System | **Response-Fehlerpfade laufen jetzt konsistenter über einen kleinen Downloader-Helfer**: `CMS/admin/modules/system/DocumentationSyncDownloader.php` behandelt Download- und Persistenzfehler nicht mehr separat mit ähnlichem Cleanup- und Failure-Abgang. |
+| **2.7.25** | 🟠 perf | Admin/System | **Änderungen an Downloader-Fehlern bleiben zentraler wartbar**: der gemeinsame Response-Failure-Helfer reduziert Duplikate bei Cleanup, Logging und Result-Erzeugung. |
+| **2.7.25** | 🟡 refactor | Admin/System | **Der Dokumentations-Downloader bleibt näher an kleinen Failure-Bausteinen**: Remote- und Persistenzpfade konzentrieren sich stärker auf ihre eigentliche Aufgabe statt auf wiederholte Failure-Abgänge. |
+
+---
+
+### v2.7.24 — 25. März 2026 · Audit-Batch 106, Dokumentations-Sync-Service weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.24** | 🔴 fix | Admin/System | **Capability-Fehlerpfade laufen jetzt konsistenter über einen kleinen Service-Helfer**: `CMS/admin/modules/system/DocumentationSyncService.php` behandelt unavailable- und invalid-capabilities nicht mehr separat mit identischem Kontextaufbau im Orchestrator. |
+| **2.7.24** | 🟠 perf | Admin/System | **Änderungen an Capability-Fehlern bleiben zentraler wartbar**: der gemeinsame Failure-Helfer reduziert Kontext-Duplikate im Sync-Service und erleichtert spätere Anpassungen an Logging oder Fehlermeldungen. |
+| **2.7.24** | 🟡 refactor | Admin/System | **Der Dokumentations-Sync-Service bleibt näher an kleinen Failure-Bausteinen**: der Orchestrator konzentriert sich stärker auf die Sync-Auswahl statt auf wiederholte Failure-Kontexte. |
+
+---
+
+### v2.7.23 — 25. März 2026 · Audit-Batch 105, Mail-Settings-View weiter standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.23** | 🔴 fix | Admin/System | **KPI-Kartenzeilen laufen jetzt konsistenter über einen kleinen View-Renderer**: `CMS/admin/views/system/mail-settings.php` behandelt Logs- und Queue-Metriken nicht mehr als zwei fast identische Kartenreihen direkt im Template. |
+| **2.7.23** | 🟠 perf | Admin/System | **Änderungen an Mail-Metriken bleiben zentraler wartbar**: der gemeinsame Kartenreihen-Renderer reduziert Markup-Duplikate in Logs- und Queue-Bereich und erleichtert spätere KPI-Anpassungen. |
+| **2.7.23** | 🟡 refactor | Admin/System | **Die Mail-Settings-View bleibt näher an kleinen Render-Bausteinen**: die Tab-Bereiche konzentrieren sich stärker auf ihre Inhalte statt auf wiederholte KPI-Wrapper. |
 
 ---
 

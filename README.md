@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.7.22-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.7.25-blue.svg)](Changelog.md)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
@@ -29,16 +29,16 @@
 
 ## 📈 Audit-Stand März 2026
 
-Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 104** nachgezogen. Aktuell sind damit **104 von 444 Prüfplan-Punkten** geschafft. Der aktuelle dokumentierte Gesamtstand über **445 bewertete Dateien** liegt bei:
+Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 107** nachgezogen. Aktuell sind damit **107 von 444 Prüfplan-Punkten** geschafft. Der aktuelle dokumentierte Gesamtstand über **445 bewertete Dateien** liegt bei:
 
 | Metrik | Stand |
 |---|---:|
-| **Security** | **82,52** |
-| **Speed** | **81,48** |
-| **PHP / Best Practices** | **84,22** |
-| **Gesamt** | **82,73** |
+| **Security** | **82,55** |
+| **Speed** | **81,51** |
+| **PHP / Best Practices** | **84,25** |
+| **Gesamt** | **82,76** |
 
-Zuletzt wurde das Dokumentations-Modul weiter standardisiert: `CMS/admin/modules/system/DocumentationModule.php` bündelt wiederkehrende Lese-Vorbedingungen jetzt stärker über einen kleinen Guard statt Zugriff, Repository-Layout und DOC-Verfügbarkeit direkt im Read-Pfad zu verteilen.
+Zuletzt wurde der Dokumentations-Downloader weiter standardisiert: `CMS/admin/modules/system/DocumentationSyncDownloader.php` bündelt wiederkehrende Response-Failure-Pfade jetzt stärker über einen kleinen Helfer statt Download- und Persistenzfehler separat mit ähnlichem Cleanup-/Failure-Abgang zu behandeln.
 
 ## 🧩 Funktionsumfang im Überblick
 

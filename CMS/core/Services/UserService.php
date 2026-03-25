@@ -542,19 +542,23 @@ class UserService {
         
         if ($existing !== null) {
             // Update
-            return $this->db->update(
+            $result = $this->db->update(
                 'user_meta',
                 ['meta_value' => $value],
                 ['user_id' => $user_id, 'meta_key' => $key]
             );
-        } else {
-            // Insert
-            return $this->db->insert('user_meta', [
-                'user_id' => $user_id,
-                'meta_key' => $key,
-                'meta_value' => $value
-            ]);
+
+            return $result !== false;
         }
+
+        // Insert
+        $result = $this->db->insert('user_meta', [
+            'user_id' => $user_id,
+            'meta_key' => $key,
+            'meta_value' => $value
+        ]);
+
+        return $result !== false;
     }
     
     /**

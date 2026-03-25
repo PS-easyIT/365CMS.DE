@@ -326,12 +326,10 @@ final class DocumentationSyncService
     private function resolveSyncExecutionResult(DocumentationSyncCapabilities $capabilities): DocumentationSyncServiceResult
     {
         if (!$capabilities->canSync()) {
-            return $this->failResult(
+            return $this->failCapabilitiesResult(
                 'documentation.sync.unavailable',
                 'Doku-Sync ist auf diesem Server nicht verfügbar.',
-                [
-                    'capabilities' => $capabilities->toLogContext(),
-                ]
+                $capabilities
             );
         }
 
@@ -343,12 +341,10 @@ final class DocumentationSyncService
             return $this->finalizeSyncResult($this->githubZipSync->sync(), 'github-zip', $capabilities);
         }
 
-        return $this->failResult(
+        return $this->failCapabilitiesResult(
             'documentation.sync.invalid_capabilities',
             'Doku-Sync ist auf diesem Server nicht konsistent konfiguriert.',
-            [
-                'capabilities' => $capabilities->toLogContext(),
-            ]
+            $capabilities
         );
     }
 
@@ -436,6 +432,16 @@ final class DocumentationSyncService
         return $this->serviceResultFromArray([
             'success' => false,
             'error' => $message,
+        ]);
+    }
+
+    private function failCapabilitiesResult(
+        string $action,
+        string $message,
+        DocumentationSyncCapabilities $capabilities
+    ): DocumentationSyncServiceResult {
+        return $this->failResult($action, $message, [
+            'capabilities' => $capabilities->toLogContext(),
         ]);
     }
 
