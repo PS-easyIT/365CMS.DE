@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.7.159-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.7.228-blue.svg)](Changelog.md)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
@@ -29,16 +29,16 @@
 
 ## 📈 Audit-Stand März 2026
 
-Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 241** nachgezogen. Aktuell sind damit **241 von 444 Prüfplan-Punkten** geschafft. Der aktuelle dokumentierte Gesamtstand über **445 bewertete Dateien** liegt bei:
+Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 310** nachgezogen. Aktuell sind damit **310 von 444 Prüfplan-Punkten** geschafft. Der aktuelle dokumentierte Gesamtstand über **445 bewertete Dateien** liegt bei:
 
 | Metrik | Stand |
 |---|---:|
-| **Security** | **88,45** |
-| **Speed** | **86,51** |
-| **PHP / Best Practices** | **89,48** |
-| **Gesamt** | **88,74** |
+| **Security** | **89,51** |
+| **Speed** | **87,52** |
+| **PHP / Best Practices** | **90,67** |
+| **Gesamt** | **90,36** |
 
-Zuletzt wurde der 404-Monitor-Entry nachgezogen: `CMS/admin/not-found-monitor.php` begrenzt Redirect-Save- und Log-Clear-Aktionen jetzt explizit über eine kleine Action-Allowlist und bindet den Einstieg zusätzlich an `manage_settings`. Dadurch bleibt der 404-/Redirect-Pfad näher am gemeinsamen SEO-Wrapper-Vertrag und lässt weniger lose Aktionen oder pauschale Admin-Zugriffe still bis in das Redirect-Modul durchrutschen.
+Zuletzt wurde auch `CMS/admin/seo-page.php` auf die gemeinsame `section-page-shell.php` gehoben. Section-, Capability-, Redirect- und POST-Dispatch laufen damit zentral über denselben Shared-Entry-Vertrag; der gemeinsame SEO-/Analytics-Wrapper pflegt keinen separaten Redirect-/Flash-/Renderpfad mehr neben der Shell, und der dünne Alias `CMS/admin/analytics.php` profitiert automatisch mit.
 
 ## 🧩 Funktionsumfang im Überblick
 

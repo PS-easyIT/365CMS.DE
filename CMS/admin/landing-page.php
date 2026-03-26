@@ -12,21 +12,29 @@ if (!defined('ABSPATH')) {
  */
 
 use CMS\Auth;
-use CMS\Security;
 
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
+const CMS_ADMIN_LANDING_PAGE_ALLOWED_TABS = ['header', 'content', 'footer', 'design', 'plugins'];
+
+const CMS_ADMIN_LANDING_PAGE_ALLOWED_ACTIONS = [
+    'save_header',
+    'save_content',
+    'save_footer',
+    'save_design',
+    'save_feature',
+    'delete_feature',
+    'save_plugin',
+];
+
+const CMS_ADMIN_LANDING_PAGE_WRITE_CAPABILITY = 'manage_settings';
+
+function cms_admin_landing_page_can_access(): bool
+{
+    return Auth::instance()->isAdmin() && Auth::instance()->hasCapability(CMS_ADMIN_LANDING_PAGE_WRITE_CAPABILITY);
 }
-
-require_once __DIR__ . '/modules/landing/LandingPageModule.php';
-$module    = new LandingPageModule();
-$alert     = null;
-$redirectBase = SITE_URL . '/admin/landing-page';
 
 function cms_admin_landing_page_allowed_tabs(): array
 {
-    return ['header', 'content', 'footer', 'design', 'plugins'];
+    return CMS_ADMIN_LANDING_PAGE_ALLOWED_TABS;
 }
 
 function cms_admin_landing_page_normalize_tab(string $tab): string
@@ -36,39 +44,23 @@ function cms_admin_landing_page_normalize_tab(string $tab): string
     return in_array($normalizedTab, cms_admin_landing_page_allowed_tabs(), true) ? $normalizedTab : 'header';
 }
 
-function cms_admin_landing_page_redirect(string $redirectUrl): never
+function cms_admin_landing_page_normalize_action(mixed $action): string
 {
-    header('Location: ' . $redirectUrl);
-    exit;
+    $normalizedAction = trim((string) $action);
+
+    return in_array($normalizedAction, CMS_ADMIN_LANDING_PAGE_ALLOWED_ACTIONS, true) ? $normalizedAction : '';
 }
 
-function cms_admin_landing_page_tab_url(string $redirectBase, string $tab): string
+function cms_admin_landing_page_normalize_positive_id(mixed $id): int
 {
-    return $redirectBase . '?tab=' . rawurlencode($tab);
+    $normalizedId = filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+    return $normalizedId === false ? 0 : (int) $normalizedId;
 }
 
-function cms_admin_landing_page_flash(array $result): void
+function cms_admin_landing_page_tab_url(string $tab): string
 {
-    $_SESSION['admin_alert'] = [
-        'type'    => ($result['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
-        'message' => trim((string) ($result['message'] ?? '')),
-    ];
-}
-
-function cms_admin_landing_page_flash_result(array $result): void
-{
-    cms_admin_landing_page_flash([
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
-    ]);
-}
-
-function cms_admin_landing_page_pull_alert(): ?array
-{
-    $alert = $_SESSION['admin_alert'] ?? null;
-    unset($_SESSION['admin_alert']);
-
-    return is_array($alert) ? $alert : null;
+    return '/admin/landing-page?tab=' . rawurlencode($tab);
 }
 
 /**
@@ -82,40 +74,50 @@ function cms_admin_landing_page_action_handlers(LandingPageModule $module): arra
         'save_footer' => static fn (array $post): array => $module->saveFooter($post),
         'save_design' => static fn (array $post): array => $module->saveDesign($post),
         'save_feature' => static fn (array $post): array => $module->saveFeature($post),
-        'delete_feature' => static fn (array $post): array => $module->deleteFeature((int) ($post['feature_id'] ?? 0)),
+        'delete_feature' => static fn (array $post): array => $module->deleteFeature(cms_admin_landing_page_normalize_positive_id($post['feature_id'] ?? 0)),
         'save_plugin' => static fn (array $post): array => $module->savePlugin($post),
     ];
 }
 
-$tab = cms_admin_landing_page_normalize_tab((string) ($_GET['tab'] ?? 'header'));
-$actionHandlers = cms_admin_landing_page_action_handlers($module);
+$sectionPageConfig = [
+    'route_path' => '/admin/landing-page',
+    'view_file' => __DIR__ . '/views/landing/page.php',
+    'page_title' => 'Landing Page',
+    'active_page' => 'landing-page',
+    'csrf_action' => 'admin_landing_page',
+    'module_file' => __DIR__ . '/modules/landing/LandingPageModule.php',
+    'module_factory' => static fn (): LandingPageModule => new LandingPageModule(),
+    'data_loader' => static function (LandingPageModule $module): array {
+        $tab = cms_admin_landing_page_normalize_tab((string) ($_GET['tab'] ?? 'header'));
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $postToken = (string) ($_POST['csrf_token'] ?? '');
-    if (!Security::instance()->verifyToken($postToken, 'admin_landing_page')) {
-        cms_admin_landing_page_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
-        cms_admin_landing_page_redirect(cms_admin_landing_page_tab_url($redirectBase, $tab));
-    }
+        return $module->getData($tab);
+    },
+    'access_checker' => static fn (): bool => cms_admin_landing_page_can_access(),
+    'access_denied_route' => '/',
+    'redirect_path_resolver' => static function (): string {
+        $tab = cms_admin_landing_page_normalize_tab((string) ($_GET['tab'] ?? 'header'));
 
-    $action = trim((string) ($_POST['action'] ?? ''));
-    if (!isset($actionHandlers[$action])) {
-        cms_admin_landing_page_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
-        cms_admin_landing_page_redirect(cms_admin_landing_page_tab_url($redirectBase, $tab));
-    }
+        return cms_admin_landing_page_tab_url($tab);
+    },
+    'unknown_action_message' => 'Unbekannte Aktion.',
+    'post_handler' => static function (LandingPageModule $module, string $section, array $post): array {
+        if (!Auth::instance()->hasCapability(CMS_ADMIN_LANDING_PAGE_WRITE_CAPABILITY)) {
+            return ['success' => false, 'error' => 'Keine Berechtigung für diese Aktion.'];
+        }
 
-    cms_admin_landing_page_flash_result($actionHandlers[$action]($_POST));
-    cms_admin_landing_page_redirect(cms_admin_landing_page_tab_url($redirectBase, $tab));
-}
+        $action = cms_admin_landing_page_normalize_action($post['action'] ?? '');
+        $handlers = cms_admin_landing_page_action_handlers($module);
 
-$alert = cms_admin_landing_page_pull_alert();
+        if ($action === '' || !isset($handlers[$action])) {
+            return ['success' => false, 'error' => 'Unbekannte Aktion.'];
+        }
 
-$csrfToken  = Security::instance()->generateToken('admin_landing_page');
-$data       = $module->getData($tab);
-$pageTitle  = 'Landing Page';
-$activePage = 'landing-page';
-$pageAssets = [];
+        if ($action === 'delete_feature' && cms_admin_landing_page_normalize_positive_id($post['feature_id'] ?? 0) < 1) {
+            return ['success' => false, 'error' => 'Ungültige Feature-ID.'];
+        }
 
-require __DIR__ . '/partials/header.php';
-require __DIR__ . '/partials/sidebar.php';
-require __DIR__ . '/views/landing/page.php';
-require __DIR__ . '/partials/footer.php';
+        return $handlers[$action]($post);
+    },
+];
+
+require __DIR__ . '/partials/section-page-shell.php';

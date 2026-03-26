@@ -61,6 +61,10 @@ $mainDomainHost = trim((string)(parse_url((string) SITE_URL, PHP_URL_HOST) ?? ''
             <li class="nav-item"><a class="nav-link" href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites?action=templates">Templates</a></li>
         </ul>
 
+        <?php if (!empty($alert)): ?>
+            <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
+        <?php endif; ?>
+
         <form method="post" action="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites" id="hubSiteForm">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
             <input type="hidden" name="action" value="save">

@@ -5,13 +5,427 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 241
+### Gesamtstand nach Batch 310
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 445 | 88,45 | 86,51 | 89,48 | 88,74 |
+| 445 | 89,51 | 87,52 | 90,67 | 90,36 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **241 umgesetzte Audit-Batches**. Das sind aktuell **241 von 444 Prüfplan-Punkten**. Zuletzt wurde der 404-Monitor-Entry bei Action- und Capability-Gates nachgezogen, damit Redirect-Save- und Log-Clear-Pfade keine losen Aktionen oder pauschalen Admin-Zugriffe direkt aus dem SEO-Wrapper übernehmen.
+Der aktuelle Nachpflege-Stand umfasst damit **310 umgesetzte Audit-Batches**. Das sind aktuell **310 von 444 Prüfplan-Punkten**. Zuletzt wurde zusätzlich der gemeinsame SEO-/Analytics-Wrapper auf die gemeinsame Section-Shell gezogen; Section-, Capability-, Redirect- und POST-Dispatch laufen damit über denselben Shared-Vertrag, ohne dass `seo-page.php` seinen eigenen Redirect-/Flash-/Renderpfad separat pflegen muss.
+
+### Delta Batch 310
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/seo-page.php` | umgesetzt | Den gemeinsamen SEO-/Analytics-Wrapper auf die `section-page-shell.php` standardisiert, sodass Section-Registry, Capability-Gates, Redirect-Zielberechnung, CSRF-Flow und POST-Dispatch nicht länger als eigener Sonderpfad neben der Shared-Shell gepflegt werden. | Der Wrapper reduziert verteiltes Boilerplate, hält Dashboard-, Audit-, Meta-, Social-, Schema-, Sitemap-, Technical- und Analytics-Pfade näher an derselben Shared-Laufzeitschicht und lässt den dünnen Alias `CMS/admin/analytics.php` automatisch denselben Shell-Vertrag mitnutzen. |
+
+### Delta Batch 309
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/users.php`, `CMS/admin/modules/users/UsersModule.php` | umgesetzt | Den Users-Entry auf die gemeinsame `section-page-shell.php` standardisiert, Listen-/Edit-Kontexte zentral über die Shell aufgelöst und den Save-Fehlerpfad im Users-Modul auf generische UI-Fehler statt roher Exception-Texte zurückgeführt, damit Redirect-, Feedback-, Asset- und Renderpfade nicht länger separat im Entry gepflegt werden. | Der Entry reduziert verteiltes Boilerplate, hält Listen-/Edit-Flow näher an der Shared-Shell, nutzt den Inline-POST-Fallback jetzt auch für die Benutzerverwaltung und vermeidet im Save-Fehlerpfad unnötige technische Detail-Leaks an die Admin-Oberfläche. |
+
+### Delta Batch 308
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/posts.php`, `CMS/admin/views/posts/list.php`, `CMS/admin/views/posts/edit.php` | umgesetzt | Den Posts-Entry auf die gemeinsame `section-page-shell.php` standardisiert, Listen-/Edit-Kontexte zentral über die Shell aufgelöst und die Views auf das gemeinsame Flash-Partial harmonisiert, damit Redirect-, Feedback-, Asset- und Renderpfade nicht länger separat im Entry gepflegt werden. | Der Entry reduziert verteiltes Boilerplate, hält Listen-/Edit-Flow näher an der Shared-Shell und nutzt den neuen Inline-POST-Fallback jetzt auch für die Beitragsverwaltung, ohne dafür wieder einen separaten Sonderpfad zu pflegen. |
+
+### Delta Batch 307
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/pages.php`, `CMS/admin/partials/section-page-shell.php`, `CMS/admin/views/pages/list.php`, `CMS/admin/views/pages/edit.php` | umgesetzt | Den Pages-Entry auf die gemeinsame `section-page-shell.php` standardisiert, die Shell um optionales Inline-Rendering nach POST-Fehlern erweitert und die Views auf das gemeinsame Flash-Partial harmonisiert, damit Redirect-, Feedback- und Renderpfade nicht länger separat im Entry gepflegt werden. | Der Entry reduziert verteiltes Boilerplate, hält Listen-/Edit-Flow näher an der Shared-Shell und schafft zugleich einen wiederverwendbaren Inline-POST-Fallback für weitere komplexe Admin-Entrys wie Posts. |
+
+### Delta Batch 306
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/packages.php`, `CMS/admin/views/subscriptions/packages.php` | umgesetzt | Den Packages-Entry auf die gemeinsame `section-page-shell.php` standardisiert und die View auf das gemeinsame Flash-Partial harmonisiert, damit Redirect-, Feedback- und Renderpfade nicht länger separat im Entry gepflegt werden. | Der Entry reduziert verteiltes Boilerplate, hält Paket-CRUD und Paket-Einstellungen näher an der Shared-Shell und zeigt Alerts im View jetzt konsistent über dasselbe Partial wie verwandte Admin-Seiten an. |
+
+### Delta Batch 305
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/media.php` | umgesetzt | Den Media-Entry auf die gemeinsame `section-page-shell.php` standardisiert, damit Tab-Redirects, Zusatz-Token, Datenladung und Rendering nicht länger separat im Entry gepflegt werden. | Der Entry reduziert verteiltes Boilerplate, hält Bibliothek-, Kategorien- und Settings-Flow näher an derselben Shell-Schicht und übernimmt künftige Wrapper-Verbesserungen automatisch mit. |
+
+### Delta Batch 304
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/orders.php` | umgesetzt | Den Orders-Entry auf die gemeinsame `section-page-shell.php` standardisiert, damit CSRF-, Redirect-, Datenlade- und Renderpfade nicht länger separat neben dem Shared-Entry-Vertrag gepflegt werden. | Der Entry reduziert verteiltes Boilerplate, hält Bestellstatus- und Abozuweisungsaktionen näher an derselben PRG-/Shell-Schicht und übernimmt künftige Wrapper-Verbesserungen automatisch mit. |
+
+### Delta Batch 303
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/menu-editor.php`, `CMS/admin/views/menus/editor.php` | umgesetzt | Den Menü-Editor-Entry auf die gemeinsame `section-page-shell.php` standardisiert und die View auf das gemeinsame Flash-Partial harmonisiert, damit Redirect-, Feedback- und Renderpfade nicht länger separat im Entry gepflegt werden. | Der Entry reduziert verteiltes Boilerplate, hält Menü-CRUD und Item-Speicherung näher an der Shared-Shell und zeigt Alerts im View jetzt konsistent über dasselbe Partial wie verwandte Admin-Seiten an. |
+
+### Delta Batch 302
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/hub-sites.php`, `CMS/admin/partials/section-page-shell.php`, `CMS/admin/views/hub/edit.php`, `CMS/admin/views/hub/template-edit.php`, `CMS/admin/views/hub/templates.php` | umgesetzt | Den Hub-Sites-Entry auf die erweiterte `section-page-shell.php` standardisiert, damit Multi-View-Renderpfade, Redirects, Flash-Ausgabe und Asset-Kontexte nicht länger separat neben dem Shared-Entry-Vertrag gepflegt werden. | Der Entry reduziert verteiltes Boilerplate, hält Listen-, Edit- und Template-Views näher an einer gemeinsamen Laufzeit-Schicht und übernimmt künftige Shell-Verbesserungen automatisch mit. |
+
+### Delta Batch 301
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/mail-settings.php`, `CMS/admin/partials/section-page-shell.php` | umgesetzt | Den Mail-Settings-Entry auf die gemeinsame `section-page-shell.php` standardisiert, damit Tab-Redirects, Guard, Flash-Ausgabe und View-Kontext nicht länger separat im Entry gepflegt werden. | Der Entry reduziert verteiltes Boilerplate, hält Transport-/Azure-/Graph-/Log-/Queue-Aktionen näher an der Shared-Shell und übernimmt künftige Wrapper-Verbesserungen automatisch mit. |
+
+### Delta Batch 300
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/legal-sites.php`, `CMS/admin/views/legal/sites.php` | umgesetzt | Den Legal-Sites-Entry auf die gemeinsame `section-page-shell.php` standardisiert und die View auf das gemeinsame Flash-Partial harmonisiert, damit Profilspeicherung, Generator-Dispatch und Feedback nicht länger separat im Entry gepflegt werden. | Der Entry reduziert verteiltes Boilerplate, hält Legal-Profile und Seitengenerator näher an der Shared-Shell und übernimmt künftige Wrapper-Verbesserungen automatisch mit. |
+
+### Delta Batch 299
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/landing-page.php`, `CMS/admin/views/landing/page.php` | umgesetzt | Den Landing-Page-Entry auf die gemeinsame `section-page-shell.php` standardisiert und die View auf das gemeinsame Flash-Partial harmonisiert, damit Tab-Redirects, Feedback und Rendering nicht länger separat im Entry gepflegt werden. | Der Entry reduziert verteiltes Boilerplate, hält Header-/Content-/Footer-/Design-/Plugin-Aktionen näher an der Shared-Shell und übernimmt künftige Wrapper-Verbesserungen automatisch mit. |
+
+### Delta Batch 298
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/groups.php` | umgesetzt | Den Gruppen-Entry auf die gemeinsame `section-page-shell.php` standardisiert, damit Admin-Guard, Redirects, Datenladung und Rendering nicht länger separat neben dem Shared-Entry-Vertrag gepflegt werden. | Der Entry reduziert verteiltes Boilerplate, hält Save-/Delete-Dispatch näher an der Shared-Shell und übernimmt künftige Shell-Verbesserungen automatisch mit. |
+
+### Delta Batch 297
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/font-manager.php`, `CMS/admin/views/themes/fonts.php` | umgesetzt | Den Font-Manager-Entry auf die gemeinsame `section-page-shell.php` standardisiert und die View auf das gemeinsame Flash-Partial harmonisiert, damit Guard-, Redirect-, Feedback- und Renderpfade nicht länger separat im Entry gepflegt werden. | Der Entry reduziert verteiltes Boilerplate, zeigt Shell-basiertes Feedback konsistent im Theme-View an und übernimmt künftige Shell-Verbesserungen automatisch mit. |
+
+### Delta Batch 296
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/firewall.php` | umgesetzt | Den Firewall-Entry auf die gemeinsame `section-page-shell.php` standardisiert, damit Rechte-, Redirect-, Datenlade- und Renderpfade nicht länger separat neben dem Shared-Entry-Vertrag gepflegt werden. | Der Entry reduziert verteiltes Boilerplate, hält Action-Allowlist und Capability-Gates näher an der Shared-Shell und übernimmt künftige Shell-Verbesserungen automatisch mit. |
+
+### Delta Batch 295
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/error-report.php`, `CMS/admin/partials/post-action-shell.php` | umgesetzt | Den Error-Report-Endpunkt auf einen gemeinsamen POST-Action-Wrapper standardisiert, damit CSRF-, Redirect- und Flash-Pfade nicht länger separat pro POST-only-Endpunkt gepflegt werden. | Der Endpunkt reduziert verteiltes Boilerplate, hält Payload-Normalisierung näher am Service-Aufruf und schafft einen kleinen Shared-Vertrag für weitere Admin-Aktionspfade ohne eigene View. |
+
+### Delta Batch 294
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/design-settings.php` | umgesetzt | Den Design-Settings-Alias auf einen gemeinsamen Redirect-Wrapper standardisiert, damit Zugriffscheck und Zielroute nicht länger mit eigenem Guard-/Redirect-Boilerplate pro Datei gepflegt werden. | Der Alias reduziert verteiltes Boilerplate, hängt näher an einem kleinen Shared-Redirect-Vertrag und übernimmt künftige Alias-Anpassungen automatisch mit. |
+
+### Delta Batch 293
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/deletion-requests.php` | umgesetzt | Den Deletion-Requests-Alias auf einen gemeinsamen Redirect-Wrapper standardisiert, damit Guard- und Redirect-Pfade nicht länger separat neben verwandten Legal-Alias-Seiten gepflegt werden. | Der Alias reduziert verteiltes Boilerplate, bleibt näher an demselben Redirect-Vertrag wie verwandte DSGVO-Alias-Seiten und übernimmt künftige Wrapper-Verbesserungen automatisch mit. |
+
+### Delta Batch 292
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/data-requests.php` | umgesetzt | Den Data-Requests-Entry auf die gemeinsame `section-page-shell.php` standardisiert, damit Schreibpfade, Redirects, Datenladung und Rendering nicht länger separat neben dem Shared-Entry-Vertrag gepflegt werden. | Der Entry reduziert verteiltes Boilerplate, hält Auskunfts- und Löschanträge näher an einem gemeinsamen Request-Vertrag und übernimmt künftige Shell-Verbesserungen automatisch mit. |
+
+### Delta Batch 291
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/cookie-manager.php`, `CMS/admin/views/legal/cookies.php` | umgesetzt | Den Cookie-Manager-Entry auf die gemeinsame `section-page-shell.php` standardisiert und die zentrale Flash-Ausgabe im View sichtbar gemacht, damit Schreibpfade, Redirects und Feedback nicht länger separat im Entry nachgebaut werden. | Der Entry reduziert verteiltes Boilerplate, zeigt Shell-basierte Alerts jetzt direkt im Legal-View und übernimmt künftige Shell-Verbesserungen automatisch mit. |
+
+### Delta Batch 290
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/documentation.php` | umgesetzt | Den Documentation-Entry auf die gemeinsame `section-page-shell.php` standardisiert, damit Redirect-, Flash-, Datenlade- und Renderpfade nicht länger separat neben dem Shared-Entry-Vertrag gepflegt werden. | Der Entry reduziert verteiltes Boilerplate, hält die Dokumentauswahl auch nach POST-Redirects stabil und übernimmt künftige Shell-Verbesserungen automatisch mit. |
+
+### Delta Batch 289
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/comments.php` | umgesetzt | Den Comments-Entry auf die gemeinsame `section-page-shell.php` standardisiert, damit CSRF-/Rechte-Flow, Redirects, Datenladung und Rendering nicht länger separat neben dem Shared-Entry-Vertrag gepflegt werden. | Der Entry reduziert verteiltes Boilerplate, hält den Statusfilter über den PRG-Flow stabil und übernimmt künftige Shell-Verbesserungen automatisch mit. |
+
+### Delta Batch 288
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/backups.php` | umgesetzt | Den Backup-Entry auf die gemeinsame `section-page-shell.php` standardisiert, damit Redirect-, Flash-, Datenlade- und Renderpfade nicht länger separat neben dem Shared-Entry-Vertrag gepflegt werden. | Der Entry reduziert verteiltes Boilerplate, hängt näher an der gemeinsamen Admin-Shell und übernimmt künftige Shell-Verbesserungen automatisch mit. |
+
+### Delta Batch 287
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/antispam.php` | umgesetzt | Den AntiSpam-Entry auf die gemeinsame `section-page-shell.php` standardisiert, damit Redirect-, Flash-, Datenlade- und Renderpfade nicht länger separat neben dem Shared-Entry-Vertrag gepflegt werden. | Der Entry reduziert verteiltes Boilerplate, hält Action-Allowlist und Capability-Gates näher am Shell-Vertrag und übernimmt künftige Shell-Verbesserungen automatisch mit. |
+
+### Delta Batch 286
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/index.php` | umgesetzt | Den Dashboard-Entry auf die gemeinsame `section-page-shell.php` standardisiert, damit Guard, Modul-Initialisierung, Datenladung und Rendering nicht länger als separater Sonderpfad neben dem restlichen Shared-Entry-Muster laufen. | Der Dashboard-Entry reduziert implizites Boilerplate, hängt näher an der vorhandenen Section-Infrastruktur und übernimmt künftige Shell-Verbesserungen automatisch. |
+
+### Delta Batch 285
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/partials/section-page-shell.php` | umgesetzt | Die gemeinsame Section-Shell um Access-Checker, Flash-Payload-Helfer und Asset-Normalisierung ergänzt, damit Shared-Entrys keine losen Redirect-, Session- oder Asset-Annahmen unterschiedlich nachbauen. | Die Shell reduziert verteiltes Boilerplate zwischen standardisierten Admin-Entrys, hält Access-, Flash- und Asset-Logik näher an einem kleinen gemeinsamen Vertrag und blockt unklare Asset-Listen sichtbar früher. |
+
+### Delta Batch 284
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/redirect-manager.php`, `CMS/admin/not-found-monitor.php` | umgesetzt | Die SEO-Entrys auf section-spezifische Modulzugriffe gezogen, damit Redirect-Manager und 404-Monitor nicht mehr denselben Voll-Datensatz aus Redirect-Regeln, 404-Logs, Targets und Sites laden. | Die Renderpfade reduzieren unnötigen Admin-Overfetch zwischen Redirect- und 404-Scope, bleiben näher an einem kleinen Seitenvertrag und machen den tatsächlich verwendeten Datenausschnitt expliziter. |
+
+### Delta Batch 283
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/seo/RedirectManagerModule.php` | umgesetzt | Das Modul um getrennte Loader für Redirect-Manager und 404-Monitor ergänzt, damit beide SEO-Seiten nicht länger pauschal denselben Voll-Datensatz anfordern. | Der Modulvertrag reduziert implizite Datenannahmen, hält die Datensicht näher am jeweiligen Seiten-Scope und macht Redirect- gegenüber 404-Daten explizit lesbar. |
+
+### Delta Batch 282
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/RedirectService.php` | umgesetzt | Den Redirect-Service auf getrennte Admin-Datensichten und gemeinsame Redirect-/404-Helfer aufgeteilt, damit Redirect-Manager und 404-Monitor nur noch ihren eigenen Scope aus Regeln, Logs, Targets und Sites laden. | Der Service reduziert unnötige Voll-Dumps zwischen SEO-Unterseiten, hält Stats-, Target- und Log-Aufbereitung näher an einem kleinen Shared-Vertrag und verbessert die Render-Kosten der Admin-Seiten. |
+
+### Delta Batch 281
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/dashboard/DashboardModule.php` | umgesetzt | Das Dashboard-Modul so nachgezogen, dass Attention-Items die bereits geladenen Dashboard-Stats wiederverwenden statt dieselben Kennzahlen erneut aus dem Service anzufordern. | Der Dashboard-Renderpfad reduziert doppelte Aggregationsarbeit, hält KPIs, Highlights und Attention-Items näher an derselben Stats-Basis und spart unnötige Service-Runden. |
+
+### Delta Batch 280
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/DashboardService.php` | umgesetzt | `getAttentionItems()` auf optional übergebene Stats gezogen, damit vorhandene Dashboard-Kennzahlen ohne erneute Komplettaggregation weiterverwendet werden können. | Die Attention-Logik reduziert implizite Full-Reloads im selben Request, bleibt näher an einem kleinen Datenvertrag und verbessert den Dashboard-Renderpfad. |
+
+### Delta Batch 279
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/DashboardService.php` | umgesetzt | Die Komplettaggregation des Dashboard-Services request-lokal gecacht, damit wiederholte Stats-Zugriffe im selben Lauf keine identische zweite Datenrunde auslösen. | Der Service reduziert doppelte User-, Seiten-, Medien-, Session-, Security-, Performance- und Order-Aggregation und hält den Request-State sichtbarer zentral. |
+
+### Delta Batch 278
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/performance-settings.php` | umgesetzt | Den Performance-Settings-Alias auf eine reine Section-Konfiguration reduziert, damit der Entry keine eigene Route-/View-/Titel-Duplikation mehr außerhalb des Shared-Wrappers pflegt. | Der Alias reduziert implizite Konfigurationsannahmen im Entry, hängt näher an der kanonischen Performance-Registry und bleibt als schlanker Section-Entry wartbarer. |
+
+### Delta Batch 277
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/performance-sessions.php` | umgesetzt | Den Performance-Sessions-Alias auf eine reine Section-Konfiguration reduziert, damit der Entry keine eigene Route-/View-/Titel-Duplikation mehr außerhalb des Shared-Wrappers pflegt. | Der Alias reduziert implizite Konfigurationsannahmen im Entry, hängt näher an der kanonischen Performance-Registry und bleibt als schlanker Section-Entry wartbarer. |
+
+### Delta Batch 276
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/performance-media.php` | umgesetzt | Den Performance-Media-Alias auf eine reine Section-Konfiguration reduziert, damit der Entry keine eigene Route-/View-/Titel-Duplikation mehr außerhalb des Shared-Wrappers pflegt. | Der Alias reduziert implizite Konfigurationsannahmen im Entry, hängt näher an der kanonischen Performance-Registry und bleibt als schlanker Section-Entry wartbarer. |
+
+### Delta Batch 275
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/performance-database.php` | umgesetzt | Den Performance-Datenbank-Alias auf eine reine Section-Konfiguration reduziert, damit der Entry keine eigene Route-/View-/Titel-Duplikation mehr außerhalb des Shared-Wrappers pflegt. | Der Alias reduziert implizite Konfigurationsannahmen im Entry, hängt näher an der kanonischen Performance-Registry und bleibt als schlanker Section-Entry wartbarer. |
+
+### Delta Batch 274
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/performance-cache.php` | umgesetzt | Den Performance-Cache-Alias auf eine reine Section-Konfiguration reduziert, damit der Entry keine eigene Route-/View-/Titel-Duplikation mehr außerhalb des Shared-Wrappers pflegt. | Der Alias reduziert implizite Konfigurationsannahmen im Entry, hängt näher an der kanonischen Performance-Registry und bleibt als schlanker Section-Entry wartbarer. |
+
+### Delta Batch 273
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/monitor-cron-status.php` | umgesetzt | Den Monitoring-Cron-Alias auf eine reine Section-Konfiguration reduziert, damit der Entry keine eigene Route-/View-/Titel-Duplikation mehr außerhalb des Shared-Wrappers pflegt. | Der Alias reduziert implizite Konfigurationsannahmen im Entry, hängt näher an der kanonischen Monitoring-Registry und bleibt als schlanker Section-Entry wartbarer. |
+
+### Delta Batch 272
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/monitor-email-alerts.php` | umgesetzt | Den Monitoring-E-Mail-Alias auf eine reine Section-Konfiguration reduziert, damit der Entry keine eigene Route-/View-/Titel-Duplikation mehr außerhalb des Shared-Wrappers pflegt. | Der Alias reduziert implizite Konfigurationsannahmen im Entry, hängt näher an der kanonischen Monitoring-Registry und bleibt als schlanker Section-Entry wartbarer. |
+
+### Delta Batch 271
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/monitor-health-check.php` | umgesetzt | Den Monitoring-Health-Alias auf eine reine Section-Konfiguration reduziert, damit der Entry keine eigene Route-/View-/Titel-Duplikation mehr außerhalb des Shared-Wrappers pflegt. | Der Alias reduziert implizite Konfigurationsannahmen im Entry, hängt näher an der kanonischen Monitoring-Registry und bleibt als schlanker Section-Entry wartbarer. |
+
+### Delta Batch 270
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/monitor-scheduled-tasks.php` | umgesetzt | Den Monitoring-Scheduled-Tasks-Alias auf eine reine Section-Konfiguration reduziert, damit der Entry keine eigene Route-/View-/Titel-Duplikation mehr außerhalb des Shared-Wrappers pflegt. | Der Alias reduziert implizite Konfigurationsannahmen im Entry, hängt näher an der kanonischen Monitoring-Registry und bleibt als schlanker Section-Entry wartbarer. |
+
+### Delta Batch 269
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/monitor-disk-usage.php` | umgesetzt | Den Monitoring-Disk-Alias auf eine reine Section-Konfiguration reduziert, damit der Entry keine eigene Route-/View-/Titel-Duplikation mehr außerhalb des Shared-Wrappers pflegt. | Der Alias reduziert implizite Konfigurationsannahmen im Entry, hängt näher an der kanonischen Monitoring-Registry und bleibt als schlanker Section-Entry wartbarer. |
+
+### Delta Batch 268
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/monitor-response-time.php` | umgesetzt | Den Monitoring-Response-Time-Alias auf eine reine Section-Konfiguration reduziert, damit der Entry keine eigene Route-/View-/Titel-Duplikation mehr außerhalb des Shared-Wrappers pflegt. | Der Alias reduziert implizite Konfigurationsannahmen im Entry, hängt näher an der kanonischen Monitoring-Registry und bleibt als schlanker Section-Entry wartbarer. |
+
+### Delta Batch 267
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/performance.php` | umgesetzt | Den Performance-Overview-Alias auf eine reine Section-Konfiguration reduziert, damit der Entry keine eigene Route-/View-/Titel-Duplikation mehr außerhalb des Shared-Wrappers pflegt. | Der Alias reduziert implizite Konfigurationsannahmen im Entry, hängt näher an der kanonischen Performance-Registry und bleibt als schlanker Section-Entry wartbarer. |
+
+### Delta Batch 266
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/diagnose.php` | umgesetzt | Den Diagnose-Alias auf eine reine Section-Konfiguration reduziert, damit der Entry keine eigene Route-/View-/Titel-Duplikation mehr außerhalb des Shared-Wrappers pflegt. | Der Alias reduziert implizite Konfigurationsannahmen im Entry, hängt näher an der kanonischen Monitoring-Registry und bleibt als schlanker Section-Entry wartbarer. |
+
+### Delta Batch 265
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/info.php` | umgesetzt | Den Info-Alias auf eine reine Section-Konfiguration reduziert, damit der Entry keine eigene Route-/View-/Titel-Duplikation mehr außerhalb des Shared-Wrappers pflegt. | Der Alias reduziert implizite Konfigurationsannahmen im Entry, hängt näher an der kanonischen Monitoring-Registry und bleibt als schlanker Section-Entry wartbarer. |
+
+### Delta Batch 264
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/analytics.php` | umgesetzt | Den Analytics-Alias auf eine reine Section-Konfiguration reduziert, damit der Entry keine eigene Route-/View-/Titel-Duplikation mehr außerhalb des Shared-Wrappers pflegt. | Der Alias reduziert implizite Konfigurationsannahmen im Entry, hängt näher an der kanonischen SEO-Registry und bleibt als schlanker Section-Entry wartbarer. |
+
+### Delta Batch 263
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/performance-page.php` | umgesetzt | Die gemeinsame Performance-Eintrittsschicht auf eine kanonische Section-Registry für Route, View, Titel und Active-Page gezogen, damit Alias-Dateien keine divergierenden Metadaten mehr lose in denselben Wrapper hineinreichen. | Der Performance-Sammel-Wrapper reduziert implizite Konfigurationsannahmen zwischen Overview-, Cache-, Datenbank-, Medien-, Session- und Settings-Pfaden und hält Route-/View-Metadaten näher an einem kleinen gemeinsamen Section-Vertrag. |
+
+### Delta Batch 262
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/system-monitor-page.php` | umgesetzt | Die gemeinsame Monitoring-Eintrittsschicht auf eine kanonische Section-Registry für Route, View, Titel und Active-Page gezogen, damit Alias-Dateien keine divergierenden Metadaten mehr lose in denselben Wrapper hineinreichen. | Der Monitoring-Sammel-Wrapper reduziert implizite Konfigurationsannahmen zwischen Info-, Diagnose- und Monitoring-Pfaden und hält Route-/View-Metadaten näher an einem kleinen gemeinsamen Section-Vertrag. |
+
+### Delta Batch 261
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/partials/section-page-shell.php` | umgesetzt | Die generische Admin-Section-Shell auf zentrale Route-/View-Normalisierung und sichere Redirect-Helfer gezogen, damit Shared-Wrapper keine losen `route_path`- oder `view_file`-Werte blind übernehmen. | Die gemeinsame Shell reduziert implizite Konfigurationsannahmen zwischen Member-, Performance- und System-Unterseiten, hält Route-, View- und Redirect-Pfade näher an einem kleinen Shared-Vertrag und blockt ungültige Shell-Ziele sichtbar früher. |
+
+### Delta Batch 260
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/seo/SeoSuiteModule.php` | umgesetzt | Das SEO-Suite-Modul auf section-spezifische Datensichten gezogen, damit Unterseiten nicht mehr pauschal den kompletten SEO-Datensatz aus Audit-, Tracking-, Schema-, Sitemap- und Redirect-Pfaden laden. | Das Modul reduziert unnötige Sammelabfragen und Datensichten auf SEO-Unterseiten, hält Dashboard-, Audit-, Analytics-, Meta-, Social-, Schema-, Sitemap- und Technical-Sichten näher an einem kleinen Datenvertrag und vermeidet implizite Voll-Dumps über denselben Sammelpfad. |
+
+### Delta Batch 259
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/seo-page.php` | umgesetzt | Die gemeinsame SEO-Eintrittsschicht auf section-spezifische Datenladung gezogen, damit Unterseiten nicht mehr pauschal denselben Voll-Datensatz über `getData()` laden. | Der SEO-Sammel-Wrapper reduziert implizite Datenannahmen zwischen Dashboard-, Audit-, Analytics-, Meta-, Social-, Schema-, Sitemap- und Technical-Pfaden, hält Renderpfade näher an einem kleinen Section-Vertrag und blockt unnötige Voll-Ladepfade sichtbar früher. |
+
+### Delta Batch 258
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/member/MemberDashboardModule.php` | umgesetzt | Das Member-Dashboard-Modul auf section-spezifische Datensichten gezogen, damit Unterseiten nicht mehr pauschal den kompletten Member-Dashboard-Datensatz aus Stats-, Widget-, Profil-, Notification- und Plugin-Widget-Pfaden laden. | Das Modul reduziert unnötige Sammelabfragen und Datensichten auf Member-Unterseiten, hält Overview-, Widget-, Profil-, Notification- und Plugin-Widget-Sichten näher an einem kleinen Datenvertrag und vermeidet implizite Voll-Dumps über denselben Sammelpfad. |
+
+### Delta Batch 257
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/member-dashboard-page.php` | umgesetzt | Die gemeinsame Member-Dashboard-Eintrittsschicht auf section-spezifische Datenladung gezogen, damit Unterseiten nicht mehr pauschal denselben Voll-Datensatz über `getData()` laden. | Der Member-Dashboard-Sammel-Wrapper reduziert implizite Datenannahmen zwischen Overview-, General-, Widget-, Profilfeld-, Design-, Notification-, Onboarding- und Plugin-Widget-Pfaden, hält Renderpfade näher an einem kleinen Section-Vertrag und blockt unnötige Voll-Ladepfade sichtbar früher. |
+
+### Delta Batch 256
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/seo/PerformanceModule.php` | umgesetzt | Das Performance-Modul auf section-spezifische Datensichten gezogen, damit Unterseiten nicht mehr pauschal den kompletten Performance-Datensatz aus Cache-, Medien-, Datenbank-, Session- und PHP-Infos laden. | Das Modul reduziert unnötige Telemetrie- und Scan-Arbeit auf Performance-Unterseiten, hält Cache-, DB-, Medien-, Session- und Settings-Sichten näher an einem kleinen Datenvertrag und vermeidet implizite Voll-Dumps über denselben Sammelpfad. |
+
+### Delta Batch 255
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/performance-page.php` | umgesetzt | Den Shared-Performance-Wrapper zusätzlich an ein explizites Read-Gate gebunden und die Datenladung pro Unterseite auf section-spezifische Scopes reduziert, statt jede Unterseite pauschal über denselben Voll-Datenpfad zu bedienen. | Der Performance-Sammel-Wrapper reduziert implizite Rechte- und Datenannahmen zwischen Cache-, Datenbank-, Medien-, Session- und Settings-Pfaden, hält Read-/Write- und Data-Scope-Gates näher an einem kleinen gemeinsamen Vertrag und blockt unnötige Voll-Ladepfade sichtbar früher. |
+
+### Delta Batch 254
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/SystemInfoModule.php` | umgesetzt | Das SystemInfo-Modul auf section-spezifische Datensichten für Info-, Diagnose- und Monitoring-Unterseiten umgestellt, damit sensible Runtime-, Query- und Monitoring-Daten nicht mehr pauschal auf jeder Unterseite mitgeladen werden. | Das Modul reduziert implizite Voll-Dumps zwischen Info-, Diagnose-, Cron-, Disk-, Response-Time-, Health-, Scheduled-Task- und Alert-Pfaden, hält Daten-Sichten näher an einem kleinen Section-Vertrag und vermeidet unnötige Komplett-Scans über denselben Sammelpfad. |
+
+### Delta Batch 253
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/system-monitor-page.php` | umgesetzt | Die gemeinsame System-Monitor-Eintrittsschicht auf kanonische Sections, kleine Action-Allowlists und ein explizites `manage_settings`-Read-Gate gezogen, damit Diagnose- und Alert-Pfade keine losen `section`-/`action`-Werte oder pauschalen Admin-Zugriffe mehr übernehmen. | Der System-Sammel-Wrapper reduziert implizite Request- und Rechteannahmen zwischen Info-, Diagnose- und Monitoring-Unterseiten, hält Section-, Action- und Capability-Gates näher an einem kleinen gemeinsamen Admin-Vertrag und blockt section-fremde oder capability-fremde Requests sichtbar früher. |
+
+### Delta Batch 252
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/seo-page.php` | umgesetzt | Die gemeinsame SEO-Eintrittsschicht an section-spezifische Read-/Write-Capabilities gebunden, sodass Analytics-Lesezugriffe nur noch über `manage_settings` oder `view_analytics` laufen und Mutationen pro Section kontrolliert an `manage_settings` hängen. | Der SEO-Sammel-Wrapper reduziert implizite Rechteannahmen zwischen Analytics- und SEO-Unterseiten, hält Read-/Write-Gates näher an einem kleinen gemeinsamen Admin-Vertrag und blockt capability-fremde Render- oder Mutationspfade sichtbar früher, bevor Modulmethoden unnötig angesprungen werden. |
+
+### Delta Batch 251
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/member-dashboard.php` | umgesetzt | Legacy-Section-Weiterleitungen serverseitig auf eine kanonische Routenmap normalisiert und die Dashboard-Overview an passende Read-Capabilities gebunden, statt nur pauschal auf `isAdmin()` zu vertrauen. | Der Member-Dashboard-Entry reduziert implizite Query- und Rechteannahmen im Alias-Pfad, hält Legacy-Routing und Overview-Zugriff näher am gemeinsamen Member-Dashboard-Vertrag und blockt section-fremde oder capability-fremde Zugriffe sichtbar früher. |
+
+### Delta Batch 250
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/mail-settings.php` | umgesetzt | Den Mail-Settings-Entry auf eine explizite Read-/Write-Capability-Matrix gezogen, damit Logs-, Queue-, Azure- und Graph-Pfade nicht mehr nur über `isAdmin()` lesbar oder mutierbar sind. | Der Mail-Entry reduziert implizite Rechteannahmen zwischen Lese- und Mutationspfaden, hält Capability-Gates näher am vorhandenen Tab-/Action-Vertrag und blockt capability-fremde POST-Requests sichtbar früher, bevor CSRF- oder Modulpfade unnötig angesprungen werden. |
+
+### Delta Batch 249
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/legal-sites.php` | umgesetzt | Den Legal-Sites-Entry explizit an `manage_settings` gebunden, Actions serverseitig zentral normalisiert und `template_type` früher im Wrapper validiert, damit Rechtstext-Mutationen keine capability-fremden oder losen Requests übernehmen. | Der Legal-Sites-Entry reduziert implizite Request- und Rechteannahmen im Generator- und Page-Flow, hält Action-, Template- und Capability-Gates näher am gemeinsamen Admin-Wrapper-Muster und blockt unzulässige Mutationen sichtbar früher. |
+
+### Delta Batch 248
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/font-manager.php` | umgesetzt | Den Font-Manager-Entry explizit an `manage_settings` gebunden, sodass Ansichts- und Mutationspfade keine pauschalen Admin-Zugriffe mehr nur über `isAdmin()` übernehmen. | Der Font-Manager-Entry reduziert implizite Rechteannahmen im Wrapper, hält Read-/Write-Gates näher am vorhandenen Action-Vertrag und blockt capability-fremde POST-Requests sichtbar früher, bevor CSRF- oder Handlerpfade unnötig angesprungen werden. |
+
+### Delta Batch 247
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/backups.php` | umgesetzt | Den Backup-Entry auf den vorhandenen Read-/Write-Capability-Split des Moduls gezogen, sodass Listenpfad und Mutationen nicht mehr nur auf `isAdmin()` beruhen. | Der Backup-Entry reduziert implizite Rechteannahmen im Wrapper, hält Read-/Write-Gates näher am `BackupsModule`-Vertrag und blockt capability-fremde POST-Requests sichtbar früher, bevor CSRF- oder Handlerpfade unnötig angesprungen werden. |
+
+### Delta Batch 246
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/member-dashboard-page.php` | umgesetzt | Die gemeinsame Member-Dashboard-Eintrittsschicht auf section-gebundene Capability-Gates und eine kleine Save-Allowlist gezogen, damit General-, Design-, Widget-, Profilfeld-, Notification-, Onboarding- und Plugin-Widget-Pfade keine bereichsfremden Zugriffe oder losen `action`-Werte direkt im Shared-Wrapper übernehmen. | Der Member-Dashboard-Sammel-Wrapper reduziert implizite Request- und Rechteannahmen zwischen mehreren Unterseiten, hält Section-, Action- und Capability-Gates näher an einem kleinen gemeinsamen Admin-Vertrag und blockt section-fremde oder unbekannte Requests sichtbar früher, bevor Modulmethoden unnötig angesprungen werden. |
+
+### Delta Batch 245
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/media.php` | umgesetzt | Medien-Mutationen wieder explizit an `manage_media` gebunden und `action` serverseitig vor dem Dispatch normalisiert, damit Upload-, Folder-, Delete-, Kategorie- und Settings-Pfade keine losen Aktionen oder capability-fremden Admin-Zugriffe direkt im Einstieg übernehmen. | Der Media-Entry reduziert implizite Request- und Rechteannahmen im Mutationspfad, hält Action- und Capability-Gates näher am übrigen Admin-Wrapper-Muster und blockt unbekannte Aktionen oder capability-fremde Requests sichtbar früher, bevor Modul- oder Servicepfade unnötig angesprungen werden. |
+
+### Delta Batch 244
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/landing-page.php` | umgesetzt | Landing-Page-Mutationen wieder explizit über kleine Tab-/Action-Allowlists begrenzt, Feature-IDs serverseitig normalisiert und den Entry an `manage_settings` gebunden, damit Header-, Content-, Footer-, Design-, Feature- und Plugin-Pfade keine losen Request-Werte oder pauschalen Admin-Zugriffe direkt im Einstieg übernehmen. | Der Landing-Page-Entry reduziert implizite Request- und Rechteannahmen im Mutationspfad, hält Tab-, Action-, ID- und Capability-Gates näher am übrigen Admin-Wrapper-Muster und blockt unbekannte Aktionen, rohe Feature-IDs oder capability-fremde Requests sichtbar früher, bevor Modulmethoden unnötig angesprungen werden. |
+
+### Delta Batch 243
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/menu-editor.php` | umgesetzt | Menü-Mutationen wieder explizit über eine kleine Action-Allowlist begrenzt, `menu_id` serverseitig vor Delete-/Save-Dispatches normalisiert und den Entry an `manage_settings` gebunden, damit Menüpfade keine losen Aktionen, rohen IDs oder pauschalen Admin-Zugriffe direkt im Einstieg übernehmen. | Der Menü-Editor reduziert implizite Request- und Rechteannahmen im Mutationspfad, hält Action-, ID- und Capability-Gates näher am übrigen Admin-Wrapper-Muster und blockt unbekannte Aktionen, rohe Menü-IDs oder capability-fremde Requests sichtbar früher, bevor Modulmethoden unnötig angesprungen werden. |
+
+### Delta Batch 242
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/performance-page.php` | umgesetzt | Die gemeinsame Performance-Eintrittsschicht auf section-gebundene Action-Allowlists und ein explizites `manage_settings`-Gate gezogen, damit Performance-Unterseiten keine losen POST-Aktionen oder pauschalen Admin-Zugriffe direkt im Sammel-Wrapper übernehmen. | Der Performance-Sammel-Wrapper reduziert implizite Request- und Rechteannahmen zwischen Cache-, Datenbank-, Medien- und Session-Pfaden, hält Section-, Action- und Capability-Gates näher an einem kleinen gemeinsamen Admin-Vertrag und blockt section-fremde oder unbekannte Aktionen sichtbar früher, bevor Modulmethoden unnötig angesprungen werden. |
 
 ### Delta Batch 241
 

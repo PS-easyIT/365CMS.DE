@@ -51,7 +51,7 @@ class DashboardModule
             'activity'      => $this->getRecentActivity(),
             'quickLinks'    => $this->getQuickLinks(),
             'alerts'        => $this->getAlerts($stats),
-            'attention'     => $this->service->getAttentionItems(),
+            'attention'     => $this->service->getAttentionItems($stats),
             'subscription_enabled' => $subscriptionEnabled,
             'recent_orders' => $subscriptionEnabled ? $this->service->getRecentOrders() : [],
             'orders'        => $orders,

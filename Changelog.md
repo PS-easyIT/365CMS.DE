@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.155-blue.svg)](https://shields.io/)
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.228-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,696 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.7.228 — 26. März 2026 · Audit-Batch 310, SEO-Wrapper auf die gemeinsame Section-Shell standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.228** | 🔴 fix | Admin/SEO | **`CMS/admin/seo-page.php` nutzt jetzt die gemeinsame `section-page-shell.php` statt einen eigenen Redirect-/Flash-/Renderpfad zu pflegen**: die gemeinsame SEO-/Analytics-Schicht hängt dadurch näher am vorhandenen Shared-Entry-Vertrag. |
+| **2.7.228** | 🟠 perf | Admin/SEO | **Section-, Capability-, Redirect- und Datenladepfade laufen jetzt zentral über die Shared-Shell**: der Wrapper spart verteiltes Boilerplate, während der Analytics-Alias automatisch denselben Shell-Flow mitnutzt. |
+| **2.7.228** | 🟡 refactor | Admin/SEO | **Die Datei konzentriert sich jetzt auf Section-Registry, Capability-Helfer und Action-Dispatch**: CSRF-, Redirect- und Render-Standardverhalten bleiben sichtbar zentral in der gemeinsamen Shell. |
+
+---
+
+### v2.7.227 — 26. März 2026 · Audit-Batch 309, Users-Entry auf die gemeinsame Section-Shell standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.227** | 🔴 fix | Admin/Users | **`CMS/admin/users.php` nutzt jetzt die gemeinsame `section-page-shell.php` statt einen eigenen Redirect-/Flash-/Renderpfad zu pflegen**: Listen- und Edit-Flow hängen dadurch näher am bestehenden Shared-Entry-Vertrag. |
+| **2.7.227** | 🟠 perf | Admin/Users | **Die Benutzerverwaltung löst Listen- und Edit-Kontext jetzt zentral über die Shared-Shell auf und kann Save-Fehler inline auf derselben Edit-Ansicht weiter rendern**: GridJS- und Flash-Kontext müssen dadurch nicht länger separat im Entry nachgebaut werden. |
+| **2.7.227** | 🟡 refactor | Admin/Users | **Die Datei konzentriert sich jetzt auf Action-Allowlist, View-Auflösung und Dispatch**: zusätzlich leakt der Save-Fehlerpfad im `UsersModule` keine rohen Exception-Texte mehr in die Admin-Oberfläche. |
+
+---
+
+### v2.7.226 — 26. März 2026 · Audit-Batch 308, Posts-Entry auf die gemeinsame Section-Shell standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.226** | 🔴 fix | Admin/Posts | **`CMS/admin/posts.php` nutzt jetzt die gemeinsame `section-page-shell.php` statt einen eigenen Redirect-/Flash-/Renderpfad zu pflegen**: Listen- und Edit-Flow hängen dadurch näher am bestehenden Shared-Entry-Vertrag. |
+| **2.7.226** | 🟠 perf | Admin/Posts | **Die Posts-Verwaltung löst Listen- und Edit-Kontext jetzt zentral über die Shared-Shell auf und kann Save-Fehler inline auf derselben Edit-Ansicht weiter rendern**: GridJS-, Editor.js- und Flash-Kontext müssen dadurch nicht länger separat im Entry nachgebaut werden. |
+| **2.7.226** | 🟡 refactor | Admin/Posts | **Die Datei konzentriert sich jetzt auf Action-Allowlist, View-Auflösung und Dispatch**: die Posts-Views rendern Shell-basiertes Feedback zusätzlich über das gemeinsame Flash-Partial. |
+
+---
+
+### v2.7.225 — 26. März 2026 · Audit-Batch 307, Pages-Entry auf die gemeinsame Section-Shell standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.225** | 🔴 fix | Admin/Pages | **`CMS/admin/pages.php` nutzt jetzt die gemeinsame `section-page-shell.php` statt einen eigenen Redirect-/Flash-/Renderpfad zu pflegen**: Listen- und Edit-Flow hängen dadurch näher am bestehenden Shared-Entry-Vertrag. |
+| **2.7.225** | 🟠 perf | Admin/Core | **Die Shared-Shell unterstützt jetzt optionales Inline-Rendering nach POST-Fehlern**: komplexe Edit-Seiten wie die Seitenverwaltung können Fehlermeldungen im selben Renderpfad zeigen, ohne dafür wieder einen separaten Entry-Sonderpfad zu behalten. |
+| **2.7.225** | 🟡 refactor | Admin/Pages | **Die Datei konzentriert sich jetzt auf Action-Allowlist, View-Auflösung und Dispatch**: die Seiten-Views rendern Shell-basiertes Feedback zusätzlich über das gemeinsame Flash-Partial. |
+
+---
+
+### v2.7.224 — 26. März 2026 · Audit-Batch 306, Packages-Entry auf die gemeinsame Section-Shell standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.224** | 🔴 fix | Admin/Subscriptions | **`CMS/admin/packages.php` nutzt jetzt die gemeinsame `section-page-shell.php` statt einen eigenen Redirect-/Flash-/Renderpfad zu pflegen**: Paket-CRUD und Paket-Einstellungen hängen dadurch näher am bestehenden Shared-Entry-Vertrag. |
+| **2.7.224** | 🟠 perf | Admin/Subscriptions | **Die Paketverwaltung spart verteiltes Entry-Boilerplate und zeigt Shell-basiertes Feedback im View jetzt ebenfalls über das gemeinsame Flash-Partial**: Save-, Seed-, Toggle-, Delete- und Settings-Pfade müssen ihren Alert-Flow nicht länger separat pflegen. |
+| **2.7.224** | 🟡 refactor | Admin/Subscriptions | **Die Datei konzentriert sich jetzt auf Action-Allowlist, ID-Normalisierung und Dispatch**: Standardverhalten bleibt zentral in der Shared-Shell. |
+
+---
+
+### v2.7.223 — 26. März 2026 · Audit-Batch 305, Media-Entry auf die gemeinsame Section-Shell standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.223** | 🔴 fix | Admin/Media | **`CMS/admin/media.php` nutzt jetzt die gemeinsame `section-page-shell.php` statt einen eigenen Tab-/Redirect-/Flash-/Renderpfad zu pflegen**: Bibliothek, Kategorien und Einstellungen hängen dadurch näher am bestehenden Shared-Entry-Vertrag. |
+| **2.7.223** | 🟠 perf | Admin/Media | **Die Medienverwaltung spart verteiltes Entry-Boilerplate und reicht Media-Zusatz-Token sowie tab-spezifische View-/Asset-Kontexte zentral an die Views durch**: Upload-, Kategorie- und Settings-Aktionen landen konsistenter wieder auf ihrer Zielansicht. |
+| **2.7.223** | 🟡 refactor | Admin/Media | **Die Datei konzentriert sich jetzt auf Action-Allowlist, Pfadnormalisierung und Dispatch**: Standardverhalten bleibt zentral in der Shared-Shell. |
+
+---
+
+### v2.7.222 — 26. März 2026 · Audit-Batch 304, Orders-Entry auf die gemeinsame Section-Shell standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.222** | 🔴 fix | Admin/Subscriptions | **`CMS/admin/orders.php` nutzt jetzt die gemeinsame `section-page-shell.php` statt einen eigenen Redirect-/Flash-/Renderpfad zu pflegen**: CSRF-Flow, Datenladung und View-Rendering hängen dadurch näher am bestehenden Shared-Entry-Vertrag. |
+| **2.7.222** | 🟠 perf | Admin/Subscriptions | **Der Orders-Entry spart verteiltes Boilerplate und hält den Statusfilter über den PRG-Flow näher am zentralen Shell-Vertrag**: Bestellstatus- und Paketzuweisungsaktionen landen konsistenter wieder auf derselben Übersicht. |
+| **2.7.222** | 🟡 refactor | Admin/Subscriptions | **Die Datei konzentriert sich jetzt auf Action-Allowlist, Normalisierung und Dispatch**: Standardverhalten bleibt zentral in der Shared-Shell. |
+
+---
+
+### v2.7.221 — 26. März 2026 · Audit-Batch 303, Menü-Editor-Entry auf die gemeinsame Section-Shell standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.221** | 🔴 fix | Admin/Menus | **`CMS/admin/menu-editor.php` läuft jetzt über die gemeinsame `section-page-shell.php` statt einen eigenen Redirect-/Flash-/Renderpfad zu pflegen**: Zugriffsgate, CSRF-Flow, Datenladung und Redirect-Ziele hängen damit näher am Shared-Entry-Vertrag. |
+| **2.7.221** | 🟠 perf | Admin/Menus | **Der Menü-Editor spart verteiltes Entry-Boilerplate und zeigt Shell-basiertes Feedback im View jetzt ebenfalls über das gemeinsame Flash-Partial**: Bearbeitungs- und Löschpfade müssen ihren Alert-Flow nicht länger separat pflegen. |
+| **2.7.221** | 🟡 refactor | Admin/Menus | **Die Datei reduziert sich jetzt auf kleine Helper, Action-Dispatch und Redirect-Konfiguration**: Standardverhalten bleibt zentral in der Shared-Shell. |
+
+---
+
+### v2.7.220 — 26. März 2026 · Audit-Batch 302, Hub-Sites-Entry auf die erweiterte Section-Shell standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.220** | 🔴 fix | Admin/Hub | **`CMS/admin/hub-sites.php` nutzt jetzt die erweiterte `section-page-shell.php` statt einen eigenen Redirect-/Flash-/Renderpfad mit Multi-View-Sonderlogik zu pflegen**: Listen-, Edit- und Template-Views hängen damit näher an einem gemeinsamen Shared-Entry-Vertrag. |
+| **2.7.220** | 🟠 perf | Admin/Hub | **Die Shell kann jetzt auch dynamische View-, Titel- und Asset-Kontexte zentral auflösen**: Hub-Sites spart verteiltes Boilerplate selbst bei wechselnden Views und übernimmt künftige Shell-Verbesserungen automatisch mit. |
+| **2.7.220** | 🟡 refactor | Admin/Hub | **Der Entry konzentriert sich jetzt auf View-Normalisierung, Action-Dispatch und Redirect-Zielberechnung**: Flash-Ausgabe in Templates/Edit-Views läuft ebenfalls konsistent über das gemeinsame Partial. |
+
+---
+
+### v2.7.219 — 26. März 2026 · Audit-Batch 301, Mail-Settings-Entry auf die erweiterte Section-Shell standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.219** | 🔴 fix | Admin/System | **`CMS/admin/mail-settings.php` nutzt jetzt die gemeinsame `section-page-shell.php` statt einen eigenen Tab-/Redirect-/Flash-/Renderpfad zu pflegen**: Guard, CSRF-Flow und Tab-Redirects hängen dadurch näher am Shared-Entry-Vertrag. |
+| **2.7.219** | 🟠 perf | Admin/System | **Die Mail-/OAuth2-Verwaltung spart verteiltes Boilerplate und reicht `currentTab` sowie API-CSRF-Token zentral als Template-Kontext durch**: Transport-, Azure-, Graph-, Log- und Queue-Aktionen landen wieder konsistent auf ihrem Zieltab. |
+| **2.7.219** | 🟡 refactor | Admin/System | **Die Datei konzentriert sich jetzt auf Tab-/Action-Normalisierung und Handler-Mapping**: Standardverhalten liegt zentral in Shared-Shell und View-Kontext. |
+
+---
+
+### v2.7.218 — 26. März 2026 · Audit-Batch 300, Legal-Sites-Entry auf die gemeinsame Section-Shell standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.218** | 🔴 fix | Admin/Legal | **`CMS/admin/legal-sites.php` läuft jetzt über die gemeinsame `section-page-shell.php` statt einen eigenen Redirect-/Flash-/Renderpfad zu pflegen**: Access-Guard, CSRF-Flow, Profil-Roundtrip und Datenladung hängen dadurch näher am bestehenden Shared-Entry-Vertrag. |
+| **2.7.218** | 🟠 perf | Admin/Legal | **Die Legal-Sites sparen verteiltes Entry-Boilerplate für Profilspeicherung, Generator und Seitenerstellung**: Flash-Ausgabe im View wurde zugleich auf das gemeinsame Partial harmonisiert. |
+| **2.7.218** | 🟡 refactor | Admin/Legal | **Der Entry reduziert sich jetzt auf Action-Allowlist, Profil-Helfer und Dispatch-Konfiguration**: Standardverhalten bleibt zentral in der Shared-Shell. |
+
+---
+
+### v2.7.217 — 26. März 2026 · Audit-Batch 299, Landing-Page-Entry auf die gemeinsame Section-Shell standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.217** | 🔴 fix | Admin/Landing | **`CMS/admin/landing-page.php` nutzt jetzt die gemeinsame `section-page-shell.php` statt einen eigenen Redirect-/Flash-/Renderpfad zu pflegen**: Guard, CSRF-Flow, Datenladung und Rendering hängen dadurch näher am bestehenden Shared-Entry-Vertrag. |
+| **2.7.217** | 🟠 perf | Admin/Landing | **Der tab-basierte Landing-Page-Editor spart verteiltes Entry-Boilerplate und hält den aktiven Tab über den PRG-Flow stabil**: Header-, Content-, Footer-, Design- und Plugin-Aktionen landen wieder konsistent auf ihrem jeweiligen Tab. |
+| **2.7.217** | 🟡 refactor | Admin/Landing | **Die Datei konzentriert sich jetzt auf Tab-/Action-Normalisierung und Dispatch**: Standardverhalten sowie Flash-Ausgabe liegen zentral in Shared-Shell und Flash-Partial. |
+
+---
+
+### v2.7.216 — 26. März 2026 · Audit-Batch 298, Gruppen-Entry auf die gemeinsame Section-Shell standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.216** | 🔴 fix | Admin/Users | **`CMS/admin/groups.php` nutzt jetzt die gemeinsame `section-page-shell.php` statt einen eigenen Redirect-/Flash-/Renderpfad zu pflegen**: Admin-Guard, CSRF-Flow, Datenladung und Rendering hängen dadurch näher am bestehenden Shared-Entry-Vertrag. |
+| **2.7.216** | 🟠 perf | Admin/Users | **Die Gruppenverwaltung spart verteiltes Entry-Boilerplate für Save- und Delete-Aktionen**: künftige Shell-Verbesserungen greifen damit automatisch auch für die Benutzergruppen-Verwaltung. |
+| **2.7.216** | 🟡 refactor | Admin/Users | **Die Datei konzentriert sich jetzt auf Action-Allowlist, ID-Normalisierung und Dispatch**: Standardverhalten bleibt zentral in der Shared-Shell. |
+
+---
+
+### v2.7.215 — 26. März 2026 · Audit-Batch 297, Font-Manager-Entry auf die gemeinsame Section-Shell standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.215** | 🔴 fix | Admin/Themes | **`CMS/admin/font-manager.php` läuft jetzt über die gemeinsame `section-page-shell.php` statt einen eigenen Redirect-/Flash-/Renderpfad zu pflegen**: Read-/Write-Gates, CSRF-Flow, Datenladung und Rendering hängen damit näher am vorhandenen Shared-Entry-Vertrag. |
+| **2.7.215** | 🟠 perf | Admin/Themes | **Der Font-Manager spart verteiltes Boilerplate und nutzt im View jetzt ebenfalls das gemeinsame Flash-Partial**: Theme-Scans, Self-Hosting und Save-Aktionen teilen sich denselben zentralen Feedback- und Request-Flow. |
+| **2.7.215** | 🟡 refactor | Admin/Themes | **Der Entry reduziert sich jetzt auf Capability-Helfer, Allowlist und Dispatch-Konfiguration**: Standardverhalten bleibt zentral in der Shared-Shell. |
+
+---
+
+### v2.7.214 — 26. März 2026 · Audit-Batch 296, Firewall-Entry auf die gemeinsame Section-Shell standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.214** | 🔴 fix | Admin/Security | **`CMS/admin/firewall.php` läuft jetzt über die gemeinsame `section-page-shell.php` statt einen eigenen Redirect-/Flash-/Renderpfad zu pflegen**: Guard, CSRF-Flow, Datenladung und Rendering hängen damit näher am vorhandenen Shared-Entry-Vertrag. |
+| **2.7.214** | 🟠 perf | Admin/Security | **Die Firewall spart verteiltes Entry-Boilerplate und übernimmt Shell-Verbesserungen automatisch mit**: die Datei konzentriert sich wieder auf Action-Allowlist, Capability-Checks und Dispatch. |
+| **2.7.214** | 🟡 refactor | Admin/Security | **Der Entry reduziert sich jetzt auf kleine Helper und Shell-Konfiguration**: Standardverhalten bleibt zentral in der Shared-Shell. |
+
+---
+
+### v2.7.213 — 26. März 2026 · Audit-Batch 295, Error-Report-Endpoint auf gemeinsamen POST-Action-Wrapper standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.213** | 🔴 fix | Admin/System | **`CMS/admin/error-report.php` nutzt jetzt den neuen `post-action-shell.php` statt eigenen CSRF-/Redirect-/Flash-Boilerplate**: der POST-only-Endpunkt bleibt damit näher an einem kleinen gemeinsamen Request-Vertrag. |
+| **2.7.213** | 🟠 perf | Admin/System | **Der Error-Report-Endpunkt spart wiederkehrende Redirect- und Flash-Helfer**: künftige POST-Wrapper-Verbesserungen greifen automatisch auch für Admin-Aktionsendpunkte ohne eigene View. |
+| **2.7.213** | 🟡 refactor | Admin/System | **Die Datei konzentriert sich jetzt auf Payload-Normalisierung und Service-Aufruf**: Standardpfade liegen zentral in der neuen Post-Action-Shell. |
+
+---
+
+### v2.7.212 — 26. März 2026 · Audit-Batch 294, Design-Settings-Alias auf gemeinsamen Redirect-Wrapper standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.212** | 🔴 fix | Admin/Design | **`CMS/admin/design-settings.php` nutzt jetzt denselben kleinen Redirect-Alias-Wrapper statt eigenen Guard-/Redirect-Boilerplate**: Capability-Check und Zielpfad bleiben sichtbar, während der eigentliche Redirect-Flow zentral abgewickelt wird. |
+| **2.7.212** | 🟠 perf | Admin/Design | **Der Design-Alias spart redundante Funktionsdefinitionen und Redirect-Pfade pro Request**: künftige Alias-Anpassungen greifen dadurch auf einer kleinen gemeinsamen Schicht statt in Einzeldateien. |
+| **2.7.212** | 🟡 refactor | Admin/Design | **Die Datei reduziert sich jetzt auf Zugriffsgate und Zielroute**: Alias-Boilerplate liegt zentral in `redirect-alias-shell.php`. |
+
+---
+
+### v2.7.211 — 26. März 2026 · Audit-Batch 293, Deletion-Requests-Alias auf gemeinsamen Redirect-Wrapper standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.211** | 🔴 fix | Admin/Legal | **`CMS/admin/deletion-requests.php` nutzt jetzt denselben kleinen Redirect-Alias-Wrapper statt eigenen Guard-/Redirect-Boilerplate**: der Alias bleibt damit näher an einem kleinen gemeinsamen Vertrag und pflegt nicht länger eigene Redirect-Helfer. |
+| **2.7.211** | 🟠 perf | Admin/Legal | **Der Löschantrags-Alias spart redundante Funktionsdefinitionen und harmoniert mit verwandten Legal-Alias-Seiten**: dieselbe Redirect-Schicht wird im selben Zug auch für `privacy-requests.php` verwendet. |
+| **2.7.211** | 🟡 refactor | Admin/Legal | **Die Datei reduziert sich jetzt auf Zugriffsgate und Zielroute**: Alias-Boilerplate liegt zentral in `redirect-alias-shell.php`. |
+
+---
+
+### v2.7.210 — 26. März 2026 · Audit-Batch 292, Data-Requests-Entry auf die gemeinsame Section-Shell standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.210** | 🔴 fix | Admin/Legal | **`CMS/admin/data-requests.php` nutzt jetzt die gemeinsame `section-page-shell.php` statt eines eigenen Redirect-/Flash-/Renderpfads**: Admin-Guard, Token-Prüfung, Scope-Dispatch, Datenladung und View-Rendering hängen dadurch näher am vorhandenen Shared-Entry-Vertrag. |
+| **2.7.210** | 🟠 perf | Admin/Legal | **Die DSGVO-Arbeitsseite spart verteiltes Entry-Boilerplate für Auskunfts- und Löschanträge**: beide Modulpfade werden konsistent über denselben Shell-Request-Flow bedient. |
+| **2.7.210** | 🟡 refactor | Admin/Legal | **Der Entry konzentriert sich jetzt auf Scope-Allowlist und Aktions-Dispatch**: Standardverhalten bleibt zentral in der Shared-Shell. |
+
+---
+
+### v2.7.209 — 26. März 2026 · Audit-Batch 291, Cookie-Manager-Entry auf die gemeinsame Section-Shell standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.209** | 🔴 fix | Admin/Legal | **`CMS/admin/cookie-manager.php` läuft jetzt über die gemeinsame `section-page-shell.php` statt einen eigenen Redirect-/Flash-/Renderpfad zu pflegen**: Admin-Guard, CSRF-Flow, Datenladung und Rendering hängen damit näher am vorhandenen Shared-Entry-Vertrag. |
+| **2.7.209** | 🟠 perf | Admin/Legal | **Der Cookie-Manager spart verteiltes Boilerplate und zeigt Flash-Feedback jetzt sichtbar im View an**: Scanner-, Import-, Save- und Delete-Aktionen nutzen denselben zentralen Session-Alert-Flow. |
+| **2.7.209** | 🟡 refactor | Admin/Legal | **Die Datei reduziert sich jetzt auf Allowlists, Normalisierung und Dispatch**: Standardverhalten bleibt zentral in der Shared-Shell. |
+
+---
+
+### v2.7.208 — 26. März 2026 · Audit-Batch 290, Documentation-Entry auf die gemeinsame Section-Shell standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.208** | 🔴 fix | Admin/System | **`CMS/admin/documentation.php` nutzt jetzt die gemeinsame `section-page-shell.php` statt eines eigenen Redirect-/Flash-/Renderpfads**: Admin-Guard, Token-Prüfung, Datenladung und View-Rendering hängen dadurch näher am bestehenden Shared-Entry-Vertrag. |
+| **2.7.208** | 🟠 perf | Admin/System | **Die Dokumentationsseite spart verteiltes Entry-Boilerplate und hält die Dokumentauswahl auch nach POST-Redirects stabil**: das ausgewählte Dokument bleibt über denselben query-fähigen Shell-Redirect erhalten. |
+| **2.7.208** | 🟡 refactor | Admin/System | **Der Entry konzentriert sich jetzt auf Dokument-Normalisierung und Sync-Dispatch**: Standardpfade liegen sichtbar zentral in der Admin-Shell. |
+
+---
+
+### v2.7.207 — 26. März 2026 · Audit-Batch 289, Comments-Entry auf die gemeinsame Section-Shell standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.207** | 🔴 fix | Admin/Content | **`CMS/admin/comments.php` läuft jetzt über die gemeinsame `section-page-shell.php` statt einen eigenen Redirect-/Flash-/Renderpfad zu pflegen**: View-Guard, CSRF-Flow, Datenladung und Rendering hängen damit näher am vorhandenen Shared-Entry-Vertrag. |
+| **2.7.207** | 🟠 perf | Admin/Content | **Die Kommentarverwaltung spart verteiltes Boilerplate und hält den Statusfilter über den PRG-Flow stabil**: Freigabe-, Spam-, Trash- und Delete-Aktionen landen wieder auf derselben gefilterten Listenansicht. |
+| **2.7.207** | 🟡 refactor | Admin/Content | **Die Datei reduziert sich jetzt auf Allowlists, Normalisierung und Aktions-Dispatch**: Standardverhalten bleibt zentral in der Shared-Shell. |
+
+---
+
+### v2.7.206 — 26. März 2026 · Audit-Batch 288, Backup-Entry auf die gemeinsame Section-Shell standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.206** | 🔴 fix | Admin/System | **`CMS/admin/backups.php` läuft jetzt über die gemeinsame `section-page-shell.php` statt einen eigenen Redirect-/Flash-/Renderpfad zu pflegen**: Read-/Write-Checks, Datenladung und View-Rendering hängen dadurch näher am vorhandenen Shared-Entry-Vertrag. |
+| **2.7.206** | 🟠 perf | Admin/System | **Der Backup-Entry spart verteiltes Boilerplate und doppelten Guard-Aufwand**: spätere Shell-Verbesserungen greifen automatisch auch für Backup & Restore. |
+| **2.7.206** | 🟡 refactor | Admin/System | **Der Entry ist jetzt auf Aktions- und Zugriffsnormalisierung reduziert**: Redirect-, Flash- und Render-Standardlogik bleibt zentral in der Admin-Shell. |
+
+---
+
+### v2.7.205 — 26. März 2026 · Audit-Batch 287, AntiSpam-Entry auf die gemeinsame Section-Shell standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.205** | 🔴 fix | Admin/Security | **`CMS/admin/antispam.php` nutzt jetzt die gemeinsame `section-page-shell.php` statt eines eigenen Redirect-/Flash-/Renderpfads**: der Entry übernimmt dadurch keine lose Standardlogik mehr neben der Shell. |
+| **2.7.205** | 🟠 perf | Admin/Security | **Der AntiSpam-Entry spart wiederkehrendes Boilerplate für Guard, Datenladung und Rendering**: künftige Shell-Verbesserungen wirken automatisch auch auf den Security-Bereich. |
+| **2.7.205** | 🟡 refactor | Admin/Security | **Die Datei konzentriert sich jetzt auf Aktions-Allowlist und Capability-Gates**: Standardverhalten liegt sichtbar zentral in der Shared-Shell. |
+
+---
+
+### v2.7.204 — 26. März 2026 · Audit-Batch 286, Dashboard-Entry auf die gemeinsame Section-Shell standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.204** | 🔴 fix | Admin/Dashboard | **`CMS/admin/index.php` nutzt jetzt die gemeinsame `section-page-shell.php` statt eines separaten Sonderpfads**: Auth-Guard, Modul-Initialisierung, Datenladung und Rendering laufen dadurch nicht mehr losgelöst vom vorhandenen Shared-Entry-Muster. |
+| **2.7.204** | 🟠 perf | Admin/Dashboard | **Der Dashboard-Entry spart doppelten Boilerplate-Overhead und bleibt näher am zentralen Wrapper-Vertrag**: spätere Shell-Verbesserungen greifen damit automatisch auch auf `/admin`. |
+| **2.7.204** | 🟡 refactor | Admin/Dashboard | **Das Dashboard hängt jetzt sichtbarer an derselben Admin-Section-Infrastruktur wie andere standardisierte Entrys**: Sonderlogik im Entry wurde auf Konfiguration reduziert. |
+
+---
+
+### v2.7.203 — 26. März 2026 · Audit-Batch 285, Section-Page-Shell bei Access-, Flash- und Asset-Normalisierung nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.203** | 🔴 fix | Admin/Core | **`CMS/admin/partials/section-page-shell.php` kapselt Access-Checks, Flash-Payloads und Asset-Normalisierung jetzt robuster zentral**: Shared-Entrys übernehmen dadurch keine losen Session-, Asset- oder Redirect-Annahmen mehr unterschiedlich pro Wrapper. |
+| **2.7.203** | 🟠 perf | Admin/Core | **Die gemeinsame Shell filtert ungültige CSS-/JS-Assets früher und vereinheitlicht Flash-/Redirect-Pfade**: Standard-Entrys müssen diese wiederkehrenden Schritte nicht mehr einzeln nachbauen. |
+| **2.7.203** | 🟡 refactor | Admin/Core | **Der Shared-Entry-Vertrag ist klarer geworden**: Access-Checker, Flash-Payload und Asset-Listen liegen sichtbar zentral statt verteiltem Boilerplate in einzelnen Entrys. |
+
+---
+
+### v2.7.202 — 26. März 2026 · Audit-Batch 284, Redirect- und 404-Entries auf section-spezifische Admin-Datensichten umgestellt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.202** | 🔴 fix | Admin/SEO | **`redirect-manager.php` und `not-found-monitor.php` ziehen ihre Daten jetzt über section-spezifische Modulzugriffe statt denselben Voll-Datensatz zu laden**: Redirect-Regeln und 404-Logs übernehmen dadurch keine unnötigen Fremddaten mehr zwischen den beiden SEO-Entrys. |
+| **2.7.202** | 🟠 perf | Admin/SEO | **Redirect-Manager und 404-Monitor vermeiden unnötigen Admin-Overfetch vor dem Rendern**: jede Seite erhält nur noch ihren tatsächlich benötigten Redirect-, Log-, Target- und Site-Scope. |
+| **2.7.202** | 🟡 refactor | Admin/SEO | **Die Entry-Pfade hängen näher an einem kleinen Section-Datenvertrag**: die Seitenauswahl bleibt sichtbar am Modul statt losem Vertrauen auf einen gemeinsamen Voll-Dump. |
+
+---
+
+### v2.7.201 — 26. März 2026 · Audit-Batch 283, Redirect-Manager-Modul um section-spezifische Datenzugriffe ergänzt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.201** | 🔴 fix | Admin/SEO | **`RedirectManagerModule.php` bietet jetzt getrennte Loader für Redirect-Manager und 404-Monitor**: der Modulvertrag reicht dadurch nicht mehr pauschal denselben Voll-Datensatz an beide SEO-Seiten weiter. |
+| **2.7.201** | 🟠 perf | Admin/SEO | **Das Modul kann Redirect- und 404-Views gezielter bedienen**: Seiten fordern nur noch den benötigten Scope statt unnötige Nachbar-Daten mitzuschleppen. |
+| **2.7.201** | 🟡 refactor | Admin/SEO | **Der Admin-Vertrag bleibt klarer lesbar**: `getRedirectManagerData()` und `getNotFoundMonitorData()` dokumentieren die Datensicht jetzt explizit am Modul. |
+
+---
+
+### v2.7.200 — 26. März 2026 · Audit-Batch 282, RedirectService auf getrennte Admin-Datensichten und Shared-Helper aufgeteilt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.200** | 🔴 fix | Core/SEO | **`RedirectService.php` liefert Redirect-Manager und 404-Monitor jetzt über getrennte Admin-Datensichten statt nur über `getAdminData()`**: Redirect-Regeln, 404-Logs, Stats und Targets bleiben dadurch näher am jeweils benötigten Seiten-Scope. |
+| **2.7.200** | 🟠 perf | Core/SEO | **Die Redirect-Verwaltung vermeidet unnötigen Datenballast zwischen Redirect- und 404-Pfaden**: Entrys transportieren nicht länger zwangsläufig dieselbe Vollmenge aus Regeln, Logs, Targets und Sites. |
+| **2.7.200** | 🟡 refactor | Core/SEO | **Gemeinsame Helfer für Redirect-Regeln, 404-Logs, Targets und Stats kapseln die Datensichten jetzt sichtbar zentral**: der Service hängt näher an einem kleinen wiederverwendbaren Admin-Datenvertrag. |
+
+---
+
+### v2.7.199 — 26. März 2026 · Audit-Batch 281, Dashboard-Modul nutzt vorhandene Stats für Attention-Items weiter
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.199** | 🔴 fix | Admin/Dashboard | **`DashboardModule.php` reicht den bereits geladenen Stats-Bestand jetzt direkt an die Attention-Items weiter**: der Dashboard-Renderpfad löst dadurch keine zweite Vollberechnung derselben Kennzahlen mehr aus. |
+| **2.7.199** | 🟠 perf | Admin/Dashboard | **Das Dashboard spart eine unnötige Service-Runde pro Request**: KPIs, Highlights und Attention-Items teilen sich dieselbe Stats-Basis statt Doppelarbeit. |
+| **2.7.199** | 🟡 refactor | Admin/Dashboard | **Der Modulvertrag wird expliziter**: vorbereitete Dashboard-Stats bleiben sichtbar im selben Renderkontext statt implizit nochmals im Service nachgeladen zu werden. |
+
+---
+
+### v2.7.198 — 26. März 2026 · Audit-Batch 280, DashboardService akzeptiert vorhandene Stats für Attention-Items
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.198** | 🔴 fix | Core/Dashboard | **`DashboardService::getAttentionItems()` kann vorhandene Stats jetzt direkt verwerten**: Attention-Items hängen dadurch nicht mehr zwingend an einer erneuten Komplettberechnung des Stats-Bundles. |
+| **2.7.198** | 🟠 perf | Core/Dashboard | **Der Service reduziert unnötige Aggregationsarbeit im selben Request**: bereits vorbereitete Dashboard-Werte werden wiederverwendet statt sofort neu eingesammelt. |
+| **2.7.198** | 🟡 refactor | Core/Dashboard | **Die Attention-Logik hängt näher an einem kleinen Datenvertrag**: vorbereitete Stats werden optional explizit hereingereicht statt implizit aus einem zweiten Full-Load zu stammen. |
+
+---
+
+### v2.7.197 — 26. März 2026 · Audit-Batch 279, DashboardService cached Komplett-Stats pro Request
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.197** | 🔴 fix | Core/Dashboard | **`DashboardService.php` cached `getAllStats()` jetzt request-lokal**: wiederholte Stats-Zugriffe im selben Dashboard-Lauf verursachen dadurch keine zweite identische Komplettaggregation mehr. |
+| **2.7.197** | 🟠 perf | Core/Dashboard | **Das Dashboard spart doppelte User-, Page-, Media-, Session-, Security-, Performance- und Order-Statistikarbeit**: identische Daten werden pro Request nur einmal aufgebaut. |
+| **2.7.197** | 🟡 refactor | Core/Dashboard | **Die Service-Schicht bekommt einen klareren Request-State**: bereits aggregierte Dashboard-Stats bleiben sichtbar zentral am Service statt losem erneuten Vollaufruf. |
+
+---
+
+### v2.7.196 — 26. März 2026 · Audit-Batch 278, Performance-Settings-Alias auf kanonische Section-Konfiguration reduziert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.196** | 🔴 fix | Admin/Performance | **`performance-settings.php` übergibt nur noch die kanonische `settings`-Section an den Shared-Wrapper**: der Settings-Alias übernimmt damit keine eigene Route-/View-/Titel-Duplikation mehr außerhalb der zentralen Performance-Registry. |
+| **2.7.196** | 🟠 perf | Admin/Performance | **Der Settings-Alias spart redundante Konfigurationsarbeit vor dem Wrapper**: Route-, View- und Active-Page-Werte kommen nur noch aus der kanonischen Section-Matrix. |
+| **2.7.196** | 🟡 refactor | Admin/Performance | **Der Alias hängt näher am Shared-Wrapper-Vertrag**: die Datei bleibt ein schlanker Section-Entry statt eigenem Konfigurationsduplikat. |
+
+---
+
+### v2.7.195 — 26. März 2026 · Audit-Batch 277, Performance-Sessions-Alias auf kanonische Section-Konfiguration reduziert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.195** | 🔴 fix | Admin/Performance | **`performance-sessions.php` übergibt nur noch die kanonische `sessions`-Section an den Shared-Wrapper**: der Sessions-Alias übernimmt damit keine eigene Route-/View-/Titel-Duplikation mehr außerhalb der zentralen Performance-Registry. |
+| **2.7.195** | 🟠 perf | Admin/Performance | **Der Sessions-Alias spart redundante Konfigurationsarbeit vor dem Wrapper**: Route-, View- und Active-Page-Werte kommen nur noch aus der kanonischen Section-Matrix. |
+| **2.7.195** | 🟡 refactor | Admin/Performance | **Der Alias hängt näher am Shared-Wrapper-Vertrag**: die Datei bleibt ein schlanker Section-Entry statt eigenem Konfigurationsduplikat. |
+
+---
+
+### v2.7.194 — 26. März 2026 · Audit-Batch 276, Performance-Media-Alias auf kanonische Section-Konfiguration reduziert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.194** | 🔴 fix | Admin/Performance | **`performance-media.php` übergibt nur noch die kanonische `media`-Section an den Shared-Wrapper**: der Medien-Alias übernimmt damit keine eigene Route-/View-/Titel-Duplikation mehr außerhalb der zentralen Performance-Registry. |
+| **2.7.194** | 🟠 perf | Admin/Performance | **Der Medien-Alias spart redundante Konfigurationsarbeit vor dem Wrapper**: Route-, View- und Active-Page-Werte kommen nur noch aus der kanonischen Section-Matrix. |
+| **2.7.194** | 🟡 refactor | Admin/Performance | **Der Alias hängt näher am Shared-Wrapper-Vertrag**: die Datei bleibt ein schlanker Section-Entry statt eigenem Konfigurationsduplikat. |
+
+---
+
+### v2.7.193 — 26. März 2026 · Audit-Batch 275, Performance-Datenbank-Alias auf kanonische Section-Konfiguration reduziert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.193** | 🔴 fix | Admin/Performance | **`performance-database.php` übergibt nur noch die kanonische `database`-Section an den Shared-Wrapper**: der Datenbank-Alias übernimmt damit keine eigene Route-/View-/Titel-Duplikation mehr außerhalb der zentralen Performance-Registry. |
+| **2.7.193** | 🟠 perf | Admin/Performance | **Der Datenbank-Alias spart redundante Konfigurationsarbeit vor dem Wrapper**: Route-, View- und Active-Page-Werte kommen nur noch aus der kanonischen Section-Matrix. |
+| **2.7.193** | 🟡 refactor | Admin/Performance | **Der Alias hängt näher am Shared-Wrapper-Vertrag**: die Datei bleibt ein schlanker Section-Entry statt eigenem Konfigurationsduplikat. |
+
+---
+
+### v2.7.192 — 26. März 2026 · Audit-Batch 274, Performance-Cache-Alias auf kanonische Section-Konfiguration reduziert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.192** | 🔴 fix | Admin/Performance | **`performance-cache.php` übergibt nur noch die kanonische `cache`-Section an den Shared-Wrapper**: der Cache-Alias übernimmt damit keine eigene Route-/View-/Titel-Duplikation mehr außerhalb der zentralen Performance-Registry. |
+| **2.7.192** | 🟠 perf | Admin/Performance | **Der Cache-Alias spart redundante Konfigurationsarbeit vor dem Wrapper**: Route-, View- und Active-Page-Werte kommen nur noch aus der kanonischen Section-Matrix. |
+| **2.7.192** | 🟡 refactor | Admin/Performance | **Der Alias hängt näher am Shared-Wrapper-Vertrag**: die Datei bleibt ein schlanker Section-Entry statt eigenem Konfigurationsduplikat. |
+
+---
+
+### v2.7.191 — 26. März 2026 · Audit-Batch 273, Monitoring-Cron-Alias auf kanonische Section-Konfiguration reduziert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.191** | 🔴 fix | Admin/System | **`monitor-cron-status.php` übergibt nur noch die kanonische `cron`-Section an den Shared-Wrapper**: der Cron-Alias übernimmt damit keine eigene Route-/View-/Titel-Duplikation mehr außerhalb der zentralen Monitoring-Registry. |
+| **2.7.191** | 🟠 perf | Admin/System | **Der Cron-Alias spart redundante Konfigurationsarbeit vor dem Wrapper**: Route-, View- und Active-Page-Werte kommen nur noch aus der kanonischen Section-Matrix. |
+| **2.7.191** | 🟡 refactor | Admin/System | **Der Alias hängt näher am Shared-Wrapper-Vertrag**: die Datei bleibt ein schlanker Section-Entry statt eigenem Konfigurationsduplikat. |
+
+---
+
+### v2.7.190 — 26. März 2026 · Audit-Batch 272, Monitoring-E-Mail-Alias auf kanonische Section-Konfiguration reduziert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.190** | 🔴 fix | Admin/System | **`monitor-email-alerts.php` übergibt nur noch die kanonische `email-alerts`-Section an den Shared-Wrapper**: der Monitoring-Alias übernimmt damit keine eigene Route-/View-/Titel-Duplikation mehr außerhalb der zentralen Monitoring-Registry. |
+| **2.7.190** | 🟠 perf | Admin/System | **Der E-Mail-Alias spart redundante Konfigurationsarbeit vor dem Wrapper**: Route-, View- und Active-Page-Werte kommen nur noch aus der kanonischen Section-Matrix. |
+| **2.7.190** | 🟡 refactor | Admin/System | **Der Alias hängt näher am Shared-Wrapper-Vertrag**: die Datei bleibt ein schlanker Section-Entry statt eigenem Konfigurationsduplikat. |
+
+---
+
+### v2.7.189 — 26. März 2026 · Audit-Batch 271, Monitoring-Health-Alias auf kanonische Section-Konfiguration reduziert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.189** | 🔴 fix | Admin/System | **`monitor-health-check.php` übergibt nur noch die kanonische `health-check`-Section an den Shared-Wrapper**: der Health-Alias übernimmt damit keine eigene Route-/View-/Titel-Duplikation mehr außerhalb der zentralen Monitoring-Registry. |
+| **2.7.189** | 🟠 perf | Admin/System | **Der Health-Alias spart redundante Konfigurationsarbeit vor dem Wrapper**: Route-, View- und Active-Page-Werte kommen nur noch aus der kanonischen Section-Matrix. |
+| **2.7.189** | 🟡 refactor | Admin/System | **Der Alias hängt näher am Shared-Wrapper-Vertrag**: die Datei bleibt ein schlanker Section-Entry statt eigenem Konfigurationsduplikat. |
+
+---
+
+### v2.7.188 — 26. März 2026 · Audit-Batch 270, Monitoring-Scheduled-Tasks-Alias auf kanonische Section-Konfiguration reduziert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.188** | 🔴 fix | Admin/System | **`monitor-scheduled-tasks.php` übergibt nur noch die kanonische `scheduled-tasks`-Section an den Shared-Wrapper**: der Scheduled-Tasks-Alias übernimmt damit keine eigene Route-/View-/Titel-Duplikation mehr außerhalb der zentralen Monitoring-Registry. |
+| **2.7.188** | 🟠 perf | Admin/System | **Der Scheduled-Tasks-Alias spart redundante Konfigurationsarbeit vor dem Wrapper**: Route-, View- und Active-Page-Werte kommen nur noch aus der kanonischen Section-Matrix. |
+| **2.7.188** | 🟡 refactor | Admin/System | **Der Alias hängt näher am Shared-Wrapper-Vertrag**: die Datei bleibt ein schlanker Section-Entry statt eigenem Konfigurationsduplikat. |
+
+---
+
+### v2.7.187 — 26. März 2026 · Audit-Batch 269, Monitoring-Disk-Alias auf kanonische Section-Konfiguration reduziert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.187** | 🔴 fix | Admin/System | **`monitor-disk-usage.php` übergibt nur noch die kanonische `disk`-Section an den Shared-Wrapper**: der Disk-Alias übernimmt damit keine eigene Route-/View-/Titel-Duplikation mehr außerhalb der zentralen Monitoring-Registry. |
+| **2.7.187** | 🟠 perf | Admin/System | **Der Disk-Alias spart redundante Konfigurationsarbeit vor dem Wrapper**: Route-, View- und Active-Page-Werte kommen nur noch aus der kanonischen Section-Matrix. |
+| **2.7.187** | 🟡 refactor | Admin/System | **Der Alias hängt näher am Shared-Wrapper-Vertrag**: die Datei bleibt ein schlanker Section-Entry statt eigenem Konfigurationsduplikat. |
+
+---
+
+### v2.7.186 — 26. März 2026 · Audit-Batch 268, Monitoring-Response-Time-Alias auf kanonische Section-Konfiguration reduziert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.186** | 🔴 fix | Admin/System | **`monitor-response-time.php` übergibt nur noch die kanonische `response-time`-Section an den Shared-Wrapper**: der Response-Time-Alias übernimmt damit keine eigene Route-/View-/Titel-Duplikation mehr außerhalb der zentralen Monitoring-Registry. |
+| **2.7.186** | 🟠 perf | Admin/System | **Der Response-Time-Alias spart redundante Konfigurationsarbeit vor dem Wrapper**: Route-, View- und Active-Page-Werte kommen nur noch aus der kanonischen Section-Matrix. |
+| **2.7.186** | 🟡 refactor | Admin/System | **Der Alias hängt näher am Shared-Wrapper-Vertrag**: die Datei bleibt ein schlanker Section-Entry statt eigenem Konfigurationsduplikat. |
+
+---
+
+### v2.7.185 — 26. März 2026 · Audit-Batch 267, Performance-Overview-Alias auf kanonische Section-Konfiguration reduziert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.185** | 🔴 fix | Admin/Performance | **`performance.php` übergibt nur noch die kanonische `overview`-Section an den Shared-Wrapper**: der Overview-Alias übernimmt damit keine eigene Route-/View-/Titel-Duplikation mehr außerhalb der zentralen Performance-Registry. |
+| **2.7.185** | 🟠 perf | Admin/Performance | **Der Overview-Alias spart redundante Konfigurationsarbeit vor dem Wrapper**: Route-, View- und Active-Page-Werte kommen nur noch aus der kanonischen Section-Matrix. |
+| **2.7.185** | 🟡 refactor | Admin/Performance | **Der Alias hängt näher am Shared-Wrapper-Vertrag**: die Datei bleibt ein schlanker Section-Entry statt eigenem Konfigurationsduplikat. |
+
+---
+
+### v2.7.184 — 26. März 2026 · Audit-Batch 266, Diagnose-Alias auf kanonische Section-Konfiguration reduziert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.184** | 🔴 fix | Admin/System | **`diagnose.php` übergibt nur noch die kanonische `diagnose`-Section an den Shared-Wrapper**: der Diagnose-Alias übernimmt damit keine eigene Route-/View-/Titel-Duplikation mehr außerhalb der zentralen Monitoring-Registry. |
+| **2.7.184** | 🟠 perf | Admin/System | **Der Diagnose-Alias spart redundante Konfigurationsarbeit vor dem Wrapper**: Route-, View- und Active-Page-Werte kommen nur noch aus der kanonischen Section-Matrix. |
+| **2.7.184** | 🟡 refactor | Admin/System | **Der Alias hängt näher am Shared-Wrapper-Vertrag**: die Datei bleibt ein schlanker Section-Entry statt eigenem Konfigurationsduplikat. |
+
+---
+
+### v2.7.183 — 26. März 2026 · Audit-Batch 265, Info-Alias auf kanonische Section-Konfiguration reduziert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.183** | 🔴 fix | Admin/System | **`info.php` übergibt nur noch die kanonische `info`-Section an den Shared-Wrapper**: der Info-Alias übernimmt damit keine eigene Route-/View-/Titel-Duplikation mehr außerhalb der zentralen Monitoring-Registry. |
+| **2.7.183** | 🟠 perf | Admin/System | **Der Info-Alias spart redundante Konfigurationsarbeit vor dem Wrapper**: Route-, View- und Active-Page-Werte kommen nur noch aus der kanonischen Section-Matrix. |
+| **2.7.183** | 🟡 refactor | Admin/System | **Der Alias hängt näher am Shared-Wrapper-Vertrag**: die Datei bleibt ein schlanker Section-Entry statt eigenem Konfigurationsduplikat. |
+
+---
+
+### v2.7.182 — 26. März 2026 · Audit-Batch 264, Analytics-Alias auf kanonische Section-Konfiguration reduziert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.182** | 🔴 fix | Admin/SEO | **`analytics.php` übergibt nur noch die kanonische `analytics`-Section an den Shared-Wrapper**: der Analytics-Alias übernimmt damit keine eigene Route-/View-/Titel-Duplikation mehr außerhalb der zentralen SEO-Registry. |
+| **2.7.182** | 🟠 perf | Admin/SEO | **Der Analytics-Alias spart redundante Konfigurationsarbeit vor dem Wrapper**: Route-, View- und Active-Page-Werte kommen nur noch aus der kanonischen Section-Matrix. |
+| **2.7.182** | 🟡 refactor | Admin/SEO | **Der Alias hängt näher am Shared-Wrapper-Vertrag**: die Datei bleibt ein schlanker Section-Entry statt eigenem Konfigurationsduplikat. |
+
+---
+
+### v2.7.181 — 26. März 2026 · Audit-Batch 263, Performance-Wrapper auf kanonische Section-Seitenregistries gezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.181** | 🔴 fix | Admin/Performance | **`performance-page.php` bindet Overview-, Cache-, Datenbank-, Medien-, Session- und Settings-Unterseiten jetzt an eine kanonische Section-Registry für Route, View, Titel und Active-Page**: section-fremde oder divergierende Alias-Konfigurationen werden damit nicht mehr lose in denselben Shared-Wrapper hineingereicht. |
+| **2.7.181** | 🟠 perf | Admin/Performance | **Der Performance-Wrapper spart redundante Alias-Konfigurationsarbeit vor dem Renderpfad**: Route-/View-Metadaten kommen nur noch aus einer zentralen Matrix statt aus jedem Unterseiten-Entry separat. |
+| **2.7.181** | 🟡 refactor | Admin/Performance | **Der Wrapper hängt näher an einem kleinen Section-Vertrag**: Kanonische Seitenkonfiguration und Section-Normalisierung liegen jetzt sichtbar zentral statt verteiltem Konfigurationsduplikat in Alias-Dateien. |
+
+---
+
+### v2.7.180 — 26. März 2026 · Audit-Batch 262, System-Monitor-Wrapper auf kanonische Section-Seitenregistries gezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.180** | 🔴 fix | Admin/System | **`system-monitor-page.php` bindet Info-, Diagnose- und Monitoring-Unterseiten jetzt an eine kanonische Section-Registry für Route, View, Titel und Active-Page**: section-fremde oder divergierende Alias-Konfigurationen werden damit nicht mehr lose in denselben Shared-Wrapper hineingereicht. |
+| **2.7.180** | 🟠 perf | Admin/System | **Der Monitoring-Wrapper spart redundante Alias-Konfigurationsarbeit vor dem Renderpfad**: Route-/View-Metadaten kommen nur noch aus einer zentralen Matrix statt aus jedem Unterseiten-Entry separat. |
+| **2.7.180** | 🟡 refactor | Admin/System | **Der Wrapper hängt näher an einem kleinen Section-Vertrag**: Kanonische Seitenkonfiguration und Section-Normalisierung liegen jetzt sichtbar zentral statt verteiltem Konfigurationsduplikat in Alias-Dateien. |
+
+---
+
+### v2.7.179 — 25. März 2026 · Audit-Batch 261, gemeinsame Section-Shell bei Route-/View-Gates nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.179** | 🔴 fix | Admin/Core | **`section-page-shell.php` normalisiert Shared-Routen jetzt serverseitig, verlangt vorhandene View-Dateien und bündelt Redirects zentral**: gemeinsame Member-, Performance- und System-Pfade übernehmen dadurch keine losen `route_path`- oder `view_file`-Annahmen mehr direkt in der generischen Shell. |
+| **2.7.179** | 🟠 perf | Admin/Core | **Die generische Section-Shell verwirft ungültige View-/Route-Konfigurationen früher und billiger**: falsche oder leere Shell-Ziele scheitern vor unnötigen Header-, Sidebar- oder View-Ladevorgängen im Shared-Wrapper. |
+| **2.7.179** | 🟡 refactor | Admin/Core | **Die gemeinsame Shell hängt näher an einem kleinen Shared-Vertrag aus Route-, View- und Redirect-Helfern**: Normalisierung und Redirects liegen jetzt sichtbar zentral statt losem Vertrauen auf rohe Wrapper-Konfigurationen. |
+
+---
+
+### v2.7.178 — 25. März 2026 · Audit-Batch 260, SEO-Suite-Modul auf section-spezifische Datensichten umgestellt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.178** | 🔴 fix | Admin/SEO | **`SeoSuiteModule.php` liefert Dashboard-, Audit-, Analytics-, Meta-, Social-, Schema-, Sitemap- und Technical-Unterseiten jetzt nur noch ihren tatsächlich benötigten Datenausschnitt**: SEO-Unterseiten übernehmen damit keine unnötigen Voll-Dumps aus Audit-, Tracking-, Schema-, Sitemap- und Redirect-Pfaden mehr stillschweigend über denselben Sammelaufruf. |
+| **2.7.178** | 🟠 perf | Admin/SEO | **SEO-Unterseiten vermeiden teure Sammelabfragen außerhalb ihres eigenen Scopes**: Analytics-, Sitemap-, Schema- oder Technical-Seiten ziehen nur noch ihre jeweiligen Datenpfade und sparen unnötige Audit-, Tracking- oder Redirect-Arbeit bei fremden Bereichen. |
+| **2.7.178** | 🟡 refactor | Admin/SEO | **Das Modul hängt näher an einem section-gebundenen Datenvertrag**: `getSectionData()` und ein gemeinsamer Section-Kontext kapseln die abschnittsspezifische Sicht jetzt sichtbar zentral statt losem Vertrauen auf `getData()` für jede Unterseite. |
+
+---
+
+### v2.7.177 — 25. März 2026 · Audit-Batch 259, gemeinsame SEO-Schicht auf section-spezifische Datenladung gezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.177** | 🔴 fix | Admin/SEO | **`seo-page.php` lädt pro SEO-Unterseite jetzt section-spezifische Daten statt pauschal den kompletten SEO-Datensatz**: Shared-SEO-Pfade verlassen sich damit nicht länger auf denselben Voll-Dump für Dashboard, Audit, Analytics, Meta, Social, Schema, Sitemap oder Technical. |
+| **2.7.177** | 🟠 perf | Admin/SEO | **Der gemeinsame SEO-Wrapper vermeidet unnötige Voll-Ladepfade für Analytics-, Schema-, Sitemap- und Technical-Seiten**: Renderpfade ziehen nur noch ihren jeweiligen Scope und sparen unnötige Audit-, Tracking- oder Redirect-Daten bei fremden Bereichen. |
+| **2.7.177** | 🟡 refactor | Admin/SEO | **Der Wrapper hängt näher an einem kleinen Section-Vertrag aus Capability-, Action- und Data-Scope-Gates**: Render- und POST-Pfade bleiben sichtbarer zentral gebündelt statt losem Sammelabruf über dieselbe Full-Data-Schiene. |
+
+---
+
+### v2.7.176 — 25. März 2026 · Audit-Batch 258, Member-Dashboard-Modul auf section-spezifische Datensichten umgestellt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.176** | 🔴 fix | Admin/Member | **`MemberDashboardModule.php` liefert Overview-, General-, Widget-, Profilfeld-, Design-, Frontend-, Notification-, Onboarding- und Plugin-Widget-Unterseiten jetzt nur noch ihren tatsächlich benötigten Datenausschnitt**: Member-Unterseiten übernehmen damit keine unnötigen Voll-Dumps aus Stats-, Widget-, Profil- oder Plugin-Widget-Pfaden mehr stillschweigend über denselben Sammelaufruf. |
+| **2.7.176** | 🟠 perf | Admin/Member | **Member-Unterseiten vermeiden teure Sammelabfragen außerhalb ihres eigenen Scopes**: Widgets, Notifications, Profilfelder oder Plugin-Widgets lösen nur noch ihre jeweiligen Hilfsdaten aus und sparen unnötige Stats-/Plugin-/Overview-Arbeit bei fremden Bereichen. |
+| **2.7.176** | 🟡 refactor | Admin/Member | **Das Modul hängt näher an einem section-gebundenen Datenvertrag**: `getSectionData()` und kleine Empty-/Overview-Helfer kapseln die abschnittsspezifische Sicht jetzt sichtbar zentral statt losem Vertrauen auf `getData()` für jede Unterseite. |
+
+---
+
+### v2.7.175 — 25. März 2026 · Audit-Batch 257, gemeinsame Member-Dashboard-Schicht auf section-spezifische Datenladung gezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.175** | 🔴 fix | Admin/Member | **`member-dashboard-page.php` lädt pro Unterseite jetzt section-spezifische Daten statt pauschal den kompletten Dashboard-Datensatz**: Shared-Member-Pfade verlassen sich damit nicht länger auf denselben Voll-Dump für Overview, General, Widgets, Profilfelder, Design, Notifications, Onboarding oder Plugin-Widgets. |
+| **2.7.175** | 🟠 perf | Admin/Member | **Der gemeinsame Member-Dashboard-Wrapper vermeidet unnötige Voll-Ladepfade für alle Unterseiten**: Renderpfade ziehen nur noch ihren jeweiligen Scope und sparen unnötige Stats-, Widget-, Profil- oder Plugin-Widget-Daten bei fremden Bereichen. |
+| **2.7.175** | 🟡 refactor | Admin/Member | **Der Wrapper hängt näher an einem kleinen Section-Vertrag aus Capability-, Action- und Data-Scope-Gates**: Render- und POST-Pfade bleiben sichtbarer zentral gebündelt statt losem Sammelabruf über dieselbe Full-Data-Schiene. |
+
+---
+
+### v2.7.174 — 25. März 2026 · Audit-Batch 256, Performance-Modul auf section-spezifische Datensichten umgestellt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.174** | 🔴 fix | Admin/Performance | **`PerformanceModule.php` liefert Cache-, Datenbank-, Medien-, Session- und Settings-Unterseiten jetzt nur noch ihren tatsächlich benötigten Datenausschnitt**: Unterseiten übernehmen damit keine unnötigen Voll-Dumps aus Cache-, Media-, DB-, Session- und PHP-Info-Pfaden mehr stillschweigend über denselben Sammelaufruf. |
+| **2.7.174** | 🟠 perf | Admin/Performance | **Performance-Unterseiten vermeiden teure Sammelmetriken außerhalb ihres eigenen Scopes**: Cache-, DB-, Medien- oder Session-Seiten lösen nur noch ihre jeweiligen Metriken aus und sparen unnötige Telemetrie- und Scan-Arbeit bei fremden Bereichen. |
+| **2.7.174** | 🟡 refactor | Admin/Performance | **Das Modul hängt näher an einem section-gebundenen Datenvertrag**: `getSectionData()` kapselt die abschnittsspezifische Datensicht sichtbar zentral statt losem Vertrauen auf `getData()` für jede Unterseite. |
+
+---
+
+### v2.7.173 — 25. März 2026 · Audit-Batch 255, gemeinsame Performance-Schicht bei Section-Daten und Read-Gate nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.173** | 🔴 fix | Admin/Performance | **`performance-page.php` bindet jetzt auch die reine Ansicht explizit an `manage_settings` und lädt pro Unterseite nur noch deren section-spezifische Daten**: Shared-Performance-Pfade verlassen sich damit nicht länger bloß auf den generischen Admin-Guard oder pauschale Voll-Datensätze für jede Unterseite. |
+| **2.7.173** | 🟠 perf | Admin/Performance | **Der gemeinsame Performance-Wrapper vermeidet unnötige Voll-Ladepfade für Cache-, Medien-, DB-, Session- und Settings-Seiten**: Unterseiten scheitern früher am Read-Gate und laden bei gültigem Zugriff nur noch ihren eigenen Scope. |
+| **2.7.173** | 🟡 refactor | Admin/Performance | **Der Wrapper hängt näher an einem kleinen Section-Vertrag aus Read-Gate, Action-Allowlist und Daten-Scope**: Render- und POST-Pfade bleiben sichtbarer zentral gebündelt statt losem Sammelabruf über dieselbe Full-Data-Schiene. |
+
+---
+
+### v2.7.172 — 25. März 2026 · Audit-Batch 254, SystemInfo-Modul auf section-spezifische Datensichten umgestellt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.172** | 🔴 fix | Admin/System | **`SystemInfoModule.php` liefert Info-, Diagnose- und Monitoring-Unterseiten jetzt nur noch ihren tatsächlich benötigten Datenausschnitt**: Info-, Diagnose-, Cron-, Disk-, Response-Time-, Health-, Scheduled-Tasks- und Alert-Pfade übernehmen damit keine unnötigen Voll-Dumps sensibler Runtime-, Query- oder Monitoring-Daten mehr quer über denselben Sammelaufruf. |
+| **2.7.172** | 🟠 perf | Admin/System | **System-Unterseiten vermeiden teure Komplett-Scans außerhalb ihres eigenen Scopes**: Cron-, Disk-, Health- und Response-Time-Seiten ziehen nur noch ihre jeweiligen Prüfungen statt pauschal das gesamte Systempaket mitzuladen. |
+| **2.7.172** | 🟡 refactor | Admin/System | **Das Modul hängt näher an einem section-gebundenen Datenvertrag**: `getSectionData()` sowie verkleinerte Info-/Diagnose-Sichten kapseln den benötigten Scope sichtbar zentral statt losem Vertrauen auf den Voll-`getData()`-Pfad. |
+
+---
+
+### v2.7.171 — 25. März 2026 · Audit-Batch 253, gemeinsame System-Monitor-Schicht bei Section-/Action-Gates nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.171** | 🔴 fix | Admin/System | **`system-monitor-page.php` normalisiert Monitoring-Sections jetzt serverseitig, bindet die Sammelschicht an `manage_settings` und akzeptiert POST-Aktionen nur noch pro passender Unterseite**: Diagnose- und Alert-Pfade übernehmen dadurch keine losen `section`-/`action`-Werte oder pauschalen Admin-Zugriffe mehr direkt im Shared-Wrapper. |
+| **2.7.171** | 🟠 perf | Admin/System | **Die gemeinsame System-Monitor-Schicht verwirft section- oder capability-fremde Requests früher und billiger**: unzulässige Render- oder POST-Pfade scheitern vor unnötigen Modulaufrufen in Diagnose-, Cron-, Health- oder Alert-Ansichten. |
+| **2.7.171** | 🟡 refactor | Admin/System | **Der System-Sammel-Wrapper hängt näher an einem kleinen Section-Vertrag**: Section-Normalisierung, Action-Allowlist und Capability-Gates liegen jetzt sichtbar zentral statt losem Vertrauen auf die generische Section-Shell. |
+
+---
+
+### v2.7.170 — 25. März 2026 · Audit-Batch 252, gemeinsame SEO-/Analytics-Schicht bei section-spezifischen Capability-Gates nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.170** | 🔴 fix | Admin/SEO | **`seo-page.php` bindet SEO-Unterseiten jetzt an section-spezifische Read-/Write-Capabilities**: Analytics akzeptiert Lesezugriffe nur noch über `manage_settings` oder `view_analytics`, während Mutationen pro Section kontrolliert an `manage_settings` gebunden bleiben und capability-fremde Requests nicht mehr lose durch denselben Shared-Wrapper laufen. |
+| **2.7.170** | 🟠 perf | Admin/SEO | **Die gemeinsame SEO-Schicht verwirft section-fremde oder capability-fremde Requests früher und billiger**: Render- und POST-Pfade scheitern vor unnötigen Modulaufrufen, wenn Read-/Write-Vertrag und angeforderte Unterseite nicht zusammenpassen. |
+| **2.7.170** | 🟡 refactor | Admin/SEO | **Der SEO-Sammel-Wrapper hängt näher an einem kleinen, section-gebundenen Admin-Vertrag**: Read-/Write-Matrix und Capability-Helfer liegen jetzt sichtbar zentral statt losem Vertrauen auf den pauschalen Sammel-Entry. |
+
+---
+
+### v2.7.169 — 25. März 2026 · Audit-Batch 251, Member-Dashboard-Entry bei Legacy-Sections und Overview-Capabilities nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.169** | 🔴 fix | Admin/Member | **`member-dashboard.php` normalisiert Legacy-Sections jetzt wieder serverseitig und bindet die Overview an passende Read-Capabilities**: Legacy-Weiterleitungen übernehmen damit keine losen `section`-Werte mehr, und die Dashboard-Übersicht verlässt sich nicht länger nur auf `isAdmin()`. |
+| **2.7.169** | 🟠 perf | Admin/Member | **Der Member-Dashboard-Entry verwirft unzulässige Legacy-Ziele früher und billiger**: section-fremde oder capability-fremde Requests scheitern vor unnötigen Redirects in nachgelagerte Unterseiten. |
+| **2.7.169** | 🟡 refactor | Admin/Member | **Der Overview-Entry hängt näher am gemeinsamen Member-Dashboard-Vertrag**: Legacy-Routenmap und Overview-Access liegen jetzt sichtbar zentral statt losem Query-Vertrauen im Alias-Entry. |
+
+---
+
+### v2.7.168 — 25. März 2026 · Audit-Batch 250, Mail-Settings-Entry bei Read-/Write-Capability-Matrix nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.168** | 🔴 fix | Admin/System | **`mail-settings.php` trennt Leserechte und Mutationen jetzt explizit über eine Capability-Matrix**: Transport-, Azure-, Graph-, Logs- und Queue-Bereiche bleiben nur noch für `manage_settings`/`manage_system` lesbar, während Mutationen kontrolliert an `manage_settings` gebunden sind. |
+| **2.7.168** | 🟠 perf | Admin/System | **Der Mail-Entry verwirft capability-fremde Mutationen früher und billiger**: POST-Pfade scheitern bereits vor CSRF- und Modul-Dispatch, wenn der Write-Vertrag nicht erfüllt ist. |
+| **2.7.168** | 🟡 refactor | Admin/System | **Der Mail-Settings-Entry hängt näher am kleinen Wrapper-Vertrag aus Tab-, Action- und Capability-Gates**: Read-/Write-Helfer liegen jetzt sichtbar im Einstieg statt bloßem Vertrauen auf den breiten Admin-Guard. |
+
+---
+
+### v2.7.167 — 25. März 2026 · Audit-Batch 249, Legal-Sites-Entry bei Capability- und Template-Gates nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.167** | 🔴 fix | Admin/Legal | **`legal-sites.php` bindet Read-/Write-Zugriffe jetzt explizit an `manage_settings` und normalisiert Actions früher**: Save-, Profil-, Generate- und Create-Page-Pfade übernehmen damit keine capability-fremden Requests oder losen Action-Werte mehr direkt im Einstieg. |
+| **2.7.167** | 🟠 perf | Admin/Legal | **Der Legal-Sites-Entry verwirft unzulässige Mutationen früher und billiger**: unbekannte Aktionen oder ungültige `template_type`-Werte scheitern vor unnötigen Modulaufrufen im Generator- und Page-Flow. |
+| **2.7.167** | 🟡 refactor | Admin/Legal | **Der Rechtstext-Entry hängt näher am gemeinsamen Admin-Wrapper-Muster**: Capability-, Action- und Template-Gates liegen jetzt sichtbar in kleinen Helfern statt losem Vertrauen auf den Modulpfad. |
+
+---
+
+### v2.7.166 — 25. März 2026 · Audit-Batch 248, Font-Manager-Entry bei Read-/Write-Capabilities nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.166** | 🔴 fix | Admin/Font Manager | **`font-manager.php` bindet Ansicht und Mutationen jetzt explizit an `manage_settings`**: Save-, Scan-, Delete- und Google-Font-Download-Pfade übernehmen damit keine pauschalen Admin-Zugriffe mehr nur über `isAdmin()`. |
+| **2.7.166** | 🟠 perf | Admin/Font Manager | **Der Font-Manager-Entry verwirft capability-fremde Mutationen früher und billiger**: POST-Pfade scheitern bereits vor CSRF- und Handler-Dispatch, wenn der Settings-Vertrag nicht erfüllt ist. |
+| **2.7.166** | 🟡 refactor | Admin/Font Manager | **Der Entry hängt näher am kleinen Wrapper-Vertrag aus Action- und Capability-Gates**: Read-/Write-Helfer liegen jetzt sichtbar zentral statt losem Vertrauen auf den generischen Admin-Guard. |
+
+---
+
+### v2.7.165 — 25. März 2026 · Audit-Batch 247, Backup-Entry bei Read-/Write-Capability-Split nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.165** | 🔴 fix | Admin/System | **`backups.php` trennt Backup-Ansicht und Mutationen jetzt explizit über Read-/Write-Capabilities**: Listen und Restore-nahe Views bleiben an `manage_settings`/`manage_system` gebunden, während Create- und Delete-Pfade nur noch mit passender Write-Capability laufen. |
+| **2.7.165** | 🟠 perf | Admin/System | **Der Backup-Entry verwirft capability-fremde Mutationen früher und billiger**: POST-Pfade scheitern bereits vor CSRF- und Handler-Dispatch, wenn der Write-Vertrag nicht erfüllt ist. |
+| **2.7.165** | 🟡 refactor | Admin/System | **Der Backup-Wrapper hängt näher am Modulvertrag des `BackupsModule`**: Read-/Write-Helfer spiegeln jetzt sichtbar die vorhandene Capability-Trennung statt bloßem Vertrauen auf `isAdmin()`. |
+
+---
+
+### v2.7.164 — 25. März 2026 · Audit-Batch 246, gemeinsame Member-Dashboard-Schicht bei Section- und Capability-Gates nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.164** | 🔴 fix | Admin/Member | **`member-dashboard-page.php` normalisiert Section und Aktion jetzt bereits im Shared-Wrapper und bindet jede Unterseite an section-spezifische Capabilities**: General-, Design-, Widget-, Profilfeld-, Notification-, Onboarding- und Plugin-Widget-Pfade übernehmen dadurch keine bereichsfremden Zugriffe oder losen `action`-Werte mehr über denselben Sammel-Entry. |
+| **2.7.164** | 🟠 perf | Admin/Member | **Die gemeinsame Member-Dashboard-Schicht verwirft unzulässige Requests früher und billiger**: section-fremde Zugriffe oder unbekannte Aktionen scheitern vor unnötigen Modulaufrufen und halten den Shared-Wrapper kompakter. |
+| **2.7.164** | 🟡 refactor | Admin/Member | **Der Member-Dashboard-Sammel-Wrapper hängt näher an einem kleinen, section-gebundenen Admin-Vertrag**: Capability-Matrix, Section-Normalisierung und Save-Allowlist liegen jetzt sichtbar zentral statt losem Vertrauen auf den generischen Section-Shell-Guard. |
+
+---
+
+### v2.7.163 — 25. März 2026 · Audit-Batch 245, Media-Entry bei Capability- und Action-Gates nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.163** | 🔴 fix | Admin/Media | **`media.php` bindet Medien-Mutationen jetzt explizit an `manage_media` und normalisiert Actions serverseitig vor dem Dispatch**: Upload-, Folder-, Delete-, Kategorie- und Settings-Pfade übernehmen dadurch keine losen `action`-Werte oder capability-fremden Admin-Zugriffe mehr direkt im Einstieg. |
+| **2.7.163** | 🟠 perf | Admin/Media | **Der Media-Entry verwirft unzulässige Mutationen früher und billiger**: unbekannte Aktionen oder capability-fremde Requests scheitern vor unnötigen Service- und Modulaufrufen im Medienpfad. |
+| **2.7.163** | 🟡 refactor | Admin/Media | **Der Medien-Entry hängt näher am gemeinsamen Admin-Wrapper-Muster**: Capability-Gate und Action-Normalisierung liegen jetzt sichtbar zentral statt nur losem Vertrauen auf `isAdmin()` plus nachgelagerte Modulgrenzen. |
+
+---
+
+### v2.7.162 — 25. März 2026 · Audit-Batch 244, Landing-Page-Entry bei Tab-, Action- und Capability-Gates nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.162** | 🔴 fix | Admin/Landing | **`landing-page.php` begrenzt Tabs und POST-Aktionen jetzt explizit über kleine Allowlists, prüft Feature-IDs serverseitig und bindet den Entry an `manage_settings`**: Header-, Content-, Footer-, Design-, Feature- und Plugin-Pfade übernehmen dadurch keine losen `action`-Werte oder pauschalen Admin-Zugriffe mehr direkt im Einstieg. |
+| **2.7.162** | 🟠 perf | Admin/Landing | **Der Landing-Page-Entry verwirft unzulässige Mutationen früher und billiger**: unbekannte Aktionen, ungültige Feature-IDs oder capability-fremde Requests scheitern vor unnötigen Modulaufrufen im PRG-Flow. |
+| **2.7.162** | 🟡 refactor | Admin/Landing | **Der Landing-Page-Entry hängt näher am gemeinsamen Admin-Wrapper-Muster**: Tab-/Action-Normalisierung, ID-Gates und Capability-Prüfung liegen jetzt sichtbar zentral statt losem Request-Handling im Einstieg. |
+
+---
+
+### v2.7.161 — 25. März 2026 · Audit-Batch 243, Menü-Editor-Entry bei Action-, ID- und Capability-Gates nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.161** | 🔴 fix | Admin/Themes | **`menu-editor.php` begrenzt Menü-Mutationen jetzt explizit über eine kleine Action-Allowlist, normalisiert `menu_id` serverseitig und bindet den Entry an `manage_settings`**: Save-, Delete- und Item-Save-Pfade übernehmen dadurch keine losen `action`-/`menu_id`-Werte oder pauschalen Admin-Zugriffe mehr direkt im Einstieg. |
+| **2.7.161** | 🟠 perf | Admin/Themes | **Der Menü-Editor verwirft unzulässige Mutationen früher und billiger**: unbekannte Aktionen, ungültige Menü-IDs oder capability-fremde Requests scheitern vor unnötigen Modulaufrufen im PRG-Flow. |
+| **2.7.161** | 🟡 refactor | Admin/Themes | **Der Menü-Editor hängt näher am gemeinsamen Admin-Wrapper-Muster**: Action-, ID- und Capability-Gates liegen jetzt sichtbar in kleinen Helfern statt losem Vertrauen auf `isAdmin()` und rohe Request-Casts im Einstieg. |
+
+---
+
+### v2.7.160 — 25. März 2026 · Audit-Batch 242, gemeinsame Performance-Wrapper-Schicht auf section-gebundene Action-Gates gezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.160** | 🔴 fix | Admin/Performance | **`performance-page.php` normalisiert Section und Action jetzt gemeinsam serverseitig und akzeptiert pro Performance-Unterseite nur noch die tatsächlich erlaubten Mutationen**: Cache-, Datenbank-, Medien- und Session-Pfade übernehmen dadurch keine losen `action`-Werte mehr quer durch den gemeinsamen Sammel-Wrapper. |
+| **2.7.160** | 🟠 perf | Admin/Performance | **Die gemeinsame Performance-Schicht verwirft unzulässige Mutationen früher und billiger**: section-fremde oder unbekannte Aktionen scheitern vor unnötigen Modulaufrufen und halten Cache-, DB-, Media- und Session-Pfade kompakter. |
+| **2.7.160** | 🟡 refactor | Admin/Performance | **Der Performance-Sammel-Wrapper hängt näher an einem kleinen, section-gebundenen Admin-Vertrag**: Section-/Action-Allowlist und Capability-Gates über `manage_settings` liegen jetzt sichtbar zentral statt losem Sammel-Dispatch im POST-Handler. |
 
 ---
 

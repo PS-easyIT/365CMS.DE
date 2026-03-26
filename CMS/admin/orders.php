@@ -11,7 +11,6 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Auth;
-use CMS\Security;
 
 const CMS_ADMIN_ORDERS_ALLOWED_STATUSES = ['pending', 'paid', 'cancelled', 'refunded', 'failed'];
 const CMS_ADMIN_ORDERS_ALLOWED_BILLING_CYCLES = ['monthly', 'yearly', 'lifetime'];
@@ -74,32 +73,6 @@ function cms_admin_orders_redirect(): never
     exit;
 }
 
-function cms_admin_orders_flash(array $payload): void
-{
-    $_SESSION['admin_alert'] = [
-        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
-        'message' => trim((string)($payload['message'] ?? '')),
-    ];
-}
-
-function cms_admin_orders_flash_result(OrdersActionResult $result): void
-{
-    $payload = $result->toArray();
-
-    cms_admin_orders_flash([
-        'type' => !empty($payload['success']) ? 'success' : 'danger',
-        'message' => (string)($payload['message'] ?? $payload['error'] ?? ''),
-    ]);
-}
-
-function cms_admin_orders_pull_alert(): ?array
-{
-    $alert = $_SESSION['admin_alert'] ?? null;
-    unset($_SESSION['admin_alert']);
-
-    return is_array($alert) ? $alert : null;
-}
-
 function cms_admin_orders_normalize_status_filter(string $status): string
 {
     return cms_admin_orders_normalize_status_value($status);
@@ -128,41 +101,43 @@ if (!Auth::instance()->isAdmin()) {
 }
 
 require_once __DIR__ . '/modules/subscriptions/OrdersModule.php';
-$module    = new OrdersModule();
-$alert     = null;
-$allowedActions = cms_admin_orders_allowed_actions();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!Security::instance()->verifyToken((string) ($_POST['csrf_token'] ?? ''), 'admin_orders')) {
-        cms_admin_orders_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
-        cms_admin_orders_redirect();
-    }
+$sectionPageConfig = [
+    'route_path' => '/admin/orders',
+    'view_file' => __DIR__ . '/views/subscriptions/orders.php',
+    'page_title' => 'Bestellungen & Zuweisung',
+    'active_page' => 'orders',
+    'csrf_action' => 'admin_orders',
+    'module_file' => __DIR__ . '/modules/subscriptions/OrdersModule.php',
+    'module_factory' => static fn (): OrdersModule => new OrdersModule(),
+    'access_checker' => static fn (): bool => Auth::instance()->isAdmin(),
+    'request_context_resolver' => static function (OrdersModule $module): array {
+        $statusFilter = cms_admin_orders_normalize_status_filter((string) ($_GET['status'] ?? ''));
 
-    $action = cms_admin_orders_normalize_action($_POST['action'] ?? '');
-    if ($action === '') {
-        cms_admin_orders_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
-        cms_admin_orders_redirect();
-    }
+        return [
+            'section' => $statusFilter,
+            'data' => $module->getData($statusFilter)->toArray(),
+        ];
+    },
+    'redirect_path_resolver' => static function (OrdersModule $module, string $section): string {
+        $statusFilter = cms_admin_orders_normalize_status_filter($section);
 
-    $result = cms_admin_orders_handle_action($module, $action, $_POST);
-    if ($result === null) {
-        cms_admin_orders_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
-        cms_admin_orders_redirect();
-    }
+        return $statusFilter !== ''
+            ? '/admin/orders?status=' . rawurlencode($statusFilter)
+            : '/admin/orders';
+    },
+    'post_handler' => static function (OrdersModule $module, string $section, array $post): array {
+        $action = cms_admin_orders_normalize_action($post['action'] ?? '');
+        if ($action === '') {
+            return ['success' => false, 'error' => 'Unbekannte Aktion.'];
+        }
 
-    cms_admin_orders_flash_result($result);
-    cms_admin_orders_redirect();
-}
+        $result = cms_admin_orders_handle_action($module, $action, $post);
 
-$alert = cms_admin_orders_pull_alert();
+        return $result instanceof OrdersActionResult
+            ? $result->toArray()
+            : ['success' => false, 'error' => 'Unbekannte Aktion.'];
+    },
+];
 
-$csrfToken    = Security::instance()->generateToken('admin_orders');
-$statusFilter = cms_admin_orders_normalize_status_filter((string)($_GET['status'] ?? ''));
-$pageTitle    = 'Bestellungen & Zuweisung';
-$activePage   = 'orders';
-$data         = $module->getData($statusFilter)->toArray();
-
-require_once __DIR__ . '/partials/header.php';
-require_once __DIR__ . '/partials/sidebar.php';
-require_once __DIR__ . '/views/subscriptions/orders.php';
-require_once __DIR__ . '/partials/footer.php';
+require __DIR__ . '/partials/section-page-shell.php';

@@ -11,7 +11,6 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Auth;
-use CMS\Security;
 
 const CMS_ADMIN_FIREWALL_ALLOWED_ACTIONS = [
     'save_settings',
@@ -26,50 +25,6 @@ const CMS_ADMIN_FIREWALL_ACTION_CAPABILITIES = [
     'delete_rule' => 'manage_settings',
     'toggle_rule' => 'manage_settings',
 ];
-
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
-}
-
-require_once __DIR__ . '/modules/security/FirewallModule.php';
-$module = new FirewallModule();
-$alert = null;
-
-function cms_admin_firewall_target_url(): string
-{
-    return SITE_URL . '/admin/firewall';
-}
-
-function cms_admin_firewall_redirect(): never
-{
-    header('Location: ' . cms_admin_firewall_target_url());
-    exit;
-}
-
-function cms_admin_firewall_flash(array $payload): void
-{
-    $_SESSION['admin_alert'] = [
-        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
-        'message' => trim((string) ($payload['message'] ?? '')),
-    ];
-}
-
-function cms_admin_firewall_flash_result(array $result): void
-{
-    cms_admin_firewall_flash([
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
-    ]);
-}
-
-function cms_admin_firewall_pull_alert(): ?array
-{
-    $alert = $_SESSION['admin_alert'] ?? null;
-    unset($_SESSION['admin_alert']);
-
-    return is_array($alert) ? $alert : null;
-}
 
 function cms_admin_firewall_normalize_action(mixed $action): string
 {
@@ -106,33 +61,37 @@ function cms_admin_firewall_handle_action(FirewallModule $module, string $action
     };
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = cms_admin_firewall_normalize_action($_POST['action'] ?? '');
+$sectionPageConfig = [
+    'section' => 'firewall',
+    'route_path' => '/admin/firewall',
+    'view_file' => __DIR__ . '/views/security/firewall.php',
+    'page_title' => 'Firewall',
+    'active_page' => 'firewall',
+    'page_assets' => [],
+    'csrf_action' => 'admin_firewall',
+    'module_file' => __DIR__ . '/modules/security/FirewallModule.php',
+    'module_factory' => static fn (): FirewallModule => new FirewallModule(),
+    'data_loader' => static fn (FirewallModule $module): array => $module->getData(),
+    'access_checker' => static fn (): bool => Auth::instance()->isAdmin(),
+    'invalid_token_message' => 'Sicherheitstoken ungültig.',
+    'unknown_action_message' => 'Firewall-Aktion konnte nicht verarbeitet werden.',
+    'post_handler' => static function (FirewallModule $module, string $section, array $post): array {
+        $action = cms_admin_firewall_normalize_action($post['action'] ?? '');
 
-    if ($action === '' || !$module->isSupportedAction($action)) {
-        cms_admin_firewall_flash(['type' => 'danger', 'message' => 'Unbekannte Firewall-Aktion.']);
-    } elseif (!Security::instance()->verifyToken((string) ($_POST['csrf_token'] ?? ''), 'admin_firewall')) {
-        cms_admin_firewall_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
-    } elseif (!cms_admin_firewall_can_run_action($action)) {
-        cms_admin_firewall_flash(['type' => 'danger', 'message' => 'Keine Berechtigung für diese Firewall-Aktion.']);
-    } elseif (in_array($action, ['delete_rule', 'toggle_rule'], true) && cms_admin_firewall_normalize_positive_id($_POST['id'] ?? 0) <= 0) {
-        cms_admin_firewall_flash(['type' => 'danger', 'message' => 'Ungültige Firewall-Regel-ID.']);
-    } else {
-        $result = cms_admin_firewall_handle_action($module, $action, $_POST);
-        cms_admin_firewall_flash_result($result);
-    }
+        if ($action === '' || !$module->isSupportedAction($action)) {
+            return ['success' => false, 'error' => 'Unbekannte Firewall-Aktion.'];
+        }
 
-    cms_admin_firewall_redirect();
-}
+        if (!cms_admin_firewall_can_run_action($action)) {
+            return ['success' => false, 'error' => 'Keine Berechtigung für diese Firewall-Aktion.'];
+        }
 
-$alert = cms_admin_firewall_pull_alert();
+        if (in_array($action, ['delete_rule', 'toggle_rule'], true) && cms_admin_firewall_normalize_positive_id($post['id'] ?? 0) <= 0) {
+            return ['success' => false, 'error' => 'Ungültige Firewall-Regel-ID.'];
+        }
 
-$csrfToken  = Security::instance()->generateToken('admin_firewall');
-$pageTitle  = 'Firewall';
-$activePage = 'firewall';
-$data       = $module->getData();
+        return cms_admin_firewall_handle_action($module, $action, $post);
+    },
+];
 
-require_once __DIR__ . '/partials/header.php';
-require_once __DIR__ . '/partials/sidebar.php';
-require_once __DIR__ . '/views/security/firewall.php';
-require_once __DIR__ . '/partials/footer.php';
+require __DIR__ . '/partials/section-page-shell.php';

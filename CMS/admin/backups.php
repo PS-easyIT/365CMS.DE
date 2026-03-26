@@ -11,51 +11,34 @@ if (!defined('ABSPATH')) {
  */
 
 use CMS\Auth;
-use CMS\Security;
 
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
+const CMS_ADMIN_BACKUPS_READ_CAPABILITIES = ['manage_settings', 'manage_system'];
+const CMS_ADMIN_BACKUPS_WRITE_CAPABILITY = 'manage_settings';
+
+function cms_admin_backups_has_any_capability(array $capabilities): bool
+{
+    foreach ($capabilities as $capability) {
+        if (is_string($capability) && $capability !== '' && Auth::instance()->hasCapability($capability)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function cms_admin_backups_can_access(): bool
+{
+    return Auth::instance()->isAdmin()
+        && cms_admin_backups_has_any_capability(CMS_ADMIN_BACKUPS_READ_CAPABILITIES);
+}
+
+function cms_admin_backups_can_mutate(): bool
+{
+    return cms_admin_backups_can_access()
+        && Auth::instance()->hasCapability(CMS_ADMIN_BACKUPS_WRITE_CAPABILITY);
 }
 
 require_once __DIR__ . '/modules/system/BackupsModule.php';
-$module    = new BackupsModule();
-$alert     = null;
-
-function cms_admin_backups_target_url(): string
-{
-    return SITE_URL . '/admin/backups';
-}
-
-function cms_admin_backups_redirect(): never
-{
-    header('Location: ' . cms_admin_backups_target_url());
-    exit;
-}
-
-function cms_admin_backups_flash(array $payload): void
-{
-    $_SESSION['admin_alert'] = [
-        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
-        'message' => trim((string) ($payload['message'] ?? '')),
-    ];
-}
-
-function cms_admin_backups_flash_result(array $result): void
-{
-    cms_admin_backups_flash([
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => (string) ($result['message'] ?? $result['error'] ?? 'Unbekannte Antwort.'),
-    ]);
-}
-
-function cms_admin_backups_pull_alert(): ?array
-{
-    $alert = $_SESSION['admin_alert'] ?? null;
-    unset($_SESSION['admin_alert']);
-
-    return is_array($alert) ? $alert : null;
-}
 
 /** @return array<string, true> */
 function cms_admin_backups_allowed_actions(): array
@@ -93,46 +76,53 @@ function cms_admin_backups_action_handlers(BackupsModule $module): array
     ];
 }
 
-$actionHandlers = cms_admin_backups_action_handlers($module);
+$sectionPageConfig = [
+    'section' => 'overview',
+    'route_path' => '/admin/backups',
+    'view_file' => __DIR__ . '/views/system/backups.php',
+    'page_title' => 'Backup & Restore',
+    'active_page' => 'backups',
+    'page_assets' => [
+        'css' => [],
+        'js' => [],
+    ],
+    'csrf_action' => 'admin_backups',
+    'guard_constant' => 'CMS_ADMIN_SYSTEM_VIEW',
+    'module_factory' => static function (): BackupsModule {
+        return new BackupsModule();
+    },
+    'data_loader' => static function ($module): array {
+        return $module instanceof BackupsModule ? $module->getData() : [];
+    },
+    'access_checker' => static function (): bool {
+        return cms_admin_backups_can_access();
+    },
+    'access_denied_route' => '/',
+    'post_handler' => static function ($module, string $section, array $postData): array {
+        if (!$module instanceof BackupsModule) {
+            return ['success' => false, 'error' => 'Backup-Modul konnte nicht initialisiert werden.'];
+        }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $postToken = (string) ($_POST['csrf_token'] ?? '');
-    if (!Security::instance()->verifyToken($postToken, 'admin_backups')) {
-        cms_admin_backups_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
-        cms_admin_backups_redirect();
-    }
+        if (!cms_admin_backups_can_mutate()) {
+            return ['success' => false, 'error' => 'Keine Berechtigung für Backup-Mutationen.'];
+        }
 
-    $action = cms_admin_backups_normalize_action($_POST['action'] ?? null);
-    if ($action === null) {
-        cms_admin_backups_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
-        cms_admin_backups_redirect();
-    }
+        $action = cms_admin_backups_normalize_action($postData['action'] ?? null);
+        if ($action === null) {
+            return ['success' => false, 'error' => 'Unbekannte Aktion.'];
+        }
 
-    if ($action === 'delete' && cms_admin_backups_normalize_backup_name($_POST) === '') {
-        cms_admin_backups_flash(['type' => 'danger', 'message' => 'Ungültiger Backup-Name.']);
-        cms_admin_backups_redirect();
-    }
+        if ($action === 'delete' && cms_admin_backups_normalize_backup_name($postData) === '') {
+            return ['success' => false, 'error' => 'Ungültiger Backup-Name.'];
+        }
 
-    $handler = $actionHandlers[$action] ?? null;
-    if (!is_callable($handler)) {
-        cms_admin_backups_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
-        cms_admin_backups_redirect();
-    }
+        $handler = cms_admin_backups_action_handlers($module)[$action] ?? null;
 
-    cms_admin_backups_flash_result($handler($_POST));
-    cms_admin_backups_redirect();
-}
+        return is_callable($handler)
+            ? $handler($postData)
+            : ['success' => false, 'error' => 'Unbekannte Aktion.'];
+    },
+    'unknown_action_message' => 'Unbekannte Aktion.',
+];
 
-$alert = cms_admin_backups_pull_alert();
-
-$csrfToken  = Security::instance()->generateToken('admin_backups');
-$data       = $module->getData();
-$pageTitle  = 'Backup & Restore';
-$activePage = 'backups';
-$pageAssets = [];
-
-require __DIR__ . '/partials/header.php';
-require __DIR__ . '/partials/sidebar.php';
-defined('CMS_ADMIN_SYSTEM_VIEW') || define('CMS_ADMIN_SYSTEM_VIEW', true);
-require __DIR__ . '/views/system/backups.php';
-require __DIR__ . '/partials/footer.php';
+require __DIR__ . '/partials/section-page-shell.php';

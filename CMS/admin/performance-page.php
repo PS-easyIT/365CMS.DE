@@ -14,6 +14,45 @@ const CMS_ADMIN_PERFORMANCE_SECTION_ACTIONS = [
     'settings' => ['save_settings'],
 ];
 
+const CMS_ADMIN_PERFORMANCE_PAGE_CONFIGS = [
+    'overview' => [
+        'route_path' => '/admin/performance',
+        'view_file' => __DIR__ . '/views/seo/performance.php',
+        'page_title' => 'Performance',
+        'active_page' => 'performance',
+    ],
+    'cache' => [
+        'route_path' => '/admin/performance-cache',
+        'view_file' => __DIR__ . '/views/performance/cache.php',
+        'page_title' => 'Performance · Cache-Verwaltung',
+        'active_page' => 'performance-cache',
+    ],
+    'database' => [
+        'route_path' => '/admin/performance-database',
+        'view_file' => __DIR__ . '/views/performance/database.php',
+        'page_title' => 'Performance · Datenbank-Wartung',
+        'active_page' => 'performance-database',
+    ],
+    'media' => [
+        'route_path' => '/admin/performance-media',
+        'view_file' => __DIR__ . '/views/performance/media.php',
+        'page_title' => 'Performance · Medien-Optimierung',
+        'active_page' => 'performance-media',
+    ],
+    'sessions' => [
+        'route_path' => '/admin/performance-sessions',
+        'view_file' => __DIR__ . '/views/performance/sessions.php',
+        'page_title' => 'Performance · Session-Verwaltung',
+        'active_page' => 'performance-sessions',
+    ],
+    'settings' => [
+        'route_path' => '/admin/performance-settings',
+        'view_file' => __DIR__ . '/views/performance/settings.php',
+        'page_title' => 'Performance · Einstellungen',
+        'active_page' => 'performance-settings',
+    ],
+];
+
 function cms_admin_performance_can_access(): bool
 {
     return \CMS\Auth::instance()->isAdmin() && \CMS\Auth::instance()->hasCapability('manage_settings');
@@ -55,24 +94,16 @@ function cms_admin_performance_can_run_action(string $section, string $action): 
  */
 function cms_admin_performance_normalize_page_config(array $pageConfig): array
 {
-    $defaults = [
-        'section' => 'overview',
-        'route_path' => '/admin/performance',
-        'view_file' => __DIR__ . '/views/seo/performance.php',
-        'page_title' => 'Performance',
-        'active_page' => 'performance',
-        'page_assets' => [],
-    ];
-
-    $normalized = array_merge($defaults, $pageConfig);
+    $section = cms_admin_performance_normalize_section((string) ($pageConfig['section'] ?? 'overview'));
+    $defaults = CMS_ADMIN_PERFORMANCE_PAGE_CONFIGS[$section] ?? CMS_ADMIN_PERFORMANCE_PAGE_CONFIGS['overview'];
 
     return [
-        'section' => (string) ($normalized['section'] ?? $defaults['section']),
-        'route_path' => (string) ($normalized['route_path'] ?? $defaults['route_path']),
-        'view_file' => (string) ($normalized['view_file'] ?? $defaults['view_file']),
-        'page_title' => (string) ($normalized['page_title'] ?? $defaults['page_title']),
-        'active_page' => (string) ($normalized['active_page'] ?? $defaults['active_page']),
-        'page_assets' => is_array($normalized['page_assets'] ?? null) ? $normalized['page_assets'] : [],
+        'section' => $section,
+        'route_path' => (string) ($defaults['route_path'] ?? '/admin/performance'),
+        'view_file' => (string) ($defaults['view_file'] ?? (__DIR__ . '/views/seo/performance.php')),
+        'page_title' => (string) ($defaults['page_title'] ?? 'Performance'),
+        'active_page' => (string) ($defaults['active_page'] ?? 'performance'),
+        'page_assets' => is_array($pageConfig['page_assets'] ?? null) ? $pageConfig['page_assets'] : [],
     ];
 }
 
@@ -125,8 +156,10 @@ $sectionPageConfig = [
 
         return $module->handleAction($normalizedSection, $action, $postData);
     },
-    'data_loader' => static function ($module): array {
-        return $module instanceof PerformanceModule ? $module->getData() : [];
+    'data_loader' => static function ($module) use ($performancePageConfig): array {
+        return $module instanceof PerformanceModule
+            ? $module->getSectionData((string) ($performancePageConfig['section'] ?? 'overview'))
+            : [];
     },
 ];
 

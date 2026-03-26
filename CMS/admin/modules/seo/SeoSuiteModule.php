@@ -120,10 +120,9 @@ final class SeoSuiteModule
 
 	public function getData(string $section = 'dashboard'): array
 	{
-		// FIX: Audit-Zeilen immer zentral normalisieren, damit Views niemals auf rohe Datenstrukturen angewiesen sind.
-		$auditRows = $this->normalizeAuditRows($this->analysisService->enrichAuditRows($this->seoService->getAuditRows()));
-		$overview = $this->buildOverview($auditRows);
-		$decoratedAuditRows = (array)($overview['content'] ?? $auditRows);
+		$context = $this->buildSectionContext();
+		$overview = $context['overview'];
+		$decoratedAuditRows = $context['audit_rows'];
 
 		return [
 			'section' => $section,
@@ -137,6 +136,52 @@ final class SeoSuiteModule
 			'sitemap' => $this->getSitemapData($decoratedAuditRows),
 			'technical' => $this->getTechnicalData($decoratedAuditRows),
 		];
+	}
+
+	public function getSectionData(string $section = 'dashboard'): array
+	{
+		$section = strtolower(trim($section));
+		$context = $this->buildSectionContext();
+		$overview = $context['overview'];
+		$decoratedAuditRows = $context['audit_rows'];
+
+		return match ($section) {
+			'dashboard' => [
+				'section' => 'dashboard',
+				'overview' => $overview,
+				'dashboard' => $this->getDashboardData($decoratedAuditRows, $overview),
+			],
+			'analytics' => [
+				'section' => 'analytics',
+				'analytics' => $this->getAnalyticsData($decoratedAuditRows),
+			],
+			'audit' => [
+				'section' => 'audit',
+				'overview' => $overview,
+				'audit' => $this->getAuditData($decoratedAuditRows),
+			],
+			'meta' => [
+				'section' => 'meta',
+				'meta' => $this->getMetaData($decoratedAuditRows),
+			],
+			'social' => [
+				'section' => 'social',
+				'social' => $this->getSocialData($decoratedAuditRows),
+			],
+			'schema' => [
+				'section' => 'schema',
+				'schema' => $this->getSchemaData($decoratedAuditRows),
+			],
+			'sitemap' => [
+				'section' => 'sitemap',
+				'sitemap' => $this->getSitemapData($decoratedAuditRows),
+			],
+			'technical' => [
+				'section' => 'technical',
+				'technical' => $this->getTechnicalData($decoratedAuditRows),
+			],
+			default => $this->getData($section),
+		};
 	}
 
 	public function handleAction(string $section, string $action, array $post): array
@@ -732,6 +777,21 @@ final class SeoSuiteModule
 				'robots_date' => $robotsStatus['updated_at'] ?? null,
 				'files' => $files,
 			],
+		];
+	}
+
+	/**
+	 * @return array{overview: array<string, mixed>, audit_rows: array<int, array<string, mixed>>}
+	 */
+	private function buildSectionContext(): array
+	{
+		// FIX: Audit-Zeilen immer zentral normalisieren, damit Views niemals auf rohe Datenstrukturen angewiesen sind.
+		$auditRows = $this->normalizeAuditRows($this->analysisService->enrichAuditRows($this->seoService->getAuditRows()));
+		$overview = $this->buildOverview($auditRows);
+
+		return [
+			'overview' => $overview,
+			'audit_rows' => (array)($overview['content'] ?? $auditRows),
 		];
 	}
 

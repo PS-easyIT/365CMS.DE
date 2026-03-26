@@ -6,14 +6,6 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Auth;
-use CMS\Security;
-
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
-}
-
-require_once __DIR__ . '/modules/seo/SeoSuiteModule.php';
 
 /**
  * @return array<string, array{route_path: string, view_file: string, page_title: string, active_page: string, actions: list<string>}>
@@ -78,6 +70,52 @@ function cms_admin_seo_allowed_page_configs(): array
             'actions' => ['save_analytics_settings', 'regenerate_sitemap_bundle', 'save_robots'],
         ],
     ];
+}
+
+/**
+ * @return array<string, list<string>>
+ */
+function cms_admin_seo_read_capabilities_by_section(): array
+{
+    return [
+        'dashboard' => ['manage_settings'],
+        'audit' => ['manage_settings'],
+        'meta' => ['manage_settings'],
+        'social' => ['manage_settings'],
+        'schema' => ['manage_settings'],
+        'sitemap' => ['manage_settings'],
+        'technical' => ['manage_settings'],
+        'analytics' => ['manage_settings', 'view_analytics'],
+    ];
+}
+
+function cms_admin_seo_write_capability_by_section(string $section): string
+{
+    return 'manage_settings';
+}
+
+function cms_admin_seo_has_any_capability(array $capabilities): bool
+{
+    foreach ($capabilities as $capability) {
+        if (is_string($capability) && $capability !== '' && Auth::instance()->hasCapability($capability)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function cms_admin_seo_can_access_section(string $section): bool
+{
+    $capabilities = cms_admin_seo_read_capabilities_by_section()[$section] ?? ['manage_settings'];
+
+    return Auth::instance()->isAdmin() && cms_admin_seo_has_any_capability($capabilities);
+}
+
+function cms_admin_seo_can_mutate_section(string $section): bool
+{
+    return cms_admin_seo_can_access_section($section)
+        && Auth::instance()->hasCapability(cms_admin_seo_write_capability_by_section($section));
 }
 
 /**
@@ -148,20 +186,6 @@ function cms_admin_seo_normalize_redirect_target(mixed $returnTo, string $fallba
     return in_array($targetPath, cms_admin_seo_allowed_routes(), true) ? $targetPath : $fallback;
 }
 
-function cms_admin_seo_flash(string $type, string $message): void
-{
-    $_SESSION['admin_alert'] = [
-        'type' => $type,
-        'message' => $message,
-    ];
-}
-
-function cms_admin_seo_redirect(string $path): void
-{
-    header('Location: ' . SITE_URL . $path);
-    exit;
-}
-
 $seoPageConfig = cms_admin_seo_normalize_page_config(array_merge(
     [
         'section' => $seoSection ?? 'dashboard',
@@ -178,43 +202,53 @@ $seoRoutePath = $seoPageConfig['route_path'];
 $seoViewFile = $seoPageConfig['view_file'];
 $pageTitle = $seoPageConfig['page_title'];
 $activePage = $seoPageConfig['active_page'];
-$module = new SeoSuiteModule();
-$alert = null;
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $postToken = $_POST['csrf_token'] ?? '';
-    $redirectTarget = cms_admin_seo_normalize_redirect_target($_POST['return_to'] ?? '', $seoRoutePath);
+$sectionPageConfig = [
+    'section' => $seoSection,
+    'route_path' => $seoRoutePath,
+    'view_file' => $seoViewFile,
+    'page_title' => $pageTitle,
+    'active_page' => $activePage,
+    'csrf_action' => 'admin_seo_suite',
+    'guard_constant' => 'CMS_ADMIN_SEO_VIEW',
+    'module_file' => __DIR__ . '/modules/seo/SeoSuiteModule.php',
+    'module_factory' => static fn (): SeoSuiteModule => new SeoSuiteModule(),
+    'access_checker' => static fn (): bool => cms_admin_seo_can_access_section($seoSection),
+    'invalid_token_message' => 'Sicherheitstoken ungültig.',
+    'unknown_action_message' => 'Unbekannte Antwort.',
+    'redirect_path_resolver' => static function (SeoSuiteModule $module, string $section, ?array $result = null) use ($seoRoutePath): string {
+        $fallback = $seoRoutePath;
+        $requestedTarget = $_POST['return_to'] ?? ($result['redirect_path'] ?? '');
 
-    if (!Security::instance()->verifyToken($postToken, 'admin_seo_suite')) {
-        cms_admin_seo_flash('danger', 'Sicherheitstoken ungültig.');
-        cms_admin_seo_redirect($redirectTarget);
-    }
+        return cms_admin_seo_normalize_redirect_target($requestedTarget, $fallback);
+    },
+    'data_loader' => static function (SeoSuiteModule $module) use ($seoSection): array {
+        return method_exists($module, 'getSectionData')
+            ? $module->getSectionData($seoSection)
+            : $module->getData($seoSection);
+    },
+    'post_handler' => static function (SeoSuiteModule $module, string $section, array $post): array {
+        if (!cms_admin_seo_can_mutate_section($section)) {
+            return [
+                'success' => false,
+                'error' => 'Keine Berechtigung für SEO-Mutationen in diesem Bereich.',
+            ];
+        }
 
-    $action = cms_admin_seo_normalize_action($seoSection, $_POST['action'] ?? '');
-    if ($action === '') {
-        cms_admin_seo_flash('danger', 'Unbekannte oder für diese SEO-Seite unzulässige Aktion.');
-        cms_admin_seo_redirect($redirectTarget);
-    }
+        $action = cms_admin_seo_normalize_action($section, $post['action'] ?? '');
+        if ($action === '') {
+            return [
+                'success' => false,
+                'error' => 'Unbekannte oder für diese SEO-Seite unzulässige Aktion.',
+            ];
+        }
 
-    $result = $module->handleAction($seoSection, $action, $_POST);
-    cms_admin_seo_flash(
-        !empty($result['success']) ? 'success' : 'danger',
-        (string)($result['message'] ?? $result['error'] ?? 'Unbekannte Antwort.')
-    );
+        $result = $module->handleAction($section, $action, $post);
+        return is_array($result) ? $result : [
+            'success' => false,
+            'error' => 'Unbekannte Antwort.',
+        ];
+    },
+];
 
-    cms_admin_seo_redirect($redirectTarget);
-}
-
-if (!empty($_SESSION['admin_alert'])) {
-    $alert = $_SESSION['admin_alert'];
-    unset($_SESSION['admin_alert']);
-}
-
-$csrfToken = Security::instance()->generateToken('admin_seo_suite');
-$data = $module->getData((string)$seoSection);
-defined('CMS_ADMIN_SEO_VIEW') || define('CMS_ADMIN_SEO_VIEW', true);
-
-require __DIR__ . '/partials/header.php';
-require __DIR__ . '/partials/sidebar.php';
-require $seoViewFile;
-require __DIR__ . '/partials/footer.php';
+require __DIR__ . '/partials/section-page-shell.php';

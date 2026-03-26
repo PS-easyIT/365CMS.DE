@@ -11,54 +11,6 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Auth;
-use CMS\Security;
-
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
-}
-
-require_once __DIR__ . '/modules/legal/PrivacyRequestsModule.php';
-require_once __DIR__ . '/modules/legal/DeletionRequestsModule.php';
-
-$privacyModule  = new PrivacyRequestsModule();
-$deletionModule = new DeletionRequestsModule();
-$alert          = null;
-
-function cms_admin_data_requests_redirect(): never
-{
-    header('Location: ' . SITE_URL . '/admin/data-requests');
-    exit;
-}
-
-function cms_admin_data_requests_normalize_alert(array $payload): array
-{
-    return [
-        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
-        'message' => trim((string) ($payload['message'] ?? '')),
-    ];
-}
-
-function cms_admin_data_requests_flash(array $payload): void
-{
-    $_SESSION['admin_alert'] = cms_admin_data_requests_normalize_alert($payload);
-}
-
-function cms_admin_data_requests_flash_result(array $result): void
-{
-    cms_admin_data_requests_flash([
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
-    ]);
-}
-
-function cms_admin_data_requests_pull_alert(): ?array
-{
-    $alert = $_SESSION['admin_alert'] ?? null;
-    unset($_SESSION['admin_alert']);
-
-    return is_array($alert) ? $alert : null;
-}
 
 /** @return array<string, array<string, true>> */
 function cms_admin_data_requests_allowed_actions_by_scope(): array
@@ -156,37 +108,42 @@ function cms_admin_data_requests_handle_scope_action(
     };
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!Security::instance()->verifyToken((string) ($_POST['csrf_token'] ?? ''), 'admin_data_requests')) {
-        cms_admin_data_requests_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
-        cms_admin_data_requests_redirect();
-    }
+$sectionPageConfig = [
+    'section' => 'data-requests',
+    'route_path' => '/admin/data-requests',
+    'view_file' => __DIR__ . '/views/legal/data-requests.php',
+    'page_title' => 'Auskunft & Löschen',
+    'active_page' => 'data-requests',
+    'page_assets' => [],
+    'csrf_action' => 'admin_data_requests',
+    'module_file' => __DIR__ . '/modules/legal/PrivacyRequestsModule.php',
+    'module_factory' => static function (): array {
+        require_once __DIR__ . '/modules/legal/DeletionRequestsModule.php';
 
-    $scope = cms_admin_data_requests_normalize_scope($_POST['scope'] ?? null);
-    $action = cms_admin_data_requests_normalize_action($scope, $_POST['action'] ?? null);
+        return [
+            'privacy' => new PrivacyRequestsModule(),
+            'deletion' => new DeletionRequestsModule(),
+        ];
+    },
+    'data_loader' => static function (array $modules): array {
+        return [
+            'privacy' => $modules['privacy']->getData(),
+            'deletion' => $modules['deletion']->getData(),
+        ];
+    },
+    'access_checker' => static fn (): bool => Auth::instance()->isAdmin(),
+    'invalid_token_message' => 'Sicherheitstoken ungültig.',
+    'unknown_action_message' => 'Unbekannte oder nicht erlaubte Aktion.',
+    'post_handler' => static function (array $modules, string $section, array $post): array {
+        $scope = cms_admin_data_requests_normalize_scope($post['scope'] ?? null);
+        $action = cms_admin_data_requests_normalize_action($scope, $post['action'] ?? null);
 
-    if ($scope === null || $action === null) {
-        cms_admin_data_requests_flash(['type' => 'danger', 'message' => 'Unbekannte oder nicht erlaubte Aktion.']);
-        cms_admin_data_requests_redirect();
-    }
+        if ($scope === null || $action === null) {
+            return ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'];
+        }
 
-    $result = cms_admin_data_requests_handle_scope_action($privacyModule, $deletionModule, $scope, $action, $_POST);
-
-    cms_admin_data_requests_flash_result($result);
-    cms_admin_data_requests_redirect();
-}
-
-$alert = cms_admin_data_requests_pull_alert();
-
-$csrfToken  = Security::instance()->generateToken('admin_data_requests');
-$pageTitle  = 'Auskunft & Löschen';
-$activePage = 'data-requests';
-$data       = [
-    'privacy' => $privacyModule->getData(),
-    'deletion' => $deletionModule->getData(),
+        return cms_admin_data_requests_handle_scope_action($modules['privacy'], $modules['deletion'], $scope, $action, $post);
+    },
 ];
 
-require_once __DIR__ . '/partials/header.php';
-require_once __DIR__ . '/partials/sidebar.php';
-require_once __DIR__ . '/views/legal/data-requests.php';
-require_once __DIR__ . '/partials/footer.php';
+require __DIR__ . '/partials/section-page-shell.php';

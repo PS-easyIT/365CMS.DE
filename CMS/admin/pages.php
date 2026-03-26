@@ -15,7 +15,6 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Auth;
-use CMS\Security;
 use CMS\Services\EditorJsService;
 use CMS\Services\EditorService;
 
@@ -32,42 +31,10 @@ function cms_admin_pages_can_access(): bool
 function cms_admin_pages_target_url(?int $id = null): string
 {
     if ($id !== null && $id > 0) {
-        return SITE_URL . '/admin/pages?action=edit&id=' . $id;
+        return '/admin/pages?action=edit&id=' . $id;
     }
 
-    return SITE_URL . '/admin/pages';
-}
-
-function cms_admin_pages_redirect(string $redirectUrl): never
-{
-    header('Location: ' . $redirectUrl);
-    exit;
-}
-
-function cms_admin_pages_flash(array $payload): void
-{
-    $_SESSION['admin_alert'] = [
-        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
-        'message' => trim((string) ($payload['message'] ?? '')),
-        'details' => is_array($payload['details'] ?? null) ? $payload['details'] : [],
-    ];
-}
-
-function cms_admin_pages_flash_result(array $result): void
-{
-    cms_admin_pages_flash([
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
-        'details' => $result['details'] ?? [],
-    ]);
-}
-
-function cms_admin_pages_pull_alert(): ?array
-{
-    $alert = $_SESSION['admin_alert'] ?? null;
-    unset($_SESSION['admin_alert']);
-
-    return is_array($alert) ? $alert : null;
+    return '/admin/pages';
 }
 
 function cms_admin_pages_normalize_action(mixed $action): string
@@ -123,131 +90,47 @@ function cms_admin_pages_normalize_bulk_ids(mixed $ids, mixed $csvIds = ''): arr
     return array_values($normalizedIds);
 }
 
-// ─── Auth-Check ────────────────────────────────────────────────────────────
-if (!cms_admin_pages_can_access()) {
-    header('Location: ' . SITE_URL);
-    exit;
-}
-
-// ─── Module laden ──────────────────────────────────────────────────────────
-require_once __DIR__ . '/modules/pages/PagesModule.php';
-$module    = new PagesModule();
-$alert     = null;
-
-// ─── POST-Verarbeitung ────────────────────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $postToken = (string)($_POST['csrf_token'] ?? '');
-    $postAction = cms_admin_pages_normalize_action($_POST['action'] ?? '');
-
-    if (!Security::instance()->verifyToken($postToken, 'admin_pages')) {
-        cms_admin_pages_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig. Bitte erneut versuchen.']);
-        cms_admin_pages_redirect(cms_admin_pages_target_url());
-    }
-
-    if ($postAction === '') {
-        cms_admin_pages_flash(['type' => 'danger', 'message' => 'Unbekannte Seiten-Aktion.']);
-        cms_admin_pages_redirect(cms_admin_pages_target_url());
-    }
-
-    switch ($postAction) {
-        case 'save':
-            $userId = Auth::instance()->getCurrentUser()->id ?? 0;
-            $result = $module->save($_POST, (int) $userId);
-            if ($result['success']) {
-                cms_admin_pages_flash_result($result);
-                cms_admin_pages_redirect(cms_admin_pages_target_url(cms_admin_pages_normalize_positive_id($result['id'] ?? 0)));
-            }
-
-            $alert = [
-                'type' => 'danger',
-                'message' => (string) ($result['error'] ?? 'Seite konnte nicht gespeichert werden.'),
-                'details' => is_array($result['details'] ?? null) ? $result['details'] : [],
-            ];
-            break;
-
-        case 'delete':
-            $id = cms_admin_pages_normalize_positive_id($_POST['id'] ?? 0);
-            if ($id < 1) {
-                cms_admin_pages_flash(['type' => 'danger', 'message' => 'Ungültige Seiten-ID.']);
-                cms_admin_pages_redirect(cms_admin_pages_target_url());
-            }
-
-            $result = $module->delete($id);
-            cms_admin_pages_flash_result($result);
-            cms_admin_pages_redirect(cms_admin_pages_target_url());
-
-        case 'bulk':
-            $bulkAction = cms_admin_pages_normalize_bulk_action($_POST['bulk_action'] ?? '');
-            $bulkIds = cms_admin_pages_normalize_bulk_ids($_POST['ids'] ?? [], $_POST['bulk_ids'] ?? '');
-            if ($bulkAction === '') {
-                cms_admin_pages_flash(['type' => 'danger', 'message' => 'Unbekannte Bulk-Aktion für Seiten.']);
-                cms_admin_pages_redirect(cms_admin_pages_target_url());
-            }
-
-            if ($bulkIds === []) {
-                cms_admin_pages_flash(['type' => 'danger', 'message' => 'Bitte mindestens eine gültige Seite auswählen.']);
-                cms_admin_pages_redirect(cms_admin_pages_target_url());
-            }
-
-            $result = $module->bulkAction($bulkAction, $bulkIds, $_POST);
-            cms_admin_pages_flash_result($result);
-            cms_admin_pages_redirect(cms_admin_pages_target_url());
-    }
-}
-
-// Session-Alert abholen
-if ($alert === null) {
-    $alert = cms_admin_pages_pull_alert();
-}
-
-$csrfToken = Security::instance()->generateToken('admin_pages');
-$editorMediaToken = Security::instance()->generateToken('editorjs_media');
-
-// ─── View bestimmen ────────────────────────────────────────────────────────
-$action = cms_admin_pages_normalize_view($_GET['action'] ?? 'list');
-
-$pageTitle  = 'Seiten';
-$activePage = 'pages';
-$pageAssets = [];
-$useEditorJs = false;
-
-if ($action === 'edit') {
-    $useEditorJs = EditorService::isEditorJs();
-
-    if ($useEditorJs) {
-        $pageAssets = EditorJsService::getInstance()->getPageAssets();
-    } else {
-        EditorService::getInstance();
-    }
-
-    $pageAssets['css'] = $pageAssets['css'] ?? [];
-    $pageAssets['js'] = $pageAssets['js'] ?? [];
-    $pageAssets['js'][] = cms_asset_url('js/admin-seo-editor.js');
-    $pageAssets['js'][] = cms_asset_url('js/admin-content-editor.js');
-}
-
-// ─── Layout rendern ────────────────────────────────────────────────────────
-$inlineJs = '';
-
-require_once __DIR__ . '/partials/header.php';
-require_once __DIR__ . '/partials/sidebar.php';
-
-if ($action === 'edit') {
-    $id       = cms_admin_pages_normalize_positive_id($_GET['id'] ?? 0);
-    $editData = $module->getEditData($id);
-    $pageTitle = $editData['isNew'] ? 'Neue Seite' : 'Seite bearbeiten';
-    require_once __DIR__ . '/views/pages/edit.php';
-} else {
-    $listData = $module->getListData();
-    $pageAssets = [
-        'css' => [
-            cms_asset_url('gridjs/mermaid.min.css'),
-        ],
-        'js' => [
-            cms_asset_url('gridjs/gridjs.umd.js'),
-            cms_asset_url('js/gridjs-init.js'),
-        ],
+function cms_admin_pages_view_config(PagesModule $module, string $view): array
+{
+    $normalizedView = cms_admin_pages_normalize_view($view);
+    $baseTemplateVars = [
+        'editorMediaToken' => Security::instance()->generateToken('editorjs_media'),
+        'useEditorJs' => false,
     ];
+
+    if ($normalizedView === 'edit') {
+        $useEditorJs = EditorService::isEditorJs();
+        $pageAssets = [];
+
+        if ($useEditorJs) {
+            $pageAssets = EditorJsService::getInstance()->getPageAssets();
+        } else {
+            EditorService::getInstance();
+        }
+
+        $pageAssets['css'] = $pageAssets['css'] ?? [];
+        $pageAssets['js'] = $pageAssets['js'] ?? [];
+        $pageAssets['js'][] = cms_asset_url('js/admin-seo-editor.js');
+        $pageAssets['js'][] = cms_asset_url('js/admin-content-editor.js');
+
+        $id = cms_admin_pages_normalize_positive_id($_GET['id'] ?? 0);
+        $editData = $module->getEditData($id);
+
+        return [
+            'section' => 'edit',
+            'view_file' => __DIR__ . '/views/pages/edit.php',
+            'page_title' => $editData['isNew'] ? 'Neue Seite' : 'Seite bearbeiten',
+            'active_page' => 'pages',
+            'page_assets' => $pageAssets,
+            'template_vars' => $baseTemplateVars + [
+                'useEditorJs' => $useEditorJs,
+                'editData' => $editData,
+            ],
+            'data' => $editData,
+        ];
+    }
+
+    $listData = $module->getListData();
     $inlineJs = sprintf(
         "(function(){
             if(typeof cmsGrid!=='function'){return;}
@@ -323,7 +206,111 @@ if ($action === 'edit') {
         json_encode(SITE_URL),
         json_encode(SITE_URL)
     );
-    require_once __DIR__ . '/views/pages/list.php';
+
+    return [
+        'section' => 'list',
+        'view_file' => __DIR__ . '/views/pages/list.php',
+        'page_title' => 'Seiten',
+        'active_page' => 'pages',
+        'page_assets' => [
+            'css' => [
+                cms_asset_url('gridjs/mermaid.min.css'),
+            ],
+            'js' => [
+                cms_asset_url('gridjs/gridjs.umd.js'),
+                cms_asset_url('js/gridjs-init.js'),
+            ],
+        ],
+        'template_vars' => $baseTemplateVars + [
+            'listData' => $listData,
+            'inlineJs' => $inlineJs,
+        ],
+        'data' => $listData,
+    ];
 }
 
-require_once __DIR__ . '/partials/footer.php';
+// ─── Auth-Check ────────────────────────────────────────────────────────────
+if (!cms_admin_pages_can_access()) {
+    header('Location: ' . SITE_URL);
+    exit;
+}
+
+require_once __DIR__ . '/modules/pages/PagesModule.php';
+
+$sectionPageConfig = [
+    'route_path' => '/admin/pages',
+    'view_file' => __DIR__ . '/views/pages/list.php',
+    'page_title' => 'Seiten',
+    'active_page' => 'pages',
+    'csrf_action' => 'admin_pages',
+    'module_file' => __DIR__ . '/modules/pages/PagesModule.php',
+    'module_factory' => static fn (): PagesModule => new PagesModule(),
+    'access_checker' => static fn (): bool => cms_admin_pages_can_access(),
+    'request_context_resolver' => static function (PagesModule $module): array {
+        $view = cms_admin_pages_normalize_view($_GET['action'] ?? 'list');
+
+        return cms_admin_pages_view_config($module, $view);
+    },
+    'redirect_path_resolver' => static function (PagesModule $module, string $section, mixed $result): string {
+        if (is_array($result) && isset($result['redirect_path']) && is_string($result['redirect_path'])) {
+            return $result['redirect_path'];
+        }
+
+        if ($section === 'edit') {
+            return cms_admin_pages_target_url(cms_admin_pages_normalize_positive_id($_GET['id'] ?? 0));
+        }
+
+        return cms_admin_pages_target_url();
+    },
+    'post_handler' => static function (PagesModule $module, string $section, array $post): array {
+        $postAction = cms_admin_pages_normalize_action($post['action'] ?? '');
+
+        if ($postAction === '') {
+            return ['success' => false, 'error' => 'Unbekannte Seiten-Aktion.'];
+        }
+
+        switch ($postAction) {
+            case 'save':
+                $userId = Auth::instance()->getCurrentUser()->id ?? 0;
+                $result = $module->save($post, (int) $userId);
+                if (!empty($result['success'])) {
+                    $result['redirect_path'] = cms_admin_pages_target_url(cms_admin_pages_normalize_positive_id($result['id'] ?? 0));
+                    return $result;
+                }
+
+                return [
+                    'success' => false,
+                    'error' => (string) ($result['error'] ?? 'Seite konnte nicht gespeichert werden.'),
+                    'details' => is_array($result['details'] ?? null) ? $result['details'] : [],
+                    'render_inline' => true,
+                    'runtime_context' => cms_admin_pages_view_config($module, 'edit'),
+                ];
+
+            case 'delete':
+                $id = cms_admin_pages_normalize_positive_id($post['id'] ?? 0);
+                if ($id < 1) {
+                    return ['success' => false, 'error' => 'Ungültige Seiten-ID.'];
+                }
+
+                return $module->delete($id);
+
+            case 'bulk':
+                $bulkAction = cms_admin_pages_normalize_bulk_action($post['bulk_action'] ?? '');
+                $bulkIds = cms_admin_pages_normalize_bulk_ids($post['ids'] ?? [], $post['bulk_ids'] ?? '');
+                if ($bulkAction === '') {
+                    return ['success' => false, 'error' => 'Unbekannte Bulk-Aktion für Seiten.'];
+                }
+
+                if ($bulkIds === []) {
+                    return ['success' => false, 'error' => 'Bitte mindestens eine gültige Seite auswählen.'];
+                }
+
+                return $module->bulkAction($bulkAction, $bulkIds, $post);
+
+            default:
+                return ['success' => false, 'error' => 'Unbekannte Seiten-Aktion.'];
+        }
+    },
+];
+
+require __DIR__ . '/partials/section-page-shell.php';

@@ -11,14 +11,6 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Auth;
-use CMS\Security;
-
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
-}
-
-require_once __DIR__ . '/modules/system/DocumentationModule.php';
 
 function cms_admin_documentation_normalize_selected_doc($value): ?string
 {
@@ -62,22 +54,6 @@ function cms_admin_documentation_redirect(?string $selectedDoc): never
     exit;
 }
 
-function cms_admin_documentation_flash_result(DocumentationSyncActionResult $result): void
-{
-    $_SESSION['admin_alert'] = [
-        'type' => $result->isSuccess() ? 'success' : 'danger',
-        'message' => $result->getMessage(),
-    ];
-}
-
-function cms_admin_documentation_pull_alert(): ?array
-{
-    $alert = $_SESSION['admin_alert'] ?? null;
-    unset($_SESSION['admin_alert']);
-
-    return is_array($alert) ? $alert : null;
-}
-
 /**
  * @return list<string>
  */
@@ -103,39 +79,34 @@ function cms_admin_documentation_action_handlers(DocumentationModule $module): a
     ];
 }
 
-$module = new DocumentationModule();
-$alert = null;
-$selectedDoc = cms_admin_documentation_normalize_selected_doc($_GET['doc'] ?? null);
-$actionHandlers = cms_admin_documentation_action_handlers($module);
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $postToken = (string) ($_POST['csrf_token'] ?? '');
-    if (!Security::instance()->verifyToken($postToken, 'admin_documentation')) {
-        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-    } else {
+$sectionPageConfig = [
+    'section' => 'documentation',
+    'route_path' => '/admin/documentation',
+    'view_file' => __DIR__ . '/views/system/documentation.php',
+    'page_title' => 'Dokumentation',
+    'active_page' => 'documentation',
+    'page_assets' => [],
+    'guard_constant' => 'CMS_ADMIN_SYSTEM_VIEW',
+    'csrf_action' => 'admin_documentation',
+    'module_file' => __DIR__ . '/modules/system/DocumentationModule.php',
+    'module_factory' => static fn (): DocumentationModule => new DocumentationModule(),
+    'data_loader' => static fn (DocumentationModule $module): array => $module->getData(cms_admin_documentation_normalize_selected_doc($_GET['doc'] ?? null))->toArray(),
+    'access_checker' => static fn (): bool => Auth::instance()->isAdmin(),
+    'redirect_path_resolver' => static fn (): string => cms_admin_documentation_redirect_url(cms_admin_documentation_normalize_selected_doc($_GET['doc'] ?? null)),
+    'invalid_token_message' => 'Sicherheitstoken ungültig.',
+    'unknown_action_message' => 'Unbekannte oder nicht erlaubte Aktion.',
+    'post_handler' => static function (DocumentationModule $module): array {
         $action = cms_admin_documentation_normalize_action($_POST['action'] ?? null);
-        $handler = $actionHandlers[$action] ?? null;
+        $handler = cms_admin_documentation_action_handlers($module)[$action] ?? null;
         $result = is_callable($handler)
             ? $handler()
             : new DocumentationSyncActionResult(false, null, 'Unbekannte oder nicht erlaubte Aktion.');
 
-        cms_admin_documentation_flash_result($result);
-    }
+        return [
+            'success' => $result->isSuccess(),
+            'message' => $result->getMessage(),
+        ];
+    },
+];
 
-    cms_admin_documentation_redirect($selectedDoc);
-}
-
-$alert = cms_admin_documentation_pull_alert();
-
-$csrfToken = Security::instance()->generateToken('admin_documentation');
-$data = $module->getData($selectedDoc)->toArray();
-
-$pageTitle = 'Dokumentation';
-$activePage = 'documentation';
-$pageAssets = [];
-
-require __DIR__ . '/partials/header.php';
-require __DIR__ . '/partials/sidebar.php';
-defined('CMS_ADMIN_SYSTEM_VIEW') || define('CMS_ADMIN_SYSTEM_VIEW', true);
-require __DIR__ . '/views/system/documentation.php';
-require __DIR__ . '/partials/footer.php';
+require __DIR__ . '/partials/section-page-shell.php';

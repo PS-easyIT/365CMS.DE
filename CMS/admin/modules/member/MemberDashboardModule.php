@@ -215,6 +215,48 @@ class MemberDashboardModule
         ];
     }
 
+    public function getSectionData(string $section): array
+    {
+        if (!$this->canRead()) {
+            return $this->emptySectionData($section);
+        }
+
+        $settingsMap = $this->loadSettingsMap();
+        $settings = $this->getSettings($settingsMap);
+
+        return match ($section) {
+            'overview' => [
+                'settings' => $settings,
+                'stats' => $this->getMemberStats(),
+                'widgets' => $this->getAvailableWidgets(),
+                'profileFields' => $this->getProfileFieldDefinitions(),
+                'overview' => $this->buildOverviewData($settings, $settingsMap),
+            ],
+            'general', 'design', 'frontend-modules', 'onboarding' => [
+                'settings' => $settings,
+            ],
+            'widgets' => [
+                'settings' => $settings,
+                'widgets' => $this->getAvailableWidgets(),
+                'sectionOrderOptions' => self::SECTION_ORDER_OPTIONS,
+            ],
+            'profile-fields' => [
+                'settings' => $settings,
+                'profileFields' => $this->getProfileFieldDefinitions(),
+            ],
+            'notifications' => [
+                'settings' => $settings,
+                'notificationTypes' => self::NOTIFICATION_TYPES,
+                'digestFrequencies' => self::DIGEST_FREQUENCIES,
+            ],
+            'plugin-widgets' => [
+                'settings' => $settings,
+                'pluginWidgets' => $this->getPluginWidgets($settingsMap),
+            ],
+            default => $this->getData(),
+        };
+    }
+
     /**
      * Einstellungen speichern
      */
@@ -885,6 +927,74 @@ class MemberDashboardModule
                 'subscriptionVisible' => false,
                 'pluginWidgetCount' => 0,
             ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function emptySectionData(string $section): array
+    {
+        return match ($section) {
+            'overview' => [
+                'settings' => [],
+                'stats' => ['total' => 0, 'active' => 0, 'thisWeek' => 0],
+                'widgets' => [],
+                'profileFields' => [],
+                'overview' => [
+                    'enabledWidgets' => 0,
+                    'enabledProfileFields' => 0,
+                    'customWidgetCount' => 0,
+                    'registrationEnabled' => false,
+                    'verificationEnabled' => false,
+                    'subscriptionVisible' => false,
+                    'pluginWidgetCount' => 0,
+                ],
+            ],
+            'general', 'design', 'frontend-modules', 'onboarding' => [
+                'settings' => [],
+            ],
+            'widgets' => [
+                'settings' => [],
+                'widgets' => [],
+                'sectionOrderOptions' => self::SECTION_ORDER_OPTIONS,
+            ],
+            'profile-fields' => [
+                'settings' => [],
+                'profileFields' => [],
+            ],
+            'notifications' => [
+                'settings' => [],
+                'notificationTypes' => self::NOTIFICATION_TYPES,
+                'digestFrequencies' => self::DIGEST_FREQUENCIES,
+            ],
+            'plugin-widgets' => [
+                'settings' => [],
+                'pluginWidgets' => [],
+            ],
+            default => $this->emptyData(),
+        };
+    }
+
+    /**
+     * @param array<string, mixed> $settings
+     * @param array<string, string> $settingsMap
+     * @return array<string, mixed>
+     */
+    private function buildOverviewData(array $settings, array $settingsMap): array
+    {
+        $pluginWidgets = $this->getPluginWidgets($settingsMap);
+
+        return [
+            'enabledWidgets' => count($settings['widgets'] ?? []),
+            'enabledProfileFields' => count($settings['profile_fields'] ?? []),
+            'customWidgetCount' => count(array_filter($settings['custom_widgets'] ?? [], static function (array $widget): bool {
+                return trim((string)($widget['title'] ?? '')) !== '' || trim((string)($widget['content'] ?? '')) !== '';
+            })),
+            'registrationEnabled' => !empty($settings['registration_enabled']),
+            'verificationEnabled' => !empty($settings['email_verification']),
+            'subscriptionVisible' => !empty($settings['subscription_visible']),
+            'pluginWidgetCount' => count($pluginWidgets),
         ];
     }
 

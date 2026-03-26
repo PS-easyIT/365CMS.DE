@@ -104,6 +104,10 @@ $defaultContentLanguage = $isEnglishOnlyPost ? 'en' : 'de';
 
 <div class="page-body">
     <div class="container-xl">
+        <?php if (!empty($alert)): ?>
+            <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
+        <?php endif; ?>
+
         <form method="post" action="<?php echo htmlspecialchars(SITE_URL); ?>/admin/posts" id="postForm">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
             <input type="hidden" name="action" value="save">

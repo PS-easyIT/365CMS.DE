@@ -62,7 +62,44 @@ class SystemInfoModule
 
     public function getInfoData(): array
     {
-        return $this->getData();
+        return [
+            'system' => $this->getSystemInfoSafe(),
+            'database' => $this->getDatabaseStatusSafe(),
+            'permissions' => $this->getPermissionsSafe(),
+            'directories' => $this->getDirectorySizesSafe(),
+            'statistics' => $this->getStatisticsSafe(),
+            'security' => $this->getSecurityStatusSafe(),
+        ];
+    }
+
+    public function getSectionData(string $section): array
+    {
+        return match ($section) {
+            'info' => $this->getInfoData(),
+            'diagnose' => $this->getDiagnosticsData(),
+            'response-time' => [
+                'monitoring' => [
+                    'response_time' => $this->measureResponseTime(SITE_URL),
+                ],
+                'email_alerts' => $this->getMonitoringSettings(),
+            ],
+            'disk' => [
+                'disk' => $this->getDiskUsageData(),
+            ],
+            'scheduled-tasks' => [
+                'scheduled_tasks' => $this->getScheduledTasksData(),
+            ],
+            'health-check' => [
+                'health' => $this->getHealthChecksData(),
+            ],
+            'email-alerts' => [
+                'email_alerts' => $this->getMonitoringSettings(),
+            ],
+            'cron' => [
+                'cron' => $this->getCronData(),
+            ],
+            default => $this->getInfoData(),
+        };
     }
 
     public function getDiagnosticsData(): array
@@ -73,8 +110,6 @@ class SystemInfoModule
             'permissions' => $this->getPermissionsSafe(),
             'runtime' => $this->getRuntimeTelemetrySafe(),
             'error_reports' => ErrorReportService::getInstance()->getRecentReports(15),
-            'monitoring' => $this->getMonitoringOverview(),
-            'health' => $this->getHealthChecksData(),
             'vendor_registry' => $this->getVendorRegistryDiagnosticsSafe(),
         ];
     }

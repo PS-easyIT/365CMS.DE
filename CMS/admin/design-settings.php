@@ -12,29 +12,10 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 
-function cms_admin_design_settings_can_access(): bool
-{
-    return Auth::instance()->isAdmin() && Auth::instance()->hasCapability('manage_settings');
-}
+$adminRedirectAliasConfig = [
+    'access_checker' => static fn (): bool => Auth::instance()->isAdmin() && Auth::instance()->hasCapability('manage_settings'),
+    'target_url' => '/admin/theme-editor',
+    'fallback_url' => '/',
+];
 
-function cms_admin_design_settings_fallback_url(): string
-{
-    return SITE_URL;
-}
-
-function cms_admin_design_settings_redirect(string $targetUrl): never
-{
-    header('Location: ' . $targetUrl);
-    exit;
-}
-
-function cms_admin_design_settings_target_url(): string
-{
-    return SITE_URL . '/admin/theme-editor';
-}
-
-if (!cms_admin_design_settings_can_access()) {
-    cms_admin_design_settings_redirect(cms_admin_design_settings_fallback_url());
-}
-
-cms_admin_design_settings_redirect(cms_admin_design_settings_target_url());
+require __DIR__ . '/partials/redirect-alias-shell.php';

@@ -41,12 +41,11 @@ $pages       = $data['pages'] ?? [];
 
 <div class="container-xl mt-4">
 
-    <?php if ($alert): ?>
-        <div class="alert alert-<?php echo htmlspecialchars($alert['type']); ?> alert-dismissible" role="alert">
-            <?php echo htmlspecialchars($alert['message']); ?>
-            <a class="btn-close" data-bs-dismiss="alert" aria-label="Close"></a>
-        </div>
-    <?php endif; ?>
+    <?php
+    $alertData = is_array($alert ?? null) ? $alert : [];
+    $alertMarginClass = 'mb-3';
+    include __DIR__ . '/../partials/flash-alert.php';
+    ?>
 
     <div class="row">
         <!-- Menu List -->

@@ -21,6 +21,7 @@ class DashboardService {
     private Database $db;
     private string $prefix;
     private static ?DashboardService $instance = null;
+    private ?array $cachedAllStats = null;
     
     private function __construct() {
         $this->db = Database::instance();
@@ -40,7 +41,11 @@ class DashboardService {
      * @return array Alle Stats
      */
     public function getAllStats(): array {
-        return [
+        if ($this->cachedAllStats !== null) {
+            return $this->cachedAllStats;
+        }
+
+        $this->cachedAllStats = [
             'users' => $this->getUserStats(),
             'pages' => $this->getPageStats(),
             'media' => $this->getMediaStats(),
@@ -50,6 +55,8 @@ class DashboardService {
             'system' => $this->getSystemInfo(),
             'orders' => $this->getOrderStats()
         ];
+
+        return $this->cachedAllStats;
     }
 
     /**
@@ -475,8 +482,8 @@ class DashboardService {
     /**
      * Kompakte Aufgabenliste für das Dashboard.
      */
-    public function getAttentionItems(): array {
-        $stats = $this->getAllStats();
+    public function getAttentionItems(?array $stats = null): array {
+        $stats ??= $this->getAllStats();
         $items = [];
 
         if (($stats['orders']['pending'] ?? 0) > 0) {

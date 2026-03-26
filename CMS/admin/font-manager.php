@@ -11,50 +11,20 @@ if (!defined('ABSPATH')) {
  */
 
 use CMS\Auth;
-use CMS\Security;
 
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
+const CMS_ADMIN_FONT_MANAGER_READ_CAPABILITY = 'manage_settings';
+const CMS_ADMIN_FONT_MANAGER_WRITE_CAPABILITY = 'manage_settings';
+
+function cms_admin_font_manager_can_access(): bool
+{
+    return Auth::instance()->isAdmin()
+        && Auth::instance()->hasCapability(CMS_ADMIN_FONT_MANAGER_READ_CAPABILITY);
 }
 
-require_once __DIR__ . '/modules/themes/FontManagerModule.php';
-$module    = new FontManagerModule();
-$alert     = null;
-
-function cms_admin_font_manager_target_url(): string
+function cms_admin_font_manager_can_mutate(): bool
 {
-    return SITE_URL . '/admin/font-manager';
-}
-
-function cms_admin_font_manager_redirect(): never
-{
-    header('Location: ' . cms_admin_font_manager_target_url());
-    exit;
-}
-
-function cms_admin_font_manager_flash(array $payload): void
-{
-    $_SESSION['admin_alert'] = [
-        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
-        'message' => trim((string) ($payload['message'] ?? '')),
-    ];
-}
-
-function cms_admin_font_manager_flash_result(array $result): void
-{
-    cms_admin_font_manager_flash([
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
-    ]);
-}
-
-function cms_admin_font_manager_pull_alert(): ?array
-{
-    $alert = $_SESSION['admin_alert'] ?? null;
-    unset($_SESSION['admin_alert']);
-
-    return is_array($alert) ? $alert : null;
+    return cms_admin_font_manager_can_access()
+        && Auth::instance()->hasCapability(CMS_ADMIN_FONT_MANAGER_WRITE_CAPABILITY);
 }
 
 /**
@@ -110,34 +80,32 @@ function cms_admin_font_manager_action_handlers(FontManagerModule $module): arra
     ];
 }
 
-$actionHandlers = cms_admin_font_manager_action_handlers($module);
+$sectionPageConfig = [
+    'route_path' => '/admin/font-manager',
+    'view_file' => __DIR__ . '/views/themes/fonts.php',
+    'page_title' => 'Font Manager',
+    'active_page' => 'font-manager',
+    'csrf_action' => 'admin_font_manager',
+    'module_file' => __DIR__ . '/modules/themes/FontManagerModule.php',
+    'module_factory' => static fn (): FontManagerModule => new FontManagerModule(),
+    'data_loader' => static fn (FontManagerModule $module): array => $module->getData(),
+    'access_checker' => static fn (): bool => cms_admin_font_manager_can_access(),
+    'access_denied_route' => '/',
+    'unknown_action_message' => 'Unbekannte oder nicht erlaubte Aktion.',
+    'post_handler' => static function (FontManagerModule $module, string $section, array $post): array {
+        if (!cms_admin_font_manager_can_mutate()) {
+            return ['success' => false, 'error' => 'Keine Berechtigung für Font-Änderungen.'];
+        }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $postToken = (string) ($_POST['csrf_token'] ?? '');
-    if (!Security::instance()->verifyToken($postToken, 'admin_font_manager')) {
-        cms_admin_font_manager_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
-        cms_admin_font_manager_redirect();
-    }
+        $action = cms_admin_font_manager_normalize_action((string) ($post['action'] ?? ''));
+        $handlers = cms_admin_font_manager_action_handlers($module);
 
-    $action = cms_admin_font_manager_normalize_action((string) ($_POST['action'] ?? ''));
-    if ($action === null || !isset($actionHandlers[$action])) {
-        cms_admin_font_manager_flash(['type' => 'danger', 'message' => 'Unbekannte oder nicht erlaubte Aktion.']);
-        cms_admin_font_manager_redirect();
-    }
+        if ($action === null || !isset($handlers[$action])) {
+            return ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'];
+        }
 
-    cms_admin_font_manager_flash_result($actionHandlers[$action]($_POST));
-    cms_admin_font_manager_redirect();
-}
+        return $handlers[$action]($post);
+    },
+];
 
-$alert = cms_admin_font_manager_pull_alert();
-
-$csrfToken  = Security::instance()->generateToken('admin_font_manager');
-$data       = $module->getData();
-$pageTitle  = 'Font Manager';
-$activePage = 'font-manager';
-$pageAssets = [];
-
-require __DIR__ . '/partials/header.php';
-require __DIR__ . '/partials/sidebar.php';
-require __DIR__ . '/views/themes/fonts.php';
-require __DIR__ . '/partials/footer.php';
+require __DIR__ . '/partials/section-page-shell.php';

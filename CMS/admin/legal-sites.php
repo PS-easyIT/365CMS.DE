@@ -11,51 +11,20 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Auth;
-use CMS\Security;
 
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
+const CMS_ADMIN_LEGAL_SITES_READ_CAPABILITY = 'manage_settings';
+const CMS_ADMIN_LEGAL_SITES_WRITE_CAPABILITY = 'manage_settings';
+
+function cms_admin_legal_sites_can_access(): bool
+{
+    return Auth::instance()->isAdmin()
+        && Auth::instance()->hasCapability(CMS_ADMIN_LEGAL_SITES_READ_CAPABILITY);
 }
 
-require_once __DIR__ . '/modules/legal/LegalSitesModule.php';
-$module    = new LegalSitesModule();
-$alert     = null;
-$userId    = (int)(Auth::instance()->getCurrentUser()->id ?? 0);
-
-function cms_admin_legal_sites_target_url(): string
+function cms_admin_legal_sites_can_mutate(): bool
 {
-    return SITE_URL . '/admin/legal-sites';
-}
-
-function cms_admin_legal_sites_redirect(): never
-{
-    header('Location: ' . cms_admin_legal_sites_target_url());
-    exit;
-}
-
-function cms_admin_legal_sites_flash(array $payload): void
-{
-    $_SESSION['admin_alert'] = [
-        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
-        'message' => trim((string) ($payload['message'] ?? '')),
-    ];
-}
-
-function cms_admin_legal_sites_flash_result(array $result): void
-{
-    cms_admin_legal_sites_flash([
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
-    ]);
-}
-
-function cms_admin_legal_sites_pull_alert(): ?array
-{
-    $alert = $_SESSION['admin_alert'] ?? null;
-    unset($_SESSION['admin_alert']);
-
-    return is_array($alert) ? $alert : null;
+    return cms_admin_legal_sites_can_access()
+        && Auth::instance()->hasCapability(CMS_ADMIN_LEGAL_SITES_WRITE_CAPABILITY);
 }
 
 /** @return array<string, true> */
@@ -68,6 +37,13 @@ function cms_admin_legal_sites_allowed_actions(): array
         'create_page' => true,
         'create_all_pages' => true,
     ];
+}
+
+function cms_admin_legal_sites_normalize_action(mixed $action): string
+{
+    $action = strtolower(trim((string) $action));
+
+    return isset(cms_admin_legal_sites_allowed_actions()[$action]) ? $action : '';
 }
 
 function cms_admin_legal_sites_normalize_template_type(array $post): string
@@ -138,35 +114,43 @@ function cms_admin_legal_sites_templates(LegalSitesModule $module): array
     ];
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = trim((string) ($_POST['action'] ?? ''));
-    $allowedActions = cms_admin_legal_sites_allowed_actions();
+$sectionPageConfig = [
+    'route_path' => '/admin/legal-sites',
+    'view_file' => __DIR__ . '/views/legal/sites.php',
+    'page_title' => 'Legal Sites',
+    'active_page' => 'legal-sites',
+    'csrf_action' => 'admin_legal_sites',
+    'module_file' => __DIR__ . '/modules/legal/LegalSitesModule.php',
+    'module_factory' => static fn (): LegalSitesModule => new LegalSitesModule(),
+    'data_loader' => static function (LegalSitesModule $module): array {
+        $data = cms_admin_legal_sites_apply_old_profile($module->getData());
+        $data['templates'] = cms_admin_legal_sites_templates($module);
 
-    if (!Security::instance()->verifyToken((string) ($_POST['csrf_token'] ?? ''), 'admin_legal_sites')) {
-        cms_admin_legal_sites_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
-        cms_admin_legal_sites_redirect();
-    }
+        return $data;
+    },
+    'access_checker' => static fn (): bool => cms_admin_legal_sites_can_access(),
+    'access_denied_route' => '/',
+    'unknown_action_message' => 'Unbekannte oder nicht erlaubte Aktion.',
+    'post_handler' => static function (LegalSitesModule $module, string $section, array $post): array {
+        if (!cms_admin_legal_sites_can_mutate()) {
+            return ['success' => false, 'error' => 'Keine Berechtigung für Legal-Sites-Mutationen.'];
+        }
 
-    if (!isset($allowedActions[$action])) {
-        cms_admin_legal_sites_flash(['type' => 'danger', 'message' => 'Unbekannte oder nicht erlaubte Aktion.']);
-        cms_admin_legal_sites_redirect();
-    }
+        $action = cms_admin_legal_sites_normalize_action($post['action'] ?? null);
+        if ($action === '') {
+            return ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'];
+        }
 
-    $result = cms_admin_legal_sites_handle_action($module, $action, $_POST, $userId);
-    cms_admin_legal_sites_sync_profile_state($action, $result);
-    cms_admin_legal_sites_flash_result($result);
-    cms_admin_legal_sites_redirect();
-}
+        if (in_array($action, ['generate', 'create_page'], true) && cms_admin_legal_sites_normalize_template_type($post) === '') {
+            return ['success' => false, 'error' => 'Ungültiger Vorlagentyp.'];
+        }
 
-$alert = cms_admin_legal_sites_pull_alert();
+        $userId = (int) (Auth::instance()->getCurrentUser()->id ?? 0);
+        $result = cms_admin_legal_sites_handle_action($module, $action, $post, $userId);
+        cms_admin_legal_sites_sync_profile_state($action, $result);
 
-$csrfToken  = Security::instance()->generateToken('admin_legal_sites');
-$pageTitle  = 'Legal Sites';
-$activePage = 'legal-sites';
-$data       = cms_admin_legal_sites_apply_old_profile($module->getData());
-$data['templates'] = cms_admin_legal_sites_templates($module);
+        return $result;
+    },
+];
 
-require_once __DIR__ . '/partials/header.php';
-require_once __DIR__ . '/partials/sidebar.php';
-require_once __DIR__ . '/views/legal/sites.php';
-require_once __DIR__ . '/partials/footer.php';
+require __DIR__ . '/partials/section-page-shell.php';

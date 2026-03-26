@@ -24,6 +24,13 @@ $curatedServices = $d['curated_services'] ?? [];
 
 <div class="page-body">
     <div class="container-xl">
+        <?php
+        $alertData = $alert ?? [];
+        $alertDismissible = false;
+        $alertMarginClass = 'mb-4';
+        require __DIR__ . '/../partials/flash-alert.php';
+        ?>
+
         <div class="row row-deck row-cards mb-4">
             <div class="col-sm-6 col-lg-3">
                 <div class="card"><div class="card-body"><div class="subheader">Kategorien</div><div class="h1 mb-0"><?= count($categories) ?></div></div></div>

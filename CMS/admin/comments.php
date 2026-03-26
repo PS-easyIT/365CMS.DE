@@ -11,46 +11,11 @@ if (!defined('ABSPATH')) {
  */
 
 use CMS\Auth;
-use CMS\Security;
-
-require_once __DIR__ . '/modules/comments/CommentsModule.php';
-
-$module = new CommentsModule();
 
 const CMS_ADMIN_COMMENTS_ALLOWED_ACTIONS = ['status', 'delete', 'bulk'];
 const CMS_ADMIN_COMMENTS_ALLOWED_STATUSES = ['pending', 'approved', 'spam', 'trash'];
 const CMS_ADMIN_COMMENTS_ALLOWED_BULK_ACTIONS = ['approve', 'spam', 'trash', 'delete'];
 const CMS_ADMIN_COMMENTS_MAX_BULK_IDS = 100;
-
-function cms_admin_comments_redirect(CommentsModule $module, string $status): never
-{
-    header('Location: ' . $module->buildListUrl($status));
-    exit;
-}
-
-function cms_admin_comments_flash(array $payload): void
-{
-    $_SESSION['admin_alert'] = [
-        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
-        'message' => trim((string) ($payload['message'] ?? '')),
-    ];
-}
-
-function cms_admin_comments_flash_result(array $result): void
-{
-    cms_admin_comments_flash([
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
-    ]);
-}
-
-function cms_admin_comments_pull_alert(): ?array
-{
-    $alert = $_SESSION['admin_alert'] ?? null;
-    unset($_SESSION['admin_alert']);
-
-    return is_array($alert) ? $alert : null;
-}
 
 function cms_admin_comments_normalize_action(mixed $action): string
 {
@@ -128,43 +93,38 @@ function cms_admin_comments_handle_action(CommentsModule $module, string $action
     return ['success' => false, 'error' => 'Aktion konnte nicht verarbeitet werden.'];
 }
 
-if (!Auth::isLoggedIn() || !$module->canView()) {
-    header('Location: ' . SITE_URL);
-    exit;
-}
+$sectionPageConfig = [
+    'section' => 'comments',
+    'route_path' => '/admin/comments',
+    'view_file' => __DIR__ . '/views/comments/list.php',
+    'page_title' => 'Kommentare',
+    'active_page' => 'comments',
+    'page_assets' => [],
+    'csrf_action' => 'admin_comments',
+    'module_file' => __DIR__ . '/modules/comments/CommentsModule.php',
+    'module_factory' => static fn (): CommentsModule => new CommentsModule(),
+    'data_loader' => static fn (CommentsModule $module): array => $module->getListData(),
+    'access_checker' => static fn (): bool => Auth::isLoggedIn() && function_exists('current_user_can') && current_user_can('comments.view'),
+    'redirect_path_resolver' => static function (CommentsModule $module): string {
+        $status = $module->normalizeStatusFilter((string) ($_GET['status'] ?? 'all'));
+        $target = $module->buildListUrl($status);
 
-$alert  = null;
-$status = $module->normalizeStatusFilter((string)($_GET['status'] ?? 'all'));
+        return (string) parse_url($target, PHP_URL_PATH) . (($query = (string) parse_url($target, PHP_URL_QUERY)) !== '' ? '?' . $query : '');
+    },
+    'invalid_token_message' => 'Sicherheitstoken ungültig.',
+    'unknown_action_message' => 'Aktion konnte nicht verarbeitet werden.',
+    'post_handler' => static function (CommentsModule $module, string $section, array $post): array {
+        if (!$module->canView()) {
+            return ['success' => false, 'error' => 'Sie dürfen Kommentare nicht ansehen.'];
+        }
 
-// ─── POST-Handling ───────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = cms_admin_comments_normalize_action($_POST['action'] ?? '');
-    $postToken = (string) ($_POST['csrf_token'] ?? '');
+        $action = cms_admin_comments_normalize_action($post['action'] ?? '');
+        if ($action === '' || !$module->isSupportedAction($action)) {
+            return ['success' => false, 'error' => 'Unbekannte Kommentar-Aktion.'];
+        }
 
-    if ($action === '' || !$module->isSupportedAction($action)) {
-        cms_admin_comments_flash(['type' => 'danger', 'message' => 'Unbekannte Kommentar-Aktion.']);
-    } elseif (!Security::instance()->verifyToken($postToken, 'admin_comments')) {
-        cms_admin_comments_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
-    } else {
-        $result = cms_admin_comments_handle_action($module, $action, $_POST);
-        cms_admin_comments_flash_result($result);
-    }
+        return cms_admin_comments_handle_action($module, $action, $post);
+    },
+];
 
-    // PRG-Redirect mit Status-Erhaltung
-    cms_admin_comments_redirect($module, $status);
-}
-
-// ─── Session-Alert abholen ───────────────────────────────
-$alert = cms_admin_comments_pull_alert();
-
-$csrfToken = Security::instance()->generateToken('admin_comments');
-
-// ─── View ────────────────────────────────────────────────
-$data       = $module->getListData();
-$pageTitle  = 'Kommentare';
-$activePage = 'comments';
-
-require __DIR__ . '/partials/header.php';
-require __DIR__ . '/partials/sidebar.php';
-require __DIR__ . '/views/comments/list.php';
-require __DIR__ . '/partials/footer.php';
+require __DIR__ . '/partials/section-page-shell.php';

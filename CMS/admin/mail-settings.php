@@ -8,12 +8,31 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 use CMS\Security;
 
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
+const CMS_ADMIN_MAIL_SETTINGS_READ_CAPABILITIES = ['manage_settings', 'manage_system'];
+const CMS_ADMIN_MAIL_SETTINGS_WRITE_CAPABILITY = 'manage_settings';
+
+function cms_admin_mail_settings_has_any_capability(array $capabilities): bool
+{
+    foreach ($capabilities as $capability) {
+        if (is_string($capability) && $capability !== '' && Auth::instance()->hasCapability($capability)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
-require_once __DIR__ . '/modules/system/MailSettingsModule.php';
+function cms_admin_mail_settings_can_access(): bool
+{
+    return Auth::instance()->isAdmin()
+        && cms_admin_mail_settings_has_any_capability(CMS_ADMIN_MAIL_SETTINGS_READ_CAPABILITIES);
+}
+
+function cms_admin_mail_settings_can_mutate(): bool
+{
+    return cms_admin_mail_settings_can_access()
+        && Auth::instance()->hasCapability(CMS_ADMIN_MAIL_SETTINGS_WRITE_CAPABILITY);
+}
 
 function cms_admin_mail_settings_allowed_tabs(): array
 {
@@ -80,28 +99,6 @@ function cms_admin_mail_settings_is_action_allowed_for_tab(string $action, strin
     return in_array($action, $allowedActions, true);
 }
 
-function cms_admin_mail_settings_redirect(string $redirectBase, string $tab): never
-{
-    header('Location: ' . $redirectBase . '?tab=' . rawurlencode(cms_admin_mail_settings_normalize_tab($tab)));
-    exit;
-}
-
-function cms_admin_mail_settings_flash(string $type, string $message): void
-{
-    $_SESSION['admin_alert'] = [
-        'type' => $type,
-        'message' => $message,
-    ];
-}
-
-function cms_admin_mail_settings_flash_result(MailSettingsActionResult $result): void
-{
-    cms_admin_mail_settings_flash(
-        $result->isSuccess() ? 'success' : 'danger',
-        $result->message() !== '' ? $result->message() : ($result->error() !== '' ? $result->error() : 'Unbekannte Antwort.')
-    );
-}
-
 /**
  * @return array<string, callable(array): MailSettingsActionResult>
  */
@@ -123,59 +120,60 @@ function cms_admin_mail_settings_action_handlers(MailSettingsModule $module): ar
     ];
 }
 
-function cms_admin_mail_settings_pull_alert(): ?array
-{
-    $alert = $_SESSION['admin_alert'] ?? null;
-    unset($_SESSION['admin_alert']);
+$sectionPageConfig = [
+    'route_path' => '/admin/mail-settings',
+    'view_file' => __DIR__ . '/views/system/mail-settings.php',
+    'page_title' => 'System · Mail & Azure OAuth2',
+    'active_page' => 'mail-settings',
+    'csrf_action' => 'admin_mail_settings',
+    'guard_constant' => 'CMS_ADMIN_SYSTEM_VIEW',
+    'module_file' => __DIR__ . '/modules/system/MailSettingsModule.php',
+    'module_factory' => static fn (): MailSettingsModule => new MailSettingsModule(),
+    'data_loader' => static fn (MailSettingsModule $module): array => $module->getData()->toArray(),
+    'access_checker' => static fn (): bool => cms_admin_mail_settings_can_access(),
+    'access_denied_route' => '/',
+    'request_context_resolver' => static function (): array {
+        $currentTab = cms_admin_mail_settings_normalize_tab((string) ($_SERVER['REQUEST_METHOD'] === 'POST'
+            ? ($_POST['tab'] ?? 'transport')
+            : ($_GET['tab'] ?? 'transport')));
 
-    return is_array($alert) ? $alert : null;
-}
+        return [
+            'section' => $currentTab,
+            'template_vars' => [
+                'currentTab' => $currentTab,
+                'apiCsrfToken' => Security::instance()->generateToken('admin_mail_api'),
+            ],
+        ];
+    },
+    'redirect_path_resolver' => static function ($module, string $section, $result): string {
+        $redirectTab = cms_admin_mail_settings_normalize_tab((string) (($result['redirect_tab'] ?? '') !== '' ? $result['redirect_tab'] : $section));
 
-$module = new MailSettingsModule();
-$alert = null;
-$redirectBase = SITE_URL . '/admin/mail-settings';
-$currentTab = cms_admin_mail_settings_normalize_tab((string) ($_GET['tab'] ?? 'transport'));
-$actionHandlers = cms_admin_mail_settings_action_handlers($module);
+        return '/admin/mail-settings?tab=' . rawurlencode($redirectTab);
+    },
+    'unknown_action_message' => 'Unbekannte oder nicht erlaubte Aktion.',
+    'post_handler' => static function (MailSettingsModule $module, string $section, array $post): array {
+        if (!cms_admin_mail_settings_can_mutate()) {
+            return ['success' => false, 'error' => 'Keine Berechtigung für Mail- und OAuth2-Änderungen.', 'redirect_tab' => cms_admin_mail_settings_normalize_tab((string) ($post['tab'] ?? $section))];
+        }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $postToken = (string) ($_POST['csrf_token'] ?? '');
-    if (!Security::instance()->verifyToken($postToken, 'admin_mail_settings')) {
-        cms_admin_mail_settings_flash('danger', 'Sicherheitstoken ungültig.');
-        cms_admin_mail_settings_redirect($redirectBase, (string) ($_POST['tab'] ?? $currentTab));
-    }
+        $currentTab = cms_admin_mail_settings_normalize_tab((string) ($post['tab'] ?? $section));
+        $action = cms_admin_mail_settings_normalize_action((string) ($post['action'] ?? ''));
+        $handlers = cms_admin_mail_settings_action_handlers($module);
 
-    $currentTab = cms_admin_mail_settings_normalize_tab((string) ($_POST['tab'] ?? $currentTab));
+        if ($action === null || !isset($handlers[$action])) {
+            return ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.', 'redirect_tab' => $currentTab];
+        }
 
-    $action = cms_admin_mail_settings_normalize_action((string) ($_POST['action'] ?? ''));
-    if ($action === null || !isset($actionHandlers[$action])) {
-        cms_admin_mail_settings_flash('danger', 'Unbekannte oder nicht erlaubte Aktion.');
-        cms_admin_mail_settings_redirect($redirectBase, $currentTab);
-    }
+        $actionTab = cms_admin_mail_settings_resolve_action_tab($action, $currentTab);
+        if (!cms_admin_mail_settings_is_action_allowed_for_tab($action, $currentTab)) {
+            return ['success' => false, 'error' => 'Aktion passt nicht zum gewählten Bereich.', 'redirect_tab' => $actionTab];
+        }
 
-    $actionTab = cms_admin_mail_settings_resolve_action_tab($action, $currentTab);
-    if (!cms_admin_mail_settings_is_action_allowed_for_tab($action, $currentTab)) {
-        cms_admin_mail_settings_flash('danger', 'Aktion passt nicht zum gewählten Bereich.');
-        cms_admin_mail_settings_redirect($redirectBase, $actionTab);
-    }
+        $result = $handlers[$action]($post)->toArray();
+        $result['redirect_tab'] = $actionTab;
 
-    $result = $actionHandlers[$action]($_POST);
+        return $result;
+    },
+];
 
-    cms_admin_mail_settings_flash_result($result);
-
-    cms_admin_mail_settings_redirect($redirectBase, $actionTab);
-}
-
-$alert = cms_admin_mail_settings_pull_alert();
-
-$csrfToken = Security::instance()->generateToken('admin_mail_settings');
-$apiCsrfToken = Security::instance()->generateToken('admin_mail_api');
-$data = $module->getData()->toArray();
-$pageTitle = 'System · Mail & Azure OAuth2';
-$activePage = 'mail-settings';
-$pageAssets = [];
-
-require __DIR__ . '/partials/header.php';
-require __DIR__ . '/partials/sidebar.php';
-defined('CMS_ADMIN_SYSTEM_VIEW') || define('CMS_ADMIN_SYSTEM_VIEW', true);
-require __DIR__ . '/views/system/mail-settings.php';
-require __DIR__ . '/partials/footer.php';
+require __DIR__ . '/partials/section-page-shell.php';

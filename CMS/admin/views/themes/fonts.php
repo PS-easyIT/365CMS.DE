@@ -43,11 +43,8 @@ $detectedInstallableFonts = array_values(array_filter($detectedFonts, static fn(
 <div class="page-body">
 <div class="container-xl">
 
-    <?php if ($alert): ?>
-        <div class="alert alert-<?php echo htmlspecialchars($alert['type']); ?> alert-dismissible" role="alert">
-            <?php echo htmlspecialchars($alert['message']); ?>
-            <a class="btn-close" data-bs-dismiss="alert" aria-label="Close"></a>
-        </div>
+    <?php if (!empty($alert)): ?>
+        <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
     <?php endif; ?>
 
     <div class="row">

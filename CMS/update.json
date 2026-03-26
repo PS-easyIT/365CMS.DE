@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.7.159",
+  "version": "2.7.228",
   "min_php": "8.4",
-  "released": "2026-03-25",
+  "released": "2026-03-26",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release 2.7.159: `CMS/admin/not-found-monitor.php` begrenzt 404-Mutationen jetzt explizit über eine kleine Action-Allowlist und bindet den Entry an `manage_settings`, damit Redirect-Save- und Log-Clear-Pfade keine losen Aktionen oder pauschalen Admin-Zugriffe direkt im Einstieg übernehmen.",
+  "notes": "Release 2.7.228: `CMS/admin/seo-page.php` hängt jetzt ebenfalls an der gemeinsamen `section-page-shell.php`; Section-, Capability-, Redirect- und POST-Dispatch laufen zentral über die Shell, sodass der gemeinsame SEO-/Analytics-Wrapper keinen eigenen Redirect-/Flash-/Renderpfad mehr separat pflegen muss.",
   "critical": false
 }

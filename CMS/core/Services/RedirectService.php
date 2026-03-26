@@ -174,42 +174,41 @@ final class RedirectService
 
     public function getAdminData(): array
     {
-        $redirects = $this->db->get_results(
-            "SELECT * FROM {$this->prefix}redirect_rules ORDER BY is_active DESC, updated_at DESC, source_path ASC"
-        ) ?: [];
-
-        $logs = $this->db->get_results(
-            "SELECT *
-             FROM {$this->prefix}not_found_logs
-             ORDER BY last_seen_at DESC
-             LIMIT 200"
-        ) ?: [];
-
-        $redirectRows = array_map(fn($row): array => (array)$row, $redirects);
-        $logRows = array_map(fn($row): array => $this->enrichLogWithRedirect((array)$row, $redirectRows), $logs);
-        $siteScopes = $this->getAvailableSiteScopes();
-
-        $stats = [
-            'redirects_total' => count($redirects),
-            'redirects_active' => count(array_filter($redirects, static fn($row) => (int)$row->is_active === 1)),
-            'not_found_total' => count($logRows),
-            'not_found_hits' => array_sum(array_map(static fn($row) => (int)$row['hit_count'], $logRows)),
-        ];
+        $redirectRows = $this->getRedirectRuleRows();
+        $logRows = $this->getNotFoundLogRows($redirectRows);
 
         return [
-            'redirects' => array_map(function (array $row): array {
-                $row['site_scope'] = (string)($row['site_scope'] ?? '');
-                $row['site_scope_label'] = $this->describeSiteScope((string)($row['site_scope'] ?? ''));
-                return $row;
-            }, $redirectRows),
+            'redirects' => $redirectRows,
             'logs' => $logRows,
-            'stats' => $stats,
-            'targets' => [
-                'pages' => $this->getAvailablePageTargets(),
-                'posts' => $this->getAvailablePostTargets(),
-                'hubs' => $this->getAvailableHubTargets(),
-            ],
-            'sites' => $siteScopes,
+            'stats' => $this->buildAdminStats($redirectRows, $logRows),
+            'targets' => $this->getAdminTargets(),
+            'sites' => $this->getAvailableSiteScopes(),
+        ];
+    }
+
+    public function getRedirectManagerData(): array
+    {
+        $redirectRows = $this->getRedirectRuleRows();
+        $logRows = $this->getNotFoundLogRows($redirectRows);
+
+        return [
+            'redirects' => $redirectRows,
+            'stats' => $this->buildAdminStats($redirectRows, $logRows),
+            'targets' => $this->getAdminTargets(),
+            'sites' => $this->getAvailableSiteScopes(),
+        ];
+    }
+
+    public function getNotFoundMonitorData(): array
+    {
+        $redirectRows = $this->getRedirectRuleRows();
+        $logRows = $this->getNotFoundLogRows($redirectRows);
+
+        return [
+            'logs' => $logRows,
+            'stats' => $this->buildAdminStats($redirectRows, $logRows),
+            'targets' => $this->getAdminTargets(),
+            'sites' => $this->getAvailableSiteScopes(),
         ];
     }
 
@@ -702,6 +701,67 @@ final class RedirectService
         $log['site_scope_suggestion'] = $this->suggestSiteScopeForRequest($requestPath, $requestHost);
 
         return $log;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function getRedirectRuleRows(): array
+    {
+        $redirects = $this->db->get_results(
+            "SELECT * FROM {$this->prefix}redirect_rules ORDER BY is_active DESC, updated_at DESC, source_path ASC"
+        ) ?: [];
+
+        return array_map(function ($row): array {
+            $mappedRow = (array) $row;
+            $mappedRow['site_scope'] = (string) ($mappedRow['site_scope'] ?? '');
+            $mappedRow['site_scope_label'] = $this->describeSiteScope((string) ($mappedRow['site_scope'] ?? ''));
+
+            return $mappedRow;
+        }, $redirects);
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $redirectRows
+     * @return array<int, array<string, mixed>>
+     */
+    private function getNotFoundLogRows(array $redirectRows): array
+    {
+        $logs = $this->db->get_results(
+            "SELECT *
+             FROM {$this->prefix}not_found_logs
+             ORDER BY last_seen_at DESC
+             LIMIT 200"
+        ) ?: [];
+
+        return array_map(fn($row): array => $this->enrichLogWithRedirect((array) $row, $redirectRows), $logs);
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $redirectRows
+     * @param array<int, array<string, mixed>> $logRows
+     * @return array<string, int>
+     */
+    private function buildAdminStats(array $redirectRows, array $logRows): array
+    {
+        return [
+            'redirects_total' => count($redirectRows),
+            'redirects_active' => count(array_filter($redirectRows, static fn(array $row): bool => (int) ($row['is_active'] ?? 0) === 1)),
+            'not_found_total' => count($logRows),
+            'not_found_hits' => array_sum(array_map(static fn(array $row): int => (int) ($row['hit_count'] ?? 0), $logRows)),
+        ];
+    }
+
+    /**
+     * @return array<string, array<int, array<string, mixed>>>
+     */
+    private function getAdminTargets(): array
+    {
+        return [
+            'pages' => $this->getAvailablePageTargets(),
+            'posts' => $this->getAvailablePostTargets(),
+            'hubs' => $this->getAvailableHubTargets(),
+        ];
     }
 
     /**

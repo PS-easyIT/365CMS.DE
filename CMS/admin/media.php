@@ -15,61 +15,39 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 use CMS\Security;
 
-if (!Auth::instance()->isAdmin()) {
+const CMS_ADMIN_MEDIA_ALLOWED_ACTIONS = [
+    'upload',
+    'create_folder',
+    'delete_item',
+    'rename_item',
+    'assign_category',
+    'add_category',
+    'delete_category',
+    'save_settings',
+];
+
+const CMS_ADMIN_MEDIA_WRITE_CAPABILITY = 'manage_media';
+
+function cms_admin_media_can_access(): bool
+{
+    return Auth::instance()->isAdmin() && Auth::instance()->hasCapability(CMS_ADMIN_MEDIA_WRITE_CAPABILITY);
+}
+
+if (!cms_admin_media_can_access()) {
     header('Location: ' . SITE_URL);
     exit;
 }
 
-require_once __DIR__ . '/modules/media/MediaModule.php';
-$module    = new MediaModule();
-$alert     = null;
-$tab       = $module->normalizeTab((string)($_GET['tab'] ?? 'library'));
-
-function cms_admin_media_redirect(string $redirectUrl): never
+function cms_admin_media_normalize_action(mixed $action): string
 {
-    header('Location: ' . $redirectUrl);
-    exit;
+    $normalizedAction = trim((string) $action);
+
+    return in_array($normalizedAction, CMS_ADMIN_MEDIA_ALLOWED_ACTIONS, true) ? $normalizedAction : '';
 }
 
-function cms_admin_media_default_url(): string
+function cms_admin_media_can_run_action(string $action): bool
 {
-    return SITE_URL . '/admin/media';
-}
-
-/**
- * @return list<string>
- */
-function cms_admin_media_allowed_actions(): array
-{
-    return ['upload', 'create_folder', 'delete_item', 'rename_item', 'assign_category', 'add_category', 'delete_category', 'save_settings'];
-}
-
-function cms_admin_media_flash(array $payload): void
-{
-    $_SESSION['admin_alert'] = [
-        'type' => (string) ($payload['type'] ?? 'danger'),
-        'message' => (string) ($payload['message'] ?? ''),
-    ];
-}
-
-function cms_admin_media_flash_result(array $result): void
-{
-    cms_admin_media_flash([
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
-    ]);
-}
-
-function cms_admin_media_pull_alert(): ?array
-{
-    if (empty($_SESSION['admin_alert']) || !is_array($_SESSION['admin_alert'])) {
-        return null;
-    }
-
-    $alert = $_SESSION['admin_alert'];
-    unset($_SESSION['admin_alert']);
-
-    return $alert;
+    return $action !== '' && Auth::instance()->hasCapability(CMS_ADMIN_MEDIA_WRITE_CAPABILITY);
 }
 
 function cms_admin_media_resolve_path(MediaModule $module, array $post): string
@@ -135,14 +113,14 @@ function cms_admin_media_build_redirect_url(MediaModule $module, string $tab, st
 {
     $redirectParams = cms_admin_media_redirect_params($module, $tab, $path);
 
-    return cms_admin_media_default_url() . (!empty($redirectParams) ? '?' . http_build_query($redirectParams) : '');
+    return '/admin/media' . (!empty($redirectParams) ? '?' . http_build_query($redirectParams) : '');
 }
 
-function cms_admin_media_action_redirect_url(MediaModule $module, string $action, string $tab, string $path): string
+function cms_admin_media_action_redirect_path(MediaModule $module, string $action, string $tab, string $path): string
 {
     return match ($action) {
-        'add_category', 'delete_category' => cms_admin_media_default_url() . '?tab=categories',
-        'save_settings' => cms_admin_media_default_url() . '?tab=settings',
+        'add_category', 'delete_category' => '/admin/media?tab=categories',
+        'save_settings' => '/admin/media?tab=settings',
         default => cms_admin_media_build_redirect_url($module, $tab, $path),
     };
 }
@@ -270,139 +248,179 @@ function cms_admin_media_handle_upload(MediaModule $module, string $path): array
 
 function cms_admin_media_handle_action(MediaModule $module, string $action, string $tab, string $path, array $post): array
 {
-    $redirectUrl = cms_admin_media_action_redirect_url($module, $action, $tab, $path);
+    $redirectPath = cms_admin_media_action_redirect_path($module, $action, $tab, $path);
 
     return match ($action) {
         'upload' => [
             'flash' => cms_admin_media_handle_upload($module, $path),
-            'redirect_url' => $redirectUrl,
+            'redirect_path' => $redirectPath,
         ],
         'create_folder' => [
             'result' => $module->createFolder(trim((string)($post['folder_name'] ?? '')), (string)($post['parent_path'] ?? '')),
-            'redirect_url' => $redirectUrl,
+            'redirect_path' => $redirectPath,
         ],
         'delete_item' => [
             'result' => $module->deleteItem((string)($post['item_path'] ?? '')),
-            'redirect_url' => $redirectUrl,
+            'redirect_path' => $redirectPath,
         ],
         'rename_item' => [
             'result' => $module->renameItem((string)($post['old_path'] ?? ''), trim((string)($post['new_name'] ?? ''))),
-            'redirect_url' => $redirectUrl,
+            'redirect_path' => $redirectPath,
         ],
         'assign_category' => [
             'result' => $module->assignCategory((string)($post['file_path'] ?? ''), (string)($post['category_slug'] ?? '')),
-            'redirect_url' => $redirectUrl,
+            'redirect_path' => $redirectPath,
         ],
         'add_category' => [
             'result' => $module->addCategory(trim((string)($post['name'] ?? '')), trim((string)($post['slug'] ?? ''))),
-            'redirect_url' => $redirectUrl,
+            'redirect_path' => $redirectPath,
         ],
         'delete_category' => [
             'result' => $module->deleteCategory((string)($post['slug'] ?? '')),
-            'redirect_url' => $redirectUrl,
+            'redirect_path' => $redirectPath,
         ],
         'save_settings' => [
             'result' => $module->saveSettings($post),
-            'redirect_url' => $redirectUrl,
+            'redirect_path' => $redirectPath,
         ],
         default => [
             'flash' => ['type' => 'danger', 'message' => 'Unbekannte Aktion.'],
-            'redirect_url' => cms_admin_media_default_url(),
+            'redirect_path' => '/admin/media',
         ],
     };
 }
 
-if ($tab === 'library') {
-    $requestedPath = $module->normalizePath((string)($_GET['path'] ?? ''));
+function cms_admin_media_flash(array $payload): void
+{
+    $_SESSION['admin_alert'] = [
+        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
+        'message' => trim((string) ($payload['message'] ?? '')),
+    ];
+}
+
+function cms_admin_media_redirect(string $routePath): never
+{
+    header('Location: ' . SITE_URL . $routePath);
+    exit;
+}
+
+function cms_admin_media_view_config(MediaModule $module, string $tab): array
+{
+    $normalizedTab = $module->normalizeTab($tab);
+
+    return match ($normalizedTab) {
+        'categories' => [
+            'section' => 'categories',
+            'view_file' => __DIR__ . '/views/media/categories.php',
+            'page_title' => 'Medien – Kategorien',
+            'active_page' => 'media-categories',
+            'data' => $module->getCategoriesData(),
+        ],
+        'settings' => [
+            'section' => 'settings',
+            'view_file' => __DIR__ . '/views/media/settings.php',
+            'page_title' => 'Medien – Einstellungen',
+            'active_page' => 'media-settings',
+            'data' => $module->getSettingsData(),
+        ],
+        default => [
+            'section' => 'library',
+            'view_file' => __DIR__ . '/views/media/library.php',
+            'page_title' => 'Medien',
+            'active_page' => 'media',
+            'page_assets' => [
+                'css' => [
+                    cms_asset_url('filepond/filepond.min.css'),
+                    cms_asset_url('elfinder/vendor/jquery-ui/jquery-ui-1.13.2.css'),
+                    cms_asset_url('elfinder/css/elfinder.min.css'),
+                    cms_asset_url('elfinder/css/theme.css'),
+                ],
+                'js' => [
+                    cms_asset_url('filepond/filepond.min.js'),
+                    cms_asset_url('js/admin-media-integrations.js'),
+                ],
+            ],
+            'data' => $module->getLibraryData(),
+        ],
+    };
+}
+
+require_once __DIR__ . '/modules/media/MediaModule.php';
+
+$mediaPreflightModule = new MediaModule();
+$requestedTab = $mediaPreflightModule->normalizeTab((string)($_GET['tab'] ?? 'library'));
+
+if ($requestedTab === 'library') {
+    $requestedPath = $mediaPreflightModule->normalizePath((string)($_GET['path'] ?? ''));
     $memberConfirmed = (string)($_GET['confirm_member'] ?? '') === '1';
 
-    if ($module->requiresMemberConfirmation($requestedPath) && !$memberConfirmed) {
+    if ($mediaPreflightModule->requiresMemberConfirmation($requestedPath) && !$memberConfirmed) {
         cms_admin_media_flash([
             'type' => 'danger',
             'message' => 'Der Member-Ordner kann erst nach einer zusätzlichen Bestätigung geöffnet werden.',
         ]);
-        cms_admin_media_redirect(SITE_URL . '/admin/media');
+        cms_admin_media_redirect('/admin/media');
     }
 }
 
-// ─── POST-Handling ───────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action    = (string)($_POST['action'] ?? '');
-    $postToken = (string)($_POST['csrf_token'] ?? '');
+$sectionPageConfig = [
+    'route_path' => '/admin/media',
+    'view_file' => __DIR__ . '/views/media/library.php',
+    'page_title' => 'Medien',
+    'active_page' => 'media',
+    'csrf_action' => 'admin_media',
+    'module_file' => __DIR__ . '/modules/media/MediaModule.php',
+    'module_factory' => static fn (): MediaModule => new MediaModule(),
+    'access_checker' => static fn (): bool => cms_admin_media_can_access(),
+    'request_context_resolver' => static function (MediaModule $module): array {
+        $tab = $module->normalizeTab((string) ($_GET['tab'] ?? 'library'));
+        $viewConfig = cms_admin_media_view_config($module, $tab);
 
-    if (!Security::instance()->verifyToken($postToken, 'admin_media')) {
-        cms_admin_media_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
-        cms_admin_media_redirect(cms_admin_media_default_url());
-    }
-
-    if (!in_array($action, cms_admin_media_allowed_actions(), true)) {
-        cms_admin_media_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
-        cms_admin_media_redirect(cms_admin_media_default_url());
-    }
-
-    $path = cms_admin_media_resolve_path($module, $_POST);
-    $handledAction = cms_admin_media_handle_action($module, $action, $tab, $path, $_POST);
-
-    if (isset($handledAction['flash']) && is_array($handledAction['flash'])) {
-        cms_admin_media_flash($handledAction['flash']);
-    } elseif (isset($handledAction['result']) && is_array($handledAction['result'])) {
-        cms_admin_media_flash_result($handledAction['result']);
-    }
-
-    cms_admin_media_redirect((string)($handledAction['redirect_url'] ?? cms_admin_media_default_url()));
-}
-
-// ─── Session-Alert abholen ───────────────────────────────
-$alert = cms_admin_media_pull_alert();
-
-$csrfToken  = Security::instance()->generateToken('admin_media');
-$mediaActionToken = Security::instance()->generateToken('media_action');
-$mediaConnectorToken = Security::instance()->generateToken('media_connector');
-$activePage = match ($tab) {
-    'categories' => 'media-categories',
-    'settings' => 'media-settings',
-    default => 'media',
-};
-
-// ─── Tab-Routing ─────────────────────────────────────────
-switch ($tab) {
-    case 'categories':
-        $data      = $module->getCategoriesData();
-        $pageTitle = 'Medien – Kategorien';
-        require __DIR__ . '/partials/header.php';
-        require __DIR__ . '/partials/sidebar.php';
-        require __DIR__ . '/views/media/categories.php';
-        require __DIR__ . '/partials/footer.php';
-        break;
-
-    case 'settings':
-        $data      = $module->getSettingsData();
-        $pageTitle = 'Medien – Einstellungen';
-        require __DIR__ . '/partials/header.php';
-        require __DIR__ . '/partials/sidebar.php';
-        require __DIR__ . '/views/media/settings.php';
-        require __DIR__ . '/partials/footer.php';
-        break;
-
-    default:
-        $data      = $module->getLibraryData();
-        $pageTitle = 'Medien';
-        $pageAssets = [
-            'css' => [
-                cms_asset_url('filepond/filepond.min.css'),
-                cms_asset_url('elfinder/vendor/jquery-ui/jquery-ui-1.13.2.css'),
-                cms_asset_url('elfinder/css/elfinder.min.css'),
-                cms_asset_url('elfinder/css/theme.css'),
-            ],
-            'js' => [
-                cms_asset_url('filepond/filepond.min.js'),
-                cms_asset_url('js/admin-media-integrations.js'),
-            ],
+        $viewConfig['template_vars'] = [
+            'mediaActionToken' => Security::instance()->generateToken('media_action'),
+            'mediaConnectorToken' => Security::instance()->generateToken('media_connector'),
         ];
-        $inlineJs = '';
-        require __DIR__ . '/partials/header.php';
-        require __DIR__ . '/partials/sidebar.php';
-        require __DIR__ . '/views/media/library.php';
-        require __DIR__ . '/partials/footer.php';
-        break;
-}
+
+        return $viewConfig;
+    },
+    'redirect_path_resolver' => static function (MediaModule $module, string $section, mixed $result): string {
+        if (is_array($result) && isset($result['redirect_path']) && is_string($result['redirect_path'])) {
+            return $result['redirect_path'];
+        }
+
+        return match ($module->normalizeTab($section)) {
+            'categories' => '/admin/media?tab=categories',
+            'settings' => '/admin/media?tab=settings',
+            default => cms_admin_media_build_redirect_url($module, 'library', $module->normalizePath((string) ($_GET['path'] ?? ''))),
+        };
+    },
+    'post_handler' => static function (MediaModule $module, string $section, array $post): array {
+        $action = cms_admin_media_normalize_action($post['action'] ?? '');
+        if ($action === '') {
+            return ['success' => false, 'error' => 'Unbekannte Aktion.'];
+        }
+
+        if (!cms_admin_media_can_run_action($action)) {
+            return ['success' => false, 'error' => 'Keine Berechtigung für diese Aktion.'];
+        }
+
+        $tab = $module->normalizeTab($section);
+        $path = cms_admin_media_resolve_path($module, $post);
+        $handledAction = cms_admin_media_handle_action($module, $action, $tab, $path, $post);
+
+        if (isset($handledAction['flash']) && is_array($handledAction['flash'])) {
+            return [
+                'success' => (($handledAction['flash']['type'] ?? 'danger') === 'success'),
+                'message' => (string) ($handledAction['flash']['message'] ?? ''),
+                'redirect_path' => (string) ($handledAction['redirect_path'] ?? '/admin/media'),
+            ];
+        }
+
+        $result = is_array($handledAction['result'] ?? null) ? $handledAction['result'] : ['success' => false, 'error' => 'Unbekannte Aktion.'];
+        $result['redirect_path'] = (string) ($handledAction['redirect_path'] ?? '/admin/media');
+
+        return $result;
+    },
+];
+
+require __DIR__ . '/partials/section-page-shell.php';

@@ -34,10 +34,7 @@ $baseTemplateOptions = $data['baseTemplateOptions'] ?? [];
         </ul>
 
         <?php if (!empty($alert)): ?>
-            <div class="alert alert-<?php echo $alert['type'] === 'success' ? 'success' : 'danger'; ?> alert-dismissible mb-3" role="alert">
-                <?php echo htmlspecialchars((string)$alert['message']); ?>
-                <a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>
-            </div>
+            <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
         <div class="card">

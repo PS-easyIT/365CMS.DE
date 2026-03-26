@@ -49,9 +49,7 @@ $profile = $d['profile'] ?? [];
             Hinterlege einmal die Standardwerte deines Unternehmens und erzeuge daraus passende Rechtstext-Seiten. Das spart Klicks, vermeidet Platzhalter-Chaos und bringt Impressum & Datenschutz deutlich näher an „fertig statt fragwürdig“.
         </div>
         <?php if (!empty($alert)): ?>
-            <div class="alert alert-<?php echo htmlspecialchars($alert['type'] ?? 'info'); ?> mb-4" role="alert">
-                <?php echo htmlspecialchars($alert['message'] ?? ''); ?>
-            </div>
+            <?php $alertData = $alert; $alertMarginClass = 'mb-4'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
         <div class="card mb-4">

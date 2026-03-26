@@ -11,26 +11,15 @@ if (!defined('ABSPATH')) {
  */
 
 use CMS\Auth;
-use CMS\Security;
 
 if (!Auth::instance()->isAdmin()) {
     header('Location: ' . SITE_URL);
     exit;
 }
 
-require_once __DIR__ . '/modules/hub/HubSitesModule.php';
-$module = new HubSitesModule();
-$alert = null;
-
-function cms_admin_hub_sites_redirect(string $redirectUrl): never
-{
-    header('Location: ' . $redirectUrl);
-    exit;
-}
-
 function cms_admin_hub_sites_default_url(): string
 {
-    return SITE_URL . '/admin/hub-sites';
+    return '/admin/hub-sites';
 }
 
 /**
@@ -49,35 +38,15 @@ function cms_admin_hub_sites_allowed_views(): array
     return ['list', 'edit', 'template-edit', 'templates'];
 }
 
-function cms_admin_hub_sites_flash(array $result, string $fallbackMessage): void
-{
-    $_SESSION['admin_alert'] = [
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => (string) ($result['message'] ?? $result['error'] ?? $fallbackMessage),
-    ];
-}
-
-function cms_admin_hub_sites_pull_alert(): ?array
-{
-    if (empty($_SESSION['admin_alert']) || !is_array($_SESSION['admin_alert'])) {
-        return null;
-    }
-
-    $alert = $_SESSION['admin_alert'];
-    unset($_SESSION['admin_alert']);
-
-    return $alert;
-}
-
 function cms_admin_hub_sites_post_redirect(string $action, array $result, array $post): string
 {
     if ($action === 'save') {
         if (!empty($result['success'])) {
             if (!empty($post['open_public_after_save']) && !empty($result['slug'])) {
-                return SITE_URL . '/' . ltrim((string) $result['slug'], '/');
+                return '/' . ltrim((string) $result['slug'], '/');
             }
 
-            return cms_admin_hub_sites_default_url() . '?action=edit&id=' . (int) ($result['id'] ?? 0);
+            return '/admin/hub-sites?action=edit&id=' . (int) ($result['id'] ?? 0);
         }
 
         return cms_admin_hub_sites_default_url();
@@ -85,17 +54,34 @@ function cms_admin_hub_sites_post_redirect(string $action, array $result, array 
 
     if ($action === 'save-template' || $action === 'duplicate-template') {
         if (!empty($result['success'])) {
-            return cms_admin_hub_sites_default_url() . '?action=template-edit&key=' . rawurlencode((string) ($result['key'] ?? ''));
+            return '/admin/hub-sites?action=template-edit&key=' . rawurlencode((string) ($result['key'] ?? ''));
         }
 
-        return cms_admin_hub_sites_default_url() . '?action=templates';
+        return '/admin/hub-sites?action=templates';
     }
 
     if ($action === 'delete-template') {
-        return cms_admin_hub_sites_default_url() . '?action=templates';
+        return '/admin/hub-sites?action=templates';
     }
 
     return cms_admin_hub_sites_default_url();
+}
+
+function cms_admin_hub_sites_view_path(string $viewAction, array $query = []): string
+{
+    $viewAction = cms_admin_hub_sites_normalize_view($viewAction);
+    $basePath = cms_admin_hub_sites_default_url();
+
+    if ($viewAction !== 'list') {
+        $query = array_merge(['action' => $viewAction], $query);
+    }
+
+    $query = array_filter($query, static fn (mixed $value): bool => $value !== null && $value !== '');
+    if ($query === []) {
+        return $basePath;
+    }
+
+    return $basePath . '?' . http_build_query($query);
 }
 
 function cms_admin_hub_sites_normalize_view(string $viewAction): string
@@ -203,40 +189,64 @@ function cms_admin_hub_sites_view_config(HubSitesModule $module, string $viewAct
     };
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = (string)($_POST['action'] ?? '');
-    $postToken = (string)($_POST['csrf_token'] ?? '');
+$sectionPageConfig = [
+    'route_path' => '/admin/hub-sites',
+    'view_file' => __DIR__ . '/views/hub/list.php',
+    'page_title' => 'Hub-Sites',
+    'active_page' => 'hub-sites',
+    'csrf_action' => 'admin_hub_sites',
+    'module_file' => __DIR__ . '/modules/hub/HubSitesModule.php',
+    'module_factory' => static fn (): HubSitesModule => new HubSitesModule(),
+    'access_checker' => static fn (): bool => Auth::instance()->isAdmin(),
+    'access_denied_route' => '/',
+    'request_context_resolver' => static function (HubSitesModule $module): array {
+        $viewAction = cms_admin_hub_sites_normalize_view((string) ($_GET['action'] ?? 'list'));
+        $viewConfig = cms_admin_hub_sites_view_config($module, $viewAction);
 
-    if (!Security::instance()->verifyToken($postToken, 'admin_hub_sites')) {
-        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-        cms_admin_hub_sites_redirect(cms_admin_hub_sites_default_url());
-    }
+        return [
+            'section' => $viewAction,
+            'data' => $viewConfig['data'] ?? [],
+            'view_file' => $viewConfig['view'] ?? (__DIR__ . '/views/hub/list.php'),
+            'page_title' => $viewConfig['pageTitle'] ?? 'Hub-Sites',
+            'active_page' => $viewConfig['activePage'] ?? 'hub-sites',
+            'page_assets' => $viewConfig['pageAssets'] ?? ['css' => [], 'js' => []],
+        ];
+    },
+    'redirect_path_resolver' => static function ($module, string $section, $result): string {
+        if (is_array($result) && !empty($result['__redirect'])) {
+            return (string) $result['__redirect'];
+        }
 
-    if (!in_array($action, cms_admin_hub_sites_allowed_actions(), true)) {
-        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Unbekannte Hub-Sites-Aktion.'];
-        cms_admin_hub_sites_redirect(cms_admin_hub_sites_default_url());
-    }
+        $query = [];
+        if ($section === 'edit') {
+            $query['id'] = isset($_GET['id']) ? (int) $_GET['id'] : null;
+        }
+        if ($section === 'template-edit') {
+            $query['key'] = isset($_GET['key']) ? (string) $_GET['key'] : null;
+        }
 
-    $handledAction = cms_admin_hub_sites_handle_action($module, $action, $_POST);
-    $result = is_array($handledAction['result'] ?? null) ? $handledAction['result'] : ['success' => false, 'error' => 'Unbekannte Hub-Sites-Aktion.'];
-    $fallbackMessage = (string)($handledAction['fallback'] ?? 'Hub-Sites-Aktion fehlgeschlagen.');
+        return cms_admin_hub_sites_view_path($section, $query);
+    },
+    'unknown_action_message' => 'Unbekannte Hub-Sites-Aktion.',
+    'post_handler' => static function (HubSitesModule $module, string $section, array $post): array {
+        $action = (string) ($post['action'] ?? '');
+        if (!in_array($action, cms_admin_hub_sites_allowed_actions(), true)) {
+            return ['success' => false, 'error' => 'Unbekannte Hub-Sites-Aktion.'];
+        }
 
-    cms_admin_hub_sites_flash($result, $fallbackMessage);
-    cms_admin_hub_sites_redirect(cms_admin_hub_sites_post_redirect($action, $result, $_POST));
-}
+        $handledAction = cms_admin_hub_sites_handle_action($module, $action, $post);
+        $result = is_array($handledAction['result'] ?? null)
+            ? $handledAction['result']
+            : ['success' => false, 'error' => 'Unbekannte Hub-Sites-Aktion.'];
 
-$alert = cms_admin_hub_sites_pull_alert();
+        if (empty($result['message']) && !empty($handledAction['fallback'])) {
+            $result['error'] = (string) ($result['error'] ?? $handledAction['fallback']);
+        }
 
-$csrfToken = Security::instance()->generateToken('admin_hub_sites');
-$viewAction = cms_admin_hub_sites_normalize_view((string)($_GET['action'] ?? 'list'));
-$viewConfig = cms_admin_hub_sites_view_config($module, $viewAction);
+        $result['__redirect'] = cms_admin_hub_sites_post_redirect($action, $result, $post);
 
-$data = $viewConfig['data'];
-$pageTitle = $viewConfig['pageTitle'];
-$activePage = $viewConfig['activePage'];
-$pageAssets = $viewConfig['pageAssets'] ?? ['css' => [], 'js' => []];
+        return $result;
+    },
+];
 
-require __DIR__ . '/partials/header.php';
-require __DIR__ . '/partials/sidebar.php';
-require $viewConfig['view'];
-require __DIR__ . '/partials/footer.php';
+require __DIR__ . '/partials/section-page-shell.php';

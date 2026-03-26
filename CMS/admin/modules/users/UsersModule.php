@@ -131,7 +131,7 @@ class UsersModule
                 return ['success' => true, 'id' => $result, 'message' => 'Benutzer erstellt.'];
             }
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+            return ['success' => false, 'error' => 'Benutzer konnte nicht gespeichert werden.'];
         }
     }
 

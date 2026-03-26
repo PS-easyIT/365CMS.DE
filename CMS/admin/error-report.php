@@ -6,13 +6,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Auth;
-use CMS\Security;
 use CMS\Services\ErrorReportService;
-
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
-}
 
 function cms_admin_error_report_default_url(): string
 {
@@ -55,28 +49,6 @@ function cms_normalize_admin_report_redirect(string $target): string
 function cms_admin_error_report_resolve_redirect_url(array $post, array $server): string
 {
     return cms_normalize_admin_report_redirect((string) ($post['back_to'] ?? ($server['HTTP_REFERER'] ?? '')));
-}
-
-function cms_admin_error_report_redirect(string $redirectUrl): never
-{
-    header('Location: ' . $redirectUrl);
-    exit;
-}
-
-function cms_admin_error_report_flash(array $payload): void
-{
-    $_SESSION['admin_alert'] = [
-        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
-        'message' => trim((string) ($payload['message'] ?? 'Fehlerreport konnte nicht verarbeitet werden.')),
-    ];
-}
-
-function cms_admin_error_report_flash_result(array $result): void
-{
-    cms_admin_error_report_flash([
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => (string) ($result['message'] ?? $result['error'] ?? 'Fehlerreport konnte nicht verarbeitet werden.'),
-    ]);
 }
 
 function cms_admin_error_report_decode_json_payload(string $payload): array
@@ -177,19 +149,14 @@ function cms_admin_error_report_handle_request(array $post, string $redirectUrl)
     );
 }
 
-$redirectUrl = cms_admin_error_report_resolve_redirect_url($_POST, $_SERVER);
+$postActionShellConfig = [
+    'access_checker' => static fn (): bool => Auth::instance()->isAdmin(),
+    'access_denied_url' => SITE_URL,
+    'csrf_action' => 'admin_error_report',
+    'invalid_token_message' => 'Sicherheitstoken für den Fehlerreport ist ungültig.',
+    'unknown_action_message' => 'Fehlerreport konnte nicht verarbeitet werden.',
+    'redirect_resolver' => static fn (array $post, array $server): string => cms_admin_error_report_resolve_redirect_url($post, $server),
+    'handler' => static fn (array $post, array $server, string $redirectUrl): array => cms_admin_error_report_handle_request($post, $redirectUrl),
+];
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    cms_admin_error_report_redirect($redirectUrl);
-}
-
-if (!Security::instance()->verifyToken((string) ($_POST['csrf_token'] ?? ''), 'admin_error_report')) {
-    cms_admin_error_report_flash(['type' => 'danger', 'message' => 'Sicherheitstoken für den Fehlerreport ist ungültig.']);
-    cms_admin_error_report_redirect($redirectUrl);
-}
-
-$result = cms_admin_error_report_handle_request($_POST, $redirectUrl);
-
-cms_admin_error_report_flash_result($result);
-
-cms_admin_error_report_redirect($redirectUrl);
+require __DIR__ . '/partials/post-action-shell.php';

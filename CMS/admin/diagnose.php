@@ -10,12 +10,6 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$systemMonitorPageConfig = [
-    'section' => 'diagnose',
-    'route_path' => '/admin/diagnose',
-    'view_file' => __DIR__ . '/views/system/diagnose.php',
-    'page_title' => 'Diagnose',
-    'active_page' => 'diagnose',
-];
+$systemMonitorPageConfig = ['section' => 'diagnose'];
 
 require __DIR__ . '/system-monitor-page.php';

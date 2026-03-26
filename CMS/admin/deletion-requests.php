@@ -12,19 +12,10 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 
-function cms_admin_deletion_requests_redirect(string $targetUrl): never
-{
-    header('Location: ' . $targetUrl);
-    exit;
-}
+$adminRedirectAliasConfig = [
+    'access_checker' => static fn (): bool => Auth::instance()->isAdmin(),
+    'target_url' => '/admin/data-requests',
+    'fallback_url' => '/',
+];
 
-function cms_admin_deletion_requests_target_url(): string
-{
-    return SITE_URL . '/admin/data-requests';
-}
-
-if (!Auth::instance()->isAdmin()) {
-    cms_admin_deletion_requests_redirect(SITE_URL);
-}
-
-cms_admin_deletion_requests_redirect(cms_admin_deletion_requests_target_url());
+require __DIR__ . '/partials/redirect-alias-shell.php';

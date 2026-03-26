@@ -11,51 +11,6 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Auth;
-use CMS\Security;
-
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
-}
-
-require_once __DIR__ . '/modules/legal/CookieManagerModule.php';
-$module = new CookieManagerModule();
-$alert  = null;
-
-function cms_admin_cookie_manager_target_url(): string
-{
-    return SITE_URL . '/admin/cookie-manager';
-}
-
-function cms_admin_cookie_manager_redirect(): never
-{
-    header('Location: ' . cms_admin_cookie_manager_target_url());
-    exit;
-}
-
-function cms_admin_cookie_manager_flash(array $payload): void
-{
-    $_SESSION['admin_alert'] = [
-        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
-        'message' => trim((string) ($payload['message'] ?? '')),
-    ];
-}
-
-function cms_admin_cookie_manager_flash_result(array $result): void
-{
-    cms_admin_cookie_manager_flash([
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => (string) ($result['message'] ?? $result['error'] ?? 'Aktion abgeschlossen.'),
-    ]);
-}
-
-function cms_admin_cookie_manager_pull_alert(): ?array
-{
-    $alert = $_SESSION['admin_alert'] ?? null;
-    unset($_SESSION['admin_alert']);
-
-    return is_array($alert) ? $alert : null;
-}
 
 function cms_admin_cookie_manager_normalize_action(mixed $value): ?string
 {
@@ -121,43 +76,38 @@ function cms_admin_cookie_manager_is_allowed_action(string $action): bool
     return isset(cms_admin_cookie_manager_allowed_actions()[$action]);
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!Security::instance()->verifyToken((string) ($_POST['csrf_token'] ?? ''), 'admin_cookies')) {
-        cms_admin_cookie_manager_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
-        cms_admin_cookie_manager_redirect();
-    }
+$sectionPageConfig = [
+    'section' => 'cookie-manager',
+    'route_path' => '/admin/cookie-manager',
+    'view_file' => __DIR__ . '/views/legal/cookies.php',
+    'page_title' => 'Cookie Manager',
+    'active_page' => 'cookie-manager',
+    'page_assets' => [],
+    'csrf_action' => 'admin_cookies',
+    'module_file' => __DIR__ . '/modules/legal/CookieManagerModule.php',
+    'module_factory' => static fn (): CookieManagerModule => new CookieManagerModule(),
+    'data_loader' => static fn (CookieManagerModule $module): array => $module->getData(),
+    'access_checker' => static fn (): bool => Auth::instance()->isAdmin(),
+    'invalid_token_message' => 'Sicherheitstoken ungültig.',
+    'unknown_action_message' => 'Aktion konnte nicht verarbeitet werden.',
+    'post_handler' => static function (CookieManagerModule $module, string $section, array $post): array {
+        $action = cms_admin_cookie_manager_normalize_action($post['action'] ?? null);
+        if ($action === null) {
+            return ['success' => false, 'error' => 'Unbekannte Aktion.'];
+        }
 
-    $action = cms_admin_cookie_manager_normalize_action($_POST['action'] ?? null);
-    if ($action === null) {
-        cms_admin_cookie_manager_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
-        cms_admin_cookie_manager_redirect();
-    }
+        if (in_array($action, ['delete_category', 'delete_service'], true)
+            && cms_admin_cookie_manager_normalize_positive_id($post) <= 0
+        ) {
+            return ['success' => false, 'error' => 'Ungültige ID.'];
+        }
 
-    if (in_array($action, ['delete_category', 'delete_service'], true)
-        && cms_admin_cookie_manager_normalize_positive_id($_POST) <= 0
-    ) {
-        cms_admin_cookie_manager_flash(['type' => 'danger', 'message' => 'Ungültige ID.']);
-        cms_admin_cookie_manager_redirect();
-    }
+        if ($action === 'import_curated_service' && cms_admin_cookie_manager_normalize_service_slug($post) === '') {
+            return ['success' => false, 'error' => 'Unbekannter Standard-Service.'];
+        }
 
-    if ($action === 'import_curated_service' && cms_admin_cookie_manager_normalize_service_slug($_POST) === '') {
-        cms_admin_cookie_manager_flash(['type' => 'danger', 'message' => 'Unbekannter Standard-Service.']);
-        cms_admin_cookie_manager_redirect();
-    }
+        return cms_admin_cookie_manager_handle_action($module, $action, $post);
+    },
+];
 
-    $result = cms_admin_cookie_manager_handle_action($module, $action, $_POST);
-    cms_admin_cookie_manager_flash_result($result);
-    cms_admin_cookie_manager_redirect();
-}
-
-$alert = cms_admin_cookie_manager_pull_alert();
-
-$csrfToken  = Security::instance()->generateToken('admin_cookies');
-$pageTitle  = 'Cookie Manager';
-$activePage = 'cookie-manager';
-$data       = $module->getData();
-
-require_once __DIR__ . '/partials/header.php';
-require_once __DIR__ . '/partials/sidebar.php';
-require_once __DIR__ . '/views/legal/cookies.php';
-require_once __DIR__ . '/partials/footer.php';
+require __DIR__ . '/partials/section-page-shell.php';

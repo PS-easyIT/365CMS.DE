@@ -56,12 +56,11 @@ $statusLabels = [
 <div class="page-body">
     <div class="container-xl">
 
-        <?php if (!empty($alert)): ?>
-            <div class="alert alert-<?= htmlspecialchars($alert['type']) ?> alert-dismissible" role="alert">
-                <div><?= htmlspecialchars($alert['message']) ?></div>
-                <a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>
-            </div>
-        <?php endif; ?>
+        <?php
+        $alertData = is_array($alert ?? null) ? $alert : [];
+        $alertMarginClass = 'mb-3';
+        include __DIR__ . '/../partials/flash-alert.php';
+        ?>
 
         <!-- KPI-Karten -->
         <div class="row row-deck row-cards mb-4">

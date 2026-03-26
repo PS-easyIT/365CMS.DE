@@ -90,6 +90,31 @@ final class PerformanceModule
         ];
     }
 
+    public function getSectionData(string $section): array
+    {
+        return match ($section) {
+            'cache' => [
+                'cache' => $this->getCacheMetrics(),
+            ],
+            'database' => [
+                'database' => $this->getDatabaseMetrics(),
+            ],
+            'media' => [
+                'media' => $this->getMediaMetrics(),
+                'settings' => $this->getSettings(),
+            ],
+            'sessions' => [
+                'sessions' => $this->getSessionMetrics(),
+                'settings' => $this->getSettings(),
+            ],
+            'settings' => [
+                'settings' => $this->getSettings(),
+            ],
+            'overview' => $this->getData(),
+            default => $this->getData(),
+        };
+    }
+
     public function handleAction(string $section, string $action, array $post): array
     {
         return match ($action) {

@@ -15,27 +15,31 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Auth;
-use CMS\Security;
 
-// ─── Auth-Check ────────────────────────────────────────────────────────────
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
-}
+$sectionPageConfig = [
+    'section' => 'overview',
+    'route_path' => '/admin',
+    'view_file' => __DIR__ . '/views/dashboard/index.php',
+    'page_title' => 'Dashboard',
+    'active_page' => 'dashboard',
+    'page_assets' => [
+        'css' => [],
+        'js' => [],
+    ],
+    'csrf_action' => 'admin_dashboard',
+    'guard_constant' => '',
+    'module_file' => __DIR__ . '/modules/dashboard/DashboardModule.php',
+    'module_factory' => static function (): DashboardModule {
+        return new DashboardModule();
+    },
+    'data_loader' => static function ($module): array {
+        return $module instanceof DashboardModule ? $module->getData() : [];
+    },
+    'access_checker' => static function (): bool {
+        return Auth::instance()->isAdmin();
+    },
+    'access_denied_route' => '/',
+    'unknown_action_message' => 'Unbekannte Dashboard-Aktion.',
+];
 
-// ─── Module laden ──────────────────────────────────────────────────────────
-require_once __DIR__ . '/modules/dashboard/DashboardModule.php';
-$module    = new DashboardModule();
-$data      = $module->getData();
-$csrfToken = Security::instance()->generateToken('admin_dashboard');
-
-// ─── View-Variablen ────────────────────────────────────────────────────────
-$pageTitle  = 'Dashboard';
-$activePage = 'dashboard';
-$pageAssets = [];
-
-// ─── Layout rendern ────────────────────────────────────────────────────────
-require_once __DIR__ . '/partials/header.php';
-require_once __DIR__ . '/partials/sidebar.php';
-require_once __DIR__ . '/views/dashboard/index.php';
-require_once __DIR__ . '/partials/footer.php';
+require __DIR__ . '/partials/section-page-shell.php';

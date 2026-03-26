@@ -8,12 +8,123 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 use CMS\Security;
 
+function cms_admin_section_shell_flash(string $sessionKey, array $payload): void
+{
+    $_SESSION[$sessionKey] = [
+        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
+        'message' => trim((string) ($payload['message'] ?? '')),
+        'details' => is_array($payload['details'] ?? null) ? $payload['details'] : [],
+    ];
+}
+
+function cms_admin_section_shell_pull_flash(string $sessionKey): ?array
+{
+    $alert = $_SESSION[$sessionKey] ?? null;
+    unset($_SESSION[$sessionKey]);
+
+    return is_array($alert) ? $alert : null;
+}
+
+function cms_admin_section_shell_normalize_route_path(mixed $routePath): string
+{
+    $path = trim((string) $routePath);
+    if ($path === '') {
+        return '/admin';
+    }
+
+    $parsedPath = (string) parse_url($path, PHP_URL_PATH);
+    if ($parsedPath !== '') {
+        $path = $parsedPath;
+    }
+
+    $path = '/' . ltrim($path, '/');
+
+    return $path === '//' ? '/admin' : $path;
+}
+
+function cms_admin_section_shell_resolve_redirect_target(mixed $resolver, string $defaultRoutePath, mixed $module = null, string $section = '', mixed $result = null): string
+{
+    $resolvedTarget = is_callable($resolver)
+        ? trim((string) $resolver($module, $section, $result))
+        : '';
+
+    if ($resolvedTarget === '') {
+        return $defaultRoutePath;
+    }
+
+    $query = (string) parse_url($resolvedTarget, PHP_URL_QUERY);
+    $path = cms_admin_section_shell_normalize_route_path($resolvedTarget);
+
+    return $query !== '' ? $path . '?' . $query : $path;
+}
+
+function cms_admin_section_shell_require_view_file(mixed $viewFile): string
+{
+    $resolvedViewFile = (string) $viewFile;
+    if ($resolvedViewFile === '' || !is_file($resolvedViewFile)) {
+        throw new RuntimeException('Admin-Section-Shell erwartet eine gültige vorhandene view_file-Konfiguration.');
+    }
+
+    return $resolvedViewFile;
+}
+
+function cms_admin_section_shell_redirect(string $routePath): never
+{
+    header('Location: ' . SITE_URL . $routePath);
+    exit;
+}
+
+function cms_admin_section_shell_normalize_page_assets(mixed $pageAssets): array
+{
+    $resolvedPageAssets = is_array($pageAssets) ? $pageAssets : [];
+    $cssAssets = is_array($resolvedPageAssets['css'] ?? null) ? array_values($resolvedPageAssets['css']) : [];
+    $jsAssets = is_array($resolvedPageAssets['js'] ?? null) ? array_values($resolvedPageAssets['js']) : [];
+
+    return [
+        'css' => array_values(array_filter($cssAssets, static fn (mixed $asset): bool => is_string($asset) && trim($asset) !== '')),
+        'js' => array_values(array_filter($jsAssets, static fn (mixed $asset): bool => is_string($asset) && trim($asset) !== '')),
+    ];
+}
+
+function cms_admin_section_shell_normalize_template_vars(mixed $templateVars): array
+{
+    if (!is_array($templateVars)) {
+        return [];
+    }
+
+    $normalized = [];
+    foreach ($templateVars as $key => $value) {
+        $variableName = trim((string) $key);
+        if ($variableName === '' || preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $variableName) !== 1) {
+            continue;
+        }
+
+        $normalized[$variableName] = $value;
+    }
+
+    return $normalized;
+}
+
+function cms_admin_section_shell_apply_runtime_context(array $runtimeContext, string &$section, string &$viewFile, string &$pageTitle, string &$activePage, array &$pageAssets, array &$templateVars, mixed &$resolvedData): void
+{
+    $section = (string) ($runtimeContext['section'] ?? $section);
+    $viewFile = cms_admin_section_shell_require_view_file($runtimeContext['view_file'] ?? $viewFile);
+    $pageTitle = (string) ($runtimeContext['page_title'] ?? $pageTitle);
+    $activePage = (string) ($runtimeContext['active_page'] ?? $activePage);
+    $pageAssets = cms_admin_section_shell_normalize_page_assets($runtimeContext['page_assets'] ?? $pageAssets);
+    $templateVars = array_merge($templateVars, cms_admin_section_shell_normalize_template_vars($runtimeContext['template_vars'] ?? []));
+
+    if (array_key_exists('data', $runtimeContext)) {
+        $resolvedData = $runtimeContext['data'];
+    }
+}
+
 $sectionPageConfig = is_array($sectionPageConfig ?? null) ? $sectionPageConfig : [];
-$routePath = (string)($sectionPageConfig['route_path'] ?? SITE_URL);
-$viewFile = (string)($sectionPageConfig['view_file'] ?? '');
+$routePath = cms_admin_section_shell_normalize_route_path($sectionPageConfig['route_path'] ?? '/admin');
+$viewFile = cms_admin_section_shell_require_view_file($sectionPageConfig['view_file'] ?? '');
 $pageTitle = (string)($sectionPageConfig['page_title'] ?? 'Admin');
 $activePage = (string)($sectionPageConfig['active_page'] ?? 'dashboard');
-$pageAssets = is_array($sectionPageConfig['page_assets'] ?? null) ? $sectionPageConfig['page_assets'] : [];
+$pageAssets = cms_admin_section_shell_normalize_page_assets($sectionPageConfig['page_assets'] ?? []);
 $section = (string)($sectionPageConfig['section'] ?? 'overview');
 $csrfAction = (string)($sectionPageConfig['csrf_action'] ?? 'admin_section');
 $guardConstant = (string)($sectionPageConfig['guard_constant'] ?? '');
@@ -21,13 +132,21 @@ $moduleFile = (string)($sectionPageConfig['module_file'] ?? '');
 $moduleFactory = $sectionPageConfig['module_factory'] ?? null;
 $postHandler = $sectionPageConfig['post_handler'] ?? null;
 $dataLoader = $sectionPageConfig['data_loader'] ?? null;
+$accessChecker = $sectionPageConfig['access_checker'] ?? null;
+$redirectPathResolver = $sectionPageConfig['redirect_path_resolver'] ?? null;
+$requestContextResolver = $sectionPageConfig['request_context_resolver'] ?? null;
+$accessDeniedRoute = cms_admin_section_shell_normalize_route_path($sectionPageConfig['access_denied_route'] ?? '/');
 $alertSessionKey = (string)($sectionPageConfig['alert_session_key'] ?? 'admin_alert');
 $invalidTokenMessage = (string)($sectionPageConfig['invalid_token_message'] ?? 'Sicherheitstoken ungültig.');
 $unknownActionMessage = (string)($sectionPageConfig['unknown_action_message'] ?? 'Unbekannte Antwort.');
+$templateVars = cms_admin_section_shell_normalize_template_vars($sectionPageConfig['template_vars'] ?? []);
 
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
+$canAccess = is_callable($accessChecker)
+    ? (bool) $accessChecker($sectionPageConfig, $section)
+    : Auth::instance()->isAdmin();
+
+if (!$canAccess) {
+    cms_admin_section_shell_redirect($accessDeniedRoute);
 }
 
 if ($moduleFile !== '') {
@@ -39,41 +158,65 @@ if (!is_callable($moduleFactory)) {
 }
 
 $module = $moduleFactory();
-$alert = null;
+$runtimeContext = is_callable($requestContextResolver)
+    ? $requestContextResolver($module, $section, $sectionPageConfig)
+    : [];
+$runtimeContext = is_array($runtimeContext) ? $runtimeContext : [];
+$resolvedData = array_key_exists('data', $runtimeContext) ? $runtimeContext['data'] : null;
+cms_admin_section_shell_apply_runtime_context($runtimeContext, $section, $viewFile, $pageTitle, $activePage, $pageAssets, $templateVars, $resolvedData);
+
+$redirectTarget = cms_admin_section_shell_resolve_redirect_target($redirectPathResolver, $routePath, $module, $section);
+$alert = cms_admin_section_shell_pull_flash($alertSessionKey);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postToken = $_POST['csrf_token'] ?? '';
     if (!Security::instance()->verifyToken($postToken, $csrfAction)) {
-        $_SESSION[$alertSessionKey] = ['type' => 'danger', 'message' => $invalidTokenMessage];
-        header('Location: ' . SITE_URL . $routePath);
-        exit;
+        cms_admin_section_shell_flash($alertSessionKey, ['type' => 'danger', 'message' => $invalidTokenMessage]);
+        cms_admin_section_shell_redirect($redirectTarget);
     }
 
     $result = is_callable($postHandler)
         ? $postHandler($module, $section, $_POST)
         : ['success' => false, 'error' => $unknownActionMessage];
 
-    $_SESSION[$alertSessionKey] = [
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => $result['message'] ?? $result['error'] ?? $unknownActionMessage,
-    ];
+    $redirectTarget = cms_admin_section_shell_resolve_redirect_target($redirectPathResolver, $routePath, $module, $section, $result);
 
-    header('Location: ' . SITE_URL . $routePath);
-    exit;
-}
+    if (!empty($result['render_inline'])) {
+        $alert = [
+            'type' => !empty($result['success']) ? 'success' : 'danger',
+            'message' => (string) ($result['message'] ?? $result['error'] ?? $unknownActionMessage),
+            'details' => is_array($result['details'] ?? null) ? $result['details'] : [],
+        ];
 
-if (!empty($_SESSION[$alertSessionKey])) {
-    $alert = $_SESSION[$alertSessionKey];
-    unset($_SESSION[$alertSessionKey]);
+        $inlineRuntimeContext = is_array($result['runtime_context'] ?? null) ? $result['runtime_context'] : [];
+        if ($inlineRuntimeContext !== []) {
+            cms_admin_section_shell_apply_runtime_context($inlineRuntimeContext, $section, $viewFile, $pageTitle, $activePage, $pageAssets, $templateVars, $resolvedData);
+        }
+    } else {
+        cms_admin_section_shell_flash($alertSessionKey, [
+            'type' => !empty($result['success']) ? 'success' : 'danger',
+            'message' => $result['message'] ?? $result['error'] ?? $unknownActionMessage,
+            'details' => $result['details'] ?? [],
+        ]);
+
+        cms_admin_section_shell_redirect($redirectTarget);
+    }
 }
 
 $csrfToken = Security::instance()->generateToken($csrfAction);
-$data = is_callable($dataLoader)
-    ? $dataLoader($module)
-    : (method_exists($module, 'getData') ? $module->getData() : []);
+$data = $resolvedData;
+if ($data === null) {
+    $data = is_callable($dataLoader)
+        ? $dataLoader($module)
+        : (method_exists($module, 'getData') ? $module->getData() : []);
+}
 
 if ($guardConstant !== '' && !defined($guardConstant)) {
     define($guardConstant, true);
+}
+
+if ($templateVars !== []) {
+    extract($templateVars, EXTR_SKIP);
 }
 
 require __DIR__ . '/header.php';

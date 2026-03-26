@@ -11,47 +11,8 @@ if (!defined('ABSPATH')) {
  */
 
 use CMS\Auth;
-use CMS\Security;
-
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
-}
 
 require_once __DIR__ . '/modules/users/GroupsModule.php';
-$module    = new GroupsModule();
-$alert     = null;
-$redirectUrl = SITE_URL . '/admin/groups';
-
-function cms_admin_groups_redirect(string $redirectUrl): never
-{
-    header('Location: ' . $redirectUrl);
-    exit;
-}
-
-function cms_admin_groups_flash(array $payload): void
-{
-    $_SESSION['admin_alert'] = [
-        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
-        'message' => trim((string) ($payload['message'] ?? '')),
-    ];
-}
-
-function cms_admin_groups_flash_result(array $result): void
-{
-    cms_admin_groups_flash([
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
-    ]);
-}
-
-function cms_admin_groups_pull_alert(): ?array
-{
-    $alert = $_SESSION['admin_alert'] ?? null;
-    unset($_SESSION['admin_alert']);
-
-    return is_array($alert) ? $alert : null;
-}
 
 /** @return array<string, true> */
 function cms_admin_groups_allowed_actions(): array
@@ -98,40 +59,31 @@ function cms_admin_groups_handle_action(GroupsModule $module, string $action, ar
     return $handlers[$action]($post);
 }
 
-// ─── POST-Handling ───────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = cms_admin_groups_normalize_action($_POST['action'] ?? null);
-    $postToken = (string) ($_POST['csrf_token'] ?? '');
+$sectionPageConfig = [
+    'route_path' => '/admin/groups',
+    'view_file' => __DIR__ . '/views/users/groups.php',
+    'page_title' => 'Gruppen',
+    'active_page' => 'groups',
+    'csrf_action' => 'admin_groups',
+    'module_file' => __DIR__ . '/modules/users/GroupsModule.php',
+    'module_factory' => static fn (): GroupsModule => new GroupsModule(),
+    'data_loader' => static fn (GroupsModule $module): array => $module->getData(),
+    'access_checker' => static fn (): bool => Auth::instance()->isAdmin(),
+    'access_denied_route' => '/',
+    'unknown_action_message' => 'Unbekannte Aktion.',
+    'post_handler' => static function (GroupsModule $module, string $section, array $post): array {
+        $action = cms_admin_groups_normalize_action($post['action'] ?? null);
 
-    if (!Security::instance()->verifyToken($postToken, 'admin_groups')) {
-        cms_admin_groups_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
-        cms_admin_groups_redirect($redirectUrl);
-    }
+        if ($action === null) {
+            return ['success' => false, 'error' => 'Unbekannte Aktion.'];
+        }
 
-    if ($action === null) {
-        cms_admin_groups_flash(['type' => 'danger', 'message' => 'Unbekannte Aktion.']);
-        cms_admin_groups_redirect($redirectUrl);
-    }
+        if ($action === 'delete' && cms_admin_groups_normalize_id($post) <= 0) {
+            return ['success' => false, 'error' => 'Ungültige Gruppen-ID.'];
+        }
 
-    if ($action === 'delete' && cms_admin_groups_normalize_id($_POST) <= 0) {
-        cms_admin_groups_flash(['type' => 'danger', 'message' => 'Ungültige Gruppen-ID.']);
-        cms_admin_groups_redirect($redirectUrl);
-    }
+        return cms_admin_groups_handle_action($module, $action, $post);
+    },
+];
 
-    $result = cms_admin_groups_handle_action($module, $action, $_POST);
-    cms_admin_groups_flash_result($result);
-    cms_admin_groups_redirect($redirectUrl);
-}
-
-$alert = cms_admin_groups_pull_alert();
-
-$csrfToken  = Security::instance()->generateToken('admin_groups');
-$data       = $module->getData();
-$pageTitle  = 'Gruppen';
-$activePage = 'groups';
-$pageAssets = [];
-
-require __DIR__ . '/partials/header.php';
-require __DIR__ . '/partials/sidebar.php';
-require __DIR__ . '/views/users/groups.php';
-require __DIR__ . '/partials/footer.php';
+require __DIR__ . '/partials/section-page-shell.php';

@@ -11,7 +11,6 @@ if (!defined('ABSPATH')) {
  */
 
 use CMS\Auth;
-use CMS\Security;
 use CMS\Services\EditorJsService;
 use CMS\Services\EditorService;
 
@@ -36,42 +35,10 @@ function cms_admin_posts_can_access(): bool
 function cms_admin_posts_target_url(?int $id = null): string
 {
     if ($id !== null && $id > 0) {
-        return SITE_URL . '/admin/posts?action=edit&id=' . $id;
+        return '/admin/posts?action=edit&id=' . $id;
     }
 
-    return SITE_URL . '/admin/posts';
-}
-
-function cms_admin_posts_redirect(string $redirectUrl): never
-{
-    header('Location: ' . $redirectUrl);
-    exit;
-}
-
-function cms_admin_posts_flash(array $payload): void
-{
-    $_SESSION['admin_alert'] = [
-        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
-        'message' => trim((string) ($payload['message'] ?? '')),
-        'details' => is_array($payload['details'] ?? null) ? $payload['details'] : [],
-    ];
-}
-
-function cms_admin_posts_flash_result(array $result): void
-{
-    cms_admin_posts_flash([
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
-        'details' => $result['details'] ?? [],
-    ]);
-}
-
-function cms_admin_posts_pull_alert(): ?array
-{
-    $alert = $_SESSION['admin_alert'] ?? null;
-    unset($_SESSION['admin_alert']);
-
-    return is_array($alert) ? $alert : null;
+    return '/admin/posts';
 }
 
 function cms_admin_posts_normalize_action(mixed $action): string
@@ -128,144 +95,46 @@ function cms_admin_posts_can_run_action(string $action): bool
     return $action !== '' && Auth::instance()->hasCapability(CMS_ADMIN_POSTS_WRITE_CAPABILITY);
 }
 
-if (!cms_admin_posts_can_access()) {
-    header('Location: ' . SITE_URL);
-    exit;
-}
-
-require_once __DIR__ . '/modules/posts/PostsModule.php';
-$module    = new PostsModule();
-$user      = Auth::instance()->getCurrentUser();
-$alert     = null;
-
-// ─── POST-Handling ───────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action    = cms_admin_posts_normalize_action($_POST['action'] ?? '');
-    $postToken = (string)($_POST['csrf_token'] ?? '');
-
-    if (!Security::instance()->verifyToken($postToken, 'admin_posts')) {
-        cms_admin_posts_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig. Bitte erneut versuchen.']);
-        cms_admin_posts_redirect(cms_admin_posts_target_url());
-    }
-
-    if ($action === '') {
-        cms_admin_posts_flash(['type' => 'danger', 'message' => 'Unbekannte Beitrags-Aktion.']);
-        cms_admin_posts_redirect(cms_admin_posts_target_url());
-    }
-
-    if (!cms_admin_posts_can_run_action($action)) {
-        cms_admin_posts_flash(['type' => 'danger', 'message' => 'Keine Berechtigung für diese Beitrags-Aktion.']);
-        cms_admin_posts_redirect(cms_admin_posts_target_url());
-    }
-
-    switch ($action) {
-        case 'save':
-            $result = $module->save($_POST, (int)($user->id ?? 0));
-            cms_admin_posts_flash_result($result);
-            if ($result['success']) {
-                cms_admin_posts_redirect(cms_admin_posts_target_url(cms_admin_posts_normalize_positive_id($result['id'] ?? 0)));
-            } else {
-                cms_admin_posts_redirect(cms_admin_posts_target_url());
-            }
-
-        case 'delete':
-            $id     = cms_admin_posts_normalize_positive_id($_POST['id'] ?? 0);
-            if ($id < 1) {
-                cms_admin_posts_flash(['type' => 'danger', 'message' => 'Ungültige Beitrags-ID.']);
-                cms_admin_posts_redirect(cms_admin_posts_target_url());
-            }
-
-            $result = $module->delete($id);
-            cms_admin_posts_flash_result($result);
-            cms_admin_posts_redirect(cms_admin_posts_target_url());
-
-        case 'bulk':
-            $bulkAction = cms_admin_posts_normalize_bulk_action($_POST['bulk_action'] ?? '');
-            $ids        = cms_admin_posts_normalize_bulk_ids($_POST['ids'] ?? []);
-
-            if ($bulkAction === '') {
-                cms_admin_posts_flash(['type' => 'danger', 'message' => 'Unbekannte Bulk-Aktion für Beiträge.']);
-                cms_admin_posts_redirect(cms_admin_posts_target_url());
-            }
-
-            if ($ids === []) {
-                cms_admin_posts_flash(['type' => 'danger', 'message' => 'Bitte mindestens einen gültigen Beitrag auswählen.']);
-                cms_admin_posts_redirect(cms_admin_posts_target_url());
-            }
-
-            $result     = $module->bulkAction($bulkAction, $ids, $_POST);
-            cms_admin_posts_flash_result($result);
-            cms_admin_posts_redirect(cms_admin_posts_target_url());
-
-        case 'save_category':
-            $result = $module->saveCategory($_POST);
-            cms_admin_posts_flash_result($result);
-            cms_admin_posts_redirect(cms_admin_posts_target_url());
-
-        case 'delete_category':
-            $catId  = cms_admin_posts_normalize_positive_id($_POST['cat_id'] ?? 0);
-            $replacementCategoryId = cms_admin_posts_normalize_positive_id($_POST['replacement_category_id'] ?? 0);
-
-            if ($catId < 1) {
-                cms_admin_posts_flash(['type' => 'danger', 'message' => 'Ungültige Kategorie-ID.']);
-                cms_admin_posts_redirect(cms_admin_posts_target_url());
-            }
-
-            $result = $module->deleteCategory($catId, $replacementCategoryId);
-            cms_admin_posts_flash_result($result);
-            cms_admin_posts_redirect(cms_admin_posts_target_url());
-    }
-}
-
-// ─── Session-Alert abholen ───────────────────────────────
-$alert = cms_admin_posts_pull_alert();
-
-// CSRF-Token erneuern nach POST-Redirect
-$csrfToken = Security::instance()->generateToken('admin_posts');
-$editorMediaToken = Security::instance()->generateToken('editorjs_media');
-
-// ─── View-Routing ────────────────────────────────────────
-$viewAction = cms_admin_posts_normalize_view($_GET['action'] ?? 'list');
-
-if ($viewAction === 'edit') {
-    $id        = cms_admin_posts_normalize_positive_id($_GET['id'] ?? 0);
-    $data      = $module->getEditData($id);
-    $pageTitle = $data['isNew'] ? 'Neuer Beitrag' : 'Beitrag bearbeiten';
-    $activePage = 'posts';
-    $useEditorJs = EditorService::isEditorJs();
-    $pageAssets = [];
-
-    if ($useEditorJs) {
-        $pageAssets = EditorJsService::getInstance()->getPageAssets();
-    } else {
-        EditorService::getInstance();
-    }
-
-    $pageAssets['css'] = $pageAssets['css'] ?? [];
-    $pageAssets['js'] = $pageAssets['js'] ?? [];
-    $pageAssets['js'][] = cms_asset_url('js/admin-seo-editor.js');
-    $pageAssets['js'][] = cms_asset_url('js/admin-content-editor.js');
-
-    require __DIR__ . '/partials/header.php';
-    require __DIR__ . '/partials/sidebar.php';
-    require __DIR__ . '/views/posts/edit.php';
-
-    $inlineJs = '';
-
-    require __DIR__ . '/partials/footer.php';
-} else {
-    $data       = $module->getListData();
-    $pageTitle  = 'Beiträge';
-    $activePage = 'posts';
-    $pageAssets = [
-        'css' => [
-            cms_asset_url('gridjs/mermaid.min.css'),
-        ],
-        'js' => [
-            cms_asset_url('gridjs/gridjs.umd.js'),
-            cms_asset_url('js/gridjs-init.js'),
-        ],
+function cms_admin_posts_view_config(PostsModule $module, string $view): array
+{
+    $normalizedView = cms_admin_posts_normalize_view($view);
+    $baseTemplateVars = [
+        'editorMediaToken' => Security::instance()->generateToken('editorjs_media'),
+        'useEditorJs' => false,
     ];
+
+    if ($normalizedView === 'edit') {
+        $id = cms_admin_posts_normalize_positive_id($_GET['id'] ?? 0);
+        $editData = $module->getEditData($id);
+        $useEditorJs = EditorService::isEditorJs();
+        $pageAssets = [];
+
+        if ($useEditorJs) {
+            $pageAssets = EditorJsService::getInstance()->getPageAssets();
+        } else {
+            EditorService::getInstance();
+        }
+
+        $pageAssets['css'] = $pageAssets['css'] ?? [];
+        $pageAssets['js'] = $pageAssets['js'] ?? [];
+        $pageAssets['js'][] = cms_asset_url('js/admin-seo-editor.js');
+        $pageAssets['js'][] = cms_asset_url('js/admin-content-editor.js');
+
+        return [
+            'section' => 'edit',
+            'view_file' => __DIR__ . '/views/posts/edit.php',
+            'page_title' => !empty($editData['isNew']) ? 'Neuer Beitrag' : 'Beitrag bearbeiten',
+            'active_page' => 'posts',
+            'page_assets' => $pageAssets,
+            'template_vars' => $baseTemplateVars + [
+                'useEditorJs' => $useEditorJs,
+                'editData' => $editData,
+            ],
+            'data' => $editData,
+        ];
+    }
+
+    $listData = $module->getListData();
     $inlineJs = sprintf(
         "(function(){
             if(typeof cmsGrid!=='function'){return;}
@@ -365,15 +234,132 @@ if ($viewAction === 'edit') {
             });
         })();",
         json_encode(SITE_URL . '/api/v1/admin/posts'),
-        json_encode((string)($data['filter'] ?? '')),
-        json_encode((int)($data['catFilter'] ?? 0)),
-        json_encode((string)($data['search'] ?? '')),
+        json_encode((string) ($listData['filter'] ?? '')),
+        json_encode((int) ($listData['catFilter'] ?? 0)),
+        json_encode((string) ($listData['search'] ?? '')),
         json_encode(SITE_URL),
         json_encode(SITE_URL)
     );
 
-    require __DIR__ . '/partials/header.php';
-    require __DIR__ . '/partials/sidebar.php';
-    require __DIR__ . '/views/posts/list.php';
-    require __DIR__ . '/partials/footer.php';
+    return [
+        'section' => 'list',
+        'view_file' => __DIR__ . '/views/posts/list.php',
+        'page_title' => 'Beiträge',
+        'active_page' => 'posts',
+        'page_assets' => [
+            'css' => [
+                cms_asset_url('gridjs/mermaid.min.css'),
+            ],
+            'js' => [
+                cms_asset_url('gridjs/gridjs.umd.js'),
+                cms_asset_url('js/gridjs-init.js'),
+            ],
+        ],
+        'template_vars' => $baseTemplateVars + [
+            'listData' => $listData,
+            'inlineJs' => $inlineJs,
+        ],
+        'data' => $listData,
+    ];
 }
+
+if (!cms_admin_posts_can_access()) {
+    header('Location: ' . SITE_URL);
+    exit;
+}
+
+require_once __DIR__ . '/modules/posts/PostsModule.php';
+
+$sectionPageConfig = [
+    'route_path' => '/admin/posts',
+    'view_file' => __DIR__ . '/views/posts/list.php',
+    'page_title' => 'Beiträge',
+    'active_page' => 'posts',
+    'csrf_action' => 'admin_posts',
+    'module_file' => __DIR__ . '/modules/posts/PostsModule.php',
+    'module_factory' => static fn (): PostsModule => new PostsModule(),
+    'access_checker' => static fn (): bool => cms_admin_posts_can_access(),
+    'request_context_resolver' => static function (PostsModule $module): array {
+        $view = cms_admin_posts_normalize_view($_GET['action'] ?? 'list');
+
+        return cms_admin_posts_view_config($module, $view);
+    },
+    'redirect_path_resolver' => static function (PostsModule $module, string $section, mixed $result): string {
+        if (is_array($result) && isset($result['redirect_path']) && is_string($result['redirect_path'])) {
+            return $result['redirect_path'];
+        }
+
+        if ($section === 'edit') {
+            return cms_admin_posts_target_url(cms_admin_posts_normalize_positive_id($_GET['id'] ?? 0));
+        }
+
+        return cms_admin_posts_target_url();
+    },
+    'post_handler' => static function (PostsModule $module, string $section, array $post): array {
+        $postAction = cms_admin_posts_normalize_action($post['action'] ?? '');
+
+        if ($postAction === '') {
+            return ['success' => false, 'error' => 'Unbekannte Beitrags-Aktion.'];
+        }
+
+        if (!cms_admin_posts_can_run_action($postAction)) {
+            return ['success' => false, 'error' => 'Keine Berechtigung für diese Beitrags-Aktion.'];
+        }
+
+        switch ($postAction) {
+            case 'save':
+                $userId = Auth::instance()->getCurrentUser()->id ?? 0;
+                $result = $module->save($post, (int) $userId);
+                if (!empty($result['success'])) {
+                    $result['redirect_path'] = cms_admin_posts_target_url(cms_admin_posts_normalize_positive_id($result['id'] ?? 0));
+                    return $result;
+                }
+
+                return [
+                    'success' => false,
+                    'error' => (string) ($result['error'] ?? 'Beitrag konnte nicht gespeichert werden.'),
+                    'details' => is_array($result['details'] ?? null) ? $result['details'] : [],
+                    'render_inline' => true,
+                    'runtime_context' => cms_admin_posts_view_config($module, 'edit'),
+                ];
+
+            case 'delete':
+                $id = cms_admin_posts_normalize_positive_id($post['id'] ?? 0);
+                if ($id < 1) {
+                    return ['success' => false, 'error' => 'Ungültige Beitrags-ID.'];
+                }
+
+                return $module->delete($id);
+
+            case 'bulk':
+                $bulkAction = cms_admin_posts_normalize_bulk_action($post['bulk_action'] ?? '');
+                $ids = cms_admin_posts_normalize_bulk_ids($post['ids'] ?? []);
+                if ($bulkAction === '') {
+                    return ['success' => false, 'error' => 'Unbekannte Bulk-Aktion für Beiträge.'];
+                }
+
+                if ($ids === []) {
+                    return ['success' => false, 'error' => 'Bitte mindestens einen gültigen Beitrag auswählen.'];
+                }
+
+                return $module->bulkAction($bulkAction, $ids, $post);
+
+            case 'save_category':
+                return $module->saveCategory($post);
+
+            case 'delete_category':
+                $catId = cms_admin_posts_normalize_positive_id($post['cat_id'] ?? 0);
+                $replacementCategoryId = cms_admin_posts_normalize_positive_id($post['replacement_category_id'] ?? 0);
+                if ($catId < 1) {
+                    return ['success' => false, 'error' => 'Ungültige Kategorie-ID.'];
+                }
+
+                return $module->deleteCategory($catId, $replacementCategoryId);
+
+            default:
+                return ['success' => false, 'error' => 'Unbekannte Beitrags-Aktion.'];
+        }
+    },
+];
+
+require __DIR__ . '/partials/section-page-shell.php';

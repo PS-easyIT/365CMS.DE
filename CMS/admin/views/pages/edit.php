@@ -54,12 +54,11 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
 <div class="page-body">
     <div class="container-xl">
 
-        <?php if (!empty($alert)): ?>
-            <div class="alert alert-<?= htmlspecialchars($alert['type']) ?> alert-dismissible" role="alert">
-                <div><?= htmlspecialchars($alert['message']) ?></div>
-                <a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>
-            </div>
-        <?php endif; ?>
+        <?php
+        $alertData = is_array($alert ?? null) ? $alert : [];
+        $alertMarginClass = 'mb-3';
+        include __DIR__ . '/../partials/flash-alert.php';
+        ?>
 
         <form method="post" id="pageForm">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
