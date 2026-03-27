@@ -5,13 +5,19 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 370
+### Gesamtstand nach Batch 371
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 448 | 91,35 | 88,91 | 92,83 | 92,44 |
+| 448 | 91,42 | 89,02 | 92,90 | 92,53 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **370 umgesetzte Audit-Batches**. Das sind aktuell **370 von 444 Prüfplan-Punkten**. Zuletzt wurden produktive Editor-Fatals in `pages.php`/`posts.php` beseitigt und gleichzeitig eine zentrale Core-Modulverwaltung für die Abointegration eingebaut. Dadurch hängen Sidebar, Admin-Gates, Dashboard und Member-Pfade sichtbarer an einem gemeinsamen Core-Modul-Vertrag statt an verstreuten Einzelsettings.
+Der aktuelle Nachpflege-Stand umfasst damit **371 umgesetzte Audit-Batches**. Das sind aktuell **371 von 444 Prüfplan-Punkten**. Zuletzt wurden Theme- und Plugin-Marketplace weiter gehärtet, der Landing-Page-Admin vom unnötigen Default-Bootstrap entkoppelt und zusätzliche Restpfade in Kommentar-, Menü- und Tabellen-Views bereinigt. Dadurch hängen Marketplace-Entscheidungen, Landing-Defaults sowie JSON-/Template-Verträge sichtbarer an klareren Allowlist-, Filter- und Lazy-Load-Grenzen.
+
+### Delta Batch 371
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/theme-marketplace.php`, `CMS/admin/modules/themes/ThemeMarketplaceModule.php`, `CMS/admin/views/themes/marketplace.php`, `CMS/assets/js/admin-theme-marketplace.js`, `CMS/admin/modules/plugins/PluginMarketplaceModule.php`, `CMS/admin/views/plugins/marketplace.php`, `CMS/assets/js/admin-plugin-marketplace.js`, `CMS/admin/landing-page.php`, `CMS/admin/modules/landing/LandingPageModule.php`, `CMS/admin/views/comments/list.php`, `CMS/admin/views/menus/editor.php`, `CMS/admin/views/tables/edit.php` | umgesetzt | Theme-/Plugin-Marketplace-Verträge weiter gehärtet, Landing-Defaults nur noch lazy initialisiert und verbleibende View-/JSON-Restpfade in Kommentar-, Menü- und Tabellen-Views verdichtet. | Der Theme-Marketplace validiert Registry-/Manifest-/Asset-Pfade restriktiver, dedupliziert Theme-Slugs sauber und liefert Such-/Statusfilter; der Plugin-Marketplace zeigt manuelle bzw. inkompatible Kandidaten klarer an, während Landing-, Kommentar-, Menü- und Tabellenpfade weniger Inline-/Template-Boilerplate und stabilere JSON-/Escaping-Grenzen mitbringen. |
 
 ### Delta Batch 370
 

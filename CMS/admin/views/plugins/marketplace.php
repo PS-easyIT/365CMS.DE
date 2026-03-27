@@ -8,8 +8,10 @@ if (!defined('ABSPATH')) {
 $pluginMarketplaceConfig = [
     'searchInputId' => 'pluginSearch',
     'categoryFilterId' => 'categoryFilter',
+    'statusFilterId' => 'statusFilter',
     'gridSelector' => '#pluginGrid',
     'cardSelector' => '.plugin-card',
+    'emptyStateSelector' => '#pluginMarketplaceEmptyState',
 ];
 ?>
 
@@ -73,6 +75,16 @@ $pluginMarketplaceConfig = [
                     </div>
                 </div>
             </div>
+            <div class="col-sm-6 col-lg-4">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="subheader">Nur manuell / Anfrage</div>
+                        </div>
+                        <div class="h1 mb-0 mt-2"><?php echo (int)($data['stats']['manual_only'] ?? 0); ?></div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Search -->
@@ -96,6 +108,14 @@ $pluginMarketplaceConfig = [
                             foreach ($categories as $cat): ?>
                                 <option value="<?php echo htmlspecialchars($cat); ?>"><?php echo htmlspecialchars($cat); ?></option>
                             <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <select id="statusFilter" class="form-select">
+                            <option value="">Alle Stati</option>
+                            <option value="installable">Automatisch installierbar</option>
+                            <option value="manual">Nur manuell / Anfrage</option>
+                            <option value="installed">Bereits installiert</option>
                         </select>
                     </div>
                 </div>
@@ -130,8 +150,10 @@ $pluginMarketplaceConfig = [
                     $autoInstallSupported = !empty($plugin['auto_install_supported']);
                     $installReason = htmlspecialchars((string)($plugin['install_reason'] ?? ''));
                     $hashPresent = !empty($plugin['integrity_hash_present']);
+                    $compatibilityReason = htmlspecialchars((string)($plugin['compatibility_reason'] ?? ''));
+                    $status = $isInstalled ? 'installed' : ($autoInstallSupported ? 'installable' : 'manual');
                 ?>
-                <div class="col-sm-6 col-lg-4 plugin-card" data-name="<?php echo $name; ?>" data-category="<?php echo $category; ?>">
+                <div class="col-sm-6 col-lg-4 plugin-card" data-name="<?php echo $name; ?>" data-category="<?php echo $category; ?>" data-status="<?php echo htmlspecialchars($status); ?>">
                     <div class="card">
                         <div class="card-body">
                             <div class="d-flex align-items-center mb-3">
@@ -188,11 +210,17 @@ $pluginMarketplaceConfig = [
                                         <a href="<?php echo $purchaseUrl; ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm mb-2">
                                             Anfragen / Kaufen
                                         </a>
+                                        <?php if ($compatibilityReason !== ''): ?>
+                                            <div class="text-warning small mb-2" style="max-width: 220px;"><?php echo $compatibilityReason; ?></div>
+                                        <?php endif; ?>
                                         <div class="text-muted small" style="max-width: 220px;"><?php echo $installReason; ?></div>
                                     </div>
                                 <?php else: ?>
                                     <div class="text-end">
                                         <span class="badge bg-secondary-lt mb-2">Nur manuell</span>
+                                        <?php if ($compatibilityReason !== ''): ?>
+                                            <div class="text-warning small mb-2" style="max-width: 220px;"><?php echo $compatibilityReason; ?></div>
+                                        <?php endif; ?>
                                         <div class="text-muted small" style="max-width: 220px;"><?php echo $installReason; ?></div>
                                     </div>
                                 <?php endif; ?>
@@ -202,6 +230,12 @@ $pluginMarketplaceConfig = [
                 </div>
                 <?php endforeach; ?>
             <?php endif; ?>
+        </div>
+
+        <div class="card d-none mt-4" id="pluginMarketplaceEmptyState">
+            <div class="card-body text-center py-5 text-secondary">
+                Keine Plugins für den aktuellen Such-/Filterzustand gefunden.
+            </div>
         </div>
 
     </div>

@@ -46,7 +46,7 @@ function cms_admin_landing_page_normalize_tab(string $tab): string
 
 function cms_admin_landing_page_normalize_action(mixed $action): string
 {
-    $normalizedAction = trim((string) $action);
+    $normalizedAction = strtolower(trim((string) $action));
 
     return in_array($normalizedAction, CMS_ADMIN_LANDING_PAGE_ALLOWED_ACTIONS, true) ? $normalizedAction : '';
 }
@@ -111,7 +111,7 @@ $sectionPageConfig = [
     },
     'unknown_action_message' => 'Unbekannte Aktion.',
     'post_handler' => static function (LandingPageModule $module, string $section, array $post): array {
-        if (!Auth::instance()->hasCapability(CMS_ADMIN_LANDING_PAGE_WRITE_CAPABILITY)) {
+        if (!cms_admin_landing_page_can_access()) {
             return ['success' => false, 'error' => 'Keine Berechtigung für diese Aktion.'];
         }
 

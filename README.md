@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.7.288-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.7.289-blue.svg)](Changelog.md)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
@@ -29,16 +29,16 @@
 
 ## 📈 Audit-Stand März 2026
 
-Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 370** nachgezogen. Aktuell sind damit **370 von 444 Prüfplan-Punkten** geschafft. Der aktuelle dokumentierte Gesamtstand über **448 bewertete Dateien** liegt bei:
+Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 371** nachgezogen. Aktuell sind damit **371 von 444 Prüfplan-Punkten** geschafft. Der aktuelle dokumentierte Gesamtstand über **448 bewertete Dateien** liegt bei:
 
 | Metrik | Stand |
 |---|---:|
-| **Security** | **91,35** |
-| **Speed** | **88,91** |
-| **PHP / Best Practices** | **92,83** |
-| **Gesamt** | **92,44** |
+| **Security** | **91,42** |
+| **Speed** | **89,02** |
+| **PHP / Best Practices** | **92,90** |
+| **Gesamt** | **92,53** |
 
-Zuletzt wurden **die produktiven Pages-/Posts-Fatal-Errors beseitigt und eine neue Core-Modulverwaltung für die Abointegration eingebaut**. `CMS/admin/pages.php` und `CMS/admin/posts.php` importieren `CMS\Security` wieder korrekt, während `CMS/core/Services/CoreModuleService.php` künftig Kernmodule samt Abhängigkeiten registriert. Über `System -> Module` lassen sich Abo-Core, Admin-Unterbereiche, Member-Abo-Bereich sowie Limits-/Ordering-/Pricing-Gates jetzt zentral schalten; Sidebar, Admin-Routen, Dashboard-Kennzahlen und Member-Pfade respektieren diese Zustände bereits.
+Zuletzt wurden **Theme- und Plugin-Marketplace weiter gehärtet, der Landing-Page-Admin vom unnötigen Default-Bootstrap entkoppelt und Restpfade in Kommentar-, Menü- und Tabellen-Views nachgezogen**. `CMS/admin/modules/themes/ThemeMarketplaceModule.php` validiert Remote-/Manifest-/Asset-Pfade jetzt restriktiver und dedupliziert Slugs sauber, `CMS/admin/views/themes/marketplace.php` sowie `CMS/admin/views/plugins/marketplace.php` liefern Such-/Statusfilter und klarere Installationshinweise, und `CMS/admin/modules/landing/LandingPageModule.php` initialisiert Defaults nur noch lazy auf echten Lese-/Schreibpfaden.
 
 ## 🧩 Funktionsumfang im Überblick
 

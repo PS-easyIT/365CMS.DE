@@ -37,7 +37,7 @@ function cms_admin_theme_marketplace_allowed_actions(): array
 
 function cms_admin_theme_marketplace_normalize_slug(array $post): string
 {
-    return preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($post['theme'] ?? '')) ?? '';
+    return (string) preg_replace('/[^a-z0-9_-]/', '', strtolower((string) ($post['theme'] ?? '')));
 }
 
 function cms_admin_theme_marketplace_normalize_action(mixed $action): string
@@ -47,10 +47,19 @@ function cms_admin_theme_marketplace_normalize_action(mixed $action): string
     return isset(cms_admin_theme_marketplace_allowed_actions()[$action]) ? $action : '';
 }
 
-function cms_admin_theme_marketplace_handle_action(ThemeMarketplaceModule $module, string $action, array $post): array
+/** @return array{action:string,theme:string} */
+function cms_admin_theme_marketplace_normalize_payload(array $post): array
 {
-    return match ($action) {
-        'install' => $module->installTheme(cms_admin_theme_marketplace_normalize_slug($post)),
+    return [
+        'action' => cms_admin_theme_marketplace_normalize_action($post['action'] ?? null),
+        'theme' => cms_admin_theme_marketplace_normalize_slug($post),
+    ];
+}
+
+function cms_admin_theme_marketplace_handle_action(ThemeMarketplaceModule $module, array $payload): array
+{
+    return match ($payload['action']) {
+        'install' => $module->installTheme($payload['theme']),
         default => ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'],
     };
 }
@@ -60,6 +69,11 @@ $sectionPageConfig = [
     'view_file' => __DIR__ . '/views/themes/marketplace.php',
     'page_title' => 'Theme Marketplace',
     'active_page' => 'theme-marketplace',
+    'page_assets' => [
+        'js' => [
+            cms_asset_url('js/admin-theme-marketplace.js'),
+        ],
+    ],
     'csrf_action' => 'admin_theme_marketplace',
     'module_file' => __DIR__ . '/modules/themes/ThemeMarketplaceModule.php',
     'module_factory' => static fn (): ThemeMarketplaceModule => new ThemeMarketplaceModule(),
@@ -71,16 +85,16 @@ $sectionPageConfig = [
             return ['success' => false, 'error' => 'Keine Berechtigung für Marketplace-Installationen.'];
         }
 
-        $action = cms_admin_theme_marketplace_normalize_action($post['action'] ?? null);
-        if ($action === '') {
+        $payload = cms_admin_theme_marketplace_normalize_payload($post);
+        if ($payload['action'] === '') {
             return ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'];
         }
 
-        if ($action === 'install' && cms_admin_theme_marketplace_normalize_slug($post) === '') {
+        if ($payload['action'] === 'install' && $payload['theme'] === '') {
             return ['success' => false, 'error' => 'Ungültiger Theme-Slug.'];
         }
 
-        return cms_admin_theme_marketplace_handle_action($module, $action, $post);
+        return cms_admin_theme_marketplace_handle_action($module, $payload);
     },
 ];
 

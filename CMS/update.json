@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.7.288",
+  "version": "2.7.289",
   "min_php": "8.4",
   "released": "2026-03-27",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release 2.7.288: `CMS/admin/pages.php` und `CMS/admin/posts.php` importieren `CMS\\Security` wieder korrekt, wodurch der produktive Fatal Error beim Editor-Token entfällt. Zusätzlich bringt `CMS/core/Services/CoreModuleService.php` erstmals eine integrierte Core-Modul-Registry mit: Über `CMS/admin/modules.php` bzw. `CMS/admin/views/system/modules.php` lässt sich die Aboverwaltung jetzt unter `System -> Module` zentral steuern, inklusive Sidebar-Gates, Admin-Zugriffssperren sowie Laufzeitabschaltungen für Member-, Dashboard- und Subscription-Pfade.",
+  "notes": "Release 2.7.289: Der Theme-Marketplace prüft Katalog-, Manifest- und Asset-URLs jetzt restriktiver, dedupliziert Slugs sauber und bietet zusätzlich Such-/Statusfilter im Admin. Parallel zeigt der Plugin-Marketplace manuelle bzw. inkompatible Kandidaten klarer an, während `CMS/admin/modules/landing/LandingPageModule.php` Defaults nur noch lazy bei echten Daten-/Save-Pfaden initialisiert und die Rest-Views für Kommentare, Menüs und Tabellen weitere Template-/JSON-Härtungen erhalten.",
   "critical": false
 }

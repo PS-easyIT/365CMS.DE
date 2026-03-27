@@ -19,16 +19,24 @@ $menuItems   = $data['menuItems'] ?? [];
 $locations   = $data['locations'] ?? [];
 $locationOverview = $data['locationOverview'] ?? [];
 $pages       = $data['pages'] ?? [];
-$menuItemsConfig = array_map(static function ($item): array {
-    return [
-        'id' => (string) ($item->id ?? ''),
-        'title' => (string) ($item->title ?? ''),
-        'url' => (string) ($item->url ?? '#'),
-        'target' => (string) ($item->target ?? '_self'),
-        'icon' => (string) ($item->icon ?? ''),
-        'parent_id' => (string) ($item->parent_id ?? 0),
-    ];
-}, $menuItems);
+$buildMenuEditorItemsConfig = static function (array $items): array {
+    return array_map(static function ($item): array {
+        return [
+            'id' => (string) ($item->id ?? ''),
+            'title' => (string) ($item->title ?? ''),
+            'url' => (string) ($item->url ?? '#'),
+            'target' => (string) ($item->target ?? '_self'),
+            'icon' => (string) ($item->icon ?? ''),
+            'parent_id' => (string) ($item->parent_id ?? 0),
+        ];
+    }, $items);
+};
+$menuItemsConfig = $buildMenuEditorItemsConfig($menuItems);
+$menuEditorConfigJson = json_encode(
+    ['items' => $menuItemsConfig],
+    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+);
+$siteUrl = htmlspecialchars(SITE_URL);
 ?>
 
 <div class="page-header d-print-none text-start">
@@ -70,7 +78,7 @@ $menuItemsConfig = array_map(static function ($item): array {
                 </div>
                 <div class="list-group list-group-flush">
                     <?php foreach ($menus as $menu): ?>
-                        <a href="<?php echo SITE_URL; ?>/admin/menu-editor?menu=<?php echo (int)$menu->id; ?>"
+                        <a href="<?php echo $siteUrl; ?>/admin/menu-editor?menu=<?php echo (int)$menu->id; ?>"
                            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center<?php echo ($currentMenu && (int)$currentMenu->id === (int)$menu->id) ? ' active' : ''; ?>">
                             <div>
                                 <div><?php echo htmlspecialchars($menu->name); ?></div>
@@ -117,7 +125,7 @@ $menuItemsConfig = array_map(static function ($item): array {
                                     </div>
                                 </div>
                                 <?php if ($assignedMenu): ?>
-                                    <a href="<?php echo SITE_URL; ?>/admin/menu-editor?menu=<?php echo $assignedMenuId; ?>"
+                                    <a href="<?php echo $siteUrl; ?>/admin/menu-editor?menu=<?php echo $assignedMenuId; ?>"
                                        class="btn btn-sm <?php echo $isActiveLocation ? 'btn-light' : 'btn-outline-primary'; ?>">
                                         Bearbeiten
                                     </a>
@@ -199,7 +207,7 @@ $menuItemsConfig = array_map(static function ($item): array {
                                     <?php foreach ($pages as $page): ?>
                                         <button type="button" class="btn btn-sm btn-outline-secondary add-page-btn"
                                                 data-title="<?php echo htmlspecialchars($page->title, ENT_QUOTES); ?>"
-                                                data-url="/<?php echo htmlspecialchars($page->slug); ?>">
+                                                data-url="/<?php echo rawurlencode((string) $page->slug); ?>">
                                             <?php echo htmlspecialchars($page->title); ?>
                                         </button>
                                     <?php endforeach; ?>
@@ -282,4 +290,4 @@ $menuItemsConfig = array_map(static function ($item): array {
         </form>
     </div>
 </div>
-<script type="application/json" id="menu-editor-config"><?php echo json_encode(['items' => $menuItemsConfig], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?></script>
+<script type="application/json" id="menu-editor-config"><?php echo $menuEditorConfigJson; ?></script>

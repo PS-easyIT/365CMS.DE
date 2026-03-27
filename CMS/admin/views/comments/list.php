@@ -19,6 +19,18 @@ $canModerate = (bool)($data['canModerate'] ?? false);
 $canDelete = (bool)($data['canDelete'] ?? false);
 $canBulkActions = $canModerate || $canDelete;
 $showActionColumn = $canModerate || $canDelete;
+$statusBadges = [
+    'approved' => 'bg-success-lt',
+    'pending'  => 'bg-warning-lt',
+    'spam'     => 'bg-danger-lt',
+    'trash'    => 'bg-secondary-lt',
+];
+$statusLabels = [
+    'approved' => 'Freigegeben',
+    'pending'  => 'Ausstehend',
+    'spam'     => 'Spam',
+    'trash'    => 'Papierkorb',
+];
 
 $commentField = static function (mixed $comment, string $key, mixed $default = ''): mixed {
     if (is_array($comment)) {
@@ -30,6 +42,31 @@ $commentField = static function (mixed $comment, string $key, mixed $default = '
     }
 
     return $default;
+};
+
+$formatCommentDate = static function (string $date): string {
+    $timestamp = strtotime($date);
+
+    return $timestamp !== false ? date('d.m.Y H:i', $timestamp) : '–';
+};
+
+$buildCommentExcerpt = static function (string $content): string {
+    $plainText = trim(preg_replace('/\s+/u', ' ', strip_tags($content)) ?? '');
+
+    return mb_substr($plainText, 0, 120);
+};
+
+$resolveCommentPostUrl = static function (string $url): string {
+    $url = trim($url);
+    if ($url === '') {
+        return '';
+    }
+
+    if (filter_var($url, FILTER_VALIDATE_URL) !== false) {
+        return $url;
+    }
+
+    return str_starts_with($url, '/') ? $url : '';
 };
 
 $tabs = [
@@ -198,7 +235,7 @@ $tabs = [
                             $cStatus    = (string)$commentField($c, 'status', '');
                             $cDate      = (string)$commentField($c, 'post_date', '');
                             $cPostTitle = (string)$commentField($c, 'post_title', '');
-                            $cPostUrl   = (string)$commentField($c, 'post_url', '');
+                            $cPostUrl   = $resolveCommentPostUrl((string)$commentField($c, 'post_url', ''));
                             $cInitials  = strtoupper(mb_substr(trim($cAuthor), 0, 2));
                             ?>
                             <tr>
@@ -217,7 +254,7 @@ $tabs = [
                                     </div>
                                 </td>
                                 <td>
-                                    <div class="text-truncate" style="max-width:300px;"><?php echo htmlspecialchars(mb_substr(strip_tags($cContent), 0, 120)); ?></div>
+                                    <div class="text-truncate" style="max-width:300px;"><?php echo htmlspecialchars($buildCommentExcerpt($cContent)); ?></div>
                                 </td>
                                 <td>
                                     <?php if ($cPostTitle && $cPostUrl !== ''): ?>
@@ -229,25 +266,11 @@ $tabs = [
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <?php
-                                    $statusBadges = [
-                                        'approved' => 'bg-success-lt',
-                                        'pending'  => 'bg-warning-lt',
-                                        'spam'     => 'bg-danger-lt',
-                                        'trash'    => 'bg-secondary-lt',
-                                    ];
-                                    $statusLabels = [
-                                        'approved' => 'Freigegeben',
-                                        'pending'  => 'Ausstehend',
-                                        'spam'     => 'Spam',
-                                        'trash'    => 'Papierkorb',
-                                    ];
-                                    ?>
                                     <span class="badge <?php echo $statusBadges[$cStatus] ?? 'bg-secondary-lt'; ?>">
                                         <?php echo htmlspecialchars($statusLabels[$cStatus] ?? $cStatus); ?>
                                     </span>
                                 </td>
-                                <td class="text-secondary"><?php echo $cDate ? date('d.m.Y H:i', strtotime($cDate)) : '–'; ?></td>
+                                <td class="text-secondary"><?php echo htmlspecialchars($formatCommentDate($cDate)); ?></td>
                                 <?php if ($showActionColumn): ?>
                                     <td>
                                         <div class="dropdown">

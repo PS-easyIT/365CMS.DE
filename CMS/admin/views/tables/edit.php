@@ -21,9 +21,17 @@ $description = htmlspecialchars($table['description'] ?? '');
 $columns     = $table['columns'] ?? [];
 $rows        = $table['rows'] ?? [];
 $settings    = $table['settings'] ?? $defaults;
+$encodeTableJson = static function (mixed $value): string {
+    return (string) json_encode(
+        $value,
+        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+    );
+};
 $tableEditorConfig = [
     'columns' => $columns,
     'rows' => $rows,
+    'columnCount' => count($columns),
+    'rowCount' => count($rows),
 ];
 ?>
 
@@ -77,6 +85,9 @@ $tableEditorConfig = [
                             <div class="mb-0">
                                 <label class="form-label" for="description">Beschreibung</label>
                                 <textarea class="form-control" id="description" name="description" rows="2"><?php echo $description; ?></textarea>
+                            </div>
+                            <div class="form-hint mt-2">
+                                <?php echo count($columns); ?> Spalten · <?php echo count($rows); ?> Zeilen im aktuellen Editorzustand
                             </div>
                         </div>
                     </div>
@@ -223,9 +234,9 @@ $tableEditorConfig = [
             </div>
 
             <!-- Hidden JSON-Felder (werden bei Submit befüllt) -->
-            <input type="hidden" name="columns_json" id="columnsJsonInput" value="<?php echo htmlspecialchars(json_encode($columns)); ?>">
-            <input type="hidden" name="rows_json" id="rowsJsonInput" value="<?php echo htmlspecialchars(json_encode($rows)); ?>">
+            <input type="hidden" name="columns_json" id="columnsJsonInput" value="<?php echo htmlspecialchars($encodeTableJson($columns)); ?>">
+            <input type="hidden" name="rows_json" id="rowsJsonInput" value="<?php echo htmlspecialchars($encodeTableJson($rows)); ?>">
         </form>
     </div>
 </div>
-<script type="application/json" id="site-tables-editor-config"><?php echo json_encode($tableEditorConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?></script>
+<script type="application/json" id="site-tables-editor-config"><?php echo $encodeTableJson($tableEditorConfig); ?></script>

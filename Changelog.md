@@ -1,4 +1,4 @@
-﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.288-blue.svg)](https://shields.io/)
+﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.289-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,16 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.7.289 — 27. März 2026 · Audit-Batch 371, Marketplace-Härtung und View-Restpfade nachgezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.289** | 🔴 fix | Admin/Themes | **`CMS/admin/theme-marketplace.php` und `CMS/admin/modules/themes/ThemeMarketplaceModule.php` normalisieren Theme-Slugs, Registry-/Manifest-Daten und HTTPS-Marketplace-URLs jetzt restriktiver**: Kollidierende bzw. doppelte Theme-Slugs werden robuster verworfen, Asset-/Download-Pfade enger auf erlaubte Hosts begrenzt. |
+| **2.7.289** | 🟠 perf | Admin/Marketplace | **`CMS/admin/views/themes/marketplace.php`, `CMS/assets/js/admin-theme-marketplace.js`, `CMS/admin/views/plugins/marketplace.php` und `CMS/assets/js/admin-plugin-marketplace.js` ergänzen KPI-Karten, Such-/Statusfilter und Empty-State-Handling**: Größere Marketplace-Kataloge bleiben damit im Admin fokussierter filterbar und manuelle Kandidaten sichtbarer getrennt. |
+| **2.7.289** | 🟡 refactor | Admin/Landing & Views | **`CMS/admin/modules/landing/LandingPageModule.php` initialisiert Defaults nur noch lazy, während Kommentar-, Menü- und Tabellen-Views zusätzliche Helper-/JSON-Vorbereitung erhalten**: Konstruktor-Seiteneffekte sinken, und Template-/Escaping-Grenzen bleiben konsistenter vorbereitet. |
 
 ---
 

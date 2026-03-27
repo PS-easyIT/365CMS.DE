@@ -101,6 +101,8 @@ class PluginMarketplaceModule
             $plugin['auto_install_supported'] = $this->canAutoInstall($plugin);
             $plugin['manual_install_only'] = !$plugin['auto_install_supported'];
             $plugin['integrity_hash_present'] = $this->resolveIntegrityHash($plugin) !== '';
+            $plugin['compatibility_reason'] = $this->getCompatibilityFailureReason($plugin);
+            $plugin['compatible'] = $plugin['compatibility_reason'] === '';
             $plugin['install_reason'] = $plugin['auto_install_supported']
                 ? 'Paket und SHA-256 vorhanden.'
                 : $this->getManualInstallReason($plugin);
@@ -114,6 +116,7 @@ class PluginMarketplaceModule
                 'available'   => count($available),
                 'installed'   => count($installed),
                 'installable' => count(array_filter($available, fn($p) => empty($p['installed']) && !empty($p['auto_install_supported']))),
+                'manual_only' => count(array_filter($available, fn($p) => empty($p['installed']) && empty($p['auto_install_supported']))),
             ],
         ];
     }
@@ -129,6 +132,10 @@ class PluginMarketplaceModule
 
         if (!$found) {
             return ['success' => false, 'error' => 'Plugin nicht im Marketplace gefunden.'];
+        }
+
+        if (!empty($found['installed'])) {
+            return ['success' => false, 'error' => 'Plugin ist bereits installiert.'];
         }
 
         $downloadUrl = $found['download_url'] ?? '';

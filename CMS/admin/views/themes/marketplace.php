@@ -14,7 +14,15 @@ if (!defined('ABSPATH')) {
  */
 
 $catalog = $data['catalog'] ?? [];
-$total   = $data['total'] ?? 0;
+$total   = (int) ($data['total'] ?? 0);
+$installableCount = count(array_filter($catalog, static fn (array $theme): bool => !empty($theme['install_supported']) && empty($theme['installed'])));
+$manualOnlyCount = count(array_filter($catalog, static fn (array $theme): bool => empty($theme['install_supported']) && empty($theme['installed'])));
+$themeMarketplaceConfig = [
+    'searchInputId' => 'themeMarketplaceSearch',
+    'statusFilterId' => 'themeMarketplaceStatusFilter',
+    'cardSelector' => '.theme-marketplace-card',
+    'emptyStateSelector' => '#themeMarketplaceEmptyState',
+];
 ?>
 
 <div class="container-xl">
@@ -42,14 +50,72 @@ $total   = $data['total'] ?? 0;
             </div>
         </div>
     <?php else: ?>
+        <div class="row row-deck row-cards mb-4">
+            <div class="col-sm-6 col-lg-4">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="subheader">Verfügbar</div>
+                        <div class="h1 mb-0 mt-2"><?php echo $total; ?></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-4">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="subheader">Automatisch installierbar</div>
+                        <div class="h1 mb-0 mt-2"><?php echo $installableCount; ?></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-4">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="subheader">Nur manuell / Anfrage</div>
+                        <div class="h1 mb-0 mt-2"><?php echo $manualOnlyCount; ?></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <div class="input-icon">
+                            <span class="input-icon-addon">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="10" cy="10" r="7"/><line x1="21" y1="21" x2="15" y2="15"/></svg>
+                            </span>
+                            <input type="text" id="themeMarketplaceSearch" class="form-control" placeholder="Theme suchen…">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <select id="themeMarketplaceStatusFilter" class="form-select">
+                            <option value="">Alle Stati</option>
+                            <option value="installable">Automatisch installierbar</option>
+                            <option value="manual">Nur manuell / Anfrage</option>
+                            <option value="installed">Bereits installiert</option>
+                            <option value="active">Aktiv</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="row row-deck row-cards">
             <?php foreach ($catalog as $theme):
                 $slug = $theme['slug'] ?? '';
                 $name = $theme['name'] ?? $slug;
                 $purchaseUrl = (string) ($theme['purchase_url'] ?? '');
                 $isPaid = !empty($theme['is_paid']);
+                $status = !empty($theme['active'])
+                    ? 'active'
+                    : (!empty($theme['installed'])
+                        ? 'installed'
+                        : (!empty($theme['install_supported']) ? 'installable' : 'manual'));
             ?>
-                <div class="col-sm-6 col-lg-4">
+                <div class="col-sm-6 col-lg-4 theme-marketplace-card"
+                     data-name="<?php echo htmlspecialchars(mb_strtolower((string) $name), ENT_QUOTES); ?>"
+                     data-status="<?php echo htmlspecialchars($status, ENT_QUOTES); ?>">
                     <div class="card">
                         <div class="card-img-top" style="height: 180px; background: var(--tblr-bg-surface-secondary); display: flex; align-items: center; justify-content: center;">
                             <?php if (!empty($theme['screenshot'])): ?>
@@ -129,5 +195,12 @@ $total   = $data['total'] ?? 0;
                 </div>
             <?php endforeach; ?>
         </div>
+
+        <div class="card d-none mt-4" id="themeMarketplaceEmptyState">
+            <div class="card-body text-center py-5 text-secondary">
+                Keine Themes für den aktuellen Such-/Statusfilter gefunden.
+            </div>
+        </div>
     <?php endif; ?>
 </div>
+<script type="application/json" id="theme-marketplace-config"><?php echo json_encode($themeMarketplaceConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>

@@ -24,13 +24,13 @@ class LandingPageModule
     private LandingPageService $service;
     private LandingSanitizer $sanitizer;
     private Logger $logger;
+    private bool $defaultsEnsured = false;
 
     public function __construct()
     {
         $this->service = LandingPageService::getInstance();
         $this->sanitizer = new LandingSanitizer();
         $this->logger = Logger::instance()->withChannel('admin.landing-page');
-        $this->service->ensureDefaults();
     }
 
     /**
@@ -42,6 +42,7 @@ class LandingPageModule
             return [];
         }
 
+        $this->ensureDefaultsLoaded();
         $tab = $this->normalizeTab($tab);
 
         return match ($tab) {
@@ -70,6 +71,7 @@ class LandingPageModule
         }
 
         try {
+            $this->ensureDefaultsLoaded();
             $this->service->updateHeader($this->sanitizeHeaderPayload($post));
             return ['success' => true, 'message' => 'Header gespeichert.'];
         } catch (\Throwable $e) {
@@ -84,6 +86,7 @@ class LandingPageModule
         }
 
         try {
+            $this->ensureDefaultsLoaded();
             $this->service->updateContentSettings($this->sanitizeContentPayload($post));
             return ['success' => true, 'message' => 'Content-Einstellungen gespeichert.'];
         } catch (\Throwable $e) {
@@ -98,6 +101,7 @@ class LandingPageModule
         }
 
         try {
+            $this->ensureDefaultsLoaded();
             $this->service->updateFooter($this->sanitizeFooterPayload($post));
             return ['success' => true, 'message' => 'Footer gespeichert.'];
         } catch (\Throwable $e) {
@@ -112,6 +116,7 @@ class LandingPageModule
         }
 
         try {
+            $this->ensureDefaultsLoaded();
             $payload = $this->sanitizeDesignPayload($post);
             $colorsSaved = $this->service->updateColors($payload);
             $designSaved = $this->service->updateDesign($payload);
@@ -133,6 +138,7 @@ class LandingPageModule
         }
 
         try {
+            $this->ensureDefaultsLoaded();
             $id = !empty($post['feature_id']) ? (int)$post['feature_id'] : null;
             $payload = $this->sanitizeFeaturePayload($post);
             if ($payload['title'] === '') {
@@ -157,6 +163,7 @@ class LandingPageModule
         }
 
         try {
+            $this->ensureDefaultsLoaded();
             $this->service->deleteFeature($id);
             return ['success' => true, 'message' => 'Feature gelöscht.'];
         } catch (\Throwable $e) {
@@ -171,6 +178,7 @@ class LandingPageModule
         }
 
         try {
+            $this->ensureDefaultsLoaded();
             $payload = $this->sanitizePluginPayload($post);
             $pluginId = $payload['plugin_id'];
             if (empty($pluginId)) {
@@ -186,7 +194,17 @@ class LandingPageModule
 
     private function canAccess(): bool
     {
-        return Auth::instance()->isAdmin();
+        return Auth::instance()->isAdmin() && Auth::instance()->hasCapability('manage_settings');
+    }
+
+    private function ensureDefaultsLoaded(): void
+    {
+        if ($this->defaultsEnsured) {
+            return;
+        }
+
+        $this->service->ensureDefaults();
+        $this->defaultsEnsured = true;
     }
 
     private function normalizeTab(string $tab): string
