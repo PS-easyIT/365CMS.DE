@@ -30,7 +30,6 @@ $showAdminHeaderLink = \CMS\Auth::isAdmin();
     <meta name="robots" content="noindex,nofollow">
     <title><?= htmlspecialchars($pageTitle) ?> – <?= htmlspecialchars($siteName) ?></title>
     <link rel="stylesheet" href="<?= htmlspecialchars(cms_asset_url('tabler/css/tabler.min.css'), ENT_QUOTES) ?>">
-    <link rel="stylesheet" href="<?= htmlspecialchars(cms_asset_url('filepond/filepond.min.css'), ENT_QUOTES) ?>">
     <link rel="stylesheet" href="<?= htmlspecialchars(cms_asset_url('css/member-dashboard.css'), ENT_QUOTES) ?>">
     <?php if (!empty($pageAssets['css'])): ?>
         <?php foreach ((array)$pageAssets['css'] as $css): ?>

@@ -35,9 +35,8 @@ Vollständige Dokumentation des Service-Layers. Alle Service-Klassen liegen im N
 | `EditorJsService` | `EditorJsService.php` | Editor.js Block-Management |
 | `EditorJsRenderer` | `EditorJsRenderer.php` | Editor.js Block→HTML-Rendering |
 | `EditorService` | `EditorService.php` | SunEditor-Integration |
-| `ElfinderService` | `ElfinderService.php` | elFinder Dateimanager-Integration |
 | `FeatureUsageService` | `FeatureUsageService.php` | Datensparsame Nutzungsmetriken für Admin/Member |
-| `FeedService` | `FeedService.php` | RSS-/Atom-Feed-Generierung |
+| `FeedService` | `FeedService.php` | RSS-/Atom-Feeds nativ laden, validieren und cachen |
 | `GraphApiService` | `GraphApiService.php` | Microsoft Graph via Client-Credentials |
 | `JwtService` | `JwtService.php` | JWT-Token (firebase/php-jwt, HS256) |
 | `LandingPageService` | `LandingPageService.php` | Landing-Page-Builder |
@@ -551,17 +550,11 @@ Editor.js-Integration. `EditorJsService` verwaltet Block-Daten; `EditorJsRendere
 
 SunEditor-Integration für den Inhalts-Editor.
 
-### ElfinderService
-
-**Datei:** `core/Services/ElfinderService.php`
-
-elFinder-Dateimanager-Integration für die Admin-Oberfläche.
-
 ### FeedService
 
 **Datei:** `core/Services/FeedService.php`
 
-RSS- und Atom-Feed-Generierung für veröffentlichte Inhalte.
+RSS- und Atom-Feeds werden nativ per DOM/XML geladen, abgesichert validiert und dateibasiert gecacht.
 
 ### PermalinkService
 

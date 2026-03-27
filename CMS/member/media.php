@@ -18,23 +18,24 @@ $folders = is_array($items['folders'] ?? null) ? $items['folders'] : [];
 $files = is_array($items['files'] ?? null) ? $items['files'] : [];
 $mediaSettings = is_array($media['settings'] ?? null) ? $media['settings'] : [];
 $memberPath = (string)($media['path'] ?? 'member');
+$breadcrumbs = is_array($media['breadcrumbs'] ?? null) ? $media['breadcrumbs'] : [];
 
 include __DIR__ . '/partials/header.php';
 ?>
 <div class="row g-4">
     <div class="col-xl-4">
         <div class="card mb-4">
-            <div class="card-header"><h3 class="card-title">Upload mit FilePond</h3></div>
+            <div class="card-header"><h3 class="card-title">Dateien hochladen</h3></div>
             <div class="card-body">
                 <?php if (!empty($mediaSettings['member_uploads_enabled'])): ?>
-                    <input
-                        type="file"
-                        class="filepond"
-                        multiple
-                        data-upload-endpoint="<?= htmlspecialchars(SITE_URL) ?>/api/upload"
-                        data-upload-token="<?= htmlspecialchars($controller->csrfToken('media_action'), ENT_QUOTES) ?>"
-                        data-upload-path="<?= htmlspecialchars($memberPath, ENT_QUOTES) ?>"
-                    >
+                    <form method="post" action="" class="vstack gap-3" data-member-upload-form data-upload-endpoint="<?= htmlspecialchars(SITE_URL) ?>/api/upload" data-upload-token="<?= htmlspecialchars($controller->csrfToken('media_action'), ENT_QUOTES) ?>" data-upload-path="<?= htmlspecialchars($memberPath, ENT_QUOTES) ?>">
+                        <input type="file" class="form-control" name="member_upload_files[]" multiple>
+                        <div class="text-secondary small" data-member-upload-status hidden></div>
+                        <div class="vstack gap-2" data-member-upload-results hidden></div>
+                        <div>
+                            <button type="submit" class="btn btn-primary">Upload starten</button>
+                        </div>
+                    </form>
                     <div class="text-secondary small mt-3">
                         Max. Größe: <?= (int)($mediaSettings['member_max_upload_size'] ?? 10) ?> MB · Erlaubte Typen: <?= htmlspecialchars(implode(', ', (array)($mediaSettings['member_allowed_types'] ?? []))) ?>
                     </div>
@@ -46,6 +47,7 @@ include __DIR__ . '/partials/header.php';
         <form class="card" method="post" action="">
             <input type="hidden" name="action" value="media_folder_create">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($controller->csrfToken('media_action'), ENT_QUOTES) ?>">
+            <input type="hidden" name="current_path" value="<?= htmlspecialchars($memberPath, ENT_QUOTES) ?>">
             <div class="card-header"><h3 class="card-title">Ordner erstellen</h3></div>
             <div class="card-body">
                 <label class="form-label" for="folder_name">Ordnername</label>
@@ -58,7 +60,21 @@ include __DIR__ . '/partials/header.php';
     </div>
     <div class="col-xl-8">
         <div class="card mb-4">
-            <div class="card-header"><h3 class="card-title">Ordner</h3></div>
+            <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                <h3 class="card-title mb-0">Ordner</h3>
+                <nav aria-label="Breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <?php foreach ($breadcrumbs as $index => $breadcrumb): ?>
+                            <?php $isLast = !empty($breadcrumb['active']) || $index === count($breadcrumbs) - 1; ?>
+                            <?php if ($isLast): ?>
+                                <li class="breadcrumb-item active"><?= htmlspecialchars((string)($breadcrumb['label'] ?? '')) ?></li>
+                            <?php else: ?>
+                                <li class="breadcrumb-item"><a href="<?= htmlspecialchars(SITE_URL . (string)($breadcrumb['url'] ?? '/member/media')) ?>"><?= htmlspecialchars((string)($breadcrumb['label'] ?? '')) ?></a></li>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </ol>
+                </nav>
+            </div>
             <div class="list-group list-group-flush">
                 <?php if ($folders === []): ?>
                     <div class="card-body text-secondary">Noch keine Ordner angelegt.</div>
@@ -66,10 +82,23 @@ include __DIR__ . '/partials/header.php';
                     <?php foreach ($folders as $folder): ?>
                         <div class="list-group-item d-flex justify-content-between align-items-center">
                             <div>
-                                <div class="fw-medium">📁 <?= htmlspecialchars((string)($folder['name'] ?? 'Ordner')) ?></div>
+                                <div class="fw-medium">
+                                    <a href="<?= htmlspecialchars(SITE_URL . '/member/media?path=' . rawurlencode((string)($folder['path'] ?? '')), ENT_QUOTES) ?>" class="text-reset text-decoration-none">📁 <?= htmlspecialchars((string)($folder['name'] ?? 'Ordner')) ?></a>
+                                </div>
                                 <div class="text-secondary small"><?= htmlspecialchars((string)($folder['path'] ?? '')) ?></div>
                             </div>
-                            <div class="text-secondary small"><?= (int)($folder['items_count'] ?? 0) ?> Elemente</div>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="text-secondary small"><?= (int)($folder['items_count'] ?? 0) ?> Elemente</div>
+                                <?php if (!empty($mediaSettings['member_delete_own'])): ?>
+                                    <form method="post" action="" onsubmit="return confirm('Ordner wirklich löschen? Alle enthaltenen Dateien werden ebenfalls entfernt.');">
+                                        <input type="hidden" name="action" value="media_folder_delete">
+                                        <input type="hidden" name="path" value="<?= htmlspecialchars((string)($folder['path'] ?? ''), ENT_QUOTES) ?>">
+                                        <input type="hidden" name="current_path" value="<?= htmlspecialchars($memberPath, ENT_QUOTES) ?>">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($controller->csrfToken('media_action'), ENT_QUOTES) ?>">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Löschen</button>
+                                    </form>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -107,6 +136,7 @@ include __DIR__ . '/partials/header.php';
                                             <form method="post" action="" onsubmit="return confirm('Datei wirklich löschen?');">
                                                 <input type="hidden" name="action" value="media_delete">
                                                 <input type="hidden" name="path" value="<?= htmlspecialchars((string)($file['path'] ?? ''), ENT_QUOTES) ?>">
+                                                <input type="hidden" name="current_path" value="<?= htmlspecialchars($memberPath, ENT_QUOTES) ?>">
                                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($controller->csrfToken('media_action'), ENT_QUOTES) ?>">
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">Löschen</button>
                                             </form>

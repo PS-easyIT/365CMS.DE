@@ -52,7 +52,7 @@ core/
 │   └── PluginDashboardRegistry.php  Plugin-Bereiche im Member-Dashboard
 ├── Routing/
 │   ├── AdminRouter.php       Teilrouter für Admin- und AJAX-Einstiege
-│   ├── ApiRouter.php         API-/Upload-/Elfinder-Routen
+│   ├── ApiRouter.php         API-/Upload-/Medien-Routen
 │   ├── MemberRouter.php      Member-Dashboard- und Plugin-Routen
 │   ├── PublicRouter.php      Public-Routen inkl. Archive, Kommentare und Sitemaps
 │   └── ThemeRouter.php       Theme-spezifische Frontend-Dispatching-Hilfe

@@ -5,13 +5,25 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 453
+### Gesamtstand nach Batch 455
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 453 | 94,81 | 92,39 | 95,87 | 95,92 |
+| 455 | 95,04 | 92,70 | 96,12 | 96,25 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **453 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich neun Folge-Batches darüber hinaus. Zuletzt wurden Medien-, Benutzer- und Gruppenpfade weiter verdichtet. Dadurch hängen Save-Rückmeldungen, User-Speicherfehler, Modal-Trigger und Pending-Zustände klarer an kleinen Modul-, View- und Asset-Verträgen statt an generischen Catch-All-Meldungen oder stillen JS-Annahmen.
+Der aktuelle Nachpflege-Stand umfasst damit **455 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich elf Folge-Batches darüber hinaus. Zuletzt wurden Member-Medienpfade funktional angeglichen und die neue Consent-/Medien-Strecke weiter gehärtet. Dadurch hängen Datei- und Ordneraktionen im Member-Bereich sauberer an internen Pfadverträgen; zusätzlich sind Consent- und Medien-Skripte robuster gegen DOM- und Cookie-Risiken abgesichert.
+
+### Delta Folge-Batch 455
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/member/includes/class-member-controller.php`, `CMS/member/media.php`, `CMS/assets/js/cookieconsent-init.js`, `CMS/core/Services/CookieConsentService.php`, `CMS/assets/js/admin-media-integrations.js`, `CMS/assets/js/member-dashboard.js`, `CMS/core/Services/FeedService.php` | umgesetzt | Member-Medienpfade unterstützen jetzt aktuellen Ordner, Breadcrumbs, Datei-/Ordnerlöschung und sichere Redirects innerhalb des Benutzerwurzelpfads; parallel wurden Consent-/Medien-Skripte gegen DOM-XSS, fehlendes `Secure`-Cookie-Flag und einen unnötigen `sha1`-Cache-Key gehärtet. | Datei- und Ordneraktionen im Member-Bereich funktionieren belastbarer, und die zuvor nativen Consent-/Upload-/Feed-Pfade laufen sicherer und reviewfester weiter. |
+
+### Delta Folge-Batch 454
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/CookieConsentService.php`, `CMS/assets/js/cookieconsent-init.js`, `CMS/assets/js/admin-media-integrations.js`, `CMS/member/media.php`, `CMS/core/Services/FeedService.php` | umgesetzt | Aktive CookieConsent-, FilePond-, elFinder- und SimplePie-Pfade wurden durch native Consent-, Upload-, Picker- und Feed-Implementierungen ersetzt; Autoload, Router und Member-Assets wurden entsprechend bereinigt. | Weniger aktive Fremdabhängigkeiten in Consent-, Medien- und Feed-Laufzeitpfaden; Upload- und Picker-Flows hängen enger an internen APIs und klaren Sicherheits-/Token-Verträgen. |
 
 ### Delta Folge-Batch 453
 

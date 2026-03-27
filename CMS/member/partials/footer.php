@@ -27,7 +27,6 @@ $pageKey = $pageKey ?? 'dashboard';
     </div>
 </div>
 <script src="<?= htmlspecialchars(cms_asset_url('tabler/js/tabler.min.js'), ENT_QUOTES) ?>" defer></script>
-<script src="<?= htmlspecialchars(cms_asset_url('filepond/filepond.min.js'), ENT_QUOTES) ?>" defer></script>
 <script src="<?= htmlspecialchars(cms_asset_url('js/member-dashboard.js'), ENT_QUOTES) ?>" defer></script>
 <?php if (!empty($pageAssets['js'])): ?>
     <?php foreach ((array)$pageAssets['js'] as $js): ?>

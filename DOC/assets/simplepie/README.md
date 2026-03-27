@@ -2,7 +2,7 @@
 
 ## Kurzbeschreibung
 
-`SimplePie` wird für RSS-/Atom-Feeds eingesetzt.
+`SimplePie` ist ein Legacy-Bestand für frühere RSS-/Atom-Feeds; aktive Feed-Verarbeitung läuft seit Folge-Batch 454 nativ über `FeedService` per DOM/XML.
 
 ## Quellordner
 
@@ -11,8 +11,8 @@
 
 ## Verwendung in 365CMS
 
-- direkte Nutzung in `CMS/core/Services/FeedService.php`
-- Klassenbereitstellung über `CMS/assets/autoload.php`
+- keine aktive Laufzeitverdrahtung mehr in `FeedService`
+- keine aktive Klassenbereitstellung mehr über `CMS/assets/autoload.php`
 
 ## Website / GitHub
 

@@ -17,8 +17,8 @@
 | UI | photoswipe | 5.x | Lightbox | Frontend |
 | Editor | editorjs | 2.x | Block-Editor | Admin/Frontend |
 | Editor | suneditor | 2.x | Legacy WYSIWYG | Admin |
-| Media | elfinder | 2.1.x | Dateimanager | Admin |
-| Media | filepond | 4.x | Upload | Admin/Frontend |
+| Media (Legacy-Bestand) | elfinder | 2.1.x | ehem. Dateimanager, aktuell nicht aktiv verdrahtet | Altbestand |
+| Media (Legacy-Bestand) | filepond | 4.x | ehem. Upload-UI, aktuell nicht aktiv verdrahtet | Altbestand |
 | Auth | php-jwt | 6.x | JWT | API/Auth |
 | Auth | ldaprecord | 4.x | LDAP/AD | Auth |
 | Auth | twofactorauth | 1.x | TOTP | Auth |
@@ -33,8 +33,8 @@
 | Util | carbon | 2.x | Datum/Zeit | System |
 | Util | mime | 6.x | MIME-Typen | Mail/Upload |
 | Util | psr | 3.x | PSR-Interfaces | Transitiv |
-| Consent | cookieconsent | 3.x | DSGVO-Banner | Frontend/Admin |
-| Feed | simplepie | 1.9.x | RSS/Atom | Feeds |
+| Consent (Legacy-Bestand) | cookieconsent | 3.x | ehem. DSGVO-Banner-Runtime, aktuell durch native Assets ersetzt | Altbestand |
+| Feed (Legacy-Bestand) | simplepie | 1.9.x | ehem. RSS/Atom-Parser, aktuell nicht aktiv verdrahtet | Altbestand |
 | Intern | css/js/images | – | interne Assets | Admin/Frontend |
 | Referenz | msgraph | – | SDK-Notizen | Referenz, nicht aktiv |
 
@@ -51,14 +51,14 @@ Aktuelle Unterordner:
 
 ## Pfad & Autoload <!-- UPDATED: 2026-03-08 -->
 - Runtime-Pfad: `CMS/assets/` (wird deployt).
-- Autoloader: `CMS/assets/autoload.php` (primär) – lädt PHP-Libs (z. B. HTMLPurifier, SimplePie, TNTSearch, Carbon, Translation, JWT, WebAuthn).
+- Autoloader: `CMS/assets/autoload.php` (primär) – lädt PHP-Libs wie HTMLPurifier, TNTSearch, Carbon, Translation, JWT und WebAuthn; SimplePie/elFinder sind dort nicht mehr aktiv eingebunden.
 - Staging: `ASSETS/` nur als Quelle/Entwicklung, nicht produktiv.
 - JS/CSS: Werden manuell über Admin-Partials oder Theme-Templates referenziert; keine zentrale Bundling-Pipeline.
 
 ---
 
 ## Hinweise & Besonderheiten <!-- UPDATED: 2026-03-08 -->
-- CookieConsent rendert per `CMS/core/Services/CookieConsentService.php` + `CMS/assets/js/cookieconsent-init.js`, nutzt Hooks `head`/`body_end` (auch im Admin-Layout verfügbar).
+- Cookie-Consent rendert per `CMS/core/Services/CookieConsentService.php` + `CMS/assets/js/cookieconsent-init.js`, nutzt native 365CMS-CSS/JS und Hooks `head`/`body_end`.
 - PhotoSwipe v5 wird über `CMS/assets/js/photoswipe-init.js` initialisiert; CSS/JS lokal.
 - Mail-Stack: `mailer/` + `mime/` + `psr/`; Queue/Log über `MailQueueService`/`MailLogService`.
 - Search: TNTSearch nutzt lokale PHP-Libs; Indizes liegen außerhalb der DB (Filesystem).
@@ -69,8 +69,7 @@ Aktuelle Unterordner:
 ## Audit-Notiz zur Integration <!-- UPDATED: 2026-03-09 -->
 - Runtime-Assets werden im Hauptsystem nicht komplett einheitlich referenziert: neben `ASSETS_URL` existieren direkte `SITE_URL . '/assets'`-Verkettungen und einzelne feste Versionsstrings.
 - `CMS/core/Services/EditorJsService.php` ist aktuell das sauberste Beispiel für Datei-Existenzprüfung + `filemtime()`-basiertes Cache-Busting.
-- `CMS/core/Services/CookieConsentService.php` nutzt dagegen feste Query-Versionen (`?v=20260307a`), was bei späteren Asset-Änderungen dokumentiert nachgezogen werden muss.
-- Der Medienbereich greift tief auf interne elFinder-Unterpfade wie `elfinder/vendor/jquery-ui/*` und `elfinder/vendor/jquery/*` zu; diese Dateien existieren aktuell, sind aber bei Bibliotheksupdates besonders bruchanfällig.
+- Die Altbestände `cookieconsent/`, `filepond/`, `elfinder/` und `simplepie/` liegen noch im Repository, sind aber nach Folge-Batch 454 nicht mehr aktiv an Consent-, Upload-, Picker- oder Feed-Laufzeitpfade verdrahtet.
 - Dompdf ist kein Teil des `CMS/assets`-Autoloads, sondern ein dokumentierter Sonderfall unter `CMS/vendor/dompdf/`.
 - Die produktiv eingebundenen Symfony-Bundles `mailer`, `mime` und `translation` deklarieren aktuell `PHP >= 8.4` in ihren Composer-Metadaten; 365CMS führt diese Information jetzt offiziell als Mindestplattform und prüft sie zusätzlich zentral im Bootstrap gegen die aktive Runtime.
 - Auch externe Workspace-Repos koppeln teils direkt an Core-Assets: Theme-Customizer laden `assets/css/admin.css` / `assets/js/admin.js` direkt, `cms-experts` nutzt `assets/suneditor/css/suneditor.min.css`, und `cms-jobprofile-generator` bindet Core-CSS in eigenen Member-Layouts fest ein.

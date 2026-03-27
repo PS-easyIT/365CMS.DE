@@ -1,12 +1,11 @@
 /**
  * Admin Media Integrations
  *
- * Aktiviert FilePond und elFinder in der Admin-Medienverwaltung.
+ * Aktiviert die native 365CMS-Medienbibliothek, Upload-Queues
+ * und den internen Bild-/Logo-Picker im Admin.
  */
 (function () {
     'use strict';
-
-    var elfinderDependenciesPromise = null;
 
     function normalizeMediaValue(value) {
         if (!value) {
@@ -92,183 +91,177 @@
         console[type === 'danger' ? 'error' : 'log'](message);
     }
 
-    function loadScript(src) {
-        return new Promise(function (resolve, reject) {
-            var existing = document.querySelector('script[src="' + src + '"]');
-            if (existing) {
-                if (existing.dataset.loaded === '1') {
-                    resolve();
-                    return;
-                }
-                existing.addEventListener('load', function () { resolve(); }, { once: true });
-                existing.addEventListener('error', reject, { once: true });
-                return;
-            }
-
-            var script = document.createElement('script');
-            script.src = src;
-            script.defer = true;
-            script.addEventListener('load', function () {
-                script.dataset.loaded = '1';
-                resolve();
-            }, { once: true });
-            script.addEventListener('error', reject, { once: true });
-            document.head.appendChild(script);
-        });
-    }
-
-    function loadElfinderDependencies(config) {
-        if (elfinderDependenciesPromise) {
-            return elfinderDependenciesPromise;
+    function setElementText(element, text) {
+        if (element) {
+            element.textContent = text;
         }
-
-        elfinderDependenciesPromise = Promise.resolve()
-            .then(function () {
-                if (window.jQuery) {
-                    return;
-                }
-                return loadScript(config.jqueryScript || '');
-            })
-            .then(function () {
-                if (window.jQuery && window.jQuery.ui) {
-                    return;
-                }
-                return loadScript(config.jqueryUiScript || '');
-            })
-            .then(function () {
-                if (window.jQuery && window.jQuery.fn && window.jQuery.fn.elfinder) {
-                    return;
-                }
-                return loadScript(config.elfinderScript || '');
-            });
-
-        return elfinderDependenciesPromise;
     }
 
-    function buildConnectorUrl(connectorUrl, csrfToken) {
-        return connectorUrl + (connectorUrl.indexOf('?') === -1 ? '?' : '&') + 'csrf_token=' + encodeURIComponent(csrfToken);
+    function setElementHidden(element, hidden) {
+        if (element) {
+            element.hidden = hidden;
+        }
     }
 
-    function initFilePond() {
-        var input = document.querySelector('[data-filepond-upload]');
-        if (!input || typeof window.FilePond === 'undefined') {
+    function clearElement(element) {
+        if (!element) {
             return;
         }
 
-        var csrfToken = input.dataset.csrfToken || '';
-        var uploadPath = input.dataset.uploadPath || '';
-        var uploadUrl = input.dataset.uploadUrl || '';
-        var reloadTimer = null;
+        while (element.firstChild) {
+            element.removeChild(element.firstChild);
+        }
+    }
 
-        var pond = window.FilePond.create(input, {
-            allowMultiple: true,
-            credits: false,
-            labelIdle: 'Dateien hierher ziehen oder <span class="filepond--label-action">auswählen</span>',
-            server: {
-                process: function (fieldName, file, metadata, load, error, progress, abort) {
-                    var formData = new FormData();
-                    formData.append('filepond', file, file.name);
-                    formData.append('path', uploadPath);
-                    formData.append('csrf_token', csrfToken);
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
 
-                    var controller = new AbortController();
-
-                    fetch(uploadUrl, {
-                        method: 'POST',
-                        body: formData,
-                        signal: controller.signal
-                    }).then(function (response) {
-                        return response.json().then(function (data) {
-                            return {
-                                ok: response.ok,
-                                data: data
-                            };
-                        });
-                    }).then(function (result) {
-                        if (result.data && result.data.new_token) {
-                            csrfToken = result.data.new_token;
-                            input.dataset.csrfToken = csrfToken;
-                        }
-
-                        if (!result.ok) {
-                            error((result.data && result.data.error) || 'Upload fehlgeschlagen');
-                            showMessage('danger', (result.data && result.data.error) || 'Upload fehlgeschlagen.');
-                            return;
-                        }
-
-                        progress(true, file.size, file.size);
-                        load((result.data && result.data.id) || file.name);
-                    }).catch(function (err) {
-                        if (err && err.name === 'AbortError') {
-                            return;
-                        }
-                        error('Upload fehlgeschlagen');
-                        showMessage('danger', 'Upload fehlgeschlagen.');
-                    });
-
-                    return {
-                        abort: function () {
-                            controller.abort();
-                            abort();
-                        }
-                    };
+    function fetchJson(url, options) {
+        return fetch(url, options).then(function (response) {
+            return response.json().catch(function () {
+                return {};
+            }).then(function (payload) {
+                if (!response.ok) {
+                    var error = new Error(payload && payload.error ? payload.error : 'Anfrage fehlgeschlagen.');
+                    error.payload = payload;
+                    throw error;
                 }
-            }
-        });
 
-        pond.on('processfile', function (fileError) {
-            if (fileError) {
-                return;
-            }
-
-            window.clearTimeout(reloadTimer);
-            reloadTimer = window.setTimeout(function () {
-                window.location.reload();
-            }, 700);
+                return payload;
+            });
         });
     }
 
-    function initElfinder() {
-        var container = document.querySelector('[data-elfinder]');
+    function setFormSubmitting(form, isSubmitting) {
+        if (!form) {
+            return;
+        }
+
+        form.querySelectorAll('button, input[type="submit"], input[type="file"]').forEach(function (element) {
+            element.disabled = isSubmitting;
+            element.setAttribute('aria-disabled', isSubmitting ? 'true' : 'false');
+        });
+    }
+
+    function renderUploadResult(container, type, message) {
         if (!container) {
             return;
         }
 
-        var connectorUrl = container.dataset.connectorUrl || '';
-        var csrfToken = container.dataset.csrfToken || '';
-        var jqueryScript = container.dataset.jqueryScript || '';
-        var jqueryUiScript = container.dataset.jqueryUiScript || '';
-        var elfinderScript = container.dataset.elfinderScript || '';
+        var item = document.createElement('div');
+        item.className = 'list-group-item d-flex justify-content-between align-items-start gap-3';
 
-        if (!connectorUrl || !jqueryScript || !jqueryUiScript || !elfinderScript) {
-            showMessage('danger', 'elFinder konnte nicht initialisiert werden.');
+        var content = document.createElement('div');
+        var title = document.createElement('div');
+        title.className = 'fw-semibold text-' + (type === 'success' ? 'green' : 'danger');
+        title.textContent = String(message.title || '');
+
+        var detail = document.createElement('div');
+        detail.className = 'text-secondary small';
+        detail.textContent = String(message.detail || '');
+
+        content.appendChild(title);
+        content.appendChild(detail);
+
+        var badge = document.createElement('span');
+        badge.className = 'badge ' + (type === 'success' ? 'bg-green-lt' : 'bg-red-lt');
+        badge.textContent = type === 'success' ? 'OK' : 'Fehler';
+
+        item.appendChild(content);
+        item.appendChild(badge);
+        container.appendChild(item);
+    }
+
+    function initNativeUploader() {
+        var form = document.getElementById('uploadForm');
+        var input = document.getElementById('uploadFiles');
+        if (!form || !input || typeof window.fetch !== 'function') {
             return;
         }
 
-        loadElfinderDependencies({
-            jqueryScript: jqueryScript,
-            jqueryUiScript: jqueryUiScript,
-            elfinderScript: elfinderScript
-        })
-            .then(function () {
-                if (!(window.jQuery && window.jQuery.fn && window.jQuery.fn.elfinder)) {
-                    throw new Error('elFinder UI nicht verfügbar');
+        var statusElement = form.querySelector('[data-upload-status]');
+        var resultsElement = form.querySelector('[data-upload-results]');
+
+        form.addEventListener('submit', function (event) {
+            var files = Array.prototype.slice.call(input.files || []);
+            var uploadUrl = input.dataset.uploadUrl || '';
+            var uploadPath = input.dataset.uploadPath || '';
+            var csrfToken = input.dataset.csrfToken || '';
+
+            if (!files.length || !uploadUrl || !csrfToken) {
+                return;
+            }
+
+            event.preventDefault();
+
+            if (resultsElement) {
+                resultsElement.innerHTML = '';
+                setElementHidden(resultsElement, false);
+            }
+
+            setElementHidden(statusElement, false);
+            setElementText(statusElement, 'Upload läuft …');
+            setFormSubmitting(form, true);
+
+            var successCount = 0;
+            var errorCount = 0;
+            var sequence = Promise.resolve();
+
+            files.forEach(function (file) {
+                sequence = sequence.then(function () {
+                    var formData = new FormData();
+                    formData.append('file', file, file.name);
+                    formData.append('path', uploadPath);
+                    formData.append('csrf_token', csrfToken);
+
+                    return fetchJson(uploadUrl, {
+                        method: 'POST',
+                        body: formData,
+                        credentials: 'same-origin'
+                    }).then(function (payload) {
+                        if (payload && payload.new_token) {
+                            csrfToken = String(payload.new_token);
+                            input.dataset.csrfToken = csrfToken;
+                        }
+
+                        successCount += 1;
+                        renderUploadResult(resultsElement, 'success', {
+                            title: file.name,
+                            detail: payload && payload.path ? payload.path : 'Datei erfolgreich hochgeladen.'
+                        });
+                    }).catch(function (error) {
+                        errorCount += 1;
+                        renderUploadResult(resultsElement, 'danger', {
+                            title: file.name,
+                            detail: error && error.message ? error.message : 'Upload fehlgeschlagen.'
+                        });
+                    });
+                });
+            });
+
+            sequence.finally(function () {
+                setFormSubmitting(form, false);
+
+                if (successCount > 0 && errorCount === 0) {
+                    setElementText(statusElement, successCount + ' Datei(en) erfolgreich hochgeladen. Bibliothek wird aktualisiert …');
+                    window.setTimeout(function () {
+                        window.location.reload();
+                    }, 700);
+                    return;
                 }
 
-                var url = buildConnectorUrl(connectorUrl, csrfToken);
-                window.jQuery(container).elfinder({
-                    url: url,
-                    lang: 'de',
-                    resizable: false,
-                    height: container.offsetHeight || 720,
-                    customData: {
-                        csrf_token: csrfToken
-                    }
-                });
-            })
-            .catch(function () {
-                container.innerHTML = '<div class="alert alert-warning" role="alert">elFinder konnte nicht geladen werden. Bitte lokale Vendor-Dateien prüfen.</div>';
+                setElementText(statusElement, successCount + ' erfolgreich, ' + errorCount + ' fehlgeschlagen.');
+                showMessage(errorCount > 0 ? 'danger' : 'success', successCount > 0
+                    ? 'Upload abgeschlossen.'
+                    : 'Upload fehlgeschlagen.');
             });
+        });
     }
 
     function initMediaPickers() {
@@ -276,8 +269,11 @@
         var openButtons = document.querySelectorAll('[data-open-media-picker]');
         var clearButtons = document.querySelectorAll('[data-clear-media-input]');
         var activeContext = null;
-        var pickerContainer;
-        var pickerInstance;
+        var pickerState = {
+            items: [],
+            loaded: false,
+            query: ''
+        };
 
         document.querySelectorAll('[data-media-preview]').forEach(function (previewElement) {
             var inputId = previewElement.dataset.inputId || '';
@@ -301,71 +297,133 @@
             return;
         }
 
-        pickerContainer = modalElement.querySelector('[data-elfinder-picker]');
+        var pickerContainer = modalElement.querySelector('[data-media-picker-modal]');
         var titleElement = modalElement.querySelector('[data-media-picker-title]');
+        var gridElement = modalElement.querySelector('[data-media-picker-grid]');
+        var statusElement = modalElement.querySelector('[data-media-picker-status]');
+        var searchElement = modalElement.querySelector('[data-media-picker-search]');
         var bootstrapModal = window.bootstrap ? window.bootstrap.Modal.getOrCreateInstance(modalElement) : null;
+        var apiUrl = pickerContainer ? (pickerContainer.dataset.apiUrl || '') : '';
+        var csrfToken = pickerContainer ? (pickerContainer.dataset.csrfToken || '') : '';
 
-        function initPicker() {
-            if (!pickerContainer || pickerInstance) {
+        function renderPickerItems(items) {
+            if (!gridElement) {
+                return;
+            }
+
+            clearElement(gridElement);
+
+            if (!items.length) {
+                var emptyColumn = document.createElement('div');
+                emptyColumn.className = 'col-12';
+
+                var emptyAlert = document.createElement('div');
+                emptyAlert.className = 'alert alert-secondary mb-0';
+                emptyAlert.textContent = 'Keine passenden Medien gefunden.';
+
+                emptyColumn.appendChild(emptyAlert);
+                gridElement.appendChild(emptyColumn);
+                return;
+            }
+
+            items.forEach(function (item) {
+                var itemUrl = String(item && item.url ? item.url : '');
+                var itemName = String(item && item.name ? item.name : 'Datei');
+                var itemPath = String(item && item.path ? item.path : '');
+
+                var column = document.createElement('div');
+                column.className = 'col-sm-6 col-lg-4';
+
+                var button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'card card-link w-100 text-start';
+                button.setAttribute('data-media-picker-select', '1');
+                button.setAttribute('data-media-url', itemUrl);
+
+                var cardBody = document.createElement('div');
+                cardBody.className = 'card-body';
+
+                var preview = document.createElement('div');
+                preview.className = 'ratio ratio-4x3 mb-3 rounded overflow-hidden bg-light d-flex align-items-center justify-content-center';
+
+                var image = document.createElement('img');
+                image.src = itemUrl;
+                image.alt = itemName;
+                image.className = 'w-100 h-100';
+                image.style.objectFit = 'cover';
+
+                var name = document.createElement('div');
+                name.className = 'fw-semibold text-truncate';
+                name.textContent = itemName;
+
+                var path = document.createElement('div');
+                path.className = 'text-secondary small text-break';
+                path.textContent = itemPath;
+
+                preview.appendChild(image);
+                cardBody.appendChild(preview);
+                cardBody.appendChild(name);
+                cardBody.appendChild(path);
+                button.appendChild(cardBody);
+                column.appendChild(button);
+                gridElement.appendChild(column);
+            });
+        }
+
+        function filterPickerItems() {
+            var query = pickerState.query;
+            var items = pickerState.items;
+
+            if (!query) {
+                renderPickerItems(items);
+                setElementText(statusElement, items.length + ' Medien verfügbar');
+                return;
+            }
+
+            var filteredItems = items.filter(function (item) {
+                var haystack = String(item.name || '').toLowerCase() + ' ' + String(item.path || '').toLowerCase();
+                return haystack.indexOf(query) !== -1;
+            });
+
+            renderPickerItems(filteredItems);
+            setElementText(statusElement, filteredItems.length + ' Treffer');
+        }
+
+        function loadPickerItems() {
+            if (!pickerContainer || !apiUrl || !csrfToken) {
+                if (gridElement) {
+                    gridElement.innerHTML = '<div class="col-12"><div class="alert alert-warning mb-0">Medienpicker konnte nicht geladen werden.</div></div>';
+                }
+                setElementText(statusElement, 'Konfiguration unvollständig');
                 return Promise.resolve();
             }
 
-            var connectorUrl = pickerContainer.dataset.connectorUrl || '';
-            var csrfToken = pickerContainer.dataset.csrfToken || '';
-            var jqueryScript = pickerContainer.dataset.jqueryScript || '';
-            var jqueryUiScript = pickerContainer.dataset.jqueryUiScript || '';
-            var elfinderScript = pickerContainer.dataset.elfinderScript || '';
+            setElementText(statusElement, 'Lade Medien …');
 
-            if (!connectorUrl || !jqueryScript || !jqueryUiScript || !elfinderScript) {
-                pickerContainer.innerHTML = '<div class="alert alert-warning" role="alert">Medienpicker konnte nicht geladen werden.</div>';
-                return Promise.resolve();
-            }
+            return fetchJson(apiUrl + '?action=list_images', {
+                method: 'GET',
+                headers: {
+                    'X-CSRF-Token': csrfToken
+                },
+                credentials: 'same-origin'
+            }).then(function (payload) {
+                pickerState.items = Array.isArray(payload.items) ? payload.items : [];
+                pickerState.loaded = true;
+                filterPickerItems();
+            }).catch(function (error) {
+                if (gridElement) {
+                    clearElement(gridElement);
+                    var errorColumn = document.createElement('div');
+                    errorColumn.className = 'col-12';
 
-            return loadElfinderDependencies({
-                jqueryScript: jqueryScript,
-                jqueryUiScript: jqueryUiScript,
-                elfinderScript: elfinderScript
-            }).then(function () {
-                var url = buildConnectorUrl(connectorUrl, csrfToken);
-                pickerInstance = window.jQuery(pickerContainer).elfinder({
-                    url: url,
-                    lang: 'de',
-                    resizable: false,
-                    height: pickerContainer.offsetHeight || 640,
-                    customData: {
-                        csrf_token: csrfToken
-                    },
-                    getFileCallback: function (file) {
-                        if (!activeContext || !activeContext.input) {
-                            return;
-                        }
+                    var errorAlert = document.createElement('div');
+                    errorAlert.className = 'alert alert-warning mb-0';
+                    errorAlert.textContent = String(error && error.message ? error.message : 'Medien konnten nicht geladen werden.');
 
-                        var selectedValue = '';
-                        if (typeof file === 'string') {
-                            selectedValue = file;
-                        } else if (file && typeof file === 'object') {
-                            selectedValue = file.url || file.path || '';
-                        }
-
-                        selectedValue = normalizeMediaValue(selectedValue);
-                        activeContext.input.value = selectedValue;
-                        updateLinkedPreview(activeContext.input, activeContext.previewId || '');
-
-                        if (bootstrapModal) {
-                            bootstrapModal.hide();
-                        }
-                    },
-                    commandsOptions: {
-                        getfile: {
-                            onlyURL: false,
-                            multiple: false,
-                            folders: false,
-                            oncomplete: 'close'
-                        }
-                    }
-                }).elfinder('instance');
-            }).catch(function () {
-                pickerContainer.innerHTML = '<div class="alert alert-warning" role="alert">Medienpicker konnte nicht geladen werden.</div>';
+                    errorColumn.appendChild(errorAlert);
+                    gridElement.appendChild(errorColumn);
+                }
+                setElementText(statusElement, 'Laden fehlgeschlagen');
             });
         }
 
@@ -385,13 +443,47 @@
                     titleElement.textContent = button.dataset.pickerTitle || 'Datei auswählen';
                 }
 
-                initPicker().then(function () {
+                if (!pickerState.loaded) {
+                    loadPickerItems();
+                } else {
+                    filterPickerItems();
+                }
+
+                if (bootstrapModal) {
                     if (bootstrapModal) {
                         bootstrapModal.show();
                     }
-                });
+                }
             });
         });
+
+        if (searchElement) {
+            searchElement.addEventListener('input', function () {
+                pickerState.query = String(searchElement.value || '').trim().toLowerCase();
+                filterPickerItems();
+            });
+        }
+
+        if (gridElement) {
+            gridElement.addEventListener('click', function (event) {
+                var button = event.target.closest('[data-media-picker-select="1"]');
+                if (!button || !activeContext || !activeContext.input) {
+                    return;
+                }
+
+                var selectedValue = normalizeMediaValue(button.getAttribute('data-media-url') || '');
+                if (!selectedValue) {
+                    return;
+                }
+
+                activeContext.input.value = selectedValue;
+                updateLinkedPreview(activeContext.input, activeContext.previewId || '');
+
+                if (bootstrapModal) {
+                    bootstrapModal.hide();
+                }
+            });
+        }
 
         clearButtons.forEach(function (button) {
             button.addEventListener('click', function () {
@@ -549,8 +641,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        initFilePond();
-        initElfinder();
+        initNativeUploader();
         initMediaPickers();
         initMediaLibraryActions();
         initMediaCategoryActions();

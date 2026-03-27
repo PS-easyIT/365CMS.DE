@@ -40,9 +40,6 @@ final class ApiRouter
         $this->router->addRoute('GET', '/api/v1/admin/mail/logs', [$this, 'jsonAdminMailLogs']);
         $this->router->addRoute('POST', '/api/v1/admin/mail/test', [$this, 'testAdminMail']);
         $this->router->addRoute('POST', '/api/v1/admin/graph/test', [$this, 'testAdminGraph']);
-        $this->router->addRoute('GET', '/api/v1/admin/media/elfinder', [$this, 'handleElfinder']);
-        $this->router->addRoute('POST', '/api/v1/admin/media/elfinder', [$this, 'handleElfinder']);
-
         $this->router->addRoute('POST', '/api/upload', [$this, 'upload']);
         $this->router->addRoute('GET', '/api/media', [$this, 'media']);
         $this->router->addRoute('POST', '/api/media', [$this, 'media']);
@@ -138,17 +135,6 @@ final class ApiRouter
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
-    }
-
-    public function handleElfinder(): void
-    {
-        $this->requireAdmin();
-        $token = (string)($_POST['csrf_token'] ?? ($_GET['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '')));
-        if (!Security::instance()->verifyPersistentToken($token, 'media_connector')) {
-            $this->denyJson('Sicherheitsüberprüfung fehlgeschlagen.');
-        }
-
-        Services\ElfinderService::getInstance()->handleConnectorRequest();
     }
 
     public function upload(): void

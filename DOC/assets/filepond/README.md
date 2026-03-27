@@ -2,7 +2,7 @@
 
 ## Kurzbeschreibung
 
-`FilePond` ist das aktive Upload-Frontend der Admin-Medienverwaltung und spricht in 365CMS einen kompatiblen JSON-Upload-Endpunkt an.
+`FilePond` ist ein Legacy-Bestand des früheren Upload-Frontends; aktive Admin- und Member-Uploads laufen inzwischen über native 365CMS-Formulare und interne APIs.
 
 ## Quellordner
 
@@ -10,15 +10,12 @@
 
 ## Verwendung in 365CMS
 
-- CSS-/JS-Einbindung in `CMS/admin/media.php`
-- Upload-Feld im Medien-View `CMS/admin/views/media/library.php`
-- Browser-Initialisierung in `CMS/assets/js/admin-media-integrations.js`
-- Upload-Endpunkt-Service in `CMS/core/Services/FileUploadService.php`
-- API-Route `POST /api/upload` in `CMS/core/Router.php`
+- keine aktive Frontend- oder Admin-Verdrahtung mehr seit Folge-Batch 454
+- `CMS/core/Services/FileUploadService.php` akzeptiert aus Kompatibilitätsgründen weiterhin `filepond` und `file` als Upload-Feldnamen
 
 ## Besondere Hinweise
 
-- Der Upload-Endpunkt erwartet standardmäßig das Feld `filepond` und akzeptiert alternativ `file`.
+- Der Upload-Endpunkt akzeptiert weiterhin das Feld `filepond`, bevorzugt im nativen 365CMS-Flow aber `file`.
 - CSRF-Schutz erfolgt über den Scope `media_action`.
 - Die eigentliche Dateiverarbeitung delegiert an `CMS\Services\MediaService`.
 - Im Asset-Bundle liegen zusätzliche Locale-Dateien unter `CMS/assets/filepond/locale/`, die aktuell nicht produktiv eingebunden werden.

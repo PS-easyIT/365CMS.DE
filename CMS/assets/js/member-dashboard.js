@@ -104,37 +104,122 @@
         });
     }
 
-    function initFilePond() {
-        if (!window.FilePond) {
-            return;
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    async function uploadMemberFile(endpoint, token, path, file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('target_path', path);
+        formData.append('csrf_token', token);
+        formData.append('member_upload', '1');
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-Token': token
+            },
+            body: formData,
+            credentials: 'same-origin'
+        });
+
+        const payload = await response.json().catch(function () {
+            return {};
+        });
+
+        if (!response.ok || payload.success === false) {
+            throw new Error(payload.error || 'Upload fehlgeschlagen.');
         }
 
-        document.querySelectorAll('input.filepond').forEach(function (input) {
-            const endpoint = input.getAttribute('data-upload-endpoint');
-            const token = input.getAttribute('data-upload-token');
-            const path = input.getAttribute('data-upload-path');
-            if (!endpoint || !token || !path) {
+        return payload;
+    }
+
+    function initMemberUploads() {
+        document.querySelectorAll('[data-member-upload-form]').forEach(function (form) {
+            const endpoint = form.getAttribute('data-upload-endpoint');
+            const path = form.getAttribute('data-upload-path');
+            const input = form.querySelector('input[type="file"]');
+            const status = form.querySelector('[data-member-upload-status]');
+            const results = form.querySelector('[data-member-upload-results]');
+            let currentToken = form.getAttribute('data-upload-token') || '';
+
+            if (!endpoint || !currentToken || !path || !input || !status || !results) {
                 return;
             }
 
-            window.FilePond.create(input, {
-                allowMultiple: true,
-                server: {
-                    process: {
-                        url: endpoint,
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-Token': token
-                        },
-                        ondata: function (formData) {
-                            formData.append('target_path', path);
-                            formData.append('csrf_token', token);
-                            formData.append('member_upload', '1');
-                            return formData;
+            form.addEventListener('submit', async function (event) {
+                event.preventDefault();
+
+                const files = Array.from(input.files || []);
+                if (files.length === 0) {
+                    status.hidden = false;
+                    status.textContent = 'Bitte mindestens eine Datei auswählen.';
+                    results.hidden = true;
+                    results.innerHTML = '';
+                    return;
+                }
+
+                const submitButton = form.querySelector('button[type="submit"]');
+                if (submitButton) {
+                    submitButton.disabled = true;
+                }
+
+                status.hidden = false;
+                status.textContent = 'Upload läuft…';
+                results.hidden = false;
+                results.innerHTML = '';
+
+                let hadError = false;
+
+                for (let index = 0; index < files.length; index += 1) {
+                    const file = files[index];
+                    status.textContent = 'Upload ' + (index + 1) + ' von ' + files.length + ': ' + file.name;
+
+                    try {
+                        const payload = await uploadMemberFile(endpoint, currentToken, path, file);
+                        const item = document.createElement('div');
+                        item.className = 'alert alert-success py-2 mb-0';
+                        const fileName = document.createElement('strong');
+                        fileName.textContent = file.name;
+                        item.appendChild(fileName);
+                        item.appendChild(document.createTextNode(' erfolgreich hochgeladen.'));
+                        results.appendChild(item);
+
+                        if (payload.new_token) {
+                            currentToken = payload.new_token;
+                            form.setAttribute('data-upload-token', payload.new_token);
                         }
+                    } catch (error) {
+                        hadError = true;
+                        const item = document.createElement('div');
+                        item.className = 'alert alert-danger py-2 mb-0';
+                        const fileName = document.createElement('strong');
+                        fileName.textContent = file.name;
+                        item.appendChild(fileName);
+                        item.appendChild(document.createTextNode(': ' + (error && error.message ? error.message : 'Upload fehlgeschlagen.')));
+                        results.appendChild(item);
                     }
-                },
-                labelIdle: 'Dateien hierher ziehen oder <span class="filepond--label-action">durchsuchen</span>'
+                }
+
+                status.textContent = hadError
+                    ? 'Upload abgeschlossen – mindestens eine Datei konnte nicht hochgeladen werden.'
+                    : 'Upload erfolgreich abgeschlossen. Seite wird aktualisiert…';
+
+                if (submitButton) {
+                    submitButton.disabled = false;
+                }
+
+                if (!hadError) {
+                    window.setTimeout(function () {
+                        window.location.reload();
+                    }, 900);
+                }
             });
         });
     }
@@ -157,7 +242,7 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         initPasskeys();
-        initFilePond();
+        initMemberUploads();
         initBackupCodeCopy();
     });
 }());

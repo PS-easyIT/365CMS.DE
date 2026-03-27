@@ -1247,7 +1247,7 @@ echo $t->getLocale(); // 'de'
 | **Pfad** | `CMS/core/Services/FileUploadService.php` |
 | **Pattern** | Singleton (`final` class) |
 
-FilePond-kompatibler Upload-Endpunkt für Datei-Uploads.
+Interner Upload-Endpunkt für native 365CMS-Datei-Uploads.
 
 ```php
 public static function getInstance(): self
@@ -1573,7 +1573,6 @@ Funktionalität:
 | `MailLogService` | `Services/MailLogService.php` | Mail-Versand-Protokollierung |
 | `LandingPageService` | `Services/LandingPageService.php` | Landing-Page-Builder |
 | `SiteTableService` | `Services/SiteTableService.php` | Mehrstufige Seitentabellen-Verwaltung |
-| `ElfinderService` | `Services/ElfinderService.php` | elFinder-Dateimanager-Integration |
 | `GraphApiService` | `Services/GraphApiService.php` | Microsoft Graph API-Anbindung |
 | `AzureMailTokenProvider` | `Services/AzureMailTokenProvider.php` | Azure AD OAuth2-Token für SMTP |
 

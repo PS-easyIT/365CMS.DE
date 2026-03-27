@@ -506,6 +506,78 @@ final class MemberController
         return 'member/user-' . $userId;
     }
 
+    private function normalizeMemberMediaPath(string $path, ?int $userId = null): string
+    {
+        $memberRoot = $this->getMemberMediaPath($userId);
+        $path = trim(str_replace('\\', '/', $path));
+        $path = preg_replace('#/+#', '/', $path) ?? '';
+        $path = trim($path, '/');
+
+        if ($path === '' || $path === $memberRoot) {
+            return $memberRoot;
+        }
+
+        if (str_contains($path, '..') || preg_match('/[\x00-\x1F\x7F]/', $path) === 1) {
+            return $memberRoot;
+        }
+
+        if (str_starts_with($path, $memberRoot . '/')) {
+            return $path;
+        }
+
+        if (preg_match('#^[A-Za-z0-9._/-]+$#', $path) !== 1) {
+            return $memberRoot;
+        }
+
+        return trim($memberRoot . '/' . ltrim($path, '/'), '/');
+    }
+
+    private function buildMemberMediaUrl(string $path = ''): string
+    {
+        $memberRoot = $this->getMemberMediaPath();
+        $normalizedPath = $this->normalizeMemberMediaPath($path);
+
+        if ($normalizedPath === $memberRoot) {
+            return '/member/media';
+        }
+
+        return '/member/media?path=' . rawurlencode($normalizedPath);
+    }
+
+    /**
+     * @return array<int,array{label:string,url:string,active:bool}>
+     */
+    private function buildMemberMediaBreadcrumbs(string $path): array
+    {
+        $memberRoot = $this->getMemberMediaPath();
+        $normalizedPath = $this->normalizeMemberMediaPath($path);
+        $breadcrumbs = [[
+            'label' => 'Meine Dateien',
+            'url' => $this->buildMemberMediaUrl($memberRoot),
+            'active' => $normalizedPath === $memberRoot,
+        ]];
+
+        if ($normalizedPath === $memberRoot) {
+            return $breadcrumbs;
+        }
+
+        $relativePath = ltrim(substr($normalizedPath, strlen($memberRoot)), '/');
+        $segments = array_values(array_filter(explode('/', $relativePath), static fn (string $segment): bool => $segment !== ''));
+        $currentPath = $memberRoot;
+
+        foreach ($segments as $index => $segment) {
+            $currentPath .= '/' . $segment;
+            $isLast = $index === count($segments) - 1;
+            $breadcrumbs[] = [
+                'label' => $segment,
+                'url' => $isLast ? '' : $this->buildMemberMediaUrl($currentPath),
+                'active' => $isLast,
+            ];
+        }
+
+        return $breadcrumbs;
+    }
+
     private function ensureMemberMediaRootExists(): bool
     {
         $memberRoot = rtrim((string)UPLOAD_PATH, '/\\') . DIRECTORY_SEPARATOR . 'member';
@@ -529,7 +601,8 @@ final class MemberController
     public function getMediaOverview(): array
     {
         $mediaService = MediaService::getInstance();
-        $path = $this->getMemberMediaPath();
+        $memberRoot = $this->getMemberMediaPath();
+        $path = $this->normalizeMemberMediaPath((string)($_GET['path'] ?? ''), $this->getUserId());
         $items = $this->ensureMemberMediaRootExists() ? $mediaService->getItems($path) : ['folders' => [], 'files' => []];
         if (!is_array($items)) {
             $items = ['folders' => [], 'files' => []];
@@ -537,6 +610,8 @@ final class MemberController
 
         return [
             'path' => $path,
+            'root_path' => $memberRoot,
+            'breadcrumbs' => $this->buildMemberMediaBreadcrumbs($path),
             'items' => $items,
             'settings' => $mediaService->getSettings(),
         ];
@@ -687,7 +762,7 @@ final class MemberController
     public function handleMediaRequest(): void
     {
         $action = (string)($_POST['action'] ?? '');
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !in_array($action, ['media_delete', 'media_folder_create'], true)) {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !in_array($action, ['media_delete', 'media_folder_create', 'media_folder_delete'], true)) {
             return;
         }
 
@@ -697,7 +772,8 @@ final class MemberController
         }
 
         $mediaService = MediaService::getInstance();
-        $memberPath = $this->getMemberMediaPath();
+        $memberRoot = $this->getMemberMediaPath();
+        $currentPath = $this->normalizeMemberMediaPath((string)($_POST['current_path'] ?? ''), $this->getUserId());
         $settings = $mediaService->getSettings();
 
         if (!$this->ensureMemberMediaRootExists()) {
@@ -707,27 +783,28 @@ final class MemberController
 
         if ($action === 'media_folder_create') {
             $folderName = trim((string)($_POST['folder_name'] ?? ''));
-            $result = $mediaService->createFolder($folderName, $memberPath);
+            $result = $mediaService->createFolder($folderName, $currentPath);
             $ok = !($result instanceof \CMS\WP_Error);
             $this->flash($ok ? 'success' : 'danger', $ok ? 'Ordner wurde erstellt.' : $result->get_error_message());
-            $this->redirect('/member/media');
+            $this->redirect($this->buildMemberMediaUrl($currentPath));
         }
 
         if (empty($settings['member_delete_own'])) {
             $this->flash('warning', 'Das Löschen eigener Dateien ist derzeit deaktiviert.');
-            $this->redirect('/member/media');
+            $this->redirect($this->buildMemberMediaUrl($currentPath));
         }
 
-        $path = trim((string)($_POST['path'] ?? ''));
-        if (!str_starts_with($path, $memberPath)) {
-            $this->flash('danger', 'Ungültiger Dateipfad.');
-            $this->redirect('/member/media');
+        $path = $this->normalizeMemberMediaPath((string)($_POST['path'] ?? ''), $this->getUserId());
+        if ($path === $memberRoot || !str_starts_with($path, $memberRoot . '/') && $path !== $memberRoot) {
+            $this->flash('danger', 'Ungültiger Medienpfad.');
+            $this->redirect($this->buildMemberMediaUrl($currentPath));
         }
 
         $result = $mediaService->deleteItem($path);
         $ok = !($result instanceof \CMS\WP_Error);
-        $this->flash($ok ? 'success' : 'danger', $ok ? 'Datei wurde gelöscht.' : $result->get_error_message());
-        $this->redirect('/member/media');
+        $successMessage = $action === 'media_folder_delete' ? 'Ordner wurde gelöscht.' : 'Datei wurde gelöscht.';
+        $this->flash($ok ? 'success' : 'danger', $ok ? $successMessage : $result->get_error_message());
+        $this->redirect($this->buildMemberMediaUrl($currentPath));
     }
 
     public function handleSecurityRequest(): void

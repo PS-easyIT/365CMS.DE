@@ -378,7 +378,6 @@ Dieses Dokument ist die **kanonische Scope-Liste** für die Vollprüfung des CMS
 - `core/Services/EditorJsRenderer.php`
 - `core/Services/EditorJsService.php`
 - `core/Services/EditorService.php`
-- `core/Services/ElfinderService.php`
 - `core/Services/ErrorReportService.php`
 - `core/Services/FeatureUsageService.php`
 - `core/Services/FeedService.php`

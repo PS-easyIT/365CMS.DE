@@ -2,7 +2,7 @@
 
 ## Kurzbeschreibung
 
-Cookie Consent liefert das Frontend-Banner für Einwilligungen und Datenschutzeinstellungen.
+Cookie Consent ist ein Legacy-Bestand der früheren Consent-Runtime; aktive Consent-Ausgabe erfolgt inzwischen nativ über `CookieConsentService` und 365CMS-eigene CSS-/JS-Dateien.
 
 ## Quellordner
 
@@ -10,8 +10,8 @@ Cookie Consent liefert das Frontend-Banner für Einwilligungen und Datenschutzei
 
 ## Verwendung in 365CMS
 
-- direkte Asset-Einbindung in `CMS/core/Services/CookieConsentService.php`
-- Initialisierung über die zentrale Bootstrap-/Frontend-Logik
+- keine aktive Einbindung der Vendor-Runtime mehr seit Folge-Batch 454
+- die verbleibenden Dateien dienen aktuell nur als Altbestand im Repository
 
 ## Website / GitHub
 

@@ -1,4 +1,4 @@
-﻿﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.371-blue.svg)](https://shields.io/)
+﻿﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.373-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,23 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.7.373 — 27. März 2026 · Folge-Batch 455, Member-Medienbereich zieht Ordnerpfade, Delete-Flow und Script-Härtung nach
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.373** | 🔴 fix | Member/Media | **`CMS/member/includes/class-member-controller.php` und `CMS/member/media.php` unterstützen jetzt konsistente Pfadnavigation, Breadcrumbs sowie Datei- und Ordnerlöschung im persönlichen Upload-Bereich**: Member-Aktionen bleiben dadurch innerhalb des eigenen Wurzelpfads, kehren sauber in den aktuellen Ordner zurück und bieten wieder belastbare Datei-/Ordner-Aktionen. |
+| **2.7.373** | 🔴 fix | Security/UI | **`CMS/assets/js/cookieconsent-init.js`, `CMS/core/Services/CookieConsentService.php`, `CMS/assets/js/admin-media-integrations.js`, `CMS/assets/js/member-dashboard.js` und `CMS/core/Services/FeedService.php` wurden nach dem Review zusätzlich gehärtet**: Escape-Fehler, DOM-XSS-Risiken, fehlendes `Secure`-Cookie-Flag und ein unnötiger `sha1`-Cache-Key wurden bereinigt. |
+
+---
+
+### v2.7.372 — 27. März 2026 · Folge-Batch 454, Fremd-Assets für Consent, Uploads und Feeds durch native 365CMS-Pfade ersetzt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.372** | 🟡 refactor | Core/Media | **`CMS/core/Services/CookieConsentService.php`, `CMS/assets/js/cookieconsent-init.js`, `CMS/assets/js/admin-media-integrations.js`, `CMS/member/media.php` und `CMS/core/Services/FeedService.php` ersetzen CookieConsent, FilePond, elFinder und SimplePie in den aktiven Laufzeitpfaden durch native 365CMS-Implementierungen**: Consent-Banner, Media-Picker, Member-Uploads und Feed-Parsing hängen damit enger an internen APIs, weniger an externen Runtime-Abhängigkeiten und robuster an klaren Verträgen. |
 
 ---
 

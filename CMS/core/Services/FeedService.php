@@ -1,9 +1,9 @@
 <?php
 /**
- * Feed Service – RSS/Atom-Feed-Parsing via SimplePie
+ * Feed Service – natives RSS/Atom-Parsing ohne externe Parser-Bibliothek.
  *
- * Zentraler Service für das Laden und Parsen von RSS/Atom-Feeds.
- * Nutzt die SimplePie-Bibliothek mit File-Cache und optionalem CMS-Cache-Backend.
+ * Zentraler Service für das Laden, Cachen und Parsen von RSS-/Atom-Feeds.
+ * Nutzt DOM/XML, einen abgesicherten Remote-Fetch und einen JSON-Datei-Cache.
  *
  * @package CMSv2\Core\Services
  */
@@ -12,7 +12,6 @@ declare(strict_types=1);
 
 namespace CMS\Services;
 
-use CMS\CacheManager;
 use CMS\Logger;
 
 if (!defined('ABSPATH')) {
@@ -30,6 +29,7 @@ final class FeedService
     private const MAX_CATEGORY_COUNT = 10;
     private const MAX_GUID_LENGTH = 255;
     private const MAX_ERROR_LENGTH = 180;
+    private const MAX_FEED_BYTES = 2097152;
 
     private static ?self $instance = null;
 
@@ -38,13 +38,8 @@ final class FeedService
     private readonly bool $cacheEnabled;
     private readonly Logger $logger;
 
-    /** Standard-Timeout für Feed-Fetches in Sekunden */
     private int $fetchTimeout = 15;
-
-    /** Standard-Cache-Dauer in Sekunden (1 Stunde) */
     private int $cacheDuration = 3600;
-
-    /** User-Agent-String */
     private string $userAgent;
 
     public static function getInstance(): self
@@ -55,56 +50,21 @@ final class FeedService
     private function __construct()
     {
         $this->cachePath = ABSPATH . '/cache/feeds/';
-        $this->available = class_exists(\SimplePie\SimplePie::class);
         $this->logger = Logger::instance()->withChannel('feeds');
-        $this->userAgent = '365CMS/' . (defined('CMS_VERSION') ? CMS_VERSION : '2.0') . ' (SimplePie)';
+        $this->available = class_exists(\DOMDocument::class) && class_exists(\DOMXPath::class);
+        $this->userAgent = '365CMS/' . (defined('CMS_VERSION') ? CMS_VERSION : '2.0') . ' (NativeFeedParser)';
         $this->cacheEnabled = $this->ensureDirectory($this->cachePath, 'Feed-Cache-Verzeichnis');
     }
 
-    // ──────────────────────────────────────────────────────────
-    //  Öffentliche API
-    // ──────────────────────────────────────────────────────────
-
-    /**
-     * Prüft ob SimplePie verfügbar ist.
-     */
     public function isAvailable(): bool
     {
         return $this->available;
     }
 
-    /**
-     * Einen Feed laden und parsen.
-     *
-     * @param string $url       Feed-URL (RSS 2.0, RSS 1.0, Atom)
-     * @param int    $maxItems  Max. Anzahl Items (0 = alle)
-     *
-     * @return array{
-     *   success: bool,
-     *   title: string,
-     *   description: string,
-     *   link: string,
-     *   image: string|null,
-     *   language: string|null,
-     *   items: array<int, array{
-     *     title: string,
-     *     link: string,
-     *     description: string,
-     *     content: string,
-     *     author: string|null,
-     *     date: string|null,
-     *     date_timestamp: int|null,
-     *     categories: string[],
-     *     thumbnail: string|null,
-     *     guid: string
-     *   }>,
-     *   error: string|null
-     * }
-     */
     public function fetch(string $url, int $maxItems = 50): array
     {
         if (!$this->available) {
-            return $this->errorResult('SimplePie nicht verfügbar');
+            return $this->errorResult('Feed-Parser nicht verfügbar');
         }
 
         $normalizedUrl = $this->normalizeFeedUrl($url);
@@ -115,36 +75,25 @@ final class FeedService
         $normalizedMaxItems = $this->normalizeMaxItems($maxItems, 50);
 
         try {
-            $feed = $this->createSimplePie($normalizedUrl);
-            $feed->init();
-
-            if ($feed->error()) {
-                $this->logger->warning('Feed konnte nicht geladen werden.', [
-                    'url' => $normalizedUrl,
-                    'error' => $this->sanitizeErrorMessage((string) $feed->error()),
-                ]);
-
+            $feed = $this->loadFeedData($normalizedUrl);
+            if ($feed === null) {
                 return $this->errorResult('Feed konnte nicht geladen werden.');
             }
 
-            $feedItems = $normalizedMaxItems > 0
-                ? $feed->get_items(0, $normalizedMaxItems)
-                : $feed->get_items();
-
-            $items = [];
-            foreach (is_array($feedItems) ? $feedItems : [] as $item) {
-                $items[] = $this->parseItem($item);
+            $items = $feed['items'] ?? [];
+            if ($normalizedMaxItems > 0) {
+                $items = array_slice(is_array($items) ? $items : [], 0, $normalizedMaxItems);
             }
 
             return [
-                'success'     => true,
-                'title'       => $this->sanitizePlainText((string) ($feed->get_title() ?? ''), self::MAX_TITLE_LENGTH),
-                'description' => $this->sanitizeHtml((string) ($feed->get_description() ?? ''), self::MAX_DESCRIPTION_LENGTH),
-                'link'        => $this->normalizePublicUrl((string) ($feed->get_permalink() ?? '')),
-                'image'       => $this->normalizePublicUrl((string) ($feed->get_image_url() ?: '')),
-                'language'    => $this->normalizeLanguage((string) ($feed->get_language() ?: '')),
-                'items'       => $items,
-                'error'       => null,
+                'success' => true,
+                'title' => (string)($feed['title'] ?? ''),
+                'description' => (string)($feed['description'] ?? ''),
+                'link' => (string)($feed['link'] ?? ''),
+                'image' => isset($feed['image']) ? (string)$feed['image'] : null,
+                'language' => isset($feed['language']) ? (string)$feed['language'] : null,
+                'items' => is_array($items) ? $items : [],
+                'error' => null,
             ];
         } catch (\Throwable $e) {
             $this->logger->warning('Feed-Abruf ist fehlgeschlagen.', [
@@ -156,19 +105,10 @@ final class FeedService
         }
     }
 
-    /**
-     * Mehrere Feeds gleichzeitig laden und als vereinte Item-Liste zurückgeben.
-     *
-     * @param string[] $urls       Array von Feed-URLs
-     * @param int      $maxItems   Max. Items insgesamt
-     * @param bool     $sortByDate Nach Datum sortieren (neueste zuerst)?
-     *
-     * @return array{success: bool, items: array, errors: array<string, string>}
-     */
     public function fetchMultiple(array $urls, int $maxItems = 100, bool $sortByDate = true): array
     {
         $allItems = [];
-        $errors   = [];
+        $errors = [];
 
         $normalizedUrls = $this->normalizeFeedUrls($urls);
         $normalizedMaxItems = $this->normalizeMaxItems($maxItems, 100);
@@ -184,10 +124,9 @@ final class FeedService
         foreach ($normalizedUrls as $url) {
             $result = $this->fetch($url, 0);
             if ($result['success']) {
-                // Feed-Metadaten an jedes Item anhängen
                 foreach ($result['items'] as $item) {
                     $item['_feed_title'] = $result['title'];
-                    $item['_feed_url']   = $url;
+                    $item['_feed_url'] = $url;
                     $allItems[] = $item;
                 }
             } else {
@@ -195,30 +134,23 @@ final class FeedService
             }
         }
 
-        // Nach Datum sortieren
-        if ($sortByDate && !empty($allItems)) {
-            usort($allItems, function (array $a, array $b): int {
-                return ($b['date_timestamp'] ?? 0) <=> ($a['date_timestamp'] ?? 0);
+        if ($sortByDate && $allItems !== []) {
+            usort($allItems, static function (array $a, array $b): int {
+                return ((int)($b['date_timestamp'] ?? 0)) <=> ((int)($a['date_timestamp'] ?? 0));
             });
         }
 
-        // Auf maxItems begrenzen
         if ($normalizedMaxItems > 0 && count($allItems) > $normalizedMaxItems) {
             $allItems = array_slice($allItems, 0, $normalizedMaxItems);
         }
 
         return [
-            'success' => count($errors) < count($normalizedUrls), // mind. 1 Feed erfolgreich
-            'items'   => $allItems,
-            'errors'  => $errors,
+            'success' => count($errors) < count($normalizedUrls),
+            'items' => $allItems,
+            'errors' => $errors,
         ];
     }
 
-    /**
-     * Feed-Metadaten abrufen (ohne Items).
-     *
-     * @return array{title: string, description: string, link: string, image: string|null, language: string|null}|null
-     */
     public function getFeedInfo(string $url): ?array
     {
         $normalizedUrl = $this->normalizeFeedUrl($url);
@@ -227,38 +159,27 @@ final class FeedService
         }
 
         try {
-            $feed = $this->createSimplePie($normalizedUrl);
-            $feed->set_item_limit(0);
-            $feed->init();
-
-            if ($feed->error()) {
-                $this->logger->warning('Feed-Metadaten konnten nicht geladen werden.', [
-                    'url' => $normalizedUrl,
-                    'error' => $this->sanitizeErrorMessage((string) $feed->error()),
-                ]);
+            $feed = $this->loadFeedData($normalizedUrl);
+            if ($feed === null) {
                 return null;
             }
 
             return [
-                'title'       => $this->sanitizePlainText((string) ($feed->get_title() ?? ''), self::MAX_TITLE_LENGTH),
-                'description' => $this->sanitizeHtml((string) ($feed->get_description() ?? ''), self::MAX_DESCRIPTION_LENGTH),
-                'link'        => $this->normalizePublicUrl((string) ($feed->get_permalink() ?? '')),
-                'image'       => $this->normalizePublicUrl((string) ($feed->get_image_url() ?: '')),
-                'language'    => $this->normalizeLanguage((string) ($feed->get_language() ?: '')),
+                'title' => (string)($feed['title'] ?? ''),
+                'description' => (string)($feed['description'] ?? ''),
+                'link' => (string)($feed['link'] ?? ''),
+                'image' => isset($feed['image']) ? (string)$feed['image'] : null,
+                'language' => isset($feed['language']) ? (string)$feed['language'] : null,
             ];
         } catch (\Throwable $e) {
             $this->logger->warning('Feed-Metadaten-Abruf ist fehlgeschlagen.', [
                 'url' => $normalizedUrl,
                 'error' => $this->sanitizeErrorMessage($e->getMessage()),
             ]);
-
             return null;
         }
     }
 
-    /**
-     * URL auf Feed-Existenz prüfen (Validierung).
-     */
     public function validateFeedUrl(string $url): bool
     {
         $normalizedUrl = $this->normalizeFeedUrl($url);
@@ -267,24 +188,16 @@ final class FeedService
         }
 
         try {
-            $feed = $this->createSimplePie($normalizedUrl);
-            $feed->set_item_limit(1);
-            $feed->init();
-
-            return !$feed->error();
+            return $this->loadFeedData($normalizedUrl) !== null;
         } catch (\Throwable $e) {
             $this->logger->warning('Feed-Validierung ist fehlgeschlagen.', [
                 'url' => $normalizedUrl,
                 'error' => $this->sanitizeErrorMessage($e->getMessage()),
             ]);
-
             return false;
         }
     }
 
-    /**
-     * Feed-Cache leeren.
-     */
     public function clearCache(): bool
     {
         if (!is_dir($this->cachePath)) {
@@ -320,125 +233,335 @@ final class FeedService
         return $success;
     }
 
-    /**
-     * Fetch-Timeout anpassen.
-     */
     public function setFetchTimeout(int $seconds): void
     {
         $this->fetchTimeout = max(1, min(60, $seconds));
     }
 
-    /**
-     * Cache-Dauer anpassen.
-     */
     public function setCacheDuration(int $seconds): void
     {
         $this->cacheDuration = max(0, $seconds);
     }
 
-    // ──────────────────────────────────────────────────────────
-    //  Interne Helfer
-    // ──────────────────────────────────────────────────────────
-
-    /**
-     * SimplePie-Instanz erstellen und konfigurieren.
-     */
-    private function createSimplePie(string $url): \SimplePie\SimplePie
+    private function loadFeedData(string $url): ?array
     {
-        $feed = new \SimplePie\SimplePie();
-        $feed->set_feed_url($url);
-        $feed->set_timeout($this->fetchTimeout);
-        $feed->set_useragent($this->userAgent);
-
-        if ($this->cacheEnabled) {
-            $feed->set_cache_location($this->cachePath);
-            $feed->set_cache_duration($this->cacheDuration);
-            $feed->enable_cache(true);
-        } else {
-            $feed->enable_cache(false);
+        $cacheFile = $this->buildCacheFilePath($url);
+        if ($this->cacheEnabled && $this->cacheDuration > 0 && is_file($cacheFile)) {
+            $cached = $this->readCacheFile($cacheFile);
+            if ($cached !== null) {
+                return $cached;
+            }
         }
 
-        // SimplePie soll nicht automatisch sortieren
-        $feed->enable_order_by_date(true);
+        $xml = $this->fetchRemoteFeed($url);
+        if ($xml === null) {
+            return null;
+        }
 
-        // Erzwinge UTF-8
-        $feed->set_output_encoding('UTF-8');
+        $parsed = $this->parseFeedXml($xml, $url);
+        if ($parsed === null) {
+            return null;
+        }
 
-        return $feed;
+        if ($this->cacheEnabled && $this->cacheDuration > 0) {
+            $this->writeCacheFile($cacheFile, $parsed);
+        }
+
+        return $parsed;
     }
 
-    /**
-     * Ein einzelnes Feed-Item in ein normalisiertes Array parsen.
-     */
-    private function parseItem(\SimplePie\Item $item): array
+    private function buildCacheFilePath(string $url): string
     {
-        // Kategorien sammeln
-        $categories = [];
-        if ($item->get_categories()) {
-            foreach ($item->get_categories() as $cat) {
-                $label = $cat->get_label();
-                if ($label !== null) {
-                    $normalizedLabel = $this->sanitizePlainText($label, self::MAX_CATEGORY_LENGTH);
-                    if ($normalizedLabel !== '') {
-                        $categories[] = $normalizedLabel;
-                    }
-                }
+        return $this->cachePath . hash('sha256', $url) . '.json';
+    }
+
+    private function readCacheFile(string $cacheFile): ?array
+    {
+        if (!is_file($cacheFile)) {
+            return null;
+        }
+
+        if ((time() - (int)@filemtime($cacheFile)) > $this->cacheDuration) {
+            return null;
+        }
+
+        $payload = @file_get_contents($cacheFile);
+        if (!is_string($payload) || trim($payload) === '') {
+            return null;
+        }
+
+        $decoded = json_decode($payload, true);
+        return is_array($decoded) ? $decoded : null;
+    }
+
+    private function writeCacheFile(string $cacheFile, array $payload): void
+    {
+        @file_put_contents($cacheFile, json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    }
+
+    private function fetchRemoteFeed(string $url): ?string
+    {
+        if (function_exists('curl_init')) {
+            $ch = curl_init($url);
+            if ($ch === false) {
+                return null;
+            }
+
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_MAXREDIRS => 5,
+                CURLOPT_CONNECTTIMEOUT => min(10, $this->fetchTimeout),
+                CURLOPT_TIMEOUT => $this->fetchTimeout,
+                CURLOPT_USERAGENT => $this->userAgent,
+                CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+                CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+                CURLOPT_HTTPHEADER => ['Accept: application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.8'],
+            ]);
+
+            $body = curl_exec($ch);
+            $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if (!is_string($body) || $body === '' || $status < 200 || $status >= 400 || strlen($body) > self::MAX_FEED_BYTES) {
+                return null;
+            }
+
+            return $body;
+        }
+
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'GET',
+                'timeout' => $this->fetchTimeout,
+                'header' => "User-Agent: {$this->userAgent}\r\nAccept: application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.8\r\n",
+                'follow_location' => 1,
+                'max_redirects' => 5,
+                'ignore_errors' => true,
+            ],
+        ]);
+
+        $body = @file_get_contents($url, false, $context);
+        if (!is_string($body) || $body === '' || strlen($body) > self::MAX_FEED_BYTES) {
+            return null;
+        }
+
+        return $body;
+    }
+
+    private function parseFeedXml(string $xml, string $url): ?array
+    {
+        $dom = new \DOMDocument();
+        $previousErrors = libxml_use_internal_errors(true);
+        $loaded = $dom->loadXML($xml, LIBXML_NONET | LIBXML_NOCDATA | LIBXML_NOWARNING | LIBXML_NOERROR);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previousErrors);
+
+        if (!$loaded || !$dom->documentElement instanceof \DOMElement) {
+            $this->logger->warning('Feed-XML konnte nicht geparst werden.', ['url' => $url]);
+            return null;
+        }
+
+        $xpath = new \DOMXPath($dom);
+        $root = $dom->documentElement;
+        $rootName = strtolower($root->localName ?: $root->nodeName);
+
+        if ($rootName === 'feed') {
+            return $this->parseAtomFeed($xpath, $root);
+        }
+
+        if ($rootName === 'rss' || $rootName === 'rdf') {
+            return $this->parseRssFeed($xpath, $root);
+        }
+
+        $this->logger->warning('Feed-Typ wird nicht unterstützt.', [
+            'url' => $url,
+            'root' => $rootName,
+        ]);
+
+        return null;
+    }
+
+    private function parseRssFeed(\DOMXPath $xpath, \DOMElement $root): array
+    {
+        $channel = $this->queryFirstNode($xpath, $root, ['./*[local-name()="channel"][1]']);
+        $context = $channel ?? $root;
+        $items = [];
+
+        foreach ($xpath->query('./*[local-name()="item"]', $context) ?: [] as $node) {
+            if ($node instanceof \DOMElement) {
+                $items[] = $this->parseRssItem($xpath, $node);
             }
         }
-        $categories = array_values(array_slice(array_unique($categories), 0, self::MAX_CATEGORY_COUNT));
-
-        // Thumbnail aus Enclosure oder Media
-        $thumbnail = null;
-        if ($enclosure = $item->get_enclosure()) {
-            $thumb = $enclosure->get_thumbnail();
-            $link  = $enclosure->get_link();
-            $type  = $enclosure->get_type() ?? '';
-
-            if ($thumb) {
-                $thumbnail = $this->normalizePublicUrl($thumb);
-            } elseif ($link && str_starts_with($type, 'image/')) {
-                $thumbnail = $this->normalizePublicUrl($link);
-            }
-        }
-
-        // Autor
-        $author = null;
-        if ($authorObj = $item->get_author()) {
-            $author = $this->sanitizePlainText((string) ($authorObj->get_name() ?: $authorObj->get_email()), 120);
-        }
-
-        // Datum
-        $dateStr = $item->get_date('Y-m-d H:i:s');
-        $timestamp = $item->get_date('U');
 
         return [
-            'title'          => $this->sanitizePlainText((string) ($item->get_title() ?? ''), self::MAX_TITLE_LENGTH),
-            'link'           => $this->normalizePublicUrl((string) ($item->get_permalink() ?? '')),
-            'description'    => $this->sanitizeHtml((string) ($item->get_description() ?? ''), self::MAX_DESCRIPTION_LENGTH),
-            'content'        => $this->sanitizeHtml((string) ($item->get_content() ?? ''), self::MAX_CONTENT_LENGTH),
-            'author'         => $author !== '' ? $author : null,
-            'date'           => $dateStr ?: null,
-            'date_timestamp' => $timestamp ? (int)$timestamp : null,
-            'categories'     => $categories,
-            'thumbnail'      => $thumbnail,
-            'guid'           => $this->sanitizeGuid((string) ($item->get_id() ?? $item->get_permalink() ?? '')),
+            'title' => $this->sanitizePlainText($this->queryFirstScalar($xpath, $context, ['./*[local-name()="title"][1]']), self::MAX_TITLE_LENGTH),
+            'description' => $this->sanitizeHtml($this->queryFirstScalar($xpath, $context, ['./*[local-name()="description"][1]', './*[local-name()="subtitle"][1]']), self::MAX_DESCRIPTION_LENGTH),
+            'link' => $this->normalizePublicUrl((string)$this->queryFirstScalar($xpath, $context, ['./*[local-name()="link"][1]'])) ?? '',
+            'image' => $this->normalizePublicUrl((string)$this->queryFirstScalar($xpath, $context, ['./*[local-name()="image"]/*[local-name()="url"][1]'])),
+            'language' => $this->normalizeLanguage((string)$this->queryFirstScalar($xpath, $context, ['./*[local-name()="language"][1]', './*[local-name()="lang"][1]'])),
+            'items' => $items,
         ];
     }
 
-    /**
-     * Fehler-Ergebnis zurückgeben.
-     */
+    private function parseAtomFeed(\DOMXPath $xpath, \DOMElement $root): array
+    {
+        $items = [];
+
+        foreach ($xpath->query('./*[local-name()="entry"]', $root) ?: [] as $node) {
+            if ($node instanceof \DOMElement) {
+                $items[] = $this->parseAtomItem($xpath, $node);
+            }
+        }
+
+        return [
+            'title' => $this->sanitizePlainText($this->queryFirstScalar($xpath, $root, ['./*[local-name()="title"][1]']), self::MAX_TITLE_LENGTH),
+            'description' => $this->sanitizeHtml($this->queryFirstScalar($xpath, $root, ['./*[local-name()="subtitle"][1]']), self::MAX_DESCRIPTION_LENGTH),
+            'link' => $this->normalizePublicUrl((string)$this->queryFirstScalar($xpath, $root, ['./*[local-name()="link"][@rel="alternate"]/@href', './*[local-name()="link"][1]/@href'])) ?? '',
+            'image' => $this->normalizePublicUrl((string)$this->queryFirstScalar($xpath, $root, ['./*[local-name()="logo"][1]', './*[local-name()="icon"][1]'])),
+            'language' => $this->normalizeLanguage((string)($root->getAttribute('xml:lang') ?: $root->getAttribute('lang'))),
+            'items' => $items,
+        ];
+    }
+
+    private function parseRssItem(\DOMXPath $xpath, \DOMElement $item): array
+    {
+        $categories = $this->extractCategories($xpath, $item, './*[local-name()="category"]');
+        $content = $this->queryFirstScalar($xpath, $item, ['./*[local-name()="encoded"][1]', './*[local-name()="content"][1]', './*[local-name()="description"][1]']);
+        $date = $this->normalizeDate($this->queryFirstScalar($xpath, $item, ['./*[local-name()="pubDate"][1]', './*[local-name()="date"][1]', './*[local-name()="published"][1]']));
+        $link = $this->normalizePublicUrl((string)$this->queryFirstScalar($xpath, $item, ['./*[local-name()="link"][1]']));
+
+        return [
+            'title' => $this->sanitizePlainText($this->queryFirstScalar($xpath, $item, ['./*[local-name()="title"][1]']), self::MAX_TITLE_LENGTH),
+            'link' => $link ?? '',
+            'description' => $this->sanitizeHtml($this->queryFirstScalar($xpath, $item, ['./*[local-name()="description"][1]']), self::MAX_DESCRIPTION_LENGTH),
+            'content' => $this->sanitizeHtml($content, self::MAX_CONTENT_LENGTH),
+            'author' => $this->normalizeAuthor($this->queryFirstScalar($xpath, $item, ['./*[local-name()="author"][1]', './*[local-name()="creator"][1]'])),
+            'date' => $date['date'],
+            'date_timestamp' => $date['timestamp'],
+            'categories' => $categories,
+            'thumbnail' => $this->normalizePublicUrl((string)$this->queryFirstScalar($xpath, $item, ['./*[local-name()="thumbnail"]/@url', './*[local-name()="content"][@medium="image"]/@url', './*[local-name()="enclosure"][starts-with(@type,"image/")]/@url'])),
+            'guid' => $this->sanitizeGuid((string)($this->queryFirstScalar($xpath, $item, ['./*[local-name()="guid"][1]']) ?: ($link ?? ''))),
+        ];
+    }
+
+    private function parseAtomItem(\DOMXPath $xpath, \DOMElement $item): array
+    {
+        $categories = $this->extractAtomCategories($xpath, $item);
+        $content = $this->queryFirstScalar($xpath, $item, ['./*[local-name()="content"][1]', './*[local-name()="summary"][1]']);
+        $date = $this->normalizeDate($this->queryFirstScalar($xpath, $item, ['./*[local-name()="updated"][1]', './*[local-name()="published"][1]']));
+        $link = $this->normalizePublicUrl((string)$this->queryFirstScalar($xpath, $item, ['./*[local-name()="link"][@rel="alternate"]/@href', './*[local-name()="link"][1]/@href']));
+
+        return [
+            'title' => $this->sanitizePlainText($this->queryFirstScalar($xpath, $item, ['./*[local-name()="title"][1]']), self::MAX_TITLE_LENGTH),
+            'link' => $link ?? '',
+            'description' => $this->sanitizeHtml($this->queryFirstScalar($xpath, $item, ['./*[local-name()="summary"][1]', './*[local-name()="content"][1]']), self::MAX_DESCRIPTION_LENGTH),
+            'content' => $this->sanitizeHtml($content, self::MAX_CONTENT_LENGTH),
+            'author' => $this->normalizeAuthor($this->queryFirstScalar($xpath, $item, ['./*[local-name()="author"]/*[local-name()="name"][1]', './*[local-name()="author"]/*[local-name()="email"][1]'])),
+            'date' => $date['date'],
+            'date_timestamp' => $date['timestamp'],
+            'categories' => $categories,
+            'thumbnail' => $this->normalizePublicUrl((string)$this->queryFirstScalar($xpath, $item, ['./*[local-name()="thumbnail"]/@url', './*[local-name()="link"][@rel="enclosure" and starts-with(@type,"image/")]/@href'])),
+            'guid' => $this->sanitizeGuid((string)($this->queryFirstScalar($xpath, $item, ['./*[local-name()="id"][1]']) ?: ($link ?? ''))),
+        ];
+    }
+
+    private function queryFirstNode(\DOMXPath $xpath, \DOMNode $context, array $queries): ?\DOMNode
+    {
+        foreach ($queries as $query) {
+            $nodes = $xpath->query($query, $context);
+            if ($nodes instanceof \DOMNodeList && $nodes->length > 0) {
+                return $nodes->item(0);
+            }
+        }
+
+        return null;
+    }
+
+    private function queryFirstScalar(\DOMXPath $xpath, \DOMNode $context, array $queries): string
+    {
+        foreach ($queries as $query) {
+            $value = trim((string)$xpath->evaluate('string((' . $query . ')[1])', $context));
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        return '';
+    }
+
+    private function extractCategories(\DOMXPath $xpath, \DOMNode $context, string $query): array
+    {
+        $categories = [];
+        foreach ($xpath->query($query, $context) ?: [] as $node) {
+            $label = trim((string)$node->textContent);
+            if ($label === '') {
+                continue;
+            }
+
+            $normalizedLabel = $this->sanitizePlainText($label, self::MAX_CATEGORY_LENGTH);
+            if ($normalizedLabel !== '') {
+                $categories[] = $normalizedLabel;
+            }
+        }
+
+        return array_values(array_slice(array_unique($categories), 0, self::MAX_CATEGORY_COUNT));
+    }
+
+    private function extractAtomCategories(\DOMXPath $xpath, \DOMNode $context): array
+    {
+        $categories = [];
+        foreach ($xpath->query('./*[local-name()="category"]', $context) ?: [] as $node) {
+            if (!$node instanceof \DOMElement) {
+                continue;
+            }
+
+            $label = trim((string)($node->getAttribute('term') !== '' ? $node->getAttribute('term') : $node->textContent));
+            if ($label === '') {
+                continue;
+            }
+
+            $normalizedLabel = $this->sanitizePlainText($label, self::MAX_CATEGORY_LENGTH);
+            if ($normalizedLabel !== '') {
+                $categories[] = $normalizedLabel;
+            }
+        }
+
+        return array_values(array_slice(array_unique($categories), 0, self::MAX_CATEGORY_COUNT));
+    }
+
+    private function normalizeDate(string $rawDate): array
+    {
+        $rawDate = trim($rawDate);
+        if ($rawDate === '') {
+            return ['date' => null, 'timestamp' => null];
+        }
+
+        $timestamp = strtotime($rawDate);
+        if ($timestamp === false) {
+            return ['date' => null, 'timestamp' => null];
+        }
+
+        return ['date' => date('Y-m-d H:i:s', $timestamp), 'timestamp' => $timestamp];
+    }
+
+    private function normalizeAuthor(string $author): ?string
+    {
+        $author = $this->sanitizePlainText($author, 120);
+        return $author !== '' ? $author : null;
+    }
+
     private function errorResult(string $message): array
     {
         return [
-            'success'     => false,
-            'title'       => '',
+            'success' => false,
+            'title' => '',
             'description' => '',
-            'link'        => '',
-            'image'       => null,
-            'language'    => null,
-            'items'       => [],
-            'error'       => $message,
+            'link' => '',
+            'image' => null,
+            'language' => null,
+            'items' => [],
+            'error' => $message,
         ];
     }
 
@@ -483,14 +606,9 @@ final class FeedService
         return true;
     }
 
-    /**
-     * @param string[] $urls
-     * @return string[]
-     */
     private function normalizeFeedUrls(array $urls): array
     {
         $normalized = [];
-
         foreach ($urls as $url) {
             if (!is_string($url)) {
                 continue;
@@ -522,8 +640,8 @@ final class FeedService
             return '';
         }
 
-        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
-        $host = trim((string) ($parts['host'] ?? ''));
+        $scheme = strtolower((string)($parts['scheme'] ?? ''));
+        $host = trim((string)($parts['host'] ?? ''));
         if (!in_array($scheme, ['http', 'https'], true) || $host === '' || isset($parts['user']) || isset($parts['pass'])) {
             return '';
         }
@@ -535,7 +653,6 @@ final class FeedService
         }
 
         unset($parts['fragment']);
-
         return $this->buildUrl($parts, $asciiHost);
     }
 
@@ -553,7 +670,6 @@ final class FeedService
         $value = trim(strip_tags($value));
         $value = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value) ?? '';
         $value = preg_replace('/\s+/u', ' ', $value) ?? '';
-
         return $this->truncate($value, $maxLength);
     }
 
@@ -575,30 +691,25 @@ final class FeedService
             return null;
         }
 
-        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $scheme = strtolower((string)($parts['scheme'] ?? ''));
         if (!in_array($scheme, ['http', 'https'], true) || isset($parts['user']) || isset($parts['pass'])) {
             return null;
         }
 
-        return $this->buildUrl($parts, $this->normalizeHost((string) ($parts['host'] ?? '')));
+        return $this->buildUrl($parts, $this->normalizeHost((string)($parts['host'] ?? '')));
     }
 
     private function normalizeLanguage(string $value): ?string
     {
         $value = strtolower(trim($value));
         $value = preg_replace('/[^a-z0-9\-_]/', '', $value) ?? '';
-
         return $value !== '' ? substr($value, 0, 16) : null;
     }
 
     private function sanitizeGuid(string $value): string
     {
         $value = trim($value);
-        if ($value === '') {
-            return '';
-        }
-
-        return $this->truncate($value, self::MAX_GUID_LENGTH);
+        return $value !== '' ? $this->truncate($value, self::MAX_GUID_LENGTH) : '';
     }
 
     private function sanitizeErrorMessage(string $value): string
@@ -606,7 +717,6 @@ final class FeedService
         $value = trim($value);
         $value = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value) ?? '';
         $value = preg_replace('/\s+/u', ' ', $value) ?? '';
-
         return $this->truncate($value, self::MAX_ERROR_LENGTH);
     }
 
@@ -649,16 +759,9 @@ final class FeedService
 
     private function isPrivateOrReservedIp(string $ip): bool
     {
-        return filter_var(
-            $ip,
-            FILTER_VALIDATE_IP,
-            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
-        ) === false;
+        return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false;
     }
 
-    /**
-     * @return string[]
-     */
     private function resolveHostIps(string $host): array
     {
         if (filter_var($host, FILTER_VALIDATE_IP)) {
@@ -666,12 +769,11 @@ final class FeedService
         }
 
         $ips = [];
-
         if (function_exists('dns_get_record')) {
             $records = @dns_get_record($host, DNS_A | DNS_AAAA);
             if (is_array($records)) {
                 foreach ($records as $record) {
-                    $ip = trim((string) ($record['ip'] ?? $record['ipv6'] ?? ''));
+                    $ip = trim((string)($record['ip'] ?? $record['ipv6'] ?? ''));
                     if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP)) {
                         $ips[] = $ip;
                     }
@@ -683,7 +785,7 @@ final class FeedService
             $fallbackRecords = @gethostbynamel($host);
             if (is_array($fallbackRecords)) {
                 foreach ($fallbackRecords as $ip) {
-                    $ip = trim((string) $ip);
+                    $ip = trim((string)$ip);
                     if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP)) {
                         $ips[] = $ip;
                     }
@@ -694,25 +796,21 @@ final class FeedService
         return array_values(array_unique($ips));
     }
 
-    /**
-     * @param array<string, mixed> $parts
-     */
     private function buildUrl(array $parts, string $host): string
     {
         if ($host === '') {
             return '';
         }
 
-        $url = strtolower((string) ($parts['scheme'] ?? 'https')) . '://' . $host;
+        $url = strtolower((string)($parts['scheme'] ?? 'https')) . '://' . $host;
         if (isset($parts['port']) && is_int($parts['port'])) {
             $url .= ':' . $parts['port'];
         }
 
-        $path = (string) ($parts['path'] ?? '');
+        $path = (string)($parts['path'] ?? '');
         $url .= $path !== '' ? $path : '/';
-
         if (isset($parts['query']) && $parts['query'] !== '') {
-            $url .= '?' . (string) $parts['query'];
+            $url .= '?' . (string)$parts['query'];
         }
 
         return $url;

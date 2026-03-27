@@ -103,9 +103,9 @@ Lazy-Singletons unter `CMS/core/Services/`, Namespace `CMS\Services\*`. Werden e
 | `EditorService` | `editor` | SunEditor WYSIWYG |
 | `EditorJsService` | `editorjs` | Editor.js Block-Editor |
 | `EditorJsRenderer` | `editorjs.renderer` | Editor.js → HTML-Rendering |
-| `FileUploadService` | `fileupload` | FilePond-Upload |
+| `FileUploadService` | `fileupload` | Interner Upload-Endpunkt |
 | `ImageService` | `image` | GD-basierte Bildbearbeitung |
-| `FeedService` | `feed` | SimplePie RSS/Atom |
+| `FeedService` | `feed` | Native RSS-/Atom-Verarbeitung |
 | `CookieConsentService` | `cookieconsent` | Frontend Consent-Banner (DSGVO) |
 | `CommentService` | `comments` | Kommentarsystem |
 | `MemberService` | `member` | Mitgliederverwaltung |

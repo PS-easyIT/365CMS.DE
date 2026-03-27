@@ -19,8 +19,8 @@ Gesamtliste aller 24 Bibliotheken (aktiv) plus 1 Referenz-Bundle. Quelle: `CMS/a
 | tabler | 1.0.x | Admin UI Framework | `tabler/` | lokal | Admin |
 | editorjs | 2.x | Block-Editor | `editorjs/` | lokal | Admin/Frontend |
 | suneditor | 2.x | Legacy WYSIWYG | `suneditor/` | lokal | Admin |
-| elfinder | 2.1.x | Dateimanager | `elfinder/` | lokal | Admin |
-| filepond | 4.x | Upload-Komponente | `filepond/` | lokal | Admin/Frontend |
+| elfinder | 2.1.x | ehem. Dateimanager | `elfinder/` | lokal | Legacy-Bestand, aktuell nicht aktiv |
+| filepond | 4.x | ehem. Upload-Komponente | `filepond/` | lokal | Legacy-Bestand, aktuell nicht aktiv |
 | gridjs | 6.x | Tabellen | `gridjs/` | lokal | Admin |
 | photoswipe | 5.x | Lightbox | `photoswipe/` | lokal | Frontend |
 | php-jwt | 6.x | JWT Tokens | `php-jwt/` | lokal | API/Auth |
@@ -32,9 +32,9 @@ Gesamtliste aller 24 Bibliotheken (aktiv) plus 1 Referenz-Bundle. Quelle: `CMS/a
 | twofactorauth | 1.x | TOTP | `twofactorauth/` | lokal | Auth |
 | webauthn | 3.x | Passkeys | `webauthn/` | lokal | Auth |
 | htmlpurifier | 4.x | XSS-Schutz | `htmlpurifier/` | lokal | System |
-| cookieconsent | 3.x | DSGVO-Banner | `cookieconsent/` | lokal | Frontend/Admin eingebettet |
+| cookieconsent | 3.x | ehem. DSGVO-Banner-Runtime | `cookieconsent/` | lokal | Legacy-Bestand, aktuell nicht aktiv |
 | melbahja-seo | 1.x | SEO-Helfer | `melbahja-seo/` | lokal | SEO |
-| simplepie | 1.9.x | RSS/Atom | `simplepiesrc/`, `simplepielibrary/` | lokal | Feeds |
+| simplepie | 1.9.x | ehem. RSS/Atom-Parser | `simplepiesrc/`, `simplepielibrary/` | lokal | Legacy-Bestand, aktuell nicht aktiv |
 | carbon | 2.x | Datum/Zeit | `carbon/` | lokal | System |
 | mime | 6.x | MIME-Erkennung | `mime/` | lokal | Mail/Upload |
 | psr | 3.x | PSR-Interfaces | `psr/` | lokal | Transitiv |
@@ -47,15 +47,15 @@ Gesamtliste aller 24 Bibliotheken (aktiv) plus 1 Referenz-Bundle. Quelle: `CMS/a
 ## CSS-Architektur <!-- UPDATED: 2026-03-08 -->
 - **Basis:** Tabler CSS (Admin) + eigene Overrides in `CMS/assets/css/`.
 - **Variablen:** Farbe, Spacing, Typography zentral in `CMS/assets/css/variables.css` (falls vorhanden); Admin-spezifische Variablen in `tabler/`.
-- **Theming:** Admin lädt Tabler + Custom CSS via `CMS/admin/partials/header.php`. Frontend-Themes liefern eigenes CSS im Theme-Ordner; globale Assets nur für gemeinsam genutzte Komponenten (z. B. FilePond/PhotoSwipe).
+- **Theming:** Admin lädt Tabler + Custom CSS via `CMS/admin/partials/header.php`. Frontend-Themes liefern eigenes CSS im Theme-Ordner; globale Assets nur für gemeinsam genutzte Komponenten (z. B. PhotoSwipe und native 365CMS-Komponenten).
 - **Legacy:** SunEditor bringt eigenes CSS; sollte nur auf Seiten geladen werden, die ihn nutzen.
 
 ---
 
 ## JavaScript-Architektur <!-- UPDATED: 2026-03-08 -->
 - **Module:** Lokale JS-Utilities unter `CMS/assets/js/` (Init-Skripte für PhotoSwipe, CookieConsent, Admin-Medien).
-- **Global Objects:** `window.cms` (Admin/Frontend-Hilfen), `window.EditorJS`, `window.FilePond`, `window.CMSCookieConsent`.
-- **Event-Bus:** Hooks laufen serverseitig; JS-seitig werden Events über DOM/Custom Events gekapselt (z. B. FilePond callbacks).
+- **Global Objects:** `window.cms` (Admin/Frontend-Hilfen), `window.EditorJS`, `window.CMSCookieConsent`.
+- **Event-Bus:** Hooks laufen serverseitig; JS-seitig werden Events über DOM/Custom Events und modulare Initialisierer gekapselt.
 - **Admin-Assets:** Werden in `CMS/admin/partials/header.php/footer.php` basierend auf `$pageAssets` injiziert.
 
 ---

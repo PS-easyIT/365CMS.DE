@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.7.371-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.7.373-blue.svg)](Changelog.md)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
@@ -29,16 +29,16 @@
 
 ## 📈 Audit-Stand März 2026
 
-Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 453** nachgezogen. Im eigentlichen Prüfplan bleiben damit weiterhin **444 von 444 Prüfplan-Punkten** geschafft; zusätzlich läuft bereits die Folge-Runde über den ursprünglichen Plan hinaus. Der aktuelle dokumentierte Gesamtstand über **453 bewertete Dateien** liegt bei:
+Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 455** nachgezogen. Im eigentlichen Prüfplan bleiben damit weiterhin **444 von 444 Prüfplan-Punkten** geschafft; zusätzlich läuft bereits die Folge-Runde über den ursprünglichen Plan hinaus. Der aktuelle dokumentierte Gesamtstand über **455 bewertete Dateien** liegt bei:
 
 | Metrik | Stand |
 |---|---:|
-| **Security** | **94,81** |
-| **Speed** | **92,39** |
-| **PHP / Best Practices** | **95,87** |
-| **Gesamt** | **95,92** |
+| **Security** | **95,04** |
+| **Speed** | **92,70** |
+| **PHP / Best Practices** | **96,12** |
+| **Gesamt** | **96,25** |
 
-Zuletzt wurde die Admin-Strecke **Medienverwaltung / Benutzer / Gruppen** in einer Folge-Runde weiter verdichtet. `CMS/admin/modules/media/MediaModule.php` erklärt unveränderte Settings-Saves jetzt klarer, `CMS/admin/modules/users/UsersModule.php` kapselt Save-Ausnahmen und fehlende Rückgabewerte robuster, `CMS/admin/views/users/edit.php` spiegelt Benutzerregeln früher im Formular und `CMS/admin/views/users/groups.php` plus `CMS/assets/js/admin-user-groups.js` machen Gruppen-Modal, Form-Submit und Delete-Flow belastbarer.
+Zuletzt wurde der Member-Medienbereich funktional nachgezogen. `CMS/member/includes/class-member-controller.php` und `CMS/member/media.php` halten Ordnernavigation, Datei-/Ordnerlöschung und Redirects jetzt sauber innerhalb des persönlichen Upload-Wurzelpfads; zusätzlich wurden Consent-, Medien- und Feed-Skripte weiter gegen DOM-/Cookie- und Hash-Hinweise gehärtet.
 
 ## 🧩 Funktionsumfang im Überblick
 
@@ -194,7 +194,7 @@ Der schnellste Einstieg ist der lokale Dokumentationsindex unter [`DOC/INDEX.md`
 | **Mail** | Symfony Mailer, Symfony Mime, Mail Queue, Microsoft-365/XOAuth2-Vorbereitung |
 | **Security/Auth** | HTMLPurifier, JWT, WebAuthn, TwoFactorAuth, LdapRecord |
 | **Editor & UI** | SunEditor, Editor.js, Tabler, Grid.js |
-| **Media** | FilePond, elFinder, PhotoSwipe, WebP-Workflows |
+| **Media** | Interne Upload-/Picker-APIs, PhotoSwipe, WebP-Workflows |
 | **SEO & Content** | Sitemap, Schema, Canonicals, Robots, TOC, Analytics-Bausteine |
 
 Die vollständige Asset-Dokumentation liegt in [`DOC/ASSET.md`](DOC/ASSET.md) sowie unter [`DOC/assets/`](DOC/assets/).

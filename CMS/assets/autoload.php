@@ -50,32 +50,6 @@ spl_autoload_register(function (string $class): void {
     }
 });
 
-// ─── SimplePie ─────────────────────────────────────────────────────────────
-// PSR-4: SimplePie\ → simplepiesrc/
-// Legacy: SimplePie_* → simplepielibrary/SimplePie/
-spl_autoload_register(function (string $class): void {
-    // Namespaced SimplePie (SimplePie\SimplePie, SimplePie\Item, etc.)
-    $nsPrefix = 'SimplePie\\';
-    $nsLen = strlen($nsPrefix);
-    if (strncmp($nsPrefix, $class, $nsLen) === 0) {
-        $relativeClass = substr($class, $nsLen);
-        $file = CMS_VENDOR_PATH . 'simplepiesrc' . DIRECTORY_SEPARATOR
-              . str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass) . '.php';
-        if (file_exists($file)) {
-            require_once $file;
-            return;
-        }
-    }
-
-    // Legacy SimplePie class (SimplePie → simplepielibrary/SimplePie.php)
-    if ($class === 'SimplePie') {
-        $file = CMS_VENDOR_PATH . 'simplepielibrary' . DIRECTORY_SEPARATOR . 'SimplePie.php';
-        if (file_exists($file)) {
-            require_once $file;
-        }
-    }
-});
-
 // ─── TNTSearch ─────────────────────────────────────────────────────────────
 // PSR-4: TeamTNT\TNTSearch\ → tntsearchsrc/
 spl_autoload_register(function (string $class): void {
@@ -101,20 +75,6 @@ if (file_exists($_tntHelpers)) {
     require_once $_tntHelpers;
 }
 unset($_tntHelpers);
-
-// ─── elFinder ──────────────────────────────────────────────────────────────
-// Klassen-basiert: elFinder* → elfinder/php/
-spl_autoload_register(function (string $class): void {
-    if (strncmp($class, 'elFinder', 8) !== 0) {
-        return;
-    }
-
-    $file = CMS_VENDOR_PATH . 'elfinder' . DIRECTORY_SEPARATOR . 'php'
-          . DIRECTORY_SEPARATOR . $class . '.class.php';
-    if (file_exists($file)) {
-        require_once $file;
-    }
-});
 
 // ─── Carbon (nesbot/carbon) ────────────────────────────────────────────────
 // PSR-4: Carbon\ → Carbon/

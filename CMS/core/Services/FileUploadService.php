@@ -2,7 +2,7 @@
 /**
  * File Upload Service
  *
- * FilePond-kompatibler Upload-Endpunkt-Service.
+ * Interner Upload-Endpunkt-Service für native 365CMS-Uploads.
  *
  * @package CMSv2\Core\Services
  */
@@ -38,7 +38,7 @@ final class FileUploadService
     }
 
     /**
-     * Verarbeitet einen FilePond-/Upload-Request und gibt einen standardisierten Response zurück.
+     * Verarbeitet einen Upload-Request und gibt einen standardisierten Response zurück.
      *
      * @return array{success:bool,status:int,data:array<string,mixed>}
      */

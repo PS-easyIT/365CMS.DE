@@ -403,7 +403,7 @@ class Bootstrap
         $this->container->singleton(Services\ImageService::class, fn() => Services\ImageService::getInstance());
         $this->container->singleton('image', fn() => Services\ImageService::getInstance());
 
-        // FeedService – lazy Singleton (SimplePie RSS/Atom-Parsing)
+        // FeedService – lazy Singleton (nativer RSS/Atom-Parser)
         $this->container->singleton(Services\FeedService::class, fn() => Services\FeedService::getInstance());
         $this->container->singleton('feed', fn() => Services\FeedService::getInstance());
 
@@ -423,7 +423,7 @@ class Bootstrap
             $this->container->singleton('editorjs.renderer', fn() => Services\EditorJsRenderer::getInstance());
         }
 
-        // FileUploadService – lazy Singleton (FilePond-Upload)
+        // FileUploadService – lazy Singleton (interner Upload-Endpunkt)
         if ($this->mode !== 'cli') {
             $this->container->singleton(Services\FileUploadService::class, fn() => Services\FileUploadService::getInstance());
             $this->container->singleton('fileupload', fn() => Services\FileUploadService::getInstance());

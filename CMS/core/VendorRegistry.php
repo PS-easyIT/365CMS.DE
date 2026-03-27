@@ -279,31 +279,12 @@ final class VendorRegistry
                 'notes' => 'HTML-Sanitizing für Rich-Content-Pfade.',
             ],
             [
-                'package' => 'simplepie',
-                'label' => 'SimplePie',
-                'paths' => [
-                    ['path' => $assets . 'simplepiesrc', 'type' => 'dir'],
-                    ['path' => $assets . 'simplepielibrary', 'type' => 'dir'],
-                ],
-                'symbol' => 'SimplePie',
-                'symbol_type' => 'class',
-                'notes' => 'RSS-/Atom-Parsing im Feed-Service.',
-            ],
-            [
                 'package' => 'tntsearch',
                 'label' => 'TNTSearch',
                 'paths' => [['path' => $assets . 'tntsearchsrc', 'type' => 'dir']],
                 'symbol' => '\\TeamTNT\\TNTSearch\\TNTSearch',
                 'symbol_type' => 'class',
                 'notes' => 'Volltextsuche für SearchService.',
-            ],
-            [
-                'package' => 'elfinder',
-                'label' => 'elFinder',
-                'paths' => [['path' => $assets . 'elfinder' . DIRECTORY_SEPARATOR . 'php', 'type' => 'dir']],
-                'symbol' => 'elFinder',
-                'symbol_type' => 'class',
-                'notes' => 'Dateimanager-Bibliothek für Medienverwaltung.',
             ],
             [
                 'package' => 'carbon',

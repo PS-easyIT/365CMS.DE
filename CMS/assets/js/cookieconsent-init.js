@@ -1,12 +1,23 @@
-(function () {
+ (function () {
     'use strict';
 
     if ((window.location && /^\/admin(?:\/|$)/.test(window.location.pathname || '')) || document.documentElement.classList.contains('admin')) {
         return;
     }
 
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     var consentApi = null;
     var lastFeedConsentState = null;
+    var modalOpen = false;
+    var ui = null;
 
     function getCookieValue(name) {
         var prefix = name + '=';
@@ -106,113 +117,356 @@
             : null;
     }
 
-    function getConsentApi() {
-        if (window.CookieConsent && typeof window.CookieConsent.run === 'function') {
-            return window.CookieConsent;
-        }
+    function getConfig() {
+        return window.CMS_COOKIECONSENT_CONFIG || {};
+    }
 
+    function getConsentApi() {
         return consentApi;
     }
 
-    function bootConsent() {
-        var cfg = window.CMS_COOKIECONSENT_CONFIG || {};
-        var cc = getConsentApi();
+    function getServiceMap() {
+        var categories = getConfiguredCategories();
+        var map = {};
 
-        if (!cc || typeof cc.run !== 'function' || !document.body) {
-            return;
+        Object.keys(categories).forEach(function (slug) {
+            var category = categories[slug] || {};
+            var serviceMap = category.services && typeof category.services === 'object' ? category.services : {};
+            map[slug] = Object.keys(serviceMap).filter(function (serviceSlug) {
+                return typeof serviceSlug === 'string' && serviceSlug.trim() !== '';
+            });
+        });
+
+        if (!map.necessary) {
+            map.necessary = [];
         }
 
-        var position = cfg.position === 'center' ? 'middle center' : 'bottom center';
-        var primary = cfg.primaryColor || '#3b82f6';
-        var categories = cfg.categories || {
-            necessary: {
-                enabled: true,
-                readOnly: true
-            },
-            analytics: {
-                enabled: false
-            },
-            marketing: {
-                enabled: false
+        return map;
+    }
+
+    function getOptionalCategories() {
+        return Object.keys(getConfiguredCategories()).filter(function (slug) {
+            return slug && slug !== 'necessary';
+        });
+    }
+
+    function normalizeAcceptedCategories(categories) {
+        var configuredCategories = getConfiguredCategories();
+        var normalized = Array.isArray(categories) ? categories.filter(function (value) {
+            return typeof value === 'string' && value.trim() !== '';
+        }).map(function (value) {
+            return value.trim();
+        }) : [];
+
+        normalized = normalized.filter(function (slug) {
+            return slug === 'necessary' || Object.prototype.hasOwnProperty.call(configuredCategories, slug);
+        });
+
+        if (normalized.indexOf('necessary') === -1) {
+            normalized.unshift('necessary');
+        }
+
+        return Array.from(new Set(normalized));
+    }
+
+    function buildPreferencesFromCategories(categories) {
+        var acceptedCategories = normalizeAcceptedCategories(categories);
+        var optionalCategories = getOptionalCategories();
+        var serviceMap = getServiceMap();
+        var acceptedServices = {};
+        var rejectedServices = {};
+        var acceptType = 'custom';
+
+        acceptedCategories.forEach(function (slug) {
+            acceptedServices[slug] = Array.isArray(serviceMap[slug]) ? serviceMap[slug].slice() : [];
+        });
+
+        optionalCategories.forEach(function (slug) {
+            if (acceptedCategories.indexOf(slug) === -1) {
+                rejectedServices[slug] = Array.isArray(serviceMap[slug]) ? serviceMap[slug].slice() : [];
+            }
+        });
+
+        if (acceptedCategories.length <= 1) {
+            acceptType = 'necessary';
+        } else if (optionalCategories.length > 0 && optionalCategories.every(function (slug) {
+            return acceptedCategories.indexOf(slug) !== -1;
+        })) {
+            acceptType = 'all';
+        }
+
+        return {
+            acceptType: acceptType,
+            acceptedCategories: acceptedCategories,
+            rejectedCategories: optionalCategories.filter(function (slug) {
+                return acceptedCategories.indexOf(slug) === -1;
+            }),
+            acceptedServices: acceptedServices,
+            rejectedServices: rejectedServices
+        };
+    }
+
+    function writeCookieValue(value) {
+        var encoded = encodeURIComponent(value);
+        var expires = new Date();
+        var isSecureContext = window.location && window.location.protocol === 'https:';
+        expires.setTime(expires.getTime() + (182 * 24 * 60 * 60 * 1000));
+        document.cookie = 'cc_cookie=' + encoded + '; expires=' + expires.toUTCString() + '; path=/; SameSite=Lax' + (isSecureContext ? '; Secure' : '');
+    }
+
+    function persistCategories(categories) {
+        var preferences = buildPreferencesFromCategories(categories);
+        writeCookieValue(JSON.stringify({
+            categories: preferences.acceptedCategories,
+            services: preferences.acceptedServices,
+            acceptType: preferences.acceptType,
+            savedAt: new Date().toISOString()
+        }));
+
+        return preferences;
+    }
+
+    function renderServices(services) {
+        if (!services.length) {
+            return '<div class="cmp-cookie-service"><div class="cmp-cookie-service__meta">Für diese Kategorie sind aktuell keine Einzelservices hinterlegt.</div></div>';
+        }
+
+        return services.map(function (service) {
+            var label = '';
+            if (service && typeof service === 'object' && service.label) {
+                label = String(service.label);
+            }
+
+            return ''
+                + '<div class="cmp-cookie-service">'
+                + '  <div class="cmp-cookie-service__title">'
+                + '    <span>' + escapeHtml(label || 'Service') + '</span>'
+                + '  </div>'
+                + '  <div class="cmp-cookie-service__meta">Wird mit dieser Kategorie gemeinsam freigegeben.</div>'
+                + '</div>';
+        }).join('');
+    }
+
+    function renderPreferenceSections() {
+        var cfg = getConfig();
+        var categories = getConfiguredCategories();
+        var sections = Array.isArray(cfg.sections) ? cfg.sections : [];
+
+        return sections.map(function (section) {
+            var linkedCategory = section && typeof section === 'object' ? String(section.linkedCategory || '') : '';
+            var categoryConfig = linkedCategory && categories[linkedCategory] ? categories[linkedCategory] : null;
+            var services = categoryConfig && categoryConfig.services && typeof categoryConfig.services === 'object'
+                ? Object.keys(categoryConfig.services).map(function (serviceSlug) {
+                    return categoryConfig.services[serviceSlug];
+                })
+                : [];
+            var required = linkedCategory === '' || !categoryConfig || categoryConfig.readOnly === true;
+
+            return ''
+                + '<section class="cmp-cookie-section">'
+                + '  <div class="cmp-cookie-section__top">'
+                + '    <div>'
+                + '      <h3 class="cmp-cookie-section__title">' + escapeHtml(section && section.title ? section.title : 'Kategorie') + '</h3>'
+                + '      <p class="cmp-cookie-section__description">' + escapeHtml(section && section.description ? section.description : '') + '</p>'
+                + '    </div>'
+                + '    ' + (linkedCategory
+                    ? '<label class="cmp-cookie-toggle">'
+                        + '<input type="checkbox" data-cms-consent-checkbox="' + escapeHtml(linkedCategory) + '" ' + (required ? 'checked disabled' : '') + '>'
+                        + '<span class="cmp-cookie-section__badge">' + (required ? 'Immer aktiv' : 'Optional') + '</span>'
+                      + '</label>'
+                    : '<span class="cmp-cookie-section__badge">Info</span>')
+                + '  </div>'
+                + (linkedCategory ? '<div class="cmp-cookie-services">' + renderServices(services) + '</div>' : '')
+                + '</section>';
+        }).join('');
+    }
+
+    function ensureUi() {
+        var cfg = getConfig();
+        if (ui || !document.body) {
+            return ui;
+        }
+
+        var root = document.createElement('div');
+        var banner = document.createElement('div');
+        var overlay = document.createElement('div');
+        var policyUrl = cfg.policyUrl || '/datenschutz';
+        var primaryColor = cfg.primaryColor || '#3b82f6';
+
+        root.id = 'cms-cookie-consent-root';
+        root.style.setProperty('--cms-cc-primary', primaryColor);
+
+        banner.className = 'cmp-cookie-banner' + (cfg.position === 'center' ? ' cmp-cookie-banner--center' : '');
+        banner.innerHTML = ''
+            + '<h2 class="cmp-cookie-banner__title">🍪 Cookie-Einstellungen</h2>'
+            + '<p class="cmp-cookie-banner__text">' + escapeHtml(cfg.bannerText || 'Wir nutzen Cookies für eine optimale Website-Erfahrung.')
+            + ' <a href="' + escapeHtml(policyUrl) + '">Datenschutz</a></p>'
+            + '<div class="cmp-cookie-banner__actions">'
+            + '  <button type="button" class="cmp-cookie-button cmp-cookie-button--primary" data-cms-consent-button="accept-all">' + escapeHtml(cfg.acceptText || 'Akzeptieren') + '</button>'
+            + '  <button type="button" class="cmp-cookie-button cmp-cookie-button--secondary" data-cms-consent-button="essential">' + escapeHtml(cfg.essentialText || cfg.rejectText || 'Nur Essenzielle') + '</button>'
+            + '  <button type="button" class="cmp-cookie-button cmp-cookie-button--ghost" data-cms-consent-button="preferences">Einstellungen</button>'
+            + '</div>';
+
+        overlay.className = 'cmp-cookie-overlay';
+        overlay.hidden = true;
+        overlay.innerHTML = ''
+            + '<div class="cmp-cookie-modal" role="dialog" aria-modal="true" aria-labelledby="cmp-cookie-modal-title">'
+            + '  <div class="cmp-cookie-modal__header">'
+            + '    <div>'
+            + '      <h2 id="cmp-cookie-modal-title" class="cmp-cookie-banner__title">Cookie-Präferenzen</h2>'
+            + '      <p class="cmp-cookie-banner__text">Wähle aus, welche optionalen Kategorien auf dieser Website aktiviert werden dürfen.</p>'
+            + '    </div>'
+            + '    <button type="button" class="cmp-cookie-modal__close" aria-label="Schließen" data-cms-consent-close="1">×</button>'
+            + '  </div>'
+            + '  <div class="cmp-cookie-modal__body">' + renderPreferenceSections() + '</div>'
+            + '  <div class="cmp-cookie-modal__footer">'
+            + '    <div class="cmp-cookie-modal__meta text-secondary small">Mehr Details findest du in der <a href="' + escapeHtml(policyUrl) + '">Datenschutzerklärung</a>.</div>'
+            + '    <div class="cmp-cookie-modal__actions">'
+            + '      <button type="button" class="cmp-cookie-button cmp-cookie-button--secondary" data-cms-consent-button="essential">' + escapeHtml(cfg.essentialText || 'Nur Essenzielle') + '</button>'
+            + '      <button type="button" class="cmp-cookie-button cmp-cookie-button--ghost" data-cms-consent-button="save">Auswahl speichern</button>'
+            + '      <button type="button" class="cmp-cookie-button cmp-cookie-button--primary" data-cms-consent-button="accept-all">' + escapeHtml(cfg.acceptText || 'Akzeptieren') + '</button>'
+            + '    </div>'
+            + '  </div>'
+            + '</div>';
+
+        root.appendChild(banner);
+        root.appendChild(overlay);
+        document.body.appendChild(root);
+
+        ui = {
+            root: root,
+            banner: banner,
+            overlay: overlay,
+            checkboxes: function () {
+                return overlay.querySelectorAll('[data-cms-consent-checkbox]');
             }
         };
-        var sections = cfg.sections || [
-            {
-                title: 'Essenzielle Cookies',
-                description: 'Diese Cookies sind für den Betrieb der Website erforderlich.'
-            },
-            {
-                title: 'Analytics',
-                description: 'Hilft uns zu verstehen, wie Besucher die Website nutzen.',
-                linkedCategory: 'analytics'
-            },
-            {
-                title: 'Marketing',
-                description: 'Wird für personalisierte Inhalte und Kampagnen verwendet.',
-                linkedCategory: 'marketing'
+
+        overlay.addEventListener('click', function (event) {
+            if (event.target === overlay) {
+                closePreferences();
             }
-        ];
+        });
 
-        try {
-            cc.run({
-                revision: 1,
-                autoClearCookies: true,
-                manageScriptTags: true,
-                guiOptions: {
-                    consentModal: {
-                        layout: 'box',
-                        position: position,
-                        equalWeightButtons: true,
-                        flipButtons: false
-                    },
-                    preferencesModal: {
-                        layout: 'box',
-                        position: 'right',
-                        equalWeightButtons: true,
-                        flipButtons: false
-                    }
-                },
-                categories: categories,
-                language: {
-                    default: 'de',
-                    translations: {
-                        de: {
-                            consentModal: {
-                                title: '🍪 Cookie-Einstellungen',
-                                description: (cfg.bannerText || 'Wir nutzen Cookies für eine optimale Website-Erfahrung.')
-                                    + ' <a href="#preferences" data-cc="show-preferencesModal" class="cc__link">Einstellungen</a>'
-                                    + ' · <a href="' + (cfg.policyUrl || '/datenschutz') + '" class="cc__link">Datenschutz</a>',
-                                acceptAllBtn: cfg.acceptText || 'Akzeptieren',
-                                acceptNecessaryBtn: cfg.rejectText || cfg.essentialText || 'Ablehnen',
-                                showPreferencesBtn: 'Einstellungen',
-                                closeIconLabel: 'Schließen und ablehnen'
-                            },
-                            preferencesModal: {
-                                title: 'Cookie-Präferenzen',
-                                acceptAllBtn: cfg.acceptText || 'Akzeptieren',
-                                acceptNecessaryBtn: cfg.essentialText || 'Nur Essenzielle',
-                                savePreferencesBtn: 'Auswahl speichern',
-                                closeIconLabel: 'Schließen',
-                                sections: sections
-                            }
-                        }
-                    }
-                },
-                onConsent: function () {
-                    window.dispatchEvent(new CustomEvent('cms-cookie-consent-change', { detail: getConsentPreferences() }));
-                },
-                onChange: function () {
-                    window.dispatchEvent(new CustomEvent('cms-cookie-consent-change', { detail: getConsentPreferences() }));
-                }
-            });
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && modalOpen) {
+                closePreferences();
+            }
+        });
 
-            consentApi = cc;
+        return ui;
+    }
 
-            document.documentElement.style.setProperty('--cc-btn-primary-bg', primary);
-        } catch (error) {
-            console.warn('CookieConsent konnte nicht initialisiert werden:', error);
+    function syncModalSelections() {
+        var state = parseStoredPreferences() || buildPreferencesFromCategories(['necessary']);
+        var currentUi = ensureUi();
+        if (!currentUi) {
             return;
         }
+
+        currentUi.checkboxes().forEach(function (checkbox) {
+            var slug = checkbox.getAttribute('data-cms-consent-checkbox') || '';
+            if (!slug || checkbox.disabled) {
+                checkbox.checked = true;
+                return;
+            }
+
+            checkbox.checked = state.acceptedCategories.indexOf(slug) !== -1;
+        });
+    }
+
+    function openPreferences() {
+        var currentUi = ensureUi();
+        if (!currentUi) {
+            return;
+        }
+
+        syncModalSelections();
+        modalOpen = true;
+        currentUi.overlay.hidden = false;
+        document.body.classList.add('cmp-cookie-modal-open');
+    }
+
+    function closePreferences() {
+        if (!ui) {
+            return;
+        }
+
+        modalOpen = false;
+        ui.overlay.hidden = true;
+        document.body.classList.remove('cmp-cookie-modal-open');
+    }
+
+    function hideBannerIfNeeded() {
+        var state = parseStoredPreferences();
+        var currentUi = ensureUi();
+        if (!currentUi) {
+            return;
+        }
+
+        currentUi.banner.classList.toggle('cmp-cookie-hidden', !!state);
+    }
+
+    function saveFromModalSelection() {
+        var selected = ['necessary'];
+        var currentUi = ensureUi();
+
+        if (!currentUi) {
+            return null;
+        }
+
+        currentUi.checkboxes().forEach(function (checkbox) {
+            var slug = checkbox.getAttribute('data-cms-consent-checkbox') || '';
+            if (!slug || slug === 'necessary' || !checkbox.checked) {
+                return;
+            }
+
+            selected.push(slug);
+        });
+
+        return persistCategories(selected);
+    }
+
+    function dispatchConsentChange(preferences) {
+        window.dispatchEvent(new CustomEvent('cms-cookie-consent-change', {
+            detail: preferences || getConsentPreferences()
+        }));
+    }
+
+    function acceptCategory(choice) {
+        var preferences = null;
+
+        if (choice === 'all') {
+            preferences = persistCategories(['necessary'].concat(getOptionalCategories()));
+        } else if (choice === 'necessary') {
+            preferences = persistCategories(['necessary']);
+        } else if (Array.isArray(choice)) {
+            preferences = persistCategories(choice);
+        }
+
+        hideBannerIfNeeded();
+        closePreferences();
+        dispatchConsentChange(preferences);
+        return preferences;
+    }
+
+    function initConsentUi() {
+        ensureUi();
+
+        consentApi = {
+            run: function () {
+                return consentApi;
+            },
+            showPreferences: openPreferences,
+            acceptCategory: acceptCategory,
+            getUserPreferences: getConsentPreferences,
+            validConsent: function () {
+                return parseStoredPreferences() !== null;
+            }
+        };
+
+        window.CookieConsent = consentApi;
+        hideBannerIfNeeded();
     }
 
     function updatePublicConsentPage() {
@@ -377,6 +631,40 @@
     }
 
     document.addEventListener('click', function (event) {
+        if (event.target.closest('[data-cms-consent-close="1"]')) {
+            event.preventDefault();
+            closePreferences();
+            return;
+        }
+
+        var button = event.target.closest('[data-cms-consent-button]');
+        if (button) {
+            event.preventDefault();
+
+            if (button.getAttribute('data-cms-consent-button') === 'accept-all') {
+                acceptCategory('all');
+                return;
+            }
+
+            if (button.getAttribute('data-cms-consent-button') === 'essential') {
+                acceptCategory('necessary');
+                return;
+            }
+
+            if (button.getAttribute('data-cms-consent-button') === 'preferences') {
+                openPreferences();
+                return;
+            }
+
+            if (button.getAttribute('data-cms-consent-button') === 'save') {
+                var savedPreferences = saveFromModalSelection();
+                hideBannerIfNeeded();
+                closePreferences();
+                dispatchConsentChange(savedPreferences);
+                return;
+            }
+        }
+
         var trigger = event.target.closest('[data-cms-consent-action]');
         if (!trigger) {
             return;
@@ -401,12 +689,12 @@
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function () {
-            bootConsent();
+            initConsentUi();
             updatePublicConsentPage();
             syncFeedConsentState();
         }, { once: true });
     } else {
-        bootConsent();
+        initConsentUi();
         updatePublicConsentPage();
         syncFeedConsentState();
     }

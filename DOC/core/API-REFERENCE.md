@@ -98,7 +98,6 @@ X-API-Key: dein-api-key-hier
 | `GET` | `/api/v1/admin/mail/logs` | Admin | `page`, `limit`, `search`, `status` | `{"items":[...],"pagination":{...}}` | Versandprotokolle für Diagnose/UI |
 | `POST` | `/api/v1/admin/mail/test` | Admin + CSRF | `recipient` | `{"success":true}` | Test-Mail aus dem Admin |
 | `POST` | `/api/v1/admin/graph/test` | Admin + CSRF | – | `{"success":true}` | Graph-/Transporttest aus dem Admin |
-| `GET/POST` | `/api/v1/admin/media/elfinder` | Admin | elFinder-Parameter | JSON / Download | Medien-Dateimanager-Bridge |
 | `POST` | `/api/upload` | Session/JWT | Datei + Metadaten | `{"success":true,"file":{...}}` | Zentraler Upload-Endpunkt |
 | `GET/POST` | `/api/media` | Session/JWT | Query / Aktion | JSON | Medienliste und Aktionen |
 

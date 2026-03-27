@@ -2,8 +2,7 @@
 /**
  * Cookie Consent Service
  *
- * Lädt CookieConsent-Assets und rendert die Runtime-Konfiguration
- * aus den DB-Settings im Frontend.
+ * Rendert die 365CMS Consent-Konfiguration samt nativer Frontend-Assets.
  *
  * @package CMSv2\Core\Services
  */
@@ -59,12 +58,6 @@ final class CookieConsentService
             return;
         }
 
-        $assetsBasePath = \cms_assets_path('cookieconsent');
-
-        if (!is_dir($assetsBasePath)) {
-            return;
-        }
-
         $consentConfig = $this->buildConsentConfiguration();
 
         $config = [
@@ -80,11 +73,10 @@ final class CookieConsentService
             'sections' => $consentConfig['sections'],
         ];
 
-        $cookieCssHref = htmlspecialchars(\cms_asset_url('cookieconsent/cookieconsent.css'), ENT_QUOTES, 'UTF-8');
+        $cookieCssHref = htmlspecialchars(\cms_asset_url('css/cms-cookie-consent.css'), ENT_QUOTES, 'UTF-8');
         echo '<link rel="preload" as="style" href="' . $cookieCssHref . '" onload="this.onload=null;this.rel=\'stylesheet\'">' . "\n";
         echo '<noscript><link rel="stylesheet" href="' . $cookieCssHref . '"></noscript>' . "\n";
-        echo '<script src="' . htmlspecialchars(\cms_asset_url('cookieconsent/cookieconsent.umd.js'), ENT_QUOTES, 'UTF-8') . '" defer></script>' . "\n";
-        echo '<script>window.CMS_COOKIECONSENT_CONFIG=' . json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ';</script>' . "\n";
+        echo '<script>window.CMS_COOKIECONSENT_CONFIG=' . json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ';</script>' . "\n";
         echo '<script src="' . htmlspecialchars(\cms_asset_url('js/cookieconsent-init.js'), ENT_QUOTES, 'UTF-8') . '" defer></script>' . "\n";
     }
 
