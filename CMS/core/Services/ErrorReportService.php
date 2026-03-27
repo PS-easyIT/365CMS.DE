@@ -13,6 +13,16 @@ if (!defined('ABSPATH')) {
 
 final class ErrorReportService
 {
+    private const MAX_TITLE_LENGTH = 255;
+    private const MAX_MESSAGE_LENGTH = 2000;
+    private const MAX_ERROR_CODE_LENGTH = 120;
+    private const MAX_SOURCE_URL_LENGTH = 500;
+    private const MAX_JSON_SCALAR_LENGTH = 500;
+    private const MAX_JSON_ITEMS = 50;
+    private const MAX_JSON_DEPTH = 4;
+    private const MAX_JSON_KEY_LENGTH = 80;
+    private const ALLOWED_STATUSES = ['open', 'resolved', 'dismissed'];
+
     private static ?self $instance = null;
 
     private readonly Database $db;
@@ -81,13 +91,14 @@ final class ErrorReportService
 
     public function createReport(array $payload): array
     {
-        $title = $this->limit((string)($payload['title'] ?? 'Fehlerreport'), 255);
-        $message = $this->limit((string)($payload['message'] ?? ''), 2000);
-        $errorCode = $this->limit((string)($payload['error_code'] ?? ''), 120);
-        $sourceUrl = $this->limit((string)($payload['source_url'] ?? ''), 500);
-        $errorData = is_array($payload['error_data'] ?? null) ? $payload['error_data'] : [];
-        $context = is_array($payload['context'] ?? null) ? $payload['context'] : [];
-        $status = $this->limit((string)($payload['status'] ?? 'open'), 30);
+        $normalized = $this->normalizePayload($payload);
+        $title = $normalized['title'];
+        $message = $normalized['message'];
+        $errorCode = $normalized['error_code'];
+        $sourceUrl = $normalized['source_url'];
+        $errorData = $normalized['error_data'];
+        $context = $normalized['context'];
+        $status = $normalized['status'];
         $createdBy = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
 
         if ($message === '') {
@@ -191,6 +202,93 @@ final class ErrorReportService
                 INDEX idx_created_at (created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
         );
+    }
+
+    private function normalizePayload(array $payload): array
+    {
+        return [
+            'title' => $this->normalizeText($payload['title'] ?? 'Fehlerreport', self::MAX_TITLE_LENGTH),
+            'message' => $this->normalizeText($payload['message'] ?? '', self::MAX_MESSAGE_LENGTH, true),
+            'error_code' => $this->normalizeText($payload['error_code'] ?? '', self::MAX_ERROR_CODE_LENGTH),
+            'source_url' => $this->normalizeSourceUrl($payload['source_url'] ?? ''),
+            'error_data' => is_array($payload['error_data'] ?? null) ? $this->normalizeArrayPayload($payload['error_data']) : [],
+            'context' => is_array($payload['context'] ?? null) ? $this->normalizeArrayPayload($payload['context']) : [],
+            'status' => $this->normalizeStatus($payload['status'] ?? 'open'),
+        ];
+    }
+
+    private function normalizeStatus(mixed $value): string
+    {
+        $status = strtolower($this->normalizeText($value, 30));
+
+        return in_array($status, self::ALLOWED_STATUSES, true) ? $status : 'open';
+    }
+
+    private function normalizeSourceUrl(mixed $value): string
+    {
+        $source = $this->normalizeText($value, self::MAX_SOURCE_URL_LENGTH);
+        if ($source === '') {
+            return '';
+        }
+
+        if (str_starts_with($source, '/')) {
+            return SITE_URL . $source;
+        }
+
+        return str_starts_with($source, (string) SITE_URL) ? $source : '';
+    }
+
+    private function normalizeArrayPayload(array $payload, int $depth = 0): array
+    {
+        if ($depth >= self::MAX_JSON_DEPTH) {
+            return [];
+        }
+
+        $normalized = [];
+
+        foreach (array_slice($payload, 0, self::MAX_JSON_ITEMS, true) as $key => $value) {
+            $normalizedKey = is_int($key) ? $key : $this->normalizeArrayKey($key);
+
+            if (is_array($value)) {
+                $normalized[$normalizedKey] = $this->normalizeArrayPayload($value, $depth + 1);
+                continue;
+            }
+
+            $normalized[$normalizedKey] = $this->normalizeScalarValue($value);
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeArrayKey(mixed $value): string
+    {
+        $key = preg_replace('/[^a-zA-Z0-9_:\-.]/', '_', trim((string) $value));
+
+        return mb_substr($key ?? '', 0, self::MAX_JSON_KEY_LENGTH);
+    }
+
+    private function normalizeScalarValue(mixed $value): mixed
+    {
+        if (is_string($value)) {
+            return $this->normalizeText($value, self::MAX_JSON_SCALAR_LENGTH, true);
+        }
+
+        if (is_int($value) || is_float($value) || is_bool($value) || $value === null) {
+            return $value;
+        }
+
+        return $this->normalizeText($value, self::MAX_JSON_SCALAR_LENGTH, true);
+    }
+
+    private function normalizeText(mixed $value, int $length, bool $preserveNewlines = false): string
+    {
+        $string = (string) $value;
+        $pattern = $preserveNewlines
+            ? '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u'
+            : '/[\x00-\x1F\x7F]/u';
+        $sanitized = preg_replace($pattern, '', $string);
+
+        return $this->limit($sanitized ?? '', $length);
     }
 
     private function limit(string $value, int $length): string

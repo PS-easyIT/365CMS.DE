@@ -28,6 +28,46 @@ const CMS_ADMIN_MEDIA_ALLOWED_ACTIONS = [
 
 const CMS_ADMIN_MEDIA_WRITE_CAPABILITY = 'manage_media';
 
+const CMS_ADMIN_MEDIA_SETTINGS_INT_FIELDS = [
+    'jpeg_quality',
+    'max_width',
+    'max_height',
+    'thumbnail_small_w',
+    'thumbnail_small_h',
+    'thumbnail_medium_w',
+    'thumbnail_medium_h',
+    'thumbnail_large_w',
+    'thumbnail_large_h',
+    'thumbnail_banner_w',
+    'thumbnail_banner_h',
+];
+
+const CMS_ADMIN_MEDIA_SETTINGS_SIZE_FIELDS = [
+    'max_upload_size',
+    'member_max_upload_size',
+];
+
+const CMS_ADMIN_MEDIA_SETTINGS_BOOLEAN_FIELDS = [
+    'auto_webp',
+    'strip_exif',
+    'organize_month_year',
+    'sanitize_filename',
+    'unique_filename',
+    'lowercase_filename',
+    'member_uploads_enabled',
+    'member_delete_own',
+    'generate_thumbnails',
+    'block_dangerous_types',
+    'validate_image_content',
+    'require_login_for_upload',
+    'protect_uploads_dir',
+];
+
+const CMS_ADMIN_MEDIA_SETTINGS_EXTENSION_LIST_FIELDS = [
+    'allowed_types',
+    'member_allowed_types',
+];
+
 function cms_admin_media_can_access(): bool
 {
     return Auth::instance()->isAdmin() && Auth::instance()->hasCapability(CMS_ADMIN_MEDIA_WRITE_CAPABILITY);
@@ -63,10 +103,142 @@ function cms_admin_media_resolve_path(MediaModule $module, array $post): string
         return '';
     }
 
-    $normalizedActionPath = trim(str_replace('\\', '/', $actionPath), '/');
-    $parentPath = trim(str_replace('\\', '/', dirname($normalizedActionPath)), '/.');
+    return $module->resolveParentPathFromActionPath($actionPath);
+}
 
-    return $module->normalizePath($parentPath);
+function cms_admin_media_normalize_upload_error_label(mixed $value): string
+{
+    $label = trim((string) $value);
+    $label = preg_replace('/[\x00-\x1F\x7F]+/u', '', $label) ?? '';
+
+    if ($label === '') {
+        return 'Datei';
+    }
+
+    return function_exists('mb_substr') ? mb_substr($label, 0, 120) : substr($label, 0, 120);
+}
+
+function cms_admin_media_normalize_text(mixed $value, int $maxLength = 120): string
+{
+    $normalizedValue = trim((string) $value);
+    $normalizedValue = preg_replace('/[\x00-\x1F\x7F]+/u', '', $normalizedValue) ?? '';
+
+    return function_exists('mb_substr')
+        ? mb_substr($normalizedValue, 0, $maxLength)
+        : substr($normalizedValue, 0, $maxLength);
+}
+
+/**
+ * @param mixed $extensions
+ * @return list<string>
+ */
+function cms_admin_media_normalize_extensions(mixed $extensions): array
+{
+    if (!is_array($extensions)) {
+        return [];
+    }
+
+    $normalizedExtensions = [];
+
+    foreach ($extensions as $extension) {
+        $normalizedExtension = strtolower(trim((string) $extension));
+        if ($normalizedExtension === '' || preg_match('/^[a-z0-9]{1,10}$/', $normalizedExtension) !== 1) {
+            continue;
+        }
+
+        $normalizedExtensions[$normalizedExtension] = true;
+    }
+
+    return array_keys($normalizedExtensions);
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function cms_admin_media_normalize_settings_payload(array $post): array
+{
+    $normalizedSettings = [];
+
+    foreach (CMS_ADMIN_MEDIA_SETTINGS_SIZE_FIELDS as $field) {
+        if (!array_key_exists($field, $post)) {
+            continue;
+        }
+
+        $normalizedSettings[$field] = cms_admin_media_normalize_text($post[$field] ?? '', 16);
+    }
+
+    foreach (CMS_ADMIN_MEDIA_SETTINGS_INT_FIELDS as $field) {
+        if (!array_key_exists($field, $post)) {
+            continue;
+        }
+
+        $normalizedSettings[$field] = (int) ($post[$field] ?? 0);
+    }
+
+    foreach (CMS_ADMIN_MEDIA_SETTINGS_BOOLEAN_FIELDS as $field) {
+        if (!array_key_exists($field, $post)) {
+            continue;
+        }
+
+        $normalizedSettings[$field] = '1';
+    }
+
+    foreach (CMS_ADMIN_MEDIA_SETTINGS_EXTENSION_LIST_FIELDS as $field) {
+        $normalizedSettings[$field] = cms_admin_media_normalize_extensions($post[$field] ?? []);
+    }
+
+    return $normalizedSettings;
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function cms_admin_media_normalize_action_payload(MediaModule $module, string $action, array $post): array
+{
+    return match ($action) {
+        'upload' => [
+            'target_path' => $module->normalizePath((string) ($post['target_path'] ?? '')),
+        ],
+        'create_folder' => [
+            'parent_path' => $module->normalizePath((string) ($post['parent_path'] ?? '')),
+            'folder_name' => cms_admin_media_normalize_text($post['folder_name'] ?? '', 120),
+        ],
+        'delete_item' => [
+            'item_path' => $module->normalizePath((string) ($post['item_path'] ?? '')),
+        ],
+        'rename_item' => [
+            'old_path' => $module->normalizePath((string) ($post['old_path'] ?? '')),
+            'new_name' => cms_admin_media_normalize_text($post['new_name'] ?? '', 120),
+        ],
+        'assign_category' => [
+            'file_path' => $module->normalizePath((string) ($post['file_path'] ?? '')),
+            'category_slug' => $module->normalizeCategory((string) ($post['category_slug'] ?? '')),
+        ],
+        'add_category' => [
+            'name' => cms_admin_media_normalize_text($post['name'] ?? '', 80),
+            'slug' => $module->normalizeCategory((string) ($post['slug'] ?? '')),
+        ],
+        'delete_category' => [
+            'slug' => $module->normalizeCategory((string) ($post['slug'] ?? '')),
+        ],
+        'save_settings' => cms_admin_media_normalize_settings_payload($post),
+        default => [],
+    };
+}
+
+function cms_admin_media_validate_action_payload(string $action, array $payload): ?string
+{
+    return match ($action) {
+        'create_folder' => ($payload['folder_name'] ?? '') === '' ? 'Bitte einen gültigen Ordnernamen angeben.' : null,
+        'delete_item' => ($payload['item_path'] ?? '') === '' ? 'Ungültiger Elementpfad.' : null,
+        'rename_item' => ($payload['old_path'] ?? '') === ''
+            ? 'Ungültiger Elementpfad.'
+            : ((($payload['new_name'] ?? '') === '') ? 'Bitte einen gültigen Namen angeben.' : null),
+        'assign_category' => ($payload['file_path'] ?? '') === '' ? 'Ungültiger Dateipfad.' : null,
+        'add_category' => ($payload['name'] ?? '') === '' ? 'Bitte einen gültigen Kategorienamen angeben.' : null,
+        'delete_category' => ($payload['slug'] ?? '') === '' ? 'Bitte eine gültige Kategorie angeben.' : null,
+        default => null,
+    };
 }
 
 /**
@@ -221,7 +393,7 @@ function cms_admin_media_handle_upload(MediaModule $module, string $path): array
             continue;
         }
 
-        $errors[] = htmlspecialchars((string) ($file['name'] ?? 'Datei')) . ': ' . (string) ($result['error'] ?? 'Fehler');
+        $errors[] = cms_admin_media_normalize_upload_error_label($file['name'] ?? 'Datei') . ': ' . trim((string) ($result['error'] ?? 'Fehler'));
     }
 
     if ($uploaded === 0 && $errors === []) {
@@ -314,6 +486,11 @@ function cms_admin_media_view_config(MediaModule $module, string $tab): array
             'view_file' => __DIR__ . '/views/media/categories.php',
             'page_title' => 'Medien – Kategorien',
             'active_page' => 'media-categories',
+            'page_assets' => [
+                'js' => [
+                    cms_asset_url('js/admin-media-integrations.js'),
+                ],
+            ],
             'data' => $module->getCategoriesData(),
         ],
         'settings' => [
@@ -404,9 +581,16 @@ $sectionPageConfig = [
             return ['success' => false, 'error' => 'Keine Berechtigung für diese Aktion.'];
         }
 
+        $normalizedPost = cms_admin_media_normalize_action_payload($module, $action, $post);
+        $validationError = cms_admin_media_validate_action_payload($action, $normalizedPost);
+
+        if ($validationError !== null) {
+            return ['success' => false, 'error' => $validationError];
+        }
+
         $tab = $module->normalizeTab($section);
-        $path = cms_admin_media_resolve_path($module, $post);
-        $handledAction = cms_admin_media_handle_action($module, $action, $tab, $path, $post);
+        $path = cms_admin_media_resolve_path($module, $normalizedPost);
+        $handledAction = cms_admin_media_handle_action($module, $action, $tab, $path, $normalizedPost);
 
         if (isset($handledAction['flash']) && is_array($handledAction['flash'])) {
             return [

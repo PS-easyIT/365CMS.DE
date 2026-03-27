@@ -14,6 +14,14 @@ if (!defined('ABSPATH')) {
 
 $categories = $data['categories'] ?? [];
 $systemSlugs = ['themes', 'plugins', 'assets', 'fonts', 'dl-manager', 'form-uploads', 'member'];
+$mediaCategoriesConfig = [
+    'deleteFormId' => 'deleteCatForm',
+    'deleteSlugFieldId' => 'deleteCatSlug',
+    'deleteTitle' => 'Kategorie löschen',
+    'deleteConfirmText' => 'Löschen',
+    'deleteConfirmClass' => 'btn-danger',
+    'deleteMessageTemplate' => 'Kategorie {name} wirklich löschen? Die zugeordneten Dateien bleiben erhalten.',
+];
 ?>
 
 <div class="page-header d-print-none">
@@ -97,7 +105,12 @@ $systemSlugs = ['themes', 'plugins', 'assets', 'fonts', 'dl-manager', 'form-uplo
                                             </td>
                                             <td>
                                                 <?php if (!$isSystem): ?>
-                                                    <button class="btn btn-ghost-danger btn-icon btn-sm" title="Löschen" onclick="deleteCat('<?php echo htmlspecialchars(addslashes($cat['slug']), ENT_QUOTES); ?>', '<?php echo htmlspecialchars(addslashes($cat['name']), ENT_QUOTES); ?>')">
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-ghost-danger btn-icon btn-sm js-media-category-delete"
+                                                        title="Löschen"
+                                                        data-delete-slug="<?php echo htmlspecialchars((string) $cat['slug'], ENT_QUOTES); ?>"
+                                                        data-delete-name="<?php echo htmlspecialchars((string) $cat['name'], ENT_QUOTES); ?>">
                                                         <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/></svg>
                                                     </button>
                                                 <?php endif; ?>
@@ -122,26 +135,6 @@ $systemSlugs = ['themes', 'plugins', 'assets', 'fonts', 'dl-manager', 'form-uplo
     <input type="hidden" name="slug" id="deleteCatSlug">
 </form>
 
-<script>
-function deleteCat(slug, name) {
-    var submitDelete = function() {
-        document.getElementById('deleteCatSlug').value = slug;
-        document.getElementById('deleteCatForm').submit();
-    };
-
-    if (typeof cmsConfirm === 'function') {
-        cmsConfirm({
-            title: 'Kategorie löschen',
-            message: 'Kategorie ' + name + ' wirklich löschen? Die zugeordneten Dateien bleiben erhalten.',
-            confirmText: 'Löschen',
-            confirmClass: 'btn-danger',
-            onConfirm: submitDelete
-        });
-        return;
-    }
-
-    if (window.confirm('Kategorie ' + name + ' wirklich löschen? Die zugeordneten Dateien bleiben erhalten.')) {
-        submitDelete();
-    }
-}
+<script type="application/json" id="media-categories-config">
+<?php echo json_encode($mediaCategoriesConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>
 </script>

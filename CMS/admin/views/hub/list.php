@@ -60,8 +60,8 @@ $templateOptions = $data['templateOptions'] ?? [];
                         <span class="text-secondary">Öffentliche Hub-Sites laufen direkt über ihren Slug im Frontend.</span>
                     </div>
                     <div class="col-auto">
-                        <input type="text" class="form-control form-control-sm" value="<?php echo htmlspecialchars($search); ?>" placeholder="Suchen…"
-                               onkeydown="if(event.key==='Enter'){var q=this.value.trim();window.location.href='<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites'+(q?'?q='+encodeURIComponent(q):'');}">
+                        <input type="text" class="form-control form-control-sm js-hub-sites-search-input" value="<?php echo htmlspecialchars($search); ?>" placeholder="Suchen…"
+                               data-search-url="<?php echo htmlspecialchars(SITE_URL . '/admin/hub-sites', ENT_QUOTES); ?>">
                     </div>
                 </div>
             </div>
@@ -100,8 +100,8 @@ $templateOptions = $data['templateOptions'] ?? [];
                                     <?php if (!empty($site['hub_slug'])): ?>
                                         <div class="mt-2">
                                             <button type="button"
-                                                    class="btn btn-outline-secondary btn-sm me-1"
-                                                    onclick="copyHubSlug('<?php echo htmlspecialchars(SITE_URL . '/' . ltrim((string)$site['hub_slug'], '/'), ENT_QUOTES); ?>')">
+                                                    class="btn btn-outline-secondary btn-sm me-1 js-copy-hub-url"
+                                                    data-hub-public-url="<?php echo htmlspecialchars(SITE_URL . '/' . ltrim((string)$site['hub_slug'], '/'), ENT_QUOTES); ?>">
                                                 Slug kopieren
                                             </button>
                                             <a href="<?php echo htmlspecialchars(SITE_URL . '/' . ltrim((string)$site['hub_slug'], '/')); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">
@@ -123,9 +123,13 @@ $templateOptions = $data['templateOptions'] ?? [];
                                             <?php if (!empty($site['hub_slug'])): ?>
                                                 <a class="dropdown-item" href="<?php echo htmlspecialchars(SITE_URL . '/' . ltrim((string)$site['hub_slug'], '/')); ?>" target="_blank" rel="noopener noreferrer">Public Site öffnen</a>
                                             <?php endif; ?>
-                                            <button class="dropdown-item" onclick="duplicateHubSite(<?php echo (int)$site['id']; ?>)">Duplizieren</button>
+                                            <button type="button" class="dropdown-item js-duplicate-hub-site" data-hub-site-id="<?php echo (int)$site['id']; ?>">Duplizieren</button>
                                             <div class="dropdown-divider"></div>
-                                            <button class="dropdown-item text-danger" onclick="deleteHubSite(<?php echo (int)$site['id']; ?>, '<?php echo htmlspecialchars(addslashes((string)$site['table_name']), ENT_QUOTES); ?>')">Löschen</button>
+                                            <button type="button" class="dropdown-item text-danger js-delete-hub-site"
+                                                    data-hub-site-id="<?php echo (int)$site['id']; ?>"
+                                                    data-hub-site-name="<?php echo htmlspecialchars((string)$site['table_name'], ENT_QUOTES); ?>">
+                                                Löschen
+                                            </button>
                                         </div>
                                     </div>
                                 </td>
@@ -149,35 +153,3 @@ $templateOptions = $data['templateOptions'] ?? [];
     <input type="hidden" name="action" value="duplicate">
     <input type="hidden" name="id" id="duplicateId">
 </form>
-
-<script>
-function deleteHubSite(id, name) {
-    cmsConfirm({
-        title: 'Routing / Hub Site löschen',
-        message: 'Routing / Hub Site <strong>' + name + '</strong> wirklich löschen?',
-        confirmText: 'Löschen',
-        confirmClass: 'btn-danger',
-        onConfirm: function() {
-            document.getElementById('deleteId').value = id;
-            document.getElementById('deleteForm').submit();
-        }
-    });
-}
-function duplicateHubSite(id) {
-    document.getElementById('duplicateId').value = id;
-    document.getElementById('duplicateForm').submit();
-}
-
-function copyHubSlug(url) {
-    if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
-        cmsAlert('Kopieren wird von diesem Browser leider nicht unterstützt.', 'warning');
-        return;
-    }
-
-    navigator.clipboard.writeText(url).then(function () {
-        cmsAlert('Public URL wurde in die Zwischenablage kopiert.', 'success');
-    }).catch(function () {
-        cmsAlert('Public URL konnte nicht kopiert werden.', 'danger');
-    });
-}
-</script>

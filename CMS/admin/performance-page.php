@@ -107,6 +107,60 @@ function cms_admin_performance_normalize_page_config(array $pageConfig): array
     ];
 }
 
+/**
+ * @param array{
+ *     section: string,
+ *     route_path: string,
+ *     view_file: string,
+ *     page_title: string,
+ *     active_page: string,
+ *     page_assets: array<int|string, mixed>
+ * } $performancePageConfig
+ * @return array<string, mixed>
+ */
+function cms_admin_performance_build_section_page_config(array $performancePageConfig): array
+{
+    return [
+        'section' => $performancePageConfig['section'],
+        'route_path' => $performancePageConfig['route_path'],
+        'view_file' => $performancePageConfig['view_file'],
+        'page_title' => $performancePageConfig['page_title'],
+        'active_page' => $performancePageConfig['active_page'],
+        'page_assets' => $performancePageConfig['page_assets'],
+        'csrf_action' => 'admin_performance',
+        'guard_constant' => 'CMS_ADMIN_PERFORMANCE_VIEW',
+        'module_file' => __DIR__ . '/modules/seo/PerformanceModule.php',
+        'module_factory' => static function () {
+            return new PerformanceModule();
+        },
+        'access_checker' => static function (): bool {
+            return cms_admin_performance_can_access();
+        },
+        'post_handler' => static function ($module, string $section, array $postData): array {
+            if (!$module instanceof PerformanceModule) {
+                return ['success' => false, 'error' => 'Performance-Modul konnte nicht initialisiert werden.'];
+            }
+
+            $normalizedSection = cms_admin_performance_normalize_section($section);
+            $action = cms_admin_performance_normalize_action($normalizedSection, $postData['action'] ?? '');
+            if ($action === '') {
+                return ['success' => false, 'error' => 'Unbekannte Aktion.'];
+            }
+
+            if (!cms_admin_performance_can_run_action($normalizedSection, $action)) {
+                return ['success' => false, 'error' => 'Keine Berechtigung für diese Aktion.'];
+            }
+
+            return $module->handleAction($normalizedSection, $action, $postData);
+        },
+        'data_loader' => static function ($module) use ($performancePageConfig): array {
+            return $module instanceof PerformanceModule
+                ? $module->getSectionData((string) ($performancePageConfig['section'] ?? 'overview'))
+                : [];
+        },
+    ];
+}
+
 $performancePageConfig = cms_admin_performance_normalize_page_config(array_merge(
     [
         'section' => $performanceSection ?? 'overview',
@@ -121,46 +175,6 @@ $performancePageConfig = cms_admin_performance_normalize_page_config(array_merge
 
 $performancePageConfig['section'] = cms_admin_performance_normalize_section((string) ($performancePageConfig['section'] ?? 'overview'));
 
-if (!cms_admin_performance_can_access()) {
-    header('Location: ' . SITE_URL);
-    exit;
-}
-
-$sectionPageConfig = [
-    'section' => $performancePageConfig['section'],
-    'route_path' => $performancePageConfig['route_path'],
-    'view_file' => $performancePageConfig['view_file'],
-    'page_title' => $performancePageConfig['page_title'],
-    'active_page' => $performancePageConfig['active_page'],
-    'page_assets' => $performancePageConfig['page_assets'],
-    'csrf_action' => 'admin_performance',
-    'guard_constant' => 'CMS_ADMIN_PERFORMANCE_VIEW',
-    'module_file' => __DIR__ . '/modules/seo/PerformanceModule.php',
-    'module_factory' => static function () {
-        return new PerformanceModule();
-    },
-    'post_handler' => static function ($module, string $section, array $postData): array {
-        if (!$module instanceof PerformanceModule) {
-            return ['success' => false, 'error' => 'Performance-Modul konnte nicht initialisiert werden.'];
-        }
-
-        $normalizedSection = cms_admin_performance_normalize_section($section);
-        $action = cms_admin_performance_normalize_action($normalizedSection, $postData['action'] ?? '');
-        if ($action === '') {
-            return ['success' => false, 'error' => 'Unbekannte Aktion.'];
-        }
-
-        if (!cms_admin_performance_can_run_action($normalizedSection, $action)) {
-            return ['success' => false, 'error' => 'Keine Berechtigung für diese Aktion.'];
-        }
-
-        return $module->handleAction($normalizedSection, $action, $postData);
-    },
-    'data_loader' => static function ($module) use ($performancePageConfig): array {
-        return $module instanceof PerformanceModule
-            ? $module->getSectionData((string) ($performancePageConfig['section'] ?? 'overview'))
-            : [];
-    },
-];
+$sectionPageConfig = cms_admin_performance_build_section_page_config($performancePageConfig);
 
 require __DIR__ . '/partials/section-page-shell.php';

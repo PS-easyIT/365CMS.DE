@@ -46,17 +46,13 @@ $alertDetails = is_array($alert['details'] ?? null) ? $alert['details'] : [];
 <div class="page-body">
     <div class="container-xl">
         <?php if (!empty($alert)): ?>
-            <div class="alert alert-<?= htmlspecialchars($alert['type']) ?> alert-dismissible" role="alert">
-                <div><?= htmlspecialchars($alert['message']) ?></div>
-                <?php if ($alertDetails !== []): ?>
-                    <ul class="mb-0 mt-2 small ps-3">
-                        <?php foreach ($alertDetails as $detail): ?>
-                            <li><?= htmlspecialchars((string)$detail) ?></li>
-                        <?php endforeach; ?>
-                    </ul>
-                <?php endif; ?>
-                <a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>
-            </div>
+            <?php
+            $alertData = is_array($alert ?? null) ? $alert : [];
+            if ($alertDetails !== []) {
+                $alertData['details'] = $alertDetails;
+            }
+            require dirname(__DIR__) . '/partials/flash-alert.php';
+            ?>
         <?php endif; ?>
 
         <?php require __DIR__ . '/subnav.php'; ?>

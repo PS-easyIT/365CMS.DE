@@ -18,6 +18,47 @@ class PluginMarketplaceModule
     private const MAX_MANIFEST_BYTES = 524288;
     private const MAX_ARCHIVE_ENTRIES = 2000;
     private const MAX_ARCHIVE_UNCOMPRESSED_BYTES = 52428800;
+    private const MAX_CATALOG_STRING_LENGTH = 500;
+    private const MANIFEST_ALLOWED_KEYS = [
+        'slug',
+        'name',
+        'description',
+        'version',
+        'author',
+        'category',
+        'manifest',
+        'update_url',
+        'download_url',
+        'package_url',
+        'archive_url',
+        'purchase_url',
+        'buy_url',
+        'order_url',
+        'is_paid',
+        'is_commercial',
+        'price_amount',
+        'price_currency',
+        'price',
+        'contact_form_slug',
+        'purchase_type',
+        'sha256',
+        'checksum_sha256',
+        'package_size',
+        'homepage_url',
+        'docs_url',
+        'changelog_url',
+        'icon_url',
+        'screenshot',
+        'requires_cms',
+        'min_cms_version',
+        'requires_php',
+        'min_php',
+        'tested_up_to',
+        'released',
+        'notes',
+        'submission_source',
+        'type',
+    ];
 
     private const ALLOWED_MARKETPLACE_HOSTS = [
         '365cms.de',
@@ -52,9 +93,11 @@ class PluginMarketplaceModule
     {
         $available = $this->loadRegistry();
         $installed = $this->getInstalledSlugs();
+        $installedLookup = array_fill_keys($installed, true);
 
         foreach ($available as &$plugin) {
-            $plugin['installed'] = in_array($plugin['slug'] ?? '', $installed, true);
+            $pluginSlug = $this->normalizePluginSlug((string) ($plugin['slug'] ?? ''));
+            $plugin['installed'] = $pluginSlug !== '' && isset($installedLookup[$pluginSlug]);
             $plugin['auto_install_supported'] = $this->canAutoInstall($plugin);
             $plugin['manual_install_only'] = !$plugin['auto_install_supported'];
             $plugin['integrity_hash_present'] = $this->resolveIntegrityHash($plugin) !== '';
@@ -77,20 +120,12 @@ class PluginMarketplaceModule
 
     public function installPlugin(string $slug): array
     {
-        $slug = preg_replace('/[^a-z0-9_-]/', '', strtolower($slug));
+        $slug = $this->normalizePluginSlug($slug);
         if ($slug === '') {
             return ['success' => false, 'error' => 'Ungültiger Plugin-Slug.'];
         }
 
-        // Prüfe ob Plugin im Registry vorhanden
-        $available = $this->loadRegistry();
-        $found = null;
-        foreach ($available as $p) {
-            if (($p['slug'] ?? '') === $slug) {
-                $found = $p;
-                break;
-            }
-        }
+        $found = $this->findCatalogPlugin($slug);
 
         if (!$found) {
             return ['success' => false, 'error' => 'Plugin nicht im Marketplace gefunden.'];
@@ -172,12 +207,18 @@ class PluginMarketplaceModule
 
         $value = trim((string) ($row->option_value ?? ''));
 
-        return $value !== '' ? $value : self::DEFAULT_REGISTRY_URL;
+        $normalizedRegistryUrl = $this->normalizeMarketplaceUrl($value);
+        if ($normalizedRegistryUrl !== '') {
+            return $normalizedRegistryUrl;
+        }
+
+        return $this->normalizeMarketplaceUrl(self::DEFAULT_REGISTRY_URL);
     }
 
     private function loadRemoteRegistry(string $registryUrl): array
     {
-        if (!$this->isAllowedMarketplaceUrl($registryUrl)) {
+        $registryUrl = $this->normalizeMarketplaceUrl($registryUrl);
+        if ($registryUrl === '') {
             return [];
         }
 
@@ -210,53 +251,102 @@ class PluginMarketplaceModule
         if (is_dir($pluginsDir)) {
             foreach (new \DirectoryIterator($pluginsDir) as $item) {
                 if ($item->isDot() || !$item->isDir()) continue;
-                $slugs[] = $item->getFilename();
+
+                $slug = $this->normalizePluginSlug($item->getFilename());
+                if ($slug !== '') {
+                    $slugs[$slug] = true;
+                }
             }
         }
-        return $slugs;
+
+        return array_keys($slugs);
     }
 
     private function sanitizeCatalogEntries(array $entries, string $sourceBase = ''): array
     {
         $sanitized = [];
+        $seenSlugs = [];
+        $normalizedRemoteSourceBase = $this->normalizeMarketplaceUrl($sourceBase);
 
         foreach ($entries as $entry) {
             if (!is_array($entry)) {
                 continue;
             }
 
-            $manifestData = $this->loadManifestData($entry, $sourceBase);
+            $manifestData = $this->sanitizeManifestData(
+                $this->loadManifestData($entry, $normalizedRemoteSourceBase !== '' ? $normalizedRemoteSourceBase : $sourceBase)
+            );
+            $entrySlug = $this->normalizePluginSlug((string) ($entry['slug'] ?? ''));
+            $manifestSlug = $this->normalizePluginSlug((string) ($manifestData['slug'] ?? ''));
+
+            if ($entrySlug !== '' && $manifestSlug !== '' && $entrySlug !== $manifestSlug) {
+                continue;
+            }
+
             $normalized = array_merge($entry, $manifestData);
+            $normalized['slug'] = $entrySlug !== '' ? $entrySlug : $manifestSlug;
 
-            $downloadUrl = $this->resolveCatalogUrl($normalized, ['download_url', 'package_url', 'archive_url'], $sourceBase);
-            $purchaseUrl = $this->resolveCatalogUrl($normalized, ['purchase_url', 'buy_url', 'order_url'], $sourceBase);
-            $updateUrl = $this->resolveCatalogUrl($normalized, ['update_url'], $sourceBase);
+            $resolvedSourceBase = $normalizedRemoteSourceBase !== '' ? $normalizedRemoteSourceBase : $sourceBase;
+            $downloadUrl = $this->resolveCatalogUrl($normalized, ['download_url', 'package_url', 'archive_url'], $resolvedSourceBase);
+            $purchaseUrl = $this->resolveCatalogUrl($normalized, ['purchase_url', 'buy_url', 'order_url'], $resolvedSourceBase);
+            $updateUrl = $this->resolveCatalogUrl($normalized, ['update_url'], $resolvedSourceBase);
 
-            $normalized['slug'] = preg_replace('/[^a-z0-9_-]/', '', strtolower((string)($normalized['slug'] ?? '')));
             if (($normalized['slug'] ?? '') === '') {
                 continue;
             }
 
-            $normalized['name'] = (string)($normalized['name'] ?? $normalized['slug'] ?? '');
-            $normalized['description'] = (string)($normalized['description'] ?? '');
-            $normalized['version'] = (string)($normalized['version'] ?? '');
-            $normalized['author'] = (string)($normalized['author'] ?? '');
-            $normalized['category'] = (string)($normalized['category'] ?? '');
-            $normalized['manifest'] = (string)($normalized['manifest'] ?? '');
+            if (isset($seenSlugs[$normalized['slug']])) {
+                continue;
+            }
+
+            $normalized['name'] = $this->normalizeCatalogString($normalized['name'] ?? $normalized['slug'] ?? '');
+            $normalized['description'] = $this->normalizeCatalogString($normalized['description'] ?? '', 2000);
+            $normalized['version'] = $this->normalizeCatalogString($normalized['version'] ?? '', 80);
+            $normalized['author'] = $this->normalizeCatalogString($normalized['author'] ?? '', 120);
+            $normalized['category'] = $this->normalizeCatalogString($normalized['category'] ?? '', 80);
+            $normalized['manifest'] = $this->normalizeCatalogString($normalized['manifest'] ?? '');
             $normalized['update_url'] = $updateUrl;
             $normalized['download_url'] = $downloadUrl;
             $normalized['purchase_url'] = $purchaseUrl;
             $normalized['is_paid'] = $this->normalizeBooleanValue($normalized['is_paid'] ?? false);
-            $normalized['price_amount'] = (string)($normalized['price_amount'] ?? $normalized['price'] ?? '');
-            $normalized['price_currency'] = strtoupper((string)($normalized['price_currency'] ?? 'EUR'));
-            $normalized['requires_cms'] = (string)($normalized['requires_cms'] ?? $normalized['min_cms_version'] ?? '');
-            $normalized['requires_php'] = (string)($normalized['requires_php'] ?? $normalized['min_php'] ?? '');
+            $normalized['price_amount'] = $this->normalizeCatalogString($normalized['price_amount'] ?? $normalized['price'] ?? '', 40);
+            $normalized['price_currency'] = strtoupper($this->normalizeCatalogString($normalized['price_currency'] ?? 'EUR', 8));
+            $normalized['requires_cms'] = $this->normalizeCatalogString($normalized['requires_cms'] ?? $normalized['min_cms_version'] ?? '', 40);
+            $normalized['requires_php'] = $this->normalizeCatalogString($normalized['requires_php'] ?? $normalized['min_php'] ?? '', 40);
             $normalized['sha256'] = $this->resolveIntegrityHash($normalized);
 
+            $seenSlugs[$normalized['slug']] = true;
             $sanitized[] = $normalized;
         }
 
         return $sanitized;
+    }
+
+    private function sanitizeManifestData(array $manifestData): array
+    {
+        $sanitized = [];
+
+        foreach (self::MANIFEST_ALLOWED_KEYS as $key) {
+            if (!array_key_exists($key, $manifestData)) {
+                continue;
+            }
+
+            $value = $manifestData[$key];
+            if (is_scalar($value) || $value === null) {
+                $sanitized[$key] = is_bool($value)
+                    ? $value
+                    : $this->normalizeCatalogString($value);
+            }
+        }
+
+        return $sanitized;
+    }
+
+    private function normalizeCatalogString(mixed $value, int $length = self::MAX_CATALOG_STRING_LENGTH): string
+    {
+        $string = preg_replace('/[\x00-\x1F\x7F]/u', '', trim((string) $value));
+
+        return mb_substr($string ?? '', 0, $length);
     }
 
     private function loadManifestData(array $entry, string $sourceBase): array
@@ -266,12 +356,18 @@ class PluginMarketplaceModule
             return [];
         }
 
-        if ($this->isAllowedMarketplaceUrl($manifest)) {
-            return $this->fetchRemoteJson($manifest);
+        $manifestUrl = $this->normalizeMarketplaceUrl($manifest);
+        if ($manifestUrl !== '') {
+            return $this->fetchRemoteJson($manifestUrl);
         }
 
-        if ($sourceBase !== '' && $this->isAllowedMarketplaceUrl($sourceBase)) {
-            return $this->fetchRemoteJson(rtrim($sourceBase, '/') . '/' . ltrim($manifest, '/'));
+        if ($sourceBase !== '' && $this->normalizeMarketplaceUrl($sourceBase) !== '') {
+            $remoteManifestUrl = $this->resolveAllowedRelativeMarketplaceUrl($sourceBase, $manifest);
+            if ($remoteManifestUrl !== '') {
+                return $this->fetchRemoteJson($remoteManifestUrl);
+            }
+
+            return [];
         }
 
         $relativeManifestPath = $this->normalizeRelativeCatalogPath($manifest);
@@ -306,7 +402,8 @@ class PluginMarketplaceModule
 
     private function fetchRemoteJson(string $url): array
     {
-        if (!$this->isAllowedMarketplaceUrl($url)) {
+        $url = $this->normalizeMarketplaceUrl($url);
+        if ($url === '') {
             return [];
         }
 
@@ -336,13 +433,14 @@ class PluginMarketplaceModule
                 continue;
             }
 
-            if ($this->isAllowedMarketplaceUrl($value)) {
-                return $value;
+            $normalizedUrl = $this->normalizeMarketplaceUrl($value);
+            if ($normalizedUrl !== '') {
+                return $normalizedUrl;
             }
 
-            if ($sourceBase !== '' && $this->isAllowedMarketplaceUrl($sourceBase)) {
-                $resolved = rtrim($sourceBase, '/') . '/' . ltrim($value, '/');
-                if ($this->isAllowedMarketplaceUrl($resolved)) {
+            if ($sourceBase !== '' && $this->normalizeMarketplaceUrl($sourceBase) !== '') {
+                $resolved = $this->resolveAllowedRelativeMarketplaceUrl($sourceBase, $value);
+                if ($resolved !== '') {
                     return $resolved;
                 }
             }
@@ -353,6 +451,11 @@ class PluginMarketplaceModule
 
     private function resolveBasePath(string $url): string
     {
+        $url = $this->normalizeMarketplaceUrl($url);
+        if ($url === '') {
+            return '';
+        }
+
         $parts = parse_url($url);
         if (!is_array($parts)) {
             return '';
@@ -368,6 +471,22 @@ class PluginMarketplaceModule
         $directory = preg_replace('~/[^/]+$~', '', $path) ?? '';
 
         return $scheme . '://' . $host . $directory;
+    }
+
+    private function normalizePluginSlug(string $slug): string
+    {
+        return (string) preg_replace('/[^a-z0-9_-]/', '', strtolower($slug));
+    }
+
+    private function findCatalogPlugin(string $slug): ?array
+    {
+        foreach ($this->loadRegistry() as $plugin) {
+            if ($this->normalizePluginSlug((string) ($plugin['slug'] ?? '')) === $slug) {
+                return $plugin;
+            }
+        }
+
+        return null;
     }
 
     private function normalizeBooleanValue(mixed $value): bool
@@ -388,6 +507,7 @@ class PluginMarketplaceModule
 
         return $downloadUrl !== ''
             && $integrityHash !== ''
+            && $this->meetsEnvironmentRequirements($plugin)
             && $this->isAllowedMarketplaceUrl($downloadUrl);
     }
 
@@ -405,6 +525,11 @@ class PluginMarketplaceModule
 
     private function getManualInstallReason(array $plugin): string
     {
+        $compatibilityReason = $this->getCompatibilityFailureReason($plugin);
+        if ($compatibilityReason !== '') {
+            return $compatibilityReason;
+        }
+
         $purchaseUrl = trim((string)($plugin['purchase_url'] ?? ''));
         if ($this->normalizeBooleanValue($plugin['is_paid'] ?? false) && $purchaseUrl !== '') {
             return 'Kostenpflichtiges Plugin – bitte zuerst über den Marketplace erwerben oder anfragen.';
@@ -424,17 +549,58 @@ class PluginMarketplaceModule
 
     private function isAllowedMarketplaceUrl(string $url): bool
     {
-        if (!filter_var($url, FILTER_VALIDATE_URL)) {
-            return false;
+        return $this->normalizeMarketplaceUrl($url) !== '';
+    }
+
+    private function normalizeMarketplaceUrl(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL)) {
+            return '';
         }
 
-        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
-        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return '';
+        }
+
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        $port = isset($parts['port']) ? (int) $parts['port'] : null;
+        $path = (string) ($parts['path'] ?? '/');
+        $query = (string) ($parts['query'] ?? '');
 
         if ($scheme !== 'https' || $host === '') {
-            return false;
+            return '';
         }
 
+        if (isset($parts['user']) || isset($parts['pass'])) {
+            return '';
+        }
+
+        if ($port !== null && $port !== 443) {
+            return '';
+        }
+
+        if (!$this->isAllowedMarketplaceHost($host)) {
+            return '';
+        }
+
+        $path = $path === '' ? '/' : $path;
+        if (preg_match('/[\x00-\x1F\x7F]/', $path) === 1 || preg_match('/[\x00-\x1F\x7F]/', $query) === 1) {
+            return '';
+        }
+
+        $normalizedUrl = $scheme . '://' . $host . $path;
+        if ($query !== '') {
+            $normalizedUrl .= '?' . $query;
+        }
+
+        return $normalizedUrl;
+    }
+
+    private function isAllowedMarketplaceHost(string $host): bool
+    {
         if (in_array($host, self::ALLOWED_MARKETPLACE_HOSTS, true)) {
             return true;
         }
@@ -463,6 +629,43 @@ class PluginMarketplaceModule
         }
 
         return implode('/', $segments);
+    }
+
+    private function resolveAllowedRelativeMarketplaceUrl(string $sourceBase, string $path): string
+    {
+        $relativePath = $this->normalizeRelativeCatalogPath($path);
+        $normalizedSourceBase = $this->normalizeMarketplaceUrl($sourceBase);
+        if ($relativePath === '' || $normalizedSourceBase === '') {
+            return '';
+        }
+
+        $resolved = rtrim($normalizedSourceBase, '/') . '/' . $relativePath;
+
+        return $this->normalizeMarketplaceUrl($resolved);
+    }
+
+    private function meetsEnvironmentRequirements(array $plugin): bool
+    {
+        return $this->getCompatibilityFailureReason($plugin) === '';
+    }
+
+    private function getCompatibilityFailureReason(array $plugin): string
+    {
+        $requiresCms = trim((string) ($plugin['requires_cms'] ?? ''));
+        $requiresPhp = trim((string) ($plugin['requires_php'] ?? ''));
+        $currentCms = defined('CMS_VERSION')
+            ? (string) CMS_VERSION
+            : (class_exists('\CMS\\Version') ? (string) \CMS\Version::CURRENT : '0.0.0');
+
+        if ($requiresCms !== '' && version_compare($currentCms, $requiresCms, '<')) {
+            return 'Plugin erfordert mindestens 365CMS ' . $requiresCms . '.';
+        }
+
+        if ($requiresPhp !== '' && version_compare(PHP_VERSION, $requiresPhp, '<')) {
+            return 'Plugin erfordert mindestens PHP ' . $requiresPhp . '.';
+        }
+
+        return '';
     }
 
     private function resolvePluginsDir(): string

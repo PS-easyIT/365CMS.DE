@@ -118,15 +118,15 @@ require __DIR__ . '/../partials/flash-alert.php';
                                 <input type="hidden" name="action" value="<?php echo $p['active'] ? 'deactivate' : 'activate'; ?>">
                                 <input type="hidden" name="slug" value="<?php echo htmlspecialchars($p['slug']); ?>">
                                 <label class="form-check form-switch m-0" title="<?php echo $p['active'] ? 'Plugin deaktivieren' : 'Plugin aktivieren'; ?>">
-                                    <input class="form-check-input" type="checkbox" <?php echo $p['active'] ? 'checked' : ''; ?> onchange="this.form.submit()">
+                                    <input class="form-check-input js-plugin-toggle-submit" type="checkbox" <?php echo $p['active'] ? 'checked' : ''; ?>>
                                 </label>
                             </form>
                             <?php if (!$p['active'] && empty($p['protected'])): ?>
-                                <form method="post" class="m-0">
+                                <form method="post" class="m-0" data-confirm-message="Plugin endgültig löschen?" data-confirm-title="Plugin löschen" data-confirm-text="Löschen" data-confirm-class="btn-danger" data-confirm-status-class="bg-danger">
                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="slug" value="<?php echo htmlspecialchars($p['slug']); ?>">
-                                    <button class="btn btn-ghost-danger btn-sm" onclick="return confirm('Plugin endgültig löschen?')">Löschen</button>
+                                    <button class="btn btn-ghost-danger btn-sm">Löschen</button>
                                 </form>
                             <?php elseif (!empty($p['protected'])): ?>
                                 <span class="text-muted small">Systembestandteil</span>

@@ -38,25 +38,24 @@ function cms_admin_groups_normalize_id(array $post): int
 }
 
 /**
- * @return array<string, callable(array): array>
+ * @return array{action:string,id:int,post:array<string,mixed>}
  */
-function cms_admin_groups_action_handlers(GroupsModule $module): array
+function cms_admin_groups_normalize_payload(array $post): array
 {
     return [
-        'save' => static fn (array $post): array => $module->save($post),
-        'delete' => static fn (array $post): array => $module->delete(cms_admin_groups_normalize_id($post)),
+        'action' => cms_admin_groups_normalize_action($post['action'] ?? null) ?? '',
+        'id' => cms_admin_groups_normalize_id($post),
+        'post' => $post,
     ];
 }
 
-function cms_admin_groups_handle_action(GroupsModule $module, string $action, array $post): array
+function cms_admin_groups_handle_action(GroupsModule $module, array $payload): array
 {
-    $handlers = cms_admin_groups_action_handlers($module);
-
-    if (!isset($handlers[$action])) {
-        return ['success' => false, 'error' => 'Unbekannte Aktion.'];
-    }
-
-    return $handlers[$action]($post);
+    return match ($payload['action']) {
+        'save' => $module->save($payload['post']),
+        'delete' => $module->delete($payload['id']),
+        default => ['success' => false, 'error' => 'Unbekannte Aktion.'],
+    };
 }
 
 $sectionPageConfig = [
@@ -64,6 +63,11 @@ $sectionPageConfig = [
     'view_file' => __DIR__ . '/views/users/groups.php',
     'page_title' => 'Gruppen',
     'active_page' => 'groups',
+    'page_assets' => [
+        'js' => [
+            cms_asset_url('js/admin-user-groups.js'),
+        ],
+    ],
     'csrf_action' => 'admin_groups',
     'module_file' => __DIR__ . '/modules/users/GroupsModule.php',
     'module_factory' => static fn (): GroupsModule => new GroupsModule(),
@@ -72,17 +76,17 @@ $sectionPageConfig = [
     'access_denied_route' => '/',
     'unknown_action_message' => 'Unbekannte Aktion.',
     'post_handler' => static function (GroupsModule $module, string $section, array $post): array {
-        $action = cms_admin_groups_normalize_action($post['action'] ?? null);
+        $payload = cms_admin_groups_normalize_payload($post);
 
-        if ($action === null) {
+        if ($payload['action'] === '') {
             return ['success' => false, 'error' => 'Unbekannte Aktion.'];
         }
 
-        if ($action === 'delete' && cms_admin_groups_normalize_id($post) <= 0) {
+        if ($payload['action'] === 'delete' && $payload['id'] <= 0) {
             return ['success' => false, 'error' => 'Ungültige Gruppen-ID.'];
         }
 
-        return cms_admin_groups_handle_action($module, $action, $post);
+        return cms_admin_groups_handle_action($module, $payload);
     },
 ];
 

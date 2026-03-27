@@ -102,9 +102,45 @@ function cms_admin_site_tables_edit_redirect_path(int $id): string
         : '/admin/site-tables';
 }
 
+/**
+ * @return array{action:string,id:int,post:array<string,mixed>}
+ */
+function cms_admin_site_tables_normalize_payload(array $post): array
+{
+    return [
+        'action' => cms_admin_site_tables_normalize_action($post['action'] ?? ''),
+        'id' => cms_admin_site_tables_normalize_positive_id($post['id'] ?? 0),
+        'post' => $post,
+    ];
+}
+
+function cms_admin_site_tables_handle_action(TablesModule $module, array $payload): array
+{
+    return match ($payload['action']) {
+        'save_settings' => $module->saveDisplaySettings($payload['post']),
+        'save' => $module->save($payload['post']),
+        'delete' => $module->delete($payload['id']),
+        'duplicate' => $module->duplicate($payload['id']),
+        default => ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'],
+    };
+}
+
+function cms_admin_site_tables_page_assets(string $viewAction): array
+{
+    if (!in_array($viewAction, ['list', 'edit'], true)) {
+        return [];
+    }
+
+    return [
+        'js' => [
+            cms_asset_url('js/admin-site-tables.js'),
+        ],
+    ];
+}
+
 // ─── POST-Handling ───────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action    = cms_admin_site_tables_normalize_action($_POST['action'] ?? '');
+    $payload   = cms_admin_site_tables_normalize_payload($_POST);
     $postToken = (string) ($_POST['csrf_token'] ?? '');
 
     if (!Security::instance()->verifyToken($postToken, 'admin_tables')) {
@@ -112,39 +148,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         cms_admin_site_tables_redirect();
     }
 
-    if ($action === '') {
+    if ($payload['action'] === '') {
         cms_admin_site_tables_flash(['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.']);
         cms_admin_site_tables_redirect();
     }
 
-    switch ($action) {
-        case 'save_settings':
-            $result = $module->saveDisplaySettings($_POST);
-            cms_admin_site_tables_flash($result);
-            cms_admin_site_tables_redirect('/admin/site-tables?action=settings');
-
-        case 'save':
-            $result = $module->save($_POST);
-            cms_admin_site_tables_flash($result);
-            if ($result['success']) {
-                $resultId = cms_admin_site_tables_normalize_positive_id($result['id'] ?? 0);
-                cms_admin_site_tables_redirect(cms_admin_site_tables_edit_redirect_path($resultId));
-            } else {
-                cms_admin_site_tables_redirect();
-            }
-
-        case 'delete':
-            $id     = cms_admin_site_tables_normalize_positive_id($_POST['id'] ?? 0);
-            $result = $module->delete($id);
-            cms_admin_site_tables_flash($result);
-            cms_admin_site_tables_redirect();
-
-        case 'duplicate':
-            $id     = cms_admin_site_tables_normalize_positive_id($_POST['id'] ?? 0);
-            $result = $module->duplicate($id);
-            cms_admin_site_tables_flash($result);
-            cms_admin_site_tables_redirect();
+    if (in_array($payload['action'], ['delete', 'duplicate'], true) && $payload['id'] <= 0) {
+        cms_admin_site_tables_flash(['success' => false, 'error' => 'Ungültige Tabellen-ID.']);
+        cms_admin_site_tables_redirect();
     }
+
+    $result = cms_admin_site_tables_handle_action($module, $payload);
+    cms_admin_site_tables_flash($result);
+
+    if ($payload['action'] === 'save_settings') {
+        cms_admin_site_tables_redirect('/admin/site-tables?action=settings');
+    }
+
+    if ($payload['action'] === 'save') {
+        if (!empty($result['success'])) {
+            $resultId = cms_admin_site_tables_normalize_positive_id($result['id'] ?? 0);
+            cms_admin_site_tables_redirect(cms_admin_site_tables_edit_redirect_path($resultId));
+        }
+
+        cms_admin_site_tables_redirect();
+    }
+
+    cms_admin_site_tables_redirect();
 }
 
 // ─── Session-Alert abholen ───────────────────────────────
@@ -162,6 +192,7 @@ if ($viewAction === 'settings') {
     $data       = $module->getSettingsData();
     $pageTitle  = 'Tabellen-Einstellungen';
     $activePage = 'site-tables';
+    $pageAssets = cms_admin_site_tables_page_assets($viewAction);
 
     require __DIR__ . '/partials/header.php';
     require __DIR__ . '/partials/sidebar.php';
@@ -173,6 +204,7 @@ if ($viewAction === 'settings') {
     $data      = $module->getEditData($id);
     $pageTitle = $data['isNew'] ? 'Neue Tabelle' : 'Tabelle bearbeiten';
     $activePage = 'site-tables';
+    $pageAssets = cms_admin_site_tables_page_assets($viewAction);
 
     require __DIR__ . '/partials/header.php';
     require __DIR__ . '/partials/sidebar.php';
@@ -182,6 +214,7 @@ if ($viewAction === 'settings') {
     $data       = $module->getListData();
     $pageTitle  = 'Tabellen';
     $activePage = 'site-tables';
+    $pageAssets = cms_admin_site_tables_page_assets($viewAction);
 
     require __DIR__ . '/partials/header.php';
     require __DIR__ . '/partials/sidebar.php';

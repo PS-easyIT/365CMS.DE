@@ -21,6 +21,37 @@ use CMS\WP_Error;
 
 class MediaModule
 {
+    private const SETTINGS_DEFAULTS = [
+        'max_upload_size' => '64M',
+        'allowed_types' => ['image', 'document', 'archive', 'video', 'audio'],
+        'organize_month_year' => true,
+        'sanitize_filenames' => true,
+        'unique_filenames' => true,
+        'lowercase_filenames' => false,
+        'auto_webp' => true,
+        'strip_exif' => true,
+        'jpeg_quality' => 85,
+        'max_width' => 2560,
+        'max_height' => 2560,
+        'generate_thumbnails' => false,
+        'thumb_small_w' => 150,
+        'thumb_small_h' => 150,
+        'thumb_medium_w' => 300,
+        'thumb_medium_h' => 300,
+        'thumb_large_w' => 1024,
+        'thumb_large_h' => 1024,
+        'thumb_banner_w' => 1200,
+        'thumb_banner_h' => 400,
+        'block_dangerous_types' => true,
+        'validate_image_content' => true,
+        'require_login_for_upload' => true,
+        'protect_uploads_dir' => true,
+        'member_uploads_enabled' => false,
+        'member_max_upload_size' => '5M',
+        'member_allowed_types' => ['image', 'document'],
+        'member_delete_own' => false,
+    ];
+
     private MediaService $service;
     /**
      * @var array<int, array<string, mixed>>|null
@@ -63,15 +94,52 @@ class MediaModule
         return array_keys($extensions);
     }
 
+    private function convertSizeSettingToMegabytes(mixed $value, int $defaultMegabytes): int
+    {
+        $normalizedValue = trim((string) $value);
+        if ($normalizedValue === '') {
+            return $defaultMegabytes;
+        }
+
+        if (preg_match('/^(\d+)(?:\.\d+)?\s*M$/i', $normalizedValue, $matches) === 1) {
+            return max(1, (int) $matches[1]);
+        }
+
+        if (preg_match('/^\d+$/', $normalizedValue) === 1) {
+            return max(1, (int) $normalizedValue);
+        }
+
+        return $defaultMegabytes;
+    }
+
+    /** @return array<string, mixed> */
+    private function buildSettingsOptions(): array
+    {
+        return [
+            'allowed_types' => $this->expandTypeGroups(['image', 'document', 'archive', 'video', 'audio']),
+            'member_allowed_types' => $this->expandTypeGroups(['image', 'document']),
+            'thumbnail_sizes' => [
+                ['label' => 'Small', 'width_field' => 'thumbnail_small_w', 'height_field' => 'thumbnail_small_h'],
+                ['label' => 'Medium', 'width_field' => 'thumbnail_medium_w', 'height_field' => 'thumbnail_medium_h'],
+                ['label' => 'Large', 'width_field' => 'thumbnail_large_w', 'height_field' => 'thumbnail_large_h'],
+                ['label' => 'Banner', 'width_field' => 'thumbnail_banner_w', 'height_field' => 'thumbnail_banner_h'],
+            ],
+        ];
+    }
+
     /**
      * @param array<string, mixed> $settings
      * @return array<string, mixed>
      */
     private function buildSettingsViewModel(array $settings): array
     {
+        $settings = array_merge(self::SETTINGS_DEFAULTS, $settings);
+
         return array_merge($settings, [
             'allowed_types' => $this->expandTypeGroups(array_map('strval', (array) ($settings['allowed_types'] ?? []))),
             'member_allowed_types' => $this->expandTypeGroups(array_map('strval', (array) ($settings['member_allowed_types'] ?? []))),
+            'max_upload_size' => $this->convertSizeSettingToMegabytes($settings['max_upload_size'] ?? null, 64),
+            'member_max_upload_size' => $this->convertSizeSettingToMegabytes($settings['member_max_upload_size'] ?? null, 5),
             'sanitize_filename' => (bool) ($settings['sanitize_filenames'] ?? false),
             'unique_filename' => (bool) ($settings['unique_filenames'] ?? false),
             'lowercase_filename' => (bool) ($settings['lowercase_filenames'] ?? false),
@@ -366,6 +434,7 @@ class MediaModule
         return [
             'settings'  => $this->buildSettingsViewModel($settings),
             'diskUsage' => $this->service->getDiskUsage(),
+            'options' => $this->buildSettingsOptions(),
         ];
     }
 
@@ -461,6 +530,22 @@ class MediaModule
     public function normalizePath(string $path): string
     {
         return $this->normalizeRelativePath($path);
+    }
+
+    public function resolveParentPathFromActionPath(string $path): string
+    {
+        $normalizedPath = $this->normalizeRelativePath($path);
+        if ($normalizedPath === '') {
+            return '';
+        }
+
+        $parentPath = dirname($normalizedPath);
+
+        if ($parentPath === '.' || $parentPath === '/' || $parentPath === '\\') {
+            return '';
+        }
+
+        return $this->normalizeRelativePath($parentPath);
     }
 
     public function normalizeView(string $view): string

@@ -26,6 +26,14 @@ $fontCatalog  = $data['fontCatalog'] ?? [];
 $activeThemeSlug = $data['activeThemeSlug'] ?? '';
 $detectedFonts = (array)($scanResults['detectedFonts'] ?? []);
 $detectedInstallableFonts = array_values(array_filter($detectedFonts, static fn(array $font): bool => empty($font['installed'])));
+$fontManagerConfig = [
+    'fontStacks' => is_array($fontStacks) ? $fontStacks : [],
+    'deleteModal' => [
+        'title' => 'Schriftart löschen',
+        'confirmText' => 'Löschen',
+        'confirmClass' => 'btn-danger',
+    ],
+];
 ?>
 
 <div class="page-header d-print-none">
@@ -71,20 +79,30 @@ $detectedInstallableFonts = array_values(array_filter($detectedFonts, static fn(
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="alert <?php echo $useLocalFonts ? 'alert-success' : 'alert-warning'; ?> mb-3">
-                        <?php if ($useLocalFonts): ?>
-                            Lokale Fonts sind für das Frontend aktiv. Externe Google-Font-Requests sollten damit unterdrückt werden.
-                        <?php else: ?>
-                            Lokale Fonts sind derzeit <strong>nicht</strong> fürs Frontend aktiviert. Solange der Schalter unten nicht gesetzt ist, bleibt der Google-Fonts-Fallback aktiv.
-                        <?php endif; ?>
-                    </div>
+                    <?php
+                    $alertData = [
+                        'type' => $useLocalFonts ? 'success' : 'warning',
+                        'message' => $useLocalFonts
+                            ? 'Lokale Fonts sind für das Frontend aktiv. Externe Google-Font-Requests sollten damit unterdrückt werden.'
+                            : 'Lokale Fonts sind derzeit nicht fürs Frontend aktiviert. Solange der Schalter unten nicht gesetzt ist, bleibt der Google-Fonts-Fallback aktiv.',
+                    ];
+                    $alertDismissible = false;
+                    $alertMarginClass = 'mb-3';
+                    require __DIR__ . '/../partials/flash-alert.php';
+                    ?>
 
                     <p class="text-muted">Der Scan durchsucht das aktive Theme nach Google-Font-Imports und bekannten Schriftfamilien, damit du genutzte Fonts lokal self-hosten kannst.</p>
                     <div class="small text-muted mb-3"><?php echo (int)($scanResults['scannedFiles'] ?? 0); ?> Dateien geprüft</div>
                     <?php if ($detectedInstallableFonts !== []): ?>
-                        <div class="alert alert-info">
-                            <?php echo count($detectedInstallableFonts); ?> erkannte Schrift<?php echo count($detectedInstallableFonts) === 1 ? '' : 'en'; ?> sind noch extern eingebunden und können gesammelt lokal gespeichert werden.
-                        </div>
+                        <?php
+                        $alertData = [
+                            'type' => 'info',
+                            'message' => count($detectedInstallableFonts) . ' erkannte Schrift' . (count($detectedInstallableFonts) === 1 ? '' : 'en') . ' sind noch extern eingebunden und können gesammelt lokal gespeichert werden.',
+                        ];
+                        $alertDismissible = false;
+                        $alertMarginClass = 'mb-3';
+                        require __DIR__ . '/../partials/flash-alert.php';
+                        ?>
                     <?php endif; ?>
 
                     <?php if ($detectedFonts !== []): ?>
@@ -139,7 +157,15 @@ $detectedInstallableFonts = array_values(array_filter($detectedFonts, static fn(
                             </table>
                         </div>
                     <?php else: ?>
-                        <div class="alert alert-secondary mb-0">Noch keine bekannten externen Theme-Schriften erkannt. Starte den Scan erneut, falls du gerade Fonts im Theme geändert hast.</div>
+                        <?php
+                        $alertData = [
+                            'type' => 'secondary',
+                            'message' => 'Noch keine bekannten externen Theme-Schriften erkannt. Starte den Scan erneut, falls du gerade Fonts im Theme geändert hast.',
+                        ];
+                        $alertDismissible = false;
+                        $alertMarginClass = 'mb-0';
+                        require __DIR__ . '/../partials/flash-alert.php';
+                        ?>
                     <?php endif; ?>
                 </div>
             </div>
@@ -149,17 +175,15 @@ $detectedInstallableFonts = array_values(array_filter($detectedFonts, static fn(
                     <h3 class="card-title">Schritt 2 · Empfohlene Schriftbibliothek</h3>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-success mb-3">
-                        <div class="d-flex">
-                            <div>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-shield-check alert-icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M11.46 20.846a12 12 0 0 1 -7.96 -14.846a12 12 0 0 0 8.5 -3a12 12 0 0 0 8.5 3a12 12 0 0 1 -.09 7.06"/><path d="M15 19l2 2l4 -4"/></svg>
-                            </div>
-                            <div>
-                                <h4 class="alert-title">Self-Hosting statt CDN</h4>
-                                <div class="text-secondary">Alle Downloads werden lokal in <code>/uploads/fonts</code> abgelegt, damit Themes keine externen Font-CDNs mehr brauchen.</div>
-                            </div>
-                        </div>
-                    </div>
+                    <?php
+                    $alertData = [
+                        'type' => 'success',
+                        'message' => 'Self-Hosting statt CDN: Alle Downloads werden lokal in /uploads/fonts abgelegt, damit Themes keine externen Font-CDNs mehr brauchen.',
+                    ];
+                    $alertDismissible = false;
+                    $alertMarginClass = 'mb-3';
+                    require __DIR__ . '/../partials/flash-alert.php';
+                    ?>
 
                     <?php foreach ($fontCatalog as $category => $fonts): ?>
                         <div class="mb-4">
@@ -232,7 +256,7 @@ $detectedInstallableFonts = array_values(array_filter($detectedFonts, static fn(
                                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                                 <input type="hidden" name="action" value="delete_font">
                                                 <input type="hidden" name="font_id" value="<?php echo (int)($font->id ?? 0); ?>">
-                                                <button type="button" class="btn btn-outline-danger btn-sm btn-delete-font" data-name="<?php echo htmlspecialchars($font->name ?? ''); ?>">Löschen</button>
+                                                <button type="button" class="btn btn-outline-danger btn-sm js-font-delete" data-font-name="<?php echo htmlspecialchars($font->name ?? '', ENT_QUOTES); ?>">Löschen</button>
                                             </form>
                                         </td>
                                     </tr>
@@ -323,10 +347,10 @@ $detectedInstallableFonts = array_values(array_filter($detectedFonts, static fn(
                     <h3 class="card-title">Vorschau</h3>
                 </div>
                 <div class="card-body" id="fontPreview">
-                    <h2 class="mb-2" id="previewHeading" style="font-family: var(--font-heading);">Überschrift Beispiel</h2>
-                    <h4 class="mb-3" id="previewSubheading" style="font-family: var(--font-heading);">Unterüberschrift</h4>
-                    <p id="previewBody" style="font-family: var(--font-body);">Dies ist ein Beispieltext, um die ausgewählte Schriftart zu zeigen. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-                    <p id="previewSmall" class="text-muted small" style="font-family: var(--font-body);">Kleinerer Text für Beschreibungen und Meta-Informationen.</p>
+                    <h2 class="mb-2" id="previewHeading">Überschrift Beispiel</h2>
+                    <h4 class="mb-3" id="previewSubheading">Unterüberschrift</h4>
+                    <p id="previewBody">Dies ist ein Beispieltext, um die ausgewählte Schriftart zu zeigen. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+                    <p id="previewSmall" class="text-muted small">Kleinerer Text für Beschreibungen und Meta-Informationen.</p>
                 </div>
             </div>
         </div>
@@ -334,42 +358,6 @@ $detectedInstallableFonts = array_values(array_filter($detectedFonts, static fn(
 </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    var fontStacks = <?php echo json_encode($fontStacks); ?>;
-
-    var headingSelect = document.getElementById('headingFontSelect');
-    var bodySelect    = document.getElementById('bodyFontSelect');
-    var previewH      = document.getElementById('previewHeading');
-    var previewSH     = document.getElementById('previewSubheading');
-    var previewB      = document.getElementById('previewBody');
-    var previewS      = document.getElementById('previewSmall');
-
-    function updatePreview() {
-        var hStack = fontStacks[headingSelect.value] || 'sans-serif';
-        var bStack = fontStacks[bodySelect.value] || 'sans-serif';
-        if (previewH) previewH.style.fontFamily = hStack;
-        if (previewSH) previewSH.style.fontFamily = hStack;
-        if (previewB) previewB.style.fontFamily = bStack;
-        if (previewS) previewS.style.fontFamily = bStack;
-    }
-
-    if (headingSelect) headingSelect.addEventListener('change', updatePreview);
-    if (bodySelect) bodySelect.addEventListener('change', updatePreview);
-    updatePreview();
-
-    document.querySelectorAll('.btn-delete-font').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            var name = this.dataset.name;
-            var form = this.closest('form');
-            cmsConfirm({
-                title: 'Schriftart löschen',
-                message: 'Soll "' + name + '" wirklich gelöscht werden?',
-                confirmText: 'Löschen',
-                confirmClass: 'btn-danger',
-                onConfirm: function() { form.submit(); }
-            });
-        });
-    });
-});
+<script type="application/json" id="font-manager-config">
+<?php echo json_encode($fontManagerConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>
 </script>

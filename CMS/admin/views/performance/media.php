@@ -18,7 +18,7 @@ $formatBytes = static function (int $bytes): string {
 ?>
 <div class="page-header d-print-none"><div class="container-xl"><div class="row g-2 align-items-center"><div class="col"><div class="page-pretitle">Performance</div><h2 class="page-title">Medien-Optimierung</h2><div class="text-secondary mt-1">Bildbibliothek, Alt-Texte, Dateigrößen und WebP-/EXIF-Strategie im Blick.</div></div></div></div></div>
 <div class="page-body"><div class="container-xl">
-    <?php if (!empty($alert)): ?><div class="alert alert-<?php echo htmlspecialchars($alert['type'] ?? 'info'); ?> mb-4"><?php echo htmlspecialchars($alert['message'] ?? ''); ?></div><?php endif; ?>
+    <?php $alertData = $alert; $alertMarginClass = 'mb-4'; require __DIR__ . '/../partials/flash-alert.php'; ?>
     <?php require __DIR__ . '/subnav.php'; ?>
 
     <div class="row row-deck row-cards mb-4">

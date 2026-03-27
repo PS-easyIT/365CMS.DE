@@ -11,50 +11,20 @@ if (!defined('ABSPATH')) {
  */
 
 use CMS\Auth;
-use CMS\Security;
 
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
+const CMS_ADMIN_THEME_MARKETPLACE_READ_CAPABILITY = 'manage_settings';
+const CMS_ADMIN_THEME_MARKETPLACE_WRITE_CAPABILITY = 'manage_settings';
+
+function cms_admin_theme_marketplace_can_access(): bool
+{
+    return Auth::instance()->isAdmin()
+        && Auth::instance()->hasCapability(CMS_ADMIN_THEME_MARKETPLACE_READ_CAPABILITY);
 }
 
-require_once __DIR__ . '/modules/themes/ThemeMarketplaceModule.php';
-$module = new ThemeMarketplaceModule();
-$alert = null;
-
-function cms_admin_theme_marketplace_target_url(): string
+function cms_admin_theme_marketplace_can_install(): bool
 {
-    return SITE_URL . '/admin/theme-marketplace';
-}
-
-function cms_admin_theme_marketplace_redirect(): never
-{
-    header('Location: ' . cms_admin_theme_marketplace_target_url());
-    exit;
-}
-
-function cms_admin_theme_marketplace_flash(array $payload): void
-{
-    $_SESSION['admin_alert'] = [
-        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
-        'message' => trim((string) ($payload['message'] ?? '')),
-    ];
-}
-
-function cms_admin_theme_marketplace_flash_result(array $result): void
-{
-    cms_admin_theme_marketplace_flash([
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => (string) ($result['message'] ?? $result['error'] ?? 'Unbekannte Antwort.'),
-    ]);
-}
-
-function cms_admin_theme_marketplace_pull_alert(): ?array
-{
-    $alert = $_SESSION['admin_alert'] ?? null;
-    unset($_SESSION['admin_alert']);
-
-    return is_array($alert) ? $alert : null;
+    return cms_admin_theme_marketplace_can_access()
+        && Auth::instance()->hasCapability(CMS_ADMIN_THEME_MARKETPLACE_WRITE_CAPABILITY);
 }
 
 /** @return array<string, true> */
@@ -70,6 +40,13 @@ function cms_admin_theme_marketplace_normalize_slug(array $post): string
     return preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($post['theme'] ?? '')) ?? '';
 }
 
+function cms_admin_theme_marketplace_normalize_action(mixed $action): string
+{
+    $action = strtolower(trim((string) $action));
+
+    return isset(cms_admin_theme_marketplace_allowed_actions()[$action]) ? $action : '';
+}
+
 function cms_admin_theme_marketplace_handle_action(ThemeMarketplaceModule $module, string $action, array $post): array
 {
     return match ($action) {
@@ -78,31 +55,33 @@ function cms_admin_theme_marketplace_handle_action(ThemeMarketplaceModule $modul
     };
 }
 
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-    $action = (string)($_POST['action'] ?? '');
-    $allowedActions = cms_admin_theme_marketplace_allowed_actions();
+$sectionPageConfig = [
+    'route_path' => '/admin/theme-marketplace',
+    'view_file' => __DIR__ . '/views/themes/marketplace.php',
+    'page_title' => 'Theme Marketplace',
+    'active_page' => 'theme-marketplace',
+    'csrf_action' => 'admin_theme_marketplace',
+    'module_file' => __DIR__ . '/modules/themes/ThemeMarketplaceModule.php',
+    'module_factory' => static fn (): ThemeMarketplaceModule => new ThemeMarketplaceModule(),
+    'access_checker' => static fn (): bool => cms_admin_theme_marketplace_can_access(),
+    'access_denied_route' => '/',
+    'unknown_action_message' => 'Unbekannte oder nicht erlaubte Aktion.',
+    'post_handler' => static function (ThemeMarketplaceModule $module, string $section, array $post): array {
+        if (!cms_admin_theme_marketplace_can_install()) {
+            return ['success' => false, 'error' => 'Keine Berechtigung für Marketplace-Installationen.'];
+        }
 
-    if (!Security::instance()->verifyToken((string) ($_POST['csrf_token'] ?? ''), 'admin_theme_marketplace')) {
-        cms_admin_theme_marketplace_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
-    } elseif (!isset($allowedActions[$action])) {
-        cms_admin_theme_marketplace_flash(['type' => 'danger', 'message' => 'Unbekannte oder nicht erlaubte Aktion.']);
-    } else {
-        $result = cms_admin_theme_marketplace_handle_action($module, $action, $_POST);
-        cms_admin_theme_marketplace_flash_result($result);
-    }
+        $action = cms_admin_theme_marketplace_normalize_action($post['action'] ?? null);
+        if ($action === '') {
+            return ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'];
+        }
 
-    cms_admin_theme_marketplace_redirect();
-}
+        if ($action === 'install' && cms_admin_theme_marketplace_normalize_slug($post) === '') {
+            return ['success' => false, 'error' => 'Ungültiger Theme-Slug.'];
+        }
 
-$alert = cms_admin_theme_marketplace_pull_alert();
+        return cms_admin_theme_marketplace_handle_action($module, $action, $post);
+    },
+];
 
-$csrfToken  = Security::instance()->generateToken('admin_theme_marketplace');
-$data       = $module->getData();
-$pageTitle  = 'Theme Marketplace';
-$activePage = 'theme-marketplace';
-$pageAssets = [];
-
-require __DIR__ . '/partials/header.php';
-require __DIR__ . '/partials/sidebar.php';
-require __DIR__ . '/views/themes/marketplace.php';
-require __DIR__ . '/partials/footer.php';
+require __DIR__ . '/partials/section-page-shell.php';

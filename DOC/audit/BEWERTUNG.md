@@ -5,13 +5,367 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 310
+### Gesamtstand nach Batch 369
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 445 | 89,51 | 87,52 | 90,67 | 90,36 |
+| 445 | 90,90 | 88,71 | 92,51 | 92,15 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **310 umgesetzte Audit-Batches**. Das sind aktuell **310 von 444 Prüfplan-Punkten**. Zuletzt wurde zusätzlich der gemeinsame SEO-/Analytics-Wrapper auf die gemeinsame Section-Shell gezogen; Section-, Capability-, Redirect- und POST-Dispatch laufen damit über denselben Shared-Vertrag, ohne dass `seo-page.php` seinen eigenen Redirect-/Flash-/Renderpfad separat pflegen muss.
+Der aktuelle Nachpflege-Stand umfasst damit **369 umgesetzte Audit-Batches**. Das sind aktuell **369 von 444 Prüfplan-Punkten**. Zuletzt wurden Error-Report- und Plugin-Marketplace-Pfade weiter gehärtet: Der Fehlerreport hängt jetzt enger an einem normalisierten Request-/Service-Vertrag, während der Marketplace kollidierende Manifest-Slugs und doppelte Katalogeinträge sichtbarer aus seinem Remote-Pfad fernhält.
+
+### Delta Batch 369
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/plugins/PluginMarketplaceModule.php` | umgesetzt | Den Plugin-Marketplace-Katalog weiter gehärtet, indem installierte Slugs eindeutig normalisiert, kollidierende Manifest-Slugs verworfen und doppelte Katalogeinträge vor der URL-/Installationsauflösung dedupliziert werden. | Der Marketplace reduziert weitere Remote-Katalog-Sonderpfade, hält Auto-Installationsentscheidungen klarer an einem konsistenten Slug-/Manifest-Vertrag und vermeidet unnötige Mehrfach-Lookups gegen lokal installierte Plugins. |
+
+### Delta Batch 368
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/error-report.php`, `CMS/core/Services/ErrorReportService.php` | umgesetzt | Den Error-Report-Trust-Boundary weiter verdichtet, indem der Admin-Entry nur noch normalisierte Report-Payloads übergibt und der Service Titel-, Message-, Status-, Source- sowie verschachtelte Kontext-/Fehlerdaten zusätzlich selbst sanitisiert. | Der Fehlerreport reduziert weiteren Request-Sonderpfad, hält Wrapper und Service näher an einem gemeinsamen Payload-Vertrag und bleibt robuster gegen übergroße, inkonsistente oder roh verschachtelte Report-Daten. |
+
+### Delta Batch 367
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/users/roles.php`, `CMS/assets/js/admin-users.js` | umgesetzt | Die Rollen-Ansicht weiter harmonisiert, indem Gruppen-Toggles sowie Role-/Capability-Modalpfade aus lokalem Inline-Script in Datenattribute plus gemeinsames Users-Admin-Asset überführt wurden. | Die Rollenverwaltung reduziert weiteren Inline-JavaScript-Boilerplate, hängt sichtbarer am Admin-Asset-Vertrag und hält Markup, Modalzustand sowie Rechte-Interaktionen klarer getrennt vom PHP-Template. |
+
+### Delta Batch 366
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/roles.php` | umgesetzt | Den Roles-Entry weiter verdichtet, indem erlaubte Aktionen einmalig normalisiert, über einen gemeinsamen Action-Helper dispatcht und das Users-Admin-Asset sauber über `pageAssets` eingebunden wird. | Der Entry reduziert weiteren Dispatch-Boilerplate, bleibt lesbarer wartbar und hält Aktionsprüfung, Payload-Normalisierung sowie Asset-Vertrag klarer an einer kleinen Entry-Logik. |
+
+### Delta Batch 365
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/users/list.php`, `CMS/assets/js/admin-users.js` | umgesetzt | Die Benutzer-Liste weiter harmonisiert, indem Grid-Initialisierung und Filter-Redirects aus lokalem Inline-JavaScript und Inline-`onchange`-Handlern in JSON-Konfiguration plus dediziertes Users-Admin-Asset überführt wurden. | Die Benutzerverwaltung reduziert weiteren Inline-JavaScript-Boilerplate, hängt sichtbarer am Admin-Asset-Vertrag und hält Markup, Filterzustand sowie Grid-Laufzeitlogik klarer getrennt vom PHP-Template. |
+
+### Delta Batch 364
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/users.php` | umgesetzt | Den Users-Entry weiter verdichtet, indem Aktion, ID, Bulk-Aktion und Bulk-IDs einmalig in einem gemeinsamen Payload normalisiert, die Grid-Konfiguration über einen Helper aufgebaut und das Users-Admin-Asset sauber eingebunden wird. | Der Entry reduziert weiteren Dispatch- und Inline-Asset-Boilerplate, bleibt lesbarer wartbar und hält Listen-Konfiguration, Payload-Normalisierung sowie Asset-Vertrag klarer an einer kleinen Entry-Logik. |
+
+### Delta Batch 363
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/tables/edit.php`, `CMS/assets/js/admin-site-tables.js` | umgesetzt | Die Tabellen-Bearbeitungsansicht weiter harmonisiert, indem Spalten-/Zeilen-Editor, JSON-Serialisierung und generierte Inline-Handler aus lokalem Inline-Script in ein dediziertes Admin-Asset überführt wurden. | Die Tabellen-Bearbeitung reduziert weiteren Inline-JavaScript-Boilerplate, hängt sichtbarer am Admin-Asset-Vertrag und hält Editorzustand, Zeilen-/Spaltenmutationen sowie Submit-Serialisierung klarer getrennt vom PHP-Markup. |
+
+### Delta Batch 362
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/tables/list.php`, `CMS/assets/js/admin-site-tables.js` | umgesetzt | Die Tabellen-Liste weiter harmonisiert, indem Suche, Duplicate- und Delete-Laufzeitlogik aus lokalen Inline-Handlern in Datenattribute plus dediziertes Admin-Asset überführt wurden. | Die Tabellenverwaltung reduziert weiteren Inline-JavaScript-Boilerplate, hängt sichtbarer am Admin-Asset-/Confirm-Vertrag und hält Suchzustand, Tabellen-Aktionen sowie Form-Dispatch klarer getrennt vom PHP-Markup. |
+
+### Delta Batch 361
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/site-tables.php` | umgesetzt | Den Site-Tables-Entry weiter verdichtet, indem Aktion und Tabellen-ID einmalig in einem gemeinsamen Payload normalisiert und Listen-/Edit-Assets konsistenter über `pageAssets` gebunden werden. | Der Entry reduziert weiteren Dispatch-Boilerplate, bleibt lesbarer wartbar und hält Aktionsprüfung, Payload-Normalisierung sowie Asset-Vertrag klarer an einer kleinen Entry-Logik. |
+
+### Delta Batch 360
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/menus/editor.php`, `CMS/assets/js/admin-menu-editor.js` | umgesetzt | Die Menü-Editor-Ansicht weiter harmonisiert, indem Modal-Trigger, Menü-Delete-Confirm und die Item-Editor-Laufzeitlogik aus lokalem Inline-Script in Datenattribute plus dediziertes Admin-Asset überführt wurden. | Die Menüverwaltung reduziert weiteren Inline-JavaScript-Boilerplate, hängt sichtbarer am Admin-Asset-/Confirm-Vertrag und hält Modalzustand, Item-Struktur sowie Delete-Flow klarer getrennt vom PHP-Markup. |
+
+### Delta Batch 359
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/menu-editor.php` | umgesetzt | Den Menu-Editor-Entry weiter verdichtet, indem Aktion, Menü-ID und Item-JSON einmalig in einem gemeinsamen Payload normalisiert und die Handler-Map durch direkten Dispatch ersetzt wurden. | Der Entry reduziert weiteren Dispatch-Boilerplate, bleibt lesbarer wartbar und hält Guard, Menü-ID-Prüfung, Modul-Dispatch sowie Asset-Vertrag klarer an einer kleinen Entry-Logik. |
+
+### Delta Batch 358
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/hub/templates.php`, `CMS/assets/js/admin-hub-sites.js` | umgesetzt | Die Hub-Template-Ansicht weiter harmonisiert, indem Duplicate-/Delete-Sonderpfade aus lokalen Inline-Handlern in Datenattribute plus gemeinsames Hub-Admin-Asset überführt wurden. | Die Hub-Template-Bibliothek reduziert weiteren Inline-JavaScript-Boilerplate, hängt sichtbarer am Admin-Asset-/Confirm-Vertrag und hält Template-Markup, Formularzustand sowie Delete-Flow klarer getrennt. |
+
+### Delta Batch 357
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/hub/list.php`, `CMS/assets/js/admin-hub-sites.js` | umgesetzt | Die Hub-Site-Liste weiter harmonisiert, indem Suche, Clipboard-, Duplicate- und Delete-Laufzeitlogik aus lokalen Inline-Handlern in Datenattribute plus gemeinsames Hub-Admin-Asset überführt wurden. | Die Routing-Verwaltung reduziert weiteren Inline-JavaScript-Boilerplate, hängt sichtbarer am Admin-Asset-/Confirm-Vertrag und hält Suchzustand, Site-Aktionen sowie Clipboard-Flow klarer getrennt vom PHP-Markup. |
+
+### Delta Batch 356
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/hub-sites.php` | umgesetzt | Den Hub-Sites-Entry weiter verdichtet, indem Aktion, Hub-Site-ID und Template-Key einmalig in einem gemeinsamen Payload normalisiert und Delete-/Duplicate- sowie Template-Aktionen enger validiert werden. | Der Entry reduziert weiteren Dispatch-Boilerplate, bleibt lesbarer wartbar und hält Aktionsprüfung, Payload-Normalisierung sowie Asset-Vertrag klarer an einer kleinen Entry-Logik. |
+
+### Delta Batch 355
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/comments/list.php`, `CMS/assets/js/admin-comments.js` | umgesetzt | Die Kommentar-Moderationsansicht weiter harmonisiert, indem Status-/Delete-Aktionen sowie Bulk-/Dropdown-Laufzeitlogik aus lokalem Inline-Script in ein dediziertes Admin-Asset überführt wurden. | Die Kommentarverwaltung reduziert weiteren Inline-JavaScript-Boilerplate, hängt sichtbarer am Admin-Asset-/Confirm-Vertrag und hält Moderations-, Delete- sowie Bulk-UI klarer getrennt vom PHP-Markup. |
+
+### Delta Batch 354
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/comments.php` | umgesetzt | Den Comments-Entry weiter verdichtet, indem Aktion, Kommentar-ID, Zielstatus, Bulk-Aktion und Bulk-IDs einmalig in einem gemeinsamen Payload normalisiert und vor dem Modul-Dispatch enger validiert werden. | Der Entry reduziert weiteren Dispatch-Boilerplate, bleibt lesbarer wartbar und hält Aktionsprüfung, Payload-Normalisierung sowie Asset-Vertrag klarer an einer kleinen Entry-Logik. |
+
+### Delta Batch 353
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/users/groups.php`, `CMS/assets/js/admin-user-groups.js` | umgesetzt | Die Gruppen-Ansicht weiter harmonisiert, indem Modal- und Delete-Sonderpfade aus lokalen Inline-Handlern in Datenattribute plus dediziertes Admin-Asset überführt wurden. | Die Gruppenverwaltung reduziert weiteren Inline-JavaScript-Boilerplate, hängt sichtbarer am Admin-Asset-/Confirm-Vertrag und hält Karten-Markup, Modalzustand sowie Delete-Flow klarer getrennt. |
+
+### Delta Batch 352
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/groups.php` | umgesetzt | Den Gruppen-Entry weiter verdichtet, indem Aktion und Gruppen-ID einmalig in einem gemeinsamen Payload normalisiert und die Handler-Map durch direkten Dispatch ersetzt wurden. | Der Entry reduziert weiteren Dispatch-Boilerplate, bleibt lesbarer wartbar und hält Guard, ID-Prüfung, Modul-Dispatch sowie Asset-Vertrag klarer an einer kleinen Entry-Logik. |
+
+### Delta Batch 351
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/plugins/marketplace.php`, `CMS/assets/js/admin-plugin-marketplace.js` | umgesetzt | Die Such-/Filter- und Install-Confirm-Sonderpfade der Plugin-Marketplace-Ansicht aus lokalem Inline-Script und Inline-`confirm(...)` in dediziertes Admin-Asset plus gemeinsamen Confirm-Vertrag überführt. | Der Marketplace reduziert weiteren Inline-JavaScript-Boilerplate, hängt sichtbarer am Admin-Asset-/Confirm-Vertrag und hält Karten-Filter sowie Installations-UI klarer getrennt vom PHP-Markup. |
+
+### Delta Batch 350
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/plugin-marketplace.php` | umgesetzt | Den Plugin-Marketplace-Entry weiter verdichtet, indem Aktion und Slug einmalig in einem gemeinsamen Payload normalisiert und das UI-Asset sauber über `page_assets` eingebunden werden. | Der Entry reduziert weiteren Dispatch-Boilerplate, bleibt lesbarer wartbar und hält Aktionsprüfung, Payload-Normalisierung sowie Asset-Vertrag klarer an einer kleinen Entry-Logik. |
+
+### Delta Batch 349
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/pages/list.php`, `CMS/assets/js/admin-pages.js` | umgesetzt | Die Seitenliste weiter harmonisiert, indem Grid-, Bulk- und Filter-Laufzeitlogik aus dem lokalen View-Script in ein dediziertes Admin-Asset ausgelagert und Filter-`onchange`-Handler entfernt wurden. | Die Pages-Ansicht reduziert weiteren Inline-JavaScript-Boilerplate, hängt sichtbarer am Asset-Vertrag und hält Grid-/Bulk-Interaktionen klarer getrennt vom View-Markup. |
+
+### Delta Batch 348
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/pages.php` | umgesetzt | Den Pages-Entry weiter verdichtet, indem die Listen-Grid-Konfiguration nicht länger als großer Inline-JavaScript-String gebaut, sondern als strukturierte Konfiguration an den View-/Asset-Vertrag übergeben wird. | Der Entry reduziert weiteren Inline-Asset-Boilerplate, bleibt lesbarer wartbar und trennt Listen-Konfiguration, Datenladung und Asset-Vertrag klarer voneinander. |
+
+### Delta Batch 347
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/system/documentation.php` | umgesetzt | Die Dokumentations-Ansicht weiter verdichtet, indem Dokument- und Bereichsdaten kompakter über View-Model-Helfer vorbereitet werden statt mehrfach verstreut im Renderfluss zusammengebaut zu werden. | Die Doku-Ansicht reduziert weiteren Render-Boilerplate, bleibt lesbarer wartbar und konzentriert ihren Hauptfluss stärker auf Markup- und View-Blöcke statt auf wiederholte Einzelabfragen. |
+
+### Delta Batch 346
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/mail-settings.php` | umgesetzt | Den Mail-Settings-Entry weiter verdichtet, indem Tab und Aktion einmalig in einem gemeinsamen Payload normalisiert und danach direkt über einen `match`-basierten Action-Helper dispatcht werden. | Der Entry reduziert weiteren Dispatch-Boilerplate, bleibt lesbarer wartbar und hält Guard, Tab-/Aktionsvalidierung sowie Redirect-Ziel klarer an einem kleinen Entry-Vertrag. |
+
+### Delta Batch 345
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/landing-page.php` | umgesetzt | Den Landing-Page-Entry weiter verschlankt, indem Aktion und Feature-ID einmalig in einem gemeinsamen Payload normalisiert und die Closure-basierte Handler-Map durch direkten Dispatch ersetzt werden. | Der Entry reduziert weiteren Kontrollfluss-Boilerplate, bleibt lesbarer wartbar und hält Delete-Feature sowie die übrigen Landing-Aktionen sichtbarer am selben Request-Vertrag. |
+
+### Delta Batch 344
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/legal/cookies.php`, `CMS/assets/js/admin-cookie-manager.js`, `CMS/admin/cookie-manager.php` | umgesetzt | Die verbleibenden Inline-Modal- und Delete-Sonderpfade der Cookie-Manager-Ansicht in ein dediziertes Admin-Asset überführt und die View auf den gemeinsamen Confirm-Vertrag harmonisiert. | Der Cookie-Manager reduziert weiteren Inline-JavaScript-Boilerplate, hängt sichtbarer am Asset-/Confirm-Vertrag und hält Kategorie-/Service-Modalpfade klarer getrennt vom PHP-Markup. |
+
+### Delta Batch 343
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/cookie-manager.php` | umgesetzt | Den Cookie-Manager-Entry weiter verdichtet, indem Action, ID, Service-Slug und Self-Hosted-Flag einmalig in einem gemeinsamen Payload normalisiert und validiert werden. | Der Entry reduziert weiteren Kontrollfluss-Boilerplate, bleibt lesbarer wartbar und konzentriert seinen POST-Pfad stärker auf Guard, Payload-Normalisierung und direkten Modul-Dispatch. |
+
+### Delta Batch 342
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/plugins/list.php`, `CMS/assets/js/admin-plugins.js`, `CMS/admin/plugins.php` | umgesetzt | Die verbliebenen Inline-`onchange`- und Delete-Confirm-Sonderpfade der Plugin-Liste auf dediziertes Asset plus gemeinsamen Confirm-Vertrag harmonisiert. | Die Plugin-Verwaltung reduziert weiteren Inline-UI-Boilerplate, hängt sichtbarer am Asset-/Confirm-Vertrag und hält Toggle- sowie Delete-Aktionen klarer getrennt vom View-Markup. |
+
+### Delta Batch 341
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/plugins.php`, `CMS/admin/modules/plugins/PluginsModule.php` | umgesetzt | Den Plugins-Entry-/Modulvertrag weiter verdichtet, indem Action/Slug einmalig normalisiert und Slug-, Hauptdatei- sowie Pfadlogik im Modul über gemeinsame Helper gebündelt werden. | Die Plugin-Verwaltung reduziert weiteren Dispatch- und Pfad-Boilerplate, hängt sichtbarer an einem konsistenten Entry-/Modulvertrag und begrenzt Delete-/Pfadauflösungsreste robuster auf gemeinsame Hilfslogik. |
+
+### Delta Batch 340
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/font-manager.php`, `CMS/admin/views/themes/fonts.php` | umgesetzt | Den Font-Manager weiter verdichtet, indem der Entry Aktions-Payloads einmalig normalisiert und die View überflüssige Preview-Inline-Styles an die bestehende JS-gesteuerte Vorschau abgibt. | Der Font-Manager reduziert weiteren Entry- und View-Boilerplate, hängt sichtbarer am gemeinsamen Wrapper-/Asset-Vertrag und hält Dispatch sowie Preview-Startzustand klarer getrennt. |
+
+### Delta Batch 339
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/media/MediaModule.php`, `CMS/admin/views/media/settings.php` | umgesetzt | Den Media-Settings-Vertrag weiter verdichtet, indem Defaultwerte, Dateityp-Optionen, Thumbnail-Metadaten und MB-Aufbereitung aus dem lokalen View in das Modulmodell verlagert wurden. | Die Media-Einstellungen reduzieren weiteren View-Boilerplate, hängen sichtbarer am Modulvertrag und halten Defaults, Feldmapping sowie Formularoptionen klarer an einer zentralen Stelle. |
+
+### Delta Batch 338
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/documentation.php` | umgesetzt | Den Dokumentations-Entry weiter verschlankt, indem POST-Aktionen nur noch über ein einmalig normalisiertes Payload plus direkten Action-Helper dispatcht werden statt über direkte `$_POST`-Zugriffe und eine kleine Handler-Map. | Der Doku-Entry reduziert weiteren Dispatch-Boilerplate, bleibt lesbarer wartbar und konzentriert seinen Request-Pfad stärker auf Guard, Normalisierung und klaren Modul-Dispatch. |
+
+### Delta Batch 337
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/data-requests.php`, `CMS/admin/views/legal/data-requests.php`, `CMS/assets/js/admin-data-requests.js` | umgesetzt | Die verbliebenen lokalen Confirm- und Modal-Sonderpfade der DSGVO-Data-Requests-Ansicht auf den gemeinsamen Admin-Confirm-/Asset-Vertrag gezogen, indem Inline-`confirm(...)`-Aufrufe entfernt und der Reject-Dialog per dediziertem Script über Datenattribute angesteuert wird. | Der DSGVO-Bereich reduziert weiteren Inline-JavaScript-Boilerplate, hängt sichtbarer am gemeinsamen Admin-Vertrag und hält Markup, Formularaktionen sowie Modal-Laufzeitlogik klarer voneinander getrennt. |
+
+### Delta Batch 336
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/plugin-marketplace.php`, `CMS/admin/modules/plugins/PluginMarketplaceModule.php` | umgesetzt | Den kritischen Marketplace-Remote-Pfad weiter gehärtet, indem der Entry nur noch den normalisierten Installations-Slug weiterreicht und das Modul Registry-, Manifest- sowie Katalog-URLs vor externen Requests zentral kanonisiert und auf erlaubte Host-/Port-/Credential-Kombinationen prüft. | Der Marketplace reduziert weiteren Request- und Remote-Validierungs-Sonderpfad, hängt sichtbarer an einem einheitlichen URL-Vertrag und begrenzt Remote-Ladepfade robuster auf erlaubte Quellen. |
+
+### Delta Batch 335
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/legal-sites.php`, `CMS/admin/views/legal/sites.php`, `CMS/assets/js/admin-legal-sites.js` | umgesetzt | Den Legal-Sites-Cluster weiter gehärtet, indem der Entry `save`-/`save_profile`-Payloads allowlist-basiert normalisiert und die View ihre verbleibende DOM-/Template-Logik in ein dediziertes Admin-Asset auslagert. | Der Legal-Bereich reduziert weiteren Request- und Inline-JavaScript-Boilerplate, hängt sichtbarer am Wrapper-/Asset-Vertrag und trennt Markup, Payload-Filterung sowie Laufzeitlogik klarer voneinander. |
+
+### Delta Batch 334
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/system/documentation.php` | umgesetzt | Die verbliebenen Render-Closures der Dokumentations-Ansicht in benannte View-Funktionen überführt und kleine Aufbereitungsreste wie Quellen-Text sowie Metric-Card-Konfiguration hinter präfixierte Helper gezogen. | Die Dokumentations-Ansicht reduziert weiteren Inline-Boilerplate, bleibt lesbarer wartbar und konzentriert ihren Hauptfluss stärker auf den eigentlichen Renderpfad statt auf lokale Render-Werkzeuge. |
+
+### Delta Batch 333
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/media.php`, `CMS/admin/views/media/categories.php`, `CMS/assets/js/admin-media-integrations.js` | umgesetzt | Den Media-Cluster weiter gehärtet, indem der Entry kritische Action-Payloads pro Aktion auf normalisierte Felder begrenzt und die Kategorien-View ihren verbliebenen Inline-Delete-Scriptpfad an das bestehende Media-Admin-Script abgibt. | Der Media-Bereich reduziert weiteren Request- und Inline-JavaScript-Boilerplate, hängt sichtbarer am bestehenden Wrapper-/Asset-Vertrag und hält Markup, Payload-Normalisierung sowie Delete-Laufzeitlogik klarer voneinander getrennt. |
+
+### Delta Batch 332
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/system/updates.php`, `CMS/assets/js/admin.js` | umgesetzt | Die verbleibenden Confirm-Aktionspfade des Updates-Views für Core- und Plugin-Installationen aus lokalem `confirm(...)`-Markup in einen wiederverwendbaren globalen Formular-Confirm-Helfer überführt. | Der Updates-View reduziert weiteren Inline-Boilerplate, hängt sichtbarer am gemeinsamen Admin-Confirm-Vertrag und hält Formular-Markup klarer getrennt von der Laufzeitlogik. |
+
+### Delta Batch 331
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/media/library.php`, `CMS/assets/js/admin-media-integrations.js` | umgesetzt | Die verbleibenden Inline-Aktionspfade der Media-Library-View für Member-Ordner-Confirm und Delete-Aktionen aus `onclick`-/lokalem `<script>`-Markup in das bereits geladene Admin-Media-Script verlagert. | Die Media-Library reduziert weiteren Inline-JavaScript-Boilerplate, hängt sichtbarer am bestehenden Media-Asset-Vertrag und hält Markup sowie Aktionslogik klarer getrennt. |
+
+### Delta Batch 330
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/themes/fonts.php`, `CMS/admin/font-manager.php`, `CMS/assets/js/admin-font-manager.js` | umgesetzt | Den verbleibenden Preview-/Inline-Script-Sonderpfad des Font-Manager-Views in eine dedizierte Admin-JS-Datei ausgelagert und die Asset-Einbindung über den bestehenden `pageAssets`-Vertrag des Entries nachgezogen. | Der Font-Manager-View reduziert weiteren Inline-JavaScript-Boilerplate, hängt sichtbarer am gemeinsamen Admin-Asset-Vertrag und hält Preview- sowie Delete-Confirm-Verhalten klarer getrennt vom PHP-Markup. |
+
+### Delta Batch 329
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/font-manager.php` | umgesetzt | Das Closure-basierte Action-Handler-Mapping des Font-Manager-Entrys auf einen direkten `match`-Dispatch umgestellt und die Normalisierung von Font-ID sowie Google-Font-Familie im POST-Pfad auf einen einmaligen Schritt reduziert. | Der Font-Manager-Entry reduziert weiteren Inline-Dispatch-Boilerplate, bleibt lesbarer wartbar und konzentriert seinen Request-Flow stärker auf Guard, Normalisierung und direkten Modul-Dispatch. |
+
+### Delta Batch 328
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/legal-sites.php` | umgesetzt | Den Action-Dispatch des Legal-Sites-Entrys vom Closure-basierten Handler-Mapping auf einen direkten `match`-Dispatch umgestellt und die Template-Typ-Normalisierung im POST-Pfad auf einen einmaligen Schritt reduziert. | Der Legal-Sites-Entry reduziert weiteren Inline-Dispatch-Boilerplate, bleibt lesbarer wartbar und konzentriert seinen Request-Flow stärker auf Guard, Normalisierung und direkten Modul-Dispatch. |
+
+### Delta Batch 327
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/system/documentation.php` | umgesetzt | Die Helper-/Closure-Dichte im Dokumentations-View weiter reduziert, indem mehrere kleine Dokument-, Bereichs- und Active-State-Helfer aus anonymen Closures in benannte View-Funktionen überführt wurden. | Die Dokumentations-Ansicht reduziert weiteren Inline-Boilerplate, bleibt lesbarer wartbar und konzentriert ihren Renderpfad stärker auf Markup-/View-Blöcke statt auf verstreute kleine Datentransformations-Closures. |
+
+### Delta Batch 326
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/media.php`, `CMS/admin/modules/media/MediaModule.php` | umgesetzt | Die Parent-Path-Auflösung des Media-Entrys an den Modulvertrag delegiert und die Upload-Fehleraufbereitung so nachgezogen, dass Dateinamen nicht mehr vorzeitig HTML-escaped in Flash-Meldungen zusammengesetzt werden. | Der Media-Entry reduziert weiteren String-/Normalisierungs-Sonderpfad, hält Pfadlogik näher am Modul und vermeidet doppelte Escaping-Pfade im gemeinsamen Admin-Alert-Vertrag. |
+
+### Delta Batch 325
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/system/updates.php` | umgesetzt | Die verbliebenen komplexeren Core- und Theme-Update-Warnboxen der Updates-View auf das gemeinsame `flash-alert.php` harmonisiert, damit auch diese Hinweise keinen separaten lokalen `alert alert-warning`-Sonderpfad mehr im View pflegen. | Die System-Updates-Ansicht reduziert weiteren lokalen UI-Boilerplate, hängt sichtbarer am zentralen Flash-Vertrag der Shared-Shell-Entrys und hält Aktionsblöcke klarer getrennt von der gemeinsamen Hinweisdarstellung. |
+
+### Delta Batch 324
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/media/library.php` | umgesetzt | Den verbliebenen lokalen elFinder-Infohinweis der Media-Library-View auf das gemeinsame `flash-alert.php` harmonisiert, damit der Finder-Zweig keinen separaten einfachen Bootstrap-Alert mehr lokal im View pflegt. | Die Media-Library reduziert weiteren lokalen UI-Boilerplate, hängt sichtbarer am zentralen Flash-Vertrag der Shared-Shell-Entrys und übernimmt künftige Partial-Verbesserungen an Typ-Mapping, Detail-Listen und Dismiss-Verhalten automatisch mit. |
+
+### Delta Batch 323
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/legal/sites.php` | umgesetzt | Die verbliebenen lokalen Intro- sowie mehrere einfache featurebezogene Datenschutz-Hinweisboxen der Legal-Sites-View auf das gemeinsame `flash-alert.php` harmonisiert, damit der Rechtstext-Generator keine verteilten Alert-Sonderpfade mehr im View pflegt. | Die Legal-Sites-Ansicht reduziert weiteren lokalen UI-Boilerplate, hängt sichtbarer am zentralen Flash-Vertrag der Shared-Shell-Entrys und übernimmt künftige Partial-Verbesserungen an Typ-Mapping, Detail-Listen und Dismiss-Verhalten automatisch mit. |
+
+### Delta Batch 322
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/FontManagerModule.php`, `CMS/admin/views/themes/fonts.php` | umgesetzt | Den hoch priorisierten Font-Manager bei Fehler- und Hinweispfaden weiter gehärtet: Speichern/Löschen loggt Fehler jetzt strukturiert statt rohe Exception-Texte in die UI zu geben, und die verbleibende Self-Hosting-Hinweisbox der View läuft nun ebenfalls über das gemeinsame `flash-alert.php`. | Der Font-Manager reduziert UI-Leaks bei Modulfehlern, hängt näher an einem konsistenten Admin-Logging-Vertrag und spart weiteren lokalen View-Boilerplate, weil auch die größere Bibliotheks-Hinweisbox künftige Partial-Verbesserungen automatisch mitnimmt. |
+
+### Delta Batch 321
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/system/diagnose.php`, `CMS/admin/views/member/general.php` | umgesetzt | Weitere einfache fachliche Info-/Warning-Hinweise in Diagnose- und Member-General-View auf das gemeinsame `flash-alert.php` harmonisiert, damit auch diese verbleibenden Alert-Sonderpfade nicht länger lokal pro View gepflegt werden. | Die betroffenen Views reduzieren weiteren UI-Boilerplate, hängen näher am zentralen Flash-Vertrag der Shared-Shell-Entrys und übernehmen künftige Partial-Verbesserungen an Typ-Mapping, Detail-Listen und Dismiss-Verhalten automatisch mit. |
+
+### Delta Batch 320
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/system/updates.php`, `CMS/admin/views/system/documentation.php`, `CMS/admin/views/themes/fonts.php`, `CMS/admin/views/subscriptions/settings.php` | umgesetzt | Einfache Status-, Error-, Info- und Hinweisblöcke in vier weiteren Admin-Views auf das gemeinsame `flash-alert.php` harmonisiert und in der Dokumentations-View den lokalen `$renderAlertBlock`-Sonderpfad entfernt, damit UI-Hinweise nicht länger dateiweise als eigene Alert-Implementierungen gepflegt werden. | Die betroffenen Views reduzieren weiteren UI-Boilerplate, hängen näher am zentralen Flash-Vertrag der Shared-Shell-Entrys und übernehmen künftige Partial-Verbesserungen an Typ-Mapping, Detail-Listen und Dismiss-Verhalten automatisch mit. |
+
+### Delta Batch 319
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/plugins.php`, `CMS/admin/themes.php`, `CMS/admin/modules/plugins/PluginsModule.php`, `CMS/admin/modules/themes/ThemesModule.php` | umgesetzt | Die Entrys für installierte Plugins und Themes auf die gemeinsame `section-page-shell.php` gezogen, Capability-Gates auf `manage_settings` ausgerichtet und die Modul-Fehler-/Meldungspfade so nachgezogen, dass keine rohen Exception-Texte oder bereits HTML-escaped Erfolgsstrings mehr als impliziter UI-Vertrag herumliegen. | Die Extensions-Verwaltung reduziert weiteren Redirect-/Flash-/POST-Boilerplate, hängt näher am Shared-Shell-Vertrag und begrenzt UI-Leaks in Fehler- sowie Erfolgspfaden besser, weil technische Details im Log statt im Admin-Alert landen und Slugs/Meldungen konsistenter erst im View escaped werden. |
+
+### Delta Batch 318
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/plugin-marketplace.php`, `CMS/admin/theme-marketplace.php`, `CMS/admin/modules/plugins/PluginMarketplaceModule.php`, `CMS/admin/modules/themes/ThemeMarketplaceModule.php` | umgesetzt | Die beiden Marketplace-Entrys auf die gemeinsame `section-page-shell.php` gezogen, Capability-Gates auf `manage_settings` ausgerichtet und die Module bei relativen Remote-Manifest-/Downloadpfaden sowie `requires_cms`-/`requires_php`-Prüfungen gehärtet, damit Remote-Installationen keinen eigenen Redirect-/Flash-Sonderpfad mehr pflegen und inkompatible Pakete nicht mehr als auto-installierbar auftauchen. | Die kritischen Marketplace-Pfade reduzieren verteiltes Entry-Boilerplate, hängen näher am Shared-Shell-Vertrag und begrenzen Remote- und Installationsrisiken stärker, weil nur noch sauber normalisierte Marketplace-Ziele und kompatible Pakete automatisch installierbar bleiben. |
+
+### Delta Batch 317
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/seo/technical.php`, `social.php`, `meta.php`, `sitemap.php`, `schema.php`, `redirects.php`, `not-found.php`, `dashboard.php`, `audit.php`, `CMS/admin/views/security/audit.php`, `CMS/admin/views/plugins/marketplace.php`, `CMS/admin/views/themes/marketplace.php`, `CMS/admin/views/themes/list.php`, `CMS/admin/views/toc/settings.php`, `CMS/admin/views/partials/flash-alert.php` | umgesetzt | Die Alert-Ausgabe in 14 weiteren Admin-Views auf das gemeinsame `flash-alert.php` harmonisiert und das Partial zusätzlich um generische Detail-Listen erweitert, damit Fehler-/Erfolgshinweise inklusive Redirect-/404-Details nicht länger lokal als eigene View-Blöcke nachgebaut werden. | Die betroffenen Views reduzieren verteiltes UI-Boilerplate, bleiben näher am standardisierten Flash-Vertrag der Shared-Shell-Entrys und übernehmen künftige Verbesserungen an Alert-Typ-Mapping, Detail-Ausgabe und Fehlerreport-Payloads automatisch mit. |
+
+### Delta Batch 316
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/member/dashboard.php`, `general.php`, `design.php`, `frontend-modules.php`, `widgets.php`, `plugin-widgets.php`, `profile-fields.php`, `notifications.php`, `onboarding.php`, `CMS/admin/views/system/email-alerts.php`, `response-time.php`, `cron-status.php`, `disk-usage.php`, `health-check.php`, `scheduled-tasks.php`, `info.php`, `diagnose.php` | umgesetzt | Die Seiten-Flash-Ausgabe in 17 weiteren Member- und System-Views auf das gemeinsame `flash-alert.php` harmonisiert, damit Erfolg-/Fehlerhinweise, Dismiss-Verhalten und optionale Fehlerreport-Payloads nicht länger als lokale Alert-Blöcke pro View gepflegt werden. | Die betroffenen Admin-Views reduzieren verteiltes UI-Boilerplate, hängen näher am standardisierten Flash-Vertrag der Shared-Shell-Entrys und übernehmen künftige Verbesserungen am gemeinsamen Alert-Partial automatisch mit. |
+
+### Delta Batch 315
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/seo/subnav.php` | umgesetzt | Den SEO-Subnav auf das gemeinsame `section-subnav.php` standardisiert, damit Link-Aufbau, Active-State und Button-Markup nicht länger als lokaler Navigationsblock im View gepflegt werden und nur die echten SEO-Aktionsbuttons separat verbleiben. | Der View reduziert verteiltes UI-Boilerplate, hängt näher am gemeinsamen Subnav-Vertrag der anderen Admin-Bereiche und übernimmt künftige Partial-Anpassungen automatisch mit. |
+
+### Delta Batch 314
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/seo/analytics.php`, `CMS/admin/views/performance/media.php` | umgesetzt | Die Alert-Ausgabe in zwei weiteren Admin-Views auf das gemeinsame `flash-alert.php` harmonisiert, damit Fehler-/Erfolgsmeldungen, Dismiss-Verhalten und optionale Fehlerreport-Payloads nicht länger lokal als eigene View-Blöcke nachgebaut werden. | Die Views reduzieren verteiltes UI-Boilerplate, bleiben näher am standardisierten Flash-Vertrag der Shared-Shell-Entrys und übernehmen künftige Verbesserungen am gemeinsamen Alert-Partial automatisch mit. |
+
+### Delta Batch 313
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/system-monitor-page.php`, `CMS/admin/modules/system/SystemInfoModule.php` | umgesetzt | Den System-Monitor-Wrapper weiter auf gemeinsame Shell-Muster verdichtet und die Modul-Fehlerpfade auf generische UI-Meldungen mit Audit-Logging umgestellt, sodass Access-Check und Shell-Zusammenbau nicht länger als separater Header-Redirect-Sonderpfad laufen und Diagnose-/Monitoring-Fehler keine rohen Exception-Texte mehr an die Admin-Oberfläche weiterreichen. | Der Wrapper reduziert verteiltes Boilerplate, hängt näher am bestehenden Shared-Shell-Vertrag und hält technische Fehlerdetails künftig im Audit-Log statt in UI-Alerts, wodurch der Diagnose- und Monitoring-Bereich konsistenter und robuster wird. |
+
+### Delta Batch 312
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/performance-page.php` | umgesetzt | Den Performance-Wrapper weiter auf gemeinsame Shell-Muster verdichtet, sodass die Section-Konfiguration über einen benannten Helper aufgebaut und der Access-Check zentral an die `section-page-shell.php` delegiert wird, statt als eigener Header-Redirect-Sonderpfad im Wrapper zu verbleiben. | Der Wrapper reduziert verteiltes Boilerplate, hält Access- und Shell-Zusammenbau näher am gemeinsamen Entry-Vertrag und macht die Performance-Unterseiten wartbarer, weil kanonische Section-, Modul- und Datenlade-Kontexte kompakter zusammengefasst bleiben. |
+
+### Delta Batch 311
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/member-dashboard.php` | umgesetzt | Den Member-Dashboard-Overview-Entry weiter auf gemeinsame Wrapper reduziert, sodass Legacy-Sektionen über `redirect-alias-shell.php` laufen und der eigentliche Overview-Guard nicht länger zusätzlich als eigener Header-Redirect-Sonderpfad im Entry gepflegt wird. | Der Entry reduziert verteiltes Boilerplate, hält Legacy-Routing näher am gemeinsamen Redirect-Vertrag und delegiert den tatsächlichen Overview-Zugriff klarer an die vorhandene Member-Dashboard-Shared-Schicht. |
 
 ### Delta Batch 310
 

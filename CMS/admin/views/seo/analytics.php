@@ -41,12 +41,7 @@ $hasTable = $analytics['has_page_views'] ?? false;
 <div class="page-body">
     <div class="container-xl">
 
-        <?php if (!empty($alert)): ?>
-            <div class="alert alert-<?= htmlspecialchars($alert['type']) ?> alert-dismissible" role="alert">
-                <div><?= htmlspecialchars($alert['message']) ?></div>
-                <a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>
-            </div>
-        <?php endif; ?>
+        <?php $alertData = $alert; $alertMarginClass = 'mb-4'; require __DIR__ . '/../partials/flash-alert.php'; ?>
 
         <?php require __DIR__ . '/subnav.php'; ?>
 

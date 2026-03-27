@@ -25,11 +25,7 @@ $settings = $data['settings'] ?? [];
 
 <div class="page-body">
     <div class="container-xl">
-        <?php if (!empty($alert)): ?>
-            <div class="alert alert-<?php echo htmlspecialchars($alert['type'] ?? 'info'); ?> mb-4" role="alert">
-                <?php echo htmlspecialchars($alert['message'] ?? ''); ?>
-            </div>
-        <?php endif; ?>
+        <?php $alertData = $alert; $alertMarginClass = 'mb-4'; require __DIR__ . '/../partials/flash-alert.php'; ?>
 
         <?php require __DIR__ . '/subnav.php'; ?>
 
@@ -52,11 +48,16 @@ $settings = $data['settings'] ?? [];
                                 </label>
                                 <div class="form-hint">Schaltet die zentrale Mitgliederoberfläche im Frontend ein oder aus.</div>
                             </div>
-                            <div class="alert alert-info mb-0" role="alert">
-                                Öffentliche Registrierung, Standardrolle und Authentifizierungsoptionen werden zentral unter
-                                <a href="<?php echo htmlspecialchars((defined('SITE_URL') ? SITE_URL : '') . '/admin/user-settings'); ?>" class="alert-link">Benutzer &amp; Gruppen → Einstellungen</a>
-                                verwaltet.
-                            </div>
+                            <?php
+                            $alertData = [
+                                'type' => 'info',
+                                'message' => 'Öffentliche Registrierung, Standardrolle und Authentifizierungsoptionen werden zentral unter Benutzer & Gruppen → Einstellungen verwaltet.',
+                                'details' => [(defined('SITE_URL') ? SITE_URL : '') . '/admin/user-settings'],
+                            ];
+                            $alertDismissible = false;
+                            $alertMarginClass = 'mb-0';
+                            require __DIR__ . '/../partials/flash-alert.php';
+                            ?>
                         </div>
                     </div>
 

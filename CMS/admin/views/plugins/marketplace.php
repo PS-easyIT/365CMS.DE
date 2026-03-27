@@ -4,6 +4,13 @@ declare(strict_types=1);
 if (!defined('ABSPATH')) {
     exit;
 }
+
+$pluginMarketplaceConfig = [
+    'searchInputId' => 'pluginSearch',
+    'categoryFilterId' => 'categoryFilter',
+    'gridSelector' => '#pluginGrid',
+    'cardSelector' => '.plugin-card',
+];
 ?>
 
 <!-- Plugin Marketplace -->
@@ -28,12 +35,10 @@ if (!defined('ABSPATH')) {
     <div class="container-xl">
 
         <?php if (!empty($alert)): ?>
-            <div class="alert alert-<?php echo htmlspecialchars((string)($alert['type'] ?? 'info')); ?> alert-dismissible" role="alert">
-                <div class="d-flex">
-                    <div><?php echo htmlspecialchars((string)($alert['message'] ?? '')); ?></div>
-                </div>
-                <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
-            </div>
+            <?php
+            $alertData = is_array($alert ?? null) ? $alert : [];
+            require dirname(__DIR__) . '/partials/flash-alert.php';
+            ?>
         <?php endif; ?>
 
         <!-- KPI Cards -->
@@ -169,11 +174,11 @@ if (!defined('ABSPATH')) {
                                         Installiert
                                     </span>
                                 <?php elseif ($autoInstallSupported): ?>
-                                    <form method="POST" style="display:inline;">
+                                    <form method="POST" style="display:inline;" data-confirm-message="Plugin '<?php echo $name; ?>' installieren?" data-confirm-title="Plugin installieren" data-confirm-text="Installieren" data-confirm-class="btn-primary" data-confirm-status-class="bg-primary">
                                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                         <input type="hidden" name="action" value="install">
                                         <input type="hidden" name="slug" value="<?php echo $slug; ?>">
-                                        <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Plugin \'<?php echo $name; ?>\' installieren?');">
+                                        <button type="submit" class="btn btn-primary btn-sm">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm me-1" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><polyline points="7 11 12 16 17 11"/><line x1="12" y1="4" x2="12" y2="16"/></svg>
                                             Installieren
                                         </button>
@@ -202,25 +207,4 @@ if (!defined('ABSPATH')) {
     </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    var search = document.getElementById('pluginSearch');
-    var filter = document.getElementById('categoryFilter');
-    var cards  = document.querySelectorAll('.plugin-card');
-
-    function applyFilter() {
-        var q   = (search.value || '').toLowerCase();
-        var cat = filter.value;
-        cards.forEach(function(card) {
-            var name     = (card.dataset.name || '').toLowerCase();
-            var category = card.dataset.category || '';
-            var matchQ   = !q || name.indexOf(q) !== -1;
-            var matchCat = !cat || category === cat;
-            card.style.display = (matchQ && matchCat) ? '' : 'none';
-        });
-    }
-
-    search.addEventListener('input', applyFilter);
-    filter.addEventListener('change', applyFilter);
-});
-</script>
+<script type="application/json" id="plugin-marketplace-config"><?php echo json_encode($pluginMarketplaceConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?></script>

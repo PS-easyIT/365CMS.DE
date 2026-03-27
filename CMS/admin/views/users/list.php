@@ -114,7 +114,7 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
             <div class="card-header">
                 <div class="row w-100 g-2 align-items-center">
                     <div class="col-auto">
-                        <select class="form-select form-select-sm" onchange="window.location.href='<?php echo htmlspecialchars($siteUrl); ?>/admin/users?role='+this.value+'&status=<?php echo urlencode($filter['status']); ?>&q=<?php echo urlencode($filter['search']); ?>'">
+                        <select class="form-select form-select-sm js-users-filter-role" data-users-base-url="<?php echo htmlspecialchars($siteUrl . '/admin/users', ENT_QUOTES); ?>">
                             <option value="">Alle Rollen</option>
                             <?php foreach ($availableRoles as $role => $label): ?>
                                 <option value="<?php echo htmlspecialchars((string)$role); ?>" <?php if (($filter['role'] ?? '') === $role) echo 'selected'; ?>><?php echo htmlspecialchars((string)$label); ?></option>
@@ -122,7 +122,7 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                         </select>
                     </div>
                     <div class="col-auto">
-                        <select class="form-select form-select-sm" onchange="window.location.href='<?php echo htmlspecialchars($siteUrl); ?>/admin/users?status='+this.value+'&role=<?php echo urlencode($filter['role']); ?>&q=<?php echo urlencode($filter['search']); ?>'">
+                        <select class="form-select form-select-sm js-users-filter-status" data-users-base-url="<?php echo htmlspecialchars($siteUrl . '/admin/users', ENT_QUOTES); ?>">
                             <option value="">Alle Status</option>
                             <?php foreach ($availableStatuses as $status => $label): ?>
                                 <option value="<?php echo htmlspecialchars((string)$status); ?>" <?php if (($filter['status'] ?? '') === $status) echo 'selected'; ?>><?php echo htmlspecialchars((string)$label); ?></option>
@@ -130,10 +130,10 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                         </select>
                     </div>
                     <div class="col">
-                        <form method="get" action="<?php echo htmlspecialchars($siteUrl); ?>/admin/users" class="d-flex gap-2">
+                        <form method="get" action="<?php echo htmlspecialchars($siteUrl); ?>/admin/users" class="d-flex gap-2 js-users-search-form" data-users-base-url="<?php echo htmlspecialchars($siteUrl . '/admin/users', ENT_QUOTES); ?>">
                             <input type="hidden" name="role" value="<?php echo htmlspecialchars($filter['role']); ?>">
                             <input type="hidden" name="status" value="<?php echo htmlspecialchars($filter['status']); ?>">
-                            <input type="text" class="form-control form-control-sm" name="q" value="<?php echo htmlspecialchars($filter['search']); ?>" placeholder="Suchen…">
+                            <input type="text" class="form-control form-control-sm js-users-search-input" name="q" value="<?php echo htmlspecialchars($filter['search']); ?>" placeholder="Suchen…">
                             <button type="submit" class="btn btn-sm btn-outline-secondary">Suchen</button>
                         </form>
                     </div>
@@ -150,4 +150,6 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
 
     </div>
 </div>
+
+<script type="application/json" id="users-grid-config"><?php echo json_encode($usersGridConfig ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?></script>
 

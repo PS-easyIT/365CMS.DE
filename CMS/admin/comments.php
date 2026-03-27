@@ -46,6 +46,20 @@ function cms_admin_comments_normalize_bulk_action(mixed $action): string
 }
 
 /**
+ * @return array{action:string,id:int,new_status:string,bulk_action:string,ids:list<int>}
+ */
+function cms_admin_comments_normalize_payload(array $post): array
+{
+    return [
+        'action' => cms_admin_comments_normalize_action($post['action'] ?? ''),
+        'id' => cms_admin_comments_normalize_positive_id($post['id'] ?? 0),
+        'new_status' => cms_admin_comments_normalize_status_value($post['new_status'] ?? ''),
+        'bulk_action' => cms_admin_comments_normalize_bulk_action($post['bulk_action'] ?? ''),
+        'ids' => cms_admin_comments_normalize_bulk_ids($post['ids'] ?? []),
+    ];
+}
+
+/**
  * @return list<int>
  */
 function cms_admin_comments_normalize_bulk_ids(mixed $ids): array
@@ -71,23 +85,17 @@ function cms_admin_comments_normalize_bulk_ids(mixed $ids): array
     return array_values($normalized);
 }
 
-function cms_admin_comments_handle_action(CommentsModule $module, string $action, array $post): array
+function cms_admin_comments_handle_action(CommentsModule $module, array $payload): array
 {
-    switch ($action) {
+    switch ($payload['action']) {
         case 'status':
-            return $module->updateStatus(
-                cms_admin_comments_normalize_positive_id($post['id'] ?? 0),
-                cms_admin_comments_normalize_status_value($post['new_status'] ?? '')
-            );
+            return $module->updateStatus($payload['id'], $payload['new_status']);
 
         case 'delete':
-            return $module->delete(cms_admin_comments_normalize_positive_id($post['id'] ?? 0));
+            return $module->delete($payload['id']);
 
         case 'bulk':
-            $bulkAction = cms_admin_comments_normalize_bulk_action($post['bulk_action'] ?? '');
-            $ids = cms_admin_comments_normalize_bulk_ids($post['ids'] ?? []);
-
-            return $module->bulkAction($bulkAction, $ids);
+            return $module->bulkAction($payload['bulk_action'], $payload['ids']);
     }
 
     return ['success' => false, 'error' => 'Aktion konnte nicht verarbeitet werden.'];
@@ -99,7 +107,11 @@ $sectionPageConfig = [
     'view_file' => __DIR__ . '/views/comments/list.php',
     'page_title' => 'Kommentare',
     'active_page' => 'comments',
-    'page_assets' => [],
+    'page_assets' => [
+        'js' => [
+            cms_asset_url('js/admin-comments.js'),
+        ],
+    ],
     'csrf_action' => 'admin_comments',
     'module_file' => __DIR__ . '/modules/comments/CommentsModule.php',
     'module_factory' => static fn (): CommentsModule => new CommentsModule(),
@@ -118,12 +130,25 @@ $sectionPageConfig = [
             return ['success' => false, 'error' => 'Sie dürfen Kommentare nicht ansehen.'];
         }
 
-        $action = cms_admin_comments_normalize_action($post['action'] ?? '');
-        if ($action === '' || !$module->isSupportedAction($action)) {
+        $payload = cms_admin_comments_normalize_payload($post);
+
+        if ($payload['action'] === '' || !$module->isSupportedAction($payload['action'])) {
             return ['success' => false, 'error' => 'Unbekannte Kommentar-Aktion.'];
         }
 
-        return cms_admin_comments_handle_action($module, $action, $post);
+        if ($payload['action'] === 'status' && ($payload['id'] <= 0 || $payload['new_status'] === '')) {
+            return ['success' => false, 'error' => 'Ungültige Kommentar-Aktion.'];
+        }
+
+        if ($payload['action'] === 'delete' && $payload['id'] <= 0) {
+            return ['success' => false, 'error' => 'Ungültige Kommentar-ID.'];
+        }
+
+        if ($payload['action'] === 'bulk' && ($payload['bulk_action'] === '' || $payload['ids'] === [])) {
+            return ['success' => false, 'error' => 'Ungültige Bulk-Aktion.'];
+        }
+
+        return cms_admin_comments_handle_action($module, $payload);
     },
 ];
 

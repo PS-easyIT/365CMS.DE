@@ -277,6 +277,59 @@ function initReplacementCategoryBulkDeleteFlow() {
     });
 }
 
+function initConfirmForms() {
+    var confirmForms = document.querySelectorAll('form[data-confirm-message]');
+
+    if (!confirmForms.length) {
+        return;
+    }
+
+    confirmForms.forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+            if (form.dataset.confirmAccepted === '1') {
+                form.dataset.confirmAccepted = '0';
+                return;
+            }
+
+            event.preventDefault();
+
+            var message = form.dataset.confirmMessage || '';
+            var title = form.dataset.confirmTitle || 'Bitte bestätigen';
+            var confirmText = form.dataset.confirmText || 'Bestätigen';
+            var confirmClass = form.dataset.confirmClass || 'btn-danger';
+            var statusClass = form.dataset.confirmStatusClass || 'bg-danger';
+
+            if (typeof cmsConfirm === 'function') {
+                cmsConfirm({
+                    title: title,
+                    message: message,
+                    confirmText: confirmText,
+                    confirmClass: confirmClass,
+                    statusClass: statusClass,
+                    onConfirm: function() {
+                        form.dataset.confirmAccepted = '1';
+                        if (typeof form.requestSubmit === 'function') {
+                            form.requestSubmit();
+                            return;
+                        }
+                        form.submit();
+                    }
+                });
+                return;
+            }
+
+            if (window.confirm(message)) {
+                form.dataset.confirmAccepted = '1';
+                if (typeof form.requestSubmit === 'function') {
+                    form.requestSubmit();
+                    return;
+                }
+                form.submit();
+            }
+        });
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     
     // Confirmation for destructive actions
@@ -312,5 +365,6 @@ document.addEventListener('DOMContentLoaded', function() {
     initPostCategoryDeleteFlow();
     initPostTagDeleteFlow();
     initReplacementCategoryBulkDeleteFlow();
+    initConfirmForms();
     
 });

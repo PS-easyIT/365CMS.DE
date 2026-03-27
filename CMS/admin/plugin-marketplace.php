@@ -11,50 +11,20 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Auth;
-use CMS\Security;
 
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
+const CMS_ADMIN_PLUGIN_MARKETPLACE_READ_CAPABILITY = 'manage_settings';
+const CMS_ADMIN_PLUGIN_MARKETPLACE_WRITE_CAPABILITY = 'manage_settings';
+
+function cms_admin_plugin_marketplace_can_access(): bool
+{
+    return Auth::instance()->isAdmin()
+        && Auth::instance()->hasCapability(CMS_ADMIN_PLUGIN_MARKETPLACE_READ_CAPABILITY);
 }
 
-require_once __DIR__ . '/modules/plugins/PluginMarketplaceModule.php';
-$module = new PluginMarketplaceModule();
-$alert = null;
-
-function cms_admin_plugin_marketplace_target_url(): string
+function cms_admin_plugin_marketplace_can_install(): bool
 {
-    return SITE_URL . '/admin/plugin-marketplace';
-}
-
-function cms_admin_plugin_marketplace_redirect(): never
-{
-    header('Location: ' . cms_admin_plugin_marketplace_target_url());
-    exit;
-}
-
-function cms_admin_plugin_marketplace_flash(array $payload): void
-{
-    $_SESSION['admin_alert'] = [
-        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
-        'message' => trim((string) ($payload['message'] ?? '')),
-    ];
-}
-
-function cms_admin_plugin_marketplace_flash_result(array $result): void
-{
-    cms_admin_plugin_marketplace_flash([
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => (string) ($result['message'] ?? $result['error'] ?? 'Unbekannte Antwort.'),
-    ]);
-}
-
-function cms_admin_plugin_marketplace_pull_alert(): ?array
-{
-    $alert = $_SESSION['admin_alert'] ?? null;
-    unset($_SESSION['admin_alert']);
-
-    return is_array($alert) ? $alert : null;
+    return cms_admin_plugin_marketplace_can_access()
+        && Auth::instance()->hasCapability(CMS_ADMIN_PLUGIN_MARKETPLACE_WRITE_CAPABILITY);
 }
 
 /** @return array<string, true> */
@@ -70,38 +40,62 @@ function cms_admin_plugin_marketplace_normalize_slug(array $post): string
     return (string) preg_replace('/[^a-z0-9_-]/', '', strtolower((string) ($post['slug'] ?? '')));
 }
 
-function cms_admin_plugin_marketplace_handle_action(PluginMarketplaceModule $module, string $action, array $post): array
+function cms_admin_plugin_marketplace_normalize_action(mixed $action): string
 {
-    return match ($action) {
-        'install' => $module->installPlugin(cms_admin_plugin_marketplace_normalize_slug($post)),
+    $action = strtolower(trim((string) $action));
+
+    return isset(cms_admin_plugin_marketplace_allowed_actions()[$action]) ? $action : '';
+}
+
+/** @return array{action:string,slug:string} */
+function cms_admin_plugin_marketplace_normalize_payload(array $post): array
+{
+    return [
+        'action' => cms_admin_plugin_marketplace_normalize_action($post['action'] ?? null),
+        'slug' => cms_admin_plugin_marketplace_normalize_slug($post),
+    ];
+}
+
+function cms_admin_plugin_marketplace_handle_action(PluginMarketplaceModule $module, array $payload): array
+{
+    return match ($payload['action']) {
+        'install' => $module->installPlugin($payload['slug']),
         default => ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'],
     };
 }
 
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-    $action = (string)($_POST['action'] ?? '');
-    $allowedActions = cms_admin_plugin_marketplace_allowed_actions();
+$sectionPageConfig = [
+    'route_path' => '/admin/plugin-marketplace',
+    'view_file' => __DIR__ . '/views/plugins/marketplace.php',
+    'page_title' => 'Plugin Marketplace',
+    'active_page' => 'plugin-marketplace',
+    'page_assets' => [
+        'js' => [
+            cms_asset_url('js/admin-plugin-marketplace.js'),
+        ],
+    ],
+    'csrf_action' => 'admin_plugin_mp',
+    'module_file' => __DIR__ . '/modules/plugins/PluginMarketplaceModule.php',
+    'module_factory' => static fn (): PluginMarketplaceModule => new PluginMarketplaceModule(),
+    'access_checker' => static fn (): bool => cms_admin_plugin_marketplace_can_access(),
+    'access_denied_route' => '/',
+    'unknown_action_message' => 'Unbekannte oder nicht erlaubte Aktion.',
+    'post_handler' => static function (PluginMarketplaceModule $module, string $section, array $post): array {
+        if (!cms_admin_plugin_marketplace_can_install()) {
+            return ['success' => false, 'error' => 'Keine Berechtigung für Marketplace-Installationen.'];
+        }
 
-    if (!Security::instance()->verifyToken((string) ($_POST['csrf_token'] ?? ''), 'admin_plugin_mp')) {
-        cms_admin_plugin_marketplace_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
-    } elseif (!isset($allowedActions[$action])) {
-        cms_admin_plugin_marketplace_flash(['type' => 'danger', 'message' => 'Unbekannte oder nicht erlaubte Aktion.']);
-    } else {
-        $result = cms_admin_plugin_marketplace_handle_action($module, $action, $_POST);
-        cms_admin_plugin_marketplace_flash_result($result);
-    }
+        $payload = cms_admin_plugin_marketplace_normalize_payload($post);
+        if ($payload['action'] === '') {
+            return ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'];
+        }
 
-    cms_admin_plugin_marketplace_redirect();
-}
+        if ($payload['action'] === 'install' && $payload['slug'] === '') {
+            return ['success' => false, 'error' => 'Ungültiger Plugin-Slug.'];
+        }
 
-$alert = cms_admin_plugin_marketplace_pull_alert();
+        return cms_admin_plugin_marketplace_handle_action($module, $payload);
+    },
+];
 
-$csrfToken  = Security::instance()->generateToken('admin_plugin_mp');
-$pageTitle  = 'Plugin Marketplace';
-$activePage = 'plugin-marketplace';
-$data       = $module->getData();
-
-require_once __DIR__ . '/partials/header.php';
-require_once __DIR__ . '/partials/sidebar.php';
-require_once __DIR__ . '/views/plugins/marketplace.php';
-require_once __DIR__ . '/partials/footer.php';
+require __DIR__ . '/partials/section-page-shell.php';

@@ -15,6 +15,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Auth;
+use CMS\Security;
 use CMS\Services\EditorJsService;
 use CMS\Services\EditorService;
 
@@ -63,6 +64,20 @@ function cms_admin_pages_normalize_bulk_action(mixed $bulkAction): string
     $normalizedBulkAction = trim((string) $bulkAction);
 
     return in_array($normalizedBulkAction, CMS_ADMIN_PAGES_ALLOWED_BULK_ACTIONS, true) ? $normalizedBulkAction : '';
+}
+
+/**
+ * @return array{apiUrl:string,status:string,category:int,search:string,siteUrl:string}
+ */
+function cms_admin_pages_grid_config(array $listData): array
+{
+    return [
+        'apiUrl' => SITE_URL . '/api/v1/admin/pages',
+        'status' => (string) ($listData['filter'] ?? ''),
+        'category' => (int) ($listData['catFilter'] ?? 0),
+        'search' => (string) ($listData['search'] ?? ''),
+        'siteUrl' => (string) SITE_URL,
+    ];
 }
 
 /**
@@ -131,81 +146,6 @@ function cms_admin_pages_view_config(PagesModule $module, string $view): array
     }
 
     $listData = $module->getListData();
-    $inlineJs = sprintf(
-        "(function(){
-            if(typeof cmsGrid!=='function'){return;}
-            cmsGrid('#pagesGrid', {
-                url: %s,
-                search: false,
-                limit: 20,
-                extraParams: {
-                    status: %s,
-                    category: %s,
-                    search: %s
-                },
-                sortMap: {1:'title',2:'slug',4:'status',6:'created_at'},
-                columns: [
-                    {
-                        id: 'id',
-                        name: gridjs.html('<input class=\"form-check-input bulk-select-all\" type=\"checkbox\" aria-label=\"Alle Seiten auswählen\">'),
-                        sort: false,
-                        formatter: function(cell){
-                            return gridjs.html('<input class=\"form-check-input bulk-row-check\" type=\"checkbox\" value=\"' + encodeURIComponent(cell) + '\" aria-label=\"Seite auswählen\">');
-                        }
-                    },
-                    {
-                        id: 'title',
-                        name: 'Titel',
-                        data: function(row){ return { id: row.id, title: row.title, slug: row.slug }; },
-                        formatter: function(cell){
-                            return gridjs.html(
-                                '<div>' +
-                                    '<a href=\"' + %s + '/admin/pages?action=edit&id=' + encodeURIComponent(cell.id) + '\" class=\"text-reset fw-medium\">' + window.cmsEsc(cell.title || '') + '</a>' +
-                                '</div>'
-                            );
-                        }
-                    },
-                    {
-                        id: 'slug',
-                        name: 'Slug',
-                        formatter: function(cell){ return '/' + window.cmsEsc(cell || ''); }
-                    },
-                    {
-                        id: 'category_name',
-                        name: 'Kategorie',
-                        formatter: function(cell){
-                            return cell ? gridjs.html('<span class=\"badge bg-azure-lt\">' + window.cmsEsc(cell) + '</span>') : '–';
-                        }
-                    },
-                    {
-                        id: 'status',
-                        name: 'Status',
-                        formatter: function(cell){
-                            var map = { published: 'bg-green', draft: 'bg-yellow', private: 'bg-purple' };
-                            var labelMap = { published: 'Veröffentlicht', draft: 'Entwurf', private: 'Privat' };
-                            return gridjs.html('<span class=\"badge ' + (map[cell] || 'bg-secondary') + '\">' + window.cmsEsc(labelMap[cell] || cell || '') + '</span>');
-                        }
-                    },
-                    { id: 'author_name', name: 'Autor' },
-                    { id: 'created_at', name: 'Erstellt am' },
-                    {
-                        id: 'id',
-                        name: '',
-                        sort: false,
-                        formatter: function(cell){
-                            return gridjs.html('<a href=\"' + %s + '/admin/pages?action=edit&id=' + encodeURIComponent(cell) + '\" class=\"btn btn-sm btn-outline-primary\">Bearbeiten</a>');
-                        }
-                    }
-                ]
-            });
-        })();",
-        json_encode(SITE_URL . '/api/v1/admin/pages'),
-        json_encode((string)($listData['filter'] ?? '')),
-        json_encode((int)($listData['catFilter'] ?? 0)),
-        json_encode((string)($listData['search'] ?? '')),
-        json_encode(SITE_URL),
-        json_encode(SITE_URL)
-    );
 
     return [
         'section' => 'list',
@@ -219,11 +159,12 @@ function cms_admin_pages_view_config(PagesModule $module, string $view): array
             'js' => [
                 cms_asset_url('gridjs/gridjs.umd.js'),
                 cms_asset_url('js/gridjs-init.js'),
+                cms_asset_url('js/admin-pages.js'),
             ],
         ],
         'template_vars' => $baseTemplateVars + [
             'listData' => $listData,
-            'inlineJs' => $inlineJs,
+            'pagesGridConfig' => cms_admin_pages_grid_config($listData),
         ],
         'data' => $listData,
     ];

@@ -22,6 +22,11 @@ $statusBadges = [
     'completed' => 'bg-success',
     'rejected' => 'bg-danger',
 ];
+
+$dataRequestsConfig = [
+    'rejectModalId' => 'rejectDataRequestModal',
+    'defaultRejectTitle' => 'Anfrage ablehnen',
+];
 ?>
 
 <div class="page-header d-print-none">
@@ -102,10 +107,10 @@ $statusBadges = [
                                                             <form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="scope" value="privacy"><input type="hidden" name="action" value="complete"><input type="hidden" name="id" value="<?php echo (int)($row['id'] ?? 0); ?>"><button class="dropdown-item text-success">Abschließen &amp; exportieren</button></form>
                                                         <?php endif; ?>
                                                         <?php if (in_array(($row['status'] ?? ''), ['pending', 'processing'], true)): ?>
-                                                            <button type="button" class="dropdown-item text-warning" onclick="openRejectModal('privacy', <?php echo (int)($row['id'] ?? 0); ?>, 'Auskunftsanfrage ablehnen')">Ablehnen</button>
+                                                            <button type="button" class="dropdown-item text-warning js-open-data-request-reject-modal" data-request-scope="privacy" data-request-id="<?php echo (int)($row['id'] ?? 0); ?>" data-request-title="Auskunftsanfrage ablehnen">Ablehnen</button>
                                                         <?php endif; ?>
                                                         <?php if (in_array(($row['status'] ?? ''), ['completed', 'rejected'], true)): ?>
-                                                            <form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="scope" value="privacy"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?php echo (int)($row['id'] ?? 0); ?>"><button class="dropdown-item text-danger" onclick="return confirm('Anfrage endgültig löschen?')">Löschen</button></form>
+                                                            <form method="post" data-confirm-message="Anfrage endgültig löschen?" data-confirm-title="Anfrage löschen" data-confirm-text="Löschen" data-confirm-class="btn-danger" data-confirm-status-class="bg-danger"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="scope" value="privacy"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?php echo (int)($row['id'] ?? 0); ?>"><button class="dropdown-item text-danger">Löschen</button></form>
                                                         <?php endif; ?>
                                                     </div>
                                                 </div>
@@ -165,13 +170,13 @@ $statusBadges = [
                                                             <form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="scope" value="deletion"><input type="hidden" name="action" value="process"><input type="hidden" name="id" value="<?php echo (int)($row['id'] ?? 0); ?>"><button class="dropdown-item">Prüfung starten</button></form>
                                                         <?php endif; ?>
                                                         <?php if (($row['status'] ?? '') === 'processing'): ?>
-                                                            <form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="scope" value="deletion"><input type="hidden" name="action" value="execute"><input type="hidden" name="id" value="<?php echo (int)($row['id'] ?? 0); ?>"><button class="dropdown-item text-danger" onclick="return confirm('Benutzerdaten werden anonymisiert. Fortfahren?')">Löschung durchführen</button></form>
+                                                            <form method="post" data-confirm-message="Benutzerdaten werden anonymisiert. Fortfahren?" data-confirm-title="Löschung durchführen" data-confirm-text="Anonymisieren" data-confirm-class="btn-danger" data-confirm-status-class="bg-danger"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="scope" value="deletion"><input type="hidden" name="action" value="execute"><input type="hidden" name="id" value="<?php echo (int)($row['id'] ?? 0); ?>"><button class="dropdown-item text-danger">Löschung durchführen</button></form>
                                                         <?php endif; ?>
                                                         <?php if (in_array(($row['status'] ?? ''), ['pending', 'processing'], true)): ?>
-                                                            <button type="button" class="dropdown-item text-warning" onclick="openRejectModal('deletion', <?php echo (int)($row['id'] ?? 0); ?>, 'Löschantrag ablehnen')">Ablehnen</button>
+                                                            <button type="button" class="dropdown-item text-warning js-open-data-request-reject-modal" data-request-scope="deletion" data-request-id="<?php echo (int)($row['id'] ?? 0); ?>" data-request-title="Löschantrag ablehnen">Ablehnen</button>
                                                         <?php endif; ?>
                                                         <?php if (in_array(($row['status'] ?? ''), ['completed', 'rejected'], true)): ?>
-                                                            <form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="scope" value="deletion"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?php echo (int)($row['id'] ?? 0); ?>"><button class="dropdown-item text-danger" onclick="return confirm('Antrag endgültig löschen?')">Löschen</button></form>
+                                                            <form method="post" data-confirm-message="Antrag endgültig löschen?" data-confirm-title="Antrag löschen" data-confirm-text="Löschen" data-confirm-class="btn-danger" data-confirm-status-class="bg-danger"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="scope" value="deletion"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?php echo (int)($row['id'] ?? 0); ?>"><button class="dropdown-item text-danger">Löschen</button></form>
                                                         <?php endif; ?>
                                                     </div>
                                                 </div>
@@ -213,11 +218,4 @@ $statusBadges = [
     </div>
 </div>
 
-<script>
-function openRejectModal(scope, id, title) {
-    document.getElementById('rejectScope').value = scope;
-    document.getElementById('rejectRequestId').value = id;
-    document.getElementById('rejectModalTitle').textContent = title;
-    new bootstrap.Modal(document.getElementById('rejectDataRequestModal')).show();
-}
-</script>
+<script type="application/json" id="data-requests-config"><?php echo json_encode($dataRequestsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?></script>

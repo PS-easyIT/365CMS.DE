@@ -31,10 +31,10 @@ $statusBadge = ['ok' => 'bg-success', 'warning' => 'bg-warning', 'critical' => '
     <div class="container-xl">
 
 <?php if (!empty($alert)): ?>
-<div class="alert alert-<?php echo htmlspecialchars((string)($alert['type'] ?? 'info')); ?> alert-dismissible mb-4" role="alert">
-    <div><?php echo htmlspecialchars((string)($alert['message'] ?? '')); ?></div>
-    <a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>
-</div>
+    <?php
+    $alertData = is_array($alert ?? null) ? $alert : [];
+    require dirname(__DIR__) . '/partials/flash-alert.php';
+    ?>
 <?php endif; ?>
 
 <!-- KPI-Karten -->

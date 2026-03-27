@@ -11,50 +11,20 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Auth;
-use CMS\Security;
 
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
+const CMS_ADMIN_PLUGINS_READ_CAPABILITY = 'manage_settings';
+const CMS_ADMIN_PLUGINS_WRITE_CAPABILITY = 'manage_settings';
+
+function cms_admin_plugins_can_access(): bool
+{
+    return Auth::instance()->isAdmin()
+        && Auth::instance()->hasCapability(CMS_ADMIN_PLUGINS_READ_CAPABILITY);
 }
 
-require_once __DIR__ . '/modules/plugins/PluginsModule.php';
-$module = new PluginsModule();
-$alert  = null;
-
-function cms_admin_plugins_target_url(): string
+function cms_admin_plugins_can_mutate(): bool
 {
-    return SITE_URL . '/admin/plugins';
-}
-
-function cms_admin_plugins_redirect(): never
-{
-    header('Location: ' . cms_admin_plugins_target_url());
-    exit;
-}
-
-function cms_admin_plugins_flash(array $payload): void
-{
-    $_SESSION['admin_alert'] = [
-        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
-        'message' => trim((string) ($payload['message'] ?? '')),
-    ];
-}
-
-function cms_admin_plugins_flash_result(array $result): void
-{
-    cms_admin_plugins_flash([
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => (string) ($result['message'] ?? $result['error'] ?? ''),
-    ]);
-}
-
-function cms_admin_plugins_pull_alert(): ?array
-{
-    $alert = $_SESSION['admin_alert'] ?? null;
-    unset($_SESSION['admin_alert']);
-
-    return is_array($alert) ? $alert : null;
+    return cms_admin_plugins_can_access()
+        && Auth::instance()->hasCapability(CMS_ADMIN_PLUGINS_WRITE_CAPABILITY);
 }
 
 /** @return array<string, true> */
@@ -72,42 +42,66 @@ function cms_admin_plugins_normalize_slug(array $post): string
     return (string) preg_replace('/[^a-z0-9_-]/', '', strtolower((string) ($post['slug'] ?? '')));
 }
 
-function cms_admin_plugins_handle_action(PluginsModule $module, string $action, array $post): array
+/**
+ * @return array{action:string,slug:string}
+ */
+function cms_admin_plugins_normalize_payload(array $post): array
 {
-    return match ($action) {
-        'activate' => $module->activatePlugin(cms_admin_plugins_normalize_slug($post)),
-        'deactivate' => $module->deactivatePlugin(cms_admin_plugins_normalize_slug($post)),
-        'delete' => $module->deletePlugin(cms_admin_plugins_normalize_slug($post)),
+    return [
+        'action' => cms_admin_plugins_normalize_action($post['action'] ?? null),
+        'slug' => cms_admin_plugins_normalize_slug($post),
+    ];
+}
+
+function cms_admin_plugins_normalize_action(mixed $action): string
+{
+    $action = strtolower(trim((string) $action));
+
+    return isset(cms_admin_plugins_allowed_actions()[$action]) ? $action : '';
+}
+
+function cms_admin_plugins_handle_action(PluginsModule $module, array $payload): array
+{
+    return match ($payload['action']) {
+        'activate' => $module->activatePlugin($payload['slug']),
+        'deactivate' => $module->deactivatePlugin($payload['slug']),
+        'delete' => $module->deletePlugin($payload['slug']),
         default => ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'],
     };
 }
 
-// POST-Handler: Token ZUERST verifizieren, bevor ein neuer generiert wird
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = trim((string) ($_POST['action'] ?? ''));
-    $allowedActions = cms_admin_plugins_allowed_actions();
+$sectionPageConfig = [
+    'route_path' => '/admin/plugins',
+    'view_file' => __DIR__ . '/views/plugins/list.php',
+    'page_title' => 'Plugins',
+    'active_page' => 'plugins',
+    'page_assets' => [
+        'js' => [
+            cms_asset_url('js/admin-plugins.js'),
+        ],
+    ],
+    'csrf_action' => 'admin_plugins',
+    'module_file' => __DIR__ . '/modules/plugins/PluginsModule.php',
+    'module_factory' => static fn (): PluginsModule => new PluginsModule(),
+    'access_checker' => static fn (): bool => cms_admin_plugins_can_access(),
+    'access_denied_route' => '/',
+    'unknown_action_message' => 'Unbekannte oder nicht erlaubte Aktion.',
+    'post_handler' => static function (PluginsModule $module, string $section, array $post): array {
+        if (!cms_admin_plugins_can_mutate()) {
+            return ['success' => false, 'error' => 'Keine Berechtigung für Plugin-Aktionen.'];
+        }
 
-    if (!Security::instance()->verifyToken((string) ($_POST['csrf_token'] ?? ''), 'admin_plugins')) {
-        cms_admin_plugins_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
-    } elseif (!isset($allowedActions[$action])) {
-        cms_admin_plugins_flash(['type' => 'danger', 'message' => 'Unbekannte oder nicht erlaubte Aktion.']);
-    } else {
-        cms_admin_plugins_flash_result(cms_admin_plugins_handle_action($module, $action, $_POST));
-    }
+        $payload = cms_admin_plugins_normalize_payload($post);
+        if ($payload['action'] === '') {
+            return ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'];
+        }
 
-    cms_admin_plugins_redirect();
-}
+        if ($payload['slug'] === '') {
+            return ['success' => false, 'error' => 'Ungültiger Plugin-Slug.'];
+        }
 
-$alert = cms_admin_plugins_pull_alert();
+        return cms_admin_plugins_handle_action($module, $payload);
+    },
+];
 
-// Token NACH dem POST-Handler generieren (für das Formular-Rendering)
-$csrfToken = Security::instance()->generateToken('admin_plugins');
-
-$pageTitle  = 'Plugins';
-$activePage = 'plugins';
-$data       = $module->getData();
-
-require_once __DIR__ . '/partials/header.php';
-require_once __DIR__ . '/partials/sidebar.php';
-require_once __DIR__ . '/views/plugins/list.php';
-require_once __DIR__ . '/partials/footer.php';
+require __DIR__ . '/partials/section-page-shell.php';

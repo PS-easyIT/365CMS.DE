@@ -121,6 +121,60 @@ function cms_admin_system_monitor_normalize_page_config(array $pageConfig): arra
     ];
 }
 
+/**
+ * @param array{
+ *     section: string,
+ *     route_path: string,
+ *     view_file: string,
+ *     page_title: string,
+ *     active_page: string,
+ *     page_assets: array<int|string, mixed>
+ * } $systemMonitorPageConfig
+ * @return array<string, mixed>
+ */
+function cms_admin_system_monitor_build_section_page_config(array $systemMonitorPageConfig): array
+{
+    return [
+        'section' => $systemMonitorPageConfig['section'],
+        'route_path' => $systemMonitorPageConfig['route_path'],
+        'view_file' => $systemMonitorPageConfig['view_file'],
+        'page_title' => $systemMonitorPageConfig['page_title'],
+        'active_page' => $systemMonitorPageConfig['active_page'],
+        'page_assets' => $systemMonitorPageConfig['page_assets'],
+        'csrf_action' => 'admin_system_info',
+        'guard_constant' => 'CMS_ADMIN_SYSTEM_VIEW',
+        'module_file' => __DIR__ . '/modules/system/SystemInfoModule.php',
+        'module_factory' => static function () {
+            return new SystemInfoModule();
+        },
+        'access_checker' => static function (): bool {
+            return cms_admin_system_monitor_can_access();
+        },
+        'post_handler' => static function ($module, string $section, array $postData): array {
+            if (!$module instanceof SystemInfoModule) {
+                return ['success' => false, 'error' => 'System-Modul konnte nicht initialisiert werden.'];
+            }
+
+            $normalizedSection = cms_admin_system_monitor_normalize_section($section);
+            $action = cms_admin_system_monitor_normalize_action($normalizedSection, $postData['action'] ?? '');
+            if ($action === '') {
+                return ['success' => false, 'error' => 'Unbekannte Aktion.'];
+            }
+
+            if (!cms_admin_system_monitor_can_run_action($normalizedSection, $action)) {
+                return ['success' => false, 'error' => 'Keine Berechtigung für diese Aktion.'];
+            }
+
+            return $module->handleAction($normalizedSection, $action, $postData);
+        },
+        'data_loader' => static function ($module) use ($systemMonitorPageConfig): array {
+            return $module instanceof SystemInfoModule
+                ? $module->getSectionData((string) ($systemMonitorPageConfig['section'] ?? 'info'))
+                : [];
+        },
+    ];
+}
+
 $systemMonitorPageConfig = cms_admin_system_monitor_normalize_page_config(array_merge(
     [
         'section' => $systemSection ?? 'info',
@@ -135,46 +189,6 @@ $systemMonitorPageConfig = cms_admin_system_monitor_normalize_page_config(array_
 
 $systemMonitorPageConfig['section'] = cms_admin_system_monitor_normalize_section((string) ($systemMonitorPageConfig['section'] ?? 'info'));
 
-if (!cms_admin_system_monitor_can_access()) {
-    header('Location: ' . SITE_URL);
-    exit;
-}
-
-$sectionPageConfig = [
-    'section' => $systemMonitorPageConfig['section'],
-    'route_path' => $systemMonitorPageConfig['route_path'],
-    'view_file' => $systemMonitorPageConfig['view_file'],
-    'page_title' => $systemMonitorPageConfig['page_title'],
-    'active_page' => $systemMonitorPageConfig['active_page'],
-    'page_assets' => $systemMonitorPageConfig['page_assets'],
-    'csrf_action' => 'admin_system_info',
-    'guard_constant' => 'CMS_ADMIN_SYSTEM_VIEW',
-    'module_file' => __DIR__ . '/modules/system/SystemInfoModule.php',
-    'module_factory' => static function () {
-        return new SystemInfoModule();
-    },
-    'post_handler' => static function ($module, string $section, array $postData): array {
-        if (!$module instanceof SystemInfoModule) {
-            return ['success' => false, 'error' => 'System-Modul konnte nicht initialisiert werden.'];
-        }
-
-        $normalizedSection = cms_admin_system_monitor_normalize_section($section);
-        $action = cms_admin_system_monitor_normalize_action($normalizedSection, $postData['action'] ?? '');
-        if ($action === '') {
-            return ['success' => false, 'error' => 'Unbekannte Aktion.'];
-        }
-
-        if (!cms_admin_system_monitor_can_run_action($normalizedSection, $action)) {
-            return ['success' => false, 'error' => 'Keine Berechtigung für diese Aktion.'];
-        }
-
-        return $module->handleAction($normalizedSection, $action, $postData);
-    },
-    'data_loader' => static function ($module) use ($systemMonitorPageConfig): array {
-        return $module instanceof SystemInfoModule
-            ? $module->getSectionData((string) ($systemMonitorPageConfig['section'] ?? 'info'))
-            : [];
-    },
-];
+$sectionPageConfig = cms_admin_system_monitor_build_section_page_config($systemMonitorPageConfig);
 
 require __DIR__ . '/partials/section-page-shell.php';

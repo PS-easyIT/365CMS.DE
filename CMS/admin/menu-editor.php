@@ -39,6 +39,19 @@ function cms_admin_menu_editor_normalize_menu_id(mixed $menuId): int
     return $normalizedMenuId === false ? 0 : (int) $normalizedMenuId;
 }
 
+/**
+ * @return array{action:string,menu_id:int,items_json:string,post:array<string,mixed>}
+ */
+function cms_admin_menu_editor_normalize_payload(array $post): array
+{
+    return [
+        'action' => cms_admin_menu_editor_normalize_action($post['action'] ?? ''),
+        'menu_id' => cms_admin_menu_editor_normalize_menu_id($post['menu_id'] ?? 0),
+        'items_json' => (string) ($post['items'] ?? '[]'),
+        'post' => $post,
+    ];
+}
+
 if (!cms_admin_menu_editor_can_access()) {
     header('Location: ' . SITE_URL);
     exit;
@@ -53,19 +66,17 @@ function cms_admin_menu_editor_redirect_path(int $menuId = 0): string
         : '/admin/menu-editor';
 }
 
-/**
- * @return array<string, callable(array): array>
- */
-function cms_admin_menu_editor_action_handlers(MenuEditorModule $module): array
+function cms_admin_menu_editor_handle_action(MenuEditorModule $module, array $payload): array
 {
-    return [
-        'save_menu' => static fn (array $post): array => $module->saveMenu($post),
-        'delete_menu' => static fn (array $post): array => $module->deleteMenu(cms_admin_menu_editor_normalize_menu_id($post['menu_id'] ?? 0)),
-        'save_items' => static fn (array $post): array => $module->saveItems(
-            cms_admin_menu_editor_normalize_menu_id($post['menu_id'] ?? 0),
-            (string) ($post['items'] ?? '[]')
-        ),
-    ];
+    return match ($payload['action']) {
+        'save_menu' => $module->saveMenu($payload['post']),
+        'delete_menu' => $module->deleteMenu($payload['menu_id']),
+        'save_items' => $module->saveItems($payload['menu_id'], $payload['items_json']),
+        default => [
+            'success' => false,
+            'error' => 'Unbekannte Aktion.',
+        ],
+    };
 }
 
 $sectionPageConfig = [
@@ -73,6 +84,11 @@ $sectionPageConfig = [
     'view_file' => __DIR__ . '/views/menus/editor.php',
     'page_title' => 'Menü Editor',
     'active_page' => 'menu-editor',
+    'page_assets' => [
+        'js' => [
+            cms_asset_url('js/admin-menu-editor.js'),
+        ],
+    ],
     'csrf_action' => 'admin_menu_editor',
     'module_file' => __DIR__ . '/modules/menus/MenuEditorModule.php',
     'module_factory' => static fn (): MenuEditorModule => new MenuEditorModule(),
@@ -97,15 +113,13 @@ $sectionPageConfig = [
         return cms_admin_menu_editor_redirect_path($redirectMenuId);
     },
     'post_handler' => static function (MenuEditorModule $module, string $section, array $post): array {
-        $menuId = cms_admin_menu_editor_normalize_menu_id($post['menu_id'] ?? 0);
-        $action = cms_admin_menu_editor_normalize_action($post['action'] ?? '');
-        $handlers = cms_admin_menu_editor_action_handlers($module);
+        $payload = cms_admin_menu_editor_normalize_payload($post);
 
-        if ($action === '' || !isset($handlers[$action])) {
+        if ($payload['action'] === '') {
             return [
                 'success' => false,
                 'error' => 'Unbekannte Aktion.',
-                'redirect_menu_id' => $menuId,
+                'redirect_menu_id' => $payload['menu_id'],
             ];
         }
 
@@ -113,12 +127,20 @@ $sectionPageConfig = [
             return [
                 'success' => false,
                 'error' => 'Keine Berechtigung für diese Aktion.',
-                'redirect_menu_id' => $menuId,
+                'redirect_menu_id' => $payload['menu_id'],
             ];
         }
 
-        $result = $handlers[$action]($post);
-        $result['redirect_menu_id'] = $action === 'delete_menu' ? 0 : $menuId;
+        if (in_array($payload['action'], ['delete_menu', 'save_items'], true) && $payload['menu_id'] <= 0) {
+            return [
+                'success' => false,
+                'error' => 'Ungültige Menü-ID.',
+                'redirect_menu_id' => 0,
+            ];
+        }
+
+        $result = cms_admin_menu_editor_handle_action($module, $payload);
+        $result['redirect_menu_id'] = $payload['action'] === 'delete_menu' ? 0 : $payload['menu_id'];
 
         return $result;
     },

@@ -15,6 +15,10 @@ $alertType = trim((string) ($alertData['type'] ?? 'info'));
 $alertDismissible = (bool) ($alertDismissible ?? true);
 $alertMarginClass = trim((string) ($alertMarginClass ?? 'mb-4'));
 $alertDetails = is_array($alertData['error_details'] ?? null) ? $alertData['error_details'] : [];
+$alertListDetails = array_values(array_filter(array_map(
+    static fn ($detail): string => trim((string) $detail),
+    is_array($alertData['details'] ?? null) ? $alertData['details'] : []
+), static fn (string $detail): bool => $detail !== ''));
 $reportPayload = is_array($alertData['report_payload'] ?? null) ? $alertData['report_payload'] : [];
 $errorCode = trim((string)($alertDetails['code'] ?? ($reportPayload['error_code'] ?? '')));
 $errorData = is_array($alertDetails['data'] ?? null) ? $alertDetails['data'] : (is_array($reportPayload['error_data'] ?? null) ? $reportPayload['error_data'] : []);
@@ -38,6 +42,14 @@ $alertClass = $alertTypeMap[$alertType] ?? 'info';
     <div class="d-flex">
         <div class="w-100">
             <div><?php echo htmlspecialchars($alertMessage, ENT_QUOTES, 'UTF-8'); ?></div>
+
+            <?php if ($alertListDetails !== []): ?>
+                <ul class="mb-0 mt-2 small ps-3">
+                    <?php foreach ($alertListDetails as $detail): ?>
+                        <li><?php echo htmlspecialchars($detail, ENT_QUOTES, 'UTF-8'); ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
 
             <?php if ($errorCode !== '' || $errorData !== [] || $errorContext !== []): ?>
                 <div class="mt-3 small">

@@ -13,6 +13,48 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 use CMS\Security;
 
+const CMS_ADMIN_ROLES_ALLOWED_ACTIONS = [
+    'save_permissions',
+    'add_role',
+    'update_role',
+    'delete_role',
+    'add_capability',
+    'update_capability',
+    'delete_capability',
+];
+
+function cms_admin_roles_normalize_action(mixed $action): string
+{
+    $normalizedAction = trim((string) $action);
+
+    return in_array($normalizedAction, CMS_ADMIN_ROLES_ALLOWED_ACTIONS, true) ? $normalizedAction : '';
+}
+
+/**
+ * @return array{action:string,post:array<string,mixed>}
+ */
+function cms_admin_roles_normalize_payload(array $post): array
+{
+    return [
+        'action' => cms_admin_roles_normalize_action($post['action'] ?? ''),
+        'post' => $post,
+    ];
+}
+
+function cms_admin_roles_handle_action(RolesModule $module, array $payload): array
+{
+    return match ($payload['action']) {
+        'save_permissions' => $module->savePermissions($payload['post']),
+        'add_role' => $module->addRole($payload['post']),
+        'update_role' => $module->updateRole($payload['post']),
+        'delete_role' => $module->deleteRole($payload['post']),
+        'add_capability' => $module->addCapability($payload['post']),
+        'update_capability' => $module->updateCapability($payload['post']),
+        'delete_capability' => $module->deleteCapability($payload['post']),
+        default => ['success' => false, 'error' => 'Unbekannte Aktion.'],
+    };
+}
+
 if (!Auth::instance()->isAdmin()) {
     header('Location: ' . SITE_URL);
     exit;
@@ -30,17 +72,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $action = $_POST['action'] ?? '';
-    $result = match ($action) {
-        'save_permissions' => $module->savePermissions($_POST),
-        'add_role' => $module->addRole($_POST),
-        'update_role' => $module->updateRole($_POST),
-        'delete_role' => $module->deleteRole($_POST),
-        'add_capability' => $module->addCapability($_POST),
-        'update_capability' => $module->updateCapability($_POST),
-        'delete_capability' => $module->deleteCapability($_POST),
-        default => ['success' => false, 'error' => 'Unbekannte Aktion.'],
-    };
+    $payload = cms_admin_roles_normalize_payload($_POST);
+    $result = cms_admin_roles_handle_action($module, $payload);
 
     $_SESSION['admin_alert'] = [
         'type'    => $result['success'] ? 'success' : 'danger',
@@ -60,7 +93,11 @@ $csrfToken  = Security::instance()->generateToken('admin_roles');
 $data       = $module->getData();
 $pageTitle  = 'Rollen & Rechte';
 $activePage = 'roles';
-$pageAssets = [];
+$pageAssets = [
+    'js' => [
+        cms_asset_url('js/admin-users.js'),
+    ],
+];
 
 require __DIR__ . '/partials/header.php';
 require __DIR__ . '/partials/sidebar.php';

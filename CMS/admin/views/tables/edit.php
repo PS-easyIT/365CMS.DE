@@ -21,6 +21,10 @@ $description = htmlspecialchars($table['description'] ?? '');
 $columns     = $table['columns'] ?? [];
 $rows        = $table['rows'] ?? [];
 $settings    = $table['settings'] ?? $defaults;
+$tableEditorConfig = [
+    'columns' => $columns,
+    'rows' => $rows,
+];
 ?>
 
 <div class="page-header d-print-none">
@@ -224,125 +228,4 @@ $settings    = $table['settings'] ?? $defaults;
         </form>
     </div>
 </div>
-
-<script>
-(function() {
-    var columns = <?php echo json_encode($columns, JSON_UNESCAPED_UNICODE); ?>;
-    var rows    = <?php echo json_encode($rows, JSON_UNESCAPED_UNICODE); ?>;
-
-    var columnsBody = document.getElementById('columnsBody');
-    var rowsHead    = document.getElementById('rowsHead').querySelector('tr');
-    var rowsBody    = document.getElementById('rowsBody');
-    var noRowsHint  = document.getElementById('noRowsHint');
-
-    function renderColumns() {
-        columnsBody.innerHTML = '';
-        columns.forEach(function(col, i) {
-            var tr = document.createElement('tr');
-            tr.innerHTML = '<td><input type="text" class="form-control form-control-sm" value="' + escapeAttr(col.label || '') + '" data-col-idx="' + i + '" onchange="window._tblUpdateColLabel(this)"></td>' +
-                '<td><button type="button" class="btn btn-ghost-danger btn-icon btn-sm" onclick="window._tblRemoveCol(' + i + ')" title="Spalte entfernen">' +
-                '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 6l-12 12"/><path d="M6 6l12 12"/></svg></button></td>';
-            columnsBody.appendChild(tr);
-        });
-        renderRowsHead();
-        renderRows();
-    }
-
-    function renderRowsHead() {
-        rowsHead.innerHTML = '';
-        columns.forEach(function(col) {
-            var th = document.createElement('th');
-            th.textContent = col.label || '—';
-            rowsHead.appendChild(th);
-        });
-        var thAction = document.createElement('th');
-        thAction.className = 'w-1';
-        rowsHead.appendChild(thAction);
-    }
-
-    function renderRows() {
-        rowsBody.innerHTML = '';
-        if (columns.length === 0 || rows.length === 0) {
-            noRowsHint.classList.toggle('d-none', rows.length > 0);
-            return;
-        }
-        noRowsHint.classList.add('d-none');
-        rows.forEach(function(row, ri) {
-            var tr = document.createElement('tr');
-            columns.forEach(function(col) {
-                var td = document.createElement('td');
-                var input = document.createElement('input');
-                input.type = 'text';
-                input.className = 'form-control form-control-sm';
-                input.value = row[col.label] || '';
-                input.dataset.rowIdx = ri;
-                input.dataset.colLabel = col.label;
-                input.onchange = function() { rows[ri][col.label] = this.value; };
-                td.appendChild(input);
-                tr.appendChild(td);
-            });
-            var tdAction = document.createElement('td');
-            tdAction.innerHTML = '<button type="button" class="btn btn-ghost-danger btn-icon btn-sm" onclick="window._tblRemoveRow(' + ri + ')">' +
-                '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 6l-12 12"/><path d="M6 6l12 12"/></svg></button>';
-            tr.appendChild(tdAction);
-            rowsBody.appendChild(tr);
-        });
-    }
-
-    function escapeAttr(s) {
-        return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-
-    // Public API
-    window._tblUpdateColLabel = function(input) {
-        var idx = parseInt(input.dataset.colIdx, 10);
-        var oldLabel = columns[idx].label;
-        var newLabel = input.value.trim() || 'Spalte ' + (idx+1);
-        columns[idx].label = newLabel;
-        // Zeilen-Keys umbenennen
-        rows.forEach(function(row) {
-            if (oldLabel !== newLabel && row.hasOwnProperty(oldLabel)) {
-                row[newLabel] = row[oldLabel];
-                delete row[oldLabel];
-            }
-        });
-        renderRowsHead();
-        renderRows();
-    };
-
-    window._tblRemoveCol = function(idx) {
-        var label = columns[idx].label;
-        columns.splice(idx, 1);
-        rows.forEach(function(row) { delete row[label]; });
-        renderColumns();
-    };
-
-    window._tblRemoveRow = function(idx) {
-        rows.splice(idx, 1);
-        renderRows();
-    };
-
-    document.getElementById('addColumn').addEventListener('click', function() {
-        var label = 'Spalte ' + (columns.length + 1);
-        columns.push({ label: label, type: 'text' });
-        renderColumns();
-    });
-
-    document.getElementById('addRow').addEventListener('click', function() {
-        if (columns.length === 0) return;
-        var row = {};
-        columns.forEach(function(col) { row[col.label] = ''; });
-        rows.push(row);
-        renderRows();
-    });
-
-    // Vor Submit JSON serialisieren
-    document.getElementById('tableForm').addEventListener('submit', function() {
-        document.getElementById('columnsJsonInput').value = JSON.stringify(columns);
-        document.getElementById('rowsJsonInput').value = JSON.stringify(rows);
-    });
-
-    // Initial rendern
-    renderColumns();
-})();
-</script>
+<script type="application/json" id="site-tables-editor-config"><?php echo json_encode($tableEditorConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?></script>

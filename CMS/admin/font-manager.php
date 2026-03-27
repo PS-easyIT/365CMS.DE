@@ -67,17 +67,31 @@ function cms_admin_font_manager_normalize_google_font_family(array $post): strin
 }
 
 /**
- * @return array<string, callable(array): array>
+ * @return array{action:?string,font_id:int,google_font_family:string}
  */
-function cms_admin_font_manager_action_handlers(FontManagerModule $module): array
+function cms_admin_font_manager_normalize_payload(array $post): array
 {
     return [
-        'save' => static fn (array $post): array => $module->saveSettings($post),
-        'scan_theme_fonts' => static fn (array $post): array => $module->scanThemeFonts(),
-        'delete_font' => static fn (array $post): array => $module->deleteCustomFont(cms_admin_font_manager_normalize_font_id($post)),
-        'download_google_font' => static fn (array $post): array => $module->downloadGoogleFont(cms_admin_font_manager_normalize_google_font_family($post)),
-        'download_detected_fonts' => static fn (array $post): array => $module->downloadDetectedFonts(),
+        'action' => cms_admin_font_manager_normalize_action(trim((string) ($post['action'] ?? ''))),
+        'font_id' => cms_admin_font_manager_normalize_font_id($post),
+        'google_font_family' => cms_admin_font_manager_normalize_google_font_family($post),
     ];
+}
+
+function cms_admin_font_manager_handle_action(
+    FontManagerModule $module,
+    array $payload,
+    array $post
+): array
+{
+    return match ($payload['action'] ?? null) {
+        'save' => $module->saveSettings($post),
+        'scan_theme_fonts' => $module->scanThemeFonts(),
+        'delete_font' => $module->deleteCustomFont((int) ($payload['font_id'] ?? 0)),
+        'download_google_font' => $module->downloadGoogleFont((string) ($payload['google_font_family'] ?? '')),
+        'download_detected_fonts' => $module->downloadDetectedFonts(),
+        default => ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'],
+    };
 }
 
 $sectionPageConfig = [
@@ -85,6 +99,11 @@ $sectionPageConfig = [
     'view_file' => __DIR__ . '/views/themes/fonts.php',
     'page_title' => 'Font Manager',
     'active_page' => 'font-manager',
+    'page_assets' => [
+        'js' => [
+            cms_asset_url('js/admin-font-manager.js'),
+        ],
+    ],
     'csrf_action' => 'admin_font_manager',
     'module_file' => __DIR__ . '/modules/themes/FontManagerModule.php',
     'module_factory' => static fn (): FontManagerModule => new FontManagerModule(),
@@ -97,14 +116,12 @@ $sectionPageConfig = [
             return ['success' => false, 'error' => 'Keine Berechtigung für Font-Änderungen.'];
         }
 
-        $action = cms_admin_font_manager_normalize_action((string) ($post['action'] ?? ''));
-        $handlers = cms_admin_font_manager_action_handlers($module);
-
-        if ($action === null || !isset($handlers[$action])) {
+        $normalizedPost = cms_admin_font_manager_normalize_payload($post);
+        if ($normalizedPost['action'] === null) {
             return ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'];
         }
 
-        return $handlers[$action]($post);
+        return cms_admin_font_manager_handle_action($module, $normalizedPost, $post);
     },
 ];
 

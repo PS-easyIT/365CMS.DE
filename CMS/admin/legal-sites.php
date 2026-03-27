@@ -14,6 +14,69 @@ use CMS\Auth;
 
 const CMS_ADMIN_LEGAL_SITES_READ_CAPABILITY = 'manage_settings';
 const CMS_ADMIN_LEGAL_SITES_WRITE_CAPABILITY = 'manage_settings';
+const CMS_ADMIN_LEGAL_SITES_LEGAL_KEYS = [
+    'legal_imprint',
+    'legal_privacy',
+    'legal_terms',
+    'legal_revocation',
+];
+const CMS_ADMIN_LEGAL_SITES_ASSIGNMENT_KEYS = [
+    'imprint_page_id',
+    'privacy_page_id',
+    'terms_page_id',
+    'revocation_page_id',
+];
+const CMS_ADMIN_LEGAL_SITES_PROFILE_KEYS = [
+    'legal_profile_entity_type',
+    'legal_profile_company_name',
+    'legal_profile_legal_form',
+    'legal_profile_owner_name',
+    'legal_profile_managing_director',
+    'legal_profile_content_responsible',
+    'legal_profile_street',
+    'legal_profile_postal_code',
+    'legal_profile_city',
+    'legal_profile_country',
+    'legal_profile_email',
+    'legal_profile_phone',
+    'legal_profile_website',
+    'legal_profile_register_court',
+    'legal_profile_register_number',
+    'legal_profile_vat_id',
+    'legal_profile_dispute_participation',
+    'legal_profile_hosting_provider',
+    'legal_profile_hosting_address',
+    'legal_profile_privacy_contact_name',
+    'legal_profile_privacy_contact_email',
+    'legal_profile_analytics_name',
+    'legal_profile_newsletter_provider',
+    'legal_profile_external_media_providers',
+    'legal_profile_webfonts_source',
+    'legal_profile_webfonts_provider',
+    'legal_profile_payment_providers',
+    'legal_profile_essential_cookie_name',
+    'legal_profile_essential_cookie_purpose',
+    'legal_profile_additional_service_name',
+    'legal_profile_additional_service_provider',
+    'legal_profile_additional_service_purpose',
+    'legal_profile_terms_scope',
+    'legal_profile_contract_type',
+    'legal_profile_return_costs',
+];
+const CMS_ADMIN_LEGAL_SITES_PROFILE_BOOLEAN_KEYS = [
+    'legal_profile_analytics_self_hosted',
+    'legal_profile_minimal_privacy_mode',
+    'legal_profile_service_start_notice',
+    'legal_profile_has_cookies',
+    'legal_profile_has_contact_form',
+    'legal_profile_has_registration',
+    'legal_profile_has_comments',
+    'legal_profile_has_newsletter',
+    'legal_profile_has_analytics',
+    'legal_profile_has_external_media',
+    'legal_profile_has_webfonts',
+    'legal_profile_has_shop',
+];
 
 function cms_admin_legal_sites_can_access(): bool
 {
@@ -53,29 +116,91 @@ function cms_admin_legal_sites_normalize_template_type(array $post): string
     return in_array($type, ['imprint', 'privacy', 'terms', 'revocation'], true) ? $type : '';
 }
 
-/**
- * @return array<string, callable(array, int): array>
- */
-function cms_admin_legal_sites_action_handlers(LegalSitesModule $module): array
+function cms_admin_legal_sites_normalize_positive_id(mixed $value): int
 {
-    return [
-        'save' => static fn (array $post, int $userId): array => $module->save($post),
-        'save_profile' => static fn (array $post, int $userId): array => $module->saveProfile($post),
-        'generate' => static fn (array $post, int $userId): array => $module->generateTemplate(cms_admin_legal_sites_normalize_template_type($post)),
-        'create_page' => static fn (array $post, int $userId): array => $module->createOrUpdatePage(cms_admin_legal_sites_normalize_template_type($post), $userId),
-        'create_all_pages' => static fn (array $post, int $userId): array => $module->createOrUpdateAllPages($userId),
-    ];
+    $normalizedId = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+    return $normalizedId === false ? 0 : (int) $normalizedId;
 }
 
-function cms_admin_legal_sites_handle_action(LegalSitesModule $module, string $action, array $post, int $userId): array
+function cms_admin_legal_sites_normalize_text(mixed $value, int $maxLength = 4000): string
 {
-    $handlers = cms_admin_legal_sites_action_handlers($module);
+    $normalizedValue = trim((string) $value);
+    $normalizedValue = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/u', '', $normalizedValue) ?? '';
 
-    if (!isset($handlers[$action])) {
-        return ['success' => false, 'error' => 'Unbekannte Aktion.'];
+    return function_exists('mb_substr')
+        ? mb_substr($normalizedValue, 0, $maxLength)
+        : substr($normalizedValue, 0, $maxLength);
+}
+
+/** @return array<string, mixed> */
+function cms_admin_legal_sites_normalize_save_payload(array $post): array
+{
+    $normalized = [];
+
+    foreach (CMS_ADMIN_LEGAL_SITES_LEGAL_KEYS as $key) {
+        if (array_key_exists($key, $post)) {
+            $normalized[$key] = (string) ($post[$key] ?? '');
+        }
     }
 
-    return $handlers[$action]($post, $userId);
+    foreach (CMS_ADMIN_LEGAL_SITES_ASSIGNMENT_KEYS as $key) {
+        if (array_key_exists($key, $post)) {
+            $normalized[$key] = (string) cms_admin_legal_sites_normalize_positive_id($post[$key] ?? 0);
+        }
+    }
+
+    return $normalized;
+}
+
+/** @return array<string, mixed> */
+function cms_admin_legal_sites_normalize_profile_payload(array $post): array
+{
+    $normalized = [];
+
+    foreach (CMS_ADMIN_LEGAL_SITES_PROFILE_KEYS as $key) {
+        if (!array_key_exists($key, $post)) {
+            continue;
+        }
+
+        $normalized[$key] = cms_admin_legal_sites_normalize_text($post[$key] ?? '', 4000);
+    }
+
+    foreach (CMS_ADMIN_LEGAL_SITES_PROFILE_BOOLEAN_KEYS as $key) {
+        $normalized[$key] = array_key_exists($key, $post) ? '1' : '0';
+    }
+
+    return $normalized;
+}
+
+/** @return array<string, mixed> */
+function cms_admin_legal_sites_normalize_action_payload(string $action, array $post): array
+{
+    return match ($action) {
+        'save' => cms_admin_legal_sites_normalize_save_payload($post),
+        'save_profile' => cms_admin_legal_sites_normalize_profile_payload($post),
+        'generate', 'create_page' => [
+            'template_type' => cms_admin_legal_sites_normalize_template_type($post),
+        ],
+        default => [],
+    };
+}
+
+function cms_admin_legal_sites_handle_action(
+    LegalSitesModule $module,
+    string $action,
+    array $post,
+    int $userId,
+    string $templateType = ''
+): array {
+    return match ($action) {
+        'save' => $module->save($post),
+        'save_profile' => $module->saveProfile($post),
+        'generate' => $module->generateTemplate($templateType),
+        'create_page' => $module->createOrUpdatePage($templateType, $userId),
+        'create_all_pages' => $module->createOrUpdateAllPages($userId),
+        default => ['success' => false, 'error' => 'Unbekannte Aktion.'],
+    };
 }
 
 function cms_admin_legal_sites_sync_profile_state(string $action, array $result): void
@@ -119,6 +244,11 @@ $sectionPageConfig = [
     'view_file' => __DIR__ . '/views/legal/sites.php',
     'page_title' => 'Legal Sites',
     'active_page' => 'legal-sites',
+    'page_assets' => [
+        'js' => [
+            cms_asset_url('js/admin-legal-sites.js'),
+        ],
+    ],
     'csrf_action' => 'admin_legal_sites',
     'module_file' => __DIR__ . '/modules/legal/LegalSitesModule.php',
     'module_factory' => static fn (): LegalSitesModule => new LegalSitesModule(),
@@ -141,12 +271,18 @@ $sectionPageConfig = [
             return ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'];
         }
 
-        if (in_array($action, ['generate', 'create_page'], true) && cms_admin_legal_sites_normalize_template_type($post) === '') {
+        $normalizedPost = cms_admin_legal_sites_normalize_action_payload($action, $post);
+
+        $templateType = in_array($action, ['generate', 'create_page'], true)
+            ? (string) ($normalizedPost['template_type'] ?? '')
+            : '';
+
+        if (in_array($action, ['generate', 'create_page'], true) && $templateType === '') {
             return ['success' => false, 'error' => 'Ungültiger Vorlagentyp.'];
         }
 
         $userId = (int) (Auth::instance()->getCurrentUser()->id ?? 0);
-        $result = cms_admin_legal_sites_handle_action($module, $action, $post, $userId);
+        $result = cms_admin_legal_sites_handle_action($module, $action, $normalizedPost, $userId, $templateType);
         cms_admin_legal_sites_sync_profile_state($action, $result);
 
         return $result;

@@ -79,9 +79,16 @@ $isSelectedPlan = static fn (int $planId): string => $defaultPlanId === $planId 
                                     <?php endforeach; ?>
                                 </select>
                             </div>
-                            <div class="alert alert-warning mb-0" role="alert">
-                                Dieser Bereich enthält bewusst nur <strong>Standardverhalten</strong> der Aboverwaltung. Paketdetails, Preise, Testphase, Steuern und Bestellprozesse pflegen Sie direkt auf den Bereichen <strong>Pakete &amp; Abo-Einstellungen</strong> sowie <strong>Bestellungen &amp; Zuweisung</strong>.
-                            </div>
+                            <?php
+                            $alertData = [
+                                'type' => 'warning',
+                                'message' => 'Dieser Bereich enthält bewusst nur Standardverhalten der Aboverwaltung.',
+                                'details' => ['Paketdetails, Preise, Testphase, Steuern und Bestellprozesse pflegen Sie direkt auf den Bereichen Pakete & Abo-Einstellungen sowie Bestellungen & Zuweisung.'],
+                            ];
+                            $alertDismissible = false;
+                            $alertMarginClass = 'mb-0';
+                            require __DIR__ . '/../partials/flash-alert.php';
+                            ?>
                         </div>
                     </div>
                 </div>

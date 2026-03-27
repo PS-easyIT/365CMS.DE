@@ -15,11 +15,13 @@ use CMS\Database;
 use CMS\ThemeManager;
 use CMS\AuditLogger;
 use CMS\Http\Client as HttpClient;
+use CMS\Logger;
 
 class FontManagerModule
 {
     private Database $db;
     private string $prefix;
+    private Logger $logger;
     private const MAX_REMOTE_FONT_FILES = 20;
     private const MAX_FONT_FILENAME_LENGTH = 180;
 
@@ -112,6 +114,7 @@ class FontManagerModule
     {
         $this->db     = Database::instance();
         $this->prefix = $this->db->getPrefix();
+        $this->logger = Logger::instance()->withChannel('admin.font-manager');
     }
 
     /**
@@ -268,7 +271,14 @@ class FontManagerModule
                     : 'Schrifteinstellungen gespeichert. Google-Fonts-Fallback bleibt aktiv.',
             ];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+            $this->logger->error('Schrifteinstellungen konnten nicht gespeichert werden.', [
+                'exception' => $e,
+                'heading_font' => (string) ($post['heading_font'] ?? ''),
+                'body_font' => (string) ($post['body_font'] ?? ''),
+                'use_local_fonts' => isset($post['use_local_fonts']),
+            ]);
+
+            return ['success' => false, 'error' => 'Schrifteinstellungen konnten nicht gespeichert werden.'];
         }
     }
 
@@ -341,7 +351,12 @@ class FontManagerModule
 
             return ['success' => true, 'message' => $message];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+            $this->logger->error('Lokale Schriftart konnte nicht gelöscht werden.', [
+                'font_id' => $fontId,
+                'exception' => $e,
+            ]);
+
+            return ['success' => false, 'error' => 'Schriftart konnte nicht gelöscht werden.'];
         }
     }
 

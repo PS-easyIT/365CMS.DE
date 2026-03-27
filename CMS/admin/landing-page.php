@@ -64,19 +64,29 @@ function cms_admin_landing_page_tab_url(string $tab): string
 }
 
 /**
- * @return array<string, callable(array): array>
+ * @return array{action:string,feature_id:int,post:array<string,mixed>}
  */
-function cms_admin_landing_page_action_handlers(LandingPageModule $module): array
+function cms_admin_landing_page_normalize_payload(array $post): array
 {
     return [
-        'save_header' => static fn (array $post): array => $module->saveHeader($post),
-        'save_content' => static fn (array $post): array => $module->saveContent($post),
-        'save_footer' => static fn (array $post): array => $module->saveFooter($post),
-        'save_design' => static fn (array $post): array => $module->saveDesign($post),
-        'save_feature' => static fn (array $post): array => $module->saveFeature($post),
-        'delete_feature' => static fn (array $post): array => $module->deleteFeature(cms_admin_landing_page_normalize_positive_id($post['feature_id'] ?? 0)),
-        'save_plugin' => static fn (array $post): array => $module->savePlugin($post),
+        'action' => cms_admin_landing_page_normalize_action($post['action'] ?? ''),
+        'feature_id' => cms_admin_landing_page_normalize_positive_id($post['feature_id'] ?? 0),
+        'post' => $post,
     ];
+}
+
+function cms_admin_landing_page_handle_action(LandingPageModule $module, array $payload): array
+{
+    return match ($payload['action']) {
+        'save_header' => $module->saveHeader($payload['post']),
+        'save_content' => $module->saveContent($payload['post']),
+        'save_footer' => $module->saveFooter($payload['post']),
+        'save_design' => $module->saveDesign($payload['post']),
+        'save_feature' => $module->saveFeature($payload['post']),
+        'delete_feature' => $module->deleteFeature($payload['feature_id']),
+        'save_plugin' => $module->savePlugin($payload['post']),
+        default => ['success' => false, 'error' => 'Unbekannte Aktion.'],
+    };
 }
 
 $sectionPageConfig = [
@@ -105,18 +115,17 @@ $sectionPageConfig = [
             return ['success' => false, 'error' => 'Keine Berechtigung für diese Aktion.'];
         }
 
-        $action = cms_admin_landing_page_normalize_action($post['action'] ?? '');
-        $handlers = cms_admin_landing_page_action_handlers($module);
+        $payload = cms_admin_landing_page_normalize_payload($post);
 
-        if ($action === '' || !isset($handlers[$action])) {
+        if ($payload['action'] === '') {
             return ['success' => false, 'error' => 'Unbekannte Aktion.'];
         }
 
-        if ($action === 'delete_feature' && cms_admin_landing_page_normalize_positive_id($post['feature_id'] ?? 0) < 1) {
+        if ($payload['action'] === 'delete_feature' && $payload['feature_id'] < 1) {
             return ['success' => false, 'error' => 'Ungültige Feature-ID.'];
         }
 
-        return $handlers[$action]($post);
+        return cms_admin_landing_page_handle_action($module, $payload);
     },
 ];
 

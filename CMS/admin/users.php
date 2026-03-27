@@ -60,6 +60,20 @@ function cms_admin_users_normalize_bulk_action(mixed $bulkAction): string
 }
 
 /**
+ * @return array{action:string,id:int,bulk_action:string,ids:array<int,int>,post:array<string,mixed>}
+ */
+function cms_admin_users_normalize_payload(array $post): array
+{
+    return [
+        'action' => cms_admin_users_normalize_action($post['action'] ?? ''),
+        'id' => cms_admin_users_normalize_positive_id($post['id'] ?? 0),
+        'bulk_action' => cms_admin_users_normalize_bulk_action($post['bulk_action'] ?? ''),
+        'ids' => cms_admin_users_normalize_bulk_ids($post['ids'] ?? []),
+        'post' => $post,
+    ];
+}
+
+/**
  * @return array<int,int>
  */
 function cms_admin_users_normalize_bulk_ids(mixed $ids): array
@@ -78,6 +92,21 @@ function cms_admin_users_normalize_bulk_ids(mixed $ids): array
     }
 
     return array_values($normalizedIds);
+}
+
+/**
+ * @param array<string,mixed> $data
+ * @return array<string,mixed>
+ */
+function cms_admin_users_grid_config(array $data): array
+{
+    return [
+        'apiUrl' => SITE_URL . '/api/v1/admin/users',
+        'role' => (string) ($data['filter']['role'] ?? ''),
+        'status' => (string) ($data['filter']['status'] ?? ''),
+        'search' => (string) ($data['filter']['search'] ?? ''),
+        'siteUrl' => (string) SITE_URL,
+    ];
 }
 
 /**
@@ -123,82 +152,6 @@ function cms_admin_users_view_config(UsersModule $module, string $view, ?int $ed
     }
 
     $data = $module->getListData();
-    $siteUrlJson = json_encode(SITE_URL);
-    $inlineJs = sprintf(
-        "(function(){
-            if(typeof cmsGrid!=='function'){return;}
-            cmsGrid('#usersGrid', {
-                url: %s,
-                search: false,
-                limit: 20,
-                extraParams: {
-                    role: %s,
-                    status: %s,
-                    search: %s
-                },
-                sortMap: {0:'username',1:'email',2:'role',3:'status',4:'created_at'},
-                columns: [
-                    {
-                        id: 'username',
-                        name: 'Benutzer',
-                        data: function(row){ return { id: row.id, username: row.username, display_name: row.display_name, role: row.role }; },
-                        formatter: function(cell){
-                            var initials = (cell.username || '').substring(0, 2).toUpperCase();
-                            return gridjs.html(
-                                '<div class=\"d-flex align-items-center\">' +
-                                    '<span class=\"avatar avatar-sm me-2 bg-azure\">' + window.cmsEsc(initials) + '</span>' +
-                                    '<div>' +
-                                        '<a href=\"' + %s + '/admin/users?action=edit&id=' + encodeURIComponent(cell.id) + '\" class=\"text-reset\">' + window.cmsEsc(cell.username || '') + '</a>' +
-                                        (cell.display_name ? '<div class=\"text-secondary small\">' + window.cmsEsc(cell.display_name) + '</div>' : '') +
-                                    '</div>' +
-                                '</div>'
-                            );
-                        }
-                    },
-                    { id: 'email', name: 'E-Mail' },
-                    {
-                        id: 'role',
-                        name: 'Rolle',
-                        formatter: function(cell){
-                            return gridjs.html('<span class=\"badge bg-azure-lt\">' + window.cmsEsc(cell || '') + '</span>');
-                        }
-                    },
-                    {
-                        id: 'status',
-                        name: 'Status',
-                        formatter: function(cell){
-                            var map = { active: 'green', inactive: 'yellow', banned: 'red' };
-                            var labelMap = { active: 'Aktiv', inactive: 'Inaktiv', banned: 'Gesperrt' };
-                            var cls = map[cell] || 'secondary';
-                            var label = labelMap[cell] || cell || '';
-                            return gridjs.html('<span class=\"badge bg-' + cls + '-lt\">' + window.cmsEsc(label) + '</span>');
-                        }
-                    },
-                    {
-                        id: 'created_at',
-                        name: 'Registriert',
-                        formatter: function(cell){
-                            return cell ? window.cmsEsc(String(cell).substring(0, 10).split('-').reverse().join('.')) : '–';
-                        }
-                    },
-                    {
-                        id: 'id',
-                        name: '',
-                        sort: false,
-                        formatter: function(cell){
-                            return gridjs.html('<a href=\"' + %s + '/admin/users?action=edit&id=' + encodeURIComponent(cell) + '\" class=\"btn btn-ghost-primary btn-icon btn-sm\" title=\"Bearbeiten\">✎</a>');
-                        }
-                    }
-                ]
-            });
-        })();",
-        json_encode(SITE_URL . '/api/v1/admin/users'),
-        json_encode((string) ($data['filter']['role'] ?? '')),
-        json_encode((string) ($data['filter']['status'] ?? '')),
-        json_encode((string) ($data['filter']['search'] ?? '')),
-        $siteUrlJson,
-        $siteUrlJson
-    );
 
     return [
         'view_file' => __DIR__ . '/views/users/list.php',
@@ -211,10 +164,11 @@ function cms_admin_users_view_config(UsersModule $module, string $view, ?int $ed
             'js' => [
                 cms_asset_url('gridjs/gridjs.umd.js'),
                 cms_asset_url('js/gridjs-init.js'),
+                cms_asset_url('js/admin-users.js'),
             ],
         ],
         'template_vars' => [
-            'inlineJs' => $inlineJs,
+            'usersGridConfig' => cms_admin_users_grid_config($data),
         ],
         'data' => $data,
     ];
@@ -250,14 +204,15 @@ $sectionPageConfig = [
         return cms_admin_users_target_url();
     },
     'post_handler' => static function (UsersModule $module, string $section, array $post): array {
-        $action = cms_admin_users_normalize_action($post['action'] ?? '');
-        if ($action === '') {
+        $payload = cms_admin_users_normalize_payload($post);
+
+        if ($payload['action'] === '') {
             return ['success' => false, 'error' => 'Unbekannte Benutzer-Aktion.'];
         }
 
-        if ($action === 'save') {
-            $result = $module->save($post);
-            $savedId = cms_admin_users_normalize_positive_id($result['id'] ?? ($post['id'] ?? 0));
+        if ($payload['action'] === 'save') {
+            $result = $module->save($payload['post']);
+            $savedId = cms_admin_users_normalize_positive_id($result['id'] ?? ($payload['post']['id'] ?? 0));
 
             if (!empty($result['success']) && $savedId > 0) {
                 $result['redirect_path'] = cms_admin_users_target_url($savedId);
@@ -270,33 +225,29 @@ $sectionPageConfig = [
                 $module,
                 'edit',
                 $savedId > 0 ? $savedId : null,
-                $post
+                $payload['post']
             );
 
             return $result;
         }
 
-        if ($action === 'delete') {
-            $id = cms_admin_users_normalize_positive_id($post['id'] ?? 0);
-            if ($id < 1) {
+        if ($payload['action'] === 'delete') {
+            if ($payload['id'] < 1) {
                 return ['success' => false, 'error' => 'Ungültige Benutzer-ID.'];
             }
 
-            return $module->deleteUser($id);
+            return $module->deleteUser($payload['id']);
         }
 
-        $bulkAction = cms_admin_users_normalize_bulk_action($post['bulk_action'] ?? '');
-        $ids = cms_admin_users_normalize_bulk_ids($post['ids'] ?? []);
-
-        if ($bulkAction === '') {
+        if ($payload['bulk_action'] === '') {
             return ['success' => false, 'error' => 'Unbekannte Bulk-Aktion für Benutzer.'];
         }
 
-        if ($ids === []) {
+        if ($payload['ids'] === []) {
             return ['success' => false, 'error' => 'Bitte mindestens einen gültigen Benutzer auswählen.'];
         }
 
-        return $module->bulkAction($bulkAction, $ids);
+        return $module->bulkAction($payload['bulk_action'], $payload['ids']);
     },
 ];
 

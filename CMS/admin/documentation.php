@@ -69,14 +69,20 @@ function cms_admin_documentation_normalize_action($value): ?string
     return in_array($action, cms_admin_documentation_allowed_actions(), true) ? $action : null;
 }
 
-/**
- * @return array<string, callable(): DocumentationSyncActionResult>
- */
-function cms_admin_documentation_action_handlers(DocumentationModule $module): array
+/** @return array{action:?string} */
+function cms_admin_documentation_normalize_post_payload(array $post): array
 {
     return [
-        'sync_docs' => static fn (): DocumentationSyncActionResult => $module->syncDocsFromRepository(),
+        'action' => cms_admin_documentation_normalize_action($post['action'] ?? null),
     ];
+}
+
+function cms_admin_documentation_handle_action(DocumentationModule $module, ?string $action): DocumentationSyncActionResult
+{
+    return match ($action) {
+        'sync_docs' => $module->syncDocsFromRepository(),
+        default => new DocumentationSyncActionResult(false, null, 'Unbekannte oder nicht erlaubte Aktion.'),
+    };
 }
 
 $sectionPageConfig = [
@@ -95,12 +101,9 @@ $sectionPageConfig = [
     'redirect_path_resolver' => static fn (): string => cms_admin_documentation_redirect_url(cms_admin_documentation_normalize_selected_doc($_GET['doc'] ?? null)),
     'invalid_token_message' => 'Sicherheitstoken ungültig.',
     'unknown_action_message' => 'Unbekannte oder nicht erlaubte Aktion.',
-    'post_handler' => static function (DocumentationModule $module): array {
-        $action = cms_admin_documentation_normalize_action($_POST['action'] ?? null);
-        $handler = cms_admin_documentation_action_handlers($module)[$action] ?? null;
-        $result = is_callable($handler)
-            ? $handler()
-            : new DocumentationSyncActionResult(false, null, 'Unbekannte oder nicht erlaubte Aktion.');
+    'post_handler' => static function (DocumentationModule $module, string $section, array $post): array {
+        $normalizedPost = cms_admin_documentation_normalize_post_payload($post);
+        $result = cms_admin_documentation_handle_action($module, $normalizedPost['action']);
 
         return [
             'success' => $result->isSuccess(),

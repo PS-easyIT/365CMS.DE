@@ -22,6 +22,11 @@ $view       = $data['view'] ?? 'list';
 $search     = $data['search'] ?? '';
 $confirmMember = (string)($_GET['confirm_member'] ?? '') === '1';
 $memberFolderConfirmMessage = 'Der Member-Bereich enthält sensible Uploads. Möchten Sie den Ordner wirklich öffnen?';
+$mediaLibraryConfig = [
+    'memberFolderConfirmMessage' => $memberFolderConfirmMessage,
+    'deleteFormId' => 'deleteMediaForm',
+    'deletePathFieldId' => 'deleteMediaPath',
+];
 
 function mediaAdminUrl(array $params = []): string {
     $params = array_filter($params, static fn($value): bool => $value !== '' && $value !== null);
@@ -241,13 +246,18 @@ $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
 
             <div class="card-body">
                 <?php if ($view === 'finder'): ?>
-                    <div class="alert alert-info" role="alert">
-                        <div class="d-flex">
-                            <div>
-                                Der Datei-Manager läuft im Admin-Kontext. Änderungen werden direkt im Upload-Verzeichnis ausgeführt.
-                            </div>
-                        </div>
-                    </div>
+                    <?php
+                    $alertData = [
+                        'type' => 'info',
+                        'message' => 'Der Datei-Manager läuft im Admin-Kontext.',
+                        'details' => [
+                            'Änderungen werden direkt im Upload-Verzeichnis ausgeführt.',
+                        ],
+                    ];
+                    $alertDismissible = false;
+                    $alertMarginClass = 'mb-3';
+                    require __DIR__ . '/../partials/flash-alert.php';
+                    ?>
                     <div
                         id="cmsElfinder"
                         data-elfinder
@@ -288,7 +298,7 @@ $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
                                 $requiresConfirm = mediaFolderRequiresConfirmation($folderPath) && !$confirmMember;
                                 ?>
                                 <div class="media-grid-item media-grid-folder">
-                                    <a href="<?php echo htmlspecialchars($folderUrl); ?>" class="text-decoration-none text-reset media-folder-link" <?php echo $requiresConfirm ? 'data-confirm-url="' . htmlspecialchars($confirmUrl, ENT_QUOTES) . '" onclick="return confirmMemberFolderAccess(this);"' : ''; ?>>
+                                    <a href="<?php echo htmlspecialchars($folderUrl); ?>" class="text-decoration-none text-reset media-folder-link" <?php echo $requiresConfirm ? 'data-member-folder-confirm="1" data-confirm-url="' . htmlspecialchars($confirmUrl, ENT_QUOTES) . '"' : ''; ?>>
                                         <div class="media-grid-thumb"><span class="folder-icon">📁</span></div>
                                         <div class="media-grid-label"><?php echo htmlspecialchars($folderName); ?></div>
                                         <div class="media-grid-meta"><?php echo (int)($folder['items_count'] ?? 0); ?> Einträge</div>
@@ -314,7 +324,7 @@ $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
                                     <div class="media-grid-label"><?php echo htmlspecialchars($fname); ?></div>
                                     <div class="media-grid-meta"><?php echo htmlspecialchars($file['category'] ?? 'Ohne Kategorie'); ?></div>
                                     <div class="p-2 pt-0 text-center">
-                                        <button type="button" class="btn btn-ghost-danger btn-icon btn-sm" title="Löschen" onclick="deleteMedia('<?php echo htmlspecialchars(addslashes($fpath), ENT_QUOTES); ?>', '<?php echo htmlspecialchars(addslashes($fname), ENT_QUOTES); ?>', 'Datei')">
+                                        <button type="button" class="btn btn-ghost-danger btn-icon btn-sm js-media-delete" title="Löschen" data-delete-path="<?php echo htmlspecialchars($fpath, ENT_QUOTES); ?>" data-delete-name="<?php echo htmlspecialchars($fname, ENT_QUOTES); ?>" data-delete-type="Datei">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/></svg>
                                         </button>
                                     </div>
@@ -357,7 +367,7 @@ $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
                                         <tr>
                                             <td><span class="folder-icon">📁</span></td>
                                             <td>
-                                                <a href="<?php echo htmlspecialchars($folderUrl); ?>" class="fw-semibold text-reset media-folder-link" <?php echo $requiresConfirm ? 'data-confirm-url="' . htmlspecialchars($confirmUrl, ENT_QUOTES) . '" onclick="return confirmMemberFolderAccess(this);"' : ''; ?>>
+                                                <a href="<?php echo htmlspecialchars($folderUrl); ?>" class="fw-semibold text-reset media-folder-link" <?php echo $requiresConfirm ? 'data-member-folder-confirm="1" data-confirm-url="' . htmlspecialchars($confirmUrl, ENT_QUOTES) . '"' : ''; ?>>
                                                     <?php echo htmlspecialchars($folderName); ?>
                                                 </a>
                                             </td>
@@ -372,7 +382,7 @@ $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
                                             <td class="text-secondary"><?php echo !empty($folder['modified']) ? htmlspecialchars(date('d.m.Y H:i', (int)$folder['modified'])) : '—'; ?></td>
                                             <td>
                                                 <?php if (empty($folder['is_system'])): ?>
-                                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteMedia('<?php echo htmlspecialchars(addslashes($folderPath), ENT_QUOTES); ?>', '<?php echo htmlspecialchars(addslashes($folderName), ENT_QUOTES); ?>', 'Ordner')">Löschen</button>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger js-media-delete" data-delete-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-delete-name="<?php echo htmlspecialchars($folderName, ENT_QUOTES); ?>" data-delete-type="Ordner">Löschen</button>
                                                 <?php else: ?>
                                                     <span class="badge bg-secondary-lt">System</span>
                                                 <?php endif; ?>
@@ -431,7 +441,7 @@ $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
                                             <td class="text-secondary"><?php echo htmlspecialchars($fsize); ?></td>
                                             <td class="text-secondary"><?php echo !empty($file['modified']) ? htmlspecialchars(date('d.m.Y H:i', (int)$file['modified'])) : '—'; ?></td>
                                             <td>
-                                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteMedia('<?php echo htmlspecialchars(addslashes($fpath), ENT_QUOTES); ?>', '<?php echo htmlspecialchars(addslashes($fname), ENT_QUOTES); ?>', 'Datei')">Löschen</button>
+                                                <button type="button" class="btn btn-sm btn-outline-danger js-media-delete" data-delete-path="<?php echo htmlspecialchars($fpath, ENT_QUOTES); ?>" data-delete-name="<?php echo htmlspecialchars($fname, ENT_QUOTES); ?>" data-delete-type="Datei">Löschen</button>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -512,38 +522,6 @@ $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
     <input type="hidden" name="item_path" id="deleteMediaPath">
 </form>
 
-<script>
-function confirmMemberFolderAccess(link) {
-    var targetUrl = link.getAttribute('data-confirm-url') || link.getAttribute('href');
-    var message = <?php echo json_encode($memberFolderConfirmMessage, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
-
-    if (!window.confirm(message)) {
-        return false;
-    }
-
-    window.location.href = targetUrl;
-    return false;
-}
-
-function deleteMedia(path, name, itemType) {
-    var submitDelete = function() {
-        document.getElementById('deleteMediaPath').value = path;
-        document.getElementById('deleteMediaForm').submit();
-    };
-
-    if (typeof cmsConfirm === 'function') {
-        cmsConfirm({
-            title: itemType + ' löschen',
-            message: name + ' wirklich löschen?',
-            confirmText: 'Löschen',
-            confirmClass: 'btn-danger',
-            onConfirm: submitDelete
-        });
-        return;
-    }
-
-    if (window.confirm(name + ' wirklich löschen?')) {
-        submitDelete();
-    }
-}
+<script type="application/json" id="media-library-config">
+<?php echo json_encode($mediaLibraryConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>
 </script>

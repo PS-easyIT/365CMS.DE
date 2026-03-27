@@ -16,7 +16,12 @@ $permalinkService = class_exists('\CMS\Services\PermalinkService') ? \CMS\Servic
 ?>
 <div class="page-header d-print-none"><div class="container-xl"><div class="row g-2 align-items-center"><div class="col"><div class="page-pretitle">SEO</div><h2 class="page-title">Meta-Daten & Variablen</h2></div></div></div></div>
 <div class="page-body"><div class="container-xl">
-    <?php if (!empty($alert)): ?><div class="alert alert-<?= htmlspecialchars($alert['type']) ?> alert-dismissible" role="alert"><div><?= htmlspecialchars($alert['message']) ?></div><a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a></div><?php endif; ?>
+    <?php if (!empty($alert)): ?>
+        <?php
+        $alertData = is_array($alert ?? null) ? $alert : [];
+        require dirname(__DIR__) . '/partials/flash-alert.php';
+        ?>
+    <?php endif; ?>
     <?php require __DIR__ . '/subnav.php'; ?>
     <div class="row g-4">
         <div class="col-lg-7">

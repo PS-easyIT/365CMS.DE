@@ -26,6 +26,7 @@ $categories = $listData['categories'] ?? [];
 $filter  = $listData['filter'];
 $catFilter = (int)($listData['catFilter'] ?? 0);
 $search  = $listData['search'];
+$pagesGridConfig = is_array($pagesGridConfig ?? null) ? $pagesGridConfig : [];
 
 $statusLabels = [
     'published' => ['Veröffentlicht', 'bg-green'],
@@ -103,14 +104,14 @@ $statusLabels = [
             <div class="card-header">
                 <h3 class="card-title">Alle Seiten</h3>
                 <div class="card-actions">
-                    <form method="get" action="<?= $siteUrl ?>/admin/pages" class="d-flex gap-2">
-                        <select name="status" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+                    <form method="get" action="<?= $siteUrl ?>/admin/pages" class="d-flex gap-2 js-pages-filter-form">
+                        <select name="status" class="form-select form-select-sm js-pages-filter-submit" style="width: auto;">
                             <option value="">Alle Status</option>
                             <option value="published"<?= $filter === 'published' ? ' selected' : '' ?>>Veröffentlicht</option>
                             <option value="draft"<?= $filter === 'draft' ? ' selected' : '' ?>>Entwürfe</option>
                             <option value="private"<?= $filter === 'private' ? ' selected' : '' ?>>Privat</option>
                         </select>
-                        <select name="category" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+                        <select name="category" class="form-select form-select-sm js-pages-filter-submit" style="width: auto;">
                             <option value="0">Alle Kategorien</option>
                             <?php foreach ($categories as $category): ?>
                                 <option value="<?= (int)($category['id'] ?? 0) ?>"<?= $catFilter === (int)($category['id'] ?? 0) ? ' selected' : '' ?>><?= htmlspecialchars((string)($category['option_label'] ?? $category['name'] ?? '')) ?></option>
@@ -158,115 +159,5 @@ $statusLabels = [
     </div><!-- /.container-xl -->
 </div><!-- /.page-body -->
 
-<script>
-(function() {
-    var gridRoot = document.getElementById('pagesGrid');
-    var bulkForm = document.getElementById('bulkFormPages');
-    var bulkBar = document.getElementById('bulkBarPages');
-    var countEl = document.getElementById('selectedCountPages');
-    var bulkActionSelect = bulkForm ? bulkForm.querySelector('[name="bulk_action"]') : null;
-    var bulkCategorySelect = document.getElementById('bulkCategoryPages');
-    var selectedIds = new Set();
-
-    if (!gridRoot || !bulkForm || !bulkBar || !countEl) {
-        return;
-    }
-
-    function updateBulkActionUi() {
-        if (!bulkActionSelect || !bulkCategorySelect) {
-            return;
-        }
-
-        var requiresCategory = bulkActionSelect.value === 'set_category';
-        bulkCategorySelect.classList.toggle('d-none', !requiresCategory);
-        bulkCategorySelect.required = requiresCategory;
-
-        if (!requiresCategory) {
-            bulkCategorySelect.value = '0';
-        }
-    }
-
-    function syncInputs() {
-        gridRoot.querySelectorAll('.bulk-row-check').forEach(function(checkbox) {
-            checkbox.checked = selectedIds.has(String(checkbox.value));
-        });
-
-        var allCheckboxes = Array.prototype.slice.call(gridRoot.querySelectorAll('.bulk-row-check'));
-        var selectAll = gridRoot.querySelector('.bulk-select-all');
-        if (selectAll) {
-            selectAll.checked = allCheckboxes.length > 0 && allCheckboxes.every(function(checkbox) {
-                return checkbox.checked;
-            });
-        }
-    }
-
-    function updateBulkState() {
-        countEl.textContent = String(selectedIds.size);
-        bulkBar.classList.toggle('d-none', selectedIds.size === 0);
-        syncInputs();
-    }
-
-    gridRoot.addEventListener('change', function(event) {
-        var target = event.target;
-
-        if (target.classList.contains('bulk-row-check')) {
-            if (target.checked) {
-                selectedIds.add(String(target.value));
-            } else {
-                selectedIds.delete(String(target.value));
-            }
-            updateBulkState();
-            return;
-        }
-
-        if (target.classList.contains('bulk-select-all')) {
-            gridRoot.querySelectorAll('.bulk-row-check').forEach(function(checkbox) {
-                checkbox.checked = target.checked;
-                if (target.checked) {
-                    selectedIds.add(String(checkbox.value));
-                } else {
-                    selectedIds.delete(String(checkbox.value));
-                }
-            });
-            updateBulkState();
-        }
-    });
-
-    bulkForm.addEventListener('submit', function(event) {
-        bulkForm.querySelectorAll('input[name="ids[]"]').forEach(function(input) {
-            input.remove();
-        });
-
-        if (selectedIds.size === 0) {
-            event.preventDefault();
-            return;
-        }
-
-        if (bulkActionSelect && bulkActionSelect.value === 'set_category' && bulkCategorySelect && bulkCategorySelect.value === '0') {
-            event.preventDefault();
-            bulkCategorySelect.focus();
-            return;
-        }
-
-        selectedIds.forEach(function(id) {
-            var input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'ids[]';
-            input.value = id;
-            bulkForm.appendChild(input);
-        });
-    });
-
-    var observer = new MutationObserver(function() {
-        syncInputs();
-    });
-
-    observer.observe(gridRoot, { childList: true, subtree: true });
-    if (bulkActionSelect) {
-        bulkActionSelect.addEventListener('change', updateBulkActionUi);
-    }
-    updateBulkActionUi();
-    updateBulkState();
-})();
-</script>
+<script type="application/json" id="pages-grid-config"><?php echo json_encode($pagesGridConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?></script>
 

@@ -11,6 +11,7 @@ if (!defined('ABSPATH')) {
  */
 
 use CMS\Auth;
+use CMS\Security;
 use CMS\Services\EditorJsService;
 use CMS\Services\EditorService;
 

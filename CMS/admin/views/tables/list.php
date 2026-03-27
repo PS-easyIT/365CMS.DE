@@ -83,9 +83,9 @@ $search = $data['search'] ?? '';
                             <span class="input-icon-addon">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="10" cy="10" r="7"/><path d="M21 21l-6 -6"/></svg>
                             </span>
-                            <input type="text" class="form-control form-control-sm" id="searchInput" placeholder="Suchen…"
+                            <input type="text" class="form-control form-control-sm js-site-tables-search-input" id="searchInput" placeholder="Suchen…"
                                    value="<?php echo htmlspecialchars($search); ?>"
-                                   onkeydown="if(event.key==='Enter'){var q=this.value.trim();window.location.href='<?php echo htmlspecialchars(SITE_URL); ?>/admin/site-tables'+(q?'?q='+encodeURIComponent(q):'');}">
+                                   data-search-url="<?php echo htmlspecialchars(SITE_URL . '/admin/site-tables', ENT_QUOTES); ?>">
                         </div>
                     </div>
                 </div>
@@ -140,9 +140,13 @@ $search = $data['search'] ?? '';
                                             <a class="dropdown-item" href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/site-tables?action=edit&id=<?php echo (int)$t['id']; ?>">
                                                 Bearbeiten
                                             </a>
-                                            <button class="dropdown-item" onclick="duplicateTable(<?php echo (int)$t['id']; ?>)">Duplizieren</button>
+                                            <button type="button" class="dropdown-item js-site-table-duplicate" data-table-id="<?php echo (int)$t['id']; ?>">Duplizieren</button>
                                             <div class="dropdown-divider"></div>
-                                            <button class="dropdown-item text-danger" onclick="deleteTable(<?php echo (int)$t['id']; ?>, '<?php echo htmlspecialchars(addslashes($t['table_name']), ENT_QUOTES); ?>')">Löschen</button>
+                                            <button type="button" class="dropdown-item text-danger js-site-table-delete"
+                                                    data-table-id="<?php echo (int)$t['id']; ?>"
+                                                    data-table-name="<?php echo htmlspecialchars((string) $t['table_name'], ENT_QUOTES); ?>">
+                                                Löschen
+                                            </button>
                                         </div>
                                     </div>
                                 </td>
@@ -168,22 +172,3 @@ $search = $data['search'] ?? '';
     <input type="hidden" name="action" value="duplicate">
     <input type="hidden" name="id" id="duplicateId">
 </form>
-
-<script>
-function deleteTable(id, name) {
-    cmsConfirm({
-        title: 'Tabelle löschen',
-        message: 'Tabelle <strong>' + name + '</strong> wirklich löschen?',
-        confirmText: 'Löschen',
-        confirmClass: 'btn-danger',
-        onConfirm: function() {
-            document.getElementById('deleteId').value = id;
-            document.getElementById('deleteForm').submit();
-        }
-    });
-}
-function duplicateTable(id) {
-    document.getElementById('duplicateId').value = id;
-    document.getElementById('duplicateForm').submit();
-}
-</script>

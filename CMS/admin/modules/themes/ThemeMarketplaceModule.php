@@ -311,7 +311,7 @@ class ThemeMarketplaceModule
             }
 
             if ($this->isAllowedMarketplaceUrl($sourceBase)) {
-                $resolved = rtrim($sourceBase, '/') . '/' . ltrim($value, '/');
+                $resolved = $this->resolveAllowedRelativeMarketplaceUrl($sourceBase, $value);
                 if ($this->isAllowedMarketplaceUrl($resolved)) {
                     return $resolved;
                 }
@@ -333,7 +333,12 @@ class ThemeMarketplaceModule
         }
 
         if ($this->isAllowedMarketplaceUrl($sourceBase)) {
-            return $this->fetchRemoteJson(rtrim($sourceBase, '/') . '/' . ltrim($manifest, '/'));
+            $remoteManifestUrl = $this->resolveAllowedRelativeMarketplaceUrl($sourceBase, $manifest);
+            if ($remoteManifestUrl !== '') {
+                return $this->fetchRemoteJson($remoteManifestUrl);
+            }
+
+            return [];
         }
 
         $relativeManifestPath = $this->normalizeRelativeCatalogPath($manifest);
@@ -401,7 +406,7 @@ class ThemeMarketplaceModule
             }
 
             if ($this->isAllowedMarketplaceUrl($sourceBase)) {
-                $resolved = rtrim($sourceBase, '/') . '/' . ltrim($value, '/');
+                $resolved = $this->resolveAllowedRelativeMarketplaceUrl($sourceBase, $value);
                 if ($this->isAllowedMarketplaceUrl($resolved)) {
                     return $resolved;
                 }
@@ -449,11 +454,17 @@ class ThemeMarketplaceModule
 
         return $downloadUrl !== ''
             && $integrityHash !== ''
+            && $this->meetsEnvironmentRequirements($theme)
             && $this->isAllowedMarketplaceUrl($downloadUrl);
     }
 
     private function getManualInstallReason(array $theme): string
     {
+        $compatibilityReason = $this->getCompatibilityFailureReason($theme);
+        if ($compatibilityReason !== '') {
+            return $compatibilityReason;
+        }
+
         $purchaseUrl = trim((string)($theme['purchase_url'] ?? ''));
         if ($this->normalizeBooleanValue($theme['is_paid'] ?? false) && $purchaseUrl !== '') {
             return 'Kostenpflichtiges Theme – bitte zuerst über den Marketplace erwerben oder anfragen.';
@@ -783,5 +794,41 @@ class ThemeMarketplaceModule
         }
 
         return implode('/', $segments);
+    }
+
+    private function resolveAllowedRelativeMarketplaceUrl(string $sourceBase, string $path): string
+    {
+        $relativePath = $this->normalizeRelativeCatalogPath($path);
+        if ($relativePath === '' || !$this->isAllowedMarketplaceUrl($sourceBase)) {
+            return '';
+        }
+
+        $resolved = rtrim($sourceBase, '/') . '/' . $relativePath;
+
+        return $this->isAllowedMarketplaceUrl($resolved) ? $resolved : '';
+    }
+
+    private function meetsEnvironmentRequirements(array $theme): bool
+    {
+        return $this->getCompatibilityFailureReason($theme) === '';
+    }
+
+    private function getCompatibilityFailureReason(array $theme): string
+    {
+        $requiresCms = trim((string) ($theme['requires_cms'] ?? ''));
+        $requiresPhp = trim((string) ($theme['requires_php'] ?? ''));
+        $currentCms = defined('CMS_VERSION')
+            ? (string) CMS_VERSION
+            : (class_exists('\CMS\\Version') ? (string) \CMS\Version::CURRENT : '0.0.0');
+
+        if ($requiresCms !== '' && version_compare($currentCms, $requiresCms, '<')) {
+            return 'Theme erfordert mindestens 365CMS ' . $requiresCms . '.';
+        }
+
+        if ($requiresPhp !== '' && version_compare(PHP_VERSION, $requiresPhp, '<')) {
+            return 'Theme erfordert mindestens PHP ' . $requiresPhp . '.';
+        }
+
+        return '';
     }
 }

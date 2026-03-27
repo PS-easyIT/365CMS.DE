@@ -410,9 +410,149 @@
         });
     }
 
+    function parseConfig(id) {
+        var element = document.getElementById(id);
+        if (!element) {
+            return null;
+        }
+
+        try {
+            return JSON.parse(element.textContent || '{}');
+        } catch (error) {
+            console.error('Media-Konfiguration konnte nicht gelesen werden.', error);
+            return null;
+        }
+    }
+
+    function initMediaLibraryActions() {
+        var config = parseConfig('media-library-config') || {};
+        var deleteFormId = config.deleteFormId || 'deleteMediaForm';
+        var deletePathFieldId = config.deletePathFieldId || 'deleteMediaPath';
+        var memberFolderConfirmMessage = config.memberFolderConfirmMessage || 'Diesen Ordner wirklich öffnen?';
+        var deleteForm = document.getElementById(deleteFormId);
+        var deletePathField = document.getElementById(deletePathFieldId);
+
+        document.querySelectorAll('[data-member-folder-confirm="1"]').forEach(function (link) {
+            link.addEventListener('click', function (event) {
+                var targetUrl = link.getAttribute('data-confirm-url') || link.getAttribute('href') || '';
+                if (!targetUrl) {
+                    return;
+                }
+
+                event.preventDefault();
+                if (window.confirm(memberFolderConfirmMessage)) {
+                    window.location.href = targetUrl;
+                }
+            });
+        });
+
+        if (!deleteForm || !deletePathField) {
+            return;
+        }
+
+        function submitDelete(path) {
+            deletePathField.value = path;
+
+            if (typeof deleteForm.requestSubmit === 'function') {
+                deleteForm.requestSubmit();
+                return;
+            }
+
+            deleteForm.submit();
+        }
+
+        document.querySelectorAll('.js-media-delete').forEach(function (button) {
+            button.addEventListener('click', function () {
+                var path = button.dataset.deletePath || '';
+                var name = button.dataset.deleteName || 'Element';
+                var itemType = button.dataset.deleteType || 'Element';
+                var message = name + ' wirklich löschen?';
+
+                if (!path) {
+                    return;
+                }
+
+                if (typeof cmsConfirm === 'function') {
+                    cmsConfirm({
+                        title: itemType + ' löschen',
+                        message: message,
+                        confirmText: 'Löschen',
+                        confirmClass: 'btn-danger',
+                        onConfirm: function () {
+                            submitDelete(path);
+                        }
+                    });
+                    return;
+                }
+
+                if (window.confirm(message)) {
+                    submitDelete(path);
+                }
+            });
+        });
+    }
+
+    function initMediaCategoryActions() {
+        var config = parseConfig('media-categories-config') || {};
+        var deleteFormId = config.deleteFormId || 'deleteCatForm';
+        var deleteSlugFieldId = config.deleteSlugFieldId || 'deleteCatSlug';
+        var deleteTitle = config.deleteTitle || 'Kategorie löschen';
+        var deleteConfirmText = config.deleteConfirmText || 'Löschen';
+        var deleteConfirmClass = config.deleteConfirmClass || 'btn-danger';
+        var messageTemplate = config.deleteMessageTemplate || 'Kategorie {name} wirklich löschen?';
+        var deleteForm = document.getElementById(deleteFormId);
+        var deleteSlugField = document.getElementById(deleteSlugFieldId);
+
+        if (!deleteForm || !deleteSlugField) {
+            return;
+        }
+
+        function submitDelete(slug) {
+            deleteSlugField.value = slug;
+
+            if (typeof deleteForm.requestSubmit === 'function') {
+                deleteForm.requestSubmit();
+                return;
+            }
+
+            deleteForm.submit();
+        }
+
+        document.querySelectorAll('.js-media-category-delete').forEach(function (button) {
+            button.addEventListener('click', function () {
+                var slug = button.dataset.deleteSlug || '';
+                var name = button.dataset.deleteName || 'Kategorie';
+                var message = messageTemplate.replace('{name}', name);
+
+                if (!slug) {
+                    return;
+                }
+
+                if (typeof cmsConfirm === 'function') {
+                    cmsConfirm({
+                        title: deleteTitle,
+                        message: message,
+                        confirmText: deleteConfirmText,
+                        confirmClass: deleteConfirmClass,
+                        onConfirm: function () {
+                            submitDelete(slug);
+                        }
+                    });
+                    return;
+                }
+
+                if (window.confirm(message)) {
+                    submitDelete(slug);
+                }
+            });
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         initFilePond();
         initElfinder();
         initMediaPickers();
+        initMediaLibraryActions();
+        initMediaCategoryActions();
     });
 })();

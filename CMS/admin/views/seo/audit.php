@@ -29,10 +29,10 @@ $scoreLabels = ['good' => 'Gut', 'warning' => 'Warnung', 'bad' => 'Kritisch'];
 <div class="page-body">
     <div class="container-xl">
         <?php if (!empty($alert)): ?>
-            <div class="alert alert-<?= htmlspecialchars($alert['type']) ?> alert-dismissible" role="alert">
-                <div><?= htmlspecialchars($alert['message']) ?></div>
-                <a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>
-            </div>
+            <?php
+            $alertData = is_array($alert ?? null) ? $alert : [];
+            require dirname(__DIR__) . '/partials/flash-alert.php';
+            ?>
         <?php endif; ?>
 
         <?php require __DIR__ . '/subnav.php'; ?>

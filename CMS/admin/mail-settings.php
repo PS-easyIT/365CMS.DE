@@ -100,24 +100,34 @@ function cms_admin_mail_settings_is_action_allowed_for_tab(string $action, strin
 }
 
 /**
- * @return array<string, callable(array): MailSettingsActionResult>
+ * @return array{tab:string,action:?string,post:array<string,mixed>}
  */
-function cms_admin_mail_settings_action_handlers(MailSettingsModule $module): array
+function cms_admin_mail_settings_normalize_payload(array $post, string $section): array
 {
     return [
-        'save_transport' => static fn (array $post): MailSettingsActionResult => $module->saveTransport($post),
-        'save_azure' => static fn (array $post): MailSettingsActionResult => $module->saveAzure($post),
-        'save_graph' => static fn (array $post): MailSettingsActionResult => $module->saveGraph($post),
-        'save_queue' => static fn (array $post): MailSettingsActionResult => $module->saveQueue($post),
-        'send_test_email' => static fn (array $post): MailSettingsActionResult => $module->sendTestEmail($post),
-        'run_queue_now' => static fn (array $post): MailSettingsActionResult => $module->runQueueNow($post),
-        'release_queue_stale' => static fn (array $post): MailSettingsActionResult => $module->releaseQueueStale(),
-        'enqueue_queue_test' => static fn (array $post): MailSettingsActionResult => $module->enqueueQueueTestEmail($post),
-        'test_graph_connection' => static fn (array $post): MailSettingsActionResult => $module->testGraphConnection(),
-        'clear_logs' => static fn (array $post): MailSettingsActionResult => $module->clearLogs(),
-        'clear_azure_cache' => static fn (array $post): MailSettingsActionResult => $module->clearAzureCache(),
-        'clear_graph_cache' => static fn (array $post): MailSettingsActionResult => $module->clearGraphCache(),
+        'tab' => cms_admin_mail_settings_normalize_tab((string) ($post['tab'] ?? $section)),
+        'action' => cms_admin_mail_settings_normalize_action((string) ($post['action'] ?? '')),
+        'post' => $post,
     ];
+}
+
+function cms_admin_mail_settings_handle_action(MailSettingsModule $module, array $payload): MailSettingsActionResult
+{
+    return match ($payload['action']) {
+        'save_transport' => $module->saveTransport($payload['post']),
+        'save_azure' => $module->saveAzure($payload['post']),
+        'save_graph' => $module->saveGraph($payload['post']),
+        'save_queue' => $module->saveQueue($payload['post']),
+        'send_test_email' => $module->sendTestEmail($payload['post']),
+        'run_queue_now' => $module->runQueueNow($payload['post']),
+        'release_queue_stale' => $module->releaseQueueStale(),
+        'enqueue_queue_test' => $module->enqueueQueueTestEmail($payload['post']),
+        'test_graph_connection' => $module->testGraphConnection(),
+        'clear_logs' => $module->clearLogs(),
+        'clear_azure_cache' => $module->clearAzureCache(),
+        'clear_graph_cache' => $module->clearGraphCache(),
+        default => MailSettingsActionResult::failure('Unbekannte oder nicht erlaubte Aktion.'),
+    };
 }
 
 $sectionPageConfig = [
@@ -156,20 +166,19 @@ $sectionPageConfig = [
             return ['success' => false, 'error' => 'Keine Berechtigung für Mail- und OAuth2-Änderungen.', 'redirect_tab' => cms_admin_mail_settings_normalize_tab((string) ($post['tab'] ?? $section))];
         }
 
-        $currentTab = cms_admin_mail_settings_normalize_tab((string) ($post['tab'] ?? $section));
-        $action = cms_admin_mail_settings_normalize_action((string) ($post['action'] ?? ''));
-        $handlers = cms_admin_mail_settings_action_handlers($module);
+        $payload = cms_admin_mail_settings_normalize_payload($post, $section);
+        $currentTab = $payload['tab'];
 
-        if ($action === null || !isset($handlers[$action])) {
+        if ($payload['action'] === null) {
             return ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.', 'redirect_tab' => $currentTab];
         }
 
-        $actionTab = cms_admin_mail_settings_resolve_action_tab($action, $currentTab);
-        if (!cms_admin_mail_settings_is_action_allowed_for_tab($action, $currentTab)) {
+        $actionTab = cms_admin_mail_settings_resolve_action_tab($payload['action'], $currentTab);
+        if (!cms_admin_mail_settings_is_action_allowed_for_tab($payload['action'], $currentTab)) {
             return ['success' => false, 'error' => 'Aktion passt nicht zum gewählten Bereich.', 'redirect_tab' => $actionTab];
         }
 
-        $result = $handlers[$action]($post)->toArray();
+        $result = cms_admin_mail_settings_handle_action($module, $payload)->toArray();
         $result['redirect_tab'] = $actionTab;
 
         return $result;

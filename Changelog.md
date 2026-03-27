@@ -1,4 +1,4 @@
-﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.228-blue.svg)](https://shields.io/)
+﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.287-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,596 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.7.287 — 26. März 2026 · Audit-Batch 369, Plugin-Marketplace-Katalog weiter gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.287** | 🔴 fix | Admin/Plugins | **`CMS/admin/modules/plugins/PluginMarketplaceModule.php` verwirft jetzt kollidierende Manifest-Slugs und dedupliziert doppelte Katalogeinträge pro Plugin-Slug**: Der Marketplace hält seinen Remote-Katalogpfad damit konsistenter, bevor Download- und Update-URLs weiter aufgelöst werden. |
+| **2.7.287** | 🟠 perf | Admin/Plugins | **Installierte Plugin-Verzeichnisse werden für den Marketplace jetzt als normalisierte Slug-Map aufgebaut statt linear gegen rohe Ordnernamen geprüft**: Die Installationsmarkierung spart dadurch unnötige Mehrfach-Lookups über den Katalog. |
+| **2.7.287** | 🟡 refactor | Admin/Plugins | **Manifestdaten fließen nur noch als skalare allowlist-basierte Metadaten in den Katalog ein**: Das hält den Marketplace-Vertrag klarer zwischen Registry, Manifest und finaler Installationsentscheidung getrennt. |
+
+---
+
+### v2.7.286 — 26. März 2026 · Audit-Batch 368, Error-Report-Vertrag weiter gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.286** | 🔴 fix | Admin/System | **`CMS/admin/error-report.php` reicht Fehlerreports jetzt nur noch als gezielt normalisierte Payloads weiter**: Titel, Nachricht, Fehlercode, Source-URL sowie JSON-Felder werden vor dem Service-Dispatch enger begrenzt und von Steuerzeichen bereinigt. |
+| **2.7.286** | 🟠 perf | Core/Services | **`CMS/core/Services/ErrorReportService.php` normalisiert Status, Source-URL sowie verschachtelte `error_data`-/`context`-Payloads jetzt zusätzlich selbst**: Der Service bleibt damit robuster, auch wenn künftige Aufrufer nicht aus dem Admin-Wrapper kommen. |
+| **2.7.286** | 🟡 refactor | Admin/System | **Der Fehlerreport trennt Wrapper- und Service-Trust-Boundary klarer**: Request-Normalisierung und persistente Report-Sanitierung hängen sichtbarer an einem gemeinsamen Payload-Vertrag statt an lose verteilten Einzelpfaden. |
+
+---
+
+### v2.7.285 — 26. März 2026 · Audit-Batch 367, Roles-View weiter harmonisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.285** | 🔴 fix | Admin/Users | **`CMS/admin/views/users/roles.php` verzichtet bei Gruppen-Toggles sowie Role-/Capability-Modals auf lokales Inline-Script**: Die View hängt ihre Interaktionen jetzt an Datenattribute und ein gemeinsames Users-Admin-Asset. |
+| **2.7.285** | 🟠 perf | Assets/Admin | **`CMS/assets/js/admin-users.js` übernimmt Role-/Capability-Modalbefüllung und Gruppen-Toggle zentral**: Die Rollenverwaltung hält ihre Laufzeitlogik dadurch nicht länger direkt im PHP-Template. |
+| **2.7.285** | 🟡 refactor | Admin/Users | **Die Rollen-Ansicht trennt Markup, Modalzustand und Rechte-Interaktionen klarer**: Das hält die Benutzerverwaltung konsistenter zu anderen modernisierten Admin-Views. |
+
+---
+
+### v2.7.284 — 26. März 2026 · Audit-Batch 366, Roles-Entry weiter verdichtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.284** | 🔴 fix | Admin/Users | **`CMS/admin/roles.php` normalisiert erlaubte Aktionen jetzt einmalig und dispatcht über einen gemeinsamen Action-Helper**: Der POST-Pfad validiert Kontrollwerte damit klarer vor Rollen- und Capability-Mutationen. |
+| **2.7.284** | 🟠 perf | Admin/Users | **Der Roles-Entry bindet `CMS/assets/js/admin-users.js` sauber über `pageAssets` ein**: Modal- und Toggle-Interaktionen hängen damit sichtbarer am gemeinsamen Admin-Asset-Vertrag. |
+| **2.7.284** | 🟡 refactor | Admin/Users | **`cms_admin_roles_handle_action()` arbeitet direkt mit dem vorbereiteten Payload**: Rollen- und Rechte-Aktionen bleiben dadurch klarer an einer kleinen Entry-Logik gebündelt. |
+
+---
+
+### v2.7.283 — 26. März 2026 · Audit-Batch 365, Users-List-View weiter harmonisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.283** | 🔴 fix | Admin/Users | **`CMS/admin/views/users/list.php` verzichtet bei Rollen-/Status-Filtern auf lokale Inline-`onchange`-Handler und liefert Grid-Konfiguration per JSON**: Die Listenansicht hängt ihre Filter- und Grid-Initialisierung jetzt an ein dediziertes Admin-Asset. |
+| **2.7.283** | 🟠 perf | Assets/Admin | **`CMS/assets/js/admin-users.js` übernimmt Users-Grid und Filter-Redirects zentral**: Die Benutzerliste hält ihre Laufzeitlogik dadurch nicht länger direkt im PHP-Template. |
+| **2.7.283** | 🟡 refactor | Admin/Users | **Die Benutzer-Liste trennt Markup, Filterzustand und Grid-Konfiguration klarer**: Das hält die Benutzerverwaltung konsistenter zu anderen modernisierten Admin-Views. |
+
+---
+
+### v2.7.282 — 26. März 2026 · Audit-Batch 364, Users-Entry weiter verdichtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.282** | 🔴 fix | Admin/Users | **`CMS/admin/users.php` bündelt Aktion, ID, Bulk-Aktion und Bulk-IDs jetzt einmalig in einem normalisierten Payload**: Der POST-Pfad validiert Kontrollfelder damit klarer vor Save-, Delete- und Bulk-Dispatch. |
+| **2.7.282** | 🟠 perf | Admin/Users | **Der Users-Entry baut die Listen-Grid-Konfiguration jetzt über `cms_admin_users_grid_config()` und bindet `CMS/assets/js/admin-users.js` sauber ein**: Grid- und Filter-Interaktionen hängen damit sichtbarer am gemeinsamen Admin-Asset-Vertrag. |
+| **2.7.282** | 🟡 refactor | Admin/Users | **Die Benutzerverwaltung trennt Listen-Konfiguration, Payload-Normalisierung und Dispatch klarer**: Das hält Entry-, View- und Asset-Vertrag kompakter und konsistenter. |
+
+---
+
+### v2.7.281 — 26. März 2026 · Audit-Batch 363, Tables-Edit-View weiter harmonisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.281** | 🔴 fix | Admin/Tables | **`CMS/admin/views/tables/edit.php` verzichtet beim Spalten-/Zeilen-Editor auf lokales Inline-Script und generierte Inline-Handler**: Die View liefert den Editorzustand jetzt per JSON-Konfiguration an ein dediziertes Tabellen-Asset. |
+| **2.7.281** | 🟠 perf | Assets/Admin | **`CMS/assets/js/admin-site-tables.js` übernimmt den Tabellen-Editor für Spalten, Zeilen und JSON-Serialisierung zentral**: Die Bearbeitungsansicht hält ihre Laufzeitlogik dadurch nicht länger direkt im PHP-Template. |
+| **2.7.281** | 🟡 refactor | Admin/Tables | **Die Tabellen-Bearbeitung trennt Markup, Editorzustand und Mutationslogik klarer**: Das hält die Tabellenverwaltung konsistenter zu anderen modernisierten Admin-Views. |
+
+---
+
+### v2.7.280 — 26. März 2026 · Audit-Batch 362, Tables-List-View weiter harmonisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.280** | 🔴 fix | Admin/Tables | **`CMS/admin/views/tables/list.php` verzichtet bei Suche, Duplicate- und Delete-Aktionen auf lokale Inline-Handler**: Die Listenansicht liefert ihre Interaktionen jetzt über Datenattribute an ein gemeinsames Tabellen-Asset. |
+| **2.7.280** | 🟠 perf | Assets/Admin | **`CMS/assets/js/admin-site-tables.js` übernimmt Such-Redirect sowie Duplicate-/Delete-Flow der Tabellenliste zentral**: Die Listenansicht hält ihre Laufzeitlogik dadurch nicht länger direkt im PHP-Template. |
+| **2.7.280** | 🟡 refactor | Admin/Tables | **Die Tabellen-Liste trennt Markup, Suchzustand und Aktionslogik klarer**: Das hält die Tabellenverwaltung konsistenter zu anderen modernisierten Admin-Views. |
+
+---
+
+### v2.7.279 — 26. März 2026 · Audit-Batch 361, Site-Tables-Entry weiter verdichtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.279** | 🔴 fix | Admin/Tables | **`CMS/admin/site-tables.php` normalisiert Aktion und Tabellen-ID jetzt einmalig in einem gemeinsamen Payload**: Der POST-Pfad validiert Kontrollfelder damit klarer vor Save-/Delete-/Duplicate-Dispatch. |
+| **2.7.279** | 🟠 perf | Admin/Tables | **Der Site-Tables-Entry bindet `CMS/assets/js/admin-site-tables.js` für Listen- und Edit-Ansicht sauber über `pageAssets` ein**: Tabellen-Interaktionen hängen damit sichtbarer am gemeinsamen Admin-Asset-Vertrag. |
+| **2.7.279** | 🟡 refactor | Admin/Tables | **`cms_admin_site_tables_handle_action()` arbeitet direkt mit dem vorbereiteten Payload**: Save-, Delete- und Duplicate-Pfade bleiben dadurch klarer voneinander getrennt. |
+
+---
+
+### v2.7.278 — 26. März 2026 · Audit-Batch 360, Menu-Editor-View weiter harmonisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.278** | 🔴 fix | Admin/Menus | **`CMS/admin/views/menus/editor.php` verzichtet bei Modal- und Item-Editor-Aktionen auf lokales Inline-Script und lokale Inline-Handler**: Die View liefert Menüzustand und Trigger jetzt über Datenattribute plus JSON-Konfiguration an ein dediziertes Asset. |
+| **2.7.278** | 🟠 perf | Assets/Admin | **`CMS/assets/js/admin-menu-editor.js` übernimmt Modal-Befüllung, Item-Rendering und Menü-Delete-Confirm zentral**: Der Menü-Editor hält seine Laufzeitlogik dadurch nicht länger direkt im PHP-Template. |
+| **2.7.278** | 🟡 refactor | Admin/Menus | **Der Menü-Editor trennt Markup, Modalzustand und Item-Struktur klarer**: Das hält die Navigationsverwaltung konsistenter zu anderen modernisierten Admin-Views. |
+
+---
+
+### v2.7.277 — 26. März 2026 · Audit-Batch 359, Menu-Editor-Entry weiter verdichtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.277** | 🔴 fix | Admin/Menus | **`CMS/admin/menu-editor.php` normalisiert Aktion, Menü-ID und Item-JSON jetzt einmalig in einem gemeinsamen Payload**: Der Entry pflegt dadurch keine separate Handler-Map mehr für seinen POST-Pfad. |
+| **2.7.277** | 🟠 perf | Admin/Menus | **Der Menu-Editor-Entry bindet `CMS/assets/js/admin-menu-editor.js` sauber über `page_assets` ein**: Modal- und Item-Editor-Pfade hängen damit sichtbarer am gemeinsamen Admin-Asset-Vertrag. |
+| **2.7.277** | 🟡 refactor | Admin/Menus | **`cms_admin_menu_editor_handle_action()` dispatcht direkt über den vorbereiteten Payload**: Guard, Menü-ID-Prüfung und Modul-Aufruf bleiben dadurch klarer an einer kleinen Entry-Logik. |
+
+---
+
+### v2.7.276 — 26. März 2026 · Audit-Batch 358, Hub-Templates-View weiter harmonisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.276** | 🔴 fix | Admin/Hub | **`CMS/admin/views/hub/templates.php` verzichtet bei Duplizieren-/Löschen-Aktionen auf lokale Inline-`onclick`-Handler**: Die View liefert Template-Aktionen jetzt über Datenattribute an ein gemeinsames Hub-Asset. |
+| **2.7.276** | 🟠 perf | Assets/Admin | **`CMS/assets/js/admin-hub-sites.js` übernimmt Duplicate-/Delete-Flow für Hub-Templates zentral**: Die Template-Bibliothek hält ihre Laufzeitlogik dadurch nicht länger direkt im PHP-Template. |
+| **2.7.276** | 🟡 refactor | Admin/Hub | **Die Hub-Template-Liste trennt Markup, Formularzustand und Template-Aktionen klarer**: Das hält die Hub-Verwaltung konsistenter zu anderen modernisierten Admin-Views. |
+
+---
+
+### v2.7.275 — 26. März 2026 · Audit-Batch 357, Hub-List-View weiter harmonisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.275** | 🔴 fix | Admin/Hub | **`CMS/admin/views/hub/list.php` verzichtet bei Suche, Copy-, Duplicate- und Delete-Aktionen auf lokale Inline-Handler**: Die View liefert Listeninteraktionen jetzt über Datenattribute an ein gemeinsames Hub-Asset. |
+| **2.7.275** | 🟠 perf | Assets/Admin | **`CMS/assets/js/admin-hub-sites.js` übernimmt Suche, Clipboard-Flow sowie Site-Duplicate-/Delete-Aktionen zentral**: Die Hub-Liste hält ihre Laufzeitlogik dadurch nicht länger direkt im PHP-Template. |
+| **2.7.275** | 🟡 refactor | Admin/Hub | **Die Hub-Site-Liste trennt Markup, Suchzustand und Aktionslogik klarer**: Das hält die Routing-Verwaltung konsistenter zu anderen modernisierten Admin-Views. |
+
+---
+
+### v2.7.274 — 26. März 2026 · Audit-Batch 356, Hub-Entry weiter verdichtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.274** | 🔴 fix | Admin/Hub | **`CMS/admin/hub-sites.php` normalisiert Aktion, Hub-Site-ID und Template-Key jetzt einmalig in einem gemeinsamen Payload**: Der Entry validiert Kontrollfelder damit klarer vor Delete-/Duplicate- und Template-Dispatch. |
+| **2.7.274** | 🟠 perf | Admin/Hub | **Der Hub-Entry bindet `CMS/assets/js/admin-hub-sites.js` für Listen- und Template-Ansicht jetzt sauber über `pageAssets` ein**: Hub-Sites und Templates hängen damit sichtbarer am gemeinsamen Admin-Asset-Vertrag. |
+| **2.7.274** | 🟡 refactor | Admin/Hub | **`cms_admin_hub_sites_handle_action()` arbeitet direkt mit dem vorbereiteten Payload**: Site- und Template-Aktionen bleiben dadurch klarer voneinander getrennt. |
+
+---
+
+### v2.7.273 — 26. März 2026 · Audit-Batch 355, Comments-View weiter harmonisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.273** | 🔴 fix | Admin/Comments | **`CMS/admin/views/comments/list.php` verzichtet bei Status- und Delete-Aktionen auf lokale Inline-`onclick`-Handler**: Die View hängt Kommentaraktionen jetzt über Datenattribute an ein dediziertes Admin-Asset. |
+| **2.7.273** | 🟠 perf | Assets/Admin | **`CMS/assets/js/admin-comments.js` übernimmt Status-Dispatch, Delete-Confirm sowie Bulk-Bar-/Dropdown-Verhalten zentral**: Die Kommentarverwaltung hält ihre Laufzeitlogik dadurch nicht länger direkt im PHP-Template. |
+| **2.7.273** | 🟡 refactor | Admin/Comments | **Die Kommentar-Liste trennt Markup, Formularzustand und Moderationslogik klarer**: Das hält die Moderation konsistenter zu anderen modernisierten Admin-Views. |
+
+---
+
+### v2.7.272 — 26. März 2026 · Audit-Batch 354, Comments-Entry weiter verdichtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.272** | 🔴 fix | Admin/Comments | **`CMS/admin/comments.php` bündelt Aktion, Kommentar-ID, Zielstatus, Bulk-Aktion und Bulk-IDs jetzt einmalig in einem normalisierten Payload**: Der POST-Pfad validiert Kontrollfelder damit klarer vor dem Modul-Dispatch. |
+| **2.7.272** | 🟠 perf | Admin/Comments | **Der Comments-Entry bindet sein dediziertes UI-Asset jetzt sauber über `page_assets` ein**: Moderations- und Bulk-UI hängen damit sichtbarer am gemeinsamen Admin-Asset-Vertrag. |
+| **2.7.272** | 🟡 refactor | Admin/Comments | **`cms_admin_comments_handle_action()` arbeitet direkt mit dem vorbereiteten Payload**: Status-, Delete- und Bulk-Pfade bleiben dadurch klarer voneinander getrennt. |
+
+---
+
+### v2.7.271 — 26. März 2026 · Audit-Batch 353, Groups-View weiter harmonisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.271** | 🔴 fix | Admin/Users | **`CMS/admin/views/users/groups.php` verzichtet bei Modal- und Delete-Aktionen auf lokale Inline-`onclick`-Handler**: Die View liefert jetzt Datenattribute für Edit-/Delete-Interaktionen statt eigener Script-Inseln. |
+| **2.7.271** | 🟠 perf | Assets/Admin | **`CMS/assets/js/admin-user-groups.js` übernimmt Modal-Befüllung und Delete-Confirm der Gruppenverwaltung zentral**: Die Gruppen-UI hält ihre Laufzeitlogik dadurch nicht länger direkt im PHP-Template. |
+| **2.7.271** | 🟡 refactor | Admin/Users | **Die Gruppen-Ansicht trennt Kartendarstellung, Modalzustand und Delete-Flow klarer**: Das hält die Benutzerverwaltung konsistenter zu anderen modernisierten Admin-Views. |
+
+---
+
+### v2.7.270 — 26. März 2026 · Audit-Batch 352, Groups-Entry weiter verdichtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.270** | 🔴 fix | Admin/Users | **`CMS/admin/groups.php` normalisiert Aktion und Gruppen-ID jetzt einmalig in einem gemeinsamen Payload**: Der Entry pflegt dadurch keine separate Handler-Map mehr für seinen POST-Pfad. |
+| **2.7.270** | 🟠 perf | Admin/Users | **Der Gruppen-Entry bindet sein dediziertes UI-Asset jetzt sauber über `page_assets` ein**: Modal- und Delete-Pfade hängen damit sichtbarer am gemeinsamen Admin-Asset-Vertrag. |
+| **2.7.270** | 🟡 refactor | Admin/Users | **`cms_admin_groups_handle_action()` dispatcht direkt über den vorbereiteten Payload**: Guard, ID-Prüfung und Modul-Aufruf bleiben dadurch klarer an einer kleinen Entry-Logik. |
+
+---
+
+### v2.7.269 — 26. März 2026 · Audit-Batch 351, Marketplace-View weiter harmonisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.269** | 🔴 fix | Admin/Plugins | **`CMS/admin/views/plugins/marketplace.php` pflegt Such-/Filter-Logik und Install-Confirm nicht länger über lokales Inline-Script bzw. Inline-`confirm(...)`**: Die View liefert jetzt JSON-Konfiguration und `data-confirm-*` statt eigener Script-Inseln. |
+| **2.7.269** | 🟠 perf | Assets/Admin | **`CMS/assets/js/admin-plugin-marketplace.js` übernimmt Suche und Kategorie-Filter des Marketplace zentral**: Die Plugin-Karten-UI bleibt dadurch näher an einem dedizierten Admin-Asset statt im PHP-View. |
+| **2.7.269** | 🟡 refactor | Admin/Plugins | **Der Marketplace-View trennt Markup, Filterzustand und Installations-Confirm klarer**: Das hält die UI konsistenter zu anderen bereits modernisierten Admin-Ansichten. |
+
+---
+
+### v2.7.268 — 26. März 2026 · Audit-Batch 350, Marketplace-Entry weiter verdichtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.268** | 🔴 fix | Admin/Plugins | **`CMS/admin/plugin-marketplace.php` normalisiert Aktion und Slug jetzt gemeinsam in einem Payload**: Der Entry hält seinen POST-Pfad damit kompakter und re-normalisiert Installationsdaten nicht länger im Dispatch. |
+| **2.7.268** | 🟠 perf | Admin/Plugins | **Der Marketplace-Entry bindet sein dediziertes UI-Asset jetzt sauber über `page_assets` ein**: Such-/Filter- und Confirm-Pfade hängen damit sichtbarer am gemeinsamen Admin-Asset-Vertrag. |
+| **2.7.268** | 🟡 refactor | Admin/Plugins | **`cms_admin_plugin_marketplace_handle_action()` arbeitet direkt mit dem vorbereiteten Payload**: Guard, Aktionsprüfung und Modul-Dispatch bleiben dadurch klarer voneinander getrennt. |
+
+---
+
+### v2.7.267 — 26. März 2026 · Audit-Batch 349, Pages-View weiter harmonisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.267** | 🔴 fix | Admin/Pages | **`CMS/admin/views/pages/list.php` verzichtet auf lokales Bulk-/Grid-Script und Inline-`onchange`-Handler der Filterform**: Die View liefert stattdessen JSON-Konfiguration und CSS-/JS-Hooks für das dedizierte Asset. |
+| **2.7.267** | 🟠 perf | Assets/Admin | **`CMS/assets/js/admin-pages.js` übernimmt Grid-Initialisierung, Bulk-Bar und Filter-Auto-Submit zentral**: Die Seitenliste hält ihre Laufzeitlogik dadurch nicht länger direkt im PHP-Template. |
+| **2.7.267** | 🟡 refactor | Admin/Pages | **Die Pages-Liste trennt Markup, Grid-Konfiguration und Bulk-Laufzeitlogik klarer**: Das hält die Seitenverwaltung konsistenter zu anderen modernisierten Admin-Views. |
+
+---
+
+### v2.7.266 — 26. März 2026 · Audit-Batch 348, Pages-Entry weiter verdichtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.266** | 🔴 fix | Admin/Pages | **`CMS/admin/pages.php` baut die Grid-Konfiguration für die Listenansicht jetzt über `cms_admin_pages_grid_config()` statt über großen Inline-JavaScript-String**: Der Entry hält damit seinen Listenpfad kompakter und weniger fehleranfällig. |
+| **2.7.266** | 🟠 perf | Admin/Pages | **Die Pages-List-Ansicht bindet jetzt zusätzlich `CMS/assets/js/admin-pages.js` statt Grid-/Bulk-Initialisierung als Inline-Footer-Script zu bekommen**: Das reduziert weiteren Inline-Asset-Boilerplate im Entry-Vertrag. |
+| **2.7.266** | 🟡 refactor | Admin/Pages | **Der Pages-Entry trennt Datenladung, Grid-Konfiguration und Asset-Vertrag klarer**: Listen- und Edit-Pfade bleiben dadurch sichtbarer voneinander getrennt. |
+
+---
+
+### v2.7.265 — 26. März 2026 · Audit-Batch 347, Dokumentations-View weiter verdichtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.265** | 🔴 fix | Admin/System | **`CMS/admin/views/system/documentation.php` zieht Dokument- und Bereichsdaten jetzt stärker über View-Model-Helfer zusammen**: Die Renderpfade greifen dadurch nicht länger wiederholt auf viele kleine Einzelhelper im Hauptfluss zu. |
+| **2.7.265** | 🟠 perf | Admin/Views | **Die Dokumentations-Ansicht reduziert weiteren Render-Boilerplate im Listen- und Bereichspfad**: Dokument-Metadaten und Bereichszustände werden kompakter vorbereitet, bevor das Markup sie ausgibt. |
+| **2.7.265** | 🟡 refactor | Admin/System | **Der Doku-View bleibt sichtbarer auf Renderblöcke statt auf verteilte Datensammelreste fokussiert**: Das hält die View konsistenter zu den bereits verdichteten Admin-Ansichten. |
+
+---
+
+### v2.7.264 — 26. März 2026 · Audit-Batch 346, Mail-Settings-Entry weiter verdichtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.264** | 🔴 fix | Admin/System | **`CMS/admin/mail-settings.php` normalisiert Tab und Aktion jetzt einmalig in einem gemeinsamen Payload**: Der POST-Pfad pflegt damit keine separate Handler-Map und keine doppelte Aktionsauflösung mehr. |
+| **2.7.264** | 🟠 perf | Admin/System | **Der Mail-Settings-Entry dispatcht Transport-, Azure-, Graph-, Queue- und Cache-Aktionen jetzt über einen direkten `match`-Helper**: Guard, Tab-Validierung und Redirect-Ziel bleiben dadurch kompakter lesbar. |
+| **2.7.264** | 🟡 refactor | Admin/System | **`cms_admin_mail_settings_handle_action()` hält den Aktionspfad klarer an einem kleinen Entry-Vertrag**: Das reduziert weiteren Dispatch-Boilerplate ohne die Fachlogik aus dem Modul zu ziehen. |
+
+---
+
+### v2.7.263 — 26. März 2026 · Audit-Batch 345, Landing-Page-Entry weiter verschlankt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.263** | 🔴 fix | Admin/Landing | **`CMS/admin/landing-page.php` normalisiert Aktion und Feature-ID jetzt einmalig über `cms_admin_landing_page_normalize_payload()`**: Der Entry pflegt dadurch keine Closure-basierte Handler-Map mehr für seine POST-Aktionen. |
+| **2.7.263** | 🟠 perf | Admin/Landing | **Der Landing-Page-Entry dispatcht Header-, Content-, Footer-, Design- und Feature-Aktionen jetzt über einen direkten `match`-Pfad**: Validierung und Modul-Dispatch bleiben dadurch kompakter lesbar. |
+| **2.7.263** | 🟡 refactor | Admin/Landing | **`cms_admin_landing_page_handle_action()` trennt Kontroll-Payload und Aktionsausführung klarer**: Delete-Feature hängt damit sichtbarer an demselben Entry-Vertrag wie die übrigen Landing-Aktionen. |
+
+---
+
+### v2.7.262 — 26. März 2026 · Audit-Batch 344, Cookie-Manager-View weiter harmonisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.262** | 🔴 fix | Admin/Legal | **`CMS/admin/views/legal/cookies.php` pflegt Modal- und Delete-Aktionen nicht länger über lokale Inline-`onclick`-/`confirm(...)`-Pfade**: Die View liefert jetzt Datenattribute und Confirm-Metadaten statt eigener Script-Inseln. |
+| **2.7.262** | 🟠 perf | Assets/Admin | **`CMS/assets/js/admin-cookie-manager.js` übernimmt Reset-, Edit- und Modal-Öffnungslogik für Kategorien und Services zentral**: Der Cookie-Manager hält seine Laufzeitlogik damit näher an einem dedizierten Admin-Asset statt direkt im PHP-Template. |
+| **2.7.262** | 🟡 refactor | Admin/Legal | **`CMS/admin/cookie-manager.php` bindet das neue Asset konsistent über `page_assets` ein**: Der Cookie-Manager folgt damit sichtbarer demselben Asset-/Confirm-Vertrag wie andere modernisierte Admin-Ansichten. |
+
+---
+
+### v2.7.261 — 26. März 2026 · Audit-Batch 343, Cookie-Manager-Entry weiter verdichtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.261** | 🔴 fix | Admin/Legal | **`CMS/admin/cookie-manager.php` normalisiert Action, ID, Service-Slug und Self-Hosted-Flag jetzt einmalig in einem gemeinsamen Payload**: Delete- und Curated-Import-Pfade ziehen dadurch nicht länger mehrere getrennte kleine Normalisierungsschritte im `post_handler` nach. |
+| **2.7.261** | 🟠 perf | Admin/Legal | **Der Cookie-Manager-Entry dispatcht seine Aktionen jetzt über `cms_admin_cookie_manager_handle_action()` mit bereits vorbereitetem Payload**: Guard, Validierung und Modul-Dispatch bleiben damit kompakter lesbar. |
+| **2.7.261** | 🟡 refactor | Admin/Legal | **Kontrollfelder des Cookie-Managers hängen klarer an einem kleinen Entry-Vertrag, während Formularinhalte weiterhin im Modul sanitisiert werden**: Der Wrapper reduziert doppelten Kontrollfluss-Boilerplate, ohne den Fachpfad des Moduls zu verwischen. |
+
+---
+
+### v2.7.260 — 26. März 2026 · Audit-Batch 342, Plugins-View weiter harmonisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.260** | 🔴 fix | Admin/Plugins | **`CMS/admin/views/plugins/list.php` verzichtet bei Toggle- und Delete-Aktionen auf lokale Inline-`onchange`-/`confirm(...)`-Handler**: Die Plugin-Liste hängt damit sichtbarer am gemeinsamen Confirm-Vertrag und einer dedizierten JS-Datei. |
+| **2.7.260** | 🟠 perf | Assets/Admin | **`CMS/assets/js/admin-plugins.js` übernimmt das Auto-Submit der Aktivieren-/Deaktivieren-Switches zentral**: Der Toggle-Pfad muss damit nicht länger direkt im View-Markup gepflegt werden. |
+| **2.7.260** | 🟡 refactor | Admin/Plugins | **`CMS/admin/plugins.php` bindet das neue Script über `page_assets` ein**: Die Plugin-Liste folgt dadurch demselben Asset-Vertrag wie andere bereits harmonisierte Admin-Seiten. |
+
+---
+
+### v2.7.259 — 26. März 2026 · Audit-Batch 341, Plugins-Vertrag weiter verdichtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.259** | 🔴 fix | Admin/Plugins | **`CMS/admin/plugins.php` normalisiert Action und Slug jetzt einmalig über `cms_admin_plugins_normalize_payload()`**: Der Entry hält damit seinen POST-Pfad kompakter und validiert keine Einzelteile mehrfach. |
+| **2.7.259** | 🟠 perf | Admin/Plugins | **`CMS/admin/modules/plugins/PluginsModule.php` bündelt Slug-, Hauptdatei- und Plugin-Pfadlogik jetzt in kleinen Hilfsmethoden**: Aktivierung, Deaktivierung, Löschung und Active-Plugin-Lookup vermeiden dadurch weitere doppelte Pfad-/String-Reste. |
+| **2.7.259** | 🟡 refactor | Admin/Plugins | **Der Plugins-Modulpfad prüft Plugin-Verzeichnisse und Hauptdateien konsistenter über gemeinsame Helper**: Das hält Normalisierung, Pfadauflösung und Delete-Schutz lesbarer an einer Stelle. |
+
+---
+
+### v2.7.258 — 26. März 2026 · Audit-Batch 340, Font-Manager-Vertrag weiter verdichtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.258** | 🔴 fix | Admin/Themes | **`CMS/admin/font-manager.php` normalisiert Action, Font-ID und Google-Font-Familie jetzt einmalig in einem gemeinsamen Payload**: Der POST-Pfad hängt dadurch konsistenter am Shared-Shell-Vertrag statt mehrere kleine Normalisierungsschritte separat zu pflegen. |
+| **2.7.258** | 🟠 perf | Admin/Views | **`CMS/admin/views/themes/fonts.php` verzichtet in der Preview auf überflüssige statische `font-family`-Inline-Styles**: Die Vorschau bleibt an der bestehenden JS-Initialisierung statt doppelte Startwerte im Markup zu tragen. |
+| **2.7.258** | 🟡 refactor | Admin/Themes | **Der Font-Manager bündelt seinen Dispatch klarer über `cms_admin_font_manager_normalize_payload()`**: Entry und View bleiben dadurch etwas schlanker und konsistenter. |
+
+---
+
+### v2.7.257 — 26. März 2026 · Audit-Batch 339, Media-Settings-Vertrag weiter verdichtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.257** | 🔴 fix | Admin/Media | **`CMS/admin/modules/media/MediaModule.php` liefert Defaultwerte, Dateityp-Optionen und Thumbnail-Metadaten für den Settings-View jetzt zentral aus dem Modul**: Die Media-Einstellungen pflegen dadurch keine zweite lokale Default-/Options-Wahrheit mehr im Template. |
+| **2.7.257** | 🟠 perf | Admin/Views | **`CMS/admin/views/media/settings.php` rendert Dateityp- und Thumbnail-Blöcke jetzt aus den vom Modul gelieferten Optionen**: Das reduziert lokale Listen- und Mapping-Duplikate und hält den View schlanker. |
+| **2.7.257** | 🟡 refactor | Admin/Media | **Der Media-Settings-Pfad trennt View-Boilerplate sauberer vom Modulvertrag**: Größenwerte werden als MB für das Formular vorbereitet, und interne Feldnamen/Defaults bleiben näher an einer zentralen Stelle. |
+
+---
+
+### v2.7.256 — 26. März 2026 · Audit-Batch 338, Dokumentations-Entry weiter verschlankt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.256** | 🔴 fix | Admin/System | **`CMS/admin/documentation.php` normalisiert POST-Aktionen jetzt einmalig aus dem übergebenen Payload statt direkt mehrfach aus `$_POST`**: Der Entry hängt damit klarer am Shared-Shell-Post-Handler-Vertrag. |
+| **2.7.256** | 🟠 perf | Admin/System | **Der Dokumentations-Entry verzichtet auf eine Handler-Map für nur eine Sync-Aktion**: Der direkte Dispatch über einen kleinen Action-Helper hält den Request-Pfad kompakter. |
+| **2.7.256** | 🟡 refactor | Admin/System | **`cms_admin_documentation_handle_action()` bündelt den Aktionspfad der Doku-Seite explizit**: Guard, Normalisierung und Dispatch sind dadurch lesbarer getrennt. |
+
+---
+
+### v2.7.255 — 26. März 2026 · Audit-Batch 337, Data-Requests-View weiter harmonisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.255** | 🔴 fix | Admin/Legal | **`CMS/admin/views/legal/data-requests.php` pflegt Lösch- und Ausführungsaktionen nicht länger über lokale Inline-`confirm(...)`-Handler**: Die Formulare hängen jetzt am gemeinsamen `data-confirm-*`-Vertrag statt an verstreuten Button-Sonderpfaden. |
+| **2.7.255** | 🟠 perf | Assets/Admin | **`CMS/assets/js/admin-data-requests.js` übernimmt den Reject-Modal-Pfad der Data-Requests-Ansicht zentral**: Scope, Request-ID und Modal-Titel werden dadurch konsistent über Datenattribute gesetzt statt durch ein lokales Inline-Script. |
+| **2.7.255** | 🟡 refactor | Admin/Legal | **`CMS/admin/data-requests.php` bindet das neue Asset sauber über `page_assets` ein**: Der DSGVO-Bereich folgt damit demselben Confirm-/Asset-Vertrag wie andere modernisierte Admin-Seiten. |
+
+---
+
+### v2.7.254 — 26. März 2026 · Audit-Batch 336, Marketplace-Remote-Pfad weiter gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.254** | 🔴 fix | Admin/Plugins | **`CMS/admin/plugin-marketplace.php` reicht Installationsdaten jetzt nur noch minimal normalisiert weiter**: Der Entry begrenzt den POST-Pfad für `install` damit auf den validierten Slug statt rohe Request-Reste in die Aktion mitzunehmen. |
+| **2.7.254** | 🟠 perf | Admin/Marketplace | **`CMS/admin/modules/plugins/PluginMarketplaceModule.php` kanonisiert Registry-, Manifest- und Katalog-URLs vor Remote-Zugriffen zentral**: Host, Port, Credentials und Steuerzeichen werden dadurch einheitlicher geprüft, bevor externe Ressourcen geladen oder weitergereicht werden. |
+| **2.7.254** | 🟡 refactor | Admin/Plugins | **Der Marketplace-Modulpfad nutzt jetzt gemeinsame Normalisierung für Slugs und Remote-URLs**: Registry-Fallback, relative Marketplace-Pfade und direkte Catalog-URLs hängen dadurch sichtbarer an einem konsistenten Remote-Vertrag. |
+
+---
+
+### v2.7.253 — 26. März 2026 · Audit-Batch 335, Legal-Sites-Cluster weiter gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.253** | 🔴 fix | Admin/Legal | **`CMS/admin/legal-sites.php` normalisiert Legal-Sites-Payloads jetzt allowlist-basiert pro Aktion**: `save` und `save_profile` reichen dadurch nicht länger rohe POST-Komplettpakete in den Modulpfad weiter. |
+| **2.7.253** | 🟠 perf | Assets/Admin | **`CMS/assets/js/admin-legal-sites.js` übernimmt die bisherige DOM-Logik der Legal-Sites-Ansicht zentral**: Requirement-Toggles, Privacy-Feature-Blöcke und Template-Einfügen hängen damit nicht länger als großes lokales Inline-Script im View. |
+| **2.7.253** | 🟡 refactor | Admin/Legal | **`CMS/admin/views/legal/sites.php` trennt Markup und Laufzeitlogik klarer**: die View liefert nur noch JSON-Konfiguration und Datenattribute, während das Verhalten konsistent über das eingebundene Admin-Asset läuft. |
+
+---
+
+### v2.7.252 — 26. März 2026 · Audit-Batch 334, Dokumentations-View weiter verschlankt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.252** | 🔴 fix | Admin/System | **`CMS/admin/views/system/documentation.php` ersetzt die verbliebenen Render-Closures durch benannte View-Funktionen**: Metric-Cards, Dokument-Listen, Bereichs-Akkordeons und Dokument-Inhalt pflegen damit keinen verstreuten Inline-Closure-Pfad mehr. |
+| **2.7.252** | 🟠 perf | Admin/Views | **Kleine Aufbereitungsreste wie Quellen-Text und Metric-Card-Konfiguration liegen jetzt ebenfalls hinter präfixierten Helpern**: der View hält weniger Logik im Hauptfluss und bleibt dadurch lesbarer wartbar. |
+| **2.7.252** | 🟡 refactor | Admin/System | **Die Dokumentations-Ansicht konzentriert sich stärker auf den Renderfluss statt auf lokale Render-Werkzeuge**: der bestehende Flash-/HTML-Vertrag bleibt erhalten, aber die View-Struktur ist konsistenter zu anderen modernisierten Admin-Views. |
+
+---
+
+### v2.7.250 — 26. März 2026 · Audit-Batch 332, Updates-View weiter vereinheitlicht
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.250** | 🔴 fix | Admin/System | **`CMS/admin/views/system/updates.php` pflegt Core- und Plugin-Installationen nicht länger über lokale `confirm(...)`-Sonderpfade**: die Formulare hängen jetzt am gemeinsamen Confirm-Vertrag statt an einem View-lokalen Inline-Handler. |
+| **2.7.250** | 🟠 perf | Assets/Admin | **`CMS/assets/js/admin.js` unterstützt jetzt wiederverwendbare Formular-Bestätigungen über `form[data-confirm-message]`**: Modal-Confirm und Fallback-Submit müssen dadurch nicht länger pro View separat nachgebaut werden. |
+| **2.7.250** | 🟡 refactor | Admin/System | **Der Updates-View trennt Aktions-Markup und Laufzeitlogik klarer**: Core- und Plugin-Installationen nutzen denselben Confirm-Helfer wie andere harmonisierbare Admin-Aktionen. |
+
+---
+
+### v2.7.251 — 26. März 2026 · Audit-Batch 333, Media-Cluster weiter gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.251** | 🔴 fix | Admin/Media | **`CMS/admin/media.php` normalisiert Media-Aktions-Payloads jetzt gezielter pro Aktion und validiert kritische Request-Felder bereits im Wrapper**: Delete-, Rename-, Kategorie- und Settings-Pfade reichen dadurch nicht länger rohe POST-Daten weiter. |
+| **2.7.251** | 🟠 perf | Assets/Admin | **`CMS/assets/js/admin-media-integrations.js` übernimmt jetzt zusätzlich den Kategorie-Löschflow der Media-Kategorien-Ansicht**: Delete-Confirm und Form-Submit müssen dort nicht länger als lokale Script-Insel gepflegt werden. |
+| **2.7.251** | 🟡 refactor | Admin/Media | **`CMS/admin/views/media/categories.php` trennt Markup und Laufzeitlogik klarer**: die View liefert für den Delete-Pfad nur noch Datenattribute und JSON-Konfiguration statt Inline-`onclick` plus lokalem `<script>`. |
+
+---
+
+### v2.7.249 — 26. März 2026 · Audit-Batch 331, Media-Library-View weiter entschlackt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.249** | 🔴 fix | Admin/Media | **`CMS/admin/views/media/library.php` pflegt Member-Ordner-Confirm und Delete-Aktionen nicht länger über lokale Inline-`onclick`-Attribute oder ein View-lokales `<script>`**: die View liefert stattdessen Datenattribute und JSON-Konfiguration. |
+| **2.7.249** | 🟠 perf | Assets/Admin | **`CMS/assets/js/admin-media-integrations.js` übernimmt die Media-Library-Aktionslogik jetzt zentral**: Delete-Submit und Member-Folder-Confirm laufen dadurch näher am bestehenden Media-Asset-Vertrag statt verteilt im PHP-View. |
+| **2.7.249** | 🟡 refactor | Admin/Media | **Die Media-Library trennt Markup und Laufzeitlogik klarer**: verbleibende Action-Handler sitzen jetzt im bereits geladenen Admin-Media-Script statt als separate kleine Script-Insel im View. |
+
+---
+
+### v2.7.248 — 26. März 2026 · Audit-Batch 330, Font-Manager-View weiter entschlackt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.248** | 🔴 fix | Admin/Themes | **`CMS/admin/views/themes/fonts.php` pflegt Preview- und Lösch-Confirm-Logik nicht länger als lokales Inline-Script**: der View liefert nur noch Konfiguration und Markup, während das Verhalten ausgelagert wird. |
+| **2.7.248** | 🟠 perf | Assets/Admin | **`CMS/assets/js/admin-font-manager.js` bündelt Font-Preview und Delete-Confirm für den Font Manager in einer dedizierten Admin-JS-Datei**: derselbe Code muss nicht länger direkt im PHP-View geparkt werden. |
+| **2.7.248** | 🟡 refactor | Admin/Themes | **`CMS/admin/font-manager.php` bindet das neue Script konsistent über `pageAssets` ein**: der Font-Manager folgt damit demselben Admin-Asset-Vertrag wie andere modernisierte Bereiche. |
+
+---
+
+### v2.7.247 — 26. März 2026 · Audit-Batch 329, Font-Manager-Entry weiter verschlankt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.247** | 🔴 fix | Admin/Themes | **`CMS/admin/font-manager.php` ersetzt sein Closure-basiertes Action-Handler-Mapping durch einen direkten `match`-Dispatch**: der Entry pflegt keinen separaten Handler-Map-Sonderpfad mehr. |
+| **2.7.247** | 🟠 perf | Admin/Themes | **Der POST-Pfad normalisiert Font-ID und Google-Font-Familie jetzt nur noch einmal**: kleine doppelte Dispatch- und Normalisierungsarbeit im Font-Manager-Entry entfällt. |
+| **2.7.247** | 🟡 refactor | Admin/Themes | **Der Entry bleibt klarer auf Guard, Normalisierung und Modul-Dispatch fokussiert**: kleine anonyme Action-Closures werden zugunsten eines direkteren, besser lesbaren Request-Flows reduziert. |
+
+---
+
+### v2.7.246 — 26. März 2026 · Audit-Batch 328, Legal-Sites-Entry weiter verschlankt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.246** | 🔴 fix | Admin/Legal | **`CMS/admin/legal-sites.php` ersetzt den Closure-basierten Action-Dispatch durch einen direkten `match`-Dispatch**: der Entry pflegt keinen separaten Handler-Map-Sonderpfad mehr. |
+| **2.7.246** | 🟠 perf | Admin/Views | **Der POST-Pfad normalisiert den Vorlagentyp jetzt nur noch einmal**: doppelte kleine Dispatch- und Normalisierungsarbeit im Legal-Sites-Entry entfällt. |
+| **2.7.246** | 🟡 refactor | Admin/Legal | **Der Entry bleibt klarer auf Guard, Normalisierung und Dispatch fokussiert**: kleine anonyme Action-Closures werden zugunsten eines direkteren, besser lesbaren Request-Flows reduziert. |
+
+---
+
+### v2.7.245 — 26. März 2026 · Audit-Batch 327, Dokumentations-View weiter verschlankt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.245** | 🔴 fix | Admin/System | **`CMS/admin/views/system/documentation.php` ersetzt mehrere kleine anonyme Dokument- und Status-Helfer durch benannte View-Funktionen**: die Datei hält weniger Inline-Closure-Logik direkt im Kopfbereich. |
+| **2.7.245** | 🟠 perf | Admin/Views | **Die Dokumentations-View reduziert weiteren Inline-Helper-Boilerplate, ohne ihren Rendervertrag zu verändern**: Dokumentlisten, Active-State-Checks und Bereichs-Metadaten bleiben dadurch lesbarer und konsistenter wartbar. |
+| **2.7.245** | 🟡 refactor | Admin/System | **Der Dokumentations-View konzentriert sich klarer auf Render-Blöcke statt auf verteilte kleine Datentransformations-Closures**: die fachlichen Mini-Helfer sind jetzt sichtbar benannt und lokaler präfixiert. |
+
+---
+
+### v2.7.244 — 26. März 2026 · Audit-Batch 326, Media-Entry-/Modulvertrag weiter gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.244** | 🔴 fix | Admin/Media | **`CMS/admin/media.php` delegiert die Parent-Path-Auflösung jetzt an `CMS/admin/modules/media/MediaModule.php`**: der Entry pflegt keinen separaten String-/`dirname()`-Sonderpfad mehr neben dem Modulvertrag. |
+| **2.7.244** | 🟠 perf | Admin/Views | **Upload-Fehler bauen Dateinamen wieder als rohe Textdaten statt vorzeitig HTML-escaped zusammen**: der Media-Flash-Pfad vermeidet damit doppelte Escaping-Arbeit und bleibt konsistenter zum zentralen Alert-Partial. |
+| **2.7.244** | 🟡 refactor | Admin/Media | **Der Media-Entry hält Pfadnormalisierung und Fehlermeldungsaufbereitung klarer getrennt**: Parent-Path-Logik liegt näher am Modul, während der View-Vertrag wieder mit rohen Textdaten statt gemischtem HTML-Status arbeitet. |
+
+---
+
+### v2.7.243 — 26. März 2026 · Audit-Batch 325, System-Update-Warnboxen weiter harmonisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.243** | 🔴 fix | Admin/System | **`CMS/admin/views/system/updates.php` nutzt die verbliebenen komplexeren Core- und Theme-Update-Warnboxen jetzt ebenfalls über das gemeinsame `flash-alert.php`**: lokale `alert alert-warning`-Blöcke werden damit weiter aus dem View zurückgebaut. |
+| **2.7.243** | 🟠 perf | Admin/Views | **Die Updates-Ansicht spart weiteren Alert-Boilerplate und hält Aktionsbuttons klarer getrennt vom gemeinsamen Hinweisvertrag**: künftige Verbesserungen an Typ-Mapping, Detail-Listen und Dismiss-Verhalten greifen dadurch zentral statt in lokalem Warn-Markup. |
+| **2.7.243** | 🟡 refactor | Admin/System | **Der Updates-View bleibt konsistenter zu anderen harmonisierten Shared-Shell-Entrys**: sowohl einfache Statushinweise als auch die bislang komplexeren Update-Warnungen hängen jetzt sichtbarer am selben Partial-Vertrag. |
+
+---
+
+### v2.7.242 — 26. März 2026 · Audit-Batch 324, Media-Library-Alert weiter harmonisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.242** | 🔴 fix | Admin/Media | **`CMS/admin/views/media/library.php` nutzt den verbliebenen elFinder-Infohinweis jetzt ebenfalls über das gemeinsame `flash-alert.php`**: der Finder-Zweig pflegt keinen separaten lokalen `alert alert-info`-Block mehr. |
+| **2.7.242** | 🟠 perf | Admin/Views | **Die Media-Library spart weiteren lokalen Alert-Boilerplate und übernimmt künftige Verbesserungen am gemeinsamen Alert-Partial automatisch mit**: Typ-Mapping, Detail-Listen und Dismiss-Verhalten bleiben dadurch zentral statt view-lokal gepflegt. |
+| **2.7.242** | 🟡 refactor | Admin/Media | **Der Bibliotheks-View bleibt konsistenter zum bereits standardisierten Media-Entry und den übrigen harmonisierten Admin-Views**: auch der elFinder-Hinweis hängt jetzt sichtbar am Shared-View-Vertrag. |
+
+---
+
+### v2.7.241 — 26. März 2026 · Audit-Batch 323, Legal-Sites-Alerts weiter harmonisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.241** | 🔴 fix | Admin/Legal | **`CMS/admin/views/legal/sites.php` nutzt die verbliebenen lokalen Intro- und Datenschutz-Hinweisboxen jetzt ebenfalls über das gemeinsame `flash-alert.php`**: lokale Alert-Sonderpfade in der Legal-Sites-View werden damit weiter zurückgebaut. |
+| **2.7.241** | 🟠 perf | Admin/Views | **Die Legal-Sites-View spart weiteren lokalen Alert-Boilerplate und übernimmt künftige Verbesserungen an Alert-Typen, Detail-Listen und Dismiss-Verhalten zentral mit**: insbesondere die featurebezogenen Datenschutz-Hinweise hängen jetzt sichtbar am Shared-View-Vertrag. |
+| **2.7.241** | 🟡 refactor | Admin/Legal | **Der Rechtstext-Generator bleibt im View konsistenter zum bereits standardisierten Entry- und Flash-Vertrag**: Intro- und Feature-Hinweise werden nicht mehr als separate lokale Bootstrap-Alerts gepflegt. |
+
+---
+
+### v2.7.240 — 26. März 2026 · Audit-Batch 322, Font-Manager-Vertrag weiter gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.240** | 🔴 fix | Admin/Themes | **`CMS/admin/modules/themes/FontManagerModule.php` gibt bei Speicher- und Löschfehlern keine rohen Exception-Texte mehr an die Admin-UI weiter**: Fehler werden stattdessen strukturiert über `Logger::instance()->withChannel('admin.font-manager')` protokolliert. |
+| **2.7.240** | 🟠 perf | Admin/Views | **`CMS/admin/views/themes/fonts.php` nutzt jetzt auch die verbliebene Self-Hosting-Hinweisbox über das gemeinsame `flash-alert.php`**: der Font-Manager spart weiteren lokalen Alert-Boilerplate und hängt sichtbarer am Shared-View-Vertrag. |
+| **2.7.240** | 🟡 refactor | Admin/Themes | **Der hoch priorisierte Font-Manager zieht Fehler- und Hinweispfade näher an denselben Modul-/Partial-Vertrag wie andere modernisierte Admin-Bereiche**: Logging, UI-Meldungen und View-Hinweise bleiben konsistenter getrennt. |
+
+---
+
+### v2.7.239 — 26. März 2026 · Audit-Batch 321, Diagnose- und Member-Hinweise weiter harmonisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.239** | 🔴 fix | Admin/Views | **`CMS/admin/views/system/diagnose.php` und `CMS/admin/views/member/general.php` nutzen verbleibende einfache Hinweisboxen jetzt ebenfalls über das gemeinsame `flash-alert.php`**: lokale Info-/Warning-Blöcke werden damit weiter aus einzelnen Views herausgezogen. |
+| **2.7.239** | 🟠 perf | Admin/Views | **Diagnose- und Member-UI sparen weiteren Alert-Boilerplate und hängen sichtbarer am selben Shared-View-Vertrag wie andere modernisierte Admin-Seiten**: künftige Flash-Partial-Anpassungen greifen damit zentral statt dateiweise. |
+| **2.7.239** | 🟡 refactor | Admin/Views | **Der Restcluster fachlicher Hinweisboxen schrumpft weiter**: View-spezifische Alert-Sonderpfade werden zugunsten eines einheitlicheren Partial-Vertrags reduziert. |
+
+---
+
+### v2.7.238 — 26. März 2026 · Audit-Batch 320, lokale Admin-Hinweise weiter auf Flash-Partial harmonisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.238** | 🔴 fix | Admin/Views | **`CMS/admin/views/system/updates.php`, `system/documentation.php`, `themes/fonts.php` und `subscriptions/settings.php` nutzen einfache Status- und Hinweisblöcke jetzt über das gemeinsame `flash-alert.php`**: lokale Alert-Sonderpfade für Erfolg, Info, Warning und Error werden damit weiter aus einzelnen Views herausgezogen. |
+| **2.7.238** | 🟠 perf | Admin/Views | **Die betroffenen Views sparen weiteren UI-Boilerplate und profitieren zentral von denselben Alert-Typ-Mappings, Detail-Listen und Dismiss-Standards**: spätere Partial-Anpassungen greifen dadurch automatisch in weiteren System-, Theme- und Abo-Oberflächen. |
+| **2.7.238** | 🟡 refactor | Admin/Documentation | **`CMS/admin/views/system/documentation.php` pflegt keinen eigenen `$renderAlertBlock`-Renderer mehr**: die View hängt jetzt auch für Verfügbarkeits-, Sync- und Excerpt-Hinweise direkt am Shared-Partial-Vertrag. |
+
+---
+
+### v2.7.237 — 26. März 2026 · Audit-Batch 319, Plugins-/Themes-Entrys auf Shared-Shell verdichtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.237** | 🔴 fix | Admin/Extensions | **`CMS/admin/plugins.php` und `CMS/admin/themes.php` laufen jetzt über die gemeinsame `section-page-shell.php` statt eigene Redirect-/Flash-/POST-Sonderpfade zu pflegen**: Access-Check, CSRF-Flow und Shell-Rendering hängen dadurch an demselben Shared-Vertrag wie die bereits modernisierten Admin-Entrys. |
+| **2.7.237** | 🟠 perf | Admin/Extensions | **Die Plugin- und Theme-Verwaltung spart weiteren Entry-Boilerplate und nutzt denselben PRG-/Flash-Vertrag wie Marketplace, Media oder Packages**: Mutationspfade landen damit konsistenter wieder auf derselben Verwaltungsansicht. |
+| **2.7.237** | 🟡 refactor | Admin/Extensions | **`CMS/admin/modules/plugins/PluginsModule.php` und `CMS/admin/modules/themes/ThemesModule.php` härten ihre UI-Verträge zusätzlich**: Plugin-Aktivierungs-/Deaktivierungsfehler werden strukturiert geloggt statt rohe Exception-Texte weiterzureichen, und Theme-Slugs/Erfolgsmeldungen werden konsistent normalisiert statt bereits im Modul HTML-escaped zu werden. |
+
+---
+
+### v2.7.236 — 26. März 2026 · Audit-Batch 318, Marketplace-Entrys und Installationspfade gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.236** | 🔴 fix | Admin/Marketplace | **`CMS/admin/plugin-marketplace.php` und `CMS/admin/theme-marketplace.php` laufen jetzt über die gemeinsame `section-page-shell.php` statt eigene Redirect-/Flash-/POST-Sonderpfade zu pflegen**: Access-Checks, CSRF-Flow und Shell-Rendering hängen dadurch an demselben Shared-Vertrag wie andere modernisierte Admin-Entrys. |
+| **2.7.236** | 🟠 perf | Admin/Marketplace | **`CMS/admin/modules/plugins/PluginMarketplaceModule.php` und `CMS/admin/modules/themes/ThemeMarketplaceModule.php` normalisieren relative Remote-Manifest-/Downloadpfade jetzt strikter**: nur erlaubte HTTPS-Marketplace-Ziele mit sauberen relativen Pfaden werden noch zu Remote-URLs zusammengesetzt. |
+| **2.7.236** | 🟡 refactor | Admin/Marketplace | **Auto-Installationen werden zusätzlich an `requires_cms`- und `requires_php`-Vorgaben gekoppelt**: inkompatible Plugin-/Theme-Pakete bleiben damit im Marketplace sichtbar, werden aber nicht mehr als automatisch installierbar angeboten. |
+
+---
+
+### v2.7.235 — 26. März 2026 · Audit-Batch 317, Flash-Ausgabe in 14 weiteren Admin-Views harmonisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.235** | 🔴 fix | Admin/SEO | **`CMS/admin/views/seo/technical.php`, `social.php`, `meta.php`, `sitemap.php`, `schema.php`, `redirects.php`, `not-found.php`, `dashboard.php` und `audit.php` nutzen ihre Alert-Ausgabe jetzt über das gemeinsame `flash-alert.php`**: Erfolg-/Fehlerhinweise, Dismiss-Verhalten und Detail-Listen werden damit nicht länger lokal pro View gepflegt. |
+| **2.7.235** | 🟠 perf | Admin/Views | **`CMS/admin/views/security/audit.php`, `plugins/marketplace.php`, `themes/marketplace.php`, `themes/list.php` und `toc/settings.php` hängen jetzt ebenfalls am selben Flash-Partial-Vertrag**: wiederholtes Alert-Markup entfällt in weiteren Admin-Bereichen, und spätere Partial-Verbesserungen greifen zentral. |
+| **2.7.235** | 🟡 refactor | Admin/Core | **`CMS/admin/views/partials/flash-alert.php` unterstützt zusätzlich generische Detail-Listen aus `details`**: Redirect- und 404-Views können ihre zusätzlichen Hinweislisten jetzt über denselben zentralen Alert-Renderer ausgeben statt mit lokalem Sondermarkup. |
+
+---
+
+### v2.7.234 — 26. März 2026 · Audit-Batch 316, Member- und System-Flash-Ausgabe breit harmonisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.234** | 🔴 fix | Admin/Member | **`CMS/admin/views/member/dashboard.php`, `general.php`, `design.php`, `frontend-modules.php`, `widgets.php`, `plugin-widgets.php`, `profile-fields.php`, `notifications.php` und `onboarding.php` nutzen ihre Seiten-Flash-Ausgabe jetzt über das gemeinsame `flash-alert.php`**: Member-Unterseiten pflegen dadurch keine eigenen Alert-Blöcke mehr vor der Subnav. |
+| **2.7.234** | 🟠 perf | Admin/System | **`CMS/admin/views/system/email-alerts.php`, `response-time.php`, `cron-status.php`, `disk-usage.php`, `health-check.php`, `scheduled-tasks.php`, `info.php` und `diagnose.php` hängen jetzt ebenfalls am gemeinsamen Flash-Partial**: Monitoring- und Diagnose-Views sparen damit weiteren wiederholten Alert-Boilerplate. |
+| **2.7.234** | 🟡 refactor | Admin/Views | **Insgesamt 17 Admin-Views wurden auf denselben Flash-Partial-Vertrag vereinheitlicht**: künftige Änderungen an Dismiss-Verhalten, Alert-Typ-Mapping oder Fehlerreport-Payloads greifen damit zentral statt dateiweise. |
+
+---
+
+### v2.7.233 — 26. März 2026 · Audit-Batch 315, SEO-Subnav auf gemeinsames Section-Partial standardisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.233** | 🔴 fix | Admin/SEO | **`CMS/admin/views/seo/subnav.php` nutzt jetzt das gemeinsame `section-subnav.php` statt eine lokale Navigationsstruktur zu pflegen**: die aktive Seite und Link-Ausgabe hängen dadurch näher am standardisierten Partial-Vertrag. |
+| **2.7.233** | 🟠 perf | Admin/SEO | **Die SEO-Navigation spart eigenen Markup-/Class-Boilerplate und übernimmt künftige Subnav-Anpassungen automatisch mit**: nur die beiden Sitemap-/robots-Aktionsbuttons bleiben als schlanker separater Action-Block zurück. |
+| **2.7.233** | 🟡 refactor | Admin/Views | **Ein weiterer Admin-View verlagert seinen Navigationsaufbau in ein gemeinsames Partial**: Subnav-Verhalten bleibt dadurch konsistenter zwischen SEO-, Performance-, System- und Member-Bereich. |
+
+---
+
+### v2.7.232 — 26. März 2026 · Audit-Batch 314, Flash-Ausgabe in Analytics- und Performance-Media-View harmonisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.232** | 🔴 fix | Admin/SEO | **`CMS/admin/views/seo/analytics.php` nutzt jetzt das gemeinsame `flash-alert.php` statt einen lokalen Alert-Block zu pflegen**: Dismiss-Handling und optionale Fehlerreport-Payloads hängen damit näher am standardisierten View-Vertrag. |
+| **2.7.232** | 🟠 perf | Admin/Performance | **`CMS/admin/views/performance/media.php` rendert Shell-basierte Alerts jetzt ebenfalls über das gemeinsame Flash-Partial**: die View spart duplizierte Alert-Ausgabe und bleibt konsistenter zu anderen standardisierten Admin-Seiten. |
+| **2.7.232** | 🟡 refactor | Admin/Views | **Zwei weitere Admin-Views verlassen ihre lokalen Alert-Sonderpfade**: Flash-Ausgabe und künftige Partial-Erweiterungen greifen dadurch zentral statt dateiweise. |
+
+---
+
+### v2.7.231 — 26. März 2026 · Audit-Batch 313, System-Monitor-Wrapper und Fehlerpfade weiter gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.231** | 🔴 fix | Admin/System | **`CMS/admin/modules/system/SystemInfoModule.php` gibt bei Diagnose-/Monitoring-Fehlern keine rohen Exception-Texte mehr an die Admin-Oberfläche aus**: technische Details werden stattdessen gekürzt im Audit-Log festgehalten, während die UI generische Fehlermeldungen zeigt. |
+| **2.7.231** | 🟠 perf | Admin/System | **`CMS/admin/system-monitor-page.php` baut seinen Shell-Vertrag jetzt über einen benannten Helper auf und delegiert den Access-Check an die gemeinsame `section-page-shell.php`**: der Wrapper spart eigenen Header-Redirect-Boilerplate und bleibt näher an verwandten Shared-Entrys. |
+| **2.7.231** | 🟡 refactor | Admin/System | **Wrapper- und Modul-Fehlerpfade sind klarer getrennt**: die Datei konzentriert sich stärker auf Section-Registry und Action-Dispatch, während Modulfehler zentral geloggt und UI-sicher aufbereitet werden. |
+
+---
+
+### v2.7.230 — 26. März 2026 · Audit-Batch 312, Performance-Wrapper weiter auf Shared-Shell verdichtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.230** | 🔴 fix | Admin/Performance | **`CMS/admin/performance-page.php` delegiert den Access-Check jetzt an die gemeinsame `section-page-shell.php` statt einen eigenen Header-Redirect-Sonderpfad vorzuhalten**: der Wrapper hängt dadurch enger am bestehenden Shared-Entry-Vertrag. |
+| **2.7.230** | 🟠 perf | Admin/Performance | **Die Section-Shell-Konfiguration wird jetzt über einen benannten Helper aufgebaut**: Abschnitts-, Modul- und Datenlade-Kontext bleiben kompakter zusammengefasst und müssen nicht länger als loser Inline-Block gepflegt werden. |
+| **2.7.230** | 🟡 refactor | Admin/Performance | **Die Datei konzentriert sich jetzt stärker auf Normalisierung und Aktionsregeln**: Shell-Zusammenbau und Access-Standardverhalten sind sichtbarer vereinheitlicht. |
+
+---
+
+### v2.7.229 — 26. März 2026 · Audit-Batch 311, Member-Dashboard-Overview-Entry weiter verschlankt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.229** | 🔴 fix | Admin/Member | **`CMS/admin/member-dashboard.php` nutzt für Legacy-Sektionen jetzt den gemeinsamen `redirect-alias-shell.php` statt einen eigenen Header-Redirect-Helfer zu pflegen**: der Overview-Entry hängt dadurch näher am vorhandenen Redirect-Wrapper-Vertrag. |
+| **2.7.229** | 🟠 perf | Admin/Member | **Der eigentliche Overview-Flow delegiert Guard und Rendering jetzt klarer an `member-dashboard-page.php`**: der Entry spart verteiltes Redirect-Boilerplate und hält seinen Legacy-/Overview-Pfad kompakter. |
+| **2.7.229** | 🟡 refactor | Admin/Member | **Die Datei konzentriert sich jetzt auf Legacy-Section-Normalisierung und kanonische Overview-Konfiguration**: Redirect- und Access-Standardverhalten bleiben stärker in den gemeinsamen Wrappers statt in einem zusätzlichen Sonderpfad. |
 
 ---
 

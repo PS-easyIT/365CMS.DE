@@ -71,11 +71,7 @@ foreach ($tables as $tableInfo) {
 
 <div class="page-body">
     <div class="container-xl">
-        <?php if (!empty($alert)): ?>
-            <div class="alert alert-<?php echo htmlspecialchars($alert['type'] ?? 'info'); ?> mb-4" role="alert">
-                <?php echo htmlspecialchars($alert['message'] ?? ''); ?>
-            </div>
-        <?php endif; ?>
+        <?php $alertData = $alert; $alertMarginClass = 'mb-4'; require __DIR__ . '/../partials/flash-alert.php'; ?>
 
         <?php require __DIR__ . '/subnav.php'; ?>
 
@@ -211,9 +207,15 @@ foreach ($tables as $tableInfo) {
                     <div class="card-header"><h3 class="card-title">Vendor- &amp; Asset-Registry</h3></div>
                     <div class="card-body">
                         <?php if (!empty($vendorRegistry['error'])): ?>
-                            <div class="alert alert-warning" role="alert">
-                                <?php echo htmlspecialchars((string)$vendorRegistry['error']); ?>
-                            </div>
+                            <?php
+                            $alertData = [
+                                'type' => 'warning',
+                                'message' => (string) $vendorRegistry['error'],
+                            ];
+                            $alertDismissible = false;
+                            $alertMarginClass = 'mb-4';
+                            require __DIR__ . '/../partials/flash-alert.php';
+                            ?>
                         <?php endif; ?>
 
                         <div class="row g-4">
@@ -477,9 +479,15 @@ foreach ($tables as $tableInfo) {
                                     </div>
 
                                     <?php if (empty($runtime['enabled'])): ?>
-                                        <div class="alert alert-info" role="alert">
-                                            Debug ist aktuell aus. Das Bootstrap-Profil läuft leichtgewichtig weiter, detaillierte SQL-Queries und Debug-Logs erscheinen jedoch nur mit aktiviertem <code>CMS_DEBUG</code>.
-                                        </div>
+                                        <?php
+                                        $alertData = [
+                                            'type' => 'info',
+                                            'message' => 'Debug ist aktuell aus. Das Bootstrap-Profil läuft leichtgewichtig weiter, detaillierte SQL-Queries und Debug-Logs erscheinen jedoch nur mit aktiviertem CMS_DEBUG.',
+                                        ];
+                                        $alertDismissible = false;
+                                        $alertMarginClass = 'mb-0';
+                                        require __DIR__ . '/../partials/flash-alert.php';
+                                        ?>
                                     <?php endif; ?>
                                 </div>
                             </div>

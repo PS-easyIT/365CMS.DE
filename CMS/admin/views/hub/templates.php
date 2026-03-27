@@ -78,9 +78,13 @@ $baseTemplateOptions = $data['baseTemplateOptions'] ?? [];
                                         </button>
                                         <div class="dropdown-menu dropdown-menu-end">
                                             <a class="dropdown-item" href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites?action=template-edit&key=<?php echo rawurlencode((string)$template['key']); ?>">Bearbeiten / umbenennen</a>
-                                            <button class="dropdown-item" onclick="duplicateTemplate('<?php echo htmlspecialchars((string)$template['key'], ENT_QUOTES); ?>')">Kopieren</button>
+                                            <button type="button" class="dropdown-item js-duplicate-hub-template" data-hub-template-key="<?php echo htmlspecialchars((string)$template['key'], ENT_QUOTES); ?>">Kopieren</button>
                                             <div class="dropdown-divider"></div>
-                                            <button class="dropdown-item text-danger" onclick="deleteTemplate('<?php echo htmlspecialchars((string)$template['key'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars((string)$template['label'], ENT_QUOTES); ?>')">Löschen</button>
+                                            <button type="button" class="dropdown-item text-danger js-delete-hub-template"
+                                                    data-hub-template-key="<?php echo htmlspecialchars((string)$template['key'], ENT_QUOTES); ?>"
+                                                    data-hub-template-name="<?php echo htmlspecialchars((string)$template['label'], ENT_QUOTES); ?>">
+                                                Löschen
+                                            </button>
                                         </div>
                                     </div>
                                 </td>
@@ -105,23 +109,3 @@ $baseTemplateOptions = $data['baseTemplateOptions'] ?? [];
     <input type="hidden" name="action" value="delete-template">
     <input type="hidden" name="key" id="deleteTemplateKey">
 </form>
-
-<script>
-function duplicateTemplate(key) {
-    document.getElementById('duplicateTemplateKey').value = key;
-    document.getElementById('duplicateTemplateForm').submit();
-}
-
-function deleteTemplate(key, name) {
-    cmsConfirm({
-        title: 'Template löschen',
-        message: 'Template <strong>' + name + '</strong> wirklich löschen?',
-        confirmText: 'Löschen',
-        confirmClass: 'btn-danger',
-        onConfirm: function() {
-            document.getElementById('deleteTemplateKey').value = key;
-            document.getElementById('deleteTemplateForm').submit();
-        }
-    });
-}
-</script>

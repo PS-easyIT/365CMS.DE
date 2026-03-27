@@ -14,12 +14,14 @@ if (!defined('ABSPATH')) {
 
 $settings  = $data['settings'] ?? [];
 $diskUsage = $data['diskUsage'] ?? [];
-
-$allTypes = ['jpg','jpeg','png','gif','webp','bmp','ico','pdf','doc','docx','xls','xlsx','ppt','pptx','txt','csv','zip','rar','7z','tar','gz','mp4','webm','ogg','mov','mp3','wav','aac','flac'];
+$options = $data['options'] ?? [];
+$allTypes = is_array($options['allowed_types'] ?? null) ? $options['allowed_types'] : [];
+$memberTypes = is_array($options['member_allowed_types'] ?? null) ? $options['member_allowed_types'] : [];
+$thumbnailSizes = is_array($options['thumbnail_sizes'] ?? null) ? $options['thumbnail_sizes'] : [];
 
 // Defaults
 $s = array_merge([
-    'max_upload_size'         => '64M',
+    'max_upload_size'         => 64,
     'allowed_types'           => $allTypes,
     'organize_month_year'     => true,
     'sanitize_filename'       => true,
@@ -44,8 +46,8 @@ $s = array_merge([
     'require_login_for_upload'=> true,
     'protect_uploads_dir'     => true,
     'member_uploads_enabled'  => false,
-    'member_max_upload_size'  => '5M',
-    'member_allowed_types'    => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'rtf', 'csv'],
+    'member_max_upload_size'  => 5,
+    'member_allowed_types'    => $memberTypes,
     'member_delete_own'       => false,
 ], $settings);
 ?>
@@ -93,8 +95,8 @@ $s = array_merge([
                                     foreach ($allTypes as $type): ?>
                                         <div class="col-4 col-sm-3 col-md-2 mb-1">
                                             <label class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="allowed_types[]" value="<?php echo $type; ?>" <?php echo in_array($type, $active) ? 'checked' : ''; ?>>
-                                                <span class="form-check-label">.<?php echo $type; ?></span>
+                                                <input type="checkbox" class="form-check-input" name="allowed_types[]" value="<?php echo htmlspecialchars((string) $type, ENT_QUOTES); ?>" <?php echo in_array($type, $active, true) ? 'checked' : ''; ?>>
+                                                <span class="form-check-label">.<?php echo htmlspecialchars((string) $type); ?></span>
                                             </label>
                                         </div>
                                     <?php endforeach; ?>
@@ -180,20 +182,21 @@ $s = array_merge([
                         <div class="card-body">
                             <div class="row">
                                 <?php
-                                $sizes = [
-                                    ['Small',  'thumbnail_small_w',  'thumbnail_small_h'],
-                                    ['Medium', 'thumbnail_medium_w', 'thumbnail_medium_h'],
-                                    ['Large',  'thumbnail_large_w',  'thumbnail_large_h'],
-                                    ['Banner', 'thumbnail_banner_w', 'thumbnail_banner_h'],
-                                ];
-                                foreach ($sizes as [$label, $wKey, $hKey]):
+                                foreach ($thumbnailSizes as $sizeConfig):
+                                    $label = (string) ($sizeConfig['label'] ?? 'Format');
+                                    $wKey = (string) ($sizeConfig['width_field'] ?? '');
+                                    $hKey = (string) ($sizeConfig['height_field'] ?? '');
+
+                                    if ($wKey === '' || $hKey === '') {
+                                        continue;
+                                    }
                                 ?>
                                     <div class="col-sm-6 col-md-3 mb-3">
-                                        <label class="form-label fw-bold"><?php echo $label; ?></label>
+                                        <label class="form-label fw-bold"><?php echo htmlspecialchars($label); ?></label>
                                         <div class="input-group input-group-sm">
-                                            <input type="number" class="form-control" name="<?php echo $wKey; ?>" value="<?php echo (int)$s[$wKey]; ?>" min="0" placeholder="B">
+                                            <input type="number" class="form-control" name="<?php echo htmlspecialchars($wKey, ENT_QUOTES); ?>" value="<?php echo (int)($s[$wKey] ?? 0); ?>" min="0" placeholder="B">
                                             <span class="input-group-text">×</span>
-                                            <input type="number" class="form-control" name="<?php echo $hKey; ?>" value="<?php echo (int)$s[$hKey]; ?>" min="0" placeholder="H">
+                                            <input type="number" class="form-control" name="<?php echo htmlspecialchars($hKey, ENT_QUOTES); ?>" value="<?php echo (int)($s[$hKey] ?? 0); ?>" min="0" placeholder="H">
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
@@ -230,12 +233,11 @@ $s = array_merge([
                                 <div class="row">
                                     <?php
                                     $mActive = (array)$s['member_allowed_types'];
-                                    $mTypes = ['jpg','jpeg','png','gif','webp','pdf','doc','docx','zip'];
-                                    foreach ($mTypes as $type): ?>
+                                    foreach ($memberTypes as $type): ?>
                                         <div class="col-4 col-sm-3 col-md-2 mb-1">
                                             <label class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="member_allowed_types[]" value="<?php echo $type; ?>" <?php echo in_array($type, $mActive) ? 'checked' : ''; ?>>
-                                                <span class="form-check-label">.<?php echo $type; ?></span>
+                                                <input type="checkbox" class="form-check-input" name="member_allowed_types[]" value="<?php echo htmlspecialchars((string) $type, ENT_QUOTES); ?>" <?php echo in_array($type, $mActive, true) ? 'checked' : ''; ?>>
+                                                <span class="form-check-label">.<?php echo htmlspecialchars((string) $type); ?></span>
                                             </label>
                                         </div>
                                     <?php endforeach; ?>

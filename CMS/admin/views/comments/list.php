@@ -256,31 +256,31 @@ $tabs = [
                                             </button>
                                             <div class="dropdown-menu dropdown-menu-end">
                                                 <?php if ($canModerate && $cStatus !== 'approved'): ?>
-                                                    <button class="dropdown-item" onclick="commentAction(<?php echo $cId; ?>, 'approved')">
+                                                    <button type="button" class="dropdown-item js-comment-action" data-comment-id="<?php echo $cId; ?>" data-comment-action="status" data-comment-status="approved">
                                                         <svg xmlns="http://www.w3.org/2000/svg" class="icon dropdown-item-icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg>
                                                         Freigeben
                                                     </button>
                                                 <?php endif; ?>
                                                 <?php if ($canModerate && $cStatus !== 'pending'): ?>
-                                                    <button class="dropdown-item" onclick="commentAction(<?php echo $cId; ?>, 'pending')">
+                                                    <button type="button" class="dropdown-item js-comment-action" data-comment-id="<?php echo $cId; ?>" data-comment-action="status" data-comment-status="pending">
                                                         <svg xmlns="http://www.w3.org/2000/svg" class="icon dropdown-item-icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0z"/><path d="M12 16h.01"/></svg>
                                                         Ausstehend
                                                     </button>
                                                 <?php endif; ?>
                                                 <?php if ($canModerate && $cStatus !== 'spam'): ?>
-                                                    <button class="dropdown-item text-warning" onclick="commentAction(<?php echo $cId; ?>, 'spam')">
+                                                    <button type="button" class="dropdown-item text-warning js-comment-action" data-comment-id="<?php echo $cId; ?>" data-comment-action="status" data-comment-status="spam">
                                                         <svg xmlns="http://www.w3.org/2000/svg" class="icon dropdown-item-icon text-warning" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M5.7 5.7l12.6 12.6"/></svg>
                                                         Spam
                                                     </button>
                                                 <?php endif; ?>
                                                 <?php if ($canModerate && $cStatus !== 'trash'): ?>
-                                                    <button class="dropdown-item text-danger" onclick="commentAction(<?php echo $cId; ?>, 'trash')">
+                                                    <button type="button" class="dropdown-item text-danger js-comment-action" data-comment-id="<?php echo $cId; ?>" data-comment-action="status" data-comment-status="trash">
                                                         <svg xmlns="http://www.w3.org/2000/svg" class="icon dropdown-item-icon text-danger" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/></svg>
                                                         Papierkorb
                                                     </button>
                                                 <?php endif; ?>
                                                 <?php if ($canDelete && $cStatus === 'trash'): ?>
-                                                    <button class="dropdown-item text-danger" onclick="deleteComment(<?php echo $cId; ?>)">
+                                                    <button type="button" class="dropdown-item text-danger js-comment-delete" data-comment-id="<?php echo $cId; ?>">
                                                         <svg xmlns="http://www.w3.org/2000/svg" class="icon dropdown-item-icon text-danger" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/></svg>
                                                         Endgültig löschen
                                                     </button>
@@ -307,68 +307,3 @@ $tabs = [
     <input type="hidden" name="id" id="actionId" value="">
     <input type="hidden" name="new_status" id="actionStatus" value="">
 </form>
-
-<script>
-function commentAction(id, newStatus) {
-    document.getElementById('actionType').value = 'status';
-    document.getElementById('actionId').value = id;
-    document.getElementById('actionStatus').value = newStatus;
-    document.getElementById('actionForm').submit();
-}
-
-function deleteComment(id) {
-    cmsConfirm({
-        title: 'Kommentar löschen',
-        message: 'Kommentar endgültig löschen? Dies kann nicht rückgängig gemacht werden.',
-        confirmText: 'Löschen',
-        confirmClass: 'btn-danger',
-        onConfirm: function() {
-            document.getElementById('actionType').value = 'delete';
-            document.getElementById('actionId').value = id;
-            document.getElementById('actionForm').submit();
-        }
-    });
-}
-
-// Select-All & Bulk
-(function() {
-    var selectAll = document.getElementById('selectAll');
-    var bulkBar   = document.getElementById('bulkBar');
-    var countEl   = document.getElementById('selectedCount');
-    var tableWrap = document.querySelector('.comments-table-responsive');
-
-    function updateBulk() {
-        var checked = document.querySelectorAll('.row-check:checked').length;
-        countEl.textContent = checked;
-        bulkBar.classList.toggle('d-none', checked === 0);
-    }
-
-    function setDropdownOverflow(open) {
-        if (!tableWrap) {
-            return;
-        }
-
-        tableWrap.style.overflow = open ? 'visible' : '';
-    }
-
-    if (selectAll) {
-        selectAll.addEventListener('change', function() {
-            document.querySelectorAll('.row-check').forEach(function(cb) { cb.checked = selectAll.checked; });
-            updateBulk();
-        });
-    }
-    document.querySelectorAll('.row-check').forEach(function(cb) {
-        cb.addEventListener('change', updateBulk);
-    });
-
-    document.querySelectorAll('.comments-table-responsive .dropdown').forEach(function(dropdown) {
-        dropdown.addEventListener('show.bs.dropdown', function() {
-            setDropdownOverflow(true);
-        });
-
-        dropdown.addEventListener('hidden.bs.dropdown', function() {
-            setDropdownOverflow(false);
-        });
-    });
-})();
-</script>

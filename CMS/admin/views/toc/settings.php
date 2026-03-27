@@ -29,10 +29,12 @@ $s = $settings;
     <div class="container-xl">
 
         <?php if (!empty($alert)): ?>
-            <div class="alert alert-<?php echo $alert['type'] === 'success' ? 'success' : 'danger'; ?> alert-dismissible mb-3" role="alert">
-                <div class="d-flex"><div><?php echo htmlspecialchars($alert['message']); ?></div></div>
-                <a class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></a>
-            </div>
+            <?php
+            $alertData = is_array($alert ?? null) ? $alert : [];
+            $alertMarginClass = 'mb-3';
+            require dirname(__DIR__) . '/partials/flash-alert.php';
+            unset($alertMarginClass);
+            ?>
         <?php endif; ?>
 
         <form method="post" action="<?php echo htmlspecialchars(SITE_URL); ?>/admin/table-of-contents">

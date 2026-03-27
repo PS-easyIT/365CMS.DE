@@ -9,6 +9,10 @@ $services        = $d['services'] ?? [];
 $settings        = $d['settings'] ?? [];
 $scanResults     = $d['scan_results'] ?? [];
 $curatedServices = $d['curated_services'] ?? [];
+$cookieManagerConfig = [
+    'categoryModalId' => 'categoryModal',
+    'serviceModalId' => 'serviceModal',
+];
 ?>
 
 <div class="page-header d-print-none">
@@ -306,7 +310,7 @@ $curatedServices = $d['curated_services'] ?? [];
                 <div class="card">
                     <div class="card-header d-flex align-items-center justify-content-between">
                         <h3 class="card-title">Kategorien</h3>
-                        <a href="#" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#categoryModal" onclick="resetCategoryForm()">Kategorie hinzufügen</a>
+                        <button type="button" class="btn btn-primary btn-sm js-cookie-category-create">Kategorie hinzufügen</button>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-vcenter card-table">
@@ -330,13 +334,13 @@ $curatedServices = $d['curated_services'] ?? [];
                                             <div class="dropdown">
                                                 <button class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="dropdown"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg></button>
                                                 <div class="dropdown-menu dropdown-menu-end">
-                                                    <a href="#" class="dropdown-item" onclick='editCategory(<?php echo json_encode($cat, JSON_HEX_APOS | JSON_HEX_QUOT); ?>)'>Bearbeiten</a>
+                                                    <button type="button" class="dropdown-item js-cookie-category-edit" data-cookie-category="<?php echo htmlspecialchars((string) json_encode($cat, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP), ENT_QUOTES); ?>">Bearbeiten</button>
                                                     <?php if (!(int)$cat['is_required']): ?>
-                                                        <form method="post" class="d-inline">
+                                                        <form method="post" class="d-inline" data-confirm-message="Wirklich löschen?" data-confirm-title="Kategorie löschen" data-confirm-text="Löschen" data-confirm-class="btn-danger" data-confirm-status-class="bg-danger">
                                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                                                             <input type="hidden" name="action" value="delete_category">
                                                             <input type="hidden" name="id" value="<?php echo (int)$cat['id']; ?>">
-                                                            <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Wirklich löschen?')">Löschen</button>
+                                                            <button type="submit" class="dropdown-item text-danger">Löschen</button>
                                                         </form>
                                                     <?php endif; ?>
                                                 </div>
@@ -354,7 +358,7 @@ $curatedServices = $d['curated_services'] ?? [];
         <div class="card">
             <div class="card-header d-flex align-items-center justify-content-between">
                 <h3 class="card-title">Konfigurierte Services</h3>
-                <a href="#" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#serviceModal" onclick="resetServiceForm()">Service hinzufügen</a>
+                <button type="button" class="btn btn-primary btn-sm js-cookie-service-create">Service hinzufügen</button>
             </div>
             <div class="table-responsive">
                 <table class="table table-vcenter card-table">
@@ -392,13 +396,13 @@ $curatedServices = $d['curated_services'] ?? [];
                                         <div class="dropdown">
                                             <button class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="dropdown"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg></button>
                                             <div class="dropdown-menu dropdown-menu-end">
-                                                <a href="#" class="dropdown-item" onclick='editService(<?php echo json_encode($service, JSON_HEX_APOS | JSON_HEX_QUOT); ?>)'>Bearbeiten</a>
+                                                <button type="button" class="dropdown-item js-cookie-service-edit" data-cookie-service="<?php echo htmlspecialchars((string) json_encode($service, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP), ENT_QUOTES); ?>">Bearbeiten</button>
                                                 <?php if (!(int)$service['is_essential']): ?>
-                                                    <form method="post" class="d-inline">
+                                                    <form method="post" class="d-inline" data-confirm-message="Service wirklich löschen?" data-confirm-title="Service löschen" data-confirm-text="Löschen" data-confirm-class="btn-danger" data-confirm-status-class="bg-danger">
                                                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                                                         <input type="hidden" name="action" value="delete_service">
                                                         <input type="hidden" name="id" value="<?php echo (int)$service['id']; ?>">
-                                                        <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Service wirklich löschen?')">Löschen</button>
+                                                        <button type="submit" class="dropdown-item text-danger">Löschen</button>
                                                     </form>
                                                 <?php endif; ?>
                                             </div>
@@ -539,60 +543,4 @@ $curatedServices = $d['curated_services'] ?? [];
     </div>
 </div>
 
-<script>
-function resetCategoryForm() {
-    document.getElementById('catModalTitle').textContent = 'Kategorie hinzufügen';
-    document.getElementById('catId').value = '0';
-    document.getElementById('catName').value = '';
-    document.getElementById('catSlug').value = '';
-    document.getElementById('catDesc').value = '';
-    document.getElementById('catScripts').value = '';
-    document.getElementById('catOrder').value = '0';
-    document.getElementById('catRequired').checked = false;
-    document.getElementById('catActive').checked = true;
-}
-
-function editCategory(cat) {
-    document.getElementById('catModalTitle').textContent = 'Kategorie bearbeiten';
-    document.getElementById('catId').value = cat.id;
-    document.getElementById('catName').value = cat.name || '';
-    document.getElementById('catSlug').value = cat.slug || '';
-    document.getElementById('catDesc').value = cat.description || '';
-    document.getElementById('catScripts').value = cat.scripts || '';
-    document.getElementById('catOrder').value = cat.sort_order || '0';
-    document.getElementById('catRequired').checked = !!parseInt(cat.is_required);
-    document.getElementById('catActive').checked = !!parseInt(cat.is_active);
-    new bootstrap.Modal(document.getElementById('categoryModal')).show();
-}
-
-function resetServiceForm() {
-    document.getElementById('serviceModalTitle').textContent = 'Service hinzufügen';
-    document.getElementById('serviceId').value = '0';
-    document.getElementById('serviceName').value = '';
-    document.getElementById('serviceSlug').value = '';
-    document.getElementById('serviceProvider').value = '';
-    document.getElementById('serviceDescription').value = '';
-    document.getElementById('serviceCookies').value = '';
-    document.getElementById('serviceCode').value = '';
-    document.getElementById('serviceEssential').checked = false;
-    document.getElementById('serviceActive').checked = true;
-    if (document.getElementById('serviceCategory').options.length > 0) {
-        document.getElementById('serviceCategory').selectedIndex = 0;
-    }
-}
-
-function editService(service) {
-    document.getElementById('serviceModalTitle').textContent = 'Service bearbeiten';
-    document.getElementById('serviceId').value = service.id || 0;
-    document.getElementById('serviceName').value = service.name || '';
-    document.getElementById('serviceSlug').value = service.slug || '';
-    document.getElementById('serviceProvider').value = service.provider || '';
-    document.getElementById('serviceCategory').value = service.category_slug || 'necessary';
-    document.getElementById('serviceDescription').value = service.description || '';
-    document.getElementById('serviceCookies').value = service.cookie_names || '';
-    document.getElementById('serviceCode').value = service.code_snippet || '';
-    document.getElementById('serviceEssential').checked = !!parseInt(service.is_essential);
-    document.getElementById('serviceActive').checked = !!parseInt(service.is_active);
-    new bootstrap.Modal(document.getElementById('serviceModal')).show();
-}
-</script>
+<script type="application/json" id="cookie-manager-config"><?php echo json_encode($cookieManagerConfig, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?></script>

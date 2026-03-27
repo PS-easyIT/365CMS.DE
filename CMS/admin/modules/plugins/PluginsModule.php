@@ -10,11 +10,13 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\AuditLogger;
+use CMS\Logger;
 
 class PluginsModule
 {
     private readonly \CMS\Database $db;
     private readonly string $prefix;
+    private readonly Logger $logger;
     /** @var array<string, bool>|null */
     private ?array $activePluginsLookup = null;
 
@@ -22,11 +24,12 @@ class PluginsModule
     {
         $this->db     = \CMS\Database::instance();
         $this->prefix = $this->db->getPrefix();
+        $this->logger = Logger::instance()->withChannel('admin.plugins');
     }
 
     public function getData(): array
     {
-        $pluginsDir = defined('PLUGINS_PATH') ? PLUGINS_PATH : (defined('ABSPATH') ? ABSPATH . 'plugins/' : '');
+        $pluginsDir = $this->getPluginsDirectory();
         $plugins    = [];
         $active     = 0;
         $inactive   = 0;
@@ -35,8 +38,16 @@ class PluginsModule
         if (is_dir($pluginsDir)) {
             foreach (new \DirectoryIterator($pluginsDir) as $item) {
                 if ($item->isDot() || !$item->isDir()) continue;
-                $slug    = $item->getFilename();
-                $mainFile = $pluginsDir . $slug . '/' . $slug . '.php';
+                $directoryName = $item->getFilename();
+                $slug = $this->normalizePluginSlug($directoryName);
+                if ($slug === '') {
+                    continue;
+                }
+
+                $mainFile = $item->getPathname() . DIRECTORY_SEPARATOR . $directoryName . '.php';
+                if (!is_file($mainFile)) {
+                    $mainFile = $this->getPluginMainFilePath($slug);
+                }
                 $info    = $this->parsePluginHeader($mainFile);
 
                 if (empty($info['name'])) {
@@ -48,7 +59,7 @@ class PluginsModule
                 $info['protected'] = $this->isProtectedPlugin($slug);
 
                 // update.json lesen
-                $updateFile = $pluginsDir . $slug . '/update.json';
+                $updateFile = $item->getPathname() . DIRECTORY_SEPARATOR . 'update.json';
                 if (file_exists($updateFile)) {
                     $upd = \CMS\Json::decodeArray(file_get_contents($updateFile), []);
                     $info['version']     = $upd['version'] ?? $info['version'] ?? '-';
@@ -74,12 +85,10 @@ class PluginsModule
 
     public function activatePlugin(string $slug): array
     {
-        $slug = preg_replace('/[^a-z0-9_-]/', '', strtolower($slug));
+        $slug = $this->normalizePluginSlug($slug);
         if ($slug === '') return ['success' => false, 'error' => 'Ungültiger Plugin-Slug.'];
 
-        // FIX: Vor Aktivierung immer die erwartete Hauptdatei prüfen.
-        $pluginsDir = defined('PLUGINS_PATH') ? PLUGINS_PATH : (defined('ABSPATH') ? ABSPATH . 'plugins/' : '');
-        $mainFile = $pluginsDir . $slug . '/' . $slug . '.php';
+        $mainFile = $this->getPluginMainFilePath($slug);
         if (!is_file($mainFile)) {
             return ['success' => false, 'error' => 'Plugin-Hauptdatei wurde nicht gefunden.'];
         }
@@ -91,11 +100,14 @@ class PluginsModule
                     return ['success' => false, 'error' => is_string($result) ? $result : 'Aktivierung fehlgeschlagen.'];
                 }
                 $this->resetActivePluginsLookup();
-                // ADDED: Plugin-Aktivierungen im Audit-Log dokumentieren.
-                AuditLogger::instance()->pluginAction('activate', $slug);
                 return ['success' => true, 'message' => "Plugin \"{$slug}\" aktiviert."];
             } catch (\Throwable $e) {
-                return ['success' => false, 'error' => $e->getMessage()];
+                $this->logger->error('Plugin-Aktivierung fehlgeschlagen.', [
+                    'slug' => $slug,
+                    'exception' => $e,
+                ]);
+
+                return ['success' => false, 'error' => 'Plugin konnte nicht aktiviert werden.'];
             }
         }
 
@@ -110,7 +122,7 @@ class PluginsModule
 
     public function deactivatePlugin(string $slug): array
     {
-        $slug = preg_replace('/[^a-z0-9_-]/', '', strtolower($slug));
+        $slug = $this->normalizePluginSlug($slug);
         if ($slug === '') return ['success' => false, 'error' => 'Ungültiger Plugin-Slug.'];
 
         if (class_exists('\CMS\PluginManager')) {
@@ -120,10 +132,14 @@ class PluginsModule
                     return ['success' => false, 'error' => is_string($result) ? $result : 'Deaktivierung fehlgeschlagen.'];
                 }
                 $this->resetActivePluginsLookup();
-                AuditLogger::instance()->pluginAction('deactivate', $slug);
                 return ['success' => true, 'message' => "Plugin \"{$slug}\" deaktiviert."];
             } catch (\Throwable $e) {
-                return ['success' => false, 'error' => $e->getMessage()];
+                $this->logger->error('Plugin-Deaktivierung fehlgeschlagen.', [
+                    'slug' => $slug,
+                    'exception' => $e,
+                ]);
+
+                return ['success' => false, 'error' => 'Plugin konnte nicht deaktiviert werden.'];
             }
         }
 
@@ -138,7 +154,7 @@ class PluginsModule
 
     public function deletePlugin(string $slug): array
     {
-        $slug = preg_replace('/[^a-z0-9_-]/', '', strtolower($slug));
+        $slug = $this->normalizePluginSlug($slug);
         if ($slug === '') return ['success' => false, 'error' => 'Ungültiger Plugin-Slug.'];
         if ($this->isProtectedPlugin($slug)) {
             return ['success' => false, 'error' => 'Das mitgelieferte Kern-Plugin „cms-importer“ kann nicht gelöscht werden.'];
@@ -147,17 +163,9 @@ class PluginsModule
             return ['success' => false, 'error' => 'Plugin muss zuerst deaktiviert werden.'];
         }
 
-        $pluginsDir = defined('PLUGINS_PATH') ? PLUGINS_PATH : (defined('ABSPATH') ? ABSPATH . 'plugins/' : '');
-        $pluginPath = $pluginsDir . $slug;
-        if (!is_dir($pluginPath)) {
+        $realPluginPath = $this->resolvePluginDirectoryPath($slug);
+        if ($realPluginPath === null || !is_dir($realPluginPath)) {
             return ['success' => false, 'error' => 'Plugin-Verzeichnis nicht gefunden.'];
-        }
-
-        // Path-Traversal-Schutz
-        $realPluginsDir = realpath($pluginsDir);
-        $realPluginPath = realpath($pluginPath);
-        if ($realPluginsDir === false || $realPluginPath === false || !str_starts_with($realPluginPath, $realPluginsDir)) {
-            return ['success' => false, 'error' => 'Ungültiger Plugin-Pfad.'];
         }
 
         try {
@@ -171,7 +179,13 @@ class PluginsModule
                 $this->deleteDir($realPluginPath);
             }
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Plugin konnte nicht gelöscht werden: ' . $e->getMessage()];
+            $this->logger->error('Plugin-Löschung fehlgeschlagen.', [
+                'slug' => $slug,
+                'path' => $realPluginPath,
+                'exception' => $e,
+            ]);
+
+            return ['success' => false, 'error' => 'Plugin konnte nicht gelöscht werden.'];
         }
 
         // ADDED: Löschaktionen im Audit-Log festhalten.
@@ -217,7 +231,7 @@ class PluginsModule
 
         $lookup = [];
         foreach ($activePlugins as $activePlugin) {
-            $normalizedSlug = preg_replace('/[^a-z0-9_-]/', '', strtolower((string) $activePlugin)) ?? '';
+            $normalizedSlug = $this->normalizePluginSlug((string) $activePlugin);
             if ($normalizedSlug === '') {
                 continue;
             }
@@ -240,7 +254,7 @@ class PluginsModule
     {
         $normalizedPlugins = [];
         foreach ($plugins as $plugin) {
-            $normalizedSlug = preg_replace('/[^a-z0-9_-]/', '', strtolower((string) $plugin)) ?? '';
+            $normalizedSlug = $this->normalizePluginSlug((string) $plugin);
             if ($normalizedSlug === '') {
                 continue;
             }
@@ -264,7 +278,7 @@ class PluginsModule
     private function parsePluginHeader(string $file): array
     {
         $info = ['name' => '', 'description' => '', 'version' => '-', 'author' => ''];
-        if (!file_exists($file)) return $info;
+        if (!is_file($file) || !is_readable($file)) return $info;
 
         $content = file_get_contents($file, false, null, 0, 4096);
         if (!is_string($content) || $content === '') {
@@ -306,5 +320,47 @@ class PluginsModule
         }
 
         return \CMS\PluginManager::instance()->isProtectedPlugin($slug);
+    }
+
+    private function normalizePluginSlug(string $slug): string
+    {
+        return preg_replace('/[^a-z0-9_-]/', '', strtolower($slug)) ?? '';
+    }
+
+    private function getPluginsDirectory(): string
+    {
+        return defined('PLUGINS_PATH') ? PLUGINS_PATH : (defined('ABSPATH') ? ABSPATH . 'plugins/' : '');
+    }
+
+    private function getPluginMainFilePath(string $slug): string
+    {
+        $pluginsDir = rtrim($this->getPluginsDirectory(), '/\\');
+
+        return $pluginsDir . DIRECTORY_SEPARATOR . $slug . DIRECTORY_SEPARATOR . $slug . '.php';
+    }
+
+    private function resolvePluginDirectoryPath(string $slug): ?string
+    {
+        $pluginsDir = $this->getPluginsDirectory();
+        if ($pluginsDir === '') {
+            return null;
+        }
+
+        $realPluginsDir = realpath($pluginsDir);
+        $realPluginPath = realpath(rtrim($pluginsDir, '/\\') . DIRECTORY_SEPARATOR . $slug);
+        if ($realPluginsDir === false || $realPluginPath === false) {
+            return null;
+        }
+
+        return $this->isPathWithin($realPluginPath, $realPluginsDir) ? $realPluginPath : null;
+    }
+
+    private function isPathWithin(string $path, string $basePath): bool
+    {
+        $normalizedPath = rtrim(str_replace('\\', '/', strtolower($path)), '/');
+        $normalizedBasePath = rtrim(str_replace('\\', '/', strtolower($basePath)), '/');
+
+        return $normalizedPath === $normalizedBasePath
+            || str_starts_with($normalizedPath, $normalizedBasePath . '/');
     }
 }

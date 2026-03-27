@@ -114,7 +114,11 @@ $sectionPageConfig = [
     'view_file' => __DIR__ . '/views/legal/data-requests.php',
     'page_title' => 'Auskunft & Löschen',
     'active_page' => 'data-requests',
-    'page_assets' => [],
+    'page_assets' => [
+        'js' => [
+            cms_asset_url('js/admin-data-requests.js'),
+        ],
+    ],
     'csrf_action' => 'admin_data_requests',
     'module_file' => __DIR__ . '/modules/legal/PrivacyRequestsModule.php',
     'module_factory' => static function (): array {

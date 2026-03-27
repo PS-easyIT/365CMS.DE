@@ -44,10 +44,12 @@ $hasUpdates = $data['has_updates'];
     </div>
 
     <?php if (!$hasUpdates): ?>
-        <div class="alert alert-success">
-            <svg xmlns="http://www.w3.org/2000/svg" class="icon alert-icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg>
-            <div>Alles ist auf dem neuesten Stand!</div>
-        </div>
+        <?php
+        $alertData = ['type' => 'success', 'message' => 'Alles ist auf dem neuesten Stand!'];
+        $alertDismissible = false;
+        $alertMarginClass = 'mb-4';
+        require __DIR__ . '/../partials/flash-alert.php';
+        ?>
     <?php endif; ?>
 
     <!-- CMS Core -->
@@ -60,33 +62,50 @@ $hasUpdates = $data['has_updates'];
         </div>
         <div class="card-body">
             <?php if (!empty($core['update_available'])): ?>
-                <div class="alert alert-warning mb-3">
-                    <div class="d-flex align-items-center">
-                        <div>
-                            <strong>Neues Update verfügbar:</strong> Version <?php echo htmlspecialchars($core['latest_version'] ?? ''); ?>
-                            <?php if (!empty($core['changelog'])): ?>
-                                <div class="mt-1 text-secondary small"><?php echo htmlspecialchars(mb_substr($core['changelog'], 0, 200)); ?></div>
-                            <?php endif; ?>
-                        </div>
-                        <div class="ms-auto">
-                            <form method="post" class="d-inline">
-                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                                <input type="hidden" name="action" value="install_core">
-                                <button type="submit" class="btn btn-warning" onclick="return confirm('Core-Update jetzt installieren?')">
-                                    Update installieren
-                                </button>
-                            </form>
-                        </div>
-                    </div>
+                <?php
+                $coreUpdateDetails = [];
+                if (!empty($core['changelog'])) {
+                    $coreUpdateDetails[] = (string) mb_substr((string) $core['changelog'], 0, 200);
+                }
+                $alertData = [
+                    'type' => 'warning',
+                    'message' => 'Neues Update verfügbar: Version ' . (string) ($core['latest_version'] ?? ''),
+                    'details' => $coreUpdateDetails,
+                ];
+                $alertDismissible = false;
+                $alertMarginClass = 'mb-3';
+                require __DIR__ . '/../partials/flash-alert.php';
+                ?>
+                <div class="text-end">
+                    <form method="post" class="d-inline" data-confirm-message="Core-Update jetzt installieren?" data-confirm-title="Core-Update installieren" data-confirm-text="Installieren" data-confirm-class="btn-warning" data-confirm-status-class="bg-warning">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                        <input type="hidden" name="action" value="install_core">
+                        <button type="submit" class="btn btn-warning">
+                            Update installieren
+                        </button>
+                    </form>
                 </div>
             <?php else: ?>
-                <div class="text-success">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg>
-                    CMS ist aktuell (v<?php echo htmlspecialchars($core['current_version'] ?? ''); ?>)
-                </div>
+                <?php
+                $alertData = [
+                    'type' => 'success',
+                    'message' => 'CMS ist aktuell (v' . (string) ($core['current_version'] ?? '') . ')',
+                ];
+                $alertDismissible = false;
+                $alertMarginClass = 'mb-0';
+                require __DIR__ . '/../partials/flash-alert.php';
+                ?>
             <?php endif; ?>
             <?php if (!empty($core['error'])): ?>
-                <div class="alert alert-danger mt-2">Fehler bei der Update-Prüfung: <?php echo htmlspecialchars($core['error']); ?></div>
+                <?php
+                $alertData = [
+                    'type' => 'danger',
+                    'message' => 'Fehler bei der Update-Prüfung: ' . (string) $core['error'],
+                ];
+                $alertDismissible = false;
+                $alertMarginClass = 'mt-2 mb-0';
+                require __DIR__ . '/../partials/flash-alert.php';
+                ?>
             <?php endif; ?>
         </div>
     </div>
@@ -148,7 +167,7 @@ $hasUpdates = $data['has_updates'];
                                 </td>
                                 <td>
                                     <?php if (!empty($plugin['new_version']) && !empty($plugin['install_supported'])): ?>
-                                        <form method="post" class="d-inline">
+                                        <form method="post" class="d-inline" data-confirm-message="Plugin-Update für <?php echo htmlspecialchars((string) ($plugin['name'] ?? $slug), ENT_QUOTES); ?> jetzt installieren?" data-confirm-title="Plugin-Update installieren" data-confirm-text="Installieren" data-confirm-class="btn-warning" data-confirm-status-class="bg-warning">
                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                             <input type="hidden" name="action" value="install_plugin">
                                             <input type="hidden" name="plugin_slug" value="<?php echo htmlspecialchars($slug); ?>">
@@ -175,36 +194,57 @@ $hasUpdates = $data['has_updates'];
         </div>
         <div class="card-body">
             <?php if (!empty($theme['update_available'])): ?>
-                <div class="alert alert-warning mb-0">
-                    <strong>Theme-Update verfügbar:</strong>
-                    <?php echo htmlspecialchars($theme['current_version'] ?? '-'); ?> → <?php echo htmlspecialchars($theme['latest_version'] ?? '-'); ?>
-                    <?php if (!empty($theme['requires_cms']) || !empty($theme['requires_php'])): ?>
-                        <div class="text-secondary small mt-1">
-                            <?php if (!empty($theme['requires_cms'])): ?>365CMS ab <?php echo htmlspecialchars((string) $theme['requires_cms']); ?><?php endif; ?>
-                            <?php if (!empty($theme['requires_cms']) && !empty($theme['requires_php'])): ?> · <?php endif; ?>
-                            <?php if (!empty($theme['requires_php'])): ?>PHP ab <?php echo htmlspecialchars((string) $theme['requires_php']); ?><?php endif; ?>
-                        </div>
-                    <?php endif; ?>
-                    <?php if (!empty($theme['manual_reason'])): ?>
-                        <div class="text-secondary small mt-1"><?php echo htmlspecialchars((string) $theme['manual_reason']); ?></div>
-                    <?php endif; ?>
-                    <?php if (!empty($theme['purchase_url'])): ?>
-                        <div class="mt-2">
-                            <a href="<?php echo htmlspecialchars((string) $theme['purchase_url']); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">Anfragen / Kaufen</a>
-                        </div>
-                    <?php endif; ?>
-                </div>
+                <?php
+                $themeUpdateDetails = [];
+                if (!empty($theme['requires_cms']) || !empty($theme['requires_php'])) {
+                    $themeRequirementParts = [];
+                    if (!empty($theme['requires_cms'])) {
+                        $themeRequirementParts[] = '365CMS ab ' . (string) $theme['requires_cms'];
+                    }
+                    if (!empty($theme['requires_php'])) {
+                        $themeRequirementParts[] = 'PHP ab ' . (string) $theme['requires_php'];
+                    }
+                    $themeUpdateDetails[] = implode(' · ', $themeRequirementParts);
+                }
+                if (!empty($theme['manual_reason'])) {
+                    $themeUpdateDetails[] = (string) $theme['manual_reason'];
+                }
+                $alertData = [
+                    'type' => 'warning',
+                    'message' => 'Theme-Update verfügbar: ' . (string) ($theme['current_version'] ?? '-') . ' → ' . (string) ($theme['latest_version'] ?? '-'),
+                    'details' => $themeUpdateDetails,
+                ];
+                $alertDismissible = false;
+                $alertMarginClass = 'mb-0';
+                require __DIR__ . '/../partials/flash-alert.php';
+                ?>
+                <?php if (!empty($theme['purchase_url'])): ?>
+                    <div class="mt-3">
+                        <a href="<?php echo htmlspecialchars((string) $theme['purchase_url']); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">Anfragen / Kaufen</a>
+                    </div>
+                <?php endif; ?>
             <?php else: ?>
-                <div class="text-success">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg>
-                    Theme ist aktuell
-                    <?php if (!empty($theme['current_version'])): ?>
-                        (v<?php echo htmlspecialchars($theme['current_version']); ?>)
-                    <?php endif; ?>
-                </div>
+                <?php
+                $themeMessage = 'Theme ist aktuell';
+                if (!empty($theme['current_version'])) {
+                    $themeMessage .= ' (v' . (string) $theme['current_version'] . ')';
+                }
+                $alertData = ['type' => 'success', 'message' => $themeMessage];
+                $alertDismissible = false;
+                $alertMarginClass = 'mb-0';
+                require __DIR__ . '/../partials/flash-alert.php';
+                ?>
             <?php endif; ?>
             <?php if (!empty($theme['error'])): ?>
-                <div class="alert alert-danger mt-2">Fehler: <?php echo htmlspecialchars($theme['error']); ?></div>
+                <?php
+                $alertData = [
+                    'type' => 'danger',
+                    'message' => 'Fehler: ' . (string) $theme['error'],
+                ];
+                $alertDismissible = false;
+                $alertMarginClass = 'mt-2 mb-0';
+                require __DIR__ . '/../partials/flash-alert.php';
+                ?>
             <?php endif; ?>
         </div>
     </div>

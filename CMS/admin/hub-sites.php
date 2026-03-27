@@ -89,31 +89,63 @@ function cms_admin_hub_sites_normalize_view(string $viewAction): string
     return in_array($viewAction, cms_admin_hub_sites_allowed_views(), true) ? $viewAction : 'list';
 }
 
-function cms_admin_hub_sites_handle_action(HubSitesModule $module, string $action, array $post): array
+function cms_admin_hub_sites_normalize_action(mixed $action): string
 {
-    return match ($action) {
+    $normalizedAction = strtolower(trim((string) $action));
+
+    return in_array($normalizedAction, cms_admin_hub_sites_allowed_actions(), true) ? $normalizedAction : '';
+}
+
+function cms_admin_hub_sites_normalize_id(array $post): int
+{
+    $id = (int) ($post['id'] ?? 0);
+
+    return $id > 0 ? $id : 0;
+}
+
+function cms_admin_hub_sites_normalize_key(array $post): string
+{
+    return trim((string) ($post['key'] ?? ''));
+}
+
+/**
+ * @return array{action:string,id:int,key:string,post:array<string,mixed>}
+ */
+function cms_admin_hub_sites_normalize_payload(array $post): array
+{
+    return [
+        'action' => cms_admin_hub_sites_normalize_action($post['action'] ?? ''),
+        'id' => cms_admin_hub_sites_normalize_id($post),
+        'key' => cms_admin_hub_sites_normalize_key($post),
+        'post' => $post,
+    ];
+}
+
+function cms_admin_hub_sites_handle_action(HubSitesModule $module, array $payload): array
+{
+    return match ($payload['action']) {
         'save' => [
-            'result' => $module->save($post),
+            'result' => $module->save($payload['post']),
             'fallback' => 'Hub-Site konnte nicht gespeichert werden.',
         ],
         'save-template' => [
-            'result' => $module->saveTemplate($post),
+            'result' => $module->saveTemplate($payload['post']),
             'fallback' => 'Hub-Template konnte nicht gespeichert werden.',
         ],
         'duplicate-template' => [
-            'result' => $module->duplicateTemplate((string)($post['key'] ?? '')),
+            'result' => $module->duplicateTemplate($payload['key']),
             'fallback' => 'Hub-Template konnte nicht dupliziert werden.',
         ],
         'delete-template' => [
-            'result' => $module->deleteTemplate((string)($post['key'] ?? '')),
+            'result' => $module->deleteTemplate($payload['key']),
             'fallback' => 'Hub-Template konnte nicht gelöscht werden.',
         ],
         'delete' => [
-            'result' => $module->delete((int)($post['id'] ?? 0)),
+            'result' => $module->delete($payload['id']),
             'fallback' => 'Hub-Site konnte nicht gelöscht werden.',
         ],
         'duplicate' => [
-            'result' => $module->duplicate((int)($post['id'] ?? 0)),
+            'result' => $module->duplicate($payload['id']),
             'fallback' => 'Hub-Site konnte nicht dupliziert werden.',
         ],
         default => [
@@ -128,6 +160,12 @@ function cms_admin_hub_sites_handle_action(HubSitesModule $module, string $actio
  */
 function cms_admin_hub_sites_view_config(HubSitesModule $module, string $viewAction): array
 {
+    $hubSiteListAssets = [
+        'js' => [
+            cms_asset_url('js/admin-hub-sites.js'),
+        ],
+    ];
+
     return match ($viewAction) {
         'edit' => (function () use ($module): array {
             $id = isset($_GET['id']) ? (int)$_GET['id'] : null;
@@ -178,12 +216,14 @@ function cms_admin_hub_sites_view_config(HubSitesModule $module, string $viewAct
             'data' => $module->getTemplateListData(),
             'pageTitle' => 'Hub-Site Templates',
             'activePage' => 'hub-sites',
+            'pageAssets' => $hubSiteListAssets,
             'view' => __DIR__ . '/views/hub/templates.php',
         ],
         default => [
             'data' => $module->getListData(),
             'pageTitle' => 'Hub-Sites',
             'activePage' => 'hub-sites',
+            'pageAssets' => $hubSiteListAssets,
             'view' => __DIR__ . '/views/hub/list.php',
         ],
     };
@@ -229,12 +269,21 @@ $sectionPageConfig = [
     },
     'unknown_action_message' => 'Unbekannte Hub-Sites-Aktion.',
     'post_handler' => static function (HubSitesModule $module, string $section, array $post): array {
-        $action = (string) ($post['action'] ?? '');
-        if (!in_array($action, cms_admin_hub_sites_allowed_actions(), true)) {
+        $payload = cms_admin_hub_sites_normalize_payload($post);
+
+        if ($payload['action'] === '') {
             return ['success' => false, 'error' => 'Unbekannte Hub-Sites-Aktion.'];
         }
 
-        $handledAction = cms_admin_hub_sites_handle_action($module, $action, $post);
+        if (in_array($payload['action'], ['delete', 'duplicate'], true) && $payload['id'] <= 0) {
+            return ['success' => false, 'error' => 'Ungültige Hub-Site-ID.'];
+        }
+
+        if (in_array($payload['action'], ['delete-template', 'duplicate-template'], true) && $payload['key'] === '') {
+            return ['success' => false, 'error' => 'Ungültiger Template-Schlüssel.'];
+        }
+
+        $handledAction = cms_admin_hub_sites_handle_action($module, $payload);
         $result = is_array($handledAction['result'] ?? null)
             ? $handledAction['result']
             : ['success' => false, 'error' => 'Unbekannte Hub-Sites-Aktion.'];
@@ -243,7 +292,7 @@ $sectionPageConfig = [
             $result['error'] = (string) ($result['error'] ?? $handledAction['fallback']);
         }
 
-        $result['__redirect'] = cms_admin_hub_sites_post_redirect($action, $result, $post);
+        $result['__redirect'] = cms_admin_hub_sites_post_redirect($payload['action'], $result, $payload['post']);
 
         return $result;
     },

@@ -11,14 +11,17 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\Logger;
 use CMS\ThemeManager;
 
 class ThemesModule
 {
+    private Logger $logger;
     private ThemeManager $themeManager;
 
     public function __construct()
     {
+        $this->logger = Logger::instance()->withChannel('admin.themes');
         $this->themeManager = ThemeManager::instance();
     }
 
@@ -47,14 +50,22 @@ class ThemesModule
      */
     public function activateTheme(string $slug): array
     {
-        if (empty($slug)) {
+        $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', $slug) ?? '';
+        if ($slug === '') {
             return ['success' => false, 'error' => 'Kein Theme angegeben.'];
         }
 
         $result = $this->themeManager->switchTheme($slug);
 
         if ($result === true) {
-            return ['success' => true, 'message' => 'Theme "' . htmlspecialchars($slug) . '" wurde aktiviert.'];
+            return ['success' => true, 'message' => 'Theme "' . $slug . '" wurde aktiviert.'];
+        }
+
+        if (!is_string($result)) {
+            $this->logger->warning('Theme-Aktivierung lieferte ein unerwartetes Ergebnis.', [
+                'slug' => $slug,
+                'result_type' => get_debug_type($result),
+            ]);
         }
 
         return ['success' => false, 'error' => is_string($result) ? $result : 'Fehler beim Aktivieren.'];
@@ -65,15 +76,23 @@ class ThemesModule
      */
     public function deleteTheme(string $slug): array
     {
-        if (empty($slug)) {
+        $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', $slug) ?? '';
+        if ($slug === '') {
             return ['success' => false, 'error' => 'Kein Theme angegeben.'];
         }
 
         $result = $this->themeManager->deleteTheme($slug);
         if ($result !== true) {
+            if (!is_string($result)) {
+                $this->logger->warning('Theme-Löschung lieferte ein unerwartetes Ergebnis.', [
+                    'slug' => $slug,
+                    'result_type' => get_debug_type($result),
+                ]);
+            }
+
             return ['success' => false, 'error' => is_string($result) ? $result : 'Theme konnte nicht gelöscht werden.'];
         }
 
-        return ['success' => true, 'message' => 'Theme "' . htmlspecialchars($slug) . '" wurde gelöscht.'];
+        return ['success' => true, 'message' => 'Theme "' . $slug . '" wurde gelöscht.'];
     }
 }

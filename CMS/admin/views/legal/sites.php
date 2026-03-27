@@ -18,6 +18,13 @@ $pageIdKeys = ['legal_imprint' => 'imprint_page_id', 'legal_privacy' => 'privacy
 $templateTypes = ['legal_imprint' => 'imprint', 'legal_privacy' => 'privacy', 'legal_terms' => 'terms', 'legal_revocation' => 'revocation'];
 $templateDefaults = $d['templates'] ?? [];
 $profile = $d['profile'] ?? [];
+$legalSitesConfig = [
+    'insertTemplateTitle' => 'Vorlage einfügen?',
+    'insertTemplateMessage' => 'Vorhandener Inhalt wird überschrieben.',
+    'insertTemplateConfirmText' => 'Einfügen',
+    'companyHint' => 'Firmenprofil aktiv: Firma und Rechtsform sind Pflichtfelder. Register- und USt.-Angaben sind für das Impressum empfohlen.',
+    'privateHint' => 'Privatprofil aktiv: Vor- und Nachname ist Pflicht. Firmenbezogene Felder bleiben optional und können leer bleiben.',
+];
 ?>
 
 <div class="page-header d-print-none">
@@ -45,9 +52,19 @@ $profile = $d['profile'] ?? [];
             </div>
         </div>
 
-        <div class="alert alert-primary" role="alert">
-            Hinterlege einmal die Standardwerte deines Unternehmens und erzeuge daraus passende Rechtstext-Seiten. Das spart Klicks, vermeidet Platzhalter-Chaos und bringt Impressum & Datenschutz deutlich näher an „fertig statt fragwürdig“.
-        </div>
+        <?php
+        $alertData = [
+            'type' => 'info',
+            'message' => 'Hinterlege einmal die Standardwerte deines Unternehmens und erzeuge daraus passende Rechtstext-Seiten.',
+            'details' => [
+                'Das spart Klicks und vermeidet Platzhalter-Chaos.',
+                'Impressum und Datenschutz landen damit deutlich näher bei „fertig statt fragwürdig“.',
+            ],
+        ];
+        $alertDismissible = false;
+        $alertMarginClass = 'mb-4';
+        require __DIR__ . '/../partials/flash-alert.php';
+        ?>
         <?php if (!empty($alert)): ?>
             <?php $alertData = $alert; $alertMarginClass = 'mb-4'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
@@ -251,15 +268,39 @@ $profile = $d['profile'] ?? [];
                                     </div>
 
                                     <div class="col-12 d-none" data-privacy-feature="legal_profile_has_contact_form">
-                                        <div class="alert alert-secondary mb-0">Für das Kontaktformular wird im Datenschutztext automatisch ein Eintrag zur Anfragebearbeitung aufgenommen.</div>
+                                        <?php
+                                        $alertData = [
+                                            'type' => 'secondary',
+                                            'message' => 'Für das Kontaktformular wird im Datenschutztext automatisch ein Eintrag zur Anfragebearbeitung aufgenommen.',
+                                        ];
+                                        $alertDismissible = false;
+                                        $alertMarginClass = 'mb-0';
+                                        require __DIR__ . '/../partials/flash-alert.php';
+                                        ?>
                                     </div>
 
                                     <div class="col-12 d-none" data-privacy-feature="legal_profile_has_registration">
-                                        <div class="alert alert-secondary mb-0">Für Registrierung und Benutzerkonten wird automatisch ein Datenschutz-Abschnitt zur Kontoverwaltung erzeugt.</div>
+                                        <?php
+                                        $alertData = [
+                                            'type' => 'secondary',
+                                            'message' => 'Für Registrierung und Benutzerkonten wird automatisch ein Datenschutz-Abschnitt zur Kontoverwaltung erzeugt.',
+                                        ];
+                                        $alertDismissible = false;
+                                        $alertMarginClass = 'mb-0';
+                                        require __DIR__ . '/../partials/flash-alert.php';
+                                        ?>
                                     </div>
 
                                     <div class="col-12 d-none" data-privacy-feature="legal_profile_has_comments">
-                                        <div class="alert alert-secondary mb-0">Für Kommentare wird automatisch ein Hinweis zu Inhaltsdaten, Zeitstempeln und Missbrauchsschutz aufgenommen.</div>
+                                        <?php
+                                        $alertData = [
+                                            'type' => 'secondary',
+                                            'message' => 'Für Kommentare wird automatisch ein Hinweis zu Inhaltsdaten, Zeitstempeln und Missbrauchsschutz aufgenommen.',
+                                        ];
+                                        $alertDismissible = false;
+                                        $alertMarginClass = 'mb-0';
+                                        require __DIR__ . '/../partials/flash-alert.php';
+                                        ?>
                                     </div>
 
                                     <div class="col-12 d-none" data-privacy-feature="legal_profile_has_newsletter">
@@ -331,7 +372,18 @@ $profile = $d['profile'] ?? [];
                                     </div>
 
                                     <div class="col-12 d-none" data-privacy-feature="legal_profile_has_shop">
-                                        <div class="alert alert-secondary mb-0">Für Shop, Buchung oder Zahlungsabwicklung wird der Datenschutztext um Vertrags- und Zahlungsinformationen ergänzt. Zahlungsanbieter kannst du oben im Datenschutz-Setup hinterlegen.</div>
+                                        <?php
+                                        $alertData = [
+                                            'type' => 'secondary',
+                                            'message' => 'Für Shop, Buchung oder Zahlungsabwicklung wird der Datenschutztext um Vertrags- und Zahlungsinformationen ergänzt.',
+                                            'details' => [
+                                                'Zahlungsanbieter kannst du oben im Datenschutz-Setup hinterlegen.',
+                                            ],
+                                        ];
+                                        $alertDismissible = false;
+                                        $alertMarginClass = 'mb-0';
+                                        require __DIR__ . '/../partials/flash-alert.php';
+                                        ?>
                                     </div>
 
                                     <div class="col-12" id="legalPrivacyFeatureEmptyState">
@@ -504,103 +556,6 @@ $profile = $d['profile'] ?? [];
     </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    var entityTypeSelect = document.getElementById('legalProfileEntityType');
-    var entityHint = document.getElementById('legalProfileEntityHint');
-    var featureEmptyState = document.getElementById('legalPrivacyFeatureEmptyState');
-
-    function updateLegalProfileRequirements() {
-        if (!entityTypeSelect) {
-            return;
-        }
-
-        var entityType = entityTypeSelect.value || 'company';
-        var isCompany = entityType === 'company';
-
-        document.querySelectorAll('[data-required-for]').forEach(function (wrapper) {
-            var requiredFor = wrapper.getAttribute('data-required-for');
-            var input = wrapper.querySelector('input, select, textarea');
-            var indicator = wrapper.querySelector('.js-required-indicator');
-            var isRequired = requiredFor === entityType;
-
-            wrapper.classList.toggle('opacity-75', !isRequired);
-
-            if (input) {
-                input.required = isRequired;
-            }
-
-            if (indicator) {
-                indicator.classList.toggle('d-none', !isRequired);
-            }
-        });
-
-        document.querySelectorAll('[data-recommended-for="company"]').forEach(function (wrapper) {
-            wrapper.classList.toggle('opacity-75', !isCompany);
-        });
-
-        if (entityHint) {
-            entityHint.textContent = isCompany
-                ? 'Firmenprofil aktiv: Firma und Rechtsform sind Pflichtfelder. Register- und USt.-Angaben sind für das Impressum empfohlen.'
-                : 'Privatprofil aktiv: Vor- und Nachname ist Pflicht. Firmenbezogene Felder bleiben optional und können leer bleiben.';
-        }
-    }
-
-    function updatePrivacyFeatureDetails() {
-        var visibleCount = 0;
-
-        document.querySelectorAll('[data-privacy-feature]').forEach(function (block) {
-            var fieldName = block.getAttribute('data-privacy-feature');
-            var toggle = document.querySelector('input[name="' + fieldName + '"]');
-            var isEnabled = !!(toggle && toggle.checked);
-
-            block.classList.toggle('d-none', !isEnabled);
-
-            if (isEnabled) {
-                visibleCount += 1;
-            }
-        });
-
-        if (featureEmptyState) {
-            featureEmptyState.classList.toggle('d-none', visibleCount > 0);
-        }
-    }
-
-    if (entityTypeSelect) {
-        entityTypeSelect.addEventListener('change', updateLegalProfileRequirements);
-        updateLegalProfileRequirements();
-    }
-
-    document.querySelectorAll('input[name^="legal_profile_has_"]').forEach(function (toggle) {
-        toggle.addEventListener('change', updatePrivacyFeatureDetails);
-    });
-
-    updatePrivacyFeatureDetails();
-
-    document.querySelectorAll('.js-insert-template').forEach(function (button) {
-        button.addEventListener('click', function () {
-            var targetId = this.getAttribute('data-target');
-            var template = this.getAttribute('data-template') || '';
-            var field = document.getElementById(targetId);
-
-            if (!field) {
-                return;
-            }
-
-            if (field.value.trim() !== '') {
-                cmsConfirm({
-                    title: 'Vorlage einfügen?',
-                    message: 'Vorhandener Inhalt wird überschrieben.',
-                    confirmText: 'Einfügen',
-                    onConfirm: function () {
-                        field.value = template;
-                    }
-                });
-                return;
-            }
-
-            field.value = template;
-        });
-    });
-});
+<script type="application/json" id="legal-sites-config">
+<?php echo json_encode($legalSitesConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>
 </script>

@@ -11,7 +11,6 @@ if (!defined('ABSPATH')) {
  */
 
 use CMS\Auth;
-use CMS\Security;
 
 const CMS_ADMIN_MEMBER_DASHBOARD_READ_CAPABILITIES = ['manage_settings', 'manage_users'];
 const CMS_ADMIN_MEMBER_DASHBOARD_LEGACY_ROUTES = [
@@ -24,12 +23,6 @@ const CMS_ADMIN_MEMBER_DASHBOARD_LEGACY_ROUTES = [
     'notifications' => '/admin/member-dashboard-notifications',
     'onboarding' => '/admin/member-dashboard-onboarding',
 ];
-
-function cms_admin_member_dashboard_redirect(string $targetUrl): never
-{
-    header('Location: ' . $targetUrl);
-    exit;
-}
 
 function cms_admin_member_dashboard_has_any_capability(array $capabilities): bool
 {
@@ -62,19 +55,21 @@ function cms_admin_member_dashboard_normalize_legacy_section(mixed $section): st
 $legacySection = cms_admin_member_dashboard_normalize_legacy_section($_GET['section'] ?? 'overview');
 
 if ($legacySection !== '' && $legacySection !== 'overview') {
-    if (isset(CMS_ADMIN_MEMBER_DASHBOARD_LEGACY_ROUTES[$legacySection])) {
-        cms_admin_member_dashboard_redirect(SITE_URL . CMS_ADMIN_MEMBER_DASHBOARD_LEGACY_ROUTES[$legacySection]);
-    }
+    $adminRedirectAliasConfig = [
+        'access_checker' => static fn (): bool => cms_admin_member_dashboard_can_access_overview(),
+        'target_url' => CMS_ADMIN_MEMBER_DASHBOARD_LEGACY_ROUTES[$legacySection] ?? '/admin/member-dashboard',
+        'fallback_url' => '/',
+    ];
+
+    require __DIR__ . '/partials/redirect-alias-shell.php';
 }
 
-if (!cms_admin_member_dashboard_can_access_overview()) {
-    cms_admin_member_dashboard_redirect(SITE_URL);
-}
-
-$memberSection = 'overview';
-$memberRoutePath = '/admin/member-dashboard';
-$memberViewFile = __DIR__ . '/views/member/dashboard.php';
-$pageTitle  = 'Member Dashboard';
-$activePage = 'member-dashboard';
+$memberDashboardPageConfig = [
+    'section' => 'overview',
+    'route_path' => '/admin/member-dashboard',
+    'view_file' => __DIR__ . '/views/member/dashboard.php',
+    'page_title' => 'Member Dashboard',
+    'active_page' => 'member-dashboard',
+];
 
 require __DIR__ . '/member-dashboard-page.php';

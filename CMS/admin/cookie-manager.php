@@ -40,17 +40,33 @@ function cms_admin_cookie_manager_normalize_self_hosted(array $post, string $ser
     return isset($post['self_hosted']) && (string) $post['self_hosted'] === '1';
 }
 
-function cms_admin_cookie_manager_handle_action(CookieManagerModule $module, string $action, array $post): array
+/**
+ * @return array{action:?string,id:int,service_slug:string,self_hosted:bool,post:array<string,mixed>}
+ */
+function cms_admin_cookie_manager_normalize_payload(array $post): array
 {
-    return match ($action) {
-        'save_settings' => $module->saveSettings($post),
-        'save_category' => $module->saveCategory($post),
-        'delete_category' => $module->deleteCategory(cms_admin_cookie_manager_normalize_positive_id($post)),
-        'save_service' => $module->saveService($post),
-        'delete_service' => $module->deleteService(cms_admin_cookie_manager_normalize_positive_id($post)),
+    $serviceSlug = cms_admin_cookie_manager_normalize_service_slug($post);
+
+    return [
+        'action' => cms_admin_cookie_manager_normalize_action($post['action'] ?? null),
+        'id' => cms_admin_cookie_manager_normalize_positive_id($post),
+        'service_slug' => $serviceSlug,
+        'self_hosted' => cms_admin_cookie_manager_normalize_self_hosted($post, $serviceSlug),
+        'post' => $post,
+    ];
+}
+
+function cms_admin_cookie_manager_handle_action(CookieManagerModule $module, array $payload): array
+{
+    return match ($payload['action']) {
+        'save_settings' => $module->saveSettings($payload['post']),
+        'save_category' => $module->saveCategory($payload['post']),
+        'delete_category' => $module->deleteCategory($payload['id']),
+        'save_service' => $module->saveService($payload['post']),
+        'delete_service' => $module->deleteService($payload['id']),
         'import_curated_service' => $module->importCuratedService(
-            cms_admin_cookie_manager_normalize_service_slug($post),
-            cms_admin_cookie_manager_normalize_self_hosted($post, cms_admin_cookie_manager_normalize_service_slug($post))
+            $payload['service_slug'],
+            $payload['self_hosted']
         ),
         'run_scan' => $module->runScanner(),
         default => ['success' => false, 'error' => 'Aktion konnte nicht verarbeitet werden.'],
@@ -82,7 +98,11 @@ $sectionPageConfig = [
     'view_file' => __DIR__ . '/views/legal/cookies.php',
     'page_title' => 'Cookie Manager',
     'active_page' => 'cookie-manager',
-    'page_assets' => [],
+    'page_assets' => [
+        'js' => [
+            cms_asset_url('js/admin-cookie-manager.js'),
+        ],
+    ],
     'csrf_action' => 'admin_cookies',
     'module_file' => __DIR__ . '/modules/legal/CookieManagerModule.php',
     'module_factory' => static fn (): CookieManagerModule => new CookieManagerModule(),
@@ -91,22 +111,22 @@ $sectionPageConfig = [
     'invalid_token_message' => 'Sicherheitstoken ungültig.',
     'unknown_action_message' => 'Aktion konnte nicht verarbeitet werden.',
     'post_handler' => static function (CookieManagerModule $module, string $section, array $post): array {
-        $action = cms_admin_cookie_manager_normalize_action($post['action'] ?? null);
-        if ($action === null) {
+        $payload = cms_admin_cookie_manager_normalize_payload($post);
+        if ($payload['action'] === null) {
             return ['success' => false, 'error' => 'Unbekannte Aktion.'];
         }
 
-        if (in_array($action, ['delete_category', 'delete_service'], true)
-            && cms_admin_cookie_manager_normalize_positive_id($post) <= 0
+        if (in_array($payload['action'], ['delete_category', 'delete_service'], true)
+            && $payload['id'] <= 0
         ) {
             return ['success' => false, 'error' => 'Ungültige ID.'];
         }
 
-        if ($action === 'import_curated_service' && cms_admin_cookie_manager_normalize_service_slug($post) === '') {
+        if ($payload['action'] === 'import_curated_service' && $payload['service_slug'] === '') {
             return ['success' => false, 'error' => 'Unbekannter Standard-Service.'];
         }
 
-        return cms_admin_cookie_manager_handle_action($module, $action, $post);
+        return cms_admin_cookie_manager_handle_action($module, $payload);
     },
 ];
 

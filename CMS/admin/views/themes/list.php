@@ -27,11 +27,11 @@ $totalThemes = $data['totalThemes'] ?? 0;
         </div>
     </div>
 
-    <?php if ($alert): ?>
-        <div class="alert alert-<?php echo htmlspecialchars($alert['type']); ?> alert-dismissible" role="alert">
-            <?php echo htmlspecialchars($alert['message']); ?>
-            <a class="btn-close" data-bs-dismiss="alert" aria-label="Close"></a>
-        </div>
+    <?php if (!empty($alert)): ?>
+        <?php
+        $alertData = is_array($alert ?? null) ? $alert : [];
+        require dirname(__DIR__) . '/partials/flash-alert.php';
+        ?>
     <?php endif; ?>
 
     <!-- Themes Grid -->

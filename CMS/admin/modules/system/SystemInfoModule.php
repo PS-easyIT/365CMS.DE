@@ -23,6 +23,8 @@ use CMS\VendorRegistry;
 
 class SystemInfoModule
 {
+    private const MAX_AUDIT_STRING_LENGTH = 240;
+
     private const MONITOR_DEFAULTS = [
         'monitor_email_notifications_enabled' => '0',
         'monitor_alert_email' => '',
@@ -145,7 +147,12 @@ class SystemInfoModule
             );
             return ['success' => true, 'message' => 'Cache, alte Sessions und Login-Versuche bereinigt.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+            return $this->buildActionFailureResponse(
+                'system.cache.clear_failed',
+                'Cache, Sessions und Login-Versuche konnten nicht bereinigt werden.',
+                $e,
+                'system'
+            );
         }
     }
 
@@ -175,7 +182,12 @@ class SystemInfoModule
 
             return ['success' => true, 'message' => $success . ' Tabelle(n) optimiert' . ($failed > 0 ? ', ' . $failed . ' fehlgeschlagen' : '') . '.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+            return $this->buildActionFailureResponse(
+                'system.database.optimize_failed',
+                'Die Datenbankoptimierung konnte nicht abgeschlossen werden.',
+                $e,
+                'database'
+            );
         }
     }
 
@@ -194,7 +206,12 @@ class SystemInfoModule
             );
             return ['success' => true, 'message' => 'Fehlerlogs gelöscht.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+            return $this->buildActionFailureResponse(
+                'system.logs.clear_failed',
+                'Die Fehlerlogs konnten nicht gelöscht werden.',
+                $e,
+                'log'
+            );
         }
     }
 
@@ -216,7 +233,12 @@ class SystemInfoModule
             );
             return ['success' => true, 'message' => 'Fehlende Tabellen wurden erstellt und Migrationen ausgeführt.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+            return $this->buildActionFailureResponse(
+                'system.schema.create_missing_failed',
+                'Fehlende Tabellen oder Migrationen konnten nicht erstellt werden.',
+                $e,
+                'database'
+            );
         }
     }
 
@@ -269,7 +291,12 @@ class SystemInfoModule
 
             return ['success' => true, 'message' => $message];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+            return $this->buildActionFailureResponse(
+                'system.database.repair_failed',
+                'Die Tabellenprüfung oder Reparatur konnte nicht abgeschlossen werden.',
+                $e,
+                'database'
+            );
         }
     }
 
@@ -278,7 +305,9 @@ class SystemInfoModule
         try {
             return $this->service->getSystemInfo();
         } catch (\Throwable $e) {
-            return ['error' => $e->getMessage()];
+            $this->logModuleFailure('system.info.load_failed', $e, 'system');
+
+            return ['error' => 'Systeminformationen konnten derzeit nicht geladen werden.'];
         }
     }
 
@@ -287,7 +316,9 @@ class SystemInfoModule
         try {
             return $this->service->getDatabaseStatus();
         } catch (\Throwable $e) {
-            return ['error' => $e->getMessage()];
+            $this->logModuleFailure('system.database.status_failed', $e, 'database');
+
+            return ['error' => 'Der Datenbankstatus konnte derzeit nicht geladen werden.'];
         }
     }
 
@@ -341,9 +372,11 @@ class SystemInfoModule
         try {
             return $this->service->getRuntimeTelemetry();
         } catch (\Throwable $e) {
+            $this->logModuleFailure('system.runtime.telemetry_failed', $e, 'system');
+
             return [
                 'enabled' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Laufzeit-Telemetrie konnte derzeit nicht geladen werden.',
             ];
         }
     }
@@ -353,8 +386,10 @@ class SystemInfoModule
         try {
             return VendorRegistry::instance()->getDiagnostics();
         } catch (\Throwable $e) {
+            $this->logModuleFailure('system.vendor_registry.diagnostics_failed', $e, 'system');
+
             return [
-                'error' => $e->getMessage(),
+                'error' => 'Vendor-Diagnosedaten konnten derzeit nicht geladen werden.',
                 'autoload' => ['loaded' => false, 'active_path' => null, 'candidates' => []],
                 'packages' => [],
                 'bundles' => [],
@@ -419,7 +454,12 @@ class SystemInfoModule
                 }
             }
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Monitoring-Einstellungen konnten nicht gespeichert werden: ' . $e->getMessage()];
+            return $this->buildActionFailureResponse(
+                'system.monitoring.save_failed',
+                'Monitoring-Einstellungen konnten nicht gespeichert werden. Bitte Logs prüfen.',
+                $e,
+                'monitoring'
+            );
         }
 
         AuditLogger::instance()->log(
@@ -642,5 +682,32 @@ class SystemInfoModule
             'monitoring' => $this->getMonitoringOverview(),
             'health' => $this->getHealthChecksData(),
         ];
+    }
+
+    private function buildActionFailureResponse(string $event, string $message, \Throwable $exception, string $scope): array
+    {
+        $this->logModuleFailure($event, $exception, $scope);
+
+        return ['success' => false, 'error' => $message];
+    }
+
+    private function logModuleFailure(string $event, \Throwable $exception, string $scope): void
+    {
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            $event,
+            'SystemInfoModule-Fehler',
+            $scope,
+            null,
+            ['exception' => $this->sanitizeAuditString($exception->getMessage())],
+            'error'
+        );
+    }
+
+    private function sanitizeAuditString(string $value, int $maxLength = self::MAX_AUDIT_STRING_LENGTH): string
+    {
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', trim($value)) ?? '';
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
     }
 }
