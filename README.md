@@ -27,19 +27,6 @@
 | **Extensibility** | Theme-System, Theme-Customizer, Plugin-Marketplace, Hooks & Filters |
 | **Operations** | Monitoring, Cron-Checks, Cache-Management, Audit-Logs, Backups, Update-Workflows |
 
-## 📈 Audit-Stand März 2026
-
-Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 455** nachgezogen. Im eigentlichen Prüfplan bleiben damit weiterhin **444 von 444 Prüfplan-Punkten** geschafft; zusätzlich läuft bereits die Folge-Runde über den ursprünglichen Plan hinaus. Der aktuelle dokumentierte Gesamtstand über **455 bewertete Dateien** liegt bei:
-
-| Metrik | Stand |
-|---|---:|
-| **Security** | **95,04** |
-| **Speed** | **92,70** |
-| **PHP / Best Practices** | **96,12** |
-| **Gesamt** | **96,25** |
-
-Zuletzt wurde der Member-Medienbereich funktional nachgezogen. `CMS/member/includes/class-member-controller.php` und `CMS/member/media.php` halten Ordnernavigation, Datei-/Ordnerlöschung und Redirects jetzt sauber innerhalb des persönlichen Upload-Wurzelpfads; zusätzlich wurden Consent-, Medien- und Feed-Skripte weiter gegen DOM-/Cookie- und Hash-Hinweise gehärtet.
-
 ## 🧩 Funktionsumfang im Überblick
 
 ### Core & Plattform
