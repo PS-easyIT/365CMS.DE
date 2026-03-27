@@ -228,6 +228,10 @@ class SubscriptionManager
      */
     public function isLimitEnforcementEnabled(): bool
     {
+        if (class_exists('\CMS\Services\CoreModuleService')) {
+            return \CMS\Services\CoreModuleService::getInstance()->isModuleEnabled('subscription_limits');
+        }
+
         return $this->getSetting('subscription_limits_enabled', '1') === '1';
     }
     

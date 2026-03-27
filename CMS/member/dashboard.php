@@ -275,8 +275,10 @@ include __DIR__ . '/partials/header.php';
                             <dd class="col-6 text-end"><?= htmlspecialchars((string)($data['last_login_formatted'] ?? '–')) ?></dd>
                             <dt class="col-6 text-secondary">Mitglied seit</dt>
                             <dd class="col-6 text-end"><?= (int)($data['account_age_days'] ?? 0) ?> Tagen</dd>
-                            <dt class="col-6 text-secondary">Abo</dt>
-                            <dd class="col-6 text-end"><?= htmlspecialchars((string)($subscription->package_name ?? $subscription->name ?? 'Nicht aktiv')) ?></dd>
+                            <?php if (!empty($data['subscription_module_enabled'])): ?>
+                                <dt class="col-6 text-secondary">Abo</dt>
+                                <dd class="col-6 text-end"><?= htmlspecialchars((string)($subscription->package_name ?? $subscription->name ?? 'Nicht aktiv')) ?></dd>
+                            <?php endif; ?>
                         </dl>
                     </div>
                 </div>

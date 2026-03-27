@@ -12,6 +12,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 use CMS\Security;
+use CMS\Services\CoreModuleService;
 
 /** @return array<string, string> */
 function cms_admin_subscription_settings_allowed_actions(): array
@@ -45,7 +46,7 @@ function cms_admin_subscription_settings_flash_result(SubscriptionSettingsAction
     ]);
 }
 
-if (!Auth::instance()->isAdmin()) {
+if (!Auth::instance()->isAdmin() || !CoreModuleService::getInstance()->isAdminPageEnabled('subscription-settings')) {
     header('Location: ' . SITE_URL);
     exit;
 }

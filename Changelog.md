@@ -1,4 +1,4 @@
-﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.287-blue.svg)](https://shields.io/)
+﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.288-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,16 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.7.288 — 27. März 2026 · Audit-Batch 370, Core-Modulverwaltung für Abointegration ergänzt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.288** | 🔴 fix | Admin/Content | **`CMS/admin/pages.php` und `CMS/admin/posts.php` importieren `CMS\\Security` wieder korrekt**: Der produktive Fatal Error bei der Editor-/Media-Token-Erzeugung entfällt damit in beiden Admin-Entrys. |
+| **2.7.288** | 🟢 feat | Core/System | **`CMS/core/Services/CoreModuleService.php` führt eine zentrale Registry für integrierte Kernmodule ein**: Abo-Core, Limits, Member-Abo-Bereich sowie Admin-Unterbereiche können jetzt mit Abhängigkeiten und Legacy-Setting-Sync zentral gesteuert werden. |
+| **2.7.288** | 🟡 refactor | Admin/System | **`System -> Module` ergänzt eine echte Core-Modulverwaltung und bindet Sidebar, Admin-Gates, Dashboard sowie Member-Pfade daran an**: Deaktivierte Abo-Bereiche verschwinden sichtbar aus dem Admin und werden in ihren Laufzeitpfaden wirksam abgeschaltet. |
 
 ---
 

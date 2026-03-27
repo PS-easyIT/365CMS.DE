@@ -588,6 +588,10 @@ class MemberService
      */
     public function getUserSubscription(int $userId): ?object
     {
+        if (!CoreModuleService::getInstance()->isModuleEnabled('subscriptions')) {
+            return null;
+        }
+
         if (class_exists('\\CMS\\SubscriptionManager')) {
             $sub = \CMS\SubscriptionManager::instance()->getUserSubscription($userId);
             // Map fields if necessary to match old structure expecting 'package_name'
@@ -608,6 +612,11 @@ class MemberService
      */
     public function getAvailablePackages(): array
     {
+        if (!CoreModuleService::getInstance()->isModuleEnabled('subscriptions')
+            || !CoreModuleService::getInstance()->isModuleEnabled('subscription_public_pricing')) {
+            return [];
+        }
+
         try {
             return (array)$this->db->get_results(
                 "SELECT id, name, slug, description, price_monthly, price_yearly, is_active, sort_order
@@ -661,6 +670,7 @@ class MemberService
 
         $security     = $this->getSecurityData($userId);
         $subscription = $this->getUserSubscription($userId);
+        $subscriptionModuleEnabled = CoreModuleService::getInstance()->isModuleEnabled('subscription_member_area');
 
         // ── Letzter Login formatiert ──────────────────────────────────
         $lastLoginRaw  = $security['last_login'] ?? null;
@@ -722,7 +732,8 @@ class MemberService
             'user'                      => $user,
             'meta'                      => $this->getUserMeta($userId),
             'subscription'              => $subscription,
-            'subscription_visible'      => $subscription !== null,
+            'subscription_visible'      => $subscriptionModuleEnabled && $subscription !== null,
+            'subscription_module_enabled' => $subscriptionModuleEnabled,
             'permissions'               => $this->getUserPermissions($userId),
             'recent_notifications'      => $this->getRecentNotifications($userId, 5),
             'security'                  => $security,

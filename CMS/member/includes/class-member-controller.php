@@ -13,6 +13,7 @@ use CMS\Auth\MFA\BackupCodesManager;
 use CMS\Auth\MFA\TotpAdapter;
 use CMS\Auth\Passkey\WebAuthnAdapter;
 use CMS\Member\PluginDashboardRegistry;
+use CMS\Services\CoreModuleService;
 use CMS\Services\MediaService;
 use CMS\Services\MemberService;
 use CMS\Services\MessageService;
@@ -295,7 +296,7 @@ final class MemberController
             ['slug' => 'privacy', 'label' => 'Datenschutz', 'icon' => '🔐', 'url' => '/member/privacy', 'category' => 'account'],
         ];
 
-        if (!empty($settings['subscription_visible'])) {
+        if (!empty($settings['subscription_visible']) && CoreModuleService::getInstance()->isModuleEnabled('subscription_member_area')) {
             $items[] = ['slug' => 'subscription', 'label' => 'Abo & Bestellungen', 'icon' => '💳', 'url' => '/member/subscription', 'category' => 'account'];
         }
 
@@ -438,6 +439,10 @@ final class MemberController
      */
     public function getOrders(): array
     {
+        if (!CoreModuleService::getInstance()->isModuleEnabled('subscriptions')) {
+            return [];
+        }
+
         try {
             return $this->db->get_results(
                 "SELECT o.*, p.name AS plan_name

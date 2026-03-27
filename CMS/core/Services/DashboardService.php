@@ -63,6 +63,15 @@ class DashboardService {
      * Bestell-Statistiken.
      */
     public function getOrderStats(): array {
+        if (!CoreModuleService::getInstance()->isModuleEnabled('subscription_admin_orders')) {
+            return [
+                'total' => 0,
+                'pending' => 0,
+                'month_revenue' => 0.0,
+                'month_revenue_formatted' => '0,00 EUR',
+            ];
+        }
+
         try {
             $total = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}orders") ?: 0;
             $pending = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}orders WHERE status = 'pending'") ?: 0;
@@ -463,6 +472,10 @@ class DashboardService {
      * @return array<int, object>
      */
     public function getRecentOrders(int $limit = 5): array {
+        if (!CoreModuleService::getInstance()->isModuleEnabled('subscription_admin_orders')) {
+            return [];
+        }
+
         try {
             return $this->db->get_results(
                 "SELECT o.order_number, o.total_amount, o.currency, o.status, o.created_at,
@@ -486,7 +499,8 @@ class DashboardService {
         $stats ??= $this->getAllStats();
         $items = [];
 
-        if (($stats['orders']['pending'] ?? 0) > 0) {
+        if (CoreModuleService::getInstance()->isModuleEnabled('subscription_admin_orders')
+            && ($stats['orders']['pending'] ?? 0) > 0) {
             $items[] = [
                 'type' => 'warning',
                 'icon' => '🧾',

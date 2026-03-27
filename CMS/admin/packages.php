@@ -11,6 +11,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Auth;
+use CMS\Services\CoreModuleService;
 
 const CMS_ADMIN_PACKAGES_ALLOWED_ACTIONS = [
     'save',
@@ -48,7 +49,7 @@ function cms_admin_packages_action_handlers(PackagesModule $module, Subscription
     ];
 }
 
-if (!Auth::instance()->isAdmin()) {
+if (!Auth::instance()->isAdmin() || !CoreModuleService::getInstance()->isAdminPageEnabled('packages')) {
     header('Location: ' . SITE_URL);
     exit;
 }
@@ -64,7 +65,7 @@ $sectionPageConfig = [
     'csrf_action' => 'admin_packages',
     'module_file' => __DIR__ . '/modules/subscriptions/PackagesModule.php',
     'module_factory' => static fn (): PackagesModule => new PackagesModule(),
-    'access_checker' => static fn (): bool => Auth::instance()->isAdmin(),
+    'access_checker' => static fn (): bool => Auth::instance()->isAdmin() && CoreModuleService::getInstance()->isAdminPageEnabled('packages'),
     'request_context_resolver' => static function (PackagesModule $module): array {
         $settingsModule = new SubscriptionSettingsModule();
 

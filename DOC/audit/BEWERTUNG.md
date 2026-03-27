@@ -5,13 +5,19 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 369
+### Gesamtstand nach Batch 370
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 445 | 90,90 | 88,71 | 92,51 | 92,15 |
+| 448 | 91,35 | 88,91 | 92,83 | 92,44 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **369 umgesetzte Audit-Batches**. Das sind aktuell **369 von 444 Prüfplan-Punkten**. Zuletzt wurden Error-Report- und Plugin-Marketplace-Pfade weiter gehärtet: Der Fehlerreport hängt jetzt enger an einem normalisierten Request-/Service-Vertrag, während der Marketplace kollidierende Manifest-Slugs und doppelte Katalogeinträge sichtbarer aus seinem Remote-Pfad fernhält.
+Der aktuelle Nachpflege-Stand umfasst damit **370 umgesetzte Audit-Batches**. Das sind aktuell **370 von 444 Prüfplan-Punkten**. Zuletzt wurden produktive Editor-Fatals in `pages.php`/`posts.php` beseitigt und gleichzeitig eine zentrale Core-Modulverwaltung für die Abointegration eingebaut. Dadurch hängen Sidebar, Admin-Gates, Dashboard und Member-Pfade sichtbarer an einem gemeinsamen Core-Modul-Vertrag statt an verstreuten Einzelsettings.
+
+### Delta Batch 370
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/pages.php`, `CMS/admin/posts.php`, `CMS/core/Services/CoreModuleService.php`, `CMS/admin/modules.php`, `CMS/admin/views/system/modules.php`, `CMS/admin/partials/sidebar.php` | umgesetzt | Produktive Admin-Fatals durch fehlenden `CMS\Security`-Import behoben und die Aboverwaltung zusätzlich an eine zentrale Core-Modul-Registry mit Admin- und Runtime-Gates gehängt. | Pages- und Posts-Editorpfade laufen wieder stabil, während integrierte Abo-Module künftig zentral unter `System -> Module` geschaltet werden können; deaktivierte Bereiche verschwinden im Admin und werden in Dashboard-, Member- sowie Subscription-Laufzeitpfaden wirksam abgeschaltet. |
 
 ### Delta Batch 369
 

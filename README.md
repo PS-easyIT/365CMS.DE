@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.7.287-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.7.288-blue.svg)](Changelog.md)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
@@ -29,16 +29,16 @@
 
 ## 📈 Audit-Stand März 2026
 
-Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 369** nachgezogen. Aktuell sind damit **369 von 444 Prüfplan-Punkten** geschafft. Der aktuelle dokumentierte Gesamtstand über **445 bewertete Dateien** liegt bei:
+Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 370** nachgezogen. Aktuell sind damit **370 von 444 Prüfplan-Punkten** geschafft. Der aktuelle dokumentierte Gesamtstand über **448 bewertete Dateien** liegt bei:
 
 | Metrik | Stand |
 |---|---:|
-| **Security** | **90,90** |
-| **Speed** | **88,71** |
-| **PHP / Best Practices** | **92,51** |
-| **Gesamt** | **92,15** |
+| **Security** | **91,35** |
+| **Speed** | **88,91** |
+| **PHP / Best Practices** | **92,83** |
+| **Gesamt** | **92,44** |
 
-Zuletzt wurden **Error-Report- und Plugin-Marketplace-Pfade erneut gehärtet**. `CMS/admin/error-report.php` reicht nur noch gezielt normalisierte Report-Payloads weiter, während `CMS/core/Services/ErrorReportService.php` seine Trust-Boundary jetzt auch service-seitig selbst durchzieht. Parallel dedupliziert `CMS/admin/modules/plugins/PluginMarketplaceModule.php` Marketplace-Katalogeinträge, verwirft kollidierende Manifest-Slugs und prüft Installationsmetadaten konsistenter vor Auto-Installationen.
+Zuletzt wurden **die produktiven Pages-/Posts-Fatal-Errors beseitigt und eine neue Core-Modulverwaltung für die Abointegration eingebaut**. `CMS/admin/pages.php` und `CMS/admin/posts.php` importieren `CMS\Security` wieder korrekt, während `CMS/core/Services/CoreModuleService.php` künftig Kernmodule samt Abhängigkeiten registriert. Über `System -> Module` lassen sich Abo-Core, Admin-Unterbereiche, Member-Abo-Bereich sowie Limits-/Ordering-/Pricing-Gates jetzt zentral schalten; Sidebar, Admin-Routen, Dashboard-Kennzahlen und Member-Pfade respektieren diese Zustände bereits.
 
 ## 🧩 Funktionsumfang im Überblick
 

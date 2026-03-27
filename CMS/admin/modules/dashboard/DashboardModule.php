@@ -14,6 +14,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\Services\CoreModuleService;
 use CMS\Services\DashboardService;
 use CMS\Database;
 
@@ -37,6 +38,7 @@ class DashboardModule
     {
         $stats = $this->service->getAllStats();
         $subscriptionEnabled = $this->isSubscriptionSystemEnabled();
+        $subscriptionOrdersEnabled = $this->isSubscriptionOrdersEnabled();
         $system = $stats['system'] ?? [];
         $security = $stats['security'] ?? [];
         $performance = $stats['performance'] ?? [];
@@ -47,13 +49,13 @@ class DashboardModule
 
         return [
             'welcome'       => $this->getWelcomeData($system),
-            'kpis'          => $this->buildKpis($stats, $subscriptionEnabled),
+            'kpis'          => $this->buildKpis($stats, $subscriptionOrdersEnabled),
             'activity'      => $this->getRecentActivity(),
             'quickLinks'    => $this->getQuickLinks(),
             'alerts'        => $this->getAlerts($stats),
             'attention'     => $this->service->getAttentionItems($stats),
             'subscription_enabled' => $subscriptionEnabled,
-            'recent_orders' => $subscriptionEnabled ? $this->service->getRecentOrders() : [],
+            'recent_orders' => $subscriptionOrdersEnabled ? $this->service->getRecentOrders() : [],
             'orders'        => $orders,
             'system'        => $system,
             'security'      => $security,
@@ -77,7 +79,7 @@ class DashboardModule
                     'hint' => (string) ($media['total_size_formatted'] ?? $this->formatBytes((int) ($media['total_size'] ?? 0))),
                     'url' => '/admin/media',
                 ],
-                ...($subscriptionEnabled ? [[
+                ...($subscriptionOrdersEnabled ? [[
                     'label' => 'Bestellungen offen',
                     'value' => (string) ($orders['pending'] ?? 0),
                     'hint' => (string) ($orders['month_revenue_formatted'] ?? '0,00 EUR') . ' Umsatz in 30 Tagen',
@@ -89,19 +91,12 @@ class DashboardModule
 
     private function isSubscriptionSystemEnabled(): bool
     {
-        try {
-            $value = $this->db->get_var(
-                "SELECT option_value FROM {$this->prefix}settings WHERE option_name = 'subscription_enabled' LIMIT 1"
-            );
+        return CoreModuleService::getInstance()->isModuleEnabled('subscriptions');
+    }
 
-            if ($value === null) {
-                return true;
-            }
-
-            return (string) $value === '1';
-        } catch (\Throwable) {
-            return true;
-        }
+    private function isSubscriptionOrdersEnabled(): bool
+    {
+        return CoreModuleService::getInstance()->isModuleEnabled('subscription_admin_orders');
     }
 
     /**

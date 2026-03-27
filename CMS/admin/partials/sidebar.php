@@ -67,6 +67,15 @@ $pluginSidebarChildren = [
     ['label' => 'Plugins verwalten', 'slug' => 'plugins', 'url' => $siteUrl . '/admin/plugins'],
 ];
 
+$coreModuleService = null;
+try {
+    if (class_exists('\CMS\Services\CoreModuleService')) {
+        $coreModuleService = \CMS\Services\CoreModuleService::getInstance();
+    }
+} catch (\Throwable) {
+    $coreModuleService = null;
+}
+
 if ($_marketplaceEnabled) {
     $pluginSidebarChildren[] = ['label' => 'Marketplace', 'slug' => 'plugin-marketplace', 'url' => $siteUrl . '/admin/plugin-marketplace'];
 }
@@ -140,6 +149,21 @@ foreach ($registeredPluginMenus as $menu) {
 
 $pluginSidebarChildren = array_values(array_unique($pluginSidebarChildren, SORT_REGULAR));
 $pluginSidebarSlugs = array_values(array_unique($pluginSidebarSlugs));
+
+$subscriptionSidebarChildren = [
+    ['label' => 'Pakete & Abo-Einstellungen', 'slug' => 'packages', 'url' => $siteUrl . '/admin/packages'],
+    ['label' => 'Bestellungen & Zuweisung', 'slug' => 'orders', 'url' => $siteUrl . '/admin/orders'],
+    ['label' => 'Einstellungen', 'slug' => 'subscription-settings', 'url' => $siteUrl . '/admin/subscription-settings'],
+];
+
+if ($coreModuleService instanceof \CMS\Services\CoreModuleService) {
+    $subscriptionSidebarChildren = $coreModuleService->filterSidebarChildren('subscriptions', $subscriptionSidebarChildren);
+}
+
+$subscriptionSidebarSlugs = array_values(array_map(
+    static fn (array $item): string => (string) ($item['slug'] ?? ''),
+    $subscriptionSidebarChildren
+));
 
 
 /**
@@ -225,12 +249,8 @@ $menuGroups = [
         'type'     => 'group',
         'label'    => 'Aboverwaltung',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 5m0 3a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3z"/><path d="M3 10l18 0"/><path d="M7 15l.01 0"/><path d="M11 15l2 0"/></svg>',
-        'slugs'    => ['packages', 'subscription-settings', 'orders'],
-        'children' => [
-            ['label' => 'Pakete & Abo-Einstellungen', 'slug' => 'packages',              'url' => $siteUrl . '/admin/packages'],
-            ['label' => 'Bestellungen & Zuweisung',   'slug' => 'orders',                'url' => $siteUrl . '/admin/orders'],
-            ['label' => 'Einstellungen',              'slug' => 'subscription-settings', 'url' => $siteUrl . '/admin/subscription-settings'],
-        ],
+        'slugs'    => $subscriptionSidebarSlugs,
+        'children' => $subscriptionSidebarChildren,
     ],
 
     // ─── Themes & Design ──────────────
@@ -325,10 +345,11 @@ $menuGroups = [
         'type'     => 'group',
         'label'    => 'System',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.066 2.573c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.573 1.066c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.066 -2.573c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"/><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/></svg>',
-        'slugs'    => ['settings', 'mail-settings', 'theme-settings', 'backups', 'updates'],
+        'slugs'    => ['settings', 'mail-settings', 'theme-settings', 'backups', 'updates', 'modules'],
         'children' => [
             ['label' => 'Einstellungen',      'slug' => 'settings', 'url' => $siteUrl . '/admin/settings'],
             ['label' => 'Mail & Azure OAuth2', 'slug' => 'mail-settings', 'url' => $siteUrl . '/admin/mail-settings'],
+            ['label' => 'Module',             'slug' => 'modules', 'url' => $siteUrl . '/admin/modules'],
             ['label' => 'Backup & Restore',   'slug' => 'backups',  'url' => $siteUrl . '/admin/backups'],
             ['label' => 'Updates',            'slug' => 'updates',  'url' => $siteUrl . '/admin/updates'],
         ],
@@ -396,6 +417,14 @@ if ($pluginMenuGroups !== []) {
         }
     }
 }
+
+$menuGroups = array_values(array_filter($menuGroups, static function (array $item): bool {
+    if (($item['type'] ?? '') !== 'group') {
+        return true;
+    }
+
+    return !empty($item['children']);
+}));
 
 /**
  * Prüft ob ein Slug aktiv ist

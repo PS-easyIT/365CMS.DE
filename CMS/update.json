@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.7.287",
+  "version": "2.7.288",
   "min_php": "8.4",
-  "released": "2026-03-26",
+  "released": "2026-03-27",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release 2.7.287: `CMS/admin/modules/plugins/PluginMarketplaceModule.php` normalisiert installierte Slugs jetzt eindeutig, verwirft kollidierende Manifest-Slugs und dedupliziert doppelte Katalogeinträge vor Remote-URL-Auflösung. Zusammen mit der erneuten Error-Report-Härtung über `CMS/admin/error-report.php` und `CMS/core/Services/ErrorReportService.php` bleiben Trust-Boundaries sowie Marketplace-Installationspfade robuster gegen inkonsistente Payloads, übergroße Metadaten und unnötige Lookup-Sonderpfade.",
+  "notes": "Release 2.7.288: `CMS/admin/pages.php` und `CMS/admin/posts.php` importieren `CMS\\Security` wieder korrekt, wodurch der produktive Fatal Error beim Editor-Token entfällt. Zusätzlich bringt `CMS/core/Services/CoreModuleService.php` erstmals eine integrierte Core-Modul-Registry mit: Über `CMS/admin/modules.php` bzw. `CMS/admin/views/system/modules.php` lässt sich die Aboverwaltung jetzt unter `System -> Module` zentral steuern, inklusive Sidebar-Gates, Admin-Zugriffssperren sowie Laufzeitabschaltungen für Member-, Dashboard- und Subscription-Pfade.",
   "critical": false
 }
