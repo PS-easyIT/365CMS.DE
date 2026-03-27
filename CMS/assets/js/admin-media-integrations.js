@@ -518,6 +518,7 @@
 
     function initMediaLibraryActions() {
         var config = parseConfig('media-library-config') || {};
+        var currentPath = config.currentPath || '';
         var deleteFormId = config.deleteFormId || 'deleteMediaForm';
         var deletePathFieldId = config.deletePathFieldId || 'deleteMediaPath';
         var memberFolderConfirmMessage = config.memberFolderConfirmMessage || 'Diesen Ordner wirklich öffnen?';
@@ -552,9 +553,55 @@
         var bulkActionField = document.getElementById(bulkActionFieldId);
         var bulkMoveWrap = document.getElementById(bulkMoveWrapId);
         var bulkMoveTargetField = document.getElementById(bulkMoveTargetFieldId);
-        var renameModal = renameModalElement && window.bootstrap ? window.bootstrap.Modal.getOrCreateInstance(renameModalElement) : null;
-        var moveModal = moveModalElement && window.bootstrap ? window.bootstrap.Modal.getOrCreateInstance(moveModalElement) : null;
+        var bulkSubmitButton = bulkForm ? bulkForm.querySelector('button[type="submit"]') : null;
         var selectedPaths = new Set();
+
+        function collectSelectedPaths() {
+            if (!bulkRoot) {
+                return new Set();
+            }
+
+            var values = new Set();
+            bulkRoot.querySelectorAll('.bulk-row-check').forEach(function (checkbox) {
+                if (checkbox.checked) {
+                    values.add(String(checkbox.value));
+                }
+            });
+
+            return values;
+        }
+
+        function populateRenameModal(trigger) {
+            if (!trigger || !renamePathField || !renameNameField) {
+                return;
+            }
+
+            var itemPath = trigger.getAttribute('data-media-path') || '';
+            var itemName = trigger.getAttribute('data-media-name') || 'Element';
+            renamePathField.value = itemPath;
+            renameNameField.value = itemName;
+            if (renameLabel) {
+                renameLabel.textContent = itemName;
+            }
+        }
+
+        function populateMoveModal(trigger) {
+            if (!trigger || !movePathField || !moveTargetField) {
+                return;
+            }
+
+            var itemPath = trigger.getAttribute('data-media-path') || '';
+            var itemName = trigger.getAttribute('data-media-name') || 'Element';
+            var targetPath = trigger.getAttribute('data-media-target') || currentPath;
+            movePathField.value = itemPath;
+            moveTargetField.value = targetPath;
+            if (moveTargetField.value !== targetPath && moveTargetField.options.length > 0) {
+                moveTargetField.selectedIndex = 0;
+            }
+            if (moveLabel) {
+                moveLabel.textContent = itemName;
+            }
+        }
 
         function setDropdownOverflow(open) {
             document.querySelectorAll('.table-responsive').forEach(function (container) {
@@ -586,89 +633,71 @@
             });
         });
 
-        if (!deleteForm || !deletePathField) {
-            return;
-        }
-
-        function submitDelete(path) {
-            deletePathField.value = path;
-
-            if (typeof deleteForm.requestSubmit === 'function') {
-                deleteForm.requestSubmit();
-                return;
-            }
-
-            deleteForm.submit();
-        }
-
-        document.querySelectorAll('.js-media-delete').forEach(function (button) {
-            button.addEventListener('click', function () {
-                var path = button.dataset.deletePath || '';
-                var name = button.dataset.deleteName || 'Element';
-                var itemType = button.dataset.deleteType || 'Element';
-                var message = name + ' wirklich löschen?';
-
-                if (!path) {
-                    return;
-                }
-
-                if (typeof cmsConfirm === 'function') {
-                    cmsConfirm({
-                        title: itemType + ' löschen',
-                        message: message,
-                        confirmText: 'Löschen',
-                        confirmClass: 'btn-danger',
-                        onConfirm: function () {
-                            submitDelete(path);
-                        }
-                    });
-                    return;
-                }
-
-                if (window.confirm(message)) {
-                    submitDelete(path);
-                }
+        if (renameModalElement) {
+            renameModalElement.addEventListener('show.bs.modal', function (event) {
+                populateRenameModal(event.relatedTarget);
             });
-        });
 
-        document.querySelectorAll('.js-media-open-rename').forEach(function (button) {
-            button.addEventListener('click', function () {
-                if (!renameModal || !renamePathField || !renameNameField) {
+            renameModalElement.addEventListener('shown.bs.modal', function () {
+                if (!renameNameField) {
                     return;
                 }
 
-                var itemPath = button.getAttribute('data-media-path') || '';
-                var itemName = button.getAttribute('data-media-name') || 'Element';
-                renamePathField.value = itemPath;
-                renameNameField.value = itemName;
-                if (renameLabel) {
-                    renameLabel.textContent = itemName;
-                }
-                renameModal.show();
                 window.setTimeout(function () {
                     renameNameField.focus();
                     renameNameField.select();
-                }, 150);
+                }, 50);
             });
-        });
+        }
 
-        document.querySelectorAll('.js-media-open-move').forEach(function (button) {
-            button.addEventListener('click', function () {
-                if (!moveModal || !movePathField || !moveTargetField) {
+        if (moveModalElement) {
+            moveModalElement.addEventListener('show.bs.modal', function (event) {
+                populateMoveModal(event.relatedTarget);
+            });
+        }
+
+        if (deleteForm && deletePathField) {
+            function submitDelete(path) {
+                deletePathField.value = path;
+
+                if (typeof deleteForm.requestSubmit === 'function') {
+                    deleteForm.requestSubmit();
                     return;
                 }
 
-                var itemPath = button.getAttribute('data-media-path') || '';
-                var itemName = button.getAttribute('data-media-name') || 'Element';
-                var targetPath = button.getAttribute('data-media-target') || '';
-                movePathField.value = itemPath;
-                moveTargetField.value = targetPath;
-                if (moveLabel) {
-                    moveLabel.textContent = itemName;
-                }
-                moveModal.show();
+                deleteForm.submit();
+            }
+
+            document.querySelectorAll('.js-media-delete').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    var path = button.dataset.deletePath || '';
+                    var name = button.dataset.deleteName || 'Element';
+                    var itemType = button.dataset.deleteType || 'Element';
+                    var message = name + ' wirklich löschen?';
+
+                    if (!path) {
+                        return;
+                    }
+
+                    if (typeof cmsConfirm === 'function') {
+                        cmsConfirm({
+                            title: itemType + ' löschen',
+                            message: message,
+                            confirmText: 'Löschen',
+                            confirmClass: 'btn-danger',
+                            onConfirm: function () {
+                                submitDelete(path);
+                            }
+                        });
+                        return;
+                    }
+
+                    if (window.confirm(message)) {
+                        submitDelete(path);
+                    }
+                });
             });
-        });
+        }
 
         function syncBulkCheckboxes() {
             if (!bulkRoot) {
@@ -697,18 +726,26 @@
             var requiresMoveTarget = bulkActionField.value === 'move';
             bulkMoveWrap.classList.toggle('d-none', !requiresMoveTarget);
 
-            if (!requiresMoveTarget && bulkMoveTargetField) {
-                bulkMoveTargetField.value = '';
+            if (bulkMoveTargetField) {
+                bulkMoveTargetField.disabled = !requiresMoveTarget;
+                if (requiresMoveTarget && bulkMoveTargetField.value === '' && bulkMoveTargetField.options.length > 0) {
+                    bulkMoveTargetField.value = currentPath;
+                    if (bulkMoveTargetField.value === '' && bulkMoveTargetField.options.length > 0) {
+                        bulkMoveTargetField.selectedIndex = 0;
+                    }
+                }
             }
         }
 
         function updateBulkUi() {
+            selectedPaths = collectSelectedPaths();
+
             if (bulkCount) {
                 bulkCount.textContent = String(selectedPaths.size);
             }
 
-            if (bulkFormWrap) {
-                bulkFormWrap.classList.toggle('d-none', selectedPaths.size === 0);
+            if (bulkSubmitButton) {
+                bulkSubmitButton.disabled = selectedPaths.size === 0;
             }
 
             syncBulkCheckboxes();
@@ -723,11 +760,6 @@
                 }
 
                 if (target.classList.contains('bulk-row-check')) {
-                    if (target.checked) {
-                        selectedPaths.add(String(target.value));
-                    } else {
-                        selectedPaths.delete(String(target.value));
-                    }
                     updateBulkUi();
                     return;
                 }
@@ -735,11 +767,6 @@
                 if (target.classList.contains('bulk-select-all')) {
                     bulkRoot.querySelectorAll('.bulk-row-check').forEach(function (checkbox) {
                         checkbox.checked = target.checked;
-                        if (target.checked) {
-                            selectedPaths.add(String(checkbox.value));
-                        } else {
-                            selectedPaths.delete(String(checkbox.value));
-                        }
                     });
                     updateBulkUi();
                 }
@@ -752,9 +779,7 @@
 
         if (bulkForm) {
             bulkForm.addEventListener('submit', function (event) {
-                bulkForm.querySelectorAll('input[name="item_paths[]"]').forEach(function (input) {
-                    input.remove();
-                });
+                selectedPaths = collectSelectedPaths();
 
                 if (selectedPaths.size === 0) {
                     event.preventDefault();
@@ -771,16 +796,7 @@
 
                 if (bulkActionField.value === 'delete' && !window.confirm('Die ausgewählten Medien wirklich löschen?')) {
                     event.preventDefault();
-                    return;
                 }
-
-                selectedPaths.forEach(function (path) {
-                    var input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = 'item_paths[]';
-                    input.value = path;
-                    bulkForm.appendChild(input);
-                });
             });
         }
 

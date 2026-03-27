@@ -253,6 +253,7 @@
             return;
         }
 
+        const currentPath = config.currentPath || '';
         const renameModalElement = document.getElementById(config.renameModalId || 'memberMediaRenameModal');
         const renamePathField = document.getElementById(config.renamePathFieldId || 'memberMediaRenamePath');
         const renameNameField = document.getElementById(config.renameNameFieldId || 'memberMediaRenameName');
@@ -261,47 +262,60 @@
         const movePathField = document.getElementById(config.movePathFieldId || 'memberMediaMovePath');
         const moveTargetField = document.getElementById(config.moveTargetFieldId || 'memberMediaMoveTarget');
         const moveLabel = document.getElementById(config.moveLabelId || 'memberMediaMoveLabel');
-        const renameModal = renameModalElement && window.bootstrap ? window.bootstrap.Modal.getOrCreateInstance(renameModalElement) : null;
-        const moveModal = moveModalElement && window.bootstrap ? window.bootstrap.Modal.getOrCreateInstance(moveModalElement) : null;
+        function populateRenameModal(trigger) {
+            if (!trigger || !renamePathField || !renameNameField) {
+                return;
+            }
 
-        document.querySelectorAll('.js-member-media-open-rename').forEach(function (button) {
-            button.addEventListener('click', function () {
-                if (!renameModal || !renamePathField || !renameNameField) {
+            const itemPath = trigger.getAttribute('data-media-path') || '';
+            const itemName = trigger.getAttribute('data-media-name') || 'Element';
+            renamePathField.value = itemPath;
+            renameNameField.value = itemName;
+            if (renameLabel) {
+                renameLabel.textContent = itemName;
+            }
+        }
+
+        function populateMoveModal(trigger) {
+            if (!trigger || !movePathField || !moveTargetField) {
+                return;
+            }
+
+            const itemPath = trigger.getAttribute('data-media-path') || '';
+            const itemName = trigger.getAttribute('data-media-name') || 'Element';
+            const targetPath = trigger.getAttribute('data-media-target') || currentPath;
+            movePathField.value = itemPath;
+            moveTargetField.value = targetPath;
+            if (moveTargetField.value !== targetPath && moveTargetField.options.length > 0) {
+                moveTargetField.selectedIndex = 0;
+            }
+            if (moveLabel) {
+                moveLabel.textContent = itemName;
+            }
+        }
+
+        if (renameModalElement) {
+            renameModalElement.addEventListener('show.bs.modal', function (event) {
+                populateRenameModal(event.relatedTarget);
+            });
+
+            renameModalElement.addEventListener('shown.bs.modal', function () {
+                if (!renameNameField) {
                     return;
                 }
 
-                const itemPath = button.getAttribute('data-media-path') || '';
-                const itemName = button.getAttribute('data-media-name') || 'Element';
-                renamePathField.value = itemPath;
-                renameNameField.value = itemName;
-                if (renameLabel) {
-                    renameLabel.textContent = itemName;
-                }
-                renameModal.show();
                 window.setTimeout(function () {
                     renameNameField.focus();
                     renameNameField.select();
-                }, 150);
+                }, 50);
             });
-        });
+        }
 
-        document.querySelectorAll('.js-member-media-open-move').forEach(function (button) {
-            button.addEventListener('click', function () {
-                if (!moveModal || !movePathField || !moveTargetField) {
-                    return;
-                }
-
-                const itemPath = button.getAttribute('data-media-path') || '';
-                const itemName = button.getAttribute('data-media-name') || 'Element';
-                const targetPath = button.getAttribute('data-media-target') || '';
-                movePathField.value = itemPath;
-                moveTargetField.value = targetPath;
-                if (moveLabel) {
-                    moveLabel.textContent = itemName;
-                }
-                moveModal.show();
+        if (moveModalElement) {
+            moveModalElement.addEventListener('show.bs.modal', function (event) {
+                populateMoveModal(event.relatedTarget);
             });
-        });
+        }
     }
 
     document.addEventListener('DOMContentLoaded', function () {

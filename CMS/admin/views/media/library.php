@@ -36,6 +36,7 @@ $moveTargets = is_array($data['move_targets'] ?? null) ? $data['move_targets'] :
 $bulkActions = is_array($data['bulk_actions'] ?? null) ? $data['bulk_actions'] : [];
 $mediaLibraryConfig = [
     'memberFolderConfirmMessage' => $memberFolderConfirmMessage,
+    'currentPath' => $path,
     'deleteFormId' => 'deleteMediaForm',
     'deletePathFieldId' => 'deleteMediaPath',
     'renameModalId' => 'mediaRenameModal',
@@ -244,13 +245,13 @@ function renderMoveTargetOptions(array $targets, string $selectedPath = ''): str
                     </div>
                 <?php else: ?>
                     <div data-media-library-root>
-                        <div class="card card-sm mb-3 d-none" id="mediaBulkFormWrap">
+                        <div class="card card-sm mb-3" id="mediaBulkFormWrap">
                             <form id="mediaBulkForm" method="post" class="card-body d-flex flex-column flex-lg-row align-items-lg-center gap-3">
                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
                                 <input type="hidden" name="action" value="bulk_items">
                                 <div class="d-flex align-items-center gap-3 flex-wrap">
                                     <label class="form-check mb-0">
-                                        <input type="checkbox" class="form-check-input bulk-select-all">
+                                        <input type="checkbox" class="form-check-input bulk-select-all" aria-label="Alle sichtbaren Medien auswählen">
                                         <span class="form-check-label">Alle sichtbaren auswählen</span>
                                     </label>
                                     <span class="badge bg-blue-lt"><span id="mediaBulkSelectedCount">0</span> ausgewählt</span>
@@ -279,15 +280,15 @@ function renderMoveTargetOptions(array $targets, string $selectedPath = ''): str
                                     <?php if (empty($folder['is_system'])): ?>
                                         <div class="p-2 pb-0 d-flex justify-content-between align-items-start gap-2">
                                             <label class="form-check m-0">
-                                                <input class="form-check-input bulk-row-check" type="checkbox" value="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>">
+                                                <input class="form-check-input bulk-row-check" type="checkbox" name="item_paths[]" form="mediaBulkForm" value="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" aria-label="Ordner <?php echo htmlspecialchars((string)($folder['name'] ?? 'Ordner'), ENT_QUOTES); ?> auswählen">
                                             </label>
                                             <div class="dropdown">
                                                 <button class="btn btn-icon btn-ghost-secondary btn-sm" type="button" data-bs-toggle="dropdown" aria-label="Ordneraktionen">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg>
                                                 </button>
                                                 <div class="dropdown-menu dropdown-menu-end">
-                                                    <button type="button" class="dropdown-item js-media-open-rename" data-media-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($folder['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Ordner">Umbenennen</button>
-                                                    <button type="button" class="dropdown-item js-media-open-move" data-media-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($folder['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Ordner" data-media-target="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>">Verschieben</button>
+                                                    <button type="button" class="dropdown-item js-media-open-rename" data-bs-toggle="modal" data-bs-target="#mediaRenameModal" data-media-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($folder['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Ordner">Umbenennen</button>
+                                                    <button type="button" class="dropdown-item js-media-open-move" data-bs-toggle="modal" data-bs-target="#mediaMoveModal" data-media-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($folder['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Ordner" data-media-target="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>">Verschieben</button>
                                                     <button type="button" class="dropdown-item text-danger js-media-delete" data-delete-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-delete-name="<?php echo htmlspecialchars((string)($folder['name'] ?? 'Ordner'), ENT_QUOTES); ?>" data-delete-type="Ordner">Löschen</button>
                                                 </div>
                                             </div>
@@ -306,15 +307,15 @@ function renderMoveTargetOptions(array $targets, string $selectedPath = ''): str
                                 <div class="media-grid-item">
                                     <div class="p-2 pb-0 d-flex justify-content-between align-items-start gap-2">
                                         <label class="form-check m-0">
-                                            <input class="form-check-input bulk-row-check" type="checkbox" value="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>">
+                                            <input class="form-check-input bulk-row-check" type="checkbox" name="item_paths[]" form="mediaBulkForm" value="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" aria-label="Datei <?php echo htmlspecialchars((string)($file['name'] ?? 'Datei'), ENT_QUOTES); ?> auswählen">
                                         </label>
                                         <div class="dropdown">
                                             <button class="btn btn-icon btn-ghost-secondary btn-sm" type="button" data-bs-toggle="dropdown" aria-label="Dateiaktionen">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg>
                                             </button>
                                             <div class="dropdown-menu dropdown-menu-end">
-                                                <button type="button" class="dropdown-item js-media-open-rename" data-media-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($file['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Datei">Umbenennen</button>
-                                                <button type="button" class="dropdown-item js-media-open-move" data-media-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($file['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Datei" data-media-target="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>">Verschieben</button>
+                                                <button type="button" class="dropdown-item js-media-open-rename" data-bs-toggle="modal" data-bs-target="#mediaRenameModal" data-media-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($file['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Datei">Umbenennen</button>
+                                                <button type="button" class="dropdown-item js-media-open-move" data-bs-toggle="modal" data-bs-target="#mediaMoveModal" data-media-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($file['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Datei" data-media-target="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>">Verschieben</button>
                                                 <button type="button" class="dropdown-item text-danger js-media-delete" data-delete-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-delete-name="<?php echo htmlspecialchars((string)($file['name'] ?? 'Datei'), ENT_QUOTES); ?>" data-delete-type="Datei">Löschen</button>
                                             </div>
                                         </div>
@@ -338,7 +339,7 @@ function renderMoveTargetOptions(array $targets, string $selectedPath = ''): str
                                     <tr>
                                         <th class="w-1">
                                             <label class="form-check m-0">
-                                                <input type="checkbox" class="form-check-input bulk-select-all">
+                                                <input type="checkbox" class="form-check-input bulk-select-all" aria-label="Alle sichtbaren Medien auswählen">
                                             </label>
                                         </th>
                                         <th style="width: 60px;">Typ</th>
@@ -356,7 +357,7 @@ function renderMoveTargetOptions(array $targets, string $selectedPath = ''): str
                                             <td>
                                                 <?php if (empty($folder['is_system'])): ?>
                                                     <label class="form-check m-0">
-                                                        <input class="form-check-input bulk-row-check" type="checkbox" value="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>">
+                                                        <input class="form-check-input bulk-row-check" type="checkbox" name="item_paths[]" form="mediaBulkForm" value="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" aria-label="Ordner <?php echo htmlspecialchars((string)($folder['name'] ?? 'Ordner'), ENT_QUOTES); ?> auswählen">
                                                     </label>
                                                 <?php endif; ?>
                                             </td>
@@ -380,8 +381,8 @@ function renderMoveTargetOptions(array $targets, string $selectedPath = ''): str
                                                     <div class="dropdown">
                                                         <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">Aktionen</button>
                                                         <div class="dropdown-menu dropdown-menu-end">
-                                                            <button type="button" class="dropdown-item js-media-open-rename" data-media-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($folder['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Ordner">Umbenennen</button>
-                                                            <button type="button" class="dropdown-item js-media-open-move" data-media-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($folder['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Ordner" data-media-target="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>">Verschieben</button>
+                                                            <button type="button" class="dropdown-item js-media-open-rename" data-bs-toggle="modal" data-bs-target="#mediaRenameModal" data-media-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($folder['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Ordner">Umbenennen</button>
+                                                            <button type="button" class="dropdown-item js-media-open-move" data-bs-toggle="modal" data-bs-target="#mediaMoveModal" data-media-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($folder['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Ordner" data-media-target="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>">Verschieben</button>
                                                             <button type="button" class="dropdown-item text-danger js-media-delete" data-delete-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-delete-name="<?php echo htmlspecialchars((string)($folder['name'] ?? 'Ordner'), ENT_QUOTES); ?>" data-delete-type="Ordner">Löschen</button>
                                                         </div>
                                                     </div>
@@ -397,7 +398,7 @@ function renderMoveTargetOptions(array $targets, string $selectedPath = ''): str
                                         <tr>
                                             <td>
                                                 <label class="form-check m-0">
-                                                    <input class="form-check-input bulk-row-check" type="checkbox" value="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>">
+                                                    <input class="form-check-input bulk-row-check" type="checkbox" name="item_paths[]" form="mediaBulkForm" value="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" aria-label="Datei <?php echo htmlspecialchars((string)($file['name'] ?? 'Datei'), ENT_QUOTES); ?> auswählen">
                                                 </label>
                                             </td>
                                             <td>
@@ -433,8 +434,8 @@ function renderMoveTargetOptions(array $targets, string $selectedPath = ''): str
                                                 <div class="dropdown">
                                                     <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">Aktionen</button>
                                                     <div class="dropdown-menu dropdown-menu-end">
-                                                        <button type="button" class="dropdown-item js-media-open-rename" data-media-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($file['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Datei">Umbenennen</button>
-                                                        <button type="button" class="dropdown-item js-media-open-move" data-media-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($file['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Datei" data-media-target="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>">Verschieben</button>
+                                                        <button type="button" class="dropdown-item js-media-open-rename" data-bs-toggle="modal" data-bs-target="#mediaRenameModal" data-media-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($file['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Datei">Umbenennen</button>
+                                                        <button type="button" class="dropdown-item js-media-open-move" data-bs-toggle="modal" data-bs-target="#mediaMoveModal" data-media-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($file['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Datei" data-media-target="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>">Verschieben</button>
                                                         <button type="button" class="dropdown-item text-danger js-media-delete" data-delete-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-delete-name="<?php echo htmlspecialchars((string)($file['name'] ?? 'Datei'), ENT_QUOTES); ?>" data-delete-type="Datei">Löschen</button>
                                                     </div>
                                                 </div>

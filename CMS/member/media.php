@@ -22,6 +22,7 @@ $breadcrumbs = is_array($media['breadcrumbs'] ?? null) ? $media['breadcrumbs'] :
 $moveTargets = is_array($media['move_targets'] ?? null) ? $media['move_targets'] : [];
 
 $memberMediaConfig = [
+    'currentPath' => $memberPath,
     'renameModalId' => 'memberMediaRenameModal',
     'renamePathFieldId' => 'memberMediaRenamePath',
     'renameNameFieldId' => 'memberMediaRenameName',
@@ -105,8 +106,8 @@ include __DIR__ . '/partials/header.php';
                                 <div class="dropdown">
                                     <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">Aktionen</button>
                                     <div class="dropdown-menu dropdown-menu-end">
-                                        <button type="button" class="dropdown-item js-member-media-open-rename" data-media-path="<?= htmlspecialchars($folderPath, ENT_QUOTES) ?>" data-media-name="<?= htmlspecialchars((string)($folder['name'] ?? 'Ordner'), ENT_QUOTES) ?>" data-media-kind="Ordner">Umbenennen</button>
-                                        <button type="button" class="dropdown-item js-member-media-open-move" data-media-path="<?= htmlspecialchars($folderPath, ENT_QUOTES) ?>" data-media-name="<?= htmlspecialchars((string)($folder['name'] ?? 'Ordner'), ENT_QUOTES) ?>" data-media-kind="Ordner" data-media-target="<?= htmlspecialchars($memberPath, ENT_QUOTES) ?>">Verschieben</button>
+                                        <button type="button" class="dropdown-item js-member-media-open-rename" data-bs-toggle="modal" data-bs-target="#memberMediaRenameModal" data-media-path="<?= htmlspecialchars($folderPath, ENT_QUOTES) ?>" data-media-name="<?= htmlspecialchars((string)($folder['name'] ?? 'Ordner'), ENT_QUOTES) ?>" data-media-kind="Ordner">Umbenennen</button>
+                                        <button type="button" class="dropdown-item js-member-media-open-move" data-bs-toggle="modal" data-bs-target="#memberMediaMoveModal" data-media-path="<?= htmlspecialchars($folderPath, ENT_QUOTES) ?>" data-media-name="<?= htmlspecialchars((string)($folder['name'] ?? 'Ordner'), ENT_QUOTES) ?>" data-media-kind="Ordner" data-media-target="<?= htmlspecialchars($memberPath, ENT_QUOTES) ?>">Verschieben</button>
                                         <?php if (!empty($mediaSettings['member_delete_own'])): ?>
                                             <form method="post" action="" onsubmit="return confirm('Ordner wirklich löschen? Alle enthaltenen Dateien werden ebenfalls entfernt.');">
                                                 <input type="hidden" name="action" value="media_folder_delete">
@@ -156,8 +157,8 @@ include __DIR__ . '/partials/header.php';
                                         <div class="dropdown">
                                             <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">Aktionen</button>
                                             <div class="dropdown-menu dropdown-menu-end">
-                                                <button type="button" class="dropdown-item js-member-media-open-rename" data-media-path="<?= htmlspecialchars($filePath, ENT_QUOTES) ?>" data-media-name="<?= htmlspecialchars((string)($file['name'] ?? 'Datei'), ENT_QUOTES) ?>" data-media-kind="Datei">Umbenennen</button>
-                                                <button type="button" class="dropdown-item js-member-media-open-move" data-media-path="<?= htmlspecialchars($filePath, ENT_QUOTES) ?>" data-media-name="<?= htmlspecialchars((string)($file['name'] ?? 'Datei'), ENT_QUOTES) ?>" data-media-kind="Datei" data-media-target="<?= htmlspecialchars($memberPath, ENT_QUOTES) ?>">Verschieben</button>
+                                                <button type="button" class="dropdown-item js-member-media-open-rename" data-bs-toggle="modal" data-bs-target="#memberMediaRenameModal" data-media-path="<?= htmlspecialchars($filePath, ENT_QUOTES) ?>" data-media-name="<?= htmlspecialchars((string)($file['name'] ?? 'Datei'), ENT_QUOTES) ?>" data-media-kind="Datei">Umbenennen</button>
+                                                <button type="button" class="dropdown-item js-member-media-open-move" data-bs-toggle="modal" data-bs-target="#memberMediaMoveModal" data-media-path="<?= htmlspecialchars($filePath, ENT_QUOTES) ?>" data-media-name="<?= htmlspecialchars((string)($file['name'] ?? 'Datei'), ENT_QUOTES) ?>" data-media-kind="Datei" data-media-target="<?= htmlspecialchars($memberPath, ENT_QUOTES) ?>">Verschieben</button>
                                                 <?php if (!empty($mediaSettings['member_delete_own'])): ?>
                                                     <form method="post" action="" onsubmit="return confirm('Datei wirklich löschen?');">
                                                         <input type="hidden" name="action" value="media_delete">
