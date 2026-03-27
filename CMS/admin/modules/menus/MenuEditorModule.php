@@ -12,19 +12,26 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Database;
+use CMS\Logger;
 use CMS\ThemeManager;
 
 class MenuEditorModule
 {
+    private const MAX_EDITOR_ITEMS = 200;
+    private const MAX_MENU_NAME_LENGTH = 255;
+    private const MAX_ITEM_TITLE_LENGTH = 255;
+    private const MAX_ITEM_ICON_LENGTH = 100;
+
     private Database $db;
+    private Logger $logger;
     private string $prefix;
+    private bool $bootstrapped = false;
 
     public function __construct()
     {
         $this->db     = Database::instance();
+        $this->logger = Logger::instance()->withChannel('admin.menu-editor');
         $this->prefix = $this->db->getPrefix();
-        $this->ensureTables();
-        $this->syncThemeMenus();
     }
 
     /**
@@ -32,27 +39,16 @@ class MenuEditorModule
      */
     public function getData(int $currentMenuId = 0): array
     {
-        $this->syncThemeMenus();
+        $this->ensureBootstrapped();
 
-        $menus     = $this->getMenus();
+        $menus = $this->getMenus();
         $locations = $this->getMenuLocations();
         $locationOverview = $this->buildLocationOverview($locations, $menus);
-        $pages     = $this->getPages();
+        $pages = $this->getPages();
 
-        $currentMenu  = null;
-        $menuItems    = [];
-
-        if ($currentMenuId > 0) {
-            foreach ($menus as $menu) {
-                if ((int)$menu->id === $currentMenuId) {
-                    $currentMenu = $menu;
-                    break;
-                }
-            }
-            if ($currentMenu) {
-                $menuItems = $this->getMenuItems($currentMenuId);
-            }
-        }
+        $currentMenu = $currentMenuId > 0 ? $this->findMenuById($menus, $currentMenuId) : null;
+        $menuItems = $currentMenu ? $this->getMenuItems($currentMenuId) : [];
+        $editorConfig = $this->buildEditorConfig($menuItems);
 
         return [
             'menus'       => $menus,
@@ -60,7 +56,8 @@ class MenuEditorModule
             'menuItems'   => $menuItems,
             'locations'   => $locations,
             'locationOverview' => $locationOverview,
-            'pages'       => $pages,
+            'pagePickerOptions' => $this->buildPagePickerOptions($pages),
+            'editorConfigJson' => $this->encodeEditorConfig($editorConfig),
         ];
     }
 
@@ -69,12 +66,28 @@ class MenuEditorModule
      */
     public function saveMenu(array $post): array
     {
-        $menuId   = (int)($post['menu_id'] ?? 0);
-        $name     = trim(strip_tags($post['menu_name'] ?? ''));
-        $location = preg_replace('/[^a-zA-Z0-9_-]/', '', $post['menu_location'] ?? '');
+        $this->ensureBootstrapped();
+
+        $menuId = $this->normalizePositiveInt($post['menu_id'] ?? 0);
+        $name = $this->normalizeMenuName($post['menu_name'] ?? '');
+        $location = $this->normalizeMenuLocation($post['menu_location'] ?? '');
+        $knownLocations = $this->getMenuLocations();
+        $existingMenu = $menuId > 0 ? $this->getMenuById($menuId) : null;
 
         if (empty($name)) {
             return ['success' => false, 'error' => 'Menü-Name darf nicht leer sein.'];
+        }
+
+        if ($menuId > 0 && !$existingMenu) {
+            return ['success' => false, 'error' => 'Menü wurde nicht gefunden.'];
+        }
+
+        if ($location !== '' && !array_key_exists($location, $knownLocations)) {
+            return ['success' => false, 'error' => 'Ungültige Theme-Position.'];
+        }
+
+        if ($location !== '' && $this->locationAssignedToDifferentMenu($location, $menuId > 0 ? $menuId : null)) {
+            return ['success' => false, 'error' => 'Diese Theme-Position ist bereits einem anderen Menü zugewiesen.'];
         }
 
         try {
@@ -83,21 +96,38 @@ class MenuEditorModule
                     "UPDATE {$this->prefix}menus SET name = ?, location = ? WHERE id = ?",
                     [$name, $location, $menuId]
                 );
-                return ['success' => true, 'message' => 'Menü aktualisiert.'];
+
+                $previousLocation = trim((string) ($existingMenu->location ?? ''));
+                if ($previousLocation !== '' && $previousLocation !== $location) {
+                    ThemeManager::instance()->saveMenu($previousLocation, []);
+                }
+
+                if ($location !== '') {
+                    ThemeManager::instance()->saveMenu($location, $this->buildThemeItemsFromStoredMenu($menuId));
+                }
+
+                return ['success' => true, 'id' => $menuId, 'message' => 'Menü aktualisiert.'];
             } else {
                 $this->db->execute(
                     "INSERT INTO {$this->prefix}menus (name, location) VALUES (?, ?)",
                     [$name, $location]
                 );
+                $menuId = (int) $this->db->lastInsertId();
 
                 if ($location !== '') {
-                    ThemeManager::instance()->saveMenu($location, ThemeManager::instance()->getMenu($location));
+                    ThemeManager::instance()->saveMenu($location, []);
                 }
 
-                return ['success' => true, 'message' => 'Menü erstellt.'];
+                return ['success' => true, 'id' => $menuId, 'message' => 'Menü erstellt.'];
             }
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+            $this->logger->error('Menü konnte nicht gespeichert werden.', [
+                'menu_id' => $menuId,
+                'location' => $location,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return ['success' => false, 'error' => 'Menü konnte nicht gespeichert werden.'];
         }
     }
 
@@ -106,6 +136,10 @@ class MenuEditorModule
      */
     public function deleteMenu(int $menuId): array
     {
+        $this->ensureBootstrapped();
+
+        $menuId = $this->normalizePositiveInt($menuId);
+
         if ($menuId <= 0) {
             return ['success' => false, 'error' => 'Ungültige Menü-ID.'];
         }
@@ -116,6 +150,10 @@ class MenuEditorModule
                 [$menuId]
             );
 
+            if (!$menu) {
+                return ['success' => false, 'error' => 'Menü wurde nicht gefunden.'];
+            }
+
             if ($menu && !empty($menu->location)) {
                 ThemeManager::instance()->saveMenu((string)$menu->location, []);
             }
@@ -124,7 +162,12 @@ class MenuEditorModule
             $this->db->query("DELETE FROM {$this->prefix}menus WHERE id = ?", [$menuId]);
             return ['success' => true, 'message' => 'Menü gelöscht.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+            $this->logger->error('Menü konnte nicht gelöscht werden.', [
+                'menu_id' => $menuId,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return ['success' => false, 'error' => 'Menü konnte nicht gelöscht werden.'];
         }
     }
 
@@ -133,6 +176,10 @@ class MenuEditorModule
      */
     public function saveItems(int $menuId, string $itemsJson): array
     {
+        $this->ensureBootstrapped();
+
+        $menuId = $this->normalizePositiveInt($menuId);
+
         if ($menuId <= 0) {
             return ['success' => false, 'error' => 'Ungültige Menü-ID.'];
         }
@@ -148,23 +195,46 @@ class MenuEditorModule
                 [$menuId]
             );
 
-            $normalizedItems = $this->sanitizeEditorItems($items);
+            if (!$menu) {
+                return ['success' => false, 'error' => 'Menü wurde nicht gefunden.'];
+            }
+
+            $normalizedItems = $this->normalizeEditorItems($items);
+            if ($normalizedItems['error'] !== '') {
+                return ['success' => false, 'error' => $normalizedItems['error']];
+            }
 
             // Alle bestehenden Items löschen
             $this->db->execute("DELETE FROM {$this->prefix}menu_items WHERE menu_id = ?", [$menuId]);
 
             $position = 0;
-            $tree = $this->buildEditorTree($normalizedItems);
+            $tree = $this->buildEditorTree($normalizedItems['items']);
             $this->insertEditorTree($menuId, $tree, 0, $position);
 
             if ($menu && !empty($menu->location)) {
-                ThemeManager::instance()->saveMenu((string)$menu->location, $this->normalizeThemeItems($normalizedItems));
+                ThemeManager::instance()->saveMenu((string)$menu->location, $this->normalizeThemeItems($normalizedItems['items']));
             }
 
             return ['success' => true, 'message' => 'Menü-Items gespeichert.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+            $this->logger->error('Menü-Items konnten nicht gespeichert werden.', [
+                'menu_id' => $menuId,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return ['success' => false, 'error' => 'Menü-Items konnten nicht gespeichert werden.'];
         }
+    }
+
+    private function ensureBootstrapped(): void
+    {
+        if ($this->bootstrapped) {
+            return;
+        }
+
+        $this->ensureTables();
+        $this->syncThemeMenus();
+        $this->bootstrapped = true;
     }
 
     /**
@@ -180,6 +250,129 @@ class MenuEditorModule
         } catch (\Throwable $e) {
             return [];
         }
+    }
+
+    /**
+     * @param array<int,object> $menus
+     */
+    private function findMenuById(array $menus, int $menuId): ?object
+    {
+        foreach ($menus as $menu) {
+            if ((int) ($menu->id ?? 0) === $menuId) {
+                return $menu;
+            }
+        }
+
+        return null;
+    }
+
+    private function getMenuById(int $menuId): ?object
+    {
+        try {
+            $menu = $this->db->get_row(
+                "SELECT * FROM {$this->prefix}menus WHERE id = ? LIMIT 1",
+                [$menuId]
+            );
+
+            return is_object($menu) ? $menu : null;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    private function normalizePositiveInt(mixed $value): int
+    {
+        $normalized = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+        return $normalized === false ? 0 : (int) $normalized;
+    }
+
+    private function normalizeMenuName(mixed $value): string
+    {
+        $normalized = trim(strip_tags((string) $value));
+
+        if ($normalized === '') {
+            return '';
+        }
+
+        return function_exists('mb_substr')
+            ? mb_substr($normalized, 0, self::MAX_MENU_NAME_LENGTH)
+            : substr($normalized, 0, self::MAX_MENU_NAME_LENGTH);
+    }
+
+    private function normalizeMenuLocation(mixed $value): string
+    {
+        return preg_replace('/[^a-zA-Z0-9_-]/', '', (string) $value) ?? '';
+    }
+
+    /**
+     * @param array<int,object> $menuItems
+     * @return array{items:array<int,array<string,string>>}
+     */
+    private function buildEditorConfig(array $menuItems): array
+    {
+        return [
+            'items' => array_map(static function ($item): array {
+                return [
+                    'id' => (string) ($item->id ?? ''),
+                    'title' => (string) ($item->title ?? ''),
+                    'url' => (string) ($item->url ?? '#'),
+                    'target' => (string) ($item->target ?? '_self'),
+                    'icon' => (string) ($item->icon ?? ''),
+                    'parent_id' => (string) ($item->parent_id ?? 0),
+                ];
+            }, $menuItems),
+        ];
+    }
+
+    private function encodeEditorConfig(array $config): string
+    {
+        return (string) json_encode(
+            $config,
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+        );
+    }
+
+    /**
+     * @param array<int,object> $pages
+     * @return array<int,array{title:string,url:string}>
+     */
+    private function buildPagePickerOptions(array $pages): array
+    {
+        $options = [];
+
+        foreach ($pages as $page) {
+            $title = $this->normalizeMenuItemTitle($page->title ?? '');
+            $slug = trim((string) ($page->slug ?? ''));
+
+            if ($title === '' || $slug === '') {
+                continue;
+            }
+
+            $options[] = [
+                'title' => $title,
+                'url' => '/' . rawurlencode($slug),
+            ];
+        }
+
+        return $options;
+    }
+
+    private function locationAssignedToDifferentMenu(string $location, ?int $excludeMenuId = null): bool
+    {
+        if ($location === '') {
+            return false;
+        }
+
+        $sql = "SELECT id FROM {$this->prefix}menus WHERE location = ?";
+        $params = [$location];
+
+        if ($excludeMenuId !== null && $excludeMenuId > 0) {
+            $sql .= ' AND id != ?';
+            $params[] = $excludeMenuId;
+        }
+
+        return $this->db->get_var($sql . ' LIMIT 1', $params) !== null;
     }
 
     /**
@@ -334,42 +527,171 @@ class MenuEditorModule
         return $normalized;
     }
 
-    private function sanitizeEditorItems(array $items): array
+    /**
+     * @param array<int,mixed> $items
+     * @return array{items:array<int,array<string,string>>,error:string}
+     */
+    private function normalizeEditorItems(array $items): array
     {
         $normalized = [];
+        $seenIds = [];
+
+        if (count($items) > self::MAX_EDITOR_ITEMS) {
+            return [
+                'items' => [],
+                'error' => 'Es sind maximal ' . self::MAX_EDITOR_ITEMS . ' Menü-Items erlaubt.',
+            ];
+        }
 
         foreach ($items as $index => $item) {
             if (!is_array($item)) {
-                continue;
+                return [
+                    'items' => [],
+                    'error' => 'Ungültiges Menü-Item in Zeile ' . ($index + 1) . '.',
+                ];
             }
 
-            $title = trim(strip_tags((string)($item['title'] ?? $item['label'] ?? '')));
-            $url = filter_var((string)($item['url'] ?? ''), FILTER_SANITIZE_URL);
-            if ($title === '' || $url === '') {
-                continue;
+            $title = $this->normalizeMenuItemTitle($item['title'] ?? $item['label'] ?? '');
+            if ($title === '') {
+                return [
+                    'items' => [],
+                    'error' => 'Jedes Menü-Item benötigt einen Titel.',
+                ];
             }
 
-            $id = trim((string)($item['id'] ?? 'item-' . $index));
+            $url = $this->normalizeMenuItemUrl($item['url'] ?? '');
+            if ($url === '') {
+                return [
+                    'items' => [],
+                    'error' => 'Jedes Menü-Item benötigt eine gültige URL oder einen gültigen internen Pfad.',
+                ];
+            }
+
+            $id = trim((string)($item['id'] ?? 'item-' . ($index + 1)));
+            $id = preg_replace('/[^a-zA-Z0-9_-]/', '', $id) ?? '';
             if ($id === '') {
-                $id = 'item-' . $index;
+                $id = 'item-' . ($index + 1);
             }
+
+            if (isset($seenIds[$id])) {
+                return [
+                    'items' => [],
+                    'error' => 'Menü-Items enthalten doppelte IDs. Bitte Seite neu laden und erneut speichern.',
+                ];
+            }
+            $seenIds[$id] = true;
 
             $parentId = $item['parent_id'] ?? 0;
             if (is_string($parentId)) {
                 $parentId = trim($parentId);
             }
 
+            $parentId = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) $parentId) ?? '0';
+            if ($parentId === '' || $parentId === '0' || $parentId === $id) {
+                $parentId = '0';
+            }
+
             $normalized[] = [
-                'id' => (string) $id,
+                'id' => $id,
                 'title' => $title,
                 'url' => $url,
                 'target' => ((string)($item['target'] ?? '_self')) === '_blank' ? '_blank' : '_self',
-                'icon' => trim(strip_tags((string)($item['icon'] ?? ''))),
-                'parent_id' => $parentId === '' || $parentId === 0 || $parentId === '0' ? 0 : (string) $parentId,
+                'icon' => $this->normalizeMenuItemIcon($item['icon'] ?? ''),
+                'parent_id' => $parentId,
             ];
         }
 
-        return $normalized;
+        $itemsById = [];
+        foreach ($normalized as $item) {
+            $itemsById[$item['id']] = $item;
+        }
+
+        foreach ($normalized as $index => $item) {
+            $parentId = $item['parent_id'];
+            if ($parentId === '0') {
+                continue;
+            }
+
+            if (!isset($itemsById[$parentId])) {
+                return [
+                    'items' => [],
+                    'error' => 'Ein Menü-Item verweist auf einen unbekannten Elternpunkt.',
+                ];
+            }
+
+            $visited = [$item['id'] => true];
+            $currentParentId = $parentId;
+            while ($currentParentId !== '0') {
+                if (isset($visited[$currentParentId])) {
+                    return [
+                        'items' => [],
+                        'error' => 'Die Menü-Struktur enthält eine ungültige Verschachtelung.',
+                    ];
+                }
+
+                $visited[$currentParentId] = true;
+                $currentParentId = (string) ($itemsById[$currentParentId]['parent_id'] ?? '0');
+            }
+
+            $normalized[$index]['parent_id'] = $parentId;
+        }
+
+        return [
+            'items' => $normalized,
+            'error' => '',
+        ];
+    }
+
+    private function normalizeMenuItemTitle(mixed $value): string
+    {
+        $normalized = trim(strip_tags((string) $value));
+
+        if ($normalized === '') {
+            return '';
+        }
+
+        return function_exists('mb_substr')
+            ? mb_substr($normalized, 0, self::MAX_ITEM_TITLE_LENGTH)
+            : substr($normalized, 0, self::MAX_ITEM_TITLE_LENGTH);
+    }
+
+    private function normalizeMenuItemIcon(mixed $value): string
+    {
+        $normalized = preg_replace('/[^a-zA-Z0-9_:\-\s]/', '', trim((string) $value)) ?? '';
+
+        if ($normalized === '') {
+            return '';
+        }
+
+        return function_exists('mb_substr')
+            ? mb_substr($normalized, 0, self::MAX_ITEM_ICON_LENGTH)
+            : substr($normalized, 0, self::MAX_ITEM_ICON_LENGTH);
+    }
+
+    private function normalizeMenuItemUrl(mixed $value): string
+    {
+        $url = trim((string) $value);
+        if ($url === '') {
+            return '';
+        }
+
+        $sanitized = filter_var($url, FILTER_SANITIZE_URL);
+        if (!is_string($sanitized) || $sanitized === '') {
+            return '';
+        }
+
+        if (preg_match('#^(?:/(?!/)|#|\?|mailto:|tel:)#i', $sanitized) === 1) {
+            return $sanitized;
+        }
+
+        $validated = filter_var($sanitized, FILTER_VALIDATE_URL);
+        if ($validated === false) {
+            return '';
+        }
+
+        $scheme = strtolower((string) parse_url($validated, PHP_URL_SCHEME));
+
+        return in_array($scheme, ['http', 'https'], true) ? $validated : '';
     }
 
     private function buildEditorTree(array $items): array
@@ -396,6 +718,14 @@ class MenuEditorModule
         }
 
         return array_values($tree);
+    }
+
+    private function buildThemeItemsFromStoredMenu(int $menuId): array
+    {
+        $menuItems = $this->getMenuItems($menuId);
+        $editorItems = $this->buildEditorConfig($menuItems);
+
+        return $this->normalizeThemeItems($editorItems['items']);
     }
 
     private function insertEditorTree(int $menuId, array $items, int $parentDbId, int &$position): void

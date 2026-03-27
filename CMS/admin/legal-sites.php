@@ -77,6 +77,18 @@ const CMS_ADMIN_LEGAL_SITES_PROFILE_BOOLEAN_KEYS = [
     'legal_profile_has_webfonts',
     'legal_profile_has_shop',
 ];
+const CMS_ADMIN_LEGAL_SITES_MAX_LEGAL_HTML_LENGTH = 60000;
+const CMS_ADMIN_LEGAL_SITES_MAX_PROFILE_VALUE_LENGTH = 500;
+const CMS_ADMIN_LEGAL_SITES_MAX_PROFILE_TEXTAREA_LENGTH = 4000;
+const CMS_ADMIN_LEGAL_SITES_SESSION_OLD_SAVE_KEY = 'legal_sites_save_old';
+const CMS_ADMIN_LEGAL_SITES_SESSION_OLD_PROFILE_KEY = 'legal_sites_profile_old';
+const CMS_ADMIN_LEGAL_SITES_PROFILE_TEXTAREA_KEYS = [
+    'legal_profile_external_media_providers',
+    'legal_profile_payment_providers',
+    'legal_profile_hosting_address',
+    'legal_profile_essential_cookie_purpose',
+    'legal_profile_additional_service_purpose',
+];
 
 function cms_admin_legal_sites_can_access(): bool
 {
@@ -133,6 +145,23 @@ function cms_admin_legal_sites_normalize_text(mixed $value, int $maxLength = 400
         : substr($normalizedValue, 0, $maxLength);
 }
 
+function cms_admin_legal_sites_normalize_html(mixed $value, int $maxLength = CMS_ADMIN_LEGAL_SITES_MAX_LEGAL_HTML_LENGTH): string
+{
+    $normalizedValue = (string) $value;
+    $normalizedValue = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/u', '', $normalizedValue) ?? '';
+
+    if (function_exists('mb_substr')) {
+        $normalizedValue = mb_substr($normalizedValue, 0, $maxLength);
+    } else {
+        $normalizedValue = substr($normalizedValue, 0, $maxLength);
+    }
+
+    return sanitize_html(
+        strip_tags($normalizedValue, '<p><a><strong><em><ul><ol><li><br><h2><h3><h4>'),
+        'default'
+    );
+}
+
 /** @return array<string, mixed> */
 function cms_admin_legal_sites_normalize_save_payload(array $post): array
 {
@@ -140,7 +169,7 @@ function cms_admin_legal_sites_normalize_save_payload(array $post): array
 
     foreach (CMS_ADMIN_LEGAL_SITES_LEGAL_KEYS as $key) {
         if (array_key_exists($key, $post)) {
-            $normalized[$key] = (string) ($post[$key] ?? '');
+            $normalized[$key] = cms_admin_legal_sites_normalize_html($post[$key] ?? '');
         }
     }
 
@@ -163,7 +192,11 @@ function cms_admin_legal_sites_normalize_profile_payload(array $post): array
             continue;
         }
 
-        $normalized[$key] = cms_admin_legal_sites_normalize_text($post[$key] ?? '', 4000);
+        $maxLength = in_array($key, CMS_ADMIN_LEGAL_SITES_PROFILE_TEXTAREA_KEYS, true)
+            ? CMS_ADMIN_LEGAL_SITES_MAX_PROFILE_TEXTAREA_LENGTH
+            : CMS_ADMIN_LEGAL_SITES_MAX_PROFILE_VALUE_LENGTH;
+
+        $normalized[$key] = cms_admin_legal_sites_normalize_text($post[$key] ?? '', $maxLength);
     }
 
     foreach (CMS_ADMIN_LEGAL_SITES_PROFILE_BOOLEAN_KEYS as $key) {
@@ -184,6 +217,26 @@ function cms_admin_legal_sites_normalize_action_payload(string $action, array $p
         ],
         default => [],
     };
+}
+
+/** @return array{action:string,error:string,payload:array<string,mixed>} */
+function cms_admin_legal_sites_normalize_request(array $post): array
+{
+    $action = cms_admin_legal_sites_normalize_action($post['action'] ?? null);
+    $payload = $action !== '' ? cms_admin_legal_sites_normalize_action_payload($action, $post) : [];
+    $error = '';
+
+    if ($action === '') {
+        $error = 'Unbekannte oder nicht erlaubte Aktion.';
+    } elseif (in_array($action, ['generate', 'create_page'], true) && (string) ($payload['template_type'] ?? '') === '') {
+        $error = 'Ungültiger Vorlagentyp.';
+    }
+
+    return [
+        'action' => $action,
+        'error' => $error,
+        'payload' => $payload,
+    ];
 }
 
 function cms_admin_legal_sites_handle_action(
@@ -210,21 +263,63 @@ function cms_admin_legal_sites_sync_profile_state(string $action, array $result)
     }
 
     if ($result['success'] ?? false) {
-        unset($_SESSION['legal_sites_profile_old']);
+        unset($_SESSION[CMS_ADMIN_LEGAL_SITES_SESSION_OLD_PROFILE_KEY]);
         return;
     }
 
     if (!empty($result['profile']) && is_array($result['profile'])) {
-        $_SESSION['legal_sites_profile_old'] = $result['profile'];
+        $_SESSION[CMS_ADMIN_LEGAL_SITES_SESSION_OLD_PROFILE_KEY] = $result['profile'];
+    }
+}
+
+function cms_admin_legal_sites_sync_save_state(string $action, array $payload, array $result): void
+{
+    if ($action !== 'save') {
+        return;
+    }
+
+    if ($result['success'] ?? false) {
+        unset($_SESSION[CMS_ADMIN_LEGAL_SITES_SESSION_OLD_SAVE_KEY]);
+        return;
+    }
+
+    if ($payload !== []) {
+        $_SESSION[CMS_ADMIN_LEGAL_SITES_SESSION_OLD_SAVE_KEY] = $payload;
     }
 }
 
 function cms_admin_legal_sites_apply_old_profile(array $data): array
 {
-    if (!empty($_SESSION['legal_sites_profile_old']) && is_array($_SESSION['legal_sites_profile_old'])) {
-        $data['profile'] = array_merge($data['profile'] ?? [], $_SESSION['legal_sites_profile_old']);
-        unset($_SESSION['legal_sites_profile_old']);
+    if (!empty($_SESSION[CMS_ADMIN_LEGAL_SITES_SESSION_OLD_PROFILE_KEY]) && is_array($_SESSION[CMS_ADMIN_LEGAL_SITES_SESSION_OLD_PROFILE_KEY])) {
+        $data['profile'] = array_merge($data['profile'] ?? [], $_SESSION[CMS_ADMIN_LEGAL_SITES_SESSION_OLD_PROFILE_KEY]);
+        unset($_SESSION[CMS_ADMIN_LEGAL_SITES_SESSION_OLD_PROFILE_KEY]);
     }
+
+    return $data;
+}
+
+function cms_admin_legal_sites_apply_old_save(array $data): array
+{
+    $oldSave = $_SESSION[CMS_ADMIN_LEGAL_SITES_SESSION_OLD_SAVE_KEY] ?? null;
+    if (!is_array($oldSave) || $oldSave === []) {
+        return $data;
+    }
+
+    foreach (CMS_ADMIN_LEGAL_SITES_LEGAL_KEYS as $key) {
+        if (!array_key_exists($key, $oldSave)) {
+            continue;
+        }
+
+        $data['pages'][$key]['content'] = (string) $oldSave[$key];
+    }
+
+    foreach (CMS_ADMIN_LEGAL_SITES_ASSIGNMENT_KEYS as $key) {
+        if (array_key_exists($key, $oldSave)) {
+            $data['assigned_pages'][$key] = (string) $oldSave[$key];
+        }
+    }
+
+    unset($_SESSION[CMS_ADMIN_LEGAL_SITES_SESSION_OLD_SAVE_KEY]);
 
     return $data;
 }
@@ -254,6 +349,7 @@ $sectionPageConfig = [
     'module_factory' => static fn (): LegalSitesModule => new LegalSitesModule(),
     'data_loader' => static function (LegalSitesModule $module): array {
         $data = cms_admin_legal_sites_apply_old_profile($module->getData());
+        $data = cms_admin_legal_sites_apply_old_save($data);
         $data['templates'] = cms_admin_legal_sites_templates($module);
 
         return $data;
@@ -266,24 +362,21 @@ $sectionPageConfig = [
             return ['success' => false, 'error' => 'Keine Berechtigung für Legal-Sites-Mutationen.'];
         }
 
-        $action = cms_admin_legal_sites_normalize_action($post['action'] ?? null);
-        if ($action === '') {
-            return ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'];
+        $request = cms_admin_legal_sites_normalize_request($post);
+        if ($request['error'] !== '') {
+            return ['success' => false, 'error' => $request['error']];
         }
 
-        $normalizedPost = cms_admin_legal_sites_normalize_action_payload($action, $post);
-
+        $action = $request['action'];
+        $normalizedPost = $request['payload'];
         $templateType = in_array($action, ['generate', 'create_page'], true)
             ? (string) ($normalizedPost['template_type'] ?? '')
             : '';
 
-        if (in_array($action, ['generate', 'create_page'], true) && $templateType === '') {
-            return ['success' => false, 'error' => 'Ungültiger Vorlagentyp.'];
-        }
-
         $userId = (int) (Auth::instance()->getCurrentUser()->id ?? 0);
         $result = cms_admin_legal_sites_handle_action($module, $action, $normalizedPost, $userId, $templateType);
         cms_admin_legal_sites_sync_profile_state($action, $result);
+        cms_admin_legal_sites_sync_save_state($action, $normalizedPost, $result);
 
         return $result;
     },

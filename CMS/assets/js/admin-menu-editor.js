@@ -39,8 +39,11 @@
         var newItemParent = document.getElementById('newItemParent');
         var newItemTarget = document.getElementById('newItemTarget');
         var addItemButton = document.getElementById('btnAddItem');
+        var pagePickerSelect = document.getElementById('pagePickerSelect');
+        var addPageItemButton = document.getElementById('btnAddPageItem');
         var deleteMenuButton = document.getElementById('btnDeleteMenu');
         var deleteMenuForm = document.getElementById('deleteMenuForm');
+        var saveItemsForm = document.getElementById('saveItemsForm');
         var menuModal = document.getElementById('menuModal');
         var menuModalInstance = getModalInstance(menuModal);
         var menuModalTitle = document.getElementById('menuModalTitle');
@@ -56,6 +59,49 @@
 
         function normalizeParentId(value) {
             return value && value !== '0' ? String(value) : '0';
+        }
+
+        function normalizeUrl(value) {
+            return String(value || '').trim();
+        }
+
+        function isValidMenuUrl(value) {
+            var normalized = normalizeUrl(value);
+
+            if (normalized === '') {
+                return false;
+            }
+
+            return /^(?:\/(?!\/)|#|\?|mailto:|tel:|https?:\/\/)/i.test(normalized);
+        }
+
+        function setFieldError(field, message) {
+            if (!field) {
+                return;
+            }
+
+            field.setCustomValidity(message || '');
+            field.reportValidity();
+        }
+
+        function clearFieldError(field) {
+            if (!field) {
+                return;
+            }
+
+            field.setCustomValidity('');
+        }
+
+        function validateItemData(item) {
+            if (!item || String(item.title || '').trim() === '') {
+                return 'Bitte einen Titel angeben.';
+            }
+
+            if (!isValidMenuUrl(item.url)) {
+                return 'Bitte eine gültige URL, einen internen Pfad oder mailto:/tel: verwenden.';
+            }
+
+            return '';
         }
 
         function getItemById(id) {
@@ -114,6 +160,27 @@
             if (jsonInput) {
                 jsonInput.value = JSON.stringify(menuItems);
             }
+        }
+
+        function validateMenuItems() {
+            var index;
+
+            for (index = 0; index < menuItems.length; index += 1) {
+                var validationError = validateItemData(menuItems[index]);
+                if (validationError !== '') {
+                    return {
+                        valid: false,
+                        index: index,
+                        error: validationError,
+                    };
+                }
+            }
+
+            return {
+                valid: true,
+                index: -1,
+                error: '',
+            };
         }
 
         function refreshParentSelects() {
@@ -322,11 +389,21 @@
         if (addItemButton) {
             addItemButton.addEventListener('click', function () {
                 var title = newItemTitle ? newItemTitle.value.trim() : '';
-                var url = newItemUrl ? newItemUrl.value.trim() : '';
+                var url = newItemUrl ? normalizeUrl(newItemUrl.value) : '';
                 var target = newItemTarget ? newItemTarget.value : '_self';
                 var parentId = newItemParent ? normalizeParentId(newItemParent.value) : '0';
+                var validationError;
 
-                if (title === '' || url === '') {
+                clearFieldError(newItemTitle);
+                clearFieldError(newItemUrl);
+
+                validationError = validateItemData({ title: title, url: url });
+                if (validationError !== '') {
+                    if (title === '') {
+                        setFieldError(newItemTitle, validationError);
+                    } else {
+                        setFieldError(newItemUrl, validationError);
+                    }
                     return;
                 }
 
@@ -344,19 +421,29 @@
             });
         }
 
-        document.querySelectorAll('.add-page-btn').forEach(function (button) {
-            button.addEventListener('click', function () {
+        if (addPageItemButton && pagePickerSelect) {
+            addPageItemButton.addEventListener('click', function () {
+                var selectedOption = pagePickerSelect.options[pagePickerSelect.selectedIndex];
+
+                clearFieldError(pagePickerSelect);
+                if (!selectedOption || !selectedOption.value) {
+                    setFieldError(pagePickerSelect, 'Bitte zuerst eine Seite auswählen.');
+                    return;
+                }
+
                 menuItems.push({
                     id: nextTempId(),
-                    title: button.getAttribute('data-title') || '',
-                    url: button.getAttribute('data-url') || '',
+                    title: selectedOption.getAttribute('data-title') || selectedOption.text || '',
+                    url: selectedOption.value || '',
                     target: '_self',
                     icon: '',
                     parent_id: '0',
                 });
+
+                pagePickerSelect.value = '';
                 renderItems();
             });
-        });
+        }
 
         if (listElement) {
             listElement.addEventListener('click', function (event) {
@@ -396,6 +483,7 @@
                     var titleIndex = parseInt(titleInput.dataset.index || '', 10);
                     if (!Number.isNaN(titleIndex) && menuItems[titleIndex]) {
                         menuItems[titleIndex].title = titleInput.value;
+                        clearFieldError(titleInput);
                         syncJsonInput();
                     }
                     return;
@@ -405,7 +493,8 @@
                 if (urlInput) {
                     var urlIndex = parseInt(urlInput.dataset.index || '', 10);
                     if (!Number.isNaN(urlIndex) && menuItems[urlIndex]) {
-                        menuItems[urlIndex].url = urlInput.value;
+                        menuItems[urlIndex].url = normalizeUrl(urlInput.value);
+                        clearFieldError(urlInput);
                         syncJsonInput();
                     }
                 }
@@ -453,6 +542,38 @@
                 if (window.confirm('Soll dieses Menü und alle seine Items gelöscht werden?')) {
                     submitDelete();
                 }
+            });
+        }
+
+        if (saveItemsForm) {
+            saveItemsForm.addEventListener('submit', function (event) {
+                var validation = validateMenuItems();
+                var itemNode;
+                var titleField;
+                var urlField;
+
+                if (!validation.valid) {
+                    event.preventDefault();
+                    itemNode = listElement ? listElement.querySelector('[data-index="' + validation.index + '"]') : null;
+                    titleField = itemNode ? itemNode.querySelector('.item-title') : null;
+                    urlField = itemNode ? itemNode.querySelector('.item-url') : null;
+
+                    if (menuItems[validation.index] && String(menuItems[validation.index].title || '').trim() === '') {
+                        setFieldError(titleField, validation.error);
+                        if (titleField) {
+                            titleField.focus();
+                        }
+                        return;
+                    }
+
+                    setFieldError(urlField, validation.error);
+                    if (urlField) {
+                        urlField.focus();
+                    }
+                    return;
+                }
+
+                syncJsonInput();
             });
         }
 

@@ -21,6 +21,8 @@ use CMS\WP_Error;
 
 class MediaModule
 {
+    private const MAX_UPLOAD_FILENAME_LENGTH = 180;
+
     private const SETTINGS_DEFAULTS = [
         'max_upload_size' => '64M',
         'allowed_types' => ['image', 'document', 'archive', 'video', 'audio'],
@@ -92,6 +94,38 @@ class MediaModule
         }
 
         return array_keys($extensions);
+    }
+
+    /**
+     * @param array<int, string> $values
+     * @param array<int, string> $allowedGroups
+     * @return array<int, string>
+     */
+    private function normalizeSettingTypeSelection(array $values, array $allowedGroups): array
+    {
+        $typeMap = $this->getTypeMap();
+        $normalized = [];
+
+        foreach ($values as $value) {
+            $value = strtolower(trim((string) $value));
+            if ($value === '') {
+                continue;
+            }
+
+            if (in_array($value, $allowedGroups, true)) {
+                $normalized[$value] = true;
+                continue;
+            }
+
+            foreach ($allowedGroups as $group) {
+                if (in_array($value, $typeMap[$group] ?? [], true)) {
+                    $normalized[$group] = true;
+                    break;
+                }
+            }
+        }
+
+        return array_keys($normalized);
     }
 
     private function convertSizeSettingToMegabytes(mixed $value, int $defaultMegabytes): int
@@ -444,6 +478,8 @@ class MediaModule
     public function saveSettings(array $input): array
     {
         $settings = $this->service->getSettings();
+        $allTypes = array_keys($this->getTypeMap());
+        $memberTypes = ['image', 'document', 'video', 'audio'];
 
         // Size fields: form sends a plain number (MB); append 'M' if no unit suffix
         foreach (['max_upload_size', 'member_max_upload_size'] as $key) {
@@ -505,8 +541,21 @@ class MediaModule
         }
 
         // Arrays
-        $settings['allowed_types']        = array_values(array_unique(array_map('strval', (array)($input['allowed_types'] ?? ['image']))));
-        $settings['member_allowed_types'] = array_values(array_unique(array_map('strval', (array)($input['member_allowed_types'] ?? ['image']))));
+        $settings['allowed_types'] = $this->normalizeSettingTypeSelection(
+            array_values(array_unique(array_map('strval', (array)($input['allowed_types'] ?? ['image'])))),
+            $allTypes
+        );
+        if ($settings['allowed_types'] === []) {
+            $settings['allowed_types'] = ['image'];
+        }
+
+        $settings['member_allowed_types'] = $this->normalizeSettingTypeSelection(
+            array_values(array_unique(array_map('strval', (array)($input['member_allowed_types'] ?? ['image'])))),
+            $memberTypes
+        );
+        if ($settings['member_allowed_types'] === []) {
+            $settings['member_allowed_types'] = ['image'];
+        }
 
         $result = $this->service->saveSettings($settings);
         if ($result instanceof WP_Error) {
@@ -659,6 +708,14 @@ class MediaModule
         $name = trim((string)$file['name']);
         $tmpName = (string)$file['tmp_name'];
         if ($name === '' || $tmpName === '') {
+            return null;
+        }
+
+        $name = function_exists('mb_substr')
+            ? mb_substr($name, 0, self::MAX_UPLOAD_FILENAME_LENGTH)
+            : substr($name, 0, self::MAX_UPLOAD_FILENAME_LENGTH);
+
+        if (!is_uploaded_file($tmpName)) {
             return null;
         }
 

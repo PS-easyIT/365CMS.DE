@@ -115,7 +115,9 @@ $sectionPageConfig = [
     'csrf_action' => 'admin_comments',
     'module_file' => __DIR__ . '/modules/comments/CommentsModule.php',
     'module_factory' => static fn (): CommentsModule => new CommentsModule(),
-    'data_loader' => static fn (CommentsModule $module): array => $module->getListData(),
+    'data_loader' => static fn (CommentsModule $module): array => $module->getListData(
+        $module->normalizeStatusFilter((string) ($_GET['status'] ?? 'all'))
+    ),
     'access_checker' => static fn (): bool => Auth::isLoggedIn() && function_exists('current_user_can') && current_user_can('comments.view'),
     'redirect_path_resolver' => static function (CommentsModule $module): string {
         $status = $module->normalizeStatusFilter((string) ($_GET['status'] ?? 'all'));

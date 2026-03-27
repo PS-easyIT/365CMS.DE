@@ -13,26 +13,17 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 use CMS\ThemeManager;
 
+const CMS_ADMIN_THEME_EDITOR_CAPABILITY = 'manage_settings';
+const CMS_ADMIN_THEME_EDITOR_FALLBACK_VIEW = __DIR__ . '/views/themes/customizer-missing.php';
+
+function cms_admin_theme_editor_can_access(): bool
+{
+    return Auth::instance()->isAdmin() && Auth::instance()->hasCapability(CMS_ADMIN_THEME_EDITOR_CAPABILITY);
+}
+
 function cms_admin_theme_editor_page_title(): string
 {
     return 'Theme Editor';
-}
-
-function cms_admin_theme_editor_layout_defaults(): void
-{
-    $GLOBALS['pageTitle'] = cms_admin_theme_editor_page_title();
-    $GLOBALS['activePage'] = 'theme-editor';
-    $GLOBALS['pageAssets'] = [];
-}
-
-function cms_admin_theme_editor_render_admin_layout(callable $contentRenderer): void
-{
-    cms_admin_theme_editor_layout_defaults();
-
-    require __DIR__ . '/partials/header.php';
-    require __DIR__ . '/partials/sidebar.php';
-    $contentRenderer();
-    require __DIR__ . '/partials/footer.php';
 }
 
 /** @return array{themes:string, explorer:string} */
@@ -44,49 +35,88 @@ function cms_admin_theme_editor_fallback_links(): array
     ];
 }
 
-function cms_admin_theme_editor_render_missing_customizer(string $activeThemeSlug): void
+/**
+ * @return array{activeThemeSlug:string,customizerPath:?string,reason:string,links:array{themes:string,explorer:string}}
+ */
+function cms_admin_theme_editor_resolve_state(ThemeManager $themeManager): array
 {
+    $activeThemeSlug = (string) $themeManager->getActiveThemeSlug();
     $links = cms_admin_theme_editor_fallback_links();
-    ?>
-<div class="container-xl">
-    <div class="page-header d-flex align-items-center mb-4">
-        <div>
-            <h2 class="page-title"><?php echo htmlspecialchars(cms_admin_theme_editor_page_title()); ?></h2>
-            <div class="text-muted mt-1">Das aktive Theme stellt keinen eigenen Customizer bereit.</div>
-        </div>
-    </div>
+    $themePath = $themeManager->getThemePath();
+    $realThemePath = realpath($themePath);
+    if ($realThemePath === false) {
+        return [
+            'activeThemeSlug' => $activeThemeSlug,
+            'customizerPath' => null,
+            'reason' => 'Der aktive Theme-Pfad konnte nicht sicher aufgelöst werden.',
+            'links' => $links,
+        ];
+    }
 
-    <div class="card">
-        <div class="card-body">
-            <p class="mb-3">Für das aktive Theme <code><?php echo htmlspecialchars($activeThemeSlug); ?></code> wurde keine Datei <code>admin/customizer.php</code> gefunden.</p>
-            <div class="d-flex gap-2 flex-wrap">
-                <a href="<?php echo htmlspecialchars($links['themes']); ?>" class="btn btn-primary">Zur Theme-Verwaltung</a>
-                <a href="<?php echo htmlspecialchars($links['explorer']); ?>" class="btn btn-outline-secondary">Theme Explorer öffnen</a>
-            </div>
-        </div>
-    </div>
-</div>
-<?php
+    $candidatePath = $realThemePath . DIRECTORY_SEPARATOR . 'admin' . DIRECTORY_SEPARATOR . 'customizer.php';
+    if (!is_file($candidatePath)) {
+        return [
+            'activeThemeSlug' => $activeThemeSlug,
+            'customizerPath' => null,
+            'reason' => 'Das aktive Theme stellt keine Datei admin/customizer.php bereit.',
+            'links' => $links,
+        ];
+    }
+
+    $realCandidatePath = realpath($candidatePath);
+    if ($realCandidatePath === false || !is_file($realCandidatePath)) {
+        return [
+            'activeThemeSlug' => $activeThemeSlug,
+            'customizerPath' => null,
+            'reason' => 'Die Customizer-Datei des aktiven Themes ist nicht lesbar oder konnte nicht sicher aufgelöst werden.',
+            'links' => $links,
+        ];
+    }
+
+    $realThemePrefix = rtrim($realThemePath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+    if (!str_starts_with($realCandidatePath, $realThemePrefix)) {
+        return [
+            'activeThemeSlug' => $activeThemeSlug,
+            'customizerPath' => null,
+            'reason' => 'Die aufgelöste Customizer-Datei liegt außerhalb des aktiven Theme-Verzeichnisses.',
+            'links' => $links,
+        ];
+    }
+
+    return [
+        'activeThemeSlug' => $activeThemeSlug,
+        'customizerPath' => $realCandidatePath,
+        'reason' => '',
+        'links' => $links,
+    ];
 }
 
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
+function cms_admin_theme_editor_runtime_context(ThemeManager $themeManager): array
+{
+    $state = cms_admin_theme_editor_resolve_state($themeManager);
+    $customizerPath = (string) ($state['customizerPath'] ?? '');
+
+    return [
+        'view_file' => $customizerPath !== '' ? $customizerPath : CMS_ADMIN_THEME_EDITOR_FALLBACK_VIEW,
+        'data' => $state,
+        'template_vars' => [
+            'themeEditorState' => $state,
+        ],
+    ];
 }
 
-$themeManager    = ThemeManager::instance();
-$activeThemeSlug = $themeManager->getActiveThemeSlug();
-$customizerPath  = $themeManager->getThemePath() . 'admin/customizer.php';
+$sectionPageConfig = [
+    'route_path' => '/admin/theme-editor',
+    'view_file' => CMS_ADMIN_THEME_EDITOR_FALLBACK_VIEW,
+    'page_title' => cms_admin_theme_editor_page_title(),
+    'active_page' => 'theme-editor',
+    'page_assets' => [],
+    'csrf_action' => 'admin_theme_editor',
+    'module_factory' => static fn (): ThemeManager => ThemeManager::instance(),
+    'data_loader' => static fn (ThemeManager $themeManager): array => cms_admin_theme_editor_resolve_state($themeManager),
+    'request_context_resolver' => static fn (ThemeManager $themeManager): array => cms_admin_theme_editor_runtime_context($themeManager),
+    'access_checker' => static fn (): bool => cms_admin_theme_editor_can_access(),
+    'access_denied_route' => '/',
+];
 
-if (is_file($customizerPath)) {
-    $embedInAdminLayout = true;
-
-    cms_admin_theme_editor_render_admin_layout(static function () use ($customizerPath): void {
-        require $customizerPath;
-    });
-    return;
-}
-
-cms_admin_theme_editor_render_admin_layout(static function () use ($activeThemeSlug): void {
-    cms_admin_theme_editor_render_missing_customizer($activeThemeSlug);
-});
+require __DIR__ . '/partials/section-page-shell.php';

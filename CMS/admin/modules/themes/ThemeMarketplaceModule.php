@@ -78,6 +78,12 @@ class ThemeMarketplaceModule
     private UpdateService $updateService;
     /** @var array<int, array<string, mixed>>|null */
     private ?array $catalogCache = null;
+    /** @var array<string, string> */
+    private array $catalogSource = [
+        'type' => 'none',
+        'status' => 'warning',
+        'message' => 'Noch keine Marketplace-Quelle ausgewertet.',
+    ];
 
     public function __construct()
     {
@@ -126,6 +132,11 @@ class ThemeMarketplaceModule
             'catalog'   => $catalog,
             'installed' => $installed,
             'total'     => count($catalog),
+            'stats'     => $this->buildStats($catalog),
+            'source'    => $this->catalogSource,
+            'filters'   => [
+                'statuses' => $this->buildStatusFilters(),
+            ],
         ];
     }
 
@@ -164,6 +175,12 @@ class ThemeMarketplaceModule
 
         $targetFolder = $this->determineThemeTargetFolder($theme, $slug);
         $targetDir = rtrim(THEME_PATH, '/\\') . DIRECTORY_SEPARATOR . $targetFolder . DIRECTORY_SEPARATOR;
+        $normalizedThemeBase = rtrim(str_replace('\\', '/', (string) THEME_PATH), '/') . '/';
+        $normalizedTargetDir = rtrim(str_replace('\\', '/', $targetDir), '/') . '/';
+
+        if (!str_starts_with($normalizedTargetDir, $normalizedThemeBase)) {
+            return ['success' => false, 'error' => 'Theme-Zielverzeichnis ist ungültig.'];
+        }
 
         if (is_dir(rtrim($targetDir, '/\\'))) {
             return ['success' => false, 'error' => 'Theme ist bereits installiert.'];
@@ -196,13 +213,32 @@ class ThemeMarketplaceModule
 
         $remoteCatalog = $this->loadRemoteCatalog();
         if ($remoteCatalog !== []) {
+            $this->catalogSource = [
+                'type' => 'remote',
+                'status' => 'success',
+                'message' => 'Theme-Katalog erfolgreich aus der Remote-Quelle geladen.',
+                'url' => $this->getMarketplaceUrl(),
+            ];
             return $this->catalogCache = $remoteCatalog;
         }
 
         $localCatalog = $this->loadLocalCatalog();
         if ($localCatalog !== []) {
+            $this->catalogSource = [
+                'type' => 'local',
+                'status' => 'warning',
+                'message' => 'Remote-Katalog derzeit nicht verfügbar; lokaler Theme-Index wird als Fallback genutzt.',
+                'url' => 'index.json',
+            ];
             return $this->catalogCache = $localCatalog;
         }
+
+        $this->catalogSource = [
+            'type' => 'none',
+            'status' => 'warning',
+            'message' => 'Es konnte weder ein Remote-Katalog noch ein lokaler Theme-Index geladen werden.',
+            'url' => $this->getMarketplaceUrl(),
+        ];
 
         return $this->catalogCache = [];
     }
@@ -348,6 +384,33 @@ class ThemeMarketplaceModule
         }
 
         return $catalog;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $catalog
+     * @return array<string, int>
+     */
+    private function buildStats(array $catalog): array
+    {
+        return [
+            'available' => count($catalog),
+            'installable' => count(array_filter($catalog, static fn (array $theme): bool => !empty($theme['install_supported']) && empty($theme['installed']))),
+            'manual_only' => count(array_filter($catalog, static fn (array $theme): bool => empty($theme['install_supported']) && empty($theme['installed']))),
+            'active' => count(array_filter($catalog, static fn (array $theme): bool => !empty($theme['active']))),
+        ];
+    }
+
+    /**
+     * @return array<int, array{value:string,label:string}>
+     */
+    private function buildStatusFilters(): array
+    {
+        return [
+            ['value' => 'installable', 'label' => 'Automatisch installierbar'],
+            ['value' => 'manual', 'label' => 'Nur manuell / Anfrage'],
+            ['value' => 'installed', 'label' => 'Bereits installiert'],
+            ['value' => 'active', 'label' => 'Aktiv'],
+        ];
     }
 
     private function sanitizeManifestData(array $manifestData): array

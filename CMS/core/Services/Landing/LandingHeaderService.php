@@ -40,6 +40,9 @@ final class LandingHeaderService
                 'id' => (int)($result['id'] ?? 0),
                 'title' => $data['title'] ?? 'IT Expert Network CMS',
                 'subtitle' => $data['subtitle'] ?? 'Modernes Content Management System',
+                'badge_text' => array_key_exists('badge_text', $data)
+                    ? (string)$data['badge_text']
+                    : (string)($data['version'] ?? (defined('CMS_VERSION') ? CMS_VERSION : Version::CURRENT)),
                 'logo_position' => $data['logo_position'] ?? 'top',
                 'header_layout' => $data['header_layout'] ?? 'standard',
                 'description' => $data['description'] ?? 'Ein leistungsstarkes, sicheres und erweiterbares CMS.',
@@ -78,6 +81,7 @@ final class LandingHeaderService
         $payload = [
             'title' => $this->sanitizer->sanitizePlainText((string)($data['title'] ?? $existing['title']), 120),
             'subtitle' => $this->sanitizer->sanitizePlainText((string)($data['subtitle'] ?? $existing['subtitle']), 160),
+            'badge_text' => $this->sanitizer->sanitizePlainText((string)($data['badge_text'] ?? $existing['badge_text'] ?? ''), 60),
             'logo_position' => $this->sanitizer->sanitizeEnum((string)($data['logo_position'] ?? $existing['logo_position'] ?? 'top'), self::ALLOWED_LOGO_POSITIONS, 'top'),
             'header_layout' => $this->sanitizer->sanitizeEnum((string)($data['header_layout'] ?? $existing['header_layout'] ?? 'standard'), self::ALLOWED_HEADER_LAYOUTS, 'standard'),
             'description' => $this->sanitizer->normalizeHtml($data['description'] ?? $existing['description']),

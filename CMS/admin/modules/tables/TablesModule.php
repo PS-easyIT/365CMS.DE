@@ -14,11 +14,20 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Database;
+use CMS\Logger;
 use CMS\Services\SiteTable\SiteTableDisplaySettings;
 
 class TablesModule
 {
+    private const MAX_TABLE_NAME_LENGTH = 150;
+    private const MAX_DESCRIPTION_LENGTH = 1000;
+    private const MAX_COLUMNS = 25;
+    private const MAX_ROWS = 250;
+    private const MAX_COLUMN_LABEL_LENGTH = 80;
+    private const MAX_CELL_LENGTH = 5000;
+
     private Database $db;
+    private Logger $logger;
     private string $prefix;
     private ?bool $hasTableSlugColumn = null;
 
@@ -50,15 +59,16 @@ class TablesModule
     public function __construct()
     {
         $this->db     = Database::instance();
+        $this->logger = Logger::instance()->withChannel('admin.site-tables');
         $this->prefix = $this->db->getPrefix();
     }
 
     /**
      * Daten für die Listenansicht
      */
-    public function getListData(): array
+    public function getListData(string $search = ''): array
     {
-        $search = trim($_GET['q'] ?? '');
+        $search = $this->sanitizeSearchTerm($search);
 
         $where  = '';
         $params = [];
@@ -85,7 +95,7 @@ class TablesModule
             $item = (array)$table;
             $settings = \CMS\Json::decodeArray($item['settings_json'] ?? null, []);
             $item['content_mode'] = (string)($settings['content_mode'] ?? 'table');
-            return $item;
+            return $this->normalizeListRow($item);
         }, $tables), static fn(array $table): bool => ($table['content_mode'] ?? 'table') !== 'hub'));
 
         $total = count($tables);
@@ -116,8 +126,10 @@ class TablesModule
             );
             if ($table) {
                 $table = (array)$table;
-                $table['columns'] = \CMS\Json::decodeArray($table['columns_json'] ?? null, []);
-                $table['rows']    = \CMS\Json::decodeArray($table['rows_json'] ?? null, []);
+                $normalizedColumns = $this->normalizeColumns(\CMS\Json::decodeArray($table['columns_json'] ?? null, []));
+                $table['columns'] = $normalizedColumns['columns'];
+                $normalizedRows = $this->normalizeRows(\CMS\Json::decodeArray($table['rows_json'] ?? null, []), $table['columns']);
+                $table['rows'] = $normalizedRows['rows'];
                 $table['settings'] = array_merge(
                     self::DEFAULT_SETTINGS,
                     \CMS\Json::decodeArray($table['settings_json'] ?? null, [])
@@ -130,12 +142,23 @@ class TablesModule
             }
         }
 
+        $editorColumns = is_array($table['columns'] ?? null) ? $table['columns'] : [];
+        $editorRows = is_array($table['rows'] ?? null) ? $table['rows'] : [];
+
         return [
             'table'            => $table,
             'isNew'            => $table === null,
             'defaults'         => self::DEFAULT_SETTINGS,
             'displaySettings'  => $displaySettings,
             'styleOptions'     => $styleOptions,
+            'editorSummary'    => $this->buildEditorSummary($editorColumns, $editorRows),
+            'editorConfigJson' => $this->encodeEditorConfig($editorColumns, $editorRows),
+            'editorLimits'     => [
+                'maxColumns' => self::MAX_COLUMNS,
+                'maxRows' => self::MAX_ROWS,
+                'maxColumnLabelLength' => self::MAX_COLUMN_LABEL_LENGTH,
+                'maxCellLength' => self::MAX_CELL_LENGTH,
+            ],
         ];
     }
 
@@ -174,7 +197,9 @@ class TablesModule
             $this->saveOption(SiteTableDisplaySettings::OPTION_KEY, json_encode($settings, JSON_UNESCAPED_UNICODE));
             return ['success' => true, 'message' => 'Tabellen-Einstellungen gespeichert.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler beim Speichern der Tabellen-Einstellungen: ' . $e->getMessage()];
+            return $this->failResult('Tabellen-Einstellungen konnten nicht gespeichert werden.', $e, [
+                'context' => 'save_settings',
+            ]);
         }
     }
 
@@ -184,8 +209,8 @@ class TablesModule
     public function save(array $post): array
     {
         $id          = (int)($post['id'] ?? 0);
-        $tableName   = trim($post['table_name'] ?? '');
-        $description = trim($post['description'] ?? '');
+        $tableName   = $this->sanitizeText((string)($post['table_name'] ?? ''), self::MAX_TABLE_NAME_LENGTH);
+        $description = $this->sanitizeText((string)($post['description'] ?? ''), self::MAX_DESCRIPTION_LENGTH);
         $displaySettings = $this->loadDisplaySettings();
 
         if ($tableName === '') {
@@ -196,8 +221,26 @@ class TablesModule
         $columns = \CMS\Json::decodeArray($post['columns_json'] ?? null, []);
         $rows    = \CMS\Json::decodeArray($post['rows_json'] ?? null, []);
 
-        if (!is_array($columns)) $columns = [];
-        if (!is_array($rows))    $rows = [];
+        if (!is_array($columns)) {
+            $columns = [];
+        }
+
+        if (!is_array($rows)) {
+            $rows = [];
+        }
+
+        $normalizedColumns = $this->normalizeColumns($columns);
+        if ($normalizedColumns['error'] !== '') {
+            return ['success' => false, 'error' => $normalizedColumns['error']];
+        }
+
+        $normalizedRows = $this->normalizeRows($rows, $normalizedColumns['columns']);
+        if ($normalizedRows['error'] !== '') {
+            return ['success' => false, 'error' => $normalizedRows['error']];
+        }
+
+        $columns = $normalizedColumns['columns'];
+        $rows = $normalizedRows['rows'];
 
         // Settings zusammenstellen
         $settings = self::DEFAULT_SETTINGS;
@@ -252,7 +295,11 @@ class TablesModule
                 return ['success' => true, 'id' => $newId, 'message' => 'Tabelle erstellt.'];
             }
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler beim Speichern: ' . $e->getMessage()];
+            return $this->failResult('Tabelle konnte nicht gespeichert werden.', $e, [
+                'context' => 'save',
+                'table_id' => $id,
+                'table_name' => $tableName,
+            ]);
         }
     }
 
@@ -265,7 +312,10 @@ class TablesModule
             $this->db->execute("DELETE FROM {$this->prefix}site_tables WHERE id = ?", [$id]);
             return ['success' => true, 'message' => 'Tabelle gelöscht.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler beim Löschen.'];
+            return $this->failResult('Tabelle konnte nicht gelöscht werden.', $e, [
+                'context' => 'delete',
+                'table_id' => $id,
+            ]);
         }
     }
 
@@ -309,8 +359,182 @@ class TablesModule
             $newId = (int)$this->db->lastInsertId();
             return ['success' => true, 'id' => $newId, 'message' => 'Tabelle dupliziert.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler beim Duplizieren.'];
+            return $this->failResult('Tabelle konnte nicht dupliziert werden.', $e, [
+                'context' => 'duplicate',
+                'table_id' => $id,
+            ]);
         }
+    }
+
+    private function sanitizeSearchTerm(string $search): string
+    {
+        $search = preg_replace('/[\x00-\x1F\x7F]/u', '', $search) ?? '';
+
+        return trim($search);
+    }
+
+    private function sanitizeText(string $value, int $maxLength): string
+    {
+        $value = preg_replace('/[\x00-\x1F\x7F]/u', '', trim(strip_tags($value))) ?? '';
+
+        return function_exists('mb_substr')
+            ? mb_substr($value, 0, $maxLength)
+            : substr($value, 0, $maxLength);
+    }
+
+    /**
+     * @param array<int, mixed> $columns
+     * @return array{columns:array<int, array{label:string,type:string}>,error:string}
+     */
+    private function normalizeColumns(array $columns): array
+    {
+        if (count($columns) > self::MAX_COLUMNS) {
+            return [
+                'columns' => [],
+                'error' => 'Es sind maximal ' . self::MAX_COLUMNS . ' Spalten erlaubt.',
+            ];
+        }
+
+        $normalized = [];
+        $seenLabels = [];
+
+        foreach ($columns as $index => $column) {
+            if (!is_array($column)) {
+                return [
+                    'columns' => [],
+                    'error' => 'Ungültige Spaltendefinition in Zeile ' . ($index + 1) . '.',
+                ];
+            }
+
+            $label = $this->sanitizeText((string)($column['label'] ?? ''), self::MAX_COLUMN_LABEL_LENGTH);
+            if ($label === '') {
+                $label = 'Spalte ' . ($index + 1);
+            }
+
+            if (isset($seenLabels[$label])) {
+                $label .= ' ' . ($index + 1);
+            }
+
+            $seenLabels[$label] = true;
+            $normalized[] = [
+                'label' => $label,
+                'type' => 'text',
+            ];
+        }
+
+        return [
+            'columns' => $normalized,
+            'error' => '',
+        ];
+    }
+
+    /**
+     * @param array<int, mixed> $rows
+     * @param array<int, array{label:string,type:string}> $columns
+     * @return array{rows:array<int, array<string, string>>,error:string}
+     */
+    private function normalizeRows(array $rows, array $columns): array
+    {
+        if ($rows !== [] && $columns === []) {
+            return [
+                'rows' => [],
+                'error' => 'Zeilen können nur gespeichert werden, wenn mindestens eine Spalte vorhanden ist.',
+            ];
+        }
+
+        if (count($rows) > self::MAX_ROWS) {
+            return [
+                'rows' => [],
+                'error' => 'Es sind maximal ' . self::MAX_ROWS . ' Zeilen erlaubt.',
+            ];
+        }
+
+        $normalizedRows = [];
+        $columnLabels = array_map(static fn (array $column): string => (string)($column['label'] ?? ''), $columns);
+
+        foreach ($rows as $rowIndex => $row) {
+            if (!is_array($row)) {
+                return [
+                    'rows' => [],
+                    'error' => 'Ungültige Zeile in Position ' . ($rowIndex + 1) . '.',
+                ];
+            }
+
+            $normalizedRow = [];
+            foreach ($columnLabels as $label) {
+                $cellValue = $row[$label] ?? '';
+                if (is_array($cellValue) || is_object($cellValue)) {
+                    $cellValue = '';
+                }
+
+                $normalizedRow[$label] = $this->sanitizeText((string)$cellValue, self::MAX_CELL_LENGTH);
+            }
+
+            $normalizedRows[] = $normalizedRow;
+        }
+
+        return [
+            'rows' => $normalizedRows,
+            'error' => '',
+        ];
+    }
+
+    /**
+     * @param array<int, array{label:string,type:string}> $columns
+     * @param array<int, array<string, string>> $rows
+     * @return array{columns:int,rows:int,cells:int}
+     */
+    private function buildEditorSummary(array $columns, array $rows): array
+    {
+        return [
+            'columns' => count($columns),
+            'rows' => count($rows),
+            'cells' => count($columns) * count($rows),
+        ];
+    }
+
+    /**
+     * @param array<int, array{label:string,type:string}> $columns
+     * @param array<int, array<string, string>> $rows
+     */
+    private function encodeEditorConfig(array $columns, array $rows): string
+    {
+        return (string) json_encode([
+            'columns' => $columns,
+            'rows' => $rows,
+            'limits' => [
+                'maxColumns' => self::MAX_COLUMNS,
+                'maxRows' => self::MAX_ROWS,
+                'maxColumnLabelLength' => self::MAX_COLUMN_LABEL_LENGTH,
+                'maxCellLength' => self::MAX_CELL_LENGTH,
+            ],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+    }
+
+    /**
+     * @param array<string, mixed> $table
+     * @return array<string, mixed>
+     */
+    private function normalizeListRow(array $table): array
+    {
+        $updatedAt = (string) ($table['updated_at'] ?? $table['created_at'] ?? '');
+
+        $table['id'] = (int) ($table['id'] ?? 0);
+        $table['table_name'] = trim((string) ($table['table_name'] ?? ''));
+        $table['description'] = trim((string) ($table['description'] ?? ''));
+        $table['description_excerpt'] = mb_substr($table['description'], 0, 160);
+        $table['col_count'] = (int) ($table['col_count'] ?? 0);
+        $table['row_count'] = (int) ($table['row_count'] ?? 0);
+        $table['updated_label'] = $this->formatDateLabel($updatedAt);
+
+        return $table;
+    }
+
+    private function formatDateLabel(string $value): string
+    {
+        $timestamp = strtotime($value);
+
+        return $timestamp !== false ? date('d.m.Y', $timestamp) : '–';
     }
 
     private function buildUniqueTableSlug(string $title, ?int $excludeId = null): string
@@ -408,5 +632,17 @@ class TablesModule
             "INSERT INTO {$this->prefix}settings (option_name, option_value) VALUES (?, ?)",
             [$key, $value]
         );
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     * @return array{success:false,error:string}
+     */
+    private function failResult(string $message, \Throwable $exception, array $context = []): array
+    {
+        $context['exception'] = $exception->getMessage();
+        $this->logger->error($message, $context);
+
+        return ['success' => false, 'error' => $message];
     }
 }

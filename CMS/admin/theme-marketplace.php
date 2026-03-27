@@ -14,6 +14,7 @@ use CMS\Auth;
 
 const CMS_ADMIN_THEME_MARKETPLACE_READ_CAPABILITY = 'manage_settings';
 const CMS_ADMIN_THEME_MARKETPLACE_WRITE_CAPABILITY = 'manage_settings';
+const CMS_ADMIN_THEME_MARKETPLACE_INSTALL_ACTION = 'install';
 
 function cms_admin_theme_marketplace_can_access(): bool
 {
@@ -27,14 +28,6 @@ function cms_admin_theme_marketplace_can_install(): bool
         && Auth::instance()->hasCapability(CMS_ADMIN_THEME_MARKETPLACE_WRITE_CAPABILITY);
 }
 
-/** @return array<string, true> */
-function cms_admin_theme_marketplace_allowed_actions(): array
-{
-    return [
-        'install' => true,
-    ];
-}
-
 function cms_admin_theme_marketplace_normalize_slug(array $post): string
 {
     return (string) preg_replace('/[^a-z0-9_-]/', '', strtolower((string) ($post['theme'] ?? '')));
@@ -44,24 +37,32 @@ function cms_admin_theme_marketplace_normalize_action(mixed $action): string
 {
     $action = strtolower(trim((string) $action));
 
-    return isset(cms_admin_theme_marketplace_allowed_actions()[$action]) ? $action : '';
+    return $action === CMS_ADMIN_THEME_MARKETPLACE_INSTALL_ACTION ? $action : '';
 }
 
-/** @return array{action:string,theme:string} */
+/** @return array{action:string,theme:string,error:string} */
 function cms_admin_theme_marketplace_normalize_payload(array $post): array
 {
+    $action = cms_admin_theme_marketplace_normalize_action($post['action'] ?? null);
+    $theme = cms_admin_theme_marketplace_normalize_slug($post);
+
+    $error = '';
+    if ($action === '') {
+        $error = 'Unbekannte oder nicht erlaubte Aktion.';
+    } elseif ($action === CMS_ADMIN_THEME_MARKETPLACE_INSTALL_ACTION && $theme === '') {
+        $error = 'Ungültiger Theme-Slug.';
+    }
+
     return [
-        'action' => cms_admin_theme_marketplace_normalize_action($post['action'] ?? null),
-        'theme' => cms_admin_theme_marketplace_normalize_slug($post),
+        'action' => $action,
+        'theme' => $theme,
+        'error' => $error,
     ];
 }
 
-function cms_admin_theme_marketplace_handle_action(ThemeMarketplaceModule $module, array $payload): array
+function cms_admin_theme_marketplace_view_data(ThemeMarketplaceModule $module): array
 {
-    return match ($payload['action']) {
-        'install' => $module->installTheme($payload['theme']),
-        default => ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'],
-    };
+    return $module->getData();
 }
 
 $sectionPageConfig = [
@@ -80,21 +81,21 @@ $sectionPageConfig = [
     'access_checker' => static fn (): bool => cms_admin_theme_marketplace_can_access(),
     'access_denied_route' => '/',
     'unknown_action_message' => 'Unbekannte oder nicht erlaubte Aktion.',
+    'data_loader' => static fn (ThemeMarketplaceModule $module): array => cms_admin_theme_marketplace_view_data($module),
     'post_handler' => static function (ThemeMarketplaceModule $module, string $section, array $post): array {
         if (!cms_admin_theme_marketplace_can_install()) {
             return ['success' => false, 'error' => 'Keine Berechtigung für Marketplace-Installationen.'];
         }
 
         $payload = cms_admin_theme_marketplace_normalize_payload($post);
-        if ($payload['action'] === '') {
-            return ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'];
+        if ($payload['error'] !== '') {
+            return ['success' => false, 'error' => $payload['error']];
         }
 
-        if ($payload['action'] === 'install' && $payload['theme'] === '') {
-            return ['success' => false, 'error' => 'Ungültiger Theme-Slug.'];
-        }
-
-        return cms_admin_theme_marketplace_handle_action($module, $payload);
+        return match ($payload['action']) {
+            CMS_ADMIN_THEME_MARKETPLACE_INSTALL_ACTION => $module->installTheme($payload['theme']),
+            default => ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'],
+        };
     },
 ];
 

@@ -84,7 +84,7 @@ $s = array_merge([
                         <div class="card-body">
                             <div class="mb-3">
                                 <label class="form-label" for="maxUploadSize">Maximale Upload-Größe (MB)</label>
-                                <input type="number" class="form-control" id="maxUploadSize" name="max_upload_size" value="<?php echo (int)$s['max_upload_size']; ?>" min="1" max="256" step="1">
+                                <input type="number" class="form-control" id="maxUploadSize" name="max_upload_size" value="<?php echo (int)$s['max_upload_size']; ?>" min="1" max="256" step="1" inputmode="numeric">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Erlaubte Dateitypen</label>
@@ -152,17 +152,17 @@ $s = array_merge([
                             <div class="row">
                                 <div class="col-sm-4 mb-3">
                                     <label class="form-label" for="jpegQuality">JPEG-Qualität (%)</label>
-                                    <input type="number" class="form-control" id="jpegQuality" name="jpeg_quality" value="<?php echo (int)$s['jpeg_quality']; ?>" min="30" max="100">
+                                    <input type="number" class="form-control" id="jpegQuality" name="jpeg_quality" value="<?php echo (int)$s['jpeg_quality']; ?>" min="60" max="100" inputmode="numeric">
                                 </div>
                                 <div class="col-sm-4 mb-3">
                                     <label class="form-label" for="maxWidth">Max. Breite (px)</label>
-                                    <input type="number" class="form-control" id="maxWidth" name="max_width" value="<?php echo (int)$s['max_width']; ?>" min="0">
-                                    <small class="form-hint">0 = kein Limit</small>
+                                    <input type="number" class="form-control" id="maxWidth" name="max_width" value="<?php echo (int)$s['max_width']; ?>" min="1" max="8000" inputmode="numeric">
+                                    <small class="form-hint">Wertebereich: 1 bis 8000 px</small>
                                 </div>
                                 <div class="col-sm-4 mb-3">
                                     <label class="form-label" for="maxHeight">Max. Höhe (px)</label>
-                                    <input type="number" class="form-control" id="maxHeight" name="max_height" value="<?php echo (int)$s['max_height']; ?>" min="0">
-                                    <small class="form-hint">0 = kein Limit</small>
+                                    <input type="number" class="form-control" id="maxHeight" name="max_height" value="<?php echo (int)$s['max_height']; ?>" min="1" max="8000" inputmode="numeric">
+                                    <small class="form-hint">Wertebereich: 1 bis 8000 px</small>
                                 </div>
                             </div>
                         </div>
@@ -194,9 +194,9 @@ $s = array_merge([
                                     <div class="col-sm-6 col-md-3 mb-3">
                                         <label class="form-label fw-bold"><?php echo htmlspecialchars($label); ?></label>
                                         <div class="input-group input-group-sm">
-                                            <input type="number" class="form-control" name="<?php echo htmlspecialchars($wKey, ENT_QUOTES); ?>" value="<?php echo (int)($s[$wKey] ?? 0); ?>" min="0" placeholder="B">
+                                            <input type="number" class="form-control" name="<?php echo htmlspecialchars($wKey, ENT_QUOTES); ?>" value="<?php echo (int)($s[$wKey] ?? 0); ?>" min="50" max="6000" inputmode="numeric" placeholder="B">
                                             <span class="input-group-text">×</span>
-                                            <input type="number" class="form-control" name="<?php echo htmlspecialchars($hKey, ENT_QUOTES); ?>" value="<?php echo (int)($s[$hKey] ?? 0); ?>" min="0" placeholder="H">
+                                            <input type="number" class="form-control" name="<?php echo htmlspecialchars($hKey, ENT_QUOTES); ?>" value="<?php echo (int)($s[$hKey] ?? 0); ?>" min="50" max="6000" inputmode="numeric" placeholder="H">
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
@@ -219,7 +219,7 @@ $s = array_merge([
                             <div class="row mb-3">
                                 <div class="col-sm-6">
                                     <label class="form-label" for="memberMaxUpload">Max. Upload-Größe (MB)</label>
-                                    <input type="number" class="form-control" id="memberMaxUpload" name="member_max_upload_size" value="<?php echo (int)$s['member_max_upload_size']; ?>" min="1" max="256">
+                                    <input type="number" class="form-control" id="memberMaxUpload" name="member_max_upload_size" value="<?php echo (int)$s['member_max_upload_size']; ?>" min="1" max="256" inputmode="numeric">
                                 </div>
                                 <div class="col-sm-6 d-flex align-items-end">
                                     <label class="form-check form-switch">

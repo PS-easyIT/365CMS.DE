@@ -15,28 +15,13 @@ if (!defined('ABSPATH')) {
 
 $menus       = $data['menus'] ?? [];
 $currentMenu = $data['currentMenu'] ?? null;
-$menuItems   = $data['menuItems'] ?? [];
 $locations   = $data['locations'] ?? [];
 $locationOverview = $data['locationOverview'] ?? [];
-$pages       = $data['pages'] ?? [];
-$buildMenuEditorItemsConfig = static function (array $items): array {
-    return array_map(static function ($item): array {
-        return [
-            'id' => (string) ($item->id ?? ''),
-            'title' => (string) ($item->title ?? ''),
-            'url' => (string) ($item->url ?? '#'),
-            'target' => (string) ($item->target ?? '_self'),
-            'icon' => (string) ($item->icon ?? ''),
-            'parent_id' => (string) ($item->parent_id ?? 0),
-        ];
-    }, $items);
-};
-$menuItemsConfig = $buildMenuEditorItemsConfig($menuItems);
-$menuEditorConfigJson = json_encode(
-    ['items' => $menuItemsConfig],
-    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
-);
-$siteUrl = htmlspecialchars(SITE_URL);
+$menuItems = $data['menuItems'] ?? [];
+$pagePickerOptions = $data['pagePickerOptions'] ?? [];
+$menuEditorConfigJson = (string) ($data['editorConfigJson'] ?? '{"items":[]}');
+$escape = static fn (?string $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+$siteUrl = $escape(SITE_URL);
 ?>
 
 <div class="page-header d-print-none text-start">
@@ -180,10 +165,10 @@ $siteUrl = htmlspecialchars(SITE_URL);
                     <div class="card-body">
                         <div class="row g-2">
                             <div class="col-md-4">
-                                <input type="text" id="newItemTitle" class="form-control" placeholder="Titel">
+                                <input type="text" id="newItemTitle" class="form-control" placeholder="Titel" maxlength="255">
                             </div>
                             <div class="col-md-4">
-                                <input type="text" id="newItemUrl" class="form-control" placeholder="URL (z.B. /seite)">
+                                <input type="text" id="newItemUrl" class="form-control" placeholder="URL (z.B. /seite oder https://...)">
                             </div>
                             <div class="col-md-2">
                                 <select id="newItemParent" class="form-select">
@@ -200,17 +185,24 @@ $siteUrl = htmlspecialchars(SITE_URL);
                                 <button type="button" class="btn btn-primary w-100" id="btnAddItem">Hinzufügen</button>
                             </div>
                         </div>
-                        <?php if (!empty($pages)): ?>
+                        <?php if (!empty($pagePickerOptions)): ?>
                             <div class="mt-3">
-                                <label class="form-label small text-muted">Oder Seite wählen:</label>
-                                <div class="d-flex gap-2 flex-wrap">
-                                    <?php foreach ($pages as $page): ?>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary add-page-btn"
-                                                data-title="<?php echo htmlspecialchars($page->title, ENT_QUOTES); ?>"
-                                                data-url="/<?php echo rawurlencode((string) $page->slug); ?>">
-                                            <?php echo htmlspecialchars($page->title); ?>
-                                        </button>
-                                    <?php endforeach; ?>
+                                <div class="row g-2 align-items-end">
+                                    <div class="col-md-8">
+                                        <label class="form-label small text-muted" for="pagePickerSelect">Oder veröffentlichte Seite übernehmen:</label>
+                                        <select id="pagePickerSelect" class="form-select form-select-sm">
+                                            <option value="">Seite auswählen …</option>
+                                            <?php foreach ($pagePickerOptions as $option): ?>
+                                                <option value="<?php echo $escape((string) ($option['url'] ?? '')); ?>"
+                                                        data-title="<?php echo $escape((string) ($option['title'] ?? '')); ?>">
+                                                    <?php echo $escape((string) ($option['title'] ?? '')); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm w-100" id="btnAddPageItem">Seite übernehmen</button>
+                                    </div>
                                 </div>
                             </div>
                         <?php endif; ?>

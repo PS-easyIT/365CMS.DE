@@ -211,7 +211,7 @@ $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
                                         <?php endforeach; ?>
                                     </select>
                                     <div class="input-group input-group-sm media-filter-search">
-                                        <input type="search" class="form-control" name="q" placeholder="Dateien suchen …" value="<?php echo htmlspecialchars($search); ?>">
+                                        <input type="search" class="form-control" name="q" placeholder="Dateien suchen …" value="<?php echo htmlspecialchars($search); ?>" maxlength="120">
                                         <button type="submit" class="btn btn-icon">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/><path d="M21 21l-6 -6"/></svg>
                                         </button>
@@ -469,7 +469,7 @@ $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
             </div>
             <div class="modal-body">
                 <label class="form-label" for="folderName">Ordnername</label>
-                <input type="text" class="form-control" id="folderName" name="folder_name" required autofocus>
+                <input type="text" class="form-control" id="folderName" name="folder_name" maxlength="120" required autofocus>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn" data-bs-dismiss="modal">Abbrechen</button>

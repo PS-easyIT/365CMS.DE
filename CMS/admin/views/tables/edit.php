@@ -15,6 +15,9 @@ if (!defined('ABSPATH')) {
 $table    = $data['table'] ?? null;
 $isNew    = $data['isNew'] ?? true;
 $defaults = $data['defaults'] ?? [];
+$editorSummary = is_array($data['editorSummary'] ?? null) ? $data['editorSummary'] : ['columns' => 0, 'rows' => 0, 'cells' => 0];
+$editorConfigJson = (string) ($data['editorConfigJson'] ?? '{"columns":[],"rows":[],"limits":{}}');
+$editorLimits = is_array($data['editorLimits'] ?? null) ? $data['editorLimits'] : [];
 
 $tableName   = htmlspecialchars($table['table_name'] ?? '');
 $description = htmlspecialchars($table['description'] ?? '');
@@ -27,12 +30,6 @@ $encodeTableJson = static function (mixed $value): string {
         JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
     );
 };
-$tableEditorConfig = [
-    'columns' => $columns,
-    'rows' => $rows,
-    'columnCount' => count($columns),
-    'rowCount' => count($rows),
-];
 ?>
 
 <div class="page-header d-print-none">
@@ -80,14 +77,14 @@ $tableEditorConfig = [
                         <div class="card-body">
                             <div class="mb-3">
                                 <label class="form-label required" for="table_name">Tabellenname</label>
-                                <input type="text" class="form-control" id="table_name" name="table_name" value="<?php echo $tableName; ?>" required>
+                                <input type="text" class="form-control" id="table_name" name="table_name" value="<?php echo $tableName; ?>" maxlength="150" required>
                             </div>
                             <div class="mb-0">
                                 <label class="form-label" for="description">Beschreibung</label>
-                                <textarea class="form-control" id="description" name="description" rows="2"><?php echo $description; ?></textarea>
+                                <textarea class="form-control" id="description" name="description" rows="2" maxlength="1000"><?php echo $description; ?></textarea>
                             </div>
                             <div class="form-hint mt-2">
-                                <?php echo count($columns); ?> Spalten · <?php echo count($rows); ?> Zeilen im aktuellen Editorzustand
+                                <?php echo (int) ($editorSummary['columns'] ?? 0); ?> Spalten · <?php echo (int) ($editorSummary['rows'] ?? 0); ?> Zeilen · <?php echo (int) ($editorSummary['cells'] ?? 0); ?> Zellen im aktuellen Editorzustand
                             </div>
                         </div>
                     </div>
@@ -174,11 +171,14 @@ $tableEditorConfig = [
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="setting_caption">Tabellenunterschrift</label>
-                                <input type="text" class="form-control" id="setting_caption" name="setting_caption" value="<?php echo htmlspecialchars($settings['caption'] ?? ''); ?>">
+                                <input type="text" class="form-control" id="setting_caption" name="setting_caption" value="<?php echo htmlspecialchars($settings['caption'] ?? ''); ?>" maxlength="255">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="setting_aria_label">ARIA Label</label>
-                                <input type="text" class="form-control" id="setting_aria_label" name="setting_aria_label" value="<?php echo htmlspecialchars($settings['aria_label'] ?? ''); ?>">
+                                <input type="text" class="form-control" id="setting_aria_label" name="setting_aria_label" value="<?php echo htmlspecialchars($settings['aria_label'] ?? ''); ?>" maxlength="255">
+                            </div>
+                            <div class="form-hint mb-3">
+                                Editor-Limits: max. <?php echo (int) ($editorLimits['maxColumns'] ?? 25); ?> Spalten, <?php echo (int) ($editorLimits['maxRows'] ?? 250); ?> Zeilen und <?php echo (int) ($editorLimits['maxCellLength'] ?? 5000); ?> Zeichen pro Zelle.
                             </div>
 
                             <?php
@@ -239,4 +239,4 @@ $tableEditorConfig = [
         </form>
     </div>
 </div>
-<script type="application/json" id="site-tables-editor-config"><?php echo $encodeTableJson($tableEditorConfig); ?></script>
+<script type="application/json" id="site-tables-editor-config"><?php echo $editorConfigJson; ?></script>

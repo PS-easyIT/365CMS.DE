@@ -1150,7 +1150,9 @@ class LegalSitesModule
 
     private function canAccess(): bool
     {
-        return class_exists(Auth::class) && Auth::instance()->isAdmin();
+        return class_exists(Auth::class)
+            && Auth::instance()->isAdmin()
+            && Auth::instance()->hasCapability('manage_settings');
     }
 
     /** @return list<string> */

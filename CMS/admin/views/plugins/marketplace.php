@@ -12,7 +12,14 @@ $pluginMarketplaceConfig = [
     'gridSelector' => '#pluginGrid',
     'cardSelector' => '.plugin-card',
     'emptyStateSelector' => '#pluginMarketplaceEmptyState',
+    'installFormSelector' => 'form[data-marketplace-install-form]',
 ];
+
+$filters = is_array($data['filters'] ?? null) ? $data['filters'] : [];
+$categoryOptions = is_array($filters['categories'] ?? null) ? $filters['categories'] : [];
+$statusOptions = is_array($filters['statuses'] ?? null) ? $filters['statuses'] : [];
+$source = is_array($data['source'] ?? null) ? $data['source'] : [];
+$escape = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 ?>
 
 <!-- Plugin Marketplace -->
@@ -39,6 +46,18 @@ $pluginMarketplaceConfig = [
         <?php if (!empty($alert)): ?>
             <?php
             $alertData = is_array($alert ?? null) ? $alert : [];
+            require dirname(__DIR__) . '/partials/flash-alert.php';
+            ?>
+        <?php endif; ?>
+
+        <?php if (!empty($source['message'])): ?>
+            <?php
+            $alertData = [
+                'type' => ($source['status'] ?? 'info') === 'success' ? 'success' : (($source['status'] ?? 'info') === 'warning' ? 'warning' : 'info'),
+                'message' => (string) ($source['message'] ?? ''),
+                'details' => !empty($source['url']) ? ['Quelle: ' . (string) $source['url']] : [],
+            ];
+            $alertMarginClass = 'mb-3';
             require dirname(__DIR__) . '/partials/flash-alert.php';
             ?>
         <?php endif; ?>
@@ -102,20 +121,17 @@ $pluginMarketplaceConfig = [
                     <div class="col-md-4">
                         <select id="categoryFilter" class="form-select">
                             <option value="">Alle Kategorien</option>
-                            <?php
-                            $categories = array_unique(array_filter(array_column($data['plugins'] ?? [], 'category')));
-                            sort($categories);
-                            foreach ($categories as $cat): ?>
-                                <option value="<?php echo htmlspecialchars($cat); ?>"><?php echo htmlspecialchars($cat); ?></option>
+                            <?php foreach ($categoryOptions as $cat): ?>
+                                <option value="<?php echo $escape($cat); ?>"><?php echo $escape($cat); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="col-md-4">
                         <select id="statusFilter" class="form-select">
                             <option value="">Alle Stati</option>
-                            <option value="installable">Automatisch installierbar</option>
-                            <option value="manual">Nur manuell / Anfrage</option>
-                            <option value="installed">Bereits installiert</option>
+                            <?php foreach ($statusOptions as $statusOption): ?>
+                                <option value="<?php echo $escape($statusOption['value'] ?? ''); ?>"><?php echo $escape($statusOption['label'] ?? ''); ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                 </div>
@@ -134,26 +150,26 @@ $pluginMarketplaceConfig = [
                 </div>
             <?php else: ?>
                 <?php foreach ($data['plugins'] as $plugin):
-                    $slug        = htmlspecialchars($plugin['slug'] ?? '');
-                    $name        = htmlspecialchars($plugin['name'] ?? $slug);
-                    $description = htmlspecialchars($plugin['description'] ?? '');
-                    $version     = htmlspecialchars($plugin['version'] ?? '-');
-                    $author      = htmlspecialchars($plugin['author'] ?? '-');
-                    $category    = htmlspecialchars($plugin['category'] ?? '');
-                    $purchaseUrl = htmlspecialchars((string)($plugin['purchase_url'] ?? ''));
-                    $priceAmount = htmlspecialchars((string)($plugin['price_amount'] ?? ''));
-                    $priceCurrency = htmlspecialchars((string)($plugin['price_currency'] ?? 'EUR'));
-                    $requiresCms = htmlspecialchars((string)($plugin['requires_cms'] ?? ''));
-                    $requiresPhp = htmlspecialchars((string)($plugin['requires_php'] ?? ''));
+                    $slug        = $escape($plugin['slug'] ?? '');
+                    $name        = $escape($plugin['name'] ?? $slug);
+                    $description = $escape($plugin['description'] ?? '');
+                    $version     = $escape($plugin['version'] ?? '-');
+                    $author      = $escape($plugin['author'] ?? '-');
+                    $category    = $escape($plugin['category'] ?? '');
+                    $purchaseUrl = $escape((string)($plugin['purchase_url'] ?? ''));
+                    $priceAmount = $escape((string)($plugin['price_amount'] ?? ''));
+                    $priceCurrency = $escape((string)($plugin['price_currency'] ?? 'EUR'));
+                    $requiresCms = $escape((string)($plugin['requires_cms'] ?? ''));
+                    $requiresPhp = $escape((string)($plugin['requires_php'] ?? ''));
                     $isInstalled = !empty($plugin['installed']);
                     $isPaid = !empty($plugin['is_paid']);
                     $autoInstallSupported = !empty($plugin['auto_install_supported']);
-                    $installReason = htmlspecialchars((string)($plugin['install_reason'] ?? ''));
+                    $installReason = $escape((string)($plugin['install_reason'] ?? ''));
                     $hashPresent = !empty($plugin['integrity_hash_present']);
-                    $compatibilityReason = htmlspecialchars((string)($plugin['compatibility_reason'] ?? ''));
+                    $compatibilityReason = $escape((string)($plugin['compatibility_reason'] ?? ''));
                     $status = $isInstalled ? 'installed' : ($autoInstallSupported ? 'installable' : 'manual');
                 ?>
-                <div class="col-sm-6 col-lg-4 plugin-card" data-name="<?php echo $name; ?>" data-category="<?php echo $category; ?>" data-status="<?php echo htmlspecialchars($status); ?>">
+                <div class="col-sm-6 col-lg-4 plugin-card" data-name="<?php echo $name; ?>" data-category="<?php echo $category; ?>" data-status="<?php echo $escape($status); ?>">
                     <div class="card">
                         <div class="card-body">
                             <div class="d-flex align-items-center mb-3">
@@ -196,11 +212,11 @@ $pluginMarketplaceConfig = [
                                         Installiert
                                     </span>
                                 <?php elseif ($autoInstallSupported): ?>
-                                    <form method="POST" style="display:inline;" data-confirm-message="Plugin '<?php echo $name; ?>' installieren?" data-confirm-title="Plugin installieren" data-confirm-text="Installieren" data-confirm-class="btn-primary" data-confirm-status-class="bg-primary">
-                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                    <form method="POST" style="display:inline;" data-marketplace-install-form="1" data-confirm-message="Plugin '<?php echo $name; ?>' installieren?" data-confirm-title="Plugin installieren" data-confirm-text="Installieren" data-confirm-class="btn-primary" data-confirm-status-class="bg-primary">
+                                        <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>">
                                         <input type="hidden" name="action" value="install">
                                         <input type="hidden" name="slug" value="<?php echo $slug; ?>">
-                                        <button type="submit" class="btn btn-primary btn-sm">
+                                        <button type="submit" class="btn btn-primary btn-sm" data-marketplace-submit-button data-submitting-text="Installiere…">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm me-1" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><polyline points="7 11 12 16 17 11"/><line x1="12" y1="4" x2="12" y2="16"/></svg>
                                             Installieren
                                         </button>

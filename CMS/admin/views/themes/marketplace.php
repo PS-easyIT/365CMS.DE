@@ -15,14 +15,18 @@ if (!defined('ABSPATH')) {
 
 $catalog = $data['catalog'] ?? [];
 $total   = (int) ($data['total'] ?? 0);
-$installableCount = count(array_filter($catalog, static fn (array $theme): bool => !empty($theme['install_supported']) && empty($theme['installed'])));
-$manualOnlyCount = count(array_filter($catalog, static fn (array $theme): bool => empty($theme['install_supported']) && empty($theme['installed'])));
+$stats = is_array($data['stats'] ?? null) ? $data['stats'] : [];
+$filters = is_array($data['filters'] ?? null) ? $data['filters'] : [];
+$statusOptions = is_array($filters['statuses'] ?? null) ? $filters['statuses'] : [];
+$source = is_array($data['source'] ?? null) ? $data['source'] : [];
 $themeMarketplaceConfig = [
     'searchInputId' => 'themeMarketplaceSearch',
     'statusFilterId' => 'themeMarketplaceStatusFilter',
     'cardSelector' => '.theme-marketplace-card',
     'emptyStateSelector' => '#themeMarketplaceEmptyState',
+    'installFormSelector' => 'form[data-theme-marketplace-install-form]',
 ];
+$escape = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 ?>
 
 <div class="container-xl">
@@ -37,6 +41,18 @@ $themeMarketplaceConfig = [
     <?php if (!empty($alert)): ?>
         <?php
         $alertData = is_array($alert ?? null) ? $alert : [];
+        require dirname(__DIR__) . '/partials/flash-alert.php';
+        ?>
+    <?php endif; ?>
+
+    <?php if (!empty($source['message'])): ?>
+        <?php
+        $alertData = [
+            'type' => ($source['status'] ?? 'info') === 'success' ? 'success' : (($source['status'] ?? 'info') === 'warning' ? 'warning' : 'info'),
+            'message' => (string) ($source['message'] ?? ''),
+            'details' => !empty($source['url']) ? ['Quelle: ' . (string) $source['url']] : [],
+        ];
+        $alertMarginClass = 'mb-3';
         require dirname(__DIR__) . '/partials/flash-alert.php';
         ?>
     <?php endif; ?>
@@ -63,7 +79,7 @@ $themeMarketplaceConfig = [
                 <div class="card">
                     <div class="card-body">
                         <div class="subheader">Automatisch installierbar</div>
-                        <div class="h1 mb-0 mt-2"><?php echo $installableCount; ?></div>
+                        <div class="h1 mb-0 mt-2"><?php echo (int) ($stats['installable'] ?? 0); ?></div>
                     </div>
                 </div>
             </div>
@@ -71,7 +87,15 @@ $themeMarketplaceConfig = [
                 <div class="card">
                     <div class="card-body">
                         <div class="subheader">Nur manuell / Anfrage</div>
-                        <div class="h1 mb-0 mt-2"><?php echo $manualOnlyCount; ?></div>
+                        <div class="h1 mb-0 mt-2"><?php echo (int) ($stats['manual_only'] ?? 0); ?></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-4">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="subheader">Aktiv</div>
+                        <div class="h1 mb-0 mt-2"><?php echo (int) ($stats['active'] ?? 0); ?></div>
                     </div>
                 </div>
             </div>
@@ -91,10 +115,9 @@ $themeMarketplaceConfig = [
                     <div class="col-md-4">
                         <select id="themeMarketplaceStatusFilter" class="form-select">
                             <option value="">Alle Stati</option>
-                            <option value="installable">Automatisch installierbar</option>
-                            <option value="manual">Nur manuell / Anfrage</option>
-                            <option value="installed">Bereits installiert</option>
-                            <option value="active">Aktiv</option>
+                            <?php foreach ($statusOptions as $statusOption): ?>
+                                <option value="<?php echo $escape($statusOption['value'] ?? ''); ?>"><?php echo $escape($statusOption['label'] ?? ''); ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                 </div>
@@ -114,19 +137,19 @@ $themeMarketplaceConfig = [
                         : (!empty($theme['install_supported']) ? 'installable' : 'manual'));
             ?>
                 <div class="col-sm-6 col-lg-4 theme-marketplace-card"
-                     data-name="<?php echo htmlspecialchars(mb_strtolower((string) $name), ENT_QUOTES); ?>"
-                     data-status="<?php echo htmlspecialchars($status, ENT_QUOTES); ?>">
+                     data-name="<?php echo $escape(mb_strtolower((string) $name)); ?>"
+                     data-status="<?php echo $escape($status); ?>">
                     <div class="card">
                         <div class="card-img-top" style="height: 180px; background: var(--tblr-bg-surface-secondary); display: flex; align-items: center; justify-content: center;">
                             <?php if (!empty($theme['screenshot'])): ?>
-                                <img src="<?php echo htmlspecialchars($theme['screenshot']); ?>" alt="<?php echo htmlspecialchars($name); ?>" style="width: 100%; height: 100%; object-fit: cover;">
+                                <img src="<?php echo $escape($theme['screenshot']); ?>" alt="<?php echo $escape($name); ?>" style="width: 100%; height: 100%; object-fit: cover;">
                             <?php else: ?>
                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-palette" width="48" height="48" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.3;"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 0 1 0 -18c4.97 0 9 3.582 9 8c0 1.06 -.474 2.078 -1.318 2.828c-.844 .75 -1.989 1.172 -3.182 1.172h-2.5a2 2 0 0 0 -1 3.75a1.3 1.3 0 0 1 -1 2.25"/><path d="M8.5 10.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12.5 7.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M16.5 10.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg>
                             <?php endif; ?>
                         </div>
                         <div class="card-body">
                             <div class="d-flex align-items-center mb-2">
-                                <h3 class="card-title mb-0"><?php echo htmlspecialchars($name); ?></h3>
+                                <h3 class="card-title mb-0"><?php echo $escape($name); ?></h3>
                                 <?php if (!empty($theme['active'])): ?>
                                     <span class="badge bg-primary ms-2">Aktiv</span>
                                 <?php elseif (!empty($theme['installed'])): ?>
@@ -140,24 +163,24 @@ $themeMarketplaceConfig = [
                                 <?php endif; ?>
                             </div>
                             <?php if (!empty($theme['description'])): ?>
-                                <p class="text-muted small mb-2"><?php echo htmlspecialchars($theme['description']); ?></p>
+                                <p class="text-muted small mb-2"><?php echo $escape($theme['description']); ?></p>
                             <?php endif; ?>
                             <?php if (!empty($theme['price_amount'])): ?>
-                                <div class="mb-2"><span class="badge bg-orange-lt"><?php echo htmlspecialchars((string) $theme['price_amount']); ?> <?php echo htmlspecialchars((string) ($theme['price_currency'] ?? 'EUR')); ?></span></div>
+                                <div class="mb-2"><span class="badge bg-orange-lt"><?php echo $escape((string) $theme['price_amount']); ?> <?php echo $escape((string) ($theme['price_currency'] ?? 'EUR')); ?></span></div>
                             <?php endif; ?>
                             <div class="text-muted small">
                                 <?php if (!empty($theme['version'])): ?>
-                                    <span class="me-2">v<?php echo htmlspecialchars($theme['version']); ?></span>
+                                    <span class="me-2">v<?php echo $escape($theme['version']); ?></span>
                                 <?php endif; ?>
                                 <?php if (!empty($theme['author'])): ?>
-                                    <span><?php echo htmlspecialchars($theme['author']); ?></span>
+                                    <span><?php echo $escape($theme['author']); ?></span>
                                 <?php endif; ?>
                             </div>
                             <?php if (!empty($theme['requires_cms']) || !empty($theme['requires_php'])): ?>
                                 <div class="text-muted small mt-2">
-                                    <?php if (!empty($theme['requires_cms'])): ?>365CMS ab <?php echo htmlspecialchars((string) $theme['requires_cms']); ?><?php endif; ?>
+                                    <?php if (!empty($theme['requires_cms'])): ?>365CMS ab <?php echo $escape((string) $theme['requires_cms']); ?><?php endif; ?>
                                     <?php if (!empty($theme['requires_cms']) && !empty($theme['requires_php'])): ?> · <?php endif; ?>
-                                    <?php if (!empty($theme['requires_php'])): ?>PHP ab <?php echo htmlspecialchars((string) $theme['requires_php']); ?><?php endif; ?>
+                                    <?php if (!empty($theme['requires_php'])): ?>PHP ab <?php echo $escape((string) $theme['requires_php']); ?><?php endif; ?>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -166,23 +189,23 @@ $themeMarketplaceConfig = [
                                 <?php if (!empty($theme['install_supported'])): ?>
                                     <div class="d-flex flex-column gap-2">
                                         <span class="badge bg-green-lt text-success">SHA-256 verifiziert</span>
-                                        <form method="post" class="d-inline">
-                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                        <form method="post" class="d-inline" data-theme-marketplace-install-form="1" data-confirm-message="Theme '<?php echo $escape($name); ?>' installieren?" data-confirm-title="Theme installieren" data-confirm-text="Installieren" data-confirm-class="btn-primary" data-confirm-status-class="bg-primary">
+                                            <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>">
                                             <input type="hidden" name="action" value="install">
-                                            <input type="hidden" name="theme" value="<?php echo htmlspecialchars($slug); ?>">
-                                            <button type="submit" class="btn btn-primary btn-sm">Installieren</button>
+                                            <input type="hidden" name="theme" value="<?php echo $escape($slug); ?>">
+                                            <button type="submit" class="btn btn-primary btn-sm" data-theme-marketplace-submit-button data-submitting-text="Installiere…">Installieren</button>
                                         </form>
                                     </div>
                                 <?php elseif ($isPaid && $purchaseUrl !== ''): ?>
                                     <div class="d-flex flex-column gap-2">
                                         <span class="badge bg-orange-lt text-orange">Anfrage erforderlich</span>
-                                        <a href="<?php echo htmlspecialchars($purchaseUrl); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">Anfragen / Kaufen</a>
-                                        <span class="text-muted small"><?php echo htmlspecialchars((string)($theme['install_reason'] ?? 'Dieses Theme wird über den Marketplace auf Anfrage bereitgestellt.')); ?></span>
+                                        <a href="<?php echo $escape($purchaseUrl); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">Anfragen / Kaufen</a>
+                                        <span class="text-muted small"><?php echo $escape((string)($theme['install_reason'] ?? 'Dieses Theme wird über den Marketplace auf Anfrage bereitgestellt.')); ?></span>
                                     </div>
                                 <?php else: ?>
                                     <div class="d-flex flex-column gap-2">
                                         <span class="badge bg-secondary-lt text-secondary">Nur manuell</span>
-                                        <span class="text-muted small"><?php echo htmlspecialchars((string)($theme['install_reason'] ?? 'Für dieses Theme ist aktuell kein Installationspaket im Marketplace hinterlegt.')); ?></span>
+                                        <span class="text-muted small"><?php echo $escape((string)($theme['install_reason'] ?? 'Für dieses Theme ist aktuell kein Installationspaket im Marketplace hinterlegt.')); ?></span>
                                     </div>
                                 <?php endif; ?>
                             <?php elseif (!empty($theme['active'])): ?>

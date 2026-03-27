@@ -92,6 +92,11 @@
 
         var columns = Array.isArray(config.columns) ? config.columns.slice() : [];
         var rows = Array.isArray(config.rows) ? config.rows.slice() : [];
+        var limits = config.limits || {};
+        var maxColumns = Number(limits.maxColumns || 25);
+        var maxRows = Number(limits.maxRows || 250);
+        var maxColumnLabelLength = Number(limits.maxColumnLabelLength || 80);
+        var maxCellLength = Number(limits.maxCellLength || 5000);
         var columnsBody = document.getElementById('columnsBody');
         var rowsHeadContainer = document.querySelector('#rowsHead tr');
         var rowsBody = document.getElementById('rowsBody');
@@ -109,6 +114,25 @@
         function syncHiddenInputs() {
             columnsJsonInput.value = JSON.stringify(columns);
             rowsJsonInput.value = JSON.stringify(rows);
+        }
+
+        function sanitizeText(value, maxLength) {
+            return String(value || '')
+                .replace(/[\x00-\x1F\x7F]/g, '')
+                .trim()
+                .slice(0, maxLength);
+        }
+
+        function showValidationMessage(message) {
+            if (typeof cmsAlert === 'function') {
+                cmsAlert({
+                    type: 'danger',
+                    message: message,
+                });
+                return;
+            }
+
+            window.alert(message);
         }
 
         function renderRowsHead() {
@@ -145,8 +169,10 @@
                     input.type = 'text';
                     input.className = 'form-control form-control-sm';
                     input.value = row[column.label] || '';
+                    input.maxLength = maxCellLength;
                     input.addEventListener('change', function () {
-                        rows[rowIndex][column.label] = input.value;
+                        rows[rowIndex][column.label] = sanitizeText(input.value, maxCellLength);
+                        input.value = rows[rowIndex][column.label];
                         syncHiddenInputs();
                     });
                     td.appendChild(input);
@@ -176,10 +202,12 @@
                 labelInput.type = 'text';
                 labelInput.className = 'form-control form-control-sm';
                 labelInput.value = column.label || '';
+                labelInput.maxLength = maxColumnLabelLength;
                 labelInput.addEventListener('change', function () {
                     var oldLabel = columns[columnIndex].label;
-                    var newLabel = labelInput.value.trim() || ('Spalte ' + (columnIndex + 1));
+                    var newLabel = sanitizeText(labelInput.value, maxColumnLabelLength) || ('Spalte ' + (columnIndex + 1));
                     columns[columnIndex].label = newLabel;
+                    labelInput.value = newLabel;
                     rows.forEach(function (row) {
                         if (oldLabel !== newLabel && Object.prototype.hasOwnProperty.call(row, oldLabel)) {
                             row[newLabel] = row[oldLabel];
@@ -212,6 +240,11 @@
 
         if (addColumnButton) {
             addColumnButton.addEventListener('click', function () {
+                if (columns.length >= maxColumns) {
+                    showValidationMessage('Es sind maximal ' + maxColumns + ' Spalten erlaubt.');
+                    return;
+                }
+
                 columns.push({ label: 'Spalte ' + (columns.length + 1), type: 'text' });
                 renderColumns();
             });
@@ -220,8 +253,15 @@
         if (addRowButton) {
             addRowButton.addEventListener('click', function () {
                 if (columns.length === 0) {
+                    showValidationMessage('Bitte zuerst mindestens eine Spalte anlegen.');
                     return;
                 }
+
+                if (rows.length >= maxRows) {
+                    showValidationMessage('Es sind maximal ' + maxRows + ' Zeilen erlaubt.');
+                    return;
+                }
+
                 var row = {};
                 columns.forEach(function (column) {
                     row[column.label] = '';
@@ -231,7 +271,19 @@
             });
         }
 
-        tableForm.addEventListener('submit', function () {
+        tableForm.addEventListener('submit', function (event) {
+            if (columns.length > maxColumns) {
+                event.preventDefault();
+                showValidationMessage('Es sind maximal ' + maxColumns + ' Spalten erlaubt.');
+                return;
+            }
+
+            if (rows.length > maxRows) {
+                event.preventDefault();
+                showValidationMessage('Es sind maximal ' + maxRows + ' Zeilen erlaubt.');
+                return;
+            }
+
             syncHiddenInputs();
         });
 

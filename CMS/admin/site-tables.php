@@ -13,7 +13,16 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 use CMS\Security;
 
-if (!Auth::instance()->isAdmin()) {
+const CMS_ADMIN_SITE_TABLES_CAPABILITY = 'manage_settings';
+const CMS_ADMIN_SITE_TABLES_MAX_COLUMNS_JSON_LENGTH = 100000;
+const CMS_ADMIN_SITE_TABLES_MAX_ROWS_JSON_LENGTH = 500000;
+
+function cms_admin_site_tables_can_access(): bool
+{
+    return Auth::instance()->isAdmin() && Auth::instance()->hasCapability(CMS_ADMIN_SITE_TABLES_CAPABILITY);
+}
+
+if (!cms_admin_site_tables_can_access()) {
     header('Location: ' . SITE_URL);
     exit;
 }
@@ -77,6 +86,14 @@ function cms_admin_site_tables_normalize_view_action(mixed $action): string
     return $allowedViews[$action] ?? 'list';
 }
 
+function cms_admin_site_tables_normalize_search(mixed $value): string
+{
+    $value = is_scalar($value) ? (string) $value : '';
+    $value = preg_replace('/[\x00-\x1F\x7F]/u', '', $value) ?? '';
+
+    return trim($value);
+}
+
 function cms_admin_site_tables_normalize_positive_id(mixed $value): int
 {
     if (is_int($value)) {
@@ -95,21 +112,36 @@ function cms_admin_site_tables_normalize_positive_id(mixed $value): int
     return (int) $value;
 }
 
-function cms_admin_site_tables_edit_redirect_path(int $id): string
+function cms_admin_site_tables_edit_redirect_path(int $id = 0): string
 {
     return $id > 0
         ? '/admin/site-tables?action=edit&id=' . $id
-        : '/admin/site-tables';
+        : '/admin/site-tables?action=edit';
 }
 
 /**
- * @return array{action:string,id:int,post:array<string,mixed>}
+ * @return array{action:string,id:int,error:string,post:array<string,mixed>}
  */
 function cms_admin_site_tables_normalize_payload(array $post): array
 {
+    $action = cms_admin_site_tables_normalize_action($post['action'] ?? '');
+    $id = cms_admin_site_tables_normalize_positive_id($post['id'] ?? 0);
+    $error = '';
+    $columnsJson = (string) ($post['columns_json'] ?? '[]');
+    $rowsJson = (string) ($post['rows_json'] ?? '[]');
+
+    if ($action === '') {
+        $error = 'Unbekannte oder nicht erlaubte Aktion.';
+    } elseif ($action === 'save' && strlen($columnsJson) > CMS_ADMIN_SITE_TABLES_MAX_COLUMNS_JSON_LENGTH) {
+        $error = 'Die Spalten-Konfiguration ist zu groß.';
+    } elseif ($action === 'save' && strlen($rowsJson) > CMS_ADMIN_SITE_TABLES_MAX_ROWS_JSON_LENGTH) {
+        $error = 'Die Zeilen-Konfiguration ist zu groß.';
+    }
+
     return [
-        'action' => cms_admin_site_tables_normalize_action($post['action'] ?? ''),
-        'id' => cms_admin_site_tables_normalize_positive_id($post['id'] ?? 0),
+        'action' => $action,
+        'id' => $id,
+        'error' => $error,
         'post' => $post,
     ];
 }
@@ -148,9 +180,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         cms_admin_site_tables_redirect();
     }
 
-    if ($payload['action'] === '') {
-        cms_admin_site_tables_flash(['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.']);
-        cms_admin_site_tables_redirect();
+    if ($payload['error'] !== '') {
+        cms_admin_site_tables_flash(['success' => false, 'error' => $payload['error']]);
+        cms_admin_site_tables_redirect($payload['action'] === 'save' ? cms_admin_site_tables_edit_redirect_path($payload['id']) : '/admin/site-tables');
     }
 
     if (in_array($payload['action'], ['delete', 'duplicate'], true) && $payload['id'] <= 0) {
@@ -171,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             cms_admin_site_tables_redirect(cms_admin_site_tables_edit_redirect_path($resultId));
         }
 
-        cms_admin_site_tables_redirect();
+        cms_admin_site_tables_redirect(cms_admin_site_tables_edit_redirect_path($payload['id']));
     }
 
     cms_admin_site_tables_redirect();
@@ -211,7 +243,7 @@ if ($viewAction === 'settings') {
     require __DIR__ . '/views/tables/edit.php';
     require __DIR__ . '/partials/footer.php';
 } else {
-    $data       = $module->getListData();
+    $data       = $module->getListData(cms_admin_site_tables_normalize_search($_GET['q'] ?? ''));
     $pageTitle  = 'Tabellen';
     $activePage = 'site-tables';
     $pageAssets = cms_admin_site_tables_page_assets($viewAction);

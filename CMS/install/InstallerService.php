@@ -411,6 +411,7 @@ PHP;
             $headerData = json_encode([
                 'title' => '365CMS – modernes CMS für Inhalte, Portale und Mitgliederbereiche',
                 'subtitle' => 'Landing Pages, Redaktion, Plugins, Member Area und Design Editor in einem System',
+                'badge_text' => $this->getCmsVersion(),
                 'description' => '365CMS vereint Content-Management, Design-Anpassung, Mitgliederfunktionen, System-Mails und modulare Business-Features in einer flexiblen Plattform für professionelle Websites und Portale.',
                 'github_url' => 'https://github.com/PS-easyIT/WordPress-365network',
                 'gitlab_url' => '',

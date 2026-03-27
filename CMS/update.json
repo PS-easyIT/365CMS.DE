@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.7.289",
+  "version": "2.7.313",
   "min_php": "8.4",
   "released": "2026-03-27",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release 2.7.289: Der Theme-Marketplace prüft Katalog-, Manifest- und Asset-URLs jetzt restriktiver, dedupliziert Slugs sauber und bietet zusätzlich Such-/Statusfilter im Admin. Parallel zeigt der Plugin-Marketplace manuelle bzw. inkompatible Kandidaten klarer an, während `CMS/admin/modules/landing/LandingPageModule.php` Defaults nur noch lazy bei echten Daten-/Save-Pfaden initialisiert und die Rest-Views für Kommentare, Menüs und Tabellen weitere Template-/JSON-Härtungen erhalten.",
+  "notes": "Release 2.7.313: Der Theme-Explorer hängt jetzt am gemeinsamen Section-Shell-Vertrag, sein Dateibaum arbeitet mit expliziten Schutzgrenzen und Pending-/Dirty-Status, und der Font-Manager verhindert Doppelaktionen im UI konsequenter über einen gemeinsamen Form-Status-Vertrag.",
   "critical": false
 }

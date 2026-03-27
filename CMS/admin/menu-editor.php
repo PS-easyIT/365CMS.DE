@@ -19,6 +19,7 @@ const CMS_ADMIN_MENU_EDITOR_ALLOWED_ACTIONS = [
 ];
 
 const CMS_ADMIN_MENU_EDITOR_WRITE_CAPABILITY = 'manage_settings';
+const CMS_ADMIN_MENU_EDITOR_MAX_ITEMS_JSON_LENGTH = 250000;
 
 function cms_admin_menu_editor_can_access(): bool
 {
@@ -27,7 +28,7 @@ function cms_admin_menu_editor_can_access(): bool
 
 function cms_admin_menu_editor_normalize_action(mixed $action): string
 {
-    $normalizedAction = trim((string) $action);
+    $normalizedAction = strtolower(trim((string) $action));
 
     return in_array($normalizedAction, CMS_ADMIN_MENU_EDITOR_ALLOWED_ACTIONS, true) ? $normalizedAction : '';
 }
@@ -40,14 +41,28 @@ function cms_admin_menu_editor_normalize_menu_id(mixed $menuId): int
 }
 
 /**
- * @return array{action:string,menu_id:int,items_json:string,post:array<string,mixed>}
+ * @return array{action:string,menu_id:int,items_json:string,error:string,post:array<string,mixed>}
  */
 function cms_admin_menu_editor_normalize_payload(array $post): array
 {
+    $action = cms_admin_menu_editor_normalize_action($post['action'] ?? '');
+    $menuId = cms_admin_menu_editor_normalize_menu_id($post['menu_id'] ?? 0);
+    $itemsJson = (string) ($post['items'] ?? '[]');
+    $error = '';
+
+    if ($action === '') {
+        $error = 'Unbekannte Aktion.';
+    } elseif (in_array($action, ['delete_menu', 'save_items'], true) && $menuId <= 0) {
+        $error = 'Ungültige Menü-ID.';
+    } elseif ($action === 'save_items' && strlen($itemsJson) > CMS_ADMIN_MENU_EDITOR_MAX_ITEMS_JSON_LENGTH) {
+        $error = 'Die Menü-Konfiguration ist zu groß.';
+    }
+
     return [
-        'action' => cms_admin_menu_editor_normalize_action($post['action'] ?? ''),
-        'menu_id' => cms_admin_menu_editor_normalize_menu_id($post['menu_id'] ?? 0),
-        'items_json' => (string) ($post['items'] ?? '[]'),
+        'action' => $action,
+        'menu_id' => $menuId,
+        'items_json' => $itemsJson,
+        'error' => $error,
         'post' => $post,
     ];
 }
@@ -79,6 +94,11 @@ function cms_admin_menu_editor_handle_action(MenuEditorModule $module, array $pa
     };
 }
 
+function cms_admin_menu_editor_load_data(MenuEditorModule $module, int $menuId): array
+{
+    return $module->getData($menuId);
+}
+
 $sectionPageConfig = [
     'route_path' => '/admin/menu-editor',
     'view_file' => __DIR__ . '/views/menus/editor.php',
@@ -98,7 +118,7 @@ $sectionPageConfig = [
 
         return [
             'section' => (string) $currentMenuId,
-            'data' => $module->getData($currentMenuId),
+            'data' => cms_admin_menu_editor_load_data($module, $currentMenuId),
         ];
     },
     'redirect_path_resolver' => static function (MenuEditorModule $module, string $section, mixed $result): string {
@@ -106,6 +126,8 @@ $sectionPageConfig = [
 
         if (is_array($result) && array_key_exists('redirect_menu_id', $result)) {
             $redirectMenuId = cms_admin_menu_editor_normalize_menu_id($result['redirect_menu_id']);
+        } elseif (is_array($result) && !empty($result['success']) && array_key_exists('id', $result)) {
+            $redirectMenuId = cms_admin_menu_editor_normalize_menu_id($result['id']);
         } elseif ($section !== '') {
             $redirectMenuId = cms_admin_menu_editor_normalize_menu_id($section);
         }
@@ -115,10 +137,10 @@ $sectionPageConfig = [
     'post_handler' => static function (MenuEditorModule $module, string $section, array $post): array {
         $payload = cms_admin_menu_editor_normalize_payload($post);
 
-        if ($payload['action'] === '') {
+        if ($payload['error'] !== '') {
             return [
                 'success' => false,
-                'error' => 'Unbekannte Aktion.',
+                'error' => $payload['error'],
                 'redirect_menu_id' => $payload['menu_id'],
             ];
         }
@@ -131,16 +153,14 @@ $sectionPageConfig = [
             ];
         }
 
-        if (in_array($payload['action'], ['delete_menu', 'save_items'], true) && $payload['menu_id'] <= 0) {
-            return [
-                'success' => false,
-                'error' => 'Ungültige Menü-ID.',
-                'redirect_menu_id' => 0,
-            ];
-        }
-
         $result = cms_admin_menu_editor_handle_action($module, $payload);
-        $result['redirect_menu_id'] = $payload['action'] === 'delete_menu' ? 0 : $payload['menu_id'];
+        if ($payload['action'] === 'delete_menu') {
+            $result['redirect_menu_id'] = 0;
+        } elseif ($payload['action'] === 'save_menu' && !empty($result['success'])) {
+            $result['redirect_menu_id'] = cms_admin_menu_editor_normalize_menu_id($result['id'] ?? $payload['menu_id']);
+        } else {
+            $result['redirect_menu_id'] = $payload['menu_id'];
+        }
 
         return $result;
     },

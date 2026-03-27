@@ -5,13 +5,157 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 371
+### Gesamtstand nach Batch 395
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 448 | 91,42 | 89,02 | 92,90 | 92,53 |
+| 448 | 92,61 | 90,28 | 94,04 | 93,81 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **371 umgesetzte Audit-Batches**. Das sind aktuell **371 von 444 Prüfplan-Punkten**. Zuletzt wurden Theme- und Plugin-Marketplace weiter gehärtet, der Landing-Page-Admin vom unnötigen Default-Bootstrap entkoppelt und zusätzliche Restpfade in Kommentar-, Menü- und Tabellen-Views bereinigt. Dadurch hängen Marketplace-Entscheidungen, Landing-Defaults sowie JSON-/Template-Verträge sichtbarer an klareren Allowlist-, Filter- und Lazy-Load-Grenzen.
+Der aktuelle Nachpflege-Stand umfasst damit **395 umgesetzte Audit-Batches**. Das sind aktuell **395 von 444 Prüfplan-Punkten**. Zuletzt wurden Theme-Explorer-Entry, Theme-Dateibaum sowie Pending-/Dirty- und Formularstatus im Explorer- und Font-Manager-UI weiter verdichtet. Dadurch hängen Redirects, Save-Payloads, Dateibaum-Schutzgrenzen und laufende Button-Zustände sichtbarer an kleineren Entry-, Modul-, View- und Asset-Verträgen statt an stillen Mehrfachsubmit- oder I/O-Sonderpfaden.
+
+### Delta Batch 395
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/themes/fonts.php` | umgesetzt | Font-Manager-UI weiter verdichtet, indem mutierende Formulare über einen kleinen Pending-/Status-Vertrag vereinheitlicht werden. | Scan-, Download-, Delete- und Save-Aktionen bleiben im Admin konsistenter und zeigen laufende Zustände sichtbarer an. |
+
+### Delta Batch 394
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-font-manager.js` | umgesetzt | Font-Manager-Asset weiter verdichtet, indem laufende Form- und Delete-Aktionen einen gemeinsamen Pending-Button-Pfad erhalten. | Der Font-Manager reduziert weitere Doppel-Submits und hält Confirm- sowie Direktsubmit-Verhalten näher an einem gemeinsamen UI-Vertrag. |
+
+### Delta Batch 393
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-theme-explorer.js` | umgesetzt | Theme-Explorer-Asset weiter verdichtet, indem Dirty-State, Pending-Save und Such-/Ordnersichtbarkeit klarer an der Explorer-Konfiguration hängen. | Der Explorer schützt ungespeicherte Änderungen besser, verhindert Mehrfachspeichern und bleibt bei Dateifiltern übersichtlicher. |
+
+### Delta Batch 392
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/themes/editor.php` | umgesetzt | Theme-Explorer-View weiter verdichtet, indem Dateibaum-Grenzen, Warnungen und Save-Status direkt im UI gespiegelt werden. | Nutzer sehen Schutzgrenzen und Save-Zustände früher, statt erst bei abgeschnittenen Bäumen oder mehrfachen Save-Versuchen überrascht zu werden. |
+
+### Delta Batch 391
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/ThemeEditorModule.php` | umgesetzt | Theme-Dateibaum- und Pfadlogik weiter verdichtet, indem Eintrags- und Verzeichnislimits, ausgesparte Hotspot-Segmente und vorbereitete Baum-Metadaten ergänzt werden. | Der Explorer reduziert weitere I/O-Hotspots in großen Themes und liefert seine Schutzgrenzen konsistenter vorbereitet an die View. |
+
+### Delta Batch 390
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/theme-explorer.php` | umgesetzt | Theme-Explorer-Entry weiter verdichtet, indem Guard-, CSRF-, Flash-, Redirect- und Save-Dispatch-Logik auf den gemeinsamen Section-Shell-/Payload-Vertrag umgestellt wird. | Der Explorer hängt näher am standardisierten Admin-Rahmen und hält Save-POSTs klarer an einem kleinen Entry-Vertrag. |
+
+### Delta Batch 389
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/themes/fonts.php` | umgesetzt | Font-Manager-UI weiter verdichtet, indem Scan-Schutzgrenzen, übersprungene Dateien und Formularlimits direkt im Admin gespiegelt werden. | Theme-Scans und Typografie-Formulare bleiben transparenter, weil Schutzgrenzen und Begrenzungen nicht mehr nur implizit im Backend wirken. |
+
+### Delta Batch 388
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/FontManagerModule.php` | umgesetzt | Font-Scan- und Save-Pfade weiter verdichtet, indem Theme-Dateiscans auf Datei-, Größen- und Pfadgrenzen begrenzt, Font-Zuweisungen gegen echte Auswahlwerte geprüft und Scan-Zusammenfassungen vorbereitet werden. | Der Font-Manager reduziert weitere I/O-Ausreißer, hält Typografie-Einstellungen näher an real verfügbaren Fonts und liefert View-relevante Limits/Warnungen konsistenter aus dem Modul. |
+
+### Delta Batch 387
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/font-manager.php` | umgesetzt | Font-Manager-Entry weiter verdichtet, indem erlaubte Aktionen, Font-ID, Google-Font-Name sowie Save-Settings in einem kleinen Request-Vertrag normalisiert und validiert werden. | Delete-, Download- und Save-Aktionen hängen damit sichtbarer an einem engeren Entry-Payload statt an rohen Formularwerten. |
+
+### Delta Batch 386
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/theme-editor.php`, `CMS/admin/views/themes/customizer-missing.php` | umgesetzt | Theme-Editor-Entry weiter verdichtet, indem der eigene Layout-Sonderpfad entfernt und Customizer-Fallbacks als vorbereiteter Runtime-State plus dedizierte Admin-View gerendert werden. | Der Theme-Editor hängt näher am gemeinsamen Section-Shell-Vertrag, und fehlende oder unsichere Customizer-Dateien landen transparenter in einem klaren Admin-Fallback statt in Entry-lokalem HTML. |
+
+### Delta Batch 385
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/media.php`, `CMS/admin/modules/media/MediaModule.php`, `CMS/admin/views/media/settings.php`, `CMS/admin/views/media/library.php` | umgesetzt | Medien-Entry, Upload-Batch und Settings-Vertrag weiter verdichtet, indem Dateianzahl, Batch-Größe, Dateinamen, Zahlengrenzen und Typauswahlen enger normalisiert sowie UI-Grenzen sichtbarer vorgegeben werden. | Die Medienverwaltung verwirft inkonsistente Upload-Payloads früher, hält Settings näher an erlaubten Typgruppen und spiegelt Grenzwerte direkter im Admin wider, statt Fehler erst tief im Service-Pfad sichtbar zu machen. |
+
+### Delta Batch 384
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/legal-sites.php`, `CMS/admin/modules/legal/LegalSitesModule.php` | umgesetzt | Legal-Sites-Entry und Modul weiter verdichtet, indem Rechtstext-Payloads früher normalisiert, fehlgeschlagene Save-Inhalte für den nächsten Render gehalten und Capability-Grenzen auch im Modul selbst nachgezogen werden. | Rechtstext- und Seitenzuordnungs-Formulare bleiben bei Validierungsfehlern stabiler am letzten POST-Zustand, und der Legal-Sites-Pfad hängt seine Berechtigungsgrenze nicht mehr nur am Entry. |
+
+### Delta Batch 383
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/ThemeEditorModule.php`, `CMS/admin/views/themes/editor.php` | umgesetzt | Theme-Explorer-Editor weiter verdichtet, indem Dateimetadaten, Bearbeitbarkeitsstatus und Save-Sperrgründe serverseitig vorbereitet und im Editor direkt sichtbar bzw. wirksam gemacht werden. | Der Theme-Explorer reduziert weitere versteckte Save-Fehlerpfade, zeigt Größe/Typ/Bearbeitbarkeit früher an und sperrt nicht sicher editierbare Dateien bereits im UI. |
+
+### Delta Batch 382
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/plugins/PluginMarketplaceModule.php`, `CMS/admin/modules/themes/ThemeMarketplaceModule.php`, `CMS/admin/views/plugins/marketplace.php`, `CMS/admin/views/themes/marketplace.php` | umgesetzt | Marketplace-Fehler- und Fallbackpfade weiter geglättet, indem Plugin- und Theme-Kataloge ihre Quelle inklusive Remote-/Fallback-Status explizit an die Views melden und diese Quelle direkt im Admin angezeigt wird. | Marketplace-Ansichten bleiben bei Remote-Ausfällen transparenter, weil lokale Fallbacks oder fehlende Kataloge nicht länger nur implizit über leere Listen oder stilles Verhalten sichtbar werden. |
+
+### Delta Batch 381
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/theme-explorer.php`, `CMS/admin/views/themes/editor.php`, `CMS/assets/js/admin-theme-explorer.js` | umgesetzt | Den Theme-Explorer weiter verdichtet, indem Editor-Interaktionen aus dem Template in ein dediziertes Admin-Asset verlagert, Dateifilter ergänzt und die Konfiguration kleiner zwischen Entry, View und JS verteilt wird. | Der Theme-Explorer reduziert weiteren Inline-JavaScript-Boilerplate, hält Tastatur- und Filterlogik sichtbarer am Asset-Vertrag und bleibt bei größeren Dateibäumen bedienbarer. |
+
+### Delta Batch 380
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/landing-page.php`, `CMS/admin/views/landing/page.php` | umgesetzt | Den Landing-Entry weiter verdichtet, indem Aktions-, Feature-, Plugin- und Tab-Payloads enger normalisiert und Formular-Redirects konsequent an den aktiven Tab zurückgeführt werden. | Der Landing-Admin reduziert weitere POST-/Redirect-Sonderpfade, bleibt bei Fehlern und Save-Aktionen im richtigen Tab und hält Entry- sowie Formularvertrag klarer. |
+
+### Delta Batch 379
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/comments/CommentsModule.php`, `CMS/admin/views/comments/list.php` | umgesetzt | Die Kommentar-Moderation weiter verdichtet, indem KPI-Karten und statusabhängige Zeilenaktionen serverseitig vorbereitet und in der View nur noch gerendert werden. | Die Kommentar-Liste reduziert weitere Status-/Rechte-Verzweigungen im Template, hängt sichtbarer an vorbereiteten Zeilenmodellen und bleibt stabiler bei künftigen Moderations-Erweiterungen. |
+
+### Delta Batch 378
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/tables/TablesModule.php`, `CMS/admin/site-tables.php`, `CMS/admin/views/tables/edit.php`, `CMS/assets/js/admin-site-tables.js` | umgesetzt | Den Tabellen-Editor weiter verdichtet, indem Spalten-/Zeilenstrukturen, Größenlimits und Save-Redirects enger normalisiert sowie Editor-Limits vorbereitet an View und Asset übergeben werden. | Die Tabellen-Bearbeitung reduziert weitere Payload- und Größenrisiken, hält Save-Fehler näher am Editor und trennt Validierung, Limits sowie Editorzustand klarer zwischen Modul, Entry und Asset. |
+
+### Delta Batch 377
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/menu-editor.php`, `CMS/admin/modules/menus/MenuEditorModule.php`, `CMS/admin/views/menus/editor.php`, `CMS/assets/js/admin-menu-editor.js` | umgesetzt | Den Menü-Editor weiter verdichtet, indem Payload-Fehler und Größenlimits früher im Entry greifen, Theme-Positionen sowie Menü-Items serverseitig strikter validiert werden und Page-Picker-/Editor-Konfiguration vorbereitet aus dem Modul in View und Asset fließt. | Der Menü-Editor reduziert weitere Trust-Boundary-Schwächen bei URL-, Parent- und Item-Payloads, hängt sichtbarer an einem kleineren Modul-/View-Vertrag und gibt Picker-/Editor-Fehler früher und konsistenter im Admin zurück. |
+
+### Delta Batch 376
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/landing/LandingPageModule.php`, `CMS/admin/views/landing/page.php` | umgesetzt | Landing-ViewModels weiter verdichtet, indem Content-Typen, Feature-Karten und Plugin-Karten serverseitig vorbereitet und in der View nur noch gerendert werden. | Der Landing-Admin reduziert weitere Template-Logik, hängt Plugin-Metadaten robuster an echten Service-Feldern und trennt Override-/Darstellungsdetails klarer vom Markup. |
+
+### Delta Batch 375
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/theme-marketplace.php`, `CMS/admin/modules/themes/ThemeMarketplaceModule.php`, `CMS/admin/views/themes/marketplace.php`, `CMS/assets/js/admin-theme-marketplace.js` | umgesetzt | Theme-Marketplace-Wrapper weiter verdichtet, indem Action-/Theme-Slug-Fehler über einen gemeinsamen Payload laufen, Statusmetriken serverseitig vorbereitet und Install-Buttons im UI gegen Mehrfachsubmit abgesichert werden. | Der Theme-Marketplace hält seinen Entry näher am Section-Shell-Vertrag, trennt Statuszähler und Statusfilter klarer vom Template und vermeidet doppelte Installationsversuche durch einen klaren Submit-Zustand im Admin. |
+
+### Delta Batch 374
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/plugin-marketplace.php`, `CMS/admin/modules/plugins/PluginMarketplaceModule.php`, `CMS/admin/views/plugins/marketplace.php`, `CMS/assets/js/admin-plugin-marketplace.js` | umgesetzt | Plugin-Marketplace-Wrapper weiter verdichtet, indem Action-/Slug-Fehler über einen gemeinsamen Payload laufen, Filterdaten serverseitig vorbereitet und Install-Buttons im UI gegen Mehrfachsubmit abgesichert werden. | Der Marketplace hält seinen Entry näher am Section-Shell-Vertrag, trennt Filter-/Statusoptionen klarer vom Template und vermeidet hektische Doppel-Installationsversuche durch einen klaren Submit-Zustand im Admin. |
+
+### Delta Batch 373
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/landing/LandingPageModule.php`, `CMS/admin/views/landing/page.php`, `CMS/core/Services/Landing/LandingHeaderService.php`, `CMS/core/Services/Landing/LandingDefaultsProvider.php`, `CMS/install/InstallerService.php`, `CMS/themes/cms-default/partials/home-landing.php` | umgesetzt | Landing-Header-Vertrag weiter verdichtet, indem das Hero-Badge als eigener Admin-/Service-Wert geführt und im Frontend leerlaufsicher gerendert wird. | Der Landing-Admin kann Badge-Texte jetzt frei pflegen, bestehende Installationen bleiben durch den Versions-Fallback kompatibel und das Hero-Markup blendet das Badge automatisch aus, wenn kein Text hinterlegt ist. |
+
+### Delta Batch 372
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/comments.php`, `CMS/admin/modules/comments/CommentsModule.php`, `CMS/admin/views/comments/list.php`, `CMS/admin/landing-page.php`, `CMS/admin/views/landing/page.php`, `CMS/admin/menu-editor.php`, `CMS/admin/modules/menus/MenuEditorModule.php`, `CMS/admin/site-tables.php`, `CMS/admin/modules/tables/TablesModule.php`, `CMS/admin/views/tables/list.php`, `CMS/admin/theme-editor.php`, `CMS/admin/theme-explorer.php`, `CMS/admin/modules/themes/ThemeEditorModule.php`, `CMS/admin/views/themes/editor.php` | umgesetzt | Rechte-, ViewModel-, Redirect- und Dateipfadverträge für Kommentar-, Landing-, Menü-, Tabellen- und Theme-Editor-Pfade weiter verdichtet. | Kommentare liefern vorbereitete Status-Tabs und Zeilenmodelle ohne direkte `$_GET`-Abhängigkeit im Modul, Landing-Tabs und Plugin-Overrides hängen sauberer an vorkonfigurierten View-Daten, der Menü-Editor vermeidet Doppel-Bootstrap und landet nach neuen Menüs korrekt im Editor, Tabellen kapseln Such-/Listen- und Fehlerpfade klarer, und Theme-Editor/Explorer erzwingen engere Capability- sowie Hidden-Path-Grenzen für Customizer- und Dateibaum-Zugriffe. |
 
 ### Delta Batch 371
 

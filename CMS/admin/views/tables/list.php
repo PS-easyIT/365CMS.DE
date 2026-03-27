@@ -127,10 +127,10 @@ $search = $data['search'] ?? '';
                                         <code>[table id=<?php echo (int)$t['id']; ?> /]</code>
                                     </div>
                                 </td>
-                                <td class="text-secondary text-truncate" style="max-width:200px;"><?php echo htmlspecialchars($t['description'] ?? ''); ?></td>
+                                <td class="text-secondary text-truncate" style="max-width:200px;"><?php echo htmlspecialchars((string)($t['description_excerpt'] ?? '')); ?></td>
                                 <td><?php echo (int)($t['col_count'] ?? 0); ?></td>
                                 <td><?php echo (int)($t['row_count'] ?? 0); ?></td>
-                                <td class="text-secondary"><?php echo date('d.m.Y', strtotime($t['updated_at'] ?? $t['created_at'])); ?></td>
+                                <td class="text-secondary"><?php echo htmlspecialchars((string)($t['updated_label'] ?? '–')); ?></td>
                                 <td>
                                     <div class="dropdown">
                                         <button class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="dropdown">

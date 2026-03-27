@@ -24,6 +24,11 @@ class FontManagerModule
     private Logger $logger;
     private const MAX_REMOTE_FONT_FILES = 20;
     private const MAX_FONT_FILENAME_LENGTH = 180;
+    private const MAX_SCANNED_THEME_FILES = 300;
+    private const MAX_SCANNED_THEME_FILE_BYTES = 262144;
+    private const MAX_SCANNED_TOTAL_BYTES = 10485760;
+    private const SCAN_ALLOWED_EXTENSIONS = ['css', 'php', 'js', 'json', 'txt', 'md'];
+    private const SCAN_SKIPPED_SEGMENTS = ['vendor', 'node_modules', 'cache', '.git'];
 
     private const SYSTEM_FONTS = [
         'system-ui'       => 'System UI (Standard)',
@@ -150,6 +155,20 @@ class FontManagerModule
             'scanResults'   => $scanResults,
             'fontCatalog'   => $this->getCuratedFontCatalog($customFonts),
             'activeThemeSlug' => ThemeManager::instance()->getActiveThemeSlug(),
+            'scanSummary' => [
+                'scannedFiles' => (int) ($scanResults['scannedFiles'] ?? 0),
+                'skippedFiles' => (int) ($scanResults['skippedFiles'] ?? 0),
+                'warnings' => is_array($scanResults['warnings'] ?? null) ? $scanResults['warnings'] : [],
+            ],
+            'constraints' => [
+                'google_font_family_max_length' => 120,
+                'font_size_min' => 12,
+                'font_size_max' => 24,
+                'line_height_min' => '1.0',
+                'line_height_max' => '2.5',
+                'scan_file_limit' => self::MAX_SCANNED_THEME_FILES,
+                'scan_file_size_limit' => self::MAX_SCANNED_THEME_FILE_BYTES,
+            ],
         ];
     }
 
@@ -250,12 +269,16 @@ class FontManagerModule
     public function saveSettings(array $post): array
     {
         try {
+            $allowedFonts = $this->getSelectableFontKeys();
+            $headingFont = $this->normalizeSelectableFontKey((string) ($post['heading_font'] ?? 'system-ui'), $allowedFonts);
+            $bodyFont = $this->normalizeSelectableFontKey((string) ($post['body_font'] ?? 'system-ui'), $allowedFonts);
+
             $settings = [
-                'font_heading'     => preg_replace('/[^a-zA-Z0-9_-]/', '', $post['heading_font'] ?? 'system-ui'),
-                'font_body'        => preg_replace('/[^a-zA-Z0-9_-]/', '', $post['body_font'] ?? 'system-ui'),
+                'font_heading'     => $headingFont,
+                'font_body'        => $bodyFont,
                 'font_size_base'   => max(12, min(24, (int)($post['font_size'] ?? 16))),
                 'font_line_height' => max(1.0, min(2.5, (float)($post['line_height'] ?? 1.6))),
-                'privacy_use_local_fonts' => isset($post['use_local_fonts']) ? '1' : '0',
+                'privacy_use_local_fonts' => (($post['use_local_fonts'] ?? '0') === '1') ? '1' : '0',
             ];
 
             $existingSettings = $this->loadExistingSettings(array_keys($settings));
@@ -624,12 +647,17 @@ class FontManagerModule
         $installed    = $this->getInstalledFontNames($customFonts);
         $detected     = [];
         $scannedFiles = 0;
+        $skippedFiles = 0;
+        $warnings = [];
+        $scannedBytes = 0;
 
         if (!is_dir($themePath)) {
             return [
                 'theme' => $themeSlug,
                 'scannedFiles' => 0,
+                'skippedFiles' => 0,
                 'detectedFonts' => [],
+                'warnings' => ['Der aktive Theme-Pfad ist kein lesbares Verzeichnis.'],
             ];
         }
 
@@ -642,18 +670,43 @@ class FontManagerModule
                 continue;
             }
 
-            $extension = strtolower($file->getExtension());
-            if (!in_array($extension, ['css', 'php', 'js', 'json', 'txt', 'md'], true)) {
+            $pathName = $file->getPathname();
+            if ($this->shouldSkipScanPath($pathName)) {
+                $skippedFiles++;
                 continue;
             }
 
-            $content = $this->readFileContents($file->getPathname());
+            if ($scannedFiles >= self::MAX_SCANNED_THEME_FILES) {
+                $warnings[] = 'Der Theme-Scan wurde nach ' . self::MAX_SCANNED_THEME_FILES . ' Dateien begrenzt.';
+                break;
+            }
+
+            $extension = strtolower($file->getExtension());
+            if (!in_array($extension, self::SCAN_ALLOWED_EXTENSIONS, true)) {
+                $skippedFiles++;
+                continue;
+            }
+
+            $fileSize = $file->getSize();
+            if ($fileSize > self::MAX_SCANNED_THEME_FILE_BYTES) {
+                $skippedFiles++;
+                continue;
+            }
+
+            if (($scannedBytes + $fileSize) > self::MAX_SCANNED_TOTAL_BYTES) {
+                $warnings[] = 'Der Theme-Scan wurde nach insgesamt 10 MB Textinhalt begrenzt.';
+                break;
+            }
+
+            $content = $this->readFileContents($pathName, self::MAX_SCANNED_THEME_FILE_BYTES);
             if (!is_string($content) || $content === '') {
+                $skippedFiles++;
                 continue;
             }
 
             $scannedFiles++;
-            $relativePath = str_replace(['\\', THEME_PATH], ['/', ''], $file->getPathname());
+            $scannedBytes += $fileSize;
+            $relativePath = str_replace(['\\', THEME_PATH], ['/', ''], $pathName);
 
             foreach ($this->extractGoogleFontFamilies($content) as $family) {
                 $fontKey = mb_strtolower($family);
@@ -693,6 +746,7 @@ class FontManagerModule
         return [
             'theme' => $themeSlug,
             'scannedFiles' => $scannedFiles,
+            'skippedFiles' => $skippedFiles,
             'detectedFonts' => array_values(array_map(static function (array $font): array {
                 $font['sources'] = array_map(
                     static fn(string $type, string $file): array => ['file' => $file, 'type' => $type],
@@ -701,7 +755,31 @@ class FontManagerModule
                 );
                 return $font;
             }, $detected)),
+            'warnings' => array_values(array_unique($warnings)),
         ];
+    }
+
+    /** @return array<int, string> */
+    private function getSelectableFontKeys(): array
+    {
+        $keys = array_keys(self::SYSTEM_FONTS);
+
+        foreach ($this->getCustomFonts() as $font) {
+            $slug = trim((string) ($font->slug ?? ''));
+            if ($slug !== '') {
+                $keys[] = strtolower($slug);
+            }
+        }
+
+        return array_values(array_unique($keys));
+    }
+
+    /** @param array<int, string> $allowedKeys */
+    private function normalizeSelectableFontKey(string $value, array $allowedKeys): string
+    {
+        $normalized = preg_replace('/[^a-z0-9_-]/', '', strtolower(trim($value))) ?? '';
+
+        return in_array($normalized, $allowedKeys, true) ? $normalized : 'system-ui';
     }
 
     private function getCuratedFontCatalog(array $customFonts): array
@@ -783,13 +861,31 @@ class FontManagerModule
         return true;
     }
 
-    private function readFileContents(string $path): string|false
+    private function readFileContents(string $path, int $maxBytes = self::MAX_SCANNED_THEME_FILE_BYTES): string|false
     {
         if (!is_file($path) || !is_readable($path)) {
             return false;
         }
 
+        $fileSize = filesize($path);
+        if ($fileSize === false || $fileSize > $maxBytes) {
+            return false;
+        }
+
         return file_get_contents($path);
+    }
+
+    private function shouldSkipScanPath(string $path): bool
+    {
+        $normalizedPath = strtolower(str_replace('\\', '/', $path));
+
+        foreach (self::SCAN_SKIPPED_SEGMENTS as $segment) {
+            if (str_contains($normalizedPath, '/' . strtolower($segment) . '/')) {
+                return true;
+            }
+        }
+
+        return preg_match('#/(?:\.[^/]+)(?:/|$)#', $normalizedPath) === 1;
     }
 
     private function buildManagedFontFileName(string $slug, string $urlPath, string $extension): ?string

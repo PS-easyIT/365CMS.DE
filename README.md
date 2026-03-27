@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.7.289-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.7.313-blue.svg)](Changelog.md)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
@@ -29,16 +29,16 @@
 
 ## 📈 Audit-Stand März 2026
 
-Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 371** nachgezogen. Aktuell sind damit **371 von 444 Prüfplan-Punkten** geschafft. Der aktuelle dokumentierte Gesamtstand über **448 bewertete Dateien** liegt bei:
+Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 395** nachgezogen. Aktuell sind damit **395 von 444 Prüfplan-Punkten** geschafft. Der aktuelle dokumentierte Gesamtstand über **448 bewertete Dateien** liegt bei:
 
 | Metrik | Stand |
 |---|---:|
-| **Security** | **91,42** |
-| **Speed** | **89,02** |
-| **PHP / Best Practices** | **92,90** |
-| **Gesamt** | **92,53** |
+| **Security** | **92,61** |
+| **Speed** | **90,28** |
+| **PHP / Best Practices** | **94,04** |
+| **Gesamt** | **93,81** |
 
-Zuletzt wurden **Theme- und Plugin-Marketplace weiter gehärtet, der Landing-Page-Admin vom unnötigen Default-Bootstrap entkoppelt und Restpfade in Kommentar-, Menü- und Tabellen-Views nachgezogen**. `CMS/admin/modules/themes/ThemeMarketplaceModule.php` validiert Remote-/Manifest-/Asset-Pfade jetzt restriktiver und dedupliziert Slugs sauber, `CMS/admin/views/themes/marketplace.php` sowie `CMS/admin/views/plugins/marketplace.php` liefern Such-/Statusfilter und klarere Installationshinweise, und `CMS/admin/modules/landing/LandingPageModule.php` initialisiert Defaults nur noch lazy auf echten Lese-/Schreibpfaden.
+Zuletzt wurden **Theme-Explorer-Entry, Theme-Dateibaum und die Pending-/Status-Verträge von Explorer und Font-Manager weiter verdichtet**. `CMS/admin/theme-explorer.php` nutzt jetzt denselben Section-Shell-Rahmen wie andere modernisierte Admin-Entrys, `CMS/admin/modules/themes/ThemeEditorModule.php` begrenzt Dateibaum-Tiefe, Eintragszahl und ausgesparte Verzeichnisse expliziter, `CMS/admin/views/themes/editor.php` zeigt Baumgrenzen und Save-Status sichtbarer an und `CMS/assets/js/admin-theme-explorer.js` sowie `CMS/assets/js/admin-font-manager.js` verhindern Doppelaktionen mit klareren Pending-/Dirty-Zuständen. Passend dazu bindet `CMS/admin/views/themes/fonts.php` alle mutierenden Formulare jetzt an denselben kleinen UI-Status-Vertrag.
 
 ## 🧩 Funktionsumfang im Überblick
 

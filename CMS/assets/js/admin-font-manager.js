@@ -53,17 +53,63 @@
         updatePreview();
     }
 
-    function submitForm(form) {
+    function setPendingButtonState(button, pendingText) {
+        if (!button) {
+            return;
+        }
+
+        if (!button.dataset.originalText) {
+            button.dataset.originalText = button.textContent;
+        }
+
+        button.disabled = true;
+        button.textContent = pendingText;
+    }
+
+    function resolveSubmitButton(form, fallbackButton) {
+        if (fallbackButton) {
+            return fallbackButton;
+        }
+
+        return form ? form.querySelector('button[type="submit"], input[type="submit"]') : null;
+    }
+
+    function submitForm(form, triggerButton) {
         if (!form) {
             return;
         }
 
+        var submitButton = resolveSubmitButton(form, triggerButton);
+        var pendingText = submitButton && submitButton.getAttribute('data-pending-text')
+            ? submitButton.getAttribute('data-pending-text')
+            : 'Wird ausgeführt …';
+
+        setPendingButtonState(submitButton, pendingText);
+
         if (typeof form.requestSubmit === 'function') {
+            if (submitButton && submitButton.tagName === 'BUTTON') {
+                form.requestSubmit(submitButton);
+                return;
+            }
+
             form.requestSubmit();
             return;
         }
 
         form.submit();
+    }
+
+    function bindActionForms() {
+        document.querySelectorAll('[data-font-manager-form]').forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                var submitter = event.submitter || resolveSubmitButton(form, null);
+                var pendingText = submitter && submitter.getAttribute('data-pending-text')
+                    ? submitter.getAttribute('data-pending-text')
+                    : 'Wird ausgeführt …';
+
+                setPendingButtonState(submitter, pendingText);
+            });
+        });
     }
 
     function bindDeleteButtons(config) {
@@ -83,7 +129,7 @@
                         confirmText: deleteModal.confirmText || 'Löschen',
                         confirmClass: deleteModal.confirmClass || 'btn-danger',
                         onConfirm: function () {
-                            submitForm(form);
+                            submitForm(form, button);
                         }
                     });
 
@@ -91,7 +137,7 @@
                 }
 
                 if (window.confirm('Soll "' + fontName + '" wirklich gelöscht werden?')) {
-                    submitForm(form);
+                    submitForm(form, button);
                 }
             });
         });
@@ -100,6 +146,7 @@
     function init() {
         var config = parseConfig('font-manager-config') || {};
         bindPreview(config);
+        bindActionForms();
         bindDeleteButtons(config);
     }
 

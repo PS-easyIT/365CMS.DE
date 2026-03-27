@@ -24,6 +24,8 @@ $lineHeight   = $data['lineHeight'] ?? '1.6';
 $scanResults  = $data['scanResults'] ?? ['theme' => '', 'scannedFiles' => 0, 'detectedFonts' => []];
 $fontCatalog  = $data['fontCatalog'] ?? [];
 $activeThemeSlug = $data['activeThemeSlug'] ?? '';
+$scanSummary = is_array($data['scanSummary'] ?? null) ? $data['scanSummary'] : ['scannedFiles' => 0, 'skippedFiles' => 0, 'warnings' => []];
+$constraints = is_array($data['constraints'] ?? null) ? $data['constraints'] : [];
 $detectedFonts = (array)($scanResults['detectedFonts'] ?? []);
 $detectedInstallableFonts = array_values(array_filter($detectedFonts, static fn(array $font): bool => empty($font['installed'])));
 $fontManagerConfig = [
@@ -65,16 +67,16 @@ $fontManagerConfig = [
                     </div>
                     <div class="d-flex gap-2">
                         <?php if ($detectedInstallableFonts !== []): ?>
-                            <form method="post">
+                            <form method="post" data-font-manager-form="download-detected-fonts">
                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                 <input type="hidden" name="action" value="download_detected_fonts">
-                                <button type="submit" class="btn btn-success btn-sm">Alle lokal laden</button>
+                                <button type="submit" class="btn btn-success btn-sm" data-pending-text="Lädt lokal …">Alle lokal laden</button>
                             </form>
                         <?php endif; ?>
-                        <form method="post">
+                        <form method="post" data-font-manager-form="scan-theme-fonts">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                             <input type="hidden" name="action" value="scan_theme_fonts">
-                            <button type="submit" class="btn btn-primary btn-sm">Scan starten</button>
+                            <button type="submit" class="btn btn-primary btn-sm" data-pending-text="Scan läuft …">Scan starten</button>
                         </form>
                     </div>
                 </div>
@@ -92,7 +94,27 @@ $fontManagerConfig = [
                     ?>
 
                     <p class="text-muted">Der Scan durchsucht das aktive Theme nach Google-Font-Imports und bekannten Schriftfamilien, damit du genutzte Fonts lokal self-hosten kannst.</p>
-                    <div class="small text-muted mb-3"><?php echo (int)($scanResults['scannedFiles'] ?? 0); ?> Dateien geprüft</div>
+                    <div class="small text-muted mb-3">
+                        <?php echo (int)($scanSummary['scannedFiles'] ?? 0); ?> Dateien geprüft
+                        <?php if (!empty($scanSummary['skippedFiles'])): ?>
+                            · <?php echo (int)($scanSummary['skippedFiles'] ?? 0); ?> übersprungen
+                        <?php endif; ?>
+                        <?php if (!empty($constraints['scan_file_limit'])): ?>
+                            · Limit <?php echo (int)($constraints['scan_file_limit'] ?? 0); ?> Dateien
+                        <?php endif; ?>
+                    </div>
+                    <?php if (!empty($scanSummary['warnings']) && is_array($scanSummary['warnings'])): ?>
+                        <?php
+                        $alertData = [
+                            'type' => 'warning',
+                            'message' => 'Der Theme-Scan wurde mit Schutzgrenzen ausgeführt.',
+                            'details' => array_values(array_map(static fn(mixed $warning): string => (string) $warning, $scanSummary['warnings'])),
+                        ];
+                        $alertDismissible = false;
+                        $alertMarginClass = 'mb-3';
+                        require __DIR__ . '/../partials/flash-alert.php';
+                        ?>
+                    <?php endif; ?>
                     <?php if ($detectedInstallableFonts !== []): ?>
                         <?php
                         $alertData = [
@@ -141,11 +163,11 @@ $fontManagerConfig = [
                                             </td>
                                             <td>
                                                 <?php if (empty($font['installed'])): ?>
-                                                    <form method="post">
+                                                    <form method="post" data-font-manager-form="download-detected-single-font">
                                                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                                         <input type="hidden" name="action" value="download_google_font">
                                                         <input type="hidden" name="google_font_family" value="<?php echo htmlspecialchars($font['name'] ?? ''); ?>">
-                                                        <button type="submit" class="btn btn-outline-primary btn-sm">Self-Host</button>
+                                                        <button type="submit" class="btn btn-outline-primary btn-sm" data-pending-text="Lädt …">Self-Host</button>
                                                     </form>
                                                 <?php else: ?>
                                                     <span class="text-muted small">Bereits lokal</span>
@@ -203,11 +225,11 @@ $fontManagerConfig = [
                                                         <?php if (!empty($font['installed'])): ?>
                                                             <span class="badge bg-green mb-2">Lokal</span>
                                                         <?php else: ?>
-                                                            <form method="post">
+                                                            <form method="post" data-font-manager-form="download-library-font">
                                                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                                                 <input type="hidden" name="action" value="download_google_font">
                                                                 <input type="hidden" name="google_font_family" value="<?php echo htmlspecialchars($font['name']); ?>">
-                                                                <button type="submit" class="btn btn-outline-primary btn-sm">Self-Host</button>
+                                                                <button type="submit" class="btn btn-outline-primary btn-sm" data-pending-text="Lädt …">Self-Host</button>
                                                             </form>
                                                         <?php endif; ?>
                                                     </div>
@@ -252,11 +274,11 @@ $fontManagerConfig = [
                                         </td>
                                         <td class="text-muted small"><?php echo htmlspecialchars($font->file_path ?? ''); ?></td>
                                         <td>
-                                            <form method="post" class="d-inline">
+                                            <form method="post" class="d-inline" data-font-manager-form="delete-font">
                                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                                 <input type="hidden" name="action" value="delete_font">
                                                 <input type="hidden" name="font_id" value="<?php echo (int)($font->id ?? 0); ?>">
-                                                <button type="button" class="btn btn-outline-danger btn-sm js-font-delete" data-font-name="<?php echo htmlspecialchars($font->name ?? '', ENT_QUOTES); ?>">Löschen</button>
+                                                <button type="button" class="btn btn-outline-danger btn-sm js-font-delete" data-font-name="<?php echo htmlspecialchars($font->name ?? '', ENT_QUOTES); ?>" data-pending-text="Löscht …">Löschen</button>
                                             </form>
                                         </td>
                                     </tr>
@@ -267,7 +289,7 @@ $fontManagerConfig = [
                 </div>
             <?php endif; ?>
 
-            <form method="post" class="card mb-3">
+            <form method="post" class="card mb-3" data-font-manager-form="save-assignments">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                 <input type="hidden" name="action" value="save">
                 <div class="card-header">
@@ -295,11 +317,11 @@ $fontManagerConfig = [
                     <div class="row">
                         <div class="col-md-6">
                             <label class="form-label">Basis-Schriftgröße (px)</label>
-                            <input type="number" name="font_size" class="form-control" value="<?php echo (int)$fontSize; ?>" min="12" max="24" step="1">
+                                <input type="number" name="font_size" class="form-control" value="<?php echo (int)$fontSize; ?>" min="<?php echo (int)($constraints['font_size_min'] ?? 12); ?>" max="<?php echo (int)($constraints['font_size_max'] ?? 24); ?>" step="1" inputmode="numeric">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Zeilenhöhe</label>
-                            <input type="number" name="line_height" class="form-control" value="<?php echo htmlspecialchars($lineHeight); ?>" min="1.0" max="2.5" step="0.1">
+                            <input type="number" name="line_height" class="form-control" value="<?php echo htmlspecialchars($lineHeight); ?>" min="<?php echo htmlspecialchars((string)($constraints['line_height_min'] ?? '1.0')); ?>" max="<?php echo htmlspecialchars((string)($constraints['line_height_max'] ?? '2.5')); ?>" step="0.1" inputmode="decimal">
                         </div>
                     </div>
                     <div class="form-check form-switch mt-3">
@@ -311,7 +333,7 @@ $fontManagerConfig = [
                     </div>
                 </div>
                 <div class="card-footer text-end">
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary" data-pending-text="Speichert …">
                         <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-device-floppy" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2"/><path d="M12 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M14 4l0 4l-6 0l0 -4"/></svg>
                         Zuweisung speichern
                     </button>
@@ -323,17 +345,17 @@ $fontManagerConfig = [
                     <h3 class="card-title">Direktdownload einer Google Font</h3>
                 </div>
                 <div class="card-body">
-                    <form method="post">
+                    <form method="post" data-font-manager-form="direct-download-font">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                         <input type="hidden" name="action" value="download_google_font">
                         <div class="row g-2 align-items-end">
                             <div class="col">
                                 <label class="form-label">Google Font Name</label>
-                                <input type="text" name="google_font_family" class="form-control" placeholder="z.B. Inter, Roboto, Open Sans" required pattern="[a-zA-Z0-9 ]+" title="Nur Buchstaben, Zahlen und Leerzeichen">
+                                <input type="text" name="google_font_family" class="form-control" placeholder="z.B. Inter, Roboto, Open Sans" required maxlength="<?php echo (int)($constraints['google_font_family_max_length'] ?? 120); ?>" pattern="[a-zA-Z0-9 ]+" title="Nur Buchstaben, Zahlen und Leerzeichen" autocomplete="off" spellcheck="false">
                                 <small class="form-hint">Exakter Name von <a href="https://fonts.google.com" target="_blank" rel="noopener noreferrer">fonts.google.com</a></small>
                             </div>
                             <div class="col-auto">
-                                <button type="submit" class="btn btn-outline-primary">Herunterladen</button>
+                                <button type="submit" class="btn btn-outline-primary" data-pending-text="Lädt …">Herunterladen</button>
                             </div>
                         </div>
                     </form>

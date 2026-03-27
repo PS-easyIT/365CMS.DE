@@ -80,6 +80,12 @@ class PluginMarketplaceModule
     private readonly UpdateService $updateService;
     /** @var array<int, array<string, mixed>>|null */
     private ?array $registryCache = null;
+    /** @var array<string, string> */
+    private array $registrySource = [
+        'type' => 'none',
+        'status' => 'warning',
+        'message' => 'Noch keine Marketplace-Quelle ausgewertet.',
+    ];
 
     public function __construct()
     {
@@ -112,11 +118,11 @@ class PluginMarketplaceModule
         return [
             'plugins'   => $available,
             'installed' => $installed,
-            'stats'     => [
-                'available'   => count($available),
-                'installed'   => count($installed),
-                'installable' => count(array_filter($available, fn($p) => empty($p['installed']) && !empty($p['auto_install_supported']))),
-                'manual_only' => count(array_filter($available, fn($p) => empty($p['installed']) && empty($p['auto_install_supported']))),
+            'stats'     => $this->buildStats($available, $installed),
+            'source'    => $this->registrySource,
+            'filters'   => [
+                'categories' => $this->buildCategoryFilters($available),
+                'statuses' => $this->buildStatusFilters(),
             ],
         ];
     }
@@ -155,6 +161,12 @@ class PluginMarketplaceModule
         }
 
         $targetDir = $pluginsDir . $slug . DIRECTORY_SEPARATOR;
+        $normalizedPluginsDir = rtrim(str_replace('\\', '/', $pluginsDir), '/') . '/';
+        $normalizedTargetDir = rtrim(str_replace('\\', '/', $targetDir), '/') . '/';
+
+        if (!str_starts_with($normalizedTargetDir, $normalizedPluginsDir)) {
+            return ['success' => false, 'error' => 'Plugin-Zielverzeichnis ist ungültig.'];
+        }
 
         if (is_dir($targetDir)) {
             return ['success' => false, 'error' => 'Plugin ist bereits installiert.'];
@@ -186,22 +198,49 @@ class PluginMarketplaceModule
         if ($registryUrl !== '') {
             $remoteRegistry = $this->loadRemoteRegistry($registryUrl);
             if ($remoteRegistry !== []) {
+                $this->registrySource = [
+                    'type' => 'remote',
+                    'status' => 'success',
+                    'message' => 'Plugin-Registry erfolgreich aus der Remote-Quelle geladen.',
+                    'url' => $registryUrl,
+                ];
                 return $this->registryCache = $remoteRegistry;
             }
         }
 
         $localIndex = $this->resolveLocalRegistryPath();
         if ($localIndex === '' || !is_file($localIndex)) {
+            $this->registrySource = [
+                'type' => 'none',
+                'status' => 'warning',
+                'message' => 'Es konnte weder eine Remote-Registry noch ein lokaler Marketplace-Index geladen werden.',
+                'url' => $registryUrl,
+            ];
             return $this->registryCache = [];
         }
 
         $content = file_get_contents($localIndex);
         if ($content === false || $content === '') {
+            $this->registrySource = [
+                'type' => 'none',
+                'status' => 'warning',
+                'message' => 'Der lokale Marketplace-Index ist leer oder nicht lesbar.',
+                'url' => $localIndex,
+            ];
             return $this->registryCache = [];
         }
 
         $json = \CMS\Json::decodeArray($content, []);
         $plugins = is_array($json) ? ($json['plugins'] ?? $json) : [];
+
+        $this->registrySource = [
+            'type' => 'local',
+            'status' => $registryUrl !== '' ? 'warning' : 'info',
+            'message' => $registryUrl !== ''
+                ? 'Remote-Registry derzeit nicht verfügbar; lokaler Marketplace-Index wird als Fallback genutzt.'
+                : 'Lokaler Marketplace-Index wird verwendet.',
+            'url' => $localIndex,
+        ];
 
         return $this->registryCache = $this->sanitizeCatalogEntries(is_array($plugins) ? $plugins : [], dirname($localIndex));
     }
@@ -327,6 +366,49 @@ class PluginMarketplaceModule
         }
 
         return $sanitized;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $plugins
+     * @param array<int, string> $installed
+     * @return array<string, int>
+     */
+    private function buildStats(array $plugins, array $installed): array
+    {
+        return [
+            'available' => count($plugins),
+            'installed' => count($installed),
+            'installable' => count(array_filter($plugins, fn($plugin) => empty($plugin['installed']) && !empty($plugin['auto_install_supported']))),
+            'manual_only' => count(array_filter($plugins, fn($plugin) => empty($plugin['installed']) && empty($plugin['auto_install_supported']))),
+        ];
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $plugins
+     * @return array<int, string>
+     */
+    private function buildCategoryFilters(array $plugins): array
+    {
+        $categories = array_unique(array_filter(array_map(
+            fn(array $plugin): string => $this->normalizeCatalogString($plugin['category'] ?? '', 80),
+            $plugins
+        )));
+
+        sort($categories);
+
+        return array_values($categories);
+    }
+
+    /**
+     * @return array<int, array{value:string,label:string}>
+     */
+    private function buildStatusFilters(): array
+    {
+        return [
+            ['value' => 'installable', 'label' => 'Automatisch installierbar'],
+            ['value' => 'manual', 'label' => 'Nur manuell / Anfrage'],
+            ['value' => 'installed', 'label' => 'Bereits installiert'],
+        ];
     }
 
     private function sanitizeManifestData(array $manifestData): array

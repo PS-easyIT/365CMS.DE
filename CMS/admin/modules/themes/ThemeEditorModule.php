@@ -18,6 +18,10 @@ use CMS\ThemeManager;
 class ThemeEditorModule
 {
     private const ALLOWED_PATH_PATTERN = '/^[A-Za-z0-9._\/-]+$/';
+    private const MAX_TREE_DEPTH = 8;
+    private const MAX_TREE_ITEMS = 600;
+    private const MAX_TREE_ITEMS_PER_DIRECTORY = 200;
+    private const SKIPPED_TREE_SEGMENTS = ['vendor', 'node_modules', 'cache', '.git', 'dist', 'build'];
     private ThemeManager $themeManager;
     private string $themePath;
     private string $themeSlug;
@@ -37,11 +41,17 @@ class ThemeEditorModule
      */
     public function getData(string $currentFile = ''): array
     {
-        $files = $this->getFileTree($this->themePath);
+        $treeSummary = [
+            'items' => 0,
+            'skipped_items' => 0,
+            'warnings' => [],
+        ];
+        $files = $this->getFileTree($this->themePath, '', 0, $treeSummary);
 
         $fileContent  = '';
         $fileLanguage = 'plaintext';
         $fileWarning  = null;
+        $fileMeta     = null;
 
         $requestedFile = $this->normalizeRelativePath($currentFile);
         $currentFile = $requestedFile;
@@ -49,6 +59,7 @@ class ThemeEditorModule
         if ($currentFile !== '') {
             $safePath = $this->resolveSafePath($currentFile);
             if ($safePath && is_file($safePath)) {
+                $fileMeta = $this->buildFileMeta($safePath, $currentFile);
                 $fileSize = filesize($safePath);
                 if ($fileSize === false || $fileSize > self::MAX_EDITABLE_BYTES) {
                     $fileWarning = 'Die ausgewählte Datei ist zu groß für die sichere Browser-Bearbeitung.';
@@ -72,10 +83,18 @@ class ThemeEditorModule
         return [
             'themeSlug'    => $this->themeSlug,
             'files'        => $files,
+            'treeSummary'  => $treeSummary,
+            'constraints'  => [
+                'tree_max_depth' => self::MAX_TREE_DEPTH,
+                'tree_max_items' => self::MAX_TREE_ITEMS,
+                'tree_directory_limit' => self::MAX_TREE_ITEMS_PER_DIRECTORY,
+                'max_editable_bytes' => self::MAX_EDITABLE_BYTES,
+            ],
             'currentFile'  => $currentFile,
             'fileContent'  => $fileContent,
             'fileLanguage' => $fileLanguage,
             'fileWarning'  => $fileWarning,
+            'fileMeta'     => $fileMeta,
         ];
     }
 
@@ -162,7 +181,7 @@ class ThemeEditorModule
     private function resolveSafePath(string $relativePath): ?string
     {
         $relativePath = $this->normalizeRelativePath($relativePath);
-        if ($relativePath === '' || !$this->isAllowedRelativePath($relativePath)) {
+        if ($relativePath === '' || !$this->isAllowedRelativePath($relativePath) || $this->containsHiddenSegment($relativePath) || $this->containsSkippedSegment($relativePath)) {
             return null;
         }
 
@@ -192,13 +211,31 @@ class ThemeEditorModule
     /**
      * Dateibaum des Themes ermitteln
      */
-    private function getFileTree(string $dir, string $prefix = ''): array
+    private function getFileTree(string $dir, string $prefix = '', int $depth = 0, array &$summary = []): array
     {
+        if ($depth >= self::MAX_TREE_DEPTH) {
+            $this->pushTreeWarning($summary, 'Der Dateibaum wurde an der maximalen Ordner-Tiefe begrenzt.');
+            return [];
+        }
+
+        if (($summary['items'] ?? 0) >= self::MAX_TREE_ITEMS) {
+            $this->pushTreeWarning($summary, 'Der Dateibaum wurde nach Erreichen des sicheren Gesamtlimits gekürzt.');
+            return [];
+        }
+
         $files = [];
         $items = scandir($dir) ?: [];
+        if (count($items) > self::MAX_TREE_ITEMS_PER_DIRECTORY + 2) {
+            $this->pushTreeWarning($summary, 'Ein oder mehrere Theme-Ordner wurden nach einem sicheren Verzeichnislimit gekürzt.');
+            $items = array_slice($items, 0, self::MAX_TREE_ITEMS_PER_DIRECTORY + 2);
+        }
 
         foreach ($items as $item) {
             if ($item === '.' || $item === '..') {
+                continue;
+            }
+
+            if ($item !== '' && $item[0] === '.') {
                 continue;
             }
 
@@ -206,26 +243,42 @@ class ThemeEditorModule
             $relative = $prefix . $item;
 
             if (is_link($path)) {
+                $summary['skipped_items'] = (int) ($summary['skipped_items'] ?? 0) + 1;
+                $this->pushTreeWarning($summary, 'Symbolische Links werden im Theme-Explorer aus Sicherheitsgründen übersprungen.');
                 continue;
             }
 
+            if ($this->shouldSkipTreeSegment($item)) {
+                $summary['skipped_items'] = (int) ($summary['skipped_items'] ?? 0) + 1;
+                continue;
+            }
+
+            if (($summary['items'] ?? 0) >= self::MAX_TREE_ITEMS) {
+                $this->pushTreeWarning($summary, 'Der Dateibaum wurde nach Erreichen des sicheren Gesamtlimits gekürzt.');
+                break;
+            }
+
             if (is_dir($path)) {
+                $summary['items'] = (int) ($summary['items'] ?? 0) + 1;
                 $files[] = [
                     'name'     => $item,
                     'path'     => $relative,
                     'type'     => 'dir',
-                    'children' => $this->getFileTree($path . '/', $relative . '/'),
+                    'children' => $this->getFileTree($path . '/', $relative . '/', $depth + 1, $summary),
                 ];
             } else {
                 $ext = strtolower(pathinfo($item, PATHINFO_EXTENSION));
                 $fileSize = filesize($path);
                 if (in_array($ext, self::ALLOWED_EXTENSIONS, true) && $fileSize !== false && $fileSize <= self::MAX_EDITABLE_BYTES) {
+                    $summary['items'] = (int) ($summary['items'] ?? 0) + 1;
                     $files[] = [
                         'name' => $item,
                         'path' => $relative,
                         'type' => 'file',
                         'ext'  => $ext,
                     ];
+                } else {
+                    $summary['skipped_items'] = (int) ($summary['skipped_items'] ?? 0) + 1;
                 }
             }
         }
@@ -258,6 +311,50 @@ class ThemeEditorModule
         };
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildFileMeta(string $safePath, string $relativePath): array
+    {
+        $fileSize = filesize($safePath);
+        $extension = strtolower(pathinfo($safePath, PATHINFO_EXTENSION));
+        $isWritable = is_writable($safePath);
+        $isEditableSize = $fileSize !== false && $fileSize <= self::MAX_EDITABLE_BYTES;
+        $isEditable = $isWritable && $isEditableSize && in_array($extension, self::ALLOWED_EXTENSIONS, true);
+
+        $reason = '';
+        if (!$isWritable) {
+            $reason = 'Datei ist schreibgeschützt oder für PHP nicht beschreibbar.';
+        } elseif (!$isEditableSize) {
+            $reason = 'Datei überschreitet das sichere Browser-Limit von 1 MB.';
+        } elseif (!in_array($extension, self::ALLOWED_EXTENSIONS, true)) {
+            $reason = 'Dateityp ist für den Browser-Editor nicht freigeschaltet.';
+        }
+
+        return [
+            'path' => $relativePath,
+            'extension' => $extension !== '' ? $extension : 'txt',
+            'size_bytes' => $fileSize !== false ? (int) $fileSize : 0,
+            'size_label' => $this->formatBytes($fileSize !== false ? (int) $fileSize : 0),
+            'is_writable' => $isWritable,
+            'is_editable' => $isEditable,
+            'save_disabled_reason' => $reason,
+        ];
+    }
+
+    private function formatBytes(int $bytes): string
+    {
+        if ($bytes >= 1048576) {
+            return number_format($bytes / 1048576, 2, ',', '.') . ' MB';
+        }
+
+        if ($bytes >= 1024) {
+            return number_format($bytes / 1024, 1, ',', '.') . ' KB';
+        }
+
+        return $bytes . ' B';
+    }
+
     private function normalizeRelativePath(string $relativePath): string
     {
         $relativePath = preg_replace('/[\x00-\x1F\x7F]/u', '', trim($relativePath)) ?? '';
@@ -270,6 +367,47 @@ class ThemeEditorModule
     private function isAllowedRelativePath(string $relativePath): bool
     {
         return preg_match(self::ALLOWED_PATH_PATTERN, $relativePath) === 1;
+    }
+
+    private function containsHiddenSegment(string $relativePath): bool
+    {
+        $segments = explode('/', trim($relativePath, '/'));
+
+        foreach ($segments as $segment) {
+            if ($segment !== '' && $segment[0] === '.') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function containsSkippedSegment(string $relativePath): bool
+    {
+        $segments = explode('/', trim($relativePath, '/'));
+
+        foreach ($segments as $segment) {
+            if ($this->shouldSkipTreeSegment($segment)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function shouldSkipTreeSegment(string $segment): bool
+    {
+        return in_array(strtolower(trim($segment)), self::SKIPPED_TREE_SEGMENTS, true);
+    }
+
+    private function pushTreeWarning(array &$summary, string $warning): void
+    {
+        $warnings = is_array($summary['warnings'] ?? null) ? $summary['warnings'] : [];
+        if (!in_array($warning, $warnings, true)) {
+            $warnings[] = $warning;
+        }
+
+        $summary['warnings'] = $warnings;
     }
 
     private function failResult(string $action, string $message, ?\Throwable $exception = null, array $context = []): array

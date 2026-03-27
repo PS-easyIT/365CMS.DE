@@ -27,6 +27,9 @@ const CMS_ADMIN_MEDIA_ALLOWED_ACTIONS = [
 ];
 
 const CMS_ADMIN_MEDIA_WRITE_CAPABILITY = 'manage_media';
+const CMS_ADMIN_MEDIA_MAX_UPLOAD_FILES = 20;
+const CMS_ADMIN_MEDIA_MAX_UPLOAD_FILENAME_LENGTH = 180;
+const CMS_ADMIN_MEDIA_MAX_UPLOAD_BATCH_BYTES = 104857600;
 
 const CMS_ADMIN_MEDIA_SETTINGS_INT_FIELDS = [
     'jpeg_quality',
@@ -80,7 +83,7 @@ if (!cms_admin_media_can_access()) {
 
 function cms_admin_media_normalize_action(mixed $action): string
 {
-    $normalizedAction = trim((string) $action);
+    $normalizedAction = strtolower(trim((string) $action));
 
     return in_array($normalizedAction, CMS_ADMIN_MEDIA_ALLOWED_ACTIONS, true) ? $normalizedAction : '';
 }
@@ -128,6 +131,16 @@ function cms_admin_media_normalize_text(mixed $value, int $maxLength = 120): str
         : substr($normalizedValue, 0, $maxLength);
 }
 
+function cms_admin_media_normalize_int(mixed $value, int $min, int $max, int $fallback): int
+{
+    $normalized = filter_var($value, FILTER_VALIDATE_INT);
+    if ($normalized === false) {
+        return $fallback;
+    }
+
+    return max($min, min($max, (int) $normalized));
+}
+
 /**
  * @param mixed $extensions
  * @return list<string>
@@ -172,7 +185,12 @@ function cms_admin_media_normalize_settings_payload(array $post): array
             continue;
         }
 
-        $normalizedSettings[$field] = (int) ($post[$field] ?? 0);
+        $normalizedSettings[$field] = match ($field) {
+            'jpeg_quality' => cms_admin_media_normalize_int($post[$field] ?? 85, 60, 100, 85),
+            'max_width', 'max_height' => cms_admin_media_normalize_int($post[$field] ?? 2560, 1, 8000, 2560),
+            'thumbnail_large_w', 'thumbnail_large_h', 'thumbnail_banner_w', 'thumbnail_banner_h' => cms_admin_media_normalize_int($post[$field] ?? 1024, 50, 6000, 1024),
+            default => cms_admin_media_normalize_int($post[$field] ?? 150, 50, 4000, 150),
+        };
     }
 
     foreach (CMS_ADMIN_MEDIA_SETTINGS_BOOLEAN_FIELDS as $field) {
@@ -317,8 +335,13 @@ function cms_admin_media_normalize_upload_batch(array $files, string $field = 'f
     $names = $payload['name'];
 
     if (!is_array($names)) {
+        $singleName = cms_admin_media_normalize_text($payload['name'] ?? '', CMS_ADMIN_MEDIA_MAX_UPLOAD_FILENAME_LENGTH);
+        if ($singleName === '') {
+            return ['files' => [], 'error' => 'Der Upload-Dateiname ist ungültig.'];
+        }
+
         return ['files' => [[
-            'name' => (string) $payload['name'],
+            'name' => $singleName,
             'type' => (string) $payload['type'],
             'tmp_name' => (string) $payload['tmp_name'],
             'error' => (int) $payload['error'],
@@ -334,10 +357,11 @@ function cms_admin_media_normalize_upload_batch(array $files, string $field = 'f
     }
 
     $normalizedFiles = [];
+    $totalBytes = 0;
 
     for ($index = 0; $index < $count; $index++) {
         $file = [
-            'name' => (string) $payload['name'][$index],
+            'name' => cms_admin_media_normalize_text($payload['name'][$index] ?? '', CMS_ADMIN_MEDIA_MAX_UPLOAD_FILENAME_LENGTH),
             'type' => (string) $payload['type'][$index],
             'tmp_name' => (string) $payload['tmp_name'][$index],
             'error' => (int) $payload['error'][$index],
@@ -348,7 +372,20 @@ function cms_admin_media_normalize_upload_batch(array $files, string $field = 'f
             continue;
         }
 
+        if ($file['name'] === '') {
+            return ['files' => [], 'error' => 'Mindestens ein Upload-Dateiname ist ungültig.'];
+        }
+
+        $totalBytes += $file['size'];
         $normalizedFiles[] = $file;
+    }
+
+    if (count($normalizedFiles) > CMS_ADMIN_MEDIA_MAX_UPLOAD_FILES) {
+        return ['files' => [], 'error' => 'Es können maximal ' . CMS_ADMIN_MEDIA_MAX_UPLOAD_FILES . ' Dateien pro Upload verarbeitet werden.'];
+    }
+
+    if ($totalBytes > CMS_ADMIN_MEDIA_MAX_UPLOAD_BATCH_BYTES) {
+        return ['files' => [], 'error' => 'Das Upload-Paket ist insgesamt zu groß.'];
     }
 
     return ['files' => $normalizedFiles];

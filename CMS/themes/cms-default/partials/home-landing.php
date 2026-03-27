@@ -118,7 +118,7 @@ $lpFooterContentHtml = $renderLandingHtml($lpFooterContent);
 
 // ── Layout: compact vs. standard ─────────────────────────
 $lpLayout    = $lpHeader['header_layout'] ?? 'standard';
-$lpVersion   = $lpHeader['version']       ?? '';
+$lpBadgeText = trim((string)($lpHeader['badge_text'] ?? ''));
 $lpIsCompact = ($lpLayout === 'compact');
 $heroPadding = $lpIsCompact ? '1.75rem 1.5rem' : '5rem 2rem';
 $heroTitleSz = $lpIsCompact ? '1.75rem'        : 'clamp(1.8rem,4vw,3rem)';
@@ -240,15 +240,15 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
                 <h1 class="lp-hero__title" style="color:var(--lp-text);font-size:<?php echo $heroTitleSz;?>;">
                     <?php echo $safe($lpTitle); ?>
                 </h1>
-                <?php if ($lpVersion && $lpIsCompact): ?>
+                <?php if ($lpBadgeText !== '' && $lpIsCompact): ?>
                 <span style="
                     position:absolute;top:-.35rem;right:-4rem;
                     background:<?php echo $btnPrimary;?>;color:#fff;
                     border-radius:4px;padding:.15rem .55rem;
                     font-size:.75rem;font-weight:700;line-height:1.2;
                     white-space:nowrap;letter-spacing:.02em;
-                    box-shadow:0 1px 4px rgba(0,0,0,.25);">v<?php echo $safe($lpVersion); ?></span>
-                <?php elseif ($lpVersion): ?>
+                    box-shadow:0 1px 4px rgba(0,0,0,.25);"><?php echo $safe($lpBadgeText); ?></span>
+                <?php elseif ($lpBadgeText !== ''): ?>
                 <div style="margin:.6rem 0 .25rem;">
                     <span style="
                         display:inline-block;
@@ -256,7 +256,7 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
                         border-radius:6px;padding:.3rem 1rem;
                         font-size:.85rem;font-weight:700;
                         letter-spacing:.03em;
-                        box-shadow:0 1px 6px rgba(0,0,0,.2);">v<?php echo $safe($lpVersion); ?></span>
+                        box-shadow:0 1px 6px rgba(0,0,0,.2);"><?php echo $safe($lpBadgeText); ?></span>
                 </div>
                 <?php endif; ?>
             </div>

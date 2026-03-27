@@ -1,4 +1,4 @@
-﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.289-blue.svg)](https://shields.io/)
+﻿﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.313-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,239 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.7.313 — 27. März 2026 · Audit-Batch 395, Font-Manager-Forms an klaren Pending-Vertrag gehängt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.313** | 🎨 style | Admin/UI | **`CMS/admin/views/themes/fonts.php` bindet Scan-, Download-, Delete- und Save-Formulare jetzt über konsistente `data-font-manager-form`-/Pending-Attribute an denselben UI-Vertrag**: Der Font-Manager signalisiert laufende Aktionen damit sichtbarer und bleibt bei mehreren Buttons pro Seite konsistenter. |
+
+---
+
+### v2.7.312 — 27. März 2026 · Audit-Batch 394, Font-Manager-Asset gegen Doppelaktionen geglättet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.312** | 🔴 fix | Admin/UI | **`CMS/assets/js/admin-font-manager.js` markiert Submit-Buttons jetzt beim Absenden als laufend und sperrt sie bis zum Request-Ende**: Delete-, Scan-, Download- und Save-Aktionen feuern damit nicht mehr so leicht doppelt aus hektischem Mehrfachklicken. |
+| **2.7.312** | 🟡 refactor | Admin/UI | **Delete-Confirms und klassische Form-Submits nutzen jetzt denselben Pending-Button-Pfad**: Der Font-Manager hält seine Laufzeitlogik dadurch enger an einem kleinen Asset-Vertrag statt an getrennten Sonderfällen für Confirm und Direktsubmit. |
+
+---
+
+### v2.7.311 — 27. März 2026 · Audit-Batch 393, Theme-Explorer-Asset um Dirty- und Pending-Zustände ergänzt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.311** | 🔴 fix | Admin/UI | **`CMS/assets/js/admin-theme-explorer.js` schützt ungespeicherte Editoränderungen jetzt mit Dirty-State und `beforeunload`-Warnung**: Versehentliches Verlassen des Editors kostet damit seltener stille Änderungen. |
+| **2.7.311** | 🔴 fix | Admin/UI | **Ctrl+S und normale Saves sperren den Save-Button jetzt in einen Pending-Zustand statt Mehrfachsubmits zu erlauben**: Der Explorer bleibt dadurch ruhiger, wenn Nutzer mehrfach speichern oder Tastatur-Shortcuts drücken. |
+| **2.7.311** | 🎨 style | Admin/UI | **Die Dateisuche blendet Ordner jetzt konsistenter anhand sichtbarer Treffer ein oder aus**: Der Dateibaum bleibt bei Filterung lesbarer und zeigt weniger leere Ordnerhüllen. |
+
+---
+
+### v2.7.310 — 27. März 2026 · Audit-Batch 392, Theme-Explorer-View spiegelt Schutzgrenzen sichtbarer
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.310** | 🎨 style | Admin/UI | **`CMS/admin/views/themes/editor.php` zeigt Dateibaum-Limits, übersprungene Einträge und Schutzwarnungen jetzt direkt im Explorer an**: Begrenzungen bleiben damit nicht mehr nur implizit im Modul verborgen. |
+| **2.7.310** | 🔴 fix | Admin/UI | **Die Explorer-View markiert Save-Button und Formular jetzt mit expliziten Pending-/Unsaved-Attributen**: Asset und Markup teilen sich damit einen kleineren, stabileren Save-Vertrag. |
+
+---
+
+### v2.7.309 — 27. März 2026 · Audit-Batch 391, ThemeEditorModule begrenzt Dateibaum und Hotspot-Verzeichnisse klarer
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.309** | 🔴 fix | Admin/Themes | **`CMS/admin/modules/themes/ThemeEditorModule.php` begrenzt Theme-Dateibäume jetzt über Gesamtanzahl, Verzeichnisgröße, Tiefe und ausgesparte Hotspot-Segmente wie `vendor`, `node_modules` oder `dist`**: Der Explorer reduziert dadurch weitere I/O- und Render-Ausreißer bei großen Themes. |
+| **2.7.309** | 🟡 refactor | Admin/Themes | **Das Modul liefert Baum-Zusammenfassung und Limits jetzt vorbereitet an die View aus**: Explorer-Markup und Asset müssen Schutzgrenzen nicht mehr implizit kennen. |
+| **2.7.309** | 🔴 fix | Admin/Themes | **Bearbeitungs- und Pfadauflösung lehnen nun auch ausgesparte Theme-Segmente konsistenter ab**: Schreibzugriffe bleiben dadurch enger am sicheren Edit-Pfad. |
+
+---
+
+### v2.7.308 — 27. März 2026 · Audit-Batch 390, Theme-Explorer an Section-Shell und kleinen Request-Vertrag gehängt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.308** | 🟡 refactor | Admin/Themes | **`CMS/admin/theme-explorer.php` nutzt jetzt den gemeinsamen Section-Shell-Rahmen statt eigenen Redirect-/Flash-/Layout-Boilerplate zu pflegen**: Der Explorer hängt damit näher an denselben Guard-, CSRF- und Post-Handling-Regeln wie andere modernisierte Admin-Entrys. |
+| **2.7.308** | 🔴 fix | Admin/Themes | **Aktion, Datei und Inhalt werden vor dem Modul-Dispatch über einen kleineren Payload-Vertrag normalisiert**: Ungültige Save-POSTs landen damit früher im Entry statt lose im Explorer-Pfad zu versickern. |
+
+---
+
+### v2.7.307 — 27. März 2026 · Audit-Batch 389, Font-Manager-UI und Grenzen sichtbarer gemacht
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.307** | 🎨 style | Admin/UI | **`CMS/admin/views/themes/fonts.php` zeigt Scan-Limits, übersprungene Dateien und Schutzwarnungen jetzt explizit im Admin an**: Theme-Scans bleiben dadurch transparenter, statt still im Hintergrund an internen Grenzen abzuscheiden. |
+| **2.7.307** | 🔴 fix | Admin/UI | **Typografie- und Direktdownload-Formulare spiegeln Zahlen- und Textgrenzen jetzt direkt in ihren Feldern**: Font-Größe, Zeilenhöhe und Google-Font-Namen werden früher sichtbar begrenzt, bevor fehlerhafte Werte erst spät ins Backend laufen. |
+
+---
+
+### v2.7.306 — 27. März 2026 · Audit-Batch 388, Font-Manager-Theme-Scans und Font-Auswahl weiter gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.306** | 🔴 fix | Admin/Themes | **`CMS/admin/modules/themes/FontManagerModule.php` begrenzt Theme-Scans jetzt über Datei-, Größen- und Gesamtvolumen-Limits und überspringt versteckte bzw. große I/O-Hotspots**: Der Font-Scan bleibt dadurch robuster gegen unnötig teure Theme-Verzeichnisse und große Dateien. |
+| **2.7.306** | 🟡 refactor | Admin/Themes | **Der Font-Manager liefert Scan-Zusammenfassung, Warnungen und UI-Constraints jetzt vorbereitet aus dem Modul**: View und Entry müssen Limits nicht länger implizit kennen oder selbst zusammensuchen. |
+| **2.7.306** | 🔴 fix | Admin/Themes | **Heading-/Body-Font-Zuweisungen werden jetzt gegen tatsächlich auswählbare Font-Keys validiert**: Persistierte Typografie-Einstellungen bleiben damit näher an real verfügbaren System- und lokalen Schriftarten. |
+
+---
+
+### v2.7.305 — 27. März 2026 · Audit-Batch 387, Font-Manager-Request-Vertrag weiter verdichtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.305** | 🔴 fix | Admin/Themes | **`CMS/admin/font-manager.php` normalisiert Save-, Delete- und Download-Payloads jetzt über einen engeren Request-Vertrag**: Font-ID, Google-Font-Name, Font-Keys, Größe und Zeilenhöhe werden vor dem Modul-Dispatch früher begrenzt und validiert. |
+| **2.7.305** | 🟡 refactor | Admin/Themes | **Der Font-Manager reicht `saveSettings()` nicht mehr mit rohem `$_POST`, sondern mit vorbereiteten Settings-Daten an das Modul weiter**: Save-Pfade hängen damit sichtbarer an einem kleineren Entry-/Modulvertrag statt an breiten Formular-Payloads. |
+
+---
+
+### v2.7.304 — 27. März 2026 · Audit-Batch 386, Theme-Editor an den gemeinsamen Shell-Vertrag angenähert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.304** | 🟡 refactor | Admin/Themes | **`CMS/admin/theme-editor.php` nutzt jetzt den gemeinsamen Section-Shell-Rahmen statt einen eigenen Header-/Sidebar-/Footer-Sonderpfad**: Der Theme-Editor hängt damit näher an denselben Guard-, Daten- und View-Regeln wie andere modernisierte Admin-Entrys. |
+| **2.7.304** | 🔴 fix | Admin/Themes | **Der Theme-Editor bereitet Customizer-Zustand und Fehlergründe jetzt als expliziten Runtime-State auf**: Nicht lesbare Theme-Pfade oder fehlende `admin/customizer.php`-Dateien landen damit nicht mehr als stiller Sonderfall im Entry. |
+| **2.7.304** | 🎨 style | Admin/Themes | **`CMS/admin/views/themes/customizer-missing.php` zeigt den Fallback für fehlende bzw. unsichere Customizer-Dateien jetzt als eigene Admin-View mit klaren Folge-Links**: Theme-Verwaltung und Theme-Explorer bleiben dadurch direkt erreichbar, ohne dass der Entry selbst HTML ausgeben muss. |
+
+---
+
+### v2.7.303 — 27. März 2026 · Audit-Batch 385, Medien-Upload- und Settings-Vertrag weiter gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.303** | 🔴 fix | Admin/Media | **`CMS/admin/media.php` begrenzt Upload-Dateinamen, Dateianzahl und Batch-Größe jetzt enger vor dem Modul-Dispatch**: Inkonsistente Upload-Payloads werden früher verworfen und numerische Settings-Felder robuster auf sichere Bereiche geklemmt. |
+| **2.7.303** | 🟡 refactor | Admin/Media | **`CMS/admin/modules/media/MediaModule.php` normalisiert Typauswahlen für allgemeine und Member-Uploads jetzt auf echte Mediengruppen zurück und akzeptiert nur reale Upload-Tempdateien**: Settings- und Upload-Pfade hängen damit sichtbarer an einem kleineren, konsistenteren Modulvertrag. |
+| **2.7.303** | 🎨 style | Admin/UI | **`CMS/admin/views/media/settings.php` und `CMS/admin/views/media/library.php` spiegeln die engeren Zahlen- und Textgrenzen jetzt direkt im Formular wider**: Medien-Settings und Bibliotheksfilter geben Grenzwerte früher sichtbar vor, statt Fehler erst spät aus dem Backend zurückzubekommen. |
+
+---
+
+### v2.7.302 — 27. März 2026 · Audit-Batch 384, Legal-Sites-POST-State und Guard-Vertrag weiter verdichtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.302** | 🔴 fix | Admin/Legal | **`CMS/admin/legal-sites.php` normalisiert rechtliche HTML-Felder jetzt bereits im Entry defensiver und hält fehlgeschlagene Save-Payloads für den nächsten Render in Session-State zusammen**: Formularinhalte und Seitenzuordnungen springen damit bei Validierungsfehlern nicht mehr lose auf den alten Persistenzstand zurück. |
+| **2.7.302** | 🟡 refactor | Admin/Legal | **Der Legal-Sites-Entry bündelt Aktion, Fehler und Payload jetzt über einen kleinen Request-Vertrag statt mehrfach verteilter Template-Type-Prüfungen**: POST-Fehlerpfade bleiben damit kompakter und näher am Section-Shell-Muster. |
+| **2.7.302** | 🔴 fix | Admin/Legal | **`CMS/admin/modules/legal/LegalSitesModule.php` erzwingt Admin- plus `manage_settings`-Capability jetzt auch im Modul selbst**: Der Legal-Sites-Pfad verlässt sich damit nicht nur auf den Entry-Guard, sondern zieht die Berechtigungsgrenze zusätzlich an der Modul-Tür nach. |
+
+---
+
+### v2.7.301 — 27. März 2026 · Audit-Batch 383, Theme-Explorer-Dateimetadaten und Save-Grenzen sichtbarer gemacht
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.301** | 🟡 refactor | Admin/Themes | **`CMS/admin/modules/themes/ThemeEditorModule.php` liefert Dateigröße, Erweiterung, Schreibbarkeit und Save-Sperrgründe jetzt als vorbereitete Dateimetadaten an die View**: Der Explorer muss Bearbeitbarkeitsregeln nicht länger stillschweigend nur im Save-Pfad verstecken. |
+| **2.7.301** | 🔴 fix | Admin/Themes | **`CMS/admin/views/themes/editor.php` deaktiviert Speichern und setzt den Editor auf `readonly`, wenn eine Datei zwar angezeigt, aber nicht sicher bearbeitet werden kann**: Oversize- oder schreibgeschützte Dateien landen damit nicht mehr erst beim Submit in einem vermeidbaren Fehlpfad. |
+| **2.7.301** | 🎨 style | Admin/UI | **Der Theme-Explorer zeigt Erweiterung, Dateigröße und Bearbeitbarkeitsstatus jetzt direkt im Editor-Kopf an**: Dateityp- und Schreibstatus werden damit sichtbarer statt als implizites Backend-Wissen verborgen zu bleiben. |
+
+---
+
+### v2.7.300 — 27. März 2026 · Audit-Batch 382, Marketplace-Quellen und Fallback-Hinweise weiter geglättet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.300** | 🔴 fix | Admin/Marketplace | **`CMS/admin/modules/plugins/PluginMarketplaceModule.php` und `CMS/admin/modules/themes/ThemeMarketplaceModule.php` melden Remote-, Local-Fallback- und Ausfallstatus jetzt explizit an ihre Views zurück**: Marketplace-Fehlerpfade bleiben damit nicht mehr stumm, wenn auf lokalen Index statt auf Remote-Katalog umgeschaltet wird. |
+| **2.7.300** | 🟡 refactor | Admin/Marketplace | **Die Module halten Quellenstatus und Quellen-URL jetzt als kleinen ViewModel-Baustein im Datenvertrag**: Registry- und Katalog-Herkunft müssen im Template nicht länger indirekt aus leeren Listen erraten werden. |
+| **2.7.300** | 🎨 style | Admin/UI | **`CMS/admin/views/plugins/marketplace.php` und `CMS/admin/views/themes/marketplace.php` zeigen die aktuell genutzte Quelle jetzt als Flash-Hinweis mit Quellenangabe an**: Admin-Nutzer sehen damit sofort, ob Remote-Daten geladen oder ein lokaler Fallback verwendet wurde. |
+
+---
+
+### v2.7.299 — 27. März 2026 · Audit-Batch 381, Theme-Explorer-Interaktionen in dediziertes Asset gezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.299** | 🔴 fix | Admin/Themes | **`CMS/admin/theme-explorer.php` bindet den Theme-Explorer jetzt über ein dediziertes Admin-Asset statt über lokales Inline-Script an**: Der Editor-Pfad hält Keyboard-Shortcuts und Laufzeitlogik damit konsistenter am Asset-Vertrag. |
+| **2.7.299** | 🟡 refactor | Admin/Themes | **`CMS/admin/views/themes/editor.php` liefert Suche, Dateibaum-Markierungen und Editor-Konfiguration jetzt vorbereiteter an `CMS/assets/js/admin-theme-explorer.js`**: Das Theme-Template reduziert weiteren Laufzeit-Boilerplate und trennt Markup klarer von Interaktionen. |
+| **2.7.299** | 🎨 style | Assets/Admin | **`CMS/assets/js/admin-theme-explorer.js` ergänzt Dateifilter, Tab-Einrückung und `Ctrl+S`-Speichern zentral**: Der Theme-Explorer bleibt damit auch bei größeren Dateibäumen fokussierter bedienbar. |
+
+---
+
+### v2.7.298 — 27. März 2026 · Audit-Batch 380, Landing-POST- und Tab-Vertrag weiter gestaffelt
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.298** | 🔴 fix | Admin/Landing | **`CMS/admin/landing-page.php` normalisiert Aktion, Feature-ID, aktiven Tab und Plugin-ID jetzt enger in einem gemeinsamen Payload**: Fehler und Redirect-Ziele bleiben dadurch robuster an einem kleinen Entry-Vertrag statt an verstreuten Spezialfällen hängen. |
+| **2.7.298** | 🟡 refactor | Admin/Landing | **Der Landing-Entry leitet nach POSTs jetzt deterministisch zurück in den zugehörigen Tab**: Header-, Content-, Footer-, Design- und Plugin-Änderungen springen damit nicht mehr lose auf GET-Fallbacks zurück. |
+| **2.7.298** | 🎨 style | Admin/Landing | **`CMS/admin/views/landing/page.php` übergibt den aktiven Tab jetzt in allen Formularen explizit mit**: Die Landing-UI hält ihren Zustand dadurch auch bei Fehlern und Feature-/Plugin-Aktionen sichtbar stabiler. |
+
+---
+
+### v2.7.297 — 27. März 2026 · Audit-Batch 379, Kommentar-KPIs und Zeilenaktionen weiter vorbereitet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.297** | 🟡 refactor | Admin/Comments | **`CMS/admin/modules/comments/CommentsModule.php` liefert KPI-Karten und zeilenabhängige Aktionsmodelle jetzt vorbereitet an die View**: Die Kommentar-Moderation hängt damit weniger an View-seitigen Status- und Rechte-Verzweigungen. |
+| **2.7.297** | 🔴 fix | Admin/Comments | **`CMS/admin/views/comments/list.php` rendert KPI-Karten und Dropdown-Aktionen jetzt aus vorbereiteten ViewModels**: Das Template reduziert weiteren Moderations-Boilerplate und bleibt robuster gegen künftige Status-/Rechte-Erweiterungen. |
+| **2.7.297** | 🎨 style | Admin/UI | **Die Kommentar-Liste hält Icon-, Badge- und Action-Darstellung klarer an einem kleineren Datenvertrag**: KPI- und Zeilen-UI wirken dadurch konsistenter zwischen Modul und Markup. |
+
+---
+
+### v2.7.296 — 27. März 2026 · Audit-Batch 378, Tabellen-Editor bei Größenlimits und Save-Vertrag gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.296** | 🔴 fix | Admin/Tables | **`CMS/admin/modules/tables/TablesModule.php` validiert Tabellenname, Beschreibung, Spalten- und Zeilenstruktur jetzt restriktiver**: Der Save-Pfad begrenzt Spalten-, Zeilen- und Zellgrößen robuster und normalisiert Editor-Daten vor dem Persistieren. |
+| **2.7.296** | 🟠 perf | Admin/Tables | **`CMS/admin/site-tables.php`, `CMS/admin/views/tables/edit.php` und `CMS/assets/js/admin-site-tables.js` ziehen Größenlimits und Redirects enger zusammen**: Übergroße JSON-Payloads werden früher abgefangen, Save-Fehler landen wieder im Editor und die UI verhindert unnötige Überläufe bereits clientseitig. |
+| **2.7.296** | 🟡 refactor | Admin/Tables | **Die Tabellen-Bearbeitung liefert Editor-Zusammenfassung, Limits und JSON-Konfiguration jetzt vorbereiteter aus dem Modulvertrag**: View und Asset müssen den Editorzustand dadurch nicht länger ad hoc selbst zusammenstecken. |
+
+---
+
+### v2.7.295 — 27. März 2026 · Audit-Batch 377, Menü-Editor bei Picker- und Item-Vertrag weiter gehärtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.295** | 🔴 fix | Admin/Menus | **`CMS/admin/menu-editor.php` bündelt Aktions-, Menü-ID- und Payload-Fehler jetzt enger in einem gemeinsamen Request-Vertrag**: Der Entry verwirft damit übergroße Item-Payloads und ungültige Kontrollwerte früher, bevor sie in den Modul-Dispatch laufen. |
+| **2.7.295** | 🟡 refactor | Admin/Menus | **`CMS/admin/modules/menus/MenuEditorModule.php` validiert Menü-Namen, Theme-Positionen, Item-URLs, Parent-Beziehungen und doppelte Editor-IDs jetzt restriktiver und liefert vorbereitete Page-Picker-/Editor-Konfiguration an die View**: Der Menü-Editor hängt damit weniger an rohen View-Ableitungen und schützt Save-/Sync-Pfade robuster gegen inkonsistente Item-Strukturen. |
+| **2.7.295** | 🎨 style | Admin/UI | **`CMS/admin/views/menus/editor.php` und `CMS/assets/js/admin-menu-editor.js` nutzen vorbereitete Page-Picker-Daten, klarere URL-/Titel-Validierung und einen kompakteren Seiten-Übernahme-Flow**: Die Menü-UI bleibt dadurch übersichtlicher, vermeidet lose Seiten-Button-Listen und gibt Fehler früher direkt im Editor zurück. |
+
+---
+
+### v2.7.294 — 27. März 2026 · Audit-Batch 376, Landing-ViewModels weiter in den Modulvertrag gezogen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.294** | 🟡 refactor | Admin/Landing | **`CMS/admin/modules/landing/LandingPageModule.php` bereitet Content-Typen, Feature-Karten und Plugin-Karten jetzt stärker als ViewModels auf**: Der Landing-Admin hängt damit weniger an rohen Service-Strukturen und verstreuten Template-Ableitungen. |
+| **2.7.294** | 🔴 fix | Admin/Landing | **`CMS/admin/views/landing/page.php` nutzt vorkonfigurierte Plugin-Karten statt roher Override-Zugriffe und zeigt Plugin-Metadaten konsistenter an**: Der Plugins-Tab hängt damit nicht länger an einer nicht gesicherten `label`-Annahme und reduziert Restlogik im Template. |
+| **2.7.294** | 🎨 style | Admin/Landing | **Die Content- und Plugin-Tabs der Landing-Ansicht rendern vorbereitete Auswahl- und Kartenmodelle klarer**: Inhalts-Typen, Feature-Löschzustände und Plugin-Zielbereiche werden damit sichtbarer über kleine View-Daten statt ad hoc im Template zusammengesetzt. |
+
+---
+
+### v2.7.293 — 27. März 2026 · Audit-Batch 375, Theme-Marketplace an den Wrapper-/Feedback-Vertrag angeglichen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.293** | 🔴 fix | Admin/Marketplace | **`CMS/admin/theme-marketplace.php` bündelt Aktion, Theme-Slug und Fehlermeldung jetzt über einen kleinen Payload-Vertrag**: Der Entry reduziert damit weitere verteilte Einzelfallprüfungen und bleibt näher am gemeinsamen Section-Shell-Muster. |
+| **2.7.293** | 🟡 refactor | Admin/Themes | **`CMS/admin/modules/themes/ThemeMarketplaceModule.php` liefert vorbereitete Statusmetriken und Statusfilter für die View und schützt das Zielverzeichnis zusätzlich gegen inkonsistente Installationspfade**: Statistik-, Filter- und Installationspfade hängen damit sichtbarer an einem konsistenten Modulvertrag. |
+| **2.7.293** | 🎨 style | Admin/UI | **`CMS/admin/views/themes/marketplace.php` und `CMS/assets/js/admin-theme-marketplace.js` nutzen vorbereitete Filterdaten und sperren bestätigte Install-Buttons bis zum Submit**: Die Theme-Marketplace-UI vermeidet doppelte Klicks und trennt Filter-/Feedbacklogik klarer vom Template. |
+
+---
+
+### v2.7.292 — 27. März 2026 · Audit-Batch 374, Plugin-Marketplace-Wrapper und Feedbackpfade verdichtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.292** | 🔴 fix | Admin/Marketplace | **`CMS/admin/plugin-marketplace.php` bündelt Aktion, Slug und Fehlermeldung jetzt über einen kleinen Payload-Vertrag statt mehrfach verteilter Einzelfallprüfungen**: Der Entry bleibt damit näher am gemeinsamen Section-Shell-Muster und hält seine Installationsfehler kompakter. |
+| **2.7.292** | 🟡 refactor | Admin/Plugins | **`CMS/admin/modules/plugins/PluginMarketplaceModule.php` liefert vorbereitete Kategorie-/Statusfilter und schützt das Zielverzeichnis zusätzlich vor inkonsistenten Installationspfaden**: Statistik-, Filter- und Installationspfade hängen damit sichtbarer an einem gemeinsamen Modulvertrag. |
+| **2.7.292** | 🎨 style | Admin/UI | **`CMS/admin/views/plugins/marketplace.php` und `CMS/assets/js/admin-plugin-marketplace.js` ziehen Filteroptionen aus vorbereiteten View-Daten und sperren den Install-Button nach Bestätigung bis zum Submit**: Die Marketplace-UI vermeidet doppelte Klicks und hält Such-/Status-Logik klarer getrennt vom Template. |
+
+---
+
+### v2.7.291 — 27. März 2026 · Audit-Batch 373, Landing-Badge konfigurierbar gemacht
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.291** | 🟢 feat | Admin/Landing | **`CMS/admin/views/landing/page.php` ergänzt im Header-Tab ein frei pflegbares Badge-Feld**: Redakteure können damit statt der starren Versionszahl beliebigen Text wie „Beta“, „Neu“ oder einen Release-Hinweis hinterlegen. |
+| **2.7.291** | 🔴 fix | Core/Landing | **`CMS/admin/modules/landing/LandingPageModule.php`, `CMS/core/Services/Landing/LandingHeaderService.php`, `CMS/core/Services/Landing/LandingDefaultsProvider.php` und `CMS/install/InstallerService.php` tragen den Badge-Wert jetzt konsistent durch den Header-Vertrag**: Bestehende Landing-Daten bleiben kompatibel, weil fehlende Badge-Werte zunächst aus der bisherigen Versionsanzeige abgeleitet werden. |
+| **2.7.291** | 🎨 style | Frontend/Landing | **`CMS/themes/cms-default/partials/home-landing.php` rendert das Hero-Badge nur noch bei hinterlegtem Text und entfernt den harten `v`-Prefix**: Leere Badge-Felder führen dadurch automatisch zu einem sauberen Hero ohne Badge-Restmarkup. |
+
+---
+
+### v2.7.290 — 27. März 2026 · Audit-Batch 372, Wrapper- und Theme-Editor-Verträge weiter verdichtet
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.290** | 🔴 fix | Admin/Comments & Landing | **`CMS/admin/comments.php`, `CMS/admin/modules/comments/CommentsModule.php`, `CMS/admin/views/comments/list.php`, `CMS/admin/landing-page.php` und `CMS/admin/views/landing/page.php` ziehen Status-, Tab- und View-Helfer enger an kleine Wrapper-/ViewModel-Verträge**: Kommentar-Statusfilter hängen nicht länger implizit an `$_GET` im Modul, und Landing-Tabs/Formularwerte kommen vorbereiteter in der View an. |
+| **2.7.290** | 🟠 perf | Admin/Menus & Tables | **`CMS/admin/modules/menus/MenuEditorModule.php`, `CMS/admin/menu-editor.php`, `CMS/admin/modules/tables/TablesModule.php` und `CMS/admin/site-tables.php` reduzieren Bootstrap-, Such- und Redirect-Sonderpfade**: Theme-Sync läuft nur noch gezielt, neue Menüs springen sauber in den Editor zurück, und Tabellenlisten/Fehlerpfade hängen klarer am Wrapper-/Modulvertrag statt an verstreuten Direktzugriffen. |
+| **2.7.290** | 🟡 refactor | Admin/Themes | **`CMS/admin/theme-editor.php`, `CMS/admin/theme-explorer.php`, `CMS/admin/modules/themes/ThemeEditorModule.php` und `CMS/admin/views/themes/editor.php` härten Capability- und Pfadgrenzen weiter**: Der aktive Theme-Customizer wird nur noch über einen verifizierten Theme-Pfad eingebunden, Hidden-Segmente werden aus Dateibaum und Safe-Path-Auflösung ausgeschlossen und der Explorer hält seine Baum-/Link-Helfer kompakter. |
 
 ---
 

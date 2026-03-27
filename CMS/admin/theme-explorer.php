@@ -11,102 +11,139 @@ if (!defined('ABSPATH')) {
  */
 
 use CMS\Auth;
-use CMS\Security;
 
-if (!Auth::instance()->isAdmin()) {
+const CMS_ADMIN_THEME_EXPLORER_CAPABILITY = 'manage_settings';
+const CMS_ADMIN_THEME_EXPLORER_ALERT_SESSION_KEY = 'admin_theme_explorer_alert';
+
+function cms_admin_theme_explorer_can_access(): bool
+{
+    return Auth::instance()->isAdmin() && Auth::instance()->hasCapability(CMS_ADMIN_THEME_EXPLORER_CAPABILITY);
+}
+
+if (!cms_admin_theme_explorer_can_access()) {
     header('Location: ' . SITE_URL);
     exit;
 }
 
 require_once __DIR__ . '/modules/themes/ThemeEditorModule.php';
-$module = new ThemeEditorModule();
-$alert  = null;
-
-function cms_admin_theme_explorer_target_url(string $file = ''): string
-{
-    $targetUrl = SITE_URL . '/admin/theme-explorer';
-    $file = trim($file);
-
-    if ($file !== '') {
-        $targetUrl .= '?file=' . rawurlencode($file);
-    }
-
-    return $targetUrl;
-}
-
-function cms_admin_theme_explorer_redirect(string $file = ''): never
-{
-    header('Location: ' . cms_admin_theme_explorer_target_url($file));
-    exit;
-}
 
 function cms_admin_theme_explorer_allowed_actions(): array
 {
     return ['save_file'];
 }
 
-function cms_admin_theme_explorer_flash(array $payload): void
+function cms_admin_theme_explorer_normalize_action(mixed $action): string
 {
-    $_SESSION['admin_alert'] = [
-        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
-        'message' => trim((string) ($payload['message'] ?? '')),
+    $action = strtolower(trim((string) $action));
+
+    return in_array($action, cms_admin_theme_explorer_allowed_actions(), true) ? $action : '';
+}
+
+function cms_admin_theme_explorer_normalize_file(mixed $file): string
+{
+    $file = is_scalar($file) ? (string) $file : '';
+    $file = preg_replace('/[\x00-\x1F\x7F]/u', '', $file) ?? '';
+
+    return trim($file);
+}
+
+/**
+ * @return array{action:string,file:string,content:string,error:string}
+ */
+function cms_admin_theme_explorer_normalize_payload(array $post): array
+{
+    $action = cms_admin_theme_explorer_normalize_action($post['action'] ?? '');
+    $file = cms_admin_theme_explorer_normalize_file($post['file'] ?? '');
+    $content = (string) ($post['content'] ?? '');
+    $error = '';
+
+    if ($action === '') {
+        $error = 'Unbekannte oder nicht erlaubte Aktion.';
+    } elseif ($file === '') {
+        $error = 'Kein gültiger Dateipfad angegeben.';
+    }
+
+    return [
+        'action' => $action,
+        'file' => $file,
+        'content' => $content,
+        'error' => $error,
     ];
 }
 
-function cms_admin_theme_explorer_flash_result(array $result): void
+function cms_admin_theme_explorer_resolve_redirect_path(mixed $result = null): string
 {
-    cms_admin_theme_explorer_flash([
-        'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => (string) ($result['message'] ?? $result['error'] ?? 'Unbekannte Antwort.'),
-    ]);
+    $file = '';
+    if (is_array($result)) {
+        $file = cms_admin_theme_explorer_normalize_file($result['current_file'] ?? '');
+    }
+
+    if ($file === '') {
+        $file = cms_admin_theme_explorer_normalize_file($_POST['file'] ?? $_GET['file'] ?? '');
+    }
+
+    if ($file === '') {
+        return '/admin/theme-explorer';
+    }
+
+    return '/admin/theme-explorer?file=' . rawurlencode($file);
 }
 
-function cms_admin_theme_explorer_pull_alert(): ?array
+function cms_admin_theme_explorer_handle_action(ThemeEditorModule $module, array $payload): array
 {
-    $alert = $_SESSION['admin_alert'] ?? null;
-    unset($_SESSION['admin_alert']);
-
-    return is_array($alert) ? $alert : null;
-}
-
-function cms_admin_theme_explorer_handle_action(ThemeEditorModule $module, string $action, array $post): array
-{
-    return match ($action) {
-        'save_file' => $module->saveFile((string) ($post['file'] ?? ''), (string) ($post['content'] ?? '')),
+    $result = match ($payload['action']) {
+        'save_file' => $module->saveFile((string) ($payload['file'] ?? ''), (string) ($payload['content'] ?? '')),
         default => ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'],
     };
+
+    $result['current_file'] = cms_admin_theme_explorer_normalize_file($payload['file'] ?? '');
+
+    return $result;
 }
 
-// Datei speichern
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-    $postToken = (string)($_POST['csrf_token'] ?? '');
-    if (!Security::instance()->verifyToken($postToken, 'admin_theme_explorer')) {
-        cms_admin_theme_explorer_flash(['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.']);
-        cms_admin_theme_explorer_redirect();
-    }
+$sectionPageConfig = [
+    'route_path' => '/admin/theme-explorer',
+    'view_file' => __DIR__ . '/views/themes/editor.php',
+    'page_title' => 'Theme Explorer',
+    'active_page' => 'theme-explorer',
+    'page_assets' => [
+        'js' => [
+            cms_asset_url('js/admin-theme-explorer.js'),
+        ],
+    ],
+    'csrf_action' => 'admin_theme_explorer',
+    'module_file' => __DIR__ . '/modules/themes/ThemeEditorModule.php',
+    'module_factory' => static fn (): ThemeEditorModule => new ThemeEditorModule(),
+    'data_loader' => static function (ThemeEditorModule $module): array {
+        $currentFile = cms_admin_theme_explorer_normalize_file($_GET['file'] ?? '');
 
-    $action = (string)($_POST['action'] ?? '');
-    if (!in_array($action, cms_admin_theme_explorer_allowed_actions(), true)) {
-        cms_admin_theme_explorer_flash(['type' => 'danger', 'message' => 'Unbekannte oder nicht erlaubte Aktion.']);
-        cms_admin_theme_explorer_redirect();
-    }
+        return $module->getData($currentFile);
+    },
+    'request_context_resolver' => static function (ThemeEditorModule $module): array {
+        $currentFile = cms_admin_theme_explorer_normalize_file($_GET['file'] ?? '');
 
-    $file = (string)($_POST['file'] ?? '');
-    $result = cms_admin_theme_explorer_handle_action($module, $action, $_POST);
-    cms_admin_theme_explorer_flash_result($result);
-    cms_admin_theme_explorer_redirect($file);
-}
+        return [
+            'data' => $module->getData($currentFile),
+        ];
+    },
+    'post_handler' => static function (ThemeEditorModule $module, string $section, array $post): array {
+        $payload = cms_admin_theme_explorer_normalize_payload($post);
+        if ($payload['error'] !== '') {
+            return [
+                'success' => false,
+                'error' => $payload['error'],
+                'current_file' => $payload['file'],
+            ];
+        }
 
-$alert = cms_admin_theme_explorer_pull_alert();
+        return cms_admin_theme_explorer_handle_action($module, $payload);
+    },
+    'redirect_path_resolver' => static fn ($module, string $section, $result): string => cms_admin_theme_explorer_resolve_redirect_path($result),
+    'access_checker' => static fn (): bool => cms_admin_theme_explorer_can_access(),
+    'access_denied_route' => '/',
+    'alert_session_key' => CMS_ADMIN_THEME_EXPLORER_ALERT_SESSION_KEY,
+    'invalid_token_message' => 'Sicherheitstoken ungültig.',
+    'unknown_action_message' => 'Unbekannte oder nicht erlaubte Aktion.',
+];
 
-$csrfToken    = Security::instance()->generateToken('admin_theme_explorer');
-$currentFile  = (string)($_GET['file'] ?? '');
-$data         = $module->getData($currentFile);
-$pageTitle    = 'Theme Explorer';
-$activePage   = 'theme-explorer';
-$pageAssets   = [];
-
-require __DIR__ . '/partials/header.php';
-require __DIR__ . '/partials/sidebar.php';
-require __DIR__ . '/views/themes/editor.php';
-require __DIR__ . '/partials/footer.php';
+require __DIR__ . '/partials/section-page-shell.php';

@@ -13,14 +13,10 @@ if (!defined('ABSPATH')) {
  * @var array|null $alert
  */
 
-$tab = preg_replace('/[^a-z]/', '', $_GET['tab'] ?? 'header');
-$tabs = [
-    'header'  => 'Header',
-    'content' => 'Content',
-    'footer'  => 'Footer',
-    'design'  => 'Design',
-    'plugins' => 'Plugins',
-];
+$activeTab = (string) ($data['activeTab'] ?? 'header');
+$tabs = is_array($data['tabs'] ?? null) ? $data['tabs'] : [];
+$fieldValue = static fn (array $source, string $key, string $default = ''): string => htmlspecialchars((string) ($source[$key] ?? $default), ENT_QUOTES, 'UTF-8');
+$escape = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 ?>
 
 <div class="container-xl">
@@ -40,70 +36,83 @@ $tabs = [
     <div class="card">
         <div class="card-header">
             <ul class="nav nav-tabs card-header-tabs">
-                <?php foreach ($tabs as $key => $label): ?>
+                <?php foreach ($tabs as $tabInfo): ?>
+                    <?php
+                    $tabKey = (string) ($tabInfo['key'] ?? 'header');
+                    $tabLabel = (string) ($tabInfo['label'] ?? ucfirst($tabKey));
+                    $tabUrl = (string) ($tabInfo['url'] ?? '/admin/landing-page');
+                    ?>
                     <li class="nav-item">
-                        <a class="nav-link<?php echo $tab === $key ? ' active' : ''; ?>"
-                           href="<?php echo SITE_URL; ?>/admin/landing-page?tab=<?php echo $key; ?>">
-                            <?php echo htmlspecialchars($label); ?>
+                        <a class="nav-link<?php echo $activeTab === $tabKey ? ' active' : ''; ?>"
+                           href="<?php echo htmlspecialchars(SITE_URL . $tabUrl); ?>">
+                            <?php echo htmlspecialchars($tabLabel); ?>
                         </a>
                     </li>
                 <?php endforeach; ?>
             </ul>
         </div>
         <div class="card-body">
-            <?php if ($tab === 'header'): ?>
+            <?php if ($activeTab === 'header'): ?>
                 <?php
                 $header = $data['header'] ?? [];
                 ?>
                 <form method="post">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                     <input type="hidden" name="action" value="save_header">
+                    <input type="hidden" name="active_tab" value="header">
 
                     <div class="mb-3">
                         <label class="form-label">Titel</label>
-                        <input type="text" name="title" class="form-control" value="<?php echo htmlspecialchars($header['title'] ?? ''); ?>">
+                        <input type="text" name="title" class="form-control" value="<?php echo $fieldValue($header, 'title'); ?>">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Untertitel</label>
-                        <input type="text" name="subtitle" class="form-control" value="<?php echo htmlspecialchars($header['subtitle'] ?? ''); ?>">
+                        <input type="text" name="subtitle" class="form-control" value="<?php echo $fieldValue($header, 'subtitle'); ?>">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Badge-Text</label>
+                        <input type="text" name="badge_text" class="form-control" value="<?php echo $fieldValue($header, 'badge_text'); ?>" maxlength="60">
+                        <div class="form-hint">Freier Text für das Hero-Badge, z. B. „Beta“, „Neu“ oder „v2.7“. Wenn das Feld leer bleibt, wird das Badge im Frontend ausgeblendet.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Beschreibung</label>
-                        <textarea name="description" class="form-control" rows="3"><?php echo htmlspecialchars($header['description'] ?? ''); ?></textarea>
+                        <textarea name="description" class="form-control" rows="3"><?php echo $fieldValue($header, 'description'); ?></textarea>
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label">CTA Button Text</label>
-                            <input type="text" name="cta_text" class="form-control" value="<?php echo htmlspecialchars($header['cta_text'] ?? ''); ?>">
+                            <input type="text" name="cta_text" class="form-control" value="<?php echo $fieldValue($header, 'cta_text'); ?>">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">CTA Button URL</label>
-                            <input type="text" name="cta_url" class="form-control" value="<?php echo htmlspecialchars($header['cta_url'] ?? ''); ?>">
+                            <input type="text" name="cta_url" class="form-control" value="<?php echo $fieldValue($header, 'cta_url'); ?>">
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Hintergrundbild URL</label>
-                        <input type="text" name="bg_image" class="form-control" value="<?php echo htmlspecialchars($header['bg_image'] ?? ''); ?>">
+                        <input type="text" name="bg_image" class="form-control" value="<?php echo $fieldValue($header, 'bg_image'); ?>">
                     </div>
 
                     <button type="submit" class="btn btn-primary">Speichern</button>
                 </form>
 
-            <?php elseif ($tab === 'content'): ?>
+            <?php elseif ($activeTab === 'content'): ?>
                 <?php
                 $content  = $data['content'] ?? [];
-                $features = $data['features'] ?? [];
+                $contentTypeOptions = is_array($data['contentTypeOptions'] ?? null) ? $data['contentTypeOptions'] : [];
+                $featureCards = is_array($data['featureCards'] ?? null) ? $data['featureCards'] : [];
                 ?>
                 <form method="post" class="mb-4">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                     <input type="hidden" name="action" value="save_content">
+                    <input type="hidden" name="active_tab" value="content">
 
                     <div class="mb-3">
                         <label class="form-label">Inhaltstyp</label>
                         <select name="content_type" class="form-select">
-                            <option value="features" <?php echo ($content['content_type'] ?? 'features') === 'features' ? 'selected' : ''; ?>>Feature-Kacheln</option>
-                            <option value="text" <?php echo ($content['content_type'] ?? '') === 'text' ? 'selected' : ''; ?>>Freitext-Bereich</option>
-                            <option value="posts" <?php echo ($content['content_type'] ?? '') === 'posts' ? 'selected' : ''; ?>>Aktuelle Beiträge</option>
+                            <?php foreach ($contentTypeOptions as $option): ?>
+                                <option value="<?php echo $escape($option['value'] ?? ''); ?>" <?php echo !empty($option['selected']) ? 'selected' : ''; ?>><?php echo $escape($option['label'] ?? ''); ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -122,17 +131,17 @@ $tabs = [
                 <hr class="my-4">
                 <h3 class="mb-3">Features / Kacheln</h3>
 
-                <?php if (!empty($features)): ?>
+                <?php if (!empty($featureCards)): ?>
                     <div class="row row-cards mb-3">
-                        <?php foreach ($features as $feature): ?>
+                        <?php foreach ($featureCards as $feature): ?>
                             <div class="col-md-4 mb-3">
                                 <div class="card">
                                     <div class="card-body">
                                         <div class="d-flex align-items-start gap-3">
-                                            <div class="fs-1 lh-1"><?php echo htmlspecialchars($feature['icon'] ?? '🧩'); ?></div>
+                                            <div class="fs-1 lh-1"><?php echo $escape($feature['icon'] ?? '🧩'); ?></div>
                                             <div>
-                                                <h4 class="mb-1"><?php echo htmlspecialchars($feature['title'] ?? ''); ?></h4>
-                                                <p class="text-muted small mb-2"><?php echo htmlspecialchars($feature['description'] ?? ''); ?></p>
+                                                <h4 class="mb-1"><?php echo $escape($feature['title'] ?? ''); ?></h4>
+                                                <p class="text-muted small mb-2"><?php echo $escape($feature['description'] ?? ''); ?></p>
                                                 <span class="badge bg-azure-lt">Reihenfolge <?php echo (int)($feature['sort_order'] ?? 0); ?></span>
                                             </div>
                                         </div>
@@ -141,8 +150,9 @@ $tabs = [
                                         <form method="post" class="d-inline">
                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                             <input type="hidden" name="action" value="delete_feature">
+                                            <input type="hidden" name="active_tab" value="content">
                                             <input type="hidden" name="feature_id" value="<?php echo (int)($feature['id'] ?? 0); ?>">
-                                            <button type="submit" class="btn btn-outline-danger btn-sm">Löschen</button>
+                                            <button type="submit" class="btn btn-outline-danger btn-sm" <?php echo !empty($feature['delete_disabled']) ? 'disabled' : ''; ?>>Löschen</button>
                                         </form>
                                     </div>
                                 </div>
@@ -157,6 +167,7 @@ $tabs = [
                         <form method="post">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                             <input type="hidden" name="action" value="save_feature">
+                            <input type="hidden" name="active_tab" value="content">
                             <div class="row">
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label">Titel</label>
@@ -180,13 +191,14 @@ $tabs = [
                     </div>
                 </div>
 
-            <?php elseif ($tab === 'footer'): ?>
+            <?php elseif ($activeTab === 'footer'): ?>
                 <?php
                 $footer = $data['footer'] ?? [];
                 ?>
                 <form method="post">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                     <input type="hidden" name="action" value="save_footer">
+                    <input type="hidden" name="active_tab" value="footer">
 
                     <div class="mb-3">
                         <label class="form-check form-switch">
@@ -204,23 +216,23 @@ $tabs = [
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label">Button-Text</label>
-                            <input type="text" name="footer_button_text" class="form-control" value="<?php echo htmlspecialchars($footer['button_text'] ?? ''); ?>">
+                            <input type="text" name="footer_button_text" class="form-control" value="<?php echo $fieldValue($footer, 'button_text'); ?>">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Button-URL</label>
-                            <input type="text" name="footer_button_url" class="form-control" value="<?php echo htmlspecialchars($footer['button_url'] ?? ''); ?>">
+                            <input type="text" name="footer_button_url" class="form-control" value="<?php echo $fieldValue($footer, 'button_url'); ?>">
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Copyright-Text</label>
-                        <input type="text" name="footer_copyright" class="form-control" value="<?php echo htmlspecialchars($footer['copyright'] ?? ''); ?>">
+                        <input type="text" name="footer_copyright" class="form-control" value="<?php echo $fieldValue($footer, 'copyright'); ?>">
                     </div>
 
                     <button type="submit" class="btn btn-primary">Speichern</button>
                 </form>
 
-            <?php elseif ($tab === 'design'): ?>
+            <?php elseif ($activeTab === 'design'): ?>
                 <?php
                 $design = $data['design'] ?? [];
                 $colors = $data['colors'] ?? [];
@@ -228,6 +240,7 @@ $tabs = [
                 <form method="post">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                     <input type="hidden" name="action" value="save_design">
+                    <input type="hidden" name="active_tab" value="design">
 
                     <h4 class="mb-3">Landing-Farben</h4>
                     <div class="row mb-4">
@@ -354,39 +367,57 @@ $tabs = [
                     <button type="submit" class="btn btn-primary">Speichern</button>
                 </form>
 
-            <?php elseif ($tab === 'plugins'): ?>
+            <?php elseif ($activeTab === 'plugins'): ?>
                 <?php
-                $plugins   = $data['plugins'] ?? [];
-                $overrides = $data['overrides'] ?? [];
+                $pluginCards = is_array($data['pluginCards'] ?? null) ? $data['pluginCards'] : [];
                 ?>
 
-                <?php if (empty($plugins)): ?>
+                <?php if (empty($pluginCards)): ?>
                     <div class="text-center py-5 text-muted">
                         <p>Keine Plugins haben Landing-Page-Bereiche registriert.</p>
                     </div>
                 <?php else: ?>
-                    <?php foreach ($plugins as $plugin): ?>
+                    <?php foreach ($pluginCards as $plugin): ?>
                         <div class="card mb-3">
                             <div class="card-header">
-                                <h4 class="card-title"><?php echo htmlspecialchars($plugin['label'] ?? $plugin['id'] ?? ''); ?></h4>
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <h4 class="card-title mb-0"><?php echo $escape($plugin['title'] ?? $plugin['id'] ?? ''); ?></h4>
+                                    <?php if (!empty($plugin['version'])): ?>
+                                        <span class="badge bg-azure-lt">v<?php echo $escape($plugin['version']); ?></span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($plugin['author'])): ?>
+                                        <span class="text-muted small">von <?php echo $escape($plugin['author']); ?></span>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                             <div class="card-body">
+                                <?php if (!empty($plugin['description'])): ?>
+                                    <p class="text-muted mb-3"><?php echo $escape($plugin['description']); ?></p>
+                                <?php endif; ?>
+                                <?php if (!empty($plugin['targets'])): ?>
+                                    <div class="mb-3 d-flex flex-wrap gap-2">
+                                        <?php foreach ((array)($plugin['targets'] ?? []) as $target): ?>
+                                            <span class="badge bg-secondary-lt"><?php echo $escape($target); ?></span>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
                                 <form method="post">
                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                     <input type="hidden" name="action" value="save_plugin">
-                                    <input type="hidden" name="plugin_id" value="<?php echo htmlspecialchars($plugin['id'] ?? ''); ?>">
+                                    <input type="hidden" name="active_tab" value="plugins">
+                                    <input type="hidden" name="plugin_id" value="<?php echo $escape($plugin['id'] ?? ''); ?>">
 
                                     <div class="mb-3">
                                         <label class="form-check form-switch">
                                             <input type="checkbox" name="enabled" class="form-check-input" value="1"
-                                                   <?php echo !empty($overrides[$plugin['id'] ?? '']['enabled']) ? 'checked' : ''; ?>>
+                                                   <?php echo !empty($plugin['enabled']) ? 'checked' : ''; ?>>
                                             <span class="form-check-label">Auf Landing Page anzeigen</span>
                                         </label>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Reihenfolge</label>
-                                        <input type="number" name="sort_order" class="form-control" style="width: 120px;"
-                                               value="<?php echo (int)($overrides[$plugin['id'] ?? '']['sort_order'] ?? 10); ?>">
+                                        <input type="number" name="sort_order" class="form-control w-auto"
+                                               value="<?php echo (int)($plugin['sort_order'] ?? 10); ?>">
                                     </div>
 
                                     <button type="submit" class="btn btn-primary btn-sm">Speichern</button>

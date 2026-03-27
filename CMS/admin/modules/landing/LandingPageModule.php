@@ -49,7 +49,8 @@ class LandingPageModule
             'header'  => ['header'   => $this->service->getHeader()],
             'content' => [
                 'content'  => $this->service->getContentSettings(),
-                'features' => $this->service->getFeatures(),
+                'contentTypeOptions' => $this->buildContentTypeOptions((string)($this->service->getContentSettings()['content_type'] ?? 'features')),
+                'featureCards' => $this->buildFeatureCards($this->service->getFeatures()),
             ],
             'footer'  => ['footer'   => $this->service->getFooter()],
             'design'  => [
@@ -57,8 +58,10 @@ class LandingPageModule
                 'colors'   => $this->service->getColors(),
             ],
             'plugins' => [
-                'plugins'   => $this->service->getRegisteredPlugins(),
-                'overrides' => $this->service->getPluginOverrides(),
+                'pluginCards' => $this->buildPluginCards(
+                    $this->service->getRegisteredPlugins(),
+                    $this->service->getPluginOverrides()
+                ),
             ],
             default   => [],
         };
@@ -221,6 +224,7 @@ class LandingPageModule
         return [
             'title' => $this->sanitizer->sanitizePlainText((string)($post['title'] ?? ''), 150),
             'subtitle' => $this->sanitizer->sanitizePlainText((string)($post['subtitle'] ?? ''), 200),
+            'badge_text' => $this->sanitizer->sanitizePlainText((string)($post['badge_text'] ?? ''), 60),
             'description' => $this->sanitizer->normalizeHtml($post['description'] ?? ''),
             'cta_text' => $this->sanitizer->sanitizePlainText((string)($post['cta_text'] ?? ''), 60),
             'cta_url' => $this->sanitizer->sanitizeUrl((string)($post['cta_url'] ?? '')),
@@ -326,6 +330,96 @@ class LandingPageModule
         }
 
         return $this->sanitizer->sanitizeRelativeAssetPath($value);
+    }
+
+    /**
+     * @param array<string, mixed> $content
+     * @return array<int, array{value:string,label:string,selected:bool}>
+     */
+    private function buildContentTypeOptions(string $selectedType): array
+    {
+        $options = [
+            'features' => 'Feature-Kacheln',
+            'text' => 'Freitext-Bereich',
+            'posts' => 'Aktuelle Beiträge',
+        ];
+
+        $normalizedSelectedType = $this->sanitizer->sanitizeEnum($selectedType, array_keys($options), 'features');
+
+        $result = [];
+        foreach ($options as $value => $label) {
+            $result[] = [
+                'value' => $value,
+                'label' => $label,
+                'selected' => $normalizedSelectedType === $value,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $features
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildFeatureCards(array $features): array
+    {
+        $cards = [];
+
+        foreach ($features as $feature) {
+            $cards[] = [
+                'id' => (int)($feature['id'] ?? 0),
+                'icon' => (string)($feature['icon'] ?? '🧩'),
+                'title' => (string)($feature['title'] ?? ''),
+                'description' => (string)($feature['description'] ?? ''),
+                'sort_order' => (int)($feature['sort_order'] ?? 0),
+                'delete_disabled' => (int)($feature['id'] ?? 0) < 1,
+            ];
+        }
+
+        return $cards;
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $plugins
+     * @param array<string, mixed> $overrides
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildPluginCards(array $plugins, array $overrides): array
+    {
+        $pluginSettings = is_array($overrides['plugin_settings'] ?? null) ? $overrides['plugin_settings'] : [];
+        $cards = [];
+
+        foreach ($plugins as $pluginId => $plugin) {
+            $id = $this->sanitizer->sanitizePluginId((string)($plugin['id'] ?? $pluginId));
+            if ($id === '') {
+                continue;
+            }
+
+            $storedSettings = is_array($pluginSettings[$id] ?? null) ? $pluginSettings[$id] : [];
+            $targetLabels = array_map(
+                static fn (string $target): string => match ($target) {
+                    'header' => 'Header',
+                    'content' => 'Content',
+                    'footer' => 'Footer',
+                    default => ucfirst($target),
+                },
+                array_values(array_filter(array_map('strval', (array)($plugin['targets'] ?? []))))
+            );
+
+            $cards[] = [
+                'id' => $id,
+                'title' => (string)($plugin['name'] ?? $id),
+                'description' => (string)($plugin['description'] ?? ''),
+                'version' => (string)($plugin['version'] ?? ''),
+                'author' => (string)($plugin['author'] ?? ''),
+                'targets' => $targetLabels,
+                'enabled' => !empty($storedSettings['enabled']),
+                'sort_order' => $this->clampInt($storedSettings['sort_order'] ?? 10, 0, self::MAX_SORT_ORDER),
+            ];
+        }
+
+        return $cards;
     }
 
     private function sanitizeFeatureIcon(string $value): string

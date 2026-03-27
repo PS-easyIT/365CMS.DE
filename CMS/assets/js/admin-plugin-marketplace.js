@@ -64,7 +64,38 @@
         applyFilter();
     }
 
+    function bindMarketplaceInstallForms(config) {
+        if (!config) {
+            return;
+        }
+
+        var forms = document.querySelectorAll(config.installFormSelector || 'form[data-marketplace-install-form]');
+        if (!forms.length) {
+            return;
+        }
+
+        forms.forEach(function (form) {
+            form.addEventListener('submit', function () {
+                if (form.dataset.confirmAccepted !== '1') {
+                    return;
+                }
+
+                var button = form.querySelector('[data-marketplace-submit-button]');
+                if (!button || button.dataset.marketplaceSubmitting === '1') {
+                    return;
+                }
+
+                button.dataset.marketplaceSubmitting = '1';
+                button.dataset.originalHtml = button.innerHTML;
+                button.disabled = true;
+                button.innerHTML = button.dataset.submittingText || 'Installiere…';
+            });
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
-        bindMarketplaceFilter(parseConfig('plugin-marketplace-config'));
+        var config = parseConfig('plugin-marketplace-config');
+        bindMarketplaceFilter(config);
+        bindMarketplaceInstallForms(config);
     });
 })();

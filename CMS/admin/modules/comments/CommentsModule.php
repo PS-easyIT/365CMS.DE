@@ -26,6 +26,25 @@ class CommentsModule
     private const SUPPORTED_ACTIONS = ['status', 'delete', 'bulk'];
     private const BULK_ACTIONS = ['approve', 'spam', 'trash', 'delete'];
     private const MAX_BULK_IDS = 100;
+    private const STATUS_META = [
+        'all' => ['label' => 'Alle', 'count_key' => 'all', 'badge_class' => 'bg-primary'],
+        'pending' => ['label' => 'Ausstehend', 'count_key' => 'pending', 'badge_class' => 'bg-warning'],
+        'approved' => ['label' => 'Freigegeben', 'count_key' => 'approved', 'badge_class' => 'bg-secondary'],
+        'spam' => ['label' => 'Spam', 'count_key' => 'spam', 'badge_class' => 'bg-danger'],
+        'trash' => ['label' => 'Papierkorb', 'count_key' => 'trash', 'badge_class' => 'bg-secondary'],
+    ];
+    private const ROW_STATUS_META = [
+        'approved' => ['label' => 'Freigegeben', 'badge_class' => 'bg-success-lt'],
+        'pending' => ['label' => 'Ausstehend', 'badge_class' => 'bg-warning-lt'],
+        'spam' => ['label' => 'Spam', 'badge_class' => 'bg-danger-lt'],
+        'trash' => ['label' => 'Papierkorb', 'badge_class' => 'bg-secondary-lt'],
+    ];
+    private const SUMMARY_CARD_META = [
+        ['count_key' => 'all', 'label' => 'Gesamt', 'icon' => 'comments', 'avatar_class' => 'bg-primary text-white'],
+        ['count_key' => 'pending', 'label' => 'Ausstehend', 'icon' => 'alert', 'avatar_class' => 'bg-warning text-white'],
+        ['count_key' => 'approved', 'label' => 'Freigegeben', 'icon' => 'check', 'avatar_class' => 'bg-success text-white'],
+        ['count_key' => 'spam', 'label' => 'Spam', 'icon' => 'ban', 'avatar_class' => 'bg-danger text-white'],
+    ];
 
     private CommentService $service;
     private Database $db;
@@ -82,16 +101,18 @@ class CommentsModule
     /**
      * Daten für die Listenansicht
      */
-    public function getListData(): array
+    public function getListData(string $status = 'all'): array
     {
         $counts = $this->service->getCounts();
-        $status = $this->normalizeStatusFilter((string)($_GET['status'] ?? 'all'));
+        $status = $this->normalizeStatusFilter($status);
         $comments = array_map(fn(mixed $comment): array => $this->normalizeComment($comment), $this->service->getComments($status, 200, 0));
 
         return [
             'comments' => $comments,
             'counts'   => $counts,
             'status'   => $status,
+            'tabs' => $this->buildTabs($counts),
+            'summaryCards' => $this->buildSummaryCards($counts),
             'canModerate' => $this->canModerate(),
             'canDelete' => $this->canDelete(),
         ];
@@ -303,23 +324,75 @@ class CommentsModule
         $commentId = (int)$this->commentField($comment, 'id', 0);
         $author = trim((string)$this->commentField($comment, 'author', ''));
         $content = trim((string)$this->commentField($comment, 'content', ''));
+        $status = trim((string)$this->commentField($comment, 'status', 'pending'));
         $postDate = (string)$this->commentField($comment, 'post_date', '');
         $postSlug = trim((string)$this->commentField($comment, 'post_slug', ''));
         $postPublishedAt = trim((string)$this->commentField($comment, 'post_published_at', ''));
         $postCreatedAt = trim((string)$this->commentField($comment, 'post_created_at', ''));
+        $postUrl = $this->buildPostUrl($postSlug, $postPublishedAt, $postCreatedAt);
+        $statusMeta = self::ROW_STATUS_META[$status] ?? ['label' => $status, 'badge_class' => 'bg-secondary-lt'];
 
         return [
             'id' => $commentId,
             'post_id' => (int)$this->commentField($comment, 'post_id', 0),
             'author' => $author,
             'author_email' => trim((string)$this->commentField($comment, 'author_email', '')),
+            'author_initials' => $this->buildAuthorInitials($author),
             'content' => $content,
-            'status' => trim((string)$this->commentField($comment, 'status', 'pending')),
+            'excerpt' => $this->buildExcerpt($content),
+            'status' => $status,
+            'status_label' => (string)($statusMeta['label'] ?? $status),
+            'status_badge' => (string)($statusMeta['badge_class'] ?? 'bg-secondary-lt'),
             'post_date' => $postDate,
+            'formatted_date' => $this->formatCommentDate($postDate),
             'post_title' => trim((string)$this->commentField($comment, 'post_title', '')),
             'post_slug' => preg_replace('/[^a-zA-Z0-9\-_\/]/', '', $postSlug) ?? '',
-            'post_url' => $this->buildPostUrl($postSlug, $postPublishedAt, $postCreatedAt),
+            'post_url' => $postUrl,
+            'has_post_link' => $postUrl !== '',
+            'actions' => $this->buildRowActions($commentId, $status),
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $counts
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildSummaryCards(array $counts): array
+    {
+        $cards = [];
+
+        foreach (self::SUMMARY_CARD_META as $meta) {
+            $cards[] = [
+                'count' => (int)($counts[$meta['count_key']] ?? 0),
+                'label' => (string)($meta['label'] ?? ''),
+                'icon' => (string)($meta['icon'] ?? 'comments'),
+                'avatar_class' => (string)($meta['avatar_class'] ?? 'bg-secondary text-white'),
+            ];
+        }
+
+        return $cards;
+    }
+
+    /**
+     * @param array<string, mixed> $counts
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildTabs(array $counts): array
+    {
+        $tabs = [];
+
+        foreach (self::STATUS_META as $status => $meta) {
+            $countKey = (string)($meta['count_key'] ?? $status);
+            $tabs[] = [
+                'status' => $status,
+                'label' => (string)($meta['label'] ?? $status),
+                'count' => (int)($counts[$countKey] ?? 0),
+                'badge_class' => (string)($meta['badge_class'] ?? 'bg-secondary'),
+                'url' => $this->buildListUrl($status),
+            ];
+        }
+
+        return $tabs;
     }
 
     private function commentField(mixed $comment, string $key, mixed $default = ''): mixed
@@ -343,6 +416,71 @@ class CommentsModule
         }
 
         return PermalinkService::getInstance()->buildPostUrlFromValues($slug, $publishedAt, $createdAt);
+    }
+
+    private function formatCommentDate(string $date): string
+    {
+        $timestamp = strtotime($date);
+
+        return $timestamp !== false ? date('d.m.Y H:i', $timestamp) : '–';
+    }
+
+    private function buildExcerpt(string $content): string
+    {
+        $plainText = trim(preg_replace('/\s+/u', ' ', strip_tags($content)) ?? '');
+
+        return mb_substr($plainText, 0, 120);
+    }
+
+    private function buildAuthorInitials(string $author): string
+    {
+        $initials = strtoupper(mb_substr(trim($author), 0, 2));
+
+        return $initials !== '' ? $initials : 'KO';
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildRowActions(int $commentId, string $status): array
+    {
+        $actions = [];
+
+        if ($this->canModerate()) {
+            $statusActions = [
+                'approved' => ['label' => 'Freigeben', 'icon' => 'check', 'variant' => 'default'],
+                'pending' => ['label' => 'Ausstehend', 'icon' => 'alert', 'variant' => 'default'],
+                'spam' => ['label' => 'Spam', 'icon' => 'ban', 'variant' => 'warning'],
+                'trash' => ['label' => 'Papierkorb', 'icon' => 'trash', 'variant' => 'danger'],
+            ];
+
+            foreach ($statusActions as $targetStatus => $meta) {
+                if ($targetStatus === $status) {
+                    continue;
+                }
+
+                $actions[] = [
+                    'type' => 'status',
+                    'comment_id' => $commentId,
+                    'status' => $targetStatus,
+                    'label' => (string)($meta['label'] ?? $targetStatus),
+                    'icon' => (string)($meta['icon'] ?? 'check'),
+                    'variant' => (string)($meta['variant'] ?? 'default'),
+                ];
+            }
+        }
+
+        if ($this->canDelete() && $status === 'trash') {
+            $actions[] = [
+                'type' => 'delete',
+                'comment_id' => $commentId,
+                'label' => 'Endgültig löschen',
+                'icon' => 'trash',
+                'variant' => 'danger',
+            ];
+        }
+
+        return $actions;
     }
 
     /**
