@@ -94,6 +94,9 @@ $fontManagerConfig = [
                     ?>
 
                     <p class="text-muted">Der Scan durchsucht das aktive Theme nach Google-Font-Imports und bekannten Schriftfamilien, damit du genutzte Fonts lokal self-hosten kannst.</p>
+                    <?php if (!empty($constraints['download_total_byte_limit'])): ?>
+                        <div class="small text-muted mb-3">Für Remote-Downloads gilt zusätzlich ein Gesamtlimit von <?php echo htmlspecialchars(number_format(((int)($constraints['download_total_byte_limit'] ?? 0)) / 1048576, 1, ',', '')); ?> MB pro Schrift-Import.</div>
+                    <?php endif; ?>
                     <div class="small text-muted mb-3">
                         <?php echo (int)($scanSummary['scannedFiles'] ?? 0); ?> Dateien geprüft
                         <?php if (!empty($scanSummary['skippedFiles'])): ?>
@@ -101,6 +104,15 @@ $fontManagerConfig = [
                         <?php endif; ?>
                         <?php if (!empty($constraints['scan_file_limit'])): ?>
                             · Limit <?php echo (int)($constraints['scan_file_limit'] ?? 0); ?> Dateien
+                        <?php endif; ?>
+                        <?php if (!empty($scanSummary['source'])): ?>
+                            · Quelle <?php echo htmlspecialchars((string)($scanSummary['source'] ?? 'live')); ?>
+                        <?php endif; ?>
+                        <?php if (!empty($scanSummary['generatedAt'])): ?>
+                            · Stand <?php echo htmlspecialchars((string)($scanSummary['generatedAt'] ?? '')); ?>
+                        <?php endif; ?>
+                        <?php if (!empty($constraints['download_remote_file_limit'])): ?>
+                            · Download-Limit <?php echo (int)($constraints['download_remote_file_limit'] ?? 0); ?> Dateien
                         <?php endif; ?>
                     </div>
                     <?php if (!empty($scanSummary['warnings']) && is_array($scanSummary['warnings'])): ?>
@@ -352,7 +364,7 @@ $fontManagerConfig = [
                             <div class="col">
                                 <label class="form-label">Google Font Name</label>
                                 <input type="text" name="google_font_family" class="form-control" placeholder="z.B. Inter, Roboto, Open Sans" required maxlength="<?php echo (int)($constraints['google_font_family_max_length'] ?? 120); ?>" pattern="[a-zA-Z0-9 ]+" title="Nur Buchstaben, Zahlen und Leerzeichen" autocomplete="off" spellcheck="false">
-                                <small class="form-hint">Exakter Name von <a href="https://fonts.google.com" target="_blank" rel="noopener noreferrer">fonts.google.com</a></small>
+                                <small class="form-hint">Exakter Name von <a href="https://fonts.google.com" target="_blank" rel="noopener noreferrer">fonts.google.com</a>; pro Import maximal <?php echo (int)($constraints['download_remote_file_limit'] ?? 20); ?> Font-Dateien innerhalb des Remote-Limits.</small>
                             </div>
                             <div class="col-auto">
                                 <button type="submit" class="btn btn-outline-primary" data-pending-text="Lädt …">Herunterladen</button>

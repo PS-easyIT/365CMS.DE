@@ -22,6 +22,7 @@ use CMS\WP_Error;
 class MediaModule
 {
     private const MAX_UPLOAD_FILENAME_LENGTH = 180;
+    private const MEMBER_FOLDER_CONFIRM_MESSAGE = 'Der Member-Bereich enthält sensible Uploads. Möchten Sie den Ordner wirklich öffnen?';
 
     private const SETTINGS_DEFAULTS = [
         'max_upload_size' => '64M',
@@ -204,6 +205,7 @@ class MediaModule
         $category = $this->normalizeCategorySlug((string)($_GET['category'] ?? ''));
         $view     = $this->normalizeView((string)($_GET['view'] ?? 'finder'));
         $search   = $this->sanitizeSearch((string)($_GET['q'] ?? ''));
+        $confirmMember = (string)($_GET['confirm_member'] ?? '') === '1';
 
         if ($category !== '' && !$this->categoryExists($category)) {
             $category = '';
@@ -240,16 +242,37 @@ class MediaModule
 
         $categories = $this->getCategories();
         $diskUsage  = $this->service->getDiskUsage();
+        $stateParams = $this->buildLibraryStateParams($path, $view, $category, $search, $confirmMember);
 
         return [
-            'folders'    => $items['folders'] ?? [],
-            'files'      => $items['files'] ?? [],
+            'folders'    => $this->buildFolderViewModels($items['folders'] ?? [], $path, $view, $category, $search, $confirmMember),
+            'files'      => $this->buildFileViewModels($items['files'] ?? [], $path),
             'categories' => $categories,
             'diskUsage'  => $diskUsage,
             'path'       => $path,
             'category'   => $category,
             'view'       => $view,
             'search'     => $search,
+            'confirm_member' => $confirmMember,
+            'breadcrumbs' => $this->buildBreadcrumbs($path, $view, $category, $search, $confirmMember),
+            'stats' => $this->buildLibraryStats($items, $categories, $diskUsage),
+            'base_url' => $this->buildAdminUrl(),
+            'finder_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'finder', $category, $search, $confirmMember)),
+            'list_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'list', $category, $search, $confirmMember)),
+            'grid_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'grid', $category, $search, $confirmMember)),
+            'root_url' => $this->buildAdminUrl($stateParams),
+            'filter_state' => [
+                'path' => $path,
+                'view' => $view,
+                'category' => $category,
+                'search' => $search,
+            ],
+            'category_options' => $this->buildCategoryOptions($categories),
+            'member_folder_confirm_message' => self::MEMBER_FOLDER_CONFIRM_MESSAGE,
+            'empty_state' => [
+                'title' => 'Dieser Ordner ist leer',
+                'subtitle' => 'Legen Sie einen Ordner an oder laden Sie Dateien hoch.',
+            ],
         ];
     }
 
@@ -399,6 +422,7 @@ class MediaModule
     {
         return [
             'categories' => $this->getCategories(),
+            'system_slugs' => self::SYSTEM_CATEGORY_SLUGS,
         ];
     }
 
@@ -614,6 +638,11 @@ class MediaModule
         return $this->sanitizeSearch($search);
     }
 
+    public function getMemberFolderConfirmMessage(): string
+    {
+        return self::MEMBER_FOLDER_CONFIRM_MESSAGE;
+    }
+
     private function normalizeRelativePath(string $path): string
     {
         $path = trim(str_replace('\\', '/', $path));
@@ -726,6 +755,206 @@ class MediaModule
             'error' => (int)$file['error'],
             'size' => max(0, (int)$file['size']),
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function buildLibraryStateParams(string $path, string $view, string $category, string $search, bool $confirmMember): array
+    {
+        $params = [];
+
+        if ($path !== '') {
+            $params['path'] = $path;
+        }
+
+        if ($view !== 'finder') {
+            $params['view'] = $view;
+        }
+
+        if ($category !== '') {
+            $params['category'] = $category;
+        }
+
+        if ($search !== '') {
+            $params['q'] = $search;
+        }
+
+        if ($confirmMember) {
+            $params['confirm_member'] = '1';
+        }
+
+        return $params;
+    }
+
+    private function buildAdminUrl(array $params = []): string
+    {
+        $baseUrl = SITE_URL . '/admin/media';
+        if ($params === []) {
+            return $baseUrl;
+        }
+
+        $normalizedParams = array_filter($params, static fn (mixed $value): bool => $value !== '' && $value !== null);
+
+        return $normalizedParams === [] ? $baseUrl : $baseUrl . '?' . http_build_query($normalizedParams);
+    }
+
+    /**
+     * @return list<array<string, string>>
+     */
+    private function buildBreadcrumbs(string $path, string $view, string $category, string $search, bool $confirmMember): array
+    {
+        if ($path === '') {
+            return [];
+        }
+
+        $breadcrumbs = [];
+        $parts = explode('/', trim($path, '/'));
+        $cumulative = '';
+
+        foreach ($parts as $index => $part) {
+            $cumulative .= ($cumulative !== '' ? '/' : '') . $part;
+            $isLast = $index === count($parts) - 1;
+            $breadcrumbs[] = [
+                'label' => $part,
+                'path' => $cumulative,
+                'url' => $isLast ? '' : $this->buildAdminUrl($this->buildLibraryStateParams($cumulative, $view, $category, $search, $confirmMember)),
+            ];
+        }
+
+        return $breadcrumbs;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $folders
+     * @return list<array<string, mixed>>
+     */
+    private function buildFolderViewModels(array $folders, string $path, string $view, string $category, string $search, bool $confirmMember): array
+    {
+        $viewModels = [];
+
+        foreach ($folders as $folder) {
+            $folderName = (string)($folder['name'] ?? '');
+            $folderPath = (string)($folder['path'] ?? trim(($path !== '' ? $path . '/' : '') . $folderName, '/'));
+            $requiresConfirmation = $this->requiresMemberConfirmation($folderPath) && !$confirmMember;
+
+            $viewModels[] = [
+                'name' => $folderName,
+                'path' => $folderPath,
+                'items_count' => (int)($folder['items_count'] ?? 0),
+                'category' => (string)($folder['category'] ?? ''),
+                'modified_label' => !empty($folder['modified']) ? date('d.m.Y H:i', (int)$folder['modified']) : '—',
+                'is_system' => !empty($folder['is_system']),
+                'url' => $this->buildAdminUrl($this->buildLibraryStateParams($folderPath, $view, $category, $search, $confirmMember)),
+                'confirm_url' => $this->buildAdminUrl($this->buildLibraryStateParams($folderPath, $view, $category, $search, true)),
+                'requires_confirmation' => $requiresConfirmation,
+            ];
+        }
+
+        return $viewModels;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $files
+     * @return list<array<string, mixed>>
+     */
+    private function buildFileViewModels(array $files, string $path): array
+    {
+        $viewModels = [];
+
+        foreach ($files as $file) {
+            $fileName = (string)($file['name'] ?? '');
+            $filePath = (string)($file['path'] ?? trim(($path !== '' ? $path . '/' : '') . $fileName, '/'));
+            $fileUrl = (string)($file['url'] ?? (UPLOAD_URL . '/' . $filePath));
+            $previewUrl = (string)($file['preview_url'] ?? $fileUrl);
+            $fileType = $this->detectFileType($fileName);
+
+            $viewModels[] = [
+                'name' => $fileName,
+                'path' => $filePath,
+                'url' => $fileUrl,
+                'preview_url' => $previewUrl,
+                'category' => (string)($file['category'] ?? ''),
+                'category_label' => (string)($file['category'] ?? 'Ohne Kategorie'),
+                'modified_label' => !empty($file['modified']) ? date('d.m.Y H:i', (int)$file['modified']) : '—',
+                'file_type' => $fileType,
+                'is_image' => $fileType === 'image',
+                'formatted_size' => $this->formatBytes(isset($file['size']) ? (int)$file['size'] : null),
+            ] + $file;
+        }
+
+        return $viewModels;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $categories
+     * @return list<array<string, mixed>>
+     */
+    private function buildCategoryOptions(array $categories): array
+    {
+        $options = [];
+
+        foreach ($categories as $category) {
+            $options[] = [
+                'slug' => (string)($category['slug'] ?? ''),
+                'name' => (string)($category['name'] ?? ''),
+                'count' => (int)($category['count'] ?? 0),
+            ];
+        }
+
+        return $options;
+    }
+
+    /**
+     * @param array<string, mixed> $items
+     * @param array<int, array<string, mixed>> $categories
+     * @param array<string, mixed> $diskUsage
+     * @return array<string, string|int>
+     */
+    private function buildLibraryStats(array $items, array $categories, array $diskUsage): array
+    {
+        return [
+            'file_count' => (int)($diskUsage['count'] ?? count($items['files'] ?? [])),
+            'storage_label' => (string)($diskUsage['formatted'] ?? '0 B'),
+            'folder_count' => count($items['folders'] ?? []),
+            'category_count' => count($categories),
+        ];
+    }
+
+    private function detectFileType(string $filename): string
+    {
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+        if (in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico', 'svg'], true)) {
+            return 'image';
+        }
+
+        if (in_array($extension, ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'], true)) {
+            return 'video';
+        }
+
+        if (in_array($extension, ['mp3', 'wav', 'aac', 'flac', 'm4a'], true)) {
+            return 'audio';
+        }
+
+        return 'document';
+    }
+
+    private function formatBytes(?int $bytes): string
+    {
+        if ($bytes === null) {
+            return '—';
+        }
+
+        if ($bytes >= 1048576) {
+            return round($bytes / 1048576, 1) . ' MB';
+        }
+
+        if ($bytes >= 1024) {
+            return round($bytes / 1024, 1) . ' KB';
+        }
+
+        return $bytes . ' B';
     }
 
     private function buildGenericFailureFromWpError(WP_Error $error, array $context): array

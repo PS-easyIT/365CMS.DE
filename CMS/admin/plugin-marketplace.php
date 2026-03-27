@@ -15,6 +15,7 @@ use CMS\Auth;
 const CMS_ADMIN_PLUGIN_MARKETPLACE_READ_CAPABILITY = 'manage_settings';
 const CMS_ADMIN_PLUGIN_MARKETPLACE_WRITE_CAPABILITY = 'manage_settings';
 const CMS_ADMIN_PLUGIN_MARKETPLACE_INSTALL_ACTION = 'install';
+const CMS_ADMIN_PLUGIN_MARKETPLACE_MAX_SLUG_LENGTH = 120;
 
 function cms_admin_plugin_marketplace_can_access(): bool
 {
@@ -30,7 +31,13 @@ function cms_admin_plugin_marketplace_can_install(): bool
 
 function cms_admin_plugin_marketplace_normalize_slug(array $post): string
 {
-    return (string) preg_replace('/[^a-z0-9_-]/', '', strtolower((string) ($post['slug'] ?? '')));
+    $slug = (string) preg_replace('/[^a-z0-9_-]/', '', strtolower((string) ($post['slug'] ?? '')));
+
+    if (function_exists('mb_substr')) {
+        return (string) mb_substr($slug, 0, CMS_ADMIN_PLUGIN_MARKETPLACE_MAX_SLUG_LENGTH);
+    }
+
+    return substr($slug, 0, CMS_ADMIN_PLUGIN_MARKETPLACE_MAX_SLUG_LENGTH);
 }
 
 function cms_admin_plugin_marketplace_normalize_action(mixed $action): string
@@ -90,6 +97,10 @@ $sectionPageConfig = [
         $payload = cms_admin_plugin_marketplace_normalize_payload($post);
         if ($payload['error'] !== '') {
             return ['success' => false, 'error' => $payload['error']];
+        }
+
+        if ($payload['action'] === CMS_ADMIN_PLUGIN_MARKETPLACE_INSTALL_ACTION && !$module->hasCatalogPluginSlug($payload['slug'])) {
+            return ['success' => false, 'error' => 'Plugin-Slug ist im aktuellen Marketplace-Katalog nicht vorhanden. Bitte Ansicht aktualisieren.'];
         }
 
         return match ($payload['action']) {

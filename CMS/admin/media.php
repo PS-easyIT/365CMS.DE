@@ -416,12 +416,14 @@ function cms_admin_media_handle_upload(MediaModule $module, string $path): array
         return [
             'type' => 'danger',
             'message' => (string) $uploadBatch['error'],
+            'details' => ['Bitte Upload-Auswahl und Dateigrößen prüfen.'],
         ];
     }
 
     $files = $uploadBatch['files'];
     $uploaded = 0;
     $errors   = [];
+    $reportPayload = [];
 
     foreach ($files as $file) {
         $result = $module->uploadFile($file, $path);
@@ -431,27 +433,37 @@ function cms_admin_media_handle_upload(MediaModule $module, string $path): array
         }
 
         $errors[] = cms_admin_media_normalize_upload_error_label($file['name'] ?? 'Datei') . ': ' . trim((string) ($result['error'] ?? 'Fehler'));
+
+        if ($reportPayload === [] && is_array($result['report_payload'] ?? null)) {
+            $reportPayload = $result['report_payload'];
+        }
     }
 
     if ($uploaded === 0 && $errors === []) {
         return [
             'type' => 'danger',
             'message' => 'Es wurden keine gültigen Upload-Dateien übermittelt.',
+            'details' => ['Bitte mindestens eine gültige Upload-Datei auswählen.'],
         ];
     }
 
     $formattedErrors = cms_admin_media_format_upload_errors($errors);
+    $detailErrors = array_slice($errors, 0, 5);
 
     if ($uploaded > 0) {
         return [
             'type' => 'success',
             'message' => $uploaded . ' Datei(en) hochgeladen.' . ($formattedErrors !== '' ? ' Fehler: ' . $formattedErrors : ''),
+            'details' => $detailErrors,
+            'report_payload' => $reportPayload,
         ];
     }
 
     return [
         'type' => 'danger',
         'message' => 'Upload fehlgeschlagen.' . ($formattedErrors !== '' ? ' ' . $formattedErrors : ''),
+        'details' => $detailErrors,
+        'report_payload' => $reportPayload,
     ];
 }
 
@@ -633,6 +645,8 @@ $sectionPageConfig = [
             return [
                 'success' => (($handledAction['flash']['type'] ?? 'danger') === 'success'),
                 'message' => (string) ($handledAction['flash']['message'] ?? ''),
+                'details' => is_array($handledAction['flash']['details'] ?? null) ? $handledAction['flash']['details'] : [],
+                'report_payload' => is_array($handledAction['flash']['report_payload'] ?? null) ? $handledAction['flash']['report_payload'] : [],
                 'redirect_path' => (string) ($handledAction['redirect_path'] ?? '/admin/media'),
             ];
         }

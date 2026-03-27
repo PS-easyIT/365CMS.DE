@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.7.313",
+  "version": "2.7.322",
   "min_php": "8.4",
   "released": "2026-03-27",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release 2.7.313: Der Theme-Explorer hängt jetzt am gemeinsamen Section-Shell-Vertrag, sein Dateibaum arbeitet mit expliziten Schutzgrenzen und Pending-/Dirty-Status, und der Font-Manager verhindert Doppelaktionen im UI konsequenter über einen gemeinsamen Form-Status-Vertrag.",
+  "notes": "Release 2.7.322: Die Medienverwaltung liefert Bibliothekszustand, Datei-/Ordner-Metadaten und System-Kategoriegrenzen jetzt vorbereiteter aus dem MediaModule, während Upload-Fehler im Admin strukturiertere Detail- und Report-Kontexte bis zur Section-Shell durchreichen.",
   "critical": false
 }

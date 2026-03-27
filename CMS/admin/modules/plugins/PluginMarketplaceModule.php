@@ -16,9 +16,13 @@ class PluginMarketplaceModule
 {
     private const MAX_REGISTRY_BYTES = 1048576;
     private const MAX_MANIFEST_BYTES = 524288;
+    private const REGISTRY_CACHE_TTL = 900;
+    private const REGISTRY_CACHE_OPTION = 'plugin_marketplace_registry_cache';
+    private const REGISTRY_CACHE_META_OPTION = 'plugin_marketplace_registry_cache_meta';
     private const MAX_ARCHIVE_ENTRIES = 2000;
     private const MAX_ARCHIVE_UNCOMPRESSED_BYTES = 52428800;
     private const MAX_CATALOG_STRING_LENGTH = 500;
+    private const MAX_PACKAGE_SIZE_BYTES = 104857600;
     private const MANIFEST_ALLOWED_KEYS = [
         'slug',
         'name',
@@ -103,10 +107,19 @@ class PluginMarketplaceModule
 
         foreach ($available as &$plugin) {
             $pluginSlug = $this->normalizePluginSlug((string) ($plugin['slug'] ?? ''));
+            $downloadUrl = trim((string) ($plugin['download_url'] ?? ''));
+            $integrityHash = $this->resolveIntegrityHash($plugin);
+            $packageSizeBytes = $this->normalizePackageSize($plugin['package_size'] ?? null);
             $plugin['installed'] = $pluginSlug !== '' && isset($installedLookup[$pluginSlug]);
+            $plugin['package_size_bytes'] = $packageSizeBytes;
+            $plugin['package_size_label'] = $packageSizeBytes > 0 ? $this->formatBytesLabel($packageSizeBytes) : '';
+            $plugin['download_host'] = strtolower((string) parse_url($downloadUrl, PHP_URL_HOST));
+            $plugin['download_host_allowed'] = $downloadUrl !== '' && $this->isAllowedMarketplaceUrl($downloadUrl);
+            $plugin['package_size_allowed'] = $this->isAllowedPackageSize($plugin);
+            $plugin['integrity_hash_short'] = $integrityHash !== '' ? substr($integrityHash, 0, 12) . '…' : '';
             $plugin['auto_install_supported'] = $this->canAutoInstall($plugin);
             $plugin['manual_install_only'] = !$plugin['auto_install_supported'];
-            $plugin['integrity_hash_present'] = $this->resolveIntegrityHash($plugin) !== '';
+            $plugin['integrity_hash_present'] = $integrityHash !== '';
             $plugin['compatibility_reason'] = $this->getCompatibilityFailureReason($plugin);
             $plugin['compatible'] = $plugin['compatibility_reason'] === '';
             $plugin['install_reason'] = $plugin['auto_install_supported']
@@ -125,6 +138,11 @@ class PluginMarketplaceModule
                 'statuses' => $this->buildStatusFilters(),
             ],
         ];
+    }
+
+    public function hasCatalogPluginSlug(string $slug): bool
+    {
+        return $this->findCatalogPlugin($slug) !== null;
     }
 
     public function installPlugin(string $slug): array
@@ -149,6 +167,10 @@ class PluginMarketplaceModule
 
         if (!$this->canAutoInstall($found)) {
             return ['success' => false, 'error' => $this->getManualInstallReason($found)];
+        }
+
+        if (!$this->isAllowedPackageSize($found)) {
+            return ['success' => false, 'error' => 'Paket überschreitet die erlaubte Marketplace-Größe für Auto-Installationen.'];
         }
 
         if (!$this->isAllowedMarketplaceUrl($downloadUrl)) {
@@ -182,7 +204,16 @@ class PluginMarketplaceModule
         );
 
         if (($result['success'] ?? false) !== true) {
-            return ['success' => false, 'error' => (string) ($result['message'] ?? 'Plugin konnte nicht installiert werden.')];
+            return [
+                'success' => false,
+                'error' => (string) ($result['message'] ?? 'Plugin konnte nicht installiert werden.'),
+                'details' => array_values(array_filter([
+                    'Slug: ' . $slug,
+                    'Quelle: ' . $downloadUrl,
+                    !empty($found['package_size']) ? 'Paketgröße: ' . $this->formatBytesLabel($this->normalizePackageSize($found['package_size'])) : '',
+                    $integrityHash !== '' ? 'SHA-256: ' . substr($integrityHash, 0, 12) . '…' : '',
+                ])),
+            ];
         }
 
         return ['success' => true, 'message' => "Plugin \"{$slug}\" installiert. Aktiviere es unter Plugin-Verwaltung."];
@@ -195,9 +226,26 @@ class PluginMarketplaceModule
         }
 
         $registryUrl = $this->getRegistryUrl();
+        $cachedRegistry = $this->loadCachedRegistry($registryUrl);
+        if ($cachedRegistry !== null) {
+            $this->registrySource = [
+                'type' => 'cache',
+                'status' => 'info',
+                'message' => 'Plugin-Registry aus lokalem Cache geladen.',
+                'url' => $registryUrl,
+                'details' => array_values(array_filter([
+                    !empty($cachedRegistry['cached_at_label']) ? 'Stand: ' . $cachedRegistry['cached_at_label'] : '',
+                    isset($cachedRegistry['age_seconds']) ? 'Cache-Alter: ' . (int) $cachedRegistry['age_seconds'] . ' Sekunden' : '',
+                ])),
+            ];
+
+            return $this->registryCache = $cachedRegistry['plugins'];
+        }
+
         if ($registryUrl !== '') {
             $remoteRegistry = $this->loadRemoteRegistry($registryUrl);
             if ($remoteRegistry !== []) {
+                $this->persistRegistryCache($registryUrl, $remoteRegistry);
                 $this->registrySource = [
                     'type' => 'remote',
                     'status' => 'success',
@@ -205,6 +253,22 @@ class PluginMarketplaceModule
                     'url' => $registryUrl,
                 ];
                 return $this->registryCache = $remoteRegistry;
+            }
+
+            $staleRegistry = $this->loadCachedRegistry($registryUrl, true);
+            if ($staleRegistry !== null) {
+                $this->registrySource = [
+                    'type' => 'cache',
+                    'status' => 'warning',
+                    'message' => 'Remote-Registry derzeit nicht verfügbar; letzter bekannter Cache wird als Fallback genutzt.',
+                    'url' => $registryUrl,
+                    'details' => array_values(array_filter([
+                        !empty($staleRegistry['cached_at_label']) ? 'Cache-Stand: ' . $staleRegistry['cached_at_label'] : '',
+                        isset($staleRegistry['age_seconds']) ? 'Cache-Alter: ' . (int) $staleRegistry['age_seconds'] . ' Sekunden' : '',
+                    ])),
+                ];
+
+                return $this->registryCache = $staleRegistry['plugins'];
             }
         }
 
@@ -243,6 +307,68 @@ class PluginMarketplaceModule
         ];
 
         return $this->registryCache = $this->sanitizeCatalogEntries(is_array($plugins) ? $plugins : [], dirname($localIndex));
+    }
+
+    /**
+     * @return array{plugins:array<int, array<string, mixed>>, age_seconds:int, cached_at_label:string}|null
+     */
+    private function loadCachedRegistry(string $registryUrl, bool $allowExpired = false): ?array
+    {
+        $payload = $this->db->get_var(
+            "SELECT option_value FROM {$this->prefix}settings WHERE option_name = ? LIMIT 1",
+            [self::REGISTRY_CACHE_OPTION]
+        );
+        $metaPayload = $this->db->get_var(
+            "SELECT option_value FROM {$this->prefix}settings WHERE option_name = ? LIMIT 1",
+            [self::REGISTRY_CACHE_META_OPTION]
+        );
+
+        $cacheData = \CMS\Json::decodeArray((string) $payload, []);
+        $cacheMeta = \CMS\Json::decodeArray((string) $metaPayload, []);
+        if (!is_array($cacheData) || !is_array($cacheMeta)) {
+            return null;
+        }
+
+        $cachedUrl = $this->normalizeMarketplaceUrl((string) ($cacheMeta['registry_url'] ?? ''));
+        $normalizedRegistryUrl = $this->normalizeMarketplaceUrl($registryUrl);
+        if ($cachedUrl === '' || $normalizedRegistryUrl === '' || $cachedUrl !== $normalizedRegistryUrl) {
+            return null;
+        }
+
+        $cachedAt = (int) ($cacheMeta['cached_at'] ?? 0);
+        if ($cachedAt <= 0) {
+            return null;
+        }
+
+        $ageSeconds = max(0, time() - $cachedAt);
+        if (!$allowExpired && $ageSeconds > self::REGISTRY_CACHE_TTL) {
+            return null;
+        }
+
+        $plugins = is_array($cacheData['plugins'] ?? null) ? $cacheData['plugins'] : [];
+
+        return [
+            'plugins' => $this->sanitizeCatalogEntries($plugins),
+            'age_seconds' => $ageSeconds,
+            'cached_at_label' => date('d.m.Y H:i:s', $cachedAt),
+        ];
+    }
+
+    /** @param array<int, array<string, mixed>> $plugins */
+    private function persistRegistryCache(string $registryUrl, array $plugins): void
+    {
+        $payload = json_encode(['plugins' => $plugins], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $meta = json_encode([
+            'registry_url' => $registryUrl,
+            'cached_at' => time(),
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        if (!is_string($payload) || !is_string($meta)) {
+            return;
+        }
+
+        $this->upsertSetting(self::REGISTRY_CACHE_OPTION, $payload);
+        $this->upsertSetting(self::REGISTRY_CACHE_META_OPTION, $meta);
     }
 
     private function getRegistryUrl(): string
@@ -359,6 +485,7 @@ class PluginMarketplaceModule
             $normalized['price_currency'] = strtoupper($this->normalizeCatalogString($normalized['price_currency'] ?? 'EUR', 8));
             $normalized['requires_cms'] = $this->normalizeCatalogString($normalized['requires_cms'] ?? $normalized['min_cms_version'] ?? '', 40);
             $normalized['requires_php'] = $this->normalizeCatalogString($normalized['requires_php'] ?? $normalized['min_php'] ?? '', 40);
+            $normalized['package_size'] = $this->normalizePackageSize($normalized['package_size'] ?? null);
             $normalized['sha256'] = $this->resolveIntegrityHash($normalized);
 
             $seenSlugs[$normalized['slug']] = true;
@@ -597,6 +724,7 @@ class PluginMarketplaceModule
         return $downloadUrl !== ''
             && $integrityHash !== ''
             && $this->meetsEnvironmentRequirements($plugin)
+            && $this->isAllowedPackageSize($plugin)
             && $this->isAllowedMarketplaceUrl($downloadUrl);
     }
 
@@ -627,6 +755,10 @@ class PluginMarketplaceModule
         $downloadUrl = trim((string)($plugin['download_url'] ?? ''));
         if ($downloadUrl === '') {
             return 'Keine Download-URL verfügbar. Plugin muss manuell installiert werden.';
+        }
+
+        if (!$this->isAllowedPackageSize($plugin)) {
+            return 'Paket überschreitet das Auto-Install-Limit von ' . $this->formatBytesLabel(self::MAX_PACKAGE_SIZE_BYTES) . '.';
         }
 
         if (!$this->isAllowedMarketplaceUrl($downloadUrl)) {
@@ -770,6 +902,35 @@ class PluginMarketplaceModule
         return defined('ABSPATH') ? ABSPATH . 'plugins/' : '';
     }
 
+    private function normalizePackageSize(mixed $value): int
+    {
+        if (is_int($value) || is_float($value) || (is_string($value) && preg_match('/^\d+$/', trim($value)) === 1)) {
+            return max(0, (int) $value);
+        }
+
+        return 0;
+    }
+
+    private function isAllowedPackageSize(array $plugin): bool
+    {
+        $packageSize = $this->normalizePackageSize($plugin['package_size'] ?? null);
+
+        return $packageSize === 0 || $packageSize <= self::MAX_PACKAGE_SIZE_BYTES;
+    }
+
+    private function formatBytesLabel(int $bytes): string
+    {
+        if ($bytes >= 1048576) {
+            return round($bytes / 1048576, 1) . ' MB';
+        }
+
+        if ($bytes >= 1024) {
+            return round($bytes / 1024, 1) . ' KB';
+        }
+
+        return $bytes . ' B';
+    }
+
     private function resolveLocalRegistryPath(): string
     {
         $pluginsDir = $this->resolvePluginsDir();
@@ -778,5 +939,20 @@ class PluginMarketplaceModule
         }
 
         return rtrim(dirname(rtrim($pluginsDir, '/\\')), '/\\') . DIRECTORY_SEPARATOR . 'index.json';
+    }
+
+    private function upsertSetting(string $key, string $value): void
+    {
+        $updated = $this->db->execute(
+            "UPDATE {$this->prefix}settings SET option_value = ? WHERE option_name = ?",
+            [$value, $key]
+        );
+
+        if ($updated === 0) {
+            $this->db->execute(
+                "INSERT INTO {$this->prefix}settings (option_name, option_value) VALUES (?, ?)",
+                [$key, $value]
+            );
+        }
     }
 }

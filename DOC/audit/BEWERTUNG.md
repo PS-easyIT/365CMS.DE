@@ -5,13 +5,67 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 395
+### Gesamtstand nach Batch 404
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 448 | 92,61 | 90,28 | 94,04 | 93,81 |
+| 448 | 93,02 | 90,88 | 94,43 | 94,22 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **395 umgesetzte Audit-Batches**. Das sind aktuell **395 von 444 Prüfplan-Punkten**. Zuletzt wurden Theme-Explorer-Entry, Theme-Dateibaum sowie Pending-/Dirty- und Formularstatus im Explorer- und Font-Manager-UI weiter verdichtet. Dadurch hängen Redirects, Save-Payloads, Dateibaum-Schutzgrenzen und laufende Button-Zustände sichtbarer an kleineren Entry-, Modul-, View- und Asset-Verträgen statt an stillen Mehrfachsubmit- oder I/O-Sonderpfaden.
+Der aktuelle Nachpflege-Stand umfasst damit **404 umgesetzte Audit-Batches**. Das sind aktuell **404 von 444 Prüfplan-Punkten**. Zuletzt wurden Medien-Bibliothek, Upload-Flash-Vertrag und Kategorien-View weiter verdichtet. Dadurch hängen Bibliothekszustand, Breadcrumbs, Datei-/Ordner-Metadaten, Upload-Fehlerdetails und System-Kategoriegrenzen sichtbarer an kleineren Entry-, Modul- und View-Verträgen statt an verteilten Template-Helfern oder stillen Flash-Sonderpfaden.
+
+### Delta Batch 404
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/media/categories.php` | umgesetzt | Media-Kategorien-View weiter verdichtet, indem die geschützten System-Slugs aus dem Modulvertrag statt aus einer lokalen View-Liste übernommen werden. | Delete-Grenzen bleiben zwischen Modul und UI konsistenter, und neue System-Kategorien müssen nicht mehr an mehreren Stellen synchron gehalten werden. |
+
+### Delta Batch 403
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/media/library.php` | umgesetzt | Media-Bibliotheks-View weiter verdichtet, indem Breadcrumbs, Ansichts-URLs, Datei-/Ordner-Metadaten und Größenformate direkt aus vorbereiteten ViewModels gerendert werden. | Das Template reduziert weitere lokale Hilfsfunktionen und hält Navigation, Anzeigezustand sowie Delete-/Browse-Daten näher an einem kleinen Modulvertrag. |
+
+### Delta Batch 402
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/media.php` | umgesetzt | Media-Upload-Flash-Vertrag weiter verdichtet, indem Batch-Fehler und modulare Upload-Fehler als strukturierte Detail-Liste samt optionalem Report-Kontext an die Section-Shell weitergegeben werden. | Upload-Probleme bleiben im Admin nachvollziehbarer und lassen sich gezielter als Report erfassen, statt nur als zusammengedrückte Sammelmeldung sichtbar zu sein. |
+
+### Delta Batch 401
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/media/MediaModule.php` | umgesetzt | Media-Modul weiter verdichtet, indem Bibliothekszustand, Breadcrumbs, Kategorieoptionen sowie Datei-/Ordner-ViewModels mit Anzeige-Metadaten serverseitig vorbereitet werden. | Die Medienbibliothek reduziert weitere Template-Logik, hält Browse-/Confirm-Pfade klarer an einem Datenvertrag und trennt Darstellung besser von Medien- und Pfadlogik. |
+
+### Delta Batch 400
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/themes/fonts.php` | umgesetzt | Font-Manager-View weiter verdichtet, indem Scan-Quelle und Zeitstempel explizit im Admin gespiegelt werden. | Theme-Scan-Ergebnisse bleiben transparenter, weil Live- und Cache-Daten direkt unterscheidbar sind. |
+
+### Delta Batch 399
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/FontManagerModule.php` | umgesetzt | Font-Manager-Modul weiter verdichtet, indem Theme-Scan-Ergebnisse gecacht, bei Mutationen invalidiert und Sammeldownload-/Scan-Ergebnisse strukturierter an die UI zurückgegeben werden. | Wiederholte Theme-Scans werden reduziert, und Flash-Hinweise hängen klarer an kleinen Ergebnis- statt an bloßen Textverträgen. |
+
+### Delta Batch 398
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/plugins/marketplace.php` | umgesetzt | Plugin-Marketplace-View weiter verdichtet, indem Cache-Stand und Cache-Alter für die Katalogquelle direkt im Admin angezeigt werden. | Registry-Fallbacks und Cache-Nutzung bleiben transparenter, statt nur über eine generische Warnmeldung sichtbar zu werden. |
+
+### Delta Batch 397
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/plugins/PluginMarketplaceModule.php` | umgesetzt | Plugin-Marketplace-Modul weiter verdichtet, indem die Remote-Registry mit TTL gecacht, Cache-Fallbacks als eigene Quelle markiert und Installationsfehler strukturierter mitgegeben werden. | Der Marketplace entkoppelt weitere Remote-Latenzen vom Request und hält Herkunfts- sowie Fehlerkontext konsistenter am Modulvertrag. |
+
+### Delta Batch 396
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/plugin-marketplace.php` | umgesetzt | Plugin-Marketplace-Entry weiter verdichtet, indem Install-Slugs begrenzt und zusätzlich gegen den aktuellen Katalog geprüft werden. | Veraltete oder manipulierte Install-POSTs werden früher verworfen und laufen nicht mehr unnötig in den Installpfad hinein. |
 
 ### Delta Batch 395
 

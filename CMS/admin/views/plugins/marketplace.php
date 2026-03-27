@@ -55,7 +55,10 @@ $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, 
             $alertData = [
                 'type' => ($source['status'] ?? 'info') === 'success' ? 'success' : (($source['status'] ?? 'info') === 'warning' ? 'warning' : 'info'),
                 'message' => (string) ($source['message'] ?? ''),
-                'details' => !empty($source['url']) ? ['Quelle: ' . (string) $source['url']] : [],
+                'details' => array_values(array_filter(array_merge(
+                    !empty($source['url']) ? ['Quelle: ' . (string) $source['url']] : [],
+                    is_array($source['details'] ?? null) ? array_map(static fn (mixed $detail): string => (string) $detail, $source['details']) : []
+                ))),
             ];
             $alertMarginClass = 'mb-3';
             require dirname(__DIR__) . '/partials/flash-alert.php';
@@ -166,7 +169,12 @@ $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, 
                     $autoInstallSupported = !empty($plugin['auto_install_supported']);
                     $installReason = $escape((string)($plugin['install_reason'] ?? ''));
                     $hashPresent = !empty($plugin['integrity_hash_present']);
+                    $hashShort = $escape((string)($plugin['integrity_hash_short'] ?? ''));
                     $compatibilityReason = $escape((string)($plugin['compatibility_reason'] ?? ''));
+                    $packageSizeLabel = $escape((string)($plugin['package_size_label'] ?? ''));
+                    $packageSizeAllowed = !empty($plugin['package_size_allowed']);
+                    $downloadHostAllowed = !empty($plugin['download_host_allowed']);
+                    $downloadHost = $escape((string)($plugin['download_host'] ?? ''));
                     $status = $isInstalled ? 'installed' : ($autoInstallSupported ? 'installable' : 'manual');
                 ?>
                 <div class="col-sm-6 col-lg-4 plugin-card" data-name="<?php echo $name; ?>" data-category="<?php echo $category; ?>" data-status="<?php echo $escape($status); ?>">
@@ -197,13 +205,26 @@ $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, 
                                     <?php if ($requiresPhp !== ''): ?>PHP ab <?php echo $requiresPhp; ?><?php endif; ?>
                                 </div>
                             <?php endif; ?>
+                            <?php if ($packageSizeLabel !== '' || $downloadHost !== ''): ?>
+                                <div class="text-muted small mb-2">
+                                    <?php if ($packageSizeLabel !== ''): ?>Paket: <?php echo $packageSizeLabel; ?><?php endif; ?>
+                                    <?php if ($packageSizeLabel !== '' && $downloadHost !== ''): ?> · <?php endif; ?>
+                                    <?php if ($downloadHost !== ''): ?>Host: <?php echo $downloadHost; ?><?php endif; ?>
+                                </div>
+                            <?php endif; ?>
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="text-muted small">
                                     v<?php echo $version; ?> · <?php echo $author; ?>
                                     <?php if ($hashPresent): ?>
-                                        <div class="mt-1"><span class="badge bg-green-lt">SHA-256 verifiziert</span></div>
+                                        <div class="mt-1"><span class="badge bg-green-lt">SHA-256 <?php echo $hashShort; ?></span></div>
                                     <?php else: ?>
                                         <div class="mt-1"><span class="badge bg-warning-lt">Auto-Install gesperrt</span></div>
+                                    <?php endif; ?>
+                                    <?php if (!$packageSizeAllowed): ?>
+                                        <div class="mt-1"><span class="badge bg-warning-lt">Paket zu groß für Auto-Install</span></div>
+                                    <?php endif; ?>
+                                    <?php if ($downloadHost !== '' && !$downloadHostAllowed): ?>
+                                        <div class="mt-1"><span class="badge bg-warning-lt">Host nicht freigegeben</span></div>
                                     <?php endif; ?>
                                 </div>
                                 <?php if ($isInstalled): ?>

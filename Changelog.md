@@ -1,4 +1,4 @@
-﻿﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.313-blue.svg)](https://shields.io/)
+﻿﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.322-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,82 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.7.322 — 27. März 2026 · Audit-Batch 404, Media-Kategorien folgen dem Modulvertrag für System-Slugs
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.322** | 🟡 refactor | Admin/Media | **`CMS/admin/views/media/categories.php` übernimmt die Liste geschützter System-Kategorien jetzt aus `MediaModule` statt einen lokalen Slug-Katalog zu duplizieren**: Die Kategorien-Ansicht bleibt damit näher an derselben Löschgrenze wie das Backend selbst. |
+
+---
+
+### v2.7.321 — 27. März 2026 · Audit-Batch 403, Media-Bibliothek rendert vorbereitete Zustände statt lokaler Helper
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.321** | 🎨 style | Admin/UI | **`CMS/admin/views/media/library.php` verwendet Breadcrumbs, Navigations-URLs, Ordner-/Datei-Metadaten und Größenformate jetzt direkt aus dem Modulvertrag**: Das Template verliert weitere lokale Zustands- und Pfadhelper und bleibt robuster gegen künftige Medien-Änderungen. |
+
+---
+
+### v2.7.320 — 27. März 2026 · Audit-Batch 402, Media-Uploads geben strukturiertere Fehlerdetails zurück
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.320** | 🔴 fix | Admin/Media | **`CMS/admin/media.php` gibt Upload-Fehler jetzt zusätzlich als Detail-Liste und – sofern vorhanden – mit Report-Payload an die Section-Shell weiter**: Mehrfachfehler oder Service-Probleme landen dadurch nicht mehr nur als zusammengedrückter Satz im Flash-Hinweis. |
+
+---
+
+### v2.7.319 — 27. März 2026 · Audit-Batch 401, MediaModule bereitet Bibliotheks-ViewModels serverseitig auf
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.319** | 🟡 refactor | Admin/Media | **`CMS/admin/modules/media/MediaModule.php` liefert Bibliothekszustand, Breadcrumbs, Ordner-/Datei-ViewModels, Kategorieoptionen und Kennzahlen jetzt vorbereitet an die View**: Die Medienbibliothek hängt damit sichtbarer an einem kleineren Modul-/View-Vertrag statt an verstreuten Template-Helfern. |
+
+---
+
+### v2.7.318 — 27. März 2026 · Audit-Batch 400, Font-Manager-View zeigt Scan-Quelle und Stand sichtbar an
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.318** | 🎨 style | Admin/UI | **`CMS/admin/views/themes/fonts.php` zeigt Scan-Quelle und Zeitstempel jetzt direkt neben den Scan-Kennzahlen an**: Admin-Nutzer sehen damit sofort, ob Daten frisch oder aus dem Cache stammen, statt über wiederholte Scans raten zu müssen. |
+
+---
+
+### v2.7.317 — 27. März 2026 · Audit-Batch 399, FontManagerModule wiederverwendet Theme-Scans und strukturiert Rückgaben klarer
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.317** | 🔴 fix | Admin/Themes | **`CMS/admin/modules/themes/FontManagerModule.php` cached Theme-Scan-Ergebnisse jetzt themebezogen im Settings-Speicher und nutzt sie für Folgeaktionen wie Sammeldownloads wieder**: Wiederholte I/O-Scans im selben Admin-Fenster werden dadurch reduziert. |
+| **2.7.317** | 🟡 refactor | Admin/Themes | **Scan-, Download- und Einzel-Download-Antworten liefern jetzt strukturiertere Details an die UI statt nur zusammengesetzte Fehlersätze**: Flash-Hinweise und spätere Erweiterungen hängen damit klarer an einem kleinen Ergebnisvertrag. |
+| **2.7.317** | 🔴 fix | Admin/Themes | **Font-Mutationen invalidieren den Theme-Scancache jetzt gezielt**: Bereits lokal geladene oder gelöschte Fonts bleiben dadurch nicht als veralteter Scan-Schatten im Admin hängen. |
+
+---
+
+### v2.7.316 — 27. März 2026 · Audit-Batch 398, Plugin-Marketplace-Quelle mit Cache-Details sichtbarer gemacht
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.316** | 🎨 style | Admin/UI | **`CMS/admin/views/plugins/marketplace.php` zeigt zur Registry-Herkunft jetzt auch Cache-Stand und Cache-Alter an, wenn ein zwischengespeicherter Katalog genutzt wird**: Fallbacks bleiben damit nicht länger nur implizit über eine allgemeine Warnmeldung sichtbar. |
+
+---
+
+### v2.7.315 — 27. März 2026 · Audit-Batch 397, PluginMarketplaceModule mit Registry-Cache und klarerem Fallback-Vertrag
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.315** | 🔴 fix | Admin/Plugins | **`CMS/admin/modules/plugins/PluginMarketplaceModule.php` speichert Remote-Registry-Daten jetzt mit TTL im Settings-Speicher zwischen und nutzt sie als Cache/Fallback**: Remote-Latenzen und komplette Ausfälle blockieren den Marketplace dadurch seltener direkt im Request. |
+| **2.7.315** | 🟡 refactor | Admin/Plugins | **Der Module-Vertrag unterscheidet jetzt sauberer zwischen `remote`, `cache`, `local` und `none` als Quellenstatus**: Die View bekommt dadurch präzisere Herkunfts- und Fallback-Hinweise statt eines groben Binärsignals. |
+| **2.7.315** | 🔴 fix | Admin/Plugins | **Installationsfehler geben jetzt Quelle und Hash-Kontext strukturiert zurück**: Remote- oder Paketprobleme lassen sich im Admin damit zielgerichteter nachvollziehen. |
+
+---
+
+### v2.7.314 — 27. März 2026 · Audit-Batch 396, Plugin-Marketplace-Entry prüft Slugs enger gegen den Katalog
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.314** | 🔴 fix | Admin/Plugins | **`CMS/admin/plugin-marketplace.php` begrenzt Install-Slugs jetzt früher und prüft sie zusätzlich gegen den aktuell geladenen Marketplace-Katalog**: Veraltete oder manipulierte POST-Slugs laufen damit nicht mehr blind bis in den Installpfad. |
 
 ---
 

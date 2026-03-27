@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) {
  */
 
 $categories = $data['categories'] ?? [];
-$systemSlugs = ['themes', 'plugins', 'assets', 'fonts', 'dl-manager', 'form-uploads', 'member'];
+$systemSlugs = is_array($data['system_slugs'] ?? null) ? $data['system_slugs'] : ['themes', 'plugins', 'assets', 'fonts', 'dl-manager', 'form-uploads', 'member'];
 $mediaCategoriesConfig = [
     'deleteFormId' => 'deleteCatForm',
     'deleteSlugFieldId' => 'deleteCatSlug',

@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.7.313-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.7.322-blue.svg)](Changelog.md)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
@@ -29,16 +29,16 @@
 
 ## 📈 Audit-Stand März 2026
 
-Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 395** nachgezogen. Aktuell sind damit **395 von 444 Prüfplan-Punkten** geschafft. Der aktuelle dokumentierte Gesamtstand über **448 bewertete Dateien** liegt bei:
+Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 404** nachgezogen. Aktuell sind damit **404 von 444 Prüfplan-Punkten** geschafft. Der aktuelle dokumentierte Gesamtstand über **448 bewertete Dateien** liegt bei:
 
 | Metrik | Stand |
 |---|---:|
-| **Security** | **92,61** |
-| **Speed** | **90,28** |
-| **PHP / Best Practices** | **94,04** |
-| **Gesamt** | **93,81** |
+| **Security** | **93,02** |
+| **Speed** | **90,88** |
+| **PHP / Best Practices** | **94,43** |
+| **Gesamt** | **94,22** |
 
-Zuletzt wurden **Theme-Explorer-Entry, Theme-Dateibaum und die Pending-/Status-Verträge von Explorer und Font-Manager weiter verdichtet**. `CMS/admin/theme-explorer.php` nutzt jetzt denselben Section-Shell-Rahmen wie andere modernisierte Admin-Entrys, `CMS/admin/modules/themes/ThemeEditorModule.php` begrenzt Dateibaum-Tiefe, Eintragszahl und ausgesparte Verzeichnisse expliziter, `CMS/admin/views/themes/editor.php` zeigt Baumgrenzen und Save-Status sichtbarer an und `CMS/assets/js/admin-theme-explorer.js` sowie `CMS/assets/js/admin-font-manager.js` verhindern Doppelaktionen mit klareren Pending-/Dirty-Zuständen. Passend dazu bindet `CMS/admin/views/themes/fonts.php` alle mutierenden Formulare jetzt an denselben kleinen UI-Status-Vertrag.
+Zuletzt wurden **Media-Entry, MediaModule und die Bibliotheks-/Kategorien-Views weiter verdichtet**. `CMS/admin/modules/media/MediaModule.php` liefert Bibliothekszustand, Breadcrumbs, Ordner-/Datei-ViewModels, Größenformate und Navigations-URLs jetzt vorbereitet aus dem Modul. `CMS/admin/media.php` reicht Upload-Fehler zusätzlich mit strukturierten Details und Report-Kontext weiter. `CMS/admin/views/media/library.php` rendert dadurch weniger lokale Hilfslogik selbst, und `CMS/admin/views/media/categories.php` übernimmt die System-Slug-Grenze aus dem Modulvertrag statt eine eigene Liste zu pflegen.
 
 ## 🧩 Funktionsumfang im Überblick
 
