@@ -33,7 +33,7 @@ final class EditorJsImageLibraryService
             ];
         }
 
-        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'bmp'];
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'bmp', 'svg', 'ico'];
 
         $iterator = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($rootPath, \RecursiveDirectoryIterator::SKIP_DOTS)

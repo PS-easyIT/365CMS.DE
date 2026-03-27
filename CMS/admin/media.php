@@ -307,11 +307,11 @@ function cms_admin_media_redirect_params(MediaModule $module, string $tab, strin
         }
     }
 
-    $normalizedView = $module->normalizeView((string)($_GET['view'] ?? 'finder'));
+    $normalizedView = $module->normalizeView((string)($_GET['view'] ?? 'list'));
     $normalizedCategory = $module->normalizeCategory((string)($_GET['category'] ?? ''));
     $normalizedSearch = $module->normalizeSearch((string)($_GET['q'] ?? ''));
 
-    if ($normalizedView !== 'finder') {
+    if ($normalizedView !== 'list') {
         $redirectParams['view'] = $normalizedView;
     }
     if ($normalizedCategory !== '') {
@@ -583,14 +583,7 @@ function cms_admin_media_view_config(MediaModule $module, string $tab): array
             'page_title' => 'Medien',
             'active_page' => 'media',
             'page_assets' => [
-                'css' => [
-                    cms_asset_url('filepond/filepond.min.css'),
-                    cms_asset_url('elfinder/vendor/jquery-ui/jquery-ui-1.13.2.css'),
-                    cms_asset_url('elfinder/css/elfinder.min.css'),
-                    cms_asset_url('elfinder/css/theme.css'),
-                ],
                 'js' => [
-                    cms_asset_url('filepond/filepond.min.js'),
                     cms_asset_url('js/admin-media-integrations.js'),
                 ],
             ],
@@ -632,7 +625,6 @@ $sectionPageConfig = [
 
         $viewConfig['template_vars'] = [
             'mediaActionToken' => Security::instance()->generateToken('media_action'),
-            'mediaConnectorToken' => Security::instance()->generateToken('media_connector'),
         ];
 
         return $viewConfig;

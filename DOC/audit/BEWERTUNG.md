@@ -5,13 +5,43 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 448
+### Gesamtstand nach Batch 453
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 448 | 94,74 | 92,31 | 95,81 | 95,85 |
+| 453 | 94,81 | 92,39 | 95,87 | 95,92 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **448 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich vier Folge-Batches darüber hinaus. Zuletzt wurde der weiterhin kritische Plugin Marketplace weiter verdichtet. Dadurch hängen Slug-Grenzen, erlaubte Archiv-Endungen, sichtbare Risiko-Hinweise und Pending-Zustände klarer an kleinen Entry-, Modul-, View- und Asset-Verträgen statt an stillen Kürzungen oder erst späten Install-Fehlern.
+Der aktuelle Nachpflege-Stand umfasst damit **453 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich neun Folge-Batches darüber hinaus. Zuletzt wurden Medien-, Benutzer- und Gruppenpfade weiter verdichtet. Dadurch hängen Save-Rückmeldungen, User-Speicherfehler, Modal-Trigger und Pending-Zustände klarer an kleinen Modul-, View- und Asset-Verträgen statt an generischen Catch-All-Meldungen oder stillen JS-Annahmen.
+
+### Delta Folge-Batch 453
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-user-groups.js` | umgesetzt | Gruppen-Asset füllt Modale jetzt über `show.bs.modal`, setzt Pending-State und blockt wiederholte Save-/Delete-Aktionen robuster. | Gruppen anlegen, bearbeiten und löschen bleibt belastbarer gegen Modal- und Doppel-Submit-Probleme. |
+
+### Delta Folge-Batch 452
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/users/groups.php` | umgesetzt | Gruppen-View ergänzt Bootstrap-Trigger und explizite Action-Ziele für Modal- und Delete-Formulare. | Gruppenmutationen hängen sichtbarer am korrekten Route- und Modal-Vertrag statt an implizitem JS-Verhalten. |
+
+### Delta Folge-Batch 451
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/users/edit.php` | umgesetzt | User-Form spiegelt Passwort-, Username- und Feldlängenregeln direkt im Formular. | Ungültige Benutzerdaten werden früher abgefangen und führen seltener zu irritierenden Save-Abbrüchen. |
+
+### Delta Folge-Batch 450
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/users/UsersModule.php` | umgesetzt | Users-Modul normalisiert Save-Input defensiver, protokolliert Exceptions und behandelt fehlende Erfolgs-/ID-Rückgaben explizit als Fehler. | Benutzer-Speicherpfade bleiben nachvollziehbarer statt in generischen Catch-All-Fehlern zu enden. |
+
+### Delta Folge-Batch 449
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/media/MediaModule.php` | umgesetzt | Media-Settings geben bei unveränderten Saves jetzt eine klarere Bestätigungsrückmeldung aus. | Admin-Nutzer können bestätigte Bestandswerte besser von echten Änderungen unterscheiden. |
 
 ### Delta Folge-Batch 448
 

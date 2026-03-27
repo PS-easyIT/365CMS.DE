@@ -69,7 +69,7 @@ class MediaModule
      */
     private ?array $categoriesCache = null;
 
-    private const ALLOWED_VIEWS = ['list', 'grid', 'finder'];
+    private const ALLOWED_VIEWS = ['list', 'grid'];
     private const ALLOWED_TABS = ['library', 'categories', 'settings'];
     private const SYSTEM_CATEGORY_SLUGS = ['themes', 'plugins', 'assets', 'fonts', 'dl-manager', 'form-uploads', 'member'];
 
@@ -211,7 +211,7 @@ class MediaModule
     {
         $path     = $this->normalizeRelativePath((string)($_GET['path'] ?? ''));
         $category = $this->normalizeCategorySlug((string)($_GET['category'] ?? ''));
-        $view     = $this->normalizeView((string)($_GET['view'] ?? 'finder'));
+        $view     = $this->normalizeView((string)($_GET['view'] ?? 'list'));
         $search   = $this->sanitizeSearch((string)($_GET['q'] ?? ''));
         $confirmMember = (string)($_GET['confirm_member'] ?? '') === '1';
 
@@ -265,7 +265,6 @@ class MediaModule
             'breadcrumbs' => $this->buildBreadcrumbs($path, $view, $category, $search, $confirmMember),
             'stats' => $this->buildLibraryStats($items, $categories, $diskUsage),
             'base_url' => $this->buildAdminUrl(),
-            'finder_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'finder', $category, $search, $confirmMember)),
             'list_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'list', $category, $search, $confirmMember)),
             'grid_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'grid', $category, $search, $confirmMember)),
             'root_url' => $this->buildAdminUrl($stateParams),
@@ -668,7 +667,7 @@ class MediaModule
             'success' => true,
             'message' => 'Einstellungen gespeichert.',
             'details' => [
-                'Geänderte Felder: ' . implode(', ', $this->collectChangedSettingKeys($originalSettings, $settings)),
+                $this->buildSettingsChangeSummary($originalSettings, $settings),
             ],
         ];
     }
@@ -705,7 +704,7 @@ class MediaModule
     {
         $view = strtolower(trim($view));
 
-        return in_array($view, self::ALLOWED_VIEWS, true) ? $view : 'finder';
+        return in_array($view, self::ALLOWED_VIEWS, true) ? $view : 'list';
     }
 
     public function normalizeCategory(string $slug): string
@@ -792,6 +791,17 @@ class MediaModule
         return $changed === [] ? ['keine expliziten Wertänderungen erkannt'] : $changed;
     }
 
+    private function buildSettingsChangeSummary(array $original, array $updated): string
+    {
+        $changedKeys = $this->collectChangedSettingKeys($original, $updated);
+
+        if ($changedKeys === ['keine expliziten Wertänderungen erkannt']) {
+            return 'Geänderte Felder: keine expliziten Wertänderungen erkannt – bestehende Einstellungen wurden unverändert bestätigt.';
+        }
+
+        return 'Geänderte Felder (' . count($changedKeys) . '): ' . implode(', ', $changedKeys);
+    }
+
     private function categoryExists(string $slug): bool
     {
         foreach ($this->getCategories() as $category) {
@@ -866,7 +876,7 @@ class MediaModule
             $params['path'] = $path;
         }
 
-        if ($view !== 'finder') {
+        if ($view !== 'list') {
             $params['view'] = $view;
         }
 

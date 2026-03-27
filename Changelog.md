@@ -1,4 +1,4 @@
-﻿﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.366-blue.svg)](https://shields.io/)
+﻿﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.371-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,46 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.7.371 — 27. März 2026 · Folge-Batch 453, Gruppen-Asset öffnet Modal und blockt Doppel-Submits robuster
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.371** | 🔴 fix | Admin/UI | **`CMS/assets/js/admin-user-groups.js` füllt Gruppen-Modale jetzt über `show.bs.modal`, setzt Submit-Pending-State und blockt doppelte Delete-/Save-Aktionen robuster**: Die Gruppenverwaltung reagiert dadurch stabiler auf Öffnen, Bearbeiten und wiederholte Klicks. |
+
+---
+
+### v2.7.370 — 27. März 2026 · Folge-Batch 452, Gruppen-View verdrahtet Modal- und Formularziele belastbarer
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.370** | 🎨 style | Admin/UI | **`CMS/admin/views/users/groups.php` ergänzt Bootstrap-Modal-Trigger sowie explizite Form-Actions für Save- und Delete-Requests**: Neue Gruppen und Bearbeitungen hängen damit weniger an stillen JS-Annahmen und feuern zuverlässiger an die richtige Route. |
+
+---
+
+### v2.7.369 — 27. März 2026 · Folge-Batch 451, User-Form spiegelt Eingabegrenzen früher im UI
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.369** | 🎨 style | Admin/UI | **`CMS/admin/views/users/edit.php` ergänzt Passwort-, Username- und Feldlängen-Hinweise direkt im Formular**: Ungültige Benutzerdaten werden dadurch früher abgefangen, bevor der Save-Pfad überhaupt ins Backend läuft. |
+
+---
+
+### v2.7.368 — 27. März 2026 · Folge-Batch 450, UsersModule staffelt Save-Fehler und Rückgabekanten robuster
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.368** | 🔴 fix | Admin/Users | **`CMS/admin/modules/users/UsersModule.php` normalisiert Save-Eingaben defensiver, protokolliert Ausnahmen und behandelt fehlende Erfolgs-/ID-Rückgaben explizit als Fehler**: Neue Benutzer bleiben dadurch nachvollziehbarer speicherbar, statt in einem generischen Catch-All zu versanden. |
+
+---
+
+### v2.7.367 — 27. März 2026 · Folge-Batch 449, Media-Settings melden unveränderte Saves verständlicher
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.367** | 🔴 fix | Admin/Media | **`CMS/admin/modules/media/MediaModule.php` erklärt unveränderte Settings-Saves jetzt expliziter als bestätigte Bestandswerte statt als rätselhafte Nicht-Änderung**: Die Medienverwaltung bleibt damit für Admin-Nutzer klarer lesbar, wenn ein Save keine effektiven Wertänderungen enthält. |
 
 ---
 

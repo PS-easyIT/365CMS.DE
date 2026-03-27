@@ -17,7 +17,7 @@ $languages  = $data['languages'];
 $currentTab = ($currentTab ?? 'general') === 'content' ? 'content' : 'general';
 $settingsBaseUrl = (defined('SITE_URL') ? SITE_URL : '') . '/admin/settings';
 $hideSettingsTabs = $hideSettingsTabs ?? false;
-$mediaConnectorToken = $mediaConnectorToken ?? '';
+$editorMediaToken = $editorMediaToken ?? '';
 $defaultPluginRegistryUrl = 'https://365cms.de/marketplace/plugins/index.json';
 $defaultThemeMarketplaceUrl = 'https://365cms.de/marketplace/themes';
 $defaultCoreUpdateUrl = 'https://365cms.de/marketplace/core/365cms/update.json';
@@ -559,15 +559,21 @@ $usesDefaultCoreUpdate = (($s['core_update_url'] ?? $defaultCoreUpdateUrl) === $
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
                     </div>
                     <div class="modal-body">
-                        <p class="text-secondary small mb-3">Doppelklick auf eine Datei übernimmt sie direkt in das aktuell gewählte Feld.</p>
                         <div
-                            data-elfinder-picker
-                            data-connector-url="<?php echo htmlspecialchars(SITE_URL . '/api/v1/admin/media/elfinder', ENT_QUOTES); ?>"
-                            data-csrf-token="<?php echo htmlspecialchars($mediaConnectorToken, ENT_QUOTES); ?>"
-                            data-jquery-script="<?php echo htmlspecialchars(cms_asset_url('elfinder/vendor/jquery/jquery-3.7.1.min.js'), ENT_QUOTES); ?>"
-                            data-jquery-ui-script="<?php echo htmlspecialchars(cms_asset_url('elfinder/vendor/jquery-ui/jquery-ui-1.13.2.min.js'), ENT_QUOTES); ?>"
-                            data-elfinder-script="<?php echo htmlspecialchars(cms_asset_url('elfinder/js/elfinder.min.js'), ENT_QUOTES); ?>"
-                            style="min-height: 65vh;"></div>
+                            data-media-picker-modal
+                            data-api-url="<?php echo htmlspecialchars(SITE_URL . '/api/media', ENT_QUOTES); ?>"
+                            data-csrf-token="<?php echo htmlspecialchars($editorMediaToken, ENT_QUOTES); ?>">
+                            <p class="text-secondary small mb-3">Ein Klick übernimmt eine Datei direkt in das aktuell gewählte Feld. Angezeigt werden interne Bilddateien, Logos und Favicons.</p>
+                            <div class="row g-2 align-items-center mb-3">
+                                <div class="col-md-8">
+                                    <input type="search" class="form-control" placeholder="Dateien filtern …" data-media-picker-search>
+                                </div>
+                                <div class="col-md-4 text-secondary small" data-media-picker-status>
+                                    Lade Medien …
+                                </div>
+                            </div>
+                            <div class="row row-cards g-3" data-media-picker-grid></div>
+                        </div>
                     </div>
                 </div>
             </div>

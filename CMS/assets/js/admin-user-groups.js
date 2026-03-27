@@ -1,17 +1,23 @@
 (function () {
     'use strict';
 
-    function getModalInstance(modalElement) {
-        if (!modalElement || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
-            return null;
+    function setSubmittingState(form, isSubmitting) {
+        if (!form) {
+            return;
         }
 
-        return bootstrap.Modal.getOrCreateInstance(modalElement);
+        form.dataset.submitting = isSubmitting ? '1' : '0';
+
+        var submitButton = form.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = isSubmitting;
+            submitButton.setAttribute('aria-disabled', isSubmitting ? 'true' : 'false');
+        }
     }
 
     document.addEventListener('DOMContentLoaded', function () {
         var modalElement = document.getElementById('groupModal');
-        var modal = getModalInstance(modalElement);
+        var groupForm = document.getElementById('groupForm');
         var groupIdInput = document.getElementById('groupId');
         var groupNameInput = document.getElementById('groupName');
         var groupDescInput = document.getElementById('groupDesc');
@@ -19,9 +25,10 @@
         var deleteGroupIdInput = document.getElementById('deleteGroupId');
         var deleteGroupForm = document.getElementById('deleteGroupForm');
 
-        document.querySelectorAll('.js-group-modal-trigger').forEach(function (button) {
-            button.addEventListener('click', function () {
-                if (!groupIdInput || !groupNameInput || !groupDescInput || !modalTitle) {
+        if (modalElement) {
+            modalElement.addEventListener('show.bs.modal', function (event) {
+                var button = event.relatedTarget;
+                if (!button || !groupIdInput || !groupNameInput || !groupDescInput || !modalTitle) {
                     return;
                 }
 
@@ -29,12 +36,33 @@
                 groupNameInput.value = button.getAttribute('data-group-name') || '';
                 groupDescInput.value = button.getAttribute('data-group-description') || '';
                 modalTitle.textContent = button.getAttribute('data-group-modal-title') || 'Gruppe bearbeiten';
+                setSubmittingState(groupForm, false);
+            });
+        }
 
-                if (modal) {
-                    modal.show();
+        document.querySelectorAll('.js-group-modal-trigger').forEach(function (button) {
+            button.addEventListener('click', function () {
+                if (modalElement || !groupIdInput || !groupNameInput || !groupDescInput || !modalTitle) {
+                    return;
                 }
+
+                groupIdInput.value = button.getAttribute('data-group-id') || '0';
+                groupNameInput.value = button.getAttribute('data-group-name') || '';
+                groupDescInput.value = button.getAttribute('data-group-description') || '';
+                modalTitle.textContent = button.getAttribute('data-group-modal-title') || 'Gruppe bearbeiten';
             });
         });
+
+        if (groupForm) {
+            groupForm.addEventListener('submit', function (event) {
+                if (groupForm.dataset.submitting === '1') {
+                    event.preventDefault();
+                    return;
+                }
+
+                setSubmittingState(groupForm, true);
+            });
+        }
 
         document.querySelectorAll('.js-delete-group').forEach(function (button) {
             button.addEventListener('click', function () {
@@ -47,6 +75,11 @@
                 }
 
                 var submitDelete = function () {
+                    if (deleteGroupForm.dataset.submitting === '1') {
+                        return;
+                    }
+
+                    deleteGroupForm.dataset.submitting = '1';
                     deleteGroupIdInput.value = groupId;
                     deleteGroupForm.submit();
                 };

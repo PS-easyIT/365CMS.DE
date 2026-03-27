@@ -12,6 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Database;
+use CMS\Logger;
 use CMS\Services\ErrorReportService;
 use CMS\Services\UserService;
 
@@ -90,16 +91,17 @@ class UsersModule
         $id = (int)($post['id'] ?? 0);
 
         $data = [
-            'username'   => trim($post['username'] ?? ''),
-            'email'      => trim($post['email'] ?? ''),
-            'role'       => $post['role'] ?? 'member',
-            'status'     => $post['status'] ?? 'active',
-            'first_name' => trim($post['first_name'] ?? ''),
-            'last_name'  => trim($post['last_name'] ?? ''),
+            'username'   => $this->normalizeScalarText($post['username'] ?? '', 50),
+            'email'      => $this->normalizeScalarText($post['email'] ?? '', 190),
+            'role'       => $this->normalizeScalarText($post['role'] ?? 'member', 50),
+            'status'     => $this->normalizeScalarText($post['status'] ?? 'active', 20),
+            'first_name' => $this->normalizeScalarText($post['first_name'] ?? '', 120),
+            'last_name'  => $this->normalizeScalarText($post['last_name'] ?? '', 120),
         ];
 
-        if (!empty($post['password'])) {
-            $data['password'] = $post['password'];
+        $password = (string) ($post['password'] ?? '');
+        if ($password !== '') {
+            $data['password'] = $password;
         }
 
         try {
@@ -113,6 +115,27 @@ class UsersModule
                         'operation' => 'update',
                         'user_id' => $id,
                     ]);
+                }
+                if ($result !== true) {
+                    return [
+                        'success' => false,
+                        'error' => 'Benutzer konnte nicht aktualisiert werden.',
+                        'error_details' => [
+                            'Die Benutzerverwaltung hat keine erfolgreiche Aktualisierung bestätigt.',
+                            'Bitte Eingaben und Datenbank-Logs prüfen.',
+                        ],
+                        'report_payload' => [
+                            'title' => 'Benutzer-Update ohne Erfolgsmeldung',
+                            'message' => 'Die Aktualisierung lieferte kein `true`-Ergebnis zurück.',
+                            'error_code' => 'users_update_unconfirmed',
+                            'source_url' => SITE_URL . '/admin/users?action=edit&id=' . $id,
+                            'context' => [
+                                'module' => 'users',
+                                'operation' => 'update',
+                                'user_id' => $id,
+                            ],
+                        ],
+                    ];
                 }
                 return ['success' => true, 'id' => $id, 'message' => 'Benutzer aktualisiert.'];
             } else {
@@ -128,11 +151,72 @@ class UsersModule
                         'operation' => 'create',
                     ]);
                 }
+                if (!is_int($result) || $result <= 0) {
+                    return [
+                        'success' => false,
+                        'error' => 'Benutzer konnte nicht erstellt werden.',
+                        'error_details' => [
+                            'Die Benutzerverwaltung hat keine gültige Benutzer-ID zurückgegeben.',
+                            'Bitte Eingaben und Datenbank-Logs prüfen.',
+                        ],
+                        'report_payload' => [
+                            'title' => 'Benutzer-Erstellung ohne ID',
+                            'message' => 'Die Benutzer-Erstellung lieferte keine gültige Benutzer-ID zurück.',
+                            'error_code' => 'users_create_missing_id',
+                            'source_url' => SITE_URL . '/admin/users?action=edit',
+                            'context' => [
+                                'module' => 'users',
+                                'operation' => 'create',
+                                'username' => $data['username'],
+                                'email' => $data['email'],
+                            ],
+                        ],
+                    ];
+                }
                 return ['success' => true, 'id' => $result, 'message' => 'Benutzer erstellt.'];
             }
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Benutzer konnte nicht gespeichert werden.'];
+            Logger::instance()->withChannel('admin.users')->error('Benutzer konnte nicht gespeichert werden.', [
+                'exception' => $e->getMessage(),
+                'user_id' => $id,
+                'payload_keys' => array_keys($post),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'Benutzer konnte nicht gespeichert werden.',
+                'error_details' => [
+                    'Die Benutzerverwaltung hat den Speichervorgang wegen eines internen Fehlers abgebrochen.',
+                    'Technischer Hinweis: ' . $this->normalizeScalarText($e->getMessage(), 250),
+                ],
+                'report_payload' => [
+                    'title' => 'Benutzer konnte nicht gespeichert werden',
+                    'message' => $this->normalizeScalarText($e->getMessage(), 500),
+                    'error_code' => 'users_save_exception',
+                    'source_url' => SITE_URL . '/admin/users?action=' . ($id > 0 ? 'edit&id=' . $id : 'edit'),
+                    'context' => [
+                        'module' => 'users',
+                        'operation' => $id > 0 ? 'update' : 'create',
+                        'user_id' => $id,
+                        'payload_keys' => array_keys($post),
+                    ],
+                ],
+            ];
         }
+    }
+
+    private function normalizeScalarText(mixed $value, int $maxLength): string
+    {
+        if (is_array($value) || is_object($value)) {
+            return '';
+        }
+
+        $normalized = trim((string) $value);
+        $normalized = preg_replace('/[\x00-\x1F\x7F]+/u', '', $normalized) ?? '';
+
+        return function_exists('mb_substr')
+            ? mb_substr($normalized, 0, $maxLength)
+            : substr($normalized, 0, $maxLength);
     }
 
     /**

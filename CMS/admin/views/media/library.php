@@ -27,7 +27,6 @@ $stats = is_array($data['stats'] ?? null) ? $data['stats'] : [];
 $categoryOptions = is_array($data['category_options'] ?? null) ? $data['category_options'] : [];
 $filterState = is_array($data['filter_state'] ?? null) ? $data['filter_state'] : [];
 $baseUrl = (string)($data['base_url'] ?? (SITE_URL . '/admin/media'));
-$finderUrl = (string)($data['finder_url'] ?? $baseUrl);
 $listUrl = (string)($data['list_url'] ?? $baseUrl);
 $gridUrl = (string)($data['grid_url'] ?? $baseUrl);
 $rootUrl = (string)($data['root_url'] ?? $baseUrl);
@@ -49,7 +48,6 @@ function mediaTypeIcon(string $type): string {
     return $icons[$type] ?? '<svg xmlns="http://www.w3.org/2000/svg" class="icon text-secondary" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/></svg>';
 }
 
-$elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
 ?>
 
 <div class="page-header d-print-none">
@@ -59,18 +57,16 @@ $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
                 <div class="page-pretitle">Medienverwaltung</div>
                 <h2 class="page-title">Medien</h2>
             </div>
-            <?php if ($view !== 'finder'): ?>
-                <div class="col-auto ms-auto d-flex gap-2">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#newFolderModal">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 19h-7a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2h4l3 3h7a2 2 0 0 1 2 2v3"/><path d="M16 19h6"/><path d="M19 16v6"/></svg>
-                        Neuer Ordner
-                    </button>
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2"/><polyline points="7 9 12 4 17 9"/><line x1="12" y1="4" x2="12" y2="16"/></svg>
-                        Hochladen
-                    </button>
-                </div>
-            <?php endif; ?>
+            <div class="col-auto ms-auto d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#newFolderModal">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 19h-7a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2h4l3 3h7a2 2 0 0 1 2 2v3"/><path d="M16 19h6"/><path d="M19 16v6"/></svg>
+                    Neuer Ordner
+                </button>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2"/><polyline points="7 9 12 4 17 9"/><line x1="12" y1="4" x2="12" y2="16"/></svg>
+                    Hochladen
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -142,10 +138,10 @@ $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
         <div class="card">
             <div class="card-header">
                 <div class="w-100">
-                    <div class="alert alert-info mb-3" role="alert">
+                        <div class="alert alert-info mb-3" role="alert">
                         <div class="d-flex">
                             <div>
-                                <strong>Finder-Grenzen:</strong>
+                                    <strong>Bibliotheks-Grenzen:</strong>
                                 maximal <?php echo (int)($constraints['max_upload_files'] ?? 0); ?> Dateien pro Upload,
                                 Gesamtpaket bis <?php echo htmlspecialchars((string)($constraints['max_upload_batch_label'] ?? '—')); ?>,
                                 Suchbegriff bis <?php echo (int)($constraints['search_max_length'] ?? 120); ?> Zeichen
@@ -169,50 +165,38 @@ $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
                             </ol>
                         </nav>
 
-                        <div class="media-toolbar-right <?php echo $view !== 'finder' ? 'media-toolbar-right--browse' : ''; ?>">
-                            <?php if ($view !== 'finder'): ?>
-                                <form method="get" action="<?php echo htmlspecialchars($baseUrl); ?>" class="media-filters">
-                                    <input type="hidden" name="path" value="<?php echo htmlspecialchars($path); ?>">
-                                    <input type="hidden" name="view" value="<?php echo htmlspecialchars($view); ?>">
-                                    <?php if ($confirmMember): ?>
-                                        <input type="hidden" name="confirm_member" value="1">
-                                    <?php endif; ?>
-                                    <select class="form-select form-select-sm media-filter-category" name="category" onchange="this.form.submit()">
-                                        <option value="">Alle Kategorien</option>
-                                        <?php foreach ($categoryOptions as $cat): ?>
-                                            <option value="<?php echo htmlspecialchars((string)($cat['slug'] ?? '')); ?>" <?php echo $category === ($cat['slug'] ?? '') ? 'selected' : ''; ?>>
-                                                <?php echo htmlspecialchars((string)($cat['name'] ?? '')); ?> (<?php echo (int)($cat['count'] ?? 0); ?>)
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                    <div class="input-group input-group-sm media-filter-search">
-                                        <input type="search" class="form-control" name="q" placeholder="Dateien suchen …" value="<?php echo htmlspecialchars($search); ?>" maxlength="<?php echo (int)($constraints['search_max_length'] ?? 120); ?>">
-                                        <button type="submit" class="btn btn-icon">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/><path d="M21 21l-6 -6"/></svg>
-                                        </button>
-                                    </div>
-                                </form>
-                            <?php endif; ?>
-
-                            <div class="media-view-toggle" role="group" aria-label="Ansicht umschalten">
-                                <a href="<?php echo htmlspecialchars($finderUrl); ?>" class="btn media-view-primary <?php echo $view === 'finder' ? 'active' : ''; ?>">
-                                    <span class="media-view-icon" aria-hidden="true">🗂️</span>
-                                    elFinder
-                                    <span class="media-view-badge">Standard</span>
-                                </a>
-                                <div class="media-view-secondary" aria-label="Alternative Ansichten">
-                                    <span class="media-view-label">Alternativen</span>
-                                    <div class="media-view-alt-group">
-                                        <a href="<?php echo htmlspecialchars($listUrl); ?>" class="btn media-view-alt <?php echo $view === 'list' ? 'active' : ''; ?>">
-                                            <span class="media-view-icon" aria-hidden="true">≣</span>
-                                            Liste
-                                        </a>
-                                        <a href="<?php echo htmlspecialchars($gridUrl); ?>" class="btn media-view-alt <?php echo $view === 'grid' ? 'active' : ''; ?>">
-                                            <span class="media-view-icon" aria-hidden="true">⊞</span>
-                                            Grid
-                                        </a>
-                                    </div>
+                        <div class="media-toolbar-right media-toolbar-right--browse">
+                            <form method="get" action="<?php echo htmlspecialchars($baseUrl); ?>" class="media-filters">
+                                <input type="hidden" name="path" value="<?php echo htmlspecialchars($path); ?>">
+                                <input type="hidden" name="view" value="<?php echo htmlspecialchars($view); ?>">
+                                <?php if ($confirmMember): ?>
+                                    <input type="hidden" name="confirm_member" value="1">
+                                <?php endif; ?>
+                                <select class="form-select form-select-sm media-filter-category" name="category" onchange="this.form.submit()">
+                                    <option value="">Alle Kategorien</option>
+                                    <?php foreach ($categoryOptions as $cat): ?>
+                                        <option value="<?php echo htmlspecialchars((string)($cat['slug'] ?? '')); ?>" <?php echo $category === ($cat['slug'] ?? '') ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars((string)($cat['name'] ?? '')); ?> (<?php echo (int)($cat['count'] ?? 0); ?>)
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="input-group input-group-sm media-filter-search">
+                                    <input type="search" class="form-control" name="q" placeholder="Dateien suchen …" value="<?php echo htmlspecialchars($search); ?>" maxlength="<?php echo (int)($constraints['search_max_length'] ?? 120); ?>">
+                                    <button type="submit" class="btn btn-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/><path d="M21 21l-6 -6"/></svg>
+                                    </button>
                                 </div>
+                            </form>
+
+                            <div class="btn-group" role="group" aria-label="Ansicht umschalten">
+                                <a href="<?php echo htmlspecialchars($listUrl); ?>" class="btn btn-outline-primary <?php echo $view === 'list' ? 'active' : ''; ?>">
+                                    <span class="media-view-icon" aria-hidden="true">≣</span>
+                                    Liste
+                                </a>
+                                <a href="<?php echo htmlspecialchars($gridUrl); ?>" class="btn btn-outline-primary <?php echo $view === 'grid' ? 'active' : ''; ?>">
+                                    <span class="media-view-icon" aria-hidden="true">⊞</span>
+                                    Grid
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -220,29 +204,7 @@ $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
             </div>
 
             <div class="card-body">
-                <?php if ($view === 'finder'): ?>
-                    <?php
-                    $alertData = [
-                        'type' => 'info',
-                        'message' => 'Der Datei-Manager läuft im Admin-Kontext.',
-                        'details' => [
-                            'Änderungen werden direkt im Upload-Verzeichnis ausgeführt.',
-                        ],
-                    ];
-                    $alertDismissible = false;
-                    $alertMarginClass = 'mb-3';
-                    require __DIR__ . '/../partials/flash-alert.php';
-                    ?>
-                    <div
-                        id="cmsElfinder"
-                        data-elfinder
-                        data-connector-url="<?php echo htmlspecialchars($elFinderConnectorUrl, ENT_QUOTES); ?>"
-                        data-csrf-token="<?php echo htmlspecialchars($mediaConnectorToken, ENT_QUOTES); ?>"
-                        data-jquery-script="<?php echo htmlspecialchars(cms_asset_url('elfinder/vendor/jquery/jquery-3.7.1.min.js'), ENT_QUOTES); ?>"
-                        data-jquery-ui-script="<?php echo htmlspecialchars(cms_asset_url('elfinder/vendor/jquery-ui/jquery-ui-1.13.2.min.js'), ENT_QUOTES); ?>"
-                        data-elfinder-script="<?php echo htmlspecialchars(cms_asset_url('elfinder/js/elfinder.min.js'), ENT_QUOTES); ?>"
-                        style="min-height: 70vh;"></div>
-                <?php elseif (empty($folders) && empty($files)): ?>
+                <?php if (empty($folders) && empty($files)): ?>
                     <div class="empty">
                         <div class="empty-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-lg" width="40" height="40" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 4h4l3 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2"/></svg>
@@ -414,7 +376,6 @@ $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
                         name="files[]"
                         multiple
                         required
-                        data-filepond-upload
                         data-upload-url="<?php echo htmlspecialchars(SITE_URL . '/api/upload', ENT_QUOTES); ?>"
                         data-upload-path="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>"
                         data-csrf-token="<?php echo htmlspecialchars($mediaActionToken, ENT_QUOTES); ?>">
@@ -423,6 +384,8 @@ $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
                     Mehrfachauswahl möglich. Pro Upload sind maximal <?php echo (int)($constraints['max_upload_files'] ?? 0); ?> Dateien
                     mit zusammen höchstens <?php echo htmlspecialchars((string)($constraints['max_upload_batch_label'] ?? '—')); ?> erlaubt.
                 </div>
+                <div class="alert alert-info mt-3 mb-0" role="status" data-upload-status hidden></div>
+                <div class="list-group list-group-flush mt-3" data-upload-results hidden></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn" data-bs-dismiss="modal">Abbrechen</button>

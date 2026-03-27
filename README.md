@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.7.366-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.7.371-blue.svg)](Changelog.md)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
@@ -29,16 +29,16 @@
 
 ## 📈 Audit-Stand März 2026
 
-Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 448** nachgezogen. Im eigentlichen Prüfplan bleiben damit weiterhin **444 von 444 Prüfplan-Punkten** geschafft; zusätzlich läuft bereits die Folge-Runde über den ursprünglichen Plan hinaus. Der aktuelle dokumentierte Gesamtstand über **448 bewertete Dateien** liegt bei:
+Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 453** nachgezogen. Im eigentlichen Prüfplan bleiben damit weiterhin **444 von 444 Prüfplan-Punkten** geschafft; zusätzlich läuft bereits die Folge-Runde über den ursprünglichen Plan hinaus. Der aktuelle dokumentierte Gesamtstand über **453 bewertete Dateien** liegt bei:
 
 | Metrik | Stand |
 |---|---:|
-| **Security** | **94,74** |
-| **Speed** | **92,31** |
-| **PHP / Best Practices** | **95,81** |
-| **Gesamt** | **95,85** |
+| **Security** | **94,81** |
+| **Speed** | **92,39** |
+| **PHP / Best Practices** | **95,87** |
+| **Gesamt** | **95,92** |
 
-Zuletzt wurde der weiterhin kritische **Plugin Marketplace** in einer Folge-Runde weiter verdichtet. `CMS/admin/plugin-marketplace.php` lehnt überlange Slugs sauberer ab, `CMS/admin/modules/plugins/PluginMarketplaceModule.php` verlangt jetzt zusätzlich erlaubte Archiv-Endungen für Auto-Installationen, `CMS/admin/views/plugins/marketplace.php` spiegelt dieses Risiko sichtbarer im Admin und `CMS/assets/js/admin-plugin-marketplace.js` blockt doppelte Install-Submits robuster.
+Zuletzt wurde die Admin-Strecke **Medienverwaltung / Benutzer / Gruppen** in einer Folge-Runde weiter verdichtet. `CMS/admin/modules/media/MediaModule.php` erklärt unveränderte Settings-Saves jetzt klarer, `CMS/admin/modules/users/UsersModule.php` kapselt Save-Ausnahmen und fehlende Rückgabewerte robuster, `CMS/admin/views/users/edit.php` spiegelt Benutzerregeln früher im Formular und `CMS/admin/views/users/groups.php` plus `CMS/assets/js/admin-user-groups.js` machen Gruppen-Modal, Form-Submit und Delete-Flow belastbarer.
 
 ## 🧩 Funktionsumfang im Überblick
 

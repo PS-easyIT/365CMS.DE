@@ -103,17 +103,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $alert = cms_admin_settings_pull_alert();
 
 $csrfToken  = Security::instance()->generateToken('admin_settings');
-$mediaConnectorToken = Security::instance()->generateToken('media_connector');
+$editorMediaToken = Security::instance()->generateToken('editorjs_media');
 $data       = $module->getData();
 $pageTitle  = $currentTab === 'content' ? 'Beiträge & Sites' : 'Allgemeine Einstellungen';
 $activePage = $currentTab === 'content' ? 'content-settings' : 'settings';
 $pageAssets = $currentTab === 'general'
     ? [
-        'css' => [
-            cms_asset_url('elfinder/vendor/jquery-ui/jquery-ui-1.13.2.css'),
-            cms_asset_url('elfinder/css/elfinder.min.css'),
-            cms_asset_url('elfinder/css/theme.css'),
-        ],
         'js' => [
             cms_asset_url('js/admin-media-integrations.js'),
         ],

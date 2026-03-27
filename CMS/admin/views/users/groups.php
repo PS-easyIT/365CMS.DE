@@ -36,7 +36,7 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
                 <h2 class="page-title">Gruppen</h2>
             </div>
             <div class="col-auto ms-auto">
-                <button type="button" class="btn btn-primary js-group-modal-trigger" data-group-mode="create" data-group-id="0" data-group-name="" data-group-description="" data-group-modal-title="Neue Gruppe">
+                <button type="button" class="btn btn-primary js-group-modal-trigger" data-bs-toggle="modal" data-bs-target="#groupModal" data-group-mode="create" data-group-id="0" data-group-name="" data-group-description="" data-group-modal-title="Neue Gruppe">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14"/><path d="M5 12l14 0"/></svg>
                     Neue Gruppe
                 </button>
@@ -90,6 +90,8 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
                             </div>
                             <div class="card-footer d-flex gap-2">
                                 <button type="button" class="btn btn-outline-primary btn-sm js-group-modal-trigger"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#groupModal"
                                         data-group-mode="edit"
                                         data-group-id="<?php echo $groupId; ?>"
                                         data-group-name="<?php echo htmlspecialchars($groupName, ENT_QUOTES); ?>"
@@ -115,7 +117,7 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
 <!-- Gruppe erstellen/bearbeiten Modal -->
 <div class="modal modal-blur fade" id="groupModal" tabindex="-1">
     <div class="modal-dialog modal-sm">
-        <form method="post" class="modal-content">
+        <form method="post" action="<?php echo htmlspecialchars($siteUrl); ?>/admin/groups" class="modal-content" id="groupForm">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
             <input type="hidden" name="action" value="save">
             <input type="hidden" name="id" id="groupId">
@@ -126,11 +128,11 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
             <div class="modal-body">
                 <div class="mb-3">
                     <label class="form-label required" for="groupName">Name</label>
-                    <input type="text" class="form-control" id="groupName" name="name" required>
+                    <input type="text" class="form-control" id="groupName" name="name" required maxlength="120" autocomplete="organization-title">
                 </div>
                 <div class="mb-3">
                     <label class="form-label" for="groupDesc">Beschreibung</label>
-                    <textarea class="form-control" id="groupDesc" name="description" rows="3"></textarea>
+                    <textarea class="form-control" id="groupDesc" name="description" rows="3" maxlength="500"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
@@ -142,7 +144,7 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
 </div>
 
 <!-- Delete Form -->
-<form id="deleteGroupForm" method="post" class="d-none">
+<form id="deleteGroupForm" method="post" action="<?php echo htmlspecialchars($siteUrl); ?>/admin/groups" class="d-none">
     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
     <input type="hidden" name="action" value="delete">
     <input type="hidden" name="id" id="deleteGroupId">

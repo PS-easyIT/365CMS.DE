@@ -65,15 +65,17 @@ $roleColors = [
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label required" for="username">Benutzername</label>
-                                    <input type="text" class="form-control" id="username" name="username" value="<?php echo htmlspecialchars($user->username ?? ''); ?>" required>
+                                    <input type="text" class="form-control" id="username" name="username" value="<?php echo htmlspecialchars($user->username ?? ''); ?>" required minlength="3" maxlength="50" pattern="[A-Za-z0-9_]+" autocomplete="username">
+                                    <span class="form-hint">3–50 Zeichen, nur Buchstaben, Zahlen und Unterstrich.</span>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label required" for="email">E-Mail</label>
-                                    <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars($user->email ?? ''); ?>" required>
+                                    <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars($user->email ?? ''); ?>" required maxlength="190" autocomplete="email">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label <?php echo $isNew ? 'required' : ''; ?>" for="password">Passwort</label>
-                                    <input type="password" class="form-control" id="password" name="password" <?php echo $isNew ? 'required' : ''; ?> autocomplete="new-password">
+                                    <input type="password" class="form-control" id="password" name="password" <?php echo $isNew ? 'required' : ''; ?> minlength="8" autocomplete="new-password">
+                                    <span class="form-hint">Mindestens 8 Zeichen.</span>
                                     <?php if (!$isNew): ?>
                                         <span class="form-hint">Leer lassen, um das Passwort nicht zu ändern.</span>
                                     <?php endif; ?>
@@ -89,11 +91,11 @@ $roleColors = [
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label" for="first_name">Vorname</label>
-                                    <input type="text" class="form-control" id="first_name" name="first_name" value="<?php echo htmlspecialchars($user->meta['first_name'] ?? ''); ?>">
+                                    <input type="text" class="form-control" id="first_name" name="first_name" value="<?php echo htmlspecialchars($user->meta['first_name'] ?? ''); ?>" maxlength="120" autocomplete="given-name">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label" for="last_name">Nachname</label>
-                                    <input type="text" class="form-control" id="last_name" name="last_name" value="<?php echo htmlspecialchars($user->meta['last_name'] ?? ''); ?>">
+                                    <input type="text" class="form-control" id="last_name" name="last_name" value="<?php echo htmlspecialchars($user->meta['last_name'] ?? ''); ?>" maxlength="120" autocomplete="family-name">
                                 </div>
                             </div>
                         </div>
