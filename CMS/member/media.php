@@ -80,24 +80,48 @@ include __DIR__ . '/partials/header.php';
                     <div class="card-body text-secondary">Noch keine Ordner angelegt.</div>
                 <?php else: ?>
                     <?php foreach ($folders as $folder): ?>
+                        <?php $folderPath = (string)($folder['path'] ?? ''); ?>
                         <div class="list-group-item d-flex justify-content-between align-items-center">
                             <div>
                                 <div class="fw-medium">
-                                    <a href="<?= htmlspecialchars(SITE_URL . '/member/media?path=' . rawurlencode((string)($folder['path'] ?? '')), ENT_QUOTES) ?>" class="text-reset text-decoration-none">📁 <?= htmlspecialchars((string)($folder['name'] ?? 'Ordner')) ?></a>
+                                    <a href="<?= htmlspecialchars(SITE_URL . '/member/media?path=' . rawurlencode($folderPath), ENT_QUOTES) ?>" class="text-reset text-decoration-none">📁 <?= htmlspecialchars((string)($folder['name'] ?? 'Ordner')) ?></a>
                                 </div>
-                                <div class="text-secondary small"><?= htmlspecialchars((string)($folder['path'] ?? '')) ?></div>
+                                <div class="text-secondary small"><?= htmlspecialchars($folderPath) ?></div>
                             </div>
-                            <div class="d-flex align-items-center gap-3">
+                            <div class="d-flex align-items-start gap-3">
                                 <div class="text-secondary small"><?= (int)($folder['items_count'] ?? 0) ?> Elemente</div>
-                                <?php if (!empty($mediaSettings['member_delete_own'])): ?>
-                                    <form method="post" action="" onsubmit="return confirm('Ordner wirklich löschen? Alle enthaltenen Dateien werden ebenfalls entfernt.');">
-                                        <input type="hidden" name="action" value="media_folder_delete">
-                                        <input type="hidden" name="path" value="<?= htmlspecialchars((string)($folder['path'] ?? ''), ENT_QUOTES) ?>">
-                                        <input type="hidden" name="current_path" value="<?= htmlspecialchars($memberPath, ENT_QUOTES) ?>">
-                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($controller->csrfToken('media_action'), ENT_QUOTES) ?>">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">Löschen</button>
-                                    </form>
-                                <?php endif; ?>
+                                <div class="d-flex flex-column align-items-end gap-2">
+                                    <?php if (!empty($mediaSettings['member_delete_own'])): ?>
+                                        <form method="post" action="" onsubmit="return confirm('Ordner wirklich löschen? Alle enthaltenen Dateien werden ebenfalls entfernt.');">
+                                            <input type="hidden" name="action" value="media_folder_delete">
+                                            <input type="hidden" name="path" value="<?= htmlspecialchars($folderPath, ENT_QUOTES) ?>">
+                                            <input type="hidden" name="current_path" value="<?= htmlspecialchars($memberPath, ENT_QUOTES) ?>">
+                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($controller->csrfToken('media_action'), ENT_QUOTES) ?>">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Löschen</button>
+                                        </form>
+                                    <?php endif; ?>
+                                    <details class="w-100">
+                                        <summary class="small text-secondary text-end" role="button">Umbenennen / Verschieben</summary>
+                                        <div class="vstack gap-2 mt-2" style="min-width: 18rem;">
+                                            <form method="post" action="" class="vstack gap-2">
+                                                <input type="hidden" name="action" value="media_rename">
+                                                <input type="hidden" name="path" value="<?= htmlspecialchars($folderPath, ENT_QUOTES) ?>">
+                                                <input type="hidden" name="current_path" value="<?= htmlspecialchars($memberPath, ENT_QUOTES) ?>">
+                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($controller->csrfToken('media_action'), ENT_QUOTES) ?>">
+                                                <input class="form-control form-control-sm" name="new_name" type="text" maxlength="120" value="<?= htmlspecialchars((string)($folder['name'] ?? 'Ordner'), ENT_QUOTES) ?>" required>
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary">Umbenennen</button>
+                                            </form>
+                                            <form method="post" action="" class="vstack gap-2">
+                                                <input type="hidden" name="action" value="media_move">
+                                                <input type="hidden" name="path" value="<?= htmlspecialchars($folderPath, ENT_QUOTES) ?>">
+                                                <input type="hidden" name="current_path" value="<?= htmlspecialchars($memberPath, ENT_QUOTES) ?>">
+                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($controller->csrfToken('media_action'), ENT_QUOTES) ?>">
+                                                <input class="form-control form-control-sm" name="target_parent_path" type="text" maxlength="255" value="<?= htmlspecialchars($memberPath, ENT_QUOTES) ?>" placeholder="z. B. <?= htmlspecialchars($media['root_path'] ?? 'member', ENT_QUOTES) ?>">
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary">Verschieben</button>
+                                            </form>
+                                        </div>
+                                    </details>
+                                </div>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -123,24 +147,48 @@ include __DIR__ . '/partials/header.php';
                             <tr><td colspan="5" class="text-secondary">Noch keine Dateien vorhanden.</td></tr>
                         <?php else: ?>
                             <?php foreach ($files as $file): ?>
+                                <?php $filePath = (string)($file['path'] ?? ''); ?>
                                 <tr>
                                     <td>
                                         <div class="fw-medium"><a href="<?= htmlspecialchars((string)($file['url'] ?? '#')) ?>" target="_blank" rel="noopener noreferrer"><?= htmlspecialchars((string)($file['name'] ?? 'Datei')) ?></a></div>
-                                        <div class="text-secondary small"><?= htmlspecialchars((string)($file['path'] ?? '')) ?></div>
+                                        <div class="text-secondary small"><?= htmlspecialchars($filePath) ?></div>
                                     </td>
                                     <td><?= htmlspecialchars(strtoupper((string)($file['type'] ?? ''))) ?></td>
                                     <td><?= number_format(((int)($file['size'] ?? 0)) / 1024, 1, ',', '.') ?> KB</td>
                                     <td><?= !empty($file['modified']) ? htmlspecialchars(date('d.m.Y H:i', (int)$file['modified'])) : '–' ?></td>
                                     <td>
-                                        <?php if (!empty($mediaSettings['member_delete_own'])): ?>
-                                            <form method="post" action="" onsubmit="return confirm('Datei wirklich löschen?');">
-                                                <input type="hidden" name="action" value="media_delete">
-                                                <input type="hidden" name="path" value="<?= htmlspecialchars((string)($file['path'] ?? ''), ENT_QUOTES) ?>">
-                                                <input type="hidden" name="current_path" value="<?= htmlspecialchars($memberPath, ENT_QUOTES) ?>">
-                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($controller->csrfToken('media_action'), ENT_QUOTES) ?>">
-                                                <button type="submit" class="btn btn-sm btn-outline-danger">Löschen</button>
-                                            </form>
-                                        <?php endif; ?>
+                                        <div class="d-flex flex-column align-items-end gap-2">
+                                            <?php if (!empty($mediaSettings['member_delete_own'])): ?>
+                                                <form method="post" action="" onsubmit="return confirm('Datei wirklich löschen?');">
+                                                    <input type="hidden" name="action" value="media_delete">
+                                                    <input type="hidden" name="path" value="<?= htmlspecialchars($filePath, ENT_QUOTES) ?>">
+                                                    <input type="hidden" name="current_path" value="<?= htmlspecialchars($memberPath, ENT_QUOTES) ?>">
+                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($controller->csrfToken('media_action'), ENT_QUOTES) ?>">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">Löschen</button>
+                                                </form>
+                                            <?php endif; ?>
+                                            <details>
+                                                <summary class="small text-secondary text-end" role="button">Umbenennen / Verschieben</summary>
+                                                <div class="vstack gap-2 mt-2" style="min-width: 18rem;">
+                                                    <form method="post" action="" class="vstack gap-2">
+                                                        <input type="hidden" name="action" value="media_rename">
+                                                        <input type="hidden" name="path" value="<?= htmlspecialchars($filePath, ENT_QUOTES) ?>">
+                                                        <input type="hidden" name="current_path" value="<?= htmlspecialchars($memberPath, ENT_QUOTES) ?>">
+                                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($controller->csrfToken('media_action'), ENT_QUOTES) ?>">
+                                                        <input class="form-control form-control-sm" name="new_name" type="text" maxlength="120" value="<?= htmlspecialchars((string)($file['name'] ?? 'Datei'), ENT_QUOTES) ?>" required>
+                                                        <button type="submit" class="btn btn-sm btn-outline-secondary">Umbenennen</button>
+                                                    </form>
+                                                    <form method="post" action="" class="vstack gap-2">
+                                                        <input type="hidden" name="action" value="media_move">
+                                                        <input type="hidden" name="path" value="<?= htmlspecialchars($filePath, ENT_QUOTES) ?>">
+                                                        <input type="hidden" name="current_path" value="<?= htmlspecialchars($memberPath, ENT_QUOTES) ?>">
+                                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($controller->csrfToken('media_action'), ENT_QUOTES) ?>">
+                                                        <input class="form-control form-control-sm" name="target_parent_path" type="text" maxlength="255" value="<?= htmlspecialchars($memberPath, ENT_QUOTES) ?>" placeholder="z. B. <?= htmlspecialchars($media['root_path'] ?? 'member', ENT_QUOTES) ?>">
+                                                        <button type="submit" class="btn btn-sm btn-outline-secondary">Verschieben</button>
+                                                    </form>
+                                                </div>
+                                            </details>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

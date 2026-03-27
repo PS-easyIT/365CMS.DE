@@ -423,6 +423,66 @@ class MediaModule
     }
 
     /**
+     * Datei/Ordner verschieben
+     */
+    public function moveItem(string $oldPath, string $targetParentPath): array
+    {
+        $normalizedPath = $this->normalizeRelativePath($oldPath);
+        $normalizedTargetParentPath = $this->normalizeRelativePath($targetParentPath);
+
+        if ($normalizedPath === '') {
+            return ['success' => false, 'error' => 'Verschieben mit diesen Angaben ist nicht möglich.'];
+        }
+
+        $currentParentPath = $this->resolveParentPathFromActionPath($normalizedPath);
+        if ($normalizedTargetParentPath === $currentParentPath) {
+            return [
+                'success' => true,
+                'message' => 'Element befindet sich bereits in diesem Ordner.',
+                'details' => [
+                    'Pfad: ' . $normalizedPath,
+                    'Ordner: ' . ($normalizedTargetParentPath !== '' ? $normalizedTargetParentPath : '/'),
+                ],
+            ];
+        }
+
+        if ($normalizedTargetParentPath === $normalizedPath || str_starts_with($normalizedTargetParentPath, $normalizedPath . '/')) {
+            return ['success' => false, 'error' => 'Ein Ordner kann nicht in sich selbst oder einen Unterordner verschoben werden.'];
+        }
+
+        $targetPath = ltrim(($normalizedTargetParentPath !== '' ? $normalizedTargetParentPath . '/' : '') . basename($normalizedPath), '/');
+        if ($targetPath === $normalizedPath) {
+            return [
+                'success' => true,
+                'message' => 'Element befindet sich bereits am gewünschten Ziel.',
+                'details' => ['Pfad: ' . $normalizedPath],
+            ];
+        }
+
+        $result = $this->service->moveFile($normalizedPath, $targetPath);
+        if ($result instanceof WP_Error) {
+            return $this->buildGenericFailureFromWpError($result, [
+                'title' => 'Element konnte nicht verschoben werden',
+                'source' => '/admin/media',
+                'module' => 'media',
+                'operation' => 'move',
+                'path' => $normalizedPath,
+                'target_parent_path' => $normalizedTargetParentPath,
+                'target_path' => $targetPath,
+            ]);
+        }
+
+        return [
+            'success' => true,
+            'message' => 'Element verschoben.',
+            'details' => [
+                'Quelle: ' . $normalizedPath,
+                'Ziel: ' . $targetPath,
+            ],
+        ];
+    }
+
+    /**
      * Kategorie zuweisen
      */
     public function assignCategory(string $filePath, string $categorySlug): array

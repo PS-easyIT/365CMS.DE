@@ -1,4 +1,4 @@
-﻿﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.373-blue.svg)](https://shields.io/)
+﻿﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.375-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,23 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.7.375 — 27. März 2026 · Folge-Batch 457, Medien lassen sich jetzt robust umbenennen und verschieben
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.375** | 🔴 fix | Admin/Media | **`CMS/admin/media.php`, `CMS/admin/modules/media/MediaModule.php` und `CMS/admin/views/media/library.php` verdrahten Umbenennen und Verschieben jetzt als echte POST-Aktionen bis in den Media-Service durch**: Dateien und Ordner lassen sich damit ohne JS-Sonderlogik belastbar umbenennen oder in andere Ordner verschieben. |
+| **2.7.375** | 🔴 fix | Member/Media | **`CMS/member/includes/class-member-controller.php` und `CMS/member/media.php` unterstützen im persönlichen Upload-Bereich jetzt ebenfalls Rename-/Move-Aktionen über serverseitige Form-Posts**: Der Member-Bereich schließt damit denselben stillen No-op-Typ aus, der zuvor schon bei Löschaktionen auffiel, und bleibt bei Medienaktionen vollständig auf echten Request-/CSRF-Verträgen. |
+
+---
+
+### v2.7.374 — 27. März 2026 · Folge-Batch 456, Admin-Medienlöschung läuft jetzt robust ohne JS-Pflicht
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.374** | 🔴 fix | Admin/Media | **`CMS/admin/views/media/library.php` nutzt für Datei- und Ordnerlöschung jetzt echte POST-Formulare mit Confirm statt rein JS-abhängigen Delete-Buttons**: Die Medienbibliothek löscht damit wieder belastbar, selbst wenn der Button-Handler oder das Medien-JavaScript nicht sauber initialisiert werden. |
 
 ---
 

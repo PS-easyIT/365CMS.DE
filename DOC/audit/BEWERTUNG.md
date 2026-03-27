@@ -5,13 +5,25 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 455
+### Gesamtstand nach Batch 457
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 455 | 95,04 | 92,70 | 96,12 | 96,25 |
+| 457 | 95,12 | 92,74 | 96,22 | 96,35 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **455 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich elf Folge-Batches darüber hinaus. Zuletzt wurden Member-Medienpfade funktional angeglichen und die neue Consent-/Medien-Strecke weiter gehärtet. Dadurch hängen Datei- und Ordneraktionen im Member-Bereich sauberer an internen Pfadverträgen; zusätzlich sind Consent- und Medien-Skripte robuster gegen DOM- und Cookie-Risiken abgesichert.
+Der aktuelle Nachpflege-Stand umfasst damit **457 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich dreizehn Folge-Batches darüber hinaus. Zuletzt wurden Rename-/Move-Pfade im Medienbereich für Admin und Member vollständig auf serverseitige POST-Verträge nachgezogen. Dadurch bleiben Umbenennen und Verschieben auch ohne fragile UI-Sonderlogik belastbar und im Member-Bereich wurde ein weiterer potenzieller stiller No-op-Pfad geschlossen.
+
+### Delta Folge-Batch 457
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/media.php`, `CMS/admin/modules/media/MediaModule.php`, `CMS/admin/views/media/library.php`, `CMS/member/includes/class-member-controller.php`, `CMS/member/media.php` | umgesetzt | Der Medienbereich unterstützt jetzt echte Rename-/Move-Aktionen in Admin und Member; Entry, Modul und View reichen Pfad-, Zielordner- und Namensdaten konsistent per POST/CSRF bis zum Media-Service durch. | Medienaktionen degradieren nicht mehr zu stillen UI-No-ops, und Admin-/Member-Bereich hängen bei Rename/Move enger an denselben robusten Request-Verträgen wie bereits beim Delete-Flow. |
+
+### Delta Folge-Batch 456
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/media/library.php` | umgesetzt | Datei- und Ordnerlöschung in der Medienbibliothek laufen jetzt über echte POST-Formulare mit serverseitigem Delete-Entry statt nur über JS-Buttons plus Hidden-Form. | Medien-Löschaktionen funktionieren belastbarer und degradieren sauber weiter, selbst wenn JavaScript-Initialisierung oder globale Confirm-Dialoge ausfallen. |
 
 ### Delta Folge-Batch 455
 

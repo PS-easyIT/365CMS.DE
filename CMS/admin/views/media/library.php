@@ -216,16 +216,39 @@ function mediaTypeIcon(string $type): string {
                     <?php if ($view === 'grid'): ?>
                         <div class="media-grid">
                             <?php foreach ($folders as $folder): ?>
+                                <?php $folderPath = (string)($folder['path'] ?? ''); ?>
                                 <div class="media-grid-item media-grid-folder">
                                     <a href="<?php echo htmlspecialchars((string)($folder['url'] ?? $rootUrl)); ?>" class="text-decoration-none text-reset media-folder-link" <?php echo !empty($folder['requires_confirmation']) ? 'data-member-folder-confirm="1" data-confirm-url="' . htmlspecialchars((string)($folder['confirm_url'] ?? ''), ENT_QUOTES) . '"' : ''; ?>>
                                         <div class="media-grid-thumb"><span class="folder-icon">📁</span></div>
                                         <div class="media-grid-label"><?php echo htmlspecialchars((string)($folder['name'] ?? '')); ?></div>
                                         <div class="media-grid-meta"><?php echo (int)($folder['items_count'] ?? 0); ?> Einträge</div>
                                     </a>
+                                    <?php if (empty($folder['is_system'])): ?>
+                                        <details class="p-2 pt-0">
+                                            <summary class="small text-secondary">Umbenennen / Verschieben</summary>
+                                            <div class="vstack gap-2 mt-2">
+                                                <form method="post" class="vstack gap-2">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                                                    <input type="hidden" name="action" value="rename_item">
+                                                    <input type="hidden" name="old_path" value="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>">
+                                                    <input class="form-control form-control-sm" name="new_name" type="text" maxlength="120" value="<?php echo htmlspecialchars((string)($folder['name'] ?? ''), ENT_QUOTES); ?>" required>
+                                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Umbenennen</button>
+                                                </form>
+                                                <form method="post" class="vstack gap-2">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                                                    <input type="hidden" name="action" value="move_item">
+                                                    <input type="hidden" name="old_path" value="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>">
+                                                    <input class="form-control form-control-sm" name="target_parent_path" type="text" maxlength="255" value="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>" placeholder="Zielordner, leer = Upload-Root">
+                                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Verschieben</button>
+                                                </form>
+                                            </div>
+                                        </details>
+                                    <?php endif; ?>
                                 </div>
                             <?php endforeach; ?>
 
                             <?php foreach ($files as $file): ?>
+                                <?php $filePath = (string)($file['path'] ?? ''); ?>
                                 <div class="media-grid-item">
                                     <div class="media-grid-thumb">
                                         <?php if (!empty($file['is_image'])): ?>
@@ -236,10 +259,34 @@ function mediaTypeIcon(string $type): string {
                                     </div>
                                     <div class="media-grid-label"><?php echo htmlspecialchars((string)($file['name'] ?? '')); ?></div>
                                     <div class="media-grid-meta"><?php echo htmlspecialchars((string)($file['category_label'] ?? 'Ohne Kategorie')); ?></div>
+                                    <details class="p-2 pt-0">
+                                        <summary class="small text-secondary text-center">Umbenennen / Verschieben</summary>
+                                        <div class="vstack gap-2 mt-2">
+                                            <form method="post" class="vstack gap-2">
+                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                                                <input type="hidden" name="action" value="rename_item">
+                                                <input type="hidden" name="old_path" value="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>">
+                                                <input class="form-control form-control-sm" name="new_name" type="text" maxlength="120" value="<?php echo htmlspecialchars((string)($file['name'] ?? ''), ENT_QUOTES); ?>" required>
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary">Umbenennen</button>
+                                            </form>
+                                            <form method="post" class="vstack gap-2">
+                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                                                <input type="hidden" name="action" value="move_item">
+                                                <input type="hidden" name="old_path" value="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>">
+                                                <input class="form-control form-control-sm" name="target_parent_path" type="text" maxlength="255" value="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>" placeholder="Zielordner, leer = Upload-Root">
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary">Verschieben</button>
+                                            </form>
+                                        </div>
+                                    </details>
                                     <div class="p-2 pt-0 text-center">
-                                        <button type="button" class="btn btn-ghost-danger btn-icon btn-sm js-media-delete" title="Löschen" data-delete-path="<?php echo htmlspecialchars((string)($file['path'] ?? ''), ENT_QUOTES); ?>" data-delete-name="<?php echo htmlspecialchars((string)($file['name'] ?? ''), ENT_QUOTES); ?>" data-delete-type="Datei">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/></svg>
-                                        </button>
+                                        <form method="post" onsubmit="return confirm('<?= htmlspecialchars((string)($file['name'] ?? 'Datei'), ENT_QUOTES) ?> wirklich löschen?');">
+                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                                            <input type="hidden" name="action" value="delete_item">
+                                            <input type="hidden" name="item_path" value="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>">
+                                            <button type="submit" class="btn btn-ghost-danger btn-icon btn-sm" title="Löschen">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/></svg>
+                                            </button>
+                                        </form>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
@@ -259,6 +306,7 @@ function mediaTypeIcon(string $type): string {
                                 </thead>
                                 <tbody>
                                     <?php foreach ($folders as $folder): ?>
+                                        <?php $folderPath = (string)($folder['path'] ?? ''); ?>
                                         <tr>
                                             <td><span class="folder-icon">📁</span></td>
                                             <td>
@@ -277,7 +325,28 @@ function mediaTypeIcon(string $type): string {
                                             <td class="text-secondary"><?php echo htmlspecialchars((string)($folder['modified_label'] ?? '—')); ?></td>
                                             <td>
                                                 <?php if (empty($folder['is_system'])): ?>
-                                                    <button type="button" class="btn btn-sm btn-outline-danger js-media-delete" data-delete-path="<?php echo htmlspecialchars((string)($folder['path'] ?? ''), ENT_QUOTES); ?>" data-delete-name="<?php echo htmlspecialchars((string)($folder['name'] ?? ''), ENT_QUOTES); ?>" data-delete-type="Ordner">Löschen</button>
+                                                    <div class="d-flex flex-column gap-2 align-items-start">
+                                                        <form method="post" class="d-flex gap-2 align-items-center flex-wrap">
+                                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                                                            <input type="hidden" name="action" value="rename_item">
+                                                            <input type="hidden" name="old_path" value="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>">
+                                                            <input class="form-control form-control-sm" name="new_name" type="text" maxlength="120" value="<?php echo htmlspecialchars((string)($folder['name'] ?? ''), ENT_QUOTES); ?>" required>
+                                                            <button type="submit" class="btn btn-sm btn-outline-secondary">Umbenennen</button>
+                                                        </form>
+                                                        <form method="post" class="d-flex gap-2 align-items-center flex-wrap">
+                                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                                                            <input type="hidden" name="action" value="move_item">
+                                                            <input type="hidden" name="old_path" value="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>">
+                                                            <input class="form-control form-control-sm" name="target_parent_path" type="text" maxlength="255" value="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>" placeholder="Zielordner, leer = Upload-Root">
+                                                            <button type="submit" class="btn btn-sm btn-outline-secondary">Verschieben</button>
+                                                        </form>
+                                                        <form method="post" onsubmit="return confirm('<?= htmlspecialchars((string)($folder['name'] ?? 'Ordner'), ENT_QUOTES) ?> wirklich löschen?');">
+                                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                                                            <input type="hidden" name="action" value="delete_item">
+                                                            <input type="hidden" name="item_path" value="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>">
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger">Löschen</button>
+                                                        </form>
+                                                    </div>
                                                 <?php else: ?>
                                                     <span class="badge bg-secondary-lt">System</span>
                                                 <?php endif; ?>
@@ -286,6 +355,7 @@ function mediaTypeIcon(string $type): string {
                                     <?php endforeach; ?>
 
                                     <?php foreach ($files as $file): ?>
+                                        <?php $filePath = (string)($file['path'] ?? ''); ?>
                                         <tr>
                                             <td>
                                                 <?php if (!empty($file['is_image'])): ?>
@@ -317,7 +387,28 @@ function mediaTypeIcon(string $type): string {
                                             <td class="text-secondary"><?php echo htmlspecialchars((string)($file['formatted_size'] ?? '—')); ?></td>
                                             <td class="text-secondary"><?php echo htmlspecialchars((string)($file['modified_label'] ?? '—')); ?></td>
                                             <td>
-                                                <button type="button" class="btn btn-sm btn-outline-danger js-media-delete" data-delete-path="<?php echo htmlspecialchars((string)($file['path'] ?? ''), ENT_QUOTES); ?>" data-delete-name="<?php echo htmlspecialchars((string)($file['name'] ?? ''), ENT_QUOTES); ?>" data-delete-type="Datei">Löschen</button>
+                                                <div class="d-flex flex-column gap-2 align-items-start">
+                                                    <form method="post" class="d-flex gap-2 align-items-center flex-wrap">
+                                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                                                        <input type="hidden" name="action" value="rename_item">
+                                                        <input type="hidden" name="old_path" value="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>">
+                                                        <input class="form-control form-control-sm" name="new_name" type="text" maxlength="120" value="<?php echo htmlspecialchars((string)($file['name'] ?? ''), ENT_QUOTES); ?>" required>
+                                                        <button type="submit" class="btn btn-sm btn-outline-secondary">Umbenennen</button>
+                                                    </form>
+                                                    <form method="post" class="d-flex gap-2 align-items-center flex-wrap">
+                                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                                                        <input type="hidden" name="action" value="move_item">
+                                                        <input type="hidden" name="old_path" value="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>">
+                                                        <input class="form-control form-control-sm" name="target_parent_path" type="text" maxlength="255" value="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>" placeholder="Zielordner, leer = Upload-Root">
+                                                        <button type="submit" class="btn btn-sm btn-outline-secondary">Verschieben</button>
+                                                    </form>
+                                                    <form method="post" onsubmit="return confirm('<?= htmlspecialchars((string)($file['name'] ?? 'Datei'), ENT_QUOTES) ?> wirklich löschen?');">
+                                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                                                        <input type="hidden" name="action" value="delete_item">
+                                                        <input type="hidden" name="item_path" value="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>">
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger">Löschen</button>
+                                                    </form>
+                                                </div>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>

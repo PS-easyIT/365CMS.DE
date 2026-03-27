@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.7.373-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.7.375-blue.svg)](Changelog.md)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
@@ -17,6 +17,19 @@
 ## ✨ Warum 365CMS?
 
 365CMS verbindet klassischen CMS-Content, Mitgliederbereiche, SEO-/Performance-Werkzeuge, Theme-Customizing und Plugin-Erweiterbarkeit in einer konsistenten PHP-Architektur. Der Fokus liegt auf **betriebssicherem Self-Hosting**, **klarer Admin-Struktur**, **lokal dokumentierten Workflows** und **sauber integrierbaren Erweiterungen**.
+
+## 📈 Audit-Stand März 2026
+
+Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 457** nachgezogen. Im eigentlichen Prüfplan bleiben damit weiterhin **444 von 444 Prüfplan-Punkten** geschafft; zusätzlich läuft bereits die Folge-Runde über den ursprünglichen Plan hinaus. Der aktuelle dokumentierte Gesamtstand über **457 bewertete Dateien** liegt bei:
+
+| Metrik | Stand |
+|---|---:|
+| **Security** | **95,12** |
+| **Speed** | **92,74** |
+| **PHP / Best Practices** | **96,22** |
+| **Gesamt** | **96,35** |
+
+Zuletzt wurden im Medienbereich zusätzlich Rename-/Move-Aktionen für Admin und Member auf echte POST-Formulare gezogen. `CMS/admin/media.php`, `CMS/admin/modules/media/MediaModule.php`, `CMS/admin/views/media/library.php`, `CMS/member/includes/class-member-controller.php` und `CMS/member/media.php` hängen Umbenennen und Verschieben damit nicht mehr an stillen Frontend-Annahmen, sondern an klaren Request-/CSRF-Verträgen.
 
 | Bereich | Highlights |
 |---|---|

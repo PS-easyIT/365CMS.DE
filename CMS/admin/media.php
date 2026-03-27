@@ -20,6 +20,7 @@ const CMS_ADMIN_MEDIA_ALLOWED_ACTIONS = [
     'create_folder',
     'delete_item',
     'rename_item',
+    'move_item',
     'assign_category',
     'add_category',
     'delete_category',
@@ -256,6 +257,10 @@ function cms_admin_media_normalize_action_payload(MediaModule $module, string $a
             'old_path' => $module->normalizePath((string) ($post['old_path'] ?? '')),
             'new_name' => cms_admin_media_normalize_text($post['new_name'] ?? '', 120),
         ],
+        'move_item' => [
+            'old_path' => $module->normalizePath((string) ($post['old_path'] ?? '')),
+            'target_parent_path' => $module->normalizePath((string) ($post['target_parent_path'] ?? '')),
+        ],
         'assign_category' => [
             'file_path' => $module->normalizePath((string) ($post['file_path'] ?? '')),
             'category_slug' => $module->normalizeCategory((string) ($post['category_slug'] ?? '')),
@@ -280,6 +285,7 @@ function cms_admin_media_validate_action_payload(string $action, array $payload)
         'rename_item' => ($payload['old_path'] ?? '') === ''
             ? 'Ungültiger Elementpfad.'
             : ((($payload['new_name'] ?? '') === '') ? 'Bitte einen gültigen Namen angeben.' : null),
+        'move_item' => ($payload['old_path'] ?? '') === '' ? 'Ungültiger Elementpfad.' : null,
         'assign_category' => ($payload['file_path'] ?? '') === '' ? 'Ungültiger Dateipfad.' : null,
         'add_category' => ($payload['name'] ?? '') === '' ? 'Bitte einen gültigen Kategorienamen angeben.' : null,
         'delete_category' => ($payload['slug'] ?? '') === '' ? 'Bitte eine gültige Kategorie angeben.' : null,
@@ -514,6 +520,10 @@ function cms_admin_media_handle_action(MediaModule $module, string $action, stri
         ],
         'rename_item' => [
             'result' => $module->renameItem((string)($post['old_path'] ?? ''), trim((string)($post['new_name'] ?? ''))),
+            'redirect_path' => $redirectPath,
+        ],
+        'move_item' => [
+            'result' => $module->moveItem((string)($post['old_path'] ?? ''), (string)($post['target_parent_path'] ?? '')),
             'redirect_path' => $redirectPath,
         ],
         'assign_category' => [

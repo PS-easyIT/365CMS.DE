@@ -595,6 +595,16 @@ final class MemberController
         return true;
     }
 
+    private function sanitizeMemberMediaItemName(string $name): string
+    {
+        $name = trim(strip_tags($name));
+        if ($name === '' || preg_match('/[\\\/\:\*\?"<>\|]/', $name) === 1) {
+            return '';
+        }
+
+        return function_exists('mb_substr') ? mb_substr($name, 0, 120) : substr($name, 0, 120);
+    }
+
     /**
      * @return array<string,mixed>
      */
@@ -762,7 +772,7 @@ final class MemberController
     public function handleMediaRequest(): void
     {
         $action = (string)($_POST['action'] ?? '');
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !in_array($action, ['media_delete', 'media_folder_create', 'media_folder_delete'], true)) {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !in_array($action, ['media_delete', 'media_folder_create', 'media_folder_delete', 'media_rename', 'media_move'], true)) {
             return;
         }
 
@@ -789,14 +799,46 @@ final class MemberController
             $this->redirect($this->buildMemberMediaUrl($currentPath));
         }
 
-        if (empty($settings['member_delete_own'])) {
-            $this->flash('warning', 'Das Löschen eigener Dateien ist derzeit deaktiviert.');
+        $path = $this->normalizeMemberMediaPath((string)($_POST['path'] ?? ''), $this->getUserId());
+        if ($path === $memberRoot || (!str_starts_with($path, $memberRoot . '/') && $path !== $memberRoot)) {
+            $this->flash('danger', 'Ungültiger Medienpfad.');
             $this->redirect($this->buildMemberMediaUrl($currentPath));
         }
 
-        $path = $this->normalizeMemberMediaPath((string)($_POST['path'] ?? ''), $this->getUserId());
-        if ($path === $memberRoot || !str_starts_with($path, $memberRoot . '/') && $path !== $memberRoot) {
-            $this->flash('danger', 'Ungültiger Medienpfad.');
+        if ($action === 'media_rename') {
+            $newName = $this->sanitizeMemberMediaItemName((string)($_POST['new_name'] ?? ''));
+            if ($newName === '') {
+                $this->flash('danger', 'Bitte einen gültigen neuen Namen angeben.');
+                $this->redirect($this->buildMemberMediaUrl($currentPath));
+            }
+
+            $result = $mediaService->renameItem($path, $newName);
+            $ok = !($result instanceof \CMS\WP_Error);
+            $this->flash($ok ? 'success' : 'danger', $ok ? 'Element wurde umbenannt.' : $result->get_error_message());
+            $this->redirect($this->buildMemberMediaUrl($currentPath));
+        }
+
+        if ($action === 'media_move') {
+            $targetParentPath = $this->normalizeMemberMediaPath((string)($_POST['target_parent_path'] ?? ''), $this->getUserId());
+            if ($targetParentPath === $path || str_starts_with($targetParentPath, $path . '/')) {
+                $this->flash('danger', 'Ein Ordner kann nicht in sich selbst oder einen Unterordner verschoben werden.');
+                $this->redirect($this->buildMemberMediaUrl($currentPath));
+            }
+
+            $targetPath = trim(($targetParentPath !== '' ? $targetParentPath . '/' : '') . basename($path), '/');
+            if ($targetPath === $path) {
+                $this->flash('info', 'Element befindet sich bereits im gewünschten Ordner.');
+                $this->redirect($this->buildMemberMediaUrl($currentPath));
+            }
+
+            $result = $mediaService->moveFile($path, $targetPath);
+            $ok = !($result instanceof \CMS\WP_Error);
+            $this->flash($ok ? 'success' : 'danger', $ok ? 'Element wurde verschoben.' : $result->get_error_message());
+            $this->redirect($this->buildMemberMediaUrl($currentPath));
+        }
+
+        if (empty($settings['member_delete_own'])) {
+            $this->flash('warning', 'Das Löschen eigener Dateien ist derzeit deaktiviert.');
             $this->redirect($this->buildMemberMediaUrl($currentPath));
         }
 

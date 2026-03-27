@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.7.373",
+  "version": "2.7.375",
   "min_php": "8.4",
   "released": "2026-03-27",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release 2.7.373: Der Member-Medienbereich unterstützt jetzt wieder konsistente Ordnernavigation, Datei-/Ordner-Löschpfade und Redirects innerhalb des persönlichen Upload-Bereichs; zusätzlich wurden Consent- und Medien-Skripte weiter gegen DOM-/Cookie-Risiken gehärtet.",
+  "notes": "Release 2.7.375: Medien in Admin und Member lassen sich jetzt zusätzlich robust umbenennen und verschieben; die neuen Aktionen laufen über echte POST-Formulare statt über fragile JS-Sonderpfade, und im Member-Bereich bleibt damit kein vergleichbarer stiller No-op im Medienmodul zurück.",
   "critical": false
 }
