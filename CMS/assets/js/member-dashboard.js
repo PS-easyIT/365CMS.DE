@@ -240,9 +240,74 @@
         });
     }
 
+    function initMemberMediaActions() {
+        const configElement = document.getElementById('member-media-config');
+        if (!configElement) {
+            return;
+        }
+
+        let config = {};
+        try {
+            config = JSON.parse(configElement.textContent || '{}');
+        } catch (error) {
+            return;
+        }
+
+        const renameModalElement = document.getElementById(config.renameModalId || 'memberMediaRenameModal');
+        const renamePathField = document.getElementById(config.renamePathFieldId || 'memberMediaRenamePath');
+        const renameNameField = document.getElementById(config.renameNameFieldId || 'memberMediaRenameName');
+        const renameLabel = document.getElementById(config.renameLabelId || 'memberMediaRenameLabel');
+        const moveModalElement = document.getElementById(config.moveModalId || 'memberMediaMoveModal');
+        const movePathField = document.getElementById(config.movePathFieldId || 'memberMediaMovePath');
+        const moveTargetField = document.getElementById(config.moveTargetFieldId || 'memberMediaMoveTarget');
+        const moveLabel = document.getElementById(config.moveLabelId || 'memberMediaMoveLabel');
+        const renameModal = renameModalElement && window.bootstrap ? window.bootstrap.Modal.getOrCreateInstance(renameModalElement) : null;
+        const moveModal = moveModalElement && window.bootstrap ? window.bootstrap.Modal.getOrCreateInstance(moveModalElement) : null;
+
+        document.querySelectorAll('.js-member-media-open-rename').forEach(function (button) {
+            button.addEventListener('click', function () {
+                if (!renameModal || !renamePathField || !renameNameField) {
+                    return;
+                }
+
+                const itemPath = button.getAttribute('data-media-path') || '';
+                const itemName = button.getAttribute('data-media-name') || 'Element';
+                renamePathField.value = itemPath;
+                renameNameField.value = itemName;
+                if (renameLabel) {
+                    renameLabel.textContent = itemName;
+                }
+                renameModal.show();
+                window.setTimeout(function () {
+                    renameNameField.focus();
+                    renameNameField.select();
+                }, 150);
+            });
+        });
+
+        document.querySelectorAll('.js-member-media-open-move').forEach(function (button) {
+            button.addEventListener('click', function () {
+                if (!moveModal || !movePathField || !moveTargetField) {
+                    return;
+                }
+
+                const itemPath = button.getAttribute('data-media-path') || '';
+                const itemName = button.getAttribute('data-media-name') || 'Element';
+                const targetPath = button.getAttribute('data-media-target') || '';
+                movePathField.value = itemPath;
+                moveTargetField.value = targetPath;
+                if (moveLabel) {
+                    moveLabel.textContent = itemName;
+                }
+                moveModal.show();
+            });
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         initPasskeys();
         initMemberUploads();
         initBackupCodeCopy();
+        initMemberMediaActions();
     });
 }());

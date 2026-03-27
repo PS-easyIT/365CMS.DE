@@ -1,4 +1,4 @@
-﻿﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.375-blue.svg)](https://shields.io/)
+﻿﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.8.0--RC-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,17 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.8.0 RC — 27. März 2026 · Folge-Batch 458, Medienbereich wird kompakter und erhält Bulk-Aktionen
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.8.0 RC** | 🎨 style | Admin/Media | **`CMS/admin/views/media/library.php` ersetzt die platzfressenden Inline-Formulare durch kompakte Aktions-Dropdowns und zentrale Rename-/Move-Modale**: Die Medienbibliothek bleibt dadurch übersichtlicher, ohne Delete-, Rename- oder Move-Verträge wieder an fragile UI-Sonderpfade zu hängen. |
+| **2.8.0 RC** | 🟢 feat | Admin/Media | **`CMS/admin/media.php`, `CMS/admin/modules/media/MediaModule.php` und `CMS/assets/js/admin-media-integrations.js` ergänzen Bulk-Löschen und Bulk-Verschieben inklusive Mehrfachauswahl, Zielordner-Select und serverseitiger Pfad-Deduplikation**: Mehrere Medien lassen sich damit in einem Durchlauf bearbeiten, ohne doppelte Kind-/Ordneroperationen oder rohe Freitext-Zielpfade zu riskieren. |
+| **2.8.0 RC** | 🎨 style | Member/Media | **`CMS/member/includes/class-member-controller.php`, `CMS/member/media.php` und `CMS/assets/js/member-dashboard.js` ziehen die Member-Medienaktionen ebenfalls in kompakte Dropdowns und Modale mit vorbereiteten Zielordnern**: Der persönliche Upload-Bereich bleibt damit schlanker bedienbar und behält trotzdem seine sauberen Root-/CSRF-Grenzen. |
+| **2.8.0 RC** | 🔴 fix | Review | **Die geänderten Medienpfade wurden erneut auf Fehler, Best Practice und Security geprüft und blieben ohne neue Editorfehler oder erkennbare Blocker**: Deshalb wurde der Stand als Release Candidate `2.8.0` angehoben statt nur als weiterer Patch weitergeführt. |
 
 ---
 

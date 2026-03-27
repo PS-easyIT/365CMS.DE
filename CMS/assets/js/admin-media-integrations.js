@@ -521,8 +521,56 @@
         var deleteFormId = config.deleteFormId || 'deleteMediaForm';
         var deletePathFieldId = config.deletePathFieldId || 'deleteMediaPath';
         var memberFolderConfirmMessage = config.memberFolderConfirmMessage || 'Diesen Ordner wirklich öffnen?';
+        var renameModalId = config.renameModalId || 'mediaRenameModal';
+        var renamePathFieldId = config.renamePathFieldId || 'mediaRenamePath';
+        var renameNameFieldId = config.renameNameFieldId || 'mediaRenameName';
+        var renameLabelId = config.renameLabelId || 'mediaRenameItemLabel';
+        var moveModalId = config.moveModalId || 'mediaMoveModal';
+        var movePathFieldId = config.movePathFieldId || 'mediaMovePath';
+        var moveTargetFieldId = config.moveTargetFieldId || 'mediaMoveTarget';
+        var moveLabelId = config.moveLabelId || 'mediaMoveItemLabel';
+        var bulkRootSelector = config.bulkRootSelector || '[data-media-library-root]';
+        var bulkFormId = config.bulkFormId || 'mediaBulkForm';
+        var bulkCountId = config.bulkCountId || 'mediaBulkSelectedCount';
+        var bulkActionFieldId = config.bulkActionFieldId || 'mediaBulkAction';
+        var bulkMoveWrapId = config.bulkMoveWrapId || 'mediaBulkMoveWrap';
+        var bulkMoveTargetFieldId = config.bulkMoveTargetFieldId || 'mediaBulkTarget';
         var deleteForm = document.getElementById(deleteFormId);
         var deletePathField = document.getElementById(deletePathFieldId);
+        var renameModalElement = document.getElementById(renameModalId);
+        var renamePathField = document.getElementById(renamePathFieldId);
+        var renameNameField = document.getElementById(renameNameFieldId);
+        var renameLabel = document.getElementById(renameLabelId);
+        var moveModalElement = document.getElementById(moveModalId);
+        var movePathField = document.getElementById(movePathFieldId);
+        var moveTargetField = document.getElementById(moveTargetFieldId);
+        var moveLabel = document.getElementById(moveLabelId);
+        var bulkRoot = document.querySelector(bulkRootSelector);
+        var bulkForm = document.getElementById(bulkFormId);
+        var bulkFormWrap = document.getElementById('mediaBulkFormWrap');
+        var bulkCount = document.getElementById(bulkCountId);
+        var bulkActionField = document.getElementById(bulkActionFieldId);
+        var bulkMoveWrap = document.getElementById(bulkMoveWrapId);
+        var bulkMoveTargetField = document.getElementById(bulkMoveTargetFieldId);
+        var renameModal = renameModalElement && window.bootstrap ? window.bootstrap.Modal.getOrCreateInstance(renameModalElement) : null;
+        var moveModal = moveModalElement && window.bootstrap ? window.bootstrap.Modal.getOrCreateInstance(moveModalElement) : null;
+        var selectedPaths = new Set();
+
+        function setDropdownOverflow(open) {
+            document.querySelectorAll('.table-responsive').forEach(function (container) {
+                container.style.overflow = open ? 'visible' : '';
+            });
+        }
+
+        document.querySelectorAll('.dropdown').forEach(function (dropdown) {
+            dropdown.addEventListener('show.bs.dropdown', function () {
+                setDropdownOverflow(true);
+            });
+
+            dropdown.addEventListener('hidden.bs.dropdown', function () {
+                setDropdownOverflow(false);
+            });
+        });
 
         document.querySelectorAll('[data-member-folder-confirm="1"]').forEach(function (link) {
             link.addEventListener('click', function (event) {
@@ -582,6 +630,161 @@
                 }
             });
         });
+
+        document.querySelectorAll('.js-media-open-rename').forEach(function (button) {
+            button.addEventListener('click', function () {
+                if (!renameModal || !renamePathField || !renameNameField) {
+                    return;
+                }
+
+                var itemPath = button.getAttribute('data-media-path') || '';
+                var itemName = button.getAttribute('data-media-name') || 'Element';
+                renamePathField.value = itemPath;
+                renameNameField.value = itemName;
+                if (renameLabel) {
+                    renameLabel.textContent = itemName;
+                }
+                renameModal.show();
+                window.setTimeout(function () {
+                    renameNameField.focus();
+                    renameNameField.select();
+                }, 150);
+            });
+        });
+
+        document.querySelectorAll('.js-media-open-move').forEach(function (button) {
+            button.addEventListener('click', function () {
+                if (!moveModal || !movePathField || !moveTargetField) {
+                    return;
+                }
+
+                var itemPath = button.getAttribute('data-media-path') || '';
+                var itemName = button.getAttribute('data-media-name') || 'Element';
+                var targetPath = button.getAttribute('data-media-target') || '';
+                movePathField.value = itemPath;
+                moveTargetField.value = targetPath;
+                if (moveLabel) {
+                    moveLabel.textContent = itemName;
+                }
+                moveModal.show();
+            });
+        });
+
+        function syncBulkCheckboxes() {
+            if (!bulkRoot) {
+                return;
+            }
+
+            bulkRoot.querySelectorAll('.bulk-row-check').forEach(function (checkbox) {
+                checkbox.checked = selectedPaths.has(String(checkbox.value));
+            });
+
+            var rowCheckboxes = Array.prototype.slice.call(bulkRoot.querySelectorAll('.bulk-row-check'));
+            var allSelected = rowCheckboxes.length > 0 && rowCheckboxes.every(function (checkbox) {
+                return checkbox.checked;
+            });
+
+            bulkRoot.querySelectorAll('.bulk-select-all').forEach(function (checkbox) {
+                checkbox.checked = allSelected;
+            });
+        }
+
+        function updateBulkActionUi() {
+            if (!bulkMoveWrap || !bulkActionField) {
+                return;
+            }
+
+            var requiresMoveTarget = bulkActionField.value === 'move';
+            bulkMoveWrap.classList.toggle('d-none', !requiresMoveTarget);
+
+            if (!requiresMoveTarget && bulkMoveTargetField) {
+                bulkMoveTargetField.value = '';
+            }
+        }
+
+        function updateBulkUi() {
+            if (bulkCount) {
+                bulkCount.textContent = String(selectedPaths.size);
+            }
+
+            if (bulkFormWrap) {
+                bulkFormWrap.classList.toggle('d-none', selectedPaths.size === 0);
+            }
+
+            syncBulkCheckboxes();
+            updateBulkActionUi();
+        }
+
+        if (bulkRoot) {
+            bulkRoot.addEventListener('change', function (event) {
+                var target = event.target;
+                if (!(target instanceof HTMLInputElement)) {
+                    return;
+                }
+
+                if (target.classList.contains('bulk-row-check')) {
+                    if (target.checked) {
+                        selectedPaths.add(String(target.value));
+                    } else {
+                        selectedPaths.delete(String(target.value));
+                    }
+                    updateBulkUi();
+                    return;
+                }
+
+                if (target.classList.contains('bulk-select-all')) {
+                    bulkRoot.querySelectorAll('.bulk-row-check').forEach(function (checkbox) {
+                        checkbox.checked = target.checked;
+                        if (target.checked) {
+                            selectedPaths.add(String(checkbox.value));
+                        } else {
+                            selectedPaths.delete(String(checkbox.value));
+                        }
+                    });
+                    updateBulkUi();
+                }
+            });
+        }
+
+        if (bulkActionField) {
+            bulkActionField.addEventListener('change', updateBulkActionUi);
+        }
+
+        if (bulkForm) {
+            bulkForm.addEventListener('submit', function (event) {
+                bulkForm.querySelectorAll('input[name="item_paths[]"]').forEach(function (input) {
+                    input.remove();
+                });
+
+                if (selectedPaths.size === 0) {
+                    event.preventDefault();
+                    return;
+                }
+
+                if (!bulkActionField || !bulkActionField.value) {
+                    event.preventDefault();
+                    if (bulkActionField) {
+                        bulkActionField.focus();
+                    }
+                    return;
+                }
+
+                if (bulkActionField.value === 'delete' && !window.confirm('Die ausgewählten Medien wirklich löschen?')) {
+                    event.preventDefault();
+                    return;
+                }
+
+                selectedPaths.forEach(function (path) {
+                    var input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'item_paths[]';
+                    input.value = path;
+                    bulkForm.appendChild(input);
+                });
+            });
+        }
+
+        updateBulkUi();
     }
 
     function initMediaCategoryActions() {

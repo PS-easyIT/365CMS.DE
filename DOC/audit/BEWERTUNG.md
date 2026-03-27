@@ -5,13 +5,19 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 457
+### Gesamtstand nach Batch 458
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 457 | 95,12 | 92,74 | 96,22 | 96,35 |
+| 458 | 95,12 | 92,74 | 96,22 | 96,35 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **457 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich dreizehn Folge-Batches darüber hinaus. Zuletzt wurden Rename-/Move-Pfade im Medienbereich für Admin und Member vollständig auf serverseitige POST-Verträge nachgezogen. Dadurch bleiben Umbenennen und Verschieben auch ohne fragile UI-Sonderlogik belastbar und im Member-Bereich wurde ein weiterer potenzieller stiller No-op-Pfad geschlossen.
+Der aktuelle Nachpflege-Stand umfasst damit **458 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich vierzehn Folge-Batches darüber hinaus. Zuletzt wurde der Medienbereich nach einem fehlerfreien Review UI-seitig verdichtet: Dropdowns, zentrale Modale, vorbereitete Zielordner-Auswahlen und Bulk-Aktionen reduzieren die Oberfläche, ohne die zuvor gehärteten POST-/CSRF- und Pfadverträge wieder aufzuweichen. Die Kennzahlen bleiben dabei stabil.
+
+### Delta Folge-Batch 458
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/media.php`, `CMS/admin/modules/media/MediaModule.php`, `CMS/admin/views/media/library.php`, `CMS/assets/js/admin-media-integrations.js`, `CMS/member/includes/class-member-controller.php`, `CMS/member/media.php`, `CMS/assets/js/member-dashboard.js` | umgesetzt | Der Medienbereich nutzt jetzt kompakte Dropdown-/Modal-Aktionen, vorbereitete Zielordner-Selects und Admin-Bulk-Operationen für Löschen/Verschieben; die neuen Flows wurden vor dem RC-Bump erneut auf Fehler, Best Practice und Security geprüft. | Medienaktionen bleiben belastbar an denselben serverseitigen Verträgen, werden aber deutlich kompakter bedienbar; Mehrfachaktionen vermeiden zusätzlich doppelte Unterpfad-Operationen und rohe Freitext-Ziele. |
 
 ### Delta Folge-Batch 457
 

@@ -32,10 +32,26 @@ $gridUrl = (string)($data['grid_url'] ?? $baseUrl);
 $rootUrl = (string)($data['root_url'] ?? $baseUrl);
 $emptyState = is_array($data['empty_state'] ?? null) ? $data['empty_state'] : ['title' => 'Dieser Ordner ist leer', 'subtitle' => 'Legen Sie einen Ordner an oder laden Sie Dateien hoch.'];
 $constraints = is_array($data['constraints'] ?? null) ? $data['constraints'] : [];
+$moveTargets = is_array($data['move_targets'] ?? null) ? $data['move_targets'] : [];
+$bulkActions = is_array($data['bulk_actions'] ?? null) ? $data['bulk_actions'] : [];
 $mediaLibraryConfig = [
     'memberFolderConfirmMessage' => $memberFolderConfirmMessage,
     'deleteFormId' => 'deleteMediaForm',
     'deletePathFieldId' => 'deleteMediaPath',
+    'renameModalId' => 'mediaRenameModal',
+    'renamePathFieldId' => 'mediaRenamePath',
+    'renameNameFieldId' => 'mediaRenameName',
+    'renameLabelId' => 'mediaRenameItemLabel',
+    'moveModalId' => 'mediaMoveModal',
+    'movePathFieldId' => 'mediaMovePath',
+    'moveTargetFieldId' => 'mediaMoveTarget',
+    'moveLabelId' => 'mediaMoveItemLabel',
+    'bulkRootSelector' => '[data-media-library-root]',
+    'bulkFormId' => 'mediaBulkForm',
+    'bulkCountId' => 'mediaBulkSelectedCount',
+    'bulkActionFieldId' => 'mediaBulkAction',
+    'bulkMoveWrapId' => 'mediaBulkMoveWrap',
+    'bulkMoveTargetFieldId' => 'mediaBulkTarget',
 ];
 
 // Dateityp-Icon Helper
@@ -46,6 +62,20 @@ function mediaTypeIcon(string $type): string {
         'audio' => '<svg xmlns="http://www.w3.org/2000/svg" class="icon text-purple" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 17m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"/><path d="M16 17m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"/><path d="M9 17v-13h10v13"/><path d="M9 8h10"/></svg>',
     ];
     return $icons[$type] ?? '<svg xmlns="http://www.w3.org/2000/svg" class="icon text-secondary" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/></svg>';
+}
+
+function renderMoveTargetOptions(array $targets, string $selectedPath = ''): string {
+    $html = '';
+
+    foreach ($targets as $target) {
+        $targetPath = (string)($target['path'] ?? '');
+        $targetLabel = (string)($target['label'] ?? ($targetPath !== '' ? $targetPath : 'Uploads'));
+        $html .= '<option value="' . htmlspecialchars($targetPath, ENT_QUOTES) . '"' . ($targetPath === $selectedPath ? ' selected' : '') . '>'
+            . htmlspecialchars($targetLabel)
+            . '</option>';
+    }
+
+    return $html;
 }
 
 ?>
@@ -213,43 +243,82 @@ function mediaTypeIcon(string $type): string {
                         <p class="empty-subtitle text-secondary"><?php echo htmlspecialchars((string)($emptyState['subtitle'] ?? 'Legen Sie einen Ordner an oder laden Sie Dateien hoch.')); ?></p>
                     </div>
                 <?php else: ?>
+                    <div data-media-library-root>
+                        <div class="card card-sm mb-3 d-none" id="mediaBulkFormWrap">
+                            <form id="mediaBulkForm" method="post" class="card-body d-flex flex-column flex-lg-row align-items-lg-center gap-3">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                                <input type="hidden" name="action" value="bulk_items">
+                                <div class="d-flex align-items-center gap-3 flex-wrap">
+                                    <label class="form-check mb-0">
+                                        <input type="checkbox" class="form-check-input bulk-select-all">
+                                        <span class="form-check-label">Alle sichtbaren auswählen</span>
+                                    </label>
+                                    <span class="badge bg-blue-lt"><span id="mediaBulkSelectedCount">0</span> ausgewählt</span>
+                                </div>
+                                <div class="d-flex flex-column flex-md-row gap-2 align-items-md-center ms-lg-auto w-100 justify-content-lg-end">
+                                    <select class="form-select" id="mediaBulkAction" name="bulk_action" style="max-width: 15rem;">
+                                        <option value="">Bulk-Aktion wählen …</option>
+                                        <?php foreach ($bulkActions as $bulkAction): ?>
+                                            <option value="<?php echo htmlspecialchars((string)($bulkAction['value'] ?? ''), ENT_QUOTES); ?>"><?php echo htmlspecialchars((string)($bulkAction['label'] ?? '')); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <div class="d-none" id="mediaBulkMoveWrap">
+                                        <select class="form-select" id="mediaBulkTarget" name="target_parent_path" style="min-width: 18rem; max-width: 24rem;">
+                                            <?php echo renderMoveTargetOptions($moveTargets, $path); ?>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Auf Auswahl anwenden</button>
+                                </div>
+                            </form>
+                        </div>
                     <?php if ($view === 'grid'): ?>
                         <div class="media-grid">
                             <?php foreach ($folders as $folder): ?>
                                 <?php $folderPath = (string)($folder['path'] ?? ''); ?>
                                 <div class="media-grid-item media-grid-folder">
+                                    <?php if (empty($folder['is_system'])): ?>
+                                        <div class="p-2 pb-0 d-flex justify-content-between align-items-start gap-2">
+                                            <label class="form-check m-0">
+                                                <input class="form-check-input bulk-row-check" type="checkbox" value="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>">
+                                            </label>
+                                            <div class="dropdown">
+                                                <button class="btn btn-icon btn-ghost-secondary btn-sm" type="button" data-bs-toggle="dropdown" aria-label="Ordneraktionen">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg>
+                                                </button>
+                                                <div class="dropdown-menu dropdown-menu-end">
+                                                    <button type="button" class="dropdown-item js-media-open-rename" data-media-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($folder['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Ordner">Umbenennen</button>
+                                                    <button type="button" class="dropdown-item js-media-open-move" data-media-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($folder['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Ordner" data-media-target="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>">Verschieben</button>
+                                                    <button type="button" class="dropdown-item text-danger js-media-delete" data-delete-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-delete-name="<?php echo htmlspecialchars((string)($folder['name'] ?? 'Ordner'), ENT_QUOTES); ?>" data-delete-type="Ordner">Löschen</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
                                     <a href="<?php echo htmlspecialchars((string)($folder['url'] ?? $rootUrl)); ?>" class="text-decoration-none text-reset media-folder-link" <?php echo !empty($folder['requires_confirmation']) ? 'data-member-folder-confirm="1" data-confirm-url="' . htmlspecialchars((string)($folder['confirm_url'] ?? ''), ENT_QUOTES) . '"' : ''; ?>>
                                         <div class="media-grid-thumb"><span class="folder-icon">📁</span></div>
                                         <div class="media-grid-label"><?php echo htmlspecialchars((string)($folder['name'] ?? '')); ?></div>
                                         <div class="media-grid-meta"><?php echo (int)($folder['items_count'] ?? 0); ?> Einträge</div>
                                     </a>
-                                    <?php if (empty($folder['is_system'])): ?>
-                                        <details class="p-2 pt-0">
-                                            <summary class="small text-secondary">Umbenennen / Verschieben</summary>
-                                            <div class="vstack gap-2 mt-2">
-                                                <form method="post" class="vstack gap-2">
-                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
-                                                    <input type="hidden" name="action" value="rename_item">
-                                                    <input type="hidden" name="old_path" value="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>">
-                                                    <input class="form-control form-control-sm" name="new_name" type="text" maxlength="120" value="<?php echo htmlspecialchars((string)($folder['name'] ?? ''), ENT_QUOTES); ?>" required>
-                                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Umbenennen</button>
-                                                </form>
-                                                <form method="post" class="vstack gap-2">
-                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
-                                                    <input type="hidden" name="action" value="move_item">
-                                                    <input type="hidden" name="old_path" value="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>">
-                                                    <input class="form-control form-control-sm" name="target_parent_path" type="text" maxlength="255" value="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>" placeholder="Zielordner, leer = Upload-Root">
-                                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Verschieben</button>
-                                                </form>
-                                            </div>
-                                        </details>
-                                    <?php endif; ?>
                                 </div>
                             <?php endforeach; ?>
 
                             <?php foreach ($files as $file): ?>
                                 <?php $filePath = (string)($file['path'] ?? ''); ?>
                                 <div class="media-grid-item">
+                                    <div class="p-2 pb-0 d-flex justify-content-between align-items-start gap-2">
+                                        <label class="form-check m-0">
+                                            <input class="form-check-input bulk-row-check" type="checkbox" value="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>">
+                                        </label>
+                                        <div class="dropdown">
+                                            <button class="btn btn-icon btn-ghost-secondary btn-sm" type="button" data-bs-toggle="dropdown" aria-label="Dateiaktionen">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg>
+                                            </button>
+                                            <div class="dropdown-menu dropdown-menu-end">
+                                                <button type="button" class="dropdown-item js-media-open-rename" data-media-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($file['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Datei">Umbenennen</button>
+                                                <button type="button" class="dropdown-item js-media-open-move" data-media-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($file['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Datei" data-media-target="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>">Verschieben</button>
+                                                <button type="button" class="dropdown-item text-danger js-media-delete" data-delete-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-delete-name="<?php echo htmlspecialchars((string)($file['name'] ?? 'Datei'), ENT_QUOTES); ?>" data-delete-type="Datei">Löschen</button>
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div class="media-grid-thumb">
                                         <?php if (!empty($file['is_image'])): ?>
                                             <img src="<?php echo htmlspecialchars((string)($file['preview_url'] ?? '')); ?>" alt="<?php echo htmlspecialchars((string)($file['name'] ?? '')); ?>" loading="lazy">
@@ -259,35 +328,6 @@ function mediaTypeIcon(string $type): string {
                                     </div>
                                     <div class="media-grid-label"><?php echo htmlspecialchars((string)($file['name'] ?? '')); ?></div>
                                     <div class="media-grid-meta"><?php echo htmlspecialchars((string)($file['category_label'] ?? 'Ohne Kategorie')); ?></div>
-                                    <details class="p-2 pt-0">
-                                        <summary class="small text-secondary text-center">Umbenennen / Verschieben</summary>
-                                        <div class="vstack gap-2 mt-2">
-                                            <form method="post" class="vstack gap-2">
-                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
-                                                <input type="hidden" name="action" value="rename_item">
-                                                <input type="hidden" name="old_path" value="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>">
-                                                <input class="form-control form-control-sm" name="new_name" type="text" maxlength="120" value="<?php echo htmlspecialchars((string)($file['name'] ?? ''), ENT_QUOTES); ?>" required>
-                                                <button type="submit" class="btn btn-sm btn-outline-secondary">Umbenennen</button>
-                                            </form>
-                                            <form method="post" class="vstack gap-2">
-                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
-                                                <input type="hidden" name="action" value="move_item">
-                                                <input type="hidden" name="old_path" value="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>">
-                                                <input class="form-control form-control-sm" name="target_parent_path" type="text" maxlength="255" value="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>" placeholder="Zielordner, leer = Upload-Root">
-                                                <button type="submit" class="btn btn-sm btn-outline-secondary">Verschieben</button>
-                                            </form>
-                                        </div>
-                                    </details>
-                                    <div class="p-2 pt-0 text-center">
-                                        <form method="post" onsubmit="return confirm('<?= htmlspecialchars((string)($file['name'] ?? 'Datei'), ENT_QUOTES) ?> wirklich löschen?');">
-                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
-                                            <input type="hidden" name="action" value="delete_item">
-                                            <input type="hidden" name="item_path" value="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>">
-                                            <button type="submit" class="btn btn-ghost-danger btn-icon btn-sm" title="Löschen">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/></svg>
-                                            </button>
-                                        </form>
-                                    </div>
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -296,6 +336,11 @@ function mediaTypeIcon(string $type): string {
                             <table class="table table-vcenter card-table media-table">
                                 <thead>
                                     <tr>
+                                        <th class="w-1">
+                                            <label class="form-check m-0">
+                                                <input type="checkbox" class="form-check-input bulk-select-all">
+                                            </label>
+                                        </th>
                                         <th style="width: 60px;">Typ</th>
                                         <th>Name</th>
                                         <th>Kategorie</th>
@@ -308,6 +353,13 @@ function mediaTypeIcon(string $type): string {
                                     <?php foreach ($folders as $folder): ?>
                                         <?php $folderPath = (string)($folder['path'] ?? ''); ?>
                                         <tr>
+                                            <td>
+                                                <?php if (empty($folder['is_system'])): ?>
+                                                    <label class="form-check m-0">
+                                                        <input class="form-check-input bulk-row-check" type="checkbox" value="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>">
+                                                    </label>
+                                                <?php endif; ?>
+                                            </td>
                                             <td><span class="folder-icon">📁</span></td>
                                             <td>
                                                 <a href="<?php echo htmlspecialchars((string)($folder['url'] ?? $rootUrl)); ?>" class="fw-semibold text-reset media-folder-link" <?php echo !empty($folder['requires_confirmation']) ? 'data-member-folder-confirm="1" data-confirm-url="' . htmlspecialchars((string)($folder['confirm_url'] ?? ''), ENT_QUOTES) . '"' : ''; ?>>
@@ -325,27 +377,13 @@ function mediaTypeIcon(string $type): string {
                                             <td class="text-secondary"><?php echo htmlspecialchars((string)($folder['modified_label'] ?? '—')); ?></td>
                                             <td>
                                                 <?php if (empty($folder['is_system'])): ?>
-                                                    <div class="d-flex flex-column gap-2 align-items-start">
-                                                        <form method="post" class="d-flex gap-2 align-items-center flex-wrap">
-                                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
-                                                            <input type="hidden" name="action" value="rename_item">
-                                                            <input type="hidden" name="old_path" value="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>">
-                                                            <input class="form-control form-control-sm" name="new_name" type="text" maxlength="120" value="<?php echo htmlspecialchars((string)($folder['name'] ?? ''), ENT_QUOTES); ?>" required>
-                                                            <button type="submit" class="btn btn-sm btn-outline-secondary">Umbenennen</button>
-                                                        </form>
-                                                        <form method="post" class="d-flex gap-2 align-items-center flex-wrap">
-                                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
-                                                            <input type="hidden" name="action" value="move_item">
-                                                            <input type="hidden" name="old_path" value="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>">
-                                                            <input class="form-control form-control-sm" name="target_parent_path" type="text" maxlength="255" value="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>" placeholder="Zielordner, leer = Upload-Root">
-                                                            <button type="submit" class="btn btn-sm btn-outline-secondary">Verschieben</button>
-                                                        </form>
-                                                        <form method="post" onsubmit="return confirm('<?= htmlspecialchars((string)($folder['name'] ?? 'Ordner'), ENT_QUOTES) ?> wirklich löschen?');">
-                                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
-                                                            <input type="hidden" name="action" value="delete_item">
-                                                            <input type="hidden" name="item_path" value="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>">
-                                                            <button type="submit" class="btn btn-sm btn-outline-danger">Löschen</button>
-                                                        </form>
+                                                    <div class="dropdown">
+                                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">Aktionen</button>
+                                                        <div class="dropdown-menu dropdown-menu-end">
+                                                            <button type="button" class="dropdown-item js-media-open-rename" data-media-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($folder['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Ordner">Umbenennen</button>
+                                                            <button type="button" class="dropdown-item js-media-open-move" data-media-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($folder['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Ordner" data-media-target="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>">Verschieben</button>
+                                                            <button type="button" class="dropdown-item text-danger js-media-delete" data-delete-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-delete-name="<?php echo htmlspecialchars((string)($folder['name'] ?? 'Ordner'), ENT_QUOTES); ?>" data-delete-type="Ordner">Löschen</button>
+                                                        </div>
                                                     </div>
                                                 <?php else: ?>
                                                     <span class="badge bg-secondary-lt">System</span>
@@ -357,6 +395,11 @@ function mediaTypeIcon(string $type): string {
                                     <?php foreach ($files as $file): ?>
                                         <?php $filePath = (string)($file['path'] ?? ''); ?>
                                         <tr>
+                                            <td>
+                                                <label class="form-check m-0">
+                                                    <input class="form-check-input bulk-row-check" type="checkbox" value="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>">
+                                                </label>
+                                            </td>
                                             <td>
                                                 <?php if (!empty($file['is_image'])): ?>
                                                     <img src="<?php echo htmlspecialchars((string)($file['preview_url'] ?? '')); ?>" alt="<?php echo htmlspecialchars((string)($file['name'] ?? '')); ?>" class="media-thumb" loading="lazy">
@@ -387,27 +430,13 @@ function mediaTypeIcon(string $type): string {
                                             <td class="text-secondary"><?php echo htmlspecialchars((string)($file['formatted_size'] ?? '—')); ?></td>
                                             <td class="text-secondary"><?php echo htmlspecialchars((string)($file['modified_label'] ?? '—')); ?></td>
                                             <td>
-                                                <div class="d-flex flex-column gap-2 align-items-start">
-                                                    <form method="post" class="d-flex gap-2 align-items-center flex-wrap">
-                                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
-                                                        <input type="hidden" name="action" value="rename_item">
-                                                        <input type="hidden" name="old_path" value="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>">
-                                                        <input class="form-control form-control-sm" name="new_name" type="text" maxlength="120" value="<?php echo htmlspecialchars((string)($file['name'] ?? ''), ENT_QUOTES); ?>" required>
-                                                        <button type="submit" class="btn btn-sm btn-outline-secondary">Umbenennen</button>
-                                                    </form>
-                                                    <form method="post" class="d-flex gap-2 align-items-center flex-wrap">
-                                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
-                                                        <input type="hidden" name="action" value="move_item">
-                                                        <input type="hidden" name="old_path" value="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>">
-                                                        <input class="form-control form-control-sm" name="target_parent_path" type="text" maxlength="255" value="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>" placeholder="Zielordner, leer = Upload-Root">
-                                                        <button type="submit" class="btn btn-sm btn-outline-secondary">Verschieben</button>
-                                                    </form>
-                                                    <form method="post" onsubmit="return confirm('<?= htmlspecialchars((string)($file['name'] ?? 'Datei'), ENT_QUOTES) ?> wirklich löschen?');">
-                                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
-                                                        <input type="hidden" name="action" value="delete_item">
-                                                        <input type="hidden" name="item_path" value="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>">
-                                                        <button type="submit" class="btn btn-sm btn-outline-danger">Löschen</button>
-                                                    </form>
+                                                <div class="dropdown">
+                                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">Aktionen</button>
+                                                    <div class="dropdown-menu dropdown-menu-end">
+                                                        <button type="button" class="dropdown-item js-media-open-rename" data-media-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($file['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Datei">Umbenennen</button>
+                                                        <button type="button" class="dropdown-item js-media-open-move" data-media-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($file['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Datei" data-media-target="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>">Verschieben</button>
+                                                        <button type="button" class="dropdown-item text-danger js-media-delete" data-delete-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-delete-name="<?php echo htmlspecialchars((string)($file['name'] ?? 'Datei'), ENT_QUOTES); ?>" data-delete-type="Datei">Löschen</button>
+                                                    </div>
                                                 </div>
                                             </td>
                                         </tr>
@@ -416,6 +445,7 @@ function mediaTypeIcon(string $type): string {
                             </table>
                         </div>
                     <?php endif; ?>
+                    </div>
                 <?php endif; ?>
             </div>
         </div>
@@ -492,6 +522,54 @@ function mediaTypeIcon(string $type): string {
     <input type="hidden" name="action" value="delete_item">
     <input type="hidden" name="item_path" id="deleteMediaPath">
 </form>
+
+<div class="modal modal-blur fade" id="mediaRenameModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <form method="post" class="modal-content">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+            <input type="hidden" name="action" value="rename_item">
+            <input type="hidden" name="old_path" id="mediaRenamePath">
+            <div class="modal-header">
+                <h5 class="modal-title">Element umbenennen</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-secondary small mb-2">Neuer Name für <span class="fw-semibold" id="mediaRenameItemLabel">Element</span></div>
+                <label class="form-label" for="mediaRenameName">Name</label>
+                <input class="form-control" id="mediaRenameName" name="new_name" type="text" maxlength="120" required>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="submit" class="btn btn-primary">Umbenennen</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal modal-blur fade" id="mediaMoveModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <form method="post" class="modal-content">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+            <input type="hidden" name="action" value="move_item">
+            <input type="hidden" name="old_path" id="mediaMovePath">
+            <div class="modal-header">
+                <h5 class="modal-title">Element verschieben</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-secondary small mb-2">Zielordner für <span class="fw-semibold" id="mediaMoveItemLabel">Element</span></div>
+                <label class="form-label" for="mediaMoveTarget">Zielordner</label>
+                <select class="form-select" id="mediaMoveTarget" name="target_parent_path">
+                    <?php echo renderMoveTargetOptions($moveTargets, $path); ?>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="submit" class="btn btn-primary">Verschieben</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <script type="application/json" id="media-library-config">
 <?php echo json_encode($mediaLibraryConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>

@@ -31,6 +31,7 @@ class MediaModule
     private const FOLDER_NAME_MAX_LENGTH = 120;
     private const CATEGORY_NAME_MAX_LENGTH = 80;
     private const CATEGORY_SLUG_MAX_LENGTH = 80;
+    private const MOVE_TARGET_MAX_NODES = 1000;
 
     private const SETTINGS_DEFAULTS = [
         'max_upload_size' => '64M',
@@ -275,6 +276,11 @@ class MediaModule
                 'search' => $search,
             ],
             'category_options' => $this->buildCategoryOptions($categories),
+            'move_targets' => $this->buildMoveTargetOptions(),
+            'bulk_actions' => [
+                ['value' => 'delete', 'label' => 'Auswahl löschen'],
+                ['value' => 'move', 'label' => 'Auswahl verschieben'],
+            ],
             'member_folder_confirm_message' => self::MEMBER_FOLDER_CONFIRM_MESSAGE,
             'constraints' => [
                 'max_upload_files' => self::MAX_UPLOAD_BATCH_FILES,
@@ -479,6 +485,105 @@ class MediaModule
                 'Quelle: ' . $normalizedPath,
                 'Ziel: ' . $targetPath,
             ],
+        ];
+    }
+
+    /**
+     * @param array<int, string> $paths
+     */
+    public function bulkItems(array $paths, string $bulkAction, string $targetParentPath = ''): array
+    {
+        $normalizedBulkAction = strtolower(trim($bulkAction));
+        if (!in_array($normalizedBulkAction, ['delete', 'move'], true)) {
+            return ['success' => false, 'error' => 'Die gewählte Bulk-Aktion ist nicht erlaubt.'];
+        }
+
+        $selectedPaths = $this->normalizeBulkPaths($paths);
+        if ($selectedPaths === []) {
+            return ['success' => false, 'error' => 'Für die Bulk-Aktion wurden keine gültigen Elemente übermittelt.'];
+        }
+
+        $normalizedTargetParentPath = $this->normalizeRelativePath($targetParentPath);
+        $successCount = 0;
+        $skippedCount = 0;
+        $details = [];
+        $errorDetails = [];
+        $reportPayload = [];
+
+        foreach ($selectedPaths as $selectedPath) {
+            if ($normalizedBulkAction === 'move') {
+                $moveResult = $this->executeBulkMove($selectedPath, $normalizedTargetParentPath);
+
+                if (($moveResult['status'] ?? '') === 'success') {
+                    $successCount++;
+                    $details[] = (string) ($moveResult['detail'] ?? ('Verschoben: ' . $selectedPath));
+                    continue;
+                }
+
+                if (($moveResult['status'] ?? '') === 'skipped') {
+                    $skippedCount++;
+                    $details[] = (string) ($moveResult['detail'] ?? ('Übersprungen: ' . $selectedPath));
+                    continue;
+                }
+
+                $errorDetails[] = (string) ($moveResult['detail'] ?? ('Fehlgeschlagen: ' . $selectedPath));
+                if ($reportPayload === [] && is_array($moveResult['report_payload'] ?? null)) {
+                    $reportPayload = $moveResult['report_payload'];
+                }
+                continue;
+            }
+
+            $deleteResult = $this->deleteItem($selectedPath);
+            if (!empty($deleteResult['success'])) {
+                $successCount++;
+                $details[] = 'Gelöscht: ' . $selectedPath;
+                continue;
+            }
+
+            $errorDetails[] = $selectedPath . ': ' . trim((string) ($deleteResult['error'] ?? 'Fehler'));
+            if ($reportPayload === [] && is_array($deleteResult['report_payload'] ?? null)) {
+                $reportPayload = $deleteResult['report_payload'];
+            }
+        }
+
+        $verb = $normalizedBulkAction === 'move' ? 'verschoben' : 'gelöscht';
+        $summaryParts = [];
+        if ($successCount > 0) {
+            $summaryParts[] = $successCount . ' Element(e) ' . $verb;
+        }
+        if ($skippedCount > 0) {
+            $summaryParts[] = $skippedCount . ' übersprungen';
+        }
+        if ($errorDetails !== []) {
+            $summaryParts[] = count($errorDetails) . ' fehlgeschlagen';
+        }
+
+        if ($summaryParts === []) {
+            return [
+                'success' => false,
+                'error' => 'Die Bulk-Aktion konnte nicht ausgeführt werden.',
+                'details' => [],
+                'error_details' => array_slice($errorDetails, 0, 8),
+                'report_payload' => $reportPayload,
+            ];
+        }
+
+        if ($successCount === 0 && $skippedCount === 0) {
+            return [
+                'success' => false,
+                'error' => 'Die Bulk-Aktion ist vollständig fehlgeschlagen. ' . implode(', ', $summaryParts) . '.',
+                'details' => [],
+                'error_details' => array_slice($errorDetails, 0, 8),
+                'report_payload' => $reportPayload,
+            ];
+        }
+
+        return [
+            'success' => true,
+            'message' => 'Bulk-Aktion abgeschlossen: ' . implode(', ', $summaryParts) . '.',
+            'details' => array_slice($details, 0, 8),
+            'error_details' => array_slice($errorDetails, 0, 8),
+            'report_payload' => $reportPayload,
         ];
     }
 
@@ -831,6 +936,159 @@ class MediaModule
         $search = trim(strip_tags($search));
 
         return function_exists('mb_substr') ? mb_substr($search, 0, self::SEARCH_MAX_LENGTH) : substr($search, 0, self::SEARCH_MAX_LENGTH);
+    }
+
+    /**
+     * @param array<int, string> $paths
+     * @return list<string>
+     */
+    private function normalizeBulkPaths(array $paths): array
+    {
+        $normalized = [];
+
+        foreach ($paths as $path) {
+            $normalizedPath = $this->normalizeRelativePath((string) $path);
+            if ($normalizedPath === '') {
+                continue;
+            }
+
+            $normalized[$normalizedPath] = true;
+        }
+
+        $sortedPaths = array_keys($normalized);
+        usort($sortedPaths, static function (string $left, string $right): int {
+            $lengthCompare = strlen($left) <=> strlen($right);
+            return $lengthCompare !== 0 ? $lengthCompare : strcmp($left, $right);
+        });
+
+        $filteredPaths = [];
+
+        foreach ($sortedPaths as $path) {
+            $hasAncestor = false;
+
+            foreach ($filteredPaths as $keptPath) {
+                if (str_starts_with($path, $keptPath . '/')) {
+                    $hasAncestor = true;
+                    break;
+                }
+            }
+
+            if ($hasAncestor) {
+                continue;
+            }
+
+            $filteredPaths[] = $path;
+        }
+
+        return $filteredPaths;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function executeBulkMove(string $selectedPath, string $targetParentPath): array
+    {
+        $currentParentPath = $this->resolveParentPathFromActionPath($selectedPath);
+
+        if ($targetParentPath === $currentParentPath) {
+            return [
+                'status' => 'skipped',
+                'detail' => $selectedPath . ' befindet sich bereits im Zielordner.',
+            ];
+        }
+
+        if ($targetParentPath === $selectedPath || str_starts_with($targetParentPath, $selectedPath . '/')) {
+            return [
+                'status' => 'error',
+                'detail' => $selectedPath . ': Ein Ordner kann nicht in sich selbst oder einen Unterordner verschoben werden.',
+            ];
+        }
+
+        $targetPath = ltrim(($targetParentPath !== '' ? $targetParentPath . '/' : '') . basename($selectedPath), '/');
+        if ($targetPath === $selectedPath) {
+            return [
+                'status' => 'skipped',
+                'detail' => $selectedPath . ' ist bereits am gewünschten Ziel.',
+            ];
+        }
+
+        $result = $this->service->moveFile($selectedPath, $targetPath);
+        if ($result instanceof WP_Error) {
+            $failure = $this->buildGenericFailureFromWpError($result, [
+                'title' => 'Bulk-Verschieben fehlgeschlagen',
+                'source' => '/admin/media',
+                'module' => 'media',
+                'operation' => 'bulk_move',
+                'path' => $selectedPath,
+                'target_parent_path' => $targetParentPath,
+                'target_path' => $targetPath,
+            ]);
+
+            return [
+                'status' => 'error',
+                'detail' => $selectedPath . ': ' . trim((string) ($failure['error'] ?? 'Fehler')), 
+                'report_payload' => $failure['report_payload'] ?? [],
+            ];
+        }
+
+        return [
+            'status' => 'success',
+            'detail' => 'Verschoben: ' . $selectedPath . ' → ' . $targetPath,
+        ];
+    }
+
+    /**
+     * @return list<array{path:string,label:string,depth:int}>
+     */
+    private function buildMoveTargetOptions(): array
+    {
+        $options = [[
+            'path' => '',
+            'label' => 'Uploads',
+            'depth' => 0,
+        ]];
+
+        $visited = ['' => true];
+        $this->appendMoveTargetOptions($options, '', 0, $visited);
+
+        return $options;
+    }
+
+    /**
+     * @param array<int, array{path:string,label:string,depth:int}> $options
+     * @param array<string, bool> $visited
+     */
+    private function appendMoveTargetOptions(array &$options, string $path, int $depth, array &$visited): void
+    {
+        if (count($visited) >= self::MOVE_TARGET_MAX_NODES) {
+            return;
+        }
+
+        $items = $this->service->getItems($path);
+        if ($items instanceof WP_Error) {
+            return;
+        }
+
+        $folders = is_array($items['folders'] ?? null) ? $items['folders'] : [];
+        usort($folders, static function (array $left, array $right): int {
+            return strcasecmp((string) ($left['name'] ?? ''), (string) ($right['name'] ?? ''));
+        });
+
+        foreach ($folders as $folder) {
+            $folderPath = $this->normalizeRelativePath((string) ($folder['path'] ?? ''));
+            if ($folderPath === '' || isset($visited[$folderPath])) {
+                continue;
+            }
+
+            $visited[$folderPath] = true;
+            $options[] = [
+                'path' => $folderPath,
+                'label' => str_repeat('— ', min($depth + 1, 8)) . (string) ($folder['name'] ?? $folderPath),
+                'depth' => $depth + 1,
+            ];
+
+            $this->appendMoveTargetOptions($options, $folderPath, $depth + 1, $visited);
+        }
     }
 
     /**

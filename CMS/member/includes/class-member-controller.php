@@ -24,6 +24,8 @@ if (!defined('ABSPATH')) {
 
 final class MemberController
 {
+    private const MEMBER_MEDIA_MOVE_TARGET_MAX_NODES = 500;
+
     private static ?self $instance = null;
 
     private Auth $auth;
@@ -624,7 +626,63 @@ final class MemberController
             'breadcrumbs' => $this->buildMemberMediaBreadcrumbs($path),
             'items' => $items,
             'settings' => $mediaService->getSettings(),
+            'move_targets' => $this->buildMemberMediaMoveTargets(),
         ];
+    }
+
+    /**
+     * @return array<int, array{path:string,label:string,depth:int}>
+     */
+    private function buildMemberMediaMoveTargets(): array
+    {
+        $memberRoot = $this->getMemberMediaPath();
+        $options = [[
+            'path' => $memberRoot,
+            'label' => 'Meine Dateien',
+            'depth' => 0,
+        ]];
+
+        $visited = [$memberRoot => true];
+        $this->appendMemberMediaMoveTargets($options, $memberRoot, 0, $visited);
+
+        return $options;
+    }
+
+    /**
+     * @param array<int, array{path:string,label:string,depth:int}> $options
+     * @param array<string, bool> $visited
+     */
+    private function appendMemberMediaMoveTargets(array &$options, string $path, int $depth, array &$visited): void
+    {
+        if (count($visited) >= self::MEMBER_MEDIA_MOVE_TARGET_MAX_NODES) {
+            return;
+        }
+
+        $items = MediaService::getInstance()->getItems($path);
+        if (!is_array($items)) {
+            return;
+        }
+
+        $folders = is_array($items['folders'] ?? null) ? $items['folders'] : [];
+        usort($folders, static function (array $left, array $right): int {
+            return strcasecmp((string) ($left['name'] ?? ''), (string) ($right['name'] ?? ''));
+        });
+
+        foreach ($folders as $folder) {
+            $folderPath = $this->normalizeMemberMediaPath((string) ($folder['path'] ?? ''), $this->getUserId());
+            if ($folderPath === '' || isset($visited[$folderPath])) {
+                continue;
+            }
+
+            $visited[$folderPath] = true;
+            $options[] = [
+                'path' => $folderPath,
+                'label' => str_repeat('— ', min($depth + 1, 8)) . (string) ($folder['name'] ?? basename($folderPath)),
+                'depth' => $depth + 1,
+            ];
+
+            $this->appendMemberMediaMoveTargets($options, $folderPath, $depth + 1, $visited);
+        }
     }
 
     public function handleProfileRequest(): void

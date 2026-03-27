@@ -21,6 +21,7 @@ const CMS_ADMIN_MEDIA_ALLOWED_ACTIONS = [
     'delete_item',
     'rename_item',
     'move_item',
+    'bulk_items',
     'assign_category',
     'add_category',
     'delete_category',
@@ -195,6 +196,30 @@ function cms_admin_media_normalize_extensions(mixed $extensions): array
 }
 
 /**
+ * @param mixed $paths
+ * @return list<string>
+ */
+function cms_admin_media_normalize_paths(MediaModule $module, mixed $paths): array
+{
+    if (!is_array($paths)) {
+        return [];
+    }
+
+    $normalizedPaths = [];
+
+    foreach ($paths as $path) {
+        $normalizedPath = $module->normalizePath((string) $path);
+        if ($normalizedPath === '') {
+            continue;
+        }
+
+        $normalizedPaths[$normalizedPath] = true;
+    }
+
+    return array_keys($normalizedPaths);
+}
+
+/**
  * @return array<string, mixed>
  */
 function cms_admin_media_normalize_settings_payload(array $post): array
@@ -261,6 +286,11 @@ function cms_admin_media_normalize_action_payload(MediaModule $module, string $a
             'old_path' => $module->normalizePath((string) ($post['old_path'] ?? '')),
             'target_parent_path' => $module->normalizePath((string) ($post['target_parent_path'] ?? '')),
         ],
+        'bulk_items' => [
+            'bulk_action' => cms_admin_media_normalize_text($post['bulk_action'] ?? '', 40),
+            'item_paths' => cms_admin_media_normalize_paths($module, $post['item_paths'] ?? []),
+            'target_parent_path' => $module->normalizePath((string) ($post['target_parent_path'] ?? '')),
+        ],
         'assign_category' => [
             'file_path' => $module->normalizePath((string) ($post['file_path'] ?? '')),
             'category_slug' => $module->normalizeCategory((string) ($post['category_slug'] ?? '')),
@@ -286,6 +316,11 @@ function cms_admin_media_validate_action_payload(string $action, array $payload)
             ? 'Ungültiger Elementpfad.'
             : ((($payload['new_name'] ?? '') === '') ? 'Bitte einen gültigen Namen angeben.' : null),
         'move_item' => ($payload['old_path'] ?? '') === '' ? 'Ungültiger Elementpfad.' : null,
+        'bulk_items' => ($payload['item_paths'] ?? []) === []
+            ? 'Bitte mindestens ein Element auswählen.'
+            : (!in_array(strtolower((string) ($payload['bulk_action'] ?? '')), ['delete', 'move'], true)
+                ? 'Bitte eine gültige Bulk-Aktion wählen.'
+                : null),
         'assign_category' => ($payload['file_path'] ?? '') === '' ? 'Ungültiger Dateipfad.' : null,
         'add_category' => ($payload['name'] ?? '') === '' ? 'Bitte einen gültigen Kategorienamen angeben.' : null,
         'delete_category' => ($payload['slug'] ?? '') === '' ? 'Bitte eine gültige Kategorie angeben.' : null,
@@ -524,6 +559,14 @@ function cms_admin_media_handle_action(MediaModule $module, string $action, stri
         ],
         'move_item' => [
             'result' => $module->moveItem((string)($post['old_path'] ?? ''), (string)($post['target_parent_path'] ?? '')),
+            'redirect_path' => $redirectPath,
+        ],
+        'bulk_items' => [
+            'result' => $module->bulkItems(
+                is_array($post['item_paths'] ?? null) ? $post['item_paths'] : [],
+                (string)($post['bulk_action'] ?? ''),
+                (string)($post['target_parent_path'] ?? '')
+            ),
             'redirect_path' => $redirectPath,
         ],
         'assign_category' => [
