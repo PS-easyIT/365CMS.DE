@@ -14,6 +14,7 @@ if (!defined('ABSPATH')) {
 
 $categories = $data['categories'] ?? [];
 $systemSlugs = is_array($data['system_slugs'] ?? null) ? $data['system_slugs'] : ['themes', 'plugins', 'assets', 'fonts', 'dl-manager', 'form-uploads', 'member'];
+$constraints = is_array($data['constraints'] ?? null) ? $data['constraints'] : [];
 $mediaCategoriesConfig = [
     'deleteFormId' => 'deleteCatForm',
     'deleteSlugFieldId' => 'deleteCatSlug',
@@ -42,6 +43,12 @@ $mediaCategoriesConfig = [
             <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
+        <div class="alert alert-info mb-3" role="alert">
+            Kategorienamen sind bis <?php echo (int)($constraints['category_name_max_length'] ?? 80); ?> Zeichen,
+            Slugs bis <?php echo (int)($constraints['category_slug_max_length'] ?? 80); ?> Zeichen erlaubt.
+            System-Slugs bleiben geschützt und können hier nicht gelöscht werden.
+        </div>
+
         <div class="row">
             <!-- Neue Kategorie -->
             <div class="col-lg-4">
@@ -53,11 +60,11 @@ $mediaCategoriesConfig = [
                             <input type="hidden" name="action" value="add_category">
                             <div class="mb-3">
                                 <label class="form-label" for="catName">Name</label>
-                                <input type="text" class="form-control" id="catName" name="name" required>
+                                <input type="text" class="form-control" id="catName" name="name" maxlength="<?php echo (int)($constraints['category_name_max_length'] ?? 80); ?>" required>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="catSlug">Slug</label>
-                                <input type="text" class="form-control" id="catSlug" name="slug" placeholder="wird automatisch generiert">
+                                <input type="text" class="form-control" id="catSlug" name="slug" maxlength="<?php echo (int)($constraints['category_slug_max_length'] ?? 80); ?>" placeholder="wird automatisch generiert">
                                 <small class="form-hint">Nur Kleinbuchstaben, Zahlen und Bindestriche.</small>
                             </div>
                             <button type="submit" class="btn btn-primary w-100">Kategorie erstellen</button>

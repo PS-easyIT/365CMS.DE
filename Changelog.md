@@ -1,4 +1,4 @@
-﻿﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.322-blue.svg)](https://shields.io/)
+﻿﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.7.366-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,358 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.7.366 — 27. März 2026 · Folge-Batch 448, Marketplace-Asset blockt doppelte Install-Submits robuster ab
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.366** | 🔴 fix | Admin/UI | **`CMS/assets/js/admin-plugin-marketplace.js` schützt Install-Formulare jetzt zusätzlich über einen Form-Pending-State samt `aria-disabled`**: Mehrfachklicks auf den Install-Button feuern dadurch robuster nicht erneut los. |
+
+---
+
+### v2.7.365 — 27. März 2026 · Folge-Batch 447, Marketplace-View nennt Archiv-Endungen als weiteres Risiko deutlicher
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.365** | 🎨 style | Admin/UI | **`CMS/admin/views/plugins/marketplace.php` spiegelt erlaubte Archiv-Endungen und entsprechende Warnhinweise jetzt expliziter im Admin**: Auto-Install-Risiken bleiben damit sichtbarer statt nur indirekt über fehlgeschlagene Installationen aufzufallen. |
+
+---
+
+### v2.7.364 — 27. März 2026 · Folge-Batch 446, Marketplace-Modul verlangt erlaubte Archiv-Endungen für Auto-Install
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.364** | 🔴 fix | Admin/Plugins | **`CMS/admin/modules/plugins/PluginMarketplaceModule.php` verlangt für Auto-Installationen jetzt zusätzlich erlaubte Archiv-Endungen und trägt den Zustand explizit in Daten- und Fehlerkontext ein**: Download- und Archivpfade hängen damit enger an einem klaren Paketvertrag. |
+
+---
+
+### v2.7.363 — 27. März 2026 · Folge-Batch 445, Marketplace-Entry lehnt überlange Slugs sauberer ab
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.363** | 🔴 fix | Admin/Plugins | **`CMS/admin/plugin-marketplace.php` ergänzt spezifischere Payload-Fehlercodes und weist überlange Slugs explizit zurück statt sie nur still zu kürzen**: Entry-nahe Install-Requests bleiben dadurch nachvollziehbarer. |
+
+---
+
+### v2.7.362 — 27. März 2026 · Audit-Batch 444, Font-Manager-Entry validiert Save- und Google-Font-Payloads strenger
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.362** | 🔴 fix | Admin/Themes | **`CMS/admin/font-manager.php` prüft Save-Requests jetzt explizit auf numerische Font-Size-/Line-Height-Werte und weist zu lange Google-Font-Namen sauber zurück**: Entry-nahe Font-Änderungen hängen damit enger an einem kleinen Request- und Fehlervertrag statt stiller Clamp-/Trim-Pfade. |
+
+---
+
+### v2.7.361 — 27. März 2026 · Audit-Batch 443, Theme-Explorer-Entry staffelt Datei- und Inhaltsgrenzen präziser
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.361** | 🔴 fix | Admin/Themes | **`CMS/admin/theme-explorer.php` ergänzt Write-Capability-Guard, begrenzt Dateipfade und Editor-Inhalte expliziter und gibt Payload-Fehler mit spezifischeren Codes zurück**: Save-Requests hängen damit enger an einem kleinen Entry- und Report-Vertrag. |
+
+---
+
+### v2.7.360 — 27. März 2026 · Audit-Batch 442, Missing-Customizer-View nennt sichere nächste Schritte deutlicher
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.360** | 🎨 style | Admin/UI | **`CMS/admin/views/themes/customizer-missing.php` spiegelt Reason-Hinweis, erwarteten Pfad und sicheren Fallback jetzt deutlicher im Admin**: fehlende oder unsichere Customizer-Dateien bleiben damit früher einordenbar statt nur als knappe Warnung stehenzubleiben. |
+
+---
+
+### v2.7.359 — 27. März 2026 · Audit-Batch 441, Theme-Editor-Entry staffelt Reason-Hinweise präziser
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.359** | 🔴 fix | Admin/Themes | **`CMS/admin/theme-editor.php` ergänzt strukturierte Reason-Hints pro Fallback-Code und reicht den sicheren Fallback-Kontext konsistenter an die View weiter**: Customizer-Fallbacks hängen damit enger an einem kleinen Entry- und View-Vertrag. |
+
+---
+
+### v2.7.358 — 27. März 2026 · Audit-Batch 440, Theme-Explorer-Asset blockt Mehrfach-Submits robuster ab
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.358** | 🔴 fix | Admin/UI | **`CMS/assets/js/admin-theme-explorer.js` schützt Editor-Submits jetzt über einen gemeinsamen Pending-Zustand samt `aria-disabled`**: Speichern per Button oder `Ctrl+S` feuert dadurch seltener mehrfach aus schnellen Folge-Aktionen. |
+
+---
+
+### v2.7.357 — 27. März 2026 · Audit-Batch 439, Theme-Explorer-View nennt Limits und erlaubte Endungen expliziter
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.357** | 🎨 style | Admin/UI | **`CMS/admin/views/themes/editor.php` spiegelt Baumtiefe, Verzeichnislimit, erlaubte Endungen, Skip-Segmente und Browser-Limits jetzt deutlicher im Admin**: Explorer-Grenzen bleiben damit früher sichtbar statt nur implizit im Modul hinterlegt. |
+
+---
+
+### v2.7.356 — 27. März 2026 · Audit-Batch 438, ThemeEditorModule staffelt Validierungsfehler und Constraints enger
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.356** | 🔴 fix | Admin/Themes | **`CMS/admin/modules/themes/ThemeEditorModule.php` liefert für Browser-Editor-Validierungen jetzt strukturierte Fehlerresultate, ergänzt Endungs-/Skip-Constraints und sanitisiert Exception-Kontext enger**: Save- und Tree-Pfade hängen damit enger an einem kleinen Modul- und Report-Vertrag. |
+
+---
+
+### v2.7.355 — 27. März 2026 · Audit-Batch 437, Legal-Sites-Asset blockt Mehrfach-Submits robuster ab
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.355** | 🔴 fix | Admin/UI | **`CMS/assets/js/admin-legal-sites.js` schützt Post-Formulare jetzt über einen gemeinsamen Pending-Zustand samt `aria-disabled`**: Speichern, Generieren und Seitenerstellung feuern dadurch seltener mehrfach aus schnellen Folge-Klicks. |
+
+---
+
+### v2.7.354 — 27. März 2026 · Audit-Batch 436, Legal-View nennt Generator-Typen und Eingabegrenzen expliziter
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.354** | 🎨 style | Admin/UI | **`CMS/admin/views/legal/sites.php` spiegelt Generator-Bereiche, Vorlagentypen, Feature-Toggles und HTML-Grenzen jetzt direkter im Admin**: Rechtstext- und Generator-Grenzen bleiben damit früher sichtbar statt nur implizit im Modul hinterlegt. |
+
+---
+
+### v2.7.353 — 27. März 2026 · Audit-Batch 435, LegalSitesModule staffelt Save-, Profil- und Sammelseiten-Kontext enger
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.353** | 🔴 fix | Admin/Legal | **`CMS/admin/modules/legal/LegalSitesModule.php` ergänzt Generator- und Profil-Constraints, zählt geänderte Schlüssel nachvollziehbarer und reichert Sammel-Seitenläufe sowie Fehlerdetails strukturierter an**: Save-, Profil- und Generate-Pfade hängen damit enger an einem kleinen Modul- und Report-Vertrag. |
+
+---
+
+### v2.7.352 — 27. März 2026 · Audit-Batch 434, Font-Manager-Asset blockt Mehrfach-Submit und Delete-Replays robuster
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.352** | 🔴 fix | Admin/UI | **`CMS/assets/js/admin-font-manager.js` sperrt Formulare und Delete-Aktionen jetzt über einen gemeinsamen Pending-Zustand samt `aria-disabled` und Submit-Guard**: Scan-, Save-, Download- und Delete-Requests feuern dadurch seltener doppelt aus hektischem Mehrfachklicken. |
+
+---
+
+### v2.7.351 — 27. März 2026 · Audit-Batch 433, Font-View nennt Scan- und Remote-Schutzgrenzen deutlich früher
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.351** | 🎨 style | Admin/UI | **`CMS/admin/views/themes/fonts.php` zeigt Scan-Gesamtlimit, Einzeldatei-Limit, erlaubte Hosts sowie Scan-Endungen und Skip-Segmente jetzt als vorbereiteten Hinweisblock an**: Self-Hosting- und Scan-Grenzen bleiben damit früher sichtbar statt nur implizit im Modul zu wohnen. |
+
+---
+
+### v2.7.350 — 27. März 2026 · Audit-Batch 432, FontManagerModule staffelt Save-, Scan- und Bulk-Download-Kontext enger
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.350** | 🔴 fix | Admin/Themes | **`CMS/admin/modules/themes/FontManagerModule.php` ergänzt zusätzliche Host-/Scan-/Download-Constraints, gibt Save- und Delete-Erfolge detailreicher zurück und modelliert Sammeldownload-Fehler strukturierter reportbar**: Font-Scan-, Self-Hosting- und Settings-Pfade hängen damit enger an einem kleinen Modul- und Report-Vertrag. |
+
+---
+
+### v2.7.349 — 27. März 2026 · Audit-Batch 431, Marketplace-View zeigt Hosts sowie Manifest- und Archivgrenzen deutlicher an
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.349** | 🎨 style | Admin/UI | **`CMS/admin/views/plugins/marketplace.php` nennt erlaubte Hosts sowie Manifest- und Archivgrenzen jetzt direkt über dem Suchbereich**: Remote- und Auto-Install-Limits bleiben dadurch im Marketplace früher sichtbar statt nur implizit in Fehlerpfaden. |
+
+---
+
+### v2.7.348 — 27. März 2026 · Audit-Batch 430, PluginMarketplaceModule staffelt Remote-Fallbacks und Install-Kontext sichtbarer
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.348** | 🔴 fix | Admin/Plugins | **`CMS/admin/modules/plugins/PluginMarketplaceModule.php` ergänzt für Install-Erfolge jetzt Zielpfad und SHA-256-Verifizierungsstatus und reicht Installer-Ergebnisdaten strukturierter in Fehlerkontexte weiter**: Auto-Installationen bleiben damit nachvollziehbarer, wenn der Update-Service scheitert oder erfolgreich war. |
+
+---
+
+### v2.7.347 — 27. März 2026 · Audit-Batch 429, PluginMarketplaceModule zeigt Remote-Registry-Fehler und Cache-Fallbacks präziser an
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.347** | 🟡 refactor | Admin/Plugins | **`CMS/admin/modules/plugins/PluginMarketplaceModule.php` modelliert Remote-Registry-Ladevorgänge jetzt mit Fehler- und Detailkontext statt stummem Leer-Array-Fallback**: Cache-, Local- und None-Pfade können dadurch HTTP-/Content-Type-/Eintragsprobleme expliziter an den Marketplace weiterreichen. |
+
+---
+
+### v2.7.346 — 27. März 2026 · Audit-Batch 428, Media-Bibliothek spiegelt Finder-Grenzen und Upload-Limits direkter
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.346** | 🎨 style | Admin/UI | **`CMS/admin/views/media/library.php` zeigt Upload-, Such- und Ordnergrenzen jetzt explizit im Bibliothekskopf und bindet Formularfelder an Modul-Constraints**: Die Medienbibliothek hält Finder-Limits damit sichtbarer im UI statt in verstreuten lokalen Maximalwerten. |
+
+---
+
+### v2.7.345 — 27. März 2026 · Audit-Batch 427, Media-Kategorien spiegeln Name- und Slug-Grenzen direkter
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.345** | 🎨 style | Admin/UI | **`CMS/admin/views/media/categories.php` zeigt Kategorie-Limits jetzt direkt als Hinweis an und bindet Formularlängen an den Modulvertrag**: Kategorien behalten damit dieselben Eingabegrenzen im UI wie im Backend. |
+
+---
+
+### v2.7.344 — 27. März 2026 · Audit-Batch 426, Media-Settings nutzen Modul-Constraints statt lokaler Schattenwerte
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.344** | 🟡 refactor | Admin/Media | **`CMS/admin/views/media/settings.php` verwendet Upload-, Qualitäts- und Dimensionsgrenzen jetzt direkt aus dem Modulvertrag und reduziert lokale Default-/Max-Werte**: Die Settings-View bleibt damit näher an derselben Validierungslogik wie der Serverpfad. |
+
+---
+
+### v2.7.343 — 27. März 2026 · Audit-Batch 425, MediaModule liefert Constraints und Reportkontext strukturierter
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.343** | 🔴 fix | Admin/Media | **`CMS/admin/modules/media/MediaModule.php` ergänzt Finder-, Kategorie- und Settings-Constraints sowie `details`/`error_details` für Medien-Aktionen und speichert geänderte Setting-Felder im Fehlerkontext**: Upload-, Delete-, Kategorie- und Save-Pfade hängen damit enger an einem kleinen Modul- und Report-Vertrag. |
+
+---
+
+### v2.7.342 — 27. März 2026 · Audit-Batch 424, Media-Entry staffelt Requestfehler reportbar an den Shell-Vertrag an
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.342** | 🔴 fix | Admin/Media | **`CMS/admin/media.php` normalisiert unbekannte Aktionen, Berechtigungsfehler und ungültige Media-Payloads jetzt als strukturierte Failure-Rückgaben mit Report-Kontext**: Entry-nahe Ablehnungen landen damit konsistenter im gemeinsamen Admin-Flash-/Report-Pfad. |
+
+---
+
+### v2.7.341 — 27. März 2026 · Audit-Batch 423, Theme-Explorer-View zeigt Editor-Limits und Dateistatus klarer an
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.341** | 🎨 style | Admin/UI | **`CMS/admin/views/themes/editor.php` nennt Editor-Limits jetzt zusätzlich direkt im Dateibaum und im Datei-Kopf**: Theme-Dateien bleiben damit hinsichtlich Bearbeitungsgrenze und Dateistatus transparenter im Explorer. |
+
+---
+
+### v2.7.340 — 27. März 2026 · Audit-Batch 422, ThemeEditorModule liefert Fehler- und Save-Kontext strukturierter
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.340** | 🔴 fix | Admin/Themes | **`CMS/admin/modules/themes/ThemeEditorModule.php` gibt Fehler jetzt mit `details`, `error_details` und `report_payload` zurück und ergänzt Save-Erfolge um Dateikontext**: Der Explorer hängt Fehler- und Save-Pfade dadurch enger an den gemeinsamen Admin-Vertrag. |
+
+---
+
+### v2.7.339 — 27. März 2026 · Audit-Batch 421, Theme-Explorer-Entry staffelt Payloadfehler an Report-Vertrag an
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.339** | 🔴 fix | Admin/Themes | **`CMS/admin/theme-explorer.php` normalisiert fehlerhafte Save-POSTs jetzt als strukturierte Failure-Rückgaben mit Detail- und Report-Kontext**: Ungültige Datei- oder Aktions-Payloads landen damit konsistenter im gemeinsamen Shell-/Flash-Pfad. |
+
+---
+
+### v2.7.338 — 27. März 2026 · Audit-Batch 420, Theme-Editor-Fallback zeigt Grundcode und Erwartungspfad deutlicher an
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.338** | 🎨 style | Admin/UI | **`CMS/admin/views/themes/customizer-missing.php` zeigt Reason-Code, Theme-Slug und erwarteten Customizer-Pfad jetzt expliziter an**: Fehlende oder unsichere Customizer-Dateien bleiben dadurch für Theme-Entwickler nachvollziehbarer. |
+
+---
+
+### v2.7.337 — 27. März 2026 · Audit-Batch 419, Theme-Editor-Entry bereitet Fallback-Status strukturierter auf
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.337** | 🟡 refactor | Admin/Themes | **`CMS/admin/theme-editor.php` liefert Reason-Code, erwarteten Customizer-Pfad und Constraints jetzt vorbereitet an den Fallback**: Der Theme-Editor-Fallback hängt damit sichtbarer an einem kleinen Runtime-State statt an bloßen Freitextgründen. |
+
+---
+
+### v2.7.336 — 27. März 2026 · Audit-Batch 418, Legal-Sites-View spiegelt Status und Eingabegrenzen direkter
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.336** | 🎨 style | Admin/UI | **`CMS/admin/views/legal/sites.php` nutzt vorbereitete Kennzahlen und zeigt Eingabegrenzen für HTML- und Profilfelder jetzt expliziter an**: Generator- und Eingabezustände bleiben damit früher sichtbar und hängen nicht nur implizit an Formularen. |
+
+---
+
+### v2.7.335 — 27. März 2026 · Audit-Batch 417, LegalSitesModule staffelt Fehler- und Statusdaten enger
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.335** | 🔴 fix | Admin/Legal | **`CMS/admin/modules/legal/LegalSitesModule.php` liefert Save-, Validierungs- und Generatorfehler jetzt mit `details`, `error_details` und `report_payload` und bereitet zusätzliche Status-/Constraint-Daten für die View vor**: Legal-Sites hängt damit Fehler und UI-Kontext enger an einem kleinen Modulvertrag. |
+
+---
+
+### v2.7.334 — 27. März 2026 · Audit-Batch 416, Legal-Sites-Entry staffelt Fehlerrückgaben an Report-Vertrag an
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.334** | 🔴 fix | Admin/Legal | **`CMS/admin/legal-sites.php` gibt Berechtigungs- und Requestfehler jetzt als strukturierte Failure-Rückgaben mit Detail- und Report-Kontext an die Section-Shell zurück**: Entry-nahe Fehlerpfade bleiben damit konsistenter zum restlichen gehärteten Admin-Rahmen. |
+
+---
+
+### v2.7.333 — 27. März 2026 · Audit-Batch 415, Font-View zeigt Asset-Status lokaler Schriften transparenter an
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.333** | 🎨 style | Admin/UI | **`CMS/admin/views/themes/fonts.php` zeigt für lokale Schriften jetzt Dateigröße, CSS-Pfad und Asset-Status sichtbarer an**: Fehlende Font- oder CSS-Dateien bleiben damit im Admin nicht länger nur implizite Backend-Zustände. |
+
+---
+
+### v2.7.332 — 27. März 2026 · Audit-Batch 414, FontManagerModule gibt Report-Kontext und Font-Asset-Metadaten strukturierter aus
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.332** | 🔴 fix | Admin/Themes | **`CMS/admin/modules/themes/FontManagerModule.php` liefert Download-/Delete-Fehler jetzt mit `error_details` und `report_payload` und bereitet lokale Font-Asset-Metadaten serverseitig auf**: Font-Fehler und fehlende Assets hängen damit sichtbarer an einem kleineren Modulvertrag statt an losen Meldetexten. |
+
+---
+
+### v2.7.331 — 27. März 2026 · Audit-Batch 413, Font-Manager-Entry staffelt Payload-Fehler mit Report-Kontext
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.331** | 🔴 fix | Admin/Themes | **`CMS/admin/font-manager.php` gibt Berechtigungs- und Payloadfehler jetzt mit strukturiertem Detail- und Report-Kontext an die Section-Shell zurück**: Ungültige Font-Aktionen bleiben damit im Admin nachvollziehbarer und reportbar. |
+
+---
+
+### v2.7.330 — 27. März 2026 · Audit-Batch 412, Marketplace-View spiegelt Auto-Install-Limits direkter
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.330** | 🎨 style | Admin/UI | **`CMS/admin/views/plugins/marketplace.php` nennt Paket- und Registry-Limits jetzt expliziter direkt über der Suche**: Auto-Install-Grenzen und Cache-Verhalten bleiben dadurch früher sichtbar statt implizit aus Fehlerpfaden. |
+
+---
+
+### v2.7.329 — 27. März 2026 · Audit-Batch 411, PluginMarketplaceModule gibt Installfehler strukturierter und reportbar zurück
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.329** | 🔴 fix | Admin/Plugins | **`CMS/admin/modules/plugins/PluginMarketplaceModule.php` versieht Installationsfehler jetzt mit `details`, `error_details` und `report_payload` und liefert zusätzliche Marketplace-Constraints an die View**: Remote-, Paket- und Zielpfadfehler landen damit klarer im gemeinsamen Admin-Vertrag. |
+
+---
+
+### v2.7.328 — 27. März 2026 · Audit-Batch 410, Plugin-Marketplace-Entry normalisiert Fehler mit Report-Kontext
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.328** | 🔴 fix | Admin/Plugins | **`CMS/admin/plugin-marketplace.php` staffelt Berechtigungs-, Payload- und Katalog-Slug-Fehler jetzt über einen strukturierten Failure-Vertrag**: Der Marketplace-Entry bleibt damit näher an demselben Report- und Detailpfad wie andere gehärtete Admin-Bereiche. |
+
+---
+
+### v2.7.327 — 27. März 2026 · Audit-Batch 409, Section-Shell reicht Alert- und Report-Kontext vollständig durch
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.327** | 🟡 refactor | Admin/Core | **`CMS/admin/partials/section-page-shell.php` bewahrt Alert-Typen sowie `error_details` und `report_payload` jetzt auch über Redirect- und Inline-Pfade hinweg**: Strukturierte Fehler- und Report-Hinweise kommen damit endlich vollständig in `flash-alert.php` an, statt unterwegs kastriert zu werden. |
+
+---
+
+### v2.7.326 — 27. März 2026 · Audit-Batch 408, Marketplace-View zeigt Host-, Paket- und Hash-Kontext klarer an
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.326** | 🎨 style | Admin/UI | **`CMS/admin/views/plugins/marketplace.php` spiegelt Download-Host, Paketgröße, gekürzte SHA-256 und Auto-Install-Sperrgründe jetzt direkter in den Karten**: Installierbarkeit bleibt damit im Marketplace nachvollziehbarer, statt nur implizit aus einem Button-Zustand ableitbar zu sein. |
+
+---
+
+### v2.7.325 — 27. März 2026 · Audit-Batch 407, PluginMarketplaceModule staffelt Paketgröße und Host-Vertrag enger
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.325** | 🔴 fix | Admin/Plugins | **`CMS/admin/modules/plugins/PluginMarketplaceModule.php` normalisiert Paketgrößen jetzt explizit, sperrt übergroße Pakete für Auto-Installationen und führt Host-/Paket-/Hash-Metadaten klarer im ViewModel**: Der Marketplace hängt Auto-Install-Pfade damit sichtbarer an einem engeren Paket- und Quellenvertrag. |
+
+---
+
+### v2.7.324 — 27. März 2026 · Audit-Batch 406, Font-Manager-View zeigt Remote-Download-Grenzen deutlicher an
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.324** | 🎨 style | Admin/UI | **`CMS/admin/views/themes/fonts.php` zeigt Remote-Datei- und Gesamtgrößenlimits für Self-Hosting-Downloads jetzt direkt im Admin**: Nutzer sehen die Schutzgrenzen früher, statt erst nach einem abgewiesenen Download im Rückweg überrascht zu werden. |
+
+---
+
+### v2.7.323 — 27. März 2026 · Audit-Batch 405, FontManagerModule härtet Remote-Downloads und Cleanup weiter
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.7.323** | 🔴 fix | Admin/Themes | **`CMS/admin/modules/themes/FontManagerModule.php` begrenzt Remote-Font-Dateien jetzt zusätzlich über Gesamtvolumen, prüft geladene WOFF/TTF/OTF-Header und räumt bereits gespeicherte Teil-Downloads bei CSS-/Persistenzfehlern wieder auf**: Self-Hosting-Downloads hängen damit enger an einem sicheren Remote-/Datei-Vertrag statt an stillen Teilzuständen. |
 
 ---
 

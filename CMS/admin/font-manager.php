@@ -15,10 +15,12 @@ use CMS\Auth;
 const CMS_ADMIN_FONT_MANAGER_READ_CAPABILITY = 'manage_settings';
 const CMS_ADMIN_FONT_MANAGER_WRITE_CAPABILITY = 'manage_settings';
 const CMS_ADMIN_FONT_MANAGER_MAX_FAMILY_LENGTH = 120;
+const CMS_ADMIN_FONT_MANAGER_MAX_FONT_KEY_LENGTH = 80;
 const CMS_ADMIN_FONT_MANAGER_FONT_SIZE_MIN = 12;
 const CMS_ADMIN_FONT_MANAGER_FONT_SIZE_MAX = 24;
 const CMS_ADMIN_FONT_MANAGER_LINE_HEIGHT_MIN = 1.0;
 const CMS_ADMIN_FONT_MANAGER_LINE_HEIGHT_MAX = 2.5;
+const CMS_ADMIN_FONT_MANAGER_ROUTE_PATH = '/admin/font-manager';
 
 function cms_admin_font_manager_can_access(): bool
 {
@@ -73,7 +75,15 @@ function cms_admin_font_manager_normalize_google_font_family(array $post): strin
 
 function cms_admin_font_manager_normalize_font_key(mixed $value): string
 {
-    return (string) preg_replace('/[^a-z0-9_-]/', '', strtolower(trim((string) $value)));
+    $normalized = (string) preg_replace('/[^a-z0-9_-]/', '', strtolower(trim((string) $value)));
+
+    if (function_exists('mb_substr')) {
+        $normalized = (string) mb_substr($normalized, 0, CMS_ADMIN_FONT_MANAGER_MAX_FONT_KEY_LENGTH);
+    } else {
+        $normalized = substr($normalized, 0, CMS_ADMIN_FONT_MANAGER_MAX_FONT_KEY_LENGTH);
+    }
+
+    return $normalized !== '' ? $normalized : 'system-ui';
 }
 
 function cms_admin_font_manager_normalize_font_size(mixed $value): int
@@ -86,6 +96,26 @@ function cms_admin_font_manager_normalize_line_height(mixed $value): string
     $normalized = max(CMS_ADMIN_FONT_MANAGER_LINE_HEIGHT_MIN, min(CMS_ADMIN_FONT_MANAGER_LINE_HEIGHT_MAX, (float) $value));
 
     return number_format($normalized, 1, '.', '');
+}
+
+function cms_admin_font_manager_is_numeric_scalar(mixed $value): bool
+{
+    return is_scalar($value) && is_numeric((string) $value);
+}
+
+function cms_admin_font_manager_family_was_truncated(array $post, string $normalizedFamily): bool
+{
+    $rawFamily = trim((string) ($post['google_font_family'] ?? ''));
+
+    if ($rawFamily === '') {
+        return false;
+    }
+
+    if (function_exists('mb_strlen')) {
+        return mb_strlen($rawFamily) > mb_strlen($normalizedFamily);
+    }
+
+    return strlen($rawFamily) > strlen($normalizedFamily);
 }
 
 /** @return array<string, string> */
@@ -115,8 +145,14 @@ function cms_admin_font_manager_normalize_payload(array $post): array
         $error = 'Unbekannte oder nicht erlaubte Aktion.';
     } elseif ($action === 'delete_font' && $fontId <= 0) {
         $error = 'Ungültige Font-ID.';
+    } elseif ($action === 'save' && !cms_admin_font_manager_is_numeric_scalar($post['font_size'] ?? null)) {
+        $error = 'Ungültige Font-Größe.';
+    } elseif ($action === 'save' && !cms_admin_font_manager_is_numeric_scalar($post['line_height'] ?? null)) {
+        $error = 'Ungültiger Zeilenabstand.';
     } elseif ($action === 'download_google_font' && $fontFamily === '') {
         $error = 'Bitte einen gültigen Google-Font-Namen angeben.';
+    } elseif ($action === 'download_google_font' && cms_admin_font_manager_family_was_truncated($post, $fontFamily)) {
+        $error = 'Der Google-Font-Name ist zu lang.';
     }
 
     return [
@@ -143,8 +179,35 @@ function cms_admin_font_manager_handle_action(
     };
 }
 
+function cms_admin_font_manager_build_failure_result(string $message, string $errorCode, array $details = [], array $context = []): array
+{
+    $normalizedContext = array_merge([
+        'source' => CMS_ADMIN_FONT_MANAGER_ROUTE_PATH,
+        'route' => CMS_ADMIN_FONT_MANAGER_ROUTE_PATH,
+    ], $context);
+
+    return [
+        'success' => false,
+        'error' => $message,
+        'details' => array_values(array_filter(array_map(static fn (mixed $detail): string => trim((string) $detail), $details), static fn (string $detail): bool => $detail !== '')),
+        'error_details' => [
+            'code' => $errorCode,
+            'data' => ['route' => CMS_ADMIN_FONT_MANAGER_ROUTE_PATH],
+            'context' => $normalizedContext,
+        ],
+        'report_payload' => [
+            'title' => 'Font Manager · ' . $errorCode,
+            'message' => $message,
+            'error_code' => $errorCode,
+            'error_data' => ['route' => CMS_ADMIN_FONT_MANAGER_ROUTE_PATH],
+            'context' => $normalizedContext,
+            'source_url' => CMS_ADMIN_FONT_MANAGER_ROUTE_PATH,
+        ],
+    ];
+}
+
 $sectionPageConfig = [
-    'route_path' => '/admin/font-manager',
+    'route_path' => CMS_ADMIN_FONT_MANAGER_ROUTE_PATH,
     'view_file' => __DIR__ . '/views/themes/fonts.php',
     'page_title' => 'Font Manager',
     'active_page' => 'font-manager',
@@ -162,12 +225,33 @@ $sectionPageConfig = [
     'unknown_action_message' => 'Unbekannte oder nicht erlaubte Aktion.',
     'post_handler' => static function (FontManagerModule $module, string $section, array $post): array {
         if (!cms_admin_font_manager_can_mutate()) {
-            return ['success' => false, 'error' => 'Keine Berechtigung für Font-Änderungen.'];
+            return cms_admin_font_manager_build_failure_result(
+                'Keine Berechtigung für Font-Änderungen.',
+                'font_manager_permission_denied',
+                ['Capability: ' . CMS_ADMIN_FONT_MANAGER_WRITE_CAPABILITY]
+            );
         }
 
         $normalizedPost = cms_admin_font_manager_normalize_payload($post);
         if ($normalizedPost['error'] !== '') {
-            return ['success' => false, 'error' => $normalizedPost['error']];
+            return cms_admin_font_manager_build_failure_result(
+                $normalizedPost['error'],
+                'font_manager_invalid_payload',
+                [
+                    'Aktion: ' . (string) ($normalizedPost['action'] ?? '(leer)'),
+                    'Font-ID: ' . (int) ($normalizedPost['font_id'] ?? 0),
+                    'Google Font: ' . ((string) ($normalizedPost['google_font_family'] ?? '') !== '' ? (string) ($normalizedPost['google_font_family'] ?? '') : '(leer)'),
+                    'Font-Size-Bereich: ' . CMS_ADMIN_FONT_MANAGER_FONT_SIZE_MIN . '–' . CMS_ADMIN_FONT_MANAGER_FONT_SIZE_MAX,
+                    'Line-Height-Bereich: ' . CMS_ADMIN_FONT_MANAGER_LINE_HEIGHT_MIN . '–' . CMS_ADMIN_FONT_MANAGER_LINE_HEIGHT_MAX,
+                ],
+                [
+                    'action' => (string) ($normalizedPost['action'] ?? ''),
+                    'font_id' => (int) ($normalizedPost['font_id'] ?? 0),
+                    'google_font_family' => (string) ($normalizedPost['google_font_family'] ?? ''),
+                    'max_google_font_family_length' => CMS_ADMIN_FONT_MANAGER_MAX_FAMILY_LENGTH,
+                    'max_font_key_length' => CMS_ADMIN_FONT_MANAGER_MAX_FONT_KEY_LENGTH,
+                ]
+            );
         }
 
         return cms_admin_font_manager_handle_action($module, $normalizedPost);

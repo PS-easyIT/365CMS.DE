@@ -8,12 +8,27 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 use CMS\Security;
 
+function cms_admin_section_shell_normalize_alert_type(mixed $type, string $fallback = 'danger'): string
+{
+    $allowedTypes = ['success', 'danger', 'error', 'warning', 'info', 'secondary'];
+    $normalizedFallback = strtolower(trim($fallback));
+    if (!in_array($normalizedFallback, $allowedTypes, true)) {
+        $normalizedFallback = 'danger';
+    }
+
+    $alertType = strtolower(trim((string) $type));
+
+    return in_array($alertType, $allowedTypes, true) ? $alertType : $normalizedFallback;
+}
+
 function cms_admin_section_shell_flash(string $sessionKey, array $payload): void
 {
     $_SESSION[$sessionKey] = [
-        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
+        'type' => cms_admin_section_shell_normalize_alert_type($payload['type'] ?? 'danger'),
         'message' => trim((string) ($payload['message'] ?? '')),
         'details' => is_array($payload['details'] ?? null) ? $payload['details'] : [],
+        'error_details' => is_array($payload['error_details'] ?? null) ? $payload['error_details'] : [],
+        'report_payload' => is_array($payload['report_payload'] ?? null) ? $payload['report_payload'] : [],
     ];
 }
 
@@ -183,9 +198,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!empty($result['render_inline'])) {
         $alert = [
-            'type' => !empty($result['success']) ? 'success' : 'danger',
+            'type' => cms_admin_section_shell_normalize_alert_type(
+                $result['type'] ?? (!empty($result['success']) ? 'success' : 'danger'),
+                !empty($result['success']) ? 'success' : 'danger'
+            ),
             'message' => (string) ($result['message'] ?? $result['error'] ?? $unknownActionMessage),
             'details' => is_array($result['details'] ?? null) ? $result['details'] : [],
+            'error_details' => is_array($result['error_details'] ?? null) ? $result['error_details'] : [],
+            'report_payload' => is_array($result['report_payload'] ?? null) ? $result['report_payload'] : [],
         ];
 
         $inlineRuntimeContext = is_array($result['runtime_context'] ?? null) ? $result['runtime_context'] : [];
@@ -194,9 +214,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } else {
         cms_admin_section_shell_flash($alertSessionKey, [
-            'type' => !empty($result['success']) ? 'success' : 'danger',
+            'type' => cms_admin_section_shell_normalize_alert_type(
+                $result['type'] ?? (!empty($result['success']) ? 'success' : 'danger'),
+                !empty($result['success']) ? 'success' : 'danger'
+            ),
             'message' => $result['message'] ?? $result['error'] ?? $unknownActionMessage,
             'details' => $result['details'] ?? [],
+            'error_details' => $result['error_details'] ?? [],
+            'report_payload' => $result['report_payload'] ?? [],
         ]);
 
         cms_admin_section_shell_redirect($redirectTarget);

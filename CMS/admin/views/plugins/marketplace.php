@@ -19,6 +19,9 @@ $filters = is_array($data['filters'] ?? null) ? $data['filters'] : [];
 $categoryOptions = is_array($filters['categories'] ?? null) ? $filters['categories'] : [];
 $statusOptions = is_array($filters['statuses'] ?? null) ? $filters['statuses'] : [];
 $source = is_array($data['source'] ?? null) ? $data['source'] : [];
+$constraints = is_array($data['constraints'] ?? null) ? $data['constraints'] : [];
+$allowedHosts = is_array($constraints['allowed_marketplace_hosts'] ?? null) ? $constraints['allowed_marketplace_hosts'] : [];
+$allowedArchiveExtensions = is_array($constraints['allowed_archive_extensions'] ?? null) ? $constraints['allowed_archive_extensions'] : [];
 $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 ?>
 
@@ -112,6 +115,41 @@ $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, 
         <!-- Search -->
         <div class="card mb-4">
             <div class="card-body">
+                <?php if (!empty($constraints['package_size_limit_label']) || !empty($constraints['registry_cache_ttl'])): ?>
+                    <div class="small text-muted mb-3">
+                        <?php if (!empty($constraints['package_size_limit_label'])): ?>
+                            Auto-Install bis <?php echo $escape((string) ($constraints['package_size_limit_label'] ?? '')); ?> Paketgröße
+                        <?php endif; ?>
+                        <?php if (!empty($constraints['package_size_limit_label']) && !empty($constraints['registry_cache_ttl'])): ?>
+                            ·
+                        <?php endif; ?>
+                        <?php if (!empty($constraints['registry_cache_ttl'])): ?>
+                            Registry-Cache: <?php echo (int) ($constraints['registry_cache_ttl'] ?? 0); ?> Sekunden TTL
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+                <?php if ($allowedHosts !== [] || !empty($constraints['manifest_max_bytes_label']) || !empty($constraints['archive_uncompressed_limit_label'])): ?>
+                    <div class="small text-muted mb-3">
+                        <?php if ($allowedHosts !== []): ?>
+                            Erlaubte Hosts: <?php echo $escape(implode(', ', $allowedHosts)); ?>
+                        <?php endif; ?>
+                        <?php if ($allowedHosts !== [] && (!empty($constraints['manifest_max_bytes_label']) || !empty($constraints['archive_uncompressed_limit_label']))): ?>
+                            <br>
+                        <?php endif; ?>
+                        <?php if (!empty($constraints['manifest_max_bytes_label'])): ?>
+                            Manifest bis <?php echo $escape((string) ($constraints['manifest_max_bytes_label'] ?? '')); ?>
+                        <?php endif; ?>
+                        <?php if (!empty($constraints['manifest_max_bytes_label']) && !empty($constraints['archive_uncompressed_limit_label'])): ?>
+                            ·
+                        <?php endif; ?>
+                        <?php if (!empty($constraints['archive_uncompressed_limit_label'])): ?>
+                            Archiv entpackt bis <?php echo $escape((string) ($constraints['archive_uncompressed_limit_label'] ?? '')); ?>
+                        <?php endif; ?>
+                        <?php if ($allowedArchiveExtensions !== []): ?>
+                            <br>Erlaubte Archiv-Endungen: <?php echo $escape(implode(', ', $allowedArchiveExtensions)); ?>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
                 <div class="row g-3">
                     <div class="col-md-8">
                         <div class="input-icon">
@@ -174,6 +212,7 @@ $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, 
                     $packageSizeLabel = $escape((string)($plugin['package_size_label'] ?? ''));
                     $packageSizeAllowed = !empty($plugin['package_size_allowed']);
                     $downloadHostAllowed = !empty($plugin['download_host_allowed']);
+                    $downloadExtensionAllowed = !empty($plugin['download_extension_allowed']);
                     $downloadHost = $escape((string)($plugin['download_host'] ?? ''));
                     $status = $isInstalled ? 'installed' : ($autoInstallSupported ? 'installable' : 'manual');
                 ?>
@@ -225,6 +264,9 @@ $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, 
                                     <?php endif; ?>
                                     <?php if ($downloadHost !== '' && !$downloadHostAllowed): ?>
                                         <div class="mt-1"><span class="badge bg-warning-lt">Host nicht freigegeben</span></div>
+                                    <?php endif; ?>
+                                    <?php if (!$downloadExtensionAllowed && $downloadHost !== ''): ?>
+                                        <div class="mt-1"><span class="badge bg-warning-lt">Archiv-Endung nicht erlaubt</span></div>
                                     <?php endif; ?>
                                 </div>
                                 <?php if ($isInstalled): ?>

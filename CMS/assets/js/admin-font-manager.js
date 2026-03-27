@@ -63,6 +63,7 @@
         }
 
         button.disabled = true;
+        button.setAttribute('aria-disabled', 'true');
         button.textContent = pendingText;
     }
 
@@ -79,11 +80,16 @@
             return;
         }
 
+        if (form.dataset.submitting === '1') {
+            return;
+        }
+
         var submitButton = resolveSubmitButton(form, triggerButton);
         var pendingText = submitButton && submitButton.getAttribute('data-pending-text')
             ? submitButton.getAttribute('data-pending-text')
             : 'Wird ausgeführt …';
 
+        form.dataset.submitting = '1';
         setPendingButtonState(submitButton, pendingText);
 
         if (typeof form.requestSubmit === 'function') {
@@ -102,6 +108,12 @@
     function bindActionForms() {
         document.querySelectorAll('[data-font-manager-form]').forEach(function (form) {
             form.addEventListener('submit', function (event) {
+                if (form.dataset.submitting === '1') {
+                    event.preventDefault();
+                    return;
+                }
+
+                form.dataset.submitting = '1';
                 var submitter = event.submitter || resolveSubmitButton(form, null);
                 var pendingText = submitter && submitter.getAttribute('data-pending-text')
                     ? submitter.getAttribute('data-pending-text')
@@ -119,6 +131,10 @@
 
         document.querySelectorAll('.js-font-delete').forEach(function (button) {
             button.addEventListener('click', function () {
+                if (button.disabled) {
+                    return;
+                }
+
                 var fontName = button.dataset.fontName || 'diese Schriftart';
                 var form = button.closest('form');
 

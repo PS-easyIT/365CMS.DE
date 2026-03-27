@@ -32,6 +32,7 @@ $listUrl = (string)($data['list_url'] ?? $baseUrl);
 $gridUrl = (string)($data['grid_url'] ?? $baseUrl);
 $rootUrl = (string)($data['root_url'] ?? $baseUrl);
 $emptyState = is_array($data['empty_state'] ?? null) ? $data['empty_state'] : ['title' => 'Dieser Ordner ist leer', 'subtitle' => 'Legen Sie einen Ordner an oder laden Sie Dateien hoch.'];
+$constraints = is_array($data['constraints'] ?? null) ? $data['constraints'] : [];
 $mediaLibraryConfig = [
     'memberFolderConfirmMessage' => $memberFolderConfirmMessage,
     'deleteFormId' => 'deleteMediaForm',
@@ -141,6 +142,17 @@ $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
         <div class="card">
             <div class="card-header">
                 <div class="w-100">
+                    <div class="alert alert-info mb-3" role="alert">
+                        <div class="d-flex">
+                            <div>
+                                <strong>Finder-Grenzen:</strong>
+                                maximal <?php echo (int)($constraints['max_upload_files'] ?? 0); ?> Dateien pro Upload,
+                                Gesamtpaket bis <?php echo htmlspecialchars((string)($constraints['max_upload_batch_label'] ?? '—')); ?>,
+                                Suchbegriff bis <?php echo (int)($constraints['search_max_length'] ?? 120); ?> Zeichen
+                                und Ordnernamen bis <?php echo (int)($constraints['folder_name_max_length'] ?? 120); ?> Zeichen.
+                            </div>
+                        </div>
+                    </div>
                     <div class="media-toolbar">
                         <nav aria-label="Breadcrumb">
                             <ol class="breadcrumb mb-0 media-breadcrumb">
@@ -174,7 +186,7 @@ $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
                                         <?php endforeach; ?>
                                     </select>
                                     <div class="input-group input-group-sm media-filter-search">
-                                        <input type="search" class="form-control" name="q" placeholder="Dateien suchen …" value="<?php echo htmlspecialchars($search); ?>" maxlength="120">
+                                        <input type="search" class="form-control" name="q" placeholder="Dateien suchen …" value="<?php echo htmlspecialchars($search); ?>" maxlength="<?php echo (int)($constraints['search_max_length'] ?? 120); ?>">
                                         <button type="submit" class="btn btn-icon">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/><path d="M21 21l-6 -6"/></svg>
                                         </button>
@@ -371,7 +383,7 @@ $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
             </div>
             <div class="modal-body">
                 <label class="form-label" for="folderName">Ordnername</label>
-                <input type="text" class="form-control" id="folderName" name="folder_name" maxlength="120" required autofocus>
+                <input type="text" class="form-control" id="folderName" name="folder_name" maxlength="<?php echo (int)($constraints['folder_name_max_length'] ?? 120); ?>" required autofocus>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn" data-bs-dismiss="modal">Abbrechen</button>
@@ -407,7 +419,10 @@ $elFinderConnectorUrl = SITE_URL . '/api/v1/admin/media/elfinder';
                         data-upload-path="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>"
                         data-csrf-token="<?php echo htmlspecialchars($mediaActionToken, ENT_QUOTES); ?>">
                 </div>
-                <div class="text-secondary small">Mehrfachauswahl möglich. Maximale Dateigröße laut Einstellungen.</div>
+                <div class="text-secondary small">
+                    Mehrfachauswahl möglich. Pro Upload sind maximal <?php echo (int)($constraints['max_upload_files'] ?? 0); ?> Dateien
+                    mit zusammen höchstens <?php echo htmlspecialchars((string)($constraints['max_upload_batch_label'] ?? '—')); ?> erlaubt.
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn" data-bs-dismiss="modal">Abbrechen</button>

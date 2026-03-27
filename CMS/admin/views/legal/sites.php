@@ -18,6 +18,9 @@ $pageIdKeys = ['legal_imprint' => 'imprint_page_id', 'legal_privacy' => 'privacy
 $templateTypes = ['legal_imprint' => 'imprint', 'legal_privacy' => 'privacy', 'legal_terms' => 'terms', 'legal_revocation' => 'revocation'];
 $templateDefaults = $d['templates'] ?? [];
 $profile = $d['profile'] ?? [];
+$stats = is_array($d['stats'] ?? null) ? $d['stats'] : [];
+$constraints = is_array($d['constraints'] ?? null) ? $d['constraints'] : [];
+$allowedTemplateTypes = array_values(array_filter(array_map('strval', is_array($constraints['allowed_template_types'] ?? null) ? $constraints['allowed_template_types'] : [])));
 $legalSitesConfig = [
     'insertTemplateTitle' => 'Vorlage einfügen?',
     'insertTemplateMessage' => 'Vorhandener Inhalt wird überschrieben.',
@@ -42,13 +45,13 @@ $legalSitesConfig = [
     <div class="container-xl">
         <div class="row row-deck row-cards mb-4">
             <div class="col-md-4">
-                <div class="card"><div class="card-body"><div class="subheader">Bereiche</div><div class="h1 mb-0"><?= count($tabKeys) ?></div></div></div>
+                <div class="card"><div class="card-body"><div class="subheader">Bereiche</div><div class="h1 mb-0"><?php echo (int) ($stats['areas'] ?? count($tabKeys)); ?></div></div></div>
             </div>
             <div class="col-md-4">
-                <div class="card"><div class="card-body"><div class="subheader">Zugewiesene Seiten</div><div class="h1 mb-0"><?= count(array_filter($assigned)) ?></div></div></div>
+                <div class="card"><div class="card-body"><div class="subheader">Zugewiesene Seiten</div><div class="h1 mb-0"><?php echo (int) ($stats['assigned_pages'] ?? count(array_filter($assigned))); ?></div></div></div>
             </div>
             <div class="col-md-4">
-                <div class="card"><div class="card-body"><div class="subheader">Veröffentlicht</div><div class="text-secondary">Impressum, Datenschutz, AGB und Widerruf zentral pflegen und vorhandenen Seiten zuordnen.</div></div></div>
+                <div class="card"><div class="card-body"><div class="subheader">Veröffentlicht</div><div class="text-secondary">Impressum, Datenschutz, AGB und Widerruf zentral pflegen und vorhandenen Seiten zuordnen.</div><div class="small text-muted mt-2"><?php echo (int) ($stats['published_pages'] ?? count($allPages)); ?> veröffentlichte Zielseiten · <?php echo (int) ($stats['filled_areas'] ?? 0); ?> Bereiche mit Inhalt</div></div></div>
             </div>
         </div>
 
@@ -69,11 +72,44 @@ $legalSitesConfig = [
             <?php $alertData = $alert; $alertMarginClass = 'mb-4'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
+        <?php if (!empty($constraints['max_legal_html_length']) || !empty($constraints['max_profile_value_length'])): ?>
+            <?php
+            $alertData = [
+                'type' => 'secondary',
+                'message' => 'Legal-Sites nutzt sichere Eingabegrenzen für Text- und HTML-Felder.',
+                'details' => array_values(array_filter([
+                    !empty($constraints['max_legal_html_length']) ? 'HTML pro Bereich: max. ' . number_format((int) $constraints['max_legal_html_length'], 0, ',', '.') . ' Zeichen' : '',
+                    !empty($constraints['max_profile_value_length']) ? 'Kurze Profilfelder: max. ' . number_format((int) $constraints['max_profile_value_length'], 0, ',', '.') . ' Zeichen' : '',
+                    !empty($constraints['max_profile_textarea_length']) ? 'Längere Profilfelder: max. ' . number_format((int) $constraints['max_profile_textarea_length'], 0, ',', '.') . ' Zeichen' : '',
+                    !empty($constraints['template_area_count']) ? 'Generator-Bereiche: ' . (int) $constraints['template_area_count'] : '',
+                    $allowedTemplateTypes !== [] ? 'Vorlagentypen: ' . htmlspecialchars(implode(', ', $allowedTemplateTypes)) : '',
+                    !empty($constraints['profile_toggle_count']) ? 'Feature-Toggles: ' . (int) $constraints['profile_toggle_count'] : '',
+                ])),
+            ];
+            $alertDismissible = false;
+            $alertMarginClass = 'mb-4';
+            require __DIR__ . '/../partials/flash-alert.php';
+            ?>
+        <?php endif; ?>
+
         <div class="card mb-4">
             <div class="card-header d-flex align-items-center justify-content-between gap-3 flex-wrap">
                 <div>
                     <h3 class="card-title mb-1">Standardwerte & Generator</h3>
                     <div class="text-secondary small">Diese Angaben werden für Impressum, Datenschutz, AGB und Widerrufsbelehrung verwendet.</div>
+                    <?php if (!empty($constraints['template_area_count']) || $allowedTemplateTypes !== []): ?>
+                        <div class="text-muted small mt-1">
+                            <?php if (!empty($constraints['template_area_count'])): ?>
+                                <?php echo (int) $constraints['template_area_count']; ?> Generator-Bereiche
+                            <?php endif; ?>
+                            <?php if (!empty($constraints['template_area_count']) && $allowedTemplateTypes !== []): ?>
+                                ·
+                            <?php endif; ?>
+                            <?php if ($allowedTemplateTypes !== []): ?>
+                                Typen: <?php echo htmlspecialchars(implode(', ', $allowedTemplateTypes)); ?>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
                 <form method="post" class="d-inline">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
@@ -527,6 +563,19 @@ $legalSitesConfig = [
                         <div class="mb-3">
                             <label class="form-label">Inhalt (HTML)</label>
                             <textarea name="<?php echo htmlspecialchars($key); ?>" id="legal-<?php echo htmlspecialchars($key); ?>" class="form-control" rows="12"><?php echo htmlspecialchars($p['content'] ?? ''); ?></textarea>
+                            <?php if (!empty($constraints['max_legal_html_length']) || $templateType !== ''): ?>
+                                <small class="form-hint">
+                                    <?php if (!empty($constraints['max_legal_html_length'])): ?>
+                                        Max. <?php echo number_format((int) $constraints['max_legal_html_length'], 0, ',', '.'); ?> HTML-Zeichen
+                                    <?php endif; ?>
+                                    <?php if (!empty($constraints['max_legal_html_length']) && $templateType !== ''): ?>
+                                        ·
+                                    <?php endif; ?>
+                                    <?php if ($templateType !== ''): ?>
+                                        Generator-Typ: <?php echo htmlspecialchars($templateType); ?>
+                                    <?php endif; ?>
+                                </small>
+                            <?php endif; ?>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Zugewiesene Seite</label>

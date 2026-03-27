@@ -30,6 +30,7 @@ const CMS_ADMIN_MEDIA_WRITE_CAPABILITY = 'manage_media';
 const CMS_ADMIN_MEDIA_MAX_UPLOAD_FILES = 20;
 const CMS_ADMIN_MEDIA_MAX_UPLOAD_FILENAME_LENGTH = 180;
 const CMS_ADMIN_MEDIA_MAX_UPLOAD_BATCH_BYTES = 104857600;
+const CMS_ADMIN_MEDIA_ROUTE_PATH = '/admin/media';
 
 const CMS_ADMIN_MEDIA_SETTINGS_INT_FIELDS = [
     'jpeg_quality',
@@ -91,6 +92,33 @@ function cms_admin_media_normalize_action(mixed $action): string
 function cms_admin_media_can_run_action(string $action): bool
 {
     return $action !== '' && Auth::instance()->hasCapability(CMS_ADMIN_MEDIA_WRITE_CAPABILITY);
+}
+
+/**
+ * @param list<string> $details
+ * @param list<string> $errorDetails
+ * @param array<string, mixed> $reportPayload
+ * @return array<string, mixed>
+ */
+function cms_admin_media_build_failure_result(
+    string $message,
+    array $details = [],
+    array $errorDetails = [],
+    array $reportPayload = []
+): array {
+    return [
+        'success' => false,
+        'error' => $message,
+        'details' => array_values(array_filter(array_map(
+            static fn (mixed $detail): string => trim((string) $detail),
+            $details
+        ), static fn (string $detail): bool => $detail !== '')),
+        'error_details' => array_values(array_filter(array_map(
+            static fn (mixed $detail): string => trim((string) $detail),
+            $errorDetails
+        ), static fn (string $detail): bool => $detail !== '')),
+        'report_payload' => $reportPayload,
+    ];
 }
 
 function cms_admin_media_resolve_path(MediaModule $module, array $post): string
@@ -303,14 +331,14 @@ function cms_admin_media_build_redirect_url(MediaModule $module, string $tab, st
 {
     $redirectParams = cms_admin_media_redirect_params($module, $tab, $path);
 
-    return '/admin/media' . (!empty($redirectParams) ? '?' . http_build_query($redirectParams) : '');
+    return CMS_ADMIN_MEDIA_ROUTE_PATH . (!empty($redirectParams) ? '?' . http_build_query($redirectParams) : '');
 }
 
 function cms_admin_media_action_redirect_path(MediaModule $module, string $action, string $tab, string $path): string
 {
     return match ($action) {
-        'add_category', 'delete_category' => '/admin/media?tab=categories',
-        'save_settings' => '/admin/media?tab=settings',
+        'add_category', 'delete_category' => CMS_ADMIN_MEDIA_ROUTE_PATH . '?tab=categories',
+        'save_settings' => CMS_ADMIN_MEDIA_ROUTE_PATH . '?tab=settings',
         default => cms_admin_media_build_redirect_url($module, $tab, $path),
     };
 }
@@ -585,12 +613,12 @@ if ($requestedTab === 'library') {
             'type' => 'danger',
             'message' => 'Der Member-Ordner kann erst nach einer zusätzlichen Bestätigung geöffnet werden.',
         ]);
-        cms_admin_media_redirect('/admin/media');
+        cms_admin_media_redirect(CMS_ADMIN_MEDIA_ROUTE_PATH);
     }
 }
 
 $sectionPageConfig = [
-    'route_path' => '/admin/media',
+    'route_path' => CMS_ADMIN_MEDIA_ROUTE_PATH,
     'view_file' => __DIR__ . '/views/media/library.php',
     'page_title' => 'Medien',
     'active_page' => 'media',
@@ -615,26 +643,70 @@ $sectionPageConfig = [
         }
 
         return match ($module->normalizeTab($section)) {
-            'categories' => '/admin/media?tab=categories',
-            'settings' => '/admin/media?tab=settings',
+            'categories' => CMS_ADMIN_MEDIA_ROUTE_PATH . '?tab=categories',
+            'settings' => CMS_ADMIN_MEDIA_ROUTE_PATH . '?tab=settings',
             default => cms_admin_media_build_redirect_url($module, 'library', $module->normalizePath((string) ($_GET['path'] ?? ''))),
         };
     },
     'post_handler' => static function (MediaModule $module, string $section, array $post): array {
         $action = cms_admin_media_normalize_action($post['action'] ?? '');
         if ($action === '') {
-            return ['success' => false, 'error' => 'Unbekannte Aktion.'];
+            return cms_admin_media_build_failure_result(
+                'Unbekannte Aktion.',
+                ['Bitte nur erlaubte Medien-Aktionen aus dem Admin ausführen.'],
+                ['Der Request enthielt keinen erlaubten `action`-Wert.'],
+                [
+                    'title' => 'Unbekannte Medien-Aktion',
+                    'source' => CMS_ADMIN_MEDIA_ROUTE_PATH,
+                    'status' => 'warning',
+                    'context' => [
+                        'module' => 'media',
+                        'operation' => 'unknown_action',
+                        'action' => trim((string) ($post['action'] ?? '')),
+                    ],
+                ]
+            );
         }
 
         if (!cms_admin_media_can_run_action($action)) {
-            return ['success' => false, 'error' => 'Keine Berechtigung für diese Aktion.'];
+            return cms_admin_media_build_failure_result(
+                'Keine Berechtigung für diese Aktion.',
+                ['Die Medien-Aktion erfordert die Capability `manage_media`.'],
+                ['Die angeforderte Aktion wurde vor dem Modul-Dispatch verworfen.'],
+                [
+                    'title' => 'Medien-Aktion verweigert',
+                    'source' => CMS_ADMIN_MEDIA_ROUTE_PATH,
+                    'status' => 'warning',
+                    'context' => [
+                        'module' => 'media',
+                        'operation' => 'capability_denied',
+                        'action' => $action,
+                    ],
+                ]
+            );
         }
 
         $normalizedPost = cms_admin_media_normalize_action_payload($module, $action, $post);
         $validationError = cms_admin_media_validate_action_payload($action, $normalizedPost);
 
         if ($validationError !== null) {
-            return ['success' => false, 'error' => $validationError];
+            return cms_admin_media_build_failure_result(
+                $validationError,
+                ['Bitte Pfad-, Kategorie- oder Namensfelder prüfen und erneut speichern.'],
+                ['Die Aktion wurde wegen unvollständiger oder ungültiger Payload-Daten nicht ausgeführt.'],
+                [
+                    'title' => 'Ungültige Medien-Payload',
+                    'source' => CMS_ADMIN_MEDIA_ROUTE_PATH,
+                    'status' => 'warning',
+                    'context' => [
+                        'module' => 'media',
+                        'operation' => 'invalid_payload',
+                        'action' => $action,
+                        'tab' => $module->normalizeTab($section),
+                        'keys' => array_keys($normalizedPost),
+                    ],
+                ]
+            );
         }
 
         $tab = $module->normalizeTab($section);
@@ -646,13 +718,16 @@ $sectionPageConfig = [
                 'success' => (($handledAction['flash']['type'] ?? 'danger') === 'success'),
                 'message' => (string) ($handledAction['flash']['message'] ?? ''),
                 'details' => is_array($handledAction['flash']['details'] ?? null) ? $handledAction['flash']['details'] : [],
+                'error_details' => is_array($handledAction['flash']['error_details'] ?? null) ? $handledAction['flash']['error_details'] : [],
                 'report_payload' => is_array($handledAction['flash']['report_payload'] ?? null) ? $handledAction['flash']['report_payload'] : [],
-                'redirect_path' => (string) ($handledAction['redirect_path'] ?? '/admin/media'),
+                'redirect_path' => (string) ($handledAction['redirect_path'] ?? CMS_ADMIN_MEDIA_ROUTE_PATH),
             ];
         }
 
-        $result = is_array($handledAction['result'] ?? null) ? $handledAction['result'] : ['success' => false, 'error' => 'Unbekannte Aktion.'];
-        $result['redirect_path'] = (string) ($handledAction['redirect_path'] ?? '/admin/media');
+        $result = is_array($handledAction['result'] ?? null)
+            ? $handledAction['result']
+            : cms_admin_media_build_failure_result('Unbekannte Aktion.');
+        $result['redirect_path'] = (string) ($handledAction['redirect_path'] ?? CMS_ADMIN_MEDIA_ROUTE_PATH);
 
         return $result;
     },

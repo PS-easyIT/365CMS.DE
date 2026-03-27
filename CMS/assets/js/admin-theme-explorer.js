@@ -27,6 +27,20 @@
             return;
         }
 
+        function setSubmittingState(pending) {
+            form.dataset.submitting = pending ? '1' : '0';
+
+            if (saveButton) {
+                saveButton.disabled = pending || saveButton.hasAttribute('data-disabled-permanently');
+                saveButton.setAttribute('aria-disabled', pending || saveButton.disabled ? 'true' : 'false');
+            }
+        }
+
+        if (saveButton && saveButton.disabled) {
+            saveButton.setAttribute('data-disabled-permanently', '1');
+            saveButton.setAttribute('aria-disabled', 'true');
+        }
+
         function syncDirtyState() {
             isDirty = String(editor.value || '') !== initialValue;
             form.dataset.dirty = isDirty ? '1' : '0';
@@ -36,7 +50,7 @@
             var pendingText = String((config && config.savePendingText) || saveButton && saveButton.getAttribute('data-pending-text') || 'Speichert …');
 
             if (saveButton) {
-                saveButton.disabled = true;
+                setSubmittingState(true);
                 saveButton.dataset.originalText = saveButton.dataset.originalText || saveButton.textContent;
                 saveButton.textContent = pendingText;
             }
@@ -55,7 +69,7 @@
 
             if (event.ctrlKey && event.key.toLowerCase() === 's') {
                 event.preventDefault();
-                if (editor.hasAttribute('readonly')) {
+                if (editor.hasAttribute('readonly') || form.dataset.submitting === '1') {
                     return;
                 }
 
@@ -73,6 +87,10 @@
         syncDirtyState();
 
         form.addEventListener('submit', function () {
+            if (form.dataset.submitting === '1') {
+                return false;
+            }
+
             markSubmitting();
             isDirty = false;
         });

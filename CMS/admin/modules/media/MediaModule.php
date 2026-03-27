@@ -23,6 +23,14 @@ class MediaModule
 {
     private const MAX_UPLOAD_FILENAME_LENGTH = 180;
     private const MEMBER_FOLDER_CONFIRM_MESSAGE = 'Der Member-Bereich enthält sensible Uploads. Möchten Sie den Ordner wirklich öffnen?';
+    private const MAX_UPLOAD_BATCH_FILES = 20;
+    private const MAX_UPLOAD_BATCH_BYTES = 104857600;
+    private const MAX_UPLOAD_SIZE_MB = 256;
+    private const MIN_UPLOAD_SIZE_MB = 1;
+    private const SEARCH_MAX_LENGTH = 120;
+    private const FOLDER_NAME_MAX_LENGTH = 120;
+    private const CATEGORY_NAME_MAX_LENGTH = 80;
+    private const CATEGORY_SLUG_MAX_LENGTH = 80;
 
     private const SETTINGS_DEFAULTS = [
         'max_upload_size' => '64M',
@@ -269,6 +277,13 @@ class MediaModule
             ],
             'category_options' => $this->buildCategoryOptions($categories),
             'member_folder_confirm_message' => self::MEMBER_FOLDER_CONFIRM_MESSAGE,
+            'constraints' => [
+                'max_upload_files' => self::MAX_UPLOAD_BATCH_FILES,
+                'max_upload_batch_bytes' => self::MAX_UPLOAD_BATCH_BYTES,
+                'max_upload_batch_label' => $this->formatBytes(self::MAX_UPLOAD_BATCH_BYTES),
+                'search_max_length' => self::SEARCH_MAX_LENGTH,
+                'folder_name_max_length' => self::FOLDER_NAME_MAX_LENGTH,
+            ],
             'empty_state' => [
                 'title' => 'Dieser Ordner ist leer',
                 'subtitle' => 'Legen Sie einen Ordner an oder laden Sie Dateien hoch.',
@@ -306,7 +321,14 @@ class MediaModule
                 'folder_name' => $sanitizedName,
             ]);
         }
-        return ['success' => true, 'message' => 'Ordner erstellt.'];
+        return [
+            'success' => true,
+            'message' => 'Ordner erstellt.',
+            'details' => [
+                'Ordner: ' . $sanitizedName,
+                'Zielpfad: ' . ($normalizedParentPath !== '' ? $normalizedParentPath : '/'),
+            ],
+        ];
     }
 
     /**
@@ -332,7 +354,14 @@ class MediaModule
                 'filename' => (string)($normalizedFile['name'] ?? ''),
             ]);
         }
-        return ['success' => true, 'message' => 'Datei hochgeladen.'];
+        return [
+            'success' => true,
+            'message' => 'Datei hochgeladen.',
+            'details' => [
+                'Datei: ' . (string)($normalizedFile['name'] ?? 'Unbekannt'),
+                'Zielpfad: ' . ($normalizedTargetPath !== '' ? $normalizedTargetPath : '/'),
+            ],
+        ];
     }
 
     /**
@@ -355,7 +384,11 @@ class MediaModule
                 'path' => $normalizedPath,
             ]);
         }
-        return ['success' => true, 'message' => 'Element gelöscht.'];
+        return [
+            'success' => true,
+            'message' => 'Element gelöscht.',
+            'details' => ['Pfad: ' . $normalizedPath],
+        ];
     }
 
     /**
@@ -380,7 +413,14 @@ class MediaModule
                 'new_name' => $sanitizedName,
             ]);
         }
-        return ['success' => true, 'message' => 'Element umbenannt.'];
+        return [
+            'success' => true,
+            'message' => 'Element umbenannt.',
+            'details' => [
+                'Pfad: ' . $normalizedPath,
+                'Neuer Name: ' . $sanitizedName,
+            ],
+        ];
     }
 
     /**
@@ -410,7 +450,14 @@ class MediaModule
                 'category' => $normalizedCategory,
             ]);
         }
-        return ['success' => true, 'message' => 'Kategorie zugewiesen.'];
+        return [
+            'success' => true,
+            'message' => 'Kategorie zugewiesen.',
+            'details' => [
+                'Datei: ' . $normalizedPath,
+                'Kategorie: ' . ($normalizedCategory !== '' ? $normalizedCategory : 'Ohne Kategorie'),
+            ],
+        ];
     }
 
     // ─── Kategorien ──────────────────────────────────────
@@ -423,6 +470,10 @@ class MediaModule
         return [
             'categories' => $this->getCategories(),
             'system_slugs' => self::SYSTEM_CATEGORY_SLUGS,
+            'constraints' => [
+                'category_name_max_length' => self::CATEGORY_NAME_MAX_LENGTH,
+                'category_slug_max_length' => self::CATEGORY_SLUG_MAX_LENGTH,
+            ],
         ];
     }
 
@@ -451,7 +502,14 @@ class MediaModule
 
         $this->resetCategoriesCache();
 
-        return ['success' => true, 'message' => 'Kategorie erstellt.'];
+        return [
+            'success' => true,
+            'message' => 'Kategorie erstellt.',
+            'details' => [
+                'Name: ' . $sanitizedName,
+                'Slug: ' . $normalizedSlug,
+            ],
+        ];
     }
 
     /**
@@ -477,7 +535,11 @@ class MediaModule
 
         $this->resetCategoriesCache();
 
-        return ['success' => true, 'message' => 'Kategorie gelöscht.'];
+        return [
+            'success' => true,
+            'message' => 'Kategorie gelöscht.',
+            'details' => ['Slug: ' . $normalizedSlug],
+        ];
     }
 
     // ─── Einstellungen ───────────────────────────────────
@@ -493,6 +555,16 @@ class MediaModule
             'settings'  => $this->buildSettingsViewModel($settings),
             'diskUsage' => $this->service->getDiskUsage(),
             'options' => $this->buildSettingsOptions(),
+            'constraints' => [
+                'min_upload_size_mb' => self::MIN_UPLOAD_SIZE_MB,
+                'max_upload_size_mb' => self::MAX_UPLOAD_SIZE_MB,
+                'jpeg_quality_min' => 60,
+                'jpeg_quality_max' => 100,
+                'dimension_min' => 1,
+                'dimension_max' => 8000,
+                'thumbnail_min' => 50,
+                'thumbnail_max' => 6000,
+            ],
         ];
     }
 
@@ -502,6 +574,7 @@ class MediaModule
     public function saveSettings(array $input): array
     {
         $settings = $this->service->getSettings();
+        $originalSettings = $settings;
         $allTypes = array_keys($this->getTypeMap());
         $memberTypes = ['image', 'document', 'video', 'audio'];
 
@@ -588,9 +661,16 @@ class MediaModule
                 'source' => '/admin/media/settings',
                 'module' => 'media',
                 'operation' => 'save_settings',
+                'changed_fields' => $this->collectChangedSettingKeys($originalSettings, $settings),
             ]);
         }
-        return ['success' => true, 'message' => 'Einstellungen gespeichert.'];
+        return [
+            'success' => true,
+            'message' => 'Einstellungen gespeichert.',
+            'details' => [
+                'Geänderte Felder: ' . implode(', ', $this->collectChangedSettingKeys($originalSettings, $settings)),
+            ],
+        ];
     }
 
     public function normalizeTab(string $tab): string
@@ -669,7 +749,7 @@ class MediaModule
     {
         $name = trim(strip_tags($name));
 
-        return function_exists('mb_substr') ? mb_substr($name, 0, 80) : substr($name, 0, 80);
+        return function_exists('mb_substr') ? mb_substr($name, 0, self::CATEGORY_NAME_MAX_LENGTH) : substr($name, 0, self::CATEGORY_NAME_MAX_LENGTH);
     }
 
     private function sanitizeFolderName(string $name): string
@@ -679,7 +759,7 @@ class MediaModule
             return '';
         }
 
-        return function_exists('mb_substr') ? mb_substr($name, 0, 120) : substr($name, 0, 120);
+        return function_exists('mb_substr') ? mb_substr($name, 0, self::FOLDER_NAME_MAX_LENGTH) : substr($name, 0, self::FOLDER_NAME_MAX_LENGTH);
     }
 
     private function sanitizeItemName(string $name): string
@@ -691,7 +771,25 @@ class MediaModule
     {
         $search = trim(strip_tags($search));
 
-        return function_exists('mb_substr') ? mb_substr($search, 0, 120) : substr($search, 0, 120);
+        return function_exists('mb_substr') ? mb_substr($search, 0, self::SEARCH_MAX_LENGTH) : substr($search, 0, self::SEARCH_MAX_LENGTH);
+    }
+
+    /**
+     * @param array<string, mixed> $original
+     * @param array<string, mixed> $updated
+     * @return list<string>
+     */
+    private function collectChangedSettingKeys(array $original, array $updated): array
+    {
+        $changed = [];
+
+        foreach ($updated as $key => $value) {
+            if (($original[$key] ?? null) !== $value) {
+                $changed[] = (string) $key;
+            }
+        }
+
+        return $changed === [] ? ['keine expliziten Wertänderungen erkannt'] : $changed;
     }
 
     private function categoryExists(string $slug): bool
@@ -971,6 +1069,8 @@ class MediaModule
         return [
             'success' => false,
             'error' => $title . '. Bitte Logs prüfen.',
+            'details' => is_array($payload['details'] ?? null) ? $payload['details'] : [],
+            'error_details' => is_array($payload['error_details'] ?? null) ? $payload['error_details'] : [],
             'report_payload' => $payload['report_payload'] ?? [],
         ];
     }

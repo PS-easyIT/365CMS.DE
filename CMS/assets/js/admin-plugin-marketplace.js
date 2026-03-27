@@ -76,7 +76,7 @@
 
         forms.forEach(function (form) {
             form.addEventListener('submit', function () {
-                if (form.dataset.confirmAccepted !== '1') {
+                if (form.dataset.confirmAccepted !== '1' || form.dataset.submitting === '1') {
                     return;
                 }
 
@@ -85,9 +85,11 @@
                     return;
                 }
 
+                form.dataset.submitting = '1';
                 button.dataset.marketplaceSubmitting = '1';
                 button.dataset.originalHtml = button.innerHTML;
                 button.disabled = true;
+                button.setAttribute('aria-disabled', 'true');
                 button.innerHTML = button.dataset.submittingText || 'Installiere…';
             });
         });

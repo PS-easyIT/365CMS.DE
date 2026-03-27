@@ -82,6 +82,7 @@ const CMS_ADMIN_LEGAL_SITES_MAX_PROFILE_VALUE_LENGTH = 500;
 const CMS_ADMIN_LEGAL_SITES_MAX_PROFILE_TEXTAREA_LENGTH = 4000;
 const CMS_ADMIN_LEGAL_SITES_SESSION_OLD_SAVE_KEY = 'legal_sites_save_old';
 const CMS_ADMIN_LEGAL_SITES_SESSION_OLD_PROFILE_KEY = 'legal_sites_profile_old';
+const CMS_ADMIN_LEGAL_SITES_ROUTE_PATH = '/admin/legal-sites';
 const CMS_ADMIN_LEGAL_SITES_PROFILE_TEXTAREA_KEYS = [
     'legal_profile_external_media_providers',
     'legal_profile_payment_providers',
@@ -334,8 +335,35 @@ function cms_admin_legal_sites_templates(LegalSitesModule $module): array
     ];
 }
 
+function cms_admin_legal_sites_build_failure_result(string $message, string $errorCode, array $details = [], array $context = []): array
+{
+    $normalizedContext = array_merge([
+        'source' => CMS_ADMIN_LEGAL_SITES_ROUTE_PATH,
+        'route' => CMS_ADMIN_LEGAL_SITES_ROUTE_PATH,
+    ], $context);
+
+    return [
+        'success' => false,
+        'error' => $message,
+        'details' => array_values(array_filter(array_map(static fn (mixed $detail): string => trim((string) $detail), $details), static fn (string $detail): bool => $detail !== '')),
+        'error_details' => [
+            'code' => $errorCode,
+            'data' => ['route' => CMS_ADMIN_LEGAL_SITES_ROUTE_PATH],
+            'context' => $normalizedContext,
+        ],
+        'report_payload' => [
+            'title' => 'Legal Sites · ' . $errorCode,
+            'message' => $message,
+            'error_code' => $errorCode,
+            'error_data' => ['route' => CMS_ADMIN_LEGAL_SITES_ROUTE_PATH],
+            'context' => $normalizedContext,
+            'source_url' => CMS_ADMIN_LEGAL_SITES_ROUTE_PATH,
+        ],
+    ];
+}
+
 $sectionPageConfig = [
-    'route_path' => '/admin/legal-sites',
+    'route_path' => CMS_ADMIN_LEGAL_SITES_ROUTE_PATH,
     'view_file' => __DIR__ . '/views/legal/sites.php',
     'page_title' => 'Legal Sites',
     'active_page' => 'legal-sites',
@@ -359,12 +387,27 @@ $sectionPageConfig = [
     'unknown_action_message' => 'Unbekannte oder nicht erlaubte Aktion.',
     'post_handler' => static function (LegalSitesModule $module, string $section, array $post): array {
         if (!cms_admin_legal_sites_can_mutate()) {
-            return ['success' => false, 'error' => 'Keine Berechtigung für Legal-Sites-Mutationen.'];
+            return cms_admin_legal_sites_build_failure_result(
+                'Keine Berechtigung für Legal-Sites-Mutationen.',
+                'legal_sites_permission_denied',
+                ['Capability: ' . CMS_ADMIN_LEGAL_SITES_WRITE_CAPABILITY]
+            );
         }
 
         $request = cms_admin_legal_sites_normalize_request($post);
         if ($request['error'] !== '') {
-            return ['success' => false, 'error' => $request['error']];
+            return cms_admin_legal_sites_build_failure_result(
+                $request['error'],
+                'legal_sites_invalid_request',
+                [
+                    'Aktion: ' . (string) ($request['action'] ?? '(leer)'),
+                    'Vorlagentyp: ' . (string) (($request['payload']['template_type'] ?? '') !== '' ? $request['payload']['template_type'] : '(leer)'),
+                ],
+                [
+                    'action' => (string) ($request['action'] ?? ''),
+                    'template_type' => (string) ($request['payload']['template_type'] ?? ''),
+                ]
+            );
         }
 
         $action = $request['action'];

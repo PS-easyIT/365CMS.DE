@@ -16,6 +16,7 @@ if (!defined('ABSPATH')) {
 $systemFonts  = $data['systemFonts'] ?? [];
 $fontStacks   = $data['fontStacks'] ?? [];
 $customFonts  = $data['customFonts'] ?? [];
+$customFontRows = is_array($data['customFontRows'] ?? null) ? $data['customFontRows'] : [];
 $headingFont  = $data['headingFont'] ?? 'system-ui';
 $bodyFont     = $data['bodyFont'] ?? 'system-ui';
 $useLocalFonts = !empty($data['useLocalFonts']);
@@ -94,8 +95,28 @@ $fontManagerConfig = [
                     ?>
 
                     <p class="text-muted">Der Scan durchsucht das aktive Theme nach Google-Font-Imports und bekannten Schriftfamilien, damit du genutzte Fonts lokal self-hosten kannst.</p>
-                    <?php if (!empty($constraints['download_total_byte_limit'])): ?>
-                        <div class="small text-muted mb-3">Für Remote-Downloads gilt zusätzlich ein Gesamtlimit von <?php echo htmlspecialchars(number_format(((int)($constraints['download_total_byte_limit'] ?? 0)) / 1048576, 1, ',', '')); ?> MB pro Schrift-Import.</div>
+                    <?php
+                    $scanConstraintDetails = array_values(array_filter([
+                        !empty($constraints['download_total_byte_limit_label']) ? 'Remote-Gesamtlimit pro Import: ' . (string) $constraints['download_total_byte_limit_label'] : '',
+                        !empty($constraints['download_remote_file_byte_limit_label']) ? 'Einzeldatei-Limit: ' . (string) $constraints['download_remote_file_byte_limit_label'] : '',
+                        !empty($constraints['scan_file_size_limit_label']) ? 'Scan-Dateilimit: ' . (string) $constraints['scan_file_size_limit_label'] : '',
+                        !empty($constraints['scan_total_byte_limit_label']) ? 'Scan-Gesamtlimit: ' . (string) $constraints['scan_total_byte_limit_label'] : '',
+                        !empty($constraints['allowed_remote_hosts_label']) ? 'Erlaubte Hosts: ' . (string) $constraints['allowed_remote_hosts_label'] : '',
+                        !empty($constraints['scan_allowed_extensions_label']) ? 'Scan-Endungen: ' . (string) $constraints['scan_allowed_extensions_label'] : '',
+                        !empty($constraints['scan_skipped_segments_label']) ? 'Übersprungene Segmente: ' . (string) $constraints['scan_skipped_segments_label'] : '',
+                    ]));
+                    ?>
+                    <?php if ($scanConstraintDetails !== []): ?>
+                        <?php
+                        $alertData = [
+                            'type' => 'info',
+                            'message' => 'Theme-Scan und Remote-Downloads laufen mit festen Schutzgrenzen.',
+                            'details' => $scanConstraintDetails,
+                        ];
+                        $alertDismissible = false;
+                        $alertMarginClass = 'mb-3';
+                        require __DIR__ . '/../partials/flash-alert.php';
+                        ?>
                     <?php endif; ?>
                     <div class="small text-muted mb-3">
                         <?php echo (int)($scanSummary['scannedFiles'] ?? 0); ?> Dateien geprüft
@@ -113,6 +134,9 @@ $fontManagerConfig = [
                         <?php endif; ?>
                         <?php if (!empty($constraints['download_remote_file_limit'])): ?>
                             · Download-Limit <?php echo (int)($constraints['download_remote_file_limit'] ?? 0); ?> Dateien
+                        <?php endif; ?>
+                        <?php if (!empty($constraints['scan_total_byte_limit_label'])): ?>
+                            · Gesamt <?php echo htmlspecialchars((string)($constraints['scan_total_byte_limit_label'] ?? '')); ?>
                         <?php endif; ?>
                     </div>
                     <?php if (!empty($scanSummary['warnings']) && is_array($scanSummary['warnings'])): ?>
@@ -256,7 +280,7 @@ $fontManagerConfig = [
                 </div>
             </div>
 
-            <?php if (!empty($customFonts)): ?>
+            <?php if (!empty($customFontRows)): ?>
                 <div class="card mb-3">
                     <div class="card-header">
                         <h3 class="card-title">Lokale Schriftarten</h3>
@@ -273,24 +297,43 @@ $fontManagerConfig = [
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($customFonts as $font): ?>
+                                <?php foreach ($customFontRows as $font): ?>
                                     <tr>
-                                        <td><?php echo htmlspecialchars($font->name ?? ''); ?></td>
-                                        <td><span class="badge bg-azure"><?php echo htmlspecialchars($font->format ?? ''); ?></span></td>
                                         <td>
-                                            <?php if (($font->source ?? '') === 'google-fonts-local'): ?>
+                                            <div class="fw-semibold"><?php echo htmlspecialchars((string) ($font['name'] ?? '')); ?></div>
+                                            <?php if (!empty($font['file_size_label'])): ?>
+                                                <div class="text-muted small"><?php echo htmlspecialchars((string) ($font['file_size_label'] ?? '')); ?></div>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><span class="badge bg-azure"><?php echo htmlspecialchars((string) ($font['format'] ?? '')); ?></span></td>
+                                        <td>
+                                            <?php if (($font['source'] ?? '') === 'google-fonts-local'): ?>
                                                 <span class="badge bg-green">Google (lokal)</span>
                                             <?php else: ?>
                                                 <span class="badge bg-secondary">Manuell</span>
                                             <?php endif; ?>
+                                            <?php if (($font['asset_status'] ?? '') === 'warning'): ?>
+                                                <span class="badge bg-warning-lt">Assets prüfen</span>
+                                            <?php endif; ?>
                                         </td>
-                                        <td class="text-muted small"><?php echo htmlspecialchars($font->file_path ?? ''); ?></td>
+                                        <td class="text-muted small">
+                                            <div><?php echo htmlspecialchars((string) ($font['file_path'] ?? '')); ?></div>
+                                            <?php if (!empty($font['css_path'])): ?>
+                                                <div>CSS: <?php echo htmlspecialchars((string) ($font['css_path'] ?? '')); ?></div>
+                                            <?php endif; ?>
+                                            <div>
+                                                Datei <?php echo !empty($font['file_exists']) ? 'vorhanden' : 'fehlt'; ?>
+                                                <?php if (($font['css_path'] ?? '') !== ''): ?>
+                                                    · CSS <?php echo !empty($font['css_exists']) ? 'vorhanden' : 'fehlt'; ?>
+                                                <?php endif; ?>
+                                            </div>
+                                        </td>
                                         <td>
                                             <form method="post" class="d-inline" data-font-manager-form="delete-font">
                                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                                 <input type="hidden" name="action" value="delete_font">
-                                                <input type="hidden" name="font_id" value="<?php echo (int)($font->id ?? 0); ?>">
-                                                <button type="button" class="btn btn-outline-danger btn-sm js-font-delete" data-font-name="<?php echo htmlspecialchars($font->name ?? '', ENT_QUOTES); ?>" data-pending-text="Löscht …">Löschen</button>
+                                                <input type="hidden" name="font_id" value="<?php echo (int)($font['id'] ?? 0); ?>">
+                                                <button type="button" class="btn btn-outline-danger btn-sm js-font-delete" data-font-name="<?php echo htmlspecialchars((string) ($font['name'] ?? ''), ENT_QUOTES); ?>" data-pending-text="Löscht …">Löschen</button>
                                             </form>
                                         </td>
                                     </tr>
@@ -364,7 +407,7 @@ $fontManagerConfig = [
                             <div class="col">
                                 <label class="form-label">Google Font Name</label>
                                 <input type="text" name="google_font_family" class="form-control" placeholder="z.B. Inter, Roboto, Open Sans" required maxlength="<?php echo (int)($constraints['google_font_family_max_length'] ?? 120); ?>" pattern="[a-zA-Z0-9 ]+" title="Nur Buchstaben, Zahlen und Leerzeichen" autocomplete="off" spellcheck="false">
-                                <small class="form-hint">Exakter Name von <a href="https://fonts.google.com" target="_blank" rel="noopener noreferrer">fonts.google.com</a>; pro Import maximal <?php echo (int)($constraints['download_remote_file_limit'] ?? 20); ?> Font-Dateien innerhalb des Remote-Limits.</small>
+                                <small class="form-hint">Exakter Name von <a href="https://fonts.google.com" target="_blank" rel="noopener noreferrer">fonts.google.com</a>; pro Import maximal <?php echo (int)($constraints['download_remote_file_limit'] ?? 20); ?> Font-Dateien, je Datei bis <?php echo htmlspecialchars((string)($constraints['download_remote_file_byte_limit_label'] ?? '5,0 MB')); ?>, ausschließlich von <?php echo htmlspecialchars((string)($constraints['allowed_remote_hosts_label'] ?? 'fonts.googleapis.com, fonts.gstatic.com')); ?>.</small>
                             </div>
                             <div class="col-auto">
                                 <button type="submit" class="btn btn-outline-primary" data-pending-text="Lädt …">Herunterladen</button>

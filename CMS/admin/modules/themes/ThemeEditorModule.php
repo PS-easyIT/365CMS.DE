@@ -13,6 +13,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\AuditLogger;
 use CMS\Logger;
+use CMS\Services\ErrorReportService;
 use CMS\ThemeManager;
 
 class ThemeEditorModule
@@ -28,6 +29,7 @@ class ThemeEditorModule
 
     private const ALLOWED_EXTENSIONS = ['php', 'css', 'js', 'json', 'html', 'txt', 'md'];
     private const MAX_EDITABLE_BYTES = 1048576;
+    private const MAX_ERROR_CONTEXT_LENGTH = 180;
 
     public function __construct()
     {
@@ -89,6 +91,11 @@ class ThemeEditorModule
                 'tree_max_items' => self::MAX_TREE_ITEMS,
                 'tree_directory_limit' => self::MAX_TREE_ITEMS_PER_DIRECTORY,
                 'max_editable_bytes' => self::MAX_EDITABLE_BYTES,
+                'max_editable_label' => $this->formatBytes(self::MAX_EDITABLE_BYTES),
+                'allowed_extensions' => self::ALLOWED_EXTENSIONS,
+                'allowed_extensions_label' => implode(', ', self::ALLOWED_EXTENSIONS),
+                'skipped_tree_segments' => self::SKIPPED_TREE_SEGMENTS,
+                'skipped_tree_segments_label' => implode(', ', self::SKIPPED_TREE_SEGMENTS),
             ],
             'currentFile'  => $currentFile,
             'fileContent'  => $fileContent,
@@ -105,39 +112,78 @@ class ThemeEditorModule
     {
         $relativePath = $this->normalizeRelativePath($relativePath);
         if ($relativePath === '') {
-            return ['success' => false, 'error' => 'Kein Dateipfad angegeben.'];
+            return $this->buildValidationFailureResult(
+                'Kein Dateipfad angegeben.',
+                'themes.editor.missing_file',
+                ['Datei: (leer)']
+            );
         }
 
         $safePath = $this->resolveSafePath($relativePath);
         if (!$safePath) {
-            return ['success' => false, 'error' => 'Ungültiger Dateipfad.'];
+            return $this->buildValidationFailureResult(
+                'Ungültiger Dateipfad.',
+                'themes.editor.invalid_file',
+                ['Datei: ' . $relativePath],
+                ['file' => $relativePath]
+            );
         }
 
         if (!is_file($safePath)) {
-            return ['success' => false, 'error' => 'Datei nicht gefunden.'];
+            return $this->buildValidationFailureResult(
+                'Datei nicht gefunden.',
+                'themes.editor.file_missing',
+                ['Datei: ' . $relativePath],
+                ['file' => $relativePath]
+            );
         }
 
         $ext = strtolower(pathinfo($safePath, PATHINFO_EXTENSION));
         if (!in_array($ext, self::ALLOWED_EXTENSIONS, true)) {
-            return ['success' => false, 'error' => 'Dateityp nicht erlaubt.'];
+            return $this->buildValidationFailureResult(
+                'Dateityp nicht erlaubt.',
+                'themes.editor.filetype_not_allowed',
+                ['Datei: ' . $relativePath, 'Erlaubte Endungen: ' . implode(', ', self::ALLOWED_EXTENSIONS)],
+                ['file' => $relativePath, 'extension' => $ext]
+            );
         }
 
         $fileSize = filesize($safePath);
         if ($fileSize === false || $fileSize > self::MAX_EDITABLE_BYTES) {
-            return ['success' => false, 'error' => 'Datei ist zu groß für die sichere Bearbeitung im Browser.'];
+            return $this->buildValidationFailureResult(
+                'Datei ist zu groß für die sichere Bearbeitung im Browser.',
+                'themes.editor.file_too_large',
+                ['Datei: ' . $relativePath, 'Browser-Limit: ' . $this->formatBytes(self::MAX_EDITABLE_BYTES)],
+                ['file' => $relativePath, 'size_bytes' => $fileSize === false ? null : (int) $fileSize]
+            );
         }
 
         $contentBytes = strlen($content);
         if ($contentBytes > self::MAX_EDITABLE_BYTES) {
-            return ['success' => false, 'error' => 'Der neue Dateiinhalt ist zu groß für die sichere Browser-Bearbeitung.'];
+            return $this->buildValidationFailureResult(
+                'Der neue Dateiinhalt ist zu groß für die sichere Browser-Bearbeitung.',
+                'themes.editor.content_too_large',
+                ['Datei: ' . $relativePath, 'Neuer Inhalt: ' . $this->formatBytes($contentBytes), 'Browser-Limit: ' . $this->formatBytes(self::MAX_EDITABLE_BYTES)],
+                ['file' => $relativePath, 'content_bytes' => $contentBytes]
+            );
         }
 
         if (str_contains($content, "\0")) {
-            return ['success' => false, 'error' => 'Dateiinhalt enthält ungültige Binärdaten.'];
+            return $this->buildValidationFailureResult(
+                'Dateiinhalt enthält ungültige Binärdaten.',
+                'themes.editor.binary_content',
+                ['Datei: ' . $relativePath],
+                ['file' => $relativePath]
+            );
         }
 
         if (!is_writable($safePath)) {
-            return ['success' => false, 'error' => 'Datei ist nicht beschreibbar.'];
+            return $this->buildValidationFailureResult(
+                'Datei ist nicht beschreibbar.',
+                'themes.editor.file_not_writable',
+                ['Datei: ' . $relativePath],
+                ['file' => $relativePath]
+            );
         }
 
         // PHP-Syntax prüfen vor dem Speichern
@@ -172,7 +218,15 @@ class ThemeEditorModule
             );
         }
 
-        return ['success' => true, 'message' => 'Datei gespeichert.'];
+        return [
+            'success' => true,
+            'message' => 'Datei gespeichert.',
+            'details' => [
+                'Datei: ' . $relativePath,
+                'Typ: .' . $ext,
+                'Größe: ' . $this->formatBytes($contentBytes),
+            ],
+        ];
     }
 
     /**
@@ -414,13 +468,69 @@ class ThemeEditorModule
     {
         $this->logFailure($action, $message, $exception, $context);
 
-        return ['success' => false, 'error' => $message . ' Bitte Logs prüfen.'];
+        $errorData = $context;
+        if ($exception !== null) {
+            $errorData['exception'] = $this->sanitizeErrorContext($exception->getMessage());
+        }
+
+        return [
+            'success' => false,
+            'error' => $message . ' Bitte Logs prüfen.',
+            'details' => array_values(array_filter([
+                !empty($context['file']) ? 'Datei: ' . (string) $context['file'] : '',
+                $exception !== null ? 'Ursache: ' . $this->sanitizeErrorContext($exception->getMessage()) : '',
+            ])),
+            'error_details' => [
+                'code' => $action,
+                'data' => $errorData,
+                'context' => [
+                    'source' => '/admin/theme-explorer',
+                    'title' => 'Theme Explorer',
+                ],
+            ],
+            'report_payload' => ErrorReportService::buildReportPayloadFromWpError(
+                new \CMS\WP_Error($action, $message . ' Bitte Logs prüfen.', $errorData),
+                [
+                    'source' => '/admin/theme-explorer',
+                    'title' => 'Theme Explorer',
+                ]
+            ),
+        ];
+    }
+
+    private function buildValidationFailureResult(string $message, string $errorCode, array $details = [], array $context = []): array
+    {
+        $normalizedDetails = array_values(array_filter(array_map(
+            static fn (mixed $detail): string => trim((string) $detail),
+            $details
+        ), static fn (string $detail): bool => $detail !== ''));
+
+        return [
+            'success' => false,
+            'error' => $message,
+            'details' => $normalizedDetails,
+            'error_details' => [
+                'code' => $errorCode,
+                'data' => $context,
+                'context' => [
+                    'source' => '/admin/theme-explorer',
+                    'title' => 'Theme Explorer',
+                ],
+            ],
+            'report_payload' => ErrorReportService::buildReportPayloadFromWpError(
+                new \CMS\WP_Error($errorCode, $message, $context),
+                [
+                    'source' => '/admin/theme-explorer',
+                    'title' => 'Theme Explorer',
+                ]
+            ),
+        ];
     }
 
     private function logFailure(string $action, string $message, ?\Throwable $exception = null, array $context = []): void
     {
         if ($exception !== null) {
-            $context['exception'] = $exception->getMessage();
+            $context['exception'] = $this->sanitizeErrorContext($exception->getMessage());
         }
 
         Logger::instance()->withChannel('admin.theme-editor')->error($message, $context);
@@ -433,5 +543,17 @@ class ThemeEditorModule
             $context,
             'error'
         );
+    }
+
+    private function sanitizeErrorContext(string $value): string
+    {
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', trim($value)) ?? '';
+        $value = preg_replace('/\s+/u', ' ', $value) ?? '';
+
+        if (function_exists('mb_substr')) {
+            return mb_substr($value, 0, self::MAX_ERROR_CONTEXT_LENGTH);
+        }
+
+        return substr($value, 0, self::MAX_ERROR_CONTEXT_LENGTH);
     }
 }

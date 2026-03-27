@@ -15,41 +15,11 @@ if (!defined('ABSPATH')) {
 $settings  = $data['settings'] ?? [];
 $diskUsage = $data['diskUsage'] ?? [];
 $options = $data['options'] ?? [];
+$constraints = is_array($data['constraints'] ?? null) ? $data['constraints'] : [];
 $allTypes = is_array($options['allowed_types'] ?? null) ? $options['allowed_types'] : [];
 $memberTypes = is_array($options['member_allowed_types'] ?? null) ? $options['member_allowed_types'] : [];
 $thumbnailSizes = is_array($options['thumbnail_sizes'] ?? null) ? $options['thumbnail_sizes'] : [];
-
-// Defaults
-$s = array_merge([
-    'max_upload_size'         => 64,
-    'allowed_types'           => $allTypes,
-    'organize_month_year'     => true,
-    'sanitize_filename'       => true,
-    'unique_filename'         => true,
-    'lowercase_filename'      => false,
-    'auto_webp'               => true,
-    'strip_exif'              => true,
-    'jpeg_quality'            => 85,
-    'max_width'               => 2560,
-    'max_height'              => 2560,
-    'generate_thumbnails'     => false,
-    'thumbnail_small_w'       => 150,
-    'thumbnail_small_h'       => 150,
-    'thumbnail_medium_w'      => 300,
-    'thumbnail_medium_h'      => 300,
-    'thumbnail_large_w'       => 1024,
-    'thumbnail_large_h'       => 1024,
-    'thumbnail_banner_w'      => 1200,
-    'thumbnail_banner_h'      => 400,
-    'block_dangerous_types'   => true,
-    'validate_image_content'  => true,
-    'require_login_for_upload'=> true,
-    'protect_uploads_dir'     => true,
-    'member_uploads_enabled'  => false,
-    'member_max_upload_size'  => 5,
-    'member_allowed_types'    => $memberTypes,
-    'member_delete_own'       => false,
-], $settings);
+$s = is_array($settings) ? $settings : [];
 ?>
 
 <div class="page-header d-print-none">
@@ -70,6 +40,13 @@ $s = array_merge([
             <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
+        <div class="alert alert-info mb-3" role="alert">
+            Upload-Größen liegen zwischen <?php echo (int)($constraints['min_upload_size_mb'] ?? 1); ?> und <?php echo (int)($constraints['max_upload_size_mb'] ?? 256); ?> MB,
+            JPEG-Qualität zwischen <?php echo (int)($constraints['jpeg_quality_min'] ?? 60); ?> und <?php echo (int)($constraints['jpeg_quality_max'] ?? 100); ?>,
+            Bildmaße zwischen <?php echo (int)($constraints['dimension_min'] ?? 1); ?> und <?php echo (int)($constraints['dimension_max'] ?? 8000); ?> px
+            sowie Thumbnail-Kanten zwischen <?php echo (int)($constraints['thumbnail_min'] ?? 50); ?> und <?php echo (int)($constraints['thumbnail_max'] ?? 6000); ?> px.
+        </div>
+
         <form method="post">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
             <input type="hidden" name="action" value="save_settings">
@@ -84,7 +61,7 @@ $s = array_merge([
                         <div class="card-body">
                             <div class="mb-3">
                                 <label class="form-label" for="maxUploadSize">Maximale Upload-Größe (MB)</label>
-                                <input type="number" class="form-control" id="maxUploadSize" name="max_upload_size" value="<?php echo (int)$s['max_upload_size']; ?>" min="1" max="256" step="1" inputmode="numeric">
+                                <input type="number" class="form-control" id="maxUploadSize" name="max_upload_size" value="<?php echo (int)($s['max_upload_size'] ?? 64); ?>" min="<?php echo (int)($constraints['min_upload_size_mb'] ?? 1); ?>" max="<?php echo (int)($constraints['max_upload_size_mb'] ?? 256); ?>" step="1" inputmode="numeric">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Erlaubte Dateitypen</label>
@@ -152,16 +129,16 @@ $s = array_merge([
                             <div class="row">
                                 <div class="col-sm-4 mb-3">
                                     <label class="form-label" for="jpegQuality">JPEG-Qualität (%)</label>
-                                    <input type="number" class="form-control" id="jpegQuality" name="jpeg_quality" value="<?php echo (int)$s['jpeg_quality']; ?>" min="60" max="100" inputmode="numeric">
+                                    <input type="number" class="form-control" id="jpegQuality" name="jpeg_quality" value="<?php echo (int)($s['jpeg_quality'] ?? 85); ?>" min="<?php echo (int)($constraints['jpeg_quality_min'] ?? 60); ?>" max="<?php echo (int)($constraints['jpeg_quality_max'] ?? 100); ?>" inputmode="numeric">
                                 </div>
                                 <div class="col-sm-4 mb-3">
                                     <label class="form-label" for="maxWidth">Max. Breite (px)</label>
-                                    <input type="number" class="form-control" id="maxWidth" name="max_width" value="<?php echo (int)$s['max_width']; ?>" min="1" max="8000" inputmode="numeric">
+                                    <input type="number" class="form-control" id="maxWidth" name="max_width" value="<?php echo (int)($s['max_width'] ?? 2560); ?>" min="<?php echo (int)($constraints['dimension_min'] ?? 1); ?>" max="<?php echo (int)($constraints['dimension_max'] ?? 8000); ?>" inputmode="numeric">
                                     <small class="form-hint">Wertebereich: 1 bis 8000 px</small>
                                 </div>
                                 <div class="col-sm-4 mb-3">
                                     <label class="form-label" for="maxHeight">Max. Höhe (px)</label>
-                                    <input type="number" class="form-control" id="maxHeight" name="max_height" value="<?php echo (int)$s['max_height']; ?>" min="1" max="8000" inputmode="numeric">
+                                    <input type="number" class="form-control" id="maxHeight" name="max_height" value="<?php echo (int)($s['max_height'] ?? 2560); ?>" min="<?php echo (int)($constraints['dimension_min'] ?? 1); ?>" max="<?php echo (int)($constraints['dimension_max'] ?? 8000); ?>" inputmode="numeric">
                                     <small class="form-hint">Wertebereich: 1 bis 8000 px</small>
                                 </div>
                             </div>
@@ -194,9 +171,9 @@ $s = array_merge([
                                     <div class="col-sm-6 col-md-3 mb-3">
                                         <label class="form-label fw-bold"><?php echo htmlspecialchars($label); ?></label>
                                         <div class="input-group input-group-sm">
-                                            <input type="number" class="form-control" name="<?php echo htmlspecialchars($wKey, ENT_QUOTES); ?>" value="<?php echo (int)($s[$wKey] ?? 0); ?>" min="50" max="6000" inputmode="numeric" placeholder="B">
+                                            <input type="number" class="form-control" name="<?php echo htmlspecialchars($wKey, ENT_QUOTES); ?>" value="<?php echo (int)($s[$wKey] ?? 0); ?>" min="<?php echo (int)($constraints['thumbnail_min'] ?? 50); ?>" max="<?php echo (int)($constraints['thumbnail_max'] ?? 6000); ?>" inputmode="numeric" placeholder="B">
                                             <span class="input-group-text">×</span>
-                                            <input type="number" class="form-control" name="<?php echo htmlspecialchars($hKey, ENT_QUOTES); ?>" value="<?php echo (int)($s[$hKey] ?? 0); ?>" min="50" max="6000" inputmode="numeric" placeholder="H">
+                                            <input type="number" class="form-control" name="<?php echo htmlspecialchars($hKey, ENT_QUOTES); ?>" value="<?php echo (int)($s[$hKey] ?? 0); ?>" min="<?php echo (int)($constraints['thumbnail_min'] ?? 50); ?>" max="<?php echo (int)($constraints['thumbnail_max'] ?? 6000); ?>" inputmode="numeric" placeholder="H">
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
@@ -219,7 +196,7 @@ $s = array_merge([
                             <div class="row mb-3">
                                 <div class="col-sm-6">
                                     <label class="form-label" for="memberMaxUpload">Max. Upload-Größe (MB)</label>
-                                    <input type="number" class="form-control" id="memberMaxUpload" name="member_max_upload_size" value="<?php echo (int)$s['member_max_upload_size']; ?>" min="1" max="256" inputmode="numeric">
+                                    <input type="number" class="form-control" id="memberMaxUpload" name="member_max_upload_size" value="<?php echo (int)($s['member_max_upload_size'] ?? 5); ?>" min="<?php echo (int)($constraints['min_upload_size_mb'] ?? 1); ?>" max="<?php echo (int)($constraints['max_upload_size_mb'] ?? 256); ?>" inputmode="numeric">
                                 </div>
                                 <div class="col-sm-6 d-flex align-items-end">
                                     <label class="form-check form-switch">

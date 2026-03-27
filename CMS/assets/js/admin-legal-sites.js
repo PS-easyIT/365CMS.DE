@@ -1,6 +1,19 @@
 (function () {
     'use strict';
 
+    function setFormPendingState(form, pending) {
+        if (!form) {
+            return;
+        }
+
+        form.dataset.submitting = pending ? '1' : '0';
+
+        form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach(function (button) {
+            button.disabled = pending;
+            button.setAttribute('aria-disabled', pending ? 'true' : 'false');
+        });
+    }
+
     function parseConfig(id) {
         var element = document.getElementById(id);
         if (!element) {
@@ -128,11 +141,25 @@
         });
     }
 
+    function initSubmitGuards() {
+        document.querySelectorAll('form[method="post"]').forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (form.dataset.submitting === '1') {
+                    event.preventDefault();
+                    return;
+                }
+
+                setFormPendingState(form, true);
+            });
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         var config = parseConfig('legal-sites-config');
 
         initLegalProfileRequirements(config);
         initPrivacyFeatureDetails();
         initTemplateInsertButtons(config);
+        initSubmitGuards();
     });
 })();

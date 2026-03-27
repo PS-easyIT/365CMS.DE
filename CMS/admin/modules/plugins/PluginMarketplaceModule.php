@@ -10,6 +10,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Http\Client as HttpClient;
+use CMS\Services\ErrorReportService;
 use CMS\Services\UpdateService;
 
 class PluginMarketplaceModule
@@ -23,6 +24,7 @@ class PluginMarketplaceModule
     private const MAX_ARCHIVE_UNCOMPRESSED_BYTES = 52428800;
     private const MAX_CATALOG_STRING_LENGTH = 500;
     private const MAX_PACKAGE_SIZE_BYTES = 104857600;
+    private const ALLOWED_ARCHIVE_EXTENSIONS = ['zip'];
     private const MANIFEST_ALLOWED_KEYS = [
         'slug',
         'name',
@@ -115,6 +117,7 @@ class PluginMarketplaceModule
             $plugin['package_size_label'] = $packageSizeBytes > 0 ? $this->formatBytesLabel($packageSizeBytes) : '';
             $plugin['download_host'] = strtolower((string) parse_url($downloadUrl, PHP_URL_HOST));
             $plugin['download_host_allowed'] = $downloadUrl !== '' && $this->isAllowedMarketplaceUrl($downloadUrl);
+            $plugin['download_extension_allowed'] = $downloadUrl !== '' && $this->hasAllowedArchiveExtension($downloadUrl);
             $plugin['package_size_allowed'] = $this->isAllowedPackageSize($plugin);
             $plugin['integrity_hash_short'] = $integrityHash !== '' ? substr($integrityHash, 0, 12) . '…' : '';
             $plugin['auto_install_supported'] = $this->canAutoInstall($plugin);
@@ -133,6 +136,21 @@ class PluginMarketplaceModule
             'installed' => $installed,
             'stats'     => $this->buildStats($available, $installed),
             'source'    => $this->registrySource,
+            'constraints' => [
+                'registry_cache_ttl' => self::REGISTRY_CACHE_TTL,
+                'registry_max_bytes' => self::MAX_REGISTRY_BYTES,
+                'registry_max_bytes_label' => $this->formatBytesLabel(self::MAX_REGISTRY_BYTES),
+                'manifest_max_bytes' => self::MAX_MANIFEST_BYTES,
+                'manifest_max_bytes_label' => $this->formatBytesLabel(self::MAX_MANIFEST_BYTES),
+                'package_size_limit_bytes' => self::MAX_PACKAGE_SIZE_BYTES,
+                'package_size_limit_label' => $this->formatBytesLabel(self::MAX_PACKAGE_SIZE_BYTES),
+                'archive_entries_limit' => self::MAX_ARCHIVE_ENTRIES,
+                'archive_uncompressed_limit_bytes' => self::MAX_ARCHIVE_UNCOMPRESSED_BYTES,
+                'archive_uncompressed_limit_label' => $this->formatBytesLabel(self::MAX_ARCHIVE_UNCOMPRESSED_BYTES),
+                'allowed_marketplace_hosts' => self::ALLOWED_MARKETPLACE_HOSTS,
+                'allowed_archive_extensions' => self::ALLOWED_ARCHIVE_EXTENSIONS,
+                'allowed_archive_extensions_label' => implode(', ', self::ALLOWED_ARCHIVE_EXTENSIONS),
+            ],
             'filters'   => [
                 'categories' => $this->buildCategoryFilters($available),
                 'statuses' => $this->buildStatusFilters(),
@@ -149,37 +167,73 @@ class PluginMarketplaceModule
     {
         $slug = $this->normalizePluginSlug($slug);
         if ($slug === '') {
-            return ['success' => false, 'error' => 'Ungültiger Plugin-Slug.'];
+            return $this->buildInstallFailureResult('Ungültiger Plugin-Slug.', 'plugin_marketplace_invalid_slug');
         }
 
         $found = $this->findCatalogPlugin($slug);
 
         if (!$found) {
-            return ['success' => false, 'error' => 'Plugin nicht im Marketplace gefunden.'];
+            return $this->buildInstallFailureResult('Plugin nicht im Marketplace gefunden.', 'plugin_marketplace_missing_catalog_entry', [
+                'Slug: ' . $slug,
+            ], [
+                'slug' => $slug,
+            ]);
         }
 
         if (!empty($found['installed'])) {
-            return ['success' => false, 'error' => 'Plugin ist bereits installiert.'];
+            return $this->buildInstallFailureResult('Plugin ist bereits installiert.', 'plugin_marketplace_already_installed', [
+                'Slug: ' . $slug,
+            ], [
+                'slug' => $slug,
+            ]);
         }
 
         $downloadUrl = $found['download_url'] ?? '';
         $integrityHash = $this->resolveIntegrityHash($found);
 
         if (!$this->canAutoInstall($found)) {
-            return ['success' => false, 'error' => $this->getManualInstallReason($found)];
+            return $this->buildInstallFailureResult(
+                $this->getManualInstallReason($found),
+                'plugin_marketplace_manual_install_required',
+                $this->buildInstallContextDetails($slug, $downloadUrl, $integrityHash, $found),
+                $this->buildInstallErrorData($slug, $downloadUrl, $integrityHash, $found)
+            );
         }
 
         if (!$this->isAllowedPackageSize($found)) {
-            return ['success' => false, 'error' => 'Paket überschreitet die erlaubte Marketplace-Größe für Auto-Installationen.'];
+            return $this->buildInstallFailureResult(
+                'Paket überschreitet die erlaubte Marketplace-Größe für Auto-Installationen.',
+                'plugin_marketplace_package_too_large',
+                $this->buildInstallContextDetails($slug, $downloadUrl, $integrityHash, $found),
+                $this->buildInstallErrorData($slug, $downloadUrl, $integrityHash, $found)
+            );
         }
 
         if (!$this->isAllowedMarketplaceUrl($downloadUrl)) {
-            return ['success' => false, 'error' => 'Download-URL liegt außerhalb der erlaubten Marketplace-Hosts.'];
+            return $this->buildInstallFailureResult(
+                'Download-URL liegt außerhalb der erlaubten Marketplace-Hosts.',
+                'plugin_marketplace_disallowed_download_host',
+                $this->buildInstallContextDetails($slug, $downloadUrl, $integrityHash, $found),
+                $this->buildInstallErrorData($slug, $downloadUrl, $integrityHash, $found)
+            );
+        }
+
+        if (!$this->hasAllowedArchiveExtension($downloadUrl)) {
+            return $this->buildInstallFailureResult(
+                'Download-Archiv hat keine erlaubte Dateiendung für Auto-Installationen.',
+                'plugin_marketplace_disallowed_archive_extension',
+                $this->buildInstallContextDetails($slug, $downloadUrl, $integrityHash, $found),
+                $this->buildInstallErrorData($slug, $downloadUrl, $integrityHash, $found)
+            );
         }
 
         $pluginsDir = $this->resolvePluginsDir();
         if ($pluginsDir === '') {
-            return ['success' => false, 'error' => 'Plugin-Zielverzeichnis ist nicht verfügbar.'];
+            return $this->buildInstallFailureResult('Plugin-Zielverzeichnis ist nicht verfügbar.', 'plugin_marketplace_plugins_dir_missing', [
+                'Slug: ' . $slug,
+            ], [
+                'slug' => $slug,
+            ]);
         }
 
         $targetDir = $pluginsDir . $slug . DIRECTORY_SEPARATOR;
@@ -187,11 +241,19 @@ class PluginMarketplaceModule
         $normalizedTargetDir = rtrim(str_replace('\\', '/', $targetDir), '/') . '/';
 
         if (!str_starts_with($normalizedTargetDir, $normalizedPluginsDir)) {
-            return ['success' => false, 'error' => 'Plugin-Zielverzeichnis ist ungültig.'];
+            return $this->buildInstallFailureResult('Plugin-Zielverzeichnis ist ungültig.', 'plugin_marketplace_invalid_target_dir', [
+                'Slug: ' . $slug,
+            ], [
+                'slug' => $slug,
+            ]);
         }
 
         if (is_dir($targetDir)) {
-            return ['success' => false, 'error' => 'Plugin ist bereits installiert.'];
+            return $this->buildInstallFailureResult('Plugin ist bereits installiert.', 'plugin_marketplace_target_exists', [
+                'Slug: ' . $slug,
+            ], [
+                'slug' => $slug,
+            ]);
         }
 
         $result = $this->updateService->downloadAndInstallUpdate(
@@ -204,19 +266,28 @@ class PluginMarketplaceModule
         );
 
         if (($result['success'] ?? false) !== true) {
-            return [
-                'success' => false,
-                'error' => (string) ($result['message'] ?? 'Plugin konnte nicht installiert werden.'),
-                'details' => array_values(array_filter([
-                    'Slug: ' . $slug,
-                    'Quelle: ' . $downloadUrl,
-                    !empty($found['package_size']) ? 'Paketgröße: ' . $this->formatBytesLabel($this->normalizePackageSize($found['package_size'])) : '',
-                    $integrityHash !== '' ? 'SHA-256: ' . substr($integrityHash, 0, 12) . '…' : '',
-                ])),
-            ];
+            return $this->buildInstallFailureResult(
+                (string) ($result['message'] ?? 'Plugin konnte nicht installiert werden.'),
+                'plugin_marketplace_install_failed',
+                $this->buildInstallContextDetails($slug, $downloadUrl, $integrityHash, $found),
+                array_merge(
+                    $this->buildInstallErrorData($slug, $downloadUrl, $integrityHash, $found),
+                    ['installer_result' => is_array($result) ? array_intersect_key($result, array_flip(['message', 'status', 'code', 'sha256_verified'])) : []]
+                )
+            );
         }
 
-        return ['success' => true, 'message' => "Plugin \"{$slug}\" installiert. Aktiviere es unter Plugin-Verwaltung."];
+        return [
+            'success' => true,
+            'message' => "Plugin \"{$slug}\" installiert. Aktiviere es unter Plugin-Verwaltung.",
+            'details' => array_merge(
+                $this->buildInstallContextDetails($slug, $downloadUrl, $integrityHash, $found),
+                [
+                    'Zielpfad: ' . $normalizedTargetDir,
+                    'SHA-256 verifiziert: ' . (!empty($result['sha256_verified']) ? 'ja' : 'nein'),
+                ]
+            ),
+        ];
     }
 
     private function loadRegistry(): array
@@ -226,6 +297,7 @@ class PluginMarketplaceModule
         }
 
         $registryUrl = $this->getRegistryUrl();
+        $remoteRegistry = ['plugins' => []];
         $cachedRegistry = $this->loadCachedRegistry($registryUrl);
         if ($cachedRegistry !== null) {
             $this->registrySource = [
@@ -244,15 +316,19 @@ class PluginMarketplaceModule
 
         if ($registryUrl !== '') {
             $remoteRegistry = $this->loadRemoteRegistry($registryUrl);
-            if ($remoteRegistry !== []) {
-                $this->persistRegistryCache($registryUrl, $remoteRegistry);
+            $remotePlugins = is_array($remoteRegistry['plugins'] ?? null) ? $remoteRegistry['plugins'] : [];
+            if ($remotePlugins !== []) {
+                $this->persistRegistryCache($registryUrl, $remotePlugins);
                 $this->registrySource = [
                     'type' => 'remote',
                     'status' => 'success',
                     'message' => 'Plugin-Registry erfolgreich aus der Remote-Quelle geladen.',
                     'url' => $registryUrl,
+                    'details' => array_values(array_filter([
+                        !empty($remoteRegistry['details']) && is_array($remoteRegistry['details']) ? implode(' · ', array_map('strval', $remoteRegistry['details'])) : '',
+                    ])),
                 ];
-                return $this->registryCache = $remoteRegistry;
+                return $this->registryCache = $remotePlugins;
             }
 
             $staleRegistry = $this->loadCachedRegistry($registryUrl, true);
@@ -265,6 +341,8 @@ class PluginMarketplaceModule
                     'details' => array_values(array_filter([
                         !empty($staleRegistry['cached_at_label']) ? 'Cache-Stand: ' . $staleRegistry['cached_at_label'] : '',
                         isset($staleRegistry['age_seconds']) ? 'Cache-Alter: ' . (int) $staleRegistry['age_seconds'] . ' Sekunden' : '',
+                        !empty($remoteRegistry['error']) ? 'Remote-Fehler: ' . (string) $remoteRegistry['error'] : '',
+                        !empty($remoteRegistry['details']) && is_array($remoteRegistry['details']) ? implode(' · ', array_map('strval', $remoteRegistry['details'])) : '',
                     ])),
                 ];
 
@@ -279,6 +357,10 @@ class PluginMarketplaceModule
                 'status' => 'warning',
                 'message' => 'Es konnte weder eine Remote-Registry noch ein lokaler Marketplace-Index geladen werden.',
                 'url' => $registryUrl,
+                'details' => array_values(array_filter([
+                    !empty($remoteRegistry['error']) ? 'Remote-Fehler: ' . (string) $remoteRegistry['error'] : '',
+                    !empty($remoteRegistry['details']) && is_array($remoteRegistry['details']) ? implode(' · ', array_map('strval', $remoteRegistry['details'])) : '',
+                ])),
             ];
             return $this->registryCache = [];
         }
@@ -387,11 +469,17 @@ class PluginMarketplaceModule
         return $this->normalizeMarketplaceUrl(self::DEFAULT_REGISTRY_URL);
     }
 
+    /**
+     * @return array{plugins: array<int, array<string, mixed>>, error?: string, details?: list<string>}
+     */
     private function loadRemoteRegistry(string $registryUrl): array
     {
         $registryUrl = $this->normalizeMarketplaceUrl($registryUrl);
         if ($registryUrl === '') {
-            return [];
+            return [
+                'plugins' => [],
+                'error' => 'Registry-URL ist ungültig oder nicht freigegeben.',
+            ];
         }
 
         $response = $this->httpClient->get($registryUrl, [
@@ -404,16 +492,42 @@ class PluginMarketplaceModule
         $content = (string) ($response['body'] ?? '');
 
         if (($response['success'] ?? false) !== true || $content === '') {
-            return [];
+            return [
+                'plugins' => [],
+                'error' => (string) ($response['error'] ?? 'Remote-Registry konnte nicht geladen werden.'),
+                'details' => array_values(array_filter([
+                    !empty($response['status']) ? 'HTTP-Status: ' . (int) $response['status'] : '',
+                    !empty($response['contentType']) ? 'Content-Type: ' . (string) $response['contentType'] : '',
+                ])),
+            ];
         }
 
         $data = \CMS\Json::decodeArray($content, []);
         $plugins = is_array($data) ? ($data['plugins'] ?? $data) : [];
 
-        return $this->sanitizeCatalogEntries(
+        $sanitizedPlugins = $this->sanitizeCatalogEntries(
             is_array($plugins) ? $plugins : [],
             $this->resolveBasePath($registryUrl)
         );
+
+        if ($sanitizedPlugins === []) {
+            return [
+                'plugins' => [],
+                'error' => 'Remote-Registry enthielt keine verwertbaren Plugin-Einträge.',
+                'details' => [
+                    'Quelle: ' . $registryUrl,
+                    'Rohdaten vorhanden: ' . (is_array($plugins) && $plugins !== [] ? 'ja' : 'nein'),
+                ],
+            ];
+        }
+
+        return [
+            'plugins' => $sanitizedPlugins,
+            'details' => [
+                'Quelle: ' . $registryUrl,
+                'Einträge: ' . count($sanitizedPlugins),
+            ],
+        ];
     }
 
     private function getInstalledSlugs(): array
@@ -725,7 +839,8 @@ class PluginMarketplaceModule
             && $integrityHash !== ''
             && $this->meetsEnvironmentRequirements($plugin)
             && $this->isAllowedPackageSize($plugin)
-            && $this->isAllowedMarketplaceUrl($downloadUrl);
+            && $this->isAllowedMarketplaceUrl($downloadUrl)
+            && $this->hasAllowedArchiveExtension($downloadUrl);
     }
 
     private function resolveIntegrityHash(array $plugin): string
@@ -765,7 +880,28 @@ class PluginMarketplaceModule
             return 'Download-URL liegt außerhalb der erlaubten Marketplace-Hosts.';
         }
 
+        if (!$this->hasAllowedArchiveExtension($downloadUrl)) {
+            return 'Download-Archiv muss eine erlaubte Endung (' . implode(', ', self::ALLOWED_ARCHIVE_EXTENSIONS) . ') besitzen.';
+        }
+
         return 'Für die automatische Installation fehlt eine gültige SHA-256-Prüfsumme. Bitte Paket manuell prüfen und installieren.';
+    }
+
+    private function hasAllowedArchiveExtension(string $url): bool
+    {
+        $normalizedUrl = $this->normalizeMarketplaceUrl($url);
+        if ($normalizedUrl === '') {
+            return false;
+        }
+
+        $path = strtolower((string) parse_url($normalizedUrl, PHP_URL_PATH));
+        if ($path === '') {
+            return false;
+        }
+
+        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+
+        return $extension !== '' && in_array($extension, self::ALLOWED_ARCHIVE_EXTENSIONS, true);
     }
 
     private function isAllowedMarketplaceUrl(string $url): bool
@@ -900,6 +1036,58 @@ class PluginMarketplaceModule
         }
 
         return defined('ABSPATH') ? ABSPATH . 'plugins/' : '';
+    }
+
+    /** @return array<int, string> */
+    private function buildInstallContextDetails(string $slug, string $downloadUrl, string $integrityHash, array $plugin): array
+    {
+        return array_values(array_filter([
+            'Slug: ' . $slug,
+            $downloadUrl !== '' ? 'Quelle: ' . $downloadUrl : '',
+            !empty($plugin['package_size']) ? 'Paketgröße: ' . $this->formatBytesLabel($this->normalizePackageSize($plugin['package_size'])) : '',
+            $downloadUrl !== '' ? 'Archiv-Endung erlaubt: ' . ($this->hasAllowedArchiveExtension($downloadUrl) ? 'ja' : 'nein') : '',
+            $integrityHash !== '' ? 'SHA-256: ' . substr($integrityHash, 0, 12) . '…' : '',
+            !empty($plugin['requires_cms']) ? '365CMS ab: ' . (string) $plugin['requires_cms'] : '',
+            !empty($plugin['requires_php']) ? 'PHP ab: ' . (string) $plugin['requires_php'] : '',
+        ]));
+    }
+
+    /** @return array<string, mixed> */
+    private function buildInstallErrorData(string $slug, string $downloadUrl, string $integrityHash, array $plugin): array
+    {
+        return [
+            'slug' => $slug,
+            'download_url' => $downloadUrl,
+            'download_host' => strtolower((string) parse_url($downloadUrl, PHP_URL_HOST)),
+            'archive_extension' => strtolower((string) pathinfo((string) parse_url($downloadUrl, PHP_URL_PATH), PATHINFO_EXTENSION)),
+            'sha256' => $integrityHash,
+            'package_size_bytes' => $this->normalizePackageSize($plugin['package_size'] ?? null),
+            'requires_cms' => (string) ($plugin['requires_cms'] ?? ''),
+            'requires_php' => (string) ($plugin['requires_php'] ?? ''),
+        ];
+    }
+
+    private function buildInstallFailureResult(string $message, string $errorCode, array $details = [], array $errorData = []): array
+    {
+        $context = [
+            'source' => '/admin/plugin-marketplace',
+            'title' => 'Plugin Marketplace',
+        ];
+
+        return [
+            'success' => false,
+            'error' => $message,
+            'details' => array_values(array_filter(array_map(static fn (mixed $detail): string => trim((string) $detail), $details), static fn (string $detail): bool => $detail !== '')),
+            'error_details' => [
+                'code' => $errorCode,
+                'data' => $errorData,
+                'context' => $context,
+            ],
+            'report_payload' => ErrorReportService::buildReportPayloadFromWpError(
+                new \CMS\WP_Error($errorCode, $message, $errorData),
+                $context
+            ),
+        ];
     }
 
     private function normalizePackageSize(mixed $value): int

@@ -15,6 +15,7 @@ use CMS\ThemeManager;
 
 const CMS_ADMIN_THEME_EDITOR_CAPABILITY = 'manage_settings';
 const CMS_ADMIN_THEME_EDITOR_FALLBACK_VIEW = __DIR__ . '/views/themes/customizer-missing.php';
+const CMS_ADMIN_THEME_EDITOR_ROUTE_PATH = '/admin/theme-editor';
 
 function cms_admin_theme_editor_can_access(): bool
 {
@@ -24,6 +25,16 @@ function cms_admin_theme_editor_can_access(): bool
 function cms_admin_theme_editor_page_title(): string
 {
     return 'Theme Editor';
+}
+
+function cms_admin_theme_editor_reason_hint(string $reasonCode): string
+{
+    return match ($reasonCode) {
+        'theme_path_unresolved' => 'Prüfe zuerst, ob das aktive Theme-Verzeichnis korrekt vorhanden und für PHP auflösbar ist.',
+        'customizer_unreadable' => 'Die erwartete Customizer-Datei existiert möglicherweise, ist aber nicht lesbar oder liegt nicht sauber im Theme-Pfad.',
+        'customizer_outside_theme' => 'Der gefundene Customizer-Pfad wurde aus Sicherheitsgründen verworfen, weil er außerhalb des aktiven Theme-Verzeichnisses liegt.',
+        default => 'Lege eine sichere Datei admin/customizer.php innerhalb des aktiven Theme-Verzeichnisses an oder nutze den Theme Explorer für die Vorbereitung.',
+    };
 }
 
 /** @return array{themes:string, explorer:string} */
@@ -36,7 +47,7 @@ function cms_admin_theme_editor_fallback_links(): array
 }
 
 /**
- * @return array{activeThemeSlug:string,customizerPath:?string,reason:string,links:array{themes:string,explorer:string}}
+ * @return array{activeThemeSlug:string,customizerPath:?string,expectedCustomizerPath:string,reason:string,reasonCode:string,reasonHint:string,links:array{themes:string,explorer:string},constraints:array<string,int|string>}
  */
 function cms_admin_theme_editor_resolve_state(ThemeManager $themeManager): array
 {
@@ -48,8 +59,12 @@ function cms_admin_theme_editor_resolve_state(ThemeManager $themeManager): array
         return [
             'activeThemeSlug' => $activeThemeSlug,
             'customizerPath' => null,
+            'expectedCustomizerPath' => 'admin/customizer.php',
             'reason' => 'Der aktive Theme-Pfad konnte nicht sicher aufgelöst werden.',
+            'reasonCode' => 'theme_path_unresolved',
+            'reasonHint' => cms_admin_theme_editor_reason_hint('theme_path_unresolved'),
             'links' => $links,
+            'constraints' => ['expected_relative_path' => 'admin/customizer.php', 'fallback_view' => 'views/themes/customizer-missing.php'],
         ];
     }
 
@@ -58,8 +73,12 @@ function cms_admin_theme_editor_resolve_state(ThemeManager $themeManager): array
         return [
             'activeThemeSlug' => $activeThemeSlug,
             'customizerPath' => null,
+            'expectedCustomizerPath' => str_replace('\\', '/', substr($candidatePath, strlen(rtrim($realThemePath, DIRECTORY_SEPARATOR)) + 1)),
             'reason' => 'Das aktive Theme stellt keine Datei admin/customizer.php bereit.',
+            'reasonCode' => 'customizer_missing',
+            'reasonHint' => cms_admin_theme_editor_reason_hint('customizer_missing'),
             'links' => $links,
+            'constraints' => ['expected_relative_path' => 'admin/customizer.php', 'fallback_view' => 'views/themes/customizer-missing.php'],
         ];
     }
 
@@ -68,8 +87,12 @@ function cms_admin_theme_editor_resolve_state(ThemeManager $themeManager): array
         return [
             'activeThemeSlug' => $activeThemeSlug,
             'customizerPath' => null,
+            'expectedCustomizerPath' => 'admin/customizer.php',
             'reason' => 'Die Customizer-Datei des aktiven Themes ist nicht lesbar oder konnte nicht sicher aufgelöst werden.',
+            'reasonCode' => 'customizer_unreadable',
+            'reasonHint' => cms_admin_theme_editor_reason_hint('customizer_unreadable'),
             'links' => $links,
+            'constraints' => ['expected_relative_path' => 'admin/customizer.php', 'fallback_view' => 'views/themes/customizer-missing.php'],
         ];
     }
 
@@ -78,16 +101,24 @@ function cms_admin_theme_editor_resolve_state(ThemeManager $themeManager): array
         return [
             'activeThemeSlug' => $activeThemeSlug,
             'customizerPath' => null,
+            'expectedCustomizerPath' => 'admin/customizer.php',
             'reason' => 'Die aufgelöste Customizer-Datei liegt außerhalb des aktiven Theme-Verzeichnisses.',
+            'reasonCode' => 'customizer_outside_theme',
+            'reasonHint' => cms_admin_theme_editor_reason_hint('customizer_outside_theme'),
             'links' => $links,
+            'constraints' => ['expected_relative_path' => 'admin/customizer.php', 'fallback_view' => 'views/themes/customizer-missing.php'],
         ];
     }
 
     return [
         'activeThemeSlug' => $activeThemeSlug,
         'customizerPath' => $realCandidatePath,
+        'expectedCustomizerPath' => 'admin/customizer.php',
         'reason' => '',
+        'reasonCode' => 'ok',
+        'reasonHint' => '',
         'links' => $links,
+        'constraints' => ['expected_relative_path' => 'admin/customizer.php', 'fallback_view' => 'views/themes/customizer-missing.php'],
     ];
 }
 
@@ -106,7 +137,7 @@ function cms_admin_theme_editor_runtime_context(ThemeManager $themeManager): arr
 }
 
 $sectionPageConfig = [
-    'route_path' => '/admin/theme-editor',
+    'route_path' => CMS_ADMIN_THEME_EDITOR_ROUTE_PATH,
     'view_file' => CMS_ADMIN_THEME_EDITOR_FALLBACK_VIEW,
     'page_title' => cms_admin_theme_editor_page_title(),
     'active_page' => 'theme-editor',

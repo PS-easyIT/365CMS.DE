@@ -12,6 +12,7 @@ if (!defined('ABSPATH')) {
 use CMS\AuditLogger;
 use CMS\Auth;
 use CMS\Logger;
+use CMS\Services\ErrorReportService;
 
 class LegalSitesModule
 {
@@ -180,18 +181,34 @@ class LegalSitesModule
             'all_pages'      => array_map(fn($p) => (array)$p, $allPages),
             'profile'        => $this->loadProfile($settings),
             'page_configs'   => self::PAGE_CONFIG,
+            'stats'          => [
+                'areas' => count(self::LEGAL_KEYS),
+                'assigned_pages' => count(array_filter($assignedPages, static fn (string $value): bool => trim($value) !== '' && trim($value) !== '0')),
+                'published_pages' => count($allPages),
+                'filled_areas' => count(array_filter($pages, static fn (array $page): bool => trim((string) ($page['content'] ?? '')) !== '')),
+            ],
+            'constraints'    => [
+                'max_legal_html_length' => self::MAX_LEGAL_HTML_LENGTH,
+                'max_profile_value_length' => self::MAX_PROFILE_VALUE_LENGTH,
+                'max_profile_textarea_length' => self::MAX_PROFILE_TEXTAREA_LENGTH,
+                'allowed_template_types' => array_keys(self::PAGE_CONFIG),
+                'template_area_count' => count(self::PAGE_CONFIG),
+                'profile_toggle_count' => count(array_filter(array_keys(self::PROFILE_DEFAULTS), static fn (string $key): bool => str_starts_with($key, 'legal_profile_has_'))),
+            ],
         ];
     }
 
     public function save(array $post): array
     {
         if (!$this->canAccess()) {
-            return ['success' => false, 'error' => 'Sie dürfen rechtliche Seiten nicht bearbeiten.'];
+            return $this->buildLegalFailureResult('Sie dürfen rechtliche Seiten nicht bearbeiten.', 'legal_sites_access_denied');
         }
 
         try {
             $existingSettings = $this->loadSettingsMap(array_merge(self::LEGAL_KEYS, $this->getAssignmentKeys()));
+            $originalSettings = $existingSettings;
             $publishedPageIds = $this->getPublishedPageIds();
+            $incomingSettings = [];
 
             // Rechtliche Inhalte speichern
             foreach (self::LEGAL_KEYS as $key) {
@@ -200,6 +217,7 @@ class LegalSitesModule
                 }
 
                 $value = $this->sanitizeLegalContent($post[$key] ?? '');
+                $incomingSettings[$key] = $value;
                 $this->persistSetting($key, $value, $existingSettings);
             }
 
@@ -211,13 +229,20 @@ class LegalSitesModule
 
                 $pageId = (int)($post[$k] ?? 0);
                 if ($pageId > 0 && !isset($publishedPageIds[$pageId])) {
-                    return ['success' => false, 'error' => 'Eine ausgewählte Seite ist ungültig oder nicht veröffentlicht.'];
+                    return $this->buildLegalFailureResult(
+                        'Eine ausgewählte Seite ist ungültig oder nicht veröffentlicht.',
+                        'legal_sites_invalid_assignment',
+                        ['Zuordnung: ' . $k, 'Seiten-ID: ' . $pageId],
+                        ['assignment_key' => $k, 'page_id' => $pageId]
+                    );
                 }
 
+                $incomingSettings[$k] = (string) $pageId;
                 $this->persistSetting($k, (string)$pageId, $existingSettings);
             }
 
             $this->syncRelatedSettingsFromAssignments($post);
+            $changedKeys = $this->collectChangedSettingKeys($incomingSettings, $originalSettings);
 
             AuditLogger::instance()->log(
                 AuditLogger::CAT_SETTING,
@@ -229,7 +254,15 @@ class LegalSitesModule
                 'warning'
             );
 
-            return ['success' => true, 'message' => 'Rechtliche Seiten gespeichert.'];
+            return [
+                'success' => true,
+                'message' => 'Rechtliche Seiten gespeichert.',
+                'details' => [
+                    'Bereiche: ' . count(self::LEGAL_KEYS),
+                    'Zuordnungen: ' . count(array_filter($this->getAssignmentKeys(), static fn (string $key): bool => trim((string) ($post[$key] ?? '')) !== '' && trim((string) ($post[$key] ?? '')) !== '0')),
+                    'Geänderte Schlüssel: ' . count($changedKeys),
+                ],
+            ];
         } catch (\Throwable $e) {
 			return $this->failResult('legal.sites.save_failed', 'Rechtliche Seiten konnten nicht gespeichert werden.', $e);
         }
@@ -238,12 +271,13 @@ class LegalSitesModule
     public function saveProfile(array $post): array
     {
         if (!$this->canAccess()) {
-            return ['success' => false, 'error' => 'Sie dürfen Standardwerte für Rechtstexte nicht bearbeiten.'];
+            return $this->buildLegalFailureResult('Sie dürfen Standardwerte für Rechtstexte nicht bearbeiten.', 'legal_profile_access_denied');
         }
 
         try {
             $sanitized = [];
             $existingSettings = $this->loadSettingsMap(array_keys(self::PROFILE_DEFAULTS));
+            $originalSettings = $existingSettings;
 
             foreach (array_keys(self::PROFILE_DEFAULTS) as $key) {
                 $sanitized[$key] = $this->sanitizeProfileValue($key, $post[$key] ?? self::PROFILE_DEFAULTS[$key]);
@@ -251,16 +285,22 @@ class LegalSitesModule
 
             $errors = $this->validateProfile($sanitized);
             if ($errors !== []) {
-                return [
-                    'success' => false,
-                    'error' => implode(' ', $errors),
-                    'profile' => $sanitized,
-                ];
+                $result = $this->buildLegalFailureResult(
+                    implode(' ', $errors),
+                    'legal_profile_validation_failed',
+                    array_slice($errors, 0, 5),
+                    ['profile_entity_type' => (string) ($sanitized['legal_profile_entity_type'] ?? '')]
+                );
+                $result['profile'] = $sanitized;
+
+                return $result;
             }
 
             foreach ($sanitized as $key => $value) {
                 $this->persistSetting($key, $value, $existingSettings);
             }
+
+            $changedKeys = $this->collectChangedSettingKeys($sanitized, $originalSettings);
 
             AuditLogger::instance()->log(
                 AuditLogger::CAT_SETTING,
@@ -272,7 +312,15 @@ class LegalSitesModule
                 'warning'
             );
 
-            return ['success' => true, 'message' => 'Standardwerte für Legal Sites gespeichert.'];
+            return [
+                'success' => true,
+                'message' => 'Standardwerte für Legal Sites gespeichert.',
+                'details' => [
+                    'Profiltyp: ' . (string) ($sanitized['legal_profile_entity_type'] ?? 'company'),
+                    'Aktive Website-Funktionen: ' . count(array_filter($sanitized, static fn (string $value, string $key): bool => str_starts_with($key, 'legal_profile_has_') && $value === '1', ARRAY_FILTER_USE_BOTH)),
+                    'Geänderte Profilfelder: ' . count($changedKeys),
+                ],
+            ];
         } catch (\Throwable $e) {
             $result = $this->failResult('legal.profile.save_failed', 'Standardwerte für Legal Sites konnten nicht gespeichert werden.', $e);
             $result['profile'] = $sanitized ?? [];
@@ -291,13 +339,13 @@ class LegalSitesModule
     public function generateTemplate(string $type): array
     {
         if (!$this->canAccess()) {
-            return ['success' => false, 'error' => 'Sie dürfen Rechtstext-Vorlagen nicht generieren.'];
+            return $this->buildLegalFailureResult('Sie dürfen Rechtstext-Vorlagen nicht generieren.', 'legal_template_access_denied');
         }
 
         $templates = $this->getTemplates($this->loadProfile());
 
         if (!isset($templates[$type])) {
-            return ['success' => false, 'error' => 'Unbekannter Vorlagentyp.'];
+            return $this->buildLegalFailureResult('Unbekannter Vorlagentyp.', 'legal_template_unknown_type', ['Vorlagentyp: ' . $type], ['template_type' => $type]);
         }
 
         $key = 'legal_' . $type;
@@ -313,28 +361,36 @@ class LegalSitesModule
             'info'
         );
 
-        return ['success' => true, 'message' => self::LABELS[$key] . '-Vorlage generiert.'];
+        return [
+            'success' => true,
+            'message' => self::LABELS[$key] . '-Vorlage generiert.',
+            'details' => [
+                'Vorlagentyp: ' . $type,
+                'Bereich: ' . self::LABELS[$key],
+                'Profiltyp: ' . $this->profileValue($this->loadProfile(), 'legal_profile_entity_type', 'company'),
+            ],
+        ];
     }
 
     public function createOrUpdatePage(string $type, int $userId): array
     {
         if (!$this->canAccess()) {
-            return ['success' => false, 'error' => 'Sie dürfen Rechtstext-Seiten nicht erzeugen.'];
+            return $this->buildLegalFailureResult('Sie dürfen Rechtstext-Seiten nicht erzeugen.', 'legal_page_access_denied');
         }
 
         $config = self::PAGE_CONFIG[$type] ?? null;
         if ($config === null) {
-            return ['success' => false, 'error' => 'Unbekannter Seitentyp.'];
+            return $this->buildLegalFailureResult('Unbekannter Seitentyp.', 'legal_page_unknown_type', ['Seitentyp: ' . $type], ['page_type' => $type]);
         }
 
         if ($userId <= 0) {
-            return ['success' => false, 'error' => 'Ungültiger Benutzerkontext für die Seitenerstellung.'];
+            return $this->buildLegalFailureResult('Ungültiger Benutzerkontext für die Seitenerstellung.', 'legal_page_invalid_user', ['User-ID: ' . $userId], ['user_id' => $userId, 'page_type' => $type]);
         }
 
         try {
             $content = $this->getTemplateContent($type);
             if ($content === '') {
-                return ['success' => false, 'error' => 'Für diesen Bereich konnte kein Inhalt generiert werden.'];
+                return $this->buildLegalFailureResult('Für diesen Bereich konnte kein Inhalt generiert werden.', 'legal_page_missing_content', ['Seitentyp: ' . $type], ['page_type' => $type]);
             }
 
             $this->saveSetting($config['setting_key'], $content);
@@ -359,7 +415,7 @@ class LegalSitesModule
                     $this->saveSetting($config['page_id_key'], (string)$pageId);
                     $this->syncRelatedSettingsForType($type, $pageId);
 
-                    return ['success' => true, 'message' => $title . ' wurde aktualisiert.', 'page_id' => $pageId];
+                    return ['success' => true, 'message' => $title . ' wurde aktualisiert.', 'page_id' => $pageId, 'details' => ['Seitentyp: ' . $type, 'Seiten-ID: ' . $pageId]];
                 }
             }
 
@@ -396,7 +452,7 @@ class LegalSitesModule
                 'warning'
             );
 
-            return ['success' => true, 'message' => $title . ' wurde als Seite erstellt.', 'page_id' => $pageId];
+            return ['success' => true, 'message' => $title . ' wurde als Seite erstellt.', 'page_id' => $pageId, 'details' => ['Seitentyp: ' . $type, 'Seiten-ID: ' . $pageId]];
         } catch (\Throwable $e) {
 			return $this->failResult('legal.page.create_or_update_failed', 'Rechtstext-Seite konnte nicht erstellt oder aktualisiert werden.', $e);
         }
@@ -405,13 +461,18 @@ class LegalSitesModule
     public function createOrUpdateAllPages(int $userId): array
     {
         if (!$this->canAccess()) {
-            return ['success' => false, 'error' => 'Sie dürfen Rechtstext-Seiten nicht erzeugen.'];
+            return $this->buildLegalFailureResult('Sie dürfen Rechtstext-Seiten nicht erzeugen.', 'legal_pages_access_denied');
         }
 
         $created = [];
         foreach (array_keys(self::PAGE_CONFIG) as $type) {
             $result = $this->createOrUpdatePage($type, $userId);
             if (!$result['success']) {
+                $result['details'] = array_values(array_filter(array_merge(
+                    is_array($result['details'] ?? null) ? $result['details'] : [],
+                    ['Bereits verarbeitet: ' . count($created)]
+                )));
+
                 return $result;
             }
 
@@ -421,6 +482,7 @@ class LegalSitesModule
         return [
             'success' => true,
             'message' => 'Rechtstext-Seiten erstellt/aktualisiert: ' . implode(', ', $created) . '.',
+            'details' => ['Bereiche: ' . count($created), 'Seiten: ' . implode(', ', $created)],
         ];
     }
 
@@ -1145,7 +1207,40 @@ class LegalSitesModule
             'error'
         );
 
-        return ['success' => false, 'error' => $message . ' Bitte Logs prüfen.'];
+        return $this->buildLegalFailureResult(
+            $message . ' Bitte Logs prüfen.',
+            $action,
+            $sanitizedException !== '' ? ['Ursache: ' . $sanitizedException] : [],
+            ['exception' => $e::class, 'message' => $sanitizedException]
+        );
+    }
+
+    private function buildLegalFailureResult(string $message, string $errorCode, array $details = [], array $errorData = []): array
+    {
+        $context = [
+            'source' => '/admin/legal-sites',
+            'title' => 'Legal Sites',
+        ];
+
+        $normalizedDetails = array_values(array_filter(array_map(
+            static fn (mixed $detail): string => trim((string) $detail),
+            $details
+        ), static fn (string $detail): bool => $detail !== ''));
+
+        return [
+            'success' => false,
+            'error' => $message,
+            'details' => $normalizedDetails,
+            'error_details' => [
+                'code' => $errorCode,
+                'data' => $errorData,
+                'context' => $context,
+            ],
+            'report_payload' => ErrorReportService::buildReportPayloadFromWpError(
+                new \CMS\WP_Error($errorCode, $message, $errorData),
+                $context
+            ),
+        ];
     }
 
     private function canAccess(): bool
@@ -1217,6 +1312,23 @@ class LegalSitesModule
         $value = preg_replace('/\s+/u', ' ', $value) ?? '';
 
         return $this->truncate($value, self::MAX_ERROR_CONTEXT_LENGTH);
+    }
+
+    /** @param array<string, string> $incoming
+     *  @param array<string, string> $existing
+     *  @return list<string>
+     */
+    private function collectChangedSettingKeys(array $incoming, array $existing): array
+    {
+        $changedKeys = [];
+
+        foreach ($incoming as $key => $value) {
+            if (!array_key_exists($key, $existing) || (string) $existing[$key] !== (string) $value) {
+                $changedKeys[] = (string) $key;
+            }
+        }
+
+        return $changedKeys;
     }
 
     private function truncate(string $value, int $maxLength): string

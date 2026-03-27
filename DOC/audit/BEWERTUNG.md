@@ -5,13 +5,277 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 404
+### Gesamtstand nach Batch 448
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 448 | 93,02 | 90,88 | 94,43 | 94,22 |
+| 448 | 94,74 | 92,31 | 95,81 | 95,85 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **404 umgesetzte Audit-Batches**. Das sind aktuell **404 von 444 Prüfplan-Punkten**. Zuletzt wurden Medien-Bibliothek, Upload-Flash-Vertrag und Kategorien-View weiter verdichtet. Dadurch hängen Bibliothekszustand, Breadcrumbs, Datei-/Ordner-Metadaten, Upload-Fehlerdetails und System-Kategoriegrenzen sichtbarer an kleineren Entry-, Modul- und View-Verträgen statt an verteilten Template-Helfern oder stillen Flash-Sonderpfaden.
+Der aktuelle Nachpflege-Stand umfasst damit **448 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich vier Folge-Batches darüber hinaus. Zuletzt wurde der weiterhin kritische Plugin Marketplace weiter verdichtet. Dadurch hängen Slug-Grenzen, erlaubte Archiv-Endungen, sichtbare Risiko-Hinweise und Pending-Zustände klarer an kleinen Entry-, Modul-, View- und Asset-Verträgen statt an stillen Kürzungen oder erst späten Install-Fehlern.
+
+### Delta Folge-Batch 448
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-plugin-marketplace.js` | umgesetzt | Install-Formulare erhalten zusätzlich einen Form-Pending-State samt `aria-disabled`. | Install-Aktionen bleiben robuster gegen doppelte Submits und hektische Folge-Klicks. |
+
+### Delta Folge-Batch 447
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/plugins/marketplace.php` | umgesetzt | Marketplace-View spiegelt erlaubte Archiv-Endungen und entsprechende Warnungen expliziter. | Auto-Install-Risiken bleiben früher sichtbar und hängen nicht nur an Modul- oder Fehlerpfaden. |
+
+### Delta Folge-Batch 446
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/plugins/PluginMarketplaceModule.php` | umgesetzt | Marketplace-Modul verlangt erlaubte Archiv-Endungen und trägt den Zustand explizit in Daten- und Fehlerkontext ein. | Download- und Archivpfade hängen enger an einem klaren Paket- und Auto-Install-Vertrag. |
+
+### Delta Folge-Batch 445
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/plugin-marketplace.php` | umgesetzt | Marketplace-Entry lehnt überlange Slugs und präzisere Payload-Fehler expliziter ab. | Entry-nahe Install-Requests bleiben nachvollziehbarer und hängen weniger an stillen Kürzungen. |
+
+### Delta Batch 444
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/font-manager.php` | umgesetzt | Font-Manager-Entry weiter verdichtet, indem Save-Parameter und Google-Font-Namen expliziter validiert werden. | Entry-nahe Font-Mutationen bleiben nachvollziehbarer und hängen enger an einem klaren Request- und Fehlervertrag. |
+
+### Delta Batch 443
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/theme-explorer.php` | umgesetzt | Theme-Explorer-Entry weiter verdichtet, indem Write-Guard, Datei-/Inhaltsgrenzen und spezifischere Payload-Fehlercodes ergänzt werden. | Save-Requests bleiben robuster und hängen enger an sicheren Entry-Grenzen statt nur an später Modulvalidierung. |
+
+### Delta Batch 442
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/themes/customizer-missing.php` | umgesetzt | Theme-Editor-Fallback-View weiter verdichtet, indem Reason-Hint, erwarteter Pfad und sicherer Fallback expliziter gespiegelt werden. | Fehlende oder unsichere Customizer-Dateien bleiben im Admin früher einordenbar und führen schneller zum sicheren nächsten Schritt. |
+
+### Delta Batch 441
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/theme-editor.php` | umgesetzt | Theme-Editor-Entry weiter verdichtet, indem pro Fallback-Code ein strukturierter Hinweis vorbereitet und konsistenter an die View gereicht wird. | Customizer-Fallbacks bleiben nachvollziehbarer und hängen enger an einem kleinen Entry- und View-Vertrag. |
+
+### Delta Batch 440
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-theme-explorer.js` | umgesetzt | Theme-Explorer-Asset weiter verdichtet, indem Editor-Submits einen gemeinsamen Pending- und Submit-Guard erhalten. | Speichern per Button und `Ctrl+S` bleibt robuster gegen Doppel-Submits und hektische Folge-Aktionen. |
+
+### Delta Batch 439
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/themes/editor.php` | umgesetzt | Theme-Explorer-View weiter verdichtet, indem erlaubte Endungen, Skip-Segmente, Baumtiefe und Browser-Limits vorbereiteter gespiegelt werden. | Explorer-Grenzen bleiben früher sichtbar und hängen nicht nur implizit an Modulkonstanten oder späten Warning-Zuständen. |
+
+### Delta Batch 438
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/ThemeEditorModule.php` | umgesetzt | Theme-Explorer-Modul weiter verdichtet, indem Browser-Editor-Validierungen strukturierte Fehlerresultate, engere Kontext-Sanitierung und zusätzliche Constraints erhalten. | Save- und Tree-Pfade bleiben nachvollziehbarer und enger am gemeinsamen Report- und Modulvertrag gebündelt. |
+
+### Delta Batch 437
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-legal-sites.js` | umgesetzt | Legal-Sites-Asset weiter verdichtet, indem Post-Formulare einen gemeinsamen Pending- und Submit-Guard erhalten. | Speichern, Generieren und Seitenerstellung bleiben robuster gegen Doppel-Submits und hektische Folge-Klicks. |
+
+### Delta Batch 436
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/legal/sites.php` | umgesetzt | Legal-Sites-View weiter verdichtet, indem Generator-Bereiche, Vorlagentypen, Feature-Toggles und HTML-Grenzen vorbereiteter gespiegelt werden. | Generator- und Eingabegrenzen bleiben früher sichtbar und hängen nicht nur implizit an Modulkonstanten oder späten Fehlermeldungen. |
+
+### Delta Batch 435
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/legal/LegalSitesModule.php` | umgesetzt | Legal-Sites-Modul weiter verdichtet, indem Generator- und Profil-Constraints, Änderungszählung und strukturiertere Sammelseiten-/Fehlerdetails ergänzt werden. | Save-, Profil- und Generator-Pfade bleiben nachvollziehbarer und enger am gemeinsamen Report- und Modulvertrag gebündelt. |
+
+### Delta Batch 434
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-font-manager.js` | umgesetzt | Font-Manager-Asset weiter verdichtet, indem Formulare und Delete-Aktionen einen gemeinsamen Pending- und Submit-Guard erhalten. | Scan-, Save-, Download- und Delete-Aktionen bleiben robuster gegen Doppel-Submits und hektische Folge-Klicks. |
+
+### Delta Batch 433
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/themes/fonts.php` | umgesetzt | Font-Manager-View weiter verdichtet, indem Scan-, Host- und Download-Grenzen als vorbereitete Hinweis- und Formulartexte direkter im Admin gespiegelt werden. | Scan- und Self-Hosting-Limits bleiben früher sichtbar und hängen nicht nur implizit an Modulkonstanten oder Fehlermeldungen. |
+
+### Delta Batch 432
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/FontManagerModule.php` | umgesetzt | Font-Manager-Modul weiter verdichtet, indem zusätzliche Constraints, Save-/Delete-Details und strukturiertere Bulk-Download-Fehler ergänzt werden. | Font-Scan-, Settings- und Sammeldownload-Pfade bleiben nachvollziehbarer und enger am gemeinsamen Report- und Modulvertrag gebündelt. |
+
+### Delta Batch 431
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/plugins/marketplace.php` | umgesetzt | Plugin-Marketplace-View weiter verdichtet, indem erlaubte Hosts sowie Manifest- und Archivgrenzen zusätzlich direkt im Admin genannt werden. | Remote- und Auto-Install-Limits bleiben früher sichtbar und hängen nicht nur implizit an Badge- oder Fehlerzuständen. |
+
+### Delta Batch 430
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/plugins/PluginMarketplaceModule.php` | umgesetzt | Plugin-Marketplace-Modul weiter verdichtet, indem Install-Erfolge Zielpfad und SHA-256-Verifizierungsstatus spiegeln und Installer-Fehler mehr Kontext zurückgeben. | Installationsläufe lassen sich im Marketplace klarer einordnen, ohne nur auf einen knappen Updater-Satz angewiesen zu sein. |
+
+### Delta Batch 429
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/plugins/PluginMarketplaceModule.php` | umgesetzt | Plugin-Marketplace-Modul weiter verdichtet, indem Remote-Registry-Ladevorgänge Fehler- und Detailkontext für Cache-/Local-/None-Fallbacks vorbereiten. | Remote-Ausfälle und leere bzw. unbrauchbare Registry-Antworten bleiben im Admin präziser sichtbar, statt still in generische Fallback-Meldungen zu fallen. |
+
+### Delta Batch 428
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/media/library.php` | umgesetzt | Media-Bibliotheks-View weiter verdichtet, indem Finder-Grenzen, Upload-Paketlimits und Formular-Maxima direkt im Admin gespiegelt werden. | Upload-, Such- und Ordnergrenzen bleiben für Nutzer früher sichtbar und hängen nicht mehr nur implizit an Entry-/Modulkonstanten. |
+
+### Delta Batch 427
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/media/categories.php` | umgesetzt | Media-Kategorien-View weiter verdichtet, indem Name-/Slug-Limits und geschützte System-Slugs expliziter im Admin genannt werden. | Kategorie-Formulare folgen damit sichtbarer demselben Vertrag wie das Backend statt an losen UI-Annahmen zu hängen. |
+
+### Delta Batch 426
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/media/settings.php` | umgesetzt | Media-Settings-View weiter verdichtet, indem Upload-, Qualitäts- und Dimensionslimits direkt aus vorbereiteten Modul-Constraints gerendert werden. | Die Settings-Oberfläche reduziert lokale Schattenwerte und bleibt enger an der serverseitigen Validierung. |
+
+### Delta Batch 425
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/media/MediaModule.php` | umgesetzt | Media-Modul weiter verdichtet, indem Constraints, Erfolgsdetails sowie `error_details`/Report-Kontexte für Medien-Aktionen ergänzt werden. | Upload-, Delete-, Kategorie- und Settings-Pfade bleiben dadurch nachvollziehbarer und robuster an einem kleinen Modulvertrag gebündelt. |
+
+### Delta Batch 424
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/media.php` | umgesetzt | Media-Entry weiter verdichtet, indem unbekannte Aktionen, Berechtigungsfehler und ungültige Payloads als strukturierte Failure-Rückgaben mit Report-Kontext laufen. | Entry-nahe Medienfehler hängen damit konsistenter am gemeinsamen Admin-Rahmen statt an nackten Fehlersätzen. |
+
+### Delta Batch 423
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/themes/editor.php` | umgesetzt | Theme-Explorer-View weiter verdichtet, indem Editor-Limits zusätzlich im Dateibaum und Datei-Kopf gespiegelt werden. | Dateigröße und Bearbeitungsgrenzen bleiben für Nutzer sichtbarer, bevor Save-Sperren oder Oversize-Dateien erst im Fehlerpfad auffallen. |
+
+### Delta Batch 422
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/ThemeEditorModule.php` | umgesetzt | Theme-Explorer-Modul weiter verdichtet, indem Save-Fehler strukturierte Report-Payloads liefern und Save-Erfolge Dateikontext mitgeben. | Fehler und Erfolgszustände hängen konsistenter am gemeinsamen Admin-Vertrag statt nur an kurzen Meldetexten. |
+
+### Delta Batch 421
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/theme-explorer.php` | umgesetzt | Theme-Explorer-Entry weiter verdichtet, indem ungültige Save-Payloads als strukturierte Failure-Rückgaben mit Report-Kontext laufen. | Entry-nahe Ablehnungen bleiben reportbar und konsistenter zum übrigen Shell-/Flash-Vertrag. |
+
+### Delta Batch 420
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/themes/customizer-missing.php` | umgesetzt | Theme-Editor-Fallback weiter verdichtet, indem Reason-Code, Theme-Slug und erwarteter Customizer-Pfad direkt angezeigt werden. | Fehlende oder unsichere Customizer-Dateien bleiben für Theme-Entwickler transparenter und schneller einordenbar. |
+
+### Delta Batch 419
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/theme-editor.php` | umgesetzt | Theme-Editor-Entry weiter verdichtet, indem Fallback-Zustand mit Reason-Code und erwarteter Customizer-Datei vorbereitet wird. | Der Fallback hängt sichtbarer an einem kleinen Runtime-State statt an reinem Freitext. |
+
+### Delta Batch 418
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/legal/sites.php` | umgesetzt | Legal-Sites-View weiter verdichtet, indem vorbereitete Kennzahlen und sichere Eingabegrenzen direkt im Admin gespiegelt werden. | Generator- und Eingabezustände bleiben für Nutzer früher sichtbar und hängen nicht mehr nur implizit an Formularen. |
+
+### Delta Batch 417
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/legal/LegalSitesModule.php` | umgesetzt | Legal-Sites-Modul weiter verdichtet, indem Fehlerpfade `details`, `error_details` und `report_payload` liefern und Status-/Constraint-Daten vorbereitet werden. | Save-, Validierungs- und Generatorfehler hängen damit enger am gemeinsamen Admin-Fehlervertrag und die View erhält mehr serverseitig vorbereiteten Zustand. |
+
+### Delta Batch 416
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/legal-sites.php` | umgesetzt | Legal-Sites-Entry weiter verdichtet, indem Berechtigungs- und Requestfehler als strukturierte Failure-Rückgaben mit Report-Kontext normalisiert werden. | Entry-nahe Fehlerpfade bleiben konsistenter zum restlichen Admin-Rahmen und lassen sich ohne Sonderpfade reporten. |
+
+### Delta Batch 415
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/themes/fonts.php` | umgesetzt | Font-Manager-View weiter verdichtet, indem Dateigröße, CSS-Pfad und Asset-Status lokaler Fonts sichtbarer direkt in der Tabelle gespiegelt werden. | Fehlende Font- oder CSS-Dateien bleiben für Admin-Nutzer transparenter und hängen nicht länger nur implizit an Backend-Checks oder Delete-Fehlern. |
+
+### Delta Batch 414
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/FontManagerModule.php` | umgesetzt | Font-Manager-Modul weiter verdichtet, indem Download-/Delete-Fehler strukturierte Report-Payloads liefern und lokale Font-Dateimetadaten serverseitig vorbereitet werden. | Font-Fehler lassen sich gezielter reporten, und die View muss Asset-Status nicht mehr aus rohen DB-Werten ableiten. |
+
+### Delta Batch 413
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/font-manager.php` | umgesetzt | Font-Manager-Entry weiter verdichtet, indem Berechtigungs- und Payloadfehler als strukturierte Failure-Rückgaben mit Detail- und Report-Kontext an die Section-Shell laufen. | Ungültige Delete-/Download-/Save-POSTs bleiben im Admin nachvollziehbarer und können direkt in denselben Error-Report-Pfad überführt werden. |
+
+### Delta Batch 412
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/plugins/marketplace.php` | umgesetzt | Plugin-Marketplace-View weiter verdichtet, indem Paketlimit und Registry-TTL zusätzlich direkt über dem Suchbereich genannt werden. | Auto-Install- und Cache-Grenzen sind früher sichtbar und hängen nicht mehr nur implizit an Warnbadges oder Fallback-Meldungen. |
+
+### Delta Batch 411
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/plugins/PluginMarketplaceModule.php` | umgesetzt | Plugin-Marketplace-Modul weiter verdichtet, indem Installationsfehler mit `details`, `error_details` und `report_payload` sowie weiteren Constraint-Metadaten zurückgegeben werden. | Remote-, Paket- und Zielpfadprobleme hängen damit enger am gemeinsamen Admin-Fehlervertrag statt an bloßen Textmeldungen. |
+
+### Delta Batch 410
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/plugin-marketplace.php` | umgesetzt | Plugin-Marketplace-Entry weiter verdichtet, indem Berechtigungs-, Payload- und Katalogfehler als strukturierte Failure-Rückgaben mit Report-Kontext normalisiert werden. | Entry-nahe Ablehnungen bleiben konsistenter zum restlichen Admin-Rahmen und lassen sich bei Bedarf ohne Zusatzpfade reporten. |
+
+### Delta Batch 409
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/partials/section-page-shell.php` | umgesetzt | Gemeinsame Section-Shell weiter verdichtet, indem Alert-Typen, `error_details` und `report_payload` auch über Redirect- und Inline-Pfade vollständig erhalten bleiben. | Strukturierte Fehler- und Report-Hinweise kommen jetzt zuverlässig in der Flash-Komponente an und werden nicht mehr im Shell-Rahmen abgeschnitten. |
+
+### Delta Batch 408
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/plugins/marketplace.php` | umgesetzt | Plugin-Marketplace-View weiter verdichtet, indem Download-Host, Paketgröße, gekürzte Prüfsumme und Sperrgründe für Auto-Install klarer in den Karten sichtbar werden. | Installierbarkeit bleibt für Admin-Nutzer transparenter und hängt nicht länger nur implizit an Button- oder Badge-Zuständen. |
+
+### Delta Batch 407
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/plugins/PluginMarketplaceModule.php` | umgesetzt | Plugin-Marketplace-Modul weiter verdichtet, indem Paketgrößen normalisiert, übergroße Pakete für Auto-Install gesperrt und Host-/Hash-/Paket-Metadaten expliziter aufbereitet werden. | Der Marketplace hängt Auto-Installationen enger an einem sicheren Paket- und Quellenvertrag und begründet manuelle Installpfade sichtbarer. |
+
+### Delta Batch 406
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/themes/fonts.php` | umgesetzt | Font-Manager-View weiter verdichtet, indem Remote-Datei- und Gesamtgrößenlimits für direkte und erkannte Font-Downloads direkt im Admin gespiegelt werden. | Self-Hosting-Grenzen bleiben für Nutzer transparenter und tauchen nicht erst im Fehlerpfad nach einem Download-Versuch auf. |
+
+### Delta Batch 405
+
+| Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/FontManagerModule.php` | umgesetzt | Font-Manager-Modul weiter verdichtet, indem Remote-Font-Dateien zusätzlich über Gesamtvolumen begrenzt, Header gegen den erwarteten Font-Typ geprüft und Teil-Downloads bei Persistenzfehlern wieder entfernt werden. | Font-Self-Hosting reduziert weitere Remote- und Dateizustandsrisiken und hält Cleanup sowie Binärvalidierung klarer am Modulvertrag. |
 
 ### Delta Batch 404
 
