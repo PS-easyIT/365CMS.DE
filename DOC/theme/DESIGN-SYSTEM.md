@@ -1,5 +1,5 @@
 # 365CMS – Design-System
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Farbpalette (CSS Custom Properties)](#farbpalette-css-custom-properties)
@@ -14,7 +14,7 @@
 - [Animation Utilities](#animation-utilities)
 
 ---
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-28 -->
 
 ## Farbpalette (CSS Custom Properties)
 

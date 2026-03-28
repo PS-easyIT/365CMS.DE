@@ -1,5 +1,5 @@
 # 365CMS – Admin-Panel-Integration
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Aktueller Integrationspfad](#aktueller-integrationspfad)
@@ -13,7 +13,7 @@
 - [Verwandte Dokumente](#verwandte-dokumente)
 
 ---
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-28 -->
 
 Das Sidebar-Menü wird zentral in `CMS/admin/partials/sidebar.php` aufgebaut. Vor dem Rendern der Plugin-Menüs wird dort `CMS\Hooks::doAction('cms_admin_menu')` ausgeführt. Anschließend werden registrierte Einträge über `get_registered_admin_menus()` ausgelesen.
 

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung der Abo-Pakete mit Preisen, Limits, Feature-Flags und öffentlicher Darstellung.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 ---
 
@@ -13,7 +13,7 @@ Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 | Route | `/admin/packages` |
 | Modul | `CMS/admin/modules/subscriptions/PackagesModule.php` |
 | View | `CMS/admin/views/subscriptions/packages.php` |
-| CSRF-Kontext | `packages` |
+| CSRF-Kontext | `admin_packages` |
 
 ---
 

@@ -1,16 +1,16 @@
 # 365CMS – Theme-JavaScript
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Module-Übersicht](#module-übersicht)
 - [Custom Events](#custom-events)
 - [Eigenes JavaScript erweitern](#eigenes-javascript-erweitern)
 
-**Datei:** `themes/default/js/navigation.js`  
+**Datei:** `themes/<slug>/js/navigation.js`  
 **Ladeweise:** `<script defer>` im Footer
 
 ---
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-28 -->
 
 ## Module-Übersicht
 

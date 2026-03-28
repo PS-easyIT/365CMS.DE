@@ -1,5 +1,5 @@
 # 365CMS – Admin-Handbuch
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Benutzer anlegen oder bearbeiten](#benutzer-anlegen-oder-bearbeiten)
@@ -24,7 +24,7 @@
 Von dort aus erreicht ihr die zentralen Bereiche über die Sidebar.
 
 ---
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-28 -->
 
 ## Benutzer anlegen oder bearbeiten
 

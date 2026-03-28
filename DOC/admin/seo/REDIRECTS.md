@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung von 301/302-Weiterleitungen, Protokollierung und Aufräumfunktionen.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 ---
 
@@ -10,10 +10,10 @@ Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 | Eigenschaft | Wert |
 |---|---|
-| Route | `/admin/seo-redirects` |
+| Route | `/admin/redirect-manager` |
 | Modul | `CMS/admin/modules/seo/RedirectManagerModule.php` |
 | View | `CMS/admin/views/seo/redirects.php` |
-| CSRF-Kontext | `admin_seo` |
+| CSRF-Kontext | `admin_redirect_manager` |
 
 ---
 

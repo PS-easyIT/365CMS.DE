@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die aktuelle Bestellverwaltung inklusive Statuspflege und manueller Paketzuweisung.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 ---
 
@@ -17,6 +17,8 @@ Die Seite bündelt zwei Aufgaben:
 
 1. Bestellungen verwalten
 2. Abos/Pakete manuell Benutzern zuweisen
+
+POST-Aktionen laufen im aktuellen Stand über den CSRF-Kontext `admin_orders`.
 
 ---
 

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die Diagnose-Oberflächen und Monitoring-Werkzeuge für den laufenden Betrieb von 365CMS.
 
-Letzte Aktualisierung: 2026-03-08 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 ---
 

@@ -1,5 +1,5 @@
 # 365CMS – Admin-Dateistruktur
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Hauptstruktur](#hauptstruktur)
@@ -18,7 +18,7 @@ Der Admin-Bereich ist in 365CMS kein flaches Sammelbecken einzelner „Alles-in-
 - **Partials** wie Header, Sidebar und Footer
 
 ---
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-28 -->
 
 ## Hauptstruktur
 
@@ -222,16 +222,16 @@ $csrfToken = Security::instance()->generateToken('my_action');
 📊 Dashboard          /admin
 📄 Seiten             /admin/pages
 👥 Benutzer           /admin/users
-💳 Abos               /admin/subscriptions
+💳 Abos               /admin/packages, /admin/orders, /admin/subscription-settings
 🔌 Plugins            /admin/plugins
 🎨 Design             /admin/theme-editor
-🔍 SEO                /admin/seo
+🔍 SEO                /admin/seo-dashboard
 ⚡ Performance         /admin/performance
 📈 Analytics          /admin/analytics
-💾 Backups            /admin/backup
+💾 Backups            /admin/backups
 ⚙️ Einstellungen      /admin/settings
-   └ 🔄 Updates       /admin/updates
-🔧 System & Diagnose  /admin/system
+    └ 🔄 Updates       /admin/updates
+🔧 System & Diagnose  /admin/info, /admin/diagnose
 ── Zur Website        /
 🚪 Abmelden           /logout
 ```

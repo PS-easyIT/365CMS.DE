@@ -1,5 +1,5 @@
 # 365CMS – Template-Komponenten
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Header](#header)
@@ -17,7 +17,7 @@
 - [Scroll Animations](#scroll-animations)
 
 ---
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-28 -->
 
 ## Header
 

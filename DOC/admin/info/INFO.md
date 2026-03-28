@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die Admin-Seiten für Systemübersicht und lokale Dokumentationsansicht.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 ---
 
@@ -15,7 +15,7 @@ Der Bereich **Info** bündelt zwei Seiten für Betriebsinformationen und die int
 | `/admin/info` | `views/system/info.php` | Systeminformationen, PHP-Version, MySQL-Status, Speicher, Extensions |
 | `/admin/documentation` | `views/system/documentation.php` | Lokale Dokumentationsansicht direkt im Admin |
 
-Beide Seiten nutzen denselben technischen Aufbau wie der Diagnosebereich mit `SystemInfoModule` und dem CSRF-Kontext `admin_system_info`.
+Beide Seiten nutzen denselben technischen Aufbau wie der Diagnosebereich über `CMS/admin/system-monitor-page.php` und den section-basierten Monitor-Flow.
 
 ---
 
