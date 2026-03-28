@@ -11,7 +11,7 @@
 
 ![Audit](https://img.shields.io/badge/Audit-Snyk-111827)
 ![Audit](https://img.shields.io/badge/Audit-Refact!-111827)
-![Audit](https://img.shields.io/badge/Audit-OWASP-Top-Ten-111827)
+![Audit](https://img.shields.io/badge/Audit-OWASP-111827)
 ![Security Score](https://img.shields.io/badge/Security-95.12-15803d)
 ![Speed Score](https://img.shields.io/badge/Speed-92.74-2563eb)
 ![PHP Score](https://img.shields.io/badge/PHP%20%2F%20Best%20Practices-96.22-7c3aed)
