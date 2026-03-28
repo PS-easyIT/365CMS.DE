@@ -92,6 +92,7 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 | **Content** | Seiten, Beiträge, Kategorien, Tags, Landing-Pages, TOC, Featured Images, Revisionen |
 | **Media** | Native Medienbibliothek, Uploads, Kategorien, Grid-/Listenansicht, WebP-Workflows |
 | **Security** | RBAC, CSRF, XSS-Escaping, Rate Limits, Firewall, AntiSpam, Passkeys, 2FA |
+| **SEO** | Sitemap, Schema, Canonicals, Redirects, Robots, Audit-Übersichten, IndexNow-Key- & Root-TXT-Prüfung |
 | **Business** | Aboverwaltung, Orders, Checkout, Gruppen, Legal-Sites, DSGVO-Prozesse |
 | **Themes** | Theme-System, Customizer, Code-Editor, lokale Fonts, Marketplace-Anbindung |
 | **Plugins** | Hook-basierte Erweiterbarkeit, Plugin-Repo, Marketplace, dokumentierte Integrationen |
@@ -199,6 +200,10 @@ Der schnellste Einstieg ist der lokale Dokumentationsindex unter [`DOC/INDEX.md`
 
 Die vollständige Asset-Dokumentation liegt in [`DOC/ASSET.md`](DOC/ASSET.md) sowie unter [`DOC/assets/`](DOC/assets/).
 
+### 🔎 SEO-Workflow-Highlight
+
+Der SEO-Bereich unterstützt in `Technisches SEO` jetzt auch die Pflege eines **IndexNow API-Keys** inklusive Auswahl und Prüfung einer vorhandenen **Root-`.txt`-Datei**. Damit lässt sich direkt im Admin nachvollziehen, ob Dateiname, Inhalt und öffentliche Bereitstellung zur erwarteten IndexNow-Keydatei passen.
+
 ### 👨‍💻 Maintainer, Support & Lizenz
 
 - **Entwicklung:** Andreas Hepp
@@ -239,6 +244,7 @@ The audits were carried out using OWASP-oriented tooling, Snyk, refactoring pass
 | **Content** | Pages, posts, categories, tags, landing pages, TOC, featured images, revisions |
 | **Media** | Native media library, uploads, categories, grid/list views, WebP workflows |
 | **Security** | RBAC, CSRF, XSS escaping, rate limits, firewall, anti-spam, passkeys, 2FA |
+| **SEO** | Sitemap, schema, canonicals, redirects, robots, audit overviews, IndexNow key and root TXT validation |
 | **Business** | Subscriptions, orders, checkout, groups, legal pages, GDPR workflows |
 | **Themes** | Theme system, customizer, code editor, local fonts, marketplace integration |
 | **Plugins** | Hook-based extensibility, plugin repository, marketplace, documented integrations |
@@ -345,6 +351,10 @@ Start with the local documentation index at [`DOC/INDEX.md`](DOC/INDEX.md).
 | **SEO & Content** | Sitemap, schema, canonicals, robots, TOC, analytics building blocks |
 
 Full asset documentation is available in [`DOC/ASSET.md`](DOC/ASSET.md) and inside [`DOC/assets/`](DOC/assets/).
+
+### 🔎 SEO workflow highlight
+
+The `Technical SEO` area now supports managing an **IndexNow API key** together with selecting and validating an existing **root `.txt` file**. This makes it easy to verify inside the admin UI whether filename, file content and public delivery all match the expected IndexNow key file.
 
 ### 👨‍💻 Maintainer, Support & License
 

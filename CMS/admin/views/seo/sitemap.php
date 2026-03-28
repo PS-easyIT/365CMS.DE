@@ -166,6 +166,9 @@ $indexing = $sitemap['indexing'] ?? [];
                             <span class="badge <?= !empty($indexing['indexnow_key_file_active']) ? 'bg-primary' : 'bg-secondary' ?>">
                                 Keydatei <?= !empty($indexing['indexnow_key_file_active']) ? 'dynamisch aktiv' : 'inaktiv' ?>
                             </span>
+                            <span class="badge <?= !empty($indexing['indexnow_ready_for_submission']) ? 'bg-success' : 'bg-warning text-dark' ?>">
+                                Prüfung <?= !empty($indexing['indexnow_ready_for_submission']) ? 'ok' : 'offen' ?>
+                            </span>
                         </div>
                     </div>
                     <div class="card-body">
@@ -174,6 +177,38 @@ $indexing = $sitemap['indexing'] ?? [];
                                 <div class="fw-semibold mb-1">IndexNow-Keydatei dynamisch aktiv</div>
                                 <div class="small mb-2">Die Verifizierungsdatei wird automatisch vom Core ausgeliefert und ist erreichbar unter:</div>
                                 <div><a href="<?= htmlspecialchars((string) $indexing['indexnow_key_url']) ?>" target="_blank" rel="noopener noreferrer"><code><?= htmlspecialchars((string) $indexing['indexnow_key_url']) ?></code></a></div>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($indexing['indexnow_selected_root_file'])): ?>
+                            <div class="alert <?= !empty($indexing['indexnow_selected_root_file_valid']) ? 'alert-success' : 'alert-warning' ?>" role="status">
+                                <div class="fw-semibold mb-1">Physische Root-TXT-Datei</div>
+                                <div class="small mb-2">
+                                    Gewählt: <code><?= htmlspecialchars((string) $indexing['indexnow_selected_root_file']) ?></code>
+                                </div>
+                                <?php if (!empty($indexing['indexnow_selected_root_file_url'])): ?>
+                                    <div>
+                                        <a href="<?= htmlspecialchars((string) $indexing['indexnow_selected_root_file_url']) ?>" target="_blank" rel="noopener noreferrer">
+                                            <code><?= htmlspecialchars((string) $indexing['indexnow_selected_root_file_url']) ?></code>
+                                        </a>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($indexing['indexnow_validation_errors'])): ?>
+                            <div class="alert alert-warning" role="alert">
+                                <div class="fw-semibold mb-1">IndexNow-Prüfung</div>
+                                <ul class="mb-0 ps-3">
+                                    <?php foreach ((array) $indexing['indexnow_validation_errors'] as $validationError): ?>
+                                        <li><?= htmlspecialchars((string) $validationError) ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($indexing['indexnow_validation_notes'])): ?>
+                            <div class="text-secondary small mb-3">
+                                <?php foreach ((array) $indexing['indexnow_validation_notes'] as $validationNote): ?>
+                                    <div>• <?= htmlspecialchars((string) $validationNote) ?></div>
+                                <?php endforeach; ?>
                             </div>
                         <?php endif; ?>
                         <div class="text-secondary small mb-3">

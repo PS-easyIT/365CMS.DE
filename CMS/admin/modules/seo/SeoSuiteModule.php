@@ -61,6 +61,8 @@ final class SeoSuiteModule
 		'seo_technical_noindex_tags' => '0',
 		'seo_technical_pagination_rel' => '1',
 		'seo_technical_broken_link_scan' => '1',
+		'seo_indexnow_key' => '',
+		'seo_indexnow_key_file' => '',
 	];
 
 	private const ANALYTICS_DEFAULTS = [
@@ -307,6 +309,19 @@ final class SeoSuiteModule
 
 	public function saveTechnicalSettings(array $post): array
 	{
+		$rawIndexNowKey = trim((string)($post['indexnow_key'] ?? ''));
+		$indexNowKey = $this->normalizeIndexNowKey($rawIndexNowKey);
+		if ($rawIndexNowKey !== '' && $indexNowKey === '') {
+			return ['success' => false, 'error' => 'Der IndexNow-API-Key enthält ungültige Zeichen. Erlaubt sind Buchstaben, Zahlen, Bindestriche und Unterstriche.'];
+		}
+
+		$availableRootTxtFiles = $this->indexingService->getIndexNowRootTxtFiles();
+		$rawIndexNowKeyFile = trim((string)($post['indexnow_key_file'] ?? ''));
+		$indexNowKeyFile = $this->normalizeIndexNowKeyFile($rawIndexNowKeyFile, $availableRootTxtFiles);
+		if ($rawIndexNowKeyFile !== '' && $indexNowKeyFile === '') {
+			return ['success' => false, 'error' => 'Die ausgewählte Root-TXT-Datei ist ungültig oder nicht mehr vorhanden.'];
+		}
+
 		$this->persistSettings([
 			'seo_technical_auto_redirect_slug' => !empty($post['auto_redirect_slug']) ? '1' : '0',
 			'seo_technical_hreflang_enabled' => !empty($post['hreflang_enabled']) ? '1' : '0',
@@ -316,9 +331,24 @@ final class SeoSuiteModule
 			'seo_technical_noindex_tags' => !empty($post['noindex_tags']) ? '1' : '0',
 			'seo_technical_pagination_rel' => !empty($post['pagination_rel']) ? '1' : '0',
 			'seo_technical_broken_link_scan' => !empty($post['broken_link_scan']) ? '1' : '0',
+			'seo_indexnow_key' => $indexNowKey,
+			'seo_indexnow_key_file' => $indexNowKeyFile,
 		]);
 
-		return ['success' => true, 'message' => 'Technische SEO-Einstellungen gespeichert.'];
+		$indexNowStatus = $this->indexingService->getIndexNowConfigurationStatus();
+		$message = 'Technische SEO-Einstellungen gespeichert.';
+
+		if (!$indexNowStatus['key_available']) {
+			$message .= ' IndexNow ist noch nicht aktiv, da kein API-Key hinterlegt ist.';
+		} elseif ($indexNowStatus['selected_root_file'] !== '' && !$indexNowStatus['selected_root_file_valid']) {
+			$message .= ' Die ausgewählte IndexNow-TXT-Datei wurde gespeichert, besteht die Prüfung aber noch nicht vollständig.';
+		} elseif ($indexNowStatus['selected_root_file'] !== '') {
+			$message .= ' Die ausgewählte IndexNow-TXT-Datei wurde erfolgreich geprüft.';
+		} else {
+			$message .= ' Die dynamische IndexNow-Keydatei ist aktiv; optional kann zusätzlich eine physische Root-TXT-Datei gewählt werden.';
+		}
+
+		return ['success' => true, 'message' => $message];
 	}
 
 	public function saveAnalyticsSettings(array $post): array
@@ -671,22 +701,26 @@ final class SeoSuiteModule
 	private function getSitemapData(array $auditRows): array
 	{
 		$settings = array_merge($this->seoService->getSitemapSettings(), $this->loadSettings(self::SITEMAP_EXTRA_DEFAULTS));
-		$indexNowKey = trim($this->indexingService->getIndexNowKey());
-		$indexNowKeyUrl = $indexNowKey !== ''
-			? rtrim((string) SITE_URL, '/') . '/' . rawurlencode($indexNowKey) . '.txt'
-			: '';
+		$indexNowStatus = $this->indexingService->getIndexNowConfigurationStatus();
 
 		return [
 			'settings' => $settings,
 			'files' => $this->getSitemapFilesStatus(),
 			'indexing' => [
-				'indexnow_available' => $this->indexingService->hasIndexNowKey(),
-				'indexnow_key_file_active' => $indexNowKey !== '',
-				'indexnow_key_url' => $indexNowKeyUrl,
+				'indexnow_available' => $indexNowStatus['key_available'],
+				'indexnow_key_file_active' => $indexNowStatus['dynamic_key_file_active'],
+				'indexnow_key_url' => $indexNowStatus['dynamic_key_file_url'],
+				'indexnow_selected_root_file' => $indexNowStatus['selected_root_file'],
+				'indexnow_selected_root_file_url' => $indexNowStatus['selected_root_file_url'],
+				'indexnow_selected_root_file_valid' => $indexNowStatus['selected_root_file_valid'],
+				'indexnow_ready_for_submission' => $indexNowStatus['ready_for_submission'],
+				'indexnow_validation_errors' => $indexNowStatus['validation_errors'],
+				'indexnow_validation_notes' => $indexNowStatus['validation_notes'],
 				'engines' => ['IndexNow', 'Google Indexing API'],
 				'notes' => [
-					'IndexNow-Key wird aus der Core-Konfiguration gelesen.',
+					'IndexNow-Key kann jetzt direkt im SEO-Bereich gepflegt werden.',
 					'Keydatei wird bei gesetztem Schlüssel dynamisch vom Core ausgeliefert.',
+					'Optional kann zusätzlich eine physische Root-TXT-Datei geprüft werden.',
 					'Google-Submission nutzt bewusst einen manuellen Access-Token pro Aktion.',
 				],
 			],
@@ -704,6 +738,7 @@ final class SeoSuiteModule
 		$settings = $this->loadSettings(self::TECHNICAL_DEFAULTS);
 		$brokenLinks = !empty($settings['seo_technical_broken_link_scan']) ? $this->scanBrokenLinks($auditRows) : [];
 		$redirectData = $this->redirectService->getAdminData();
+		$indexNowStatus = $this->indexingService->getIndexNowConfigurationStatus();
 
 		$missingAltRows = array_values(array_filter($auditRows, static function (array $row): bool {
 			return (int)($row['analysis']['stats']['missing_alt_texts'] ?? 0) > 0;
@@ -733,6 +768,7 @@ final class SeoSuiteModule
 			'noindex_candidates' => array_slice($noindexCandidates, 0, 10),
 			'hreflang_groups' => $hreflangGroups,
 			'redirect_stats' => $redirectData['stats'] ?? [],
+			'indexnow' => $indexNowStatus,
 		];
 	}
 
@@ -1088,5 +1124,32 @@ final class SeoSuiteModule
 		$value = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', trim($value)) ?? '';
 
 		return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
+	}
+
+	private function normalizeIndexNowKey(string $value): string
+	{
+		$value = trim($value);
+		if ($value === '') {
+			return '';
+		}
+
+		return preg_match('/^[A-Za-z0-9_-]{8,128}$/', $value) === 1 ? $value : '';
+	}
+
+	/**
+	 * @param list<string> $availableFiles
+	 */
+	private function normalizeIndexNowKeyFile(string $value, array $availableFiles): string
+	{
+		$value = trim($value);
+		if ($value === '') {
+			return '';
+		}
+
+		if (preg_match('/^[A-Za-z0-9._-]+\.txt$/', $value) !== 1) {
+			return '';
+		}
+
+		return in_array($value, $availableFiles, true) ? $value : '';
 	}
 }

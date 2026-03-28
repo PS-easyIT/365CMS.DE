@@ -5,13 +5,19 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 459
+### Gesamtstand nach Batch 460
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 459 | 95,12 | 92,74 | 96,22 | 96,35 |
+| 460 | 95,12 | 92,74 | 96,22 | 96,35 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **459 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich fünfzehn Folge-Batches darüber hinaus. Zuletzt wurden zwei Regressions-Bugs im Medienbereich behoben: die fehlerhafte Systemordner-Klassifikation für Member-Unterordner und der Bootstrap-Modal-Trigger-Fallback für Dropdown-Aktionen. Die Kennzahlen bleiben dabei stabil.
+Der aktuelle Nachpflege-Stand umfasst damit **460 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich sechzehn Folge-Batches darüber hinaus. Zuletzt wurde der SEO-Bereich um eine prüfbare IndexNow-Konfiguration erweitert: API-Key, Auswahl vorhandener Root-`.txt`-Dateien und die Validierung von Dateiname, Inhalt, Lesbarkeit und öffentlicher Bereitstellung laufen jetzt konsistent über denselben Admin-/Core-Vertrag. Die Kennzahlen bleiben dabei stabil.
+
+### Delta Folge-Batch 460
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/IndexingService.php`, `CMS/admin/modules/seo/SeoSuiteModule.php`, `CMS/admin/views/seo/technical.php`, `CMS/admin/views/seo/sitemap.php`, `README.md`, `Changelog.md` | umgesetzt | Der SEO-Bereich pflegt IndexNow jetzt direkt über Admin und Core: API-Key und optionale Root-`.txt`-Datei werden allowlist-basiert gespeichert, gegen Dateiname/Inhalt geprüft und zusätzlich auf Lesbarkeit sowie unplausible Dateigröße validiert; README und Changelog spiegeln den neuen Workflow. | IndexNow-Übermittlungen bleiben näher an einem klaren, überprüfbaren Vertrag statt an manuellen Dateisystem-Annahmen; Fehlkonfigurationen der Keydatei werden früher sichtbar, ohne die bestehende dynamische `/<key>.txt`-Auslieferung im Core zu verbiegen. |
 
 ### Delta Folge-Batch 459
 
