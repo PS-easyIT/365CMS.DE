@@ -30,7 +30,7 @@
 
 ## Release-Fokus 2.8.0
 
-Die Dokumentation ist jetzt auf den Release-Candidate-Stand `2.8.0` nachgezogen. Der Schwerpunkt liegt auf den Änderungen der jüngsten Folge-Batches:
+Die Dokumentation ist jetzt auf den dokumentierten Stand `2.8.0` nachgezogen. Der Schwerpunkt liegt auf den Änderungen der jüngsten Folge-Batches:
 
 - native Consent-, Upload-, Picker- und Feed-Laufzeitpfade statt aktiver FilePond-/elFinder-/CookieConsent-/SimplePie-Runtime
 - kompaktere Medienverwaltung im Admin mit Dropdowns, zentralen Modalen und Bulk-Aktionen

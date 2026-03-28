@@ -6,7 +6,7 @@
 - [Core- und Plattformstatus](#core--und-plattformstatus)
 - [Datenbankschema](#datenbankschema)
 - [Aktuelle Admin-Architektur](#aktuelle-admin-architektur)
-- [Wichtige Feature-Stände](#wichtige-feature-stände-in-280-rc)
+- [Wichtige Feature-Stände](#wichtige-feature-stände-in-280)
 - [Bekannte Grenzen](#bekannte-grenzen)
 - [Nächste geplante Features](#nächste-geplante-features)
 - [Deprecations](#deprecations)
@@ -154,6 +154,6 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 
 | Element | Ersetzt durch | Entfernung geplant |
 |---|---|---|
-| SunEditor (Legacy WYSIWYG) | Editor.js (Block-Editor) | v3.0 |
+| SunEditor (Legacy WYSIWYG) | Editor.js (Block-Editor) | bleibt als Editor außerhalb der Bereiche "Beträge & Seiten" erhalten |
 | historische Mailer-Sonderpfade | `MailService` + `CMS/assets/mailer/` | v3.0 |
 | `WP_Error` Kompatibilitätsklasse | Native Exceptions | v3.0 |
