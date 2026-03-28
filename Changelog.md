@@ -5362,7 +5362,8 @@
 
 ---
 
-### v0.5.x — Januar 2026 · CMSv2 Initial · Interner Release
+### v0.5.x — January 2026 · 365CMS v2 Initial Release** | V1→V2 Migration  
+First development attempts with GitHub Copilot (Opus 4.6 and GPT-5.4) via Vibecoding
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
