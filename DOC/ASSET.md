@@ -19,23 +19,18 @@ Gesamtliste der relevanten Runtime- und Legacy-Bundles. Quelle: `CMS/assets/` (P
 | tabler | 1.4.0 | Admin-/Member-UI | `tabler/` | lokal | Admin, Member |
 | editorjs | 2.x | Block-Editor | `editorjs/` | lokal | Admin/Frontend |
 | suneditor | 2.x | Legacy WYSIWYG | `suneditor/` | lokal | Admin |
-| elfinder | 2.1.x | ehem. Dateimanager | `elfinder/` | lokal | Legacy-Bestand |
-| filepond | 4.x | ehem. Upload-Komponente | `filepond/` | lokal | Legacy-Bestand |
 | gridjs | 6.x | Tabellen | `gridjs/` | lokal | Admin |
 | photoswipe | 5.x | Lightbox | `photoswipe/` | lokal | Frontend |
 | php-jwt | 6.x | JWT Tokens | `php-jwt/` | lokal | API/Auth |
 | ldaprecord | 4.x | LDAP/AD | `ldaprecord/` | lokal | Auth |
-| symfony-mailer | 6.x | Mail-Versand | `mailer/` | lokal | System |
-| mailer (legacy) | 1.x | Alt-Mailer | `mailer/legacy` | lokal | Legacy |
+| mailer | Symfony Mailer | Mail-Versand | `mailer/` | lokal | System |
 | tntsearch | 5.x | Volltextsuche | `tntsearchsrc/`, `tntsearchhelper/` | lokal | Suche |
 | translation | 6.x | i18n | `translation/` | lokal | System |
 | twofactorauth | 1.x | TOTP | `twofactorauth/` | lokal | Auth |
 | webauthn | 3.x | Passkeys | `webauthn/` | lokal | Auth |
 | htmlpurifier | 4.x | XSS-Schutz | `htmlpurifier/` | lokal | System |
-| cookieconsent | 3.x | ehem. DSGVO-Banner-Runtime | `cookieconsent/` | lokal | Legacy-Bestand, aktuell nicht aktiv |
 | melbahja-seo | 1.x | SEO-Helfer | `melbahja-seo/` | lokal | SEO |
-| simplepie | 1.9.x | ehem. RSS/Atom-Parser | `simplepiesrc/`, `simplepielibrary/` | lokal | Legacy-Bestand, aktuell nicht aktiv |
-| carbon | 2.x | Datum/Zeit | `carbon/` | lokal | System |
+| carbon | 2.x | Datum/Zeit | `Carbon/` | lokal | System |
 | mime | 6.x | MIME-Erkennung | `mime/` | lokal | Mail/Upload |
 | psr | 3.x | PSR-Interfaces | `psr/` | lokal | Transitiv |
 | translation deps |  | PSR/EventDispatcher | `psr/` | lokal | Transitiv |
@@ -73,14 +68,16 @@ Gesamtliste der relevanten Runtime- und Legacy-Bundles. Quelle: `CMS/assets/` (P
   2) `CMS/assets/autoload.php` prüfen, ob Pfade gleich bleiben.
   3) In Admin-/Frontend-Templates Versionsparameter anpassen.
   4) Falls JS/CSS gebündelt werden muss: extern bauen und minifizierte Artefakte ablegen (Hash im Namen bevorzugt).
+- Falls ein Vendor-Asset perspektivisch ersetzt werden soll: zuerst [ASSETS_OwnAssets.md](ASSETS_OwnAssets.md) als Migrations-Checkliste aktualisieren, dann Wrapper/Fallbacks im Core einziehen.
 
 ---
 
 ## Synchronisation <!-- UPDATED: 2026-03-28 -->
 - Quelle der Wahrheiten: `CMS/assets/` (Runtime) + `DOC/assets/README.md`.
 - **Excel-Abgleich:** `DOC/assets/365CMS_Asset_Uebersicht.xlsx` regelmäßig mit obiger Tabelle synchron halten.
-- **Staging vs. Prod:** `ASSETS/` nur als Ablage; produktiver Autoload ausschließlich `CMS/assets/autoload.php`.
+- **Staging vs. Prod:** `ASSETS/` nur als Ablage für Quell-/Importstände; produktiver Autoload ausschließlich `CMS/assets/autoload.php`.
 - führende Detaildoku: `DOC/assets/README.md` plus die jeweiligen Einzel-READMEs
+- Roadmap für Eigenersatz: `DOC/ASSETS_OwnAssets.md`
 
 ---
 

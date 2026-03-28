@@ -22,6 +22,7 @@
 | den Member-Bereich betreut | [member/README.md](member/README.md) |
 | den Medienbereich nachvollziehen wollt | [admin/media/README.md](admin/media/README.md) |
 | Asset-/Vendor-Stände prüfen wollt | [assets/README.md](assets/README.md) |
+| Fremd-Assets schrittweise ersetzen wollt | [ASSETS_OwnAssets.md](ASSETS_OwnAssets.md) |
 | Plugins entwickelt | [plugins/PLUGIN-DEVELOPMENT.md](plugins/PLUGIN-DEVELOPMENT.md) |
 | Themes entwickelt | [theme/THEME-DEVELOPMENT.md](theme/THEME-DEVELOPMENT.md) |
 

@@ -98,7 +98,7 @@
 
 | Bereich | Dokumente |
 |---|---|
-| Assets | [ASSET.md](ASSET.md), [assets/README.md](assets/README.md) |
+| Assets | [ASSET.md](ASSET.md), [assets/README.md](assets/README.md), [ASSETS_OwnAssets.md](ASSETS_OwnAssets.md) |
 | Audits | [audit/BEWERTUNG.md](audit/BEWERTUNG.md), [audit/PRÜFUNG.MD](audit/PRÜFUNG.MD), [audit/ToDoPrüfung.md](audit/ToDoPrüfung.md) |
 | Workflows | `DOC/workflow/*.md` |
 
@@ -133,5 +133,6 @@ Diese Dokumente enthalten teils Live-Stände, Auditfortschritte oder operative R
 | Hooks nutzen | [core/HOOKS-REFERENCE.md](core/HOOKS-REFERENCE.md) |
 | Sicherheit (CSRF/XSS) | [core/SECURITY.md](core/SECURITY.md) |
 | Asset-Stand prüfen | [assets/README.md](assets/README.md) |
+| Vendor-Assets ersetzen | [ASSETS_OwnAssets.md](ASSETS_OwnAssets.md) |
 | Audit-Stand prüfen | [audit/BEWERTUNG.md](audit/BEWERTUNG.md) |
 | Systemstatus prüfen | [core/STATUS.md](core/STATUS.md) |

@@ -155,5 +155,5 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 | Element | Ersetzt durch | Entfernung geplant |
 |---|---|---|
 | SunEditor (Legacy WYSIWYG) | Editor.js (Block-Editor) | v3.0 |
-| `mailer/` (Legacy Mailer) | Symfony Mailer (`symfony-mailer/`) | v3.0 |
+| historische Mailer-Sonderpfade | `MailService` + `CMS/assets/mailer/` | v3.0 |
 | `WP_Error` Kompatibilitätsklasse | Native Exceptions | v3.0 |

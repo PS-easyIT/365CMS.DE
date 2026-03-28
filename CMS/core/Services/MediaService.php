@@ -158,6 +158,24 @@ class MediaService {
         ];
     }
 
+    /**
+     * @param array<int, string> $groups
+     * @return array<int, string>
+     */
+    private function expandTypeGroups(array $groups): array
+    {
+        $typeMap = $this->getTypeMap();
+        $extensions = [];
+
+        foreach ($groups as $group) {
+            foreach ($typeMap[$group] ?? [] as $extension) {
+                $extensions[$extension] = true;
+            }
+        }
+
+        return array_keys($extensions);
+    }
+
     private function sanitizeSizeSetting(string $size, string $fallback): string {
         $normalized = strtoupper(str_replace(' ', '', trim($size)));
         // Bare number without unit → treat as MB (matches what the admin form sends)
@@ -210,12 +228,13 @@ class MediaService {
 
     /**
      * @param array<int,string> $rawValues
-     * @param array<int,string> $allowedGroups
+     * @param array<int,string> $allowedExtensions
      * @return array<int,string>
      */
-    private function normalizeAllowedTypeSelection(array $rawValues, array $allowedGroups): array
+    private function normalizeAllowedTypeSelection(array $rawValues, array $allowedExtensions): array
     {
         $typeMap = $this->getTypeMap();
+        $allowedLookup = array_fill_keys($allowedExtensions, true);
         $normalized = [];
 
         foreach ($rawValues as $value) {
@@ -224,15 +243,14 @@ class MediaService {
                 continue;
             }
 
-            if (in_array($value, $allowedGroups, true)) {
+            if (isset($allowedLookup[$value])) {
                 $normalized[$value] = true;
                 continue;
             }
 
-            foreach ($allowedGroups as $group) {
-                if (in_array($value, $typeMap[$group] ?? [], true)) {
-                    $normalized[$group] = true;
-                    break;
+            foreach ($typeMap[$value] ?? [] as $extension) {
+                if (isset($allowedLookup[$extension])) {
+                    $normalized[$extension] = true;
                 }
             }
         }
@@ -242,7 +260,8 @@ class MediaService {
 
     private function normalizeSettings(array $settings): array {
         $defaults = $this->getDefaultSettings();
-        $allTypes = array_keys($this->getTypeMap());
+        $allTypes = $this->expandTypeGroups(['image', 'video', 'audio', 'document', 'archive']);
+        $memberTypes = $this->expandTypeGroups(['image', 'document']);
 
         $allowedTypes = $this->normalizeAllowedTypeSelection(
             array_map('strval', (array) $this->getSettingValue($settings, ['allowed_types'], $defaults['allowed_types'])),
@@ -254,10 +273,10 @@ class MediaService {
 
         $memberAllowedTypes = $this->normalizeAllowedTypeSelection(
             array_map('strval', (array) $this->getSettingValue($settings, ['member_allowed_types'], $defaults['member_allowed_types'])),
-            ['image', 'document', 'video', 'audio']
+            $memberTypes
         );
         if ($memberAllowedTypes === []) {
-            $memberAllowedTypes = $defaults['member_allowed_types'];
+            $memberAllowedTypes = $memberTypes;
         }
 
         return array_merge($defaults, [
@@ -384,18 +403,20 @@ class MediaService {
             return new WP_Error('type_blocked', 'SVG-Uploads sind aus Sicherheitsgründen deaktiviert.');
         }
 
-        $allowedGroups = array_map('strval', (array) ($settings['allowed_types'] ?? ['image', 'document']));
+        $allowedGroups = array_map('strval', (array) ($settings['allowed_types'] ?? $this->expandTypeGroups(['image', 'document'])));
         $typeMap = $this->getTypeMap();
 
         if (($settings['block_dangerous_types'] ?? false) && in_array($ext, $this->getDangerousExtensions(), true)) {
             return new WP_Error('dangerous_type', 'Gefährlicher Dateityp wurde blockiert: ' . $ext);
         }
 
-        $isAllowed = false;
-        foreach ($allowedGroups as $group) {
-            if (isset($typeMap[$group]) && in_array($ext, $typeMap[$group], true)) {
-                $isAllowed = true;
-                break;
+        $isAllowed = in_array($ext, $allowedGroups, true);
+        if (!$isAllowed) {
+            foreach ($allowedGroups as $group) {
+                if (isset($typeMap[$group]) && in_array($ext, $typeMap[$group], true)) {
+                    $isAllowed = true;
+                    break;
+                }
             }
         }
 

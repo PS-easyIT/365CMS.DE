@@ -108,12 +108,13 @@ class MediaModule
 
     /**
      * @param array<int, string> $values
-     * @param array<int, string> $allowedGroups
+     * @param array<int, string> $allowedExtensions
      * @return array<int, string>
      */
-    private function normalizeSettingTypeSelection(array $values, array $allowedGroups): array
+    private function normalizeSettingTypeSelection(array $values, array $allowedExtensions): array
     {
         $typeMap = $this->getTypeMap();
+        $allowedLookup = array_fill_keys($allowedExtensions, true);
         $normalized = [];
 
         foreach ($values as $value) {
@@ -122,20 +123,29 @@ class MediaModule
                 continue;
             }
 
-            if (in_array($value, $allowedGroups, true)) {
+            if (isset($allowedLookup[$value])) {
                 $normalized[$value] = true;
                 continue;
             }
 
-            foreach ($allowedGroups as $group) {
-                if (in_array($value, $typeMap[$group] ?? [], true)) {
-                    $normalized[$group] = true;
-                    break;
+            foreach ($typeMap[$value] ?? [] as $extension) {
+                if (isset($allowedLookup[$extension])) {
+                    $normalized[$extension] = true;
                 }
             }
         }
 
         return array_keys($normalized);
+    }
+
+    /**
+     * @param array<int, string> $values
+     * @param array<int, string> $allowedExtensions
+     * @return array<int, string>
+     */
+    private function expandStoredTypeSelection(array $values, array $allowedExtensions): array
+    {
+        return $this->normalizeSettingTypeSelection($values, $allowedExtensions);
     }
 
     private function convertSizeSettingToMegabytes(mixed $value, int $defaultMegabytes): int
@@ -178,10 +188,17 @@ class MediaModule
     private function buildSettingsViewModel(array $settings): array
     {
         $settings = array_merge(self::SETTINGS_DEFAULTS, $settings);
+        $options = $this->buildSettingsOptions();
 
         return array_merge($settings, [
-            'allowed_types' => $this->expandTypeGroups(array_map('strval', (array) ($settings['allowed_types'] ?? []))),
-            'member_allowed_types' => $this->expandTypeGroups(array_map('strval', (array) ($settings['member_allowed_types'] ?? []))),
+            'allowed_types' => $this->expandStoredTypeSelection(
+                array_map('strval', (array) ($settings['allowed_types'] ?? [])),
+                array_map('strval', (array) ($options['allowed_types'] ?? []))
+            ),
+            'member_allowed_types' => $this->expandStoredTypeSelection(
+                array_map('strval', (array) ($settings['member_allowed_types'] ?? [])),
+                array_map('strval', (array) ($options['member_allowed_types'] ?? []))
+            ),
             'max_upload_size' => $this->convertSizeSettingToMegabytes($settings['max_upload_size'] ?? null, 64),
             'member_max_upload_size' => $this->convertSizeSettingToMegabytes($settings['member_max_upload_size'] ?? null, 5),
             'sanitize_filename' => (bool) ($settings['sanitize_filenames'] ?? false),
@@ -739,8 +756,9 @@ class MediaModule
     {
         $settings = $this->service->getSettings();
         $originalSettings = $settings;
-        $allTypes = array_keys($this->getTypeMap());
-        $memberTypes = ['image', 'document', 'video', 'audio'];
+        $options = $this->buildSettingsOptions();
+        $allTypes = array_map('strval', (array) ($options['allowed_types'] ?? []));
+        $memberTypes = array_map('strval', (array) ($options['member_allowed_types'] ?? []));
 
         // Size fields: form sends a plain number (MB); append 'M' if no unit suffix
         foreach (['max_upload_size', 'member_max_upload_size'] as $key) {
@@ -803,19 +821,22 @@ class MediaModule
 
         // Arrays
         $settings['allowed_types'] = $this->normalizeSettingTypeSelection(
-            array_values(array_unique(array_map('strval', (array)($input['allowed_types'] ?? ['image'])))),
+            array_values(array_unique(array_map('strval', (array)($input['allowed_types'] ?? $this->expandTypeGroups(['image']))))),
             $allTypes
         );
         if ($settings['allowed_types'] === []) {
-            $settings['allowed_types'] = ['image'];
+            $settings['allowed_types'] = $this->expandTypeGroups(['image']);
         }
 
         $settings['member_allowed_types'] = $this->normalizeSettingTypeSelection(
-            array_values(array_unique(array_map('strval', (array)($input['member_allowed_types'] ?? ['image'])))),
+            array_values(array_unique(array_map('strval', (array)($input['member_allowed_types'] ?? $this->expandTypeGroups(['image']))))),
             $memberTypes
         );
         if ($settings['member_allowed_types'] === []) {
-            $settings['member_allowed_types'] = ['image'];
+            $settings['member_allowed_types'] = array_values(array_intersect(
+                $this->expandTypeGroups(['image']),
+                $memberTypes
+            ));
         }
 
         $result = $this->service->saveSettings($settings);
